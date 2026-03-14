@@ -2,21 +2,30 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Settings, 
   Type,
-  Zap,
-  Eye
+  Palette,
+  Check
 } from "lucide-react";
-import { THEME_PRESETS, ThemeId } from "../config/themeConfig";
+import { FONT_OPTIONS, COLOR_PALETTES, FontId, ColorPaletteId } from "../config/themeConfig";
 
 interface UiCommandPanelProps {
-  currentTheme: ThemeId;
-  onThemeChange: (theme: ThemeId) => void;
+  currentFont: FontId;
+  currentColor: ColorPaletteId;
+  onFontChange: (id: FontId) => void;
+  onColorChange: (id: ColorPaletteId) => void;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
 const transition = { type: "spring", stiffness: 300, damping: 30 };
 
-export function UiCommandPanel({ currentTheme, onThemeChange, isOpen, onOpenChange }: UiCommandPanelProps) {
+export function UiCommandPanel({ 
+  currentFont, 
+  currentColor, 
+  onFontChange, 
+  onColorChange, 
+  isOpen, 
+  onOpenChange 
+}: UiCommandPanelProps) {
   return (
     <motion.aside
       initial={false}
@@ -49,7 +58,6 @@ export function UiCommandPanel({ currentTheme, onThemeChange, isOpen, onOpenChan
         </button>
       </div>
 
-      {/* Internal Content (Fixed Width to prevent wrapping) */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 w-[260px]">
         <AnimatePresence>
           {isOpen && (
@@ -58,61 +66,62 @@ export function UiCommandPanel({ currentTheme, onThemeChange, isOpen, onOpenChan
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -20 }}
               transition={{ duration: 0.15 }}
-              className="space-y-8"
+              className="space-y-10"
             >
-              {/* Profile Selection */}
+              {/* TYPOGRAPHY SECTION */}
               <div className="space-y-4">
-                <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">Tactical Profiles</div>
-                <div className="space-y-2">
-                  {(Object.keys(THEME_PRESETS) as ThemeId[]).map((themeId) => (
+                <div className="flex items-center gap-2 px-1">
+                  <Type className="h-3 w-3 text-gray-400" />
+                  <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Typography Forge</div>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {FONT_OPTIONS.map((option) => (
                     <button
-                      key={themeId}
-                      onClick={() => onThemeChange(themeId)}
-                      className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all border group
-                        ${currentTheme === themeId 
-                          ? 'bg-gray-900 border-gray-800 shadow-lg scale-[1.02]' 
-                          : 'bg-white border-gray-100 hover:border-blue-200 hover:bg-gray-50'}
+                      key={option.id}
+                      onClick={() => onFontChange(option.id)}
+                      style={{ fontFamily: option.family }}
+                      className={`
+                        w-full flex items-center justify-between p-3 rounded-xl transition-all border
+                        ${currentFont === option.id 
+                          ? 'bg-gray-900 border-gray-800 text-white shadow-lg' 
+                          : 'bg-white border-gray-100 hover:border-gray-300 text-gray-600'}
                       `}
                     >
-                      <div 
-                        className="h-10 w-10 rounded-lg shadow-inner border border-gray-200/50 flex-shrink-0 flex flex-col p-1 gap-0.5" 
-                        style={{ background: THEME_PRESETS[themeId].bg }}
-                      >
-                        <div className="h-2 w-full rounded-sm" style={{ background: THEME_PRESETS[themeId].accent }} />
-                        <div className="flex-1 flex gap-0.5">
-                          <div className="flex-1 rounded-sm" style={{ background: THEME_PRESETS[themeId].tabActiveBg }} />
-                          <div className="flex-1 rounded-sm border border-gray-200/20" style={{ background: THEME_PRESETS[themeId].panel }} />
-                        </div>
-                      </div>
-                      <div className="text-left overflow-hidden">
-                        <div className={`text-xs font-black uppercase tracking-tight ${currentTheme === themeId ? 'text-white' : 'text-gray-900'}`}>
-                          {themeId.split('-').join(' ')}
-                        </div>
-                        <div className={`text-[10px] font-bold truncate ${currentTheme === themeId ? 'text-gray-400' : 'text-gray-500'}`}>
-                          {THEME_PRESETS[themeId].fontFamily.split(',')[0].replace(/"/g, '')}
-                        </div>
-                      </div>
+                      <span className="text-sm font-bold">{option.label}</span>
+                      {currentFont === option.id && <Check className="h-3.5 w-3.5 text-blue-400" />}
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Placeholder Controls */}
+              {/* COLOR SYSTEMS SECTION */}
               <div className="space-y-4">
-                <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">Tactical Overlays</div>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-4 p-3 rounded-xl bg-gray-50 border border-gray-100 opacity-60">
-                    <div className="h-8 w-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center">
-                      <Zap className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <div className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">Focus Mode</div>
-                  </div>
-                  <div className="flex items-center gap-4 p-3 rounded-xl bg-gray-50 border border-gray-100 opacity-60">
-                    <div className="h-8 w-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center">
-                      <Eye className="h-4 w-4 text-gray-400" />
-                    </div>
-                    <div className="text-[11px] font-bold text-gray-400 uppercase tracking-tight">High Contrast</div>
-                  </div>
+                <div className="flex items-center gap-2 px-1">
+                  <Palette className="h-3 w-3 text-gray-400" />
+                  <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Color Systems</div>
+                </div>
+                <div className="grid grid-cols-1 gap-2">
+                  {COLOR_PALETTES.map((palette) => (
+                    <button
+                      key={palette.id}
+                      onClick={() => onColorChange(palette.id)}
+                      className={`
+                        w-full flex items-center gap-4 p-3 rounded-xl transition-all border group
+                        ${currentColor === palette.id 
+                          ? 'bg-gray-900 border-gray-800 text-white shadow-lg' 
+                          : 'bg-white border-gray-100 hover:border-gray-300 text-gray-600'}
+                      `}
+                    >
+                      <div 
+                        className="h-6 w-6 rounded-full shadow-inner border border-white/20 flex-shrink-0" 
+                        style={{ background: palette.colors.accent }}
+                      />
+                      <div className="text-left">
+                        <div className="text-xs font-black uppercase tracking-tight">{palette.label}</div>
+                      </div>
+                      {currentColor === palette.id && <Check className="h-3.5 w-3.5 text-blue-400 ml-auto" />}
+                    </button>
+                  ))}
                 </div>
               </div>
             </motion.div>

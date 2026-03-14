@@ -10,7 +10,7 @@ import { OverviewTab } from "@/app/tabs/OverviewTab";
 import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
 import { ChartsTab } from "@/app/tabs/ChartsTab";
 import { EconomicCalendarTab } from "@/app/tabs/EconomicCalendarTab";
-import { THEME_PRESETS, ThemeId } from "@/app/config/themeConfig";
+import { FONT_OPTIONS, COLOR_PALETTES, FontId, ColorPaletteId } from "@/app/config/themeConfig";
 import type { BridgeHealth, BridgeStatus, CalendarEvent, MarketStatusResponse, TabId } from "@/app/types";
 
 const TAB_ORDER: { id: TabId; label: string }[] = [
@@ -41,21 +41,27 @@ export default function App() {
   const [marketStatus, setMarketStatus] = useState<MarketStatusResponse | null>(null);
   const feedEventsRef = useRef<CalendarEvent[]>([]);
 
-  // Theme Engine
-  const [currentTheme, setCurrentTheme] = useState<ThemeId>(() => {
-    const saved = localStorage.getItem('terminal-theme') as ThemeId;
-    return (saved && THEME_PRESETS[saved]) ? saved : 'neo-quant';
+  // Independent Aesthetic Forge
+  const [currentFont, setCurrentFont] = useState<FontId>(() => {
+    const saved = localStorage.getItem('terminal-font') as FontId;
+    return FONT_OPTIONS.some(f => f.id === saved) ? saved : 'geist';
+  });
+
+  const [currentColor, setCurrentColor] = useState<ColorPaletteId>(() => {
+    const saved = localStorage.getItem('terminal-color') as ColorPaletteId;
+    return COLOR_PALETTES.some(c => c.id === saved) ? saved : 'sovereign-blue';
   });
 
   useEffect(() => {
-    const theme = THEME_PRESETS[currentTheme] || THEME_PRESETS['neo-quant'];
+    const font = FONT_OPTIONS.find(f => f.id === currentFont) || FONT_OPTIONS[0];
+    const palette = COLOR_PALETTES.find(c => c.id === currentColor) || COLOR_PALETTES[0];
+    const theme = palette.colors;
     const root = document.documentElement;
     
     root.style.setProperty('--bg', theme.bg);
     root.style.setProperty('--panel', theme.panel);
     root.style.setProperty('--panel-strong', theme.panelStrong);
     root.style.setProperty('--line', theme.line);
-    root.style.setProperty('--line-strong', theme.lineStrong);
     root.style.setProperty('--text', theme.text);
     root.style.setProperty('--muted', theme.muted);
     root.style.setProperty('--accent', theme.accent);
@@ -67,10 +73,11 @@ export default function App() {
     root.style.setProperty('--tab-active-text', theme.tabActiveText);
     root.style.setProperty('--tab-inactive-text', theme.tabInactiveText);
     
-    root.style.setProperty('font-family', theme.fontFamily);
+    root.style.setProperty('font-family', font.family);
     
-    localStorage.setItem('terminal-theme', currentTheme);
-  }, [currentTheme]);
+    localStorage.setItem('terminal-font', currentFont);
+    localStorage.setItem('terminal-color', currentColor);
+  }, [currentFont, currentColor]);
 
   useEffect(() => {
     let cancelled = false;
@@ -166,8 +173,10 @@ export default function App() {
   return (
     <div className="flex min-h-screen bg-[var(--bg)] transition-colors duration-300 overflow-hidden">
       <UiCommandPanel 
-        currentTheme={currentTheme} 
-        onThemeChange={setCurrentTheme}
+        currentFont={currentFont}
+        currentColor={currentColor}
+        onFontChange={setCurrentFont}
+        onColorChange={setCurrentColor}
         isOpen={isUiPanelOpen}
         onOpenChange={setIsUiPanelOpen}
       />
