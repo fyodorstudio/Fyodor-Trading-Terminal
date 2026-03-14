@@ -192,8 +192,17 @@ export function CentralBanksTab({
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className="text-sm font-bold text-gray-700">{renderValue(snapshot.currentInflationRate)}</span>
-                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">YoY CPI</span>
+                        <span className="text-lg font-black text-gray-900 tracking-tight leading-none mb-1">
+                          {renderValue(snapshot.currentInflationRate)}
+                        </span>
+                        <div className="flex flex-col">
+                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">
+                            Prev: {renderValue(snapshot.previousInflationRate)}
+                          </span>
+                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">
+                            YoY CPI
+                          </span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
