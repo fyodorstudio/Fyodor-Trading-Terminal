@@ -11,6 +11,13 @@ Welcome, Traveler! This log tracks your journey through the code. Every save poi
 
 ## 📜 Quest History
 
+### [REPAIR COMPLETE] Status Toast Migration & Chart Cleanup
+**Timestamp:** 2026-03-14 17:30 (Sabtu, 14 Maret 2026)
+**Git Save Point:** `8e972c9` ("Migrated Chart Status Toast to Control Bar for better visibility")
+*The traveler has successfully moved the status info from the chart area to the control bar, preventing UI collisions.*
+
+---
+
 ### [REPAIR COMPLETE] Symbol Picker Z-index overlap fix
 **Timestamp:** 2026-03-14 17:15 (Sabtu, 14 Maret 2026)
 **Git Save Point:** `3f06089` ("Fixed Symbol Picker Z-index overlap bug")
