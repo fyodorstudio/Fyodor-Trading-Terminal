@@ -2,7 +2,8 @@
 
 :root {
   color-scheme: light;
-  font-family: Aptos, "Helvetica Neue", sans-serif;
+  --font-main: "Geist", "Inter", sans-serif;
+  font-family: var(--font-main);
   line-height: 1.45;
   font-weight: 400;
   color: #23262d;

@@ -73,7 +73,7 @@ export default function App() {
     root.style.setProperty('--tab-active-text', theme.tabActiveText);
     root.style.setProperty('--tab-inactive-text', theme.tabInactiveText);
     
-    root.style.setProperty('font-family', font.family);
+    root.style.setProperty('--font-main', font.family);
     
     localStorage.setItem('terminal-font', currentFont);
     localStorage.setItem('terminal-color', currentColor);
