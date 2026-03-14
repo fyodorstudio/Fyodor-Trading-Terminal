@@ -115,74 +115,76 @@ export function CentralBanksTab({
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-2xl shadow-sm overflow-hidden"
+            className="bg-white/95 border-2 border-gray-200 rounded-3xl shadow-xl overflow-hidden"
           >
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Institution</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Current Rate</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Previous</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Trend</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Last Release</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Next Event</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Inflation</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Status</th>
+                <tr className="border-b-2 border-gray-100 bg-gray-50/80">
+                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Institution</th>
+                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Current Rate</th>
+                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Previous</th>
+                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest text-center">Trend</th>
+                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Last Release</th>
+                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Next Event</th>
+                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Inflation</th>
+                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest text-right">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y-2 divide-gray-50">
                 {snapshots.map((snapshot, index) => (
                   <motion.tr 
                     key={snapshot.currency}
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.02 }}
-                    className="hover:bg-white/80 transition-colors group"
+                    className="hover:bg-blue-50/30 transition-colors group"
                   >
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <FlagIcon countryCode={snapshot.countryCode} className="h-4 w-6 shadow-sm flex-shrink-0" />
+                    <td className="px-6 py-6">
+                      <div className="flex items-center gap-4">
+                        <FlagIcon countryCode={snapshot.countryCode} className="h-6 w-9 shadow-md flex-shrink-0" />
                         <div>
-                          <div className="text-sm font-bold text-gray-900">{snapshot.bankName}</div>
-                          <div className="text-[10px] font-black text-gray-400 uppercase tracking-tight">{snapshot.currency}</div>
+                          <div className="text-base font-black text-gray-900 leading-tight">{snapshot.bankName}</div>
+                          <div className="text-xs font-black text-blue-600 uppercase tracking-widest">{snapshot.currency}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-6">
                       <div className="flex flex-col">
-                        <span className="text-lg font-black text-gray-900 tracking-tight leading-none mb-1">
+                        <span className="text-2xl font-black text-gray-900 tracking-tighter leading-none mb-1">
                           {renderValue(snapshot.currentPolicyRate)}
                         </span>
-                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
                           {renderSourceLabel(snapshot.policyRateSource)}
                         </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className="text-sm font-bold text-gray-600">
+                    <td className="px-6 py-6">
+                      <span className="text-lg font-bold text-gray-600">
                         {renderValue(snapshot.previousPolicyRate)}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-6">
                       <div className="flex justify-center">
-                        <div className="p-1.5 bg-white rounded-lg border border-gray-100 shadow-sm">
+                        <div className="p-2.5 bg-white rounded-xl border-2 border-gray-100 shadow-sm">
                           <TrendIndicator current={snapshot.currentPolicyRate} previous={snapshot.previousPolicyRate} />
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-gray-900 text-xs font-bold">{formatDateOnly(snapshot.lastRateReleaseAt)}</span>
-                        <span className="text-gray-400 text-[9px] uppercase font-black">{formatRelativeAge(snapshot.lastRateReleaseAt)}</span>
+                    <td className="px-6 py-6">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-gray-900 text-sm font-black tracking-tight">{formatDateOnly(snapshot.lastRateReleaseAt)}</span>
+                        <span className="text-gray-600 text-[10px] uppercase font-black bg-gray-100 px-2 py-0.5 rounded-full w-fit">
+                          {formatRelativeAge(snapshot.lastRateReleaseAt)}
+                        </span>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-xs font-medium">
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-blue-600 text-xs font-bold">
+                    <td className="px-6 py-6">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-blue-700 text-sm font-black tracking-tight">
                           {snapshot.nextRateEventAt ? formatDateOnly(snapshot.nextRateEventAt) : "Awaiting Schedule"}
                         </span>
                         {snapshot.nextRateEventAt && (
-                          <span className="text-gray-400 text-[9px] uppercase font-black">
+                          <span className="text-blue-600 text-[10px] uppercase font-black bg-blue-50 px-2 py-0.5 rounded-full w-fit border border-blue-100">
                             {new Date(snapshot.nextRateEventAt * 1000) > new Date() 
                               ? `in ${formatDistanceToNow(new Date(snapshot.nextRateEventAt * 1000))}` 
                               : "Pending Release"}
@@ -190,26 +192,26 @@ export function CentralBanksTab({
                         )}
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-6">
                       <div className="flex flex-col">
-                        <span className="text-lg font-black text-gray-900 tracking-tight leading-none mb-1">
+                        <span className="text-2xl font-black text-gray-900 tracking-tighter leading-none mb-1">
                           {renderValue(snapshot.currentInflationRate)}
                         </span>
-                        <div className="flex flex-col">
-                          <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
                             Prev: {renderValue(snapshot.previousInflationRate)}
                           </span>
-                          <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">
+                          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">
                             YoY CPI
                           </span>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest border ${
-                        snapshot.status === 'ok' ? 'bg-green-50 text-green-700 border-green-100' : 
-                        snapshot.status === 'partial' ? 'bg-amber-50 text-amber-700 border-amber-100' : 
-                        'bg-red-50 text-red-700 border-red-100'
+                    <td className="px-6 py-6 text-right">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest border-2 ${
+                        snapshot.status === 'ok' ? 'bg-green-50 text-green-700 border-green-200' : 
+                        snapshot.status === 'partial' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
+                        'bg-red-50 text-red-700 border-red-200'
                       }`}>
                         {snapshot.status}
                       </span>
