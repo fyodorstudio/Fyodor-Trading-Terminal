@@ -25,27 +25,26 @@ export function UiCommandPanel({ currentTheme, onThemeChange, isOpen, onOpenChan
       className="fixed left-0 top-0 bottom-0 z-[100] bg-white border-r border-gray-200 flex flex-col shadow-2xl overflow-hidden"
     >
       {/* Header / Toggle */}
-      <div className="flex items-center justify-between p-3 min-h-[64px] border-b border-gray-100 bg-gray-50/50">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="p-2 bg-gray-900 rounded-lg shadow-lg flex-shrink-0">
-            <Settings className="h-4 w-4 text-blue-400" />
-          </div>
-          <AnimatePresence>
-            {isOpen && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                className="overflow-hidden"
-              >
-                <div className="text-xs font-black text-gray-900 uppercase tracking-widest whitespace-nowrap">Aesthetic Forge</div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+      <div className={`flex items-center p-3 min-h-[64px] border-b border-gray-100 bg-gray-50/50 transition-all duration-300 ${isOpen ? 'justify-between' : 'justify-center'}`}>
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              className="flex items-center gap-3 overflow-hidden"
+            >
+              <div className="p-2 bg-gray-900 rounded-lg shadow-lg flex-shrink-0">
+                <Settings className="h-4 w-4 text-blue-400" />
+              </div>
+              <div className="text-xs font-black text-gray-900 uppercase tracking-widest whitespace-nowrap">Aesthetic Forge</div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+        
         <button 
           onClick={() => onOpenChange(!isOpen)}
-          className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors flex-shrink-0 ml-2"
+          className={`p-1.5 hover:bg-gray-200 rounded-lg transition-colors flex-shrink-0 ${isOpen ? 'ml-2' : ''}`}
         >
           {isOpen ? <ChevronLeft className="h-4 w-4 text-gray-500" /> : <ChevronRight className="h-4 w-4 text-gray-500" />}
         </button>
