@@ -40,11 +40,12 @@ export default function App() {
 
   // Theme Engine
   const [currentTheme, setCurrentTheme] = useState<ThemeId>(() => {
-    return (localStorage.getItem('terminal-theme') as ThemeId) || 'neo-quant';
+    const saved = localStorage.getItem('terminal-theme') as ThemeId;
+    return (saved && THEME_PRESETS[saved]) ? saved : 'neo-quant';
   });
 
   useEffect(() => {
-    const theme = THEME_PRESETS[currentTheme];
+    const theme = THEME_PRESETS[currentTheme] || THEME_PRESETS['neo-quant'];
     const root = document.documentElement;
     
     root.style.setProperty('--bg', theme.bg);
