@@ -11,15 +11,22 @@ Welcome, Traveler! This log tracks your journey through the code. Every save poi
 
 ## 📜 Quest History
 
-### [QUEST COMPLETE] Enhance Central Bank Data Display
-**Timestamp:** 2026-03-14 18:00 (Sabtu, 14 Maret 2026)
-**Git Save Point:** `80502cc` ("Refactored Central Banks Tab into Institutional Grid with Glassmorphism")
-*The traveler has successfully transformed the central bank table into a modern institutional grid of glass cards.*
+### [QUEST COMPLETE] Enhance Central Bank Data Display (Choice B)
+**Timestamp:** 2026-03-14 18:15 (Sabtu, 14 Maret 2026)
+**Git Save Point:** `5aa38ed` ("Refactored Central Banks Tab into Command Center Table with Trend Analysis")
+*The traveler has successfully implemented the 'Command Center' table, prioritizing data density and trend analysis.*
 
 #### **New Gear Acquired:**
-- **Institutional Bank Cards:** A responsive grid of 8 bank cards for quick currency analysis.
-- **Trend Indicators:** Visual cues for interest rate changes.
-- **Enhanced Status Bar:** A clean top bar for central bank resolution metrics.
+- **Command Table:** A compact, high-density table for professional currency analysis.
+- **Trend Analysis Node:** A dedicated column showing the direction (Up/Down) of interest rates.
+- **Inflation Progress Indicators:** Mini-bars for visualizing relative inflation levels.
+
+---
+
+### [QUEST COMPLETE] Enhance Central Bank Data Display (Choice A - Archived)
+**Timestamp:** 2026-03-14 18:00 (Sabtu, 14 Maret 2026)
+**Git Save Point:** `80502cc` ("Refactored Central Banks Tab into Institutional Grid with Glassmorphism")
+*The traveler previously built the 'Institutional Grid'. This can still be re-loaded via Git if needed.*
 
 ---
 
