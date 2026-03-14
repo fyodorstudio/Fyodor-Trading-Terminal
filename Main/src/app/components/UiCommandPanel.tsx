@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Settings, 
@@ -6,7 +6,8 @@ import {
   Palette,
   Check,
   Zap,
-  Eye
+  Save,
+  RotateCcw
 } from "lucide-react";
 import { FONT_OPTIONS, COLOR_PALETTES, FontId, ColorPaletteId, FontOption } from "../config/themeConfig";
 
@@ -29,12 +30,36 @@ export function UiCommandPanel({
   isOpen, 
   onOpenChange 
 }: UiCommandPanelProps) {
+  // Staging Area
+  const [pendingFont, setPendingFont] = useState<FontId>(currentFont);
+  const [pendingColor, setPendingColor] = useState<ColorPaletteId>(currentColor);
+  
   const [hoveredFont, setHoveredFont] = useState<FontOption | null>(null);
   const [isForging, setIsForging] = useState(false);
 
+  // Sync staging with active when panel opens
+  useEffect(() => {
+    if (isOpen) {
+      setPendingFont(currentFont);
+      setPendingColor(currentColor);
+    }
+  }, [isOpen, currentFont, currentColor]);
+
+  const hasChanges = pendingFont !== currentFont || pendingColor !== currentColor;
+
+  const handleApply = () => {
+    onFontChange(pendingFont);
+    onColorChange(pendingColor);
+  };
+
+  const handleReset = () => {
+    setPendingFont(currentFont);
+    setPendingColor(currentColor);
+  };
+
   return (
     <div className="relative">
-      {/* BACKDROP ISOLATION (Triggered by Forge state) */}
+      {/* BACKDROP ISOLATION */}
       <AnimatePresence>
         {(isForging || hoveredFont) && isOpen && (
           <motion.div 
@@ -57,7 +82,7 @@ export function UiCommandPanel({
         }}
         className="fixed left-0 top-0 bottom-0 z-[200] bg-white border-r border-gray-200 flex flex-col shadow-2xl overflow-hidden select-none"
       >
-        {/* Header / Toggle (Fixed Gear) */}
+        {/* Header / Toggle */}
         <div className="flex items-center px-4 min-h-[64px] border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
           <button 
             onClick={() => onOpenChange(!isOpen)}
@@ -90,41 +115,39 @@ export function UiCommandPanel({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.15 }}
-                className="space-y-10"
+                className="space-y-10 pb-20"
               >
-                {/* HYBRID: TYPOGRAPHY TILES */}
+                {/* TYPOGRAPHY TILES */}
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between px-1">
-                    <div className="flex items-center gap-2">
-                      <Type className="h-3 w-3 text-gray-400" />
-                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Typography Forge</div>
-                    </div>
+                  <div className="flex items-center gap-2 px-1">
+                    <Type className="h-3 w-3 text-gray-400" />
+                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Typography Forge</div>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-2">
                     {FONT_OPTIONS.map((option) => (
                       <button
                         key={option.id}
-                        onClick={() => onFontChange(option.id)}
+                        onClick={() => setPendingFont(option.id)}
                         onMouseEnter={() => setHoveredFont(option)}
                         onMouseLeave={() => setHoveredFont(null)}
                         className={`
                           relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all group
-                          ${currentFont === option.id 
+                          ${pendingFont === option.id 
                             ? 'bg-gray-900 border-gray-800 text-white shadow-lg scale-[1.02]' 
                             : 'bg-white border-gray-100 hover:border-blue-200 hover:scale-[1.05]'}
                         `}
                       >
                         <div 
-                          className={`text-xl mb-1 ${currentFont === option.id ? 'text-white' : 'text-gray-900 group-hover:text-blue-600'}`}
+                          className={`text-xl mb-1 ${pendingFont === option.id ? 'text-white' : 'text-gray-900 group-hover:text-blue-600'}`}
                           style={{ fontFamily: option.family }}
                         >
                           Aa
                         </div>
-                        <div className={`text-[9px] font-black uppercase tracking-tighter ${currentFont === option.id ? 'text-gray-400' : 'text-gray-500'}`}>
+                        <div className={`text-[9px] font-black uppercase tracking-tighter ${pendingFont === option.id ? 'text-gray-400' : 'text-gray-500'}`}>
                           {option.id}
                         </div>
-                        {currentFont === option.id && (
+                        {pendingFont === option.id && (
                           <div className="absolute top-1 right-1">
                             <Check className="h-3 w-3 text-blue-400" />
                           </div>
@@ -134,7 +157,7 @@ export function UiCommandPanel({
                   </div>
                 </div>
 
-                {/* COLOR SYSTEMS SECTION */}
+                {/* COLOR SYSTEMS */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 px-1">
                     <Palette className="h-3 w-3 text-gray-400" />
@@ -144,10 +167,10 @@ export function UiCommandPanel({
                     {COLOR_PALETTES.map((palette) => (
                       <button
                         key={palette.id}
-                        onClick={() => onColorChange(palette.id)}
+                        onClick={() => setPendingColor(palette.id)}
                         className={`
                           w-full flex items-center gap-4 p-3 rounded-xl transition-all border group
-                          ${currentColor === palette.id 
+                          ${pendingColor === palette.id 
                             ? 'bg-gray-900 border-gray-800 text-white shadow-lg' 
                             : 'bg-white border-gray-100 hover:border-gray-300 text-gray-600'}
                         `}
@@ -159,7 +182,7 @@ export function UiCommandPanel({
                         <div className="text-left">
                           <div className="text-xs font-black uppercase tracking-tight">{palette.label}</div>
                         </div>
-                        {currentColor === palette.id && <Check className="h-3.5 w-3.5 text-blue-400 ml-auto" />}
+                        {pendingColor === palette.id && <Check className="h-3.5 w-3.5 text-blue-400 ml-auto" />}
                       </button>
                     ))}
                   </div>
@@ -169,28 +192,56 @@ export function UiCommandPanel({
           </AnimatePresence>
         </div>
 
-        {/* Footer Info */}
-        <div className="p-6 border-t border-gray-100 bg-gray-50/30 min-h-[64px] w-[260px] flex-shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-            <AnimatePresence>
-              {isOpen && (
-                <motion.div
-                  initial={{ opacity: 0, x: -10 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -10 }}
-                  transition={{ duration: 0.15 }}
-                  className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap"
+        {/* FOOTER: APPLY ACTION BAR */}
+        <div className="relative flex-shrink-0 w-[260px]">
+          <AnimatePresence>
+            {hasChanges && isOpen && (
+              <motion.div
+                initial={{ y: 100 }}
+                animate={{ y: 0 }}
+                exit={{ y: 100 }}
+                className="absolute bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 shadow-[0_-10px_30px_rgba(0,0,0,0.1)] flex gap-2"
+              >
+                <button
+                  onClick={handleReset}
+                  className="flex-1 flex items-center justify-center gap-2 p-3 rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 active:scale-95 transition-all"
                 >
-                  System Live
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  <RotateCcw className="h-4 w-4" />
+                  <span className="text-xs font-black uppercase tracking-widest">Reset</span>
+                </button>
+                <button
+                  onClick={handleApply}
+                  className="flex-[2] flex items-center justify-center gap-2 p-3 rounded-xl bg-blue-600 text-white shadow-lg hover:bg-blue-700 active:scale-95 transition-all"
+                >
+                  <Save className="h-4 w-4" />
+                  <span className="text-xs font-black uppercase tracking-widest">Apply</span>
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="p-6 border-t border-gray-100 bg-gray-50/30 min-h-[64px]">
+            <div className="flex items-center gap-4">
+              <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
+              <AnimatePresence>
+                {isOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -10 }}
+                    transition={{ duration: 0.15 }}
+                    className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap"
+                  >
+                    System Live
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </motion.aside>
 
-      {/* HYBRID: FLOATING PREVIEW POPOVER (From Option B) */}
+      {/* FLOATING PREVIEW POPOVER */}
       <AnimatePresence>
         {hoveredFont && isOpen && (
           <motion.div
