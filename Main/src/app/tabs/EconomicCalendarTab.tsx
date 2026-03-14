@@ -49,6 +49,19 @@ function groupByUtcDay(events: CalendarEvent[]) {
   return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b));
 }
 
+/**
+ * UI-Only Helper: Formats exact age in seconds for the HUD badges.
+ */
+function formatUiAge(timestampSeconds: number | null, nowMs: number): string {
+  if (timestampSeconds == null) return "never";
+  const diff = Math.floor(nowMs / 1000 - timestampSeconds);
+  if (diff < 60) return `${diff}s ago`;
+  const mins = Math.floor(diff / 60);
+  const secs = diff % 60;
+  if (mins < 60) return `${mins}m ${secs}s ago`;
+  return formatRelativeAge(timestampSeconds);
+}
+
 interface EconomicCalendarTabProps {
   health: BridgeHealth;
 }
@@ -64,6 +77,7 @@ export function EconomicCalendarTab({ health }: EconomicCalendarTabProps) {
   const [status, setStatus] = useState<BridgeStatus>("loading");
   const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
   const [lastCalendarIngestAt, setLastCalendarIngestAt] = useState<number | null>(null);
+  const [uiNow, setUiNow] = useState(Date.now());
   const eventsRef = useRef<CalendarEvent[]>([]);
 
   const activeRange = useMemo(
@@ -71,6 +85,13 @@ export function EconomicCalendarTab({ health }: EconomicCalendarTabProps) {
     [preset, customFrom, customTo],
   );
 
+  // UI-ONLY HEARTBEAT: Ticks every 1s to drive the HUD labels
+  useEffect(() => {
+    const id = window.setInterval(() => setUiNow(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  // DATA FETCHING LOGIC: Preserved at 60s polling
   useEffect(() => {
     let cancelled = false;
 
@@ -106,7 +127,7 @@ export function EconomicCalendarTab({ health }: EconomicCalendarTabProps) {
     };
 
     void load();
-    const id = window.setInterval(() => void load(), 60_000);
+    const id = window.setInterval(() => void load(), 60_000); // Original 60s Polling
 
     return () => {
       cancelled = true;
@@ -176,18 +197,22 @@ export function EconomicCalendarTab({ health }: EconomicCalendarTabProps) {
           </div>
         </div>
 
-        {/* Diagnostic Badges: Adopting "Resolution Nodes" Style */}
+        {/* Diagnostic Badges: Real-time Second Countdown */}
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-3 px-4 py-2 bg-white border border-gray-100 rounded-xl shadow-sm">
-            <div className="flex items-center gap-2 pr-3 border-r border-gray-100">
+            <div className="flex items-center gap-2 pr-3 border-r border-gray-100 min-w-[100px]">
               <Activity className="h-3.5 w-3.5 text-blue-500" />
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Sync</span>
-              <span className="text-xs font-bold text-gray-900">{formatRelativeAge(lastFetchedAt).replace('about ', '')}</span>
+              <div className="flex flex-col">
+                <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-0.5">Sync Age</span>
+                <span className="text-[11px] font-bold text-gray-900 tabular-nums">{formatUiAge(lastFetchedAt, uiNow)}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-[100px]">
               <Database className="h-3.5 w-3.5 text-blue-500" />
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Ingest</span>
-              <span className="text-xs font-bold text-gray-900">{formatRelativeAge(lastCalendarIngestAt).replace('about ', '')}</span>
+              <div className="flex flex-col">
+                <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-0.5">Ingest Age</span>
+                <span className="text-[11px] font-bold text-gray-900 tabular-nums">{formatUiAge(lastCalendarIngestAt, uiNow)}</span>
+              </div>
             </div>
           </div>
         </div>
