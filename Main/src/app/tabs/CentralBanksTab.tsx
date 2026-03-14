@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { formatDateOnly, formatRelativeAge } from "@/app/lib/format";
+import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Database, 
@@ -120,10 +121,12 @@ export function CentralBanksTab({
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50/50">
                   <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Institution</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Policy Rate</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Current Rate</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Previous</th>
                   <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-center">Trend</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Inflation (YoY)</th>
-                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Timeline</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Last Release</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Next Event</th>
+                  <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Inflation</th>
                   <th className="px-6 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Status</th>
                 </tr>
               </thead>
@@ -141,42 +144,56 @@ export function CentralBanksTab({
                         <FlagIcon countryCode={snapshot.countryCode} className="h-4 w-6 shadow-sm flex-shrink-0" />
                         <div>
                           <div className="text-sm font-bold text-gray-900">{snapshot.bankName}</div>
-                          <div className="text-[10px] font-bold text-gray-500 uppercase">{snapshot.currency}</div>
+                          <div className="text-[10px] font-black text-gray-400 uppercase tracking-tight">{snapshot.currency}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-col">
-                        <span className="text-lg font-black text-gray-900 tracking-tight">{renderValue(snapshot.currentPolicyRate)}</span>
-                        <span className="text-[10px] font-bold text-gray-400">Prev: {renderValue(snapshot.previousPolicyRate)}</span>
-                        <span className="text-[10px] text-gray-500">{renderSourceLabel(snapshot.policyRateSource)}</span>
+                        <span className="text-lg font-black text-gray-900 tracking-tight leading-none mb-1">
+                          {renderValue(snapshot.currentPolicyRate)}
+                        </span>
+                        <span className="text-[9px] font-bold text-gray-400 uppercase tracking-tighter">
+                          {renderSourceLabel(snapshot.policyRateSource)}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
+                      <span className="text-sm font-bold text-gray-600">
+                        {renderValue(snapshot.previousPolicyRate)}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
                       <div className="flex justify-center">
-                        <div className="p-2 bg-white rounded-lg border border-gray-100 shadow-sm">
+                        <div className="p-1.5 bg-white rounded-lg border border-gray-100 shadow-sm">
                           <TrendIndicator current={snapshot.currentPolicyRate} previous={snapshot.previousPolicyRate} />
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden max-w-[60px]">
-                          <div 
-                            className="h-full bg-blue-500 rounded-full" 
-                            style={{ width: `${Math.min(100, (parseFloat(snapshot.currentInflationRate || "0") / 10) * 100)}%` }}
-                          />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-bold text-gray-700">{renderValue(snapshot.currentInflationRate)}</span>
-                          <span className="text-[10px] text-gray-500">{renderSourceLabel(snapshot.inflationSource)}</span>
-                        </div>
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-gray-900 text-xs font-bold">{formatDateOnly(snapshot.lastRateReleaseAt)}</span>
+                        <span className="text-gray-400 text-[9px] uppercase font-black">{formatRelativeAge(snapshot.lastRateReleaseAt)}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-xs font-medium">
                       <div className="flex flex-col gap-0.5">
-                        <span className="text-gray-400 text-[9px] uppercase font-black">Next Rate</span>
-                        <span className="text-gray-900">{snapshot.nextRateEventAt ? formatDateOnly(snapshot.nextRateEventAt) : "N/A"}</span>
+                        <span className="text-blue-600 text-xs font-bold">
+                          {snapshot.nextRateEventAt ? formatDateOnly(snapshot.nextRateEventAt) : "Awaiting Schedule"}
+                        </span>
+                        {snapshot.nextRateEventAt && (
+                          <span className="text-gray-400 text-[9px] uppercase font-black">
+                            {new Date(snapshot.nextRateEventAt * 1000) > new Date() 
+                              ? `in ${formatDistanceToNow(new Date(snapshot.nextRateEventAt * 1000))}` 
+                              : "Pending Release"}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-bold text-gray-700">{renderValue(snapshot.currentInflationRate)}</span>
+                        <span className="text-[9px] font-black text-gray-400 uppercase tracking-tighter">YoY CPI</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
