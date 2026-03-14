@@ -109,113 +109,98 @@ export function CentralBanksTab({
 
       <AnimatePresence mode="wait">
         {viewMode === 'command' ? (
-          /* OPTION B: COMMAND CENTER (Detailed) */
+          /* OPTION B: COMMAND CENTER (Sovereign Intelligence) */
           <motion.div
             key="command-view"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-white/95 border-2 border-gray-200 rounded-3xl shadow-xl overflow-hidden"
+            className="flex flex-col gap-3"
           >
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b-2 border-gray-100 bg-gray-50/80">
-                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Institution</th>
-                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Policy Rate (Cur/Prev)</th>
-                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Rate Timeline</th>
-                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Inflation (Cur/Prev)</th>
-                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">CPI Timeline</th>
-                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y-2 divide-gray-50">
-                {snapshots.map((snapshot, index) => (
-                  <motion.tr 
-                    key={snapshot.currency}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.02 }}
-                    className="hover:bg-blue-50/30 transition-colors group"
-                  >
-                    <td className="px-6 py-6">
-                      <div className="flex items-center gap-4">
-                        <FlagIcon countryCode={snapshot.countryCode} className="h-6 w-9 shadow-md flex-shrink-0" />
-                        <div>
-                          <div className="text-base font-black text-gray-900 leading-tight">{snapshot.bankName}</div>
-                          <div className="text-xs font-black text-blue-600 uppercase tracking-widest">{snapshot.currency}</div>
-                        </div>
-                      </div>
-                    </td>
-                    
-                    {/* POLICY RATE BLOCK */}
-                    <td className="px-6 py-6">
-                      <div className="flex flex-col">
-                        <span className="text-2xl font-black text-gray-900 tracking-tighter leading-none mb-1">
-                          {renderValue(snapshot.currentPolicyRate)}
-                        </span>
-                        <span className="text-xs font-bold text-gray-600">
-                          Prev: {renderValue(snapshot.previousPolicyRate)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-6">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex flex-col">
-                          <span className="text-gray-900 text-[11px] font-black uppercase tracking-tighter">Last: {formatDateOnly(snapshot.lastRateReleaseAt)}</span>
-                          <span className="text-gray-500 text-[10px] font-bold italic">{formatRelativeAge(snapshot.lastRateReleaseAt)}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-blue-700 text-[11px] font-black uppercase tracking-tighter">Next: {snapshot.nextRateEventAt ? formatDateOnly(snapshot.nextRateEventAt) : "N/A"}</span>
-                          {snapshot.nextRateEventAt && (
-                            <span className="text-blue-500 text-[10px] font-bold">
-                              in {formatDistanceToNow(new Date(snapshot.nextRateEventAt * 1000))}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
+            {snapshots.map((snapshot, index) => (
+              <motion.div
+                key={snapshot.currency}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.02 }}
+                className="bg-white border border-gray-200 rounded-xl shadow-sm hover:border-blue-300 transition-all group overflow-hidden"
+              >
+                <div className="flex flex-wrap lg:flex-nowrap items-stretch divide-x divide-gray-100">
+                  {/* Bank Identity */}
+                  <div className="flex-1 min-w-[240px] p-6 flex items-center gap-5 bg-gray-50/30">
+                    <div className="relative">
+                      <FlagIcon countryCode={snapshot.countryCode} className="h-8 w-12 shadow-sm rounded-sm border border-gray-200/50" />
+                      <div className={`absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-white shadow-sm ${
+                        snapshot.status === 'ok' ? 'bg-green-500' : 
+                        snapshot.status === 'partial' ? 'bg-amber-500' : 'bg-red-500'
+                      }`} />
+                    </div>
+                    <div>
+                      <div className="text-lg font-black text-gray-900 tracking-tight leading-none mb-1">{snapshot.bankName}</div>
+                      <div className="text-[11px] font-black text-blue-600 uppercase tracking-widest">{snapshot.currency} Protocol</div>
+                    </div>
+                  </div>
 
-                    {/* INFLATION BLOCK */}
-                    <td className="px-6 py-6">
+                  {/* Policy Rate Block */}
+                  <div className="flex-[1.5] min-w-[300px] p-6 flex items-center justify-between gap-8 bg-white">
+                    <div className="flex flex-col">
+                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Policy Rate</div>
+                      <div className="flex items-baseline gap-3">
+                        <span className="text-3xl font-black text-gray-900 tracking-tighter">{renderValue(snapshot.currentPolicyRate)}</span>
+                        <span className="text-xs font-bold text-gray-500 tabular-nums">Prev: {renderValue(snapshot.previousPolicyRate)}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col text-right">
+                      <div className="flex flex-col mb-2">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Last Released</span>
+                        <span className="text-xs font-black text-gray-900">{formatDateOnly(snapshot.lastRateReleaseAt)}</span>
+                      </div>
                       <div className="flex flex-col">
-                        <span className="text-2xl font-black text-gray-900 tracking-tighter leading-none mb-1">
-                          {renderValue(snapshot.currentInflationRate)}
-                        </span>
-                        <span className="text-xs font-bold text-gray-600">
-                          Prev: {renderValue(snapshot.previousInflationRate)}
+                        <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tighter">Next Event</span>
+                        <span className="text-xs font-black text-blue-700">
+                          {snapshot.nextRateEventAt ? formatDateOnly(snapshot.nextRateEventAt) : "Awaiting"}
                         </span>
                       </div>
-                    </td>
-                    <td className="px-6 py-6">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex flex-col">
-                          <span className="text-gray-900 text-[11px] font-black uppercase tracking-tighter">Last: {formatDateOnly(snapshot.lastCpiReleaseAt)}</span>
-                          <span className="text-gray-500 text-[10px] font-bold italic">{formatRelativeAge(snapshot.lastCpiReleaseAt)}</span>
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="text-blue-700 text-[11px] font-black uppercase tracking-tighter">Next: {snapshot.nextCpiEventAt ? formatDateOnly(snapshot.nextCpiEventAt) : "N/A"}</span>
-                          {snapshot.nextCpiEventAt && (
-                            <span className="text-blue-500 text-[10px] font-bold">
-                              in {formatDistanceToNow(new Date(snapshot.nextCpiEventAt * 1000))}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </td>
+                    </div>
+                  </div>
 
-                    <td className="px-6 py-6 text-right">
-                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest border-2 ${
-                        snapshot.status === 'ok' ? 'bg-green-50 text-green-700 border-green-200' : 
-                        snapshot.status === 'partial' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
-                        'bg-red-50 text-red-700 border-red-200'
-                      }`}>
-                        {snapshot.status}
-                      </span>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
+                  {/* Inflation Block */}
+                  <div className="flex-[1.5] min-w-[300px] p-6 flex items-center justify-between gap-8 bg-white">
+                    <div className="flex flex-col">
+                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Inflation YoY</div>
+                      <div className="flex items-baseline gap-3">
+                        <span className="text-3xl font-black text-gray-900 tracking-tighter">{renderValue(snapshot.currentInflationRate)}</span>
+                        <span className="text-xs font-bold text-gray-500 tabular-nums">Prev: {renderValue(snapshot.previousInflationRate)}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col text-right">
+                      <div className="flex flex-col mb-2">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Last Released</span>
+                        <span className="text-xs font-black text-gray-900">{formatDateOnly(snapshot.lastCpiReleaseAt)}</span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tighter">Next Event</span>
+                        <span className="text-xs font-black text-blue-700">
+                          {snapshot.nextCpiEventAt ? formatDateOnly(snapshot.nextCpiEventAt) : "Awaiting"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tactical Meta */}
+                  <div className="w-[120px] p-6 flex flex-col items-center justify-center bg-gray-50/30 group-hover:bg-blue-50/50 transition-colors">
+                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Node</div>
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border ${
+                      snapshot.status === 'ok' ? 'bg-green-50 text-green-700 border-green-200' : 
+                      snapshot.status === 'partial' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
+                      'bg-red-50 text-red-700 border-red-200'
+                    }`}>
+                      {snapshot.status}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
           </motion.div>
         ) : (
           /* OPTION C: STRATEGIC FOCUS (Clean & Interactive) */
