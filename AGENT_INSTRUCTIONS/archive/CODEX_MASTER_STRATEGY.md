@@ -1,3 +1,8 @@
+# 🗄️ ARCHIVE: CODEX MASTER STRATEGY 💉
+**Note:** This is the original construction plan used by Codex (The Surgeon) to initialize the "Game World". 
+
+---
+
 # Fyodor Trading Terminal Agent Instructions
 
 ## Project Intent
