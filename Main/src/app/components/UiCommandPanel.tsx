@@ -54,10 +54,10 @@ export function UiCommandPanel({ currentTheme, onThemeChange, isOpen, onOpenChan
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              transition={{ duration: 0.2 }}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.15 }}
               className="space-y-8"
             >
               {/* Profile Selection */}
@@ -125,10 +125,10 @@ export function UiCommandPanel({ currentTheme, onThemeChange, isOpen, onOpenChan
           <AnimatePresence>
             {isOpen && (
               <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.1 }}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.15 }}
                 className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap"
               >
                 System Live
