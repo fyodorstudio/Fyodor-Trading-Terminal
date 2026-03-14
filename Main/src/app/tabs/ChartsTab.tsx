@@ -439,17 +439,17 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full">
-            <Activity className={`h-3.5 w-3.5 ${status === 'live' ? 'text-green-500 animate-pulse' : 'text-gray-400'}`} />
-            <span className="text-[11px] font-bold text-gray-600 uppercase tracking-tight whitespace-nowrap">{status === 'live' ? 'Live Stream' : 'Disconnected'}</span>
+          <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-full">
+            <Activity className={`h-4 w-4 ${status === 'live' ? 'text-green-500 animate-pulse' : 'text-gray-400'}`} />
+            <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{status === 'live' ? 'Live Stream' : 'Disconnected'}</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full">
-            <Clock className="h-3.5 w-3.5 text-gray-400" />
-            <span className="text-[11px] font-bold text-gray-600 uppercase tracking-tight whitespace-nowrap">{sessionDetail}</span>
+          <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-full">
+            <Clock className="h-4 w-4 text-gray-400" />
+            <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{sessionDetail}</span>
           </div>
-          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 border border-gray-800 rounded-full">
-            <Database className={`h-3.5 w-3.5 ${lastCandleTime ? 'text-blue-400' : 'text-gray-500'}`} />
-            <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tight whitespace-nowrap">
+          <div className="flex items-center gap-2 px-4 py-2 bg-gray-900 border border-gray-800 rounded-full">
+            <Database className={`h-4 w-4 ${lastCandleTime ? 'text-blue-400' : 'text-gray-500'}`} />
+            <span className="text-xs font-bold text-gray-300 whitespace-nowrap">
               {lastCandleTime ? `Feed: ${formatUtcDateTime(lastCandleTime)}` : 'Waiting for data'}
             </span>
           </div>
