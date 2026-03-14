@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Search, Star, Activity, Database, Clock } from "lucide-react";
+import { Search, Star, Activity, Database, Clock, Calendar } from "lucide-react";
 import { fetchCalendar } from "@/app/lib/bridge";
 import { getPresetRange } from "@/app/lib/calendarRanges";
 import {
@@ -153,21 +153,43 @@ export function EconomicCalendarTab({ health }: EconomicCalendarTabProps) {
             : "OFFLINE";
 
   return (
-    <section className="tab-panel">
-      <div className="section-head">
-        <div>
-          <div className="flex items-center gap-3">
-            <h2>Economic Calendar</h2>
-            <div className={`px-2 py-0.5 rounded border text-[10px] font-black tracking-widest flex items-center gap-1.5 ${
-              status === 'live' ? 'bg-[var(--green)]/10 text-[var(--green)] border-[var(--green)]/20' : 
-              status === 'stale' ? 'bg-[var(--amber)]/10 text-[var(--amber)] border-[var(--amber)]/20' : 
-              'bg-[var(--red)]/10 text-[var(--red)] border-[var(--red)]/20'
-            }`}>
-              <span className={`h-1 w-1 rounded-full ${status === 'live' ? 'bg-[var(--green)] animate-pulse' : 'bg-current'}`} />
-              {statusLabel}
+    <section className="tab-panel flex flex-col gap-6 max-w-[1460px] mx-auto pb-12">
+      {/* Sovereign Header: Adopting Central Bank Visuals */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-2xl shadow-sm relative z-50">
+        <div className="flex items-center gap-4">
+          <div className="p-2.5 bg-gray-900 rounded-xl shadow-lg">
+            <Calendar className="h-5 w-5 text-blue-400" />
+          </div>
+          <div>
+            <div className="flex items-center gap-3">
+              <h2 className="text-lg font-bold text-gray-900 leading-tight">Economic Calendar</h2>
+              <div className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-widest flex items-center gap-1.5 border ${
+                status === 'live' ? 'bg-green-50 text-green-700 border-green-200' : 
+                status === 'stale' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
+                'bg-red-50 text-red-700 border-red-200'
+              }`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${status === 'live' ? 'bg-green-500 animate-pulse' : 'bg-current'}`} />
+                {statusLabel}
+              </div>
+            </div>
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">MT5 Server-Time Audit Feed</p>
+          </div>
+        </div>
+
+        {/* Diagnostic Badges: Adopting "Resolution Nodes" Style */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 px-4 py-2 bg-white border border-gray-100 rounded-xl shadow-sm">
+            <div className="flex items-center gap-2 pr-3 border-r border-gray-100">
+              <Activity className="h-3.5 w-3.5 text-blue-500" />
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Sync</span>
+              <span className="text-xs font-bold text-gray-900">{formatRelativeAge(lastFetchedAt).replace('about ', '')}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Database className="h-3.5 w-3.5 text-blue-500" />
+              <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">Ingest</span>
+              <span className="text-xs font-bold text-gray-900">{formatRelativeAge(lastCalendarIngestAt).replace('about ', '')}</span>
             </div>
           </div>
-          <p>MT5 server-time audit table with local-time reference.</p>
         </div>
       </div>
 
@@ -257,8 +279,8 @@ export function EconomicCalendarTab({ health }: EconomicCalendarTabProps) {
       </div>
 
       <div className="status-strip">
-        <span className="status-note">Primary time basis: MT5 feed (UTC)</span>
-        <span className="status-note">Secondary time basis: {getLocalTimezoneLabel()}</span>
+        <span className="status-note flex items-center gap-1.5"><Clock size={12} /> Primary time basis: MT5 feed (UTC)</span>
+        <span className="status-note flex items-center gap-1.5"><Clock size={12} /> Secondary time basis: {getLocalTimezoneLabel()}</span>
       </div>
 
       {(status === "error" || status === "stale" || status === "no_data") && (
@@ -269,6 +291,7 @@ export function EconomicCalendarTab({ health }: EconomicCalendarTabProps) {
         </div>
       )}
 
+      {/* Codex Baseline Table: Preserved Exactly */}
       <div className="data-table-shell">
         <table className="data-table calendar-table">
           <thead>
@@ -329,17 +352,6 @@ export function EconomicCalendarTab({ health }: EconomicCalendarTabProps) {
             )}
           </tbody>
         </table>
-      </div>
-
-      {/* Option C: Contextual Footer Ribbon */}
-      <div className="mt-auto pt-4 flex items-center justify-between px-2 text-[9px] font-black text-[var(--muted)] uppercase tracking-widest opacity-40">
-        <div className="flex gap-6">
-          <span className="flex items-center gap-1.5"><Activity size={10} /> Sync: {formatRelativeAge(lastFetchedAt)}</span>
-          <span className="flex items-center gap-1.5"><Database size={10} /> Ingest: {formatRelativeAge(lastCalendarIngestAt)}</span>
-        </div>
-        <div>
-          MT5 Audit Stream // Tactical v1.0
-        </div>
       </div>
     </section>
   );
