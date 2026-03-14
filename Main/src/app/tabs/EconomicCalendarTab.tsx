@@ -75,7 +75,7 @@ export function EconomicCalendarTab({ health }: EconomicCalendarTabProps) {
   const [search, setSearch] = useState("");
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [status, setStatus] = useState<BridgeStatus>("loading");
-  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
+  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(null);
   const [lastCalendarIngestAt, setLastCalendarIngestAt] = useState<number | null>(null);
   const [uiNow, setUiNow] = useState(Date.now());
   const eventsRef = useRef<CalendarEvent[]>([]);
@@ -109,12 +109,11 @@ export function EconomicCalendarTab({ health }: EconomicCalendarTabProps) {
 
         eventsRef.current = calendarEvents;
         setEvents(calendarEvents);
-        setLastFetchedAt(Math.floor(Date.now() / 1000));
+        setLastSyncedAt(Math.floor(Date.now() / 1000));
         setLastCalendarIngestAt(health.last_calendar_ingest_at ?? null);
         setStatus(resolveCalendarStatus({ eventsCount: calendarEvents.length, health }));
       } catch {
         if (cancelled) return;
-        setLastFetchedAt(Math.floor(Date.now() / 1000));
         setLastCalendarIngestAt(health.last_calendar_ingest_at ?? null);
         setStatus(
           resolveCalendarStatus({
@@ -173,6 +172,24 @@ export function EconomicCalendarTab({ health }: EconomicCalendarTabProps) {
             ? "NO DATA"
             : "OFFLINE";
 
+  const statusBadgeClass =
+    status === "live"
+      ? "bg-green-50 text-green-700 border-green-200"
+      : status === "stale"
+        ? "bg-amber-50 text-amber-700 border-amber-200"
+        : status === "loading"
+          ? "bg-blue-50 text-blue-700 border-blue-200"
+          : status === "no_data"
+            ? "bg-slate-50 text-slate-700 border-slate-200"
+            : "bg-red-50 text-red-700 border-red-200";
+
+  const statusDotClass =
+    status === "live"
+      ? "bg-green-500 animate-pulse"
+      : status === "loading"
+        ? "bg-blue-500 animate-pulse"
+        : "bg-current";
+
   return (
     <section className="tab-panel flex flex-col gap-6 max-w-[1460px] mx-auto pb-12">
       {/* Sovereign Header: Adopting Central Bank Visuals */}
@@ -184,12 +201,8 @@ export function EconomicCalendarTab({ health }: EconomicCalendarTabProps) {
           <div>
             <div className="flex items-center gap-3">
               <h2 className="text-lg font-bold text-gray-900 leading-tight">Economic Calendar</h2>
-              <div className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-widest flex items-center gap-1.5 border ${
-                status === 'live' ? 'bg-green-50 text-green-700 border-green-200' : 
-                status === 'stale' ? 'bg-amber-50 text-amber-700 border-amber-200' : 
-                'bg-red-50 text-red-700 border-red-200'
-              }`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${status === 'live' ? 'bg-green-500 animate-pulse' : 'bg-current'}`} />
+              <div className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-widest flex items-center gap-1.5 border ${statusBadgeClass}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`} />
                 {statusLabel}
               </div>
             </div>
@@ -204,7 +217,7 @@ export function EconomicCalendarTab({ health }: EconomicCalendarTabProps) {
               <Activity className="h-3.5 w-3.5 text-blue-500" />
               <div className="flex flex-col">
                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-0.5">Sync Age</span>
-                <span className="text-[11px] font-bold text-gray-900 tabular-nums">{formatUiAge(lastFetchedAt, uiNow)}</span>
+                <span className="text-[11px] font-bold text-gray-900 tabular-nums">{formatUiAge(lastSyncedAt, uiNow)}</span>
               </div>
             </div>
             <div className="flex items-center gap-2 min-w-[100px]">
