@@ -6,7 +6,8 @@ import {
   type IChartApi,
   type ISeriesApi,
 } from "lightweight-charts";
-import { ChevronDown, ChevronRight, Search, Star } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, Star, Activity, Clock, AlertTriangle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { fetchHistory, fetchSymbols, openChartStream } from "@/app/lib/bridge";
 import { formatUtcDateTime, formatCountdown } from "@/app/lib/format";
 import { resolveChartStatus } from "@/app/lib/status";
@@ -122,28 +123,35 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     const chart = createChart(container, {
       layout: {
         background: { type: "solid", color: "transparent" },
-        textColor: "#23262d",
-        fontFamily: "Aptos, 'Helvetica Neue', sans-serif",
+        textColor: "#64748b",
+        fontFamily: "Inter, system-ui, sans-serif",
       },
-      rightPriceScale: { borderVisible: false },
+      rightPriceScale: { 
+        borderVisible: false,
+        scaleMargins: { top: 0.1, bottom: 0.2 }
+      },
       timeScale: {
         borderVisible: false,
-        rightOffset: 2,
-        barSpacing: 7,
+        rightOffset: 5,
+        barSpacing: 10,
       },
       grid: {
-        vertLines: { color: "rgba(35, 38, 45, 0.08)" },
-        horzLines: { color: "rgba(35, 38, 45, 0.08)" },
+        vertLines: { color: "rgba(100, 116, 139, 0.05)" },
+        horzLines: { color: "rgba(100, 116, 139, 0.05)" },
       },
+      crosshair: {
+        vertLine: { labelBackgroundColor: "#1e293b" },
+        horzLine: { labelBackgroundColor: "#1e293b" },
+      }
     });
 
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: "#1f9d55",
-      downColor: "#c92a2a",
-      wickUpColor: "#1f9d55",
-      wickDownColor: "#c92a2a",
-      borderUpColor: "#1f9d55",
-      borderDownColor: "#c92a2a",
+      upColor: "#10b981",
+      downColor: "#ef4444",
+      wickUpColor: "#10b981",
+      wickDownColor: "#ef4444",
+      borderUpColor: "#10b981",
+      borderDownColor: "#ef4444",
     });
 
     chartRef.current = chart;
@@ -308,219 +316,196 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     });
   }, []);
 
-  const statusHeadline =
-    status === "live"
-      ? "Connected to MT5 - live data."
-      : status === "loading"
-        ? loadingText
-        : status === "stale"
-          ? "Market closed or stream idle - showing last known candles."
-          : "NO DATA. Open MetaTrader 5 and run the MT5 bridge for live data.";
-
-  const statusFoot =
-    status === "live"
-      ? lastCandleTime
-        ? `Live data - Last market time: ${formatUtcDateTime(lastCandleTime)}`
-        : "Live data - Waiting for updates"
-      : status === "stale"
-        ? lastCandleTime
-          ? `Market closed - showing candles through ${formatUtcDateTime(lastCandleTime)}`
-          : "Market closed - waiting for retained MT5 candles."
-        : "NO DATA - The chart will stay empty until MT5 history is available.";
-
   const sessionDetail = useMemo(() => {
     if (!marketStatus || marketStatus.session_state === "unavailable") {
       return "Session unavailable";
     }
     if (marketStatus.session_state === "open") {
-      return `Market open - closes in ${formatCountdown(marketStatus.next_close_time)}`;
+      return `Closes in ${formatCountdown(marketStatus.next_close_time)}`;
     }
-    return `Market closed - opens in ${formatCountdown(marketStatus.next_open_time)}`;
+    return `Opens in ${formatCountdown(marketStatus.next_open_time)}`;
   }, [marketStatus]);
 
   return (
-    <section className="tab-panel charts-panel">
-      <div className="section-head charts-head">
-        <div>
-          <h2>Charts</h2>
-          <p
-            className={
-              status === "live"
-                ? "status-text-live"
-                : status === "loading"
-                  ? "status-text-loading"
-                  : status === "stale"
-                    ? "status-text-stale"
-                    : "status-text-error"
-            }
-          >
-            {statusHeadline}
-          </p>
-          <p className="status-text-subtle">{sessionDetail}</p>
-        </div>
-
-        <div className="chart-controls">
-          <div className="control-group" ref={pickerRef}>
-            <span className="control-label">Symbol</span>
-            <button type="button" className="picker-trigger" onClick={() => setPickerOpen((open) => !open)}>
+    <div className="flex flex-col gap-6 max-w-[1460px] mx-auto pb-12">
+      {/* Chart Control Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-6">
+          <div className="relative" ref={pickerRef}>
+            <button
+              onClick={() => setPickerOpen(!pickerOpen)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-sm font-bold text-gray-900 shadow-sm"
+            >
+              <Search className="h-4 w-4 text-gray-400" />
               <span>{selectedSymbol}</span>
-              <ChevronDown size={16} />
+              <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${pickerOpen ? 'rotate-180' : ''}`} />
             </button>
-            {pickerOpen && (
-              <div className="picker-panel">
-                <label className="picker-search">
-                  <Search size={14} />
-                  <input
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search symbols"
-                  />
-                </label>
 
-                {favoriteItems.length > 0 && (
-                  <div className="picker-block">
-                    <div className="picker-block-title">Favorites</div>
-                    {favoriteItems.map((item) => (
-                      <button
-                        key={`favorite-${item.name}`}
-                        type="button"
-                        className="picker-item"
-                        onClick={() => {
-                          onSelectedSymbolChange(item.name);
-                          setPickerOpen(false);
-                        }}
-                      >
-                        <span>{item.name}</span>
-                        <Star
-                          size={14}
-                          className="star-active"
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            toggleFavorite(item.name);
-                          }}
-                        />
-                      </button>
-                    ))}
+            <AnimatePresence>
+              {pickerOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  className="absolute top-full left-0 mt-2 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl z-[100] overflow-hidden"
+                >
+                  <div className="p-3 border-b border-gray-100">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <input
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search symbols..."
+                        className="w-full pl-9 pr-4 py-2 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-gray-200"
+                      />
+                    </div>
                   </div>
-                )}
 
-                <div className="picker-scroll">
-                  {groupedSymbols.length === 0 ? (
-                    <div className="picker-empty">No symbols available from bridge.</div>
-                  ) : (
-                    groupedSymbols.map((group) => {
-                      const open = expandedGroups.includes(group.label);
-                      return (
-                        <div className="picker-block" key={group.label}>
+                  <div className="max-height-[400px] overflow-auto p-2 space-y-1">
+                    {favoriteItems.length > 0 && !search && (
+                      <div className="mb-4">
+                        <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Favorites</div>
+                        {favoriteItems.map((item) => (
                           <button
-                            type="button"
-                            className="picker-group"
-                            onClick={() =>
-                              setExpandedGroups((current) =>
-                                current.includes(group.label)
-                                  ? current.filter((item) => item !== group.label)
-                                  : [...current, group.label],
-                              )
-                            }
+                            key={item.name}
+                            onClick={() => { onSelectedSymbolChange(item.name); setPickerOpen(false); }}
+                            className="flex items-center justify-between w-full px-3 py-2 hover:bg-gray-50 rounded-lg text-sm group"
                           >
-                            {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                            <span>{group.label}</span>
+                            <span className="font-bold text-gray-700">{item.name}</span>
+                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
                           </button>
-                          {open &&
-                            group.items.map((item) => {
-                              const isFavorite = favorites.includes(item.name);
-                              return (
-                                <button
-                                  key={item.name}
-                                  type="button"
-                                  className="picker-item picker-item-nested"
-                                  onClick={() => {
-                                    onSelectedSymbolChange(item.name);
-                                    setPickerOpen(false);
-                                  }}
-                                >
-                                  <span>{item.name}</span>
-                                  <Star
-                                    size={14}
-                                    className={isFavorite ? "star-active" : "star-idle"}
-                                    onClick={(event) => {
-                                      event.preventDefault();
-                                      event.stopPropagation();
-                                      toggleFavorite(item.name);
-                                    }}
-                                  />
-                                </button>
-                              );
-                            })}
+                        ))}
+                      </div>
+                    )}
+
+                    {groupedSymbols.map((group) => {
+                      const isOpen = expandedGroups.includes(group.label);
+                      return (
+                        <div key={group.label}>
+                          <button
+                            onClick={() => setExpandedGroups(prev => prev.includes(group.label) ? prev.filter(g => g !== group.label) : [...prev, group.label])}
+                            className="flex items-center justify-between w-full px-3 py-2 hover:bg-gray-50 rounded-lg text-sm text-gray-500 font-medium"
+                          >
+                            <span className="flex items-center gap-2">
+                              {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
+                              {group.label}
+                            </span>
+                            <span className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded-full">{group.items.length}</span>
+                          </button>
+                          <AnimatePresence>
+                            {isOpen && (
+                              <motion.div
+                                initial={{ height: 0 }}
+                                animate={{ height: 'auto' }}
+                                exit={{ height: 0 }}
+                                className="overflow-hidden"
+                              >
+                                {group.items.map((item) => (
+                                  <button
+                                    key={item.name}
+                                    onClick={() => { onSelectedSymbolChange(item.name); setPickerOpen(false); }}
+                                    className="flex items-center justify-between w-full pl-8 pr-3 py-2 hover:bg-gray-50 rounded-lg text-sm"
+                                  >
+                                    <span className="font-medium text-gray-700">{item.name}</span>
+                                    <Star 
+                                      className={`h-3.5 w-3.5 transition-colors ${favorites.includes(item.name) ? 'fill-amber-400 text-amber-400' : 'text-gray-300 hover:text-gray-400'}`}
+                                      onClick={(e) => { e.stopPropagation(); toggleFavorite(item.name); }}
+                                    />
+                                  </button>
+                                ))}
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
                         </div>
                       );
-                    })
-                  )}
-                </div>
-              </div>
-            )}
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
-          <div className="control-group">
-            <span className="control-label">Timeframe</span>
-            <div className="timeframe-strip">
-              {TIMEFRAMES.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className={item === timeframe ? "timeframe-button is-active" : "timeframe-button"}
-                  onClick={() => setTimeframe(item)}
-                >
-                  {item === "MN1" ? "MN" : item}
-                </button>
-              ))}
-            </div>
+          <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
+            {TIMEFRAMES.map((item) => (
+              <button
+                key={item}
+                onClick={() => setTimeframe(item)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${timeframe === item ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-800'}`}
+              >
+                {item === "MN1" ? "MN" : item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full">
+            <Activity className={`h-3.5 w-3.5 ${status === 'live' ? 'text-green-500 animate-pulse' : 'text-gray-400'}`} />
+            <span className="text-[11px] font-bold text-gray-600 uppercase tracking-tight">{status === 'live' ? 'Live Stream' : 'Disconnected'}</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full">
+            <Clock className="h-3.5 w-3.5 text-gray-400" />
+            <span className="text-[11px] font-bold text-gray-600 uppercase tracking-tight">{sessionDetail}</span>
           </div>
         </div>
       </div>
 
-      <div className="chart-shell">
-        <div ref={containerRef} className="chart-canvas" />
-        {(status === "error" || status === "no_data") && (
-          <div className="chart-overlay">
-            <strong>NO DATA</strong>
-            <span>Open MetaTrader 5 and keep the MT5 bridge running to render this chart.</span>
+      {/* Main Chart Section */}
+      <div className="relative group">
+        <div className="p-1 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-3xl shadow-sm overflow-hidden">
+          <div ref={containerRef} className="h-[600px] w-full" />
+        </div>
+
+        {/* Overlay for errors/no data */}
+        <AnimatePresence>
+          {(status === "error" || status === "no_data") && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-white/40 backdrop-blur-md rounded-3xl z-50 text-center p-8"
+            >
+              <div className="p-4 bg-red-50 rounded-full text-red-500">
+                <AlertTriangle className="h-10 w-10" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">No Market Connection</h3>
+                <p className="text-gray-600 max-w-sm">Please ensure MetaTrader 5 is running and the MT5 bridge is connected to receive live data for {selectedSymbol}.</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Status Toast */}
+        <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none">
+          <div className="px-4 py-2 bg-gray-900/90 backdrop-blur-md text-white rounded-2xl text-[11px] font-medium border border-white/10 shadow-2xl">
+            {lastCandleTime ? `MARKET DATA THRU ${formatUtcDateTime(lastCandleTime)} UTC` : 'WAITING FOR DATA...'}
           </div>
-        )}
+        </div>
       </div>
 
-      <div
-        className={
-          status === "live"
-            ? "chart-status-line is-live"
-            : status === "stale"
-              ? "chart-status-line is-stale"
-              : "chart-status-line is-error"
-        }
-      >
-        {statusFoot}
-      </div>
-
-      <div className="log-panel">
-        <div className="log-head">
-          <h3>Debug Log</h3>
+      {/* Debug Panel (Collapsible) */}
+      <div className="backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-2xl overflow-hidden shadow-sm">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+            Terminal Console
+          </h3>
           <button
-            type="button"
-            className="text-button"
             onClick={() => void navigator.clipboard.writeText(debugLines.join("\n") || "(empty)")}
+            className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors"
           >
-            Copy
+            Copy Logs
           </button>
         </div>
-        <div className="log-body" role="log">
+        <div className="h-32 overflow-auto p-4 bg-gray-50/50 font-mono text-[10px] leading-relaxed text-gray-500">
           {debugLines.length === 0 ? (
-            <div className="log-empty">No chart events yet.</div>
+            <div className="italic">Awaiting first market event...</div>
           ) : (
-            debugLines.map((line, index) => <div key={`${index}-${line}`}>{line}</div>)
+            debugLines.map((line, index) => <div key={index} className="mb-1">{line}</div>)
           )}
         </div>
       </div>
-    </section>
+    </div>
   );
 }
