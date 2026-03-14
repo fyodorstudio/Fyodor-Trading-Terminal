@@ -14,6 +14,12 @@ describe("CentralBanksTab", () => {
       previousPolicyRate: null,
       currentInflationRate: null,
       previousInflationRate: null,
+      policyRateSource: "none",
+      policyRateSourceTitle: null,
+      policyRateSourceTime: null,
+      inflationSource: "none",
+      inflationSourceTitle: null,
+      inflationSourceTime: null,
       lastRateReleaseAt: null,
       lastCpiReleaseAt: null,
       nextRateEventAt: null,
@@ -35,5 +41,6 @@ describe("CentralBanksTab", () => {
 
     expect(html).toContain("N/A");
     expect(html).toContain("Federal Reserve");
+    expect(html).toContain("Unresolved");
   });
 });

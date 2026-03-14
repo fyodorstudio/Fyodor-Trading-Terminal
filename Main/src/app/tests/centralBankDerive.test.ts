@@ -10,7 +10,7 @@ function buildEvent(overrides: Partial<CalendarEvent>): CalendarEvent {
     time: overrides.time ?? NOW,
     countryCode: overrides.countryCode ?? "US",
     currency: overrides.currency ?? "USD",
-    title: overrides.title ?? "Inflation Rate YoY",
+    title: overrides.title ?? "CPI y/y",
     impact: overrides.impact ?? "high",
     actual: overrides.actual ?? "",
     forecast: overrides.forecast ?? "",
@@ -19,60 +19,135 @@ function buildEvent(overrides: Partial<CalendarEvent>): CalendarEvent {
 }
 
 describe("deriveCentralBankSnapshots", () => {
-  it("maps current and previous USD rate/CPI values from strict MT5 titles", () => {
-    const events: CalendarEvent[] = [
+  it("uses released actual values when present", () => {
+    const result = deriveCentralBankSnapshots([
       buildEvent({
-        id: 1,
+        currency: "USD",
+        countryCode: "US",
         title: "Fed Interest Rate Decision",
-        actual: "5.50%",
-        previous: "5.25%",
+        actual: "3.75",
+        previous: "3.50",
+        time: NOW - 20_000,
+      }),
+      buildEvent({
+        currency: "USD",
+        countryCode: "US",
+        title: "CPI y/y",
+        actual: "2.4",
+        previous: "2.3",
+        time: NOW - 10_000,
+      }),
+    ]);
+
+    const usd = result.snapshots.find((item) => item.currency === "USD");
+    expect(usd?.currentPolicyRate).toBe("3.75");
+    expect(usd?.previousPolicyRate).toBe("3.50");
+    expect(usd?.policyRateSource).toBe("released_actual");
+    expect(usd?.currentInflationRate).toBe("2.4");
+    expect(usd?.inflationSource).toBe("released_actual");
+  });
+
+  it("falls back to upcoming previous for policy and inflation when actual is blank", () => {
+    const result = deriveCentralBankSnapshots([
+      buildEvent({
+        currency: "CAD",
+        countryCode: "CA",
+        title: "BoC Interest Rate Decision",
+        actual: "",
+        previous: "2.00",
+        time: NOW + 20_000,
+      }),
+      buildEvent({
+        currency: "CAD",
+        countryCode: "CA",
+        title: "CPI y/y",
+        actual: "",
+        previous: "2.3",
+        time: NOW + 10_000,
+      }),
+    ]);
+
+    const cad = result.snapshots.find((item) => item.currency === "CAD");
+    expect(cad?.currentPolicyRate).toBe("2.00");
+    expect(cad?.policyRateSource).toBe("upcoming_previous");
+    expect(cad?.currentInflationRate).toBe("2.3");
+    expect(cad?.inflationSource).toBe("upcoming_previous");
+    expect(cad?.previousInflationRate).toBeNull();
+  });
+
+  it("prefers EUR HICP y/y over CPI y/y", () => {
+    const result = deriveCentralBankSnapshots([
+      buildEvent({
+        currency: "EUR",
+        countryCode: "EU",
+        title: "CPI y/y",
+        actual: "1.9",
+        previous: "1.8",
         time: NOW - 10_000,
       }),
       buildEvent({
-        id: 2,
-        title: "Inflation Rate YoY",
-        actual: "3.2%",
-        previous: "3.1%",
+        currency: "EUR",
+        countryCode: "EU",
+        title: "HICP y/y",
+        actual: "2.0",
+        previous: "1.9",
         time: NOW - 5_000,
       }),
-      buildEvent({
-        id: 3,
-        title: "Fed Interest Rate Decision",
-        actual: "",
-        forecast: "5.50%",
-        time: NOW + 20_000,
-      }),
-    ];
+    ]);
 
-    const result = deriveCentralBankSnapshots(events);
-    const usd = result.snapshots.find((item) => item.currency === "USD");
-
-    expect(usd).toBeDefined();
-    expect(usd?.currentPolicyRate).toBe("5.50%");
-    expect(usd?.previousPolicyRate).toBe("5.25%");
-    expect(usd?.currentInflationRate).toBe("3.2%");
-    expect(usd?.previousInflationRate).toBe("3.1%");
-    expect(usd?.status).toBe("ok");
+    const eur = result.snapshots.find((item) => item.currency === "EUR");
+    expect(eur?.currentInflationRate).toBe("2.0");
+    expect(eur?.inflationSourceTitle).toBe("HICP y/y");
   });
 
-  it("keeps ambiguous currencies as missing instead of guessing", () => {
-    const events: CalendarEvent[] = [
+  it("excludes non-headline JPY variants", () => {
+    const result = deriveCentralBankSnapshots([
       buildEvent({
-        id: 10,
-        currency: "USD",
-        countryCode: "US",
-        title: "Core Inflation Rate YoY",
-        actual: "3.5%",
-        previous: "3.6%",
+        currency: "JPY",
+        countryCode: "JP",
+        title: "Tokyo CPI y/y",
+        actual: "1.8",
+        previous: "1.7",
+        time: NOW - 20_000,
+      }),
+      buildEvent({
+        currency: "JPY",
+        countryCode: "JP",
+        title: "Core CPI y/y",
+        actual: "2.0",
+        previous: "1.9",
+        time: NOW - 10_000,
+      }),
+      buildEvent({
+        currency: "JPY",
+        countryCode: "JP",
+        title: "CPI y/y",
+        actual: "1.5",
+        previous: "1.4",
+        time: NOW - 5_000,
+      }),
+    ]);
+
+    const jpy = result.snapshots.find((item) => item.currency === "JPY");
+    expect(jpy?.currentInflationRate).toBe("1.5");
+    expect(jpy?.inflationSourceTitle).toBe("CPI y/y");
+  });
+
+  it("keeps unresolved metrics as missing instead of guessing from unrelated titles", () => {
+    const result = deriveCentralBankSnapshots([
+      buildEvent({
+        currency: "NZD",
+        countryCode: "NZ",
+        title: "RBNZ 2-Year Inflation Expectations",
+        actual: "2.37",
+        previous: "2.28",
         time: NOW - 3_000,
       }),
-    ];
+    ]);
 
-    const result = deriveCentralBankSnapshots(events);
-    const usd = result.snapshots.find((item) => item.currency === "USD");
-
-    expect(usd?.currentInflationRate).toBeNull();
-    expect(usd?.status).toBe("missing");
-    expect(result.logs.some((line) => line.includes("USD"))).toBe(true);
+    const nzd = result.snapshots.find((item) => item.currency === "NZD");
+    expect(nzd?.currentInflationRate).toBeNull();
+    expect(nzd?.inflationSource).toBe("none");
+    expect(result.logs.some((line) => line.includes("NZD"))).toBe(true);
   });
 });

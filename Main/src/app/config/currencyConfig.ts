@@ -7,14 +7,18 @@ export const CENTRAL_BANK_RULES: CentralBankMappingRule[] = [
     bankName: "Federal Reserve",
     flag: "US",
     policyRate: {
-      exactTitles: ["Fed Interest Rate Decision", "FOMC Interest Rate Decision", "Interest Rate Decision"],
-      includeAll: [["fed", "interest", "rate"], ["fomc", "interest", "rate"], ["federal", "funds", "rate"]],
-      excludeAny: ["mortgage", "loan", "auction", "bill"],
+      primary: {
+        exactTitles: ["Fed Interest Rate Decision", "FOMC Interest Rate Decision"],
+        includeAll: [["fed", "interest", "rate"], ["fomc", "interest", "rate"]],
+        excludeAny: ["mortgage", "loan", "auction", "bill"],
+      },
     },
     inflation: {
-      exactTitles: ["Inflation Rate YoY", "Consumer Price Index (YoY)"],
-      includeAll: [["inflation", "rate", "yoy"], ["cpi", "yoy"], ["consumer", "price", "index", "yoy"]],
-      excludeAny: ["core", "trimmed", "median", "services", "producer", "ppi"],
+      primary: {
+        exactTitles: ["CPI y/y"],
+        includeAll: [["cpi", "y", "y"]],
+        excludeAny: ["core", "trimmed", "median", "services", "producer", "ppi", "expectation", "pce"],
+      },
     },
   },
   {
@@ -23,14 +27,23 @@ export const CENTRAL_BANK_RULES: CentralBankMappingRule[] = [
     bankName: "European Central Bank",
     flag: "EU",
     policyRate: {
-      exactTitles: ["ECB Interest Rate Decision", "Main Refinancing Rate", "Deposit Facility Rate"],
-      includeAll: [["ecb", "interest", "rate"], ["main", "refinancing", "rate"], ["deposit", "facility", "rate"]],
-      excludeAny: ["auction", "bond"],
+      primary: {
+        exactTitles: ["ECB Interest Rate Decision"],
+        includeAll: [["ecb", "interest", "rate"]],
+        excludeAny: ["auction", "bond"],
+      },
     },
     inflation: {
-      exactTitles: ["Inflation Rate YoY", "Inflation Rate YoY Flash", "Inflation Rate YoY Final", "HICP YoY"],
-      includeAll: [["inflation", "rate", "yoy"], ["hicp", "yoy"]],
-      excludeAny: ["core", "services", "ppi"],
+      primary: {
+        exactTitles: ["HICP y/y"],
+        includeAll: [["hicp", "y", "y"]],
+        excludeAny: ["core", "services", "ppi", "tobacco", "energy", "food"],
+      },
+      fallback: {
+        exactTitles: ["CPI y/y"],
+        includeAll: [["cpi", "y", "y"]],
+        excludeAny: ["core", "services", "ppi", "tobacco", "energy", "food"],
+      },
     },
   },
   {
@@ -39,14 +52,23 @@ export const CENTRAL_BANK_RULES: CentralBankMappingRule[] = [
     bankName: "Bank of England",
     flag: "GB",
     policyRate: {
-      exactTitles: ["BoE Interest Rate Decision", "Official Bank Rate"],
-      includeAll: [["boe", "interest", "rate"], ["official", "bank", "rate"]],
-      excludeAny: ["mortgage", "loan"],
+      primary: {
+        exactTitles: ["BoE Interest Rate Decision"],
+        includeAll: [["boe", "interest", "rate"]],
+        excludeAny: ["mortgage", "loan"],
+      },
     },
     inflation: {
-      exactTitles: ["Inflation Rate YoY", "Consumer Price Index (YoY)"],
-      includeAll: [["inflation", "rate", "yoy"], ["consumer", "price", "index", "yoy"], ["cpi", "yoy"]],
-      excludeAny: ["core", "input", "output", "ppi"],
+      primary: {
+        exactTitles: ["CPI y/y"],
+        includeAll: [["cpi", "y", "y"]],
+        excludeAny: ["core", "input", "output", "ppi", "house"],
+      },
+      fallback: {
+        exactTitles: ["CPIH y/y"],
+        includeAll: [["cpih", "y", "y"]],
+        excludeAny: ["core", "input", "output", "ppi", "house"],
+      },
     },
   },
   {
@@ -55,14 +77,18 @@ export const CENTRAL_BANK_RULES: CentralBankMappingRule[] = [
     bankName: "Bank of Japan",
     flag: "JP",
     policyRate: {
-      exactTitles: ["BoJ Interest Rate Decision", "BoJ Policy Rate"],
-      includeAll: [["boj", "interest", "rate"], ["boj", "policy", "rate"]],
-      excludeAny: ["loan"],
+      primary: {
+        exactTitles: ["BoJ Interest Rate Decision"],
+        includeAll: [["boj", "interest", "rate"]],
+        excludeAny: ["loan"],
+      },
     },
     inflation: {
-      exactTitles: ["Inflation Rate YoY", "National CPI (YoY)"],
-      includeAll: [["inflation", "rate", "yoy"], ["national", "cpi", "yoy"], ["cpi", "yoy"]],
-      excludeAny: ["core", "tokyo", "ppi"],
+      primary: {
+        exactTitles: ["CPI y/y"],
+        includeAll: [["cpi", "y", "y"]],
+        excludeAny: ["core", "tokyo", "ppi", "trimmed", "weighted", "excl"],
+      },
     },
   },
   {
@@ -71,14 +97,18 @@ export const CENTRAL_BANK_RULES: CentralBankMappingRule[] = [
     bankName: "Reserve Bank of Australia",
     flag: "AU",
     policyRate: {
-      exactTitles: ["RBA Interest Rate Decision", "Interest Rate Decision"],
-      includeAll: [["rba", "interest", "rate"], ["reserve", "bank", "australia", "interest", "rate"]],
-      excludeAny: ["loan"],
+      primary: {
+        exactTitles: ["RBA Interest Rate Decision"],
+        includeAll: [["rba", "interest", "rate"]],
+        excludeAny: ["loan"],
+      },
     },
     inflation: {
-      exactTitles: ["Inflation Rate YoY", "CPI YoY"],
-      includeAll: [["inflation", "rate", "yoy"], ["cpi", "yoy"]],
-      excludeAny: ["trimmed", "weighted", "core", "ppi"],
+      primary: {
+        exactTitles: ["CPI y/y"],
+        includeAll: [["cpi", "y", "y"]],
+        excludeAny: ["trimmed", "weighted", "core", "ppi"],
+      },
     },
   },
   {
@@ -87,14 +117,18 @@ export const CENTRAL_BANK_RULES: CentralBankMappingRule[] = [
     bankName: "Bank of Canada",
     flag: "CA",
     policyRate: {
-      exactTitles: ["BoC Interest Rate Decision", "Interest Rate Decision"],
-      includeAll: [["boc", "interest", "rate"], ["bank", "canada", "interest", "rate"]],
-      excludeAny: ["mortgage", "bond"],
+      primary: {
+        exactTitles: ["BoC Interest Rate Decision"],
+        includeAll: [["boc", "interest", "rate"]],
+        excludeAny: ["mortgage", "bond"],
+      },
     },
     inflation: {
-      exactTitles: ["Inflation Rate YoY", "CPI YoY"],
-      includeAll: [["inflation", "rate", "yoy"], ["cpi", "yoy"]],
-      excludeAny: ["core", "median", "trimmed", "ppi"],
+      primary: {
+        exactTitles: ["CPI y/y"],
+        includeAll: [["cpi", "y", "y"]],
+        excludeAny: ["core", "median", "trimmed", "ppi", "common"],
+      },
     },
   },
   {
@@ -103,14 +137,18 @@ export const CENTRAL_BANK_RULES: CentralBankMappingRule[] = [
     bankName: "Reserve Bank of New Zealand",
     flag: "NZ",
     policyRate: {
-      exactTitles: ["RBNZ Interest Rate Decision", "Official Cash Rate"],
-      includeAll: [["rbnz", "interest", "rate"], ["official", "cash", "rate"]],
-      excludeAny: ["loan"],
+      primary: {
+        exactTitles: ["RBNZ Interest Rate Decision"],
+        includeAll: [["rbnz", "interest", "rate"]],
+        excludeAny: ["loan"],
+      },
     },
     inflation: {
-      exactTitles: ["Inflation Rate YoY", "CPI YoY"],
-      includeAll: [["inflation", "rate", "yoy"], ["cpi", "yoy"]],
-      excludeAny: ["core", "ppi"],
+      primary: {
+        exactTitles: ["CPI y/y"],
+        includeAll: [["cpi", "y", "y"]],
+        excludeAny: ["core", "ppi", "food", "price", "commodity"],
+      },
     },
   },
   {
@@ -119,14 +157,18 @@ export const CENTRAL_BANK_RULES: CentralBankMappingRule[] = [
     bankName: "Swiss National Bank",
     flag: "CH",
     policyRate: {
-      exactTitles: ["SNB Interest Rate Decision", "SNB Policy Rate"],
-      includeAll: [["snb", "interest", "rate"], ["snb", "policy", "rate"]],
-      excludeAny: ["mortgage"],
+      primary: {
+        exactTitles: ["SNB Interest Rate Decision"],
+        includeAll: [["snb", "interest", "rate"]],
+        excludeAny: ["mortgage"],
+      },
     },
     inflation: {
-      exactTitles: ["Inflation Rate YoY", "CPI YoY"],
-      includeAll: [["inflation", "rate", "yoy"], ["cpi", "yoy"]],
-      excludeAny: ["core", "ppi"],
+      primary: {
+        exactTitles: ["CPI y/y"],
+        includeAll: [["cpi", "y", "y"]],
+        excludeAny: ["core", "ppi"],
+      },
     },
   },
 ];

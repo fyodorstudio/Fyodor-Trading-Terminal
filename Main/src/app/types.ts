@@ -75,13 +75,20 @@ export interface EventMatcherRule {
   excludeAny: string[];
 }
 
+export interface MetricMatcherRule {
+  primary: EventMatcherRule;
+  fallback?: EventMatcherRule | null;
+}
+
+export type MetricSourceKind = "released_actual" | "upcoming_previous" | "none";
+
 export interface CentralBankMappingRule {
   currency: string;
   countryCode: string;
   bankName: string;
   flag: string;
-  policyRate: EventMatcherRule;
-  inflation: EventMatcherRule;
+  policyRate: MetricMatcherRule;
+  inflation: MetricMatcherRule;
 }
 
 export interface CentralBankSnapshot {
@@ -93,6 +100,12 @@ export interface CentralBankSnapshot {
   previousPolicyRate: string | null;
   currentInflationRate: string | null;
   previousInflationRate: string | null;
+  policyRateSource: MetricSourceKind;
+  policyRateSourceTitle: string | null;
+  policyRateSourceTime: number | null;
+  inflationSource: MetricSourceKind;
+  inflationSourceTitle: string | null;
+  inflationSourceTime: number | null;
   lastRateReleaseAt: number | null;
   lastCpiReleaseAt: number | null;
   nextRateEventAt: number | null;

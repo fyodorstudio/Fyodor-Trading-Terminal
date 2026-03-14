@@ -5,36 +5,30 @@ Welcome, Traveler! This log tracks your journey through the code. Every save poi
 ## 🛡️ Current Character Stats
 - **UI Engine:** Tailwind CSS v4 + Framer Motion (Glassmorphism Mode)
 - **Data Engine:** Python MT5 Bridge
-- **Visuals:** Professional Flag Assets (react-world-flags)
+- **Visuals:** Professional Flag Assets (High-Visibility Refit)
 - **Experience Level:** Beginner (Gaining EXP fast!)
 
 ---
 
 ## 📜 Quest History
 
+### [REPAIR COMPLETE] Flag Visual Refit & Cleanup
+**Timestamp:** 2026-03-14 19:30 (Sabtu, 14 Maret 2026)
+**Git Save Point:** `c34ab7f` ("Fixed flag visual alignment and removed redundant grey borders")
+*The traveler has successfully removed the grey 'ghost' borders behind flags and improved their fit within the UI.*
+
+#### **Technical Improvements:**
+- **Self-Contained Flags:** The `FlagIcon` now handles its own internal clipping and background, ensuring a clean look regardless of the flag's aspect ratio.
+- **Scale & Bleed:** Applied a subtle `scale-110` inside the flag containers to ensure no gaps or backgrounds are visible.
+
+---
+
 ### [QUEST COMPLETE] Professional Flag System
 **Timestamp:** 2026-03-14 19:15 (Sabtu, 14 Maret 2026)
 **Git Save Point:** `565aaf6` ("Replaced custom SVGs with professional react-world-flags library")
 *The traveler has upgraded from hand-forged icons to a professional flag library for official, high-quality visuals.*
 
-#### **New Gear Acquired:**
-- **react-world-flags:** A professional library for rendering official world flags.
-- **Refactored FlagIcon:** A cleaner component that leverages industrial-grade assets.
-
----
-
-### [QUEST COMPLETE] The Flagship Upgrade (Forge Attempt)
-**Timestamp:** 2026-03-14 19:00 (Sabtu, 14 Maret 2026)
-**Git Save Point:** `2435a21` ("Integrated custom SVG Flag icons for all major currencies")
-*The traveler attempted to forge custom SVGs, but decided to switch to a professional library for better aesthetics.*
-
----
-
-### [QUEST COMPLETE] Enhance Central Bank Data Display (Dual-View System)
-**Timestamp:** 2026-03-14 18:45 (Sabtu, 14 Maret 2026)
 ...
----
-
 ## 🗺️ Future Quests
 - [x] Initial Repository Setup (Tutorial Area)
 - [x] Modernize Top Header (First Boss Defeated!)

@@ -588,8 +588,8 @@ async def calendar_ingest(request: Request) -> Dict[str, Any]:
       _calendar_event_keys.add(key)
       ingested += 1
 
-  # Keep only reasonably recent history (e.g. last 90 days) based on time.
-  horizon_days = 90
+  # Keep enough history for quarterly CPI and prior policy decisions.
+  horizon_days = 400
   cutoff_ts = int(datetime.utcnow().timestamp()) - horizon_days * 24 * 60 * 60
   with _calendar_lock:
     if _calendar_events:

@@ -19,8 +19,8 @@ const TAB_ORDER: { id: TabId; label: string }[] = [
 
 function getFeedWindow() {
   const now = new Date();
-  const from = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
-  const to = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const from = new Date(now.getTime() - 400 * 24 * 60 * 60 * 1000);
+  const to = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
   return {
     from: Math.floor(from.getTime() / 1000),
     to: Math.floor(to.getTime() / 1000),

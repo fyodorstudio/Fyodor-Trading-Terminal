@@ -31,6 +31,12 @@ function renderValue(value: string | null): string {
   return value && value.trim() !== "" ? value : "N/A";
 }
 
+function renderSourceLabel(source: CentralBankSnapshot["policyRateSource"]): string {
+  if (source === "released_actual") return "Released actual";
+  if (source === "upcoming_previous") return "Upcoming previous";
+  return "Unresolved";
+}
+
 function TrendIndicator({ current, previous }: { current: string | null; previous: string | null }) {
   if (!current || !previous) return <Minus className="h-3 w-3 text-gray-300" />;
   const c = parseFloat(current);
@@ -143,6 +149,7 @@ export function CentralBanksTab({
                       <div className="flex flex-col">
                         <span className="text-lg font-black text-gray-900 tracking-tight">{renderValue(snapshot.currentPolicyRate)}</span>
                         <span className="text-[10px] font-bold text-gray-400">Prev: {renderValue(snapshot.previousPolicyRate)}</span>
+                        <span className="text-[10px] text-gray-500">{renderSourceLabel(snapshot.policyRateSource)}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4">
@@ -160,7 +167,10 @@ export function CentralBanksTab({
                             style={{ width: `${Math.min(100, (parseFloat(snapshot.currentInflationRate || "0") / 10) * 100)}%` }}
                           />
                         </div>
-                        <span className="text-sm font-bold text-gray-700">{renderValue(snapshot.currentInflationRate)}</span>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-bold text-gray-700">{renderValue(snapshot.currentInflationRate)}</span>
+                          <span className="text-[10px] text-gray-500">{renderSourceLabel(snapshot.inflationSource)}</span>
+                        </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-xs font-medium">
@@ -244,12 +254,20 @@ export function CentralBanksTab({
                         <span className="text-4xl font-black text-gray-900 leading-none">{renderValue(currentSnapshot.currentPolicyRate)}</span>
                         <span className="text-sm font-bold text-gray-400 italic">from {renderValue(currentSnapshot.previousPolicyRate)}</span>
                       </div>
+                      <div className="mt-3 text-[11px] text-gray-500">
+                        {renderSourceLabel(currentSnapshot.policyRateSource)}
+                        {currentSnapshot.policyRateSourceTitle ? ` - ${currentSnapshot.policyRateSourceTitle}` : ""}
+                      </div>
                     </div>
                     <div className="p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
                       <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Inflation YoY</span>
                       <div className="flex items-baseline gap-3">
                         <span className="text-4xl font-black text-gray-900 leading-none">{renderValue(currentSnapshot.currentInflationRate)}</span>
                         <span className="text-sm font-bold text-gray-400 italic">from {renderValue(currentSnapshot.previousInflationRate)}</span>
+                      </div>
+                      <div className="mt-3 text-[11px] text-gray-500">
+                        {renderSourceLabel(currentSnapshot.inflationSource)}
+                        {currentSnapshot.inflationSourceTitle ? ` - ${currentSnapshot.inflationSourceTitle}` : ""}
                       </div>
                     </div>
                   </div>
