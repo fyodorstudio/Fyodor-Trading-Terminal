@@ -1,4 +1,34 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { fetchCalendar, fetchHealth, fetchMarketStatus } from "@/app/lib/bridge";
+import { deriveCentralBankSnapshots } from "@/app/lib/centralBankDerive";
+import { resolveCalendarStatus } from "@/app/lib/status";
+import { MinimalHeader } from "@/app/components/MinimalHeader";
+import { TabNavigation } from "@/app/components/TabNavigation";
+import { UiCommandPanel } from "@/app/components/UiCommandPanel";
+import { OverviewTab } from "@/app/tabs/OverviewTab";
+import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
+import { ChartsTab } from "@/app/tabs/ChartsTab";
+import { EconomicCalendarTab } from "@/app/tabs/EconomicCalendarTab";
+import { THEME_PRESETS, ThemeId } from "@/app/config/themeConfig";
+import type { BridgeHealth, BridgeStatus, CalendarEvent, MarketStatusResponse, TabId } from "@/app/types";
+
+const TAB_ORDER: { id: TabId; label: string }[] = [
+  { id: "overview", label: "Overview" },
+  { id: "central-banks", label: "Central Banks Data" },
+  { id: "charts", label: "Charts" },
+  { id: "calendar", label: "Economic Calendar" },
+];
+
+function getFeedWindow() {
+  const now = new Date();
+  const from = new Date(now.getTime() - 400 * 24 * 60 * 60 * 1000);
+  const to = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+  return {
+    from: Math.floor(from.getTime() / 1000),
+    to: Math.floor(to.getTime() / 1000),
+  };
+}
 
 const transition = { type: "spring", stiffness: 300, damping: 30 };
 
