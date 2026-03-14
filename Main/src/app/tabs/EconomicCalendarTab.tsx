@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Search, Star } from "lucide-react";
+import { Search, Star, Activity, Database, Clock } from "lucide-react";
 import { fetchCalendar } from "@/app/lib/bridge";
 import { getPresetRange } from "@/app/lib/calendarRanges";
 import {
@@ -141,28 +141,33 @@ export function EconomicCalendarTab({ health }: EconomicCalendarTabProps) {
     );
   };
 
-  const statusText =
+  const statusLabel =
     status === "live"
-      ? "Live MT5 calendar feed."
+      ? "LIVE"
       : status === "stale"
-        ? "Calendar rows loaded. Feed freshness needs review."
+        ? "STALE"
         : status === "loading"
-          ? "Loading MT5 calendar..."
+          ? "SYNCING"
           : status === "no_data"
-            ? "NO DATA for the selected range."
-            : "Bridge unavailable.";
+            ? "NO DATA"
+            : "OFFLINE";
 
   return (
     <section className="tab-panel">
       <div className="section-head">
         <div>
-          <h2>Economic Calendar</h2>
-          <p>MT5 server-time audit table with local-time reference and strict live-data states.</p>
-        </div>
-        <div className="section-metrics">
-          <span className={`status-pill status-${status}`}>{statusText}</span>
-          <span className="metric-chip">Last fetch: {formatRelativeAge(lastFetchedAt)}</span>
-          <span className="metric-chip">Calendar ingest: {formatRelativeAge(lastCalendarIngestAt)}</span>
+          <div className="flex items-center gap-3">
+            <h2>Economic Calendar</h2>
+            <div className={`px-2 py-0.5 rounded border text-[10px] font-black tracking-widest flex items-center gap-1.5 ${
+              status === 'live' ? 'bg-[var(--green)]/10 text-[var(--green)] border-[var(--green)]/20' : 
+              status === 'stale' ? 'bg-[var(--amber)]/10 text-[var(--amber)] border-[var(--amber)]/20' : 
+              'bg-[var(--red)]/10 text-[var(--red)] border-[var(--red)]/20'
+            }`}>
+              <span className={`h-1 w-1 rounded-full ${status === 'live' ? 'bg-[var(--green)] animate-pulse' : 'bg-current'}`} />
+              {statusLabel}
+            </div>
+          </div>
+          <p>MT5 server-time audit table with local-time reference.</p>
         </div>
       </div>
 
@@ -324,6 +329,17 @@ export function EconomicCalendarTab({ health }: EconomicCalendarTabProps) {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Option C: Contextual Footer Ribbon */}
+      <div className="mt-auto pt-4 flex items-center justify-between px-2 text-[9px] font-black text-[var(--muted)] uppercase tracking-widest opacity-40">
+        <div className="flex gap-6">
+          <span className="flex items-center gap-1.5"><Activity size={10} /> Sync: {formatRelativeAge(lastFetchedAt)}</span>
+          <span className="flex items-center gap-1.5"><Database size={10} /> Ingest: {formatRelativeAge(lastCalendarIngestAt)}</span>
+        </div>
+        <div>
+          MT5 Audit Stream // Tactical v1.0
+        </div>
       </div>
     </section>
   );
