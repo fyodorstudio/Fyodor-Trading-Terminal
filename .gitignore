@@ -1,0 +1,13 @@
+# Node dependencies
+node_modules/
+dist/
+
+# Python dependencies
+.venv/
+__pycache__/
+*.pyc
+
+# IDE/System files
+.vscode/
+.DS_Store
+*.log

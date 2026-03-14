@@ -1,0 +1,8 @@
+MetaTrader5==5.0.5640
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+
+# One-command dev (app + bridge): from repo root run pnpm run dev:all; see README.md and root README.
+# Tests: from mt5-bridge run pytest tests/ (requires pytest, httpx for TestClient).
+pytest>=8.0.0
+httpx>=0.27.0
