@@ -121,12 +121,10 @@ export function CentralBanksTab({
               <thead>
                 <tr className="border-b-2 border-gray-100 bg-gray-50/80">
                   <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Institution</th>
-                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Current Rate</th>
-                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Previous</th>
-                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest text-center">Trend</th>
-                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Last Release</th>
-                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Next Event</th>
-                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Inflation</th>
+                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Policy Rate (Cur/Prev)</th>
+                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Rate Timeline</th>
+                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">Inflation (Cur/Prev)</th>
+                  <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest">CPI Timeline</th>
                   <th className="px-6 py-5 text-xs font-black text-gray-700 uppercase tracking-widest text-right">Status</th>
                 </tr>
               </thead>
@@ -148,65 +146,63 @@ export function CentralBanksTab({
                         </div>
                       </div>
                     </td>
+                    
+                    {/* POLICY RATE BLOCK */}
                     <td className="px-6 py-6">
                       <div className="flex flex-col">
                         <span className="text-2xl font-black text-gray-900 tracking-tighter leading-none mb-1">
                           {renderValue(snapshot.currentPolicyRate)}
                         </span>
-                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                          {renderSourceLabel(snapshot.policyRateSource)}
+                        <span className="text-xs font-bold text-gray-600">
+                          Prev: {renderValue(snapshot.previousPolicyRate)}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-6">
-                      <span className="text-lg font-bold text-gray-600">
-                        {renderValue(snapshot.previousPolicyRate)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-6">
-                      <div className="flex justify-center">
-                        <div className="p-2.5 bg-white rounded-xl border-2 border-gray-100 shadow-sm">
-                          <TrendIndicator current={snapshot.currentPolicyRate} previous={snapshot.previousPolicyRate} />
+                      <div className="flex flex-col gap-1">
+                        <div className="flex flex-col">
+                          <span className="text-gray-900 text-[11px] font-black uppercase tracking-tighter">Last: {formatDateOnly(snapshot.lastRateReleaseAt)}</span>
+                          <span className="text-gray-500 text-[10px] font-bold italic">{formatRelativeAge(snapshot.lastRateReleaseAt)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-blue-700 text-[11px] font-black uppercase tracking-tighter">Next: {snapshot.nextRateEventAt ? formatDateOnly(snapshot.nextRateEventAt) : "N/A"}</span>
+                          {snapshot.nextRateEventAt && (
+                            <span className="text-blue-500 text-[10px] font-bold">
+                              in {formatDistanceToNow(new Date(snapshot.nextRateEventAt * 1000))}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-6">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-gray-900 text-sm font-black tracking-tight">{formatDateOnly(snapshot.lastRateReleaseAt)}</span>
-                        <span className="text-gray-600 text-[10px] uppercase font-black bg-gray-100 px-2 py-0.5 rounded-full w-fit">
-                          {formatRelativeAge(snapshot.lastRateReleaseAt)}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-6">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-blue-700 text-sm font-black tracking-tight">
-                          {snapshot.nextRateEventAt ? formatDateOnly(snapshot.nextRateEventAt) : "Awaiting Schedule"}
-                        </span>
-                        {snapshot.nextRateEventAt && (
-                          <span className="text-blue-600 text-[10px] uppercase font-black bg-blue-50 px-2 py-0.5 rounded-full w-fit border border-blue-100">
-                            {new Date(snapshot.nextRateEventAt * 1000) > new Date() 
-                              ? `in ${formatDistanceToNow(new Date(snapshot.nextRateEventAt * 1000))}` 
-                              : "Pending Release"}
-                          </span>
-                        )}
-                      </div>
-                    </td>
+
+                    {/* INFLATION BLOCK */}
                     <td className="px-6 py-6">
                       <div className="flex flex-col">
                         <span className="text-2xl font-black text-gray-900 tracking-tighter leading-none mb-1">
                           {renderValue(snapshot.currentInflationRate)}
                         </span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">
-                            Prev: {renderValue(snapshot.previousInflationRate)}
-                          </span>
-                          <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">
-                            YoY CPI
-                          </span>
+                        <span className="text-xs font-bold text-gray-600">
+                          Prev: {renderValue(snapshot.previousInflationRate)}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-6">
+                      <div className="flex flex-col gap-1">
+                        <div className="flex flex-col">
+                          <span className="text-gray-900 text-[11px] font-black uppercase tracking-tighter">Last: {formatDateOnly(snapshot.lastCpiReleaseAt)}</span>
+                          <span className="text-gray-500 text-[10px] font-bold italic">{formatRelativeAge(snapshot.lastCpiReleaseAt)}</span>
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-blue-700 text-[11px] font-black uppercase tracking-tighter">Next: {snapshot.nextCpiEventAt ? formatDateOnly(snapshot.nextCpiEventAt) : "N/A"}</span>
+                          {snapshot.nextCpiEventAt && (
+                            <span className="text-blue-500 text-[10px] font-bold">
+                              in {formatDistanceToNow(new Date(snapshot.nextCpiEventAt * 1000))}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </td>
+
                     <td className="px-6 py-6 text-right">
                       <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-black uppercase tracking-widest border-2 ${
                         snapshot.status === 'ok' ? 'bg-green-50 text-green-700 border-green-200' : 
