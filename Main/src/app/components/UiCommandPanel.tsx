@@ -5,9 +5,8 @@ import {
   Type,
   Palette,
   Check,
-  LayoutGrid,
-  ArrowRight,
-  X
+  Zap,
+  MousePointer2
 } from "lucide-react";
 import { FONT_OPTIONS, COLOR_PALETTES, FontId, ColorPaletteId } from "../config/themeConfig";
 
@@ -30,24 +29,49 @@ export function UiCommandPanel({
   isOpen, 
   onOpenChange 
 }: UiCommandPanelProps) {
-  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
-  const selectedFont = FONT_OPTIONS.find(f => f.id === currentFont) || FONT_OPTIONS[0];
+  const [isForging, setIsForging] = useState(false);
+  
+  // Local preview state to override the font during hover
+  const handleFontHover = (family: string | null) => {
+    const root = document.documentElement;
+    if (family) {
+      root.style.setProperty('--font-main', family);
+    } else {
+      // Revert to current selected font
+      const current = FONT_OPTIONS.find(f => f.id === currentFont) || FONT_OPTIONS[0];
+      root.style.setProperty('--font-main', current.family);
+    }
+  };
 
   return (
     <div className="relative">
+      {/* OPTION C: BACKDROP ISOLATION (Triggered by Forge state) */}
+      <AnimatePresence>
+        {isForging && isOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-white/10 backdrop-blur-md z-[150] pointer-events-none"
+          />
+        )}
+      </AnimatePresence>
+
       <motion.aside
         initial={false}
         animate={{ width: isOpen ? 260 : 64 }}
         transition={transition}
-        className="fixed left-0 top-0 bottom-0 z-[100] bg-white border-r border-gray-200 flex flex-col shadow-2xl overflow-hidden select-none"
+        onMouseEnter={() => setIsForging(true)}
+        onMouseLeave={() => {
+          setIsForging(false);
+          handleFontHover(null);
+        }}
+        className="fixed left-0 top-0 bottom-0 z-[200] bg-white border-r border-gray-200 flex flex-col shadow-2xl overflow-hidden select-none"
       >
         {/* Header / Toggle */}
         <div className="flex items-center px-4 min-h-[64px] border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
           <button 
-            onClick={() => {
-              onOpenChange(!isOpen);
-              if (isOpen) setIsGalleryOpen(false);
-            }}
+            onClick={() => onOpenChange(!isOpen)}
             className="flex items-center gap-3 hover:opacity-80 active:scale-95 transition-opacity outline-none"
           >
             <div className="p-2 bg-gray-900 rounded-lg shadow-lg flex-shrink-0">
@@ -79,23 +103,50 @@ export function UiCommandPanel({
                 transition={{ duration: 0.15 }}
                 className="space-y-10"
               >
-                {/* TYPOGRAPHY SECTION */}
+                {/* OPTION C: LIVE-PREVIEW TYPOGRAPHY TILES */}
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 px-1">
-                    <Type className="h-3 w-3 text-gray-400" />
-                    <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Typography Forge</div>
+                  <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center gap-2">
+                      <Type className="h-3 w-3 text-gray-400" />
+                      <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Typography Forge</div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Zap className="h-2.5 w-2.5 text-amber-400 fill-amber-400" />
+                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter">Live Preview</span>
+                    </div>
                   </div>
                   
-                  <button
-                    onClick={() => setIsGalleryOpen(true)}
-                    className="w-full flex items-center justify-between p-4 bg-gray-50 border border-gray-200 rounded-2xl hover:border-blue-300 hover:bg-white transition-all group shadow-sm"
-                  >
-                    <div className="flex flex-col text-left">
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1.5">Open Gallery</span>
-                      <span className="text-sm font-black text-gray-900" style={{ fontFamily: selectedFont.family }}>{selectedFont.label}</span>
-                    </div>
-                    <LayoutGrid className="h-4 w-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    {FONT_OPTIONS.map((option) => (
+                      <button
+                        key={option.id}
+                        onClick={() => onFontChange(option.id)}
+                        onMouseEnter={() => handleFontHover(option.family)}
+                        onMouseLeave={() => handleFontHover(null)}
+                        className={`
+                          relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all group
+                          ${currentFont === option.id 
+                            ? 'bg-gray-900 border-gray-800 shadow-lg scale-[1.02]' 
+                            : 'bg-white border-gray-100 hover:border-blue-200 hover:scale-[1.05]'}
+                        `}
+                      >
+                        <div 
+                          className={`text-xl mb-1 ${currentFont === option.id ? 'text-white' : 'text-gray-900 group-hover:text-blue-600'}`}
+                          style={{ fontFamily: option.family }}
+                        >
+                          Aa
+                        </div>
+                        <div className={`text-[9px] font-black uppercase tracking-tighter ${currentFont === option.id ? 'text-gray-400' : 'text-gray-500'}`}>
+                          {option.id}
+                        </div>
+                        {currentFont === option.id && (
+                          <div className="absolute top-1 right-1">
+                            <Check className="h-3 w-3 text-blue-400" />
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* COLOR SYSTEMS SECTION */}
@@ -153,87 +204,6 @@ export function UiCommandPanel({
           </div>
         </div>
       </motion.aside>
-
-      {/* OPTION B: TYPE GALLERY POPOVER */}
-      <AnimatePresence>
-        {isGalleryOpen && isOpen && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsGalleryOpen(false)}
-              className="fixed inset-0 bg-gray-900/20 backdrop-blur-sm z-[150]"
-            />
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={transition}
-              className="fixed left-[270px] top-4 bottom-4 w-[480px] bg-white border border-gray-200 rounded-[32px] shadow-2xl z-[200] flex flex-col overflow-hidden"
-            >
-              <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-                <div>
-                  <h3 className="text-xl font-black text-gray-900 tracking-tight">Typography Gallery</h3>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">Visual Character Selection</p>
-                </div>
-                <button 
-                  onClick={() => setIsGalleryOpen(false)}
-                  className="p-2 hover:bg-gray-200 rounded-full transition-colors"
-                >
-                  <X className="h-5 w-5 text-gray-400" />
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto p-6 space-y-8">
-                {['Sans', 'Mono', 'Display'].map((cat) => {
-                  const fonts = FONT_OPTIONS.filter(f => f.category === cat);
-                  if (fonts.length === 0) return null;
-                  return (
-                    <div key={cat} className="space-y-4">
-                      <div className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] px-2">{cat} Squadron</div>
-                      <div className="grid grid-cols-1 gap-3">
-                        {fonts.map((f) => (
-                          <button
-                            key={f.id}
-                            onClick={() => {
-                              onFontChange(f.id);
-                              setIsGalleryOpen(false);
-                            }}
-                            className={`
-                              w-full text-left p-5 rounded-2xl border-2 transition-all group
-                              ${currentFont === f.id 
-                                ? 'border-blue-500 bg-blue-50/30' 
-                                : 'border-gray-100 hover:border-gray-300 hover:bg-gray-50'}
-                            `}
-                          >
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-xs font-black text-gray-400 uppercase tracking-widest">{f.label}</span>
-                              {currentFont === f.id && <Check className="h-4 w-4 text-blue-500" />}
-                            </div>
-                            <div 
-                              className="text-2xl text-gray-900 tracking-tight" 
-                              style={{ fontFamily: f.family }}
-                            >
-                              EUR/USD 1.0845
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-              
-              <div className="p-6 bg-gray-50 border-t border-gray-100">
-                <div className="text-[10px] font-bold text-gray-400 text-center uppercase tracking-widest">
-                  {FONT_OPTIONS.length} Tactical Families Ready
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
