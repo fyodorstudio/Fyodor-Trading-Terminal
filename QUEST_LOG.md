@@ -12,6 +12,18 @@ Welcome, Traveler! This log tracks your journey through the code. Every save poi
 
 ## 📜 Quest History
 
+### [QUEST COMPLETE] Central Bank Tactical Command Refit
+**Timestamp:** 2026-03-14 19:45 (Sabtu, 14 Maret 2026)
+**Git Save Point:** `6887728` ("Tactical Refit of Central Bank Detailed Command View")
+*The traveler has upgraded the Command Center UI with relative time tracking and high-density data metrics.*
+
+#### **Tactical Upgrades:**
+- **Enhanced Timeline:** Integrated 'Last Release' and 'Next Event' columns with relative time labels (e.g., "5 days ago", "in 12 days").
+- **Metric Consolidation:** Policy rates are now paired with their source (e.g., "Released actual") and trend indicators in a single high-scanability line.
+- **Future Sight:** Added a countdown system for next events to improve decision-making speed.
+
+---
+
 ### [REPAIR COMPLETE] Flag Visual Refit & Cleanup
 **Timestamp:** 2026-03-14 19:30 (Sabtu, 14 Maret 2026)
 **Git Save Point:** `c34ab7f` ("Fixed flag visual alignment and removed redundant grey borders")
