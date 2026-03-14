@@ -80,7 +80,7 @@ export function UiCommandPanel({
           setIsForging(false);
           setHoveredFont(null);
         }}
-        className="fixed left-0 top-0 bottom-0 z-[200] bg-white border-r border-gray-200 flex flex-col shadow-2xl overflow-hidden select-none"
+        className="fixed left-0 top-0 bottom-0 z-[500] bg-white border-r border-gray-200 flex flex-col shadow-2xl overflow-hidden select-none"
       >
         {/* Header / Toggle */}
         <div className="flex items-center px-4 min-h-[64px] border-b border-gray-100 bg-gray-50/50 flex-shrink-0">

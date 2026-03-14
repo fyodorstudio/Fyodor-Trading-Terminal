@@ -203,14 +203,7 @@ export default function App() {
           />
 
           <main className="main-area mt-6">
-            {activeTab === "overview" && (
-              <OverviewTab 
-                marketStatus={marketStatus}
-                feedStatus={feedStatus}
-                snapshots={centralBankResult.snapshots}
-                currentTime={currentTime}
-              />
-            )}
+            {activeTab === "overview" && <OverviewTab />}
             {activeTab === "central-banks" && (
               <CentralBanksTab
                 snapshots={centralBankResult.snapshots}

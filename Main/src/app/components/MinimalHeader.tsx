@@ -49,7 +49,7 @@ export function MinimalHeader({
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-sm bg-blue-600 shadow-sm" />
-                <h1 className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-900">Terminal.Core</h1>
+                <h1 className="text-[11px] font-black uppercase tracking-[0.2em] text-gray-900">Fyodor Trading Terminal</h1>
               </div>
               <div className="h-4 w-px bg-gray-200" />
               <div className="flex items-center gap-4 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
