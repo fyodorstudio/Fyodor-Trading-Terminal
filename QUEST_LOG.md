@@ -11,15 +11,17 @@ Welcome, Traveler! This log tracks your journey through the code. Every save poi
 
 ## 📜 Quest History
 
+### [REPAIR COMPLETE] Symbol Picker Categorization Fix
+**Timestamp:** 2026-03-14 17:00 (Sabtu, 14 Maret 2026)
+**Git Save Point:** `ecb62a8` ("Repaired Symbol Picker categorisation and scrolling")
+*The traveler has successfully repaired the symbol picker, restoring categories and fixing the scrolling bug.*
+
+---
+
 ### [QUEST COMPLETE] Improve Chart Styling (The Glass Chart)
 **Timestamp:** 2026-03-14 16:45 (Sabtu, 14 Maret 2026)
 **Git Save Point:** `1e4a6a7` ("Refactored Chart UI with Glassmorphism and Modern Controls")
 *The traveler has successfully transformed the chart area into a high-end, glassmorphism-style terminal.*
-
-#### **New Gear Acquired:**
-- **Animated Symbol Picker:** A search-and-select dropdown for symbol switching.
-- **Modern Status Indicators:** Activity and Clock pills for market and bridge status.
-- **Glass Chart Container:** A semi-transparent, blurred frame for the Lightweight Charts engine.
 
 ---
 
