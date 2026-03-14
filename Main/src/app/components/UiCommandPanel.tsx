@@ -249,7 +249,7 @@ export function UiCommandPanel({
             animate={{ opacity: 1, x: 0, scale: 1 }}
             exit={{ opacity: 0, x: 10, scale: 0.95 }}
             transition={{ type: "spring", stiffness: 400, damping: 25 }}
-            className="fixed left-[350px] top-1/2 -translate-y-1/2 w-[380px] bg-white border border-gray-200 rounded-[32px] shadow-2xl z-[300] p-8 pointer-events-none"
+            className="fixed left-[350px] top-1/2 -translate-y-1/2 w-[380px] bg-white border border-gray-200 rounded-[32px] shadow-2xl z-[1100] p-8 pointer-events-none"
           >
             <div className="mb-4">
               <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">{hoveredFont.category} Squadron</span>
