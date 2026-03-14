@@ -20,6 +20,7 @@ Welcome, Traveler! This log tracks your journey through the code. Every save poi
 #### **Tactical Upgrades:**
 - **Enhanced Timeline:** Integrated 'Last Release' and 'Next Event' columns with relative time labels (e.g., "5 days ago", "in 12 days").
 - **Metric Consolidation:** Policy rates are now paired with their source (e.g., "Released actual") and trend indicators in a single high-scanability line.
+- **Inflation Power-Up:** Inflation rates now match policy rate font sizes (`text-lg font-black`) and explicitly display **Previous** values for better comparison.
 - **Future Sight:** Added a countdown system for next events to improve decision-making speed.
 
 ---
