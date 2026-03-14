@@ -11,15 +11,22 @@ Welcome, Traveler! This log tracks your journey through the code. Every save poi
 
 ## 📜 Quest History
 
-### [QUEST COMPLETE] Enhance Central Bank Data Display (Choice B)
-**Timestamp:** 2026-03-14 18:15 (Sabtu, 14 Maret 2026)
-**Git Save Point:** `5aa38ed` ("Refactored Central Banks Tab into Command Center Table with Trend Analysis")
-*The traveler has successfully implemented the 'Command Center' table, prioritizing data density and trend analysis.*
+### [QUEST COMPLETE] Enhance Central Bank Data Display (Choice C)
+**Timestamp:** 2026-03-14 18:30 (Sabtu, 14 Maret 2026)
+**Git Save Point:** `488f5f0` ("Refactored Central Banks Tab into Interactive Timeline with Sidebar Selection")
+*The traveler has successfully implemented the 'Interactive Timeline', focusing on individual bank drill-downs and event schedules.*
 
 #### **New Gear Acquired:**
-- **Command Table:** A compact, high-density table for professional currency analysis.
-- **Trend Analysis Node:** A dedicated column showing the direction (Up/Down) of interest rates.
-- **Inflation Progress Indicators:** Mini-bars for visualizing relative inflation levels.
+- **Interactive Bank Sidebar:** A selection-based sidebar for deep-diving into specific currencies.
+- **Node-Based Timeline:** A vertical history and schedule of Rate and CPI events.
+- **Motion Transitions:** Smooth, sliding transitions when switching between different bank nodes.
+
+---
+
+### [QUEST COMPLETE] Enhance Central Bank Data Display (Choice B - Archived)
+**Timestamp:** 2026-03-14 18:15 (Sabtu, 14 Maret 2026)
+**Git Save Point:** `5aa38ed` ("Refactored Central Banks Tab into Command Center Table with Trend Analysis")
+*The traveler previously built the 'Command Center'. This can still be re-loaded via Git if needed.*
 
 ---
 
@@ -42,50 +49,7 @@ Welcome, Traveler! This log tracks your journey through the code. Every save poi
 **Git Save Point:** `8e972c9` ("Migrated Chart Status Toast to Control Bar for better visibility")
 *The traveler has successfully moved the status info from the chart area to the control bar, preventing UI collisions.*
 
----
-
-### [REPAIR COMPLETE] Symbol Picker Z-index overlap fix
-**Timestamp:** 2026-03-14 17:15 (Sabtu, 14 Maret 2026)
-**Git Save Point:** `3f06089` ("Fixed Symbol Picker Z-index overlap bug")
-*The traveler has successfully fixed the z-index issue, ensuring the symbol picker dropdown appears on top of the chart.*
-
----
-
-### [REPAIR COMPLETE] Symbol Picker Categorization Fix
-**Timestamp:** 2026-03-14 17:00 (Sabtu, 14 Maret 2026)
-**Git Save Point:** `ecb62a8` ("Repaired Symbol Picker categorisation and scrolling")
-*The traveler has successfully repaired the symbol picker, restoring categories and fixing the scrolling bug.*
-
----
-
-### [QUEST COMPLETE] Improve Chart Styling (The Glass Chart)
-**Timestamp:** 2026-03-14 16:45 (Sabtu, 14 Maret 2026)
-**Git Save Point:** `1e4a6a7` ("Refactored Chart UI with Glassmorphism and Modern Controls")
-*The traveler has successfully transformed the chart area into a high-end, glassmorphism-style terminal.*
-
----
-
-### [QUEST COMPLETE] Refactor Tab Navigation
-**Timestamp:** 2026-03-14 16:20 (Sabtu, 14 Maret 2026)
-**Git Save Point:** `19e66f0` ("Refactored Tab Navigation with Glassmorphism and Framer Motion")
-*The traveler has successfully transformed the bulky navigation buttons into a sleek, sliding glass-style menu.*
-
----
-
-### [QUEST COMPLETE] The Modern UI Upgrade
-**Timestamp:** 2026-03-14 15:45 (Sabtu, 14 Maret 2026)
-**Git Save Point:** `b70ca01` ("Modern Glassmorphism Header")
-*The traveler has successfully upgraded the terminal's visuals from 'Standard' to 'Modern Glass'.*
-
----
-
-### [QUEST COMPLETE] Initial Repository Setup
-**Timestamp:** 2026-03-14 15:15 (Sabtu, 14 Maret 2026)
-**Git Save Point:** `02a4410` ("Initialized Terminal codebase")
-*The game world was created and the first save system was established.*
-
----
-
+...
 ## 🗺️ Future Quests
 - [x] Initial Repository Setup (Tutorial Area)
 - [x] Modernize Top Header (First Boss Defeated!)
