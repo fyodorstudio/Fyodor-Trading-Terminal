@@ -64,7 +64,7 @@ export function UiCommandPanel({ currentTheme, onThemeChange, isOpen, onOpenChan
               <div className="space-y-4">
                 <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] px-1">Tactical Profiles</div>
                 <div className="space-y-2">
-                  {(Object.keys(THEME_PRESETS) as ThemeId[]).filter(id => id !== 'bloomberg').map((themeId) => (
+                  {(Object.keys(THEME_PRESETS) as ThemeId[]).map((themeId) => (
                     <button
                       key={themeId}
                       onClick={() => onThemeChange(themeId)}
@@ -75,11 +75,13 @@ export function UiCommandPanel({ currentTheme, onThemeChange, isOpen, onOpenChan
                       `}
                     >
                       <div 
-                        className="h-8 w-8 rounded-lg shadow-inner border border-gray-200/50 flex-shrink-0" 
+                        className="h-10 w-10 rounded-lg shadow-inner border border-gray-200/50 flex-shrink-0 flex flex-col p-1 gap-0.5" 
                         style={{ background: THEME_PRESETS[themeId].bg }}
                       >
-                        <div className="h-full w-full flex items-center justify-center">
-                          <Type className={`h-4 w-4 ${currentTheme === themeId ? 'text-white' : 'text-gray-400'}`} />
+                        <div className="h-2 w-full rounded-sm" style={{ background: THEME_PRESETS[themeId].accent }} />
+                        <div className="flex-1 flex gap-0.5">
+                          <div className="flex-1 rounded-sm" style={{ background: THEME_PRESETS[themeId].tabActiveBg }} />
+                          <div className="flex-1 rounded-sm border border-gray-200/20" style={{ background: THEME_PRESETS[themeId].panel }} />
                         </div>
                       </div>
                       <div className="text-left overflow-hidden">

@@ -9,7 +9,7 @@ interface TabNavigationProps {
 
 export function TabNavigation({ activeTab, setActiveTab, tabOrder }: TabNavigationProps) {
   return (
-    <nav className="relative flex p-1.5 gap-2 backdrop-blur-xl bg-white/40 border border-gray-200/50 rounded-2xl mb-8 max-w-fit mx-auto mt-6 shadow-sm">
+    <nav className="relative flex p-1.5 gap-2 backdrop-blur-xl bg-[var(--nav-bg)] border border-[var(--line)] rounded-2xl mb-8 max-w-fit mx-auto mt-6 shadow-sm transition-colors duration-300">
       {tabOrder.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
@@ -17,14 +17,14 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder }: TabNavigati
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`
-              relative px-5 py-2.5 text-xs font-bold uppercase tracking-widest transition-colors duration-300 rounded-xl
-              ${isActive ? 'text-gray-900' : 'text-gray-500 hover:text-gray-800'}
+              relative px-5 py-2.5 text-xs font-black uppercase tracking-widest transition-all duration-300 rounded-xl outline-none
+              ${isActive ? 'text-[var(--tab-active-text)]' : 'text-[var(--tab-inactive-text)] hover:opacity-80'}
             `}
           >
             {isActive && (
               <motion.div
                 layoutId="activeTabIndicator"
-                className="absolute inset-0 bg-white shadow-md rounded-xl z-0"
+                className="absolute inset-0 bg-[var(--tab-active-bg)] shadow-md rounded-xl z-0"
                 transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
               />
             )}

@@ -60,6 +60,13 @@ export default function App() {
     root.style.setProperty('--muted', theme.muted);
     root.style.setProperty('--accent', theme.accent);
     root.style.setProperty('--primary', theme.primary);
+    
+    // Navigation
+    root.style.setProperty('--nav-bg', theme.navBg);
+    root.style.setProperty('--tab-active-bg', theme.tabActiveBg);
+    root.style.setProperty('--tab-active-text', theme.tabActiveText);
+    root.style.setProperty('--tab-inactive-text', theme.tabInactiveText);
+    
     root.style.setProperty('font-family', theme.fontFamily);
     
     localStorage.setItem('terminal-theme', currentTheme);
