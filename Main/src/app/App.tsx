@@ -2,10 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchCalendar, fetchHealth, fetchMarketStatus } from "@/app/lib/bridge";
 import { deriveCentralBankSnapshots } from "@/app/lib/centralBankDerive";
 import { resolveCalendarStatus } from "@/app/lib/status";
-import { LocalClock } from "@/app/components/LocalClock";
-import { MarketStatusPill } from "@/app/components/MarketStatusPill";
-import { Mt5Clock } from "@/app/components/Mt5Clock";
 import { MinimalHeader } from "@/app/components/MinimalHeader";
+import { TabNavigation } from "@/app/components/TabNavigation";
 import { OverviewTab } from "@/app/tabs/OverviewTab";
 import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
 import { ChartsTab } from "@/app/tabs/ChartsTab";
@@ -138,18 +136,11 @@ export default function App() {
         nextHighImpact={nextHighImpact}
       />
 
-      <nav className="tab-nav" aria-label="Primary">
-        {TAB_ORDER.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            className={activeTab === tab.id ? "tab-button is-active" : "tab-button"}
-            onClick={() => setActiveTab(tab.id)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+      <TabNavigation
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        tabOrder={TAB_ORDER}
+      />
 
       <main className="main-area">
         {activeTab === "overview" && <OverviewTab />}
