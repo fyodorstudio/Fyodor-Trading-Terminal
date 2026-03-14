@@ -361,7 +361,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
                     </div>
                   </div>
 
-                  <div className="max-height-[400px] overflow-auto p-2 space-y-1">
+                  <div className="max-h-[400px] overflow-auto p-2 space-y-1">
                     {favoriteItems.length > 0 && !search && (
                       <div className="mb-4">
                         <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Favorites</div>
@@ -379,12 +379,13 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
                     )}
 
                     {groupedSymbols.map((group) => {
-                      const isOpen = expandedGroups.includes(group.label);
+                      // Automatically expand when searching, otherwise follow manual expansion
+                      const isOpen = search ? true : expandedGroups.includes(group.label);
                       return (
-                        <div key={group.label}>
+                        <div key={group.label} className="border-b border-gray-50 last:border-0">
                           <button
                             onClick={() => setExpandedGroups(prev => prev.includes(group.label) ? prev.filter(g => g !== group.label) : [...prev, group.label])}
-                            className="flex items-center justify-between w-full px-3 py-2 hover:bg-gray-50 rounded-lg text-sm text-gray-500 font-medium"
+                            className="flex items-center justify-between w-full px-3 py-2 hover:bg-gray-50 rounded-lg text-sm text-gray-500 font-bold"
                           >
                             <span className="flex items-center gap-2">
                               {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
@@ -392,33 +393,33 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
                             </span>
                             <span className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded-full">{group.items.length}</span>
                           </button>
-                          <AnimatePresence>
-                            {isOpen && (
-                              <motion.div
-                                initial={{ height: 0 }}
-                                animate={{ height: 'auto' }}
-                                exit={{ height: 0 }}
-                                className="overflow-hidden"
-                              >
-                                {group.items.map((item) => (
-                                  <button
-                                    key={item.name}
-                                    onClick={() => { onSelectedSymbolChange(item.name); setPickerOpen(false); }}
-                                    className="flex items-center justify-between w-full pl-8 pr-3 py-2 hover:bg-gray-50 rounded-lg text-sm"
-                                  >
-                                    <span className="font-medium text-gray-700">{item.name}</span>
-                                    <Star 
-                                      className={`h-3.5 w-3.5 transition-colors ${favorites.includes(item.name) ? 'fill-amber-400 text-amber-400' : 'text-gray-300 hover:text-gray-400'}`}
-                                      onClick={(e) => { e.stopPropagation(); toggleFavorite(item.name); }}
-                                    />
-                                  </button>
-                                ))}
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
+                          
+                          {isOpen && (
+                            <div className="overflow-hidden pb-1">
+                              {group.items.map((item) => (
+                                <button
+                                  key={item.name}
+                                  onClick={() => { onSelectedSymbolChange(item.name); setPickerOpen(false); }}
+                                  className="flex items-center justify-between w-full pl-8 pr-3 py-2 hover:bg-gray-50 rounded-lg text-sm"
+                                >
+                                  <span className="font-medium text-gray-700">{item.name}</span>
+                                  <Star 
+                                    className={`h-3.5 w-3.5 transition-colors ${favorites.includes(item.name) ? 'fill-amber-400 text-amber-400' : 'text-gray-300 hover:text-gray-400'}`}
+                                    onClick={(e) => { e.stopPropagation(); toggleFavorite(item.name); }}
+                                  />
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       );
                     })}
+                    
+                    {groupedSymbols.length === 0 && (
+                      <div className="p-8 text-center text-gray-400 text-sm">
+                        No symbols match your search.
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               )}
