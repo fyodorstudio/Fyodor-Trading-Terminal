@@ -4,10 +4,12 @@ import { deriveCentralBankSnapshots } from "@/app/lib/centralBankDerive";
 import { resolveCalendarStatus } from "@/app/lib/status";
 import { MinimalHeader } from "@/app/components/MinimalHeader";
 import { TabNavigation } from "@/app/components/TabNavigation";
+import { UiCommandPanel } from "@/app/components/UiCommandPanel";
 import { OverviewTab } from "@/app/tabs/OverviewTab";
 import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
 import { ChartsTab } from "@/app/tabs/ChartsTab";
 import { EconomicCalendarTab } from "@/app/tabs/EconomicCalendarTab";
+import { THEME_PRESETS, ThemeId } from "@/app/config/themeConfig";
 import type { BridgeHealth, BridgeStatus, CalendarEvent, MarketStatusResponse, TabId } from "@/app/types";
 
 const TAB_ORDER: { id: TabId; label: string }[] = [
@@ -35,6 +37,29 @@ export default function App() {
   const [chartSymbol, setChartSymbol] = useState("EURUSD");
   const [marketStatus, setMarketStatus] = useState<MarketStatusResponse | null>(null);
   const feedEventsRef = useRef<CalendarEvent[]>([]);
+
+  // Theme Engine
+  const [currentTheme, setCurrentTheme] = useState<ThemeId>(() => {
+    return (localStorage.getItem('terminal-theme') as ThemeId) || 'neo-quant';
+  });
+
+  useEffect(() => {
+    const theme = THEME_PRESETS[currentTheme];
+    const root = document.documentElement;
+    
+    root.style.setProperty('--bg', theme.bg);
+    root.style.setProperty('--panel', theme.panel);
+    root.style.setProperty('--panel-strong', theme.panelStrong);
+    root.style.setProperty('--line', theme.line);
+    root.style.setProperty('--line-strong', theme.lineStrong);
+    root.style.setProperty('--text', theme.text);
+    root.style.setProperty('--muted', theme.muted);
+    root.style.setProperty('--accent', theme.accent);
+    root.style.setProperty('--primary', theme.primary);
+    root.style.setProperty('font-family', theme.fontFamily);
+    
+    localStorage.setItem('terminal-theme', currentTheme);
+  }, [currentTheme]);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,41 +151,50 @@ export default function App() {
   }, []);
 
   return (
-    <div className="app-shell">
-      <MinimalHeader
-        currentTime={currentTime}
-        headerStatus={headerStatus}
-        feedStatus={feedStatus}
-        marketStatus={marketStatus}
-        resolvedBanks={centralBankResult.snapshots.filter((item) => item.status === "ok").length}
-        nextHighImpact={nextHighImpact}
+    <div className="flex min-h-screen">
+      <UiCommandPanel 
+        currentTheme={currentTheme} 
+        onThemeChange={setCurrentTheme} 
       />
-
-      <TabNavigation
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        tabOrder={TAB_ORDER}
-      />
-
-      <main className="main-area">
-        {activeTab === "overview" && <OverviewTab />}
-        {activeTab === "central-banks" && (
-          <CentralBanksTab
-            snapshots={centralBankResult.snapshots}
-            logs={centralBankResult.logs}
-            status={feedStatus}
-            lastCalendarIngestAt={health.last_calendar_ingest_at ?? null}
-          />
-        )}
-        {activeTab === "charts" && (
-          <ChartsTab
+      
+      <div className="flex-1 ml-16 transition-all duration-300">
+        <div className="app-shell">
+          <MinimalHeader
+            currentTime={currentTime}
+            headerStatus={headerStatus}
+            feedStatus={feedStatus}
             marketStatus={marketStatus}
-            selectedSymbol={chartSymbol}
-            onSelectedSymbolChange={setChartSymbol}
+            resolvedBanks={centralBankResult.snapshots.filter((item) => item.status === "ok").length}
+            nextHighImpact={nextHighImpact}
           />
-        )}
-        {activeTab === "calendar" && <EconomicCalendarTab health={health} />}
-      </main>
+
+          <TabNavigation
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            tabOrder={TAB_ORDER}
+          />
+
+          <main className="main-area">
+            {activeTab === "overview" && <OverviewTab />}
+            {activeTab === "central-banks" && (
+              <CentralBanksTab
+                snapshots={centralBankResult.snapshots}
+                logs={centralBankResult.logs}
+                status={feedStatus}
+                lastCalendarIngestAt={health.last_calendar_ingest_at ?? null}
+              />
+            )}
+            {activeTab === "charts" && (
+              <ChartsTab
+                marketStatus={marketStatus}
+                selectedSymbol={chartSymbol}
+                onSelectedSymbolChange={setChartSymbol}
+              />
+            )}
+            {activeTab === "calendar" && <EconomicCalendarTab health={health} />}
+          </main>
+        </div>
+      </div>
     </div>
   );
 }
