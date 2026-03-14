@@ -150,15 +150,22 @@ export default function App() {
     return () => clearInterval(id);
   }, []);
 
+  const [isUiPanelOpen, setIsUiPanelOpen] = useState(false);
+
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen bg-[var(--bg)] transition-colors duration-300">
       <UiCommandPanel 
         currentTheme={currentTheme} 
-        onThemeChange={setCurrentTheme} 
+        onThemeChange={setCurrentTheme}
+        isOpen={isUiPanelOpen}
+        onOpenChange={setIsUiPanelOpen}
       />
       
-      <div className="flex-1 ml-16 transition-all duration-300">
-        <div className="app-shell">
+      <div 
+        className="flex-1 transition-all duration-300 ease-in-out"
+        style={{ marginLeft: isUiPanelOpen ? '260px' : '64px' }}
+      >
+        <div className="app-shell max-w-[1460px] mx-auto p-6">
           <MinimalHeader
             currentTime={currentTime}
             headerStatus={headerStatus}
@@ -174,7 +181,7 @@ export default function App() {
             tabOrder={TAB_ORDER}
           />
 
-          <main className="main-area">
+          <main className="main-area mt-6">
             {activeTab === "overview" && <OverviewTab />}
             {activeTab === "central-banks" && (
               <CentralBanksTab

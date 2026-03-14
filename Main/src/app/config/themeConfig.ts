@@ -26,18 +26,6 @@ export const THEME_PRESETS: Record<ThemeId, ThemeColors> = {
     primary: '#4f46e5',
     fontFamily: '"Inter", "Geist", sans-serif',
   },
-  'bloomberg': {
-    bg: '#000000',
-    panel: '#111111',
-    panelStrong: '#1a1a1a',
-    line: '#333333',
-    lineStrong: '#444444',
-    text: '#ffffff',
-    muted: '#999999',
-    accent: '#22c55e',
-    primary: '#22c55e',
-    fontFamily: '"IBM Plex Sans", "Roboto Mono", monospace',
-  },
   'swiss': {
     bg: '#f1f5f9',
     panel: '#ffffff',
