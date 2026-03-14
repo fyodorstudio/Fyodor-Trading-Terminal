@@ -6,7 +6,7 @@ import {
   type IChartApi,
   type ISeriesApi,
 } from "lightweight-charts";
-import { ChevronDown, ChevronRight, Search, Star, Activity, Clock, AlertTriangle } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, Star, Activity, Clock, AlertTriangle, Database } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchHistory, fetchSymbols, openChartStream } from "@/app/lib/bridge";
 import { formatUtcDateTime, formatCountdown } from "@/app/lib/format";
@@ -379,7 +379,6 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
                     )}
 
                     {groupedSymbols.map((group) => {
-                      // Automatically expand when searching, otherwise follow manual expansion
                       const isOpen = search ? true : expandedGroups.includes(group.label);
                       return (
                         <div key={group.label} className="border-b border-gray-50 last:border-0">
@@ -439,14 +438,20 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full">
             <Activity className={`h-3.5 w-3.5 ${status === 'live' ? 'text-green-500 animate-pulse' : 'text-gray-400'}`} />
-            <span className="text-[11px] font-bold text-gray-600 uppercase tracking-tight">{status === 'live' ? 'Live Stream' : 'Disconnected'}</span>
+            <span className="text-[11px] font-bold text-gray-600 uppercase tracking-tight whitespace-nowrap">{status === 'live' ? 'Live Stream' : 'Disconnected'}</span>
           </div>
           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-100 rounded-full">
             <Clock className="h-3.5 w-3.5 text-gray-400" />
-            <span className="text-[11px] font-bold text-gray-600 uppercase tracking-tight">{sessionDetail}</span>
+            <span className="text-[11px] font-bold text-gray-600 uppercase tracking-tight whitespace-nowrap">{sessionDetail}</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-900 border border-gray-800 rounded-full">
+            <Database className={`h-3.5 w-3.5 ${lastCandleTime ? 'text-blue-400' : 'text-gray-500'}`} />
+            <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tight whitespace-nowrap">
+              {lastCandleTime ? `Feed: ${formatUtcDateTime(lastCandleTime)}` : 'Waiting for data'}
+            </span>
           </div>
         </div>
       </div>
@@ -476,13 +481,6 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Status Toast */}
-        <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between pointer-events-none">
-          <div className="px-4 py-2 bg-gray-900/90 backdrop-blur-md text-white rounded-2xl text-[11px] font-medium border border-white/10 shadow-2xl">
-            {lastCandleTime ? `MARKET DATA THRU ${formatUtcDateTime(lastCandleTime)} UTC` : 'WAITING FOR DATA...'}
-          </div>
-        </div>
       </div>
 
       {/* Debug Panel (Collapsible) */}
