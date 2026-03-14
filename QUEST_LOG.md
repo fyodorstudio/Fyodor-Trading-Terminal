@@ -11,6 +11,13 @@ Welcome, Traveler! This log tracks your journey through the code. Every save poi
 
 ## 📜 Quest History
 
+### [REPAIR COMPLETE] High-Visibility Status Pill Upgrade
+**Timestamp:** 2026-03-14 17:45 (Sabtu, 14 Maret 2026)
+**Git Save Point:** `0fa00da` ("Increased font and icon sizes in Chart status pills for better visibility")
+*The traveler has successfully increased the font and icon sizes for the status pills to improve readability for nearsighted eyes.*
+
+---
+
 ### [REPAIR COMPLETE] Status Toast Migration & Chart Cleanup
 **Timestamp:** 2026-03-14 17:30 (Sabtu, 14 Maret 2026)
 **Git Save Point:** `8e972c9` ("Migrated Chart Status Toast to Control Bar for better visibility")
