@@ -6,9 +6,9 @@ import {
   Palette,
   Check,
   Zap,
-  MousePointer2
+  Eye
 } from "lucide-react";
-import { FONT_OPTIONS, COLOR_PALETTES, FontId, ColorPaletteId } from "../config/themeConfig";
+import { FONT_OPTIONS, COLOR_PALETTES, FontId, ColorPaletteId, FontOption } from "../config/themeConfig";
 
 interface UiCommandPanelProps {
   currentFont: FontId;
@@ -29,25 +29,14 @@ export function UiCommandPanel({
   isOpen, 
   onOpenChange 
 }: UiCommandPanelProps) {
+  const [hoveredFont, setHoveredFont] = useState<FontOption | null>(null);
   const [isForging, setIsForging] = useState(false);
-  
-  // Local preview state to override the font during hover
-  const handleFontHover = (family: string | null) => {
-    const root = document.documentElement;
-    if (family) {
-      root.style.setProperty('--font-main', family);
-    } else {
-      // Revert to current selected font
-      const current = FONT_OPTIONS.find(f => f.id === currentFont) || FONT_OPTIONS[0];
-      root.style.setProperty('--font-main', current.family);
-    }
-  };
 
   return (
     <div className="relative">
-      {/* OPTION C: BACKDROP ISOLATION (Triggered by Forge state) */}
+      {/* BACKDROP ISOLATION (Triggered by Forge state) */}
       <AnimatePresence>
-        {isForging && isOpen && (
+        {(isForging || hoveredFont) && isOpen && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -64,11 +53,11 @@ export function UiCommandPanel({
         onMouseEnter={() => setIsForging(true)}
         onMouseLeave={() => {
           setIsForging(false);
-          handleFontHover(null);
+          setHoveredFont(null);
         }}
         className="fixed left-0 top-0 bottom-0 z-[200] bg-white border-r border-gray-200 flex flex-col shadow-2xl overflow-hidden select-none"
       >
-        {/* Header / Toggle */}
+        {/* Header / Toggle (Fixed Gear) */}
         <div className="flex items-center px-4 min-h-[64px] border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
           <button 
             onClick={() => onOpenChange(!isOpen)}
@@ -103,16 +92,12 @@ export function UiCommandPanel({
                 transition={{ duration: 0.15 }}
                 className="space-y-10"
               >
-                {/* OPTION C: LIVE-PREVIEW TYPOGRAPHY TILES */}
+                {/* HYBRID: TYPOGRAPHY TILES */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between px-1">
                     <div className="flex items-center gap-2">
                       <Type className="h-3 w-3 text-gray-400" />
                       <div className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Typography Forge</div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Zap className="h-2.5 w-2.5 text-amber-400 fill-amber-400" />
-                      <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter">Live Preview</span>
                     </div>
                   </div>
                   
@@ -121,12 +106,12 @@ export function UiCommandPanel({
                       <button
                         key={option.id}
                         onClick={() => onFontChange(option.id)}
-                        onMouseEnter={() => handleFontHover(option.family)}
-                        onMouseLeave={() => handleFontHover(null)}
+                        onMouseEnter={() => setHoveredFont(option)}
+                        onMouseLeave={() => setHoveredFont(null)}
                         className={`
                           relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all group
                           ${currentFont === option.id 
-                            ? 'bg-gray-900 border-gray-800 shadow-lg scale-[1.02]' 
+                            ? 'bg-gray-900 border-gray-800 text-white shadow-lg scale-[1.02]' 
                             : 'bg-white border-gray-100 hover:border-blue-200 hover:scale-[1.05]'}
                         `}
                       >
@@ -204,6 +189,49 @@ export function UiCommandPanel({
           </div>
         </div>
       </motion.aside>
+
+      {/* HYBRID: FLOATING PREVIEW POPOVER (From Option B) */}
+      <AnimatePresence>
+        {hoveredFont && isOpen && (
+          <motion.div
+            initial={{ opacity: 0, x: 10, scale: 0.95 }}
+            animate={{ opacity: 1, x: 0, scale: 1 }}
+            exit={{ opacity: 0, x: 10, scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            className="fixed left-[270px] top-1/2 -translate-y-1/2 w-[340px] bg-white border border-gray-200 rounded-3xl shadow-2xl z-[300] p-6 pointer-events-none"
+          >
+            <div className="mb-4">
+              <span className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">{hoveredFont.category} Squadron</span>
+              <h4 className="text-xl font-black text-gray-900 tracking-tight">{hoveredFont.label}</h4>
+            </div>
+            
+            <div className="space-y-4">
+              <div 
+                className="text-3xl text-gray-900 tracking-tighter leading-tight" 
+                style={{ fontFamily: hoveredFont.family }}
+              >
+                EUR/USD 1.0845
+              </div>
+              <div 
+                className="text-sm text-gray-500 leading-relaxed italic" 
+                style={{ fontFamily: hoveredFont.family }}
+              >
+                "The quick brown fox jumps over the lazy dog."
+              </div>
+              <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-gray-100">
+                <div className="flex flex-col">
+                  <span className="text-[8px] font-bold text-gray-400 uppercase">Numbers</span>
+                  <span className="text-lg font-bold text-gray-900" style={{ fontFamily: hoveredFont.family }}>0123456789</span>
+                </div>
+                <div className="flex flex-col text-right">
+                  <span className="text-[8px] font-bold text-gray-400 uppercase">Weight Test</span>
+                  <span className="text-lg font-black text-gray-900" style={{ fontFamily: hoveredFont.family }}>BOLD</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
