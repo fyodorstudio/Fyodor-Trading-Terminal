@@ -1,10 +1,15 @@
-export type FontId = 'geist' | 'inter' | 'jakarta' | 'plex';
+export type FontId = 
+  | 'geist' | 'inter' | 'jakarta' | 'plex' 
+  | 'montserrat' | 'roboto' | 'opensans' 
+  | 'jetbrains' | 'space' | 'playfair';
+
 export type ColorPaletteId = 'sovereign-blue' | 'emerald-slate' | 'swiss-azure' | 'crimson-light';
 
 export interface FontOption {
   id: FontId;
   label: string;
   family: string;
+  category: 'Sans' | 'Mono' | 'Display';
 }
 
 export interface ColorPalette {
@@ -27,10 +32,16 @@ export interface ColorPalette {
 }
 
 export const FONT_OPTIONS: FontOption[] = [
-  { id: 'geist', label: 'Geist Sans', family: '"Geist", "Inter", sans-serif' },
-  { id: 'inter', label: 'Inter Pro', family: '"Inter", sans-serif' },
-  { id: 'jakarta', label: 'Plus Jakarta', family: '"Plus Jakarta Sans", sans-serif' },
-  { id: 'plex', label: 'IBM Plex', family: '"IBM Plex Sans", sans-serif' },
+  { id: 'geist', label: 'Geist Sans', family: '"Geist", sans-serif', category: 'Sans' },
+  { id: 'inter', label: 'Inter Pro', family: '"Inter", sans-serif', category: 'Sans' },
+  { id: 'jakarta', label: 'Plus Jakarta', family: '"Plus Jakarta Sans", sans-serif', category: 'Sans' },
+  { id: 'plex', label: 'IBM Plex', family: '"IBM Plex Sans", sans-serif', category: 'Sans' },
+  { id: 'montserrat', label: 'Montserrat', family: '"Montserrat", sans-serif', category: 'Sans' },
+  { id: 'roboto', label: 'Roboto', family: '"Roboto", sans-serif', category: 'Sans' },
+  { id: 'opensans', label: 'Open Sans', family: '"Open Sans", sans-serif', category: 'Sans' },
+  { id: 'jetbrains', label: 'JetBrains Mono', family: '"JetBrains Mono", monospace', category: 'Mono' },
+  { id: 'space', label: 'Space Grotesk', family: '"Space Grotesk", sans-serif', category: 'Sans' },
+  { id: 'playfair', label: 'Playfair Display', family: '"Playfair Display", serif', category: 'Display' },
 ];
 
 export const COLOR_PALETTES: ColorPalette[] = [
