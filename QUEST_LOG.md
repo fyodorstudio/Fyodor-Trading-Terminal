@@ -11,14 +11,22 @@ Welcome, Traveler! This log tracks your journey through the code. Every save poi
 
 ## 📜 Quest History
 
+### [QUEST COMPLETE] Improve Chart Styling (The Glass Chart)
+**Timestamp:** 2026-03-14 16:45 (Sabtu, 14 Maret 2026)
+**Git Save Point:** `1e4a6a7` ("Refactored Chart UI with Glassmorphism and Modern Controls")
+*The traveler has successfully transformed the chart area into a high-end, glassmorphism-style terminal.*
+
+#### **New Gear Acquired:**
+- **Animated Symbol Picker:** A search-and-select dropdown for symbol switching.
+- **Modern Status Indicators:** Activity and Clock pills for market and bridge status.
+- **Glass Chart Container:** A semi-transparent, blurred frame for the Lightweight Charts engine.
+
+---
+
 ### [QUEST COMPLETE] Refactor Tab Navigation
 **Timestamp:** 2026-03-14 16:20 (Sabtu, 14 Maret 2026)
 **Git Save Point:** `19e66f0` ("Refactored Tab Navigation with Glassmorphism and Framer Motion")
 *The traveler has successfully transformed the bulky navigation buttons into a sleek, sliding glass-style menu.*
-
-#### **New Gear Acquired:**
-- **TabNavigation Component:** A modern, animated navigation system that sits seamlessly beneath the Minimal Header.
-- **Framer Motion LayoutId:** Used for the smooth sliding background effect between tabs.
 
 ---
 
@@ -40,5 +48,5 @@ Welcome, Traveler! This log tracks your journey through the code. Every save poi
 - [x] Initial Repository Setup (Tutorial Area)
 - [x] Modernize Top Header (First Boss Defeated!)
 - [x] Refactor Tab Navigation to match Minimal Header
-- [ ] Improve Chart Styling (The Glass Chart)
+- [x] Improve Chart Styling (The Glass Chart)
 - [ ] Enhance Central Bank Data Display
