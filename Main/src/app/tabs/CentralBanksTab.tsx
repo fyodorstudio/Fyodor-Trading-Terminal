@@ -15,6 +15,7 @@ import {
   List,
   Target
 } from "lucide-react";
+import { FlagIcon } from "@/app/components/FlagIcon";
 import type { BridgeStatus, CentralBankSnapshot } from "@/app/types";
 
 interface CentralBanksTabProps {
@@ -65,7 +66,7 @@ export function CentralBanksTab({
           </div>
         </div>
 
-        {/* View Toggle - The Heart of the Quest */}
+        {/* View Toggle */}
         <div className="flex bg-gray-100 p-1.5 rounded-xl gap-1 border border-gray-200/30">
           <button
             onClick={() => setViewMode('command')}
@@ -131,7 +132,9 @@ export function CentralBanksTab({
                   >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="text-xl filter grayscale group-hover:grayscale-0 transition-all">{snapshot.flag}</div>
+                        <div className="flex-shrink-0 shadow-sm border border-gray-100 rounded-sm overflow-hidden">
+                          <FlagIcon countryCode={snapshot.countryCode} className="h-4 w-6 object-cover" />
+                        </div>
                         <div>
                           <div className="text-sm font-bold text-gray-900">{snapshot.bankName}</div>
                           <div className="text-[10px] font-bold text-gray-500 uppercase">{snapshot.currency}</div>
@@ -205,7 +208,9 @@ export function CentralBanksTab({
                   `}
                 >
                   <div className="flex items-center gap-4">
-                    <span className="text-2xl">{snapshot.flag}</span>
+                    <div className="flex-shrink-0 shadow-sm border border-gray-100 rounded-sm overflow-hidden">
+                      <FlagIcon countryCode={snapshot.countryCode} className="h-6 w-9 object-cover" />
+                    </div>
                     <div className="text-left">
                       <div className="text-sm font-bold text-gray-900">{snapshot.bankName}</div>
                       <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{snapshot.currency}</div>
@@ -228,7 +233,9 @@ export function CentralBanksTab({
                 >
                   <div className="flex items-center justify-between mb-8">
                     <div className="flex items-center gap-4">
-                      <span className="text-4xl">{currentSnapshot.flag}</span>
+                      <div className="flex-shrink-0 shadow-md border border-gray-100 rounded-md overflow-hidden">
+                        <FlagIcon countryCode={currentSnapshot.countryCode} className="h-10 w-15 object-cover" />
+                      </div>
                       <div>
                         <h3 className="text-2xl font-black text-gray-900 tracking-tight">{currentSnapshot.bankName}</h3>
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Policy Intelligence Node</p>
