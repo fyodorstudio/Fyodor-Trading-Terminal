@@ -66,7 +66,7 @@ export function UiCommandPanel({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-white/10 backdrop-blur-md z-[150] pointer-events-none"
+            className="fixed inset-0 bg-white/10 backdrop-blur-xl z-[800] pointer-events-none"
           />
         )}
       </AnimatePresence>
@@ -80,7 +80,7 @@ export function UiCommandPanel({
           setIsForging(false);
           setHoveredFont(null);
         }}
-        className="fixed left-0 top-0 bottom-0 z-[500] bg-white border-r border-gray-200 flex flex-col shadow-2xl overflow-hidden select-none"
+        className="fixed left-0 top-0 bottom-0 z-[1000] bg-white border-r border-gray-200 flex flex-col shadow-2xl overflow-hidden select-none"
       >
         {/* Header / Toggle */}
         <div className="flex items-center px-4 min-h-[64px] border-b border-gray-100 bg-gray-50/50 flex-shrink-0">

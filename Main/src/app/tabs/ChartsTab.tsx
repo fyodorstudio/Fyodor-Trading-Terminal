@@ -469,7 +469,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-white/40 backdrop-blur-md rounded-3xl z-50 text-center p-8"
+              className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-white/40 backdrop-blur-xl rounded-3xl z-50 text-center p-8"
             >
               <div className="p-4 bg-red-50 rounded-full text-red-500">
                 <AlertTriangle className="h-10 w-10" />

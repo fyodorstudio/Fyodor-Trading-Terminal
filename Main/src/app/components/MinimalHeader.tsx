@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { ChevronDown, Circle, Clock, Globe, Zap, Activity, Cpu, Gauge, Radio, BarChart3, TrendingUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { MarketStatusResponse } from '@/app/types';
+
 interface MinimalHeaderProps {
   currentTime: Date;
   headerStatus: string;
   feedStatus: string;
-  marketStatus: any;
+  marketStatus: MarketStatusResponse | null;
   resolvedBanks: number;
   nextHighImpact?: { title: string; currency: string } | null;
 }
@@ -29,7 +31,7 @@ export function MinimalHeader({
     });
   };
 
-  const isMarketOpen = marketStatus?.status === 'open';
+  const isMarketOpen = marketStatus?.is_open;
 
   // Heatmap Logic: UTCHours 0-23
   const currentHour = currentTime.getUTCHours();
@@ -42,7 +44,7 @@ export function MinimalHeader({
   return (
     <div className="mb-4">
       {/* Slim top bar */}
-      <div className="bg-white/90 backdrop-blur-xl border-b border-gray-200 fixed top-0 left-0 right-0 z-[410] shadow-sm">
+      <div className="bg-white/90 backdrop-blur-xl border-b border-gray-200 fixed top-0 left-0 right-0 z-[910] shadow-sm">
         <div className="max-w-[1460px] mx-auto px-6">
           <div className="h-12 flex items-center justify-between">
             {/* Left - Direct Stats */}
@@ -95,7 +97,7 @@ export function MinimalHeader({
             animate={{ height: 'auto' }}
             exit={{ height: 0 }}
             transition={{ type: "spring", stiffness: 200, damping: 25 }}
-            className="overflow-hidden bg-white/80 backdrop-blur-3xl border-b border-gray-200 fixed top-12 left-0 right-0 z-[400] shadow-[0_30px_60px_rgba(0,0,0,0.12)]"
+            className="overflow-hidden bg-white/80 backdrop-blur-xl border-b border-gray-200 fixed top-12 left-0 right-0 z-[900] shadow-[0_30px_60px_rgba(0,0,0,0.12)]"
           >
             <div className="max-w-[1460px] mx-auto">
               <div className="flex flex-col md:flex-row items-stretch divide-y md:divide-y-0 md:divide-x divide-gray-100">
