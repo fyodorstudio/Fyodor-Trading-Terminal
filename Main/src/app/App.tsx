@@ -1,33 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { fetchCalendar, fetchHealth, fetchMarketStatus } from "@/app/lib/bridge";
-import { deriveCentralBankSnapshots } from "@/app/lib/centralBankDerive";
-import { resolveCalendarStatus } from "@/app/lib/status";
-import { MinimalHeader } from "@/app/components/MinimalHeader";
-import { TabNavigation } from "@/app/components/TabNavigation";
-import { UiCommandPanel } from "@/app/components/UiCommandPanel";
-import { OverviewTab } from "@/app/tabs/OverviewTab";
-import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
-import { ChartsTab } from "@/app/tabs/ChartsTab";
-import { EconomicCalendarTab } from "@/app/tabs/EconomicCalendarTab";
-import { THEME_PRESETS, ThemeId } from "@/app/config/themeConfig";
-import type { BridgeHealth, BridgeStatus, CalendarEvent, MarketStatusResponse, TabId } from "@/app/types";
+import { motion } from "framer-motion";
 
-const TAB_ORDER: { id: TabId; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "central-banks", label: "Central Banks Data" },
-  { id: "charts", label: "Charts" },
-  { id: "calendar", label: "Economic Calendar" },
-];
-
-function getFeedWindow() {
-  const now = new Date();
-  const from = new Date(now.getTime() - 400 * 24 * 60 * 60 * 1000);
-  const to = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
-  return {
-    from: Math.floor(from.getTime() / 1000),
-    to: Math.floor(to.getTime() / 1000),
-  };
-}
+const transition = { type: "spring", stiffness: 300, damping: 30 };
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>("charts");
@@ -154,7 +127,7 @@ export default function App() {
   const [isUiPanelOpen, setIsUiPanelOpen] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-[var(--bg)] transition-colors duration-300">
+    <div className="flex min-h-screen bg-[var(--bg)] transition-colors duration-300 overflow-hidden">
       <UiCommandPanel 
         currentTheme={currentTheme} 
         onThemeChange={setCurrentTheme}
@@ -162,9 +135,10 @@ export default function App() {
         onOpenChange={setIsUiPanelOpen}
       />
       
-      <div 
-        className="flex-1 transition-all duration-300 ease-in-out"
-        style={{ marginLeft: isUiPanelOpen ? '260px' : '64px' }}
+      <motion.div 
+        animate={{ paddingLeft: isUiPanelOpen ? 260 : 64 }}
+        transition={transition}
+        className="flex-1 min-h-screen"
       >
         <div className="app-shell max-w-[1460px] mx-auto p-6">
           <MinimalHeader
@@ -202,7 +176,7 @@ export default function App() {
             {activeTab === "calendar" && <EconomicCalendarTab health={health} />}
           </main>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

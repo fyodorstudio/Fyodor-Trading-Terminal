@@ -1,9 +1,6 @@
-import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Settings, 
-  ChevronLeft, 
-  ChevronRight, 
   Type,
   Zap,
   Eye
@@ -17,28 +14,32 @@ interface UiCommandPanelProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const transition = { type: "spring", stiffness: 300, damping: 30 };
+
 export function UiCommandPanel({ currentTheme, onThemeChange, isOpen, onOpenChange }: UiCommandPanelProps) {
   return (
     <motion.aside
       initial={false}
       animate={{ width: isOpen ? 260 : 64 }}
-      className="fixed left-0 top-0 bottom-0 z-[100] bg-white border-r border-gray-200 flex flex-col shadow-2xl overflow-hidden"
+      transition={transition}
+      className="fixed left-0 top-0 bottom-0 z-[100] bg-white border-r border-gray-200 flex flex-col shadow-2xl overflow-hidden select-none"
     >
       {/* Header / Toggle */}
-      <div className="flex items-center px-4 min-h-[64px] border-b border-gray-100 bg-gray-50/50 overflow-hidden">
+      <div className="flex items-center px-4 min-h-[64px] border-b border-gray-100 bg-gray-50/50 flex-shrink-0">
         <button 
           onClick={() => onOpenChange(!isOpen)}
-          className="flex items-center gap-3 hover:opacity-80 active:scale-95 transition-all"
+          className="flex items-center gap-3 hover:opacity-80 active:scale-95 transition-opacity outline-none"
         >
           <div className="p-2 bg-gray-900 rounded-lg shadow-lg flex-shrink-0">
             <Settings className="h-4 w-4 text-blue-400" />
           </div>
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             {isOpen && (
               <motion.div
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: "auto" }}
-                exit={{ opacity: 0, width: 0 }}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.15 }}
                 className="overflow-hidden"
               >
                 <div className="text-xs font-black text-gray-900 uppercase tracking-widest whitespace-nowrap">Aesthetic Forge</div>
@@ -48,13 +49,15 @@ export function UiCommandPanel({ currentTheme, onThemeChange, isOpen, onOpenChan
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-8">
+      {/* Internal Content (Fixed Width to prevent wrapping) */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 w-[260px]">
         <AnimatePresence>
           {isOpen && (
             <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ duration: 0.2 }}
               className="space-y-8"
             >
               {/* Profile Selection */}
@@ -116,7 +119,7 @@ export function UiCommandPanel({ currentTheme, onThemeChange, isOpen, onOpenChan
       </div>
 
       {/* Footer Info */}
-      <div className="p-6 border-t border-gray-100 bg-gray-50/30 min-h-[64px]">
+      <div className="p-6 border-t border-gray-100 bg-gray-50/30 min-h-[64px] w-[260px] flex-shrink-0">
         <div className="flex items-center gap-4">
           <div className="h-2 w-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
           <AnimatePresence>
@@ -125,6 +128,7 @@ export function UiCommandPanel({ currentTheme, onThemeChange, isOpen, onOpenChan
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                transition={{ duration: 0.1 }}
                 className="text-[10px] font-black text-gray-400 uppercase tracking-widest whitespace-nowrap"
               >
                 System Live
