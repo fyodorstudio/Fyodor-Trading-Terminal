@@ -87,37 +87,41 @@ export function MinimalHeader({
 
       <div className="h-12" />
 
-      {/* OPTION C: PROFESSIONAL TICKER PANEL */}
+      {/* OPTION C: PROFESSIONAL TICKER PANEL (Dominant Refit) */}
       <AnimatePresence>
         {showDetails && (
           <motion.div
             initial={{ height: 0 }}
             animate={{ height: 'auto' }}
             exit={{ height: 0 }}
-            className="overflow-hidden bg-gray-900 border-b border-gray-800 fixed top-12 left-0 right-0 z-40 shadow-2xl"
+            transition={{ type: "spring", stiffness: 200, damping: 25 }}
+            className="overflow-hidden bg-gray-950 border-b border-gray-800 fixed top-12 left-0 right-0 z-40 shadow-[0_20px_50px_rgba(0,0,0,0.5)]"
           >
             <div className="max-w-[1460px] mx-auto">
-              <div className="flex items-stretch divide-x divide-gray-800">
+              <div className="flex flex-col md:flex-row items-stretch divide-y md:divide-y-0 md:divide-x divide-gray-800">
                 
-                {/* 1. SESSION HEATMAP TAPE */}
-                <div className="flex-1 p-4 px-6 space-y-3">
+                {/* 1. SESSION HEATMAP TAPE - MAGNIFIED */}
+                <div className="flex-[1.5] p-8 px-10 space-y-6">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Globe className="h-3 w-3 text-blue-400" />
-                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Market Liquidity Heatmap</span>
+                    <div className="flex items-center gap-3">
+                      <Globe className="h-5 w-5 text-blue-400" />
+                      <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Global Liquidity Heatmap</span>
                     </div>
-                    <span className="text-[9px] font-bold text-blue-400 tabular-nums uppercase">Current Hour: {currentHour}:00 UTC</span>
+                    <div className="flex flex-col text-right">
+                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Active Standard</span>
+                      <span className="text-sm font-black text-blue-400 tabular-nums uppercase">{currentHour}:00 UTC</span>
+                    </div>
                   </div>
                   
-                  <div className="relative h-6 bg-black/40 rounded border border-gray-800 flex items-center px-1">
+                  <div className="relative h-12 bg-black/60 rounded-lg border border-gray-800 flex items-center px-2 shadow-inner">
                     {/* Hour Markers */}
-                    <div className="absolute inset-0 flex justify-between px-2 items-center pointer-events-none">
-                      {[0, 4, 8, 12, 16, 20].map(h => (
-                        <span key={h} className="text-[7px] font-bold text-gray-700">{h}h</span>
+                    <div className="absolute inset-0 flex justify-between px-4 items-center pointer-events-none">
+                      {[0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22].map(h => (
+                        <span key={h} className="text-[8px] font-black text-gray-800">{h}h</span>
                       ))}
                     </div>
                     {/* Session Bars */}
-                    <div className="flex-1 h-3 relative mx-2">
+                    <div className="flex-1 h-6 relative mx-4">
                       {sessions.map(s => {
                         const startPct = (s.start / 24) * 100;
                         const widthPct = ((s.end - s.start) / 24) * 100;
@@ -125,57 +129,67 @@ export function MinimalHeader({
                         return (
                           <div 
                             key={s.name}
-                            className={`absolute top-0 bottom-0 rounded-full transition-all duration-500 ${s.color} ${isActive ? 'opacity-100 shadow-[0_0_8px_rgba(255,255,255,0.2)]' : 'opacity-20'}`}
+                            className={`absolute top-0 bottom-0 rounded-md transition-all duration-700 ${s.color} ${isActive ? 'opacity-100 shadow-[0_0_15px_rgba(255,255,255,0.1)]' : 'opacity-10'}`}
                             style={{ left: `${startPct}%`, width: `${widthPct}%` }}
                           >
                             {isActive && (
-                              <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-[7px] font-black text-white uppercase whitespace-nowrap">
+                              <motion.div 
+                                initial={{ opacity: 0, y: 5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black text-white uppercase tracking-widest bg-gray-900 px-2 py-0.5 rounded border border-gray-700"
+                              >
                                 {s.name}
-                              </div>
+                              </motion.div>
                             )}
                           </div>
                         );
                       })}
                       {/* Current Time Needle */}
                       <div 
-                        className="absolute top-[-4px] bottom-[-4px] w-0.5 bg-white shadow-[0_0_10px_white] z-10 transition-all duration-1000"
+                        className="absolute top-[-8px] bottom-[-8px] w-1 bg-white shadow-[0_0_20px_white] z-10 transition-all duration-1000 rounded-full"
                         style={{ left: `${(currentHour / 24) * 100}%` }}
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* 2. LIVE SIGNAL STREAM */}
-                <div className="w-[340px] p-4 px-6 flex flex-col justify-center">
-                  <div className="flex items-center gap-2 mb-2">
-                    <TrendingUp className="h-3 w-3 text-amber-400" />
-                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Signal Stream</span>
+                {/* 2. LIVE SIGNAL STREAM - ENLARGED */}
+                <div className="w-full md:w-[380px] p-8 px-10 flex flex-col justify-center bg-black/20">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Activity className="h-5 w-5 text-emerald-400" />
+                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Signal Analytics</span>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-gray-300">EURUSD VOLATILITY</span>
-                      <span className="text-[10px] font-black text-green-400 tabular-nums">LOW</span>
+                  <div className="space-y-4">
+                    <div className="flex items-end justify-between border-b border-gray-900 pb-2">
+                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">VOLATILITY</span>
+                      <span className="text-2xl font-black text-emerald-400 tabular-nums leading-none tracking-tighter">STABLE</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-gray-300">SYSTEM LATENCY</span>
-                      <span className="text-[10px] font-black text-blue-400 tabular-nums">14ms</span>
+                    <div className="flex items-end justify-between border-b border-gray-900 pb-2">
+                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-tighter">BRIDGE LATENCY</span>
+                      <span className="text-2xl font-black text-blue-400 tabular-nums leading-none tracking-tighter">14<span className="text-xs ml-1 uppercase opacity-50">ms</span></span>
                     </div>
                   </div>
                 </div>
 
-                {/* 3. EVENT TICKER */}
-                <div className={`w-[400px] p-4 px-6 flex flex-col justify-center transition-colors ${nextHighImpact ? 'bg-blue-900/20' : ''}`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Zap className={`h-3 w-3 ${nextHighImpact ? 'text-blue-400 fill-blue-400' : 'text-gray-500'}`} />
-                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest text-blue-400">Tactical Event Horizon</span>
+                {/* 3. EVENT TICKER - DOMINANT */}
+                <div className={`flex-1 p-8 px-10 flex flex-col justify-center transition-all duration-500 ${nextHighImpact ? 'bg-blue-600/10 border-l-4 border-blue-500' : ''}`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <Zap className={`h-5 w-5 ${nextHighImpact ? 'text-blue-400 fill-blue-400' : 'text-gray-600'}`} />
+                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Tactical Event Horizon</span>
                   </div>
                   {nextHighImpact ? (
-                    <div className="flex items-baseline gap-3">
-                      <span className="text-sm font-black text-white uppercase tracking-tight truncate">{nextHighImpact.title}</span>
-                      <span className="text-[10px] font-black text-blue-400 uppercase shrink-0">{nextHighImpact.currency}</span>
+                    <div className="flex flex-col">
+                      <span className="text-2xl font-black text-white uppercase tracking-tight leading-tight mb-1">{nextHighImpact.title}</span>
+                      <div className="flex items-center gap-3">
+                        <span className="px-2 py-0.5 bg-blue-500 text-[10px] font-black text-white rounded uppercase tracking-widest">{nextHighImpact.currency}</span>
+                        <span className="text-[10px] font-bold text-blue-400 uppercase tracking-widest animate-pulse">Imminent Signal</span>
+                      </div>
                     </div>
                   ) : (
-                    <span className="text-[10px] font-bold text-gray-600 uppercase italic">No active signatures detected</span>
+                    <div className="flex items-center gap-3 text-gray-600">
+                      <div className="h-1 w-1 bg-gray-700 rounded-full animate-ping" />
+                      <span className="text-xs font-black uppercase tracking-[0.2em] italic">Scanning Market Signatures...</span>
+                    </div>
                   )}
                 </div>
 
