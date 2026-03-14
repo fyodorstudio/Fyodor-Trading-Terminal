@@ -5,6 +5,7 @@ import { resolveCalendarStatus } from "@/app/lib/status";
 import { LocalClock } from "@/app/components/LocalClock";
 import { MarketStatusPill } from "@/app/components/MarketStatusPill";
 import { Mt5Clock } from "@/app/components/Mt5Clock";
+import { MinimalHeader } from "@/app/components/MinimalHeader";
 import { OverviewTab } from "@/app/tabs/OverviewTab";
 import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
 import { ChartsTab } from "@/app/tabs/ChartsTab";
@@ -119,30 +120,23 @@ export default function App() {
       .sort((a, b) => a.time - b.time)[0] ?? null;
   }, [feedEvents]);
 
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
     <div className="app-shell">
-      <header className="app-header">
-        <div className="brand-block">
-          <h1>Fyodor Trading Terminal</h1>
-          <p>Charts stay operational, calendar stays auditable, and central-bank data stays derived from MT5.</p>
-        </div>
-        <div className="header-side">
-          <LocalClock />
-          <Mt5Clock />
-          <MarketStatusPill status={marketStatus} />
-          <div className="header-badges">
-            <span className={`status-pill status-${feedStatus}`}>{headerStatus}</span>
-            <span className="metric-chip">
-              {centralBankResult.snapshots.filter((item) => item.status === "ok").length}/8 banks resolved
-            </span>
-          </div>
-          {nextHighImpact && (
-            <div className="headline-strip">
-              Next high impact: {nextHighImpact.title} ({nextHighImpact.currency})
-            </div>
-          )}
-        </div>
-      </header>
+      <MinimalHeader
+        currentTime={currentTime}
+        headerStatus={headerStatus}
+        feedStatus={feedStatus}
+        marketStatus={marketStatus}
+        resolvedBanks={centralBankResult.snapshots.filter((item) => item.status === "ok").length}
+        nextHighImpact={nextHighImpact}
+      />
 
       <nav className="tab-nav" aria-label="Primary">
         {TAB_ORDER.map((tab) => (
