@@ -329,7 +329,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   return (
     <div className="flex flex-col gap-6 max-w-[1460px] mx-auto pb-12">
       {/* Chart Control Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-2xl shadow-sm">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-4 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-2xl shadow-sm relative z-50">
         <div className="flex items-center gap-6">
           <div className="relative" ref={pickerRef}>
             <button
