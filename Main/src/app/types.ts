@@ -1,4 +1,4 @@
-export type TabId = "overview" | "central-banks" | "charts" | "calendar";
+export type TabId = "overview" | "dashboard" | "strength-meter" | "central-banks" | "charts" | "calendar";
 
 export type ImpactLevel = "low" | "medium" | "high";
 
@@ -129,6 +129,59 @@ export interface CentralBankSnapshot {
 export interface CentralBankDeriveResult {
   snapshots: CentralBankSnapshot[];
   logs: string[];
+}
+
+export interface DashboardCurrencySnapshot {
+  currency: string;
+  countryCode: string;
+  bankName: string;
+  flag: string;
+  currentPolicyRate: number | null;
+  previousPolicyRate: number | null;
+  currentInflationRate: number | null;
+  previousInflationRate: number | null;
+  sourceStatus: CentralBankSnapshot["status"];
+  unresolvedFields: string[];
+}
+
+export interface FxPairDefinition {
+  name: string;
+  base: string;
+  quote: string;
+}
+
+export type DashboardSortMode = "absDesc" | "absAsc" | "default";
+export type StrengthSuggestionSortMode = "spreadDesc" | "spreadAsc";
+
+export interface DashboardRateCard {
+  pair: FxPairDefinition;
+  currentGap: number | null;
+  previousGap: number | null;
+  trend: number | null;
+  isWidening: boolean | null;
+  status: "ok" | "partial" | "missing";
+}
+
+export interface DashboardInflationCard {
+  pair: FxPairDefinition;
+  bias: number | null;
+  status: "ok" | "missing";
+}
+
+export interface StrengthCurrencyRank {
+  currency: string;
+  countryCode: string;
+  score: number;
+  rateScore: number;
+  inflationScore: number;
+  currentPolicyRate: number;
+  currentInflationRate: number;
+}
+
+export interface SuggestedStrengthPair {
+  strong: StrengthCurrencyRank;
+  weak: StrengthCurrencyRank;
+  spread: number;
 }
 
 export type DatePreset =

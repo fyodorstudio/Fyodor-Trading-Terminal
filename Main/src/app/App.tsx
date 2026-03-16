@@ -7,6 +7,8 @@ import { MinimalHeader } from "@/app/components/MinimalHeader";
 import { TabNavigation } from "@/app/components/TabNavigation";
 import { UiCommandPanel } from "@/app/components/UiCommandPanel";
 import { OverviewTab } from "@/app/tabs/OverviewTab";
+import { DashboardTab } from "@/app/tabs/DashboardTab";
+import { StrengthMeterTab } from "@/app/tabs/StrengthMeterTab";
 import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
 import { ChartsTab } from "@/app/tabs/ChartsTab";
 import { EconomicCalendarTab } from "@/app/tabs/EconomicCalendarTab";
@@ -15,6 +17,8 @@ import type { BridgeHealth, BridgeStatus, CalendarEvent, MarketStatusResponse, T
 
 const TAB_ORDER: { id: TabId; label: string }[] = [
   { id: "overview", label: "Overview" },
+  { id: "dashboard", label: "Dashboard" },
+  { id: "strength-meter", label: "Strength Meter" },
   { id: "central-banks", label: "Central Banks Data" },
   { id: "charts", label: "Charts" },
   { id: "calendar", label: "Economic Calendar" },
@@ -205,6 +209,8 @@ export default function App() {
 
           <main className="main-area mt-6">
             {activeTab === "overview" && <OverviewTab />}
+            {activeTab === "dashboard" && <DashboardTab snapshots={centralBankResult.snapshots} />}
+            {activeTab === "strength-meter" && <StrengthMeterTab snapshots={centralBankResult.snapshots} />}
             {activeTab === "central-banks" && (
               <CentralBanksTab
                 snapshots={centralBankResult.snapshots}
