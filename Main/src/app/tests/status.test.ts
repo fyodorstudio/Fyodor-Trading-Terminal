@@ -46,6 +46,16 @@ describe("resolveCalendarStatus", () => {
       }),
     ).toBe("error");
   });
+
+  it("reports stale when refresh fails but previously loaded rows still exist", () => {
+    expect(
+      resolveCalendarStatus({
+        eventsCount: 8,
+        health: liveHealth,
+        calendarRequestFailed: true,
+      }),
+    ).toBe("stale");
+  });
 });
 
 describe("resolveChartStatus", () => {

@@ -38,6 +38,14 @@ function renderSourceLabel(source: CentralBankSnapshot["policyRateSource"]): str
   return "Unresolved";
 }
 
+function renderNextEventDate(timestamp: number | null): string {
+  return timestamp ? formatDateOnly(timestamp) : "Not scheduled in MT5";
+}
+
+function renderNextEventTitle(title: string | null): string {
+  return title && title.trim() !== "" ? title : "No matched future MT5 event";
+}
+
 function TrendIndicator({ current, previous }: { current: string | null; previous: string | null }) {
   if (!current || !previous) return <Minus className="h-3 w-3 text-gray-300" />;
   const c = parseFloat(current);
@@ -158,8 +166,9 @@ export function CentralBanksTab({
                       <div className="flex flex-col">
                         <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tighter">Next Event</span>
                         <span className="text-xs font-black text-blue-700">
-                          {snapshot.nextRateEventAt ? formatDateOnly(snapshot.nextRateEventAt) : "Awaiting"}
+                          {renderNextEventDate(snapshot.nextRateEventAt)}
                         </span>
+                        <span className="mt-1 text-[10px] font-medium text-gray-500">{renderNextEventTitle(snapshot.nextRateEventTitle)}</span>
                       </div>
                     </div>
                   </div>
@@ -181,8 +190,9 @@ export function CentralBanksTab({
                       <div className="flex flex-col">
                         <span className="text-[10px] font-bold text-blue-400 uppercase tracking-tighter">Next Event</span>
                         <span className="text-xs font-black text-blue-700">
-                          {snapshot.nextCpiEventAt ? formatDateOnly(snapshot.nextCpiEventAt) : "Awaiting"}
+                          {renderNextEventDate(snapshot.nextCpiEventAt)}
                         </span>
+                        <span className="mt-1 text-[10px] font-medium text-gray-500">{renderNextEventTitle(snapshot.nextCpiEventTitle)}</span>
                       </div>
                     </div>
                   </div>
@@ -267,6 +277,19 @@ export function CentralBanksTab({
                         {renderSourceLabel(currentSnapshot.policyRateSource)}
                         {currentSnapshot.policyRateSourceTitle ? ` - ${currentSnapshot.policyRateSourceTitle}` : ""}
                       </div>
+                      <div className="mt-4 flex items-center justify-between gap-4 text-[11px]">
+                        <div className="flex flex-col">
+                          <span className="font-black text-gray-400 uppercase tracking-widest">Last Released</span>
+                          <span className="font-bold text-gray-700">{formatDateOnly(currentSnapshot.lastRateReleaseAt)}</span>
+                        </div>
+                        <div className="flex flex-col text-right">
+                          <span className="font-black text-blue-400 uppercase tracking-widest">Next Event</span>
+                          <span className="font-bold text-blue-700">
+                            {renderNextEventDate(currentSnapshot.nextRateEventAt)}
+                          </span>
+                          <span className="mt-1 text-gray-500">{renderNextEventTitle(currentSnapshot.nextRateEventTitle)}</span>
+                        </div>
+                      </div>
                     </div>
                     <div className="p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
                       <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Inflation YoY</span>
@@ -277,6 +300,19 @@ export function CentralBanksTab({
                       <div className="mt-3 text-[11px] text-gray-500">
                         {renderSourceLabel(currentSnapshot.inflationSource)}
                         {currentSnapshot.inflationSourceTitle ? ` - ${currentSnapshot.inflationSourceTitle}` : ""}
+                      </div>
+                      <div className="mt-4 flex items-center justify-between gap-4 text-[11px]">
+                        <div className="flex flex-col">
+                          <span className="font-black text-gray-400 uppercase tracking-widest">Last Released</span>
+                          <span className="font-bold text-gray-700">{formatDateOnly(currentSnapshot.lastCpiReleaseAt)}</span>
+                        </div>
+                        <div className="flex flex-col text-right">
+                          <span className="font-black text-blue-400 uppercase tracking-widest">Next Event</span>
+                          <span className="font-bold text-blue-700">
+                            {renderNextEventDate(currentSnapshot.nextCpiEventAt)}
+                          </span>
+                          <span className="mt-1 text-gray-500">{renderNextEventTitle(currentSnapshot.nextCpiEventTitle)}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -299,8 +335,26 @@ export function CentralBanksTab({
                       <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
                         <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Next Expected Rate Event</div>
                         <div className="text-sm font-bold text-blue-700">
-                          {currentSnapshot.nextRateEventAt ? formatDateOnly(currentSnapshot.nextRateEventAt) : "Awaiting Schedule"}
+                          {renderNextEventDate(currentSnapshot.nextRateEventAt)}
                         </div>
+                        <div className="mt-1 text-[11px] text-gray-500">{renderNextEventTitle(currentSnapshot.nextRateEventTitle)}</div>
+                      </div>
+                    </div>
+                    <div className="relative pl-8">
+                      <div className="absolute left-0 top-1.5 h-6 w-6 rounded-full bg-white border-2 border-gray-200 z-10" />
+                      <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+                        <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Last CPI Release</div>
+                        <div className="text-sm font-bold text-gray-700">{formatDateOnly(currentSnapshot.lastCpiReleaseAt)}</div>
+                      </div>
+                    </div>
+                    <div className="relative pl-8">
+                      <div className="absolute left-0 top-1.5 h-6 w-6 rounded-full bg-violet-500 border-2 border-violet-100 z-10 shadow-[0_0_10px_rgba(139,92,246,0.35)]" />
+                      <div className="p-4 bg-violet-50/60 rounded-2xl border border-violet-100">
+                        <div className="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-1">Next Expected CPI Event</div>
+                        <div className="text-sm font-bold text-violet-700">
+                          {renderNextEventDate(currentSnapshot.nextCpiEventAt)}
+                        </div>
+                        <div className="mt-1 text-[11px] text-gray-500">{renderNextEventTitle(currentSnapshot.nextCpiEventTitle)}</div>
                       </div>
                     </div>
                   </div>

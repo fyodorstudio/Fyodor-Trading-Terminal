@@ -42,5 +42,6 @@ describe("CentralBanksTab", () => {
     expect(html).toContain("N/A");
     expect(html).toContain("Federal Reserve");
     expect(html).toContain("Unresolved");
+    expect(html).toContain("Not scheduled in MT5");
   });
 });

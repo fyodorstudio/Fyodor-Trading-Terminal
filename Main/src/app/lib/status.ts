@@ -22,6 +22,10 @@ export function resolveCalendarStatus({
     return "error";
   }
 
+  if (calendarRequestFailed && eventsCount > 0) {
+    return "stale";
+  }
+
   if (eventsCount === 0) {
     return health.ok ? "no_data" : "error";
   }

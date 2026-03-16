@@ -12,6 +12,16 @@ It exposes the MT5-backed endpoints the frontend needs:
 - `POST /calendar_ingest`
 - `WS /stream`
 
+The bridge folder also now includes the MT5 companion EA script:
+
+- `FyodorCalendarBridge.mq5`
+
+Use that EA version if you want the bridge/app to preserve:
+
+- real MT5 `countryCode`
+- all `(event id, event time)` rows
+- future blank schedule rows needed for next-event dates
+
 ## Normal Usage
 
 You usually do not need to start this manually.

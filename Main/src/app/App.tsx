@@ -39,6 +39,7 @@ export default function App() {
   const [feedStatus, setFeedStatus] = useState<BridgeStatus>("loading");
   const [chartSymbol, setChartSymbol] = useState("EURUSD");
   const [marketStatus, setMarketStatus] = useState<MarketStatusResponse | null>(null);
+  const [calendarTabLastSyncedAt, setCalendarTabLastSyncedAt] = useState<number | null>(null);
   const feedEventsRef = useRef<CalendarEvent[]>([]);
 
   // Independent Aesthetic Forge
@@ -219,7 +220,13 @@ export default function App() {
                 onSelectedSymbolChange={setChartSymbol}
               />
             )}
-            {activeTab === "calendar" && <EconomicCalendarTab health={health} />}
+            {activeTab === "calendar" && (
+              <EconomicCalendarTab
+                health={health}
+                persistedLastSyncedAt={calendarTabLastSyncedAt}
+                onSyncSuccess={setCalendarTabLastSyncedAt}
+              />
+            )}
           </main>
         </div>
       </motion.div>

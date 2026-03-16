@@ -80,6 +80,16 @@ export interface MetricMatcherRule {
   fallback?: EventMatcherRule | null;
 }
 
+export interface MetricEventScope {
+  matcher: MetricMatcherRule;
+  countryCodes?: string[];
+}
+
+export interface MetricRuleSet {
+  current: MetricEventScope;
+  nextSchedule?: MetricEventScope | null;
+}
+
 export type MetricSourceKind = "released_actual" | "upcoming_previous" | "none";
 
 export interface CentralBankMappingRule {
@@ -87,8 +97,8 @@ export interface CentralBankMappingRule {
   countryCode: string;
   bankName: string;
   flag: string;
-  policyRate: MetricMatcherRule;
-  inflation: MetricMatcherRule;
+  policyRate: MetricRuleSet;
+  inflation: MetricRuleSet;
 }
 
 export interface CentralBankSnapshot {

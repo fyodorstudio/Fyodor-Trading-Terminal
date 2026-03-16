@@ -5,8 +5,10 @@ import type {
   CentralBankMappingRule,
   CentralBankSnapshot,
   EventMatcherRule,
+  MetricEventScope,
   MetricMatcherRule,
   MetricSourceKind,
+  MetricRuleSet,
 } from "@/app/types";
 import { parseNumericValue } from "@/app/lib/format";
 
@@ -17,11 +19,15 @@ interface ResolvedMetric {
   sourceTitle: string | null;
   sourceTime: number | null;
   lastReleasedAt: number | null;
+  matchedCount: number;
+  usedFallback: boolean;
+}
+
+interface ResolvedSchedule {
   nextEventAt: number | null;
   nextEventTitle: string | null;
   matchedCount: number;
   usedFallback: boolean;
-  matchedPastActualCount: number;
 }
 
 function normalizeTitle(value: string): string {
@@ -41,12 +47,28 @@ function matchesRule(title: string, rule: EventMatcherRule): boolean {
   return rule.includeAll.some((group) => group.every((token) => normalized.includes(token)));
 }
 
+function filterByScope(events: CalendarEvent[], scope: MetricEventScope): CalendarEvent[] {
+  if (!scope.countryCodes || scope.countryCodes.length === 0) {
+    return events;
+  }
+
+  const allowed = new Set(scope.countryCodes.map((code) => code.toUpperCase()));
+  return events.filter((event) => allowed.has(event.countryCode.toUpperCase()));
+}
+
+function matchEvents(events: CalendarEvent[], matcher: MetricMatcherRule): { primary: CalendarEvent[]; fallback: CalendarEvent[] } {
+  return {
+    primary: events.filter((event) => matchesRule(event.title, matcher.primary)),
+    fallback: matcher.fallback ? events.filter((event) => matchesRule(event.title, matcher.fallback!)) : [],
+  };
+}
+
 function hasUsableActual(event: CalendarEvent): boolean {
-  return parseNumericValue(event.actual) != null || event.actual.trim() !== "";
+  return parseNumericValue(event.actual) != null;
 }
 
 function hasUsablePrevious(event: CalendarEvent): boolean {
-  return parseNumericValue(event.previous) != null || event.previous.trim() !== "";
+  return parseNumericValue(event.previous) != null;
 }
 
 function sortDescByTime(events: CalendarEvent[]): CalendarEvent[] {
@@ -57,24 +79,23 @@ function sortAscByTime(events: CalendarEvent[]): CalendarEvent[] {
   return [...events].sort((a, b) => a.time - b.time);
 }
 
-function firstPastActual(events: CalendarEvent[], now: number): CalendarEvent | null {
+function latestPastActual(events: CalendarEvent[], now: number): CalendarEvent | null {
   return sortDescByTime(events.filter((event) => event.time <= now)).find(hasUsableActual) ?? null;
 }
 
-function firstUpcomingPrevious(events: CalendarEvent[], now: number): CalendarEvent | null {
+function nearestFuturePrevious(events: CalendarEvent[], now: number): CalendarEvent | null {
   return sortAscByTime(events.filter((event) => event.time > now)).find(hasUsablePrevious) ?? null;
 }
 
-function previousReleasedActual(events: CalendarEvent[], beforeTime: number): CalendarEvent | null {
+function priorReleasedActual(events: CalendarEvent[], beforeTime: number): CalendarEvent | null {
   return sortDescByTime(events.filter((event) => event.time < beforeTime)).find(hasUsableActual) ?? null;
 }
 
-function nextEvent(events: CalendarEvent[], now: number): CalendarEvent | null {
+function firstFutureEvent(events: CalendarEvent[], now: number): CalendarEvent | null {
   return sortAscByTime(events.filter((event) => event.time > now))[0] ?? null;
 }
 
-function emptyMetric(events: CalendarEvent[], now: number): ResolvedMetric {
-  const next = nextEvent(events, now);
+function emptyMetric(matchedCount: number): ResolvedMetric {
   return {
     currentValue: null,
     previousValue: null,
@@ -82,44 +103,36 @@ function emptyMetric(events: CalendarEvent[], now: number): ResolvedMetric {
     sourceTitle: null,
     sourceTime: null,
     lastReleasedAt: null,
-    nextEventAt: next?.time ?? null,
-    nextEventTitle: next?.title ?? null,
-    matchedCount: events.length,
+    matchedCount,
     usedFallback: false,
-    matchedPastActualCount: 0,
   };
 }
 
-function resolveMetric(events: CalendarEvent[]): ResolvedMetric {
+function resolveCurrentMetric(events: CalendarEvent[]): ResolvedMetric {
   const now = Date.now() / 1000;
   if (events.length === 0) {
-    return emptyMetric(events, now);
+    return emptyMetric(0);
   }
 
-  const pastActual = firstPastActual(events, now);
-  const futurePrevious = firstUpcomingPrevious(events, now);
-  const next = nextEvent(events, now);
-  const matchedPastActualCount = events.filter((event) => event.time <= now && hasUsableActual(event)).length;
+  const pastActual = latestPastActual(events, now);
+  const futurePrevious = nearestFuturePrevious(events, now);
 
   if (pastActual) {
-    const previousRelease = previousReleasedActual(events, pastActual.time);
+    const previousRelease = priorReleasedActual(events, pastActual.time);
     return {
       currentValue: pastActual.actual.trim() || null,
-      previousValue: hasUsablePrevious(pastActual) ? pastActual.previous : previousRelease?.actual.trim() || null,
+      previousValue: hasUsablePrevious(pastActual) ? pastActual.previous.trim() : previousRelease?.actual.trim() || null,
       source: "released_actual",
       sourceTitle: pastActual.title,
       sourceTime: pastActual.time,
       lastReleasedAt: pastActual.time,
-      nextEventAt: next?.time ?? null,
-      nextEventTitle: next?.title ?? null,
       matchedCount: events.length,
       usedFallback: false,
-      matchedPastActualCount,
     };
   }
 
   if (futurePrevious) {
-    const previousRelease = previousReleasedActual(events, futurePrevious.time);
+    const previousRelease = priorReleasedActual(events, futurePrevious.time);
     return {
       currentValue: futurePrevious.previous.trim() || null,
       previousValue: previousRelease?.actual.trim() || null,
@@ -127,45 +140,74 @@ function resolveMetric(events: CalendarEvent[]): ResolvedMetric {
       sourceTitle: futurePrevious.title,
       sourceTime: futurePrevious.time,
       lastReleasedAt: previousRelease?.time ?? null,
-      nextEventAt: futurePrevious.time,
-      nextEventTitle: futurePrevious.title,
       matchedCount: events.length,
       usedFallback: false,
-      matchedPastActualCount,
     };
   }
 
-  return {
-    ...emptyMetric(events, now),
-    matchedPastActualCount,
-  };
+  return emptyMetric(events.length);
 }
 
-function chooseMetric(events: CalendarEvent[], matcher: MetricMatcherRule): ResolvedMetric {
-  const primaryEvents = events.filter((event) => matchesRule(event.title, matcher.primary));
-  const primaryResolved = resolveMetric(primaryEvents);
+function chooseCurrentMetric(events: CalendarEvent[], ruleSet: MetricRuleSet): ResolvedMetric {
+  const scopedEvents = filterByScope(events, ruleSet.current);
+  const matched = matchEvents(scopedEvents, ruleSet.current.matcher);
+  const primaryResolved = resolveCurrentMetric(matched.primary);
 
-  if (primaryResolved.source !== "none" || !matcher.fallback) {
+  if (primaryResolved.source !== "none" || !ruleSet.current.matcher.fallback) {
     return primaryResolved;
   }
 
-  const fallbackEvents = events.filter((event) => matchesRule(event.title, matcher.fallback));
-  const fallbackResolved = resolveMetric(fallbackEvents);
+  const fallbackResolved = resolveCurrentMetric(matched.fallback);
   if (fallbackResolved.source === "none") {
     return {
       ...primaryResolved,
-      matchedCount: primaryResolved.matchedCount + fallbackResolved.matchedCount,
-      nextEventAt: primaryResolved.nextEventAt ?? fallbackResolved.nextEventAt,
-      nextEventTitle: primaryResolved.nextEventTitle ?? fallbackResolved.nextEventTitle,
+      matchedCount: matched.primary.length + matched.fallback.length,
     };
   }
+
   return {
     ...fallbackResolved,
-    usedFallback: fallbackResolved.matchedCount > 0,
+    usedFallback: matched.fallback.length > 0,
+    matchedCount: matched.primary.length + matched.fallback.length,
   };
 }
 
-function logMetricState(
+function resolveNextSchedule(events: CalendarEvent[]): ResolvedSchedule {
+  const next = firstFutureEvent(events, Date.now() / 1000);
+  return {
+    nextEventAt: next?.time ?? null,
+    nextEventTitle: next?.title ?? null,
+    matchedCount: events.length,
+    usedFallback: false,
+  };
+}
+
+function chooseNextSchedule(events: CalendarEvent[], ruleSet: MetricRuleSet): ResolvedSchedule {
+  const scope = ruleSet.nextSchedule ?? ruleSet.current;
+  const scopedEvents = filterByScope(events, scope);
+  const matched = matchEvents(scopedEvents, scope.matcher);
+  const primarySchedule = resolveNextSchedule(matched.primary);
+
+  if (primarySchedule.nextEventAt != null || !scope.matcher.fallback) {
+    return primarySchedule;
+  }
+
+  const fallbackSchedule = resolveNextSchedule(matched.fallback);
+  if (fallbackSchedule.nextEventAt == null) {
+    return {
+      ...primarySchedule,
+      matchedCount: matched.primary.length + matched.fallback.length,
+    };
+  }
+
+  return {
+    ...fallbackSchedule,
+    usedFallback: matched.fallback.length > 0,
+    matchedCount: matched.primary.length + matched.fallback.length,
+  };
+}
+
+function logCurrentMetricState(
   notes: string[],
   currency: string,
   label: "policy-rate" | "headline CPI",
@@ -191,14 +233,34 @@ function logMetricState(
   notes.push(`${currency}: ${label} matched events but no usable actual/previous values were found.`);
 }
 
+function logScheduleState(
+  notes: string[],
+  currency: string,
+  label: "policy-rate" | "headline CPI",
+  resolved: ResolvedSchedule,
+): void {
+  if (resolved.nextEventAt != null) {
+    if (resolved.usedFallback && resolved.nextEventTitle) {
+      notes.push(`${currency}: next ${label} schedule resolved via fallback title ${resolved.nextEventTitle}.`);
+    }
+    return;
+  }
+
+  notes.push(`${currency}: no future ${label} schedule matched in current MT5 bridge window.`);
+}
+
 function deriveForRule(rule: CentralBankMappingRule, events: CalendarEvent[]): CentralBankSnapshot {
   const byCurrency = events.filter((event) => event.currency === rule.currency);
-  const rateMetric = chooseMetric(byCurrency, rule.policyRate);
-  const inflationMetric = chooseMetric(byCurrency, rule.inflation);
+  const rateMetric = chooseCurrentMetric(byCurrency, rule.policyRate);
+  const rateSchedule = chooseNextSchedule(byCurrency, rule.policyRate);
+  const inflationMetric = chooseCurrentMetric(byCurrency, rule.inflation);
+  const inflationSchedule = chooseNextSchedule(byCurrency, rule.inflation);
 
   const notes: string[] = [];
-  logMetricState(notes, rule.currency, "policy-rate", rateMetric);
-  logMetricState(notes, rule.currency, "headline CPI", inflationMetric);
+  logCurrentMetricState(notes, rule.currency, "policy-rate", rateMetric);
+  logCurrentMetricState(notes, rule.currency, "headline CPI", inflationMetric);
+  logScheduleState(notes, rule.currency, "policy-rate", rateSchedule);
+  logScheduleState(notes, rule.currency, "headline CPI", inflationSchedule);
 
   let status: CentralBankSnapshot["status"] = "ok";
   if (!rateMetric.currentValue && !inflationMetric.currentValue) {
@@ -224,10 +286,10 @@ function deriveForRule(rule: CentralBankMappingRule, events: CalendarEvent[]): C
     inflationSourceTime: inflationMetric.sourceTime,
     lastRateReleaseAt: rateMetric.lastReleasedAt,
     lastCpiReleaseAt: inflationMetric.lastReleasedAt,
-    nextRateEventAt: rateMetric.nextEventAt,
-    nextRateEventTitle: rateMetric.nextEventTitle,
-    nextCpiEventAt: inflationMetric.nextEventAt,
-    nextCpiEventTitle: inflationMetric.nextEventTitle,
+    nextRateEventAt: rateSchedule.nextEventAt,
+    nextRateEventTitle: rateSchedule.nextEventTitle,
+    nextCpiEventAt: inflationSchedule.nextEventAt,
+    nextCpiEventTitle: inflationSchedule.nextEventTitle,
     status,
     notes,
   };

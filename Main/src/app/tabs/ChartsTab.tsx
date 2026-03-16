@@ -321,10 +321,32 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
       return "Session unavailable";
     }
     if (marketStatus.session_state === "open") {
-      return `Closes in ${formatCountdown(marketStatus.next_close_time)}`;
+      return `Est. closes in ${formatCountdown(marketStatus.next_close_time)}`;
     }
-    return `Opens in ${formatCountdown(marketStatus.next_open_time)}`;
+    return `Est. opens in ${formatCountdown(marketStatus.next_open_time)}`;
   }, [marketStatus]);
+
+  const streamStatusLabel =
+    status === "live"
+      ? "Live Stream"
+      : status === "stale"
+        ? "Stale Feed"
+        : status === "loading"
+          ? "Loading"
+          : status === "no_data"
+            ? "No Data"
+            : "Bridge Error";
+
+  const overlayCopy =
+    status === "no_data"
+      ? {
+          title: "No Chart Data",
+          description: `No candle history is available right now for ${selectedSymbol} ${timeframe}. Verify the symbol, timeframe, and MT5 history availability.`,
+        }
+      : {
+          title: "Bridge Or MT5 Unavailable",
+          description: `The app could not refresh chart data for ${selectedSymbol}. Keep the local bridge and MetaTrader 5 running, then retry.`,
+        };
 
   return (
     <div className="flex flex-col gap-6 max-w-[1460px] mx-auto pb-12">
@@ -440,8 +462,8 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
 
         <div className="flex flex-wrap items-center gap-3">
           <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-full">
-            <Activity className={`h-4 w-4 ${status === 'live' ? 'text-green-500 animate-pulse' : 'text-gray-400'}`} />
-            <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{status === 'live' ? 'Live Stream' : 'Disconnected'}</span>
+            <Activity className={`h-4 w-4 ${status === 'live' ? 'text-green-500 animate-pulse' : status === 'loading' ? 'text-blue-500 animate-pulse' : status === 'stale' ? 'text-amber-500' : 'text-gray-400'}`} />
+            <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{streamStatusLabel}</span>
           </div>
           <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-full">
             <Clock className="h-4 w-4 text-gray-400" />
@@ -475,8 +497,8 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
                 <AlertTriangle className="h-10 w-10" />
               </div>
               <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">No Market Connection</h3>
-                <p className="text-gray-600 max-w-sm">Please ensure MetaTrader 5 is running and the MT5 bridge is connected to receive live data for {selectedSymbol}.</p>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">{overlayCopy.title}</h3>
+                <p className="text-gray-600 max-w-sm">{overlayCopy.description}</p>
               </div>
             </motion.div>
           )}

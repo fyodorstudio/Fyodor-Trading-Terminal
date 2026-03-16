@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, Circle, Clock, Globe, Zap, Activity, Cpu, Gauge, Radio, BarChart3, TrendingUp } from 'lucide-react';
+import { ChevronDown, Globe, Zap, Activity, Database } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { MarketStatusResponse } from '@/app/types';
@@ -32,6 +32,20 @@ export function MinimalHeader({
   };
 
   const isMarketOpen = marketStatus?.is_open;
+  const sessionLabel =
+    marketStatus?.session_state === 'open'
+      ? 'Est. Open'
+      : marketStatus?.session_state === 'closed'
+        ? 'Est. Closed'
+        : 'Session N/A';
+  const sessionBasis =
+    marketStatus?.reason === 'active_session' || marketStatus?.reason === 'weekend'
+      ? 'FX session model'
+      : marketStatus?.reason === 'always_on'
+        ? '24/7 market'
+        : marketStatus?.reason === 'tick_fresh' || marketStatus?.reason === 'tick_stale'
+          ? 'tick-age inference'
+          : 'bridge unavailable';
 
   // Heatmap Logic: UTCHours 0-23
   const currentHour = currentTime.getUTCHours();
@@ -57,8 +71,8 @@ export function MinimalHeader({
               <div className="flex items-center gap-4 text-[10px] font-bold text-gray-500 uppercase tracking-wider">
                 <span className="tabular-nums text-gray-900">{formatTime(currentTime)} LCL</span>
                 <span className="flex items-center gap-1.5">
-                  <div className={`h-1.5 w-1.5 rounded-full ${isMarketOpen ? 'bg-green-500' : 'bg-amber-500'}`} />
-                  {isMarketOpen ? 'Active' : 'Standby'}
+                  <div className={`h-1.5 w-1.5 rounded-full ${isMarketOpen === true ? 'bg-green-500' : isMarketOpen === false ? 'bg-amber-500' : 'bg-gray-400'}`} />
+                  {sessionLabel}
                 </span>
               </div>
             </div>
@@ -107,10 +121,10 @@ export function MinimalHeader({
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <Globe className="h-5 w-5 text-blue-500" />
-                      <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Global Liquidity Heatmap</span>
+                      <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Indicative Session Map</span>
                     </div>
                     <div className="flex flex-col text-right">
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active Standard</span>
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Session Basis</span>
                       <span className="text-sm font-black text-blue-600 tabular-nums uppercase">{currentHour}:00 UTC</span>
                     </div>
                   </div>
@@ -159,23 +173,27 @@ export function MinimalHeader({
                 <div className="w-full md:w-[380px] p-8 px-10 flex flex-col justify-center bg-gray-50/30">
                   <div className="flex items-center gap-3 mb-6">
                     <Activity className="h-5 w-5 text-emerald-500" />
-                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Signal Analytics</span>
+                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Live Feed Diagnostics</span>
                   </div>
                   <div className="space-y-6">
                     <div className="flex items-end justify-between border-b border-gray-200 pb-3">
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">VOLATILITY</span>
-                      <span className="text-2xl font-black text-emerald-600 tabular-nums leading-none tracking-tighter uppercase">Stable</span>
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">CALENDAR FEED</span>
+                      <span className="text-lg font-black text-emerald-600 tabular-nums leading-none tracking-tighter uppercase">{headerStatus}</span>
                     </div>
                     <div className="flex items-end justify-between border-b border-gray-200 pb-3">
-                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">BRIDGE LATENCY</span>
-                      <span className="text-2xl font-black text-blue-600 tabular-nums leading-none tracking-tighter">14<span className="text-xs ml-1 uppercase opacity-50 font-bold">ms</span></span>
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">SESSION SOURCE</span>
+                      <span className="text-base font-black text-blue-600 leading-none tracking-tight uppercase text-right">{sessionBasis}</span>
+                    </div>
+                    <div className="flex items-end justify-between pb-1">
+                      <span className="text-[10px] font-black text-gray-400 uppercase tracking-tighter">RESOLVED BANKS</span>
+                      <span className="text-2xl font-black text-gray-900 tabular-nums leading-none tracking-tighter">{resolvedBanks}/8</span>
                     </div>
                   </div>
                 </div>
 
                 {/* 3. EVENT TICKER - DOMINANT */}
                 <div className={`flex-1 p-8 px-10 flex flex-col justify-center transition-all duration-500 ${nextHighImpact ? 'bg-blue-50 border-l-4 border-blue-500' : 'bg-white/50'}`}>
-                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex items-center gap-3 mb-4">
                     <Zap className={`h-5 w-5 ${nextHighImpact ? 'text-blue-500 fill-blue-500' : 'text-gray-300'}`} />
                     <span className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">Tactical Event Horizon</span>
                   </div>
@@ -189,8 +207,8 @@ export function MinimalHeader({
                     </div>
                   ) : (
                     <div className="flex items-center gap-3 text-gray-400">
-                      <div className="h-1 w-1 bg-blue-500 rounded-full animate-ping" />
-                      <span className="text-xs font-black uppercase tracking-[0.2em] italic">Scanning Market Signatures...</span>
+                      <Database className="h-4 w-4 text-gray-300" />
+                      <span className="text-xs font-black uppercase tracking-[0.2em] italic">{feedStatus === 'loading' ? 'Refreshing calendar feed...' : 'No upcoming high-impact event in feed.'}</span>
                     </div>
                   )}
                 </div>

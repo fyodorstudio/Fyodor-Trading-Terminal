@@ -66,3 +66,47 @@ def test_calendar_ingest_tolerates_trailing_null():
   assert r.status_code == 200, r.text
   data = r.json()
   assert "ingested" in data and "total" in data
+
+
+def test_calendar_ingest_keeps_multiple_times_for_same_event_id():
+  """Rows are deduped by (id, time), not by id alone, so series history survives."""
+  base_id = 9_001
+  first_time = _EVENT_TIME + 200
+  second_time = _EVENT_TIME + 400
+  body = {
+    "events": [
+      {
+        "id": base_id,
+        "time": first_time,
+        "countryCode": "US",
+        "currency": "USD",
+        "title": "CPI y/y",
+        "impact": "high",
+        "actual": "2.4",
+        "forecast": "2.5",
+        "previous": "2.4",
+      },
+      {
+        "id": base_id,
+        "time": second_time,
+        "countryCode": "US",
+        "currency": "USD",
+        "title": "CPI y/y",
+        "impact": "high",
+        "actual": "",
+        "forecast": "",
+        "previous": "",
+      },
+    ]
+  }
+
+  r = client.post("/calendar_ingest", content=json.dumps(body).encode("utf-8"), headers={"Content-Type": "application/json"})
+  assert r.status_code == 200, r.text
+
+  get_r = client.get("/calendar", params={"from_": first_time - 10, "to": second_time + 10})
+  assert get_r.status_code == 200, get_r.text
+  events = get_r.json()
+
+  matching = [e for e in events if e.get("id") == base_id]
+  assert len(matching) == 2
+  assert {e["time"] for e in matching} == {first_time, second_time}
