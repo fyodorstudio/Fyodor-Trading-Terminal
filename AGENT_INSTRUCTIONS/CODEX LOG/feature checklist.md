@@ -46,7 +46,7 @@ These are already in place and should be treated as dependencies:
 
 ## Recommended Build Order
 
-1. Policy Differential v0
+1. Differential Calculator + Strength Meter
 2. Event Density / Event Quality Filter
 3. Event Reaction Engine
 4. Cross-Asset Alignment Map
@@ -58,56 +58,64 @@ Note:
 
 ---
 
-## Feature 1: Policy Differential v0
+## Feature 1: Differential Calculator + Strength Meter
 
-**Priority:** Next recommended  
-**Status:** Not started  
-**Recommended home:** `Overview` tab
+**Priority:** Completed foundation  
+**Status:** Done  
+**Recommended home:** Dedicated tabs
 
 ### Purpose
 
-Show the relative macro backdrop between two currencies in a clear and honest way.
+Restore the proven macro comparison tools from the old app, but power them with MT5-fed central-bank data instead of manual inputs.
 
 ### Minimum scope
 
-- [ ] Pair-to-central-bank mapping defined
-- [ ] Current policy-rate differential implemented
-- [ ] Current inflation differential implemented
-- [ ] 3-month differential change implemented
-- [ ] 12-month differential change implemented
-- [ ] Output wording defined:
-  - [ ] Widening
-  - [ ] Narrowing
-  - [ ] Stable
-- [ ] Overview UI drafted
-- [ ] Tests added
-- [ ] Manual audit notes added
+- [x] Pair universe defined for all 28 major FX pairs
+- [x] Current policy-rate differential implemented
+- [x] Previous policy-rate differential implemented
+- [x] Gap widening / narrowing logic implemented
+- [x] Current inflation differential implemented
+- [x] Strength Meter ranking logic restored
+- [x] 60/40 rate + inflation weighting implemented
+- [x] Dedicated `Differential Calculator` tab added
+- [x] Dedicated `Strength Meter` tab added
+- [x] Tests added
+- [x] MT5-backed adapter layer added
 
 ### Key decisions
 
-- [ ] Use MT5-fed central-bank data only
-- [ ] No fake directional trade score
-- [ ] No auto buy/sell label
-- [ ] Be explicit about missing or ambiguous MT5 values
+- [x] Use MT5-fed central-bank data only
+- [x] Do not rebuild this inside `Overview`
+- [x] Keep `Differential Calculator` and `Strength Meter` as separate isolated tabs
+- [x] No fake directional trade score in `Differential Calculator`
+- [x] Treat `Strength Meter` as a heuristic ranking, not a truth score
+- [x] Be explicit about missing or ambiguous MT5 values
 
 ### Risks
 
-- [ ] Fed scalar-vs-range caveat documented
-- [ ] JPY metric caveat documented
-- [ ] AUD next inflation caveat documented
+- [x] Fed scalar-vs-range caveat documented
+- [x] JPY metric caveat documented
+- [x] AUD next inflation caveat documented
 
 ### Done when
 
-- [ ] User can select a pair and understand rate/inflation differential clearly
-- [ ] Output is readable for a beginner
-- [ ] Edge cases show honest null states
+- [x] User can compare policy and inflation gaps across the 28 major FX pairs
+- [x] Strength ranking is visible for the major-8 set
+- [x] Output is readable for a beginner
+- [x] Edge cases show honest unresolved states
+
+### Notes
+
+- We intentionally pivoted away from the earlier `Overview`-tab differential concept.
+- The old app logic was reused because it was already proven and easy to reason about.
+- We did **not** implement 3M / 12M differential history because central-bank release timing is too irregular for a clean first-pass experience.
 
 ---
 
 ## Feature 2: Event Density / Event Quality Filter
 
 **Priority:** High  
-**Status:** Not started
+**Status:** Done (v1)
 
 ### Purpose
 
@@ -115,26 +123,37 @@ Help the user decide whether the event environment is clean enough to trade.
 
 ### Minimum scope
 
-- [ ] Asset-to-event relevance mapping defined
-- [ ] Next 24h event window logic implemented
-- [ ] Next 72h event window logic implemented
-- [ ] Event weighting/tiering logic defined
-- [ ] Environment labels implemented:
-  - [ ] Clean
-  - [ ] Mixed
-  - [ ] Dirty
-- [ ] Compact UI added
-- [ ] Tests added
+- [x] Pair-to-event relevance mapping defined
+- [x] Next 24h event window logic implemented
+- [x] Next 72h event window logic implemented
+- [x] `This Week` horizon added
+- [x] Event weighting / tiering logic defined
+- [x] Environment labels implemented:
+  - [x] Clean
+  - [x] Mixed
+  - [x] Dirty
+- [x] Dedicated `Event Quality` tab added
+- [x] Pair selector added
+- [x] Methodology block added
+- [x] Tests added
 
 ### Key decisions
 
-- [ ] Keep logic understandable
-- [ ] No fake precision
-- [ ] Use it as a filter, not a signal generator
+- [x] Keep logic understandable
+- [x] Use a weighted model, but expose the weights
+- [x] No fake precision
+- [x] Use it as a filter, not a signal generator
+- [x] Keep it independent from chart-symbol selection
 
 ### Done when
 
-- [ ] User can quickly tell whether upcoming events make timing risky
+- [x] User can quickly tell whether upcoming events make timing risky
+
+### Notes
+
+- Event Quality is now a standalone tab with its own FX-pair selector.
+- It uses MT5 calendar data only.
+- It is intentionally conservative and should be treated as a timing filter, not a trade signal.
 
 ---
 
@@ -284,6 +303,9 @@ Use this section to record progress over time.
 
 - The app currently has a strong MT5-based foundation for calendar, charts, and central-bank data.
 - MT5 remains the source of truth for macro-event and central-bank data in this phase.
+- Feature 1 was intentionally redefined from the old `Policy Differential v0 in Overview` concept to the implemented `Differential Calculator + Strength Meter` tab pair.
+- Feature 2 is now implemented as `Event Quality`.
+- The next planned feature is `Event Reaction Engine`.
 - Some MT5 caveats should remain documented rather than hidden:
   - Fed is scalar in MT5, not a full target range
   - JPY series may differ from some manual-source interpretations
