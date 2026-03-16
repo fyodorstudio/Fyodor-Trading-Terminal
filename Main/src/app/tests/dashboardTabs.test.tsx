@@ -53,6 +53,7 @@ describe("DashboardTab", () => {
   it("renders dashboard sections and pair cards from MT5-backed snapshots", () => {
     const html = renderToStaticMarkup(<DashboardTab snapshots={snapshots} />);
 
+    expect(html).toContain("Differential Calculator");
     expect(html).toContain("Interest Rate Differential + Trend");
     expect(html).toContain("Inflation Differential");
     expect(html).toContain("EURUSD");

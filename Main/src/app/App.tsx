@@ -9,19 +9,25 @@ import { UiCommandPanel } from "@/app/components/UiCommandPanel";
 import { OverviewTab } from "@/app/tabs/OverviewTab";
 import { DashboardTab } from "@/app/tabs/DashboardTab";
 import { StrengthMeterTab } from "@/app/tabs/StrengthMeterTab";
+import { EventQualityTab } from "@/app/tabs/EventQualityTab";
 import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
 import { ChartsTab } from "@/app/tabs/ChartsTab";
 import { EconomicCalendarTab } from "@/app/tabs/EconomicCalendarTab";
 import { FONT_OPTIONS, COLOR_PALETTES, FontId, ColorPaletteId } from "@/app/config/themeConfig";
 import type { BridgeHealth, BridgeStatus, CalendarEvent, MarketStatusResponse, TabId } from "@/app/types";
 
-const TAB_ORDER: { id: TabId; label: string }[] = [
-  { id: "overview", label: "Overview" },
-  { id: "dashboard", label: "Dashboard" },
+const ANALYSIS_TAB_ORDER: { id: TabId; label: string }[] = [
+  { id: "dashboard", label: "Differential Calculator" },
   { id: "strength-meter", label: "Strength Meter" },
+  { id: "event-quality", label: "Event Quality" },
+];
+
+const TAB_ORDER: Array<{ id: TabId; label: string; children?: { id: TabId; label: string }[] }> = [
+  { id: "overview", label: "Overview" },
   { id: "central-banks", label: "Central Banks Data" },
   { id: "charts", label: "Charts" },
   { id: "calendar", label: "Economic Calendar" },
+  { id: "dashboard", label: "Analysis", children: ANALYSIS_TAB_ORDER },
 ];
 
 function getFeedWindow() {
@@ -211,6 +217,13 @@ export default function App() {
             {activeTab === "overview" && <OverviewTab />}
             {activeTab === "dashboard" && <DashboardTab snapshots={centralBankResult.snapshots} />}
             {activeTab === "strength-meter" && <StrengthMeterTab snapshots={centralBankResult.snapshots} />}
+            {activeTab === "event-quality" && (
+              <EventQualityTab
+                events={feedEvents}
+                status={feedStatus}
+                lastCalendarIngestAt={health.last_calendar_ingest_at ?? null}
+              />
+            )}
             {activeTab === "central-banks" && (
               <CentralBanksTab
                 snapshots={centralBankResult.snapshots}

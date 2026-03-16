@@ -46,7 +46,7 @@ export function DashboardTab({ snapshots }: DashboardTabProps) {
     <section className="tab-panel macro-panel">
       <div className="section-head">
         <div>
-          <h2>Dashboard</h2>
+          <h2>Differential Calculator</h2>
           <p>Direct arithmetic on MT5-fed policy and inflation values across the 28 major FX pairs.</p>
         </div>
       </div>

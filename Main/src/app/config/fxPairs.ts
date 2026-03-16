@@ -2,6 +2,17 @@ import type { FxPairDefinition } from "@/app/types";
 
 export const MAJOR_CURRENCY_ORDER = ["USD", "EUR", "GBP", "JPY", "AUD", "CAD", "NZD", "CHF"] as const;
 
+export const CURRENCY_TO_COUNTRY_CODE: Record<(typeof MAJOR_CURRENCY_ORDER)[number], string> = {
+  USD: "US",
+  EUR: "EU",
+  GBP: "GB",
+  JPY: "JP",
+  AUD: "AU",
+  CAD: "CA",
+  NZD: "NZ",
+  CHF: "CH",
+};
+
 export const FX_PAIRS: FxPairDefinition[] = [
   { base: "EUR", quote: "USD", name: "EURUSD" },
   { base: "USD", quote: "JPY", name: "USDJPY" },
@@ -32,3 +43,7 @@ export const FX_PAIRS: FxPairDefinition[] = [
   { base: "CAD", quote: "NZD", name: "CADNZD" },
   { base: "NZD", quote: "JPY", name: "NZDJPY" },
 ];
+
+export function getFxPairByName(name: string): FxPairDefinition | null {
+  return FX_PAIRS.find((pair) => pair.name === name) ?? null;
+}

@@ -590,7 +590,7 @@ async def calendar_ingest(request: Request) -> Dict[str, Any]:
 
   # Keep enough history for quarterly CPI and prior policy decisions.
   horizon_days = 400
-  cutoff_ts = int(datetime.utcnow().timestamp()) - horizon_days * 24 * 60 * 60
+  cutoff_ts = int(_time.time()) - horizon_days * 24 * 60 * 60
   with _calendar_lock:
     if _calendar_events:
       recent: List[Dict[str, Any]] = []
@@ -608,7 +608,7 @@ async def calendar_ingest(request: Request) -> Dict[str, Any]:
 
   total = len(_calendar_events)
   global _last_calendar_ingest_at
-  _last_calendar_ingest_at = datetime.utcnow().timestamp()
+  _last_calendar_ingest_at = _time.time()
   duration_ms = int((_time.perf_counter() - t0) * 1000)
   logger.info(
     "calendar_ingest method=POST path=/calendar_ingest status=200 body_size=%s ingested=%s total=%s duration_ms=%s",

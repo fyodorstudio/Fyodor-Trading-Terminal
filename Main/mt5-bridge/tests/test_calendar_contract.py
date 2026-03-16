@@ -110,3 +110,19 @@ def test_calendar_ingest_keeps_multiple_times_for_same_event_id():
   matching = [e for e in events if e.get("id") == base_id]
   assert len(matching) == 2
   assert {e["time"] for e in matching} == {first_time, second_time}
+
+
+def test_calendar_ingest_updates_health_timestamp_near_now():
+  """Health timestamp should reflect real current time, not drift by local UTC offset."""
+  body = json.dumps(MINIMAL_BODY).encode("utf-8")
+  before = time.time()
+  post_r = client.post("/calendar_ingest", content=body, headers={"Content-Type": "application/json"})
+  assert post_r.status_code == 200, post_r.text
+
+  health_r = client.get("/health")
+  assert health_r.status_code == 200, health_r.text
+  payload = health_r.json()
+
+  last_ingest = payload.get("last_calendar_ingest_at")
+  assert isinstance(last_ingest, (int, float))
+  assert before - 5 <= float(last_ingest) <= time.time() + 5

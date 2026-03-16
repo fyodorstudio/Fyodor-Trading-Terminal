@@ -1,5 +1,6 @@
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Activity, Calendar, Check, ChevronDown, Clock, Database, Globe, Search, Star } from "lucide-react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { Activity, Calendar, Check, ChevronDown, CircleHelp, Clock, Database, Globe, Search, Star } from "lucide-react";
 import { fetchCalendar, fetchServerTime } from "@/app/lib/bridge";
 import { getPresetRange } from "@/app/lib/calendarRanges";
 import {
@@ -19,6 +20,72 @@ const DEFAULT_IMPACTS: ImpactLevel[] = ["low", "medium", "high"];
 
 type CalendarTimezoneMode = "local" | "utc";
 type CalendarRangeMode = "today" | "this_week" | "custom";
+
+function HelpHint({ label, detail }: { label: string; detail: string }) {
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+
+    const rect = triggerRef.current.getBoundingClientRect();
+    setPosition({
+      top: rect.top - 10,
+      left: rect.left + rect.width / 2,
+    });
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const updatePosition = () => {
+      if (!triggerRef.current) return;
+      const rect = triggerRef.current.getBoundingClientRect();
+      setPosition({
+        top: rect.top - 10,
+        left: rect.left + rect.width / 2,
+      });
+    };
+
+    window.addEventListener("scroll", updatePosition, true);
+    window.addEventListener("resize", updatePosition);
+    return () => {
+      window.removeEventListener("scroll", updatePosition, true);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [open]);
+
+  return (
+    <span className="calendar-help-hint">
+      {label}
+      <button
+        ref={triggerRef}
+        type="button"
+        className="calendar-help-button"
+        aria-label={detail}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+      >
+        <CircleHelp size={12} />
+      </button>
+      {open && position && typeof document !== "undefined"
+        ? createPortal(
+            <div
+              className="calendar-help-popover"
+              role="tooltip"
+              style={{ top: position.top, left: position.left }}
+            >
+              {detail}
+            </div>,
+            document.body,
+          )
+        : null}
+    </span>
+  );
+}
 
 function buildCalendarQueryKey(params: {
   from: Date | null;
@@ -465,6 +532,17 @@ export function EconomicCalendarTab({
         ? "bg-blue-500 animate-pulse"
         : "bg-current";
 
+  const statusHelpText =
+    status === "stale"
+      ? "Stale means retained calendar rows are still visible, but the latest MT5 ingest is no longer fresh enough or the latest refresh failed."
+      : status === "live"
+        ? "Live means the bridge is reachable and the latest MT5 calendar ingest is still fresh."
+        : status === "loading"
+          ? "Syncing means this tab is currently waiting for a fresh response from the bridge."
+          : status === "no_data"
+            ? "No data means the bridge responded, but there are no calendar rows for the current range or filters."
+            : "Offline means the bridge request failed and there are no retained rows available for this query.";
+
   const handleSelectToday = () => {
     setPreset("today");
     setIsRangePopoverOpen(false);
@@ -520,7 +598,7 @@ export function EconomicCalendarTab({
                 className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-widest flex items-center gap-1.5 border ${statusBadgeClass}`}
               >
                 <span className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`} />
-                {statusLabel}
+                <HelpHint label={statusLabel} detail={statusHelpText} />
               </div>
             </div>
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">
@@ -535,7 +613,10 @@ export function EconomicCalendarTab({
               <Activity className="h-3.5 w-3.5 text-blue-500" />
               <div className="flex flex-col">
                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-0.5">
-                  Sync Age
+                  <HelpHint
+                    label="Sync Age"
+                    detail="Sync Age measures how long ago this calendar tab last successfully fetched rows from the local bridge."
+                  />
                 </span>
                 <span className="text-[11px] font-bold text-gray-900 tabular-nums">
                   {formatUiAge(lastSyncedAt, uiNow)}
@@ -546,7 +627,10 @@ export function EconomicCalendarTab({
               <Database className="h-3.5 w-3.5 text-blue-500" />
               <div className="flex flex-col">
                 <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-0.5">
-                  Ingest Age
+                  <HelpHint
+                    label="Ingest Age"
+                    detail="Ingest Age measures how long ago the bridge last successfully received calendar data pushed from MT5."
+                  />
                 </span>
                 <span className="text-[11px] font-bold text-gray-900 tabular-nums">
                   {formatUiAge(lastCalendarIngestAt, uiNow)}
@@ -797,7 +881,7 @@ export function EconomicCalendarTab({
       {(status === "error" || status === "stale" || status === "no_data") && (
         <div className={`alert-panel alert-${status}`}>
           {status === "error" && "Bridge unavailable. Keep MetaTrader 5 and the local bridge running, then refresh this tab."}
-          {status === "stale" && "Market closed. Latest calendar ingest is stale. Retained MT5 events are still shown."}
+          {status === "stale" && "Calendar feed is stale. Retained MT5 events are still shown while the latest ingest or refresh is no longer fresh."}
           {status === "no_data" && "NO DATA for the selected range or filters. Broaden the range or verify the MT5 feed."}
         </div>
       )}
