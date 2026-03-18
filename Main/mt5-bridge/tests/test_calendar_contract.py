@@ -10,6 +10,7 @@ import time
 from fastapi.testclient import TestClient
 
 # Import app after potential env/mocks so MT5 is not required for calendar-only tests
+import server
 from server import app
 
 client = TestClient(app)
@@ -126,3 +127,70 @@ def test_calendar_ingest_updates_health_timestamp_near_now():
   last_ingest = payload.get("last_calendar_ingest_at")
   assert isinstance(last_ingest, (int, float))
   assert before - 5 <= float(last_ingest) <= time.time() + 5
+
+
+def test_history_range_validates_range_order():
+  r = client.get("/history_range", params={"symbol": "EURUSD", "tf": "M1", "from_": 20, "to": 10})
+  assert r.status_code == 400
+
+
+def test_history_range_validates_range_size():
+  start = int(time.time())
+  end = start + 50 * 24 * 60 * 60
+  r = client.get("/history_range", params={"symbol": "EURUSD", "tf": "M1", "from_": start, "to": end})
+  assert r.status_code == 400
+
+
+def test_history_range_returns_candles_with_mocked_mt5(monkeypatch):
+  class DummyMT5:
+    TIMEFRAME_M1 = 1
+    TIMEFRAME_M5 = 5
+    TIMEFRAME_M15 = 15
+    TIMEFRAME_M30 = 30
+    TIMEFRAME_H1 = 60
+    TIMEFRAME_H4 = 240
+    TIMEFRAME_D1 = 1440
+    TIMEFRAME_W1 = 10080
+    TIMEFRAME_MN1 = 43200
+
+    @staticmethod
+    def terminal_info():
+      return object()
+
+    @staticmethod
+    def symbol_select(_symbol, _visible):
+      return True
+
+    @staticmethod
+    def symbol_info(_symbol):
+      return object()
+
+    @staticmethod
+    def last_error():
+      return (1, "Success")
+
+    @staticmethod
+    def copy_rates_range(_symbol, _tf, _from_dt, _to_dt):
+      return [
+        {
+          "time": _EVENT_TIME,
+          "open": 1.1,
+          "high": 1.2,
+          "low": 1.0,
+          "close": 1.15,
+          "tick_volume": 100,
+          "real_volume": 0,
+        }
+      ]
+
+  monkeypatch.setattr(server, "mt5", DummyMT5)
+
+  r = client.get(
+    "/history_range",
+    params={"symbol": "EURUSD", "tf": "M1", "from_": _EVENT_TIME - 60, "to": _EVENT_TIME + 60},
+  )
+  assert r.status_code == 200, r.text
+  payload = r.json()
+  assert isinstance(payload, list)
+  assert payload[0]["time"] == _EVENT_TIME
+  assert payload[0]["close"] == 1.15

@@ -10,6 +10,7 @@ import { OverviewTab } from "@/app/tabs/OverviewTab";
 import { DashboardTab } from "@/app/tabs/DashboardTab";
 import { StrengthMeterTab } from "@/app/tabs/StrengthMeterTab";
 import { EventQualityTab } from "@/app/tabs/EventQualityTab";
+import { EventReactionTab } from "@/app/tabs/EventReactionTab";
 import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
 import { ChartsTab } from "@/app/tabs/ChartsTab";
 import { EconomicCalendarTab } from "@/app/tabs/EconomicCalendarTab";
@@ -20,6 +21,7 @@ const ANALYSIS_TAB_ORDER: { id: TabId; label: string }[] = [
   { id: "dashboard", label: "Differential Calculator" },
   { id: "strength-meter", label: "Strength Meter" },
   { id: "event-quality", label: "Event Quality" },
+  { id: "reaction-engine", label: "Event Reaction Engine" },
 ];
 
 const TAB_ORDER: Array<{ id: TabId; label: string; children?: { id: TabId; label: string }[] }> = [
@@ -224,6 +226,7 @@ export default function App() {
                 lastCalendarIngestAt={health.last_calendar_ingest_at ?? null}
               />
             )}
+            {activeTab === "reaction-engine" && <EventReactionTab events={feedEvents} />}
             {activeTab === "central-banks" && (
               <CentralBanksTab
                 snapshots={centralBankResult.snapshots}

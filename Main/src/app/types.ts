@@ -3,6 +3,7 @@ export type TabId =
   | "dashboard"
   | "strength-meter"
   | "event-quality"
+  | "reaction-engine"
   | "central-banks"
   | "charts"
   | "calendar";
@@ -232,6 +233,72 @@ export interface EventQualitySummary {
   rows: EventQualityRow[];
   breakdown: EventQualityBreakdown[];
   immediateTrigger: boolean;
+  note: string | null;
+}
+
+export type EventReactionMode = "event-first" | "asset-first";
+export type ReactionWindow = "15m" | "1h" | "4h" | "1d";
+export type ReactionBucket = "beat" | "inline" | "miss" | "small_beat" | "large_beat" | "small_miss" | "large_miss";
+export type SampleQuality = "weak" | "limited" | "usable";
+
+export interface EventTemplate {
+  key: string;
+  currency: string;
+  title: string;
+  family: EventQualityFamily;
+  familyLabel: string;
+  sampleCount: number;
+  usableSampleCount: number;
+  quality: SampleQuality;
+}
+
+export interface ReactionSample {
+  eventId: string;
+  eventTime: number;
+  actual: number;
+  forecast: number;
+  surprise: number;
+  bucket: ReactionBucket;
+  windows: Partial<Record<ReactionWindow, number>>;
+}
+
+export interface ReactionStats {
+  sampleSize: number;
+  averageReturn: number | null;
+  medianReturn: number | null;
+  medianAbsoluteReturn: number | null;
+  standardDeviation: number | null;
+}
+
+export interface ReactionBucketStats {
+  bucket: ReactionBucket;
+  label: string;
+  windows: Record<ReactionWindow, ReactionStats>;
+}
+
+export interface ReactionStudyRow {
+  key: string;
+  label: string;
+  currency: string;
+  family?: EventQualityFamily;
+  familyLabel?: string;
+  quality: SampleQuality;
+  sampleCount: number;
+  rankMetric: number | null;
+  summaryWindows: Record<ReactionWindow, ReactionStats>;
+  bucketStats: ReactionBucketStats[];
+  note: string | null;
+}
+
+export interface ReactionStudySummary {
+  mode: EventReactionMode;
+  selectedPair?: FxPairDefinition | null;
+  selectedTemplate?: EventTemplate | null;
+  rows: ReactionStudyRow[];
+  beatCount: number;
+  inlineCount: number;
+  missCount: number;
+  usableSampleCount: number;
   note: string | null;
 }
 

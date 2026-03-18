@@ -543,6 +543,39 @@ def history(symbol: str, tf: str, bars: int = 500) -> List[Dict[str, Any]]:
   return candles
 
 
+@app.get("/history_range")
+def history_range(symbol: str, tf: str, from_: int, to: int) -> List[Dict[str, Any]]:
+  if from_ >= to:
+    raise HTTPException(status_code=400, detail="from_ must be < to")
+
+  max_range_seconds = 40 * 24 * 60 * 60
+  if to - from_ > max_range_seconds:
+    raise HTTPException(status_code=400, detail="requested range is too large")
+
+  if mt5.terminal_info() is None:
+    raise HTTPException(status_code=503, detail="MT5 terminal not connected")
+
+  timeframe = mt5_timeframe(tf)
+  ensure_symbol_selected(symbol)
+
+  from_dt = datetime.fromtimestamp(from_, tz=timezone.utc)
+  to_dt = datetime.fromtimestamp(to, tz=timezone.utc)
+  rates = mt5.copy_rates_range(symbol, timeframe, from_dt, to_dt)
+  if rates is None or len(rates) == 0:
+    _update_last_error()
+    err = _get_last_error()
+    raise HTTPException(
+      status_code=502,
+      detail={"message": "No data from MT5", "mt5_error": err},
+    )
+
+  candles = [convert_rate_row(row) for row in rates]
+  candles.sort(key=lambda c: c["time"])
+  global _last_history_symbol
+  _last_history_symbol = symbol
+  return candles
+
+
 @app.post("/calendar_ingest")
 async def calendar_ingest(request: Request) -> Dict[str, Any]:
   """

@@ -92,6 +92,44 @@ export async function fetchHistory(symbol: string, tf: string, bars = 200): Prom
     .sort((a, b) => a.time - b.time);
 }
 
+export async function fetchHistoryRange(params: {
+  symbol: string;
+  tf: string;
+  from: number;
+  to: number;
+}): Promise<BridgeCandle[]> {
+  const search = new URLSearchParams({
+    symbol: params.symbol,
+    tf: params.tf,
+    from_: String(params.from),
+    to: String(params.to),
+  });
+
+  const payload = await fetchJson<unknown[]>(`${BRIDGE_BASE}/history_range?${search.toString()}`);
+  return payload
+    .map((item) => {
+      if (!item || typeof item !== "object") return null;
+      const row = item as Record<string, unknown>;
+      const time = asNumber(row.time);
+      const open = asNumber(row.open);
+      const high = asNumber(row.high);
+      const low = asNumber(row.low);
+      const close = asNumber(row.close);
+      const volume = asNumber(row.volume);
+      if ([time, open, high, low, close, volume].some((value) => value == null)) return null;
+      return {
+        time: time as number,
+        open: open as number,
+        high: high as number,
+        low: low as number,
+        close: close as number,
+        volume: volume as number,
+      } satisfies BridgeCandle;
+    })
+    .filter((item): item is BridgeCandle => item !== null)
+    .sort((a, b) => a.time - b.time);
+}
+
 export async function fetchSymbols(): Promise<BridgeSymbol[]> {
   try {
     const payload = await fetchJson<unknown[]>(`${BRIDGE_BASE}/symbols`);

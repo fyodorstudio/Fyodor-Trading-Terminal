@@ -6,8 +6,12 @@ dist/
 .venv/
 __pycache__/
 *.pyc
+.pytest_cache/
 
 # IDE/System files
 .vscode/
 .DS_Store
 *.log
+
+# Local agent notes/instructions
+AGENT_INSTRUCTIONS/
