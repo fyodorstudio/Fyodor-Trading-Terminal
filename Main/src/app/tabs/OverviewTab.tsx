@@ -307,7 +307,7 @@ export function OverviewTab({
               <button
                 key={snapshot.currency}
                 type="button"
-                className="overview-bank-row"
+                className={`overview-bank-row is-${snapshot.status}`}
                 onClick={() => onNavigate("central-banks")}
               >
                 <div className="overview-bank-head">
