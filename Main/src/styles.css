@@ -380,6 +380,7 @@ button {
 
 .overview-grid-secondary {
   grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: start;
 }
 
 .overview-card {
@@ -387,6 +388,7 @@ button {
   flex-direction: column;
   gap: 16px;
   padding: 18px 20px;
+  min-width: 0;
 }
 
 .overview-card-head {
@@ -411,9 +413,7 @@ button {
 .overview-event-row,
 .overview-bank-row,
 .overview-action-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  display: grid;
   gap: 14px;
   width: 100%;
   padding: 14px 16px;
@@ -423,6 +423,22 @@ button {
   color: var(--text);
   text-align: left;
   transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+.overview-event-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.overview-bank-row {
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.overview-action-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
 }
 
 .overview-event-row:hover,
@@ -440,6 +456,15 @@ button {
   min-width: 0;
 }
 
+.overview-bank-head,
+.overview-bank-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+}
+
 .overview-event-main > div:last-child,
 .overview-bank-identity > div:last-child,
 .overview-action-row > div {
@@ -452,19 +477,22 @@ button {
 .overview-event-main strong,
 .overview-bank-identity strong,
 .overview-action-row strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .overview-event-meta,
-.overview-bank-note {
+.overview-bank-foot {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
   text-align: right;
   flex-shrink: 0;
+}
+
+.overview-bank-foot {
+  padding-top: 2px;
+  border-top: 1px solid #eceff3;
 }
 
 .overview-relevance,
@@ -508,13 +536,20 @@ button {
   display: grid;
   grid-template-columns: repeat(3, minmax(90px, 1fr));
   gap: 14px;
-  min-width: min(420px, 100%);
+  width: 100%;
 }
 
 .overview-bank-metrics > div {
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
+}
+
+.overview-bank-followup {
+  color: var(--muted);
+  font-size: 0.84rem;
+  overflow-wrap: anywhere;
 }
 
 .overview-check-row {
@@ -575,9 +610,14 @@ button {
   }
 
   .overview-event-meta,
-  .overview-bank-note {
+  .overview-bank-foot {
     align-items: flex-start;
     text-align: left;
+  }
+
+  .overview-bank-head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .overview-bank-metrics {

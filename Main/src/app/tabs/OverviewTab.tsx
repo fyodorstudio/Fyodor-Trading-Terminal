@@ -184,6 +184,14 @@ function renderSnapshotMetric(value: string | null, fallback: string): string {
   return value && value.trim() ? value : fallback;
 }
 
+function renderMacroFollowUp(unresolvedCount: number, nextEventTitle: string | null): string {
+  if (unresolvedCount > 0) {
+    return `${unresolvedCount} unresolved field${unresolvedCount === 1 ? "" : "s"}`;
+  }
+
+  return nextEventTitle || "Data mapped cleanly";
+}
+
 export function OverviewTab({
   currentTime,
   health,
@@ -267,7 +275,7 @@ export function OverviewTab({
                     <div>
                       <strong>{event.title}</strong>
                       <span>
-                        {event.currency} · {getCountryDisplayName(event.countryCode)} · {formatUtcDateTime(event.time)}
+                        {event.currency} - {getCountryDisplayName(event.countryCode)} - {formatUtcDateTime(event.time)}
                       </span>
                     </div>
                   </div>
@@ -302,12 +310,15 @@ export function OverviewTab({
                 className="overview-bank-row"
                 onClick={() => onNavigate("central-banks")}
               >
-                <div className="overview-bank-identity">
-                  <FlagIcon countryCode={snapshot.countryCode} className="h-5 w-7" />
-                  <div>
-                    <strong>{snapshot.bankName}</strong>
-                    <span>{snapshot.currency}</span>
+                <div className="overview-bank-head">
+                  <div className="overview-bank-identity">
+                    <FlagIcon countryCode={snapshot.countryCode} className="h-5 w-7" />
+                    <div>
+                      <strong>{snapshot.bankName}</strong>
+                      <span>{snapshot.currency}</span>
+                    </div>
                   </div>
+                  <span className={`overview-status-tag is-${snapshot.status}`}>{snapshot.status}</span>
                 </div>
                 <div className="overview-bank-metrics">
                   <div>
@@ -323,13 +334,8 @@ export function OverviewTab({
                     <strong>{nextEventAt ? formatDateOnly(nextEventAt) : "Not scheduled"}</strong>
                   </div>
                 </div>
-                <div className="overview-bank-note">
-                  <span className={`overview-status-tag is-${snapshot.status}`}>{snapshot.status}</span>
-                  <span>
-                    {unresolvedCount > 0
-                      ? `${unresolvedCount} unresolved field${unresolvedCount === 1 ? "" : "s"}`
-                      : nextEventTitle || "Data mapped cleanly"}
-                  </span>
+                <div className="overview-bank-foot">
+                  <span className="overview-bank-followup">{renderMacroFollowUp(unresolvedCount, nextEventTitle)}</span>
                 </div>
               </button>
             ))}
