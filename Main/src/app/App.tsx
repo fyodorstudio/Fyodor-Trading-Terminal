@@ -45,7 +45,7 @@ function getFeedWindow() {
 const transition = { type: "spring", stiffness: 300, damping: 30 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabId>("charts");
+  const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [health, setHealth] = useState<BridgeHealth>({ ok: false, terminal_connected: false });
   const [feedEvents, setFeedEvents] = useState<CalendarEvent[]>([]);
   const [feedStatus, setFeedStatus] = useState<BridgeStatus>("loading");
@@ -209,7 +209,18 @@ export default function App() {
           />
 
           <main className="main-area mt-6">
-            {activeTab === "overview" && <OverviewTab />}
+            {activeTab === "overview" && (
+              <OverviewTab
+                currentTime={currentTime}
+                health={health}
+                feedStatus={feedStatus}
+                marketStatus={marketStatus}
+                selectedSymbol={chartSymbol}
+                events={feedEvents}
+                snapshots={centralBankResult.snapshots}
+                onNavigate={setActiveTab}
+              />
+            )}
             {activeTab === "dashboard" && <DashboardTab snapshots={centralBankResult.snapshots} />}
             {activeTab === "strength-meter" && <StrengthMeterTab snapshots={centralBankResult.snapshots} />}
             {activeTab === "event-quality" && (

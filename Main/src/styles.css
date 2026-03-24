@@ -267,6 +267,331 @@ button {
   min-height: 560px;
 }
 
+.overview-brief,
+.overview-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(247, 247, 246, 0.94);
+}
+
+.overview-brief {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 20px 22px;
+}
+
+.overview-brief-good {
+  border-color: rgba(22, 124, 74, 0.2);
+}
+
+.overview-brief-warning {
+  border-color: rgba(161, 92, 6, 0.25);
+}
+
+.overview-brief-danger {
+  border-color: rgba(180, 35, 24, 0.22);
+}
+
+.overview-brief-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.overview-brief-icon,
+.overview-card-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-strong);
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.overview-brief-copy h2,
+.overview-card-head h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+.overview-brief-copy p,
+.overview-card-head p,
+.overview-empty p,
+.overview-event-main span,
+.overview-bank-identity span,
+.overview-bank-note,
+.overview-check-row span,
+.overview-action-row span,
+.overview-brief-metric span,
+.overview-bank-metrics span {
+  margin: 0;
+  color: var(--muted);
+}
+
+.overview-brief-copy p,
+.overview-card-head p {
+  margin-top: 4px;
+}
+
+.overview-brief-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  min-width: min(520px, 100%);
+}
+
+.overview-brief-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-strong);
+}
+
+.overview-brief-metric span,
+.overview-bank-metrics span {
+  font-size: 0.78rem;
+}
+
+.overview-brief-metric strong,
+.overview-event-main strong,
+.overview-bank-identity strong,
+.overview-bank-metrics strong,
+.overview-check-row strong,
+.overview-action-row strong {
+  font-size: 0.94rem;
+}
+
+.overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr);
+  gap: 16px;
+}
+
+.overview-grid-secondary {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+
+.overview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 20px;
+}
+
+.overview-card-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.overview-empty {
+  padding: 8px 0;
+}
+
+.overview-event-list,
+.overview-bank-list,
+.overview-checklist,
+.overview-action-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.overview-event-row,
+.overview-bank-row,
+.overview-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel-strong);
+  color: var(--text);
+  text-align: left;
+  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
+}
+
+.overview-event-row:hover,
+.overview-bank-row:hover,
+.overview-action-row:hover {
+  border-color: var(--line-strong);
+  background: #ffffff;
+}
+
+.overview-event-main,
+.overview-bank-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.overview-event-main > div:last-child,
+.overview-bank-identity > div:last-child,
+.overview-action-row > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.overview-event-main strong,
+.overview-bank-identity strong,
+.overview-action-row strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overview-event-meta,
+.overview-bank-note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.overview-relevance,
+.overview-status-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f4f5f6;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.overview-relevance.is-relevant {
+  border-color: rgba(22, 124, 74, 0.24);
+  background: #eef8f1;
+  color: #155f3a;
+}
+
+.overview-status-tag.is-ok {
+  border-color: rgba(22, 124, 74, 0.24);
+  background: #eef8f1;
+  color: #155f3a;
+}
+
+.overview-status-tag.is-partial {
+  border-color: rgba(161, 92, 6, 0.28);
+  background: #fff5e8;
+  color: #8a5608;
+}
+
+.overview-status-tag.is-missing {
+  border-color: rgba(180, 35, 24, 0.24);
+  background: #fff2f0;
+  color: #8d1d1d;
+}
+
+.overview-bank-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(90px, 1fr));
+  gap: 14px;
+  min-width: min(420px, 100%);
+}
+
+.overview-bank-metrics > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.overview-check-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.overview-check-row:last-child {
+  border-bottom: 0;
+}
+
+.overview-action-row {
+  align-items: flex-start;
+}
+
+.overview-action-row svg {
+  margin-top: 4px;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1180px) {
+  .overview-brief,
+  .overview-grid,
+  .overview-grid-secondary {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-brief {
+    flex-direction: column;
+  }
+
+  .overview-brief-metrics,
+  .overview-bank-metrics {
+    min-width: 0;
+  }
+}
+
+@media (max-width: 820px) {
+  .overview-brief,
+  .overview-card {
+    padding: 16px;
+  }
+
+  .overview-brief-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-event-row,
+  .overview-bank-row,
+  .overview-action-row,
+  .overview-check-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .overview-event-meta,
+  .overview-bank-note {
+    align-items: flex-start;
+    text-align: left;
+  }
+
+  .overview-bank-metrics {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .overview-event-main strong,
+  .overview-bank-identity strong,
+  .overview-action-row strong {
+    white-space: normal;
+  }
+}
+
 .macro-panel {
   gap: 18px;
 }
