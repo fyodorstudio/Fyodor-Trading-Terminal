@@ -159,14 +159,6 @@ export default function App() {
 
   const centralBankResult = useMemo(() => deriveCentralBankSnapshots(feedEvents), [feedEvents]);
 
-  const headerStatus = useMemo(() => {
-    if (feedStatus === "live") return "Calendar feed live";
-    if (feedStatus === "stale") return "Calendar feed stale";
-    if (feedStatus === "loading") return "Loading live feed";
-    if (feedStatus === "no_data") return "NO DATA";
-    return "Bridge unavailable";
-  }, [feedStatus]);
-
   const nextHighImpact = useMemo(() => {
     const now = Date.now() / 1000;
     return feedEvents
@@ -202,11 +194,12 @@ export default function App() {
         <div className="app-shell max-w-[1460px] mx-auto p-6">
           <MinimalHeader
             currentTime={currentTime}
-            headerStatus={headerStatus}
+            health={health}
             feedStatus={feedStatus}
             marketStatus={marketStatus}
+            selectedSymbol={chartSymbol}
             resolvedBanks={centralBankResult.snapshots.filter((item) => item.status === "ok").length}
-            nextHighImpact={nextHighImpact}
+            nextHighImpact={nextHighImpact ? { title: nextHighImpact.title, currency: nextHighImpact.currency, time: nextHighImpact.time } : null}
           />
 
           <TabNavigation
