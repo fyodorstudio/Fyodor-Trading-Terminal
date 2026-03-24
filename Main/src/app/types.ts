@@ -240,6 +240,7 @@ export type EventReactionMode = "event-first" | "asset-first";
 export type ReactionWindow = "15m" | "1h" | "4h" | "1d";
 export type ReactionBucket = "beat" | "inline" | "miss" | "small_beat" | "large_beat" | "small_miss" | "large_miss";
 export type SampleQuality = "weak" | "limited" | "usable";
+export type ReplayChartTimeframe = "M15" | "H1" | "H4" | "D1";
 
 export interface EventTemplate {
   key: string;
@@ -259,7 +260,15 @@ export interface ReactionSample {
   forecast: number;
   surprise: number;
   bucket: ReactionBucket;
-  windows: Partial<Record<ReactionWindow, number>>;
+  windows: Partial<
+    Record<
+      ReactionWindow,
+      {
+        percent: number;
+        pips: number;
+      }
+    >
+  >;
 }
 
 export interface ReactionStats {
@@ -268,6 +277,10 @@ export interface ReactionStats {
   medianReturn: number | null;
   medianAbsoluteReturn: number | null;
   standardDeviation: number | null;
+  averagePips: number | null;
+  medianPips: number | null;
+  medianAbsolutePips: number | null;
+  standardDeviationPips: number | null;
 }
 
 export interface ReactionBucketStats {
@@ -300,6 +313,16 @@ export interface ReactionStudySummary {
   missCount: number;
   usableSampleCount: number;
   note: string | null;
+}
+
+export interface ReactionReplaySample {
+  eventId: string;
+  eventTime: number;
+  currency: string;
+  title: string;
+  actual: string;
+  forecast: string;
+  previous: string;
 }
 
 export type DatePreset =

@@ -1,17 +1,33 @@
-# Node dependencies
+# Node / JavaScript
+# `node_modules/` = downloaded packages from npm/pnpm. Very large and can be recreated from package files.
 node_modules/
+# Also ignore nested workspace package folders.
+**/node_modules/
+# `dist/` = generated build output created by tools like Vite during production builds.
 dist/
+**/dist/
 
-# Python dependencies
+# Python
+# `.venv/` = local Python virtual environment for installed packages on your machine.
 .venv/
+**/.venv/
+# `__pycache__/` = Python cache folders created automatically when Python runs.
 __pycache__/
+**/__pycache__/
+# `*.pyc` = compiled Python bytecode files generated automatically.
 *.pyc
+# `.pytest_cache/` = cache created by the pytest test runner to speed up test runs.
 .pytest_cache/
+**/.pytest_cache/
 
-# IDE/System files
+# Editor / operating system
+# `.vscode/` = personal VS Code workspace settings. Usually machine-specific, not project source code.
 .vscode/
+# `.DS_Store` = macOS Finder metadata file. Not part of the app.
 .DS_Store
+# `*.log` = log files produced while running scripts/apps. Temporary and noisy.
 *.log
 
-# Local agent notes/instructions
+# Local notes
+# `AGENT_INSTRUCTIONS/` = your local notes/instructions folder. Useful for you, but not needed as part of the app source.
 AGENT_INSTRUCTIONS/

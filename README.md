@@ -1,6 +1,8 @@
 # Fyodor Trading Terminal
 
-This repo is the new workspace for the rebuilt trading app.
+This repo is the workspace for the current Fyodor Trading Terminal app.
+
+If you are starting fresh, begin here first, then use the docs links below.
 
 The main frontend lives in:
 
@@ -9,6 +11,12 @@ The main frontend lives in:
 The MT5 bridge is now vendored locally in:
 
 `C:\dev\Fyodor Trading Terminal\Main\mt5-bridge`
+
+## Start Here
+
+- Project roadmap and phase plan: `docs/PHASE_0_ROADMAP.md`
+- Frontend-specific notes: `Main/README.md`
+- Historical quest-style notes: `QUEST_LOG.md`
 
 ## One Command Dev
 
@@ -39,6 +47,7 @@ pnpm run test
 
 - The frontend still expects the MT5 bridge API on `http://127.0.0.1:8001`
 - The bridge no longer needs to run from `alternate_version`
+
 ## Project Structure
 
 This repository is organized as a unified workspace for the Fyodor Trading Terminal. Below is a breakdown of the root directories:
@@ -47,6 +56,7 @@ This repository is organized as a unified workspace for the Fyodor Trading Termi
 - **`Main/`**: The primary application directory.
   - `src/`: The React (Vite) frontend terminal.
   - `mt5-bridge/`: The Python (FastAPI) bridge that communicates with MetaTrader 5.
+- **`docs/`**: Active planning and reference documentation for the current cleanup and rebuild direction.
 - **`scripts/`**: Automation and utility scripts used to launch and manage the terminal's development environment.
 - **`Uncodixfy/`**: Documentation and reference assets for the `uncodixfy` UI design system, ensuring a clean and professional aesthetic.
-- **`QUEST_LOG.md`**: A chronological record of development progress, milestones, and technical decisions, organized as a linear history of the project's evolution.
+- **`QUEST_LOG.md`**: Historical quest-style development notes from earlier iterations. Useful as archive context, but not the main project roadmap.

@@ -5,8 +5,12 @@ import {
   deriveAssetFirstStudy,
   deriveEventFirstStudy,
   discoverEventTemplates,
+  getHistoricalReplaySamples,
+  getPipSize,
   getPairTemplateMap,
+  getReplayWindowCandles,
   getTemplateEvents,
+  getUpcomingReactionEvents,
 } from "@/app/lib/eventReaction";
 import type { BridgeCandle, CalendarEvent, ReactionWindow } from "@/app/types";
 
@@ -84,6 +88,33 @@ describe("eventReaction template discovery", () => {
     expect(hiddenWeak[0].key).toBe("USD|CPI y/y");
     expect(allTemplates.some((template) => template.key === "EUR|ECB Interest Rate Decision")).toBe(true);
   });
+
+  it("builds upcoming shortcut rows only for supported core macro events", () => {
+    const now = 1_763_200_000;
+    const templates = discoverEventTemplates({
+      events: [
+        buildEvent({ id: 1, time: now - 5000, currency: "USD", title: "CPI y/y" }),
+        buildEvent({ id: 2, time: now - 4000, currency: "USD", title: "CPI y/y" }),
+        buildEvent({ id: 3, time: now - 3000, currency: "USD", title: "CPI y/y" }),
+        buildEvent({ id: 4, time: now - 2000, currency: "USD", title: "CPI y/y" }),
+        buildEvent({ id: 5, time: now - 1000, currency: "USD", title: "CPI y/y" }),
+      ],
+      nowSeconds: now,
+    });
+
+    const upcoming = getUpcomingReactionEvents({
+      events: [
+        buildEvent({ id: 6, time: now + 3600, currency: "USD", title: "CPI y/y" }),
+        buildEvent({ id: 7, time: now + 7200, currency: "USD", title: "Fed Chair Speech" }),
+      ],
+      templates,
+      nowSeconds: now,
+    });
+
+    expect(upcoming).toHaveLength(1);
+    expect(upcoming[0].templateKey).toBe("USD|CPI y/y");
+    expect(upcoming[0].familyLabel).toBe("Inflation");
+  });
 });
 
 describe("eventReaction studies", () => {
@@ -115,8 +146,8 @@ describe("eventReaction studies", () => {
     expect(summary.rows[0].label).toBe("EURUSD");
     expect(summary.beatCount).toBe(1);
     expect(summary.missCount).toBe(1);
-    expect(summary.rows[0].summaryWindows["1h"].medianAbsoluteReturn).toBeGreaterThan(
-      summary.rows[1].summaryWindows["1h"].medianAbsoluteReturn ?? 0,
+    expect(summary.rows[0].summaryWindows["1h"].medianAbsolutePips).toBeGreaterThan(
+      summary.rows[1].summaryWindows["1h"].medianAbsolutePips ?? 0,
     );
   });
 
@@ -138,10 +169,49 @@ describe("eventReaction studies", () => {
     expect(summary.rows.map((row) => row.label)).toContain("CPI y/y");
     expect(summary.rows.map((row) => row.label)).toContain("ECB Interest Rate Decision");
   });
+
+  it("uses the correct pip size for JPY and non-JPY pairs", () => {
+    expect(getPipSize({ name: "EURUSD", base: "EUR", quote: "USD" })).toBe(0.0001);
+    expect(getPipSize({ name: "USDJPY", base: "USD", quote: "JPY" })).toBe(0.01);
+  });
+
+  it("returns historical replay samples newest first", () => {
+    const samples = getHistoricalReplaySamples({
+      events,
+      templateKey: "USD|CPI y/y",
+      nowSeconds: 10_000,
+    });
+
+    expect(samples).toHaveLength(2);
+    expect(samples[0].eventTime).toBe(2000);
+    expect(samples[1].eventTime).toBe(1000);
+  });
+
+  it("builds a fixed replay candle window around the event", () => {
+    const candles = Array.from({ length: 40 }, (_, index) => ({
+      time: index * 3600,
+      open: 1 + index * 0.001,
+      high: 1 + index * 0.0015,
+      low: 1 + index * 0.0005,
+      close: 1 + index * 0.0012,
+      volume: 1,
+    }));
+
+    const replay = getReplayWindowCandles({
+      candles,
+      eventTime: 20 * 3600,
+      beforeCount: 14,
+      afterCount: 14,
+    });
+
+    expect(replay).not.toBeNull();
+    expect(replay?.candles).toHaveLength(29);
+    expect(replay?.eventIndex).toBe(14);
+  });
 });
 
 describe("EventReactionTab", () => {
-  it("renders the analysis page shell and methodology block", () => {
+  it("renders the beginner-first shell and removes old mode jargon", () => {
     const html = renderToStaticMarkup(
       <EventReactionTab
         events={[
@@ -155,8 +225,11 @@ describe("EventReactionTab", () => {
     );
 
     expect(html).toContain("Event Reaction Engine");
-    expect(html).toContain("How the study is measured");
-    expect(html).toContain("Event-first");
-    expect(html).toContain("Asset-first");
+    expect(html).toContain("Study an upcoming event");
+    expect(html).toContain("Upcoming Events");
+    expect(html).toContain("Manual Event Selector");
+    expect(html).toContain("Historical Replay");
+    expect(html).not.toContain("Event-first");
+    expect(html).not.toContain("Asset-first");
   });
 });
