@@ -267,6 +267,13 @@ Main outcomes:
 - standardized state language
 - clearer left-panel purpose
 
+Status:
+
+- completed enough for now
+- connection-first header implemented
+- Overview implemented and accepted as functional
+- shell direction established
+
 #### Phase 1 Step 1: Connection-First Header Spec
 
 This is the immediate next product step.
@@ -862,6 +869,12 @@ Main outcomes:
 - essential summaries only
 - no clutter
 
+Status:
+
+- completed through Phase 1 execution
+- not skipped, but effectively absorbed into Phase 1 because Overview had to be designed and implemented before later phases
+- can be revisited later when more Analysis features are added
+
 ### Phase 3: Performance And Responsiveness
 
 Purpose:
@@ -875,6 +888,13 @@ Likely focus areas:
 3. Charts
 4. Central Banks
 5. shell/header rerender behavior
+
+Status:
+
+- on hold
+- low priority for now
+- user confirmed the app currently feels responsive and snappy enough
+- performance audit is deferred until responsiveness becomes a real concern
 
 ### Phase 4: Module Discipline
 
