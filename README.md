@@ -14,9 +14,9 @@ The MT5 bridge is now vendored locally in:
 
 ## Start Here
 
-- Project roadmap and phase plan: `docs/PHASE_0_ROADMAP.md`
+- Product operating spec and roadmap: `docs/Roadmap/PRODUCT_OPERATING_SPEC.md`
 - Frontend-specific notes: `Main/README.md`
-- Historical quest-style notes: `QUEST_LOG.md`
+- Bridge-specific notes: `Main/mt5-bridge/README.md`
 
 ## One Command Dev
 
@@ -58,5 +58,4 @@ This repository is organized as a unified workspace for the Fyodor Trading Termi
   - `mt5-bridge/`: The Python (FastAPI) bridge that communicates with MetaTrader 5.
 - **`docs/`**: Active planning and reference documentation for the current cleanup and rebuild direction.
 - **`scripts/`**: Automation and utility scripts used to launch and manage the terminal's development environment.
-- **`Uncodixfy/`**: Documentation and reference assets for the `uncodixfy` UI design system, ensuring a clean and professional aesthetic.
-- **`QUEST_LOG.md`**: Historical quest-style development notes from earlier iterations. Useful as archive context, but not the main project roadmap.
+- **`docs/Agent Skills/Uncodixfy/`**: Documentation and reference assets for the `uncodixfy` UI design system, kept as local reference material inside the docs tree.
