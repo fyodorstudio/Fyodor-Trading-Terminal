@@ -432,6 +432,216 @@ The header is successful when a user can open the app and answer all of these in
 - Is there a major event coming soon?
 - Do I need to worry before drilling into other tabs?
 
+#### Phase 1 Step 2: Overview Mission Control Spec
+
+This is the next product-defining step after the header.
+
+Overview should become the simplest and most trustworthy page in the app.
+
+It is not a replacement for the specialist tabs.
+It is the page that tells the user whether deeper investigation is needed.
+
+Its purpose is fast orientation, not full analysis.
+
+##### Overview Core Job
+
+The Overview page should answer these questions quickly:
+
+- Is the system healthy enough to trust right now?
+- Is there an urgent macro event I need to know about?
+- What is the broad macro backdrop at a glance?
+- Which currencies or themes deserve more attention?
+- Which specialist tab should I open next, if any?
+
+##### Overview Design Rule
+
+Overview should feel like:
+
+- calm
+- compact
+- obvious
+- trustworthy
+
+It should not feel like:
+
+- a dashboard experiment
+- a dense analytics page
+- a prettier duplicate of the other tabs
+
+##### Overview Content Structure
+
+The page should be built from a small number of clear sections.
+
+Recommended sections:
+
+1. Trust And Readiness
+2. Event Horizon
+3. Macro Backdrop Snapshot
+4. Focus And Attention
+5. Priority Next Actions
+
+##### Section 1: Trust And Readiness
+
+This is the first and most important section.
+
+Purpose:
+
+- tell the user whether the app is healthy enough to trust before they read anything else
+
+This section should summarize:
+
+- MT5 state
+- bridge state
+- calendar state
+- chart/stream state
+- last successful ingest if needed
+
+This is not a duplicate of the header.
+The header gives the live signal.
+Overview should reinforce trust with one simple readiness summary.
+
+Possible output style:
+
+- `System Ready`
+- `Ready with caution`
+- `Data degraded`
+
+This section should not contain:
+
+- deep diagnostics
+- long explanations
+- technical clutter
+
+##### Section 2: Event Horizon
+
+Purpose:
+
+- warn the user about the next important scheduled event(s)
+
+This section should show:
+
+- next high-impact event
+- currency
+- countdown
+- whether it is broadly important or tied to the selected market context
+
+If there is no urgent event:
+
+- show that clearly
+- do not invent urgency
+
+This section should be short.
+It is a tactical warning surface, not the calendar tab.
+
+##### Section 3: Macro Backdrop Snapshot
+
+Purpose:
+
+- give a compact high-level summary of the current macro environment
+
+This section should summarize only the most important things:
+
+- central-bank resolution quality
+- broad rate/inflation backdrop summary
+- strongest and weakest resolved currencies if that data is reliable
+
+This section should avoid:
+
+- giant grids
+- all-bank detail duplication
+- every number from Central Banks or Differential Calculator
+
+The user should leave this section with a simple feeling like:
+
+- `USD still has strong relative backdrop`
+- `JPY remains weak`
+- `some central-bank data is unresolved`
+
+##### Section 4: Focus And Attention
+
+Purpose:
+
+- help the user know where to spend attention next
+
+This section should answer:
+
+- what deserves review now?
+- what should probably wait?
+
+Examples:
+
+- `Focus: EURUSD before ECB event`
+- `Review: USD event reaction context`
+- `Caution: calendar feed stale`
+
+This should be a prioritization surface, not a signal generator.
+
+##### Section 5: Priority Next Actions
+
+Purpose:
+
+- bridge the user into the correct specialist tab without forcing them to think too hard
+
+Examples:
+
+- `Open Economic Calendar`
+- `Review Event Quality for EURUSD`
+- `Inspect Charts`
+- `Check Central Banks Data`
+
+This section should be simple and direct.
+It should feel like routing, not analysis.
+
+##### Overview Must Not Become
+
+Overview must not become:
+
+- a full calendar copy
+- a full central-bank dashboard copy
+- a full differential matrix
+- a replay engine summary page
+- an everything-tab
+
+If a block becomes too detailed, it belongs in another tab.
+
+##### Overview Information Density Rules
+
+- show only the minimum needed to orient the user
+- prefer summary over full detail
+- prefer warnings over decorative metrics
+- prefer one strong statement over six weak cards
+
+##### Overview Priority Rules
+
+When deciding what deserves space, use this order:
+
+1. trust and readiness
+2. urgent event risk
+3. broad macro backdrop
+4. attention guidance
+5. deep detail
+
+If space becomes limited, deep detail should disappear first.
+
+##### Overview Success Criteria
+
+Overview is successful when a user can open the app and understand all of this in under 10 seconds:
+
+- whether the system is trustworthy right now
+- whether an event matters soon
+- what the macro backdrop broadly looks like
+- where attention should go next
+
+##### Overview Relationship To Specialist Tabs
+
+Overview should route the user into deeper tabs when needed:
+
+- header tells the user whether the app is healthy
+- Overview tells the user what matters now
+- specialist tabs answer detailed questions
+
+That relationship should remain clean.
+
 ### Phase 2: Overview Mission Control
 
 Purpose:
