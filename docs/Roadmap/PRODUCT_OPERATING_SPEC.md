@@ -194,6 +194,31 @@ Role:
 - Prefer one coherent voice over mixed agent aesthetics.
 - Do not overbuild UI before the logic is trustworthy.
 
+## Checkpoint Policy
+
+Every major change should be protected by a git checkpoint.
+
+Major change means:
+
+- shell or navigation redesign
+- top header redesign
+- overview redesign
+- changes to bridge-facing logic
+- changes to trading logic or calculation logic
+- large CSS or component architecture changes
+- risky refactors
+
+Default rule:
+
+- checkpoint before the major change begins
+- checkpoint again after the major change becomes stable
+
+The last three known checkpoints at the time of writing are:
+
+1. `df7be6c` - `repo cleanup: normalize docs layout and clear workspace clutter`
+2. `b2e7e76` - `phase-0 checkpoint: roadmap, repo hygiene, event reaction wip`
+3. `dc55820` - `Checkpoint: save current app state before experiments`
+
 ## Current Strategic Decision
 
 The current strategic direction is:
@@ -216,20 +241,18 @@ Purpose:
 
 Status:
 
-- in progress
+- completed
 
 Current Phase 0 progress:
 
 - dirty working tree audited
 - current Event Reaction work preserved via checkpoint
 - ignore rules tightened
-- docs structure improving
+- docs structure cleaned and consolidated
 
 Still needed:
 
-- finish docs consolidation
-- clean up moved/deleted doc paths in git
-- keep one clear source-of-truth doc set
+- none required before Phase 1 work begins
 
 ### Phase 1: Workflow Foundation
 
@@ -243,6 +266,171 @@ Main outcomes:
 - coherent shell
 - standardized state language
 - clearer left-panel purpose
+
+#### Phase 1 Step 1: Connection-First Header Spec
+
+This is the immediate next product step.
+
+The top header should become the operational heartbeat of the app.
+
+Its purpose is not decoration.
+Its purpose is fast trust and orientation.
+
+The user should be able to glance at it and answer:
+
+- Can I trust the app right now?
+- Is the system connected and healthy?
+- Is there an event or degraded state I need to care about immediately?
+
+##### Header Structure
+
+The header should have two layers:
+
+1. Collapsed header
+2. Expanded header
+
+The collapsed header is the 2-second glance layer.
+The expanded header is the command-and-diagnostics layer.
+
+##### Collapsed Header Requirements
+
+The collapsed header should always show:
+
+- app identity
+- current time context
+- primary connection health
+- one most-important market/event alert if present
+- a clear way to expand into detail
+
+Recommended collapsed layout:
+
+- left:
+  - app name
+  - local time
+  - optional MT5/server time if compact enough
+- center:
+  - primary health state
+  - example: `MT5 Connected`, `Bridge Live`, `Calendar Stale`
+- right:
+  - next major event or top warning
+  - expand/collapse control
+
+The collapsed header should avoid:
+
+- too many mini-cards
+- decorative pills with unclear meaning
+- duplicate metrics
+- too much animation
+- status words without source/context
+
+##### Expanded Header Requirements
+
+The expanded header should show only operationally useful detail.
+
+Recommended information groups:
+
+1. System Health
+2. Time Context
+3. Feed Diagnostics
+4. Event Horizon
+
+##### Expanded Header Group 1: System Health
+
+This group should clearly show:
+
+- MT5 app state
+- bridge state
+- calendar feed state
+- chart stream state
+
+For each item, show:
+
+- current state label
+- last successful activity if useful
+- degraded reason if available
+
+Preferred state vocabulary:
+
+- Connected
+- Waiting
+- Live
+- Stale
+- Degraded
+- Unavailable
+
+Avoid ambiguous labels like:
+
+- good
+- bad
+- okay
+- operational
+
+unless they are backed by specific meaning.
+
+##### Expanded Header Group 2: Time Context
+
+This group should show:
+
+- local time
+- MT5/server time
+- timezone context if needed
+
+Purpose:
+
+- remove confusion about when events and candles are being interpreted
+
+##### Expanded Header Group 3: Feed Diagnostics
+
+This group should show:
+
+- last calendar ingest time
+- event count or feed freshness if meaningful
+- whether the chart stream is active for the current symbol
+- whether market status is inferred or directly supported
+
+Purpose:
+
+- help the user know when the app is healthy but stale versus fully live
+
+##### Expanded Header Group 4: Event Horizon
+
+This group should show:
+
+- next high-impact event
+- its currency
+- countdown
+- whether it affects the currently selected pair or not
+
+Purpose:
+
+- give the user a tactical warning surface without making them open the calendar tab first
+
+##### Header Behavior Rules
+
+- collapsed header should remain calm and compact
+- expanded header should open quickly but not feel heavy
+- expanded content should be readable in one short scan
+- if there is no urgent event, the header should still be useful because health status remains visible
+- if the system is degraded, degraded state should win over decorative market information
+
+##### Priority Rules
+
+When space is limited, the header should prioritize:
+
+1. system trust
+2. live/degraded state
+3. next major event
+4. secondary descriptive metrics
+
+##### Success Criteria For The Header
+
+The header is successful when a user can open the app and answer all of these in under a few seconds:
+
+- Is MT5 connected?
+- Is the bridge healthy?
+- Is the calendar trustworthy right now?
+- Is there a major event coming soon?
+- Do I need to worry before drilling into other tabs?
 
 ### Phase 2: Overview Mission Control
 
