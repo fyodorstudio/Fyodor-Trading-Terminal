@@ -642,6 +642,214 @@ Overview should route the user into deeper tabs when needed:
 
 That relationship should remain clean.
 
+#### Phase 1 Step 3: Shell Hierarchy And Navigation Role Spec
+
+This step defines how the major shell surfaces work together as one system.
+
+The shell should answer one core UX problem:
+
+- when the user opens the app, where should attention go first?
+
+The answer should be:
+
+1. Header
+2. Overview
+3. Specialist tabs
+
+That order should feel natural every day.
+
+##### Shell Hierarchy
+
+The app shell should have four major layers:
+
+1. Top header
+2. Main navigation
+3. Primary content area
+4. Secondary utility panel
+
+Each layer should have a different job.
+
+##### Layer 1: Top Header
+
+Role:
+
+- live trust layer
+- system heartbeat
+- urgent event/timing surface
+
+The top header is always about:
+
+- health
+- trust
+- timing
+
+It should not become:
+
+- theme settings
+- feature discovery
+- large data cards
+
+##### Layer 2: Main Navigation
+
+Role:
+
+- route the user between mission-control and specialist workflows
+
+The navigation should feel like a map of functional rooms, not a menu of experiments.
+
+Recommended primary navigation order:
+
+1. Overview
+2. Charts
+3. Economic Calendar
+4. Central Banks Data
+5. Analysis
+
+The current order can evolve, but the underlying logic should stay:
+
+- mission control first
+- execution context second
+- source/timing tabs next
+- deeper analysis grouped
+
+The `Analysis` group is correct as a category because:
+
+- Differential Calculator
+- Strength Meter
+- Event Quality
+- Event Reaction Engine
+
+are all deeper research tools, not first-glance surfaces.
+
+##### Layer 3: Primary Content Area
+
+Role:
+
+- answer the main question for the currently selected module
+
+This is where:
+
+- Overview does orientation
+- Charts does live price context
+- Calendar does event detail
+- Central Banks does policy backdrop
+- Analysis tabs do deeper reasoning
+
+This area should remain dominant.
+It is the dining table where the actual meal is served.
+
+##### Layer 4: Secondary Utility Panel
+
+Role:
+
+- optional tools
+- personal preferences
+- non-core utility controls
+
+This is where the current left panel should live if it remains.
+
+The current `UiCommandPanel` is a theme and presentation utility panel.
+That is a valid secondary tool, but it should not compete with the product workflow.
+
+##### Left Panel Decision
+
+The left panel should remain a utility drawer, not a command center.
+
+Its proper role is:
+
+- fonts
+- themes
+- visual preferences
+- optional future workspace preferences
+
+Its improper role would be:
+
+- system health
+- market readiness
+- event urgency
+- routing the user to core trading decisions
+
+Those belong in the header and Overview.
+
+So the left panel should be treated like:
+
+- a settings/tool rail
+- not a primary workflow surface
+
+##### First-Screen Experience
+
+When the user opens the app, the first-screen hierarchy should feel like this:
+
+1. header answers "can I trust the app?"
+2. overview answers "what matters now?"
+3. navigation answers "where do I go next?"
+4. utility panel stays secondary and ignorable
+
+That order should hold even if the user never touches the left panel.
+
+##### Navigation Behavior Rules
+
+- opening the app should default to `Overview`, not `Charts`
+- the active tab should always feel obvious
+- grouped analysis tabs should be easy to access but visually secondary to primary navigation
+- navigation should remain stable and low-drama
+- avoid over-animating tab movement or menus
+
+##### Tab Role Hierarchy
+
+The tabs should be mentally grouped like this:
+
+Primary operational tabs:
+
+- Overview
+- Charts
+- Economic Calendar
+- Central Banks Data
+
+Secondary research tabs:
+
+- Differential Calculator
+- Strength Meter
+- Event Quality
+- Event Reaction Engine
+
+This grouping matters because the user should not feel that every tab is equally urgent at all times.
+
+##### What Should Not Happen
+
+The shell should not force the user to think:
+
+- "Where do I look first?"
+- "Why is the theme panel competing with the main workflow?"
+- "Why does the header, nav, and overview all repeat the same thing?"
+
+If those questions exist, the shell is still too noisy.
+
+##### Duplication Rules
+
+To keep the shell coherent:
+
+- header shows live trust and urgency
+- overview shows mission-control summaries
+- specialist tabs show deep detail
+- left utility panel shows preferences and non-core tools
+
+If a piece of information appears in more than one place, each place must have a different role:
+
+- header = live signal
+- overview = summarized orientation
+- specialist tab = deep inspection
+
+##### Success Criteria For The Shell
+
+The shell is successful when:
+
+- the app opens into a clear, trustworthy first screen
+- the user knows what matters without hunting
+- the left panel feels optional, not mandatory
+- specialist tabs feel like deliberate drill-downs, not competing home pages
+- the whole app feels authored by one workflow mindset
+
 ### Phase 2: Overview Mission Control
 
 Purpose:
