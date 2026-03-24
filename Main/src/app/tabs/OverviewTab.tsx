@@ -192,6 +192,14 @@ function renderMacroFollowUp(unresolvedCount: number, nextEventTitle: string | n
   return nextEventTitle || "Data mapped cleanly";
 }
 
+function renderMacroSchedule(nextEventAt: number | null, nextEventTitle: string | null): string {
+  if (nextEventAt == null) {
+    return "No matched next event in the current MT5 window";
+  }
+
+  return nextEventTitle || "Matched schedule available";
+}
+
 export function OverviewTab({
   currentTime,
   health,
@@ -315,7 +323,7 @@ export function OverviewTab({
                     <FlagIcon countryCode={snapshot.countryCode} className="h-5 w-7" />
                     <div>
                       <strong>{snapshot.bankName}</strong>
-                      <span>{snapshot.currency}</span>
+                      <span>{getCountryDisplayName(snapshot.countryCode)} · {snapshot.currency}</span>
                     </div>
                   </div>
                   <span className={`overview-status-tag is-${snapshot.status}`}>{snapshot.status}</span>
@@ -335,7 +343,14 @@ export function OverviewTab({
                   </div>
                 </div>
                 <div className="overview-bank-foot">
-                  <span className="overview-bank-followup">{renderMacroFollowUp(unresolvedCount, nextEventTitle)}</span>
+                  <div className="overview-bank-foot-block">
+                    <span className="overview-bank-foot-label">Follow-up</span>
+                    <strong>{renderMacroFollowUp(unresolvedCount, nextEventTitle)}</strong>
+                  </div>
+                  <div className="overview-bank-foot-block">
+                    <span className="overview-bank-foot-label">Next matched event</span>
+                    <strong>{renderMacroSchedule(nextEventAt, nextEventTitle)}</strong>
+                  </div>
                 </div>
               </button>
             ))}

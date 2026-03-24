@@ -192,116 +192,34 @@ button {
   font-size: 0.85rem;
 }
 
-.tab-nav-wrap {
-  margin-top: 18px;
-  display: flex;
-  justify-content: center;
-}
-
 .tab-nav {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-  padding: 4px;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 18px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: rgba(247, 247, 246, 0.86);
-  box-shadow: 0 2px 10px rgba(17, 24, 39, 0.04);
-}
-
-.tab-item {
-  position: relative;
+  background: rgba(247, 247, 246, 0.85);
+  overflow: hidden;
 }
 
 .tab-button {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 44px;
+  min-height: 54px;
   padding: 0 16px;
   border: 0;
-  border-radius: 8px;
+  border-right: 1px solid var(--line);
   background: transparent;
   color: var(--muted);
-  font-size: 0.84rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  transition: background-color 140ms ease, color 140ms ease;
-}
-
-.tab-button:hover {
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--text);
+  font-weight: 600;
 }
 
 .tab-button.is-active {
-  background: #ffffff;
-  color: var(--text);
-  box-shadow: inset 0 -2px 0 #315fbc;
+  background: #272b31;
+  color: #f8f9fb;
 }
 
-.tab-button-caret {
-  transition: transform 140ms ease;
-}
-
-.tab-button-caret.is-open {
-  transform: rotate(180deg);
-}
-
-.tab-menu {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 8px);
-  z-index: 70;
-  min-width: 220px;
-  padding: 6px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #ffffff;
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.1);
-}
-
-.tab-menu-button {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: space-between;
-  gap: 14px;
-  padding: 10px 12px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--muted);
-  text-align: left;
-  font-size: 0.92rem;
-  font-weight: 600;
-  transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
-}
-
-.tab-menu-button + .tab-menu-button {
-  margin-top: 4px;
-}
-
-.tab-menu-button:hover {
-  border-color: #dde2ea;
-  background: #f8f9fb;
-  color: var(--text);
-}
-
-.tab-menu-button.is-active {
-  border-color: #d4dbea;
-  background: #f5f7fb;
-  color: var(--text);
-}
-
-.tab-menu-state {
-  color: #59657a;
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+.tab-button:last-child {
+  border-right: 0;
 }
 
 .main-area {
@@ -514,9 +432,13 @@ button {
 
 .overview-bank-row {
   grid-template-columns: 1fr;
-  gap: 12px;
+  gap: 14px;
   align-items: start;
-  padding: 16px 18px;
+  padding: 18px 20px;
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 249, 251, 0.9));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .overview-action-row {
@@ -532,7 +454,7 @@ button {
 }
 
 .overview-bank-row.is-ok {
-  border-left: 3px solid rgba(22, 124, 74, 0.46);
+  border-left: 3px solid rgba(22, 124, 74, 0.42);
 }
 
 .overview-bank-row.is-partial {
@@ -554,9 +476,9 @@ button {
 .overview-bank-head,
 .overview-bank-foot {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
   min-width: 0;
 }
 
@@ -571,15 +493,18 @@ button {
 
 .overview-bank-identity {
   gap: 14px;
+  align-items: flex-start;
 }
 
 .overview-bank-identity strong {
-  font-size: 0.98rem;
+  font-size: 1rem;
+  line-height: 1.25;
 }
 
 .overview-bank-identity span {
   font-size: 0.8rem;
   letter-spacing: 0.03em;
+  text-transform: uppercase;
 }
 
 .overview-event-main strong,
@@ -616,6 +541,7 @@ button {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 
 .overview-relevance.is-relevant {
@@ -654,15 +580,42 @@ button {
   flex-direction: column;
   gap: 6px;
   min-width: 0;
-  padding: 12px 13px;
-  border: 1px solid #e3e7ee;
-  border-radius: 9px;
-  background: #fbfbfc;
+  padding: 14px;
+  border: 1px solid #dfe4ec;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
 }
 
-.overview-bank-followup {
+.overview-bank-metrics strong {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.overview-bank-foot {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  padding-top: 12px;
+  border-top: 1px solid #e7ebf1;
+}
+
+.overview-bank-foot-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.overview-bank-foot-label {
   color: var(--muted);
-  font-size: 0.84rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.overview-bank-foot strong {
+  font-size: 0.88rem;
+  line-height: 1.35;
   overflow-wrap: anywhere;
 }
 
@@ -715,14 +668,6 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .tab-nav-wrap {
-    justify-content: stretch;
-  }
-
-  .tab-nav {
-    width: 100%;
-  }
-
   .overview-event-row,
   .overview-bank-row,
   .overview-action-row {
@@ -743,6 +688,10 @@ button {
   .overview-bank-head {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .overview-bank-foot {
+    grid-template-columns: 1fr;
   }
 
   .overview-bank-metrics {
@@ -3463,7 +3412,7 @@ button {
   }
 
   .tab-nav {
-    justify-content: flex-start;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .time-pill,
