@@ -710,7 +710,7 @@ Recommended primary navigation order:
 2. Charts
 3. Economic Calendar
 4. Central Banks Data
-5. Analysis
+5. Specialist Tools
 
 The current order can evolve, but the underlying logic should stay:
 
@@ -719,7 +719,7 @@ The current order can evolve, but the underlying logic should stay:
 - source/timing tabs next
 - deeper analysis grouped
 
-The `Analysis` group is correct as a category because:
+The `Specialist Tools` group is correct as a category because:
 
 - Differential Calculator
 - Strength Meter
@@ -740,7 +740,7 @@ This is where:
 - Charts does live price context
 - Calendar does event detail
 - Central Banks does policy backdrop
-- Analysis tabs do deeper reasoning
+- Specialist Tools tabs do deeper reasoning
 
 This area should remain dominant.
 It is the dining table where the actual meal is served.
@@ -798,7 +798,36 @@ That order should hold even if the user never touches the left panel.
 
 - opening the app should default to `Overview`, not `Charts`
 - the active tab should always feel obvious
-- grouped analysis tabs should be easy to access but visually secondary to primary navigation
+- grouped Specialist Tools tabs should be easy to access but visually secondary to primary navigation
+
+##### Current Overview Page Hierarchy
+
+The current Overview layout should follow this order:
+
+1. Top readiness brief
+2. Top row:
+   - Event horizon
+   - Module guide
+3. Middle row:
+   - Macro backdrop
+4. Bottom row:
+   - Trust checklist
+   - Where to go next
+
+Why this hierarchy:
+
+- Event horizon belongs near the top because timing risk is urgent
+- Module guide belongs near the top because it helps the user understand what each major tab is for
+- Macro backdrop belongs lower because it is broader context, not immediate urgency
+- Trust checklist and next actions belong lower because they support decision routing after orientation
+
+The `Module guide` should explain the major rooms of the app in short plain-English language:
+
+- Overview: What matters right now?
+- Charts: What is price doing right now?
+- Economic Calendar: What events are scheduled and when?
+- Central Banks Data: What is the policy and inflation backdrop?
+- Specialist Tools: deeper analysis for differentials, strength, event quality, and reaction study
 - navigation should remain stable and low-drama
 - avoid over-animating tab movement or menus
 

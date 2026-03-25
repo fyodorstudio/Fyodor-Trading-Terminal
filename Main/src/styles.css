@@ -393,6 +393,10 @@ button {
   align-self: start;
 }
 
+.overview-card-wide {
+  width: 100%;
+}
+
 .overview-card-head {
   display: flex;
   align-items: flex-start;
@@ -404,12 +408,40 @@ button {
 }
 
 .overview-event-list,
-.overview-bank-list,
+.overview-module-guide,
 .overview-checklist,
 .overview-action-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.overview-bank-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.overview-module-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.overview-module-row:last-child {
+  border-bottom: 0;
+}
+
+.overview-module-row strong {
+  font-size: 0.92rem;
+}
+
+.overview-module-row span {
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.35;
 }
 
 .overview-event-row,
@@ -633,6 +665,10 @@ button {
   .overview-brief-metrics,
   .overview-bank-metrics {
     min-width: 0;
+  }
+
+  .overview-bank-list {
+    grid-template-columns: 1fr;
   }
 }
 

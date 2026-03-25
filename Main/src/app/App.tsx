@@ -29,7 +29,7 @@ const TAB_ORDER: Array<{ id: TabId; label: string; children?: { id: TabId; label
   { id: "central-banks", label: "Central Banks Data" },
   { id: "charts", label: "Charts" },
   { id: "calendar", label: "Economic Calendar" },
-  { id: "dashboard", label: "Analysis", children: ANALYSIS_TAB_ORDER },
+  { id: "dashboard", label: "Specialist Tools", children: ANALYSIS_TAB_ORDER },
 ];
 
 function getFeedWindow() {

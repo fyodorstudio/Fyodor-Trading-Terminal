@@ -21,6 +21,19 @@ interface ActionItem {
   detail: string;
 }
 
+interface ModuleGuideItem {
+  label: string;
+  purpose: string;
+}
+
+const MODULE_GUIDE_ITEMS: ModuleGuideItem[] = [
+  { label: "Overview", purpose: "What matters right now?" },
+  { label: "Charts", purpose: "What is price doing right now?" },
+  { label: "Economic Calendar", purpose: "What events are scheduled and when?" },
+  { label: "Central Banks Data", purpose: "What is the policy and inflation backdrop?" },
+  { label: "Specialist Tools", purpose: "Deeper analysis for differentials, strength, event quality, and reaction study." },
+];
+
 function getSystemReadiness(
   health: BridgeHealth,
   feedStatus: BridgeStatus,
@@ -314,56 +327,77 @@ export function OverviewTab({
         <section className="overview-card">
           <div className="overview-card-head">
             <div className="overview-card-icon" aria-hidden="true">
-              <Landmark size={18} />
+              <ChartCandlestick size={18} />
             </div>
             <div>
-              <h3>Macro backdrop</h3>
-              <p>The closest or least-resolved central-bank nodes worth checking next.</p>
+              <h3>Module guide</h3>
+              <p>What each major area of the terminal is meant to answer for the user.</p>
             </div>
           </div>
 
-          <div className="overview-bank-list">
-            {attentionBanks.map(({ snapshot, nextEventAt, nextEventTitle, unresolvedCount }) => (
-              <button
-                key={snapshot.currency}
-                type="button"
-                className={`overview-bank-row is-${snapshot.status}`}
-                onClick={() => onNavigate("central-banks")}
-              >
-                <div className="overview-bank-head">
-                  <div className="overview-bank-identity">
-                    <FlagIcon countryCode={snapshot.countryCode} className="h-5 w-7" />
-                    <div>
-                      <strong>{snapshot.bankName}</strong>
-                      <span>{getCountryDisplayName(snapshot.countryCode)} - {snapshot.currency}</span>
-                    </div>
-                  </div>
-                  <span className={`overview-status-tag is-${snapshot.status}`}>{snapshot.status}</span>
-                </div>
-                <div className="overview-bank-metrics">
-                  <div>
-                    <span>Rate</span>
-                    <strong>{renderSnapshotMetric(snapshot.currentPolicyRate, "Unresolved")}</strong>
-                  </div>
-                  <div>
-                    <span>CPI</span>
-                    <strong>{renderSnapshotMetric(snapshot.currentInflationRate, "Unresolved")}</strong>
-                  </div>
-                  <div>
-                    <span>Next node</span>
-                    <strong>{nextEventAt ? formatDateOnly(nextEventAt) : "Not scheduled"}</strong>
-                  </div>
-                </div>
-                <div className="overview-bank-foot">
-                  <span className="overview-bank-followup">
-                    {renderMacroNote(unresolvedCount, nextEventAt, nextEventTitle)}
-                  </span>
-                </div>
-              </button>
+          <div className="overview-module-guide">
+            {MODULE_GUIDE_ITEMS.map((item) => (
+              <div key={item.label} className="overview-module-row">
+                <strong>{item.label}</strong>
+                <span>{item.purpose}</span>
+              </div>
             ))}
           </div>
         </section>
       </div>
+
+      <section className="overview-card overview-card-wide">
+        <div className="overview-card-head">
+          <div className="overview-card-icon" aria-hidden="true">
+            <Landmark size={18} />
+          </div>
+          <div>
+            <h3>Macro backdrop</h3>
+            <p>The closest or least-resolved central-bank nodes worth checking next.</p>
+          </div>
+        </div>
+
+        <div className="overview-bank-list">
+          {attentionBanks.map(({ snapshot, nextEventAt, nextEventTitle, unresolvedCount }) => (
+            <button
+              key={snapshot.currency}
+              type="button"
+              className={`overview-bank-row is-${snapshot.status}`}
+              onClick={() => onNavigate("central-banks")}
+            >
+              <div className="overview-bank-head">
+                <div className="overview-bank-identity">
+                  <FlagIcon countryCode={snapshot.countryCode} className="h-5 w-7" />
+                  <div>
+                    <strong>{snapshot.bankName}</strong>
+                    <span>{getCountryDisplayName(snapshot.countryCode)} - {snapshot.currency}</span>
+                  </div>
+                </div>
+                <span className={`overview-status-tag is-${snapshot.status}`}>{snapshot.status}</span>
+              </div>
+              <div className="overview-bank-metrics">
+                <div>
+                  <span>Rate</span>
+                  <strong>{renderSnapshotMetric(snapshot.currentPolicyRate, "Unresolved")}</strong>
+                </div>
+                <div>
+                  <span>CPI</span>
+                  <strong>{renderSnapshotMetric(snapshot.currentInflationRate, "Unresolved")}</strong>
+                </div>
+                <div>
+                  <span>Next node</span>
+                  <strong>{nextEventAt ? formatDateOnly(nextEventAt) : "Not scheduled"}</strong>
+                </div>
+              </div>
+              <div className="overview-bank-foot">
+                <span className="overview-bank-followup">
+                  {renderMacroNote(unresolvedCount, nextEventAt, nextEventTitle)}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <div className="overview-grid overview-grid-secondary">
         <section className="overview-card">
