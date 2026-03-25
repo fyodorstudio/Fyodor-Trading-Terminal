@@ -203,6 +203,10 @@ button {
   overflow: hidden;
 }
 
+.tab-item {
+  position: relative;
+}
+
 .tab-button {
   min-height: 54px;
   padding: 0 16px;
@@ -220,6 +224,49 @@ button {
 
 .tab-button:last-child {
   border-right: 0;
+}
+
+.tab-help-popover {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 10px);
+  z-index: 75;
+  width: max-content;
+  max-width: 220px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.98);
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.35;
+  text-transform: none;
+  letter-spacing: normal;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-4px);
+  transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.tab-help-popover::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -6px;
+  width: 10px;
+  height: 10px;
+  border-top: 1px solid var(--line);
+  border-left: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.98);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.tab-item:hover .tab-help-popover,
+.tab-item:focus-within .tab-help-popover {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 .main-area {
@@ -3423,6 +3470,10 @@ button {
 
   .tab-nav {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .tab-help-popover {
+    display: none;
   }
 
   .time-pill,

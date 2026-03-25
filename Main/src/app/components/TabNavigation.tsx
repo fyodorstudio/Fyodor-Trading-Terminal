@@ -9,6 +9,14 @@ interface TabNavigationProps {
   tabOrder: { id: TabId; label: string; children?: { id: TabId; label: string }[] }[];
 }
 
+const TAB_HELP_TEXT: Partial<Record<TabId, string>> = {
+  overview: "What matters right now?",
+  charts: "What is price doing right now?",
+  calendar: "What events are scheduled and when?",
+  "central-banks": "What is the policy and inflation backdrop?",
+  dashboard: "Deeper analysis for differentials, strength, event quality, and reaction study.",
+};
+
 export function TabNavigation({ activeTab, setActiveTab, tabOrder }: TabNavigationProps) {
   const [openMenuId, setOpenMenuId] = useState<TabId | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
@@ -38,9 +46,11 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder }: TabNavigati
       {tabOrder.map((tab) => {
         const isActive = activeTab === tab.id || activeParentId === tab.id;
         const hasChildren = Boolean(tab.children && tab.children.length > 0);
+        const helpText = TAB_HELP_TEXT[tab.id];
         return (
-          <div key={tab.id} className="relative">
+          <div key={tab.id} className="relative tab-item">
             <button
+              type="button"
               onClick={() => {
                 if (hasChildren) {
                   setOpenMenuId((current) => (current === tab.id ? null : tab.id));
@@ -50,9 +60,10 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder }: TabNavigati
                 setActiveTab(tab.id);
               }}
               className={`
-                relative inline-flex items-center gap-2 px-5 py-2.5 text-xs font-black uppercase tracking-widest transition-all duration-300 rounded-xl outline-none
+                relative inline-flex items-center gap-2 px-5 py-2.5 text-xs font-black uppercase tracking-widest transition-all duration-300 rounded-xl outline-none tab-button
                 ${isActive ? 'text-[var(--tab-active-text)]' : 'text-[var(--tab-inactive-text)] hover:opacity-80'}
               `}
+              aria-describedby={helpText ? `tab-help-${tab.id}` : undefined}
             >
               {isActive && (
                 <motion.div
@@ -69,6 +80,16 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder }: TabNavigati
                 />
               )}
             </button>
+
+            {helpText && (
+              <div
+                id={`tab-help-${tab.id}`}
+                role="tooltip"
+                className="tab-help-popover"
+              >
+                {helpText}
+              </div>
+            )}
 
             {hasChildren && openMenuId === tab.id && (
               <div className="absolute right-0 top-[calc(100%+8px)] z-[70] min-w-[220px] rounded-xl border border-[var(--line)] bg-white p-2 shadow-[0_8px_24px_rgba(15,23,42,0.12)]">
