@@ -245,7 +245,7 @@ button {
 }
 
 .tab-help-anchor:hover .tab-help-popover,
-.tab-help-anchor:focus-within .tab-help-popover {
+.tab-help-anchor > button:focus-visible + .tab-help-popover {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
