@@ -1050,10 +1050,34 @@ To keep docs sane:
 - `docs/Reference/` is for archived concepts and reference material
 - avoid creating multiple overlapping planning/checklist/guideline files again unless they have clearly different roles
 
+## Current App State
+
+The app is currently in this state:
+
+- connection-first header is implemented
+- Overview is implemented and accepted as purposeful enough for daily use
+- Overview now includes:
+  - readiness brief
+  - Event horizon
+  - Module guide
+  - Macro backdrop
+  - Trust checklist
+  - Where to go next
+- the `Analysis` group has been renamed in the UI to `Specialist Tools`
+- tab navigation now includes subtle hover helper text
+- performance work is explicitly on hold because the app currently feels responsive enough
+
 ## What Happens Next
 
-After docs consolidation is complete, the next recommended product step is:
+The next recommended product steps are:
 
-1. define the exact content and behavior of the connection-first header
-2. define the exact content of the Overview tab
-3. then implement those two before wider visual cleanup
+1. keep Phase 3 on hold unless responsiveness becomes a real problem
+2. move into Phase 4 only when the user wants to clean up one tab or module at a time
+3. use the `one tab = one clear question` rule when refining any module
+4. revisit Overview later only if new Specialist Tools features make the mission-control page meaningfully more useful
+
+The most likely next practical direction is:
+
+- surgically refine one specialist tab at a time
+- preserve checkpoints before and after each major change
+- avoid broad redesigns unless the user explicitly asks for them
