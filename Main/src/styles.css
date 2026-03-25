@@ -203,27 +203,8 @@ button {
   overflow: hidden;
 }
 
-.tab-item {
+.tab-help-anchor {
   position: relative;
-}
-
-.tab-button {
-  min-height: 54px;
-  padding: 0 16px;
-  border: 0;
-  border-right: 1px solid var(--line);
-  background: transparent;
-  color: var(--muted);
-  font-weight: 600;
-}
-
-.tab-button.is-active {
-  background: #272b31;
-  color: #f8f9fb;
-}
-
-.tab-button:last-child {
-  border-right: 0;
 }
 
 .tab-help-popover {
@@ -263,8 +244,8 @@ button {
   transform: translateX(-50%) rotate(45deg);
 }
 
-.tab-item:hover .tab-help-popover,
-.tab-item:focus-within .tab-help-popover {
+.tab-help-anchor:hover .tab-help-popover,
+.tab-help-anchor:focus-within .tab-help-popover {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }

@@ -48,7 +48,7 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder }: TabNavigati
         const hasChildren = Boolean(tab.children && tab.children.length > 0);
         const helpText = TAB_HELP_TEXT[tab.id];
         return (
-          <div key={tab.id} className="relative tab-item">
+          <div key={tab.id} className="relative tab-help-anchor">
             <button
               type="button"
               onClick={() => {
@@ -60,7 +60,7 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder }: TabNavigati
                 setActiveTab(tab.id);
               }}
               className={`
-                relative inline-flex items-center gap-2 px-5 py-2.5 text-xs font-black uppercase tracking-widest transition-all duration-300 rounded-xl outline-none tab-button
+                relative inline-flex items-center gap-2 px-5 py-2.5 text-xs font-black uppercase tracking-widest transition-all duration-300 rounded-xl outline-none
                 ${isActive ? 'text-[var(--tab-active-text)]' : 'text-[var(--tab-inactive-text)] hover:opacity-80'}
               `}
               aria-describedby={helpText ? `tab-help-${tab.id}` : undefined}
