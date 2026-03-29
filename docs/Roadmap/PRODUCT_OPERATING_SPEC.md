@@ -2,6 +2,15 @@
 
 This is the main source-of-truth document for the product direction.
 
+## Next Session Priority
+
+For the next coding session, the priority is:
+
+1. work on Phase 4: Module Discipline
+2. audit and tweak the Event Reaction Engine
+
+Nothing else is the priority unless the repo owner explicitly changes direction.
+
 It combines four things that were previously split across multiple markdown files:
 
 1. Product purpose
