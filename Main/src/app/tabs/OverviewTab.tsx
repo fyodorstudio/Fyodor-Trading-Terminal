@@ -1,7 +1,10 @@
-import { AlertTriangle, ArrowRight, CalendarClock, ChartCandlestick, Landmark, ShieldCheck } from "lucide-react";
+import { useMemo } from "react";
+import { AlertTriangle, ArrowRight, CalendarClock, ChartCandlestick, ShieldCheck } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { getCountryDisplayName } from "@/app/config/currencyConfig";
-import { formatCountdown, formatDateOnly, formatRelativeAge, formatUtcDateTime } from "@/app/lib/format";
+import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
+import { formatCountdown, formatDateOnly, formatRelativeAge, formatUtcDateTime, parseNumericValue } from "@/app/lib/format";
+import { adaptDashboardCurrencies, deriveStrengthCurrencyRanks } from "@/app/lib/macroViews";
 import type { BridgeHealth, BridgeStatus, CalendarEvent, CentralBankSnapshot, MarketStatusResponse, TabId } from "@/app/types";
 
 interface OverviewTabProps {
@@ -9,7 +12,8 @@ interface OverviewTabProps {
   health: BridgeHealth;
   feedStatus: BridgeStatus;
   marketStatus: MarketStatusResponse | null;
-  selectedSymbol: string;
+  reviewSymbol: string;
+  onReviewSymbolChange: (symbol: string) => void;
   events: CalendarEvent[];
   snapshots: CentralBankSnapshot[];
   onNavigate: (tab: TabId) => void;
@@ -21,18 +25,11 @@ interface ActionItem {
   detail: string;
 }
 
-interface ModuleGuideItem {
-  label: string;
-  purpose: string;
+interface PairSummary {
+  title: string;
+  detail: string;
+  unresolved: boolean;
 }
-
-const MODULE_GUIDE_ITEMS: ModuleGuideItem[] = [
-  { label: "Overview", purpose: "What matters right now?" },
-  { label: "Charts", purpose: "What is price doing right now?" },
-  { label: "Economic Calendar", purpose: "What events are scheduled and when?" },
-  { label: "Central Banks Data", purpose: "What is the policy and inflation backdrop?" },
-  { label: "Specialist Tools", purpose: "Deeper analysis for differentials, strength, event quality, and reaction study." },
-];
 
 function getSystemReadiness(
   health: BridgeHealth,
@@ -90,9 +87,9 @@ function getSystemReadiness(
   };
 }
 
-function getTopEvents(events: CalendarEvent[], selectedSymbol: string): Array<CalendarEvent & { relevant: boolean }> {
+function getTopEvents(events: CalendarEvent[], reviewSymbol: string): Array<CalendarEvent & { relevant: boolean }> {
   const now = Date.now() / 1000;
-  const symbolCurrencies = [selectedSymbol.slice(0, 3), selectedSymbol.slice(3, 6)];
+  const symbolCurrencies = [reviewSymbol.slice(0, 3), reviewSymbol.slice(3, 6)];
 
   return events
     .filter((event) => event.impact === "high" && event.time >= now)
@@ -104,82 +101,181 @@ function getTopEvents(events: CalendarEvent[], selectedSymbol: string): Array<Ca
     }));
 }
 
-function getMacroAttentionList(snapshots: CentralBankSnapshot[]) {
-  const now = Date.now() / 1000;
+function formatGap(value: number | null): string {
+  if (value == null) return "Unresolved";
+  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
+}
 
-  return snapshots
-    .map((snapshot) => {
-      const nextEventAt = [snapshot.nextRateEventAt, snapshot.nextCpiEventAt]
-        .filter((value): value is number => value != null)
-        .sort((a, b) => a - b)[0] ?? null;
+function getNearestNode(snapshot: CentralBankSnapshot | null): { at: number | null; label: string | null } {
+  if (!snapshot) return { at: null, label: null };
 
-      const nextEventTitle =
-        nextEventAt === snapshot.nextRateEventAt ? snapshot.nextRateEventTitle : snapshot.nextCpiEventTitle;
+  const nextAt = [snapshot.nextRateEventAt, snapshot.nextCpiEventAt]
+    .filter((value): value is number => value != null)
+    .sort((a, b) => a - b)[0] ?? null;
 
-      const unresolvedCount =
-        Number(snapshot.currentPolicyRate == null) +
-        Number(snapshot.currentInflationRate == null);
+  if (nextAt == null) return { at: null, label: null };
+  if (nextAt === snapshot.nextRateEventAt) return { at: nextAt, label: snapshot.nextRateEventTitle || formatDateOnly(nextAt) };
+  if (nextAt === snapshot.nextCpiEventAt) return { at: nextAt, label: snapshot.nextCpiEventTitle || formatDateOnly(nextAt) };
+  return { at: nextAt, label: formatDateOnly(nextAt) };
+}
 
-      const urgencyScore =
-        unresolvedCount * 10 +
-        (nextEventAt != null && nextEventAt >= now && nextEventAt - now <= 7 * 24 * 60 * 60 ? 5 : 0) +
-        (snapshot.status === "partial" ? 2 : 0) +
-        (snapshot.status === "missing" ? 4 : 0);
+function getMacroSummary(reviewSymbol: string, snapshots: CentralBankSnapshot[]): PairSummary {
+  const pair = getFxPairByName(reviewSymbol);
+  if (!pair) {
+    return {
+      title: `Macro picture is incomplete for ${reviewSymbol}.`,
+      detail: "The selected pair is not part of the current major-pair map.",
+      unresolved: true,
+    };
+  }
 
-      return {
-        snapshot,
-        nextEventAt,
-        nextEventTitle,
-        unresolvedCount,
-        urgencyScore,
-      };
-    })
-    .sort((a, b) => {
-      if (b.urgencyScore !== a.urgencyScore) return b.urgencyScore - a.urgencyScore;
-      if (a.nextEventAt == null && b.nextEventAt == null) return a.snapshot.currency.localeCompare(b.snapshot.currency);
-      if (a.nextEventAt == null) return 1;
-      if (b.nextEventAt == null) return -1;
-      return a.nextEventAt - b.nextEventAt;
-    })
-    .slice(0, 4);
+  const baseSnapshot = snapshots.find((item) => item.currency === pair.base) ?? null;
+  const quoteSnapshot = snapshots.find((item) => item.currency === pair.quote) ?? null;
+
+  if (!baseSnapshot || !quoteSnapshot) {
+    return {
+      title: `Macro picture is incomplete for ${reviewSymbol}.`,
+      detail: "One side of the pair is missing from the current central-bank snapshot set.",
+      unresolved: true,
+    };
+  }
+
+  const baseRate = parseNumericValue(baseSnapshot.currentPolicyRate ?? "");
+  const quoteRate = parseNumericValue(quoteSnapshot.currentPolicyRate ?? "");
+  const baseInflation = parseNumericValue(baseSnapshot.currentInflationRate ?? "");
+  const quoteInflation = parseNumericValue(quoteSnapshot.currentInflationRate ?? "");
+  const rateGap = baseRate != null && quoteRate != null ? baseRate - quoteRate : null;
+  const inflationGap = baseInflation != null && quoteInflation != null ? baseInflation - quoteInflation : null;
+
+  if (baseSnapshot.status !== "ok" || quoteSnapshot.status !== "ok") {
+    const baseNode = getNearestNode(baseSnapshot);
+    const quoteNode = getNearestNode(quoteSnapshot);
+    const unresolvedSide =
+      baseSnapshot.status !== "ok" && quoteSnapshot.status !== "ok"
+        ? `${pair.base} and ${pair.quote}`
+        : baseSnapshot.status !== "ok"
+          ? pair.base
+          : pair.quote;
+
+    const nextNodeDetail =
+      baseNode.label && quoteNode.label
+        ? `${pair.base}: ${baseNode.label} | ${pair.quote}: ${quoteNode.label}`
+        : baseNode.label
+          ? `${pair.base}: ${baseNode.label}`
+          : quoteNode.label
+            ? `${pair.quote}: ${quoteNode.label}`
+            : "No matched next node in the current MT5 window.";
+
+    return {
+      title: `Macro picture is usable but partly unresolved for ${reviewSymbol}.`,
+      detail: `${unresolvedSide} still need${unresolvedSide.includes(" and ") ? "" : "s"} a closer trust check. ${nextNodeDetail}`,
+      unresolved: true,
+    };
+  }
+
+  const sameSideBias =
+    rateGap != null &&
+    inflationGap != null &&
+    ((rateGap > 0 && inflationGap > 0) || (rateGap < 0 && inflationGap < 0));
+
+  const favoredSide = sameSideBias ? (rateGap! > 0 ? pair.base : pair.quote) : null;
+
+  return {
+    title: sameSideBias
+      ? `${favoredSide} has the cleaner macro picture vs ${favoredSide === pair.base ? pair.quote : pair.base}.`
+      : `Macro picture is mixed for ${reviewSymbol}.`,
+    detail: `Rate gap: ${formatGap(rateGap)} | Inflation gap: ${formatGap(inflationGap)}`,
+    unresolved: false,
+  };
+}
+
+function getStrengthDifferentialSummary(reviewSymbol: string, snapshots: CentralBankSnapshot[]): PairSummary {
+  const pair = getFxPairByName(reviewSymbol);
+  if (!pair) {
+    return {
+      title: `Strength ranking is unresolved for one side of ${reviewSymbol}.`,
+      detail: "Pair map is unavailable for the selected symbol.",
+      unresolved: true,
+    };
+  }
+
+  const currencies = adaptDashboardCurrencies(snapshots);
+  const { ranks } = deriveStrengthCurrencyRanks(currencies);
+  const baseRank = ranks.find((item) => item.currency === pair.base) ?? null;
+  const quoteRank = ranks.find((item) => item.currency === pair.quote) ?? null;
+
+  const baseSnapshot = snapshots.find((item) => item.currency === pair.base) ?? null;
+  const quoteSnapshot = snapshots.find((item) => item.currency === pair.quote) ?? null;
+  const baseRate = parseNumericValue(baseSnapshot?.currentPolicyRate ?? "");
+  const quoteRate = parseNumericValue(quoteSnapshot?.currentPolicyRate ?? "");
+  const baseInflation = parseNumericValue(baseSnapshot?.currentInflationRate ?? "");
+  const quoteInflation = parseNumericValue(quoteSnapshot?.currentInflationRate ?? "");
+  const rateGap = baseRate != null && quoteRate != null ? baseRate - quoteRate : null;
+  const inflationGap = baseInflation != null && quoteInflation != null ? baseInflation - quoteInflation : null;
+
+  if (!baseRank || !quoteRank) {
+    return {
+      title: `Strength ranking is unresolved for one side of ${reviewSymbol}.`,
+      detail: `Rate difference: ${formatGap(rateGap)} | Inflation difference: ${formatGap(inflationGap)}`,
+      unresolved: true,
+    };
+  }
+
+  const stronger = baseRank.score >= quoteRank.score ? baseRank : quoteRank;
+  const weaker = stronger.currency === baseRank.currency ? quoteRank : baseRank;
+
+  return {
+    title: `${stronger.currency} ranks stronger than ${weaker.currency} by ${(stronger.score - weaker.score).toFixed(1)} points.`,
+    detail: `Rate difference: ${formatGap(rateGap)} | Inflation difference: ${formatGap(inflationGap)}`,
+    unresolved: rateGap == null || inflationGap == null,
+  };
 }
 
 function getAttentionActions(
   readinessTone: "good" | "warning" | "danger",
+  reviewSymbol: string,
   events: Array<CalendarEvent & { relevant: boolean }>,
-  snapshots: CentralBankSnapshot[],
+  macroSummary: PairSummary,
+  strengthSummary: PairSummary,
 ): ActionItem[] {
   const actions: ActionItem[] = [];
-  const unresolvedCount = snapshots.filter((item) => item.status !== "ok").length;
 
   if (readinessTone !== "good") {
     actions.push({
       tab: "calendar",
-      label: "Verify the feed",
-      detail: "Start with the calendar tab and confirm the current ingest window and event coverage.",
+      label: "Resolve feed or timing trust first",
+      detail: "Confirm the ingest window and timing context before leaning on the rest of the terminal.",
     });
   }
 
   if (events.some((event) => event.relevant)) {
     actions.push({
       tab: "calendar",
-      label: "Inspect the next major event",
-      detail: "A high-impact release touches the currently selected symbol, so timing risk deserves a closer look.",
+      label: `Review Economic Calendar for ${reviewSymbol}`,
+      detail: "A high-impact event touches this pair, so timing risk deserves a closer look.",
     });
   }
 
-  if (unresolvedCount > 0) {
+  if (macroSummary.unresolved) {
     actions.push({
       tab: "central-banks",
-      label: "Check unresolved macro nodes",
-      detail: `${unresolvedCount} central-bank snapshot${unresolvedCount === 1 ? "" : "s"} still need a manual trust check.`,
+      label: `Check Central Banks Data for ${reviewSymbol}`,
+      detail: "At least one side of the pair still needs a deeper macro trust check.",
+    });
+  }
+
+  if (strengthSummary.unresolved) {
+    actions.push({
+      tab: "dashboard",
+      label: `Check Differential Calculator for ${reviewSymbol}`,
+      detail: "Compare the raw rate and inflation differences directly before you move into technical analysis.",
     });
   }
 
   actions.push({
     tab: "charts",
-    label: "Confirm price context",
-    detail: "Use charts after trust and timing look acceptable for the current market.",
+    label: "Review Charts for technical setup",
+    detail: "Move into price structure, levels, and risk-to-reward only after the pair still looks worth attention.",
   });
 
   return actions.slice(0, 3);
@@ -193,63 +289,46 @@ function renderFeedLabel(status: BridgeStatus): string {
   return "Error";
 }
 
-function renderSnapshotMetric(value: string | null, fallback: string): string {
-  return value && value.trim() ? value : fallback;
-}
-
-function renderMacroFollowUp(unresolvedCount: number, nextEventTitle: string | null): string {
-  if (unresolvedCount > 0) {
-    return `${unresolvedCount} unresolved field${unresolvedCount === 1 ? "" : "s"}`;
-  }
-
-  return nextEventTitle || "Data mapped cleanly";
-}
-
-function renderMacroNote(
-  unresolvedCount: number,
-  nextEventAt: number | null,
-  nextEventTitle: string | null,
-): string {
-  if (unresolvedCount > 0 && nextEventAt == null) {
-    return `${renderMacroFollowUp(unresolvedCount, nextEventTitle)}. No matched next event in the current MT5 window.`;
-  }
-
-  if (unresolvedCount > 0) {
-    return `${renderMacroFollowUp(unresolvedCount, nextEventTitle)}. Next matched event: ${nextEventTitle || formatDateOnly(nextEventAt)}.`;
-  }
-
-  if (nextEventAt == null) {
-    return "Data mapped cleanly. No matched next event in the current MT5 window.";
-  }
-
-  return `Next matched event: ${nextEventTitle || formatDateOnly(nextEventAt)}.`;
-}
-
 export function OverviewTab({
   currentTime,
   health,
   feedStatus,
   marketStatus,
-  selectedSymbol,
+  reviewSymbol,
+  onReviewSymbolChange,
   events,
   snapshots,
   onNavigate,
 }: OverviewTabProps) {
   const readiness = getSystemReadiness(health, feedStatus, marketStatus);
-  const topEvents = getTopEvents(events, selectedSymbol);
-  const attentionBanks = getMacroAttentionList(snapshots);
-  const actions = getAttentionActions(readiness.tone, topEvents, snapshots);
+  const topEvents = getTopEvents(events, reviewSymbol);
+  const macroSummary = useMemo(() => getMacroSummary(reviewSymbol, snapshots), [reviewSymbol, snapshots]);
+  const strengthSummary = useMemo(() => getStrengthDifferentialSummary(reviewSymbol, snapshots), [reviewSymbol, snapshots]);
+  const actions = getAttentionActions(readiness.tone, reviewSymbol, topEvents, macroSummary, strengthSummary);
   const resolvedBanks = snapshots.filter((item) => item.status === "ok").length;
   const lastIngestLabel = formatRelativeAge(health.last_calendar_ingest_at ?? null);
   const marketLabel =
     marketStatus?.session_state === "open"
-      ? `${selectedSymbol} session is open`
+      ? `${reviewSymbol} session is open`
       : marketStatus?.session_state === "closed"
-        ? `${selectedSymbol} session is closed`
-        : `${selectedSymbol} session is unavailable`;
+        ? `${reviewSymbol} session is closed`
+        : `${reviewSymbol} session is unavailable`;
 
   return (
     <section className="tab-panel overview-panel">
+      <section className="overview-selector-card">
+        <label className="overview-selector-label" htmlFor="overview-pair-select">
+          <span>Select Pair to Review</span>
+          <select id="overview-pair-select" value={reviewSymbol} onChange={(event) => onReviewSymbolChange(event.target.value)}>
+            {FX_PAIRS.map((pair) => (
+              <option key={pair.name} value={pair.name}>
+                {pair.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      </section>
+
       <div className={`overview-brief overview-brief-${readiness.tone}`}>
         <div className="overview-brief-copy">
           <div className="overview-brief-icon" aria-hidden="true">
@@ -276,52 +355,70 @@ export function OverviewTab({
         </div>
       </div>
 
-      <div className="overview-grid">
+      <section className="overview-card">
+        <div className="overview-card-head">
+          <div className="overview-card-icon" aria-hidden="true">
+            <CalendarClock size={18} />
+          </div>
+          <div>
+            <h3>Event horizon</h3>
+            <p>The next high-impact events that may change your priorities for {reviewSymbol}.</p>
+          </div>
+        </div>
+
+        {topEvents.length === 0 ? (
+          <div className="overview-empty">
+            <p>No high-impact events are scheduled in the current bridge window.</p>
+          </div>
+        ) : (
+          <div className="overview-event-list">
+            {topEvents.map((event) => (
+              <button
+                key={event.id}
+                type="button"
+                className="overview-event-row"
+                onClick={() => onNavigate("calendar")}
+              >
+                <div className="overview-event-main">
+                  <FlagIcon countryCode={event.countryCode} className="h-5 w-7" />
+                  <div>
+                    <strong>{event.title}</strong>
+                    <span>
+                      {event.currency} - {getCountryDisplayName(event.countryCode)} - {formatUtcDateTime(event.time)}
+                    </span>
+                  </div>
+                </div>
+                <div className="overview-event-meta">
+                  <strong>{formatCountdown(event.time, currentTime.getTime())}</strong>
+                  <span className={event.relevant ? "overview-relevance is-relevant" : "overview-relevance"}>
+                    {event.relevant ? "Touches current pair" : "Global watch"}
+                  </span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <div className="overview-grid-summary">
         <section className="overview-card">
           <div className="overview-card-head">
             <div className="overview-card-icon" aria-hidden="true">
-              <CalendarClock size={18} />
+              <ShieldCheck size={18} />
             </div>
             <div>
-              <h3>Event horizon</h3>
-              <p>The next high-impact events that may change today&apos;s priorities.</p>
+              <h3>Macro snapshot</h3>
+              <p>Plain-English macro context for the pair you are about to review.</p>
             </div>
           </div>
 
-          {topEvents.length === 0 ? (
-            <div className="overview-empty">
-              <p>No high-impact events are scheduled in the current bridge window.</p>
-            </div>
-          ) : (
-            <div className="overview-event-list">
-              {topEvents.map((event) => (
-                <button
-                  key={event.id}
-                  type="button"
-                  className="overview-event-row"
-                  onClick={() => onNavigate("calendar")}
-                >
-                  <div className="overview-event-main">
-                    <div className="overview-event-flag">
-                      <FlagIcon countryCode={event.countryCode} className="h-5 w-7" />
-                    </div>
-                    <div>
-                      <strong>{event.title}</strong>
-                      <span>
-                        {event.currency} - {getCountryDisplayName(event.countryCode)} - {formatUtcDateTime(event.time)}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="overview-event-meta">
-                    <strong>{formatCountdown(event.time, currentTime.getTime())}</strong>
-                    <span className={event.relevant ? "overview-relevance is-relevant" : "overview-relevance"}>
-                      {event.relevant ? "Touches current pair" : "Global watch"}
-                    </span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+          <div className="overview-summary-card">
+            <strong>{macroSummary.title}</strong>
+            <p>{macroSummary.detail}</p>
+            <button type="button" className="overview-inline-link" onClick={() => onNavigate("central-banks")}>
+              Open Central Banks Data
+            </button>
+          </div>
         </section>
 
         <section className="overview-card">
@@ -330,88 +427,39 @@ export function OverviewTab({
               <ChartCandlestick size={18} />
             </div>
             <div>
-              <h3>Module guide</h3>
-              <p>What each major area of the terminal is meant to answer for the user.</p>
+              <h3>Strength &amp; differential summary</h3>
+              <p>Quick pair edge context before you move into deeper review or technical analysis.</p>
             </div>
           </div>
 
-          <div className="overview-module-guide">
-            {MODULE_GUIDE_ITEMS.map((item) => (
-              <div key={item.label} className="overview-module-row">
-                <strong>{item.label}</strong>
-                <span>{item.purpose}</span>
-              </div>
-            ))}
+          <div className="overview-summary-card">
+            <strong>{strengthSummary.title}</strong>
+            <p>{strengthSummary.detail}</p>
+            <div className="overview-inline-actions">
+              <button type="button" className="overview-inline-link" onClick={() => onNavigate("strength-meter")}>
+                Open Strength Meter
+              </button>
+              <button type="button" className="overview-inline-link" onClick={() => onNavigate("dashboard")}>
+                Open Differential Calculator
+              </button>
+            </div>
           </div>
         </section>
       </div>
 
-      <section className="overview-card overview-card-wide">
+      <section className="overview-card">
         <div className="overview-card-head">
           <div className="overview-card-icon" aria-hidden="true">
-            <Landmark size={18} />
+            <ChartCandlestick size={18} />
           </div>
           <div>
-            <h3>Macro backdrop</h3>
-            <p>The closest or least-resolved central-bank nodes worth checking next.</p>
+            <h3>Priority next actions</h3>
+            <p>Use these only after the pair still looks worth your attention at a glance.</p>
           </div>
         </div>
 
-        <div className="overview-bank-list">
-          {attentionBanks.map(({ snapshot, nextEventAt, nextEventTitle, unresolvedCount }) => (
-            <button
-              key={snapshot.currency}
-              type="button"
-              className={`overview-bank-row is-${snapshot.status}`}
-              onClick={() => onNavigate("central-banks")}
-            >
-              <div className="overview-bank-head">
-                <div className="overview-bank-identity">
-                  <FlagIcon countryCode={snapshot.countryCode} className="h-5 w-7" />
-                  <div>
-                    <strong>{snapshot.bankName}</strong>
-                    <span>{getCountryDisplayName(snapshot.countryCode)} - {snapshot.currency}</span>
-                  </div>
-                </div>
-                <span className={`overview-status-tag is-${snapshot.status}`}>{snapshot.status}</span>
-              </div>
-              <div className="overview-bank-metrics">
-                <div>
-                  <span>Rate</span>
-                  <strong>{renderSnapshotMetric(snapshot.currentPolicyRate, "Unresolved")}</strong>
-                </div>
-                <div>
-                  <span>CPI</span>
-                  <strong>{renderSnapshotMetric(snapshot.currentInflationRate, "Unresolved")}</strong>
-                </div>
-                <div>
-                  <span>Next node</span>
-                  <strong>{nextEventAt ? formatDateOnly(nextEventAt) : "Not scheduled"}</strong>
-                </div>
-              </div>
-              <div className="overview-bank-foot">
-                <span className="overview-bank-followup">
-                  {renderMacroNote(unresolvedCount, nextEventAt, nextEventTitle)}
-                </span>
-              </div>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      <div className="overview-grid overview-grid-secondary">
-        <section className="overview-card">
-          <div className="overview-card-head">
-            <div className="overview-card-icon" aria-hidden="true">
-              <ShieldCheck size={18} />
-            </div>
-            <div>
-              <h3>Trust checklist</h3>
-              <p>Quick answers before you let the rest of the terminal influence a trade decision.</p>
-            </div>
-          </div>
-
-          <div className="overview-checklist">
+        {readiness.tone !== "good" && (
+          <div className="overview-checklist overview-checklist-inline">
             <div className="overview-check-row">
               <span>MT5 connection</span>
               <strong>{health.terminal_connected ? "Connected" : "Waiting for MT5"}</strong>
@@ -429,37 +477,25 @@ export function OverviewTab({
               <strong>{marketLabel}</strong>
             </div>
           </div>
-        </section>
+        )}
 
-        <section className="overview-card">
-          <div className="overview-card-head">
-            <div className="overview-card-icon" aria-hidden="true">
-              <ChartCandlestick size={18} />
-            </div>
-            <div>
-              <h3>Where to go next</h3>
-              <p>Use the specialist tabs only after the mission-control page tells you where attention belongs.</p>
-            </div>
-          </div>
-
-          <div className="overview-action-list">
-            {actions.map((action) => (
-              <button
-                key={`${action.tab}-${action.label}`}
-                type="button"
-                className="overview-action-row"
-                onClick={() => onNavigate(action.tab)}
-              >
-                <div>
-                  <strong>{action.label}</strong>
-                  <span>{action.detail}</span>
-                </div>
-                <ArrowRight size={16} />
-              </button>
-            ))}
-          </div>
-        </section>
-      </div>
+        <div className="overview-action-list">
+          {actions.map((action) => (
+            <button
+              key={`${action.tab}-${action.label}`}
+              type="button"
+              className="overview-action-row"
+              onClick={() => onNavigate(action.tab)}
+            >
+              <div>
+                <strong>{action.label}</strong>
+                <span>{action.detail}</span>
+              </div>
+              <ArrowRight size={16} />
+            </button>
+          ))}
+        </div>
+      </section>
     </section>
   );
 }

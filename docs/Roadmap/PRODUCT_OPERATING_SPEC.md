@@ -6,8 +6,8 @@ This is the main source-of-truth document for the product direction.
 
 For the next coding session, the priority is:
 
-1. work on Phase 4: Module Discipline
-2. audit and tweak the Event Reaction Engine
+1. Phase 4 work is currently focused on overhauling Overview into a pair-first pre-trade briefing
+2. after that, audit and tweak the Event Reaction Engine
 
 Nothing else is the priority unless the repo owner explicitly changes direction.
 
@@ -121,10 +121,10 @@ It should be the most useful page at a glance.
 
 Overview should answer:
 
-- What matters right now?
+- For the pair I am about to trade, is everything healthy and worth my attention right now?
 - Is the system healthy enough to trust?
-- What macro events are imminent?
-- Which currencies or themes deserve attention?
+- Is event risk close enough to change timing?
+- Does the pair have a simple macro and strength edge worth reviewing in TradingView?
 
 Overview should avoid:
 
@@ -132,6 +132,7 @@ Overview should avoid:
 - large tables
 - dense replay workflows
 - controls better suited for specialist tabs
+- full copies of Central Banks Data, Strength Meter, or Differential Calculator
 
 ## Module Roles
 
@@ -1064,26 +1065,28 @@ To keep docs sane:
 The app is currently in this state:
 
 - connection-first header is implemented
-- Overview is implemented and accepted as purposeful enough for daily use
+- Overview is implemented and is being upgraded into a pair-first pre-trade briefing
 - Overview now includes:
-  - readiness brief
+  - pair selector
+  - system + data checklist
   - Event horizon
-  - Module guide
-  - Macro backdrop
-  - Trust checklist
-  - Where to go next
+  - macro snapshot for the selected pair
+  - strength and differential summary for the selected pair
+  - priority next actions
 - the `Analysis` group has been renamed in the UI to `Specialist Tools`
 - tab navigation now includes subtle hover helper text
 - performance work is explicitly on hold because the app currently feels responsive enough
+- Overview and header now share the same review pair context
+- Charts remain independent from the Overview review pair
 
 ## What Happens Next
 
 The next recommended product steps are:
 
 1. keep Phase 3 on hold unless responsiveness becomes a real problem
-2. move into Phase 4 only when the user wants to clean up one tab or module at a time
+2. continue Phase 4 by cleaning one tab or module at a time
 3. use the `one tab = one clear question` rule when refining any module
-4. revisit Overview later only if new Specialist Tools features make the mission-control page meaningfully more useful
+4. revisit Overview later only if new Specialist Tools features make the pair-first briefing meaningfully more useful
 
 The most likely next practical direction is:
 

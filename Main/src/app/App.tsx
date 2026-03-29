@@ -50,7 +50,9 @@ export default function App() {
   const [feedEvents, setFeedEvents] = useState<CalendarEvent[]>([]);
   const [feedStatus, setFeedStatus] = useState<BridgeStatus>("loading");
   const [chartSymbol, setChartSymbol] = useState("EURUSD");
-  const [marketStatus, setMarketStatus] = useState<MarketStatusResponse | null>(null);
+  const [overviewSymbol, setOverviewSymbol] = useState("EURUSD");
+  const [chartMarketStatus, setChartMarketStatus] = useState<MarketStatusResponse | null>(null);
+  const [overviewMarketStatus, setOverviewMarketStatus] = useState<MarketStatusResponse | null>(null);
   const [calendarTabLastSyncedAt, setCalendarTabLastSyncedAt] = useState<number | null>(null);
   const feedEventsRef = useRef<CalendarEvent[]>([]);
 
@@ -145,7 +147,7 @@ export default function App() {
     const load = async () => {
       const next = await fetchMarketStatus(chartSymbol);
       if (cancelled) return;
-      setMarketStatus(next);
+      setChartMarketStatus(next);
     };
 
     void load();
@@ -156,6 +158,24 @@ export default function App() {
       window.clearInterval(id);
     };
   }, [chartSymbol]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      const next = await fetchMarketStatus(overviewSymbol);
+      if (cancelled) return;
+      setOverviewMarketStatus(next);
+    };
+
+    void load();
+    const id = window.setInterval(() => void load(), 60_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [overviewSymbol]);
 
   const centralBankResult = useMemo(() => deriveCentralBankSnapshots(feedEvents), [feedEvents]);
 
@@ -196,8 +216,8 @@ export default function App() {
             currentTime={currentTime}
             health={health}
             feedStatus={feedStatus}
-            marketStatus={marketStatus}
-            selectedSymbol={chartSymbol}
+            marketStatus={overviewMarketStatus}
+            selectedSymbol={overviewSymbol}
             resolvedBanks={centralBankResult.snapshots.filter((item) => item.status === "ok").length}
             nextHighImpact={nextHighImpact ? { title: nextHighImpact.title, currency: nextHighImpact.currency, time: nextHighImpact.time } : null}
           />
@@ -214,8 +234,9 @@ export default function App() {
                 currentTime={currentTime}
                 health={health}
                 feedStatus={feedStatus}
-                marketStatus={marketStatus}
-                selectedSymbol={chartSymbol}
+                marketStatus={overviewMarketStatus}
+                reviewSymbol={overviewSymbol}
+                onReviewSymbolChange={setOverviewSymbol}
                 events={feedEvents}
                 snapshots={centralBankResult.snapshots}
                 onNavigate={setActiveTab}
@@ -241,7 +262,7 @@ export default function App() {
             )}
             {activeTab === "charts" && (
               <ChartsTab
-                marketStatus={marketStatus}
+                marketStatus={chartMarketStatus}
                 selectedSymbol={chartSymbol}
                 onSelectedSymbolChange={setChartSymbol}
               />
