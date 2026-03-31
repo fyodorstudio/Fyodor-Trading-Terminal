@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowRight, CalendarClock, ChartCandlestick, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarClock, ChartCandlestick, ShieldCheck } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { getCountryDisplayName } from "@/app/config/currencyConfig";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
@@ -304,7 +304,6 @@ export function OverviewTab({
   snapshots,
   onNavigate,
 }: OverviewTabProps) {
-  const [isHealthPanelOpen, setIsHealthPanelOpen] = useState(false);
   const [atrByPair, setAtrByPair] = useState<AtrByPair>({});
   const readiness = getSystemReadiness(health, feedStatus, marketStatus);
   const topEvents = getTopEvents(events, reviewSymbol);
@@ -319,12 +318,7 @@ export function OverviewTab({
       : marketStatus?.session_state === "closed"
         ? `${reviewSymbol} session is closed`
         : `${reviewSymbol} session is unavailable`;
-  const panelSummary =
-    readiness.tone === "good"
-      ? "System healthy"
-      : readiness.tone === "warning"
-        ? "Needs caution"
-        : "Trust degraded";
+  const reviewAtr = atrByPair[reviewSymbol];
 
   useEffect(() => {
     let cancelled = false;
@@ -362,8 +356,8 @@ export function OverviewTab({
   return (
     <section className="tab-panel overview-panel">
       <div className="overview-workspace">
-        <div className="overview-main">
-          <section className="overview-selector-card">
+        <aside className={`overview-rail overview-rail-${readiness.tone}`}>
+          <section className="overview-selector-card overview-rail-card">
             <label className="overview-selector-label" htmlFor="overview-pair-select">
               <span>Select Pair to Review</span>
               <select id="overview-pair-select" value={reviewSymbol} onChange={(event) => onReviewSymbolChange(event.target.value)}>
@@ -376,6 +370,65 @@ export function OverviewTab({
             </label>
           </section>
 
+          <section className="overview-rail-card overview-atr-card">
+            <span className="overview-rail-kicker">ATR14 daily range</span>
+            <strong>
+              {reviewAtr === undefined ? "Loading..." : reviewAtr == null ? "--" : `${reviewAtr} pips`}
+            </strong>
+            <p>Average daily range for {reviewSymbol}, useful when you want lower-volatility pairs first.</p>
+          </section>
+
+          <section className={`overview-rail-card overview-rail-status overview-rail-status-${readiness.tone}`}>
+            <div className="overview-rail-status-head">
+              <span className="overview-rail-kicker">System trust</span>
+              <strong>{panelSummary}</strong>
+            </div>
+            <p>{readiness.note}</p>
+          </section>
+
+          <section className="overview-rail-card">
+            <div className="overview-rail-head">
+              <strong>Data health checklist</strong>
+              <span>Trust details for {reviewSymbol}</span>
+            </div>
+
+            <div className="overview-checklist">
+              <div className="overview-check-row">
+                <span>MT5 connection</span>
+                <strong>{health.terminal_connected ? "Connected" : "Waiting for MT5"}</strong>
+              </div>
+              <div className="overview-check-row">
+                <span>Bridge state</span>
+                <strong>{health.ok ? "Healthy" : "Unavailable"}</strong>
+              </div>
+              <div className="overview-check-row">
+                <span>Calendar feed</span>
+                <strong>{renderFeedLabel(feedStatus)}</strong>
+              </div>
+              <div className="overview-check-row">
+                <span>Current symbol context</span>
+                <strong>{marketLabel}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section className="overview-rail-card overview-rail-meta">
+            <div className="overview-health-meta-row">
+              <span>Calendar ingest</span>
+              <strong>{lastIngestLabel}</strong>
+            </div>
+            <div className="overview-health-meta-row">
+              <span>Macro resolution</span>
+              <strong>{resolvedBanks}/8</strong>
+            </div>
+            <div className="overview-health-meta-row">
+              <span>Selected symbol</span>
+              <strong>{reviewSymbol}</strong>
+            </div>
+          </section>
+        </aside>
+
+        <div className="overview-main">
           <div className={`overview-brief overview-brief-${readiness.tone}`}>
             <div className="overview-brief-copy">
               <div className="overview-brief-icon" aria-hidden="true">
@@ -384,20 +437,6 @@ export function OverviewTab({
               <div>
                 <h2>{readiness.title}</h2>
                 <p>{readiness.note}</p>
-              </div>
-            </div>
-            <div className="overview-brief-metrics">
-              <div className="overview-brief-metric">
-                <span>Calendar ingest</span>
-                <strong>{lastIngestLabel}</strong>
-              </div>
-              <div className="overview-brief-metric">
-                <span>Macro resolution</span>
-                <strong>{resolvedBanks}/8 banks resolved</strong>
-              </div>
-              <div className="overview-brief-metric">
-                <span>Selected symbol</span>
-                <strong>{marketLabel}</strong>
               </div>
             </div>
           </div>
@@ -523,62 +562,6 @@ export function OverviewTab({
             </div>
           </section>
         </div>
-
-        <aside className={`overview-health-panel overview-health-panel-${readiness.tone} ${isHealthPanelOpen ? "is-open" : "is-collapsed"}`}>
-          <button
-            type="button"
-            className="overview-health-toggle"
-            onClick={() => setIsHealthPanelOpen((prev) => !prev)}
-            aria-expanded={isHealthPanelOpen}
-            aria-controls="overview-health-panel-body"
-          >
-            <div className="overview-health-toggle-copy">
-              <span className="overview-health-kicker">Data health</span>
-              <strong>{panelSummary}</strong>
-              <p>{readiness.tone === "good" ? "Review trust details only when you need them." : readiness.note}</p>
-            </div>
-            <span className="overview-health-toggle-icon" aria-hidden="true">
-              {isHealthPanelOpen ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-            </span>
-          </button>
-
-          <div id="overview-health-panel-body" className="overview-health-body">
-            <div className="overview-health-head">
-              <strong>Data health checklist</strong>
-              <span>Trust details for {reviewSymbol}</span>
-            </div>
-
-            <div className="overview-checklist">
-              <div className="overview-check-row">
-                <span>MT5 connection</span>
-                <strong>{health.terminal_connected ? "Connected" : "Waiting for MT5"}</strong>
-              </div>
-              <div className="overview-check-row">
-                <span>Bridge state</span>
-                <strong>{health.ok ? "Healthy" : "Unavailable"}</strong>
-              </div>
-              <div className="overview-check-row">
-                <span>Calendar feed</span>
-                <strong>{renderFeedLabel(feedStatus)}</strong>
-              </div>
-              <div className="overview-check-row">
-                <span>Current symbol context</span>
-                <strong>{marketLabel}</strong>
-              </div>
-            </div>
-
-            <div className="overview-health-meta">
-              <div className="overview-health-meta-row">
-                <span>Last calendar ingest</span>
-                <strong>{lastIngestLabel}</strong>
-              </div>
-              <div className="overview-health-meta-row">
-                <span>Review pair</span>
-                <strong>{reviewSymbol}</strong>
-              </div>
-            </div>
-          </div>
-        </aside>
       </div>
     </section>
   );

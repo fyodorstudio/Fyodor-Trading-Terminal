@@ -297,7 +297,7 @@ button {
 
 .overview-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 320px minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -306,6 +306,100 @@ button {
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+.overview-rail {
+  position: sticky;
+  top: 86px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.overview-rail-good .overview-rail-status {
+  border-color: rgba(22, 124, 74, 0.18);
+  background: #f6fbf8;
+}
+
+.overview-rail-warning .overview-rail-status {
+  border-color: rgba(161, 92, 6, 0.24);
+  background: #fffaf1;
+}
+
+.overview-rail-danger .overview-rail-status {
+  border-color: rgba(180, 35, 24, 0.22);
+  background: #fff8f6;
+}
+
+.overview-rail-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(247, 247, 246, 0.94);
+  padding: 16px 18px;
+}
+
+.overview-rail-kicker {
+  color: var(--muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.overview-rail-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.overview-rail-head strong,
+.overview-rail-status-head strong,
+.overview-atr-card strong {
+  font-size: 0.96rem;
+}
+
+.overview-rail-head span,
+.overview-rail-status p,
+.overview-atr-card p,
+.overview-rail-status-head span {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.overview-rail-status {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.overview-rail-status-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.overview-rail-status p,
+.overview-atr-card p {
+  margin: 0;
+}
+
+.overview-atr-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.overview-atr-card strong {
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.overview-rail-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .overview-selector-card {
@@ -343,7 +437,7 @@ button {
 .overview-brief {
   display: flex;
   justify-content: space-between;
-  gap: 24px;
+  gap: 18px;
   padding: 20px 22px;
 }
 
@@ -408,10 +502,7 @@ button {
 }
 
 .overview-brief-metrics {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  min-width: min(520px, 100%);
+  display: none;
 }
 
 .overview-brief-metric {
@@ -625,158 +716,6 @@ button {
   text-decoration: underline;
 }
 
-.overview-checklist-inline {
-  margin-bottom: 4px;
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fffdf8;
-}
-
-.overview-health-panel {
-  position: sticky;
-  top: 86px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: rgba(247, 247, 246, 0.94);
-  transition: width 160ms ease, border-color 160ms ease, background-color 160ms ease;
-  overflow: hidden;
-}
-
-.overview-health-panel.is-collapsed {
-  width: 96px;
-}
-
-.overview-health-panel.is-open {
-  width: 316px;
-}
-
-.overview-health-panel-good {
-  border-color: rgba(22, 124, 74, 0.18);
-}
-
-.overview-health-panel-warning {
-  border-color: rgba(161, 92, 6, 0.24);
-  background: #fffdf8;
-}
-
-.overview-health-panel-danger {
-  border-color: rgba(180, 35, 24, 0.22);
-  background: #fff9f8;
-}
-
-.overview-health-toggle {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  padding: 16px 14px;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  text-align: left;
-}
-
-.overview-health-toggle-copy {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.overview-health-kicker {
-  color: var(--muted);
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.overview-health-toggle-copy strong {
-  font-size: 0.95rem;
-  line-height: 1.3;
-}
-
-.overview-health-toggle-copy p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.82rem;
-  line-height: 1.4;
-}
-
-.overview-health-toggle-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-strong);
-  flex-shrink: 0;
-}
-
-.overview-health-panel.is-collapsed .overview-health-toggle {
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  padding: 16px 10px;
-}
-
-.overview-health-panel.is-collapsed .overview-health-toggle-copy {
-  align-items: center;
-  text-align: center;
-}
-
-.overview-health-panel.is-collapsed .overview-health-toggle-copy p {
-  display: none;
-}
-
-.overview-health-panel.is-collapsed .overview-health-kicker {
-  writing-mode: vertical-rl;
-  transform: rotate(180deg);
-  letter-spacing: 0.08em;
-}
-
-.overview-health-body {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  padding: 0 14px 14px;
-}
-
-.overview-health-panel.is-collapsed .overview-health-body {
-  display: none;
-}
-
-.overview-health-head {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.overview-health-head strong {
-  font-size: 0.96rem;
-}
-
-.overview-health-head span,
-.overview-health-meta-row span {
-  color: var(--muted);
-  font-size: 0.8rem;
-}
-
-.overview-health-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
-}
-
 .overview-health-meta-row {
   display: flex;
   align-items: center;
@@ -801,39 +740,12 @@ button {
     flex-direction: column;
   }
 
+  .overview-rail {
+    position: static;
+  }
+
   .overview-brief {
     flex-direction: column;
-  }
-
-  .overview-health-panel {
-    position: static;
-    width: 100%;
-  }
-
-  .overview-health-panel.is-collapsed,
-  .overview-health-panel.is-open {
-    width: 100%;
-  }
-
-  .overview-health-panel.is-collapsed .overview-health-toggle {
-    flex-direction: row;
-    align-items: flex-start;
-    padding: 16px 14px;
-  }
-
-  .overview-health-panel.is-collapsed .overview-health-toggle-copy {
-    align-items: flex-start;
-    text-align: left;
-  }
-
-  .overview-health-panel.is-collapsed .overview-health-toggle-copy p {
-    display: block;
-  }
-
-  .overview-health-panel.is-collapsed .overview-health-kicker {
-    writing-mode: initial;
-    transform: none;
-    letter-spacing: 0.04em;
   }
 }
 
