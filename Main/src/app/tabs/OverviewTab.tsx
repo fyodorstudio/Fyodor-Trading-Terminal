@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowRight, CalendarClock, ChartCandlestick, ShieldCheck, Zap, Info, Target, TrendingUp } from "lucide-react";
+import { 
+  AlertTriangle, ArrowRight, CalendarClock, ChartCandlestick, 
+  ShieldCheck, Zap, Info, Target, TrendingUp, Check, X, MoveDown, MoveUp
+} from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { getCountryDisplayName } from "@/app/config/currencyConfig";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
@@ -108,19 +111,6 @@ function getTopEvents(events: CalendarEvent[], reviewSymbol: string): Array<Cale
 function formatGap(value: number | null): string {
   if (value == null) return "Unresolved";
   return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
-}
-
-function getNearestNode(snapshot: CentralBankSnapshot | null): { at: number | null; label: string | null } {
-  if (!snapshot) return { at: null, label: null };
-
-  const nextAt = [snapshot.nextRateEventAt, snapshot.nextCpiEventAt]
-    .filter((value): value is number => value != null)
-    .sort((a, b) => a - b)[0] ?? null;
-
-  if (nextAt == null) return { at: null, label: null };
-  if (nextAt === snapshot.nextRateEventAt) return { at: nextAt, label: snapshot.nextRateEventTitle || formatDateOnly(nextAt) };
-  if (nextAt === snapshot.nextCpiEventAt) return { at: nextAt, label: snapshot.nextCpiEventTitle || formatDateOnly(nextAt) };
-  return { at: nextAt, label: formatDateOnly(nextAt) };
 }
 
 function getMacroSummary(reviewSymbol: string, snapshots: CentralBankSnapshot[]): PairSummary {
@@ -265,6 +255,36 @@ export function OverviewTab({
   const resolvedBanks = snapshots.filter((item) => item.status === "ok").length;
   const lastIngestLabel = formatRelativeAge(health.last_calendar_ingest_at ?? null);
 
+  // Premium Calculations
+  const pair = getFxPairByName(reviewSymbol);
+  const baseSnap = snapshots.find(s => s.currency === pair?.base);
+  const quoteSnap = snapshots.find(s => s.currency === pair?.quote);
+  
+  const currencies = adaptDashboardCurrencies(snapshots);
+  const { ranks } = deriveStrengthCurrencyRanks(currencies);
+  const baseRank = ranks.find(r => r.currency === pair?.base);
+  const quoteRank = ranks.find(r => r.currency === pair?.quote);
+
+  const isBridgeValid = health.terminal_connected && health.ok;
+  const isRiskValid = !topEvents.some(e => e.relevant && (e.time - currentTime.getTime()/1000) < 7200);
+  const isMacroValid = !macroSummary.unresolved;
+  const isStrengthValid = (baseRank?.score && quoteRank?.score) ? Math.abs(baseRank.score - quoteRank.score) > 3 : false;
+
+  const needlePosition = useMemo(() => {
+    if (!baseRank || !quoteRank) return 50;
+    const diff = baseRank.score - quoteRank.score; // Range roughly -10 to +10
+    const pos = 50 - (diff * 4); // Map to 10% - 90%
+    return Math.min(Math.max(pos, 10), 90);
+  }, [baseRank, quoteRank]);
+
+  const atrValue = atrByPair[reviewSymbol];
+  const atrGaugeWidth = useMemo(() => {
+    if (!atrValue) return 0;
+    // Assume 50 is quiet, 150 is extreme for common pairs
+    const width = ((atrValue - 40) / 160) * 100;
+    return Math.min(Math.max(width, 5), 100);
+  }, [atrValue]);
+
   useEffect(() => {
     let cancelled = false;
     const loadAtr = async () => {
@@ -290,10 +310,33 @@ export function OverviewTab({
       <div className="narrative-container">
         {/* Hero Section */}
         <section className={`narrative-hero narrative-hero-${readiness.tone}`}>
-          <div className="narrative-hero-content">
-            <h2>{readiness.title}</h2>
-            <p>{readiness.note}</p>
+          <div style={{ flex: 1 }}>
+            <div className="narrative-hero-content">
+              <h2>{readiness.title}</h2>
+              <p>{readiness.note}</p>
+            </div>
+            
+            {/* Readiness Checklist */}
+            <div className="readiness-checklist">
+              <div className={`check-item ${isBridgeValid ? "is-valid" : "is-invalid"}`}>
+                <div className="check-dot">{isBridgeValid ? <Check size={10} /> : <X size={10} />}</div>
+                Bridge Link
+              </div>
+              <div className={`check-item ${isRiskValid ? "is-valid" : "is-invalid"}`}>
+                <div className="check-dot">{isRiskValid ? <Check size={10} /> : <AlertTriangle size={10} />}</div>
+                Timing Risk
+              </div>
+              <div className={`check-item ${isMacroValid ? "is-valid" : "is-invalid"}`}>
+                <div className="check-dot">{isMacroValid ? <Check size={10} /> : <Info size={10} />}</div>
+                Macro Align
+              </div>
+              <div className={`check-item ${isStrengthValid ? "is-valid" : ""}`}>
+                <div className="check-dot">{isStrengthValid ? <TrendingUp size={10} /> : <Activity size={10} />}</div>
+                Strength Gap
+              </div>
+            </div>
           </div>
+
           <div className="narrative-hero-vitals">
             <div className="narrative-hero-stat">
               <label>MT5 Link</label>
@@ -335,26 +378,64 @@ export function OverviewTab({
                 <div className="narrative-atr-display">
                   <label>Volatility (14D ATR)</label>
                   <div className="narrative-atr-value">
-                    {atrByPair[reviewSymbol] === undefined ? "..." : atrByPair[reviewSymbol] == null ? "--" : `${atrByPair[reviewSymbol]} pips`}
+                    {atrValue === undefined ? "..." : atrValue == null ? "--" : `${atrValue} pips`}
+                  </div>
+                  {/* Volatility Visualizer */}
+                  <div className="atr-gauge-container">
+                    <div className="atr-gauge-track">
+                      <div className="atr-gauge-fill" style={{ width: `${atrGaugeWidth}%` }} />
+                    </div>
+                    <div className="atr-labels">
+                      <span>Quiet</span>
+                      <span>Extreme</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="narrative-story-block">
-                <div className="narrative-story-item">
-                  <div className="narrative-story-icon"><TrendingUp size={22} /></div>
-                  <div className="narrative-story-text">
-                    <h5>Strength Bias</h5>
-                    <p>{strengthSummary.title}</p>
-                    <div className="narrative-story-detail">{strengthSummary.detail}</div>
+              {/* Currency Duel Section */}
+              <div className="duel-container">
+                <div className="duel-side">
+                  <div className="duel-header">
+                    <span className="duel-currency">{pair?.base || "---"}</span>
+                    <FlagIcon countryCode={baseSnap?.countryCode || ""} className="h-4 w-6" />
+                  </div>
+                  <div className="duel-stat">
+                    <label>Strength</label>
+                    <span>{baseRank?.score.toFixed(1) || "0.0"} pts</span>
+                  </div>
+                  <div className="duel-stat">
+                    <label>Policy Rate</label>
+                    <span>{baseSnap?.currentPolicyRate || "---"}</span>
                   </div>
                 </div>
 
+                <div className="duel-needle-track">
+                  <div className="duel-needle" style={{ top: `${needlePosition}%` }} />
+                </div>
+
+                <div className="duel-side">
+                  <div className="duel-header" style={{ flexDirection: "row-reverse" }}>
+                    <span className="duel-currency">{pair?.quote || "---"}</span>
+                    <FlagIcon countryCode={quoteSnap?.countryCode || ""} className="h-4 w-6" />
+                  </div>
+                  <div className="duel-stat" style={{ textAlign: "right" }}>
+                    <label>Strength</label>
+                    <span>{quoteRank?.score.toFixed(1) || "0.0"} pts</span>
+                  </div>
+                  <div className="duel-stat" style={{ textAlign: "right" }}>
+                    <label>Policy Rate</label>
+                    <span>{quoteSnap?.currentPolicyRate || "---"}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="narrative-story-block" style={{ marginTop: "24px" }}>
                 <div className="narrative-story-item">
                   <div className="narrative-story-icon"><Zap size={22} /></div>
                   <div className="narrative-story-text">
-                    <h5>Macro Context</h5>
-                    <p>{macroSummary.title}</p>
+                    <h5>Bias Synthesis</h5>
+                    <p>{strengthSummary.title} {macroSummary.title}</p>
                     <div className="narrative-story-detail">{macroSummary.detail}</div>
                   </div>
                 </div>
@@ -378,20 +459,31 @@ export function OverviewTab({
               </div>
               <div className="narrative-event-card">
                 {topEvents.length > 0 ? (
-                  topEvents.map((event) => (
-                    <button key={event.id} className="narrative-event-row" onClick={() => onNavigate("calendar")}>
-                      <div className="narrative-event-top">
-                        <div className="narrative-event-title">
-                          <strong>{event.title}</strong>
-                          <span>{event.currency} • {formatUtcDateTime(event.time)}</span>
+                  topEvents.map((event) => {
+                    const diffMinutes = (event.time - currentTime.getTime() / 1000) / 60;
+                    const isUrgent = diffMinutes > 0 && diffMinutes < 60;
+                    return (
+                      <button 
+                        key={event.id} 
+                        className={`narrative-event-row ${isUrgent ? "risk-alert-pulse" : ""}`} 
+                        onClick={() => onNavigate("calendar")}
+                      >
+                        <div className="narrative-event-top">
+                          <div className="narrative-event-title">
+                            <strong>{event.title}</strong>
+                            <span>{event.currency} • {formatUtcDateTime(event.time)}</span>
+                          </div>
+                          <div className="narrative-event-countdown">
+                            {formatCountdown(event.time, currentTime.getTime())}
+                          </div>
                         </div>
-                        <div className="narrative-event-countdown">
-                          {formatCountdown(event.time, currentTime.getTime())}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <FlagIcon countryCode={event.countryCode} className="h-4 w-6" />
+                          {isUrgent && <span style={{ color: "#b91c1c", fontSize: "0.65rem", fontWeight: 800 }}>IMMINENT RISK</span>}
                         </div>
-                      </div>
-                      <FlagIcon countryCode={event.countryCode} className="h-4 w-6" />
-                    </button>
-                  ))
+                      </button>
+                    );
+                  })
                 ) : (
                   <div className="narrative-event-row">
                     <p style={{ margin: 0, fontSize: "0.85rem", color: "#6b7280" }}>No high-impact events detected in the current window.</p>

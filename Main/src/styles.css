@@ -596,6 +596,165 @@ button {
   text-decoration: underline;
 }
 
+/* Premium Refinements Styles */
+.readiness-checklist {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.check-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+.check-item.is-valid {
+  color: #111827;
+}
+
+.check-item.is-valid .check-dot {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.check-item.is-invalid .check-dot {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Currency Duel Styles */
+.duel-container {
+  display: grid;
+  grid-template-columns: 1fr 60px 1fr;
+  gap: 16px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.duel-side {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid #f3f4f6;
+}
+
+.duel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.duel-currency {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #111827;
+}
+
+.duel-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.duel-stat label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.duel-stat span {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.duel-needle-track {
+  height: 120px;
+  width: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.duel-needle {
+  position: absolute;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  background: #111827;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  transition: top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Volatility Visualizer */
+.atr-gauge-container {
+  margin-top: 8px;
+  width: 140px;
+}
+
+.atr-gauge-track {
+  height: 4px;
+  background: #f3f4f6;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.atr-gauge-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  border-radius: 2px;
+  transition: width 0.8s ease;
+}
+
+.atr-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: #9ca3af;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+/* Risk Pulse */
+@keyframes risk-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); border-color: rgba(239, 68, 68, 0.5); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); border-color: rgba(239, 68, 68, 1); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); border-color: rgba(239, 68, 68, 0.5); }
+}
+
+.risk-alert-pulse {
+  animation: risk-pulse 2s infinite;
+  background: #fff5f5 !important;
+  border-width: 1.5px !important;
+}
+
 /* Narrative Dashboard Redesign Styles (Option B) */
 .narrative-container {
   display: flex;
@@ -920,6 +1079,165 @@ button {
 .terminal-link-strip button:hover {
   color: var(--text);
   text-decoration: underline;
+}
+
+/* Premium Refinements Styles */
+.readiness-checklist {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #6b7280;
+}
+
+.check-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f3f4f6;
+  color: #9ca3af;
+}
+
+.check-item.is-valid {
+  color: #111827;
+}
+
+.check-item.is-valid .check-dot {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.check-item.is-invalid .check-dot {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Currency Duel Styles */
+.duel-container {
+  display: grid;
+  grid-template-columns: 1fr 60px 1fr;
+  gap: 16px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.duel-side {
+  background: #f9fafb;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid #f3f4f6;
+}
+
+.duel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.duel-currency {
+  font-size: 1.25rem;
+  font-weight: 900;
+  color: #111827;
+}
+
+.duel-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.duel-stat label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #9ca3af;
+}
+
+.duel-stat span {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.duel-needle-track {
+  height: 120px;
+  width: 4px;
+  background: #e5e7eb;
+  border-radius: 2px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.duel-needle {
+  position: absolute;
+  left: 50%;
+  width: 20px;
+  height: 20px;
+  background: #111827;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  transition: top 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Volatility Visualizer */
+.atr-gauge-container {
+  margin-top: 8px;
+  width: 140px;
+}
+
+.atr-gauge-track {
+  height: 4px;
+  background: #f3f4f6;
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.atr-gauge-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #38bdf8, #818cf8);
+  border-radius: 2px;
+  transition: width 0.8s ease;
+}
+
+.atr-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: #9ca3af;
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+
+/* Risk Pulse */
+@keyframes risk-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); border-color: rgba(239, 68, 68, 0.5); }
+  70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); border-color: rgba(239, 68, 68, 1); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); border-color: rgba(239, 68, 68, 0.5); }
+}
+
+.risk-alert-pulse {
+  animation: risk-pulse 2s infinite;
+  background: #fff5f5 !important;
+  border-width: 1.5px !important;
 }
 
 /* Narrative Dashboard Redesign Styles (Option B) */
