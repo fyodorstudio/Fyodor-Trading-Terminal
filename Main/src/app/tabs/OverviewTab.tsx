@@ -1,9 +1,11 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, ArrowRight, CalendarClock, ChartCandlestick, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { getCountryDisplayName } from "@/app/config/currencyConfig";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
+import { fetchHistory } from "@/app/lib/bridge";
 import { formatCountdown, formatDateOnly, formatRelativeAge, formatUtcDateTime, parseNumericValue } from "@/app/lib/format";
+import { calculateAtr14Pips } from "@/app/lib/atr";
 import { adaptDashboardCurrencies, deriveStrengthCurrencyRanks } from "@/app/lib/macroViews";
 import type { BridgeHealth, BridgeStatus, CalendarEvent, CentralBankSnapshot, MarketStatusResponse, TabId } from "@/app/types";
 
@@ -30,6 +32,8 @@ interface PairSummary {
   detail: string;
   unresolved: boolean;
 }
+
+type AtrByPair = Record<string, number | null | undefined>;
 
 function getSystemReadiness(
   health: BridgeHealth,
@@ -301,6 +305,7 @@ export function OverviewTab({
   onNavigate,
 }: OverviewTabProps) {
   const [isHealthPanelOpen, setIsHealthPanelOpen] = useState(false);
+  const [atrByPair, setAtrByPair] = useState<AtrByPair>({});
   const readiness = getSystemReadiness(health, feedStatus, marketStatus);
   const topEvents = getTopEvents(events, reviewSymbol);
   const macroSummary = useMemo(() => getMacroSummary(reviewSymbol, snapshots), [reviewSymbol, snapshots]);
@@ -321,6 +326,39 @@ export function OverviewTab({
         ? "Needs caution"
         : "Trust degraded";
 
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAtr = async () => {
+      const initialState = FX_PAIRS.reduce<AtrByPair>((accumulator, pair) => {
+        accumulator[pair.name] = undefined;
+        return accumulator;
+      }, {});
+
+      setAtrByPair(initialState);
+
+      const entries = await Promise.all(
+        FX_PAIRS.map(async (pair) => {
+          try {
+            const candles = await fetchHistory(pair.name, "D1", 60);
+            return [pair.name, calculateAtr14Pips(candles, pair.name)] as const;
+          } catch {
+            return [pair.name, null] as const;
+          }
+        }),
+      );
+
+      if (cancelled) return;
+      setAtrByPair(Object.fromEntries(entries));
+    };
+
+    void loadAtr();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <section className="tab-panel overview-panel">
       <div className="overview-workspace">
@@ -331,7 +369,7 @@ export function OverviewTab({
               <select id="overview-pair-select" value={reviewSymbol} onChange={(event) => onReviewSymbolChange(event.target.value)}>
                 {FX_PAIRS.map((pair) => (
                   <option key={pair.name} value={pair.name}>
-                    {pair.name}
+                    {pair.name}  {atrByPair[pair.name] === undefined ? "..." : atrByPair[pair.name] == null ? "--" : `${atrByPair[pair.name]} pips`}
                   </option>
                 ))}
               </select>
