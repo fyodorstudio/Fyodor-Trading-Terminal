@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowRight, CalendarClock, ChartCandlestick, ShieldCheck } from "lucide-react";
+import { 
+  AlertTriangle, ArrowRight, CalendarClock, ChartCandlestick, 
+  ShieldCheck, Zap, Info, Target, TrendingUp, Cpu, 
+  Activity, Globe, ChevronRight 
+} from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { getCountryDisplayName } from "@/app/config/currencyConfig";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
@@ -31,6 +35,7 @@ interface PairSummary {
   title: string;
   detail: string;
   unresolved: boolean;
+  value?: number; // Normalized 0-100 for gauges
 }
 
 type AtrByPair = Record<string, number | null | undefined>;
@@ -43,51 +48,49 @@ function getSystemReadiness(
   tone: "good" | "warning" | "danger";
   title: string;
   note: string;
+  color: string;
 } {
   if (!health.terminal_connected) {
     return {
       tone: "danger",
-      title: "MT5 is not connected",
-      note: "Keep the app open, then reopen MT5 and confirm the bridge and EA are running.",
+      title: "MT5 LINK SEVERED",
+      note: "Establish secure connection with MetaTrader 5 to begin analysis.",
+      color: "#f87171"
     };
   }
 
   if (!health.ok) {
     return {
       tone: "danger",
-      title: "Bridge is unavailable",
-      note: "The app is open, but the bridge is not healthy enough to trust deeper analysis yet.",
+      title: "BRIDGE CRITICAL",
+      note: "Internal health checks failed. Data integrity is unverified.",
+      color: "#f87171"
     };
   }
 
   if (feedStatus === "error" || feedStatus === "no_data") {
     return {
       tone: "danger",
-      title: "Calendar feed is not trustworthy",
-      note: "Use the calendar tab only after the bridge can ingest events again.",
+      title: "TIMING DATA LOST",
+      note: "High-impact event feed is offline. Risk radar is inactive.",
+      color: "#f87171"
     };
   }
 
   if (feedStatus === "loading" || feedStatus === "stale") {
     return {
       tone: "warning",
-      title: "System is running with stale timing context",
-      note: "Live enough to inspect, but the calendar should be treated carefully until the next successful ingest.",
-    };
-  }
-
-  if (!marketStatus || marketStatus.session_state === "unavailable") {
-    return {
-      tone: "warning",
-      title: "System is healthy, but market context is incomplete",
-      note: "Bridge and calendar are up, but the selected symbol does not have a clean market-status signal yet.",
+      title: "CONTEXT LAG DETECTED",
+      note: "Calendar feed is slightly behind. Cross-reference manually.",
+      color: "#fbbf24"
     };
   }
 
   return {
     tone: "good",
-    title: "System is ready for pre-trade review",
-    note: "MT5, bridge, calendar, and current symbol context are aligned well enough for daily use.",
+    title: "MISSION READY",
+    note: "All systems reporting green. Pair context and risk radar are active.",
+    color: "#4ade80"
   };
 }
 
@@ -98,332 +101,224 @@ function getTopEvents(events: CalendarEvent[], reviewSymbol: string): Array<Cale
   return events
     .filter((event) => event.impact === "high" && event.time >= now)
     .sort((a, b) => a.time - b.time)
-    .slice(0, 3)
+    .slice(0, 4)
     .map((event) => ({
       ...event,
       relevant: symbolCurrencies.includes(event.currency),
     }));
 }
 
-function formatGap(value: number | null): string {
-  if (value == null) return "Unresolved";
-  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
-}
-
-function getNearestNode(snapshot: CentralBankSnapshot | null): { at: number | null; label: string | null } {
-  if (!snapshot) return { at: null, label: null };
-
-  const nextAt = [snapshot.nextRateEventAt, snapshot.nextCpiEventAt]
-    .filter((value): value is number => value != null)
-    .sort((a, b) => a - b)[0] ?? null;
-
-  if (nextAt == null) return { at: null, label: null };
-  if (nextAt === snapshot.nextRateEventAt) return { at: nextAt, label: snapshot.nextRateEventTitle || formatDateOnly(nextAt) };
-  if (nextAt === snapshot.nextCpiEventAt) return { at: nextAt, label: snapshot.nextCpiEventTitle || formatDateOnly(nextAt) };
-  return { at: nextAt, label: formatDateOnly(nextAt) };
-}
-
 function getMacroSummary(reviewSymbol: string, snapshots: CentralBankSnapshot[]): PairSummary {
   const pair = getFxPairByName(reviewSymbol);
-  if (!pair) {
-    return {
-      title: `Macro picture is incomplete for ${reviewSymbol}.`,
-      detail: "The selected pair is not part of the current major-pair map.",
-      unresolved: true,
-    };
-  }
+  if (!pair) return { title: "N/A", detail: "N/A", unresolved: true };
 
   const baseSnapshot = snapshots.find((item) => item.currency === pair.base) ?? null;
   const quoteSnapshot = snapshots.find((item) => item.currency === pair.quote) ?? null;
 
-  if (!baseSnapshot || !quoteSnapshot) {
-    return {
-      title: `Macro picture is incomplete for ${reviewSymbol}.`,
-      detail: "One side of the pair is missing from the current central-bank snapshot set.",
-      unresolved: true,
-    };
-  }
+  if (!baseSnapshot || !quoteSnapshot) return { title: "INCOMPLETE", detail: "Missing Snapshots", unresolved: true };
 
   const baseRate = parseNumericValue(baseSnapshot.currentPolicyRate ?? "");
   const quoteRate = parseNumericValue(quoteSnapshot.currentPolicyRate ?? "");
-  const baseInflation = parseNumericValue(baseSnapshot.currentInflationRate ?? "");
-  const quoteInflation = parseNumericValue(quoteSnapshot.currentInflationRate ?? "");
-  const rateGap = baseRate != null && quoteRate != null ? baseRate - quoteRate : null;
-  const inflationGap = baseInflation != null && quoteInflation != null ? baseInflation - quoteInflation : null;
-
-  if (baseSnapshot.status !== "ok" || quoteSnapshot.status !== "ok") {
-    const baseNode = getNearestNode(baseSnapshot);
-    const quoteNode = getNearestNode(quoteSnapshot);
-    const unresolvedSide =
-      baseSnapshot.status !== "ok" && quoteSnapshot.status !== "ok"
-        ? `${pair.base} and ${pair.quote}`
-        : baseSnapshot.status !== "ok"
-          ? pair.base
-          : pair.quote;
-
-    const nextNodeDetail =
-      baseNode.label && quoteNode.label
-        ? `${pair.base}: ${baseNode.label} | ${pair.quote}: ${quoteNode.label}`
-        : baseNode.label
-          ? `${pair.base}: ${baseNode.label}`
-          : quoteNode.label
-            ? `${pair.quote}: ${quoteNode.label}`
-            : "No matched next node in the current MT5 window.";
-
-    return {
-      title: `Macro picture is usable but partly unresolved for ${reviewSymbol}.`,
-      detail: `${unresolvedSide} still need${unresolvedSide.includes(" and ") ? "" : "s"} a closer trust check. ${nextNodeDetail}`,
-      unresolved: true,
-    };
-  }
-
-  const sameSideBias =
-    rateGap != null &&
-    inflationGap != null &&
-    ((rateGap > 0 && inflationGap > 0) || (rateGap < 0 && inflationGap < 0));
-
-  const favoredSide = sameSideBias ? (rateGap! > 0 ? pair.base : pair.quote) : null;
+  const rateGap = baseRate != null && quoteRate != null ? baseRate - quoteRate : 0;
+  
+  // Normalize rateGap (-5% to +5%) to 0-100%
+  const normalized = Math.min(Math.max(((rateGap + 5) / 10) * 100, 0), 100);
 
   return {
-    title: sameSideBias
-      ? `${favoredSide} has the cleaner macro picture vs ${favoredSide === pair.base ? pair.quote : pair.base}.`
-      : `Macro picture is mixed for ${reviewSymbol}.`,
-    detail: `Rate gap: ${formatGap(rateGap)} | Inflation gap: ${formatGap(inflationGap)}`,
-    unresolved: false,
+    title: "Macro Gap",
+    detail: `${rateGap >= 0 ? "+" : ""}${rateGap.toFixed(2)}%`,
+    unresolved: baseSnapshot.status !== "ok" || quoteSnapshot.status !== "ok",
+    value: normalized
   };
 }
 
-function getStrengthDifferentialSummary(reviewSymbol: string, snapshots: CentralBankSnapshot[]): PairSummary {
+function getStrengthSummary(reviewSymbol: string, snapshots: CentralBankSnapshot[]): PairSummary {
   const pair = getFxPairByName(reviewSymbol);
-  if (!pair) {
-    return {
-      title: `Strength ranking is unresolved for one side of ${reviewSymbol}.`,
-      detail: "Pair map is unavailable for the selected symbol.",
-      unresolved: true,
-    };
-  }
+  if (!pair) return { title: "N/A", detail: "N/A", unresolved: true };
 
   const currencies = adaptDashboardCurrencies(snapshots);
   const { ranks } = deriveStrengthCurrencyRanks(currencies);
   const baseRank = ranks.find((item) => item.currency === pair.base) ?? null;
   const quoteRank = ranks.find((item) => item.currency === pair.quote) ?? null;
 
-  const baseSnapshot = snapshots.find((item) => item.currency === pair.base) ?? null;
-  const quoteSnapshot = snapshots.find((item) => item.currency === pair.quote) ?? null;
-  const baseRate = parseNumericValue(baseSnapshot?.currentPolicyRate ?? "");
-  const quoteRate = parseNumericValue(quoteSnapshot?.currentPolicyRate ?? "");
-  const baseInflation = parseNumericValue(baseSnapshot?.currentInflationRate ?? "");
-  const quoteInflation = parseNumericValue(quoteSnapshot?.currentInflationRate ?? "");
-  const rateGap = baseRate != null && quoteRate != null ? baseRate - quoteRate : null;
-  const inflationGap = baseInflation != null && quoteInflation != null ? baseInflation - quoteInflation : null;
+  if (!baseRank || !quoteRank) return { title: "INCOMPLETE", detail: "Ranks Missing", unresolved: true };
 
-  if (!baseRank || !quoteRank) {
-    return {
-      title: `Strength ranking is unresolved for one side of ${reviewSymbol}.`,
-      detail: `Rate difference: ${formatGap(rateGap)} | Inflation difference: ${formatGap(inflationGap)}`,
-      unresolved: true,
-    };
-  }
-
-  const stronger = baseRank.score >= quoteRank.score ? baseRank : quoteRank;
-  const weaker = stronger.currency === baseRank.currency ? quoteRank : baseRank;
+  const diff = baseRank.score - quoteRank.score;
+  // Normalize diff (-20 to +20) to 0-100%
+  const normalized = Math.min(Math.max(((diff + 20) / 40) * 100, 0), 100);
 
   return {
-    title: `${stronger.currency} ranks stronger than ${weaker.currency} by ${(stronger.score - weaker.score).toFixed(1)} points.`,
-    detail: `Rate difference: ${formatGap(rateGap)} | Inflation difference: ${formatGap(inflationGap)}`,
-    unresolved: rateGap == null || inflationGap == null,
+    title: "Strength Diff",
+    detail: `${diff >= 0 ? "+" : ""}${diff.toFixed(1)} pts`,
+    unresolved: false,
+    value: normalized
   };
 }
 
 function getAttentionActions(
-  readinessTone: "good" | "warning" | "danger",
+  readinessTone: string,
   reviewSymbol: string,
   events: Array<CalendarEvent & { relevant: boolean }>,
-  macroSummary: PairSummary,
-  strengthSummary: PairSummary,
 ): ActionItem[] {
   const actions: ActionItem[] = [];
-
-  if (readinessTone !== "good") {
-    actions.push({
-      tab: "calendar",
-      label: "Resolve feed or timing trust first",
-      detail: "Confirm the ingest window and timing context before leaning on the rest of the terminal.",
-    });
-  }
-
-  if (events.some((event) => event.relevant)) {
-    actions.push({
-      tab: "calendar",
-      label: `Review Economic Calendar for ${reviewSymbol}`,
-      detail: "A high-impact event touches this pair, so timing risk deserves a closer look.",
-    });
-  }
-
-  if (macroSummary.unresolved) {
-    actions.push({
-      tab: "central-banks",
-      label: `Check Central Banks Data for ${reviewSymbol}`,
-      detail: "At least one side of the pair still needs a deeper macro trust check.",
-    });
-  }
-
-  if (strengthSummary.unresolved) {
-    actions.push({
-      tab: "dashboard",
-      label: `Check Differential Calculator for ${reviewSymbol}`,
-      detail: "Compare the raw rate and inflation differences directly before you move into technical analysis.",
-    });
-  }
-
-  actions.push({
-    tab: "charts",
-    label: "Review Charts for technical setup",
-    detail: "Move into price structure, levels, and risk-to-reward only after the pair still looks worth attention.",
-  });
-
+  if (readinessTone !== "good") actions.push({ tab: "calendar", label: "System Health", detail: "Check connectivity" });
+  if (events.some(e => e.relevant)) actions.push({ tab: "calendar", label: "Risk Event", detail: "High impact detected" });
+  actions.push({ tab: "central-banks", label: "Macro Deep-Dive", detail: "Review snapshots" });
+  actions.push({ tab: "charts", label: "Open Charts", detail: "Technical setup" });
   return actions.slice(0, 3);
 }
 
-function renderFeedLabel(status: BridgeStatus): string {
-  if (status === "live") return "Live";
-  if (status === "stale") return "Stale";
-  if (status === "loading") return "Loading";
-  if (status === "no_data") return "No data";
-  return "Error";
-}
-
 export function OverviewTab({
-  currentTime,
-  health,
-  feedStatus,
-  marketStatus,
-  reviewSymbol,
-  onReviewSymbolChange,
-  events,
-  snapshots,
-  onNavigate,
+  currentTime, health, feedStatus, marketStatus, 
+  reviewSymbol, onReviewSymbolChange, events, snapshots, onNavigate
 }: OverviewTabProps) {
   const [atrByPair, setAtrByPair] = useState<AtrByPair>({});
   const readiness = getSystemReadiness(health, feedStatus, marketStatus);
   const topEvents = getTopEvents(events, reviewSymbol);
-  const macroSummary = useMemo(() => getMacroSummary(reviewSymbol, snapshots), [reviewSymbol, snapshots]);
-  const strengthSummary = useMemo(() => getStrengthDifferentialSummary(reviewSymbol, snapshots), [reviewSymbol, snapshots]);
-  const actions = getAttentionActions(readiness.tone, reviewSymbol, topEvents, macroSummary, strengthSummary);
-  const resolvedBanks = snapshots.filter((item) => item.status === "ok").length;
+  const macro = useMemo(() => getMacroSummary(reviewSymbol, snapshots), [reviewSymbol, snapshots]);
+  const strength = useMemo(() => getStrengthSummary(reviewSymbol, snapshots), [reviewSymbol, snapshots]);
+  const actions = getAttentionActions(readiness.tone, reviewSymbol, topEvents);
   const lastIngestLabel = formatRelativeAge(health.last_calendar_ingest_at ?? null);
-  const marketLabel =
-    marketStatus?.session_state === "open"
-      ? `${reviewSymbol} session is open`
-      : marketStatus?.session_state === "closed"
-        ? `${reviewSymbol} session is closed`
-        : `${reviewSymbol} session is unavailable`;
-  const panelSummary =
-    readiness.tone === "good"
-      ? "System healthy"
-      : readiness.tone === "warning"
-        ? "Needs caution"
-        : "Trust degraded";
-  const featuredEvent = topEvents[0] ?? null;
-  const followupEvents = topEvents.slice(1);
-  const primaryActions = actions.slice(0, 2);
-  const overflowAction = actions[2] ?? null;
 
   useEffect(() => {
     let cancelled = false;
-
     const loadAtr = async () => {
-      const initialState = FX_PAIRS.reduce<AtrByPair>((accumulator, pair) => {
-        accumulator[pair.name] = undefined;
-        return accumulator;
-      }, {});
-
-      setAtrByPair(initialState);
-
-      const entries = await Promise.all(
-        FX_PAIRS.map(async (pair) => {
-          try {
-            const candles = await fetchHistory(pair.name, "D1", 60);
-            return [pair.name, calculateAtr14Pips(candles, pair.name)] as const;
-          } catch {
-            return [pair.name, null] as const;
-          }
-        }),
-      );
-
-      if (cancelled) return;
-      setAtrByPair(Object.fromEntries(entries));
+      const entries = await Promise.all(FX_PAIRS.map(async (pair) => {
+        try {
+          const candles = await fetchHistory(pair.name, "D1", 60);
+          return [pair.name, calculateAtr14Pips(candles, pair.name)] as const;
+        } catch { return [pair.name, null] as const; }
+      }));
+      if (!cancelled) setAtrByPair(Object.fromEntries(entries));
     };
-
     void loadAtr();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   return (
-    <section className="tab-panel overview-panel">
-      <div className="terminal-grid">
-        {/* Column 1: System Vitals */}
-        <div className="terminal-column">
-          <div className="terminal-card">
-            <div className="terminal-card-header">
-              <ShieldCheck size={14} />
-              <h3>System Vitals</h3>
-            </div>
-            <div className="terminal-card-body">
-              <div className={`terminal-verdict-banner terminal-verdict-banner-${readiness.tone}`}>
-                <strong>{readiness.title}</strong>
-                <p>{readiness.note}</p>
+    <section className="tab-panel overview-panel" style={{ background: "#08090d", padding: "20px", borderRadius: "24px" }}>
+      <div className="hud-container">
+        {/* Topbar */}
+        <div className="hud-topbar">
+          <div className="hud-system-status">
+            <div className="hud-status-node">
+              <label>MT5 Link</label>
+              <div className="hud-status-value">
+                <div className="hud-glow-dot" style={{ color: health.terminal_connected ? "#4ade80" : "#f87171" }} />
+                {health.terminal_connected ? "ACTIVE" : "OFFLINE"}
               </div>
-              <div className="terminal-vitals-list">
-                <div className="terminal-vital-item">
-                  <label>MT5 Bridge</label>
-                  <span className={health.terminal_connected ? "status-text-live" : "status-text-error"}>
-                    {health.terminal_connected ? "CONNECTED" : "DISCONNECTED"}
-                  </span>
+            </div>
+            <div className="hud-status-node">
+              <label>Risk Feed</label>
+              <div className="hud-status-value">
+                <div className="hud-glow-dot" style={{ color: feedStatus === "live" ? "#4ade80" : "#fbbf24" }} />
+                {feedStatus.toUpperCase()}
+              </div>
+            </div>
+          </div>
+          <div className="hud-system-status">
+            <div className="hud-status-node" style={{ textAlign: "right" }}>
+              <label>Session</label>
+              <div className="hud-status-value" style={{ justifyContent: "flex-end" }}>
+                {marketStatus?.session_state.toUpperCase() || "UNKNOWN"}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="hud-main-layout">
+          {/* Left Column: Gauges */}
+          <div className="hud-column">
+            <div className="hud-card">
+              <div className="hud-card-head">
+                <Activity size={12} />
+                <h4>Synthesized Backdrop</h4>
+              </div>
+              <div className="hud-gauge-group">
+                <div className="hud-gauge">
+                  <div className="hud-gauge-labels">
+                    <span>{macro.title}</span>
+                    <span>{macro.detail}</span>
+                  </div>
+                  <div className="hud-gauge-track">
+                    <div className="hud-gauge-center" />
+                    <div className="hud-gauge-fill" style={{ width: `${macro.value}%`, background: macro.unresolved ? "#64748b" : "#38bdf8" }} />
+                  </div>
                 </div>
-                <div className="terminal-vital-item">
-                  <label>Data Feed</label>
-                  <span className={`status-text-${feedStatus}`}>
-                    {renderFeedLabel(feedStatus).toUpperCase()}
-                  </span>
+                <div className="hud-gauge">
+                  <div className="hud-gauge-labels">
+                    <span>{strength.title}</span>
+                    <span>{strength.detail}</span>
+                  </div>
+                  <div className="hud-gauge-track">
+                    <div className="hud-gauge-center" />
+                    <div className="hud-gauge-fill" style={{ width: `${strength.value}%`, background: "#818cf8" }} />
+                  </div>
                 </div>
-                <div className="terminal-vital-item">
-                  <label>Session</label>
-                  <span className={marketStatus?.session_state === "open" ? "status-text-live" : "status-text-stale"}>
-                    {(marketStatus?.session_state || "unknown").toUpperCase()}
-                  </span>
-                </div>
-                <div className="terminal-vital-item">
-                  <label>Ingest</label>
-                  <span className="terminal-mono">{lastIngestLabel}</span>
-                </div>
-                <div className="terminal-vital-item">
-                  <label>Bank Data</label>
-                  <span className="terminal-mono">{resolvedBanks}/8 RESOLVED</span>
-                </div>
+              </div>
+              <div className="terminal-link-strip" style={{ marginTop: "24px", borderTop: "1px solid #1e293b" }}>
+                <button onClick={() => onNavigate("central-banks")}>Banks</button>
+                <button onClick={() => onNavigate("strength-meter")}>Meter</button>
               </div>
             </div>
           </div>
 
-          <div className="terminal-card">
-            <div className="terminal-card-header">
-              <ArrowRight size={14} />
-              <h3>Next Move</h3>
+          {/* Center Column: Core Hub */}
+          <div className="hud-core-widget">
+            <div className={`hud-core-ring ${readiness.tone === "good" ? "hud-core-ring-active" : ""}`} />
+            <div className="hud-pair-display">
+              <select 
+                className="hud-pair-select"
+                value={reviewSymbol} 
+                onChange={(event) => onReviewSymbolChange(event.target.value)}
+              >
+                {FX_PAIRS.map((pair) => (
+                  <option key={pair.name} value={pair.name}>{pair.name}</option>
+                ))}
+              </select>
+              <div className="hud-atr-vol">
+                {atrByPair[reviewSymbol] || "--"} PIPS ATR
+              </div>
             </div>
-            <div className="terminal-card-body" style={{ padding: "8px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-                {actions.map((action) => (
-                  <button
-                    key={`${action.tab}-${action.label}`}
-                    type="button"
-                    className="terminal-action-button"
-                    onClick={() => onNavigate(action.tab)}
-                  >
-                    <strong>{action.label}</strong>
-                    <span>{action.detail}</span>
+            <div className="hud-verdict-tag" style={{ color: readiness.color, borderColor: readiness.color }}>
+              {readiness.title}
+            </div>
+          </div>
+
+          {/* Right Column: Radar & Actions */}
+          <div className="hud-column">
+            <div className="hud-card">
+              <div className="hud-card-head">
+                <CalendarClock size={12} />
+                <h4>Risk Radar</h4>
+              </div>
+              <div className="hud-event-list">
+                {topEvents.map(event => (
+                  <button key={event.id} className="hud-event-row" onClick={() => onNavigate("calendar")}>
+                    <FlagIcon countryCode={event.countryCode} className="h-3 w-4" />
+                    <div className="hud-event-info">
+                      <strong>{event.title}</strong>
+                      <span>{event.currency} • {formatUtcDateTime(event.time)}</span>
+                    </div>
+                    <div className="hud-event-countdown">{formatCountdown(event.time, currentTime.getTime())}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="hud-card">
+              <div className="hud-card-head">
+                <Cpu size={12} />
+                <h4>Next Directive</h4>
+              </div>
+              <div className="hud-action-list">
+                {actions.map(action => (
+                  <button key={action.label} className="hud-action-button" onClick={() => onNavigate(action.tab)}>
+                    <div style={{ flex: 1 }}>
+                      <strong>{action.label}</strong>
+                      <span>{action.detail}</span>
+                    </div>
+                    <ChevronRight size={14} />
                   </button>
                 ))}
               </div>
@@ -431,110 +326,15 @@ export function OverviewTab({
           </div>
         </div>
 
-        {/* Column 2: Pair Intel */}
-        <div className="terminal-column">
-          <div className="terminal-card" style={{ minHeight: "100%" }}>
-            <div className="terminal-card-header">
-              <ChartCandlestick size={14} />
-              <h3>Pair Intel</h3>
-            </div>
-            <div className="terminal-card-body">
-              <div className="terminal-pair-header">
-                <div className="terminal-pair-select-wrapper">
-                  <span>Target Symbol</span>
-                  <select 
-                    className="terminal-pair-select"
-                    value={reviewSymbol} 
-                    onChange={(event) => onReviewSymbolChange(event.target.value)}
-                  >
-                    {FX_PAIRS.map((pair) => (
-                      <option key={pair.name} value={pair.name}>{pair.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="terminal-atr-badge">
-                  <span>ATR (14D)</span>
-                  <div className="terminal-atr-value terminal-mono">
-                    {atrByPair[reviewSymbol] === undefined ? "..." : atrByPair[reviewSymbol] == null ? "--" : `${atrByPair[reviewSymbol]} pips`}
-                  </div>
-                </div>
-              </div>
-
-              <div className="terminal-intel-section">
-                <div className="terminal-intel-block">
-                  <strong>Macro Backdrop</strong>
-                  <p>{macroSummary.title}</p>
-                  <div className="terminal-intel-meta terminal-mono">{macroSummary.detail}</div>
-                </div>
-
-                <div className="terminal-intel-block">
-                  <strong>Strength Differential</strong>
-                  <p>{strengthSummary.title}</p>
-                  <div className="terminal-intel-meta terminal-mono">{strengthSummary.detail}</div>
-                </div>
-
-                <div className="terminal-link-strip">
-                  <button onClick={() => onNavigate("central-banks")}>Banks</button>
-                  <button onClick={() => onNavigate("strength-meter")}>Meter</button>
-                  <button onClick={() => onNavigate("dashboard")}>Diff</button>
-                  <button onClick={() => onNavigate("charts")}>Charts</button>
-                </div>
-              </div>
-            </div>
+        {/* Footer */}
+        <div className="hud-footer">
+          <div className="hud-footer-item">
+            <Globe size={12} />
+            INGEST: {lastIngestLabel.toUpperCase()}
           </div>
-        </div>
-
-        {/* Column 3: Event Horizon */}
-        <div className="terminal-column">
-          <div className="terminal-card">
-            <div className="terminal-card-header">
-              <CalendarClock size={14} />
-              <h3>Event Horizon</h3>
-            </div>
-            <div className="terminal-event-list">
-              {topEvents.length > 0 ? (
-                topEvents.map((event) => (
-                  <button
-                    key={event.id}
-                    className="terminal-event-row"
-                    onClick={() => onNavigate("calendar")}
-                  >
-                    <div className="terminal-event-top">
-                      <div className="terminal-event-identity">
-                        <FlagIcon countryCode={event.countryCode} className="h-4 w-6" />
-                        <strong>{event.title}</strong>
-                      </div>
-                      <div className="terminal-event-countdown terminal-mono">
-                        {formatCountdown(event.time, currentTime.getTime())}
-                      </div>
-                    </div>
-                    <div className="terminal-event-details">
-                      <span>{event.currency} • {formatUtcDateTime(event.time)}</span>
-                      <span className={`terminal-relevance-pill ${event.relevant ? "is-active" : ""}`}>
-                        {event.relevant ? "RELEVANT" : "GLOBAL"}
-                      </span>
-                    </div>
-                  </button>
-                ))
-              ) : (
-                <div className="terminal-card-body">
-                  <p className="status-text-subtle" style={{ margin: 0, fontSize: "0.84rem" }}>
-                    No high-impact events in window.
-                  </p>
-                </div>
-              )}
-            </div>
-            {topEvents.length > 0 && (
-              <div className="terminal-card-body" style={{ borderTop: "1px solid var(--line)", padding: "8px 12px" }}>
-                <button 
-                  className="overview-inline-link" 
-                  onClick={() => onNavigate("calendar")}
-                  style={{ fontSize: "0.75rem" }}
-                >
-                  View full calendar
-                </button>
-              </div>
-            )}
+          <div className="hud-footer-item">
+            <Target size={12} />
+            NODES: {snapshots.filter(s => s.status === "ok").length}/8
           </div>
         </div>
       </div>
