@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowRight, CalendarClock, ChartCandlestick, ChevronLeft, ChevronRight, ShieldCheck } from "lucide-react";
+import { AlertTriangle, ArrowRight, CalendarClock, ChartCandlestick, ShieldCheck } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { getCountryDisplayName } from "@/app/config/currencyConfig";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
@@ -304,7 +304,6 @@ export function OverviewTab({
   snapshots,
   onNavigate,
 }: OverviewTabProps) {
-  const [isHealthPanelOpen, setIsHealthPanelOpen] = useState(false);
   const [atrByPair, setAtrByPair] = useState<AtrByPair>({});
   const readiness = getSystemReadiness(health, feedStatus, marketStatus);
   const topEvents = getTopEvents(events, reviewSymbol);
@@ -361,11 +360,11 @@ export function OverviewTab({
 
   return (
     <section className="tab-panel overview-panel">
-      <div className="overview-workspace">
-        <div className="overview-main">
-          <section className="overview-selector-card">
+      <div className="overview-sheet">
+        <section className={`overview-briefing-shell overview-briefing-shell-${readiness.tone}`}>
+          <div className="overview-briefing-topbar">
             <label className="overview-selector-label" htmlFor="overview-pair-select">
-              <span>Select Pair to Review</span>
+              <span>Pair</span>
               <select id="overview-pair-select" value={reviewSymbol} onChange={(event) => onReviewSymbolChange(event.target.value)}>
                 {FX_PAIRS.map((pair) => (
                   <option key={pair.name} value={pair.name}>
@@ -374,211 +373,190 @@ export function OverviewTab({
                 ))}
               </select>
             </label>
-          </section>
 
-          <div className={`overview-brief overview-brief-${readiness.tone}`}>
-            <div className="overview-brief-copy">
-              <div className="overview-brief-icon" aria-hidden="true">
-                {readiness.tone === "danger" ? <AlertTriangle size={18} /> : <ShieldCheck size={18} />}
-              </div>
-              <div>
-                <h2>{readiness.title}</h2>
-                <p>{readiness.note}</p>
-              </div>
+            <div className="overview-briefing-status">
+              <span className="overview-briefing-status-label">Readiness</span>
+              <strong>{panelSummary}</strong>
+              <span>{marketLabel}</span>
             </div>
-            <div className="overview-brief-metrics">
-              <div className="overview-brief-metric">
+
+            <div className="overview-briefing-facts" aria-label="Overview status facts">
+              <div className="overview-briefing-fact">
                 <span>Calendar ingest</span>
                 <strong>{lastIngestLabel}</strong>
               </div>
-              <div className="overview-brief-metric">
+              <div className="overview-briefing-fact">
                 <span>Macro resolution</span>
                 <strong>{resolvedBanks}/8 banks resolved</strong>
               </div>
-              <div className="overview-brief-metric">
+              <div className="overview-briefing-fact">
                 <span>Selected symbol</span>
-                <strong>{marketLabel}</strong>
+                <strong>{reviewSymbol}</strong>
               </div>
             </div>
           </div>
 
-          <section className="overview-card">
-            <div className="overview-card-head">
-              <div className="overview-card-icon" aria-hidden="true">
-                <CalendarClock size={18} />
-              </div>
-              <div>
-                <h3>Event horizon</h3>
-                <p>The next high-impact events that may change your priorities for {reviewSymbol}.</p>
-              </div>
+          <div className="overview-briefing-banner">
+            <div className="overview-brief-icon" aria-hidden="true">
+              {readiness.tone === "danger" ? <AlertTriangle size={18} /> : <ShieldCheck size={18} />}
             </div>
+            <div className="overview-briefing-copy">
+              <h2>{readiness.title}</h2>
+              <p>{readiness.note}</p>
+            </div>
+          </div>
 
-            {topEvents.length === 0 ? (
-              <div className="overview-empty">
-                <p>No high-impact events are scheduled in the current bridge window.</p>
+          <div className="overview-briefing-sections">
+            <section className="overview-brief-section">
+              <div className="overview-section-head">
+                <strong>Trust and readiness</strong>
+                <span>Quick trust check for this review pass.</span>
               </div>
-            ) : (
-              <div className="overview-event-list">
-                {topEvents.map((event) => (
-                  <button
-                    key={event.id}
-                    type="button"
-                    className="overview-event-row"
-                    onClick={() => onNavigate("calendar")}
-                  >
-                    <div className="overview-event-main">
-                      <FlagIcon countryCode={event.countryCode} className="h-5 w-7" />
-                      <div>
-                        <strong>{event.title}</strong>
-                        <span>
-                          {event.currency} - {getCountryDisplayName(event.countryCode)} - {formatUtcDateTime(event.time)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="overview-event-meta">
-                      <strong>{formatCountdown(event.time, currentTime.getTime())}</strong>
-                      <span className={event.relevant ? "overview-relevance is-relevant" : "overview-relevance"}>
-                        {event.relevant ? "Touches current pair" : "Global watch"}
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
 
-          <div className="overview-grid-summary">
-            <section className="overview-card">
-              <div className="overview-card-head">
-                <div className="overview-card-icon" aria-hidden="true">
-                  <ShieldCheck size={18} />
+              <div className="overview-health-grid">
+                <div className="overview-health-cell">
+                  <span>MT5 connection</span>
+                  <strong>{health.terminal_connected ? "Connected" : "Waiting for MT5"}</strong>
                 </div>
-                <div>
-                  <h3>Macro snapshot</h3>
-                  <p>Plain-English macro context for the pair you are about to review.</p>
+                <div className="overview-health-cell">
+                  <span>Bridge state</span>
+                  <strong>{health.ok ? "Healthy" : "Unavailable"}</strong>
                 </div>
-              </div>
-
-              <div className="overview-summary-card">
-                <strong>{macroSummary.title}</strong>
-                <p>{macroSummary.detail}</p>
-                <button type="button" className="overview-inline-link" onClick={() => onNavigate("central-banks")}>
-                  Open Central Banks Data
-                </button>
+                <div className="overview-health-cell">
+                  <span>Calendar feed</span>
+                  <strong>{renderFeedLabel(feedStatus)}</strong>
+                </div>
+                <div className="overview-health-cell">
+                  <span>Current symbol context</span>
+                  <strong>{marketLabel}</strong>
+                </div>
               </div>
             </section>
 
-            <section className="overview-card">
+            <section className="overview-brief-section">
+              <div className="overview-card-head">
+                <div className="overview-card-icon" aria-hidden="true">
+                  <CalendarClock size={18} />
+                </div>
+                <div>
+                  <h3>Event horizon</h3>
+                  <p>The next high-impact events that may change your priorities for {reviewSymbol}.</p>
+                </div>
+              </div>
+
+              {topEvents.length === 0 ? (
+                <div className="overview-empty">
+                  <p>No high-impact events are scheduled in the current bridge window.</p>
+                </div>
+              ) : (
+                <div className="overview-event-list">
+                  {topEvents.map((event, index) => (
+                    <button
+                      key={event.id}
+                      type="button"
+                      className={`overview-event-row ${index === 0 ? "is-primary" : ""}`}
+                      onClick={() => onNavigate("calendar")}
+                    >
+                      <div className="overview-event-main">
+                        <FlagIcon countryCode={event.countryCode} className="h-5 w-7" />
+                        <div>
+                          <strong>{event.title}</strong>
+                          <span>
+                            {event.currency} - {getCountryDisplayName(event.countryCode)} - {formatUtcDateTime(event.time)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="overview-event-meta">
+                        <strong>{formatCountdown(event.time, currentTime.getTime())}</strong>
+                        <span className={event.relevant ? "overview-relevance is-relevant" : "overview-relevance"}>
+                          {event.relevant ? "Touches current pair" : "Global watch"}
+                        </span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="overview-brief-section">
+              <div className="overview-briefing-grid">
+                <section className="overview-card">
+                  <div className="overview-card-head">
+                    <div className="overview-card-icon" aria-hidden="true">
+                      <ShieldCheck size={18} />
+                    </div>
+                    <div>
+                      <h3>Macro snapshot</h3>
+                      <p>Plain-English macro context for the pair you are about to review.</p>
+                    </div>
+                  </div>
+
+                  <div className="overview-summary-card">
+                    <strong>{macroSummary.title}</strong>
+                    <p>{macroSummary.detail}</p>
+                    <button type="button" className="overview-inline-link" onClick={() => onNavigate("central-banks")}>
+                      Open Central Banks Data
+                    </button>
+                  </div>
+                </section>
+
+                <section className="overview-card">
+                  <div className="overview-card-head">
+                    <div className="overview-card-icon" aria-hidden="true">
+                      <ChartCandlestick size={18} />
+                    </div>
+                    <div>
+                      <h3>Strength &amp; differential summary</h3>
+                      <p>Quick pair edge context before you move into deeper review or technical analysis.</p>
+                    </div>
+                  </div>
+
+                  <div className="overview-summary-card">
+                    <strong>{strengthSummary.title}</strong>
+                    <p>{strengthSummary.detail}</p>
+                    <div className="overview-inline-actions">
+                      <button type="button" className="overview-inline-link" onClick={() => onNavigate("strength-meter")}>
+                        Open Strength Meter
+                      </button>
+                      <button type="button" className="overview-inline-link" onClick={() => onNavigate("dashboard")}>
+                        Open Differential Calculator
+                      </button>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </section>
+
+            <section className="overview-brief-section">
               <div className="overview-card-head">
                 <div className="overview-card-icon" aria-hidden="true">
                   <ChartCandlestick size={18} />
                 </div>
                 <div>
-                  <h3>Strength &amp; differential summary</h3>
-                  <p>Quick pair edge context before you move into deeper review or technical analysis.</p>
+                  <h3>Priority next actions</h3>
+                  <p>Use these only after the pair still looks worth your attention at a glance.</p>
                 </div>
               </div>
 
-              <div className="overview-summary-card">
-                <strong>{strengthSummary.title}</strong>
-                <p>{strengthSummary.detail}</p>
-                <div className="overview-inline-actions">
-                  <button type="button" className="overview-inline-link" onClick={() => onNavigate("strength-meter")}>
-                    Open Strength Meter
+              <div className="overview-action-list">
+                {actions.map((action) => (
+                  <button
+                    key={`${action.tab}-${action.label}`}
+                    type="button"
+                    className="overview-action-row"
+                    onClick={() => onNavigate(action.tab)}
+                  >
+                    <div>
+                      <strong>{action.label}</strong>
+                      <span>{action.detail}</span>
+                    </div>
+                    <ArrowRight size={16} />
                   </button>
-                  <button type="button" className="overview-inline-link" onClick={() => onNavigate("dashboard")}>
-                    Open Differential Calculator
-                  </button>
-                </div>
+                ))}
               </div>
             </section>
           </div>
-
-          <section className="overview-card">
-            <div className="overview-card-head">
-              <div className="overview-card-icon" aria-hidden="true">
-                <ChartCandlestick size={18} />
-              </div>
-              <div>
-                <h3>Priority next actions</h3>
-                <p>Use these only after the pair still looks worth your attention at a glance.</p>
-              </div>
-            </div>
-
-            <div className="overview-action-list">
-              {actions.map((action) => (
-                <button
-                  key={`${action.tab}-${action.label}`}
-                  type="button"
-                  className="overview-action-row"
-                  onClick={() => onNavigate(action.tab)}
-                >
-                  <div>
-                    <strong>{action.label}</strong>
-                    <span>{action.detail}</span>
-                  </div>
-                  <ArrowRight size={16} />
-                </button>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <aside className={`overview-health-panel overview-health-panel-${readiness.tone} ${isHealthPanelOpen ? "is-open" : "is-collapsed"}`}>
-          <button
-            type="button"
-            className="overview-health-toggle"
-            onClick={() => setIsHealthPanelOpen((prev) => !prev)}
-            aria-expanded={isHealthPanelOpen}
-            aria-controls="overview-health-panel-body"
-          >
-            <div className="overview-health-toggle-copy">
-              <span className="overview-health-kicker">Data health</span>
-              <strong>{panelSummary}</strong>
-              <p>{readiness.tone === "good" ? "Review trust details only when you need them." : readiness.note}</p>
-            </div>
-            <span className="overview-health-toggle-icon" aria-hidden="true">
-              {isHealthPanelOpen ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-            </span>
-          </button>
-
-          <div id="overview-health-panel-body" className="overview-health-body">
-            <div className="overview-health-head">
-              <strong>Data health checklist</strong>
-              <span>Trust details for {reviewSymbol}</span>
-            </div>
-
-            <div className="overview-checklist">
-              <div className="overview-check-row">
-                <span>MT5 connection</span>
-                <strong>{health.terminal_connected ? "Connected" : "Waiting for MT5"}</strong>
-              </div>
-              <div className="overview-check-row">
-                <span>Bridge state</span>
-                <strong>{health.ok ? "Healthy" : "Unavailable"}</strong>
-              </div>
-              <div className="overview-check-row">
-                <span>Calendar feed</span>
-                <strong>{renderFeedLabel(feedStatus)}</strong>
-              </div>
-              <div className="overview-check-row">
-                <span>Current symbol context</span>
-                <strong>{marketLabel}</strong>
-              </div>
-            </div>
-
-            <div className="overview-health-meta">
-              <div className="overview-health-meta-row">
-                <span>Last calendar ingest</span>
-                <strong>{lastIngestLabel}</strong>
-              </div>
-              <div className="overview-health-meta-row">
-                <span>Review pair</span>
-                <strong>{reviewSymbol}</strong>
-              </div>
-            </div>
-          </div>
-        </aside>
+        </section>
       </div>
     </section>
   );
