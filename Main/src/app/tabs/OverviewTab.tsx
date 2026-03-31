@@ -324,6 +324,10 @@ export function OverviewTab({
       : readiness.tone === "warning"
         ? "Needs caution"
         : "Trust degraded";
+  const featuredEvent = topEvents[0] ?? null;
+  const followupEvents = topEvents.slice(1);
+  const primaryActions = actions.slice(0, 2);
+  const overflowAction = actions[2] ?? null;
 
   useEffect(() => {
     let cancelled = false;
@@ -360,9 +364,9 @@ export function OverviewTab({
 
   return (
     <section className="tab-panel overview-panel">
-      <div className="overview-sheet">
-        <section className={`overview-briefing-shell overview-briefing-shell-${readiness.tone}`}>
-          <div className="overview-briefing-topbar">
+      <div className="overview-brief">
+        <section className={`overview-brief-shell overview-brief-shell-${readiness.tone}`}>
+          <div className="overview-brief-topbar">
             <label className="overview-selector-label" htmlFor="overview-pair-select">
               <span>Pair</span>
               <select id="overview-pair-select" value={reviewSymbol} onChange={(event) => onReviewSymbolChange(event.target.value)}>
@@ -374,65 +378,25 @@ export function OverviewTab({
               </select>
             </label>
 
-            <div className="overview-briefing-status">
-              <span className="overview-briefing-status-label">Readiness</span>
-              <strong>{panelSummary}</strong>
-              <span>{marketLabel}</span>
-            </div>
-
-            <div className="overview-briefing-facts" aria-label="Overview status facts">
-              <div className="overview-briefing-fact">
-                <span>Calendar ingest</span>
-                <strong>{lastIngestLabel}</strong>
-              </div>
-              <div className="overview-briefing-fact">
-                <span>Macro resolution</span>
-                <strong>{resolvedBanks}/8 banks resolved</strong>
-              </div>
-              <div className="overview-briefing-fact">
-                <span>Selected symbol</span>
-                <strong>{reviewSymbol}</strong>
-              </div>
+            <div className="overview-brief-facts" aria-label="Overview status facts">
+              <span><strong>{panelSummary}</strong></span>
+              <span><strong>Ingest:</strong> {lastIngestLabel}</span>
+              <span><strong>Session:</strong> {marketStatus?.session_state ?? "unavailable"}</span>
+              <span><strong>Resolved:</strong> {resolvedBanks}/8 banks</span>
             </div>
           </div>
 
-          <div className="overview-briefing-banner">
+          <div className="overview-brief-verdict">
             <div className="overview-brief-icon" aria-hidden="true">
               {readiness.tone === "danger" ? <AlertTriangle size={18} /> : <ShieldCheck size={18} />}
             </div>
-            <div className="overview-briefing-copy">
+            <div className="overview-brief-copy">
               <h2>{readiness.title}</h2>
               <p>{readiness.note}</p>
             </div>
           </div>
 
-          <div className="overview-briefing-sections">
-            <section className="overview-brief-section">
-              <div className="overview-section-head">
-                <strong>Trust and readiness</strong>
-                <span>Quick trust check for this review pass.</span>
-              </div>
-
-              <div className="overview-health-grid">
-                <div className="overview-health-cell">
-                  <span>MT5 connection</span>
-                  <strong>{health.terminal_connected ? "Connected" : "Waiting for MT5"}</strong>
-                </div>
-                <div className="overview-health-cell">
-                  <span>Bridge state</span>
-                  <strong>{health.ok ? "Healthy" : "Unavailable"}</strong>
-                </div>
-                <div className="overview-health-cell">
-                  <span>Calendar feed</span>
-                  <strong>{renderFeedLabel(feedStatus)}</strong>
-                </div>
-                <div className="overview-health-cell">
-                  <span>Current symbol context</span>
-                  <strong>{marketLabel}</strong>
-                </div>
-              </div>
-            </section>
-
+          <div className="overview-brief-body">
             <section className="overview-brief-section">
               <div className="overview-card-head">
                 <div className="overview-card-icon" aria-hidden="true">
@@ -440,91 +404,68 @@ export function OverviewTab({
                 </div>
                 <div>
                   <h3>Event horizon</h3>
-                  <p>The next high-impact events that may change your priorities for {reviewSymbol}.</p>
+                  <p>What could change timing next for {reviewSymbol}.</p>
                 </div>
               </div>
 
-              {topEvents.length === 0 ? (
-                <div className="overview-empty">
-                  <p>No high-impact events are scheduled in the current bridge window.</p>
-                </div>
-              ) : (
-                <div className="overview-event-list">
-                  {topEvents.map((event, index) => (
-                    <button
-                      key={event.id}
-                      type="button"
-                      className={`overview-event-row ${index === 0 ? "is-primary" : ""}`}
-                      onClick={() => onNavigate("calendar")}
-                    >
-                      <div className="overview-event-main">
-                        <FlagIcon countryCode={event.countryCode} className="h-5 w-7" />
-                        <div>
-                          <strong>{event.title}</strong>
-                          <span>
-                            {event.currency} - {getCountryDisplayName(event.countryCode)} - {formatUtcDateTime(event.time)}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="overview-event-meta">
-                        <strong>{formatCountdown(event.time, currentTime.getTime())}</strong>
-                        <span className={event.relevant ? "overview-relevance is-relevant" : "overview-relevance"}>
-                          {event.relevant ? "Touches current pair" : "Global watch"}
+              {featuredEvent ? (
+                <div className="overview-event-stage">
+                  <button
+                    type="button"
+                    className="overview-event-featured"
+                    onClick={() => onNavigate("calendar")}
+                  >
+                    <div className="overview-event-main">
+                      <FlagIcon countryCode={featuredEvent.countryCode} className="h-5 w-7" />
+                      <div>
+                        <strong>{featuredEvent.title}</strong>
+                        <span>
+                          {featuredEvent.currency} - {getCountryDisplayName(featuredEvent.countryCode)} - {formatUtcDateTime(featuredEvent.time)}
                         </span>
                       </div>
-                    </button>
-                  ))}
+                    </div>
+                    <div className="overview-event-meta">
+                      <strong>{formatCountdown(featuredEvent.time, currentTime.getTime())}</strong>
+                      <span className={featuredEvent.relevant ? "overview-relevance is-relevant" : "overview-relevance"}>
+                        {featuredEvent.relevant ? "Touches current pair" : "Global watch"}
+                      </span>
+                    </div>
+                  </button>
+
+                  {followupEvents.length > 0 && (
+                    <div className="overview-event-followups">
+                      {followupEvents.map((event) => (
+                        <button
+                          key={event.id}
+                          type="button"
+                          className="overview-event-row"
+                          onClick={() => onNavigate("calendar")}
+                        >
+                          <div className="overview-event-main">
+                            <FlagIcon countryCode={event.countryCode} className="h-5 w-7" />
+                            <div>
+                              <strong>{event.title}</strong>
+                              <span>
+                                {event.currency} - {getCountryDisplayName(event.countryCode)} - {formatUtcDateTime(event.time)}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="overview-event-meta">
+                            <strong>{formatCountdown(event.time, currentTime.getTime())}</strong>
+                            <span className={event.relevant ? "overview-relevance is-relevant" : "overview-relevance"}>
+                              {event.relevant ? "Touches current pair" : "Global watch"}
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="overview-empty overview-quiet-note">
+                  <p>No high-impact events are scheduled in the current bridge window.</p>
                 </div>
               )}
-            </section>
-
-            <section className="overview-brief-section">
-              <div className="overview-briefing-grid">
-                <section className="overview-card">
-                  <div className="overview-card-head">
-                    <div className="overview-card-icon" aria-hidden="true">
-                      <ShieldCheck size={18} />
-                    </div>
-                    <div>
-                      <h3>Macro snapshot</h3>
-                      <p>Plain-English macro context for the pair you are about to review.</p>
-                    </div>
-                  </div>
-
-                  <div className="overview-summary-card">
-                    <strong>{macroSummary.title}</strong>
-                    <p>{macroSummary.detail}</p>
-                    <button type="button" className="overview-inline-link" onClick={() => onNavigate("central-banks")}>
-                      Open Central Banks Data
-                    </button>
-                  </div>
-                </section>
-
-                <section className="overview-card">
-                  <div className="overview-card-head">
-                    <div className="overview-card-icon" aria-hidden="true">
-                      <ChartCandlestick size={18} />
-                    </div>
-                    <div>
-                      <h3>Strength &amp; differential summary</h3>
-                      <p>Quick pair edge context before you move into deeper review or technical analysis.</p>
-                    </div>
-                  </div>
-
-                  <div className="overview-summary-card">
-                    <strong>{strengthSummary.title}</strong>
-                    <p>{strengthSummary.detail}</p>
-                    <div className="overview-inline-actions">
-                      <button type="button" className="overview-inline-link" onClick={() => onNavigate("strength-meter")}>
-                        Open Strength Meter
-                      </button>
-                      <button type="button" className="overview-inline-link" onClick={() => onNavigate("dashboard")}>
-                        Open Differential Calculator
-                      </button>
-                    </div>
-                  </div>
-                </section>
-              </div>
             </section>
 
             <section className="overview-brief-section">
@@ -533,13 +474,54 @@ export function OverviewTab({
                   <ChartCandlestick size={18} />
                 </div>
                 <div>
-                  <h3>Priority next actions</h3>
-                  <p>Use these only after the pair still looks worth your attention at a glance.</p>
+                  <h3>Pair backdrop</h3>
+                  <p>The broad macro and strength context before charts.</p>
                 </div>
               </div>
 
-              <div className="overview-action-list">
-                {actions.map((action) => (
+              <div className="overview-backdrop">
+                <strong>{macroSummary.title}</strong>
+                <p>{strengthSummary.title}</p>
+                <div className="overview-backdrop-details">
+                  <span>{macroSummary.detail}</span>
+                  <span>{strengthSummary.detail}</span>
+                </div>
+                <div className="overview-inline-actions">
+                  <button type="button" className="overview-inline-link" onClick={() => onNavigate("central-banks")}>
+                    Open Central Banks Data
+                  </button>
+                  <button type="button" className="overview-inline-link" onClick={() => onNavigate("strength-meter")}>
+                    Open Strength Meter
+                  </button>
+                  <button type="button" className="overview-inline-link" onClick={() => onNavigate("dashboard")}>
+                    Open Differential Calculator
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <section className="overview-brief-section">
+              <div className="overview-trust-strip" aria-label="Trust checklist">
+                <span><strong>MT5:</strong> {health.terminal_connected ? "Connected" : "Waiting for MT5"}</span>
+                <span><strong>Bridge:</strong> {health.ok ? "Healthy" : "Unavailable"}</span>
+                <span><strong>Calendar:</strong> {renderFeedLabel(feedStatus)}</span>
+                <span><strong>Symbol:</strong> {marketLabel}</span>
+              </div>
+            </section>
+
+            <section className="overview-brief-section">
+              <div className="overview-card-head">
+                <div className="overview-card-icon" aria-hidden="true">
+                  <ArrowRight size={18} />
+                </div>
+                <div>
+                  <h3>Next move</h3>
+                  <p>The simplest next places to look.</p>
+                </div>
+              </div>
+
+              <div className="overview-next-actions">
+                {primaryActions.map((action) => (
                   <button
                     key={`${action.tab}-${action.label}`}
                     type="button"
@@ -554,6 +536,12 @@ export function OverviewTab({
                   </button>
                 ))}
               </div>
+
+              {overflowAction && (
+                <button type="button" className="overview-inline-link overview-overflow-link" onClick={() => onNavigate(overflowAction.tab)}>
+                  {overflowAction.label}
+                </button>
+              )}
             </section>
           </div>
         </section>

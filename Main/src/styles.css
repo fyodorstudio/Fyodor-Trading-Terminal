@@ -295,38 +295,39 @@ button {
   min-height: 560px;
 }
 
-.overview-sheet {
-  max-width: 1180px;
+.overview-brief {
+  max-width: 1080px;
   margin: 0 auto;
 }
 
-.overview-briefing-shell {
+.overview-brief-shell {
   border: 1px solid var(--line);
   border-radius: 12px;
   background: rgba(247, 247, 246, 0.96);
   overflow: hidden;
 }
 
-.overview-briefing-shell-good {
+.overview-brief-shell-good {
   border-color: rgba(22, 124, 74, 0.22);
 }
 
-.overview-briefing-shell-warning {
+.overview-brief-shell-warning {
   border-color: rgba(161, 92, 6, 0.28);
 }
 
-.overview-briefing-shell-danger {
+.overview-brief-shell-danger {
   border-color: rgba(180, 35, 24, 0.24);
 }
 
-.overview-briefing-topbar {
-  display: grid;
-  grid-template-columns: minmax(240px, 320px) minmax(0, 1fr) minmax(260px, 340px);
-  gap: 16px;
-  align-items: stretch;
-  padding: 18px 20px;
+.overview-brief-topbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+  padding: 18px 22px 16px;
   border-bottom: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.48);
 }
 
 .overview-selector-label {
@@ -347,59 +348,29 @@ button {
   color: var(--text);
 }
 
-.overview-briefing-status,
-.overview-briefing-fact,
-.overview-card,
-.overview-health-cell {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel-strong);
-}
-
-.overview-briefing-status {
+.overview-brief-facts {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-  padding: 14px 16px;
-  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  min-height: 42px;
 }
 
-.overview-briefing-status-label {
-  font-size: 0.74rem;
-  font-weight: 700;
+.overview-brief-facts span {
   color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-size: 0.84rem;
+  white-space: nowrap;
 }
 
-.overview-briefing-status strong {
-  font-size: 1rem;
-  line-height: 1.3;
+.overview-brief-facts strong {
+  color: var(--text);
 }
 
-.overview-briefing-status span:last-child {
-  color: var(--muted);
-}
-
-.overview-briefing-facts {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-.overview-briefing-fact {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
-}
-
-.overview-briefing-banner {
+.overview-brief-verdict {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 20px;
+  padding: 18px 22px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -417,7 +388,7 @@ button {
   flex-shrink: 0;
 }
 
-.overview-briefing-copy h2,
+.overview-brief-copy h2,
 .overview-card-head h3 {
   margin: 0;
   font-size: 1.1rem;
@@ -425,31 +396,30 @@ button {
   font-weight: 700;
 }
 
-.overview-briefing-copy p,
+.overview-brief-copy p,
 .overview-card-head p,
 .overview-empty p,
 .overview-event-main span,
 .overview-bank-identity span,
 .overview-bank-note,
-.overview-check-row span,
 .overview-action-row span,
 .overview-bank-metrics span {
   margin: 0;
   color: var(--muted);
 }
 
-.overview-briefing-copy p,
+.overview-brief-copy p,
 .overview-card-head p {
   margin-top: 4px;
 }
 
-.overview-briefing-sections {
+.overview-brief-body {
   display: flex;
   flex-direction: column;
 }
 
 .overview-brief-section {
-  padding: 20px;
+  padding: 18px 22px;
   border-bottom: 1px solid var(--line);
 }
 
@@ -457,90 +427,47 @@ button {
   border-bottom: 0;
 }
 
-.overview-section-head {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-bottom: 14px;
-}
-
-.overview-section-head span {
-  color: var(--muted);
-}
-
-.overview-health-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.overview-health-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 14px 16px;
-}
-
-.overview-health-cell span,
 .overview-bank-metrics span {
   font-size: 0.78rem;
 }
 
-.overview-health-cell strong,
 .overview-event-main strong,
 .overview-bank-identity strong,
 .overview-bank-metrics strong,
-.overview-check-row strong,
 .overview-action-row strong {
   font-size: 0.94rem;
-}
-
-.overview-briefing-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
-  align-items: start;
-}
-
-.overview-card {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 0;
-  min-width: 0;
-  align-self: start;
-  border: 0;
-  background: transparent;
-}
-
-.overview-card-wide {
-  width: 100%;
 }
 
 .overview-card-head {
   display: flex;
   align-items: flex-start;
   gap: 14px;
+  margin-bottom: 12px;
 }
 
 .overview-empty {
   padding: 8px 0;
 }
 
-.overview-event-list,
-.overview-checklist,
-.overview-action-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.overview-quiet-note {
+  padding: 2px 0 0;
 }
 
+.overview-event-stage,
+.overview-event-followups,
+.overview-next-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.overview-event-featured,
 .overview-event-row,
 .overview-action-row {
   display: grid;
   gap: 14px;
   width: 100%;
-  padding: 12px 14px;
+  padding: 14px 16px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--panel-strong);
@@ -549,14 +476,15 @@ button {
   transition: border-color 140ms ease, background-color 140ms ease, color 140ms ease;
 }
 
+.overview-event-featured {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  border-color: var(--line-strong);
+}
+
 .overview-event-row {
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
-}
-
-.overview-event-row.is-primary {
-  border-color: var(--line-strong);
-  background: #ffffff;
 }
 
 .overview-action-row {
@@ -564,6 +492,7 @@ button {
   align-items: start;
 }
 
+.overview-event-featured:hover,
 .overview-event-row:hover,
 .overview-action-row:hover {
   border-color: var(--line-strong);
@@ -620,19 +549,6 @@ button {
   color: #155f3a;
 }
 
-.overview-check-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.overview-check-row:last-child {
-  border-bottom: 0;
-}
-
 .overview-action-row {
   align-items: flex-start;
 }
@@ -642,32 +558,38 @@ button {
   flex-shrink: 0;
 }
 
-.overview-summary-card {
+.overview-backdrop {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: var(--panel-strong);
+  gap: 10px;
+  max-width: 760px;
 }
 
-.overview-summary-card strong {
+.overview-backdrop strong {
   font-size: 0.98rem;
   line-height: 1.35;
 }
 
-.overview-summary-card p {
+.overview-backdrop p {
   margin: 0;
   color: var(--muted);
   line-height: 1.45;
 }
 
+.overview-backdrop-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.overview-backdrop-details span {
+  color: var(--muted);
+}
+
 .overview-inline-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 4px;
+  gap: 12px 16px;
 }
 
 .overview-inline-link {
@@ -684,38 +606,40 @@ button {
   text-decoration: underline;
 }
 
-.overview-checklist-inline {
-  margin-bottom: 4px;
-  padding: 14px 16px;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  background: #fffdf8;
+.overview-overflow-link {
+  margin-top: 12px;
+}
+
+.overview-trust-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.overview-trust-strip span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.overview-trust-strip strong {
+  color: var(--text);
 }
 
 @media (max-width: 1180px) {
-  .overview-briefing-topbar,
-  .overview-briefing-grid,
-  .overview-health-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .overview-briefing-facts {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .overview-brief-topbar {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
 @media (max-width: 820px) {
-  .overview-briefing-topbar,
-  .overview-briefing-banner,
+  .overview-brief-topbar,
+  .overview-brief-verdict,
   .overview-brief-section {
     padding: 16px;
   }
 
-  .overview-briefing-facts,
-  .overview-health-grid {
-    grid-template-columns: 1fr;
-  }
-
+  .overview-event-featured,
   .overview-event-row,
   .overview-action-row {
     grid-template-columns: 1fr;
