@@ -364,187 +364,179 @@ export function OverviewTab({
 
   return (
     <section className="tab-panel overview-panel">
-      <div className="overview-brief">
-        <section className={`overview-brief-shell overview-brief-shell-${readiness.tone}`}>
-          <div className="overview-brief-topbar">
-            <label className="overview-selector-label" htmlFor="overview-pair-select">
-              <span>Pair</span>
-              <select id="overview-pair-select" value={reviewSymbol} onChange={(event) => onReviewSymbolChange(event.target.value)}>
-                {FX_PAIRS.map((pair) => (
-                  <option key={pair.name} value={pair.name}>
-                    {pair.name}  {atrByPair[pair.name] === undefined ? "..." : atrByPair[pair.name] == null ? "--" : `${atrByPair[pair.name]} pips`}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <div className="overview-brief-facts" aria-label="Overview status facts">
-              <span><strong>{panelSummary}</strong></span>
-              <span><strong>Ingest:</strong> {lastIngestLabel}</span>
-              <span><strong>Session:</strong> {marketStatus?.session_state ?? "unavailable"}</span>
-              <span><strong>Resolved:</strong> {resolvedBanks}/8 banks</span>
+      <div className="terminal-grid">
+        {/* Column 1: System Vitals */}
+        <div className="terminal-column">
+          <div className="terminal-card">
+            <div className="terminal-card-header">
+              <ShieldCheck size={14} />
+              <h3>System Vitals</h3>
+            </div>
+            <div className="terminal-card-body">
+              <div className={`terminal-verdict-banner terminal-verdict-banner-${readiness.tone}`}>
+                <strong>{readiness.title}</strong>
+                <p>{readiness.note}</p>
+              </div>
+              <div className="terminal-vitals-list">
+                <div className="terminal-vital-item">
+                  <label>MT5 Bridge</label>
+                  <span className={health.terminal_connected ? "status-text-live" : "status-text-error"}>
+                    {health.terminal_connected ? "CONNECTED" : "DISCONNECTED"}
+                  </span>
+                </div>
+                <div className="terminal-vital-item">
+                  <label>Data Feed</label>
+                  <span className={`status-text-${feedStatus}`}>
+                    {renderFeedLabel(feedStatus).toUpperCase()}
+                  </span>
+                </div>
+                <div className="terminal-vital-item">
+                  <label>Session</label>
+                  <span className={marketStatus?.session_state === "open" ? "status-text-live" : "status-text-stale"}>
+                    {(marketStatus?.session_state || "unknown").toUpperCase()}
+                  </span>
+                </div>
+                <div className="terminal-vital-item">
+                  <label>Ingest</label>
+                  <span className="terminal-mono">{lastIngestLabel}</span>
+                </div>
+                <div className="terminal-vital-item">
+                  <label>Bank Data</label>
+                  <span className="terminal-mono">{resolvedBanks}/8 RESOLVED</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="overview-brief-verdict">
-            <div className="overview-brief-icon" aria-hidden="true">
-              {readiness.tone === "danger" ? <AlertTriangle size={18} /> : <ShieldCheck size={18} />}
+          <div className="terminal-card">
+            <div className="terminal-card-header">
+              <ArrowRight size={14} />
+              <h3>Next Move</h3>
             </div>
-            <div className="overview-brief-copy">
-              <h2>{readiness.title}</h2>
-              <p>{readiness.note}</p>
-            </div>
-          </div>
-
-          <div className="overview-brief-body">
-            <section className="overview-brief-section">
-              <div className="overview-card-head">
-                <div className="overview-card-icon" aria-hidden="true">
-                  <CalendarClock size={18} />
-                </div>
-                <div>
-                  <h3>Event horizon</h3>
-                  <p>What could change timing next for {reviewSymbol}.</p>
-                </div>
-              </div>
-
-              {featuredEvent ? (
-                <div className="overview-event-stage">
-                  <button
-                    type="button"
-                    className="overview-event-featured"
-                    onClick={() => onNavigate("calendar")}
-                  >
-                    <div className="overview-event-main">
-                      <FlagIcon countryCode={featuredEvent.countryCode} className="h-5 w-7" />
-                      <div>
-                        <strong>{featuredEvent.title}</strong>
-                        <span>
-                          {featuredEvent.currency} - {getCountryDisplayName(featuredEvent.countryCode)} - {formatUtcDateTime(featuredEvent.time)}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="overview-event-meta">
-                      <strong>{formatCountdown(featuredEvent.time, currentTime.getTime())}</strong>
-                      <span className={featuredEvent.relevant ? "overview-relevance is-relevant" : "overview-relevance"}>
-                        {featuredEvent.relevant ? "Touches current pair" : "Global watch"}
-                      </span>
-                    </div>
-                  </button>
-
-                  {followupEvents.length > 0 && (
-                    <div className="overview-event-followups">
-                      {followupEvents.map((event) => (
-                        <button
-                          key={event.id}
-                          type="button"
-                          className="overview-event-row"
-                          onClick={() => onNavigate("calendar")}
-                        >
-                          <div className="overview-event-main">
-                            <FlagIcon countryCode={event.countryCode} className="h-5 w-7" />
-                            <div>
-                              <strong>{event.title}</strong>
-                              <span>
-                                {event.currency} - {getCountryDisplayName(event.countryCode)} - {formatUtcDateTime(event.time)}
-                              </span>
-                            </div>
-                          </div>
-                          <div className="overview-event-meta">
-                            <strong>{formatCountdown(event.time, currentTime.getTime())}</strong>
-                            <span className={event.relevant ? "overview-relevance is-relevant" : "overview-relevance"}>
-                              {event.relevant ? "Touches current pair" : "Global watch"}
-                            </span>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="overview-empty overview-quiet-note">
-                  <p>No high-impact events are scheduled in the current bridge window.</p>
-                </div>
-              )}
-            </section>
-
-            <section className="overview-brief-section">
-              <div className="overview-card-head">
-                <div className="overview-card-icon" aria-hidden="true">
-                  <ChartCandlestick size={18} />
-                </div>
-                <div>
-                  <h3>Pair backdrop</h3>
-                  <p>The broad macro and strength context before charts.</p>
-                </div>
-              </div>
-
-              <div className="overview-backdrop">
-                <strong>{macroSummary.title}</strong>
-                <p>{strengthSummary.title}</p>
-                <div className="overview-backdrop-details">
-                  <span>{macroSummary.detail}</span>
-                  <span>{strengthSummary.detail}</span>
-                </div>
-                <div className="overview-inline-actions">
-                  <button type="button" className="overview-inline-link" onClick={() => onNavigate("central-banks")}>
-                    Open Central Banks Data
-                  </button>
-                  <button type="button" className="overview-inline-link" onClick={() => onNavigate("strength-meter")}>
-                    Open Strength Meter
-                  </button>
-                  <button type="button" className="overview-inline-link" onClick={() => onNavigate("dashboard")}>
-                    Open Differential Calculator
-                  </button>
-                </div>
-              </div>
-            </section>
-
-            <section className="overview-brief-section">
-              <div className="overview-trust-strip" aria-label="Trust checklist">
-                <span><strong>MT5:</strong> {health.terminal_connected ? "Connected" : "Waiting for MT5"}</span>
-                <span><strong>Bridge:</strong> {health.ok ? "Healthy" : "Unavailable"}</span>
-                <span><strong>Calendar:</strong> {renderFeedLabel(feedStatus)}</span>
-                <span><strong>Symbol:</strong> {marketLabel}</span>
-              </div>
-            </section>
-
-            <section className="overview-brief-section">
-              <div className="overview-card-head">
-                <div className="overview-card-icon" aria-hidden="true">
-                  <ArrowRight size={18} />
-                </div>
-                <div>
-                  <h3>Next move</h3>
-                  <p>The simplest next places to look.</p>
-                </div>
-              </div>
-
-              <div className="overview-next-actions">
-                {primaryActions.map((action) => (
+            <div className="terminal-card-body" style={{ padding: "8px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                {actions.map((action) => (
                   <button
                     key={`${action.tab}-${action.label}`}
                     type="button"
-                    className="overview-action-row"
+                    className="terminal-action-button"
                     onClick={() => onNavigate(action.tab)}
                   >
-                    <div>
-                      <strong>{action.label}</strong>
-                      <span>{action.detail}</span>
-                    </div>
-                    <ArrowRight size={16} />
+                    <strong>{action.label}</strong>
+                    <span>{action.detail}</span>
                   </button>
                 ))}
               </div>
-
-              {overflowAction && (
-                <button type="button" className="overview-inline-link overview-overflow-link" onClick={() => onNavigate(overflowAction.tab)}>
-                  {overflowAction.label}
-                </button>
-              )}
-            </section>
+            </div>
           </div>
-        </section>
+        </div>
+
+        {/* Column 2: Pair Intel */}
+        <div className="terminal-column">
+          <div className="terminal-card" style={{ minHeight: "100%" }}>
+            <div className="terminal-card-header">
+              <ChartCandlestick size={14} />
+              <h3>Pair Intel</h3>
+            </div>
+            <div className="terminal-card-body">
+              <div className="terminal-pair-header">
+                <div className="terminal-pair-select-wrapper">
+                  <span>Target Symbol</span>
+                  <select 
+                    className="terminal-pair-select"
+                    value={reviewSymbol} 
+                    onChange={(event) => onReviewSymbolChange(event.target.value)}
+                  >
+                    {FX_PAIRS.map((pair) => (
+                      <option key={pair.name} value={pair.name}>{pair.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="terminal-atr-badge">
+                  <span>ATR (14D)</span>
+                  <div className="terminal-atr-value terminal-mono">
+                    {atrByPair[reviewSymbol] === undefined ? "..." : atrByPair[reviewSymbol] == null ? "--" : `${atrByPair[reviewSymbol]} pips`}
+                  </div>
+                </div>
+              </div>
+
+              <div className="terminal-intel-section">
+                <div className="terminal-intel-block">
+                  <strong>Macro Backdrop</strong>
+                  <p>{macroSummary.title}</p>
+                  <div className="terminal-intel-meta terminal-mono">{macroSummary.detail}</div>
+                </div>
+
+                <div className="terminal-intel-block">
+                  <strong>Strength Differential</strong>
+                  <p>{strengthSummary.title}</p>
+                  <div className="terminal-intel-meta terminal-mono">{strengthSummary.detail}</div>
+                </div>
+
+                <div className="terminal-link-strip">
+                  <button onClick={() => onNavigate("central-banks")}>Banks</button>
+                  <button onClick={() => onNavigate("strength-meter")}>Meter</button>
+                  <button onClick={() => onNavigate("dashboard")}>Diff</button>
+                  <button onClick={() => onNavigate("charts")}>Charts</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Column 3: Event Horizon */}
+        <div className="terminal-column">
+          <div className="terminal-card">
+            <div className="terminal-card-header">
+              <CalendarClock size={14} />
+              <h3>Event Horizon</h3>
+            </div>
+            <div className="terminal-event-list">
+              {topEvents.length > 0 ? (
+                topEvents.map((event) => (
+                  <button
+                    key={event.id}
+                    className="terminal-event-row"
+                    onClick={() => onNavigate("calendar")}
+                  >
+                    <div className="terminal-event-top">
+                      <div className="terminal-event-identity">
+                        <FlagIcon countryCode={event.countryCode} className="h-4 w-6" />
+                        <strong>{event.title}</strong>
+                      </div>
+                      <div className="terminal-event-countdown terminal-mono">
+                        {formatCountdown(event.time, currentTime.getTime())}
+                      </div>
+                    </div>
+                    <div className="terminal-event-details">
+                      <span>{event.currency} • {formatUtcDateTime(event.time)}</span>
+                      <span className={`terminal-relevance-pill ${event.relevant ? "is-active" : ""}`}>
+                        {event.relevant ? "RELEVANT" : "GLOBAL"}
+                      </span>
+                    </div>
+                  </button>
+                ))
+              ) : (
+                <div className="terminal-card-body">
+                  <p className="status-text-subtle" style={{ margin: 0, fontSize: "0.84rem" }}>
+                    No high-impact events in window.
+                  </p>
+                </div>
+              )}
+            </div>
+            {topEvents.length > 0 && (
+              <div className="terminal-card-body" style={{ borderTop: "1px solid var(--line)", padding: "8px 12px" }}>
+                <button 
+                  className="overview-inline-link" 
+                  onClick={() => onNavigate("calendar")}
+                  style={{ fontSize: "0.75rem" }}
+                >
+                  View full calendar
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </section>
   );

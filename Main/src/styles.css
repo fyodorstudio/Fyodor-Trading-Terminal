@@ -295,6 +295,333 @@ button {
   min-height: 560px;
 }
 
+/* Terminal Redesign Styles */
+.terminal-grid {
+  display: grid;
+  grid-template-columns: 280px 1fr 340px;
+  gap: 16px;
+  align-items: start;
+}
+
+.terminal-column {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.terminal-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-strong);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.terminal-card-header {
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.03);
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminal-card-header h3 {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.terminal-card-body {
+  padding: 12px;
+}
+
+.terminal-vitals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.terminal-vital-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+}
+
+.terminal-vital-item label {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.terminal-vital-item span {
+  font-weight: 700;
+}
+
+.terminal-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.terminal-verdict-banner {
+  padding: 12px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+  font-size: 0.84rem;
+  line-height: 1.4;
+}
+
+.terminal-verdict-banner-good {
+  background: #eef8f1;
+  color: #155f3a;
+  border: 1px solid rgba(22, 124, 74, 0.2);
+}
+
+.terminal-verdict-banner-warning {
+  background: #fff5e8;
+  color: #8a5608;
+  border: 1px solid rgba(161, 92, 6, 0.2);
+}
+
+.terminal-verdict-banner-danger {
+  background: #fff2f0;
+  color: #8d1d1d;
+  border: 1px solid rgba(180, 35, 24, 0.2);
+}
+
+.terminal-pair-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+}
+
+.terminal-pair-select-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.terminal-pair-select-wrapper span {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.terminal-pair-select {
+  font-size: 1.25rem;
+  font-weight: 800;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+  outline: none;
+  color: var(--text);
+}
+
+.terminal-atr-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.terminal-atr-badge span:first-child {
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.terminal-atr-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.terminal-intel-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.terminal-intel-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.terminal-intel-block strong {
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+.terminal-intel-block p {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.terminal-intel-meta {
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: #f1f3f5;
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.terminal-event-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: var(--line);
+}
+
+.terminal-event-row {
+  background: var(--panel-strong);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 0;
+  text-align: left;
+  transition: background 120ms ease;
+}
+
+.terminal-event-row:hover {
+  background: #fafafa;
+}
+
+.terminal-event-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.terminal-event-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.terminal-event-identity strong {
+  font-size: 0.88rem;
+}
+
+.terminal-event-countdown {
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.terminal-event-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.terminal-relevance-pill {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #eee;
+}
+
+.terminal-relevance-pill.is-active {
+  background: #eef8f1;
+  color: #155f3a;
+}
+
+.terminal-action-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.terminal-action-button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  text-align: left;
+  transition: all 120ms ease;
+}
+
+.terminal-action-button:hover {
+  border-color: var(--accent);
+  background: #f8f9fa;
+}
+
+.terminal-action-button strong {
+  font-size: 0.84rem;
+}
+
+.terminal-action-button span {
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.terminal-link-strip {
+  display: flex;
+  gap: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
+}
+
+.terminal-link-strip button {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+  background: none;
+  border: 0;
+  padding: 0;
+}
+
+.terminal-link-strip button:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+@media (max-width: 1200px) {
+  .terminal-grid {
+    grid-template-columns: 300px 1fr;
+  }
+  .terminal-column:last-child {
+    grid-column: span 2;
+  }
+  .terminal-event-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1px;
+  }
+}
+
+@media (max-width: 850px) {
+  .terminal-grid {
+    grid-template-columns: 1fr;
+  }
+  .terminal-column:last-child {
+    grid-column: auto;
+  }
+  .terminal-action-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .overview-brief {
   max-width: 1080px;
   margin: 0 auto;
