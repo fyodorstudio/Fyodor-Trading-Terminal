@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertCircle, ChevronDown, Clock3, Database, Radio, TriangleAlert } from "lucide-react";
+import { AlertCircle, ChevronDown, Database, Radio, TriangleAlert } from "lucide-react";
 import { formatCountdown, formatRelativeAge, formatUtcClock } from "@/app/lib/format";
+import { resolveTrustState } from "@/app/lib/status";
 import type { BridgeHealth, BridgeStatus, MarketStatusResponse } from "@/app/types";
 
 interface MinimalHeaderProps {
@@ -24,6 +25,7 @@ export function MinimalHeader({
   nextHighImpact
 }: MinimalHeaderProps) {
   const [showDetails, setShowDetails] = useState(false);
+  const trustState = useMemo(() => resolveTrustState(health, feedStatus, marketStatus), [health, feedStatus, marketStatus]);
 
   const localTime = useMemo(
     () =>
@@ -79,40 +81,31 @@ export function MinimalHeader({
   }, [marketStatus, selectedSymbol]);
 
   const primaryState = useMemo(() => {
-    if (!health.ok && !health.terminal_connected) {
+    if (trustState.verdict === "yes") {
       return {
-        label: "Data degraded",
-        detail: "Bridge unavailable and MT5 not connected",
-        tone: "text-rose-700",
-        icon: AlertCircle,
-      };
-    }
-
-    if (feedStatus === "stale" || feedStatus === "error") {
-      return {
-        label: "Ready with caution",
-        detail: "Some data is stale or unavailable",
-        tone: "text-amber-700",
-        icon: TriangleAlert,
-      };
-    }
-
-    if (health.ok && health.terminal_connected && feedStatus === "live") {
-      return {
-        label: "System ready",
-        detail: "MT5, bridge, and calendar are healthy",
+        label: "Trust: Yes",
+        detail: trustState.detail,
         tone: "text-emerald-700",
         icon: Radio,
       };
     }
 
+    if (trustState.verdict === "limited") {
+      return {
+        label: "Trust: Limited",
+        detail: trustState.detail,
+        tone: "text-amber-700",
+        icon: TriangleAlert,
+      };
+    }
+
     return {
-      label: "Waiting for data",
-      detail: "The app is still establishing live context",
-      tone: "text-slate-700",
-      icon: Clock3,
+      label: "Trust: No",
+      detail: trustState.detail,
+      tone: "text-rose-700",
+      icon: AlertCircle,
     };
-  }, [feedStatus, health]);
+  }, [trustState]);
 
   const PrimaryIcon = primaryState.icon;
   const lastIngest = formatRelativeAge(health.last_calendar_ingest_at ?? null);
@@ -138,7 +131,10 @@ export function MinimalHeader({
                   <PrimaryIcon size={14} />
                   <span>{primaryState.label}</span>
                 </div>
-                <div className="min-w-0 text-xs text-slate-500">{primaryState.detail}</div>
+                <div className="min-w-0">
+                  <div className="text-xs font-medium text-slate-700">Can I trust the app right now?</div>
+                  <div className="text-xs text-slate-500">{primaryState.detail}</div>
+                </div>
               </div>
             </div>
 
@@ -178,6 +174,12 @@ export function MinimalHeader({
                   <h2 className="text-sm font-semibold text-slate-950">System health</h2>
                   <div className="mt-3 grid gap-2">
                     <div className="flex items-center justify-between gap-3">
+                      <span className="text-sm text-slate-600">Trust right now</span>
+                      <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${primaryState.tone}`}>
+                        {trustState.verdictLabel}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-3">
                       <span className="text-sm text-slate-600">MT5</span>
                       <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${mt5State.tone}`}>{mt5State.label}</span>
                     </div>
@@ -213,6 +215,10 @@ export function MinimalHeader({
                 <section className="rounded-lg border border-slate-200 bg-white p-4">
                   <h2 className="text-sm font-semibold text-slate-950">Feed diagnostics</h2>
                   <div className="mt-3 grid gap-3">
+                    <div>
+                      <div className="text-sm text-slate-600">Trust note</div>
+                      <div className="mt-1 text-sm font-medium text-slate-950">{trustState.detail}</div>
+                    </div>
                     <div>
                       <div className="text-sm text-slate-600">Last calendar ingest</div>
                       <div className="mt-1 text-sm font-medium text-slate-950">{lastIngest}</div>
