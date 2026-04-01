@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveCalendarStatus, resolveChartStatus } from "@/app/lib/status";
+import { resolveCalendarStatus, resolveChartStatus, resolveTrustState } from "@/app/lib/status";
 import type { BridgeHealth, MarketStatusResponse } from "@/app/types";
 
 const liveHealth: BridgeHealth = {
@@ -77,5 +77,49 @@ describe("resolveChartStatus", () => {
         streamConnected: true,
       }),
     ).toBe("live");
+  });
+});
+
+describe("resolveTrustState", () => {
+  it("returns yes when bridge, feed, and symbol context are healthy", () => {
+    expect(resolveTrustState(liveHealth, "live", marketStatus("open"))).toMatchObject({
+      verdict: "yes",
+      verdictLabel: "Yes",
+      reason: "healthy",
+    });
+  });
+
+  it("returns limited when core systems are healthy but feed timing is stale", () => {
+    expect(resolveTrustState(liveHealth, "stale", marketStatus("open"))).toMatchObject({
+      verdict: "limited",
+      verdictLabel: "Limited",
+      reason: "calendar_delayed",
+    });
+  });
+
+  it("returns limited when symbol context is unresolved", () => {
+    expect(resolveTrustState(liveHealth, "live", marketStatus("unavailable"))).toMatchObject({
+      verdict: "limited",
+      verdictLabel: "Limited",
+      reason: "symbol_context_unresolved",
+    });
+  });
+
+  it("returns no when mt5 is disconnected", () => {
+    expect(
+      resolveTrustState({ ...liveHealth, terminal_connected: false }, "live", marketStatus("open")),
+    ).toMatchObject({
+      verdict: "no",
+      verdictLabel: "No",
+      reason: "mt5_disconnected",
+    });
+  });
+
+  it("returns no when feed is unusable", () => {
+    expect(resolveTrustState(liveHealth, "error", marketStatus("open"))).toMatchObject({
+      verdict: "no",
+      verdictLabel: "No",
+      reason: "calendar_untrusted",
+    });
   });
 });
