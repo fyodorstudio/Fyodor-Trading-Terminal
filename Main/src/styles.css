@@ -1966,7 +1966,133 @@ button {
   color: var(--text);
 }
 
+.overview-decision-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.overview-decision-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 148px;
+  padding: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.overview-decision-card.is-good,
+.overview-signal-pill.is-good,
+.overview-risk-banner.is-good {
+  border-color: rgba(22, 124, 74, 0.25);
+  background: rgba(238, 248, 241, 0.9);
+}
+
+.overview-decision-card.is-warning,
+.overview-signal-pill.is-warning,
+.overview-risk-banner.is-warning {
+  border-color: rgba(180, 83, 9, 0.24);
+  background: rgba(255, 247, 237, 0.94);
+}
+
+.overview-decision-card.is-danger,
+.overview-signal-pill.is-danger,
+.overview-risk-banner.is-danger {
+  border-color: rgba(185, 28, 28, 0.22);
+  background: rgba(254, 242, 242, 0.94);
+}
+
+.overview-decision-kicker {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.overview-decision-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.overview-decision-head strong {
+  font-size: 1.05rem;
+  line-height: 1.25;
+}
+
+.overview-decision-card p,
+.overview-risk-banner p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.overview-signal-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.overview-signal-pill {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 160px;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+}
+
+.overview-signal-pill span,
+.overview-risk-banner span {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.overview-signal-pill strong,
+.overview-risk-banner strong {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.overview-story-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.overview-risk-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+}
+
+.overview-event-row-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
 @media (max-width: 1180px) {
+  .overview-decision-grid,
+  .overview-story-grid {
+    grid-template-columns: 1fr;
+  }
+
   .overview-brief-topbar {
     align-items: flex-start;
     flex-direction: column;
