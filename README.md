@@ -14,7 +14,7 @@ The MT5 bridge is now vendored locally in:
 
 ## Start Here
 
-- Product operating spec and roadmap: `docs/Roadmap/PRODUCT_OPERATING_SPEC.md`
+- Product brief and roadmap: `docs/Roadmap/PRODUCT_BRIEF.md`
 - Frontend-specific notes: `Main/README.md`
 - Bridge-specific notes: `Main/mt5-bridge/README.md`
 
