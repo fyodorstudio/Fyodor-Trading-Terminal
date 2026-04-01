@@ -1,0 +1,141 @@
+import { describe, expect, it } from "vitest";
+import {
+  getEventSensitivity,
+  getMacroBackdropVerdict,
+  getMacroSummary,
+  getPairAttentionVerdict,
+  getStrengthDifferentialSummary,
+  getTopEvents,
+} from "@/app/lib/overview";
+import { resolveTrustState } from "@/app/lib/status";
+import type { BridgeHealth, CalendarEvent, CentralBankSnapshot, MarketStatusResponse } from "@/app/types";
+
+const now = 1_710_000_000;
+
+const liveHealth: BridgeHealth = {
+  ok: true,
+  terminal_connected: true,
+  last_calendar_ingest_at: now,
+  calendar_events_count: 12,
+  last_error: null,
+};
+
+function marketStatus(session_state: MarketStatusResponse["session_state"]): MarketStatusResponse {
+  return {
+    symbol: "EURUSD",
+    symbol_path: "Forex Majors\\EURUSD",
+    asset_class: "forex",
+    session_state,
+    is_open: session_state === "open" ? true : session_state === "closed" ? false : null,
+    terminal_connected: true,
+    checked_at: now,
+    server_time: now,
+    last_tick_time: now,
+    next_open_time: now + 3600,
+    next_close_time: now + 3600,
+    reason: null,
+  };
+}
+
+function snapshot(currency: string, rate: string, inflation: string): CentralBankSnapshot {
+  return {
+    currency,
+    countryCode: currency === "EUR" ? "EU" : currency === "USD" ? "US" : "GB",
+    bankName: `${currency} Bank`,
+    flag: currency === "EUR" ? "EU" : currency === "USD" ? "US" : "GB",
+    currentPolicyRate: rate,
+    previousPolicyRate: rate,
+    currentInflationRate: inflation,
+    previousInflationRate: inflation,
+    policyRateSource: "released_actual",
+    policyRateSourceTitle: "Policy",
+    policyRateSourceTime: now,
+    inflationSource: "released_actual",
+    inflationSourceTitle: "CPI",
+    inflationSourceTime: now,
+    lastRateReleaseAt: now,
+    lastCpiReleaseAt: now,
+    nextRateEventAt: now + 100_000,
+    nextRateEventTitle: "Rate Decision",
+    nextCpiEventAt: now + 100_000,
+    nextCpiEventTitle: "CPI",
+    status: "ok",
+    notes: [],
+  };
+}
+
+function event(id: number, currency: string, offsetSeconds: number): CalendarEvent {
+  return {
+    id,
+    time: now + offsetSeconds,
+    countryCode: currency === "EUR" ? "EU" : currency === "USD" ? "US" : "GB",
+    currency,
+    title: `${currency} Event`,
+    impact: "high",
+    actual: "",
+    forecast: "",
+    previous: "",
+  };
+}
+
+describe("overview logic", () => {
+  it("prioritizes pair-relevant events in the top events list", () => {
+    const rows = getTopEvents(
+      [event(1, "GBP", 600), event(2, "USD", 1_200), event(3, "EUR", 1_800), event(4, "GBP", 300)],
+      "EURUSD",
+      now,
+    );
+
+    expect(rows).toHaveLength(3);
+    expect(rows[0].currency).toBe("USD");
+    expect(rows[0].relevant).toBe(true);
+    expect(rows[1].currency).toBe("EUR");
+    expect(rows[1].relevant).toBe(true);
+  });
+
+  it("marks near relevant events as high-risk soon", () => {
+    const summary = getEventSensitivity([event(1, "USD", 60 * 60)], "EURUSD", now);
+    expect(summary.label).toBe("High-risk soon");
+  });
+
+  it("derives a supportive macro backdrop when macro and strength align", () => {
+    const snapshots = [
+      snapshot("EUR", "4.00", "3.00"),
+      snapshot("USD", "2.00", "1.00"),
+      snapshot("GBP", "3.00", "2.00"),
+    ];
+
+    const macroSummary = getMacroSummary("EURUSD", snapshots);
+    const strengthSummary = getStrengthDifferentialSummary("EURUSD", snapshots);
+    const verdict = getMacroBackdropVerdict("EURUSD", macroSummary, strengthSummary);
+
+    expect(macroSummary.alignment).toBe("aligned");
+    expect(strengthSummary.strongerCurrency).toBe("EUR");
+    expect(verdict.label).toBe("Supportive");
+  });
+
+  it("waits until the event passes when a relevant release is too close", () => {
+    const snapshots = [
+      snapshot("EUR", "4.00", "3.00"),
+      snapshot("USD", "2.00", "1.00"),
+      snapshot("GBP", "3.00", "2.00"),
+    ];
+
+    const trustState = resolveTrustState(liveHealth, "live", marketStatus("open"));
+    const macroSummary = getMacroSummary("EURUSD", snapshots);
+    const strengthSummary = getStrengthDifferentialSummary("EURUSD", snapshots);
+    const macroVerdict = getMacroBackdropVerdict("EURUSD", macroSummary, strengthSummary);
+    const eventSensitivity = getEventSensitivity([event(1, "USD", 30 * 60)], "EURUSD", now);
+    const verdict = getPairAttentionVerdict(
+      "EURUSD",
+      trustState,
+      macroVerdict,
+      macroSummary,
+      strengthSummary,
+      eventSensitivity,
+      80,
+    );
+
+    expect(verdict.label).toBe("Wait until event passes");
+  });
+});

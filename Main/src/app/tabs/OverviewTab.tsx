@@ -4,7 +4,15 @@ import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { calculateAtr14Pips } from "@/app/lib/atr";
 import { fetchHistory } from "@/app/lib/bridge";
-import { formatCountdown, formatRelativeAge, formatUtcDateTime, parseNumericValue } from "@/app/lib/format";
+import { formatCountdown, formatRelativeAge, formatUtcDateTime } from "@/app/lib/format";
+import {
+  getEventSensitivity,
+  getMacroBackdropVerdict,
+  getMacroSummary,
+  getPairAttentionVerdict,
+  getStrengthDifferentialSummary,
+  getTopEvents,
+} from "@/app/lib/overview";
 import { adaptDashboardCurrencies, deriveStrengthCurrencyRanks } from "@/app/lib/macroViews";
 import { resolveTrustState, type TrustState, type TrustTone } from "@/app/lib/status";
 import type { BridgeHealth, BridgeStatus, CalendarEvent, CentralBankSnapshot, MarketStatusResponse, TabId } from "@/app/types";
@@ -29,341 +37,12 @@ interface ActionItem {
 
 type AtrByPair = Record<string, number | null | undefined>;
 
-interface MacroSummary {
-  title: string;
-  detail: string;
-  unresolved: boolean;
-  favoredCurrency: string | null;
-  rateGap: number | null;
-  inflationGap: number | null;
-  alignment: "aligned" | "mixed" | "unresolved";
-}
-
-interface StrengthSummary {
-  title: string;
-  detail: string;
-  unresolved: boolean;
-  strongerCurrency: string | null;
-  weakerCurrency: string | null;
-  scoreGap: number | null;
-  decisive: boolean;
-}
-
-interface VerdictCard {
-  label: string;
-  detail: string;
-  tone: TrustTone;
-}
-
-interface EventSensitivitySummary {
-  label: "Clear" | "Event-sensitive" | "High-risk soon";
-  detail: string;
-  tone: TrustTone;
-}
-
-function getTopEvents(events: CalendarEvent[], reviewSymbol: string): Array<CalendarEvent & { relevant: boolean }> {
-  const now = Date.now() / 1000;
-  const symbolCurrencies = [reviewSymbol.slice(0, 3), reviewSymbol.slice(3, 6)];
-
-  return events
-    .filter((event) => event.impact === "high" && event.time >= now)
-    .sort((a, b) => {
-      const aRelevant = symbolCurrencies.includes(a.currency);
-      const bRelevant = symbolCurrencies.includes(b.currency);
-      if (aRelevant !== bRelevant) return aRelevant ? -1 : 1;
-      return a.time - b.time;
-    })
-    .slice(0, 3)
-    .map((event) => ({
-      ...event,
-      relevant: symbolCurrencies.includes(event.currency),
-    }));
-}
-
-function formatGap(value: number | null): string {
-  if (value == null) return "Unresolved";
-  return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
-}
-
-function getMacroSummary(reviewSymbol: string, snapshots: CentralBankSnapshot[]): MacroSummary {
-  const pair = getFxPairByName(reviewSymbol);
-  if (!pair) {
-    return {
-      title: "Macro data incomplete.",
-      detail: "Symbol is not mapped in the current FX pair set.",
-      unresolved: true,
-      favoredCurrency: null,
-      rateGap: null,
-      inflationGap: null,
-      alignment: "unresolved",
-    };
-  }
-
-  const baseSnapshot = snapshots.find((item) => item.currency === pair.base) ?? null;
-  const quoteSnapshot = snapshots.find((item) => item.currency === pair.quote) ?? null;
-
-  if (!baseSnapshot || !quoteSnapshot) {
-    return {
-      title: `Macro data incomplete for ${reviewSymbol}.`,
-      detail: "Missing central-bank snapshots for one or both currencies.",
-      unresolved: true,
-      favoredCurrency: null,
-      rateGap: null,
-      inflationGap: null,
-      alignment: "unresolved",
-    };
-  }
-
-  const baseRate = parseNumericValue(baseSnapshot.currentPolicyRate ?? "");
-  const quoteRate = parseNumericValue(quoteSnapshot.currentPolicyRate ?? "");
-  const baseInflation = parseNumericValue(baseSnapshot.currentInflationRate ?? "");
-  const quoteInflation = parseNumericValue(quoteSnapshot.currentInflationRate ?? "");
-  const rateGap = baseRate != null && quoteRate != null ? baseRate - quoteRate : null;
-  const inflationGap = baseInflation != null && quoteInflation != null ? baseInflation - quoteInflation : null;
-
-  if (baseSnapshot.status !== "ok" || quoteSnapshot.status !== "ok" || rateGap == null || inflationGap == null) {
-    return {
-      title: `Macro data needs verification for ${reviewSymbol}.`,
-      detail: "At least one rate or inflation input is partial, missing, or unresolved.",
-      unresolved: true,
-      favoredCurrency: null,
-      rateGap,
-      inflationGap,
-      alignment: "unresolved",
-    };
-  }
-
-  const sameSideBias =
-    (rateGap > 0 && inflationGap > 0) ||
-    (rateGap < 0 && inflationGap < 0);
-  const favoredCurrency = sameSideBias ? (rateGap > 0 ? pair.base : pair.quote) : null;
-
-  if (!sameSideBias) {
-    return {
-      title: `The macro picture for ${reviewSymbol} is mixed.`,
-      detail: `Rate Diff: ${formatGap(rateGap)} | Inflation Diff: ${formatGap(inflationGap)}`,
-      unresolved: false,
-      favoredCurrency: null,
-      rateGap,
-      inflationGap,
-      alignment: "mixed",
-    };
-  }
-
-  return {
-    title: `${favoredCurrency} has the cleaner macro backdrop in ${reviewSymbol}.`,
-    detail: `Rate Diff: ${formatGap(rateGap)} | Inflation Diff: ${formatGap(inflationGap)}`,
-    unresolved: false,
-    favoredCurrency,
-    rateGap,
-    inflationGap,
-    alignment: "aligned",
-  };
-}
-
-function getStrengthDifferentialSummary(reviewSymbol: string, snapshots: CentralBankSnapshot[]): StrengthSummary {
-  const pair = getFxPairByName(reviewSymbol);
-  if (!pair) {
-    return {
-      title: "Strength context unresolved.",
-      detail: "Pair mapping is unavailable.",
-      unresolved: true,
-      strongerCurrency: null,
-      weakerCurrency: null,
-      scoreGap: null,
-      decisive: false,
-    };
-  }
-
-  const currencies = adaptDashboardCurrencies(snapshots);
-  const { ranks } = deriveStrengthCurrencyRanks(currencies);
-  const baseRank = ranks.find((item) => item.currency === pair.base) ?? null;
-  const quoteRank = ranks.find((item) => item.currency === pair.quote) ?? null;
-
-  if (!baseRank || !quoteRank) {
-    return {
-      title: "Strength context unresolved.",
-      detail: "At least one currency rank is missing.",
-      unresolved: true,
-      strongerCurrency: null,
-      weakerCurrency: null,
-      scoreGap: null,
-      decisive: false,
-    };
-  }
-
-  const stronger = baseRank.score >= quoteRank.score ? baseRank : quoteRank;
-  const weaker = stronger.currency === baseRank.currency ? quoteRank : baseRank;
-  const scoreGap = stronger.score - weaker.score;
-
-  return {
-    title: `${stronger.currency} is currently outperforming ${weaker.currency}.`,
-    detail: `Score Gap: ${scoreGap.toFixed(1)} pts`,
-    unresolved: false,
-    strongerCurrency: stronger.currency,
-    weakerCurrency: weaker.currency,
-    scoreGap,
-    decisive: scoreGap >= 3,
-  };
-}
-
-function getEventSensitivity(
-  events: CalendarEvent[],
-  reviewSymbol: string,
-  currentTime: Date,
-): EventSensitivitySummary {
-  const now = currentTime.getTime() / 1000;
-  const symbolCurrencies = [reviewSymbol.slice(0, 3), reviewSymbol.slice(3, 6)];
-  const nextRelevant = events
-    .filter((event) => event.impact === "high" && event.time >= now && symbolCurrencies.includes(event.currency))
-    .sort((a, b) => a.time - b.time)[0] ?? null;
-
-  if (!nextRelevant) {
-    return {
-      label: "Clear",
-      tone: "good",
-      detail: `No relevant high-impact event is scheduled soon for ${reviewSymbol}.`,
-    };
-  }
-
-  const secondsUntil = nextRelevant.time - now;
-  if (secondsUntil <= 2 * 60 * 60) {
-    return {
-      label: "High-risk soon",
-      tone: "danger",
-      detail: `${nextRelevant.currency} ${nextRelevant.title} is too close for a clean timing window.`,
-    };
-  }
-
-  if (secondsUntil <= 24 * 60 * 60) {
-    return {
-      label: "Event-sensitive",
-      tone: "warning",
-      detail: `${nextRelevant.currency} ${nextRelevant.title} is within the next 24 hours.`,
-    };
-  }
-
-  return {
-    label: "Clear",
-    tone: "good",
-    detail: `Relevant high-impact events for ${reviewSymbol} are not immediate.`,
-  };
-}
-
-function getMacroBackdropVerdict(
-  reviewSymbol: string,
-  macroSummary: MacroSummary,
-  strengthSummary: StrengthSummary,
-): VerdictCard {
-  if (macroSummary.unresolved || strengthSummary.unresolved) {
-    return {
-      label: "Unclear",
-      tone: "warning",
-      detail: `Macro inputs for ${reviewSymbol} are still incomplete or unresolved.`,
-    };
-  }
-
-  if (macroSummary.alignment === "aligned" && macroSummary.favoredCurrency === strengthSummary.strongerCurrency) {
-    return {
-      label: "Supportive",
-      tone: "good",
-      detail: `${macroSummary.favoredCurrency} has the cleaner rate and inflation backdrop, and the strength spread agrees.`,
-    };
-  }
-
-  if (macroSummary.alignment === "aligned" && macroSummary.favoredCurrency !== strengthSummary.strongerCurrency) {
-    return {
-      label: "Hostile",
-      tone: "danger",
-      detail: `Rate and inflation favor ${macroSummary.favoredCurrency}, but live strength currently points toward ${strengthSummary.strongerCurrency}.`,
-    };
-  }
-
-  return {
-    label: "Unclear",
-    tone: "warning",
-    detail: `Rates and inflation do not yet form a clean same-side macro backdrop for ${reviewSymbol}.`,
-  };
-}
-
-function getPairAttentionVerdict(
-  reviewSymbol: string,
-  trustState: TrustState,
-  macroVerdict: VerdictCard,
-  macroSummary: MacroSummary,
-  strengthSummary: StrengthSummary,
-  eventSensitivity: EventSensitivitySummary,
-  atrValue: number | null | undefined,
-): VerdictCard {
-  if (trustState.verdict === "no") {
-    return {
-      label: "Wait for data",
-      tone: "danger",
-      detail: `The app trust state is ${trustState.verdictLabel.toLowerCase()}, so ${reviewSymbol} should not be routed yet.`,
-    };
-  }
-
-  if (eventSensitivity.label === "High-risk soon") {
-    return {
-      label: "Wait until event passes",
-      tone: "danger",
-      detail: `${reviewSymbol} is event-sensitive right now because a relevant high-impact release is too close.`,
-    };
-  }
-
-  if (trustState.verdict === "limited" || macroSummary.unresolved || strengthSummary.unresolved) {
-    return {
-      label: "Wait for data",
-      tone: "warning",
-      detail: `${reviewSymbol} still needs cleaner trust or macro inputs before it earns attention.`,
-    };
-  }
-
-  if (macroVerdict.label === "Supportive" && strengthSummary.decisive && atrValue != null && atrValue >= 50) {
-    return {
-      label: "Study now",
-      tone: "good",
-      detail: `${reviewSymbol} has a supportive macro backdrop, a decisive strength spread, and enough volatility to study now.`,
-    };
-  }
-
-  if (macroVerdict.label === "Hostile" && !strengthSummary.decisive) {
-    return {
-      label: "Ignore for now",
-      tone: "danger",
-      detail: `${reviewSymbol} does not currently show a clean macro or strength case worth prioritizing.`,
-    };
-  }
-
-  if (eventSensitivity.label === "Event-sensitive" || macroVerdict.label === "Unclear") {
-    return {
-      label: "Monitor later",
-      tone: "warning",
-      detail: `${reviewSymbol} is watchable, but the backdrop is not clean enough yet for immediate focus.`,
-    };
-  }
-
-  if (atrValue != null && atrValue < 45 && !strengthSummary.decisive) {
-    return {
-      label: "Ignore for now",
-      tone: "danger",
-      detail: `${reviewSymbol} is currently quiet and lacks a decisive enough strength spread to prioritize.`,
-    };
-  }
-
-  return {
-    label: "Monitor later",
-    tone: "warning",
-    detail: `${reviewSymbol} is usable to monitor, but it is not the cleanest candidate on the current evidence.`,
-  };
-}
-
 function getAttentionActions(
   trustState: TrustState,
   reviewSymbol: string,
-  eventSensitivity: EventSensitivitySummary,
-  macroSummary: MacroSummary,
-  strengthSummary: StrengthSummary,
+  eventSensitivity: ReturnType<typeof getEventSensitivity>,
+  macroSummary: ReturnType<typeof getMacroSummary>,
+  strengthSummary: ReturnType<typeof getStrengthDifferentialSummary>,
 ): ActionItem[] {
   const actions: ActionItem[] = [];
 
@@ -425,11 +104,12 @@ export function OverviewTab({
   onNavigate,
 }: OverviewTabProps) {
   const [atrByPair, setAtrByPair] = useState<AtrByPair>({});
+  const nowUnix = currentTime.getTime() / 1000;
   const trustState = useMemo(() => resolveTrustState(health, feedStatus, marketStatus), [health, feedStatus, marketStatus]);
-  const topEvents = useMemo(() => getTopEvents(events, reviewSymbol), [events, reviewSymbol]);
+  const topEvents = useMemo(() => getTopEvents(events, reviewSymbol, nowUnix), [events, reviewSymbol, nowUnix]);
   const macroSummary = useMemo(() => getMacroSummary(reviewSymbol, snapshots), [reviewSymbol, snapshots]);
   const strengthSummary = useMemo(() => getStrengthDifferentialSummary(reviewSymbol, snapshots), [reviewSymbol, snapshots]);
-  const eventSensitivity = useMemo(() => getEventSensitivity(events, reviewSymbol, currentTime), [events, reviewSymbol, currentTime]);
+  const eventSensitivity = useMemo(() => getEventSensitivity(events, reviewSymbol, nowUnix), [events, reviewSymbol, nowUnix]);
   const macroVerdict = useMemo(
     () => getMacroBackdropVerdict(reviewSymbol, macroSummary, strengthSummary),
     [reviewSymbol, macroSummary, strengthSummary],
