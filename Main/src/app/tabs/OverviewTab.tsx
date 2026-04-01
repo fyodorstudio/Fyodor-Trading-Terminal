@@ -86,12 +86,6 @@ function renderFeedLabel(status: BridgeStatus): string {
   return "Disconnected";
 }
 
-function getVerdictClassName(tone: TrustTone): string {
-  if (tone === "good") return "is-good";
-  if (tone === "danger") return "is-danger";
-  return "is-warning";
-}
-
 export function OverviewTab({
   currentTime,
   health,
@@ -123,13 +117,8 @@ export function OverviewTab({
     () => getAttentionActions(trustState, reviewSymbol, eventSensitivity, macroSummary, strengthSummary),
     [trustState, reviewSymbol, eventSensitivity, macroSummary, strengthSummary],
   );
-  const resolvedBanks = snapshots.filter((item) => item.status === "ok").length;
-  const lastIngestLabel = formatRelativeAge(health.last_calendar_ingest_at ?? null);
 
   const pair = getFxPairByName(reviewSymbol);
-  const baseSnap = snapshots.find((snapshot) => snapshot.currency === pair?.base);
-  const quoteSnap = snapshots.find((snapshot) => snapshot.currency === pair?.quote);
-
   const currencies = adaptDashboardCurrencies(snapshots);
   const { ranks } = deriveStrengthCurrencyRanks(currencies);
   const baseRank = ranks.find((rank) => rank.currency === pair?.base);
@@ -137,21 +126,15 @@ export function OverviewTab({
 
   const isBridgeValid = health.terminal_connected && health.ok;
   const isRiskValid = eventSensitivity.label === "Clear";
-  const isMacroValid = !macroSummary.unresolved && macroVerdict.label !== "Unclear";
+  const isMacroValid = !macroSummary.unresolved && macroVerdict.label !== "Supportive";
   const isStrengthValid = strengthSummary.decisive;
 
-  const needlePosition = useMemo(() => {
+  const spreadPercentage = useMemo(() => {
     if (!baseRank || !quoteRank) return 50;
     const diff = baseRank.score - quoteRank.score;
-    const pos = 50 - (diff * 4);
-    return Math.min(Math.max(pos, 10), 90);
+    const pos = 50 + (diff * 5); // Expanded scale for visual impact
+    return Math.min(Math.max(pos, 5), 95);
   }, [baseRank, quoteRank]);
-
-  const atrGaugeWidth = useMemo(() => {
-    if (!atrValue) return 0;
-    const width = ((atrValue - 40) / 160) * 100;
-    return Math.min(Math.max(width, 5), 100);
-  }, [atrValue]);
 
   useEffect(() => {
     let cancelled = false;
@@ -177,271 +160,122 @@ export function OverviewTab({
 
   return (
     <section className="tab-panel overview-panel">
-      <div className="narrative-container">
-        <section className={`narrative-hero narrative-hero-${trustState.tone}`}>
-          <div className="overview-decision-grid">
-            <article className={`overview-decision-card ${getVerdictClassName(trustState.tone)}`}>
-              <span className="overview-decision-kicker">Can I trust the app right now?</span>
-              <div className="overview-decision-head">
-                <ShieldCheck size={16} />
-                <strong>{trustState.verdictLabel}</strong>
-              </div>
-              <p>{trustState.detail}</p>
-            </article>
-
-            <article className={`overview-decision-card ${getVerdictClassName(pairAttentionVerdict.tone)}`}>
-              <span className="overview-decision-kicker">Is {reviewSymbol} worth attention right now?</span>
-              <div className="overview-decision-head">
-                <Target size={16} />
-                <strong>{pairAttentionVerdict.label}</strong>
-              </div>
-              <p>{pairAttentionVerdict.detail}</p>
-            </article>
-
-            <article className={`overview-decision-card ${getVerdictClassName(macroVerdict.tone)}`}>
-              <span className="overview-decision-kicker">Macro Backdrop Verdict</span>
-              <div className="overview-decision-head">
-                <TrendingUp size={16} />
-                <strong>{macroVerdict.label}</strong>
-              </div>
-              <p>{macroVerdict.detail}</p>
-            </article>
+      <div className="tactical-brief-container">
+        <header className="tactical-header">
+          <div className="tactical-pair-info">
+            <span className="tactical-pair-sub">Operational Briefing</span>
+            <select
+              className="tactical-pair-select"
+              value={reviewSymbol}
+              onChange={(e) => onReviewSymbolChange(e.target.value)}
+            >
+              {FX_PAIRS.map((p) => (
+                <option key={p.name} value={p.name}>{p.name}</option>
+              ))}
+            </select>
           </div>
-
-          <div className="readiness-checklist">
-            <div className={`check-item ${isBridgeValid ? "is-valid" : "is-invalid"}`}>
-              <div className="check-dot">{isBridgeValid ? <Check size={10} /> : <AlertTriangle size={10} />}</div>
-              Bridge Link
+          <div className="tactical-vitals">
+            <div className="tactical-vital-item">
+              <span className="tactical-vital-label">Volatility</span>
+              <span className="tactical-vital-value">{atrValue ?? "--"} pips</span>
             </div>
-            <div className={`check-item ${isRiskValid ? "is-valid" : "is-invalid"}`}>
-              <div className="check-dot">{isRiskValid ? <Check size={10} /> : <AlertTriangle size={10} />}</div>
-              Event Sensitivity
+            <div className="tactical-vital-item">
+              <span className="tactical-vital-label">Bridge</span>
+              <span className="tactical-vital-value">{isBridgeValid ? "Active" : "Issue"}</span>
             </div>
-            <div className={`check-item ${isMacroValid ? "is-valid" : "is-invalid"}`}>
-              <div className="check-dot">{isMacroValid ? <Check size={10} /> : <Info size={10} />}</div>
-              Macro Backdrop
-            </div>
-            <div className={`check-item ${isStrengthValid ? "is-valid" : ""}`}>
-              <div className="check-dot">{isStrengthValid ? <TrendingUp size={10} /> : <Activity size={10} />}</div>
-              Strength Gap
+            <div className="tactical-vital-item">
+              <span className="tactical-vital-label">Feed</span>
+              <span className="tactical-vital-value">{renderFeedLabel(feedStatus)}</span>
             </div>
           </div>
+        </header>
 
-          <div className="narrative-hero-vitals">
-            <div className="narrative-hero-stat">
-              <label>Trust</label>
-              <span>{trustState.verdictLabel}</span>
+        <article className={`tactical-verdict-hero is-${pairAttentionVerdict.tone}`}>
+          <span className="tactical-verdict-label">Attention Verdict</span>
+          <h2 className="tactical-verdict-title">{pairAttentionVerdict.label}</h2>
+          <p className="tactical-verdict-desc">{pairAttentionVerdict.detail}</p>
+          
+          <div className="tactical-checklist">
+            <div className={`tactical-check-item ${isBridgeValid ? "is-valid" : ""}`}>
+              <div className="tactical-check-dot" /> Bridge
             </div>
-            <div className="narrative-hero-stat">
-              <label>Calendar</label>
-              <span>{renderFeedLabel(feedStatus)}</span>
+            <div className={`tactical-check-item ${isRiskValid ? "is-valid" : ""}`}>
+              <div className="tactical-check-dot" /> Event Risk
             </div>
-            <div className="narrative-hero-stat">
-              <label>Banks</label>
-              <span>{resolvedBanks}/8</span>
+            <div className={`tactical-check-item ${isMacroValid ? "is-valid" : ""}`}>
+              <div className="tactical-check-dot" /> Macro Alignment
             </div>
-          </div>
-        </section>
-
-        <div className="narrative-main-grid">
-          <div className="narrative-section">
-            <div className="narrative-section-header">
-              <Target size={14} />
-              <h3>The Pair Story</h3>
-            </div>
-
-            <div className="narrative-card">
-              <div className="narrative-pair-banner">
-                <div className="narrative-pair-info">
-                  <h4>Selected Pair</h4>
-                  <select
-                    className="narrative-pair-select"
-                    value={reviewSymbol}
-                    onChange={(event) => onReviewSymbolChange(event.target.value)}
-                  >
-                    {FX_PAIRS.map((fxPair) => (
-                      <option key={fxPair.name} value={fxPair.name}>{fxPair.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div className="narrative-atr-display">
-                  <label>Volatility (14D ATR)</label>
-                  <div className="narrative-atr-value">
-                    {atrValue === undefined ? "..." : atrValue == null ? "--" : `${atrValue} pips`}
-                  </div>
-                  <div className="atr-gauge-container">
-                    <div className="atr-gauge-track">
-                      <div className="atr-gauge-fill" style={{ width: `${atrGaugeWidth}%` }} />
-                    </div>
-                    <div className="atr-labels">
-                      <span>Quiet</span>
-                      <span>Extreme</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="overview-signal-strip">
-                <div className={`overview-signal-pill ${getVerdictClassName(eventSensitivity.tone)}`}>
-                  <span>Event Sensitivity</span>
-                  <strong>{eventSensitivity.label}</strong>
-                </div>
-                <div className={`overview-signal-pill ${getVerdictClassName(pairAttentionVerdict.tone)}`}>
-                  <span>Routing</span>
-                  <strong>{pairAttentionVerdict.label}</strong>
-                </div>
-              </div>
-
-              <div className="duel-container">
-                <div className="duel-side">
-                  <div className="duel-header">
-                    <span className="duel-currency">{pair?.base || "---"}</span>
-                    <FlagIcon countryCode={baseSnap?.countryCode || ""} className="h-4 w-6" />
-                  </div>
-                  <div className="duel-stat">
-                    <label>Strength</label>
-                    <span>{baseRank?.score.toFixed(1) || "0.0"} pts</span>
-                  </div>
-                  <div className="duel-stat">
-                    <label>Policy Rate</label>
-                    <span>{baseSnap?.currentPolicyRate || "---"}</span>
-                  </div>
-                </div>
-
-                <div className="duel-needle-track">
-                  <div className="duel-needle" style={{ top: `${needlePosition}%` }} />
-                </div>
-
-                <div className="duel-side">
-                  <div className="duel-header" style={{ flexDirection: "row-reverse" }}>
-                    <span className="duel-currency">{pair?.quote || "---"}</span>
-                    <FlagIcon countryCode={quoteSnap?.countryCode || ""} className="h-4 w-6" />
-                  </div>
-                  <div className="duel-stat" style={{ textAlign: "right" }}>
-                    <label>Strength</label>
-                    <span>{quoteRank?.score.toFixed(1) || "0.0"} pts</span>
-                  </div>
-                  <div className="duel-stat" style={{ textAlign: "right" }}>
-                    <label>Policy Rate</label>
-                    <span>{quoteSnap?.currentPolicyRate || "---"}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="overview-story-grid">
-                <div className="narrative-story-item">
-                  <div className="narrative-story-icon"><TrendingUp size={22} /></div>
-                  <div className="narrative-story-text">
-                    <h5>Macro Backdrop Verdict</h5>
-                    <p>{macroSummary.title}</p>
-                    <div className="narrative-story-detail">{macroSummary.detail}</div>
-                  </div>
-                </div>
-
-                <div className="narrative-story-item">
-                  <div className="narrative-story-icon"><CalendarClock size={22} /></div>
-                  <div className="narrative-story-text">
-                    <h5>Event Sensitivity</h5>
-                    <p>{eventSensitivity.detail}</p>
-                    <div className="narrative-story-detail">
-                      Relevant event timing is treated as a routing input, not as a prediction signal.
-                    </div>
-                  </div>
-                </div>
-
-                <div className="narrative-story-item">
-                  <div className="narrative-story-icon"><Activity size={22} /></div>
-                  <div className="narrative-story-text">
-                    <h5>Strength Context</h5>
-                    <p>{strengthSummary.title}</p>
-                    <div className="narrative-story-detail">{strengthSummary.detail}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="terminal-link-strip" style={{ marginTop: "32px" }}>
-                <button onClick={() => onNavigate("central-banks")}>Banks Analysis</button>
-                <button onClick={() => onNavigate("strength-meter")}>Strength Meter</button>
-                <button onClick={() => onNavigate("dashboard")}>Differential Calc</button>
-                <button onClick={() => onNavigate("charts")}>Open Charts</button>
-              </div>
+            <div className={`tactical-check-item ${isStrengthValid ? "is-valid" : ""}`}>
+              <div className="tactical-check-dot" /> Decisive Strength
             </div>
           </div>
+        </article>
 
-          <div className="narrative-column" style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
-            <div className="narrative-section">
-              <div className="narrative-section-header">
-                <CalendarClock size={14} />
-                <h3>Risk Radar</h3>
+        <div className="tactical-grid">
+          <section className="tactical-card">
+            <div className="tactical-card-title"><Activity size={14} /> Strength Dynamics</div>
+            <div className="tactical-spread-viz">
+              <div className="tactical-spread-labels">
+                <span>{pair?.base}</span>
+                <span>{pair?.quote}</span>
               </div>
-              <div className="narrative-event-card">
-                <div className={`overview-risk-banner ${getVerdictClassName(eventSensitivity.tone)}`}>
-                  <span>Near-Term Event Risk</span>
-                  <strong>{eventSensitivity.label}</strong>
-                  <p>{eventSensitivity.detail}</p>
-                </div>
-                {topEvents.length > 0 ? (
-                  topEvents.map((event) => {
-                    const diffMinutes = (event.time - currentTime.getTime() / 1000) / 60;
-                    const isUrgent = event.relevant && diffMinutes > 0 && diffMinutes < 60;
-                    return (
-                      <button
-                        key={event.id}
-                        className={`narrative-event-row ${isUrgent ? "risk-alert-pulse" : ""}`}
-                        onClick={() => onNavigate("calendar")}
-                      >
-                        <div className="narrative-event-top">
-                          <div className="narrative-event-title">
-                            <strong>{event.title}</strong>
-                            <span>{event.currency} | {formatUtcDateTime(event.time)}</span>
-                          </div>
-                          <div className="narrative-event-countdown">
-                            {formatCountdown(event.time, currentTime.getTime())}
-                          </div>
-                        </div>
-                        <div className="overview-event-row-footer">
-                          <FlagIcon countryCode={event.countryCode} className="h-4 w-6" />
-                          <span className={`overview-relevance ${event.relevant ? "is-relevant" : ""}`}>
-                            {event.relevant ? "Relevant to pair" : "Watchlist context"}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })
-                ) : (
-                  <div className="narrative-event-row">
-                    <p style={{ margin: 0, fontSize: "0.85rem", color: "#6b7280" }}>
-                      No high-impact events detected in the current window.
-                    </p>
-                  </div>
-                )}
+              <div className="tactical-spread-track">
+                <div 
+                  className="tactical-spread-bar" 
+                  style={{ 
+                    left: spreadPercentage > 50 ? "50%" : `${spreadPercentage}%`,
+                    right: spreadPercentage > 50 ? `${100 - spreadPercentage}%` : "50%"
+                  }} 
+                />
+              </div>
+              <div className="tactical-spread-labels">
+                <span>{baseRank?.score.toFixed(1) || "0.0"}</span>
+                <span>{quoteRank?.score.toFixed(1) || "0.0"}</span>
               </div>
             </div>
+            <div className="tactical-action-content">
+              <span className="tactical-action-label">{strengthSummary.title}</span>
+              <span className="tactical-action-detail">{strengthSummary.detail}</span>
+            </div>
+          </section>
 
-            <div className="narrative-section">
-              <div className="narrative-section-header">
-                <ArrowRight size={14} />
-                <h3>Next Steps</h3>
-              </div>
-              <div className="narrative-next-move-list">
-                {actions.map((action) => (
-                  <button key={action.label} className="narrative-next-button" onClick={() => onNavigate(action.tab)}>
-                    <div className="narrative-next-text">
-                      <strong>{action.label}</strong>
-                      <span>{action.detail}</span>
+          <section className="tactical-card">
+            <div className="tactical-card-title"><CalendarClock size={14} /> Risk Radar</div>
+            <div className="tactical-event-list">
+              {topEvents.length > 0 ? (
+                topEvents.map((event) => (
+                  <button key={event.id} className="tactical-event-row" onClick={() => onNavigate("calendar")}>
+                    <div className="tactical-event-info">
+                      <span className="tactical-event-title">{event.title}</span>
+                      <span className="tactical-event-meta">{event.currency} | {formatUtcDateTime(event.time)}</span>
                     </div>
-                    <ArrowRight size={16} color="#9ca3af" />
+                    <span className="tactical-event-time">{formatCountdown(event.time, currentTime.getTime())}</span>
                   </button>
-                ))}
-              </div>
+                ))
+              ) : (
+                <p className="tactical-action-detail">No high-impact events detected.</p>
+              )}
             </div>
-          </div>
-        </div>
+          </section>
 
-        <div className="narrative-footer-links">
-          <button className="narrative-footer-link" onClick={() => onNavigate("overview")}>Refresh Overview</button>
-          <button className="narrative-footer-link">Sync Ingest Window</button>
-          <span style={{ fontSize: "0.85rem", color: "#9ca3af" }}>Last Ingest: {lastIngestLabel}</span>
+          <section className="tactical-card" style={{ gridColumn: "span 2" }}>
+            <div className="tactical-card-title"><TrendingUp size={14} /> Macro Evidence</div>
+            <div className="tactical-action-content">
+              <span className="tactical-action-label">{macroVerdict.label}: {macroSummary.title}</span>
+              <span className="tactical-action-detail">{macroVerdict.detail}</span>
+            </div>
+            <div className="tactical-action-list" style={{ marginTop: "12px" }}>
+              {actions.map((action) => (
+                <button key={action.label} className="tactical-action-item" onClick={() => onNavigate(action.tab)}>
+                  <div className="tactical-action-content">
+                    <span className="tactical-action-label">{action.label}</span>
+                    <span className="tactical-action-detail">{action.detail}</span>
+                  </div>
+                  <ArrowRight size={16} />
+                </button>
+              ))}
+            </div>
+          </section>
         </div>
       </div>
     </section>
