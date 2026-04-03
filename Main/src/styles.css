@@ -5291,6 +5291,28 @@ button {
   flex: 1;
 }
 
+.hub-inspector-meter-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 10px;
+}
+
+.hub-inspector-meter-head span {
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.hub-inspector-meter-head strong {
+  font-size: 1rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
 .hub-inspector-meter p {
   margin: 10px 0 0;
   font-size: 0.95rem;
@@ -5319,6 +5341,10 @@ button {
   background: rgba(255, 255, 255, 0.94);
 }
 
+.hub-inspector-card-wide {
+  grid-column: 1 / -1;
+}
+
 .hub-inspector-card span {
   display: block;
   margin-bottom: 10px;
@@ -5340,6 +5366,48 @@ button {
 .hub-inspector-card ul {
   margin: 0;
   padding-left: 18px;
+}
+
+.hub-inspector-weight-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.hub-inspector-weight-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.hub-inspector-weight-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hub-inspector-weight-main strong {
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.hub-inspector-weight-main span {
+  margin: 0;
+  font-size: 0.78rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #64748b;
+}
+
+.hub-inspector-weight-score {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #0f172a;
 }
 
 @media (max-width: 820px) {

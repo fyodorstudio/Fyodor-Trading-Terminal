@@ -48,6 +48,12 @@ export interface OverviewPipelineStatus {
   detail: string;
   factors: string[];
   explanation: string;
+  weights: Array<{
+    label: string;
+    earned: number;
+    max: number;
+    state: string;
+  }>;
 }
 
 function formatGap(value: number | null): string {
@@ -398,6 +404,37 @@ export function getOverviewPipelineStatus(
   const percent = Math.max(0, Math.min(100, trustPoints + feedPoints + marketPoints + coveragePoints));
   const explanation =
     "This meter combines trust state, calendar timing, selected symbol context, and resolved macro coverage.";
+  const weights = [
+    {
+      label: "Trust state",
+      earned: trustPoints,
+      max: 40,
+      state: trustState.verdictLabel,
+    },
+    {
+      label: "Calendar timing",
+      earned: feedPoints,
+      max: 25,
+      state: feedStatus.replace("_", " "),
+    },
+    {
+      label: "Selected symbol context",
+      earned: marketPoints,
+      max: 15,
+      state:
+        !marketStatus || !marketStatus.terminal_connected
+          ? "Unavailable"
+          : marketStatus.session_state === "unavailable"
+            ? "Unresolved"
+            : marketStatus.session_state,
+    },
+    {
+      label: "Macro coverage",
+      earned: coveragePoints,
+      max: 20,
+      state: `${coverageRatio}/8 resolved`,
+    },
+  ];
 
   if (trustState.verdict === "no") {
     return {
@@ -407,6 +444,7 @@ export function getOverviewPipelineStatus(
       detail: "Core trust checks are failing, so Overview outputs should not be treated as fully reliable.",
       factors,
       explanation,
+      weights,
     };
   }
 
@@ -418,6 +456,7 @@ export function getOverviewPipelineStatus(
       detail: "Event timing is unavailable, so the Overview briefing is missing a critical timing input.",
       factors,
       explanation,
+      weights,
     };
   }
 
@@ -429,6 +468,7 @@ export function getOverviewPipelineStatus(
       detail: "Overview is usable, but at least one trust, timing, or macro coverage input is still partial.",
       factors,
       explanation,
+      weights,
     };
   }
 
@@ -439,5 +479,6 @@ export function getOverviewPipelineStatus(
     detail: "Trust, timing, symbol context, and macro coverage are all aligned for normal Overview use.",
     factors,
     explanation,
+    weights,
   };
 }

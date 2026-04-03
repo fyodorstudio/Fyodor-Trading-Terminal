@@ -413,6 +413,10 @@ export function OverviewTab({
 
             <div className="hub-inspector-metric-row">
               <div className="hub-inspector-meter">
+                <div className="hub-inspector-meter-head">
+                  <span>Current score</span>
+                  <strong>{pipelineStatus.label}</strong>
+                </div>
                 <div className="hub-progress-track">
                   <div className={`hub-progress-fill is-${pipelineStatus.tone}`} style={{ width: `${pipelineStatus.percent}%` }} />
                 </div>
@@ -422,19 +426,22 @@ export function OverviewTab({
             </div>
 
             <div className="hub-inspector-grid">
-              <section className="hub-inspector-card">
-                <span>What this combines</span>
+              <section className="hub-inspector-card hub-inspector-card-wide">
+                <span>How score is calculated</span>
                 <p>{pipelineStatus.explanation}</p>
-              </section>
-
-              <section className="hub-inspector-card">
-                <span>Current live inputs</span>
-                <ul>
-                  <li>Trust state: {trustState.verdictLabel}</li>
-                  <li>Calendar feed: {renderFeedLabel(feedStatus)}</li>
-                  <li>Selected symbol context: {marketStatus?.session_state ?? "unavailable"}</li>
-                  <li>Resolved macro coverage: {resolvedBanks}/8</li>
-                </ul>
+                <div className="hub-inspector-weight-list">
+                  {pipelineStatus.weights.map((weight) => (
+                    <div key={weight.label} className="hub-inspector-weight-row">
+                      <div className="hub-inspector-weight-main">
+                        <strong>{weight.label}</strong>
+                        <span>{weight.state}</span>
+                      </div>
+                      <div className="hub-inspector-weight-score">
+                        {weight.earned}/{weight.max}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </section>
 
               <section className="hub-inspector-card">
@@ -448,6 +455,16 @@ export function OverviewTab({
                 ) : (
                   <p>No limiting factors are active right now.</p>
                 )}
+              </section>
+
+              <section className="hub-inspector-card">
+                <span>Current live inputs</span>
+                <ul>
+                  <li>Trust state: {trustState.verdictLabel}</li>
+                  <li>Calendar feed: {renderFeedLabel(feedStatus)}</li>
+                  <li>Selected symbol context: {marketStatus?.session_state ?? "unavailable"}</li>
+                  <li>Resolved macro coverage: {resolvedBanks}/8</li>
+                </ul>
               </section>
 
               <section className="hub-inspector-card">

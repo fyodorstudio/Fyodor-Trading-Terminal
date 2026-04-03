@@ -150,6 +150,12 @@ describe("overview logic", () => {
       label: "Pipeline healthy",
     });
     expect(pipeline.factors).toHaveLength(0);
+    expect(pipeline.weights).toEqual([
+      { label: "Trust state", earned: 40, max: 40, state: "Yes" },
+      { label: "Calendar timing", earned: 25, max: 25, state: "live" },
+      { label: "Selected symbol context", earned: 15, max: 15, state: "open" },
+      { label: "Macro coverage", earned: 20, max: 20, state: "8/8 resolved" },
+    ]);
   });
 
   it("degrades the pipeline when trust is limited and macro coverage is partial", () => {
@@ -162,6 +168,9 @@ describe("overview logic", () => {
     expect(pipeline.factors).toContain("Trust is limited");
     expect(pipeline.factors).toContain("Calendar feed is stale");
     expect(pipeline.factors).toContain("Macro coverage is 5/8 resolved");
+    expect(pipeline.weights[0]).toMatchObject({ earned: 22, max: 40, state: "Limited" });
+    expect(pipeline.weights[1]).toMatchObject({ earned: 15, max: 25, state: "stale" });
+    expect(pipeline.weights[3]).toMatchObject({ earned: 13, max: 20, state: "5/8 resolved" });
   });
 
   it("reports a degraded pipeline when trust is no", () => {
