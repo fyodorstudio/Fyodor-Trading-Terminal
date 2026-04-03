@@ -99,6 +99,7 @@ export function OverviewTab({
   onNavigate,
 }: OverviewTabProps) {
   const [atrByPair, setAtrByPair] = useState<AtrByPair>({});
+  const [showPipelineInspector, setShowPipelineInspector] = useState(false);
   const nowUnix = currentTime.getTime() / 1000;
   const trustState = useMemo(() => resolveTrustState(health, feedStatus, marketStatus), [health, feedStatus, marketStatus]);
   const topEvents = useMemo(() => getTopEvents(events, reviewSymbol, nowUnix), [events, reviewSymbol, nowUnix]);
@@ -345,7 +346,12 @@ export function OverviewTab({
           <section className="hub-status-bar">
             <div className="hub-status-head">
               <div className="hub-status-label">Differential Pipeline Status</div>
-              <div className="hub-help-trigger" tabIndex={0} aria-label="Explain differential pipeline status">
+              <button
+                type="button"
+                className="hub-help-trigger"
+                aria-label="Explain differential pipeline status"
+                onClick={() => setShowPipelineInspector(true)}
+              >
                 <CircleHelp size={14} />
                 <div className="hub-help-popover" role="tooltip">
                   <strong>What this means</strong>
@@ -361,7 +367,7 @@ export function OverviewTab({
                     <p>No limiting factors are active right now.</p>
                   )}
                 </div>
-              </div>
+              </button>
             </div>
             <div className="hub-progress-track">
               <div className={`hub-progress-fill is-${pipelineStatus.tone}`} style={{ width: `${pipelineStatus.percent}%` }} />
@@ -380,6 +386,83 @@ export function OverviewTab({
           </section>
         </aside>
       </div>
+
+      {showPipelineInspector && (
+        <div className="hub-inspector-overlay" onClick={() => setShowPipelineInspector(false)}>
+          <div
+            className="hub-inspector-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Differential pipeline status details"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="hub-inspector-top">
+              <div>
+                <div className="hub-inspector-kicker">Differential Pipeline Status</div>
+                <h3>{pipelineStatus.label}</h3>
+              </div>
+              <button
+                type="button"
+                className="hub-inspector-close"
+                onClick={() => setShowPipelineInspector(false)}
+                aria-label="Close pipeline status details"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="hub-inspector-metric-row">
+              <div className="hub-inspector-meter">
+                <div className="hub-progress-track">
+                  <div className={`hub-progress-fill is-${pipelineStatus.tone}`} style={{ width: `${pipelineStatus.percent}%` }} />
+                </div>
+                <p>{pipelineStatus.detail}</p>
+              </div>
+              <div className="hub-inspector-percent">{pipelineStatus.percent}%</div>
+            </div>
+
+            <div className="hub-inspector-grid">
+              <section className="hub-inspector-card">
+                <span>What this combines</span>
+                <p>{pipelineStatus.explanation}</p>
+              </section>
+
+              <section className="hub-inspector-card">
+                <span>Current live inputs</span>
+                <ul>
+                  <li>Trust state: {trustState.verdictLabel}</li>
+                  <li>Calendar feed: {renderFeedLabel(feedStatus)}</li>
+                  <li>Selected symbol context: {marketStatus?.session_state ?? "unavailable"}</li>
+                  <li>Resolved macro coverage: {resolvedBanks}/8</li>
+                </ul>
+              </section>
+
+              <section className="hub-inspector-card">
+                <span>Current limiting factors</span>
+                {pipelineStatus.factors.length > 0 ? (
+                  <ul>
+                    {pipelineStatus.factors.map((factor) => (
+                      <li key={factor}>{factor}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>No limiting factors are active right now.</p>
+                )}
+              </section>
+
+              <section className="hub-inspector-card">
+                <span>What this affects</span>
+                <ul>
+                  <li>Overview trust confidence</li>
+                  <li>Event timing confidence</li>
+                  <li>Macro coverage confidence</li>
+                  <li>Pair-routing confidence</li>
+                </ul>
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
