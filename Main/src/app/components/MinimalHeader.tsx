@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertCircle, ChevronDown, Database, Radio, TriangleAlert } from "lucide-react";
+import { TERMINOLOGY } from "@/app/config/terminology";
 import { formatCountdown, formatRelativeAge, formatUtcClock } from "@/app/lib/format";
 import { resolveTrustState } from "@/app/lib/status";
 import type { BridgeHealth, BridgeStatus, MarketStatusResponse } from "@/app/types";
@@ -47,11 +48,11 @@ export function MinimalHeader({
   );
 
   const calendarState = useMemo(() => {
-    if (feedStatus === "live") return { label: "Live", tone: "text-emerald-700 bg-emerald-50 border-emerald-200" };
-    if (feedStatus === "stale") return { label: "Stale", tone: "text-amber-700 bg-amber-50 border-amber-200" };
-    if (feedStatus === "loading") return { label: "Loading", tone: "text-slate-700 bg-slate-100 border-slate-200" };
-    if (feedStatus === "no_data") return { label: "No data", tone: "text-slate-700 bg-slate-100 border-slate-200" };
-    return { label: "Unavailable", tone: "text-rose-700 bg-rose-50 border-rose-200" };
+    if (feedStatus === "live") return { label: TERMINOLOGY.calendarTiming.states.live.medium, tone: "text-emerald-700 bg-emerald-50 border-emerald-200" };
+    if (feedStatus === "stale") return { label: TERMINOLOGY.calendarTiming.states.stale.medium, tone: "text-amber-700 bg-amber-50 border-amber-200" };
+    if (feedStatus === "loading") return { label: TERMINOLOGY.calendarTiming.states.loading.medium, tone: "text-slate-700 bg-slate-100 border-slate-200" };
+    if (feedStatus === "no_data") return { label: TERMINOLOGY.calendarTiming.states.no_data.medium, tone: "text-slate-700 bg-slate-100 border-slate-200" };
+    return { label: TERMINOLOGY.calendarTiming.states.error.medium, tone: "text-rose-700 bg-rose-50 border-rose-200" };
   }, [feedStatus]);
 
   const mt5State = useMemo(() => {
@@ -66,24 +67,24 @@ export function MinimalHeader({
 
   const symbolState = useMemo(() => {
     if (!marketStatus || !marketStatus.terminal_connected) {
-      return { label: "Unavailable", detail: "Selected symbol context is unavailable", tone: "text-rose-700 bg-rose-50 border-rose-200" };
+      return { label: TERMINOLOGY.symbolContext.states.missing.medium, detail: TERMINOLOGY.symbolContext.states.missing.detail, tone: "text-rose-700 bg-rose-50 border-rose-200" };
     }
 
     if (marketStatus.session_state === "open") {
-      return { label: "Open", detail: `${selectedSymbol} session is open`, tone: "text-emerald-700 bg-emerald-50 border-emerald-200" };
+      return { label: TERMINOLOGY.symbolContext.states.open.medium, detail: `${selectedSymbol} ${TERMINOLOGY.symbolContext.states.open.detail.toLowerCase()}`, tone: "text-emerald-700 bg-emerald-50 border-emerald-200" };
     }
 
     if (marketStatus.session_state === "closed") {
-      return { label: "Closed", detail: `${selectedSymbol} session is closed`, tone: "text-amber-700 bg-amber-50 border-amber-200" };
+      return { label: TERMINOLOGY.symbolContext.states.closed.medium, detail: `${selectedSymbol} ${TERMINOLOGY.symbolContext.states.closed.detail.toLowerCase()}`, tone: "text-amber-700 bg-amber-50 border-amber-200" };
     }
 
-    return { label: "Unresolved", detail: `${selectedSymbol} session state is unresolved`, tone: "text-slate-700 bg-slate-100 border-slate-200" };
+    return { label: TERMINOLOGY.symbolContext.states.unavailable.medium, detail: `${selectedSymbol} ${TERMINOLOGY.symbolContext.states.unavailable.detail.toLowerCase()}`, tone: "text-slate-700 bg-slate-100 border-slate-200" };
   }, [marketStatus, selectedSymbol]);
 
   const primaryState = useMemo(() => {
     if (trustState.verdict === "yes") {
       return {
-        label: "Trust: Yes",
+        label: `${TERMINOLOGY.trustState.sectionLabel}: ${TERMINOLOGY.trustState.states.yes.short}`,
         detail: trustState.detail,
         tone: "text-emerald-700",
         icon: Radio,
@@ -92,7 +93,7 @@ export function MinimalHeader({
 
     if (trustState.verdict === "limited") {
       return {
-        label: "Trust: Limited",
+        label: `${TERMINOLOGY.trustState.sectionLabel}: ${TERMINOLOGY.trustState.states.limited.short}`,
         detail: trustState.detail,
         tone: "text-amber-700",
         icon: TriangleAlert,
@@ -100,7 +101,7 @@ export function MinimalHeader({
     }
 
     return {
-      label: "Trust: No",
+      label: `${TERMINOLOGY.trustState.sectionLabel}: ${TERMINOLOGY.trustState.states.no.short}`,
       detail: trustState.detail,
       tone: "text-rose-700",
       icon: AlertCircle,
@@ -132,7 +133,7 @@ export function MinimalHeader({
                   <span>{primaryState.label}</span>
                 </div>
                 <div className="min-w-0">
-                  <div className="text-xs font-medium text-slate-700">Can I trust the app right now?</div>
+                  <div className="text-xs font-medium text-slate-700">{TERMINOLOGY.trustState.questionLabel}</div>
                   <div className="text-xs text-slate-500">{primaryState.detail}</div>
                 </div>
               </div>
@@ -174,7 +175,7 @@ export function MinimalHeader({
                   <h2 className="text-sm font-semibold text-slate-950">System health</h2>
                   <div className="mt-3 grid gap-2">
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm text-slate-600">Trust right now</span>
+                      <span className="text-sm text-slate-600">{TERMINOLOGY.trustState.sectionLabel}</span>
                       <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${primaryState.tone}`}>
                         {trustState.verdictLabel}
                       </span>
@@ -188,11 +189,11 @@ export function MinimalHeader({
                       <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${bridgeState.tone}`}>{bridgeState.label}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm text-slate-600">Calendar</span>
+                      <span className="text-sm text-slate-600">{TERMINOLOGY.calendarTiming.sectionLabel}</span>
                       <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${calendarState.tone}`}>{calendarState.label}</span>
                     </div>
                     <div className="flex items-center justify-between gap-3">
-                      <span className="text-sm text-slate-600">{selectedSymbol}</span>
+                      <span className="text-sm text-slate-600">{TERMINOLOGY.symbolContext.sectionLabel}</span>
                       <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${symbolState.tone}`}>{symbolState.label}</span>
                     </div>
                   </div>
@@ -216,19 +217,19 @@ export function MinimalHeader({
                   <h2 className="text-sm font-semibold text-slate-950">Feed diagnostics</h2>
                   <div className="mt-3 grid gap-3">
                     <div>
-                      <div className="text-sm text-slate-600">Trust note</div>
+                      <div className="text-sm text-slate-600">{TERMINOLOGY.trustState.sectionLabel} Note</div>
                       <div className="mt-1 text-sm font-medium text-slate-950">{trustState.detail}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-slate-600">Last calendar ingest</div>
+                      <div className="text-sm text-slate-600">{TERMINOLOGY.labels.lastIngest}</div>
                       <div className="mt-1 text-sm font-medium text-slate-950">{lastIngest}</div>
                     </div>
                     <div>
-                      <div className="text-sm text-slate-600">Resolved central banks</div>
+                      <div className="text-sm text-slate-600">{TERMINOLOGY.labels.resolvedBanks}</div>
                       <div className="mt-1 text-sm font-medium text-slate-950">{resolvedBanks} of 8</div>
                     </div>
                     <div>
-                      <div className="text-sm text-slate-600">Selected symbol context</div>
+                      <div className="text-sm text-slate-600">{TERMINOLOGY.symbolContext.sectionLabel}</div>
                       <div className="mt-1 text-sm font-medium text-slate-950">{symbolState.detail}</div>
                     </div>
                   </div>

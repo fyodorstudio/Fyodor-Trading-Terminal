@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Activity, AlertTriangle, ArrowRight, CalendarClock, Check, Info, ShieldCheck, Target, TrendingUp, Monitor, Zap, Layers, CircleHelp } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
+import { TERMINOLOGY } from "@/app/config/terminology";
 import { calculateAtr14Pips } from "@/app/lib/atr";
 import { fetchHistory } from "@/app/lib/bridge";
 import { formatCountdown, formatRelativeAge, formatUtcDateTime } from "@/app/lib/format";
@@ -81,10 +82,7 @@ function getAttentionActions(
 }
 
 function renderFeedLabel(status: BridgeStatus): string {
-  if (status === "live") return "LIVE";
-  if (status === "stale") return "STALE";
-  if (status === "loading") return "SYNC";
-  return "OFF";
+  return TERMINOLOGY.calendarTiming.states[status].short.toUpperCase();
 }
 
 export function OverviewTab({
@@ -165,11 +163,11 @@ export function OverviewTab({
           <section className="hub-card">
             <header className="hub-card-header">
               <Monitor size={14} />
-              <h3>System Status</h3>
+              <h3>{TERMINOLOGY.trustState.sectionLabel}</h3>
             </header>
             <div className="hub-vitals-box">
               <div className="hub-vital-row">
-                <label>App Trust</label>
+                <label>{TERMINOLOGY.trustState.sectionLabel}</label>
                 <span style={{ color: trustState.tone === "good" ? "#10b981" : trustState.tone === "danger" ? "#ef4444" : "#f59e0b" }}>
                   {trustState.verdictLabel}
                 </span>
@@ -179,12 +177,12 @@ export function OverviewTab({
                 <span style={{ color: isBridgeValid ? "#10b981" : "#ef4444" }}>{isBridgeValid ? "CONNECTED" : "OFFLINE"}</span>
               </div>
               <div className="hub-vital-row">
-                <label>Calendar Feed</label>
+                <label>{TERMINOLOGY.calendarTiming.sectionLabel}</label>
                 <span>{renderFeedLabel(feedStatus)}</span>
               </div>
               <div className="hub-vital-row">
-                <label>Market Session</label>
-                <span>{marketStatus?.session_state.toUpperCase() || "---"}</span>
+                <label>{TERMINOLOGY.symbolContext.sectionLabel}</label>
+                <span>{marketStatus?.session_state ? TERMINOLOGY.symbolContext.states[marketStatus.session_state].short.toUpperCase() : "---"}</span>
               </div>
             </div>
           </section>
@@ -214,11 +212,11 @@ export function OverviewTab({
             </header>
             <div className="hub-vitals-box">
               <div className="hub-vital-row">
-                <label>CB Snapshots</label>
-                <span>{snapshots.length}/8</span>
+                <label>{TERMINOLOGY.labels.resolvedBanks}</label>
+                <span>{resolvedBanks}/8</span>
               </div>
               <div className="hub-vital-row">
-                <label>Last Ingest</label>
+                <label>{TERMINOLOGY.labels.lastIngest}</label>
                 <span>{formatRelativeAge(health.last_calendar_ingest_at ?? null)}</span>
               </div>
             </div>
@@ -238,15 +236,15 @@ export function OverviewTab({
             </div>
             <div className="hub-brief-vitals">
               <div className="hub-brief-stat">
-                <label>Volatility</label>
+                <label>{TERMINOLOGY.labels.volatility}</label>
                 <span>{atrValue ?? "--"} pips</span>
               </div>
               <div className="hub-brief-stat">
-                <label>Bridge Conn</label>
+                <label>{TERMINOLOGY.labels.bridge}</label>
                 <span style={{ color: isBridgeValid ? "#10b981" : "#ef4444" }}>{isBridgeValid ? "Active" : "Issue"}</span>
               </div>
               <div className="hub-brief-stat">
-                <label>Feed Pulse</label>
+                <label>{TERMINOLOGY.calendarTiming.sectionLabel}</label>
                 <span>{renderFeedLabel(feedStatus)}</span>
               </div>
             </div>
@@ -254,7 +252,7 @@ export function OverviewTab({
 
           <article className={`hub-verdict-banner is-${pairAttentionVerdict.tone}`}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: "0.7rem", fontWeight: 800, textTransform: "uppercase", opacity: 0.8, letterSpacing: "0.1em" }}>Operational Status</div>
+              <div style={{ fontSize: "0.7rem", fontWeight: 800, textTransform: "uppercase", opacity: 0.8, letterSpacing: "0.1em" }}>{TERMINOLOGY.pairAttention.sectionLabel}</div>
               <div style={{ fontSize: "1.75rem", fontWeight: 900, lineHeight: 1.1 }}>{pairAttentionVerdict.label}</div>
               <p style={{ fontSize: "1rem", marginTop: "8px", opacity: 0.9, margin: "8px 0 0", maxWidth: "600px", lineHeight: 1.4 }}>
                 {pairAttentionVerdict.detail}
@@ -306,7 +304,7 @@ export function OverviewTab({
           <div className="hub-macro-box">
             <div className="hub-macro-title">
               <TrendingUp size={16} />
-              Macro Backdrop Verdict
+              {TERMINOLOGY.macroBackdrop.questionLabel}
             </div>
             <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#111827" }}>
               {macroVerdict.label}: {macroSummary.title}
@@ -322,7 +320,7 @@ export function OverviewTab({
           <section className="hub-card" style={{ flex: 1 }}>
             <header className="hub-card-header">
               <CalendarClock size={14} />
-              <h3>Timeline Radar</h3>
+              <h3>{TERMINOLOGY.eventSensitivity.sectionLabel}</h3>
             </header>
             <div className="hub-timeline">
               {topEvents.length > 0 ? (
@@ -345,7 +343,7 @@ export function OverviewTab({
 
           <section className="hub-status-bar">
             <div className="hub-status-head">
-              <div className="hub-status-label">Differential Pipeline Status</div>
+              <div className="hub-status-label">{TERMINOLOGY.pipeline.legacySectionLabel}</div>
               <button
                 type="button"
                 className="hub-help-trigger"
@@ -398,7 +396,7 @@ export function OverviewTab({
           >
             <div className="hub-inspector-top">
               <div>
-                <div className="hub-inspector-kicker">Differential Pipeline Status</div>
+                <div className="hub-inspector-kicker">{TERMINOLOGY.pipeline.sectionLabel}</div>
                 <h3>{pipelineStatus.label}</h3>
               </div>
               <button
@@ -460,10 +458,10 @@ export function OverviewTab({
               <section className="hub-inspector-card">
                 <span>Current live inputs</span>
                 <ul>
-                  <li>Trust state: {trustState.verdictLabel}</li>
-                  <li>Calendar feed: {renderFeedLabel(feedStatus)}</li>
-                  <li>Selected symbol context: {marketStatus?.session_state ?? "unavailable"}</li>
-                  <li>Resolved macro coverage: {resolvedBanks}/8</li>
+                  <li>{TERMINOLOGY.trustState.sectionLabel}: {trustState.verdictLabel}</li>
+                  <li>{TERMINOLOGY.calendarTiming.sectionLabel}: {TERMINOLOGY.calendarTiming.states[feedStatus].medium}</li>
+                  <li>{TERMINOLOGY.symbolContext.sectionLabel}: {marketStatus?.session_state ? TERMINOLOGY.symbolContext.states[marketStatus.session_state].medium : TERMINOLOGY.symbolContext.states.missing.medium}</li>
+                  <li>{TERMINOLOGY.labels.resolvedBanks}: {resolvedBanks}/8</li>
                 </ul>
               </section>
 
