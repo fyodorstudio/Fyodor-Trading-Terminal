@@ -387,10 +387,10 @@ export function OverviewTab({
               <div className={`hub-progress-fill is-${pipelineStatus.tone}`} style={{ width: `${pipelineStatus.percent}%` }} />
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginTop: "10px" }}>
-              <div style={{ fontSize: "0.8rem", fontWeight: 800, color: pipelineStatus.tone === "good" ? "#34d399" : pipelineStatus.tone === "danger" ? "#f87171" : "#fbbf24" }}>
+              <div style={{ fontSize: "0.8rem", fontWeight: 800, color: pipelineStatus.tone === "good" ? "#10b981" : pipelineStatus.tone === "danger" ? "#ef4444" : "#f59e0b" }}>
                 {pipelineStatus.label}
               </div>
-              <div style={{ fontSize: "0.92rem", fontWeight: 900, color: "#f8fafc" }}>
+              <div style={{ fontSize: "0.92rem", fontWeight: 900, color: "#1e293b" }}>
                 {pipelineStatus.percent}%
               </div>
             </div>

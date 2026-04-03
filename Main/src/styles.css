@@ -5618,7 +5618,7 @@ button {
 
 /* Status Bar Polish */
 .hub-status-bar {
-  background: #f8fafc;
+  background: #ffffff;
   border: 1px solid var(--hub-border);
   color: #1e293b;
   padding: 24px;
@@ -5629,5 +5629,16 @@ button {
 }
 
 .hub-progress-track {
-  background: #e2e8f0;
+  background: #f1f5f9;
 }
+
+.hub-status-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.hub-progress-fill.is-good { background: #10b981; }
+.hub-progress-fill.is-warning { background: #f59e0b; }
+.hub-progress-fill.is-danger { background: #ef4444; }
