@@ -324,15 +324,31 @@ export function OverviewTab({
             </header>
             <div className="hub-timeline">
               {topEvents.length > 0 ? (
-                topEvents.map((event) => (
-                  <button key={event.id} className="hub-timeline-item" onClick={() => onNavigate("calendar")}>
-                    <div className="hub-timeline-content">
-                      <span className="hub-timeline-title">{event.title}</span>
-                      <span className="hub-timeline-meta">{event.currency} | {formatUtcDateTime(event.time)}</span>
-                    </div>
-                    <span className="hub-timeline-time">{formatCountdown(event.time, currentTime.getTime())}</span>
-                  </button>
-                ))
+                topEvents.map((event) => {
+                  const isBase = event.currency === pair?.base;
+                  const isQuote = event.currency === pair?.quote;
+                  const diffMinutes = (event.time - currentTime.getTime() / 1000) / 60;
+                  const isUrgent = diffMinutes > 0 && diffMinutes < 120; // Less than 2 hours
+
+                  return (
+                    <button 
+                      key={event.id} 
+                      className={`hub-timeline-item ${isUrgent ? "radar-urgency-pulse" : ""}`} 
+                      onClick={() => onNavigate("calendar")}
+                    >
+                      <div className="hub-timeline-content">
+                        <span className="hub-timeline-title">{event.title}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          <span className="hub-timeline-meta">{event.currency} | {formatUtcDateTime(event.time)}</span>
+                          {isBase && <span className="radar-relevance-tag radar-relevance-base">Base Impact</span>}
+                          {isQuote && <span className="radar-relevance-tag radar-relevance-quote">Quote Impact</span>}
+                          {!isBase && !isQuote && <span className="radar-relevance-tag radar-relevance-watchlist">Watchlist</span>}
+                        </div>
+                      </div>
+                      <span className="hub-timeline-time">{formatCountdown(event.time, currentTime.getTime())}</span>
+                    </button>
+                  );
+                })
               ) : (
                 <div style={{ padding: "32px 20px", textAlign: "center", color: "#94a3b8", fontSize: "0.85rem" }}>
                   Event horizon clear of high-impact releases.
