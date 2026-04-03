@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, ArrowRight, CalendarClock, Check, Info, ShieldCheck, Target, TrendingUp, Monitor, Zap, LayoutGrid, Box, Sparkles, Clock, Layers } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRight, CalendarClock, Check, Info, ShieldCheck, Target, TrendingUp, Monitor, Zap, Layers, CircleHelp } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { calculateAtr14Pips } from "@/app/lib/atr";
@@ -343,7 +343,26 @@ export function OverviewTab({
           </section>
 
           <section className="hub-status-bar">
-            <div className="hub-status-label">Differential Pipeline Status</div>
+            <div className="hub-status-head">
+              <div className="hub-status-label">Differential Pipeline Status</div>
+              <div className="hub-help-trigger" tabIndex={0} aria-label="Explain differential pipeline status">
+                <CircleHelp size={14} />
+                <div className="hub-help-popover" role="tooltip">
+                  <strong>What this means</strong>
+                  <p>{pipelineStatus.explanation}</p>
+                  <strong>Current factors</strong>
+                  {pipelineStatus.factors.length > 0 ? (
+                    <ul>
+                      {pipelineStatus.factors.map((factor) => (
+                        <li key={factor}>{factor}</li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p>No limiting factors are active right now.</p>
+                  )}
+                </div>
+              </div>
+            </div>
             <div className="hub-progress-track">
               <div className={`hub-progress-fill is-${pipelineStatus.tone}`} style={{ width: `${pipelineStatus.percent}%` }} />
             </div>

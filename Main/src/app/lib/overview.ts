@@ -46,6 +46,8 @@ export interface OverviewPipelineStatus {
   tone: TrustTone;
   label: string;
   detail: string;
+  factors: string[];
+  explanation: string;
 }
 
 function formatGap(value: number | null): string {
@@ -359,6 +361,24 @@ export function getOverviewPipelineStatus(
   marketStatus: MarketStatusResponse | null,
   resolvedBanks: number,
 ): OverviewPipelineStatus {
+  const factors: string[] = [];
+  const coverageRatio = Math.max(0, Math.min(resolvedBanks, 8));
+
+  if (trustState.verdict !== "yes") {
+    factors.push(`Trust is ${trustState.verdictLabel.toLowerCase()}`);
+  }
+  if (feedStatus !== "live") {
+    factors.push(`Calendar feed is ${feedStatus.replace("_", " ")}`);
+  }
+  if (!marketStatus || !marketStatus.terminal_connected) {
+    factors.push("Selected symbol context is unavailable");
+  } else if (marketStatus.session_state === "unavailable") {
+    factors.push("Selected symbol session is unresolved");
+  }
+  if (coverageRatio < 8) {
+    factors.push(`Macro coverage is ${coverageRatio}/8 resolved`);
+  }
+
   const trustPoints = trustState.verdict === "yes" ? 40 : trustState.verdict === "limited" ? 22 : 0;
   const feedPoints =
     feedStatus === "live"
@@ -374,8 +394,10 @@ export function getOverviewPipelineStatus(
       : marketStatus.session_state === "unavailable"
         ? 8
         : 15;
-  const coveragePoints = Math.round((Math.max(0, Math.min(resolvedBanks, 8)) / 8) * 20);
+  const coveragePoints = Math.round((coverageRatio / 8) * 20);
   const percent = Math.max(0, Math.min(100, trustPoints + feedPoints + marketPoints + coveragePoints));
+  const explanation =
+    "This meter combines trust state, calendar timing, selected symbol context, and resolved macro coverage.";
 
   if (trustState.verdict === "no") {
     return {
@@ -383,6 +405,8 @@ export function getOverviewPipelineStatus(
       tone: "danger",
       label: "Pipeline degraded",
       detail: "Core trust checks are failing, so Overview outputs should not be treated as fully reliable.",
+      factors,
+      explanation,
     };
   }
 
@@ -392,6 +416,8 @@ export function getOverviewPipelineStatus(
       tone: "danger",
       label: "Calendar pipeline degraded",
       detail: "Event timing is unavailable, so the Overview briefing is missing a critical timing input.",
+      factors,
+      explanation,
     };
   }
 
@@ -401,6 +427,8 @@ export function getOverviewPipelineStatus(
       tone: "warning",
       label: "Pipeline limited",
       detail: "Overview is usable, but at least one trust, timing, or macro coverage input is still partial.",
+      factors,
+      explanation,
     };
   }
 
@@ -409,5 +437,7 @@ export function getOverviewPipelineStatus(
     tone: "good",
     label: "Pipeline healthy",
     detail: "Trust, timing, symbol context, and macro coverage are all aligned for normal Overview use.",
+    factors,
+    explanation,
   };
 }

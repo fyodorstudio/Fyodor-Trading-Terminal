@@ -149,6 +149,7 @@ describe("overview logic", () => {
       tone: "good",
       label: "Pipeline healthy",
     });
+    expect(pipeline.factors).toHaveLength(0);
   });
 
   it("degrades the pipeline when trust is limited and macro coverage is partial", () => {
@@ -158,6 +159,9 @@ describe("overview logic", () => {
     expect(pipeline.percent).toBeLessThan(100);
     expect(pipeline.tone).toBe("warning");
     expect(pipeline.label).toBe("Pipeline limited");
+    expect(pipeline.factors).toContain("Trust is limited");
+    expect(pipeline.factors).toContain("Calendar feed is stale");
+    expect(pipeline.factors).toContain("Macro coverage is 5/8 resolved");
   });
 
   it("reports a degraded pipeline when trust is no", () => {
