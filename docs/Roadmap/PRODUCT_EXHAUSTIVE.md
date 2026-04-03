@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Product Exhaustive
 
-**Last Updated:** 2026-04-01 16:10
+**Last Updated:** 2026-04-03 10:40
 
 This file is the exhaustive implementation inventory and active working document.
 
@@ -29,6 +29,26 @@ Do not treat this file as the short product authority.
 - [x] stay inside `Module Tightening` and avoid reopening the whole app at once
 - [x] keep `Visual Unification` active, but secondary to trust and workflow clarity
 
+### A1. Named Working Phases
+
+- `Phase A` = Overview overhaul and correction pass
+- `Phase B` = left panel aesthetic consistency refinements
+- `Phase C` = visual consistency across tabs, headers, and shell surfaces
+
+### A2. Phase A Status
+
+- `Phase A` is the active phase right now
+- the current Overview overhaul and hybrid redesign work belongs to `Phase A`
+- `improve pair-selection UX in Overview` also belongs inside `Phase A`
+- `Phase A` should finish only after the current Overview surface is both visually stronger and operationally honest
+
+### A3. Phase A Immediate Steps
+
+- `Step 1` = fix the misleading new status bar in Overview so it does not imply false certainty
+- `Step 2` = fix the `CB Snapshots` metric so it reflects resolved coverage honestly instead of overstating it
+- `Step 3` = restore relevance transparency inside `Timeline Radar`
+- later `Phase A` steps can be added after each manual audit and UI pass
+
 ### B. Do Next
 
 - [x] add a clearly visible trust-state question in Overview and or header using a reusable shared derivation
@@ -38,11 +58,11 @@ Do not treat this file as the short product authority.
 - [x] keep pushing Overview toward a stronger pair-first command-center role
 - [x] make Overview expose more simplified outputs from the current `Specialist Tools`
 - [x] make the Overview event surface focus on events relevant to the currently selected pair or pairs
-- [ ] improve pair-selection UX in Overview
+- [ ] improve pair-selection UX in Overview (`Phase A`)
 - [ ] improve the Strength Meter beyond the current `60/40` weighting approach
 - [ ] investigate and reduce `N/A` central-bank rate outcomes without weakening trust rules
-- [ ] make the left-side aesthetic and theme tooling apply more consistently across the whole frontend
-- [ ] improve visual consistency across tabs, headers, and shell surfaces
+- [ ] make the left-side aesthetic and theme tooling apply more consistently across the whole frontend (`Phase B`)
+- [ ] improve visual consistency across tabs, headers, and shell surfaces (`Phase C`)
 
 ### C. Research Before Building
 

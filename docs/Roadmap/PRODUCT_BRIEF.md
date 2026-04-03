@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Product Brief
 
-**Last Updated:** 2026-04-01 15:41
+**Last Updated:** 2026-04-03 10:40
 
 This is the brief product brain.
 
@@ -80,10 +80,16 @@ High-level build reality:
 
 - `Workspace Reset` = completed
 - `Command-Center Shell` = completed enough for now
-- `Overview Mission Control` = implemented and usable
+- `Overview Mission Control` = implemented and usable, currently in `Phase A`
 - `Performance Reserve` = on hold
 - `Module Tightening` = active current track
 - `Visual Unification` = started, not complete
+
+Current named phases:
+
+- `Phase A` = Overview overhaul and correction pass
+- `Phase B` = left panel aesthetic consistency refinements
+- `Phase C` = visual consistency across tabs, headers, and shell surfaces
 
 High-level current app state:
 
