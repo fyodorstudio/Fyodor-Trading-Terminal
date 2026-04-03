@@ -3,6 +3,7 @@ import {
   getEventSensitivity,
   getMacroBackdropVerdict,
   getMacroSummary,
+  getOverviewPipelineStatus,
   getPairAttentionVerdict,
   getStrengthDifferentialSummary,
   getTopEvents,
@@ -137,5 +138,34 @@ describe("overview logic", () => {
     );
 
     expect(verdict.label).toBe("Wait until event passes");
+  });
+
+  it("reports a healthy pipeline only when core inputs are fully aligned", () => {
+    const trustState = resolveTrustState(liveHealth, "live", marketStatus("open"));
+    const pipeline = getOverviewPipelineStatus(trustState, "live", marketStatus("open"), 8);
+
+    expect(pipeline).toMatchObject({
+      percent: 100,
+      tone: "good",
+      label: "Pipeline healthy",
+    });
+  });
+
+  it("degrades the pipeline when trust is limited and macro coverage is partial", () => {
+    const trustState = resolveTrustState(liveHealth, "stale", marketStatus("open"));
+    const pipeline = getOverviewPipelineStatus(trustState, "stale", marketStatus("open"), 5);
+
+    expect(pipeline.percent).toBeLessThan(100);
+    expect(pipeline.tone).toBe("warning");
+    expect(pipeline.label).toBe("Pipeline limited");
+  });
+
+  it("reports a degraded pipeline when trust is no", () => {
+    const trustState = resolveTrustState({ ...liveHealth, terminal_connected: false }, "live", marketStatus("open"));
+    const pipeline = getOverviewPipelineStatus(trustState, "live", marketStatus("open"), 8);
+
+    expect(pipeline.tone).toBe("danger");
+    expect(pipeline.label).toBe("Pipeline degraded");
+    expect(pipeline.percent).toBeLessThan(70);
   });
 });

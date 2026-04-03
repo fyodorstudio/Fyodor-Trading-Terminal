@@ -5140,3 +5140,6 @@ button {
 .hub-status-label { font-size: 0.65rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
 .hub-progress-track { height: 4px; background: #334155; border-radius: 2px; overflow: hidden; margin-bottom: 12px; }
 .hub-progress-fill { height: 100%; background: #6366f1; border-radius: 2px; }
+.hub-progress-fill.is-good { background: #34d399; }
+.hub-progress-fill.is-warning { background: #fbbf24; }
+.hub-progress-fill.is-danger { background: #f87171; }

@@ -9,6 +9,7 @@ import {
   getEventSensitivity,
   getMacroBackdropVerdict,
   getMacroSummary,
+  getOverviewPipelineStatus,
   getPairAttentionVerdict,
   getStrengthDifferentialSummary,
   getTopEvents,
@@ -116,6 +117,11 @@ export function OverviewTab({
   const actions = useMemo(
     () => getAttentionActions(trustState, reviewSymbol, eventSensitivity, macroSummary, strengthSummary),
     [trustState, reviewSymbol, eventSensitivity, macroSummary, strengthSummary],
+  );
+  const resolvedBanks = snapshots.filter((snapshot) => snapshot.status === "ok").length;
+  const pipelineStatus = useMemo(
+    () => getOverviewPipelineStatus(trustState, feedStatus, marketStatus, resolvedBanks),
+    [trustState, feedStatus, marketStatus, resolvedBanks],
   );
 
   const pair = getFxPairByName(reviewSymbol);
@@ -339,10 +345,18 @@ export function OverviewTab({
           <section className="hub-status-bar">
             <div className="hub-status-label">Differential Pipeline Status</div>
             <div className="hub-progress-track">
-              <div className="hub-progress-fill" style={{ width: "85%" }} />
+              <div className={`hub-progress-fill is-${pipelineStatus.tone}`} style={{ width: `${pipelineStatus.percent}%` }} />
             </div>
-            <div style={{ fontSize: "0.78rem", lineHeight: 1.4, color: "#94a3b8" }}>
-              App is actively processing MQL5 terminal pulses. Macro alignment and strength spreads are live.
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginTop: "10px" }}>
+              <div style={{ fontSize: "0.8rem", fontWeight: 800, color: pipelineStatus.tone === "good" ? "#34d399" : pipelineStatus.tone === "danger" ? "#f87171" : "#fbbf24" }}>
+                {pipelineStatus.label}
+              </div>
+              <div style={{ fontSize: "0.92rem", fontWeight: 900, color: "#f8fafc" }}>
+                {pipelineStatus.percent}%
+              </div>
+            </div>
+            <div style={{ fontSize: "0.78rem", lineHeight: 1.4, color: "#94a3b8", marginTop: "8px" }}>
+              {pipelineStatus.detail}
             </div>
           </section>
         </aside>

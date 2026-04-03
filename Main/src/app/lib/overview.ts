@@ -1,7 +1,7 @@
 import { getFxPairByName } from "@/app/config/fxPairs";
 import { adaptDashboardCurrencies, deriveStrengthCurrencyRanks } from "@/app/lib/macroViews";
 import { parseNumericValue } from "@/app/lib/format";
-import type { CalendarEvent, CentralBankSnapshot } from "@/app/types";
+import type { BridgeStatus, CalendarEvent, CentralBankSnapshot, MarketStatusResponse } from "@/app/types";
 import type { TrustState, TrustTone } from "@/app/lib/status";
 
 export interface OverviewEvent extends CalendarEvent {
@@ -39,6 +39,13 @@ export interface EventSensitivitySummary {
   detail: string;
   tone: TrustTone;
   nextRelevantEvent: CalendarEvent | null;
+}
+
+export interface OverviewPipelineStatus {
+  percent: number;
+  tone: TrustTone;
+  label: string;
+  detail: string;
 }
 
 function formatGap(value: number | null): string {
@@ -343,5 +350,64 @@ export function getPairAttentionVerdict(
     label: "Monitor later",
     tone: "warning",
     detail: `${reviewSymbol} is usable to monitor, but it is not the cleanest candidate on the current evidence.`,
+  };
+}
+
+export function getOverviewPipelineStatus(
+  trustState: TrustState,
+  feedStatus: BridgeStatus,
+  marketStatus: MarketStatusResponse | null,
+  resolvedBanks: number,
+): OverviewPipelineStatus {
+  const trustPoints = trustState.verdict === "yes" ? 40 : trustState.verdict === "limited" ? 22 : 0;
+  const feedPoints =
+    feedStatus === "live"
+      ? 25
+      : feedStatus === "stale"
+        ? 15
+        : feedStatus === "loading"
+          ? 10
+          : 0;
+  const marketPoints =
+    !marketStatus || !marketStatus.terminal_connected
+      ? 4
+      : marketStatus.session_state === "unavailable"
+        ? 8
+        : 15;
+  const coveragePoints = Math.round((Math.max(0, Math.min(resolvedBanks, 8)) / 8) * 20);
+  const percent = Math.max(0, Math.min(100, trustPoints + feedPoints + marketPoints + coveragePoints));
+
+  if (trustState.verdict === "no") {
+    return {
+      percent,
+      tone: "danger",
+      label: "Pipeline degraded",
+      detail: "Core trust checks are failing, so Overview outputs should not be treated as fully reliable.",
+    };
+  }
+
+  if (feedStatus === "error" || feedStatus === "no_data") {
+    return {
+      percent,
+      tone: "danger",
+      label: "Calendar pipeline degraded",
+      detail: "Event timing is unavailable, so the Overview briefing is missing a critical timing input.",
+    };
+  }
+
+  if (trustState.verdict === "limited" || feedStatus === "stale" || feedStatus === "loading" || resolvedBanks < 8) {
+    return {
+      percent,
+      tone: "warning",
+      label: "Pipeline limited",
+      detail: "Overview is usable, but at least one trust, timing, or macro coverage input is still partial.",
+    };
+  }
+
+  return {
+    percent,
+    tone: "good",
+    label: "Pipeline healthy",
+    detail: "Trust, timing, symbol context, and macro coverage are all aligned for normal Overview use.",
   };
 }
