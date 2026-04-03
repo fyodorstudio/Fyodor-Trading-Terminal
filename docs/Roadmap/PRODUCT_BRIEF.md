@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Product Brief
 
-**Last Updated:** 2026-04-03 10:40
+**Last Updated:** 2026-04-03 11:40
 
 This is the brief product brain.
 
@@ -80,22 +80,29 @@ High-level build reality:
 
 - `Workspace Reset` = completed
 - `Command-Center Shell` = completed enough for now
-- `Overview Mission Control` = implemented and usable, currently in `Phase A`
+- `Overview Mission Control` = implemented and usable, currently the main active completion track
 - `Performance Reserve` = on hold
 - `Module Tightening` = active current track
 - `Visual Unification` = started, not complete
 
-Current named phases:
+Current work tracks:
 
-- `Phase A` = Overview overhaul and correction pass
-- `Phase B` = left panel aesthetic consistency refinements
-- `Phase C` = visual consistency across tabs, headers, and shell surfaces
+- `Track 1` = Overview Completion
+- `Track 2` = Left Panel Aesthetic Consistency
+- `Track 3` = Cross-Tab Visual Consistency
+- `Track 4` = Macro / Data Quality Refinement
 
 High-level current app state:
 
 - connection-first header exists with collapsed and expanded operational states
 - Overview exists as a pair-first pre-trade briefing
-- Overview includes pair selection, readiness checks, ATR context, event-risk radar, macro summary, strength summary, and action shortcuts
+- Overview now includes:
+  - trust-state and pair-attention surfaces
+  - `Overview Confidence`
+  - a searchable pair selector popover
+  - event radar relevance tagging and urgency visibility
+  - a centered confidence inspector with weighting breakdown
+- shared terminology source-of-truth now exists for key operational labels
 - Charts is MT5-connected and supports symbol search, favorites, grouped browsing, timeframe switching, stream updates, and debug logging
 - Economic Calendar uses MT5-fed data and supports filters, search, range selection, local-vs-UTC viewing, and stale/error/no-data states
 - Central Banks Data supports derived policy and inflation views plus mapping audit logs
