@@ -343,7 +343,7 @@ export function OverviewTab({
 
           <section className="hub-status-bar">
             <div className="hub-status-head">
-              <div className="hub-status-label">{TERMINOLOGY.pipeline.legacySectionLabel}</div>
+              <div className="hub-status-label">{TERMINOLOGY.pipeline.sectionLabel}</div>
               <button
                 type="button"
                 className="hub-help-trigger"
