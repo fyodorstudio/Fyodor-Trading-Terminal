@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, ArrowRight, CalendarClock, Check, Info, ShieldCheck, Target, TrendingUp } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRight, CalendarClock, Check, Info, ShieldCheck, Target, TrendingUp, Monitor, Zap, LayoutGrid, Box, Sparkles, Clock, Layers } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { calculateAtr14Pips } from "@/app/lib/atr";
@@ -80,10 +80,10 @@ function getAttentionActions(
 }
 
 function renderFeedLabel(status: BridgeStatus): string {
-  if (status === "live") return "Live";
-  if (status === "stale") return "Stale";
-  if (status === "loading") return "Syncing";
-  return "Disconnected";
+  if (status === "live") return "LIVE";
+  if (status === "stale") return "STALE";
+  if (status === "loading") return "SYNC";
+  return "OFF";
 }
 
 export function OverviewTab({
@@ -119,22 +119,14 @@ export function OverviewTab({
   );
 
   const pair = getFxPairByName(reviewSymbol);
+  const baseSnap = snapshots.find((s) => s.currency === pair?.base);
+  const quoteSnap = snapshots.find((s) => s.currency === pair?.quote);
   const currencies = adaptDashboardCurrencies(snapshots);
   const { ranks } = deriveStrengthCurrencyRanks(currencies);
   const baseRank = ranks.find((rank) => rank.currency === pair?.base);
   const quoteRank = ranks.find((rank) => rank.currency === pair?.quote);
 
   const isBridgeValid = health.terminal_connected && health.ok;
-  const isRiskValid = eventSensitivity.label === "Clear";
-  const isMacroValid = !macroSummary.unresolved && macroVerdict.label !== "Supportive";
-  const isStrengthValid = strengthSummary.decisive;
-
-  const spreadPercentage = useMemo(() => {
-    if (!baseRank || !quoteRank) return 50;
-    const diff = baseRank.score - quoteRank.score;
-    const pos = 50 + (diff * 5); // Expanded scale for visual impact
-    return Math.min(Math.max(pos, 5), 95);
-  }, [baseRank, quoteRank]);
 
   useEffect(() => {
     let cancelled = false;
@@ -160,123 +152,200 @@ export function OverviewTab({
 
   return (
     <section className="tab-panel overview-panel">
-      <div className="tactical-brief-container">
-        <header className="tactical-header">
-          <div className="tactical-pair-info">
-            <span className="tactical-pair-sub">Operational Briefing</span>
-            <select
-              className="tactical-pair-select"
-              value={reviewSymbol}
-              onChange={(e) => onReviewSymbolChange(e.target.value)}
-            >
-              {FX_PAIRS.map((p) => (
-                <option key={p.name} value={p.name}>{p.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="tactical-vitals">
-            <div className="tactical-vital-item">
-              <span className="tactical-vital-label">Volatility</span>
-              <span className="tactical-vital-value">{atrValue ?? "--"} pips</span>
-            </div>
-            <div className="tactical-vital-item">
-              <span className="tactical-vital-label">Bridge</span>
-              <span className="tactical-vital-value">{isBridgeValid ? "Active" : "Issue"}</span>
-            </div>
-            <div className="tactical-vital-item">
-              <span className="tactical-vital-label">Feed</span>
-              <span className="tactical-vital-value">{renderFeedLabel(feedStatus)}</span>
-            </div>
-          </div>
-        </header>
-
-        <article className={`tactical-verdict-hero is-${pairAttentionVerdict.tone}`}>
-          <span className="tactical-verdict-label">Attention Verdict</span>
-          <h2 className="tactical-verdict-title">{pairAttentionVerdict.label}</h2>
-          <p className="tactical-verdict-desc">{pairAttentionVerdict.detail}</p>
-          
-          <div className="tactical-checklist">
-            <div className={`tactical-check-item ${isBridgeValid ? "is-valid" : ""}`}>
-              <div className="tactical-check-dot" /> Bridge
-            </div>
-            <div className={`tactical-check-item ${isRiskValid ? "is-valid" : ""}`}>
-              <div className="tactical-check-dot" /> Event Risk
-            </div>
-            <div className={`tactical-check-item ${isMacroValid ? "is-valid" : ""}`}>
-              <div className="tactical-check-dot" /> Macro Alignment
-            </div>
-            <div className={`tactical-check-item ${isStrengthValid ? "is-valid" : ""}`}>
-              <div className="tactical-check-dot" /> Decisive Strength
-            </div>
-          </div>
-        </article>
-
-        <div className="tactical-grid">
-          <section className="tactical-card">
-            <div className="tactical-card-title"><Activity size={14} /> Strength Dynamics</div>
-            <div className="tactical-spread-viz">
-              <div className="tactical-spread-labels">
-                <span>{pair?.base}</span>
-                <span>{pair?.quote}</span>
+      <div className="hub-container">
+        {/* Left Column: Vitals & Action Plan */}
+        <aside className="hub-column">
+          <section className="hub-card">
+            <header className="hub-card-header">
+              <Monitor size={14} />
+              <h3>System Status</h3>
+            </header>
+            <div className="hub-vitals-box">
+              <div className="hub-vital-row">
+                <label>App Trust</label>
+                <span style={{ color: trustState.tone === "good" ? "#10b981" : trustState.tone === "danger" ? "#ef4444" : "#f59e0b" }}>
+                  {trustState.verdictLabel}
+                </span>
               </div>
-              <div className="tactical-spread-track">
-                <div 
-                  className="tactical-spread-bar" 
-                  style={{ 
-                    left: spreadPercentage > 50 ? "50%" : `${spreadPercentage}%`,
-                    right: spreadPercentage > 50 ? `${100 - spreadPercentage}%` : "50%"
-                  }} 
-                />
+              <div className="hub-vital-row">
+                <label>Bridge</label>
+                <span style={{ color: isBridgeValid ? "#10b981" : "#ef4444" }}>{isBridgeValid ? "CONNECTED" : "OFFLINE"}</span>
               </div>
-              <div className="tactical-spread-labels">
-                <span>{baseRank?.score.toFixed(1) || "0.0"}</span>
-                <span>{quoteRank?.score.toFixed(1) || "0.0"}</span>
+              <div className="hub-vital-row">
+                <label>Calendar Feed</label>
+                <span>{renderFeedLabel(feedStatus)}</span>
               </div>
-            </div>
-            <div className="tactical-action-content">
-              <span className="tactical-action-label">{strengthSummary.title}</span>
-              <span className="tactical-action-detail">{strengthSummary.detail}</span>
+              <div className="hub-vital-row">
+                <label>Market Session</label>
+                <span>{marketStatus?.session_state.toUpperCase() || "---"}</span>
+              </div>
             </div>
           </section>
 
-          <section className="tactical-card">
-            <div className="tactical-card-title"><CalendarClock size={14} /> Risk Radar</div>
-            <div className="tactical-event-list">
-              {topEvents.length > 0 ? (
-                topEvents.map((event) => (
-                  <button key={event.id} className="tactical-event-row" onClick={() => onNavigate("calendar")}>
-                    <div className="tactical-event-info">
-                      <span className="tactical-event-title">{event.title}</span>
-                      <span className="tactical-event-meta">{event.currency} | {formatUtcDateTime(event.time)}</span>
-                    </div>
-                    <span className="tactical-event-time">{formatCountdown(event.time, currentTime.getTime())}</span>
-                  </button>
-                ))
-              ) : (
-                <p className="tactical-action-detail">No high-impact events detected.</p>
-              )}
-            </div>
-          </section>
-
-          <section className="tactical-card" style={{ gridColumn: "span 2" }}>
-            <div className="tactical-card-title"><TrendingUp size={14} /> Macro Evidence</div>
-            <div className="tactical-action-content">
-              <span className="tactical-action-label">{macroVerdict.label}: {macroSummary.title}</span>
-              <span className="tactical-action-detail">{macroVerdict.detail}</span>
-            </div>
-            <div className="tactical-action-list" style={{ marginTop: "12px" }}>
+          <section className="hub-card">
+            <header className="hub-card-header">
+              <Zap size={14} />
+              <h3>Action Plan</h3>
+            </header>
+            <div className="hub-action-plan">
               {actions.map((action) => (
-                <button key={action.label} className="tactical-action-item" onClick={() => onNavigate(action.tab)}>
-                  <div className="tactical-action-content">
-                    <span className="tactical-action-label">{action.label}</span>
-                    <span className="tactical-action-detail">{action.detail}</span>
+                <button key={action.label} className="hub-action-card" onClick={() => onNavigate(action.tab)}>
+                  <strong>{action.label}</strong>
+                  <span>{action.detail}</span>
+                  <div style={{ marginTop: "4px", display: "flex", alignItems: "center", gap: "4px", fontSize: "0.7rem", fontWeight: 800, color: "#6366f1" }}>
+                    EXECUTE <ArrowRight size={12} />
                   </div>
-                  <ArrowRight size={16} />
                 </button>
               ))}
             </div>
           </section>
-        </div>
+
+          <section className="hub-card" style={{ marginTop: "auto" }}>
+            <header className="hub-card-header">
+              <Layers size={14} />
+              <h3>Terminal Ingest</h3>
+            </header>
+            <div className="hub-vitals-box">
+              <div className="hub-vital-row">
+                <label>CB Snapshots</label>
+                <span>{snapshots.length}/8</span>
+              </div>
+              <div className="hub-vital-row">
+                <label>Last Ingest</label>
+                <span>{formatRelativeAge(health.last_calendar_ingest_at ?? null)}</span>
+              </div>
+            </div>
+          </section>
+        </aside>
+
+        {/* Center Column: Main Analysis Hub */}
+        <main className="hub-column">
+          <header className="hub-main-header">
+            <div className="hub-pair-selector">
+              <span>Operational Briefing</span>
+              <select value={reviewSymbol} onChange={(e) => onReviewSymbolChange(e.target.value)}>
+                {FX_PAIRS.map((p) => (
+                  <option key={p.name} value={p.name}>{p.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="hub-brief-vitals">
+              <div className="hub-brief-stat">
+                <label>Volatility</label>
+                <span>{atrValue ?? "--"} pips</span>
+              </div>
+              <div className="hub-brief-stat">
+                <label>Bridge Conn</label>
+                <span style={{ color: isBridgeValid ? "#10b981" : "#ef4444" }}>{isBridgeValid ? "Active" : "Issue"}</span>
+              </div>
+              <div className="hub-brief-stat">
+                <label>Feed Pulse</label>
+                <span>{renderFeedLabel(feedStatus)}</span>
+              </div>
+            </div>
+          </header>
+
+          <article className={`hub-verdict-banner is-${pairAttentionVerdict.tone}`}>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: "0.7rem", fontWeight: 800, textTransform: "uppercase", opacity: 0.8, letterSpacing: "0.1em" }}>Operational Status</div>
+              <div style={{ fontSize: "1.75rem", fontWeight: 900, lineHeight: 1.1 }}>{pairAttentionVerdict.label}</div>
+              <p style={{ fontSize: "1rem", marginTop: "8px", opacity: 0.9, margin: "8px 0 0", maxWidth: "600px", lineHeight: 1.4 }}>
+                {pairAttentionVerdict.detail}
+              </p>
+            </div>
+            <Target size={32} />
+          </article>
+
+          <div className="hub-matrix">
+            <div className="hub-matrix-cell">
+              <div className="hub-matrix-header">
+                <FlagIcon countryCode={baseSnap?.countryCode || ""} className="h-4 w-6" />
+                <span className="hub-matrix-currency">{pair?.base}</span>
+              </div>
+              <div className="hub-matrix-stat">
+                <label>Strength Score</label>
+                <span>{baseRank?.score.toFixed(1) || "0.0"} pts</span>
+              </div>
+              <div className="hub-matrix-stat">
+                <label>Policy Rate</label>
+                <span>{baseSnap?.currentPolicyRate || "---"}</span>
+              </div>
+              <div className="hub-matrix-stat">
+                <label>Inflation (CPI)</label>
+                <span>{baseSnap?.currentInflationRate || "---"}</span>
+              </div>
+            </div>
+            <div className="hub-matrix-divider" />
+            <div className="hub-matrix-cell">
+              <div className="hub-matrix-header" style={{ flexDirection: "row-reverse" }}>
+                <FlagIcon countryCode={quoteSnap?.countryCode || ""} className="h-4 w-6" />
+                <span className="hub-matrix-currency">{pair?.quote}</span>
+              </div>
+              <div className="hub-matrix-stat">
+                <label>Strength Score</label>
+                <span>{quoteRank?.score.toFixed(1) || "0.0"} pts</span>
+              </div>
+              <div className="hub-matrix-stat">
+                <label>Policy Rate</label>
+                <span>{quoteSnap?.currentPolicyRate || "---"}</span>
+              </div>
+              <div className="hub-matrix-stat">
+                <label>Inflation (CPI)</label>
+                <span>{quoteSnap?.currentInflationRate || "---"}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="hub-macro-box">
+            <div className="hub-macro-title">
+              <TrendingUp size={16} />
+              Macro Backdrop Verdict
+            </div>
+            <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#111827" }}>
+              {macroVerdict.label}: {macroSummary.title}
+            </div>
+            <p style={{ margin: "10px 0 0", fontSize: "0.95rem", color: "#64748b", lineHeight: 1.6 }}>
+              {macroVerdict.detail}
+            </p>
+          </div>
+        </main>
+
+        {/* Right Column: Timeline Radar & Status */}
+        <aside className="hub-column" style={{ height: "100%" }}>
+          <section className="hub-card" style={{ flex: 1 }}>
+            <header className="hub-card-header">
+              <CalendarClock size={14} />
+              <h3>Timeline Radar</h3>
+            </header>
+            <div className="hub-timeline">
+              {topEvents.length > 0 ? (
+                topEvents.map((event) => (
+                  <button key={event.id} className="hub-timeline-item" onClick={() => onNavigate("calendar")}>
+                    <div className="hub-timeline-content">
+                      <span className="hub-timeline-title">{event.title}</span>
+                      <span className="hub-timeline-meta">{event.currency} | {formatUtcDateTime(event.time)}</span>
+                    </div>
+                    <span className="hub-timeline-time">{formatCountdown(event.time, currentTime.getTime())}</span>
+                  </button>
+                ))
+              ) : (
+                <div style={{ padding: "32px 20px", textAlign: "center", color: "#94a3b8", fontSize: "0.85rem" }}>
+                  Event horizon clear of high-impact releases.
+                </div>
+              )}
+            </div>
+          </section>
+
+          <section className="hub-status-bar">
+            <div className="hub-status-label">Differential Pipeline Status</div>
+            <div className="hub-progress-track">
+              <div className="hub-progress-fill" style={{ width: "85%" }} />
+            </div>
+            <div style={{ fontSize: "0.78rem", lineHeight: 1.4, color: "#94a3b8" }}>
+              App is actively processing MQL5 terminal pulses. Macro alignment and strength spreads are live.
+            </div>
+          </section>
+        </aside>
       </div>
     </section>
   );
