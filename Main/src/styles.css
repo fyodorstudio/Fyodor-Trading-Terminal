@@ -5475,3 +5475,159 @@ button {
   70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
   100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }
+
+/* --- PREMIUM POLISH: The Command Hub v2 --- */
+
+/* Thinner, more elegant lines */
+:root {
+  --hub-border: rgba(0, 0, 0, 0.06);
+  --hub-bg-subtle: #fcfcfc;
+  --hub-accent-indigo: #6366f1;
+}
+
+.hub-container {
+  gap: 24px; /* Increased gap for breathability */
+  padding: 8px 0;
+}
+
+.hub-card {
+  border: 1px solid var(--hub-border);
+  border-radius: 16px; /* Rounder, more modern corners */
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.hub-card-header {
+  background: transparent;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--hub-border);
+}
+
+.hub-card-header h3 {
+  color: #94a3b8;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+}
+
+/* Redesigned Action Cards */
+.hub-action-card {
+  background: var(--hub-bg-subtle);
+  border: 1px solid var(--hub-border);
+  padding: 18px;
+  border-radius: 12px;
+  gap: 8px;
+}
+
+.hub-action-card:hover {
+  transform: translateY(-2px); /* Vertical lift instead of horizontal slide */
+  border-color: var(--hub-accent-indigo);
+  box-shadow: 0 10px 20px rgba(99, 102, 241, 0.06);
+}
+
+.hub-action-card strong {
+  font-size: 0.95rem;
+  letter-spacing: -0.01em;
+}
+
+/* Center Column Sophistication */
+.hub-main-header {
+  border: none;
+  background: transparent;
+  padding: 0 8px 24px 8px;
+}
+
+.hub-pair-selector select {
+  font-size: 2.8rem; /* Larger, more confident pair display */
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  margin-top: -4px;
+}
+
+.hub-brief-stat span {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+}
+
+/* Integrated Verdict Banner */
+.hub-verdict-banner {
+  margin-top: 0;
+  padding: 32px;
+  border-radius: 20px;
+}
+
+.hub-verdict-banner.is-good {
+  background: #111827;
+  color: #fff;
+}
+
+/* Clean Comparison Matrix */
+.hub-matrix {
+  border: 1px solid var(--hub-border);
+  border-radius: 20px;
+  background: #fff;
+}
+
+.hub-matrix-cell {
+  padding: 32px;
+}
+
+.hub-matrix-currency {
+  font-size: 1.5rem;
+  letter-spacing: -0.02em;
+}
+
+/* Refined Radar Tags */
+.radar-relevance-tag {
+  background: transparent !important;
+  border: none !important;
+  border-left: 2px solid transparent !important;
+  padding: 0 0 0 8px !important;
+  border-radius: 0 !important;
+  font-size: 0.7rem !important;
+  font-weight: 700 !important;
+}
+
+.radar-relevance-base {
+  border-left-color: #6366f1 !important;
+  color: #6366f1 !important;
+}
+
+.radar-relevance-quote {
+  border-left-color: #f59e0b !important;
+  color: #f59e0b !important;
+}
+
+.radar-relevance-watchlist {
+  border-left-color: #94a3b8 !important;
+  color: #94a3b8 !important;
+}
+
+.hub-timeline-item {
+  padding: 20px 24px;
+}
+
+.hub-timeline-item:hover {
+  background: #fbfbfb;
+  padding-left: 28px;
+}
+
+.hub-timeline-time {
+  background: transparent;
+  font-size: 0.9rem;
+  color: #64748b;
+}
+
+/* Status Bar Polish */
+.hub-status-bar {
+  background: #f8fafc;
+  border: 1px solid var(--hub-border);
+  color: #1e293b;
+  padding: 24px;
+}
+
+.hub-status-label {
+  color: #64748b;
+}
+
+.hub-progress-track {
+  background: #e2e8f0;
+}

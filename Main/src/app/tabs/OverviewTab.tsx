@@ -227,7 +227,7 @@ export function OverviewTab({
         <main className="hub-column">
           <header className="hub-main-header">
             <div className="hub-pair-selector">
-              <span>Operational Briefing</span>
+              <span>Mission Control</span>
               <select value={reviewSymbol} onChange={(e) => onReviewSymbolChange(e.target.value)}>
                 {FX_PAIRS.map((p) => (
                   <option key={p.name} value={p.name}>{p.name}</option>
@@ -241,7 +241,7 @@ export function OverviewTab({
               </div>
               <div className="hub-brief-stat">
                 <label>{TERMINOLOGY.labels.bridge}</label>
-                <span style={{ color: isBridgeValid ? "#10b981" : "#ef4444" }}>{isBridgeValid ? "Active" : "Issue"}</span>
+                <span style={{ color: isBridgeValid ? "#10b981" : "#ef4444" }}>{isBridgeValid ? "Live" : "Issue"}</span>
               </div>
               <div className="hub-brief-stat">
                 <label>{TERMINOLOGY.calendarTiming.sectionLabel}</label>
@@ -252,24 +252,24 @@ export function OverviewTab({
 
           <article className={`hub-verdict-banner is-${pairAttentionVerdict.tone}`}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: "0.7rem", fontWeight: 800, textTransform: "uppercase", opacity: 0.8, letterSpacing: "0.1em" }}>{TERMINOLOGY.pairAttention.sectionLabel}</div>
-              <div style={{ fontSize: "1.75rem", fontWeight: 900, lineHeight: 1.1 }}>{pairAttentionVerdict.label}</div>
-              <p style={{ fontSize: "1rem", marginTop: "8px", opacity: 0.9, margin: "8px 0 0", maxWidth: "600px", lineHeight: 1.4 }}>
+              <div style={{ fontSize: "0.75rem", fontWeight: 800, textTransform: "uppercase", opacity: 0.7, letterSpacing: "0.15em" }}>{TERMINOLOGY.pairAttention.sectionLabel}</div>
+              <div style={{ fontSize: "2.2rem", fontWeight: 900, lineHeight: 1, marginTop: "4px" }}>{pairAttentionVerdict.label}</div>
+              <p style={{ fontSize: "1.1rem", marginTop: "12px", opacity: 0.9, lineHeight: 1.5, maxWidth: "540px" }}>
                 {pairAttentionVerdict.detail}
               </p>
             </div>
-            <Target size={32} />
+            <Target size={48} strokeWidth={2.5} opacity={0.2} />
           </article>
 
           <div className="hub-matrix">
             <div className="hub-matrix-cell">
               <div className="hub-matrix-header">
-                <FlagIcon countryCode={baseSnap?.countryCode || ""} className="h-4 w-6" />
+                <FlagIcon countryCode={baseSnap?.countryCode || ""} className="h-5 w-8" />
                 <span className="hub-matrix-currency">{pair?.base}</span>
               </div>
               <div className="hub-matrix-stat">
                 <label>Strength Score</label>
-                <span>{baseRank?.score.toFixed(1) || "0.0"} pts</span>
+                <span style={{ fontSize: "1.1rem" }}>{baseRank?.score.toFixed(1) || "0.0"} pts</span>
               </div>
               <div className="hub-matrix-stat">
                 <label>Policy Rate</label>
@@ -283,12 +283,12 @@ export function OverviewTab({
             <div className="hub-matrix-divider" />
             <div className="hub-matrix-cell">
               <div className="hub-matrix-header" style={{ flexDirection: "row-reverse" }}>
-                <FlagIcon countryCode={quoteSnap?.countryCode || ""} className="h-4 w-6" />
+                <FlagIcon countryCode={quoteSnap?.countryCode || ""} className="h-5 w-8" />
                 <span className="hub-matrix-currency">{pair?.quote}</span>
               </div>
               <div className="hub-matrix-stat">
                 <label>Strength Score</label>
-                <span>{quoteRank?.score.toFixed(1) || "0.0"} pts</span>
+                <span style={{ fontSize: "1.1rem" }}>{quoteRank?.score.toFixed(1) || "0.0"} pts</span>
               </div>
               <div className="hub-matrix-stat">
                 <label>Policy Rate</label>
