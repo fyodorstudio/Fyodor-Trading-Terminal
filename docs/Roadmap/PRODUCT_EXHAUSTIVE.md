@@ -1,15 +1,15 @@
 # Fyodor Trading Terminal Product Exhaustive
 
-**Last Updated:** 2026-04-03 10:40
+**Last Updated:** 2026-04-03 11:35
 
 This file is the exhaustive implementation inventory and active working document.
 
 Use this file for:
 
-- exhaustive current-state detail
-- exhaustive upcoming implementation detail
-- patch buckets
-- active session checklist
+- current execution priorities
+- completed progress you may need to remember later
+- research questions that still need decisions
+- future ideas that are intentionally not current work
 
 Do not treat this file as the short product authority.
 
@@ -17,79 +17,118 @@ Do not treat this file as the short product authority.
 
 ## Table Of Contents
 
-1. [Current Session Checklist](#1-current-session-checklist)
-2. [What Already Exists](#2-what-already-exists)
-3. [What Will Be Implemented Soon](#3-what-will-be-implemented-soon)
+1. [Current Tracks](#1-current-tracks)
+2. [Done / Recent Progress](#2-done--recent-progress)
+3. [Critical](#3-critical)
+4. [Important](#4-important)
+5. [Nice To Have](#5-nice-to-have)
+6. [Research / Decisions](#6-research--decisions)
+7. [Current Build Reality](#7-current-build-reality)
+8. [Things Explicitly Not Present Yet](#8-things-explicitly-not-present-yet)
 
-## 1. Current Session Checklist
+## 1. Current Tracks
 
-### A. Current Focus
+- `Track 1` = Overview Completion
+- `Track 2` = Left Panel Aesthetic Consistency
+- `Track 3` = Cross-Tab Visual Consistency
+- `Track 4` = Macro / Data Quality Refinement
+
+## 2. Done / Recent Progress
+
+### Overview Completion Progress
 
 - [x] keep work inside `Overview Mission Control`
 - [x] stay inside `Module Tightening` and avoid reopening the whole app at once
 - [x] keep `Visual Unification` active, but secondary to trust and workflow clarity
-
-### A1. Named Working Phases
-
-- `Phase A` = Overview overhaul and correction pass
-- `Phase B` = left panel aesthetic consistency refinements
-- `Phase C` = visual consistency across tabs, headers, and shell surfaces
-
-### A2. Phase A Status
-
-- `Phase A` is the active phase right now
-- the current Overview overhaul and hybrid redesign work belongs to `Phase A`
-- `improve pair-selection UX in Overview` also belongs inside `Phase A`
-- `Phase A` should finish only after the current Overview surface is both visually stronger and operationally honest
-
-### A3. Phase A Immediate Steps
-
-- `Step 1` = fix the misleading new status bar in Overview so it does not imply false certainty
-- `Step 2` = fix the `CB Snapshots` metric so it reflects resolved coverage honestly instead of overstating it
-- `Step 3` = restore relevance transparency inside `Timeline Radar`
-- later `Phase A` steps can be added after each manual audit and UI pass
-
-### B. Do Next
-
-- [x] add a clearly visible trust-state question in Overview and or header using a reusable shared derivation
+- [x] add a clearly visible trust-state question in Overview and header using a reusable shared derivation
 - [x] add a clearly visible pair-routing question in Overview: `Is this pair worth attention right now?`
 - [x] add a concise `Macro Backdrop Verdict` for the selected pair
 - [x] replace vague event-damage wording with event-sensitivity language
 - [x] keep pushing Overview toward a stronger pair-first command-center role
 - [x] make Overview expose more simplified outputs from the current `Specialist Tools`
 - [x] make the Overview event surface focus on events relevant to the currently selected pair or pairs
-- [ ] improve pair-selection UX in Overview (`Phase A`)
-- [ ] improve the Strength Meter beyond the current `60/40` weighting approach
-- [ ] investigate and reduce `N/A` central-bank rate outcomes without weakening trust rules
-- [ ] make the left-side aesthetic and theme tooling apply more consistently across the whole frontend (`Phase B`)
-- [ ] improve visual consistency across tabs, headers, and shell surfaces (`Phase C`)
+- [x] fix the misleading Overview status bar so it no longer implies false certainty
+- [x] replace the fake status percentage with a real derived percentage
+- [x] add a tooltip and centered explainer panel for `Overview Confidence`
+- [x] expose weighted scoring inside the confidence inspector
+- [x] fix the overstated `CB Snapshots` metric by moving toward truthful resolved-bank wording
+- [x] restore relevance transparency inside `Timeline Radar`
+- [x] add urgency indicators to the radar event list
+- [x] replace the current pair dropdown with a better selector pattern
+- [x] implement a terminal-grade searchable pair selector popover
+- [x] create shared terminology source-of-truth in `Main/src/app/config/terminology.ts`
+- [x] align Overview and header wording to shared terminology
+- [x] prefer `Overview Confidence` naming over `Differential Pipeline Status`
 
-### C. Research Before Building
-
-- [ ] review whether ATR should remain `14D`, switch to `14H`, or expose more than one volatility context
-- [ ] decide the exact state labels for trust, pair-worth-attention, macro backdrop, and event sensitivity
-- [ ] inspect how much specialist-tool output should be surfaced into Overview
-- [ ] inspect how the Overview event block should choose relevant events
-- [ ] inspect which extra metrics should strengthen the Strength Meter without turning it into a black box
-- [ ] investigate EA and MT5 bridge parameters such as lookahead days, before days, and max event counts to improve central-bank derivation coverage
-
-### D. Later Ideas
-
-- [ ] add a right-side expandable box or panel in Overview
-- [ ] use that panel to drive pair selection through a clickable table
-- [ ] replace the current pair dropdown with a better selector pattern
-- [ ] consider making Overview capable of handling more than one pair context
-- [ ] consider a right-side panel for data health and operational diagnostics
-- [ ] consider dark mode after whole-app theme consistency is stronger
-
-### E. Manual Follow-Up
+### Manual Follow-Up Already Done
 
 - [x] verify UI wording manually after major Overview changes
 - [x] verify whether trust-state language feels natural in real daily use
 - [x] verify whether any new Overview verdict feels misleading despite being technically correct
-- [x] create a git checkpoint before and after risky major changes
+- [x] create git checkpoints before and after risky major changes
 
-## 2. What Already Exists
+## 3. Critical
+
+These are the items most likely to shape the next session.
+
+### Track 1: Overview Completion
+
+- [ ] decide whether `Track 1: Overview Completion` is actually done or still needs one final cleanup pass
+- [ ] finalize shared naming for trust, calendar timing, symbol context, macro coverage, pair attention, and event sensitivity
+- [ ] decide whether the current `Overview Confidence` wording and inspector structure are final
+- [ ] verify that all Overview surfaces remain operationally honest after the latest Gemini polish
+
+### Track 4: Macro / Data Quality Refinement
+
+- [ ] investigate and reduce `N/A` central-bank rate outcomes without weakening trust rules
+
+## 4. Important
+
+These are strong next candidates, but not more urgent than the Critical list above.
+
+### Track 1: Overview Completion
+
+- [ ] inspect how much specialist-tool output should be surfaced into Overview
+- [ ] inspect how the Overview event block should choose relevant events
+- [ ] decide whether Overview should stay strictly single-pair for now or prepare for broader pair context later
+- [ ] add sorting options inside the pair selector popover such as volatility, alphabetical, or favorites-first
+
+### Track 4: Macro / Data Quality Refinement
+
+- [ ] improve the Strength Meter beyond the current `60/40` weighting approach
+- [ ] inspect which extra metrics should strengthen the Strength Meter without turning it into a black box
+- [ ] investigate EA and MT5 bridge parameters such as lookahead days, before days, and max event counts to improve central-bank derivation coverage
+
+## 5. Nice To Have
+
+These are valid ideas, but they should not crowd the immediate queue.
+
+### Track 2: Left Panel Aesthetic Consistency
+
+- [ ] make the left-side aesthetic and theme tooling apply more consistently across the whole frontend
+
+### Track 3: Cross-Tab Visual Consistency
+
+- [ ] improve visual consistency across tabs, headers, and shell surfaces
+- [ ] consider dark mode after whole-app theme consistency is stronger
+
+### Future Overview Ideas
+
+- [ ] add a right-side expandable box or panel in Overview
+- [ ] use that panel to drive pair selection through a clickable table
+- [ ] consider making Overview capable of handling more than one pair context
+- [ ] consider a right-side panel for data health and operational diagnostics
+
+## 6. Research / Decisions
+
+These are not implementation tasks yet. They need a decision first.
+
+- [ ] review whether ATR should remain `14D`, switch to `14H`, or expose more than one volatility context
+- [ ] decide the exact state labels for trust, pair-worth-attention, macro backdrop, and event sensitivity
+- [ ] decide whether `Overview Confidence` should remain a permanent concept or stay a temporary Overview-only explanation layer
+- [ ] decide the final minimum specialist-summary set that belongs in Overview v1
+
+## 7. Current Build Reality
 
 ### Repo And Runtime Foundation
 
@@ -163,19 +202,17 @@ Do not treat this file as the short product authority.
 - Overview uses a selected review symbol
 - Overview shares review-symbol context with the header
 - Overview includes:
-  - readiness hero
-  - readiness checklist
-  - MT5 link state
-  - calendar feed state
-  - resolved bank count
-  - pair selector
+  - trust and pair-attention surfaces
+  - macro backdrop verdict
+  - `Overview Confidence`
   - ATR-based volatility display
+  - searchable pair selector popover
   - macro story for selected pair
   - strength differential summary
-  - risk radar
+  - event radar with relevance tagging
   - next-step action shortcuts
 - Overview computes:
-  - system readiness tone
+  - trust state
   - relevant top high-impact events
   - macro summary from selected pair central-bank snapshots
   - strength summary from ranking logic
@@ -399,22 +436,7 @@ Do not treat this file as the short product authority.
 - forex session-window logic exists on the bridge
 - crypto always-on session handling exists on the bridge
 
-### Tests And Verification Already Present
-
-- frontend Vitest tests exist for:
-  - macro views
-  - central-bank derivation
-  - dashboard tabs
-  - event reaction logic and tab shell
-  - event quality logic and tab shell
-  - status helpers
-  - calendar ranges
-  - central banks tab
-- recent audited result:
-  - `pnpm --dir Main run test` passed
-  - `pnpm --dir Main run build` passed
-
-### Things Explicitly Not Present Yet
+## 8. Things Explicitly Not Present Yet
 
 - cross-asset alignment map
 - market selection or watchlist priority engine
@@ -423,126 +445,3 @@ Do not treat this file as the short product authority.
 - final Strength Meter methodology beyond the current 60/40 model
 - final answer on whether Overview should summarize one pair or multiple pairs
 - resolved solution for all central-bank `N/A` cases
-
-## 3. What Will Be Implemented Soon
-
-### Current Near-Term Direction
-
-- keep working inside `Overview Mission Control`
-- keep working inside `Module Tightening`
-- keep `Visual Unification` active, but secondary
-- keep `Performance Reserve` on hold unless responsiveness becomes a real problem
-
-### Most Likely Near-Term Changes
-
-- Overview will explicitly answer `Can I trust the app right now?`
-- Overview will explicitly answer `Is this pair worth attention right now?`
-- trust-state derivation will likely become a shared reusable status function for header and Overview
-- Overview will likely gain a compact macro-backdrop verdict
-- Overview event language will likely shift toward event-sensitivity wording
-- Overview will become a stronger pair-first command-center surface
-- Overview will expose more simplified outputs from current specialist tools
-- Overview will show more relevant event context for the currently selected pair or pairs
-- Overview pair selection UX will likely be improved beyond the current dropdown
-- Strength Meter will likely be refined beyond the current 60/40 weighting
-- central-bank `N/A` outcomes will likely be investigated from the data and derivation side
-- theme and aesthetic controls will likely be pushed to work more consistently across the whole frontend
-- tabs, headers, and shell surfaces will likely be visually unified further
-
-### Planned Soon, But Still Shape-Unclear
-
-- a right-side expandable box or panel in Overview
-- a clickable table inside that panel that can drive pair selection
-- a better selector pattern than the current Overview dropdown
-- possible multi-pair or broader pair-context support in Overview
-- possible right-side panel for data health or operational diagnostics
-- more cooked specialist-tool conclusions surfaced into Overview while keeping deeper details in specialist tabs
-
-### Patch Buckets From Discussion 1
-
-#### Trust State As A First-Class Question
-
-Likely implementation:
-
-- add a visible question in header and or Overview: `Can I trust the app right now?`
-- use 3 states instead of binary:
-  - `Yes`
-  - `Limited`
-  - `No`
-- add short supporting text under the verdict instead of relying on color alone
-- implement as shared derivation logic, not duplicated UI logic
-
-Likely meaning:
-
-- `Yes` = core systems healthy, main values trustworthy enough for normal use
-- `Limited` = app usable, but some important data is stale, degraded, unresolved, or partially missing
-- `No` = critical failure means current values are unsafe, misleading, or too incomplete for real use
-
-#### Make Overview Explicitly Pair-First
-
-Likely implementation:
-
-- make pair selector more prominent
-- make current selected pair visually obvious at all times
-- reduce general-market feel inside Overview
-- ensure major summaries explicitly name the selected pair or its currencies
-- audit each Overview block and demote anything that does not speak directly to the selected pair
-
-#### Add Pair-Worth-Attention Verdict
-
-Likely implementation:
-
-- add a second top-level Overview question: `Is this pair worth attention right now?`
-- likely routing states:
-  - `Study now`
-  - `Monitor later`
-  - `Ignore for now`
-  - `Wait for data`
-  - `Wait until event passes`
-
-Important implementation rule:
-
-- do not let one module alone decide this verdict
-- especially do not let current Strength Meter alone decide it
-- final verdict should likely be a transparent synthesis of:
-  - trust state
-  - macro backdrop verdict
-  - event sensitivity
-  - volatility context
-  - strength context as one input, not the sole judge
-
-#### Add Macro Backdrop Verdict
-
-Likely implementation:
-
-- add concise Overview block:
-  - `Supportive`
-  - `Hostile`
-  - `Unclear`
-- keep the verdict descriptive, not predictive
-- derive it transparently from current macro sources
-- expose one short explanation or expandable why-chain
-
-Likely contributing inputs:
-
-- central-bank snapshots
-- inflation context
-- event regime
-- strength context
-
-#### Replace Event-Damage Wording With Event-Sensitivity Wording
-
-Likely implementation:
-
-- stop using vague â€œdamage the setupâ€ phrasing
-- move toward labels such as:
-  - `Event Sensitivity`
-  - `Near-Term Event Risk`
-  - `Event Window Risk`
-- likely state options:
-  - `Clear`
-  - `Event-sensitive`
-  - `High-risk soon`
-
-Implementation preference:
-
