@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, ArrowRight, CalendarClock, Check, Info, ShieldCheck, Target, TrendingUp, Monitor, Zap, Layers, CircleHelp } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRight, CalendarClock, Check, Info, ShieldCheck, Target, TrendingUp, Monitor, Zap, Layers, CircleHelp, Search, ChevronDown } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { TERMINOLOGY } from "@/app/config/terminology";
@@ -98,6 +98,15 @@ export function OverviewTab({
 }: OverviewTabProps) {
   const [atrByPair, setAtrByPair] = useState<AtrByPair>({});
   const [showPipelineInspector, setShowPipelineInspector] = useState(false);
+  const [showPairSelector, setShowPairSelector] = useState(false);
+  const [pairSearchQuery, setPairSearchQuery] = useState("");
+  
+  const filteredPairs = useMemo(() => {
+    if (!pairSearchQuery) return FX_PAIRS;
+    const query = pairSearchQuery.toLowerCase();
+    return FX_PAIRS.filter((p) => p.name.toLowerCase().includes(query));
+  }, [pairSearchQuery]);
+
   const nowUnix = currentTime.getTime() / 1000;
   const trustState = useMemo(() => resolveTrustState(health, feedStatus, marketStatus), [health, feedStatus, marketStatus]);
   const topEvents = useMemo(() => getTopEvents(events, reviewSymbol, nowUnix), [events, reviewSymbol, nowUnix]);
@@ -228,11 +237,10 @@ export function OverviewTab({
           <header className="hub-main-header">
             <div className="hub-pair-selector">
               <span>Mission Control</span>
-              <select value={reviewSymbol} onChange={(e) => onReviewSymbolChange(e.target.value)}>
-                {FX_PAIRS.map((p) => (
-                  <option key={p.name} value={p.name}>{p.name}</option>
-                ))}
-              </select>
+              <button className="hub-selector-button" onClick={() => setShowPairSelector(true)}>
+                {reviewSymbol}
+                <ChevronDown size={24} />
+              </button>
             </div>
             <div className="hub-brief-vitals">
               <div className="hub-brief-stat">
@@ -490,6 +498,62 @@ export function OverviewTab({
                   <li>Pair-routing confidence</li>
                 </ul>
               </section>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPairSelector && (
+        <div className="hub-selector-overlay" onClick={() => setShowPairSelector(false)}>
+          <div 
+            className="hub-selector-panel"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="hub-selector-search">
+              <Search size={18} />
+              <input 
+                type="text" 
+                autoFocus
+                placeholder="Search pairs (e.g. EUR, JPY)..."
+                value={pairSearchQuery}
+                onChange={(e) => setPairSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="hub-selector-list">
+              {filteredPairs.map((p) => {
+                const isSelected = p.name === reviewSymbol;
+                const atr = atrByPair[p.name];
+                return (
+                  <button 
+                    key={p.name}
+                    className={`hub-selector-item ${isSelected ? "is-active" : ""}`}
+                    onClick={() => {
+                      onReviewSymbolChange(p.name);
+                      setShowPairSelector(false);
+                      setPairSearchQuery("");
+                    }}
+                  >
+                    <div className="hub-selector-item-main">
+                      <div className="hub-selector-item-flags">
+                        <FlagIcon countryCode={snapshots.find(s => s.currency === p.base)?.countryCode || ""} className="h-4 w-6" />
+                        <FlagIcon countryCode={snapshots.find(s => s.currency === p.quote)?.countryCode || ""} className="h-4 w-6" />
+                      </div>
+                      <span className="hub-selector-item-name">{p.name}</span>
+                    </div>
+                    <div className="hub-selector-item-meta">
+                      <span className="hub-selector-item-atr">{atr ?? "--"} pips</span>
+                      <span className="hub-selector-item-label">14D VOLATILITY</span>
+                    </div>
+                  </button>
+                );
+              })}
+              {filteredPairs.length === 0 && (
+                <div style={{ padding: "24px", textAlign: "center", color: "#94a3b8", fontSize: "0.9rem" }}>
+                  No pairs found matching "{pairSearchQuery}"
+                </div>
+              )}
             </div>
           </div>
         </div>
