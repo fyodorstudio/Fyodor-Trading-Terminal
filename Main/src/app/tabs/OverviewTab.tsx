@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
 import { Activity, ArrowRight, CalendarClock, ChevronDown, ChevronRight, CircleHelp, Layers, Monitor, Search, ShieldCheck, Star, Target, TrendingUp, Zap } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
@@ -508,19 +509,14 @@ export function OverviewTab({
         </div>
         <div className="hub-specialists-list">
           {specialistSummaries.map((card) => {
-            const isExpanded = !!expandedSpecialists[card.id];
+            const isExpanded = expandedSpecialistId === card.id;
             const SpecialistIcon = card.id === "strength-meter" ? Activity : card.id === "dashboard" ? Layers : ShieldCheck;
             return (
               <section key={card.id} className={`hub-specialist-card ${isExpanded ? "is-expanded" : ""}`}>
                 <button
                   type="button"
                   className="hub-specialist-toggle"
-                  onClick={() =>
-                    setExpandedSpecialists((prev) => ({
-                      ...prev,
-                      [card.id]: !prev[card.id],
-                    }))
-                  }
+                  onClick={() => setExpandedSpecialistId(isExpanded ? null : card.id)}
                 >
                   <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
                     <div className="hub-specialist-icon-box" style={{ color: "#6366f1" }}>
