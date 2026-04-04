@@ -1,57 +1,60 @@
 # Fyodor Trading Terminal Product Exhaustive
 
-**Last Updated:** 2026-04-03 11:35
+**Last Updated:** 2026-04-04 14:35
 
-This file is the exhaustive implementation inventory and active working document.
+This file is the exhaustive implementation inventory and active working control sheet.
 
 Use this file for:
 
-- current execution priorities
-- completed progress you may need to remember later
-- research questions that still need decisions
-- future ideas that are intentionally not current work
+- what has already been done
+- what to build next
+- what still needs a decision before building
+- what should be manually audited after changes
 
-Do not treat this file as the short product authority.
+Do not use this file as the short product authority.
 
-`docs/Roadmap/PRODUCT_BRIEF.md` remains the brief product brain.
+`docs/Roadmap/PRODUCT_BRIEF.md` remains the short product brain.
 
-## Table Of Contents
+## How To Use This File
 
-1. [Current Tracks](#1-current-tracks)
-2. [Done / Recent Progress](#2-done--recent-progress)
-3. [Critical](#3-critical)
-4. [Important](#4-important)
-5. [Nice To Have](#5-nice-to-have)
-6. [Research / Decisions](#6-research--decisions)
-7. [Current Build Reality](#7-current-build-reality)
-8. [Things Explicitly Not Present Yet](#8-things-explicitly-not-present-yet)
+When coming back after a break:
 
-## 1. Current Tracks
+1. read `Critical` first
+2. pick one item from `Build Next`, `Decide Next`, or `Audit Next`
+3. ignore `Important` and `Nice To Have` unless `Critical` is clear
+
+Meaning of the priority labels:
+
+- `Critical` = highest-value next work or decision
+- `Important` = strong next candidates, but not immediate
+- `Nice To Have` = valid later ideas that should not crowd the near-term queue
+
+## Current Product Tracks
+
+These are broad categories only. They are not meant to be followed like rigid phases.
 
 - `Track 1` = Overview Completion
-- `Track 2` = Left Panel Aesthetic Consistency
-- `Track 3` = Cross-Tab Visual Consistency
-- `Track 4` = Macro / Data Quality Refinement
+- `Track 2` = Workflow Edge Features
+- `Track 3` = Macro / Data Quality Refinement
+- `Track 4` = Visual Consistency
 
-## 2. Done / Recent Progress
+## Done / Recent Progress
 
-### Overview Completion Progress
+### Overview And Header
 
 - [x] keep work inside `Overview Mission Control`
-- [x] stay inside `Module Tightening` and avoid reopening the whole app at once
-- [x] keep `Visual Unification` active, but secondary to trust and workflow clarity
 - [x] add a clearly visible trust-state question in Overview and header using a reusable shared derivation
-- [x] add a clearly visible pair-routing question in Overview: `Is this pair worth attention right now?`
+- [x] add a clearly visible pair-attention question in Overview
 - [x] add a concise `Macro Backdrop Verdict` for the selected pair
 - [x] replace vague event-damage wording with event-sensitivity language
 - [x] keep pushing Overview toward a stronger pair-first command-center role
-- [x] make Overview expose more simplified outputs from the current `Specialist Tools`
-- [x] make the Overview event surface focus on events relevant to the currently selected pair or pairs
+- [x] make Overview expose more simplified outputs from current specialist tools
+- [x] make the Overview event surface focus on events relevant to the selected pair
 - [x] fix the misleading Overview status bar so it no longer implies false certainty
 - [x] replace the fake status percentage with a real derived percentage
 - [x] add a tooltip and centered explainer panel for `Overview Confidence`
 - [x] expose weighted scoring inside the confidence inspector
-- [x] fix the overstated `CB Snapshots` metric by moving toward truthful resolved-bank wording
+- [x] move `CB Snapshots` toward truthful `Resolved Banks` wording
 - [x] restore relevance transparency inside `Timeline Radar`
 - [x] add urgency indicators to the radar event list
 - [x] replace the current pair dropdown with a better selector pattern
@@ -60,75 +63,120 @@ Do not treat this file as the short product authority.
 - [x] align Overview and header wording to shared terminology
 - [x] prefer `Overview Confidence` naming over `Differential Pipeline Status`
 
-### Manual Follow-Up Already Done
+### Docs And Planning
 
+- [x] rewrite the roadmap around `Critical / Important / Nice To Have`
+- [x] add a cleaner progress section so completed work is easier to remember later
+- [x] refresh the product brief with the recent Overview progress
+- [x] export live broker symbols into `docs/Reference/MT5_BROKER_SYMBOLS.md`
+
+### Build Safety
+
+- [x] keep creating checkpoints before and after risky major changes
 - [x] verify UI wording manually after major Overview changes
 - [x] verify whether trust-state language feels natural in real daily use
 - [x] verify whether any new Overview verdict feels misleading despite being technically correct
-- [x] create git checkpoints before and after risky major changes
 
-## 3. Critical
+## Critical
 
-These are the items most likely to shape the next session.
+These are the highest-value things to look at next.
 
-### Track 1: Overview Completion
+### Build Next
 
-- [ ] decide whether `Track 1: Overview Completion` is actually done or still needs one final cleanup pass
-- [ ] finalize shared naming for trust, calendar timing, symbol context, macro coverage, pair attention, and event sensitivity
-- [ ] decide whether the current `Overview Confidence` wording and inspector structure are final
-- [ ] verify that all Overview surfaces remain operationally honest after the latest Gemini polish
+- [ ] reduce unresolved central-bank `N/A` outcomes without weakening trust rules
+- [ ] decide whether `Overview` needs one final completion pass or is stable enough to stop touching for now
 
-### Track 4: Macro / Data Quality Refinement
+### Decide Next
 
-- [ ] investigate and reduce `N/A` central-bank rate outcomes without weakening trust rules
+- [ ] lock the final shared naming for trust state, calendar timing, symbol context, macro coverage, pair attention, and event sensitivity
+- [ ] decide whether `Overview Confidence` is a permanent product concept or just an Overview-specific explanation surface
+- [ ] decide whether `Overview` stays strictly single-pair for now or starts preparing for broader pair context
+- [ ] confirm `Watchlist Priority Engine` as the next core feature direction after Overview stabilization
 
-## 4. Important
+### Audit Next
 
-These are strong next candidates, but not more urgent than the Critical list above.
+- [ ] manually verify that the latest Overview surfaces still feel operationally honest after the Gemini polish
+- [ ] verify that the app answers `which side is winning, why, can I trust it, and what event risk matters` fast enough in real use
+- [ ] verify that `Overview Confidence` helps trust instead of feeling like decorative scoring
 
-### Track 1: Overview Completion
+## Important
 
-- [ ] inspect how much specialist-tool output should be surfaced into Overview
-- [ ] inspect how the Overview event block should choose relevant events
-- [ ] decide whether Overview should stay strictly single-pair for now or prepare for broader pair context later
-- [ ] add sorting options inside the pair selector popover such as volatility, alphabetical, or favorites-first
+These are strong next candidates once the `Critical` section is clear.
 
-### Track 4: Macro / Data Quality Refinement
+### Build Next
 
 - [ ] improve the Strength Meter beyond the current `60/40` weighting approach
-- [ ] inspect which extra metrics should strengthen the Strength Meter without turning it into a black box
 - [ ] investigate EA and MT5 bridge parameters such as lookahead days, before days, and max event counts to improve central-bank derivation coverage
+- [ ] add sorting options inside the pair selector popover such as volatility, alphabetical, or favorites-first
+- [ ] decide and build the minimum useful specialist-summary set that belongs in Overview
 
-## 5. Nice To Have
+### Decide Next
 
-These are valid ideas, but they should not crowd the immediate queue.
+- [ ] decide the minimum inputs for a future `Watchlist Priority Engine`
+- [ ] decide whether `Tradeability Window` should be part of pair attention or a separate concept
+- [ ] decide how much event-reaction output should shift toward execution preparation usefulness
+- [ ] decide whether cross-asset alignment should begin inside Overview or as a separate surface
 
-### Track 2: Left Panel Aesthetic Consistency
+### Audit Next
 
-- [ ] make the left-side aesthetic and theme tooling apply more consistently across the whole frontend
+- [ ] verify whether event warnings are useful in practice and not just decorative
+- [ ] verify whether the pair selector is fast enough under tired real trading-day use
+- [ ] verify whether the current Overview event block shows the right amount of context versus noise
 
-### Track 3: Cross-Tab Visual Consistency
+## Nice To Have
 
+These are real ideas, but they should not compete with the higher-priority queue yet.
+
+### Build Next
+
+- [ ] make the left-side aesthetic and theme tooling apply more consistently across the frontend
 - [ ] improve visual consistency across tabs, headers, and shell surfaces
-- [ ] consider dark mode after whole-app theme consistency is stronger
-
-### Future Overview Ideas
-
+- [ ] consider dark mode after broader visual consistency is stronger
 - [ ] add a right-side expandable box or panel in Overview
-- [ ] use that panel to drive pair selection through a clickable table
-- [ ] consider making Overview capable of handling more than one pair context
-- [ ] consider a right-side panel for data health and operational diagnostics
+- [ ] add a richer diagnostics surface for data health and operational state
 
-## 6. Research / Decisions
+### Decide Next
 
-These are not implementation tasks yet. They need a decision first.
+- [ ] decide whether Overview should eventually handle more than one pair context at once
+- [ ] decide whether a right-side panel should become the long-term home for secondary Overview details
+
+### Audit Next
+
+- [ ] verify that later visual polish still preserves the compact operational feel of the app
+
+## Future Core Feature Directions
+
+These are important enough to keep visible, but they are not all immediate build work.
+
+### Workflow Edge Features
+
+- [ ] `Watchlist Priority Engine`
+- [ ] `Cross-Asset Alignment Map`
+- [ ] `Tradeability Window Layer`
+- [ ] `Event Reaction Engine -> Execution Prep` upgrade
+- [ ] `Strength Meter v2`
+- [ ] `Multi-pair Overview` panel
+
+### Why These Matter
+
+- `Watchlist Priority Engine` moves the app from `analyze the pair I picked` toward `show me what deserves attention first`
+- `Cross-Asset Alignment Map` helps identify whether a theme is being expressed cleanly or mixed across markets
+- `Tradeability Window Layer` helps answer whether the market is actually tradeable right now, not just interesting
+- `Event Reaction Engine -> Execution Prep` helps make event study more useful before real decisions
+- `Strength Meter v2` keeps one of the core macro ranking tools useful without turning it into a black box
+- `Multi-pair Overview` stays valid, but should probably remain below watchlist and cross-asset priorities unless workflow evidence says otherwise
+
+## Open Research / Open Questions
+
+These are worth thinking about, but they are not direct action items until promoted upward.
 
 - [ ] review whether ATR should remain `14D`, switch to `14H`, or expose more than one volatility context
-- [ ] decide the exact state labels for trust, pair-worth-attention, macro backdrop, and event sensitivity
-- [ ] decide whether `Overview Confidence` should remain a permanent concept or stay a temporary Overview-only explanation layer
-- [ ] decide the final minimum specialist-summary set that belongs in Overview v1
+- [ ] decide whether the app should help identify the cleaner pair or asset expression of an active macro theme
+- [ ] define what `cleaner expression` should mean in practical, transparent terms
+- [ ] decide which currently accessible broker symbols belong in a first cross-market context layer
+- [ ] decide whether DXY and bond yields remain optional future enhancements instead of present dependencies
 
-## 7. Current Build Reality
+## Current Build Reality
 
 ### Repo And Runtime Foundation
 
@@ -178,8 +226,6 @@ These are not implementation tasks yet. They need a decision first.
   - font switching
   - color palette switching
   - theme persistence in local storage
-- theme changes are applied through CSS variables at app level
-- current UI theme state is persisted in local storage
 
 ### Shared Data And App Wiring
 
@@ -203,13 +249,13 @@ These are not implementation tasks yet. They need a decision first.
 - Overview shares review-symbol context with the header
 - Overview includes:
   - trust and pair-attention surfaces
-  - macro backdrop verdict
+  - `Macro Backdrop Verdict`
   - `Overview Confidence`
   - ATR-based volatility display
   - searchable pair selector popover
   - macro story for selected pair
   - strength differential summary
-  - event radar with relevance tagging
+  - event radar with relevance tagging and urgency visibility
   - next-step action shortcuts
 - Overview computes:
   - trust state
@@ -243,15 +289,8 @@ These are not implementation tasks yet. They need a decision first.
   - `MN1`
 - historical candle fetching exists
 - WebSocket chart stream exists
-- chart status handles:
-  - loading
-  - ready
-  - no data
-  - error
 - market session context exists
-- chart overlay states exist for unavailable or no-data conditions
 - debug log panel exists
-- debug log copy action exists
 - chart symbol is independent from Overview review symbol
 
 ### Economic Calendar
@@ -280,12 +319,6 @@ These are not implementation tasks yet. They need a decision first.
   - loading
   - no data
   - error
-- stale, error, and no-data alert panels exist
-- country flag display exists
-- event impact stars exist
-- range popover exists
-- help hint popovers exist
-- successful sync timestamp persistence support exists through app state
 
 ### Central Banks Data
 
@@ -298,11 +331,8 @@ These are not implementation tasks yet. They need a decision first.
 - per-bank display includes:
   - bank identity
   - currency
-  - country flag
   - policy rate
-  - previous policy rate
   - inflation
-  - previous inflation
   - last release dates
   - next event dates
   - next event titles
@@ -311,99 +341,13 @@ These are not implementation tasks yet. They need a decision first.
 - global mapping audit panel exists
 - resolution count display exists
 
-### Differential Calculator
+### Specialist Tools
 
 - Differential Calculator tab exists
-- current data source is MT5-derived central-bank snapshot data
-- supports currency exclusion toggles
-- supports separate sort modes for:
-  - rate differential cards
-  - inflation differential cards
-- rate cards include:
-  - current gap
-  - previous gap
-  - gap change
-  - widening or narrowing state
-- inflation cards include:
-  - current bias
-  - explanatory copy
-- status dimming exists for unresolved cards
-
-### Strength Meter
-
 - Strength Meter tab exists
-- current ranking heuristic exists
-- ranking logic is based on:
-  - 60 percent current policy-rate position
-  - 40 percent current inflation position
-- supports currency exclusion toggles
-- supports suggestion sort modes
-- shows:
-  - live currency rankings
-  - strength scores
-  - rate and inflation breakdown
-  - strongest/weakest context
-  - suggested trading pairs
-  - methodology block
-- unresolved currencies can be excluded instead of being force-scored
-
-### Event Quality
-
 - Event Quality tab exists
-- pair selector exists
-- horizon selector exists
-- current horizons include:
-  - `24h`
-  - `72h`
-  - `this_week`
-- weighted event-quality scoring exists
-- summary label states include:
-  - clean
-  - mixed
-  - dirty
-- immediate dirty override exists for certain near-term high-impact events
-- weighted breakdown exists
-- relevant event table exists
-- methodology panel exists
-- family weights exist
-- impact multipliers exist
-- thresholds exist by horizon
-- local storage persistence exists for selected pair
-
-### Event Reaction Engine
-
 - Event Reaction Engine tab exists
-- current task flows include:
-  - study an upcoming event
-  - study a pair
-- template discovery exists from MT5 event history
-- event-family filtering exists
-- pair-family filtering exists
-- usable versus weak template handling exists
-- upcoming-event shortcut list exists
-- manual event selector exists
-- pair-first study flow exists
-- relevant pair ranking preview exists
-- historical replay sample selection exists
-- replay timeframe selection exists
-- replay play/pause animation exists
-- custom SVG candle replay chart exists
-- pair switching inside reaction study exists
-- local storage persistence exists for:
-  - task
-  - selected pair
-  - event currency
-  - selected family
-  - weak-template toggle
-  - selected template
-  - replay timeframe
-- event-reaction calculation helpers exist for:
-  - pip-size handling
-  - replay windows
-  - sample quality
-  - beat/inline/miss bucketing
-  - event-first study summaries
-  - asset-first study summaries
+- current specialist outputs already feed simplified context into Overview
 
 ### Bridge And MT5 Data Surface
 
@@ -416,9 +360,6 @@ These are not implementation tasks yet. They need a decision first.
   - `fetchCalendar`
   - `fetchMarketStatus`
   - `openChartStream`
-- bridge payload normalization exists
-- market session-state normalization exists
-- calendar event normalization exists
 - bridge server exposes:
   - `GET /health`
   - `GET /server_time`
@@ -431,16 +372,13 @@ These are not implementation tasks yet. They need a decision first.
   - `WS /stream`
 - MT5 EA companion file exists
 - bridge health includes last calendar ingest metadata
-- in-memory calendar ingest store exists
-- asset-class inference exists on the bridge
-- forex session-window logic exists on the bridge
-- crypto always-on session handling exists on the bridge
+- current broker symbol list has already been exported to `docs/Reference/MT5_BROKER_SYMBOLS.md`
 
-## 8. Things Explicitly Not Present Yet
+## Things Explicitly Not Present Yet
 
+- watchlist priority engine
 - cross-asset alignment map
-- market selection or watchlist priority engine
-- full dark mode system across the whole app
+- tradeability window layer
 - fully unified visual language across all tabs
 - final Strength Meter methodology beyond the current 60/40 model
 - final answer on whether Overview should summarize one pair or multiple pairs
