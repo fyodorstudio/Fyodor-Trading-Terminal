@@ -68,6 +68,31 @@ export interface CalendarEvent {
   previous: string;
 }
 
+export interface CalendarNavigationIntent {
+  eventKey: string;
+  eventId: number;
+  eventTime: number;
+  currency: string;
+  title: string;
+  countryCode: string;
+  source: "overview";
+}
+
+export interface CalendarEventExplainer {
+  family:
+    | EventQualityFamily
+    | "generic";
+  familyLabel: string;
+  whatItIs: string;
+  whyTradersCare: string;
+  mayAffect: string[];
+  priceCaveats: string[];
+  educationalSummary: string;
+  strongerOutcome: string;
+  weakerOutcome: string;
+  contextNote: string;
+}
+
 export interface CalendarQueryState {
   preset: DatePreset;
   from: Date | null;

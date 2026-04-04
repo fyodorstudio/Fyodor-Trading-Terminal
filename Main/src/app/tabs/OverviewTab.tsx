@@ -34,6 +34,7 @@ interface OverviewTabProps {
   events: CalendarEvent[];
   snapshots: CentralBankSnapshot[];
   onNavigate: (tab: TabId) => void;
+  onOpenCalendarEvent: (event: CalendarEvent) => void;
 }
 
 interface ActionItem {
@@ -115,6 +116,7 @@ export function OverviewTab({
   events,
   snapshots,
   onNavigate,
+  onOpenCalendarEvent,
 }: OverviewTabProps) {
   const [atrByPair, setAtrByPair] = useState<AtrByPair>({});
   const [showPipelineInspector, setShowPipelineInspector] = useState(false);
@@ -418,7 +420,7 @@ export function OverviewTab({
                     <button 
                       key={event.id} 
                       className={`hub-timeline-item ${isUrgent ? "radar-urgency-pulse" : ""}`} 
-                      onClick={() => onNavigate("calendar")}
+                      onClick={() => onOpenCalendarEvent(event)}
                     >
                       <div className="hub-timeline-content">
                         <span className="hub-timeline-title">{event.title}</span>
@@ -644,7 +646,7 @@ export function OverviewTab({
                       className="hub-event-inspector-item"
                       onClick={() => {
                         setShowEventInspector(false);
-                        onNavigate("calendar");
+                        onOpenCalendarEvent(event);
                       }}
                     >
                       <div className="hub-event-inspector-copy">

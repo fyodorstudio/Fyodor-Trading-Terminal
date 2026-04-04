@@ -2,6 +2,8 @@ import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 
 import { createPortal } from "react-dom";
 import { Activity, Calendar, Check, ChevronDown, CircleHelp, Clock, Database, Globe, Search, Star } from "lucide-react";
 import { fetchCalendar, fetchServerTime } from "@/app/lib/bridge";
+import { getCalendarEventExplainer } from "@/app/lib/calendarEventExplain";
+import { buildCalendarEventKey, getCalendarIntentDayRange } from "@/app/lib/calendarNavigation";
 import { getPresetRange } from "@/app/lib/calendarRanges";
 import {
   formatLocalDateTime,
@@ -14,7 +16,7 @@ import {
 import { resolveCalendarStatus } from "@/app/lib/status";
 import { getCountryDisplayName, MAJOR_COUNTRY_CODES } from "@/app/config/currencyConfig";
 import { FlagIcon } from "@/app/components/FlagIcon";
-import type { BridgeHealth, BridgeStatus, CalendarEvent, ImpactLevel } from "@/app/types";
+import type { BridgeHealth, BridgeStatus, CalendarEvent, CalendarNavigationIntent, ImpactLevel } from "@/app/types";
 
 const DEFAULT_IMPACTS: ImpactLevel[] = ["low", "medium", "high"];
 
@@ -299,12 +301,16 @@ interface EconomicCalendarTabProps {
   health: BridgeHealth;
   persistedLastSyncedAt?: number | null;
   onSyncSuccess?: (timestampSeconds: number) => void;
+  navigationIntent?: CalendarNavigationIntent | null;
+  onConsumeNavigationIntent?: () => void;
 }
 
 export function EconomicCalendarTab({
   health,
   persistedLastSyncedAt = null,
   onSyncSuccess,
+  navigationIntent = null,
+  onConsumeNavigationIntent,
 }: EconomicCalendarTabProps) {
   const [preset, setPreset] = useState<CalendarRangeMode>("today");
   const [customFrom, setCustomFrom] = useState<Date | null>(null);
@@ -326,12 +332,16 @@ export function EconomicCalendarTab({
   const [isCountryMenuOpen, setIsCountryMenuOpen] = useState(false);
   const [isRangePopoverOpen, setIsRangePopoverOpen] = useState(false);
   const [isTimezoneMenuOpen, setIsTimezoneMenuOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
+  const [highlightedEventKey, setHighlightedEventKey] = useState<string | null>(null);
+  const [pendingJumpKey, setPendingJumpKey] = useState<string | null>(null);
   const eventsRef = useRef<CalendarEvent[]>([]);
   const lastSuccessfulQueryKeyRef = useRef<string | null>(null);
   const impactMenuRef = useRef<HTMLDivElement | null>(null);
   const countryMenuRef = useRef<HTMLDivElement | null>(null);
   const rangePopoverRef = useRef<HTMLDivElement | null>(null);
   const timezoneMenuRef = useRef<HTMLDivElement | null>(null);
+  const highlightTimeoutRef = useRef<number | null>(null);
 
   const activeRange = useMemo(() => {
     if (preset === "today") {
@@ -400,6 +410,14 @@ export function EconomicCalendarTab({
 
     document.addEventListener("mousedown", handleOutside);
     return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current != null) {
+        window.clearTimeout(highlightTimeoutRef.current);
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -489,6 +507,10 @@ export function EconomicCalendarTab({
   }, [countries, events]);
 
   const groups = useMemo(() => groupByUtcDay(filteredEvents), [filteredEvents]);
+  const selectedEventExplainer = useMemo(
+    () => (selectedEvent ? getCalendarEventExplainer(selectedEvent) : null),
+    [selectedEvent],
+  );
 
   const rangeLabel = useMemo(
     () => formatRangeLabelFromSeconds(activeRange.from, activeRange.to),
@@ -583,6 +605,51 @@ export function EconomicCalendarTab({
       current.includes(country) ? current.filter((item) => item !== country) : [...current, country],
     );
   };
+
+  useEffect(() => {
+    if (!navigationIntent) return;
+
+    const range = getCalendarIntentDayRange(navigationIntent.eventTime);
+    setCustomFrom(range.from);
+    setCustomTo(range.to);
+    setPreset("custom");
+    setImpacts(DEFAULT_IMPACTS);
+    setCountries([]);
+    setSearch("");
+    setSelectedEvent(null);
+    setPendingJumpKey(navigationIntent.eventKey);
+    onConsumeNavigationIntent?.();
+  }, [navigationIntent, onConsumeNavigationIntent]);
+
+  useLayoutEffect(() => {
+    if (!pendingJumpKey) return;
+    const target = document.querySelector<HTMLElement>(`[data-event-key="${pendingJumpKey}"]`);
+    if (!target) return;
+
+    target.scrollIntoView({ behavior: "smooth", block: "center" });
+    setHighlightedEventKey(pendingJumpKey);
+    setPendingJumpKey(null);
+
+    if (highlightTimeoutRef.current != null) {
+      window.clearTimeout(highlightTimeoutRef.current);
+    }
+    highlightTimeoutRef.current = window.setTimeout(() => {
+      setHighlightedEventKey(null);
+    }, 2200);
+  }, [groups, pendingJumpKey]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setSelectedEvent(null);
+      }
+    };
+
+    if (selectedEvent) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [selectedEvent]);
 
   return (
     <section className="tab-panel flex flex-col gap-6 max-w-[1460px] mx-auto pb-12">
@@ -921,8 +988,23 @@ export function EconomicCalendarTab({
                       })}
                     </td>
                   </tr>
-                  {items.map((event) => (
-                    <tr key={`${event.id}-${event.time}`}>
+                  {items.map((event) => {
+                    const eventKey = buildCalendarEventKey(event);
+                    const isHighlighted = highlightedEventKey === eventKey;
+                    return (
+                    <tr
+                      key={`${event.id}-${event.time}`}
+                      data-event-key={eventKey}
+                      className={isHighlighted ? "calendar-event-row is-highlighted" : "calendar-event-row"}
+                      tabIndex={0}
+                      onClick={() => setSelectedEvent(event)}
+                      onKeyDown={(keyboardEvent) => {
+                        if (keyboardEvent.key === "Enter" || keyboardEvent.key === " ") {
+                          keyboardEvent.preventDefault();
+                          setSelectedEvent(event);
+                        }
+                      }}
+                    >
                       <td>{formatUtcDateTime(event.time)}</td>
                       <td>{formatViewerDateTime(event.time, timezoneMode)}</td>
                       <td>
@@ -940,13 +1022,101 @@ export function EconomicCalendarTab({
                       <td>{event.forecast || "-"}</td>
                       <td>{event.previous || "-"}</td>
                     </tr>
-                  ))}
+                  )})}
                 </Fragment>
               ))
             )}
           </tbody>
         </table>
       </div>
+
+      {selectedEvent && selectedEventExplainer
+        ? createPortal(
+            <div className="calendar-event-overlay" onClick={() => setSelectedEvent(null)}>
+              <div
+                className="calendar-event-panel"
+                role="dialog"
+                aria-modal="true"
+                aria-label={`${selectedEvent.title} details`}
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="calendar-event-panel-head">
+                  <div>
+                    <div className="calendar-event-panel-kicker">{selectedEventExplainer.familyLabel}</div>
+                    <h3>{selectedEvent.title}</h3>
+                    <p>{getCountryDisplayName(selectedEvent.countryCode)} | {selectedEvent.currency}</p>
+                  </div>
+                  <button type="button" className="calendar-event-close" onClick={() => setSelectedEvent(null)}>
+                    Close
+                  </button>
+                </div>
+
+                <div className="calendar-event-summary-grid">
+                  <div className="calendar-event-summary-card">
+                    <span>MT5 Time</span>
+                    <strong>{formatUtcDateTime(selectedEvent.time)}</strong>
+                  </div>
+                  <div className="calendar-event-summary-card">
+                    <span>Viewer Time</span>
+                    <strong>{formatViewerDateTime(selectedEvent.time, timezoneMode)}</strong>
+                  </div>
+                  <div className="calendar-event-summary-card">
+                    <span>Impact</span>
+                    <strong>{selectedEvent.impact.toUpperCase()}</strong>
+                  </div>
+                  <div className="calendar-event-summary-card">
+                    <span>Actual / Forecast / Previous</span>
+                    <strong>{selectedEvent.actual || "-"} / {selectedEvent.forecast || "-"} / {selectedEvent.previous || "-"}</strong>
+                  </div>
+                </div>
+
+                <div className="calendar-event-grid">
+                  <section className="calendar-event-card">
+                    <span>What this event is</span>
+                    <p>{selectedEventExplainer.whatItIs}</p>
+                  </section>
+                  <section className="calendar-event-card">
+                    <span>Why traders care</span>
+                    <p>{selectedEventExplainer.whyTradersCare}</p>
+                  </section>
+                  <section className="calendar-event-card">
+                    <span>What it may affect</span>
+                    <ul>
+                      {selectedEventExplainer.mayAffect.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </section>
+                  <section className="calendar-event-card">
+                    <span>Why it may or may not move price</span>
+                    <ul>
+                      {selectedEventExplainer.priceCaveats.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </section>
+                  <section className="calendar-event-card calendar-event-card-wide">
+                    <span>What it measures</span>
+                    <p>{selectedEventExplainer.educationalSummary}</p>
+                  </section>
+                  <section className="calendar-event-card">
+                    <span>Stronger-than-expected</span>
+                    <p>{selectedEventExplainer.strongerOutcome}</p>
+                  </section>
+                  <section className="calendar-event-card">
+                    <span>Weaker-than-expected</span>
+                    <p>{selectedEventExplainer.weakerOutcome}</p>
+                  </section>
+                  <section className="calendar-event-card calendar-event-card-wide">
+                    <span>Context reminder</span>
+                    <p>{selectedEventExplainer.contextNote}</p>
+                  </section>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </section>
   );
 }

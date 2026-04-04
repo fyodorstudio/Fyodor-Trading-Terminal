@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { fetchCalendar, fetchHealth, fetchMarketStatus } from "@/app/lib/bridge";
 import { deriveCentralBankSnapshots } from "@/app/lib/centralBankDerive";
+import { createCalendarNavigationIntent } from "@/app/lib/calendarNavigation";
 import { resolveCalendarStatus } from "@/app/lib/status";
 import { MinimalHeader } from "@/app/components/MinimalHeader";
 import { TabNavigation } from "@/app/components/TabNavigation";
@@ -15,7 +16,7 @@ import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
 import { ChartsTab } from "@/app/tabs/ChartsTab";
 import { EconomicCalendarTab } from "@/app/tabs/EconomicCalendarTab";
 import { FONT_OPTIONS, COLOR_PALETTES, FontId, ColorPaletteId } from "@/app/config/themeConfig";
-import type { BridgeHealth, BridgeStatus, CalendarEvent, MarketStatusResponse, TabId } from "@/app/types";
+import type { BridgeHealth, BridgeStatus, CalendarEvent, CalendarNavigationIntent, MarketStatusResponse, TabId } from "@/app/types";
 
 const ANALYSIS_TAB_ORDER: { id: TabId; label: string }[] = [
   { id: "dashboard", label: "Differential Calculator" },
@@ -54,6 +55,7 @@ export default function App() {
   const [chartMarketStatus, setChartMarketStatus] = useState<MarketStatusResponse | null>(null);
   const [overviewMarketStatus, setOverviewMarketStatus] = useState<MarketStatusResponse | null>(null);
   const [calendarTabLastSyncedAt, setCalendarTabLastSyncedAt] = useState<number | null>(null);
+  const [calendarNavigationIntent, setCalendarNavigationIntent] = useState<CalendarNavigationIntent | null>(null);
   const feedEventsRef = useRef<CalendarEvent[]>([]);
 
   // Independent Aesthetic Forge
@@ -195,6 +197,11 @@ export default function App() {
 
   const [isUiPanelOpen, setIsUiPanelOpen] = useState(false);
 
+  const openCalendarForEvent = (event: CalendarEvent) => {
+    setCalendarNavigationIntent(createCalendarNavigationIntent(event, "overview"));
+    setActiveTab("calendar");
+  };
+
   return (
     <div className="flex min-h-screen bg-[var(--bg)] transition-colors duration-300 overflow-hidden">
       <UiCommandPanel 
@@ -240,6 +247,7 @@ export default function App() {
                 events={feedEvents}
                 snapshots={centralBankResult.snapshots}
                 onNavigate={setActiveTab}
+                onOpenCalendarEvent={openCalendarForEvent}
               />
             )}
             {activeTab === "dashboard" && <DashboardTab snapshots={centralBankResult.snapshots} />}
@@ -272,6 +280,8 @@ export default function App() {
                 health={health}
                 persistedLastSyncedAt={calendarTabLastSyncedAt}
                 onSyncSuccess={setCalendarTabLastSyncedAt}
+                navigationIntent={calendarNavigationIntent}
+                onConsumeNavigationIntent={() => setCalendarNavigationIntent(null)}
               />
             )}
           </main>
