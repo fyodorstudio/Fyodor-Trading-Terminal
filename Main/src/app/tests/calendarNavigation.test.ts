@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildCalendarEventKey, createCalendarNavigationIntent, getCalendarIntentDayRange } from "@/app/lib/calendarNavigation";
 import { getCalendarEventExplainer } from "@/app/lib/calendarEventExplain";
+import { CALENDAR_EVENT_KNOWLEDGE_BACKLOG } from "@/app/lib/calendarEventKnowledge";
 import type { CalendarEvent } from "@/app/types";
 
 const event: CalendarEvent = {
@@ -44,12 +45,22 @@ describe("calendar event explainer", () => {
   it("explains known event families", () => {
     const explainer = getCalendarEventExplainer(event);
     expect(explainer.family).toBe("labor");
-    expect(explainer.whyTradersCare).toContain("Labor data");
+    expect(explainer.whyTradersCare).toContain("labor");
+  });
+
+  it("prefers title-specific overrides for key events", () => {
+    const explainer = getCalendarEventExplainer({ ...event, title: "Nonfarm Payrolls" });
+    expect(explainer.whatItIs).toContain("outside farm work");
+    expect(explainer.mayAffect).toContain("USD pairs");
   });
 
   it("falls back cleanly for unclassified events", () => {
     const fallback = getCalendarEventExplainer({ ...event, title: "Official Reserves" });
     expect(fallback.family).toBe("generic");
     expect(fallback.whatItIs).toContain("economic or policy-related");
+  });
+
+  it("keeps a visible backlog for niche events to add later", () => {
+    expect(CALENDAR_EVENT_KNOWLEDGE_BACKLOG).toContain("Producer Price Index (PPI)");
   });
 });

@@ -321,6 +321,7 @@ export function EconomicCalendarTab({
   const [countries, setCountries] = useState<string[]>([]);
   const [search, setSearch] = useState("");
   const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [countrySourceEvents, setCountrySourceEvents] = useState<CalendarEvent[]>([]);
   const [status, setStatus] = useState<BridgeStatus>("loading");
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(persistedLastSyncedAt);
   const [lastCalendarIngestAt, setLastCalendarIngestAt] = useState<number | null>(null);
@@ -394,6 +395,30 @@ export function EconomicCalendarTab({
       window.clearInterval(id);
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadCountrySource = async () => {
+      try {
+        const countryEvents = await fetchCalendar({
+          from: activeRange.from,
+          to: activeRange.to,
+          impacts: DEFAULT_IMPACTS,
+        });
+
+        if (cancelled) return;
+        setCountrySourceEvents(countryEvents);
+      } catch {
+        if (cancelled) return;
+      }
+    };
+
+    void loadCountrySource();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeRange.from, activeRange.to]);
 
   useEffect(() => {
     setLastSyncedAt(persistedLastSyncedAt);
@@ -485,7 +510,7 @@ export function EconomicCalendarTab({
   const availableCountries = useMemo(() => {
     const seen = new Set<string>();
 
-    events.forEach((event) => {
+    countrySourceEvents.forEach((event) => {
       if (event.countryCode.trim()) {
         seen.add(event.countryCode.toUpperCase());
       }
@@ -504,7 +529,7 @@ export function EconomicCalendarTab({
 
     const ordered = [...priority, ...rest];
     return ordered.length > 0 ? ordered : [...MAJOR_COUNTRY_CODES];
-  }, [countries, events]);
+  }, [countries, countrySourceEvents]);
 
   const groups = useMemo(() => groupByUtcDay(filteredEvents), [filteredEvents]);
   const selectedEventExplainer = useMemo(
