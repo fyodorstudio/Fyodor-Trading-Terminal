@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CalendarClock, ChevronDown, ChevronRight, CircleHelp, Layers, Monitor, Search, Target, TrendingUp, Zap } from "lucide-react";
+import { Activity, ArrowRight, CalendarClock, ChevronDown, ChevronRight, CircleHelp, Layers, Monitor, Search, ShieldCheck, Target, TrendingUp, Zap } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { TERMINOLOGY } from "@/app/config/terminology";
