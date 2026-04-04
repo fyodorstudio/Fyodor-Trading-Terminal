@@ -119,6 +119,7 @@ export function OverviewTab({
   const [atrByPair, setAtrByPair] = useState<AtrByPair>({});
   const [showPipelineInspector, setShowPipelineInspector] = useState(false);
   const [showTrustInspector, setShowTrustInspector] = useState(false);
+  const [showEventInspector, setShowEventInspector] = useState(false);
   const [showPairSelector, setShowPairSelector] = useState(false);
   const [pairSearchQuery, setPairSearchQuery] = useState("");
   const [pairSortMode, setPairSortMode] = useState<OverviewPairSortMode>("favorites");
@@ -164,6 +165,12 @@ export function OverviewTab({
   const specialistSummaries = useMemo(
     () => getOverviewSpecialistSummaries(reviewSymbol, snapshots, events, nowUnix),
     [reviewSymbol, snapshots, events, nowUnix],
+  );
+  const relevantEvents = useMemo(
+    () => events
+      .filter((event) => event.impact === "high" && event.time >= nowUnix && (event.currency === pair?.base || event.currency === pair?.quote))
+      .sort((left, right) => left.time - right.time),
+    [events, nowUnix, pair?.base, pair?.quote],
   );
   const sortedPairs = useMemo(
     () => sortOverviewPairs(FX_PAIRS, pairSearchQuery, pairSortMode, atrByPair, favoritePairs),
@@ -237,14 +244,11 @@ export function OverviewTab({
             <div className="hub-vitals-box">
               <div className="hub-vital-row">
                 <label>{TERMINOLOGY.trustState.sectionLabel}</label>
-                <button
-                  type="button"
-                  className="hub-vital-button"
-                  onClick={() => setShowTrustInspector(true)}
+                <span
                   style={{ color: trustState.tone === "good" ? "#10b981" : trustState.tone === "danger" ? "#ef4444" : "#f59e0b" }}
                 >
                   {trustState.verdictLabel}
-                </button>
+                </span>
               </div>
               <div className="hub-vital-row">
                 <label>Bridge</label>
@@ -394,6 +398,13 @@ export function OverviewTab({
             <header className="hub-card-header">
               <CalendarClock size={14} />
               <h3>{TERMINOLOGY.eventSensitivity.sectionLabel}</h3>
+              <button
+                type="button"
+                className="hub-inline-link"
+                onClick={() => setShowEventInspector(true)}
+              >
+                View All
+              </button>
             </header>
             <div className="hub-timeline">
               {topEvents.length > 0 ? (
@@ -588,6 +599,70 @@ export function OverviewTab({
                   ))}
                 </ul>
               </section>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showEventInspector && (
+        <div className="hub-inspector-overlay" onClick={() => setShowEventInspector(false)}>
+          <div
+            className="hub-inspector-panel hub-detail-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Relevant event sensitivity details"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="hub-inspector-top">
+              <div>
+                <div className="hub-inspector-kicker">{TERMINOLOGY.eventSensitivity.sectionLabel}</div>
+                <h3>{reviewSymbol} Relevant Events</h3>
+              </div>
+              <button
+                type="button"
+                className="hub-inspector-close"
+                onClick={() => setShowEventInspector(false)}
+                aria-label="Close relevant events details"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="hub-detail-summary">
+              <strong>{eventSensitivity.label}</strong>
+              <p>{eventSensitivity.detail}</p>
+            </div>
+
+            <div className="hub-event-inspector-list">
+              {relevantEvents.length > 0 ? (
+                relevantEvents.map((event) => {
+                  const sideLabel = event.currency === pair?.base ? "Base Impact" : "Quote Impact";
+                  return (
+                    <button
+                      key={`${event.id}-${event.time}`}
+                      type="button"
+                      className="hub-event-inspector-item"
+                      onClick={() => {
+                        setShowEventInspector(false);
+                        onNavigate("calendar");
+                      }}
+                    >
+                      <div className="hub-event-inspector-copy">
+                        <strong>{event.title}</strong>
+                        <span>{event.currency} | {formatUtcDateTime(event.time)}</span>
+                      </div>
+                      <div className="hub-event-inspector-meta">
+                        <span className={`radar-relevance-tag ${event.currency === pair?.base ? "radar-relevance-base" : "radar-relevance-quote"}`}>{sideLabel}</span>
+                        <strong>{formatCountdown(event.time, currentTime.getTime())}</strong>
+                      </div>
+                    </button>
+                  );
+                })
+              ) : (
+                <div className="hub-event-inspector-empty">
+                  No future pair-relevant high-impact events are active for {reviewSymbol}.
+                </div>
+              )}
             </div>
           </div>
         </div>
