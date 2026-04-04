@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Product Exhaustive
 
-**Last Updated:** 2026-04-04 14:35
+**Last Updated:** 2026-04-04 18:30
 
 This file is the exhaustive implementation inventory and active working control sheet.
 
@@ -62,6 +62,13 @@ These are broad categories only. They are not meant to be followed like rigid ph
 - [x] create shared terminology source-of-truth in `Main/src/app/config/terminology.ts`
 - [x] align Overview and header wording to shared terminology
 - [x] prefer `Overview Confidence` naming over `Differential Pipeline Status`
+- [x] keep `Overview Confidence` as a permanent Overview surface
+- [x] keep Overview single-pair for the current completion pass
+- [x] add practical sorting to the pair selector popover
+- [x] add a dedicated click-open `Trust State` explainer
+- [x] increase the event radar to 4 visible events and add a compact summary row
+- [x] add a full relevant-events inspector from the `Event Sensitivity` card
+- [x] add bottom expandable `Specialist Summaries` in Overview for `Strength Meter`, `Differential Calculator`, and `Event Quality`
 
 ### Docs And Planning
 
@@ -83,14 +90,12 @@ These are the highest-value things to look at next.
 
 ### Build Next
 
-- [ ] reduce unresolved central-bank `N/A` outcomes without weakening trust rules
 - [ ] decide whether `Overview` needs one final completion pass or is stable enough to stop touching for now
+- [ ] make Overview event clicks open Economic Calendar with the relevant date range already selected and the target event scrolled into view
 
 ### Decide Next
 
 - [ ] lock the final shared naming for trust state, calendar timing, symbol context, macro coverage, pair attention, and event sensitivity
-- [ ] decide whether `Overview Confidence` is a permanent product concept or just an Overview-specific explanation surface
-- [ ] decide whether `Overview` stays strictly single-pair for now or starts preparing for broader pair context
 - [ ] confirm `Watchlist Priority Engine` as the next core feature direction after Overview stabilization
 
 ### Audit Next
@@ -105,10 +110,9 @@ These are strong next candidates once the `Critical` section is clear.
 
 ### Build Next
 
+- [ ] verify the central-bank `N/A` issue is truly solved after the MT5 bridge lookahead/input change
 - [ ] improve the Strength Meter beyond the current `60/40` weighting approach
 - [ ] investigate EA and MT5 bridge parameters such as lookahead days, before days, and max event counts to improve central-bank derivation coverage
-- [ ] add sorting options inside the pair selector popover such as volatility, alphabetical, or favorites-first
-- [ ] decide and build the minimum useful specialist-summary set that belongs in Overview
 
 ### Decide Next
 
@@ -382,4 +386,3 @@ These are worth thinking about, but they are not direct action items until promo
 - fully unified visual language across all tabs
 - final Strength Meter methodology beyond the current 60/40 model
 - final answer on whether Overview should summarize one pair or multiple pairs
-- resolved solution for all central-bank `N/A` cases
