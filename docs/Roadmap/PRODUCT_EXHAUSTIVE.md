@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Product Exhaustive
 
-**Last Updated:** 2026-04-04 18:30
+**Last Updated:** 2026-04-04 20:20
 
 This file is the exhaustive implementation inventory and active working control sheet.
 
@@ -77,6 +77,15 @@ These are broad categories only. They are not meant to be followed like rigid ph
 - [x] refresh the product brief with the recent Overview progress
 - [x] export live broker symbols into `docs/Reference/MT5_BROKER_SYMBOLS.md`
 
+### Economic Calendar
+
+- [x] make Overview event clicks open Economic Calendar with the relevant date range selected
+- [x] scroll the calendar to the target event and briefly highlight it
+- [x] add a centered event explainer panel in Economic Calendar
+- [x] add a dedicated event-knowledge source-of-truth for major macro releases
+- [x] keep a visible backlog section for niche event knowledge still to be added later
+- [x] fix the country picker so multi-country selection remains usable
+
 ### Build Safety
 
 - [x] keep creating checkpoints before and after risky major changes
@@ -91,7 +100,6 @@ These are the highest-value things to look at next.
 ### Build Next
 
 - [ ] decide whether `Overview` needs one final completion pass or is stable enough to stop touching for now
-- [ ] make Overview event clicks open Economic Calendar with the relevant date range already selected and the target event scrolled into view
 
 ### Decide Next
 
@@ -112,6 +120,7 @@ These are strong next candidates once the `Critical` section is clear.
 
 - [ ] verify the central-bank `N/A` issue is truly solved after the MT5 bridge lookahead/input change
 - [ ] improve the Strength Meter beyond the current `60/40` weighting approach
+- [ ] refine Event Reaction Engine toward execution-prep usefulness and add ATR-aware context where it genuinely improves interpretation
 - [ ] investigate EA and MT5 bridge parameters such as lookahead days, before days, and max event counts to improve central-bank derivation coverage
 
 ### Decide Next
@@ -119,6 +128,7 @@ These are strong next candidates once the `Critical` section is clear.
 - [ ] decide the minimum inputs for a future `Watchlist Priority Engine`
 - [ ] decide whether `Tradeability Window` should be part of pair attention or a separate concept
 - [ ] decide how much event-reaction output should shift toward execution preparation usefulness
+- [ ] decide how ATR should be used inside Event Reaction Engine without turning it into decorative data
 - [ ] decide whether cross-asset alignment should begin inside Overview or as a separate surface
 
 ### Audit Next
