@@ -1,13 +1,14 @@
 import * as React from "react";
 import { useEffect, useMemo, useState } from "react";
-import { Activity, ArrowRight, CalendarClock, ChevronDown, ChevronRight, CircleHelp, Layers, Monitor, Search, ShieldCheck, Star, Target, TrendingUp, Zap } from "lucide-react";
+import { Activity, ArrowRight, CalendarClock, ChevronDown, ChevronRight, ChevronUp, CircleHelp, Layers, Monitor, Search, Settings, ShieldCheck, Star, Target, TrendingUp, Zap } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { TERMINOLOGY } from "@/app/config/terminology";
-import { calculateAtr14Pips } from "@/app/lib/atr";
+import { calculateAtrPips, type AtrSmoothingMethod } from "@/app/lib/atr";
 import { fetchHistory } from "@/app/lib/bridge";
 import { formatCountdown, formatRelativeAge, formatUtcDateTime } from "@/app/lib/format";
 import {
+  getDominanceProfile,
   getEventRadarSummary,
   getEventSensitivity,
   getMacroBackdropVerdict,
@@ -20,6 +21,8 @@ import {
   getTrustInspectorSummary,
   sortOverviewPairs,
   type OverviewPairSortMode,
+  type SortDirection,
+  type DominanceProfile,
 } from "@/app/lib/overview";
 import { adaptDashboardCurrencies, deriveStrengthCurrencyRanks } from "@/app/lib/macroViews";
 import { resolveTrustState, type TrustState } from "@/app/lib/status";
@@ -44,10 +47,28 @@ interface ActionItem {
   detail: string;
 }
 
-type AtrByPair = Record<string, number | null | undefined>;
+type AtrByPair = Record<string, { d1: number | null; h1: number | null }>;
 type SpecialistCardId = "strength-meter" | "dashboard" | "event-quality";
+type ViewMode = "strategic" | "command";
+
+interface AtrConfig {
+  d1Period: number;
+  h1Period: number;
+  method: AtrSmoothingMethod;
+}
 
 const CHART_FAVORITES_KEY = "fyodor-main-chart-favorites";
+const OVERVIEW_VIEW_MODE_KEY = "fyodor-overview-view-mode";
+const OVERVIEW_ATR_CONFIG_KEY = "fyodor-overview-atr-config";
+
+const DEFAULT_ATR_CONFIG: AtrConfig = { d1Period: 14, h1Period: 14, method: "RMA" };
+
+const ATR_METHOD_DESCRIPTIONS: Record<AtrSmoothingMethod, string> = {
+  RMA: "Standard 'Smoothed' ATR used by TradingView. Filters out noise and prevents spikes from distorting the reading. (Recommended)",
+  SMA: "Simple average. Reacts slowly and treats every day in the period with equal importance.",
+  EMA: "Exponentially weighted. 'Fast' and highly reactive to recent volatility shifts.",
+  WMA: "Linearly weighted. A middle ground that prioritizes recent data without being as jumpy as EMA.",
+};
 
 function loadChartFavorites(): string[] {
   if (typeof window === "undefined") return [];
@@ -58,6 +79,22 @@ function loadChartFavorites(): string[] {
     return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
   } catch {
     return [];
+  }
+}
+
+function loadViewMode(): ViewMode {
+  if (typeof window === "undefined") return "command";
+  return (window.localStorage.getItem(OVERVIEW_VIEW_MODE_KEY) as ViewMode) || "command";
+}
+
+function loadAtrConfig(): AtrConfig {
+  if (typeof window === "undefined") return DEFAULT_ATR_CONFIG;
+  try {
+    const raw = window.localStorage.getItem(OVERVIEW_ATR_CONFIG_KEY);
+    if (!raw) return DEFAULT_ATR_CONFIG;
+    return { ...DEFAULT_ATR_CONFIG, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_ATR_CONFIG;
   }
 }
 
@@ -120,12 +157,16 @@ export function OverviewTab({
   onOpenCalendarEvent,
 }: OverviewTabProps) {
   const [atrByPair, setAtrByPair] = useState<AtrByPair>({});
+  const [atrConfig, setAtrConfig] = useState<AtrConfig>(() => loadAtrConfig());
+  const [showAtrSettings, setShowAtrSettings] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>(() => loadViewMode());
   const [showPipelineInspector, setShowPipelineInspector] = useState(false);
   const [showTrustInspector, setShowTrustInspector] = useState(false);
   const [showEventInspector, setShowEventInspector] = useState(false);
   const [showPairSelector, setShowPairSelector] = useState(false);
   const [pairSearchQuery, setPairSearchQuery] = useState("");
   const [pairSortMode, setPairSortMode] = useState<OverviewPairSortMode>("favorites");
+  const [pairSortDirection, setPairSortDirection] = useState<SortDirection>("desc");
   const [favoritePairs, setFavoritePairs] = useState<string[]>(() => loadChartFavorites());
   const [expandedSpecialistId, setExpandedSpecialistId] = useState<SpecialistCardId | null>(null);
 
@@ -137,6 +178,11 @@ export function OverviewTab({
     window.localStorage.setItem(CHART_FAVORITES_KEY, JSON.stringify(next));
     setFavoritePairs(next);
     window.dispatchEvent(new Event("storage"));
+  };
+
+  const switchViewMode = (mode: ViewMode) => {
+    setViewMode(mode);
+    window.localStorage.setItem(OVERVIEW_VIEW_MODE_KEY, mode);
   };
 
   const nowUnix = currentTime.getTime() / 1000;
@@ -152,8 +198,12 @@ export function OverviewTab({
   const pair = useMemo(() => getFxPairByName(reviewSymbol), [reviewSymbol]);
   const atrValue = atrByPair[reviewSymbol];
   const pairAttentionVerdict = useMemo(
-    () => getPairAttentionVerdict(reviewSymbol, trustState, macroVerdict, macroSummary, strengthSummary, eventSensitivity, atrValue),
-    [reviewSymbol, trustState, macroVerdict, macroSummary, strengthSummary, eventSensitivity, atrValue],
+    () => getPairAttentionVerdict(reviewSymbol, trustState, macroVerdict, macroSummary, strengthSummary, eventSensitivity, atrValue?.d1),
+    [reviewSymbol, trustState, macroVerdict, macroSummary, strengthSummary, eventSensitivity, atrValue?.d1],
+  );
+  const dominance = useMemo(
+    () => getDominanceProfile(reviewSymbol, macroVerdict, strengthSummary, eventSensitivity, atrValue?.d1, atrValue?.h1),
+    [reviewSymbol, macroVerdict, strengthSummary, eventSensitivity, atrValue?.d1, atrValue?.h1],
   );
   const actions = useMemo(
     () => getAttentionActions(trustState, reviewSymbol, eventSensitivity, macroSummary, strengthSummary),
@@ -183,8 +233,8 @@ export function OverviewTab({
     [events, nowUnix, pair?.base, pair?.quote],
   );
   const sortedPairs = useMemo(
-    () => sortOverviewPairs(FX_PAIRS, pairSearchQuery, pairSortMode, atrByPair, favoritePairs),
-    [pairSearchQuery, pairSortMode, atrByPair, favoritePairs],
+    () => sortOverviewPairs(FX_PAIRS, pairSearchQuery, pairSortMode, Object.fromEntries(Object.entries(atrByPair).map(([k, v]) => [k, v.d1])), favoritePairs, pairSortDirection),
+    [pairSearchQuery, pairSortMode, atrByPair, favoritePairs, pairSortDirection],
   );
 
   const baseSnap = snapshots.find((s) => s.currency === pair?.base);
@@ -202,10 +252,19 @@ export function OverviewTab({
       const entries = await Promise.all(
         FX_PAIRS.map(async (fxPair) => {
           try {
-            const candles = await fetchHistory(fxPair.name, "D1", 60);
-            return [fxPair.name, calculateAtr14Pips(candles, fxPair.name)] as const;
+            const [d1Candles, h1Candles] = await Promise.all([
+              fetchHistory(fxPair.name, "D1", 60),
+              fetchHistory(fxPair.name, "H1", 60),
+            ]);
+            return [
+              fxPair.name,
+              {
+                d1: calculateAtrPips(d1Candles, fxPair.name, atrConfig.d1Period, atrConfig.method),
+                h1: calculateAtrPips(h1Candles, fxPair.name, atrConfig.h1Period, atrConfig.method),
+              },
+            ] as const;
           } catch {
-            return [fxPair.name, null] as const;
+            return [fxPair.name, { d1: null, h1: null }] as const;
           }
         }),
       );
@@ -216,7 +275,7 @@ export function OverviewTab({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [atrConfig]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -233,7 +292,7 @@ export function OverviewTab({
   }, [showPairSelector]);
 
   return (
-    <section className="tab-panel overview-panel">
+    <section className={`tab-panel overview-panel is-view-${viewMode}`}>
       <div className="hub-container">
         {/* Left Column: Vitals & Action Plan */}
         <aside className="hub-column">
@@ -321,24 +380,96 @@ export function OverviewTab({
               </button>
             </div>
             <div className="hub-brief-vitals">
-              <div className="hub-brief-stat">
-                <label>{TERMINOLOGY.labels.volatility}</label>
-                <span>{atrValue ?? "--"} pips</span>
+              <div className="hub-view-toggle">
+                <button 
+                  className={viewMode === "strategic" ? "is-active" : ""} 
+                  onClick={() => switchViewMode("strategic")}
+                >
+                  STRATEGIC
+                </button>
+                <button 
+                  className={viewMode === "command" ? "is-active" : ""} 
+                  onClick={() => switchViewMode("command")}
+                >
+                  COMMAND
+                </button>
               </div>
               <div className="hub-brief-stat">
-                <label>{TERMINOLOGY.labels.bridge}</label>
-                <span style={{ color: isBridgeValid ? "#10b981" : "#ef4444" }}>{isBridgeValid ? "Live" : "Issue"}</span>
-              </div>
-              <div className="hub-brief-stat">
-                <label>{TERMINOLOGY.calendarTiming.sectionLabel}</label>
-                <span>{renderFeedLabel(feedStatus)}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px", position: "relative" }}>
+                  <label>VOL ({atrConfig.d1Period}D/{atrConfig.h1Period}H)</label>
+                  <button 
+                    className="hub-settings-trigger"
+                    onClick={() => setShowAtrSettings(!showAtrSettings)}
+                    aria-label="Edit ATR Settings"
+                  >
+                    <Settings size={12} />
+                  </button>
+                  {showAtrSettings && (
+                    <div className="hub-settings-popover hub-atr-popover-wide">
+                      <div className="hub-settings-popover-head">
+                        <strong>ATR INDICATOR</strong>
+                      </div>
+                      <div className="hub-settings-field">
+                        <label>SMOOTHING</label>
+                        <select
+                          value={atrConfig.method}
+                          onChange={(e) => {
+                            const next = { ...atrConfig, method: e.target.value as AtrSmoothingMethod };
+                            setAtrConfig(next);
+                            window.localStorage.setItem(OVERVIEW_ATR_CONFIG_KEY, JSON.stringify(next));
+                          }}
+                        >
+                          <option value="RMA">RMA (Smoothed)</option>
+                          <option value="SMA">SMA (Simple)</option>
+                          <option value="EMA">EMA (Exponential)</option>
+                          <option value="WMA">WMA (Weighted)</option>
+                        </select>
+                      </div>
+                      <div className="hub-method-intel">
+                        <strong>Method Intelligence:</strong>
+                        <p>{ATR_METHOD_DESCRIPTIONS[atrConfig.method]}</p>
+                      </div>
+                      <div className="hub-settings-field">
+                        <label>D1 PERIOD</label>
+                        <input 
+                          type="number" 
+                          min={1} 
+                          max={50}
+                          value={atrConfig.d1Period}
+                          onChange={(e) => {
+                            const next = { ...atrConfig, d1Period: parseInt(e.target.value) || 14 };
+                            setAtrConfig(next);
+                            window.localStorage.setItem(OVERVIEW_ATR_CONFIG_KEY, JSON.stringify(next));
+                          }}
+                        />
+                      </div>
+                      <div className="hub-settings-field">
+                        <label>H1 PERIOD</label>
+                        <input 
+                          type="number" 
+                          min={1} 
+                          max={50}
+                          value={atrConfig.h1Period}
+                          onChange={(e) => {
+                            const next = { ...atrConfig, h1Period: parseInt(e.target.value) || 14 };
+                            setAtrConfig(next);
+                            window.localStorage.setItem(OVERVIEW_ATR_CONFIG_KEY, JSON.stringify(next));
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <span>{atrValue?.d1 ?? "--"}/{atrValue?.h1 ?? "--"} PIPS</span>
               </div>
             </div>
           </header>
 
           <article className={`hub-verdict-banner is-${pairAttentionVerdict.tone}`}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: "0.75rem", fontWeight: 800, textTransform: "uppercase", opacity: 0.7, letterSpacing: "0.15em" }}>{TERMINOLOGY.pairAttention.sectionLabel}</div>
+              <div style={{ fontSize: "0.75rem", fontWeight: 800, textTransform: "uppercase", opacity: 0.7, letterSpacing: "0.15em" }}>
+                {dominance.winner.toUpperCase()}
+              </div>
               <div style={{ fontSize: "2.2rem", fontWeight: 900, lineHeight: 1, marginTop: "4px" }}>{pairAttentionVerdict.label}</div>
               <p style={{ fontSize: "1.1rem", marginTop: "12px", opacity: 0.9, lineHeight: 1.5, maxWidth: "540px" }}>
                 {pairAttentionVerdict.detail}
@@ -347,45 +478,75 @@ export function OverviewTab({
             <Target size={48} strokeWidth={2.5} opacity={0.2} />
           </article>
 
-          <div className="hub-matrix">
-            <div className="hub-matrix-cell">
-              <div className="hub-matrix-header">
-                <FlagIcon countryCode={baseSnap?.countryCode || ""} className="h-5 w-8" />
-                <span className="hub-matrix-currency">{pair?.base}</span>
+          {viewMode === "strategic" ? (
+            <div className="hub-dominance-pillars">
+              <div className="hub-pillar">
+                <label>MACRO PILLAR</label>
+                <div className={`hub-pillar-badge is-${dominance.pillars.macro.status}`}>
+                  {dominance.pillars.macro.label}
+                </div>
+                <span>{macroSummary.rateGap != null ? `Rate Gap ${macroSummary.rateGap > 0 ? "+" : ""}${macroSummary.rateGap.toFixed(2)}%` : "Unresolved"}</span>
               </div>
-              <div className="hub-matrix-stat">
-                <label>Strength Score</label>
-                <span style={{ fontSize: "1.1rem" }}>{baseRank?.score.toFixed(1) || "0.0"} pts</span>
+              <div className="hub-pillar">
+                <label>STRENGTH PILLAR</label>
+                <div className={`hub-pillar-badge is-${dominance.pillars.strength.status}`}>
+                  {dominance.pillars.strength.label}
+                </div>
+                <span>{strengthSummary.scoreGap != null ? `Gap ${strengthSummary.scoreGap.toFixed(1)} pts` : "Unresolved"}</span>
               </div>
-              <div className="hub-matrix-stat">
-                <label>Policy Rate</label>
-                <span>{baseSnap?.currentPolicyRate || "---"}</span>
-              </div>
-              <div className="hub-matrix-stat">
-                <label>Inflation (CPI)</label>
-                <span>{baseSnap?.currentInflationRate || "---"}</span>
-              </div>
-            </div>
-            <div className="hub-matrix-divider" />
-            <div className="hub-matrix-cell">
-              <div className="hub-matrix-header" style={{ flexDirection: "row-reverse" }}>
-                <FlagIcon countryCode={quoteSnap?.countryCode || ""} className="h-5 w-8" />
-                <span className="hub-matrix-currency">{pair?.quote}</span>
-              </div>
-              <div className="hub-matrix-stat">
-                <label>Strength Score</label>
-                <span style={{ fontSize: "1.1rem" }}>{quoteRank?.score.toFixed(1) || "0.0"} pts</span>
-              </div>
-              <div className="hub-matrix-stat">
-                <label>Policy Rate</label>
-                <span>{quoteSnap?.currentPolicyRate || "---"}</span>
-              </div>
-              <div className="hub-matrix-stat">
-                <label>Inflation (CPI)</label>
-                <span>{quoteSnap?.currentInflationRate || "---"}</span>
+              <div className="hub-pillar">
+                <label>CONTEXT PILLAR</label>
+                <div className={`hub-pillar-badge is-${dominance.pillars.context.status}`}>
+                  {dominance.pillars.context.label}
+                </div>
+                <span>{eventSensitivity.label} horizon</span>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="hub-matrix">
+              <div className="hub-matrix-cell">
+                <div className="hub-matrix-header">
+                  <FlagIcon countryCode={baseSnap?.countryCode || ""} className="h-5 w-8" />
+                  <span className="hub-matrix-currency">{pair?.base}</span>
+                </div>
+                <div className="hub-matrix-stat">
+                  <label>Strength Score</label>
+                  <span style={{ fontSize: "1.1rem" }}>{baseRank?.score.toFixed(1) || "0.0"} pts</span>
+                </div>
+                <div className="hub-matrix-stat">
+                  <label>Policy Rate</label>
+                  <span>{baseSnap?.currentPolicyRate || "---"}</span>
+                </div>
+                <div className="hub-matrix-stat">
+                  <label>Inflation (CPI)</label>
+                  <span>{baseSnap?.currentInflationRate || "---"}</span>
+                </div>
+              </div>
+              <div className="hub-matrix-divider">
+                <div className={`hub-dominance-arrow is-${dominance.tone}`}>
+                  {dominance.winner.includes(pair?.base || "") ? <ChevronRight size={20} style={{ transform: "rotate(180deg)" }} /> : dominance.winner.includes(pair?.quote || "") ? <ChevronRight size={20} /> : <div className="hub-conflict-dot" />}
+                </div>
+              </div>
+              <div className="hub-matrix-cell">
+                <div className="hub-matrix-header" style={{ flexDirection: "row-reverse" }}>
+                  <FlagIcon countryCode={quoteSnap?.countryCode || ""} className="h-5 w-8" />
+                  <span className="hub-matrix-currency">{pair?.quote}</span>
+                </div>
+                <div className="hub-matrix-stat">
+                  <label>Strength Score</label>
+                  <span style={{ fontSize: "1.1rem" }}>{quoteRank?.score.toFixed(1) || "0.0"} pts</span>
+                </div>
+                <div className="hub-matrix-stat">
+                  <label>Policy Rate</label>
+                  <span>{quoteSnap?.currentPolicyRate || "---"}</span>
+                </div>
+                <div className="hub-matrix-stat">
+                  <label>Inflation (CPI)</label>
+                  <span>{quoteSnap?.currentInflationRate || "---"}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="hub-macro-box">
             <div className="hub-macro-title">
@@ -791,9 +952,17 @@ export function OverviewTab({
               <button
                 type="button"
                 className={`hub-sort-chip ${pairSortMode === "volatility" ? "is-active" : ""}`}
-                onClick={() => setPairSortMode("volatility")}
+                onClick={() => {
+                  if (pairSortMode === "volatility") {
+                    setPairSortDirection(pairSortDirection === "desc" ? "asc" : "desc");
+                  } else {
+                    setPairSortMode("volatility");
+                    setPairSortDirection("desc");
+                  }
+                }}
+                style={{ display: "flex", alignItems: "center", gap: "4px" }}
               >
-                Volatility
+                Volatility {pairSortMode === "volatility" && (pairSortDirection === "desc" ? <ChevronDown size={12} /> : <ChevronUp size={12} />)}
               </button>
               <button
                 type="button"
@@ -836,8 +1005,8 @@ export function OverviewTab({
                       </div>
                     </div>
                     <div className="hub-selector-item-meta">
-                      <span className="hub-selector-item-atr">{atr ?? "--"} pips</span>
-                      <span className="hub-selector-item-label">14D VOLATILITY</span>
+                      <span className="hub-selector-item-atr">{atr?.d1 ?? "--"} PIPS</span>
+                      <span className="hub-selector-item-label">{atrConfig.d1Period}D VOLATILITY</span>
                     </div>
                   </button>
                 );

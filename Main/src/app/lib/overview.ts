@@ -59,6 +59,7 @@ export interface OverviewPipelineStatus {
 }
 
 export type OverviewPairSortMode = "favorites" | "volatility" | "alphabetical";
+export type SortDirection = "asc" | "desc";
 
 export interface EventRadarSummary {
   relevantCount: number;
@@ -343,6 +344,68 @@ export function getMacroBackdropVerdict(
   };
 }
 
+export interface PillarAnalysis {
+  macro: { label: string; status: "good" | "warning" | "danger" };
+  strength: { label: string; status: "good" | "warning" | "danger" };
+  context: { label: string; status: "good" | "warning" | "danger" };
+}
+
+export interface DominanceProfile {
+  winner: string | "Conflicted" | "Unresolved";
+  tone: TrustTone;
+  pillars: PillarAnalysis;
+}
+
+export function getDominanceProfile(
+  reviewSymbol: string,
+  macroVerdict: VerdictCard,
+  strengthSummary: StrengthSummary,
+  eventSensitivity: EventSensitivitySummary,
+  atr14D: number | null | undefined,
+  atr14H: number | null | undefined,
+): DominanceProfile {
+  const [base, quote] = getPairCurrencies(reviewSymbol);
+  
+  // 1. Winner Determination
+  let winner: string | "Conflicted" | "Unresolved" = "Unresolved";
+  let tone: TrustTone = "warning";
+
+  const macroFavors = macroVerdict.tone === "good" ? macroVerdict.detail.includes(base) ? base : quote : null;
+  const strengthFavors = strengthSummary.scoreGap != null ? strengthSummary.strongerCurrency : null;
+
+  if (macroVerdict.label === "Unclear" || strengthSummary.unresolved) {
+    winner = "Unresolved";
+    tone = "warning";
+  } else if (macroFavors === strengthFavors && macroFavors !== null) {
+    winner = `${macroFavors} Dominant`;
+    tone = "good";
+  } else if (macroFavors !== strengthFavors && macroFavors !== null && strengthFavors !== null) {
+    winner = "Conflicted";
+    tone = "danger";
+  } else {
+    winner = strengthFavors ? `${strengthFavors} Advantage` : "Conflicted";
+    tone = "warning";
+  }
+
+  // 2. Pillars Analysis
+  const pillars: PillarAnalysis = {
+    macro: {
+      label: macroVerdict.label === "Supportive" ? "Aligned" : macroVerdict.label === "Hostile" ? "Opposed" : "Unclear",
+      status: macroVerdict.tone,
+    },
+    strength: {
+      label: strengthSummary.decisive ? "Decisive" : "Modest",
+      status: strengthSummary.decisive ? "good" : "warning",
+    },
+    context: {
+      label: eventSensitivity.label === "Clear" ? (atr14D && atr14D > 50 ? "Ready" : "Quiet") : "Risk-On",
+      status: eventSensitivity.tone,
+    },
+  };
+
+  return { winner, tone, pillars };
+}
+
 export function getPairAttentionVerdict(
   reviewSymbol: string,
   trustState: TrustState,
@@ -596,6 +659,7 @@ export function sortOverviewPairs(
   sortMode: OverviewPairSortMode,
   atrByPair: Record<string, number | null | undefined>,
   favorites: string[],
+  direction: SortDirection = "desc",
 ): FxPairDefinition[] {
   const query = searchQuery.trim().toLowerCase();
   const favoriteSet = new Set(favorites);
@@ -618,7 +682,9 @@ export function sortOverviewPairs(
       const leftResolved = typeof leftAtr === "number";
       const rightResolved = typeof rightAtr === "number";
       if (leftResolved !== rightResolved) return leftResolved ? -1 : 1;
-      if (leftResolved && rightResolved && leftAtr !== rightAtr) return (rightAtr ?? 0) - (leftAtr ?? 0);
+      if (leftResolved && rightResolved && leftAtr !== rightAtr) {
+        return direction === "desc" ? (rightAtr ?? 0) - (leftAtr ?? 0) : (leftAtr ?? 0) - (rightAtr ?? 0);
+      }
       return left.name.localeCompare(right.name);
     }
 
