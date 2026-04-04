@@ -1,13 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
+  getEventRadarSummary,
   getEventSensitivity,
   getMacroBackdropVerdict,
   getMacroSummary,
   getOverviewPipelineStatus,
+  getOverviewSpecialistSummaries,
   getPairAttentionVerdict,
   getStrengthDifferentialSummary,
   getTopEvents,
+  getTrustInspectorSummary,
+  sortOverviewPairs,
 } from "@/app/lib/overview";
+import { FX_PAIRS } from "@/app/config/fxPairs";
 import { resolveTrustState } from "@/app/lib/status";
 import type { BridgeHealth, CalendarEvent, CentralBankSnapshot, MarketStatusResponse } from "@/app/types";
 
@@ -82,16 +87,33 @@ function event(id: number, currency: string, offsetSeconds: number): CalendarEve
 describe("overview logic", () => {
   it("prioritizes pair-relevant events in the top events list", () => {
     const rows = getTopEvents(
-      [event(1, "GBP", 600), event(2, "USD", 1_200), event(3, "EUR", 1_800), event(4, "GBP", 300)],
+      [event(1, "GBP", 600), event(2, "USD", 1_200), event(3, "EUR", 1_800), event(4, "GBP", 300), event(5, "USD", 2_400)],
       "EURUSD",
       now,
     );
 
-    expect(rows).toHaveLength(3);
+    expect(rows).toHaveLength(4);
     expect(rows[0].currency).toBe("USD");
     expect(rows[0].relevant).toBe(true);
+    expect(rows[0].relevance).toBe("quote");
     expect(rows[1].currency).toBe("EUR");
     expect(rows[1].relevant).toBe(true);
+    expect(rows[1].relevance).toBe("base");
+    expect(rows[2].currency).toBe("USD");
+    expect(rows[3].currency).toBe("GBP");
+    expect(rows[3].relevance).toBe("context");
+  });
+
+  it("summarizes the visible radar mix and nearest risk", () => {
+    const rows = getTopEvents([event(1, "USD", 600), event(2, "GBP", 1_200), event(3, "EUR", 1_800)], "EURUSD", now);
+    const sensitivity = getEventSensitivity([event(1, "USD", 600)], "EURUSD", now);
+    const summary = getEventRadarSummary("EURUSD", rows, sensitivity);
+
+    expect(summary).toEqual({
+      relevantCount: 2,
+      contextCount: 1,
+      nextRiskDetail: "USD risk is the nearest timing check for EURUSD.",
+    });
   });
 
   it("marks near relevant events as high-risk soon", () => {
@@ -180,5 +202,57 @@ describe("overview logic", () => {
     expect(pipeline.tone).toBe("danger");
     expect(pipeline.label).toBe("Pipeline degraded");
     expect(pipeline.percent).toBeLessThan(70);
+  });
+
+  it("builds trust inspector details from the shared trust state", () => {
+    const trustState = resolveTrustState(liveHealth, "stale", marketStatus("open"));
+    const inspector = getTrustInspectorSummary(trustState, "stale", marketStatus("open"));
+
+    expect(inspector.title).toContain("Limited");
+    expect(inspector.supportingInputs).toContain("MT5 terminal connection is available.");
+    expect(inspector.limitingInputs).toContain("Calendar timing is delayed.");
+    expect(inspector.affects).toHaveLength(3);
+  });
+
+  it("sorts pairs by volatility with unresolved ATR values last", () => {
+    const pairs = FX_PAIRS.slice(0, 4);
+    const sorted = sortOverviewPairs(
+      pairs,
+      "",
+      "volatility",
+      {
+        EURUSD: 55,
+        USDJPY: null,
+        GBPUSD: 72,
+        USDCHF: 41,
+      },
+      [],
+    );
+
+    expect(sorted.map((pair) => pair.name)).toEqual(["GBPUSD", "EURUSD", "USDCHF", "USDJPY"]);
+  });
+
+  it("sorts pairs alphabetically after search filtering", () => {
+    const sorted = sortOverviewPairs(FX_PAIRS.slice(0, 6), "usd", "alphabetical", {}, []);
+    expect(sorted.map((pair) => pair.name)).toEqual(["AUDUSD", "EURUSD", "GBPUSD", "USDCAD", "USDCHF", "USDJPY"]);
+  });
+
+  it("moves favorites to the top of the selector list", () => {
+    const sorted = sortOverviewPairs(FX_PAIRS.slice(0, 4), "", "favorites", {}, ["USDJPY", "GBPUSD"]);
+    expect(sorted.map((pair) => pair.name)).toEqual(["GBPUSD", "USDJPY", "EURUSD", "USDCHF"]);
+  });
+
+  it("builds compact specialist summaries for overview", () => {
+    const summaries = getOverviewSpecialistSummaries(
+      "EURUSD",
+      [snapshot("EUR", "4.00", "3.00"), snapshot("USD", "2.00", "1.00"), snapshot("GBP", "3.00", "2.00")],
+      [event(1, "USD", 3_600)],
+      now,
+    );
+
+    expect(summaries).toHaveLength(3);
+    expect(summaries[0].id).toBe("strength-meter");
+    expect(summaries[1].id).toBe("dashboard");
+    expect(summaries[2].id).toBe("event-quality");
   });
 });

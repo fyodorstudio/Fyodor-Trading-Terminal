@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, ArrowRight, CalendarClock, Check, Info, ShieldCheck, Target, TrendingUp, Monitor, Zap, Layers, CircleHelp, Search, ChevronDown } from "lucide-react";
+import { ArrowRight, CalendarClock, ChevronDown, ChevronRight, CircleHelp, Layers, Monitor, Search, Target, TrendingUp, Zap } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { TERMINOLOGY } from "@/app/config/terminology";
@@ -7,16 +7,21 @@ import { calculateAtr14Pips } from "@/app/lib/atr";
 import { fetchHistory } from "@/app/lib/bridge";
 import { formatCountdown, formatRelativeAge, formatUtcDateTime } from "@/app/lib/format";
 import {
+  getEventRadarSummary,
   getEventSensitivity,
   getMacroBackdropVerdict,
   getMacroSummary,
   getOverviewPipelineStatus,
+  getOverviewSpecialistSummaries,
   getPairAttentionVerdict,
   getStrengthDifferentialSummary,
   getTopEvents,
+  getTrustInspectorSummary,
+  sortOverviewPairs,
+  type OverviewPairSortMode,
 } from "@/app/lib/overview";
 import { adaptDashboardCurrencies, deriveStrengthCurrencyRanks } from "@/app/lib/macroViews";
-import { resolveTrustState, type TrustState, type TrustTone } from "@/app/lib/status";
+import { resolveTrustState, type TrustState } from "@/app/lib/status";
 import type { BridgeHealth, BridgeStatus, CalendarEvent, CentralBankSnapshot, MarketStatusResponse, TabId } from "@/app/types";
 
 interface OverviewTabProps {
@@ -38,6 +43,21 @@ interface ActionItem {
 }
 
 type AtrByPair = Record<string, number | null | undefined>;
+type SpecialistCardId = "strength-meter" | "dashboard" | "event-quality";
+
+const CHART_FAVORITES_KEY = "fyodor-main-chart-favorites";
+
+function loadChartFavorites(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(CHART_FAVORITES_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as unknown;
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 function getAttentionActions(
   trustState: TrustState,
@@ -98,14 +118,16 @@ export function OverviewTab({
 }: OverviewTabProps) {
   const [atrByPair, setAtrByPair] = useState<AtrByPair>({});
   const [showPipelineInspector, setShowPipelineInspector] = useState(false);
+  const [showTrustInspector, setShowTrustInspector] = useState(false);
   const [showPairSelector, setShowPairSelector] = useState(false);
   const [pairSearchQuery, setPairSearchQuery] = useState("");
-  
-  const filteredPairs = useMemo(() => {
-    if (!pairSearchQuery) return FX_PAIRS;
-    const query = pairSearchQuery.toLowerCase();
-    return FX_PAIRS.filter((p) => p.name.toLowerCase().includes(query));
-  }, [pairSearchQuery]);
+  const [pairSortMode, setPairSortMode] = useState<OverviewPairSortMode>("favorites");
+  const [favoritePairs, setFavoritePairs] = useState<string[]>(() => loadChartFavorites());
+  const [expandedSpecialists, setExpandedSpecialists] = useState<Record<SpecialistCardId, boolean>>({
+    "strength-meter": false,
+    dashboard: false,
+    "event-quality": false,
+  });
 
   const nowUnix = currentTime.getTime() / 1000;
   const trustState = useMemo(() => resolveTrustState(health, feedStatus, marketStatus), [health, feedStatus, marketStatus]);
@@ -130,6 +152,22 @@ export function OverviewTab({
   const pipelineStatus = useMemo(
     () => getOverviewPipelineStatus(trustState, feedStatus, marketStatus, resolvedBanks),
     [trustState, feedStatus, marketStatus, resolvedBanks],
+  );
+  const trustInspector = useMemo(
+    () => getTrustInspectorSummary(trustState, feedStatus, marketStatus),
+    [trustState, feedStatus, marketStatus],
+  );
+  const radarSummary = useMemo(
+    () => getEventRadarSummary(reviewSymbol, topEvents, eventSensitivity),
+    [reviewSymbol, topEvents, eventSensitivity],
+  );
+  const specialistSummaries = useMemo(
+    () => getOverviewSpecialistSummaries(reviewSymbol, snapshots, events, nowUnix),
+    [reviewSymbol, snapshots, events, nowUnix],
+  );
+  const sortedPairs = useMemo(
+    () => sortOverviewPairs(FX_PAIRS, pairSearchQuery, pairSortMode, atrByPair, favoritePairs),
+    [pairSearchQuery, pairSortMode, atrByPair, favoritePairs],
   );
 
   const pair = getFxPairByName(reviewSymbol);
@@ -164,6 +202,20 @@ export function OverviewTab({
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const syncFavorites = () => setFavoritePairs(loadChartFavorites());
+    syncFavorites();
+    window.addEventListener("storage", syncFavorites);
+    return () => window.removeEventListener("storage", syncFavorites);
+  }, []);
+
+  useEffect(() => {
+    if (showPairSelector) {
+      setFavoritePairs(loadChartFavorites());
+    }
+  }, [showPairSelector]);
+
   return (
     <section className="tab-panel overview-panel">
       <div className="hub-container">
@@ -173,13 +225,26 @@ export function OverviewTab({
             <header className="hub-card-header">
               <Monitor size={14} />
               <h3>{TERMINOLOGY.trustState.sectionLabel}</h3>
+              <button
+                type="button"
+                className="hub-inline-help"
+                aria-label="Explain trust state"
+                onClick={() => setShowTrustInspector(true)}
+              >
+                <CircleHelp size={14} />
+              </button>
             </header>
             <div className="hub-vitals-box">
               <div className="hub-vital-row">
                 <label>{TERMINOLOGY.trustState.sectionLabel}</label>
-                <span style={{ color: trustState.tone === "good" ? "#10b981" : trustState.tone === "danger" ? "#ef4444" : "#f59e0b" }}>
+                <button
+                  type="button"
+                  className="hub-vital-button"
+                  onClick={() => setShowTrustInspector(true)}
+                  style={{ color: trustState.tone === "good" ? "#10b981" : trustState.tone === "danger" ? "#ef4444" : "#f59e0b" }}
+                >
                   {trustState.verdictLabel}
-                </span>
+                </button>
               </div>
               <div className="hub-vital-row">
                 <label>Bridge</label>
@@ -346,11 +411,11 @@ export function OverviewTab({
                     >
                       <div className="hub-timeline-content">
                         <span className="hub-timeline-title">{event.title}</span>
-                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                          <span className="hub-timeline-meta">{event.currency} | {formatUtcDateTime(event.time)}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                        <span className="hub-timeline-meta">{event.currency} | {formatUtcDateTime(event.time)}</span>
                           {isBase && <span className="radar-relevance-tag radar-relevance-base">Base Impact</span>}
                           {isQuote && <span className="radar-relevance-tag radar-relevance-quote">Quote Impact</span>}
-                          {!isBase && !isQuote && <span className="radar-relevance-tag radar-relevance-watchlist">Watchlist</span>}
+                          {!isBase && !isQuote && <span className="radar-relevance-tag radar-relevance-context">Broader Context</span>}
                         </div>
                       </div>
                       <span className="hub-timeline-time">{formatCountdown(event.time, currentTime.getTime())}</span>
@@ -363,6 +428,12 @@ export function OverviewTab({
                 </div>
               )}
             </div>
+            {topEvents.length > 0 ? (
+              <div className="hub-radar-summary">
+                <span>{radarSummary.relevantCount} pair-relevant, {radarSummary.contextCount} broader context</span>
+                <strong>{radarSummary.nextRiskDetail}</strong>
+              </div>
+            ) : null}
           </section>
 
           <section className="hub-status-bar">
@@ -409,13 +480,126 @@ export function OverviewTab({
         </aside>
       </div>
 
+      <section className="hub-specialists">
+        <div className="hub-specialists-head">
+          <div>
+            <h3>Specialist Summaries</h3>
+            <p>Optional deeper context from the existing specialist tabs without leaving Overview.</p>
+          </div>
+        </div>
+        <div className="hub-specialists-list">
+          {specialistSummaries.map((card) => {
+            const isExpanded = expandedSpecialists[card.id];
+            return (
+              <section key={card.id} className="hub-specialist-card">
+                <button
+                  type="button"
+                  className="hub-specialist-toggle"
+                  onClick={() =>
+                    setExpandedSpecialists((current) => ({
+                      ...current,
+                      [card.id]: !current[card.id],
+                    }))
+                  }
+                >
+                  <div className="hub-specialist-copy">
+                    <strong>{card.title}</strong>
+                    <span>{card.summary}</span>
+                  </div>
+                  {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+                </button>
+                {isExpanded ? (
+                  <div className="hub-specialist-body">
+                    <ul>
+                      {card.metrics.map((metric) => (
+                        <li key={metric}>{metric}</li>
+                      ))}
+                    </ul>
+                    <button type="button" className="hub-specialist-link" onClick={() => onNavigate(card.tab)}>
+                      Open {card.title}
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
+                ) : null}
+              </section>
+            );
+          })}
+        </div>
+      </section>
+
+      {showTrustInspector && (
+        <div className="hub-inspector-overlay" onClick={() => setShowTrustInspector(false)}>
+          <div
+            className="hub-inspector-panel hub-detail-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Trust state details"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="hub-inspector-top">
+              <div>
+                <div className="hub-inspector-kicker">{TERMINOLOGY.trustState.sectionLabel}</div>
+                <h3>{trustState.verdictLabel}</h3>
+              </div>
+              <button
+                type="button"
+                className="hub-inspector-close"
+                onClick={() => setShowTrustInspector(false)}
+                aria-label="Close trust state details"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="hub-detail-summary">
+              <strong>{trustInspector.title}</strong>
+              <p>{trustState.detail}</p>
+            </div>
+
+            <div className="hub-inspector-grid">
+              <section className="hub-inspector-card">
+                <span>What this means</span>
+                <p>{TERMINOLOGY.trustState.states[trustState.verdict].detail}</p>
+              </section>
+
+              <section className="hub-inspector-card">
+                <span>Current trust-supporting inputs</span>
+                <ul>
+                  {trustInspector.supportingInputs.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+
+              <section className="hub-inspector-card">
+                <span>Current trust-limiting inputs</span>
+                <ul>
+                  {trustInspector.limitingInputs.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+
+              <section className="hub-inspector-card">
+                <span>What this affects</span>
+                <ul>
+                  {trustInspector.affects.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showPipelineInspector && (
         <div className="hub-inspector-overlay" onClick={() => setShowPipelineInspector(false)}>
           <div
             className="hub-inspector-panel"
             role="dialog"
             aria-modal="true"
-            aria-label="Differential pipeline status details"
+            aria-label="Overview confidence details"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="hub-inspector-top">
@@ -521,10 +705,34 @@ export function OverviewTab({
                 onChange={(e) => setPairSearchQuery(e.target.value)}
               />
             </div>
+            <div className="hub-selector-sortbar">
+              <button
+                type="button"
+                className={`hub-sort-chip ${pairSortMode === "favorites" ? "is-active" : ""}`}
+                onClick={() => setPairSortMode("favorites")}
+              >
+                Favorites First
+              </button>
+              <button
+                type="button"
+                className={`hub-sort-chip ${pairSortMode === "volatility" ? "is-active" : ""}`}
+                onClick={() => setPairSortMode("volatility")}
+              >
+                Volatility
+              </button>
+              <button
+                type="button"
+                className={`hub-sort-chip ${pairSortMode === "alphabetical" ? "is-active" : ""}`}
+                onClick={() => setPairSortMode("alphabetical")}
+              >
+                A-Z
+              </button>
+            </div>
             <div className="hub-selector-list">
-              {filteredPairs.map((p) => {
+              {sortedPairs.map((p) => {
                 const isSelected = p.name === reviewSymbol;
                 const atr = atrByPair[p.name];
+                const isFavorite = favoritePairs.includes(p.name);
                 return (
                   <button 
                     key={p.name}
@@ -540,7 +748,10 @@ export function OverviewTab({
                         <FlagIcon countryCode={snapshots.find(s => s.currency === p.base)?.countryCode || ""} className="h-4 w-6" />
                         <FlagIcon countryCode={snapshots.find(s => s.currency === p.quote)?.countryCode || ""} className="h-4 w-6" />
                       </div>
-                      <span className="hub-selector-item-name">{p.name}</span>
+                      <div className="hub-selector-item-copy">
+                        <span className="hub-selector-item-name">{p.name}</span>
+                        {isFavorite ? <span className="hub-selector-item-badge">Favorite</span> : null}
+                      </div>
                     </div>
                     <div className="hub-selector-item-meta">
                       <span className="hub-selector-item-atr">{atr ?? "--"} pips</span>
@@ -549,7 +760,7 @@ export function OverviewTab({
                   </button>
                 );
               })}
-              {filteredPairs.length === 0 && (
+              {sortedPairs.length === 0 && (
                 <div style={{ padding: "24px", textAlign: "center", color: "#94a3b8", fontSize: "0.9rem" }}>
                   No pairs found matching "{pairSearchQuery}"
                 </div>

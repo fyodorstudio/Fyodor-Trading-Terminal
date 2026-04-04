@@ -1,11 +1,13 @@
 import { getFxPairByName } from "@/app/config/fxPairs";
+import { deriveEventQualitySummary } from "@/app/lib/eventQuality";
 import { adaptDashboardCurrencies, deriveStrengthCurrencyRanks } from "@/app/lib/macroViews";
 import { parseNumericValue } from "@/app/lib/format";
-import type { BridgeStatus, CalendarEvent, CentralBankSnapshot, MarketStatusResponse } from "@/app/types";
+import type { BridgeStatus, CalendarEvent, CentralBankSnapshot, FxPairDefinition, MarketStatusResponse, TabId } from "@/app/types";
 import type { TrustState, TrustTone } from "@/app/lib/status";
 
 export interface OverviewEvent extends CalendarEvent {
   relevant: boolean;
+  relevance: "base" | "quote" | "context";
 }
 
 export interface MacroSummary {
@@ -56,6 +58,29 @@ export interface OverviewPipelineStatus {
   }>;
 }
 
+export type OverviewPairSortMode = "favorites" | "volatility" | "alphabetical";
+
+export interface EventRadarSummary {
+  relevantCount: number;
+  contextCount: number;
+  nextRiskDetail: string;
+}
+
+export interface TrustInspectorSummary {
+  title: string;
+  supportingInputs: string[];
+  limitingInputs: string[];
+  affects: string[];
+}
+
+export interface SpecialistSummaryCard {
+  id: "strength-meter" | "dashboard" | "event-quality";
+  title: string;
+  tab: TabId;
+  summary: string;
+  metrics: string[];
+}
+
 function formatGap(value: number | null): string {
   if (value == null) return "Unresolved";
   return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
@@ -80,11 +105,40 @@ export function getTopEvents(
       if (aRelevant !== bRelevant) return aRelevant ? -1 : 1;
       return a.time - b.time;
     })
-    .slice(0, 3)
+    .slice(0, 4)
     .map((event) => ({
       ...event,
       relevant: symbolCurrencies.includes(event.currency),
+      relevance:
+        event.currency === symbolCurrencies[0]
+          ? "base"
+          : event.currency === symbolCurrencies[1]
+            ? "quote"
+            : "context",
     }));
+}
+
+export function getEventRadarSummary(
+  reviewSymbol: string,
+  topEvents: OverviewEvent[],
+  eventSensitivity: EventSensitivitySummary,
+): EventRadarSummary {
+  const relevantCount = topEvents.filter((event) => event.relevant).length;
+  const contextCount = topEvents.length - relevantCount;
+
+  if (eventSensitivity.nextRelevantEvent) {
+    return {
+      relevantCount,
+      contextCount,
+      nextRiskDetail: `${eventSensitivity.nextRelevantEvent.currency} risk is the nearest timing check for ${reviewSymbol}.`,
+    };
+  }
+
+  return {
+    relevantCount,
+    contextCount,
+    nextRiskDetail: `No immediate pair-relevant high-impact timing risk is active for ${reviewSymbol}.`,
+  };
 }
 
 export function getMacroSummary(reviewSymbol: string, snapshots: CentralBankSnapshot[]): MacroSummary {
@@ -481,4 +535,156 @@ export function getOverviewPipelineStatus(
     explanation,
     weights,
   };
+}
+
+export function getTrustInspectorSummary(
+  trustState: TrustState,
+  feedStatus: BridgeStatus,
+  marketStatus: MarketStatusResponse | null,
+): TrustInspectorSummary {
+  const supportingInputs: string[] = [];
+  const limitingInputs: string[] = [];
+
+  if (trustState.verdict !== "no") {
+    supportingInputs.push("MT5 terminal connection is available.");
+    supportingInputs.push("Bridge health is currently usable.");
+  }
+
+  if (feedStatus === "live") {
+    supportingInputs.push("Calendar timing is live.");
+  } else {
+    limitingInputs.push(
+      feedStatus === "stale"
+        ? "Calendar timing is delayed."
+        : feedStatus === "loading"
+          ? "Calendar timing is still syncing."
+          : "Calendar timing is unavailable.",
+    );
+  }
+
+  if (!marketStatus || !marketStatus.terminal_connected) {
+    limitingInputs.push("Selected symbol context is unavailable.");
+  } else if (marketStatus.session_state === "unavailable") {
+    limitingInputs.push("Selected symbol session is unresolved.");
+  } else {
+    supportingInputs.push(`Selected symbol context is ${marketStatus.session_state}.`);
+  }
+
+  if (supportingInputs.length === 0) {
+    supportingInputs.push("No trust-supporting inputs are fully confirmed right now.");
+  }
+
+  if (limitingInputs.length === 0) {
+    limitingInputs.push("No trust-limiting inputs are active right now.");
+  }
+
+  return {
+    title: trustState.title,
+    supportingInputs,
+    limitingInputs,
+    affects: [
+      "Whether Overview verdicts should be treated as usable for normal review.",
+      "How confidently event timing should influence pair attention.",
+      "How much weight to place on macro and pair-routing guidance.",
+    ],
+  };
+}
+
+export function sortOverviewPairs(
+  pairs: FxPairDefinition[],
+  searchQuery: string,
+  sortMode: OverviewPairSortMode,
+  atrByPair: Record<string, number | null | undefined>,
+  favorites: string[],
+): FxPairDefinition[] {
+  const query = searchQuery.trim().toLowerCase();
+  const favoriteSet = new Set(favorites);
+
+  const filtered = query
+    ? pairs.filter((pair) => pair.name.toLowerCase().includes(query))
+    : [...pairs];
+
+  return filtered.sort((left, right) => {
+    if (sortMode === "favorites") {
+      const leftFavorite = favoriteSet.has(left.name);
+      const rightFavorite = favoriteSet.has(right.name);
+      if (leftFavorite !== rightFavorite) return leftFavorite ? -1 : 1;
+      return left.name.localeCompare(right.name);
+    }
+
+    if (sortMode === "volatility") {
+      const leftAtr = atrByPair[left.name];
+      const rightAtr = atrByPair[right.name];
+      const leftResolved = typeof leftAtr === "number";
+      const rightResolved = typeof rightAtr === "number";
+      if (leftResolved !== rightResolved) return leftResolved ? -1 : 1;
+      if (leftResolved && rightResolved && leftAtr !== rightAtr) return (rightAtr ?? 0) - (leftAtr ?? 0);
+      return left.name.localeCompare(right.name);
+    }
+
+    return left.name.localeCompare(right.name);
+  });
+}
+
+export function getOverviewSpecialistSummaries(
+  reviewSymbol: string,
+  snapshots: CentralBankSnapshot[],
+  events: CalendarEvent[],
+  nowUnix: number,
+): SpecialistSummaryCard[] {
+  const pair = getFxPairByName(reviewSymbol);
+  const macroSummary = getMacroSummary(reviewSymbol, snapshots);
+  const strengthSummary = getStrengthDifferentialSummary(reviewSymbol, snapshots);
+
+  const eventQuality = pair
+    ? deriveEventQualitySummary({
+        events,
+        pair,
+        horizon: "24h",
+        nowSeconds: nowUnix,
+      })
+    : null;
+
+  return [
+    {
+      id: "strength-meter",
+      title: "Strength Meter",
+      tab: "strength-meter",
+      summary: strengthSummary.title,
+      metrics: [
+        strengthSummary.scoreGap != null ? `Score gap ${strengthSummary.scoreGap.toFixed(1)} pts` : "Score gap unresolved",
+        strengthSummary.decisive ? "Spread is decisive" : "Spread is still modest",
+      ],
+    },
+    {
+      id: "dashboard",
+      title: "Differential Calculator",
+      tab: "dashboard",
+      summary: macroSummary.title,
+      metrics: [
+        macroSummary.rateGap != null ? `Rate diff ${formatGap(macroSummary.rateGap)}` : "Rate diff unresolved",
+        macroSummary.inflationGap != null ? `Inflation diff ${formatGap(macroSummary.inflationGap)}` : "Inflation diff unresolved",
+      ],
+    },
+    {
+      id: "event-quality",
+      title: "Event Quality",
+      tab: "event-quality",
+      summary:
+        eventQuality == null
+          ? `Event-quality summary is unavailable for ${reviewSymbol}.`
+          : eventQuality.label === "clean"
+            ? `${reviewSymbol} looks clean over the next 24h.`
+            : eventQuality.label === "mixed"
+              ? `${reviewSymbol} has building event friction over the next 24h.`
+              : `${reviewSymbol} has a dirty event environment over the next 24h.`,
+      metrics:
+        eventQuality == null
+          ? ["24h horizon unavailable", "No pair mapping"]
+          : [
+              `24h score ${eventQuality.totalScore.toFixed(2)}`,
+              `${eventQuality.rows.length} matched event${eventQuality.rows.length === 1 ? "" : "s"}`,
+            ],
+    },
+  ];
 }
