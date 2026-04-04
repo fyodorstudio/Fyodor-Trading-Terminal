@@ -496,15 +496,16 @@ export function OverviewTab({
       <section className="hub-specialists">
         <div className="hub-specialists-head">
           <div>
-            <h3>Specialist Summaries</h3>
-            <p>Optional deeper context from the existing specialist tabs without leaving Overview.</p>
+            <h3>Analytical Deep-Dive</h3>
+            <p>Direct output from specialist modules synchronized with the {reviewSymbol} context.</p>
           </div>
         </div>
         <div className="hub-specialists-list">
           {specialistSummaries.map((card) => {
             const isExpanded = expandedSpecialists[card.id];
+            const SpecialistIcon = card.id === "strength-meter" ? Activity : card.id === "dashboard" ? Layers : ShieldCheck;
             return (
-              <section key={card.id} className="hub-specialist-card">
+              <section key={card.id} className={`hub-specialist-card ${isExpanded ? "is-expanded" : ""}`}>
                 <button
                   type="button"
                   className="hub-specialist-toggle"
@@ -515,9 +516,14 @@ export function OverviewTab({
                     }))
                   }
                 >
-                  <div className="hub-specialist-copy">
-                    <strong>{card.title}</strong>
-                    <span>{card.summary}</span>
+                  <div style={{ display: "flex", gap: "16px", alignItems: "center" }}>
+                    <div className="hub-specialist-icon-box" style={{ color: "#6366f1" }}>
+                      <SpecialistIcon size={20} />
+                    </div>
+                    <div className="hub-specialist-copy">
+                      <strong>{card.title}</strong>
+                      <span>{card.summary}</span>
+                    </div>
                   </div>
                   {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                 </button>
@@ -529,7 +535,7 @@ export function OverviewTab({
                       ))}
                     </ul>
                     <button type="button" className="hub-specialist-link" onClick={() => onNavigate(card.tab)}>
-                      Open {card.title}
+                      Launch {card.title}
                       <ArrowRight size={14} />
                     </button>
                   </div>
@@ -571,12 +577,12 @@ export function OverviewTab({
 
             <div className="hub-inspector-grid">
               <section className="hub-inspector-card">
-                <span>What this means</span>
+                <span>Analytical Context</span>
                 <p>{TERMINOLOGY.trustState.states[trustState.verdict].detail}</p>
               </section>
 
               <section className="hub-inspector-card">
-                <span>Current trust-supporting inputs</span>
+                <span>Trust-Supporting Inputs</span>
                 <ul>
                   {trustInspector.supportingInputs.map((item) => (
                     <li key={item}>{item}</li>
@@ -585,7 +591,7 @@ export function OverviewTab({
               </section>
 
               <section className="hub-inspector-card">
-                <span>Current trust-limiting inputs</span>
+                <span>Trust-Limiting Factors</span>
                 <ul>
                   {trustInspector.limitingInputs.map((item) => (
                     <li key={item}>{item}</li>
@@ -594,7 +600,7 @@ export function OverviewTab({
               </section>
 
               <section className="hub-inspector-card">
-                <span>What this affects</span>
+                <span>System Dependencies</span>
                 <ul>
                   {trustInspector.affects.map((item) => (
                     <li key={item}>{item}</li>
@@ -618,7 +624,7 @@ export function OverviewTab({
             <div className="hub-inspector-top">
               <div>
                 <div className="hub-inspector-kicker">{TERMINOLOGY.eventSensitivity.sectionLabel}</div>
-                <h3>{reviewSymbol} Relevant Events</h3>
+                <h3>{reviewSymbol} Relevant Risk</h3>
               </div>
               <button
                 type="button"
@@ -631,7 +637,7 @@ export function OverviewTab({
             </div>
 
             <div className="hub-detail-summary">
-              <strong>{eventSensitivity.label}</strong>
+              <strong>{eventSensitivity.label} Status</strong>
               <p>{eventSensitivity.detail}</p>
             </div>
 
@@ -673,7 +679,7 @@ export function OverviewTab({
       {showPipelineInspector && (
         <div className="hub-inspector-overlay" onClick={() => setShowPipelineInspector(false)}>
           <div
-            className="hub-inspector-panel"
+            className="hub-inspector-panel hub-detail-panel"
             role="dialog"
             aria-modal="true"
             aria-label="Overview confidence details"
@@ -682,7 +688,7 @@ export function OverviewTab({
             <div className="hub-inspector-top">
               <div>
                 <div className="hub-inspector-kicker">{TERMINOLOGY.pipeline.sectionLabel}</div>
-                <h3>{pipelineStatus.label}</h3>
+                <h3>{pipelineStatus.label} Confidence</h3>
               </div>
               <button
                 type="button"
@@ -697,7 +703,7 @@ export function OverviewTab({
             <div className="hub-inspector-metric-row">
               <div className="hub-inspector-meter">
                 <div className="hub-inspector-meter-head">
-                  <span>Current score</span>
+                  <span>Trust Score</span>
                   <strong>{pipelineStatus.label}</strong>
                 </div>
                 <div className="hub-progress-track">
@@ -710,7 +716,7 @@ export function OverviewTab({
 
             <div className="hub-inspector-grid">
               <section className="hub-inspector-card hub-inspector-card-wide">
-                <span>How score is calculated</span>
+                <span>Weighted Methodology</span>
                 <p>{pipelineStatus.explanation}</p>
                 <div className="hub-inspector-weight-list">
                   {pipelineStatus.weights.map((weight) => (
@@ -728,7 +734,7 @@ export function OverviewTab({
               </section>
 
               <section className="hub-inspector-card">
-                <span>Current limiting factors</span>
+                <span>Active Limiting Factors</span>
                 {pipelineStatus.factors.length > 0 ? (
                   <ul>
                     {pipelineStatus.factors.map((factor) => (
@@ -741,22 +747,12 @@ export function OverviewTab({
               </section>
 
               <section className="hub-inspector-card">
-                <span>Current live inputs</span>
+                <span>Live Feed Context</span>
                 <ul>
                   <li>{TERMINOLOGY.trustState.sectionLabel}: {trustState.verdictLabel}</li>
                   <li>{TERMINOLOGY.calendarTiming.sectionLabel}: {TERMINOLOGY.calendarTiming.states[feedStatus].medium}</li>
                   <li>{TERMINOLOGY.symbolContext.sectionLabel}: {marketStatus?.session_state ? TERMINOLOGY.symbolContext.states[marketStatus.session_state].medium : TERMINOLOGY.symbolContext.states.missing.medium}</li>
                   <li>{TERMINOLOGY.labels.resolvedBanks}: {resolvedBanks}/8</li>
-                </ul>
-              </section>
-
-              <section className="hub-inspector-card">
-                <span>What this affects</span>
-                <ul>
-                  <li>Overview trust confidence</li>
-                  <li>Event timing confidence</li>
-                  <li>Macro coverage confidence</li>
-                  <li>Pair-routing confidence</li>
                 </ul>
               </section>
             </div>

@@ -6243,3 +6243,170 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+/* --- ANALYTICS POLISH: Pro Inspector & Specialist Surfaces --- */
+
+/* 1. Global Pro Scrollbars (fixes the 'detached' look) */
+.hub-inspector-panel::-webkit-scrollbar,
+.hub-selector-list::-webkit-scrollbar,
+.hub-event-inspector-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.hub-inspector-panel::-webkit-scrollbar-track,
+.hub-selector-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.hub-inspector-panel::-webkit-scrollbar-thumb,
+.hub-selector-list::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.hub-inspector-panel::-webkit-scrollbar-thumb:hover,
+.hub-selector-list::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+/* 2. Fixing the 'Leaky Corners' (Overflow issues) */
+.hub-inspector-panel,
+.hub-selector-panel {
+  overflow: hidden; /* This kills the corner gaps */
+  display: flex;
+  flex-direction: column;
+}
+
+.hub-inspector-top,
+.hub-selector-search {
+  flex-shrink: 0; /* Keeps headers pinned */
+}
+
+/* 3. Elevating Specialist Summaries */
+.hub-specialists {
+  margin-top: 32px;
+  background: #f8fafc;
+  padding: 32px;
+  border-radius: 24px;
+  border: 1px solid var(--hub-border);
+}
+
+.hub-specialists-head h3 {
+  font-size: 1.2rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+}
+
+.hub-specialist-card {
+  border: 1px solid var(--hub-border);
+  border-radius: 16px;
+  background: #ffffff;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+}
+
+.hub-specialist-card:hover {
+  border-color: var(--hub-accent-indigo);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(99, 102, 241, 0.04);
+}
+
+.hub-specialist-toggle {
+  padding: 20px;
+}
+
+.hub-specialist-copy strong {
+  font-size: 1rem;
+  color: #0f172a;
+}
+
+.hub-specialist-body {
+  background: #fafafa;
+  padding: 0 20px 20px;
+}
+
+.hub-specialist-body ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 0 16px 20px;
+}
+
+.hub-specialist-body li {
+  font-weight: 500;
+  color: #64748b;
+}
+
+.hub-specialist-link {
+  width: 100%;
+  justify-content: center;
+  background: #fff;
+  border-color: #e2e8f0;
+  padding: 10px;
+  color: #6366f1;
+}
+
+/* 4. Refining the Selector Sort Bar */
+.hub-selector-sortbar {
+  background: #f8fafc;
+  padding: 10px 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.hub-sort-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.72rem;
+  transition: all 0.15s ease;
+}
+
+.hub-sort-chip:hover {
+  background: #fff;
+  color: #0f172a;
+}
+
+.hub-sort-chip.is-active {
+  background: #6366f1;
+  color: #fff;
+  border-color: #6366f1;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+/* 5. Pro Inspector Layout */
+.hub-detail-panel {
+  padding: 0; /* Let the content handle padding */
+  max-height: 85vh;
+}
+
+.hub-inspector-top {
+  padding: 32px 32px 24px;
+  border-bottom: 1px solid var(--hub-border);
+  background: #fff;
+}
+
+.hub-detail-summary {
+  margin: 0;
+  padding: 24px 32px;
+  border: 0;
+  border-bottom: 1px solid var(--hub-border);
+  background: #fbfbfb;
+}
+
+.hub-inspector-grid,
+.hub-event-inspector-list {
+  padding: 24px 32px 32px;
+}
+
+.hub-event-inspector-item {
+  padding: 18px 20px;
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.hub-event-inspector-item:hover {
+  border-color: var(--hub-accent-indigo);
+  background: #fcfcfc;
+}
