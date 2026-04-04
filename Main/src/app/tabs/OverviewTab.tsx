@@ -140,6 +140,7 @@ export function OverviewTab({
     () => getMacroBackdropVerdict(reviewSymbol, macroSummary, strengthSummary),
     [reviewSymbol, macroSummary, strengthSummary],
   );
+  const pair = useMemo(() => getFxPairByName(reviewSymbol), [reviewSymbol]);
   const atrValue = atrByPair[reviewSymbol];
   const pairAttentionVerdict = useMemo(
     () => getPairAttentionVerdict(reviewSymbol, trustState, macroVerdict, macroSummary, strengthSummary, eventSensitivity, atrValue),
@@ -177,7 +178,6 @@ export function OverviewTab({
     [pairSearchQuery, pairSortMode, atrByPair, favoritePairs],
   );
 
-  const pair = getFxPairByName(reviewSymbol);
   const baseSnap = snapshots.find((s) => s.currency === pair?.base);
   const quoteSnap = snapshots.find((s) => s.currency === pair?.quote);
   const currencies = adaptDashboardCurrencies(snapshots);
