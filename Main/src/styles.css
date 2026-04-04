@@ -6259,9 +6259,56 @@ button {
 }
 
 .hub-inspector-panel::-webkit-scrollbar-thumb,
-.hub-selector-list::-webkit-scrollbar-thumb {
-  background: #e2e8f0;
+.hub-selector-list::-webkit-scrollbar-thumb,
+.hub-event-inspector-list::-webkit-scrollbar-thumb {
+  background: #94a3b8 !important; /* Even darker for guaranteed visibility */
   border-radius: 10px;
+}
+
+.hub-event-inspector-list {
+  overflow-y: auto !important;
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Specialist Cards: Better Expansion */
+.hub-specialist-card.is-expanded {
+  border-color: #6366f1;
+  box-shadow: 0 12px 32px rgba(99, 102, 241, 0.1);
+}
+
+.hub-specialist-body {
+  display: block;
+  border-top: 1px solid #f1f5f9;
+  background: #fbfbfb;
+  padding: 20px;
+}
+
+/* Favorites Toggle Button */
+.hub-favorite-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.hub-favorite-toggle:hover {
+  background: #fff;
+  border-color: #e2e8f0;
+  color: #f59e0b;
+}
+
+.hub-favorite-toggle.is-active {
+  color: #f59e0b;
 }
 
 .hub-inspector-panel::-webkit-scrollbar-thumb:hover,

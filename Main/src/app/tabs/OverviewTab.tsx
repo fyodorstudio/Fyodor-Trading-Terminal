@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, ArrowRight, CalendarClock, ChevronDown, ChevronRight, CircleHelp, Layers, Monitor, Search, ShieldCheck, Target, TrendingUp, Zap } from "lucide-react";
+import { Activity, ArrowRight, CalendarClock, ChevronDown, ChevronRight, CircleHelp, Layers, Monitor, Search, ShieldCheck, Star, Target, TrendingUp, Zap } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { TERMINOLOGY } from "@/app/config/terminology";
@@ -126,11 +126,17 @@ export function OverviewTab({
   const [pairSearchQuery, setPairSearchQuery] = useState("");
   const [pairSortMode, setPairSortMode] = useState<OverviewPairSortMode>("favorites");
   const [favoritePairs, setFavoritePairs] = useState<string[]>(() => loadChartFavorites());
-  const [expandedSpecialists, setExpandedSpecialists] = useState<Record<SpecialistCardId, boolean>>({
-    "strength-meter": false,
-    dashboard: false,
-    "event-quality": false,
-  });
+  const [expandedSpecialistId, setExpandedSpecialistId] = useState<SpecialistCardId | null>(null);
+
+  const toggleFavorite = (symbol: string, event: React.MouseEvent) => {
+    event.stopPropagation();
+    event.preventDefault();
+    const current = loadChartFavorites();
+    const next = current.includes(symbol) ? current.filter((s) => s !== symbol) : [...current, symbol];
+    window.localStorage.setItem(CHART_FAVORITES_KEY, JSON.stringify(next));
+    setFavoritePairs(next);
+    window.dispatchEvent(new Event("storage"));
+  };
 
   const nowUnix = currentTime.getTime() / 1000;
   const trustState = useMemo(() => resolveTrustState(health, feedStatus, marketStatus), [health, feedStatus, marketStatus]);
@@ -502,7 +508,7 @@ export function OverviewTab({
         </div>
         <div className="hub-specialists-list">
           {specialistSummaries.map((card) => {
-            const isExpanded = expandedSpecialists[card.id];
+            const isExpanded = !!expandedSpecialists[card.id];
             const SpecialistIcon = card.id === "strength-meter" ? Activity : card.id === "dashboard" ? Layers : ShieldCheck;
             return (
               <section key={card.id} className={`hub-specialist-card ${isExpanded ? "is-expanded" : ""}`}>
@@ -510,9 +516,9 @@ export function OverviewTab({
                   type="button"
                   className="hub-specialist-toggle"
                   onClick={() =>
-                    setExpandedSpecialists((current) => ({
-                      ...current,
-                      [card.id]: !current[card.id],
+                    setExpandedSpecialists((prev) => ({
+                      ...prev,
+                      [card.id]: !prev[card.id],
                     }))
                   }
                 >
@@ -527,7 +533,7 @@ export function OverviewTab({
                   </div>
                   {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
                 </button>
-                {isExpanded ? (
+                {isExpanded && (
                   <div className="hub-specialist-body">
                     <ul>
                       {card.metrics.map((metric) => (
@@ -539,7 +545,7 @@ export function OverviewTab({
                       <ArrowRight size={14} />
                     </button>
                   </div>
-                ) : null}
+                )}
               </section>
             );
           })}
@@ -817,13 +823,20 @@ export function OverviewTab({
                     }}
                   >
                     <div className="hub-selector-item-main">
+                      <button
+                        type="button"
+                        className={`hub-favorite-toggle ${isFavorite ? "is-active" : ""}`}
+                        onClick={(e) => toggleFavorite(p.name, e)}
+                        title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                      >
+                        <Star size={16} fill={isFavorite ? "currentColor" : "none"} />
+                      </button>
                       <div className="hub-selector-item-flags">
                         <FlagIcon countryCode={snapshots.find(s => s.currency === p.base)?.countryCode || ""} className="h-4 w-6" />
                         <FlagIcon countryCode={snapshots.find(s => s.currency === p.quote)?.countryCode || ""} className="h-4 w-6" />
                       </div>
                       <div className="hub-selector-item-copy">
                         <span className="hub-selector-item-name">{p.name}</span>
-                        {isFavorite ? <span className="hub-selector-item-badge">Favorite</span> : null}
                       </div>
                     </div>
                     <div className="hub-selector-item-meta">
