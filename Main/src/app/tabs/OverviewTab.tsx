@@ -8,25 +8,28 @@ import { calculateAtrPips, type AtrSmoothingMethod } from "@/app/lib/atr";
 import { fetchHistory } from "@/app/lib/bridge";
 import { formatCountdown, formatRelativeAge, formatUtcDateTime } from "@/app/lib/format";
 import {
-  getDominanceProfile,
   getEventRadarSummary,
   getEventSensitivity,
   getMacroBackdropVerdict,
   getMacroSummary,
   getOverviewPipelineStatus,
   getOverviewSpecialistSummaries,
-  getPairAttentionVerdict,
+  getPairOpportunitySummary,
+  getPriceAlignment,
   getStrengthDifferentialSummary,
   getTopEvents,
   getTrustInspectorSummary,
+  getWhoIsWinningNow,
   sortOverviewPairs,
   type OverviewPairSortMode,
+  type PairOpportunitySummary,
+  type PriceAlignmentSummary,
   type SortDirection,
-  type DominanceProfile,
+  type WinningNowSummary,
 } from "@/app/lib/overview";
 import { adaptDashboardCurrencies, deriveStrengthCurrencyRanks } from "@/app/lib/macroViews";
 import { resolveTrustState, type TrustState } from "@/app/lib/status";
-import type { BridgeHealth, BridgeStatus, CalendarEvent, CentralBankSnapshot, MarketStatusResponse, TabId } from "@/app/types";
+import type { BridgeCandle, BridgeHealth, BridgeStatus, CalendarEvent, CentralBankSnapshot, MarketStatusResponse, TabId } from "@/app/types";
 
 interface OverviewTabProps {
   currentTime: Date;
@@ -48,6 +51,7 @@ interface ActionItem {
 }
 
 type AtrByPair = Record<string, { d1: number | null; h1: number | null }>;
+type CandlesByPair = Record<string, { d1: BridgeCandle[]; h1: BridgeCandle[] }>;
 type SpecialistCardId = "strength-meter" | "dashboard" | "event-quality";
 type ViewMode = "strategic" | "command";
 
@@ -69,6 +73,44 @@ const ATR_METHOD_DESCRIPTIONS: Record<AtrSmoothingMethod, string> = {
   EMA: "Exponentially weighted. 'Fast' and highly reactive to recent volatility shifts.",
   WMA: "Linearly weighted. A middle ground that prioritizes recent data without being as jumpy as EMA.",
 };
+
+const ACTION_LABEL_COLORS: Record<WinningNowSummary["actionLabel"], string> = {
+  "Focus now": "#166534",
+  Study: "#1d4ed8",
+  Monitor: "#92400e",
+  "Avoid for now": "#991b1b",
+};
+
+const CONVICTION_LABELS: Record<WinningNowSummary["conviction"], string> = {
+  high: "High Conviction",
+  moderate: "Moderate Conviction",
+  low: "Low Conviction",
+};
+
+function getActionRank(label: WinningNowSummary["actionLabel"]): number {
+  switch (label) {
+    case "Focus now":
+      return 4;
+    case "Study":
+      return 3;
+    case "Monitor":
+      return 2;
+    default:
+      return 1;
+  }
+}
+
+function getWinnerRank(winner: WinningNowSummary["winner"]): number {
+  switch (winner) {
+    case "base":
+    case "quote":
+      return 3;
+    case "conflicted":
+      return 2;
+    default:
+      return 1;
+  }
+}
 
 function loadChartFavorites(): string[] {
   if (typeof window === "undefined") return [];
@@ -157,6 +199,7 @@ export function OverviewTab({
   onOpenCalendarEvent,
 }: OverviewTabProps) {
   const [atrByPair, setAtrByPair] = useState<AtrByPair>({});
+  const [candlesByPair, setCandlesByPair] = useState<CandlesByPair>({});
   const [atrConfig, setAtrConfig] = useState<AtrConfig>(() => loadAtrConfig());
   const [showAtrSettings, setShowAtrSettings] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>(() => loadViewMode());
@@ -197,13 +240,26 @@ export function OverviewTab({
   );
   const pair = useMemo(() => getFxPairByName(reviewSymbol), [reviewSymbol]);
   const atrValue = atrByPair[reviewSymbol];
-  const pairAttentionVerdict = useMemo(
-    () => getPairAttentionVerdict(reviewSymbol, trustState, macroVerdict, macroSummary, strengthSummary, eventSensitivity, atrValue?.d1),
-    [reviewSymbol, trustState, macroVerdict, macroSummary, strengthSummary, eventSensitivity, atrValue?.d1],
+  const pairCandles = candlesByPair[reviewSymbol] ?? { d1: [], h1: [] };
+  const priceAlignment = useMemo<PriceAlignmentSummary>(
+    () => getPriceAlignment(reviewSymbol, pairCandles.d1, pairCandles.h1),
+    [reviewSymbol, pairCandles.d1, pairCandles.h1],
   );
-  const dominance = useMemo(
-    () => getDominanceProfile(reviewSymbol, macroVerdict, strengthSummary, eventSensitivity, atrValue?.d1, atrValue?.h1),
-    [reviewSymbol, macroVerdict, strengthSummary, eventSensitivity, atrValue?.d1, atrValue?.h1],
+  const winningNow = useMemo<WinningNowSummary>(
+    () =>
+      getWhoIsWinningNow(
+        reviewSymbol,
+        trustState,
+        macroSummary,
+        strengthSummary,
+        eventSensitivity,
+        marketStatus,
+        atrValue?.d1,
+        atrValue?.h1,
+        pairCandles.d1,
+        pairCandles.h1,
+      ),
+    [reviewSymbol, trustState, macroSummary, strengthSummary, eventSensitivity, marketStatus, atrValue?.d1, atrValue?.h1, pairCandles.d1, pairCandles.h1],
   );
   const actions = useMemo(
     () => getAttentionActions(trustState, reviewSymbol, eventSensitivity, macroSummary, strengthSummary),
@@ -236,6 +292,34 @@ export function OverviewTab({
     () => sortOverviewPairs(FX_PAIRS, pairSearchQuery, pairSortMode, Object.fromEntries(Object.entries(atrByPair).map(([k, v]) => [k, v.d1])), favoritePairs, pairSortDirection),
     [pairSearchQuery, pairSortMode, atrByPair, favoritePairs, pairSortDirection],
   );
+  const topOpportunities = useMemo<PairOpportunitySummary[]>(() => {
+    return FX_PAIRS.map((fxPair) => {
+      const atr = atrByPair[fxPair.name];
+      const candles = candlesByPair[fxPair.name] ?? { d1: [], h1: [] };
+      return getPairOpportunitySummary(
+        fxPair.name,
+        trustState,
+        snapshots,
+        events,
+        marketStatus,
+        atr?.d1,
+        atr?.h1,
+        candles.d1,
+        candles.h1,
+        nowUnix,
+      );
+    })
+      .sort((left, right) => {
+        if (right.score !== left.score) return right.score - left.score;
+        const actionGap = getActionRank(right.label) - getActionRank(left.label);
+        if (actionGap !== 0) return actionGap;
+        const winnerGap = getWinnerRank(right.winner) - getWinnerRank(left.winner);
+        if (winnerGap !== 0) return winnerGap;
+        return left.pair.localeCompare(right.pair);
+      })
+      .filter((item, index) => item.winner !== "unresolved" || index < 5)
+      .slice(0, 5);
+  }, [atrByPair, candlesByPair, trustState, snapshots, events, marketStatus, nowUnix]);
 
   const baseSnap = snapshots.find((s) => s.currency === pair?.base);
   const quoteSnap = snapshots.find((s) => s.currency === pair?.quote);
@@ -259,17 +343,23 @@ export function OverviewTab({
             return [
               fxPair.name,
               {
+                candles: { d1: d1Candles, h1: h1Candles },
                 d1: calculateAtrPips(d1Candles, fxPair.name, atrConfig.d1Period, atrConfig.method),
                 h1: calculateAtrPips(h1Candles, fxPair.name, atrConfig.h1Period, atrConfig.method),
               },
             ] as const;
           } catch {
-            return [fxPair.name, { d1: null, h1: null }] as const;
+            return [fxPair.name, { candles: { d1: [], h1: [] }, d1: null, h1: null }] as const;
           }
         }),
       );
       if (cancelled) return;
-      setAtrByPair(Object.fromEntries(entries));
+      setAtrByPair(
+        Object.fromEntries(entries.map(([pairName, value]) => [pairName, { d1: value.d1, h1: value.h1 }])),
+      );
+      setCandlesByPair(
+        Object.fromEntries(entries.map(([pairName, value]) => [pairName, value.candles])),
+      );
     };
     void loadAtr();
     return () => {
@@ -410,15 +500,28 @@ export function OverviewTab({
             </div>
           </header>
 
-          <article className={`hub-verdict-banner is-${pairAttentionVerdict.tone}`}>
+          <article className={`hub-verdict-banner is-${winningNow.tone}`}>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: "0.75rem", fontWeight: 800, textTransform: "uppercase", opacity: 0.7, letterSpacing: "0.15em" }}>
-                {dominance.winner.toUpperCase()}
-              </div>
-              <div style={{ fontSize: "2.2rem", fontWeight: 900, lineHeight: 1, marginTop: "4px" }}>{pairAttentionVerdict.label}</div>
-              <p style={{ fontSize: "1.1rem", marginTop: "12px", opacity: 0.9, lineHeight: 1.5, maxWidth: "540px" }}>
-                {pairAttentionVerdict.detail}
+              <div className="hub-verdict-kicker">Who Is Winning Now</div>
+              <div style={{ fontSize: "2.2rem", fontWeight: 900, lineHeight: 1.05, marginTop: "4px" }}>{winningNow.winnerLabel}</div>
+              <p style={{ fontSize: "1.02rem", marginTop: "12px", opacity: 0.92, lineHeight: 1.55, maxWidth: "680px" }}>
+                {winningNow.summary}
               </p>
+              <div className="hub-verdict-chip-row">
+                <span className={`hub-banner-chip is-${winningNow.tone}`}>{CONVICTION_LABELS[winningNow.conviction]}</span>
+                <span className="hub-banner-chip is-neutral" style={{ color: ACTION_LABEL_COLORS[winningNow.actionLabel] }}>{winningNow.actionLabel}</span>
+                <span className="hub-banner-chip is-neutral">{eventSensitivity.label}</span>
+              </div>
+              <div className="hub-verdict-reasons">
+                {winningNow.reasons.map((reason) => (
+                  <span key={reason}>{reason}</span>
+                ))}
+              </div>
+              {winningNow.risks.length > 0 ? (
+                <div className="hub-verdict-riskline">
+                  Risk check: {winningNow.risks.join(" ")}
+                </div>
+              ) : null}
             </div>
             <Target size={48} strokeWidth={2.5} opacity={0.2} />
           </article>
@@ -427,24 +530,24 @@ export function OverviewTab({
             <div className="hub-dominance-pillars">
               <div className="hub-pillar">
                 <label>MACRO PILLAR</label>
-                <div className={`hub-pillar-badge is-${dominance.pillars.macro.status}`}>
-                  {dominance.pillars.macro.label}
+                <div className={`hub-pillar-badge is-${macroVerdict.tone}`}>
+                  {macroVerdict.label}
                 </div>
                 <span>{macroSummary.rateGap != null ? `Rate Gap ${macroSummary.rateGap > 0 ? "+" : ""}${macroSummary.rateGap.toFixed(2)}%` : "Unresolved"}</span>
               </div>
               <div className="hub-pillar">
-                <label>STRENGTH PILLAR</label>
-                <div className={`hub-pillar-badge is-${dominance.pillars.strength.status}`}>
-                  {dominance.pillars.strength.label}
+                <label>PRICE PILLAR</label>
+                <div className={`hub-pillar-badge is-${priceAlignment.direction === winningNow.winner ? "good" : priceAlignment.direction === "unresolved" ? "warning" : "danger"}`}>
+                  {priceAlignment.label}
                 </div>
-                <span>{strengthSummary.scoreGap != null ? `Gap ${strengthSummary.scoreGap.toFixed(1)} pts` : "Unresolved"}</span>
+                <span>{priceAlignment.detail}</span>
               </div>
               <div className="hub-pillar">
-                <label>CONTEXT PILLAR</label>
-                <div className={`hub-pillar-badge is-${dominance.pillars.context.status}`}>
-                  {dominance.pillars.context.label}
+                <label>TIMING PILLAR</label>
+                <div className={`hub-pillar-badge is-${eventSensitivity.tone}`}>
+                  {eventSensitivity.label}
                 </div>
-                <span>{eventSensitivity.label} horizon</span>
+                <span>{winningNow.actionLabel}</span>
               </div>
             </div>
           ) : (
@@ -466,10 +569,20 @@ export function OverviewTab({
                   <label>Inflation (CPI)</label>
                   <span>{baseSnap?.currentInflationRate || "---"}</span>
                 </div>
+                <div className="hub-matrix-stat">
+                  <label>Winning Now</label>
+                  <span>{winningNow.winner === "base" ? winningNow.actionLabel : winningNow.winner === "quote" ? "Under pressure" : winningNow.winnerLabel}</span>
+                </div>
               </div>
               <div className="hub-matrix-divider">
-                <div className={`hub-dominance-arrow is-${dominance.tone}`}>
-                  {dominance.winner.includes(pair?.base || "") ? <ChevronRight size={20} style={{ transform: "rotate(180deg)" }} /> : dominance.winner.includes(pair?.quote || "") ? <ChevronRight size={20} /> : <div className="hub-conflict-dot" />}
+                <div className={`hub-dominance-arrow is-${winningNow.tone}`}>
+                  {winningNow.winner === "base" ? (
+                    <ChevronRight size={20} style={{ transform: "rotate(180deg)" }} />
+                  ) : winningNow.winner === "quote" ? (
+                    <ChevronRight size={20} />
+                  ) : (
+                    <div className="hub-conflict-dot" />
+                  )}
                 </div>
               </div>
               <div className="hub-matrix-cell">
@@ -489,9 +602,45 @@ export function OverviewTab({
                   <label>Inflation (CPI)</label>
                   <span>{quoteSnap?.currentInflationRate || "---"}</span>
                 </div>
+                <div className="hub-matrix-stat">
+                  <label>Winning Now</label>
+                  <span>{winningNow.winner === "quote" ? winningNow.actionLabel : winningNow.winner === "base" ? "Under pressure" : winningNow.winnerLabel}</span>
+                </div>
               </div>
             </div>
           )}
+
+          <section className="hub-opportunity-box">
+            <div className="hub-opportunity-head">
+              <div>
+                <div className="hub-opportunity-kicker">Routing Shortlist</div>
+                <h3>Best Pairs Right Now</h3>
+              </div>
+              <span>Top 5 by current evidence</span>
+            </div>
+            <div className="hub-opportunity-list">
+              {topOpportunities.map((item) => (
+                <button
+                  key={item.pair}
+                  type="button"
+                  className={`hub-opportunity-row ${item.pair === reviewSymbol ? "is-active" : ""}`}
+                  onClick={() => onReviewSymbolChange(item.pair)}
+                >
+                  <div className="hub-opportunity-main">
+                    <strong>{item.pair}</strong>
+                    <span>{item.winnerLabel}</span>
+                  </div>
+                  <div className="hub-opportunity-meta">
+                    <span>{item.score}</span>
+                    <span>{item.label}</span>
+                    <span>{item.eventLabel}</span>
+                    <span>{item.atr14D ?? "--"} D1 ATR</span>
+                  </div>
+                  <p>{item.summary}</p>
+                </button>
+              ))}
+            </div>
+          </section>
 
           <div className="hub-macro-box">
             <div className="hub-macro-title">

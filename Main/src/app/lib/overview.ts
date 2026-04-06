@@ -2,7 +2,7 @@ import { getFxPairByName } from "@/app/config/fxPairs";
 import { deriveEventQualitySummary } from "@/app/lib/eventQuality";
 import { adaptDashboardCurrencies, deriveStrengthCurrencyRanks } from "@/app/lib/macroViews";
 import { parseNumericValue } from "@/app/lib/format";
-import type { BridgeStatus, CalendarEvent, CentralBankSnapshot, FxPairDefinition, MarketStatusResponse, TabId } from "@/app/types";
+import type { BridgeCandle, BridgeStatus, CalendarEvent, CentralBankSnapshot, FxPairDefinition, MarketStatusResponse, TabId } from "@/app/types";
 import type { TrustState, TrustTone } from "@/app/lib/status";
 
 export interface OverviewEvent extends CalendarEvent {
@@ -82,6 +82,42 @@ export interface SpecialistSummaryCard {
   metrics: string[];
 }
 
+type PairBias = "base" | "quote" | "mixed" | "unresolved";
+type WinningSide = "base" | "quote" | "conflicted" | "unresolved";
+type ActionLabel = "Focus now" | "Study" | "Monitor" | "Avoid for now";
+
+export interface PriceAlignmentSummary {
+  direction: PairBias;
+  label: string;
+  detail: string;
+  d1Bias: PairBias;
+  h1Bias: PairBias;
+}
+
+export interface WinningNowSummary {
+  winner: WinningSide;
+  winnerLabel: string;
+  conviction: "high" | "moderate" | "low";
+  tone: TrustTone;
+  reasons: string[];
+  risks: string[];
+  summary: string;
+  actionLabel: ActionLabel;
+}
+
+export interface PairOpportunitySummary {
+  pair: string;
+  winner: WinningNowSummary["winner"];
+  winnerLabel: string;
+  score: number;
+  label: WinningNowSummary["actionLabel"];
+  summary: string;
+  blockedBy: string[];
+  eventLabel: EventSensitivitySummary["label"];
+  atr14D: number | null;
+  breakdown: Array<{ label: string; earned: number; max: number }>;
+}
+
 function formatGap(value: number | null): string {
   if (value == null) return "Unresolved";
   return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`;
@@ -89,6 +125,413 @@ function formatGap(value: number | null): string {
 
 function getPairCurrencies(reviewSymbol: string): [string, string] {
   return [reviewSymbol.slice(0, 3), reviewSymbol.slice(3, 6)];
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+function getEma(values: number[], period: number): number[] {
+  if (values.length < period) return [];
+  const multiplier = 2 / (period + 1);
+  const initial = values.slice(0, period).reduce((sum, value) => sum + value, 0) / period;
+  const result: number[] = [initial];
+  for (let index = period; index < values.length; index += 1) {
+    result.push((values[index] - result[result.length - 1]) * multiplier + result[result.length - 1]);
+  }
+  return result;
+}
+
+function getTimeframeBias(candles: BridgeCandle[]): PairBias {
+  if (candles.length < 24) return "unresolved";
+  const closes = candles.map((candle) => candle.close);
+  const ema20 = getEma(closes, 20);
+  if (ema20.length < 3) return "unresolved";
+
+  const currentClose = closes[closes.length - 1];
+  const priorClose = closes[closes.length - 4];
+  const currentEma = ema20[ema20.length - 1];
+  const previousEma = ema20[ema20.length - 3];
+
+  const aboveEma = currentClose > currentEma;
+  const emaRising = currentEma > previousEma;
+  const recentCloseChange = currentClose - priorClose;
+
+  if (aboveEma && emaRising && recentCloseChange > 0) return "base";
+  if (!aboveEma && !emaRising && recentCloseChange < 0) return "quote";
+  return "mixed";
+}
+
+function getDirectionLabel(direction: PairBias, pair: FxPairDefinition): string {
+  switch (direction) {
+    case "base":
+      return `${pair.base} price confirmation`;
+    case "quote":
+      return `${pair.quote} price confirmation`;
+    case "mixed":
+      return "Mixed price structure";
+    default:
+      return "Price structure unresolved";
+  }
+}
+
+function getActionRank(label: ActionLabel): number {
+  switch (label) {
+    case "Focus now":
+      return 4;
+    case "Study":
+      return 3;
+    case "Monitor":
+      return 2;
+    default:
+      return 1;
+  }
+}
+
+function getScoreLabel(score: number): ActionLabel {
+  if (score >= 80) return "Focus now";
+  if (score >= 60) return "Study";
+  if (score >= 40) return "Monitor";
+  return "Avoid for now";
+}
+
+function getWinnerTone(winner: WinningSide, conviction: WinningNowSummary["conviction"]): TrustTone {
+  if (winner === "base" || winner === "quote") {
+    return conviction === "high" ? "good" : "warning";
+  }
+  return winner === "conflicted" ? "danger" : "warning";
+}
+
+function formatActionSummary(pair: string, label: ActionLabel, winnerLabel: string): string {
+  if (label === "Focus now") return `${pair} is one of the cleanest active candidates right now with ${winnerLabel.toLowerCase()}.`;
+  if (label === "Study") return `${pair} is usable now, but still needs chart confirmation before routing.`;
+  if (label === "Monitor") return `${pair} is directionally interesting, but timing or data quality still limits it.`;
+  return `${pair} should stay low priority on the current evidence.`;
+}
+
+function getWinnerLabelFromSide(winner: WinningSide, pair: FxPairDefinition): string {
+  switch (winner) {
+    case "base":
+      return `${pair.base} is winning now`;
+    case "quote":
+      return `${pair.quote} is winning now`;
+    case "conflicted":
+      return "Battle is conflicted";
+    default:
+      return "Winner unresolved";
+  }
+}
+
+export function getPriceAlignment(
+  reviewSymbol: string,
+  d1Candles: BridgeCandle[],
+  h1Candles: BridgeCandle[],
+): PriceAlignmentSummary {
+  const pair = getFxPairByName(reviewSymbol);
+  if (!pair) {
+    return {
+      direction: "unresolved",
+      label: "Unresolved",
+      detail: "Pair mapping is unavailable for price confirmation.",
+      d1Bias: "unresolved",
+      h1Bias: "unresolved",
+    };
+  }
+
+  const d1Bias = getTimeframeBias(d1Candles);
+  const h1Bias = getTimeframeBias(h1Candles);
+
+  if (d1Bias === "unresolved" || h1Bias === "unresolved") {
+    return {
+      direction: "unresolved",
+      label: "Unresolved",
+      detail: "Candle depth is incomplete for at least one timeframe, so price confirmation stays unresolved.",
+      d1Bias,
+      h1Bias,
+    };
+  }
+
+  if (d1Bias === h1Bias && (d1Bias === "base" || d1Bias === "quote")) {
+    const side = d1Bias === "base" ? pair.base : pair.quote;
+    return {
+      direction: d1Bias,
+      label: "Aligned",
+      detail: `D1 and H1 both keep confirming ${side} through EMA-20 structure and recent close direction.`,
+      d1Bias,
+      h1Bias,
+    };
+  }
+
+  if (d1Bias !== h1Bias) {
+    return {
+      direction: "mixed",
+      label: "Short-term countertrend",
+      detail: `D1 favors ${getDirectionLabel(d1Bias, pair).toLowerCase()}, while H1 is pulling the other way.`,
+      d1Bias,
+      h1Bias,
+    };
+  }
+
+  return {
+    direction: "mixed",
+    label: "Mixed",
+    detail: "Price structure is active but does not cleanly confirm one side across D1 and H1.",
+    d1Bias,
+    h1Bias,
+  };
+}
+
+export function getWhoIsWinningNow(
+  reviewSymbol: string,
+  trustState: TrustState,
+  macroSummary: MacroSummary,
+  strengthSummary: StrengthSummary,
+  eventSensitivity: EventSensitivitySummary,
+  marketStatus: MarketStatusResponse | null,
+  atr14D: number | null | undefined,
+  atr14H: number | null | undefined,
+  d1Candles: BridgeCandle[],
+  h1Candles: BridgeCandle[],
+): WinningNowSummary {
+  const pair = getFxPairByName(reviewSymbol);
+  if (!pair) {
+    return {
+      winner: "unresolved",
+      winnerLabel: "Winner unresolved",
+      conviction: "low",
+      tone: "warning",
+      reasons: ["Pair mapping is unavailable."],
+      risks: ["Symbol context could not be resolved."],
+      summary: `The app cannot resolve a winning side for ${reviewSymbol}.`,
+      actionLabel: "Avoid for now",
+    };
+  }
+
+  const priceAlignment = getPriceAlignment(reviewSymbol, d1Candles, h1Candles);
+  const reasons: string[] = [];
+  const risks: string[] = [];
+  let winner: WinningSide = "unresolved";
+  let conviction: WinningNowSummary["conviction"] = "low";
+  let actionLabel: ActionLabel = "Monitor";
+
+  if (macroSummary.unresolved || strengthSummary.unresolved) {
+    winner = "unresolved";
+    reasons.push("Macro or strength inputs are still unresolved.");
+  } else if (macroSummary.alignment === "aligned" && macroSummary.favoredCurrency === strengthSummary.strongerCurrency) {
+    winner = macroSummary.favoredCurrency === pair.base ? "base" : "quote";
+    conviction = "moderate";
+    reasons.push(`${macroSummary.favoredCurrency} has macro and strength alignment.`);
+  } else if (macroSummary.alignment === "aligned" && macroSummary.favoredCurrency !== strengthSummary.strongerCurrency) {
+    winner = "conflicted";
+    reasons.push(`Macro favors ${macroSummary.favoredCurrency}, but strength favors ${strengthSummary.strongerCurrency}.`);
+  } else {
+    winner = "conflicted";
+    reasons.push("Rates and inflation do not form a clean same-side macro picture.");
+  }
+
+  if (priceAlignment.direction === "base" || priceAlignment.direction === "quote") {
+    const priceCurrency = priceAlignment.direction === "base" ? pair.base : pair.quote;
+    reasons.push(`Price structure still confirms ${priceCurrency} on D1 and H1.`);
+    if (winner === priceAlignment.direction) {
+      conviction = winner === "conflicted" ? "low" : "high";
+    } else if (winner === "conflicted") {
+      reasons.push(`Price currently leans toward ${priceCurrency}, but the core inputs still disagree.`);
+    } else if (winner !== "unresolved") {
+      risks.push(`Price confirmation is leaning toward ${priceCurrency}, not the current macro winner.`);
+      conviction = "low";
+    }
+  } else if (priceAlignment.direction === "mixed") {
+    risks.push("D1 and H1 price structure are not aligned.");
+    if (conviction === "high") conviction = "moderate";
+  } else {
+    risks.push("Price confirmation is unresolved.");
+    if (conviction === "high") conviction = "moderate";
+  }
+
+  if (strengthSummary.scoreGap != null) {
+    reasons.push(`Strength spread is ${strengthSummary.scoreGap.toFixed(1)} points${strengthSummary.decisive ? " and decisive." : "."}`);
+  }
+
+  if (eventSensitivity.label !== "Clear") {
+    risks.push(eventSensitivity.detail);
+    if (conviction === "high") conviction = "moderate";
+  }
+
+  if (trustState.verdict !== "yes") {
+    risks.push(`Trust state is ${trustState.verdictLabel.toLowerCase()}.`);
+    conviction = "low";
+  }
+
+  if (!marketStatus || marketStatus.session_state === "unavailable") {
+    risks.push("Selected symbol context is unavailable.");
+    conviction = "low";
+  }
+
+  if (winner === "base" || winner === "quote") {
+    if (
+      conviction === "high" &&
+      trustState.verdict === "yes" &&
+      eventSensitivity.label === "Clear" &&
+      atr14D != null &&
+      atr14D >= 50 &&
+      atr14H != null
+    ) {
+      actionLabel = "Focus now";
+    } else if (trustState.verdict === "no") {
+      actionLabel = "Avoid for now";
+    } else if (eventSensitivity.label === "High-risk soon") {
+      actionLabel = "Monitor";
+    } else if (atr14D != null && atr14D < 45 && !strengthSummary.decisive) {
+      actionLabel = "Avoid for now";
+    } else if (conviction === "high" || conviction === "moderate") {
+      actionLabel = "Study";
+    } else {
+      actionLabel = "Monitor";
+    }
+  } else if (winner === "conflicted") {
+    actionLabel = eventSensitivity.label === "High-risk soon" ? "Avoid for now" : "Monitor";
+  } else {
+    actionLabel = trustState.verdict === "no" ? "Avoid for now" : "Monitor";
+  }
+
+  if (atr14D != null && atr14D < 45 && !strengthSummary.decisive) {
+    risks.push(`${reviewSymbol} is currently quiet for routing with only ${atr14D} D1 ATR pips.`);
+  }
+
+  if (atr14H == null) {
+    risks.push("H1 volatility context is unresolved.");
+  }
+
+  const winnerLabel = getWinnerLabelFromSide(winner, pair);
+  return {
+    winner,
+    winnerLabel,
+    conviction,
+    tone: getWinnerTone(winner, conviction),
+    reasons: reasons.slice(0, 3),
+    risks: risks.slice(0, 3),
+    summary:
+      winner === "base" || winner === "quote"
+        ? `${winner === "base" ? pair.base : pair.quote} currently has the cleaner edge in ${reviewSymbol}.`
+        : winner === "conflicted"
+          ? `${reviewSymbol} has active directional tension across the current inputs.`
+          : `${reviewSymbol} does not have enough aligned evidence yet to name a winner.`,
+    actionLabel,
+  };
+}
+
+export function getPairOpportunitySummary(
+  reviewSymbol: string,
+  trustState: TrustState,
+  snapshots: CentralBankSnapshot[],
+  events: CalendarEvent[],
+  marketStatus: MarketStatusResponse | null,
+  atr14D: number | null | undefined,
+  atr14H: number | null | undefined,
+  d1Candles: BridgeCandle[],
+  h1Candles: BridgeCandle[],
+  nowUnix: number,
+): PairOpportunitySummary {
+  const macroSummary = getMacroSummary(reviewSymbol, snapshots);
+  const strengthSummary = getStrengthDifferentialSummary(reviewSymbol, snapshots);
+  const eventSensitivity = getEventSensitivity(events, reviewSymbol, nowUnix);
+  const priceAlignment = getPriceAlignment(reviewSymbol, d1Candles, h1Candles);
+  const winningNow = getWhoIsWinningNow(
+    reviewSymbol,
+    trustState,
+    macroSummary,
+    strengthSummary,
+    eventSensitivity,
+    marketStatus,
+    atr14D,
+    atr14H,
+    d1Candles,
+    h1Candles,
+  );
+
+  let directionalClarity = 0;
+  if (!macroSummary.unresolved && !strengthSummary.unresolved && macroSummary.alignment === "aligned" && macroSummary.favoredCurrency === strengthSummary.strongerCurrency) {
+    directionalClarity = strengthSummary.decisive ? 35 : 28;
+  } else if (!macroSummary.unresolved && !strengthSummary.unresolved && macroSummary.alignment !== "unresolved") {
+    directionalClarity = 12;
+  }
+
+  let priceConfirmation = 0;
+  if (priceAlignment.direction === winningNow.winner) {
+    priceConfirmation = 25;
+  } else if (priceAlignment.direction === "mixed") {
+    priceConfirmation = 10;
+  } else if (priceAlignment.direction !== "unresolved") {
+    priceConfirmation = 6;
+  }
+
+  let tradeability = 0;
+  if (atr14D != null && atr14D >= 50 && atr14H != null) {
+    tradeability = 20;
+  } else if (atr14D != null && atr14D >= 45) {
+    tradeability = 14;
+  } else if (atr14D != null && atr14D < 45 && !strengthSummary.decisive) {
+    tradeability = 4;
+  } else if (atr14D != null) {
+    tradeability = 8;
+  }
+
+  let eventSafety = 15;
+  if (eventSensitivity.label === "High-risk soon") eventSafety = 0;
+  else if (eventSensitivity.label === "Event-sensitive") eventSafety = 7;
+
+  let trustQuality = trustState.verdict === "yes" ? 5 : trustState.verdict === "limited" ? 2 : 0;
+  if (!marketStatus || marketStatus.session_state === "unavailable") {
+    tradeability = Math.max(0, tradeability - 6);
+  }
+
+  let score = directionalClarity + priceConfirmation + tradeability + eventSafety + trustQuality;
+  const blockedBy: string[] = [];
+  let label = getScoreLabel(score);
+
+  if (trustState.verdict === "no") {
+    blockedBy.push("Trust state is degraded.");
+    label = "Avoid for now";
+  }
+  if (eventSensitivity.label === "High-risk soon") {
+    blockedBy.push("A relevant high-impact event is too close.");
+    if (getActionRank(label) > getActionRank("Monitor")) label = "Monitor";
+  }
+  if (macroSummary.unresolved || strengthSummary.unresolved) {
+    blockedBy.push("Macro or strength inputs are unresolved.");
+    if (getActionRank(label) > getActionRank("Monitor")) label = "Monitor";
+  }
+  if (!marketStatus || marketStatus.session_state === "unavailable") {
+    blockedBy.push("Selected market session context is unavailable.");
+    if (getActionRank(label) > getActionRank("Monitor")) label = "Monitor";
+  }
+  if (atr14D != null && atr14D < 45 && !strengthSummary.decisive) {
+    blockedBy.push("Volatility is too quiet for a clean route.");
+  }
+
+  if (label === "Avoid for now" && score > 39) score = 39;
+  if (label === "Monitor") score = clamp(score, 40, 59);
+  if (label === "Study") score = clamp(score, 60, 79);
+  if (label === "Focus now") score = clamp(score, 80, 100);
+
+  return {
+    pair: reviewSymbol,
+    winner: winningNow.winner,
+    winnerLabel: winningNow.winnerLabel,
+    score,
+    label,
+    summary: blockedBy.length > 0 ? `${formatActionSummary(reviewSymbol, label, winningNow.winnerLabel)} ${blockedBy[0]}` : formatActionSummary(reviewSymbol, label, winningNow.winnerLabel),
+    blockedBy,
+    eventLabel: eventSensitivity.label,
+    atr14D: atr14D ?? null,
+    breakdown: [
+      { label: "Directional clarity", earned: directionalClarity, max: 35 },
+      { label: "Price confirmation", earned: priceConfirmation, max: 25 },
+      { label: "Tradeability", earned: tradeability, max: 20 },
+      { label: "Event safety", earned: eventSafety, max: 15 },
+      { label: "Trust quality", earned: trustQuality, max: 5 },
+    ],
+  };
 }
 
 export function getTopEvents(
