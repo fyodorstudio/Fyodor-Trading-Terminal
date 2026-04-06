@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Product Exhaustive
 
-**Last Updated:** 2026-04-04 20:20
+**Last Updated:** 2026-04-06 23:10
 
 This file is the exhaustive implementation inventory and active working control sheet.
 
@@ -14,6 +14,44 @@ Use this file for:
 Do not use this file as the short product authority.
 
 `docs/Roadmap/PRODUCT_BRIEF.md` remains the short product brain.
+
+## Fresh Conversation Handoff
+
+If a new Codex conversation starts from this repo, use this section first.
+
+### Where We Left Off
+
+- `Overview` is heavily built out and no longer a placeholder.
+- `Economic Calendar` now supports:
+  - Overview deep-linking into the correct day range
+  - scroll-to-event + temporary highlight
+  - click-open event explainer panel
+  - multi-country selection that stays usable
+- event explainer truth content now lives in `Main/src/app/lib/calendarEventKnowledge.ts`
+- `Overview Confidence` is intended to stay as a permanent Overview surface
+- current likely next product question is: `Who Is Winning Now?`
+
+### Current Worktree Reality
+
+- the worktree is **not fully clean**
+- local uncommitted changes currently exist in:
+  - `Main/src/app/tabs/OverviewTab.tsx`
+  - `Main/src/styles.css`
+- before doing new work, inspect those two files and decide whether to keep, checkpoint, or revert them
+
+### Best Next Session Focus
+
+- do one calm `Overview` consistency audit
+- define what `Who Is Winning Now` means using existing inputs only
+- implement one compact `Who Is Winning Now` block in `Overview`
+- reassess whether `Overview` is finally stable enough to stop touching for now
+
+### Keep In Mind
+
+- the repo is not missing core pieces anymore
+- most of the important lego blocks already exist
+- the next work is mostly refinement, clarity, integration, and prioritization
+- avoid reopening broad redesign scope unless it clearly improves truth, workflow, or speed
 
 ## How To Use This File
 
