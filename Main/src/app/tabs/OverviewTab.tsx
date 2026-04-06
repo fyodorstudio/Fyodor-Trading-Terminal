@@ -395,70 +395,15 @@ export function OverviewTab({
                 </button>
               </div>
               <div className="hub-brief-stat">
-                <div style={{ display: "flex", alignItems: "center", gap: "6px", position: "relative" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                   <label>VOL ({atrConfig.d1Period}D/{atrConfig.h1Period}H)</label>
                   <button 
                     className="hub-settings-trigger"
-                    onClick={() => setShowAtrSettings(!showAtrSettings)}
+                    onClick={() => setShowAtrSettings(true)}
                     aria-label="Edit ATR Settings"
                   >
                     <Settings size={12} />
                   </button>
-                  {showAtrSettings && (
-                    <div className="hub-settings-popover hub-atr-popover-wide">
-                      <div className="hub-settings-popover-head">
-                        <strong>ATR INDICATOR</strong>
-                      </div>
-                      <div className="hub-settings-field">
-                        <label>SMOOTHING</label>
-                        <select
-                          value={atrConfig.method}
-                          onChange={(e) => {
-                            const next = { ...atrConfig, method: e.target.value as AtrSmoothingMethod };
-                            setAtrConfig(next);
-                            window.localStorage.setItem(OVERVIEW_ATR_CONFIG_KEY, JSON.stringify(next));
-                          }}
-                        >
-                          <option value="RMA">RMA (Smoothed)</option>
-                          <option value="SMA">SMA (Simple)</option>
-                          <option value="EMA">EMA (Exponential)</option>
-                          <option value="WMA">WMA (Weighted)</option>
-                        </select>
-                      </div>
-                      <div className="hub-method-intel">
-                        <strong>Method Intelligence:</strong>
-                        <p>{ATR_METHOD_DESCRIPTIONS[atrConfig.method]}</p>
-                      </div>
-                      <div className="hub-settings-field">
-                        <label>D1 PERIOD</label>
-                        <input 
-                          type="number" 
-                          min={1} 
-                          max={50}
-                          value={atrConfig.d1Period}
-                          onChange={(e) => {
-                            const next = { ...atrConfig, d1Period: parseInt(e.target.value) || 14 };
-                            setAtrConfig(next);
-                            window.localStorage.setItem(OVERVIEW_ATR_CONFIG_KEY, JSON.stringify(next));
-                          }}
-                        />
-                      </div>
-                      <div className="hub-settings-field">
-                        <label>H1 PERIOD</label>
-                        <input 
-                          type="number" 
-                          min={1} 
-                          max={50}
-                          value={atrConfig.h1Period}
-                          onChange={(e) => {
-                            const next = { ...atrConfig, h1Period: parseInt(e.target.value) || 14 };
-                            setAtrConfig(next);
-                            window.localStorage.setItem(OVERVIEW_ATR_CONFIG_KEY, JSON.stringify(next));
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
                 <span>{atrValue?.d1 ?? "--"}/{atrValue?.h1 ?? "--"} PIPS</span>
               </div>
@@ -708,6 +653,98 @@ export function OverviewTab({
           })}
         </div>
       </section>
+
+      {showAtrSettings && (
+        <div className="hub-inspector-overlay" onClick={() => setShowAtrSettings(false)}>
+          <div
+            className="hub-inspector-panel hub-detail-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label="ATR Indicator settings"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="hub-inspector-top">
+              <div>
+                <div className="hub-inspector-kicker">TECHNICAL CONFIG</div>
+                <h3>ATR INDICATOR</h3>
+              </div>
+              <button
+                type="button"
+                className="hub-inspector-close"
+                onClick={() => setShowAtrSettings(false)}
+                aria-label="Close ATR settings"
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="hub-detail-summary" style={{ background: "#f8fafc" }}>
+              <strong>Method Intelligence</strong>
+              <p>{ATR_METHOD_DESCRIPTIONS[atrConfig.method]}</p>
+            </div>
+
+            <div className="hub-inspector-grid" style={{ padding: "32px" }}>
+              <section className="hub-inspector-card">
+                <div className="hub-settings-field">
+                  <label>SMOOTHING METHOD</label>
+                  <select
+                    value={atrConfig.method}
+                    onChange={(e) => {
+                      const next = { ...atrConfig, method: e.target.value as AtrSmoothingMethod };
+                      setAtrConfig(next);
+                      window.localStorage.setItem(OVERVIEW_ATR_CONFIG_KEY, JSON.stringify(next));
+                    }}
+                  >
+                    <option value="RMA">RMA (Smoothed)</option>
+                    <option value="SMA">SMA (Simple)</option>
+                    <option value="EMA">EMA (Exponential)</option>
+                    <option value="WMA">WMA (Weighted)</option>
+                  </select>
+                </div>
+              </section>
+
+              <section className="hub-inspector-card">
+                <div className="hub-settings-field">
+                  <label>D1 PERIOD (STRUCTURAL)</label>
+                  <input 
+                    type="number" 
+                    min={1} 
+                    max={50}
+                    value={atrConfig.d1Period}
+                    onChange={(e) => {
+                      const next = { ...atrConfig, d1Period: parseInt(e.target.value) || 14 };
+                      setAtrConfig(next);
+                      window.localStorage.setItem(OVERVIEW_ATR_CONFIG_KEY, JSON.stringify(next));
+                    }}
+                  />
+                </div>
+              </section>
+
+              <section className="hub-inspector-card">
+                <div className="hub-settings-field">
+                  <label>H1 PERIOD (SESSION)</label>
+                  <input 
+                    type="number" 
+                    min={1} 
+                    max={50}
+                    value={atrConfig.h1Period}
+                    onChange={(e) => {
+                      const next = { ...atrConfig, h1Period: parseInt(e.target.value) || 14 };
+                      setAtrConfig(next);
+                      window.localStorage.setItem(OVERVIEW_ATR_CONFIG_KEY, JSON.stringify(next));
+                    }}
+                  />
+                </div>
+              </section>
+
+              <section className="hub-inspector-card">
+                <span>Configuration Note</span>
+                <p>These settings influence volatility-based prioritization and sorting throughout the terminal.</p>
+              </section>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showTrustInspector && (
         <div className="hub-inspector-overlay" onClick={() => setShowTrustInspector(false)}>
