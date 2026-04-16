@@ -106,8 +106,7 @@ describe("StrengthMeterTab", () => {
       />,
     );
 
-    expect(html).toContain("Partial data");
-    expect(html).toContain("caution");
+    expect(html).toContain("Limited Data");
     expect(html).toContain("USD");
   });
 });

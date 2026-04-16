@@ -6464,8 +6464,8 @@ button {
 .strength-v5-status-dot { width: 6px; height: 6px; border-radius: 50%; background: #334155; position: relative; }
 .strength-v5-status-item.is-active { color: #f8fafc; }
 .strength-v5-status-item.is-active .strength-v5-status-dot { background: #6366f1; box-shadow: 0 0 10px #6366f1; }
-
-.strength-v5-notice-inline { margin-top: 16px; padding: 8px 16px; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: 8px; color: #92400e; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.strength-v5-status-item.is-warning { color: #fbbf24; }
+.strength-v5-status-item.is-warning .strength-v5-status-dot { background: #fbbf24; box-shadow: 0 0 10px rgba(251, 191, 36, 0.4); }
 
 .strength-v5-section { width: 100%; display: flex; flex-direction: column; margin-bottom: 60px; }
 .strength-v5-section-header { margin-bottom: 24px; display: flex; flex-direction: column; align-items: center; }

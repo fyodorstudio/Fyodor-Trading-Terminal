@@ -81,23 +81,20 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
           Shortlisted conviction opportunities engineered for clinical manual TA.
         </p>
 
-        {/* Integrated Notch & Notice */}
-        <div className="flex flex-col items-center">
-          <div className="strength-v5-notch">
-            <div className={`strength-v5-status-item ${!historyLoading && !historyFailed ? "is-active" : ""}`}>
-              <span className="strength-v5-status-dot"></span>
-              {historyLoading ? "Calculating" : historyFailed ? "Price Engine Offline" : "Price Engine Live"}
-            </div>
-            <div className={`strength-v5-status-item ${status === "live" ? "is-active" : ""}`}>
-              <span className="strength-v5-status-dot"></span>
-              Calendar {status === "live" ? "Sync" : "Stale"}
-            </div>
+        {/* The System Notch - Now includes the Notice */}
+        <div className="strength-v5-notch">
+          <div className={`strength-v5-status-item ${!historyLoading && !historyFailed ? "is-active" : ""}`}>
+            <span className="strength-v5-status-dot"></span>
+            {historyLoading ? "Calculating" : historyFailed ? "Engine Offline" : "Engine Live"}
           </div>
-          
+          <div className={`strength-v5-status-item ${status === "live" ? "is-active" : ""}`}>
+            <span className="strength-v5-status-dot"></span>
+            Calendar {status === "live" ? "Sync" : "Stale"}
+          </div>
           {partialNote && (
-            <div className="strength-v5-notice-inline">
-              <AlertTriangle size={14} />
-              <span>Partial data for {partialNote}. Trade with caution.</span>
+            <div className="strength-v5-status-item is-warning">
+              <span className="strength-v5-status-dot"></span>
+              Limited Data: {partialNote}
             </div>
           )}
         </div>
@@ -247,7 +244,7 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
                 <div className="flex flex-col gap-2">
                   {detailState.item.evidence.map((line, idx) => (
                     <div key={idx} className="text-slate-600 font-semibold text-sm leading-tight flex gap-2">
-                      <span className="text-indigo-500">â†’</span>
+                      <span className="text-indigo-500">→</span>
                       {line}
                     </div>
                   ))}
@@ -267,7 +264,7 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
                       >
                         <div className="flex flex-col gap-1">
                           <strong className="text-slate-950 text-sm group-hover:text-indigo-600 transition-colors">{event.title}</strong>
-                          <span className="text-[10px] text-slate-400 uppercase font-black">{event.currency} â€¢ {event.impact}</span>
+                          <span className="text-[10px] text-slate-400 uppercase font-black">{event.currency} • {event.impact}</span>
                         </div>
                         <ArrowRight size={16} className="text-slate-300 group-hover:text-indigo-500 transition-all" />
                       </button>
