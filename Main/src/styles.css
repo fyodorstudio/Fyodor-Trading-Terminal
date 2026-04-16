@@ -6450,4 +6450,4 @@ button {
 @media (max-width: 900px) { .strength-v4-footer-notes { grid-template-columns: 1fr; } }
 .strength-v4-footer-item { display: flex; flex-direction: column; gap: 8px; }
 .strength-v4-footer-item strong { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: #1e293b; letter-spacing: 0.05em; }
-.strength-v4-footer-item span { font-size: 0.85rem; color: #64748b; line-height: 1.5; }\
+.strength-v4-footer-item span { font-size: 0.85rem; color: #64748b; line-height: 1.5; }
