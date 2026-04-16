@@ -48,7 +48,11 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder }: TabNavigati
         const hasChildren = Boolean(tab.children && tab.children.length > 0);
         const helpText = TAB_HELP_TEXT[tab.id];
         return (
-          <div key={tab.id} className="relative tab-help-anchor">
+          <div
+            key={tab.id}
+            className="relative tab-help-anchor"
+            data-menu-open={hasChildren && openMenuId === tab.id ? "true" : "false"}
+          >
             <button
               type="button"
               onClick={() => {

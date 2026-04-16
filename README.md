@@ -14,7 +14,9 @@ The MT5 bridge is now vendored locally in:
 
 ## Start Here
 
-- Product brief and roadmap: `docs/Roadmap/PRODUCT_BRIEF.md`
+- Product contract: `docs/Roadmap/PRODUCT_CONTRACT.md`
+- Grounded checklist, audit ledger, backlog, and current-state truth: `docs/Roadmap/checklist.md`
+- Naming, wording, and state-language authority: `docs/Roadmap/terminology.md`
 - Frontend-specific notes: `Main/README.md`
 - Bridge-specific notes: `Main/mt5-bridge/README.md`
 
@@ -47,15 +49,15 @@ pnpm run test
 
 - The frontend still expects the MT5 bridge API on `http://127.0.0.1:8001`
 - The bridge no longer needs to run from `alternate_version`
+- Use `pnpm` from the repo root as the package-manager source of truth for this workspace
 
 ## Project Structure
 
 This repository is organized as a unified workspace for the Fyodor Trading Terminal. Below is a breakdown of the root directories:
 
-- **`AGENT_INSTRUCTIONS/`**: Contains specialized instructions and persona-based guides for AI agents (Gemini, Codex, Claude) to ensure consistent development patterns and role-based workflows. It also contains an `archive` of original project strategies.
 - **`Main/`**: The primary application directory.
   - `src/`: The React (Vite) frontend terminal.
   - `mt5-bridge/`: The Python (FastAPI) bridge that communicates with MetaTrader 5.
-- **`docs/`**: Active planning and reference documentation for the current cleanup and rebuild direction.
+- **`docs/`**: Product docs, roadmap docs, reference exports, and local agent-skill reference material.
 - **`scripts/`**: Automation and utility scripts used to launch and manage the terminal's development environment.
 - **`docs/Agent Skills/Uncodixfy/`**: Documentation and reference assets for the `uncodixfy` UI design system, kept as local reference material inside the docs tree.

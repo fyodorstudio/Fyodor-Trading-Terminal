@@ -8,12 +8,14 @@ import { calculateAtrPips, type AtrSmoothingMethod } from "@/app/lib/atr";
 import { fetchHistory } from "@/app/lib/bridge";
 import { formatCountdown, formatRelativeAge, formatUtcDateTime } from "@/app/lib/format";
 import {
+  getDominanceProfile,
   getEventRadarSummary,
   getEventSensitivity,
   getMacroBackdropVerdict,
   getMacroSummary,
   getOverviewPipelineStatus,
   getOverviewSpecialistSummaries,
+  getPairAttentionVerdict,
   getPairOpportunitySummary,
   getPriceAlignment,
   getStrengthDifferentialSummary,
@@ -241,6 +243,14 @@ export function OverviewTab({
   const pair = useMemo(() => getFxPairByName(reviewSymbol), [reviewSymbol]);
   const atrValue = atrByPair[reviewSymbol];
   const pairCandles = candlesByPair[reviewSymbol] ?? { d1: [], h1: [] };
+  const pairAttentionVerdict = useMemo(
+    () => getPairAttentionVerdict(reviewSymbol, trustState, macroVerdict, macroSummary, strengthSummary, eventSensitivity, atrValue?.d1),
+    [reviewSymbol, trustState, macroVerdict, macroSummary, strengthSummary, eventSensitivity, atrValue?.d1],
+  );
+  const dominance = useMemo(
+    () => getDominanceProfile(reviewSymbol, macroVerdict, strengthSummary, eventSensitivity, atrValue?.d1, atrValue?.h1),
+    [reviewSymbol, macroVerdict, strengthSummary, eventSensitivity, atrValue?.d1, atrValue?.h1],
+  );
   const priceAlignment = useMemo<PriceAlignmentSummary>(
     () => getPriceAlignment(reviewSymbol, pairCandles.d1, pairCandles.h1),
     [reviewSymbol, pairCandles.d1, pairCandles.h1],
@@ -500,28 +510,15 @@ export function OverviewTab({
             </div>
           </header>
 
-          <article className={`hub-verdict-banner is-${winningNow.tone}`}>
+          <article className={`hub-verdict-banner is-${pairAttentionVerdict.tone}`}>
             <div style={{ flex: 1 }}>
-              <div className="hub-verdict-kicker">Who Is Winning Now</div>
-              <div style={{ fontSize: "2.2rem", fontWeight: 900, lineHeight: 1.05, marginTop: "4px" }}>{winningNow.winnerLabel}</div>
-              <p style={{ fontSize: "1.02rem", marginTop: "12px", opacity: 0.92, lineHeight: 1.55, maxWidth: "680px" }}>
-                {winningNow.summary}
+              <div style={{ fontSize: "0.75rem", fontWeight: 800, textTransform: "uppercase", opacity: 0.7, letterSpacing: "0.15em" }}>
+                {dominance.winner.toUpperCase()}
+              </div>
+              <div style={{ fontSize: "2.2rem", fontWeight: 900, lineHeight: 1, marginTop: "4px" }}>{pairAttentionVerdict.label}</div>
+              <p style={{ fontSize: "1.1rem", marginTop: "12px", opacity: 0.9, lineHeight: 1.5, maxWidth: "540px" }}>
+                {pairAttentionVerdict.detail}
               </p>
-              <div className="hub-verdict-chip-row">
-                <span className={`hub-banner-chip is-${winningNow.tone}`}>{CONVICTION_LABELS[winningNow.conviction]}</span>
-                <span className="hub-banner-chip is-neutral" style={{ color: ACTION_LABEL_COLORS[winningNow.actionLabel] }}>{winningNow.actionLabel}</span>
-                <span className="hub-banner-chip is-neutral">{eventSensitivity.label}</span>
-              </div>
-              <div className="hub-verdict-reasons">
-                {winningNow.reasons.map((reason) => (
-                  <span key={reason}>{reason}</span>
-                ))}
-              </div>
-              {winningNow.risks.length > 0 ? (
-                <div className="hub-verdict-riskline">
-                  Risk check: {winningNow.risks.join(" ")}
-                </div>
-              ) : null}
             </div>
             <Target size={48} strokeWidth={2.5} opacity={0.2} />
           </article>
@@ -530,24 +527,24 @@ export function OverviewTab({
             <div className="hub-dominance-pillars">
               <div className="hub-pillar">
                 <label>MACRO PILLAR</label>
-                <div className={`hub-pillar-badge is-${macroVerdict.tone}`}>
-                  {macroVerdict.label}
+                <div className={`hub-pillar-badge is-${dominance.pillars.macro.status}`}>
+                  {dominance.pillars.macro.label}
                 </div>
                 <span>{macroSummary.rateGap != null ? `Rate Gap ${macroSummary.rateGap > 0 ? "+" : ""}${macroSummary.rateGap.toFixed(2)}%` : "Unresolved"}</span>
               </div>
               <div className="hub-pillar">
-                <label>PRICE PILLAR</label>
-                <div className={`hub-pillar-badge is-${priceAlignment.direction === winningNow.winner ? "good" : priceAlignment.direction === "unresolved" ? "warning" : "danger"}`}>
-                  {priceAlignment.label}
+                <label>STRENGTH PILLAR</label>
+                <div className={`hub-pillar-badge is-${dominance.pillars.strength.status}`}>
+                  {dominance.pillars.strength.label}
                 </div>
-                <span>{priceAlignment.detail}</span>
+                <span>{strengthSummary.scoreGap != null ? `Gap ${strengthSummary.scoreGap.toFixed(1)} pts` : "Unresolved"}</span>
               </div>
               <div className="hub-pillar">
-                <label>TIMING PILLAR</label>
-                <div className={`hub-pillar-badge is-${eventSensitivity.tone}`}>
-                  {eventSensitivity.label}
+                <label>CONTEXT PILLAR</label>
+                <div className={`hub-pillar-badge is-${dominance.pillars.context.status}`}>
+                  {dominance.pillars.context.label}
                 </div>
-                <span>{winningNow.actionLabel}</span>
+                <span>{eventSensitivity.label} horizon</span>
               </div>
             </div>
           ) : (
@@ -569,20 +566,10 @@ export function OverviewTab({
                   <label>Inflation (CPI)</label>
                   <span>{baseSnap?.currentInflationRate || "---"}</span>
                 </div>
-                <div className="hub-matrix-stat">
-                  <label>Winning Now</label>
-                  <span>{winningNow.winner === "base" ? winningNow.actionLabel : winningNow.winner === "quote" ? "Under pressure" : winningNow.winnerLabel}</span>
-                </div>
               </div>
               <div className="hub-matrix-divider">
-                <div className={`hub-dominance-arrow is-${winningNow.tone}`}>
-                  {winningNow.winner === "base" ? (
-                    <ChevronRight size={20} style={{ transform: "rotate(180deg)" }} />
-                  ) : winningNow.winner === "quote" ? (
-                    <ChevronRight size={20} />
-                  ) : (
-                    <div className="hub-conflict-dot" />
-                  )}
+                <div className={`hub-dominance-arrow is-${dominance.tone}`}>
+                  {dominance.winner.includes(pair?.base || "") ? <ChevronRight size={20} style={{ transform: "rotate(180deg)" }} /> : dominance.winner.includes(pair?.quote || "") ? <ChevronRight size={20} /> : <div className="hub-conflict-dot" />}
                 </div>
               </div>
               <div className="hub-matrix-cell">
@@ -602,10 +589,6 @@ export function OverviewTab({
                   <label>Inflation (CPI)</label>
                   <span>{quoteSnap?.currentInflationRate || "---"}</span>
                 </div>
-                <div className="hub-matrix-stat">
-                  <label>Winning Now</label>
-                  <span>{winningNow.winner === "quote" ? winningNow.actionLabel : winningNow.winner === "base" ? "Under pressure" : winningNow.winnerLabel}</span>
-                </div>
               </div>
             </div>
           )}
@@ -613,9 +596,27 @@ export function OverviewTab({
           <section className="hub-opportunity-box">
             <div className="hub-opportunity-head">
               <div>
-                <div className="hub-opportunity-kicker">Routing Shortlist</div>
-                <h3>Best Pairs Right Now</h3>
+                <div className="hub-opportunity-kicker">Who Is Winning Now</div>
+                <h3>{winningNow.winnerLabel}</h3>
               </div>
+              <span style={{ color: ACTION_LABEL_COLORS[winningNow.actionLabel] }}>{winningNow.actionLabel}</span>
+            </div>
+            <div className="hub-winning-summary">
+              <div className="hub-winning-badges">
+                <span className="hub-winning-badge">{CONVICTION_LABELS[winningNow.conviction]}</span>
+                <span className="hub-winning-badge">{eventSensitivity.label}</span>
+                <span className="hub-winning-badge">{priceAlignment.label}</span>
+              </div>
+              <div className="hub-winning-copy">
+                <p>{winningNow.summary}</p>
+                {winningNow.reasons.map((reason) => (
+                  <span key={reason}>{reason}</span>
+                ))}
+                {winningNow.risks.length > 0 ? <strong>Risk check: {winningNow.risks.join(" ")}</strong> : null}
+              </div>
+            </div>
+            <div className="hub-opportunity-subhead">
+              <strong>Best Pairs Right Now</strong>
               <span>Top 5 by current evidence</span>
             </div>
             <div className="hub-opportunity-list">
@@ -642,23 +643,67 @@ export function OverviewTab({
             </div>
           </section>
 
-          <div className="hub-macro-box">
-            <div className="hub-macro-title">
-              <TrendingUp size={16} />
-              {TERMINOLOGY.macroBackdrop.questionLabel}
+          <div className="hub-lower-strip">
+            <div className="hub-macro-box">
+              <div className="hub-macro-title">
+                <TrendingUp size={16} />
+                {TERMINOLOGY.macroBackdrop.questionLabel}
+              </div>
+              <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#111827" }}>
+                {macroVerdict.label}: {macroSummary.title}
+              </div>
+              <p style={{ margin: "10px 0 0", fontSize: "0.95rem", color: "#64748b", lineHeight: 1.6 }}>
+                {macroVerdict.detail}
+              </p>
             </div>
-            <div style={{ fontSize: "1.1rem", fontWeight: 700, color: "#111827" }}>
-              {macroVerdict.label}: {macroSummary.title}
-            </div>
-            <p style={{ margin: "10px 0 0", fontSize: "0.95rem", color: "#64748b", lineHeight: 1.6 }}>
-              {macroVerdict.detail}
-            </p>
+
+            <section className="hub-confidence-card">
+              <div className="hub-status-head">
+                <div className="hub-status-label">{TERMINOLOGY.pipeline.sectionLabel}</div>
+                <button
+                  type="button"
+                  className="hub-help-trigger"
+                  aria-label="Explain differential pipeline status"
+                  onClick={() => setShowPipelineInspector(true)}
+                >
+                  <CircleHelp size={14} />
+                  <div className="hub-help-popover" role="tooltip">
+                    <strong>What this means</strong>
+                    <p>{pipelineStatus.explanation}</p>
+                    <strong>Current factors</strong>
+                    {pipelineStatus.factors.length > 0 ? (
+                      <ul>
+                        {pipelineStatus.factors.map((factor) => (
+                          <li key={factor}>{factor}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>No limiting factors are active right now.</p>
+                    )}
+                  </div>
+                </button>
+              </div>
+              <div className="hub-progress-track">
+                <div className={`hub-progress-fill is-${pipelineStatus.tone}`} style={{ width: `${pipelineStatus.percent}%` }} />
+              </div>
+              <div className="hub-confidence-row">
+                <div style={{ fontSize: "0.82rem", fontWeight: 800, color: pipelineStatus.tone === "good" ? "#10b981" : pipelineStatus.tone === "danger" ? "#ef4444" : "#f59e0b" }}>
+                  {pipelineStatus.label}
+                </div>
+                <div style={{ fontSize: "0.96rem", fontWeight: 900, color: "#1e293b" }}>
+                  {pipelineStatus.percent}%
+                </div>
+              </div>
+              <div className="hub-confidence-copy">
+                {pipelineStatus.detail}
+              </div>
+            </section>
           </div>
         </main>
 
         {/* Right Column: Timeline Radar & Status */}
-        <aside className="hub-column" style={{ height: "100%" }}>
-          <section className="hub-card" style={{ flex: 1 }}>
+        <aside className="hub-column">
+          <section className="hub-card hub-radar-card">
             <header className="hub-card-header">
               <CalendarClock size={14} />
               <h3>{TERMINOLOGY.eventSensitivity.sectionLabel}</h3>
@@ -709,48 +754,6 @@ export function OverviewTab({
                 <strong>{radarSummary.nextRiskDetail}</strong>
               </div>
             ) : null}
-          </section>
-
-          <section className="hub-status-bar">
-            <div className="hub-status-head">
-              <div className="hub-status-label">{TERMINOLOGY.pipeline.sectionLabel}</div>
-              <button
-                type="button"
-                className="hub-help-trigger"
-                aria-label="Explain differential pipeline status"
-                onClick={() => setShowPipelineInspector(true)}
-              >
-                <CircleHelp size={14} />
-                <div className="hub-help-popover" role="tooltip">
-                  <strong>What this means</strong>
-                  <p>{pipelineStatus.explanation}</p>
-                  <strong>Current factors</strong>
-                  {pipelineStatus.factors.length > 0 ? (
-                    <ul>
-                      {pipelineStatus.factors.map((factor) => (
-                        <li key={factor}>{factor}</li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p>No limiting factors are active right now.</p>
-                  )}
-                </div>
-              </button>
-            </div>
-            <div className="hub-progress-track">
-              <div className={`hub-progress-fill is-${pipelineStatus.tone}`} style={{ width: `${pipelineStatus.percent}%` }} />
-            </div>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", marginTop: "10px" }}>
-              <div style={{ fontSize: "0.8rem", fontWeight: 800, color: pipelineStatus.tone === "good" ? "#10b981" : pipelineStatus.tone === "danger" ? "#ef4444" : "#f59e0b" }}>
-                {pipelineStatus.label}
-              </div>
-              <div style={{ fontSize: "0.92rem", fontWeight: 900, color: "#1e293b" }}>
-                {pipelineStatus.percent}%
-              </div>
-            </div>
-            <div style={{ fontSize: "0.78rem", lineHeight: 1.4, color: "#94a3b8", marginTop: "8px" }}>
-              {pipelineStatus.detail}
-            </div>
           </section>
         </aside>
       </div>
