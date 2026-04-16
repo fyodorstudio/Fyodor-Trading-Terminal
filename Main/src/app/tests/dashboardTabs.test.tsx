@@ -87,9 +87,9 @@ describe("StrengthMeterTab", () => {
     );
 
     expect(html).toContain("Open First");
-    expect(html).toContain("Board Read");
+    expect(html).toContain("Major Map");
     expect(html).toContain("Trust Limits");
-    expect(html).toContain("Logic");
+    expect(html).toContain("Methodology");
     expect(html).toContain("Inspect");
   });
 
@@ -106,7 +106,7 @@ describe("StrengthMeterTab", () => {
       />,
     );
 
-    expect(html).toContain("Operational Notice");
+    expect(html).toContain("Notice");
     expect(html).toContain("caution");
     expect(html).toContain("USD");
   });
