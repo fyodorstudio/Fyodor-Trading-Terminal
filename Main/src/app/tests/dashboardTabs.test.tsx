@@ -88,8 +88,9 @@ describe("StrengthMeterTab", () => {
 
     expect(html).toContain("Open First");
     expect(html).toContain("Board Read");
-    expect(html).toContain("Trust And Limits");
-    expect(html).toContain("See why");
+    expect(html).toContain("Methodology");
+    expect(html).toContain("Trust");
+    expect(html).toContain("Inspect");
   });
 
   it("shows a partial coverage note instead of faking a complete board", () => {

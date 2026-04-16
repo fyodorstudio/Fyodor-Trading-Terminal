@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, ArrowRight, Clock3, RefreshCcw, X } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRight, Clock3, Info, RefreshCcw, X } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS } from "@/app/config/fxPairs";
 import { fetchHistory } from "@/app/lib/bridge";
@@ -77,7 +77,7 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
       <div className="section-head">
         <div>
           <h2>Strength Meter</h2>
-          <p>Choose what to open in TradingView first. Use the details only when you need to understand why.</p>
+          <p>Choose what to open in TradingView first. Use the drawer only when you need to understand why.</p>
         </div>
       </div>
 
@@ -107,42 +107,41 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
         </section>
       ) : null}
 
-      {historyFailed ? (
-        <section className="macro-block">
-          <div className="strength-v2-alert">
-            <Clock3 size={16} />
-            <span>Price data is incomplete, so treat this tab as a rough shortlist only.</span>
-          </div>
-        </section>
-      ) : null}
-
       <section className="macro-block">
         <div className="macro-block-head">
           <h3>Open First</h3>
           <p>The shortest path to your first TradingView charts.</p>
         </div>
-        <div className="strength-v3-shortlist">
+        <div className="strength-v4-grid">
           {result.shortlist.map((item) => (
-            <article key={item.pair.name} className="strength-v3-pair-card">
-              <div className="strength-v3-pair-head">
-                <div>
-                  <strong>{item.pair.name}</strong>
-                  <span>{item.label}</span>
-                </div>
+            <article key={item.pair.name} className="strength-v4-card">
+              <div className="strength-v4-card-head">
+                <strong className="strength-v4-card-name">{item.pair.name}</strong>
+                <span className="strength-v4-card-score">{item.score.toFixed(0)}</span>
               </div>
-              <p className="strength-v3-summary">{item.summary}</p>
-              {item.caution ? <p className="strength-v3-caution">{item.caution}</p> : null}
-              <div className="strength-v3-actions">
-                <button type="button" className="strength-v3-button is-primary" onClick={() => setDetailState({ kind: "pair", item })}>
-                  See why
+              <p className="strength-v4-card-summary">{item.summary}</p>
+              <div className="strength-v4-card-tags">
+                {item.reasonTags.map((tag) => (
+                  <span key={tag} className={`strength-v4-tag ${tag.includes("agrees") || tag.includes("support") ? "is-highlight" : ""}`}>
+                    {tag}
+                  </span>
+                ))}
+              </div>
+              <div className="strength-v4-btn-group">
+                <button
+                  type="button"
+                  className="strength-v4-btn strength-v4-btn-primary"
+                  onClick={() => setDetailState({ kind: "pair", item })}
+                >
+                  Inspect
                 </button>
                 {item.eventRefs[0] ? (
                   <button
                     type="button"
-                    className="strength-v3-button"
+                    className="strength-v4-btn strength-v4-btn-secondary"
                     onClick={() => onOpenCalendarEvent(item.eventRefs[0])}
                   >
-                    Open event
+                    Event
                   </button>
                 ) : null}
               </div>
@@ -154,22 +153,21 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
       <section className="macro-block">
         <div className="macro-block-head">
           <h3>Board Read</h3>
-          <p>Only a quick check on which currencies are winning broadly, unclear, or losing broadly.</p>
+          <p>Quick check on currency health across the major board.</p>
         </div>
-        <div className="strength-v3-board">
+        <div className="strength-v4-board">
           {result.currencies.map((currency) => (
             <button
               key={currency.currency}
               type="button"
-              className={`strength-v3-board-row is-${currency.state}`}
+              className={`strength-v4-chip is-${currency.state}`}
               onClick={() => setDetailState({ kind: "currency", item: currency })}
             >
-              <div className="strength-v3-board-main">
-                <FlagIcon countryCode={currency.countryCode} className="h-5 w-8" />
+              <FlagIcon countryCode={currency.countryCode} className="h-6 w-10 rounded-sm shadow-sm" />
+              <div className="strength-v4-chip-info">
                 <strong>{currency.currency}</strong>
                 <span>{currency.stateLabel}</span>
               </div>
-              <span className="strength-v3-board-link">See why</span>
             </button>
           ))}
         </div>
@@ -177,91 +175,104 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
 
       <section className="macro-block">
         <div className="macro-block-head">
-          <h3>Trust And Limits</h3>
-          <p>Trust it as a shortlist assistant only.</p>
+          <h3>Methodology & Trust</h3>
         </div>
         <div className="strength-v3-trust">
           <div>
             <strong>Useful when</strong>
-            <span>The board read, direct pair, and event timing are all pointing in the same direction.</span>
+            <span>Board, pair impulse, and macro alignment all point in the same direction.</span>
           </div>
           <div>
             <strong>Do not lean on it when</strong>
-            <span>data is partial, an event is close, or your chart disagrees with the shortlist.</span>
+            <span>An event is close, data is stale, or your chart setup is missing.</span>
           </div>
           <div>
-            <strong>It does not do</strong>
-            <span>entries, stops, targets, execution, or chart-structure judgment.</span>
+            <strong>Disclaimer</strong>
+            <span>This tool helps identify "where to look", it does not replace discretionary chart reading.</span>
           </div>
         </div>
       </section>
 
       {detailState ? (
-        <div className="strength-v3-overlay" onClick={() => setDetailState(null)}>
-          <div className="strength-v3-detail" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
-            <div className="strength-v3-detail-head">
-              <div>
-                <strong>{detailState.kind === "pair" ? detailState.item.pair.name : detailState.item.currency}</strong>
-                <span>{detailState.kind === "pair" ? detailState.item.summary : detailState.item.summary}</span>
+        <div className="strength-v4-drawer-overlay" onClick={() => setDetailState(null)}>
+          <div className="strength-v4-drawer" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <div className="strength-v4-drawer-head">
+              <div className="strength-v4-drawer-title">
+                <h2>{detailState.kind === "pair" ? detailState.item.pair.name : detailState.item.currency}</h2>
+                <p>{detailState.kind === "pair" ? "Pair Breakdown" : "Currency Breakdown"}</p>
               </div>
-              <button type="button" className="strength-v3-close" onClick={() => setDetailState(null)}>
-                <X size={16} />
+              <button type="button" className="strength-v4-drawer-close" onClick={() => setDetailState(null)}>
+                <X size={20} />
               </button>
             </div>
 
-            {detailState.kind === "pair" ? (
-              <div className="strength-v3-detail-body">
-                <section className="strength-v3-detail-section">
-                  <strong>Why it is here</strong>
-                  {detailState.item.evidence.map((line) => (
-                    <span key={`${detailState.item.pair.name}-${line}`}>{line}</span>
-                  ))}
-                </section>
+            <div className="strength-v4-drawer-body">
+              <section className="strength-v4-drawer-section">
+                <h3>The Verdict</h3>
+                <div className="strength-v4-verdict">
+                  {detailState.kind === "pair" ? detailState.item.summary : detailState.item.summary}
+                </div>
+              </section>
 
-                {detailState.item.eventRefs.length > 0 ? (
-                  <section className="strength-v3-detail-section">
-                    <strong>Event support</strong>
+              {detailState.kind === "currency" && (
+                <section className="strength-v4-drawer-section">
+                  <h3>Ingredient Breakdown</h3>
+                  <div className="flex flex-col gap-5">
+                    {[
+                      { label: "Price Impulse", breakdown: detailState.item.price },
+                      { label: "Event Push", breakdown: detailState.item.event },
+                      { label: "Macro Structural", breakdown: detailState.item.structural },
+                    ].map((ing) => (
+                      <div key={ing.label} className="strength-v4-ingredient">
+                        <div className="strength-v4-ingredient-head">
+                          <span>{ing.label}</span>
+                          <span>{(ing.breakdown.contribution * 100).toFixed(1)}% weight contribution</span>
+                        </div>
+                        <div className="strength-v4-bar-track">
+                          <div
+                            className="strength-v4-bar-fill"
+                            style={{ width: `${Math.abs(ing.breakdown.value * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              <section className="strength-v4-drawer-section">
+                <h3>Supporting Evidence</h3>
+                <div className="strength-v4-evidence-list">
+                  {detailState.item.evidence.map((line, idx) => (
+                    <div key={idx} className="strength-v4-evidence-item">
+                      {line}
+                    </div>
+                  ))}
+                </div>
+              </section>
+
+              {detailState.item.eventRefs.length > 0 && (
+                <section className="strength-v4-drawer-section">
+                  <h3>Relevant Events</h3>
+                  <div className="flex flex-col gap-3">
                     {detailState.item.eventRefs.map((event) => (
                       <button
                         key={`${event.id}-${event.time}`}
                         type="button"
-                        className="strength-v3-event-link"
+                        className="strength-v4-event-link"
                         onClick={() => onOpenCalendarEvent(event)}
                       >
-                        <span>{event.currency} {event.title}</span>
-                        <span>actual {event.actual || "n/a"} vs forecast {event.forecast || event.previous || "n/a"}</span>
+                        <div className="strength-v4-event-info">
+                          <strong>{event.title}</strong>
+                          <span>{event.currency} • {event.impact} impact</span>
+                        </div>
+                        <ArrowRight size={16} className="text-slate-400" />
                       </button>
                     ))}
-                  </section>
-                ) : null}
-              </div>
-            ) : (
-              <div className="strength-v3-detail-body">
-                <section className="strength-v3-detail-section">
-                  <strong>What is backing this read</strong>
-                  {detailState.item.evidence.map((line) => (
-                    <span key={`${detailState.item.currency}-${line}`}>{line}</span>
-                  ))}
+                  </div>
                 </section>
-
-                {detailState.item.eventRefs.length > 0 ? (
-                  <section className="strength-v3-detail-section">
-                    <strong>Recent events</strong>
-                    {detailState.item.eventRefs.map((event) => (
-                      <button
-                        key={`${event.id}-${event.time}`}
-                        type="button"
-                        className="strength-v3-event-link"
-                        onClick={() => onOpenCalendarEvent(event)}
-                      >
-                        <span>{event.currency} {event.title}</span>
-                        <span>actual {event.actual || "n/a"} vs forecast {event.forecast || event.previous || "n/a"}</span>
-                      </button>
-                    ))}
-                  </section>
-                ) : null}
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
       ) : null}
