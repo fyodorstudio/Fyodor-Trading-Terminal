@@ -74,12 +74,12 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
 
   return (
     <section className="tab-panel">
-      {/* Hero Section - High Fidelity */}
+      {/* Hero Section - Centered High Fidelity */}
       <header className="strength-v5-hero">
         <h1 className="strength-v5-title">Strength<br />Meter</h1>
         <p className="strength-v5-desc">
-          High-conviction shortlisted opportunities derived from price impulse, macro alignment, and event backing. 
-          Built for the tired trader who needs a clinical board read in seconds.
+          Professional shortlist of the highest-conviction opportunities across the major board. 
+          Engineered for rapid decision-making beside TradingView.
         </p>
 
         <div className="strength-v5-status-bar">
@@ -94,12 +94,11 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
         </div>
       </header>
 
+      {/* Sleek Operational Notice - Replaces legacy pills */}
       {partialNote ? (
-        <div className="mb-12">
-          <div className="strength-v2-alert">
-            <AlertTriangle size={16} />
-            <span>Operational Notice: Partial data for {partialNote}. Trade with caution.</span>
-          </div>
+        <div className="strength-v5-notice">
+          <AlertTriangle size={20} className="text-amber-500" />
+          <span>Operational Notice: Partial coverage for {partialNote}. Trade with heightened caution.</span>
         </div>
       ) : null}
 
@@ -112,15 +111,15 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
           {result.shortlist.map((item) => (
             <article key={item.pair.name} className="strength-v5-card">
               <div className="strength-v4-card-head mb-6">
-                <strong className="strength-v4-card-name text-2xl">{item.pair.name}</strong>
-                <span className="strength-v4-card-score bg-indigo-50 text-indigo-600 border border-indigo-100">{item.score.toFixed(0)}</span>
+                <strong className="strength-v4-card-name text-3xl">{item.pair.name}</strong>
+                <span className="strength-v4-card-score bg-indigo-50 text-indigo-600 border border-indigo-100 font-black">{item.score.toFixed(0)}</span>
               </div>
-              <p className="strength-v4-card-summary text-base mb-6 font-medium text-slate-600">{item.summary}</p>
-              <div className="strength-v4-card-tags mb-8">
+              <p className="strength-v4-card-summary text-lg mb-8 font-semibold text-slate-600 leading-relaxed">{item.summary}</p>
+              <div className="strength-v4-card-tags mb-10">
                 {item.reasonTags.map((tag) => (
                   <span
                     key={tag}
-                    className={`strength-v4-tag ${tag.includes("agrees") || tag.includes("support") ? "is-highlight" : ""}`}
+                    className={`strength-v4-tag py-1 px-3 text-xs ${tag.includes("agrees") || tag.includes("support") ? "is-highlight" : ""}`}
                   >
                     {tag}
                   </span>
@@ -129,7 +128,7 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
               <div className="flex gap-4">
                 <button
                   type="button"
-                  className="flex-1 py-3 px-6 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-black transition-all"
+                  className="flex-1 py-4 px-8 rounded-2xl bg-slate-900 text-white font-black text-sm hover:bg-black transition-all shadow-lg hover:shadow-indigo-500/10"
                   onClick={() => setDetailState({ kind: "pair", item })}
                 >
                   Inspect
@@ -137,10 +136,10 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
                 {item.eventRefs[0] ? (
                   <button
                     type="button"
-                    className="py-3 px-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all"
+                    className="py-4 px-5 rounded-2xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all"
                     onClick={() => onOpenCalendarEvent(item.eventRefs[0])}
                   >
-                    <Activity size={18} />
+                    <Activity size={20} />
                   </button>
                 ) : null}
               </div>
@@ -162,10 +161,10 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
               className={`strength-v5-chip strength-v4-chip is-${currency.state}`}
               onClick={() => setDetailState({ kind: "currency", item: currency })}
             >
-              <FlagIcon countryCode={currency.countryCode} className="h-8 w-12 rounded-md shadow-sm" />
+              <FlagIcon countryCode={currency.countryCode} className="h-10 w-14 rounded-lg shadow-sm" />
               <div className="strength-v4-chip-info">
-                <strong className="text-xl">{currency.currency}</strong>
-                <span className="text-xs">{currency.stateLabel}</span>
+                <strong className="text-2xl">{currency.currency}</strong>
+                <span className="text-xs font-black tracking-widest">{currency.stateLabel}</span>
               </div>
             </button>
           ))}
@@ -178,19 +177,19 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
           <strong>Logic & Weights</strong>
           <p>
             Composite score derived from Price Impulse (55%), Event Backing (25%), and Structural Macro (20%). 
-            Updated in real-time.
+            Calculated in real-time by the Fyodor Price Engine.
           </p>
         </div>
         <div className="strength-v5-footer-item">
           <strong>Optimal Use</strong>
           <p>
-            Use this board to shortlist pairs for TradingView. Clinical execution requires manual D1 to H1 chart confirmation.
+            This shortlist surface identifies where to look. Execution requires clinical manual D1 to H1 chart confirmation in TradingView.
           </p>
         </div>
         <div className="strength-v5-footer-item">
           <strong>Trust Limits</strong>
           <p>
-            Do not lean on this during high-impact news releases or when data is marked as "Stale" in the status bar.
+            Operational safety drops during high-impact news releases or when external data is marked as "Stale".
           </p>
         </div>
       </footer>
@@ -201,39 +200,41 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
           <div className="strength-v4-drawer" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <div className="strength-v4-drawer-head">
               <div className="strength-v4-drawer-title">
-                <h2>{detailState.kind === "pair" ? detailState.item.pair.name : detailState.item.currency}</h2>
-                <p>{detailState.kind === "pair" ? "Surgical Breakdown" : "Currency Analysis"}</p>
+                <h2 className="text-4xl">{detailState.kind === "pair" ? detailState.item.pair.name : detailState.item.currency}</h2>
+                <p className="font-bold tracking-widest uppercase text-xs mt-2 text-indigo-500">
+                  {detailState.kind === "pair" ? "Surgical Breakdown" : "Currency Analysis"}
+                </p>
               </div>
               <button type="button" className="strength-v4-drawer-close" onClick={() => setDetailState(null)}>
-                <X size={20} />
+                <X size={24} />
               </button>
             </div>
 
             <div className="strength-v4-drawer-body">
               <section className="strength-v4-drawer-section">
-                <h3>The Verdict</h3>
-                <div className="strength-v4-verdict bg-slate-50 border-none text-slate-800 font-semibold italic">
+                <h3 className="text-xs font-black tracking-widest">The Verdict</h3>
+                <div className="strength-v4-verdict bg-slate-50 border-none text-slate-800 text-xl font-bold italic leading-relaxed p-8 rounded-3xl">
                   "{detailState.item.summary}"
                 </div>
               </section>
 
               {detailState.kind === "currency" && (
                 <section className="strength-v4-drawer-section">
-                  <h3>Weight Distribution</h3>
-                  <div className="flex flex-col gap-6">
+                  <h3 className="text-xs font-black tracking-widest">Weight Distribution</h3>
+                  <div className="flex flex-col gap-8">
                     {[
                       { label: "Price Impulse", breakdown: detailState.item.price },
                       { label: "Event Push", breakdown: detailState.item.event },
                       { label: "Macro Structural", breakdown: detailState.item.structural },
                     ].map((ing) => (
                       <div key={ing.label} className="strength-v4-ingredient">
-                        <div className="strength-v4-ingredient-head">
-                          <span className="text-slate-500">{ing.label}</span>
-                          <span className="text-slate-900">{(ing.breakdown.contribution * 100).toFixed(0)}% Impact</span>
+                        <div className="strength-v4-ingredient-head mb-2">
+                          <span className="text-slate-500 font-bold">{ing.label}</span>
+                          <span className="text-slate-950 font-black">{(ing.breakdown.contribution * 100).toFixed(0)}% Impact</span>
                         </div>
-                        <div className="strength-v4-bar-track h-2 bg-slate-100">
+                        <div className="strength-v4-bar-track h-3 bg-slate-100 rounded-full">
                           <div
-                            className="strength-v4-bar-fill rounded-full bg-indigo-500"
+                            className="strength-v4-bar-fill rounded-full bg-indigo-600 shadow-[0_0_15px_rgba(99,102,241,0.3)]"
                             style={{ width: `${Math.abs(ing.breakdown.value * 100)}%` }}
                           />
                         </div>
@@ -244,10 +245,10 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
               )}
 
               <section className="strength-v4-drawer-section">
-                <h3>Raw Evidence</h3>
+                <h3 className="text-xs font-black tracking-widest">Raw Evidence</h3>
                 <div className="strength-v4-evidence-list">
                   {detailState.item.evidence.map((line, idx) => (
-                    <div key={idx} className="strength-v4-evidence-item text-slate-600 font-medium">
+                    <div key={idx} className="strength-v4-evidence-item text-slate-600 font-semibold text-base py-1">
                       {line}
                     </div>
                   ))}
@@ -256,20 +257,20 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
 
               {detailState.item.eventRefs.length > 0 && (
                 <section className="strength-v4-drawer-section">
-                  <h3>Surgical Radar</h3>
-                  <div className="flex flex-col gap-3">
+                  <h3 className="text-xs font-black tracking-widest">Surgical Radar</h3>
+                  <div className="flex flex-col gap-4">
                     {detailState.item.eventRefs.map((event) => (
                       <button
                         key={`${event.id}-${event.time}`}
                         type="button"
-                        className="p-4 bg-white border border-slate-100 rounded-2xl flex justify-between items-center hover:border-indigo-200 transition-all"
+                        className="p-6 bg-white border border-slate-100 rounded-3xl flex justify-between items-center hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all group text-left"
                         onClick={() => onOpenCalendarEvent(event)}
                       >
-                        <div className="flex flex-col gap-1">
-                          <strong className="text-slate-900">{event.title}</strong>
-                          <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">{event.currency} • {event.impact}</span>
+                        <div className="flex flex-col gap-2">
+                          <strong className="text-slate-950 text-lg group-hover:text-indigo-600 transition-colors">{event.title}</strong>
+                          <span className="text-xs text-slate-500 uppercase font-black tracking-widest">{event.currency} • {event.impact} IMPACT</span>
                         </div>
-                        <ArrowRight size={18} className="text-indigo-400" />
+                        <ArrowRight size={24} className="text-slate-300 group-hover:text-indigo-500 transition-all group-hover:translate-x-1" />
                       </button>
                     ))}
                   </div>
