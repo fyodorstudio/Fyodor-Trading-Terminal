@@ -71,116 +71,87 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
   );
 
   const partialNote = result.partialCurrencies.length > 0 ? result.partialCurrencies.join(", ") : null;
-  const topPick = result.shortlist[0];
-  const otherOpportunities = result.shortlist.slice(1);
 
   return (
     <section className="tab-panel strength-v5-panel">
-      {/* Cinematic Hero */}
+      {/* High Density Hero */}
       <header className="strength-v5-hero">
         <h1 className="strength-v5-title">Strength Meter</h1>
         <p className="strength-v5-desc">
-          A high-conviction shortlist engineered for rapid manual TA. 
-          Identify the winner, open the chart, and execute your read.
+          Shortlisted conviction opportunities engineered for clinical manual TA.
         </p>
 
-        {/* The System Notch */}
-        <div className="strength-v5-notch">
-          <div className={`strength-v5-status-item ${!historyLoading && !historyFailed ? "is-active" : ""}`}>
-            <span className="strength-v5-status-dot"></span>
-            {historyLoading ? "Calculating" : historyFailed ? "Engine Offline" : "Engine Live"}
+        {/* Integrated Notch & Notice */}
+        <div className="flex flex-col items-center">
+          <div className="strength-v5-notch">
+            <div className={`strength-v5-status-item ${!historyLoading && !historyFailed ? "is-active" : ""}`}>
+              <span className="strength-v5-status-dot"></span>
+              {historyLoading ? "Calculating" : historyFailed ? "Price Engine Offline" : "Price Engine Live"}
+            </div>
+            <div className={`strength-v5-status-item ${status === "live" ? "is-active" : ""}`}>
+              <span className="strength-v5-status-dot"></span>
+              Calendar {status === "live" ? "Sync" : "Stale"}
+            </div>
           </div>
-          <div className={`strength-v5-status-item ${status === "live" ? "is-active" : ""}`}>
-            <span className="strength-v5-status-dot"></span>
-            Calendar {status === "live" ? "Sync" : "Stale"}
-          </div>
+          
+          {partialNote && (
+            <div className="strength-v5-notice-inline">
+              <AlertTriangle size={14} />
+              <span>Partial data for {partialNote}. Trade with caution.</span>
+            </div>
+          )}
         </div>
       </header>
 
-      {/* Operational Notice Pill */}
-      {partialNote ? (
-        <div className="strength-v5-notice">
-          <AlertTriangle size={18} />
-          <span>Notice: Partial data for {partialNote}. Trade with clinical caution.</span>
-        </div>
-      ) : null}
-
-      {/* Opportunities Section: Spotlight Layout */}
+      {/* Opportunities Section: Compact Grid */}
       <section className="strength-v5-section">
         <div className="strength-v5-section-header">
-          <span className="strength-v5-kicker">Priority Shortlist</span>
+          <span className="strength-v5-kicker">Priority Board</span>
           <h2 className="strength-v5-section-title">Open First</h2>
         </div>
 
-        <div className="strength-v5-spotlight">
-          {topPick && (
-            <article className="strength-v5-featured-card">
-              <strong className="strength-v5-featured-name">{topPick.pair.name}</strong>
-              <p className="strength-v5-featured-summary">{topPick.summary}</p>
+        <div className="strength-v5-compact-grid">
+          {result.shortlist.map((item) => (
+            <article key={item.pair.name} className="strength-v5-card">
+              <div className="strength-v5-card-header">
+                <strong className="strength-v5-card-name">{item.pair.name}</strong>
+                <span className="strength-v5-card-score">{item.score.toFixed(0)}</span>
+              </div>
+              <p className="strength-v5-card-summary">{item.summary}</p>
               
-              <div className="flex flex-wrap justify-center gap-3 mb-10">
-                {topPick.reasonTags.map((tag) => (
-                  <span key={tag} className="strength-v4-tag py-2 px-4 text-sm font-black tracking-widest is-highlight border-2">
+              <div className="flex flex-wrap gap-2 mb-6">
+                {item.reasonTags.map((tag) => (
+                  <span key={tag} className={`strength-v4-tag text-[10px] py-1 px-2 ${tag.includes("agrees") || tag.includes("support") ? "is-highlight" : ""}`}>
                     {tag}
                   </span>
                 ))}
               </div>
 
-              <div className="flex justify-center gap-6">
+              <div className="mt-auto flex gap-3">
                 <button
                   type="button"
-                  className="py-5 px-12 rounded-2xl bg-indigo-600 text-white font-black text-lg hover:bg-indigo-700 transition-all shadow-xl hover:shadow-indigo-500/20 flex items-center gap-3"
-                  onClick={() => setDetailState({ kind: "pair", item: topPick })}
+                  className="strength-v5-btn strength-v5-btn-primary"
+                  onClick={() => setDetailState({ kind: "pair", item })}
                 >
-                  <Zap size={20} fill="currentColor" />
-                  Inspect Logic
+                  <Zap size={14} fill="currentColor" />
+                  Inspect
                 </button>
-                {topPick.eventRefs[0] && (
+                {item.eventRefs[0] && (
                   <button
                     type="button"
-                    className="py-5 px-8 rounded-2xl border-2 border-slate-200 text-slate-900 font-black text-lg hover:bg-slate-50 transition-all"
-                    onClick={() => onOpenCalendarEvent(topPick.eventRefs[0])}
+                    className="strength-v5-btn strength-v5-btn-secondary"
+                    onClick={() => onOpenCalendarEvent(item.eventRefs[0])}
                   >
-                    View Event
+                    <Activity size={16} />
                   </button>
                 )}
               </div>
             </article>
-          )}
-
-          <div className="strength-v5-subgrid">
-            {otherOpportunities.map((item) => (
-              <article key={item.pair.name} className="strength-v5-card">
-                <div className="flex justify-between items-start mb-6">
-                  <strong className="text-3xl font-black tracking-tighter">{item.pair.name}</strong>
-                  <span className="strength-v4-card-score bg-slate-100 text-slate-900 font-black">{item.score.toFixed(0)}</span>
-                </div>
-                <p className="text-lg mb-8 font-semibold text-slate-600 leading-relaxed">{item.summary}</p>
-                <div className="flex gap-4">
-                  <button
-                    type="button"
-                    className="flex-1 py-4 px-6 rounded-2xl bg-slate-900 text-white font-black text-sm hover:bg-black transition-all shadow-lg"
-                    onClick={() => setDetailState({ kind: "pair", item })}
-                  >
-                    Inspect
-                  </button>
-                  {item.eventRefs[0] && (
-                    <button
-                      type="button"
-                      className="py-4 px-5 rounded-2xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all"
-                      onClick={() => onOpenCalendarEvent(item.eventRefs[0])}
-                    >
-                      <Activity size={20} />
-                    </button>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
+          ))}
         </div>
       </section>
 
-      {/* Board Read: Creative Cluster */}
+      {/* Board Read: High Density Map */}
       <section className="strength-v5-section">
         <div className="strength-v5-section-header">
           <span className="strength-v5-kicker">Market Atlas</span>
@@ -195,10 +166,10 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
               className={`strength-v5-chip is-${currency.state}`}
               onClick={() => setDetailState({ kind: "currency", item: currency })}
             >
-              <FlagIcon countryCode={currency.countryCode} className="h-8 w-12 rounded-md" />
+              <FlagIcon countryCode={currency.countryCode} className="h-6 w-9 rounded-sm shadow-sm" />
               <div className="flex flex-col items-start">
-                <strong className="text-xl font-black leading-none">{currency.currency}</strong>
-                <span className="text-[10px] font-black tracking-[0.2em] text-slate-400 uppercase mt-1">{currency.stateLabel}</span>
+                <strong>{currency.currency}</strong>
+                <span>{currency.stateLabel}</span>
               </div>
             </button>
           ))}
@@ -213,11 +184,11 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
         </div>
         <div className="strength-v5-footer-item">
           <strong>Tactical Use</strong>
-          <p>This surface is a filter, not a signal engine. Always run your D1 to H1 chart confirmation first.</p>
+          <p>Filter first, confirm second. Always run manual D1 to H1 chart confirmation in TradingView.</p>
         </div>
         <div className="strength-v5-footer-item">
           <strong>Trust Limits</strong>
-          <p>Confidence scores decay rapidly during news blackouts or when price feeds are marked as stale.</p>
+          <p>Confidence scores decay rapidly during news blackouts or when feeds are marked as stale.</p>
         </div>
       </footer>
 
@@ -227,41 +198,41 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
           <div className="strength-v4-drawer" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <div className="strength-v4-drawer-head">
               <div className="strength-v4-drawer-title">
-                <h2 className="text-4xl font-black">{detailState.kind === "pair" ? detailState.item.pair.name : detailState.item.currency}</h2>
-                <p className="font-black tracking-widest uppercase text-xs mt-2 text-indigo-500">
+                <h2 className="text-3xl font-black">{detailState.kind === "pair" ? detailState.item.pair.name : detailState.item.currency}</h2>
+                <p className="font-bold tracking-widest uppercase text-[10px] mt-1 text-indigo-500">
                   {detailState.kind === "pair" ? "Surgical Breakdown" : "Currency Analysis"}
                 </p>
               </div>
               <button type="button" className="strength-v4-drawer-close" onClick={() => setDetailState(null)}>
-                <X size={24} />
+                <X size={20} />
               </button>
             </div>
 
             <div className="strength-v4-drawer-body">
               <section className="strength-v4-drawer-section">
-                <h3 className="text-xs font-black tracking-widest">The Verdict</h3>
-                <div className="strength-v4-verdict bg-slate-50 border-none text-slate-800 text-xl font-bold italic leading-relaxed p-8 rounded-3xl">
+                <h3 className="text-[10px] font-black tracking-widest">The Verdict</h3>
+                <div className="bg-slate-50 text-slate-800 text-lg font-bold italic leading-relaxed p-6 rounded-2xl">
                   "{detailState.item.summary}"
                 </div>
               </section>
 
               {detailState.kind === "currency" && (
                 <section className="strength-v4-drawer-section">
-                  <h3 className="text-xs font-black tracking-widest">Weight Distribution</h3>
-                  <div className="flex flex-col gap-8">
+                  <h3 className="text-[10px] font-black tracking-widest">Impact Weights</h3>
+                  <div className="flex flex-col gap-6">
                     {[
                       { label: "Price Impulse", breakdown: detailState.item.price },
                       { label: "Event Push", breakdown: detailState.item.event },
                       { label: "Macro Structural", breakdown: detailState.item.structural },
                     ].map((ing) => (
                       <div key={ing.label} className="strength-v4-ingredient">
-                        <div className="strength-v4-ingredient-head mb-2">
-                          <span className="text-slate-500 font-bold">{ing.label}</span>
-                          <span className="text-slate-950 font-black">{(ing.breakdown.contribution * 100).toFixed(0)}% Impact</span>
+                        <div className="flex justify-between items-center mb-1">
+                          <span className="text-slate-500 font-bold text-xs">{ing.label}</span>
+                          <span className="text-slate-950 font-black text-xs">{(ing.breakdown.contribution * 100).toFixed(0)}%</span>
                         </div>
-                        <div className="strength-v4-bar-track h-3 bg-slate-100 rounded-full">
+                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
                           <div
-                            className="strength-v4-bar-fill rounded-full bg-indigo-600 shadow-[0_0_15px_rgba(99,102,241,0.3)]"
+                            className="h-full bg-indigo-600"
                             style={{ width: `${Math.abs(ing.breakdown.value * 100)}%` }}
                           />
                         </div>
@@ -272,10 +243,11 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
               )}
 
               <section className="strength-v4-drawer-section">
-                <h3 className="text-xs font-black tracking-widest">Supporting Data</h3>
-                <div className="strength-v4-evidence-list">
+                <h3 className="text-[10px] font-black tracking-widest">Raw Evidence</h3>
+                <div className="flex flex-col gap-2">
                   {detailState.item.evidence.map((line, idx) => (
-                    <div key={idx} className="strength-v4-evidence-item text-slate-600 font-semibold text-base py-1">
+                    <div key={idx} className="text-slate-600 font-semibold text-sm leading-tight flex gap-2">
+                      <span className="text-indigo-500">â†’</span>
                       {line}
                     </div>
                   ))}
@@ -284,20 +256,20 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
 
               {detailState.item.eventRefs.length > 0 && (
                 <section className="strength-v4-drawer-section">
-                  <h3 className="text-xs font-black tracking-widest">Relevant Events</h3>
-                  <div className="flex flex-col gap-4">
+                  <h3 className="text-[10px] font-black tracking-widest">Surgical Radar</h3>
+                  <div className="flex flex-col gap-2">
                     {detailState.item.eventRefs.map((event) => (
                       <button
                         key={`${event.id}-${event.time}`}
                         type="button"
-                        className="p-6 bg-white border border-slate-100 rounded-3xl flex justify-between items-center hover:border-indigo-200 hover:shadow-xl hover:shadow-indigo-500/5 transition-all group text-left"
+                        className="p-4 bg-white border border-slate-100 rounded-2xl flex justify-between items-center hover:border-indigo-200 transition-all group text-left"
                         onClick={() => onOpenCalendarEvent(event)}
                       >
-                        <div className="flex flex-col gap-2">
-                          <strong className="text-slate-950 text-lg group-hover:text-indigo-600 transition-colors">{event.title}</strong>
-                          <span className="text-xs text-slate-500 uppercase font-black tracking-widest">{event.currency} • {event.impact} IMPACT</span>
+                        <div className="flex flex-col gap-1">
+                          <strong className="text-slate-950 text-sm group-hover:text-indigo-600 transition-colors">{event.title}</strong>
+                          <span className="text-[10px] text-slate-400 uppercase font-black">{event.currency} â€¢ {event.impact}</span>
                         </div>
-                        <ArrowRight size={24} className="text-slate-300 group-hover:text-indigo-500 transition-all group-hover:translate-x-1" />
+                        <ArrowRight size={16} className="text-slate-300 group-hover:text-indigo-500 transition-all" />
                       </button>
                     ))}
                   </div>
