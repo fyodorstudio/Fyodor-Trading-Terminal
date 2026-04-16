@@ -73,45 +73,50 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
   const partialNote = result.partialCurrencies.length > 0 ? result.partialCurrencies.join(", ") : null;
 
   return (
-    <section className="tab-panel strength-v4-panel">
-      {/* Header - High Contrast, Decisive */}
-      <header className="strength-v4-header-pro">
-        <h2>Strength Meter</h2>
-        <p>Shortlist of the best opportunities across the board right now. Open the top charts first, ignore the rest.</p>
+    <section className="tab-panel">
+      {/* Hero Section - High Fidelity */}
+      <header className="strength-v5-hero">
+        <h1 className="strength-v5-title">Strength<br />Meter</h1>
+        <p className="strength-v5-desc">
+          High-conviction shortlisted opportunities derived from price impulse, macro alignment, and event backing. 
+          Built for the tired trader who needs a clinical board read in seconds.
+        </p>
+
+        <div className="strength-v5-status-bar">
+          <div className={`strength-v5-status-item ${!historyLoading && !historyFailed ? "is-active" : ""}`}>
+            <span className="strength-v5-status-dot"></span>
+            {historyLoading ? "Calculating Board" : historyFailed ? "Board Limited" : "Price Engine Live"}
+          </div>
+          <div className={`strength-v5-status-item ${status === "live" ? "is-active" : ""}`}>
+            <span className="strength-v5-status-dot"></span>
+            Calendar {status === "live" ? "Synchronized" : "Stale"}
+          </div>
+        </div>
       </header>
 
-      {/* Status Bar - Minimal, Pro */}
-      <div className="strength-v4-status-minimal">
-        <div className={`strength-v4-status-item ${!historyLoading && !historyFailed ? "is-live" : ""}`}>
-          {historyLoading ? "Loading Price Map" : historyFailed ? "Price Board Stale" : "Price Map Live"}
-        </div>
-        <div className={`strength-v4-status-item ${status === "live" ? "is-live" : ""}`}>
-          Calendar {status === "live" ? "Sync" : status === "stale" ? "Delayed" : "Limited"}
-        </div>
-      </div>
-
       {partialNote ? (
-        <div className="strength-v2-alert">
-          <AlertTriangle size={16} />
-          <span>Partial coverage: {partialNote}. Use with care.</span>
+        <div className="mb-12">
+          <div className="strength-v2-alert">
+            <AlertTriangle size={16} />
+            <span>Operational Notice: Partial data for {partialNote}. Trade with caution.</span>
+          </div>
         </div>
       ) : null}
 
-      {/* Shortlist - Clear Kicker, No Box */}
-      <section className="strength-v4-section">
-        <div className="strength-v4-section-header">
-          <span className="strength-v4-kicker">Command Center</span>
-          <h3 className="strength-v4-section-title">Open First</h3>
-        </div>
+      {/* Main Opportunities */}
+      <section className="strength-v5-section">
+        <span className="strength-v5-kicker">Command Center</span>
+        <h2 className="strength-v5-section-title">Open First</h2>
+        
         <div className="strength-v4-grid">
           {result.shortlist.map((item) => (
-            <article key={item.pair.name} className="strength-v4-card">
-              <div className="strength-v4-card-head">
-                <strong className="strength-v4-card-name">{item.pair.name}</strong>
-                <span className="strength-v4-card-score">{item.score.toFixed(0)}</span>
+            <article key={item.pair.name} className="strength-v5-card">
+              <div className="strength-v4-card-head mb-6">
+                <strong className="strength-v4-card-name text-2xl">{item.pair.name}</strong>
+                <span className="strength-v4-card-score bg-indigo-50 text-indigo-600 border border-indigo-100">{item.score.toFixed(0)}</span>
               </div>
-              <p className="strength-v4-card-summary">{item.summary}</p>
-              <div className="strength-v4-card-tags">
+              <p className="strength-v4-card-summary text-base mb-6 font-medium text-slate-600">{item.summary}</p>
+              <div className="strength-v4-card-tags mb-8">
                 {item.reasonTags.map((tag) => (
                   <span
                     key={tag}
@@ -121,10 +126,10 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
                   </span>
                 ))}
               </div>
-              <div className="strength-v4-btn-group">
+              <div className="flex gap-4">
                 <button
                   type="button"
-                  className="strength-v4-btn strength-v4-btn-primary"
+                  className="flex-1 py-3 px-6 rounded-xl bg-slate-900 text-white font-bold text-sm hover:bg-black transition-all"
                   onClick={() => setDetailState({ kind: "pair", item })}
                 >
                   Inspect
@@ -132,10 +137,10 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
                 {item.eventRefs[0] ? (
                   <button
                     type="button"
-                    className="strength-v4-btn strength-v4-btn-secondary"
+                    className="py-3 px-4 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 transition-all"
                     onClick={() => onOpenCalendarEvent(item.eventRefs[0])}
                   >
-                    Event
+                    <Activity size={18} />
                   </button>
                 ) : null}
               </div>
@@ -144,54 +149,60 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
         </div>
       </section>
 
-      {/* Board Read - High Density, No Box */}
-      <section className="strength-v4-section">
-        <div className="strength-v4-section-header">
-          <span className="strength-v4-kicker">Major Map</span>
-          <h3 className="strength-v4-section-title">Board Read</h3>
-        </div>
+      {/* Board Map */}
+      <section className="strength-v5-section">
+        <span className="strength-v5-kicker">Market Atlas</span>
+        <h2 className="strength-v5-section-title">Board Read</h2>
+        
         <div className="strength-v4-board">
           {result.currencies.map((currency) => (
             <button
               key={currency.currency}
               type="button"
-              className={`strength-v4-chip is-${currency.state}`}
+              className={`strength-v5-chip strength-v4-chip is-${currency.state}`}
               onClick={() => setDetailState({ kind: "currency", item: currency })}
             >
-              <FlagIcon countryCode={currency.countryCode} className="h-6 w-10 rounded-sm shadow-sm" />
+              <FlagIcon countryCode={currency.countryCode} className="h-8 w-12 rounded-md shadow-sm" />
               <div className="strength-v4-chip-info">
-                <strong>{currency.currency}</strong>
-                <span>{currency.stateLabel}</span>
+                <strong className="text-xl">{currency.currency}</strong>
+                <span className="text-xs">{currency.stateLabel}</span>
               </div>
             </button>
           ))}
         </div>
       </section>
 
-      {/* Methodology - Clean Footer Notes */}
-      <footer className="strength-v4-footer-notes">
-        <div className="strength-v4-footer-item">
-          <strong>Trust And Limits</strong>
-          <span>This map identifies where the weight of evidence points. It does not replace your D1/H4 chart read.</span>
+      {/* Methodology Footer */}
+      <footer className="strength-v5-footer">
+        <div className="strength-v5-footer-item">
+          <strong>Logic & Weights</strong>
+          <p>
+            Composite score derived from Price Impulse (55%), Event Backing (25%), and Structural Macro (20%). 
+            Updated in real-time.
+          </p>
         </div>
-        <div className="strength-v4-footer-item">
-          <strong>Useful When</strong>
-          <span>Impulse, macro alignment, and price action agree on the winner.</span>
+        <div className="strength-v5-footer-item">
+          <strong>Optimal Use</strong>
+          <p>
+            Use this board to shortlist pairs for TradingView. Clinical execution requires manual D1 to H1 chart confirmation.
+          </p>
         </div>
-        <div className="strength-v4-footer-item">
-          <strong>Methodology</strong>
-          <span>Combines 55% Price Impulse, 25% Event Push, and 20% Macro Structural backdrop.</span>
+        <div className="strength-v5-footer-item">
+          <strong>Trust Limits</strong>
+          <p>
+            Do not lean on this during high-impact news releases or when data is marked as "Stale" in the status bar.
+          </p>
         </div>
       </footer>
 
-      {/* Side Drawer - Slide-in Detail */}
+      {/* Side Drawer */}
       {detailState ? (
         <div className="strength-v4-drawer-overlay" onClick={() => setDetailState(null)}>
           <div className="strength-v4-drawer" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
             <div className="strength-v4-drawer-head">
               <div className="strength-v4-drawer-title">
                 <h2>{detailState.kind === "pair" ? detailState.item.pair.name : detailState.item.currency}</h2>
-                <p>{detailState.kind === "pair" ? "Pair Breakdown" : "Currency Breakdown"}</p>
+                <p>{detailState.kind === "pair" ? "Surgical Breakdown" : "Currency Analysis"}</p>
               </div>
               <button type="button" className="strength-v4-drawer-close" onClick={() => setDetailState(null)}>
                 <X size={20} />
@@ -201,15 +212,15 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
             <div className="strength-v4-drawer-body">
               <section className="strength-v4-drawer-section">
                 <h3>The Verdict</h3>
-                <div className="strength-v4-verdict">
-                  {detailState.item.summary}
+                <div className="strength-v4-verdict bg-slate-50 border-none text-slate-800 font-semibold italic">
+                  "{detailState.item.summary}"
                 </div>
               </section>
 
               {detailState.kind === "currency" && (
                 <section className="strength-v4-drawer-section">
-                  <h3>Ingredient Breakdown</h3>
-                  <div className="flex flex-col gap-5">
+                  <h3>Weight Distribution</h3>
+                  <div className="flex flex-col gap-6">
                     {[
                       { label: "Price Impulse", breakdown: detailState.item.price },
                       { label: "Event Push", breakdown: detailState.item.event },
@@ -217,12 +228,12 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
                     ].map((ing) => (
                       <div key={ing.label} className="strength-v4-ingredient">
                         <div className="strength-v4-ingredient-head">
-                          <span>{ing.label}</span>
-                          <span>{(ing.breakdown.contribution * 100).toFixed(1)}% weight contribution</span>
+                          <span className="text-slate-500">{ing.label}</span>
+                          <span className="text-slate-900">{(ing.breakdown.contribution * 100).toFixed(0)}% Impact</span>
                         </div>
-                        <div className="strength-v4-bar-track">
+                        <div className="strength-v4-bar-track h-2 bg-slate-100">
                           <div
-                            className="strength-v4-bar-fill"
+                            className="strength-v4-bar-fill rounded-full bg-indigo-500"
                             style={{ width: `${Math.abs(ing.breakdown.value * 100)}%` }}
                           />
                         </div>
@@ -233,10 +244,10 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
               )}
 
               <section className="strength-v4-drawer-section">
-                <h3>Supporting Evidence</h3>
+                <h3>Raw Evidence</h3>
                 <div className="strength-v4-evidence-list">
                   {detailState.item.evidence.map((line, idx) => (
-                    <div key={idx} className="strength-v4-evidence-item">
+                    <div key={idx} className="strength-v4-evidence-item text-slate-600 font-medium">
                       {line}
                     </div>
                   ))}
@@ -245,20 +256,20 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
 
               {detailState.item.eventRefs.length > 0 && (
                 <section className="strength-v4-drawer-section">
-                  <h3>Relevant Events</h3>
+                  <h3>Surgical Radar</h3>
                   <div className="flex flex-col gap-3">
                     {detailState.item.eventRefs.map((event) => (
                       <button
                         key={`${event.id}-${event.time}`}
                         type="button"
-                        className="strength-v4-event-link"
+                        className="p-4 bg-white border border-slate-100 rounded-2xl flex justify-between items-center hover:border-indigo-200 transition-all"
                         onClick={() => onOpenCalendarEvent(event)}
                       >
-                        <div className="strength-v4-event-info">
-                          <strong>{event.title}</strong>
-                          <span>{event.currency} • {event.impact} impact</span>
+                        <div className="flex flex-col gap-1">
+                          <strong className="text-slate-900">{event.title}</strong>
+                          <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">{event.currency} • {event.impact}</span>
                         </div>
-                        <ArrowRight size={16} className="text-slate-400" />
+                        <ArrowRight size={18} className="text-indigo-400" />
                       </button>
                     ))}
                   </div>
