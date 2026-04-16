@@ -6432,3 +6432,22 @@ button {
 .strength-v4-btn-primary:hover { background: #000; }
 .strength-v4-btn-secondary { background: #fff; border-color: #e2e8f0; color: #475569; }
 .strength-v4-btn-secondary:hover { background: #f8fafc; border-color: #cbd5e1; color: #111827; }
+\
+/* Strength Meter v4 Pro Layout Refinements */
+.strength-v4-panel { display: flex; flex-direction: column; gap: 48px; padding: 12px 0; }
+.strength-v4-header-pro { margin-bottom: 8px; }
+.strength-v4-header-pro h2 { font-size: 2.4rem; font-weight: 950; letter-spacing: -0.05em; color: #0f172a; margin: 0; }
+.strength-v4-header-pro p { font-size: 1rem; color: #64748b; margin: 8px 0 0; max-width: 600px; line-height: 1.5; }
+.strength-v4-status-minimal { display: flex; gap: 24px; padding: 12px 0; border-bottom: 1px solid #e2e8f0; margin-bottom: 12px; }
+.strength-v4-status-item { display: flex; align-items: center; gap: 8px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; }
+.strength-v4-status-item.is-live { color: #10b981; }
+.strength-v4-status-item.is-live::before { content: ''; width: 6px; height: 6px; background: currentColor; border-radius: 50%; }
+.strength-v4-section-header { display: flex; flex-direction: column; gap: 4px; margin-bottom: 24px; }
+.strength-v4-kicker { font-size: 0.7rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.15em; color: #6366f1; }
+.strength-v4-section-title { font-size: 1.4rem; font-weight: 900; color: #1e293b; letter-spacing: -0.02em; }
+.strength-v4-section-desc { font-size: 0.9rem; color: #64748b; }
+.strength-v4-footer-notes { margin-top: 32px; padding: 32px; background: #f8fafc; border-radius: 20px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+@media (max-width: 900px) { .strength-v4-footer-notes { grid-template-columns: 1fr; } }
+.strength-v4-footer-item { display: flex; flex-direction: column; gap: 8px; }
+.strength-v4-footer-item strong { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: #1e293b; letter-spacing: 0.05em; }
+.strength-v4-footer-item span { font-size: 0.85rem; color: #64748b; line-height: 1.5; }\

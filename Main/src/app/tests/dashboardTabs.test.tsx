@@ -88,8 +88,8 @@ describe("StrengthMeterTab", () => {
 
     expect(html).toContain("Open First");
     expect(html).toContain("Board Read");
+    expect(html).toContain("Trust And Limits");
     expect(html).toContain("Methodology");
-    expect(html).toContain("Trust");
     expect(html).toContain("Inspect");
   });
 
@@ -106,7 +106,8 @@ describe("StrengthMeterTab", () => {
       />,
     );
 
-    expect(html).toContain("Some currencies still have partial data");
+    expect(html).toContain("Partial coverage");
+    expect(html).toContain("Use with care");
     expect(html).toContain("USD");
   });
 });

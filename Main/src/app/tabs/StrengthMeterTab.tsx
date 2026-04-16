@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Activity, AlertTriangle, ArrowRight, Clock3, Info, RefreshCcw, X } from "lucide-react";
+import { Activity, AlertTriangle, ArrowRight, Info, RefreshCcw, X } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS } from "@/app/config/fxPairs";
 import { fetchHistory } from "@/app/lib/bridge";
@@ -73,44 +73,35 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
   const partialNote = result.partialCurrencies.length > 0 ? result.partialCurrencies.join(", ") : null;
 
   return (
-    <section className="tab-panel macro-panel">
-      <div className="section-head">
-        <div>
-          <h2>Strength Meter</h2>
-          <p>Choose what to open in TradingView first. Use the drawer only when you need to understand why.</p>
+    <section className="tab-panel strength-v4-panel">
+      {/* Header - High Contrast, Decisive */}
+      <header className="strength-v4-header-pro">
+        <h2>Strength Meter</h2>
+        <p>Shortlist of the best opportunities across the board right now. Open the top charts first, ignore the rest.</p>
+      </header>
+
+      {/* Status Bar - Minimal, Pro */}
+      <div className="strength-v4-status-minimal">
+        <div className={`strength-v4-status-item ${!historyLoading && !historyFailed ? "is-live" : ""}`}>
+          {historyLoading ? "Loading Price Map" : historyFailed ? "Price Board Stale" : "Price Map Live"}
+        </div>
+        <div className={`strength-v4-status-item ${status === "live" ? "is-live" : ""}`}>
+          Calendar {status === "live" ? "Sync" : status === "stale" ? "Delayed" : "Limited"}
         </div>
       </div>
 
-      <section className="macro-block strength-v3-toolbar">
-        <div className="strength-v3-status">
-          <span className="strength-v3-status-pill">
-            <Activity size={14} />
-            {historyLoading ? "Loading price board" : historyFailed ? "Price board limited" : "Price board ready"}
-          </span>
-          <span className="strength-v3-status-pill">
-            <RefreshCcw size={14} />
-            Calendar {status === "live" ? "live" : status === "stale" ? "delayed" : "limited"}
-          </span>
-        </div>
-        <div className="strength-v3-guide">
-          <strong>Use it like this</strong>
-          <span>Open the top pairs first, run your D1 to H4 to H1 chart read, and ignore the detail panel unless you need to check the claim.</span>
-        </div>
-      </section>
-
       {partialNote ? (
-        <section className="macro-block">
-          <div className="strength-v2-alert">
-            <AlertTriangle size={16} />
-            <span>Some currencies still have partial data: {partialNote}.</span>
-          </div>
-        </section>
+        <div className="strength-v2-alert">
+          <AlertTriangle size={16} />
+          <span>Partial coverage: {partialNote}. Use with care.</span>
+        </div>
       ) : null}
 
-      <section className="macro-block">
-        <div className="macro-block-head">
-          <h3>Open First</h3>
-          <p>The shortest path to your first TradingView charts.</p>
+      {/* Shortlist - Clear Kicker, No Box */}
+      <section className="strength-v4-section">
+        <div className="strength-v4-section-header">
+          <span className="strength-v4-kicker">Command Center</span>
+          <h3 className="strength-v4-section-title">Open First</h3>
         </div>
         <div className="strength-v4-grid">
           {result.shortlist.map((item) => (
@@ -122,7 +113,10 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
               <p className="strength-v4-card-summary">{item.summary}</p>
               <div className="strength-v4-card-tags">
                 {item.reasonTags.map((tag) => (
-                  <span key={tag} className={`strength-v4-tag ${tag.includes("agrees") || tag.includes("support") ? "is-highlight" : ""}`}>
+                  <span
+                    key={tag}
+                    className={`strength-v4-tag ${tag.includes("agrees") || tag.includes("support") ? "is-highlight" : ""}`}
+                  >
                     {tag}
                   </span>
                 ))}
@@ -150,10 +144,11 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
         </div>
       </section>
 
-      <section className="macro-block">
-        <div className="macro-block-head">
-          <h3>Board Read</h3>
-          <p>Quick check on currency health across the major board.</p>
+      {/* Board Read - High Density, No Box */}
+      <section className="strength-v4-section">
+        <div className="strength-v4-section-header">
+          <span className="strength-v4-kicker">Major Map</span>
+          <h3 className="strength-v4-section-title">Board Read</h3>
         </div>
         <div className="strength-v4-board">
           {result.currencies.map((currency) => (
@@ -173,26 +168,23 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
         </div>
       </section>
 
-      <section className="macro-block">
-        <div className="macro-block-head">
-          <h3>Methodology & Trust</h3>
+      {/* Methodology - Clean Footer Notes */}
+      <footer className="strength-v4-footer-notes">
+        <div className="strength-v4-footer-item">
+          <strong>Trust And Limits</strong>
+          <span>This map identifies where the weight of evidence points. It does not replace your D1/H4 chart read.</span>
         </div>
-        <div className="strength-v3-trust">
-          <div>
-            <strong>Useful when</strong>
-            <span>Board, pair impulse, and macro alignment all point in the same direction.</span>
-          </div>
-          <div>
-            <strong>Do not lean on it when</strong>
-            <span>An event is close, data is stale, or your chart setup is missing.</span>
-          </div>
-          <div>
-            <strong>Disclaimer</strong>
-            <span>This tool helps identify "where to look", it does not replace discretionary chart reading.</span>
-          </div>
+        <div className="strength-v4-footer-item">
+          <strong>Useful When</strong>
+          <span>Impulse, macro alignment, and price action agree on the winner.</span>
         </div>
-      </section>
+        <div className="strength-v4-footer-item">
+          <strong>Methodology</strong>
+          <span>Combines 55% Price Impulse, 25% Event Push, and 20% Macro Structural backdrop.</span>
+        </div>
+      </footer>
 
+      {/* Side Drawer - Slide-in Detail */}
       {detailState ? (
         <div className="strength-v4-drawer-overlay" onClick={() => setDetailState(null)}>
           <div className="strength-v4-drawer" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
@@ -210,7 +202,7 @@ export function StrengthMeterTab({ snapshots, events, status, onOpenCalendarEven
               <section className="strength-v4-drawer-section">
                 <h3>The Verdict</h3>
                 <div className="strength-v4-verdict">
-                  {detailState.kind === "pair" ? detailState.item.summary : detailState.item.summary}
+                  {detailState.item.summary}
                 </div>
               </section>
 
