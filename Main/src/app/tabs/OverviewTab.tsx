@@ -29,8 +29,8 @@ import {
   type SortDirection,
   type WinningNowSummary,
 } from "@/app/lib/overview";
-import { adaptDashboardCurrencies, deriveStrengthCurrencyRanks } from "@/app/lib/macroViews";
 import { resolveTrustState, type TrustState } from "@/app/lib/status";
+import { deriveStrengthMeterResult } from "@/app/lib/strengthMeter";
 import type { BridgeCandle, BridgeHealth, BridgeStatus, CalendarEvent, CentralBankSnapshot, MarketStatusResponse, TabId } from "@/app/types";
 
 interface OverviewTabProps {
@@ -53,7 +53,7 @@ interface ActionItem {
 }
 
 type AtrByPair = Record<string, { d1: number | null; h1: number | null }>;
-type CandlesByPair = Record<string, { d1: BridgeCandle[]; h1: BridgeCandle[] }>;
+type CandlesByPair = Record<string, { d1: BridgeCandle[]; h1: BridgeCandle[]; h4: BridgeCandle[] }>;
 type SpecialistCardId = "strength-meter" | "dashboard" | "event-quality";
 type ViewMode = "strategic" | "command";
 
@@ -232,9 +232,23 @@ export function OverviewTab({
 
   const nowUnix = currentTime.getTime() / 1000;
   const trustState = useMemo(() => resolveTrustState(health, feedStatus, marketStatus), [health, feedStatus, marketStatus]);
+  const boardCandleMap = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(candlesByPair).map(([pairName, candles]) => [pairName, { d1: candles.d1, h4: candles.h4 }]),
+      ),
+    [candlesByPair],
+  );
+  const strengthBoard = useMemo(
+    () => deriveStrengthMeterResult({ snapshots, events, candleMap: boardCandleMap, nowSeconds: nowUnix }),
+    [snapshots, events, boardCandleMap, nowUnix],
+  );
   const topEvents = useMemo(() => getTopEvents(events, reviewSymbol, nowUnix), [events, reviewSymbol, nowUnix]);
   const macroSummary = useMemo(() => getMacroSummary(reviewSymbol, snapshots), [reviewSymbol, snapshots]);
-  const strengthSummary = useMemo(() => getStrengthDifferentialSummary(reviewSymbol, snapshots), [reviewSymbol, snapshots]);
+  const strengthSummary = useMemo(
+    () => getStrengthDifferentialSummary(reviewSymbol, snapshots, events, boardCandleMap, nowUnix),
+    [reviewSymbol, snapshots, events, boardCandleMap, nowUnix],
+  );
   const eventSensitivity = useMemo(() => getEventSensitivity(events, reviewSymbol, nowUnix), [events, reviewSymbol, nowUnix]);
   const macroVerdict = useMemo(
     () => getMacroBackdropVerdict(reviewSymbol, macroSummary, strengthSummary),
@@ -242,7 +256,7 @@ export function OverviewTab({
   );
   const pair = useMemo(() => getFxPairByName(reviewSymbol), [reviewSymbol]);
   const atrValue = atrByPair[reviewSymbol];
-  const pairCandles = candlesByPair[reviewSymbol] ?? { d1: [], h1: [] };
+  const pairCandles = candlesByPair[reviewSymbol] ?? { d1: [], h1: [], h4: [] };
   const pairAttentionVerdict = useMemo(
     () => getPairAttentionVerdict(reviewSymbol, trustState, macroVerdict, macroSummary, strengthSummary, eventSensitivity, atrValue?.d1),
     [reviewSymbol, trustState, macroVerdict, macroSummary, strengthSummary, eventSensitivity, atrValue?.d1],
@@ -289,8 +303,8 @@ export function OverviewTab({
     [reviewSymbol, topEvents, eventSensitivity],
   );
   const specialistSummaries = useMemo(
-    () => getOverviewSpecialistSummaries(reviewSymbol, snapshots, events, nowUnix),
-    [reviewSymbol, snapshots, events, nowUnix],
+    () => getOverviewSpecialistSummaries(reviewSymbol, snapshots, events, boardCandleMap, nowUnix),
+    [reviewSymbol, snapshots, events, boardCandleMap, nowUnix],
   );
   const relevantEvents = useMemo(
     () => events
@@ -305,12 +319,13 @@ export function OverviewTab({
   const topOpportunities = useMemo<PairOpportunitySummary[]>(() => {
     return FX_PAIRS.map((fxPair) => {
       const atr = atrByPair[fxPair.name];
-      const candles = candlesByPair[fxPair.name] ?? { d1: [], h1: [] };
+      const candles = candlesByPair[fxPair.name] ?? { d1: [], h1: [], h4: [] };
       return getPairOpportunitySummary(
         fxPair.name,
         trustState,
         snapshots,
         events,
+        boardCandleMap,
         marketStatus,
         atr?.d1,
         atr?.h1,
@@ -329,14 +344,12 @@ export function OverviewTab({
       })
       .filter((item, index) => item.winner !== "unresolved" || index < 5)
       .slice(0, 5);
-  }, [atrByPair, candlesByPair, trustState, snapshots, events, marketStatus, nowUnix]);
+  }, [atrByPair, candlesByPair, boardCandleMap, trustState, snapshots, events, marketStatus, nowUnix]);
 
   const baseSnap = snapshots.find((s) => s.currency === pair?.base);
   const quoteSnap = snapshots.find((s) => s.currency === pair?.quote);
-  const currencies = adaptDashboardCurrencies(snapshots);
-  const { ranks } = deriveStrengthCurrencyRanks(currencies);
-  const baseRank = ranks.find((rank) => rank.currency === pair?.base);
-  const quoteRank = ranks.find((rank) => rank.currency === pair?.quote);
+  const baseRank = strengthBoard.currencies.find((rank) => rank.currency === pair?.base);
+  const quoteRank = strengthBoard.currencies.find((rank) => rank.currency === pair?.quote);
 
   const isBridgeValid = health.terminal_connected && health.ok;
 
@@ -346,20 +359,21 @@ export function OverviewTab({
       const entries = await Promise.all(
         FX_PAIRS.map(async (fxPair) => {
           try {
-            const [d1Candles, h1Candles] = await Promise.all([
+            const [d1Candles, h1Candles, h4Candles] = await Promise.all([
               fetchHistory(fxPair.name, "D1", 60),
               fetchHistory(fxPair.name, "H1", 60),
+              fetchHistory(fxPair.name, "H4", 40),
             ]);
             return [
               fxPair.name,
               {
-                candles: { d1: d1Candles, h1: h1Candles },
+                candles: { d1: d1Candles, h1: h1Candles, h4: h4Candles },
                 d1: calculateAtrPips(d1Candles, fxPair.name, atrConfig.d1Period, atrConfig.method),
                 h1: calculateAtrPips(h1Candles, fxPair.name, atrConfig.h1Period, atrConfig.method),
               },
             ] as const;
           } catch {
-            return [fxPair.name, { candles: { d1: [], h1: [] }, d1: null, h1: null }] as const;
+            return [fxPair.name, { candles: { d1: [], h1: [], h4: [] }, d1: null, h1: null }] as const;
           }
         }),
       );
@@ -537,7 +551,7 @@ export function OverviewTab({
                 <div className={`hub-pillar-badge is-${dominance.pillars.strength.status}`}>
                   {dominance.pillars.strength.label}
                 </div>
-                <span>{strengthSummary.scoreGap != null ? `Gap ${strengthSummary.scoreGap.toFixed(1)} pts` : "Unresolved"}</span>
+                <span>{strengthSummary.scoreGap != null ? `Board gap ${strengthSummary.scoreGap.toFixed(1)} pts` : "Unresolved"}</span>
               </div>
               <div className="hub-pillar">
                 <label>CONTEXT PILLAR</label>
@@ -555,8 +569,8 @@ export function OverviewTab({
                   <span className="hub-matrix-currency">{pair?.base}</span>
                 </div>
                 <div className="hub-matrix-stat">
-                  <label>Strength Score</label>
-                  <span style={{ fontSize: "1.1rem" }}>{baseRank?.score.toFixed(1) || "0.0"} pts</span>
+                  <label>Board Score</label>
+                  <span style={{ fontSize: "1.1rem" }}>{baseRank?.compositeScore.toFixed(1) || "0.0"} pts</span>
                 </div>
                 <div className="hub-matrix-stat">
                   <label>Policy Rate</label>
@@ -578,8 +592,8 @@ export function OverviewTab({
                   <span className="hub-matrix-currency">{pair?.quote}</span>
                 </div>
                 <div className="hub-matrix-stat">
-                  <label>Strength Score</label>
-                  <span style={{ fontSize: "1.1rem" }}>{quoteRank?.score.toFixed(1) || "0.0"} pts</span>
+                  <label>Board Score</label>
+                  <span style={{ fontSize: "1.1rem" }}>{quoteRank?.compositeScore.toFixed(1) || "0.0"} pts</span>
                 </div>
                 <div className="hub-matrix-stat">
                   <label>Policy Rate</label>

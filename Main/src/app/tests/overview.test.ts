@@ -101,6 +101,19 @@ function buildTrendCandles(direction: "up" | "down", count: number = 30): Bridge
   });
 }
 
+function buildBoardCandleMap(): Partial<Record<string, { d1: BridgeCandle[]; h4: BridgeCandle[] }>> {
+  return {
+    EURUSD: { d1: buildTrendCandles("up"), h4: buildTrendCandles("up", 20) },
+    USDJPY: { d1: buildTrendCandles("up"), h4: buildTrendCandles("up", 20) },
+    GBPUSD: { d1: buildTrendCandles("down"), h4: buildTrendCandles("down", 20) },
+    USDCHF: { d1: buildTrendCandles("up"), h4: buildTrendCandles("up", 20) },
+    AUDUSD: { d1: buildTrendCandles("down"), h4: buildTrendCandles("down", 20) },
+    USDCAD: { d1: buildTrendCandles("up"), h4: buildTrendCandles("up", 20) },
+    NZDUSD: { d1: buildTrendCandles("down"), h4: buildTrendCandles("down", 20) },
+    EURJPY: { d1: buildTrendCandles("up"), h4: buildTrendCandles("up", 20) },
+  };
+}
+
 describe("overview logic", () => {
   it("prioritizes pair-relevant events in the top events list", () => {
     const rows = getTopEvents(
@@ -266,6 +279,7 @@ describe("overview logic", () => {
       trustState,
       snapshots,
       [event(1, "USD", 60 * 60)],
+      buildBoardCandleMap(),
       marketStatus("open"),
       85,
       18,
@@ -285,6 +299,7 @@ describe("overview logic", () => {
       trustState,
       snapshots,
       [],
+      buildBoardCandleMap(),
       marketStatus("open"),
       85,
       18,
@@ -304,6 +319,7 @@ describe("overview logic", () => {
       trustState,
       snapshots,
       [],
+      buildBoardCandleMap(),
       marketStatus("open"),
       70,
       15,
@@ -316,6 +332,7 @@ describe("overview logic", () => {
       trustState,
       snapshots,
       [],
+      {},
       marketStatus("open"),
       100,
       20,
@@ -340,6 +357,7 @@ describe("overview logic", () => {
       trustState,
       snapshots,
       [],
+      buildBoardCandleMap(),
       marketStatus("open"),
       85,
       18,
@@ -352,6 +370,7 @@ describe("overview logic", () => {
       trustState,
       snapshots,
       [],
+      buildBoardCandleMap(),
       { ...marketStatus("open"), session_state: "unavailable", is_open: null },
       85,
       18,
@@ -449,6 +468,7 @@ describe("overview logic", () => {
       "EURUSD",
       [snapshot("EUR", "4.00", "3.00"), snapshot("USD", "2.00", "1.00"), snapshot("GBP", "3.00", "2.00")],
       [event(1, "USD", 3_600)],
+      buildBoardCandleMap(),
       now,
     );
 

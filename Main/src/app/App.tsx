@@ -251,7 +251,14 @@ export default function App() {
               />
             )}
             {activeTab === "dashboard" && <DashboardTab snapshots={centralBankResult.snapshots} />}
-            {activeTab === "strength-meter" && <StrengthMeterTab snapshots={centralBankResult.snapshots} />}
+            {activeTab === "strength-meter" && (
+              <StrengthMeterTab
+                snapshots={centralBankResult.snapshots}
+                events={feedEvents}
+                status={feedStatus}
+                onOpenCalendarEvent={openCalendarForEvent}
+              />
+            )}
             {activeTab === "event-quality" && (
               <EventQualityTab
                 events={feedEvents}

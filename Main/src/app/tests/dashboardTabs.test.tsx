@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { DashboardTab } from "@/app/tabs/DashboardTab";
 import { StrengthMeterTab } from "@/app/tabs/StrengthMeterTab";
-import type { CentralBankSnapshot } from "@/app/types";
+import type { CalendarEvent, CentralBankSnapshot } from "@/app/types";
 
 function buildSnapshot(
   currency: string,
@@ -49,6 +49,20 @@ const snapshots: CentralBankSnapshot[] = [
   buildSnapshot("CHF", "CH", "0.00", "0.00", "0.1", "0.2"),
 ];
 
+const events: CalendarEvent[] = [
+  {
+    id: 1,
+    time: 1_710_000_000,
+    countryCode: "US",
+    currency: "USD",
+    title: "CPI y/y",
+    impact: "high",
+    actual: "3.4",
+    forecast: "3.1",
+    previous: "3.0",
+  },
+];
+
 describe("DashboardTab", () => {
   it("renders dashboard sections and pair cards from MT5-backed snapshots", () => {
     const html = renderToStaticMarkup(<DashboardTab snapshots={snapshots} />);
@@ -62,21 +76,36 @@ describe("DashboardTab", () => {
 });
 
 describe("StrengthMeterTab", () => {
-  it("renders rankings and suggestions from MT5-backed snapshots", () => {
-    const html = renderToStaticMarkup(<StrengthMeterTab snapshots={snapshots} />);
+  it("renders the shortlist, currency board, and methodology shell", () => {
+    const html = renderToStaticMarkup(
+      <StrengthMeterTab
+        snapshots={snapshots}
+        events={events}
+        status="live"
+        onOpenCalendarEvent={() => {}}
+      />,
+    );
 
-    expect(html).toContain("Live Currency Rankings");
-    expect(html).toContain("Suggested Trading Pairs");
-    expect(html).toContain("Strength score");
+    expect(html).toContain("Open First");
+    expect(html).toContain("Board Read");
+    expect(html).toContain("Trust And Limits");
+    expect(html).toContain("See why");
   });
 
-  it("shows an exclusion note for unresolved currencies instead of faking scores", () => {
+  it("shows a partial coverage note instead of faking a complete board", () => {
     const broken = [...snapshots];
     broken[0] = buildSnapshot("USD", "US", null, "3.50", "2.4", "2.3");
 
-    const html = renderToStaticMarkup(<StrengthMeterTab snapshots={broken} />);
+    const html = renderToStaticMarkup(
+      <StrengthMeterTab
+        snapshots={broken}
+        events={events}
+        status="stale"
+        onOpenCalendarEvent={() => {}}
+      />,
+    );
 
-    expect(html).toContain("Excluded from scoring");
+    expect(html).toContain("Some currencies still have partial data");
     expect(html).toContain("USD");
   });
 });

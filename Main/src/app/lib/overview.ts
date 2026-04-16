@@ -1,7 +1,7 @@
 import { getFxPairByName } from "@/app/config/fxPairs";
 import { deriveEventQualitySummary } from "@/app/lib/eventQuality";
-import { adaptDashboardCurrencies, deriveStrengthCurrencyRanks } from "@/app/lib/macroViews";
 import { parseNumericValue } from "@/app/lib/format";
+import { deriveStrengthMeterResult, getStrengthSummaryForPair } from "@/app/lib/strengthMeter";
 import type { BridgeCandle, BridgeStatus, CalendarEvent, CentralBankSnapshot, FxPairDefinition, MarketStatusResponse, TabId } from "@/app/types";
 import type { TrustState, TrustTone } from "@/app/lib/status";
 
@@ -349,7 +349,7 @@ export function getWhoIsWinningNow(
   }
 
   if (strengthSummary.scoreGap != null) {
-    reasons.push(`Strength spread is ${strengthSummary.scoreGap.toFixed(1)} points${strengthSummary.decisive ? " and decisive." : "."}`);
+    reasons.push(`Board strength gap is ${strengthSummary.scoreGap.toFixed(1)} points${strengthSummary.decisive ? " and clear." : "."}`);
   }
 
   if (eventSensitivity.label !== "Clear") {
@@ -425,6 +425,7 @@ export function getPairOpportunitySummary(
   trustState: TrustState,
   snapshots: CentralBankSnapshot[],
   events: CalendarEvent[],
+  candleMap: Partial<Record<string, { d1: BridgeCandle[]; h4: BridgeCandle[] }>>,
   marketStatus: MarketStatusResponse | null,
   atr14D: number | null | undefined,
   atr14H: number | null | undefined,
@@ -433,7 +434,7 @@ export function getPairOpportunitySummary(
   nowUnix: number,
 ): PairOpportunitySummary {
   const macroSummary = getMacroSummary(reviewSymbol, snapshots);
-  const strengthSummary = getStrengthDifferentialSummary(reviewSymbol, snapshots);
+  const strengthSummary = getStrengthDifferentialSummary(reviewSymbol, snapshots, events, candleMap, nowUnix);
   const eventSensitivity = getEventSensitivity(events, reviewSymbol, nowUnix);
   const priceAlignment = getPriceAlignment(reviewSymbol, d1Candles, h1Candles);
   const winningNow = getWhoIsWinningNow(
@@ -659,50 +660,20 @@ export function getMacroSummary(reviewSymbol: string, snapshots: CentralBankSnap
   };
 }
 
-export function getStrengthDifferentialSummary(reviewSymbol: string, snapshots: CentralBankSnapshot[]): StrengthSummary {
-  const pair = getFxPairByName(reviewSymbol);
-  if (!pair) {
-    return {
-      title: "Strength context unresolved.",
-      detail: "Pair mapping is unavailable.",
-      unresolved: true,
-      strongerCurrency: null,
-      weakerCurrency: null,
-      scoreGap: null,
-      decisive: false,
-    };
-  }
-
-  const currencies = adaptDashboardCurrencies(snapshots);
-  const { ranks } = deriveStrengthCurrencyRanks(currencies);
-  const baseRank = ranks.find((item) => item.currency === pair.base) ?? null;
-  const quoteRank = ranks.find((item) => item.currency === pair.quote) ?? null;
-
-  if (!baseRank || !quoteRank) {
-    return {
-      title: "Strength context unresolved.",
-      detail: "At least one currency rank is missing.",
-      unresolved: true,
-      strongerCurrency: null,
-      weakerCurrency: null,
-      scoreGap: null,
-      decisive: false,
-    };
-  }
-
-  const stronger = baseRank.score >= quoteRank.score ? baseRank : quoteRank;
-  const weaker = stronger.currency === baseRank.currency ? quoteRank : baseRank;
-  const scoreGap = stronger.score - weaker.score;
-
-  return {
-    title: `${stronger.currency} is currently outperforming ${weaker.currency}.`,
-    detail: `Score Gap: ${scoreGap.toFixed(1)} pts`,
-    unresolved: false,
-    strongerCurrency: stronger.currency,
-    weakerCurrency: weaker.currency,
-    scoreGap,
-    decisive: scoreGap >= 3,
-  };
+export function getStrengthDifferentialSummary(
+  reviewSymbol: string,
+  snapshots: CentralBankSnapshot[],
+  events: CalendarEvent[] = [],
+  candleMap: Partial<Record<string, { d1: BridgeCandle[]; h4: BridgeCandle[] }>> = {},
+  nowSeconds?: number,
+): StrengthSummary {
+  return getStrengthSummaryForPair({
+    reviewSymbol,
+    snapshots,
+    events,
+    candleMap,
+    nowSeconds,
+  });
 }
 
 export function getEventSensitivity(
@@ -768,7 +739,7 @@ export function getMacroBackdropVerdict(
     return {
       label: "Supportive",
       tone: "good",
-      detail: `${macroSummary.favoredCurrency} has the cleaner rate and inflation backdrop, and the strength spread agrees.`,
+      detail: `${macroSummary.favoredCurrency} has the cleaner rate and inflation backdrop, and the board-strength read agrees.`,
     };
   }
 
@@ -776,7 +747,7 @@ export function getMacroBackdropVerdict(
     return {
       label: "Hostile",
       tone: "danger",
-      detail: `Rate and inflation favor ${macroSummary.favoredCurrency}, but live strength currently points toward ${strengthSummary.strongerCurrency}.`,
+      detail: `Rate and inflation favor ${macroSummary.favoredCurrency}, but the board-strength read currently points toward ${strengthSummary.strongerCurrency}.`,
     };
   }
 
@@ -837,7 +808,7 @@ export function getDominanceProfile(
       status: macroVerdict.tone,
     },
     strength: {
-      label: strengthSummary.decisive ? "Decisive" : "Modest",
+      label: strengthSummary.decisive ? "Clear" : "Mixed",
       status: strengthSummary.decisive ? "good" : "warning",
     },
     context: {
@@ -886,7 +857,7 @@ export function getPairAttentionVerdict(
     return {
       label: "Study now",
       tone: "good",
-      detail: `${reviewSymbol} has a supportive macro backdrop, a decisive strength spread, and enough volatility to study now.`,
+      detail: `${reviewSymbol} has a supportive macro backdrop, a clear board-strength gap, and enough volatility to study now.`,
     };
   }
 
@@ -894,7 +865,7 @@ export function getPairAttentionVerdict(
     return {
       label: "Ignore for now",
       tone: "danger",
-      detail: `${reviewSymbol} does not currently show a clean macro or strength case worth prioritizing.`,
+      detail: `${reviewSymbol} does not currently show a clean macro or board-strength case worth prioritizing.`,
     };
   }
 
@@ -910,7 +881,7 @@ export function getPairAttentionVerdict(
     return {
       label: "Ignore for now",
       tone: "danger",
-      detail: `${reviewSymbol} is currently quiet and lacks a decisive enough strength spread to prioritize.`,
+      detail: `${reviewSymbol} is currently quiet and lacks a clear enough board-strength gap to prioritize.`,
     };
   }
 
@@ -1139,11 +1110,13 @@ export function getOverviewSpecialistSummaries(
   reviewSymbol: string,
   snapshots: CentralBankSnapshot[],
   events: CalendarEvent[],
+  candleMap: Partial<Record<string, { d1: BridgeCandle[]; h4: BridgeCandle[] }>>,
   nowUnix: number,
 ): SpecialistSummaryCard[] {
   const pair = getFxPairByName(reviewSymbol);
   const macroSummary = getMacroSummary(reviewSymbol, snapshots);
-  const strengthSummary = getStrengthDifferentialSummary(reviewSymbol, snapshots);
+  const strengthSummary = getStrengthDifferentialSummary(reviewSymbol, snapshots, events, candleMap, nowUnix);
+  const strengthBoard = deriveStrengthMeterResult({ snapshots, events, candleMap, nowSeconds: nowUnix });
 
   const eventQuality = pair
     ? deriveEventQualitySummary({
@@ -1161,8 +1134,9 @@ export function getOverviewSpecialistSummaries(
       tab: "strength-meter",
       summary: strengthSummary.title,
       metrics: [
-        strengthSummary.scoreGap != null ? `Score gap ${strengthSummary.scoreGap.toFixed(1)} pts` : "Score gap unresolved",
-        strengthSummary.decisive ? "Spread is decisive" : "Spread is still modest",
+        strengthSummary.scoreGap != null ? `Board gap ${strengthSummary.scoreGap.toFixed(1)} pts` : "Board gap unresolved",
+        strengthSummary.decisive ? "Pair split is clear" : "Pair split is still mixed",
+        strengthBoard.shortlist[0] ? `Top board pair ${strengthBoard.shortlist[0].pair.name}` : "Top board pair unresolved",
       ],
     },
     {
