@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { EventReactionTab } from "@/app/tabs/EventReactionTab";
+import { EventToolsTab } from "@/app/tabs/EventToolsTab";
 import {
   deriveAssetFirstStudy,
   deriveEventFirstStudy,
@@ -210,10 +210,10 @@ describe("eventReaction studies", () => {
   });
 });
 
-describe("EventReactionTab", () => {
-  it("renders the beginner-first shell and removes old mode jargon", () => {
+describe("EventToolsTab", () => {
+  it("renders the merged event prep shell", () => {
     const html = renderToStaticMarkup(
-      <EventReactionTab
+      <EventToolsTab
         events={[
           buildEvent({ id: 1, time: 1_763_100_000, currency: "USD", title: "CPI y/y" }),
           buildEvent({ id: 2, time: 1_763_000_000, currency: "USD", title: "CPI y/y" }),
@@ -221,15 +221,16 @@ describe("EventReactionTab", () => {
           buildEvent({ id: 4, time: 1_762_800_000, currency: "USD", title: "CPI y/y" }),
           buildEvent({ id: 5, time: 1_762_700_000, currency: "USD", title: "CPI y/y" }),
         ]}
+        status="live"
+        lastCalendarIngestAt={1_763_200_000}
       />,
     );
 
-    expect(html).toContain("Event Reaction Engine");
-    expect(html).toContain("Study an upcoming event");
+    expect(html).toContain("Event Tools");
     expect(html).toContain("Upcoming Events");
+    expect(html).toContain("Replay Chart");
+    expect(html).toContain("Actionable Study Brief");
+    expect(html).toContain("Analyst Dashboard");
     expect(html).toContain("Manual Event Selector");
-    expect(html).toContain("Historical Replay");
-    expect(html).not.toContain("Event-first");
-    expect(html).not.toContain("Asset-first");
   });
 });

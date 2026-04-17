@@ -75,7 +75,7 @@ export interface TrustInspectorSummary {
 }
 
 export interface SpecialistSummaryCard {
-  id: "strength-meter" | "dashboard" | "event-quality";
+  id: "strength-meter" | "dashboard" | "event-tools";
   title: string;
   tab: TabId;
   summary: string;
@@ -1150,14 +1150,14 @@ export function getOverviewSpecialistSummaries(
       ],
     },
     {
-      id: "event-quality",
-      title: "Event Quality",
-      tab: "event-quality",
+      id: "event-tools",
+      title: "Event Tools",
+      tab: "event-tools",
       summary:
         eventQuality == null
-          ? `Event-quality summary is unavailable for ${reviewSymbol}.`
+          ? `Event prep summary is unavailable for ${reviewSymbol}.`
           : eventQuality.label === "clean"
-            ? `${reviewSymbol} looks clean over the next 24h.`
+            ? `${reviewSymbol} looks clean enough for event prep over the next 24h.`
             : eventQuality.label === "mixed"
               ? `${reviewSymbol} has building event friction over the next 24h.`
               : `${reviewSymbol} has a dirty event environment over the next 24h.`,

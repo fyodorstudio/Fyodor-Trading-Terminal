@@ -54,7 +54,7 @@ interface ActionItem {
 
 type AtrByPair = Record<string, { d1: number | null; h1: number | null }>;
 type CandlesByPair = Record<string, { d1: BridgeCandle[]; h1: BridgeCandle[]; h4: BridgeCandle[] }>;
-type SpecialistCardId = "strength-meter" | "dashboard" | "event-quality";
+type SpecialistCardId = "strength-meter" | "dashboard" | "event-tools";
 type ViewMode = "strategic" | "command";
 
 interface AtrConfig {

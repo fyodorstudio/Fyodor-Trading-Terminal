@@ -10,8 +10,7 @@ import { UiCommandPanel } from "@/app/components/UiCommandPanel";
 import { OverviewTab } from "@/app/tabs/OverviewTab";
 import { DashboardTab } from "@/app/tabs/DashboardTab";
 import { StrengthMeterTab } from "@/app/tabs/StrengthMeterTab";
-import { EventQualityTab } from "@/app/tabs/EventQualityTab";
-import { EventReactionTab } from "@/app/tabs/EventReactionTab";
+import { EventToolsTab } from "@/app/tabs/EventToolsTab";
 import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
 import { ChartsTab } from "@/app/tabs/ChartsTab";
 import { EconomicCalendarTab } from "@/app/tabs/EconomicCalendarTab";
@@ -21,8 +20,7 @@ import type { BridgeHealth, BridgeStatus, CalendarEvent, CalendarNavigationInten
 const ANALYSIS_TAB_ORDER: { id: TabId; label: string }[] = [
   { id: "dashboard", label: "Differential Calculator" },
   { id: "strength-meter", label: "Strength Meter" },
-  { id: "event-quality", label: "Event Quality" },
-  { id: "reaction-engine", label: "Event Reaction Engine" },
+  { id: "event-tools", label: "Event Tools" },
 ];
 
 const TAB_ORDER: Array<{ id: TabId; label: string; children?: { id: TabId; label: string }[] }> = [
@@ -259,14 +257,13 @@ export default function App() {
                 onOpenCalendarEvent={openCalendarForEvent}
               />
             )}
-            {activeTab === "event-quality" && (
-              <EventQualityTab
+            {activeTab === "event-tools" && (
+              <EventToolsTab
                 events={feedEvents}
                 status={feedStatus}
                 lastCalendarIngestAt={health.last_calendar_ingest_at ?? null}
               />
             )}
-            {activeTab === "reaction-engine" && <EventReactionTab events={feedEvents} />}
             {activeTab === "central-banks" && (
               <CentralBanksTab
                 snapshots={centralBankResult.snapshots}

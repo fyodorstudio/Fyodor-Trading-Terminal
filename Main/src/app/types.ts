@@ -2,8 +2,7 @@ export type TabId =
   | "overview"
   | "dashboard"
   | "strength-meter"
-  | "event-quality"
-  | "reaction-engine"
+  | "event-tools"
   | "central-banks"
   | "charts"
   | "calendar";
@@ -404,6 +403,16 @@ export interface ReactionReplaySample {
   actual: string;
   forecast: string;
   previous: string;
+}
+
+export interface EventToolsStudy {
+  selectedTemplate: EventTemplate | null;
+  selectedPair: FxPairDefinition | null;
+  selectedUpcomingEvent: CalendarEvent | null;
+  pairRanking: ReactionStudyRow[];
+  selectedRow: ReactionStudyRow | null;
+  replaySamples: ReactionReplaySample[];
+  eventEnvironment: EventQualitySummary | null;
 }
 
 export type DatePreset =

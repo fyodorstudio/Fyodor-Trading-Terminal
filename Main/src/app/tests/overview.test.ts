@@ -475,6 +475,6 @@ describe("overview logic", () => {
     expect(summaries).toHaveLength(3);
     expect(summaries[0].id).toBe("strength-meter");
     expect(summaries[1].id).toBe("dashboard");
-    expect(summaries[2].id).toBe("event-quality");
+    expect(summaries[2].id).toBe("event-tools");
   });
 });

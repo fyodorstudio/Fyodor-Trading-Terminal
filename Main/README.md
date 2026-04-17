@@ -14,8 +14,7 @@ The app is no longer a blank Phase 1 shell. It is now a live pre-trade briefing 
 
 1. `Differential Calculator`
 2. `Strength Meter`
-3. `Event Quality`
-4. `Event Reaction Engine`
+3. `Event Tools`
 
 The current product goal is to keep the app connection-first and honest: show what is live, what is stale, what is unresolved, and which market deserves attention right now without pretending to generate trade predictions.
 
@@ -58,7 +57,7 @@ It also expects the MT5 EA calendar bridge to be pushing economic calendar event
 - `Charts` keeps the live MT5 chart workflow and debug log, and shows explicit no-data / error states instead of fake candles.
 - `Economic Calendar` is MT5-backed, supports range/filter/search workflows, and can deep-link from `Overview` into a target event with highlight + explainer behavior.
 - `Central Banks Data` is derived from MT5 calendar events using strict mapping rules for the major 8 currencies. If a match is uncertain, the UI shows `N/A` instead of guessing.
-- `Differential Calculator`, `Strength Meter`, `Event Quality`, and `Event Reaction Engine` provide deeper specialist views, and parts of their output are surfaced back into `Overview`.
+- `Differential Calculator`, `Strength Meter`, and `Event Tools` provide deeper specialist views, and parts of their output are surfaced back into `Overview`.
 
 ## Run It
 

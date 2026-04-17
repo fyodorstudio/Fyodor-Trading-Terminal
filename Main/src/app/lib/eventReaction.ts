@@ -31,6 +31,10 @@ interface ReactionEvent {
   surprise: number;
 }
 
+export function buildEventTemplateKey(currency: string, title: string): string {
+  return `${currency.toUpperCase()}|${title}`;
+}
+
 export interface UpcomingReactionEvent {
   id: string;
   currency: string;
@@ -199,7 +203,7 @@ function normalizeReactionEvents(events: CalendarEvent[], nowSeconds: number): R
       const forecast = parseNumericValue(event.forecast);
       if (actual == null || forecast == null) return null;
       return {
-        key: `${event.currency}|${event.title}`,
+        key: buildEventTemplateKey(event.currency, event.title),
         currency: event.currency,
         title: event.title,
         family: family.family,
@@ -316,7 +320,7 @@ export function getUpcomingReactionEvents(params: {
     .map((event) => {
       const family = classifyEventQualityFamily(event.title);
       if (!family) return null;
-      const template = templateMap.get(`${event.currency}|${event.title}`) ?? null;
+      const template = templateMap.get(buildEventTemplateKey(event.currency, event.title)) ?? null;
 
       return {
         id: `${event.id}-${event.time}`,
