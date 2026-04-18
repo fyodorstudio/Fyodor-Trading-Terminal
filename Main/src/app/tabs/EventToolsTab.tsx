@@ -182,6 +182,34 @@ function getMetricWindow(timeframe: ReplayChartTimeframe): ReactionWindow {
   return "1d";
 }
 
+function formatReplayAxisTime(time: number, timeframe: ReplayChartTimeframe): string {
+  const date = new Date(time * 1000);
+  if (timeframe === "M15") {
+    return new Intl.DateTimeFormat(undefined, {
+      hour: "2-digit",
+      minute: "2-digit",
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    }).format(date);
+  }
+  if (timeframe === "H1" || timeframe === "H4") {
+    return new Intl.DateTimeFormat(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "UTC",
+    }).format(date);
+  }
+  return new Intl.DateTimeFormat(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  }).format(date);
+}
+
 function getReactionTendency(row: ReactionStudyRow | null, window: ReactionWindow): string {
   if (!row) return "Historical tendency will appear after the study loads.";
   const beat = row.bucketStats.find((bucket) => bucket.bucket === "beat")?.windows[window].medianPips ?? null;
@@ -211,6 +239,7 @@ function ReplayCandlestickChart(props: {
   eventIndex: number;
   visibleCount: number;
   pair: FxPairDefinition;
+  timeframe: ReplayChartTimeframe;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -238,10 +267,16 @@ function ReplayCandlestickChart(props: {
         borderVisible: false,
         rightOffset: 4,
         barSpacing: 14,
+        timeVisible: true,
+        secondsVisible: false,
+        tickMarkFormatter: (time) => formatReplayAxisTime(Number(time), props.timeframe),
       },
       crosshair: {
         vertLine: { labelBackgroundColor: "#111827" },
         horzLine: { labelBackgroundColor: "#111827" },
+      },
+      localization: {
+        timeFormatter: (time) => formatReplayAxisTime(Number(time), props.timeframe),
       },
     });
 
@@ -286,6 +321,21 @@ function ReplayCandlestickChart(props: {
         : { type: "price", precision: 5, minMove: 0.00001 },
     });
   }, [props.pair]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    chart.applyOptions({
+      timeScale: {
+        timeVisible: true,
+        secondsVisible: false,
+        tickMarkFormatter: (time) => formatReplayAxisTime(Number(time), props.timeframe),
+      },
+      localization: {
+        timeFormatter: (time) => formatReplayAxisTime(Number(time), props.timeframe),
+      },
+    });
+  }, [props.timeframe]);
 
   useEffect(() => {
     const series = seriesRef.current;
@@ -865,7 +915,7 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
                 </button>
               </div>
 
-              <ReplayCandlestickChart candles={replayWindow.candles} eventIndex={replayWindow.eventIndex} visibleCount={visibleCount} pair={study.selectedPair} />
+              <ReplayCandlestickChart candles={replayWindow.candles} eventIndex={replayWindow.eventIndex} visibleCount={visibleCount} pair={study.selectedPair} timeframe={replayTimeframe} />
             </>
           )}
         </section>
