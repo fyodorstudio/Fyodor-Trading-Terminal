@@ -70,6 +70,10 @@ export function resolveChartStatus({
     return streamConnected ? "live" : "stale";
   }
 
+  if (marketStatus.asset_class === "crypto") {
+    return streamConnected ? "live" : "stale";
+  }
+
   if (marketStatus.session_state === "closed") return "stale";
   if (marketStatus.session_state === "unavailable") {
     return streamConnected ? "live" : "stale";

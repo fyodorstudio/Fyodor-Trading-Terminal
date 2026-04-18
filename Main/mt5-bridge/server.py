@@ -108,18 +108,66 @@ def _namedtuple_to_dict(value: Any) -> Dict[str, Any]:
   return {}
 
 
+_CRYPTO_SYMBOL_HINTS = (
+  "btc",
+  "eth",
+  "sol",
+  "xrp",
+  "ada",
+  "ltc",
+  "doge",
+  "bch",
+  "bnb",
+  "dot",
+  "avax",
+  "matic",
+  "link",
+  "uni",
+  "crypto",
+  "coin",
+)
+
+_METAL_SYMBOL_HINTS = ("xau", "xag", "gold", "silver", "metal")
+_FOREX_CODES = {
+  "USD",
+  "EUR",
+  "GBP",
+  "JPY",
+  "AUD",
+  "NZD",
+  "CAD",
+  "CHF",
+  "CNH",
+  "CZK",
+  "DKK",
+  "HKD",
+  "HUF",
+  "NOK",
+  "PLN",
+  "SEK",
+  "SGD",
+  "TRY",
+  "MXN",
+  "ZAR",
+}
+
+
+def _looks_like_forex_pair(symbol: str) -> bool:
+  if len(symbol) != 6:
+    return False
+  base = symbol[:3].upper()
+  quote = symbol[3:].upper()
+  return base in _FOREX_CODES and quote in _FOREX_CODES
+
+
 def _infer_asset_class(symbol: str, path: Optional[str]) -> str:
   text = f"{symbol} {path or ''}".lower()
-  if "crypto" in text:
+  if any(hint in text for hint in _CRYPTO_SYMBOL_HINTS):
     return "crypto"
-  if "metal" in text or "xau" in text or "xag" in text:
+  if any(hint in text for hint in _METAL_SYMBOL_HINTS):
     return "metals"
-  if "forex" in text or "fx" in text or len(symbol) == 6:
+  if "forex" in text or "fx" in text or _looks_like_forex_pair(symbol):
     return "forex"
-  if "index" in text or "indices" in text:
-    return "index"
-  if "stock" in text or "share" in text or "equity" in text:
-    return "equity"
   return "other"
 
 
@@ -574,6 +622,30 @@ def history_range(symbol: str, tf: str, from_: int, to: int) -> List[Dict[str, A
   global _last_history_symbol
   _last_history_symbol = symbol
   return candles
+
+
+@app.get("/history_boundary")
+def history_boundary(symbol: str, tf: str) -> Dict[str, Any]:
+  if mt5.terminal_info() is None:
+    raise HTTPException(status_code=503, detail="MT5 terminal not connected")
+
+  timeframe = mt5_timeframe(tf)
+  ensure_symbol_selected(symbol)
+
+  earliest = datetime(1971, 1, 1, tzinfo=timezone.utc)
+  rates = mt5.copy_rates_from(symbol, timeframe, earliest, 1)
+  if rates is None or len(rates) == 0:
+    _update_last_error()
+    err = _get_last_error()
+    raise HTTPException(
+      status_code=502,
+      detail={"message": "No boundary data from MT5", "mt5_error": err},
+    )
+
+  candle = convert_rate_row(rates[0])
+  global _last_history_symbol
+  _last_history_symbol = symbol
+  return {"oldest_time": candle["time"], "approximate": True}
 
 
 @app.post("/calendar_ingest")

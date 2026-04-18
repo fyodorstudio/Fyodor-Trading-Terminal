@@ -58,7 +58,22 @@ export function normalizeCalendarEvent(raw: unknown): CalendarEvent | null {
 async function fetchJson<T>(url: string): Promise<T> {
   const response = await fetch(url);
   if (!response.ok) {
-    throw new Error(`Bridge returned ${response.status}`);
+    let detail = "";
+    try {
+      const text = await response.text();
+      if (text) {
+        const parsed = JSON.parse(text) as unknown;
+        if (parsed && typeof parsed === "object") {
+          const row = parsed as Record<string, unknown>;
+          if (typeof row.detail === "string") detail = row.detail;
+          else if (row.detail && typeof row.detail === "object") detail = JSON.stringify(row.detail);
+        }
+      }
+    } catch {
+      // ignore response parsing failures
+    }
+    const suffix = detail ? `: ${detail}` : "";
+    throw new Error(`Bridge returned ${response.status}${suffix}`);
   }
   return (await response.json()) as T;
 }
@@ -104,7 +119,6 @@ export async function fetchHistoryRange(params: {
     from_: String(params.from),
     to: String(params.to),
   });
-
   const payload = await fetchJson<unknown[]>(`${BRIDGE_BASE}/history_range?${search.toString()}`);
   return payload
     .map((item) => {
@@ -128,6 +142,29 @@ export async function fetchHistoryRange(params: {
     })
     .filter((item): item is BridgeCandle => item !== null)
     .sort((a, b) => a.time - b.time);
+}
+
+export async function fetchHistoryBoundary(params: {
+  symbol: string;
+  tf: string;
+}): Promise<{ oldest_time: number; approximate: boolean }> {
+  const search = new URLSearchParams({
+    symbol: params.symbol,
+    tf: params.tf,
+  });
+  const payload = await fetchJson<unknown>(`${BRIDGE_BASE}/history_boundary?${search.toString()}`);
+  if (!payload || typeof payload !== "object") {
+    throw new Error("Invalid history boundary payload");
+  }
+  const row = payload as Record<string, unknown>;
+  const oldestTime = asNumber(row.oldest_time);
+  if (oldestTime == null) {
+    throw new Error("History boundary missing oldest_time");
+  }
+  return {
+    oldest_time: oldestTime,
+    approximate: row.approximate !== false,
+  };
 }
 
 export async function fetchSymbols(): Promise<BridgeSymbol[]> {

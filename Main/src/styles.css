@@ -6432,6 +6432,34 @@ button {
 .strength-v4-btn-primary:hover { background: #000; }
 .strength-v4-btn-secondary { background: #fff; border-color: #e2e8f0; color: #475569; }
 .strength-v4-btn-secondary:hover { background: #f8fafc; border-color: #cbd5e1; color: #111827; }
+
+.charts-history-button { height: 38px; padding: 0 14px; border-radius: 8px; border: 1px solid #d1d5db; background: #fff; color: #111827; font-size: 12px; font-weight: 700; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+.charts-history-button:hover { background: #f8fafc; border-color: #cbd5e1; }
+.charts-history-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(4px); display: flex; justify-content: flex-end; }
+.charts-history-drawer { width: min(520px, 100%); height: 100%; background: #ffffff; box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; animation: charts-history-slide-in 0.22s ease-out; }
+@keyframes charts-history-slide-in { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.charts-history-head { padding: 32px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.charts-history-head h2 { margin: 0; font-size: 1.35rem; font-weight: 800; color: #111827; }
+.charts-history-head p { margin: 6px 0 0; font-size: 0.92rem; color: #64748b; line-height: 1.5; }
+.charts-history-close { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #e2e8f0; background: #fff; display: flex; align-items: center; justify-content: center; color: #64748b; transition: all 0.2s ease; flex: 0 0 auto; }
+.charts-history-close:hover { background: #f8fafc; color: #111827; border-color: #cbd5e1; }
+.charts-history-body { flex: 1; overflow-y: auto; padding: 32px; display: flex; flex-direction: column; gap: 24px; }
+.charts-history-section { display: flex; flex-direction: column; gap: 12px; }
+.charts-history-section h3 { margin: 0; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.1em; color: #94a3b8; }
+.charts-history-section p { margin: 0; color: #334155; line-height: 1.6; font-size: 0.95rem; }
+.charts-history-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; color: #334155; line-height: 1.5; list-style: disc; }
+.charts-history-list li { display: list-item; }
+.charts-history-field { display: flex; flex-direction: column; gap: 8px; }
+.charts-history-field span { font-size: 0.85rem; font-weight: 700; color: #475569; }
+.charts-history-field input { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; padding: 10px 12px; font-size: 0.95rem; color: #111827; background: #fff; }
+.charts-history-field input:focus { outline: none; border-color: #94a3b8; box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.18); }
+.charts-history-field p { margin: 0; font-size: 0.88rem; color: #64748b; line-height: 1.5; }
+.charts-history-actions { display: flex; gap: 12px; padding-top: 8px; }
+.charts-history-reset { height: 38px; padding: 0 14px; border-radius: 8px; border: 1px solid #e2e8f0; background: #fff; color: #334155; font-size: 12px; font-weight: 700; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
+.charts-history-reset:hover { background: #f8fafc; border-color: #cbd5e1; color: #111827; }
+.charts-history-boundary { position: absolute; left: 18px; top: 24px; z-index: 20; pointer-events: none; }
+.charts-history-boundary-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.35); background: rgba(255, 255, 255, 0.88); color: #475569; font-size: 11px; font-weight: 700; letter-spacing: 0.01em; opacity: 0; transform: translateY(-2px); transition: opacity 0.2s ease, transform 0.2s ease; }
+.charts-history-boundary-pill.is-visible { opacity: 1; transform: translateY(0); }
 \
 /* Strength Meter v4 Pro Layout Refinements */
 .strength-v4-panel { display: flex; flex-direction: column; gap: 48px; padding: 12px 0; }
