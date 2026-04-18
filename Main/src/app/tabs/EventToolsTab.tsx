@@ -16,7 +16,9 @@ import {
   Pause,
   Play,
   ShieldAlert,
+  X,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { fetchHistoryRange } from "@/app/lib/bridge";
@@ -393,6 +395,7 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
   const [nowMs, setNowMs] = useState(() => Date.now());
   const [visibleCount, setVisibleCount] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showUpcomingDrawer, setShowUpcomingDrawer] = useState(false);
   const [replayWindow, setReplayWindow] = useState<{ candles: BridgeCandle[]; eventIndex: number } | null>(null);
   const [replayLoading, setReplayLoading] = useState(false);
   const [replayError, setReplayError] = useState<string | null>(null);
@@ -445,6 +448,59 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
     ? study.selectedRow.summaryWindows[getMetricWindow(replayTimeframe)]
     : null;
   const thresholds = useMemo(() => getEventQualityThresholds(environmentHorizon), [environmentHorizon]);
+
+  const upcomingEventRows = (
+    <div className="grid gap-3">
+      {upcomingEvents.map((item) => {
+        const exactKey = buildEventTemplateKey(item.currency, item.title);
+        const isActive = selectedUpcomingId === item.id || selectedEventKey === exactKey;
+        return (
+          <button
+            key={item.id}
+            type="button"
+            onClick={() => {
+              setSelectedUpcomingId(item.id);
+              setSelectedEventKey(item.templateKey ?? exactKey);
+              setSelectedSampleIndex(0);
+              setSelectionNote(
+                item.templateKey
+                  ? null
+                  : "This event is on the calendar, but there is no usable historical template yet. The replay panel will stay empty until more bridge history exists.",
+              );
+              setShowUpcomingDrawer(false);
+            }}
+            className={`grid gap-4 rounded-[24px] border px-5 py-4 text-left transition-colors md:grid-cols-[200px_minmax(0,1fr)_220px] ${
+              isActive ? "border-slate-900 bg-slate-950 text-white" : "border-slate-200 bg-white hover:border-slate-300"
+            }`}
+          >
+            <div>
+              <strong className="block text-sm">{formatUtcDateTime(item.time)}</strong>
+              <span className={`mt-1 block text-xs ${isActive ? "text-slate-300" : "text-slate-500"}`}>{formatCountdown(item.time, nowMs)}</span>
+            </div>
+            <div className="flex items-start gap-3">
+              <FlagIcon countryCode={getCurrencyCountryCode(item.currency)} className="mt-0.5 h-5 w-8 shrink-0" />
+              <div>
+                <strong className="block text-sm">{item.currency} | {item.title}</strong>
+                <span className={`mt-1 block text-xs ${isActive ? "text-slate-300" : "text-slate-500"}`}>{item.familyLabel}</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-start gap-2 md:justify-end">
+              {item.templateKey ? (
+                <>
+                  <span className={`rounded-full border px-3 py-1 text-xs font-bold ${isActive ? "border-slate-700 bg-slate-800 text-slate-100" : qualityTone(item.quality ?? "weak")}`}>
+                    {getSampleQualityLabel(item.quality ?? "weak")}
+                  </span>
+                  <span className={`text-xs font-semibold ${isActive ? "text-slate-300" : "text-slate-500"}`}>{formatCount(item.sampleCount)}</span>
+                </>
+              ) : (
+                <span className={`text-xs font-semibold ${isActive ? "text-slate-300" : "text-slate-500"}`}>No usable history yet</span>
+              )}
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
 
   useEffect(() => {
     const timer = window.setInterval(() => setNowMs(Date.now()), 1000);
@@ -740,18 +796,37 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
             </div>
           </div>
 
-          <div className="grid min-w-[280px] grid-cols-1 gap-2 text-sm text-slate-600 sm:grid-cols-3">
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Feed Status</span>
-              <strong className="mt-1 block text-slate-900">{renderStatusLabel(status)}</strong>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Last Ingest</span>
-              <strong className="mt-1 block text-slate-900">{formatRelativeAge(lastCalendarIngestAt)}</strong>
-            </div>
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
-              <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Loaded Event</span>
-              <strong className="mt-1 block text-slate-900">{study?.selectedTemplate?.title ?? selectedUpcoming?.title ?? "Pick one below"}</strong>
+          <div className="min-w-[340px]">
+            <div className="overflow-hidden rounded-[24px] border border-slate-900 bg-slate-950 text-white">
+              <div className="grid gap-4 px-5 py-4 md:grid-cols-[180px_minmax(0,1fr)_180px] md:items-center">
+                <div>
+                  <strong className="block text-sm">{selectedUpcoming ? formatUtcDateTime(selectedUpcoming.time) : "Pick one below"}</strong>
+                  <span className="mt-1 block text-xs text-slate-300">
+                    {selectedUpcoming ? formatCountdown(selectedUpcoming.time, nowMs) : "Upcoming release"}
+                  </span>
+                </div>
+                <div className="flex items-start gap-3">
+                  {selectedUpcoming ? (
+                    <FlagIcon countryCode={getCurrencyCountryCode(selectedUpcoming.currency)} className="mt-0.5 h-5 w-8 shrink-0" />
+                  ) : null}
+                  <div className="min-w-0">
+                    <strong className="block truncate text-sm">
+                      {selectedUpcoming ? `${selectedUpcoming.currency} | ${selectedUpcoming.title}` : "Loaded Event"}
+                    </strong>
+                    <span className="mt-1 block text-xs text-slate-300">
+                      {selectedUpcoming ? selectedUpcoming.familyLabel : "Choose a release from the list below"}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="block text-xs font-semibold text-slate-300">
+                    {study?.selectedTemplate?.title ?? selectedUpcoming?.title ?? "Pick one below"}
+                  </span>
+                  <strong className="mt-1 block text-sm text-slate-100">
+                    {selectedReplaySample ? "Loaded" : "No usable history yet"}
+                  </strong>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -760,69 +835,22 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
         <div className="mb-4 flex items-center justify-between gap-4">
           <div>
             <h3 className="m-0 text-xl font-bold text-slate-950">Upcoming Events</h3>
-            <p className="mt-1 text-sm text-slate-600">Start here. Pick a supported release from the next 7 days, then study its historical reaction and replay.</p>
+            <p className="mt-1 text-sm text-slate-600">Open the drawer to browse the next 7 days without pushing the replay chart down the page.</p>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
-            <Clock3 size={14} />
-            Next 7 Days
+          <div className="flex items-center gap-3">
+            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+              <Clock3 size={14} />
+              Next 7 Days
+            </div>
+            <button
+              type="button"
+              onClick={() => setShowUpcomingDrawer(true)}
+              className="rounded-2xl border border-slate-900 bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+            >
+              See Upcoming Events
+            </button>
           </div>
         </div>
-
-        {upcomingEvents.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">
-            No supported macro events are scheduled in the next 7 days.
-          </div>
-        ) : (
-          <div className="grid gap-3">
-            {upcomingEvents.map((item) => {
-              const exactKey = buildEventTemplateKey(item.currency, item.title);
-              const isActive = selectedUpcomingId === item.id || selectedEventKey === exactKey;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => {
-                    setSelectedUpcomingId(item.id);
-                    setSelectedEventKey(item.templateKey ?? exactKey);
-                    setSelectedSampleIndex(0);
-                    setSelectionNote(
-                      item.templateKey
-                        ? null
-                        : "This event is on the calendar, but there is no usable historical template yet. The replay panel will stay empty until more bridge history exists.",
-                    );
-                  }}
-                  className={`grid gap-4 rounded-[24px] border px-5 py-4 text-left transition-colors md:grid-cols-[200px_minmax(0,1fr)_220px] ${
-                    isActive ? "border-slate-900 bg-slate-950 text-white" : "border-slate-200 bg-white hover:border-slate-300"
-                  }`}
-                >
-                  <div>
-                    <strong className="block text-sm">{formatUtcDateTime(item.time)}</strong>
-                    <span className={`mt-1 block text-xs ${isActive ? "text-slate-300" : "text-slate-500"}`}>{formatCountdown(item.time, nowMs)}</span>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <FlagIcon countryCode={getCurrencyCountryCode(item.currency)} className="mt-0.5 h-5 w-8 shrink-0" />
-                    <div>
-                      <strong className="block text-sm">{item.currency} | {item.title}</strong>
-                      <span className={`mt-1 block text-xs ${isActive ? "text-slate-300" : "text-slate-500"}`}>{item.familyLabel}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-start gap-2 md:justify-end">
-                    {item.templateKey ? (
-                      <>
-                        <span className={`rounded-full border px-3 py-1 text-xs font-bold ${isActive ? "border-slate-700 bg-slate-800 text-slate-100" : qualityTone(item.quality ?? "weak")}`}>
-                          {getSampleQualityLabel(item.quality ?? "weak")}
-                        </span>
-                        <span className={`text-xs font-semibold ${isActive ? "text-slate-300" : "text-slate-500"}`}>{formatCount(item.sampleCount)}</span>
-                      </>
-                    ) : (
-                      <span className={`text-xs font-semibold ${isActive ? "text-slate-300" : "text-slate-500"}`}>No usable history yet</span>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        )}
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[minmax(0,1.6fr)_360px]">
@@ -1022,6 +1050,48 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
           </section>
         </aside>
       </section>
+
+      <AnimatePresence>
+        {showUpcomingDrawer && (
+          <div className="fixed inset-0 z-[90] bg-slate-950/25 backdrop-blur-sm" onClick={() => setShowUpcomingDrawer(false)}>
+            <motion.aside
+              initial={{ scale: 0.98, opacity: 0, y: 12 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.98, opacity: 0, y: 12 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="absolute left-1/2 top-1/2 flex h-[min(80vh,760px)] w-[min(92vw,860px)] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Upcoming events"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+                <div>
+                  <h3 className="m-0 text-lg font-bold text-slate-950">Upcoming Events</h3>
+                  <p className="mt-1 text-sm text-slate-600">Browse the next 7 days and pick one without crowding the replay chart.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowUpcomingDrawer(false)}
+                  className="rounded-2xl border border-slate-200 bg-slate-50 p-2 text-slate-600 hover:bg-slate-100"
+                  aria-label="Close upcoming events panel"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-auto p-6">
+                {upcomingEvents.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-5 py-8 text-center text-sm text-slate-500">
+                    No supported macro events are scheduled in the next 7 days.
+                  </div>
+                ) : (
+                  upcomingEventRows
+                )}
+              </div>
+            </motion.aside>
+          </div>
+        )}
+      </AnimatePresence>
 
       <section className="rounded-[28px] border border-slate-200/80 bg-white/75 p-6 shadow-sm backdrop-blur-xl">
         <div className="mb-4 flex items-start gap-3">
