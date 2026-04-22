@@ -8,19 +8,21 @@ import { MinimalHeader } from "@/app/components/MinimalHeader";
 import { TabNavigation } from "@/app/components/TabNavigation";
 import { UiCommandPanel } from "@/app/components/UiCommandPanel";
 import { OverviewTab } from "@/app/tabs/OverviewTab";
+import { OverviewPlaceholderTab } from "@/app/tabs/OverviewPlaceholderTab";
 import { DashboardTab } from "@/app/tabs/DashboardTab";
 import { StrengthMeterTab } from "@/app/tabs/StrengthMeterTab";
 import { EventToolsTab } from "@/app/tabs/EventToolsTab";
 import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
 import { ChartsTab } from "@/app/tabs/ChartsTab";
 import { EconomicCalendarTab } from "@/app/tabs/EconomicCalendarTab";
+import { WorkInProgressTab } from "@/app/tabs/WorkInProgressTab";
+import { MacroStatePrototypeTab } from "@/app/tabs/MacroStatePrototypeTab";
+import { WatchlistEnginePrototypeTab } from "@/app/tabs/WatchlistEnginePrototypeTab";
 import { FONT_OPTIONS, COLOR_PALETTES, FontId, ColorPaletteId } from "@/app/config/themeConfig";
 import type { BridgeHealth, BridgeStatus, CalendarEvent, CalendarNavigationIntent, MarketStatusResponse, TabId } from "@/app/types";
 
 const ANALYSIS_TAB_ORDER: { id: TabId; label: string }[] = [
-  { id: "dashboard", label: "Differential Calculator" },
-  { id: "strength-meter", label: "Strength Meter" },
-  { id: "event-tools", label: "Event Tools" },
+  { id: "work-in-progress", label: "WORK IN PROGRESS" },
 ];
 
 const TAB_ORDER: Array<{ id: TabId; label: string; children?: { id: TabId; label: string }[] }> = [
@@ -234,7 +236,8 @@ export default function App() {
           />
 
           <main className="main-area mt-6">
-            {activeTab === "overview" && (
+            {activeTab === "overview" && <OverviewPlaceholderTab />}
+            {activeTab === "legacy-overview" && (
               <OverviewTab
                 currentTime={currentTime}
                 health={health}
@@ -263,6 +266,25 @@ export default function App() {
                 status={feedStatus}
                 lastCalendarIngestAt={health.last_calendar_ingest_at ?? null}
               />
+            )}
+            {activeTab === "work-in-progress" && (
+              <WorkInProgressTab
+                onOpenWatchlistTab={() => setActiveTab("watchlist-engine-prototype")}
+                onOpenPrototypeTab={() => setActiveTab("macro-state-prototype")}
+                onOpenLegacyOverviewTab={() => setActiveTab("legacy-overview")}
+                onOpenDashboardTab={() => setActiveTab("dashboard")}
+                onOpenStrengthMeterTab={() => setActiveTab("strength-meter")}
+                onOpenEventToolsTab={() => setActiveTab("event-tools")}
+              />
+            )}
+            {activeTab === "watchlist-engine-prototype" && (
+              <WatchlistEnginePrototypeTab
+                snapshots={centralBankResult.snapshots}
+                onBack={() => setActiveTab("work-in-progress")}
+              />
+            )}
+            {activeTab === "macro-state-prototype" && (
+              <MacroStatePrototypeTab onBack={() => setActiveTab("work-in-progress")} />
             )}
             {activeTab === "central-banks" && (
               <CentralBanksTab
