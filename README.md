@@ -45,3 +45,4 @@ pnpm run test
 - The frontend expects the bridge API at `http://127.0.0.1:8001`
 - Use `pnpm` from the repo root as the package-manager source of truth
 - The current chart stack uses `lightweight-charts` in the frontend
+- Full `pnpm run dev:all` usage assumes Windows, Python, and MetaTrader 5 installed locally; if MT5 is not at the default path, set `MT5_EXE`
