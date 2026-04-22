@@ -65,20 +65,26 @@ export function WatchlistEnginePrototypeTab({ snapshots, onBack }: WatchlistEngi
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap items-center justify-end gap-4">
                     <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bias</span>
-                      <span className="text-base font-black text-white">{renderBiasLabel(row.bias)}</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bias</span>
+                        <span className="text-sm font-black text-white">{renderBiasLabel(row.bias)}</span>
+                      </div>
                       <span className="h-4 w-px bg-white/10" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Score</span>
-                      <span className="text-[20px] leading-none font-black text-white">{formatScore(row.pairScore)}</span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Score</span>
+                        <span className="text-lg leading-none font-black text-white">{formatScore(row.pairScore)}</span>
+                      </div>
                     </div>
                     <button
                       type="button"
-                      className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-3.5 py-2 text-sm font-bold text-slate-200 transition-colors hover:border-white/20 hover:bg-white/10"
+                      className="inline-flex min-h-[36px] items-center gap-2 self-center bg-transparent px-0 py-0 text-base font-black text-white transition-colors hover:text-blue-200"
                     >
-                      Macro state later
-                      <ChevronRight className="h-4 w-4" />
+                      <span className="leading-none">Macro state later</span>
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.08] text-slate-100 transition-all hover:border-white/20 hover:bg-white/[0.14]">
+                        <ChevronRight className="h-4 w-4" />
+                      </span>
                     </button>
                   </div>
                 </div>
