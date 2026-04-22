@@ -31,5 +31,5 @@ __pycache__/
 # Local notes
 # `AGENT_INSTRUCTIONS/` = your local notes/instructions folder. Useful for you, but not needed as part of the app source.
 AGENT_INSTRUCTIONS/
-# `docs/Reference/` = local notes, scratch files, and generated reference material that should not affect app source history.
-docs/Reference/
+# `docs/` = internal planning, notes, roadmaps, and private documents that should stay local by default.
+docs/

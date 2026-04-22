@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { WatchlistEnginePrototypeTab } from "@/app/tabs/WatchlistEnginePrototypeTab";
+import { MacroStatePrototypeTab } from "@/app/tabs/MacroStatePrototypeTab";
 import type { CentralBankSnapshot } from "@/app/types";
 
 const snapshots: CentralBankSnapshot[] = [
@@ -198,19 +198,28 @@ const snapshots: CentralBankSnapshot[] = [
   },
 ];
 
-describe("WatchlistEnginePrototypeTab", () => {
-  it("renders the watchlist engine shell and ranked rows", () => {
+describe("MacroStatePrototypeTab", () => {
+  it("renders the standalone macro state shell with selector, verdict area, and limits", () => {
     const html = renderToStaticMarkup(
-      <WatchlistEnginePrototypeTab snapshots={snapshots} onBack={() => {}} />,
+      <MacroStatePrototypeTab snapshots={snapshots} onBack={() => {}} />,
     );
 
-    expect(html).toContain("Watchlist Engine");
-    expect(html).toContain("Open First");
-    expect(html).toContain("shown 5 pairs at a time");
-    expect(html).toContain("Showing");
-    expect(html).toContain("#1 - #5");
-    expect(html).toContain("Methodology / Limits");
-    expect(html).toContain("EURUSD");
-    expect(html).not.toContain("Rank #6");
+    expect(html).toContain("Macro State");
+    expect(html).toContain("Select Pair");
+    expect(html).toContain("Macro Bias");
+    expect(html).toContain("Selected Pair");
+    expect(html).toContain("Composite Score Methodology");
+    expect(html).toContain("How the numbers are produced");
+    expect(html).toContain("Composite score = 35% real-rate proxy + 30% policy rate level + 20% policy direction + 15% inflation direction");
+    expect(html).toContain("Current Pair Output");
+    expect(html).toContain("Verdict Rule");
+    expect(html).toContain("Current Active Regime");
+    expect(html).toContain("Base vs Quote");
+    expect(html).toContain("AUDJPY");
+    expect(html).toContain("Pair Selector");
+    expect(html).toContain("If the macro gap is below");
+    expect(html).not.toContain("Event Replay");
+    expect(html).not.toContain("What This Means For Manual TA");
+    expect(html).not.toContain("Cautions / Limits");
   });
 });

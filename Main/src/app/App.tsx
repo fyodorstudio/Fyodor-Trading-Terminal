@@ -284,7 +284,10 @@ export default function App() {
               />
             )}
             {activeTab === "macro-state-prototype" && (
-              <MacroStatePrototypeTab onBack={() => setActiveTab("work-in-progress")} />
+              <MacroStatePrototypeTab
+                snapshots={centralBankResult.snapshots}
+                onBack={() => setActiveTab("work-in-progress")}
+              />
             )}
             {activeTab === "central-banks" && (
               <CentralBanksTab
