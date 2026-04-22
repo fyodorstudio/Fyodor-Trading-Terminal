@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { getChartConnectionLabel, getChartSessionDetail } from "@/app/tabs/ChartsTab";
+import { getChartConnectionLabel } from "@/app/tabs/ChartsTab";
+import { getChartSessionDetail } from "@/app/lib/chartView";
 
 describe("getChartConnectionLabel", () => {
   it("uses market and bridge specific labels", () => {
@@ -76,7 +77,7 @@ describe("getChartConnectionLabel", () => {
   });
 
   it("derives session detail only from the active market status", () => {
-    expect(getChartSessionDetail(null)).toBe("Session unavailable");
+    expect(getChartSessionDetail(null).label).toBe("Session unavailable");
 
     expect(
       getChartSessionDetail({
@@ -93,7 +94,9 @@ describe("getChartConnectionLabel", () => {
         next_close_time: null,
         reason: null,
       }),
-    ).toBe("Est. closes in N/A");
+    ).toMatchObject({
+      label: "Scheduled session closes in N/A",
+    });
 
     expect(
       getChartSessionDetail({
@@ -110,6 +113,8 @@ describe("getChartConnectionLabel", () => {
         next_close_time: null,
         reason: null,
       }),
-    ).toBe("Est. opens in N/A");
+    ).toMatchObject({
+      label: "Scheduled session opens in N/A",
+    });
   });
 });

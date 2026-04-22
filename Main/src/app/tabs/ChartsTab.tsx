@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CandlestickSeries,
+  TickMarkType,
   createChart,
   type CandlestickData,
   type IChartApi,
@@ -9,7 +10,17 @@ import {
 import { ChevronDown, ChevronRight, Search, Star, Activity, Clock, AlertTriangle, Database, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchHistory, fetchHistoryBoundary, fetchHistoryRange, fetchSymbols, openChartStream } from "@/app/lib/bridge";
-import { formatUtcDateTime, formatCountdown, pad } from "@/app/lib/format";
+import {
+  formatChartAxisTime,
+  formatChartFeedTime,
+  formatChartHoverTime,
+  getChartDisplayCandles,
+  getChartDisplayModeLabel,
+  getChartSessionDetail,
+  loadChartDisplayTimeMode,
+  saveChartDisplayTimeMode,
+  type ChartDisplayTimeMode,
+} from "@/app/lib/chartView";
 import { resolveChartStatus } from "@/app/lib/status";
 import type { BridgeCandle, BridgeStatus, BridgeSymbol, MarketStatusResponse, Timeframe } from "@/app/types";
 
@@ -33,17 +44,6 @@ type HistoryCacheEntry = {
   }>;
 };
 
-const HISTORY_SECONDS: Record<Timeframe, number> = {
-  M1: 60,
-  M5: 5 * 60,
-  M15: 15 * 60,
-  M30: 30 * 60,
-  H1: 60 * 60,
-  H4: 4 * 60 * 60,
-  D1: 24 * 60 * 60,
-  W1: 7 * 24 * 60 * 60,
-  MN1: 30 * 24 * 60 * 60,
-};
 const HISTORY_RANGE_MAX_SECONDS = 40 * 24 * 60 * 60;
 
 export function getChartConnectionLabel(params: {
@@ -108,33 +108,6 @@ function mergeCandles(left: BridgeCandle[], right: BridgeCandle[]): BridgeCandle
   return Array.from(map.values()).sort((a, b) => a.time - b.time);
 }
 
-function stepSeconds(timeframe: Timeframe): number {
-  return HISTORY_SECONDS[timeframe] ?? 60 * 60;
-}
-
-function formatChartAxisTime(time: number, timeframe: Timeframe): string {
-  const date = new Date(time * 1000);
-  if (timeframe === "M1" || timeframe === "M5" || timeframe === "M15" || timeframe === "M30" || timeframe === "H1" || timeframe === "H4") {
-    return `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
-  }
-  if (timeframe === "D1") {
-    return date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      timeZone: "UTC",
-    });
-  }
-  return date.toLocaleDateString("en-GB", {
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-}
-
-function formatChartHoverTime(time: number): string {
-  return formatUtcDateTime(time);
-}
-
 function getChartPriceFormat(symbol: string, assetClass: string | null) {
   const normalized = symbol.toUpperCase();
   if (assetClass === "metals" || normalized.startsWith("XAU") || normalized.startsWith("XAG")) {
@@ -147,16 +120,6 @@ function getChartPriceFormat(symbol: string, assetClass: string | null) {
     return { type: "price" as const, precision: 2, minMove: 0.01 };
   }
   return { type: "price" as const, precision: 5, minMove: 0.00001 };
-}
-
-export function getChartSessionDetail(marketStatus: MarketStatusResponse | null): string {
-  if (!marketStatus || marketStatus.session_state === "unavailable") {
-    return "Session unavailable";
-  }
-  if (marketStatus.session_state === "open") {
-    return `Est. closes in ${formatCountdown(marketStatus.next_close_time)}`;
-  }
-  return `Est. opens in ${formatCountdown(marketStatus.next_open_time)}`;
 }
 
 function loadFavorites(): string[] {
@@ -199,6 +162,7 @@ interface ChartsTabProps {
 
 export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange }: ChartsTabProps) {
   const [timeframe, setTimeframe] = useState<Timeframe>("H1");
+  const [displayTimeMode, setDisplayTimeMode] = useState<ChartDisplayTimeMode>(() => loadChartDisplayTimeMode());
   const [historyState, setHistoryState] = useState<"loading" | "ready" | "no_data" | "error">("loading");
   const [symbols, setSymbols] = useState<BridgeSymbol[]>([]);
   const [favorites, setFavorites] = useState<string[]>(() => loadFavorites());
@@ -208,11 +172,11 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [debugLines, setDebugLines] = useState<string[]>([]);
   const [lastCandleTime, setLastCandleTime] = useState<number | null>(null);
-  const [loadingText, setLoadingText] = useState("Loading chart data...");
   const [streamConnected, setStreamConnected] = useState(false);
   const [visibleCandles, setVisibleCandles] = useState<BridgeCandle[]>([]);
   const [boundaryTime, setBoundaryTime] = useState<number | null>(null);
   const [chartLoadError, setChartLoadError] = useState<string | null>(null);
+  const [sessionNowMs, setSessionNowMs] = useState(() => Date.now());
   const pickerRef = useRef<HTMLDivElement | null>(null);
   const historyPanelRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -222,11 +186,61 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const loadingOlderRef = useRef(false);
   const loadRequestIdRef = useRef(0);
   const boundaryCacheRef = useRef(new Map<string, number | null>());
+  const shouldRefocusRef = useRef(true);
 
   const addLog = useCallback((line: string) => {
     setDebugLines((current) => {
       const next = [...current, `[${new Date().toISOString()}] ${line}`];
       return next.slice(-DEBUG_MAX);
+    });
+  }, []);
+
+  useEffect(() => {
+    const id = window.setInterval(() => setSessionNowMs(Date.now()), 1000);
+    return () => window.clearInterval(id);
+  }, []);
+
+  const activeMarketStatus =
+    marketStatus && marketStatus.symbol.toUpperCase() === selectedSymbol.toUpperCase() ? marketStatus : null;
+
+  const displayCandles = useMemo(
+    () => getChartDisplayCandles(visibleCandles, displayTimeMode),
+    [visibleCandles, displayTimeMode],
+  );
+
+  const refocusChart = useCallback(() => {
+    const chart = chartRef.current;
+    const series = seriesRef.current;
+    if (!chart || !series || visibleCandles.length === 0) return;
+
+    const lastIndex = visibleCandles.length - 1;
+    const windowBars = Math.min(Math.max(visibleCandles.length, 60), 120);
+    const halfWindow = windowBars / 2;
+
+    chart.timeScale().setVisibleLogicalRange({
+      from: Math.max(-0.5, lastIndex - halfWindow),
+      to: lastIndex + halfWindow,
+    });
+
+    series.priceScale().setAutoScale(true);
+    window.requestAnimationFrame(() => {
+      const latestClose = visibleCandles[lastIndex]?.close;
+      const autoRange = series.priceScale().getVisibleRange();
+      if (latestClose == null || !autoRange) return;
+      const span = Math.max(autoRange.to - autoRange.from, Math.abs(latestClose) * 0.01, 1e-6);
+      series.priceScale().setAutoScale(false);
+      series.priceScale().setVisibleRange({
+        from: latestClose - span / 2,
+        to: latestClose + span / 2,
+      });
+    });
+  }, [visibleCandles]);
+
+  const toggleDisplayTimeMode = useCallback(() => {
+    setDisplayTimeMode((current) => {
+      const next = current === "server" ? "local" : "server";
+      saveChartDisplayTimeMode(next);
+      return next;
     });
   }, []);
 
@@ -275,7 +289,8 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         barSpacing: 10,
         timeVisible: true,
         secondsVisible: false,
-        tickMarkFormatter: (time) => formatChartAxisTime(Number(time), "H1"),
+        tickMarkFormatter: (time, tickMarkType) =>
+          formatChartAxisTime(Number(time), "H1", tickMarkType ?? TickMarkType.Time),
       },
       grid: {
         vertLines: { color: "rgba(100, 116, 139, 0.05)" },
@@ -286,7 +301,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         horzLine: { labelBackgroundColor: "#1e293b" },
       },
       localization: {
-        timeFormatter: (time) => formatChartHoverTime(Number(time)),
+        timeFormatter: (time) => formatChartHoverTime(Number(time), displayTimeMode),
       },
     });
 
@@ -328,18 +343,25 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
-        tickMarkFormatter: (time) => formatChartAxisTime(Number(time), timeframe),
+        tickMarkFormatter: (time, tickMarkType) =>
+          formatChartAxisTime(Number(time), timeframe, tickMarkType ?? TickMarkType.Time),
       },
       localization: {
-        timeFormatter: (time) => formatChartHoverTime(Number(time)),
+        timeFormatter: (time) => formatChartHoverTime(Number(time), displayTimeMode),
       },
     });
-  }, [timeframe]);
+  }, [timeframe, displayTimeMode]);
 
   useEffect(() => {
     const series = seriesRef.current;
-    const chart = chartRef.current;
-    if (!series || !chart) return;
+    if (!series) return;
+
+    series.setData(displayCandles);
+  }, [displayCandles]);
+
+  useEffect(() => {
+    const series = seriesRef.current;
+    if (!series) return;
 
     series.applyOptions({
       priceFormat: getChartPriceFormat(selectedSymbol, activeMarketStatus?.asset_class ?? null),
@@ -352,20 +374,16 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     setChartLoadError(null);
     setVisibleCandles([]);
     setBoundaryTime(null);
-    setLoadingText(`Loading ${selectedSymbol} ${timeframe}...`);
-    series.setData([]);
+    shouldRefocusRef.current = true;
 
     const load = async () => {
       try {
         const boundaryCacheKey = `${selectedSymbol.toUpperCase()}|${timeframe}`;
         const cached = readHistoryCache(selectedSymbol, timeframe);
         if (cached.length > 0) {
-          series.setData(cached as CandlestickData[]);
-          chart.timeScale().fitContent();
           setVisibleCandles(cached);
           setLastCandleTime(cached[cached.length - 1]?.time ?? null);
           setHistoryState("ready");
-          setLoadingText(`Refreshing ${selectedSymbol} ${timeframe}...`);
           addLog(`loaded ${cached.length} cached candles for ${selectedSymbol} ${timeframe} while refreshing`);
         }
         const cachedBoundary = boundaryCacheRef.current.get(boundaryCacheKey) ?? null;
@@ -390,7 +408,6 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             addLog(`history refresh returned no candles for ${selectedSymbol} ${timeframe}; keeping cached history visible`);
             return;
           }
-          series.setData([]);
           setVisibleCandles([]);
           setBoundaryTime(boundaryTimeValue);
           setHistoryState("no_data");
@@ -400,8 +417,6 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
           return;
         }
 
-        series.setData(candles as CandlestickData[]);
-        chart.timeScale().fitContent();
         setHistoryState("ready");
         setLastCandleTime(candles[candles.length - 1]?.time ?? null);
         setVisibleCandles(candles);
@@ -410,7 +425,6 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         addLog(`history loaded ${candles.length} candles for ${selectedSymbol} ${timeframe}`);
       } catch (error) {
         if (cancelled || loadRequestIdRef.current !== requestId) return;
-        series.setData([]);
         setVisibleCandles([]);
         setBoundaryTime(null);
         setHistoryState("error");
@@ -436,7 +450,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
       cancelled = true;
       loadingOlderRef.current = false;
     };
-  }, [selectedSymbol, timeframe, addLog]);
+  }, [selectedSymbol, timeframe, addLog, activeMarketStatus?.asset_class]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -472,7 +486,6 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             currentCandles = merged;
             currentOldest = merged[0]?.time ?? currentOldest;
             setVisibleCandles(merged);
-            seriesRef.current?.setData(merged as CandlestickData[]);
             saveHistoryCache(selectedSymbol, timeframe, merged);
           } else {
             break;
@@ -497,9 +510,6 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     chart.timeScale().subscribeVisibleLogicalRangeChange(onRangeChange);
     return () => chart.timeScale().unsubscribeVisibleLogicalRangeChange(onRangeChange);
   }, [selectedSymbol, timeframe, historyState, visibleCandles, addLog]);
-
-  const activeMarketStatus =
-    marketStatus && marketStatus.symbol.toUpperCase() === selectedSymbol.toUpperCase() ? marketStatus : null;
 
   const marketClassLabel =
     activeMarketStatus?.asset_class === "crypto"
@@ -555,7 +565,6 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             close: message.candle.close,
             volume: 0,
           } satisfies BridgeCandle;
-          seriesRef.current?.update(nextCandle);
           setVisibleCandles((current) => {
             const next = mergeCandles(current, [nextCandle]);
             saveHistoryCache(selectedSymbol, timeframe, next);
@@ -585,6 +594,15 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     marketOpenLogLine,
     addLog,
   ]);
+
+  useEffect(() => {
+    if (historyState !== "ready" || displayCandles.length === 0 || !shouldRefocusRef.current) return;
+    const id = window.setTimeout(() => {
+      refocusChart();
+      shouldRefocusRef.current = false;
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [historyState, displayCandles, refocusChart]);
 
   const status: BridgeStatus = useMemo(
     () =>
@@ -629,7 +647,16 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     });
   }, []);
 
-  const sessionDetail = useMemo(() => getChartSessionDetail(activeMarketStatus), [activeMarketStatus]);
+  const sessionDetail = useMemo(
+    () => getChartSessionDetail(activeMarketStatus, sessionNowMs),
+    [activeMarketStatus, sessionNowMs],
+  );
+
+  const displayModeLabel = getChartDisplayModeLabel(displayTimeMode);
+
+  const feedLabel = lastCandleTime
+    ? `Feed: ${formatChartFeedTime(lastCandleTime, displayTimeMode)}`
+    : "Waiting for data";
 
   const streamStatusLabel =
     getChartConnectionLabel({ historyState, marketStatus: activeMarketStatus, streamConnected });
@@ -768,6 +795,13 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
           >
             History
           </button>
+          <button
+            type="button"
+            onClick={refocusChart}
+            className="charts-history-button"
+          >
+            Refocus
+          </button>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -775,16 +809,27 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             <Activity className={`h-4 w-4 ${status === 'live' ? 'text-green-500 animate-pulse' : status === 'loading' ? 'text-blue-500 animate-pulse' : status === 'stale' ? 'text-amber-500' : 'text-gray-400'}`} />
             <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{streamStatusLabel}</span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-full">
+          <div
+            className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-full"
+            title={sessionDetail.basis}
+          >
             <Clock className="h-4 w-4 text-gray-400" />
-            <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{sessionDetail}</span>
+            <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{sessionDetail.label}</span>
           </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-gray-900 border border-gray-800 rounded-full">
+          <button
+            type="button"
+            onClick={toggleDisplayTimeMode}
+            title={`Toggle chart time display. Current mode: ${displayModeLabel}.`}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-900 border border-gray-800 rounded-full transition-colors hover:bg-gray-800"
+          >
             <Database className={`h-4 w-4 ${lastCandleTime ? 'text-blue-400' : 'text-gray-500'}`} />
             <span className="text-xs font-bold text-gray-300 whitespace-nowrap">
-              {lastCandleTime ? `Feed: ${formatUtcDateTime(lastCandleTime)}` : 'Waiting for data'}
+              {feedLabel}
             </span>
-          </div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 whitespace-nowrap">
+              {displayModeLabel}
+            </span>
+          </button>
         </div>
       </div>
 
