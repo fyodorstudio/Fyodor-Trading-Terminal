@@ -66,16 +66,12 @@ export function WatchlistEnginePrototypeTab({ snapshots, onBack }: WatchlistEngi
                   </div>
 
                   <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-5 rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5">
-                      <div className="text-left lg:text-right">
-                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bias</div>
-                        <div className="mt-0.5 text-lg font-black text-white">{renderBiasLabel(row.bias)}</div>
-                      </div>
-                      <div className="h-8 w-px bg-white/10" />
-                      <div className="text-left lg:text-right">
-                        <div className="text-[10px] font-black uppercase tracking-widest text-slate-400">Score</div>
-                        <div className="mt-0.5 text-[22px] leading-none font-black text-white">{formatScore(row.pairScore)}</div>
-                      </div>
+                    <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Bias</span>
+                      <span className="text-base font-black text-white">{renderBiasLabel(row.bias)}</span>
+                      <span className="h-4 w-px bg-white/10" />
+                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Score</span>
+                      <span className="text-[20px] leading-none font-black text-white">{formatScore(row.pairScore)}</span>
                     </div>
                     <button
                       type="button"
