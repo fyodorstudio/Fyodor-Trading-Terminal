@@ -9,9 +9,9 @@ import {
 import { ChevronDown, ChevronRight, Search, Star, Activity, Clock, AlertTriangle, Database, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchHistory, fetchHistoryBoundary, fetchHistoryRange, fetchSymbols, openChartStream } from "@/app/lib/bridge";
-import { formatDateOnly, formatUtcDateTime, formatCountdown } from "@/app/lib/format";
+import { formatUtcDateTime, formatCountdown, pad } from "@/app/lib/format";
 import { resolveChartStatus } from "@/app/lib/status";
-import type { BridgeStatus, BridgeSymbol, MarketStatusResponse, Timeframe } from "@/app/types";
+import type { BridgeCandle, BridgeStatus, BridgeSymbol, MarketStatusResponse, Timeframe } from "@/app/types";
 
 const FAVORITES_KEY = "fyodor-main-chart-favorites";
 const CHART_HISTORY_CACHE_KEY = "fyodor-main-chart-history-cache-v1";
@@ -112,12 +112,51 @@ function stepSeconds(timeframe: Timeframe): number {
   return HISTORY_SECONDS[timeframe] ?? 60 * 60;
 }
 
-function formatChartAxisTime(time: number): string {
-  return formatDateOnly(time);
+function formatChartAxisTime(time: number, timeframe: Timeframe): string {
+  const date = new Date(time * 1000);
+  if (timeframe === "M1" || timeframe === "M5" || timeframe === "M15" || timeframe === "M30" || timeframe === "H1" || timeframe === "H4") {
+    return `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
+  }
+  if (timeframe === "D1") {
+    return date.toLocaleDateString("en-GB", {
+      day: "2-digit",
+      month: "short",
+      timeZone: "UTC",
+    });
+  }
+  return date.toLocaleDateString("en-GB", {
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 function formatChartHoverTime(time: number): string {
   return formatUtcDateTime(time);
+}
+
+function getChartPriceFormat(symbol: string, assetClass: string | null) {
+  const normalized = symbol.toUpperCase();
+  if (assetClass === "metals" || normalized.startsWith("XAU") || normalized.startsWith("XAG")) {
+    return { type: "price" as const, precision: 2, minMove: 0.01 };
+  }
+  if (normalized.includes("JPY")) {
+    return { type: "price" as const, precision: 3, minMove: 0.001 };
+  }
+  if (assetClass === "crypto") {
+    return { type: "price" as const, precision: 2, minMove: 0.01 };
+  }
+  return { type: "price" as const, precision: 5, minMove: 0.00001 };
+}
+
+export function getChartSessionDetail(marketStatus: MarketStatusResponse | null): string {
+  if (!marketStatus || marketStatus.session_state === "unavailable") {
+    return "Session unavailable";
+  }
+  if (marketStatus.session_state === "open") {
+    return `Est. closes in ${formatCountdown(marketStatus.next_close_time)}`;
+  }
+  return `Est. opens in ${formatCountdown(marketStatus.next_open_time)}`;
 }
 
 function loadFavorites(): string[] {
@@ -234,9 +273,9 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         borderVisible: false,
         rightOffset: 5,
         barSpacing: 10,
-        timeVisible: false,
+        timeVisible: true,
         secondsVisible: false,
-        tickMarkFormatter: (time) => formatChartAxisTime(Number(time)),
+        tickMarkFormatter: (time) => formatChartAxisTime(Number(time), "H1"),
       },
       grid: {
         vertLines: { color: "rgba(100, 116, 139, 0.05)" },
@@ -287,9 +326,9 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     if (!chart) return;
     chart.applyOptions({
       timeScale: {
-        timeVisible: false,
+        timeVisible: true,
         secondsVisible: false,
-        tickMarkFormatter: (time) => formatChartAxisTime(Number(time)),
+        tickMarkFormatter: (time) => formatChartAxisTime(Number(time), timeframe),
       },
       localization: {
         timeFormatter: (time) => formatChartHoverTime(Number(time)),
@@ -302,11 +341,8 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     const chart = chartRef.current;
     if (!series || !chart) return;
 
-    const isJpy = selectedSymbol.toUpperCase().includes("JPY");
     series.applyOptions({
-      priceFormat: isJpy
-        ? { type: "price", precision: 3, minMove: 0.001 }
-        : { type: "price", precision: 5, minMove: 0.00001 },
+      priceFormat: getChartPriceFormat(selectedSymbol, activeMarketStatus?.asset_class ?? null),
     });
 
     let cancelled = false;
@@ -323,6 +359,15 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
       try {
         const boundaryCacheKey = `${selectedSymbol.toUpperCase()}|${timeframe}`;
         const cached = readHistoryCache(selectedSymbol, timeframe);
+        if (cached.length > 0) {
+          series.setData(cached as CandlestickData[]);
+          chart.timeScale().fitContent();
+          setVisibleCandles(cached);
+          setLastCandleTime(cached[cached.length - 1]?.time ?? null);
+          setHistoryState("ready");
+          setLoadingText(`Refreshing ${selectedSymbol} ${timeframe}...`);
+          addLog(`loaded ${cached.length} cached candles for ${selectedSymbol} ${timeframe} while refreshing`);
+        }
         const cachedBoundary = boundaryCacheRef.current.get(boundaryCacheKey) ?? null;
         let boundaryTimeValue = cachedBoundary;
         if (boundaryTimeValue == null) {
@@ -337,9 +382,14 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         }
         if (cancelled || loadRequestIdRef.current !== requestId) return;
 
-        const candles = cached.length > 0 ? cached : await fetchHistory(selectedSymbol, timeframe, 5000);
+        const candles = await fetchHistory(selectedSymbol, timeframe, 5000);
         if (cancelled || loadRequestIdRef.current !== requestId) return;
         if (candles.length === 0) {
+          if (cached.length > 0) {
+            setBoundaryTime(boundaryTimeValue);
+            addLog(`history refresh returned no candles for ${selectedSymbol} ${timeframe}; keeping cached history visible`);
+            return;
+          }
           series.setData([]);
           setVisibleCandles([]);
           setBoundaryTime(boundaryTimeValue);
@@ -492,9 +542,26 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
           message?: string;
           candle?: CandlestickData;
         };
-        if ((message.type === "candle_update" || message.type === "candle_new") && message.candle) {
-          seriesRef.current?.update(message.candle);
-          setLastCandleTime(message.candle.time as number);
+        if (
+          (message.type === "candle_update" || message.type === "candle_new") &&
+          message.candle &&
+          typeof message.candle.time === "number"
+        ) {
+          const nextCandle = {
+            time: message.candle.time,
+            open: message.candle.open,
+            high: message.candle.high,
+            low: message.candle.low,
+            close: message.candle.close,
+            volume: 0,
+          } satisfies BridgeCandle;
+          seriesRef.current?.update(nextCandle);
+          setVisibleCandles((current) => {
+            const next = mergeCandles(current, [nextCandle]);
+            saveHistoryCache(selectedSymbol, timeframe, next);
+            return next;
+          });
+          setLastCandleTime(nextCandle.time);
           setStreamConnected(true);
         }
         if (message.type === "status" && message.message === "mt5_not_connected") {
@@ -562,15 +629,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     });
   }, []);
 
-  const sessionDetail = useMemo(() => {
-    if (!marketStatus || marketStatus.session_state === "unavailable") {
-      return "Session unavailable";
-    }
-    if (marketStatus.session_state === "open") {
-      return `Est. closes in ${formatCountdown(marketStatus.next_close_time)}`;
-    }
-    return `Est. opens in ${formatCountdown(marketStatus.next_open_time)}`;
-  }, [marketStatus]);
+  const sessionDetail = useMemo(() => getChartSessionDetail(activeMarketStatus), [activeMarketStatus]);
 
   const streamStatusLabel =
     getChartConnectionLabel({ historyState, marketStatus: activeMarketStatus, streamConnected });

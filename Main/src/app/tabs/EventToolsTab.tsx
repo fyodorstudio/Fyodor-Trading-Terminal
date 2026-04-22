@@ -783,7 +783,7 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
   return (
     <section className="tab-panel mx-auto flex max-w-[1460px] flex-col gap-6 pb-12">
       <section className="rounded-[28px] border border-slate-200/80 bg-white/75 p-6 shadow-sm backdrop-blur-xl">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-col gap-5">
           <div className="flex items-start gap-4">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white">
               <CalendarClock size={20} />
@@ -796,9 +796,9 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
             </div>
           </div>
 
-          <div className="min-w-[340px]">
+          <div className="w-full">
             <div className="overflow-hidden rounded-[24px] border border-slate-900 bg-slate-950 text-white">
-              <div className="grid gap-4 px-5 py-4 md:grid-cols-[180px_minmax(0,1fr)_180px] md:items-center">
+              <div className="grid gap-4 px-5 py-4 md:grid-cols-[190px_minmax(0,1fr)_220px] md:items-center">
                 <div>
                   <strong className="block text-sm">{selectedUpcoming ? formatUtcDateTime(selectedUpcoming.time) : "Pick one below"}</strong>
                   <span className="mt-1 block text-xs text-slate-300">
@@ -819,10 +819,10 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className="block text-xs font-semibold text-slate-300">
+                  <span className="block text-sm font-semibold text-slate-300">
                     {study?.selectedTemplate?.title ?? selectedUpcoming?.title ?? "Pick one below"}
                   </span>
-                  <strong className="mt-1 block text-sm text-slate-100">
+                  <strong className="mt-1 block text-base text-slate-100">
                     {selectedReplaySample ? "Loaded" : "No usable history yet"}
                   </strong>
                 </div>
@@ -835,17 +835,17 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
         <div className="mb-4 flex items-center justify-between gap-4">
           <div>
             <h3 className="m-0 text-xl font-bold text-slate-950">Upcoming Events</h3>
-            <p className="mt-1 text-sm text-slate-600">Open the drawer to browse the next 7 days without pushing the replay chart down the page.</p>
+            <p className="mt-1 text-sm text-slate-600">Browse the next 7 days without giving up vertical space in the replay area.</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-slate-500">
+            <div className="inline-flex h-11 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-sm font-semibold text-slate-500">
               <Clock3 size={14} />
               Next 7 Days
             </div>
             <button
               type="button"
               onClick={() => setShowUpcomingDrawer(true)}
-              className="rounded-2xl border border-slate-900 bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
+              className="inline-flex h-11 items-center rounded-2xl border border-slate-900 bg-slate-950 px-4 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
             >
               See Upcoming Events
             </button>
