@@ -199,18 +199,25 @@ const snapshots: CentralBankSnapshot[] = [
 ];
 
 describe("WatchlistEnginePrototypeTab", () => {
-  it("renders the watchlist engine shell and ranked rows", () => {
+  it("renders the watchlist engine shell and ranked table", () => {
     const html = renderToStaticMarkup(
       <WatchlistEnginePrototypeTab snapshots={snapshots} onBack={() => {}} />,
     );
 
     expect(html).toContain("Watchlist Engine");
-    expect(html).toContain("Open First");
-    expect(html).toContain("shown 5 pairs at a time");
+    expect(html).toContain("Macro-ranked FX watchlist.");
+    expect(html).toContain("Ranked Pairs");
+    expect(html).toContain("Pairs ranked by macro gap.");
     expect(html).toContain("Showing");
     expect(html).toContain("#1 - #5");
-    expect(html).toContain("Methodology / Limits");
+    expect(html).toContain("Top Driver");
     expect(html).toContain("EURUSD");
+    expect(html).toContain("Bullish quote");
+    expect(html).not.toContain("Methodology / Limits");
+    expect(html).not.toContain("More Details");
+    expect(html).not.toContain("Coverage");
+    expect(html).not.toContain("View");
+    expect(html).not.toContain("Details");
     expect(html).not.toContain("Rank #6");
   });
 });
