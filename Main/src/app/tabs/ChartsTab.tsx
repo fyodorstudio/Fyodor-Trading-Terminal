@@ -7,7 +7,7 @@ import {
   type IChartApi,
   type ISeriesApi,
 } from "lightweight-charts";
-import { ChevronDown, ChevronRight, Search, Star, Activity, Clock, AlertTriangle, Database, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Search, Star, Activity, Clock, AlertTriangle, Database, X, Check } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchHistory, fetchHistoryBoundary, fetchHistoryRange, fetchSymbols, openChartStream } from "@/app/lib/bridge";
 import {
@@ -22,6 +22,11 @@ import {
   type ChartDisplayTimeMode,
 } from "@/app/lib/chartView";
 import { resolveChartStatus } from "@/app/lib/status";
+import {
+  formatCurrentTimeForDisplayTimezone,
+  getDisplayTimezoneOptions,
+  getDisplayTimezoneShortLabel,
+} from "@/app/lib/timezoneDisplay";
 import type { BridgeCandle, BridgeStatus, BridgeSymbol, MarketStatusResponse, Timeframe } from "@/app/types";
 
 const FAVORITES_KEY = "fyodor-main-chart-favorites";
@@ -168,6 +173,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const [favorites, setFavorites] = useState<string[]>(() => loadFavorites());
   const [search, setSearch] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [timezoneMenuOpen, setTimezoneMenuOpen] = useState(false);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [debugLines, setDebugLines] = useState<string[]>([]);
@@ -177,7 +183,9 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const [boundaryTime, setBoundaryTime] = useState<number | null>(null);
   const [chartLoadError, setChartLoadError] = useState<string | null>(null);
   const [sessionNowMs, setSessionNowMs] = useState(() => Date.now());
+  const [crosshairPrice, setCrosshairPrice] = useState<{ label: string; top: number } | null>(null);
   const pickerRef = useRef<HTMLDivElement | null>(null);
+  const timezoneMenuRef = useRef<HTMLDivElement | null>(null);
   const historyPanelRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -200,12 +208,29 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     return () => window.clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    const handleOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (!pickerRef.current?.contains(target)) setPickerOpen(false);
+      if (!timezoneMenuRef.current?.contains(target)) setTimezoneMenuOpen(false);
+      if (!historyPanelRef.current?.contains(target)) setHistoryPanelOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, []);
+
   const activeMarketStatus =
     marketStatus && marketStatus.symbol.toUpperCase() === selectedSymbol.toUpperCase() ? marketStatus : null;
 
+  const priceFormat = useMemo(
+    () => getChartPriceFormat(selectedSymbol, activeMarketStatus?.asset_class ?? null),
+    [selectedSymbol, activeMarketStatus?.asset_class],
+  );
+
   const displayCandles = useMemo(
-    () => getChartDisplayCandles(visibleCandles, displayTimeMode),
-    [visibleCandles, displayTimeMode],
+    () => getChartDisplayCandles(visibleCandles),
+    [visibleCandles],
   );
 
   const refocusChart = useCallback(() => {
@@ -236,12 +261,10 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     });
   }, [visibleCandles]);
 
-  const toggleDisplayTimeMode = useCallback(() => {
-    setDisplayTimeMode((current) => {
-      const next = current === "server" ? "local" : "server";
-      saveChartDisplayTimeMode(next);
-      return next;
-    });
+  const handleDisplayTimeModeChange = useCallback((next: ChartDisplayTimeMode) => {
+    setDisplayTimeMode(next);
+    saveChartDisplayTimeMode(next);
+    setTimezoneMenuOpen(false);
   }, []);
 
   useEffect(() => {
@@ -290,7 +313,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         timeVisible: true,
         secondsVisible: false,
         tickMarkFormatter: (time, tickMarkType) =>
-          formatChartAxisTime(Number(time), "H1", tickMarkType ?? TickMarkType.Time),
+          formatChartAxisTime(Number(time), "H1", tickMarkType ?? TickMarkType.Time, displayTimeMode),
       },
       grid: {
         vertLines: { color: "rgba(100, 116, 139, 0.05)" },
@@ -344,7 +367,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         timeVisible: true,
         secondsVisible: false,
         tickMarkFormatter: (time, tickMarkType) =>
-          formatChartAxisTime(Number(time), timeframe, tickMarkType ?? TickMarkType.Time),
+          formatChartAxisTime(Number(time), timeframe, tickMarkType ?? TickMarkType.Time, displayTimeMode),
       },
       localization: {
         timeFormatter: (time) => formatChartHoverTime(Number(time), displayTimeMode),
@@ -360,11 +383,43 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   }, [displayCandles]);
 
   useEffect(() => {
+    const chart = chartRef.current;
+    const series = seriesRef.current;
+    const container = containerRef.current;
+    if (!chart || !series || !container) return;
+
+    const handleCrosshairMove = (param: { point?: { x: number; y: number } | null }) => {
+      const point = param.point;
+      if (!point || point.x < 0 || point.y < 0 || point.x > container.clientWidth || point.y > container.clientHeight) {
+        setCrosshairPrice(null);
+        return;
+      }
+
+      const price = series.coordinateToPrice(point.y);
+      if (price == null) {
+        setCrosshairPrice(null);
+        return;
+      }
+
+      setCrosshairPrice({
+        label: price.toFixed(priceFormat.precision),
+        top: point.y,
+      });
+    };
+
+    chart.subscribeCrosshairMove(handleCrosshairMove);
+    return () => {
+      chart.unsubscribeCrosshairMove(handleCrosshairMove);
+      setCrosshairPrice(null);
+    };
+  }, [priceFormat.precision]);
+
+  useEffect(() => {
     const series = seriesRef.current;
     if (!series) return;
 
     series.applyOptions({
-      priceFormat: getChartPriceFormat(selectedSymbol, activeMarketStatus?.asset_class ?? null),
+      priceFormat,
     });
 
     let cancelled = false;
@@ -450,7 +505,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
       cancelled = true;
       loadingOlderRef.current = false;
     };
-  }, [selectedSymbol, timeframe, addLog, activeMarketStatus?.asset_class]);
+  }, [selectedSymbol, timeframe, addLog, activeMarketStatus?.asset_class, priceFormat]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -652,7 +707,15 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     [activeMarketStatus, sessionNowMs],
   );
 
+  const timezoneOptions = useMemo(() => getDisplayTimezoneOptions(new Date(sessionNowMs)), [sessionNowMs]);
   const displayModeLabel = getChartDisplayModeLabel(displayTimeMode);
+  const displayModeShortLabel = getDisplayTimezoneShortLabel(displayTimeMode, new Date(sessionNowMs));
+  const currentDisplayTime = formatCurrentTimeForDisplayTimezone({
+    nowMs: sessionNowMs,
+    selection: displayTimeMode,
+    serverTimeSeconds: activeMarketStatus?.server_time ?? lastCandleTime,
+    serverFetchedAtMs: activeMarketStatus?.checked_at != null ? activeMarketStatus.checked_at * 1000 : null,
+  });
 
   const feedLabel = lastCandleTime
     ? `Feed: ${formatChartFeedTime(lastCandleTime, displayTimeMode)}`
@@ -816,20 +879,51 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             <Clock className="h-4 w-4 text-gray-400" />
             <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{sessionDetail.label}</span>
           </div>
-          <button
-            type="button"
-            onClick={toggleDisplayTimeMode}
-            title={`Toggle chart time display. Current mode: ${displayModeLabel}.`}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-900 border border-gray-800 rounded-full transition-colors hover:bg-gray-800"
-          >
-            <Database className={`h-4 w-4 ${lastCandleTime ? 'text-blue-400' : 'text-gray-500'}`} />
-            <span className="text-xs font-bold text-gray-300 whitespace-nowrap">
-              {feedLabel}
-            </span>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 whitespace-nowrap">
-              {displayModeLabel}
-            </span>
-          </button>
+          <div className="tv-toolbar-anchor" ref={timezoneMenuRef}>
+            <button
+              type="button"
+              onClick={() => setTimezoneMenuOpen((current) => !current)}
+              title={`Chart timezone. Current mode: ${displayModeLabel}.`}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-900 border border-gray-800 rounded-full transition-colors hover:bg-gray-800"
+            >
+              <Database className={`h-4 w-4 ${lastCandleTime ? 'text-blue-400' : 'text-gray-500'}`} />
+              <span className="text-xs font-bold text-gray-300 whitespace-nowrap">
+                {feedLabel}
+              </span>
+              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 whitespace-nowrap">
+                {currentDisplayTime} | {displayModeShortLabel}
+              </span>
+              <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${timezoneMenuOpen ? "rotate-180" : ""}`} />
+            </button>
+
+            {timezoneMenuOpen && (
+              <div className="tv-popover tv-filter-popover">
+                <div className="tv-popover-head">
+                  <strong>Chart timezone</strong>
+                  <span>Bars stay in canonical feed order; only labels and readouts change.</span>
+                </div>
+                <div className="tv-timezone-list">
+                  {timezoneOptions.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      className={displayTimeMode === option.id ? "tv-option-row is-selected" : "tv-option-row"}
+                      onClick={() => handleDisplayTimeModeChange(option.id)}
+                    >
+                      <span className="tv-option-main">
+                        <Clock size={15} />
+                        <span className="tv-option-label">
+                          {option.label}
+                          {option.isHighlighted ? <span className="tv-option-badge">Local</span> : null}
+                        </span>
+                      </span>
+                      {displayTimeMode === option.id && <Check size={15} />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -886,6 +980,15 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         <div className="p-1 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-3xl shadow-sm overflow-hidden">
           <div ref={containerRef} className="h-[600px] w-full" />
         </div>
+        {crosshairPrice && (
+          <div
+            className="chart-crosshair-price"
+            style={{ top: crosshairPrice.top }}
+            aria-hidden="true"
+          >
+            {crosshairPrice.label}
+          </div>
+        )}
         <div className="charts-history-boundary" aria-live="polite">
           <span className={`charts-history-boundary-pill ${reachedBoundary ? "is-visible" : ""}`}>
             Oldest available MT5 candle, approximate

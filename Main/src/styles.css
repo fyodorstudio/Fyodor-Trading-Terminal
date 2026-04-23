@@ -2718,6 +2718,26 @@ button {
   white-space: nowrap;
 }
 
+.tv-timezone-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.tv-option-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 8px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(59, 130, 246, 0.12);
+  color: #2563eb;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  vertical-align: middle;
+}
+
 .tv-country-code {
   display: inline-flex;
   align-items: center;
@@ -2826,6 +2846,22 @@ button {
   border: 1px solid var(--line);
   border-radius: 10px;
   background: #fbfbfb;
+}
+
+.chart-crosshair-price {
+  position: absolute;
+  right: 18px;
+  z-index: 25;
+  transform: translateY(-50%);
+  pointer-events: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #1e293b;
+  color: #f8fafc;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
 }
 
 .calendar-event-summary-card span,

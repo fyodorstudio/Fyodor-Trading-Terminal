@@ -7,7 +7,11 @@ import {
   getChartDisplayCandles,
   getChartSessionDetail,
 } from "@/app/lib/chartView";
-import { formatLocalDateTime, getLocalTimezoneLabel } from "@/app/lib/format";
+import {
+  formatDateTimeForDisplayTimezone,
+  formatHoverTimezoneSuffix,
+  formatUtcOffsetLabel,
+} from "@/app/lib/timezoneDisplay";
 import type { BridgeCandle, MarketStatusResponse } from "@/app/types";
 
 const SAMPLE_CANDLE: BridgeCandle = {
@@ -40,37 +44,27 @@ function marketStatus(
 }
 
 describe("chartView helpers", () => {
-  it("keeps server timestamps unchanged and shifts local display timestamps", () => {
-    const server = getChartDisplayCandles([SAMPLE_CANDLE], "server");
-    const local = getChartDisplayCandles([SAMPLE_CANDLE], "local");
-    const localDate = new Date(SAMPLE_CANDLE.time * 1000);
-    const expectedLocalTime =
-      Date.UTC(
-        localDate.getFullYear(),
-        localDate.getMonth(),
-        localDate.getDate(),
-        localDate.getHours(),
-        localDate.getMinutes(),
-        localDate.getSeconds(),
-        localDate.getMilliseconds(),
-      ) / 1000;
-
-    expect(server[0]?.time).toBe(SAMPLE_CANDLE.time);
-    expect(local[0]?.time).toBe(expectedLocalTime);
+  it("keeps canonical candle timestamps unchanged", () => {
+    const display = getChartDisplayCandles([SAMPLE_CANDLE]);
+    expect(display[0]?.time).toBe(SAMPLE_CANDLE.time);
   });
 
-  it("formats x-axis labels by tick mark type instead of forcing clock labels", () => {
-    expect(formatChartAxisTime(SAMPLE_CANDLE.time, "H1", TickMarkType.Time)).toBe("21:00");
-    expect(formatChartAxisTime(SAMPLE_CANDLE.time, "H4", TickMarkType.DayOfMonth)).toBe("19 Feb");
-    expect(formatChartAxisTime(SAMPLE_CANDLE.time, "W1", TickMarkType.Month)).toBe("Feb 26");
+  it("formats x-axis labels by tick mark type for server and offset modes", () => {
+    expect(formatChartAxisTime(SAMPLE_CANDLE.time, "H1", TickMarkType.Time, "server")).toBe("21:00");
+    expect(formatChartAxisTime(SAMPLE_CANDLE.time, "H4", TickMarkType.DayOfMonth, "server")).toBe("19 Feb");
+    expect(formatChartAxisTime(SAMPLE_CANDLE.time, "W1", TickMarkType.Month, "server")).toBe("Feb 26");
+    expect(formatChartAxisTime(SAMPLE_CANDLE.time, "H1", TickMarkType.Time, "utc-offset:120")).toBe("23:00");
   });
 
-  it("formats hover and feed labels for both server and local time modes", () => {
+  it("formats hover and feed labels for local, server, and fixed UTC offset modes", () => {
     expect(formatChartFeedTime(SAMPLE_CANDLE.time, "server")).toBe("19 Feb 2026 21:00");
-    expect(formatChartHoverTime(SAMPLE_CANDLE.time, "server")).toBe("19 Feb 2026 21:00 UTC");
-    expect(formatChartFeedTime(SAMPLE_CANDLE.time, "local")).toBe(formatLocalDateTime(SAMPLE_CANDLE.time));
-    expect(formatChartHoverTime(getChartDisplayCandles([SAMPLE_CANDLE], "local")[0]!.time as number, "local")).toBe(
-      `${formatLocalDateTime(SAMPLE_CANDLE.time)} ${getLocalTimezoneLabel()}`,
+    expect(formatChartHoverTime(SAMPLE_CANDLE.time, "server")).toBe("19 Feb 2026 21:00 MT5/Server");
+    expect(formatChartFeedTime(SAMPLE_CANDLE.time, "local")).toBe(formatDateTimeForDisplayTimezone(SAMPLE_CANDLE.time, "local"));
+    expect(formatChartHoverTime(SAMPLE_CANDLE.time, "local")).toBe(
+      `${formatDateTimeForDisplayTimezone(SAMPLE_CANDLE.time, "local")} ${formatHoverTimezoneSuffix("local")}`,
+    );
+    expect(formatChartHoverTime(SAMPLE_CANDLE.time, "utc-offset:345")).toBe(
+      `20 Feb 2026 02:45 ${formatUtcOffsetLabel(345)}`,
     );
   });
 

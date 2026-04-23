@@ -9,19 +9,26 @@ import {
   formatLocalDateTime,
   formatRelativeAge,
   formatUtcDateTime,
-  getLocalTimezoneLabel,
   parseDateInput,
   toDateInputValue,
 } from "@/app/lib/format";
 import { resolveCalendarStatus } from "@/app/lib/status";
+import {
+  formatCurrentTimeForDisplayTimezone,
+  formatDateTimeForDisplayTimezone,
+  getDisplayTimezoneOptions,
+  loadDisplayTimezoneSelection,
+  saveDisplayTimezoneSelection,
+  type DisplayTimezoneSelection,
+} from "@/app/lib/timezoneDisplay";
 import { getCountryDisplayName, MAJOR_COUNTRY_CODES } from "@/app/config/currencyConfig";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import type { BridgeHealth, BridgeStatus, CalendarEvent, CalendarNavigationIntent, ImpactLevel } from "@/app/types";
 
 const DEFAULT_IMPACTS: ImpactLevel[] = ["low", "medium", "high"];
 
-type CalendarTimezoneMode = "local" | "utc";
 type CalendarRangeMode = "today" | "this_week" | "custom";
+const CALENDAR_TIMEZONE_KEY = "fyodor-calendar-display-timezone";
 
 function HelpHint({ label, detail }: { label: string; detail: string }) {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
@@ -240,37 +247,6 @@ function formatRangeLabelFromSeconds(fromSeconds: number | null, toSeconds: numb
   return sameYear ? `${formatDay(from, false)} - ${formatDay(to, true)}` : `${formatDay(from, true)} - ${formatDay(to, true)}`;
 }
 
-function formatViewerDateTime(timestampSeconds: number, mode: CalendarTimezoneMode): string {
-  return mode === "utc" ? formatUtcDateTime(timestampSeconds) : formatLocalDateTime(timestampSeconds);
-}
-
-function getLocalTimezoneSummary(now: Date): string {
-  const offsetMinutes = -now.getTimezoneOffset();
-  const sign = offsetMinutes >= 0 ? "+" : "-";
-  const abs = Math.abs(offsetMinutes);
-  const hours = Math.floor(abs / 60);
-  const minutes = abs % 60;
-  const offset = minutes === 0 ? `${hours}` : `${hours}:${String(minutes).padStart(2, "0")}`;
-  return `UTC${sign}${offset} ${getLocalTimezoneLabel()}`;
-}
-
-function getLocalUtcOffsetShort(now: Date): string {
-  const offsetMinutes = -now.getTimezoneOffset();
-  const sign = offsetMinutes >= 0 ? "+" : "-";
-  const abs = Math.abs(offsetMinutes);
-  const hours = Math.floor(abs / 60);
-  const minutes = abs % 60;
-  return minutes === 0 ? `UTC${sign}${hours}` : `UTC${sign}${hours}:${String(minutes).padStart(2, "0")}`;
-}
-
-function formatCurrentViewerTime(now: Date, mode: CalendarTimezoneMode): string {
-  if (mode === "utc") {
-    return `${String(now.getUTCHours()).padStart(2, "0")}:${String(now.getUTCMinutes()).padStart(2, "0")} (UTC)`;
-  }
-
-  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")} (${getLocalUtcOffsetShort(now)})`;
-}
-
 function formatCurrentMt5Time(serverTimeSeconds: number | null, fetchedAtMs: number | null, nowMs: number): string {
   if (serverTimeSeconds == null || fetchedAtMs == null) return "MT5 unavailable";
 
@@ -328,7 +304,9 @@ export function EconomicCalendarTab({
   const [uiNow, setUiNow] = useState(Date.now());
   const [mt5ServerTime, setMt5ServerTime] = useState<number | null>(null);
   const [mt5FetchedAtMs, setMt5FetchedAtMs] = useState<number | null>(null);
-  const [timezoneMode, setTimezoneMode] = useState<CalendarTimezoneMode>("local");
+  const [timezoneMode, setTimezoneMode] = useState<DisplayTimezoneSelection>(() =>
+    loadDisplayTimezoneSelection(CALENDAR_TIMEZONE_KEY, "local"),
+  );
   const [isImpactMenuOpen, setIsImpactMenuOpen] = useState(false);
   const [isCountryMenuOpen, setIsCountryMenuOpen] = useState(false);
   const [isRangePopoverOpen, setIsRangePopoverOpen] = useState(false);
@@ -546,10 +524,17 @@ export function EconomicCalendarTab({
     () => formatCurrentMt5Time(mt5ServerTime, mt5FetchedAtMs, uiNow),
     [mt5FetchedAtMs, mt5ServerTime, uiNow],
   );
-  const currentViewerTime = useMemo(() => formatCurrentViewerTime(new Date(uiNow), timezoneMode), [timezoneMode, uiNow]);
-  const localTimezoneSummary = useMemo(() => getLocalTimezoneSummary(new Date(uiNow)), [uiNow]);
-  const timezoneLabel = timezoneMode === "utc" ? "UTC" : localTimezoneSummary;
-
+  const timezoneOptions = useMemo(() => getDisplayTimezoneOptions(new Date(uiNow)), [uiNow]);
+  const currentViewerTime = useMemo(
+    () =>
+      formatCurrentTimeForDisplayTimezone({
+        nowMs: uiNow,
+        selection: timezoneMode,
+        serverTimeSeconds: mt5ServerTime,
+        serverFetchedAtMs: mt5FetchedAtMs,
+      }),
+    [mt5FetchedAtMs, mt5ServerTime, timezoneMode, uiNow],
+  );
   const statusLabel =
     status === "live"
       ? "LIVE"
@@ -935,34 +920,29 @@ export function EconomicCalendarTab({
                     <strong>Viewer timezone</strong>
                     <span>MT5/UTC remains the audit anchor.</span>
                   </div>
-                  <button
-                    type="button"
-                    className={timezoneMode === "local" ? "tv-option-row is-selected" : "tv-option-row"}
-                    onClick={() => {
-                      setTimezoneMode("local");
-                      setIsTimezoneMenuOpen(false);
-                    }}
-                  >
-                    <span className="tv-option-main">
-                      <Clock size={15} />
-                      <span className="tv-option-label">{localTimezoneSummary}</span>
-                    </span>
-                    {timezoneMode === "local" && <Check size={15} />}
-                  </button>
-                  <button
-                    type="button"
-                    className={timezoneMode === "utc" ? "tv-option-row is-selected" : "tv-option-row"}
-                    onClick={() => {
-                      setTimezoneMode("utc");
-                      setIsTimezoneMenuOpen(false);
-                    }}
-                  >
-                    <span className="tv-option-main">
-                      <Clock size={15} />
-                      <span className="tv-option-label">UTC</span>
-                    </span>
-                    {timezoneMode === "utc" && <Check size={15} />}
-                  </button>
+                  <div className="tv-timezone-list">
+                    {timezoneOptions.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className={timezoneMode === option.id ? "tv-option-row is-selected" : "tv-option-row"}
+                        onClick={() => {
+                          setTimezoneMode(option.id);
+                          saveDisplayTimezoneSelection(CALENDAR_TIMEZONE_KEY, option.id);
+                          setIsTimezoneMenuOpen(false);
+                        }}
+                      >
+                        <span className="tv-option-main">
+                          <Clock size={15} />
+                          <span className="tv-option-label">
+                            {option.label}
+                            {option.isHighlighted ? <span className="tv-option-badge">Local</span> : null}
+                          </span>
+                        </span>
+                        {timezoneMode === option.id && <Check size={15} />}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -1031,7 +1011,7 @@ export function EconomicCalendarTab({
                       }}
                     >
                       <td>{formatUtcDateTime(event.time)}</td>
-                      <td>{formatViewerDateTime(event.time, timezoneMode)}</td>
+                      <td>{formatDateTimeForDisplayTimezone(event.time, timezoneMode)}</td>
                       <td>
                         <div className="bank-cell">
                           <FlagIcon countryCode={event.countryCode} className="h-5 w-8 border border-gray-200 rounded-sm" />
@@ -1083,7 +1063,7 @@ export function EconomicCalendarTab({
                   </div>
                   <div className="calendar-event-summary-card">
                     <span>Viewer Time</span>
-                    <strong>{formatViewerDateTime(selectedEvent.time, timezoneMode)}</strong>
+                    <strong>{formatDateTimeForDisplayTimezone(selectedEvent.time, timezoneMode)}</strong>
                   </div>
                   <div className="calendar-event-summary-card">
                     <span>Impact</span>

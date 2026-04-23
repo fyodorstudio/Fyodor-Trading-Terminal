@@ -1,78 +1,38 @@
 import { TickMarkType, type CandlestickData } from "lightweight-charts";
-import { formatCountdown, formatLocalDateTime, formatUtcDateTime, getLocalTimezoneLabel, pad } from "@/app/lib/format";
+import { formatCountdown } from "@/app/lib/format";
+import {
+  formatDateTimeForDisplayTimezone,
+  formatDayMonthForDisplayTimezone,
+  formatHoverTimezoneSuffix,
+  formatMonthYearForDisplayTimezone,
+  formatTimeForDisplayTimezone,
+  formatYearForDisplayTimezone,
+  loadDisplayTimezoneSelection,
+  saveDisplayTimezoneSelection,
+  type DisplayTimezoneSelection,
+} from "@/app/lib/timezoneDisplay";
 import type { BridgeCandle, MarketStatusResponse, Timeframe } from "@/app/types";
 
-export type ChartDisplayTimeMode = "server" | "local";
+export type ChartDisplayTimeMode = DisplayTimezoneSelection;
 
 export interface ChartSessionDetail {
   label: string;
   basis: string;
 }
 
-const CHART_DISPLAY_TIME_KEY = "fyodor-main-chart-display-time";
-
-function toLocalDisplayTimestamp(timestampSeconds: number): number {
-  const date = new Date(timestampSeconds * 1000);
-  return (
-    Date.UTC(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-      date.getHours(),
-      date.getMinutes(),
-      date.getSeconds(),
-      date.getMilliseconds(),
-    ) / 1000
-  );
-}
-
-function shortMonthLabel(date: Date): string {
-  return date.toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
-}
-
-function shortDayMonthLabel(date: Date): string {
-  return `${pad(date.getUTCDate())} ${shortMonthLabel(date)}`;
-}
-
-function shortMonthYearLabel(date: Date): string {
-  return `${shortMonthLabel(date)} ${String(date.getUTCFullYear()).slice(-2)}`;
-}
-
-function formatDisplayUtcDateTime(timestampSeconds: number): string {
-  const date = new Date(timestampSeconds * 1000);
-  const day = date.toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-  return `${day} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
-}
+const CHART_DISPLAY_TIME_KEY = "fyodor-main-chart-display-timezone";
 
 export function loadChartDisplayTimeMode(): ChartDisplayTimeMode {
-  if (typeof window === "undefined") return "server";
-  const saved = window.localStorage.getItem(CHART_DISPLAY_TIME_KEY);
-  return saved === "local" ? "local" : "server";
+  return loadDisplayTimezoneSelection(CHART_DISPLAY_TIME_KEY, "local");
 }
 
 export function saveChartDisplayTimeMode(mode: ChartDisplayTimeMode) {
-  try {
-    window.localStorage.setItem(CHART_DISPLAY_TIME_KEY, mode);
-  } catch {
-    // ignore storage failures
-  }
+  saveDisplayTimezoneSelection(CHART_DISPLAY_TIME_KEY, mode);
 }
 
-export function getChartDisplayTimestamp(timestampSeconds: number, mode: ChartDisplayTimeMode): number {
-  return mode === "local" ? toLocalDisplayTimestamp(timestampSeconds) : timestampSeconds;
-}
-
-export function getChartDisplayCandles(
-  candles: BridgeCandle[],
-  mode: ChartDisplayTimeMode,
-): CandlestickData[] {
+export function getChartDisplayCandles(candles: BridgeCandle[]): CandlestickData[] {
   return candles.map((candle) => ({
-    time: getChartDisplayTimestamp(candle.time, mode),
+    time: candle.time,
     open: candle.open,
     high: candle.high,
     low: candle.low,
@@ -81,40 +41,39 @@ export function getChartDisplayCandles(
 }
 
 export function formatChartHoverTime(timestampSeconds: number, mode: ChartDisplayTimeMode): string {
-  if (mode === "local") {
-    return `${formatDisplayUtcDateTime(timestampSeconds)} ${getLocalTimezoneLabel()}`;
-  }
-  return `${formatUtcDateTime(timestampSeconds)} UTC`;
+  return `${formatDateTimeForDisplayTimezone(timestampSeconds, mode)} ${formatHoverTimezoneSuffix(mode)}`;
 }
 
 export function formatChartFeedTime(timestampSeconds: number, mode: ChartDisplayTimeMode): string {
-  return mode === "local" ? formatLocalDateTime(timestampSeconds) : formatUtcDateTime(timestampSeconds);
+  return formatDateTimeForDisplayTimezone(timestampSeconds, mode);
 }
 
 export function getChartDisplayModeLabel(mode: ChartDisplayTimeMode): string {
-  return mode === "local" ? "LOCAL TIME" : "SERVER/MT5 TIME";
+  if (mode === "local") return "LOCAL TIME";
+  if (mode === "server") return "MT5 / SERVER";
+  return formatHoverTimezoneSuffix(mode);
 }
 
 export function formatChartAxisTime(
   timestampSeconds: number,
   _timeframe: Timeframe,
   tickMarkType: TickMarkType,
+  mode: ChartDisplayTimeMode,
 ): string | null {
-  const date = new Date(timestampSeconds * 1000);
   if (tickMarkType === TickMarkType.Time) {
-    return `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
+    return formatTimeForDisplayTimezone(timestampSeconds, mode);
   }
   if (tickMarkType === TickMarkType.TimeWithSeconds) {
-    return `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`;
+    return formatTimeForDisplayTimezone(timestampSeconds, mode, true);
   }
   if (tickMarkType === TickMarkType.DayOfMonth) {
-    return shortDayMonthLabel(date);
+    return formatDayMonthForDisplayTimezone(timestampSeconds, mode);
   }
   if (tickMarkType === TickMarkType.Month) {
-    return shortMonthYearLabel(date);
+    return formatMonthYearForDisplayTimezone(timestampSeconds, mode);
   }
   if (tickMarkType === TickMarkType.Year) {
-    return String(date.getUTCFullYear());
+    return formatYearForDisplayTimezone(timestampSeconds, mode);
   }
   return null;
 }
