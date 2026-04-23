@@ -4,6 +4,13 @@ import type { CentralBankSnapshot, FxPairDefinition, WatchlistCurrencyState, Wat
 
 export type MacroStateRegimeLabel = "policy-led" | "inflation-led" | "mixed";
 
+export interface MacroStateCurrencyRegime {
+  currency: string;
+  label: MacroStateRegimeLabel;
+  policyWins: number;
+  inflationWins: number;
+}
+
 export interface MacroStateMetricRow {
   label: string;
   baseValue: number | null;
@@ -17,6 +24,8 @@ export interface MacroStateResult {
   row: WatchlistPairRow;
   base: WatchlistCurrencyState;
   quote: WatchlistCurrencyState;
+  baseRegime: MacroStateCurrencyRegime;
+  quoteRegime: MacroStateCurrencyRegime;
   strongerCurrency: string | null;
   weakerCurrency: string | null;
   regimeLabel: MacroStateRegimeLabel;
@@ -111,6 +120,38 @@ function buildRegimeHint(row: WatchlistPairRow, base: WatchlistCurrencyState, qu
   };
 }
 
+function buildCurrencyRegime(
+  currency: WatchlistCurrencyState,
+  opponent: WatchlistCurrencyState,
+): MacroStateCurrencyRegime {
+  let policyWins = 0;
+  let inflationWins = 0;
+
+  if (currency.rateLevel != null && opponent.rateLevel != null && currency.rateLevel > opponent.rateLevel) {
+    policyWins += 1;
+  }
+  if (currency.rateDelta != null && opponent.rateDelta != null && currency.rateDelta > opponent.rateDelta) {
+    policyWins += 1;
+  }
+  if (currency.inflationLevel != null && opponent.inflationLevel != null && currency.inflationLevel < opponent.inflationLevel) {
+    inflationWins += 1;
+  }
+  if (currency.inflationDelta != null && opponent.inflationDelta != null && currency.inflationDelta < opponent.inflationDelta) {
+    inflationWins += 1;
+  }
+
+  let label: MacroStateRegimeLabel = "mixed";
+  if (policyWins > inflationWins && policyWins > 0) label = "policy-led";
+  if (inflationWins > policyWins && inflationWins > 0) label = "inflation-led";
+
+  return {
+    currency: currency.currency,
+    label,
+    policyWins,
+    inflationWins,
+  };
+}
+
 function buildLeanSummary(row: WatchlistPairRow): string {
   if (row.bias === "bullish_base") {
     return `The current macro backdrop supports long-side ideas in ${row.pair.name} more than short-side ideas.`;
@@ -149,12 +190,16 @@ export function deriveMacroState(snapshots: CentralBankSnapshot[], pairName?: st
   }
 
   const regime = buildRegimeHint(row, base, quote);
+  const baseRegime = buildCurrencyRegime(base, quote);
+  const quoteRegime = buildCurrencyRegime(quote, base);
 
   return {
     pair: row.pair,
     row,
     base,
     quote,
+    baseRegime,
+    quoteRegime,
     strongerCurrency: row.strongerSide,
     weakerCurrency: row.weakerSide,
     regimeLabel: regime.label,

@@ -8,11 +8,11 @@ import type {
   WatchlistPairRow,
 } from "@/app/types";
 
-const REAL_RATE_WEIGHT = 0.35;
-const RATE_LEVEL_WEIGHT = 0.3;
-const RATE_DELTA_WEIGHT = 0.2;
-const INFLATION_DELTA_WEIGHT = 0.15;
-const MIXED_THRESHOLD = 0.035;
+export const REAL_RATE_WEIGHT = 0.35;
+export const RATE_LEVEL_WEIGHT = 0.3;
+export const RATE_DELTA_WEIGHT = 0.2;
+export const INFLATION_DELTA_WEIGHT = 0.15;
+export const MIXED_THRESHOLD = 0.035;
 const TOP_PAIR_COUNT = 5;
 
 function clamp(value: number, min: number, max: number): number {
@@ -24,7 +24,7 @@ function toCoverage(parts: Array<number | null>): number {
   return Number((resolved / parts.length).toFixed(2));
 }
 
-function percentileRank(values: number[], value: number): number {
+export function percentileRank(values: number[], value: number): number {
   if (values.length <= 1) return 0.5;
   const sorted = [...values].sort((left, right) => left - right);
   const firstGreaterOrEqual = sorted.findIndex((item) => item >= value);
@@ -32,7 +32,7 @@ function percentileRank(values: number[], value: number): number {
   return resolvedIndex / (sorted.length - 1);
 }
 
-function normalizeSigned(values: number[], value: number): number {
+export function normalizeSigned(values: number[], value: number): number {
   if (values.length === 0) return 0;
   const maxAbs = Math.max(...values.map((item) => Math.abs(item)), 0);
   if (maxAbs === 0) return 0;

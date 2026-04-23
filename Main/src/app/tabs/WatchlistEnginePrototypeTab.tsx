@@ -44,7 +44,7 @@ function renderMetricWinner(baseValue: number | null, quoteValue: number | null,
 
 function buildReasonDetail(row: WatchlistPairRow, base: WatchlistCurrencyState | undefined, quote: WatchlistCurrencyState | undefined): string[] {
   if (!base || !quote) {
-    return ["Coverage is incomplete, so the pair is only carrying a partial macro read for now."];
+    return ["One or both currencies still have partial macro inputs."];
   }
 
   if (row.bias === "mixed") {
@@ -301,11 +301,6 @@ export function WatchlistEnginePrototypeTab({ snapshots, onBack }: WatchlistEngi
                 <div className="mt-2 text-sm text-slate-300">Gap between the base and quote composite scores.</div>
               </section>
 
-              <section className="rounded-[28px] border border-white/10 bg-white/[0.05] p-5">
-                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Coverage</div>
-                <div className="mt-3 text-4xl font-black tracking-tight text-white">{(selectedRow.coverage * 100).toFixed(0)}%</div>
-                <div className="mt-2 text-sm text-slate-300">How much of the intended macro input set is currently available.</div>
-              </section>
             </div>
 
             <div className="mt-4 grid gap-4 lg:grid-cols-[0.95fr,1.35fr]">
@@ -441,14 +436,9 @@ export function WatchlistEnginePrototypeTab({ snapshots, onBack }: WatchlistEngi
                 <div className="mt-4 grid gap-3 lg:grid-cols-2">
                   {[baseState, quoteState].filter(Boolean).map((state) => (
                     <div key={state!.currency} className="rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-4">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Currency Notes</div>
-                          <div className="mt-2 text-lg font-black text-white">{state!.currency}</div>
-                        </div>
-                        <div className="rounded-full border border-white/10 bg-white/[0.05] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-slate-300">
-                          {(state!.coverage * 100).toFixed(0)}% coverage
-                        </div>
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Currency Notes</div>
+                        <div className="mt-2 text-lg font-black text-white">{state!.currency}</div>
                       </div>
                       <div className="mt-4 space-y-2">
                         {state!.notes.map((note) => (
