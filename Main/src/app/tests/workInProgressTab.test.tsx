@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { WorkInProgressTab } from "@/app/tabs/WorkInProgressTab";
 
 describe("WorkInProgressTab", () => {
-  it("renders the hero, target workflow, and the two data tables", () => {
+  it("renders the hero and the two data tables", () => {
     const html = renderToStaticMarkup(
       <WorkInProgressTab
         onOpenWatchlistTab={() => {}}
@@ -16,11 +16,12 @@ describe("WorkInProgressTab", () => {
     );
 
     expect(html).toContain("WORK IN PROGRESS");
-    expect(html).toContain("Target Workflow");
     expect(html).toContain("Possible With Current Data");
+    expect(html).toContain("Currency strength from candles");
     expect(html).toContain("Current hard limit");
     expect(html).toContain("What Extra Data Unlocks The Next Level");
     expect(html).toContain("Fed funds, SOFR, and other short-rate futures");
-    expect(html).toContain("Open Prototype Panel");
+    expect(html).not.toContain("Target Workflow");
+    expect(html).not.toContain("Open Prototype Panel");
   });
 });

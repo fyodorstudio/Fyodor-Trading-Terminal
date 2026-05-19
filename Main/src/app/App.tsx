@@ -16,13 +16,18 @@ import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
 import { ChartsTab } from "@/app/tabs/ChartsTab";
 import { EconomicCalendarTab } from "@/app/tabs/EconomicCalendarTab";
 import { WorkInProgressTab } from "@/app/tabs/WorkInProgressTab";
+import { PrototypingTab } from "@/app/tabs/PrototypingTab";
+import { TerminalQuestionsTab } from "@/app/tabs/TerminalQuestionsTab";
+import { CurrencyCandleStrengthTab } from "@/app/tabs/CurrencyCandleStrengthTab";
 import { MacroStatePrototypeTab } from "@/app/tabs/MacroStatePrototypeTab";
 import { WatchlistEnginePrototypeTab } from "@/app/tabs/WatchlistEnginePrototypeTab";
 import { FONT_OPTIONS, COLOR_PALETTES, FontId, ColorPaletteId } from "@/app/config/themeConfig";
 import type { BridgeHealth, BridgeStatus, CalendarEvent, CalendarNavigationIntent, MarketStatusResponse, TabId } from "@/app/types";
 
 const ANALYSIS_TAB_ORDER: { id: TabId; label: string }[] = [
+  { id: "terminal-questions", label: "SIX QUESTIONS" },
   { id: "work-in-progress", label: "WORK IN PROGRESS" },
+  { id: "prototyping", label: "PROTOTYPING" },
 ];
 
 const TAB_ORDER: Array<{ id: TabId; label: string; children?: { id: TabId; label: string }[] }> = [
@@ -277,16 +282,21 @@ export default function App() {
                 onOpenEventToolsTab={() => setActiveTab("event-tools")}
               />
             )}
+            {activeTab === "terminal-questions" && <TerminalQuestionsTab onNavigate={setActiveTab} />}
+            {activeTab === "prototyping" && <PrototypingTab onNavigate={setActiveTab} />}
+            {activeTab === "currency-candle-strength" && (
+              <CurrencyCandleStrengthTab onBack={() => setActiveTab("prototyping")} />
+            )}
             {activeTab === "watchlist-engine-prototype" && (
               <WatchlistEnginePrototypeTab
                 snapshots={centralBankResult.snapshots}
-                onBack={() => setActiveTab("work-in-progress")}
+                onBack={() => setActiveTab("prototyping")}
               />
             )}
             {activeTab === "macro-state-prototype" && (
               <MacroStatePrototypeTab
                 snapshots={centralBankResult.snapshots}
-                onBack={() => setActiveTab("work-in-progress")}
+                onBack={() => setActiveTab("prototyping")}
               />
             )}
             {activeTab === "central-banks" && (
