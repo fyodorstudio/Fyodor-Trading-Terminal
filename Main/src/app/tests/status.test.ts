@@ -4,6 +4,7 @@ import type { BridgeHealth, MarketStatusResponse } from "@/app/types";
 
 const liveHealth: BridgeHealth = {
   ok: true,
+  bridge_connected: true,
   terminal_connected: true,
   last_calendar_ingest_at: Math.floor(Date.now() / 1000),
   calendar_events_count: 12,
@@ -32,16 +33,25 @@ describe("resolveCalendarStatus", () => {
     expect(
       resolveCalendarStatus({
         eventsCount: 8,
-        health: { ...liveHealth, ok: false, terminal_connected: false },
+        health: { ...liveHealth, ok: false, bridge_connected: false, terminal_connected: false },
       }),
     ).toBe("stale");
+  });
+
+  it("treats fresh calendar rows as live when only the MT5 price connection is down", () => {
+    expect(
+      resolveCalendarStatus({
+        eventsCount: 8,
+        health: { ...liveHealth, ok: false, bridge_connected: true, terminal_connected: false },
+      }),
+    ).toBe("live");
   });
 
   it("reports error only when request failed and no rows exist", () => {
     expect(
       resolveCalendarStatus({
         eventsCount: 0,
-        health: { ...liveHealth, ok: false, terminal_connected: false },
+        health: { ...liveHealth, ok: false, bridge_connected: false, terminal_connected: false },
         calendarRequestFailed: true,
       }),
     ).toBe("error");
@@ -105,13 +115,23 @@ describe("resolveTrustState", () => {
     });
   });
 
-  it("returns no when mt5 is disconnected", () => {
+  it("returns limited when mt5 price context is disconnected but calendar is live", () => {
     expect(
       resolveTrustState({ ...liveHealth, terminal_connected: false }, "live", marketStatus("open")),
     ).toMatchObject({
+      verdict: "limited",
+      verdictLabel: "Limited",
+      reason: "mt5_disconnected",
+    });
+  });
+
+  it("returns no when the bridge API itself is unreachable", () => {
+    expect(
+      resolveTrustState({ ...liveHealth, ok: false, bridge_connected: false, terminal_connected: false }, "live", null),
+    ).toMatchObject({
       verdict: "no",
       verdictLabel: "No",
-      reason: "mt5_disconnected",
+      reason: "bridge_unavailable",
     });
   });
 

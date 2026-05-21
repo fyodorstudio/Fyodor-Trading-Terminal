@@ -46,21 +46,37 @@ describe("calendar event explainer", () => {
     const explainer = getCalendarEventExplainer(event);
     expect(explainer.family).toBe("labor");
     expect(explainer.whyTradersCare).toContain("labor");
+    expect(explainer.resultSnapshot).toContain("Actual printed above forecast");
+    expect(explainer.tradingWorkflow?.length).toBeGreaterThan(0);
   });
 
   it("prefers title-specific overrides for key events", () => {
     const explainer = getCalendarEventExplainer({ ...event, title: "Nonfarm Payrolls" });
     expect(explainer.whatItIs).toContain("outside farm work");
     expect(explainer.mayAffect).toContain("USD pairs");
+    expect(explainer.knowledgeDepth).toBe("specific");
   });
 
   it("falls back cleanly for unclassified events", () => {
     const fallback = getCalendarEventExplainer({ ...event, title: "Official Reserves" });
     expect(fallback.family).toBe("generic");
     expect(fallback.whatItIs).toContain("economic or policy-related");
+    expect(fallback.knowledgeDepth).toBe("generic");
+  });
+
+  it("inverts the surprise read for unemployment-style releases", () => {
+    const explainer = getCalendarEventExplainer({
+      ...event,
+      title: "Unemployment Rate",
+      actual: "5.0",
+      forecast: "4.8",
+      previous: "4.7",
+    });
+
+    expect(explainer.resultInterpretation).toContain("currency-negative");
   });
 
   it("keeps a visible backlog for niche events to add later", () => {
-    expect(CALENDAR_EVENT_KNOWLEDGE_BACKLOG).toContain("Producer Price Index (PPI)");
+    expect(CALENDAR_EVENT_KNOWLEDGE_BACKLOG).toContain("JOLTS Job Openings");
   });
 });

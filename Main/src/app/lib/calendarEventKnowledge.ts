@@ -335,12 +335,10 @@ export const CALENDAR_EVENT_GENERIC_FALLBACK: CalendarEventExplainer = {
 };
 
 export const CALENDAR_EVENT_KNOWLEDGE_BACKLOG = [
-  "Producer Price Index (PPI)",
   "JOLTS Job Openings",
-  "Consumer Confidence",
   "ZEW / Sentix / regional confidence releases",
-  "Industrial Production",
-  "Housing data families",
   "Current Account",
   "Wholesale inflation / import prices / export prices",
+  "Government bond auction tails, bid-to-cover, and yield details",
+  "Regional manufacturing and services surveys",
 ] as const;

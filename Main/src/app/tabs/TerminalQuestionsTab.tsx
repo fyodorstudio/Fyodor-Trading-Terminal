@@ -7,8 +7,10 @@ interface TerminalQuestion {
   honestLimit: string;
   primaryTab: TabId;
   primaryLabel: string;
+  primaryStatus: "Primary" | "Prototype" | "Legacy";
   secondaryTab?: TabId;
   secondaryLabel?: string;
+  secondaryStatus?: "Primary" | "Prototype" | "Legacy";
 }
 
 const TERMINAL_QUESTIONS: TerminalQuestion[] = [
@@ -18,8 +20,10 @@ const TERMINAL_QUESTIONS: TerminalQuestion[] = [
     honestLimit: "Trust only covers the app inputs. It does not prove that the market read is correct.",
     primaryTab: "overview",
     primaryLabel: "Open Overview",
+    primaryStatus: "Primary",
     secondaryTab: "calendar",
     secondaryLabel: "Audit Calendar",
+    secondaryStatus: "Primary",
   },
   {
     question: "What deserves attention right now?",
@@ -27,8 +31,10 @@ const TERMINAL_QUESTIONS: TerminalQuestion[] = [
     honestLimit: "This can prioritize chart review. It should not become an automatic trade signal.",
     primaryTab: "watchlist-engine-prototype",
     primaryLabel: "Open Watchlist",
+    primaryStatus: "Prototype",
     secondaryTab: "strength-meter",
     secondaryLabel: "Open Strength",
+    secondaryStatus: "Legacy",
   },
   {
     question: "Is the macro backdrop supportive, hostile, or unclear?",
@@ -36,8 +42,10 @@ const TERMINAL_QUESTIONS: TerminalQuestion[] = [
     honestLimit: "With only candles and calendar data, this is a pressure map, not true market-implied policy pricing.",
     primaryTab: "macro-state-prototype",
     primaryLabel: "Open Macro State",
+    primaryStatus: "Prototype",
     secondaryTab: "central-banks",
     secondaryLabel: "Open Central Banks",
+    secondaryStatus: "Primary",
   },
   {
     question: "Is event risk close enough to invalidate a clean setup?",
@@ -45,8 +53,10 @@ const TERMINAL_QUESTIONS: TerminalQuestion[] = [
     honestLimit: "The calendar can warn about scheduled risk. It cannot see unscheduled news shocks.",
     primaryTab: "calendar",
     primaryLabel: "Open Calendar",
+    primaryStatus: "Primary",
     secondaryTab: "event-tools",
     secondaryLabel: "Open Event Tools",
+    secondaryStatus: "Legacy",
   },
   {
     question: "Which side is winning, and why?",
@@ -54,8 +64,10 @@ const TERMINAL_QUESTIONS: TerminalQuestion[] = [
     honestLimit: "The app can explain evidence alignment. TradingView structure still decides entry quality.",
     primaryTab: "legacy-overview",
     primaryLabel: "Open Legacy Overview",
+    primaryStatus: "Legacy",
     secondaryTab: "currency-candle-strength",
     secondaryLabel: "Open Candle Strength",
+    secondaryStatus: "Prototype",
   },
   {
     question: "Should I watch, study, prepare, wait, or ignore?",
@@ -63,8 +75,10 @@ const TERMINAL_QUESTIONS: TerminalQuestion[] = [
     honestLimit: "This is decision support. It must stop before buy/sell certainty.",
     primaryTab: "overview",
     primaryLabel: "Open Overview",
+    primaryStatus: "Primary",
     secondaryTab: "prototyping",
     secondaryLabel: "Review Prototypes",
+    secondaryStatus: "Prototype",
   },
 ];
 
@@ -73,6 +87,29 @@ interface TerminalQuestionsTabProps {
 }
 
 export function TerminalQuestionsTab({ onNavigate }: TerminalQuestionsTabProps) {
+  const renderRouteButton = (tab: TabId, label: string, status: TerminalQuestion["primaryStatus"]) => (
+    <button
+      type="button"
+      className={
+        status === "Primary"
+          ? "rounded-lg bg-slate-950 px-4 py-2 text-sm font-black text-white transition-colors hover:bg-slate-800"
+          : "rounded-lg border border-slate-200 bg-white px-4 py-2 text-left text-sm font-black text-slate-800 transition-colors hover:bg-slate-50"
+      }
+      onClick={() => onNavigate(tab)}
+    >
+      <span className="block">{label}</span>
+      <span
+        className={
+          status === "Primary"
+            ? "mt-1 block text-[10px] uppercase tracking-widest text-slate-300"
+            : "mt-1 block text-[10px] uppercase tracking-widest text-slate-400"
+        }
+      >
+        {status}
+      </span>
+    </button>
+  );
+
   return (
     <div className="mx-auto flex max-w-[1460px] flex-col gap-6 pb-12">
       <section className="overflow-hidden rounded-2xl border border-gray-200/60 bg-white/80 shadow-sm backdrop-blur-xl">
@@ -124,21 +161,9 @@ export function TerminalQuestionsTab({ onNavigate }: TerminalQuestionsTabProps) 
                   <p className="mt-1 text-sm leading-6 text-slate-700">{item.honestLimit}</p>
                 </div>
                 <div className="flex flex-col gap-2 md:min-w-[180px]">
-                  <button
-                    type="button"
-                    className="rounded-lg bg-slate-950 px-4 py-2 text-sm font-black text-white transition-colors hover:bg-slate-800"
-                    onClick={() => onNavigate(item.primaryTab)}
-                  >
-                    {item.primaryLabel}
-                  </button>
+                  {renderRouteButton(item.primaryTab, item.primaryLabel, item.primaryStatus)}
                   {item.secondaryTab && item.secondaryLabel ? (
-                    <button
-                      type="button"
-                      className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-black text-slate-800 transition-colors hover:bg-slate-50"
-                      onClick={() => onNavigate(item.secondaryTab)}
-                    >
-                      {item.secondaryLabel}
-                    </button>
+                    renderRouteButton(item.secondaryTab, item.secondaryLabel, item.secondaryStatus ?? "Prototype")
                   ) : null}
                 </div>
               </div>

@@ -23,6 +23,7 @@ const now = 1_710_000_000;
 
 const liveHealth: BridgeHealth = {
   ok: true,
+  bridge_connected: true,
   terminal_connected: true,
   last_calendar_ingest_at: now,
   calendar_events_count: 12,
@@ -293,7 +294,7 @@ describe("overview logic", () => {
 
   it("caps pair opportunity at avoid when trust is no", () => {
     const snapshots = [snapshot("EUR", "4.00", "3.00"), snapshot("USD", "2.00", "1.00"), snapshot("GBP", "3.00", "2.00")];
-    const trustState = resolveTrustState({ ...liveHealth, terminal_connected: false }, "live", marketStatus("open"));
+    const trustState = resolveTrustState({ ...liveHealth, ok: false, bridge_connected: false, terminal_connected: false }, "live", null);
     const summary = getPairOpportunitySummary(
       "EURUSD",
       trustState,
@@ -417,7 +418,7 @@ describe("overview logic", () => {
   });
 
   it("reports a degraded pipeline when trust is no", () => {
-    const trustState = resolveTrustState({ ...liveHealth, terminal_connected: false }, "live", marketStatus("open"));
+    const trustState = resolveTrustState({ ...liveHealth, ok: false, bridge_connected: false, terminal_connected: false }, "live", null);
     const pipeline = getOverviewPipelineStatus(trustState, "live", marketStatus("open"), 8);
 
     expect(pipeline.tone).toBe("danger");

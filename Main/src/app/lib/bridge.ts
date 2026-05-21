@@ -189,11 +189,12 @@ export async function fetchHealth(): Promise<BridgeHealth> {
   try {
     const payload = await fetchJson<unknown>(`${BRIDGE_BASE}/health`);
     if (!payload || typeof payload !== "object") {
-      return { ok: false, terminal_connected: false };
+      return { ok: false, bridge_connected: false, terminal_connected: false };
     }
     const row = payload as Record<string, unknown>;
     return {
       ok: Boolean(row.ok),
+      bridge_connected: true,
       terminal_connected: Boolean(row.terminal_connected),
       last_calendar_ingest_at: asNumber(row.last_calendar_ingest_at),
       calendar_events_count: asNumber(row.calendar_events_count) ?? undefined,
@@ -206,7 +207,7 @@ export async function fetchHealth(): Promise<BridgeHealth> {
           : null,
     };
   } catch {
-    return { ok: false, terminal_connected: false };
+    return { ok: false, bridge_connected: false, terminal_connected: false };
   }
 }
 

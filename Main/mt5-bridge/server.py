@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import time as _time
 from datetime import datetime, timedelta, timezone
 from threading import Lock
@@ -96,6 +97,32 @@ _last_history_symbol: Optional[str] = None
 
 # UNIX timestamp of last successful POST /calendar_ingest; exposed in GET /health.
 _last_calendar_ingest_at: Optional[float] = None
+
+
+def _ensure_mt5_initialized() -> bool:
+  """Return True when the Python MT5 API has an active terminal connection.
+
+  Calendar ingestion reaches this bridge over HTTP from the EA and can keep
+  working even when the Python package has lost its IPC session. Price, symbol,
+  server-time, and streaming endpoints need this connection.
+  """
+  global terminal_connected, last_error
+
+  if mt5.terminal_info() is not None:
+    terminal_connected = True
+    last_error = None
+    return True
+
+  mt5_path = os.environ.get("MT5_EXE")
+  initialized = mt5.initialize(path=mt5_path) if mt5_path else mt5.initialize()
+  if initialized:
+    terminal_connected = True
+    last_error = None
+    return True
+
+  _update_last_error()
+  terminal_connected = False
+  return False
 
 
 def _namedtuple_to_dict(value: Any) -> Dict[str, Any]:
@@ -236,8 +263,7 @@ def _next_daily_boundary(now_utc: datetime, hours: int) -> int:
 
 def _session_snapshot(symbol: str) -> Dict[str, Any]:
   checked_at = int(datetime.now(timezone.utc).timestamp())
-  terminal_info = mt5.terminal_info()
-  if terminal_info is None:
+  if not _ensure_mt5_initialized():
     return {
       "symbol": symbol,
       "symbol_path": None,
@@ -373,7 +399,7 @@ def _get_last_error() -> Optional[Dict[str, Any]]:
 def on_startup() -> None:
   global terminal_connected, last_error
 
-  if not mt5.initialize():
+  if not _ensure_mt5_initialized():
     terminal_connected = False
     last_error = _get_last_error()
   else:
@@ -446,8 +472,7 @@ def convert_rate_row(row: Any) -> Dict[str, Any]:
 def health() -> Dict[str, Any]:
   # Determine connection status directly from MT5, rather than relying on
   # cached globals, so this reflects the real-time terminal state.
-  terminal_info = mt5.terminal_info()
-  terminal_connected = terminal_info is not None
+  terminal_connected = _ensure_mt5_initialized()
 
   # Optional metadata
   version = mt5.version() if terminal_connected else None
@@ -458,7 +483,8 @@ def health() -> Dict[str, Any]:
   last_error_info = {"code": err_code, "message": err_message}
 
   payload: Dict[str, Any] = {
-    "ok": terminal_connected,
+    "ok": True,
+    "bridge_connected": True,
     "terminal_connected": terminal_connected,
     "mt5_version": version,
     "account_login": account.login if account is not None else None,
@@ -471,7 +497,7 @@ def health() -> Dict[str, Any]:
 
 def _get_server_time_from_mt5(symbol: Optional[str] = None) -> Optional[int]:
   """Get MT5 server time. If symbol is set, try only that symbol. Else try _last_history_symbol, then fallbacks."""
-  if mt5.terminal_info() is None:
+  if not _ensure_mt5_initialized():
     return None
 
   def try_symbol(sym: str) -> Optional[int]:
@@ -527,7 +553,7 @@ def server_time(symbol: Optional[str] = None) -> Dict[str, Any]:
 @app.get("/symbols")
 def symbols() -> List[Dict[str, Any]]:
   """Return all symbols from MT5 with optional path for grouping."""
-  if mt5.terminal_info() is None:
+  if not _ensure_mt5_initialized():
     raise HTTPException(status_code=503, detail="MT5 terminal not connected")
 
   syms = mt5.symbols_get()
@@ -569,7 +595,7 @@ def history(symbol: str, tf: str, bars: int = 500) -> List[Dict[str, Any]]:
     raise HTTPException(status_code=400, detail="bars must be <= 5000")
 
   # Check live terminal state instead of relying on cached globals.
-  if mt5.terminal_info() is None:
+  if not _ensure_mt5_initialized():
     raise HTTPException(status_code=503, detail="MT5 terminal not connected")
 
   timeframe = mt5_timeframe(tf)
@@ -600,7 +626,7 @@ def history_range(symbol: str, tf: str, from_: int, to: int) -> List[Dict[str, A
   if to - from_ > max_range_seconds:
     raise HTTPException(status_code=400, detail="requested range is too large")
 
-  if mt5.terminal_info() is None:
+  if not _ensure_mt5_initialized():
     raise HTTPException(status_code=503, detail="MT5 terminal not connected")
 
   timeframe = mt5_timeframe(tf)
@@ -626,7 +652,7 @@ def history_range(symbol: str, tf: str, from_: int, to: int) -> List[Dict[str, A
 
 @app.get("/history_boundary")
 def history_boundary(symbol: str, tf: str) -> Dict[str, Any]:
-  if mt5.terminal_info() is None:
+  if not _ensure_mt5_initialized():
     raise HTTPException(status_code=503, detail="MT5 terminal not connected")
 
   timeframe = mt5_timeframe(tf)
@@ -795,7 +821,7 @@ async def stream(websocket: WebSocket, symbol: str, tf: str) -> None:
   )
 
   # If the MT5 terminal is not currently available, fail fast.
-  if mt5.terminal_info() is None:
+  if not _ensure_mt5_initialized():
     await websocket.send_json(
       {
         "type": "status",
@@ -832,7 +858,7 @@ async def stream(websocket: WebSocket, symbol: str, tf: str) -> None:
 
   try:
     while True:
-      if mt5.terminal_info() is None:
+      if not _ensure_mt5_initialized():
         await websocket.send_json(
           {
             "type": "status",

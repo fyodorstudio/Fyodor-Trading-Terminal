@@ -38,6 +38,8 @@ export function resolveCalendarStatus({
   health,
   calendarRequestFailed = false,
 }: CalendarStatusOptions): BridgeStatus {
+  const bridgeConnected = health.bridge_connected ?? health.ok;
+
   if (calendarRequestFailed && eventsCount === 0) {
     return "error";
   }
@@ -47,10 +49,10 @@ export function resolveCalendarStatus({
   }
 
   if (eventsCount === 0) {
-    return health.ok ? "no_data" : "error";
+    return bridgeConnected ? "no_data" : "error";
   }
 
-  if (!health.ok || isStale(health.last_calendar_ingest_at ?? null)) {
+  if (!bridgeConnected || isStale(health.last_calendar_ingest_at ?? null)) {
     return "stale";
   }
 
@@ -87,18 +89,9 @@ export function resolveTrustState(
   feedStatus: BridgeStatus,
   marketStatus: MarketStatusResponse | null,
 ): TrustState {
-  if (!health.terminal_connected) {
-    return {
-      verdict: "no",
-      verdictLabel: "No",
-      tone: "danger",
-      reason: "mt5_disconnected",
-      title: "Can I trust the app right now? No.",
-      detail: "MT5 is disconnected, so live terminal context cannot be trusted.",
-    };
-  }
+  const bridgeConnected = health.bridge_connected ?? health.ok;
 
-  if (!health.ok) {
+  if (!bridgeConnected) {
     return {
       verdict: "no",
       verdictLabel: "No",
@@ -128,6 +121,17 @@ export function resolveTrustState(
       reason: "calendar_delayed",
       title: "Can I trust the app right now? Limited.",
       detail: "Core systems are up, but calendar timing context is still delayed or syncing.",
+    };
+  }
+
+  if (!health.terminal_connected) {
+    return {
+      verdict: "limited",
+      verdictLabel: "Limited",
+      tone: "warning",
+      reason: "mt5_disconnected",
+      title: "Can I trust the app right now? Limited.",
+      detail: "Calendar and macro context are reachable, but the MT5 price connection is unavailable.",
     };
   }
 

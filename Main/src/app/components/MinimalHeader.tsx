@@ -61,9 +61,9 @@ export function MinimalHeader({
   }, [health.terminal_connected]);
 
   const bridgeState = useMemo(() => {
-    if (health.ok) return { label: "Connected", tone: "text-emerald-700 bg-emerald-50 border-emerald-200" };
+    if (health.bridge_connected ?? health.ok) return { label: "Connected", tone: "text-emerald-700 bg-emerald-50 border-emerald-200" };
     return { label: "Unavailable", tone: "text-rose-700 bg-rose-50 border-rose-200" };
-  }, [health.ok]);
+  }, [health.bridge_connected, health.ok]);
 
   const symbolState = useMemo(() => {
     if (!marketStatus || !marketStatus.terminal_connected) {
@@ -110,6 +110,10 @@ export function MinimalHeader({
 
   const PrimaryIcon = primaryState.icon;
   const lastIngest = formatRelativeAge(health.last_calendar_ingest_at ?? null);
+  const mt5Error =
+    health.last_error && (health.last_error.message || health.last_error.code != null)
+      ? `${health.last_error.code ?? "MT5"}${health.last_error.message ? `: ${health.last_error.message}` : ""}`
+      : null;
   const mt5Clock = marketStatus?.server_time ? formatUtcClock(marketStatus.server_time) : "MT5 time unavailable";
   const eventSummary = nextHighImpact
     ? `${nextHighImpact.currency} ${nextHighImpact.title}`
@@ -220,6 +224,12 @@ export function MinimalHeader({
                       <div className="text-sm text-slate-600">{TERMINOLOGY.trustState.sectionLabel} Note</div>
                       <div className="mt-1 text-sm font-medium text-slate-950">{trustState.detail}</div>
                     </div>
+                    {mt5Error ? (
+                      <div>
+                        <div className="text-sm text-slate-600">MT5 price API error</div>
+                        <div className="mt-1 text-sm font-medium text-slate-950">{mt5Error}</div>
+                      </div>
+                    ) : null}
                     <div>
                       <div className="text-sm text-slate-600">{TERMINOLOGY.labels.lastIngest}</div>
                       <div className="mt-1 text-sm font-medium text-slate-950">{lastIngest}</div>

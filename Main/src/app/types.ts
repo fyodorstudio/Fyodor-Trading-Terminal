@@ -38,6 +38,7 @@ export interface BridgeSymbol {
 
 export interface BridgeHealth {
   ok: boolean;
+  bridge_connected?: boolean;
   terminal_connected: boolean;
   last_calendar_ingest_at?: number | null;
   calendar_events_count?: number;
@@ -89,6 +90,8 @@ export interface CalendarEventExplainer {
     | EventQualityFamily
     | "generic";
   familyLabel: string;
+  knowledgeDepth?: "specific" | "family" | "generic";
+  marketSensitivity?: string;
   whatItIs: string;
   whyTradersCare: string;
   mayAffect: string[];
@@ -97,6 +100,12 @@ export interface CalendarEventExplainer {
   strongerOutcome: string;
   weakerOutcome: string;
   contextNote: string;
+  releaseStatus?: string;
+  resultSnapshot?: string;
+  resultInterpretation?: string;
+  whatToCompare?: string[];
+  tradingWorkflow?: string[];
+  commonTraps?: string[];
 }
 
 export interface CalendarQueryState {

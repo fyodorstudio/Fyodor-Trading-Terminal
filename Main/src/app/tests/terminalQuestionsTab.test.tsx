@@ -15,5 +15,7 @@ describe("TerminalQuestionsTab", () => {
     expect(html).toContain("Should I watch, study, prepare, wait, or ignore?");
     expect(html).toContain("Open Watchlist");
     expect(html).toContain("Audit Calendar");
+    expect(html).toContain("Prototype");
+    expect(html).toContain("Legacy");
   });
 });

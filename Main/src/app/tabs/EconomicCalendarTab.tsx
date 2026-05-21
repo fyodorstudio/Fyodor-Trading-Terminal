@@ -953,7 +953,7 @@ export function EconomicCalendarTab({
       {(status === "error" || status === "stale" || status === "no_data") && (
         <div className={`alert-panel alert-${status}`}>
           {status === "error" && "Bridge unavailable. Keep MetaTrader 5 and the local bridge running, then refresh this tab."}
-          {status === "stale" && "Calendar feed is stale. Retained MT5 events are still shown while the latest ingest or refresh is no longer fresh."}
+          {status === "stale" && "Calendar feed is stale. Rows below are retained MT5 events from the last successful ingest; they are not freshly verified yet."}
           {status === "no_data" && "NO DATA for the selected range or filters. Broaden the range or verify the MT5 feed."}
         </div>
       )}
@@ -1047,7 +1047,10 @@ export function EconomicCalendarTab({
               >
                 <div className="calendar-event-panel-head">
                   <div>
-                    <div className="calendar-event-panel-kicker">{selectedEventExplainer.familyLabel}</div>
+                    <div className="calendar-event-panel-kicker">
+                      {selectedEventExplainer.familyLabel}
+                      {selectedEventExplainer.knowledgeDepth ? ` / ${selectedEventExplainer.knowledgeDepth}` : ""}
+                    </div>
                     <h3>{selectedEvent.title}</h3>
                     <p>{getCountryDisplayName(selectedEvent.countryCode)} | {selectedEvent.currency}</p>
                   </div>
@@ -1073,9 +1076,22 @@ export function EconomicCalendarTab({
                     <span>Actual / Forecast / Previous</span>
                     <strong>{selectedEvent.actual || "-"} / {selectedEvent.forecast || "-"} / {selectedEvent.previous || "-"}</strong>
                   </div>
+                  <div className="calendar-event-summary-card">
+                    <span>Release Status</span>
+                    <strong>{selectedEventExplainer.releaseStatus ?? "Context only"}</strong>
+                  </div>
+                  <div className="calendar-event-summary-card">
+                    <span>Market Sensitivity</span>
+                    <strong>{selectedEventExplainer.marketSensitivity ?? "Context-dependent"}</strong>
+                  </div>
                 </div>
 
                 <div className="calendar-event-grid">
+                  <section className="calendar-event-card calendar-event-card-wide calendar-event-emphasis">
+                    <span>Trading read now</span>
+                    <p>{selectedEventExplainer.resultSnapshot}</p>
+                    <p>{selectedEventExplainer.resultInterpretation}</p>
+                  </section>
                   <section className="calendar-event-card">
                     <span>What this event is</span>
                     <p>{selectedEventExplainer.whatItIs}</p>
@@ -1083,6 +1099,22 @@ export function EconomicCalendarTab({
                   <section className="calendar-event-card">
                     <span>Why traders care</span>
                     <p>{selectedEventExplainer.whyTradersCare}</p>
+                  </section>
+                  <section className="calendar-event-card">
+                    <span>What to compare</span>
+                    <ul>
+                      {(selectedEventExplainer.whatToCompare ?? []).map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  </section>
+                  <section className="calendar-event-card">
+                    <span>Trading workflow</span>
+                    <ul>
+                      {(selectedEventExplainer.tradingWorkflow ?? []).map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
                   </section>
                   <section className="calendar-event-card">
                     <span>What it may affect</span>
@@ -1115,6 +1147,14 @@ export function EconomicCalendarTab({
                   <section className="calendar-event-card calendar-event-card-wide">
                     <span>Context reminder</span>
                     <p>{selectedEventExplainer.contextNote}</p>
+                  </section>
+                  <section className="calendar-event-card calendar-event-card-wide">
+                    <span>Common traps</span>
+                    <ul>
+                      {(selectedEventExplainer.commonTraps ?? []).map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
                   </section>
                 </div>
               </div>

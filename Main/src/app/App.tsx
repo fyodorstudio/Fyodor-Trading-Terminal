@@ -52,7 +52,7 @@ const transition = { type: "spring", stiffness: 300, damping: 30 };
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
-  const [health, setHealth] = useState<BridgeHealth>({ ok: false, terminal_connected: false });
+  const [health, setHealth] = useState<BridgeHealth>({ ok: false, bridge_connected: false, terminal_connected: false });
   const [feedEvents, setFeedEvents] = useState<CalendarEvent[]>([]);
   const [feedStatus, setFeedStatus] = useState<BridgeStatus>("loading");
   const [chartSymbol, setChartSymbol] = useState("EURUSD");
@@ -120,7 +120,7 @@ export default function App() {
       const nextHealth =
         healthResult.status === "fulfilled"
           ? healthResult.value
-          : ({ ok: false, terminal_connected: false } satisfies BridgeHealth);
+          : ({ ok: false, bridge_connected: false, terminal_connected: false } satisfies BridgeHealth);
 
       setHealth(nextHealth);
 

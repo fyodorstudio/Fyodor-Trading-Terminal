@@ -1,25 +1,52 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CandlestickSeries,
-  TickMarkType,
   createChart,
   type CandlestickData,
   type IChartApi,
   type ISeriesApi,
 } from "lightweight-charts";
-import { ChevronDown, ChevronRight, Search, Star, Activity, Clock, AlertTriangle, Database, X, Check } from "lucide-react";
+import {
+  Activity,
+  AlertTriangle,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Database,
+  Focus,
+  HardDrive,
+  MousePointer2,
+  Palette,
+  RotateCcw,
+  Search,
+  Settings2,
+  SlidersHorizontal,
+  Star,
+  Trash2,
+  X,
+} from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchHistory, fetchHistoryBoundary, fetchHistoryRange, fetchSymbols, openChartStream } from "@/app/lib/bridge";
 import {
-  formatChartAxisTime,
+  DEFAULT_CHART_PREFERENCES,
   formatChartFeedTime,
-  formatChartHoverTime,
+  formatCursorReadout,
   getChartDisplayCandles,
   getChartDisplayModeLabel,
+  getChartTimeFormatters,
   getChartSessionDetail,
+  loadChartPreferences,
   loadChartDisplayTimeMode,
+  mergeChartCandles,
+  normalizeHistoryCacheEntry,
+  saveChartPreferences,
   saveChartDisplayTimeMode,
+  summarizeChartCache,
+  type ChartAppearancePreferences,
+  type ChartCursorReadoutMode,
   type ChartDisplayTimeMode,
+  type ChartPreferences,
 } from "@/app/lib/chartView";
 import { resolveChartStatus } from "@/app/lib/status";
 import {
@@ -36,6 +63,16 @@ const DEBUG_MAX = 60;
 const DEFAULT_SYMBOL = "EURUSD";
 const TIMEFRAMES: Timeframe[] = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"];
 const PREFERRED_SYMBOLS = ["EURUSD", "USDJPY", "GBPUSD", "XAUUSD"];
+const CURSOR_MODE_OPTIONS: Array<{ id: ChartCursorReadoutMode; label: string; description: string }> = [
+  { id: "both", label: "Both", description: "Show cursor price and nearest candle close." },
+  { id: "true_cursor", label: "True cursor", description: "Show the exact price under the pointer." },
+  { id: "nearest_candle", label: "Candle", description: "Show the nearest candle close only." },
+];
+
+type CrosshairReadout = {
+  top: number;
+  lines: Array<{ label: string; value: string }>;
+};
 
 type HistoryCacheEntry = {
   version: number;
@@ -72,23 +109,7 @@ function readHistoryCache(symbol: string, timeframe: Timeframe): BridgeCandle[] 
   try {
     const raw = localStorage.getItem(cacheKey(symbol, timeframe));
     if (!raw) return [];
-    const parsed = JSON.parse(raw) as HistoryCacheEntry;
-    if (!parsed || parsed.version !== CHART_HISTORY_CONFIG_VERSION || !Array.isArray(parsed.candles)) return [];
-    return parsed.candles
-      .map((item) => {
-        if (!item || typeof item !== "object") return null;
-        const row = item as Record<string, unknown>;
-        const time = typeof row.time === "number" ? row.time : null;
-        const open = typeof row.open === "number" ? row.open : null;
-        const high = typeof row.high === "number" ? row.high : null;
-        const low = typeof row.low === "number" ? row.low : null;
-        const close = typeof row.close === "number" ? row.close : null;
-        const volume = typeof row.volume === "number" ? row.volume : null;
-        if ([time, open, high, low, close, volume].some((value) => value == null)) return null;
-        return { time, open, high, low, close, volume } satisfies BridgeCandle;
-      })
-      .filter((item): item is BridgeCandle => item !== null)
-      .sort((a, b) => a.time - b.time);
+    return normalizeHistoryCacheEntry(JSON.parse(raw) as unknown, 5000)?.candles ?? [];
   } catch {
     return [];
   }
@@ -96,7 +117,7 @@ function readHistoryCache(symbol: string, timeframe: Timeframe): BridgeCandle[] 
 
 function saveHistoryCache(symbol: string, timeframe: Timeframe, candles: BridgeCandle[]) {
   try {
-    const trimmed = candles.slice(-5000);
+    const trimmed = mergeChartCandles([], candles, 5000);
     const payload: HistoryCacheEntry = {
       version: CHART_HISTORY_CONFIG_VERSION,
       candles: trimmed,
@@ -107,10 +128,12 @@ function saveHistoryCache(symbol: string, timeframe: Timeframe, candles: BridgeC
   }
 }
 
-function mergeCandles(left: BridgeCandle[], right: BridgeCandle[]): BridgeCandle[] {
-  const map = new Map<number, BridgeCandle>();
-  [...left, ...right].forEach((candle) => map.set(candle.time, candle));
-  return Array.from(map.values()).sort((a, b) => a.time - b.time);
+function clearHistoryCache(symbol: string, timeframe: Timeframe) {
+  try {
+    localStorage.removeItem(cacheKey(symbol, timeframe));
+  } catch {
+    // ignore storage failures
+  }
 }
 
 function getChartPriceFormat(symbol: string, assetClass: string | null) {
@@ -168,6 +191,7 @@ interface ChartsTabProps {
 export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange }: ChartsTabProps) {
   const [timeframe, setTimeframe] = useState<Timeframe>("H1");
   const [displayTimeMode, setDisplayTimeMode] = useState<ChartDisplayTimeMode>(() => loadChartDisplayTimeMode());
+  const [chartPreferences, setChartPreferences] = useState<ChartPreferences>(() => loadChartPreferences());
   const [historyState, setHistoryState] = useState<"loading" | "ready" | "no_data" | "error">("loading");
   const [symbols, setSymbols] = useState<BridgeSymbol[]>([]);
   const [favorites, setFavorites] = useState<string[]>(() => loadFavorites());
@@ -175,6 +199,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const [pickerOpen, setPickerOpen] = useState(false);
   const [timezoneMenuOpen, setTimezoneMenuOpen] = useState(false);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
+  const [cacheRevision, setCacheRevision] = useState(0);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [debugLines, setDebugLines] = useState<string[]>([]);
   const [lastCandleTime, setLastCandleTime] = useState<number | null>(null);
@@ -183,7 +208,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const [boundaryTime, setBoundaryTime] = useState<number | null>(null);
   const [chartLoadError, setChartLoadError] = useState<string | null>(null);
   const [sessionNowMs, setSessionNowMs] = useState(() => Date.now());
-  const [crosshairPrice, setCrosshairPrice] = useState<{ label: string; top: number } | null>(null);
+  const [crosshairReadout, setCrosshairReadout] = useState<CrosshairReadout | null>(null);
   const pickerRef = useRef<HTMLDivElement | null>(null);
   const timezoneMenuRef = useRef<HTMLDivElement | null>(null);
   const historyPanelRef = useRef<HTMLDivElement | null>(null);
@@ -267,6 +292,45 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     setTimezoneMenuOpen(false);
   }, []);
 
+  const updateChartPreferences = useCallback((updater: (current: ChartPreferences) => ChartPreferences) => {
+    setChartPreferences((current) => {
+      const next = updater(current);
+      saveChartPreferences(next);
+      return next;
+    });
+  }, []);
+
+  const updateAppearance = useCallback(
+    <K extends keyof ChartAppearancePreferences,>(key: K, value: ChartAppearancePreferences[K]) => {
+      updateChartPreferences((current) => ({
+        ...current,
+        appearance: {
+          ...current.appearance,
+          [key]: value,
+        },
+      }));
+    },
+    [updateChartPreferences],
+  );
+
+  const handleCursorModeChange = useCallback(
+    (mode: ChartCursorReadoutMode) => {
+      updateChartPreferences((current) => ({ ...current, cursorReadoutMode: mode }));
+    },
+    [updateChartPreferences],
+  );
+
+  const resetChartPreferences = useCallback(() => {
+    setChartPreferences(DEFAULT_CHART_PREFERENCES);
+    saveChartPreferences(DEFAULT_CHART_PREFERENCES);
+  }, []);
+
+  const clearCurrentCache = useCallback(() => {
+    clearHistoryCache(selectedSymbol, timeframe);
+    setCacheRevision((current) => current + 1);
+    addLog(`cleared local chart cache for ${selectedSymbol} ${timeframe}`);
+  }, [addLog, selectedSymbol, timeframe]);
+
   useEffect(() => {
     let cancelled = false;
     void fetchSymbols().then((items) => {
@@ -295,6 +359,11 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   useEffect(() => {
     const container = containerRef.current;
     if (!container || chartRef.current) return;
+    const timeFormatters = getChartTimeFormatters(timeframe, displayTimeMode);
+    const appearance = chartPreferences.appearance;
+    const wickUpColor = appearance.wickMode === "match" ? appearance.bullishColor : appearance.neutralWickColor;
+    const wickDownColor = appearance.wickMode === "match" ? appearance.bearishColor : appearance.neutralWickColor;
+    const gridColor = appearance.gridVisible ? "rgba(100, 116, 139, 0.05)" : "rgba(100, 116, 139, 0)";
 
     const chart = createChart(container, {
       layout: {
@@ -312,29 +381,29 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         barSpacing: 10,
         timeVisible: true,
         secondsVisible: false,
-        tickMarkFormatter: (time, tickMarkType) =>
-          formatChartAxisTime(Number(time), "H1", tickMarkType ?? TickMarkType.Time, displayTimeMode),
+        tickMarkFormatter: timeFormatters.tickMarkFormatter,
       },
       grid: {
-        vertLines: { color: "rgba(100, 116, 139, 0.05)" },
-        horzLines: { color: "rgba(100, 116, 139, 0.05)" },
+        vertLines: { color: gridColor },
+        horzLines: { color: gridColor },
       },
       crosshair: {
-        vertLine: { labelBackgroundColor: "#1e293b" },
-        horzLine: { labelBackgroundColor: "#1e293b" },
+        vertLine: { labelBackgroundColor: appearance.crosshairColor },
+        horzLine: { labelBackgroundColor: appearance.crosshairColor, labelVisible: false },
       },
       localization: {
-        timeFormatter: (time) => formatChartHoverTime(Number(time), displayTimeMode),
+        timeFormatter: timeFormatters.timeFormatter,
       },
     });
 
     const series = chart.addSeries(CandlestickSeries, {
-      upColor: "#10b981",
-      downColor: "#ef4444",
-      wickUpColor: "#10b981",
-      wickDownColor: "#ef4444",
-      borderUpColor: "#10b981",
-      borderDownColor: "#ef4444",
+      upColor: appearance.bullishColor,
+      downColor: appearance.bearishColor,
+      wickUpColor,
+      wickDownColor,
+      borderUpColor: appearance.bullishColor,
+      borderDownColor: appearance.bearishColor,
+      priceLineColor: appearance.currentPriceLineColor,
     });
 
     chartRef.current = chart;
@@ -362,18 +431,50 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
+    const timeFormatters = getChartTimeFormatters(timeframe, displayTimeMode);
     chart.applyOptions({
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
-        tickMarkFormatter: (time, tickMarkType) =>
-          formatChartAxisTime(Number(time), timeframe, tickMarkType ?? TickMarkType.Time, displayTimeMode),
+        tickMarkFormatter: timeFormatters.tickMarkFormatter,
       },
       localization: {
-        timeFormatter: (time) => formatChartHoverTime(Number(time), displayTimeMode),
+        timeFormatter: timeFormatters.timeFormatter,
       },
     });
   }, [timeframe, displayTimeMode]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    const series = seriesRef.current;
+    if (!chart || !series) return;
+
+    const appearance = chartPreferences.appearance;
+    const wickUpColor = appearance.wickMode === "match" ? appearance.bullishColor : appearance.neutralWickColor;
+    const wickDownColor = appearance.wickMode === "match" ? appearance.bearishColor : appearance.neutralWickColor;
+    const gridColor = appearance.gridVisible ? "rgba(100, 116, 139, 0.05)" : "rgba(100, 116, 139, 0)";
+
+    chart.applyOptions({
+      grid: {
+        vertLines: { color: gridColor },
+        horzLines: { color: gridColor },
+      },
+      crosshair: {
+        vertLine: { labelBackgroundColor: appearance.crosshairColor },
+        horzLine: { labelBackgroundColor: appearance.crosshairColor, labelVisible: false },
+      },
+    });
+
+    series.applyOptions({
+      upColor: appearance.bullishColor,
+      downColor: appearance.bearishColor,
+      wickUpColor,
+      wickDownColor,
+      borderUpColor: appearance.bullishColor,
+      borderDownColor: appearance.bearishColor,
+      priceLineColor: appearance.currentPriceLineColor,
+    });
+  }, [chartPreferences]);
 
   useEffect(() => {
     const series = seriesRef.current;
@@ -388,21 +489,33 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     const container = containerRef.current;
     if (!chart || !series || !container) return;
 
-    const handleCrosshairMove = (param: { point?: { x: number; y: number } | null }) => {
+    const handleCrosshairMove = (param: {
+      point?: { x: number; y: number } | null;
+      seriesData?: Map<ISeriesApi<"Candlestick">, CandlestickData>;
+    }) => {
       const point = param.point;
       if (!point || point.x < 0 || point.y < 0 || point.x > container.clientWidth || point.y > container.clientHeight) {
-        setCrosshairPrice(null);
+        setCrosshairReadout(null);
         return;
       }
 
-      const price = series.coordinateToPrice(point.y);
-      if (price == null) {
-        setCrosshairPrice(null);
+      const truePrice = series.coordinateToPrice(point.y);
+      const candle = param.seriesData?.get(series);
+      const candlePrice = candle && typeof candle.close === "number" ? candle.close : null;
+      const lines = formatCursorReadout({
+        mode: chartPreferences.cursorReadoutMode,
+        truePrice,
+        candlePrice,
+        precision: priceFormat.precision,
+      });
+
+      if (lines.length === 0) {
+        setCrosshairReadout(null);
         return;
       }
 
-      setCrosshairPrice({
-        label: price.toFixed(priceFormat.precision),
+      setCrosshairReadout({
+        lines,
         top: point.y,
       });
     };
@@ -410,9 +523,9 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     chart.subscribeCrosshairMove(handleCrosshairMove);
     return () => {
       chart.unsubscribeCrosshairMove(handleCrosshairMove);
-      setCrosshairPrice(null);
+      setCrosshairReadout(null);
     };
-  }, [priceFormat.precision]);
+  }, [chartPreferences.cursorReadoutMode, priceFormat.precision]);
 
   useEffect(() => {
     const series = seriesRef.current;
@@ -536,7 +649,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             break;
           }
 
-          const merged = mergeCandles(older, currentCandles);
+          const merged = mergeChartCandles(older, currentCandles);
           if (merged.length > currentCandles.length) {
             currentCandles = merged;
             currentOldest = merged[0]?.time ?? currentOldest;
@@ -621,7 +734,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             volume: 0,
           } satisfies BridgeCandle;
           setVisibleCandles((current) => {
-            const next = mergeCandles(current, [nextCandle]);
+            const next = mergeChartCandles(current, [nextCandle]);
             saveHistoryCache(selectedSymbol, timeframe, next);
             return next;
           });
@@ -720,6 +833,12 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const feedLabel = lastCandleTime
     ? `Feed: ${formatChartFeedTime(lastCandleTime, displayTimeMode)}`
     : "Waiting for data";
+  const cacheSummary = useMemo(
+    () => summarizeChartCache(readHistoryCache(selectedSymbol, timeframe)),
+    [cacheRevision, selectedSymbol, timeframe, visibleCandles.length],
+  );
+  const cacheOldestLabel = cacheSummary.oldestTime ? formatChartFeedTime(cacheSummary.oldestTime, displayTimeMode) : "Empty";
+  const cacheLatestLabel = cacheSummary.latestTime ? formatChartFeedTime(cacheSummary.latestTime, displayTimeMode) : "Empty";
 
   const streamStatusLabel =
     getChartConnectionLabel({ historyState, marketStatus: activeMarketStatus, streamConnected });
@@ -743,13 +862,12 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
 
   return (
     <div className="flex flex-col gap-6 max-w-[1460px] mx-auto pb-12">
-      {/* Chart Control Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-2xl shadow-sm relative z-50">
-        <div className="flex items-center gap-6">
+      <div className="chart-workbar">
+        <div className="chart-workbar-left">
           <div className="relative" ref={pickerRef}>
             <button
               onClick={() => setPickerOpen(!pickerOpen)}
-              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-all text-sm font-bold text-gray-900 shadow-sm"
+              className="chart-symbol-button"
             >
               <Search className="h-4 w-4 text-gray-400" />
               <span>{selectedSymbol}</span>
@@ -840,59 +958,78 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             </AnimatePresence>
           </div>
 
-          <div className="flex bg-gray-100 p-1 rounded-xl gap-1">
+          <div className="chart-timeframe-strip">
             {TIMEFRAMES.map((item) => (
               <button
                 key={item}
                 onClick={() => setTimeframe(item)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${timeframe === item ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500 hover:text-gray-800'}`}
+                className={timeframe === item ? "chart-timeframe-button is-active" : "chart-timeframe-button"}
               >
                 {item === "MN1" ? "MN" : item}
               </button>
             ))}
           </div>
-          <button
-            type="button"
-            onClick={() => setHistoryPanelOpen(true)}
-            className="charts-history-button"
-          >
-            History
-          </button>
-          <button
-            type="button"
-            onClick={refocusChart}
-            className="charts-history-button"
-          >
-            Refocus
-          </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-full">
-            <Activity className={`h-4 w-4 ${status === 'live' ? 'text-green-500 animate-pulse' : status === 'loading' ? 'text-blue-500 animate-pulse' : status === 'stale' ? 'text-amber-500' : 'text-gray-400'}`} />
-            <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{streamStatusLabel}</span>
+        <div className="chart-tool-strip" aria-label="Chart tools">
+          <div className="chart-readout-toggle" aria-label="Cursor readout mode">
+            <MousePointer2 className="h-4 w-4 text-slate-400" />
+            {CURSOR_MODE_OPTIONS.map((option) => (
+              <button
+                key={option.id}
+                type="button"
+                title={option.description}
+                className={chartPreferences.cursorReadoutMode === option.id ? "is-active" : ""}
+                onClick={() => handleCursorModeChange(option.id)}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
-          <div
-            className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-full"
-            title={sessionDetail.basis}
+          <button type="button" className="chart-icon-button" title="Refocus chart" aria-label="Refocus chart" onClick={refocusChart}>
+            <Focus className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="chart-icon-button"
+            title="Chart settings"
+            aria-label="Open chart settings"
+            onClick={() => setHistoryPanelOpen(true)}
           >
-            <Clock className="h-4 w-4 text-gray-400" />
-            <span className="text-sm font-bold text-gray-700 whitespace-nowrap">{sessionDetail.label}</span>
-          </div>
+            <Settings2 className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="chart-icon-button"
+            title="Data cache"
+            aria-label="Open chart data cache"
+            onClick={() => setHistoryPanelOpen(true)}
+          >
+            <HardDrive className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+
+      <div className="chart-status-rail">
+        <div className={`chart-status-chip chart-status-${status}`}>
+          <Activity className={status === "live" ? "h-4 w-4 animate-pulse" : "h-4 w-4"} />
+          <span>{streamStatusLabel}</span>
+        </div>
+        <div className="chart-status-chip" title={sessionDetail.basis}>
+          <Clock className="h-4 w-4" />
+          <span>{sessionDetail.label}</span>
+        </div>
+        <div className="chart-status-chip chart-feed-chip">
           <div className="tv-toolbar-anchor" ref={timezoneMenuRef}>
             <button
               type="button"
               onClick={() => setTimezoneMenuOpen((current) => !current)}
               title={`Chart timezone. Current mode: ${displayModeLabel}.`}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-900 border border-gray-800 rounded-full transition-colors hover:bg-gray-800"
+              className="chart-feed-button"
             >
-              <Database className={`h-4 w-4 ${lastCandleTime ? 'text-blue-400' : 'text-gray-500'}`} />
-              <span className="text-xs font-bold text-gray-300 whitespace-nowrap">
-                {feedLabel}
-              </span>
-              <span className="text-[10px] font-bold uppercase tracking-wider text-gray-500 whitespace-nowrap">
-                {currentDisplayTime} | {displayModeShortLabel}
-              </span>
+              <Database className={lastCandleTime ? "h-4 w-4 text-blue-400" : "h-4 w-4 text-slate-500"} />
+              <span className="chart-feed-main">{feedLabel}</span>
+              <span className="chart-feed-sub">{currentDisplayTime} | {displayModeShortLabel}</span>
               <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${timezoneMenuOpen ? "rotate-180" : ""}`} />
             </button>
 
@@ -934,7 +1071,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
               ref={historyPanelRef}
               role="dialog"
               aria-modal="true"
-              aria-label="Chart history settings"
+              aria-label="Chart settings"
               initial={{ x: 24, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 24, opacity: 0 }}
@@ -944,8 +1081,8 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             >
               <div className="charts-history-head">
                 <div>
-                  <h2>History settings</h2>
-                  <p>Native MT5 candles, loaded in chunks and cached locally.</p>
+                  <h2>Chart Settings</h2>
+                  <p>Readout, appearance, local cache, and MT5 chart diagnostics.</p>
                 </div>
                 <button type="button" className="charts-history-close" onClick={() => setHistoryPanelOpen(false)}>
                   <X size={18} />
@@ -954,20 +1091,145 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
 
               <div className="charts-history-body">
                 <section className="charts-history-section">
-                  <h3>How it works</h3>
-                  <ul className="charts-history-list">
-                    <li>The chart requests candles from the bridge using the selected timeframe.</li>
-                    <li>Older candles load automatically as you pan left until MT5 stops returning more data.</li>
-                  </ul>
+                  <h3>
+                    <SlidersHorizontal size={14} />
+                    Readout
+                  </h3>
+                  <div className="chart-drawer-segmented">
+                    {CURSOR_MODE_OPTIONS.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className={chartPreferences.cursorReadoutMode === option.id ? "is-active" : ""}
+                        onClick={() => handleCursorModeChange(option.id)}
+                      >
+                        <span>{option.label}</span>
+                        <small>{option.description}</small>
+                      </button>
+                    ))}
+                  </div>
                 </section>
 
                 <section className="charts-history-section">
-                  <h3>Notes</h3>
-                  <ul className="charts-history-list">
-                    <li>Historical depth still depends on what MT5 already has available for that symbol and timeframe.</li>
-                    <li>The oldest badge appears only when the bridge confirms the MT5 boundary.</li>
-                    <li>Older history is loaded in small safe slices so the bridge stays stable.</li>
-                  </ul>
+                  <h3>
+                    <Palette size={14} />
+                    Appearance
+                  </h3>
+                  <div className="chart-appearance-grid">
+                    <label className="chart-color-field">
+                      <span>Bullish candle</span>
+                      <input
+                        type="color"
+                        value={chartPreferences.appearance.bullishColor}
+                        onChange={(event) => updateAppearance("bullishColor", event.target.value)}
+                      />
+                    </label>
+                    <label className="chart-color-field">
+                      <span>Bearish candle</span>
+                      <input
+                        type="color"
+                        value={chartPreferences.appearance.bearishColor}
+                        onChange={(event) => updateAppearance("bearishColor", event.target.value)}
+                      />
+                    </label>
+                    <label className="chart-color-field">
+                      <span>Neutral wick</span>
+                      <input
+                        type="color"
+                        value={chartPreferences.appearance.neutralWickColor}
+                        onChange={(event) => updateAppearance("neutralWickColor", event.target.value)}
+                      />
+                    </label>
+                    <label className="chart-color-field">
+                      <span>Crosshair</span>
+                      <input
+                        type="color"
+                        value={chartPreferences.appearance.crosshairColor}
+                        onChange={(event) => updateAppearance("crosshairColor", event.target.value)}
+                      />
+                    </label>
+                    <label className="chart-color-field">
+                      <span>Price line</span>
+                      <input
+                        type="color"
+                        value={chartPreferences.appearance.currentPriceLineColor}
+                        onChange={(event) => updateAppearance("currentPriceLineColor", event.target.value)}
+                      />
+                    </label>
+                  </div>
+                  <div className="chart-settings-row">
+                    <span>Wick color</span>
+                    <div className="chart-mini-toggle">
+                      <button
+                        type="button"
+                        className={chartPreferences.appearance.wickMode === "match" ? "is-active" : ""}
+                        onClick={() => updateAppearance("wickMode", "match")}
+                      >
+                        Match candle
+                      </button>
+                      <button
+                        type="button"
+                        className={chartPreferences.appearance.wickMode === "neutral" ? "is-active" : ""}
+                        onClick={() => updateAppearance("wickMode", "neutral")}
+                      >
+                        Neutral
+                      </button>
+                    </div>
+                  </div>
+                  <label className="chart-settings-check">
+                    <input
+                      type="checkbox"
+                      checked={chartPreferences.appearance.gridVisible}
+                      onChange={(event) => updateAppearance("gridVisible", event.target.checked)}
+                    />
+                    <span>Show chart grid</span>
+                  </label>
+                  <button type="button" className="charts-history-reset" onClick={resetChartPreferences}>
+                    <RotateCcw size={14} />
+                    Reset chart appearance
+                  </button>
+                </section>
+
+                <section className="charts-history-section">
+                  <h3>
+                    <HardDrive size={14} />
+                    Data Cache
+                  </h3>
+                  <p>
+                    The chart stores the latest validated candles locally for the current symbol and timeframe so the surface can stay readable while a fresh MT5 refresh is loading.
+                  </p>
+                  <div className="chart-cache-grid">
+                    <div>
+                      <span>Candles</span>
+                      <strong>{cacheSummary.count}</strong>
+                    </div>
+                    <div>
+                      <span>Oldest</span>
+                      <strong>{cacheOldestLabel}</strong>
+                    </div>
+                    <div>
+                      <span>Latest</span>
+                      <strong>{cacheLatestLabel}</strong>
+                    </div>
+                  </div>
+                  <button type="button" className="chart-danger-button" onClick={clearCurrentCache}>
+                    <Trash2 size={14} />
+                    Clear cached candles for {selectedSymbol} {timeframe}
+                  </button>
+                </section>
+
+                <section className="charts-history-section">
+                  <h3>
+                    <Activity size={14} />
+                    Diagnostics
+                  </h3>
+                  <div className="chart-diagnostics-list">
+                    <div><span>Symbol</span><strong>{selectedSymbol}</strong></div>
+                    <div><span>Timeframe</span><strong>{timeframe}</strong></div>
+                    <div><span>History state</span><strong>{historyState}</strong></div>
+                    <div><span>Stream</span><strong>{streamConnected ? "connected" : "not streaming"}</strong></div>
+                    <div><span>Boundary</span><strong>{boundaryTime ? formatChartFeedTime(boundaryTime, displayTimeMode) : "unconfirmed"}</strong></div>
+                  </div>
                 </section>
               </div>
             </motion.aside>
@@ -980,13 +1242,18 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         <div className="p-1 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-3xl shadow-sm overflow-hidden">
           <div ref={containerRef} className="h-[600px] w-full" />
         </div>
-        {crosshairPrice && (
+        {crosshairReadout && (
           <div
-            className="chart-crosshair-price"
-            style={{ top: crosshairPrice.top }}
+            className="chart-crosshair-readout"
+            style={{ top: crosshairReadout.top }}
             aria-hidden="true"
           >
-            {crosshairPrice.label}
+            {crosshairReadout.lines.map((line) => (
+              <div key={line.label} className="chart-crosshair-readout-line">
+                <span>{line.label}</span>
+                <strong>{line.value}</strong>
+              </div>
+            ))}
           </div>
         )}
         <div className="charts-history-boundary" aria-live="polite">
