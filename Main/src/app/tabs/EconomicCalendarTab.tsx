@@ -1,12 +1,11 @@
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Activity, Calendar, Check, ChevronDown, CircleHelp, Clock, Database, Globe, Search, Star } from "lucide-react";
+import { Calendar, Check, ChevronDown, CircleHelp, Clock, Globe, Search, X } from "lucide-react";
 import { fetchCalendar, fetchServerTime } from "@/app/lib/bridge";
 import { getCalendarEventExplainer } from "@/app/lib/calendarEventExplain";
 import { buildCalendarEventKey, getCalendarIntentDayRange } from "@/app/lib/calendarNavigation";
 import { getPresetRange } from "@/app/lib/calendarRanges";
 import {
-  formatLocalDateTime,
   formatRelativeAge,
   formatUtcDateTime,
   parseDateInput,
@@ -23,11 +22,12 @@ import {
 } from "@/app/lib/timezoneDisplay";
 import { getCountryDisplayName, MAJOR_COUNTRY_CODES } from "@/app/config/currencyConfig";
 import { FlagIcon } from "@/app/components/FlagIcon";
-import type { BridgeHealth, BridgeStatus, CalendarEvent, CalendarNavigationIntent, ImpactLevel } from "@/app/types";
+import type { BridgeHealth, BridgeStatus, CalendarEvent, CalendarEventExplainer, CalendarNavigationIntent, ImpactLevel } from "@/app/types";
 
 const DEFAULT_IMPACTS: ImpactLevel[] = ["low", "medium", "high"];
 
 type CalendarRangeMode = "today" | "this_week" | "custom";
+type CalendarFreshnessState = "unknown" | "fresh" | "aging" | "stale";
 const CALENDAR_TIMEZONE_KEY = "fyodor-calendar-display-timezone";
 
 function HelpHint({ label, detail }: { label: string; detail: string }) {
@@ -110,13 +110,15 @@ function buildCalendarQueryKey(params: {
   });
 }
 
-function impactStars(level: ImpactLevel) {
-  const max = level === "low" ? 1 : level === "medium" ? 2 : 3;
+export function getImpactLabel(level: ImpactLevel): string {
+  return level[0].toUpperCase() + level.slice(1);
+}
+
+export function ImpactPill({ level, label }: { level: ImpactLevel; label?: string }) {
   return (
-    <span className="star-row" aria-label={`${level} impact`}>
-      {[1, 2, 3].map((value) => (
-        <Star key={`${level}-${value}`} size={13} className={value <= max ? "star-active" : "star-idle"} />
-      ))}
+    <span className={`calendar-impact-pill calendar-impact-${level}`}>
+      <span className="calendar-impact-dot" aria-hidden="true" />
+      <span>{label ?? getImpactLabel(level)}</span>
     </span>
   );
 }
@@ -189,6 +191,67 @@ function formatUiAge(timestampSeconds: number | null, nowMs: number): string {
   return formatRelativeAge(timestampSeconds);
 }
 
+export function getCalendarFreshness(timestampSeconds: number | null, nowMs: number): {
+  state: CalendarFreshnessState;
+  label: string;
+  ageLabel: string;
+} {
+  if (timestampSeconds == null) {
+    return { state: "unknown", label: "Unknown", ageLabel: "never" };
+  }
+
+  const ageSeconds = Math.max(0, Math.floor(nowMs / 1000 - timestampSeconds));
+  if (ageSeconds <= 120) {
+    return { state: "fresh", label: "Fresh", ageLabel: formatUiAge(timestampSeconds, nowMs) };
+  }
+  if (ageSeconds <= 300) {
+    return { state: "aging", label: "Aging", ageLabel: formatUiAge(timestampSeconds, nowMs) };
+  }
+  return { state: "stale", label: "Stale", ageLabel: formatUiAge(timestampSeconds, nowMs) };
+}
+
+function FreshnessChip({
+  label,
+  detail,
+  freshness,
+}: {
+  label: string;
+  detail: string;
+  freshness: ReturnType<typeof getCalendarFreshness>;
+}) {
+  return (
+    <div className={`calendar-freshness-chip calendar-freshness-${freshness.state}`}>
+      <span className="calendar-freshness-label">
+        <HelpHint label={label} detail={detail} />
+      </span>
+      <span className="calendar-freshness-value">
+        <span className="calendar-freshness-dot" aria-hidden="true" />
+        <strong>{freshness.label}</strong>
+        <em>{freshness.ageLabel}</em>
+      </span>
+    </div>
+  );
+}
+
+function formatEventValue(value: string): string {
+  return value.trim() || "-";
+}
+
+function formatImpactSummary(impacts: ImpactLevel[]) {
+  if (impacts.length >= 3) return "All";
+  if (impacts.length === 0) return "None";
+  return impacts.map(getImpactLabel).join(" + ");
+}
+
+function ImpactSummary({ impacts }: { impacts: ImpactLevel[] }) {
+  return (
+    <span className="calendar-control-text" aria-label={`Impact: ${formatImpactSummary(impacts)}`}>
+      <span>Impact</span>
+      <strong>{formatImpactSummary(impacts)}</strong>
+    </span>
+  );
+}
+
 function formatRangeLabel(from: Date | null, to: Date | null): string {
   if (!from || !to) return "Select range";
 
@@ -257,12 +320,6 @@ function formatCurrentMt5Time(serverTimeSeconds: number | null, fetchedAtMs: num
   return `${hours}:${minutes} (MT5)`;
 }
 
-function summarizeImpacts(impacts: ImpactLevel[]): string {
-  if (impacts.length >= 3) return "All impacts";
-  if (impacts.length === 1) return `${impacts[0][0].toUpperCase()}${impacts[0].slice(1)} only`;
-  return `${impacts.length} impacts`;
-}
-
 function summarizeCountries(countries: string[]): string {
   if (countries.length === 0) return "All countries";
   if (countries.length === 1) {
@@ -271,6 +328,154 @@ function summarizeCountries(countries: string[]): string {
 
   const first = getCountryDisplayName(countries[0]);
   return `${first} + ${countries.length - 1}`;
+}
+
+function CalendarEventSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="calendar-event-drawer-section">
+      <h4>{title}</h4>
+      {children}
+    </section>
+  );
+}
+
+function CalendarEventList({ items }: { items: string[] }) {
+  return (
+    <ul>
+      {items.map((item) => (
+        <li key={item}>{item}</li>
+      ))}
+    </ul>
+  );
+}
+
+function buildCautiousSignal(explainer: CalendarEventExplainer): string {
+  const interpretation = explainer.resultInterpretation ?? explainer.contextNote;
+  return `${interpretation} Treat this as a cautious signal and require price confirmation before acting.`;
+}
+
+export function CalendarEventInspectorDrawer({
+  event,
+  explainer,
+  timezoneMode,
+  onClose,
+}: {
+  event: CalendarEvent;
+  explainer: CalendarEventExplainer;
+  timezoneMode: DisplayTimezoneSelection;
+  onClose: () => void;
+}) {
+  const countryName = getCountryDisplayName(event.countryCode);
+
+  return (
+    <aside
+      className="calendar-event-drawer"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${event.title} trading brief`}
+      onClick={(eventClick) => eventClick.stopPropagation()}
+    >
+      <header className="calendar-event-drawer-head">
+        <div className="calendar-event-drawer-title">
+          <span className="calendar-event-drawer-kicker">
+            {explainer.familyLabel}
+            {explainer.knowledgeDepth ? ` / ${explainer.knowledgeDepth}` : ""}
+          </span>
+          <h3>{event.title}</h3>
+          <div className="calendar-event-drawer-meta">
+            <FlagIcon countryCode={event.countryCode} className="h-4 w-6 border border-gray-200 rounded-sm" />
+            <span>{countryName}</span>
+            <span>{event.currency}</span>
+          </div>
+        </div>
+        <button type="button" className="calendar-event-close" aria-label="Close event details" onClick={onClose}>
+          <X size={17} />
+        </button>
+      </header>
+
+      <div className="calendar-event-brief">
+        <div className="calendar-event-brief-head">
+          <div>
+            <span>Trading Brief</span>
+            <strong>{explainer.releaseStatus ?? "Context only"}</strong>
+          </div>
+          <ImpactPill level={event.impact} />
+        </div>
+        <p className="calendar-event-snapshot">{explainer.resultSnapshot ?? "No release result is available yet."}</p>
+        <p className="calendar-event-signal">{buildCautiousSignal(explainer)}</p>
+        <div className="calendar-event-facts">
+          <div>
+            <span>Actual</span>
+            <strong>{formatEventValue(event.actual)}</strong>
+          </div>
+          <div>
+            <span>Forecast</span>
+            <strong>{formatEventValue(event.forecast)}</strong>
+          </div>
+          <div>
+            <span>Previous</span>
+            <strong>{formatEventValue(event.previous)}</strong>
+          </div>
+          <div>
+            <span>MT5 Time</span>
+            <strong>{formatUtcDateTime(event.time)}</strong>
+          </div>
+          <div>
+            <span>Viewer Time</span>
+            <strong>{formatDateTimeForDisplayTimezone(event.time, timezoneMode)}</strong>
+          </div>
+        </div>
+      </div>
+
+      <div className="calendar-event-drawer-body">
+        <CalendarEventSection title="Learn">
+          <p>{explainer.whatItIs}</p>
+          <p>{explainer.whyTradersCare}</p>
+          <p>{explainer.educationalSummary}</p>
+          <div className="calendar-event-affects">
+            <span>May affect</span>
+            <CalendarEventList items={explainer.mayAffect} />
+          </div>
+        </CalendarEventSection>
+
+        <CalendarEventSection title="Trading Workflow">
+          <CalendarEventList items={explainer.tradingWorkflow ?? []} />
+        </CalendarEventSection>
+
+        <CalendarEventSection title="What To Compare">
+          <CalendarEventList items={explainer.whatToCompare ?? []} />
+        </CalendarEventSection>
+
+        <CalendarEventSection title="Caveats">
+          <CalendarEventList items={[...explainer.priceCaveats, ...(explainer.commonTraps ?? [])]} />
+        </CalendarEventSection>
+
+        <CalendarEventSection title="Stronger / Weaker Outcome">
+          <div className="calendar-outcome-grid">
+            <div>
+              <span>Stronger-than-expected</span>
+              <p>{explainer.strongerOutcome}</p>
+            </div>
+            <div>
+              <span>Weaker-than-expected</span>
+              <p>{explainer.weakerOutcome}</p>
+            </div>
+          </div>
+        </CalendarEventSection>
+
+        <CalendarEventSection title="Context Reminder">
+          <p>{explainer.contextNote}</p>
+          {explainer.marketSensitivity ? <p>{explainer.marketSensitivity}</p> : null}
+        </CalendarEventSection>
+      </div>
+    </aside>
+  );
 }
 
 interface EconomicCalendarTabProps {
@@ -300,7 +505,7 @@ export function EconomicCalendarTab({
   const [countrySourceEvents, setCountrySourceEvents] = useState<CalendarEvent[]>([]);
   const [status, setStatus] = useState<BridgeStatus>("loading");
   const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(persistedLastSyncedAt);
-  const [lastCalendarIngestAt, setLastCalendarIngestAt] = useState<number | null>(null);
+  const [lastCalendarIngestAt, setLastCalendarIngestAt] = useState<number | null>(health.last_calendar_ingest_at ?? null);
   const [uiNow, setUiNow] = useState(Date.now());
   const [mt5ServerTime, setMt5ServerTime] = useState<number | null>(null);
   const [mt5FetchedAtMs, setMt5FetchedAtMs] = useState<number | null>(null);
@@ -537,32 +742,14 @@ export function EconomicCalendarTab({
   );
   const statusLabel =
     status === "live"
-      ? "LIVE"
+      ? "Live"
       : status === "stale"
-        ? "STALE"
+        ? "Stale"
         : status === "loading"
-          ? "SYNCING"
+          ? "Syncing"
           : status === "no_data"
-            ? "NO DATA"
-            : "OFFLINE";
-
-  const statusBadgeClass =
-    status === "live"
-      ? "bg-green-50 text-green-700 border-green-200"
-      : status === "stale"
-        ? "bg-amber-50 text-amber-700 border-amber-200"
-        : status === "loading"
-          ? "bg-blue-50 text-blue-700 border-blue-200"
-          : status === "no_data"
-            ? "bg-slate-50 text-slate-700 border-slate-200"
-            : "bg-red-50 text-red-700 border-red-200";
-
-  const statusDotClass =
-    status === "live"
-      ? "bg-green-500 animate-pulse"
-      : status === "loading"
-        ? "bg-blue-500 animate-pulse"
-        : "bg-current";
+            ? "No data"
+            : "Offline";
 
   const statusHelpText =
     status === "stale"
@@ -574,6 +761,11 @@ export function EconomicCalendarTab({
           : status === "no_data"
             ? "No data means the bridge responded, but there are no calendar rows for the current range or filters."
             : "Offline means the bridge request failed and there are no retained rows available for this query.";
+  const viewFreshness = getCalendarFreshness(lastSyncedAt, uiNow);
+  const brokerFreshness = getCalendarFreshness(lastCalendarIngestAt, uiNow);
+  const visibleEventCountLabel =
+    filteredEvents.length === events.length ? `${filteredEvents.length} events` : `${filteredEvents.length} of ${events.length} events`;
+  const selectedEventKey = selectedEvent ? buildCalendarEventKey(selectedEvent) : null;
 
   const handleSelectToday = () => {
     setPreset("today");
@@ -663,58 +855,29 @@ export function EconomicCalendarTab({
 
   return (
     <section className="tab-panel flex flex-col gap-6 max-w-[1460px] mx-auto pb-12">
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-2xl shadow-sm relative z-50">
-        <div className="flex items-center gap-4">
-          <div className="p-2.5 bg-gray-900 rounded-xl shadow-lg">
-            <Calendar className="h-5 w-5 text-blue-400" />
-          </div>
-          <div>
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-bold text-gray-900 leading-tight">Economic Calendar</h2>
-              <div
-                className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-widest flex items-center gap-1.5 border ${statusBadgeClass}`}
-              >
-                <span className={`h-1.5 w-1.5 rounded-full ${statusDotClass}`} />
-                <HelpHint label={statusLabel} detail={statusHelpText} />
-              </div>
+      <div className="calendar-operational-rail">
+        <div className="calendar-rail-title">
+          <div className="calendar-rail-heading">
+            <h2>Economic Calendar</h2>
+            <div className={`calendar-feed-status calendar-feed-status-${status}`}>
+              <span className="calendar-feed-dot" aria-hidden="true" />
+              <HelpHint label={statusLabel} detail={statusHelpText} />
             </div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-0.5">
-              MT5 Server-Time Audit Feed
-            </p>
           </div>
+          <p>{visibleEventCountLabel} in current view</p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3 px-4 py-2 bg-white border border-gray-100 rounded-xl shadow-sm">
-            <div className="flex items-center gap-2 pr-3 border-r border-gray-100 min-w-[100px]">
-              <Activity className="h-3.5 w-3.5 text-blue-500" />
-              <div className="flex flex-col">
-                <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-0.5">
-                  <HelpHint
-                    label="Sync Age"
-                    detail="Sync Age measures how long ago this calendar tab last successfully fetched rows from the local bridge."
-                  />
-                </span>
-                <span className="text-[11px] font-bold text-gray-900 tabular-nums">
-                  {formatUiAge(lastSyncedAt, uiNow)}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 min-w-[100px]">
-              <Database className="h-3.5 w-3.5 text-blue-500" />
-              <div className="flex flex-col">
-                <span className="text-[8px] font-black text-gray-400 uppercase tracking-tighter leading-none mb-0.5">
-                  <HelpHint
-                    label="Ingest Age"
-                    detail="Ingest Age measures how long ago the bridge last successfully received calendar data pushed from MT5."
-                  />
-                </span>
-                <span className="text-[11px] font-bold text-gray-900 tabular-nums">
-                  {formatUiAge(lastCalendarIngestAt, uiNow)}
-                </span>
-              </div>
-            </div>
-          </div>
+        <div className="calendar-rail-freshness">
+          <FreshnessChip
+            label="View refreshed"
+            detail="When this screen last fetched calendar rows from the local bridge."
+            freshness={viewFreshness}
+          />
+          <FreshnessChip
+            label="Broker feed"
+            detail="When MT5 and the bridge last received calendar data from the broker feed."
+            freshness={brokerFreshness}
+          />
         </div>
       </div>
 
@@ -800,8 +963,7 @@ export function EconomicCalendarTab({
                   setIsTimezoneMenuOpen(false);
                 }}
               >
-                {impactStars(impacts.length === 1 ? impacts[0] : impacts.length === 2 ? "medium" : "high")}
-                <span>{summarizeImpacts(impacts)}</span>
+                <ImpactSummary impacts={impacts} />
                 <ChevronDown size={15} />
               </button>
 
@@ -821,8 +983,7 @@ export function EconomicCalendarTab({
                         onClick={() => toggleImpact(impact)}
                       >
                         <span className="tv-option-main">
-                          {impactStars(impact)}
-                          <span className="tv-option-label">{impact}</span>
+                          <ImpactPill level={impact} />
                         </span>
                         {selected && <Check size={15} />}
                       </button>
@@ -844,7 +1005,10 @@ export function EconomicCalendarTab({
                 }}
               >
                 <Globe size={16} />
-                <span>{summarizeCountries(countries)}</span>
+                <span className="calendar-control-text">
+                  <span>Countries</span>
+                  <strong>{summarizeCountries(countries)}</strong>
+                </span>
                 <ChevronDown size={15} />
               </button>
 
@@ -897,7 +1061,12 @@ export function EconomicCalendarTab({
           </label>
 
           <div className="calendar-tv-meta">
-            <span className={mt5ServerTime == null ? "tv-time-chip is-offline" : "tv-time-chip"}>{mt5TimeLabel}</span>
+            <span className={mt5ServerTime == null ? "tv-time-chip is-offline" : "tv-time-chip"}>
+              <span className="calendar-control-text">
+                <span>MT5</span>
+                <strong>{mt5TimeLabel.replace(" (MT5)", "")}</strong>
+              </span>
+            </span>
             <div className="tv-toolbar-anchor" ref={timezoneMenuRef}>
               <button
                 type="button"
@@ -910,7 +1079,10 @@ export function EconomicCalendarTab({
                 }}
               >
                 <Clock size={16} />
-                <span>{currentViewerTime}</span>
+                <span className="calendar-control-text">
+                  <span>Viewer</span>
+                  <strong>{currentViewerTime}</strong>
+                </span>
                 <ChevronDown size={15} />
               </button>
 
@@ -960,6 +1132,16 @@ export function EconomicCalendarTab({
 
       <div className="data-table-shell">
         <table className="data-table calendar-table">
+          <colgroup>
+            <col className="calendar-col-mt5" />
+            <col className="calendar-col-viewer" />
+            <col className="calendar-col-country" />
+            <col className="calendar-col-event" />
+            <col className="calendar-col-impact" />
+            <col className="calendar-col-number" />
+            <col className="calendar-col-number" />
+            <col className="calendar-col-number" />
+          </colgroup>
           <thead>
             <tr>
               <th>MT5 Time</th>
@@ -996,11 +1178,16 @@ export function EconomicCalendarTab({
                   {items.map((event) => {
                     const eventKey = buildCalendarEventKey(event);
                     const isHighlighted = highlightedEventKey === eventKey;
+                    const isSelected = selectedEventKey === eventKey;
                     return (
                     <tr
                       key={`${event.id}-${event.time}`}
                       data-event-key={eventKey}
-                      className={isHighlighted ? "calendar-event-row is-highlighted" : "calendar-event-row"}
+                      className={[
+                        "calendar-event-row",
+                        isHighlighted ? "is-highlighted" : "",
+                        isSelected ? "is-selected" : "",
+                      ].filter(Boolean).join(" ")}
                       tabIndex={0}
                       onClick={() => setSelectedEvent(event)}
                       onKeyDown={(keyboardEvent) => {
@@ -1021,11 +1208,11 @@ export function EconomicCalendarTab({
                           </div>
                         </div>
                       </td>
-                      <td>{event.title}</td>
-                      <td>{impactStars(event.impact)}</td>
-                      <td>{event.actual || "-"}</td>
-                      <td>{event.forecast || "-"}</td>
-                      <td>{event.previous || "-"}</td>
+                      <td className="calendar-event-title-cell">{event.title}</td>
+                      <td><ImpactPill level={event.impact} /></td>
+                      <td className="calendar-number-cell">{formatEventValue(event.actual)}</td>
+                      <td className="calendar-number-cell">{formatEventValue(event.forecast)}</td>
+                      <td className="calendar-number-cell">{formatEventValue(event.previous)}</td>
                     </tr>
                   )})}
                 </Fragment>
@@ -1038,126 +1225,12 @@ export function EconomicCalendarTab({
       {selectedEvent && selectedEventExplainer
         ? createPortal(
             <div className="calendar-event-overlay" onClick={() => setSelectedEvent(null)}>
-              <div
-                className="calendar-event-panel"
-                role="dialog"
-                aria-modal="true"
-                aria-label={`${selectedEvent.title} details`}
-                onClick={(event) => event.stopPropagation()}
-              >
-                <div className="calendar-event-panel-head">
-                  <div>
-                    <div className="calendar-event-panel-kicker">
-                      {selectedEventExplainer.familyLabel}
-                      {selectedEventExplainer.knowledgeDepth ? ` / ${selectedEventExplainer.knowledgeDepth}` : ""}
-                    </div>
-                    <h3>{selectedEvent.title}</h3>
-                    <p>{getCountryDisplayName(selectedEvent.countryCode)} | {selectedEvent.currency}</p>
-                  </div>
-                  <button type="button" className="calendar-event-close" onClick={() => setSelectedEvent(null)}>
-                    Close
-                  </button>
-                </div>
-
-                <div className="calendar-event-summary-grid">
-                  <div className="calendar-event-summary-card">
-                    <span>MT5 Time</span>
-                    <strong>{formatUtcDateTime(selectedEvent.time)}</strong>
-                  </div>
-                  <div className="calendar-event-summary-card">
-                    <span>Viewer Time</span>
-                    <strong>{formatDateTimeForDisplayTimezone(selectedEvent.time, timezoneMode)}</strong>
-                  </div>
-                  <div className="calendar-event-summary-card">
-                    <span>Impact</span>
-                    <strong>{selectedEvent.impact.toUpperCase()}</strong>
-                  </div>
-                  <div className="calendar-event-summary-card">
-                    <span>Actual / Forecast / Previous</span>
-                    <strong>{selectedEvent.actual || "-"} / {selectedEvent.forecast || "-"} / {selectedEvent.previous || "-"}</strong>
-                  </div>
-                  <div className="calendar-event-summary-card">
-                    <span>Release Status</span>
-                    <strong>{selectedEventExplainer.releaseStatus ?? "Context only"}</strong>
-                  </div>
-                  <div className="calendar-event-summary-card">
-                    <span>Market Sensitivity</span>
-                    <strong>{selectedEventExplainer.marketSensitivity ?? "Context-dependent"}</strong>
-                  </div>
-                </div>
-
-                <div className="calendar-event-grid">
-                  <section className="calendar-event-card calendar-event-card-wide calendar-event-emphasis">
-                    <span>Trading read now</span>
-                    <p>{selectedEventExplainer.resultSnapshot}</p>
-                    <p>{selectedEventExplainer.resultInterpretation}</p>
-                  </section>
-                  <section className="calendar-event-card">
-                    <span>What this event is</span>
-                    <p>{selectedEventExplainer.whatItIs}</p>
-                  </section>
-                  <section className="calendar-event-card">
-                    <span>Why traders care</span>
-                    <p>{selectedEventExplainer.whyTradersCare}</p>
-                  </section>
-                  <section className="calendar-event-card">
-                    <span>What to compare</span>
-                    <ul>
-                      {(selectedEventExplainer.whatToCompare ?? []).map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </section>
-                  <section className="calendar-event-card">
-                    <span>Trading workflow</span>
-                    <ul>
-                      {(selectedEventExplainer.tradingWorkflow ?? []).map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </section>
-                  <section className="calendar-event-card">
-                    <span>What it may affect</span>
-                    <ul>
-                      {selectedEventExplainer.mayAffect.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </section>
-                  <section className="calendar-event-card">
-                    <span>Why it may or may not move price</span>
-                    <ul>
-                      {selectedEventExplainer.priceCaveats.map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </section>
-                  <section className="calendar-event-card calendar-event-card-wide">
-                    <span>What it measures</span>
-                    <p>{selectedEventExplainer.educationalSummary}</p>
-                  </section>
-                  <section className="calendar-event-card">
-                    <span>Stronger-than-expected</span>
-                    <p>{selectedEventExplainer.strongerOutcome}</p>
-                  </section>
-                  <section className="calendar-event-card">
-                    <span>Weaker-than-expected</span>
-                    <p>{selectedEventExplainer.weakerOutcome}</p>
-                  </section>
-                  <section className="calendar-event-card calendar-event-card-wide">
-                    <span>Context reminder</span>
-                    <p>{selectedEventExplainer.contextNote}</p>
-                  </section>
-                  <section className="calendar-event-card calendar-event-card-wide">
-                    <span>Common traps</span>
-                    <ul>
-                      {(selectedEventExplainer.commonTraps ?? []).map((item) => (
-                        <li key={item}>{item}</li>
-                      ))}
-                    </ul>
-                  </section>
-                </div>
-              </div>
+              <CalendarEventInspectorDrawer
+                event={selectedEvent}
+                explainer={selectedEventExplainer}
+                timezoneMode={timezoneMode}
+                onClose={() => setSelectedEvent(null)}
+              />
             </div>,
             document.body,
           )
