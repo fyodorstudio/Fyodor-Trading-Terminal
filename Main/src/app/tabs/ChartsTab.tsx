@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CandlestickSeries,
+  CrosshairMode,
   createChart,
   type CandlestickData,
   type IChartApi,
@@ -73,6 +74,8 @@ type CrosshairReadout = {
   top: number;
   lines: Array<{ label: string; value: string }>;
 };
+
+type ChartDrawerMode = "settings" | "cache";
 
 type HistoryCacheEntry = {
   version: number;
@@ -150,6 +153,10 @@ function getChartPriceFormat(symbol: string, assetClass: string | null) {
   return { type: "price" as const, precision: 5, minMove: 0.00001 };
 }
 
+function getCrosshairMode(readoutMode: ChartCursorReadoutMode) {
+  return readoutMode === "nearest_candle" ? CrosshairMode.Magnet : CrosshairMode.Normal;
+}
+
 function loadFavorites(): string[] {
   try {
     const raw = localStorage.getItem(FAVORITES_KEY);
@@ -199,6 +206,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const [pickerOpen, setPickerOpen] = useState(false);
   const [timezoneMenuOpen, setTimezoneMenuOpen] = useState(false);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
+  const [chartDrawerMode, setChartDrawerMode] = useState<ChartDrawerMode>("settings");
   const [cacheRevision, setCacheRevision] = useState(0);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [debugLines, setDebugLines] = useState<string[]>([]);
@@ -320,6 +328,11 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     [updateChartPreferences],
   );
 
+  const openChartDrawer = useCallback((mode: ChartDrawerMode) => {
+    setChartDrawerMode(mode);
+    setHistoryPanelOpen(true);
+  }, []);
+
   const resetChartPreferences = useCallback(() => {
     setChartPreferences(DEFAULT_CHART_PREFERENCES);
     saveChartPreferences(DEFAULT_CHART_PREFERENCES);
@@ -388,6 +401,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         horzLines: { color: gridColor },
       },
       crosshair: {
+        mode: getCrosshairMode(chartPreferences.cursorReadoutMode),
         vertLine: { labelBackgroundColor: appearance.crosshairColor },
         horzLine: { labelBackgroundColor: appearance.crosshairColor, labelVisible: false },
       },
@@ -460,6 +474,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         horzLines: { color: gridColor },
       },
       crosshair: {
+        mode: getCrosshairMode(chartPreferences.cursorReadoutMode),
         vertLine: { labelBackgroundColor: appearance.crosshairColor },
         horzLine: { labelBackgroundColor: appearance.crosshairColor, labelVisible: false },
       },
@@ -514,9 +529,15 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         return;
       }
 
+      const readoutTop =
+        chartPreferences.cursorReadoutMode === "nearest_candle" && candlePrice != null
+          ? series.priceToCoordinate(candlePrice) ?? point.y
+          : point.y;
+      const clampedReadoutTop = Math.min(Math.max(readoutTop, 32), container.clientHeight - 32);
+
       setCrosshairReadout({
         lines,
-        top: point.y,
+        top: clampedReadoutTop,
       });
     };
 
@@ -839,6 +860,11 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   );
   const cacheOldestLabel = cacheSummary.oldestTime ? formatChartFeedTime(cacheSummary.oldestTime, displayTimeMode) : "Empty";
   const cacheLatestLabel = cacheSummary.latestTime ? formatChartFeedTime(cacheSummary.latestTime, displayTimeMode) : "Empty";
+  const chartDrawerTitle = chartDrawerMode === "settings" ? "Chart Settings" : "Chart Data Cache";
+  const chartDrawerDescription =
+    chartDrawerMode === "settings"
+      ? "Cursor behavior and visual appearance for the active chart."
+      : "Local candle cache and MT5 chart diagnostics for the selected symbol/timeframe.";
 
   const streamStatusLabel =
     getChartConnectionLabel({ historyState, marketStatus: activeMarketStatus, streamConnected });
@@ -994,7 +1020,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             className="chart-icon-button"
             title="Chart settings"
             aria-label="Open chart settings"
-            onClick={() => setHistoryPanelOpen(true)}
+            onClick={() => openChartDrawer("settings")}
           >
             <Settings2 className="h-4 w-4" />
           </button>
@@ -1003,7 +1029,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             className="chart-icon-button"
             title="Data cache"
             aria-label="Open chart data cache"
-            onClick={() => setHistoryPanelOpen(true)}
+            onClick={() => openChartDrawer("cache")}
           >
             <HardDrive className="h-4 w-4" />
           </button>
@@ -1030,11 +1056,11 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
               <Database className={lastCandleTime ? "h-4 w-4 text-blue-400" : "h-4 w-4 text-slate-500"} />
               <span className="chart-feed-main">{feedLabel}</span>
               <span className="chart-feed-sub">{currentDisplayTime} | {displayModeShortLabel}</span>
-              <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${timezoneMenuOpen ? "rotate-180" : ""}`} />
+              <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${timezoneMenuOpen ? "rotate-180" : ""}`} />
             </button>
 
             {timezoneMenuOpen && (
-              <div className="tv-popover tv-filter-popover">
+              <div className="tv-popover tv-filter-popover chart-timezone-popover">
                 <div className="tv-popover-head">
                   <strong>Chart timezone</strong>
                   <span>Bars stay in canonical feed order; only labels and readouts change.</span>
@@ -1081,8 +1107,8 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             >
               <div className="charts-history-head">
                 <div>
-                  <h2>Chart Settings</h2>
-                  <p>Readout, appearance, local cache, and MT5 chart diagnostics.</p>
+                  <h2>{chartDrawerTitle}</h2>
+                  <p>{chartDrawerDescription}</p>
                 </div>
                 <button type="button" className="charts-history-close" onClick={() => setHistoryPanelOpen(false)}>
                   <X size={18} />
@@ -1090,147 +1116,174 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
               </div>
 
               <div className="charts-history-body">
-                <section className="charts-history-section">
-                  <h3>
-                    <SlidersHorizontal size={14} />
-                    Readout
-                  </h3>
-                  <div className="chart-drawer-segmented">
-                    {CURSOR_MODE_OPTIONS.map((option) => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        className={chartPreferences.cursorReadoutMode === option.id ? "is-active" : ""}
-                        onClick={() => handleCursorModeChange(option.id)}
-                      >
-                        <span>{option.label}</span>
-                        <small>{option.description}</small>
-                      </button>
-                    ))}
-                  </div>
-                </section>
-
-                <section className="charts-history-section">
-                  <h3>
-                    <Palette size={14} />
-                    Appearance
-                  </h3>
-                  <div className="chart-appearance-grid">
-                    <label className="chart-color-field">
-                      <span>Bullish candle</span>
-                      <input
-                        type="color"
-                        value={chartPreferences.appearance.bullishColor}
-                        onChange={(event) => updateAppearance("bullishColor", event.target.value)}
-                      />
-                    </label>
-                    <label className="chart-color-field">
-                      <span>Bearish candle</span>
-                      <input
-                        type="color"
-                        value={chartPreferences.appearance.bearishColor}
-                        onChange={(event) => updateAppearance("bearishColor", event.target.value)}
-                      />
-                    </label>
-                    <label className="chart-color-field">
-                      <span>Neutral wick</span>
-                      <input
-                        type="color"
-                        value={chartPreferences.appearance.neutralWickColor}
-                        onChange={(event) => updateAppearance("neutralWickColor", event.target.value)}
-                      />
-                    </label>
-                    <label className="chart-color-field">
-                      <span>Crosshair</span>
-                      <input
-                        type="color"
-                        value={chartPreferences.appearance.crosshairColor}
-                        onChange={(event) => updateAppearance("crosshairColor", event.target.value)}
-                      />
-                    </label>
-                    <label className="chart-color-field">
-                      <span>Price line</span>
-                      <input
-                        type="color"
-                        value={chartPreferences.appearance.currentPriceLineColor}
-                        onChange={(event) => updateAppearance("currentPriceLineColor", event.target.value)}
-                      />
-                    </label>
-                  </div>
-                  <div className="chart-settings-row">
-                    <span>Wick color</span>
-                    <div className="chart-mini-toggle">
-                      <button
-                        type="button"
-                        className={chartPreferences.appearance.wickMode === "match" ? "is-active" : ""}
-                        onClick={() => updateAppearance("wickMode", "match")}
-                      >
-                        Match candle
-                      </button>
-                      <button
-                        type="button"
-                        className={chartPreferences.appearance.wickMode === "neutral" ? "is-active" : ""}
-                        onClick={() => updateAppearance("wickMode", "neutral")}
-                      >
-                        Neutral
-                      </button>
-                    </div>
-                  </div>
-                  <label className="chart-settings-check">
-                    <input
-                      type="checkbox"
-                      checked={chartPreferences.appearance.gridVisible}
-                      onChange={(event) => updateAppearance("gridVisible", event.target.checked)}
-                    />
-                    <span>Show chart grid</span>
-                  </label>
-                  <button type="button" className="charts-history-reset" onClick={resetChartPreferences}>
-                    <RotateCcw size={14} />
-                    Reset chart appearance
+                <div className="chart-drawer-tabs" aria-label="Chart drawer view">
+                  <button
+                    type="button"
+                    className={chartDrawerMode === "settings" ? "is-active" : ""}
+                    onClick={() => setChartDrawerMode("settings")}
+                  >
+                    <Settings2 size={14} />
+                    Settings
                   </button>
-                </section>
-
-                <section className="charts-history-section">
-                  <h3>
+                  <button
+                    type="button"
+                    className={chartDrawerMode === "cache" ? "is-active" : ""}
+                    onClick={() => setChartDrawerMode("cache")}
+                  >
                     <HardDrive size={14} />
-                    Data Cache
-                  </h3>
-                  <p>
-                    The chart stores the latest validated candles locally for the current symbol and timeframe so the surface can stay readable while a fresh MT5 refresh is loading.
-                  </p>
-                  <div className="chart-cache-grid">
-                    <div>
-                      <span>Candles</span>
-                      <strong>{cacheSummary.count}</strong>
-                    </div>
-                    <div>
-                      <span>Oldest</span>
-                      <strong>{cacheOldestLabel}</strong>
-                    </div>
-                    <div>
-                      <span>Latest</span>
-                      <strong>{cacheLatestLabel}</strong>
-                    </div>
-                  </div>
-                  <button type="button" className="chart-danger-button" onClick={clearCurrentCache}>
-                    <Trash2 size={14} />
-                    Clear cached candles for {selectedSymbol} {timeframe}
+                    Data cache
                   </button>
-                </section>
+                </div>
 
-                <section className="charts-history-section">
-                  <h3>
-                    <Activity size={14} />
-                    Diagnostics
-                  </h3>
-                  <div className="chart-diagnostics-list">
-                    <div><span>Symbol</span><strong>{selectedSymbol}</strong></div>
-                    <div><span>Timeframe</span><strong>{timeframe}</strong></div>
-                    <div><span>History state</span><strong>{historyState}</strong></div>
-                    <div><span>Stream</span><strong>{streamConnected ? "connected" : "not streaming"}</strong></div>
-                    <div><span>Boundary</span><strong>{boundaryTime ? formatChartFeedTime(boundaryTime, displayTimeMode) : "unconfirmed"}</strong></div>
-                  </div>
-                </section>
+                {chartDrawerMode === "settings" ? (
+                  <>
+                    <section className="charts-history-section chart-drawer-card">
+                      <h3>
+                        <SlidersHorizontal size={14} />
+                        Cursor Readout
+                      </h3>
+                      <div className="chart-drawer-segmented">
+                        {CURSOR_MODE_OPTIONS.map((option) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            className={chartPreferences.cursorReadoutMode === option.id ? "is-active" : ""}
+                            onClick={() => handleCursorModeChange(option.id)}
+                          >
+                            <span>{option.label}</span>
+                            <small>{option.description}</small>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="charts-history-section chart-drawer-card">
+                      <h3>
+                        <Palette size={14} />
+                        Appearance
+                      </h3>
+                      <div className="chart-appearance-grid">
+                        <label className="chart-color-field">
+                          <span>Bullish candle</span>
+                          <input
+                            type="color"
+                            value={chartPreferences.appearance.bullishColor}
+                            onChange={(event) => updateAppearance("bullishColor", event.target.value)}
+                          />
+                        </label>
+                        <label className="chart-color-field">
+                          <span>Bearish candle</span>
+                          <input
+                            type="color"
+                            value={chartPreferences.appearance.bearishColor}
+                            onChange={(event) => updateAppearance("bearishColor", event.target.value)}
+                          />
+                        </label>
+                        <label className="chart-color-field">
+                          <span>Neutral wick</span>
+                          <input
+                            type="color"
+                            value={chartPreferences.appearance.neutralWickColor}
+                            onChange={(event) => updateAppearance("neutralWickColor", event.target.value)}
+                          />
+                        </label>
+                        <label className="chart-color-field">
+                          <span>Crosshair</span>
+                          <input
+                            type="color"
+                            value={chartPreferences.appearance.crosshairColor}
+                            onChange={(event) => updateAppearance("crosshairColor", event.target.value)}
+                          />
+                        </label>
+                        <label className="chart-color-field">
+                          <span>Price line</span>
+                          <input
+                            type="color"
+                            value={chartPreferences.appearance.currentPriceLineColor}
+                            onChange={(event) => updateAppearance("currentPriceLineColor", event.target.value)}
+                          />
+                        </label>
+                      </div>
+                      <div className="chart-settings-row">
+                        <span>Wick color</span>
+                        <div className="chart-mini-toggle">
+                          <button
+                            type="button"
+                            className={chartPreferences.appearance.wickMode === "match" ? "is-active" : ""}
+                            onClick={() => updateAppearance("wickMode", "match")}
+                          >
+                            Match candle
+                          </button>
+                          <button
+                            type="button"
+                            className={chartPreferences.appearance.wickMode === "neutral" ? "is-active" : ""}
+                            onClick={() => updateAppearance("wickMode", "neutral")}
+                          >
+                            Neutral
+                          </button>
+                        </div>
+                      </div>
+                      <div className="chart-drawer-actions">
+                        <label className="chart-settings-check">
+                          <input
+                            type="checkbox"
+                            checked={chartPreferences.appearance.gridVisible}
+                            onChange={(event) => updateAppearance("gridVisible", event.target.checked)}
+                          />
+                          <span>Show chart grid</span>
+                        </label>
+                        <button type="button" className="charts-history-reset" onClick={resetChartPreferences}>
+                          <RotateCcw size={14} />
+                          Reset appearance
+                        </button>
+                      </div>
+                    </section>
+                  </>
+                ) : (
+                  <>
+                    <section className="charts-history-section chart-drawer-card">
+                      <h3>
+                        <HardDrive size={14} />
+                        Local Candle Cache
+                      </h3>
+                      <p>
+                        Cached candles are scoped to <strong>{selectedSymbol} {timeframe}</strong>. They are used only to keep this chart readable while MT5 refreshes fresh broker history.
+                      </p>
+                      <div className="chart-cache-grid">
+                        <div>
+                          <span>Candles</span>
+                          <strong>{cacheSummary.count}</strong>
+                        </div>
+                        <div>
+                          <span>Oldest</span>
+                          <strong>{cacheOldestLabel}</strong>
+                        </div>
+                        <div>
+                          <span>Latest</span>
+                          <strong>{cacheLatestLabel}</strong>
+                        </div>
+                      </div>
+                      <button type="button" className="chart-danger-button" onClick={clearCurrentCache}>
+                        <Trash2 size={14} />
+                        Clear cached candles
+                      </button>
+                    </section>
+
+                    <section className="charts-history-section chart-drawer-card">
+                      <h3>
+                        <Activity size={14} />
+                        Diagnostics
+                      </h3>
+                      <div className="chart-diagnostics-list">
+                        <div><span>Symbol</span><strong>{selectedSymbol}</strong></div>
+                        <div><span>Timeframe</span><strong>{timeframe}</strong></div>
+                        <div><span>History state</span><strong>{historyState}</strong></div>
+                        <div><span>Stream</span><strong>{streamConnected ? "connected" : "not streaming"}</strong></div>
+                        <div><span>Boundary</span><strong>{boundaryTime ? formatChartFeedTime(boundaryTime, displayTimeMode) : "unconfirmed"}</strong></div>
+                      </div>
+                    </section>
+                  </>
+                )}
               </div>
             </motion.aside>
           </div>
