@@ -21,6 +21,7 @@ describe("WorkInProgressTab", () => {
     expect(html).toContain("Current hard limit");
     expect(html).toContain("What Extra Data Unlocks The Next Level");
     expect(html).toContain("Fed funds, SOFR, and other short-rate futures");
+    expect(html).toContain("Event reaction replay");
     expect(html).not.toContain("Target Workflow");
     expect(html).not.toContain("Open Prototype Panel");
   });

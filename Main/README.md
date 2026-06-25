@@ -16,17 +16,18 @@ Important current-state note:
 
 - `Overview` is intentionally a blank rebuild surface right now.
 - The previous large overview is still available as `Legacy Overview` through Specialist Tools/prototype routing.
-- The strongest current primary surfaces are `Central Banks Data`, `Charts`, `Economic Calendar`, and the `Specialist Tools` shell.
+- The strongest current primary surfaces are `Central Banks Data`, `Charts`, `Economic Calendar`, `Event Replay`, and the `Specialist Tools` shell.
 
 `Specialist Tools` currently contains:
 
 1. `SIX QUESTIONS`
-2. `WORK IN PROGRESS`
-3. `PROTOTYPING`
+2. `EVENT REPLAY`
+3. `WORK IN PROGRESS`
+4. `PROTOTYPING`
 
-The `PROTOTYPING` area links to active experiments and older tools, including `Event Tools`, `Strength Meter`, `Differential Calculator`, and `Legacy Overview`.
+The `PROTOTYPING` area links to active experiments and older tools, including `Strength Meter`, `Differential Calculator`, and `Legacy Overview`.
 
-The planned direction is to promote `Event Tools` into a direct Specialist Tools destination after it is rewritten into a pair-first event replay workflow.
+`Event Replay` is the promoted pair-first replay workflow. It lets the user pick a pair, inspect base/quote event types first, keep major global movers separate, select past releases, and replay MT5 candles around the release marker.
 
 The current product goal is to keep the app connection-first and honest: show what is live, what is stale, what is unresolved, and which market deserves attention right now without pretending to generate trade predictions.
 
@@ -70,8 +71,9 @@ It also expects the MT5 EA calendar bridge to be pushing economic calendar event
 - `Charts` keeps the live MT5 chart workflow and debug log, and shows explicit no-data / error states instead of fake candles.
 - `Economic Calendar` is MT5-backed, supports range/filter/search workflows, and can deep-link from `Overview` into a target event with highlight + explainer behavior.
 - `Central Banks Data` is derived from MT5 calendar events using strict mapping rules for the major 8 currencies. If a match is uncertain, the UI shows `N/A` instead of guessing.
-- `Specialist Tools` is the routing shell for the six-question workflow, WIP capability map, and prototype/legacy tools.
-- `Event Tools` is planned to become the main pair-first event replay and event-reaction research surface.
+- `Specialist Tools` is the routing shell for the six-question workflow, Event Replay, WIP capability map, and prototype/legacy tools.
+- `Event Replay` is the main pair-first event replay surface. It is descriptive study support, not a signal engine.
+- `EventReactionTab.tsx` and `EventQualityTab.tsx` are older replay/event-quality surfaces kept on disk as archive candidates until the Specialist Tools audit decides keep, merge, rewrite, or archive.
 
 ## Run It
 

@@ -24,13 +24,14 @@ import { WatchlistEnginePrototypeTab } from "@/app/tabs/WatchlistEnginePrototype
 import { FONT_OPTIONS, COLOR_PALETTES, FontId, ColorPaletteId } from "@/app/config/themeConfig";
 import type { BridgeHealth, BridgeStatus, CalendarEvent, CalendarNavigationIntent, MarketStatusResponse, TabId } from "@/app/types";
 
-const ANALYSIS_TAB_ORDER: { id: TabId; label: string }[] = [
+export const ANALYSIS_TAB_ORDER: { id: TabId; label: string }[] = [
   { id: "terminal-questions", label: "SIX QUESTIONS" },
+  { id: "event-tools", label: "EVENT REPLAY" },
   { id: "work-in-progress", label: "WORK IN PROGRESS" },
   { id: "prototyping", label: "PROTOTYPING" },
 ];
 
-const TAB_ORDER: Array<{ id: TabId; label: string; children?: { id: TabId; label: string }[] }> = [
+export const TAB_ORDER: Array<{ id: TabId; label: string; children?: { id: TabId; label: string }[] }> = [
   { id: "overview", label: "Overview" },
   { id: "central-banks", label: "Central Banks Data" },
   { id: "charts", label: "Charts" },

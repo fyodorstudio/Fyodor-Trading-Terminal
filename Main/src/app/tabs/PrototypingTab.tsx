@@ -32,11 +32,6 @@ const LEGACY_LINKS: PrototypeLink[] = [
     description: "Beautiful UI, still under review for logic quality.",
   },
   {
-    id: "event-tools",
-    label: "Event Tools",
-    description: "Event replay, reaction studies, and calendar prep tools.",
-  },
-  {
     id: "dashboard",
     label: "Differential Calculator",
     description: "Older rate and inflation differential calculator.",

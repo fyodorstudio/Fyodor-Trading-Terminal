@@ -55,8 +55,8 @@ const TERMINAL_QUESTIONS: TerminalQuestion[] = [
     primaryLabel: "Open Calendar",
     primaryStatus: "Primary",
     secondaryTab: "event-tools",
-    secondaryLabel: "Open Event Tools",
-    secondaryStatus: "Legacy",
+    secondaryLabel: "Open Event Replay",
+    secondaryStatus: "Primary",
   },
   {
     question: "Which side is winning, and why?",

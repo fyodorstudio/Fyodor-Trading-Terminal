@@ -4,6 +4,7 @@ import { parseNumericValue } from "@/app/lib/format";
 import type {
   BridgeCandle,
   CalendarEvent,
+  EventComparisonBasis,
   EventQualityFamily,
   EventTemplate,
   FxPairDefinition,
@@ -28,7 +29,23 @@ interface ReactionEvent {
   time: number;
   actual: number;
   forecast: number;
+  comparisonBasis: EventComparisonBasis;
+  comparisonLabel: string;
+  comparisonValue: number;
   surprise: number;
+}
+
+export interface EventComparisonSummary {
+  basis: EventComparisonBasis;
+  label: string;
+  actual: number;
+  comparisonValue: number;
+  surprise: number;
+}
+
+export interface PairFirstReplayGroups {
+  pairTemplates: EventTemplate[];
+  globalTemplates: EventTemplate[];
 }
 
 export function buildEventTemplateKey(currency: string, title: string): string {
@@ -71,6 +88,52 @@ const BUCKET_LABELS: Record<ReactionBucket, string> = {
   small_miss: "Small Miss",
   large_miss: "Large Miss",
 };
+
+const GLOBAL_MOVER_CURRENCIES = new Set(["USD", "EUR"]);
+const GLOBAL_MOVER_FAMILIES = new Set<EventQualityFamily>([
+  "policy",
+  "inflation",
+  "labor",
+  "gdp",
+  "activity",
+]);
+const HISTORY_RANGE_MAX_SECONDS = 40 * 24 * 60 * 60;
+const REPLAY_FETCH_PADDING_CANDLES = 2;
+const REPLAY_TIMEFRAME_SECONDS: Record<ReplayChartTimeframe, number> = {
+  M15: 15 * 60,
+  H1: 60 * 60,
+  H4: 4 * 60 * 60,
+  D1: 24 * 60 * 60,
+};
+
+export function getEventComparison(event: CalendarEvent): EventComparisonSummary | null {
+  const actual = parseNumericValue(event.actual);
+  if (actual == null) return null;
+
+  const forecast = parseNumericValue(event.forecast);
+  if (forecast != null) {
+    return {
+      basis: "forecast",
+      label: "Actual vs forecast",
+      actual,
+      comparisonValue: forecast,
+      surprise: Number((actual - forecast).toFixed(4)),
+    };
+  }
+
+  const previous = parseNumericValue(event.previous);
+  if (previous != null) {
+    return {
+      basis: "previous",
+      label: "Actual vs previous",
+      actual,
+      comparisonValue: previous,
+      surprise: Number((actual - previous).toFixed(4)),
+    };
+  }
+
+  return null;
+}
 
 function getSampleQuality(count: number): SampleQuality {
   if (count >= 15) return "usable";
@@ -193,15 +256,46 @@ export function getMonthlyChunkRange(
   return { from: start, to: end };
 }
 
+export function getReplayFetchRange(params: {
+  eventTime: number;
+  timeframe: ReplayChartTimeframe;
+  beforeCount?: number;
+  afterCount?: number;
+}): { from: number; to: number; capped: boolean } {
+  const timeframeSeconds = REPLAY_TIMEFRAME_SECONDS[params.timeframe];
+  const beforeCount = Math.max(0, params.beforeCount ?? 14);
+  const afterCount = Math.max(0, params.afterCount ?? 14);
+  const desiredBefore = (beforeCount + REPLAY_FETCH_PADDING_CANDLES) * timeframeSeconds;
+  const desiredAfter = (afterCount + REPLAY_FETCH_PADDING_CANDLES) * timeframeSeconds;
+  const desiredTotal = desiredBefore + desiredAfter;
+
+  if (desiredTotal <= HISTORY_RANGE_MAX_SECONDS) {
+    return {
+      from: Math.max(0, params.eventTime - desiredBefore),
+      to: params.eventTime + desiredAfter,
+      capped: false,
+    };
+  }
+
+  const halfMax = Math.floor(HISTORY_RANGE_MAX_SECONDS / 2);
+  const before = Math.min(desiredBefore, halfMax);
+  const after = HISTORY_RANGE_MAX_SECONDS - before;
+
+  return {
+    from: Math.max(0, params.eventTime - before),
+    to: params.eventTime + after,
+    capped: true,
+  };
+}
+
 function normalizeReactionEvents(events: CalendarEvent[], nowSeconds: number): ReactionEvent[] {
   return events
     .filter((event) => event.time < nowSeconds)
     .map((event) => {
       const family = classifyEventQualityFamily(event.title);
       if (!family) return null;
-      const actual = parseNumericValue(event.actual);
-      const forecast = parseNumericValue(event.forecast);
-      if (actual == null || forecast == null) return null;
+      const comparison = getEventComparison(event);
+      if (!comparison) return null;
       return {
         key: buildEventTemplateKey(event.currency, event.title),
         currency: event.currency,
@@ -209,9 +303,12 @@ function normalizeReactionEvents(events: CalendarEvent[], nowSeconds: number): R
         family: family.family,
         familyLabel: family.label,
         time: event.time,
-        actual,
-        forecast,
-        surprise: Number((actual - forecast).toFixed(4)),
+        actual: comparison.actual,
+        forecast: comparison.comparisonValue,
+        comparisonBasis: comparison.basis,
+        comparisonLabel: comparison.label,
+        comparisonValue: comparison.comparisonValue,
+        surprise: comparison.surprise,
       } satisfies ReactionEvent;
     })
     .filter((item): item is ReactionEvent => item !== null);
@@ -303,6 +400,65 @@ export function getPairTemplateMap(params: {
   });
 
   return result;
+}
+
+function sortPairTemplates(templates: EventTemplate[], pair: FxPairDefinition): EventTemplate[] {
+  const rankCurrency = (currency: string) => {
+    if (currency === pair.base) return 0;
+    if (currency === pair.quote) return 1;
+    return 2;
+  };
+
+  return [...templates].sort((left, right) => {
+    const rankDelta = rankCurrency(left.currency) - rankCurrency(right.currency);
+    if (rankDelta !== 0) return rankDelta;
+    if (right.sampleCount !== left.sampleCount) return right.sampleCount - left.sampleCount;
+    return left.title.localeCompare(right.title);
+  });
+}
+
+function templateHasHighImpactEvent(events: CalendarEvent[], template: EventTemplate, nowSeconds: number): boolean {
+  return events.some(
+    (event) =>
+      event.time < nowSeconds &&
+      event.impact === "high" &&
+      event.currency === template.currency &&
+      buildEventTemplateKey(event.currency, event.title) === template.key,
+  );
+}
+
+export function getPairFirstReplayGroups(params: {
+  events: CalendarEvent[];
+  pair: FxPairDefinition;
+  includeWeak?: boolean;
+  minSamples?: number;
+  nowSeconds?: number;
+}): PairFirstReplayGroups {
+  const nowSeconds = params.nowSeconds ?? Math.floor(Date.now() / 1000);
+  const templates = discoverEventTemplates({
+    events: params.events,
+    includeWeak: params.includeWeak,
+    minSamples: params.minSamples,
+    nowSeconds,
+  });
+  const pairCurrencies = new Set([params.pair.base, params.pair.quote]);
+  const pairTemplates = sortPairTemplates(
+    templates.filter((template) => pairCurrencies.has(template.currency)),
+    params.pair,
+  );
+  const pairKeys = new Set(pairTemplates.map((template) => template.key));
+  const globalTemplates = templates.filter(
+    (template) =>
+      !pairKeys.has(template.key) &&
+      GLOBAL_MOVER_CURRENCIES.has(template.currency) &&
+      GLOBAL_MOVER_FAMILIES.has(template.family) &&
+      templateHasHighImpactEvent(params.events, template, nowSeconds),
+  );
+
+  return {
+    pairTemplates,
+    globalTemplates,
+  };
 }
 
 export function getUpcomingReactionEvents(params: {
@@ -405,6 +561,8 @@ function deriveSamplesForEntity(params: {
       eventTime: event.time,
       actual: event.actual,
       forecast: event.forecast,
+      comparisonBasis: event.comparisonBasis,
+      comparisonValue: event.comparisonValue,
       surprise: event.surprise,
       bucket: finalBucket,
       windows,
@@ -473,17 +631,24 @@ export function getHistoricalReplaySamples(params: {
 
   return params.events
     .filter((event) => event.time < nowSeconds && event.currency === currency && event.title === title)
-    .filter((event) => parseNumericValue(event.actual) != null && parseNumericValue(event.forecast) != null)
+    .filter((event) => getEventComparison(event) != null)
     .sort((left, right) => right.time - left.time)
-    .map((event) => ({
-      eventId: `${event.currency}|${event.title}|${event.time}|${event.id}`,
-      eventTime: event.time,
-      currency: event.currency,
-      title: event.title,
-      actual: event.actual,
-      forecast: event.forecast,
-      previous: event.previous,
-    }));
+    .map((event) => {
+      const comparison = getEventComparison(event)!;
+      return {
+        eventId: `${event.currency}|${event.title}|${event.time}|${event.id}`,
+        eventTime: event.time,
+        currency: event.currency,
+        title: event.title,
+        actual: event.actual,
+        forecast: event.forecast,
+        previous: event.previous,
+        comparisonBasis: comparison.basis,
+        comparisonLabel: comparison.label,
+        comparisonValue: comparison.comparisonValue,
+        surprise: comparison.surprise,
+      };
+    });
 }
 
 export function getReplayWindowCandles(params: {

@@ -5,9 +5,12 @@ import {
   deriveAssetFirstStudy,
   deriveEventFirstStudy,
   discoverEventTemplates,
+  getEventComparison,
   getHistoricalReplaySamples,
+  getPairFirstReplayGroups,
   getPipSize,
   getPairTemplateMap,
+  getReplayFetchRange,
   getReplayWindowCandles,
   getTemplateEvents,
   getUpcomingReactionEvents,
@@ -87,6 +90,28 @@ describe("eventReaction template discovery", () => {
     expect(hiddenWeak).toHaveLength(1);
     expect(hiddenWeak[0].key).toBe("USD|CPI y/y");
     expect(allTemplates.some((template) => template.key === "EUR|ECB Interest Rate Decision")).toBe(true);
+  });
+
+  it("groups base/quote event templates before separate global movers", () => {
+    const now = 10_000;
+    const events = [
+      buildEvent({ id: 1, time: 1000, currency: "GBP", countryCode: "GB", title: "Employment Change", impact: "high" }),
+      buildEvent({ id: 2, time: 2000, currency: "JPY", countryCode: "JP", title: "Tokyo CPI y/y", impact: "high" }),
+      buildEvent({ id: 3, time: 3000, currency: "USD", countryCode: "US", title: "CPI y/y", impact: "high" }),
+      buildEvent({ id: 4, time: 4000, currency: "EUR", countryCode: "EU", title: "GDP q/q", impact: "medium" }),
+      buildEvent({ id: 5, time: 5000, currency: "AUD", countryCode: "AU", title: "Retail Sales m/m", impact: "high" }),
+    ];
+
+    const groups = getPairFirstReplayGroups({
+      events,
+      pair: { name: "GBPJPY", base: "GBP", quote: "JPY" },
+      includeWeak: true,
+      nowSeconds: now,
+    });
+
+    expect(groups.pairTemplates.map((template) => template.currency)).toEqual(["GBP", "JPY"]);
+    expect(groups.globalTemplates.map((template) => template.key)).toEqual(["USD|CPI y/y"]);
+    expect(groups.globalTemplates.some((template) => template.currency === "GBP")).toBe(false);
   });
 
   it("builds upcoming shortcut rows only for supported core macro events", () => {
@@ -187,6 +212,31 @@ describe("eventReaction studies", () => {
     expect(samples[1].eventTime).toBe(1000);
   });
 
+  it("prefers forecast comparison and falls back to previous when forecast is missing", () => {
+    const forecastEvent = buildEvent({ id: 8, time: 1000, actual: "2.6", forecast: "2.3", previous: "2.1" });
+    const previousOnlyEvent = buildEvent({ id: 9, time: 2000, actual: "8.6", forecast: "-", previous: "7.9" });
+
+    expect(getEventComparison(forecastEvent)).toMatchObject({
+      basis: "forecast",
+      comparisonValue: 2.3,
+      surprise: 0.3,
+    });
+    expect(getEventComparison(previousOnlyEvent)).toMatchObject({
+      basis: "previous",
+      comparisonValue: 7.9,
+      surprise: 0.7,
+    });
+
+    const samples = getHistoricalReplaySamples({
+      events: [forecastEvent, previousOnlyEvent],
+      templateKey: "USD|CPI y/y",
+      nowSeconds: 10_000_000_000,
+    });
+
+    expect(samples[0].comparisonBasis).toBe("previous");
+    expect(samples[1].comparisonBasis).toBe("forecast");
+  });
+
   it("builds a fixed replay candle window around the event", () => {
     const candles = Array.from({ length: 40 }, (_, index) => ({
       time: index * 3600,
@@ -208,10 +258,59 @@ describe("eventReaction studies", () => {
     expect(replay?.candles).toHaveLength(29);
     expect(replay?.eventIndex).toBe(14);
   });
+
+  it("respects configurable replay candle counts", () => {
+    const candles = Array.from({ length: 30 }, (_, index) => ({
+      time: index * 900,
+      open: 1 + index * 0.001,
+      high: 1 + index * 0.0015,
+      low: 1 + index * 0.0005,
+      close: 1 + index * 0.0012,
+      volume: 1,
+    }));
+
+    const replay = getReplayWindowCandles({
+      candles,
+      eventTime: 12 * 900,
+      beforeCount: 4,
+      afterCount: 6,
+    });
+
+    expect(replay?.candles).toHaveLength(11);
+    expect(replay?.eventIndex).toBe(4);
+  });
+
+  it("keeps replay history fetch ranges within the bridge limit for H4 and D1", () => {
+    const eventTime = 1_763_200_000;
+    const h4Range = getReplayFetchRange({
+      eventTime,
+      timeframe: "H4",
+      beforeCount: 14,
+      afterCount: 14,
+    });
+    const d1Range = getReplayFetchRange({
+      eventTime,
+      timeframe: "D1",
+      beforeCount: 14,
+      afterCount: 14,
+    });
+    const cappedD1Range = getReplayFetchRange({
+      eventTime,
+      timeframe: "D1",
+      beforeCount: 80,
+      afterCount: 80,
+    });
+    const maxRangeSeconds = 40 * 24 * 60 * 60;
+
+    expect(h4Range.to - h4Range.from).toBeLessThanOrEqual(maxRangeSeconds);
+    expect(d1Range.to - d1Range.from).toBeLessThanOrEqual(maxRangeSeconds);
+    expect(cappedD1Range.to - cappedD1Range.from).toBeLessThanOrEqual(maxRangeSeconds);
+    expect(cappedD1Range.capped).toBe(true);
+  });
 });
 
 describe("EventToolsTab", () => {
-  it("renders the merged event prep shell", () => {
+  it("renders the lean pair-first replay shell", () => {
     const html = renderToStaticMarkup(
       <EventToolsTab
         events={[
@@ -227,10 +326,17 @@ describe("EventToolsTab", () => {
     );
 
     expect(html).toContain("Event Tools");
-    expect(html).toContain("Upcoming Events");
+    expect(html).toContain("Pair");
+    expect(html).toContain("Base/Quote Events");
+    expect(html).toContain("Major Global Movers");
     expect(html).toContain("Replay Chart");
-    expect(html).toContain("Actionable Study Brief");
-    expect(html).toContain("Analyst Dashboard");
-    expect(html).toContain("Manual Event Selector");
+    expect(html).toContain("Past Releases");
+    expect(html).toContain("Before");
+    expect(html).toContain("After");
+    expect(html).toContain("Play");
+    expect(html).toContain("Read the marker first");
+    expect(html).toContain("Check the comparison basis");
+    expect(html).not.toContain("Analyst Dashboard");
+    expect(html).not.toContain("Manual Event Selector");
   });
 });

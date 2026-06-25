@@ -374,6 +374,7 @@ export type ReactionWindow = "15m" | "1h" | "4h" | "1d";
 export type ReactionBucket = "beat" | "inline" | "miss" | "small_beat" | "large_beat" | "small_miss" | "large_miss";
 export type SampleQuality = "weak" | "limited" | "usable";
 export type ReplayChartTimeframe = "M15" | "H1" | "H4" | "D1";
+export type EventComparisonBasis = "forecast" | "previous";
 
 export interface EventTemplate {
   key: string;
@@ -391,6 +392,8 @@ export interface ReactionSample {
   eventTime: number;
   actual: number;
   forecast: number;
+  comparisonBasis: EventComparisonBasis;
+  comparisonValue: number;
   surprise: number;
   bucket: ReactionBucket;
   windows: Partial<
@@ -456,6 +459,10 @@ export interface ReactionReplaySample {
   actual: string;
   forecast: string;
   previous: string;
+  comparisonBasis: EventComparisonBasis;
+  comparisonLabel: string;
+  comparisonValue: number;
+  surprise: number;
 }
 
 export interface EventToolsStudy {

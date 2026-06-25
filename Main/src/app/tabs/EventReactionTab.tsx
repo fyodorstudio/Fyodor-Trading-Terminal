@@ -15,6 +15,7 @@ import {
   getMonthlyChunkKeys,
   getMonthlyChunkRange,
   getPairTemplateMap,
+  getReplayFetchRange,
   getReplayWindowCandles,
   getRelevantPairsForCurrency,
   getSampleQualityLabel,
@@ -554,14 +555,23 @@ export function EventReactionTab({ events }: EventReactionTabProps) {
       setReplayError(null);
 
       try {
-        const chunkKeys = getMonthlyChunkKeys(historicalSamples.map((sample) => sample.eventTime));
+        const rangeSpecs = new Map<string, { from: number; to: number }>();
+        historicalSamples.forEach((sample) => {
+          const range = getReplayFetchRange({
+            eventTime: sample.eventTime,
+            timeframe: replayTimeframe,
+            beforeCount: BEFORE_CANDLES,
+            afterCount: AFTER_CANDLES,
+          });
+          rangeSpecs.set(`${range.from}|${range.to}`, range);
+        });
+
         const results = await Promise.all(
-          chunkKeys.map(async (chunkKey) => {
-            const cacheKey = `${selectedPair.name}|${replayTimeframe}|${chunkKey}`;
+          [...rangeSpecs.values()].map(async (range) => {
+            const cacheKey = `${selectedPair.name}|${replayTimeframe}|${range.from}|${range.to}`;
             const cached = cacheRef.current.get(cacheKey);
             if (cached) return cached;
 
-            const range = getMonthlyChunkRange(chunkKey, replayTimeframe);
             const request = fetchHistoryRange({
               symbol: selectedPair.name,
               tf: replayTimeframe,
