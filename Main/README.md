@@ -2,7 +2,9 @@
 
 This is the active frontend app built in `C:\dev\Fyodor Trading Terminal\Main`.
 
-The app is no longer a blank Phase 1 shell. It is now a live pre-trade briefing terminal built around:
+The app is a local pre-trade briefing terminal built around MT5 candles, broker economic-calendar rows, central-bank derivations, and specialist trading workflows.
+
+Current top-level navigation:
 
 1. `Overview`
 2. `Central Banks Data`
@@ -10,11 +12,21 @@ The app is no longer a blank Phase 1 shell. It is now a live pre-trade briefing 
 4. `Economic Calendar`
 5. `Specialist Tools`
 
+Important current-state note:
+
+- `Overview` is intentionally a blank rebuild surface right now.
+- The previous large overview is still available as `Legacy Overview` through Specialist Tools/prototype routing.
+- The strongest current primary surfaces are `Central Banks Data`, `Charts`, `Economic Calendar`, and the `Specialist Tools` shell.
+
 `Specialist Tools` currently contains:
 
-1. `Differential Calculator`
-2. `Strength Meter`
-3. `Event Tools`
+1. `SIX QUESTIONS`
+2. `WORK IN PROGRESS`
+3. `PROTOTYPING`
+
+The `PROTOTYPING` area links to active experiments and older tools, including `Event Tools`, `Strength Meter`, `Differential Calculator`, and `Legacy Overview`.
+
+The planned direction is to promote `Event Tools` into a direct Specialist Tools destination after it is rewritten into a pair-first event replay workflow.
 
 The current product goal is to keep the app connection-first and honest: show what is live, what is stale, what is unresolved, and which market deserves attention right now without pretending to generate trade predictions.
 
@@ -53,11 +65,13 @@ It also expects the MT5 EA calendar bridge to be pushing economic calendar event
 
 ## Main Behavior
 
-- `Overview` is the main mission-control surface. It shows trust state, pair attention, macro backdrop, pair-relevant event risk, `Overview Confidence`, and compact specialist summaries around one selected FX pair.
+- `Overview` is currently a rebuild placeholder, not the mission-control source of truth.
+- `Legacy Overview` keeps the older mission-control surface available for reference while the new direction is clarified.
 - `Charts` keeps the live MT5 chart workflow and debug log, and shows explicit no-data / error states instead of fake candles.
 - `Economic Calendar` is MT5-backed, supports range/filter/search workflows, and can deep-link from `Overview` into a target event with highlight + explainer behavior.
 - `Central Banks Data` is derived from MT5 calendar events using strict mapping rules for the major 8 currencies. If a match is uncertain, the UI shows `N/A` instead of guessing.
-- `Differential Calculator`, `Strength Meter`, and `Event Tools` provide deeper specialist views, and parts of their output are surfaced back into `Overview`.
+- `Specialist Tools` is the routing shell for the six-question workflow, WIP capability map, and prototype/legacy tools.
+- `Event Tools` is planned to become the main pair-first event replay and event-reaction research surface.
 
 ## Run It
 
@@ -102,3 +116,12 @@ If the bridge base URL ever changes, set:
 If not set, the app defaults to:
 
 `http://127.0.0.1:8001`
+
+## Planning Docs
+
+Use these as the active local planning sources:
+
+- `../docs/Development Logs/Checklist.md`
+- `../docs/Development Logs/Current App Map.md`
+
+Ignore `../docs/Private` unless explicitly requested; it is archival context and can dilute future AI sessions.
