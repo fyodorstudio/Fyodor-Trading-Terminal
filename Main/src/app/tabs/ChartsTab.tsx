@@ -40,15 +40,21 @@ import {
   loadChartPreferences,
   loadChartDisplayTimeMode,
   mergeChartCandles,
-  normalizeHistoryCacheEntry,
   saveChartPreferences,
   saveChartDisplayTimeMode,
-  summarizeChartCache,
   type ChartAppearancePreferences,
   type ChartCursorReadoutMode,
   type ChartDisplayTimeMode,
   type ChartPreferences,
 } from "@/app/lib/chartView";
+import {
+  clearChartHistoryCache,
+  loadChartFavorites,
+  readChartHistoryCache,
+  saveChartFavorites,
+  saveChartHistoryCache,
+  summarizeStoredChartHistory,
+} from "@/app/lib/chartStorage";
 import { resolveChartStatus } from "@/app/lib/status";
 import {
   formatCurrentTimeForDisplayTimezone,
@@ -57,9 +63,6 @@ import {
 } from "@/app/lib/timezoneDisplay";
 import type { BridgeCandle, BridgeStatus, BridgeSymbol, MarketStatusResponse, Timeframe } from "@/app/types";
 
-const FAVORITES_KEY = "fyodor-main-chart-favorites";
-const CHART_HISTORY_CACHE_KEY = "fyodor-main-chart-history-cache-v1";
-const CHART_HISTORY_CONFIG_VERSION = 1;
 const DEBUG_MAX = 60;
 const DEFAULT_SYMBOL = "EURUSD";
 const TIMEFRAMES: Timeframe[] = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"];
@@ -77,18 +80,6 @@ type CrosshairReadout = {
 
 type ChartDrawerMode = "settings" | "cache";
 
-type HistoryCacheEntry = {
-  version: number;
-  candles: Array<{
-    time: number;
-    open: number;
-    high: number;
-    low: number;
-    close: number;
-    volume: number;
-  }>;
-};
-
 const HISTORY_RANGE_MAX_SECONDS = 40 * 24 * 60 * 60;
 
 export function getChartConnectionLabel(params: {
@@ -102,41 +93,6 @@ export function getChartConnectionLabel(params: {
   if (params.historyState === "error") return "Bridge Unavailable";
   if (params.historyState === "no_data") return "Bridge Unavailable";
   return params.streamConnected ? "Market Open" : "Bridge Unavailable";
-}
-
-function cacheKey(symbol: string, timeframe: Timeframe) {
-  return `${CHART_HISTORY_CACHE_KEY}:${CHART_HISTORY_CONFIG_VERSION}:${symbol.toUpperCase()}:${timeframe}`;
-}
-
-function readHistoryCache(symbol: string, timeframe: Timeframe): BridgeCandle[] {
-  try {
-    const raw = localStorage.getItem(cacheKey(symbol, timeframe));
-    if (!raw) return [];
-    return normalizeHistoryCacheEntry(JSON.parse(raw) as unknown, 5000)?.candles ?? [];
-  } catch {
-    return [];
-  }
-}
-
-function saveHistoryCache(symbol: string, timeframe: Timeframe, candles: BridgeCandle[]) {
-  try {
-    const trimmed = mergeChartCandles([], candles, 5000);
-    const payload: HistoryCacheEntry = {
-      version: CHART_HISTORY_CONFIG_VERSION,
-      candles: trimmed,
-    };
-    localStorage.setItem(cacheKey(symbol, timeframe), JSON.stringify(payload));
-  } catch {
-    // ignore storage failures
-  }
-}
-
-function clearHistoryCache(symbol: string, timeframe: Timeframe) {
-  try {
-    localStorage.removeItem(cacheKey(symbol, timeframe));
-  } catch {
-    // ignore storage failures
-  }
 }
 
 function getChartPriceFormat(symbol: string, assetClass: string | null) {
@@ -155,25 +111,6 @@ function getChartPriceFormat(symbol: string, assetClass: string | null) {
 
 function getCrosshairMode(readoutMode: ChartCursorReadoutMode) {
   return readoutMode === "nearest_candle" ? CrosshairMode.Magnet : CrosshairMode.Normal;
-}
-
-function loadFavorites(): string[] {
-  try {
-    const raw = localStorage.getItem(FAVORITES_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as unknown;
-    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveFavorites(items: string[]) {
-  try {
-    localStorage.setItem(FAVORITES_KEY, JSON.stringify(items));
-  } catch {
-    // ignore local storage failures
-  }
 }
 
 function pickInitialSymbol(symbols: BridgeSymbol[]): string {
@@ -201,7 +138,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const [chartPreferences, setChartPreferences] = useState<ChartPreferences>(() => loadChartPreferences());
   const [historyState, setHistoryState] = useState<"loading" | "ready" | "no_data" | "error">("loading");
   const [symbols, setSymbols] = useState<BridgeSymbol[]>([]);
-  const [favorites, setFavorites] = useState<string[]>(() => loadFavorites());
+  const [favorites, setFavorites] = useState<string[]>(() => loadChartFavorites());
   const [search, setSearch] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [timezoneMenuOpen, setTimezoneMenuOpen] = useState(false);
@@ -339,7 +276,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   }, []);
 
   const clearCurrentCache = useCallback(() => {
-    clearHistoryCache(selectedSymbol, timeframe);
+    clearChartHistoryCache(selectedSymbol, timeframe);
     setCacheRevision((current) => current + 1);
     addLog(`cleared local chart cache for ${selectedSymbol} ${timeframe}`);
   }, [addLog, selectedSymbol, timeframe]);
@@ -568,7 +505,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     const load = async () => {
       try {
         const boundaryCacheKey = `${selectedSymbol.toUpperCase()}|${timeframe}`;
-        const cached = readHistoryCache(selectedSymbol, timeframe);
+        const cached = readChartHistoryCache(selectedSymbol, timeframe);
         if (cached.length > 0) {
           setVisibleCandles(cached);
           setLastCandleTime(cached[cached.length - 1]?.time ?? null);
@@ -610,7 +547,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         setLastCandleTime(candles[candles.length - 1]?.time ?? null);
         setVisibleCandles(candles);
         setBoundaryTime(boundaryTimeValue);
-        saveHistoryCache(selectedSymbol, timeframe, candles);
+        saveChartHistoryCache(selectedSymbol, timeframe, candles);
         addLog(`history loaded ${candles.length} candles for ${selectedSymbol} ${timeframe}`);
       } catch (error) {
         if (cancelled || loadRequestIdRef.current !== requestId) return;
@@ -675,7 +612,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             currentCandles = merged;
             currentOldest = merged[0]?.time ?? currentOldest;
             setVisibleCandles(merged);
-            saveHistoryCache(selectedSymbol, timeframe, merged);
+            saveChartHistoryCache(selectedSymbol, timeframe, merged);
           } else {
             break;
           }
@@ -756,7 +693,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
           } satisfies BridgeCandle;
           setVisibleCandles((current) => {
             const next = mergeChartCandles(current, [nextCandle]);
-            saveHistoryCache(selectedSymbol, timeframe, next);
+            saveChartHistoryCache(selectedSymbol, timeframe, next);
             return next;
           });
           setLastCandleTime(nextCandle.time);
@@ -831,7 +768,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const toggleFavorite = useCallback((name: string) => {
     setFavorites((current) => {
       const next = current.includes(name) ? current.filter((item) => item !== name) : [...current, name];
-      saveFavorites(next);
+      saveChartFavorites(next);
       return next;
     });
   }, []);
@@ -855,7 +792,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     ? `Feed: ${formatChartFeedTime(lastCandleTime, displayTimeMode)}`
     : "Waiting for data";
   const cacheSummary = useMemo(
-    () => summarizeChartCache(readHistoryCache(selectedSymbol, timeframe)),
+    () => summarizeStoredChartHistory(selectedSymbol, timeframe),
     [cacheRevision, selectedSymbol, timeframe, visibleCandles.length],
   );
   const cacheOldestLabel = cacheSummary.oldestTime ? formatChartFeedTime(cacheSummary.oldestTime, displayTimeMode) : "Empty";
