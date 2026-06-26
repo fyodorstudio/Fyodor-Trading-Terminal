@@ -307,8 +307,8 @@ function ReplayCandlestickChart(props: {
   }, [props.candles, props.eventIndex, props.visibleCount]);
 
   return (
-    <div className="rounded-[20px] border border-slate-200 bg-white p-3 shadow-sm">
-      <div ref={containerRef} className="h-[420px] w-full rounded-[14px]" />
+    <div className="rounded-[20px] border border-slate-200 bg-white p-2 shadow-sm">
+      <div ref={containerRef} className="h-[360px] w-full rounded-[14px]" />
     </div>
   );
 }
@@ -547,11 +547,11 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
   const samplePosition = replaySamples.length > 0 ? `${selectedSampleIndex + 1} of ${replaySamples.length}` : "0 of 0";
 
   return (
-    <section className="tab-panel mx-auto flex max-w-[1460px] flex-col gap-5 pb-12">
-      <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+    <section className="tab-panel mx-auto flex max-w-[1460px] flex-col gap-4 pb-10">
+      <section className="rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-start gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-white">
               <CalendarClock size={20} />
             </div>
             <div>
@@ -572,7 +572,7 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
           </div>
         </div>
 
-        <div className="mt-5 grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-end">
+        <div className="mt-4 grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)] lg:items-end">
           <label className="grid gap-2">
             <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Pair</span>
             <select
@@ -616,14 +616,14 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-        <aside className="grid gap-5">
-          <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-4">
+      <section className="grid min-w-0 gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="grid min-w-0 content-start gap-4">
+          <section className="overflow-hidden rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3">
               <h3 className="m-0 text-lg font-bold text-slate-950">Base/Quote Events</h3>
               <p className="mt-1 text-sm text-slate-600">{selectedPair.base} and {selectedPair.quote} releases appear first.</p>
             </div>
-            <div className="grid max-h-[420px] gap-3 overflow-auto pr-1">
+            <div className="grid max-h-[330px] gap-3 overflow-auto pr-1">
               {groups.pairTemplates.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
                   No replayable base/quote event types are available in the current calendar window.
@@ -641,12 +641,12 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
             </div>
           </section>
 
-          <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-4">
+          <section className="overflow-hidden rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3">
               <h3 className="m-0 text-lg font-bold text-slate-950">Major Global Movers</h3>
               <p className="mt-1 text-sm text-slate-600">High-impact USD/EUR macro that can move broad FX risk.</p>
             </div>
-            <div className="grid max-h-[320px] gap-3 overflow-auto pr-1">
+            <div className="grid max-h-[230px] gap-3 overflow-auto pr-1">
               {groups.globalTemplates.length === 0 ? (
                 <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
                   No separate global mover templates are available for this pair right now.
@@ -665,9 +665,9 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
           </section>
         </aside>
 
-        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <section className="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1fr)_300px]">
+          <section className="min-w-0 rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
               <div>
                 <h3 className="m-0 text-lg font-bold text-slate-950">Replay Chart</h3>
                 <p className="mt-1 text-sm text-slate-600">
@@ -694,7 +694,7 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
               </div>
             </div>
 
-            <div className="mb-4 grid gap-3 md:grid-cols-4">
+            <div className="mb-3 grid gap-3 md:grid-cols-4">
               <label className="grid gap-1">
                 <span className="text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Before</span>
                 <input
@@ -728,29 +728,15 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
             </div>
 
             {replayError ? (
-              <div className="mb-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{replayError}</div>
+              <div className="mb-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">{replayError}</div>
             ) : null}
 
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-                  disabled={selectedSampleIndex === 0 || replaySamples.length === 0}
-                  onClick={() => setSelectedSampleIndex((index) => Math.max(0, index - 1))}
-                >
-                  <ChevronLeft size={16} />
-                  Previous
-                </button>
-                <button
-                  type="button"
-                  className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
-                  disabled={replaySamples.length === 0 || selectedSampleIndex >= replaySamples.length - 1}
-                  onClick={() => setSelectedSampleIndex((index) => Math.min(replaySamples.length - 1, index + 1))}
-                >
-                  Next
-                  <ChevronRight size={16} />
-                </button>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+              <div className="min-w-0">
+                <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Selected Release</span>
+                <strong className="mt-1 block truncate text-sm text-slate-950">
+                  {selectedSample ? formatUtcDateTime(selectedSample.eventTime) : "No release selected"}
+                </strong>
               </div>
               <button
                 type="button"
@@ -792,9 +778,62 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
             )}
           </section>
 
-          <aside className="grid gap-5">
-            <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="mb-4 flex items-start gap-3">
+          <aside className="grid min-w-0 content-start gap-4">
+            <section className="overflow-hidden rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="m-0 text-lg font-bold text-slate-950">Past Releases</h3>
+                  <p className="mt-1 text-sm text-slate-600">Newest samples first.</p>
+                </div>
+                <span className="shrink-0 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-600">
+                  {samplePosition}
+                </span>
+              </div>
+
+              <div className="mb-3 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2 text-xs font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  disabled={selectedSampleIndex === 0 || replaySamples.length === 0}
+                  onClick={() => setSelectedSampleIndex((index) => Math.max(0, index - 1))}
+                >
+                  <ChevronLeft size={15} />
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-2 text-xs font-bold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
+                  disabled={replaySamples.length === 0 || selectedSampleIndex >= replaySamples.length - 1}
+                  onClick={() => setSelectedSampleIndex((index) => Math.min(replaySamples.length - 1, index + 1))}
+                >
+                  Next
+                  <ChevronRight size={15} />
+                </button>
+              </div>
+
+              <div className="grid max-h-[300px] gap-3 overflow-auto pr-1">
+                {replaySamples.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                    No historical releases with usable actual/comparison values.
+                  </div>
+                ) : (
+                  replaySamples.map((sample, index) => (
+                    <SampleButton
+                      key={sample.eventId}
+                      sample={sample}
+                      active={index === selectedSampleIndex}
+                      onSelect={() => {
+                        setSelectedSampleIndex(index);
+                        setIsPlaying(false);
+                      }}
+                    />
+                  ))
+                )}
+              </div>
+            </section>
+
+            <section className="rounded-[20px] border border-slate-200 bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-start gap-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-950 text-white">
                   <BarChart3 size={17} />
                 </div>
@@ -836,31 +875,6 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
               </div>
             </section>
 
-            <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
-              <div className="mb-4">
-                <h3 className="m-0 text-lg font-bold text-slate-950">Past Releases</h3>
-                <p className="mt-1 text-sm text-slate-600">Newest samples first for the selected event type.</p>
-              </div>
-              <div className="grid max-h-[360px] gap-3 overflow-auto pr-1">
-                {replaySamples.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                    No historical releases with usable actual/comparison values.
-                  </div>
-                ) : (
-                  replaySamples.map((sample, index) => (
-                    <SampleButton
-                      key={sample.eventId}
-                      sample={sample}
-                      active={index === selectedSampleIndex}
-                      onSelect={() => {
-                        setSelectedSampleIndex(index);
-                        setIsPlaying(false);
-                      }}
-                    />
-                  ))
-                )}
-              </div>
-            </section>
           </aside>
         </section>
       </section>

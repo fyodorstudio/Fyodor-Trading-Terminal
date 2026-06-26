@@ -336,6 +336,8 @@ describe("EventToolsTab", () => {
     expect(html).toContain("Play");
     expect(html).toContain("Read the marker first");
     expect(html).toContain("Check the comparison basis");
+    expect(html.indexOf("Past Releases")).toBeLessThan(html.indexOf("Replay Brief"));
+    expect(html.indexOf("Previous")).toBeGreaterThan(html.indexOf("Past Releases"));
     expect(html).not.toContain("Analyst Dashboard");
     expect(html).not.toContain("Manual Event Selector");
   });
