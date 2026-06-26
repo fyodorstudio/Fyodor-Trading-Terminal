@@ -1,8 +1,8 @@
 # Fyodor Trading Terminal
 
-Fyodor Trading Terminal is a local pre-trade workstation built around a React frontend and an MT5-backed bridge. The project focuses on live market context, chart access, broker economic-calendar data, central-bank context, and specialist trading workflows without relying on mock data.
+Fyodor Trading Terminal is a local manual-trading support workstation built around a React frontend and an MT5-backed bridge. The project focuses on live market context, chart access, broker economic-calendar data, central-bank context, and event-replay study without relying on mock data.
 
-The current product boundary is decision support, not trade calls. The app should help decide what deserves attention, what data can be trusted, and where to inspect next; it should not pretend to be a signal bot or guaranteed edge machine.
+The current product boundary is decision support, not trade calls. The user performs independent technical analysis elsewhere, then uses Fyodor to understand the fundamental and event context behind the selected pair. The app should help decide what deserves attention, what data can be trusted, and where to inspect next; it should not pretend to be a signal bot or guaranteed edge machine.
 
 This repo uses `lightweight-charts` and does not include TradingView Advanced Charts files due to licensing and repository-privacy constraints.
 
@@ -20,12 +20,15 @@ The strongest current primary surfaces are:
 
 `Event Replay` is now a direct Specialist Tools destination. It is pair-first, shows base/quote event types before separate global movers, and replays MT5 candles around past scheduled releases without making trade calls.
 
+For now the trusted data boundary is deliberately narrow: MT5 OHLCV plus broker/MT5 economic-calendar rows. Do not add new live data sources without an explicit product decision.
+
 For the active roadmap, read:
 
 - `docs/Development Logs/Checklist.md`
 - `docs/Development Logs/Current App Map.md`
 
 `docs/Private` is archival/context-noise by default. Do not use it unless explicitly requested.
+The old Six Questions, Work In Progress, and Aesthetic Forge surfaces are historical/prototype context, not active product direction.
 
 ## Workspace Layout
 
