@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { fetchCalendar, fetchHealth, fetchMarketStatus } from "@/app/lib/bridge";
 import { deriveCentralBankSnapshots } from "@/app/lib/centralBankDerive";
@@ -7,22 +7,29 @@ import { resolveCalendarStatus } from "@/app/lib/status";
 import { MinimalHeader } from "@/app/components/MinimalHeader";
 import { TabNavigation } from "@/app/components/TabNavigation";
 import { UiCommandPanel } from "@/app/components/UiCommandPanel";
-import { OverviewTab } from "@/app/tabs/OverviewTab";
 import { OverviewPlaceholderTab } from "@/app/tabs/OverviewPlaceholderTab";
-import { DashboardTab } from "@/app/tabs/DashboardTab";
-import { StrengthMeterTab } from "@/app/tabs/StrengthMeterTab";
-import { EventReplayTab } from "@/app/tabs/EventReplayTab";
-import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
-import { ChartsTab } from "@/app/tabs/ChartsTab";
-import { EconomicCalendarTab } from "@/app/tabs/EconomicCalendarTab";
-import { WorkInProgressTab } from "@/app/tabs/WorkInProgressTab";
-import { PrototypingTab } from "@/app/tabs/PrototypingTab";
-import { TerminalQuestionsTab } from "@/app/tabs/TerminalQuestionsTab";
-import { CurrencyCandleStrengthTab } from "@/app/tabs/CurrencyCandleStrengthTab";
-import { MacroStatePrototypeTab } from "@/app/tabs/MacroStatePrototypeTab";
-import { WatchlistEnginePrototypeTab } from "@/app/tabs/WatchlistEnginePrototypeTab";
 import { FONT_OPTIONS, COLOR_PALETTES, FontId, ColorPaletteId } from "@/app/config/themeConfig";
 import type { BridgeHealth, BridgeStatus, CalendarEvent, CalendarNavigationIntent, MarketStatusResponse, TabId } from "@/app/types";
+
+const OverviewTab = lazy(() => import("@/app/tabs/OverviewTab").then((module) => ({ default: module.OverviewTab })));
+const DashboardTab = lazy(() => import("@/app/tabs/DashboardTab").then((module) => ({ default: module.DashboardTab })));
+const StrengthMeterTab = lazy(() => import("@/app/tabs/StrengthMeterTab").then((module) => ({ default: module.StrengthMeterTab })));
+const EventReplayTab = lazy(() => import("@/app/tabs/EventReplayTab").then((module) => ({ default: module.EventReplayTab })));
+const CentralBanksTab = lazy(() => import("@/app/tabs/CentralBanksTab").then((module) => ({ default: module.CentralBanksTab })));
+const ChartsTab = lazy(() => import("@/app/tabs/ChartsTab").then((module) => ({ default: module.ChartsTab })));
+const EconomicCalendarTab = lazy(() => import("@/app/tabs/EconomicCalendarTab").then((module) => ({ default: module.EconomicCalendarTab })));
+const WorkInProgressTab = lazy(() => import("@/app/tabs/WorkInProgressTab").then((module) => ({ default: module.WorkInProgressTab })));
+const PrototypingTab = lazy(() => import("@/app/tabs/PrototypingTab").then((module) => ({ default: module.PrototypingTab })));
+const TerminalQuestionsTab = lazy(() => import("@/app/tabs/TerminalQuestionsTab").then((module) => ({ default: module.TerminalQuestionsTab })));
+const CurrencyCandleStrengthTab = lazy(() =>
+  import("@/app/tabs/CurrencyCandleStrengthTab").then((module) => ({ default: module.CurrencyCandleStrengthTab })),
+);
+const MacroStatePrototypeTab = lazy(() =>
+  import("@/app/tabs/MacroStatePrototypeTab").then((module) => ({ default: module.MacroStatePrototypeTab })),
+);
+const WatchlistEnginePrototypeTab = lazy(() =>
+  import("@/app/tabs/WatchlistEnginePrototypeTab").then((module) => ({ default: module.WatchlistEnginePrototypeTab })),
+);
 
 export const ANALYSIS_TAB_ORDER: { id: TabId; label: string }[] = [
   { id: "event-tools", label: "EVENT REPLAY" },
@@ -50,6 +57,14 @@ function getFeedWindow() {
 }
 
 const transition = { type: "spring", stiffness: 300, damping: 30 };
+
+function TabLoadingFallback() {
+  return (
+    <div className="mx-auto max-w-[1460px] rounded-2xl border border-slate-200 bg-white/80 px-6 py-8 text-sm font-semibold text-slate-600 shadow-sm">
+      Loading workspace...
+    </div>
+  );
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
@@ -242,79 +257,81 @@ export default function App() {
           />
 
           <main className="main-area mt-6">
-            {activeTab === "overview" && <OverviewPlaceholderTab />}
-            {activeTab === "legacy-overview" && (
-              <OverviewTab
-                currentTime={currentTime}
-                health={health}
-                feedStatus={feedStatus}
-                marketStatus={overviewMarketStatus}
-                reviewSymbol={overviewSymbol}
-                onReviewSymbolChange={setOverviewSymbol}
-                events={feedEvents}
-                snapshots={centralBankResult.snapshots}
-                onNavigate={setActiveTab}
-                onOpenCalendarEvent={openCalendarForEvent}
-              />
-            )}
-            {activeTab === "dashboard" && <DashboardTab snapshots={centralBankResult.snapshots} />}
-            {activeTab === "strength-meter" && (
-              <StrengthMeterTab
-                snapshots={centralBankResult.snapshots}
-                events={feedEvents}
-                status={feedStatus}
-                onOpenCalendarEvent={openCalendarForEvent}
-              />
-            )}
-            {activeTab === "event-tools" && (
-              <EventReplayTab
-                events={feedEvents}
-                status={feedStatus}
-                lastCalendarIngestAt={health.last_calendar_ingest_at ?? null}
-              />
-            )}
-            {activeTab === "work-in-progress" && <WorkInProgressTab />}
-            {activeTab === "terminal-questions" && <TerminalQuestionsTab onNavigate={setActiveTab} />}
-            {activeTab === "prototyping" && <PrototypingTab onNavigate={setActiveTab} />}
-            {activeTab === "currency-candle-strength" && (
-              <CurrencyCandleStrengthTab onBack={() => setActiveTab("prototyping")} />
-            )}
-            {activeTab === "watchlist-engine-prototype" && (
-              <WatchlistEnginePrototypeTab
-                snapshots={centralBankResult.snapshots}
-                onBack={() => setActiveTab("prototyping")}
-              />
-            )}
-            {activeTab === "macro-state-prototype" && (
-              <MacroStatePrototypeTab
-                snapshots={centralBankResult.snapshots}
-                onBack={() => setActiveTab("prototyping")}
-              />
-            )}
-            {activeTab === "central-banks" && (
-              <CentralBanksTab
-                snapshots={centralBankResult.snapshots}
-                logs={centralBankResult.logs}
-                status={feedStatus}
-                lastCalendarIngestAt={health.last_calendar_ingest_at ?? null}
-              />
-            )}
-            {activeTab === "charts" && (
-              <ChartsTab
-                marketStatus={chartMarketStatus}
-                selectedSymbol={chartSymbol}
-                onSelectedSymbolChange={setChartSymbol}
-              />
-            )}
-            {activeTab === "calendar" && (
-              <EconomicCalendarTab
-                health={health}
-                persistedLastSyncedAt={calendarTabLastSyncedAt}
-                onSyncSuccess={setCalendarTabLastSyncedAt}
-                navigationIntent={calendarNavigationIntent}
-                onConsumeNavigationIntent={() => setCalendarNavigationIntent(null)}
-              />
-            )}
+            <Suspense fallback={<TabLoadingFallback />}>
+              {activeTab === "overview" && <OverviewPlaceholderTab />}
+              {activeTab === "legacy-overview" && (
+                <OverviewTab
+                  currentTime={currentTime}
+                  health={health}
+                  feedStatus={feedStatus}
+                  marketStatus={overviewMarketStatus}
+                  reviewSymbol={overviewSymbol}
+                  onReviewSymbolChange={setOverviewSymbol}
+                  events={feedEvents}
+                  snapshots={centralBankResult.snapshots}
+                  onNavigate={setActiveTab}
+                  onOpenCalendarEvent={openCalendarForEvent}
+                />
+              )}
+              {activeTab === "dashboard" && <DashboardTab snapshots={centralBankResult.snapshots} />}
+              {activeTab === "strength-meter" && (
+                <StrengthMeterTab
+                  snapshots={centralBankResult.snapshots}
+                  events={feedEvents}
+                  status={feedStatus}
+                  onOpenCalendarEvent={openCalendarForEvent}
+                />
+              )}
+              {activeTab === "event-tools" && (
+                <EventReplayTab
+                  events={feedEvents}
+                  status={feedStatus}
+                  lastCalendarIngestAt={health.last_calendar_ingest_at ?? null}
+                />
+              )}
+              {activeTab === "work-in-progress" && <WorkInProgressTab />}
+              {activeTab === "terminal-questions" && <TerminalQuestionsTab onNavigate={setActiveTab} />}
+              {activeTab === "prototyping" && <PrototypingTab onNavigate={setActiveTab} />}
+              {activeTab === "currency-candle-strength" && (
+                <CurrencyCandleStrengthTab onBack={() => setActiveTab("prototyping")} />
+              )}
+              {activeTab === "watchlist-engine-prototype" && (
+                <WatchlistEnginePrototypeTab
+                  snapshots={centralBankResult.snapshots}
+                  onBack={() => setActiveTab("prototyping")}
+                />
+              )}
+              {activeTab === "macro-state-prototype" && (
+                <MacroStatePrototypeTab
+                  snapshots={centralBankResult.snapshots}
+                  onBack={() => setActiveTab("prototyping")}
+                />
+              )}
+              {activeTab === "central-banks" && (
+                <CentralBanksTab
+                  snapshots={centralBankResult.snapshots}
+                  logs={centralBankResult.logs}
+                  status={feedStatus}
+                  lastCalendarIngestAt={health.last_calendar_ingest_at ?? null}
+                />
+              )}
+              {activeTab === "charts" && (
+                <ChartsTab
+                  marketStatus={chartMarketStatus}
+                  selectedSymbol={chartSymbol}
+                  onSelectedSymbolChange={setChartSymbol}
+                />
+              )}
+              {activeTab === "calendar" && (
+                <EconomicCalendarTab
+                  health={health}
+                  persistedLastSyncedAt={calendarTabLastSyncedAt}
+                  onSyncSuccess={setCalendarTabLastSyncedAt}
+                  navigationIntent={calendarNavigationIntent}
+                  onConsumeNavigationIntent={() => setCalendarNavigationIntent(null)}
+                />
+              )}
+            </Suspense>
           </main>
         </div>
       </motion.div>
