@@ -21,6 +21,17 @@ import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { fetchHistoryRange } from "@/app/lib/bridge";
 import { getCurrencyCountryCode } from "@/app/lib/eventQuality";
 import {
+  DEFAULT_REPLAY_AFTER_CANDLES,
+  DEFAULT_REPLAY_BEFORE_CANDLES,
+  EVENT_REPLAY_STORAGE_KEYS,
+  MAX_REPLAY_CANDLES,
+  MIN_REPLAY_CANDLES,
+  clampReplayCount,
+  getInitialReplayCount,
+  getStorageItem,
+  setStorageItem,
+} from "@/app/lib/eventReplayStorage";
+import {
   REPLAY_TIMEFRAME_OPTIONS,
   getHistoricalReplaySamples,
   getPairFirstReplayGroups,
@@ -47,43 +58,10 @@ interface EventToolsTabProps {
   lastCalendarIngestAt: number | null;
 }
 
-const STORAGE_KEYS = {
-  pair: "event-tools-pair",
-  eventKey: "event-tools-event-key",
-  replayTimeframe: "event-tools-replay-tf",
-  sampleIndex: "event-tools-sample-index",
-  beforeCandles: "event-tools-before-candles",
-  afterCandles: "event-tools-after-candles",
-};
-
+const STORAGE_KEYS = EVENT_REPLAY_STORAGE_KEYS;
 const PLAYBACK_INTERVAL_MS = 550;
-const DEFAULT_BEFORE_CANDLES = 14;
-const DEFAULT_AFTER_CANDLES = 14;
-const MIN_REPLAY_CANDLES = 2;
-const MAX_REPLAY_CANDLES = 80;
-
-function getStorageItem(key: string): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return window.localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-}
-
-function setStorageItem(key: string, value: string) {
-  if (typeof window === "undefined") return;
-  try {
-    window.localStorage.setItem(key, value);
-  } catch {
-    // ignore storage failures
-  }
-}
-
-function clampReplayCount(value: number, fallback: number): number {
-  if (!Number.isFinite(value)) return fallback;
-  return Math.min(MAX_REPLAY_CANDLES, Math.max(MIN_REPLAY_CANDLES, Math.round(value)));
-}
+const DEFAULT_BEFORE_CANDLES = DEFAULT_REPLAY_BEFORE_CANDLES;
+const DEFAULT_AFTER_CANDLES = DEFAULT_REPLAY_AFTER_CANDLES;
 
 function getInitialPair(): FxPairDefinition {
   return getFxPairByName(getStorageItem(STORAGE_KEYS.pair) ?? "EURUSD") ?? FX_PAIRS[0];
@@ -97,10 +75,6 @@ function getInitialReplayTimeframe(): ReplayChartTimeframe {
 function getInitialSampleIndex(): number {
   const saved = Number(getStorageItem(STORAGE_KEYS.sampleIndex) ?? "0");
   return Number.isFinite(saved) && saved >= 0 ? saved : 0;
-}
-
-function getInitialReplayCount(key: string, fallback: number): number {
-  return clampReplayCount(Number(getStorageItem(key) ?? fallback), fallback);
 }
 
 function formatCount(value: number): string {
