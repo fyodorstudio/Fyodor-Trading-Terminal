@@ -11,7 +11,7 @@ import { OverviewTab } from "@/app/tabs/OverviewTab";
 import { OverviewPlaceholderTab } from "@/app/tabs/OverviewPlaceholderTab";
 import { DashboardTab } from "@/app/tabs/DashboardTab";
 import { StrengthMeterTab } from "@/app/tabs/StrengthMeterTab";
-import { EventToolsTab } from "@/app/tabs/EventToolsTab";
+import { EventReplayTab } from "@/app/tabs/EventReplayTab";
 import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
 import { ChartsTab } from "@/app/tabs/ChartsTab";
 import { EconomicCalendarTab } from "@/app/tabs/EconomicCalendarTab";
@@ -267,7 +267,7 @@ export default function App() {
               />
             )}
             {activeTab === "event-tools" && (
-              <EventToolsTab
+              <EventReplayTab
                 events={feedEvents}
                 status={feedStatus}
                 lastCalendarIngestAt={health.last_calendar_ingest_at ?? null}

@@ -48,7 +48,7 @@ import type {
   ReplayChartTimeframe,
 } from "@/app/types";
 
-interface EventToolsTabProps {
+interface EventReplayTabProps {
   events: CalendarEvent[];
   status: BridgeStatus;
   lastCalendarIngestAt: number | null;
@@ -81,7 +81,7 @@ function renderStatusLabel(status: BridgeStatus): string {
   return "Bridge unavailable";
 }
 
-export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToolsTabProps) {
+export function EventReplayTab({ events, status, lastCalendarIngestAt }: EventReplayTabProps) {
   const [selectedPairName, setSelectedPairName] = useState(() => getInitialPair().name);
   const selectedPair = useMemo(() => getFxPairByName(selectedPairName) ?? FX_PAIRS[0], [selectedPairName]);
   const [selectedEventKey, setSelectedEventKey] = useState(() => getStorageItem(STORAGE_KEYS.eventKey) ?? "");

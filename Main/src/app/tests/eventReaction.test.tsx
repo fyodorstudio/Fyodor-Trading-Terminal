@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { EventToolsTab } from "@/app/tabs/EventToolsTab";
+import { EventReplayTab } from "@/app/tabs/EventReplayTab";
 import {
   deriveAssetFirstStudy,
   deriveEventFirstStudy,
@@ -309,10 +309,10 @@ describe("eventReaction studies", () => {
   });
 });
 
-describe("EventToolsTab", () => {
+describe("EventReplayTab", () => {
   it("renders the lean pair-first replay shell", () => {
     const html = renderToStaticMarkup(
-      <EventToolsTab
+      <EventReplayTab
         events={[
           buildEvent({ id: 1, time: 1_763_100_000, currency: "USD", title: "CPI y/y" }),
           buildEvent({ id: 2, time: 1_763_000_000, currency: "USD", title: "CPI y/y" }),
