@@ -33,13 +33,20 @@ import {
   setStorageItem,
 } from "@/app/lib/eventReplayStorage";
 import {
+  buildReplaySampleCalendarEvent,
+  formatReplayAxisTime,
+  formatReplayCount,
+  formatReplayPercent,
+  formatReplayPips,
+  getReplayMove,
+} from "@/app/lib/eventReplayView";
+import {
   REPLAY_TIMEFRAME_OPTIONS,
   getHistoricalReplaySamples,
   getPairFirstReplayGroups,
   getReplayFetchRange,
   getReplayWindowCandles,
   getSampleQualityLabel,
-  priceDeltaToPips,
 } from "@/app/lib/eventReaction";
 import { formatRelativeAge, formatUtcDateTime } from "@/app/lib/format";
 import type {
@@ -79,20 +86,6 @@ function getInitialSampleIndex(): number {
   return Number.isFinite(saved) && saved >= 0 ? saved : 0;
 }
 
-function formatCount(value: number): string {
-  return value === 1 ? "1 release" : `${value} releases`;
-}
-
-function formatPips(value: number | null): string {
-  if (value == null) return "N/A";
-  return `${value >= 0 ? "+" : ""}${value.toFixed(1)} pips`;
-}
-
-function formatPercent(value: number | null): string {
-  if (value == null) return "N/A";
-  return `${value >= 0 ? "+" : ""}${value.toFixed(3)}%`;
-}
-
 function renderStatusLabel(status: BridgeStatus): string {
   if (status === "live") return "Calendar live";
   if (status === "stale") return "Calendar stale";
@@ -105,65 +98,6 @@ function qualityTone(quality: SampleQuality): string {
   if (quality === "usable") return "border-emerald-200 bg-emerald-50 text-emerald-700";
   if (quality === "limited") return "border-amber-200 bg-amber-50 text-amber-700";
   return "border-slate-200 bg-slate-50 text-slate-600";
-}
-
-function formatReplayAxisTime(time: number, timeframe: ReplayChartTimeframe): string {
-  const date = new Date(time * 1000);
-  if (timeframe === "M15") {
-    return new Intl.DateTimeFormat(undefined, {
-      hour: "2-digit",
-      minute: "2-digit",
-      month: "short",
-      day: "numeric",
-      timeZone: "UTC",
-    }).format(date);
-  }
-  if (timeframe === "H1" || timeframe === "H4") {
-    return new Intl.DateTimeFormat(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-      timeZone: "UTC",
-    }).format(date);
-  }
-  return new Intl.DateTimeFormat(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(date);
-}
-
-function getReplayMove(
-  replayWindow: { candles: BridgeCandle[]; eventIndex: number } | null,
-  pair: FxPairDefinition,
-): { pips: number; percent: number; label: string } | null {
-  if (!replayWindow) return null;
-  const eventCandle = replayWindow.candles[replayWindow.eventIndex];
-  const finalCandle = replayWindow.candles[replayWindow.candles.length - 1];
-  if (!eventCandle || !finalCandle || eventCandle.close === 0) return null;
-
-  const delta = finalCandle.close - eventCandle.close;
-  const pips = Number(priceDeltaToPips(delta, pair).toFixed(1));
-  const percent = Number(((delta / eventCandle.close) * 100).toFixed(4));
-  const label = Math.abs(pips) < 0.1 ? "mostly flat" : pips > 0 ? "higher" : "lower";
-  return { pips, percent, label };
-}
-
-function buildReplaySampleCalendarEvent(sample: ReactionReplaySample): CalendarEvent {
-  const numericId = Number(sample.eventId);
-  return {
-    id: Number.isFinite(numericId) ? numericId : sample.eventTime,
-    time: sample.eventTime,
-    countryCode: getCurrencyCountryCode(sample.currency),
-    currency: sample.currency,
-    title: sample.title,
-    impact: "high",
-    actual: sample.actual,
-    forecast: sample.forecast,
-    previous: sample.previous,
-  };
 }
 
 function EventExplainerMiniBrief(props: { explainer: CalendarEventExplainer | null }) {
@@ -365,7 +299,7 @@ function TemplateButton(props: {
         </span>
       </div>
       <span className={`text-xs font-semibold ${props.active ? "text-slate-300" : "text-slate-500"}`}>
-        {formatCount(props.template.sampleCount)}
+        {formatReplayCount(props.template.sampleCount)}
       </span>
     </button>
   );
@@ -888,7 +822,7 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
                 <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
                   <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Observed Move</span>
                   <strong className="mt-1 block text-sm text-slate-950">
-                    {replayMove ? `${formatPips(replayMove.pips)} (${formatPercent(replayMove.percent)})` : "N/A"}
+                    {replayMove ? `${formatReplayPips(replayMove.pips)} (${formatReplayPercent(replayMove.percent)})` : "N/A"}
                   </strong>
                   <span className="mt-1 block text-xs text-slate-500">
                     {replayMove ? `Price finished ${replayMove.label} over the loaded replay window after the release marker.` : "Loads after candles resolve."}
