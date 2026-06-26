@@ -334,6 +334,8 @@ describe("EventToolsTab", () => {
     expect(html).toContain("Before");
     expect(html).toContain("After");
     expect(html).toContain("Play");
+    expect(html).toContain("What This Event Is");
+    expect(html).toContain("Why Traders Care");
     expect(html).toContain("Read the marker first");
     expect(html).toContain("Check the comparison basis");
     expect(html.indexOf("Past Releases")).toBeLessThan(html.indexOf("Replay Brief"));

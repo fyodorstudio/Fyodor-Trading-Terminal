@@ -19,6 +19,7 @@ import {
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { fetchHistoryRange } from "@/app/lib/bridge";
+import { getCalendarEventExplainer } from "@/app/lib/calendarEventExplain";
 import { getCurrencyCountryCode } from "@/app/lib/eventQuality";
 import {
   DEFAULT_REPLAY_AFTER_CANDLES,
@@ -45,6 +46,7 @@ import type {
   BridgeCandle,
   BridgeStatus,
   CalendarEvent,
+  CalendarEventExplainer,
   EventTemplate,
   FxPairDefinition,
   ReactionReplaySample,
@@ -147,6 +149,48 @@ function getReplayMove(
   const percent = Number(((delta / eventCandle.close) * 100).toFixed(4));
   const label = Math.abs(pips) < 0.1 ? "mostly flat" : pips > 0 ? "higher" : "lower";
   return { pips, percent, label };
+}
+
+function buildReplaySampleCalendarEvent(sample: ReactionReplaySample): CalendarEvent {
+  const numericId = Number(sample.eventId);
+  return {
+    id: Number.isFinite(numericId) ? numericId : sample.eventTime,
+    time: sample.eventTime,
+    countryCode: getCurrencyCountryCode(sample.currency),
+    currency: sample.currency,
+    title: sample.title,
+    impact: "high",
+    actual: sample.actual,
+    forecast: sample.forecast,
+    previous: sample.previous,
+  };
+}
+
+function EventExplainerMiniBrief(props: { explainer: CalendarEventExplainer | null }) {
+  if (!props.explainer) {
+    return null;
+  }
+
+  return (
+    <div className="grid gap-3">
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">What This Event Is</span>
+        <p className="mt-1 text-sm leading-6 text-slate-700">{props.explainer.whatItIs}</p>
+      </div>
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Why Traders Care</span>
+        <p className="mt-1 text-sm leading-6 text-slate-700">{props.explainer.whyTradersCare}</p>
+      </div>
+      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">What To Compare</span>
+        <ul className="mt-2 grid gap-1.5 text-sm leading-6 text-slate-700">
+          {(props.explainer.whatToCompare ?? []).slice(0, 3).map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
 }
 
 function ReplayCandlestickChart(props: {
@@ -385,6 +429,10 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
   );
   const selectedSample = replaySamples[selectedSampleIndex] ?? replaySamples[0] ?? null;
   const replayMove = useMemo(() => getReplayMove(replayWindow, selectedPair), [replayWindow, selectedPair]);
+  const selectedSampleExplainer = useMemo(
+    () => (selectedSample ? getCalendarEventExplainer(buildReplaySampleCalendarEvent(selectedSample)) : null),
+    [selectedSample],
+  );
 
   useEffect(() => {
     const firstKey = allTemplates[0]?.key ?? "";
@@ -846,6 +894,7 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
                     {replayMove ? `Price finished ${replayMove.label} over the loaded replay window after the release marker.` : "Loads after candles resolve."}
                   </span>
                 </div>
+                <EventExplainerMiniBrief explainer={selectedSampleExplainer} />
               </div>
             </section>
 
