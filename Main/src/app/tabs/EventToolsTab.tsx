@@ -511,7 +511,7 @@ export function EventToolsTab({ events, status, lastCalendarIngestAt }: EventToo
               <CalendarClock size={20} />
             </div>
             <div>
-              <h2 className="m-0 text-2xl font-bold text-slate-950">Event Tools</h2>
+              <h2 className="m-0 text-2xl font-bold text-slate-950">Event Replay</h2>
               <p className="mt-1 max-w-3xl text-sm text-slate-600">
                 Pair-first replay for studying how price behaved around prior scheduled releases.
               </p>

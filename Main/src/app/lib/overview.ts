@@ -1151,7 +1151,7 @@ export function getOverviewSpecialistSummaries(
     },
     {
       id: "event-tools",
-      title: "Event Tools",
+      title: "Event Replay",
       tab: "event-tools",
       summary:
         eventQuality == null

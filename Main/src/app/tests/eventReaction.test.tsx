@@ -325,7 +325,7 @@ describe("EventToolsTab", () => {
       />,
     );
 
-    expect(html).toContain("Event Tools");
+    expect(html).toContain("Event Replay");
     expect(html).toContain("Pair");
     expect(html).toContain("Base/Quote Events");
     expect(html).toContain("Major Global Movers");
