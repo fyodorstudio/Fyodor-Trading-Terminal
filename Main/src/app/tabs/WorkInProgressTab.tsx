@@ -159,16 +159,7 @@ const EXTRA_DATA_ROWS: ExtraDataRow[] = [
   },
 ];
 
-interface WorkInProgressTabProps {
-  onOpenWatchlistTab: () => void;
-  onOpenPrototypeTab: () => void;
-  onOpenLegacyOverviewTab: () => void;
-  onOpenDashboardTab: () => void;
-  onOpenStrengthMeterTab: () => void;
-  onOpenEventToolsTab: () => void;
-}
-
-export function WorkInProgressTab(_props: WorkInProgressTabProps) {
+export function WorkInProgressTab() {
   return (
     <div className="mx-auto flex max-w-[1460px] flex-col gap-6 pb-12">
       <motion.section

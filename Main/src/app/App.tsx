@@ -273,16 +273,7 @@ export default function App() {
                 lastCalendarIngestAt={health.last_calendar_ingest_at ?? null}
               />
             )}
-            {activeTab === "work-in-progress" && (
-              <WorkInProgressTab
-                onOpenWatchlistTab={() => setActiveTab("watchlist-engine-prototype")}
-                onOpenPrototypeTab={() => setActiveTab("macro-state-prototype")}
-                onOpenLegacyOverviewTab={() => setActiveTab("legacy-overview")}
-                onOpenDashboardTab={() => setActiveTab("dashboard")}
-                onOpenStrengthMeterTab={() => setActiveTab("strength-meter")}
-                onOpenEventToolsTab={() => setActiveTab("event-tools")}
-              />
-            )}
+            {activeTab === "work-in-progress" && <WorkInProgressTab />}
             {activeTab === "terminal-questions" && <TerminalQuestionsTab onNavigate={setActiveTab} />}
             {activeTab === "prototyping" && <PrototypingTab onNavigate={setActiveTab} />}
             {activeTab === "currency-candle-strength" && (

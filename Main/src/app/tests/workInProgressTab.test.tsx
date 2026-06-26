@@ -4,16 +4,7 @@ import { WorkInProgressTab } from "@/app/tabs/WorkInProgressTab";
 
 describe("WorkInProgressTab", () => {
   it("renders the hero and the two data tables", () => {
-    const html = renderToStaticMarkup(
-      <WorkInProgressTab
-        onOpenWatchlistTab={() => {}}
-        onOpenPrototypeTab={() => {}}
-        onOpenLegacyOverviewTab={() => {}}
-        onOpenDashboardTab={() => {}}
-        onOpenStrengthMeterTab={() => {}}
-        onOpenEventToolsTab={() => {}}
-      />,
-    );
+    const html = renderToStaticMarkup(<WorkInProgressTab />);
 
     expect(html).toContain("WORK IN PROGRESS");
     expect(html).toContain("Archived Planning Map");
