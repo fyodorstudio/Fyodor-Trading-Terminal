@@ -22,10 +22,10 @@ Important current-state note:
 
 `Specialist Tools` currently contains:
 
-1. `SIX QUESTIONS`
-2. `EVENT REPLAY`
-3. `WORK IN PROGRESS`
-4. `PROTOTYPING`
+1. `EVENT REPLAY`
+2. `PROTOTYPING`
+3. `SIX QUESTIONS DRAFT`
+4. `WIP MAP ARCHIVE`
 
 The `PROTOTYPING` area links to active experiments and older tools, including `Strength Meter`, `Differential Calculator`, and `Legacy Overview`.
 

@@ -16,6 +16,8 @@ describe("WorkInProgressTab", () => {
     );
 
     expect(html).toContain("WORK IN PROGRESS");
+    expect(html).toContain("Archived Planning Map");
+    expect(html).toContain("Historical capability notes");
     expect(html).toContain("Possible With Current Data");
     expect(html).toContain("Currency strength from candles");
     expect(html).toContain("Current hard limit");

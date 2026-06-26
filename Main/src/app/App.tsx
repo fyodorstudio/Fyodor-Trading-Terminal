@@ -25,10 +25,10 @@ import { FONT_OPTIONS, COLOR_PALETTES, FontId, ColorPaletteId } from "@/app/conf
 import type { BridgeHealth, BridgeStatus, CalendarEvent, CalendarNavigationIntent, MarketStatusResponse, TabId } from "@/app/types";
 
 export const ANALYSIS_TAB_ORDER: { id: TabId; label: string }[] = [
-  { id: "terminal-questions", label: "SIX QUESTIONS" },
   { id: "event-tools", label: "EVENT REPLAY" },
-  { id: "work-in-progress", label: "WORK IN PROGRESS" },
   { id: "prototyping", label: "PROTOTYPING" },
+  { id: "terminal-questions", label: "SIX QUESTIONS DRAFT" },
+  { id: "work-in-progress", label: "WIP MAP ARCHIVE" },
 ];
 
 export const TAB_ORDER: Array<{ id: TabId; label: string; children?: { id: TabId; label: string }[] }> = [

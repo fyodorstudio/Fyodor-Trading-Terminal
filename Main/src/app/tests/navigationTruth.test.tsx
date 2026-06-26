@@ -7,6 +7,9 @@ import { TerminalQuestionsTab } from "@/app/tabs/TerminalQuestionsTab";
 describe("navigation truth", () => {
   it("promotes Event Replay as a direct Specialist Tools child", () => {
     expect(ANALYSIS_TAB_ORDER).toContainEqual({ id: "event-tools", label: "EVENT REPLAY" });
+    expect(ANALYSIS_TAB_ORDER[0]).toEqual({ id: "event-tools", label: "EVENT REPLAY" });
+    expect(ANALYSIS_TAB_ORDER).toContainEqual({ id: "terminal-questions", label: "SIX QUESTIONS DRAFT" });
+    expect(ANALYSIS_TAB_ORDER).toContainEqual({ id: "work-in-progress", label: "WIP MAP ARCHIVE" });
 
     const specialist = TAB_ORDER.find((tab) => tab.id === "dashboard");
     expect(specialist?.children).toContainEqual({ id: "event-tools", label: "EVENT REPLAY" });
@@ -27,6 +30,7 @@ describe("navigation truth", () => {
     const html = renderToStaticMarkup(<TerminalQuestionsTab onNavigate={() => {}} />);
 
     expect(html).toContain("Is event risk close enough to invalidate a clean setup?");
+    expect(html).toContain("Deprecated Draft");
     expect(html).toContain("Open Event Replay");
     expect(html).not.toContain("Open Event Tools");
   });

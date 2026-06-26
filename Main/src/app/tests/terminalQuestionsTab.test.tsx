@@ -7,6 +7,8 @@ describe("TerminalQuestionsTab", () => {
     const html = renderToStaticMarkup(<TerminalQuestionsTab onNavigate={() => {}} />);
 
     expect(html).toContain("SIX QUESTIONS");
+    expect(html).toContain("Deprecated Draft");
+    expect(html).toContain("historical routing context");
     expect(html).toContain("Can I trust the app right now?");
     expect(html).toContain("What deserves attention right now?");
     expect(html).toContain("Is the macro backdrop supportive, hostile, or unclear?");

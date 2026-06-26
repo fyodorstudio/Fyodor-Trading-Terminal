@@ -116,11 +116,11 @@ export function TerminalQuestionsTab({ onNavigate }: TerminalQuestionsTabProps) 
         <div className="bg-slate-950 px-8 py-8 text-white">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em]">
             <Compass className="h-3.5 w-3.5" />
-            Product Map
+            Deprecated Draft
           </div>
           <h2 className="text-3xl font-black tracking-tight">SIX QUESTIONS</h2>
           <p className="mt-3 max-w-4xl text-sm leading-6 text-slate-200">
-            The terminal is finished when these questions are answered quickly, honestly, and with clear routing into the tool that owns the detail.
+            This was an early product map. Keep it as historical routing context, but do not treat it as the current source of truth for new work.
           </p>
         </div>
       </section>

@@ -179,12 +179,11 @@ export function WorkInProgressTab(_props: WorkInProgressTabProps) {
         <div className="bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,64,175,0.92))] px-8 py-8 text-white">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em]">
             <FlaskConical className="h-3.5 w-3.5" />
-            Specialist Tool Blueprint
+            Archived Planning Map
           </div>
           <h2 className="text-3xl font-black tracking-tight">WORK IN PROGRESS</h2>
           <p className="mt-3 max-w-4xl text-sm text-blue-100/90">
-            A quiet map of what the app can honestly attempt with candles and the economic calendar, plus what would require
-            extra market data later.
+            Historical capability notes. Keep this available for reference, but use Event Replay and the active checklist as the current direction.
           </p>
         </div>
       </motion.section>
