@@ -76,6 +76,26 @@ describe("calendar event explainer", () => {
     expect(explainer.resultInterpretation).toContain("currency-negative");
   });
 
+  it.each([
+    ["FOMC Statement", "policy"],
+    ["CPI y/y", "inflation"],
+    ["Core PCE Price Index m/m", "inflation"],
+    ["Nonfarm Payrolls", "labor"],
+    ["Unemployment Claims", "labor"],
+    ["GDP q/q", "gdp"],
+    ["ISM Services PMI", "activity"],
+    ["Retail Sales m/m", "activity"],
+    ["Trade Balance", "trade_confidence"],
+    ["Current Account", "trade_confidence"],
+    ["Consumer Confidence", "trade_confidence"],
+  ] as const)("resolves major broker title alias %s", (title, family) => {
+    const explainer = getCalendarEventExplainer({ ...event, title });
+
+    expect(explainer.family).toBe(family);
+    expect(explainer.knowledgeDepth).not.toBe("generic");
+    expect(explainer.whatItIs).not.toContain("economic or policy-related data point");
+  });
+
   it("keeps a visible backlog for niche events to add later", () => {
     expect(CALENDAR_EVENT_KNOWLEDGE_BACKLOG).toContain("JOLTS Job Openings");
   });
