@@ -310,7 +310,7 @@ describe("eventReaction studies", () => {
 });
 
 describe("EventReplayTab", () => {
-  it("renders the lean pair-first replay shell", () => {
+  it("renders the light cockpit replay shell", () => {
     const html = renderToStaticMarkup(
       <EventReplayTab
         events={[
@@ -327,19 +327,23 @@ describe("EventReplayTab", () => {
 
     expect(html).toContain("Event Replay");
     expect(html).toContain("Pair");
+    expect(html).toContain("EURUSD");
+    expect(html).toContain("Calendar live");
+    expect(html).toContain("Broker feed");
     expect(html).toContain("Base/Quote Events");
     expect(html).toContain("Major Global Movers");
-    expect(html).toContain("Replay Chart");
+    expect(html).toContain("Preview");
     expect(html).toContain("Past Releases");
+    expect(html).toContain("Replay Brief");
+    expect(html).toContain("Details");
     expect(html).toContain("Before");
     expect(html).toContain("After");
+    expect(html).toContain("Previous");
+    expect(html).toContain("Next");
     expect(html).toContain("Play");
-    expect(html).toContain("What This Event Is");
-    expect(html).toContain("Why Traders Care");
-    expect(html).toContain("Read the marker first");
-    expect(html).toContain("Check the comparison basis");
-    expect(html.indexOf("Past Releases")).toBeLessThan(html.indexOf("Replay Brief"));
-    expect(html.indexOf("Previous")).toBeGreaterThan(html.indexOf("Past Releases"));
+    expect(html).not.toContain("Pick the pair, choose the event type below");
+    expect(html).not.toContain("What This Event Is");
+    expect(html).not.toContain("Read the marker first");
     expect(html).not.toContain("Analyst Dashboard");
     expect(html).not.toContain("Manual Event Selector");
   });
