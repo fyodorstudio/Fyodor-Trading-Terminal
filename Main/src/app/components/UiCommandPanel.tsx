@@ -9,7 +9,7 @@ import {
   Type,
   X,
 } from "lucide-react";
-import { COLOR_PALETTES, FONT_OPTIONS, type ColorPaletteId, type FontId, type FontOption } from "../config/themeConfig";
+import { COLOR_PALETTES, FONT_OPTIONS, type ColorPaletteId, type FontId, type FontOption } from "@/app/config/themeConfig";
 
 interface UiCommandPanelProps {
   currentFont: FontId;
