@@ -76,6 +76,8 @@ It also expects the MT5 EA calendar bridge to be pushing economic calendar event
 - `Event Replay` is the main pair-first event replay surface. It is descriptive study support, not a signal engine.
 - `tabs/primary/` contains always-visible primary workflow tabs.
 - `tabs/secondary/` contains Event Replay plus Prototyping/archive surfaces. Treat older files such as `EventReactionTab.tsx` and `EventQualityTab.tsx` as ignored unless explicitly requested.
+- `hooks/` contains app-shell side effects extracted from `App.tsx`.
+- `types/` contains domain type files; `types.ts` remains a compatibility barrel.
 
 ## Run It
 
