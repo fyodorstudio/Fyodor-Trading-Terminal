@@ -112,6 +112,7 @@ Preferred workflow:
 - run commands from the repo root when possible
 - treat `pnpm` as the package-manager authority for this repo
 - use `Main/package.json` only as the app-local manifest, not as an invitation to switch the workspace to npm
+- do not add `package-lock.json` or yarn lockfiles
 
 ## Optional Config
 

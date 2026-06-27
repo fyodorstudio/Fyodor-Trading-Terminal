@@ -24,6 +24,7 @@ For now the trusted data boundary is deliberately narrow: MT5 OHLCV plus broker/
 
 For the active roadmap, read:
 
+- `AGENTS.md`
 - `docs/Development Logs/Checklist.md`
 - `docs/Development Logs/Current App Map.md`
 
@@ -71,5 +72,6 @@ pnpm run test
 
 - The frontend expects the bridge API at `http://127.0.0.1:8001`
 - Use `pnpm` from the repo root as the package-manager source of truth
+- Do not add npm/yarn lockfiles; `pnpm-lock.yaml` is the lockfile source of truth
 - The current chart stack uses `lightweight-charts` in the frontend
 - Full `pnpm run dev:all` usage assumes Windows, Python, and MetaTrader 5 installed locally; if MT5 is not at the default path, set `MT5_EXE`
