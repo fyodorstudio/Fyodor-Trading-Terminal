@@ -6,13 +6,11 @@ import { AppRoutes } from "@/app/AppRoutes";
 import { MinimalHeader } from "@/app/components/MinimalHeader";
 import { TabNavigation } from "@/app/components/TabNavigation";
 import { UiCommandPanel } from "@/app/components/UiCommandPanel";
-import { ANALYSIS_TAB_ORDER, TAB_ORDER } from "@/app/config/navigation";
+import { TAB_ORDER } from "@/app/config/navigation";
 import { useCalendarFeed } from "@/app/hooks/useCalendarFeed";
 import { useMarketStatus } from "@/app/hooks/useMarketStatus";
 import { useTerminalTheme } from "@/app/hooks/useTerminalTheme";
 import type { CalendarEvent, CalendarNavigationIntent, TabId } from "@/app/types";
-
-export { ANALYSIS_TAB_ORDER, TAB_ORDER };
 
 const transition = { type: "spring", stiffness: 300, damping: 30 };
 

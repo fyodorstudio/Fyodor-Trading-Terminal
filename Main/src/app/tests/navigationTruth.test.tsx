@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { ANALYSIS_TAB_ORDER, TAB_ORDER } from "@/app/App";
+import { ANALYSIS_TAB_ORDER, TAB_ORDER } from "@/app/config/navigation";
 import { PrototypingTab } from "@/app/tabs/secondary/PrototypingTab";
 import { TerminalQuestionsTab } from "@/app/tabs/secondary/TerminalQuestionsTab";
 
