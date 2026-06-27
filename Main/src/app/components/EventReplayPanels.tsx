@@ -18,15 +18,15 @@ export function EventExplainerMiniBrief(props: { explainer: CalendarEventExplain
 
   return (
     <div className="grid gap-3">
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <div className="border border-slate-200 bg-white px-3 py-2.5">
         <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">What This Event Is</span>
         <p className="mt-1 text-sm leading-6 text-slate-700">{props.explainer.whatItIs}</p>
       </div>
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <div className="border border-slate-200 bg-white px-3 py-2.5">
         <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Why Traders Care</span>
         <p className="mt-1 text-sm leading-6 text-slate-700">{props.explainer.whyTradersCare}</p>
       </div>
-      <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+      <div className="border border-slate-200 bg-white px-3 py-2.5">
         <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">What To Compare</span>
         <ul className="mt-2 grid gap-1.5 text-sm leading-6 text-slate-700">
           {(props.explainer.whatToCompare ?? []).slice(0, 3).map((item) => (
@@ -47,17 +47,17 @@ export function EventTemplateButton(props: {
     <button
       type="button"
       onClick={props.onSelect}
-      className={`grid w-full gap-3 rounded-2xl border px-4 py-3 text-left transition-colors ${
+      className={`grid min-w-0 w-full gap-2 overflow-hidden border px-3 py-3 text-left transition-colors ${
         props.active
           ? "border-slate-900 bg-slate-950 text-white"
-          : "border-slate-200 bg-white text-slate-900 hover:border-slate-300"
+          : "border-slate-200 bg-white text-slate-900 hover:border-slate-400"
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex min-w-0 items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
           <FlagIcon countryCode={getCurrencyCountryCode(props.template.currency)} className="mt-0.5 h-5 w-8 shrink-0" />
           <div className="min-w-0">
-            <strong className="block truncate text-sm">{props.template.currency} | {props.template.title}</strong>
+            <strong className="block break-words text-sm leading-5">{props.template.currency} | {props.template.title}</strong>
             <span className={`mt-1 block text-xs ${props.active ? "text-slate-300" : "text-slate-500"}`}>
               {props.template.familyLabel}
             </span>
@@ -87,14 +87,14 @@ export function EventSampleButton(props: {
     <button
       type="button"
       onClick={props.onSelect}
-      className={`w-full rounded-2xl border px-4 py-3 text-left transition-colors ${
+      className={`min-w-0 w-full overflow-hidden border px-3 py-3 text-left transition-colors ${
         props.active
           ? "border-slate-900 bg-slate-950 text-white"
-          : "border-slate-200 bg-white text-slate-900 hover:border-slate-300"
+          : "border-slate-200 bg-white text-slate-900 hover:border-slate-400"
       }`}
     >
-      <div className="flex items-start justify-between gap-3">
-        <strong className="block text-sm">{formatUtcDateTime(props.sample.eventTime)}</strong>
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <strong className="block min-w-0 break-words text-sm">{formatUtcDateTime(props.sample.eventTime)}</strong>
         <span className={`text-xs font-semibold ${props.active ? "text-slate-300" : "text-slate-500"}`}>
           {props.sample.comparisonBasis === "forecast" ? "Forecast" : "Previous"}
         </span>

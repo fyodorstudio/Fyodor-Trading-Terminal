@@ -144,8 +144,8 @@ export function EventReplayCandlestickChart(props: EventReplayCandlestickChartPr
   }, [props.candles, props.eventIndex, props.visibleCount]);
 
   return (
-    <div className="rounded-[20px] border border-slate-200 bg-white p-2 shadow-sm">
-      <div ref={containerRef} className="h-[360px] w-full rounded-[14px]" />
+    <div className="border border-slate-200 bg-white p-2">
+      <div ref={containerRef} className="h-[clamp(380px,48vh,540px)] w-full" />
     </div>
   );
 }

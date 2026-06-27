@@ -235,7 +235,7 @@ export default function App() {
       />
       
       <motion.div 
-        animate={{ paddingLeft: isUiPanelOpen ? 340 : 64 }}
+        animate={{ paddingLeft: isUiPanelOpen ? 356 : 0 }}
         transition={transition}
         className="flex-1 min-h-screen"
       >
