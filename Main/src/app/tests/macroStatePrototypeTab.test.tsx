@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { MacroStatePrototypeTab } from "@/app/tabs/MacroStatePrototypeTab";
+import { MacroStatePrototypeTab } from "@/app/tabs/secondary/MacroStatePrototypeTab";
 import type { CentralBankSnapshot } from "@/app/types";
 
 const snapshots: CentralBankSnapshot[] = [

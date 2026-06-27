@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { getChartConnectionLabel } from "@/app/tabs/ChartsTab";
-import { ChartsTab } from "@/app/tabs/ChartsTab";
+import { getChartConnectionLabel } from "@/app/tabs/primary/ChartsTab";
+import { ChartsTab } from "@/app/tabs/primary/ChartsTab";
 import { getChartSessionDetail } from "@/app/lib/chartView";
 
 describe("getChartConnectionLabel", () => {

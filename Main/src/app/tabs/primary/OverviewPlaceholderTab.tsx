@@ -14,7 +14,7 @@ export function OverviewPlaceholderTab() {
       <section className="rounded-3xl border border-gray-200/60 bg-white/75 p-8 shadow-sm backdrop-blur-xl">
         <h3 className="text-lg font-black tracking-tight text-slate-900">Status</h3>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-700">
-          The old overview remains available through Specialist Tools, then Prototyping, then Legacy Overview until a cleaner replacement earns its place here.
+          The old overview remains available through Specialist Tools, then Prototyping, then Deprecated Overview until a cleaner replacement earns its place here.
         </p>
       </section>
     </div>

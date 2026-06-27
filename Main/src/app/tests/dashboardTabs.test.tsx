@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { DashboardTab } from "@/app/tabs/DashboardTab";
-import { StrengthMeterTab } from "@/app/tabs/StrengthMeterTab";
+import { DashboardTab } from "@/app/tabs/secondary/DashboardTab";
+import { StrengthMeterTab } from "@/app/tabs/secondary/StrengthMeterTab";
 import type { CalendarEvent, CentralBankSnapshot } from "@/app/types";
 
 function buildSnapshot(

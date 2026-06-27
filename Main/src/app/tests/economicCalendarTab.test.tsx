@@ -5,7 +5,7 @@ import {
   EconomicCalendarTab,
   ImpactPill,
   getCalendarFreshness,
-} from "@/app/tabs/EconomicCalendarTab";
+} from "@/app/tabs/primary/EconomicCalendarTab";
 import type { BridgeHealth, CalendarEvent, CalendarEventExplainer } from "@/app/types";
 
 const nowMs = 1_800_000_000_000;

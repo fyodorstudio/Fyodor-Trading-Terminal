@@ -25,11 +25,24 @@ const PROTOTYPE_LINKS: PrototypeLink[] = [
   },
 ];
 
-const LEGACY_LINKS: PrototypeLink[] = [
+const PLANNING_LINKS: PrototypeLink[] = [
+  {
+    id: "terminal-questions",
+    label: "Six Questions Draft",
+    description: "Deprecated product map kept as historical context, not current build direction.",
+  },
+  {
+    id: "work-in-progress",
+    label: "WIP Map Archive",
+    description: "Archived planning map kept for reference only.",
+  },
+];
+
+const ARCHIVED_LINKS: PrototypeLink[] = [
   {
     id: "strength-meter",
     label: "Strength Meter",
-    description: "Beautiful UI, still under review for logic quality.",
+    description: "Deprecated strength surface kept available while its logic is reviewed.",
   },
   {
     id: "dashboard",
@@ -38,7 +51,7 @@ const LEGACY_LINKS: PrototypeLink[] = [
   },
   {
     id: "legacy-overview",
-    label: "Legacy Overview",
+    label: "Deprecated Overview",
     description: "Older overview surface kept available for reference.",
   },
 ];
@@ -99,24 +112,32 @@ export function PrototypingTab({ onNavigate }: PrototypingTabProps) {
           </div>
           <h2 className="text-3xl font-black tracking-tight">PROTOTYPING</h2>
           <p className="mt-3 max-w-4xl text-sm text-blue-100/90">
-            Simple navigation for unfinished and legacy specialist tools. These are available for inspection, but not treated as the main workflow.
+            Secondary lab and archive for unfinished, unstable, or ignored tools. Future AI sessions should not treat these as the main workflow unless explicitly asked.
           </p>
         </div>
       </section>
 
       <ToolGrid
-        kicker="Prototype"
-        title="Active Experiments"
-        description="Current experimental screens that may become part of the cleaner specialist workflow."
+        kicker="Unstable"
+        title="Experimental Tools"
+        description="Secondary screens that may be mined for ideas, but are not current product truth."
         items={PROTOTYPE_LINKS}
         onNavigate={onNavigate}
       />
 
       <ToolGrid
-        kicker="Legacy Tools"
+        kicker="Archived / Ignore"
+        title="Planning Drafts"
+        description="Old planning surfaces moved out of Specialist Tools so they do not pollute the active workflow."
+        items={PLANNING_LINKS}
+        onNavigate={onNavigate}
+      />
+
+      <ToolGrid
+        kicker="Deprecated"
         title="Older Tools"
-        description="Previous specialist screens kept available for reference while their purpose and logic are reviewed."
-        items={LEGACY_LINKS}
+        description="Previous specialist screens kept available only for reference while their purpose and logic are reviewed."
+        items={ARCHIVED_LINKS}
         onNavigate={onNavigate}
       />
     </div>

@@ -6,7 +6,7 @@ import { TabId } from '@/app/types';
 interface TabNavigationProps {
   activeTab: TabId;
   setActiveTab: (id: TabId) => void;
-  tabOrder: { id: TabId; label: string; children?: { id: TabId; label: string }[] }[];
+  tabOrder: { id: TabId; label: string; children?: { id: TabId; label: string; groupLabel?: string }[] }[];
 }
 
 const TAB_HELP_TEXT: Partial<Record<TabId, string>> = {
@@ -97,25 +97,33 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder }: TabNavigati
 
             {hasChildren && openMenuId === tab.id && (
               <div className="absolute right-0 top-[calc(100%+8px)] z-[70] min-w-[220px] rounded-xl border border-[var(--line)] bg-white p-2 shadow-[0_8px_24px_rgba(15,23,42,0.12)]">
-                {tab.children!.map((child) => {
+                {tab.children!.map((child, index) => {
                   const childActive = activeTab === child.id;
+                  const previous = tab.children![index - 1];
+                  const showGroupLabel = child.groupLabel && child.groupLabel !== previous?.groupLabel;
                   return (
-                    <button
-                      key={child.id}
-                      type="button"
-                      onClick={() => {
-                        setActiveTab(child.id);
-                        setOpenMenuId(null);
-                      }}
-                      className={`mb-1 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm font-semibold transition-colors last:mb-0 ${
-                        childActive
-                          ? 'border-slate-300 bg-slate-100 text-slate-950'
-                          : 'border-transparent bg-transparent text-slate-700 hover:border-slate-200 hover:bg-slate-50'
-                      }`}
-                    >
-                      <span>{child.label}</span>
-                      {childActive && <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Open</span>}
-                    </button>
+                    <div key={child.id} className={index > 0 ? "mt-2" : ""}>
+                      {showGroupLabel && (
+                        <div className="px-2 pb-1 pt-1 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+                          {child.groupLabel}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTab(child.id);
+                          setOpenMenuId(null);
+                        }}
+                        className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 text-left text-sm font-semibold transition-colors ${
+                          childActive
+                            ? 'border-slate-300 bg-slate-100 text-slate-950'
+                            : 'border-transparent bg-transparent text-slate-700 hover:border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span>{child.label}</span>
+                        {childActive && <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Open</span>}
+                      </button>
+                    </div>
                   );
                 })}
               </div>

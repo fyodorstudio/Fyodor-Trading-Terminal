@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { WatchlistEnginePrototypeTab } from "@/app/tabs/WatchlistEnginePrototypeTab";
+import { WatchlistEnginePrototypeTab } from "@/app/tabs/secondary/WatchlistEnginePrototypeTab";
 import type { CentralBankSnapshot } from "@/app/types";
 
 const snapshots: CentralBankSnapshot[] = [

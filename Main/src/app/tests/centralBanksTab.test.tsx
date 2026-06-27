@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CentralBanksTab } from "@/app/tabs/CentralBanksTab";
+import { CentralBanksTab } from "@/app/tabs/primary/CentralBanksTab";
 import type { CentralBankSnapshot } from "@/app/types";
 
 describe("CentralBanksTab", () => {

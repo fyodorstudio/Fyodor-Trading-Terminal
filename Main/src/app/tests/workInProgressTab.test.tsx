@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { WorkInProgressTab } from "@/app/tabs/WorkInProgressTab";
+import { WorkInProgressTab } from "@/app/tabs/secondary/WorkInProgressTab";
 
 describe("WorkInProgressTab", () => {
   it("renders the hero and the two data tables", () => {

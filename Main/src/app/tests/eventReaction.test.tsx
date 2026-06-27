@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { EventReplayTab } from "@/app/tabs/EventReplayTab";
+import { EventReplayTab } from "@/app/tabs/secondary/EventReplayTab";
 import {
   deriveAssetFirstStudy,
   deriveEventFirstStudy,
@@ -330,8 +330,8 @@ describe("EventReplayTab", () => {
     expect(html).toContain("EURUSD");
     expect(html).toContain("Calendar live");
     expect(html).toContain("Broker feed");
-    expect(html).toContain("Base/Quote Events");
-    expect(html).toContain("Major Global Movers");
+    expect(html).toContain("Selected Event");
+    expect(html).toContain("Select Event");
     expect(html).toContain("Preview");
     expect(html).toContain("Past Releases");
     expect(html).toContain("Replay Brief");

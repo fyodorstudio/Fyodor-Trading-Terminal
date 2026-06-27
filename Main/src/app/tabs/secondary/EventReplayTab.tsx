@@ -46,8 +46,10 @@ import type {
   BridgeCandle,
   BridgeStatus,
   CalendarEvent,
+  EventTemplate,
   FxPairDefinition,
   ReplayChartTimeframe,
+  SampleQuality,
 } from "@/app/types";
 
 interface EventReplayTabProps {
@@ -60,6 +62,10 @@ const STORAGE_KEYS = EVENT_REPLAY_STORAGE_KEYS;
 const PLAYBACK_INTERVAL_MS = 550;
 const DEFAULT_BEFORE_CANDLES = DEFAULT_REPLAY_BEFORE_CANDLES;
 const DEFAULT_AFTER_CANDLES = DEFAULT_REPLAY_AFTER_CANDLES;
+const QUALITY_ORDER: Record<SampleQuality, number> = { usable: 0, limited: 1, weak: 2 };
+
+type EventTemplateFilter = "all" | SampleQuality;
+type EventTemplateSort = "quality" | "sample_count" | "currency";
 
 function getInitialPair(): FxPairDefinition {
   return getFxPairByName(getStorageItem(STORAGE_KEYS.pair) ?? "EURUSD") ?? FX_PAIRS[0];
@@ -83,6 +89,25 @@ function renderStatusLabel(status: BridgeStatus): string {
   return "Bridge unavailable";
 }
 
+function sortEventTemplates(templates: EventTemplate[], sortMode: EventTemplateSort): EventTemplate[] {
+  return [...templates].sort((left, right) => {
+    if (sortMode === "quality") {
+      const qualityDelta = QUALITY_ORDER[left.quality] - QUALITY_ORDER[right.quality];
+      if (qualityDelta !== 0) return qualityDelta;
+      if (right.sampleCount !== left.sampleCount) return right.sampleCount - left.sampleCount;
+      return left.title.localeCompare(right.title);
+    }
+    if (sortMode === "sample_count") {
+      if (right.sampleCount !== left.sampleCount) return right.sampleCount - left.sampleCount;
+      const qualityDelta = QUALITY_ORDER[left.quality] - QUALITY_ORDER[right.quality];
+      if (qualityDelta !== 0) return qualityDelta;
+      return left.title.localeCompare(right.title);
+    }
+    if (left.currency !== right.currency) return left.currency.localeCompare(right.currency);
+    return left.title.localeCompare(right.title);
+  });
+}
+
 export function EventReplayTab({ events, status, lastCalendarIngestAt }: EventReplayTabProps) {
   const [selectedPairName, setSelectedPairName] = useState(() => getInitialPair().name);
   const selectedPair = useMemo(() => getFxPairByName(selectedPairName) ?? FX_PAIRS[0], [selectedPairName]);
@@ -98,6 +123,9 @@ export function EventReplayTab({ events, status, lastCalendarIngestAt }: EventRe
   const [replayError, setReplayError] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [releaseListOpen, setReleaseListOpen] = useState(false);
+  const [eventListOpen, setEventListOpen] = useState(false);
+  const [eventTemplateFilter, setEventTemplateFilter] = useState<EventTemplateFilter>("all");
+  const [eventTemplateSort, setEventTemplateSort] = useState<EventTemplateSort>("quality");
   const cacheRef = useRef<Map<string, Promise<BridgeCandle[]>>>(new Map());
 
   const groups = useMemo(
@@ -118,6 +146,22 @@ export function EventReplayTab({ events, status, lastCalendarIngestAt }: EventRe
   const selectedSampleExplainer = useMemo(
     () => (selectedSample ? getCalendarEventExplainer(buildReplaySampleCalendarEvent(selectedSample)) : null),
     [selectedSample],
+  );
+  const visiblePairTemplates = useMemo(
+    () =>
+      sortEventTemplates(
+        groups.pairTemplates.filter((template) => eventTemplateFilter === "all" || template.quality === eventTemplateFilter),
+        eventTemplateSort,
+      ),
+    [eventTemplateFilter, eventTemplateSort, groups.pairTemplates],
+  );
+  const visibleGlobalTemplates = useMemo(
+    () =>
+      sortEventTemplates(
+        groups.globalTemplates.filter((template) => eventTemplateFilter === "all" || template.quality === eventTemplateFilter),
+        eventTemplateSort,
+      ),
+    [eventTemplateFilter, eventTemplateSort, groups.globalTemplates],
   );
 
   useEffect(() => {
@@ -298,13 +342,13 @@ export function EventReplayTab({ events, status, lastCalendarIngestAt }: EventRe
                 ))}
               </select>
             </label>
-            <div className="mt-3 flex flex-wrap items-center gap-3 text-xs font-bold text-slate-700">
+            <div className="mt-3 flex flex-wrap items-center gap-4 text-sm font-black text-slate-800">
               <span className="inline-flex items-center gap-2">
-                <FlagIcon countryCode={getCurrencyCountryCode(selectedPair.base)} className="h-4 w-6" />
+                <FlagIcon countryCode={getCurrencyCountryCode(selectedPair.base)} className="h-7 w-10 shadow-sm" />
                 Base {selectedPair.base}
               </span>
               <span className="inline-flex items-center gap-2">
-                <FlagIcon countryCode={getCurrencyCountryCode(selectedPair.quote)} className="h-4 w-6" />
+                <FlagIcon countryCode={getCurrencyCountryCode(selectedPair.quote)} className="h-7 w-10 shadow-sm" />
                 Quote {selectedPair.quote}
               </span>
             </div>
@@ -422,50 +466,24 @@ export function EventReplayTab({ events, status, lastCalendarIngestAt }: EventRe
             </button>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
-            <div className="mb-2 flex items-center justify-between">
-              <h3 className="m-0 text-sm font-black text-slate-950">Base/Quote Events</h3>
-              <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{groups.pairTemplates.length} types</span>
+          <div className="min-h-0 flex-1 px-4 py-3">
+            <div className="border border-slate-200 bg-slate-50 px-3 py-3">
+              <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Selected Event</span>
+              <strong className="mt-1 block break-words text-sm text-slate-950">
+                {selectedTemplate ? `${selectedTemplate.currency} | ${selectedTemplate.title}` : "No event selected"}
+              </strong>
+              <span className="mt-1 block text-xs text-slate-500">
+                {selectedTemplate ? `${selectedTemplate.familyLabel} / ${selectedTemplate.sampleCount} releases` : "Choose an event type to study."}
+              </span>
             </div>
-            <div className="grid gap-2">
-              {groups.pairTemplates.length === 0 ? (
-                <div className="border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                  No replayable base/quote event types are available.
-                </div>
-              ) : (
-                groups.pairTemplates.map((template) => (
-                  <EventTemplateButton
-                    key={template.key}
-                    template={template}
-                    active={selectedTemplate?.key === template.key}
-                    onSelect={() => handleTemplateSelect(template.key)}
-                  />
-                ))
-              )}
-            </div>
-
-            <div className="mt-4 border-t border-slate-200 pt-3">
-              <div className="mb-2 flex items-center justify-between">
-                <h3 className="m-0 text-sm font-black text-slate-950">Major Global Movers</h3>
-                <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{groups.globalTemplates.length} types</span>
-              </div>
-              <div className="grid gap-2">
-                {groups.globalTemplates.length === 0 ? (
-                  <div className="border border-dashed border-slate-300 bg-slate-50 px-4 py-5 text-center text-sm text-slate-500">
-                    No separate global mover templates for this pair.
-                  </div>
-                ) : (
-                  groups.globalTemplates.map((template) => (
-                    <EventTemplateButton
-                      key={template.key}
-                      template={template}
-                      active={selectedTemplate?.key === template.key}
-                      onSelect={() => handleTemplateSelect(template.key)}
-                    />
-                  ))
-                )}
-              </div>
-            </div>
+            <button
+              type="button"
+              className="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-black text-slate-900 hover:border-slate-300"
+              onClick={() => setEventListOpen(true)}
+            >
+              <List size={16} />
+              Select Event
+            </button>
           </div>
         </aside>
 
@@ -517,10 +535,120 @@ export function EventReplayTab({ events, status, lastCalendarIngestAt }: EventRe
         </main>
       </section>
 
+      {eventListOpen ? (
+        <div className="fixed inset-0 z-[1200] bg-slate-950/20 backdrop-blur-sm" onClick={() => setEventListOpen(false)}>
+          <aside
+            className="absolute bottom-4 right-4 top-4 flex w-[min(560px,calc(100vw-32px))] flex-col overflow-hidden border border-slate-200 bg-white shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="border-b border-slate-200 px-5 py-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="m-0 text-lg font-black text-slate-950">Select Event</h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">
+                    {groups.pairTemplates.length} pair events / {groups.globalTemplates.length} global movers
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600"
+                  onClick={() => setEventListOpen(false)}
+                  aria-label="Close event selector"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_190px]">
+                <div className="flex flex-wrap gap-2">
+                  {(["all", "usable", "limited", "weak"] as EventTemplateFilter[]).map((filter) => (
+                    <button
+                      key={filter}
+                      type="button"
+                      className={`h-9 rounded-xl border px-3 text-xs font-black capitalize ${
+                        eventTemplateFilter === filter
+                          ? "border-slate-900 bg-slate-950 text-white"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
+                      }`}
+                      onClick={() => setEventTemplateFilter(filter)}
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Sort</span>
+                  <select
+                    value={eventTemplateSort}
+                    onChange={(event) => setEventTemplateSort(event.target.value as EventTemplateSort)}
+                    className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-800 outline-none"
+                  >
+                    <option value="quality">Quality first</option>
+                    <option value="sample_count">Most releases</option>
+                    <option value="currency">Currency</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+              <div className="mb-3 flex items-center justify-between">
+                <h4 className="m-0 text-sm font-black text-slate-950">Base/Quote Events</h4>
+                <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{visiblePairTemplates.length} shown</span>
+              </div>
+              <div className="grid gap-2">
+                {visiblePairTemplates.length === 0 ? (
+                  <div className="border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                    No pair events match this filter.
+                  </div>
+                ) : (
+                  visiblePairTemplates.map((template) => (
+                    <EventTemplateButton
+                      key={template.key}
+                      template={template}
+                      active={selectedTemplate?.key === template.key}
+                      onSelect={() => {
+                        handleTemplateSelect(template.key);
+                        setEventListOpen(false);
+                      }}
+                    />
+                  ))
+                )}
+              </div>
+
+              <div className="mt-5 border-t border-slate-200 pt-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <h4 className="m-0 text-sm font-black text-slate-950">Major Global Movers</h4>
+                  <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{visibleGlobalTemplates.length} shown</span>
+                </div>
+                <div className="grid gap-2">
+                  {visibleGlobalTemplates.length === 0 ? (
+                    <div className="border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                      No global movers match this filter.
+                    </div>
+                  ) : (
+                    visibleGlobalTemplates.map((template) => (
+                      <EventTemplateButton
+                        key={template.key}
+                        template={template}
+                        active={selectedTemplate?.key === template.key}
+                        onSelect={() => {
+                          handleTemplateSelect(template.key);
+                          setEventListOpen(false);
+                        }}
+                      />
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
       {releaseListOpen ? (
         <div className="fixed inset-0 z-[1200] bg-slate-950/20 backdrop-blur-sm" onClick={() => setReleaseListOpen(false)}>
           <section
-            className="absolute bottom-6 left-4 top-20 w-[min(390px,calc(100vw-32px))] overflow-hidden border border-slate-200 bg-white shadow-2xl md:left-[400px]"
+            className="absolute bottom-4 right-4 top-4 flex w-[min(440px,calc(100vw-32px))] flex-col overflow-hidden border border-slate-200 bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3">
@@ -537,7 +665,7 @@ export function EventReplayTab({ events, status, lastCalendarIngestAt }: EventRe
                 <X size={15} />
               </button>
             </div>
-            <div className="h-[calc(100%-65px)] overflow-y-auto px-3 py-3">
+            <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
               <div className="grid gap-2">
                 {replaySamples.length === 0 ? (
                   <div className="border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
@@ -566,7 +694,7 @@ export function EventReplayTab({ events, status, lastCalendarIngestAt }: EventRe
       {detailsOpen ? (
         <div className="fixed inset-0 z-[1200] bg-slate-950/20 backdrop-blur-sm" onClick={() => setDetailsOpen(false)}>
           <aside
-            className="absolute bottom-4 right-4 top-4 w-[min(480px,calc(100vw-32px))] overflow-hidden border border-slate-200 bg-white shadow-2xl"
+            className="absolute bottom-4 right-4 top-4 flex w-[min(520px,calc(100vw-32px))] flex-col overflow-hidden border border-slate-200 bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
@@ -589,7 +717,7 @@ export function EventReplayTab({ events, status, lastCalendarIngestAt }: EventRe
               </button>
             </div>
 
-            <div className="grid h-[calc(100%-74px)] gap-2 overflow-y-auto px-5 py-4">
+            <div className="grid min-h-0 flex-1 content-start gap-2 overflow-y-auto px-5 py-4">
               <div className="border border-slate-200 bg-slate-50 px-3 py-2.5">
                 <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Event Type</span>
                 <strong className="mt-1 block break-words text-sm text-slate-950">{selectedTemplate ? `${selectedTemplate.currency} ${selectedTemplate.title}` : "N/A"}</strong>

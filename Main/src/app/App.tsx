@@ -7,38 +7,36 @@ import { resolveCalendarStatus } from "@/app/lib/status";
 import { MinimalHeader } from "@/app/components/MinimalHeader";
 import { TabNavigation } from "@/app/components/TabNavigation";
 import { UiCommandPanel } from "@/app/components/UiCommandPanel";
-import { OverviewPlaceholderTab } from "@/app/tabs/OverviewPlaceholderTab";
+import { OverviewPlaceholderTab } from "@/app/tabs/primary/OverviewPlaceholderTab";
 import { FONT_OPTIONS, COLOR_PALETTES, FontId, ColorPaletteId } from "@/app/config/themeConfig";
 import type { BridgeHealth, BridgeStatus, CalendarEvent, CalendarNavigationIntent, MarketStatusResponse, TabId } from "@/app/types";
 
-const OverviewTab = lazy(() => import("@/app/tabs/OverviewTab").then((module) => ({ default: module.OverviewTab })));
-const DashboardTab = lazy(() => import("@/app/tabs/DashboardTab").then((module) => ({ default: module.DashboardTab })));
-const StrengthMeterTab = lazy(() => import("@/app/tabs/StrengthMeterTab").then((module) => ({ default: module.StrengthMeterTab })));
-const EventReplayTab = lazy(() => import("@/app/tabs/EventReplayTab").then((module) => ({ default: module.EventReplayTab })));
-const CentralBanksTab = lazy(() => import("@/app/tabs/CentralBanksTab").then((module) => ({ default: module.CentralBanksTab })));
-const ChartsTab = lazy(() => import("@/app/tabs/ChartsTab").then((module) => ({ default: module.ChartsTab })));
-const EconomicCalendarTab = lazy(() => import("@/app/tabs/EconomicCalendarTab").then((module) => ({ default: module.EconomicCalendarTab })));
-const WorkInProgressTab = lazy(() => import("@/app/tabs/WorkInProgressTab").then((module) => ({ default: module.WorkInProgressTab })));
-const PrototypingTab = lazy(() => import("@/app/tabs/PrototypingTab").then((module) => ({ default: module.PrototypingTab })));
-const TerminalQuestionsTab = lazy(() => import("@/app/tabs/TerminalQuestionsTab").then((module) => ({ default: module.TerminalQuestionsTab })));
+const OverviewTab = lazy(() => import("@/app/tabs/secondary/OverviewTab").then((module) => ({ default: module.OverviewTab })));
+const DashboardTab = lazy(() => import("@/app/tabs/secondary/DashboardTab").then((module) => ({ default: module.DashboardTab })));
+const StrengthMeterTab = lazy(() => import("@/app/tabs/secondary/StrengthMeterTab").then((module) => ({ default: module.StrengthMeterTab })));
+const EventReplayTab = lazy(() => import("@/app/tabs/secondary/EventReplayTab").then((module) => ({ default: module.EventReplayTab })));
+const CentralBanksTab = lazy(() => import("@/app/tabs/primary/CentralBanksTab").then((module) => ({ default: module.CentralBanksTab })));
+const ChartsTab = lazy(() => import("@/app/tabs/primary/ChartsTab").then((module) => ({ default: module.ChartsTab })));
+const EconomicCalendarTab = lazy(() => import("@/app/tabs/primary/EconomicCalendarTab").then((module) => ({ default: module.EconomicCalendarTab })));
+const WorkInProgressTab = lazy(() => import("@/app/tabs/secondary/WorkInProgressTab").then((module) => ({ default: module.WorkInProgressTab })));
+const PrototypingTab = lazy(() => import("@/app/tabs/secondary/PrototypingTab").then((module) => ({ default: module.PrototypingTab })));
+const TerminalQuestionsTab = lazy(() => import("@/app/tabs/secondary/TerminalQuestionsTab").then((module) => ({ default: module.TerminalQuestionsTab })));
 const CurrencyCandleStrengthTab = lazy(() =>
-  import("@/app/tabs/CurrencyCandleStrengthTab").then((module) => ({ default: module.CurrencyCandleStrengthTab })),
+  import("@/app/tabs/secondary/CurrencyCandleStrengthTab").then((module) => ({ default: module.CurrencyCandleStrengthTab })),
 );
 const MacroStatePrototypeTab = lazy(() =>
-  import("@/app/tabs/MacroStatePrototypeTab").then((module) => ({ default: module.MacroStatePrototypeTab })),
+  import("@/app/tabs/secondary/MacroStatePrototypeTab").then((module) => ({ default: module.MacroStatePrototypeTab })),
 );
 const WatchlistEnginePrototypeTab = lazy(() =>
-  import("@/app/tabs/WatchlistEnginePrototypeTab").then((module) => ({ default: module.WatchlistEnginePrototypeTab })),
+  import("@/app/tabs/secondary/WatchlistEnginePrototypeTab").then((module) => ({ default: module.WatchlistEnginePrototypeTab })),
 );
 
-export const ANALYSIS_TAB_ORDER: { id: TabId; label: string }[] = [
-  { id: "event-tools", label: "EVENT REPLAY" },
-  { id: "prototyping", label: "PROTOTYPING" },
-  { id: "terminal-questions", label: "SIX QUESTIONS DRAFT" },
-  { id: "work-in-progress", label: "WIP MAP ARCHIVE" },
+export const ANALYSIS_TAB_ORDER: { id: TabId; label: string; groupLabel?: string }[] = [
+  { id: "event-tools", label: "EVENT REPLAY", groupLabel: "Active Experiment" },
+  { id: "prototyping", label: "PROTOTYPING", groupLabel: "Archived / Ignore" },
 ];
 
-export const TAB_ORDER: Array<{ id: TabId; label: string; children?: { id: TabId; label: string }[] }> = [
+export const TAB_ORDER: Array<{ id: TabId; label: string; children?: { id: TabId; label: string; groupLabel?: string }[] }> = [
   { id: "overview", label: "Overview" },
   { id: "central-banks", label: "Central Banks Data" },
   { id: "charts", label: "Charts" },

@@ -15,19 +15,17 @@ Current top-level navigation:
 Important current-state note:
 
 - `Overview` is intentionally a blank rebuild surface right now.
-- The previous large overview is still available as `Legacy Overview` through Specialist Tools/prototype routing.
+- The previous large overview is still available as `Deprecated Overview` through Specialist Tools > Prototyping.
 - The strongest current primary surfaces are `Central Banks Data`, `Charts`, `Economic Calendar`, `Event Replay`, and the `Specialist Tools` shell.
 - `Central Banks Data` is the current reference surface and should remain stable unless a targeted fix is needed.
 - `Six Questions`, `Work In Progress`, and `Aesthetic Forge` are historical/prototype context, not active product direction.
 
 `Specialist Tools` currently contains:
 
-1. `EVENT REPLAY`
-2. `PROTOTYPING`
-3. `SIX QUESTIONS DRAFT`
-4. `WIP MAP ARCHIVE`
+1. `EVENT REPLAY` under `Active Experiment`
+2. `PROTOTYPING` under `Archived / Ignore`
 
-The `PROTOTYPING` area links to active experiments and older tools, including `Strength Meter`, `Differential Calculator`, and `Legacy Overview`.
+The `PROTOTYPING` area is the secondary lab/archive. It contains unstable experiments, old planning drafts such as `Six Questions Draft` and `WIP Map Archive`, and older tools such as `Strength Meter`, `Differential Calculator`, and `Deprecated Overview`.
 
 `Event Replay` is the promoted pair-first replay workflow. It lets the user pick a pair, inspect base/quote event types first, keep major global movers separate, select past releases, and replay MT5 candles around the release marker.
 
@@ -70,13 +68,14 @@ It also expects the MT5 EA calendar bridge to be pushing economic calendar event
 ## Main Behavior
 
 - `Overview` is currently a rebuild placeholder, not the mission-control source of truth.
-- `Legacy Overview` keeps the older mission-control surface available for reference while the new direction is clarified.
+- `Deprecated Overview` keeps the older mission-control surface available for reference while the new direction is clarified.
 - `Charts` keeps the live MT5 chart workflow and debug log, and shows explicit no-data / error states instead of fake candles.
 - `Economic Calendar` is MT5-backed, supports range/filter/search workflows, and can deep-link from `Overview` into a target event with highlight + explainer behavior.
 - `Central Banks Data` is derived from MT5 calendar events using strict mapping rules for the major 8 currencies. If a match is uncertain, the UI shows `N/A` instead of guessing.
-- `Specialist Tools` is the routing shell for Event Replay plus older prototype/legacy tools.
+- `Specialist Tools` is the routing shell for Event Replay plus the Prototyping archive.
 - `Event Replay` is the main pair-first event replay surface. It is descriptive study support, not a signal engine.
-- `EventReactionTab.tsx` and `EventQualityTab.tsx` are older replay/event-quality surfaces kept on disk as archive candidates until the Specialist Tools audit decides keep, merge, rewrite, or archive.
+- `tabs/primary/` contains always-visible primary workflow tabs.
+- `tabs/secondary/` contains Event Replay plus Prototyping/archive surfaces. Treat older files such as `EventReactionTab.tsx` and `EventQualityTab.tsx` as ignored unless explicitly requested.
 
 ## Run It
 

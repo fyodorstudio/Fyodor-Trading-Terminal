@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { TerminalQuestionsTab } from "@/app/tabs/TerminalQuestionsTab";
+import { TerminalQuestionsTab } from "@/app/tabs/secondary/TerminalQuestionsTab";
 
 describe("TerminalQuestionsTab", () => {
   it("renders the six product questions and navigation labels", () => {
@@ -19,7 +19,7 @@ describe("TerminalQuestionsTab", () => {
     expect(html).toContain("Audit Calendar");
     expect(html).toContain("Open Event Replay");
     expect(html).toContain("Prototype");
-    expect(html).toContain("Legacy");
+    expect(html).toContain("Deprecated");
     expect(html).not.toContain("Open Event Tools");
   });
 });

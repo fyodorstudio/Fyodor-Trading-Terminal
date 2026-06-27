@@ -7,10 +7,10 @@ interface TerminalQuestion {
   honestLimit: string;
   primaryTab: TabId;
   primaryLabel: string;
-  primaryStatus: "Primary" | "Prototype" | "Legacy";
+  primaryStatus: "Primary" | "Prototype" | "Deprecated";
   secondaryTab?: TabId;
   secondaryLabel?: string;
-  secondaryStatus?: "Primary" | "Prototype" | "Legacy";
+  secondaryStatus?: "Primary" | "Prototype" | "Deprecated";
 }
 
 const TERMINAL_QUESTIONS: TerminalQuestion[] = [
@@ -34,7 +34,7 @@ const TERMINAL_QUESTIONS: TerminalQuestion[] = [
     primaryStatus: "Prototype",
     secondaryTab: "strength-meter",
     secondaryLabel: "Open Strength",
-    secondaryStatus: "Legacy",
+    secondaryStatus: "Deprecated",
   },
   {
     question: "Is the macro backdrop supportive, hostile, or unclear?",
@@ -63,8 +63,8 @@ const TERMINAL_QUESTIONS: TerminalQuestion[] = [
     currentAnswer: "Combine candle strength, pair direction, macro snapshots, recent event pressure, and upcoming risk into a readable base-vs-quote brief.",
     honestLimit: "The app can explain evidence alignment. TradingView structure still decides entry quality.",
     primaryTab: "legacy-overview",
-    primaryLabel: "Open Legacy Overview",
-    primaryStatus: "Legacy",
+    primaryLabel: "Open Deprecated Overview",
+    primaryStatus: "Deprecated",
     secondaryTab: "currency-candle-strength",
     secondaryLabel: "Open Candle Strength",
     secondaryStatus: "Prototype",
