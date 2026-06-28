@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { TerminalQuestionsTab } from "@/app/tabs/secondary/TerminalQuestionsTab";
+import { TerminalQuestionsTab } from "@/app/tabs/garbage/TerminalQuestionsTab";
 
 describe("TerminalQuestionsTab", () => {
   it("renders the six product questions and navigation labels", () => {

@@ -7,7 +7,7 @@ interface PrototypeLink {
   description: string;
 }
 
-const PROTOTYPE_LINKS: PrototypeLink[] = [
+const IGNORE_LINKS: PrototypeLink[] = [
   {
     id: "currency-candle-strength",
     label: "Currency Strength From Candles",
@@ -23,9 +23,6 @@ const PROTOTYPE_LINKS: PrototypeLink[] = [
     label: "Macro State",
     description: "Experimental selected-pair macro backdrop view.",
   },
-];
-
-const PLANNING_LINKS: PrototypeLink[] = [
   {
     id: "terminal-questions",
     label: "Six Questions Draft",
@@ -36,9 +33,6 @@ const PLANNING_LINKS: PrototypeLink[] = [
     label: "WIP Map Archive",
     description: "Archived planning map kept for reference only.",
   },
-];
-
-const ARCHIVED_LINKS: PrototypeLink[] = [
   {
     id: "strength-meter",
     label: "Strength Meter",
@@ -118,26 +112,10 @@ export function PrototypingTab({ onNavigate }: PrototypingTabProps) {
       </section>
 
       <ToolGrid
-        kicker="Unstable"
-        title="Experimental Tools"
-        description="Secondary screens that may be mined for ideas, but are not current product truth."
-        items={PROTOTYPE_LINKS}
-        onNavigate={onNavigate}
-      />
-
-      <ToolGrid
-        kicker="Archived / Ignore"
-        title="Planning Drafts"
-        description="Old planning surfaces moved out of Specialist Tools so they do not pollute the active workflow."
-        items={PLANNING_LINKS}
-        onNavigate={onNavigate}
-      />
-
-      <ToolGrid
-        kicker="Deprecated"
-        title="Older Tools"
-        description="Previous specialist screens kept available only for reference while their purpose and logic are reviewed."
-        items={ARCHIVED_LINKS}
+        kicker="Ignore"
+        title="Garbage Drawer"
+        description="Old, unstable, or unfinished screens kept only so nothing useful is lost. Do not treat these as current product direction."
+        items={IGNORE_LINKS}
         onNavigate={onNavigate}
       />
     </div>

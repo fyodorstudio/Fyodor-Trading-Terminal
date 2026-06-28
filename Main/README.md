@@ -23,9 +23,9 @@ Important current-state note:
 `Specialist Tools` currently contains:
 
 1. `EVENT REPLAY` under `Active Experiment`
-2. `PROTOTYPING` under `Archived / Ignore`
+2. `PROTOTYPING` under `Garbage / Ignore`
 
-The `PROTOTYPING` area is the secondary lab/archive. It contains unstable experiments, old planning drafts such as `Six Questions Draft` and `WIP Map Archive`, and older tools such as `Strength Meter`, `Differential Calculator`, and `Deprecated Overview`.
+The `PROTOTYPING` area is a garbage drawer for old unfinished surfaces. It contains unstable experiments, old planning drafts such as `Six Questions Draft` and `WIP Map Archive`, and older tools such as `Strength Meter`, `Differential Calculator`, and `Deprecated Overview`. Ignore it unless explicitly requested.
 
 `Event Replay` is the promoted pair-first replay workflow. It lets the user pick a pair, inspect base/quote event types first, keep major global movers separate, select past releases, and replay MT5 candles around the release marker.
 
@@ -75,7 +75,8 @@ It also expects the MT5 EA calendar bridge to be pushing economic calendar event
 - `Specialist Tools` is the routing shell for Event Replay plus the Prototyping archive.
 - `Event Replay` is the main pair-first event replay surface. It is descriptive study support, not a signal engine.
 - `tabs/primary/` contains always-visible primary workflow tabs.
-- `tabs/secondary/` contains Event Replay plus Prototyping/archive surfaces. Treat older files such as `EventReactionTab.tsx` and `EventQualityTab.tsx` as ignored unless explicitly requested.
+- `tabs/secondary/` contains Event Replay plus the Prototyping shell.
+- `tabs/garbage/` contains old unfinished, deprecated, or ignored routed surfaces. Do not read it for general orientation unless explicitly requested.
 - `hooks/` contains app-shell side effects extracted from `App.tsx`.
 - `types/` contains domain type files; `types.ts` remains a compatibility barrel.
 

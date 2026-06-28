@@ -14,7 +14,7 @@ export interface AppTabConfig {
 
 export const ANALYSIS_TAB_ORDER: AppTabChild[] = [
   { id: "event-tools", label: "EVENT REPLAY", groupLabel: "Active Experiment" },
-  { id: "prototyping", label: "PROTOTYPING", groupLabel: "Archived / Ignore" },
+  { id: "prototyping", label: "PROTOTYPING", groupLabel: "Garbage / Ignore" },
 ];
 
 export const TAB_ORDER: AppTabConfig[] = [

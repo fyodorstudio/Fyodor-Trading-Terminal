@@ -1,6 +1,6 @@
 # Tab Folder Map
 
-This folder is split into two buckets so future AI sessions can avoid spending context on stale surfaces.
+This folder is split so future AI sessions can avoid spending context on stale surfaces.
 
 ## `primary/`
 
@@ -15,6 +15,10 @@ Treat these as active product surfaces.
 
 ## `secondary/`
 
-Secondary tabs live under Specialist Tools or Prototyping. `EventReplayTab.tsx` is the only active experiment here.
+Secondary tabs live under Specialist Tools. `EventReplayTab.tsx` is the only active experiment here, and `PrototypingTab.tsx` is only the shell that opens the garbage drawer.
 
-Everything else in this folder is unstable, deprecated, archived, or ignored unless the user explicitly asks for it. Keep old route ids working, but do not treat these files as current product direction by default.
+Keep this folder limited to active secondary surfaces and shells.
+
+## `garbage/`
+
+Old unfinished, deprecated, or ignored routed surfaces live here. Keep old route ids working, but do not read or edit this folder unless the user explicitly asks for one of those screens.

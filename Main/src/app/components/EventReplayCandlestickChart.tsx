@@ -1,11 +1,14 @@
 import { useEffect, useRef } from "react";
 import {
   CandlestickSeries,
+  ColorType,
   createChart,
   createSeriesMarkers,
   type CandlestickData,
   type IChartApi,
   type ISeriesApi,
+  type Time,
+  type UTCTimestamp,
 } from "lightweight-charts";
 import { formatReplayAxisTime } from "@/app/lib/eventReplayView";
 import type { BridgeCandle, FxPairDefinition, ReplayChartTimeframe } from "@/app/types";
@@ -16,6 +19,20 @@ interface EventReplayCandlestickChartProps {
   visibleCount: number;
   pair: FxPairDefinition;
   timeframe: ReplayChartTimeframe;
+}
+
+function toChartTime(time: number): UTCTimestamp {
+  return time as UTCTimestamp;
+}
+
+function toChartCandles(candles: BridgeCandle[]): CandlestickData<Time>[] {
+  return candles.map((candle) => ({
+    time: toChartTime(candle.time),
+    open: candle.open,
+    high: candle.high,
+    low: candle.low,
+    close: candle.close,
+  }));
 }
 
 export function EventReplayCandlestickChart(props: EventReplayCandlestickChartProps) {
@@ -29,7 +46,7 @@ export function EventReplayCandlestickChart(props: EventReplayCandlestickChartPr
 
     const chart = createChart(container, {
       layout: {
-        background: { type: "solid", color: "transparent" },
+        background: { type: ColorType.Solid, color: "transparent" },
         textColor: "#64748b",
         fontFamily: "Geist, Inter, system-ui, sans-serif",
       },
@@ -47,14 +64,14 @@ export function EventReplayCandlestickChart(props: EventReplayCandlestickChartPr
         barSpacing: 14,
         timeVisible: true,
         secondsVisible: false,
-        tickMarkFormatter: (time) => formatReplayAxisTime(Number(time), props.timeframe),
+        tickMarkFormatter: (time: Time) => formatReplayAxisTime(Number(time), props.timeframe),
       },
       crosshair: {
         vertLine: { labelBackgroundColor: "#111827" },
         horzLine: { labelBackgroundColor: "#111827" },
       },
       localization: {
-        timeFormatter: (time) => formatReplayAxisTime(Number(time), props.timeframe),
+        timeFormatter: (time: Time) => formatReplayAxisTime(Number(time), props.timeframe),
       },
     });
 
@@ -107,10 +124,10 @@ export function EventReplayCandlestickChart(props: EventReplayCandlestickChartPr
       timeScale: {
         timeVisible: true,
         secondsVisible: false,
-        tickMarkFormatter: (time) => formatReplayAxisTime(Number(time), props.timeframe),
+        tickMarkFormatter: (time: Time) => formatReplayAxisTime(Number(time), props.timeframe),
       },
       localization: {
-        timeFormatter: (time) => formatReplayAxisTime(Number(time), props.timeframe),
+        timeFormatter: (time: Time) => formatReplayAxisTime(Number(time), props.timeframe),
       },
     });
   }, [props.timeframe]);
@@ -121,14 +138,14 @@ export function EventReplayCandlestickChart(props: EventReplayCandlestickChartPr
     if (!series || !chart) return;
 
     const visible = props.candles.slice(0, props.visibleCount);
-    series.setData(visible as CandlestickData[]);
+    series.setData(toChartCandles(visible));
 
     if (visible.length > 0 && props.visibleCount > props.eventIndex) {
       const markerTime = props.candles[props.eventIndex]?.time;
       if (markerTime != null) {
         createSeriesMarkers(series, [
           {
-            time: markerTime,
+            time: toChartTime(markerTime),
             position: "aboveBar",
             color: "#2563eb",
             shape: "arrowDown",

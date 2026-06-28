@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { deriveEventQualitySummary, classifyEventQualityFamily } from "@/app/lib/eventQuality";
-import { EventQualityTab } from "@/app/tabs/secondary/EventQualityTab";
+import { EventQualityTab } from "@/app/tabs/garbage/EventQualityTab";
 import type { CalendarEvent } from "@/app/types";
 
 function buildEvent(overrides: Partial<CalendarEvent>): CalendarEvent {

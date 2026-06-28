@@ -31,8 +31,9 @@ Primary top-nav surfaces:
 Secondary surfaces:
 
 - `Event Replay` is the only active secondary experiment.
-- `Prototyping` is the archive/lab for unstable, deprecated, or ignored surfaces.
-- Files under `Main/src/app/tabs/secondary` other than Event Replay are not current product direction unless explicitly requested.
+- `Prototyping` is a garbage drawer for old unfinished surfaces.
+- `Main/src/app/tabs/secondary` should contain only active secondary shells/surfaces.
+- Ignore `Main/src/app/tabs/garbage` unless the user explicitly asks for a file or route inside it. Do not read garbage files for general orientation.
 
 ## Repo Hygiene
 

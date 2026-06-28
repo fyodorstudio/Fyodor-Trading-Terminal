@@ -18,7 +18,7 @@ The strongest current primary surfaces are:
 
 `Overview` is currently a blank rebuild surface. The previous large overview still exists as `Deprecated Overview`, routed through Specialist Tools > Prototyping for reference.
 
-`Specialist Tools` is intentionally short: `EVENT REPLAY` is the active experiment, and `PROTOTYPING` is the archived/ignore lab for unstable or deprecated secondary screens. `Event Replay` is pair-first, shows base/quote event types before separate global movers, and replays MT5 candles around past scheduled releases without making trade calls.
+`Specialist Tools` is intentionally short: `EVENT REPLAY` is the active experiment, and `PROTOTYPING` is a garbage drawer for old unfinished surfaces that should be ignored unless explicitly requested. `Event Replay` is pair-first, shows base/quote event types before separate global movers, and replays MT5 candles around past scheduled releases without making trade calls.
 
 For now the trusted data boundary is deliberately narrow: MT5 OHLCV plus broker/MT5 economic-calendar rows. Do not add new live data sources without an explicit product decision.
 

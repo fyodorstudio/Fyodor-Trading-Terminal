@@ -10,24 +10,24 @@ import type {
   TabId,
 } from "@/app/types";
 
-const OverviewTab = lazy(() => import("@/app/tabs/secondary/OverviewTab").then((module) => ({ default: module.OverviewTab })));
-const DashboardTab = lazy(() => import("@/app/tabs/secondary/DashboardTab").then((module) => ({ default: module.DashboardTab })));
-const StrengthMeterTab = lazy(() => import("@/app/tabs/secondary/StrengthMeterTab").then((module) => ({ default: module.StrengthMeterTab })));
+const OverviewTab = lazy(() => import("@/app/tabs/garbage/OverviewTab").then((module) => ({ default: module.OverviewTab })));
+const DashboardTab = lazy(() => import("@/app/tabs/garbage/DashboardTab").then((module) => ({ default: module.DashboardTab })));
+const StrengthMeterTab = lazy(() => import("@/app/tabs/garbage/StrengthMeterTab").then((module) => ({ default: module.StrengthMeterTab })));
 const EventReplayTab = lazy(() => import("@/app/tabs/secondary/EventReplayTab").then((module) => ({ default: module.EventReplayTab })));
 const CentralBanksTab = lazy(() => import("@/app/tabs/primary/CentralBanksTab").then((module) => ({ default: module.CentralBanksTab })));
 const ChartsTab = lazy(() => import("@/app/tabs/primary/ChartsTab").then((module) => ({ default: module.ChartsTab })));
 const EconomicCalendarTab = lazy(() => import("@/app/tabs/primary/EconomicCalendarTab").then((module) => ({ default: module.EconomicCalendarTab })));
-const WorkInProgressTab = lazy(() => import("@/app/tabs/secondary/WorkInProgressTab").then((module) => ({ default: module.WorkInProgressTab })));
+const WorkInProgressTab = lazy(() => import("@/app/tabs/garbage/WorkInProgressTab").then((module) => ({ default: module.WorkInProgressTab })));
 const PrototypingTab = lazy(() => import("@/app/tabs/secondary/PrototypingTab").then((module) => ({ default: module.PrototypingTab })));
-const TerminalQuestionsTab = lazy(() => import("@/app/tabs/secondary/TerminalQuestionsTab").then((module) => ({ default: module.TerminalQuestionsTab })));
+const TerminalQuestionsTab = lazy(() => import("@/app/tabs/garbage/TerminalQuestionsTab").then((module) => ({ default: module.TerminalQuestionsTab })));
 const CurrencyCandleStrengthTab = lazy(() =>
-  import("@/app/tabs/secondary/CurrencyCandleStrengthTab").then((module) => ({ default: module.CurrencyCandleStrengthTab })),
+  import("@/app/tabs/garbage/CurrencyCandleStrengthTab").then((module) => ({ default: module.CurrencyCandleStrengthTab })),
 );
 const MacroStatePrototypeTab = lazy(() =>
-  import("@/app/tabs/secondary/MacroStatePrototypeTab").then((module) => ({ default: module.MacroStatePrototypeTab })),
+  import("@/app/tabs/garbage/MacroStatePrototypeTab").then((module) => ({ default: module.MacroStatePrototypeTab })),
 );
 const WatchlistEnginePrototypeTab = lazy(() =>
-  import("@/app/tabs/secondary/WatchlistEnginePrototypeTab").then((module) => ({ default: module.WatchlistEnginePrototypeTab })),
+  import("@/app/tabs/garbage/WatchlistEnginePrototypeTab").then((module) => ({ default: module.WatchlistEnginePrototypeTab })),
 );
 
 interface AppRoutesProps {
