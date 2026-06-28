@@ -1,13 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { deriveCentralBankSnapshots } from "@/app/lib/centralBankDerive";
 import { createCalendarNavigationIntent } from "@/app/lib/calendarNavigation";
+import { getNextHighImpactEvent } from "@/app/lib/eventHorizon";
 import { AppRoutes } from "@/app/AppRoutes";
 import { MinimalHeader } from "@/app/components/MinimalHeader";
 import { TabNavigation } from "@/app/components/TabNavigation";
 import { UiCommandPanel } from "@/app/components/UiCommandPanel";
 import { TAB_ORDER } from "@/app/config/navigation";
 import { useCalendarFeed } from "@/app/hooks/useCalendarFeed";
+import { useCurrentTime } from "@/app/hooks/useCurrentTime";
 import { useMarketStatus } from "@/app/hooks/useMarketStatus";
 import { useTerminalTheme } from "@/app/hooks/useTerminalTheme";
 import type { CalendarEvent, CalendarNavigationIntent, TabId } from "@/app/types";
@@ -27,19 +29,8 @@ export default function App() {
 
   const centralBankResult = useMemo(() => deriveCentralBankSnapshots(feedEvents), [feedEvents]);
 
-  const nextHighImpact = useMemo(() => {
-    const now = Date.now() / 1000;
-    return feedEvents
-      .filter((event) => event.impact === "high" && event.time >= now)
-      .sort((a, b) => a.time - b.time)[0] ?? null;
-  }, [feedEvents]);
-
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  useEffect(() => {
-    const id = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
+  const nextHighImpact = useMemo(() => getNextHighImpactEvent(feedEvents), [feedEvents]);
+  const currentTime = useCurrentTime();
 
   const [isUiPanelOpen, setIsUiPanelOpen] = useState(false);
 
@@ -72,7 +63,7 @@ export default function App() {
             marketStatus={overviewMarketStatus}
             selectedSymbol={overviewSymbol}
             resolvedBanks={centralBankResult.snapshots.filter((item) => item.status === "ok").length}
-            nextHighImpact={nextHighImpact ? { title: nextHighImpact.title, currency: nextHighImpact.currency, time: nextHighImpact.time } : null}
+            nextHighImpact={nextHighImpact}
           />
 
           <TabNavigation

@@ -8,6 +8,7 @@ This folder holds pure helpers, bridge adapters, and feature engines. Prefer edi
 - `status.ts`, `format.ts`, `timezoneDisplay.ts`, and `calendarRanges.ts` are shared UI/data helpers.
 - `centralBankDerive.ts` is primary product logic for Central Banks Data.
 - `chartStorage.ts` and `chartView.ts` support the primary Charts tab.
+- `eventHorizon.ts` owns the small event-warning summary shown by the app shell.
 - `calendarNavigation.ts`, `calendarEventExplain.ts`, `calendarEventKnowledge.ts`, and `calendarEventDefinitions.ts` support the primary Economic Calendar and Event Replay explanations.
 
 ## Event Replay

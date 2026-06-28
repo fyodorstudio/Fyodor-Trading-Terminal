@@ -3,6 +3,7 @@
 Hooks in this folder extract app-shell side effects out of `App.tsx`.
 
 - `useCalendarFeed.ts` owns bridge health + economic calendar polling.
+- `useCurrentTime.ts` owns the app-shell ticking clock.
 - `useMarketStatus.ts` owns per-symbol market status polling.
 - `useTerminalTheme.ts` owns Aesthetic Forge theme/font preference persistence and CSS variable application.
 
