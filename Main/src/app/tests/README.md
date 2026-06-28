@@ -13,6 +13,7 @@ Use this folder to find the narrowest proof for a change before running the whol
 ## Event Replay
 
 - `eventReaction.test.tsx` covers pair-first event grouping, release samples, replay range sizing, and the Event Replay shell.
+- `eventReplayDisplay.test.ts` covers Event Replay status labels, initial display helpers, and event-template sorting.
 - `eventReplayView.test.ts` covers replay window/view calculations.
 - `eventReplayStorage.test.ts` covers Event Replay localStorage persistence.
 - `eventHorizon.test.ts` covers the app-shell next high-impact event summary.

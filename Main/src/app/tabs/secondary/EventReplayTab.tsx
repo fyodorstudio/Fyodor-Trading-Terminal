@@ -18,6 +18,15 @@ import { fetchHistoryRange } from "@/app/lib/bridge";
 import { getCalendarEventExplainer } from "@/app/lib/calendarEventExplain";
 import { getCurrencyCountryCode } from "@/app/lib/eventQuality";
 import {
+  getEventReplayStatusLabel,
+  getInitialEventReplayPair,
+  getInitialEventReplaySampleIndex,
+  getInitialEventReplayTimeframe,
+  sortEventTemplates,
+  type EventTemplateFilter,
+  type EventTemplateSort,
+} from "@/app/lib/eventReplayDisplay";
+import {
   DEFAULT_REPLAY_AFTER_CANDLES,
   DEFAULT_REPLAY_BEFORE_CANDLES,
   EVENT_REPLAY_STORAGE_KEYS,
@@ -46,10 +55,7 @@ import type {
   BridgeCandle,
   BridgeStatus,
   CalendarEvent,
-  EventTemplate,
-  FxPairDefinition,
   ReplayChartTimeframe,
-  SampleQuality,
 } from "@/app/types";
 
 interface EventReplayTabProps {
@@ -62,58 +68,13 @@ const STORAGE_KEYS = EVENT_REPLAY_STORAGE_KEYS;
 const PLAYBACK_INTERVAL_MS = 550;
 const DEFAULT_BEFORE_CANDLES = DEFAULT_REPLAY_BEFORE_CANDLES;
 const DEFAULT_AFTER_CANDLES = DEFAULT_REPLAY_AFTER_CANDLES;
-const QUALITY_ORDER: Record<SampleQuality, number> = { usable: 0, limited: 1, weak: 2 };
-
-type EventTemplateFilter = "all" | SampleQuality;
-type EventTemplateSort = "quality" | "sample_count" | "currency";
-
-function getInitialPair(): FxPairDefinition {
-  return getFxPairByName(getStorageItem(STORAGE_KEYS.pair) ?? "EURUSD") ?? FX_PAIRS[0];
-}
-
-function getInitialReplayTimeframe(): ReplayChartTimeframe {
-  const saved = getStorageItem(STORAGE_KEYS.replayTimeframe);
-  return REPLAY_TIMEFRAME_OPTIONS.some((option) => option.id === saved) ? (saved as ReplayChartTimeframe) : "H1";
-}
-
-function getInitialSampleIndex(): number {
-  const saved = Number(getStorageItem(STORAGE_KEYS.sampleIndex) ?? "0");
-  return Number.isFinite(saved) && saved >= 0 ? saved : 0;
-}
-
-function renderStatusLabel(status: BridgeStatus): string {
-  if (status === "live") return "Calendar live";
-  if (status === "stale") return "Calendar stale";
-  if (status === "loading") return "Loading events";
-  if (status === "no_data") return "No calendar rows";
-  return "Bridge unavailable";
-}
-
-function sortEventTemplates(templates: EventTemplate[], sortMode: EventTemplateSort): EventTemplate[] {
-  return [...templates].sort((left, right) => {
-    if (sortMode === "quality") {
-      const qualityDelta = QUALITY_ORDER[left.quality] - QUALITY_ORDER[right.quality];
-      if (qualityDelta !== 0) return qualityDelta;
-      if (right.sampleCount !== left.sampleCount) return right.sampleCount - left.sampleCount;
-      return left.title.localeCompare(right.title);
-    }
-    if (sortMode === "sample_count") {
-      if (right.sampleCount !== left.sampleCount) return right.sampleCount - left.sampleCount;
-      const qualityDelta = QUALITY_ORDER[left.quality] - QUALITY_ORDER[right.quality];
-      if (qualityDelta !== 0) return qualityDelta;
-      return left.title.localeCompare(right.title);
-    }
-    if (left.currency !== right.currency) return left.currency.localeCompare(right.currency);
-    return left.title.localeCompare(right.title);
-  });
-}
 
 export function EventReplayTab({ events, status, lastCalendarIngestAt }: EventReplayTabProps) {
-  const [selectedPairName, setSelectedPairName] = useState(() => getInitialPair().name);
+  const [selectedPairName, setSelectedPairName] = useState(() => getInitialEventReplayPair().name);
   const selectedPair = useMemo(() => getFxPairByName(selectedPairName) ?? FX_PAIRS[0], [selectedPairName]);
   const [selectedEventKey, setSelectedEventKey] = useState(() => getStorageItem(STORAGE_KEYS.eventKey) ?? "");
-  const [replayTimeframe, setReplayTimeframe] = useState<ReplayChartTimeframe>(() => getInitialReplayTimeframe());
-  const [selectedSampleIndex, setSelectedSampleIndex] = useState(() => getInitialSampleIndex());
+  const [replayTimeframe, setReplayTimeframe] = useState<ReplayChartTimeframe>(() => getInitialEventReplayTimeframe());
+  const [selectedSampleIndex, setSelectedSampleIndex] = useState(() => getInitialEventReplaySampleIndex());
   const [beforeCount, setBeforeCount] = useState(() => getInitialReplayCount(STORAGE_KEYS.beforeCandles, DEFAULT_BEFORE_CANDLES));
   const [afterCount, setAfterCount] = useState(() => getInitialReplayCount(STORAGE_KEYS.afterCandles, DEFAULT_AFTER_CANDLES));
   const [visibleCount, setVisibleCount] = useState(0);
@@ -310,7 +271,7 @@ export function EventReplayTab({ events, status, lastCalendarIngestAt }: EventRe
               <h2 className="m-0 text-xl font-black text-slate-950">Event Replay</h2>
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500">
                 <Clock3 size={13} />
-                {renderStatusLabel(status)}
+                {getEventReplayStatusLabel(status)}
               </span>
               <span className="text-xs font-bold text-slate-500">{feedAgeLabel}</span>
             </div>

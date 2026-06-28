@@ -15,6 +15,7 @@ This folder holds pure helpers, bridge adapters, and feature engines. Prefer edi
 ## Event Replay
 
 - `eventReaction.ts` contains the replay/event-template study logic used by the active Event Replay surface.
+- `eventReplayDisplay.ts` owns Event Replay display labels, initial UI selections, and template sorting.
 - `eventReplayStorage.ts` owns Event Replay localStorage keys and persistence helpers.
 - `eventReplayView.ts` owns replay view/window helpers.
 
