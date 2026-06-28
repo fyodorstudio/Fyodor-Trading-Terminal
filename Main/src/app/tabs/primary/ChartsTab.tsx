@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CandlestickSeries,
-  CrosshairMode,
   createChart,
   type CandlestickData,
   type IChartApi,
@@ -29,6 +28,15 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { fetchHistory, fetchHistoryBoundary, fetchHistoryRange, fetchSymbols, openChartStream } from "@/app/lib/bridge";
+import {
+  CHART_HISTORY_RANGE_MAX_SECONDS,
+  CHART_TIMEFRAMES,
+  DEFAULT_CHART_SYMBOL,
+  getChartConnectionLabel,
+  getChartPriceFormat,
+  getCrosshairMode,
+  pickInitialChartSymbol,
+} from "@/app/lib/chartDisplay";
 import {
   DEFAULT_CHART_PREFERENCES,
   formatChartFeedTime,
@@ -64,9 +72,6 @@ import {
 import type { BridgeCandle, BridgeStatus, BridgeSymbol, MarketStatusResponse, Timeframe } from "@/app/types";
 
 const DEBUG_MAX = 60;
-const DEFAULT_SYMBOL = "EURUSD";
-const TIMEFRAMES: Timeframe[] = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"];
-const PREFERRED_SYMBOLS = ["EURUSD", "USDJPY", "GBPUSD", "XAUUSD"];
 const CURSOR_MODE_OPTIONS: Array<{ id: ChartCursorReadoutMode; label: string; description: string }> = [
   { id: "both", label: "Both", description: "Show cursor price and nearest candle close." },
   { id: "true_cursor", label: "True cursor", description: "Show the exact price under the pointer." },
@@ -79,47 +84,6 @@ type CrosshairReadout = {
 };
 
 type ChartDrawerMode = "settings" | "cache";
-
-const HISTORY_RANGE_MAX_SECONDS = 40 * 24 * 60 * 60;
-
-export function getChartConnectionLabel(params: {
-  historyState: "loading" | "ready" | "no_data" | "error";
-  marketStatus: MarketStatusResponse | null;
-  streamConnected: boolean;
-}): string {
-  if (params.historyState === "loading") return "Loading";
-  if (params.marketStatus?.terminal_connected === false) return "MT5 Disconnected";
-  if (params.marketStatus?.session_state === "closed") return "Market Closed";
-  if (params.historyState === "error") return "Bridge Unavailable";
-  if (params.historyState === "no_data") return "Bridge Unavailable";
-  return params.streamConnected ? "Market Open" : "Bridge Unavailable";
-}
-
-function getChartPriceFormat(symbol: string, assetClass: string | null) {
-  const normalized = symbol.toUpperCase();
-  if (assetClass === "metals" || normalized.startsWith("XAU") || normalized.startsWith("XAG")) {
-    return { type: "price" as const, precision: 2, minMove: 0.01 };
-  }
-  if (normalized.includes("JPY")) {
-    return { type: "price" as const, precision: 3, minMove: 0.001 };
-  }
-  if (assetClass === "crypto") {
-    return { type: "price" as const, precision: 2, minMove: 0.01 };
-  }
-  return { type: "price" as const, precision: 5, minMove: 0.00001 };
-}
-
-function getCrosshairMode(readoutMode: ChartCursorReadoutMode) {
-  return readoutMode === "nearest_candle" ? CrosshairMode.Magnet : CrosshairMode.Normal;
-}
-
-function pickInitialSymbol(symbols: BridgeSymbol[]): string {
-  for (const preferred of PREFERRED_SYMBOLS) {
-    const found = symbols.find((symbol) => symbol.name.toUpperCase() === preferred);
-    if (found) return found.name;
-  }
-  return symbols[0]?.name ?? DEFAULT_SYMBOL;
-}
 
 interface GroupedSymbols {
   label: string;
@@ -288,7 +252,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
       setSymbols(items);
       if (items.length > 0) {
         onSelectedSymbolChange(
-          selectedSymbol === DEFAULT_SYMBOL ? pickInitialSymbol(items) : selectedSymbol,
+          selectedSymbol === DEFAULT_CHART_SYMBOL ? pickInitialChartSymbol(items) : selectedSymbol,
         );
         const groups = Array.from(
           new Set(
@@ -601,7 +565,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
           const end = currentOldest - 1;
           if (end <= 0) break;
 
-          const start = Math.max(0, end - HISTORY_RANGE_MAX_SECONDS);
+          const start = Math.max(0, end - CHART_HISTORY_RANGE_MAX_SECONDS);
           const older = await fetchHistoryRange({ symbol: selectedSymbol, tf: timeframe, from: start, to: end });
           if (older.length === 0) {
             break;
@@ -922,7 +886,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
           </div>
 
           <div className="chart-timeframe-strip">
-            {TIMEFRAMES.map((item) => (
+            {CHART_TIMEFRAMES.map((item) => (
               <button
                 key={item}
                 onClick={() => setTimeframe(item)}
