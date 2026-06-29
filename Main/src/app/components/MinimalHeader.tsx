@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertCircle, ChevronDown, Database, Radio, TriangleAlert } from "lucide-react";
+import { AlertCircle, CalendarClock, ChevronsDown, ChevronsUp, Clock3, Radio, TriangleAlert } from "lucide-react";
+import { FlagIcon } from "@/app/components/FlagIcon";
 import { TabNavigation } from "@/app/components/TabNavigation";
 import { TERMINOLOGY } from "@/app/config/terminology";
-import { formatCountdown, formatRelativeAge, formatUtcClock } from "@/app/lib/format";
+import { formatCountdown, formatLocalClock, formatRelativeAge, formatUtcClock, formatUtcDateTime } from "@/app/lib/format";
 import { resolveTrustState } from "@/app/lib/status";
 import type { AppTabConfig } from "@/app/config/navigation";
 import type { BridgeHealth, BridgeStatus, MarketStatusResponse, TabId } from "@/app/types";
@@ -18,7 +19,7 @@ interface MinimalHeaderProps {
   selectedSymbol: string;
   tabOrder: AppTabConfig[];
   resolvedBanks: number;
-  nextHighImpact?: { title: string; currency: string; time: number } | null;
+  nextHighImpact?: { title: string; currency: string; countryCode: string; time: number } | null;
 }
 
 export function MinimalHeader({
@@ -33,9 +34,11 @@ export function MinimalHeader({
   resolvedBanks,
   nextHighImpact
 }: MinimalHeaderProps) {
-  const [showDetails, setShowDetails] = useState(false);
+  const [hoverExpanded, setHoverExpanded] = useState(false);
+  const [pinnedExpanded, setPinnedExpanded] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trustState = useMemo(() => resolveTrustState(health, feedStatus, marketStatus), [health, feedStatus, marketStatus]);
+  const showDetails = hoverExpanded || pinnedExpanded;
 
   const clearCloseTimer = () => {
     if (closeTimerRef.current) {
@@ -46,17 +49,20 @@ export function MinimalHeader({
 
   const openDetails = () => {
     clearCloseTimer();
-    setShowDetails(true);
+    setHoverExpanded(true);
   };
 
   const scheduleCloseDetails = () => {
     clearCloseTimer();
-    closeTimerRef.current = setTimeout(() => setShowDetails(false), 180);
+    closeTimerRef.current = setTimeout(() => setHoverExpanded(false), 120);
   };
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setShowDetails(false);
+      if (event.key === "Escape") {
+        setHoverExpanded(false);
+        setPinnedExpanded(false);
+      }
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -66,7 +72,7 @@ export function MinimalHeader({
     };
   }, []);
 
-  const localTime = useMemo(
+  const headerLocalTime = useMemo(
     () =>
       currentTime.toLocaleTimeString("en-US", {
         hour: "2-digit",
@@ -76,14 +82,17 @@ export function MinimalHeader({
     [currentTime],
   );
 
-  const localDate = useMemo(
+  const headerLocalDate = useMemo(
     () =>
       currentTime.toLocaleDateString("en-GB", {
         day: "2-digit",
         month: "short",
+        year: "numeric",
       }),
     [currentTime],
   );
+
+  const localClock = useMemo(() => formatLocalClock(currentTime), [currentTime]);
 
   const calendarState = useMemo(() => {
     if (feedStatus === "live") return { label: TERMINOLOGY.calendarTiming.states.live.medium, tone: "text-emerald-700 bg-emerald-50 border-emerald-200" };
@@ -153,69 +162,54 @@ export function MinimalHeader({
       ? `${health.last_error.code ?? "MT5"}${health.last_error.message ? `: ${health.last_error.message}` : ""}`
       : null;
   const mt5Clock = marketStatus?.server_time ? formatUtcClock(marketStatus.server_time) : "MT5 time unavailable";
-  const eventSummary = nextHighImpact
-    ? `${nextHighImpact.currency} ${nextHighImpact.title}`
-    : feedStatus === "loading"
-      ? "Checking the event horizon"
-      : "No upcoming high-impact event";
+  const nextHighImpactTime = nextHighImpact ? `${formatUtcDateTime(nextHighImpact.time)} UTC` : null;
 
   return (
     <div>
       <div
-        className="fixed left-0 right-0 top-0 z-[910] border-b border-slate-200 bg-white/95 backdrop-blur-xl"
+        className="fixed left-0 right-0 top-0 z-[910] border-b border-slate-200 bg-white/95 shadow-sm shadow-slate-950/5 backdrop-blur-xl"
         onMouseEnter={openDetails}
         onMouseLeave={scheduleCloseDetails}
         onFocus={openDetails}
         onBlur={scheduleCloseDetails}
       >
         <div className="max-w-[1460px] mx-auto px-6">
-          <div className="flex min-h-[52px] items-center justify-between gap-4">
+          <div className="flex min-h-[58px] items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-5">
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-slate-950">Fyodor Trading Terminal</div>
-                <div className="text-xs text-slate-500">{localTime} {localDate}</div>
+                <div className="text-xs text-slate-500">{headerLocalTime} {headerLocalDate}</div>
               </div>
               <div className="hidden min-w-0 items-center gap-3 md:flex">
                 <div className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-xs font-medium ${primaryState.tone}`}>
                   <PrimaryIcon size={14} />
                   <span>{primaryState.label}</span>
                 </div>
-                <div className="min-w-0">
-                  <div className="text-xs font-medium text-slate-700">{TERMINOLOGY.trustState.questionLabel}</div>
-                  <div className="text-xs text-slate-500">{primaryState.detail}</div>
-                </div>
               </div>
             </div>
 
             <div className="flex min-w-0 items-center gap-3">
-              <div className="hidden min-w-0 md:block">
-                <div className="truncate text-xs text-slate-950">{eventSummary}</div>
-                <div className="text-xs text-slate-500">
-                  {nextHighImpact ? `${nextHighImpact.currency} event is next in line` : "No immediate event warning"}
-                </div>
-              </div>
               <button
-                onClick={() => setShowDetails((value) => !value)}
-                className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                onClick={() => {
+                  if (showDetails) {
+                    setHoverExpanded(false);
+                    setPinnedExpanded(false);
+                    return;
+                  }
+                  setPinnedExpanded(true);
+                }}
+                className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+                aria-expanded={showDetails}
               >
-                <span>{showDetails ? "Hide" : "Details"}</span>
-                <ChevronDown className={`h-4 w-4 transition-transform duration-150 ${showDetails ? "rotate-180" : ""}`} />
+                <span>{showDetails ? "Collapse" : "Expand"}</span>
+                {showDetails ? <ChevronsUp className="h-4 w-4" /> : <ChevronsDown className="h-4 w-4" />}
               </button>
             </div>
-          </div>
-
-          <div className="flex min-h-[54px] items-center justify-center border-t border-slate-100 py-1.5">
-            <TabNavigation
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              tabOrder={tabOrder}
-              placement="header"
-            />
           </div>
         </div>
       </div>
 
-      <div className="h-[118px]" />
+      <div className="h-[70px]" />
 
       <AnimatePresence>
         {showDetails && (
@@ -224,15 +218,20 @@ export function MinimalHeader({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.16 }}
-            className="fixed left-0 right-0 top-[106px] z-[900] border-b border-slate-200 bg-white/98 shadow-lg shadow-slate-950/5 backdrop-blur-xl"
-            onMouseEnter={openDetails}
-            onMouseLeave={scheduleCloseDetails}
-            onFocus={openDetails}
-            onBlur={scheduleCloseDetails}
+            className="fixed left-0 right-0 top-[58px] z-[900] max-h-[calc(100vh-58px)] overflow-y-auto border-b border-slate-200 bg-white/98 shadow-xl shadow-slate-950/10 backdrop-blur-xl"
           >
             <div className="max-w-[1460px] mx-auto px-6 py-5">
-              <div className="grid gap-4 lg:grid-cols-[1.15fr_1fr_1fr_1.15fr]">
-                <section className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="flex justify-center border-b border-slate-200 pb-4">
+                <TabNavigation
+                  activeTab={activeTab}
+                  setActiveTab={setActiveTab}
+                  tabOrder={tabOrder}
+                  placement="header"
+                />
+              </div>
+
+              <div className="mt-4 grid gap-4 lg:grid-cols-[1.05fr_1fr_1.25fr_1.15fr]">
+                <section className="rounded-lg border border-slate-200 bg-slate-50/70 p-4">
                   <h2 className="text-sm font-semibold text-slate-950">System health</h2>
                   <div className="mt-3 grid gap-2">
                     <div className="flex items-center justify-between gap-3">
@@ -260,68 +259,82 @@ export function MinimalHeader({
                   </div>
                 </section>
 
-                <section className="rounded-lg border border-slate-200 bg-white p-4">
-                  <h2 className="text-sm font-semibold text-slate-950">Time context</h2>
-                  <div className="mt-3 grid gap-3">
-                    <div>
-                      <div className="text-sm text-slate-600">Local time</div>
-                      <div className="mt-1 text-sm font-medium text-slate-950">{localTime} {localDate}</div>
+                <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03]">
+                  <div className="flex items-center gap-2">
+                    <Clock3 className="h-4 w-4 text-slate-400" />
+                    <h2 className="text-sm font-semibold text-slate-950">Time context</h2>
+                  </div>
+                  <div className="mt-4 grid gap-3">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5">
+                      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Local time</div>
+                      <div className="mt-1 text-sm font-semibold leading-5 text-slate-950">{localClock}</div>
                     </div>
-                    <div>
-                      <div className="text-sm text-slate-600">MT5 feed time</div>
-                      <div className="mt-1 text-sm font-medium text-slate-950">{mt5Clock}</div>
+                    <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5">
+                      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">MT5 feed time</div>
+                      <div className="mt-1 text-sm font-semibold leading-5 text-slate-950">{mt5Clock}</div>
                     </div>
                   </div>
                 </section>
 
-                <section className="rounded-lg border border-slate-200 bg-white p-4">
+                <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03]">
                   <h2 className="text-sm font-semibold text-slate-950">Feed diagnostics</h2>
-                  <div className="mt-3 grid gap-3">
-                    <div>
-                      <div className="text-sm text-slate-600">{TERMINOLOGY.trustState.sectionLabel} Note</div>
-                      <div className="mt-1 text-sm font-medium text-slate-950">{trustState.detail}</div>
+                  <div className="mt-3 grid gap-2">
+                    <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5">
+                      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{TERMINOLOGY.trustState.sectionLabel} note</div>
+                      <div className="mt-1 text-sm font-semibold leading-5 text-slate-950">{trustState.detail}</div>
                     </div>
-                    {mt5Error ? (
-                      <div>
-                        <div className="text-sm text-slate-600">MT5 price API error</div>
-                        <div className="mt-1 text-sm font-medium text-slate-950">{mt5Error}</div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{TERMINOLOGY.labels.lastIngest}</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-950">{lastIngest}</div>
                       </div>
-                    ) : null}
-                    <div>
-                      <div className="text-sm text-slate-600">{TERMINOLOGY.labels.lastIngest}</div>
-                      <div className="mt-1 text-sm font-medium text-slate-950">{lastIngest}</div>
+                      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                        <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{TERMINOLOGY.labels.resolvedBanks}</div>
+                        <div className="mt-1 text-sm font-semibold text-slate-950">{resolvedBanks} of 8</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-sm text-slate-600">{TERMINOLOGY.labels.resolvedBanks}</div>
-                      <div className="mt-1 text-sm font-medium text-slate-950">{resolvedBanks} of 8</div>
+                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">MT5 / bridge message</div>
+                      <div className="mt-1 text-sm font-semibold leading-5 text-slate-950">{mt5Error ?? "No current bridge message."}</div>
                     </div>
-                    <div>
-                      <div className="text-sm text-slate-600">{TERMINOLOGY.symbolContext.sectionLabel}</div>
-                      <div className="mt-1 text-sm font-medium text-slate-950">{symbolState.detail}</div>
+                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{TERMINOLOGY.symbolContext.sectionLabel}</div>
+                      <div className="mt-1 text-sm font-semibold leading-5 text-slate-950">{symbolState.detail}</div>
                     </div>
                   </div>
                 </section>
 
-                <section className="rounded-lg border border-slate-200 bg-white p-4">
-                  <h2 className="text-sm font-semibold text-slate-950">Event horizon</h2>
+                <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03]">
+                  <div className="flex items-center gap-2">
+                    <CalendarClock className="h-4 w-4 text-slate-400" />
+                    <h2 className="text-sm font-semibold text-slate-950">Event horizon</h2>
+                  </div>
                   {nextHighImpact ? (
-                    <div className="mt-3 grid gap-3">
-                      <div>
-                        <div className="text-sm text-slate-600">Next high-impact event</div>
-                        <div className="mt-1 text-sm font-medium text-slate-950">{nextHighImpact.title}</div>
+                    <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50/80 p-4 text-slate-950 shadow-sm shadow-blue-950/[0.04]">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-500">Next high-impact event</div>
+                          <div className="mt-2 text-base font-black leading-5">{nextHighImpact.title}</div>
+                        </div>
+                        <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-blue-200 bg-white px-2.5 py-1 text-xs font-black text-blue-800">
+                          <FlagIcon countryCode={nextHighImpact.countryCode} className="h-4 w-6" />
+                          {nextHighImpact.currency}
+                        </div>
                       </div>
-                      <div>
-                        <div className="text-sm text-slate-600">Currency</div>
-                        <div className="mt-1 text-sm font-medium text-slate-950">{nextHighImpact.currency}</div>
-                      </div>
-                      <div>
-                        <div className="text-sm text-slate-600">Countdown</div>
-                        <div className="mt-1 text-sm font-medium text-slate-950">{formatCountdown(nextHighImpact.time)}</div>
+                      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                        <div className="rounded-md border border-blue-200 bg-white/80 px-3 py-2">
+                          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Countdown</div>
+                          <div className="mt-1 text-sm font-black text-slate-950">{formatCountdown(nextHighImpact.time)}</div>
+                        </div>
+                        <div className="rounded-md border border-blue-200 bg-white/80 px-3 py-2">
+                          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Release time</div>
+                          <div className="mt-1 text-sm font-black text-slate-950">{nextHighImpactTime}</div>
+                        </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="mt-3 flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
-                      <Database size={16} className="mt-0.5 shrink-0 text-slate-400" />
+                    <div className="mt-4 flex items-start gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">
+                      <CalendarClock size={17} className="mt-0.5 shrink-0 text-slate-400" />
                       <span>No high-impact event is currently scheduled in the loaded feed window.</span>
                     </div>
                   )}

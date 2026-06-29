@@ -3,6 +3,7 @@ import type { CalendarEvent } from "@/app/types";
 export interface HighImpactEventSummary {
   title: string;
   currency: string;
+  countryCode: string;
   time: number;
 }
 
@@ -23,6 +24,7 @@ export function getNextHighImpactEvent(
     ? {
         title: nextEvent.title,
         currency: nextEvent.currency,
+        countryCode: nextEvent.countryCode,
         time: nextEvent.time,
       }
     : null;
