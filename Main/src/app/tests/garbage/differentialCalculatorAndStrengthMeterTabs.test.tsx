@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { DashboardTab } from "@/app/tabs/garbage/DashboardTab";
+import { DifferentialCalculatorTab } from "@/app/tabs/garbage/DifferentialCalculatorTab";
 import { StrengthMeterTab } from "@/app/tabs/garbage/StrengthMeterTab";
 import type { CalendarEvent, CentralBankSnapshot } from "@/app/types";
 
@@ -63,9 +63,9 @@ const events: CalendarEvent[] = [
   },
 ];
 
-describe("DashboardTab", () => {
+describe("DifferentialCalculatorTab", () => {
   it("renders dashboard sections and pair cards from MT5-backed snapshots", () => {
-    const html = renderToStaticMarkup(<DashboardTab snapshots={snapshots} />);
+    const html = renderToStaticMarkup(<DifferentialCalculatorTab snapshots={snapshots} />);
 
     expect(html).toContain("Differential Calculator");
     expect(html).toContain("Interest Rate Differential + Trend");

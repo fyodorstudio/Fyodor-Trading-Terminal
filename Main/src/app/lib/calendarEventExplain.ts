@@ -155,10 +155,10 @@ export function getCalendarEventExplainer(event: CalendarEvent): CalendarEventEx
   if (directOverride) {
     const family = classifyEventQualityFamily(event.title);
     return completeExplainer(event, {
+      ...directOverride,
       family: family?.family ?? "generic",
       familyLabel: directOverride.familyLabel,
       knowledgeDepth: "specific",
-      ...directOverride,
     });
   }
 
@@ -169,9 +169,9 @@ export function getCalendarEventExplainer(event: CalendarEvent): CalendarEventEx
 
   const familyDefault = CALENDAR_EVENT_FAMILY_DEFAULTS[family.family];
   return completeExplainer(event, {
+    ...familyDefault,
     family: family.family,
     familyLabel: family.label,
     knowledgeDepth: "family",
-    ...familyDefault,
   });
 }

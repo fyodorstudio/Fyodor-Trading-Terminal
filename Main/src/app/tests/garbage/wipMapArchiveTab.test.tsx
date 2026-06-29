@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { WorkInProgressTab } from "@/app/tabs/garbage/WorkInProgressTab";
+import { WipMapArchiveTab } from "@/app/tabs/garbage/WipMapArchiveTab";
 
-describe("WorkInProgressTab", () => {
+describe("WipMapArchiveTab", () => {
   it("renders the hero and the two data tables", () => {
-    const html = renderToStaticMarkup(<WorkInProgressTab />);
+    const html = renderToStaticMarkup(<WipMapArchiveTab />);
 
     expect(html).toContain("WORK IN PROGRESS");
     expect(html).toContain("Archived Planning Map");

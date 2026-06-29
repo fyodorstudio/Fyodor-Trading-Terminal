@@ -22,3 +22,7 @@ Keep this folder limited to active secondary surfaces and shells.
 ## `garbage/`
 
 Old unfinished, deprecated, or ignored routed surfaces live here. Keep old route ids working, but do not read or edit this folder unless the user explicitly asks for one of those screens.
+
+Current garbage drawer files are named after their Prototyping labels: `CurrencyStrengthFromCandlesTab.tsx`, `WatchlistEngineTab.tsx`, `MacroStateTab.tsx`, `SixQuestionsDraftTab.tsx`, `WipMapArchiveTab.tsx`, `StrengthMeterTab.tsx`, `DifferentialCalculatorTab.tsx`, and `DeprecatedOverviewTab.tsx`.
+
+Archive-only study screens live here as `ArchivedEventReactionStudyTab.tsx` and `ArchivedEventQualityStudyTab.tsx`.

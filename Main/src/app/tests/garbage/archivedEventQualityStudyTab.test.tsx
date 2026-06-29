@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { deriveEventQualitySummary, classifyEventQualityFamily } from "@/app/lib/eventQuality";
-import { EventQualityTab } from "@/app/tabs/garbage/EventQualityTab";
+import { ArchivedEventQualityStudyTab } from "@/app/tabs/garbage/ArchivedEventQualityStudyTab";
 import type { CalendarEvent } from "@/app/types";
 
 function buildEvent(overrides: Partial<CalendarEvent>): CalendarEvent {
@@ -81,12 +81,12 @@ describe("deriveEventQualitySummary", () => {
   });
 });
 
-describe("EventQualityTab", () => {
+describe("ArchivedEventQualityStudyTab", () => {
   const now = 1_763_200_000;
 
   it("renders the tab, default pair, and methodology block", () => {
     const html = renderToStaticMarkup(
-      <EventQualityTab
+      <ArchivedEventQualityStudyTab
         events={[
           buildEvent({ currency: "USD", title: "CPI y/y", impact: "high", time: now + 60 }),
           buildEvent({ currency: "EUR", title: "ECB Interest Rate Decision", impact: "medium", time: now + 120 }),

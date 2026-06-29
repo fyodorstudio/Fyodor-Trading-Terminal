@@ -36,7 +36,7 @@ import type {
   SampleQuality,
 } from "@/app/types";
 
-interface EventReactionTabProps {
+interface ArchivedEventReactionStudyTabProps {
   events: CalendarEvent[];
 }
 
@@ -222,7 +222,7 @@ function CandleReplayChart(props: {
   );
 }
 
-export function EventReactionTab({ events }: EventReactionTabProps) {
+export function ArchivedEventReactionStudyTab({ events }: ArchivedEventReactionStudyTabProps) {
   const [task, setTask] = useState<EventReactionMode>(() => getInitialTask());
   const [selectedPair, setSelectedPair] = useState<FxPairDefinition>(() => getInitialPair());
   const [eventCurrency, setEventCurrency] = useState("");

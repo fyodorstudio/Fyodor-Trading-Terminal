@@ -159,7 +159,7 @@ const EXTRA_DATA_ROWS: ExtraDataRow[] = [
   },
 ];
 
-export function WorkInProgressTab() {
+export function WipMapArchiveTab() {
   return (
     <div className="mx-auto flex max-w-[1460px] flex-col gap-6 pb-12">
       <motion.section

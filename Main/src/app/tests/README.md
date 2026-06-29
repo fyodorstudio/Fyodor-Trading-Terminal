@@ -1,6 +1,8 @@
 # App Test Map
 
-Use this folder to find the narrowest proof for a change before running the whole suite.
+Use this folder to find the narrowest proof for a change. Do not create new tests unless the user explicitly agrees; first explain in plain English what the test protects.
+
+Prefer targeted tests. Do not run the full suite after every small pass unless the change touches routing, shared contracts, or multiple active surfaces.
 
 ## Primary Surfaces
 
@@ -22,22 +24,12 @@ Use this folder to find the narrowest proof for a change before running the whol
 
 - `status.test.ts` covers trust/calendar/chart status derivation.
 - `timezoneDisplay.test.ts` covers timezone formatting and preference helpers.
-- `flagIcon.test.tsx` covers the current `react-world-flags` wrapper. Leave this alone unless the user explicitly asks to revisit flags.
+- `flagIcon.test.tsx` covers the current `react-world-flags` wrapper. The flag package works; its TypeScript declaration warning and large build chunk are known non-blocking noise. Leave this alone unless the user explicitly asks to revisit flags.
 
-## Secondary / Prototyping
+## Garbage Tests
 
-These tests protect archived or unstable surfaces that remain routable:
+`garbage/` contains tests for old unfinished, deprecated, or ignored surfaces and supporting logic. Do not read or run these for normal active-surface work unless the user explicitly asks for garbage-drawer behavior.
 
-- `dashboardTabs.test.tsx`
-- `eventQuality.test.tsx`
-- `macroState.test.ts`
-- `macroStatePrototypeTab.test.tsx`
-- `macroViews.test.ts`
-- `overview.test.ts`
-- `strengthMeter.test.ts`
-- `terminalQuestionsTab.test.tsx`
-- `watchlistEngine.test.ts`
-- `watchlistEnginePrototypeTab.test.tsx`
-- `workInProgressTab.test.tsx`
+Garbage tab tests use the renamed Prototyping labels, for example `differentialCalculatorAndStrengthMeterTabs.test.tsx`, `macroStateTab.test.tsx`, `watchlistEngineTab.test.tsx`, `sixQuestionsDraftTab.test.tsx`, `wipMapArchiveTab.test.tsx`, and `archivedEventQualityStudyTab.test.tsx`.
 
-Run `pnpm --dir Main test` before committing behavior-adjacent frontend changes, and `pnpm --dir Main build` before checkpoint commits that touch routing, imports, or lazy-loaded surfaces.
+Run `pnpm --dir Main build` before checkpoint commits that touch routing, imports, or lazy-loaded surfaces.

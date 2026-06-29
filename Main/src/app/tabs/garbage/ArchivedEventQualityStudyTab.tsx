@@ -12,7 +12,7 @@ import {
 import { formatRelativeAge, formatUtcDateTime } from "@/app/lib/format";
 import type { BridgeStatus, CalendarEvent, EventQualityHorizon, FxPairDefinition } from "@/app/types";
 
-interface EventQualityTabProps {
+interface ArchivedEventQualityStudyTabProps {
   events: CalendarEvent[];
   status: BridgeStatus;
   lastCalendarIngestAt: number | null;
@@ -31,7 +31,7 @@ function getInitialPair(): FxPairDefinition {
   return getFxPairByName(saved) ?? FX_PAIRS[0];
 }
 
-function renderStatusLabel(status: EventQualityTabProps["status"]): string {
+function renderStatusLabel(status: ArchivedEventQualityStudyTabProps["status"]): string {
   if (status === "live") return "Calendar feed live";
   if (status === "stale") return "Calendar feed stale";
   if (status === "loading") return "Loading MT5 events";
@@ -51,7 +51,7 @@ function impactText(multiplier: number): string {
   return "Low";
 }
 
-export function EventQualityTab({ events, status, lastCalendarIngestAt }: EventQualityTabProps) {
+export function ArchivedEventQualityStudyTab({ events, status, lastCalendarIngestAt }: ArchivedEventQualityStudyTabProps) {
   const [selectedPair, setSelectedPair] = useState<FxPairDefinition>(() => getInitialPair());
   const [horizon, setHorizon] = useState<EventQualityHorizon>("24h");
   const [isSelectorOpen, setIsSelectorOpen] = useState(false);

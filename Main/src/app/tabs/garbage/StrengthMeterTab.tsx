@@ -3,7 +3,7 @@ import { Activity, AlertTriangle, ArrowRight, Info, RefreshCcw, X, Zap } from "l
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS } from "@/app/config/fxPairs";
 import { fetchHistory } from "@/app/lib/bridge";
-import { deriveStrengthMeterResult } from "@/app/lib/strengthMeter";
+import { deriveStrengthMeterResult } from "@/app/lib/garbage/strengthMeter";
 import type {
   BridgeStatus,
   CalendarEvent,

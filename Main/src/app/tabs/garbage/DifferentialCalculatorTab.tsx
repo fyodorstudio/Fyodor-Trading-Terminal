@@ -2,10 +2,10 @@ import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { MAJOR_CURRENCY_ORDER } from "@/app/config/fxPairs";
 import { FlagIcon } from "@/app/components/FlagIcon";
-import { adaptDashboardCurrencies, deriveDashboardInflationCards, deriveDashboardRateCards } from "@/app/lib/macroViews";
+import { adaptDashboardCurrencies, deriveDashboardInflationCards, deriveDashboardRateCards } from "@/app/lib/garbage/macroViews";
 import type { CentralBankSnapshot, DashboardSortMode } from "@/app/types";
 
-interface DashboardTabProps {
+interface DifferentialCalculatorTabProps {
   snapshots: CentralBankSnapshot[];
 }
 
@@ -18,7 +18,7 @@ function findCountryCode(currency: string, snapshots: CentralBankSnapshot[]): st
   return snapshots.find((item) => item.currency === currency)?.countryCode ?? currency.slice(0, 2);
 }
 
-export function DashboardTab({ snapshots }: DashboardTabProps) {
+export function DifferentialCalculatorTab({ snapshots }: DifferentialCalculatorTabProps) {
   const [rateSort, setRateSort] = useState<DashboardSortMode>("absDesc");
   const [inflationSort, setInflationSort] = useState<DashboardSortMode>("absDesc");
   const [excludedCurrencies, setExcludedCurrencies] = useState<Set<string>>(new Set());

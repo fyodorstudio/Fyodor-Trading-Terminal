@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ANALYSIS_TAB_ORDER, TAB_ORDER } from "@/app/config/navigation";
 import { PrototypingTab } from "@/app/tabs/secondary/PrototypingTab";
-import { TerminalQuestionsTab } from "@/app/tabs/garbage/TerminalQuestionsTab";
 
 describe("navigation truth", () => {
   it("promotes Event Replay as a direct Specialist Tools child", () => {
@@ -33,12 +32,4 @@ describe("navigation truth", () => {
     expect(html).not.toContain(">Event Tools<");
   });
 
-  it("marks Event Replay as the primary event-risk specialist route", () => {
-    const html = renderToStaticMarkup(<TerminalQuestionsTab onNavigate={() => {}} />);
-
-    expect(html).toContain("Is event risk close enough to invalidate a clean setup?");
-    expect(html).toContain("Deprecated Draft");
-    expect(html).toContain("Open Event Replay");
-    expect(html).not.toContain("Open Event Tools");
-  });
 });

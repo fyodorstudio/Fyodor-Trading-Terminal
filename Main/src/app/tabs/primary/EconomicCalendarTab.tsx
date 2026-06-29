@@ -12,6 +12,7 @@ import {
   getImpactLabel,
   getTodayUtcRangeSeconds,
   groupByUtcDay,
+  stripToLocalDate,
   summarizeCountries,
   toUtcRangeSeconds,
 } from "@/app/lib/calendarDisplay";

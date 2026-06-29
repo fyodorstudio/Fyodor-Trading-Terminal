@@ -1,4 +1,4 @@
-import { TickMarkType, type CandlestickData } from "lightweight-charts";
+import { TickMarkType, type CandlestickData, type Time, type UTCTimestamp } from "lightweight-charts";
 import { formatCountdown } from "@/app/lib/format";
 import {
   formatDateTimeForDisplayTimezone,
@@ -144,9 +144,13 @@ export function saveChartPreferences(preferences: ChartPreferences) {
   }
 }
 
-export function getChartDisplayCandles(candles: BridgeCandle[]): CandlestickData[] {
+function toChartTime(time: number): UTCTimestamp {
+  return time as UTCTimestamp;
+}
+
+export function getChartDisplayCandles(candles: BridgeCandle[]): CandlestickData<Time>[] {
   return candles.map((candle) => ({
-    time: candle.time,
+    time: toChartTime(candle.time),
     open: candle.open,
     high: candle.high,
     low: candle.low,

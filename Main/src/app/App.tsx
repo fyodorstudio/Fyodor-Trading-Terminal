@@ -1,20 +1,16 @@
 import { useMemo, useState } from "react";
-import { motion } from "framer-motion";
 import { deriveCentralBankSnapshots } from "@/app/lib/centralBankDerive";
 import { createCalendarNavigationIntent } from "@/app/lib/calendarNavigation";
 import { getNextHighImpactEvent } from "@/app/lib/eventHorizon";
 import { AppRoutes } from "@/app/AppRoutes";
 import { MinimalHeader } from "@/app/components/MinimalHeader";
 import { TabNavigation } from "@/app/components/TabNavigation";
-import { UiCommandPanel } from "@/app/components/UiCommandPanel";
 import { TAB_ORDER } from "@/app/config/navigation";
 import { useCalendarFeed } from "@/app/hooks/useCalendarFeed";
 import { useCurrentTime } from "@/app/hooks/useCurrentTime";
 import { useMarketStatus } from "@/app/hooks/useMarketStatus";
 import { useTerminalTheme } from "@/app/hooks/useTerminalTheme";
 import type { CalendarEvent, CalendarNavigationIntent, TabId } from "@/app/types";
-
-const transition = { type: "spring", stiffness: 300, damping: 30 };
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
@@ -25,14 +21,12 @@ export default function App() {
   const { health, feedEvents, feedStatus } = useCalendarFeed();
   const chartMarketStatus = useMarketStatus(chartSymbol);
   const overviewMarketStatus = useMarketStatus(overviewSymbol);
-  const { currentFont, currentColor, setCurrentFont, setCurrentColor } = useTerminalTheme();
+  useTerminalTheme();
 
   const centralBankResult = useMemo(() => deriveCentralBankSnapshots(feedEvents), [feedEvents]);
 
   const nextHighImpact = useMemo(() => getNextHighImpactEvent(feedEvents), [feedEvents]);
   const currentTime = useCurrentTime();
-
-  const [isUiPanelOpen, setIsUiPanelOpen] = useState(false);
 
   const openCalendarForEvent = (event: CalendarEvent) => {
     setCalendarNavigationIntent(createCalendarNavigationIntent(event, "overview"));
@@ -41,20 +35,7 @@ export default function App() {
 
   return (
     <div className="flex min-h-screen bg-[var(--bg)] transition-colors duration-300 overflow-hidden">
-      <UiCommandPanel 
-        currentFont={currentFont}
-        currentColor={currentColor}
-        onFontChange={setCurrentFont}
-        onColorChange={setCurrentColor}
-        isOpen={isUiPanelOpen}
-        onOpenChange={setIsUiPanelOpen}
-      />
-      
-      <motion.div 
-        animate={{ paddingLeft: isUiPanelOpen ? 356 : 0 }}
-        transition={transition}
-        className="flex-1 min-h-screen"
-      >
+      <div className="flex-1 min-h-screen">
         <div className="app-shell max-w-[1460px] mx-auto p-6">
           <MinimalHeader
             currentTime={currentTime}
@@ -95,7 +76,7 @@ export default function App() {
             />
           </main>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

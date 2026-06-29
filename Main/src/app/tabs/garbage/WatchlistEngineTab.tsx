@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { deriveWatchlistEngine } from "@/app/lib/watchlistEngine";
+import { deriveWatchlistEngine } from "@/app/lib/garbage/watchlistEngine";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import type { CentralBankSnapshot, WatchlistCurrencyState, WatchlistPairRow } from "@/app/types";
 
-interface WatchlistEnginePrototypeTabProps {
+interface WatchlistEngineTabProps {
   snapshots: CentralBankSnapshot[];
   onBack: () => void;
 }
@@ -74,7 +74,7 @@ function buildTopDriver(row: WatchlistPairRow): string {
   return row.reasonTags[0] ?? "macro score stronger";
 }
 
-export function WatchlistEnginePrototypeTab({ snapshots, onBack }: WatchlistEnginePrototypeTabProps) {
+export function WatchlistEngineTab({ snapshots, onBack }: WatchlistEngineTabProps) {
   const result = useMemo(() => deriveWatchlistEngine(snapshots), [snapshots]);
   const [pageIndex, setPageIndex] = useState(0);
   const totalPages = Math.max(1, Math.ceil(result.rows.length / PAGE_SIZE));

@@ -15,20 +15,13 @@ This folder holds pure helpers, bridge adapters, and feature engines. Prefer edi
 ## Event Replay
 
 - `eventReaction.ts` contains the replay/event-template study logic used by the active Event Replay surface.
+- `eventQuality.ts` is shared by Event Replay and calendar/event explanation classification.
 - `eventReplayDisplay.ts` owns Event Replay display labels, initial UI selections, and template sorting.
 - `eventReplayStorage.ts` owns Event Replay localStorage keys and persistence helpers.
 - `eventReplayView.ts` owns replay view/window helpers.
 
-## Secondary / Deprecated
+## Garbage
 
-These files back Prototyping or deprecated surfaces. Do not treat them as product direction unless the user explicitly asks for those tools:
+`garbage/` contains logic for old unfinished, deprecated, or ignored routed surfaces. Do not read or edit it unless the user explicitly asks for a garbage-drawer screen or its supporting logic.
 
-- `overview.ts`
-- `strengthMeter.ts`
-- `watchlistEngine.ts`
-- `macroState.ts`
-- `macroViews.ts`
-- `currencyCandleStrength.ts`
-- `eventQuality.ts`
-
-`eventQuality.ts` is also used by calendar/event explanation classification, so change it carefully even though the old Event Quality tab is secondary.
+The moved garbage-owned logic includes old overview, strength meter, macro state, macro views, watchlist engine, and currency-candle strength helpers.

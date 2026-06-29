@@ -3,9 +3,9 @@ import { ArrowLeft, RefreshCcw } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS } from "@/app/config/fxPairs";
 import { fetchHistory } from "@/app/lib/bridge";
-import { deriveCurrencyCandleStrength, type CandleStrengthPairInput } from "@/app/lib/currencyCandleStrength";
+import { deriveCurrencyCandleStrength, type CandleStrengthPairInput } from "@/app/lib/garbage/currencyCandleStrength";
 
-interface CurrencyCandleStrengthTabProps {
+interface CurrencyStrengthFromCandlesTabProps {
   onBack: () => void;
 }
 
@@ -20,7 +20,7 @@ function stateLabel(state: string): string {
   return "Mixed";
 }
 
-export function CurrencyCandleStrengthTab({ onBack }: CurrencyCandleStrengthTabProps) {
+export function CurrencyStrengthFromCandlesTab({ onBack }: CurrencyStrengthFromCandlesTabProps) {
   const [candleMap, setCandleMap] = useState<Partial<Record<string, CandleStrengthPairInput>>>({});
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);

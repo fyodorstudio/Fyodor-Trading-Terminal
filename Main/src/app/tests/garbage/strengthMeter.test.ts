@@ -4,7 +4,7 @@ import {
   deriveCurrencyPriceStrength,
   deriveCurrencyStructuralBackdrop,
   deriveStrengthMeterResult,
-} from "@/app/lib/strengthMeter";
+} from "@/app/lib/garbage/strengthMeter";
 import type { BridgeCandle, CalendarEvent, CentralBankSnapshot, StrengthPairCandleSet } from "@/app/types";
 
 const now = 1_710_000_000;

@@ -34,6 +34,7 @@ Secondary surfaces:
 - `Prototyping` is a garbage drawer for old unfinished surfaces.
 - `Main/src/app/tabs/secondary` should contain only active secondary shells/surfaces.
 - Ignore `Main/src/app/tabs/garbage` unless the user explicitly asks for a file or route inside it. Do not read garbage files for general orientation.
+- Ignore `Main/src/app/lib/garbage` unless the user explicitly asks for garbage-drawer supporting logic. Active Event Replay helpers remain in `Main/src/app/lib`.
 
 ## Repo Hygiene
 
@@ -41,4 +42,7 @@ Secondary surfaces:
 - Leave `Main/mt5-bridge` alone unless the user explicitly asks for bridge work.
 - Keep route ids stable unless the user approves a routing migration.
 - Prefer helper extraction and docs maps over deleting old tools.
-- Run `pnpm --dir Main test` and `pnpm --dir Main build` after behavior-adjacent refactors.
+- Do not create new tests unless the user explicitly agrees. Before creating a test, explain in plain English what behavior it protects.
+- Prefer targeted verification. Do not run broad/full test suites after every small pass; explain why before running full tests.
+- `react-world-flags` currently works. Its missing TypeScript declaration and large `FlagIcon` build chunk are known non-blocking noise; do not replace or refactor flags unless the user explicitly asks.
+- Garbage tests live under `Main/src/app/tests/garbage`. Ignore them unless the user explicitly asks for garbage-drawer work.

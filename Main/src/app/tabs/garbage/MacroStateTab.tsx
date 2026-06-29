@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { deriveMacroState } from "@/app/lib/macroState";
+import { deriveMacroState } from "@/app/lib/garbage/macroState";
 import {
   deriveWatchlistEngine,
   INFLATION_DELTA_WEIGHT,
@@ -8,11 +8,11 @@ import {
   RATE_DELTA_WEIGHT,
   RATE_LEVEL_WEIGHT,
   REAL_RATE_WEIGHT,
-} from "@/app/lib/watchlistEngine";
+} from "@/app/lib/garbage/watchlistEngine";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import type { CentralBankSnapshot, WatchlistCurrencyState } from "@/app/types";
 
-interface MacroStatePrototypeTabProps {
+interface MacroStateTabProps {
   snapshots: CentralBankSnapshot[];
   onBack: () => void;
 }
@@ -155,7 +155,7 @@ function buildRegimeMatrix(base: WatchlistCurrencyState, quote: WatchlistCurrenc
   ];
 }
 
-export function MacroStatePrototypeTab({ snapshots, onBack }: MacroStatePrototypeTabProps) {
+export function MacroStateTab({ snapshots, onBack }: MacroStateTabProps) {
   const watchlist = useMemo(() => deriveWatchlistEngine(snapshots), [snapshots]);
   const pairOptions = watchlist.rows;
   const [selectedPairName, setSelectedPairName] = useState(pairOptions[0]?.pair.name ?? "EURUSD");

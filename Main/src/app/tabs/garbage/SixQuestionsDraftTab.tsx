@@ -82,11 +82,11 @@ const TERMINAL_QUESTIONS: TerminalQuestion[] = [
   },
 ];
 
-interface TerminalQuestionsTabProps {
+interface SixQuestionsDraftTabProps {
   onNavigate: (tab: TabId) => void;
 }
 
-export function TerminalQuestionsTab({ onNavigate }: TerminalQuestionsTabProps) {
+export function SixQuestionsDraftTab({ onNavigate }: SixQuestionsDraftTabProps) {
   const renderRouteButton = (tab: TabId, label: string, status: TerminalQuestion["primaryStatus"]) => (
     <button
       type="button"

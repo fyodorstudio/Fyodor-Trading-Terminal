@@ -6,11 +6,11 @@ This folder contains shared app-shell and feature support components. Keep featu
 
 - `MinimalHeader.tsx` - global trust/status header. Active and important; avoid broad visual edits without checking Charts, Calendar, Central Banks, and Event Replay.
 - `TabNavigation.tsx` - top navigation and Specialist Tools dropdown.
-- `UiCommandPanel.tsx` - Aesthetic Forge side panel. Secondary/styling infrastructure; do not let it drive core product design.
+- `UiCommandPanel.tsx` - hidden Aesthetic Forge side panel kept for possible future reuse. It is not mounted in the active app shell.
 
 ## Shared Small Components
 
-- `FlagIcon.tsx` - country/currency flag wrapper.
+- `FlagIcon.tsx` - country/currency flag wrapper. `react-world-flags` works; its type warning and large build chunk are known non-blocking noise unless the user asks to revisit flags.
 - `LocalClock.tsx`, `Mt5Clock.tsx`, `MarketStatusPill.tsx` - small status/time display helpers.
 
 ## Event Replay Support

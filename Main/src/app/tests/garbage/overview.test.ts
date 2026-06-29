@@ -14,7 +14,7 @@ import {
   getTrustInspectorSummary,
   getWhoIsWinningNow,
   sortOverviewPairs,
-} from "@/app/lib/overview";
+} from "@/app/lib/garbage/overview";
 import { FX_PAIRS } from "@/app/config/fxPairs";
 import { resolveTrustState } from "@/app/lib/status";
 import type { BridgeCandle, BridgeHealth, CalendarEvent, CentralBankSnapshot, MarketStatusResponse } from "@/app/types";

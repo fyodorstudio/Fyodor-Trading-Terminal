@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CandlestickSeries,
+  ColorType,
   createChart,
   type CandlestickData,
   type IChartApi,
   type ISeriesApi,
+  type MouseEventParams,
+  type Time,
 } from "lightweight-charts";
 import {
   Activity,
@@ -281,7 +284,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
 
     const chart = createChart(container, {
       layout: {
-        background: { type: "solid", color: "transparent" },
+        background: { type: ColorType.Solid, color: "transparent" },
         textColor: "#64748b",
         fontFamily: "Inter, system-ui, sans-serif",
       },
@@ -405,10 +408,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     const container = containerRef.current;
     if (!chart || !series || !container) return;
 
-    const handleCrosshairMove = (param: {
-      point?: { x: number; y: number } | null;
-      seriesData?: Map<ISeriesApi<"Candlestick">, CandlestickData>;
-    }) => {
+    const handleCrosshairMove = (param: MouseEventParams<Time>) => {
       const point = param.point;
       if (!point || point.x < 0 || point.y < 0 || point.x > container.clientWidth || point.y > container.clientHeight) {
         setCrosshairReadout(null);
@@ -416,7 +416,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
       }
 
       const truePrice = series.coordinateToPrice(point.y);
-      const candle = param.seriesData?.get(series);
+      const candle = param.seriesData?.get(series) as CandlestickData<Time> | undefined;
       const candlePrice = candle && typeof candle.close === "number" ? candle.close : null;
       const lines = formatCursorReadout({
         mode: chartPreferences.cursorReadoutMode,

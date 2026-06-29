@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type Transition } from "framer-motion";
 import {
   Check,
   Palette,
@@ -20,7 +20,7 @@ interface UiCommandPanelProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const transition = { type: "spring", stiffness: 300, damping: 30 };
+const transition: Transition = { type: "spring", stiffness: 300, damping: 30 };
 
 export function UiCommandPanel({
   currentFont,

@@ -1,7 +1,7 @@
 import { getFxPairByName } from "@/app/config/fxPairs";
 import { deriveEventQualitySummary } from "@/app/lib/eventQuality";
 import { parseNumericValue } from "@/app/lib/format";
-import { deriveStrengthMeterResult, getStrengthSummaryForPair } from "@/app/lib/strengthMeter";
+import { deriveStrengthMeterResult, getStrengthSummaryForPair } from "@/app/lib/garbage/strengthMeter";
 import type { BridgeCandle, BridgeStatus, CalendarEvent, CentralBankSnapshot, FxPairDefinition, MarketStatusResponse, TabId } from "@/app/types";
 import type { TrustState, TrustTone } from "@/app/lib/status";
 

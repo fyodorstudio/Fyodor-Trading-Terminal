@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { TerminalQuestionsTab } from "@/app/tabs/garbage/TerminalQuestionsTab";
+import { SixQuestionsDraftTab } from "@/app/tabs/garbage/SixQuestionsDraftTab";
 
-describe("TerminalQuestionsTab", () => {
+describe("SixQuestionsDraftTab", () => {
   it("renders the six product questions and navigation labels", () => {
-    const html = renderToStaticMarkup(<TerminalQuestionsTab onNavigate={() => {}} />);
+    const html = renderToStaticMarkup(<SixQuestionsDraftTab onNavigate={() => {}} />);
 
     expect(html).toContain("SIX QUESTIONS");
     expect(html).toContain("Deprecated Draft");

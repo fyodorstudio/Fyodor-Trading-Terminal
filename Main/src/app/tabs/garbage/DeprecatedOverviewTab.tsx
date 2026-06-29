@@ -28,12 +28,12 @@ import {
   type PriceAlignmentSummary,
   type SortDirection,
   type WinningNowSummary,
-} from "@/app/lib/overview";
+} from "@/app/lib/garbage/overview";
 import { resolveTrustState, type TrustState } from "@/app/lib/status";
-import { deriveStrengthMeterResult } from "@/app/lib/strengthMeter";
+import { deriveStrengthMeterResult } from "@/app/lib/garbage/strengthMeter";
 import type { BridgeCandle, BridgeHealth, BridgeStatus, CalendarEvent, CentralBankSnapshot, MarketStatusResponse, TabId } from "@/app/types";
 
-interface OverviewTabProps {
+interface DeprecatedOverviewTabProps {
   currentTime: Date;
   health: BridgeHealth;
   feedStatus: BridgeStatus;
@@ -188,7 +188,7 @@ function renderFeedLabel(status: BridgeStatus): string {
   return TERMINOLOGY.calendarTiming.states[status].short.toUpperCase();
 }
 
-export function OverviewTab({
+export function DeprecatedOverviewTab({
   currentTime,
   health,
   feedStatus,
@@ -199,7 +199,7 @@ export function OverviewTab({
   snapshots,
   onNavigate,
   onOpenCalendarEvent,
-}: OverviewTabProps) {
+}: DeprecatedOverviewTabProps) {
   const [atrByPair, setAtrByPair] = useState<AtrByPair>({});
   const [candlesByPair, setCandlesByPair] = useState<CandlesByPair>({});
   const [atrConfig, setAtrConfig] = useState<AtrConfig>(() => loadAtrConfig());

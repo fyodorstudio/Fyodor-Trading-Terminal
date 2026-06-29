@@ -1,8 +1,10 @@
 # Stylesheet Map
 
-`Main/src/styles.css` is intentionally left as one imported file for now. It is about 7,000 lines and contains old overview/prototype styles mixed with current primary surfaces. Splitting it safely needs a visual regression pass because cascade order matters.
+`Main/src/styles.css` is intentionally left as one imported file for now. It is about 6,000 lines and contains old overview/prototype styles mixed with current primary surfaces. Splitting it safely needs a visual regression pass because cascade order matters.
 
-## Current Sections
+## Approximate Sections
+
+These ranges are orientation hints, not exact ownership boundaries. The file still needs a visual-regression pass before any split.
 
 - `1-302`: global shell, header, status chips, tab navigation, shared panels and tables.
 - `303-1158`: older overview/terminal/narrative dashboard experiments.
@@ -15,6 +17,8 @@
 - `4152-5059`: old Event Reaction guided/manual workflow styles.
 - `5062-6606`: old Command Hub / Deprecated Overview styles.
 - `6607-6994`: later polish for specialist cards, chart toolbar/drawer, and strength meter v4/v5.
+
+Sections tied to old overview/prototype/garbage surfaces are ignored by default. Do not read or extract them unless the user explicitly asks for CSS work on those garbage-drawer screens.
 
 ## Recommended Safe Split Order
 

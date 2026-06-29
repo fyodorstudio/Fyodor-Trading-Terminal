@@ -77,8 +77,13 @@ It also expects the MT5 EA calendar bridge to be pushing economic calendar event
 - `tabs/primary/` contains always-visible primary workflow tabs.
 - `tabs/secondary/` contains Event Replay plus the Prototyping shell.
 - `tabs/garbage/` contains old unfinished, deprecated, or ignored routed surfaces. Do not read it for general orientation unless explicitly requested.
+- `tests/garbage/` contains tests for garbage-drawer surfaces. Do not read or run them for normal active-surface work unless explicitly requested.
 - `hooks/` contains app-shell side effects extracted from `App.tsx`.
 - `types/` contains domain type files; `types.ts` remains a compatibility barrel.
+
+Known non-blocking noise:
+
+- `react-world-flags` works in the app. Its missing TypeScript declaration and large generated `FlagIcon` chunk are known and should not be chased unless the user explicitly asks to revisit flags.
 
 ## Run It
 

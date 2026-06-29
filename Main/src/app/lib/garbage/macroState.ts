@@ -1,5 +1,5 @@
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
-import { deriveWatchlistEngine } from "@/app/lib/watchlistEngine";
+import { deriveWatchlistEngine } from "@/app/lib/garbage/watchlistEngine";
 import type { CentralBankSnapshot, FxPairDefinition, WatchlistCurrencyState, WatchlistPairRow } from "@/app/types";
 
 export type MacroStateRegimeLabel = "policy-led" | "inflation-led" | "mixed";

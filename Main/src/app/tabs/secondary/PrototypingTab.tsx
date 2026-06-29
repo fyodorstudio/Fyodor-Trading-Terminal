@@ -106,7 +106,7 @@ export function PrototypingTab({ onNavigate }: PrototypingTabProps) {
           </div>
           <h2 className="text-3xl font-black tracking-tight">PROTOTYPING</h2>
           <p className="mt-3 max-w-4xl text-sm text-blue-100/90">
-            Secondary lab and archive for unfinished, unstable, or ignored tools. Future AI sessions should not treat these as the main workflow unless explicitly asked.
+            Garbage drawer for unfinished or ignored tools. Future AI sessions should not treat these as the main workflow unless explicitly asked.
           </p>
         </div>
       </section>
