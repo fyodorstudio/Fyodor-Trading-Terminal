@@ -41,6 +41,7 @@ export function EventExplainerMiniBrief(props: { explainer: CalendarEventExplain
 export function EventTemplateButton(props: {
   template: EventTemplate;
   active: boolean;
+  metaLabel?: string;
   onSelect: () => void;
 }) {
   return (
@@ -72,7 +73,7 @@ export function EventTemplateButton(props: {
         </span>
       </div>
       <span className={`text-xs font-semibold ${props.active ? "text-slate-300" : "text-slate-500"}`}>
-        {formatReplayCount(props.template.sampleCount)}
+        {props.metaLabel ?? formatReplayCount(props.template.sampleCount)}
       </span>
     </button>
   );
