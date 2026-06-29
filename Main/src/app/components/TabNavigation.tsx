@@ -7,6 +7,7 @@ interface TabNavigationProps {
   activeTab: TabId;
   setActiveTab: (id: TabId) => void;
   tabOrder: { id: TabId; label: string; children?: { id: TabId; label: string; groupLabel?: string }[] }[];
+  placement?: "page" | "header";
 }
 
 const TAB_HELP_TEXT: Partial<Record<TabId, string>> = {
@@ -17,9 +18,10 @@ const TAB_HELP_TEXT: Partial<Record<TabId, string>> = {
   dashboard: "Event replay first; older drafts and prototypes stay available for reference.",
 };
 
-export function TabNavigation({ activeTab, setActiveTab, tabOrder }: TabNavigationProps) {
+export function TabNavigation({ activeTab, setActiveTab, tabOrder, placement = "page" }: TabNavigationProps) {
   const [openMenuId, setOpenMenuId] = useState<TabId | null>(null);
   const navRef = useRef<HTMLElement | null>(null);
+  const isHeader = placement === "header";
 
   useEffect(() => {
     const handleOutside = (event: MouseEvent) => {
@@ -41,7 +43,11 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder }: TabNavigati
   return (
     <nav
       ref={navRef}
-      className="relative z-[60] flex flex-wrap items-center p-1.5 gap-2 backdrop-blur-xl bg-[var(--nav-bg)] border border-[var(--line)] rounded-2xl mb-8 max-w-fit mx-auto mt-6 shadow-sm transition-colors duration-300"
+      className={`relative flex items-center backdrop-blur-xl bg-[var(--nav-bg)] border border-[var(--line)] shadow-sm transition-colors duration-300 ${
+        isHeader
+          ? "z-[930] max-w-full flex-nowrap gap-1 rounded-xl p-1"
+          : "z-[60] mx-auto mb-8 mt-6 max-w-fit flex-wrap gap-2 rounded-2xl p-1.5"
+      }`}
     >
       {tabOrder.map((tab) => {
         const isActive = activeTab === tab.id || activeParentId === tab.id;
@@ -64,7 +70,8 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder }: TabNavigati
                 setActiveTab(tab.id);
               }}
               className={`
-                relative inline-flex items-center gap-2 px-5 py-2.5 text-xs font-black uppercase tracking-widest transition-all duration-300 rounded-xl outline-none
+                relative inline-flex items-center gap-2 whitespace-nowrap rounded-xl text-xs font-black uppercase tracking-widest transition-all duration-300 outline-none
+                ${isHeader ? "px-3.5 py-2" : "px-5 py-2.5"}
                 ${isActive ? 'text-[var(--tab-active-text)]' : 'text-[var(--tab-inactive-text)] hover:opacity-80'}
               `}
               aria-describedby={helpText ? `tab-help-${tab.id}` : undefined}
@@ -96,7 +103,7 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder }: TabNavigati
             )}
 
             {hasChildren && openMenuId === tab.id && (
-              <div className="absolute right-0 top-[calc(100%+8px)] z-[70] min-w-[220px] rounded-xl border border-[var(--line)] bg-white p-2 shadow-[0_8px_24px_rgba(15,23,42,0.12)]">
+              <div className="absolute right-0 top-[calc(100%+8px)] z-[950] min-w-[220px] rounded-xl border border-[var(--line)] bg-white p-2 shadow-[0_8px_24px_rgba(15,23,42,0.12)]">
                 {tab.children!.map((child, index) => {
                   const childActive = activeTab === child.id;
                   const previous = tab.children![index - 1];

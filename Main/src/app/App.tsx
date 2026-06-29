@@ -4,7 +4,6 @@ import { createCalendarNavigationIntent } from "@/app/lib/calendarNavigation";
 import { getNextHighImpactEvent } from "@/app/lib/eventHorizon";
 import { AppRoutes } from "@/app/AppRoutes";
 import { MinimalHeader } from "@/app/components/MinimalHeader";
-import { TabNavigation } from "@/app/components/TabNavigation";
 import { TAB_ORDER } from "@/app/config/navigation";
 import { useCalendarFeed } from "@/app/hooks/useCalendarFeed";
 import { useCurrentTime } from "@/app/hooks/useCurrentTime";
@@ -36,24 +35,21 @@ export default function App() {
   return (
     <div className="flex min-h-screen bg-[var(--bg)] transition-colors duration-300 overflow-hidden">
       <div className="flex-1 min-h-screen">
-        <div className="app-shell max-w-[1460px] mx-auto p-6">
+        <div className="app-shell max-w-[1460px] mx-auto px-6 pb-6 pt-0">
           <MinimalHeader
+            activeTab={activeTab}
             currentTime={currentTime}
             health={health}
             feedStatus={feedStatus}
             marketStatus={overviewMarketStatus}
+            setActiveTab={setActiveTab}
             selectedSymbol={overviewSymbol}
+            tabOrder={TAB_ORDER}
             resolvedBanks={centralBankResult.snapshots.filter((item) => item.status === "ok").length}
             nextHighImpact={nextHighImpact}
           />
 
-          <TabNavigation
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            tabOrder={TAB_ORDER}
-          />
-
-          <main className="main-area mt-6">
+          <main className="main-area mt-4">
             <AppRoutes
               activeTab={activeTab}
               currentTime={currentTime}

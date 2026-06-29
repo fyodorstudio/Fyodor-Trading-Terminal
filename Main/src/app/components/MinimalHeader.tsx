@@ -1,32 +1,70 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertCircle, ChevronDown, Database, Radio, TriangleAlert } from "lucide-react";
+import { TabNavigation } from "@/app/components/TabNavigation";
 import { TERMINOLOGY } from "@/app/config/terminology";
 import { formatCountdown, formatRelativeAge, formatUtcClock } from "@/app/lib/format";
 import { resolveTrustState } from "@/app/lib/status";
-import type { BridgeHealth, BridgeStatus, MarketStatusResponse } from "@/app/types";
+import type { AppTabConfig } from "@/app/config/navigation";
+import type { BridgeHealth, BridgeStatus, MarketStatusResponse, TabId } from "@/app/types";
 
 interface MinimalHeaderProps {
+  activeTab: TabId;
   currentTime: Date;
   health: BridgeHealth;
   feedStatus: BridgeStatus;
   marketStatus: MarketStatusResponse | null;
+  setActiveTab: (id: TabId) => void;
   selectedSymbol: string;
+  tabOrder: AppTabConfig[];
   resolvedBanks: number;
   nextHighImpact?: { title: string; currency: string; time: number } | null;
 }
 
 export function MinimalHeader({
+  activeTab,
   currentTime,
   health,
   feedStatus,
   marketStatus,
+  setActiveTab,
   selectedSymbol,
+  tabOrder,
   resolvedBanks,
   nextHighImpact
 }: MinimalHeaderProps) {
   const [showDetails, setShowDetails] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const trustState = useMemo(() => resolveTrustState(health, feedStatus, marketStatus), [health, feedStatus, marketStatus]);
+
+  const clearCloseTimer = () => {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+  };
+
+  const openDetails = () => {
+    clearCloseTimer();
+    setShowDetails(true);
+  };
+
+  const scheduleCloseDetails = () => {
+    clearCloseTimer();
+    closeTimerRef.current = setTimeout(() => setShowDetails(false), 180);
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setShowDetails(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      clearCloseTimer();
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   const localTime = useMemo(
     () =>
@@ -122,10 +160,16 @@ export function MinimalHeader({
       : "No upcoming high-impact event";
 
   return (
-    <div className="mb-6">
-      <div className="fixed top-0 left-0 right-0 z-[910] border-b border-slate-200 bg-white">
+    <div>
+      <div
+        className="fixed left-0 right-0 top-0 z-[910] border-b border-slate-200 bg-white/95 backdrop-blur-xl"
+        onMouseEnter={openDetails}
+        onMouseLeave={scheduleCloseDetails}
+        onFocus={openDetails}
+        onBlur={scheduleCloseDetails}
+      >
         <div className="max-w-[1460px] mx-auto px-6">
-          <div className="flex min-h-[56px] items-center justify-between gap-4">
+          <div className="flex min-h-[52px] items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-5">
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-slate-950">Fyodor Trading Terminal</div>
@@ -151,18 +195,27 @@ export function MinimalHeader({
                 </div>
               </div>
               <button
-                onClick={() => setShowDetails(!showDetails)}
-                className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                onClick={() => setShowDetails((value) => !value)}
+                className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50"
               >
-                <span>{showDetails ? "Hide details" : "Show details"}</span>
+                <span>{showDetails ? "Hide" : "Details"}</span>
                 <ChevronDown className={`h-4 w-4 transition-transform duration-150 ${showDetails ? "rotate-180" : ""}`} />
               </button>
             </div>
           </div>
+
+          <div className="flex min-h-[54px] items-center justify-center border-t border-slate-100 py-1.5">
+            <TabNavigation
+              activeTab={activeTab}
+              setActiveTab={setActiveTab}
+              tabOrder={tabOrder}
+              placement="header"
+            />
+          </div>
         </div>
       </div>
 
-      <div className="h-14" />
+      <div className="h-[118px]" />
 
       <AnimatePresence>
         {showDetails && (
@@ -171,7 +224,11 @@ export function MinimalHeader({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.16 }}
-            className="fixed left-0 right-0 top-14 z-[900] border-b border-slate-200 bg-white"
+            className="fixed left-0 right-0 top-[106px] z-[900] border-b border-slate-200 bg-white/98 shadow-lg shadow-slate-950/5 backdrop-blur-xl"
+            onMouseEnter={openDetails}
+            onMouseLeave={scheduleCloseDetails}
+            onFocus={openDetails}
+            onBlur={scheduleCloseDetails}
           >
             <div className="max-w-[1460px] mx-auto px-6 py-5">
               <div className="grid gap-4 lg:grid-cols-[1.15fr_1fr_1fr_1.15fr]">
