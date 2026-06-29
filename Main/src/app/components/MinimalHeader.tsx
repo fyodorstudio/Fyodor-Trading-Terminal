@@ -156,6 +156,12 @@ export function MinimalHeader({
   }, [trustState]);
 
   const PrimaryIcon = primaryState.icon;
+  const healthDotTone =
+    trustState.verdict === "yes"
+      ? "bg-emerald-400"
+      : trustState.verdict === "limited"
+        ? "bg-amber-400"
+        : "bg-rose-400";
   const lastIngest = formatRelativeAge(health.last_calendar_ingest_at ?? null);
   const mt5Error =
     health.last_error && (health.last_error.message || health.last_error.code != null)
@@ -230,103 +236,111 @@ export function MinimalHeader({
                 />
               </div>
 
-              <div className="mt-4 grid gap-4 lg:grid-cols-[1.05fr_1fr_1.25fr_1.15fr]">
-                <section className="rounded-lg border border-slate-200 bg-slate-50/70 p-4">
-                  <h2 className="text-sm font-semibold text-slate-950">System health</h2>
-                  <div className="mt-3 grid gap-2">
-                    <div className="flex items-center justify-between gap-3">
+              <div className="mt-4 grid gap-4 lg:grid-cols-[0.95fr_1fr_1.25fr_1.2fr]">
+                <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03]">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-slate-950">System health</h2>
+                    <span className={`h-2 w-2 rounded-full ${healthDotTone}`} />
+                  </div>
+                  <div className="mt-4 grid gap-2">
+                    <div className="flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2">
                       <span className="text-sm text-slate-600">{TERMINOLOGY.trustState.sectionLabel}</span>
                       <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${primaryState.tone}`}>
                         {trustState.verdictLabel}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2">
                       <span className="text-sm text-slate-600">MT5</span>
                       <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${mt5State.tone}`}>{mt5State.label}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2">
                       <span className="text-sm text-slate-600">Bridge</span>
                       <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${bridgeState.tone}`}>{bridgeState.label}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2">
                       <span className="text-sm text-slate-600">{TERMINOLOGY.calendarTiming.sectionLabel}</span>
                       <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${calendarState.tone}`}>{calendarState.label}</span>
                     </div>
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2">
                       <span className="text-sm text-slate-600">{TERMINOLOGY.symbolContext.sectionLabel}</span>
                       <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${symbolState.tone}`}>{symbolState.label}</span>
                     </div>
                   </div>
                 </section>
 
-                <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03]">
+                <section className="rounded-lg border border-sky-200 bg-sky-50/60 p-4 shadow-sm shadow-sky-950/[0.04]">
                   <div className="flex items-center gap-2">
-                    <Clock3 className="h-4 w-4 text-slate-400" />
+                    <Clock3 className="h-4 w-4 text-sky-500" />
                     <h2 className="text-sm font-semibold text-slate-950">Time context</h2>
                   </div>
                   <div className="mt-4 grid gap-3">
-                    <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5">
-                      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Local time</div>
-                      <div className="mt-1 text-sm font-semibold leading-5 text-slate-950">{localClock}</div>
+                    <div className="relative rounded-lg border border-sky-200 bg-white px-3 py-3">
+                      <div className="absolute -left-[1px] top-3 h-8 w-1 rounded-r-full bg-sky-400" />
+                      <div className="pl-2 text-[10px] font-black uppercase tracking-[0.16em] text-sky-500">Local workstation</div>
+                      <div className="mt-1 pl-2 text-sm font-semibold leading-5 text-slate-950">{localClock}</div>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5">
-                      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">MT5 feed time</div>
-                      <div className="mt-1 text-sm font-semibold leading-5 text-slate-950">{mt5Clock}</div>
+                    <div className="relative rounded-lg border border-sky-200 bg-white px-3 py-3">
+                      <div className="absolute -left-[1px] top-3 h-8 w-1 rounded-r-full bg-indigo-400" />
+                      <div className="pl-2 text-[10px] font-black uppercase tracking-[0.16em] text-indigo-500">MT5 server feed</div>
+                      <div className="mt-1 pl-2 text-sm font-semibold leading-5 text-slate-950">{mt5Clock}</div>
                     </div>
                   </div>
                 </section>
 
-                <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03]">
-                  <h2 className="text-sm font-semibold text-slate-950">Feed diagnostics</h2>
+                <section className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-4 shadow-sm shadow-emerald-950/[0.04]">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-sm font-semibold text-slate-950">Feed diagnostics</h2>
+                    <span className="rounded-full border border-emerald-200 bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-emerald-700">Local bridge</span>
+                  </div>
                   <div className="mt-3 grid gap-2">
-                    <div className="rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5">
-                      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{TERMINOLOGY.trustState.sectionLabel} note</div>
+                    <div className="rounded-lg border border-emerald-200 bg-white px-3 py-2.5">
+                      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-emerald-600">{TERMINOLOGY.trustState.sectionLabel} note</div>
                       <div className="mt-1 text-sm font-semibold leading-5 text-slate-950">{trustState.detail}</div>
                     </div>
                     <div className="grid gap-2 sm:grid-cols-2">
-                      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                      <div className="rounded-lg border border-emerald-200 bg-white px-3 py-2.5">
                         <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{TERMINOLOGY.labels.lastIngest}</div>
                         <div className="mt-1 text-sm font-semibold text-slate-950">{lastIngest}</div>
                       </div>
-                      <div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                      <div className="rounded-lg border border-emerald-200 bg-white px-3 py-2.5">
                         <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{TERMINOLOGY.labels.resolvedBanks}</div>
                         <div className="mt-1 text-sm font-semibold text-slate-950">{resolvedBanks} of 8</div>
                       </div>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                    <div className="rounded-lg border border-emerald-200 bg-white px-3 py-2.5">
                       <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">MT5 / bridge message</div>
                       <div className="mt-1 text-sm font-semibold leading-5 text-slate-950">{mt5Error ?? "No current bridge message."}</div>
                     </div>
-                    <div className="rounded-lg border border-slate-200 bg-white px-3 py-2.5">
+                    <div className="rounded-lg border border-emerald-200 bg-white px-3 py-2.5">
                       <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">{TERMINOLOGY.symbolContext.sectionLabel}</div>
                       <div className="mt-1 text-sm font-semibold leading-5 text-slate-950">{symbolState.detail}</div>
                     </div>
                   </div>
                 </section>
 
-                <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03]">
+                <section className="rounded-lg border border-amber-200 bg-amber-50/60 p-4 shadow-sm shadow-amber-950/[0.04]">
                   <div className="flex items-center gap-2">
-                    <CalendarClock className="h-4 w-4 text-slate-400" />
+                    <CalendarClock className="h-4 w-4 text-amber-500" />
                     <h2 className="text-sm font-semibold text-slate-950">Event horizon</h2>
                   </div>
                   {nextHighImpact ? (
-                    <div className="mt-4 rounded-lg border border-blue-200 bg-blue-50/80 p-4 text-slate-950 shadow-sm shadow-blue-950/[0.04]">
+                    <div className="mt-4 rounded-lg border border-amber-200 bg-white p-4 text-slate-950 shadow-sm shadow-amber-950/[0.05]">
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-500">Next high-impact event</div>
+                          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-amber-600">Next high-impact event</div>
                           <div className="mt-2 text-base font-black leading-5">{nextHighImpact.title}</div>
                         </div>
-                        <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-blue-200 bg-white px-2.5 py-1 text-xs font-black text-blue-800">
+                        <div className="inline-flex shrink-0 items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-black text-amber-800">
                           <FlagIcon countryCode={nextHighImpact.countryCode} className="h-4 w-6" />
                           {nextHighImpact.currency}
                         </div>
                       </div>
                       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                        <div className="rounded-md border border-blue-200 bg-white/80 px-3 py-2">
+                        <div className="rounded-md border border-amber-200 bg-amber-50/80 px-3 py-2">
                           <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Countdown</div>
                           <div className="mt-1 text-sm font-black text-slate-950">{formatCountdown(nextHighImpact.time)}</div>
                         </div>
-                        <div className="rounded-md border border-blue-200 bg-white/80 px-3 py-2">
+                        <div className="rounded-md border border-amber-200 bg-amber-50/80 px-3 py-2">
                           <div className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Release time</div>
                           <div className="mt-1 text-sm font-black text-slate-950">{nextHighImpactTime}</div>
                         </div>
