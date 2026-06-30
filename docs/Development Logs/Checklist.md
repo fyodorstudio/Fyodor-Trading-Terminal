@@ -4,7 +4,7 @@ Last updated: 2026-06-30
 
 ## Active Planning Source
 
-This file is the active command board for the project.
+This file is the active command board for the next goal-mode run.
 
 - Future AI sessions should read this file before older roadmap, audit, or patch notes.
 - `docs/Private` stays on disk, but should be ignored unless the user explicitly asks to use it.
@@ -16,103 +16,125 @@ This file is the active command board for the project.
 - Fyodor is manual-trading decision support, not a signal bot.
 - The user performs independent technical analysis in TradingView, then uses Fyodor to inspect what is happening behind the selected pair.
 - Trusted raw data remains MT5 OHLCV plus broker/MT5 economic-calendar rows.
-- Event Replay is mature enough to count as an active specialist output.
+- “How to take advantage” means interpret event context, affected markets, confirmation workflow, traps, and stronger/weaker scenarios. It must not become buy/sell calls.
+- Economic Calendar event explanation is a critical product surface because scheduled events are one of the main reasons price can move.
+- Overview is active, but still needs compact event-feed polish and 100% Chrome zoom fit work.
+- Event Replay is active, but still needs modal, past-release, replay-brief, and remaining viewport polish.
 - Central Banks Data is an active reference surface and should not be redesigned casually.
+- Differential Calculator should leave garbage and become an active Specialist Tools child, not a primary top-nav tab.
+- Aesthetic Forge remains hidden. Future revival should start as a small header gear entrypoint, not a left bookmark or full Settings tab.
 - Prototyping is a garbage drawer. Garbage tabs, supporting garbage logic, and garbage tests are ignored by default unless the user explicitly asks for them.
-- Deprecated Overview, Six Questions, Work In Progress, and hidden Aesthetic Forge are context-risk surfaces. They must not steer new product work.
+- Deprecated Overview, Six Questions, Work In Progress, and hidden Aesthetic Forge must not steer new product work.
 - `react-world-flags` is still used and works. Its missing TypeScript declaration and large `FlagIcon` chunk are known non-blocking noise; do not replace or refactor flags unless explicitly asked.
 - Do not create new tests unless the user explicitly agrees and the test's value is explained in plain English first.
 
 ## Active Roadmap
 
-### 1. Visual Unification And Viewport Fit
+### 1. Economic Calendar Event Explainer Overhaul
 
 This is the next active implementation lane.
 
-- [x] First pass: remove the active app shell's fixed 1460px content ceiling.
-- [x] First pass: apply a shared full-width workspace wrapper to active primary tabs.
-- [x] First pass: make Charts use viewport-aware chart height and a shorter terminal console.
-- [x] Charts pass: collapse the diagnostic terminal console by default and give the chart more viewport height.
-- [x] Central Banks pass: compact Strategic Focus spacing and collapse the mapping audit log by default.
-- [x] Economic Calendar pass: compact the filter rail and make the event table the desktop scroll region.
-- [x] Audit why primary tabs felt horizontally constrained while Event Replay used the screen more fully.
-- [x] Compare shell width, tab wrappers, section max widths, and page padding across:
-  - [x] Overview placeholder;
-  - [x] Central Banks Data;
-  - [x] Charts;
-  - [x] Economic Calendar;
-  - [x] Event Replay.
-- [x] Identify the main 100% Chrome zoom offenders: fixed shell width, tall Charts diagnostics, oversized Central Banks audit/detail spacing, and Calendar page-level table scroll.
-- [x] Prefer better layout density, popovers, modals, drawers, and viewport-aware panels over forcing the user to zoom to 75%.
-- [x] Preserve a full-screen operational feel: reduce unnecessary blank left/right gutters and avoid cramped centered columns where they hurt workflow.
-- [x] Audit `Main/src/styles.css` ownership before splitting it.
-- [x] Do not split global CSS until the visual/layout audit identifies safe feature boundaries.
-- [x] Keep the hidden Aesthetic Forge / left visual config panel off by default until its role is proven.
-- [x] Do not let the visual config panel drive app-wide design decisions before the active tabs have a stable layout direction.
+- [ ] Redesign the selected-event right drawer/popover UI.
+- [ ] Use the existing shared event explainer data as the source; do not add external data or web dependency.
+- [ ] Present event help around:
+  - [ ] release/result snapshot;
+  - [ ] what this event is;
+  - [ ] why traders care;
+  - [ ] affected currency, pairs, and tradable themes;
+  - [ ] what to compare: actual, forecast, previous, and revisions where relevant;
+  - [ ] stronger/weaker outcome interpretation;
+  - [ ] practical confirmation workflow;
+  - [ ] traps and caveats.
+- [ ] Keep wording practical and exhaustive enough to fill knowledge gaps, but still cautious and descriptive.
+- [ ] Restore and continue the unfinished event knowledge coverage checklist:
+  - [ ] policy and rate decisions;
+  - [ ] CPI, PCE, and inflation;
+  - [ ] labor, NFP, unemployment, wages, and claims;
+  - [ ] retail sales;
+  - [ ] trade balance and current account;
+  - [ ] confidence and sentiment.
+- [ ] Add alias/fallback coverage work so broker event names do not silently fall back to generic explanations.
+- [ ] Keep the Economic Calendar and Event Replay explainer path shared where practical.
 
-### 2. Fresh Overview Rebuild
+### 2. Viewport And Modal Polish
 
-This comes after visual unification, so the new Overview does not inherit the current shell/gutter/scroll problems.
+- [ ] Active tabs should target normal 100% Chrome zoom and should not require zooming to 75%.
+- [ ] Overview:
+  - [ ] remove the minor scroll when bridge data fills in;
+  - [ ] change `Pair Event Feed` to show upcoming events only;
+  - [ ] move recent releases into a popover opened by a clear `See recent releases` action;
+  - [ ] show upcoming and past releases in that popover, separated by a clean divider;
+  - [ ] allow base/quote macro cards to include compact upcoming event context beneath current data.
+- [ ] Event Replay:
+  - [ ] remove remaining whole-tab scroll where possible;
+  - [ ] fix centered modal top/bottom overlap with the header/app frame;
+  - [ ] redesign `Past Releases` modal so date/time and actual/forecast/previous are readable;
+  - [ ] redesign `Replay Brief` content and layout so it feels like a useful study brief, not stacked debug boxes.
+- [ ] Central Banks:
+  - [ ] rename `Global Mapping Audit` to `Terminal Console` for log naming consistency.
 
-- [x] Build from `OverviewPlaceholderTab.tsx`, not Deprecated Overview.
-- [x] Do not read or reuse `DeprecatedOverviewTab.tsx` or `app/lib/garbage/overview.ts` as the implementation source.
-- [x] Add a pair selector.
-- [x] Show the selected pair's upcoming relevant event plus countdown.
-- [x] Add pressable routing buttons to:
-  - [x] Charts;
-  - [x] Event Replay;
-  - [x] Economic Calendar;
-  - [x] Central Banks Data.
-- [x] Show base/quote macro cards similar in spirit to Differential Calculator, but implemented fresh from active data.
-- [x] Show recent pair-relevant events.
-- [x] Show base/quote policy rate, inflation, and related central-bank context.
-- [x] Keep the goal glanceable: pair brief first, deeper study via routed specialist surfaces.
-- [x] Keep language descriptive and cautious. Do not generate trade calls.
+### 3. Global Settings / Visual Config Entry
 
-### 3. Event Replay Continued Polish
+- [ ] Plan Aesthetic Forge revival as a small gear icon near the Fyodor title/header area.
+- [ ] Do not use a left bookmark tab for v1.
+- [ ] Do not add a full Settings primary tab for v1.
+- [ ] Keep the panel hidden by default until the gear is clicked.
+- [ ] Limit v1 scope to global configuration with a clear role.
+- [ ] Do not let the visual/config panel drive broad visual redesign until active surfaces are stable.
 
-This is the next active product lane after the fresh Overview checkpoint.
+### 4. Differential Calculator Promotion
 
-- [x] Keep Event Replay as an active specialist output.
-- [x] Overview -> Event Replay handoff should open Event Replay on the selected Overview pair without forcing normal Event Replay launches to mirror Overview.
-- [x] Preserve the main workflow order: pair -> event -> release -> replay setup -> playback.
-- [x] Preserve pair-first event grouping and major global movers as separate context.
-- [x] Continue layout polish only when it improves the replay workflow or reduces viewport friction.
-- [x] Keep Event Replay explanations concise and shared with the Economic Calendar explainer pipeline where practical.
+- [ ] Promote Differential Calculator from garbage into active Specialist Tools.
+- [ ] Keep it under Specialist Tools, not primary top nav.
+- [ ] Use existing route id `dashboard` for compatibility unless a later route migration plan explicitly changes it.
+- [ ] Move `DifferentialCalculatorTab` out of `tabs/garbage` into active secondary tools.
+- [ ] Move its supporting helper logic out of `lib/garbage`.
+- [ ] Add it as a Specialist Tools child, likely grouped as `Active Tool`.
+- [ ] Keep Prototyping as garbage-only.
 
-### 4. Central Banks Backlog
+### 5. Backlog
 
-- [ ] Consider a MoM/YoY toggle or equivalent period-mode control later.
-- [ ] Do not make this the next lane unless the user explicitly returns to Central Banks work.
-- [ ] Keep unresolved values unresolved. Do not invent missing data.
+- [ ] Central Banks MoM/YoY toggle remains later backlog.
+- [ ] Do not start broad CSS splitting yet.
+- [ ] Do not revive Deprecated Overview, Six Questions, WIP, or garbage logic as product sources.
 
-### 5. Documentation And AI Hygiene
+## Completed Checkpoints
 
-- [x] Keep this checklist as the first planning source.
-- [x] Keep `docs/Development Logs/Current App Map.md`, root `README.md`, and `Main/README.md` aligned with the fresh Overview checkpoint.
-- [x] Keep garbage folders ignored by default:
+- [x] Visual unification and viewport first pass completed.
+- [x] Active app shell no longer has the old fixed 1460px content ceiling.
+- [x] Charts diagnostic `Terminal Console` is collapsible.
+- [x] Central Banks focus view is denser, with audit logs collapsed.
+- [x] Economic Calendar table uses a desktop scroll region.
+- [x] `Main/src/styles.css` ownership was audited; do not split it without a specific visual-regression plan.
+- [x] Overview was rebuilt fresh from `OverviewPlaceholderTab.tsx`, not Deprecated Overview.
+- [x] Overview has pair selector, next pair event/countdown, route buttons, base/quote macro cards, and recent pair-relevant events.
+- [x] Event Replay preserves pair -> event -> release -> replay setup -> playback.
+- [x] Overview -> Event Replay opens on the selected Overview pair without forcing normal Event Replay launches to mirror Overview.
+- [x] Event Replay keeps pair-first event grouping and major global movers separate.
+- [x] Documentation maps were aligned after the fresh Overview checkpoint.
+- [x] Garbage folders remain ignored by default:
   - [x] `Main/src/app/tabs/garbage`;
   - [x] `Main/src/app/lib/garbage`;
   - [x] `Main/src/app/tests/garbage`.
-- [x] Treat older docs as historical unless the user explicitly asks to use them.
-- [x] Before adding tests, get explicit user agreement and explain what behavior the test protects.
 
 ## Verification Rules
 
 - Checklist-only edits require no app tests.
-- Visual/layout implementation should use targeted viewport inspection, screenshots when useful, and `pnpm --dir Main build`.
+- Future Event Explainer implementation should run targeted Calendar/explainer tests and `pnpm --dir Main build`.
+- Future viewport/modal work should use manual viewport inspection at 100% Chrome zoom plus `pnpm --dir Main build`.
+- Future Differential promotion should run targeted navigation/Specialist Tools tests plus `pnpm --dir Main build`.
 - Do not run broad/full test suites after every small visual pass by default.
+- Before adding new tests, get explicit user agreement and explain what behavior the test protects.
 - Before CSS splitting, require a specific plan because global cascade risk is high.
 - Before reviving Aesthetic Forge, require a specific plan because app-wide styling risk is high.
 - Bridge tests are only required if bridge contracts change.
 
 ## Stable Assumptions
 
-- No active implementation lane is currently open after the visual, Overview, and Event Replay checkpoints.
-- Central Banks MoM/YoY remains backlog; do not start it unless the user returns to that topic.
-- Overview has been rebuilt fresh from the old blank placeholder and active helpers/data only.
-- Deprecated Overview may be referenced only as a warning or route target, not as design or logic source.
-- Event Replay is active product work, not garbage.
+- The next goal-mode run should start from this checklist.
+- Header gear is the chosen settings/config entrypoint.
+- Differential Calculator should become an active Specialist Tools child, not a primary tab.
+- Event explanation must help decision-making without generating trade calls.
 - The app remains decision support, not a signal bot.
 - No MT5 bridge API changes are planned for the current roadmap.
 - Do not add external data sources until the user explicitly changes the data boundary.
