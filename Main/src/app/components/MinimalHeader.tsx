@@ -181,7 +181,7 @@ export function MinimalHeader({
       >
         <div className="max-w-[1460px] mx-auto px-6">
           <div className="flex min-h-[58px] items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-5">
+            <div className="flex shrink-0 items-center gap-5">
               <div className="min-w-0">
                 <div className="text-sm font-semibold text-slate-950">Fyodor Trading Terminal</div>
                 <div className="text-xs text-slate-500">{headerLocalTime} {headerLocalDate}</div>
@@ -194,7 +194,18 @@ export function MinimalHeader({
               </div>
             </div>
 
-            <div className="flex min-w-0 items-center gap-3">
+            {showDetails && (
+              <div className="hidden min-w-0 flex-1 justify-end md:flex">
+                <TabNavigation
+                  activeTab={activeTab}
+                  setActiveTab={setActiveTab}
+                  tabOrder={tabOrder}
+                  placement="header"
+                />
+              </div>
+            )}
+
+            <div className="flex shrink-0 items-center gap-3">
               <button
                 onClick={() => {
                   if (showDetails) {
@@ -227,16 +238,7 @@ export function MinimalHeader({
             className="fixed left-0 right-0 top-[58px] z-[900] max-h-[calc(100vh-58px)] overflow-y-auto border-b border-slate-200 bg-white/98 shadow-xl shadow-slate-950/10 backdrop-blur-xl"
           >
             <div className="max-w-[1460px] mx-auto px-6 py-5">
-              <div className="flex justify-center border-b border-slate-200 pb-4">
-                <TabNavigation
-                  activeTab={activeTab}
-                  setActiveTab={setActiveTab}
-                  tabOrder={tabOrder}
-                  placement="header"
-                />
-              </div>
-
-              <div className="mt-4 grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
+              <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
                 <div className="grid gap-4">
                   <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03]">
                     <div className="flex items-center justify-between">
