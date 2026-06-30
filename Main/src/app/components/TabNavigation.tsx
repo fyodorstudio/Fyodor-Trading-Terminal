@@ -45,7 +45,7 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder, placement = "
       ref={navRef}
       className={`relative flex items-center backdrop-blur-xl bg-[var(--nav-bg)] border border-[var(--line)] shadow-sm transition-colors duration-300 ${
         isHeader
-          ? "z-[930] max-w-full flex-nowrap gap-1 rounded-full border-slate-200 bg-slate-50/90 p-1 shadow-none"
+          ? "z-[930] max-w-full flex-nowrap gap-1 border-transparent bg-transparent p-0 shadow-none"
           : "z-[60] mx-auto mb-8 mt-6 max-w-fit flex-wrap gap-2 rounded-2xl p-1.5"
       }`}
     >
@@ -53,6 +53,12 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder, placement = "
         const isActive = activeTab === tab.id || activeParentId === tab.id;
         const hasChildren = Boolean(tab.children && tab.children.length > 0);
         const helpText = TAB_HELP_TEXT[tab.id];
+        const inactiveClass =
+          isHeader && hasChildren
+            ? "border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50"
+            : isHeader
+              ? "text-slate-500 hover:text-slate-950"
+              : "text-[var(--tab-inactive-text)] hover:opacity-80";
         return (
           <div
             key={tab.id}
@@ -71,15 +77,15 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder, placement = "
               }}
               className={`
                 relative inline-flex items-center gap-1.5 whitespace-nowrap font-black uppercase transition-all duration-300 outline-none
-                ${isHeader ? "rounded-full px-3 py-1.5 text-[10px] tracking-[0.12em]" : "rounded-xl px-5 py-2.5 text-xs tracking-widest"}
-                ${isActive ? 'text-[var(--tab-active-text)]' : 'text-[var(--tab-inactive-text)] hover:opacity-80'}
+                ${isHeader ? "rounded-lg px-2.5 py-1.5 text-[10px] tracking-[0.12em]" : "rounded-xl px-5 py-2.5 text-xs tracking-widest"}
+                ${isActive ? 'text-[var(--tab-active-text)]' : inactiveClass}
               `}
               aria-describedby={helpText ? `tab-help-${tab.id}` : undefined}
             >
               {isActive && (
                 <motion.div
                   layoutId="activeTabIndicator"
-                  className={`absolute inset-0 bg-[var(--tab-active-bg)] shadow-md z-0 ${isHeader ? "rounded-full" : "rounded-xl"}`}
+                  className={`absolute inset-0 bg-[var(--tab-active-bg)] shadow-md z-0 ${isHeader ? "rounded-lg" : "rounded-xl"}`}
                   transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                 />
               )}
