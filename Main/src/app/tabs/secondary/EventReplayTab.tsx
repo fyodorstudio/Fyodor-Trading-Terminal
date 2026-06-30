@@ -150,6 +150,7 @@ export function EventReplayTab({
     () => (selectedSample ? getCalendarEventExplainer(buildReplaySampleCalendarEvent(selectedSample)) : null),
     [selectedSample],
   );
+  const overlayOpen = eventListOpen || releaseListOpen || detailsOpen;
   const visiblePairTemplates = useMemo(
     () =>
       sortEventTemplates(
@@ -173,6 +174,20 @@ export function EventReplayTab({
     const id = window.setInterval(() => setCountdownNowMs(Date.now()), 30_000);
     return () => window.clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!overlayOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setEventListOpen(false);
+      setReleaseListOpen(false);
+      setDetailsOpen(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [overlayOpen]);
 
   useEffect(() => {
     if (!pairIntent) return;
@@ -357,8 +372,8 @@ export function EventReplayTab({
         <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">MT5 candles + broker calendar</span>
       </header>
 
-      <section className="grid min-h-[calc(100vh-190px)] min-w-0 gap-3 lg:grid-cols-[380px_minmax(0,1fr)]">
-        <aside className="flex min-h-0 min-w-0 flex-col overflow-hidden border border-slate-200 bg-white shadow-sm">
+      <section className="grid min-w-0 gap-3 lg:h-[calc(100vh-190px)] lg:min-h-[560px] lg:grid-cols-[380px_minmax(0,1fr)]">
+        <aside className="flex min-h-0 min-w-0 flex-col overflow-y-auto border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-4 py-4">
             <label className="grid gap-2">
               <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Pair</span>
@@ -558,15 +573,15 @@ export function EventReplayTab({
 
           <div className="min-h-0 flex-1 p-3">
             {!selectedTemplate ? (
-              <div className="flex h-full min-h-[520px] items-center justify-center border border-dashed border-slate-300 bg-slate-50 px-6 text-center text-sm text-slate-500">
+              <div className="flex h-full min-h-[360px] items-center justify-center border border-dashed border-slate-300 bg-slate-50 px-6 text-center text-sm text-slate-500">
                 Select an event type to start replay study.
               </div>
             ) : replayLoading ? (
-              <div className="flex h-full min-h-[520px] items-center justify-center border border-dashed border-slate-300 bg-slate-50 px-6 text-center text-sm text-slate-500">
+              <div className="flex h-full min-h-[360px] items-center justify-center border border-dashed border-slate-300 bg-slate-50 px-6 text-center text-sm text-slate-500">
                 Loading historical MT5 candles for this release...
               </div>
             ) : !replayWindow || !selectedSample ? (
-              <div className="flex h-full min-h-[520px] items-center justify-center border border-dashed border-slate-300 bg-slate-50 px-6 text-center text-sm text-slate-500">
+              <div className="flex h-full min-h-[360px] items-center justify-center border border-dashed border-slate-300 bg-slate-50 px-6 text-center text-sm text-slate-500">
                 No replayable candle window is available for this event, pair, and timeframe.
               </div>
             ) : (
@@ -586,6 +601,9 @@ export function EventReplayTab({
         <div
           className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/25 p-4 backdrop-blur-sm"
           onClick={() => setEventListOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Select Event"
         >
           <aside
             className="flex max-h-[calc(100vh-32px)] w-full max-w-[860px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
@@ -707,6 +725,9 @@ export function EventReplayTab({
         <div
           className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/25 p-4 backdrop-blur-sm"
           onClick={() => setReleaseListOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Past Releases"
         >
           <section
             className="flex max-h-[calc(100vh-32px)] w-full max-w-[620px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
@@ -756,6 +777,9 @@ export function EventReplayTab({
         <div
           className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/25 p-4 backdrop-blur-sm"
           onClick={() => setDetailsOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Replay Brief"
         >
           <aside
             className="flex max-h-[calc(100vh-32px)] w-full max-w-[720px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"

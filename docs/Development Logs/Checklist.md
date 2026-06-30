@@ -73,12 +73,12 @@ This comes after visual unification, so the new Overview does not inherit the cu
 
 This is the next active product lane after the fresh Overview checkpoint.
 
-- [ ] Keep Event Replay as an active specialist output.
+- [x] Keep Event Replay as an active specialist output.
 - [x] Overview -> Event Replay handoff should open Event Replay on the selected Overview pair without forcing normal Event Replay launches to mirror Overview.
-- [ ] Preserve the main workflow order: pair -> event -> release -> replay setup -> playback.
-- [ ] Preserve pair-first event grouping and major global movers as separate context.
-- [ ] Continue layout polish only when it improves the replay workflow or reduces viewport friction.
-- [ ] Keep Event Replay explanations concise and shared with the Economic Calendar explainer pipeline where practical.
+- [x] Preserve the main workflow order: pair -> event -> release -> replay setup -> playback.
+- [x] Preserve pair-first event grouping and major global movers as separate context.
+- [x] Continue layout polish only when it improves the replay workflow or reduces viewport friction.
+- [x] Keep Event Replay explanations concise and shared with the Economic Calendar explainer pipeline where practical.
 
 ### 4. Central Banks Backlog
 
