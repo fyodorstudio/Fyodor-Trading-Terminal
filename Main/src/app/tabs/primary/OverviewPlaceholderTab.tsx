@@ -14,6 +14,7 @@ interface OverviewPlaceholderTabProps {
   currentTime: Date;
   onNavigate: (tab: TabId) => void;
   onOpenCalendarEvent: (event: CalendarEvent) => void;
+  onOpenEventReplay: (symbol: string) => void;
   onOpenChart: (symbol: string) => void;
 }
 
@@ -147,6 +148,7 @@ export function OverviewPlaceholderTab({
   currentTime,
   onNavigate,
   onOpenCalendarEvent,
+  onOpenEventReplay,
   onOpenChart,
 }: OverviewPlaceholderTabProps) {
   const pair = resolvePair(selectedSymbol);
@@ -251,7 +253,7 @@ export function OverviewPlaceholderTab({
             </button>
             <button
               type="button"
-              onClick={() => onNavigate("event-tools")}
+              onClick={() => onOpenEventReplay(pair.name)}
               className="flex items-center justify-between rounded-xl border border-white/10 bg-white/10 px-3 py-3 text-sm font-black text-white transition hover:bg-white/15"
             >
               Event Replay <PlayCircle className="h-4 w-4" />

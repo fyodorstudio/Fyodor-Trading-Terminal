@@ -64,6 +64,8 @@ interface EventReplayTabProps {
   events: CalendarEvent[];
   status: BridgeStatus;
   lastCalendarIngestAt: number | null;
+  pairIntent?: string | null;
+  onConsumePairIntent?: () => void;
 }
 
 const STORAGE_KEYS = EVENT_REPLAY_STORAGE_KEYS;
@@ -98,7 +100,13 @@ function getEventTemplateMetaLabel(
   return undefined;
 }
 
-export function EventReplayTab({ events, status, lastCalendarIngestAt }: EventReplayTabProps) {
+export function EventReplayTab({
+  events,
+  status,
+  lastCalendarIngestAt,
+  pairIntent = null,
+  onConsumePairIntent,
+}: EventReplayTabProps) {
   const [selectedPairName, setSelectedPairName] = useState(() => getInitialEventReplayPair().name);
   const selectedPair = useMemo(() => getFxPairByName(selectedPairName) ?? FX_PAIRS[0], [selectedPairName]);
   const [selectedEventKey, setSelectedEventKey] = useState(() => getStorageItem(STORAGE_KEYS.eventKey) ?? "");
@@ -165,6 +173,24 @@ export function EventReplayTab({ events, status, lastCalendarIngestAt }: EventRe
     const id = window.setInterval(() => setCountdownNowMs(Date.now()), 30_000);
     return () => window.clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!pairIntent) return;
+    const nextPair = getFxPairByName(pairIntent);
+    if (!nextPair) {
+      onConsumePairIntent?.();
+      return;
+    }
+
+    if (nextPair.name !== selectedPairName) {
+      setSelectedPairName(nextPair.name);
+      setSelectedEventKey("");
+      setSelectedSampleIndex(0);
+      setIsPlaying(false);
+    }
+
+    onConsumePairIntent?.();
+  }, [onConsumePairIntent, pairIntent, selectedPairName]);
 
   useEffect(() => {
     const firstKey = allTemplates[0]?.key ?? "";

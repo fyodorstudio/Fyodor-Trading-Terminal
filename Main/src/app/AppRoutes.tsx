@@ -48,6 +48,9 @@ interface AppRoutesProps {
   overviewSymbol: string;
   onOverviewSymbolChange: (symbol: string) => void;
   overviewMarketStatus: MarketStatusResponse | null;
+  eventReplayPairIntent: string | null;
+  onOpenEventReplay: (symbol: string) => void;
+  onConsumeEventReplayPairIntent: () => void;
   chartSymbol: string;
   onChartSymbolChange: (symbol: string) => void;
   chartMarketStatus: MarketStatusResponse | null;
@@ -77,6 +80,9 @@ export function AppRoutes({
   overviewSymbol,
   onOverviewSymbolChange,
   overviewMarketStatus,
+  eventReplayPairIntent,
+  onOpenEventReplay,
+  onConsumeEventReplayPairIntent,
   chartSymbol,
   onChartSymbolChange,
   chartMarketStatus,
@@ -99,6 +105,7 @@ export function AppRoutes({
           currentTime={currentTime}
           onNavigate={onNavigate}
           onOpenCalendarEvent={onOpenCalendarEvent}
+          onOpenEventReplay={onOpenEventReplay}
           onOpenChart={(symbol) => {
             onChartSymbolChange(symbol);
             onNavigate("charts");
@@ -133,6 +140,8 @@ export function AppRoutes({
           events={feedEvents}
           status={feedStatus}
           lastCalendarIngestAt={health.last_calendar_ingest_at ?? null}
+          pairIntent={eventReplayPairIntent}
+          onConsumePairIntent={onConsumeEventReplayPairIntent}
         />
       )}
       {activeTab === "work-in-progress" && <WipMapArchiveTab />}

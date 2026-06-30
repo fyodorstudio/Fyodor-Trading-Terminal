@@ -15,6 +15,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [chartSymbol, setChartSymbol] = useState("EURUSD");
   const [overviewSymbol, setOverviewSymbol] = useState("EURUSD");
+  const [eventReplayPairIntent, setEventReplayPairIntent] = useState<string | null>(null);
   const [calendarTabLastSyncedAt, setCalendarTabLastSyncedAt] = useState<number | null>(null);
   const [calendarNavigationIntent, setCalendarNavigationIntent] = useState<CalendarNavigationIntent | null>(null);
   const { health, feedEvents, feedStatus } = useCalendarFeed();
@@ -60,6 +61,12 @@ export default function App() {
               overviewSymbol={overviewSymbol}
               onOverviewSymbolChange={setOverviewSymbol}
               overviewMarketStatus={overviewMarketStatus}
+              eventReplayPairIntent={eventReplayPairIntent}
+              onOpenEventReplay={(symbol) => {
+                setEventReplayPairIntent(symbol);
+                setActiveTab("event-tools");
+              }}
+              onConsumeEventReplayPairIntent={() => setEventReplayPairIntent(null)}
               chartSymbol={chartSymbol}
               onChartSymbolChange={setChartSymbol}
               chartMarketStatus={chartMarketStatus}

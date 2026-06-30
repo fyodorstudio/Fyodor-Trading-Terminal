@@ -106,6 +106,7 @@ describe("OverviewPlaceholderTab", () => {
         currentTime={new Date(1_781_000_000 * 1000)}
         onNavigate={() => {}}
         onOpenCalendarEvent={() => {}}
+        onOpenEventReplay={() => {}}
         onOpenChart={() => {}}
       />,
     );
