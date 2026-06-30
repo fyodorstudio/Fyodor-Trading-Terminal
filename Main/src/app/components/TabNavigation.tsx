@@ -45,7 +45,7 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder, placement = "
       ref={navRef}
       className={`relative flex items-center backdrop-blur-xl bg-[var(--nav-bg)] border border-[var(--line)] shadow-sm transition-colors duration-300 ${
         isHeader
-          ? "z-[930] max-w-full flex-nowrap gap-0.5 rounded-xl p-0.5"
+          ? "z-[930] max-w-full flex-nowrap gap-1 rounded-full border-slate-200 bg-slate-50/90 p-1 shadow-none"
           : "z-[60] mx-auto mb-8 mt-6 max-w-fit flex-wrap gap-2 rounded-2xl p-1.5"
       }`}
     >
@@ -70,8 +70,8 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder, placement = "
                 setActiveTab(tab.id);
               }}
               className={`
-                relative inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl font-black uppercase transition-all duration-300 outline-none
-                ${isHeader ? "px-2.5 py-1.5 text-[11px] tracking-[0.11em]" : "px-5 py-2.5 text-xs tracking-widest"}
+                relative inline-flex items-center gap-1.5 whitespace-nowrap font-black uppercase transition-all duration-300 outline-none
+                ${isHeader ? "rounded-full px-3 py-1.5 text-[10px] tracking-[0.12em]" : "rounded-xl px-5 py-2.5 text-xs tracking-widest"}
                 ${isActive ? 'text-[var(--tab-active-text)]' : 'text-[var(--tab-inactive-text)] hover:opacity-80'}
               `}
               aria-describedby={helpText ? `tab-help-${tab.id}` : undefined}
@@ -79,7 +79,7 @@ export function TabNavigation({ activeTab, setActiveTab, tabOrder, placement = "
               {isActive && (
                 <motion.div
                   layoutId="activeTabIndicator"
-                  className="absolute inset-0 bg-[var(--tab-active-bg)] shadow-md rounded-xl z-0"
+                  className={`absolute inset-0 bg-[var(--tab-active-bg)] shadow-md z-0 ${isHeader ? "rounded-full" : "rounded-xl"}`}
                   transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
                 />
               )}
