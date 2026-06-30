@@ -34,6 +34,7 @@ This is the next active implementation lane.
 - [x] First pass: make Charts use viewport-aware chart height and a shorter terminal console.
 - [x] Charts pass: collapse the diagnostic terminal console by default and give the chart more viewport height.
 - [x] Central Banks pass: compact Strategic Focus spacing and collapse the mapping audit log by default.
+- [x] Economic Calendar pass: compact the filter rail and make the event table the desktop scroll region.
 - [ ] Audit why primary tabs feel horizontally constrained while Event Replay uses the screen more fully.
 - [ ] Compare shell width, tab wrappers, section max widths, and page padding across:
   - [ ] Overview placeholder;

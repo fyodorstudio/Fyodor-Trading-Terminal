@@ -673,7 +673,7 @@ export function EconomicCalendarTab({
   }, [selectedEvent]);
 
   return (
-    <section className="tab-panel workspace-page flex flex-col gap-4">
+    <section className="tab-panel workspace-page workspace-page-compact calendar-page flex flex-col gap-4">
       <div className="calendar-operational-rail">
         <div className="calendar-rail-title">
           <div className="calendar-rail-heading">
@@ -949,7 +949,7 @@ export function EconomicCalendarTab({
         </div>
       )}
 
-      <div className="data-table-shell">
+      <div className="data-table-shell calendar-table-shell">
         <table className="data-table calendar-table">
           <colgroup>
             <col className="calendar-col-mt5" />
