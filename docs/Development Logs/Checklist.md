@@ -46,15 +46,15 @@ This is the next active implementation lane.
   - [x] practical confirmation workflow;
   - [x] traps and caveats.
 - [x] Keep wording practical and exhaustive enough to fill knowledge gaps, but still cautious and descriptive.
-- [ ] Restore and continue the unfinished event knowledge coverage checklist:
-  - [ ] policy and rate decisions;
-  - [ ] CPI, PCE, and inflation;
-  - [ ] labor, NFP, unemployment, wages, and claims;
-  - [ ] retail sales;
-  - [ ] trade balance and current account;
-  - [ ] confidence and sentiment.
-- [ ] Add alias/fallback coverage work so broker event names do not silently fall back to generic explanations.
-- [ ] Keep the Economic Calendar and Event Replay explainer path shared where practical.
+- [x] Restore and continue the unfinished event knowledge coverage checklist:
+  - [x] policy and rate decisions;
+  - [x] CPI, PCE, and inflation;
+  - [x] labor, NFP, unemployment, wages, and claims;
+  - [x] retail sales;
+  - [x] trade balance and current account;
+  - [x] confidence and sentiment.
+- [x] Add alias/fallback coverage work so broker event names do not silently fall back to generic explanations.
+- [x] Keep the Economic Calendar and Event Replay explainer path shared where practical.
 
 ### 2. Viewport And Modal Polish
 
@@ -112,6 +112,7 @@ This is the next active implementation lane.
 - [x] Overview -> Event Replay opens on the selected Overview pair without forcing normal Event Replay launches to mirror Overview.
 - [x] Event Replay keeps pair-first event grouping and major global movers separate.
 - [x] Economic Calendar selected-event drawer now presents release snapshot, event meaning, affected markets, comparisons, confirmation workflow, outcome scenarios, and caveats from the shared explainer data.
+- [x] Calendar event aliases now cover more broker title variants for policy, inflation, labor, retail, trade/current-account, export/import, and confidence/sentiment releases.
 - [x] Documentation maps were aligned after the fresh Overview checkpoint.
 - [x] Garbage folders remain ignored by default:
   - [x] `Main/src/app/tabs/garbage`;

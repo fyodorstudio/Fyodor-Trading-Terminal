@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildCalendarEventKey, createCalendarNavigationIntent, getCalendarIntentDayRange } from "@/app/lib/calendarNavigation";
 import { getCalendarEventExplainer } from "@/app/lib/calendarEventExplain";
 import { CALENDAR_EVENT_KNOWLEDGE_BACKLOG } from "@/app/lib/calendarEventKnowledge";
+import { classifyEventQualityFamily } from "@/app/lib/eventQuality";
 import type { CalendarEvent } from "@/app/types";
 
 const event: CalendarEvent = {
@@ -78,20 +79,34 @@ describe("calendar event explainer", () => {
 
   it.each([
     ["FOMC Statement", "policy"],
+    ["Official Cash Rate", "policy"],
+    ["ECB Monetary Policy Decision", "policy"],
     ["CPI y/y", "inflation"],
+    ["Consumer Price Index y/y", "inflation"],
     ["Core PCE Price Index m/m", "inflation"],
+    ["Personal Consumption Expenditure Prices", "inflation"],
+    ["Import Price Index m/m", "inflation"],
     ["Nonfarm Payrolls", "labor"],
     ["Unemployment Claims", "labor"],
+    ["Initial Jobless Claims", "labor"],
+    ["Average Hourly Earnings m/m", "labor"],
     ["GDP q/q", "gdp"],
     ["ISM Services PMI", "activity"],
     ["Retail Sales m/m", "activity"],
+    ["Retail Control m/m", "activity"],
     ["Trade Balance", "trade_confidence"],
     ["Current Account", "trade_confidence"],
+    ["Exports", "trade_confidence"],
+    ["Imports", "trade_confidence"],
+    ["Goods Trade Balance", "trade_confidence"],
     ["Consumer Confidence", "trade_confidence"],
+    ["Ifo Business Climate", "trade_confidence"],
+    ["UoM Consumer Sentiment", "trade_confidence"],
   ] as const)("resolves major broker title alias %s", (title, family) => {
     const explainer = getCalendarEventExplainer({ ...event, title });
 
     expect(explainer.family).toBe(family);
+    expect(classifyEventQualityFamily(title)?.family).toBe(family);
     expect(explainer.knowledgeDepth).not.toBe("generic");
     expect(explainer.whatItIs).not.toContain("economic or policy-related data point");
   });
