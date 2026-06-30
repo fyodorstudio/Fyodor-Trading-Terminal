@@ -115,7 +115,8 @@ describe("OverviewPlaceholderTab", () => {
     expect(html).toContain("EURUSD");
     expect(html).toContain("Next Pair Event");
     expect(html).toContain("CPI y/y");
-    expect(html).toContain("Recent releases");
+    expect(html).toContain("Upcoming events");
+    expect(html).toContain("See recent releases");
     expect(html).toContain("Policy Rate");
     expect(html).not.toContain("Specialist Tools, then Prototyping, then Deprecated Overview");
     expect(html).not.toContain("WORK IN PROGRESS");

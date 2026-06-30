@@ -61,17 +61,17 @@ This is the next active implementation lane.
 - [ ] Active tabs should target normal 100% Chrome zoom and should not require zooming to 75%.
 - [ ] Overview:
   - [ ] remove the minor scroll when bridge data fills in;
-  - [ ] change `Pair Event Feed` to show upcoming events only;
-  - [ ] move recent releases into a popover opened by a clear `See recent releases` action;
-  - [ ] show upcoming and past releases in that popover, separated by a clean divider;
-  - [ ] allow base/quote macro cards to include compact upcoming event context beneath current data.
+  - [x] change `Pair Event Feed` to show upcoming events only;
+  - [x] move recent releases into a popover opened by a clear `See recent releases` action;
+  - [x] show upcoming and past releases in that popover, separated by a clean divider;
+  - [x] allow base/quote macro cards to include compact upcoming event context beneath current data.
 - [ ] Event Replay:
   - [ ] remove remaining whole-tab scroll where possible;
   - [ ] fix centered modal top/bottom overlap with the header/app frame;
   - [ ] redesign `Past Releases` modal so date/time and actual/forecast/previous are readable;
   - [ ] redesign `Replay Brief` content and layout so it feels like a useful study brief, not stacked debug boxes.
 - [ ] Central Banks:
-  - [ ] rename `Global Mapping Audit` to `Terminal Console` for log naming consistency.
+  - [x] rename `Global Mapping Audit` to `Terminal Console` for log naming consistency.
 
 ### 3. Global Settings / Visual Config Entry
 
@@ -113,6 +113,8 @@ This is the next active implementation lane.
 - [x] Event Replay keeps pair-first event grouping and major global movers separate.
 - [x] Economic Calendar selected-event drawer now presents release snapshot, event meaning, affected markets, comparisons, confirmation workflow, outcome scenarios, and caveats from the shared explainer data.
 - [x] Calendar event aliases now cover more broker title variants for policy, inflation, labor, retail, trade/current-account, export/import, and confidence/sentiment releases.
+- [x] Overview Pair Event Feed now shows upcoming events only, with recent releases moved into a separated releases popover.
+- [x] Central Banks log section was renamed to `Terminal Console` for consistency with Charts.
 - [x] Documentation maps were aligned after the fresh Overview checkpoint.
 - [x] Garbage folders remain ignored by default:
   - [x] `Main/src/app/tabs/garbage`;

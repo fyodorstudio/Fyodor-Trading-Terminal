@@ -1,4 +1,5 @@
-import { ArrowRight, BarChart3, Building2, CalendarDays, Clock3, PlayCircle, Radio } from "lucide-react";
+import { useState } from "react";
+import { ArrowRight, BarChart3, Building2, CalendarDays, Clock3, PlayCircle, Radio, X } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { CURRENCY_TO_COUNTRY_CODE, FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { formatEventValue } from "@/app/lib/calendarDisplay";
@@ -49,6 +50,9 @@ function MacroCard(props: {
   side: "Base" | "Quote";
   currency: string;
   snapshot: CentralBankSnapshot | null;
+  nextEvent: CalendarEvent | null;
+  currentTime: Date;
+  onOpenEvent: (event: CalendarEvent) => void;
 }) {
   const countryCode = resolveCountryCode(props.currency, props.snapshot);
   const status = props.snapshot?.status ?? "missing";
@@ -105,6 +109,25 @@ function MacroCard(props: {
           <strong className="text-right text-slate-900">{formatDateOnly(props.snapshot?.nextCpiEventAt ?? null)}</strong>
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => (props.nextEvent ? props.onOpenEvent(props.nextEvent) : undefined)}
+        disabled={!props.nextEvent}
+        className="mt-4 flex w-full items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-3 text-left transition enabled:hover:border-blue-200 enabled:hover:bg-blue-100/70 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-50"
+      >
+        <span className="min-w-0">
+          <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">
+            Next {props.currency} event
+          </span>
+          <span className="mt-1 block truncate text-xs font-black text-slate-950">
+            {props.nextEvent ? props.nextEvent.title : "No upcoming loaded"}
+          </span>
+        </span>
+        <span className="shrink-0 text-right text-xs font-black text-blue-700">
+          {props.nextEvent ? formatCountdown(props.nextEvent.time, props.currentTime.getTime()) : "N/A"}
+        </span>
+      </button>
     </section>
   );
 }
@@ -151,6 +174,7 @@ export function OverviewPlaceholderTab({
   onOpenEventReplay,
   onOpenChart,
 }: OverviewPlaceholderTabProps) {
+  const [releasePopoverOpen, setReleasePopoverOpen] = useState(false);
   const pair = resolvePair(selectedSymbol);
   const pairCurrencies = [pair.base, pair.quote];
   const pairEvents = getPairEvents(events, pairCurrencies);
@@ -161,8 +185,11 @@ export function OverviewPlaceholderTab({
   const recentEvents = pairEvents
     .filter((event) => event.time < nowSeconds)
     .sort((left, right) => right.time - left.time)
-    .slice(0, 5);
+    .slice(0, 8);
+  const upcomingFeedEvents = upcomingEvents.slice(0, 3);
   const nextEvent = upcomingEvents[0] ?? null;
+  const baseNextEvent = upcomingEvents.find((event) => event.currency === pair.base) ?? null;
+  const quoteNextEvent = upcomingEvents.find((event) => event.currency === pair.quote) ?? null;
   const baseSnapshot = findSnapshot(pair.base, snapshots);
   const quoteSnapshot = findSnapshot(pair.quote, snapshots);
   const sessionLabel =
@@ -278,35 +305,56 @@ export function OverviewPlaceholderTab({
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
         <div className="grid gap-4 lg:grid-cols-2">
-          <MacroCard side="Base" currency={pair.base} snapshot={baseSnapshot} />
-          <MacroCard side="Quote" currency={pair.quote} snapshot={quoteSnapshot} />
+          <MacroCard
+            side="Base"
+            currency={pair.base}
+            snapshot={baseSnapshot}
+            nextEvent={baseNextEvent}
+            currentTime={currentTime}
+            onOpenEvent={onOpenCalendarEvent}
+          />
+          <MacroCard
+            side="Quote"
+            currency={pair.quote}
+            snapshot={quoteSnapshot}
+            nextEvent={quoteNextEvent}
+            currentTime={currentTime}
+            onOpenEvent={onOpenCalendarEvent}
+          />
         </div>
 
         <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div>
               <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Pair Event Feed</div>
-              <h3 className="mt-1 text-lg font-black text-slate-950">Recent releases</h3>
+              <h3 className="mt-1 text-lg font-black text-slate-950">Upcoming events</h3>
             </div>
             <Radio className="h-5 w-5 text-blue-500" />
           </div>
           <div className="mt-4 grid gap-2">
-            {recentEvents.length > 0 ? (
-              recentEvents.map((event) => (
+            {upcomingFeedEvents.length > 0 ? (
+              upcomingFeedEvents.map((event) => (
                 <EventRow
                   key={`${event.id}-${event.time}-${event.currency}-${event.title}`}
                   event={event}
                   currentTime={currentTime}
-                  mode="recent"
+                  mode="upcoming"
                   onOpen={onOpenCalendarEvent}
                 />
               ))
             ) : (
               <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm font-semibold text-slate-500">
-                No recent pair-relevant release is loaded in the current MT5 calendar feed.
+                No upcoming pair-relevant event is loaded in the current MT5 calendar feed.
               </div>
             )}
           </div>
+          <button
+            type="button"
+            onClick={() => setReleasePopoverOpen(true)}
+            className="mt-4 inline-flex w-full items-center justify-between rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 transition hover:border-blue-200 hover:bg-blue-100"
+          >
+            See recent releases <ArrowRight className="h-4 w-4" />
+          </button>
         </section>
       </section>
 
@@ -325,6 +373,80 @@ export function OverviewPlaceholderTab({
           </button>
         </div>
       </section>
+
+      {releasePopoverOpen ? (
+        <div className="overview-release-overlay" onClick={() => setReleasePopoverOpen(false)}>
+          <section
+            className="overview-release-popover"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${pair.name} calendar releases`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header className="overview-release-popover-head">
+              <div>
+                <span>Pair releases</span>
+                <h3>{pair.name}</h3>
+              </div>
+              <button type="button" aria-label="Close pair releases" onClick={() => setReleasePopoverOpen(false)}>
+                <X className="h-4 w-4" />
+              </button>
+            </header>
+
+            <div className="overview-release-popover-body">
+              <section>
+                <div className="overview-release-section-title">
+                  <span>Upcoming</span>
+                  <strong>{upcomingEvents.length}</strong>
+                </div>
+                <div className="mt-3 grid gap-2">
+                  {upcomingEvents.length > 0 ? (
+                    upcomingEvents.slice(0, 8).map((event) => (
+                      <EventRow
+                        key={`${event.id}-${event.time}-${event.currency}-${event.title}-upcoming`}
+                        event={event}
+                        currentTime={currentTime}
+                        mode="upcoming"
+                        onOpen={onOpenCalendarEvent}
+                      />
+                    ))
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm font-semibold text-slate-500">
+                      No upcoming pair events are loaded.
+                    </div>
+                  )}
+                </div>
+              </section>
+
+              <div className="overview-release-divider" />
+
+              <section>
+                <div className="overview-release-section-title">
+                  <span>Past releases</span>
+                  <strong>{recentEvents.length}</strong>
+                </div>
+                <div className="mt-3 grid gap-2">
+                  {recentEvents.length > 0 ? (
+                    recentEvents.map((event) => (
+                      <EventRow
+                        key={`${event.id}-${event.time}-${event.currency}-${event.title}-recent`}
+                        event={event}
+                        currentTime={currentTime}
+                        mode="recent"
+                        onOpen={onOpenCalendarEvent}
+                      />
+                    ))
+                  ) : (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm font-semibold text-slate-500">
+                      No recent pair releases are loaded.
+                    </div>
+                  )}
+                </div>
+              </section>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }

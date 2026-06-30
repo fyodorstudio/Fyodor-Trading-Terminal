@@ -367,12 +367,12 @@ export function CentralBanksTab({
         )}
       </AnimatePresence>
 
-      {/* Shared Mapping Audit Panel */}
+      {/* Terminal Console */}
       <div className="backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-2xl overflow-hidden shadow-sm mt-auto">
         <div className={`flex items-center justify-between gap-3 px-5 py-3 bg-gray-50/30 ${auditOpen ? "border-b border-gray-100" : ""}`}>
           <div className="flex items-center gap-3">
             <Info className="h-4 w-4 text-blue-500" />
-            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-widest">Global Mapping Audit</h3>
+            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-widest">Terminal Console</h3>
             <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-gray-500">
               {logs.length} notes
             </span>
