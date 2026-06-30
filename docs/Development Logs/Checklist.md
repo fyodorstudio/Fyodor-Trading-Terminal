@@ -34,18 +34,18 @@ This file is the active command board for the next goal-mode run.
 
 This is the next active implementation lane.
 
-- [ ] Redesign the selected-event right drawer/popover UI.
-- [ ] Use the existing shared event explainer data as the source; do not add external data or web dependency.
+- [x] Redesign the selected-event right drawer/popover UI.
+- [x] Use the existing shared event explainer data as the source; do not add external data or web dependency.
 - [ ] Present event help around:
-  - [ ] release/result snapshot;
-  - [ ] what this event is;
-  - [ ] why traders care;
-  - [ ] affected currency, pairs, and tradable themes;
-  - [ ] what to compare: actual, forecast, previous, and revisions where relevant;
-  - [ ] stronger/weaker outcome interpretation;
-  - [ ] practical confirmation workflow;
-  - [ ] traps and caveats.
-- [ ] Keep wording practical and exhaustive enough to fill knowledge gaps, but still cautious and descriptive.
+  - [x] release/result snapshot;
+  - [x] what this event is;
+  - [x] why traders care;
+  - [x] affected currency, pairs, and tradable themes;
+  - [x] what to compare: actual, forecast, previous, and revisions where relevant;
+  - [x] stronger/weaker outcome interpretation;
+  - [x] practical confirmation workflow;
+  - [x] traps and caveats.
+- [x] Keep wording practical and exhaustive enough to fill knowledge gaps, but still cautious and descriptive.
 - [ ] Restore and continue the unfinished event knowledge coverage checklist:
   - [ ] policy and rate decisions;
   - [ ] CPI, PCE, and inflation;
@@ -111,6 +111,7 @@ This is the next active implementation lane.
 - [x] Event Replay preserves pair -> event -> release -> replay setup -> playback.
 - [x] Overview -> Event Replay opens on the selected Overview pair without forcing normal Event Replay launches to mirror Overview.
 - [x] Event Replay keeps pair-first event grouping and major global movers separate.
+- [x] Economic Calendar selected-event drawer now presents release snapshot, event meaning, affected markets, comparisons, confirmation workflow, outcome scenarios, and caveats from the shared explainer data.
 - [x] Documentation maps were aligned after the fresh Overview checkpoint.
 - [x] Garbage folders remain ignored by default:
   - [x] `Main/src/app/tabs/garbage`;

@@ -92,7 +92,7 @@ describe("EconomicCalendarTab redesign", () => {
     expect(html).toContain("High");
   });
 
-  it("renders selected event details as a right drawer trading brief", () => {
+  it("renders selected event details as a right drawer decision brief", () => {
     const html = renderToStaticMarkup(
       <CalendarEventInspectorDrawer
         event={event}
@@ -103,13 +103,15 @@ describe("EconomicCalendarTab redesign", () => {
     );
 
     expect(html).toContain("calendar-event-drawer");
-    expect(html).toContain("Trading Brief");
-    expect(html).toContain("Learn");
-    expect(html).toContain("Trading Workflow");
-    expect(html).toContain("What To Compare");
-    expect(html).toContain("Caveats");
+    expect(html).toContain("Release snapshot");
+    expect(html).toContain("What this event is");
+    expect(html).toContain("Why traders care");
+    expect(html).toContain("Affected markets");
+    expect(html).toContain("What to compare");
+    expect(html).toContain("Confirmation workflow");
+    expect(html).toContain("Traps and caveats");
     expect(html).toContain("Stronger / Weaker Outcome");
-    expect(html).toContain("Treat this as a cautious signal");
+    expect(html).toContain("Use it as context");
     expect(html).not.toContain("calendar-event-panel");
   });
 });

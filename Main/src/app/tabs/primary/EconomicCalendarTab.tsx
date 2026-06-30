@@ -165,6 +165,10 @@ function CalendarEventSection({
 }
 
 function CalendarEventList({ items }: { items: string[] }) {
+  if (items.length === 0) {
+    return <p className="calendar-event-muted">No specific notes available for this event yet.</p>;
+  }
+
   return (
     <ul>
       {items.map((item) => (
@@ -174,9 +178,33 @@ function CalendarEventList({ items }: { items: string[] }) {
   );
 }
 
+const COMMON_PAIR_HINTS: Record<string, string[]> = {
+  AUD: ["AUDUSD", "AUDJPY", "EURAUD"],
+  CAD: ["USDCAD", "CADJPY", "EURCAD"],
+  CHF: ["USDCHF", "CHFJPY", "EURCHF"],
+  EUR: ["EURUSD", "EURJPY", "EURGBP"],
+  GBP: ["GBPUSD", "GBPJPY", "EURGBP"],
+  JPY: ["USDJPY", "EURJPY", "GBPJPY"],
+  NZD: ["NZDUSD", "NZDJPY", "AUDNZD"],
+  USD: ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD"],
+};
+
+function dedupeItems(items: string[]): string[] {
+  return Array.from(new Set(items.filter((item) => item.trim() !== "")));
+}
+
+function buildMarketFocusItems(event: CalendarEvent, explainer: CalendarEventExplainer): string[] {
+  const pairHints = COMMON_PAIR_HINTS[event.currency] ?? [`Pairs containing ${event.currency}`];
+  return dedupeItems([
+    `${event.currency} strength / weakness across related pairs`,
+    ...pairHints.map((pair) => `${pair} reaction and follow-through`),
+    ...explainer.mayAffect,
+  ]);
+}
+
 function buildCautiousSignal(explainer: CalendarEventExplainer): string {
   const interpretation = explainer.resultInterpretation ?? explainer.contextNote;
-  return `${interpretation} Treat this as a cautious signal and require price confirmation before acting.`;
+  return `${interpretation} Use it as context, then require price confirmation before acting.`;
 }
 
 export function CalendarEventInspectorDrawer({
@@ -191,6 +219,10 @@ export function CalendarEventInspectorDrawer({
   onClose: () => void;
 }) {
   const countryName = getCountryDisplayName(event.countryCode);
+  const marketFocusItems = buildMarketFocusItems(event, explainer);
+  const caveats = dedupeItems([...explainer.priceCaveats, ...(explainer.commonTraps ?? [])]);
+  const workflow = explainer.tradingWorkflow ?? [];
+  const comparisons = explainer.whatToCompare ?? [];
 
   return (
     <aside
@@ -211,6 +243,7 @@ export function CalendarEventInspectorDrawer({
             <FlagIcon countryCode={event.countryCode} className="h-4 w-6 border border-gray-200 rounded-sm" />
             <span>{countryName}</span>
             <span>{event.currency}</span>
+            <ImpactPill level={event.impact} />
           </div>
         </div>
         <button type="button" className="calendar-event-close" aria-label="Close event details" onClick={onClose}>
@@ -218,62 +251,70 @@ export function CalendarEventInspectorDrawer({
         </button>
       </header>
 
-      <div className="calendar-event-brief">
-        <div className="calendar-event-brief-head">
-          <div>
-            <span>Trading Brief</span>
-            <strong>{explainer.releaseStatus ?? "Context only"}</strong>
-          </div>
-          <ImpactPill level={event.impact} />
-        </div>
-        <p className="calendar-event-snapshot">{explainer.resultSnapshot ?? "No release result is available yet."}</p>
-        <p className="calendar-event-signal">{buildCautiousSignal(explainer)}</p>
-        <div className="calendar-event-facts">
-          <div>
-            <span>Actual</span>
-            <strong>{formatEventValue(event.actual)}</strong>
-          </div>
-          <div>
-            <span>Forecast</span>
-            <strong>{formatEventValue(event.forecast)}</strong>
-          </div>
-          <div>
-            <span>Previous</span>
-            <strong>{formatEventValue(event.previous)}</strong>
-          </div>
-          <div>
-            <span>MT5 Time</span>
-            <strong>{formatUtcDateTime(event.time)}</strong>
-          </div>
-          <div>
-            <span>Viewer Time</span>
-            <strong>{formatDateTimeForDisplayTimezone(event.time, timezoneMode)}</strong>
-          </div>
-        </div>
-      </div>
-
       <div className="calendar-event-drawer-body">
-        <CalendarEventSection title="Learn">
-          <p>{explainer.whatItIs}</p>
-          <p>{explainer.whyTradersCare}</p>
-          <p>{explainer.educationalSummary}</p>
+        <section className="calendar-event-release-card">
+          <div className="calendar-event-release-head">
+            <div>
+              <span>Release snapshot</span>
+              <strong>{explainer.releaseStatus ?? "Context only"}</strong>
+            </div>
+            <div className="calendar-event-depth-pill">{explainer.knowledgeDepth ?? "family"} explainer</div>
+          </div>
+          <p className="calendar-event-snapshot">{explainer.resultSnapshot ?? "No release result is available yet."}</p>
+          <p className="calendar-event-signal">{buildCautiousSignal(explainer)}</p>
+          <div className="calendar-event-facts">
+            <div>
+              <span>Actual</span>
+              <strong>{formatEventValue(event.actual)}</strong>
+            </div>
+            <div>
+              <span>Forecast</span>
+              <strong>{formatEventValue(event.forecast)}</strong>
+            </div>
+            <div>
+              <span>Previous</span>
+              <strong>{formatEventValue(event.previous)}</strong>
+            </div>
+            <div>
+              <span>MT5 UTC</span>
+              <strong>{formatUtcDateTime(event.time)}</strong>
+            </div>
+            <div>
+              <span>Viewer Time</span>
+              <strong>{formatDateTimeForDisplayTimezone(event.time, timezoneMode)}</strong>
+            </div>
+          </div>
+        </section>
+
+        <div className="calendar-event-two-column">
+          <CalendarEventSection title="What this event is">
+            <p>{explainer.whatItIs}</p>
+          </CalendarEventSection>
+
+          <CalendarEventSection title="Why traders care">
+            <p>{explainer.whyTradersCare}</p>
+            <p>{explainer.educationalSummary}</p>
+          </CalendarEventSection>
+        </div>
+
+        <CalendarEventSection title="Affected markets">
+          <p className="calendar-event-section-lead">
+            Use these as watch targets, not automatic trade directions.
+          </p>
           <div className="calendar-event-affects">
-            <span>May affect</span>
-            <CalendarEventList items={explainer.mayAffect} />
+            <CalendarEventList items={marketFocusItems} />
           </div>
         </CalendarEventSection>
 
-        <CalendarEventSection title="Trading Workflow">
-          <CalendarEventList items={explainer.tradingWorkflow ?? []} />
-        </CalendarEventSection>
+        <div className="calendar-event-two-column calendar-event-two-column-balanced">
+          <CalendarEventSection title="What to compare">
+            <CalendarEventList items={comparisons} />
+          </CalendarEventSection>
 
-        <CalendarEventSection title="What To Compare">
-          <CalendarEventList items={explainer.whatToCompare ?? []} />
-        </CalendarEventSection>
-
-        <CalendarEventSection title="Caveats">
-          <CalendarEventList items={[...explainer.priceCaveats, ...(explainer.commonTraps ?? [])]} />
-        </CalendarEventSection>
+          <CalendarEventSection title="Confirmation workflow">
+            <CalendarEventList items={workflow} />
+          </CalendarEventSection>
+        </div>
 
         <CalendarEventSection title="Stronger / Weaker Outcome">
           <div className="calendar-outcome-grid">
@@ -288,7 +329,11 @@ export function CalendarEventInspectorDrawer({
           </div>
         </CalendarEventSection>
 
-        <CalendarEventSection title="Context Reminder">
+        <CalendarEventSection title="Traps and caveats">
+          <CalendarEventList items={caveats} />
+        </CalendarEventSection>
+
+        <CalendarEventSection title="Context reminder">
           <p>{explainer.contextNote}</p>
           {explainer.marketSensitivity ? <p>{explainer.marketSensitivity}</p> : null}
         </CalendarEventSection>
