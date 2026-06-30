@@ -45,7 +45,7 @@ This is the next active implementation lane.
 - [x] Identify the main 100% Chrome zoom offenders: fixed shell width, tall Charts diagnostics, oversized Central Banks audit/detail spacing, and Calendar page-level table scroll.
 - [ ] Prefer better layout density, popovers, modals, drawers, and viewport-aware panels over forcing the user to zoom to 75%.
 - [ ] Preserve a full-screen operational feel: reduce unnecessary blank left/right gutters and avoid cramped centered columns where they hurt workflow.
-- [ ] Audit `Main/src/styles.css` ownership before splitting it.
+- [x] Audit `Main/src/styles.css` ownership before splitting it.
 - [ ] Do not split global CSS until the visual/layout audit identifies safe feature boundaries.
 - [ ] Keep the hidden Aesthetic Forge / left visual config panel off by default until its role is proven.
 - [ ] Do not let the visual config panel drive app-wide design decisions before the active tabs have a stable layout direction.
