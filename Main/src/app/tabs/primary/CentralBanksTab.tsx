@@ -14,7 +14,8 @@ import {
   Info, 
   LayoutGrid, 
   List,
-  Target
+  Target,
+  ChevronDown
 } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import type { BridgeStatus, CentralBankSnapshot } from "@/app/types";
@@ -63,6 +64,7 @@ export function CentralBanksTab({
 }: CentralBanksTabProps) {
   const [viewMode, setViewMode] = useState<ViewMode>('focus');
   const [selectedBank, setSelectedBank] = useState<string>(snapshots[0]?.currency || "");
+  const [auditOpen, setAuditOpen] = useState(false);
   
   const okCount = snapshots.filter((item) => item.status === "ok").length;
   const currentSnapshot = snapshots.find(s => s.currency === selectedBank) || snapshots[0];
@@ -219,7 +221,7 @@ export function CentralBanksTab({
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
-            className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start"
+            className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start"
           >
             {/* Sidebar: Selection Nodes */}
             <div className="lg:col-span-4 flex flex-col gap-2">
@@ -228,7 +230,7 @@ export function CentralBanksTab({
                   key={snapshot.currency}
                   onClick={() => setSelectedBank(snapshot.currency)}
                   className={`
-                    flex items-center justify-between p-4 rounded-2xl transition-all duration-300 border
+                    flex items-center justify-between p-3 rounded-2xl transition-all duration-300 border
                     ${selectedBank === snapshot.currency 
                       ? 'bg-white border-blue-200 shadow-md translate-x-2' 
                       : 'bg-white/40 border-gray-200/50 hover:bg-white/60'}
@@ -254,20 +256,20 @@ export function CentralBanksTab({
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
-                  className="backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-3xl shadow-sm p-8 h-full"
+                  className="backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-3xl shadow-sm p-5 h-full"
                 >
-                  <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center justify-between mb-5">
                     <div className="flex items-center gap-4">
                       <FlagIcon countryCode={currentSnapshot.countryCode} className="h-10 w-15 shadow-md flex-shrink-0" />
                       <div>
-                        <h3 className="text-2xl font-black text-gray-900 tracking-tight">{currentSnapshot.bankName}</h3>
+                        <h3 className="text-xl font-black text-gray-900 tracking-tight">{currentSnapshot.bankName}</h3>
                         <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Policy Intelligence Node</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-                    <div className="p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div className="p-5 bg-white rounded-2xl shadow-sm border border-gray-100">
                       <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Policy Rate</span>
                       <div className="flex items-baseline gap-3">
                         <span className="text-4xl font-black text-gray-900 leading-none">{renderValue(currentSnapshot.currentPolicyRate)}</span>
@@ -291,7 +293,7 @@ export function CentralBanksTab({
                         </div>
                       </div>
                     </div>
-                    <div className="p-6 bg-white rounded-2xl shadow-sm border border-gray-100">
+                    <div className="p-5 bg-white rounded-2xl shadow-sm border border-gray-100">
                       <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-2">Inflation YoY</span>
                       <div className="flex items-baseline gap-3">
                         <span className="text-4xl font-black text-gray-900 leading-none">{renderValue(currentSnapshot.currentInflationRate)}</span>
@@ -317,22 +319,22 @@ export function CentralBanksTab({
                     </div>
                   </div>
 
-                  <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-6 flex items-center gap-2">
+                  <h4 className="text-sm font-black text-gray-900 uppercase tracking-widest mb-4 flex items-center gap-2">
                     <Clock className="h-4 w-4 text-blue-500" />
                     Timeline Schedule
                   </h4>
 
-                  <div className="space-y-4 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100">
+                  <div className="space-y-3 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-100">
                     <div className="relative pl-8">
                       <div className="absolute left-0 top-1.5 h-6 w-6 rounded-full bg-white border-2 border-gray-200 z-10" />
-                      <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/50 rounded-2xl border border-gray-100">
                         <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Last Rate Release</div>
                         <div className="text-sm font-bold text-gray-700">{formatDateOnly(currentSnapshot.lastRateReleaseAt)}</div>
                       </div>
                     </div>
                     <div className="relative pl-8">
                       <div className="absolute left-0 top-1.5 h-6 w-6 rounded-full bg-blue-500 border-2 border-blue-100 z-10 shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
-                      <div className="p-4 bg-blue-50/50 rounded-2xl border border-blue-100">
+                      <div className="p-3 bg-blue-50/50 rounded-2xl border border-blue-100">
                         <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Next Expected Rate Event</div>
                         <div className="text-sm font-bold text-blue-700">
                           {renderNextEventDate(currentSnapshot.nextRateEventAt)}
@@ -342,14 +344,14 @@ export function CentralBanksTab({
                     </div>
                     <div className="relative pl-8">
                       <div className="absolute left-0 top-1.5 h-6 w-6 rounded-full bg-white border-2 border-gray-200 z-10" />
-                      <div className="p-4 bg-gray-50/50 rounded-2xl border border-gray-100">
+                      <div className="p-3 bg-gray-50/50 rounded-2xl border border-gray-100">
                         <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Last CPI Release</div>
                         <div className="text-sm font-bold text-gray-700">{formatDateOnly(currentSnapshot.lastCpiReleaseAt)}</div>
                       </div>
                     </div>
                     <div className="relative pl-8">
                       <div className="absolute left-0 top-1.5 h-6 w-6 rounded-full bg-violet-500 border-2 border-violet-100 z-10 shadow-[0_0_10px_rgba(139,92,246,0.35)]" />
-                      <div className="p-4 bg-violet-50/60 rounded-2xl border border-violet-100">
+                      <div className="p-3 bg-violet-50/60 rounded-2xl border border-violet-100">
                         <div className="text-[10px] font-black text-violet-500 uppercase tracking-widest mb-1">Next Expected CPI Event</div>
                         <div className="text-sm font-bold text-violet-700">
                           {renderNextEventDate(currentSnapshot.nextCpiEventAt)}
@@ -367,20 +369,35 @@ export function CentralBanksTab({
 
       {/* Shared Mapping Audit Panel */}
       <div className="backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-2xl overflow-hidden shadow-sm mt-auto">
-        <div className="flex items-center gap-3 px-6 py-3 border-b border-gray-100 bg-gray-50/30">
-          <Info className="h-4 w-4 text-blue-500" />
-          <h3 className="text-xs font-bold text-gray-600 uppercase tracking-widest">Global Mapping Audit</h3>
+        <div className={`flex items-center justify-between gap-3 px-5 py-3 bg-gray-50/30 ${auditOpen ? "border-b border-gray-100" : ""}`}>
+          <div className="flex items-center gap-3">
+            <Info className="h-4 w-4 text-blue-500" />
+            <h3 className="text-xs font-bold text-gray-600 uppercase tracking-widest">Global Mapping Audit</h3>
+            <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-gray-500">
+              {logs.length} notes
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setAuditOpen((current) => !current)}
+            className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors"
+          >
+            {auditOpen ? "Hide" : "Show"}
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${auditOpen ? "rotate-180" : ""}`} />
+          </button>
         </div>
-        <div className="p-4 bg-gray-50/50 font-mono text-[10px] text-gray-500 max-h-32 overflow-auto">
-          {logs.length === 0 ? (
-            <div className="flex items-center gap-2 text-green-600 font-bold italic">
-              <CheckCircle2 className="h-3 w-3" />
-              All bridge nodes resolved.
-            </div>
-          ) : (
-            logs.map((line, index) => <div key={index} className="mb-1">{line}</div>)
-          )}
-        </div>
+        {auditOpen && (
+          <div className="p-4 bg-gray-50/50 font-mono text-[10px] text-gray-500 max-h-32 overflow-auto">
+            {logs.length === 0 ? (
+              <div className="flex items-center gap-2 text-green-600 font-bold italic">
+                <CheckCircle2 className="h-3 w-3" />
+                All bridge nodes resolved.
+              </div>
+            ) : (
+              logs.map((line, index) => <div key={index} className="mb-1">{line}</div>)
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
