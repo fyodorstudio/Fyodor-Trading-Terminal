@@ -108,7 +108,8 @@ This is the next active product lane after the fresh Overview checkpoint.
 
 ## Stable Assumptions
 
-- The next product implementation should continue Event Replay polish unless the user redirects.
+- No active implementation lane is currently open after the visual, Overview, and Event Replay checkpoints.
+- Central Banks MoM/YoY remains backlog; do not start it unless the user returns to that topic.
 - Overview has been rebuilt fresh from the old blank placeholder and active helpers/data only.
 - Deprecated Overview may be referenced only as a warning or route target, not as design or logic source.
 - Event Replay is active product work, not garbage.
