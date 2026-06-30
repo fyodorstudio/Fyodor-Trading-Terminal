@@ -35,14 +35,14 @@ This is the next active implementation lane.
 - [x] Charts pass: collapse the diagnostic terminal console by default and give the chart more viewport height.
 - [x] Central Banks pass: compact Strategic Focus spacing and collapse the mapping audit log by default.
 - [x] Economic Calendar pass: compact the filter rail and make the event table the desktop scroll region.
-- [ ] Audit why primary tabs feel horizontally constrained while Event Replay uses the screen more fully.
-- [ ] Compare shell width, tab wrappers, section max widths, and page padding across:
-  - [ ] Overview placeholder;
-  - [ ] Central Banks Data;
-  - [ ] Charts;
-  - [ ] Economic Calendar;
-  - [ ] Event Replay.
-- [ ] Identify why normal 100% Chrome zoom still requires too much vertical scrolling, especially in Charts.
+- [x] Audit why primary tabs felt horizontally constrained while Event Replay used the screen more fully.
+- [x] Compare shell width, tab wrappers, section max widths, and page padding across:
+  - [x] Overview placeholder;
+  - [x] Central Banks Data;
+  - [x] Charts;
+  - [x] Economic Calendar;
+  - [x] Event Replay.
+- [x] Identify the main 100% Chrome zoom offenders: fixed shell width, tall Charts diagnostics, oversized Central Banks audit/detail spacing, and Calendar page-level table scroll.
 - [ ] Prefer better layout density, popovers, modals, drawers, and viewport-aware panels over forcing the user to zoom to 75%.
 - [ ] Preserve a full-screen operational feel: reduce unnecessary blank left/right gutters and avoid cramped centered columns where they hurt workflow.
 - [ ] Audit `Main/src/styles.css` ownership before splitting it.
