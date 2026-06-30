@@ -1,6 +1,6 @@
 # Current App Map
 
-Last updated: 2026-06-27
+Last updated: 2026-06-30
 
 This is the short orientation doc for future AI and human sessions. Read it with `Checklist.md` before using older roadmap, audit, or patch notes.
 
@@ -22,8 +22,10 @@ This is the short orientation doc for future AI and human sessions. Read it with
 ## Current Top-Level Tabs
 
 1. `Overview`
-   - Current state: blank rebuild surface.
-   - Do not treat it as the current mission-control source of truth.
+   - Current state: fresh pair-brief surface.
+   - Uses the selected pair, active MT5 calendar rows, active central-bank snapshots, and market status.
+   - Shows pair selector, next pair-relevant event/countdown, recent pair-relevant releases, base/quote macro cards, and route buttons to deeper specialist surfaces.
+   - It is a glanceable decision-support brief, not a signal or trade-call surface.
    - The older implementation is still available as `Deprecated Overview` through Prototyping.
 
 2. `Central Banks Data`
@@ -48,7 +50,7 @@ This is the short orientation doc for future AI and human sessions. Read it with
 ## App Loading
 
 - Heavy route tabs are lazy-loaded from `App.tsx`.
-- `OverviewPlaceholderTab` remains eager because it is the initial blank rebuild surface.
+- `OverviewPlaceholderTab` remains eager because it is the initial top-level surface. Despite the file name, it now contains the fresh pair-brief implementation.
 - `FlagIcon` currently uses `react-world-flags`; the large production chunk and missing TypeScript declaration are known non-blocking noise. Do not revisit flags unless explicitly requested.
 
 ## Specialist Tools Children
@@ -111,11 +113,11 @@ Current Event Replay implementation entrypoint:
 
 1. Can I trust the app right now?
    - Current owners: header/status surfaces, Economic Calendar freshness, bridge health, Central Banks resolution.
-   - Future owner: rebuilt Overview should summarize this, but it is not ready yet.
+   - Current Overview owner: selected-pair market session and pair context only; broader trust still belongs to the header/status surfaces.
 
 2. What deserves attention right now?
-   - Current owners: Watchlist Engine prototype and Strength Meter deprecated surface.
-   - Future owner: rebuilt Overview can summarize only after specialist logic is proven.
+   - Current owner: Overview shows the selected pair's next loaded event and recent pair-relevant releases.
+   - Do not revive Watchlist Engine or Strength Meter for this unless the user explicitly asks.
 
 3. Is the macro backdrop supportive, hostile, or unclear?
    - Current owners: Central Banks Data, Macro State prototype, Differential Calculator deprecated surface.
@@ -125,12 +127,12 @@ Current Event Replay implementation entrypoint:
    - Future owner: shared event explainer knowledge base should deepen the selected-event explanation.
 
 5. Which side is winning, and why?
-   - Current owners: Deprecated Overview, Currency Strength From Candles prototype, Strength Meter.
-   - Needs cleanup before promotion.
+   - Current owner: no active surface makes a promoted strength claim.
+   - Overview shows base/quote policy and inflation context only. It must not infer winners from deprecated strength logic.
 
 6. Should I watch, study, prepare, wait, or ignore?
    - Current owners: selected specialist surfaces; Six Questions remains only as deprecated planning context.
-   - Future owner: rebuilt Overview once the underlying specialist outputs are mature enough.
+   - Future owner: Overview only after the underlying specialist outputs are mature enough.
 
 The six-question list is no longer the active product framework. Keep it as a historical scaffold until each useful surface is remapped to the user's actual workflow.
 
@@ -155,8 +157,8 @@ Replay history depth should use the current broker calendar/history window for v
 
 Recent UI polish:
 
-- Event type selection now lives behind a `Select Event` drawer.
-- Past Releases and Replay Brief open as right-side panels.
+- Event Replay follows pair -> event -> release -> replay setup -> playback.
+- Select Event, Past Releases, and Replay Brief use centered overlay panels.
 - The main chart-first cockpit should fit more comfortably on normal desktop viewports.
 
 ## Docs Noise Rule

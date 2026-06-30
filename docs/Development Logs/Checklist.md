@@ -71,6 +71,8 @@ This comes after visual unification, so the new Overview does not inherit the cu
 
 ### 3. Event Replay Continued Polish
 
+This is the next active product lane after the fresh Overview checkpoint.
+
 - [ ] Keep Event Replay as an active specialist output.
 - [ ] Preserve the main workflow order: pair -> event -> release -> replay setup -> playback.
 - [ ] Preserve pair-first event grouping and major global movers as separate context.
@@ -86,7 +88,7 @@ This comes after visual unification, so the new Overview does not inherit the cu
 ### 5. Documentation And AI Hygiene
 
 - [ ] Keep this checklist as the first planning source.
-- [ ] Keep `docs/Development Logs/Current App Map.md`, root `README.md`, and `Main/README.md` aligned when product direction changes materially.
+- [x] Keep `docs/Development Logs/Current App Map.md`, root `README.md`, and `Main/README.md` aligned with the fresh Overview checkpoint.
 - [ ] Keep garbage folders ignored by default:
   - [ ] `Main/src/app/tabs/garbage`;
   - [ ] `Main/src/app/lib/garbage`;
@@ -105,8 +107,8 @@ This comes after visual unification, so the new Overview does not inherit the cu
 
 ## Stable Assumptions
 
-- The next actual implementation should start with visual unification and viewport fit, not Overview.
-- Overview will be rebuilt fresh from the blank placeholder and active helpers/data only.
+- The next product implementation should continue Event Replay polish unless the user redirects.
+- Overview has been rebuilt fresh from the old blank placeholder and active helpers/data only.
 - Deprecated Overview may be referenced only as a warning or route target, not as design or logic source.
 - Event Replay is active product work, not garbage.
 - The app remains decision support, not a signal bot.

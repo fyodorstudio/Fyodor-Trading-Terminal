@@ -14,7 +14,7 @@ Current top-level navigation:
 
 Important current-state note:
 
-- `Overview` is intentionally a blank rebuild surface right now.
+- `Overview` is now a fresh pair-brief surface: pair selector, next pair-relevant event/countdown, recent releases, base/quote macro cards, and route buttons into Charts, Event Replay, Economic Calendar, and Central Banks.
 - The previous large overview is still available as `Deprecated Overview` through Specialist Tools > Prototyping.
 - The strongest current primary surfaces are `Central Banks Data`, `Charts`, `Economic Calendar`, `Event Replay`, and the `Specialist Tools` shell.
 - `Central Banks Data` is the current reference surface and should remain stable unless a targeted fix is needed.
@@ -67,8 +67,8 @@ It also expects the MT5 EA calendar bridge to be pushing economic calendar event
 
 ## Main Behavior
 
-- `Overview` is currently a rebuild placeholder, not the mission-control source of truth.
-- `Deprecated Overview` keeps the older mission-control surface available for reference while the new direction is clarified.
+- `Overview` is a fresh pair brief built from active selected-pair state, MT5 calendar rows, central-bank snapshots, and market status. It is glanceable decision support, not a trade-call surface.
+- `Deprecated Overview` keeps the older mission-control surface available only through Prototyping as a warning/reference route.
 - `Charts` keeps the live MT5 chart workflow and debug log, and shows explicit no-data / error states instead of fake candles.
 - `Economic Calendar` is MT5-backed, supports range/filter/search workflows, and can deep-link from `Overview` into a target event with highlight + explainer behavior.
 - `Central Banks Data` is derived from MT5 calendar events using strict mapping rules for the major 8 currencies. If a match is uncertain, the UI shows `N/A` instead of guessing.

@@ -13,6 +13,8 @@ Primary tabs are always visible in the top navigation and represent the normal a
 
 Treat these as active product surfaces.
 
+`OverviewPlaceholderTab.tsx` keeps its old filename for route stability, but it now owns the fresh pair-brief Overview. Do not use Deprecated Overview or garbage overview logic as its source.
+
 ## `secondary/`
 
 Secondary tabs live under Specialist Tools. `EventReplayTab.tsx` is the only active experiment here, and `PrototypingTab.tsx` is only the shell that opens the garbage drawer.

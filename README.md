@@ -16,7 +16,7 @@ The strongest current primary surfaces are:
 - `Economic Calendar`
 - `Specialist Tools`, whose active child is `Event Replay`
 
-`Overview` is currently a blank rebuild surface. The previous large overview still exists as `Deprecated Overview`, routed through Specialist Tools > Prototyping for reference.
+`Overview` is now a fresh pair-brief surface: selected pair, next pair-relevant event/countdown, recent releases, base/quote macro cards, and direct routes into deeper specialist surfaces. The previous large overview still exists as `Deprecated Overview`, routed through Specialist Tools > Prototyping for reference only.
 
 `Specialist Tools` is intentionally short: `EVENT REPLAY` is the active experiment, and `PROTOTYPING` is a garbage drawer for old unfinished surfaces that should be ignored unless explicitly requested. `Event Replay` is pair-first, shows base/quote event types before separate global movers, and replays MT5 candles around past scheduled releases without making trade calls.
 
