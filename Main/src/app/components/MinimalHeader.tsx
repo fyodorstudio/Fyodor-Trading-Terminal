@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { AlertCircle, CalendarClock, ChevronsDown, ChevronsUp, Clock3, Radio, TriangleAlert } from "lucide-react";
+import { AlertCircle, CalendarClock, ChevronsDown, ChevronsUp, Clock3, Radio, Settings, TriangleAlert } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { TabNavigation } from "@/app/components/TabNavigation";
 import { TERMINOLOGY } from "@/app/config/terminology";
@@ -20,6 +20,7 @@ interface MinimalHeaderProps {
   tabOrder: AppTabConfig[];
   resolvedBanks: number;
   nextHighImpact?: { title: string; currency: string; countryCode: string; time: number } | null;
+  onOpenSettings?: () => void;
 }
 
 export function MinimalHeader({
@@ -32,7 +33,8 @@ export function MinimalHeader({
   selectedSymbol,
   tabOrder,
   resolvedBanks,
-  nextHighImpact
+  nextHighImpact,
+  onOpenSettings,
 }: MinimalHeaderProps) {
   const [hoverExpanded, setHoverExpanded] = useState(false);
   const [pinnedExpanded, setPinnedExpanded] = useState(false);
@@ -206,6 +208,17 @@ export function MinimalHeader({
             )}
 
             <div className="flex shrink-0 items-center gap-3">
+              {onOpenSettings ? (
+                <button
+                  type="button"
+                  onClick={onOpenSettings}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-300 bg-white text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-950"
+                  aria-label="Open Aesthetic Forge"
+                  title="Open Aesthetic Forge"
+                >
+                  <Settings className="h-4 w-4" />
+                </button>
+              ) : null}
               <button
                 onClick={() => {
                   if (showDetails) {

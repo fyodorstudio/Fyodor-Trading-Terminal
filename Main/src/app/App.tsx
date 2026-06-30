@@ -4,6 +4,7 @@ import { createCalendarNavigationIntent } from "@/app/lib/calendarNavigation";
 import { getNextHighImpactEvent } from "@/app/lib/eventHorizon";
 import { AppRoutes } from "@/app/AppRoutes";
 import { MinimalHeader } from "@/app/components/MinimalHeader";
+import { UiCommandPanel } from "@/app/components/UiCommandPanel";
 import { TAB_ORDER } from "@/app/config/navigation";
 import { useCalendarFeed } from "@/app/hooks/useCalendarFeed";
 import { useCurrentTime } from "@/app/hooks/useCurrentTime";
@@ -18,10 +19,11 @@ export default function App() {
   const [eventReplayPairIntent, setEventReplayPairIntent] = useState<string | null>(null);
   const [calendarTabLastSyncedAt, setCalendarTabLastSyncedAt] = useState<number | null>(null);
   const [calendarNavigationIntent, setCalendarNavigationIntent] = useState<CalendarNavigationIntent | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const { health, feedEvents, feedStatus } = useCalendarFeed();
   const chartMarketStatus = useMarketStatus(chartSymbol);
   const overviewMarketStatus = useMarketStatus(overviewSymbol);
-  useTerminalTheme();
+  const terminalTheme = useTerminalTheme();
 
   const centralBankResult = useMemo(() => deriveCentralBankSnapshots(feedEvents), [feedEvents]);
 
@@ -48,6 +50,7 @@ export default function App() {
             tabOrder={TAB_ORDER}
             resolvedBanks={centralBankResult.snapshots.filter((item) => item.status === "ok").length}
             nextHighImpact={nextHighImpact}
+            onOpenSettings={() => setSettingsOpen(true)}
           />
 
           <main className="main-area mt-4">
@@ -78,6 +81,16 @@ export default function App() {
               onOpenCalendarEvent={openCalendarForEvent}
             />
           </main>
+
+          <UiCommandPanel
+            currentFont={terminalTheme.currentFont}
+            currentColor={terminalTheme.currentColor}
+            onFontChange={terminalTheme.setCurrentFont}
+            onColorChange={terminalTheme.setCurrentColor}
+            isOpen={settingsOpen}
+            onOpenChange={setSettingsOpen}
+            showClosedTrigger={false}
+          />
         </div>
       </div>
     </div>

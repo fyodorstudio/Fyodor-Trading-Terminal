@@ -6,7 +6,7 @@ This folder contains shared app-shell and feature support components. Keep featu
 
 - `MinimalHeader.tsx` - global trust/status header. Active and important; avoid broad visual edits without checking Charts, Calendar, Central Banks, and Event Replay.
 - `TabNavigation.tsx` - top navigation and Specialist Tools dropdown.
-- `UiCommandPanel.tsx` - hidden Aesthetic Forge side panel kept for possible future reuse. It is not mounted in the active app shell.
+- `UiCommandPanel.tsx` - Aesthetic Forge side panel mounted behind the header gear. It stays closed by default and must not drive broad visual redesign without a specific plan.
 
 ## Shared Small Components
 

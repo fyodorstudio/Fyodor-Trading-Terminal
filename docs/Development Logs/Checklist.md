@@ -75,12 +75,12 @@ This is the next active implementation lane.
 
 ### 3. Global Settings / Visual Config Entry
 
-- [ ] Plan Aesthetic Forge revival as a small gear icon near the Fyodor title/header area.
-- [ ] Do not use a left bookmark tab for v1.
-- [ ] Do not add a full Settings primary tab for v1.
-- [ ] Keep the panel hidden by default until the gear is clicked.
-- [ ] Limit v1 scope to global configuration with a clear role.
-- [ ] Do not let the visual/config panel drive broad visual redesign until active surfaces are stable.
+- [x] Plan Aesthetic Forge revival as a small gear icon near the Fyodor title/header area.
+- [x] Do not use a left bookmark tab for v1.
+- [x] Do not add a full Settings primary tab for v1.
+- [x] Keep the panel hidden by default until the gear is clicked.
+- [x] Limit v1 scope to global configuration with a clear role.
+- [x] Do not let the visual/config panel drive broad visual redesign until active surfaces are stable.
 
 ### 4. Differential Calculator Promotion
 
@@ -116,6 +116,7 @@ This is the next active implementation lane.
 - [x] Overview Pair Event Feed now shows upcoming events only, with recent releases moved into a separated releases popover.
 - [x] Central Banks log section was renamed to `Terminal Console` for consistency with Charts.
 - [x] Event Replay modals now reserve header-safe space; Past Releases and Replay Brief were redesigned for readable study workflow.
+- [x] Aesthetic Forge is mounted behind a header gear and remains closed by default.
 - [x] Documentation maps were aligned after the fresh Overview checkpoint.
 - [x] Garbage folders remain ignored by default:
   - [x] `Main/src/app/tabs/garbage`;

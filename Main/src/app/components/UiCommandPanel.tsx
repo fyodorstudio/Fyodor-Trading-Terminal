@@ -18,6 +18,7 @@ interface UiCommandPanelProps {
   onColorChange: (id: ColorPaletteId) => void;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  showClosedTrigger?: boolean;
 }
 
 const transition: Transition = { type: "spring", stiffness: 300, damping: 30 };
@@ -29,6 +30,7 @@ export function UiCommandPanel({
   onColorChange,
   isOpen,
   onOpenChange,
+  showClosedTrigger = true,
 }: UiCommandPanelProps) {
   const [pendingFont, setPendingFont] = useState<FontId>(currentFont);
   const [pendingColor, setPendingColor] = useState<ColorPaletteId>(currentColor);
@@ -56,7 +58,7 @@ export function UiCommandPanel({
   return (
     <>
       <AnimatePresence>
-        {!isOpen && (
+        {showClosedTrigger && !isOpen && (
           <motion.button
             type="button"
             initial={{ opacity: 0, x: -10, y: -6 }}
