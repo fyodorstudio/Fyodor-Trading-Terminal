@@ -32,6 +32,7 @@ This is the next active implementation lane.
 - [x] First pass: remove the active app shell's fixed 1460px content ceiling.
 - [x] First pass: apply a shared full-width workspace wrapper to active primary tabs.
 - [x] First pass: make Charts use viewport-aware chart height and a shorter terminal console.
+- [x] Charts pass: collapse the diagnostic terminal console by default and give the chart more viewport height.
 - [ ] Audit why primary tabs feel horizontally constrained while Event Replay uses the screen more fully.
 - [ ] Compare shell width, tab wrappers, section max widths, and page padding across:
   - [ ] Overview placeholder;

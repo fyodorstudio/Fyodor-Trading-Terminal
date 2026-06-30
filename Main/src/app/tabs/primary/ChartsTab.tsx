@@ -113,6 +113,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const [chartDrawerMode, setChartDrawerMode] = useState<ChartDrawerMode>("settings");
   const [cacheRevision, setCacheRevision] = useState(0);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  const [consoleOpen, setConsoleOpen] = useState(false);
   const [debugLines, setDebugLines] = useState<string[]>([]);
   const [lastCandleTime, setLastCandleTime] = useState<number | null>(null);
   const [streamConnected, setStreamConnected] = useState(false);
@@ -1194,7 +1195,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
       {/* Main Chart Section */}
       <div className="relative group">
         <div className="p-1 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-3xl shadow-sm overflow-hidden">
-          <div ref={containerRef} className="h-[clamp(430px,calc(100vh-340px),620px)] w-full" />
+          <div ref={containerRef} className="h-[clamp(460px,calc(100vh-285px),660px)] w-full" />
         </div>
         {crosshairReadout && (
           <div
@@ -1239,25 +1240,41 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
 
       {/* Debug Panel (Collapsible) */}
       <div className="backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-2xl overflow-hidden shadow-sm">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className={`flex items-center justify-between px-5 py-3 ${consoleOpen ? "border-b border-gray-100" : ""}`}>
           <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
             Terminal Console
+            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-gray-500">
+              {debugLines.length} logs
+            </span>
           </h3>
-          <button
-            onClick={() => void navigator.clipboard.writeText(debugLines.join("\n") || "(empty)")}
-            className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors"
-          >
-            Copy Logs
-          </button>
+          <div className="flex items-center gap-3">
+            {consoleOpen && (
+              <button
+                onClick={() => void navigator.clipboard.writeText(debugLines.join("\n") || "(empty)")}
+                className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors"
+              >
+                Copy Logs
+              </button>
+            )}
+            <button
+              onClick={() => setConsoleOpen((current) => !current)}
+              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors"
+            >
+              {consoleOpen ? "Hide" : "Show"}
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${consoleOpen ? "rotate-180" : ""}`} />
+            </button>
+          </div>
         </div>
-        <div className="h-20 overflow-auto p-3 bg-gray-50/50 font-mono text-[10px] leading-relaxed text-gray-500">
-          {debugLines.length === 0 ? (
-            <div className="italic">Awaiting first market event...</div>
-          ) : (
-            debugLines.map((line, index) => <div key={index} className="mb-1">{line}</div>)
-          )}
-        </div>
+        {consoleOpen && (
+          <div className="h-20 overflow-auto p-3 bg-gray-50/50 font-mono text-[10px] leading-relaxed text-gray-500">
+            {debugLines.length === 0 ? (
+              <div className="italic">Awaiting first market event...</div>
+            ) : (
+              debugLines.map((line, index) => <div key={index} className="mb-1">{line}</div>)
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
