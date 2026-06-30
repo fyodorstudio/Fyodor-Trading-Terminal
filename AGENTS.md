@@ -22,7 +22,7 @@ Trusted live data is intentionally limited to MT5 OHLCV plus broker/MT5 economic
 
 Primary top-nav surfaces:
 
-- `Overview` - blank rebuild placeholder.
+- `Overview` - fresh pair-brief surface built from the selected pair, MT5 calendar rows, central-bank snapshots, and market status.
 - `Central Banks Data` - current reference surface; avoid touching without a targeted reason.
 - `Charts` - primary chart inspection surface.
 - `Economic Calendar` - primary calendar and event inspector.

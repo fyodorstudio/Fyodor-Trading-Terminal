@@ -43,12 +43,12 @@ This is the next active implementation lane.
   - [x] Economic Calendar;
   - [x] Event Replay.
 - [x] Identify the main 100% Chrome zoom offenders: fixed shell width, tall Charts diagnostics, oversized Central Banks audit/detail spacing, and Calendar page-level table scroll.
-- [ ] Prefer better layout density, popovers, modals, drawers, and viewport-aware panels over forcing the user to zoom to 75%.
-- [ ] Preserve a full-screen operational feel: reduce unnecessary blank left/right gutters and avoid cramped centered columns where they hurt workflow.
+- [x] Prefer better layout density, popovers, modals, drawers, and viewport-aware panels over forcing the user to zoom to 75%.
+- [x] Preserve a full-screen operational feel: reduce unnecessary blank left/right gutters and avoid cramped centered columns where they hurt workflow.
 - [x] Audit `Main/src/styles.css` ownership before splitting it.
-- [ ] Do not split global CSS until the visual/layout audit identifies safe feature boundaries.
-- [ ] Keep the hidden Aesthetic Forge / left visual config panel off by default until its role is proven.
-- [ ] Do not let the visual config panel drive app-wide design decisions before the active tabs have a stable layout direction.
+- [x] Do not split global CSS until the visual/layout audit identifies safe feature boundaries.
+- [x] Keep the hidden Aesthetic Forge / left visual config panel off by default until its role is proven.
+- [x] Do not let the visual config panel drive app-wide design decisions before the active tabs have a stable layout direction.
 
 ### 2. Fresh Overview Rebuild
 
@@ -88,14 +88,14 @@ This is the next active product lane after the fresh Overview checkpoint.
 
 ### 5. Documentation And AI Hygiene
 
-- [ ] Keep this checklist as the first planning source.
+- [x] Keep this checklist as the first planning source.
 - [x] Keep `docs/Development Logs/Current App Map.md`, root `README.md`, and `Main/README.md` aligned with the fresh Overview checkpoint.
-- [ ] Keep garbage folders ignored by default:
-  - [ ] `Main/src/app/tabs/garbage`;
-  - [ ] `Main/src/app/lib/garbage`;
-  - [ ] `Main/src/app/tests/garbage`.
-- [ ] Treat older docs as historical unless the user explicitly asks to use them.
-- [ ] Before adding tests, get explicit user agreement and explain what behavior the test protects.
+- [x] Keep garbage folders ignored by default:
+  - [x] `Main/src/app/tabs/garbage`;
+  - [x] `Main/src/app/lib/garbage`;
+  - [x] `Main/src/app/tests/garbage`.
+- [x] Treat older docs as historical unless the user explicitly asks to use them.
+- [x] Before adding tests, get explicit user agreement and explain what behavior the test protects.
 
 ## Verification Rules
 
