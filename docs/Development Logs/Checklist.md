@@ -18,13 +18,13 @@ This file is the active command board for the next goal-mode run.
 - Trusted raw data remains MT5 OHLCV plus broker/MT5 economic-calendar rows.
 - “How to take advantage” means interpret event context, affected markets, confirmation workflow, traps, and stronger/weaker scenarios. It must not become buy/sell calls.
 - Economic Calendar event explanation is a critical product surface because scheduled events are one of the main reasons price can move.
-- Overview is active, but still needs compact event-feed polish and 100% Chrome zoom fit work.
-- Event Replay is active, but still needs modal, past-release, replay-brief, and remaining viewport polish.
+- Overview is active, but still needs final 100% Chrome zoom fit review when bridge data is populated.
+- Event Replay is active; modal, past-release, replay-brief, and viewport polish have had a first pass and still need visual inspection.
 - Central Banks Data is an active reference surface and should not be redesigned casually.
-- Differential Calculator should leave garbage and become an active Specialist Tools child, not a primary top-nav tab.
-- Aesthetic Forge remains hidden. Future revival should start as a small header gear entrypoint, not a left bookmark or full Settings tab.
+- Differential Calculator is an active Specialist Tools child, not a primary top-nav tab.
+- Aesthetic Forge is mounted behind the header gear and stays closed by default.
 - Prototyping is a garbage drawer. Garbage tabs, supporting garbage logic, and garbage tests are ignored by default unless the user explicitly asks for them.
-- Deprecated Overview, Six Questions, Work In Progress, and hidden Aesthetic Forge must not steer new product work.
+- Deprecated Overview, Six Questions, and Work In Progress must not steer new product work.
 - `react-world-flags` is still used and works. Its missing TypeScript declaration and large `FlagIcon` chunk are known non-blocking noise; do not replace or refactor flags unless explicitly asked.
 - Do not create new tests unless the user explicitly agrees and the test's value is explained in plain English first.
 
@@ -36,7 +36,7 @@ This is the next active implementation lane.
 
 - [x] Redesign the selected-event right drawer/popover UI.
 - [x] Use the existing shared event explainer data as the source; do not add external data or web dependency.
-- [ ] Present event help around:
+- [x] Present event help around:
   - [x] release/result snapshot;
   - [x] what this event is;
   - [x] why traders care;
@@ -138,9 +138,9 @@ This is the next active implementation lane.
 
 ## Stable Assumptions
 
-- The next goal-mode run should start from this checklist.
+- The next goal-mode run should start from the remaining unchecked items in this checklist.
 - Header gear is the chosen settings/config entrypoint.
-- Differential Calculator should become an active Specialist Tools child, not a primary tab.
+- Differential Calculator is an active Specialist Tools child, not a primary tab.
 - Event explanation must help decision-making without generating trade calls.
 - The app remains decision support, not a signal bot.
 - No MT5 bridge API changes are planned for the current roadmap.
