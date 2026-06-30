@@ -19,6 +19,7 @@ Prefer targeted tests. Do not run the full suite after every small pass unless t
 - `eventReplayView.test.ts` covers replay window/view calculations.
 - `eventReplayStorage.test.ts` covers Event Replay localStorage persistence.
 - `eventHorizon.test.ts` covers the app-shell next high-impact event summary.
+- Differential Calculator render coverage currently lives in `garbage/differentialCalculatorAndStrengthMeterTabs.test.tsx` as legacy mixed coverage; do not split it into a new active test file without explicit user approval.
 
 ## Shared Infrastructure
 

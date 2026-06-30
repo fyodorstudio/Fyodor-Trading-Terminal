@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { DifferentialCalculatorTab } from "@/app/tabs/garbage/DifferentialCalculatorTab";
+import { DifferentialCalculatorTab } from "@/app/tabs/secondary/DifferentialCalculatorTab";
 import { StrengthMeterTab } from "@/app/tabs/garbage/StrengthMeterTab";
 import type { CalendarEvent, CentralBankSnapshot } from "@/app/types";
 

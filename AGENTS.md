@@ -26,15 +26,16 @@ Primary top-nav surfaces:
 - `Central Banks Data` - current reference surface; avoid touching without a targeted reason.
 - `Charts` - primary chart inspection surface.
 - `Economic Calendar` - primary calendar and event inspector.
-- `Specialist Tools` - short drawer for Event Replay plus Prototyping.
+- `Specialist Tools` - drawer for active secondary tools plus Prototyping.
 
 Secondary surfaces:
 
-- `Event Replay` is the only active secondary experiment.
+- `Event Replay` is an active secondary experiment.
+- `Differential Calculator` is an active Specialist Tools child using route id `dashboard`.
 - `Prototyping` is a garbage drawer for old unfinished surfaces.
 - `Main/src/app/tabs/secondary` should contain only active secondary shells/surfaces.
 - Ignore `Main/src/app/tabs/garbage` unless the user explicitly asks for a file or route inside it. Do not read garbage files for general orientation.
-- Ignore `Main/src/app/lib/garbage` unless the user explicitly asks for garbage-drawer supporting logic. Active Event Replay helpers remain in `Main/src/app/lib`.
+- Ignore `Main/src/app/lib/garbage` unless the user explicitly asks for garbage-drawer supporting logic. Active Event Replay and Differential Calculator helpers remain in `Main/src/app/lib`.
 
 ## Repo Hygiene
 

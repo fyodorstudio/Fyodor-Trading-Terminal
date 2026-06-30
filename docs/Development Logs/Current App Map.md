@@ -17,14 +17,14 @@ This is the short orientation doc for future AI and human sessions. Read it with
 - Current trusted raw data is limited to MT5 OHLCV plus broker/MT5 economic-calendar rows.
 - Central Banks Data is the strongest current reference surface and should remain stable unless a targeted bug requires changes.
 - Event Replay is a core study/edge surface.
-- Six Questions, Work In Progress, and Aesthetic Forge are deprecated/context-risk surfaces for now; do not use them as controlling product direction. Aesthetic Forge is currently hidden from the active shell but its theme plumbing remains on disk.
+- Six Questions and Work In Progress are deprecated/context-risk surfaces for now; do not use them as controlling product direction. Aesthetic Forge is mounted behind the header gear and stays closed by default.
 
 ## Current Top-Level Tabs
 
 1. `Overview`
    - Current state: fresh pair-brief surface.
    - Uses the selected pair, active MT5 calendar rows, active central-bank snapshots, and market status.
-   - Shows pair selector, next pair-relevant event/countdown, recent pair-relevant releases, base/quote macro cards, and route buttons to deeper specialist surfaces.
+   - Shows pair selector, next pair-relevant event/countdown, upcoming pair events, base/quote macro cards, and route buttons to deeper specialist surfaces.
    - It is a glanceable decision-support brief, not a signal or trade-call surface.
    - The older implementation is still available as `Deprecated Overview` through Prototyping.
 
@@ -44,7 +44,7 @@ This is the short orientation doc for future AI and human sessions. Read it with
    - Event explanations should remain cautious and concise.
 
 5. `Specialist Tools`
-   - Current state: short grouped drawer with active Event Replay plus the Prototyping garbage drawer.
+   - Current state: short grouped drawer with Differential Calculator, active Event Replay, and the Prototyping garbage drawer.
    - Six Questions and WIP Map are no longer direct Specialist Tools children.
 
 ## App Loading
@@ -57,12 +57,15 @@ This is the short orientation doc for future AI and human sessions. Read it with
 
 Current direct children under `Specialist Tools`:
 
-1. `Active Experiment` / `EVENT REPLAY`
+1. `Active Tool` / `DIFFERENTIAL CALCULATOR`
+   - Active arithmetic view for policy-rate and inflation differentials across major FX pairs.
+   - Keeps route id `dashboard` for compatibility.
+
+2. `Active Experiment` / `EVENT REPLAY`
    - Primary pair-first replay surface for studying scheduled event reactions.
    - Shows base/quote event types first, major global movers separately, past releases, replay controls, and descriptive replay notes.
-   - Now appears first in Specialist Tools.
 
-2. `Garbage / Ignore` / `PROTOTYPING`
+3. `Garbage / Ignore` / `PROTOTYPING`
    - Garbage drawer for old unfinished surfaces, deprecated planning drafts, and ignored tools.
    - This is not the final workflow surface.
    - Contains Six Questions Draft and WIP Map Archive.
@@ -77,7 +80,6 @@ Garbage drawer routes:
 - `Six Questions Draft`
 - `WIP Map Archive`
 - `Strength Meter`
-- `Differential Calculator`
 - `Deprecated Overview`
 
 Do not read, delete, or promote these unless the user explicitly asks for garbage-drawer work.
@@ -98,7 +100,7 @@ Current Event Replay implementation entrypoint:
 ## Tab Folder Map
 
 - `Main/src/app/tabs/primary/` contains always-visible primary workflow tabs.
-- `Main/src/app/tabs/secondary/` contains Event Replay plus the Prototyping shell.
+- `Main/src/app/tabs/secondary/` contains Event Replay, Differential Calculator, and the Prototyping shell.
 - `Main/src/app/tabs/garbage/` contains old unfinished, deprecated, or ignored routed surfaces. Ignore it unless the user explicitly asks for one of those screens.
 - `Main/src/app/lib/garbage/` contains supporting logic for garbage-drawer routes. Ignore it unless the user explicitly asks for that logic.
 - `Main/src/app/tests/garbage/` contains tests for garbage-drawer routes and logic. Ignore it unless the user explicitly asks for garbage-drawer work.
@@ -116,11 +118,11 @@ Current Event Replay implementation entrypoint:
    - Current Overview owner: selected-pair market session and pair context only; broader trust still belongs to the header/status surfaces.
 
 2. What deserves attention right now?
-   - Current owner: Overview shows the selected pair's next loaded event and recent pair-relevant releases.
+   - Current owner: Overview shows the selected pair's next loaded event and upcoming pair-relevant events.
    - Do not revive Watchlist Engine or Strength Meter for this unless the user explicitly asks.
 
 3. Is the macro backdrop supportive, hostile, or unclear?
-   - Current owners: Central Banks Data, Macro State prototype, Differential Calculator deprecated surface.
+   - Current owners: Central Banks Data and active Differential Calculator. Macro State remains a prototype only.
 
 4. Is event risk close enough to invalidate a clean setup?
    - Current owners: Economic Calendar, Event Replay primary surface.

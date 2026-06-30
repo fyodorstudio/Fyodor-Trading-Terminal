@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { MAJOR_CURRENCY_ORDER } from "@/app/config/fxPairs";
 import { FlagIcon } from "@/app/components/FlagIcon";
-import { adaptDashboardCurrencies, deriveDashboardInflationCards, deriveDashboardRateCards } from "@/app/lib/garbage/macroViews";
+import { adaptDashboardCurrencies, deriveDashboardInflationCards, deriveDashboardRateCards } from "@/app/lib/macroViews";
 import type { CentralBankSnapshot, DashboardSortMode } from "@/app/types";
 
 interface DifferentialCalculatorTabProps {

@@ -39,11 +39,6 @@ const IGNORE_LINKS: PrototypeLink[] = [
     description: "Deprecated strength surface kept available while its logic is reviewed.",
   },
   {
-    id: "dashboard",
-    label: "Differential Calculator",
-    description: "Older rate and inflation differential calculator.",
-  },
-  {
     id: "legacy-overview",
     label: "Deprecated Overview",
     description: "Older overview surface kept available for reference.",

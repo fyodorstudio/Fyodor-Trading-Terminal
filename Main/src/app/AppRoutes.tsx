@@ -14,7 +14,7 @@ const DeprecatedOverviewTab = lazy(() =>
   import("@/app/tabs/garbage/DeprecatedOverviewTab").then((module) => ({ default: module.DeprecatedOverviewTab })),
 );
 const DifferentialCalculatorTab = lazy(() =>
-  import("@/app/tabs/garbage/DifferentialCalculatorTab").then((module) => ({ default: module.DifferentialCalculatorTab })),
+  import("@/app/tabs/secondary/DifferentialCalculatorTab").then((module) => ({ default: module.DifferentialCalculatorTab })),
 );
 const StrengthMeterTab = lazy(() => import("@/app/tabs/garbage/StrengthMeterTab").then((module) => ({ default: module.StrengthMeterTab })));
 const EventReplayTab = lazy(() => import("@/app/tabs/secondary/EventReplayTab").then((module) => ({ default: module.EventReplayTab })));

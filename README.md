@@ -14,11 +14,11 @@ The strongest current primary surfaces are:
 - `Central Banks Data`
 - `Charts`
 - `Economic Calendar`
-- `Specialist Tools`, whose active child is `Event Replay`
+- `Specialist Tools`, whose active children are `Differential Calculator` and `Event Replay`
 
-`Overview` is now a fresh pair-brief surface: selected pair, next pair-relevant event/countdown, recent releases, base/quote macro cards, and direct routes into deeper specialist surfaces. The previous large overview still exists as `Deprecated Overview`, routed through Specialist Tools > Prototyping for reference only.
+`Overview` is now a fresh pair-brief surface: selected pair, next pair-relevant event/countdown, upcoming pair events, base/quote macro cards, and direct routes into deeper specialist surfaces. The previous large overview still exists as `Deprecated Overview`, routed through Specialist Tools > Prototyping for reference only.
 
-`Specialist Tools` is intentionally short: `EVENT REPLAY` is the active experiment, and `PROTOTYPING` is a garbage drawer for old unfinished surfaces that should be ignored unless explicitly requested. `Event Replay` is pair-first, shows base/quote event types before separate global movers, and replays MT5 candles around past scheduled releases without making trade calls.
+`Specialist Tools` is intentionally short: `DIFFERENTIAL CALCULATOR` is the active rate/inflation arithmetic tool, `EVENT REPLAY` is the active replay experiment, and `PROTOTYPING` is a garbage drawer for old unfinished surfaces that should be ignored unless explicitly requested. `Event Replay` is pair-first, shows base/quote event types before separate global movers, and replays MT5 candles around past scheduled releases without making trade calls.
 
 For now the trusted data boundary is deliberately narrow: MT5 OHLCV plus broker/MT5 economic-calendar rows. Do not add new live data sources without an explicit product decision.
 
@@ -29,7 +29,7 @@ For the active roadmap, read:
 - `docs/Development Logs/Current App Map.md`
 
 `docs/Private` is archival/context-noise by default. Do not use it unless explicitly requested.
-The old Six Questions, Work In Progress, and Aesthetic Forge surfaces are historical/prototype context, not active product direction.
+The old Six Questions and Work In Progress surfaces are historical/prototype context, not active product direction. Aesthetic Forge is only available from the header gear.
 
 ## Workspace Layout
 

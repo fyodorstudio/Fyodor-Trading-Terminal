@@ -14,7 +14,6 @@ File names should match the labels shown in Prototyping:
 - `SixQuestionsDraftTab.tsx`
 - `WipMapArchiveTab.tsx`
 - `StrengthMeterTab.tsx`
-- `DifferentialCalculatorTab.tsx`
 - `DeprecatedOverviewTab.tsx`
 - `ArchivedEventReactionStudyTab.tsx`
 - `ArchivedEventQualityStudyTab.tsx`

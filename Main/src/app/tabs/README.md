@@ -17,7 +17,7 @@ Treat these as active product surfaces.
 
 ## `secondary/`
 
-Secondary tabs live under Specialist Tools. `EventReplayTab.tsx` is the only active experiment here, and `PrototypingTab.tsx` is only the shell that opens the garbage drawer.
+Secondary tabs live under Specialist Tools. Active secondary tools currently include `EventReplayTab.tsx` and `DifferentialCalculatorTab.tsx`; `PrototypingTab.tsx` is only the shell that opens the garbage drawer.
 
 Keep this folder limited to active secondary surfaces and shells.
 
@@ -25,6 +25,6 @@ Keep this folder limited to active secondary surfaces and shells.
 
 Old unfinished, deprecated, or ignored routed surfaces live here. Keep old route ids working, but do not read or edit this folder unless the user explicitly asks for one of those screens.
 
-Current garbage drawer files are named after their Prototyping labels: `CurrencyStrengthFromCandlesTab.tsx`, `WatchlistEngineTab.tsx`, `MacroStateTab.tsx`, `SixQuestionsDraftTab.tsx`, `WipMapArchiveTab.tsx`, `StrengthMeterTab.tsx`, `DifferentialCalculatorTab.tsx`, and `DeprecatedOverviewTab.tsx`.
+Current garbage drawer files are named after their Prototyping labels: `CurrencyStrengthFromCandlesTab.tsx`, `WatchlistEngineTab.tsx`, `MacroStateTab.tsx`, `SixQuestionsDraftTab.tsx`, `WipMapArchiveTab.tsx`, `StrengthMeterTab.tsx`, and `DeprecatedOverviewTab.tsx`.
 
 Archive-only study screens live here as `ArchivedEventReactionStudyTab.tsx` and `ArchivedEventQualityStudyTab.tsx`.

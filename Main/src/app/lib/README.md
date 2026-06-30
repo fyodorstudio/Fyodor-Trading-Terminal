@@ -11,6 +11,7 @@ This folder holds pure helpers, bridge adapters, and feature engines. Prefer edi
 - `calendarDisplay.ts` owns pure date, range, freshness, and display helpers for Economic Calendar UI.
 - `eventHorizon.ts` owns the small event-warning summary shown by the app shell.
 - `calendarNavigation.ts`, `calendarEventExplain.ts`, `calendarEventKnowledge.ts`, and `calendarEventDefinitions.ts` support the primary Economic Calendar and Event Replay explanations.
+- `macroViews.ts` supports the active Differential Calculator Specialist Tools child.
 
 ## Event Replay
 
@@ -24,4 +25,4 @@ This folder holds pure helpers, bridge adapters, and feature engines. Prefer edi
 
 `garbage/` contains logic for old unfinished, deprecated, or ignored routed surfaces. Do not read or edit it unless the user explicitly asks for a garbage-drawer screen or its supporting logic.
 
-The moved garbage-owned logic includes old overview, strength meter, macro state, macro views, watchlist engine, and currency-candle strength helpers.
+The moved garbage-owned logic includes old overview, strength meter, macro state, watchlist engine, and currency-candle strength helpers.

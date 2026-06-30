@@ -13,6 +13,7 @@ export interface AppTabConfig {
 }
 
 export const ANALYSIS_TAB_ORDER: AppTabChild[] = [
+  { id: "dashboard", label: "DIFFERENTIAL CALCULATOR", groupLabel: "Active Tool" },
   { id: "event-tools", label: "EVENT REPLAY", groupLabel: "Active Experiment" },
   { id: "prototyping", label: "PROTOTYPING", groupLabel: "Garbage / Ignore" },
 ];

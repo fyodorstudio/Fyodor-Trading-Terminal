@@ -14,20 +14,21 @@ Current top-level navigation:
 
 Important current-state note:
 
-- `Overview` is now a fresh pair-brief surface: pair selector, next pair-relevant event/countdown, recent releases, base/quote macro cards, and route buttons into Charts, Event Replay, Economic Calendar, and Central Banks.
+- `Overview` is now a fresh pair-brief surface: pair selector, next pair-relevant event/countdown, upcoming pair events, base/quote macro cards, and route buttons into Charts, Event Replay, Economic Calendar, and Central Banks.
 - The previous large overview is still available as `Deprecated Overview` through Specialist Tools > Prototyping.
 - The strongest current primary surfaces are `Central Banks Data`, `Charts`, `Economic Calendar`, `Event Replay`, and the `Specialist Tools` shell.
 - `Central Banks Data` is the current reference surface and should remain stable unless a targeted fix is needed.
-- `Six Questions`, `Work In Progress`, and `Aesthetic Forge` are historical/prototype context, not active product direction.
+- `Six Questions` and `Work In Progress` are historical/prototype context, not active product direction. `Aesthetic Forge` is available only from the header gear.
 
 `Specialist Tools` currently contains:
 
-1. `EVENT REPLAY` under `Active Experiment`
-2. `PROTOTYPING` under `Garbage / Ignore`
+1. `DIFFERENTIAL CALCULATOR` under `Active Tool`
+2. `EVENT REPLAY` under `Active Experiment`
+3. `PROTOTYPING` under `Garbage / Ignore`
 
-The `PROTOTYPING` area is a garbage drawer for old unfinished surfaces. It contains unstable experiments, old planning drafts such as `Six Questions Draft` and `WIP Map Archive`, and older tools such as `Strength Meter`, `Differential Calculator`, and `Deprecated Overview`. Ignore it unless explicitly requested.
+The `PROTOTYPING` area is a garbage drawer for old unfinished surfaces. It contains unstable experiments, old planning drafts such as `Six Questions Draft` and `WIP Map Archive`, and older tools such as `Strength Meter` and `Deprecated Overview`. Ignore it unless explicitly requested.
 
-`Event Replay` is the promoted pair-first replay workflow. It lets the user pick a pair, inspect base/quote event types first, keep major global movers separate, select past releases, and replay MT5 candles around the release marker.
+`Differential Calculator` is the active rate/inflation arithmetic tool under Specialist Tools. `Event Replay` is the promoted pair-first replay workflow. It lets the user pick a pair, inspect base/quote event types first, keep major global movers separate, select past releases, and replay MT5 candles around the release marker.
 
 The current product goal is to keep the app connection-first and honest: show what is live, what is stale, what is unresolved, and what macro/event context may explain or threaten the user's chart idea without pretending to generate trade predictions.
 
@@ -72,10 +73,10 @@ It also expects the MT5 EA calendar bridge to be pushing economic calendar event
 - `Charts` keeps the live MT5 chart workflow and debug log, and shows explicit no-data / error states instead of fake candles.
 - `Economic Calendar` is MT5-backed, supports range/filter/search workflows, and can deep-link from `Overview` into a target event with highlight + explainer behavior.
 - `Central Banks Data` is derived from MT5 calendar events using strict mapping rules for the major 8 currencies. If a match is uncertain, the UI shows `N/A` instead of guessing.
-- `Specialist Tools` is the routing shell for Event Replay plus the Prototyping archive.
+- `Specialist Tools` is the routing shell for Differential Calculator, Event Replay, and the Prototyping archive.
 - `Event Replay` is the main pair-first event replay surface. It is descriptive study support, not a signal engine.
 - `tabs/primary/` contains always-visible primary workflow tabs.
-- `tabs/secondary/` contains Event Replay plus the Prototyping shell.
+- `tabs/secondary/` contains Differential Calculator, Event Replay, and the Prototyping shell.
 - `tabs/garbage/` contains old unfinished, deprecated, or ignored routed surfaces. Do not read it for general orientation unless explicitly requested.
 - `tests/garbage/` contains tests for garbage-drawer surfaces. Do not read or run them for normal active-surface work unless explicitly requested.
 - `hooks/` contains app-shell side effects extracted from `App.tsx`.

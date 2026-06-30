@@ -5,7 +5,7 @@ import {
   deriveDashboardRateCards,
   deriveStrengthCurrencyRanks,
   deriveStrengthSuggestions,
-} from "@/app/lib/garbage/macroViews";
+} from "@/app/lib/macroViews";
 import type { CentralBankSnapshot } from "@/app/types";
 
 function buildSnapshot(

@@ -84,13 +84,13 @@ This is the next active implementation lane.
 
 ### 4. Differential Calculator Promotion
 
-- [ ] Promote Differential Calculator from garbage into active Specialist Tools.
-- [ ] Keep it under Specialist Tools, not primary top nav.
-- [ ] Use existing route id `dashboard` for compatibility unless a later route migration plan explicitly changes it.
-- [ ] Move `DifferentialCalculatorTab` out of `tabs/garbage` into active secondary tools.
-- [ ] Move its supporting helper logic out of `lib/garbage`.
-- [ ] Add it as a Specialist Tools child, likely grouped as `Active Tool`.
-- [ ] Keep Prototyping as garbage-only.
+- [x] Promote Differential Calculator from garbage into active Specialist Tools.
+- [x] Keep it under Specialist Tools, not primary top nav.
+- [x] Use existing route id `dashboard` for compatibility unless a later route migration plan explicitly changes it.
+- [x] Move `DifferentialCalculatorTab` out of `tabs/garbage` into active secondary tools.
+- [x] Move its supporting helper logic out of `lib/garbage`.
+- [x] Add it as a Specialist Tools child, likely grouped as `Active Tool`.
+- [x] Keep Prototyping as garbage-only.
 
 ### 5. Backlog
 
@@ -117,6 +117,7 @@ This is the next active implementation lane.
 - [x] Central Banks log section was renamed to `Terminal Console` for consistency with Charts.
 - [x] Event Replay modals now reserve header-safe space; Past Releases and Replay Brief were redesigned for readable study workflow.
 - [x] Aesthetic Forge is mounted behind a header gear and remains closed by default.
+- [x] Differential Calculator was promoted to active Specialist Tools with stable route id `dashboard`.
 - [x] Documentation maps were aligned after the fresh Overview checkpoint.
 - [x] Garbage folders remain ignored by default:
   - [x] `Main/src/app/tabs/garbage`;
