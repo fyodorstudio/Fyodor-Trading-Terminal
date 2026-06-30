@@ -179,7 +179,7 @@ export function MinimalHeader({
         onFocus={openDetails}
         onBlur={scheduleCloseDetails}
       >
-        <div className="max-w-[1460px] mx-auto px-6">
+        <div className="w-full max-w-none px-4">
           <div className="flex min-h-[58px] items-center justify-between gap-4">
             <div className="flex shrink-0 items-center gap-5">
               <div className="min-w-0">
@@ -237,7 +237,7 @@ export function MinimalHeader({
             transition={{ duration: 0.16 }}
             className="fixed left-0 right-0 top-[58px] z-[900] max-h-[calc(100vh-58px)] overflow-y-auto border-b border-slate-200 bg-white/98 shadow-xl shadow-slate-950/10 backdrop-blur-xl"
           >
-            <div className="max-w-[1460px] mx-auto px-6 py-5">
+            <div className="w-full max-w-none px-4 py-4">
               <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
                 <div className="grid gap-4">
                   <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03]">

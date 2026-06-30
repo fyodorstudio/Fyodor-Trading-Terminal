@@ -788,7 +788,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const reachedBoundary = boundaryTime != null && visibleCandles.length > 0 && visibleCandles[0].time <= boundaryTime;
 
   return (
-    <div className="flex flex-col gap-6 max-w-[1460px] mx-auto pb-12">
+    <div className="workspace-page workspace-page-compact flex flex-col">
       <div className="chart-workbar">
         <div className="chart-workbar-left">
           <div className="relative" ref={pickerRef}>
@@ -1194,7 +1194,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
       {/* Main Chart Section */}
       <div className="relative group">
         <div className="p-1 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-3xl shadow-sm overflow-hidden">
-          <div ref={containerRef} className="h-[600px] w-full" />
+          <div ref={containerRef} className="h-[clamp(430px,calc(100vh-340px),620px)] w-full" />
         </div>
         {crosshairReadout && (
           <div
@@ -1251,7 +1251,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             Copy Logs
           </button>
         </div>
-        <div className="h-32 overflow-auto p-4 bg-gray-50/50 font-mono text-[10px] leading-relaxed text-gray-500">
+        <div className="h-20 overflow-auto p-3 bg-gray-50/50 font-mono text-[10px] leading-relaxed text-gray-500">
           {debugLines.length === 0 ? (
             <div className="italic">Awaiting first market event...</div>
           ) : (

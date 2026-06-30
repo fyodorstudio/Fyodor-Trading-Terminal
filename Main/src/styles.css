@@ -51,9 +51,10 @@ button {
 }
 
 .app-shell {
-  max-width: 1460px;
-  margin: 0 auto;
-  padding: 24px;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: 0 16px 16px;
 }
 
 .app-header {
@@ -256,13 +257,24 @@ button {
 }
 
 .main-area {
-  margin-top: 18px;
+  margin-top: 12px;
 }
 
 .tab-panel {
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.workspace-page {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding-bottom: 12px;
+}
+
+.workspace-page-compact {
+  gap: 12px;
 }
 
 .section-head,
@@ -5025,7 +5037,7 @@ button {
 
 @media (max-width: 780px) {
   .app-shell {
-    padding: 14px;
+    padding: 0 10px 12px;
   }
 
   .tab-nav {

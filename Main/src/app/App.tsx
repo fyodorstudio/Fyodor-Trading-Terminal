@@ -35,7 +35,7 @@ export default function App() {
   return (
     <div className="flex min-h-screen bg-[var(--bg)] transition-colors duration-300 overflow-hidden">
       <div className="flex-1 min-h-screen">
-        <div className="app-shell max-w-[1460px] mx-auto px-6 pb-6 pt-0">
+        <div className="app-shell">
           <MinimalHeader
             activeTab={activeTab}
             currentTime={currentTime}

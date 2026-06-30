@@ -1,6 +1,6 @@
 export function OverviewPlaceholderTab() {
   return (
-    <div className="mx-auto flex max-w-[1460px] flex-col gap-6 pb-12">
+    <div className="workspace-page flex flex-col gap-4">
       <section className="overflow-hidden rounded-3xl border border-gray-200/60 bg-white/75 shadow-sm backdrop-blur-xl">
         <div className="bg-[linear-gradient(135deg,rgba(15,23,42,0.98),rgba(30,64,175,0.92))] px-8 py-8 text-white">
           <div className="text-[10px] font-black uppercase tracking-[0.24em] text-blue-100/80">Blank Surface</div>
