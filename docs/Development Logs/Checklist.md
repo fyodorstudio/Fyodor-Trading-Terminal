@@ -54,20 +54,20 @@ This is the next active implementation lane.
 
 This comes after visual unification, so the new Overview does not inherit the current shell/gutter/scroll problems.
 
-- [ ] Build from `OverviewPlaceholderTab.tsx`, not Deprecated Overview.
-- [ ] Do not read or reuse `DeprecatedOverviewTab.tsx` or `app/lib/garbage/overview.ts` as the implementation source.
-- [ ] Add a pair selector.
-- [ ] Show the selected pair's upcoming relevant event plus countdown.
-- [ ] Add pressable routing buttons to:
-  - [ ] Charts;
-  - [ ] Event Replay;
-  - [ ] Economic Calendar;
-  - [ ] Central Banks Data.
-- [ ] Show base/quote macro cards similar in spirit to Differential Calculator, but implemented fresh from active data.
-- [ ] Show recent pair-relevant events.
-- [ ] Show base/quote policy rate, inflation, and related central-bank context.
-- [ ] Keep the goal glanceable: pair brief first, deeper study via routed specialist surfaces.
-- [ ] Keep language descriptive and cautious. Do not generate trade calls.
+- [x] Build from `OverviewPlaceholderTab.tsx`, not Deprecated Overview.
+- [x] Do not read or reuse `DeprecatedOverviewTab.tsx` or `app/lib/garbage/overview.ts` as the implementation source.
+- [x] Add a pair selector.
+- [x] Show the selected pair's upcoming relevant event plus countdown.
+- [x] Add pressable routing buttons to:
+  - [x] Charts;
+  - [x] Event Replay;
+  - [x] Economic Calendar;
+  - [x] Central Banks Data.
+- [x] Show base/quote macro cards similar in spirit to Differential Calculator, but implemented fresh from active data.
+- [x] Show recent pair-relevant events.
+- [x] Show base/quote policy rate, inflation, and related central-bank context.
+- [x] Keep the goal glanceable: pair brief first, deeper study via routed specialist surfaces.
+- [x] Keep language descriptive and cautious. Do not generate trade calls.
 
 ### 3. Event Replay Continued Polish
 

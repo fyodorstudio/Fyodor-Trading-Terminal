@@ -89,7 +89,22 @@ export function AppRoutes({
 }: AppRoutesProps) {
   return (
     <Suspense fallback={<TabLoadingFallback />}>
-      {activeTab === "overview" && <OverviewPlaceholderTab />}
+      {activeTab === "overview" && (
+        <OverviewPlaceholderTab
+          selectedSymbol={overviewSymbol}
+          onSelectedSymbolChange={onOverviewSymbolChange}
+          events={feedEvents}
+          snapshots={centralBankResult.snapshots}
+          marketStatus={overviewMarketStatus}
+          currentTime={currentTime}
+          onNavigate={onNavigate}
+          onOpenCalendarEvent={onOpenCalendarEvent}
+          onOpenChart={(symbol) => {
+            onChartSymbolChange(symbol);
+            onNavigate("charts");
+          }}
+        />
+      )}
       {activeTab === "legacy-overview" && (
         <DeprecatedOverviewTab
           currentTime={currentTime}
