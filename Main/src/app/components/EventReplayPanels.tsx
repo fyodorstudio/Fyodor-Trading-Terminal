@@ -17,16 +17,16 @@ export function EventExplainerMiniBrief(props: { explainer: CalendarEventExplain
   }
 
   return (
-    <div className="grid gap-3">
-      <div className="border border-slate-200 bg-white px-3 py-2.5">
+    <div className="grid gap-3 sm:grid-cols-2">
+      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
         <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">What This Event Is</span>
         <p className="mt-1 text-sm leading-6 text-slate-700">{props.explainer.whatItIs}</p>
       </div>
-      <div className="border border-slate-200 bg-white px-3 py-2.5">
+      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
         <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">Why Traders Care</span>
         <p className="mt-1 text-sm leading-6 text-slate-700">{props.explainer.whyTradersCare}</p>
       </div>
-      <div className="border border-slate-200 bg-white px-3 py-2.5">
+      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 sm:col-span-2">
         <span className="block text-[11px] font-black uppercase tracking-[0.18em] text-slate-400">What To Compare</span>
         <ul className="mt-2 grid gap-1.5 text-sm leading-6 text-slate-700">
           {(props.explainer.whatToCompare ?? []).slice(0, 3).map((item) => (
@@ -88,20 +88,36 @@ export function EventSampleButton(props: {
     <button
       type="button"
       onClick={props.onSelect}
-      className={`min-w-0 w-full overflow-hidden border px-3 py-3 text-left transition-colors ${
+      className={`min-w-0 w-full overflow-hidden rounded-xl border px-4 py-3 text-left transition-colors ${
         props.active
           ? "border-slate-900 bg-slate-950 text-white"
-          : "border-slate-200 bg-white text-slate-900 hover:border-slate-400"
+          : "border-slate-200 bg-white text-slate-900 hover:border-blue-200 hover:bg-blue-50/40"
       }`}
     >
       <div className="flex min-w-0 items-start justify-between gap-3">
-        <strong className="block min-w-0 break-words text-sm">{formatUtcDateTime(props.sample.eventTime)}</strong>
-        <span className={`text-xs font-semibold ${props.active ? "text-slate-300" : "text-slate-500"}`}>
-          {props.sample.comparisonBasis === "forecast" ? "Forecast" : "Previous"}
+        <span className="min-w-0">
+          <span className={`block text-[10px] font-black uppercase tracking-[0.16em] ${props.active ? "text-slate-400" : "text-slate-400"}`}>
+            Release time
+          </span>
+          <strong className="mt-1 block min-w-0 break-words text-sm">{formatUtcDateTime(props.sample.eventTime)}</strong>
+        </span>
+        <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-black ${props.active ? "border-slate-700 bg-slate-800 text-slate-100" : "border-blue-100 bg-blue-50 text-blue-700"}`}>
+          vs {props.sample.comparisonBasis === "forecast" ? "Forecast" : "Previous"}
         </span>
       </div>
-      <div className={`mt-2 text-xs ${props.active ? "text-slate-300" : "text-slate-500"}`}>
-        Actual {props.sample.actual || "N/A"} vs {props.sample.comparisonBasis === "forecast" ? props.sample.forecast : props.sample.previous || "N/A"}
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <span className={`rounded-lg border px-2 py-2 ${props.active ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-slate-50"}`}>
+          <span className={`block text-[10px] font-black uppercase tracking-[0.12em] ${props.active ? "text-slate-400" : "text-slate-400"}`}>Actual</span>
+          <strong className="mt-1 block truncate text-xs">{props.sample.actual || "N/A"}</strong>
+        </span>
+        <span className={`rounded-lg border px-2 py-2 ${props.active ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-slate-50"}`}>
+          <span className={`block text-[10px] font-black uppercase tracking-[0.12em] ${props.active ? "text-slate-400" : "text-slate-400"}`}>Forecast</span>
+          <strong className="mt-1 block truncate text-xs">{props.sample.forecast || "N/A"}</strong>
+        </span>
+        <span className={`rounded-lg border px-2 py-2 ${props.active ? "border-slate-700 bg-slate-900" : "border-slate-200 bg-slate-50"}`}>
+          <span className={`block text-[10px] font-black uppercase tracking-[0.12em] ${props.active ? "text-slate-400" : "text-slate-400"}`}>Previous</span>
+          <strong className="mt-1 block truncate text-xs">{props.sample.previous || "N/A"}</strong>
+        </span>
       </div>
     </button>
   );

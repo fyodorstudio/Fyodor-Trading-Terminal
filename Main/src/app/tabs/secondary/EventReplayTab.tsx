@@ -350,9 +350,17 @@ export function EventReplayTab({
         : selectedSampleIndex === replaySamples.length - 1
           ? "Oldest release"
           : "Historical release";
+  const comparisonBasisLabel =
+    selectedSample?.comparisonBasis === "forecast"
+      ? "Forecast"
+      : selectedSample?.comparisonBasis === "previous"
+        ? "Previous"
+        : "N/A";
+  const surpriseLabel = selectedSample ? `${selectedSample.surprise >= 0 ? "+" : ""}${selectedSample.surprise.toFixed(4)}` : "N/A";
+  const observedMoveLabel = replayMove ? `${formatReplayPips(replayMove.pips)} (${formatReplayPercent(replayMove.percent)})` : "N/A";
 
   return (
-    <section className="tab-panel event-replay-workspace relative left-1/2 flex w-[calc(100vw-24px)] max-w-none -translate-x-1/2 flex-col gap-3 overflow-x-hidden pb-4">
+    <section className="tab-panel event-replay-workspace relative left-1/2 flex w-[calc(100vw-24px)] max-w-none -translate-x-1/2 flex-col gap-3 overflow-x-hidden pb-2">
       <header className="flex flex-wrap items-center justify-between gap-3 border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
@@ -372,7 +380,7 @@ export function EventReplayTab({
         <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">MT5 candles + broker calendar</span>
       </header>
 
-      <section className="grid min-w-0 gap-3 lg:h-[calc(100vh-190px)] lg:min-h-[560px] lg:grid-cols-[380px_minmax(0,1fr)]">
+      <section className="grid min-w-0 gap-3 lg:h-[calc(100vh-214px)] lg:min-h-[520px] lg:grid-cols-[380px_minmax(0,1fr)]">
         <aside className="flex min-h-0 min-w-0 flex-col overflow-y-auto border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-4 py-4">
             <label className="grid gap-2">
@@ -599,14 +607,14 @@ export function EventReplayTab({
 
       {eventListOpen ? (
         <div
-          className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/25 p-4 backdrop-blur-sm"
+          className="event-replay-modal-overlay fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/25 backdrop-blur-sm"
           onClick={() => setEventListOpen(false)}
           role="dialog"
           aria-modal="true"
           aria-label="Select Event"
         >
           <aside
-            className="flex max-h-[calc(100vh-32px)] w-full max-w-[860px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="event-replay-modal-panel flex max-h-[calc(100vh-32px)] w-full max-w-[860px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="border-b border-slate-200 px-5 py-4">
@@ -723,14 +731,14 @@ export function EventReplayTab({
 
       {releaseListOpen ? (
         <div
-          className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/25 p-4 backdrop-blur-sm"
+          className="event-replay-modal-overlay fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/25 backdrop-blur-sm"
           onClick={() => setReleaseListOpen(false)}
           role="dialog"
           aria-modal="true"
           aria-label="Past Releases"
         >
           <section
-            className="flex max-h-[calc(100vh-32px)] w-full max-w-[620px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="event-replay-modal-panel flex max-h-[calc(100vh-32px)] w-full max-w-[620px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3">
@@ -775,14 +783,14 @@ export function EventReplayTab({
 
       {detailsOpen ? (
         <div
-          className="fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/25 p-4 backdrop-blur-sm"
+          className="event-replay-modal-overlay fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/25 backdrop-blur-sm"
           onClick={() => setDetailsOpen(false)}
           role="dialog"
           aria-modal="true"
           aria-label="Replay Brief"
         >
           <aside
-            className="flex max-h-[calc(100vh-32px)] w-full max-w-[720px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="event-replay-modal-panel flex max-h-[calc(100vh-32px)] w-full max-w-[720px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
@@ -805,44 +813,79 @@ export function EventReplayTab({
               </button>
             </div>
 
-            <div className="grid min-h-0 flex-1 content-start gap-2 overflow-y-auto px-5 py-4">
-              <div className="border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Event Type</span>
-                <strong className="mt-1 block break-words text-sm text-slate-950">{selectedTemplate ? `${selectedTemplate.currency} ${selectedTemplate.title}` : "N/A"}</strong>
-              </div>
-              <div className="border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Actual / Forecast / Previous</span>
-                <strong className="mt-1 block break-words text-sm text-slate-950">
-                  {selectedSample ? `${selectedSample.actual || "N/A"} / ${selectedSample.forecast || "N/A"} / ${selectedSample.previous || "N/A"}` : "N/A"}
-                </strong>
-                {selectedSample ? (
-                  <span className="mt-1 block text-xs text-slate-500">
-                    Compared by {selectedSample.comparisonLabel.toLowerCase()}; surprise {selectedSample.surprise >= 0 ? "+" : ""}{selectedSample.surprise.toFixed(4)}.
+            <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-5 py-4">
+              <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-500">Selected study</span>
+                    <h4 className="mt-1 break-words text-lg font-black text-slate-950">
+                      {selectedTemplate ? `${selectedTemplate.currency} | ${selectedTemplate.title}` : "No event selected"}
+                    </h4>
+                    <p className="mt-1 text-sm font-semibold text-slate-500">
+                      {selectedSample ? formatUtcDateTime(selectedSample.eventTime) : "Choose a historical release to load the brief."}
+                    </p>
+                  </div>
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-slate-600">
+                    {releaseAgeLabel}
                   </span>
-                ) : null}
+                </div>
+
+                <div className="mt-4 grid gap-2 sm:grid-cols-4">
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                    <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Actual</span>
+                    <strong className="mt-1 block truncate text-sm text-slate-950">{selectedSample?.actual || "N/A"}</strong>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                    <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Forecast</span>
+                    <strong className="mt-1 block truncate text-sm text-slate-950">{selectedSample?.forecast || "N/A"}</strong>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                    <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Previous</span>
+                    <strong className="mt-1 block truncate text-sm text-slate-950">{selectedSample?.previous || "N/A"}</strong>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                    <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Surprise</span>
+                    <strong className="mt-1 block truncate text-sm text-slate-950">{surpriseLabel}</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section className="mt-3 grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
+                <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Observed move</span>
+                  <strong className="mt-2 block text-2xl font-black tracking-tight text-slate-950">{observedMoveLabel}</strong>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                    {replayMove
+                      ? `Price finished ${replayMove.label} over the loaded replay window after the release marker.`
+                      : "Loads after candles resolve."}
+                  </p>
+                </div>
+
+                <div className="grid gap-2">
+                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                    <strong className="block text-sm text-slate-950">1. Read the release first</strong>
+                    <span className="mt-1 block text-sm leading-6 text-slate-600">
+                      Compare actual against {comparisonBasisLabel.toLowerCase()} before judging the candle reaction.
+                    </span>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                    <strong className="block text-sm text-slate-950">2. Separate spike from acceptance</strong>
+                    <span className="mt-1 block text-sm leading-6 text-slate-600">
+                      The pre-marker candles show positioning; post-marker candles show whether the market accepted or rejected the first read.
+                    </span>
+                  </div>
+                  <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                    <strong className="block text-sm text-slate-950">3. Reuse the pattern carefully</strong>
+                    <span className="mt-1 block text-sm leading-6 text-slate-600">
+                      Replay is for studying reaction shape, volatility, and follow-through. It is not a buy/sell instruction.
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              <div className="mt-3">
+                <EventExplainerMiniBrief explainer={selectedSampleExplainer} />
               </div>
-              <div className="border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Observed Move</span>
-                <strong className="mt-1 block text-sm text-slate-950">
-                  {replayMove ? `${formatReplayPips(replayMove.pips)} (${formatReplayPercent(replayMove.percent)})` : "N/A"}
-                </strong>
-                <span className="mt-1 block text-xs text-slate-500">
-                  {replayMove ? `Price finished ${replayMove.label} over the loaded replay window after the release marker.` : "Loads after candles resolve."}
-                </span>
-              </div>
-              <div className="border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <strong className="block text-sm text-slate-950">Read the marker first</strong>
-                <span className="mt-1 block text-sm text-slate-600">Before shows positioning; after shows acceptance or rejection.</span>
-              </div>
-              <div className="border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <strong className="block text-sm text-slate-950">Check the comparison basis</strong>
-                <span className="mt-1 block text-sm text-slate-600">Forecast is preferred; previous is fallback only.</span>
-              </div>
-              <div className="border border-slate-200 bg-slate-50 px-3 py-2.5">
-                <strong className="block text-sm text-slate-950">Study behavior</strong>
-                <span className="mt-1 block text-sm text-slate-600">Use replay to understand reaction shape, volatility, and follow-through.</span>
-              </div>
-              <EventExplainerMiniBrief explainer={selectedSampleExplainer} />
             </div>
           </aside>
         </div>

@@ -5107,6 +5107,26 @@ button {
   border-top: 0;
 }
 
+.event-replay-modal-overlay {
+  padding: 94px 16px 20px;
+}
+
+.event-replay-modal-panel {
+  max-height: min(780px, calc(100vh - 124px));
+}
+
+@media (max-width: 820px) {
+  .event-replay-modal-overlay {
+    align-items: stretch;
+    padding: 72px 10px 10px;
+  }
+
+  .event-replay-modal-panel {
+    max-height: calc(100vh - 82px);
+    border-radius: 14px;
+  }
+}
+
 @media (max-width: 1100px) {
   .app-header,
   .section-head,

@@ -66,10 +66,10 @@ This is the next active implementation lane.
   - [x] show upcoming and past releases in that popover, separated by a clean divider;
   - [x] allow base/quote macro cards to include compact upcoming event context beneath current data.
 - [ ] Event Replay:
-  - [ ] remove remaining whole-tab scroll where possible;
-  - [ ] fix centered modal top/bottom overlap with the header/app frame;
-  - [ ] redesign `Past Releases` modal so date/time and actual/forecast/previous are readable;
-  - [ ] redesign `Replay Brief` content and layout so it feels like a useful study brief, not stacked debug boxes.
+  - [x] remove remaining whole-tab scroll where possible;
+  - [x] fix centered modal top/bottom overlap with the header/app frame;
+  - [x] redesign `Past Releases` modal so date/time and actual/forecast/previous are readable;
+  - [x] redesign `Replay Brief` content and layout so it feels like a useful study brief, not stacked debug boxes.
 - [ ] Central Banks:
   - [x] rename `Global Mapping Audit` to `Terminal Console` for log naming consistency.
 
@@ -115,6 +115,7 @@ This is the next active implementation lane.
 - [x] Calendar event aliases now cover more broker title variants for policy, inflation, labor, retail, trade/current-account, export/import, and confidence/sentiment releases.
 - [x] Overview Pair Event Feed now shows upcoming events only, with recent releases moved into a separated releases popover.
 - [x] Central Banks log section was renamed to `Terminal Console` for consistency with Charts.
+- [x] Event Replay modals now reserve header-safe space; Past Releases and Replay Brief were redesigned for readable study workflow.
 - [x] Documentation maps were aligned after the fresh Overview checkpoint.
 - [x] Garbage folders remain ignored by default:
   - [x] `Main/src/app/tabs/garbage`;
