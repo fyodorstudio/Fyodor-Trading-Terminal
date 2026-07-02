@@ -1,6 +1,6 @@
 # Current App Map
 
-Last updated: 2026-06-30
+Last updated: 2026-07-02
 
 This is the short orientation doc for future AI and human sessions. Read it with `Checklist.md` before using older roadmap, audit, or patch notes.
 
@@ -44,7 +44,7 @@ This is the short orientation doc for future AI and human sessions. Read it with
    - Event explanations should remain cautious and concise.
 
 5. `Specialist Tools`
-   - Current state: short grouped drawer with Differential Calculator, active Event Replay, and the Prototyping garbage drawer.
+   - Current state: short grouped drawer with Differential Calculator, Macro Drivers, active Event Replay, and the Prototyping garbage drawer.
    - Six Questions and WIP Map are no longer direct Specialist Tools children.
 
 ## App Loading
@@ -61,11 +61,16 @@ Current direct children under `Specialist Tools`:
    - Active arithmetic view for policy-rate and inflation differentials across major FX pairs.
    - Keeps route id `dashboard` for compatibility.
 
-2. `Active Experiment` / `EVENT REPLAY`
+2. `Active Tool` / `MACRO DRIVERS`
+   - Active current-data-only driver map for forex and gold.
+   - Uses MT5 OHLCV, broker/MT5 calendar rows, and central-bank snapshots.
+   - Explains trend state, calendar factor coverage, and missing data without producing trade calls.
+
+3. `Active Experiment` / `EVENT REPLAY`
    - Primary pair-first replay surface for studying scheduled event reactions.
    - Shows base/quote event types first, major global movers separately, past releases, replay controls, and descriptive replay notes.
 
-3. `Garbage / Ignore` / `PROTOTYPING`
+4. `Garbage / Ignore` / `PROTOTYPING`
    - Garbage drawer for old unfinished surfaces, deprecated planning drafts, and ignored tools.
    - This is not the final workflow surface.
    - Contains Six Questions Draft and WIP Map Archive.
@@ -100,7 +105,7 @@ Current Event Replay implementation entrypoint:
 ## Tab Folder Map
 
 - `Main/src/app/tabs/primary/` contains always-visible primary workflow tabs.
-- `Main/src/app/tabs/secondary/` contains Event Replay, Differential Calculator, and the Prototyping shell.
+- `Main/src/app/tabs/secondary/` contains Event Replay, Differential Calculator, Macro Drivers, and the Prototyping shell.
 - `Main/src/app/tabs/garbage/` contains old unfinished, deprecated, or ignored routed surfaces. Ignore it unless the user explicitly asks for one of those screens.
 - `Main/src/app/lib/garbage/` contains supporting logic for garbage-drawer routes. Ignore it unless the user explicitly asks for that logic.
 - `Main/src/app/tests/garbage/` contains tests for garbage-drawer routes and logic. Ignore it unless the user explicitly asks for garbage-drawer work.
@@ -122,7 +127,7 @@ Current Event Replay implementation entrypoint:
    - Do not revive Watchlist Engine or Strength Meter for this unless the user explicitly asks.
 
 3. Is the macro backdrop supportive, hostile, or unclear?
-   - Current owners: Central Banks Data and active Differential Calculator. Macro State remains a prototype only.
+   - Current owners: Central Banks Data, active Differential Calculator, and Macro Drivers. Macro State remains a prototype only.
 
 4. Is event risk close enough to invalidate a clean setup?
    - Current owners: Economic Calendar, Event Replay primary surface.

@@ -17,7 +17,7 @@ Treat these as active product surfaces.
 
 ## `secondary/`
 
-Secondary tabs live under Specialist Tools. Active secondary tools currently include `EventReplayTab.tsx` and `DifferentialCalculatorTab.tsx`; `PrototypingTab.tsx` is only the shell that opens the garbage drawer.
+Secondary tabs live under Specialist Tools. Active secondary tools currently include `EventReplayTab.tsx`, `DifferentialCalculatorTab.tsx`, and `MacroDriversTab.tsx`; `PrototypingTab.tsx` is only the shell that opens the garbage drawer.
 
 Keep this folder limited to active secondary surfaces and shells.
 

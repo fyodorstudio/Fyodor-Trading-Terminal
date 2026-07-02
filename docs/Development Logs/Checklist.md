@@ -57,31 +57,31 @@ This is the next active implementation lane. Fix these before building Macro Dri
 
 ### 3. Macro Drivers Tool
 
-- [ ] Add `Macro Drivers` as an active Specialist Tools child, not primary nav and not garbage.
-- [ ] Scope v1 to forex and gold.
-- [ ] Use current data only:
-  - [ ] MT5 OHLCV;
-  - [ ] broker/MT5 calendar rows;
-  - [ ] central-bank snapshots.
-- [ ] Include a small missing-data note explaining what would improve with yields, COT, ETF/flow data, real-rate data, Fed pricing, DXY/risk proxies, and similar sources.
-- [ ] Trend state defaults:
-  - [ ] W1 = broad regime context;
-  - [ ] D1 = main trend/breakout state;
-  - [ ] H4 = confirmation/timing.
-- [ ] Add plain-English tooltips explaining how trend/regime labels work.
-- [ ] Put expanded pair metrics here first:
-  - [ ] unemployment;
-  - [ ] wages;
-  - [ ] jobless claims;
-  - [ ] retail sales;
-  - [ ] PMI;
-  - [ ] sentiment;
-  - [ ] trade/current account;
-  - [ ] inflation;
-  - [ ] policy rate;
-  - [ ] related calendar-derived factors.
-- [ ] All metrics must show coverage/confidence/missing-data honesty.
-- [ ] Gold support in v1 means XAUUSD price trend plus USD/calendar/central-bank context, with missing gold-specific drivers clearly noted.
+- [x] Add `Macro Drivers` as an active Specialist Tools child, not primary nav and not garbage.
+- [x] Scope v1 to forex and gold.
+- [x] Use current data only:
+  - [x] MT5 OHLCV;
+  - [x] broker/MT5 calendar rows;
+  - [x] central-bank snapshots.
+- [x] Include a small missing-data note explaining what would improve with yields, COT, ETF/flow data, real-rate data, Fed pricing, DXY/risk proxies, and similar sources.
+- [x] Trend state defaults:
+  - [x] W1 = broad regime context;
+  - [x] D1 = main trend/breakout state;
+  - [x] H4 = confirmation/timing.
+- [x] Add plain-English tooltips explaining how trend/regime labels work.
+- [x] Put expanded pair metrics here first:
+  - [x] unemployment;
+  - [x] wages;
+  - [x] jobless claims;
+  - [x] retail sales;
+  - [x] PMI;
+  - [x] sentiment;
+  - [x] trade/current account;
+  - [x] inflation;
+  - [x] policy rate;
+  - [x] related calendar-derived factors.
+- [x] All metrics must show coverage/confidence/missing-data honesty.
+- [x] Gold support in v1 means XAUUSD price trend plus USD/calendar/central-bank context, with missing gold-specific drivers clearly noted.
 
 ### 4. Backlog
 

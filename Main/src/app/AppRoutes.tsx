@@ -16,6 +16,9 @@ const DeprecatedOverviewTab = lazy(() =>
 const DifferentialCalculatorTab = lazy(() =>
   import("@/app/tabs/secondary/DifferentialCalculatorTab").then((module) => ({ default: module.DifferentialCalculatorTab })),
 );
+const MacroDriversTab = lazy(() =>
+  import("@/app/tabs/secondary/MacroDriversTab").then((module) => ({ default: module.MacroDriversTab })),
+);
 const StrengthMeterTab = lazy(() => import("@/app/tabs/garbage/StrengthMeterTab").then((module) => ({ default: module.StrengthMeterTab })));
 const EventReplayTab = lazy(() => import("@/app/tabs/secondary/EventReplayTab").then((module) => ({ default: module.EventReplayTab })));
 const CentralBanksTab = lazy(() => import("@/app/tabs/primary/CentralBanksTab").then((module) => ({ default: module.CentralBanksTab })));
@@ -127,6 +130,14 @@ export function AppRoutes({
         />
       )}
       {activeTab === "dashboard" && <DifferentialCalculatorTab snapshots={centralBankResult.snapshots} />}
+      {activeTab === "macro-drivers" && (
+        <MacroDriversTab
+          events={feedEvents}
+          snapshots={centralBankResult.snapshots}
+          currentTime={currentTime}
+          initialSymbol={overviewSymbol}
+        />
+      )}
       {activeTab === "strength-meter" && (
         <StrengthMeterTab
           snapshots={centralBankResult.snapshots}

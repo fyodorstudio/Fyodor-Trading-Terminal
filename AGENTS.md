@@ -32,10 +32,11 @@ Secondary surfaces:
 
 - `Event Replay` is an active secondary experiment.
 - `Differential Calculator` is an active Specialist Tools child using route id `dashboard`.
+- `Macro Drivers` is an active Specialist Tools child using current MT5 OHLCV, broker calendar rows, and central-bank snapshots for forex/gold driver context.
 - `Prototyping` is a garbage drawer for old unfinished surfaces.
 - `Main/src/app/tabs/secondary` should contain only active secondary shells/surfaces.
 - Ignore `Main/src/app/tabs/garbage` unless the user explicitly asks for a file or route inside it. Do not read garbage files for general orientation.
-- Ignore `Main/src/app/lib/garbage` unless the user explicitly asks for garbage-drawer supporting logic. Active Event Replay and Differential Calculator helpers remain in `Main/src/app/lib`.
+- Ignore `Main/src/app/lib/garbage` unless the user explicitly asks for garbage-drawer supporting logic. Active Event Replay, Differential Calculator, and Macro Drivers helpers remain in `Main/src/app/lib`.
 
 ## Repo Hygiene
 

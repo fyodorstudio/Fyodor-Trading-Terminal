@@ -4,6 +4,7 @@ export type TabId =
   | "currency-candle-strength"
   | "watchlist-engine-prototype"
   | "dashboard"
+  | "macro-drivers"
   | "strength-meter"
   | "event-tools"
   | "terminal-questions"
