@@ -8,14 +8,24 @@ import {
   List,
   Pause,
   Play,
+  Settings2,
   X,
 } from "lucide-react";
+import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
 import { EventReplayCandlestickChart } from "@/app/components/EventReplayCandlestickChart";
 import { EventExplainerMiniBrief, EventSampleButton, EventTemplateButton } from "@/app/components/EventReplayPanels";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { fetchHistoryRange } from "@/app/lib/bridge";
 import { getCalendarEventExplainer } from "@/app/lib/calendarEventExplain";
+import {
+  DEFAULT_CHART_PREFERENCES,
+  loadChartPreferences,
+  saveChartPreferences,
+  type ChartAppearancePreferences,
+  type ChartCursorReadoutMode,
+  type ChartPreferences,
+} from "@/app/lib/chartView";
 import { getCurrencyCountryCode } from "@/app/lib/eventQuality";
 import {
   getEventReplayStatusLabel,
@@ -125,6 +135,9 @@ export function EventReplayTab({
   const [eventTemplateFilter, setEventTemplateFilter] = useState<EventTemplateFilter>("all");
   const [eventTemplateSort, setEventTemplateSort] = useState<EventTemplateSort>("quality");
   const [countdownNowMs, setCountdownNowMs] = useState(() => Date.now());
+  const [chartPreferences, setChartPreferences] = useState<ChartPreferences>(() => loadChartPreferences());
+  const [chartDrawerOpen, setChartDrawerOpen] = useState(false);
+  const [chartDrawerMode, setChartDrawerMode] = useState<ChartDrawerMode>("appearance");
   const cacheRef = useRef<Map<string, Promise<BridgeCandle[]>>>(new Map());
 
   const groups = useMemo(
@@ -150,7 +163,7 @@ export function EventReplayTab({
     () => (selectedSample ? getCalendarEventExplainer(buildReplaySampleCalendarEvent(selectedSample)) : null),
     [selectedSample],
   );
-  const overlayOpen = eventListOpen || releaseListOpen || detailsOpen;
+  const overlayOpen = eventListOpen || releaseListOpen || detailsOpen || chartDrawerOpen;
   const visiblePairTemplates = useMemo(
     () =>
       sortEventTemplates(
@@ -183,6 +196,7 @@ export function EventReplayTab({
       setEventListOpen(false);
       setReleaseListOpen(false);
       setDetailsOpen(false);
+      setChartDrawerOpen(false);
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -336,6 +350,33 @@ export function EventReplayTab({
 
   const handleAfterChange = (value: string) => {
     setAfterCount(clampReplayCount(Number(value), DEFAULT_AFTER_CANDLES));
+  };
+
+  const updateChartPreferences = (updater: (current: ChartPreferences) => ChartPreferences) => {
+    setChartPreferences((current) => {
+      const next = updater(current);
+      saveChartPreferences(next);
+      return next;
+    });
+  };
+
+  const updateAppearance = <K extends keyof ChartAppearancePreferences>(key: K, value: ChartAppearancePreferences[K]) => {
+    updateChartPreferences((current) => ({
+      ...current,
+      appearance: {
+        ...current.appearance,
+        [key]: value,
+      },
+    }));
+  };
+
+  const handleCursorModeChange = (mode: ChartCursorReadoutMode) => {
+    updateChartPreferences((current) => ({ ...current, cursorReadoutMode: mode }));
+  };
+
+  const resetChartPreferences = () => {
+    setChartPreferences(DEFAULT_CHART_PREFERENCES);
+    saveChartPreferences(DEFAULT_CHART_PREFERENCES);
   };
 
   const feedAgeLabel = lastCalendarIngestAt == null ? "Broker feed unknown" : `Broker feed ${formatRelativeAge(lastCalendarIngestAt)}`;
@@ -565,14 +606,28 @@ export function EventReplayTab({
                 {selectedTemplate ? `${selectedTemplate.currency} ${selectedTemplate.title}` : "Select an event type"}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => setDetailsOpen(true)}
-              className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700"
-            >
-              <BarChart3 size={15} />
-              Details
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setDetailsOpen(true)}
+                className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700"
+              >
+                <BarChart3 size={15} />
+                Details
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setChartDrawerMode("appearance");
+                  setChartDrawerOpen(true);
+                }}
+                className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700"
+                aria-label="Replay chart settings"
+              >
+                <Settings2 size={15} />
+                Chart
+              </button>
+            </div>
           </div>
 
           {replayError ? (
@@ -599,11 +654,26 @@ export function EventReplayTab({
                 visibleCount={visibleCount}
                 pair={selectedPair}
                 timeframe={replayTimeframe}
+                appearance={chartPreferences.appearance}
+                cursorReadoutMode={chartPreferences.cursorReadoutMode}
               />
             )}
           </div>
         </main>
       </section>
+
+      <ChartSettingsDrawer
+        open={chartDrawerOpen}
+        mode={chartDrawerMode}
+        onModeChange={setChartDrawerMode}
+        onClose={() => setChartDrawerOpen(false)}
+        preferences={chartPreferences}
+        onCursorModeChange={handleCursorModeChange}
+        onAppearanceChange={updateAppearance}
+        onResetAppearance={resetChartPreferences}
+        title="Replay Chart Settings"
+        description="Shared chart appearance and cursor behavior. These settings also apply to the main Charts tab."
+      />
 
       {eventListOpen ? (
         <div

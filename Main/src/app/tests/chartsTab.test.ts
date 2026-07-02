@@ -103,7 +103,9 @@ describe("getChartConnectionLabel", () => {
 
     expect(html).toContain("Cursor readout mode");
     expect(html).toContain("Both");
-    expect(html).toContain("Open chart settings");
+    expect(html).toContain("Exact");
+    expect(html).toContain("Sticky");
+    expect(html).toContain("Open chart appearance");
     expect(html).toContain("Open chart data cache");
     expect(html).not.toContain(">History<");
   });

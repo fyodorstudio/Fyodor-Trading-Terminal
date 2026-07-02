@@ -320,18 +320,19 @@ export const CALENDAR_EVENT_TITLE_OVERRIDES: Record<string, CalendarKnowledgeEnt
 
 export const CALENDAR_EVENT_GENERIC_FALLBACK: CalendarEventExplainer = {
   family: "generic",
-  familyLabel: "General Macro Event",
-  whatItIs: "This event updates the market on an economic or policy-related data point.",
-  whyTradersCare: "Traders care because new macro information can change expectations for growth, inflation, policy, and relative currency strength.",
+  familyLabel: "Placeholder Macro Event",
+  whatItIs: "Placeholder coverage: this broker event name is not mapped to a specific Fyodor playbook yet. Treat it as a broad economic or policy-related calendar row.",
+  whyTradersCare: "It may still matter because new macro information can change expectations for growth, inflation, policy, and relative currency strength.",
   mayAffect: ["The event currency and its major FX pairs", "Theme-related assets if the release changes the broader macro picture"],
   priceCaveats: [
+    "This is broad placeholder context, so do not assume the same importance as a mapped high-impact event playbook.",
     "Not every release moves price meaningfully, especially if the result was already expected.",
     "The surrounding macro theme often matters more than the event in isolation.",
   ],
-  educationalSummary: "Macro events matter when they change the market's expectations, not just because they appear on the calendar.",
+  educationalSummary: "This placeholder exists so the app stays honest: unmapped calendar rows can still matter, but the explanation is intentionally broad until the event has a dedicated playbook.",
   strongerOutcome: "A stronger-than-expected result can support the currency if traders see it as growth-positive or policy-supportive.",
   weakerOutcome: "A weaker-than-expected result can hurt the currency if traders see it as growth-negative or policy-softening.",
-  contextNote: "Always compare the event to the existing macro story, nearby larger releases, and how much of the outcome the market already priced in.",
+  contextNote: "Use the result, country, currency, nearby larger releases, and price confirmation to judge whether this placeholder event deserves attention.",
 };
 
 export const CALENDAR_EVENT_KNOWLEDGE_BACKLOG = [

@@ -5,9 +5,9 @@ import { fetchCalendar, fetchServerTime } from "@/app/lib/bridge";
 import {
   buildCalendarQueryKey,
   formatCurrentMt5Time,
-  formatEventValue,
   formatImpactSummary,
   formatRangeLabelFromSeconds,
+  getEventValueDisplay,
   getCalendarFreshness,
   getImpactLabel,
   getTodayUtcRangeSeconds,
@@ -20,6 +20,7 @@ import { getCalendarEventExplainer } from "@/app/lib/calendarEventExplain";
 import { buildCalendarEventKey, getCalendarIntentDayRange } from "@/app/lib/calendarNavigation";
 import { getPresetRange } from "@/app/lib/calendarRanges";
 import {
+  formatCountdown,
   formatUtcDateTime,
   parseDateInput,
   toDateInputValue,
@@ -42,19 +43,37 @@ const DEFAULT_IMPACTS: ImpactLevel[] = ["low", "medium", "high"];
 type CalendarRangeMode = "today" | "this_week" | "custom";
 const CALENDAR_TIMEZONE_KEY = "fyodor-calendar-display-timezone";
 
+interface HelpHintPosition {
+  top: number;
+  left: number;
+  placement: "above" | "below";
+}
+
+function getHelpHintPosition(trigger: HTMLButtonElement): HelpHintPosition {
+  const rect = trigger.getBoundingClientRect();
+  const tooltipWidth = 280;
+  const margin = 12;
+  const left = Math.min(
+    window.innerWidth - tooltipWidth / 2 - margin,
+    Math.max(tooltipWidth / 2 + margin, rect.left + rect.width / 2),
+  );
+  const nearHeader = rect.top < 120;
+  return {
+    top: nearHeader ? rect.bottom + 10 : rect.top - 10,
+    left,
+    placement: nearHeader ? "below" : "above",
+  };
+}
+
 function HelpHint({ label, detail }: { label: string; detail: string }) {
   const triggerRef = useRef<HTMLButtonElement | null>(null);
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
+  const [position, setPosition] = useState<HelpHintPosition | null>(null);
 
   useLayoutEffect(() => {
     if (!open || !triggerRef.current) return;
 
-    const rect = triggerRef.current.getBoundingClientRect();
-    setPosition({
-      top: rect.top - 10,
-      left: rect.left + rect.width / 2,
-    });
+    setPosition(getHelpHintPosition(triggerRef.current));
   }, [open]);
 
   useEffect(() => {
@@ -62,11 +81,7 @@ function HelpHint({ label, detail }: { label: string; detail: string }) {
 
     const updatePosition = () => {
       if (!triggerRef.current) return;
-      const rect = triggerRef.current.getBoundingClientRect();
-      setPosition({
-        top: rect.top - 10,
-        left: rect.left + rect.width / 2,
-      });
+      setPosition(getHelpHintPosition(triggerRef.current));
     };
 
     window.addEventListener("scroll", updatePosition, true);
@@ -98,6 +113,7 @@ function HelpHint({ label, detail }: { label: string; detail: string }) {
               className="calendar-help-popover"
               role="tooltip"
               style={{ top: position.top, left: position.left }}
+              data-placement={position.placement}
             >
               {detail}
             </div>,
@@ -178,6 +194,40 @@ function CalendarEventList({ items }: { items: string[] }) {
   );
 }
 
+function CalendarValueText({ value, eventTitle }: { value: string; eventTitle: string }) {
+  const valueDisplay = getEventValueDisplay(value, eventTitle);
+  return <span title={valueDisplay.title}>{valueDisplay.display}</span>;
+}
+
+function CalendarClockCard({
+  label,
+  value,
+  detail,
+  icon,
+  subValue,
+  offline = false,
+}: {
+  label: string;
+  value: string;
+  detail: string;
+  icon?: ReactNode;
+  subValue?: string;
+  offline?: boolean;
+}) {
+  return (
+    <span className={offline ? "calendar-clock-card is-offline" : "calendar-clock-card"}>
+      {icon ? <span className="calendar-clock-icon">{icon}</span> : null}
+      <span className="calendar-control-text">
+        <span>
+          <HelpHint label={label} detail={detail} />
+        </span>
+        <strong>{value}</strong>
+        {subValue ? <em>{subValue}</em> : null}
+      </span>
+    </span>
+  );
+}
+
 const COMMON_PAIR_HINTS: Record<string, string[]> = {
   AUD: ["AUDUSD", "AUDJPY", "EURAUD"],
   CAD: ["USDCAD", "CADJPY", "EURCAD"],
@@ -223,6 +273,7 @@ export function CalendarEventInspectorDrawer({
   const caveats = dedupeItems([...explainer.priceCaveats, ...(explainer.commonTraps ?? [])]);
   const workflow = explainer.tradingWorkflow ?? [];
   const comparisons = explainer.whatToCompare ?? [];
+  const isPlaceholderExplainer = explainer.knowledgeDepth === "generic";
 
   return (
     <aside
@@ -258,22 +309,29 @@ export function CalendarEventInspectorDrawer({
               <span>Release snapshot</span>
               <strong>{explainer.releaseStatus ?? "Context only"}</strong>
             </div>
-            <div className="calendar-event-depth-pill">{explainer.knowledgeDepth ?? "family"} explainer</div>
+            <div className={isPlaceholderExplainer ? "calendar-event-depth-pill is-placeholder" : "calendar-event-depth-pill"}>
+              {isPlaceholderExplainer ? "Placeholder explainer" : `${explainer.knowledgeDepth ?? "family"} explainer`}
+            </div>
           </div>
+          {isPlaceholderExplainer ? (
+            <p className="calendar-event-placeholder-note">
+              This broker event name is not mapped to a specific Fyodor event playbook yet. Treat this as broad macro context, not a specialized explanation.
+            </p>
+          ) : null}
           <p className="calendar-event-snapshot">{explainer.resultSnapshot ?? "No release result is available yet."}</p>
           <p className="calendar-event-signal">{buildCautiousSignal(explainer)}</p>
           <div className="calendar-event-facts">
             <div>
               <span>Actual</span>
-              <strong>{formatEventValue(event.actual)}</strong>
+              <strong><CalendarValueText value={event.actual} eventTitle={event.title} /></strong>
             </div>
             <div>
               <span>Forecast</span>
-              <strong>{formatEventValue(event.forecast)}</strong>
+              <strong><CalendarValueText value={event.forecast} eventTitle={event.title} /></strong>
             </div>
             <div>
               <span>Previous</span>
-              <strong>{formatEventValue(event.previous)}</strong>
+              <strong><CalendarValueText value={event.previous} eventTitle={event.title} /></strong>
             </div>
             <div>
               <span>MT5 UTC</span>
@@ -389,6 +447,7 @@ export function EconomicCalendarTab({
   const countryMenuRef = useRef<HTMLDivElement | null>(null);
   const rangePopoverRef = useRef<HTMLDivElement | null>(null);
   const timezoneMenuRef = useRef<HTMLDivElement | null>(null);
+  const customStartInputRef = useRef<HTMLInputElement | null>(null);
   const highlightTimeoutRef = useRef<number | null>(null);
 
   const activeRange = useMemo(() => {
@@ -579,6 +638,12 @@ export function EconomicCalendarTab({
   }, [countries, countrySourceEvents]);
 
   const groups = useMemo(() => groupByUtcDay(filteredEvents), [filteredEvents]);
+  const nextVisibleEvent = useMemo(() => {
+    const nowSeconds = Math.floor(uiNow / 1000);
+    return filteredEvents
+      .filter((event) => event.time >= nowSeconds)
+      .sort((left, right) => left.time - right.time)[0] ?? null;
+  }, [filteredEvents, uiNow]);
   const selectedEventExplainer = useMemo(
     () => (selectedEvent ? getCalendarEventExplainer(selectedEvent) : null),
     [selectedEvent],
@@ -617,14 +682,14 @@ export function EconomicCalendarTab({
 
   const statusHelpText =
     status === "stale"
-      ? "Stale means retained calendar rows are still visible, but the latest MT5 ingest is no longer fresh enough or the latest refresh failed."
+      ? "Stale means this tab is showing retained calendar rows, but the latest bridge or MT5 calendar ingest is old or failed. Check Broker feed to see whether MT5/broker data itself is delayed."
       : status === "live"
-        ? "Live means the bridge is reachable and the latest MT5 calendar ingest is still fresh."
+        ? "Live means the local bridge responded and the latest MT5/broker calendar ingest is fresh enough for normal use."
         : status === "loading"
-          ? "Syncing means this tab is currently waiting for a fresh response from the bridge."
+          ? "Syncing means this tab is currently asking the local bridge for calendar rows."
           : status === "no_data"
             ? "No data means the bridge responded, but there are no calendar rows for the current range or filters."
-            : "Offline means the bridge request failed and there are no retained rows available for this query.";
+            : "Offline means the bridge request failed and this tab has no retained rows available for this query.";
   const viewFreshness = getCalendarFreshness(lastSyncedAt, uiNow);
   const brokerFreshness = getCalendarFreshness(lastCalendarIngestAt, uiNow);
   const visibleEventCountLabel =
@@ -640,11 +705,26 @@ export function EconomicCalendarTab({
     const fallback = stripToLocalDate(new Date());
     setDraftFrom(stripToLocalDate(customFrom) ?? fallback);
     setDraftTo(stripToLocalDate(customTo) ?? stripToLocalDate(customFrom) ?? fallback);
-    setIsRangePopoverOpen((current) => !current);
+    setIsRangePopoverOpen(true);
     setIsImpactMenuOpen(false);
     setIsCountryMenuOpen(false);
     setIsTimezoneMenuOpen(false);
   };
+
+  useLayoutEffect(() => {
+    if (!isRangePopoverOpen) return;
+
+    const input = customStartInputRef.current;
+    if (!input) return;
+
+    const inputWithPicker = input as HTMLInputElement & { showPicker?: () => void };
+    input.focus();
+    try {
+      inputWithPicker.showPicker?.();
+    } catch {
+      input.focus();
+    }
+  }, [isRangePopoverOpen]);
 
   const applyCustomRange = () => {
     const fallback = stripToLocalDate(new Date());
@@ -734,12 +814,12 @@ export function EconomicCalendarTab({
         <div className="calendar-rail-freshness">
           <FreshnessChip
             label="View refreshed"
-            detail="When this screen last fetched calendar rows from the local bridge."
+            detail="When this tab last asked the local bridge for calendar rows and received a response. If this is fresh but Broker feed is stale, the app is working but MT5/broker data may be old."
             freshness={viewFreshness}
           />
           <FreshnessChip
             label="Broker feed"
-            detail="When MT5 and the bridge last received calendar data from the broker feed."
+            detail="When the bridge last ingested economic-calendar rows from MT5/broker. This is the main freshness check for whether the calendar data itself is stale."
             freshness={brokerFreshness}
           />
         </div>
@@ -788,6 +868,7 @@ export function EconomicCalendarTab({
                     <label className="tv-field">
                       <span>Start</span>
                       <input
+                        ref={customStartInputRef}
                         type="date"
                         value={toDateInputValue(draftFrom)}
                         onChange={(event) => setDraftFrom(parseDateInput(event.target.value))}
@@ -835,7 +916,7 @@ export function EconomicCalendarTab({
                 <div className="tv-popover tv-filter-popover">
                   <div className="tv-popover-head">
                     <strong>Impact</strong>
-                    <span>Filter visible events only.</span>
+                    <span>Broker importance label. This only filters visible rows.</span>
                   </div>
                   {DEFAULT_IMPACTS.map((impact) => {
                     const selected = impacts.includes(impact);
@@ -880,7 +961,7 @@ export function EconomicCalendarTab({
                 <div className="tv-popover tv-filter-popover">
                   <div className="tv-popover-head">
                     <strong>Countries</strong>
-                    <span>Available MT5 countries in the current feed window.</span>
+                    <span>Countries found in the loaded MT5 calendar range. This only filters the current table.</span>
                   </div>
                   <button type="button" className="tv-option-row" onClick={() => setCountries([])}>
                     <span className="tv-option-main">
@@ -925,36 +1006,46 @@ export function EconomicCalendarTab({
           </label>
 
           <div className="calendar-tv-meta">
-            <span className={mt5ServerTime == null ? "tv-time-chip is-offline" : "tv-time-chip"}>
-              <span className="calendar-control-text">
-                <span>MT5</span>
-                <strong>{mt5TimeLabel.replace(" (MT5)", "")}</strong>
-              </span>
-            </span>
+            <CalendarClockCard
+              label="MT5"
+              value={mt5TimeLabel.replace(" (MT5)", "")}
+              detail="The current MT5/server clock estimate from the local bridge. Use it to check whether broker time is moving and whether timing delay comes from MT5/bridge instead of this screen."
+              offline={mt5ServerTime == null}
+            />
             <div className="tv-toolbar-anchor" ref={timezoneMenuRef}>
-              <button
-                type="button"
-                className="tv-time-button"
-                onClick={() => {
-                  setIsTimezoneMenuOpen((current) => !current);
-                  setIsCountryMenuOpen(false);
-                  setIsImpactMenuOpen(false);
-                  setIsRangePopoverOpen(false);
-                }}
-              >
-                <Clock size={16} />
+              <div className="calendar-clock-card calendar-clock-select-card">
+                <span className="calendar-clock-icon">
+                  <Clock size={16} />
+                </span>
                 <span className="calendar-control-text">
-                  <span>Viewer</span>
+                  <span>
+                    <HelpHint
+                      label="Viewer"
+                      detail="The same event times converted into your selected viewing timezone. Change this when you want rows to match your local clock or another trading session clock."
+                    />
+                  </span>
                   <strong>{currentViewerTime}</strong>
                 </span>
-                <ChevronDown size={15} />
-              </button>
+                <button
+                  type="button"
+                  className="calendar-card-menu-button"
+                  aria-label="Change viewer timezone"
+                  onClick={() => {
+                    setIsTimezoneMenuOpen((current) => !current);
+                    setIsCountryMenuOpen(false);
+                    setIsImpactMenuOpen(false);
+                    setIsRangePopoverOpen(false);
+                  }}
+                >
+                  <ChevronDown size={15} />
+                </button>
+              </div>
 
               {isTimezoneMenuOpen && (
                 <div className="tv-popover tv-filter-popover">
                   <div className="tv-popover-head">
                     <strong>Viewer timezone</strong>
-                    <span>MT5/UTC remains the audit anchor.</span>
+                    <span>Only changes how this tab displays event times. MT5 remains the broker audit clock.</span>
                   </div>
                   <div className="tv-timezone-list">
                     {timezoneOptions.map((option) => (
@@ -982,6 +1073,13 @@ export function EconomicCalendarTab({
                 </div>
               )}
             </div>
+            <CalendarClockCard
+              label="Next event"
+              value={nextVisibleEvent ? formatCountdown(nextVisibleEvent.time, uiNow) : "N/A"}
+              detail="Countdown to the next future event currently visible after your range, impact, country, and search filters."
+              icon={<Calendar size={16} />}
+              subValue={nextVisibleEvent ? `${nextVisibleEvent.currency} ${nextVisibleEvent.title}` : "No future row"}
+            />
           </div>
         </div>
       </div>
@@ -1074,9 +1172,9 @@ export function EconomicCalendarTab({
                       </td>
                       <td className="calendar-event-title-cell">{event.title}</td>
                       <td><ImpactPill level={event.impact} /></td>
-                      <td className="calendar-number-cell">{formatEventValue(event.actual)}</td>
-                      <td className="calendar-number-cell">{formatEventValue(event.forecast)}</td>
-                      <td className="calendar-number-cell">{formatEventValue(event.previous)}</td>
+                      <td className="calendar-number-cell"><CalendarValueText value={event.actual} eventTitle={event.title} /></td>
+                      <td className="calendar-number-cell"><CalendarValueText value={event.forecast} eventTitle={event.title} /></td>
+                      <td className="calendar-number-cell"><CalendarValueText value={event.previous} eventTitle={event.title} /></td>
                     </tr>
                   )})}
                 </Fragment>

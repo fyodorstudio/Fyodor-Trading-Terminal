@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CandlestickSeries,
-  ColorType,
   createChart,
   type CandlestickData,
   type IChartApi,
@@ -20,16 +19,12 @@ import {
   Focus,
   HardDrive,
   MousePointer2,
-  Palette,
-  RotateCcw,
   Search,
   Settings2,
-  SlidersHorizontal,
   Star,
-  Trash2,
-  X,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
 import { fetchHistory, fetchHistoryBoundary, fetchHistoryRange, fetchSymbols, openChartStream } from "@/app/lib/bridge";
 import {
   CHART_HISTORY_RANGE_MAX_SECONDS,
@@ -46,6 +41,10 @@ import {
   formatCursorReadout,
   getChartDisplayCandles,
   getChartDisplayModeLabel,
+  getChartGridColor,
+  getChartLayoutOptions,
+  getChartSeriesAppearanceOptions,
+  getChartSourceTimeOffsetSeconds,
   getChartTimeFormatters,
   getChartSessionDetail,
   loadChartPreferences,
@@ -76,17 +75,15 @@ import type { BridgeCandle, BridgeStatus, BridgeSymbol, MarketStatusResponse, Ti
 
 const DEBUG_MAX = 60;
 const CURSOR_MODE_OPTIONS: Array<{ id: ChartCursorReadoutMode; label: string; description: string }> = [
-  { id: "both", label: "Both", description: "Show cursor price and nearest candle close." },
-  { id: "true_cursor", label: "True cursor", description: "Show the exact price under the pointer." },
-  { id: "nearest_candle", label: "Candle", description: "Show the nearest candle close only." },
+  { id: "both", label: "Both", description: "Show exact pointer price and sticky candle close." },
+  { id: "true_cursor", label: "Exact", description: "Show the exact price under the pointer." },
+  { id: "nearest_candle", label: "Sticky", description: "Stick the readout to the nearest candle close." },
 ];
 
 type CrosshairReadout = {
   top: number;
   lines: Array<{ label: string; value: string }>;
 };
-
-type ChartDrawerMode = "settings" | "cache";
 
 interface GroupedSymbols {
   label: string;
@@ -110,7 +107,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const [pickerOpen, setPickerOpen] = useState(false);
   const [timezoneMenuOpen, setTimezoneMenuOpen] = useState(false);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
-  const [chartDrawerMode, setChartDrawerMode] = useState<ChartDrawerMode>("settings");
+  const [chartDrawerMode, setChartDrawerMode] = useState<ChartDrawerMode>("appearance");
   const [cacheRevision, setCacheRevision] = useState(0);
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [consoleOpen, setConsoleOpen] = useState(false);
@@ -124,7 +121,6 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const [crosshairReadout, setCrosshairReadout] = useState<CrosshairReadout | null>(null);
   const pickerRef = useRef<HTMLDivElement | null>(null);
   const timezoneMenuRef = useRef<HTMLDivElement | null>(null);
-  const historyPanelRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
@@ -151,7 +147,6 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
       const target = event.target as Node;
       if (!pickerRef.current?.contains(target)) setPickerOpen(false);
       if (!timezoneMenuRef.current?.contains(target)) setTimezoneMenuOpen(false);
-      if (!historyPanelRef.current?.contains(target)) setHistoryPanelOpen(false);
     };
 
     document.addEventListener("mousedown", handleOutside);
@@ -160,6 +155,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
 
   const activeMarketStatus =
     marketStatus && marketStatus.symbol.toUpperCase() === selectedSymbol.toUpperCase() ? marketStatus : null;
+  const chartSourceTimeOffsetSeconds = getChartSourceTimeOffsetSeconds(activeMarketStatus);
 
   const priceFormat = useMemo(
     () => getChartPriceFormat(selectedSymbol, activeMarketStatus?.asset_class ?? null),
@@ -277,18 +273,12 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   useEffect(() => {
     const container = containerRef.current;
     if (!container || chartRef.current) return;
-    const timeFormatters = getChartTimeFormatters(timeframe, displayTimeMode);
+    const timeFormatters = getChartTimeFormatters(timeframe, displayTimeMode, chartSourceTimeOffsetSeconds);
     const appearance = chartPreferences.appearance;
-    const wickUpColor = appearance.wickMode === "match" ? appearance.bullishColor : appearance.neutralWickColor;
-    const wickDownColor = appearance.wickMode === "match" ? appearance.bearishColor : appearance.neutralWickColor;
-    const gridColor = appearance.gridVisible ? "rgba(100, 116, 139, 0.05)" : "rgba(100, 116, 139, 0)";
+    const gridColor = getChartGridColor(appearance);
 
     const chart = createChart(container, {
-      layout: {
-        background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "#64748b",
-        fontFamily: "Inter, system-ui, sans-serif",
-      },
+      layout: getChartLayoutOptions(appearance),
       rightPriceScale: { 
         borderVisible: false,
         scaleMargins: { top: 0.1, bottom: 0.2 }
@@ -315,15 +305,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
       },
     });
 
-    const series = chart.addSeries(CandlestickSeries, {
-      upColor: appearance.bullishColor,
-      downColor: appearance.bearishColor,
-      wickUpColor,
-      wickDownColor,
-      borderUpColor: appearance.bullishColor,
-      borderDownColor: appearance.bearishColor,
-      priceLineColor: appearance.currentPriceLineColor,
-    });
+    const series = chart.addSeries(CandlestickSeries, getChartSeriesAppearanceOptions(appearance));
 
     chartRef.current = chart;
     seriesRef.current = series;
@@ -350,7 +332,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
-    const timeFormatters = getChartTimeFormatters(timeframe, displayTimeMode);
+    const timeFormatters = getChartTimeFormatters(timeframe, displayTimeMode, chartSourceTimeOffsetSeconds);
     chart.applyOptions({
       timeScale: {
         timeVisible: true,
@@ -361,7 +343,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         timeFormatter: timeFormatters.timeFormatter,
       },
     });
-  }, [timeframe, displayTimeMode]);
+  }, [timeframe, displayTimeMode, chartSourceTimeOffsetSeconds]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -369,11 +351,10 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     if (!chart || !series) return;
 
     const appearance = chartPreferences.appearance;
-    const wickUpColor = appearance.wickMode === "match" ? appearance.bullishColor : appearance.neutralWickColor;
-    const wickDownColor = appearance.wickMode === "match" ? appearance.bearishColor : appearance.neutralWickColor;
-    const gridColor = appearance.gridVisible ? "rgba(100, 116, 139, 0.05)" : "rgba(100, 116, 139, 0)";
+    const gridColor = getChartGridColor(appearance);
 
     chart.applyOptions({
+      layout: getChartLayoutOptions(appearance),
       grid: {
         vertLines: { color: gridColor },
         horzLines: { color: gridColor },
@@ -385,15 +366,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
       },
     });
 
-    series.applyOptions({
-      upColor: appearance.bullishColor,
-      downColor: appearance.bearishColor,
-      wickUpColor,
-      wickDownColor,
-      borderUpColor: appearance.bullishColor,
-      borderDownColor: appearance.bearishColor,
-      priceLineColor: appearance.currentPriceLineColor,
-    });
+    series.applyOptions(getChartSeriesAppearanceOptions(appearance));
   }, [chartPreferences]);
 
   useEffect(() => {
@@ -754,20 +727,18 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   });
 
   const feedLabel = lastCandleTime
-    ? `Feed: ${formatChartFeedTime(lastCandleTime, displayTimeMode)}`
+    ? `Latest candle: ${formatChartFeedTime(lastCandleTime, displayTimeMode, chartSourceTimeOffsetSeconds)}`
     : "Waiting for data";
   const cacheSummary = useMemo(
     () => summarizeStoredChartHistory(selectedSymbol, timeframe),
     [cacheRevision, selectedSymbol, timeframe, visibleCandles.length],
   );
-  const cacheOldestLabel = cacheSummary.oldestTime ? formatChartFeedTime(cacheSummary.oldestTime, displayTimeMode) : "Empty";
-  const cacheLatestLabel = cacheSummary.latestTime ? formatChartFeedTime(cacheSummary.latestTime, displayTimeMode) : "Empty";
-  const chartDrawerTitle = chartDrawerMode === "settings" ? "Chart Settings" : "Chart Data Cache";
-  const chartDrawerDescription =
-    chartDrawerMode === "settings"
-      ? "Cursor behavior and visual appearance for the active chart."
-      : "Local candle cache and MT5 chart diagnostics for the selected symbol/timeframe.";
-
+  const cacheOldestLabel = cacheSummary.oldestTime
+    ? formatChartFeedTime(cacheSummary.oldestTime, displayTimeMode, chartSourceTimeOffsetSeconds)
+    : "Empty";
+  const cacheLatestLabel = cacheSummary.latestTime
+    ? formatChartFeedTime(cacheSummary.latestTime, displayTimeMode, chartSourceTimeOffsetSeconds)
+    : "Empty";
   const streamStatusLabel =
     getChartConnectionLabel({ historyState, marketStatus: activeMarketStatus, streamConnected });
 
@@ -920,9 +891,9 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
           <button
             type="button"
             className="chart-icon-button"
-            title="Chart settings"
-            aria-label="Open chart settings"
-            onClick={() => openChartDrawer("settings")}
+            title="Chart appearance"
+            aria-label="Open chart appearance"
+            onClick={() => openChartDrawer("appearance")}
           >
             <Settings2 className="h-4 w-4" />
           </button>
@@ -957,7 +928,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
             >
               <Database className={lastCandleTime ? "h-4 w-4 text-blue-400" : "h-4 w-4 text-slate-500"} />
               <span className="chart-feed-main">{feedLabel}</span>
-              <span className="chart-feed-sub">{currentDisplayTime} | {displayModeShortLabel}</span>
+              <span className="chart-feed-sub">Viewer clock: {currentDisplayTime} | {displayModeShortLabel}</span>
               <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${timezoneMenuOpen ? "rotate-180" : ""}`} />
             </button>
 
@@ -965,7 +936,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
               <div className="tv-popover tv-filter-popover chart-timezone-popover">
                 <div className="tv-popover-head">
                   <strong>Chart timezone</strong>
-                  <span>Bars stay in canonical feed order; only labels and readouts change.</span>
+                  <span>Axis labels and crosshair labels are candle timestamps. Viewer clock is only the current time in the selected display timezone.</span>
                 </div>
                 <div className="tv-timezone-list">
                   {timezoneOptions.map((option) => (
@@ -992,205 +963,29 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         </div>
       </div>
 
-      <AnimatePresence>
-        {historyPanelOpen && (
-          <div className="charts-history-overlay" onClick={() => setHistoryPanelOpen(false)}>
-            <motion.aside
-              ref={historyPanelRef}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Chart settings"
-              initial={{ x: 24, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: 24, opacity: 0 }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
-              className="charts-history-drawer"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="charts-history-head">
-                <div>
-                  <h2>{chartDrawerTitle}</h2>
-                  <p>{chartDrawerDescription}</p>
-                </div>
-                <button type="button" className="charts-history-close" onClick={() => setHistoryPanelOpen(false)}>
-                  <X size={18} />
-                </button>
-              </div>
-
-              <div className="charts-history-body">
-                <div className="chart-drawer-tabs" aria-label="Chart drawer view">
-                  <button
-                    type="button"
-                    className={chartDrawerMode === "settings" ? "is-active" : ""}
-                    onClick={() => setChartDrawerMode("settings")}
-                  >
-                    <Settings2 size={14} />
-                    Settings
-                  </button>
-                  <button
-                    type="button"
-                    className={chartDrawerMode === "cache" ? "is-active" : ""}
-                    onClick={() => setChartDrawerMode("cache")}
-                  >
-                    <HardDrive size={14} />
-                    Data cache
-                  </button>
-                </div>
-
-                {chartDrawerMode === "settings" ? (
-                  <>
-                    <section className="charts-history-section chart-drawer-card">
-                      <h3>
-                        <SlidersHorizontal size={14} />
-                        Cursor Readout
-                      </h3>
-                      <div className="chart-drawer-segmented">
-                        {CURSOR_MODE_OPTIONS.map((option) => (
-                          <button
-                            key={option.id}
-                            type="button"
-                            className={chartPreferences.cursorReadoutMode === option.id ? "is-active" : ""}
-                            onClick={() => handleCursorModeChange(option.id)}
-                          >
-                            <span>{option.label}</span>
-                            <small>{option.description}</small>
-                          </button>
-                        ))}
-                      </div>
-                    </section>
-
-                    <section className="charts-history-section chart-drawer-card">
-                      <h3>
-                        <Palette size={14} />
-                        Appearance
-                      </h3>
-                      <div className="chart-appearance-grid">
-                        <label className="chart-color-field">
-                          <span>Bullish candle</span>
-                          <input
-                            type="color"
-                            value={chartPreferences.appearance.bullishColor}
-                            onChange={(event) => updateAppearance("bullishColor", event.target.value)}
-                          />
-                        </label>
-                        <label className="chart-color-field">
-                          <span>Bearish candle</span>
-                          <input
-                            type="color"
-                            value={chartPreferences.appearance.bearishColor}
-                            onChange={(event) => updateAppearance("bearishColor", event.target.value)}
-                          />
-                        </label>
-                        <label className="chart-color-field">
-                          <span>Neutral wick</span>
-                          <input
-                            type="color"
-                            value={chartPreferences.appearance.neutralWickColor}
-                            onChange={(event) => updateAppearance("neutralWickColor", event.target.value)}
-                          />
-                        </label>
-                        <label className="chart-color-field">
-                          <span>Crosshair</span>
-                          <input
-                            type="color"
-                            value={chartPreferences.appearance.crosshairColor}
-                            onChange={(event) => updateAppearance("crosshairColor", event.target.value)}
-                          />
-                        </label>
-                        <label className="chart-color-field">
-                          <span>Price line</span>
-                          <input
-                            type="color"
-                            value={chartPreferences.appearance.currentPriceLineColor}
-                            onChange={(event) => updateAppearance("currentPriceLineColor", event.target.value)}
-                          />
-                        </label>
-                      </div>
-                      <div className="chart-settings-row">
-                        <span>Wick color</span>
-                        <div className="chart-mini-toggle">
-                          <button
-                            type="button"
-                            className={chartPreferences.appearance.wickMode === "match" ? "is-active" : ""}
-                            onClick={() => updateAppearance("wickMode", "match")}
-                          >
-                            Match candle
-                          </button>
-                          <button
-                            type="button"
-                            className={chartPreferences.appearance.wickMode === "neutral" ? "is-active" : ""}
-                            onClick={() => updateAppearance("wickMode", "neutral")}
-                          >
-                            Neutral
-                          </button>
-                        </div>
-                      </div>
-                      <div className="chart-drawer-actions">
-                        <label className="chart-settings-check">
-                          <input
-                            type="checkbox"
-                            checked={chartPreferences.appearance.gridVisible}
-                            onChange={(event) => updateAppearance("gridVisible", event.target.checked)}
-                          />
-                          <span>Show chart grid</span>
-                        </label>
-                        <button type="button" className="charts-history-reset" onClick={resetChartPreferences}>
-                          <RotateCcw size={14} />
-                          Reset appearance
-                        </button>
-                      </div>
-                    </section>
-                  </>
-                ) : (
-                  <>
-                    <section className="charts-history-section chart-drawer-card">
-                      <h3>
-                        <HardDrive size={14} />
-                        Local Candle Cache
-                      </h3>
-                      <p>
-                        Cached candles are scoped to <strong>{selectedSymbol} {timeframe}</strong>. They are used only to keep this chart readable while MT5 refreshes fresh broker history.
-                      </p>
-                      <div className="chart-cache-grid">
-                        <div>
-                          <span>Candles</span>
-                          <strong>{cacheSummary.count}</strong>
-                        </div>
-                        <div>
-                          <span>Oldest</span>
-                          <strong>{cacheOldestLabel}</strong>
-                        </div>
-                        <div>
-                          <span>Latest</span>
-                          <strong>{cacheLatestLabel}</strong>
-                        </div>
-                      </div>
-                      <button type="button" className="chart-danger-button" onClick={clearCurrentCache}>
-                        <Trash2 size={14} />
-                        Clear cached candles
-                      </button>
-                    </section>
-
-                    <section className="charts-history-section chart-drawer-card">
-                      <h3>
-                        <Activity size={14} />
-                        Diagnostics
-                      </h3>
-                      <div className="chart-diagnostics-list">
-                        <div><span>Symbol</span><strong>{selectedSymbol}</strong></div>
-                        <div><span>Timeframe</span><strong>{timeframe}</strong></div>
-                        <div><span>History state</span><strong>{historyState}</strong></div>
-                        <div><span>Stream</span><strong>{streamConnected ? "connected" : "not streaming"}</strong></div>
-                        <div><span>Boundary</span><strong>{boundaryTime ? formatChartFeedTime(boundaryTime, displayTimeMode) : "unconfirmed"}</strong></div>
-                      </div>
-                    </section>
-                  </>
-                )}
-              </div>
-            </motion.aside>
-          </div>
-        )}
-      </AnimatePresence>
+      <ChartSettingsDrawer
+        open={historyPanelOpen}
+        mode={chartDrawerMode}
+        onModeChange={setChartDrawerMode}
+        onClose={() => setHistoryPanelOpen(false)}
+        preferences={chartPreferences}
+        onCursorModeChange={handleCursorModeChange}
+        onAppearanceChange={updateAppearance}
+        onResetAppearance={resetChartPreferences}
+        cacheData={{
+          selectedSymbol,
+          timeframe,
+          candleCount: cacheSummary.count,
+          oldestLabel: cacheOldestLabel,
+          latestLabel: cacheLatestLabel,
+          historyState,
+          streamLabel: streamConnected ? "connected" : "not streaming",
+          boundaryLabel: boundaryTime
+            ? formatChartFeedTime(boundaryTime, displayTimeMode, chartSourceTimeOffsetSeconds)
+            : "unconfirmed",
+          onClearCache: clearCurrentCache,
+        }}
+      />
 
       {/* Main Chart Section */}
       <div className="relative group">

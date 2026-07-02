@@ -7,6 +7,7 @@ import {
   formatChartHoverTime,
   formatCursorReadout,
   getChartDisplayCandles,
+  getChartSourceTimeOffsetSeconds,
   getChartTimeFormatters,
   loadChartPreferences,
   mergeChartCandles,
@@ -65,6 +66,7 @@ describe("chartView helpers", () => {
     expect(formatChartAxisTime(SAMPLE_CANDLE.time, "W1", TickMarkType.Month, "server")).toBe("Feb 26");
     expect(formatChartAxisTime(SAMPLE_CANDLE.time, "D1", TickMarkType.Time, "server")).toBe("19 Feb");
     expect(formatChartAxisTime(SAMPLE_CANDLE.time, "H1", TickMarkType.Time, "utc-offset:120")).toBe("23:00");
+    expect(formatChartAxisTime(SAMPLE_CANDLE.time, "H1", TickMarkType.Time, "utc-offset:120", 3 * 60 * 60)).toBe("20:00");
   });
 
   it("normalizes all lightweight-chart time shapes used by formatters", () => {
@@ -77,9 +79,12 @@ describe("chartView helpers", () => {
   });
 
   it("builds shared chart time formatters for axis and crosshair labels", () => {
-    const formatters = getChartTimeFormatters("M15", "server");
+    const formatters = getChartTimeFormatters("M15", "server", 3 * 60 * 60);
     expect(formatters.tickMarkFormatter(SAMPLE_CANDLE.time, TickMarkType.Time)).toBe("21:00");
     expect(formatters.timeFormatter(SAMPLE_CANDLE.time)).toBe("19 Feb 2026 21:00 MT5/Server");
+
+    const viewerFormatters = getChartTimeFormatters("M15", "utc-offset:420", 3 * 60 * 60);
+    expect(viewerFormatters.tickMarkFormatter(SAMPLE_CANDLE.time, TickMarkType.Time)).toBe("01:00");
   });
 
   it("normalizes chart preferences and falls back safely without browser storage", () => {
@@ -88,6 +93,9 @@ describe("chartView helpers", () => {
       normalizeChartPreferences({
         cursorReadoutMode: "nearest_candle",
         appearance: {
+          backgroundColor: "#101010",
+          gridColor: "#202020",
+          textColor: "#303030",
           bullishColor: "#00ff00",
           bearishColor: "nope",
           gridVisible: false,
@@ -97,24 +105,39 @@ describe("chartView helpers", () => {
     ).toMatchObject({
       cursorReadoutMode: "nearest_candle",
       appearance: {
+        backgroundColor: "#101010",
+        gridColor: "#202020",
+        textColor: "#303030",
         bullishColor: "#00ff00",
         bearishColor: DEFAULT_CHART_PREFERENCES.appearance.bearishColor,
         gridVisible: false,
         wickMode: "neutral",
       },
     });
+    expect(
+      normalizeChartPreferences({
+        cursorReadoutMode: "both",
+        appearance: {
+          bullishColor: "#00ff00",
+        },
+      }).appearance,
+    ).toMatchObject({
+      backgroundColor: DEFAULT_CHART_PREFERENCES.appearance.backgroundColor,
+      gridColor: DEFAULT_CHART_PREFERENCES.appearance.gridColor,
+      textColor: DEFAULT_CHART_PREFERENCES.appearance.textColor,
+    });
   });
 
   it("formats cursor readout labels for all supported modes", () => {
     expect(formatCursorReadout({ mode: "true_cursor", truePrice: 1.23456, candlePrice: 1.2, precision: 4 })).toEqual([
-      { label: "Cursor", value: "1.2346" },
+      { label: "Exact", value: "1.2346" },
     ]);
     expect(formatCursorReadout({ mode: "nearest_candle", truePrice: 1.23456, candlePrice: 1.2, precision: 4 })).toEqual([
-      { label: "Candle", value: "1.2000" },
+      { label: "Sticky", value: "1.2000" },
     ]);
     expect(formatCursorReadout({ mode: "both", truePrice: 1.23456, candlePrice: 1.2, precision: 2 })).toEqual([
-      { label: "Cursor", value: "1.23" },
-      { label: "Candle", value: "1.20" },
+      { label: "Exact", value: "1.23" },
+      { label: "Sticky", value: "1.20" },
     ]);
   });
 
@@ -145,6 +168,27 @@ describe("chartView helpers", () => {
     expect(formatChartHoverTime(SAMPLE_CANDLE.time, "utc-offset:345")).toBe(
       `20 Feb 2026 02:45 ${formatUtcOffsetLabel(345)}`,
     );
+    expect(formatChartFeedTime(SAMPLE_CANDLE.time, "server", 3 * 60 * 60)).toBe("19 Feb 2026 21:00");
+    expect(formatChartHoverTime(SAMPLE_CANDLE.time, "utc-offset:345", 3 * 60 * 60)).toBe(
+      `19 Feb 2026 23:45 ${formatUtcOffsetLabel(345)}`,
+    );
+    expect(
+      getChartSourceTimeOffsetSeconds(
+        marketStatus({
+          checked_at: SAMPLE_CANDLE.time,
+          server_time: SAMPLE_CANDLE.time + 3 * 60 * 60 + 20,
+        }),
+      ),
+    ).toBe(3 * 60 * 60);
+    expect(
+      getChartSourceTimeOffsetSeconds(
+        marketStatus({
+          checked_at: SAMPLE_CANDLE.time,
+          server_time: SAMPLE_CANDLE.time + 24 * 60 * 60,
+        }),
+      ),
+    ).toBe(0);
+    expect(getChartSourceTimeOffsetSeconds(null)).toBe(0);
   });
 
   it("returns honest session wording for forex, crypto, and unavailable states", () => {

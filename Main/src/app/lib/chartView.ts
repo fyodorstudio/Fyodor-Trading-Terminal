@@ -1,4 +1,4 @@
-import { TickMarkType, type CandlestickData, type Time, type UTCTimestamp } from "lightweight-charts";
+import { ColorType, TickMarkType, type CandlestickData, type Time, type UTCTimestamp } from "lightweight-charts";
 import { formatCountdown } from "@/app/lib/format";
 import {
   formatDateTimeForDisplayTimezone,
@@ -18,6 +18,9 @@ export type ChartCursorReadoutMode = "both" | "true_cursor" | "nearest_candle";
 export type ChartWickMode = "match" | "neutral";
 
 export interface ChartAppearancePreferences {
+  backgroundColor: string;
+  gridColor: string;
+  textColor: string;
   bullishColor: string;
   bearishColor: string;
   neutralWickColor: string;
@@ -65,11 +68,15 @@ const CHART_DISPLAY_TIME_KEY = "fyodor-main-chart-display-timezone";
 export const CHART_PREFERENCES_VERSION = 1;
 const CHART_PREFERENCES_KEY = `fyodor-main-chart-preferences-v${CHART_PREFERENCES_VERSION}`;
 const INTRADAY_TIMEFRAMES = new Set<Timeframe>(["M1", "M5", "M15", "M30", "H1", "H4"]);
+const MAX_SOURCE_TIME_OFFSET_SECONDS = 14 * 60 * 60;
 
 export const DEFAULT_CHART_PREFERENCES: ChartPreferences = {
   version: CHART_PREFERENCES_VERSION,
   cursorReadoutMode: "both",
   appearance: {
+    backgroundColor: "#ffffff",
+    gridColor: "#e2e8f0",
+    textColor: "#64748b",
     bullishColor: "#10b981",
     bearishColor: "#ef4444",
     neutralWickColor: "#475569",
@@ -98,6 +105,9 @@ function normalizeChartAppearance(raw: unknown): ChartAppearancePreferences {
   const row = raw as Record<string, unknown>;
 
   return {
+    backgroundColor: isHexColor(row.backgroundColor) ? row.backgroundColor : fallback.backgroundColor,
+    gridColor: isHexColor(row.gridColor) ? row.gridColor : fallback.gridColor,
+    textColor: isHexColor(row.textColor) ? row.textColor : fallback.textColor,
     bullishColor: isHexColor(row.bullishColor) ? row.bullishColor : fallback.bullishColor,
     bearishColor: isHexColor(row.bearishColor) ? row.bearishColor : fallback.bearishColor,
     neutralWickColor: isHexColor(row.neutralWickColor) ? row.neutralWickColor : fallback.neutralWickColor,
@@ -142,6 +152,36 @@ export function saveChartPreferences(preferences: ChartPreferences) {
   } catch {
     // ignore storage failures
   }
+}
+
+export function getChartGridColor(appearance: ChartAppearancePreferences): string {
+  return appearance.gridVisible ? appearance.gridColor : "rgba(100, 116, 139, 0)";
+}
+
+export function getChartLayoutOptions(
+  appearance: ChartAppearancePreferences,
+  fontFamily = "Inter, system-ui, sans-serif",
+) {
+  return {
+    background: { type: ColorType.Solid, color: appearance.backgroundColor },
+    textColor: appearance.textColor,
+    fontFamily,
+  };
+}
+
+export function getChartSeriesAppearanceOptions(appearance: ChartAppearancePreferences) {
+  const wickUpColor = appearance.wickMode === "match" ? appearance.bullishColor : appearance.neutralWickColor;
+  const wickDownColor = appearance.wickMode === "match" ? appearance.bearishColor : appearance.neutralWickColor;
+
+  return {
+    upColor: appearance.bullishColor,
+    downColor: appearance.bearishColor,
+    wickUpColor,
+    wickDownColor,
+    borderUpColor: appearance.bullishColor,
+    borderDownColor: appearance.bearishColor,
+    priceLineColor: appearance.currentPriceLineColor,
+  };
 }
 
 function toChartTime(time: number): UTCTimestamp {
@@ -208,22 +248,55 @@ export function formatCursorReadout(input: CursorReadoutInput): CursorReadoutLin
   const lines: CursorReadoutLine[] = [];
 
   if ((input.mode === "both" || input.mode === "true_cursor") && input.truePrice != null) {
-    lines.push({ label: "Cursor", value: formatPrice(input.truePrice) });
+    lines.push({ label: "Exact", value: formatPrice(input.truePrice) });
   }
 
   if ((input.mode === "both" || input.mode === "nearest_candle") && input.candlePrice != null) {
-    lines.push({ label: "Candle", value: formatPrice(input.candlePrice) });
+    lines.push({ label: "Sticky", value: formatPrice(input.candlePrice) });
   }
 
   return lines;
 }
 
-export function formatChartHoverTime(timestampSeconds: number, mode: ChartDisplayTimeMode): string {
-  return `${formatDateTimeForDisplayTimezone(timestampSeconds, mode)} ${formatHoverTimezoneSuffix(mode)}`;
+function toViewerTimestampSeconds(
+  timestampSeconds: number,
+  mode: ChartDisplayTimeMode,
+  sourceTimeOffsetSeconds = 0,
+): number {
+  return mode === "server" ? timestampSeconds : timestampSeconds - sourceTimeOffsetSeconds;
 }
 
-export function formatChartFeedTime(timestampSeconds: number, mode: ChartDisplayTimeMode): string {
-  return formatDateTimeForDisplayTimezone(timestampSeconds, mode);
+export function getChartSourceTimeOffsetSeconds(marketStatus: MarketStatusResponse | null): number {
+  if (
+    marketStatus?.server_time == null ||
+    marketStatus.checked_at == null ||
+    !Number.isFinite(marketStatus.server_time) ||
+    !Number.isFinite(marketStatus.checked_at)
+  ) {
+    return 0;
+  }
+
+  const offsetSeconds = marketStatus.server_time - marketStatus.checked_at;
+  if (!Number.isFinite(offsetSeconds) || Math.abs(offsetSeconds) > MAX_SOURCE_TIME_OFFSET_SECONDS) return 0;
+  return Math.round(offsetSeconds / 60) * 60;
+}
+
+export function formatChartHoverTime(
+  timestampSeconds: number,
+  mode: ChartDisplayTimeMode,
+  sourceTimeOffsetSeconds = 0,
+): string {
+  const viewerTimestampSeconds = toViewerTimestampSeconds(timestampSeconds, mode, sourceTimeOffsetSeconds);
+  return `${formatDateTimeForDisplayTimezone(viewerTimestampSeconds, mode)} ${formatHoverTimezoneSuffix(mode)}`;
+}
+
+export function formatChartFeedTime(
+  timestampSeconds: number,
+  mode: ChartDisplayTimeMode,
+  sourceTimeOffsetSeconds = 0,
+): string {
+  const viewerTimestampSeconds = toViewerTimestampSeconds(timestampSeconds, mode, sourceTimeOffsetSeconds);
+  return formatDateTimeForDisplayTimezone(viewerTimestampSeconds, mode);
 }
 
 export function getChartDisplayModeLabel(mode: ChartDisplayTimeMode): string {
@@ -264,9 +337,11 @@ export function formatChartAxisTime(
   timeframe: Timeframe,
   tickMarkType: TickMarkType,
   mode: ChartDisplayTimeMode,
+  sourceTimeOffsetSeconds = 0,
 ): string {
-  const timestampSeconds = normalizeChartTimestampSeconds(chartTime);
-  if (timestampSeconds == null) return "";
+  const rawTimestampSeconds = normalizeChartTimestampSeconds(chartTime);
+  if (rawTimestampSeconds == null) return "";
+  const timestampSeconds = toViewerTimestampSeconds(rawTimestampSeconds, mode, sourceTimeOffsetSeconds);
 
   const intraday = INTRADAY_TIMEFRAMES.has(timeframe);
 
@@ -293,13 +368,17 @@ export function formatChartAxisTime(
   return formatDateTimeForDisplayTimezone(timestampSeconds, mode);
 }
 
-export function getChartTimeFormatters(timeframe: Timeframe, mode: ChartDisplayTimeMode) {
+export function getChartTimeFormatters(
+  timeframe: Timeframe,
+  mode: ChartDisplayTimeMode,
+  sourceTimeOffsetSeconds = 0,
+) {
   return {
     tickMarkFormatter: (time: unknown, tickMarkType?: TickMarkType) =>
-      formatChartAxisTime(time, timeframe, tickMarkType ?? TickMarkType.Time, mode),
+      formatChartAxisTime(time, timeframe, tickMarkType ?? TickMarkType.Time, mode, sourceTimeOffsetSeconds),
     timeFormatter: (time: unknown) => {
       const timestampSeconds = normalizeChartTimestampSeconds(time);
-      return timestampSeconds == null ? "" : formatChartHoverTime(timestampSeconds, mode);
+      return timestampSeconds == null ? "" : formatChartHoverTime(timestampSeconds, mode, sourceTimeOffsetSeconds);
     },
   };
 }

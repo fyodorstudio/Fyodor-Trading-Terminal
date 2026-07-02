@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowRight, BarChart3, Building2, CalendarDays, Clock3, PlayCircle, Radio, X } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { CURRENCY_TO_COUNTRY_CODE, FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
-import { formatEventValue } from "@/app/lib/calendarDisplay";
+import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import { formatCountdown, formatDateOnly, formatUtcDateTime } from "@/app/lib/format";
 import type { CalendarEvent, CentralBankSnapshot, MarketStatusResponse, TabId } from "@/app/types";
 
@@ -138,6 +138,10 @@ function EventRow(props: {
   mode: "upcoming" | "recent";
   onOpen: (event: CalendarEvent) => void;
 }) {
+  const actual = getEventValueDisplay(props.event.actual, props.event.title);
+  const forecast = getEventValueDisplay(props.event.forecast, props.event.title);
+  const previous = getEventValueDisplay(props.event.previous, props.event.title);
+
   return (
     <button
       type="button"
@@ -151,14 +155,52 @@ function EventRow(props: {
           </span>
           <span className="truncate text-sm font-black text-slate-950">{props.event.currency} | {props.event.title}</span>
         </span>
-        <span className="mt-1 block text-xs font-semibold text-slate-500">
-          Actual {formatEventValue(props.event.actual)} / Forecast {formatEventValue(props.event.forecast)} / Previous {formatEventValue(props.event.previous)}
+        <span
+          className="mt-1 block text-xs font-semibold text-slate-500"
+          title={`Actual: ${actual.title} Forecast: ${forecast.title} Previous: ${previous.title}`}
+        >
+          Actual {actual.display} / Forecast {forecast.display} / Previous {previous.display}
         </span>
       </span>
       <span className="text-right text-xs font-black text-slate-700">
         {props.mode === "upcoming" ? formatCountdown(props.event.time, props.currentTime.getTime()) : formatUtcDateTime(props.event.time)}
       </span>
     </button>
+  );
+}
+
+function ReleaseCurrencyGroup(props: {
+  label: string;
+  events: CalendarEvent[];
+  currentTime: Date;
+  mode: "upcoming" | "recent";
+  emptyLabel: string;
+  onOpen: (event: CalendarEvent) => void;
+}) {
+  return (
+    <section className="overview-release-currency-group">
+      <div className="overview-release-currency-head">
+        <span>{props.label}</span>
+        <strong>{props.events.length}</strong>
+      </div>
+      <div className="mt-3 grid gap-2">
+        {props.events.length > 0 ? (
+          props.events.map((event) => (
+            <EventRow
+              key={`${event.id}-${event.time}-${event.currency}-${event.title}-${props.mode}`}
+              event={event}
+              currentTime={props.currentTime}
+              mode={props.mode}
+              onOpen={props.onOpen}
+            />
+          ))
+        ) : (
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm font-semibold text-slate-500">
+            {props.emptyLabel}
+          </div>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -184,12 +226,19 @@ export function OverviewPlaceholderTab({
     .sort((left, right) => left.time - right.time);
   const recentEvents = pairEvents
     .filter((event) => event.time < nowSeconds)
-    .sort((left, right) => right.time - left.time)
-    .slice(0, 8);
+    .sort((left, right) => right.time - left.time);
   const upcomingFeedEvents = upcomingEvents.slice(0, 3);
   const nextEvent = upcomingEvents[0] ?? null;
   const baseNextEvent = upcomingEvents.find((event) => event.currency === pair.base) ?? null;
   const quoteNextEvent = upcomingEvents.find((event) => event.currency === pair.quote) ?? null;
+  const upcomingReleaseGroups = [
+    { label: `${pair.base}/XXX`, events: upcomingEvents.filter((event) => event.currency === pair.base).slice(0, 4) },
+    { label: `${pair.quote}/XXX`, events: upcomingEvents.filter((event) => event.currency === pair.quote).slice(0, 4) },
+  ];
+  const recentReleaseGroups = [
+    { label: `${pair.base}/XXX`, events: recentEvents.filter((event) => event.currency === pair.base).slice(0, 4) },
+    { label: `${pair.quote}/XXX`, events: recentEvents.filter((event) => event.currency === pair.quote).slice(0, 4) },
+  ];
   const baseSnapshot = findSnapshot(pair.base, snapshots);
   const quoteSnapshot = findSnapshot(pair.quote, snapshots);
   const sessionLabel =
@@ -399,22 +448,18 @@ export function OverviewPlaceholderTab({
                   <span>Upcoming</span>
                   <strong>{upcomingEvents.length}</strong>
                 </div>
-                <div className="mt-3 grid gap-2">
-                  {upcomingEvents.length > 0 ? (
-                    upcomingEvents.slice(0, 8).map((event) => (
-                      <EventRow
-                        key={`${event.id}-${event.time}-${event.currency}-${event.title}-upcoming`}
-                        event={event}
-                        currentTime={currentTime}
-                        mode="upcoming"
-                        onOpen={onOpenCalendarEvent}
-                      />
-                    ))
-                  ) : (
-                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm font-semibold text-slate-500">
-                      No upcoming pair events are loaded.
-                    </div>
-                  )}
+                <div className="overview-release-currency-grid">
+                  {upcomingReleaseGroups.map((group) => (
+                    <ReleaseCurrencyGroup
+                      key={`${group.label}-upcoming`}
+                      label={group.label}
+                      events={group.events}
+                      currentTime={currentTime}
+                      mode="upcoming"
+                      emptyLabel={`No upcoming ${group.label} events are loaded.`}
+                      onOpen={onOpenCalendarEvent}
+                    />
+                  ))}
                 </div>
               </section>
 
@@ -425,22 +470,18 @@ export function OverviewPlaceholderTab({
                   <span>Past releases</span>
                   <strong>{recentEvents.length}</strong>
                 </div>
-                <div className="mt-3 grid gap-2">
-                  {recentEvents.length > 0 ? (
-                    recentEvents.map((event) => (
-                      <EventRow
-                        key={`${event.id}-${event.time}-${event.currency}-${event.title}-recent`}
-                        event={event}
-                        currentTime={currentTime}
-                        mode="recent"
-                        onOpen={onOpenCalendarEvent}
-                      />
-                    ))
-                  ) : (
-                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm font-semibold text-slate-500">
-                      No recent pair releases are loaded.
-                    </div>
-                  )}
+                <div className="overview-release-currency-grid">
+                  {recentReleaseGroups.map((group) => (
+                    <ReleaseCurrencyGroup
+                      key={`${group.label}-recent`}
+                      label={group.label}
+                      events={group.events}
+                      currentTime={currentTime}
+                      mode="recent"
+                      emptyLabel={`No recent ${group.label} releases are loaded.`}
+                      onOpen={onOpenCalendarEvent}
+                    />
+                  ))}
                 </div>
               </section>
             </div>

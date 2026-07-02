@@ -33,13 +33,13 @@ const event: CalendarEvent = {
 
 const explainer: CalendarEventExplainer = {
   family: "generic",
-  familyLabel: "General Macro Event",
+  familyLabel: "Placeholder Macro Event",
   knowledgeDepth: "generic",
   releaseStatus: "Released / no numeric forecast",
   resultSnapshot: "Actual is 8.620. Actual is above the previous reading.",
   resultInterpretation: "Judge the reaction against previous value, broader context, and price acceptance.",
   marketSensitivity: "Context-dependent.",
-  whatItIs: "This event updates the market on an economic or policy-related data point.",
+  whatItIs: "Placeholder coverage: this broker event name is not mapped to a specific Fyodor playbook yet. Treat it as a broad economic or policy-related calendar row.",
   whyTradersCare: "New macro information can change expectations for growth, inflation, policy, and currency strength.",
   mayAffect: ["The event currency", "Theme-related assets"],
   priceCaveats: ["Not every release moves price meaningfully."],
@@ -77,6 +77,7 @@ describe("EconomicCalendarTab redesign", () => {
     expect(html).toContain("Economic Calendar");
     expect(html).toContain("View refreshed");
     expect(html).toContain("Broker feed");
+    expect(html).toContain("Next event");
     expect(html).toContain("events in current view");
     expect(html).not.toContain("Sync Age");
     expect(html).not.toContain("Ingest Age");
@@ -103,6 +104,10 @@ describe("EconomicCalendarTab redesign", () => {
     );
 
     expect(html).toContain("calendar-event-drawer");
+    expect(html).toContain("Placeholder explainer");
+    expect(html).toContain("not mapped to a specific Fyodor event playbook yet");
+    expect(html).toContain("MT5 raw value: 8.620");
+    expect(html).toContain("No value supplied by the MT5 calendar feed.");
     expect(html).toContain("Release snapshot");
     expect(html).toContain("What this event is");
     expect(html).toContain("Why traders care");

@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import {
   CandlestickSeries,
-  ColorType,
   createChart,
   createSeriesMarkers,
   type CandlestickData,
@@ -10,6 +9,14 @@ import {
   type Time,
   type UTCTimestamp,
 } from "lightweight-charts";
+import { getCrosshairMode } from "@/app/lib/chartDisplay";
+import {
+  getChartGridColor,
+  getChartLayoutOptions,
+  getChartSeriesAppearanceOptions,
+  type ChartAppearancePreferences,
+  type ChartCursorReadoutMode,
+} from "@/app/lib/chartView";
 import { formatReplayAxisTime } from "@/app/lib/eventReplayView";
 import type { BridgeCandle, FxPairDefinition, ReplayChartTimeframe } from "@/app/types";
 
@@ -19,6 +26,8 @@ interface EventReplayCandlestickChartProps {
   visibleCount: number;
   pair: FxPairDefinition;
   timeframe: ReplayChartTimeframe;
+  appearance: ChartAppearancePreferences;
+  cursorReadoutMode: ChartCursorReadoutMode;
 }
 
 function toChartTime(time: number): UTCTimestamp {
@@ -43,16 +52,13 @@ export function EventReplayCandlestickChart(props: EventReplayCandlestickChartPr
   useEffect(() => {
     const container = containerRef.current;
     if (!container || chartRef.current) return;
+    const gridColor = getChartGridColor(props.appearance);
 
     const chart = createChart(container, {
-      layout: {
-        background: { type: ColorType.Solid, color: "transparent" },
-        textColor: "#64748b",
-        fontFamily: "Geist, Inter, system-ui, sans-serif",
-      },
+      layout: getChartLayoutOptions(props.appearance, "Geist, Inter, system-ui, sans-serif"),
       grid: {
-        vertLines: { color: "rgba(100, 116, 139, 0.06)" },
-        horzLines: { color: "rgba(100, 116, 139, 0.06)" },
+        vertLines: { color: gridColor },
+        horzLines: { color: gridColor },
       },
       rightPriceScale: {
         borderVisible: false,
@@ -67,22 +73,16 @@ export function EventReplayCandlestickChart(props: EventReplayCandlestickChartPr
         tickMarkFormatter: (time: Time) => formatReplayAxisTime(Number(time), props.timeframe),
       },
       crosshair: {
-        vertLine: { labelBackgroundColor: "#111827" },
-        horzLine: { labelBackgroundColor: "#111827" },
+        mode: getCrosshairMode(props.cursorReadoutMode),
+        vertLine: { labelBackgroundColor: props.appearance.crosshairColor },
+        horzLine: { labelBackgroundColor: props.appearance.crosshairColor },
       },
       localization: {
         timeFormatter: (time: Time) => formatReplayAxisTime(Number(time), props.timeframe),
       },
     });
 
-    const series = chart.addSeries(CandlestickSeries, {
-      upColor: "#10b981",
-      downColor: "#ef4444",
-      wickUpColor: "#10b981",
-      wickDownColor: "#ef4444",
-      borderUpColor: "#10b981",
-      borderDownColor: "#ef4444",
-    });
+    const series = chart.addSeries(CandlestickSeries, getChartSeriesAppearanceOptions(props.appearance));
 
     chartRef.current = chart;
     seriesRef.current = series;
@@ -105,6 +105,28 @@ export function EventReplayCandlestickChart(props: EventReplayCandlestickChartPr
       seriesRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    const series = seriesRef.current;
+    if (!chart || !series) return;
+    const gridColor = getChartGridColor(props.appearance);
+
+    chart.applyOptions({
+      layout: getChartLayoutOptions(props.appearance, "Geist, Inter, system-ui, sans-serif"),
+      grid: {
+        vertLines: { color: gridColor },
+        horzLines: { color: gridColor },
+      },
+      crosshair: {
+        mode: getCrosshairMode(props.cursorReadoutMode),
+        vertLine: { labelBackgroundColor: props.appearance.crosshairColor },
+        horzLine: { labelBackgroundColor: props.appearance.crosshairColor },
+      },
+    });
+
+    series.applyOptions(getChartSeriesAppearanceOptions(props.appearance));
+  }, [props.appearance, props.cursorReadoutMode]);
 
   useEffect(() => {
     const series = seriesRef.current;
@@ -161,7 +183,7 @@ export function EventReplayCandlestickChart(props: EventReplayCandlestickChartPr
   }, [props.candles, props.eventIndex, props.visibleCount]);
 
   return (
-    <div className="border border-slate-200 bg-white p-2">
+    <div className="border border-slate-200 p-2" style={{ backgroundColor: props.appearance.backgroundColor }}>
       <div ref={containerRef} className="h-[clamp(520px,62vh,760px)] w-full" />
     </div>
   );

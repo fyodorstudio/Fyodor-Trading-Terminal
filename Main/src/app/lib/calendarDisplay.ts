@@ -109,8 +109,77 @@ export function getCalendarFreshness(timestampSeconds: number | null, nowMs: num
   return { state: "stale", label: "Stale", ageLabel: formatUiAge(timestampSeconds, nowMs) };
 }
 
-export function formatEventValue(value: string): string {
-  return value.trim() || "-";
+export interface EventValueDisplay {
+  display: string;
+  raw: string;
+  inferredUnit: "percent" | "thousand" | null;
+  title: string;
+}
+
+function trimTrailingZeros(value: number): string {
+  return value.toFixed(2).replace(/\.?0+$/, "");
+}
+
+function parsePlainNumber(raw: string): number | null {
+  if (!/^-?\d+(?:\.\d+)?$/.test(raw.replace(/,/g, ""))) return null;
+  const parsed = Number(raw.replace(/,/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function inferEventValueUnit(raw: string, eventTitle = ""): EventValueDisplay["inferredUnit"] {
+  const normalizedTitle = eventTitle.toLowerCase();
+  const normalizedRaw = raw.toLowerCase();
+  if (/[a-z%]/i.test(normalizedRaw)) return null;
+
+  if (
+    /\b(y\/y|m\/m|q\/q|mom|yoy|annual|rate|inflation|cpi|pce|ppi|deflator|wage|earnings)\b/.test(normalizedTitle)
+  ) {
+    return "percent";
+  }
+
+  if (/\b(payroll|employment change|jobs?|jobless claims|unemployment claims|claimant count)\b/.test(normalizedTitle)) {
+    return "thousand";
+  }
+
+  return null;
+}
+
+export function getEventValueDisplay(value: string, eventTitle = ""): EventValueDisplay {
+  const raw = value.trim();
+  if (!raw) {
+    return {
+      display: "-",
+      raw,
+      inferredUnit: null,
+      title: "No value supplied by the MT5 calendar feed.",
+    };
+  }
+
+  const compactRaw = raw.replace(/\s+/g, " ");
+  const number = parsePlainNumber(compactRaw);
+  const inferredUnit = number == null ? null : inferEventValueUnit(compactRaw, eventTitle);
+  const display =
+    number == null || inferredUnit == null
+      ? compactRaw
+      : inferredUnit === "percent"
+        ? `${trimTrailingZeros(number)}%`
+        : `${trimTrailingZeros(number)}K`;
+
+  const title =
+    display === compactRaw
+      ? `MT5 raw value: ${compactRaw}`
+      : `MT5 raw value: ${compactRaw}. Display unit inferred from event title: ${eventTitle || "unknown event"}.`;
+
+  return {
+    display,
+    raw: compactRaw,
+    inferredUnit,
+    title,
+  };
+}
+
+export function formatEventValue(value: string, eventTitle = ""): string {
+  return getEventValueDisplay(value, eventTitle).display;
 }
 
 export function formatImpactSummary(impacts: ImpactLevel[]) {
