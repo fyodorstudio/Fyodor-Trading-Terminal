@@ -217,7 +217,7 @@ function clusterChartEventPoints(points: ChartEventOverlayPoint[], containerWidt
 
   const crowded = clusters.length > 10;
 
-  return clusters.map((cluster) => {
+  const mapped = clusters.map((cluster) => {
     const events = cluster.points.map((point) => point.event);
     const impact = getDominantImpact(events);
     const key = cluster.points.map((point) => point.key).join("|");
@@ -233,6 +233,25 @@ function clusterChartEventPoints(points: ChartEventOverlayPoint[], containerWidt
       detailLabel: getChartEventClusterDetail(events),
       tooltipPlacement: getChartEventTooltipPlacement(cluster.x, containerWidth),
       showBadge: !crowded || impact === "high" || events.length > 1,
+    };
+  });
+
+  return mapped.map((cluster, index) => {
+    if (!cluster.showBadge) return cluster;
+
+    const previous = mapped[index - 1];
+    const next = mapped[index + 1];
+    const isNearAnotherBadge =
+      (previous?.showBadge && Math.abs(previous.x - cluster.x) < 72) ||
+      (next?.showBadge && Math.abs(next.x - cluster.x) < 72);
+
+    if (!isNearAnotherBadge) return cluster;
+
+    const hasHighImpact = cluster.impact === "high";
+    const hasMultipleEvents = cluster.events.length > 1;
+    return {
+      ...cluster,
+      showBadge: hasHighImpact || hasMultipleEvents,
     };
   });
 }

@@ -45,7 +45,8 @@ This is reopened. The first pass helped, but it is not complete.
 - [x] Macro Drivers wide factor table removed; page height is reduced.
 - [x] Overview pair-brief layout was redesigned around Pair Driver Snapshot.
 - [x] Overview, Charts, and Macro Drivers were inspected at 1440x900 / 100% browser zoom with no document-level vertical scroll in the default/offline state.
-- [ ] Recheck Overview and Charts with populated MT5 bridge/calendar data before treating the viewport rule as fully proven across live states.
+- [x] Overview and Charts were inspected at 1440x900 / 100% browser zoom with simulated populated bridge/calendar data and no document-level vertical scroll.
+- [ ] Recheck with the real local MT5 bridge when available before treating live-state viewport fit as fully proven.
 - [ ] Future visual implementation must include manual viewport inspection at 100% Chrome zoom plus `pnpm --dir Main build`.
 
 ### 2. Charts Event Overlay Polish
@@ -61,7 +62,8 @@ This is reopened. The first pass helped, but it is not complete.
 - [x] Each row in the mini popover opens the Economic Calendar inspector for that event.
 - [x] Keep existing event overlay scope settings.
 - [x] Do not add wider historical calendar fetching in this pass.
-- [ ] Visually inspect dense calendar weeks with loaded broker calendar rows and adjust badge density if needed.
+- [x] Dense chart-event clusters were inspected with simulated loaded broker-calendar rows; nearby clusters now keep lines but suppress lower-priority overlapping badges.
+- [ ] Recheck dense chart-event weeks with real broker calendar rows when the local bridge is populated.
 
 ### 3. Overview Pair Driver Snapshot Redesign
 
@@ -73,7 +75,8 @@ This is reopened. The first pass helped, but it is not complete.
 - [x] Add a `Pair details` popover for detailed latest/next factor rows.
 - [x] Keep upcoming pair-event information, but redesign `Pair Event Feed` so `See recent releases` still has a clear home.
 - [x] Preserve the no-whole-page-scroll target at 1440x900 / 100% browser zoom in the default/offline state.
-- [ ] Recheck with populated bridge data because next-event rows and real macro values can change card height.
+- [x] Preserve the no-whole-page-scroll target at 1440x900 / 100% browser zoom in a simulated populated bridge/calendar state.
+- [ ] Recheck with real local bridge data because live broker titles and macro values can still change card height.
 
 ### 4. Macro Drivers Cleanup
 
