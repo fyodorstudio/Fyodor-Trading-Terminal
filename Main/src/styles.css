@@ -1796,6 +1796,16 @@ button {
   background: #eff6ff;
 }
 
+.overview-factor-chip-more {
+  border-color: #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+}
+
+.overview-factor-chip-more strong {
+  color: #0f172a;
+}
+
 .overview-factor-detail-popover {
   width: min(980px, 100%);
 }
@@ -7390,7 +7400,7 @@ button {
 .chart-cache-grid strong, .chart-diagnostics-list strong { display: block; color: #0f172a; font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
 .chart-danger-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 0 14px; border: 1px solid #fecdd3; border-radius: 8px; background: #fff1f2; color: #9f1239; font-size: 12px; font-weight: 800; }
 .chart-danger-button:hover { background: #ffe4e6; border-color: #fda4af; }
-.chart-canvas-frame { position: relative; height: clamp(460px, calc(100vh - 285px), 660px); width: 100%; overflow: hidden; border-radius: 20px; }
+.chart-canvas-frame { position: relative; height: clamp(420px, calc(100vh - 325px), 640px); width: 100%; overflow: hidden; border-radius: 20px; }
 .chart-event-overlay { position: absolute; inset: 0; z-index: 18; pointer-events: none; }
 .chart-event-marker { position: absolute; top: 0; bottom: 0; width: 34px; padding: 0; border: 0; background: transparent; pointer-events: auto; cursor: pointer; transform: translateX(-50%); outline: none; }
 .chart-event-line { position: absolute; inset: 0 auto 0 50%; width: 1px; transform: translateX(-50%); background: rgba(37, 99, 235, 0.48); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.42); }

@@ -64,7 +64,7 @@ function MacroCard(props: {
         : "border-slate-200 bg-slate-50 text-slate-500";
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+    <section className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <FlagIcon countryCode={countryCode} className="h-8 w-12 border border-slate-200 shadow-sm" />
@@ -78,10 +78,10 @@ function MacroCard(props: {
         </span>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="mt-3 grid grid-cols-2 gap-2">
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
           <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Policy Rate</div>
-          <div className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+          <div className="mt-1 text-xl font-black tracking-tight text-slate-950">
             {renderMetric(props.snapshot?.currentPolicyRate ?? null)}
           </div>
           <div className="mt-1 text-xs font-semibold text-slate-500">
@@ -90,7 +90,7 @@ function MacroCard(props: {
         </div>
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
           <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Inflation</div>
-          <div className="mt-2 text-2xl font-black tracking-tight text-slate-950">
+          <div className="mt-1 text-xl font-black tracking-tight text-slate-950">
             {renderMetric(props.snapshot?.currentInflationRate ?? null)}
           </div>
           <div className="mt-1 text-xs font-semibold text-slate-500">
@@ -99,18 +99,18 @@ function MacroCard(props: {
         </div>
       </div>
 
-      <div className="mt-3 grid gap-2 text-xs font-semibold text-slate-600">
+      <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-600">
         <div className="flex items-center justify-between gap-3">
-          <span>Next rate event</span>
+          <span>Rate event</span>
           <strong className="text-right text-slate-900">{formatDateOnly(props.snapshot?.nextRateEventAt ?? null)}</strong>
         </div>
         <div className="flex items-center justify-between gap-3">
-          <span>Next CPI event</span>
+          <span>CPI event</span>
           <strong className="text-right text-slate-900">{formatDateOnly(props.snapshot?.nextCpiEventAt ?? null)}</strong>
         </div>
       </div>
 
-      <div className="mt-4 border-t border-slate-100 pt-3">
+      <div className="mt-3 border-t border-slate-100 pt-3">
         <div className="mb-2 flex items-center justify-between gap-3">
           <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Factor coverage</span>
           <button
@@ -122,7 +122,7 @@ function MacroCard(props: {
           </button>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          {props.factorRows.slice(0, 6).map((row) => (
+          {props.factorRows.slice(0, 3).map((row) => (
             <button
               key={`${row.currency}-${row.factor.id}`}
               type="button"
@@ -134,27 +134,37 @@ function MacroCard(props: {
               <strong>{row.coverageLabel}</strong>
             </button>
           ))}
+          {props.factorRows.length > 3 ? (
+            <button
+              type="button"
+              onClick={props.onOpenDetails}
+              className="overview-factor-chip overview-factor-chip-more"
+              title="Open all pair factor details"
+            >
+              <span>More factors</span>
+              <strong>+{props.factorRows.length - 3}</strong>
+            </button>
+          ) : null}
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => (props.nextEvent ? props.onOpenEvent(props.nextEvent) : undefined)}
-        disabled={!props.nextEvent}
-        className="mt-4 flex w-full items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-3 text-left transition enabled:hover:border-blue-200 enabled:hover:bg-blue-100/70 disabled:cursor-default disabled:border-slate-200 disabled:bg-slate-50"
-      >
-        <span className="min-w-0">
-          <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">
-            Next {props.currency} event
+      {props.nextEvent ? (
+        <button
+          type="button"
+          onClick={() => props.onOpenEvent(props.nextEvent as CalendarEvent)}
+          className="mt-3 flex w-full items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50/70 px-3 py-2 text-left transition hover:border-blue-200 hover:bg-blue-100/70"
+        >
+          <span className="min-w-0">
+            <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">
+              Next {props.currency} event
+            </span>
+            <span className="block truncate text-xs font-black text-slate-950">{props.nextEvent.title}</span>
           </span>
-          <span className="mt-1 block truncate text-xs font-black text-slate-950">
-            {props.nextEvent ? props.nextEvent.title : "No upcoming loaded"}
+          <span className="shrink-0 text-right text-xs font-black text-blue-700">
+            {formatCountdown(props.nextEvent.time, props.currentTime.getTime())}
           </span>
-        </span>
-        <span className="shrink-0 text-right text-xs font-black text-blue-700">
-          {props.nextEvent ? formatCountdown(props.nextEvent.time, props.currentTime.getTime()) : "N/A"}
-        </span>
-      </button>
+        </button>
+      ) : null}
     </section>
   );
 }

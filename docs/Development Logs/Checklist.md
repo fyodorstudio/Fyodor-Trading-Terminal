@@ -44,6 +44,8 @@ This is reopened. The first pass helped, but it is not complete.
 - [ ] Use bounded panels, popovers, modals, collapsible sections, and internal scroll regions for detail overflow.
 - [x] Macro Drivers wide factor table removed; page height is reduced.
 - [x] Overview pair-brief layout was redesigned around Pair Driver Snapshot.
+- [x] Overview, Charts, and Macro Drivers were inspected at 1440x900 / 100% browser zoom with no document-level vertical scroll in the default/offline state.
+- [ ] Recheck Overview and Charts with populated MT5 bridge/calendar data before treating the viewport rule as fully proven across live states.
 - [ ] Future visual implementation must include manual viewport inspection at 100% Chrome zoom plus `pnpm --dir Main build`.
 
 ### 2. Charts Event Overlay Polish
@@ -59,7 +61,7 @@ This is reopened. The first pass helped, but it is not complete.
 - [x] Each row in the mini popover opens the Economic Calendar inspector for that event.
 - [x] Keep existing event overlay scope settings.
 - [x] Do not add wider historical calendar fetching in this pass.
-- [ ] Visually inspect dense calendar weeks and adjust badge density if needed.
+- [ ] Visually inspect dense calendar weeks with loaded broker calendar rows and adjust badge density if needed.
 
 ### 3. Overview Pair Driver Snapshot Redesign
 
@@ -70,7 +72,8 @@ This is reopened. The first pass helped, but it is not complete.
 - [x] Put compact base/quote factor chips or mini cards under the base/quote macro cards.
 - [x] Add a `Pair details` popover for detailed latest/next factor rows.
 - [x] Keep upcoming pair-event information, but redesign `Pair Event Feed` so `See recent releases` still has a clear home.
-- [ ] Preserve the no-whole-page-scroll target at 100% Chrome zoom.
+- [x] Preserve the no-whole-page-scroll target at 1440x900 / 100% browser zoom in the default/offline state.
+- [ ] Recheck with populated bridge data because next-event rows and real macro values can change card height.
 
 ### 4. Macro Drivers Cleanup
 

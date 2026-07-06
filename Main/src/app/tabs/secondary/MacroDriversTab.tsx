@@ -43,14 +43,14 @@ function toneClass(tone: MacroTrendTone): string {
 function MacroSnapshotCard({ currency, snapshots }: { currency: string; snapshots: CentralBankSnapshot[] }) {
   if (currency === "XAU") {
     return (
-      <article className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
+      <article className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm">
         <div className="flex items-center justify-between gap-3">
           <strong className="text-slate-950">XAU</strong>
           <span className="rounded-md border border-amber-300 bg-white px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-amber-700">
             Price-only
           </span>
         </div>
-        <p className="mt-3 font-semibold leading-6 text-amber-900">
+        <p className="mt-2 font-semibold leading-5 text-amber-900">
           Gold has no central-bank snapshot in the current data stack. This side uses price trend plus USD macro/calendar context.
         </p>
       </article>
@@ -59,14 +59,14 @@ function MacroSnapshotCard({ currency, snapshots }: { currency: string; snapshot
 
   const snapshot = findSnapshot(currency, snapshots);
   return (
-    <article className="rounded-xl border border-slate-200 bg-white p-4 text-sm">
+    <article className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
       <div className="flex items-center justify-between gap-3">
         <strong className="text-slate-950">{currency}</strong>
         <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-500">
           {snapshot?.status ?? "missing"}
         </span>
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="mt-3 grid grid-cols-2 gap-3">
         <div>
           <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Policy</span>
           <strong className="text-base text-slate-950">{formatSnapshotValue(snapshot?.currentPolicyRate ?? null)}</strong>
@@ -76,7 +76,7 @@ function MacroSnapshotCard({ currency, snapshots }: { currency: string; snapshot
           <strong className="text-base text-slate-950">{formatSnapshotValue(snapshot?.currentInflationRate ?? null)}</strong>
         </div>
       </div>
-      <p className="mt-3 text-xs font-semibold leading-5 text-slate-500">
+      <p className="mt-2 text-xs font-semibold leading-5 text-slate-500">
         {snapshot?.bankName ?? "No central-bank snapshot resolved from the current MT5 calendar feed."}
       </p>
     </article>
@@ -144,13 +144,13 @@ export function MacroDriversTab({
   const scheduledFactorCount = factorRows.filter((row) => row.nextEvent).length;
 
   return (
-    <section className="workspace-page flex flex-col gap-4">
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="workspace-page workspace-page-compact flex flex-col gap-3">
+      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-500">Active specialist tool</div>
-            <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Macro Drivers</h2>
-            <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
+            <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">Macro Drivers</h2>
+            <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
               Current-data-only driver map for forex and gold. It explains trend state, macro coverage, and missing evidence without issuing trade calls.
             </p>
           </div>
@@ -171,9 +171,9 @@ export function MacroDriversTab({
         </div>
       </div>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+      <section className="grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
               <h3 className="text-lg font-black text-slate-950">Trend State</h3>
               <p className="text-sm font-semibold text-slate-500">W1 context, D1 main state, H4 confirmation from MT5 candles.</p>
@@ -192,7 +192,7 @@ export function MacroDriversTab({
 
           <div className="grid gap-3 lg:grid-cols-3">
             {trendStates.map((state) => (
-              <article key={state.timeframe} className={`rounded-xl border p-4 ${toneClass(state.tone)}`}>
+              <article key={state.timeframe} className={`rounded-xl border p-3 ${toneClass(state.tone)}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <span className="text-[10px] font-black uppercase tracking-[0.16em] opacity-70">{state.timeframe}</span>
@@ -211,10 +211,10 @@ export function MacroDriversTab({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
           <h3 className="text-lg font-black text-slate-950">Current Macro Snapshot</h3>
           <p className="mt-1 text-sm font-semibold text-slate-500">Resolved from central-bank rows currently available in the MT5 calendar feed.</p>
-          <div className="mt-4 grid gap-3">
+          <div className="mt-3 grid gap-3">
             {[instrument.base, instrument.quote].map((currency) => (
               <MacroSnapshotCard key={currency} currency={currency} snapshots={snapshots} />
             ))}
@@ -222,47 +222,39 @@ export function MacroDriversTab({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h3 className="text-lg font-black text-slate-950">Calendar Coverage Hand-Off</h3>
-            <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
-              Detailed pair factor coverage belongs in Overview so the selected-pair brief can show it beside base/quote context.
-              Macro Drivers keeps only the coverage summary needed to judge whether this read is evidence-rich or thin.
-            </p>
-          </div>
+      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h3 className="text-base font-black text-slate-950">Calendar Coverage Hand-Off</h3>
           <span className="inline-flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-black text-blue-700">
             Overview owns details
           </span>
         </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
             <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Covered factors</span>
-            <strong className="mt-2 block text-xl font-black text-slate-950">{coveredFactorCount}/{factorRows.length}</strong>
+            <strong className="mt-1 block text-lg font-black text-slate-950">{coveredFactorCount}/{factorRows.length}</strong>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
             <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Scheduled rows</span>
-            <strong className="mt-2 block text-xl font-black text-slate-950">{scheduledFactorCount}</strong>
+            <strong className="mt-1 block text-lg font-black text-slate-950">{scheduledFactorCount}</strong>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
             <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Scope</span>
-            <strong className="mt-2 block text-xl font-black text-slate-950">Current feed</strong>
+            <strong className="mt-1 block text-lg font-black text-slate-950">Current feed</strong>
           </div>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 shadow-sm">
-        <div className="flex items-start gap-3">
-          <AlertTriangle className="mt-1 h-5 w-5 flex-none text-amber-700" />
-          <div>
-            <h3 className="text-base font-black text-amber-950">Missing data that would improve this read</h3>
-            <p className="mt-2 text-sm font-semibold leading-6 text-amber-900">
-              Current v1 does not ingest yields, COT positioning, ETF or gold-flow data, real-rate curves, Fed-pricing data, DXY, or risk proxies.
-              Those sources would make the driver explanation stronger, especially for gold, but they are intentionally not used until the data boundary changes.
-            </p>
-          </div>
-        </div>
-      </section>
+      <details className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm">
+        <summary className="flex cursor-pointer list-none items-center gap-3 text-sm font-black text-amber-950">
+          <AlertTriangle className="h-4 w-4 flex-none text-amber-700" />
+          Missing data that would improve this read
+        </summary>
+        <p className="mt-3 pl-7 text-sm font-semibold leading-6 text-amber-900">
+          Current v1 does not ingest yields, COT positioning, ETF or gold-flow data, real-rate curves, Fed-pricing data, DXY, or risk proxies.
+          Those sources would make the driver explanation stronger, especially for gold, but they are intentionally not used until the data boundary changes.
+        </p>
+      </details>
     </section>
   );
 }
