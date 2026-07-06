@@ -1,14 +1,29 @@
-import { Activity, HardDrive, MousePointer2, Palette, RotateCcw, SlidersHorizontal, Trash2, X } from "lucide-react";
+import { Activity, CalendarDays, HardDrive, MousePointer2, Palette, RotateCcw, SlidersHorizontal, Trash2, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { ReactNode } from "react";
-import type { ChartAppearancePreferences, ChartCursorReadoutMode, ChartPreferences } from "@/app/lib/chartView";
+import type {
+  ChartAppearancePreferences,
+  ChartCursorReadoutMode,
+  ChartEventOverlayPreferences,
+  ChartPreferences,
+} from "@/app/lib/chartView";
 
-export type ChartDrawerMode = "appearance" | "cursor" | "cache";
+export type ChartDrawerMode = "appearance" | "cursor" | "events" | "cache";
 
 const CURSOR_MODE_OPTIONS: Array<{ id: ChartCursorReadoutMode; label: string; description: string }> = [
   { id: "both", label: "Both", description: "Show the exact pointer price and the candle-sticky close." },
   { id: "true_cursor", label: "Exact", description: "Show the exact price under the pointer." },
   { id: "nearest_candle", label: "Sticky", description: "Stick the readout and crosshair to the nearest candle close." },
+];
+
+const EVENT_SCOPE_OPTIONS: Array<{
+  id: ChartEventOverlayPreferences["scope"];
+  label: string;
+  description: string;
+}> = [
+  { id: "relevant", label: "Relevant only", description: "High and medium impact events for the selected symbol currencies." },
+  { id: "high_impact", label: "All high impact", description: "Every loaded high-impact event, even from other currencies." },
+  { id: "all", label: "All loaded", description: "Every loaded broker calendar row. Useful for audits, noisy for normal chart work." },
 ];
 
 interface ChartCacheDrawerData {
@@ -31,6 +46,10 @@ interface ChartSettingsDrawerProps {
   preferences: ChartPreferences;
   onCursorModeChange: (mode: ChartCursorReadoutMode) => void;
   onAppearanceChange: <K extends keyof ChartAppearancePreferences>(key: K, value: ChartAppearancePreferences[K]) => void;
+  onEventOverlayChange?: <K extends keyof ChartEventOverlayPreferences>(
+    key: K,
+    value: ChartEventOverlayPreferences[K],
+  ) => void;
   onResetAppearance: () => void;
   cacheData?: ChartCacheDrawerData;
   title?: string;
@@ -71,6 +90,7 @@ export function ChartSettingsDrawer({
   preferences,
   onCursorModeChange,
   onAppearanceChange,
+  onEventOverlayChange,
   onResetAppearance,
   cacheData,
   title = "Chart Settings",
@@ -79,6 +99,7 @@ export function ChartSettingsDrawer({
   const tabs: Array<{ mode: ChartDrawerMode; label: string; icon: ReactNode }> = [
     { mode: "appearance", label: "Appearance", icon: <Palette size={14} /> },
     { mode: "cursor", label: "Cursor", icon: <MousePointer2 size={14} /> },
+    ...(onEventOverlayChange ? [{ mode: "events" as const, label: "Events", icon: <CalendarDays size={14} /> }] : []),
     ...(cacheData ? [{ mode: "cache" as const, label: "Data cache", icon: <HardDrive size={14} /> }] : []),
   ];
   const activeMode = tabs.some((tab) => tab.mode === mode) ? mode : "appearance";
@@ -248,6 +269,42 @@ export function ChartSettingsDrawer({
                       </button>
                     ))}
                   </div>
+                </section>
+              ) : null}
+
+              {activeMode === "events" && onEventOverlayChange ? (
+                <section className="charts-history-section chart-drawer-card">
+                  <h3>
+                    <CalendarDays size={14} />
+                    Event Timeline
+                  </h3>
+                  <p>
+                    Draw loaded broker/MT5 calendar events directly over the candle chart. These markers show event timing context, not trade calls.
+                  </p>
+                  <label className="chart-settings-check chart-settings-check-card">
+                    <input
+                      type="checkbox"
+                      checked={preferences.eventOverlay.visible}
+                      onChange={(event) => onEventOverlayChange("visible", event.target.checked)}
+                    />
+                    <span>Show event lines on chart</span>
+                  </label>
+                  <div className="chart-drawer-segmented">
+                    {EVENT_SCOPE_OPTIONS.map((option) => (
+                      <button
+                        key={option.id}
+                        type="button"
+                        className={preferences.eventOverlay.scope === option.id ? "is-active" : ""}
+                        onClick={() => onEventOverlayChange("scope", option.id)}
+                      >
+                        <span>{option.label}</span>
+                        <small>{option.description}</small>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="chart-event-settings-note">
+                    Event lines only use calendar rows already loaded by the local bridge. Missing old rows do not mean no event happened there.
+                  </p>
                 </section>
               ) : null}
 

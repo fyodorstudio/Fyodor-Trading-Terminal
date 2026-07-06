@@ -104,19 +104,17 @@ describe("OverviewPlaceholderTab", () => {
         snapshots={snapshots}
         marketStatus={marketStatus}
         currentTime={new Date(1_781_000_000 * 1000)}
-        onNavigate={() => {}}
         onOpenCalendarEvent={() => {}}
-        onOpenEventReplay={() => {}}
-        onOpenChart={() => {}}
       />,
     );
 
     expect(html).toContain("Pair Brief");
     expect(html).toContain("EURUSD");
-    expect(html).toContain("Next Pair Event");
+    expect(html).toContain("Pair Driver Snapshot");
     expect(html).toContain("CPI y/y");
-    expect(html).toContain("Upcoming events");
+    expect(html).toContain("Next loaded pair event");
     expect(html).toContain("See recent releases");
+    expect(html).toContain("Factor coverage");
     expect(html).toContain("Policy Rate");
     expect(html).not.toContain("Specialist Tools, then Prototyping, then Deprecated Overview");
     expect(html).not.toContain("WORK IN PROGRESS");

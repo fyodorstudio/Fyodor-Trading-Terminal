@@ -52,7 +52,6 @@ interface AppRoutesProps {
   onOverviewSymbolChange: (symbol: string) => void;
   overviewMarketStatus: MarketStatusResponse | null;
   eventReplayPairIntent: string | null;
-  onOpenEventReplay: (symbol: string) => void;
   onConsumeEventReplayPairIntent: () => void;
   chartSymbol: string;
   onChartSymbolChange: (symbol: string) => void;
@@ -62,7 +61,7 @@ interface AppRoutesProps {
   calendarNavigationIntent: CalendarNavigationIntent | null;
   onConsumeCalendarNavigationIntent: () => void;
   onNavigate: (tab: TabId) => void;
-  onOpenCalendarEvent: (event: CalendarEvent) => void;
+  onOpenCalendarEvent: (event: CalendarEvent, source: CalendarNavigationIntent["source"]) => void;
 }
 
 function TabLoadingFallback() {
@@ -84,7 +83,6 @@ export function AppRoutes({
   onOverviewSymbolChange,
   overviewMarketStatus,
   eventReplayPairIntent,
-  onOpenEventReplay,
   onConsumeEventReplayPairIntent,
   chartSymbol,
   onChartSymbolChange,
@@ -106,13 +104,7 @@ export function AppRoutes({
           snapshots={centralBankResult.snapshots}
           marketStatus={overviewMarketStatus}
           currentTime={currentTime}
-          onNavigate={onNavigate}
-          onOpenCalendarEvent={onOpenCalendarEvent}
-          onOpenEventReplay={onOpenEventReplay}
-          onOpenChart={(symbol) => {
-            onChartSymbolChange(symbol);
-            onNavigate("charts");
-          }}
+          onOpenCalendarEvent={(event) => onOpenCalendarEvent(event, "overview")}
         />
       )}
       {activeTab === "legacy-overview" && (
@@ -126,7 +118,7 @@ export function AppRoutes({
           events={feedEvents}
           snapshots={centralBankResult.snapshots}
           onNavigate={onNavigate}
-          onOpenCalendarEvent={onOpenCalendarEvent}
+          onOpenCalendarEvent={(event) => onOpenCalendarEvent(event, "overview")}
         />
       )}
       {activeTab === "dashboard" && <DifferentialCalculatorTab snapshots={centralBankResult.snapshots} />}
@@ -143,7 +135,7 @@ export function AppRoutes({
           snapshots={centralBankResult.snapshots}
           events={feedEvents}
           status={feedStatus}
-          onOpenCalendarEvent={onOpenCalendarEvent}
+          onOpenCalendarEvent={(event) => onOpenCalendarEvent(event, "strength-meter")}
         />
       )}
       {activeTab === "event-tools" && (
@@ -186,6 +178,8 @@ export function AppRoutes({
           marketStatus={chartMarketStatus}
           selectedSymbol={chartSymbol}
           onSelectedSymbolChange={onChartSymbolChange}
+          events={feedEvents}
+          onOpenCalendarEvent={(event) => onOpenCalendarEvent(event, "charts")}
         />
       )}
       {activeTab === "calendar" && (

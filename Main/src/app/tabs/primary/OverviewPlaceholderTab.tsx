@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { ArrowRight, BarChart3, Building2, CalendarDays, Clock3, PlayCircle, Radio, X } from "lucide-react";
+import { ArrowRight, Database, Info, X } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { CURRENCY_TO_COUNTRY_CODE, FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import { formatCountdown, formatDateOnly, formatUtcDateTime } from "@/app/lib/format";
-import type { CalendarEvent, CentralBankSnapshot, MarketStatusResponse, TabId } from "@/app/types";
+import { buildMacroFactorRows, type MacroFactorRow } from "@/app/lib/macroDrivers";
+import type { CalendarEvent, CentralBankSnapshot, MarketStatusResponse } from "@/app/types";
 
 interface OverviewPlaceholderTabProps {
   selectedSymbol: string;
@@ -13,10 +14,7 @@ interface OverviewPlaceholderTabProps {
   snapshots: CentralBankSnapshot[];
   marketStatus: MarketStatusResponse | null;
   currentTime: Date;
-  onNavigate: (tab: TabId) => void;
   onOpenCalendarEvent: (event: CalendarEvent) => void;
-  onOpenEventReplay: (symbol: string) => void;
-  onOpenChart: (symbol: string) => void;
 }
 
 const IMPACT_STYLE: Record<CalendarEvent["impact"], string> = {
@@ -51,8 +49,10 @@ function MacroCard(props: {
   currency: string;
   snapshot: CentralBankSnapshot | null;
   nextEvent: CalendarEvent | null;
+  factorRows: MacroFactorRow[];
   currentTime: Date;
   onOpenEvent: (event: CalendarEvent) => void;
+  onOpenDetails: () => void;
 }) {
   const countryCode = resolveCountryCode(props.currency, props.snapshot);
   const status = props.snapshot?.status ?? "missing";
@@ -64,7 +64,7 @@ function MacroCard(props: {
         : "border-slate-200 bg-slate-50 text-slate-500";
 
   return (
-    <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
           <FlagIcon countryCode={countryCode} className="h-8 w-12 border border-slate-200 shadow-sm" />
@@ -78,7 +78,7 @@ function MacroCard(props: {
         </span>
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3">
+      <div className="mt-4 grid grid-cols-2 gap-3">
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
           <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Policy Rate</div>
           <div className="mt-2 text-2xl font-black tracking-tight text-slate-950">
@@ -99,7 +99,7 @@ function MacroCard(props: {
         </div>
       </div>
 
-      <div className="mt-4 grid gap-2 text-xs font-semibold text-slate-600">
+      <div className="mt-3 grid gap-2 text-xs font-semibold text-slate-600">
         <div className="flex items-center justify-between gap-3">
           <span>Next rate event</span>
           <strong className="text-right text-slate-900">{formatDateOnly(props.snapshot?.nextRateEventAt ?? null)}</strong>
@@ -107,6 +107,33 @@ function MacroCard(props: {
         <div className="flex items-center justify-between gap-3">
           <span>Next CPI event</span>
           <strong className="text-right text-slate-900">{formatDateOnly(props.snapshot?.nextCpiEventAt ?? null)}</strong>
+        </div>
+      </div>
+
+      <div className="mt-4 border-t border-slate-100 pt-3">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Factor coverage</span>
+          <button
+            type="button"
+            onClick={props.onOpenDetails}
+            className="inline-flex items-center gap-1 text-[11px] font-black text-blue-600"
+          >
+            Pair details <Info className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          {props.factorRows.slice(0, 6).map((row) => (
+            <button
+              key={`${row.currency}-${row.factor.id}`}
+              type="button"
+              onClick={props.onOpenDetails}
+              className={`overview-factor-chip ${row.coverageLabel === "Missing" ? "is-missing" : row.nextEvent ? "is-scheduled" : "is-current"}`}
+              title={`${row.factor.label}: ${row.summary}`}
+            >
+              <span>{row.factor.label}</span>
+              <strong>{row.coverageLabel}</strong>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -128,6 +155,84 @@ function MacroCard(props: {
           {props.nextEvent ? formatCountdown(props.nextEvent.time, props.currentTime.getTime()) : "N/A"}
         </span>
       </button>
+    </section>
+  );
+}
+
+function PairDriverSnapshot(props: {
+  pairName: string;
+  nextEvent: CalendarEvent | null;
+  upcomingEvents: CalendarEvent[];
+  factorRows: MacroFactorRow[];
+  currentTime: Date;
+  onOpenEvent: (event: CalendarEvent) => void;
+  onOpenReleases: () => void;
+  onOpenDetails: () => void;
+}) {
+  const coveredRows = props.factorRows.filter((row) => row.coverageLabel !== "Missing");
+  const scheduledRows = props.factorRows.filter((row) => row.nextEvent);
+  const highImpactUpcoming = props.upcomingEvents.filter((event) => event.impact === "high");
+
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-500">Pair Driver Snapshot</div>
+          <h3 className="mt-1 text-2xl font-black tracking-tight text-slate-950">{props.pairName}</h3>
+        </div>
+        <span className="rounded-md border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-blue-700">
+          Current feed only
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-2 sm:grid-cols-3">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Covered factors</span>
+          <strong className="mt-1 block text-lg font-black text-slate-950">{coveredRows.length}/{props.factorRows.length}</strong>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Scheduled</span>
+          <strong className="mt-1 block text-lg font-black text-slate-950">{scheduledRows.length}</strong>
+        </div>
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">High impact</span>
+          <strong className="mt-1 block text-lg font-black text-slate-950">{highImpactUpcoming.length}</strong>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => (props.nextEvent ? props.onOpenEvent(props.nextEvent) : undefined)}
+        disabled={!props.nextEvent}
+        className="mt-3 flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-950 px-4 py-3 text-left text-white transition enabled:hover:bg-blue-700 disabled:cursor-default disabled:bg-slate-100 disabled:text-slate-500"
+      >
+        <span className="min-w-0">
+          <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-blue-200">Next loaded pair event</span>
+          <span className="mt-1 block truncate text-sm font-black">
+            {props.nextEvent ? `${props.nextEvent.currency} | ${props.nextEvent.title}` : "No upcoming pair event loaded"}
+          </span>
+        </span>
+        <span className="shrink-0 text-right text-xs font-black">
+          {props.nextEvent ? formatCountdown(props.nextEvent.time, props.currentTime.getTime()) : "N/A"}
+        </span>
+      </button>
+
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={props.onOpenReleases}
+          className="inline-flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 transition hover:border-blue-200 hover:bg-blue-100"
+        >
+          See recent releases <ArrowRight className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={props.onOpenDetails}
+          className="inline-flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-700 transition hover:border-slate-300 hover:bg-white"
+        >
+          Pair details <Database className="h-4 w-4" />
+        </button>
+      </div>
     </section>
   );
 }
@@ -204,6 +309,45 @@ function ReleaseCurrencyGroup(props: {
   );
 }
 
+function FactorDetailRow({ row, onOpen }: { row: MacroFactorRow; onOpen: (event: CalendarEvent) => void }) {
+  return (
+    <div className="overview-factor-detail-row">
+      <div>
+        <span>{row.factor.label}</span>
+        <strong>{row.coverageLabel}</strong>
+      </div>
+      <p>{row.summary}</p>
+      <button
+        type="button"
+        onClick={() => (row.nextEvent ? onOpen(row.nextEvent) : undefined)}
+        disabled={!row.nextEvent}
+      >
+        {row.nextEvent ? `${row.nextEvent.title} (${row.nextEvent.currency})` : "No upcoming loaded row"}
+      </button>
+    </div>
+  );
+}
+
+function FactorDetailsGroup(props: {
+  currency: string;
+  rows: MacroFactorRow[];
+  onOpen: (event: CalendarEvent) => void;
+}) {
+  return (
+    <section className="overview-factor-detail-group">
+      <div className="overview-release-currency-head">
+        <span>{props.currency}</span>
+        <strong>{props.rows.filter((row) => row.coverageLabel !== "Missing").length}/{props.rows.length}</strong>
+      </div>
+      <div className="mt-3 grid gap-2">
+        {props.rows.map((row) => (
+          <FactorDetailRow key={`${row.currency}-${row.factor.id}`} row={row} onOpen={props.onOpen} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function OverviewPlaceholderTab({
   selectedSymbol,
   onSelectedSymbolChange,
@@ -211,12 +355,10 @@ export function OverviewPlaceholderTab({
   snapshots,
   marketStatus,
   currentTime,
-  onNavigate,
   onOpenCalendarEvent,
-  onOpenEventReplay,
-  onOpenChart,
 }: OverviewPlaceholderTabProps) {
   const [releasePopoverOpen, setReleasePopoverOpen] = useState(false);
+  const [pairDetailsOpen, setPairDetailsOpen] = useState(false);
   const pair = resolvePair(selectedSymbol);
   const pairCurrencies = [pair.base, pair.quote];
   const pairEvents = getPairEvents(events, pairCurrencies);
@@ -227,7 +369,6 @@ export function OverviewPlaceholderTab({
   const recentEvents = pairEvents
     .filter((event) => event.time < nowSeconds)
     .sort((left, right) => right.time - left.time);
-  const upcomingFeedEvents = upcomingEvents.slice(0, 3);
   const nextEvent = upcomingEvents[0] ?? null;
   const baseNextEvent = upcomingEvents.find((event) => event.currency === pair.base) ?? null;
   const quoteNextEvent = upcomingEvents.find((event) => event.currency === pair.quote) ?? null;
@@ -241,6 +382,9 @@ export function OverviewPlaceholderTab({
   ];
   const baseSnapshot = findSnapshot(pair.base, snapshots);
   const quoteSnapshot = findSnapshot(pair.quote, snapshots);
+  const factorRows = buildMacroFactorRows({ events, currencies: pairCurrencies, nowSeconds });
+  const baseFactorRows = factorRows.filter((row) => row.currency === pair.base);
+  const quoteFactorRows = factorRows.filter((row) => row.currency === pair.quote);
   const sessionLabel =
     marketStatus?.session_state === "open"
       ? "Market open"
@@ -249,7 +393,7 @@ export function OverviewPlaceholderTab({
         : "Session unknown";
 
   return (
-    <div className="workspace-page flex flex-col gap-4">
+    <div className="workspace-page workspace-page-compact flex flex-col gap-4">
       <section className="grid gap-4 lg:grid-cols-[minmax(320px,0.9fr)_minmax(0,1.5fr)]">
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -295,132 +439,39 @@ export function OverviewPlaceholderTab({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-slate-950 p-5 text-white shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-200">Next Pair Event</div>
-              <h3 className="mt-2 text-2xl font-black tracking-tight">
-                {nextEvent ? `${nextEvent.currency} | ${nextEvent.title}` : "No upcoming pair event loaded"}
-              </h3>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-right">
-              <div className="text-[10px] font-black uppercase tracking-[0.16em] text-blue-100">Countdown</div>
-              <div className="mt-1 text-lg font-black">{nextEvent ? formatCountdown(nextEvent.time, currentTime.getTime()) : "N/A"}</div>
-            </div>
-          </div>
-          <div className="mt-5 flex flex-wrap items-center gap-3 text-sm font-semibold text-slate-200">
-            <span className="inline-flex items-center gap-2">
-              <Clock3 className="h-4 w-4 text-blue-200" />
-              {nextEvent ? `${formatUtcDateTime(nextEvent.time)} UTC` : "Calendar feed has no future row for this pair."}
-            </span>
-            {nextEvent ? (
-              <span className={`rounded-md border px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${IMPACT_STYLE[nextEvent.impact]}`}>
-                {nextEvent.impact} impact
-              </span>
-            ) : null}
-          </div>
-          <div className="mt-5 grid gap-3 sm:grid-cols-4">
-            <button
-              type="button"
-              onClick={() => onOpenChart(pair.name)}
-              className="flex items-center justify-between rounded-xl border border-white/10 bg-white px-3 py-3 text-sm font-black text-slate-950 transition hover:bg-blue-50"
-            >
-              Charts <BarChart3 className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onOpenEventReplay(pair.name)}
-              className="flex items-center justify-between rounded-xl border border-white/10 bg-white/10 px-3 py-3 text-sm font-black text-white transition hover:bg-white/15"
-            >
-              Event Replay <PlayCircle className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => (nextEvent ? onOpenCalendarEvent(nextEvent) : onNavigate("calendar"))}
-              className="flex items-center justify-between rounded-xl border border-white/10 bg-white/10 px-3 py-3 text-sm font-black text-white transition hover:bg-white/15"
-            >
-              Calendar <CalendarDays className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              onClick={() => onNavigate("central-banks")}
-              className="flex items-center justify-between rounded-xl border border-white/10 bg-white/10 px-3 py-3 text-sm font-black text-white transition hover:bg-white/15"
-            >
-              Central Banks <Building2 className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
+        <PairDriverSnapshot
+          pairName={pair.name}
+          nextEvent={nextEvent}
+          upcomingEvents={upcomingEvents}
+          factorRows={factorRows}
+          currentTime={currentTime}
+          onOpenEvent={onOpenCalendarEvent}
+          onOpenReleases={() => setReleasePopoverOpen(true)}
+          onOpenDetails={() => setPairDetailsOpen(true)}
+        />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="grid gap-4 lg:grid-cols-2">
-          <MacroCard
-            side="Base"
-            currency={pair.base}
-            snapshot={baseSnapshot}
-            nextEvent={baseNextEvent}
-            currentTime={currentTime}
-            onOpenEvent={onOpenCalendarEvent}
-          />
-          <MacroCard
-            side="Quote"
-            currency={pair.quote}
-            snapshot={quoteSnapshot}
-            nextEvent={quoteNextEvent}
-            currentTime={currentTime}
-            onOpenEvent={onOpenCalendarEvent}
-          />
-        </div>
-
-        <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Pair Event Feed</div>
-              <h3 className="mt-1 text-lg font-black text-slate-950">Upcoming events</h3>
-            </div>
-            <Radio className="h-5 w-5 text-blue-500" />
-          </div>
-          <div className="mt-4 grid gap-2">
-            {upcomingFeedEvents.length > 0 ? (
-              upcomingFeedEvents.map((event) => (
-                <EventRow
-                  key={`${event.id}-${event.time}-${event.currency}-${event.title}`}
-                  event={event}
-                  currentTime={currentTime}
-                  mode="upcoming"
-                  onOpen={onOpenCalendarEvent}
-                />
-              ))
-            ) : (
-              <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-sm font-semibold text-slate-500">
-                No upcoming pair-relevant event is loaded in the current MT5 calendar feed.
-              </div>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => setReleasePopoverOpen(true)}
-            className="mt-4 inline-flex w-full items-center justify-between rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 transition hover:border-blue-200 hover:bg-blue-100"
-          >
-            See recent releases <ArrowRight className="h-4 w-4" />
-          </button>
-        </section>
-      </section>
-
-      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Workflow</div>
-            <h3 className="mt-1 text-lg font-black text-slate-950">Open the deeper surface that matches the question.</h3>
-          </div>
-          <button
-            type="button"
-            onClick={() => onOpenChart(pair.name)}
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-3 text-sm font-black text-white transition hover:bg-blue-700"
-          >
-            Start with chart context <ArrowRight className="h-4 w-4" />
-          </button>
-        </div>
+      <section className="grid gap-4 lg:grid-cols-2">
+        <MacroCard
+          side="Base"
+          currency={pair.base}
+          snapshot={baseSnapshot}
+          nextEvent={baseNextEvent}
+          factorRows={baseFactorRows}
+          currentTime={currentTime}
+          onOpenEvent={onOpenCalendarEvent}
+          onOpenDetails={() => setPairDetailsOpen(true)}
+        />
+        <MacroCard
+          side="Quote"
+          currency={pair.quote}
+          snapshot={quoteSnapshot}
+          nextEvent={quoteNextEvent}
+          factorRows={quoteFactorRows}
+          currentTime={currentTime}
+          onOpenEvent={onOpenCalendarEvent}
+          onOpenDetails={() => setPairDetailsOpen(true)}
+        />
       </section>
 
       {releasePopoverOpen ? (
@@ -484,6 +535,38 @@ export function OverviewPlaceholderTab({
                   ))}
                 </div>
               </section>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {pairDetailsOpen ? (
+        <div className="overview-release-overlay" onClick={() => setPairDetailsOpen(false)}>
+          <section
+            className="overview-release-popover overview-factor-detail-popover"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${pair.name} pair details`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <header className="overview-release-popover-head">
+              <div>
+                <span>Pair details</span>
+                <h3>{pair.name}</h3>
+              </div>
+              <button type="button" aria-label="Close pair details" onClick={() => setPairDetailsOpen(false)}>
+                <X className="h-4 w-4" />
+              </button>
+            </header>
+
+            <div className="overview-release-popover-body">
+              <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
+                Calendar factor coverage uses only loaded broker/MT5 calendar rows. Missing rows mean the current feed has no matching evidence, not that the factor does not matter.
+              </div>
+              <div className="overview-release-currency-grid">
+                <FactorDetailsGroup currency={pair.base} rows={baseFactorRows} onOpen={onOpenCalendarEvent} />
+                <FactorDetailsGroup currency={pair.quote} rows={quoteFactorRows} onOpen={onOpenCalendarEvent} />
+              </div>
             </div>
           </section>
         </div>

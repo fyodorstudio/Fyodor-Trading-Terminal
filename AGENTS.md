@@ -18,6 +18,12 @@ Fyodor is a local manual-trading support terminal. It helps inspect MT5 candles,
 
 Trusted live data is intentionally limited to MT5 OHLCV plus broker/MT5 economic-calendar rows unless the user explicitly changes that boundary.
 
+## UI / Viewport Rule
+
+- Active tabs should target normal desktop use at 100% Chrome zoom without whole-page vertical scrolling.
+- Use bounded panels, popovers, modals, collapsible sections, and internal scroll regions when a surface needs more detail.
+- If an active tab intentionally requires whole-page scrolling, document why in `docs/Development Logs/Checklist.md` before treating it as acceptable.
+
 ## Active Surfaces
 
 Primary top-nav surfaces:

@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Checklist
 
-Last updated: 2026-07-02
+Last updated: 2026-07-06
 
 ## Active Planning Source
 
@@ -20,11 +20,13 @@ This file is the active command board for the next goal-mode run.
 - Calendar `Actual / Forecast / Previous` values have no source unit metadata, so formatting must be conservative and source-preserving.
 - Chart viewer time must be trustworthy: selected viewer timezone should control axis labels, crosshair labels, latest-candle labels, and viewer clock.
 - Economic Calendar event explanation is a critical product surface because scheduled events are one of the main reasons price can move.
-- Overview is active, but still needs final 100% Chrome zoom fit review when bridge data is populated.
+- Active tabs should target normal desktop use at 100% Chrome zoom without whole-page vertical scrolling.
+- Overview is active, but still needs pair-brief layout work and final 100% Chrome zoom fit review when bridge data is populated.
 - Event Replay is active; modal, past-release, replay-brief, and viewport polish have had a first pass and still need visual inspection.
 - Central Banks Data is an active reference surface and should not be redesigned casually.
 - Differential Calculator is an active Specialist Tools child, not a primary top-nav tab.
-- Macro Drivers is the intended next new active Specialist Tools child for forex and gold only.
+- Macro Drivers is an active Specialist Tools child for forex and gold; its wide Calendar Factor Coverage table was removed, but the page still needs 100% Chrome zoom inspection.
+- Charts event overlay uses clustered/adaptive markers; it should still be visually inspected on dense calendar weeks.
 - Aesthetic Forge is mounted behind the header gear and stays closed by default.
 - Prototyping is a garbage drawer. Garbage tabs, supporting garbage logic, and garbage tests are ignored by default unless the user explicitly asks for them.
 - Deprecated Overview, Six Questions, and Work In Progress must not steer new product work.
@@ -34,56 +36,53 @@ This file is the active command board for the next goal-mode run.
 
 ## Active Roadmap
 
-### 1. Display Trust Fixes
+### 1. Visual Unification And Viewport Fit
 
-This is the next active implementation lane. Fix these before building Macro Drivers.
+This is reopened. The first pass helped, but it is not complete.
 
-- [x] Economic Calendar values:
-  - [x] conservatively infer obvious units from value text and event title;
-  - [x] preserve raw source value via hover/title or equivalent;
-  - [x] keep uncertain values honest instead of pretending units are known;
-  - [x] do not change the MT5 bridge contract.
-- [x] Charts timezone:
-  - [x] viewer time is the default truth;
-  - [x] axis labels, crosshair labels, latest-candle labels, and viewer clock should agree with the selected viewer timezone;
-  - [x] MT5/server time remains selectable as an audit/cross-check mode.
+- [ ] Active tabs should target 100% Chrome zoom on normal desktop without whole-page vertical scrolling.
+- [ ] Use bounded panels, popovers, modals, collapsible sections, and internal scroll regions for detail overflow.
+- [x] Macro Drivers wide factor table removed; page height is reduced.
+- [x] Overview pair-brief layout was redesigned around Pair Driver Snapshot.
+- [ ] Future visual implementation must include manual viewport inspection at 100% Chrome zoom plus `pnpm --dir Main build`.
 
-### 2. Overview Release Popover Polish
+### 2. Charts Event Overlay Polish
 
-- [x] Update `See recent releases` popover to organize releases into two clear groups:
-  - [x] `BASE/XXX`;
-  - [x] `QUOTE/XXX`.
-- [x] Keep upcoming and past releases visually separated.
+- [x] Replace one badge per event with clustered event markers.
+- [x] Use one clean vertical line per nearby time/candle cluster.
+- [x] Summarize cluster badges, for example `EUR x4`, `USD high`, or `3 events`.
+- [x] Use adaptive labels:
+  - [x] always draw event lines;
+  - [x] show badges for high-impact or selected/hovered clusters;
+  - [x] suppress nonessential badges when the chart is crowded.
+- [x] Clicking a cluster opens a compact mini event-list popover.
+- [x] Each row in the mini popover opens the Economic Calendar inspector for that event.
+- [x] Keep existing event overlay scope settings.
+- [x] Do not add wider historical calendar fetching in this pass.
+- [ ] Visually inspect dense calendar weeks and adjust badge density if needed.
 
-### 3. Macro Drivers Tool
+### 3. Overview Pair Driver Snapshot Redesign
 
-- [x] Add `Macro Drivers` as an active Specialist Tools child, not primary nav and not garbage.
-- [x] Scope v1 to forex and gold.
-- [x] Use current data only:
-  - [x] MT5 OHLCV;
-  - [x] broker/MT5 calendar rows;
-  - [x] central-bank snapshots.
-- [x] Include a small missing-data note explaining what would improve with yields, COT, ETF/flow data, real-rate data, Fed pricing, DXY/risk proxies, and similar sources.
-- [x] Trend state defaults:
-  - [x] W1 = broad regime context;
-  - [x] D1 = main trend/breakout state;
-  - [x] H4 = confirmation/timing.
-- [x] Add plain-English tooltips explaining how trend/regime labels work.
-- [x] Put expanded pair metrics here first:
-  - [x] unemployment;
-  - [x] wages;
-  - [x] jobless claims;
-  - [x] retail sales;
-  - [x] PMI;
-  - [x] sentiment;
-  - [x] trade/current account;
-  - [x] inflation;
-  - [x] policy rate;
-  - [x] related calendar-derived factors.
-- [x] All metrics must show coverage/confidence/missing-data honesty.
-- [x] Gold support in v1 means XAUUSD price trend plus USD/calendar/central-bank context, with missing gold-specific drivers clearly noted.
+- [x] Remove the dark standalone `Next Pair Event` card.
+- [x] Remove redundant mini navigation/workflow buttons leading to other tabs.
+- [x] Redesign the top-right Overview area as `Pair Driver Snapshot`.
+- [x] Move pair-level Calendar Factor Coverage out of Macro Drivers and into Overview.
+- [x] Put compact base/quote factor chips or mini cards under the base/quote macro cards.
+- [x] Add a `Pair details` popover for detailed latest/next factor rows.
+- [x] Keep upcoming pair-event information, but redesign `Pair Event Feed` so `See recent releases` still has a clear home.
+- [ ] Preserve the no-whole-page-scroll target at 100% Chrome zoom.
 
-### 4. Backlog
+### 4. Macro Drivers Cleanup
+
+- [x] Remove the current wide `Calendar Factor Coverage` table from Macro Drivers.
+- [x] Keep Macro Drivers focused on:
+  - [x] trend state;
+  - [x] current macro snapshot;
+  - [x] missing-data honesty;
+  - [x] forex/gold driver context.
+- [x] Keep Macro Drivers under Specialist Tools, not primary top nav.
+
+### 5. Backlog
 
 - [ ] External data connectors remain later.
 - [ ] COT remains later because it is weekly and not currently in the app data stack.
@@ -93,14 +92,14 @@ This is the next active implementation lane. Fix these before building Macro Dri
 
 ## Completed Checkpoints
 
-- [x] Visual unification and viewport first pass completed.
+- [x] Visual unification and viewport first pass completed, but viewport fit remains an active quality gate.
 - [x] Active app shell no longer has the old fixed 1460px content ceiling.
 - [x] Charts diagnostic `Terminal Console` is collapsible.
 - [x] Central Banks focus view is denser, with audit logs collapsed.
 - [x] Economic Calendar table uses a desktop scroll region.
 - [x] `Main/src/styles.css` ownership was audited; do not split it without a specific visual-regression plan.
 - [x] Overview was rebuilt fresh from `OverviewPlaceholderTab.tsx`, not Deprecated Overview.
-- [x] Overview has pair selector, next pair event/countdown, route buttons, base/quote macro cards, and recent pair-relevant events.
+- [x] Overview has pair selector, Pair Driver Snapshot, base/quote macro cards, factor chips, and recent-release popovers.
 - [x] Event Replay preserves pair -> event -> release -> replay setup -> playback.
 - [x] Overview -> Event Replay opens on the selected Overview pair without forcing normal Event Replay launches to mirror Overview.
 - [x] Event Replay keeps pair-first event grouping and major global movers separate.
@@ -134,7 +133,7 @@ This is the next active implementation lane. Fix these before building Macro Dri
 ## Stable Assumptions
 
 - The next goal-mode run should start from the remaining unchecked items in this checklist.
-- The next implementation should fix calendar values and chart timezone before building Macro Drivers.
+- Display trust remains important: calendar values should stay source-preserving, and chart time should stay viewer-time-first.
 - Header gear is the chosen settings/config entrypoint.
 - Differential Calculator is an active Specialist Tools child, not a primary tab.
 - Event explanation must help decision-making without generating trade calls.

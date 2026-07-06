@@ -16,6 +16,7 @@ import type { BridgeCandle, MarketStatusResponse, Timeframe } from "@/app/types"
 export type ChartDisplayTimeMode = DisplayTimezoneSelection;
 export type ChartCursorReadoutMode = "both" | "true_cursor" | "nearest_candle";
 export type ChartWickMode = "match" | "neutral";
+export type ChartEventOverlayScope = "relevant" | "high_impact" | "all";
 
 export interface ChartAppearancePreferences {
   backgroundColor: string;
@@ -30,10 +31,16 @@ export interface ChartAppearancePreferences {
   wickMode: ChartWickMode;
 }
 
+export interface ChartEventOverlayPreferences {
+  visible: boolean;
+  scope: ChartEventOverlayScope;
+}
+
 export interface ChartPreferences {
   version: number;
   cursorReadoutMode: ChartCursorReadoutMode;
   appearance: ChartAppearancePreferences;
+  eventOverlay: ChartEventOverlayPreferences;
 }
 
 export interface HistoryCacheEntry {
@@ -85,6 +92,10 @@ export const DEFAULT_CHART_PREFERENCES: ChartPreferences = {
     gridVisible: true,
     wickMode: "match",
   },
+  eventOverlay: {
+    visible: true,
+    scope: "relevant",
+  },
 };
 
 export function loadChartDisplayTimeMode(): ChartDisplayTimeMode {
@@ -120,6 +131,21 @@ function normalizeChartAppearance(raw: unknown): ChartAppearancePreferences {
   };
 }
 
+function normalizeChartEventOverlay(raw: unknown): ChartEventOverlayPreferences {
+  const fallback = DEFAULT_CHART_PREFERENCES.eventOverlay;
+  if (!raw || typeof raw !== "object") return fallback;
+  const row = raw as Record<string, unknown>;
+  const scope = row.scope;
+
+  return {
+    visible: typeof row.visible === "boolean" ? row.visible : fallback.visible,
+    scope:
+      scope === "relevant" || scope === "high_impact" || scope === "all"
+        ? scope
+        : fallback.scope,
+  };
+}
+
 export function normalizeChartPreferences(raw: unknown): ChartPreferences {
   if (!raw || typeof raw !== "object") return DEFAULT_CHART_PREFERENCES;
   const row = raw as Record<string, unknown>;
@@ -132,6 +158,7 @@ export function normalizeChartPreferences(raw: unknown): ChartPreferences {
         ? mode
         : DEFAULT_CHART_PREFERENCES.cursorReadoutMode,
     appearance: normalizeChartAppearance(row.appearance),
+    eventOverlay: normalizeChartEventOverlay(row.eventOverlay),
   };
 }
 

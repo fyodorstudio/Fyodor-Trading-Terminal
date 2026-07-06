@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
+import { ChartSettingsDrawer } from "@/app/components/ChartSettingsDrawer";
+import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
 import { ChartsTab } from "@/app/tabs/primary/ChartsTab";
 import { getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
@@ -84,6 +86,8 @@ describe("getChartConnectionLabel", () => {
       createElement(ChartsTab, {
         selectedSymbol: "EURUSD",
         onSelectedSymbolChange: () => {},
+        events: [],
+        onOpenCalendarEvent: () => {},
         marketStatus: {
           symbol: "EURUSD",
           symbol_path: "Forex Majors\\EURUSD",
@@ -106,8 +110,32 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Exact");
     expect(html).toContain("Sticky");
     expect(html).toContain("Open chart appearance");
+    expect(html).toContain("Open chart events");
     expect(html).toContain("Open chart data cache");
     expect(html).not.toContain(">History<");
+  });
+
+  it("renders event overlay controls inside the chart settings drawer", () => {
+    const html = renderToStaticMarkup(
+      createElement(ChartSettingsDrawer, {
+        open: true,
+        mode: "events",
+        onModeChange: () => {},
+        onClose: () => {},
+        preferences: DEFAULT_CHART_PREFERENCES,
+        onCursorModeChange: () => {},
+        onAppearanceChange: () => {},
+        onEventOverlayChange: () => {},
+        onResetAppearance: () => {},
+      }),
+    );
+
+    expect(html).toContain("Events");
+    expect(html).toContain("Event Timeline");
+    expect(html).toContain("Show event lines on chart");
+    expect(html).toContain("Relevant only");
+    expect(html).toContain("All high impact");
+    expect(html).toContain("All loaded");
   });
 
   it("derives session detail only from the active market status", () => {

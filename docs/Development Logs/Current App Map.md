@@ -24,7 +24,7 @@ This is the short orientation doc for future AI and human sessions. Read it with
 1. `Overview`
    - Current state: fresh pair-brief surface.
    - Uses the selected pair, active MT5 calendar rows, active central-bank snapshots, and market status.
-   - Shows pair selector, next pair-relevant event/countdown, upcoming pair events, base/quote macro cards, and route buttons to deeper specialist surfaces.
+   - Shows pair selector, Pair Driver Snapshot, next loaded pair event/countdown, base/quote macro cards, compact factor coverage, pair details popover, and recent-release popover.
    - It is a glanceable decision-support brief, not a signal or trade-call surface.
    - The older implementation is still available as `Deprecated Overview` through Prototyping.
 
@@ -35,7 +35,7 @@ This is the short orientation doc for future AI and human sessions. Read it with
 
 3. `Charts`
    - Current state: primary, useful surface.
-   - Uses `lightweight-charts`, MT5 history/stream data, chart cache, cursor readout modes, and chart settings.
+   - Uses `lightweight-charts`, MT5 history/stream data, chart cache, cursor readout modes, chart settings, and clustered broker-calendar event markers.
    - This is price-context and inspection support, not a prediction surface.
 
 4. `Economic Calendar`
@@ -64,7 +64,8 @@ Current direct children under `Specialist Tools`:
 2. `Active Tool` / `MACRO DRIVERS`
    - Active current-data-only driver map for forex and gold.
    - Uses MT5 OHLCV, broker/MT5 calendar rows, and central-bank snapshots.
-   - Explains trend state, calendar factor coverage, and missing data without producing trade calls.
+   - Explains trend state, current macro snapshot, coverage summary, and missing data without producing trade calls.
+   - Detailed pair-level calendar factor coverage now belongs in Overview, not in Macro Drivers.
 
 3. `Active Experiment` / `EVENT REPLAY`
    - Primary pair-first replay surface for studying scheduled event reactions.

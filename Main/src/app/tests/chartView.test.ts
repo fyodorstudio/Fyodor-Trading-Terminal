@@ -23,7 +23,14 @@ import {
   formatHoverTimezoneSuffix,
   formatUtcOffsetLabel,
 } from "@/app/lib/timezoneDisplay";
-import type { BridgeCandle, MarketStatusResponse } from "@/app/types";
+import {
+  filterChartEventsForOverlay,
+  formatChartEventDisplayTime,
+  getChartEventAnchorTime,
+  getChartEventCoordinateTime,
+  getChartEventRelevantCurrencies,
+} from "@/app/lib/chartEvents";
+import type { BridgeCandle, CalendarEvent, MarketStatusResponse } from "@/app/types";
 
 const SAMPLE_CANDLE: BridgeCandle = {
   time: Date.UTC(2026, 1, 19, 21, 0, 0) / 1000,
@@ -33,6 +40,42 @@ const SAMPLE_CANDLE: BridgeCandle = {
   close: 1.5,
   volume: 10,
 };
+
+const CALENDAR_EVENTS: CalendarEvent[] = [
+  {
+    id: 1,
+    time: SAMPLE_CANDLE.time,
+    countryCode: "US",
+    currency: "USD",
+    title: "Nonfarm Payrolls",
+    impact: "high",
+    actual: "200K",
+    forecast: "180K",
+    previous: "170K",
+  },
+  {
+    id: 2,
+    time: SAMPLE_CANDLE.time + 3600,
+    countryCode: "EU",
+    currency: "EUR",
+    title: "CPI y/y",
+    impact: "medium",
+    actual: "2.1%",
+    forecast: "2.0%",
+    previous: "1.9%",
+  },
+  {
+    id: 3,
+    time: SAMPLE_CANDLE.time + 7200,
+    countryCode: "JP",
+    currency: "JPY",
+    title: "Retail Sales",
+    impact: "low",
+    actual: "0.1%",
+    forecast: "0.2%",
+    previous: "0.0%",
+  },
+];
 
 function marketStatus(
   overrides: Partial<MarketStatusResponse> = {},
@@ -117,15 +160,77 @@ describe("chartView helpers", () => {
     expect(
       normalizeChartPreferences({
         cursorReadoutMode: "both",
+        eventOverlay: {
+          visible: false,
+          scope: "all",
+        },
         appearance: {
           bullishColor: "#00ff00",
         },
-      }).appearance,
+      }),
     ).toMatchObject({
-      backgroundColor: DEFAULT_CHART_PREFERENCES.appearance.backgroundColor,
-      gridColor: DEFAULT_CHART_PREFERENCES.appearance.gridColor,
-      textColor: DEFAULT_CHART_PREFERENCES.appearance.textColor,
+      eventOverlay: {
+        visible: false,
+        scope: "all",
+      },
+      appearance: {
+        backgroundColor: DEFAULT_CHART_PREFERENCES.appearance.backgroundColor,
+        gridColor: DEFAULT_CHART_PREFERENCES.appearance.gridColor,
+        textColor: DEFAULT_CHART_PREFERENCES.appearance.textColor,
+      },
     });
+    expect(normalizeChartPreferences({ cursorReadoutMode: "both" }).eventOverlay).toEqual(
+      DEFAULT_CHART_PREFERENCES.eventOverlay,
+    );
+  });
+
+  it("filters chart event overlays by selected symbol and scope", () => {
+    expect(getChartEventRelevantCurrencies("EURUSD")).toEqual(["EUR", "USD"]);
+    expect(getChartEventRelevantCurrencies("XAUUSD")).toEqual(["USD"]);
+
+    expect(
+      filterChartEventsForOverlay({
+        events: CALENDAR_EVENTS,
+        selectedSymbol: "EURUSD",
+        scope: "relevant",
+        sourceTimeOffsetSeconds: 0,
+      }).map((candidate) => candidate.event.currency),
+    ).toEqual(["USD", "EUR"]);
+
+    expect(
+      filterChartEventsForOverlay({
+        events: CALENDAR_EVENTS,
+        selectedSymbol: "EURUSD",
+        scope: "high_impact",
+        sourceTimeOffsetSeconds: 0,
+      }).map((candidate) => candidate.event.currency),
+    ).toEqual(["USD"]);
+
+    expect(
+      filterChartEventsForOverlay({
+        events: CALENDAR_EVENTS,
+        selectedSymbol: "EURUSD",
+        scope: "all",
+        sourceTimeOffsetSeconds: 0,
+      }).map((candidate) => candidate.event.currency),
+    ).toEqual(["USD", "EUR", "JPY"]);
+  });
+
+  it("maps calendar event timestamps into chart coordinates without losing display truth", () => {
+    expect(getChartEventCoordinateTime(SAMPLE_CANDLE.time, 3 * 60 * 60)).toBe(SAMPLE_CANDLE.time + 3 * 60 * 60);
+    expect(formatChartEventDisplayTime(SAMPLE_CANDLE.time, "utc-offset:420", 3 * 60 * 60)).toBe(
+      formatDateTimeForDisplayTimezone(SAMPLE_CANDLE.time, "utc-offset:420"),
+    );
+    expect(formatChartEventDisplayTime(SAMPLE_CANDLE.time, "server", 3 * 60 * 60)).toBe(
+      formatDateTimeForDisplayTimezone(SAMPLE_CANDLE.time + 3 * 60 * 60, "server"),
+    );
+    expect(
+      getChartEventAnchorTime(
+        SAMPLE_CANDLE.time + 60 * 60,
+        [SAMPLE_CANDLE, { ...SAMPLE_CANDLE, time: SAMPLE_CANDLE.time + 24 * 60 * 60 }],
+        "D1",
+      ),
+    ).toBe(SAMPLE_CANDLE.time);
   });
 
   it("formats cursor readout labels for all supported modes", () => {

@@ -32,6 +32,7 @@ describe("calendar navigation helpers", () => {
       countryCode: "US",
       source: "overview",
     });
+    expect(createCalendarNavigationIntent(event, "charts").source).toBe("charts");
   });
 
   it("returns a same-day focused range for a target event", () => {

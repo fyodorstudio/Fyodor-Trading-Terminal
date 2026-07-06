@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import {
   CandlestickSeries,
   createChart,
@@ -11,6 +11,7 @@ import {
 import {
   Activity,
   AlertTriangle,
+  CalendarDays,
   Check,
   ChevronDown,
   ChevronRight,
@@ -55,8 +56,16 @@ import {
   type ChartAppearancePreferences,
   type ChartCursorReadoutMode,
   type ChartDisplayTimeMode,
+  type ChartEventOverlayPreferences,
   type ChartPreferences,
 } from "@/app/lib/chartView";
+import {
+  filterChartEventsForOverlay,
+  formatChartEventDisplayTime,
+  getChartEventAnchorTime,
+  getChartEventKey,
+  isChartEventTimeframeIntraday,
+} from "@/app/lib/chartEvents";
 import {
   clearChartHistoryCache,
   loadChartFavorites,
@@ -71,7 +80,7 @@ import {
   getDisplayTimezoneOptions,
   getDisplayTimezoneShortLabel,
 } from "@/app/lib/timezoneDisplay";
-import type { BridgeCandle, BridgeStatus, BridgeSymbol, MarketStatusResponse, Timeframe } from "@/app/types";
+import type { BridgeCandle, BridgeStatus, BridgeSymbol, CalendarEvent, MarketStatusResponse, Timeframe } from "@/app/types";
 
 const DEBUG_MAX = 60;
 const CURSOR_MODE_OPTIONS: Array<{ id: ChartCursorReadoutMode; label: string; description: string }> = [
@@ -94,9 +103,147 @@ interface ChartsTabProps {
   marketStatus: MarketStatusResponse | null;
   selectedSymbol: string;
   onSelectedSymbolChange: (symbol: string) => void;
+  events: CalendarEvent[];
+  onOpenCalendarEvent: (event: CalendarEvent) => void;
 }
 
-export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange }: ChartsTabProps) {
+interface ChartEventOverlayPoint {
+  key: string;
+  event: CalendarEvent;
+  x: number;
+  timeLabel: string;
+  tooltipPlacement: "left" | "center" | "right";
+}
+
+interface ChartEventOverlayCluster {
+  key: string;
+  events: Array<{
+    event: CalendarEvent;
+    timeLabel: string;
+  }>;
+  x: number;
+  impact: CalendarEvent["impact"];
+  badgeLabel: string;
+  detailLabel: string;
+  tooltipPlacement: "left" | "center" | "right";
+  showBadge: boolean;
+}
+
+const CHART_EVENT_TOOLTIP_WIDTH = 300;
+const CHART_EVENT_CLUSTER_DISTANCE_PX = 24;
+
+function interpolateChartEventX(
+  chart: IChartApi,
+  candles: BridgeCandle[],
+  targetTime: number,
+): number | null {
+  const timeScale = chart.timeScale();
+  const exactX = timeScale.timeToCoordinate(targetTime as Time);
+  if (exactX != null) return exactX;
+
+  const nextIndex = candles.findIndex((candle) => candle.time >= targetTime);
+  const previous = nextIndex > 0 ? candles[nextIndex - 1] : null;
+  const next = nextIndex >= 0 ? candles[nextIndex] : null;
+
+  if (previous && next && next.time !== previous.time) {
+    const previousX = timeScale.timeToCoordinate(previous.time as Time);
+    const nextX = timeScale.timeToCoordinate(next.time as Time);
+    if (previousX != null && nextX != null) {
+      const progress = (targetTime - previous.time) / (next.time - previous.time);
+      return previousX + (nextX - previousX) * progress;
+    }
+  }
+
+  return null;
+}
+
+function resolveChartEventX(
+  chart: IChartApi,
+  candles: BridgeCandle[],
+  timeframe: Timeframe,
+  chartTime: number,
+): number | null {
+  if (!isChartEventTimeframeIntraday(timeframe)) {
+    const anchorTime = getChartEventAnchorTime(chartTime, candles, timeframe);
+    return anchorTime == null ? null : chart.timeScale().timeToCoordinate(anchorTime as Time);
+  }
+
+  return interpolateChartEventX(chart, candles, chartTime);
+}
+
+function getChartEventTooltipPlacement(x: number, containerWidth: number): ChartEventOverlayPoint["tooltipPlacement"] {
+  if (x < CHART_EVENT_TOOLTIP_WIDTH / 2) return "right";
+  if (x > containerWidth - CHART_EVENT_TOOLTIP_WIDTH / 2) return "left";
+  return "center";
+}
+
+function getDominantImpact(events: CalendarEvent[]): CalendarEvent["impact"] {
+  if (events.some((event) => event.impact === "high")) return "high";
+  if (events.some((event) => event.impact === "medium")) return "medium";
+  return "low";
+}
+
+function getChartEventClusterBadge(events: CalendarEvent[]): string {
+  if (events.length === 1) {
+    const event = events[0];
+    return event.impact === "high" ? `${event.currency} high` : event.currency;
+  }
+
+  const currencies = Array.from(new Set(events.map((event) => event.currency)));
+  if (currencies.length === 1) return `${currencies[0]} x${events.length}`;
+  return `${events.length} events`;
+}
+
+function getChartEventClusterDetail(events: CalendarEvent[]): string {
+  if (events.length === 1) return events[0]?.title ?? "Loaded event";
+  const highCount = events.filter((event) => event.impact === "high").length;
+  const currencies = Array.from(new Set(events.map((event) => event.currency))).join(" / ");
+  return highCount > 0 ? `${currencies} / ${highCount} high impact` : `${currencies} / ${events.length} loaded events`;
+}
+
+function clusterChartEventPoints(points: ChartEventOverlayPoint[], containerWidth: number): ChartEventOverlayCluster[] {
+  const clusters: Array<{ points: ChartEventOverlayPoint[]; x: number }> = [];
+
+  points.forEach((point) => {
+    const last = clusters[clusters.length - 1];
+    if (last && Math.abs(point.x - last.x) <= CHART_EVENT_CLUSTER_DISTANCE_PX) {
+      last.points.push(point);
+      last.x = last.points.reduce((sum, item) => sum + item.x, 0) / last.points.length;
+      return;
+    }
+
+    clusters.push({ points: [point], x: point.x });
+  });
+
+  const crowded = clusters.length > 10;
+
+  return clusters.map((cluster) => {
+    const events = cluster.points.map((point) => point.event);
+    const impact = getDominantImpact(events);
+    const key = cluster.points.map((point) => point.key).join("|");
+    return {
+      key,
+      events: cluster.points.map((point) => ({
+        event: point.event,
+        timeLabel: point.timeLabel,
+      })),
+      x: cluster.x,
+      impact,
+      badgeLabel: getChartEventClusterBadge(events),
+      detailLabel: getChartEventClusterDetail(events),
+      tooltipPlacement: getChartEventTooltipPlacement(cluster.x, containerWidth),
+      showBadge: !crowded || impact === "high" || events.length > 1,
+    };
+  });
+}
+
+export function ChartsTab({
+  marketStatus,
+  selectedSymbol,
+  onSelectedSymbolChange,
+  events,
+  onOpenCalendarEvent,
+}: ChartsTabProps) {
   const [timeframe, setTimeframe] = useState<Timeframe>("H1");
   const [displayTimeMode, setDisplayTimeMode] = useState<ChartDisplayTimeMode>(() => loadChartDisplayTimeMode());
   const [chartPreferences, setChartPreferences] = useState<ChartPreferences>(() => loadChartPreferences());
@@ -119,6 +266,10 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const [chartLoadError, setChartLoadError] = useState<string | null>(null);
   const [sessionNowMs, setSessionNowMs] = useState(() => Date.now());
   const [crosshairReadout, setCrosshairReadout] = useState<CrosshairReadout | null>(null);
+  const [chartRangeRevision, setChartRangeRevision] = useState(0);
+  const [chartLayoutRevision, setChartLayoutRevision] = useState(0);
+  const [hoveredChartEventClusterKey, setHoveredChartEventClusterKey] = useState<string | null>(null);
+  const [activeChartEventClusterKey, setActiveChartEventClusterKey] = useState<string | null>(null);
   const pickerRef = useRef<HTMLDivElement | null>(null);
   const timezoneMenuRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -229,6 +380,19 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
     [updateChartPreferences],
   );
 
+  const updateEventOverlay = useCallback(
+    <K extends keyof ChartEventOverlayPreferences,>(key: K, value: ChartEventOverlayPreferences[K]) => {
+      updateChartPreferences((current) => ({
+        ...current,
+        eventOverlay: {
+          ...current.eventOverlay,
+          [key]: value,
+        },
+      }));
+    },
+    [updateChartPreferences],
+  );
+
   const openChartDrawer = useCallback((mode: ChartDrawerMode) => {
     setChartDrawerMode(mode);
     setHistoryPanelOpen(true);
@@ -314,6 +478,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
       const rect = container.getBoundingClientRect();
       if (rect.width > 0 && rect.height > 0) {
         chart.applyOptions({ width: rect.width, height: rect.height });
+        setChartLayoutRevision((current) => current + 1);
       }
     };
 
@@ -522,6 +687,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
 
     const onRangeChange = async (range: { from?: number; to?: number } | null) => {
       visibleRangeRef.current = range;
+      setChartRangeRevision((current) => current + 1);
       if (!range || historyState !== "ready" || loadingOlderRef.current) return;
       const oldestTime = visibleCandles[0]?.time;
       if (!oldestTime || range.from == null) return;
@@ -742,6 +908,67 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
   const streamStatusLabel =
     getChartConnectionLabel({ historyState, marketStatus: activeMarketStatus, streamConnected });
 
+  const chartEventCandidates = useMemo(
+    () =>
+      filterChartEventsForOverlay({
+        events,
+        selectedSymbol,
+        scope: chartPreferences.eventOverlay.scope,
+        sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
+      }),
+    [events, selectedSymbol, chartPreferences.eventOverlay.scope, chartSourceTimeOffsetSeconds],
+  );
+
+  const chartEventOverlayPoints = useMemo<ChartEventOverlayPoint[]>(() => {
+    const chart = chartRef.current;
+    const container = containerRef.current;
+    if (!chart || !container || !chartPreferences.eventOverlay.visible || visibleCandles.length === 0) return [];
+
+    const width = container.clientWidth;
+    if (width <= 0) return [];
+
+    const points = chartEventCandidates
+      .map((candidate) => {
+        const x = resolveChartEventX(chart, visibleCandles, timeframe, candidate.chartTime);
+        if (x == null || x < -24 || x > width + 24) return null;
+
+        return {
+          key: getChartEventKey(candidate.event),
+          event: candidate.event,
+          x,
+          timeLabel: formatChartEventDisplayTime(
+            candidate.event.time,
+            displayTimeMode,
+            chartSourceTimeOffsetSeconds,
+          ),
+          tooltipPlacement: getChartEventTooltipPlacement(x, width),
+        };
+      })
+      .filter((point): point is ChartEventOverlayPoint => point != null)
+      .sort((left, right) => left.x - right.x);
+
+    return points;
+  }, [
+    chartEventCandidates,
+    chartPreferences.eventOverlay.visible,
+    visibleCandles,
+    timeframe,
+    displayTimeMode,
+    chartSourceTimeOffsetSeconds,
+    chartRangeRevision,
+    chartLayoutRevision,
+  ]);
+
+  const chartEventOverlayClusters = useMemo<ChartEventOverlayCluster[]>(() => {
+    const container = containerRef.current;
+    return clusterChartEventPoints(chartEventOverlayPoints, container?.clientWidth ?? 0);
+  }, [chartEventOverlayPoints]);
+
+  useEffect(() => {
+    setActiveChartEventClusterKey(null);
+    setHoveredChartEventClusterKey(null);
+  }, [selectedSymbol, timeframe, chartPreferences.eventOverlay.scope, chartPreferences.eventOverlay.visible]);
+
   const overlayCopy =
     status === "no_data"
       ? {
@@ -890,6 +1117,15 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
           </button>
           <button
             type="button"
+            className={chartPreferences.eventOverlay.visible ? "chart-icon-button is-active" : "chart-icon-button"}
+            title={`Chart events (${chartEventCandidates.length} loaded matches)`}
+            aria-label="Open chart events"
+            onClick={() => openChartDrawer("events")}
+          >
+            <CalendarDays className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
             className="chart-icon-button"
             title="Chart appearance"
             aria-label="Open chart appearance"
@@ -971,6 +1207,7 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
         preferences={chartPreferences}
         onCursorModeChange={handleCursorModeChange}
         onAppearanceChange={updateAppearance}
+        onEventOverlayChange={updateEventOverlay}
         onResetAppearance={resetChartPreferences}
         cacheData={{
           selectedSymbol,
@@ -990,7 +1227,87 @@ export function ChartsTab({ marketStatus, selectedSymbol, onSelectedSymbolChange
       {/* Main Chart Section */}
       <div className="relative group">
         <div className="p-1 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-3xl shadow-sm overflow-hidden">
-          <div ref={containerRef} className="h-[clamp(460px,calc(100vh-285px),660px)] w-full" />
+          <div className="chart-canvas-frame">
+            <div ref={containerRef} className="h-full w-full" />
+            {chartEventOverlayClusters.length > 0 && (
+              <div className="chart-event-overlay" aria-label="Loaded economic events on chart">
+                {chartEventOverlayClusters.map((cluster) => {
+                  const isHovered = hoveredChartEventClusterKey === cluster.key;
+                  const isActive = activeChartEventClusterKey === cluster.key;
+                  const shouldShowBadge = cluster.showBadge || isHovered || isActive;
+                  const markerStyle = {
+                    left: cluster.x,
+                  } satisfies CSSProperties;
+
+                  return (
+                    <div
+                      key={cluster.key}
+                      role="button"
+                      tabIndex={0}
+                      className={`chart-event-marker chart-event-${cluster.impact} tooltip-${cluster.tooltipPlacement} ${isActive ? "is-active" : ""}`}
+                      style={markerStyle}
+                      onClick={() =>
+                        setActiveChartEventClusterKey((current) => (current === cluster.key ? null : cluster.key))
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
+                        setActiveChartEventClusterKey((current) => (current === cluster.key ? null : cluster.key));
+                      }}
+                      onMouseEnter={() => setHoveredChartEventClusterKey(cluster.key)}
+                      onMouseLeave={() => setHoveredChartEventClusterKey(null)}
+                      onFocus={() => setHoveredChartEventClusterKey(cluster.key)}
+                      aria-label={`Open ${cluster.events.length} loaded chart event${cluster.events.length === 1 ? "" : "s"}`}
+                    >
+                      <span className="chart-event-line" />
+                      {shouldShowBadge && (
+                        <span className="chart-event-badge">
+                          <strong>{cluster.badgeLabel}</strong>
+                          <small>{cluster.impact}</small>
+                        </span>
+                      )}
+                      {(isHovered || isActive) && (
+                        <span className="chart-event-tooltip">
+                          <span className="chart-event-tooltip-kicker">
+                            {cluster.events.length} loaded event{cluster.events.length === 1 ? "" : "s"}
+                          </span>
+                          <strong>{cluster.detailLabel}</strong>
+                          <span>Click a row to open the Economic Calendar inspector.</span>
+                          <span className="chart-event-list">
+                            {cluster.events.map(({ event, timeLabel }) => (
+                              <span
+                                key={getChartEventKey(event)}
+                                role="button"
+                                tabIndex={0}
+                                className="chart-event-list-row"
+                                onClick={(rowEvent) => {
+                                  rowEvent.stopPropagation();
+                                  onOpenCalendarEvent(event);
+                                }}
+                                onKeyDown={(rowEvent) => {
+                                  if (rowEvent.key !== "Enter" && rowEvent.key !== " ") return;
+                                  rowEvent.preventDefault();
+                                  rowEvent.stopPropagation();
+                                  onOpenCalendarEvent(event);
+                                }}
+                              >
+                                <span>
+                                  <b>{event.currency}</b>
+                                  <small>{event.impact}</small>
+                                </span>
+                                <strong>{event.title}</strong>
+                                <em>{timeLabel}</em>
+                              </span>
+                            ))}
+                          </span>
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
         {crosshairReadout && (
           <div

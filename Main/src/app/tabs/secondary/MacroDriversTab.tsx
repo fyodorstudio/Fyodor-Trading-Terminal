@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Database, HelpCircle, RefreshCw, TrendingUp } from "lucide-react";
+import { AlertTriangle, HelpCircle, RefreshCw, TrendingUp } from "lucide-react";
 import { fetchHistory } from "@/app/lib/bridge";
 import { FX_PAIRS } from "@/app/config/fxPairs";
 import {
@@ -140,6 +140,8 @@ export function MacroDriversTab({
     () => buildMacroFactorRows({ events, currencies, nowSeconds }),
     [events, currencies, nowSeconds],
   );
+  const coveredFactorCount = factorRows.filter((row) => row.coverageLabel !== "Missing").length;
+  const scheduledFactorCount = factorRows.filter((row) => row.nextEvent).length;
 
   return (
     <section className="workspace-page flex flex-col gap-4">
@@ -221,52 +223,31 @@ export function MacroDriversTab({
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h3 className="text-lg font-black text-slate-950">Calendar Factor Coverage</h3>
-            <p className="mt-1 text-sm font-semibold text-slate-500">
-              Pair-relevant macro factors found in the loaded broker calendar rows.
+            <h3 className="text-lg font-black text-slate-950">Calendar Coverage Hand-Off</h3>
+            <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
+              Detailed pair factor coverage belongs in Overview so the selected-pair brief can show it beside base/quote context.
+              Macro Drivers keeps only the coverage summary needed to judge whether this read is evidence-rich or thin.
             </p>
           </div>
-          <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600">
-            <Database className="h-4 w-4" />
-            Current feed only
+          <span className="inline-flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-black text-blue-700">
+            Overview owns details
           </span>
         </div>
-
-        <div className="mt-4 overflow-hidden rounded-xl border border-slate-200">
-          <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="bg-slate-50 text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">
-              <tr>
-                <th className="px-4 py-3">Currency</th>
-                <th className="px-4 py-3">Factor</th>
-                <th className="px-4 py-3">Coverage / confidence</th>
-                <th className="px-4 py-3">Latest release</th>
-                <th className="px-4 py-3">Next loaded event</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {factorRows.map((row) => (
-                <tr key={`${row.currency}-${row.factor.id}`} className="align-top">
-                  <td className="px-4 py-3 font-black text-slate-950">{row.currency}</td>
-                  <td className="px-4 py-3 font-bold text-slate-700">
-                    <span title={`Matched by broker event title keywords for ${row.factor.label}.`}>
-                      {row.factor.label}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-black text-slate-600">
-                      {row.coverageLabel}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 font-semibold text-slate-600">{row.summary}</td>
-                  <td className="px-4 py-3 font-semibold text-slate-600">
-                    {row.nextEvent ? `${row.nextEvent.title} (${row.nextEvent.currency})` : "No upcoming loaded row."}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Covered factors</span>
+            <strong className="mt-2 block text-xl font-black text-slate-950">{coveredFactorCount}/{factorRows.length}</strong>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Scheduled rows</span>
+            <strong className="mt-2 block text-xl font-black text-slate-950">{scheduledFactorCount}</strong>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Scope</span>
+            <strong className="mt-2 block text-xl font-black text-slate-950">Current feed</strong>
+          </div>
         </div>
       </section>
 

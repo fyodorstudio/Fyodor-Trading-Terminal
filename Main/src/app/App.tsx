@@ -30,8 +30,8 @@ export default function App() {
   const nextHighImpact = useMemo(() => getNextHighImpactEvent(feedEvents), [feedEvents]);
   const currentTime = useCurrentTime();
 
-  const openCalendarForEvent = (event: CalendarEvent) => {
-    setCalendarNavigationIntent(createCalendarNavigationIntent(event, "overview"));
+  const openCalendarForEvent = (event: CalendarEvent, source: CalendarNavigationIntent["source"]) => {
+    setCalendarNavigationIntent(createCalendarNavigationIntent(event, source));
     setActiveTab("calendar");
   };
 
@@ -65,10 +65,6 @@ export default function App() {
               onOverviewSymbolChange={setOverviewSymbol}
               overviewMarketStatus={overviewMarketStatus}
               eventReplayPairIntent={eventReplayPairIntent}
-              onOpenEventReplay={(symbol) => {
-                setEventReplayPairIntent(symbol);
-                setActiveTab("event-tools");
-              }}
               onConsumeEventReplayPairIntent={() => setEventReplayPairIntent(null)}
               chartSymbol={chartSymbol}
               onChartSymbolChange={setChartSymbol}

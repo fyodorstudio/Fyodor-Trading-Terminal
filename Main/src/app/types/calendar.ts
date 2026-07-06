@@ -21,7 +21,7 @@ export interface CalendarNavigationIntent {
   currency: string;
   title: string;
   countryCode: string;
-  source: "overview" | "strength-meter";
+  source: "overview" | "strength-meter" | "charts";
 }
 
 export interface CalendarEventExplainer {
