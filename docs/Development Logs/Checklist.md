@@ -89,6 +89,11 @@ This file is the active command board for the next goal-mode run.
 - [x] Charts diagnostic `Terminal Console` is collapsible.
 - [x] Central Banks focus view is denser, with audit logs collapsed.
 - [x] Economic Calendar table uses a desktop scroll region.
+- [x] Overview source shell is bounded to the app viewport with internal overflow for pair brief content.
+- [x] Macro Drivers source shell is bounded to the app viewport; missing-data notes open on demand instead of consuming page height.
+- [x] Central Banks source shell is bounded to the app viewport with internal overflow for command/focus content.
+- [x] Charts event overlay now shows a bottom rail and an explicit density note when visible events are capped.
+- [x] Event Replay Past Releases rows were widened and made value-readable with full actual/forecast/previous/surprise readouts.
 - [x] `Main/src/styles.css` ownership was audited; do not split it without a specific visual-regression plan.
 - [x] Overview was rebuilt fresh from `OverviewPlaceholderTab.tsx`, not Deprecated Overview.
 - [x] Overview has pair selector, Pair Driver Snapshot, base/quote macro cards, factor chips, and recent-release popovers.
