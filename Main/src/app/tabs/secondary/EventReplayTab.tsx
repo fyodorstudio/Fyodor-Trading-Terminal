@@ -410,7 +410,7 @@ export function EventReplayTab({
   ];
 
   return (
-    <section className="tab-panel event-replay-workspace relative left-1/2 flex w-[calc(100vw-24px)] max-w-none -translate-x-1/2 flex-col gap-3 overflow-x-hidden pb-2">
+    <section className="tab-panel event-replay-workspace relative left-1/2 flex h-[calc(100vh-98px)] min-h-[560px] w-[calc(100vw-24px)] max-w-none -translate-x-1/2 flex-col gap-3 overflow-hidden pb-2">
       <header className="flex flex-wrap items-center justify-between gap-3 border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <div className="flex min-w-0 items-center gap-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
@@ -430,7 +430,7 @@ export function EventReplayTab({
         <span className="text-xs font-black uppercase tracking-[0.18em] text-slate-400">MT5 candles + broker calendar</span>
       </header>
 
-      <section className="grid min-w-0 gap-3 lg:h-[calc(100vh-214px)] lg:min-h-[520px] lg:grid-cols-[380px_minmax(0,1fr)]">
+      <section className="grid min-h-0 min-w-0 flex-1 gap-3 lg:grid-cols-[380px_minmax(0,1fr)]">
         <aside className="flex min-h-0 min-w-0 flex-col overflow-y-auto border border-slate-200 bg-white shadow-sm">
           <div className="border-b border-slate-200 px-4 py-4">
             <label className="grid gap-2">
