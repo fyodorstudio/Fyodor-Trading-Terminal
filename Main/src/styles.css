@@ -1969,47 +1969,30 @@ button {
 
 .overview-factor-detail-group {
   min-width: 0;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  background: #f8fafc;
-  padding: 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 0;
 }
 
 .overview-factor-detail-row-list {
   display: grid;
+  gap: 10px;
   margin-top: 0;
-  border: 1px solid #e2e8f0;
-  border-radius: 12px;
-  background: #fff;
-  overflow: hidden;
+  border: 0;
+  background: transparent;
+  overflow: visible;
 }
 
-.overview-factor-detail-column-head,
 .overview-factor-detail-row {
   display: grid;
-  grid-template-columns: minmax(150px, 0.5fr) minmax(0, 1.65fr) minmax(300px, 0.85fr);
-  gap: 18px;
-  align-items: center;
-}
-
-.overview-factor-detail-column-head {
-  margin-top: 12px;
-  padding: 0 14px 8px;
-  color: #94a3b8;
-  font-size: 0.62rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.overview-factor-detail-row {
-  padding: 14px;
-  border-top: 1px solid #e2e8f0;
+  grid-template-columns: minmax(150px, 0.42fr) minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
   background: #fff;
-}
-
-.overview-factor-detail-row:first-child {
-  border-top: 0;
 }
 
 .overview-factor-detail-row:hover {
@@ -2021,6 +2004,21 @@ button {
   min-width: 0;
   flex-direction: column;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 11px;
+  background: #f8fafc;
+}
+
+.overview-factor-detail-factor span,
+.overview-factor-latest span,
+.overview-factor-next > span:first-child {
+  color: #94a3b8;
+  font-size: 0.62rem;
+  font-weight: 950;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .overview-factor-detail-factor strong {
@@ -2031,12 +2029,34 @@ button {
 }
 
 .overview-factor-latest,
-.overview-factor-next span {
+.overview-factor-next {
+  min-width: 0;
+}
+
+.overview-factor-latest {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 11px;
+  background: #f8fafc;
+}
+
+.overview-factor-latest p,
+.overview-factor-next > span:not(:first-child) {
   margin: 0;
   color: #334155;
   font-size: 0.88rem;
   font-weight: 750;
   line-height: 1.45;
+}
+
+.overview-factor-next {
+  display: grid;
+  grid-column: 2;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 11px;
+  background: #f8fafc;
 }
 
 .overview-factor-next button {
@@ -2084,13 +2104,12 @@ button {
   }
 
   .overview-factor-detail-grid,
-  .overview-factor-detail-column-head,
   .overview-factor-detail-row {
     grid-template-columns: 1fr;
   }
 
-  .overview-factor-detail-column-head {
-    display: none;
+  .overview-factor-next {
+    grid-column: auto;
   }
 
   .overview-factor-detail-popover-head,

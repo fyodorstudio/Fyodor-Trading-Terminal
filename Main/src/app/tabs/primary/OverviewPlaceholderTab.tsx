@@ -171,7 +171,7 @@ function MacroCard(props: {
             <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">
               Next {props.currency} event
             </span>
-            <span className="block truncate text-xs font-black text-slate-950">{props.nextEvent.title}</span>
+            <span className="block break-words text-xs font-black leading-5 text-slate-950">{props.nextEvent.title}</span>
           </span>
           <span className="shrink-0 text-right text-xs font-black text-blue-700">
             {formatCountdown(props.nextEvent.time, props.currentTime.getTime())}
@@ -231,7 +231,7 @@ function PairDriverSnapshot(props: {
       >
         <span className="min-w-0">
           <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-blue-200">Next loaded pair event</span>
-          <span className="mt-1 block truncate text-sm font-black">
+          <span className="mt-1 block break-words text-sm font-black leading-5">
             {props.nextEvent ? `${props.nextEvent.currency} | ${props.nextEvent.title}` : "No upcoming pair event loaded"}
           </span>
         </span>
@@ -281,7 +281,7 @@ function EventRow(props: {
           <span className={`rounded-md border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] ${IMPACT_STYLE[props.event.impact]}`}>
             {props.event.impact}
           </span>
-          <span className="truncate text-sm font-black text-slate-950">{props.event.currency} | {props.event.title}</span>
+          <span className="min-w-0 break-words text-sm font-black leading-5 text-slate-950">{props.event.currency} | {props.event.title}</span>
         </span>
         <span
           className="mt-1 block text-xs font-semibold text-slate-500"
@@ -336,10 +336,15 @@ function FactorDetailRow({ row, onOpen }: { row: MacroFactorRow; onOpen: (event:
   return (
     <div className="overview-factor-detail-row">
       <div className="overview-factor-detail-factor">
+        <span>Factor</span>
         <strong>{row.factor.label}</strong>
       </div>
-      <p className="overview-factor-latest">{row.summary}</p>
+      <div className="overview-factor-latest">
+        <span>Latest loaded release</span>
+        <p>{row.summary}</p>
+      </div>
       <div className="overview-factor-next">
+        <span>Next loaded event</span>
         {row.nextEvent ? (
           <button
             type="button"
@@ -362,11 +367,6 @@ function FactorDetailsGroup(props: {
 }) {
   return (
     <section className="overview-factor-detail-group">
-      <div className="overview-factor-detail-column-head">
-        <span>Factor</span>
-        <span>Latest loaded release</span>
-        <span>Next loaded event</span>
-      </div>
       <div className="overview-factor-detail-row-list">
         {props.rows.map((row) => (
           <FactorDetailRow key={`${row.currency}-${row.factor.id}`} row={row} onOpen={props.onOpen} />
