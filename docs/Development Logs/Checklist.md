@@ -111,6 +111,7 @@ This file is the active command board for the next goal-mode run.
 - [x] Differential Calculator source shell is bounded to the app viewport with separate internal scroll panels for rate and inflation cards.
 - [x] Macro Drivers, Charts, and Event Replay now use fixed app-height root shells instead of relying on whole-page height.
 - [x] Charts event overlay now shows a bottom rail and an explicit density note when visible events are capped.
+- [x] Charts event rail was tightened so markers stay visually separated from the x-axis, capped-event notes fit the rail, and event popover values wrap instead of clipping.
 - [x] Chart settings drawer now shows a compact current-settings summary before detailed controls.
 - [x] Chart settings summaries and chart-event popover rows wrap important text instead of hiding it behind ellipses.
 - [x] Event Replay Past Releases rows were widened and made value-readable with full actual/forecast/previous/surprise readouts.

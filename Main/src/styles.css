@@ -7718,8 +7718,8 @@ button {
 .chart-icon-button:hover { background: #f8fafc; border-color: #cbd5e1; color: #0f172a; }
 .chart-icon-button.is-active { border-color: #bfdbfe; background: #eff6ff; color: #2563eb; }
 .chart-status-rail { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); position: relative; z-index: 45; flex-wrap: wrap; }
-.chart-status-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 11px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; color: #475569; font-size: 12px; font-weight: 800; white-space: nowrap; max-width: 100%; }
-.chart-status-chip span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.chart-status-chip { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 11px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; color: #475569; font-size: 12px; font-weight: 800; max-width: 100%; }
+.chart-status-chip span { min-width: 0; overflow-wrap: anywhere; }
 .chart-status-chip svg { color: #64748b; }
 .chart-status-live { border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
 .chart-status-live svg { color: #22c55e; }
@@ -7728,9 +7728,10 @@ button {
 .chart-status-error, .chart-status-no_data { border-color: #fecdd3; background: #fff1f2; color: #9f1239; }
 .chart-feed-chip { padding: 0; background: #0f172a; border-color: #0f172a; color: #e2e8f0; overflow: visible; }
 .chart-feed-chip .tv-toolbar-anchor { min-width: 0; }
-.chart-feed-button { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; max-width: min(100%, 560px); padding: 0 11px; border: 0; border-radius: 8px; background: transparent; color: inherit; }
-.chart-feed-main { color: #f8fafc; font-size: 12px; font-weight: 800; white-space: nowrap; }
-.chart-feed-sub { min-width: 0; overflow: hidden; text-overflow: ellipsis; color: #a8b3c7; font-size: 10px; font-weight: 800; text-transform: uppercase; white-space: nowrap; }
+.chart-feed-button { display: inline-flex; align-items: center; gap: 5px 8px; min-height: 34px; max-width: min(100%, 680px); padding: 6px 11px; border: 0; border-radius: 8px; background: transparent; color: inherit; text-align: left; flex-wrap: wrap; }
+.chart-feed-button svg { flex: 0 0 auto; }
+.chart-feed-main { color: #f8fafc; font-size: 12px; font-weight: 800; line-height: 1.25; overflow-wrap: anywhere; }
+.chart-feed-sub { min-width: 0; color: #a8b3c7; font-size: 10px; font-weight: 800; line-height: 1.25; text-transform: uppercase; overflow-wrap: anywhere; }
 .chart-timezone-popover { width: min(420px, calc(100vw - 32px)); padding: 12px; border-color: #cbd5e1; box-shadow: 0 18px 44px rgba(15, 23, 42, 0.18); z-index: 120; }
 .chart-timezone-popover .tv-popover-head { gap: 5px; padding: 4px 4px 12px; }
 .chart-timezone-popover .tv-popover-head strong { color: #0f172a; font-size: 13px; }
@@ -7807,20 +7808,21 @@ button {
 .chart-danger-button:hover { background: #ffe4e6; border-color: #fda4af; }
 .chart-canvas-frame { position: relative; height: clamp(420px, calc(100vh - 325px), 640px); width: 100%; overflow: hidden; border-radius: 20px; }
 .charts-tab-page .chart-canvas-frame { height: 100%; min-height: 360px; }
-.chart-event-overlay { position: absolute; inset: 0; z-index: 18; pointer-events: none; --chart-event-rail-height: 34px; }
-.chart-event-overlay::after { content: ""; position: absolute; right: 0; bottom: 0; left: 0; height: var(--chart-event-rail-height); border-top: 1px solid rgba(148, 163, 184, 0.22); background: linear-gradient(180deg, rgba(248, 250, 252, 0.18), rgba(248, 250, 252, 0.78)); backdrop-filter: blur(2px); }
-.chart-event-density-note { position: absolute; right: 12px; bottom: 7px; z-index: 28; display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px; border: 1px solid rgba(148, 163, 184, 0.32); border-radius: 999px; background: rgba(255, 255, 255, 0.92); color: #475569; font-size: 10px; font-weight: 850; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08); }
-.chart-event-marker { position: absolute; top: 0; bottom: 0; width: 28px; padding: 0; border: 0; background: transparent; pointer-events: none; transform: translateX(-50%); outline: none; }
-.chart-event-line { position: absolute; inset: 0 auto var(--chart-event-rail-height) 50%; width: 1px; transform: translateX(-50%); background: rgba(37, 99, 235, 0.48); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.42); }
+.chart-event-overlay { position: absolute; inset: 0; z-index: 18; pointer-events: none; --chart-event-rail-height: 38px; }
+.chart-event-overlay::after { content: ""; position: absolute; right: 0; bottom: 0; left: 0; height: var(--chart-event-rail-height); border-top: 1px solid rgba(148, 163, 184, 0.28); background: linear-gradient(180deg, rgba(248, 250, 252, 0.42), rgba(248, 250, 252, 0.92)); box-shadow: 0 -8px 22px rgba(15, 23, 42, 0.04); backdrop-filter: blur(3px); }
+.chart-event-density-note { position: absolute; right: 12px; bottom: 8px; z-index: 28; display: inline-flex; align-items: center; min-height: 22px; max-width: min(280px, calc(100% - 24px)); padding: 0 8px; border: 1px solid rgba(148, 163, 184, 0.32); border-radius: 999px; background: rgba(255, 255, 255, 0.94); color: #475569; font-size: 10px; font-weight: 850; line-height: 1.2; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08); }
+.chart-event-marker { position: absolute; top: 0; bottom: 0; width: 44px; padding: 0; border: 0; background: transparent; pointer-events: none; transform: translateX(-50%); outline: none; }
+.chart-event-line { position: absolute; inset: 0 auto var(--chart-event-rail-height) 50%; width: 1px; transform: translateX(-50%); background: rgba(37, 99, 235, 0.34); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.36); }
 .chart-event-marker:hover .chart-event-line, .chart-event-marker.is-active .chart-event-line, .chart-event-marker:focus-visible .chart-event-line { width: 2px; }
-.chart-event-high .chart-event-line { background: rgba(239, 68, 68, 0.62); }
-.chart-event-medium .chart-event-line { background: rgba(37, 99, 235, 0.54); }
+.chart-event-high .chart-event-line { background: rgba(239, 68, 68, 0.52); }
+.chart-event-medium .chart-event-line { background: rgba(37, 99, 235, 0.42); }
 .chart-event-low .chart-event-line { background: rgba(100, 116, 139, 0.42); }
-.chart-event-badge { position: absolute; left: 50%; bottom: 7px; z-index: 26; display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 7px; border-radius: 999px; border: 1px solid rgba(37, 99, 235, 0.26); background: rgba(255, 255, 255, 0.94); color: #1d4ed8; font-size: 10px; font-weight: 900; line-height: 1; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12); transform: translateX(-50%); white-space: nowrap; pointer-events: auto; cursor: pointer; }
+.chart-event-badge { position: absolute; left: 50%; bottom: 8px; z-index: 26; display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 30px; max-width: 92px; height: 22px; padding: 0 7px; border-radius: 999px; border: 1px solid rgba(37, 99, 235, 0.24); background: rgba(255, 255, 255, 0.96); color: #1d4ed8; font-size: 10px; font-weight: 900; line-height: 1; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1); transform: translateX(-50%); white-space: nowrap; pointer-events: auto; cursor: pointer; }
+.chart-event-badge strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .chart-event-badge small { color: #64748b; font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
 .chart-event-high .chart-event-badge { border-color: rgba(239, 68, 68, 0.34); color: #b91c1c; }
 .chart-event-low .chart-event-badge { border-color: rgba(100, 116, 139, 0.3); color: #475569; }
-.chart-event-tooltip { position: absolute; left: 50%; bottom: 38px; z-index: 30; display: flex; width: 360px; max-height: 360px; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid rgba(15, 23, 42, 0.12); border-radius: 10px; background: rgba(15, 23, 42, 0.96); color: #e2e8f0; text-align: left; box-shadow: 0 16px 34px rgba(15, 23, 42, 0.24); transform: translateX(-50%); cursor: default; pointer-events: auto; }
+.chart-event-tooltip { position: absolute; left: 50%; bottom: 44px; z-index: 30; display: flex; width: min(430px, calc(100vw - 56px)); max-height: min(420px, calc(100vh - 190px)); flex-direction: column; gap: 8px; padding: 12px; border: 1px solid rgba(15, 23, 42, 0.12); border-radius: 10px; background: rgba(15, 23, 42, 0.96); color: #e2e8f0; text-align: left; box-shadow: 0 16px 34px rgba(15, 23, 42, 0.24); transform: translateX(-50%); cursor: default; pointer-events: auto; }
 .chart-event-marker.tooltip-left .chart-event-tooltip { left: auto; right: 8px; transform: none; }
 .chart-event-marker.tooltip-right .chart-event-tooltip { left: 8px; transform: none; }
 .chart-event-tooltip-kicker { color: #93c5fd; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; }
@@ -7836,7 +7838,7 @@ button {
 .chart-event-list-row > em { grid-column: 2; color: #94a3b8; font-size: 10px; font-style: normal; font-weight: 700; }
 .chart-event-tooltip-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .chart-event-tooltip-grid span { display: flex; min-width: 0; flex-direction: column; gap: 2px; padding: 6px; border-radius: 7px; background: rgba(255, 255, 255, 0.06); color: #94a3b8; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
-.chart-event-tooltip-grid b { overflow: hidden; color: #f8fafc; font-size: 11px; font-weight: 900; text-overflow: ellipsis; text-transform: none; letter-spacing: 0; white-space: nowrap; }
+.chart-event-tooltip-grid b { color: #f8fafc; font-size: 11px; font-weight: 900; text-transform: none; letter-spacing: 0; overflow-wrap: anywhere; }
 .charts-history-boundary { position: absolute; left: 18px; top: 24px; z-index: 20; pointer-events: none; }
 .charts-history-boundary-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.35); background: rgba(255, 255, 255, 0.88); color: #475569; font-size: 11px; font-weight: 700; letter-spacing: 0.01em; opacity: 0; transform: translateY(-2px); transition: opacity 0.2s ease, transform 0.2s ease; }
 .charts-history-boundary-pill.is-visible { opacity: 1; transform: translateY(0); }
