@@ -501,7 +501,7 @@ export function EventReplayTab({
                 <span className="font-black uppercase tracking-[0.14em] text-slate-400">Sample</span>
                 <span className="font-bold text-slate-100">{samplePosition}</span>
                 <span className="font-black uppercase tracking-[0.14em] text-slate-400">Compare</span>
-                <span className="truncate font-bold text-slate-100">{selectedSample?.comparisonLabel ?? "N/A"}</span>
+                <span className="break-words font-bold leading-5 text-slate-100">{selectedSample?.comparisonLabel ?? "N/A"}</span>
               </div>
             </div>
             <div className="mt-3 grid grid-cols-2 gap-2">
@@ -567,7 +567,7 @@ export function EventReplayTab({
             <div className="min-w-[260px] flex-1">
               <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <h3 className="m-0 text-base font-black text-slate-950">Preview</h3>
-                <p className="m-0 min-w-0 truncate text-sm text-slate-600">
+                <p className="m-0 min-w-0 break-words text-sm leading-5 text-slate-600">
                   {selectedTemplate ? `${selectedTemplate.currency} ${selectedTemplate.title}` : "Select an event type"}
                 </p>
               </div>
