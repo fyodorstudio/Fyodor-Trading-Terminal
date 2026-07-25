@@ -7751,7 +7751,7 @@ button {
 .chart-settings-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 12px; padding: 10px; border: 1px solid #dbeafe; border-radius: 10px; background: linear-gradient(180deg, #eff6ff, #f8fafc); }
 .chart-settings-summary div { min-width: 0; padding: 8px 9px; border: 1px solid rgba(191, 219, 254, 0.72); border-radius: 8px; background: rgba(255, 255, 255, 0.72); }
 .chart-settings-summary span { display: block; color: #64748b; font-size: 9px; font-weight: 900; letter-spacing: 0.12em; text-transform: uppercase; }
-.chart-settings-summary strong { display: block; margin-top: 3px; overflow: hidden; color: #0f172a; font-size: 11px; font-weight: 900; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.chart-settings-summary strong { display: block; margin-top: 3px; color: #0f172a; font-size: 11px; font-weight: 900; line-height: 1.35; overflow-wrap: anywhere; }
 @keyframes charts-history-slide-in { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 .charts-history-head { padding: 24px 24px 18px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; background: #fff; }
 .charts-history-head h2 { margin: 0; font-size: 1.35rem; font-weight: 800; color: #111827; }
@@ -7832,12 +7832,12 @@ button {
 .chart-event-tooltip strong { color: #fff; font-size: 13px; font-weight: 900; line-height: 1.3; }
 .chart-event-tooltip > span:not(.chart-event-tooltip-kicker):not(.chart-event-tooltip-grid) { color: #cbd5e1; font-size: 11px; font-weight: 700; }
 .chart-event-list { display: grid; gap: 6px; overflow: auto; padding-right: 2px; }
-.chart-event-list-row { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 4px 10px; padding: 9px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); color: #e2e8f0; outline: none; }
+.chart-event-list-row { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 4px 10px; padding: 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.06); color: #e2e8f0; outline: none; }
 .chart-event-list-row:hover, .chart-event-list-row:focus-visible { background: rgba(59, 130, 246, 0.2); }
 .chart-event-list-row > span { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .chart-event-list-row > span b { color: #f8fafc; font-size: 11px; font-weight: 900; }
 .chart-event-list-row > span small { color: #93c5fd; font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
-.chart-event-list-row > strong { display: -webkit-box; overflow: hidden; color: #f8fafc; font-size: 11px; font-weight: 850; line-height: 1.25; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+.chart-event-list-row > strong { display: block; overflow: visible; color: #f8fafc; font-size: 11px; font-weight: 850; line-height: 1.35; overflow-wrap: anywhere; }
 .chart-event-list-row > em { grid-column: 2; color: #94a3b8; font-size: 10px; font-style: normal; font-weight: 700; }
 .chart-event-tooltip-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .chart-event-tooltip-grid span { display: flex; min-width: 0; flex-direction: column; gap: 2px; padding: 6px; border-radius: 7px; background: rgba(255, 255, 255, 0.06); color: #94a3b8; font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
