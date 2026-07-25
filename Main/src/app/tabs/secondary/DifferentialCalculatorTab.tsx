@@ -32,6 +32,10 @@ export function DifferentialCalculatorTab({ snapshots }: DifferentialCalculatorT
     () => deriveDashboardInflationCards(currencies, excludedCurrencies, inflationSort),
     [currencies, excludedCurrencies, inflationSort],
   );
+  const activeCurrencyCount = MAJOR_CURRENCY_ORDER.length - excludedCurrencies.size;
+  const resolvedRateCount = rateCards.filter((card) => card.status === "ok").length;
+  const resolvedInflationCount = inflationCards.filter((card) => card.status === "ok").length;
+  const unresolvedCurrencyCount = currencies.filter((currency) => currency.unresolvedFields.length > 0).length;
 
   const toggleExcluded = (currency: string) => {
     setExcludedCurrencies((prev) => {
@@ -43,7 +47,7 @@ export function DifferentialCalculatorTab({ snapshots }: DifferentialCalculatorT
   };
 
   return (
-    <section className="tab-panel macro-panel">
+    <section className="workspace-page workspace-page-compact differential-page flex h-[calc(100vh-98px)] min-h-[560px] flex-col gap-3 overflow-hidden">
       <div className="section-head">
         <div>
           <h2>Differential Calculator</h2>
@@ -93,81 +97,102 @@ export function DifferentialCalculatorTab({ snapshots }: DifferentialCalculatorT
         </div>
       </section>
 
-      <section className="macro-block">
-        <div className="macro-block-head">
-          <h3>Interest Rate Differential + Trend</h3>
-          <p>Current gap, previous gap, and whether the gap is widening or narrowing.</p>
+      <section className="differential-summary-grid">
+        <div>
+          <span>Active currencies</span>
+          <strong>{activeCurrencyCount}/{MAJOR_CURRENCY_ORDER.length}</strong>
         </div>
-        <div className="macro-card-grid">
-          {rateCards.map((card) => (
-            <article key={card.pair.name} className={`macro-card ${card.status !== "ok" ? "is-muted" : ""}`}>
-              <div className="macro-card-head">
-                <div className="macro-pair-head">
-                  <strong>{card.pair.name}</strong>
-                  <div className="macro-flag-stack">
-                    <FlagIcon countryCode={findCountryCode(card.pair.base, snapshots)} className="h-5 w-8" />
-                    <FlagIcon countryCode={findCountryCode(card.pair.quote, snapshots)} className="h-5 w-8" />
-                  </div>
-                </div>
-                <div className={`macro-trend-pill ${card.isWidening == null ? "is-neutral" : card.isWidening ? "is-positive" : "is-negative"}`}>
-                  {card.isWidening == null ? "Unresolved" : card.isWidening ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
-                  <span>
-                    {card.isWidening == null ? "N/A" : card.isWidening ? "Widening" : "Narrowing"}
-                  </span>
-                </div>
-              </div>
-              <div className="macro-main-figure">
-                <span>{card.pair.base}</span>
-                <strong>{formatPercent(card.currentGap)}</strong>
-              </div>
-              <div className="macro-card-meta">
-                <div>
-                  <span>Previous gap</span>
-                  <strong>{formatPercent(card.previousGap)}</strong>
-                </div>
-                <div>
-                  <span>Gap change</span>
-                  <strong>{formatPercent(card.trend)}</strong>
-                </div>
-              </div>
-            </article>
-          ))}
+        <div>
+          <span>Rate pairs</span>
+          <strong>{resolvedRateCount}/{rateCards.length}</strong>
+        </div>
+        <div>
+          <span>Inflation pairs</span>
+          <strong>{resolvedInflationCount}/{inflationCards.length}</strong>
+        </div>
+        <div>
+          <span>Unresolved currencies</span>
+          <strong>{unresolvedCurrencyCount}</strong>
         </div>
       </section>
 
-      <section className="macro-block">
-        <div className="macro-block-head">
-          <h3>Inflation Differential</h3>
-          <p>Simple base-minus-quote inflation bias from the current MT5-fed central-bank readings.</p>
-        </div>
-        <div className="macro-card-grid">
-          {inflationCards.map((card) => (
-            <article key={`inflation-${card.pair.name}`} className={`macro-card ${card.status !== "ok" ? "is-muted" : ""}`}>
-              <div className="macro-card-head">
-                <div className="macro-pair-head">
-                  <strong>{card.pair.name}</strong>
-                  <div className="macro-flag-stack">
-                    <FlagIcon countryCode={findCountryCode(card.pair.base, snapshots)} className="h-5 w-8" />
-                    <FlagIcon countryCode={findCountryCode(card.pair.quote, snapshots)} className="h-5 w-8" />
+      <section className="differential-board-grid">
+        <section className="macro-block differential-scroll-block">
+          <div className="macro-block-head">
+            <h3>Interest Rate Differential + Trend</h3>
+            <p>Current gap, previous gap, and whether the gap is widening or narrowing.</p>
+          </div>
+          <div className="macro-card-grid differential-card-grid">
+            {rateCards.map((card) => (
+              <article key={card.pair.name} className={`macro-card ${card.status !== "ok" ? "is-muted" : ""}`}>
+                <div className="macro-card-head">
+                  <div className="macro-pair-head">
+                    <strong>{card.pair.name}</strong>
+                    <div className="macro-flag-stack">
+                      <FlagIcon countryCode={findCountryCode(card.pair.base, snapshots)} className="h-5 w-8" />
+                      <FlagIcon countryCode={findCountryCode(card.pair.quote, snapshots)} className="h-5 w-8" />
+                    </div>
+                  </div>
+                  <div className={`macro-trend-pill ${card.isWidening == null ? "is-neutral" : card.isWidening ? "is-positive" : "is-negative"}`}>
+                    {card.isWidening == null ? "Unresolved" : card.isWidening ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
+                    <span>
+                      {card.isWidening == null ? "N/A" : card.isWidening ? "Widening" : "Narrowing"}
+                    </span>
                   </div>
                 </div>
-              </div>
-              <div className="macro-main-figure inflation">
-                <span>{card.pair.base}</span>
-                <strong>{formatPercent(card.bias)}</strong>
-              </div>
-              <div className="macro-card-foot">
-                {card.bias == null
-                  ? "At least one side is unresolved in the MT5 feed."
-                  : card.bias > 0
-                    ? `${card.pair.base} is currently printing higher inflation than ${card.pair.quote}.`
-                    : card.bias < 0
-                      ? `${card.pair.quote} is currently printing higher inflation than ${card.pair.base}.`
-                      : "Current inflation readings are roughly aligned."}
-              </div>
-            </article>
-          ))}
-        </div>
+                <div className="macro-main-figure">
+                  <span>{card.pair.base}</span>
+                  <strong>{formatPercent(card.currentGap)}</strong>
+                </div>
+                <div className="macro-card-meta">
+                  <div>
+                    <span>Previous gap</span>
+                    <strong>{formatPercent(card.previousGap)}</strong>
+                  </div>
+                  <div>
+                    <span>Gap change</span>
+                    <strong>{formatPercent(card.trend)}</strong>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section className="macro-block differential-scroll-block">
+          <div className="macro-block-head">
+            <h3>Inflation Differential</h3>
+            <p>Simple base-minus-quote inflation bias from the current MT5-fed central-bank readings.</p>
+          </div>
+          <div className="macro-card-grid differential-card-grid">
+            {inflationCards.map((card) => (
+              <article key={`inflation-${card.pair.name}`} className={`macro-card ${card.status !== "ok" ? "is-muted" : ""}`}>
+                <div className="macro-card-head">
+                  <div className="macro-pair-head">
+                    <strong>{card.pair.name}</strong>
+                    <div className="macro-flag-stack">
+                      <FlagIcon countryCode={findCountryCode(card.pair.base, snapshots)} className="h-5 w-8" />
+                      <FlagIcon countryCode={findCountryCode(card.pair.quote, snapshots)} className="h-5 w-8" />
+                    </div>
+                  </div>
+                </div>
+                <div className="macro-main-figure inflation">
+                  <span>{card.pair.base}</span>
+                  <strong>{formatPercent(card.bias)}</strong>
+                </div>
+                <div className="macro-card-foot">
+                  {card.bias == null
+                    ? "At least one side is unresolved in the MT5 feed."
+                    : card.bias > 0
+                      ? `${card.pair.base} is currently printing higher inflation than ${card.pair.quote}.`
+                      : card.bias < 0
+                        ? `${card.pair.quote} is currently printing higher inflation than ${card.pair.base}.`
+                        : "Current inflation readings are roughly aligned."}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
       </section>
     </section>
   );
