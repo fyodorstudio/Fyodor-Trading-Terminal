@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, HelpCircle, RefreshCw, TrendingUp } from "lucide-react";
+import { AlertTriangle, HelpCircle, Info, RefreshCw, TrendingUp, X } from "lucide-react";
 import { fetchHistory } from "@/app/lib/bridge";
 import { FX_PAIRS } from "@/app/config/fxPairs";
 import {
@@ -94,6 +94,7 @@ export function MacroDriversTab({
   const [candlesByTimeframe, setCandlesByTimeframe] = useState<Partial<Record<MacroDriverTimeframe, BridgeCandle[]>>>({});
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [isDataLimitsOpen, setIsDataLimitsOpen] = useState(false);
 
   const instrument = getInstrument(selectedInstrument);
   const currencies = getInstrumentCurrencies(instrument);
@@ -143,18 +144,31 @@ export function MacroDriversTab({
   const coveredFactorCount = factorRows.filter((row) => row.coverageLabel !== "Missing").length;
   const scheduledFactorCount = factorRows.filter((row) => row.nextEvent).length;
 
+  useEffect(() => {
+    if (!isDataLimitsOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsDataLimitsOpen(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isDataLimitsOpen]);
+
   return (
-    <section className="workspace-page workspace-page-compact flex flex-col gap-3">
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+    <section className="workspace-page workspace-page-compact macro-drivers-page flex min-h-0 flex-col gap-3 overflow-hidden">
+      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-500">Active specialist tool</div>
-            <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">Macro Drivers</h2>
-            <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
+            <h2 className="mt-1 text-xl font-black tracking-tight text-slate-950">Macro Drivers</h2>
+            <p className="mt-1 max-w-3xl text-xs font-semibold leading-5 text-slate-500">
               Current-data-only driver map for forex and gold. It explains trend state, macro coverage, and missing evidence without issuing trade calls.
             </p>
           </div>
-          <label className="min-w-[220px]">
+          <label className="min-w-[220px] flex-none">
             <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Instrument</span>
             <select
               value={selectedInstrument}
@@ -171,17 +185,27 @@ export function MacroDriversTab({
         </div>
       </div>
 
-      <section className="grid gap-3 xl:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="grid min-h-0 flex-1 gap-3 overflow-auto pr-1 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
+        <div className="flex min-h-0 flex-col rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h3 className="text-lg font-black text-slate-950">Trend State</h3>
-              <p className="text-sm font-semibold text-slate-500">W1 context, D1 main state, H4 confirmation from MT5 candles.</p>
+              <h3 className="text-base font-black text-slate-950">Trend State</h3>
+              <p className="text-xs font-semibold text-slate-500">W1 regime, D1 main trend, H4 confirmation from MT5 candles.</p>
             </div>
-            <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600">
-              {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <TrendingUp className="h-4 w-4" />}
-              {loading ? "Loading candles" : "MT5 OHLCV"}
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-black text-slate-600">
+                {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <TrendingUp className="h-4 w-4" />}
+                {loading ? "Loading candles" : "MT5 OHLCV"}
+              </span>
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-black text-amber-800 transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-200"
+                onClick={() => setIsDataLimitsOpen(true)}
+              >
+                <Info className="h-4 w-4" />
+                Data limits
+              </button>
+            </div>
           </div>
 
           {loadError ? (
@@ -190,7 +214,7 @@ export function MacroDriversTab({
             </div>
           ) : null}
 
-          <div className="grid gap-3 lg:grid-cols-3">
+          <div className="grid min-h-0 gap-3 lg:grid-cols-3">
             {trendStates.map((state) => (
               <article key={state.timeframe} className={`rounded-xl border p-3 ${toneClass(state.tone)}`}>
                 <div className="flex items-start justify-between gap-3">
@@ -200,7 +224,7 @@ export function MacroDriversTab({
                   </div>
                   <HelpCircle className="h-4 w-4" title={state.explanation} />
                 </div>
-                <div className="mt-4 grid gap-2 text-xs font-bold">
+                <div className="mt-3 grid gap-2 text-xs font-bold">
                   <div className="flex justify-between gap-3"><span>Close</span><strong>{state.closeLabel}</strong></div>
                   <div className="flex justify-between gap-3"><span>Change</span><strong>{state.changeLabel}</strong></div>
                   <div className="flex justify-between gap-3"><span>Range</span><strong>{state.rangeLabel}</strong></div>
@@ -211,50 +235,85 @@ export function MacroDriversTab({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-          <h3 className="text-lg font-black text-slate-950">Current Macro Snapshot</h3>
-          <p className="mt-1 text-sm font-semibold text-slate-500">Resolved from central-bank rows currently available in the MT5 calendar feed.</p>
-          <div className="mt-3 grid gap-3">
-            {[instrument.base, instrument.quote].map((currency) => (
-              <MacroSnapshotCard key={currency} currency={currency} snapshots={snapshots} />
-            ))}
+        <div className="grid min-h-0 gap-3">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <h3 className="text-base font-black text-slate-950">Current Macro Snapshot</h3>
+            <p className="mt-1 text-xs font-semibold text-slate-500">Central-bank rows currently resolved from the MT5 calendar feed.</p>
+            <div className="mt-3 grid gap-3">
+              {[instrument.base, instrument.quote].map((currency) => (
+                <MacroSnapshotCard key={currency} currency={currency} snapshots={snapshots} />
+              ))}
+            </div>
           </div>
+
+          <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h3 className="text-base font-black text-slate-950">Calendar Coverage</h3>
+                <p className="mt-1 text-xs font-semibold text-slate-500">Detailed factor rows belong in Overview pair details.</p>
+              </div>
+              <span className="inline-flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-black text-blue-700">
+                Overview owns details
+              </span>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Covered</span>
+                <strong className="mt-1 block text-lg font-black text-slate-950">{coveredFactorCount}/{factorRows.length}</strong>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Scheduled</span>
+                <strong className="mt-1 block text-lg font-black text-slate-950">{scheduledFactorCount}</strong>
+              </div>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Scope</span>
+                <strong className="mt-1 block text-lg font-black text-slate-950">Current feed</strong>
+              </div>
+            </div>
+          </section>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h3 className="text-base font-black text-slate-950">Calendar Coverage Hand-Off</h3>
-          <span className="inline-flex items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 px-3 py-2 text-xs font-black text-blue-700">
-            Overview owns details
-          </span>
+      {isDataLimitsOpen ? (
+        <div
+          className="fixed inset-0 z-[1000] flex items-center justify-center bg-slate-950/30 p-6 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Macro Drivers data limits"
+          onClick={() => setIsDataLimitsOpen(false)}
+        >
+          <div
+            className="w-full max-w-2xl rounded-2xl border border-amber-200 bg-white p-5 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600">Current-data-only</div>
+                <h3 className="mt-1 text-xl font-black text-slate-950">What this tool cannot see yet</h3>
+              </div>
+              <button
+                type="button"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-200"
+                aria-label="Close data limits"
+                onClick={() => setIsDataLimitsOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4">
+              <div className="flex gap-3">
+                <AlertTriangle className="mt-0.5 h-5 w-5 flex-none text-amber-700" />
+                <p className="m-0 text-sm font-semibold leading-6 text-amber-950">
+                  Macro Drivers only uses MT5 candles, broker calendar rows, and central-bank snapshots. It does not
+                  ingest yields, COT positioning, ETF or gold-flow data, real-rate curves, Fed-pricing data, DXY, or
+                  risk proxies. Those sources would strengthen driver explanations, especially for gold, but they stay
+                  outside the app until the data boundary is explicitly changed.
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
-        <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Covered factors</span>
-            <strong className="mt-1 block text-lg font-black text-slate-950">{coveredFactorCount}/{factorRows.length}</strong>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Scheduled rows</span>
-            <strong className="mt-1 block text-lg font-black text-slate-950">{scheduledFactorCount}</strong>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-            <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Scope</span>
-            <strong className="mt-1 block text-lg font-black text-slate-950">Current feed</strong>
-          </div>
-        </div>
-      </section>
-
-      <details className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 shadow-sm">
-        <summary className="flex cursor-pointer list-none items-center gap-3 text-sm font-black text-amber-950">
-          <AlertTriangle className="h-4 w-4 flex-none text-amber-700" />
-          Missing data that would improve this read
-        </summary>
-        <p className="mt-3 pl-7 text-sm font-semibold leading-6 text-amber-900">
-          Current v1 does not ingest yields, COT positioning, ETF or gold-flow data, real-rate curves, Fed-pricing data, DXY, or risk proxies.
-          Those sources would make the driver explanation stronger, especially for gold, but they are intentionally not used until the data boundary changes.
-        </p>
-      </details>
+      ) : null}
     </section>
   );
 }
