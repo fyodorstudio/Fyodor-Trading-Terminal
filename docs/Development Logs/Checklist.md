@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Checklist
 
-Last updated: 2026-07-06
+Last updated: 2026-07-25
 
 ## Active Planning Source
 
@@ -22,11 +22,12 @@ This file is the active command board for the next goal-mode run.
 - Economic Calendar event explanation is a critical product surface because scheduled events are one of the main reasons price can move.
 - Active tabs should target normal desktop use at 100% Chrome zoom without whole-page vertical scrolling.
 - Overview is active, but still needs pair-brief layout work and final 100% Chrome zoom fit review when bridge data is populated.
-- Event Replay is active; modal, past-release, replay-brief, and viewport polish have had a first pass and still need visual inspection.
+- Event Replay is active; it still needs selection/config/result hierarchy cleanup.
 - Central Banks Data is an active reference surface and should not be redesigned casually.
 - Differential Calculator is an active Specialist Tools child, not a primary top-nav tab.
 - Macro Drivers is an active Specialist Tools child for forex and gold; its wide Calendar Factor Coverage table was removed, but the page still needs 100% Chrome zoom inspection.
-- Charts event overlay uses clustered/adaptive markers; it should still be visually inspected on dense calendar weeks.
+- Charts event overlay uses clustered/adaptive markers, but it must become performance-safe on H4/D1 and dense loaded histories.
+- Economic Calendar should default toward high-signal rows first while keeping lower-impact rows available through filters.
 - Aesthetic Forge is mounted behind the header gear and stays closed by default.
 - Prototyping is a garbage drawer. Garbage tabs, supporting garbage logic, and garbage tests are ignored by default unless the user explicitly asks for them.
 - Deprecated Overview, Six Questions, and Work In Progress must not steer new product work.
@@ -36,60 +37,45 @@ This file is the active command board for the next goal-mode run.
 
 ## Active Roadmap
 
-### 1. Visual Unification And Viewport Fit
+### 1. Event Replay Workflow Polish
 
-This is reopened. The first pass helped, but it is not complete.
+- [ ] Move `Replay Setup` controls into the `Replay Brief` modal.
+- [ ] Treat `Replay Brief` as the study/config panel containing timeframe, before/after candle counts, replay interpretation, and brief content.
+- [ ] Keep the main left rail focused on pair, event, release, and playback.
+- [ ] Add an always-visible compact result strip near the chart header/action row showing observed move, actual, forecast, previous, and surprise.
+- [ ] Rework `Select Event` so the primary discovery modes are three prominent cards:
+  - [ ] `Upcoming next`;
+  - [ ] `Countdown`;
+  - [ ] `Recently released`.
+- [ ] Keep secondary sort/filter controls available, but do not let them visually compete with those three primary event-selection modes.
+- [ ] Preserve Event Replay's pair -> event -> release -> playback workflow and active Specialist Tools route.
+
+### 2. Charts Event Overlay Performance And UX Polish
+
+- [ ] Reopen Charts event overlay as active work, not complete.
+- [ ] Add event overlay controls for impact, selected-pair/relevant-currency scope, and maximum rendered marker count.
+- [ ] Default chart event impact filtering to `High only`.
+- [ ] Make dense timeframe behavior performance-safe:
+  - [ ] do not render thousands of DOM event markers on H4/D1 or wide views;
+  - [ ] prefer visible-range rendering with a hard event cap;
+  - [ ] keep the cap user-configurable.
+- [ ] Replace x-axis-disrupting vertical lines with a bottom event rail:
+  - [ ] vertical lines stop before the x-axis;
+  - [ ] event interaction lives in a thin rail above the x-axis;
+  - [ ] cluster/badge interaction should not block normal chart scrolling.
+- [ ] Keep event markers honest: they show known calendar timing only and must not imply the event caused the price move.
+
+### 3. Economic Calendar Polish
+
+- [ ] Add a `Next Week` preset immediately after `This Week` in schedule controls.
+- [ ] Change the default Impact filter from `All` to `High`.
+- [ ] Keep lower-impact events available through the Impact selector.
+- [ ] Preserve existing custom range behavior and calendar route/filter state unless a future implementation plan explicitly changes it.
+
+### 4. Backlog
 
 - [ ] Active tabs should target 100% Chrome zoom on normal desktop without whole-page vertical scrolling.
-- [ ] Use bounded panels, popovers, modals, collapsible sections, and internal scroll regions for detail overflow.
-- [x] Macro Drivers wide factor table removed; page height is reduced.
-- [x] Overview pair-brief layout was redesigned around Pair Driver Snapshot.
-- [x] Overview, Charts, and Macro Drivers were inspected at 1440x900 / 100% browser zoom with no document-level vertical scroll in the default/offline state.
-- [x] Overview and Charts were inspected at 1440x900 / 100% browser zoom with simulated populated bridge/calendar data and no document-level vertical scroll.
-- [ ] Recheck with the real local MT5 bridge when available before treating live-state viewport fit as fully proven.
-- [ ] Future visual implementation must include manual viewport inspection at 100% Chrome zoom plus `pnpm --dir Main build`.
-
-### 2. Charts Event Overlay Polish
-
-- [x] Replace one badge per event with clustered event markers.
-- [x] Use one clean vertical line per nearby time/candle cluster.
-- [x] Summarize cluster badges, for example `EUR x4`, `USD high`, or `3 events`.
-- [x] Use adaptive labels:
-  - [x] always draw event lines;
-  - [x] show badges for high-impact or selected/hovered clusters;
-  - [x] suppress nonessential badges when the chart is crowded.
-- [x] Clicking a cluster opens a compact mini event-list popover.
-- [x] Each row in the mini popover opens the Economic Calendar inspector for that event.
-- [x] Keep existing event overlay scope settings.
-- [x] Do not add wider historical calendar fetching in this pass.
-- [x] Dense chart-event clusters were inspected with simulated loaded broker-calendar rows; nearby clusters now keep lines but suppress lower-priority overlapping badges.
-- [ ] Recheck dense chart-event weeks with real broker calendar rows when the local bridge is populated.
-
-### 3. Overview Pair Driver Snapshot Redesign
-
-- [x] Remove the dark standalone `Next Pair Event` card.
-- [x] Remove redundant mini navigation/workflow buttons leading to other tabs.
-- [x] Redesign the top-right Overview area as `Pair Driver Snapshot`.
-- [x] Move pair-level Calendar Factor Coverage out of Macro Drivers and into Overview.
-- [x] Put compact base/quote factor chips or mini cards under the base/quote macro cards.
-- [x] Add a `Pair details` popover for detailed latest/next factor rows.
-- [x] Keep upcoming pair-event information, but redesign `Pair Event Feed` so `See recent releases` still has a clear home.
-- [x] Preserve the no-whole-page-scroll target at 1440x900 / 100% browser zoom in the default/offline state.
-- [x] Preserve the no-whole-page-scroll target at 1440x900 / 100% browser zoom in a simulated populated bridge/calendar state.
-- [ ] Recheck with real local bridge data because live broker titles and macro values can still change card height.
-
-### 4. Macro Drivers Cleanup
-
-- [x] Remove the current wide `Calendar Factor Coverage` table from Macro Drivers.
-- [x] Keep Macro Drivers focused on:
-  - [x] trend state;
-  - [x] current macro snapshot;
-  - [x] missing-data honesty;
-  - [x] forex/gold driver context.
-- [x] Keep Macro Drivers under Specialist Tools, not primary top nav.
-
-### 5. Backlog
-
+- [ ] Recheck Overview, Charts, Macro Drivers, and Event Replay with the real local MT5 bridge when available before treating live-state viewport fit as fully proven.
 - [ ] External data connectors remain later.
 - [ ] COT remains later because it is weekly and not currently in the app data stack.
 - [ ] Central Banks MoM/YoY toggle remains later backlog.
@@ -125,10 +111,13 @@ This is reopened. The first pass helped, but it is not complete.
 ## Verification Rules
 
 - Checklist-only edits require no app tests.
+- Future Event Replay workflow implementation should run targeted Event Replay tests plus `pnpm --dir Main build`.
+- Future Charts overlay implementation should run targeted chart/calendar navigation tests plus `pnpm --dir Main build`.
+- Future Economic Calendar polish should run targeted calendar render/navigation tests plus `pnpm --dir Main build`.
 - Future display-trust implementation should run targeted calendar display, timezone, and chart tests plus `pnpm --dir Main build`.
 - Future Macro Drivers implementation should explain any new test before creating it.
 - Future Event Explainer implementation should run targeted Calendar/explainer tests and `pnpm --dir Main build`.
-- Future viewport/modal work should use manual viewport inspection at 100% Chrome zoom plus `pnpm --dir Main build`.
+- Future viewport/modal work should use manual viewport inspection at 100% Chrome zoom plus `pnpm --dir Main build`, especially H4/D1 chart event density and Event Replay viewport fit.
 - Future Differential promotion should run targeted navigation/Specialist Tools tests plus `pnpm --dir Main build`.
 - Do not run broad/full test suites after every small visual pass by default.
 - Before adding new tests, get explicit user agreement and explain what behavior the test protects.
