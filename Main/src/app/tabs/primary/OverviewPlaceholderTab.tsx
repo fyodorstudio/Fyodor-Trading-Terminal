@@ -357,13 +357,6 @@ function FactorDetailsGroup(props: {
 }) {
   return (
     <section className="overview-factor-detail-group">
-      <div className="overview-factor-detail-group-head">
-        <div>
-          <span>Currency</span>
-          <strong>{props.currency}</strong>
-        </div>
-        <b>{props.rows.filter((row) => row.coverageLabel !== "Missing").length} / {props.rows.length} covered</b>
-      </div>
       <div className="overview-factor-detail-column-head">
         <span>Factor</span>
         <span>Latest loaded release</span>
@@ -389,6 +382,7 @@ export function OverviewPlaceholderTab({
 }: OverviewPlaceholderTabProps) {
   const [releasePopoverOpen, setReleasePopoverOpen] = useState(false);
   const [pairDetailsOpen, setPairDetailsOpen] = useState(false);
+  const [selectedPairDetailsCurrency, setSelectedPairDetailsCurrency] = useState<string | null>(null);
   const pair = resolvePair(selectedSymbol);
   const pairCurrencies = [pair.base, pair.quote];
   const pairEvents = getPairEvents(events, pairCurrencies);
@@ -415,6 +409,11 @@ export function OverviewPlaceholderTab({
   const factorRows = buildMacroFactorRows({ events, currencies: pairCurrencies, nowSeconds });
   const baseFactorRows = factorRows.filter((row) => row.currency === pair.base);
   const quoteFactorRows = factorRows.filter((row) => row.currency === pair.quote);
+  const activePairDetailsCurrency =
+    selectedPairDetailsCurrency && pairCurrencies.includes(selectedPairDetailsCurrency)
+      ? selectedPairDetailsCurrency
+      : pair.base;
+  const activePairDetailsRows = activePairDetailsCurrency === pair.base ? baseFactorRows : quoteFactorRows;
   const sessionLabel =
     marketStatus?.session_state === "open"
       ? "Market open"
@@ -477,7 +476,10 @@ export function OverviewPlaceholderTab({
           currentTime={currentTime}
           onOpenEvent={onOpenCalendarEvent}
           onOpenReleases={() => setReleasePopoverOpen(true)}
-          onOpenDetails={() => setPairDetailsOpen(true)}
+          onOpenDetails={() => {
+            setSelectedPairDetailsCurrency(pair.base);
+            setPairDetailsOpen(true);
+          }}
         />
       </section>
 
@@ -490,7 +492,10 @@ export function OverviewPlaceholderTab({
           factorRows={baseFactorRows}
           currentTime={currentTime}
           onOpenEvent={onOpenCalendarEvent}
-          onOpenDetails={() => setPairDetailsOpen(true)}
+          onOpenDetails={() => {
+            setSelectedPairDetailsCurrency(pair.base);
+            setPairDetailsOpen(true);
+          }}
         />
         <MacroCard
           side="Quote"
@@ -500,7 +505,10 @@ export function OverviewPlaceholderTab({
           factorRows={quoteFactorRows}
           currentTime={currentTime}
           onOpenEvent={onOpenCalendarEvent}
-          onOpenDetails={() => setPairDetailsOpen(true)}
+          onOpenDetails={() => {
+            setSelectedPairDetailsCurrency(pair.quote);
+            setPairDetailsOpen(true);
+          }}
         />
       </section>
 
@@ -571,7 +579,7 @@ export function OverviewPlaceholderTab({
       ) : null}
 
       {pairDetailsOpen ? (
-        <div className="overview-release-overlay" onClick={() => setPairDetailsOpen(false)}>
+        <div className="overview-pair-detail-overlay" onClick={() => setPairDetailsOpen(false)}>
           <section
             className="overview-factor-detail-popover"
             role="dialog"
@@ -593,9 +601,30 @@ export function OverviewPlaceholderTab({
               <div className="overview-factor-detail-note">
                 Loaded broker/MT5 rows only. Missing coverage means this feed has no matching evidence, not that the factor does not matter.
               </div>
-              <div className="overview-factor-detail-grid">
-                <FactorDetailsGroup currency={pair.base} rows={baseFactorRows} onOpen={onOpenCalendarEvent} />
-                <FactorDetailsGroup currency={pair.quote} rows={quoteFactorRows} onOpen={onOpenCalendarEvent} />
+              <div className="overview-pair-detail-switcher" role="tablist" aria-label="Pair detail currency">
+                {[
+                  { currency: pair.base, rows: baseFactorRows },
+                  { currency: pair.quote, rows: quoteFactorRows },
+                ].map((item) => {
+                  const covered = item.rows.filter((row) => row.coverageLabel !== "Missing").length;
+                  const active = activePairDetailsCurrency === item.currency;
+                  return (
+                    <button
+                      key={item.currency}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      className={active ? "is-active" : ""}
+                      onClick={() => setSelectedPairDetailsCurrency(item.currency)}
+                    >
+                      <span>{item.currency}</span>
+                      <strong>{covered} / {item.rows.length} covered</strong>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="overview-factor-detail-focus">
+                <FactorDetailsGroup currency={activePairDetailsCurrency} rows={activePairDetailsRows} onOpen={onOpenCalendarEvent} />
               </div>
             </div>
           </section>

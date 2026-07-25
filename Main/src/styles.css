@@ -1636,6 +1636,17 @@ button {
   backdrop-filter: blur(3px);
 }
 
+.overview-pair-detail-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 970;
+  display: grid;
+  place-items: center;
+  padding: 92px 20px 24px;
+  background: rgba(15, 23, 42, 0.3);
+  backdrop-filter: blur(3px);
+}
+
 .overview-release-popover {
   display: flex;
   flex-direction: column;
@@ -1809,7 +1820,7 @@ button {
 .overview-factor-detail-popover {
   display: flex;
   flex-direction: column;
-  width: min(1180px, calc(100vw - 48px));
+  width: min(1120px, calc(100vw - 48px));
   max-height: calc(100vh - 110px);
   overflow: hidden;
   border: 1px solid #dbe3ef;
@@ -1882,6 +1893,49 @@ button {
   line-height: 1.45;
 }
 
+.overview-pair-detail-switcher {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.overview-pair-detail-switcher button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #334155;
+  text-align: left;
+}
+
+.overview-pair-detail-switcher button.is-active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.08);
+}
+
+.overview-pair-detail-switcher span {
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.overview-pair-detail-switcher strong {
+  color: #2563eb;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.overview-factor-detail-focus {
+  margin-top: 14px;
+}
+
 .overview-factor-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1897,43 +1951,6 @@ button {
   padding: 12px;
 }
 
-.overview-factor-detail-group-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid #e2e8f0;
-}
-
-.overview-factor-detail-group-head span {
-  display: block;
-  color: #2563eb;
-  font-size: 0.68rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.overview-factor-detail-group-head strong {
-  display: block;
-  margin-top: 2px;
-  color: #0f172a;
-  font-size: 1.05rem;
-  font-weight: 950;
-}
-
-.overview-factor-detail-group-head b {
-  flex: 0 0 auto;
-  padding: 5px 8px;
-  border: 1px solid #dbeafe;
-  border-radius: 999px;
-  background: #eff6ff;
-  color: #1d4ed8;
-  font-size: 0.72rem;
-  font-weight: 900;
-}
-
 .overview-factor-detail-row-list {
   display: grid;
   margin-top: 0;
@@ -1946,14 +1963,14 @@ button {
 .overview-factor-detail-column-head,
 .overview-factor-detail-row {
   display: grid;
-  grid-template-columns: minmax(130px, 0.72fr) minmax(0, 1.35fr) minmax(210px, 0.9fr);
-  gap: 14px;
+  grid-template-columns: minmax(150px, 0.55fr) minmax(0, 1.5fr) minmax(260px, 0.8fr);
+  gap: 18px;
   align-items: center;
 }
 
 .overview-factor-detail-column-head {
   margin-top: 12px;
-  padding: 0 12px 8px;
+  padding: 0 14px 8px;
   color: #94a3b8;
   font-size: 0.62rem;
   font-weight: 900;
@@ -1962,7 +1979,7 @@ button {
 }
 
 .overview-factor-detail-row {
-  padding: 12px;
+  padding: 14px;
   border-top: 1px solid #e2e8f0;
   background: #fff;
 }
@@ -1980,12 +1997,12 @@ button {
   min-width: 0;
   flex-direction: column;
   align-items: flex-start;
-  gap: 7px;
+  gap: 8px;
 }
 
 .overview-factor-detail-factor strong {
   color: #0f172a;
-  font-size: 0.88rem;
+  font-size: 0.95rem;
   font-weight: 950;
   line-height: 1.25;
 }
@@ -2011,19 +2028,19 @@ button {
 .overview-factor-next span {
   margin: 0;
   color: #334155;
-  font-size: 0.82rem;
+  font-size: 0.88rem;
   font-weight: 750;
   line-height: 1.45;
 }
 
 .overview-factor-next button {
   width: 100%;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border: 1px solid #dbeafe;
   border-radius: 10px;
   background: #eff6ff;
   color: #1d4ed8;
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   font-weight: 900;
   line-height: 1.35;
   text-align: left;
@@ -2054,6 +2071,10 @@ button {
   .overview-factor-detail-popover {
     width: min(100%, calc(100vw - 24px));
     max-height: calc(100vh - 92px);
+  }
+
+  .overview-pair-detail-switcher {
+    grid-template-columns: 1fr;
   }
 
   .overview-factor-detail-grid,
