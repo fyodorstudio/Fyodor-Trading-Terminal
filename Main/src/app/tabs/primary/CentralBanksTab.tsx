@@ -70,9 +70,9 @@ export function CentralBanksTab({
   const currentSnapshot = snapshots.find(s => s.currency === selectedBank) || snapshots[0];
 
   return (
-    <div className="workspace-page flex flex-col gap-4">
+    <div className="workspace-page flex h-[calc(100vh-98px)] min-h-[560px] flex-col gap-3 overflow-hidden">
       {/* Top Controller Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-2xl shadow-sm relative z-50">
+      <div className="flex flex-wrap items-center justify-between gap-4 p-3 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-2xl shadow-sm relative z-50">
         <div className="flex items-center gap-4">
           <div className="p-2.5 bg-gray-900 rounded-xl shadow-lg">
             <Database className="h-5 w-5 text-blue-400" />
@@ -117,16 +117,17 @@ export function CentralBanksTab({
         </div>
       </div>
 
-      <AnimatePresence mode="wait">
-        {viewMode === 'command' ? (
-          /* OPTION B: COMMAND CENTER (Sovereign Intelligence) */
-          <motion.div
-            key="command-view"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex flex-col gap-3"
-          >
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <AnimatePresence mode="wait">
+          {viewMode === 'command' ? (
+            /* OPTION B: COMMAND CENTER (Sovereign Intelligence) */
+            <motion.div
+              key="command-view"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="flex flex-col gap-3"
+            >
             {snapshots.map((snapshot, index) => (
               <motion.div
                 key={snapshot.currency}
@@ -213,16 +214,16 @@ export function CentralBanksTab({
                 </div>
               </motion.div>
             ))}
-          </motion.div>
-        ) : (
-          /* OPTION C: STRATEGIC FOCUS (Clean & Interactive) */
-          <motion.div
-            key="focus-view"
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start"
-          >
+            </motion.div>
+          ) : (
+            /* OPTION C: STRATEGIC FOCUS (Clean & Interactive) */
+            <motion.div
+              key="focus-view"
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start"
+            >
             {/* Sidebar: Selection Nodes */}
             <div className="lg:col-span-4 flex flex-col gap-2">
               {snapshots.map((snapshot) => (
@@ -363,9 +364,10 @@ export function CentralBanksTab({
                 </motion.div>
               </AnimatePresence>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Terminal Console */}
       <div className="backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-2xl overflow-hidden shadow-sm mt-auto">
