@@ -128,6 +128,7 @@ This file is the active command board for the next goal-mode run.
 - [x] Overview Pair Event Feed now shows upcoming events only, with recent releases moved into a separated releases popover.
 - [x] Central Banks log section was renamed to `Terminal Console` for consistency with Charts.
 - [x] Event Replay modals now reserve header-safe space; Past Releases and Replay Brief were redesigned for readable study workflow.
+- [x] Event Replay modal panels now rely on the shared header-safe modal sizing rule instead of conflicting inline max-height utilities.
 - [x] Aesthetic Forge is mounted behind a header gear and remains closed by default.
 - [x] Differential Calculator was promoted to active Specialist Tools with stable route id `dashboard`.
 - [x] Documentation maps were aligned after the fresh Overview checkpoint.
