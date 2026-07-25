@@ -88,8 +88,6 @@ This file is the active command board for the next goal-mode run.
 
 ### 4. Backlog
 
-- [ ] Active tabs should target 100% Chrome zoom on normal desktop without whole-page vertical scrolling.
-- [ ] Recheck Overview, Charts, Macro Drivers, and Event Replay with the real local MT5 bridge when available before treating live-state viewport fit as fully proven.
 - [ ] External data connectors remain later.
 - [ ] COT remains later because it is weekly and not currently in the app data stack.
 - [ ] Central Banks MoM/YoY toggle remains later backlog.
@@ -99,6 +97,7 @@ This file is the active command board for the next goal-mode run.
 ## Completed Checkpoints
 
 - [x] Visual unification and viewport first pass completed, but viewport fit remains an active quality gate.
+- [x] 100% Chrome zoom viewport audit passed with live local feed data at 1440x900 for Overview, Central Banks, Charts, Economic Calendar, Event Replay, Macro Drivers, and Differential Calculator: no whole-page vertical or horizontal scroll detected.
 - [x] Active app shell no longer has the old fixed 1460px content ceiling.
 - [x] Charts diagnostic `Terminal Console` is collapsible.
 - [x] Central Banks focus view is denser, with audit logs collapsed.
