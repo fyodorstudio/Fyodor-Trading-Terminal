@@ -17,6 +17,7 @@ export type ChartDisplayTimeMode = DisplayTimezoneSelection;
 export type ChartCursorReadoutMode = "both" | "true_cursor" | "nearest_candle";
 export type ChartWickMode = "match" | "neutral";
 export type ChartEventOverlayScope = "relevant" | "high_impact" | "all";
+export type ChartEventOverlayImpactFilter = "high" | "high_medium" | "all";
 
 export interface ChartAppearancePreferences {
   backgroundColor: string;
@@ -34,6 +35,8 @@ export interface ChartAppearancePreferences {
 export interface ChartEventOverlayPreferences {
   visible: boolean;
   scope: ChartEventOverlayScope;
+  impactFilter: ChartEventOverlayImpactFilter;
+  maxMarkers: number;
 }
 
 export interface ChartPreferences {
@@ -95,6 +98,8 @@ export const DEFAULT_CHART_PREFERENCES: ChartPreferences = {
   eventOverlay: {
     visible: true,
     scope: "relevant",
+    impactFilter: "high",
+    maxMarkers: 120,
   },
 };
 
@@ -136,6 +141,8 @@ function normalizeChartEventOverlay(raw: unknown): ChartEventOverlayPreferences 
   if (!raw || typeof raw !== "object") return fallback;
   const row = raw as Record<string, unknown>;
   const scope = row.scope;
+  const impactFilter = row.impactFilter;
+  const maxMarkers = Number(row.maxMarkers);
 
   return {
     visible: typeof row.visible === "boolean" ? row.visible : fallback.visible,
@@ -143,6 +150,13 @@ function normalizeChartEventOverlay(raw: unknown): ChartEventOverlayPreferences 
       scope === "relevant" || scope === "high_impact" || scope === "all"
         ? scope
         : fallback.scope,
+    impactFilter:
+      impactFilter === "high" || impactFilter === "high_medium" || impactFilter === "all"
+        ? impactFilter
+        : fallback.impactFilter,
+    maxMarkers: Number.isFinite(maxMarkers)
+      ? Math.min(300, Math.max(20, Math.round(maxMarkers)))
+      : fallback.maxMarkers,
   };
 }
 

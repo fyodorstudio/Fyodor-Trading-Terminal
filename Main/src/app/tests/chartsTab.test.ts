@@ -133,9 +133,13 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Events");
     expect(html).toContain("Event Timeline");
     expect(html).toContain("Show event lines on chart");
-    expect(html).toContain("Relevant only");
+    expect(html).toContain("Impact");
+    expect(html).toContain("High only");
+    expect(html).toContain("High + medium");
+    expect(html).toContain("Maximum markers");
+    expect(html).toContain("Selected pair");
     expect(html).toContain("All high impact");
-    expect(html).toContain("All loaded");
+    expect(html).toContain("All currencies");
   });
 
   it("derives session detail only from the active market status", () => {

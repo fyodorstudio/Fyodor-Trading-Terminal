@@ -38,9 +38,10 @@ import { getCountryDisplayName, MAJOR_COUNTRY_CODES } from "@/app/config/currenc
 import { FlagIcon } from "@/app/components/FlagIcon";
 import type { BridgeHealth, BridgeStatus, CalendarEvent, CalendarEventExplainer, CalendarNavigationIntent, ImpactLevel } from "@/app/types";
 
-const DEFAULT_IMPACTS: ImpactLevel[] = ["low", "medium", "high"];
+const ALL_IMPACTS: ImpactLevel[] = ["low", "medium", "high"];
+const DEFAULT_IMPACTS: ImpactLevel[] = ["high"];
 
-type CalendarRangeMode = "today" | "this_week" | "custom";
+type CalendarRangeMode = "today" | "this_week" | "next_week" | "custom";
 const CALENDAR_TIMEZONE_KEY = "fyodor-calendar-display-timezone";
 
 interface HelpHintPosition {
@@ -459,8 +460,8 @@ export function EconomicCalendarTab({
       };
     }
 
-    if (preset === "this_week") {
-      const weekRange = getPresetRange("this_week", new Date(), { from: null, to: null });
+    if (preset === "this_week" || preset === "next_week") {
+      const weekRange = getPresetRange(preset, new Date(), { from: null, to: null });
       return toUtcRangeSeconds(weekRange.from, weekRange.to);
     }
 
@@ -510,7 +511,7 @@ export function EconomicCalendarTab({
         const countryEvents = await fetchCalendar({
           from: activeRange.from,
           to: activeRange.to,
-          impacts: DEFAULT_IMPACTS,
+          impacts: ALL_IMPACTS,
         });
 
         if (cancelled) return;
@@ -847,6 +848,17 @@ export function EconomicCalendarTab({
               This Week
             </button>
 
+            <button
+              type="button"
+              className={preset === "next_week" ? "tv-toolbar-button is-active" : "tv-toolbar-button"}
+              onClick={() => {
+                setPreset("next_week");
+                setIsRangePopoverOpen(false);
+              }}
+            >
+              Next Week
+            </button>
+
             <div className="tv-toolbar-anchor" ref={rangePopoverRef}>
               <button
                 type="button"
@@ -918,7 +930,7 @@ export function EconomicCalendarTab({
                     <strong>Impact</strong>
                     <span>Broker importance label. This only filters visible rows.</span>
                   </div>
-                  {DEFAULT_IMPACTS.map((impact) => {
+                  {ALL_IMPACTS.map((impact) => {
                     const selected = impacts.includes(impact);
                     return (
                       <button

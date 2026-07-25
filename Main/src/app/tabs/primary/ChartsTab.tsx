@@ -132,6 +132,12 @@ interface ChartEventOverlayCluster {
 const CHART_EVENT_TOOLTIP_WIDTH = 300;
 const CHART_EVENT_CLUSTER_DISTANCE_PX = 24;
 
+function getChartEventImpactRank(impact: CalendarEvent["impact"]): number {
+  if (impact === "high") return 0;
+  if (impact === "medium") return 1;
+  return 2;
+}
+
 function interpolateChartEventX(
   chart: IChartApi,
   candles: BridgeCandle[],
@@ -933,9 +939,16 @@ export function ChartsTab({
         events,
         selectedSymbol,
         scope: chartPreferences.eventOverlay.scope,
+        impactFilter: chartPreferences.eventOverlay.impactFilter,
         sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
       }),
-    [events, selectedSymbol, chartPreferences.eventOverlay.scope, chartSourceTimeOffsetSeconds],
+    [
+      events,
+      selectedSymbol,
+      chartPreferences.eventOverlay.scope,
+      chartPreferences.eventOverlay.impactFilter,
+      chartSourceTimeOffsetSeconds,
+    ],
   );
 
   const chartEventOverlayPoints = useMemo<ChartEventOverlayPoint[]>(() => {
@@ -946,7 +959,36 @@ export function ChartsTab({
     const width = container.clientWidth;
     if (width <= 0) return [];
 
-    const points = chartEventCandidates
+    const visibleRange = chart.timeScale().getVisibleRange();
+    const firstCandle = visibleCandles[0];
+    const lastCandle = visibleCandles[visibleCandles.length - 1];
+    const fallbackFrom = firstCandle?.time ?? 0;
+    const fallbackTo = lastCandle?.time ?? fallbackFrom;
+    const visibleFrom = typeof visibleRange?.from === "number" ? visibleRange.from : fallbackFrom;
+    const visibleTo = typeof visibleRange?.to === "number" ? visibleRange.to : fallbackTo;
+    const candleSpacing =
+      visibleCandles.length > 1
+        ? Math.max(60, Math.abs((lastCandle.time - firstCandle.time) / Math.max(1, visibleCandles.length - 1)))
+        : 3600;
+    const rangeBuffer = candleSpacing * 2;
+    const rangeMidpoint = (visibleFrom + visibleTo) / 2;
+    const maxMarkers = chartPreferences.eventOverlay.maxMarkers;
+    const visibleCandidates = chartEventCandidates.filter(
+      (candidate) => candidate.chartTime >= visibleFrom - rangeBuffer && candidate.chartTime <= visibleTo + rangeBuffer,
+    );
+    const cappedCandidates =
+      visibleCandidates.length <= maxMarkers
+        ? visibleCandidates
+        : [...visibleCandidates]
+            .sort((left, right) => {
+              const impactDelta = getChartEventImpactRank(left.event.impact) - getChartEventImpactRank(right.event.impact);
+              if (impactDelta !== 0) return impactDelta;
+              return Math.abs(left.chartTime - rangeMidpoint) - Math.abs(right.chartTime - rangeMidpoint);
+            })
+            .slice(0, maxMarkers)
+            .sort((left, right) => left.chartTime - right.chartTime);
+
+    const points = cappedCandidates
       .map((candidate) => {
         const x = resolveChartEventX(chart, visibleCandles, timeframe, candidate.chartTime);
         if (x == null || x < -24 || x > width + 24) return null;
@@ -970,6 +1012,7 @@ export function ChartsTab({
   }, [
     chartEventCandidates,
     chartPreferences.eventOverlay.visible,
+    chartPreferences.eventOverlay.maxMarkers,
     visibleCandles,
     timeframe,
     displayTimeMode,

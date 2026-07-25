@@ -163,6 +163,8 @@ describe("chartView helpers", () => {
         eventOverlay: {
           visible: false,
           scope: "all",
+          impactFilter: "all",
+          maxMarkers: 80,
         },
         appearance: {
           bullishColor: "#00ff00",
@@ -172,6 +174,8 @@ describe("chartView helpers", () => {
       eventOverlay: {
         visible: false,
         scope: "all",
+        impactFilter: "all",
+        maxMarkers: 80,
       },
       appearance: {
         backgroundColor: DEFAULT_CHART_PREFERENCES.appearance.backgroundColor,
@@ -193,6 +197,17 @@ describe("chartView helpers", () => {
         events: CALENDAR_EVENTS,
         selectedSymbol: "EURUSD",
         scope: "relevant",
+        impactFilter: "high",
+        sourceTimeOffsetSeconds: 0,
+      }).map((candidate) => candidate.event.currency),
+    ).toEqual(["USD"]);
+
+    expect(
+      filterChartEventsForOverlay({
+        events: CALENDAR_EVENTS,
+        selectedSymbol: "EURUSD",
+        scope: "relevant",
+        impactFilter: "high_medium",
         sourceTimeOffsetSeconds: 0,
       }).map((candidate) => candidate.event.currency),
     ).toEqual(["USD", "EUR"]);
@@ -202,6 +217,7 @@ describe("chartView helpers", () => {
         events: CALENDAR_EVENTS,
         selectedSymbol: "EURUSD",
         scope: "high_impact",
+        impactFilter: "all",
         sourceTimeOffsetSeconds: 0,
       }).map((candidate) => candidate.event.currency),
     ).toEqual(["USD"]);
@@ -211,6 +227,7 @@ describe("chartView helpers", () => {
         events: CALENDAR_EVENTS,
         selectedSymbol: "EURUSD",
         scope: "all",
+        impactFilter: "all",
         sourceTimeOffsetSeconds: 0,
       }).map((candidate) => candidate.event.currency),
     ).toEqual(["USD", "EUR", "JPY"]);

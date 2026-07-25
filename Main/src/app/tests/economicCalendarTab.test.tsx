@@ -75,6 +75,9 @@ describe("EconomicCalendarTab redesign", () => {
     }
 
     expect(html).toContain("Economic Calendar");
+    expect(html).toContain("This Week");
+    expect(html).toContain("Next Week");
+    expect(html).toContain("High");
     expect(html).toContain("View refreshed");
     expect(html).toContain("Broker feed");
     expect(html).toContain("Next event");

@@ -86,9 +86,11 @@ const EVENT_TEMPLATE_SORT_OPTIONS: Array<{ value: EventTemplateSort; label: stri
   { value: "quality", label: "Quality first" },
   { value: "sample_count", label: "Most releases" },
   { value: "currency", label: "Currency" },
-  { value: "upcoming", label: "Upcoming next" },
-  { value: "countdown", label: "Countdown" },
-  { value: "recent", label: "Recently released" },
+];
+const EVENT_TEMPLATE_PRIMARY_SORTS: Array<{ value: EventTemplateSort; label: string; description: string }> = [
+  { value: "upcoming", label: "Upcoming next", description: "Scheduled event types with usable replay history." },
+  { value: "countdown", label: "Countdown", description: "Nearest scheduled replayable event types." },
+  { value: "recent", label: "Recently released", description: "Event types with the freshest historical samples." },
 ];
 
 function getEventTemplateMetaLabel(
@@ -399,6 +401,13 @@ export function EventReplayTab({
         : "N/A";
   const surpriseLabel = selectedSample ? `${selectedSample.surprise >= 0 ? "+" : ""}${selectedSample.surprise.toFixed(4)}` : "N/A";
   const observedMoveLabel = replayMove ? `${formatReplayPips(replayMove.pips)} (${formatReplayPercent(replayMove.percent)})` : "N/A";
+  const resultStripItems = [
+    { label: "Observed move", value: observedMoveLabel },
+    { label: "Actual", value: selectedSample?.actual || "N/A" },
+    { label: "Forecast", value: selectedSample?.forecast || "N/A" },
+    { label: "Previous", value: selectedSample?.previous || "N/A" },
+    { label: "Surprise", value: surpriseLabel },
+  ];
 
   return (
     <section className="tab-panel event-replay-workspace relative left-1/2 flex w-[calc(100vw-24px)] max-w-none -translate-x-1/2 flex-col gap-3 overflow-x-hidden pb-2">
@@ -527,51 +536,6 @@ export function EventReplayTab({
             </div>
           </div>
 
-          <div className="border-b border-slate-200 px-4 py-4">
-            <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Replay Setup</span>
-            <div className="mt-3 grid grid-cols-4 gap-2">
-              {REPLAY_TIMEFRAME_OPTIONS.map((option) => (
-                <button
-                  key={option.id}
-                  type="button"
-                  onClick={() => setReplayTimeframe(option.id)}
-                  className={`h-10 rounded-xl border px-2 text-sm font-black ${
-                    replayTimeframe === option.id
-                      ? "border-slate-900 bg-slate-950 text-white"
-                      : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <label className="grid gap-1">
-                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Before</span>
-                <input
-                  type="number"
-                  min={MIN_REPLAY_CANDLES}
-                  max={MAX_REPLAY_CANDLES}
-                  value={beforeCount}
-                  onChange={(event) => handleBeforeChange(event.target.value)}
-                  className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-black text-slate-950 outline-none focus:border-slate-400"
-                />
-              </label>
-              <label className="grid gap-1">
-                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">After</span>
-                <input
-                  type="number"
-                  min={MIN_REPLAY_CANDLES}
-                  max={MAX_REPLAY_CANDLES}
-                  value={afterCount}
-                  onChange={(event) => handleAfterChange(event.target.value)}
-                  className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-black text-slate-950 outline-none focus:border-slate-400"
-                />
-              </label>
-            </div>
-          </div>
-
           <div className="min-h-0 flex-1 px-4 py-4">
             <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Playback</span>
             <button
@@ -600,11 +564,21 @@ export function EventReplayTab({
 
         <main className="flex min-h-0 min-w-0 flex-col overflow-hidden border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-4 py-3">
-            <div className="min-w-0">
-              <h3 className="m-0 text-base font-black text-slate-950">Preview</h3>
-              <p className="mt-1 truncate text-sm text-slate-600">
-                {selectedTemplate ? `${selectedTemplate.currency} ${selectedTemplate.title}` : "Select an event type"}
-              </p>
+            <div className="min-w-[260px] flex-1">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                <h3 className="m-0 text-base font-black text-slate-950">Preview</h3>
+                <p className="m-0 min-w-0 truncate text-sm text-slate-600">
+                  {selectedTemplate ? `${selectedTemplate.currency} ${selectedTemplate.title}` : "Select an event type"}
+                </p>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-5">
+                {resultStripItems.map((item) => (
+                  <div key={item.label} className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                    <span className="block truncate text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{item.label}</span>
+                    <strong className="mt-1 block truncate text-xs text-slate-950">{item.value}</strong>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -704,6 +678,31 @@ export function EventReplayTab({
                   <X size={16} />
                 </button>
               </div>
+              <div className="mt-4 grid gap-2 lg:grid-cols-3">
+                {EVENT_TEMPLATE_PRIMARY_SORTS.map((option) => {
+                  const active = eventTemplateSort === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      className={`min-w-0 rounded-2xl border px-4 py-3 text-left transition-colors ${
+                        active
+                          ? "border-slate-900 bg-slate-950 text-white shadow-sm"
+                          : "border-slate-200 bg-slate-50 text-slate-800 hover:border-slate-300 hover:bg-white"
+                      }`}
+                      onClick={() => setEventTemplateSort(option.value)}
+                    >
+                      <span className={`block text-[10px] font-black uppercase tracking-[0.16em] ${active ? "text-slate-400" : "text-blue-500"}`}>
+                        Primary mode
+                      </span>
+                      <strong className="mt-1 block text-sm font-black">{option.label}</strong>
+                      <span className={`mt-1 block text-xs leading-5 ${active ? "text-slate-300" : "text-slate-500"}`}>
+                        {option.description}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
               <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_190px]">
                 <div className="flex flex-wrap gap-2">
                   {(["all", "usable", "limited", "weak"] as EventTemplateFilter[]).map((filter) => (
@@ -722,12 +721,16 @@ export function EventReplayTab({
                   ))}
                 </div>
                 <label className="grid gap-1">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Sort</span>
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Secondary sort</span>
                   <select
-                    value={eventTemplateSort}
-                    onChange={(event) => setEventTemplateSort(event.target.value as EventTemplateSort)}
+                    value={EVENT_TEMPLATE_SORT_OPTIONS.some((option) => option.value === eventTemplateSort) ? eventTemplateSort : ""}
+                    onChange={(event) => {
+                      if (!event.target.value) return;
+                      setEventTemplateSort(event.target.value as EventTemplateSort);
+                    }}
                     className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-800 outline-none"
                   >
+                    <option value="">Primary mode active</option>
                     {EVENT_TEMPLATE_SORT_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
@@ -885,6 +888,64 @@ export function EventReplayTab({
 
             <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-5 py-4">
               <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-500">Replay Setup</span>
+                    <h4 className="mt-1 text-base font-black text-slate-950">Study window</h4>
+                  </div>
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-slate-600">
+                    {replayTimeframe} / {beforeCount}+{afterCount}
+                  </span>
+                </div>
+                <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_0.72fr]">
+                  <div>
+                    <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Timeframe</span>
+                    <div className="mt-2 grid grid-cols-4 gap-2">
+                      {REPLAY_TIMEFRAME_OPTIONS.map((option) => (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setReplayTimeframe(option.id)}
+                          className={`h-10 rounded-xl border px-2 text-sm font-black ${
+                            replayTimeframe === option.id
+                              ? "border-slate-900 bg-slate-950 text-white"
+                              : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="grid gap-1">
+                      <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Before</span>
+                      <input
+                        type="number"
+                        min={MIN_REPLAY_CANDLES}
+                        max={MAX_REPLAY_CANDLES}
+                        value={beforeCount}
+                        onChange={(event) => handleBeforeChange(event.target.value)}
+                        className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-black text-slate-950 outline-none focus:border-slate-400"
+                      />
+                    </label>
+                    <label className="grid gap-1">
+                      <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">After</span>
+                      <input
+                        type="number"
+                        min={MIN_REPLAY_CANDLES}
+                        max={MAX_REPLAY_CANDLES}
+                        value={afterCount}
+                        onChange={(event) => handleAfterChange(event.target.value)}
+                        className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-black text-slate-950 outline-none focus:border-slate-400"
+                      />
+                    </label>
+                  </div>
+                </div>
+              </section>
+
+              <section className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <span className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-500">Selected study</span>

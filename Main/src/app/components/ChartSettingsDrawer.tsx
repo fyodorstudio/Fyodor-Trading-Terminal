@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import type {
   ChartAppearancePreferences,
   ChartCursorReadoutMode,
+  ChartEventOverlayImpactFilter,
   ChartEventOverlayPreferences,
   ChartPreferences,
 } from "@/app/lib/chartView";
@@ -21,10 +22,22 @@ const EVENT_SCOPE_OPTIONS: Array<{
   label: string;
   description: string;
 }> = [
-  { id: "relevant", label: "Relevant only", description: "High and medium impact events for the selected symbol currencies." },
+  { id: "relevant", label: "Selected pair", description: "Only events for the selected symbol currencies, such as EUR and USD on EURUSD." },
   { id: "high_impact", label: "All high impact", description: "Every loaded high-impact event, even from other currencies." },
-  { id: "all", label: "All loaded", description: "Every loaded broker calendar row. Useful for audits, noisy for normal chart work." },
+  { id: "all", label: "All currencies", description: "All loaded currencies, still limited by the impact filter below." },
 ];
+
+const EVENT_IMPACT_OPTIONS: Array<{
+  id: ChartEventOverlayImpactFilter;
+  label: string;
+  description: string;
+}> = [
+  { id: "high", label: "High only", description: "Cleanest default for H4/D1 and dense calendar history." },
+  { id: "high_medium", label: "High + medium", description: "Adds medium events when you want more calendar context." },
+  { id: "all", label: "All impacts", description: "Shows low-impact rows too. Use with a low marker cap." },
+];
+
+const EVENT_MARKER_LIMIT_OPTIONS = [40, 80, 120, 200, 300];
 
 interface ChartCacheDrawerData {
   selectedSymbol: string;
@@ -289,6 +302,39 @@ export function ChartSettingsDrawer({
                     />
                     <span>Show event lines on chart</span>
                   </label>
+                  <div className="chart-event-settings-grid">
+                    <div>
+                      <span className="chart-event-settings-label">Impact</span>
+                      <div className="chart-drawer-segmented chart-drawer-segmented-compact">
+                        {EVENT_IMPACT_OPTIONS.map((option) => (
+                          <button
+                            key={option.id}
+                            type="button"
+                            className={preferences.eventOverlay.impactFilter === option.id ? "is-active" : ""}
+                            onClick={() => onEventOverlayChange("impactFilter", option.id)}
+                          >
+                            <span>{option.label}</span>
+                            <small>{option.description}</small>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <label className="chart-settings-row chart-settings-row-stacked">
+                      <span>Maximum markers</span>
+                      <select
+                        value={preferences.eventOverlay.maxMarkers}
+                        onChange={(event) => onEventOverlayChange("maxMarkers", Number(event.target.value))}
+                      >
+                        {EVENT_MARKER_LIMIT_OPTIONS.map((limit) => (
+                          <option key={limit} value={limit}>
+                            {limit} markers
+                          </option>
+                        ))}
+                      </select>
+                      <small>Hard cap for visible-range markers before clustering.</small>
+                    </label>
+                  </div>
+                  <span className="chart-event-settings-label">Currency scope</span>
                   <div className="chart-drawer-segmented">
                     {EVENT_SCOPE_OPTIONS.map((option) => (
                       <button

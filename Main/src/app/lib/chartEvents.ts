@@ -1,6 +1,6 @@
 import { FX_PAIRS, MAJOR_CURRENCY_ORDER, getFxPairByName } from "@/app/config/fxPairs";
 import { formatDateTimeForDisplayTimezone } from "@/app/lib/timezoneDisplay";
-import type { ChartDisplayTimeMode, ChartEventOverlayScope } from "@/app/lib/chartView";
+import type { ChartDisplayTimeMode, ChartEventOverlayImpactFilter, ChartEventOverlayScope } from "@/app/lib/chartView";
 import type { BridgeCandle, CalendarEvent, Timeframe } from "@/app/types";
 
 const NON_INTRADAY_TIMEFRAMES = new Set<Timeframe>(["D1", "W1", "MN1"]);
@@ -77,11 +77,13 @@ export function filterChartEventsForOverlay({
   events,
   selectedSymbol,
   scope,
+  impactFilter,
   sourceTimeOffsetSeconds,
 }: {
   events: CalendarEvent[];
   selectedSymbol: string;
   scope: ChartEventOverlayScope;
+  impactFilter: ChartEventOverlayImpactFilter;
   sourceTimeOffsetSeconds: number;
 }): ChartEventCandidate[] {
   const relevantCurrencies = new Set(getChartEventRelevantCurrencies(selectedSymbol));
@@ -89,9 +91,11 @@ export function filterChartEventsForOverlay({
   return events
     .filter((event) => {
       if (!Number.isFinite(event.time)) return false;
-      if (scope === "all") return true;
       if (scope === "high_impact") return event.impact === "high";
-      return relevantCurrencies.has(event.currency) && (event.impact === "high" || event.impact === "medium");
+      if (scope === "relevant" && !relevantCurrencies.has(event.currency)) return false;
+      if (impactFilter === "all") return true;
+      if (impactFilter === "high_medium") return event.impact === "high" || event.impact === "medium";
+      return event.impact === "high";
     })
     .map((event) => ({
       event,
