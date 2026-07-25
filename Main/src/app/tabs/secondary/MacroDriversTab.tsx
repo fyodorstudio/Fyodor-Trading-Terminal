@@ -158,7 +158,7 @@ export function MacroDriversTab({
   }, [isDataLimitsOpen]);
 
   return (
-    <section className="workspace-page workspace-page-compact macro-drivers-page flex min-h-0 flex-col gap-3 overflow-hidden">
+    <section className="workspace-page workspace-page-compact macro-drivers-page flex h-[calc(100vh-98px)] min-h-[560px] flex-col gap-3 overflow-hidden">
       <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
