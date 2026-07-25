@@ -114,6 +114,7 @@ This file is the active command board for the next goal-mode run.
 - [x] Chart settings summaries and chart-event popover rows wrap important text instead of hiding it behind ellipses.
 - [x] Event Replay Past Releases rows were widened and made value-readable with full actual/forecast/previous/surprise readouts.
 - [x] Event Replay result values wrap instead of truncating in the chart header and Replay Brief cards.
+- [x] Event Replay selected-release comparison and preview context wrap instead of truncating event meaning.
 - [x] `Main/src/styles.css` ownership was audited; do not split it without a specific visual-regression plan.
 - [x] Overview was rebuilt fresh from `OverviewPlaceholderTab.tsx`, not Deprecated Overview.
 - [x] Overview has pair selector, Pair Driver Snapshot, base/quote macro cards, factor chips, and recent-release popovers.
