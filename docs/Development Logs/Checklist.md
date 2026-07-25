@@ -103,6 +103,7 @@ This file is the active command board for the next goal-mode run.
 - [x] Charts diagnostic `Terminal Console` is collapsible.
 - [x] Central Banks focus view is denser, with audit logs collapsed.
 - [x] Economic Calendar table uses a desktop scroll region.
+- [x] Economic Calendar toolbar clock/filter readouts wrap instead of hiding freshness or timezone details.
 - [x] Overview source shell is bounded to the app viewport with internal overflow for pair brief content.
 - [x] Overview Pair Details uses readable factor cards and wraps event titles instead of truncating key context.
 - [x] Macro Drivers source shell is bounded to the app viewport; missing-data notes open on demand instead of consuming page height.
