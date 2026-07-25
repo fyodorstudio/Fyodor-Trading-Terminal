@@ -329,9 +329,6 @@ function FactorDetailRow({ row, onOpen }: { row: MacroFactorRow; onOpen: (event:
     <div className="overview-factor-detail-row">
       <div className="overview-factor-detail-factor">
         <strong>{row.factor.label}</strong>
-        <span className={`overview-factor-coverage-pill ${row.coverageLabel === "Missing" ? "is-missing" : "is-covered"}`}>
-          {row.coverageLabel}
-        </span>
       </div>
       <p className="overview-factor-latest">{row.summary}</p>
       <div className="overview-factor-next">
