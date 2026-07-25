@@ -1065,7 +1065,7 @@ export function ChartsTab({
   const reachedBoundary = boundaryTime != null && visibleCandles.length > 0 && visibleCandles[0].time <= boundaryTime;
 
   return (
-    <div className="workspace-page workspace-page-compact flex flex-col">
+    <div className="workspace-page workspace-page-compact charts-tab-page flex h-[calc(100vh-98px)] min-h-[560px] flex-col overflow-hidden">
       <div className="chart-workbar">
         <div className="chart-workbar-left">
           <div className="relative" ref={pickerRef}>
@@ -1303,8 +1303,8 @@ export function ChartsTab({
       />
 
       {/* Main Chart Section */}
-      <div className="relative group">
-        <div className="p-1 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-3xl shadow-sm overflow-hidden">
+      <div className="relative group min-h-0 flex-1 overflow-hidden">
+        <div className="h-full p-1 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-3xl shadow-sm overflow-hidden">
           <div className="chart-canvas-frame">
             <div ref={containerRef} className="h-full w-full" />
             {chartEventOverlayClusters.length > 0 && (

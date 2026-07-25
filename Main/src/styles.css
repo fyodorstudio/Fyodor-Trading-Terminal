@@ -7792,6 +7792,7 @@ button {
 .chart-danger-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 38px; padding: 0 14px; border: 1px solid #fecdd3; border-radius: 8px; background: #fff1f2; color: #9f1239; font-size: 12px; font-weight: 800; }
 .chart-danger-button:hover { background: #ffe4e6; border-color: #fda4af; }
 .chart-canvas-frame { position: relative; height: clamp(420px, calc(100vh - 325px), 640px); width: 100%; overflow: hidden; border-radius: 20px; }
+.charts-tab-page .chart-canvas-frame { height: 100%; min-height: 360px; }
 .chart-event-overlay { position: absolute; inset: 0; z-index: 18; pointer-events: none; --chart-event-rail-height: 34px; }
 .chart-event-overlay::after { content: ""; position: absolute; right: 0; bottom: 0; left: 0; height: var(--chart-event-rail-height); border-top: 1px solid rgba(148, 163, 184, 0.22); background: linear-gradient(180deg, rgba(248, 250, 252, 0.18), rgba(248, 250, 252, 0.78)); backdrop-filter: blur(2px); }
 .chart-event-density-note { position: absolute; right: 12px; bottom: 7px; z-index: 28; display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px; border: 1px solid rgba(148, 163, 184, 0.32); border-radius: 999px; background: rgba(255, 255, 255, 0.92); color: #475569; font-size: 10px; font-weight: 850; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08); }
