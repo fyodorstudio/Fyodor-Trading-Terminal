@@ -132,6 +132,9 @@ describe("getChartConnectionLabel", () => {
 
     expect(html).toContain("Events");
     expect(html).toContain("Event Timeline");
+    expect(html).toContain("Current chart settings summary");
+    expect(html).toContain("Surface");
+    expect(html).toContain("Cursor");
     expect(html).toContain("Show event lines on chart");
     expect(html).toContain("Impact");
     expect(html).toContain("High only");

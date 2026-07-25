@@ -95,6 +95,10 @@ function ChartDrawerMetric({ label, value }: { label: string; value: string | nu
   );
 }
 
+function findOptionLabel<T extends string>(options: Array<{ id: T; label: string }>, id: T): string {
+  return options.find((option) => option.id === id)?.label ?? id;
+}
+
 export function ChartSettingsDrawer({
   open,
   mode,
@@ -117,6 +121,10 @@ export function ChartSettingsDrawer({
   ];
   const activeMode = tabs.some((tab) => tab.mode === mode) ? mode : "appearance";
   const appearance = preferences.appearance;
+  const cursorLabel = findOptionLabel(CURSOR_MODE_OPTIONS, preferences.cursorReadoutMode);
+  const eventScopeLabel = findOptionLabel(EVENT_SCOPE_OPTIONS, preferences.eventOverlay.scope);
+  const eventImpactLabel = findOptionLabel(EVENT_IMPACT_OPTIONS, preferences.eventOverlay.impactFilter);
+  const gridLabel = appearance.gridVisible ? "Grid visible" : "Grid hidden";
 
   return (
     <AnimatePresence>
@@ -144,6 +152,33 @@ export function ChartSettingsDrawer({
             </div>
 
             <div className="charts-history-body">
+              <div className="chart-settings-summary" aria-label="Current chart settings summary">
+                <div>
+                  <span>Surface</span>
+                  <strong>{appearance.backgroundColor} / {gridLabel}</strong>
+                </div>
+                <div>
+                  <span>Cursor</span>
+                  <strong>{cursorLabel}</strong>
+                </div>
+                {onEventOverlayChange ? (
+                  <div>
+                    <span>Events</span>
+                    <strong>
+                      {preferences.eventOverlay.visible
+                        ? `${eventScopeLabel}, ${eventImpactLabel}, cap ${preferences.eventOverlay.maxMarkers}`
+                        : "Hidden"}
+                    </strong>
+                  </div>
+                ) : null}
+                {cacheData ? (
+                  <div>
+                    <span>Cache</span>
+                    <strong>{cacheData.candleCount} candles / {cacheData.historyState}</strong>
+                  </div>
+                ) : null}
+              </div>
+
               <div className="chart-drawer-tabs" aria-label="Chart drawer view">
                 {tabs.map((tab) => (
                   <button
