@@ -136,9 +136,9 @@ export function CentralBanksTab({
                 transition={{ delay: index * 0.02 }}
                 className="bg-white border border-gray-200 rounded-xl shadow-sm hover:border-blue-300 transition-all group overflow-hidden"
               >
-                <div className="flex flex-wrap lg:flex-nowrap items-stretch divide-x divide-gray-100">
+                <div className="grid items-stretch divide-y divide-gray-100 lg:grid-cols-[minmax(220px,1fr)_minmax(240px,1.4fr)_minmax(240px,1.4fr)_96px] lg:divide-x lg:divide-y-0">
                   {/* Bank Identity */}
-                  <div className="flex-1 min-w-[240px] p-6 flex items-center gap-5 bg-gray-50/30">
+                  <div className="min-w-0 p-5 flex items-center gap-4 bg-gray-50/30">
                     <div className="relative">
                       <FlagIcon countryCode={snapshot.countryCode} className="h-8 w-12 shadow-sm rounded-sm border border-gray-200/50" />
                       <div className={`absolute -top-1 -right-1 h-3 w-3 rounded-full border-2 border-white shadow-sm ${
@@ -146,22 +146,22 @@ export function CentralBanksTab({
                         snapshot.status === 'partial' ? 'bg-amber-500' : 'bg-red-500'
                       }`} />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <div className="text-lg font-black text-gray-900 tracking-tight leading-none mb-1">{snapshot.bankName}</div>
                       <div className="text-[11px] font-black text-blue-600 uppercase tracking-widest">{snapshot.currency} Protocol</div>
                     </div>
                   </div>
 
                   {/* Policy Rate Block */}
-                  <div className="flex-[1.5] min-w-[300px] p-6 flex items-center justify-between gap-8 bg-white">
-                    <div className="flex flex-col">
+                  <div className="min-w-0 p-5 grid gap-4 bg-white sm:grid-cols-[minmax(0,1fr)_minmax(150px,0.85fr)] sm:items-center">
+                    <div className="min-w-0">
                       <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Policy Rate</div>
-                      <div className="flex items-baseline gap-3">
+                      <div className="flex flex-wrap items-baseline gap-3">
                         <span className="text-3xl font-black text-gray-900 tracking-tighter">{renderValue(snapshot.currentPolicyRate)}</span>
                         <span className="text-xs font-bold text-gray-500 tabular-nums">Prev: {renderValue(snapshot.previousPolicyRate)}</span>
                       </div>
                     </div>
-                    <div className="flex flex-col text-right">
+                    <div className="min-w-0 flex flex-col sm:text-right">
                       <div className="flex flex-col mb-2">
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Last Released</span>
                         <span className="text-xs font-black text-gray-900">{formatDateOnly(snapshot.lastRateReleaseAt)}</span>
@@ -177,15 +177,15 @@ export function CentralBanksTab({
                   </div>
 
                   {/* Inflation Block */}
-                  <div className="flex-[1.5] min-w-[300px] p-6 flex items-center justify-between gap-8 bg-white">
-                    <div className="flex flex-col">
+                  <div className="min-w-0 p-5 grid gap-4 bg-white sm:grid-cols-[minmax(0,1fr)_minmax(150px,0.85fr)] sm:items-center">
+                    <div className="min-w-0">
                       <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Inflation YoY</div>
-                      <div className="flex items-baseline gap-3">
+                      <div className="flex flex-wrap items-baseline gap-3">
                         <span className="text-3xl font-black text-gray-900 tracking-tighter">{renderValue(snapshot.currentInflationRate)}</span>
                         <span className="text-xs font-bold text-gray-500 tabular-nums">Prev: {renderValue(snapshot.previousInflationRate)}</span>
                       </div>
                     </div>
-                    <div className="flex flex-col text-right">
+                    <div className="min-w-0 flex flex-col sm:text-right">
                       <div className="flex flex-col mb-2">
                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">Last Released</span>
                         <span className="text-xs font-black text-gray-900">{formatDateOnly(snapshot.lastCpiReleaseAt)}</span>
@@ -201,7 +201,7 @@ export function CentralBanksTab({
                   </div>
 
                   {/* Tactical Meta */}
-                  <div className="w-[120px] p-6 flex flex-col items-center justify-center bg-gray-50/30 group-hover:bg-blue-50/50 transition-colors">
+                  <div className="min-w-0 p-5 flex flex-col items-center justify-center bg-gray-50/30 group-hover:bg-blue-50/50 transition-colors">
                     <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Node</div>
                     <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-widest border ${
                       snapshot.status === 'ok' ? 'bg-green-50 text-green-700 border-green-200' : 
