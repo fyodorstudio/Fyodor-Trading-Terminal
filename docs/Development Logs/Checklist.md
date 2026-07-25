@@ -39,38 +39,52 @@ This file is the active command board for the next goal-mode run.
 
 ### 1. Event Replay Workflow Polish
 
-- [x] Move `Replay Setup` controls into the `Replay Brief` modal.
-- [x] Treat `Replay Brief` as the study/config panel containing timeframe, before/after candle counts, replay interpretation, and brief content.
-- [x] Keep the main left rail focused on pair, event, release, and playback.
-- [x] Add an always-visible compact result strip near the chart header/action row showing observed move, actual, forecast, previous, and surprise.
-- [x] Rework `Select Event` so the primary discovery modes are three prominent cards:
-  - [x] `Upcoming next`;
-  - [x] `Countdown`;
-  - [x] `Recently released`.
-- [x] Keep secondary sort/filter controls available, but do not let them visually compete with those three primary event-selection modes.
-- [x] Preserve Event Replay's pair -> event -> release -> playback workflow and active Specialist Tools route.
+- [ ] Move `Replay Setup` controls into the `Replay Brief` modal.
+- [ ] Treat `Replay Brief` as the study/config panel containing:
+  - [ ] timeframe;
+  - [ ] before/after candle counts;
+  - [ ] replay interpretation/brief content.
+- [ ] Keep the main left rail focused on:
+  - [ ] pair;
+  - [ ] event;
+  - [ ] release;
+  - [ ] playback.
+- [ ] Add an always-visible compact result strip near the chart header/action row showing:
+  - [ ] observed move;
+  - [ ] actual;
+  - [ ] forecast;
+  - [ ] previous;
+  - [ ] surprise.
+- [ ] Rework `Select Event` so the primary discovery modes are three prominent cards:
+  - [ ] `Upcoming next`;
+  - [ ] `Countdown`;
+  - [ ] `Recently released`.
+- [ ] Keep secondary sort/filter controls available, but do not let them visually compete with those three primary event-selection modes.
+- [ ] Preserve Event Replay's pair -> event -> release -> playback workflow and active Specialist Tools route.
 
 ### 2. Charts Event Overlay Performance And UX Polish
 
-- [x] Reopen Charts event overlay as active work, not complete.
-- [x] Add event overlay controls for impact, selected-pair/relevant-currency scope, and maximum rendered marker count.
-- [x] Default chart event impact filtering to `High only`.
-- [x] Make dense timeframe behavior performance-safe:
-  - [x] do not render thousands of DOM event markers on H4/D1 or wide views;
-  - [x] prefer visible-range rendering with a hard event cap;
-  - [x] keep the cap user-configurable.
-- [x] Replace x-axis-disrupting vertical lines with a bottom event rail:
-  - [x] vertical lines stop before the x-axis;
-  - [x] event interaction lives in a thin rail above the x-axis;
-  - [x] cluster/badge interaction should not block normal chart scrolling.
-- [x] Keep event markers honest: they show known calendar timing only and must not imply the event caused the price move.
+- [ ] Reopen Charts event overlay as active work, not complete.
+- [ ] Add event overlay controls for:
+  - [ ] impact defaulting to `High only`;
+  - [ ] selected-pair/relevant-currency scope;
+  - [ ] configurable maximum number of rendered event markers.
+- [ ] Make dense timeframe behavior performance-safe:
+  - [ ] do not render thousands of DOM event markers on H4/D1 or wide views;
+  - [ ] prefer visible-range rendering with a hard event cap;
+  - [ ] keep the cap user-configurable.
+- [ ] Replace x-axis-disrupting vertical lines with a bottom event rail:
+  - [ ] vertical lines stop before the x-axis;
+  - [ ] event interaction lives in a thin rail above the x-axis;
+  - [ ] cluster/badge interaction should not block normal chart scrolling.
+- [ ] Keep event markers honest: they show known calendar timing only and must not imply the event caused the price move.
 
 ### 3. Economic Calendar Polish
 
-- [x] Add a `Next Week` preset immediately after `This Week` in schedule controls.
-- [x] Change the default Impact filter from `All` to `High`.
-- [x] Keep lower-impact events available through the Impact selector.
-- [x] Preserve existing custom range behavior and calendar route/filter state unless a future implementation plan explicitly changes it.
+- [ ] Add a `Next Week` preset immediately after `This Week` in schedule controls.
+- [ ] Change the default Impact filter from `All` to `High`.
+- [ ] Keep lower-impact events available through the Impact selector.
+- [ ] Preserve existing custom range behavior and calendar route/filter state unless a future implementation plan explicitly changes it.
 
 ### 4. Backlog
 
