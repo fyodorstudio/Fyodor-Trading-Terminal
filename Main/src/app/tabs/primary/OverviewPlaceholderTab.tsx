@@ -40,6 +40,11 @@ function renderMetric(value: string | null): string {
   return value && value.trim() !== "" ? value : "N/A";
 }
 
+function formatEventTitleWithCurrency(event: CalendarEvent): string {
+  const suffix = `(${event.currency})`;
+  return event.title.includes(suffix) ? event.title : `${event.title} ${suffix}`;
+}
+
 function getPairEvents(events: CalendarEvent[], currencies: string[]) {
   return events.filter((event) => currencies.includes(event.currency));
 }
@@ -322,18 +327,33 @@ function ReleaseCurrencyGroup(props: {
 function FactorDetailRow({ row, onOpen }: { row: MacroFactorRow; onOpen: (event: CalendarEvent) => void }) {
   return (
     <div className="overview-factor-detail-row">
-      <div>
-        <span>{row.factor.label}</span>
-        <strong>{row.coverageLabel}</strong>
+      <div className="overview-factor-detail-row-head">
+        <div>
+          <span>{row.factor.label}</span>
+        </div>
+        <span className={`overview-factor-coverage-pill ${row.coverageLabel === "Missing" ? "is-missing" : "is-covered"}`}>
+          {row.coverageLabel}
+        </span>
       </div>
-      <p>{row.summary}</p>
-      <button
-        type="button"
-        onClick={() => (row.nextEvent ? onOpen(row.nextEvent) : undefined)}
-        disabled={!row.nextEvent}
-      >
-        {row.nextEvent ? `${row.nextEvent.title} (${row.nextEvent.currency})` : "No upcoming loaded row"}
-      </button>
+      <div className="overview-factor-detail-row-body">
+        <div className="overview-factor-evidence">
+          <span>Latest loaded release</span>
+          <p>{row.summary}</p>
+        </div>
+        <div className="overview-factor-next">
+          <span>Next loaded event</span>
+          {row.nextEvent ? (
+            <button
+              type="button"
+              onClick={() => onOpen(row.nextEvent as CalendarEvent)}
+            >
+              {formatEventTitleWithCurrency(row.nextEvent)}
+            </button>
+          ) : (
+            <p>No upcoming matching row is loaded.</p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -345,11 +365,14 @@ function FactorDetailsGroup(props: {
 }) {
   return (
     <section className="overview-factor-detail-group">
-      <div className="overview-release-currency-head">
-        <span>{props.currency}</span>
-        <strong>{props.rows.filter((row) => row.coverageLabel !== "Missing").length}/{props.rows.length}</strong>
+      <div className="overview-factor-detail-group-head">
+        <div>
+          <span>Currency</span>
+          <strong>{props.currency}</strong>
+        </div>
+        <b>{props.rows.filter((row) => row.coverageLabel !== "Missing").length} / {props.rows.length} covered</b>
       </div>
-      <div className="mt-3 grid gap-2">
+      <div className="overview-factor-detail-row-list">
         {props.rows.map((row) => (
           <FactorDetailRow key={`${row.currency}-${row.factor.id}`} row={row} onOpen={props.onOpen} />
         ))}
@@ -553,13 +576,13 @@ export function OverviewPlaceholderTab({
       {pairDetailsOpen ? (
         <div className="overview-release-overlay" onClick={() => setPairDetailsOpen(false)}>
           <section
-            className="overview-release-popover overview-factor-detail-popover"
+            className="overview-factor-detail-popover"
             role="dialog"
             aria-modal="true"
             aria-label={`${pair.name} pair details`}
             onClick={(event) => event.stopPropagation()}
           >
-            <header className="overview-release-popover-head">
+            <header className="overview-factor-detail-popover-head">
               <div>
                 <span>Pair details</span>
                 <h3>{pair.name}</h3>
@@ -569,11 +592,11 @@ export function OverviewPlaceholderTab({
               </button>
             </header>
 
-            <div className="overview-release-popover-body">
-              <div className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-900">
-                Calendar factor coverage uses only loaded broker/MT5 calendar rows. Missing rows mean the current feed has no matching evidence, not that the factor does not matter.
+            <div className="overview-factor-detail-popover-body">
+              <div className="overview-factor-detail-note">
+                Loaded broker/MT5 rows only. Missing coverage means this feed has no matching evidence, not that the factor does not matter.
               </div>
-              <div className="overview-release-currency-grid">
+              <div className="overview-factor-detail-grid">
                 <FactorDetailsGroup currency={pair.base} rows={baseFactorRows} onOpen={onOpenCalendarEvent} />
                 <FactorDetailsGroup currency={pair.quote} rows={quoteFactorRows} onOpen={onOpenCalendarEvent} />
               </div>
