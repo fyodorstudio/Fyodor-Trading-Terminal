@@ -811,7 +811,7 @@ export function EventReplayTab({
           aria-label="Past Releases"
         >
           <section
-            className="event-replay-modal-panel flex max-h-[calc(100vh-32px)] w-full max-w-[620px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="event-replay-modal-panel flex max-h-[calc(100vh-32px)] w-full max-w-[760px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3">
