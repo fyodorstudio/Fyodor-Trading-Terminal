@@ -92,6 +92,7 @@ This file is the active command board for the next goal-mode run.
 - [x] Overview source shell is bounded to the app viewport with internal overflow for pair brief content.
 - [x] Macro Drivers source shell is bounded to the app viewport; missing-data notes open on demand instead of consuming page height.
 - [x] Central Banks source shell is bounded to the app viewport with internal overflow for command/focus content.
+- [x] Differential Calculator source shell is bounded to the app viewport with separate internal scroll panels for rate and inflation cards.
 - [x] Charts event overlay now shows a bottom rail and an explicit density note when visible events are capped.
 - [x] Chart settings drawer now shows a compact current-settings summary before detailed controls.
 - [x] Event Replay Past Releases rows were widened and made value-readable with full actual/forecast/previous/surprise readouts.
