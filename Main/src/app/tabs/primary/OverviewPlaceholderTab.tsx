@@ -40,6 +40,14 @@ function renderMetric(value: string | null): string {
   return value && value.trim() !== "" ? value : "N/A";
 }
 
+function getOverviewFactorChipLabel(row: MacroFactorRow): string {
+  if (row.coverageLabel === "Missing") return "No loaded rows";
+  if (row.latestEvent && row.nextEvent) return "Latest + next";
+  if (row.latestEvent) return "Latest row";
+  if (row.nextEvent) return "Next row";
+  return row.coverageLabel;
+}
+
 function formatEventTitleWithCurrency(event: CalendarEvent): string {
   const suffix = `(${event.currency})`;
   return event.title.includes(suffix) ? event.title : `${event.title} ${suffix}`;
@@ -136,7 +144,7 @@ function MacroCard(props: {
               title={`${row.factor.label}: ${row.summary}`}
             >
               <span>{row.factor.label}</span>
-              <strong>{row.coverageLabel}</strong>
+              <strong>{getOverviewFactorChipLabel(row)}</strong>
             </button>
           ))}
           {props.factorRows.length > 3 ? (

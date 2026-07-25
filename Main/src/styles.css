@@ -1764,17 +1764,29 @@ button {
 }
 
 .overview-factor-chip {
+  position: relative;
   display: flex;
   min-width: 0;
   flex-direction: column;
   align-items: flex-start;
   gap: 3px;
-  padding: 8px 9px;
-  border: 1px solid #dbeafe;
+  padding: 8px 9px 8px 12px;
+  border: 1px solid #e2e8f0;
   border-radius: 10px;
-  background: #eff6ff;
-  color: #1e40af;
+  background: #ffffff;
+  color: #0f172a;
   text-align: left;
+}
+
+.overview-factor-chip::before {
+  position: absolute;
+  top: 9px;
+  bottom: 9px;
+  left: 7px;
+  width: 3px;
+  border-radius: 999px;
+  background: #60a5fa;
+  content: "";
 }
 
 .overview-factor-chip span {
@@ -1787,7 +1799,7 @@ button {
 }
 
 .overview-factor-chip strong {
-  color: #2563eb;
+  color: #64748b;
   font-size: 0.62rem;
   font-weight: 900;
 }
@@ -1798,19 +1810,31 @@ button {
   color: #64748b;
 }
 
+.overview-factor-chip.is-missing::before {
+  background: #cbd5e1;
+}
+
 .overview-factor-chip.is-missing strong {
   color: #94a3b8;
 }
 
 .overview-factor-chip.is-scheduled {
   border-color: #bfdbfe;
-  background: #eff6ff;
+  background: #f8fbff;
+}
+
+.overview-factor-chip.is-current::before {
+  background: #94a3b8;
 }
 
 .overview-factor-chip-more {
   border-color: #cbd5e1;
   background: #ffffff;
   color: #334155;
+}
+
+.overview-factor-chip-more::before {
+  background: #94a3b8;
 }
 
 .overview-factor-chip-more strong {
