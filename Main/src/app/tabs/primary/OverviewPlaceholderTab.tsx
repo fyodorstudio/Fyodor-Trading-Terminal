@@ -327,32 +327,24 @@ function ReleaseCurrencyGroup(props: {
 function FactorDetailRow({ row, onOpen }: { row: MacroFactorRow; onOpen: (event: CalendarEvent) => void }) {
   return (
     <div className="overview-factor-detail-row">
-      <div className="overview-factor-detail-row-head">
-        <div>
-          <span>{row.factor.label}</span>
-        </div>
+      <div className="overview-factor-detail-factor">
+        <strong>{row.factor.label}</strong>
         <span className={`overview-factor-coverage-pill ${row.coverageLabel === "Missing" ? "is-missing" : "is-covered"}`}>
           {row.coverageLabel}
         </span>
       </div>
-      <div className="overview-factor-detail-row-body">
-        <div className="overview-factor-evidence">
-          <span>Latest loaded release</span>
-          <p>{row.summary}</p>
-        </div>
-        <div className="overview-factor-next">
-          <span>Next loaded event</span>
-          {row.nextEvent ? (
-            <button
-              type="button"
-              onClick={() => onOpen(row.nextEvent as CalendarEvent)}
-            >
-              {formatEventTitleWithCurrency(row.nextEvent)}
-            </button>
-          ) : (
-            <p>No upcoming matching row is loaded.</p>
-          )}
-        </div>
+      <p className="overview-factor-latest">{row.summary}</p>
+      <div className="overview-factor-next">
+        {row.nextEvent ? (
+          <button
+            type="button"
+            onClick={() => onOpen(row.nextEvent as CalendarEvent)}
+          >
+            {formatEventTitleWithCurrency(row.nextEvent)}
+          </button>
+        ) : (
+          <span>No upcoming matching row is loaded.</span>
+        )}
       </div>
     </div>
   );
@@ -371,6 +363,11 @@ function FactorDetailsGroup(props: {
           <strong>{props.currency}</strong>
         </div>
         <b>{props.rows.filter((row) => row.coverageLabel !== "Missing").length} / {props.rows.length} covered</b>
+      </div>
+      <div className="overview-factor-detail-column-head">
+        <span>Factor</span>
+        <span>Latest loaded release</span>
+        <span>Next loaded event</span>
       </div>
       <div className="overview-factor-detail-row-list">
         {props.rows.map((row) => (
