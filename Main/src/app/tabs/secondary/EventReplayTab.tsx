@@ -574,8 +574,8 @@ export function EventReplayTab({
               <div className="mt-3 grid gap-2 sm:grid-cols-5">
                 {resultStripItems.map((item) => (
                   <div key={item.label} className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                    <span className="block truncate text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{item.label}</span>
-                    <strong className="mt-1 block truncate text-xs text-slate-950">{item.value}</strong>
+                    <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{item.label}</span>
+                    <strong className="mt-1 block break-words text-xs leading-5 text-slate-950">{item.value}</strong>
                   </div>
                 ))}
               </div>
@@ -964,19 +964,19 @@ export function EventReplayTab({
                 <div className="mt-4 grid gap-2 sm:grid-cols-4">
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                     <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Actual</span>
-                    <strong className="mt-1 block truncate text-sm text-slate-950">{selectedSample?.actual || "N/A"}</strong>
+                    <strong className="mt-1 block break-words text-sm leading-5 text-slate-950">{selectedSample?.actual || "N/A"}</strong>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                     <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Forecast</span>
-                    <strong className="mt-1 block truncate text-sm text-slate-950">{selectedSample?.forecast || "N/A"}</strong>
+                    <strong className="mt-1 block break-words text-sm leading-5 text-slate-950">{selectedSample?.forecast || "N/A"}</strong>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                     <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Previous</span>
-                    <strong className="mt-1 block truncate text-sm text-slate-950">{selectedSample?.previous || "N/A"}</strong>
+                    <strong className="mt-1 block break-words text-sm leading-5 text-slate-950">{selectedSample?.previous || "N/A"}</strong>
                   </div>
                   <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
                     <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Surprise</span>
-                    <strong className="mt-1 block truncate text-sm text-slate-950">{surpriseLabel}</strong>
+                    <strong className="mt-1 block break-words text-sm leading-5 text-slate-950">{surpriseLabel}</strong>
                   </div>
                 </div>
               </section>
