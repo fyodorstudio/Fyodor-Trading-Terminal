@@ -114,6 +114,7 @@ This file is the active command board for the next goal-mode run.
 - [x] Macro Drivers, Charts, and Event Replay now use fixed app-height root shells instead of relying on whole-page height.
 - [x] Charts event overlay now shows a bottom rail and an explicit density note when visible events are capped.
 - [x] Charts event rail was tightened so markers stay visually separated from the x-axis, capped-event notes fit the rail, and event popover values wrap instead of clipping.
+- [x] Charts event rail now renders always-visible cluster dots and thins crowded badges so dense high-impact clusters do not stack repeated labels.
 - [x] Chart settings drawer now shows a compact current-settings summary before detailed controls.
 - [x] Chart settings summaries and chart-event popover rows wrap important text instead of hiding it behind ellipses.
 - [x] Event Replay Past Releases rows were widened and made value-readable with full actual/forecast/previous/surprise readouts.

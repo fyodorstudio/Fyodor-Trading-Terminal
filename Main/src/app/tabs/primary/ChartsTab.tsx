@@ -249,24 +249,39 @@ function clusterChartEventPoints(points: ChartEventOverlayPoint[], containerWidt
     };
   });
 
-  return mapped.map((cluster, index) => {
-    if (!cluster.showBadge) return cluster;
+  const badgeClusters = mapped.map((cluster) => ({ ...cluster }));
+  let lastShownIndex: number | null = null;
 
-    const previous = mapped[index - 1];
-    const next = mapped[index + 1];
-    const isNearAnotherBadge =
-      (previous?.showBadge && Math.abs(previous.x - cluster.x) < 72) ||
-      (next?.showBadge && Math.abs(next.x - cluster.x) < 72);
+  badgeClusters.forEach((cluster, index) => {
+    if (!cluster.showBadge) return;
 
-    if (!isNearAnotherBadge) return cluster;
+    if (lastShownIndex == null) {
+      lastShownIndex = index;
+      return;
+    }
 
-    const hasHighImpact = cluster.impact === "high";
-    const hasMultipleEvents = cluster.events.length > 1;
-    return {
-      ...cluster,
-      showBadge: hasHighImpact || hasMultipleEvents,
-    };
+    const previous = badgeClusters[lastShownIndex];
+    const minGap = cluster.events.length > 1 || previous.events.length > 1 ? 104 : 84;
+    if (Math.abs(cluster.x - previous.x) >= minGap) {
+      lastShownIndex = index;
+      return;
+    }
+
+    const previousScore =
+      (previous.events.length > 1 ? 2 : 0) + (previous.impact === "high" ? 1 : previous.impact === "medium" ? 0.5 : 0);
+    const currentScore =
+      (cluster.events.length > 1 ? 2 : 0) + (cluster.impact === "high" ? 1 : cluster.impact === "medium" ? 0.5 : 0);
+
+    if (currentScore > previousScore) {
+      previous.showBadge = false;
+      lastShownIndex = index;
+      return;
+    }
+
+    cluster.showBadge = false;
   });
+
+  return badgeClusters;
 }
 
 export function ChartsTab({
@@ -1343,6 +1358,7 @@ export function ChartsTab({
                       aria-label={`Open ${cluster.events.length} loaded chart event${cluster.events.length === 1 ? "" : "s"}`}
                     >
                       <span className="chart-event-line" />
+                      <span className="chart-event-dot" />
                       {shouldShowBadge && (
                         <span className="chart-event-badge">
                           <strong>{cluster.badgeLabel}</strong>
