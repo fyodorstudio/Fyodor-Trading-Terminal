@@ -3606,9 +3606,10 @@ button {
 }
 
 .tv-option-label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .tv-timezone-list {
@@ -3744,19 +3745,17 @@ button {
 .calendar-col-number { width: 108px; }
 
 .calendar-event-title-cell {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   color: #0f172a;
   font-weight: 800;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .calendar-number-cell {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .calendar-event-row {
