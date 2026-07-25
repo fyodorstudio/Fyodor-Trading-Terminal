@@ -7685,13 +7685,15 @@ button {
 .chart-danger-button:hover { background: #ffe4e6; border-color: #fda4af; }
 .chart-canvas-frame { position: relative; height: clamp(420px, calc(100vh - 325px), 640px); width: 100%; overflow: hidden; border-radius: 20px; }
 .chart-event-overlay { position: absolute; inset: 0; z-index: 18; pointer-events: none; --chart-event-rail-height: 34px; }
+.chart-event-overlay::after { content: ""; position: absolute; right: 0; bottom: 0; left: 0; height: var(--chart-event-rail-height); border-top: 1px solid rgba(148, 163, 184, 0.22); background: linear-gradient(180deg, rgba(248, 250, 252, 0.18), rgba(248, 250, 252, 0.78)); backdrop-filter: blur(2px); }
+.chart-event-density-note { position: absolute; right: 12px; bottom: 7px; z-index: 28; display: inline-flex; align-items: center; min-height: 22px; padding: 0 8px; border: 1px solid rgba(148, 163, 184, 0.32); border-radius: 999px; background: rgba(255, 255, 255, 0.92); color: #475569; font-size: 10px; font-weight: 850; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08); }
 .chart-event-marker { position: absolute; top: 0; bottom: 0; width: 28px; padding: 0; border: 0; background: transparent; pointer-events: none; transform: translateX(-50%); outline: none; }
 .chart-event-line { position: absolute; inset: 0 auto var(--chart-event-rail-height) 50%; width: 1px; transform: translateX(-50%); background: rgba(37, 99, 235, 0.48); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.42); }
 .chart-event-marker:hover .chart-event-line, .chart-event-marker.is-active .chart-event-line, .chart-event-marker:focus-visible .chart-event-line { width: 2px; }
 .chart-event-high .chart-event-line { background: rgba(239, 68, 68, 0.62); }
 .chart-event-medium .chart-event-line { background: rgba(37, 99, 235, 0.54); }
 .chart-event-low .chart-event-line { background: rgba(100, 116, 139, 0.42); }
-.chart-event-badge { position: absolute; left: 50%; bottom: 7px; display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 7px; border-radius: 999px; border: 1px solid rgba(37, 99, 235, 0.26); background: rgba(255, 255, 255, 0.94); color: #1d4ed8; font-size: 10px; font-weight: 900; line-height: 1; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12); transform: translateX(-50%); white-space: nowrap; pointer-events: auto; cursor: pointer; }
+.chart-event-badge { position: absolute; left: 50%; bottom: 7px; z-index: 26; display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 7px; border-radius: 999px; border: 1px solid rgba(37, 99, 235, 0.26); background: rgba(255, 255, 255, 0.94); color: #1d4ed8; font-size: 10px; font-weight: 900; line-height: 1; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12); transform: translateX(-50%); white-space: nowrap; pointer-events: auto; cursor: pointer; }
 .chart-event-badge small { color: #64748b; font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }
 .chart-event-high .chart-event-badge { border-color: rgba(239, 68, 68, 0.34); color: #b91c1c; }
 .chart-event-low .chart-event-badge { border-color: rgba(100, 116, 139, 0.3); color: #475569; }

@@ -129,6 +129,13 @@ interface ChartEventOverlayCluster {
   showBadge: boolean;
 }
 
+interface ChartEventOverlayData {
+  points: ChartEventOverlayPoint[];
+  visibleEventCount: number;
+  renderedEventCount: number;
+  isCapped: boolean;
+}
+
 const CHART_EVENT_TOOLTIP_WIDTH = 300;
 const CHART_EVENT_CLUSTER_DISTANCE_PX = 24;
 
@@ -951,13 +958,17 @@ export function ChartsTab({
     ],
   );
 
-  const chartEventOverlayPoints = useMemo<ChartEventOverlayPoint[]>(() => {
+  const chartEventOverlayData = useMemo<ChartEventOverlayData>(() => {
     const chart = chartRef.current;
     const container = containerRef.current;
-    if (!chart || !container || !chartPreferences.eventOverlay.visible || visibleCandles.length === 0) return [];
+    if (!chart || !container || !chartPreferences.eventOverlay.visible || visibleCandles.length === 0) {
+      return { points: [], visibleEventCount: 0, renderedEventCount: 0, isCapped: false };
+    }
 
     const width = container.clientWidth;
-    if (width <= 0) return [];
+    if (width <= 0) {
+      return { points: [], visibleEventCount: 0, renderedEventCount: 0, isCapped: false };
+    }
 
     const visibleRange = chart.timeScale().getVisibleRange();
     const firstCandle = visibleCandles[0];
@@ -1008,7 +1019,12 @@ export function ChartsTab({
       .filter((point): point is ChartEventOverlayPoint => point != null)
       .sort((left, right) => left.x - right.x);
 
-    return points;
+    return {
+      points,
+      visibleEventCount: visibleCandidates.length,
+      renderedEventCount: cappedCandidates.length,
+      isCapped: visibleCandidates.length > cappedCandidates.length,
+    };
   }, [
     chartEventCandidates,
     chartPreferences.eventOverlay.visible,
@@ -1023,8 +1039,8 @@ export function ChartsTab({
 
   const chartEventOverlayClusters = useMemo<ChartEventOverlayCluster[]>(() => {
     const container = containerRef.current;
-    return clusterChartEventPoints(chartEventOverlayPoints, container?.clientWidth ?? 0);
-  }, [chartEventOverlayPoints]);
+    return clusterChartEventPoints(chartEventOverlayData.points, container?.clientWidth ?? 0);
+  }, [chartEventOverlayData.points]);
 
   useEffect(() => {
     setActiveChartEventClusterKey(null);
@@ -1293,6 +1309,11 @@ export function ChartsTab({
             <div ref={containerRef} className="h-full w-full" />
             {chartEventOverlayClusters.length > 0 && (
               <div className="chart-event-overlay" aria-label="Loaded economic events on chart">
+                {chartEventOverlayData.isCapped ? (
+                  <div className="chart-event-density-note" aria-live="polite">
+                    Showing {chartEventOverlayData.renderedEventCount} of {chartEventOverlayData.visibleEventCount} events in view
+                  </div>
+                ) : null}
                 {chartEventOverlayClusters.map((cluster) => {
                   const isHovered = hoveredChartEventClusterKey === cluster.key;
                   const isActive = activeChartEventClusterKey === cluster.key;
