@@ -104,12 +104,14 @@ This file is the active command board for the next goal-mode run.
 - [x] Central Banks focus view is denser, with audit logs collapsed.
 - [x] Economic Calendar table uses a desktop scroll region.
 - [x] Overview source shell is bounded to the app viewport with internal overflow for pair brief content.
+- [x] Overview Pair Details uses readable factor cards and wraps event titles instead of truncating key context.
 - [x] Macro Drivers source shell is bounded to the app viewport; missing-data notes open on demand instead of consuming page height.
 - [x] Central Banks source shell is bounded to the app viewport with internal overflow for command/focus content.
 - [x] Differential Calculator source shell is bounded to the app viewport with separate internal scroll panels for rate and inflation cards.
 - [x] Macro Drivers, Charts, and Event Replay now use fixed app-height root shells instead of relying on whole-page height.
 - [x] Charts event overlay now shows a bottom rail and an explicit density note when visible events are capped.
 - [x] Chart settings drawer now shows a compact current-settings summary before detailed controls.
+- [x] Chart settings summaries and chart-event popover rows wrap important text instead of hiding it behind ellipses.
 - [x] Event Replay Past Releases rows were widened and made value-readable with full actual/forecast/previous/surprise readouts.
 - [x] Event Replay result values wrap instead of truncating in the chart header and Replay Brief cards.
 - [x] `Main/src/styles.css` ownership was audited; do not split it without a specific visual-regression plan.
