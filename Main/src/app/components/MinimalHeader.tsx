@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertCircle, CalendarClock, ChevronsDown, ChevronsUp, Clock3, Radio, Settings, TriangleAlert } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
@@ -39,6 +39,7 @@ export function MinimalHeader({
   const [hoverExpanded, setHoverExpanded] = useState(false);
   const [pinnedExpanded, setPinnedExpanded] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const suppressHoverOpenRef = useRef(false);
   const trustState = useMemo(() => resolveTrustState(health, feedStatus, marketStatus), [health, feedStatus, marketStatus]);
   const showDetails = hoverExpanded || pinnedExpanded;
 
@@ -50,14 +51,30 @@ export function MinimalHeader({
   };
 
   const openDetails = () => {
+    if (suppressHoverOpenRef.current) return;
     clearCloseTimer();
     setHoverExpanded(true);
   };
 
   const scheduleCloseDetails = () => {
+    suppressHoverOpenRef.current = false;
     clearCloseTimer();
     closeTimerRef.current = setTimeout(() => setHoverExpanded(false), 120);
   };
+
+  const handleTabSelect = useCallback(
+    (id: TabId) => {
+      if (typeof document !== "undefined" && document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      suppressHoverOpenRef.current = true;
+      setActiveTab(id);
+      setHoverExpanded(false);
+      setPinnedExpanded(false);
+      clearCloseTimer();
+    },
+    [setActiveTab],
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -200,7 +217,7 @@ export function MinimalHeader({
               <div className="hidden min-w-0 flex-1 justify-end md:flex">
                 <TabNavigation
                   activeTab={activeTab}
-                  setActiveTab={setActiveTab}
+                  setActiveTab={handleTabSelect}
                   tabOrder={tabOrder}
                   placement="header"
                 />
