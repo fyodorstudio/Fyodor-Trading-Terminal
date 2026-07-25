@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, Database, Info, X } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { CURRENCY_TO_COUNTRY_CODE, FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
@@ -135,7 +135,7 @@ function MacroCard(props: {
           </button>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          {props.factorRows.slice(0, 3).map((row) => (
+          {props.factorRows.slice(0, 2).map((row) => (
             <button
               key={`${row.currency}-${row.factor.id}`}
               type="button"
@@ -147,7 +147,7 @@ function MacroCard(props: {
               <strong>{getOverviewFactorChipLabel(row)}</strong>
             </button>
           ))}
-          {props.factorRows.length > 3 ? (
+          {props.factorRows.length > 2 ? (
             <button
               type="button"
               onClick={props.onOpenDetails}
@@ -155,7 +155,7 @@ function MacroCard(props: {
               title="Open all pair factor details"
             >
               <span>More factors</span>
-              <strong>+{props.factorRows.length - 3}</strong>
+              <strong>+{props.factorRows.length - 2}</strong>
             </button>
           ) : null}
         </div>
@@ -426,96 +426,111 @@ export function OverviewPlaceholderTab({
         ? "Market closed"
         : "Session unknown";
 
+  useEffect(() => {
+    if (!releasePopoverOpen && !pairDetailsOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setReleasePopoverOpen(false);
+      setPairDetailsOpen(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pairDetailsOpen, releasePopoverOpen]);
+
   return (
-    <div className="workspace-page workspace-page-compact flex flex-col gap-4">
-      <section className="grid gap-4 lg:grid-cols-[minmax(320px,0.9fr)_minmax(0,1.5fr)]">
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-500">Pair Brief</div>
-              <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">{pair.name}</h2>
-            </div>
-            <span className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-700">
-              {sessionLabel}
-            </span>
-          </div>
-
-          <label className="mt-5 block">
-            <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Selected Pair</span>
-            <select
-              value={pair.name}
-              onChange={(event) => onSelectedSymbolChange(event.target.value)}
-              className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-base font-black text-slate-950 outline-none transition focus:border-blue-300 focus:bg-white"
-            >
-              {FX_PAIRS.map((item) => (
-                <option key={item.name} value={item.name}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <FlagIcon countryCode={resolveCountryCode(pair.base, baseSnapshot)} className="h-6 w-9 border border-slate-200 shadow-sm" />
+    <div className="workspace-page workspace-page-compact flex h-[calc(100vh-98px)] min-h-[560px] flex-col gap-3 overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <section className="grid gap-3 lg:grid-cols-[minmax(320px,0.82fr)_minmax(0,1.58fr)]">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Base</div>
-                <div className="text-sm font-black text-slate-950">{pair.base}</div>
+                <div className="text-[10px] font-black uppercase tracking-[0.22em] text-blue-500">Pair Brief</div>
+                <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">{pair.name}</h2>
+              </div>
+              <span className="rounded-md border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-black text-slate-700">
+                {sessionLabel}
+              </span>
+            </div>
+
+            <label className="mt-4 block">
+              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Selected Pair</span>
+              <select
+                value={pair.name}
+                onChange={(event) => onSelectedSymbolChange(event.target.value)}
+                className="mt-2 h-12 w-full rounded-xl border border-slate-200 bg-slate-50 px-4 text-base font-black text-slate-950 outline-none transition focus:border-blue-300 focus:bg-white"
+              >
+                {FX_PAIRS.map((item) => (
+                  <option key={item.name} value={item.name}>
+                    {item.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <FlagIcon countryCode={resolveCountryCode(pair.base, baseSnapshot)} className="h-6 w-9 border border-slate-200 shadow-sm" />
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Base</div>
+                  <div className="text-sm font-black text-slate-950">{pair.base}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                <FlagIcon countryCode={resolveCountryCode(pair.quote, quoteSnapshot)} className="h-6 w-9 border border-slate-200 shadow-sm" />
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Quote</div>
+                  <div className="text-sm font-black text-slate-950">{pair.quote}</div>
+                </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
-              <FlagIcon countryCode={resolveCountryCode(pair.quote, quoteSnapshot)} className="h-6 w-9 border border-slate-200 shadow-sm" />
-              <div>
-                <div className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Quote</div>
-                <div className="text-sm font-black text-slate-950">{pair.quote}</div>
-              </div>
-            </div>
           </div>
-        </div>
 
-        <PairDriverSnapshot
-          pairName={pair.name}
-          nextEvent={nextEvent}
-          upcomingEvents={upcomingEvents}
-          factorRows={factorRows}
-          currentTime={currentTime}
-          onOpenEvent={onOpenCalendarEvent}
-          onOpenReleases={() => setReleasePopoverOpen(true)}
-          onOpenDetails={() => {
-            setSelectedPairDetailsCurrency(pair.base);
-            setPairDetailsOpen(true);
-          }}
-        />
-      </section>
+          <PairDriverSnapshot
+            pairName={pair.name}
+            nextEvent={nextEvent}
+            upcomingEvents={upcomingEvents}
+            factorRows={factorRows}
+            currentTime={currentTime}
+            onOpenEvent={onOpenCalendarEvent}
+            onOpenReleases={() => setReleasePopoverOpen(true)}
+            onOpenDetails={() => {
+              setSelectedPairDetailsCurrency(pair.base);
+              setPairDetailsOpen(true);
+            }}
+          />
+        </section>
 
-      <section className="grid gap-4 lg:grid-cols-2">
-        <MacroCard
-          side="Base"
-          currency={pair.base}
-          snapshot={baseSnapshot}
-          nextEvent={baseNextEvent}
-          factorRows={baseFactorRows}
-          currentTime={currentTime}
-          onOpenEvent={onOpenCalendarEvent}
-          onOpenDetails={() => {
-            setSelectedPairDetailsCurrency(pair.base);
-            setPairDetailsOpen(true);
-          }}
-        />
-        <MacroCard
-          side="Quote"
-          currency={pair.quote}
-          snapshot={quoteSnapshot}
-          nextEvent={quoteNextEvent}
-          factorRows={quoteFactorRows}
-          currentTime={currentTime}
-          onOpenEvent={onOpenCalendarEvent}
-          onOpenDetails={() => {
-            setSelectedPairDetailsCurrency(pair.quote);
-            setPairDetailsOpen(true);
-          }}
-        />
-      </section>
+        <section className="mt-3 grid gap-3 lg:grid-cols-2">
+          <MacroCard
+            side="Base"
+            currency={pair.base}
+            snapshot={baseSnapshot}
+            nextEvent={baseNextEvent}
+            factorRows={baseFactorRows}
+            currentTime={currentTime}
+            onOpenEvent={onOpenCalendarEvent}
+            onOpenDetails={() => {
+              setSelectedPairDetailsCurrency(pair.base);
+              setPairDetailsOpen(true);
+            }}
+          />
+          <MacroCard
+            side="Quote"
+            currency={pair.quote}
+            snapshot={quoteSnapshot}
+            nextEvent={quoteNextEvent}
+            factorRows={quoteFactorRows}
+            currentTime={currentTime}
+            onOpenEvent={onOpenCalendarEvent}
+            onOpenDetails={() => {
+              setSelectedPairDetailsCurrency(pair.quote);
+              setPairDetailsOpen(true);
+            }}
+          />
+        </section>
+      </div>
 
       {releasePopoverOpen ? (
         <div className="overview-release-overlay" onClick={() => setReleasePopoverOpen(false)}>
