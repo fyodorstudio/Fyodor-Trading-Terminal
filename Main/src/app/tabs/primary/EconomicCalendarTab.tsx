@@ -689,17 +689,39 @@ export function EconomicCalendarTab({
         : status === "loading"
           ? "Syncing means this tab is currently asking the local bridge for calendar rows."
           : status === "no_data"
-            ? "No data means the bridge responded, but there are no calendar rows for the current range or filters."
+            ? "No data means the bridge responded, but there are no rows for the current range or filters. With High impact selected, this often just means no high-impact releases are loaded for that date."
             : "Offline means the bridge request failed and this tab has no retained rows available for this query.";
   const viewFreshness = getCalendarFreshness(lastSyncedAt, uiNow);
   const brokerFreshness = getCalendarFreshness(lastCalendarIngestAt, uiNow);
   const visibleEventCountLabel =
     filteredEvents.length === events.length ? `${filteredEvents.length} events` : `${filteredEvents.length} of ${events.length} events`;
   const selectedEventKey = selectedEvent ? buildCalendarEventKey(selectedEvent) : null;
+  const showCalendarEmptyState = groups.length === 0 && status !== "loading" && status !== "error";
 
   const handleSelectToday = () => {
     setPreset("today");
     setIsRangePopoverOpen(false);
+  };
+
+  const handleSelectThisWeek = () => {
+    setPreset("this_week");
+    setIsRangePopoverOpen(false);
+    setIsImpactMenuOpen(false);
+    setIsCountryMenuOpen(false);
+    setIsTimezoneMenuOpen(false);
+  };
+
+  const handleSelectNextWeek = () => {
+    setPreset("next_week");
+    setIsRangePopoverOpen(false);
+    setIsImpactMenuOpen(false);
+    setIsCountryMenuOpen(false);
+    setIsTimezoneMenuOpen(false);
+  };
+
+  const handleIncludeAllImpacts = () => {
+    setImpacts(ALL_IMPACTS);
+    setIsImpactMenuOpen(false);
   };
 
   const handleOpenRangePopover = () => {
@@ -840,10 +862,7 @@ export function EconomicCalendarTab({
             <button
               type="button"
               className={preset === "this_week" ? "tv-toolbar-button is-active" : "tv-toolbar-button"}
-              onClick={() => {
-                setPreset("this_week");
-                setIsRangePopoverOpen(false);
-              }}
+              onClick={handleSelectThisWeek}
             >
               This Week
             </button>
@@ -851,10 +870,7 @@ export function EconomicCalendarTab({
             <button
               type="button"
               className={preset === "next_week" ? "tv-toolbar-button is-active" : "tv-toolbar-button"}
-              onClick={() => {
-                setPreset("next_week");
-                setIsRangePopoverOpen(false);
-              }}
+              onClick={handleSelectNextWeek}
             >
               Next Week
             </button>
@@ -1096,47 +1112,63 @@ export function EconomicCalendarTab({
         </div>
       </div>
 
-      {(status === "error" || status === "stale" || status === "no_data") && (
+      {(status === "error" || status === "stale") && (
         <div className={`alert-panel alert-${status}`}>
           {status === "error" && "Bridge unavailable. Keep MetaTrader 5 and the local bridge running, then refresh this tab."}
           {status === "stale" && "Calendar feed is stale. Rows below are retained MT5 events from the last successful ingest; they are not freshly verified yet."}
-          {status === "no_data" && "NO DATA for the selected range or filters. Broaden the range or verify the MT5 feed."}
         </div>
       )}
 
       <div className="data-table-shell calendar-table-shell">
-        <table className="data-table calendar-table">
-          <colgroup>
-            <col className="calendar-col-mt5" />
-            <col className="calendar-col-viewer" />
-            <col className="calendar-col-country" />
-            <col className="calendar-col-event" />
-            <col className="calendar-col-impact" />
-            <col className="calendar-col-number" />
-            <col className="calendar-col-number" />
-            <col className="calendar-col-number" />
-          </colgroup>
-          <thead>
-            <tr>
-              <th>MT5 Time</th>
-              <th>Viewer Time</th>
-              <th>Country</th>
-              <th>Event</th>
-              <th>Impact</th>
-              <th>Actual</th>
-              <th>Forecast</th>
-              <th>Previous</th>
-            </tr>
-          </thead>
-          <tbody>
-            {groups.length === 0 ? (
+        {showCalendarEmptyState ? (
+          <div className="calendar-empty-state">
+            <div className="calendar-empty-copy">
+              <span>No high-signal rows in this view</span>
+              <strong>No high-impact calendar rows are loaded for the selected range and filters.</strong>
+              <p>
+                The bridge responded. This usually means the current High-only view is too narrow, not that the calendar
+                feed is broken.
+              </p>
+            </div>
+            <div className="calendar-empty-actions" aria-label="Broaden calendar view">
+              <button type="button" onClick={handleIncludeAllImpacts}>
+                Include all impacts
+              </button>
+              <button type="button" onClick={handleSelectThisWeek}>
+                This Week
+              </button>
+              <button type="button" onClick={handleSelectNextWeek}>
+                Next Week
+              </button>
+            </div>
+          </div>
+        ) : null}
+        {groups.length > 0 ? (
+          <table className="data-table calendar-table">
+            <colgroup>
+              <col className="calendar-col-mt5" />
+              <col className="calendar-col-viewer" />
+              <col className="calendar-col-country" />
+              <col className="calendar-col-event" />
+              <col className="calendar-col-impact" />
+              <col className="calendar-col-number" />
+              <col className="calendar-col-number" />
+              <col className="calendar-col-number" />
+            </colgroup>
+            <thead>
               <tr>
-                <td colSpan={8} className="table-empty">
-                  No calendar rows to display.
-                </td>
+                <th>MT5 Time</th>
+                <th>Viewer Time</th>
+                <th>Country</th>
+                <th>Event</th>
+                <th>Impact</th>
+                <th>Actual</th>
+                <th>Forecast</th>
+                <th>Previous</th>
               </tr>
-            ) : (
-              groups.map(([day, items]) => (
+            </thead>
+            <tbody>
+              {groups.map(([day, items]) => (
                 <Fragment key={day}>
                   <tr className="group-row">
                     <td colSpan={8}>
@@ -1190,10 +1222,10 @@ export function EconomicCalendarTab({
                     </tr>
                   )})}
                 </Fragment>
-              ))
-            )}
-          </tbody>
-        </table>
+              ))}
+            </tbody>
+          </table>
+        ) : null}
       </div>
 
       {selectedEvent && selectedEventExplainer

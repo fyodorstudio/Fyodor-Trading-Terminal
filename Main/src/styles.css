@@ -3527,6 +3527,75 @@ button {
   font-weight: 700;
 }
 
+.calendar-empty-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin: 12px;
+  padding: 16px 18px;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #eff6ff 0%, #f8fafc 100%);
+  color: #102a56;
+}
+
+.calendar-empty-copy {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+
+.calendar-empty-copy > span {
+  color: #2563eb;
+  font-size: 0.68rem;
+  font-weight: 900;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.calendar-empty-copy > strong {
+  color: #0f172a;
+  font-size: 0.98rem;
+  font-weight: 900;
+  letter-spacing: 0;
+}
+
+.calendar-empty-copy > p {
+  max-width: 720px;
+  margin: 0;
+  color: #475569;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
+.calendar-empty-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.calendar-empty-actions > button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f3fb8;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.calendar-empty-actions > button:hover,
+.calendar-empty-actions > button:focus-visible {
+  border-color: #93c5fd;
+  background: #dbeafe;
+  outline: 0;
+}
+
 .calendar-table {
   table-layout: fixed;
   width: 100%;
@@ -3914,6 +3983,15 @@ button {
   .calendar-tv-left,
   .calendar-tv-right,
   .calendar-tv-meta {
+    justify-content: flex-start;
+  }
+
+  .calendar-empty-state {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .calendar-empty-actions {
     justify-content: flex-start;
   }
 
