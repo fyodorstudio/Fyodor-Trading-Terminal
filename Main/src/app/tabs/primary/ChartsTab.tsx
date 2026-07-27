@@ -14,23 +14,20 @@ import {
   CalendarDays,
   Check,
   ChevronDown,
-  ChevronRight,
   Clock,
   Database,
   Focus,
   HardDrive,
   MousePointer2,
-  Search,
   Settings2,
-  Star,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
 import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
+import { ChartSymbolPicker } from "@/app/components/ChartSymbolPicker";
 import { fetchHistory, fetchHistoryBoundary, fetchHistoryRange, fetchSymbols, openChartStream } from "@/app/lib/bridge";
 import {
   CHART_HISTORY_RANGE_MAX_SECONDS,
-  CHART_TIMEFRAMES,
   DEFAULT_CHART_SYMBOL,
   getChartConnectionLabel,
   getChartPriceFormat,
@@ -75,9 +72,7 @@ import {
 } from "@/app/lib/chartEventOverlay";
 import {
   clearChartHistoryCache,
-  loadChartFavorites,
   readChartHistoryCache,
-  saveChartFavorites,
   saveChartHistoryCache,
   summarizeStoredChartHistory,
 } from "@/app/lib/chartStorage";
@@ -99,11 +94,6 @@ type CrosshairReadout = {
   top: number;
   lines: Array<{ label: string; value: string }>;
 };
-
-interface GroupedSymbols {
-  label: string;
-  items: BridgeSymbol[];
-}
 
 interface ChartsTabProps {
   marketStatus: MarketStatusResponse | null;
@@ -132,14 +122,10 @@ export function ChartsTab({
   const [chartPreferences, setChartPreferences] = useState<ChartPreferences>(() => loadChartPreferences());
   const [historyState, setHistoryState] = useState<"loading" | "ready" | "no_data" | "error">("loading");
   const [symbols, setSymbols] = useState<BridgeSymbol[]>([]);
-  const [favorites, setFavorites] = useState<string[]>(() => loadChartFavorites());
-  const [search, setSearch] = useState("");
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [timezoneMenuOpen, setTimezoneMenuOpen] = useState(false);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
   const [chartDrawerMode, setChartDrawerMode] = useState<ChartDrawerMode>("appearance");
   const [cacheRevision, setCacheRevision] = useState(0);
-  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [consoleOpen, setConsoleOpen] = useState(false);
   const [debugLines, setDebugLines] = useState<string[]>([]);
   const [lastCandleTime, setLastCandleTime] = useState<number | null>(null);
@@ -153,7 +139,6 @@ export function ChartsTab({
   const [chartLayoutRevision, setChartLayoutRevision] = useState(0);
   const [hoveredChartEventClusterKey, setHoveredChartEventClusterKey] = useState<string | null>(null);
   const [activeChartEventClusterKey, setActiveChartEventClusterKey] = useState<string | null>(null);
-  const pickerRef = useRef<HTMLDivElement | null>(null);
   const timezoneMenuRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -179,7 +164,6 @@ export function ChartsTab({
   useEffect(() => {
     const handleOutside = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (!pickerRef.current?.contains(target)) setPickerOpen(false);
       if (!timezoneMenuRef.current?.contains(target)) setTimezoneMenuOpen(false);
     };
 
@@ -301,15 +285,6 @@ export function ChartsTab({
         onSelectedSymbolChange(
           selectedSymbol === DEFAULT_CHART_SYMBOL ? pickInitialChartSymbol(items) : selectedSymbol,
         );
-        const groups = Array.from(
-          new Set(
-            items.map((item) => {
-              const root = item.path?.split(/[\\/]/)[0]?.trim();
-              return root || "Other";
-            }),
-          ),
-        ).sort();
-        setExpandedGroups(groups.length > 0 ? [groups[0]] : []);
       }
     });
     return () => {
@@ -727,39 +702,6 @@ export function ChartsTab({
     [historyState, activeMarketStatus, streamConnected],
   );
 
-  const groupedSymbols = useMemo<GroupedSymbols[]>(() => {
-    const query = search.trim().toLowerCase();
-    const filtered = query
-      ? symbols.filter((item) => item.name.toLowerCase().includes(query))
-      : symbols;
-    const groups = new Map<string, BridgeSymbol[]>();
-    filtered.forEach((item) => {
-      const group = item.path?.split(/[\\/]/)[0]?.trim() || "Other";
-      const list = groups.get(group) ?? [];
-      list.push(item);
-      groups.set(group, list);
-    });
-    return Array.from(groups.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([label, items]) => ({ label, items }));
-  }, [search, symbols]);
-
-  const favoriteItems = useMemo(
-    () =>
-      favorites
-        .map((name) => symbols.find((item) => item.name === name))
-        .filter((item): item is BridgeSymbol => item != null),
-    [favorites, symbols],
-  );
-
-  const toggleFavorite = useCallback((name: string) => {
-    setFavorites((current) => {
-      const next = current.includes(name) ? current.filter((item) => item !== name) : [...current, name];
-      saveChartFavorites(next);
-      return next;
-    });
-  }, []);
-
   const sessionDetail = useMemo(
     () => getChartSessionDetail(activeMarketStatus, sessionNowMs),
     [activeMarketStatus, sessionNowMs],
@@ -918,113 +860,13 @@ export function ChartsTab({
   return (
     <div className="workspace-page workspace-page-compact charts-tab-page flex h-[calc(100vh-98px)] min-h-[560px] flex-col overflow-hidden">
       <div className="chart-workbar">
-        <div className="chart-workbar-left">
-          <div className="relative" ref={pickerRef}>
-            <button
-              onClick={() => setPickerOpen(!pickerOpen)}
-              className="chart-symbol-button"
-            >
-              <Search className="h-4 w-4 text-gray-400" />
-              <span>{selectedSymbol}</span>
-              <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${pickerOpen ? 'rotate-180' : ''}`} />
-            </button>
-
-            <AnimatePresence>
-              {pickerOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute top-full left-0 mt-2 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl z-[100] overflow-hidden"
-                >
-                  <div className="p-3 border-b border-gray-100">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <input
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Search symbols..."
-                        className="w-full pl-9 pr-4 py-2 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-gray-200"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="max-h-[400px] overflow-auto p-2 space-y-1">
-                    {favoriteItems.length > 0 && !search && (
-                      <div className="mb-4">
-                        <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Favorites</div>
-                        {favoriteItems.map((item) => (
-                          <button
-                            key={item.name}
-                            onClick={() => { onSelectedSymbolChange(item.name); setPickerOpen(false); }}
-                            className="flex items-center justify-between w-full px-3 py-2 hover:bg-gray-50 rounded-lg text-sm group"
-                          >
-                            <span className="font-bold text-gray-700">{item.name}</span>
-                            <Star className="h-3.5 w-3.5 fill-amber-400 text-amber-400" />
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
-                    {groupedSymbols.map((group) => {
-                      const isOpen = search ? true : expandedGroups.includes(group.label);
-                      return (
-                        <div key={group.label} className="border-b border-gray-50 last:border-0">
-                          <button
-                            onClick={() => setExpandedGroups(prev => prev.includes(group.label) ? prev.filter(g => g !== group.label) : [...prev, group.label])}
-                            className="flex items-center justify-between w-full px-3 py-2 hover:bg-gray-50 rounded-lg text-sm text-gray-500 font-bold"
-                          >
-                            <span className="flex items-center gap-2">
-                              {isOpen ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-                              {group.label}
-                            </span>
-                            <span className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded-full">{group.items.length}</span>
-                          </button>
-                          
-                          {isOpen && (
-                            <div className="overflow-hidden pb-1">
-                              {group.items.map((item) => (
-                                <button
-                                  key={item.name}
-                                  onClick={() => { onSelectedSymbolChange(item.name); setPickerOpen(false); }}
-                                  className="flex items-center justify-between w-full pl-8 pr-3 py-2 hover:bg-gray-50 rounded-lg text-sm"
-                                >
-                                  <span className="font-medium text-gray-700">{item.name}</span>
-                                  <Star 
-                                    className={`h-3.5 w-3.5 transition-colors ${favorites.includes(item.name) ? 'fill-amber-400 text-amber-400' : 'text-gray-300 hover:text-gray-400'}`}
-                                    onClick={(e) => { e.stopPropagation(); toggleFavorite(item.name); }}
-                                  />
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                    
-                    {groupedSymbols.length === 0 && (
-                      <div className="p-8 text-center text-gray-400 text-sm">
-                        No symbols match your search.
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <div className="chart-timeframe-strip">
-            {CHART_TIMEFRAMES.map((item) => (
-              <button
-                key={item}
-                onClick={() => setTimeframe(item)}
-                className={timeframe === item ? "chart-timeframe-button is-active" : "chart-timeframe-button"}
-              >
-                {item === "MN1" ? "MN" : item}
-              </button>
-            ))}
-          </div>
-        </div>
+        <ChartSymbolPicker
+          selectedSymbol={selectedSymbol}
+          symbols={symbols}
+          timeframe={timeframe}
+          onSelectedSymbolChange={onSelectedSymbolChange}
+          onTimeframeChange={setTimeframe}
+        />
 
         <div className="chart-tool-strip" aria-label="Chart tools">
           <div className="chart-readout-toggle" aria-label="Cursor readout mode">
