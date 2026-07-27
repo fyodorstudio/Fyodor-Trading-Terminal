@@ -37,15 +37,18 @@ These files are imported by `Main/src/styles.css` in this exact order:
 - `06-archived-event-studies.css` - archived Event Quality and Event Reaction study surfaces.
 - `07-event-replay.css` - active Event Replay workspace, replay modals, and nearby event-study responsive rules.
 - `08-deprecated-overview.css` - old Command Hub / Deprecated Overview styles.
-- `09-late-polish-and-charts.css` - later specialist cards, chart toolbar/drawer/event rail, and strength meter v4/v5 styles.
+- `09-deprecated-command-hub.css` - deprecated command-hub and strength-meter v4 styles retained for cascade compatibility.
+- `10-charts.css` - active Charts toolbar, drawer, event rail, and chart UI styles.
+- `11-garbage-strength-meter.css` - garbage strength-meter v5 styles.
 
 ## Next Cleanup Pass
 
 Pass 2 should improve ownership without changing selectors:
 
-- split `09-late-polish-and-charts.css` into `charts.css`, `specialist-tools.css`, and strength-meter/garbage slices;
+- continue separating active surface CSS from deprecated/garbage slices;
 - separate active Overview selectors from legacy overview selectors in `03-overview.css`;
 - separate active Event Replay selectors from archived event-study selectors where they still share a cascade band;
+- review `09-deprecated-command-hub.css` for any active Specialist Tools selectors before treating it as fully deprecated;
 - keep import order equivalent after each move;
 - run build and browser smoke checks after each extraction.
 

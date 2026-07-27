@@ -8,4 +8,6 @@
 @import "./styles/06-archived-event-studies.css";
 @import "./styles/07-event-replay.css";
 @import "./styles/08-deprecated-overview.css";
-@import "./styles/09-late-polish-and-charts.css";
+@import "./styles/09-deprecated-command-hub.css";
+@import "./styles/10-charts.css";
+@import "./styles/11-garbage-strength-meter.css";

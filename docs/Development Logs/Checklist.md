@@ -70,6 +70,8 @@ This file is the current command board. Future AI sessions should read this befo
 - [x] Start after the UI polish lane is complete; do not mix the UI redesign and CSS split in one commit.
 - [x] Pass 1: extract existing selectors into ordered files with no selector renames and no behavior changes.
 - [ ] Pass 2: separate active surface CSS from garbage/prototype CSS.
+  - [x] Charts styles are isolated from the late-polish/deprecated command-hub slice.
+  - [ ] Continue separating Overview, Event Replay, and shared primitives from legacy/garbage cascade bands.
 - [x] Pass 3: strengthen docs/AI rules so future AI does not grow the global monolith again.
 - [ ] Pass 4: delete, rename, or refactor dead CSS only after screenshot/build verification.
 - [x] Keep `Main/src/styles.css` as the import aggregator.
@@ -119,9 +121,9 @@ This file is the current command board. Future AI sessions should read this befo
 
 ## Stable Assumptions
 
-- Next goal-mode run starts with the UI polish lane and stops before CSS splitting.
-- CSS splitting is the next serious repo-hygiene lane after UI polish.
+- Current repo-hygiene lane is CSS ownership cleanup after the UI polish checkpoint.
+- CSS splitting should proceed in small extraction checkpoints with build/equivalence verification.
 - CSS split pass 1 is extraction-only: no selector renames, no visual redesign, no dead-code deletion.
-- Mobile can use internal modal scrolling; “no scroll” target is desktop 1440x900.
+- Mobile can use internal modal scrolling; "no scroll" target is desktop 1440x900.
 - The app remains decision support, not a signal bot.
 - Macro scope is current-data-only until the user explicitly approves external data.
