@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CandlestickSeries,
   createChart,
@@ -25,6 +25,7 @@ import {
   Star,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
 import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
 import { fetchHistory, fetchHistoryBoundary, fetchHistoryRange, fetchSymbols, openChartStream } from "@/app/lib/bridge";
 import {
@@ -1157,90 +1158,17 @@ export function ChartsTab({
         <div className="h-full p-1 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-3xl shadow-sm overflow-hidden">
           <div className="chart-canvas-frame">
             <div ref={containerRef} className="h-full w-full" />
-            {chartEventOverlayClusters.length > 0 && (
-              <div className="chart-event-overlay" aria-label="Loaded economic events on chart">
-                {chartEventOverlayData.isCapped ? (
-                  <div className="chart-event-density-note" aria-live="polite">
-                    Showing {chartEventOverlayData.renderedEventCount} of {chartEventOverlayData.visibleEventCount} events in view
-                  </div>
-                ) : null}
-                {chartEventOverlayClusters.map((cluster) => {
-                  const isHovered = hoveredChartEventClusterKey === cluster.key;
-                  const isActive = activeChartEventClusterKey === cluster.key;
-                  const shouldShowBadge = cluster.showBadge || isHovered || isActive;
-                  const markerStyle = {
-                    left: cluster.x,
-                  } satisfies CSSProperties;
-
-                  return (
-                    <div
-                      key={cluster.key}
-                      role="button"
-                      tabIndex={0}
-                      className={`chart-event-marker chart-event-${cluster.impact} tooltip-${cluster.tooltipPlacement} ${isActive ? "is-active" : ""}`}
-                      style={markerStyle}
-                      onClick={() =>
-                        setActiveChartEventClusterKey((current) => (current === cluster.key ? null : cluster.key))
-                      }
-                      onKeyDown={(event) => {
-                        if (event.key !== "Enter" && event.key !== " ") return;
-                        event.preventDefault();
-                        setActiveChartEventClusterKey((current) => (current === cluster.key ? null : cluster.key));
-                      }}
-                      onMouseEnter={() => setHoveredChartEventClusterKey(cluster.key)}
-                      onMouseLeave={() => setHoveredChartEventClusterKey(null)}
-                      onFocus={() => setHoveredChartEventClusterKey(cluster.key)}
-                      aria-label={`Open ${cluster.events.length} loaded chart event${cluster.events.length === 1 ? "" : "s"}`}
-                    >
-                      <span className="chart-event-line" />
-                      <span className="chart-event-dot" />
-                      {shouldShowBadge && (
-                        <span className="chart-event-badge">
-                          <strong>{cluster.badgeLabel}</strong>
-                          <small>{cluster.impact}</small>
-                        </span>
-                      )}
-                      {(isHovered || isActive) && (
-                        <span className="chart-event-tooltip">
-                          <span className="chart-event-tooltip-kicker">
-                            {cluster.events.length} loaded event{cluster.events.length === 1 ? "" : "s"}
-                          </span>
-                          <strong>{cluster.detailLabel}</strong>
-                          <span>Click a row to open the Economic Calendar inspector.</span>
-                          <span className="chart-event-list">
-                            {cluster.events.map(({ event, timeLabel }) => (
-                              <span
-                                key={getChartEventKey(event)}
-                                role="button"
-                                tabIndex={0}
-                                className="chart-event-list-row"
-                                onClick={(rowEvent) => {
-                                  rowEvent.stopPropagation();
-                                  onOpenCalendarEvent(event);
-                                }}
-                                onKeyDown={(rowEvent) => {
-                                  if (rowEvent.key !== "Enter" && rowEvent.key !== " ") return;
-                                  rowEvent.preventDefault();
-                                  rowEvent.stopPropagation();
-                                  onOpenCalendarEvent(event);
-                                }}
-                              >
-                                <span>
-                                  <b>{event.currency}</b>
-                                  <small>{event.impact}</small>
-                                </span>
-                                <strong>{event.title}</strong>
-                                <em>{timeLabel}</em>
-                              </span>
-                            ))}
-                          </span>
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            <ChartEventOverlay
+              clusters={chartEventOverlayClusters}
+              isCapped={chartEventOverlayData.isCapped}
+              renderedEventCount={chartEventOverlayData.renderedEventCount}
+              visibleEventCount={chartEventOverlayData.visibleEventCount}
+              hoveredClusterKey={hoveredChartEventClusterKey}
+              activeClusterKey={activeChartEventClusterKey}
+              onHoverCluster={setHoveredChartEventClusterKey}
+              onToggleCluster={(key) => setActiveChartEventClusterKey((current) => (current === key ? null : key))}
+              onOpenCalendarEvent={onOpenCalendarEvent}
+            />
           </div>
         </div>
         {crosshairReadout && (
