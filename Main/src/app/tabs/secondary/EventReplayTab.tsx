@@ -13,7 +13,12 @@ import {
 } from "lucide-react";
 import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
 import { EventReplayCandlestickChart } from "@/app/components/EventReplayCandlestickChart";
-import { EventExplainerMiniBrief, EventSampleButton, EventTemplateButton } from "@/app/components/EventReplayPanels";
+import {
+  EventExplainerMiniBrief,
+  EventReplayReleaseCalendar,
+  EventSampleButton,
+  EventTemplateButton,
+} from "@/app/components/EventReplayPanels";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { fetchHistoryRange } from "@/app/lib/bridge";
@@ -54,7 +59,6 @@ import {
   buildReplaySampleCalendarEvent,
   formatReplayPercent,
   formatReplayPips,
-  getReplayCalendarTitle,
   getReplayMove,
   getUtcDateKey,
 } from "@/app/lib/eventReplayView";
@@ -833,32 +837,12 @@ export function EventReplayTab({
                   )}
                 </div>
               </div>
-              <aside className="event-replay-release-calendar">
-                <div className="event-replay-release-calendar-head">
-                  <span>Release calendar</span>
-                  <strong>{calendarFocusTime ? getReplayCalendarTitle(calendarFocusTime) : "Loaded month"}</strong>
-                </div>
-                <div className="event-replay-calendar-weekdays" aria-hidden="true">
-                  {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
-                    <span key={day}>{day}</span>
-                  ))}
-                </div>
-                <div className="event-replay-calendar-grid">
-                  {releaseCalendarCells.map((cell) => {
-                    const selected = selectedReleaseDateKey === cell.key;
-                    const hovered = hoveredReleaseDateKey === cell.key;
-                    return (
-                      <span
-                        key={cell.key}
-                        className={`${cell.inMonth ? "" : "is-outside"} ${cell.hasRelease ? "has-release" : ""} ${selected ? "is-selected" : ""} ${hovered ? "is-hovered" : ""}`}
-                      >
-                        {cell.day}
-                      </span>
-                    );
-                  })}
-                </div>
-                <p>Hover a release row to see its calendar date. Highlighted dates are loaded replay samples.</p>
-              </aside>
+              <EventReplayReleaseCalendar
+                focusTime={calendarFocusTime}
+                cells={releaseCalendarCells}
+                selectedDateKey={selectedReleaseDateKey}
+                hoveredDateKey={hoveredReleaseDateKey}
+              />
             </div>
           </section>
         </div>

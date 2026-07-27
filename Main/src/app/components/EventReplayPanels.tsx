@@ -2,7 +2,7 @@ import { FlagIcon } from "@/app/components/FlagIcon";
 import { getCurrencyCountryCode } from "@/app/lib/eventQuality";
 import { getSampleQualityLabel } from "@/app/lib/eventReaction";
 import { formatUtcDateTime } from "@/app/lib/format";
-import { formatReplayCount } from "@/app/lib/eventReplayView";
+import { formatReplayCount, getReplayCalendarTitle } from "@/app/lib/eventReplayView";
 import type { CalendarEventExplainer, EventTemplate, ReactionReplaySample, SampleQuality } from "@/app/types";
 
 function qualityTone(quality: SampleQuality): string {
@@ -148,5 +148,46 @@ export function EventSampleButton(props: {
         </span>
       </div>
     </button>
+  );
+}
+
+export function EventReplayReleaseCalendar(props: {
+  focusTime: number | null;
+  cells: Array<{
+    key: string;
+    day: number;
+    inMonth: boolean;
+    hasRelease: boolean;
+  }>;
+  selectedDateKey: string | null;
+  hoveredDateKey: string | null;
+}) {
+  return (
+    <aside className="event-replay-release-calendar">
+      <div className="event-replay-release-calendar-head">
+        <span>Release calendar</span>
+        <strong>{props.focusTime ? getReplayCalendarTitle(props.focusTime) : "Loaded month"}</strong>
+      </div>
+      <div className="event-replay-calendar-weekdays" aria-hidden="true">
+        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+          <span key={day}>{day}</span>
+        ))}
+      </div>
+      <div className="event-replay-calendar-grid">
+        {props.cells.map((cell) => {
+          const selected = props.selectedDateKey === cell.key;
+          const hovered = props.hoveredDateKey === cell.key;
+          return (
+            <span
+              key={cell.key}
+              className={`${cell.inMonth ? "" : "is-outside"} ${cell.hasRelease ? "has-release" : ""} ${selected ? "is-selected" : ""} ${hovered ? "is-hovered" : ""}`}
+            >
+              {cell.day}
+            </span>
+          );
+        })}
+      </div>
+      <p>Hover a release row to see its calendar date. Highlighted dates are loaded replay samples.</p>
+    </aside>
   );
 }
