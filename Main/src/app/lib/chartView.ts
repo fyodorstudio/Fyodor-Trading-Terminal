@@ -288,7 +288,7 @@ export function formatCursorReadout(input: CursorReadoutInput): CursorReadoutLin
   const lines: CursorReadoutLine[] = [];
 
   if ((input.mode === "both" || input.mode === "true_cursor") && input.truePrice != null) {
-    lines.push({ label: "Exact", value: formatPrice(input.truePrice) });
+    lines.push({ label: "Crosshair", value: formatPrice(input.truePrice) });
   }
 
   if ((input.mode === "both" || input.mode === "nearest_candle") && input.candlePrice != null) {

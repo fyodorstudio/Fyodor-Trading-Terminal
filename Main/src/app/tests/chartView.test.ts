@@ -243,13 +243,13 @@ describe("chartView helpers", () => {
 
   it("formats cursor readout labels for all supported modes", () => {
     expect(formatCursorReadout({ mode: "true_cursor", truePrice: 1.23456, candlePrice: 1.2, precision: 4 })).toEqual([
-      { label: "Exact", value: "1.2346" },
+      { label: "Crosshair", value: "1.2346" },
     ]);
     expect(formatCursorReadout({ mode: "nearest_candle", truePrice: 1.23456, candlePrice: 1.2, precision: 4 })).toEqual([
       { label: "Sticky", value: "1.2000" },
     ]);
     expect(formatCursorReadout({ mode: "both", truePrice: 1.23456, candlePrice: 1.2, precision: 2 })).toEqual([
-      { label: "Exact", value: "1.23" },
+      { label: "Crosshair", value: "1.23" },
       { label: "Sticky", value: "1.20" },
     ]);
   });
