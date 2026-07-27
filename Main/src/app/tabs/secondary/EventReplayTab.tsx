@@ -15,8 +15,7 @@ import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/Char
 import { EventReplayCandlestickChart } from "@/app/components/EventReplayCandlestickChart";
 import {
   EventExplainerMiniBrief,
-  EventReplayReleaseCalendar,
-  EventSampleButton,
+  EventReplayReleaseListModal,
   EventTemplateButton,
 } from "@/app/components/EventReplayPanels";
 import { FlagIcon } from "@/app/components/FlagIcon";
@@ -784,68 +783,22 @@ export function EventReplayTab({
       ) : null}
 
       {releaseListOpen ? (
-        <div
-          className="event-replay-modal-overlay fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/25 backdrop-blur-sm"
-          onClick={() => setReleaseListOpen(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Past Releases"
-        >
-          <section
-            className="event-replay-modal-panel flex w-full max-w-[1040px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3">
-              <div>
-                <h3 className="m-0 text-base font-black text-slate-950">Past Releases</h3>
-                <p className="mt-1 text-xs text-slate-600">{samplePosition}</p>
-              </div>
-              <button
-                type="button"
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600"
-                onClick={() => setReleaseListOpen(false)}
-                aria-label="Close release list"
-              >
-                <X size={15} />
-              </button>
-            </div>
-            <div className="grid min-h-0 flex-1 gap-4 overflow-hidden bg-slate-50 p-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-              <div className="min-h-0 overflow-y-auto pr-1">
-                <div className="grid gap-2">
-                  {replaySamples.length === 0 ? (
-                    <div className="border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500">
-                      No historical releases with usable actual/comparison values.
-                    </div>
-                  ) : (
-                    replaySamples.map((sample, index) => (
-                      <div
-                        key={sample.eventId}
-                        onMouseEnter={() => setHoveredReleaseIndex(index)}
-                        onFocus={() => setHoveredReleaseIndex(index)}
-                      >
-                        <EventSampleButton
-                          sample={sample}
-                          active={index === selectedSampleIndex}
-                          onSelect={() => {
-                            setSelectedSampleIndex(index);
-                            setIsPlaying(false);
-                            setReleaseListOpen(false);
-                          }}
-                        />
-                      </div>
-                    ))
-                  )}
-                </div>
-              </div>
-              <EventReplayReleaseCalendar
-                focusTime={calendarFocusTime}
-                cells={releaseCalendarCells}
-                selectedDateKey={selectedReleaseDateKey}
-                hoveredDateKey={hoveredReleaseDateKey}
-              />
-            </div>
-          </section>
-        </div>
+        <EventReplayReleaseListModal
+          samplePosition={samplePosition}
+          samples={replaySamples}
+          selectedSampleIndex={selectedSampleIndex}
+          calendarFocusTime={calendarFocusTime}
+          calendarCells={releaseCalendarCells}
+          selectedDateKey={selectedReleaseDateKey}
+          hoveredDateKey={hoveredReleaseDateKey}
+          onClose={() => setReleaseListOpen(false)}
+          onHoverRelease={setHoveredReleaseIndex}
+          onSelectRelease={(index) => {
+            setSelectedSampleIndex(index);
+            setIsPlaying(false);
+            setReleaseListOpen(false);
+          }}
+        />
       ) : null}
 
       {detailsOpen ? (

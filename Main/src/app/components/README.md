@@ -18,6 +18,6 @@ This folder contains shared app-shell and feature support components. Keep featu
 ## Event Replay Support
 
 - `EventReplayCandlestickChart.tsx`
-- `EventReplayPanels.tsx`
+- `EventReplayPanels.tsx` - replay template/release buttons, replay brief snippets, and release-list modal pieces.
 
 These support the active Event Replay surface under `tabs/secondary/EventReplayTab.tsx`.

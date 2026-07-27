@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { getCurrencyCountryCode } from "@/app/lib/eventQuality";
 import { getSampleQualityLabel } from "@/app/lib/eventReaction";
@@ -189,5 +190,84 @@ export function EventReplayReleaseCalendar(props: {
       </div>
       <p>Hover a release row to see its calendar date. Highlighted dates are loaded replay samples.</p>
     </aside>
+  );
+}
+
+export function EventReplayReleaseListModal(props: {
+  samplePosition: string;
+  samples: ReactionReplaySample[];
+  selectedSampleIndex: number;
+  calendarFocusTime: number | null;
+  calendarCells: Array<{
+    key: string;
+    day: number;
+    inMonth: boolean;
+    hasRelease: boolean;
+  }>;
+  selectedDateKey: string | null;
+  hoveredDateKey: string | null;
+  onClose: () => void;
+  onHoverRelease: (index: number) => void;
+  onSelectRelease: (index: number) => void;
+}) {
+  return (
+    <div
+      className="event-replay-modal-overlay fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/25 backdrop-blur-sm"
+      onClick={props.onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Past Releases"
+    >
+      <section
+        className="event-replay-modal-panel flex w-full max-w-[1040px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3">
+          <div>
+            <h3 className="m-0 text-base font-black text-slate-950">Past Releases</h3>
+            <p className="mt-1 text-xs text-slate-600">{props.samplePosition}</p>
+          </div>
+          <button
+            type="button"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-600"
+            onClick={props.onClose}
+            aria-label="Close release list"
+          >
+            <X size={15} />
+          </button>
+        </div>
+        <div className="grid min-h-0 flex-1 gap-4 overflow-hidden bg-slate-50 p-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="min-h-0 overflow-y-auto pr-1">
+            <div className="grid gap-2">
+              {props.samples.length === 0 ? (
+                <div className="border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500">
+                  No historical releases with usable actual/comparison values.
+                </div>
+              ) : (
+                props.samples.map((sample, index) => (
+                  <div
+                    key={sample.eventId}
+                    onMouseEnter={() => props.onHoverRelease(index)}
+                    onFocus={() => props.onHoverRelease(index)}
+                  >
+                    <EventSampleButton
+                      sample={sample}
+                      active={index === props.selectedSampleIndex}
+                      onSelect={() => props.onSelectRelease(index)}
+                    />
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+          <EventReplayReleaseCalendar
+            focusTime={props.calendarFocusTime}
+            cells={props.calendarCells}
+            selectedDateKey={props.selectedDateKey}
+            hoveredDateKey={props.hoveredDateKey}
+          />
+        </div>
+      </section>
+    </div>
   );
 }
