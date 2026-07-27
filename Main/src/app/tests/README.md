@@ -25,7 +25,7 @@ Prefer targeted tests. Do not run the full suite after every small pass unless t
 
 - `status.test.ts` covers trust/calendar/chart status derivation.
 - `timezoneDisplay.test.ts` covers timezone formatting and preference helpers.
-- `flagIcon.test.tsx` covers the current `react-world-flags` wrapper. The flag package works; its TypeScript declaration warning and large build chunk are known non-blocking noise. Leave this alone unless the user explicitly asks to revisit flags.
+- `flagIcon.test.tsx` covers the current `react-world-flags` wrapper. The flag package works through the local declaration in `Main/src/types/react-world-flags.d.ts`; its large build chunk is known non-blocking noise. Leave this alone unless the user explicitly asks to revisit flags.
 
 ## Garbage Tests
 

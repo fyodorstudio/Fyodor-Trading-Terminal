@@ -22,7 +22,7 @@ This file is the current command board. Future AI sessions should read this befo
 - Event Replay, Charts event overlays, Overview pair details, and CSS ownership remain active cleanup areas.
 - Aesthetic Forge is mounted behind the header gear and stays closed by default.
 - External data sources remain out of scope unless explicitly approved later.
-- `react-world-flags` works; its missing TypeScript declaration and large `FlagIcon` chunk are known non-blocking noise.
+- `react-world-flags` works and has a local declaration; its large `FlagIcon` chunk is known non-blocking noise.
 - Do not create new tests unless the user explicitly agrees and the test value is explained in plain English first.
 
 ## Active Roadmap

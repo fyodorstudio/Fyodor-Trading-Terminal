@@ -23,8 +23,9 @@ Important current-state note:
 `Specialist Tools` currently contains:
 
 1. `DIFFERENTIAL CALCULATOR` under `Active Tool`
-2. `EVENT REPLAY` under `Active Experiment`
-3. `PROTOTYPING` under `Garbage / Ignore`
+2. `MACRO DRIVERS` under `Active Tool`
+3. `EVENT REPLAY` under `Active Experiment`
+4. `PROTOTYPING` under `Garbage / Ignore`
 
 The `PROTOTYPING` area is a garbage drawer for old unfinished surfaces. It contains unstable experiments, old planning drafts such as `Six Questions Draft` and `WIP Map Archive`, and older tools such as `Strength Meter` and `Deprecated Overview`. Ignore it unless explicitly requested.
 
@@ -73,18 +74,18 @@ It also expects the MT5 EA calendar bridge to be pushing economic calendar event
 - `Charts` keeps the live MT5 chart workflow and debug log, and shows explicit no-data / error states instead of fake candles.
 - `Economic Calendar` is MT5-backed, supports range/filter/search workflows, and can deep-link from `Overview` into a target event with highlight + explainer behavior.
 - `Central Banks Data` is derived from MT5 calendar events using strict mapping rules for the major 8 currencies. If a match is uncertain, the UI shows `N/A` instead of guessing.
-- `Specialist Tools` is the routing shell for Differential Calculator, Event Replay, and the Prototyping archive.
+- `Specialist Tools` is the routing shell for Differential Calculator, Macro Drivers, Event Replay, and the Prototyping archive.
 - `Event Replay` is the main pair-first event replay surface. It is descriptive study support, not a signal engine.
 - `tabs/primary/` contains always-visible primary workflow tabs.
-- `tabs/secondary/` contains Differential Calculator, Event Replay, and the Prototyping shell.
+- `tabs/secondary/` contains Differential Calculator, Macro Drivers, Event Replay, and the Prototyping shell.
 - `tabs/garbage/` contains old unfinished, deprecated, or ignored routed surfaces. Do not read it for general orientation unless explicitly requested.
 - `tests/garbage/` contains tests for garbage-drawer surfaces. Do not read or run them for normal active-surface work unless explicitly requested.
 - `hooks/` contains app-shell side effects extracted from `App.tsx`.
-- `types/` contains domain type files; `types.ts` remains a compatibility barrel.
+- `types/` contains domain type files and package declarations; `types.ts` remains a compatibility barrel.
 
 Known non-blocking noise:
 
-- `react-world-flags` works in the app. Its missing TypeScript declaration and large generated `FlagIcon` chunk are known and should not be chased unless the user explicitly asks to revisit flags.
+- `react-world-flags` works in the app through `src/types/react-world-flags.d.ts`. Its large generated `FlagIcon` chunk is known and should not be chased unless the user explicitly asks to revisit flags.
 
 ## Run It
 

@@ -222,7 +222,9 @@ export function MacroDriversTab({
                     <span className="text-[10px] font-black uppercase tracking-[0.16em] opacity-70">{state.timeframe}</span>
                     <h4 className="mt-1 text-base font-black">{state.label}</h4>
                   </div>
-                  <HelpCircle className="h-4 w-4" title={state.explanation} />
+                  <span title={state.explanation}>
+                    <HelpCircle className="h-4 w-4" aria-hidden="true" />
+                  </span>
                 </div>
                 <div className="mt-3 grid gap-1.5 text-xs font-bold">
                   <div className="flex justify-between gap-3"><span>Close</span><strong>{state.closeLabel}</strong></div>

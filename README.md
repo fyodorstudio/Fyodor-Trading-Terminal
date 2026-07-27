@@ -41,18 +41,17 @@ The old Six Questions and Work In Progress surfaces are historical/prototype con
 
 ## CSS Ownership Warning
 
-`Main/src/styles.css` is a known monolith. It exists because the app grew through many AI-assisted visual passes, not because React/Vite/Tailwind is the wrong stack.
+`Main/src/styles.css` is now an ordered import aggregator. The old monolith was split because the app grew through many AI-assisted visual passes, not because React/Vite/Tailwind is the wrong stack.
 
-Until the CSS split lands:
+Current rules:
 
-- do not casually add new feature CSS to the monolith;
-- prefer surface-owned styling or clearly shared primitives;
+- do not add feature CSS directly to `Main/src/styles.css`;
+- put new styling in the owning surface file or an explicitly shared primitive file;
 - do not let garbage/prototype CSS influence active product surfaces;
-- do not rename selectors during the first split;
-- preserve import/selector order when extracting CSS;
-- keep `Main/src/styles.css` as the import aggregator once owned CSS files are created.
+- preserve import/selector order when moving existing CSS;
+- do not delete, rename, or refactor old selectors without build and visual verification.
 
-The planned CSS cleanup is extraction-first, then isolation, then later dead-code deletion only after build and screenshot verification.
+The CSS cleanup remains extraction-first: ownership isolation first, then dead-code deletion only after build and screenshot verification.
 
 See:
 

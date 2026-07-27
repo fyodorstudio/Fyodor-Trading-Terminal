@@ -10,7 +10,7 @@ This folder contains shared app-shell and feature support components. Keep featu
 
 ## Shared Small Components
 
-- `FlagIcon.tsx` - country/currency flag wrapper. `react-world-flags` works; its type warning and large build chunk are known non-blocking noise unless the user asks to revisit flags.
+- `FlagIcon.tsx` - country/currency flag wrapper. `react-world-flags` works through the local declaration in `Main/src/types/react-world-flags.d.ts`; its large build chunk is known non-blocking noise unless the user asks to revisit flags.
 - `LocalClock.tsx`, `Mt5Clock.tsx`, `MarketStatusPill.tsx` - small status/time display helpers.
 
 ## Event Replay Support
