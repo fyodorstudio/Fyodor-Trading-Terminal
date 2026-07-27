@@ -8,10 +8,14 @@
 @import "./styles/06-economic-calendar.css";
 @import "./styles/07-economic-calendar-late.css";
 @import "./styles/08-garbage-event-quality-study.css";
-@import "./styles/09-event-replay.css";
+@import "./styles/09-garbage-event-quality-reaction-study.css";
 @import "./styles/10-garbage-archived-replay-study.css";
-@import "./styles/11-event-replay-late.css";
-@import "./styles/12-mixed-legacy-responsive.css";
+@import "./styles/11-event-replay.css";
+@import "./styles/12a-active-responsive.css";
+@import "./styles/12b-garbage-strength-responsive.css";
+@import "./styles/12c-garbage-archived-study-responsive.css";
+@import "./styles/12d-active-mobile-responsive.css";
+@import "./styles/12e-garbage-strength-mobile-responsive.css";
 @import "./styles/13-garbage-deprecated-overview.css";
 @import "./styles/14-garbage-deprecated-command-hub.css";
 @import "./styles/15-charts.css";

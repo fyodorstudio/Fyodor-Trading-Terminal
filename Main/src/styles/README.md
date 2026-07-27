@@ -37,10 +37,14 @@ These files are imported by `Main/src/styles.css` in this exact order:
 - `06-economic-calendar.css` - Economic Calendar toolbar, operational rail, table, event drawer, and help popovers.
 - `07-economic-calendar-late.css` - active Economic Calendar clock cards, filter popovers, event drawer additions, and nearby late calendar polish.
 - `08-garbage-event-quality-study.css` - garbage Archived Event Quality study styles.
-- `09-event-replay.css` - active Event Replay workspace, replay modals, and nearby event-study responsive rules.
+- `09-garbage-event-quality-reaction-study.css` - garbage Archived Event Quality / Event Reaction continuation styles that were previously mislabeled as Event Replay.
 - `10-garbage-archived-replay-study.css` - garbage Archived Event Reaction replay-study styles.
-- `11-event-replay-late.css` - active Event Replay modal, release calendar, and responsive modal polish that originally lived in a deprecated slice.
-- `12-mixed-legacy-responsive.css` - mixed responsive leftovers retained in order; review before moving.
+- `11-event-replay.css` - active Event Replay modal, release calendar, and responsive modal polish.
+- `12a-active-responsive.css` - active/shared shell, chart, tab, time-pill, and macro responsive rules.
+- `12b-garbage-strength-responsive.css` - garbage strength responsive leftovers.
+- `12c-garbage-archived-study-responsive.css` - garbage Archived Event Quality / Event Reaction responsive rules.
+- `12d-active-mobile-responsive.css` - active/shared mobile shell, nav, chart, and macro responsive rules.
+- `12e-garbage-strength-mobile-responsive.css` - garbage strength mobile responsive leftovers.
 - `13-garbage-deprecated-overview.css` - Deprecated Overview hub styles used only from the garbage drawer.
 - `14-garbage-deprecated-command-hub.css` - deprecated command-hub and strength-meter v4 styles retained for cascade compatibility.
 - `15-charts.css` - active Charts toolbar, drawer, event rail, and chart UI styles.
@@ -52,8 +56,8 @@ Pass 2 should improve ownership without changing selectors:
 
 - continue separating active surface CSS from deprecated/garbage slices;
 - separate active Overview selectors from legacy overview selectors in `03-overview.css`;
-- separate active Event Replay selectors from archived event-study selectors where they still share a cascade band;
-- review `12-mixed-legacy-responsive.css` for active shell/chart/calendar responsive selectors before moving anything else;
+- continue separating active Event Replay and Overview selectors from older cascade bands if new evidence shows they are still mixed;
+- review active shell/chart/calendar responsive selectors in the `12a` / `12d` responsive files before moving anything else;
 - review `14-garbage-deprecated-command-hub.css` for any active Specialist Tools selectors before deleting or moving pieces;
 - keep import order equivalent after each move;
 - run build and browser smoke checks after each extraction.

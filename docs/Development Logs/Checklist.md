@@ -75,9 +75,11 @@ This file is the current command board. Future AI sessions should read this befo
   - [x] Active macro/Differential Calculator primitives are isolated from old strength-meter v2/v3 CSS.
   - [x] Charts styles are isolated from the late-polish/deprecated command-hub slice.
   - [x] Active Event Replay late-modal styles are isolated from Deprecated Overview / archived replay-study CSS.
+  - [x] Archived Event Quality / Event Reaction continuation styles no longer live under an Event Replay filename.
+  - [x] The mixed responsive leftovers file was split into active responsive slices and garbage responsive slices.
   - [x] Deprecated Overview and archived replay-study stylesheet bands are explicitly labeled as garbage.
   - [x] Legacy terminal/narrative overview and deprecated command-hub CSS files are explicitly labeled as garbage.
-  - [ ] Continue separating Overview, Event Replay, and shared primitives from legacy/garbage cascade bands.
+  - [ ] Continue separating Overview, Event Replay, and shared primitives from remaining legacy/garbage cascade bands when specific ownership evidence appears.
 - [x] Pass 3: strengthen docs/AI rules so future AI does not grow the global monolith again.
 - [ ] Pass 4: delete, rename, or refactor dead CSS only after screenshot/build verification.
 - [x] Keep `Main/src/styles.css` as the import aggregator.

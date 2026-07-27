@@ -1,0 +1,10 @@
+@media (max-width: 1100px) {
+  .strength-row {
+    grid-template-columns: 52px minmax(140px, 220px) minmax(0, 1fr);
+  }
+
+  .strength-breakdown,
+  .strength-icon {
+    grid-column: 2 / span 2;
+  }
+}

@@ -1,0 +1,10 @@
+@media (max-width: 780px) {
+  .strength-row {
+    grid-template-columns: 1fr;
+  }
+
+  .strength-breakdown,
+  .strength-icon {
+    grid-column: auto;
+  }
+}

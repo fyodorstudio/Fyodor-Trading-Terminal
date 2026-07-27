@@ -1,0 +1,29 @@
+@media (max-width: 780px) {
+  .app-shell {
+    padding: 0 10px 12px;
+  }
+
+  .tab-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .tab-help-popover {
+    display: none;
+  }
+
+  .time-pill,
+  .metric-chip,
+  .status-pill {
+    white-space: normal;
+  }
+
+  .chart-shell,
+  .chart-canvas {
+    min-height: 420px;
+  }
+
+  .macro-card-grid,
+  .macro-card-grid.suggestions {
+    grid-template-columns: 1fr;
+  }
+}
