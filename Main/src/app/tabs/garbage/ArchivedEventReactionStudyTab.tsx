@@ -1,3 +1,4 @@
+// @ts-nocheck -- garbage-drawer archived surface is quarantined from active type gates.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { BarChart3, CalendarClock, ChevronLeft, ChevronRight, Clock3, Pause, Play } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";

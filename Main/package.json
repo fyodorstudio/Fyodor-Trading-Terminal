@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host --port 3001",
     "build": "vite build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "date-fns": "3.6.0",

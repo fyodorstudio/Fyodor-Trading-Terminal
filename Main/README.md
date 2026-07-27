@@ -112,6 +112,7 @@ Default frontend dev server:
 
 ```bash
 pnpm build
+pnpm typecheck
 pnpm test
 ```
 

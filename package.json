@@ -6,6 +6,7 @@
   "scripts": {
     "dev:app": "pnpm --dir Main run dev",
     "build": "pnpm --dir Main run build",
+    "typecheck": "pnpm --dir Main run typecheck",
     "test": "pnpm --dir Main run test",
     "dev:bridge": "node scripts/start-bridge.js",
     "dev:mt5": "node scripts/start-mt5.js",

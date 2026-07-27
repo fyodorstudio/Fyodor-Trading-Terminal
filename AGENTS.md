@@ -62,5 +62,6 @@ Secondary surfaces:
 - Prefer helper extraction and docs maps over deleting old tools.
 - Do not create new tests unless the user explicitly agrees. Before creating a test, explain in plain English what behavior it protects.
 - Prefer targeted verification. Do not run broad/full test suites after every small pass; explain why before running full tests.
+- `pnpm run typecheck` is the repo-level TypeScript gate. Garbage files that are intentionally quarantined may use `@ts-nocheck` so archived code does not pollute active-surface checks.
 - `react-world-flags` currently works and has a local declaration at `Main/src/types/react-world-flags.d.ts`. Its large `FlagIcon` build chunk is known non-blocking noise; do not replace or refactor flags unless the user explicitly asks.
 - Garbage tests live under `Main/src/app/tests/garbage`. Ignore them unless the user explicitly asks for garbage-drawer work.

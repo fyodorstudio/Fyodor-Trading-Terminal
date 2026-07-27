@@ -1,3 +1,4 @@
+// @ts-nocheck -- garbage-drawer archived surface is quarantined from active type gates.
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { deriveWatchlistEngine } from "@/app/lib/garbage/watchlistEngine";

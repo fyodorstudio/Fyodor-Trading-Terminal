@@ -1,3 +1,4 @@
+// @ts-nocheck -- garbage-drawer legacy logic is quarantined from active type gates.
 import { getFxPairByName } from "@/app/config/fxPairs";
 import { deriveEventQualitySummary } from "@/app/lib/eventQuality";
 import { parseNumericValue } from "@/app/lib/format";

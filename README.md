@@ -79,6 +79,7 @@ This starts the local development stack, including:
 pnpm run dev:app
 pnpm run dev:bridge
 pnpm run build
+pnpm run typecheck
 pnpm run test
 ```
 
