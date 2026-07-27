@@ -1,0 +1,138 @@
+@media (max-width: 1100px) {
+  .app-header,
+  .section-head,
+  .charts-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .header-side {
+    width: 100%;
+    align-items: flex-start;
+  }
+
+  .chart-controls {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .macro-card-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .strength-row {
+    grid-template-columns: 52px minmax(140px, 220px) minmax(0, 1fr);
+  }
+
+  .strength-breakdown,
+  .strength-icon {
+    grid-column: 2 / span 2;
+  }
+
+  .event-quality-toolbar,
+  .event-quality-summary-head,
+  .event-quality-card-head,
+  .reaction-toolbar,
+  .reaction-card-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .event-quality-grid,
+  .event-quality-score-row,
+  .event-quality-meta-row,
+  .event-quality-method-grid,
+  .reaction-step-strip,
+  .reaction-task-toggle,
+  .reaction-guided-row,
+  .reaction-grid,
+  .reaction-summary-metrics,
+  .reaction-bucket-grid,
+  .reaction-window-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .event-quality-table-head,
+  .reaction-table-head {
+    display: none;
+  }
+
+  .event-quality-table-row,
+  .reaction-table-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 14px 0;
+  }
+
+  .reaction-row-window,
+  .reaction-bucket-row > div {
+    text-align: left;
+    align-items: flex-start;
+  }
+
+  .reaction-upcoming-item,
+  .reaction-ranked-row {
+    grid-template-columns: 1fr;
+  }
+
+  .reaction-upcoming-meta,
+  .reaction-ranked-side {
+    justify-content: flex-start;
+  }
+
+  .replay-main-grid,
+  .replay-manual-grid,
+  .replay-manual-grid-pair,
+  .replay-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .replay-upcoming-row {
+    grid-template-columns: 1fr;
+  }
+
+  .replay-block-head,
+  .replay-side-head,
+  .replay-controls,
+  .replay-sample-nav {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 780px) {
+  .app-shell {
+    padding: 0 10px 12px;
+  }
+
+  .tab-nav {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .tab-help-popover {
+    display: none;
+  }
+
+  .time-pill,
+  .metric-chip,
+  .status-pill {
+    white-space: normal;
+  }
+
+  .chart-shell,
+  .chart-canvas {
+    min-height: 420px;
+  }
+
+  .macro-card-grid,
+  .macro-card-grid.suggestions,
+  .strength-row {
+    grid-template-columns: 1fr;
+  }
+
+  .strength-breakdown,
+  .strength-icon {
+    grid-column: auto;
+  }
+}
+

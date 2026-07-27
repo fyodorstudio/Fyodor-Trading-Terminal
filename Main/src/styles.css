@@ -7,7 +7,10 @@
 @import "./styles/05-economic-calendar.css";
 @import "./styles/06-archived-event-studies.css";
 @import "./styles/07-event-replay.css";
-@import "./styles/08-deprecated-overview.css";
-@import "./styles/09-deprecated-command-hub.css";
-@import "./styles/10-charts.css";
-@import "./styles/11-garbage-strength-meter.css";
+@import "./styles/08-garbage-archived-replay-study.css";
+@import "./styles/09-event-replay-late.css";
+@import "./styles/10-mixed-legacy-responsive.css";
+@import "./styles/11-garbage-deprecated-overview.css";
+@import "./styles/12-deprecated-command-hub.css";
+@import "./styles/13-charts.css";
+@import "./styles/14-garbage-strength-meter.css";

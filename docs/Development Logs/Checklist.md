@@ -71,6 +71,8 @@ This file is the current command board. Future AI sessions should read this befo
 - [x] Pass 1: extract existing selectors into ordered files with no selector renames and no behavior changes.
 - [ ] Pass 2: separate active surface CSS from garbage/prototype CSS.
   - [x] Charts styles are isolated from the late-polish/deprecated command-hub slice.
+  - [x] Active Event Replay late-modal styles are isolated from Deprecated Overview / archived replay-study CSS.
+  - [x] Deprecated Overview and archived replay-study stylesheet bands are explicitly labeled as garbage.
   - [ ] Continue separating Overview, Event Replay, and shared primitives from legacy/garbage cascade bands.
 - [x] Pass 3: strengthen docs/AI rules so future AI does not grow the global monolith again.
 - [ ] Pass 4: delete, rename, or refactor dead CSS only after screenshot/build verification.
