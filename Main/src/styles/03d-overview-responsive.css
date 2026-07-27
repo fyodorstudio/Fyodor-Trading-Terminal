@@ -1,0 +1,21 @@
+@media (max-width: 820px) {
+  .overview-release-currency-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-factor-detail-popover {
+    width: min(100%, calc(100vw - 24px));
+    max-height: calc(100vh - 92px);
+  }
+
+  .overview-factor-detail-group,
+  .overview-factor-detail-card-row {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-factor-detail-popover-head,
+  .overview-factor-detail-popover-body {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+}

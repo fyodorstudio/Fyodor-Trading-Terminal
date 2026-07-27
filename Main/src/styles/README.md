@@ -31,7 +31,11 @@ These files are imported by `Main/src/styles.css` in this exact order:
 
 - `01-base.css` - root variables, reset, app shell, header, tab navigation, workspace wrappers, and first shared panels.
 - `02-garbage-legacy-terminal-overview.css` - old terminal/narrative/overview experiments retained for cascade compatibility; do not use for active Overview work.
-- `03-overview.css` - Overview brief, active pair release/detail popovers, and nearby legacy overview-era selectors.
+- `03a-garbage-legacy-overview-brief.css` - old unused overview brief / decision / story selectors retained for cascade compatibility.
+- `03b-overview.css` - active Overview release popover, pair-detail modal, factor chips, and pair macro detail styles.
+- `03c-garbage-legacy-overview-responsive.css` - responsive rules for old unused overview brief / decision / story selectors.
+- `03d-overview-responsive.css` - active Overview responsive rules.
+- `03e-garbage-legacy-overview-mobile.css` - mobile rules for old unused overview brief / event/action selectors.
 - `04-macro-differential-primitives.css` - active macro cards, Differential Calculator layout, and related shared macro primitives.
 - `05-garbage-strength-v3.css` - garbage strength-meter v2/v3 styles.
 - `06-economic-calendar.css` - Economic Calendar toolbar, operational rail, table, event drawer, and help popovers.
@@ -55,7 +59,7 @@ These files are imported by `Main/src/styles.css` in this exact order:
 Pass 2 should improve ownership without changing selectors:
 
 - continue separating active surface CSS from deprecated/garbage slices;
-- separate active Overview selectors from legacy overview selectors in `03-overview.css`;
+- keep active Overview work in `03b-overview.css` or `03d-overview-responsive.css`;
 - continue separating active Event Replay and Overview selectors from older cascade bands if new evidence shows they are still mixed;
 - review active shell/chart/calendar responsive selectors in the `12a` / `12d` responsive files before moving anything else;
 - review `14-garbage-deprecated-command-hub.css` for any active Specialist Tools selectors before deleting or moving pieces;

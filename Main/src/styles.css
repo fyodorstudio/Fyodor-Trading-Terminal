@@ -2,7 +2,11 @@
 
 @import "./styles/01-base.css";
 @import "./styles/02-garbage-legacy-terminal-overview.css";
-@import "./styles/03-overview.css";
+@import "./styles/03a-garbage-legacy-overview-brief.css";
+@import "./styles/03b-overview.css";
+@import "./styles/03c-garbage-legacy-overview-responsive.css";
+@import "./styles/03d-overview-responsive.css";
+@import "./styles/03e-garbage-legacy-overview-mobile.css";
 @import "./styles/04-macro-differential-primitives.css";
 @import "./styles/05-garbage-strength-v3.css";
 @import "./styles/06-economic-calendar.css";

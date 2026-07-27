@@ -1,0 +1,11 @@
+@media (max-width: 1180px) {
+  .overview-decision-grid,
+  .overview-story-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-brief-topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
