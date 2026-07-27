@@ -4,7 +4,18 @@ import { getCurrencyCountryCode } from "@/app/lib/eventQuality";
 import { getSampleQualityLabel } from "@/app/lib/eventReaction";
 import { formatUtcDateTime } from "@/app/lib/format";
 import { formatReplayCount, getReplayCalendarTitle } from "@/app/lib/eventReplayView";
-import type { CalendarEventExplainer, EventTemplate, ReactionReplaySample, SampleQuality } from "@/app/types";
+import {
+  MAX_REPLAY_CANDLES,
+  MIN_REPLAY_CANDLES,
+} from "@/app/lib/eventReplayStorage";
+import { REPLAY_TIMEFRAME_OPTIONS } from "@/app/lib/eventReaction";
+import type {
+  CalendarEventExplainer,
+  EventTemplate,
+  ReactionReplaySample,
+  ReplayChartTimeframe,
+  SampleQuality,
+} from "@/app/types";
 
 function qualityTone(quality: SampleQuality): string {
   if (quality === "usable") return "border-emerald-200 bg-emerald-50 text-emerald-700";
@@ -268,6 +279,188 @@ export function EventReplayReleaseListModal(props: {
           />
         </div>
       </section>
+    </div>
+  );
+}
+
+export function EventReplayBriefModal(props: {
+  selectedTemplate: EventTemplate | null;
+  selectedSample: ReactionReplaySample | null;
+  selectedSampleExplainer: CalendarEventExplainer | null;
+  replayTimeframe: ReplayChartTimeframe;
+  beforeCount: number;
+  afterCount: number;
+  releaseAgeLabel: string;
+  surpriseLabel: string;
+  observedMoveLabel: string;
+  observedMoveDescription: string;
+  comparisonBasisLabel: string;
+  onClose: () => void;
+  onReplayTimeframeChange: (timeframe: ReplayChartTimeframe) => void;
+  onBeforeCountChange: (value: string) => void;
+  onAfterCountChange: (value: string) => void;
+}) {
+  return (
+    <div
+      className="event-replay-modal-overlay fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/25 backdrop-blur-sm"
+      onClick={props.onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Replay Brief"
+    >
+      <aside
+        className="event-replay-modal-panel flex w-full max-w-[1180px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
+              <FlagIcon countryCode={getCurrencyCountryCode(props.selectedTemplate?.currency ?? "")} className="h-5 w-8" />
+            </div>
+            <div>
+              <h3 className="m-0 text-lg font-black text-slate-950">Replay Brief</h3>
+              <p className="mt-1 text-xs leading-5 text-slate-600">Context for the selected historical release.</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600"
+            onClick={props.onClose}
+            aria-label="Close replay brief"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="event-replay-brief-body min-h-0 flex-1 overflow-y-auto bg-slate-50 px-5 py-4">
+          <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-500">Replay Setup</span>
+                <h4 className="mt-1 text-base font-black text-slate-950">Study window</h4>
+              </div>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-slate-600">
+                {props.replayTimeframe} / {props.beforeCount}+{props.afterCount}
+              </span>
+            </div>
+            <div className="mt-4 grid gap-3 lg:grid-cols-[1fr_0.72fr]">
+              <div>
+                <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Timeframe</span>
+                <div className="mt-2 grid grid-cols-4 gap-2">
+                  {REPLAY_TIMEFRAME_OPTIONS.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => props.onReplayTimeframeChange(option.id)}
+                      className={`h-10 rounded-xl border px-2 text-sm font-black ${
+                        props.replayTimeframe === option.id
+                          ? "border-slate-900 bg-slate-950 text-white"
+                          : "border-slate-200 bg-slate-50 text-slate-600 hover:border-slate-300"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Before</span>
+                  <input
+                    type="number"
+                    min={MIN_REPLAY_CANDLES}
+                    max={MAX_REPLAY_CANDLES}
+                    value={props.beforeCount}
+                    onChange={(event) => props.onBeforeCountChange(event.target.value)}
+                    className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-black text-slate-950 outline-none focus:border-slate-400"
+                  />
+                </label>
+                <label className="grid gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">After</span>
+                  <input
+                    type="number"
+                    min={MIN_REPLAY_CANDLES}
+                    max={MAX_REPLAY_CANDLES}
+                    value={props.afterCount}
+                    onChange={(event) => props.onAfterCountChange(event.target.value)}
+                    className="h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 text-base font-black text-slate-950 outline-none focus:border-slate-400"
+                  />
+                </label>
+              </div>
+            </div>
+          </section>
+
+          <section className="mt-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0">
+                <span className="text-[10px] font-black uppercase tracking-[0.18em] text-blue-500">Selected study</span>
+                <h4 className="mt-1 break-words text-lg font-black text-slate-950">
+                  {props.selectedTemplate ? `${props.selectedTemplate.currency} | ${props.selectedTemplate.title}` : "No event selected"}
+                </h4>
+                <p className="mt-1 text-sm font-semibold text-slate-500">
+                  {props.selectedSample ? formatUtcDateTime(props.selectedSample.eventTime) : "Choose a historical release to load the brief."}
+                </p>
+              </div>
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] font-black uppercase tracking-[0.12em] text-slate-600">
+                {props.releaseAgeLabel}
+              </span>
+            </div>
+
+            <div className="mt-4 grid gap-2 sm:grid-cols-4">
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Actual</span>
+                <strong className="mt-1 block break-words text-sm leading-5 text-slate-950">{props.selectedSample?.actual || "N/A"}</strong>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Forecast</span>
+                <strong className="mt-1 block break-words text-sm leading-5 text-slate-950">{props.selectedSample?.forecast || "N/A"}</strong>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Previous</span>
+                <strong className="mt-1 block break-words text-sm leading-5 text-slate-950">{props.selectedSample?.previous || "N/A"}</strong>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-3">
+                <span className="block text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Surprise</span>
+                <strong className="mt-1 block break-words text-sm leading-5 text-slate-950">{props.surpriseLabel}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section className="mt-3 grid gap-3 lg:grid-cols-[0.9fr_1.1fr]">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Observed move</span>
+              <strong className="mt-2 block text-2xl font-black tracking-tight text-slate-950">{props.observedMoveLabel}</strong>
+              <p className="mt-2 text-sm leading-6 text-slate-600">{props.observedMoveDescription}</p>
+            </div>
+
+            <div className="grid gap-2">
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <strong className="block text-sm text-slate-950">1. Read the release first</strong>
+                <span className="mt-1 block text-sm leading-6 text-slate-600">
+                  Compare actual against {props.comparisonBasisLabel.toLowerCase()} before judging the candle reaction.
+                </span>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <strong className="block text-sm text-slate-950">2. Separate spike from acceptance</strong>
+                <span className="mt-1 block text-sm leading-6 text-slate-600">
+                  The pre-marker candles show positioning; post-marker candles show whether the market accepted or rejected the first read.
+                </span>
+              </div>
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                <strong className="block text-sm text-slate-950">3. Reuse the pattern carefully</strong>
+                <span className="mt-1 block text-sm leading-6 text-slate-600">
+                  Replay is for studying reaction shape, volatility, and follow-through. It is not a buy/sell instruction.
+                </span>
+              </div>
+            </div>
+          </section>
+
+          <div className="mt-3">
+            <EventExplainerMiniBrief explainer={props.selectedSampleExplainer} />
+          </div>
+        </div>
+      </aside>
     </div>
   );
 }
