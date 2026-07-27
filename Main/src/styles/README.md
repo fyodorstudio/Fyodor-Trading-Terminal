@@ -40,7 +40,7 @@ These files are imported by `Main/src/styles.css` in this exact order:
 - `05-garbage-strength-v3.css` - garbage strength-meter v2/v3 styles.
 - `06a-garbage-legacy-chart-picker.css` - unused legacy chart picker/status selectors retained outside active Calendar and Charts ownership.
 - `06-economic-calendar.css` - Economic Calendar toolbar, operational rail, table, event drawer, and help popovers.
-- `07-economic-calendar-late.css` - active Economic Calendar clock cards, filter popovers, event drawer additions, and nearby late calendar polish.
+- `07-economic-calendar-polish.css` - active Economic Calendar clock cards, filter popovers, event drawer additions, and calendar polish.
 - `08-garbage-event-quality-study.css` - garbage Archived Event Quality study styles.
 - `09-garbage-event-quality-reaction-study.css` - garbage Archived Event Quality / Event Reaction continuation styles that were previously mislabeled as Event Replay.
 - `10-garbage-archived-replay-study.css` - garbage Archived Event Reaction replay-study styles.

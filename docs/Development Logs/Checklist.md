@@ -71,7 +71,7 @@ This file is the current command board. Future AI sessions should read this befo
 - [x] Start after the UI polish lane is complete; do not mix the UI redesign and CSS split in one commit.
 - [x] Pass 1: extract existing selectors into ordered files with no selector renames and no behavior changes.
 - [ ] Pass 2: separate active surface CSS from garbage/prototype CSS.
-  - [x] Active Economic Calendar late-polish styles are isolated from Archived Event Quality CSS.
+  - [x] Active Economic Calendar polish styles are isolated from Archived Event Quality CSS.
   - [x] Active macro/Differential Calculator primitives are isolated from old strength-meter v2/v3 CSS.
   - [x] Charts styles are isolated from the late-polish/deprecated command-hub slice.
   - [x] Active Event Replay late-modal styles are isolated from Deprecated Overview / archived replay-study CSS.
@@ -82,6 +82,7 @@ This file is the current command board. Future AI sessions should read this befo
   - [x] Legacy terminal/narrative overview and deprecated command-hub CSS files are explicitly labeled as garbage.
   - [x] Deprecated command-hub CSS is split from garbage strength-meter v4 legacy CSS.
   - [x] Unused legacy chart picker/status CSS is split out of active Economic Calendar CSS.
+  - [x] Active Economic Calendar polish CSS no longer uses stale `late` naming.
   - [ ] Continue separating Overview, Event Replay, and shared primitives from remaining legacy/garbage cascade bands when specific ownership evidence appears.
 - [x] Pass 3: strengthen docs/AI rules so future AI does not grow the global monolith again.
 - [ ] Pass 4: delete, rename, or refactor dead CSS only after screenshot/build verification.
