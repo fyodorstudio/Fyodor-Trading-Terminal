@@ -16,6 +16,8 @@ import { EventReplayCandlestickChart } from "@/app/components/EventReplayCandles
 import {
   EventReplayBriefModal,
   EventReplayReleaseListModal,
+} from "@/app/components/EventReplayModals";
+import {
   EventTemplateButton,
 } from "@/app/components/EventReplayPanels";
 import { FlagIcon } from "@/app/components/FlagIcon";
