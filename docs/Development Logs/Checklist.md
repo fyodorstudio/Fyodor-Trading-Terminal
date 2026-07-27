@@ -70,6 +70,7 @@ This file is the current command board. Future AI sessions should read this befo
 - [x] Start after the UI polish lane is complete; do not mix the UI redesign and CSS split in one commit.
 - [x] Pass 1: extract existing selectors into ordered files with no selector renames and no behavior changes.
 - [ ] Pass 2: separate active surface CSS from garbage/prototype CSS.
+  - [x] Active Economic Calendar late-polish styles are isolated from Archived Event Quality CSS.
   - [x] Charts styles are isolated from the late-polish/deprecated command-hub slice.
   - [x] Active Event Replay late-modal styles are isolated from Deprecated Overview / archived replay-study CSS.
   - [x] Deprecated Overview and archived replay-study stylesheet bands are explicitly labeled as garbage.

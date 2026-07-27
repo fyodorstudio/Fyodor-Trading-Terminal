@@ -34,15 +34,16 @@ These files are imported by `Main/src/styles.css` in this exact order:
 - `03-overview.css` - Overview brief, active pair release/detail popovers, and nearby legacy overview-era selectors.
 - `04-shared-primitives.css` - macro/table/chart shell primitives and some strength-meter-era selectors that still sit in this cascade band.
 - `05-economic-calendar.css` - Economic Calendar toolbar, operational rail, table, event drawer, and help popovers.
-- `06-archived-event-studies.css` - archived Event Quality and Event Reaction study surfaces.
-- `07-event-replay.css` - active Event Replay workspace, replay modals, and nearby event-study responsive rules.
-- `08-garbage-archived-replay-study.css` - garbage Archived Event Reaction replay-study styles.
-- `09-event-replay-late.css` - active Event Replay modal, release calendar, and responsive modal polish that originally lived in a deprecated slice.
-- `10-mixed-legacy-responsive.css` - mixed responsive leftovers retained in order; review before moving.
-- `11-garbage-deprecated-overview.css` - Deprecated Overview hub styles used only from the garbage drawer.
-- `12-deprecated-command-hub.css` - deprecated command-hub and strength-meter v4 styles retained for cascade compatibility.
-- `13-charts.css` - active Charts toolbar, drawer, event rail, and chart UI styles.
-- `14-garbage-strength-meter.css` - garbage strength-meter v5 styles.
+- `06-economic-calendar-late.css` - active Economic Calendar clock cards, filter popovers, event drawer additions, and nearby late calendar polish.
+- `07-garbage-event-quality-study.css` - garbage Archived Event Quality study styles.
+- `08-event-replay.css` - active Event Replay workspace, replay modals, and nearby event-study responsive rules.
+- `09-garbage-archived-replay-study.css` - garbage Archived Event Reaction replay-study styles.
+- `10-event-replay-late.css` - active Event Replay modal, release calendar, and responsive modal polish that originally lived in a deprecated slice.
+- `11-mixed-legacy-responsive.css` - mixed responsive leftovers retained in order; review before moving.
+- `12-garbage-deprecated-overview.css` - Deprecated Overview hub styles used only from the garbage drawer.
+- `13-deprecated-command-hub.css` - deprecated command-hub and strength-meter v4 styles retained for cascade compatibility.
+- `14-charts.css` - active Charts toolbar, drawer, event rail, and chart UI styles.
+- `15-garbage-strength-meter.css` - garbage strength-meter v5 styles.
 
 ## Next Cleanup Pass
 
@@ -51,8 +52,8 @@ Pass 2 should improve ownership without changing selectors:
 - continue separating active surface CSS from deprecated/garbage slices;
 - separate active Overview selectors from legacy overview selectors in `03-overview.css`;
 - separate active Event Replay selectors from archived event-study selectors where they still share a cascade band;
-- review `10-mixed-legacy-responsive.css` for active shell/chart/calendar responsive selectors before moving anything else;
-- review `12-deprecated-command-hub.css` for any active Specialist Tools selectors before treating it as fully deprecated;
+- review `11-mixed-legacy-responsive.css` for active shell/chart/calendar responsive selectors before moving anything else;
+- review `13-deprecated-command-hub.css` for any active Specialist Tools selectors before treating it as fully deprecated;
 - keep import order equivalent after each move;
 - run build and browser smoke checks after each extraction.
 
