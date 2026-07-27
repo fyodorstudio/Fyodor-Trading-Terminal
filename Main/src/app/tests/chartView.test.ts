@@ -159,10 +159,10 @@ describe("chartView helpers", () => {
     });
     expect(
       normalizeChartPreferences({
-        cursorReadoutMode: "both",
+        cursorReadoutMode: "true_cursor",
         eventOverlay: {
           visible: false,
-          scope: "all",
+          scope: "high_impact",
           impactFilter: "all",
           maxMarkers: 80,
         },
@@ -171,6 +171,7 @@ describe("chartView helpers", () => {
         },
       }),
     ).toMatchObject({
+      cursorReadoutMode: "both",
       eventOverlay: {
         visible: false,
         scope: "all",
@@ -211,16 +212,6 @@ describe("chartView helpers", () => {
         sourceTimeOffsetSeconds: 0,
       }).map((candidate) => candidate.event.currency),
     ).toEqual(["USD", "EUR"]);
-
-    expect(
-      filterChartEventsForOverlay({
-        events: CALENDAR_EVENTS,
-        selectedSymbol: "EURUSD",
-        scope: "high_impact",
-        impactFilter: "all",
-        sourceTimeOffsetSeconds: 0,
-      }).map((candidate) => candidate.event.currency),
-    ).toEqual(["USD"]);
 
     expect(
       filterChartEventsForOverlay({

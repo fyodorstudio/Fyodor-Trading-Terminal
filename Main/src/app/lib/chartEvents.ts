@@ -91,7 +91,6 @@ export function filterChartEventsForOverlay({
   return events
     .filter((event) => {
       if (!Number.isFinite(event.time)) return false;
-      if (scope === "high_impact") return event.impact === "high";
       if (scope === "relevant" && !relevantCurrencies.has(event.currency)) return false;
       if (impactFilter === "all") return true;
       if (impactFilter === "high_medium") return event.impact === "high" || event.impact === "medium";

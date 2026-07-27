@@ -332,16 +332,15 @@ function ReleaseCurrencyGroup(props: {
   );
 }
 
-function FactorDetailRow({ row, onOpen }: { row: MacroFactorRow; onOpen: (event: CalendarEvent) => void }) {
+function FactorDetailCard({ row, onOpen }: { row: MacroFactorRow; onOpen: (event: CalendarEvent) => void }) {
   return (
-    <div className="overview-factor-detail-row">
-      <div className="overview-factor-detail-factor">
-        <span>Factor</span>
-        <strong>{row.factor.label}</strong>
+    <article className="overview-factor-detail-card">
+      <div className="overview-factor-detail-card-head">
+        <span>{row.factor.label}</span>
       </div>
       <div className="overview-factor-latest">
         <span>Latest loaded release</span>
-        <p>{row.summary}</p>
+        <p title={row.summary}>{row.summary}</p>
       </div>
       <div className="overview-factor-next">
         <span>Next loaded event</span>
@@ -349,6 +348,7 @@ function FactorDetailRow({ row, onOpen }: { row: MacroFactorRow; onOpen: (event:
           <button
             type="button"
             onClick={() => onOpen(row.nextEvent as CalendarEvent)}
+            title={formatEventTitleWithCurrency(row.nextEvent)}
           >
             {formatEventTitleWithCurrency(row.nextEvent)}
           </button>
@@ -356,7 +356,7 @@ function FactorDetailRow({ row, onOpen }: { row: MacroFactorRow; onOpen: (event:
           <span>No upcoming matching row is loaded.</span>
         )}
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -365,11 +365,19 @@ function FactorDetailsGroup(props: {
   rows: MacroFactorRow[];
   onOpen: (event: CalendarEvent) => void;
 }) {
+  const covered = props.rows.filter((row) => row.coverageLabel !== "Missing").length;
   return (
     <section className="overview-factor-detail-group">
-      <div className="overview-factor-detail-row-list">
+      <header className="overview-factor-detail-currency-head">
+        <div>
+          <span>Currency</span>
+          <strong>{props.currency}</strong>
+        </div>
+        <em>{covered} / {props.rows.length} covered</em>
+      </header>
+      <div className="overview-factor-detail-card-row">
         {props.rows.map((row) => (
-          <FactorDetailRow key={`${row.currency}-${row.factor.id}`} row={row} onOpen={props.onOpen} />
+          <FactorDetailCard key={`${row.currency}-${row.factor.id}`} row={row} onOpen={props.onOpen} />
         ))}
       </div>
     </section>
@@ -387,7 +395,6 @@ export function OverviewPlaceholderTab({
 }: OverviewPlaceholderTabProps) {
   const [releasePopoverOpen, setReleasePopoverOpen] = useState(false);
   const [pairDetailsOpen, setPairDetailsOpen] = useState(false);
-  const [selectedPairDetailsCurrency, setSelectedPairDetailsCurrency] = useState<string | null>(null);
   const pair = resolvePair(selectedSymbol);
   const pairCurrencies = [pair.base, pair.quote];
   const pairEvents = getPairEvents(events, pairCurrencies);
@@ -414,11 +421,6 @@ export function OverviewPlaceholderTab({
   const factorRows = buildMacroFactorRows({ events, currencies: pairCurrencies, nowSeconds });
   const baseFactorRows = factorRows.filter((row) => row.currency === pair.base);
   const quoteFactorRows = factorRows.filter((row) => row.currency === pair.quote);
-  const activePairDetailsCurrency =
-    selectedPairDetailsCurrency && pairCurrencies.includes(selectedPairDetailsCurrency)
-      ? selectedPairDetailsCurrency
-      : pair.base;
-  const activePairDetailsRows = activePairDetailsCurrency === pair.base ? baseFactorRows : quoteFactorRows;
   const sessionLabel =
     marketStatus?.session_state === "open"
       ? "Market open"
@@ -496,7 +498,6 @@ export function OverviewPlaceholderTab({
             onOpenEvent={onOpenCalendarEvent}
             onOpenReleases={() => setReleasePopoverOpen(true)}
             onOpenDetails={() => {
-              setSelectedPairDetailsCurrency(pair.base);
               setPairDetailsOpen(true);
             }}
           />
@@ -512,7 +513,6 @@ export function OverviewPlaceholderTab({
             currentTime={currentTime}
             onOpenEvent={onOpenCalendarEvent}
             onOpenDetails={() => {
-              setSelectedPairDetailsCurrency(pair.base);
               setPairDetailsOpen(true);
             }}
           />
@@ -525,7 +525,6 @@ export function OverviewPlaceholderTab({
             currentTime={currentTime}
             onOpenEvent={onOpenCalendarEvent}
             onOpenDetails={() => {
-              setSelectedPairDetailsCurrency(pair.quote);
               setPairDetailsOpen(true);
             }}
           />
@@ -621,30 +620,9 @@ export function OverviewPlaceholderTab({
               <div className="overview-factor-detail-note">
                 Loaded broker/MT5 rows only. Missing coverage means this feed has no matching evidence, not that the factor does not matter.
               </div>
-              <div className="overview-pair-detail-switcher" role="tablist" aria-label="Pair detail currency">
-                {[
-                  { currency: pair.base, rows: baseFactorRows },
-                  { currency: pair.quote, rows: quoteFactorRows },
-                ].map((item) => {
-                  const covered = item.rows.filter((row) => row.coverageLabel !== "Missing").length;
-                  const active = activePairDetailsCurrency === item.currency;
-                  return (
-                    <button
-                      key={item.currency}
-                      type="button"
-                      role="tab"
-                      aria-selected={active}
-                      className={active ? "is-active" : ""}
-                      onClick={() => setSelectedPairDetailsCurrency(item.currency)}
-                    >
-                      <span>{item.currency}</span>
-                      <strong>{covered} / {item.rows.length} covered</strong>
-                    </button>
-                  );
-                })}
-              </div>
               <div className="overview-factor-detail-focus">
-                <FactorDetailsGroup currency={activePairDetailsCurrency} rows={activePairDetailsRows} onOpen={onOpenCalendarEvent} />
+                <FactorDetailsGroup currency={pair.base} rows={baseFactorRows} onOpen={onOpenCalendarEvent} />
+                <FactorDetailsGroup currency={pair.quote} rows={quoteFactorRows} onOpen={onOpenCalendarEvent} />
               </div>
             </div>
           </section>

@@ -106,8 +106,7 @@ describe("getChartConnectionLabel", () => {
     );
 
     expect(html).toContain("Cursor readout mode");
-    expect(html).toContain("Both");
-    expect(html).toContain("Exact");
+    expect(html).toContain("Crosshair");
     expect(html).toContain("Sticky");
     expect(html).toContain("Open chart appearance");
     expect(html).toContain("Open chart events");
@@ -141,7 +140,6 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("High + medium");
     expect(html).toContain("Maximum markers");
     expect(html).toContain("Selected pair");
-    expect(html).toContain("All high impact");
     expect(html).toContain("All currencies");
   });
 

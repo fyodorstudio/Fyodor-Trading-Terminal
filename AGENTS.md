@@ -24,6 +24,16 @@ Trusted live data is intentionally limited to MT5 OHLCV plus broker/MT5 economic
 - Use bounded panels, popovers, modals, collapsible sections, and internal scroll regions when a surface needs more detail.
 - If an active tab intentionally requires whole-page scrolling, document why in `docs/Development Logs/Checklist.md` before treating it as acceptable.
 
+## CSS Ownership Rule
+
+- Do not casually add feature CSS to `Main/src/styles.css`.
+- New styling must be owned by a specific active surface or by an explicitly shared primitive.
+- `Main/src/styles.css` is currently a monolith and should become an import aggregator after the planned CSS split.
+- First CSS split pass is extraction-only: preserve selector names, selector order, and visual behavior.
+- Do not rename selectors, delete dead CSS, or refactor global cascade during the first split.
+- Garbage/prototype CSS must not steer active product design. Keep it isolated and ignored unless the user explicitly asks for garbage-drawer styling work.
+- If a new selector is genuinely shared, document why it is shared instead of putting surface-specific styling into a global bucket.
+
 ## Active Surfaces
 
 Primary top-nav surfaces:

@@ -12,8 +12,7 @@ import type {
 export type ChartDrawerMode = "appearance" | "cursor" | "events" | "cache";
 
 const CURSOR_MODE_OPTIONS: Array<{ id: ChartCursorReadoutMode; label: string; description: string }> = [
-  { id: "both", label: "Both", description: "Show the exact pointer price and the candle-sticky close." },
-  { id: "true_cursor", label: "Exact", description: "Show the exact price under the pointer." },
+  { id: "both", label: "Crosshair", description: "Free crosshair movement with both pointer and candle readouts." },
   { id: "nearest_candle", label: "Sticky", description: "Stick the readout and crosshair to the nearest candle close." },
 ];
 
@@ -23,7 +22,6 @@ const EVENT_SCOPE_OPTIONS: Array<{
   description: string;
 }> = [
   { id: "relevant", label: "Selected pair", description: "Only events for the selected symbol currencies, such as EUR and USD on EURUSD." },
-  { id: "high_impact", label: "All high impact", description: "Every loaded high-impact event, even from other currencies." },
   { id: "all", label: "All currencies", description: "All loaded currencies, still limited by the impact filter below." },
 ];
 

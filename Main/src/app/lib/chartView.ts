@@ -16,7 +16,7 @@ import type { BridgeCandle, MarketStatusResponse, Timeframe } from "@/app/types"
 export type ChartDisplayTimeMode = DisplayTimezoneSelection;
 export type ChartCursorReadoutMode = "both" | "true_cursor" | "nearest_candle";
 export type ChartWickMode = "match" | "neutral";
-export type ChartEventOverlayScope = "relevant" | "high_impact" | "all";
+export type ChartEventOverlayScope = "relevant" | "all";
 export type ChartEventOverlayImpactFilter = "high" | "high_medium" | "all";
 
 export interface ChartAppearancePreferences {
@@ -146,10 +146,7 @@ function normalizeChartEventOverlay(raw: unknown): ChartEventOverlayPreferences 
 
   return {
     visible: typeof row.visible === "boolean" ? row.visible : fallback.visible,
-    scope:
-      scope === "relevant" || scope === "high_impact" || scope === "all"
-        ? scope
-        : fallback.scope,
+    scope: scope === "high_impact" ? "all" : scope === "relevant" || scope === "all" ? scope : fallback.scope,
     impactFilter:
       impactFilter === "high" || impactFilter === "high_medium" || impactFilter === "all"
         ? impactFilter
@@ -168,9 +165,11 @@ export function normalizeChartPreferences(raw: unknown): ChartPreferences {
   return {
     version: CHART_PREFERENCES_VERSION,
     cursorReadoutMode:
-      mode === "true_cursor" || mode === "nearest_candle" || mode === "both"
-        ? mode
-        : DEFAULT_CHART_PREFERENCES.cursorReadoutMode,
+      mode === "true_cursor"
+        ? "both"
+        : mode === "nearest_candle" || mode === "both"
+          ? mode
+          : DEFAULT_CHART_PREFERENCES.cursorReadoutMode,
     appearance: normalizeChartAppearance(row.appearance),
     eventOverlay: normalizeChartEventOverlay(row.eventOverlay),
   };

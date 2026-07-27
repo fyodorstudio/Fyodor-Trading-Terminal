@@ -84,8 +84,7 @@ import type { BridgeCandle, BridgeStatus, BridgeSymbol, CalendarEvent, MarketSta
 
 const DEBUG_MAX = 60;
 const CURSOR_MODE_OPTIONS: Array<{ id: ChartCursorReadoutMode; label: string; description: string }> = [
-  { id: "both", label: "Both", description: "Show exact pointer price and sticky candle close." },
-  { id: "true_cursor", label: "Exact", description: "Show the exact price under the pointer." },
+  { id: "both", label: "Crosshair", description: "Free crosshair movement with both pointer and candle readouts." },
   { id: "nearest_candle", label: "Sticky", description: "Stick the readout to the nearest candle close." },
 ];
 

@@ -67,6 +67,7 @@ import type {
   BridgeStatus,
   CalendarEvent,
   EventTemplate,
+  ReactionReplaySample,
   ReplayChartTimeframe,
 } from "@/app/types";
 
@@ -82,17 +83,6 @@ const STORAGE_KEYS = EVENT_REPLAY_STORAGE_KEYS;
 const PLAYBACK_INTERVAL_MS = 550;
 const DEFAULT_BEFORE_CANDLES = DEFAULT_REPLAY_BEFORE_CANDLES;
 const DEFAULT_AFTER_CANDLES = DEFAULT_REPLAY_AFTER_CANDLES;
-const EVENT_TEMPLATE_SORT_OPTIONS: Array<{ value: EventTemplateSort; label: string }> = [
-  { value: "quality", label: "Quality first" },
-  { value: "sample_count", label: "Most releases" },
-  { value: "currency", label: "Currency" },
-];
-const EVENT_TEMPLATE_PRIMARY_SORTS: Array<{ value: EventTemplateSort; label: string; description: string }> = [
-  { value: "upcoming", label: "Upcoming next", description: "Scheduled event types with usable replay history." },
-  { value: "countdown", label: "Countdown", description: "Nearest scheduled replayable event types." },
-  { value: "recent", label: "Recently released", description: "Event types with the freshest historical samples." },
-];
-
 function getEventTemplateMetaLabel(
   template: EventTemplate,
   sortMode: EventTemplateSort,
@@ -101,15 +91,45 @@ function getEventTemplateMetaLabel(
 ): string | undefined {
   const templateTiming = timing.get(template.key);
   if (sortMode === "upcoming" && templateTiming?.nextScheduledAt != null) {
-    return `Next: ${formatUtcDateTime(templateTiming.nextScheduledAt)}`;
-  }
-  if (sortMode === "countdown" && templateTiming?.nextScheduledAt != null) {
-    return `Countdown: ${formatCountdown(templateTiming.nextScheduledAt, nowMs)}`;
+    return `Next: ${formatUtcDateTime(templateTiming.nextScheduledAt)} / ${formatCountdown(templateTiming.nextScheduledAt, nowMs)}`;
   }
   if (sortMode === "recent" && templateTiming?.latestHistoricalAt != null) {
     return `Latest: ${formatUtcDateTime(templateTiming.latestHistoricalAt)}`;
   }
   return undefined;
+}
+
+function getUtcDateKey(timestampSeconds: number): string {
+  return new Date(timestampSeconds * 1000).toISOString().slice(0, 10);
+}
+
+function getReplayCalendarTitle(timestampSeconds: number): string {
+  return new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(
+    new Date(timestampSeconds * 1000),
+  );
+}
+
+function buildReplayReleaseCalendar(samples: ReactionReplaySample[], focusTime: number | null) {
+  const fallbackTime = samples[0]?.eventTime ?? Math.floor(Date.now() / 1000);
+  const focusDate = new Date((focusTime ?? fallbackTime) * 1000);
+  const year = focusDate.getUTCFullYear();
+  const month = focusDate.getUTCMonth();
+  const monthStart = Date.UTC(year, month, 1) / 1000;
+  const firstWeekday = new Date(monthStart * 1000).getUTCDay();
+  const startTime = monthStart - firstWeekday * 24 * 60 * 60;
+  const releaseDates = new Set(samples.map((sample) => getUtcDateKey(sample.eventTime)));
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const time = startTime + index * 24 * 60 * 60;
+    const date = new Date(time * 1000);
+    const key = getUtcDateKey(time);
+    return {
+      key,
+      day: date.getUTCDate(),
+      inMonth: date.getUTCMonth() === month,
+      hasRelease: releaseDates.has(key),
+    };
+  });
 }
 
 export function EventReplayTab({
@@ -135,7 +155,8 @@ export function EventReplayTab({
   const [releaseListOpen, setReleaseListOpen] = useState(false);
   const [eventListOpen, setEventListOpen] = useState(false);
   const [eventTemplateFilter, setEventTemplateFilter] = useState<EventTemplateFilter>("all");
-  const [eventTemplateSort, setEventTemplateSort] = useState<EventTemplateSort>("quality");
+  const [eventTemplateSort] = useState<EventTemplateSort>("upcoming");
+  const [hoveredReleaseIndex, setHoveredReleaseIndex] = useState<number | null>(null);
   const [countdownNowMs, setCountdownNowMs] = useState(() => Date.now());
   const [chartPreferences, setChartPreferences] = useState<ChartPreferences>(() => loadChartPreferences());
   const [chartDrawerOpen, setChartDrawerOpen] = useState(false);
@@ -183,6 +204,15 @@ export function EventReplayTab({
         templateTiming,
       ),
     [eventTemplateFilter, eventTemplateSort, groups.globalTemplates, templateTiming],
+  );
+  const recentlyReleasedTemplates = useMemo(
+    () =>
+      sortEventTemplates(
+        allTemplates.filter((template) => eventTemplateFilter === "all" || template.quality === eventTemplateFilter),
+        "recent",
+        templateTiming,
+      ).slice(0, 8),
+    [allTemplates, eventTemplateFilter, templateTiming],
   );
 
   useEffect(() => {
@@ -408,6 +438,11 @@ export function EventReplayTab({
     { label: "Previous", value: selectedSample?.previous || "N/A" },
     { label: "Surprise", value: surpriseLabel },
   ];
+  const hoveredReleaseSample = hoveredReleaseIndex == null ? null : replaySamples[hoveredReleaseIndex] ?? null;
+  const calendarFocusTime = hoveredReleaseSample?.eventTime ?? selectedSample?.eventTime ?? replaySamples[0]?.eventTime ?? null;
+  const releaseCalendarCells = buildReplayReleaseCalendar(replaySamples, calendarFocusTime);
+  const selectedReleaseDateKey = selectedSample ? getUtcDateKey(selectedSample.eventTime) : null;
+  const hoveredReleaseDateKey = hoveredReleaseSample ? getUtcDateKey(hoveredReleaseSample.eventTime) : null;
 
   return (
     <section className="tab-panel event-replay-workspace relative left-1/2 flex h-[calc(100vh-98px)] min-h-[560px] w-[calc(100vw-24px)] max-w-none -translate-x-1/2 flex-col gap-3 overflow-hidden pb-2">
@@ -658,7 +693,7 @@ export function EventReplayTab({
           aria-label="Select Event"
         >
           <aside
-            className="event-replay-modal-panel flex w-full max-w-[860px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="event-replay-modal-panel flex w-full max-w-[1180px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="border-b border-slate-200 px-5 py-4">
@@ -678,62 +713,24 @@ export function EventReplayTab({
                   <X size={16} />
                 </button>
               </div>
-              <div className="mt-4 grid gap-2 lg:grid-cols-3">
-                {EVENT_TEMPLATE_PRIMARY_SORTS.map((option) => {
-                  const active = eventTemplateSort === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      className={`min-w-0 rounded-2xl border px-4 py-3 text-left transition-colors ${
-                        active
-                          ? "border-slate-900 bg-slate-950 text-white shadow-sm"
-                          : "border-slate-200 bg-slate-50 text-slate-800 hover:border-slate-300 hover:bg-white"
-                      }`}
-                      onClick={() => setEventTemplateSort(option.value)}
-                    >
-                      <span className={`block text-[10px] font-black uppercase tracking-[0.16em] ${active ? "text-slate-400" : "text-blue-500"}`}>
-                        Primary mode
-                      </span>
-                      <strong className="mt-1 block text-sm font-black">{option.label}</strong>
-                      <span className={`mt-1 block text-xs leading-5 ${active ? "text-slate-300" : "text-slate-500"}`}>
-                        {option.description}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_190px]">
-                <div className="flex flex-wrap gap-2">
-                  {(["all", "usable", "limited", "weak"] as EventTemplateFilter[]).map((filter) => (
-                    <button
-                      key={filter}
-                      type="button"
-                      className={`h-9 rounded-xl border px-3 text-xs font-black capitalize ${
-                        eventTemplateFilter === filter
-                          ? "border-slate-900 bg-slate-950 text-white"
-                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
-                      }`}
-                      onClick={() => setEventTemplateFilter(filter)}
-                    >
-                      {filter}
-                    </button>
-                  ))}
+              <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
+                <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
+                  <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">Primary discovery</span>
+                  <strong className="mt-1 block text-sm font-black text-slate-950">Upcoming next includes countdown</strong>
+                  <span className="mt-1 block text-xs font-semibold leading-5 text-slate-600">
+                    Scheduled event types are prioritized only when they already have replay history.
+                  </span>
                 </div>
-                <label className="grid gap-1">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Secondary sort</span>
+                <label className="grid min-w-[190px] gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Quality filter</span>
                   <select
-                    value={EVENT_TEMPLATE_SORT_OPTIONS.some((option) => option.value === eventTemplateSort) ? eventTemplateSort : ""}
-                    onChange={(event) => {
-                      if (!event.target.value) return;
-                      setEventTemplateSort(event.target.value as EventTemplateSort);
-                    }}
-                    className="h-9 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-800 outline-none"
+                    value={eventTemplateFilter}
+                    onChange={(event) => setEventTemplateFilter(event.target.value as EventTemplateFilter)}
+                    className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black capitalize text-slate-800 outline-none"
                   >
-                    <option value="">Primary mode active</option>
-                    {EVENT_TEMPLATE_SORT_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
+                    {(["all", "usable", "limited", "weak"] as EventTemplateFilter[]).map((filter) => (
+                      <option key={filter} value={filter}>
+                        {filter}
                       </option>
                     ))}
                   </select>
@@ -742,58 +739,84 @@ export function EventReplayTab({
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-              <div className="grid gap-5 lg:grid-cols-2">
-                <section className="min-w-0">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h4 className="m-0 text-sm font-black text-slate-950">Base/Quote Events</h4>
-                    <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{visiblePairTemplates.length} shown</span>
-                  </div>
-                  <div className="grid gap-2">
-                    {visiblePairTemplates.length === 0 ? (
-                      <div className="border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                        No pair events match this filter.
-                      </div>
-                    ) : (
-                      visiblePairTemplates.map((template) => (
-                        <EventTemplateButton
-                          key={template.key}
-                          template={template}
-                          active={selectedTemplate?.key === template.key}
-                          metaLabel={getEventTemplateMetaLabel(template, eventTemplateSort, templateTiming, countdownNowMs)}
-                          onSelect={() => {
-                            handleTemplateSelect(template.key);
-                            setEventListOpen(false);
-                          }}
-                        />
-                      ))
-                    )}
-                  </div>
-                </section>
+              <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_330px]">
+                <div className="grid gap-5 lg:grid-cols-2">
+                  <section className="min-w-0">
+                    <div className="mb-3 flex items-center justify-between">
+                      <h4 className="m-0 text-sm font-black text-slate-950">Upcoming Base/Quote Events</h4>
+                      <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{visiblePairTemplates.length} shown</span>
+                    </div>
+                    <div className="grid gap-2">
+                      {visiblePairTemplates.length === 0 ? (
+                        <div className="border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                          No pair events match this filter.
+                        </div>
+                      ) : (
+                        visiblePairTemplates.map((template) => (
+                          <EventTemplateButton
+                            key={template.key}
+                            template={template}
+                            active={selectedTemplate?.key === template.key}
+                            metaLabel={getEventTemplateMetaLabel(template, "upcoming", templateTiming, countdownNowMs)}
+                            onSelect={() => {
+                              handleTemplateSelect(template.key);
+                              setEventListOpen(false);
+                            }}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </section>
 
-                <section className="min-w-0 border-t border-slate-200 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-                  <div className="mb-3 flex items-center justify-between">
-                    <h4 className="m-0 text-sm font-black text-slate-950">Major Global Movers</h4>
-                    <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{visibleGlobalTemplates.length} shown</span>
+                  <section className="min-w-0 border-t border-slate-200 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+                    <div className="mb-3 flex items-center justify-between">
+                      <h4 className="m-0 text-sm font-black text-slate-950">Upcoming Global Movers</h4>
+                      <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{visibleGlobalTemplates.length} shown</span>
+                    </div>
+                    <div className="grid gap-2">
+                      {visibleGlobalTemplates.length === 0 ? (
+                        <div className="border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                          No global movers match this filter.
+                        </div>
+                      ) : (
+                        visibleGlobalTemplates.map((template) => (
+                          <EventTemplateButton
+                            key={template.key}
+                            template={template}
+                            active={selectedTemplate?.key === template.key}
+                            metaLabel={getEventTemplateMetaLabel(template, "upcoming", templateTiming, countdownNowMs)}
+                            onSelect={() => {
+                              handleTemplateSelect(template.key);
+                              setEventListOpen(false);
+                            }}
+                          />
+                        ))
+                      )}
+                    </div>
+                  </section>
+                </div>
+
+                <section className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <div>
+                      <h4 className="m-0 text-sm font-black text-slate-950">Recently Released</h4>
+                      <p className="mt-1 text-xs font-semibold text-slate-500">Fresh historical replay templates.</p>
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{recentlyReleasedTemplates.length}</span>
                   </div>
                   <div className="grid gap-2">
-                    {visibleGlobalTemplates.length === 0 ? (
-                      <div className="border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                        No global movers match this filter.
-                      </div>
-                    ) : (
-                      visibleGlobalTemplates.map((template) => (
-                        <EventTemplateButton
-                          key={template.key}
-                          template={template}
-                          active={selectedTemplate?.key === template.key}
-                          metaLabel={getEventTemplateMetaLabel(template, eventTemplateSort, templateTiming, countdownNowMs)}
-                          onSelect={() => {
-                            handleTemplateSelect(template.key);
-                            setEventListOpen(false);
-                          }}
-                        />
-                      ))
-                    )}
+                    {recentlyReleasedTemplates.map((template) => (
+                      <EventTemplateButton
+                        key={`${template.key}-recent`}
+                        template={template}
+                        active={selectedTemplate?.key === template.key}
+                        metaLabel={getEventTemplateMetaLabel(template, "recent", templateTiming, countdownNowMs)}
+                        onSelect={() => {
+                          handleTemplateSelect(template.key);
+                          setEventListOpen(false);
+                        }}
+                      />
+                    ))}
                   </div>
                 </section>
               </div>
@@ -811,7 +834,7 @@ export function EventReplayTab({
           aria-label="Past Releases"
         >
           <section
-            className="event-replay-modal-panel flex w-full max-w-[760px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="event-replay-modal-panel flex w-full max-w-[1040px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-4 py-3">
@@ -828,27 +851,60 @@ export function EventReplayTab({
                 <X size={15} />
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-              <div className="grid gap-2">
-                {replaySamples.length === 0 ? (
-                  <div className="border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                    No historical releases with usable actual/comparison values.
-                  </div>
-                ) : (
-                  replaySamples.map((sample, index) => (
-                    <EventSampleButton
-                      key={sample.eventId}
-                      sample={sample}
-                      active={index === selectedSampleIndex}
-                      onSelect={() => {
-                        setSelectedSampleIndex(index);
-                        setIsPlaying(false);
-                        setReleaseListOpen(false);
-                      }}
-                    />
-                  ))
-                )}
+            <div className="grid min-h-0 flex-1 gap-4 overflow-hidden bg-slate-50 p-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="min-h-0 overflow-y-auto pr-1">
+                <div className="grid gap-2">
+                  {replaySamples.length === 0 ? (
+                    <div className="border border-dashed border-slate-300 bg-white px-4 py-8 text-center text-sm text-slate-500">
+                      No historical releases with usable actual/comparison values.
+                    </div>
+                  ) : (
+                    replaySamples.map((sample, index) => (
+                      <div
+                        key={sample.eventId}
+                        onMouseEnter={() => setHoveredReleaseIndex(index)}
+                        onFocus={() => setHoveredReleaseIndex(index)}
+                      >
+                        <EventSampleButton
+                          sample={sample}
+                          active={index === selectedSampleIndex}
+                          onSelect={() => {
+                            setSelectedSampleIndex(index);
+                            setIsPlaying(false);
+                            setReleaseListOpen(false);
+                          }}
+                        />
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
+              <aside className="event-replay-release-calendar">
+                <div className="event-replay-release-calendar-head">
+                  <span>Release calendar</span>
+                  <strong>{calendarFocusTime ? getReplayCalendarTitle(calendarFocusTime) : "Loaded month"}</strong>
+                </div>
+                <div className="event-replay-calendar-weekdays" aria-hidden="true">
+                  {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((day) => (
+                    <span key={day}>{day}</span>
+                  ))}
+                </div>
+                <div className="event-replay-calendar-grid">
+                  {releaseCalendarCells.map((cell) => {
+                    const selected = selectedReleaseDateKey === cell.key;
+                    const hovered = hoveredReleaseDateKey === cell.key;
+                    return (
+                      <span
+                        key={cell.key}
+                        className={`${cell.inMonth ? "" : "is-outside"} ${cell.hasRelease ? "has-release" : ""} ${selected ? "is-selected" : ""} ${hovered ? "is-hovered" : ""}`}
+                      >
+                        {cell.day}
+                      </span>
+                    );
+                  })}
+                </div>
+                <p>Hover a release row to see its calendar date. Highlighted dates are loaded replay samples.</p>
+              </aside>
             </div>
           </section>
         </div>
@@ -863,7 +919,7 @@ export function EventReplayTab({
           aria-label="Replay Brief"
         >
           <aside
-            className="event-replay-modal-panel flex w-full max-w-[720px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
+            className="event-replay-modal-panel flex w-full max-w-[1180px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 border-b border-slate-200 px-5 py-4">
@@ -886,7 +942,7 @@ export function EventReplayTab({
               </button>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto bg-slate-50 px-5 py-4">
+            <div className="event-replay-brief-body min-h-0 flex-1 overflow-y-auto bg-slate-50 px-5 py-4">
               <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>

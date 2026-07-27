@@ -18,7 +18,7 @@ The strongest current primary surfaces are:
 
 `Overview` is now a fresh pair-brief surface: selected pair, next pair-relevant event/countdown, upcoming pair events, base/quote macro cards, and direct routes into deeper specialist surfaces. The previous large overview still exists as `Deprecated Overview`, routed through Specialist Tools > Prototyping for reference only.
 
-`Specialist Tools` is intentionally short: `DIFFERENTIAL CALCULATOR` is the active rate/inflation arithmetic tool, `EVENT REPLAY` is the active replay experiment, and `PROTOTYPING` is a garbage drawer for old unfinished surfaces that should be ignored unless explicitly requested. `Event Replay` is pair-first, shows base/quote event types before separate global movers, and replays MT5 candles around past scheduled releases without making trade calls.
+`Specialist Tools` is intentionally short: `DIFFERENTIAL CALCULATOR` is the active rate/inflation arithmetic tool, `EVENT REPLAY` is the active replay experiment, `MACRO DRIVERS` is the active current-data-only forex/gold driver map, and `PROTOTYPING` is a garbage drawer for old unfinished surfaces that should be ignored unless explicitly requested. `Event Replay` is pair-first, shows base/quote event types before separate global movers, and replays MT5 candles around past scheduled releases without making trade calls.
 
 For now the trusted data boundary is deliberately narrow: MT5 OHLCV plus broker/MT5 economic-calendar rows. Do not add new live data sources without an explicit product decision.
 
@@ -38,6 +38,21 @@ The old Six Questions and Work In Progress surfaces are historical/prototype con
 - `Main/mt5-bridge/` - local Python FastAPI bridge for MetaTrader 5
 - `scripts/` - helper scripts for local development
 - `docs/Development Logs/` - active local planning docs
+
+## CSS Ownership Warning
+
+`Main/src/styles.css` is a known monolith. It exists because the app grew through many AI-assisted visual passes, not because React/Vite/Tailwind is the wrong stack.
+
+Until the CSS split lands:
+
+- do not casually add new feature CSS to the monolith;
+- prefer surface-owned styling or clearly shared primitives;
+- do not let garbage/prototype CSS influence active product surfaces;
+- do not rename selectors during the first split;
+- preserve import/selector order when extracting CSS;
+- keep `Main/src/styles.css` as the import aggregator once owned CSS files are created.
+
+The planned CSS cleanup is extraction-first, then isolation, then later dead-code deletion only after build and screenshot verification.
 
 See:
 
