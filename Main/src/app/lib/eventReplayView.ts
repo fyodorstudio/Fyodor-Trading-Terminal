@@ -74,3 +74,36 @@ export function buildReplaySampleCalendarEvent(sample: ReactionReplaySample): Ca
     previous: sample.previous,
   };
 }
+
+export function getUtcDateKey(timestampSeconds: number): string {
+  return new Date(timestampSeconds * 1000).toISOString().slice(0, 10);
+}
+
+export function getReplayCalendarTitle(timestampSeconds: number): string {
+  return new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(
+    new Date(timestampSeconds * 1000),
+  );
+}
+
+export function buildReplayReleaseCalendar(samples: ReactionReplaySample[], focusTime: number | null) {
+  const fallbackTime = samples[0]?.eventTime ?? Math.floor(Date.now() / 1000);
+  const focusDate = new Date((focusTime ?? fallbackTime) * 1000);
+  const year = focusDate.getUTCFullYear();
+  const month = focusDate.getUTCMonth();
+  const monthStart = Date.UTC(year, month, 1) / 1000;
+  const firstWeekday = new Date(monthStart * 1000).getUTCDay();
+  const startTime = monthStart - firstWeekday * 24 * 60 * 60;
+  const releaseDates = new Set(samples.map((sample) => getUtcDateKey(sample.eventTime)));
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const time = startTime + index * 24 * 60 * 60;
+    const date = new Date(time * 1000);
+    const key = getUtcDateKey(time);
+    return {
+      key,
+      day: date.getUTCDate(),
+      inMonth: date.getUTCMonth() === month,
+      hasRelease: releaseDates.has(key),
+    };
+  });
+}

@@ -28,6 +28,7 @@ import {
 } from "@/app/lib/chartView";
 import { getCurrencyCountryCode } from "@/app/lib/eventQuality";
 import {
+  getEventTemplateMetaLabel,
   getEventReplayStatusLabel,
   getEventTemplateTimingMap,
   getInitialEventReplayPair,
@@ -49,10 +50,13 @@ import {
   setStorageItem,
 } from "@/app/lib/eventReplayStorage";
 import {
+  buildReplayReleaseCalendar,
   buildReplaySampleCalendarEvent,
   formatReplayPercent,
   formatReplayPips,
+  getReplayCalendarTitle,
   getReplayMove,
+  getUtcDateKey,
 } from "@/app/lib/eventReplayView";
 import {
   REPLAY_TIMEFRAME_OPTIONS,
@@ -61,13 +65,11 @@ import {
   getReplayFetchRange,
   getReplayWindowCandles,
 } from "@/app/lib/eventReaction";
-import { formatCountdown, formatRelativeAge, formatUtcDateTime } from "@/app/lib/format";
+import { formatRelativeAge, formatUtcDateTime } from "@/app/lib/format";
 import type {
   BridgeCandle,
   BridgeStatus,
   CalendarEvent,
-  EventTemplate,
-  ReactionReplaySample,
   ReplayChartTimeframe,
 } from "@/app/types";
 
@@ -83,54 +85,6 @@ const STORAGE_KEYS = EVENT_REPLAY_STORAGE_KEYS;
 const PLAYBACK_INTERVAL_MS = 550;
 const DEFAULT_BEFORE_CANDLES = DEFAULT_REPLAY_BEFORE_CANDLES;
 const DEFAULT_AFTER_CANDLES = DEFAULT_REPLAY_AFTER_CANDLES;
-function getEventTemplateMetaLabel(
-  template: EventTemplate,
-  sortMode: EventTemplateSort,
-  timing: ReturnType<typeof getEventTemplateTimingMap>,
-  nowMs: number,
-): string | undefined {
-  const templateTiming = timing.get(template.key);
-  if (sortMode === "upcoming" && templateTiming?.nextScheduledAt != null) {
-    return `Next: ${formatUtcDateTime(templateTiming.nextScheduledAt)} / ${formatCountdown(templateTiming.nextScheduledAt, nowMs)}`;
-  }
-  if (sortMode === "recent" && templateTiming?.latestHistoricalAt != null) {
-    return `Latest: ${formatUtcDateTime(templateTiming.latestHistoricalAt)}`;
-  }
-  return undefined;
-}
-
-function getUtcDateKey(timestampSeconds: number): string {
-  return new Date(timestampSeconds * 1000).toISOString().slice(0, 10);
-}
-
-function getReplayCalendarTitle(timestampSeconds: number): string {
-  return new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric", timeZone: "UTC" }).format(
-    new Date(timestampSeconds * 1000),
-  );
-}
-
-function buildReplayReleaseCalendar(samples: ReactionReplaySample[], focusTime: number | null) {
-  const fallbackTime = samples[0]?.eventTime ?? Math.floor(Date.now() / 1000);
-  const focusDate = new Date((focusTime ?? fallbackTime) * 1000);
-  const year = focusDate.getUTCFullYear();
-  const month = focusDate.getUTCMonth();
-  const monthStart = Date.UTC(year, month, 1) / 1000;
-  const firstWeekday = new Date(monthStart * 1000).getUTCDay();
-  const startTime = monthStart - firstWeekday * 24 * 60 * 60;
-  const releaseDates = new Set(samples.map((sample) => getUtcDateKey(sample.eventTime)));
-
-  return Array.from({ length: 42 }, (_, index) => {
-    const time = startTime + index * 24 * 60 * 60;
-    const date = new Date(time * 1000);
-    const key = getUtcDateKey(time);
-    return {
-      key,
-      day: date.getUTCDate(),
-      inMonth: date.getUTCMonth() === month,
-      hasRelease: releaseDates.has(key),
-    };
-  });
-}
 
 export function EventReplayTab({
   events,

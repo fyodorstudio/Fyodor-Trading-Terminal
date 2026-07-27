@@ -1,4 +1,5 @@
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
+import { formatCountdown, formatUtcDateTime } from "@/app/lib/format";
 import {
   EVENT_REPLAY_STORAGE_KEYS,
   getStorageItem,
@@ -74,6 +75,22 @@ export function getEventTemplateTimingMap(
   });
 
   return timing;
+}
+
+export function getEventTemplateMetaLabel(
+  template: EventTemplate,
+  sortMode: EventTemplateSort,
+  timing: Map<string, EventTemplateTiming>,
+  nowMs: number,
+): string | undefined {
+  const templateTiming = timing.get(template.key);
+  if (sortMode === "upcoming" && templateTiming?.nextScheduledAt != null) {
+    return `Next: ${formatUtcDateTime(templateTiming.nextScheduledAt)} / ${formatCountdown(templateTiming.nextScheduledAt, nowMs)}`;
+  }
+  if (sortMode === "recent" && templateTiming?.latestHistoricalAt != null) {
+    return `Latest: ${formatUtcDateTime(templateTiming.latestHistoricalAt)}`;
+  }
+  return undefined;
 }
 
 export function sortEventTemplates(
