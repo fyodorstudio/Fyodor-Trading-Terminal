@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @import "./styles/01-base.css";
-@import "./styles/02-legacy-terminal-overview.css";
+@import "./styles/02-garbage-legacy-terminal-overview.css";
 @import "./styles/03-overview.css";
 @import "./styles/04-shared-primitives.css";
 @import "./styles/05-economic-calendar.css";
@@ -12,6 +12,6 @@
 @import "./styles/10-event-replay-late.css";
 @import "./styles/11-mixed-legacy-responsive.css";
 @import "./styles/12-garbage-deprecated-overview.css";
-@import "./styles/13-deprecated-command-hub.css";
+@import "./styles/13-garbage-deprecated-command-hub.css";
 @import "./styles/14-charts.css";
 @import "./styles/15-garbage-strength-meter.css";
