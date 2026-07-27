@@ -1,6 +1,6 @@
 # Stylesheet Ownership Map
 
-`Main/src/styles.css` is a known CSS monolith. It is not the intended long-term structure.
+`Main/src/styles.css` used to be a CSS monolith. It is now an ordered import aggregator.
 
 The stack is fine: React, Vite, TypeScript, Tailwind, and targeted CSS are appropriate for this app. The debt came from repeated AI-assisted feature styling being appended to one global file.
 
@@ -9,11 +9,12 @@ The stack is fine: React, Vite, TypeScript, Tailwind, and targeted CSS are appro
 - Do not casually add new feature CSS to `Main/src/styles.css`.
 - New CSS must belong to a specific active surface or to an explicitly shared primitive.
 - Garbage/prototype CSS must not steer active product design.
-- `Main/src/styles.css` should become the import aggregator after the split.
+- `Main/src/styles.css` must stay as the import aggregator.
+- Do not put feature selectors directly back into `Main/src/styles.css`.
 
 ## First Split Policy
 
-The first split is extraction-only.
+The first split was extraction-only.
 
 - Preserve selector names.
 - Preserve selector order through import order.
@@ -22,44 +23,39 @@ The first split is extraction-only.
 - Do not redesign surfaces during extraction.
 - Do not move garbage/prototype CSS into active surface files.
 
-The goal of pass 1 is safer ownership, not prettier CSS.
+The goal of pass 1 was safer ownership, not prettier CSS. Some files are still cascade slices rather than perfect ownership files.
 
-## Planned Owned Files
+## Current Ordered Files
 
-Use these as the intended targets unless implementation evidence shows a better name:
+These files are imported by `Main/src/styles.css` in this exact order:
 
-- `base.css` - Tailwind import, root variables, reset, app shell, header, nav, workspace primitives.
-- `shared.css` - shared tables, chips, status pills, popovers, drawers, and generic primitives used by multiple active surfaces.
-- `overview.css` - fresh Overview and pair-detail/release popovers.
-- `charts.css` - Charts tab, chart toolbar, settings drawer, event rail, cache/readout styling.
-- `economic-calendar.css` - Economic Calendar toolbar, freshness/readout cards, table, event drawer, help popovers.
-- `event-replay.css` - active Event Replay workspace, modals, replay controls, replay chart shell.
-- `central-banks.css` - Central Banks Data surface.
-- `specialist-tools.css` - active Specialist Tools shells including Differential Calculator and Macro Drivers.
-- `garbage.css` - Deprecated Overview, old Command Hub, Strength Meter variants, archived Event Reaction/Event Quality, and other garbage/prototype styling.
+- `01-base.css` - root variables, reset, app shell, header, tab navigation, workspace wrappers, and first shared panels.
+- `02-legacy-terminal-overview.css` - old terminal/narrative/overview experiments retained for cascade compatibility.
+- `03-overview.css` - Overview brief, active pair release/detail popovers, and nearby legacy overview-era selectors.
+- `04-shared-primitives.css` - macro/table/chart shell primitives and some strength-meter-era selectors that still sit in this cascade band.
+- `05-economic-calendar.css` - Economic Calendar toolbar, operational rail, table, event drawer, and help popovers.
+- `06-archived-event-studies.css` - archived Event Quality and Event Reaction study surfaces.
+- `07-event-replay.css` - active Event Replay workspace, replay modals, and nearby event-study responsive rules.
+- `08-deprecated-overview.css` - old Command Hub / Deprecated Overview styles.
+- `09-late-polish-and-charts.css` - later specialist cards, chart toolbar/drawer/event rail, and strength meter v4/v5 styles.
 
-## Approximate Current Sections
+## Next Cleanup Pass
 
-These ranges are orientation hints only. Verify before moving blocks.
+Pass 2 should improve ownership without changing selectors:
 
-- `1-320`: global shell, header, status chips, tab navigation, workspace wrappers, shared panels and tables.
-- `321-1166`: older overview/terminal/narrative dashboard experiments.
-- `1177-1663`: older overview brief, action cards, trust/risk/debate surfaces.
-- `1664-2117`: Overview popovers/factor details plus differential/strength-meter-era styles.
-- `2132-2516`: shared table, log, chart shell, picker, and chart status primitives.
-- `2522-3359`: Economic Calendar toolbar, operational rail, table, event drawer, and help popovers.
-- `3363-4480`: archived Event Quality and Event Reaction study surfaces.
-- `4481-5099`: active Event Replay styles plus shared responsive rules for active and archived event-study screens.
-- `5101-6645`: old Command Hub / Deprecated Overview styles.
-- `6646-end`: later polish for specialist cards, chart toolbar/drawer, chart event rail, and strength meter v4/v5.
+- split `09-late-polish-and-charts.css` into `charts.css`, `specialist-tools.css`, and strength-meter/garbage slices;
+- separate active Overview selectors from legacy overview selectors in `03-overview.css`;
+- separate active Event Replay selectors from archived event-study selectors where they still share a cascade band;
+- keep import order equivalent after each move;
+- run build and browser smoke checks after each extraction.
 
 ## Safe Split Order
 
-1. Create owned CSS files and make `styles.css` import them in the same cascade order.
-2. Extract global/shared primitives first.
-3. Extract active primary surfaces: Overview, Charts, Economic Calendar, Central Banks.
-4. Extract active secondary surfaces: Event Replay, Differential Calculator, Macro Drivers, Specialist Tools shell.
-5. Move deprecated/prototyping selectors into `garbage.css` last.
-6. Run build and screenshot smoke checks after each extraction pass.
+1. Move complete selector blocks only.
+2. Never split a multi-line selector list across files.
+3. Never split inside an at-rule or media block.
+4. Keep imports in cascade order.
+5. Run `pnpm --dir Main build` after each extraction pass.
+6. Use browser smoke checks for active tabs before deleting or renaming any CSS.
 
 Do not start dead-code deletion until the split is stable and visually verified.

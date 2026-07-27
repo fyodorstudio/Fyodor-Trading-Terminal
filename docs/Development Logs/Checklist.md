@@ -19,7 +19,7 @@ This file is the current command board. Future AI sessions should read this befo
 - Economic Calendar event explanation is a critical product surface because scheduled events are a major driver of price movement.
 - Active tabs target 100% Chrome zoom on normal desktop without whole-page vertical or horizontal scrolling.
 - 100% Chrome zoom viewport audit passed at 1440x900 with live local feed data for Overview, Central Banks, Charts, Economic Calendar, Event Replay, Macro Drivers, and Differential Calculator.
-- Event Replay, Charts event overlays, Overview pair details, and the CSS monolith are the next active cleanup areas.
+- Event Replay, Charts event overlays, Overview pair details, and CSS ownership remain active cleanup areas.
 - Aesthetic Forge is mounted behind the header gear and stays closed by default.
 - External data sources remain out of scope unless explicitly approved later.
 - `react-world-flags` works; its missing TypeScript declaration and large `FlagIcon` chunk are known non-blocking noise.
@@ -67,14 +67,14 @@ This file is the current command board. Future AI sessions should read this befo
 
 ### 2. CSS Monolith Split And Guardrails
 
-- [ ] Start after the UI polish lane is complete; do not mix the UI redesign and CSS split in one commit.
-- [ ] Pass 1: extract existing selectors into owned files with no selector renames and no behavior changes.
+- [x] Start after the UI polish lane is complete; do not mix the UI redesign and CSS split in one commit.
+- [x] Pass 1: extract existing selectors into ordered files with no selector renames and no behavior changes.
 - [ ] Pass 2: separate active surface CSS from garbage/prototype CSS.
-- [ ] Pass 3: strengthen docs/AI rules so future AI does not grow the global monolith again.
+- [x] Pass 3: strengthen docs/AI rules so future AI does not grow the global monolith again.
 - [ ] Pass 4: delete, rename, or refactor dead CSS only after screenshot/build verification.
-- [ ] Keep `Main/src/styles.css` as the import aggregator.
-- [ ] Preserve import order during extraction.
-- [ ] Prefer visual behavior preservation over prettier class names in the first split.
+- [x] Keep `Main/src/styles.css` as the import aggregator.
+- [x] Preserve import order during extraction.
+- [x] Prefer visual behavior preservation over prettier class names in the first split.
 
 ### 3. Backlog
 
@@ -97,6 +97,7 @@ This file is the current command board. Future AI sessions should read this befo
 - [x] Event Replay modals reserve header-safe space, and Past Releases / Replay Brief had a first readability pass.
 - [x] Macro Drivers is active for forex/gold current-data-only driver context and keeps detailed pair factor rows out of the main page.
 - [x] Differential Calculator is an active Specialist Tools child with route id `dashboard`.
+- [x] `Main/src/styles.css` was reduced to an ordered import aggregator; first-pass extracted CSS lives under `Main/src/styles/`.
 - [x] Garbage folders remain ignored by default:
   - [x] `Main/src/app/tabs/garbage`;
   - [x] `Main/src/app/lib/garbage`;
