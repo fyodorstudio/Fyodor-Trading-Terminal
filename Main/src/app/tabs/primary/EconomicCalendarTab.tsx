@@ -7,6 +7,9 @@ import {
   formatCurrentMt5Time,
   formatImpactSummary,
   formatRangeLabelFromSeconds,
+  buildCautiousSignal,
+  buildMarketFocusItems,
+  dedupeCalendarItems,
   getEventValueDisplay,
   getCalendarFreshness,
   getImpactLabel,
@@ -229,35 +232,6 @@ function CalendarClockCard({
   );
 }
 
-const COMMON_PAIR_HINTS: Record<string, string[]> = {
-  AUD: ["AUDUSD", "AUDJPY", "EURAUD"],
-  CAD: ["USDCAD", "CADJPY", "EURCAD"],
-  CHF: ["USDCHF", "CHFJPY", "EURCHF"],
-  EUR: ["EURUSD", "EURJPY", "EURGBP"],
-  GBP: ["GBPUSD", "GBPJPY", "EURGBP"],
-  JPY: ["USDJPY", "EURJPY", "GBPJPY"],
-  NZD: ["NZDUSD", "NZDJPY", "AUDNZD"],
-  USD: ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD"],
-};
-
-function dedupeItems(items: string[]): string[] {
-  return Array.from(new Set(items.filter((item) => item.trim() !== "")));
-}
-
-function buildMarketFocusItems(event: CalendarEvent, explainer: CalendarEventExplainer): string[] {
-  const pairHints = COMMON_PAIR_HINTS[event.currency] ?? [`Pairs containing ${event.currency}`];
-  return dedupeItems([
-    `${event.currency} strength / weakness across related pairs`,
-    ...pairHints.map((pair) => `${pair} reaction and follow-through`),
-    ...explainer.mayAffect,
-  ]);
-}
-
-function buildCautiousSignal(explainer: CalendarEventExplainer): string {
-  const interpretation = explainer.resultInterpretation ?? explainer.contextNote;
-  return `${interpretation} Use it as context, then require price confirmation before acting.`;
-}
-
 export function CalendarEventInspectorDrawer({
   event,
   explainer,
@@ -271,7 +245,7 @@ export function CalendarEventInspectorDrawer({
 }) {
   const countryName = getCountryDisplayName(event.countryCode);
   const marketFocusItems = buildMarketFocusItems(event, explainer);
-  const caveats = dedupeItems([...explainer.priceCaveats, ...(explainer.commonTraps ?? [])]);
+  const caveats = dedupeCalendarItems([...explainer.priceCaveats, ...(explainer.commonTraps ?? [])]);
   const workflow = explainer.tradingWorkflow ?? [];
   const comparisons = explainer.whatToCompare ?? [];
   const isPlaceholderExplainer = explainer.knowledgeDepth === "generic";

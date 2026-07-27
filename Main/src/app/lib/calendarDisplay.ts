@@ -1,6 +1,6 @@
 import { getCountryDisplayName } from "@/app/config/currencyConfig";
 import { formatRelativeAge } from "@/app/lib/format";
-import type { CalendarEvent, ImpactLevel } from "@/app/types";
+import type { CalendarEvent, CalendarEventExplainer, ImpactLevel } from "@/app/types";
 
 export type CalendarFreshnessState = "unknown" | "fresh" | "aging" | "stale";
 
@@ -180,6 +180,35 @@ export function getEventValueDisplay(value: string, eventTitle = ""): EventValue
 
 export function formatEventValue(value: string, eventTitle = ""): string {
   return getEventValueDisplay(value, eventTitle).display;
+}
+
+const COMMON_PAIR_HINTS: Record<string, string[]> = {
+  AUD: ["AUDUSD", "AUDJPY", "EURAUD"],
+  CAD: ["USDCAD", "CADJPY", "EURCAD"],
+  CHF: ["USDCHF", "CHFJPY", "EURCHF"],
+  EUR: ["EURUSD", "EURJPY", "EURGBP"],
+  GBP: ["GBPUSD", "GBPJPY", "EURGBP"],
+  JPY: ["USDJPY", "EURJPY", "GBPJPY"],
+  NZD: ["NZDUSD", "NZDJPY", "AUDNZD"],
+  USD: ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD"],
+};
+
+export function dedupeCalendarItems(items: string[]): string[] {
+  return Array.from(new Set(items.filter((item) => item.trim() !== "")));
+}
+
+export function buildMarketFocusItems(event: CalendarEvent, explainer: CalendarEventExplainer): string[] {
+  const pairHints = COMMON_PAIR_HINTS[event.currency] ?? [`Pairs containing ${event.currency}`];
+  return dedupeCalendarItems([
+    `${event.currency} strength / weakness across related pairs`,
+    ...pairHints.map((pair) => `${pair} reaction and follow-through`),
+    ...explainer.mayAffect,
+  ]);
+}
+
+export function buildCautiousSignal(explainer: CalendarEventExplainer): string {
+  const interpretation = explainer.resultInterpretation ?? explainer.contextNote;
+  return `${interpretation} Use it as context, then require price confirmation before acting.`;
 }
 
 export function formatImpactSummary(impacts: ImpactLevel[]) {
