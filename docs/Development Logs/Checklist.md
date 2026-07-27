@@ -80,6 +80,7 @@ This file is the current command board. Future AI sessions should read this befo
   - [x] Active Overview release/factor modal styles are split from old unused overview brief / decision / story CSS.
   - [x] Deprecated Overview and archived replay-study stylesheet bands are explicitly labeled as garbage.
   - [x] Legacy terminal/narrative overview and deprecated command-hub CSS files are explicitly labeled as garbage.
+  - [x] Deprecated command-hub CSS is split from garbage strength-meter v4 legacy CSS.
   - [ ] Continue separating Overview, Event Replay, and shared primitives from remaining legacy/garbage cascade bands when specific ownership evidence appears.
 - [x] Pass 3: strengthen docs/AI rules so future AI does not grow the global monolith again.
 - [ ] Pass 4: delete, rename, or refactor dead CSS only after screenshot/build verification.

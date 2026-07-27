@@ -50,7 +50,8 @@ These files are imported by `Main/src/styles.css` in this exact order:
 - `12d-active-mobile-responsive.css` - active/shared mobile shell, nav, chart, and macro responsive rules.
 - `12e-garbage-strength-mobile-responsive.css` - garbage strength mobile responsive leftovers.
 - `13-garbage-deprecated-overview.css` - Deprecated Overview hub styles used only from the garbage drawer.
-- `14-garbage-deprecated-command-hub.css` - deprecated command-hub and strength-meter v4 styles retained for cascade compatibility.
+- `14a-garbage-deprecated-command-hub.css` - deprecated command-hub styles retained for cascade compatibility.
+- `14b-garbage-strength-v4-legacy.css` - garbage strength-meter v4 legacy styles that previously lived inside the deprecated command-hub slice.
 - `15-charts.css` - active Charts toolbar, drawer, event rail, and chart UI styles.
 - `16-garbage-strength-meter.css` - garbage strength-meter v5 styles.
 
@@ -62,7 +63,7 @@ Pass 2 should improve ownership without changing selectors:
 - keep active Overview work in `03b-overview.css` or `03d-overview-responsive.css`;
 - continue separating active Event Replay and Overview selectors from older cascade bands if new evidence shows they are still mixed;
 - review active shell/chart/calendar responsive selectors in the `12a` / `12d` responsive files before moving anything else;
-- review `14-garbage-deprecated-command-hub.css` for any active Specialist Tools selectors before deleting or moving pieces;
+- `14a-garbage-deprecated-command-hub.css` and `14b-garbage-strength-v4-legacy.css` are garbage-only; do not use them for active Specialist Tools work;
 - keep import order equivalent after each move;
 - run build and browser smoke checks after each extraction.
 

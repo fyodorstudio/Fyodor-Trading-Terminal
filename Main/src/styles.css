@@ -21,6 +21,7 @@
 @import "./styles/12d-active-mobile-responsive.css";
 @import "./styles/12e-garbage-strength-mobile-responsive.css";
 @import "./styles/13-garbage-deprecated-overview.css";
-@import "./styles/14-garbage-deprecated-command-hub.css";
+@import "./styles/14a-garbage-deprecated-command-hub.css";
+@import "./styles/14b-garbage-strength-v4-legacy.css";
 @import "./styles/15-charts.css";
 @import "./styles/16-garbage-strength-meter.css";
