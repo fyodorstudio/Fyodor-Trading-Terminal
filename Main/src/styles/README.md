@@ -38,6 +38,7 @@ These files are imported by `Main/src/styles.css` in this exact order:
 - `03e-garbage-legacy-overview-mobile.css` - mobile rules for old unused overview brief / event/action selectors.
 - `04-macro-differential-primitives.css` - active macro cards, Differential Calculator layout, and related shared macro primitives.
 - `05-garbage-strength-v3.css` - garbage strength-meter v2/v3 styles.
+- `06a-garbage-legacy-chart-picker.css` - unused legacy chart picker/status selectors retained outside active Calendar and Charts ownership.
 - `06-economic-calendar.css` - Economic Calendar toolbar, operational rail, table, event drawer, and help popovers.
 - `07-economic-calendar-late.css` - active Economic Calendar clock cards, filter popovers, event drawer additions, and nearby late calendar polish.
 - `08-garbage-event-quality-study.css` - garbage Archived Event Quality study styles.
@@ -64,6 +65,7 @@ Pass 2 should improve ownership without changing selectors:
 - continue separating active Event Replay and Overview selectors from older cascade bands if new evidence shows they are still mixed;
 - review active shell/chart/calendar responsive selectors in the `12a` / `12d` responsive files before moving anything else;
 - `14a-garbage-deprecated-command-hub.css` and `14b-garbage-strength-v4-legacy.css` are garbage-only; do not use them for active Specialist Tools work;
+- `06a-garbage-legacy-chart-picker.css` is garbage-only; active Charts work belongs in `15-charts.css`;
 - keep import order equivalent after each move;
 - run build and browser smoke checks after each extraction.
 
