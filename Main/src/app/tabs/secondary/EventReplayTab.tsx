@@ -8,10 +8,8 @@ import {
 import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
 import { EventReplayCandlestickChart } from "@/app/components/EventReplayCandlestickChart";
 import { EventReplayControlRail } from "@/app/components/EventReplayControlRail";
-import {
-  EventReplayBriefModal,
-  EventReplayReleaseListModal,
-} from "@/app/components/EventReplayModals";
+import { EventReplayBriefModal } from "@/app/components/EventReplayBriefModal";
+import { EventReplayReleaseListModal } from "@/app/components/EventReplayReleaseListModal";
 import {
   EventReplaySelectEventModal,
 } from "@/app/components/EventReplaySelectEventModal";
