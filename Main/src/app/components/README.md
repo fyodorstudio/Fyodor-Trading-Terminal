@@ -14,6 +14,7 @@ This folder contains shared app-shell and feature support components. Keep featu
 - `ChartStatusRail.tsx` - Charts connection/session/latest-candle status rail and timezone dropdown.
 - `ChartSymbolPicker.tsx` - Charts symbol search, favorites, group expansion, and timeframe strip.
 - `ChartToolStrip.tsx` - Charts cursor mode, refocus, events, appearance, and cache tool buttons.
+- `ChartViewport.tsx` - Charts canvas frame, event overlay mounting, crosshair readout, error overlay, and terminal console rendering.
 - `EconomicCalendarControls.tsx` - Economic Calendar help tooltip, freshness chip, impact summary, and clock cards.
 - `EconomicCalendarEventsTable.tsx` - Economic Calendar grouped event table and row selection rendering.
 - `EconomicCalendarInspector.tsx` - Economic Calendar event drawer, impact pill, and source-preserving value display.
