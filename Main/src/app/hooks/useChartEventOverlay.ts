@@ -1,0 +1,166 @@
+import { useMemo, type RefObject } from "react";
+import type { IChartApi } from "lightweight-charts";
+import {
+  filterChartEventsForOverlay,
+  formatChartEventDisplayTime,
+  getChartEventKey,
+} from "@/app/lib/chartEvents";
+import {
+  clusterChartEventPoints,
+  getChartEventImpactRank,
+  getChartEventTooltipPlacement,
+  resolveChartEventX,
+  type ChartEventOverlayCluster,
+  type ChartEventOverlayPoint,
+} from "@/app/lib/chartEventOverlay";
+import type {
+  ChartDisplayTimeMode,
+  ChartEventOverlayPreferences,
+} from "@/app/lib/chartView";
+import type { BridgeCandle, CalendarEvent, Timeframe } from "@/app/types";
+
+interface UseChartEventOverlayArgs {
+  chartRef: RefObject<IChartApi | null>;
+  containerRef: RefObject<HTMLDivElement | null>;
+  events: CalendarEvent[];
+  selectedSymbol: string;
+  visibleCandles: BridgeCandle[];
+  timeframe: Timeframe;
+  displayTimeMode: ChartDisplayTimeMode;
+  sourceTimeOffsetSeconds: number;
+  preferences: ChartEventOverlayPreferences;
+  chartRangeRevision: number;
+  chartLayoutRevision: number;
+}
+
+interface ChartEventOverlayData {
+  points: ChartEventOverlayPoint[];
+  visibleEventCount: number;
+  renderedEventCount: number;
+  isCapped: boolean;
+}
+
+export function useChartEventOverlay({
+  chartRef,
+  containerRef,
+  events,
+  selectedSymbol,
+  visibleCandles,
+  timeframe,
+  displayTimeMode,
+  sourceTimeOffsetSeconds,
+  preferences,
+  chartRangeRevision,
+  chartLayoutRevision,
+}: UseChartEventOverlayArgs): {
+  candidatesCount: number;
+  overlayData: ChartEventOverlayData;
+  clusters: ChartEventOverlayCluster[];
+} {
+  const candidates = useMemo(
+    () =>
+      filterChartEventsForOverlay({
+        events,
+        selectedSymbol,
+        scope: preferences.scope,
+        impactFilter: preferences.impactFilter,
+        sourceTimeOffsetSeconds,
+      }),
+    [
+      events,
+      selectedSymbol,
+      preferences.scope,
+      preferences.impactFilter,
+      sourceTimeOffsetSeconds,
+    ],
+  );
+
+  const overlayData = useMemo<ChartEventOverlayData>(() => {
+    const chart = chartRef.current;
+    const container = containerRef.current;
+    if (!chart || !container || !preferences.visible || visibleCandles.length === 0) {
+      return { points: [], visibleEventCount: 0, renderedEventCount: 0, isCapped: false };
+    }
+
+    const width = container.clientWidth;
+    if (width <= 0) {
+      return { points: [], visibleEventCount: 0, renderedEventCount: 0, isCapped: false };
+    }
+
+    const visibleRange = chart.timeScale().getVisibleRange();
+    const firstCandle = visibleCandles[0];
+    const lastCandle = visibleCandles[visibleCandles.length - 1];
+    const fallbackFrom = firstCandle?.time ?? 0;
+    const fallbackTo = lastCandle?.time ?? fallbackFrom;
+    const visibleFrom = typeof visibleRange?.from === "number" ? visibleRange.from : fallbackFrom;
+    const visibleTo = typeof visibleRange?.to === "number" ? visibleRange.to : fallbackTo;
+    const candleSpacing =
+      visibleCandles.length > 1
+        ? Math.max(60, Math.abs((lastCandle.time - firstCandle.time) / Math.max(1, visibleCandles.length - 1)))
+        : 3600;
+    const rangeBuffer = candleSpacing * 2;
+    const rangeMidpoint = (visibleFrom + visibleTo) / 2;
+    const visibleCandidates = candidates.filter(
+      (candidate) => candidate.chartTime >= visibleFrom - rangeBuffer && candidate.chartTime <= visibleTo + rangeBuffer,
+    );
+    const cappedCandidates =
+      visibleCandidates.length <= preferences.maxMarkers
+        ? visibleCandidates
+        : [...visibleCandidates]
+            .sort((left, right) => {
+              const impactDelta = getChartEventImpactRank(left.event.impact) - getChartEventImpactRank(right.event.impact);
+              if (impactDelta !== 0) return impactDelta;
+              return Math.abs(left.chartTime - rangeMidpoint) - Math.abs(right.chartTime - rangeMidpoint);
+            })
+            .slice(0, preferences.maxMarkers)
+            .sort((left, right) => left.chartTime - right.chartTime);
+
+    const points = cappedCandidates
+      .map((candidate) => {
+        const x = resolveChartEventX(chart, visibleCandles, timeframe, candidate.chartTime);
+        if (x == null || x < -24 || x > width + 24) return null;
+
+        return {
+          key: getChartEventKey(candidate.event),
+          event: candidate.event,
+          x,
+          timeLabel: formatChartEventDisplayTime(
+            candidate.event.time,
+            displayTimeMode,
+            sourceTimeOffsetSeconds,
+          ),
+          tooltipPlacement: getChartEventTooltipPlacement(x, width),
+        };
+      })
+      .filter((point): point is ChartEventOverlayPoint => point != null)
+      .sort((left, right) => left.x - right.x);
+
+    return {
+      points,
+      visibleEventCount: visibleCandidates.length,
+      renderedEventCount: cappedCandidates.length,
+      isCapped: visibleCandidates.length > cappedCandidates.length,
+    };
+  }, [
+    candidates,
+    preferences.visible,
+    preferences.maxMarkers,
+    visibleCandles,
+    timeframe,
+    displayTimeMode,
+    sourceTimeOffsetSeconds,
+    chartRangeRevision,
+    chartLayoutRevision,
+  ]);
+
+  const clusters = useMemo<ChartEventOverlayCluster[]>(() => {
+    const container = containerRef.current;
+    return clusterChartEventPoints(overlayData.points, container?.clientWidth ?? 0);
+  }, [containerRef, overlayData.points]);
+
+  return {
+    candidatesCount: candidates.length,
+    overlayData,
+    clusters,
+  };
+}

@@ -13,6 +13,7 @@ import { ChartStatusRail } from "@/app/components/ChartStatusRail";
 import { ChartSymbolPicker } from "@/app/components/ChartSymbolPicker";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import { ChartViewport, type ChartCrosshairReadout } from "@/app/components/ChartViewport";
+import { useChartEventOverlay } from "@/app/hooks/useChartEventOverlay";
 import { fetchHistory, fetchHistoryBoundary, fetchHistoryRange, fetchSymbols, openChartStream } from "@/app/lib/bridge";
 import {
   CHART_HISTORY_RANGE_MAX_SECONDS,
@@ -46,19 +47,6 @@ import {
   type ChartPreferences,
 } from "@/app/lib/chartView";
 import {
-  filterChartEventsForOverlay,
-  formatChartEventDisplayTime,
-  getChartEventKey,
-} from "@/app/lib/chartEvents";
-import {
-  clusterChartEventPoints,
-  getChartEventImpactRank,
-  getChartEventTooltipPlacement,
-  resolveChartEventX,
-  type ChartEventOverlayCluster,
-  type ChartEventOverlayPoint,
-} from "@/app/lib/chartEventOverlay";
-import {
   clearChartHistoryCache,
   readChartHistoryCache,
   saveChartHistoryCache,
@@ -80,13 +68,6 @@ interface ChartsTabProps {
   onSelectedSymbolChange: (symbol: string) => void;
   events: CalendarEvent[];
   onOpenCalendarEvent: (event: CalendarEvent) => void;
-}
-
-interface ChartEventOverlayData {
-  points: ChartEventOverlayPoint[];
-  visibleEventCount: number;
-  renderedEventCount: number;
-  isCapped: boolean;
 }
 
 export function ChartsTab({
@@ -712,107 +693,19 @@ export function ChartsTab({
   const streamStatusLabel =
     getChartConnectionLabel({ historyState, marketStatus: activeMarketStatus, streamConnected });
 
-  const chartEventCandidates = useMemo(
-    () =>
-      filterChartEventsForOverlay({
-        events,
-        selectedSymbol,
-        scope: chartPreferences.eventOverlay.scope,
-        impactFilter: chartPreferences.eventOverlay.impactFilter,
-        sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
-      }),
-    [
-      events,
-      selectedSymbol,
-      chartPreferences.eventOverlay.scope,
-      chartPreferences.eventOverlay.impactFilter,
-      chartSourceTimeOffsetSeconds,
-    ],
-  );
-
-  const chartEventOverlayData = useMemo<ChartEventOverlayData>(() => {
-    const chart = chartRef.current;
-    const container = containerRef.current;
-    if (!chart || !container || !chartPreferences.eventOverlay.visible || visibleCandles.length === 0) {
-      return { points: [], visibleEventCount: 0, renderedEventCount: 0, isCapped: false };
-    }
-
-    const width = container.clientWidth;
-    if (width <= 0) {
-      return { points: [], visibleEventCount: 0, renderedEventCount: 0, isCapped: false };
-    }
-
-    const visibleRange = chart.timeScale().getVisibleRange();
-    const firstCandle = visibleCandles[0];
-    const lastCandle = visibleCandles[visibleCandles.length - 1];
-    const fallbackFrom = firstCandle?.time ?? 0;
-    const fallbackTo = lastCandle?.time ?? fallbackFrom;
-    const visibleFrom = typeof visibleRange?.from === "number" ? visibleRange.from : fallbackFrom;
-    const visibleTo = typeof visibleRange?.to === "number" ? visibleRange.to : fallbackTo;
-    const candleSpacing =
-      visibleCandles.length > 1
-        ? Math.max(60, Math.abs((lastCandle.time - firstCandle.time) / Math.max(1, visibleCandles.length - 1)))
-        : 3600;
-    const rangeBuffer = candleSpacing * 2;
-    const rangeMidpoint = (visibleFrom + visibleTo) / 2;
-    const maxMarkers = chartPreferences.eventOverlay.maxMarkers;
-    const visibleCandidates = chartEventCandidates.filter(
-      (candidate) => candidate.chartTime >= visibleFrom - rangeBuffer && candidate.chartTime <= visibleTo + rangeBuffer,
-    );
-    const cappedCandidates =
-      visibleCandidates.length <= maxMarkers
-        ? visibleCandidates
-        : [...visibleCandidates]
-            .sort((left, right) => {
-              const impactDelta = getChartEventImpactRank(left.event.impact) - getChartEventImpactRank(right.event.impact);
-              if (impactDelta !== 0) return impactDelta;
-              return Math.abs(left.chartTime - rangeMidpoint) - Math.abs(right.chartTime - rangeMidpoint);
-            })
-            .slice(0, maxMarkers)
-            .sort((left, right) => left.chartTime - right.chartTime);
-
-    const points = cappedCandidates
-      .map((candidate) => {
-        const x = resolveChartEventX(chart, visibleCandles, timeframe, candidate.chartTime);
-        if (x == null || x < -24 || x > width + 24) return null;
-
-        return {
-          key: getChartEventKey(candidate.event),
-          event: candidate.event,
-          x,
-          timeLabel: formatChartEventDisplayTime(
-            candidate.event.time,
-            displayTimeMode,
-            chartSourceTimeOffsetSeconds,
-          ),
-          tooltipPlacement: getChartEventTooltipPlacement(x, width),
-        };
-      })
-      .filter((point): point is ChartEventOverlayPoint => point != null)
-      .sort((left, right) => left.x - right.x);
-
-    return {
-      points,
-      visibleEventCount: visibleCandidates.length,
-      renderedEventCount: cappedCandidates.length,
-      isCapped: visibleCandidates.length > cappedCandidates.length,
-    };
-  }, [
-    chartEventCandidates,
-    chartPreferences.eventOverlay.visible,
-    chartPreferences.eventOverlay.maxMarkers,
+  const chartEventOverlay = useChartEventOverlay({
+    chartRef,
+    containerRef,
+    events,
+    selectedSymbol,
     visibleCandles,
     timeframe,
     displayTimeMode,
-    chartSourceTimeOffsetSeconds,
+    sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
+    preferences: chartPreferences.eventOverlay,
     chartRangeRevision,
     chartLayoutRevision,
-  ]);
-
-  const chartEventOverlayClusters = useMemo<ChartEventOverlayCluster[]>(() => {
-    const container = containerRef.current;
-    return clusterChartEventPoints(chartEventOverlayData.points, container?.clientWidth ?? 0);
-  }, [chartEventOverlayData.points]);
+  });
 
   useEffect(() => {
     setActiveChartEventClusterKey(null);
@@ -850,7 +743,7 @@ export function ChartsTab({
         <ChartToolStrip
           cursorReadoutMode={chartPreferences.cursorReadoutMode}
           eventOverlayVisible={chartPreferences.eventOverlay.visible}
-          eventCandidateCount={chartEventCandidates.length}
+          eventCandidateCount={chartEventOverlay.candidatesCount}
           onCursorModeChange={handleCursorModeChange}
           onRefocusChart={refocusChart}
           onOpenDrawer={openChartDrawer}
@@ -902,8 +795,8 @@ export function ChartsTab({
 
       <ChartViewport
         containerRef={containerRef}
-        clusters={chartEventOverlayClusters}
-        eventOverlay={chartEventOverlayData}
+        clusters={chartEventOverlay.clusters}
+        eventOverlay={chartEventOverlay.overlayData}
         hoveredClusterKey={hoveredChartEventClusterKey}
         activeClusterKey={activeChartEventClusterKey}
         onHoverCluster={setHoveredChartEventClusterKey}
