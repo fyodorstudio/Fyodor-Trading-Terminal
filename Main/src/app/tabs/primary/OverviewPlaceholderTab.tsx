@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Database, Info, X } from "lucide-react";
+import { ArrowRight, Database, Info } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
+import { OverviewPairDetailsModal, OverviewReleasePopover } from "@/app/components/OverviewPopovers";
 import { CURRENCY_TO_COUNTRY_CODE, FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
-import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
-import { formatCountdown, formatDateOnly, formatUtcDateTime } from "@/app/lib/format";
+import { formatCountdown, formatDateOnly } from "@/app/lib/format";
 import { buildMacroFactorRows, type MacroFactorRow } from "@/app/lib/macroDrivers";
 import type { CalendarEvent, CentralBankSnapshot, MarketStatusResponse } from "@/app/types";
 
@@ -16,12 +16,6 @@ interface OverviewPlaceholderTabProps {
   currentTime: Date;
   onOpenCalendarEvent: (event: CalendarEvent) => void;
 }
-
-const IMPACT_STYLE: Record<CalendarEvent["impact"], string> = {
-  high: "border-rose-200 bg-rose-50 text-rose-700",
-  medium: "border-amber-200 bg-amber-50 text-amber-700",
-  low: "border-emerald-200 bg-emerald-50 text-emerald-700",
-};
 
 function resolvePair(symbol: string) {
   return getFxPairByName(symbol) ?? FX_PAIRS[0];
@@ -46,11 +40,6 @@ function getOverviewFactorChipLabel(row: MacroFactorRow): string {
   if (row.latestEvent) return "Latest row";
   if (row.nextEvent) return "Next row";
   return row.coverageLabel;
-}
-
-function formatEventTitleWithCurrency(event: CalendarEvent): string {
-  const suffix = `(${event.currency})`;
-  return event.title.includes(suffix) ? event.title : `${event.title} ${suffix}`;
 }
 
 function getPairEvents(events: CalendarEvent[], currencies: string[]) {
@@ -260,130 +249,6 @@ function PairDriverSnapshot(props: {
   );
 }
 
-function EventRow(props: {
-  event: CalendarEvent;
-  currentTime: Date;
-  mode: "upcoming" | "recent";
-  onOpen: (event: CalendarEvent) => void;
-}) {
-  const actual = getEventValueDisplay(props.event.actual, props.event.title);
-  const forecast = getEventValueDisplay(props.event.forecast, props.event.title);
-  const previous = getEventValueDisplay(props.event.previous, props.event.title);
-
-  return (
-    <button
-      type="button"
-      onClick={() => props.onOpen(props.event)}
-      className="group grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition hover:border-blue-200 hover:bg-blue-50/40"
-    >
-      <span className="min-w-0">
-        <span className="flex min-w-0 items-center gap-2">
-          <span className={`rounded-md border px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] ${IMPACT_STYLE[props.event.impact]}`}>
-            {props.event.impact}
-          </span>
-          <span className="min-w-0 break-words text-sm font-black leading-5 text-slate-950">{props.event.currency} | {props.event.title}</span>
-        </span>
-        <span
-          className="mt-1 block text-xs font-semibold text-slate-500"
-          title={`Actual: ${actual.title} Forecast: ${forecast.title} Previous: ${previous.title}`}
-        >
-          Actual {actual.display} / Forecast {forecast.display} / Previous {previous.display}
-        </span>
-      </span>
-      <span className="text-right text-xs font-black text-slate-700">
-        {props.mode === "upcoming" ? formatCountdown(props.event.time, props.currentTime.getTime()) : formatUtcDateTime(props.event.time)}
-      </span>
-    </button>
-  );
-}
-
-function ReleaseCurrencyGroup(props: {
-  label: string;
-  events: CalendarEvent[];
-  currentTime: Date;
-  mode: "upcoming" | "recent";
-  emptyLabel: string;
-  onOpen: (event: CalendarEvent) => void;
-}) {
-  return (
-    <section className="overview-release-currency-group">
-      <div className="overview-release-currency-head">
-        <span>{props.label}</span>
-        <strong>{props.events.length}</strong>
-      </div>
-      <div className="mt-3 grid gap-2">
-        {props.events.length > 0 ? (
-          props.events.map((event) => (
-            <EventRow
-              key={`${event.id}-${event.time}-${event.currency}-${event.title}-${props.mode}`}
-              event={event}
-              currentTime={props.currentTime}
-              mode={props.mode}
-              onOpen={props.onOpen}
-            />
-          ))
-        ) : (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-4 py-5 text-sm font-semibold text-slate-500">
-            {props.emptyLabel}
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function FactorDetailCard({ row, onOpen }: { row: MacroFactorRow; onOpen: (event: CalendarEvent) => void }) {
-  return (
-    <article className="overview-factor-detail-card">
-      <div className="overview-factor-detail-card-head">
-        <span>{row.factor.label}</span>
-      </div>
-      <div className="overview-factor-latest">
-        <span>Latest loaded release</span>
-        <p title={row.summary}>{row.summary}</p>
-      </div>
-      <div className="overview-factor-next">
-        <span>Next loaded event</span>
-        {row.nextEvent ? (
-          <button
-            type="button"
-            onClick={() => onOpen(row.nextEvent as CalendarEvent)}
-            title={formatEventTitleWithCurrency(row.nextEvent)}
-          >
-            {formatEventTitleWithCurrency(row.nextEvent)}
-          </button>
-        ) : (
-          <span>No upcoming matching row is loaded.</span>
-        )}
-      </div>
-    </article>
-  );
-}
-
-function FactorDetailsGroup(props: {
-  currency: string;
-  rows: MacroFactorRow[];
-  onOpen: (event: CalendarEvent) => void;
-}) {
-  const covered = props.rows.filter((row) => row.coverageLabel !== "Missing").length;
-  return (
-    <section className="overview-factor-detail-group">
-      <header className="overview-factor-detail-currency-head">
-        <div>
-          <span>Currency</span>
-          <strong>{props.currency}</strong>
-        </div>
-        <em>{covered} / {props.rows.length} covered</em>
-      </header>
-      <div className="overview-factor-detail-card-row">
-        {props.rows.map((row) => (
-          <FactorDetailCard key={`${row.currency}-${row.factor.id}`} row={row} onOpen={props.onOpen} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export function OverviewPlaceholderTab({
   selectedSymbol,
   onSelectedSymbolChange,
@@ -532,101 +397,28 @@ export function OverviewPlaceholderTab({
       </div>
 
       {releasePopoverOpen ? (
-        <div className="overview-release-overlay" onClick={() => setReleasePopoverOpen(false)}>
-          <section
-            className="overview-release-popover"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`${pair.name} calendar releases`}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <header className="overview-release-popover-head">
-              <div>
-                <span>Pair releases</span>
-                <h3>{pair.name}</h3>
-              </div>
-              <button type="button" aria-label="Close pair releases" onClick={() => setReleasePopoverOpen(false)}>
-                <X className="h-4 w-4" />
-              </button>
-            </header>
-
-            <div className="overview-release-popover-body">
-              <section>
-                <div className="overview-release-section-title">
-                  <span>Upcoming</span>
-                  <strong>{upcomingEvents.length}</strong>
-                </div>
-                <div className="overview-release-currency-grid">
-                  {upcomingReleaseGroups.map((group) => (
-                    <ReleaseCurrencyGroup
-                      key={`${group.label}-upcoming`}
-                      label={group.label}
-                      events={group.events}
-                      currentTime={currentTime}
-                      mode="upcoming"
-                      emptyLabel={`No upcoming ${group.label} events are loaded.`}
-                      onOpen={onOpenCalendarEvent}
-                    />
-                  ))}
-                </div>
-              </section>
-
-              <div className="overview-release-divider" />
-
-              <section>
-                <div className="overview-release-section-title">
-                  <span>Past releases</span>
-                  <strong>{recentEvents.length}</strong>
-                </div>
-                <div className="overview-release-currency-grid">
-                  {recentReleaseGroups.map((group) => (
-                    <ReleaseCurrencyGroup
-                      key={`${group.label}-recent`}
-                      label={group.label}
-                      events={group.events}
-                      currentTime={currentTime}
-                      mode="recent"
-                      emptyLabel={`No recent ${group.label} releases are loaded.`}
-                      onOpen={onOpenCalendarEvent}
-                    />
-                  ))}
-                </div>
-              </section>
-            </div>
-          </section>
-        </div>
+        <OverviewReleasePopover
+          pairName={pair.name}
+          upcomingEvents={upcomingEvents}
+          recentEvents={recentEvents}
+          upcomingReleaseGroups={upcomingReleaseGroups}
+          recentReleaseGroups={recentReleaseGroups}
+          currentTime={currentTime}
+          onOpenEvent={onOpenCalendarEvent}
+          onClose={() => setReleasePopoverOpen(false)}
+        />
       ) : null}
 
       {pairDetailsOpen ? (
-        <div className="overview-pair-detail-overlay" onClick={() => setPairDetailsOpen(false)}>
-          <section
-            className="overview-factor-detail-popover"
-            role="dialog"
-            aria-modal="true"
-            aria-label={`${pair.name} pair details`}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <header className="overview-factor-detail-popover-head">
-              <div>
-                <span>Pair details</span>
-                <h3>{pair.name}</h3>
-              </div>
-              <button type="button" aria-label="Close pair details" onClick={() => setPairDetailsOpen(false)}>
-                <X className="h-4 w-4" />
-              </button>
-            </header>
-
-            <div className="overview-factor-detail-popover-body">
-              <div className="overview-factor-detail-note">
-                Loaded broker/MT5 rows only. Missing coverage means this feed has no matching evidence, not that the factor does not matter.
-              </div>
-              <div className="overview-factor-detail-focus">
-                <FactorDetailsGroup currency={pair.base} rows={baseFactorRows} onOpen={onOpenCalendarEvent} />
-                <FactorDetailsGroup currency={pair.quote} rows={quoteFactorRows} onOpen={onOpenCalendarEvent} />
-              </div>
-            </div>
-          </section>
-        </div>
+        <OverviewPairDetailsModal
+          pairName={pair.name}
+          baseCurrency={pair.base}
+          quoteCurrency={pair.quote}
+          baseFactorRows={baseFactorRows}
+          quoteFactorRows={quoteFactorRows}
+          onOpenEvent={onOpenCalendarEvent}
+          onClose={() => setPairDetailsOpen(false)}
+        />
       ) : null}
     </div>
   );

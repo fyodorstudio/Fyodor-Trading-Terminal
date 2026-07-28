@@ -21,6 +21,7 @@ This folder contains shared app-shell and feature support components. Keep featu
 - `EconomicCalendarToolbar.tsx` - Economic Calendar range, impact, country, search, timezone, and freshness toolbar rendering.
 - `FlagIcon.tsx` - country/currency flag wrapper. `react-world-flags` works through the local declaration in `Main/src/types/react-world-flags.d.ts`; its large build chunk is known non-blocking noise unless the user asks to revisit flags.
 - `LocalClock.tsx`, `Mt5Clock.tsx`, `MarketStatusPill.tsx` - small status/time display helpers.
+- `OverviewPopovers.tsx` - active Overview pair release popover and pair-details modal rendering.
 
 ## Event Replay Support
 
