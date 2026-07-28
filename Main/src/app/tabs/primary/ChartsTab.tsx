@@ -11,20 +11,16 @@ import {
 import {
   Activity,
   AlertTriangle,
-  CalendarDays,
   Check,
   ChevronDown,
   Clock,
   Database,
-  Focus,
-  HardDrive,
-  MousePointer2,
-  Settings2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
 import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
 import { ChartSymbolPicker } from "@/app/components/ChartSymbolPicker";
+import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import { fetchHistory, fetchHistoryBoundary, fetchHistoryRange, fetchSymbols, openChartStream } from "@/app/lib/bridge";
 import {
   CHART_HISTORY_RANGE_MAX_SECONDS,
@@ -85,10 +81,6 @@ import {
 import type { BridgeCandle, BridgeStatus, BridgeSymbol, CalendarEvent, MarketStatusResponse, Timeframe } from "@/app/types";
 
 const DEBUG_MAX = 60;
-const CURSOR_MODE_OPTIONS: Array<{ id: ChartCursorReadoutMode; label: string; description: string }> = [
-  { id: "both", label: "Crosshair", description: "Free crosshair movement with both pointer and candle readouts." },
-  { id: "nearest_candle", label: "Sticky", description: "Stick the readout to the nearest candle close." },
-];
 
 type CrosshairReadout = {
   top: number;
@@ -868,52 +860,14 @@ export function ChartsTab({
           onTimeframeChange={setTimeframe}
         />
 
-        <div className="chart-tool-strip" aria-label="Chart tools">
-          <div className="chart-readout-toggle" aria-label="Cursor readout mode">
-            <MousePointer2 className="h-4 w-4 text-slate-400" />
-            {CURSOR_MODE_OPTIONS.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                title={option.description}
-                className={chartPreferences.cursorReadoutMode === option.id ? "is-active" : ""}
-                onClick={() => handleCursorModeChange(option.id)}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-          <button type="button" className="chart-icon-button" title="Refocus chart" aria-label="Refocus chart" onClick={refocusChart}>
-            <Focus className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            className={chartPreferences.eventOverlay.visible ? "chart-icon-button is-active" : "chart-icon-button"}
-            title={`Chart events (${chartEventCandidates.length} loaded matches)`}
-            aria-label="Open chart events"
-            onClick={() => openChartDrawer("events")}
-          >
-            <CalendarDays className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            className="chart-icon-button"
-            title="Chart appearance"
-            aria-label="Open chart appearance"
-            onClick={() => openChartDrawer("appearance")}
-          >
-            <Settings2 className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            className="chart-icon-button"
-            title="Data cache"
-            aria-label="Open chart data cache"
-            onClick={() => openChartDrawer("cache")}
-          >
-            <HardDrive className="h-4 w-4" />
-          </button>
-        </div>
+        <ChartToolStrip
+          cursorReadoutMode={chartPreferences.cursorReadoutMode}
+          eventOverlayVisible={chartPreferences.eventOverlay.visible}
+          eventCandidateCount={chartEventCandidates.length}
+          onCursorModeChange={handleCursorModeChange}
+          onRefocusChart={refocusChart}
+          onOpenDrawer={openChartDrawer}
+        />
       </div>
 
       <div className="chart-status-rail">
