@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Calendar, Check, ChevronDown, Clock, Globe, Search } from "lucide-react";
 import {
@@ -7,9 +7,9 @@ import {
   HelpHint,
   ImpactSummary,
 } from "@/app/components/EconomicCalendarControls";
+import { EconomicCalendarEventsTable } from "@/app/components/EconomicCalendarEventsTable";
 import {
   CalendarEventInspectorDrawer,
-  CalendarValueText,
   ImpactPill,
 } from "@/app/components/EconomicCalendarInspector";
 import { fetchCalendar, fetchServerTime } from "@/app/lib/bridge";
@@ -29,14 +29,12 @@ import { buildCalendarEventKey, getCalendarIntentDayRange } from "@/app/lib/cale
 import { getPresetRange } from "@/app/lib/calendarRanges";
 import {
   formatCountdown,
-  formatUtcDateTime,
   parseDateInput,
   toDateInputValue,
 } from "@/app/lib/format";
 import { resolveCalendarStatus } from "@/app/lib/status";
 import {
   formatCurrentTimeForDisplayTimezone,
-  formatDateTimeForDisplayTimezone,
   getDisplayTimezoneOptions,
   loadDisplayTimezoneSelection,
   saveDisplayTimezoneSelection,
@@ -801,89 +799,13 @@ export function EconomicCalendarTab({
             </div>
           </div>
         ) : null}
-        {groups.length > 0 ? (
-          <table className="data-table calendar-table">
-            <colgroup>
-              <col className="calendar-col-mt5" />
-              <col className="calendar-col-viewer" />
-              <col className="calendar-col-country" />
-              <col className="calendar-col-event" />
-              <col className="calendar-col-impact" />
-              <col className="calendar-col-number" />
-              <col className="calendar-col-number" />
-              <col className="calendar-col-number" />
-            </colgroup>
-            <thead>
-              <tr>
-                <th>MT5 Time</th>
-                <th>Viewer Time</th>
-                <th>Country</th>
-                <th>Event</th>
-                <th>Impact</th>
-                <th>Actual</th>
-                <th>Forecast</th>
-                <th>Previous</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map(([day, items]) => (
-                <Fragment key={day}>
-                  <tr className="group-row">
-                    <td colSpan={8}>
-                      {new Date(`${day}T00:00:00Z`).toLocaleDateString("en-GB", {
-                        weekday: "long",
-                        day: "2-digit",
-                        month: "long",
-                        year: "numeric",
-                        timeZone: "UTC",
-                      })}
-                    </td>
-                  </tr>
-                  {items.map((event) => {
-                    const eventKey = buildCalendarEventKey(event);
-                    const isHighlighted = highlightedEventKey === eventKey;
-                    const isSelected = selectedEventKey === eventKey;
-                    return (
-                    <tr
-                      key={`${event.id}-${event.time}`}
-                      data-event-key={eventKey}
-                      className={[
-                        "calendar-event-row",
-                        isHighlighted ? "is-highlighted" : "",
-                        isSelected ? "is-selected" : "",
-                      ].filter(Boolean).join(" ")}
-                      tabIndex={0}
-                      onClick={() => setSelectedEvent(event)}
-                      onKeyDown={(keyboardEvent) => {
-                        if (keyboardEvent.key === "Enter" || keyboardEvent.key === " ") {
-                          keyboardEvent.preventDefault();
-                          setSelectedEvent(event);
-                        }
-                      }}
-                    >
-                      <td>{formatUtcDateTime(event.time)}</td>
-                      <td>{formatDateTimeForDisplayTimezone(event.time, timezoneMode)}</td>
-                      <td>
-                        <div className="bank-cell">
-                          <FlagIcon countryCode={event.countryCode} className="h-5 w-8 border border-gray-200 rounded-sm" />
-                          <div>
-                            <strong>{getCountryDisplayName(event.countryCode)}</strong>
-                            <span>{event.currency}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="calendar-event-title-cell">{event.title}</td>
-                      <td><ImpactPill level={event.impact} /></td>
-                      <td className="calendar-number-cell"><CalendarValueText value={event.actual} eventTitle={event.title} /></td>
-                      <td className="calendar-number-cell"><CalendarValueText value={event.forecast} eventTitle={event.title} /></td>
-                      <td className="calendar-number-cell"><CalendarValueText value={event.previous} eventTitle={event.title} /></td>
-                    </tr>
-                  )})}
-                </Fragment>
-              ))}
-            </tbody>
-          </table>
-        ) : null}
+        <EconomicCalendarEventsTable
+          groups={groups}
+          timezoneMode={timezoneMode}
+          highlightedEventKey={highlightedEventKey}
+          selectedEventKey={selectedEventKey}
+          onSelectEvent={setSelectedEvent}
+        />
       </div>
 
       {selectedEvent && selectedEventExplainer
