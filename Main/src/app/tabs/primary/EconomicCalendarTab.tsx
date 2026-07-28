@@ -1,13 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Calendar, Check, ChevronDown, Clock, Globe, Search } from "lucide-react";
-import {
-  CalendarClockCard,
-  FreshnessChip,
-  HelpHint,
-  ImpactSummary,
-} from "@/app/components/EconomicCalendarControls";
 import { EconomicCalendarEventsTable } from "@/app/components/EconomicCalendarEventsTable";
+import { EconomicCalendarToolbar, type CalendarRangeMode } from "@/app/components/EconomicCalendarToolbar";
 import {
   CalendarEventInspectorDrawer,
   ImpactPill,
@@ -21,17 +15,11 @@ import {
   getTodayUtcRangeSeconds,
   groupByUtcDay,
   stripToLocalDate,
-  summarizeCountries,
   toUtcRangeSeconds,
 } from "@/app/lib/calendarDisplay";
 import { getCalendarEventExplainer } from "@/app/lib/calendarEventExplain";
 import { buildCalendarEventKey, getCalendarIntentDayRange } from "@/app/lib/calendarNavigation";
 import { getPresetRange } from "@/app/lib/calendarRanges";
-import {
-  formatCountdown,
-  parseDateInput,
-  toDateInputValue,
-} from "@/app/lib/format";
 import { resolveCalendarStatus } from "@/app/lib/status";
 import {
   formatCurrentTimeForDisplayTimezone,
@@ -41,7 +29,6 @@ import {
   type DisplayTimezoneSelection,
 } from "@/app/lib/timezoneDisplay";
 import { getCountryDisplayName, MAJOR_COUNTRY_CODES } from "@/app/config/currencyConfig";
-import { FlagIcon } from "@/app/components/FlagIcon";
 import type { BridgeHealth, BridgeStatus, CalendarEvent, CalendarNavigationIntent, ImpactLevel } from "@/app/types";
 
 export {
@@ -53,7 +40,6 @@ export {
 const ALL_IMPACTS: ImpactLevel[] = ["low", "medium", "high"];
 const DEFAULT_IMPACTS: ImpactLevel[] = ["high"];
 
-type CalendarRangeMode = "today" | "this_week" | "next_week" | "custom";
 const CALENDAR_TIMEZONE_KEY = "fyodor-calendar-display-timezone";
 
 
@@ -478,295 +464,73 @@ export function EconomicCalendarTab({
 
   return (
     <section className="tab-panel workspace-page workspace-page-compact calendar-page flex flex-col gap-4">
-      <div className="calendar-operational-rail">
-        <div className="calendar-rail-title">
-          <div className="calendar-rail-heading">
-            <h2>Economic Calendar</h2>
-            <div className={`calendar-feed-status calendar-feed-status-${status}`}>
-              <span className="calendar-feed-dot" aria-hidden="true" />
-              <HelpHint label={statusLabel} detail={statusHelpText} />
-            </div>
-          </div>
-          <p>{visibleEventCountLabel} in current view</p>
-        </div>
-
-        <div className="calendar-rail-freshness">
-          <FreshnessChip
-            label="View refreshed"
-            detail="When this tab last asked the local bridge for calendar rows and received a response. If this is fresh but Broker feed is stale, the app is working but MT5/broker data may be old."
-            freshness={viewFreshness}
-          />
-          <FreshnessChip
-            label="Broker feed"
-            detail="When the bridge last ingested economic-calendar rows from MT5/broker. This is the main freshness check for whether the calendar data itself is stale."
-            freshness={brokerFreshness}
-          />
-        </div>
-      </div>
-
-      <div className="calendar-tv-shell">
-        <div className="calendar-tv-toolbar">
-          <div className="calendar-tv-left">
-            <button
-              type="button"
-              className={preset === "today" ? "tv-toolbar-button is-active" : "tv-toolbar-button"}
-              onClick={handleSelectToday}
-            >
-              Today
-            </button>
-
-            <button
-              type="button"
-              className={preset === "this_week" ? "tv-toolbar-button is-active" : "tv-toolbar-button"}
-              onClick={handleSelectThisWeek}
-            >
-              This Week
-            </button>
-
-            <button
-              type="button"
-              className={preset === "next_week" ? "tv-toolbar-button is-active" : "tv-toolbar-button"}
-              onClick={handleSelectNextWeek}
-            >
-              Next Week
-            </button>
-
-            <div className="tv-toolbar-anchor" ref={rangePopoverRef}>
-              <button
-                type="button"
-                className={preset === "custom" ? "tv-toolbar-button is-active" : "tv-toolbar-button"}
-                onClick={handleOpenRangePopover}
-              >
-                <Calendar size={16} />
-                <span>{rangeLabel}</span>
-                <ChevronDown size={15} />
-              </button>
-
-              {isRangePopoverOpen && (
-                <div className="tv-popover tv-range-popover">
-                  <div className="tv-popover-head">
-                    <strong>Custom range</strong>
-                    <span>MT5/UTC ordering stays unchanged.</span>
-                  </div>
-                  <div className="tv-date-grid">
-                    <label className="tv-field">
-                      <span>Start</span>
-                      <input
-                        ref={customStartInputRef}
-                        type="date"
-                        value={toDateInputValue(draftFrom)}
-                        onChange={(event) => setDraftFrom(parseDateInput(event.target.value))}
-                      />
-                    </label>
-                    <label className="tv-field">
-                      <span>End</span>
-                      <input
-                        type="date"
-                        value={toDateInputValue(draftTo)}
-                        onChange={(event) => setDraftTo(parseDateInput(event.target.value))}
-                      />
-                    </label>
-                  </div>
-                  <div className="tv-popover-actions">
-                    <button type="button" className="tv-text-button" onClick={handleSelectToday}>
-                      Back to today
-                    </button>
-                    <button type="button" className="tv-solid-button" onClick={applyCustomRange}>
-                      Apply range
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="calendar-tv-right">
-            <div className="tv-toolbar-anchor" ref={impactMenuRef}>
-              <button
-                type="button"
-                className="tv-toolbar-button"
-                onClick={() => {
-                  setIsImpactMenuOpen((current) => !current);
-                  setIsCountryMenuOpen(false);
-                  setIsRangePopoverOpen(false);
-                  setIsTimezoneMenuOpen(false);
-                }}
-              >
-                <ImpactSummary impacts={impacts} />
-                <ChevronDown size={15} />
-              </button>
-
-              {isImpactMenuOpen && (
-                <div className="tv-popover tv-filter-popover">
-                  <div className="tv-popover-head">
-                    <strong>Impact</strong>
-                    <span>Broker importance label. This only filters visible rows.</span>
-                  </div>
-                  {ALL_IMPACTS.map((impact) => {
-                    const selected = impacts.includes(impact);
-                    return (
-                      <button
-                        key={impact}
-                        type="button"
-                        className={selected ? "tv-option-row is-selected" : "tv-option-row"}
-                        onClick={() => toggleImpact(impact)}
-                      >
-                        <span className="tv-option-main">
-                          <ImpactPill level={impact} />
-                        </span>
-                        {selected && <Check size={15} />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="tv-toolbar-anchor" ref={countryMenuRef}>
-              <button
-                type="button"
-                className="tv-toolbar-button"
-                onClick={() => {
-                  setIsCountryMenuOpen((current) => !current);
-                  setIsImpactMenuOpen(false);
-                  setIsRangePopoverOpen(false);
-                  setIsTimezoneMenuOpen(false);
-                }}
-              >
-                <Globe size={16} />
-                <span className="calendar-control-text">
-                  <span>Countries</span>
-                  <strong>{summarizeCountries(countries)}</strong>
-                </span>
-                <ChevronDown size={15} />
-              </button>
-
-              {isCountryMenuOpen && (
-                <div className="tv-popover tv-filter-popover">
-                  <div className="tv-popover-head">
-                    <strong>Countries</strong>
-                    <span>Countries found in the loaded MT5 calendar range. This only filters the current table.</span>
-                  </div>
-                  <button type="button" className="tv-option-row" onClick={() => setCountries([])}>
-                    <span className="tv-option-main">
-                      <Globe size={15} />
-                      <span className="tv-option-label">All countries</span>
-                    </span>
-                    {countries.length === 0 && <Check size={15} />}
-                  </button>
-                  {availableCountries.map((country) => {
-                    const selected = countries.includes(country);
-                    return (
-                      <button
-                        key={country}
-                        type="button"
-                        className={selected ? "tv-option-row is-selected" : "tv-option-row"}
-                        onClick={() => toggleCountry(country)}
-                      >
-                        <span className="tv-option-main">
-                          <FlagIcon countryCode={country} className="h-4 w-6 border border-gray-200 rounded-sm" />
-                          <span className="tv-option-label">{getCountryDisplayName(country)}</span>
-                        </span>
-                        {selected && <Check size={15} />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-          </div>
-        </div>
-
-        <div className="calendar-tv-subbar">
-          <label className="calendar-search calendar-search-compact">
-            <Search size={15} />
-            <input
-              type="search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search title, currency, or country"
-            />
-          </label>
-
-          <div className="calendar-tv-meta">
-            <CalendarClockCard
-              label="MT5"
-              value={mt5TimeLabel.replace(" (MT5)", "")}
-              detail="The current MT5/server clock estimate from the local bridge. Use it to check whether broker time is moving and whether timing delay comes from MT5/bridge instead of this screen."
-              offline={mt5ServerTime == null}
-            />
-            <div className="tv-toolbar-anchor" ref={timezoneMenuRef}>
-              <div className="calendar-clock-card calendar-clock-select-card">
-                <span className="calendar-clock-icon">
-                  <Clock size={16} />
-                </span>
-                <span className="calendar-control-text">
-                  <span>
-                    <HelpHint
-                      label="Viewer"
-                      detail="The same event times converted into your selected viewing timezone. Change this when you want rows to match your local clock or another trading session clock."
-                    />
-                  </span>
-                  <strong>{currentViewerTime}</strong>
-                </span>
-                <button
-                  type="button"
-                  className="calendar-card-menu-button"
-                  aria-label="Change viewer timezone"
-                  onClick={() => {
-                    setIsTimezoneMenuOpen((current) => !current);
-                    setIsCountryMenuOpen(false);
-                    setIsImpactMenuOpen(false);
-                    setIsRangePopoverOpen(false);
-                  }}
-                >
-                  <ChevronDown size={15} />
-                </button>
-              </div>
-
-              {isTimezoneMenuOpen && (
-                <div className="tv-popover tv-filter-popover">
-                  <div className="tv-popover-head">
-                    <strong>Viewer timezone</strong>
-                    <span>Only changes how this tab displays event times. MT5 remains the broker audit clock.</span>
-                  </div>
-                  <div className="tv-timezone-list">
-                    {timezoneOptions.map((option) => (
-                      <button
-                        key={option.id}
-                        type="button"
-                        className={timezoneMode === option.id ? "tv-option-row is-selected" : "tv-option-row"}
-                        onClick={() => {
-                          setTimezoneMode(option.id);
-                          saveDisplayTimezoneSelection(CALENDAR_TIMEZONE_KEY, option.id);
-                          setIsTimezoneMenuOpen(false);
-                        }}
-                      >
-                        <span className="tv-option-main">
-                          <Clock size={15} />
-                          <span className="tv-option-label">
-                            {option.label}
-                            {option.isHighlighted ? <span className="tv-option-badge">Local</span> : null}
-                          </span>
-                        </span>
-                        {timezoneMode === option.id && <Check size={15} />}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-            <CalendarClockCard
-              label="Next event"
-              value={nextVisibleEvent ? formatCountdown(nextVisibleEvent.time, uiNow) : "N/A"}
-              detail="Countdown to the next future event currently visible after your range, impact, country, and search filters."
-              icon={<Calendar size={16} />}
-              subValue={nextVisibleEvent ? `${nextVisibleEvent.currency} ${nextVisibleEvent.title}` : "No future row"}
-            />
-          </div>
-        </div>
-      </div>
+      <EconomicCalendarToolbar
+        preset={preset}
+        rangeLabel={rangeLabel}
+        visibleEventCountLabel={visibleEventCountLabel}
+        status={status}
+        statusLabel={statusLabel}
+        statusHelpText={statusHelpText}
+        viewFreshness={viewFreshness}
+        brokerFreshness={brokerFreshness}
+        draftFrom={draftFrom}
+        draftTo={draftTo}
+        impacts={impacts}
+        allImpacts={ALL_IMPACTS}
+        countries={countries}
+        availableCountries={availableCountries}
+        search={search}
+        mt5TimeLabel={mt5TimeLabel}
+        mt5ServerTime={mt5ServerTime}
+        currentViewerTime={currentViewerTime}
+        timezoneMode={timezoneMode}
+        timezoneOptions={timezoneOptions}
+        nextVisibleEvent={nextVisibleEvent}
+        uiNow={uiNow}
+        isRangePopoverOpen={isRangePopoverOpen}
+        isImpactMenuOpen={isImpactMenuOpen}
+        isCountryMenuOpen={isCountryMenuOpen}
+        isTimezoneMenuOpen={isTimezoneMenuOpen}
+        rangePopoverRef={rangePopoverRef}
+        impactMenuRef={impactMenuRef}
+        countryMenuRef={countryMenuRef}
+        timezoneMenuRef={timezoneMenuRef}
+        customStartInputRef={customStartInputRef}
+        onSelectToday={handleSelectToday}
+        onSelectThisWeek={handleSelectThisWeek}
+        onSelectNextWeek={handleSelectNextWeek}
+        onOpenRangePopover={handleOpenRangePopover}
+        onDraftFromChange={setDraftFrom}
+        onDraftToChange={setDraftTo}
+        onApplyCustomRange={applyCustomRange}
+        onToggleImpactMenu={() => {
+          setIsImpactMenuOpen((current) => !current);
+          setIsCountryMenuOpen(false);
+          setIsRangePopoverOpen(false);
+          setIsTimezoneMenuOpen(false);
+        }}
+        onToggleImpact={toggleImpact}
+        onToggleCountryMenu={() => {
+          setIsCountryMenuOpen((current) => !current);
+          setIsImpactMenuOpen(false);
+          setIsRangePopoverOpen(false);
+          setIsTimezoneMenuOpen(false);
+        }}
+        onClearCountries={() => setCountries([])}
+        onToggleCountry={toggleCountry}
+        onSearchChange={setSearch}
+        onToggleTimezoneMenu={() => {
+          setIsTimezoneMenuOpen((current) => !current);
+          setIsCountryMenuOpen(false);
+          setIsImpactMenuOpen(false);
+          setIsRangePopoverOpen(false);
+        }}
+        onTimezoneChange={(optionId) => {
+          setTimezoneMode(optionId);
+          saveDisplayTimezoneSelection(CALENDAR_TIMEZONE_KEY, optionId);
+          setIsTimezoneMenuOpen(false);
+        }}
+      />
 
       {(status === "error" || status === "stale") && (
         <div className={`alert-panel alert-${status}`}>

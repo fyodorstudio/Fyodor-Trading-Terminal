@@ -18,6 +18,7 @@ This folder contains shared app-shell and feature support components. Keep featu
 - `EconomicCalendarControls.tsx` - Economic Calendar help tooltip, freshness chip, impact summary, and clock cards.
 - `EconomicCalendarEventsTable.tsx` - Economic Calendar grouped event table and row selection rendering.
 - `EconomicCalendarInspector.tsx` - Economic Calendar event drawer, impact pill, and source-preserving value display.
+- `EconomicCalendarToolbar.tsx` - Economic Calendar range, impact, country, search, timezone, and freshness toolbar rendering.
 - `FlagIcon.tsx` - country/currency flag wrapper. `react-world-flags` works through the local declaration in `Main/src/types/react-world-flags.d.ts`; its large build chunk is known non-blocking noise unless the user asks to revisit flags.
 - `LocalClock.tsx`, `Mt5Clock.tsx`, `MarketStatusPill.tsx` - small status/time display helpers.
 
