@@ -11,6 +11,7 @@ This folder contains shared app-shell and feature support components. Keep featu
 ## Shared Small Components
 
 - `ChartEventOverlay.tsx` - DOM event marker rail used by the Charts surface. Keep event clustering and coordinate math in `lib/chartEventOverlay.ts`.
+- `ChartStatusRail.tsx` - Charts connection/session/latest-candle status rail and timezone dropdown.
 - `ChartSymbolPicker.tsx` - Charts symbol search, favorites, group expansion, and timeframe strip.
 - `ChartToolStrip.tsx` - Charts cursor mode, refocus, events, appearance, and cache tool buttons.
 - `EconomicCalendarInspector.tsx` - Economic Calendar event drawer, impact pill, and source-preserving value display.

@@ -9,16 +9,13 @@ import {
   type Time,
 } from "lightweight-charts";
 import {
-  Activity,
   AlertTriangle,
-  Check,
   ChevronDown,
-  Clock,
-  Database,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
 import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
+import { ChartStatusRail } from "@/app/components/ChartStatusRail";
 import { ChartSymbolPicker } from "@/app/components/ChartSymbolPicker";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import { fetchHistory, fetchHistoryBoundary, fetchHistoryRange, fetchSymbols, openChartStream } from "@/app/lib/bridge";
@@ -870,59 +867,23 @@ export function ChartsTab({
         />
       </div>
 
-      <div className="chart-status-rail">
-        <div className={`chart-status-chip chart-status-${status}`}>
-          <Activity className={status === "live" ? "h-4 w-4 animate-pulse" : "h-4 w-4"} />
-          <span>{streamStatusLabel}</span>
-        </div>
-        <div className="chart-status-chip" title={sessionDetail.basis}>
-          <Clock className="h-4 w-4" />
-          <span>{sessionDetail.label}</span>
-        </div>
-        <div className="chart-status-chip chart-feed-chip">
-          <div className="tv-toolbar-anchor" ref={timezoneMenuRef}>
-            <button
-              type="button"
-              onClick={() => setTimezoneMenuOpen((current) => !current)}
-              title={`Chart timezone. Current mode: ${displayModeLabel}.`}
-              className="chart-feed-button"
-            >
-              <Database className={lastCandleTime ? "h-4 w-4 text-blue-400" : "h-4 w-4 text-slate-500"} />
-              <span className="chart-feed-main">{feedLabel}</span>
-              <span className="chart-feed-sub">Viewer clock: {currentDisplayTime} | {displayModeShortLabel}</span>
-              <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${timezoneMenuOpen ? "rotate-180" : ""}`} />
-            </button>
-
-            {timezoneMenuOpen && (
-              <div className="tv-popover tv-filter-popover chart-timezone-popover">
-                <div className="tv-popover-head">
-                  <strong>Chart timezone</strong>
-                  <span>Axis labels and crosshair labels are candle timestamps. Viewer clock is only the current time in the selected display timezone.</span>
-                </div>
-                <div className="tv-timezone-list">
-                  {timezoneOptions.map((option) => (
-                    <button
-                      key={option.id}
-                      type="button"
-                      className={displayTimeMode === option.id ? "tv-option-row is-selected" : "tv-option-row"}
-                      onClick={() => handleDisplayTimeModeChange(option.id)}
-                    >
-                      <span className="tv-option-main">
-                        <Clock size={15} />
-                        <span className="tv-option-label">
-                          {option.label}
-                          {option.isHighlighted ? <span className="tv-option-badge">Local</span> : null}
-                        </span>
-                      </span>
-                      {displayTimeMode === option.id && <Check size={15} />}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <ChartStatusRail
+        status={status}
+        streamStatusLabel={streamStatusLabel}
+        sessionLabel={sessionDetail.label}
+        sessionBasis={sessionDetail.basis}
+        lastCandleTime={lastCandleTime}
+        feedLabel={feedLabel}
+        currentDisplayTime={currentDisplayTime}
+        displayModeLabel={displayModeLabel}
+        displayModeShortLabel={displayModeShortLabel}
+        displayTimeMode={displayTimeMode}
+        timezoneOptions={timezoneOptions}
+        timezoneMenuOpen={timezoneMenuOpen}
+        timezoneMenuRef={timezoneMenuRef}
+        onToggleTimezoneMenu={() => setTimezoneMenuOpen((current) => !current)}
+        onDisplayTimeModeChange={handleDisplayTimeModeChange}
+      />
 
       <ChartSettingsDrawer
         open={historyPanelOpen}
