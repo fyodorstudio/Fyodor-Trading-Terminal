@@ -2,16 +2,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BarChart3,
   CalendarClock,
-  ChevronLeft,
-  ChevronRight,
   Clock3,
-  List,
-  Pause,
-  Play,
   Settings2,
 } from "lucide-react";
 import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
 import { EventReplayCandlestickChart } from "@/app/components/EventReplayCandlestickChart";
+import { EventReplayControlRail } from "@/app/components/EventReplayControlRail";
 import {
   EventReplayBriefModal,
   EventReplayReleaseListModal,
@@ -19,7 +15,6 @@ import {
 import {
   EventReplaySelectEventModal,
 } from "@/app/components/EventReplaySelectEventModal";
-import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { fetchHistoryRange } from "@/app/lib/bridge";
 import { getCalendarEventExplainer } from "@/app/lib/calendarEventExplain";
@@ -31,7 +26,6 @@ import {
   type ChartCursorReadoutMode,
   type ChartPreferences,
 } from "@/app/lib/chartView";
-import { getCurrencyCountryCode } from "@/app/lib/eventQuality";
 import {
   getEventReplayStatusLabel,
   getEventTemplateTimingMap,
@@ -64,7 +58,7 @@ import {
   getReplayFetchRange,
   getReplayWindowCandles,
 } from "@/app/lib/eventReaction";
-import { formatRelativeAge, formatUtcDateTime } from "@/app/lib/format";
+import { formatRelativeAge } from "@/app/lib/format";
 import type {
   BridgeCandle,
   BridgeStatus,
@@ -421,136 +415,33 @@ export function EventReplayTab({
       </header>
 
       <section className="grid min-h-0 min-w-0 flex-1 gap-3 lg:grid-cols-[380px_minmax(0,1fr)]">
-        <aside className="flex min-h-0 min-w-0 flex-col overflow-y-auto border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-4 py-4">
-            <label className="grid gap-2">
-              <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Pair</span>
-              <select
-                value={selectedPair.name}
-                onChange={(event) => {
-                  setSelectedPairName(event.target.value);
-                  setSelectedEventKey("");
-                  setSelectedSampleIndex(0);
-                  setIsPlaying(false);
-                }}
-                className="h-12 rounded-xl border border-slate-200 bg-slate-50 px-4 text-xl font-black tracking-tight text-slate-950 outline-none focus:border-slate-400"
-                aria-label="Replay pair"
-              >
-                {FX_PAIRS.map((pair) => (
-                  <option key={pair.name} value={pair.name}>
-                    {pair.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="mt-3 grid grid-cols-2 gap-2 text-sm font-black text-slate-800">
-              <span className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2">
-                <FlagIcon countryCode={getCurrencyCountryCode(selectedPair.base)} className="h-6 w-9 shrink-0 shadow-sm" />
-                Base {selectedPair.base}
-              </span>
-              <span className="inline-flex min-w-0 items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2">
-                <FlagIcon countryCode={getCurrencyCountryCode(selectedPair.quote)} className="h-6 w-9 shrink-0 shadow-sm" />
-                Quote {selectedPair.quote}
-              </span>
-            </div>
-          </div>
-
-          <div className="border-b border-slate-200 px-4 py-4">
-            <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Event</span>
-            <div className="mt-2 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-sm">
-              <strong className="block break-words text-sm text-slate-950">
-                {selectedTemplate ? `${selectedTemplate.currency} | ${selectedTemplate.title}` : "No event selected"}
-              </strong>
-              <span className="mt-1.5 block text-xs text-slate-500">
-                {selectedTemplate ? `${selectedTemplate.familyLabel} / ${selectedTemplate.sampleCount} releases` : "Choose an event type to study."}
-              </span>
-            </div>
-            <button
-              type="button"
-              className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-900 bg-white px-4 text-sm font-black text-slate-950 shadow-sm hover:bg-slate-50"
-              onClick={() => setEventListOpen(true)}
-            >
-              <List size={16} />
-              Select Event
-            </button>
-          </div>
-
-          <div className="border-b border-slate-200 px-4 py-4">
-            <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Release</span>
-            <div className="mt-2 rounded-2xl border border-slate-200 bg-slate-950 px-4 py-4 text-white shadow-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Selected Release</span>
-                <span className="shrink-0 rounded-full border border-white/10 bg-white/10 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.12em] text-slate-200">
-                  {releaseAgeLabel.replace(" release", "")}
-                </span>
-              </div>
-              <strong className="mt-2 block break-words text-lg font-black tracking-tight">
-                {selectedSample ? formatUtcDateTime(selectedSample.eventTime) : "No release selected"}
-              </strong>
-              <div className="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
-                <span className="font-black uppercase tracking-[0.14em] text-slate-400">Sample</span>
-                <span className="font-bold text-slate-100">{samplePosition}</span>
-                <span className="font-black uppercase tracking-[0.14em] text-slate-400">Compare</span>
-                <span className="break-words font-bold leading-5 text-slate-100">{selectedSample?.comparisonLabel ?? "N/A"}</span>
-              </div>
-            </div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 text-xs font-black text-slate-800 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-35"
-                disabled={!canSelectOlderRelease}
-                onClick={() => setSelectedSampleIndex((index) => Math.min(replaySamples.length - 1, index + 1))}
-              >
-                <ChevronLeft size={15} />
-                Older release
-              </button>
-              <button
-                type="button"
-                className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 text-xs font-black text-slate-800 hover:border-slate-300 disabled:cursor-not-allowed disabled:opacity-35"
-                disabled={!canSelectNewerRelease}
-                onClick={() => setSelectedSampleIndex((index) => Math.max(0, index - 1))}
-              >
-                Newer release
-                <ChevronRight size={15} />
-              </button>
-            </div>
-            <div className="mt-2">
-              <button
-                type="button"
-                className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-800 hover:border-slate-300"
-                onClick={() => setReleaseListOpen(true)}
-              >
-                <List size={15} />
-                Past Releases
-              </button>
-            </div>
-          </div>
-
-          <div className="min-h-0 flex-1 px-4 py-4">
-            <span className="block text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Playback</span>
-            <button
-              type="button"
-              className="mt-3 inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-900 bg-slate-950 px-4 text-base font-black text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
-              disabled={!replayWindow}
-              onClick={() => {
-                if (!replayWindow) return;
-                if (visibleCount >= replayWindow.candles.length) setVisibleCount(replayWindow.eventIndex + 1);
-                setIsPlaying((value) => !value);
-              }}
-            >
-              {isPlaying ? <Pause size={16} /> : <Play size={16} />}
-              {isPlaying ? "Pause" : "Play"}
-            </button>
-            <button
-              type="button"
-              className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-800 hover:border-slate-300"
-              onClick={() => setDetailsOpen(true)}
-            >
-              <BarChart3 size={15} />
-              Replay Brief
-            </button>
-          </div>
-        </aside>
+        <EventReplayControlRail
+          selectedPair={selectedPair}
+          selectedTemplate={selectedTemplate}
+          selectedSample={selectedSample}
+          samplePosition={samplePosition}
+          releaseAgeLabel={releaseAgeLabel}
+          canSelectOlderRelease={canSelectOlderRelease}
+          canSelectNewerRelease={canSelectNewerRelease}
+          replayReady={Boolean(replayWindow)}
+          isPlaying={isPlaying}
+          onPairChange={(pairName) => {
+            setSelectedPairName(pairName);
+            setSelectedEventKey("");
+            setSelectedSampleIndex(0);
+            setIsPlaying(false);
+          }}
+          onOpenEventList={() => setEventListOpen(true)}
+          onSelectOlderRelease={() => setSelectedSampleIndex((index) => Math.min(replaySamples.length - 1, index + 1))}
+          onSelectNewerRelease={() => setSelectedSampleIndex((index) => Math.max(0, index - 1))}
+          onOpenReleaseList={() => setReleaseListOpen(true)}
+          onTogglePlayback={() => {
+            if (!replayWindow) return;
+            if (visibleCount >= replayWindow.candles.length) setVisibleCount(replayWindow.eventIndex + 1);
+            setIsPlaying((value) => !value);
+          }}
+          onOpenBrief={() => setDetailsOpen(true)}
+        />
 
         <main className="flex min-h-0 min-w-0 flex-col overflow-hidden border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-200 px-4 py-3">
