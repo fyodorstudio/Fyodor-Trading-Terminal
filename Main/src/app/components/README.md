@@ -5,6 +5,7 @@ This folder contains shared app-shell and feature support components. Keep featu
 ## App Shell
 
 - `MinimalHeader.tsx` - global trust/status header. Active and important; avoid broad visual edits without checking Charts, Calendar, Central Banks, and Event Replay.
+- `MinimalHeaderDetailsPanel.tsx` - expanded header diagnostics panel for system health, clocks, event horizon, and feed diagnostics.
 - `TabNavigation.tsx` - top navigation and Specialist Tools dropdown.
 - `UiCommandPanel.tsx` - Aesthetic Forge side panel mounted behind the header gear. It stays closed by default and must not drive broad visual redesign without a specific plan.
 
