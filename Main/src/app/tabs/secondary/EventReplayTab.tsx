@@ -9,7 +9,6 @@ import {
   Pause,
   Play,
   Settings2,
-  X,
 } from "lucide-react";
 import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
 import { EventReplayCandlestickChart } from "@/app/components/EventReplayCandlestickChart";
@@ -18,8 +17,8 @@ import {
   EventReplayReleaseListModal,
 } from "@/app/components/EventReplayModals";
 import {
-  EventTemplateButton,
-} from "@/app/components/EventReplayPanels";
+  EventReplaySelectEventModal,
+} from "@/app/components/EventReplaySelectEventModal";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { fetchHistoryRange } from "@/app/lib/bridge";
@@ -34,7 +33,6 @@ import {
 } from "@/app/lib/chartView";
 import { getCurrencyCountryCode } from "@/app/lib/eventQuality";
 import {
-  getEventTemplateMetaLabel,
   getEventReplayStatusLabel,
   getEventTemplateTimingMap,
   getInitialEventReplayPair,
@@ -42,7 +40,6 @@ import {
   getInitialEventReplayTimeframe,
   sortEventTemplates,
   type EventTemplateFilter,
-  type EventTemplateSort,
 } from "@/app/lib/eventReplayDisplay";
 import {
   DEFAULT_REPLAY_AFTER_CANDLES,
@@ -111,7 +108,6 @@ export function EventReplayTab({
   const [releaseListOpen, setReleaseListOpen] = useState(false);
   const [eventListOpen, setEventListOpen] = useState(false);
   const [eventTemplateFilter, setEventTemplateFilter] = useState<EventTemplateFilter>("all");
-  const [eventTemplateSort] = useState<EventTemplateSort>("upcoming");
   const [hoveredReleaseIndex, setHoveredReleaseIndex] = useState<number | null>(null);
   const [countdownNowMs, setCountdownNowMs] = useState(() => Date.now());
   const [chartPreferences, setChartPreferences] = useState<ChartPreferences>(() => loadChartPreferences());
@@ -147,19 +143,19 @@ export function EventReplayTab({
     () =>
       sortEventTemplates(
         groups.pairTemplates.filter((template) => eventTemplateFilter === "all" || template.quality === eventTemplateFilter),
-        eventTemplateSort,
+        "upcoming",
         templateTiming,
       ),
-    [eventTemplateFilter, eventTemplateSort, groups.pairTemplates, templateTiming],
+    [eventTemplateFilter, groups.pairTemplates, templateTiming],
   );
   const visibleGlobalTemplates = useMemo(
     () =>
       sortEventTemplates(
         groups.globalTemplates.filter((template) => eventTemplateFilter === "all" || template.quality === eventTemplateFilter),
-        eventTemplateSort,
+        "upcoming",
         templateTiming,
       ),
-    [eventTemplateFilter, eventTemplateSort, groups.globalTemplates, templateTiming],
+    [eventTemplateFilter, groups.globalTemplates, templateTiming],
   );
   const recentlyReleasedTemplates = useMemo(
     () =>
@@ -644,144 +640,23 @@ export function EventReplayTab({
       />
 
       {eventListOpen ? (
-        <div
-          className="event-replay-modal-overlay fixed inset-0 z-[1200] flex items-center justify-center bg-slate-950/25 backdrop-blur-sm"
-          onClick={() => setEventListOpen(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Select Event"
-        >
-          <aside
-            className="event-replay-modal-panel flex w-full max-w-[1180px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className="border-b border-slate-200 px-5 py-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="m-0 text-lg font-black text-slate-950">Select Event</h3>
-                  <p className="mt-1 text-xs leading-5 text-slate-600">
-                    {groups.pairTemplates.length} pair events / {groups.globalTemplates.length} global movers
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600"
-                  onClick={() => setEventListOpen(false)}
-                  aria-label="Close event selector"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
-                <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3">
-                  <span className="block text-[10px] font-black uppercase tracking-[0.16em] text-blue-500">Primary discovery</span>
-                  <strong className="mt-1 block text-sm font-black text-slate-950">Upcoming next includes countdown</strong>
-                  <span className="mt-1 block text-xs font-semibold leading-5 text-slate-600">
-                    Scheduled event types are prioritized only when they already have replay history.
-                  </span>
-                </div>
-                <label className="grid min-w-[190px] gap-1">
-                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">Quality filter</span>
-                  <select
-                    value={eventTemplateFilter}
-                    onChange={(event) => setEventTemplateFilter(event.target.value as EventTemplateFilter)}
-                    className="h-10 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black capitalize text-slate-800 outline-none"
-                  >
-                    {(["all", "usable", "limited", "weak"] as EventTemplateFilter[]).map((filter) => (
-                      <option key={filter} value={filter}>
-                        {filter}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
-
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-              <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_330px]">
-                <div className="grid gap-5 lg:grid-cols-2">
-                  <section className="min-w-0">
-                    <div className="mb-3 flex items-center justify-between">
-                      <h4 className="m-0 text-sm font-black text-slate-950">Upcoming Base/Quote Events</h4>
-                      <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{visiblePairTemplates.length} shown</span>
-                    </div>
-                    <div className="grid gap-2">
-                      {visiblePairTemplates.length === 0 ? (
-                        <div className="border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                          No pair events match this filter.
-                        </div>
-                      ) : (
-                        visiblePairTemplates.map((template) => (
-                          <EventTemplateButton
-                            key={template.key}
-                            template={template}
-                            active={selectedTemplate?.key === template.key}
-                            metaLabel={getEventTemplateMetaLabel(template, "upcoming", templateTiming, countdownNowMs)}
-                            onSelect={() => {
-                              handleTemplateSelect(template.key);
-                              setEventListOpen(false);
-                            }}
-                          />
-                        ))
-                      )}
-                    </div>
-                  </section>
-
-                  <section className="min-w-0 border-t border-slate-200 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
-                    <div className="mb-3 flex items-center justify-between">
-                      <h4 className="m-0 text-sm font-black text-slate-950">Upcoming Global Movers</h4>
-                      <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{visibleGlobalTemplates.length} shown</span>
-                    </div>
-                    <div className="grid gap-2">
-                      {visibleGlobalTemplates.length === 0 ? (
-                        <div className="border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
-                          No global movers match this filter.
-                        </div>
-                      ) : (
-                        visibleGlobalTemplates.map((template) => (
-                          <EventTemplateButton
-                            key={template.key}
-                            template={template}
-                            active={selectedTemplate?.key === template.key}
-                            metaLabel={getEventTemplateMetaLabel(template, "upcoming", templateTiming, countdownNowMs)}
-                            onSelect={() => {
-                              handleTemplateSelect(template.key);
-                              setEventListOpen(false);
-                            }}
-                          />
-                        ))
-                      )}
-                    </div>
-                  </section>
-                </div>
-
-                <section className="min-w-0 rounded-2xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <div>
-                      <h4 className="m-0 text-sm font-black text-slate-950">Recently Released</h4>
-                      <p className="mt-1 text-xs font-semibold text-slate-500">Fresh historical replay templates.</p>
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.12em] text-slate-400">{recentlyReleasedTemplates.length}</span>
-                  </div>
-                  <div className="grid gap-2">
-                    {recentlyReleasedTemplates.map((template) => (
-                      <EventTemplateButton
-                        key={`${template.key}-recent`}
-                        template={template}
-                        active={selectedTemplate?.key === template.key}
-                        metaLabel={getEventTemplateMetaLabel(template, "recent", templateTiming, countdownNowMs)}
-                        onSelect={() => {
-                          handleTemplateSelect(template.key);
-                          setEventListOpen(false);
-                        }}
-                      />
-                    ))}
-                  </div>
-                </section>
-              </div>
-            </div>
-          </aside>
-        </div>
+        <EventReplaySelectEventModal
+          pairTemplateCount={groups.pairTemplates.length}
+          globalTemplateCount={groups.globalTemplates.length}
+          pairTemplates={visiblePairTemplates}
+          globalTemplates={visibleGlobalTemplates}
+          recentlyReleasedTemplates={recentlyReleasedTemplates}
+          selectedTemplateKey={selectedTemplate?.key ?? null}
+          filter={eventTemplateFilter}
+          templateTiming={templateTiming}
+          countdownNowMs={countdownNowMs}
+          onFilterChange={setEventTemplateFilter}
+          onSelectTemplate={(key) => {
+            handleTemplateSelect(key);
+            setEventListOpen(false);
+          }}
+          onClose={() => setEventListOpen(false)}
+        />
       ) : null}
 
       {releaseListOpen ? (
