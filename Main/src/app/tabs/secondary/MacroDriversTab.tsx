@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, HelpCircle, Info, RefreshCw, TrendingUp, X } from "lucide-react";
-import { fetchHistory } from "@/app/lib/bridge";
 import { FX_PAIRS } from "@/app/config/fxPairs";
+import { useMacroDriverCandles } from "@/app/hooks/useMacroDriverCandles";
 import {
   MACRO_DRIVER_TIMEFRAMES,
   buildMacroFactorRows,
@@ -9,10 +9,9 @@ import {
   findSnapshot,
   formatSnapshotValue,
   getInstrumentCurrencies,
-  type MacroDriverTimeframe,
   type MacroTrendTone,
 } from "@/app/lib/macroDrivers";
-import type { BridgeCandle, CalendarEvent, CentralBankSnapshot, FxPairDefinition } from "@/app/types";
+import type { CalendarEvent, CentralBankSnapshot, FxPairDefinition } from "@/app/types";
 
 interface MacroDriversTabProps {
   events: CalendarEvent[];
@@ -23,11 +22,6 @@ interface MacroDriversTabProps {
 
 const GOLD_INSTRUMENT: FxPairDefinition = { name: "XAUUSD", base: "XAU", quote: "USD" };
 const MACRO_INSTRUMENTS: FxPairDefinition[] = [GOLD_INSTRUMENT, ...FX_PAIRS];
-const HISTORY_BARS: Record<MacroDriverTimeframe, number> = {
-  W1: 140,
-  D1: 260,
-  H4: 220,
-};
 
 function getInstrument(name: string): FxPairDefinition {
   return MACRO_INSTRUMENTS.find((instrument) => instrument.name === name) ?? FX_PAIRS[0];
@@ -91,43 +85,12 @@ export function MacroDriversTab({
 }: MacroDriversTabProps) {
   const initialInstrument = getInstrument(initialSymbol).name;
   const [selectedInstrument, setSelectedInstrument] = useState(initialInstrument);
-  const [candlesByTimeframe, setCandlesByTimeframe] = useState<Partial<Record<MacroDriverTimeframe, BridgeCandle[]>>>({});
-  const [loading, setLoading] = useState(false);
-  const [loadError, setLoadError] = useState<string | null>(null);
   const [isDataLimitsOpen, setIsDataLimitsOpen] = useState(false);
 
   const instrument = getInstrument(selectedInstrument);
   const currencies = getInstrumentCurrencies(instrument);
   const nowSeconds = Math.floor(currentTime.getTime() / 1000);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setLoadError(null);
-
-    Promise.all(
-      MACRO_DRIVER_TIMEFRAMES.map(async (timeframe) => {
-        const candles = await fetchHistory(selectedInstrument, timeframe, HISTORY_BARS[timeframe]);
-        return [timeframe, candles] as const;
-      }),
-    )
-      .then((entries) => {
-        if (cancelled) return;
-        setCandlesByTimeframe(Object.fromEntries(entries));
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        setCandlesByTimeframe({});
-        setLoadError(error instanceof Error ? error.message : "Unable to load MT5 candle history.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedInstrument]);
+  const { candlesByTimeframe, loading, loadError } = useMacroDriverCandles(selectedInstrument);
 
   const trendStates = useMemo(
     () =>
