@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BarChart3,
   CalendarClock,
@@ -14,7 +14,7 @@ import {
   EventReplaySelectEventModal,
 } from "@/app/components/EventReplaySelectEventModal";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
-import { fetchHistoryRange } from "@/app/lib/bridge";
+import { useEventReplayPlayback } from "@/app/hooks/useEventReplayPlayback";
 import { getCalendarEventExplainer } from "@/app/lib/calendarEventExplain";
 import {
   DEFAULT_CHART_PREFERENCES,
@@ -53,12 +53,9 @@ import {
 import {
   getHistoricalReplaySamples,
   getPairFirstReplayGroups,
-  getReplayFetchRange,
-  getReplayWindowCandles,
 } from "@/app/lib/eventReaction";
 import { formatRelativeAge } from "@/app/lib/format";
 import type {
-  BridgeCandle,
   BridgeStatus,
   CalendarEvent,
   ReplayChartTimeframe,
@@ -73,7 +70,6 @@ interface EventReplayTabProps {
 }
 
 const STORAGE_KEYS = EVENT_REPLAY_STORAGE_KEYS;
-const PLAYBACK_INTERVAL_MS = 550;
 const DEFAULT_BEFORE_CANDLES = DEFAULT_REPLAY_BEFORE_CANDLES;
 const DEFAULT_AFTER_CANDLES = DEFAULT_REPLAY_AFTER_CANDLES;
 
@@ -91,11 +87,6 @@ export function EventReplayTab({
   const [selectedSampleIndex, setSelectedSampleIndex] = useState(() => getInitialEventReplaySampleIndex());
   const [beforeCount, setBeforeCount] = useState(() => getInitialReplayCount(STORAGE_KEYS.beforeCandles, DEFAULT_BEFORE_CANDLES));
   const [afterCount, setAfterCount] = useState(() => getInitialReplayCount(STORAGE_KEYS.afterCandles, DEFAULT_AFTER_CANDLES));
-  const [visibleCount, setVisibleCount] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [replayWindow, setReplayWindow] = useState<{ candles: BridgeCandle[]; eventIndex: number } | null>(null);
-  const [replayLoading, setReplayLoading] = useState(false);
-  const [replayError, setReplayError] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [releaseListOpen, setReleaseListOpen] = useState(false);
   const [eventListOpen, setEventListOpen] = useState(false);
@@ -105,7 +96,6 @@ export function EventReplayTab({
   const [chartPreferences, setChartPreferences] = useState<ChartPreferences>(() => loadChartPreferences());
   const [chartDrawerOpen, setChartDrawerOpen] = useState(false);
   const [chartDrawerMode, setChartDrawerMode] = useState<ChartDrawerMode>("appearance");
-  const cacheRef = useRef<Map<string, Promise<BridgeCandle[]>>>(new Map());
 
   const groups = useMemo(
     () => getPairFirstReplayGroups({ events, pair: selectedPair, includeWeak: true }),
@@ -125,6 +115,21 @@ export function EventReplayTab({
     [events, selectedTemplate],
   );
   const selectedSample = replaySamples[selectedSampleIndex] ?? replaySamples[0] ?? null;
+  const {
+    visibleCount,
+    isPlaying,
+    replayWindow,
+    replayLoading,
+    replayError,
+    stopPlayback,
+    togglePlayback,
+  } = useEventReplayPlayback({
+    selectedPair,
+    selectedSample,
+    replayTimeframe,
+    beforeCount,
+    afterCount,
+  });
   const replayMove = useMemo(() => getReplayMove(replayWindow, selectedPair), [replayWindow, selectedPair]);
   const selectedSampleExplainer = useMemo(
     () => (selectedSample ? getCalendarEventExplainer(buildReplaySampleCalendarEvent(selectedSample)) : null),
@@ -191,11 +196,11 @@ export function EventReplayTab({
       setSelectedPairName(nextPair.name);
       setSelectedEventKey("");
       setSelectedSampleIndex(0);
-      setIsPlaying(false);
+      stopPlayback();
     }
 
     onConsumePairIntent?.();
-  }, [onConsumePairIntent, pairIntent, selectedPairName]);
+  }, [onConsumePairIntent, pairIntent, selectedPairName, stopPlayback]);
 
   useEffect(() => {
     const firstKey = allTemplates[0]?.key ?? "";
@@ -224,100 +229,10 @@ export function EventReplayTab({
     if (selectedEventKey) setStorageItem(STORAGE_KEYS.eventKey, selectedEventKey);
   }, [afterCount, beforeCount, replayTimeframe, selectedEventKey, selectedPair.name, selectedSampleIndex]);
 
-  useEffect(() => {
-    if (!selectedSample) {
-      setReplayWindow(null);
-      setReplayLoading(false);
-      setReplayError(null);
-      setVisibleCount(0);
-      setIsPlaying(false);
-      return;
-    }
-
-    let cancelled = false;
-
-    const loadReplay = async () => {
-      setReplayLoading(true);
-      setReplayError(null);
-      setIsPlaying(false);
-
-      try {
-        const range = getReplayFetchRange({
-          eventTime: selectedSample.eventTime,
-          timeframe: replayTimeframe,
-          beforeCount,
-          afterCount,
-        });
-        const cacheKey = `${selectedPair.name}|${replayTimeframe}|${range.from}|${range.to}`;
-        const cached = cacheRef.current.get(cacheKey);
-        const request =
-          cached ??
-          fetchHistoryRange({
-            symbol: selectedPair.name,
-            tf: replayTimeframe,
-            from: range.from,
-            to: range.to,
-          }).catch((error) => {
-            cacheRef.current.delete(cacheKey);
-            throw error;
-          });
-
-        if (!cached) cacheRef.current.set(cacheKey, request);
-        const candles = await request;
-        if (cancelled) return;
-
-        const window = getReplayWindowCandles({
-          candles,
-          eventTime: selectedSample.eventTime,
-          beforeCount,
-          afterCount,
-        });
-
-        if (!window) {
-          setReplayWindow(null);
-          setVisibleCount(0);
-          setReplayError("No replayable candle window was resolved for this release, pair, and timeframe.");
-          return;
-        }
-
-        setReplayWindow(window);
-        setVisibleCount(window.eventIndex + 1);
-      } catch (error) {
-        if (cancelled) return;
-        setReplayWindow(null);
-        setVisibleCount(0);
-        setReplayError(error instanceof Error ? error.message : "Failed to load replay candles.");
-      } finally {
-        if (!cancelled) setReplayLoading(false);
-      }
-    };
-
-    void loadReplay();
-    return () => {
-      cancelled = true;
-    };
-  }, [afterCount, beforeCount, replayTimeframe, selectedPair.name, selectedSample]);
-
-  useEffect(() => {
-    if (!isPlaying || !replayWindow) return;
-    const id = window.setInterval(() => {
-      setVisibleCount((current) => {
-        if (current >= replayWindow.candles.length) {
-          window.clearInterval(id);
-          setIsPlaying(false);
-          return current;
-        }
-        return current + 1;
-      });
-    }, PLAYBACK_INTERVAL_MS);
-
-    return () => window.clearInterval(id);
-  }, [isPlaying, replayWindow]);
-
   const handleTemplateSelect = (key: string) => {
     setSelectedEventKey(key);
     setSelectedSampleIndex(0);
-    setIsPlaying(false);
+    stopPlayback();
   };
 
   const handleBeforeChange = (value: string) => {
@@ -427,17 +342,13 @@ export function EventReplayTab({
             setSelectedPairName(pairName);
             setSelectedEventKey("");
             setSelectedSampleIndex(0);
-            setIsPlaying(false);
+            stopPlayback();
           }}
           onOpenEventList={() => setEventListOpen(true)}
           onSelectOlderRelease={() => setSelectedSampleIndex((index) => Math.min(replaySamples.length - 1, index + 1))}
           onSelectNewerRelease={() => setSelectedSampleIndex((index) => Math.max(0, index - 1))}
           onOpenReleaseList={() => setReleaseListOpen(true)}
-          onTogglePlayback={() => {
-            if (!replayWindow) return;
-            if (visibleCount >= replayWindow.candles.length) setVisibleCount(replayWindow.eventIndex + 1);
-            setIsPlaying((value) => !value);
-          }}
+          onTogglePlayback={togglePlayback}
           onOpenBrief={() => setDetailsOpen(true)}
         />
 
@@ -561,7 +472,7 @@ export function EventReplayTab({
           onHoverRelease={setHoveredReleaseIndex}
           onSelectRelease={(index) => {
             setSelectedSampleIndex(index);
-            setIsPlaying(false);
+            stopPlayback();
             setReleaseListOpen(false);
           }}
         />
