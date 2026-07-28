@@ -6,9 +6,9 @@ import {
   CalendarEventInspectorDrawer,
   ImpactPill,
 } from "@/app/components/EconomicCalendarInspector";
-import { fetchCalendar, fetchServerTime } from "@/app/lib/bridge";
+import { useEconomicCalendarData } from "@/app/hooks/useEconomicCalendarData";
+import { fetchServerTime } from "@/app/lib/bridge";
 import {
-  buildCalendarQueryKey,
   formatCurrentMt5Time,
   formatRangeLabelFromSeconds,
   getCalendarFreshness,
@@ -20,7 +20,6 @@ import {
 import { getCalendarEventExplainer } from "@/app/lib/calendarEventExplain";
 import { buildCalendarEventKey, getCalendarIntentDayRange } from "@/app/lib/calendarNavigation";
 import { getPresetRange } from "@/app/lib/calendarRanges";
-import { resolveCalendarStatus } from "@/app/lib/status";
 import {
   formatCurrentTimeForDisplayTimezone,
   getDisplayTimezoneOptions,
@@ -29,7 +28,7 @@ import {
   type DisplayTimezoneSelection,
 } from "@/app/lib/timezoneDisplay";
 import { getCountryDisplayName, MAJOR_COUNTRY_CODES } from "@/app/config/currencyConfig";
-import type { BridgeHealth, BridgeStatus, CalendarEvent, CalendarNavigationIntent, ImpactLevel } from "@/app/types";
+import type { BridgeHealth, CalendarEvent, CalendarNavigationIntent, ImpactLevel } from "@/app/types";
 
 export {
   CalendarEventInspectorDrawer,
@@ -66,11 +65,6 @@ export function EconomicCalendarTab({
   const [impacts, setImpacts] = useState<ImpactLevel[]>(DEFAULT_IMPACTS);
   const [countries, setCountries] = useState<string[]>([]);
   const [search, setSearch] = useState("");
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [countrySourceEvents, setCountrySourceEvents] = useState<CalendarEvent[]>([]);
-  const [status, setStatus] = useState<BridgeStatus>("loading");
-  const [lastSyncedAt, setLastSyncedAt] = useState<number | null>(persistedLastSyncedAt);
-  const [lastCalendarIngestAt, setLastCalendarIngestAt] = useState<number | null>(health.last_calendar_ingest_at ?? null);
   const [uiNow, setUiNow] = useState(Date.now());
   const [mt5ServerTime, setMt5ServerTime] = useState<number | null>(null);
   const [mt5FetchedAtMs, setMt5FetchedAtMs] = useState<number | null>(null);
@@ -84,8 +78,6 @@ export function EconomicCalendarTab({
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [highlightedEventKey, setHighlightedEventKey] = useState<string | null>(null);
   const [pendingJumpKey, setPendingJumpKey] = useState<string | null>(null);
-  const eventsRef = useRef<CalendarEvent[]>([]);
-  const lastSuccessfulQueryKeyRef = useRef<string | null>(null);
   const impactMenuRef = useRef<HTMLDivElement | null>(null);
   const countryMenuRef = useRef<HTMLDivElement | null>(null);
   const rangePopoverRef = useRef<HTMLDivElement | null>(null);
@@ -110,16 +102,21 @@ export function EconomicCalendarTab({
     return toUtcRangeSeconds(customFrom, customTo);
   }, [customFrom, customTo, preset]);
 
-  const activeQueryKey = useMemo(
-    () =>
-      buildCalendarQueryKey({
-        from: activeRange.from != null ? new Date(activeRange.from * 1000) : null,
-        to: activeRange.to != null ? new Date(activeRange.to * 1000) : null,
-        impacts,
-        countries,
-      }),
-    [activeRange.from, activeRange.to, countries, impacts],
-  );
+  const {
+    events,
+    countrySourceEvents,
+    status,
+    lastSyncedAt,
+    lastCalendarIngestAt,
+  } = useEconomicCalendarData({
+    activeRange,
+    impacts,
+    allImpacts: ALL_IMPACTS,
+    countries,
+    health,
+    persistedLastSyncedAt,
+    onSyncSuccess,
+  });
 
   useEffect(() => {
     const id = window.setInterval(() => setUiNow(Date.now()), 1000);
@@ -146,34 +143,6 @@ export function EconomicCalendarTab({
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const loadCountrySource = async () => {
-      try {
-        const countryEvents = await fetchCalendar({
-          from: activeRange.from,
-          to: activeRange.to,
-          impacts: ALL_IMPACTS,
-        });
-
-        if (cancelled) return;
-        setCountrySourceEvents(countryEvents);
-      } catch {
-        if (cancelled) return;
-      }
-    };
-
-    void loadCountrySource();
-    return () => {
-      cancelled = true;
-    };
-  }, [activeRange.from, activeRange.to]);
-
-  useEffect(() => {
-    setLastSyncedAt(persistedLastSyncedAt);
-  }, [persistedLastSyncedAt]);
-
-  useEffect(() => {
     const handleOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (!impactMenuRef.current?.contains(target)) setIsImpactMenuOpen(false);
@@ -193,56 +162,6 @@ export function EconomicCalendarTab({
       }
     };
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const load = async () => {
-      setStatus("loading");
-      try {
-        const calendarEvents = await fetchCalendar({
-          from: activeRange.from,
-          to: activeRange.to,
-          impacts,
-          countries,
-        });
-
-        if (cancelled) return;
-
-        eventsRef.current = calendarEvents;
-        setEvents(calendarEvents);
-        const syncedAt = Math.floor(Date.now() / 1000);
-        setLastSyncedAt(syncedAt);
-        onSyncSuccess?.(syncedAt);
-        lastSuccessfulQueryKeyRef.current = activeQueryKey;
-        setLastCalendarIngestAt(health.last_calendar_ingest_at ?? null);
-        setStatus(resolveCalendarStatus({ eventsCount: calendarEvents.length, health }));
-      } catch {
-        if (cancelled) return;
-        const queryChangedSinceLastSuccess = lastSuccessfulQueryKeyRef.current !== activeQueryKey;
-        if (queryChangedSinceLastSuccess) {
-          eventsRef.current = [];
-          setEvents([]);
-        }
-        setLastCalendarIngestAt(health.last_calendar_ingest_at ?? null);
-        setStatus(
-          resolveCalendarStatus({
-            eventsCount: queryChangedSinceLastSuccess ? 0 : eventsRef.current.length,
-            health,
-            calendarRequestFailed: true,
-          }),
-        );
-      }
-    };
-
-    void load();
-    const id = window.setInterval(() => void load(), 60_000);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, [activeQueryKey, activeRange.from, activeRange.to, impacts, countries, health, onSyncSuccess]);
 
   const filteredEvents = useMemo(() => {
     const query = search.trim().toLowerCase();
