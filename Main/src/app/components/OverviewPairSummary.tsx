@@ -85,13 +85,19 @@ export function OverviewMacroCard(props: {
       </div>
 
       <div className="mt-2 grid grid-cols-2 gap-2 text-xs font-semibold text-slate-600">
-        <div className="flex items-center justify-between gap-3">
+        <div className="grid gap-0.5">
           <span>Rate event</span>
-          <strong className="text-right text-slate-900">{formatDateOnly(props.snapshot?.nextRateEventAt ?? null)}</strong>
+          <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Released</span>
+          <strong className="text-slate-900">{formatDateOnly(props.snapshot?.lastRateReleaseAt ?? null)}</strong>
+          <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Next</span>
+          <strong className="text-slate-900">{formatDateOnly(props.snapshot?.nextRateEventAt ?? null)}</strong>
         </div>
-        <div className="flex items-center justify-between gap-3">
+        <div className="grid gap-0.5">
           <span>CPI event</span>
-          <strong className="text-right text-slate-900">{formatDateOnly(props.snapshot?.nextCpiEventAt ?? null)}</strong>
+          <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Released</span>
+          <strong className="text-slate-900">{formatDateOnly(props.snapshot?.lastCpiReleaseAt ?? null)}</strong>
+          <span className="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">Next</span>
+          <strong className="text-slate-900">{formatDateOnly(props.snapshot?.nextCpiEventAt ?? null)}</strong>
         </div>
       </div>
 
