@@ -28,10 +28,12 @@ Trusted live data is intentionally limited to MT5 OHLCV plus broker/MT5 economic
 
 - Do not casually add feature CSS to `Main/src/styles.css`.
 - New styling must be owned by a specific active surface or by an explicitly shared primitive.
-- `Main/src/styles.css` is an import aggregator. Keep feature CSS in owned files under `Main/src/styles/`.
+- `Main/src/styles.css` is the active import aggregator. Keep feature CSS in owned files under `Main/src/styles/`.
+- `Main/src/styles/garbage.css` is the garbage-only import aggregator and should only be loaded by garbage routes.
 - First CSS split pass is extraction-only: preserve selector names, selector order, and visual behavior.
 - Do not rename selectors, delete dead CSS, or refactor global cascade during the first split.
 - Garbage/prototype CSS must not steer active product design. Keep it isolated and ignored unless the user explicitly asks for garbage-drawer styling work.
+- Do not add garbage/prototype CSS imports back into `Main/src/styles.css`.
 - If a new selector is genuinely shared, document why it is shared instead of putting surface-specific styling into a global bucket.
 
 ## Active Surfaces

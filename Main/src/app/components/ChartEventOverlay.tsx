@@ -31,29 +31,27 @@ export function ChartEventOverlay(props: {
         return (
           <div
             key={cluster.key}
-            role="button"
-            tabIndex={0}
             className={`chart-event-marker chart-event-${cluster.impact} tooltip-${cluster.tooltipPlacement} ${isActive ? "is-active" : ""}`}
             style={markerStyle}
-            onClick={() => props.onSelectCluster(cluster.key)}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter" && event.key !== " ") return;
-              event.preventDefault();
-              props.onSelectCluster(cluster.key);
-            }}
             onMouseEnter={() => props.onHoverCluster(cluster.key)}
             onMouseLeave={() => props.onHoverCluster(null)}
-            onFocus={() => props.onHoverCluster(cluster.key)}
-            aria-label={`Open ${cluster.events.length} loaded chart event${cluster.events.length === 1 ? "" : "s"}`}
           >
             <span className="chart-event-line" />
-            <span className="chart-event-dot" />
-            {shouldShowBadge && (
-              <span className="chart-event-badge">
-                <strong>{cluster.badgeLabel}</strong>
-                <small>{cluster.impact}</small>
-              </span>
-            )}
+            <button
+              type="button"
+              className="chart-event-hit-target"
+              onClick={() => props.onSelectCluster(cluster.key)}
+              onFocus={() => props.onHoverCluster(cluster.key)}
+              aria-label={`Open Event Lens for ${cluster.events.length} loaded chart event${cluster.events.length === 1 ? "" : "s"}`}
+            >
+              <span className="chart-event-dot" />
+              {shouldShowBadge && (
+                <span className="chart-event-badge">
+                  <strong>{cluster.badgeLabel}</strong>
+                  <small>{cluster.impact}</small>
+                </span>
+              )}
+            </button>
             {isHovered && !isActive && (
               <span className="chart-event-tooltip">
                 <span className="chart-event-tooltip-kicker">

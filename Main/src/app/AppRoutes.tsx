@@ -11,7 +11,9 @@ import type {
 } from "@/app/types";
 
 const DeprecatedOverviewTab = lazy(() =>
-  import("@/app/tabs/garbage/DeprecatedOverviewTab").then((module) => ({ default: module.DeprecatedOverviewTab })),
+  import("@/styles/garbage.css").then(() =>
+    import("@/app/tabs/garbage/DeprecatedOverviewTab").then((module) => ({ default: module.DeprecatedOverviewTab })),
+  ),
 );
 const DifferentialCalculatorTab = lazy(() =>
   import("@/app/tabs/secondary/DifferentialCalculatorTab").then((module) => ({ default: module.DifferentialCalculatorTab })),
@@ -19,26 +21,40 @@ const DifferentialCalculatorTab = lazy(() =>
 const MacroDriversTab = lazy(() =>
   import("@/app/tabs/secondary/MacroDriversTab").then((module) => ({ default: module.MacroDriversTab })),
 );
-const StrengthMeterTab = lazy(() => import("@/app/tabs/garbage/StrengthMeterTab").then((module) => ({ default: module.StrengthMeterTab })));
+const StrengthMeterTab = lazy(() =>
+  import("@/styles/garbage.css").then(() =>
+    import("@/app/tabs/garbage/StrengthMeterTab").then((module) => ({ default: module.StrengthMeterTab })),
+  ),
+);
 const EventReplayTab = lazy(() => import("@/app/tabs/secondary/EventReplayTab").then((module) => ({ default: module.EventReplayTab })));
 const CentralBanksTab = lazy(() => import("@/app/tabs/primary/CentralBanksTab").then((module) => ({ default: module.CentralBanksTab })));
 const ChartsTab = lazy(() => import("@/app/tabs/primary/ChartsTab").then((module) => ({ default: module.ChartsTab })));
 const EconomicCalendarTab = lazy(() => import("@/app/tabs/primary/EconomicCalendarTab").then((module) => ({ default: module.EconomicCalendarTab })));
 const WipMapArchiveTab = lazy(() =>
-  import("@/app/tabs/garbage/WipMapArchiveTab").then((module) => ({ default: module.WipMapArchiveTab })),
+  import("@/styles/garbage.css").then(() =>
+    import("@/app/tabs/garbage/WipMapArchiveTab").then((module) => ({ default: module.WipMapArchiveTab })),
+  ),
 );
 const PrototypingTab = lazy(() => import("@/app/tabs/secondary/PrototypingTab").then((module) => ({ default: module.PrototypingTab })));
 const SixQuestionsDraftTab = lazy(() =>
-  import("@/app/tabs/garbage/SixQuestionsDraftTab").then((module) => ({ default: module.SixQuestionsDraftTab })),
+  import("@/styles/garbage.css").then(() =>
+    import("@/app/tabs/garbage/SixQuestionsDraftTab").then((module) => ({ default: module.SixQuestionsDraftTab })),
+  ),
 );
 const CurrencyStrengthFromCandlesTab = lazy(() =>
-  import("@/app/tabs/garbage/CurrencyStrengthFromCandlesTab").then((module) => ({ default: module.CurrencyStrengthFromCandlesTab })),
+  import("@/styles/garbage.css").then(() =>
+    import("@/app/tabs/garbage/CurrencyStrengthFromCandlesTab").then((module) => ({ default: module.CurrencyStrengthFromCandlesTab })),
+  ),
 );
 const MacroStateTab = lazy(() =>
-  import("@/app/tabs/garbage/MacroStateTab").then((module) => ({ default: module.MacroStateTab })),
+  import("@/styles/garbage.css").then(() =>
+    import("@/app/tabs/garbage/MacroStateTab").then((module) => ({ default: module.MacroStateTab })),
+  ),
 );
 const WatchlistEngineTab = lazy(() =>
-  import("@/app/tabs/garbage/WatchlistEngineTab").then((module) => ({ default: module.WatchlistEngineTab })),
+  import("@/styles/garbage.css").then(() =>
+    import("@/app/tabs/garbage/WatchlistEngineTab").then((module) => ({ default: module.WatchlistEngineTab })),
+  ),
 );
 
 interface AppRoutesProps {

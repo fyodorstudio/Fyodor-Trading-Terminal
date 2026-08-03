@@ -69,7 +69,7 @@ This file is the current command board. Future AI sessions should read this befo
 
 - [x] Start after the Charts Event Replay Lens lane; do not mix the Charts replay redesign and CSS split in one commit.
 - [x] Pass 1: extract existing selectors into ordered files with no selector renames and no behavior changes.
-- [ ] Pass 2: separate active surface CSS from garbage/prototype CSS.
+- [x] Pass 2: separate active surface CSS from garbage/prototype CSS.
   - [x] Active Economic Calendar polish styles are isolated from Archived Event Quality CSS.
   - [x] Active macro/Differential Calculator primitives are isolated from old strength-meter v2/v3 CSS.
   - [x] Charts styles are isolated from the late-polish/deprecated command-hub slice.
@@ -82,19 +82,21 @@ This file is the current command board. Future AI sessions should read this befo
   - [x] Deprecated command-hub CSS is split from garbage strength-meter v4 legacy CSS.
   - [x] Unused legacy chart picker/status CSS is split out of active Economic Calendar CSS.
   - [x] Active Economic Calendar polish CSS no longer uses stale `late` naming.
-  - [ ] Continue separating Overview, Event Replay, and shared primitives from remaining legacy/garbage cascade bands when specific ownership evidence appears.
+  - [x] Garbage/prototype stylesheet imports are isolated behind `Main/src/styles/garbage.css`, loaded only by garbage lazy routes.
 - [x] Pass 3: strengthen docs/AI rules so future AI does not grow the global monolith again.
-- [ ] Pass 4: delete, rename, or refactor dead CSS only after screenshot/build verification.
+- [x] Pass 4: dead CSS audit completed after build/smoke verification; reachable garbage CSS was retained and lazy-isolated instead of deleted.
 - [x] Keep `Main/src/styles.css` as the import aggregator.
 - [x] Preserve import order during extraction.
 - [x] Prefer visual behavior preservation over prettier class names in the first split.
 
 ### 3. Backlog
 
-- [ ] External data connectors remain later.
-- [ ] COT remains later because it is weekly and not currently in the app data stack.
-- [ ] Central Banks MoM/YoY toggle remains later backlog.
-- [ ] Do not revive Deprecated Overview, Six Questions, WIP, or garbage logic as product sources.
+These are intentionally not active implementation items.
+
+- [x] External data connectors remain later.
+- [x] COT remains later because it is weekly and not currently in the app data stack.
+- [x] Central Banks MoM/YoY toggle remains later backlog.
+- [x] Do not revive Deprecated Overview, Six Questions, WIP, or garbage logic as product sources.
 
 ## Completed Checkpoints
 
@@ -105,6 +107,7 @@ This file is the current command board. Future AI sessions should read this befo
 - [x] Charts event overlay uses a bottom rail, visible cluster dots, badge thinning, density caps, and honest event-causality wording.
 - [x] Charts Event Replay Lens opens from chart event markers and replays loaded candles in place.
 - [x] Chart settings drawer has compact current-settings summary and readable wrapping.
+- [x] Active CSS now loads without garbage-drawer stylesheet bands; garbage CSS is lazy-loaded only by garbage routes.
 - [x] Economic Calendar table uses an internal desktop scroll region and wraps event titles, timezone labels, and source values.
 - [x] Economic Calendar selected-event drawer uses shared explainer data for practical event context without trade calls.
 - [x] Event Replay preserves pair -> event -> release -> replay setup -> playback.
@@ -120,28 +123,27 @@ This file is the current command board. Future AI sessions should read this befo
 ## Verification Rules
 
 - Checklist/docs-only edits require no app tests.
-- Future Charts Event Replay Lens implementation should run:
+- Future Charts implementation should run:
   - `pnpm --dir Main test -- chartView.test.ts chartsTab.test.ts calendarNavigation.test.ts navigationTruth.test.tsx`;
   - `pnpm --dir Main build`.
-- Future Charts Event Replay Lens implementation must include manual or CDP screenshot inspection at 1440x900, 100% Chrome zoom:
+- Future Charts implementation must include manual or CDP screenshot inspection at 1440x900, 100% Chrome zoom:
   - no whole-page chart scroll;
   - event rail does not block x-axis labels or chart dragging;
   - selecting an event opens the Event Lens;
   - replay hides future candles and plays forward;
   - Terminal Console is no longer visible below the chart.
-- CSS split implementation must run build and screenshot smoke checks after each extraction pass.
+- Future CSS cleanup must run build and screenshot smoke checks after each extraction pass.
 - Do not run broad/full test suites after every small visual pass by default.
 - Before adding new tests, get explicit user agreement and explain what behavior the test protects.
 - Bridge tests are only required if bridge contracts change.
 
 ## Stable Assumptions
 
-- Next goal-mode implementation should focus on Charts only.
-- Historical calendar backfill, external data, Overview redesign, Event Replay tab redesign, and CSS splitting are out of scope for the next implementation pass.
+- Historical calendar backfill, external data, Overview redesign, and Event Replay tab redesign remain out of scope until explicitly reopened.
 - Existing Event Replay remains available but should not steer the Charts Event Replay Lens UI.
 - Old garbage/deprecated experiments are ignored by default.
-- CSS splitting should proceed in small extraction checkpoints with build/equivalence verification after the Charts lane.
-- CSS split pass 1 is extraction-only: no selector renames, no visual redesign, no dead-code deletion.
+- CSS cleanup should proceed in small extraction checkpoints with build/equivalence verification.
+- The completed CSS split was extraction-first: no selector renames, no visual redesign, and no reachable garbage CSS deletion.
 - Mobile can use internal modal scrolling; "no scroll" target is desktop 1440x900.
 - The app remains decision support, not a signal bot.
 - Macro scope is current-data-only until the user explicitly approves external data.

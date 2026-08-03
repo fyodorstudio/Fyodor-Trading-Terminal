@@ -41,13 +41,14 @@ The old Six Questions and Work In Progress surfaces are historical/prototype con
 
 ## CSS Ownership Warning
 
-`Main/src/styles.css` is now an ordered import aggregator. The old monolith was split because the app grew through many AI-assisted visual passes, not because React/Vite/Tailwind is the wrong stack.
+`Main/src/styles.css` is now the ordered active-style import aggregator. Garbage-drawer styling is isolated behind `Main/src/styles/garbage.css`, which is loaded only by garbage routes. The old monolith was split because the app grew through many AI-assisted visual passes, not because React/Vite/Tailwind is the wrong stack.
 
 Current rules:
 
 - do not add feature CSS directly to `Main/src/styles.css`;
 - put new styling in the owning surface file or an explicitly shared primitive file;
 - do not let garbage/prototype CSS influence active product surfaces;
+- do not add garbage/prototype CSS imports back into `Main/src/styles.css`;
 - preserve import/selector order when moving existing CSS;
 - do not delete, rename, or refactor old selectors without build and visual verification.
 
