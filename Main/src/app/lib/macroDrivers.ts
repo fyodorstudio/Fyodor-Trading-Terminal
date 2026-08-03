@@ -146,7 +146,7 @@ function summarizeEvent(event: CalendarEvent | null): string {
   const actual = getEventValueDisplay(event.actual, event.title).display;
   const forecast = getEventValueDisplay(event.forecast, event.title).display;
   const previous = getEventValueDisplay(event.previous, event.title).display;
-  return `${event.title}: actual ${actual}, forecast ${forecast}, previous ${previous}`;
+  return `${event.title}: Actual ${actual} / Forecast ${forecast} / Previous ${previous}`;
 }
 
 export function buildMacroFactorRows(params: {

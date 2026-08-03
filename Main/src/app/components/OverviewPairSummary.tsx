@@ -198,14 +198,26 @@ function formatEventName(event: CalendarEvent | null): string {
   return event.title.includes(suffix) ? event.title : `${event.title} ${suffix}`;
 }
 
-function formatLatestEvidence(row: MacroFactorRow | null): string {
-  if (!row || !row.latestEvent || row.coverageLabel === "Missing") return "No loaded row";
-  return row.summary;
-}
-
 function formatNextEvidence(row: MacroFactorRow | null): string {
   if (!row || !row.nextEvent) return "No loaded event";
   return formatEventName(row.nextEvent);
+}
+
+function MatrixLatestEvidence({ row }: { row: MacroFactorRow | null }) {
+  if (!row || !row.latestEvent || row.coverageLabel === "Missing") {
+    return <span className="overview-matrix-empty">No loaded row</span>;
+  }
+
+  const actual = getEventValueDisplay(row.latestEvent.actual, row.latestEvent.title).display;
+  const forecast = getEventValueDisplay(row.latestEvent.forecast, row.latestEvent.title).display;
+  const previous = getEventValueDisplay(row.latestEvent.previous, row.latestEvent.title).display;
+
+  return (
+    <span className="overview-matrix-evidence" title={row.summary}>
+      <strong>{row.latestEvent.title}:</strong>
+      <span>Actual {actual} / Forecast {forecast} / Previous {previous}</span>
+    </span>
+  );
 }
 
 function getFactorStatus(row: MacroFactorRow | null): string {
@@ -366,9 +378,9 @@ export function OverviewPairWorkbench(props: {
                   return (
                     <tr key={factor.id}>
                       <th scope="row">{factor.label}</th>
-                      <td>{formatLatestEvidence(baseRow)}</td>
+                      <td><MatrixLatestEvidence row={baseRow} /></td>
                       <td>{formatNextEvidence(baseRow)}</td>
-                      <td>{formatLatestEvidence(quoteRow)}</td>
+                      <td><MatrixLatestEvidence row={quoteRow} /></td>
                       <td>{formatNextEvidence(quoteRow)}</td>
                     </tr>
                   );

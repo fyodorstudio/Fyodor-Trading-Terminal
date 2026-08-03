@@ -120,6 +120,11 @@ function trimTrailingZeros(value: number): string {
   return value.toFixed(2).replace(/\.?0+$/, "");
 }
 
+function normalizePlainNumberDisplay(value: number, raw: string): string {
+  if (!raw.includes(".")) return raw;
+  return trimTrailingZeros(value);
+}
+
 function parsePlainNumber(raw: string): number | null {
   if (!/^-?\d+(?:\.\d+)?$/.test(raw.replace(/,/g, ""))) return null;
   const parsed = Number(raw.replace(/,/g, ""));
@@ -159,16 +164,20 @@ export function getEventValueDisplay(value: string, eventTitle = ""): EventValue
   const number = parsePlainNumber(compactRaw);
   const inferredUnit = number == null ? null : inferEventValueUnit(compactRaw, eventTitle);
   const display =
-    number == null || inferredUnit == null
+    number == null
       ? compactRaw
       : inferredUnit === "percent"
         ? `${trimTrailingZeros(number)}%`
-        : `${trimTrailingZeros(number)}K`;
+        : inferredUnit === "thousand"
+          ? `${trimTrailingZeros(number)}K`
+          : normalizePlainNumberDisplay(number, compactRaw);
 
   const title =
     display === compactRaw
       ? `MT5 raw value: ${compactRaw}`
-      : `MT5 raw value: ${compactRaw}. Display unit inferred from event title: ${eventTitle || "unknown event"}.`;
+      : inferredUnit
+        ? `MT5 raw value: ${compactRaw}. Display unit inferred from event title: ${eventTitle || "unknown event"}.`
+        : `MT5 raw value: ${compactRaw}. Display rounded for readability.`;
 
   return {
     display,

@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Checklist
 
-Last updated: 2026-07-28
+Last updated: 2026-08-03
 
 ## Active Planning Source
 
@@ -17,9 +17,13 @@ This file is the current command board. Future AI sessions should read this befo
 - Calendar `Actual / Forecast / Previous` values have no source unit metadata, so formatting must stay conservative and source-preserving.
 - Chart time must be viewer-time-first: selected timezone should control axis labels, crosshair labels, latest-candle labels, and viewer clock.
 - Economic Calendar event explanation is a critical product surface because scheduled events are a major driver of price movement.
+- Charts is the intended main workspace for price, loaded economic events, and event replay context.
+- Overview stays a compact pair summary for now; do not expand it into a second full analysis cockpit during the next Charts-focused pass.
+- Existing Event Replay remains available, but the next implementation should ignore the tab unless a safe active helper can be reused.
+- Chart event coverage is loaded-only in v1; missing old chart markers mean old calendar rows are not loaded, not that no event happened.
+- Raw event values and observed price movement matter more than educational explainer text or trade-call language inside Charts.
 - Active tabs target 100% Chrome zoom on normal desktop without whole-page vertical or horizontal scrolling.
 - 100% Chrome zoom viewport audit passed at 1440x900 with live local feed data for Overview, Central Banks, Charts, Economic Calendar, Event Replay, Macro Drivers, and Differential Calculator.
-- Event Replay, Charts event overlays, Overview pair details, and CSS ownership remain active cleanup areas.
 - Aesthetic Forge is mounted behind the header gear and stays closed by default.
 - External data sources remain out of scope unless explicitly approved later.
 - `react-world-flags` works and has a local declaration; its large `FlagIcon` chunk is known non-blocking noise.
@@ -28,47 +32,36 @@ This file is the current command board. Future AI sessions should read this befo
 
 ## Active Roadmap
 
-### 1. Event Replay / Overview / Charts UI Polish
+### 1. Charts Event Replay Lens
 
-- [x] Overview Pair Details:
-  - [x] widen the modal horizontally;
-  - [x] desktop layout shows two currency rows: base row and quote row;
-  - [x] each currency row shows compact factor cards across the row;
-  - [ ] target no modal body scrolling at 1440x900, with internal scroll fallback for smaller screens or long broker text.
-- [x] Event Replay Replay Brief:
-  - [x] widen the modal;
-  - [x] redesign into a two-row desktop layout;
-  - [x] keep replay setup, observed move, actual, forecast, previous, surprise, and interpretation visible without cramped stacked boxes;
-  - [ ] target no modal body scrolling at 1440x900, with internal scroll fallback.
-- [x] Event Replay Past Releases:
-  - [x] redesign as a wide modal with release list on the left and compact month calendar on the right;
-  - [x] hovering a release row highlights its matching calendar date;
-  - [x] selecting a row keeps current release-selection behavior.
-- [x] Event Replay Select Event:
-  - [x] remove the current top mode cards;
-  - [x] remove `Countdown` as a separate sort mode;
-  - [x] make `Upcoming next` include countdown directly;
-  - [x] place `Recently released` as a dedicated right-side area;
-  - [x] move `All / Usable / Limited / Weak` into a compact dropdown;
-  - [x] remove the secondary sort dropdown;
-  - [x] widen the modal and fix the white-corner/overlay framing issue.
-- [x] Charts:
-  - [x] cursor selector shows only `Crosshair` and `Sticky`;
-  - [x] visible `Both` becomes `Crosshair`;
-  - [x] remove visible `Exact`;
-  - [x] migrate old saved `true_cursor` / Exact preference to `Crosshair`;
-  - [x] remove `All high impact` from event currency scope;
-  - [x] keep separate selectors for currency scope and impact;
-  - [x] migrate old `high_impact` scope to `All loaded` while preserving the separate impact filter;
-  - [x] fix the event rail translucent layer so it does not block x-axis time labels.
-- [x] Manual 1440x900 browser audit:
-  - [x] verify Overview Pair Details has no unnecessary modal body scroll with live data;
-  - [x] verify Replay Brief has no unnecessary modal body scroll with live data;
-  - [x] verify chart event rail no longer covers x-axis labels.
+- [ ] Treat Charts as the main price-event-replay workspace for the next implementation pass.
+- [ ] Redesign chart event markers:
+  - [ ] default to selected-pair relevant, high-impact loaded broker/MT5 calendar rows only;
+  - [ ] use a bottom event rail with subtle dots/badges;
+  - [ ] show vertical guide lines only on hover or selected event;
+  - [ ] cluster nearby events and open the Event Lens when a marker/cluster is clicked.
+- [ ] Add an `Event Lens` bottom deck:
+  - [ ] compact state shows selected event, event time, actual, forecast, previous, surprise, observed move, and Play/Pause;
+  - [ ] expand on hover/focus;
+  - [ ] click pins the deck open so replay controls do not disappear mid-study;
+  - [ ] expanded state shows essential replay controls and compact base/quote evidence rows;
+  - [ ] include a small `Open in Calendar` action without automatically navigating away.
+- [ ] Add Charts-native replay:
+  - [ ] use currently loaded/cached chart candles only for v1;
+  - [ ] anchor replay to the nearest candle or candle bucket for the selected timeframe;
+  - [ ] hide candles to the right of the selected event, then reveal forward during playback;
+  - [ ] define observed move as event candle price to current replay cursor candle;
+  - [ ] keep visible replay controls to Play/Pause, Reset, Step, and Speed.
+- [ ] Simplify Charts settings:
+  - [ ] organize drawer tabs as `Appearance`, `Events`, `Replay`, and `Diagnostics`;
+  - [ ] move Terminal Console into `Diagnostics`;
+  - [ ] keep event settings as minimal checkboxes/selects with minimal explanatory text;
+  - [ ] keep technical replay settings inside the drawer, not the Event Lens compact strip.
+- [ ] Do not redesign Overview, the existing Event Replay tab, old experiments, or CSS ownership as part of this Charts pass.
 
 ### 2. CSS Monolith Split And Guardrails
 
-- [x] Start after the UI polish lane is complete; do not mix the UI redesign and CSS split in one commit.
+- [ ] Start after the Charts Event Replay Lens lane; do not mix the Charts replay redesign and CSS split in one commit.
 - [x] Pass 1: extract existing selectors into ordered files with no selector renames and no behavior changes.
 - [ ] Pass 2: separate active surface CSS from garbage/prototype CSS.
   - [x] Active Economic Calendar polish styles are isolated from Archived Event Quality CSS.
@@ -120,13 +113,15 @@ This file is the current command board. Future AI sessions should read this befo
 ## Verification Rules
 
 - Checklist/docs-only edits require no app tests.
-- UI polish implementation should run:
-  - `pnpm run typecheck`;
-  - `pnpm --dir Main test -- overviewPlaceholderTab.test.tsx`;
-  - `pnpm --dir Main test -- eventReplayDisplay.test.ts eventReplayView.test.ts eventReaction.test.tsx`;
-  - `pnpm --dir Main test -- chartsTab.test.ts chartView.test.ts calendarNavigation.test.ts`;
+- Future Charts Event Replay Lens implementation should run:
+  - `pnpm --dir Main test -- chartView.test.ts chartsTab.test.ts calendarNavigation.test.ts navigationTruth.test.tsx`;
   - `pnpm --dir Main build`.
-- UI polish must include manual or CDP screenshot inspection at 1440x900, 100% Chrome zoom.
+- Future Charts Event Replay Lens implementation must include manual or CDP screenshot inspection at 1440x900, 100% Chrome zoom:
+  - no whole-page chart scroll;
+  - event rail does not block x-axis labels or chart dragging;
+  - selecting an event opens the Event Lens;
+  - replay hides future candles and plays forward;
+  - Terminal Console is no longer visible below the chart.
 - CSS split implementation must run build and screenshot smoke checks after each extraction pass.
 - Do not run broad/full test suites after every small visual pass by default.
 - Before adding new tests, get explicit user agreement and explain what behavior the test protects.
@@ -134,8 +129,11 @@ This file is the current command board. Future AI sessions should read this befo
 
 ## Stable Assumptions
 
-- Current repo-hygiene lane is CSS ownership cleanup after the UI polish checkpoint.
-- CSS splitting should proceed in small extraction checkpoints with build/equivalence verification.
+- Next goal-mode implementation should focus on Charts only.
+- Historical calendar backfill, external data, Overview redesign, Event Replay tab redesign, and CSS splitting are out of scope for the next implementation pass.
+- Existing Event Replay remains available but should not steer the Charts Event Replay Lens UI.
+- Old garbage/deprecated experiments are ignored by default.
+- CSS splitting should proceed in small extraction checkpoints with build/equivalence verification after the Charts lane.
 - CSS split pass 1 is extraction-only: no selector renames, no visual redesign, no dead-code deletion.
 - Mobile can use internal modal scrolling; "no scroll" target is desktop 1440x900.
 - The app remains decision support, not a signal bot.
