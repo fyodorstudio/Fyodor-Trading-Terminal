@@ -1,581 +1,581 @@
-# Beginner UI Editing Guide For Fyodor
+  # Beginner UI Editing Guide For Fyodor
 
-This is a practical reading guide for learning how this repo turns words in files into visible UI. It uses real examples from Fyodor, not toy examples.
+  This is a practical reading guide for learning how this repo turns words in files into visible UI. It uses real examples from Fyodor, not toy examples.
 
-You do not need to understand everything at once. The useful first skill is this:
+  You do not need to understand everything at once. The useful first skill is this:
 
-> Find the visible text or class name, identify the file that renders it, then change one small thing and check the app.
+  > Find the visible text or class name, identify the file that renders it, then change one small thing and check the app.
 
-## The Mental Model
+  ## The Mental Model
 
-Fyodor's frontend is mostly:
+  Fyodor's frontend is mostly:
 
-- `*.tsx` files: the screen structure and behavior.
-- `*.ts` files: helper logic, data formatting, calculations, types.
-- `*.css` files: reusable styling rules that are too large or awkward to keep inline.
-- Tailwind classes inside `className="..."`: small styling words directly attached to an element.
+  - `*.tsx` files: the screen structure and behavior.
+  - `*.ts` files: helper logic, data formatting, calculations, types.
+  - `*.css` files: reusable styling rules that are too large or awkward to keep inline.
+  - Tailwind classes inside `className="..."`: small styling words directly attached to an element.
 
-Example:
+  Example:
 
-```tsx
-<button className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 hover:bg-blue-100">
+  ```tsx
+  <button className="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 hover:bg-blue-100">
+    See recent releases
+  </button>
+  ```
+
+  This creates a button. The words inside `className` control the look.
+
+  - `rounded-xl`: corner roundness
+  - `border`: show a border
+  - `border-blue-100`: pale blue border
+  - `bg-blue-50`: pale blue background
+  - `px-4 py-3`: horizontal and vertical padding
+  - `text-sm`: text size
+  - `font-black`: very bold text
+  - `hover:bg-blue-100`: change background when the cursor hovers it
+
+  ## Where To Start Looking
+
+  For active UI work, start with these:
+
+  - `Main/src/app/tabs/primary/OverviewPlaceholderTab.tsx`
+  - `Main/src/app/components/OverviewPairSummary.tsx`
+  - `Main/src/app/components/OverviewPopovers.tsx`
+  - `Main/src/app/tabs/secondary/EventReplayTab.tsx`
+  - `Main/src/app/components/EventReplayBriefModal.tsx`
+  - `Main/src/app/components/EventReplayReleaseListModal.tsx`
+  - `Main/src/app/components/EventReplaySelectEventModal.tsx`
+  - `Main/src/app/tabs/primary/ChartsTab.tsx`
+  - `Main/src/app/components/ChartSettingsDrawer.tsx`
+  - `Main/src/app/components/ChartSettingsSections.tsx`
+  - `Main/src/app/components/TabNavigation.tsx`
+  - `Main/src/app/config/navigation.ts`
+  - `Main/src/styles.css`
+  - `Main/src/styles/`
+
+  Avoid using garbage files as examples unless you explicitly want to revive an old experiment.
+
+  ## How To Change A Color
+
+  Real example: Overview button in `Main/src/app/components/OverviewPairSummary.tsx`.
+
+  Search for:
+
+  ```tsx
   See recent releases
-</button>
-```
+  ```
 
-This creates a button. The words inside `className` control the look.
+  You will find a button with classes like:
 
-- `rounded-xl`: corner roundness
-- `border`: show a border
-- `border-blue-100`: pale blue border
-- `bg-blue-50`: pale blue background
-- `px-4 py-3`: horizontal and vertical padding
-- `text-sm`: text size
-- `font-black`: very bold text
-- `hover:bg-blue-100`: change background when the cursor hovers it
+  ```tsx
+  className="inline-flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 transition hover:border-blue-200 hover:bg-blue-100"
+  ```
 
-## Where To Start Looking
+  To change the still/default color:
 
-For active UI work, start with these:
+  - `bg-blue-50` controls the normal background.
+  - `text-blue-700` controls the normal text.
+  - `border-blue-100` controls the normal border.
 
-- `Main/src/app/tabs/primary/OverviewPlaceholderTab.tsx`
-- `Main/src/app/components/OverviewPairSummary.tsx`
-- `Main/src/app/components/OverviewPopovers.tsx`
-- `Main/src/app/tabs/secondary/EventReplayTab.tsx`
-- `Main/src/app/components/EventReplayBriefModal.tsx`
-- `Main/src/app/components/EventReplayReleaseListModal.tsx`
-- `Main/src/app/components/EventReplaySelectEventModal.tsx`
-- `Main/src/app/tabs/primary/ChartsTab.tsx`
-- `Main/src/app/components/ChartSettingsDrawer.tsx`
-- `Main/src/app/components/ChartSettingsSections.tsx`
-- `Main/src/app/components/TabNavigation.tsx`
-- `Main/src/app/config/navigation.ts`
-- `Main/src/styles.css`
-- `Main/src/styles/`
+  To change hover color:
 
-Avoid using garbage files as examples unless you explicitly want to revive an old experiment.
+  - `hover:bg-blue-100` controls the background when hovered.
+  - `hover:border-blue-200` controls the border when hovered.
 
-## How To Change A Color
+  Try changing:
 
-Real example: Overview button in `Main/src/app/components/OverviewPairSummary.tsx`.
+  ```tsx
+  bg-blue-50 text-blue-700 hover:bg-blue-100
+  ```
 
-Search for:
+  to:
 
-```tsx
-See recent releases
-```
+  ```tsx
+  bg-slate-950 text-white hover:bg-blue-700
+  ```
 
-You will find a button with classes like:
+  That makes the button dark by default and blue on hover.
 
-```tsx
-className="inline-flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 transition hover:border-blue-200 hover:bg-blue-100"
-```
+  ## Hover, Still, Selected, Disabled
 
-To change the still/default color:
+  These are common UI states:
 
-- `bg-blue-50` controls the normal background.
-- `text-blue-700` controls the normal text.
-- `border-blue-100` controls the normal border.
+  - Still/default: what it looks like normally.
+  - Hover: when the cursor is over it.
+  - Selected/active: when it represents the current selection.
+  - Disabled: when it cannot be clicked.
 
-To change hover color:
+  Real example: chart event marker CSS in `Main/src/styles/15-charts.css`.
 
-- `hover:bg-blue-100` controls the background when hovered.
-- `hover:border-blue-200` controls the border when hovered.
+  Search for:
 
-Try changing:
+  ```css
+  .chart-event-marker:hover
+  ```
 
-```tsx
-bg-blue-50 text-blue-700 hover:bg-blue-100
-```
+  You will see selectors like:
 
-to:
+  ```css
+  .chart-event-marker:hover .chart-event-line,
+  .chart-event-marker.is-active .chart-event-line,
+  .chart-event-marker:focus-visible .chart-event-line {
+    width: 2px;
+  }
+  ```
 
-```tsx
-bg-slate-950 text-white hover:bg-blue-700
-```
+  Read this as:
 
-That makes the button dark by default and blue on hover.
+  - When `.chart-event-marker` is hovered, make the child `.chart-event-line` wider.
+  - When `.chart-event-marker` has the class `.is-active`, do the same.
+  - When keyboard focus is visible, do the same.
 
-## Hover, Still, Selected, Disabled
+  In React, active classes are usually added with conditions:
 
-These are common UI states:
+  ```tsx
+  className={active ? "is-active" : ""}
+  ```
 
-- Still/default: what it looks like normally.
-- Hover: when the cursor is over it.
-- Selected/active: when it represents the current selection.
-- Disabled: when it cannot be clicked.
+  or:
 
-Real example: chart event marker CSS in `Main/src/styles/15-charts.css`.
+  ```tsx
+  className={`${active ? "bg-slate-950 text-white" : "bg-white text-slate-700"}`}
+  ```
 
-Search for:
+  ## How To Change The Active Tab Jelly Animation
 
-```css
-.chart-event-marker:hover
-```
+  Real file:
 
-You will see selectors like:
+  ```txt
+  Main/src/app/components/TabNavigation.tsx
+  ```
 
-```css
-.chart-event-marker:hover .chart-event-line,
-.chart-event-marker.is-active .chart-event-line,
-.chart-event-marker:focus-visible .chart-event-line {
-  width: 2px;
-}
-```
+  Search for:
 
-Read this as:
-
-- When `.chart-event-marker` is hovered, make the child `.chart-event-line` wider.
-- When `.chart-event-marker` has the class `.is-active`, do the same.
-- When keyboard focus is visible, do the same.
-
-In React, active classes are usually added with conditions:
-
-```tsx
-className={active ? "is-active" : ""}
-```
-
-or:
-
-```tsx
-className={`${active ? "bg-slate-950 text-white" : "bg-white text-slate-700"}`}
-```
-
-## How To Change The Active Tab Jelly Animation
-
-Real file:
-
-```txt
-Main/src/app/components/TabNavigation.tsx
-```
-
-Search for:
-
-```tsx
-layoutId="activeTabIndicator"
-```
-
-You will find:
-
-```tsx
-<motion.div
+  ```tsx
   layoutId="activeTabIndicator"
-  className="absolute inset-0 bg-[var(--tab-active-bg)] shadow-md z-0 rounded-xl"
-  transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
-/>
-```
+  ```
 
-Important parts:
+  You will find:
 
-- `motion.div` means this uses Framer Motion animation.
-- `layoutId="activeTabIndicator"` tells Framer Motion that the same blue pill is moving between tabs.
-- `transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}` controls the jelly feeling.
+  ```tsx
+  <motion.div
+    layoutId="activeTabIndicator"
+    className="absolute inset-0 bg-[var(--tab-active-bg)] shadow-md z-0 rounded-xl"
+    transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
+  />
+  ```
 
-If you want more jelly:
+  Important parts:
 
-```tsx
-transition={{ type: "spring", bounce: 0.35, duration: 0.7 }}
-```
+  - `motion.div` means this uses Framer Motion animation.
+  - `layoutId="activeTabIndicator"` tells Framer Motion that the same blue pill is moving between tabs.
+  - `transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}` controls the jelly feeling.
 
-If you want sharper/snappier:
+  If you want more jelly:
 
-```tsx
-transition={{ type: "spring", bounce: 0.05, duration: 0.35 }}
-```
+  ```tsx
+  transition={{ type: "spring", bounce: 0.35, duration: 0.7 }}
+  ```
 
-## How To Change Specialist Tools Dropdown
+  If you want sharper/snappier:
 
-There are two places:
+  ```tsx
+  transition={{ type: "spring", bounce: 0.05, duration: 0.35 }}
+  ```
 
-1. Labels and order:
+  ## How To Change Specialist Tools Dropdown
 
-```txt
-Main/src/app/config/navigation.ts
-```
+  There are two places:
 
-Example:
+  1. Labels and order:
 
-```ts
-export const ANALYSIS_TAB_ORDER = [
-  { id: "dashboard", label: "DIFFERENTIAL CALCULATOR", groupLabel: "Active Tool" },
-  { id: "macro-drivers", label: "MACRO DRIVERS", groupLabel: "Active Tool" },
-  { id: "event-tools", label: "EVENT REPLAY", groupLabel: "Active Experiment" },
-  { id: "prototyping", label: "PROTOTYPING", groupLabel: "Garbage / Ignore" },
-];
-```
+  ```txt
+  Main/src/app/config/navigation.ts
+  ```
 
-Change labels here if you want the dropdown text to change.
+  Example:
 
-2. Dropdown behavior and styling:
+  ```ts
+  export const ANALYSIS_TAB_ORDER = [
+    { id: "dashboard", label: "DIFFERENTIAL CALCULATOR", groupLabel: "Active Tool" },
+    { id: "macro-drivers", label: "MACRO DRIVERS", groupLabel: "Active Tool" },
+    { id: "event-tools", label: "EVENT REPLAY", groupLabel: "Active Experiment" },
+    { id: "prototyping", label: "PROTOTYPING", groupLabel: "Garbage / Ignore" },
+  ];
+  ```
 
-```txt
-Main/src/app/components/TabNavigation.tsx
-```
+  Change labels here if you want the dropdown text to change.
 
-Search for:
+  2. Dropdown behavior and styling:
 
-```tsx
-tab.children!.map
-```
+  ```txt
+  Main/src/app/components/TabNavigation.tsx
+  ```
 
-That area renders each child button in the Specialist Tools dropdown.
+  Search for:
 
-## How To Edit A Popover Or Modal
+  ```tsx
+  tab.children!.map
+  ```
 
-First identify which popover you mean.
+  That area renders each child button in the Specialist Tools dropdown.
 
-Overview:
+  ## How To Edit A Popover Or Modal
 
-- `OverviewReleasePopover` lives in `Main/src/app/components/OverviewPopovers.tsx`
-- `OverviewPairDetailsModal` lives in `Main/src/app/components/OverviewPopovers.tsx`
+  First identify which popover you mean.
 
-Event Replay:
+  Overview:
 
-- `EventReplayBriefModal.tsx`
-- `EventReplayReleaseListModal.tsx`
-- `EventReplaySelectEventModal.tsx`
+  - `OverviewReleasePopover` lives in `Main/src/app/components/OverviewPopovers.tsx`
+  - `OverviewPairDetailsModal` lives in `Main/src/app/components/OverviewPopovers.tsx`
 
-Example: if you want to edit Pair Details, search:
+  Event Replay:
 
-```tsx
-export function OverviewPairDetailsModal
-```
+  - `EventReplayBriefModal.tsx`
+  - `EventReplayReleaseListModal.tsx`
+  - `EventReplaySelectEventModal.tsx`
 
-Inside that function, the structure is usually:
+  Example: if you want to edit Pair Details, search:
 
-```tsx
-<div className="overlay">
-  <section className="modal">
-    <header>...</header>
-    <div className="body">...</div>
+  ```tsx
+  export function OverviewPairDetailsModal
+  ```
+
+  Inside that function, the structure is usually:
+
+  ```tsx
+  <div className="overlay">
+    <section className="modal">
+      <header>...</header>
+      <div className="body">...</div>
+    </section>
+  </div>
+  ```
+
+  To add a section, add another block inside the body:
+
+  ```tsx
+  <section>
+    <h4>My New Section</h4>
+    <p>Useful explanation here.</p>
   </section>
-</div>
-```
+  ```
 
-To add a section, add another block inside the body:
+  To remove a section, delete the block that renders it, but be careful not to delete the closing tags for the modal.
 
-```tsx
-<section>
-  <h4>My New Section</h4>
-  <p>Useful explanation here.</p>
-</section>
-```
+  ## Why Is There Blank Space?
 
-To remove a section, delete the block that renders it, but be careful not to delete the closing tags for the modal.
+  Blank space usually comes from one of these:
 
-## Why Is There Blank Space?
+  - `p-*`: padding inside a box.
+  - `m-*`: margin outside a box.
+  - `gap-*`: space between grid/flex children.
+  - `min-h-*`: minimum height.
+  - `h-[...]`: fixed/custom height.
+  - `flex-1`: this element expands to fill remaining space.
+  - `justify-between`: pushes items apart.
+  - `overflow-hidden` or `overflow-auto`: controls scrolling/cropping.
 
-Blank space usually comes from one of these:
+  Real example:
 
-- `p-*`: padding inside a box.
-- `m-*`: margin outside a box.
-- `gap-*`: space between grid/flex children.
-- `min-h-*`: minimum height.
-- `h-[...]`: fixed/custom height.
-- `flex-1`: this element expands to fill remaining space.
-- `justify-between`: pushes items apart.
-- `overflow-hidden` or `overflow-auto`: controls scrolling/cropping.
+  ```tsx
+  className="workspace-page workspace-page-compact flex h-[calc(100vh-98px)] min-h-[560px] flex-col gap-3 overflow-hidden"
+  ```
 
-Real example:
+  This means:
 
-```tsx
-className="workspace-page workspace-page-compact flex h-[calc(100vh-98px)] min-h-[560px] flex-col gap-3 overflow-hidden"
-```
+  - `h-[calc(100vh-98px)]`: height is the browser height minus 98 pixels.
+  - `min-h-[560px]`: never smaller than 560 pixels.
+  - `gap-3`: space between child sections.
+  - `overflow-hidden`: do not let the whole page scroll.
 
-This means:
+  If a card feels too small:
 
-- `h-[calc(100vh-98px)]`: height is the browser height minus 98 pixels.
-- `min-h-[560px]`: never smaller than 560 pixels.
-- `gap-3`: space between child sections.
-- `overflow-hidden`: do not let the whole page scroll.
+  - increase padding: `p-3` to `p-4` or `p-5`
+  - change grid widths: `lg:grid-cols-[380px_minmax(0,1fr)]`
+  - remove a restrictive max width: `max-w-*`
+  - increase modal width: `max-w-[1180px]` to `max-w-[1320px]`
 
-If a card feels too small:
+  If a card feels too empty:
 
-- increase padding: `p-3` to `p-4` or `p-5`
-- change grid widths: `lg:grid-cols-[380px_minmax(0,1fr)]`
-- remove a restrictive max width: `max-w-*`
-- increase modal width: `max-w-[1180px]` to `max-w-[1320px]`
+  - reduce padding: `p-5` to `p-3`
+  - reduce gap: `gap-4` to `gap-2`
+  - reduce text size: `text-xl` to `text-base`
 
-If a card feels too empty:
+  ## How To Fix Different Sized Boxes
 
-- reduce padding: `p-5` to `p-3`
-- reduce gap: `gap-4` to `gap-2`
-- reduce text size: `text-xl` to `text-base`
+  Different sized boxes usually happen because the content inside them is different length.
 
-## How To Fix Different Sized Boxes
+  Useful tools:
 
-Different sized boxes usually happen because the content inside them is different length.
+  ```tsx
+  grid
+  grid-cols-2
+  items-stretch
+  h-full
+  min-h-[120px]
+  line-clamp-2
+  overflow-hidden
+  ```
 
-Useful tools:
+  Example:
 
-```tsx
-grid
-grid-cols-2
-items-stretch
-h-full
-min-h-[120px]
-line-clamp-2
-overflow-hidden
-```
+  ```tsx
+  <div className="grid gap-3 lg:grid-cols-2">
+    <section className="h-full min-h-[180px]">...</section>
+    <section className="h-full min-h-[180px]">...</section>
+  </div>
+  ```
 
-Example:
+  This says both cards should stretch and have the same minimum height.
 
-```tsx
-<div className="grid gap-3 lg:grid-cols-2">
-  <section className="h-full min-h-[180px]">...</section>
-  <section className="h-full min-h-[180px]">...</section>
-</div>
-```
+  If text makes one box taller, either allow wrapping gracefully or clamp it:
 
-This says both cards should stretch and have the same minimum height.
+  ```tsx
+  <p className="line-clamp-2">Long event title here</p>
+  ```
 
-If text makes one box taller, either allow wrapping gracefully or clamp it:
+  Use clamping only when hiding extra text is acceptable.
 
-```tsx
-<p className="line-clamp-2">Long event title here</p>
-```
+  ## How To Add Cool Effects
 
-Use clamping only when hiding extra text is acceptable.
+  There are two main ways.
 
-## How To Add Cool Effects
+  ### Simple CSS/Tailwind Effects
 
-There are two main ways.
+  Use classes like:
 
-### Simple CSS/Tailwind Effects
+  ```tsx
+  transition
+  transition-all
+  duration-300
+  hover:scale-[1.01]
+  hover:-translate-y-0.5
+  hover:shadow-md
+  active:scale-[0.99]
+  ```
 
-Use classes like:
+  Example:
 
-```tsx
-transition
-transition-all
-duration-300
-hover:scale-[1.01]
-hover:-translate-y-0.5
-hover:shadow-md
-active:scale-[0.99]
-```
+  ```tsx
+  className="rounded-xl border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
+  ```
 
-Example:
+  This makes a card lift slightly on hover and press down on click.
 
-```tsx
-className="rounded-xl border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md active:scale-[0.99]"
-```
+  ### Framer Motion Effects
 
-This makes a card lift slightly on hover and press down on click.
+  Real file:
 
-### Framer Motion Effects
+  ```txt
+  Main/src/app/components/CentralBanksViews.tsx
+  ```
 
-Real file:
+  Search for:
 
-```txt
-Main/src/app/components/CentralBanksViews.tsx
-```
+  ```tsx
+  <motion.div
+  ```
 
-Search for:
+  Example:
 
-```tsx
-<motion.div
-```
+  ```tsx
+  <motion.div
+    initial={{ opacity: 0, y: 10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -10 }}
+  >
+  ```
 
-Example:
+  Read this as:
 
-```tsx
-<motion.div
-  initial={{ opacity: 0, y: 10 }}
-  animate={{ opacity: 1, y: 0 }}
-  exit={{ opacity: 0, y: -10 }}
->
-```
+  - `initial`: how it starts
+  - `animate`: how it settles
+  - `exit`: how it disappears
 
-Read this as:
+  Other useful ideas:
 
-- `initial`: how it starts
-- `animate`: how it settles
-- `exit`: how it disappears
+  ```tsx
+  initial={{ opacity: 0, scale: 0.98 }}
+  animate={{ opacity: 1, scale: 1 }}
+  exit={{ opacity: 0, scale: 0.98 }}
+  ```
 
-Other useful ideas:
+  or:
 
-```tsx
-initial={{ opacity: 0, scale: 0.98 }}
-animate={{ opacity: 1, scale: 1 }}
-exit={{ opacity: 0, scale: 0.98 }}
-```
+  ```tsx
+  initial={{ opacity: 0, x: 20 }}
+  animate={{ opacity: 1, x: 0 }}
+  exit={{ opacity: 0, x: -20 }}
+  ```
 
-or:
+  Use motion for screen changes, modals, drawers, selected panels, and things that should feel spatial.
 
-```tsx
-initial={{ opacity: 0, x: 20 }}
-animate={{ opacity: 1, x: 0 }}
-exit={{ opacity: 0, x: -20 }}
-```
+  Use normal CSS hover classes for small button/card feedback.
 
-Use motion for screen changes, modals, drawers, selected panels, and things that should feel spatial.
+  ## How To Think When You Do Not Know What You Want
 
-Use normal CSS hover classes for small button/card feedback.
+  Do not start with colors. Start with the job.
 
-## How To Think When You Do Not Know What You Want
+  Ask:
 
-Do not start with colors. Start with the job.
+  1. What is the user trying to decide here?
+  2. What should they see first?
+  3. What is secondary and can be hidden behind a popover/modal?
+  4. What is repeated information?
+  5. What is noisy but still useful?
+  6. Does this fit at 100% Chrome zoom without whole-page scrolling?
+  7. Is this a scan surface, a detail surface, or an action surface?
 
-Ask:
+  Examples:
 
-1. What is the user trying to decide here?
-2. What should they see first?
-3. What is secondary and can be hidden behind a popover/modal?
-4. What is repeated information?
-5. What is noisy but still useful?
-6. Does this fit at 100% Chrome zoom without whole-page scrolling?
-7. Is this a scan surface, a detail surface, or an action surface?
+  - Overview should be a scan surface. It should show a pair brief quickly.
+  - Pair Details should be a detail surface. It can show more rows and use internal modal scroll if needed.
+  - Event Replay should be an action/study surface. Pair, event, release, playback, and replay brief need a clear order.
+  - Charts should be an inspection surface. Too many badges or overlays can block the actual chart, so density matters.
 
-Examples:
+  ## The Three UI Levers
 
-- Overview should be a scan surface. It should show a pair brief quickly.
-- Pair Details should be a detail surface. It can show more rows and use internal modal scroll if needed.
-- Event Replay should be an action/study surface. Pair, event, release, playback, and replay brief need a clear order.
-- Charts should be an inspection surface. Too many badges or overlays can block the actual chart, so density matters.
+  When something feels ugly, usually one of these is wrong:
 
-## The Three UI Levers
+  ### 1. Hierarchy
 
-When something feels ugly, usually one of these is wrong:
+  The important thing does not look important enough, or everything is shouting.
 
-### 1. Hierarchy
+  Fix with:
 
-The important thing does not look important enough, or everything is shouting.
+  - bigger title for primary value
+  - smaller labels
+  - less bold text on secondary details
+  - fewer borders
+  - clearer grouping
 
-Fix with:
+  ### 2. Density
 
-- bigger title for primary value
-- smaller labels
-- less bold text on secondary details
-- fewer borders
-- clearer grouping
+  There is too much or too little information in the space.
 
-### 2. Density
+  Fix with:
 
-There is too much or too little information in the space.
+  - compact rows
+  - popovers for details
+  - two-column layout
+  - internal scroll area
+  - removing repeated labels
 
-Fix with:
+  ### 3. Alignment
 
-- compact rows
-- popovers for details
-- two-column layout
-- internal scroll area
-- removing repeated labels
+  Things do not line up, so the eye gets tired.
 
-### 3. Alignment
+  Fix with:
 
-Things do not line up, so the eye gets tired.
+  - `grid`
+  - consistent `gap-*`
+  - consistent `p-*`
+  - same card heights
+  - clear left/right columns
 
-Fix with:
+  ## Good Search Habits
 
-- `grid`
-- consistent `gap-*`
-- consistent `p-*`
-- same card heights
-- clear left/right columns
+  In VS Code, search the visible label first:
 
-## Good Search Habits
+  ```txt
+  Select Event
+  Pair details
+  Specialist Tools
+  Replay Brief
+  Calendar Coverage
+  ```
 
-In VS Code, search the visible label first:
+  If that fails, search a class name from the browser inspector:
 
-```txt
-Select Event
-Pair details
-Specialist Tools
-Replay Brief
-Calendar Coverage
-```
+  ```txt
+  overview-factor-chip
+  chart-event-marker
+  calendar-empty-state
+  ```
 
-If that fails, search a class name from the browser inspector:
+  If that fails, search the route/component name:
 
-```txt
-overview-factor-chip
-chart-event-marker
-calendar-empty-state
-```
+  ```txt
+  OverviewPlaceholderTab
+  EventReplayTab
+  ChartsTab
+  TabNavigation
+  ```
 
-If that fails, search the route/component name:
+  ## How To Make A Safe Tiny Change
 
-```txt
-OverviewPlaceholderTab
-EventReplayTab
-ChartsTab
-TabNavigation
-```
+  1. Pick one visible thing.
+  2. Find the file by searching the label.
+  3. Change one class, one label, or one small block.
+  4. Run the app or refresh the browser.
+  5. If it got worse, undo that one change.
 
-## How To Make A Safe Tiny Change
+  Good first experiments:
 
-1. Pick one visible thing.
-2. Find the file by searching the label.
-3. Change one class, one label, or one small block.
-4. Run the app or refresh the browser.
-5. If it got worse, undo that one change.
+  - Change `bg-blue-50` to `bg-slate-50`.
+  - Change `p-4` to `p-3`.
+  - Change `gap-4` to `gap-2`.
+  - Add `hover:shadow-md`.
+  - Change `rounded-2xl` to `rounded-xl`.
+  - Change `text-xl` to `text-lg`.
 
-Good first experiments:
+  Avoid as a beginner:
 
-- Change `bg-blue-50` to `bg-slate-50`.
-- Change `p-4` to `p-3`.
-- Change `gap-4` to `gap-2`.
-- Add `hover:shadow-md`.
-- Change `rounded-2xl` to `rounded-xl`.
-- Change `text-xl` to `text-lg`.
+  - renaming route ids
+  - editing files under `garbage`
+  - changing bridge code
+  - changing TypeScript types before understanding who uses them
+  - deleting CSS selectors globally
+  - moving files without updating imports
 
-Avoid as a beginner:
+  ## Real Repo Translation Cheatsheet
 
-- renaming route ids
-- editing files under `garbage`
-- changing bridge code
-- changing TypeScript types before understanding who uses them
-- deleting CSS selectors globally
-- moving files without updating imports
+  ```tsx
+  onClick={() => setPairDetailsOpen(true)}
+  ```
 
-## Real Repo Translation Cheatsheet
+  Means: when clicked, open the Pair Details modal.
 
-```tsx
-onClick={() => setPairDetailsOpen(true)}
-```
+  ```tsx
+  {pairDetailsOpen ? <OverviewPairDetailsModal /> : null}
+  ```
 
-Means: when clicked, open the Pair Details modal.
+  Means: show the modal only when `pairDetailsOpen` is true.
 
-```tsx
-{pairDetailsOpen ? <OverviewPairDetailsModal /> : null}
-```
+  ```tsx
+  items.map((item) => <Card key={item.id} />)
+  ```
 
-Means: show the modal only when `pairDetailsOpen` is true.
+  Means: repeat one card for every item.
 
-```tsx
-items.map((item) => <Card key={item.id} />)
-```
+  ```tsx
+  condition ? "bg-blue-50" : "bg-white"
+  ```
 
-Means: repeat one card for every item.
+  Means: use one style if condition is true, otherwise another.
 
-```tsx
-condition ? "bg-blue-50" : "bg-white"
-```
+  ```tsx
+  disabled={!props.nextEvent}
+  ```
 
-Means: use one style if condition is true, otherwise another.
+  Means: disable the button when there is no next event.
 
-```tsx
-disabled={!props.nextEvent}
-```
+  ```tsx
+  className={`rounded-xl ${active ? "bg-slate-950 text-white" : "bg-white text-slate-700"}`}
+  ```
 
-Means: disable the button when there is no next event.
+  Means: always use `rounded-xl`, then choose active or inactive colors.
 
-```tsx
-className={`rounded-xl ${active ? "bg-slate-950 text-white" : "bg-white text-slate-700"}`}
-```
+  ## Best Beginner Rule
 
-Means: always use `rounded-xl`, then choose active or inactive colors.
+  Do not try to understand the whole repo at once.
 
-## Best Beginner Rule
+  Understand one visible thing:
 
-Do not try to understand the whole repo at once.
+  - What file renders it?
+  - What data does it show?
+  - What classes style it?
+  - What state opens/closes/changes it?
 
-Understand one visible thing:
-
-- What file renders it?
-- What data does it show?
-- What classes style it?
-- What state opens/closes/changes it?
-
-That is enough to start making real edits.
+  That is enough to start making real edits.

@@ -3,8 +3,9 @@ import {
   OverviewCurrencyChip,
   OverviewMacroCard,
   OverviewPairDriverSnapshot,
+  OverviewPairWorkbench,
 } from "@/app/components/OverviewPairSummary";
-import { OverviewPairDetailsModal, OverviewReleasePopover } from "@/app/components/OverviewPopovers";
+import { OverviewReleasePopover } from "@/app/components/OverviewPopovers";
 import { FX_PAIRS, getFxPairByName } from "@/app/config/fxPairs";
 import { buildMacroFactorRows } from "@/app/lib/macroDrivers";
 import type { CalendarEvent, CentralBankSnapshot, MarketStatusResponse } from "@/app/types";
@@ -41,7 +42,6 @@ export function OverviewPlaceholderTab({
   onOpenCalendarEvent,
 }: OverviewPlaceholderTabProps) {
   const [releasePopoverOpen, setReleasePopoverOpen] = useState(false);
-  const [pairDetailsOpen, setPairDetailsOpen] = useState(false);
   const pair = resolvePair(selectedSymbol);
   const pairCurrencies = [pair.base, pair.quote];
   const pairEvents = getPairEvents(events, pairCurrencies);
@@ -76,22 +76,21 @@ export function OverviewPlaceholderTab({
         : "Session unknown";
 
   useEffect(() => {
-    if (!releasePopoverOpen && !pairDetailsOpen) return;
+    if (!releasePopoverOpen) return;
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setReleasePopoverOpen(false);
-      setPairDetailsOpen(false);
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [pairDetailsOpen, releasePopoverOpen]);
+  }, [releasePopoverOpen]);
 
   return (
     <div className="workspace-page workspace-page-compact flex h-[calc(100vh-98px)] min-h-[560px] flex-col gap-3 overflow-hidden">
       <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-        <section className="grid gap-3 lg:grid-cols-[minmax(320px,0.82fr)_minmax(0,1.58fr)]">
+        <section className="grid gap-3 lg:grid-cols-2 xl:grid-cols-[minmax(280px,0.85fr)_minmax(260px,1fr)_minmax(260px,1fr)_minmax(330px,1.2fr)]">
           <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -124,6 +123,23 @@ export function OverviewPlaceholderTab({
             </div>
           </div>
 
+          <OverviewMacroCard
+            side="Base"
+            currency={pair.base}
+            snapshot={baseSnapshot}
+            nextEvent={baseNextEvent}
+            currentTime={currentTime}
+            onOpenEvent={onOpenCalendarEvent}
+          />
+          <OverviewMacroCard
+            side="Quote"
+            currency={pair.quote}
+            snapshot={quoteSnapshot}
+            nextEvent={quoteNextEvent}
+            currentTime={currentTime}
+            onOpenEvent={onOpenCalendarEvent}
+          />
+
           <OverviewPairDriverSnapshot
             pairName={pair.name}
             nextEvent={nextEvent}
@@ -132,32 +148,21 @@ export function OverviewPlaceholderTab({
             currentTime={currentTime}
             onOpenEvent={onOpenCalendarEvent}
             onOpenReleases={() => setReleasePopoverOpen(true)}
-            onOpenDetails={() => setPairDetailsOpen(true)}
           />
         </section>
 
-        <section className="mt-3 grid gap-3 lg:grid-cols-2">
-          <OverviewMacroCard
-            side="Base"
-            currency={pair.base}
-            snapshot={baseSnapshot}
-            nextEvent={baseNextEvent}
-            factorRows={baseFactorRows}
-            currentTime={currentTime}
-            onOpenEvent={onOpenCalendarEvent}
-            onOpenDetails={() => setPairDetailsOpen(true)}
-          />
-          <OverviewMacroCard
-            side="Quote"
-            currency={pair.quote}
-            snapshot={quoteSnapshot}
-            nextEvent={quoteNextEvent}
-            factorRows={quoteFactorRows}
-            currentTime={currentTime}
-            onOpenEvent={onOpenCalendarEvent}
-            onOpenDetails={() => setPairDetailsOpen(true)}
-          />
-        </section>
+        <OverviewPairWorkbench
+          pairName={pair.name}
+          baseCurrency={pair.base}
+          quoteCurrency={pair.quote}
+          baseRows={baseFactorRows}
+          quoteRows={quoteFactorRows}
+          upcomingEvents={upcomingEvents}
+          recentEvents={recentEvents}
+          currentTime={currentTime}
+          onOpenEvent={onOpenCalendarEvent}
+          onOpenReleases={() => setReleasePopoverOpen(true)}
+        />
       </div>
 
       {releasePopoverOpen ? (
@@ -173,17 +178,6 @@ export function OverviewPlaceholderTab({
         />
       ) : null}
 
-      {pairDetailsOpen ? (
-        <OverviewPairDetailsModal
-          pairName={pair.name}
-          baseCurrency={pair.base}
-          quoteCurrency={pair.quote}
-          baseFactorRows={baseFactorRows}
-          quoteFactorRows={quoteFactorRows}
-          onOpenEvent={onOpenCalendarEvent}
-          onClose={() => setPairDetailsOpen(false)}
-        />
-      ) : null}
     </div>
   );
 }

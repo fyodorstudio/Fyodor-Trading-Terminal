@@ -1,7 +1,6 @@
 import { X } from "lucide-react";
 import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import { formatCountdown, formatUtcDateTime } from "@/app/lib/format";
-import type { MacroFactorRow } from "@/app/lib/macroDrivers";
 import type { CalendarEvent } from "@/app/types";
 
 const IMPACT_STYLE: Record<CalendarEvent["impact"], string> = {
@@ -13,11 +12,6 @@ const IMPACT_STYLE: Record<CalendarEvent["impact"], string> = {
 interface OverviewReleaseGroup {
   label: string;
   events: CalendarEvent[];
-}
-
-function formatEventTitleWithCurrency(event: CalendarEvent): string {
-  const suffix = `(${event.currency})`;
-  return event.title.includes(suffix) ? event.title : `${event.title} ${suffix}`;
 }
 
 function EventRow(props: {
@@ -96,58 +90,6 @@ function ReleaseCurrencyGroup(props: {
   );
 }
 
-function FactorDetailCard({ row, onOpen }: { row: MacroFactorRow; onOpen: (event: CalendarEvent) => void }) {
-  return (
-    <article className="overview-factor-detail-card">
-      <div className="overview-factor-detail-card-head">
-        <span>{row.factor.label}</span>
-      </div>
-      <div className="overview-factor-latest">
-        <span>Latest loaded release</span>
-        <p title={row.summary}>{row.summary}</p>
-      </div>
-      <div className="overview-factor-next">
-        <span>Next loaded event</span>
-        {row.nextEvent ? (
-          <button
-            type="button"
-            onClick={() => onOpen(row.nextEvent as CalendarEvent)}
-            title={formatEventTitleWithCurrency(row.nextEvent)}
-          >
-            {formatEventTitleWithCurrency(row.nextEvent)}
-          </button>
-        ) : (
-          <span>No upcoming matching row is loaded.</span>
-        )}
-      </div>
-    </article>
-  );
-}
-
-function FactorDetailsGroup(props: {
-  currency: string;
-  rows: MacroFactorRow[];
-  onOpen: (event: CalendarEvent) => void;
-}) {
-  const covered = props.rows.filter((row) => row.coverageLabel !== "Missing").length;
-  return (
-    <section className="overview-factor-detail-group">
-      <header className="overview-factor-detail-currency-head">
-        <div>
-          <span>Currency</span>
-          <strong>{props.currency}</strong>
-        </div>
-        <em>{covered} / {props.rows.length} covered</em>
-      </header>
-      <div className="overview-factor-detail-card-row">
-        {props.rows.map((row) => (
-          <FactorDetailCard key={`${row.currency}-${row.factor.id}`} row={row} onOpen={props.onOpen} />
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export function OverviewReleasePopover(props: {
   pairName: string;
   upcomingEvents: CalendarEvent[];
@@ -219,48 +161,6 @@ export function OverviewReleasePopover(props: {
               ))}
             </div>
           </section>
-        </div>
-      </section>
-    </div>
-  );
-}
-
-export function OverviewPairDetailsModal(props: {
-  pairName: string;
-  baseCurrency: string;
-  quoteCurrency: string;
-  baseFactorRows: MacroFactorRow[];
-  quoteFactorRows: MacroFactorRow[];
-  onOpenEvent: (event: CalendarEvent) => void;
-  onClose: () => void;
-}) {
-  return (
-    <div className="overview-pair-detail-overlay" onClick={props.onClose}>
-      <section
-        className="overview-factor-detail-popover"
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${props.pairName} pair details`}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <header className="overview-factor-detail-popover-head">
-          <div>
-            <span>Pair details</span>
-            <h3>{props.pairName}</h3>
-          </div>
-          <button type="button" aria-label="Close pair details" onClick={props.onClose}>
-            <X className="h-4 w-4" />
-          </button>
-        </header>
-
-        <div className="overview-factor-detail-popover-body">
-          <div className="overview-factor-detail-note">
-            Loaded broker/MT5 rows only. Missing coverage means this feed has no matching evidence, not that the factor does not matter.
-          </div>
-          <div className="overview-factor-detail-focus">
-            <FactorDetailsGroup currency={props.baseCurrency} rows={props.baseFactorRows} onOpen={props.onOpenEvent} />
-            <FactorDetailsGroup currency={props.quoteCurrency} rows={props.quoteFactorRows} onOpen={props.onOpenEvent} />
-          </div>
         </div>
       </section>
     </div>

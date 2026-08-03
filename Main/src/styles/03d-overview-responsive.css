@@ -3,19 +3,31 @@
     grid-template-columns: 1fr;
   }
 
-  .overview-factor-detail-popover {
-    width: min(100%, calc(100vw - 24px));
-    max-height: calc(100vh - 92px);
+  .overview-pair-workbench {
+    padding: 10px;
   }
 
-  .overview-factor-detail-group,
-  .overview-factor-detail-card-row {
+  .overview-pair-workbench-head,
+  .overview-event-timeline-head,
+  .overview-factor-list-head,
+  .overview-pair-matrix-head {
+    display: grid;
+  }
+
+  .overview-pair-workbench-head p {
+    text-align: left;
+  }
+
+  .overview-event-timeline-row {
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .overview-event-timeline-item {
+    min-width: 190px;
+  }
+
+  .overview-workbench-grid {
     grid-template-columns: 1fr;
-  }
-
-  .overview-factor-detail-popover-head,
-  .overview-factor-detail-popover-body {
-    padding-left: 14px;
-    padding-right: 14px;
   }
 }

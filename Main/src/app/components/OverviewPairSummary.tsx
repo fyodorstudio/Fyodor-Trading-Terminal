@@ -1,6 +1,7 @@
-import { ArrowRight, Database, Info } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
+import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import { formatCountdown, formatDateOnly } from "@/app/lib/format";
 import type { MacroFactorRow } from "@/app/lib/macroDrivers";
 import type { CalendarEvent, CentralBankSnapshot } from "@/app/types";
@@ -12,14 +13,6 @@ function resolveCountryCode(currency: string, snapshot: CentralBankSnapshot | nu
 
 function renderMetric(value: string | null): string {
   return value && value.trim() !== "" ? value : "N/A";
-}
-
-function getOverviewFactorChipLabel(row: MacroFactorRow): string {
-  if (row.coverageLabel === "Missing") return "No loaded rows";
-  if (row.latestEvent && row.nextEvent) return "Latest + next";
-  if (row.latestEvent) return "Latest row";
-  if (row.nextEvent) return "Next row";
-  return row.coverageLabel;
 }
 
 export function OverviewCurrencyChip(props: {
@@ -43,10 +36,8 @@ export function OverviewMacroCard(props: {
   currency: string;
   snapshot: CentralBankSnapshot | null;
   nextEvent: CalendarEvent | null;
-  factorRows: MacroFactorRow[];
   currentTime: Date;
   onOpenEvent: (event: CalendarEvent) => void;
-  onOpenDetails: () => void;
 }) {
   const countryCode = resolveCountryCode(props.currency, props.snapshot);
   const status = props.snapshot?.status ?? "missing";
@@ -104,44 +95,6 @@ export function OverviewMacroCard(props: {
         </div>
       </div>
 
-      <div className="mt-3 border-t border-slate-100 pt-3">
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <span className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Factor coverage</span>
-          <button
-            type="button"
-            onClick={props.onOpenDetails}
-            className="inline-flex items-center gap-1 text-[11px] font-black text-blue-600"
-          >
-            Pair details <Info className="h-3.5 w-3.5" />
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          {props.factorRows.slice(0, 2).map((row) => (
-            <button
-              key={`${row.currency}-${row.factor.id}`}
-              type="button"
-              onClick={props.onOpenDetails}
-              className={`overview-factor-chip ${row.coverageLabel === "Missing" ? "is-missing" : row.nextEvent ? "is-scheduled" : "is-current"}`}
-              title={`${row.factor.label}: ${row.summary}`}
-            >
-              <span>{row.factor.label}</span>
-              <strong>{getOverviewFactorChipLabel(row)}</strong>
-            </button>
-          ))}
-          {props.factorRows.length > 2 ? (
-            <button
-              type="button"
-              onClick={props.onOpenDetails}
-              className="overview-factor-chip overview-factor-chip-more"
-              title="Open all pair factor details"
-            >
-              <span>More factors</span>
-              <strong>+{props.factorRows.length - 2}</strong>
-            </button>
-          ) : null}
-        </div>
-      </div>
-
       {props.nextEvent ? (
         <button
           type="button"
@@ -171,7 +124,6 @@ export function OverviewPairDriverSnapshot(props: {
   currentTime: Date;
   onOpenEvent: (event: CalendarEvent) => void;
   onOpenReleases: () => void;
-  onOpenDetails: () => void;
 }) {
   const coveredRows = props.factorRows.filter((row) => row.coverageLabel !== "Missing");
   const scheduledRows = props.factorRows.filter((row) => row.nextEvent);
@@ -221,21 +173,204 @@ export function OverviewPairDriverSnapshot(props: {
         </span>
       </button>
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+      <div className="mt-3">
         <button
           type="button"
           onClick={props.onOpenReleases}
-          className="inline-flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 transition hover:border-blue-200 hover:bg-blue-100"
+          className="inline-flex w-full items-center justify-between rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-black text-blue-700 transition hover:border-blue-200 hover:bg-blue-100"
         >
           See recent releases <ArrowRight className="h-4 w-4" />
         </button>
-        <button
-          type="button"
-          onClick={props.onOpenDetails}
-          className="inline-flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-700 transition hover:border-slate-300 hover:bg-white"
-        >
-          Pair details <Database className="h-4 w-4" />
-        </button>
+      </div>
+    </section>
+  );
+}
+
+function formatEventName(event: CalendarEvent | null): string {
+  if (!event) return "No loaded event";
+  const suffix = `(${event.currency})`;
+  return event.title.includes(suffix) ? event.title : `${event.title} ${suffix}`;
+}
+
+function formatLatestEvidence(row: MacroFactorRow | null): string {
+  if (!row || !row.latestEvent || row.coverageLabel === "Missing") return "No loaded row";
+  return row.summary;
+}
+
+function formatNextEvidence(row: MacroFactorRow | null): string {
+  if (!row || !row.nextEvent) return "No loaded event";
+  return formatEventName(row.nextEvent);
+}
+
+function getFactorStatus(row: MacroFactorRow | null): string {
+  if (!row || row.coverageLabel === "Missing") return "Missing";
+  if (row.latestEvent && row.nextEvent) return "Latest + next";
+  if (row.latestEvent) return "Latest only";
+  if (row.nextEvent) return "Next only";
+  return row.coverageLabel;
+}
+
+function getImpactClass(impact: CalendarEvent["impact"]): string {
+  if (impact === "high") return "is-high";
+  if (impact === "medium") return "is-medium";
+  return "is-low";
+}
+
+function TimelineItem(props: {
+  event: CalendarEvent;
+  currentTime: Date;
+  mode: "upcoming" | "recent";
+  onOpenEvent: (event: CalendarEvent) => void;
+}) {
+  const actual = getEventValueDisplay(props.event.actual, props.event.title);
+  const forecast = getEventValueDisplay(props.event.forecast, props.event.title);
+  const previous = getEventValueDisplay(props.event.previous, props.event.title);
+  const valueTitle = `Actual: ${actual.title} Forecast: ${forecast.title} Previous: ${previous.title}`;
+
+  return (
+    <button
+      type="button"
+      className={`overview-event-timeline-item ${getImpactClass(props.event.impact)}`}
+      onClick={() => props.onOpenEvent(props.event)}
+      title={`${props.event.currency} ${props.event.title}. ${valueTitle}`}
+    >
+      <span className="overview-event-timeline-currency">{props.event.currency}</span>
+      <strong>{props.event.title}</strong>
+      <em>
+        {props.mode === "upcoming"
+          ? formatCountdown(props.event.time, props.currentTime.getTime())
+          : formatDateOnly(props.event.time)}
+      </em>
+    </button>
+  );
+}
+
+export function OverviewPairWorkbench(props: {
+  pairName: string;
+  baseCurrency: string;
+  quoteCurrency: string;
+  baseRows: MacroFactorRow[];
+  quoteRows: MacroFactorRow[];
+  upcomingEvents: CalendarEvent[];
+  recentEvents: CalendarEvent[];
+  currentTime: Date;
+  onOpenEvent: (event: CalendarEvent) => void;
+  onOpenReleases: () => void;
+}) {
+  const factorMap = new Map<string, MacroFactorRow["factor"]>();
+  [...props.baseRows, ...props.quoteRows].forEach((row) => factorMap.set(row.factor.id, row.factor));
+  const factors = Array.from(factorMap.values());
+  const visibleUpcoming = props.upcomingEvents.slice(0, 5);
+  const visibleRecent = props.recentEvents.slice(0, Math.max(0, 7 - visibleUpcoming.length));
+  const hiddenEventCount = Math.max(0, props.upcomingEvents.length + props.recentEvents.length - visibleUpcoming.length - visibleRecent.length);
+
+  return (
+    <section className="overview-pair-workbench">
+      <header className="overview-pair-workbench-head">
+        <div>
+          <span>Pair detail workbench</span>
+          <h3>{props.pairName}</h3>
+        </div>
+        <p>Loaded broker/MT5 rows only. Missing rows mean no matching evidence is loaded in the current feed.</p>
+      </header>
+
+      <section className="overview-event-timeline">
+        <div className="overview-event-timeline-head">
+          <div>
+            <span>Pair Event Timeline</span>
+            <strong>Upcoming first, recent releases after</strong>
+          </div>
+          <button type="button" onClick={props.onOpenReleases}>
+            View expanded feed
+            {hiddenEventCount > 0 ? <em>+{hiddenEventCount}</em> : null}
+          </button>
+        </div>
+        <div className="overview-event-timeline-row">
+          {visibleUpcoming.map((event) => (
+            <TimelineItem
+              key={`upcoming-${event.id}-${event.time}-${event.title}`}
+              event={event}
+              currentTime={props.currentTime}
+              mode="upcoming"
+              onOpenEvent={props.onOpenEvent}
+            />
+          ))}
+          {visibleRecent.length > 0 ? <div className="overview-event-timeline-split">Recent</div> : null}
+          {visibleRecent.map((event) => (
+            <TimelineItem
+              key={`recent-${event.id}-${event.time}-${event.title}`}
+              event={event}
+              currentTime={props.currentTime}
+              mode="recent"
+              onOpenEvent={props.onOpenEvent}
+            />
+          ))}
+          {visibleUpcoming.length === 0 && visibleRecent.length === 0 ? (
+            <div className="overview-event-timeline-empty">No pair-relevant calendar rows are loaded.</div>
+          ) : null}
+        </div>
+      </section>
+
+      <div className="overview-workbench-grid">
+        <aside className="overview-factor-list-panel">
+          <div className="overview-factor-list-head">
+            <span>Factor coverage</span>
+            <strong>{props.baseCurrency} / {props.quoteCurrency}</strong>
+          </div>
+          <div className="overview-factor-list">
+            {factors.map((factor) => {
+              const baseRow = props.baseRows.find((row) => row.factor.id === factor.id) ?? null;
+              const quoteRow = props.quoteRows.find((row) => row.factor.id === factor.id) ?? null;
+              return (
+                <div key={factor.id} className="overview-factor-list-row">
+                  <strong>{factor.label}</strong>
+                  <div>
+                    <span>{props.baseCurrency}: {getFactorStatus(baseRow)}</span>
+                    <span>{props.quoteCurrency}: {getFactorStatus(quoteRow)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </aside>
+
+        <section className="overview-pair-matrix-panel">
+          <div className="overview-pair-matrix-head">
+            <div>
+              <span>Pair Matrix</span>
+              <strong>Latest evidence vs next loaded event</strong>
+            </div>
+            <em>Informational, not a trade signal</em>
+          </div>
+          <div className="overview-pair-matrix-scroll">
+            <table className="overview-pair-matrix">
+              <thead>
+                <tr>
+                  <th>Factor</th>
+                  <th>{props.baseCurrency} latest</th>
+                  <th>{props.baseCurrency} next</th>
+                  <th>{props.quoteCurrency} latest</th>
+                  <th>{props.quoteCurrency} next</th>
+                </tr>
+              </thead>
+              <tbody>
+                {factors.map((factor) => {
+                  const baseRow = props.baseRows.find((row) => row.factor.id === factor.id) ?? null;
+                  const quoteRow = props.quoteRows.find((row) => row.factor.id === factor.id) ?? null;
+                  return (
+                    <tr key={factor.id}>
+                      <th scope="row">{factor.label}</th>
+                      <td>{formatLatestEvidence(baseRow)}</td>
+                      <td>{formatNextEvidence(baseRow)}</td>
+                      <td>{formatLatestEvidence(quoteRow)}</td>
+                      <td>{formatNextEvidence(quoteRow)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
       </div>
     </section>
   );
