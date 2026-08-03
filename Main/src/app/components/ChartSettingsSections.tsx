@@ -1,4 +1,4 @@
-import { Activity, CalendarDays, HardDrive, MousePointer2, Palette, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
+import { Activity, CalendarDays, Gauge, HardDrive, MousePointer2, Palette, RotateCcw, SlidersHorizontal, Trash2 } from "lucide-react";
 import type {
   ChartAppearancePreferences,
   ChartCursorReadoutMode,
@@ -43,6 +43,19 @@ export interface ChartCacheDrawerData {
   streamLabel: string;
   boundaryLabel: string;
   onClearCache: () => void;
+}
+
+export interface ChartReplayDrawerData {
+  defaultSpeed: number;
+  stepCandles: number;
+  speedOptions: number[];
+  stepOptions: number[];
+  onDefaultSpeedChange: (speed: number) => void;
+  onStepCandlesChange: (count: number) => void;
+}
+
+export interface ChartDebugDrawerData {
+  debugLines: string[];
 }
 
 export function findChartOptionLabel<T extends string>(options: Array<{ id: T; label: string }>, id: T): string {
@@ -234,107 +247,150 @@ export function ChartEventSettings({
     <section className="charts-history-section chart-drawer-card">
       <h3>
         <CalendarDays size={14} />
-        Event Timeline
+        Events
       </h3>
-      <p>
-        Draw loaded broker/MT5 calendar events directly over the candle chart. These markers show event timing context, not trade calls.
-      </p>
-      <label className="chart-settings-check chart-settings-check-card">
+      <label className="chart-settings-check chart-settings-check-card chart-settings-check-strong">
         <input
           type="checkbox"
           checked={eventOverlay.visible}
           onChange={(event) => onEventOverlayChange("visible", event.target.checked)}
         />
-        <span>Show event lines on chart</span>
+        <span>Show event rail</span>
       </label>
       <div className="chart-event-settings-grid">
-        <div>
-          <span className="chart-event-settings-label">Impact</span>
-          <div className="chart-drawer-segmented chart-drawer-segmented-compact">
+        <label className="chart-settings-row">
+          <span>Impact</span>
+          <select
+            value={eventOverlay.impactFilter}
+            onChange={(event) => onEventOverlayChange("impactFilter", event.target.value as ChartEventOverlayImpactFilter)}
+          >
             {CHART_EVENT_IMPACT_OPTIONS.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                className={eventOverlay.impactFilter === option.id ? "is-active" : ""}
-                onClick={() => onEventOverlayChange("impactFilter", option.id)}
-              >
-                <span>{option.label}</span>
-                <small>{option.description}</small>
-              </button>
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
             ))}
-          </div>
-        </div>
-        <label className="chart-settings-row chart-settings-row-stacked">
-          <span>Maximum markers</span>
+          </select>
+        </label>
+        <label className="chart-settings-row">
+          <span>Currency scope</span>
+          <select
+            value={eventOverlay.scope}
+            onChange={(event) => onEventOverlayChange("scope", event.target.value as ChartEventOverlayPreferences["scope"])}
+          >
+            {CHART_EVENT_SCOPE_OPTIONS.map((option) => (
+              <option key={option.id} value={option.id}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="chart-settings-row">
+          <span>Max markers</span>
           <select
             value={eventOverlay.maxMarkers}
             onChange={(event) => onEventOverlayChange("maxMarkers", Number(event.target.value))}
           >
             {EVENT_MARKER_LIMIT_OPTIONS.map((limit) => (
               <option key={limit} value={limit}>
-                {limit} markers
+                {limit}
               </option>
             ))}
           </select>
-          <small>Hard cap for visible-range markers before clustering.</small>
         </label>
       </div>
-      <span className="chart-event-settings-label">Currency scope</span>
-      <div className="chart-drawer-segmented">
-        {CHART_EVENT_SCOPE_OPTIONS.map((option) => (
-          <button
-            key={option.id}
-            type="button"
-            className={eventOverlay.scope === option.id ? "is-active" : ""}
-            onClick={() => onEventOverlayChange("scope", option.id)}
-          >
-            <span>{option.label}</span>
-            <small>{option.description}</small>
-          </button>
-        ))}
-      </div>
       <p className="chart-event-settings-note">
-        Event lines only use calendar rows already loaded by the local bridge. Missing old rows do not mean no event happened there.
+        Loaded broker/MT5 calendar rows only. Missing old markers mean the rows are not loaded.
       </p>
     </section>
   );
 }
 
-export function ChartCacheSettings({ cacheData }: { cacheData: ChartCacheDrawerData }) {
+export function ChartReplaySettings({ replayData }: { replayData: ChartReplayDrawerData }) {
+  return (
+    <section className="charts-history-section chart-drawer-card">
+      <h3>
+        <Gauge size={14} />
+        Replay
+      </h3>
+      <div className="chart-event-settings-grid">
+        <label className="chart-settings-row">
+          <span>Default speed</span>
+          <select value={replayData.defaultSpeed} onChange={(event) => replayData.onDefaultSpeedChange(Number(event.target.value))}>
+            {replayData.speedOptions.map((speed) => (
+              <option key={speed} value={speed}>{speed}x</option>
+            ))}
+          </select>
+        </label>
+        <label className="chart-settings-row">
+          <span>Step size</span>
+          <select value={replayData.stepCandles} onChange={(event) => replayData.onStepCandlesChange(Number(event.target.value))}>
+            {replayData.stepOptions.map((count) => (
+              <option key={count} value={count}>{count} candle{count === 1 ? "" : "s"}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <p className="chart-event-settings-note">
+        Replay uses candles already loaded in the current chart cache.
+      </p>
+    </section>
+  );
+}
+
+export function ChartDiagnosticsSettings({
+  cacheData,
+  debugData,
+}: {
+  cacheData?: ChartCacheDrawerData;
+  debugData?: ChartDebugDrawerData;
+}) {
   return (
     <div className="chart-settings-grid">
-      <section className="charts-history-section chart-drawer-card">
-        <h3>
-          <HardDrive size={14} />
-          Local Candle Cache
-        </h3>
-        <p>
-          Cached candles are scoped to <strong>{cacheData.selectedSymbol} {cacheData.timeframe}</strong>. They keep the chart readable while MT5 refreshes fresh broker history.
-        </p>
-        <div className="chart-cache-grid chart-cache-grid-wide">
-          <ChartDrawerMetric label="Symbol" value={cacheData.selectedSymbol} />
-          <ChartDrawerMetric label="Timeframe" value={cacheData.timeframe} />
-          <ChartDrawerMetric label="Candles" value={cacheData.candleCount} />
-          <ChartDrawerMetric label="Oldest cached candle" value={cacheData.oldestLabel} />
-          <ChartDrawerMetric label="Latest cached candle" value={cacheData.latestLabel} />
-          <ChartDrawerMetric label="Boundary" value={cacheData.boundaryLabel} />
-        </div>
-        <button type="button" className="chart-danger-button" onClick={cacheData.onClearCache}>
-          <Trash2 size={14} />
-          Clear cached candles for this symbol/timeframe
-        </button>
-      </section>
+      {cacheData ? (
+        <section className="charts-history-section chart-drawer-card">
+          <h3>
+            <HardDrive size={14} />
+            Local Candle Cache
+          </h3>
+          <div className="chart-cache-grid chart-cache-grid-wide">
+            <ChartDrawerMetric label="Symbol" value={cacheData.selectedSymbol} />
+            <ChartDrawerMetric label="Timeframe" value={cacheData.timeframe} />
+            <ChartDrawerMetric label="Candles" value={cacheData.candleCount} />
+            <ChartDrawerMetric label="Oldest cached candle" value={cacheData.oldestLabel} />
+            <ChartDrawerMetric label="Latest cached candle" value={cacheData.latestLabel} />
+            <ChartDrawerMetric label="Boundary" value={cacheData.boundaryLabel} />
+            <ChartDrawerMetric label="History state" value={cacheData.historyState} />
+            <ChartDrawerMetric label="Stream" value={cacheData.streamLabel} />
+          </div>
+          <button type="button" className="chart-danger-button" onClick={cacheData.onClearCache}>
+            <Trash2 size={14} />
+            Clear cached candles for this symbol/timeframe
+          </button>
+        </section>
+      ) : null}
 
-      <section className="charts-history-section chart-drawer-card">
-        <h3>
-          <Activity size={14} />
-          Diagnostics
-        </h3>
-        <div className="chart-diagnostics-list">
-          <ChartDrawerMetric label="History state" value={cacheData.historyState} />
-          <ChartDrawerMetric label="Stream" value={cacheData.streamLabel} />
-        </div>
-      </section>
+      {debugData ? (
+        <section className="charts-history-section chart-drawer-card">
+          <h3>
+            <Activity size={14} />
+            Terminal Console
+          </h3>
+          <div className="chart-console-diagnostics">
+            {debugData.debugLines.length === 0 ? (
+              <div className="chart-console-empty">Awaiting first market event...</div>
+            ) : (
+              debugData.debugLines.map((line, index) => <div key={index}>{line}</div>)
+            )}
+          </div>
+          <button
+            type="button"
+            className="charts-history-reset"
+            onClick={() => void navigator.clipboard.writeText(debugData.debugLines.join("\n") || "(empty)")}
+          >
+            Copy logs
+          </button>
+        </section>
+      ) : null}
     </div>
   );
 }

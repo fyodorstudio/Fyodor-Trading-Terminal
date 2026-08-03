@@ -34,34 +34,40 @@ This file is the current command board. Future AI sessions should read this befo
 
 ### 1. Charts Event Replay Lens
 
-- [ ] Treat Charts as the main price-event-replay workspace for the next implementation pass.
-- [ ] Redesign chart event markers:
-  - [ ] default to selected-pair relevant, high-impact loaded broker/MT5 calendar rows only;
-  - [ ] use a bottom event rail with subtle dots/badges;
-  - [ ] show vertical guide lines only on hover or selected event;
-  - [ ] cluster nearby events and open the Event Lens when a marker/cluster is clicked.
-- [ ] Add an `Event Lens` bottom deck:
-  - [ ] compact state shows selected event, event time, actual, forecast, previous, surprise, observed move, and Play/Pause;
-  - [ ] expand on hover/focus;
-  - [ ] click pins the deck open so replay controls do not disappear mid-study;
-  - [ ] expanded state shows essential replay controls and compact base/quote evidence rows;
-  - [ ] include a small `Open in Calendar` action without automatically navigating away.
-- [ ] Add Charts-native replay:
-  - [ ] use currently loaded/cached chart candles only for v1;
-  - [ ] anchor replay to the nearest candle or candle bucket for the selected timeframe;
-  - [ ] hide candles to the right of the selected event, then reveal forward during playback;
-  - [ ] define observed move as event candle price to current replay cursor candle;
-  - [ ] keep visible replay controls to Play/Pause, Reset, Step, and Speed.
-- [ ] Simplify Charts settings:
-  - [ ] organize drawer tabs as `Appearance`, `Events`, `Replay`, and `Diagnostics`;
-  - [ ] move Terminal Console into `Diagnostics`;
-  - [ ] keep event settings as minimal checkboxes/selects with minimal explanatory text;
-  - [ ] keep technical replay settings inside the drawer, not the Event Lens compact strip.
-- [ ] Do not redesign Overview, the existing Event Replay tab, old experiments, or CSS ownership as part of this Charts pass.
+- [x] Treat Charts as the main price-event-replay workspace for the next implementation pass.
+- [x] Redesign chart event markers:
+  - [x] default to selected-pair relevant, high-impact loaded broker/MT5 calendar rows only;
+  - [x] use a bottom event rail with subtle dots/badges;
+  - [x] show vertical guide lines only on hover or selected event;
+  - [x] cluster nearby events and open the Event Lens when a marker/cluster is clicked.
+- [x] Add an `Event Lens` bottom deck:
+  - [x] compact state shows selected event, event time, actual, forecast, previous, surprise, observed move, and Play/Pause;
+  - [x] expand on hover/focus;
+  - [x] click pins the deck open so replay controls do not disappear mid-study;
+  - [x] expanded state shows essential replay controls and compact base/quote evidence rows;
+  - [x] include a small `Open in Calendar` action without automatically navigating away.
+- [x] Add Charts-native replay:
+  - [x] use currently loaded/cached chart candles only for v1;
+  - [x] anchor replay to the nearest candle or candle bucket for the selected timeframe;
+  - [x] hide candles to the right of the selected event, then reveal forward during playback;
+  - [x] define observed move as event candle price to current replay cursor candle;
+  - [x] keep visible replay controls to Play/Pause, Reset, Step, and Speed.
+- [x] Simplify Charts settings:
+  - [x] organize drawer tabs as `Appearance`, `Events`, `Replay`, and `Diagnostics`;
+  - [x] move Terminal Console into `Diagnostics`;
+  - [x] keep event settings as minimal checkboxes/selects with minimal explanatory text;
+  - [x] keep technical replay settings inside the drawer, not the Event Lens compact strip.
+- [x] Do not redesign Overview, the existing Event Replay tab, old experiments, or CSS ownership as part of this Charts pass.
+- [x] Verified with targeted tests, build, and 1440x900 Chrome/CDP inspection:
+  - [x] no whole-page chart scroll;
+  - [x] event rail does not cover the x-axis;
+  - [x] clicking a marker dot opens Event Lens;
+  - [x] replay hides future candles and play advances the cursor/observed move;
+  - [x] Terminal Console is no longer visible below the chart.
 
 ### 2. CSS Monolith Split And Guardrails
 
-- [ ] Start after the Charts Event Replay Lens lane; do not mix the Charts replay redesign and CSS split in one commit.
+- [x] Start after the Charts Event Replay Lens lane; do not mix the Charts replay redesign and CSS split in one commit.
 - [x] Pass 1: extract existing selectors into ordered files with no selector renames and no behavior changes.
 - [ ] Pass 2: separate active surface CSS from garbage/prototype CSS.
   - [x] Active Economic Calendar polish styles are isolated from Archived Event Quality CSS.
@@ -97,6 +103,7 @@ This file is the current command board. Future AI sessions should read this befo
 - [x] Overview was rebuilt fresh from `OverviewPlaceholderTab.tsx`, not Deprecated Overview.
 - [x] Overview has pair selector, Pair Driver Snapshot, base/quote macro cards, factor chips, and recent-release popovers.
 - [x] Charts event overlay uses a bottom rail, visible cluster dots, badge thinning, density caps, and honest event-causality wording.
+- [x] Charts Event Replay Lens opens from chart event markers and replays loaded candles in place.
 - [x] Chart settings drawer has compact current-settings summary and readable wrapping.
 - [x] Economic Calendar table uses an internal desktop scroll region and wraps event titles, timezone labels, and source values.
 - [x] Economic Calendar selected-event drawer uses shared explainer data for practical event context without trade calls.

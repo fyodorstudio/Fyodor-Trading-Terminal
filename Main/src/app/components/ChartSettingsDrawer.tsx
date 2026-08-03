@@ -1,13 +1,14 @@
-import { CalendarDays, HardDrive, MousePointer2, Palette, X } from "lucide-react";
+import { Activity, CalendarDays, Gauge, Palette, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { ReactNode } from "react";
 import {
   ChartAppearanceSettings,
-  ChartCacheSettings,
   type ChartCacheDrawerData,
-  ChartCursorSettings,
+  ChartDiagnosticsSettings,
+  type ChartDebugDrawerData,
   ChartEventSettings,
-  CHART_CURSOR_MODE_OPTIONS,
+  ChartReplaySettings,
+  type ChartReplayDrawerData,
   CHART_EVENT_IMPACT_OPTIONS,
   CHART_EVENT_SCOPE_OPTIONS,
   findChartOptionLabel,
@@ -19,7 +20,7 @@ import type {
   ChartPreferences,
 } from "@/app/lib/chartView";
 
-export type ChartDrawerMode = "appearance" | "cursor" | "events" | "cache";
+export type ChartDrawerMode = "appearance" | "events" | "replay" | "diagnostics";
 
 interface ChartSettingsDrawerProps {
   open: boolean;
@@ -34,7 +35,9 @@ interface ChartSettingsDrawerProps {
     value: ChartEventOverlayPreferences[K],
   ) => void;
   onResetAppearance: () => void;
+  replayData?: ChartReplayDrawerData;
   cacheData?: ChartCacheDrawerData;
+  debugData?: ChartDebugDrawerData;
   title?: string;
   description?: string;
 }
@@ -49,19 +52,20 @@ export function ChartSettingsDrawer({
   onAppearanceChange,
   onEventOverlayChange,
   onResetAppearance,
+  replayData,
   cacheData,
+  debugData,
   title = "Chart Settings",
-  description = "Cursor behavior, visual appearance, and local chart cache for the active chart.",
+  description = "Visuals, event markers, replay defaults, and diagnostics for the active chart.",
 }: ChartSettingsDrawerProps) {
   const tabs: Array<{ mode: ChartDrawerMode; label: string; icon: ReactNode }> = [
     { mode: "appearance", label: "Appearance", icon: <Palette size={14} /> },
-    { mode: "cursor", label: "Cursor", icon: <MousePointer2 size={14} /> },
     ...(onEventOverlayChange ? [{ mode: "events" as const, label: "Events", icon: <CalendarDays size={14} /> }] : []),
-    ...(cacheData ? [{ mode: "cache" as const, label: "Data cache", icon: <HardDrive size={14} /> }] : []),
+    ...(replayData ? [{ mode: "replay" as const, label: "Replay", icon: <Gauge size={14} /> }] : []),
+    ...(cacheData || debugData ? [{ mode: "diagnostics" as const, label: "Diagnostics", icon: <Activity size={14} /> }] : []),
   ];
   const activeMode = tabs.some((tab) => tab.mode === mode) ? mode : "appearance";
   const appearance = preferences.appearance;
-  const cursorLabel = findChartOptionLabel(CHART_CURSOR_MODE_OPTIONS, preferences.cursorReadoutMode);
   const eventScopeLabel = findChartOptionLabel(CHART_EVENT_SCOPE_OPTIONS, preferences.eventOverlay.scope);
   const eventImpactLabel = findChartOptionLabel(CHART_EVENT_IMPACT_OPTIONS, preferences.eventOverlay.impactFilter);
   const gridLabel = appearance.gridVisible ? "Grid visible" : "Grid hidden";
@@ -97,10 +101,6 @@ export function ChartSettingsDrawer({
                   <span>Surface</span>
                   <strong>{appearance.backgroundColor} / {gridLabel}</strong>
                 </div>
-                <div>
-                  <span>Cursor</span>
-                  <strong>{cursorLabel}</strong>
-                </div>
                 {onEventOverlayChange ? (
                   <div>
                     <span>Events</span>
@@ -111,10 +111,16 @@ export function ChartSettingsDrawer({
                     </strong>
                   </div>
                 ) : null}
-                {cacheData ? (
+                {replayData ? (
                   <div>
-                    <span>Cache</span>
-                    <strong>{cacheData.candleCount} candles / {cacheData.historyState}</strong>
+                    <span>Replay</span>
+                    <strong>{replayData.defaultSpeed}x default / {replayData.stepCandles} candle step</strong>
+                  </div>
+                ) : null}
+                {cacheData || debugData ? (
+                  <div>
+                    <span>Diagnostics</span>
+                    <strong>{cacheData ? `${cacheData.candleCount} candles` : "No cache"} / {debugData?.debugLines.length ?? 0} logs</strong>
                   </div>
                 ) : null}
               </div>
@@ -141,13 +147,6 @@ export function ChartSettingsDrawer({
                 />
               ) : null}
 
-              {activeMode === "cursor" ? (
-                <ChartCursorSettings
-                  cursorReadoutMode={preferences.cursorReadoutMode}
-                  onCursorModeChange={onCursorModeChange}
-                />
-              ) : null}
-
               {activeMode === "events" && onEventOverlayChange ? (
                 <ChartEventSettings
                   eventOverlay={preferences.eventOverlay}
@@ -155,8 +154,12 @@ export function ChartSettingsDrawer({
                 />
               ) : null}
 
-              {activeMode === "cache" && cacheData ? (
-                <ChartCacheSettings cacheData={cacheData} />
+              {activeMode === "replay" && replayData ? (
+                <ChartReplaySettings replayData={replayData} />
+              ) : null}
+
+              {activeMode === "diagnostics" ? (
+                <ChartDiagnosticsSettings cacheData={cacheData} debugData={debugData} />
               ) : null}
             </div>
           </motion.aside>

@@ -110,8 +110,9 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Sticky");
     expect(html).toContain("Open chart appearance");
     expect(html).toContain("Open chart events");
-    expect(html).toContain("Open chart data cache");
+    expect(html).toContain("Open chart diagnostics");
     expect(html).not.toContain(">History<");
+    expect(html).not.toContain("Terminal Console");
   });
 
   it("renders event overlay controls inside the chart settings drawer", () => {
@@ -126,19 +127,26 @@ describe("getChartConnectionLabel", () => {
         onAppearanceChange: () => {},
         onEventOverlayChange: () => {},
         onResetAppearance: () => {},
+        replayData: {
+          defaultSpeed: 1,
+          stepCandles: 1,
+          speedOptions: [0.5, 1, 2, 4],
+          stepOptions: [1, 2, 4, 8],
+          onDefaultSpeedChange: () => {},
+          onStepCandlesChange: () => {},
+        },
       }),
     );
 
     expect(html).toContain("Events");
-    expect(html).toContain("Event Timeline");
+    expect(html).toContain("Show event rail");
     expect(html).toContain("Current chart settings summary");
     expect(html).toContain("Surface");
-    expect(html).toContain("Cursor");
-    expect(html).toContain("Show event lines on chart");
+    expect(html).toContain("Replay");
     expect(html).toContain("Impact");
     expect(html).toContain("High only");
     expect(html).toContain("High + medium");
-    expect(html).toContain("Maximum markers");
+    expect(html).toContain("Max markers");
     expect(html).toContain("Selected pair");
     expect(html).toContain("All currencies");
   });

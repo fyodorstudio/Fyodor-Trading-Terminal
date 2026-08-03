@@ -64,9 +64,9 @@ export function ChartToolStrip({
       <button
         type="button"
         className="chart-icon-button"
-        title="Data cache"
-        aria-label="Open chart data cache"
-        onClick={() => onOpenDrawer("cache")}
+        title="Diagnostics"
+        aria-label="Open chart diagnostics"
+        onClick={() => onOpenDrawer("diagnostics")}
       >
         <HardDrive className="h-4 w-4" />
       </button>

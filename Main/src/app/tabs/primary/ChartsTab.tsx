@@ -13,13 +13,22 @@ import { ChartStatusRail } from "@/app/components/ChartStatusRail";
 import { ChartSymbolPicker } from "@/app/components/ChartSymbolPicker";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import { ChartViewport, type ChartCrosshairReadout } from "@/app/components/ChartViewport";
+import type { ChartEventLensData } from "@/app/components/ChartEventLens";
 import { useChartEventOverlay } from "@/app/hooks/useChartEventOverlay";
 import { useChartMarketData } from "@/app/hooks/useChartMarketData";
+import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import {
   getChartConnectionLabel,
   getChartPriceFormat,
   getCrosshairMode,
 } from "@/app/lib/chartDisplay";
+import {
+  formatChartEventDisplayTime,
+  getChartEventAnchorTime,
+  getChartEventCoordinateTime,
+  getChartEventKey,
+  getChartEventRelevantCurrencies,
+} from "@/app/lib/chartEvents";
 import {
   DEFAULT_CHART_PREFERENCES,
   formatChartFeedTime,
@@ -42,14 +51,18 @@ import {
   type ChartEventOverlayPreferences,
   type ChartPreferences,
 } from "@/app/lib/chartView";
+import { getEventComparison } from "@/app/lib/eventReaction";
+import { buildMacroFactorRows } from "@/app/lib/macroDrivers";
 import {
   formatCurrentTimeForDisplayTimezone,
   getDisplayTimezoneOptions,
   getDisplayTimezoneShortLabel,
 } from "@/app/lib/timezoneDisplay";
-import type { CalendarEvent, MarketStatusResponse, Timeframe } from "@/app/types";
+import type { BridgeCandle, CalendarEvent, MarketStatusResponse, Timeframe } from "@/app/types";
 
 const DEBUG_MAX = 60;
+const REPLAY_SPEED_OPTIONS = [0.5, 1, 2, 4];
+const REPLAY_STEP_OPTIONS = [1, 2, 4, 8];
 
 interface ChartsTabProps {
   marketStatus: MarketStatusResponse | null;
@@ -57,6 +70,69 @@ interface ChartsTabProps {
   onSelectedSymbolChange: (symbol: string) => void;
   events: CalendarEvent[];
   onOpenCalendarEvent: (event: CalendarEvent) => void;
+}
+
+function getDefaultClusterEvent(cluster: { events: Array<{ event: CalendarEvent }> }): CalendarEvent | null {
+  const impactRank: Record<CalendarEvent["impact"], number> = { high: 0, medium: 1, low: 2 };
+  return [...cluster.events]
+    .sort((left, right) => {
+      const impactDelta = impactRank[left.event.impact] - impactRank[right.event.impact];
+      if (impactDelta !== 0) return impactDelta;
+      return left.event.time - right.event.time;
+    })[0]?.event ?? null;
+}
+
+function getNearestCandleIndex(
+  candles: BridgeCandle[],
+  event: CalendarEvent | null,
+  timeframe: Timeframe,
+  sourceTimeOffsetSeconds: number,
+): number | null {
+  if (!event || candles.length === 0) return null;
+  const chartTime = getChartEventCoordinateTime(event.time, sourceTimeOffsetSeconds);
+  const anchorTime = getChartEventAnchorTime(chartTime, candles, timeframe) ?? chartTime;
+
+  let bestIndex = 0;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  candles.forEach((candle, index) => {
+    const distance = Math.abs(candle.time - anchorTime);
+    if (distance < bestDistance) {
+      bestDistance = distance;
+      bestIndex = index;
+    }
+  });
+
+  return bestIndex;
+}
+
+function formatSignedPriceDelta(value: number, precision: number): string {
+  return `${value >= 0 ? "+" : ""}${value.toFixed(precision)}`;
+}
+
+function formatObservedMove(
+  anchor: BridgeCandle | null,
+  current: BridgeCandle | null,
+  precision: number,
+): { label: string; detail: string } {
+  if (!anchor || !current) {
+    return {
+      label: "N/A",
+      detail: "Replay move is unavailable because the selected event is outside the loaded candle window.",
+    };
+  }
+
+  const delta = current.close - anchor.close;
+  const percent = anchor.close === 0 ? null : (delta / anchor.close) * 100;
+  const percentLabel = percent == null ? "N/A" : `${percent >= 0 ? "+" : ""}${percent.toFixed(2)}%`;
+
+  return {
+    label: `${formatSignedPriceDelta(delta, precision)} / ${percentLabel}`,
+    detail: `Observed move compares the selected event candle close (${anchor.close.toFixed(precision)}) with the current replay cursor close (${current.close.toFixed(precision)}).`,
+  };
+}
+
+function formatEventField(value: string, title: string): string {
+  return getEventValueDisplay(value, title).display;
 }
 
 export function ChartsTab({
@@ -72,7 +148,6 @@ export function ChartsTab({
   const [timezoneMenuOpen, setTimezoneMenuOpen] = useState(false);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
   const [chartDrawerMode, setChartDrawerMode] = useState<ChartDrawerMode>("appearance");
-  const [consoleOpen, setConsoleOpen] = useState(false);
   const [debugLines, setDebugLines] = useState<string[]>([]);
   const [sessionNowMs, setSessionNowMs] = useState(() => Date.now());
   const [crosshairReadout, setCrosshairReadout] = useState<ChartCrosshairReadout | null>(null);
@@ -80,6 +155,12 @@ export function ChartsTab({
   const [chartLayoutRevision, setChartLayoutRevision] = useState(0);
   const [hoveredChartEventClusterKey, setHoveredChartEventClusterKey] = useState<string | null>(null);
   const [activeChartEventClusterKey, setActiveChartEventClusterKey] = useState<string | null>(null);
+  const [selectedChartEvent, setSelectedChartEvent] = useState<CalendarEvent | null>(null);
+  const [eventLensPinned, setEventLensPinned] = useState(false);
+  const [replayPlaying, setReplayPlaying] = useState(false);
+  const [replayCursorIndex, setReplayCursorIndex] = useState<number | null>(null);
+  const [replaySpeed, setReplaySpeed] = useState(1);
+  const [replayStepCandles, setReplayStepCandles] = useState(1);
   const timezoneMenuRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
@@ -138,9 +219,19 @@ export function ChartsTab({
     [selectedSymbol, activeMarketStatus?.asset_class],
   );
 
+  const selectedReplayAnchorIndex = useMemo(
+    () => getNearestCandleIndex(visibleCandles, selectedChartEvent, timeframe, chartSourceTimeOffsetSeconds),
+    [visibleCandles, selectedChartEvent, timeframe, chartSourceTimeOffsetSeconds],
+  );
+
+  const replayVisibleCandles = useMemo(() => {
+    if (selectedChartEvent == null || replayCursorIndex == null) return visibleCandles;
+    return visibleCandles.slice(0, Math.min(visibleCandles.length, replayCursorIndex + 1));
+  }, [visibleCandles, selectedChartEvent, replayCursorIndex]);
+
   const displayCandles = useMemo(
-    () => getChartDisplayCandles(visibleCandles),
-    [visibleCandles],
+    () => getChartDisplayCandles(replayVisibleCandles),
+    [replayVisibleCandles],
   );
 
   const refocusChart = useCallback(() => {
@@ -218,10 +309,74 @@ export function ChartsTab({
     [updateChartPreferences],
   );
 
+  const selectedChartEventKey = selectedChartEvent ? getChartEventKey(selectedChartEvent) : null;
+
+  useEffect(() => {
+    if (!selectedChartEvent || selectedReplayAnchorIndex == null) {
+      setReplayCursorIndex(null);
+      setReplayPlaying(false);
+      return;
+    }
+
+    setReplayCursorIndex(selectedReplayAnchorIndex);
+    setReplayPlaying(false);
+  }, [selectedChartEventKey, selectedReplayAnchorIndex, selectedChartEvent]);
+
+  useEffect(() => {
+    if (!replayPlaying || replayCursorIndex == null) return;
+    if (replayCursorIndex >= visibleCandles.length - 1) {
+      setReplayPlaying(false);
+      return;
+    }
+
+    const delayMs = Math.max(120, Math.round(850 / replaySpeed));
+    const id = window.setInterval(() => {
+      setReplayCursorIndex((current) => {
+        if (current == null) return current;
+        const next = Math.min(visibleCandles.length - 1, current + 1);
+        if (next >= visibleCandles.length - 1) setReplayPlaying(false);
+        return next;
+      });
+    }, delayMs);
+
+    return () => window.clearInterval(id);
+  }, [replayPlaying, replayCursorIndex, replaySpeed, visibleCandles.length]);
+
   const openChartDrawer = useCallback((mode: ChartDrawerMode) => {
     setChartDrawerMode(mode);
     setHistoryPanelOpen(true);
   }, []);
+
+  const closeEventLens = useCallback(() => {
+    setActiveChartEventClusterKey(null);
+    setHoveredChartEventClusterKey(null);
+    setSelectedChartEvent(null);
+    setEventLensPinned(false);
+    setReplayPlaying(false);
+    setReplayCursorIndex(null);
+  }, []);
+
+  const resetReplay = useCallback(() => {
+    if (selectedReplayAnchorIndex == null) return;
+    setReplayCursorIndex(selectedReplayAnchorIndex);
+    setReplayPlaying(false);
+  }, [selectedReplayAnchorIndex]);
+
+  const stepReplay = useCallback(() => {
+    if (replayCursorIndex == null) return;
+    setReplayPlaying(false);
+    setReplayCursorIndex((current) =>
+      current == null ? current : Math.min(visibleCandles.length - 1, current + replayStepCandles),
+    );
+  }, [replayCursorIndex, replayStepCandles, visibleCandles.length]);
+
+  const toggleReplayPlayback = useCallback(() => {
+    if (selectedReplayAnchorIndex == null) return;
+    setReplayCursorIndex((current) =>
+      current == null || current >= visibleCandles.length - 1 ? selectedReplayAnchorIndex : current,
+    );
+    setReplayPlaying((current) => !current);
+  }, [selectedReplayAnchorIndex, visibleCandles.length]);
 
   const resetChartPreferences = useCallback(() => {
     setChartPreferences(DEFAULT_CHART_PREFERENCES);
@@ -454,10 +609,101 @@ export function ChartsTab({
     chartLayoutRevision,
   });
 
+  const activeChartEventCluster = useMemo(
+    () => chartEventOverlay.clusters.find((cluster) => cluster.key === activeChartEventClusterKey) ?? null,
+    [chartEventOverlay.clusters, activeChartEventClusterKey],
+  );
+
+  const macroFactorRows = useMemo(() => {
+    const currencies = getChartEventRelevantCurrencies(selectedSymbol);
+    return buildMacroFactorRows({
+      events,
+      currencies,
+      nowSeconds: Math.floor(sessionNowMs / 1000),
+    });
+  }, [events, selectedSymbol, sessionNowMs]);
+
+  const handleSelectChartEventCluster = useCallback(
+    (key: string) => {
+      const cluster = chartEventOverlay.clusters.find((item) => item.key === key);
+      const event = cluster ? getDefaultClusterEvent(cluster) : null;
+      setActiveChartEventClusterKey(key);
+      setSelectedChartEvent(event);
+      setEventLensPinned(false);
+      setReplayPlaying(false);
+    },
+    [chartEventOverlay.clusters],
+  );
+
   useEffect(() => {
-    setActiveChartEventClusterKey(null);
-    setHoveredChartEventClusterKey(null);
-  }, [selectedSymbol, timeframe, chartPreferences.eventOverlay.scope, chartPreferences.eventOverlay.visible]);
+    closeEventLens();
+  }, [selectedSymbol, timeframe, chartPreferences.eventOverlay.scope, chartPreferences.eventOverlay.visible, closeEventLens]);
+
+  const eventLensData = useMemo<ChartEventLensData | null>(() => {
+    if (!activeChartEventCluster || !selectedChartEvent) return null;
+
+    const actualLabel = formatEventField(selectedChartEvent.actual, selectedChartEvent.title);
+    const forecastLabel = formatEventField(selectedChartEvent.forecast, selectedChartEvent.title);
+    const previousLabel = formatEventField(selectedChartEvent.previous, selectedChartEvent.title);
+    const comparison = getEventComparison(selectedChartEvent);
+    const surpriseLabel = comparison ? `${comparison.surprise >= 0 ? "+" : ""}${comparison.surprise.toFixed(4)}` : "N/A";
+    const anchorCandle = selectedReplayAnchorIndex == null ? null : visibleCandles[selectedReplayAnchorIndex] ?? null;
+    const cursorCandle = replayCursorIndex == null ? anchorCandle : visibleCandles[replayCursorIndex] ?? anchorCandle;
+    const observedMove = formatObservedMove(anchorCandle, cursorCandle, priceFormat.precision);
+    const replayAvailable = selectedReplayAnchorIndex != null && replayCursorIndex != null;
+    const progressCurrent =
+      selectedReplayAnchorIndex == null || replayCursorIndex == null
+        ? 0
+        : Math.max(0, replayCursorIndex - selectedReplayAnchorIndex);
+    const progressTotal =
+      selectedReplayAnchorIndex == null ? 0 : Math.max(0, visibleCandles.length - 1 - selectedReplayAnchorIndex);
+
+    return {
+      clusterEvents: activeChartEventCluster.events,
+      selectedEvent: selectedChartEvent,
+      selectedEventKey: getChartEventKey(selectedChartEvent),
+      timeLabel: formatChartEventDisplayTime(selectedChartEvent.time, displayTimeMode, chartSourceTimeOffsetSeconds),
+      actualLabel,
+      forecastLabel,
+      previousLabel,
+      surpriseLabel,
+      observedMoveLabel: observedMove.label,
+      observedMoveDetail: observedMove.detail,
+      replayAvailable,
+      replayPlaying,
+      replayProgressLabel: replayAvailable ? `${progressCurrent} / ${progressTotal} candles revealed` : "Event outside loaded candles",
+      replaySpeed,
+      replaySpeedOptions: REPLAY_SPEED_OPTIONS,
+      factorRows: macroFactorRows,
+      pinned: eventLensPinned,
+      onSelectEvent: setSelectedChartEvent,
+      onTogglePinned: () => setEventLensPinned((current) => !current),
+      onClose: closeEventLens,
+      onTogglePlayback: toggleReplayPlayback,
+      onResetReplay: resetReplay,
+      onStepReplay: stepReplay,
+      onReplaySpeedChange: setReplaySpeed,
+      onOpenCalendar: onOpenCalendarEvent,
+    };
+  }, [
+    activeChartEventCluster,
+    selectedChartEvent,
+    selectedReplayAnchorIndex,
+    replayCursorIndex,
+    visibleCandles,
+    priceFormat.precision,
+    displayTimeMode,
+    chartSourceTimeOffsetSeconds,
+    replayPlaying,
+    replaySpeed,
+    macroFactorRows,
+    eventLensPinned,
+    closeEventLens,
+    toggleReplayPlayback,
+    resetReplay,
+    stepReplay,
+    onOpenCalendarEvent,
+  ]);
 
   const overlayCopy =
     status === "no_data"
@@ -523,6 +769,14 @@ export function ChartsTab({
         onAppearanceChange={updateAppearance}
         onEventOverlayChange={updateEventOverlay}
         onResetAppearance={resetChartPreferences}
+        replayData={{
+          defaultSpeed: replaySpeed,
+          stepCandles: replayStepCandles,
+          speedOptions: REPLAY_SPEED_OPTIONS,
+          stepOptions: REPLAY_STEP_OPTIONS,
+          onDefaultSpeedChange: setReplaySpeed,
+          onStepCandlesChange: setReplayStepCandles,
+        }}
         cacheData={{
           selectedSymbol,
           timeframe,
@@ -536,6 +790,7 @@ export function ChartsTab({
             : "unconfirmed",
           onClearCache: clearCurrentCache,
         }}
+        debugData={{ debugLines }}
       />
 
       <ChartViewport
@@ -545,15 +800,12 @@ export function ChartsTab({
         hoveredClusterKey={hoveredChartEventClusterKey}
         activeClusterKey={activeChartEventClusterKey}
         onHoverCluster={setHoveredChartEventClusterKey}
-        onToggleCluster={(key) => setActiveChartEventClusterKey((current) => (current === key ? null : key))}
-        onOpenCalendarEvent={onOpenCalendarEvent}
+        onSelectCluster={handleSelectChartEventCluster}
+        eventLens={eventLensData}
         crosshairReadout={crosshairReadout}
         status={status}
         overlayCopy={overlayCopy}
         reachedBoundary={reachedBoundary}
-        consoleOpen={consoleOpen}
-        debugLines={debugLines}
-        onToggleConsole={() => setConsoleOpen((current) => !current)}
       />
     </div>
   );

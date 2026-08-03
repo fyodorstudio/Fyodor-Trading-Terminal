@@ -1,9 +1,10 @@
 import { type Ref } from "react";
-import { AlertTriangle, ChevronDown } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { ChartEventLens, type ChartEventLensData } from "@/app/components/ChartEventLens";
 import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
-import type { BridgeStatus, CalendarEvent } from "@/app/types";
+import type { BridgeStatus } from "@/app/types";
 
 export type ChartCrosshairReadout = {
   top: number;
@@ -21,8 +22,8 @@ interface ChartViewportProps {
   hoveredClusterKey: string | null;
   activeClusterKey: string | null;
   onHoverCluster: (key: string | null) => void;
-  onToggleCluster: (key: string) => void;
-  onOpenCalendarEvent: (event: CalendarEvent) => void;
+  onSelectCluster: (key: string) => void;
+  eventLens: ChartEventLensData | null;
   crosshairReadout: ChartCrosshairReadout | null;
   status: BridgeStatus;
   overlayCopy: {
@@ -30,9 +31,6 @@ interface ChartViewportProps {
     description: string;
   };
   reachedBoundary: boolean;
-  consoleOpen: boolean;
-  debugLines: string[];
-  onToggleConsole: () => void;
 }
 
 export function ChartViewport({
@@ -42,15 +40,12 @@ export function ChartViewport({
   hoveredClusterKey,
   activeClusterKey,
   onHoverCluster,
-  onToggleCluster,
-  onOpenCalendarEvent,
+  onSelectCluster,
+  eventLens,
   crosshairReadout,
   status,
   overlayCopy,
   reachedBoundary,
-  consoleOpen,
-  debugLines,
-  onToggleConsole,
 }: ChartViewportProps) {
   return (
     <>
@@ -66,9 +61,9 @@ export function ChartViewport({
               hoveredClusterKey={hoveredClusterKey}
               activeClusterKey={activeClusterKey}
               onHoverCluster={onHoverCluster}
-              onToggleCluster={onToggleCluster}
-              onOpenCalendarEvent={onOpenCalendarEvent}
+              onSelectCluster={onSelectCluster}
             />
+            {eventLens ? <ChartEventLens data={eventLens} /> : null}
           </div>
         </div>
         {crosshairReadout && (
@@ -109,44 +104,6 @@ export function ChartViewport({
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
-
-      <div className="backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-2xl overflow-hidden shadow-sm">
-        <div className={`flex items-center justify-between px-5 py-3 ${consoleOpen ? "border-b border-gray-100" : ""}`}>
-          <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-            Terminal Console
-            <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-gray-500">
-              {debugLines.length} logs
-            </span>
-          </h3>
-          <div className="flex items-center gap-3">
-            {consoleOpen && (
-              <button
-                onClick={() => void navigator.clipboard.writeText(debugLines.join("\n") || "(empty)")}
-                className="text-[10px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-900 transition-colors"
-              >
-                Copy Logs
-              </button>
-            )}
-            <button
-              onClick={onToggleConsole}
-              className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              {consoleOpen ? "Hide" : "Show"}
-              <ChevronDown className={`h-3.5 w-3.5 transition-transform ${consoleOpen ? "rotate-180" : ""}`} />
-            </button>
-          </div>
-        </div>
-        {consoleOpen && (
-          <div className="h-20 overflow-auto p-3 bg-gray-50/50 font-mono text-[10px] leading-relaxed text-gray-500">
-            {debugLines.length === 0 ? (
-              <div className="italic">Awaiting first market event...</div>
-            ) : (
-              debugLines.map((line, index) => <div key={index} className="mb-1">{line}</div>)
-            )}
-          </div>
-        )}
       </div>
     </>
   );

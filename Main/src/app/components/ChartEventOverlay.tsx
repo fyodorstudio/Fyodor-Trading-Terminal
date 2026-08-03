@@ -1,7 +1,5 @@
 import type { CSSProperties } from "react";
-import { getChartEventKey } from "@/app/lib/chartEvents";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
-import type { CalendarEvent } from "@/app/types";
 
 export function ChartEventOverlay(props: {
   clusters: ChartEventOverlayCluster[];
@@ -11,8 +9,7 @@ export function ChartEventOverlay(props: {
   hoveredClusterKey: string | null;
   activeClusterKey: string | null;
   onHoverCluster: (key: string | null) => void;
-  onToggleCluster: (key: string) => void;
-  onOpenCalendarEvent: (event: CalendarEvent) => void;
+  onSelectCluster: (key: string) => void;
 }) {
   if (props.clusters.length === 0) return null;
 
@@ -38,11 +35,11 @@ export function ChartEventOverlay(props: {
             tabIndex={0}
             className={`chart-event-marker chart-event-${cluster.impact} tooltip-${cluster.tooltipPlacement} ${isActive ? "is-active" : ""}`}
             style={markerStyle}
-            onClick={() => props.onToggleCluster(cluster.key)}
+            onClick={() => props.onSelectCluster(cluster.key)}
             onKeyDown={(event) => {
               if (event.key !== "Enter" && event.key !== " ") return;
               event.preventDefault();
-              props.onToggleCluster(cluster.key);
+              props.onSelectCluster(cluster.key);
             }}
             onMouseEnter={() => props.onHoverCluster(cluster.key)}
             onMouseLeave={() => props.onHoverCluster(null)}
@@ -57,30 +54,18 @@ export function ChartEventOverlay(props: {
                 <small>{cluster.impact}</small>
               </span>
             )}
-            {(isHovered || isActive) && (
+            {isHovered && !isActive && (
               <span className="chart-event-tooltip">
                 <span className="chart-event-tooltip-kicker">
                   {cluster.events.length} loaded event{cluster.events.length === 1 ? "" : "s"}
                 </span>
                 <strong>{cluster.detailLabel}</strong>
-                <span>Click a row to open the Economic Calendar inspector.</span>
-                <span className="chart-event-list">
+                <span>Click the marker to open the Event Lens.</span>
+                <span className="chart-event-list" aria-hidden="true">
                   {cluster.events.map(({ event, timeLabel }) => (
                     <span
-                      key={getChartEventKey(event)}
-                      role="button"
-                      tabIndex={0}
+                      key={`${event.id}:${event.time}:${event.currency}:${event.title}`}
                       className="chart-event-list-row"
-                      onClick={(rowEvent) => {
-                        rowEvent.stopPropagation();
-                        props.onOpenCalendarEvent(event);
-                      }}
-                      onKeyDown={(rowEvent) => {
-                        if (rowEvent.key !== "Enter" && rowEvent.key !== " ") return;
-                        rowEvent.preventDefault();
-                        rowEvent.stopPropagation();
-                        props.onOpenCalendarEvent(event);
-                      }}
                     >
                       <span>
                         <b>{event.currency}</b>
