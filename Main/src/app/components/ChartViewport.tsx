@@ -63,8 +63,8 @@ export function ChartViewport({
 }: ChartViewportProps) {
   return (
     <>
-      <div className="relative group min-h-0 flex-1 overflow-hidden">
-        <div className="h-full p-1 backdrop-blur-xl bg-white/60 border border-gray-200/50 rounded-3xl shadow-sm overflow-hidden">
+      <div className="chart-viewport-shell relative group min-h-0 flex-1 overflow-hidden">
+        <div className="chart-viewport-surface h-full overflow-hidden">
           <div className="chart-canvas-frame">
             <div ref={containerRef} className="h-full w-full" />
             <ChartEventOverlay
