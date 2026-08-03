@@ -1,5 +1,5 @@
 import { type Ref } from "react";
-import { AlertTriangle } from "lucide-react";
+import { AlertTriangle, CalendarDays, Settings2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChartEventLens, type ChartEventLensData } from "@/app/components/ChartEventLens";
 import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
@@ -9,6 +9,18 @@ import type { BridgeStatus } from "@/app/types";
 export type ChartCrosshairReadout = {
   top: number;
   lines: Array<{ label: string; value: string }>;
+};
+
+export type ChartEventLensDockData = {
+  visible: boolean;
+  title: string;
+  description: string;
+  countLabel: string;
+  canEnableEvents: boolean;
+  canBroadenImpact: boolean;
+  onShowEvents: () => void;
+  onOpenSettings: () => void;
+  onShowHighMedium: () => void;
 };
 
 interface ChartViewportProps {
@@ -24,6 +36,7 @@ interface ChartViewportProps {
   onHoverCluster: (key: string | null) => void;
   onSelectCluster: (key: string) => void;
   eventLens: ChartEventLensData | null;
+  eventLensDock: ChartEventLensDockData;
   crosshairReadout: ChartCrosshairReadout | null;
   status: BridgeStatus;
   overlayCopy: {
@@ -42,6 +55,7 @@ export function ChartViewport({
   onHoverCluster,
   onSelectCluster,
   eventLens,
+  eventLensDock,
   crosshairReadout,
   status,
   overlayCopy,
@@ -63,7 +77,7 @@ export function ChartViewport({
               onHoverCluster={onHoverCluster}
               onSelectCluster={onSelectCluster}
             />
-            {eventLens ? <ChartEventLens data={eventLens} /> : null}
+            {eventLens ? <ChartEventLens data={eventLens} /> : <ChartEventLensDock data={eventLensDock} />}
           </div>
         </div>
         {crosshairReadout && (
@@ -106,5 +120,38 @@ export function ChartViewport({
         </AnimatePresence>
       </div>
     </>
+  );
+}
+
+function ChartEventLensDock({ data }: { data: ChartEventLensDockData }) {
+  if (!data.visible) return null;
+
+  return (
+    <section className="chart-event-lens-dock" aria-label="Event Lens">
+      <div className="chart-event-lens-dock-title">
+        <span>Event Lens</span>
+        <strong>{data.title}</strong>
+      </div>
+      <p>{data.description}</p>
+      <span className="chart-event-lens-dock-count">{data.countLabel}</span>
+      <div className="chart-event-lens-dock-actions">
+        {data.canEnableEvents ? (
+          <button type="button" onClick={data.onShowEvents}>
+            <CalendarDays size={13} />
+            Show event rail
+          </button>
+        ) : null}
+        <button type="button" onClick={data.onOpenSettings}>
+          <Settings2 size={13} />
+          Events settings
+        </button>
+        {data.canBroadenImpact ? (
+          <button type="button" onClick={data.onShowHighMedium}>
+            <CalendarDays size={13} />
+            Show high + medium
+          </button>
+        ) : null}
+      </div>
+    </section>
   );
 }

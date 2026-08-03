@@ -11,6 +11,7 @@ interface ChartToolStripProps {
   cursorReadoutMode: ChartCursorReadoutMode;
   eventOverlayVisible: boolean;
   eventCandidateCount: number;
+  eventVisibleCount: number;
   onCursorModeChange: (mode: ChartCursorReadoutMode) => void;
   onRefocusChart: () => void;
   onOpenDrawer: (mode: ChartDrawerMode) => void;
@@ -20,10 +21,17 @@ export function ChartToolStrip({
   cursorReadoutMode,
   eventOverlayVisible,
   eventCandidateCount,
+  eventVisibleCount,
   onCursorModeChange,
   onRefocusChart,
   onOpenDrawer,
 }: ChartToolStripProps) {
+  const eventButtonLabel = !eventOverlayVisible
+    ? "Chart events hidden"
+    : eventVisibleCount > 0
+      ? `Chart events: ${eventVisibleCount} visible, ${eventCandidateCount} loaded matches`
+      : `Chart events: no visible matches, ${eventCandidateCount} loaded matches`;
+
   return (
     <div className="chart-tool-strip" aria-label="Chart tools">
       <div className="chart-readout-toggle" aria-label="Cursor readout mode">
@@ -46,8 +54,8 @@ export function ChartToolStrip({
       <button
         type="button"
         className={eventOverlayVisible ? "chart-icon-button is-active" : "chart-icon-button"}
-        title={`Chart events (${eventCandidateCount} loaded matches)`}
-        aria-label="Open chart events"
+        title={eventButtonLabel}
+        aria-label={`${eventButtonLabel}. Open chart events settings`}
         onClick={() => onOpenDrawer("events")}
       >
         <CalendarDays className="h-4 w-4" />

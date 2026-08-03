@@ -188,6 +188,15 @@
 .chart-event-lens-factor-row span, .chart-event-lens-factor-row em { color: #334155; font-size: 11px; font-style: normal; font-weight: 800; line-height: 1.3; overflow-wrap: anywhere; }
 .chart-event-lens-factor-row em { color: #1d4ed8; }
 .chart-event-lens-expand-hint { position: absolute; right: 50%; bottom: 4px; display: none; width: 26px; height: 18px; border: 0; background: transparent; color: #94a3b8; transform: translateX(50%); }
+.chart-event-lens-dock { position: absolute; right: 12px; bottom: 58px; left: 12px; z-index: 42; display: grid; grid-template-columns: minmax(190px, 0.9fr) minmax(260px, 1.25fr) auto auto; gap: 10px; align-items: center; min-height: 56px; padding: 8px 10px 8px 12px; border: 1px solid rgba(15, 23, 42, 0.1); border-radius: 14px; background: rgba(255, 255, 255, 0.94); box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12); pointer-events: none; }
+.chart-event-lens-dock-title { min-width: 0; display: grid; gap: 1px; }
+.chart-event-lens-dock-title span { color: #2563eb; font-size: 9px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
+.chart-event-lens-dock-title strong { min-width: 0; overflow: hidden; color: #0f172a; font-size: 12px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
+.chart-event-lens-dock p { margin: 0; color: #475569; font-size: 11px; font-weight: 750; line-height: 1.3; }
+.chart-event-lens-dock-count { display: inline-flex; align-items: center; justify-content: center; min-height: 28px; padding: 0 9px; border: 1px solid #dbeafe; border-radius: 999px; background: #eff6ff; color: #1d4ed8; font-size: 10px; font-weight: 900; white-space: nowrap; }
+.chart-event-lens-dock-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; pointer-events: auto; }
+.chart-event-lens-dock-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 32px; padding: 0 10px; border: 1px solid #dbeafe; border-radius: 8px; background: #fff; color: #1d4ed8; font-size: 11px; font-weight: 900; white-space: nowrap; }
+.chart-event-lens-dock-actions button:hover { border-color: #bfdbfe; background: #eff6ff; }
 .charts-history-boundary { position: absolute; left: 18px; top: 24px; z-index: 20; pointer-events: none; }
 .charts-history-boundary-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.35); background: rgba(255, 255, 255, 0.88); color: #475569; font-size: 11px; font-weight: 700; letter-spacing: 0.01em; opacity: 0; transform: translateY(-2px); transition: opacity 0.2s ease, transform 0.2s ease; }
 .charts-history-boundary-pill.is-visible { opacity: 1; transform: translateY(0); }
@@ -201,6 +210,8 @@
   .chart-feed-button { width: 100%; justify-content: flex-start; }
   .chart-cache-grid, .chart-appearance-grid, .chart-event-settings-grid, .chart-drawer-segmented-compact { grid-template-columns: 1fr; }
   .chart-event-lens-strip, .chart-event-lens-body, .chart-event-lens-metrics, .chart-event-lens-factor-head, .chart-event-lens-factor-row { grid-template-columns: 1fr; }
+  .chart-event-lens-dock { right: 8px; left: 8px; grid-template-columns: 1fr; align-items: stretch; }
+  .chart-event-lens-dock-actions { justify-content: flex-start; flex-wrap: wrap; }
   .chart-event-lens { right: 8px; left: 8px; }
   .chart-event-lens:hover, .chart-event-lens:focus-within, .chart-event-lens.is-pinned { max-height: min(430px, calc(100% - 72px)); }
 }

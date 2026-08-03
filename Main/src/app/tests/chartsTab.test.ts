@@ -111,6 +111,10 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Open chart appearance");
     expect(html).toContain("Open chart events");
     expect(html).toContain("Open chart diagnostics");
+    expect(html).toContain("Event Lens");
+    expect(html).toContain("No loaded high-impact EUR/USD events in this visible range");
+    expect(html).toContain("Events settings");
+    expect(html).toContain("Show high + medium");
     expect(html).not.toContain(">History<");
     expect(html).not.toContain("Terminal Console");
   });

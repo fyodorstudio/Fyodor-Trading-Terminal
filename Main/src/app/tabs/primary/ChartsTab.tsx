@@ -12,7 +12,7 @@ import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/Char
 import { ChartStatusRail } from "@/app/components/ChartStatusRail";
 import { ChartSymbolPicker } from "@/app/components/ChartSymbolPicker";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
-import { ChartViewport, type ChartCrosshairReadout } from "@/app/components/ChartViewport";
+import { ChartViewport, type ChartCrosshairReadout, type ChartEventLensDockData } from "@/app/components/ChartViewport";
 import type { ChartEventLensData } from "@/app/components/ChartEventLens";
 import { useChartEventOverlay } from "@/app/hooks/useChartEventOverlay";
 import { useChartMarketData } from "@/app/hooks/useChartMarketData";
@@ -51,6 +51,7 @@ import {
   type ChartEventOverlayPreferences,
   type ChartPreferences,
 } from "@/app/lib/chartView";
+import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
 import { getEventComparison } from "@/app/lib/eventReaction";
 import { buildMacroFactorRows } from "@/app/lib/macroDrivers";
 import {
@@ -135,6 +136,12 @@ function formatEventField(value: string, title: string): string {
   return getEventValueDisplay(value, title).display;
 }
 
+function getChartEventCurrencyLabel(symbol: string): string {
+  const currencies = getChartEventRelevantCurrencies(symbol);
+  if (currencies.length === 0) return symbol.toUpperCase();
+  return currencies.join("/");
+}
+
 export function ChartsTab({
   marketStatus,
   selectedSymbol,
@@ -155,6 +162,7 @@ export function ChartsTab({
   const [chartLayoutRevision, setChartLayoutRevision] = useState(0);
   const [hoveredChartEventClusterKey, setHoveredChartEventClusterKey] = useState<string | null>(null);
   const [activeChartEventClusterKey, setActiveChartEventClusterKey] = useState<string | null>(null);
+  const [selectedChartEventCluster, setSelectedChartEventCluster] = useState<ChartEventOverlayCluster | null>(null);
   const [selectedChartEvent, setSelectedChartEvent] = useState<CalendarEvent | null>(null);
   const [eventLensPinned, setEventLensPinned] = useState(false);
   const [replayPlaying, setReplayPlaying] = useState(false);
@@ -350,6 +358,7 @@ export function ChartsTab({
   const closeEventLens = useCallback(() => {
     setActiveChartEventClusterKey(null);
     setHoveredChartEventClusterKey(null);
+    setSelectedChartEventCluster(null);
     setSelectedChartEvent(null);
     setEventLensPinned(false);
     setReplayPlaying(false);
@@ -610,8 +619,11 @@ export function ChartsTab({
   });
 
   const activeChartEventCluster = useMemo(
-    () => chartEventOverlay.clusters.find((cluster) => cluster.key === activeChartEventClusterKey) ?? null,
-    [chartEventOverlay.clusters, activeChartEventClusterKey],
+    () =>
+      selectedChartEventCluster ??
+      chartEventOverlay.clusters.find((cluster) => cluster.key === activeChartEventClusterKey) ??
+      null,
+    [chartEventOverlay.clusters, activeChartEventClusterKey, selectedChartEventCluster],
   );
 
   const macroFactorRows = useMemo(() => {
@@ -628,6 +640,7 @@ export function ChartsTab({
       const cluster = chartEventOverlay.clusters.find((item) => item.key === key);
       const event = cluster ? getDefaultClusterEvent(cluster) : null;
       setActiveChartEventClusterKey(key);
+      setSelectedChartEventCluster(cluster ?? null);
       setSelectedChartEvent(event);
       setEventLensPinned(false);
       setReplayPlaying(false);
@@ -638,6 +651,54 @@ export function ChartsTab({
   useEffect(() => {
     closeEventLens();
   }, [selectedSymbol, timeframe, chartPreferences.eventOverlay.scope, chartPreferences.eventOverlay.visible, closeEventLens]);
+
+  const eventLensDockData = useMemo<ChartEventLensDockData>(() => {
+    const overlayVisible = chartPreferences.eventOverlay.visible;
+    const visibleClusterCount = chartEventOverlay.clusters.length;
+    const visibleEventCount = chartEventOverlay.overlayData.visibleEventCount;
+    const candidateCount = chartEventOverlay.candidatesCount;
+    const currencyLabel = getChartEventCurrencyLabel(selectedSymbol);
+    const impactLabel =
+      chartPreferences.eventOverlay.impactFilter === "high"
+        ? "high-impact"
+        : chartPreferences.eventOverlay.impactFilter === "high_medium"
+          ? "high/medium-impact"
+          : "loaded";
+    const hasVisibleEvents = visibleClusterCount > 0;
+    const countLabel =
+      candidateCount > 0
+        ? `${candidateCount} loaded matching event${candidateCount === 1 ? "" : "s"}${visibleEventCount > 0 ? ` / ${visibleEventCount} in this visible range` : " outside this visible range"}`
+        : "No loaded matching events from the current broker/MT5 calendar rows";
+
+    return {
+      visible: true,
+      title: !overlayVisible
+        ? "Event rail hidden"
+        : hasVisibleEvents
+        ? "Select an event marker to replay"
+        : `No loaded ${impactLabel} ${currencyLabel} events in this visible range`,
+      description: !overlayVisible
+        ? "Turn the event rail back on to inspect loaded calendar events against price."
+        : hasVisibleEvents
+        ? "Use the bottom event rail dots or badges to open replay for a loaded calendar event."
+        : "The chart can only show calendar rows already loaded by the local bridge. Scroll, refocus, or broaden the impact filter if you expect more markers.",
+      countLabel: overlayVisible ? countLabel : `${candidateCount} loaded matching event${candidateCount === 1 ? "" : "s"} available with current filters`,
+      canEnableEvents: !overlayVisible,
+      canBroadenImpact: overlayVisible && chartPreferences.eventOverlay.impactFilter === "high",
+      onShowEvents: () => updateEventOverlay("visible", true),
+      onOpenSettings: () => openChartDrawer("events"),
+      onShowHighMedium: () => updateEventOverlay("impactFilter", "high_medium"),
+    };
+  }, [
+    chartPreferences.eventOverlay.visible,
+    chartPreferences.eventOverlay.impactFilter,
+    chartEventOverlay.clusters.length,
+    chartEventOverlay.overlayData.visibleEventCount,
+    chartEventOverlay.candidatesCount,
+    selectedSymbol,
+    openChartDrawer,
+    updateEventOverlay,
+  ]);
 
   const eventLensData = useMemo<ChartEventLensData | null>(() => {
     if (!activeChartEventCluster || !selectedChartEvent) return null;
@@ -735,6 +796,7 @@ export function ChartsTab({
           cursorReadoutMode={chartPreferences.cursorReadoutMode}
           eventOverlayVisible={chartPreferences.eventOverlay.visible}
           eventCandidateCount={chartEventOverlay.candidatesCount}
+          eventVisibleCount={chartEventOverlay.overlayData.visibleEventCount}
           onCursorModeChange={handleCursorModeChange}
           onRefocusChart={refocusChart}
           onOpenDrawer={openChartDrawer}
@@ -802,6 +864,7 @@ export function ChartsTab({
         onHoverCluster={setHoveredChartEventClusterKey}
         onSelectCluster={handleSelectChartEventCluster}
         eventLens={eventLensData}
+        eventLensDock={eventLensDockData}
         crosshairReadout={crosshairReadout}
         status={status}
         overlayCopy={overlayCopy}
