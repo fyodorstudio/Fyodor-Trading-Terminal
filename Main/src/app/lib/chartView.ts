@@ -1,4 +1,11 @@
-import { ColorType, TickMarkType, type CandlestickData, type Time, type UTCTimestamp } from "lightweight-charts";
+import {
+  ColorType,
+  TickMarkType,
+  type CandlestickData,
+  type Time,
+  type UTCTimestamp,
+  type WhitespaceData,
+} from "lightweight-charts";
 import { formatCountdown } from "@/app/lib/format";
 import {
   formatDateTimeForDisplayTimezone,
@@ -30,6 +37,7 @@ export interface ChartAppearancePreferences {
   currentPriceLineColor: string;
   gridVisible: boolean;
   wickMode: ChartWickMode;
+  futureCandleOpacity: number;
 }
 
 export interface ChartEventOverlayPreferences {
@@ -37,6 +45,7 @@ export interface ChartEventOverlayPreferences {
   scope: ChartEventOverlayScope;
   impactFilter: ChartEventOverlayImpactFilter;
   maxMarkers: number;
+  futureMarkerLimit: number;
 }
 
 export interface ChartPreferences {
@@ -94,12 +103,14 @@ export const DEFAULT_CHART_PREFERENCES: ChartPreferences = {
     currentPriceLineColor: "#ef4444",
     gridVisible: true,
     wickMode: "match",
+    futureCandleOpacity: 0.6,
   },
   eventOverlay: {
     visible: true,
     scope: "relevant",
     impactFilter: "high",
-    maxMarkers: 120,
+    maxMarkers: 80,
+    futureMarkerLimit: 8,
   },
 };
 
@@ -119,6 +130,7 @@ function normalizeChartAppearance(raw: unknown): ChartAppearancePreferences {
   const fallback = DEFAULT_CHART_PREFERENCES.appearance;
   if (!raw || typeof raw !== "object") return fallback;
   const row = raw as Record<string, unknown>;
+  const futureCandleOpacity = Number(row.futureCandleOpacity);
 
   return {
     backgroundColor: isHexColor(row.backgroundColor) ? row.backgroundColor : fallback.backgroundColor,
@@ -133,6 +145,9 @@ function normalizeChartAppearance(raw: unknown): ChartAppearancePreferences {
       : fallback.currentPriceLineColor,
     gridVisible: typeof row.gridVisible === "boolean" ? row.gridVisible : fallback.gridVisible,
     wickMode: row.wickMode === "neutral" || row.wickMode === "match" ? row.wickMode : fallback.wickMode,
+    futureCandleOpacity: Number.isFinite(futureCandleOpacity)
+      ? Math.min(1, Math.max(0.15, futureCandleOpacity))
+      : fallback.futureCandleOpacity,
   };
 }
 
@@ -143,6 +158,7 @@ function normalizeChartEventOverlay(raw: unknown): ChartEventOverlayPreferences 
   const scope = row.scope;
   const impactFilter = row.impactFilter;
   const maxMarkers = Number(row.maxMarkers);
+  const futureMarkerLimit = Number(row.futureMarkerLimit);
 
   return {
     visible: typeof row.visible === "boolean" ? row.visible : fallback.visible,
@@ -154,6 +170,9 @@ function normalizeChartEventOverlay(raw: unknown): ChartEventOverlayPreferences 
     maxMarkers: Number.isFinite(maxMarkers)
       ? Math.min(300, Math.max(20, Math.round(maxMarkers)))
       : fallback.maxMarkers,
+    futureMarkerLimit: Number.isFinite(futureMarkerLimit)
+      ? Math.min(40, Math.max(0, Math.round(futureMarkerLimit)))
+      : fallback.futureMarkerLimit,
   };
 }
 
@@ -228,14 +247,60 @@ function toChartTime(time: number): UTCTimestamp {
   return time as UTCTimestamp;
 }
 
-export function getChartDisplayCandles(candles: BridgeCandle[]): CandlestickData<Time>[] {
-  return candles.map((candle) => ({
-    time: toChartTime(candle.time),
-    open: candle.open,
-    high: candle.high,
-    low: candle.low,
-    close: candle.close,
-  }));
+function hexToRgba(hexColor: string, opacity: number): string {
+  const value = hexColor.replace("#", "");
+  const red = Number.parseInt(value.slice(0, 2), 16);
+  const green = Number.parseInt(value.slice(2, 4), 16);
+  const blue = Number.parseInt(value.slice(4, 6), 16);
+  return `rgba(${red}, ${green}, ${blue}, ${opacity.toFixed(2)})`;
+}
+
+export function getChartDisplayCandles(
+  candles: BridgeCandle[],
+  options: {
+    dimAfterIndex?: number | null;
+    appearance?: ChartAppearancePreferences;
+    futureTimes?: number[];
+  } = {},
+): Array<CandlestickData<Time> | WhitespaceData<Time>> {
+  const dimAfterIndex = typeof options.dimAfterIndex === "number" ? options.dimAfterIndex : null;
+  const appearance = options.appearance;
+  const futureTimes = options.futureTimes ?? [];
+
+  const candleData = candles.map((candle, index) => {
+    const displayCandle: CandlestickData<Time> = {
+      time: toChartTime(candle.time),
+      open: candle.open,
+      high: candle.high,
+      low: candle.low,
+      close: candle.close,
+    };
+
+    if (!appearance || dimAfterIndex == null || index <= dimAfterIndex) return displayCandle;
+
+    const bodyColor = candle.close >= candle.open ? appearance.bullishColor : appearance.bearishColor;
+    const wickColor =
+      appearance.wickMode === "match"
+        ? bodyColor
+        : appearance.neutralWickColor;
+    const opacity = appearance.futureCandleOpacity;
+
+    return {
+      ...displayCandle,
+      color: hexToRgba(bodyColor, opacity),
+      borderColor: hexToRgba(bodyColor, opacity),
+      wickColor: hexToRgba(wickColor, opacity),
+    };
+  });
+
+  if (futureTimes.length === 0) return candleData;
+
+  const existingTimes = new Set(candles.map((candle) => candle.time));
+  const futureWhitespace = futureTimes
+    .filter((time) => Number.isFinite(time) && !existingTimes.has(time))
+    .map((time) => ({ time: toChartTime(time) }));
+
+  return [...candleData, ...futureWhitespace];
 }
 
 function normalizeCandle(raw: unknown): BridgeCandle | null {

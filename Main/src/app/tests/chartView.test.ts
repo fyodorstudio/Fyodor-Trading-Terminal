@@ -26,9 +26,11 @@ import {
 import {
   filterChartEventsForOverlay,
   formatChartEventDisplayTime,
+  getFutureChartEventTimes,
   getChartEventAnchorTime,
   getChartEventCoordinateTime,
   getChartEventRelevantCurrencies,
+  sliceChartEventsByTime,
 } from "@/app/lib/chartEvents";
 import type { BridgeCandle, CalendarEvent, MarketStatusResponse } from "@/app/types";
 
@@ -103,6 +105,31 @@ describe("chartView helpers", () => {
     expect(display[0]?.time).toBe(SAMPLE_CANDLE.time);
   });
 
+  it("dims future replay candles without removing them", () => {
+    const futureCandle = { ...SAMPLE_CANDLE, time: SAMPLE_CANDLE.time + 60, close: 0.8 };
+    const display = getChartDisplayCandles([SAMPLE_CANDLE, futureCandle], {
+      dimAfterIndex: 0,
+      appearance: DEFAULT_CHART_PREFERENCES.appearance,
+    });
+
+    expect(display).toHaveLength(2);
+    expect(display[0]).not.toHaveProperty("color");
+    expect(display[1]).toMatchObject({
+      color: "rgba(239, 68, 68, 0.60)",
+      borderColor: "rgba(239, 68, 68, 0.60)",
+    });
+  });
+
+  it("adds future whitespace points for scheduled event space", () => {
+    const futureTime = SAMPLE_CANDLE.time + 3600;
+    const display = getChartDisplayCandles([SAMPLE_CANDLE], {
+      futureTimes: [futureTime],
+    });
+
+    expect(display).toHaveLength(2);
+    expect(display[1]).toEqual({ time: futureTime });
+  });
+
   it("formats x-axis labels by tick mark type for server and offset modes", () => {
     expect(formatChartAxisTime(SAMPLE_CANDLE.time, "H1", TickMarkType.Time, "server")).toBe("21:00");
     expect(formatChartAxisTime(SAMPLE_CANDLE.time, "H4", TickMarkType.DayOfMonth, "server")).toBe("19 Feb");
@@ -143,6 +170,7 @@ describe("chartView helpers", () => {
           bearishColor: "nope",
           gridVisible: false,
           wickMode: "neutral",
+          futureCandleOpacity: 0.25,
         },
       }),
     ).toMatchObject({
@@ -155,6 +183,7 @@ describe("chartView helpers", () => {
         bearishColor: DEFAULT_CHART_PREFERENCES.appearance.bearishColor,
         gridVisible: false,
         wickMode: "neutral",
+        futureCandleOpacity: 0.25,
       },
     });
     expect(
@@ -165,6 +194,7 @@ describe("chartView helpers", () => {
           scope: "high_impact",
           impactFilter: "all",
           maxMarkers: 80,
+          futureMarkerLimit: 20,
         },
         appearance: {
           bullishColor: "#00ff00",
@@ -177,16 +207,22 @@ describe("chartView helpers", () => {
         scope: "all",
         impactFilter: "all",
         maxMarkers: 80,
+        futureMarkerLimit: 20,
       },
       appearance: {
         backgroundColor: DEFAULT_CHART_PREFERENCES.appearance.backgroundColor,
         gridColor: DEFAULT_CHART_PREFERENCES.appearance.gridColor,
         textColor: DEFAULT_CHART_PREFERENCES.appearance.textColor,
+        futureCandleOpacity: DEFAULT_CHART_PREFERENCES.appearance.futureCandleOpacity,
       },
     });
     expect(normalizeChartPreferences({ cursorReadoutMode: "both" }).eventOverlay).toEqual(
       DEFAULT_CHART_PREFERENCES.eventOverlay,
     );
+    expect(DEFAULT_CHART_PREFERENCES.eventOverlay.maxMarkers).toBe(80);
+    expect(DEFAULT_CHART_PREFERENCES.eventOverlay.futureMarkerLimit).toBe(8);
+    expect(normalizeChartPreferences({ eventOverlay: { futureMarkerLimit: 900 } }).eventOverlay.futureMarkerLimit).toBe(40);
+    expect(normalizeChartPreferences({ eventOverlay: { futureMarkerLimit: -1 } }).eventOverlay.futureMarkerLimit).toBe(0);
   });
 
   it("filters chart event overlays by selected symbol and scope", () => {
@@ -222,6 +258,21 @@ describe("chartView helpers", () => {
         sourceTimeOffsetSeconds: 0,
       }).map((candidate) => candidate.event.currency),
     ).toEqual(["USD", "EUR", "JPY"]);
+  });
+
+  it("slices sorted chart event candidates by time and returns nearest future times", () => {
+    const candidates = filterChartEventsForOverlay({
+      events: CALENDAR_EVENTS,
+      selectedSymbol: "EURUSD",
+      scope: "relevant",
+      impactFilter: "high_medium",
+      sourceTimeOffsetSeconds: 0,
+      latestCandleTime: SAMPLE_CANDLE.time + 30,
+    });
+
+    expect(sliceChartEventsByTime(candidates, SAMPLE_CANDLE.time + 1, SAMPLE_CANDLE.time + 5400).map((candidate) => candidate.event.currency)).toEqual(["EUR"]);
+    expect(getFutureChartEventTimes(candidates, SAMPLE_CANDLE.time + 30)).toEqual([SAMPLE_CANDLE.time + 3600]);
+    expect(getFutureChartEventTimes(candidates, SAMPLE_CANDLE.time + 30, 0)).toEqual([]);
   });
 
   it("maps calendar event timestamps into chart coordinates without losing display truth", () => {

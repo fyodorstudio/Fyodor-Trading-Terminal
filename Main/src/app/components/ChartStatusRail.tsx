@@ -42,15 +42,21 @@ export function ChartStatusRail({
   onToggleTimezoneMenu,
   onDisplayTimeModeChange,
 }: ChartStatusRailProps) {
+  const compactSessionLabel = sessionLabel
+    .replace(/^Scheduled session /, "")
+    .replace(/^closes in /, "Closes ")
+    .replace(/^opens in /, "Opens ");
+  const compactFeedLabel = feedLabel.replace(/^Latest candle:\s*/i, "");
+
   return (
     <div className="chart-status-rail">
-      <div className={`chart-status-chip chart-status-${status}`}>
+      <div className={`chart-status-chip chart-status-${status}`} title={streamStatusLabel}>
         <Activity className={status === "live" ? "h-4 w-4 animate-pulse" : "h-4 w-4"} />
         <span>{streamStatusLabel}</span>
       </div>
       <div className="chart-status-chip" title={sessionBasis}>
         <Clock className="h-4 w-4" />
-        <span>{sessionLabel}</span>
+        <span>{compactSessionLabel}</span>
       </div>
       <div className="chart-status-chip chart-feed-chip">
         <div className="tv-toolbar-anchor" ref={timezoneMenuRef}>
@@ -61,8 +67,13 @@ export function ChartStatusRail({
             className="chart-feed-button"
           >
             <Database className={lastCandleTime ? "h-4 w-4 text-blue-400" : "h-4 w-4 text-slate-500"} />
-            <span className="chart-feed-main">{feedLabel}</span>
-            <span className="chart-feed-sub">Viewer clock: {currentDisplayTime} | {displayModeShortLabel}</span>
+            <span className="chart-feed-main">
+              <span>Latest</span>
+              <b>{compactFeedLabel}</b>
+            </span>
+            <span className="chart-feed-sub">
+              Viewer {currentDisplayTime} / {displayModeShortLabel}
+            </span>
             <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${timezoneMenuOpen ? "rotate-180" : ""}`} />
           </button>
 

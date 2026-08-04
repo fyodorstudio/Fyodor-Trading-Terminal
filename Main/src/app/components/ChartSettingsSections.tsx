@@ -32,6 +32,7 @@ export const CHART_EVENT_IMPACT_OPTIONS: Array<{
 ];
 
 const EVENT_MARKER_LIMIT_OPTIONS = [40, 80, 120, 200, 300];
+const FUTURE_MARKER_LIMIT_OPTIONS = [0, 4, 8, 12, 20, 40];
 
 export interface ChartCacheDrawerData {
   selectedSymbol: string;
@@ -48,10 +49,12 @@ export interface ChartCacheDrawerData {
 export interface ChartReplayDrawerData {
   defaultSpeed: number;
   stepCandles: number;
+  futureCandleOpacity: number;
   speedOptions: number[];
   stepOptions: number[];
   onDefaultSpeedChange: (speed: number) => void;
   onStepCandlesChange: (count: number) => void;
+  onFutureCandleOpacityChange: (opacity: number) => void;
 }
 
 export interface ChartDebugDrawerData {
@@ -235,9 +238,11 @@ export function ChartCursorSettings({
 
 export function ChartEventSettings({
   eventOverlay,
+  loadedUpcomingCount,
   onEventOverlayChange,
 }: {
   eventOverlay: ChartEventOverlayPreferences;
+  loadedUpcomingCount?: number;
   onEventOverlayChange: <K extends keyof ChartEventOverlayPreferences>(
     key: K,
     value: ChartEventOverlayPreferences[K],
@@ -297,6 +302,23 @@ export function ChartEventSettings({
             ))}
           </select>
         </label>
+        <div className="chart-settings-row">
+          <span>Loaded upcoming events</span>
+          <strong>{loadedUpcomingCount ?? 0}</strong>
+        </div>
+        <label className="chart-settings-row">
+          <span>Show next scheduled</span>
+          <select
+            value={eventOverlay.futureMarkerLimit}
+            onChange={(event) => onEventOverlayChange("futureMarkerLimit", Number(event.target.value))}
+          >
+            {FUTURE_MARKER_LIMIT_OPTIONS.map((limit) => (
+              <option key={limit} value={limit}>
+                {limit}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       <p className="chart-event-settings-note">
         Loaded broker/MT5 calendar rows only. Missing old markers mean the rows are not loaded.
@@ -328,6 +350,18 @@ export function ChartReplaySettings({ replayData }: { replayData: ChartReplayDra
               <option key={count} value={count}>{count} candle{count === 1 ? "" : "s"}</option>
             ))}
           </select>
+        </label>
+        <label className="chart-settings-row chart-settings-row-stacked">
+          <span>Future candle opacity</span>
+          <input
+            type="range"
+            min={15}
+            max={100}
+            step={5}
+            value={Math.round(replayData.futureCandleOpacity * 100)}
+            onChange={(event) => replayData.onFutureCandleOpacityChange(Number(event.target.value) / 100)}
+          />
+          <small>{Math.round(replayData.futureCandleOpacity * 100)}% while replay is active</small>
         </label>
       </div>
       <p className="chart-event-settings-note">

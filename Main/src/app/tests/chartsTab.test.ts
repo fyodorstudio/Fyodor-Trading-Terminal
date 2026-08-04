@@ -112,9 +112,11 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Open chart events");
     expect(html).toContain("Open chart diagnostics");
     expect(html).toContain("Event Lens");
-    expect(html).toContain("No loaded high-impact EUR/USD events in this visible range");
-    expect(html).toContain("Events settings");
-    expect(html).toContain("Show high + medium");
+    expect(html).toContain("Details");
+    expect(html).not.toContain("No loaded high-impact EUR/USD events in this visible range");
+    expect(html).not.toContain("Loaded events:");
+    expect(html).not.toContain("Events settings");
+    expect(html).not.toContain("Show high + medium");
     expect(html).not.toContain(">History<");
     expect(html).not.toContain("Terminal Console");
   });
@@ -134,10 +136,12 @@ describe("getChartConnectionLabel", () => {
         replayData: {
           defaultSpeed: 1,
           stepCandles: 1,
+          futureCandleOpacity: 0.6,
           speedOptions: [0.5, 1, 2, 4],
           stepOptions: [1, 2, 4, 8],
           onDefaultSpeedChange: () => {},
           onStepCandlesChange: () => {},
+          onFutureCandleOpacityChange: () => {},
         },
       }),
     );
@@ -151,8 +155,36 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("High only");
     expect(html).toContain("High + medium");
     expect(html).toContain("Max markers");
+    expect(html).toContain("Loaded upcoming events");
+    expect(html).toContain("Show next scheduled");
     expect(html).toContain("Selected pair");
     expect(html).toContain("All currencies");
+
+    const replayHtml = renderToStaticMarkup(
+      createElement(ChartSettingsDrawer, {
+        open: true,
+        mode: "replay",
+        onModeChange: () => {},
+        onClose: () => {},
+        preferences: DEFAULT_CHART_PREFERENCES,
+        onCursorModeChange: () => {},
+        onAppearanceChange: () => {},
+        onEventOverlayChange: () => {},
+        onResetAppearance: () => {},
+        replayData: {
+          defaultSpeed: 1,
+          stepCandles: 1,
+          futureCandleOpacity: 0.6,
+          speedOptions: [0.5, 1, 2, 4],
+          stepOptions: [1, 2, 4, 8],
+          onDefaultSpeedChange: () => {},
+          onStepCandlesChange: () => {},
+          onFutureCandleOpacityChange: () => {},
+        },
+      }),
+    );
+
+    expect(replayHtml).toContain("Future candle opacity");
   });
 
   it("derives session detail only from the active market status", () => {

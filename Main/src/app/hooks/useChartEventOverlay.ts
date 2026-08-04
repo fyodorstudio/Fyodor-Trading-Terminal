@@ -4,6 +4,7 @@ import {
   filterChartEventsForOverlay,
   formatChartEventDisplayTime,
   getChartEventKey,
+  sliceChartEventsByTime,
 } from "@/app/lib/chartEvents";
 import {
   clusterChartEventPoints,
@@ -29,6 +30,7 @@ interface UseChartEventOverlayArgs {
   displayTimeMode: ChartDisplayTimeMode;
   sourceTimeOffsetSeconds: number;
   preferences: ChartEventOverlayPreferences;
+  isInteracting: boolean;
   chartRangeRevision: number;
   chartLayoutRevision: number;
 }
@@ -38,6 +40,7 @@ interface ChartEventOverlayData {
   visibleEventCount: number;
   renderedEventCount: number;
   isCapped: boolean;
+  isInteracting: boolean;
 }
 
 export function useChartEventOverlay({
@@ -50,6 +53,7 @@ export function useChartEventOverlay({
   displayTimeMode,
   sourceTimeOffsetSeconds,
   preferences,
+  isInteracting,
   chartRangeRevision,
   chartLayoutRevision,
 }: UseChartEventOverlayArgs): {
@@ -65,6 +69,7 @@ export function useChartEventOverlay({
         scope: preferences.scope,
         impactFilter: preferences.impactFilter,
         sourceTimeOffsetSeconds,
+        latestCandleTime: visibleCandles[visibleCandles.length - 1]?.time ?? null,
       }),
     [
       events,
@@ -72,6 +77,7 @@ export function useChartEventOverlay({
       preferences.scope,
       preferences.impactFilter,
       sourceTimeOffsetSeconds,
+      visibleCandles,
     ],
   );
 
@@ -79,12 +85,12 @@ export function useChartEventOverlay({
     const chart = chartRef.current;
     const container = containerRef.current;
     if (!chart || !container || !preferences.visible || visibleCandles.length === 0) {
-      return { points: [], visibleEventCount: 0, renderedEventCount: 0, isCapped: false };
+      return { points: [], visibleEventCount: 0, renderedEventCount: 0, isCapped: false, isInteracting };
     }
 
     const width = container.clientWidth;
     if (width <= 0) {
-      return { points: [], visibleEventCount: 0, renderedEventCount: 0, isCapped: false };
+      return { points: [], visibleEventCount: 0, renderedEventCount: 0, isCapped: false, isInteracting };
     }
 
     const visibleRange = chart.timeScale().getVisibleRange();
@@ -100,9 +106,7 @@ export function useChartEventOverlay({
         : 3600;
     const rangeBuffer = candleSpacing * 2;
     const rangeMidpoint = (visibleFrom + visibleTo) / 2;
-    const visibleCandidates = candidates.filter(
-      (candidate) => candidate.chartTime >= visibleFrom - rangeBuffer && candidate.chartTime <= visibleTo + rangeBuffer,
-    );
+    const visibleCandidates = sliceChartEventsByTime(candidates, visibleFrom - rangeBuffer, visibleTo + rangeBuffer);
     const cappedCandidates =
       visibleCandidates.length <= preferences.maxMarkers
         ? visibleCandidates
@@ -129,6 +133,7 @@ export function useChartEventOverlay({
             displayTimeMode,
             sourceTimeOffsetSeconds,
           ),
+          isFuture: candidate.isFuture,
           tooltipPlacement: getChartEventTooltipPlacement(x, width),
         };
       })
@@ -140,6 +145,7 @@ export function useChartEventOverlay({
       visibleEventCount: visibleCandidates.length,
       renderedEventCount: cappedCandidates.length,
       isCapped: visibleCandidates.length > cappedCandidates.length,
+      isInteracting,
     };
   }, [
     candidates,
@@ -149,6 +155,7 @@ export function useChartEventOverlay({
     timeframe,
     displayTimeMode,
     sourceTimeOffsetSeconds,
+    isInteracting,
     chartRangeRevision,
     chartLayoutRevision,
   ]);

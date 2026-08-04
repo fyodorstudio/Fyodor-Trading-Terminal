@@ -9,6 +9,7 @@ const MAJOR_CURRENCIES = new Set<string>(MAJOR_CURRENCY_ORDER);
 export interface ChartEventCandidate {
   event: CalendarEvent;
   chartTime: number;
+  isFuture: boolean;
 }
 
 export function getChartEventKey(event: Pick<CalendarEvent, "id" | "time" | "currency" | "title">): string {
@@ -79,14 +80,17 @@ export function filterChartEventsForOverlay({
   scope,
   impactFilter,
   sourceTimeOffsetSeconds,
+  latestCandleTime,
 }: {
   events: CalendarEvent[];
   selectedSymbol: string;
   scope: ChartEventOverlayScope;
   impactFilter: ChartEventOverlayImpactFilter;
   sourceTimeOffsetSeconds: number;
+  latestCandleTime?: number | null;
 }): ChartEventCandidate[] {
   const relevantCurrencies = new Set(getChartEventRelevantCurrencies(selectedSymbol));
+  const latestTime = latestCandleTime ?? Number.POSITIVE_INFINITY;
 
   return events
     .filter((event) => {
@@ -99,6 +103,59 @@ export function filterChartEventsForOverlay({
     .map((event) => ({
       event,
       chartTime: getChartEventCoordinateTime(event.time, sourceTimeOffsetSeconds),
+      isFuture: event.time > latestTime,
     }))
     .sort((left, right) => left.chartTime - right.chartTime);
+}
+
+function lowerBoundByChartTime(candidates: ChartEventCandidate[], target: number): number {
+  let low = 0;
+  let high = candidates.length;
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    if (candidates[mid].chartTime < target) low = mid + 1;
+    else high = mid;
+  }
+  return low;
+}
+
+function upperBoundByChartTime(candidates: ChartEventCandidate[], target: number): number {
+  let low = 0;
+  let high = candidates.length;
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    if (candidates[mid].chartTime <= target) low = mid + 1;
+    else high = mid;
+  }
+  return low;
+}
+
+export function sliceChartEventsByTime(
+  candidates: ChartEventCandidate[],
+  from: number,
+  to: number,
+): ChartEventCandidate[] {
+  if (candidates.length === 0 || to < from) return [];
+  return candidates.slice(lowerBoundByChartTime(candidates, from), upperBoundByChartTime(candidates, to));
+}
+
+export function getFutureChartEventTimes(
+  candidates: ChartEventCandidate[],
+  latestCandleTime: number | null,
+  maxEvents = 8,
+): number[] {
+  if (latestCandleTime == null || maxEvents <= 0) return [];
+  const times: number[] = [];
+  const seen = new Set<number>();
+
+  for (const candidate of candidates) {
+    if (times.length >= maxEvents) break;
+    if (!candidate.isFuture) continue;
+    const time = candidate.chartTime;
+    if (seen.has(time)) continue;
+    seen.add(time);
+    times.push(time);
+  }
+
+  return times;
 }

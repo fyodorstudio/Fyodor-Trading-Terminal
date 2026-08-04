@@ -38,6 +38,7 @@ interface ChartSettingsDrawerProps {
   replayData?: ChartReplayDrawerData;
   cacheData?: ChartCacheDrawerData;
   debugData?: ChartDebugDrawerData;
+  loadedUpcomingEventCount?: number;
   title?: string;
   description?: string;
 }
@@ -55,6 +56,7 @@ export function ChartSettingsDrawer({
   replayData,
   cacheData,
   debugData,
+  loadedUpcomingEventCount = 0,
   title = "Chart Settings",
   description = "Visuals, event markers, replay defaults, and diagnostics for the active chart.",
 }: ChartSettingsDrawerProps) {
@@ -106,7 +108,7 @@ export function ChartSettingsDrawer({
                     <span>Events</span>
                     <strong>
                       {preferences.eventOverlay.visible
-                        ? `${eventScopeLabel}, ${eventImpactLabel}, cap ${preferences.eventOverlay.maxMarkers}`
+                        ? `${eventScopeLabel}, ${eventImpactLabel}, cap ${preferences.eventOverlay.maxMarkers}, next ${preferences.eventOverlay.futureMarkerLimit}`
                         : "Hidden"}
                     </strong>
                   </div>
@@ -150,6 +152,7 @@ export function ChartSettingsDrawer({
               {activeMode === "events" && onEventOverlayChange ? (
                 <ChartEventSettings
                   eventOverlay={preferences.eventOverlay}
+                  loadedUpcomingCount={loadedUpcomingEventCount}
                   onEventOverlayChange={onEventOverlayChange}
                 />
               ) : null}

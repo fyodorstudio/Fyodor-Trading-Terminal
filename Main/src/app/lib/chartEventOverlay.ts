@@ -7,6 +7,7 @@ export interface ChartEventOverlayPoint {
   event: CalendarEvent;
   x: number;
   timeLabel: string;
+  isFuture: boolean;
   tooltipPlacement: "left" | "center" | "right";
 }
 
@@ -15,6 +16,7 @@ export interface ChartEventOverlayCluster {
   events: Array<{
     event: CalendarEvent;
     timeLabel: string;
+    isFuture: boolean;
   }>;
   x: number;
   impact: CalendarEvent["impact"];
@@ -65,6 +67,10 @@ export function resolveChartEventX(
   chartTime: number,
 ): number | null {
   if (!isChartEventTimeframeIntraday(timeframe)) {
+    const lastCandle = candles[candles.length - 1];
+    if (lastCandle && chartTime > lastCandle.time) {
+      return chart.timeScale().timeToCoordinate(chartTime as Time);
+    }
     const anchorTime = getChartEventAnchorTime(chartTime, candles, timeframe);
     return anchorTime == null ? null : chart.timeScale().timeToCoordinate(anchorTime as Time);
   }
@@ -119,58 +125,24 @@ export function clusterChartEventPoints(
     clusters.push({ points: [point], x: point.x });
   });
 
-  const crowded = clusters.length > 10;
-
-  const mapped = clusters.map((cluster) => {
+  return clusters.map((cluster) => {
     const events = cluster.points.map((point) => point.event);
     const impact = getDominantImpact(events);
     const key = cluster.points.map((point) => point.key).join("|");
+    const hasFuture = cluster.points.some((point) => point.isFuture);
     return {
       key,
       events: cluster.points.map((point) => ({
         event: point.event,
         timeLabel: point.timeLabel,
+        isFuture: point.isFuture,
       })),
       x: cluster.x,
       impact,
       badgeLabel: getChartEventClusterBadge(events),
-      detailLabel: getChartEventClusterDetail(events),
+      detailLabel: hasFuture ? `Scheduled: ${getChartEventClusterDetail(events)}` : getChartEventClusterDetail(events),
       tooltipPlacement: getChartEventTooltipPlacement(cluster.x, containerWidth),
-      showBadge: !crowded || impact === "high" || events.length > 1,
+      showBadge: false,
     };
   });
-
-  const badgeClusters = mapped.map((cluster) => ({ ...cluster }));
-  let lastShownIndex: number | null = null;
-
-  badgeClusters.forEach((cluster, index) => {
-    if (!cluster.showBadge) return;
-
-    if (lastShownIndex == null) {
-      lastShownIndex = index;
-      return;
-    }
-
-    const previous = badgeClusters[lastShownIndex];
-    const minGap = cluster.events.length > 1 || previous.events.length > 1 ? 104 : 84;
-    if (Math.abs(cluster.x - previous.x) >= minGap) {
-      lastShownIndex = index;
-      return;
-    }
-
-    const previousScore =
-      (previous.events.length > 1 ? 2 : 0) + (previous.impact === "high" ? 1 : previous.impact === "medium" ? 0.5 : 0);
-    const currentScore =
-      (cluster.events.length > 1 ? 2 : 0) + (cluster.impact === "high" ? 1 : cluster.impact === "medium" ? 0.5 : 0);
-
-    if (currentScore > previousScore) {
-      previous.showBadge = false;
-      lastShownIndex = index;
-      return;
-    }
-
-    cluster.showBadge = false;
-  });
-
-  return badgeClusters;
 }

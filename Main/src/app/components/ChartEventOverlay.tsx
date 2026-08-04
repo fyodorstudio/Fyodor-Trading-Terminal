@@ -1,5 +1,6 @@
-import type { CSSProperties } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
+import type { CalendarEvent } from "@/app/types";
 
 export function ChartEventOverlay(props: {
   clusters: ChartEventOverlayCluster[];
@@ -8,9 +9,35 @@ export function ChartEventOverlay(props: {
   visibleEventCount: number;
   hoveredClusterKey: string | null;
   activeClusterKey: string | null;
+  isInteracting: boolean;
   onHoverCluster: (key: string | null) => void;
   onSelectCluster: (key: string) => void;
+  onSelectEvent: (clusterKey: string, event: CalendarEvent) => void;
 }) {
+  const closeTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current != null) window.clearTimeout(closeTimerRef.current);
+    };
+  }, []);
+
+  const keepTooltipOpen = (key: string) => {
+    if (closeTimerRef.current != null) {
+      window.clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    if (!props.isInteracting) props.onHoverCluster(key);
+  };
+
+  const scheduleTooltipClose = () => {
+    if (closeTimerRef.current != null) window.clearTimeout(closeTimerRef.current);
+    closeTimerRef.current = window.setTimeout(() => {
+      closeTimerRef.current = null;
+      props.onHoverCluster(null);
+    }, 180);
+  };
+
   if (props.clusters.length === 0) return null;
 
   return (
@@ -23,7 +50,8 @@ export function ChartEventOverlay(props: {
       {props.clusters.map((cluster) => {
         const isHovered = props.hoveredClusterKey === cluster.key;
         const isActive = props.activeClusterKey === cluster.key;
-        const shouldShowBadge = cluster.showBadge || isHovered || isActive;
+        const shouldShowBadge = !props.isInteracting && (cluster.showBadge || isHovered || isActive);
+        const hasFuture = cluster.events.some(({ isFuture }) => isFuture);
         const markerStyle = {
           left: cluster.x,
         } satisfies CSSProperties;
@@ -31,18 +59,19 @@ export function ChartEventOverlay(props: {
         return (
           <div
             key={cluster.key}
-            className={`chart-event-marker chart-event-${cluster.impact} tooltip-${cluster.tooltipPlacement} ${isActive ? "is-active" : ""}`}
+            className={`chart-event-marker chart-event-${cluster.impact} tooltip-${cluster.tooltipPlacement} ${hasFuture ? "is-future" : ""} ${isActive ? "is-active" : ""} ${props.isInteracting ? "is-interacting" : ""}`}
             style={markerStyle}
-            onMouseEnter={() => props.onHoverCluster(cluster.key)}
-            onMouseLeave={() => props.onHoverCluster(null)}
+            onMouseEnter={() => keepTooltipOpen(cluster.key)}
+            onMouseLeave={scheduleTooltipClose}
           >
             <span className="chart-event-line" />
             <button
               type="button"
               className="chart-event-hit-target"
               onClick={() => props.onSelectCluster(cluster.key)}
-              onFocus={() => props.onHoverCluster(cluster.key)}
-              aria-label={`Open Event Lens for ${cluster.events.length} loaded chart event${cluster.events.length === 1 ? "" : "s"}`}
+              onFocus={() => keepTooltipOpen(cluster.key)}
+              onBlur={scheduleTooltipClose}
+              aria-label={`Open Event Lens for ${cluster.events.length} ${hasFuture ? "scheduled" : "loaded"} chart event${cluster.events.length === 1 ? "" : "s"}`}
             >
               <span className="chart-event-dot" />
               {shouldShowBadge && (
@@ -52,18 +81,24 @@ export function ChartEventOverlay(props: {
                 </span>
               )}
             </button>
-            {isHovered && !isActive && (
-              <span className="chart-event-tooltip">
+            {isHovered && !props.isInteracting && (
+              <span
+                className="chart-event-tooltip"
+                onMouseEnter={() => keepTooltipOpen(cluster.key)}
+                onMouseLeave={scheduleTooltipClose}
+              >
                 <span className="chart-event-tooltip-kicker">
-                  {cluster.events.length} loaded event{cluster.events.length === 1 ? "" : "s"}
+                  {hasFuture ? "Scheduled" : "Loaded"} / {cluster.events.length} event{cluster.events.length === 1 ? "" : "s"}
                 </span>
                 <strong>{cluster.detailLabel}</strong>
-                <span>Click the marker to open the Event Lens.</span>
-                <span className="chart-event-list" aria-hidden="true">
+                <span>Choose an event here, or click the dot to open the main one.</span>
+                <span className="chart-event-list">
                   {cluster.events.map(({ event, timeLabel }) => (
-                    <span
+                    <button
                       key={`${event.id}:${event.time}:${event.currency}:${event.title}`}
+                      type="button"
                       className="chart-event-list-row"
+                      onClick={() => props.onSelectEvent(cluster.key, event)}
                     >
                       <span>
                         <b>{event.currency}</b>
@@ -71,7 +106,7 @@ export function ChartEventOverlay(props: {
                       </span>
                       <strong>{event.title}</strong>
                       <em>{timeLabel}</em>
-                    </span>
+                    </button>
                   ))}
                 </span>
               </span>

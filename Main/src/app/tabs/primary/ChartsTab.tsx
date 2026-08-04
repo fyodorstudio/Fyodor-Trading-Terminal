@@ -13,7 +13,7 @@ import { ChartStatusRail } from "@/app/components/ChartStatusRail";
 import { ChartSymbolPicker } from "@/app/components/ChartSymbolPicker";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import { ChartViewport, type ChartCrosshairReadout, type ChartEventLensDockData } from "@/app/components/ChartViewport";
-import type { ChartEventLensData } from "@/app/components/ChartEventLens";
+import type { ChartEventLensData, ChartEventReleaseRow } from "@/app/components/ChartEventLens";
 import { useChartEventOverlay } from "@/app/hooks/useChartEventOverlay";
 import { useChartMarketData } from "@/app/hooks/useChartMarketData";
 import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
@@ -24,6 +24,8 @@ import {
 } from "@/app/lib/chartDisplay";
 import {
   formatChartEventDisplayTime,
+  filterChartEventsForOverlay,
+  getFutureChartEventTimes,
   getChartEventAnchorTime,
   getChartEventCoordinateTime,
   getChartEventKey,
@@ -91,6 +93,8 @@ function getNearestCandleIndex(
 ): number | null {
   if (!event || candles.length === 0) return null;
   const chartTime = getChartEventCoordinateTime(event.time, sourceTimeOffsetSeconds);
+  const lastCandle = candles[candles.length - 1];
+  if (lastCandle && chartTime > lastCandle.time) return null;
   const anchorTime = getChartEventAnchorTime(chartTime, candles, timeframe) ?? chartTime;
 
   let bestIndex = 0;
@@ -142,6 +146,10 @@ function getChartEventCurrencyLabel(symbol: string): string {
   return currencies.join("/");
 }
 
+function isSameChartEventTemplate(left: CalendarEvent, right: CalendarEvent): boolean {
+  return left.currency === right.currency && left.title === right.title;
+}
+
 export function ChartsTab({
   marketStatus,
   selectedSymbol,
@@ -160,11 +168,12 @@ export function ChartsTab({
   const [crosshairReadout, setCrosshairReadout] = useState<ChartCrosshairReadout | null>(null);
   const [chartRangeRevision, setChartRangeRevision] = useState(0);
   const [chartLayoutRevision, setChartLayoutRevision] = useState(0);
+  const [chartInteracting, setChartInteracting] = useState(false);
   const [hoveredChartEventClusterKey, setHoveredChartEventClusterKey] = useState<string | null>(null);
   const [activeChartEventClusterKey, setActiveChartEventClusterKey] = useState<string | null>(null);
   const [selectedChartEventCluster, setSelectedChartEventCluster] = useState<ChartEventOverlayCluster | null>(null);
   const [selectedChartEvent, setSelectedChartEvent] = useState<CalendarEvent | null>(null);
-  const [eventLensPinned, setEventLensPinned] = useState(false);
+  const [eventLensExpanded, setEventLensExpanded] = useState(false);
   const [replayPlaying, setReplayPlaying] = useState(false);
   const [replayCursorIndex, setReplayCursorIndex] = useState<number | null>(null);
   const [replaySpeed, setReplaySpeed] = useState(1);
@@ -174,6 +183,9 @@ export function ChartsTab({
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const shouldRefocusRef = useRef(true);
+  const futureRefocusSignatureRef = useRef("");
+  const rangeAnimationFrameRef = useRef<number | null>(null);
+  const rangeSettleTimeoutRef = useRef<number | null>(null);
 
   const addLog = useCallback((line: string) => {
     setDebugLines((current) => {
@@ -227,19 +239,67 @@ export function ChartsTab({
     [selectedSymbol, activeMarketStatus?.asset_class],
   );
 
+  const chartEventCandidates = useMemo(
+    () =>
+      filterChartEventsForOverlay({
+        events,
+        selectedSymbol,
+        scope: chartPreferences.eventOverlay.scope,
+        impactFilter: chartPreferences.eventOverlay.impactFilter,
+        sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
+        latestCandleTime: lastCandleTime,
+      }),
+    [
+      events,
+      selectedSymbol,
+      chartPreferences.eventOverlay.scope,
+      chartPreferences.eventOverlay.impactFilter,
+      chartSourceTimeOffsetSeconds,
+      lastCandleTime,
+    ],
+  );
+
+  const loadedUpcomingEventCount = useMemo(
+    () => chartEventCandidates.filter((candidate) => candidate.isFuture).length,
+    [chartEventCandidates],
+  );
+
+  const futureChartEventTimes = useMemo(
+    () =>
+      chartPreferences.eventOverlay.visible
+        ? getFutureChartEventTimes(
+            chartEventCandidates,
+            lastCandleTime,
+            chartPreferences.eventOverlay.futureMarkerLimit,
+          )
+        : [],
+    [
+      chartEventCandidates,
+      chartPreferences.eventOverlay.visible,
+      chartPreferences.eventOverlay.futureMarkerLimit,
+      lastCandleTime,
+    ],
+  );
+
   const selectedReplayAnchorIndex = useMemo(
     () => getNearestCandleIndex(visibleCandles, selectedChartEvent, timeframe, chartSourceTimeOffsetSeconds),
     [visibleCandles, selectedChartEvent, timeframe, chartSourceTimeOffsetSeconds],
   );
 
-  const replayVisibleCandles = useMemo(() => {
-    if (selectedChartEvent == null || replayCursorIndex == null) return visibleCandles;
-    return visibleCandles.slice(0, Math.min(visibleCandles.length, replayCursorIndex + 1));
-  }, [visibleCandles, selectedChartEvent, replayCursorIndex]);
-
   const displayCandles = useMemo(
-    () => getChartDisplayCandles(replayVisibleCandles),
-    [replayVisibleCandles],
+    () =>
+      getChartDisplayCandles(visibleCandles, {
+        dimAfterIndex: selectedChartEvent == null ? null : replayCursorIndex,
+        appearance: chartPreferences.appearance,
+        futureTimes: futureChartEventTimes,
+      }),
+    [
+      visibleCandles,
+      selectedChartEvent,
+      replayCursorIndex,
+      chartPreferences.appearance,
+      futureChartEventTimes,
+    ],
   );
 
   const refocusChart = useCallback(() => {
@@ -250,10 +310,13 @@ export function ChartsTab({
     const lastIndex = visibleCandles.length - 1;
     const windowBars = Math.min(Math.max(visibleCandles.length, 60), 120);
     const halfWindow = windowBars / 2;
+    const futureSlots = futureChartEventTimes.length;
+    const rightWindow = futureSlots > 0 ? Math.max(18, futureSlots + 8) : halfWindow;
+    const leftWindow = Math.max(42, windowBars - rightWindow);
 
     chart.timeScale().setVisibleLogicalRange({
-      from: Math.max(-0.5, lastIndex - halfWindow),
-      to: lastIndex + halfWindow,
+      from: Math.max(-0.5, lastIndex - leftWindow),
+      to: lastIndex + rightWindow,
     });
 
     series.priceScale().setAutoScale(true);
@@ -268,7 +331,31 @@ export function ChartsTab({
         to: latestClose + span / 2,
       });
     });
-  }, [visibleCandles]);
+  }, [visibleCandles, futureChartEventTimes]);
+
+  const focusChartAroundEvent = useCallback(
+    (event: CalendarEvent): boolean => {
+      const chart = chartRef.current;
+      const series = seriesRef.current;
+      if (!chart || !series || visibleCandles.length === 0) return false;
+
+      const anchorIndex = getNearestCandleIndex(visibleCandles, event, timeframe, chartSourceTimeOffsetSeconds);
+      const eventChartTime = getChartEventCoordinateTime(event.time, chartSourceTimeOffsetSeconds);
+      const futureEventIndex = futureChartEventTimes.findIndex((time) => time === eventChartTime);
+      if (anchorIndex == null && futureEventIndex < 0) return false;
+
+      const windowBars = Math.min(Math.max(Math.round(visibleCandles.length * 0.2), 56), 120);
+      const leadBars = Math.max(18, Math.round(windowBars * 0.34));
+      const logicalIndex = anchorIndex ?? visibleCandles.length + futureEventIndex;
+      const from = Math.max(-0.5, logicalIndex - (windowBars - leadBars));
+      const to = Math.min(visibleCandles.length + Math.max(8, futureChartEventTimes.length + 4), logicalIndex + leadBars);
+
+      chart.timeScale().setVisibleLogicalRange({ from, to });
+      series.priceScale().setAutoScale(true);
+      return true;
+    },
+    [visibleCandles, timeframe, chartSourceTimeOffsetSeconds, futureChartEventTimes],
+  );
 
   const handleDisplayTimeModeChange = useCallback((next: ChartDisplayTimeMode) => {
     setDisplayTimeMode(next);
@@ -360,7 +447,7 @@ export function ChartsTab({
     setHoveredChartEventClusterKey(null);
     setSelectedChartEventCluster(null);
     setSelectedChartEvent(null);
-    setEventLensPinned(false);
+    setEventLensExpanded(false);
     setReplayPlaying(false);
     setReplayCursorIndex(null);
   }, []);
@@ -403,7 +490,7 @@ export function ChartsTab({
       layout: getChartLayoutOptions(appearance),
       rightPriceScale: { 
         borderVisible: false,
-        scaleMargins: { top: 0.1, bottom: 0.2 }
+        scaleMargins: { top: 0.1, bottom: 0.16 }
       },
       timeScale: {
         borderVisible: false,
@@ -561,11 +648,36 @@ export function ChartsTab({
     if (!chart) return;
 
     const onRangeChange = () => {
-      setChartRangeRevision((current) => current + 1);
+      setChartInteracting(true);
+      if (rangeAnimationFrameRef.current == null) {
+        rangeAnimationFrameRef.current = window.requestAnimationFrame(() => {
+          rangeAnimationFrameRef.current = null;
+          setChartRangeRevision((current) => current + 1);
+        });
+      }
+
+      if (rangeSettleTimeoutRef.current != null) {
+        window.clearTimeout(rangeSettleTimeoutRef.current);
+      }
+      rangeSettleTimeoutRef.current = window.setTimeout(() => {
+        rangeSettleTimeoutRef.current = null;
+        setChartInteracting(false);
+        setChartRangeRevision((current) => current + 1);
+      }, 120);
     };
 
     chart.timeScale().subscribeVisibleLogicalRangeChange(onRangeChange);
-    return () => chart.timeScale().unsubscribeVisibleLogicalRangeChange(onRangeChange);
+    return () => {
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(onRangeChange);
+      if (rangeAnimationFrameRef.current != null) {
+        window.cancelAnimationFrame(rangeAnimationFrameRef.current);
+        rangeAnimationFrameRef.current = null;
+      }
+      if (rangeSettleTimeoutRef.current != null) {
+        window.clearTimeout(rangeSettleTimeoutRef.current);
+        rangeSettleTimeoutRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -576,6 +688,23 @@ export function ChartsTab({
     }, 0);
     return () => window.clearTimeout(id);
   }, [historyState, displayCandles, refocusChart]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || historyState !== "ready" || visibleCandles.length === 0 || futureChartEventTimes.length === 0) return;
+
+    const signature = futureChartEventTimes.join(",");
+    if (futureRefocusSignatureRef.current === signature) return;
+    futureRefocusSignatureRef.current = signature;
+
+    const range = chart.timeScale().getVisibleLogicalRange();
+    const lastIndex = visibleCandles.length - 1;
+    const isNearLatest = !range || range.to >= lastIndex - 2;
+    if (!isNearLatest || chartInteracting) return;
+
+    const id = window.setTimeout(refocusChart, 0);
+    return () => window.clearTimeout(id);
+  }, [historyState, visibleCandles.length, futureChartEventTimes, chartInteracting, refocusChart]);
 
   const sessionDetail = useMemo(
     () => getChartSessionDetail(activeMarketStatus, sessionNowMs),
@@ -614,17 +743,10 @@ export function ChartsTab({
     displayTimeMode,
     sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
     preferences: chartPreferences.eventOverlay,
+    isInteracting: chartInteracting,
     chartRangeRevision,
     chartLayoutRevision,
   });
-
-  const activeChartEventCluster = useMemo(
-    () =>
-      selectedChartEventCluster ??
-      chartEventOverlay.clusters.find((cluster) => cluster.key === activeChartEventClusterKey) ??
-      null,
-    [chartEventOverlay.clusters, activeChartEventClusterKey, selectedChartEventCluster],
-  );
 
   const macroFactorRows = useMemo(() => {
     const currencies = getChartEventRelevantCurrencies(selectedSymbol);
@@ -635,17 +757,41 @@ export function ChartsTab({
     });
   }, [events, selectedSymbol, sessionNowMs]);
 
+  const selectChartEvent = useCallback(
+    (event: CalendarEvent, cluster: ChartEventOverlayCluster | null = null) => {
+      const visibleCluster =
+        cluster ??
+        chartEventOverlay.clusters.find((item) =>
+          item.events.some(({ event: clusterEvent }) => getChartEventKey(clusterEvent) === getChartEventKey(event)),
+        ) ??
+        null;
+
+      setActiveChartEventClusterKey(visibleCluster?.key ?? null);
+      setSelectedChartEventCluster(visibleCluster);
+      setSelectedChartEvent(event);
+      setEventLensExpanded(true);
+      setReplayPlaying(false);
+      focusChartAroundEvent(event);
+    },
+    [chartEventOverlay.clusters, focusChartAroundEvent],
+  );
+
   const handleSelectChartEventCluster = useCallback(
     (key: string) => {
       const cluster = chartEventOverlay.clusters.find((item) => item.key === key);
       const event = cluster ? getDefaultClusterEvent(cluster) : null;
-      setActiveChartEventClusterKey(key);
-      setSelectedChartEventCluster(cluster ?? null);
-      setSelectedChartEvent(event);
-      setEventLensPinned(false);
-      setReplayPlaying(false);
+      if (!event) return;
+      selectChartEvent(event, cluster ?? null);
     },
-    [chartEventOverlay.clusters],
+    [chartEventOverlay.clusters, selectChartEvent],
+  );
+
+  const handleSelectChartEventFromTooltip = useCallback(
+    (clusterKey: string, event: CalendarEvent) => {
+      const cluster = chartEventOverlay.clusters.find((item) => item.key === clusterKey) ?? null;
+      selectChartEvent(event, cluster);
+    },
+    [chartEventOverlay.clusters, selectChartEvent],
   );
 
   useEffect(() => {
@@ -665,10 +811,7 @@ export function ChartsTab({
           ? "high/medium-impact"
           : "loaded";
     const hasVisibleEvents = visibleClusterCount > 0;
-    const countLabel =
-      candidateCount > 0
-        ? `${candidateCount} loaded matching event${candidateCount === 1 ? "" : "s"}${visibleEventCount > 0 ? ` / ${visibleEventCount} in this visible range` : " outside this visible range"}`
-        : "No loaded matching events from the current broker/MT5 calendar rows";
+    const countLabel = `Loaded events: ${candidateCount} / Visible: ${visibleEventCount}`;
 
     return {
       visible: true,
@@ -682,9 +825,11 @@ export function ChartsTab({
         : hasVisibleEvents
         ? "Use the bottom event rail dots or badges to open replay for a loaded calendar event."
         : "The chart can only show calendar rows already loaded by the local bridge. Scroll, refocus, or broaden the impact filter if you expect more markers.",
-      countLabel: overlayVisible ? countLabel : `${candidateCount} loaded matching event${candidateCount === 1 ? "" : "s"} available with current filters`,
+      countLabel,
+      expanded: eventLensExpanded,
       canEnableEvents: !overlayVisible,
       canBroadenImpact: overlayVisible && chartPreferences.eventOverlay.impactFilter === "high",
+      onToggleExpanded: () => setEventLensExpanded((current) => !current),
       onShowEvents: () => updateEventOverlay("visible", true),
       onOpenSettings: () => openChartDrawer("events"),
       onShowHighMedium: () => updateEventOverlay("impactFilter", "high_medium"),
@@ -696,18 +841,48 @@ export function ChartsTab({
     chartEventOverlay.overlayData.visibleEventCount,
     chartEventOverlay.candidatesCount,
     selectedSymbol,
+    eventLensExpanded,
     openChartDrawer,
     updateEventOverlay,
   ]);
 
+  const eventLensCoverageLabel = `Loaded events: ${chartEventOverlay.candidatesCount} / Visible: ${chartEventOverlay.overlayData.visibleEventCount}`;
+
+  const releaseRows = useMemo<ChartEventReleaseRow[]>(() => {
+    if (!selectedChartEvent) return [];
+
+    return events
+      .filter((event) => isSameChartEventTemplate(event, selectedChartEvent))
+      .sort((left, right) => right.time - left.time)
+      .map((event) => ({
+        key: getChartEventKey(event),
+        event,
+        timeLabel: formatChartEventDisplayTime(event.time, displayTimeMode, chartSourceTimeOffsetSeconds),
+        actualLabel: formatEventField(event.actual, event.title),
+        forecastLabel: formatEventField(event.forecast, event.title),
+        previousLabel: formatEventField(event.previous, event.title),
+        isFuture: event.time > (lastCandleTime ?? Number.POSITIVE_INFINITY),
+        replayAvailable: getNearestCandleIndex(visibleCandles, event, timeframe, chartSourceTimeOffsetSeconds) != null,
+      }));
+  }, [
+    selectedChartEvent,
+    events,
+    displayTimeMode,
+    chartSourceTimeOffsetSeconds,
+    lastCandleTime,
+    visibleCandles,
+    timeframe,
+  ]);
+
   const eventLensData = useMemo<ChartEventLensData | null>(() => {
-    if (!activeChartEventCluster || !selectedChartEvent) return null;
+    if (!selectedChartEvent) return null;
 
     const actualLabel = formatEventField(selectedChartEvent.actual, selectedChartEvent.title);
     const forecastLabel = formatEventField(selectedChartEvent.forecast, selectedChartEvent.title);
     const previousLabel = formatEventField(selectedChartEvent.previous, selectedChartEvent.title);
     const comparison = getEventComparison(selectedChartEvent);
     const surpriseLabel = comparison ? `${comparison.surprise >= 0 ? "+" : ""}${comparison.surprise.toFixed(4)}` : "N/A";
+    const selectedEventIsFuture = selectedChartEvent.time > (lastCandleTime ?? Number.POSITIVE_INFINITY);
     const anchorCandle = selectedReplayAnchorIndex == null ? null : visibleCandles[selectedReplayAnchorIndex] ?? null;
     const cursorCandle = replayCursorIndex == null ? anchorCandle : visibleCandles[replayCursorIndex] ?? anchorCandle;
     const observedMove = formatObservedMove(anchorCandle, cursorCandle, priceFormat.precision);
@@ -720,9 +895,10 @@ export function ChartsTab({
       selectedReplayAnchorIndex == null ? 0 : Math.max(0, visibleCandles.length - 1 - selectedReplayAnchorIndex);
 
     return {
-      clusterEvents: activeChartEventCluster.events,
+      releaseRows,
       selectedEvent: selectedChartEvent,
       selectedEventKey: getChartEventKey(selectedChartEvent),
+      selectedEventIsFuture,
       timeLabel: formatChartEventDisplayTime(selectedChartEvent.time, displayTimeMode, chartSourceTimeOffsetSeconds),
       actualLabel,
       forecastLabel,
@@ -732,13 +908,18 @@ export function ChartsTab({
       observedMoveDetail: observedMove.detail,
       replayAvailable,
       replayPlaying,
-      replayProgressLabel: replayAvailable ? `${progressCurrent} / ${progressTotal} candles revealed` : "Event outside loaded candles",
+      replayProgressLabel: replayAvailable
+        ? `${progressCurrent} / ${progressTotal} candles revealed`
+        : selectedEventIsFuture
+          ? "Scheduled event"
+          : "Event outside loaded candles",
       replaySpeed,
       replaySpeedOptions: REPLAY_SPEED_OPTIONS,
       factorRows: macroFactorRows,
-      pinned: eventLensPinned,
-      onSelectEvent: setSelectedChartEvent,
-      onTogglePinned: () => setEventLensPinned((current) => !current),
+      coverageLabel: eventLensCoverageLabel,
+      expanded: eventLensExpanded,
+      onSelectRelease: selectChartEvent,
+      onToggleExpanded: () => setEventLensExpanded((current) => !current),
       onClose: closeEventLens,
       onTogglePlayback: toggleReplayPlayback,
       onResetReplay: resetReplay,
@@ -747,18 +928,21 @@ export function ChartsTab({
       onOpenCalendar: onOpenCalendarEvent,
     };
   }, [
-    activeChartEventCluster,
     selectedChartEvent,
+    releaseRows,
     selectedReplayAnchorIndex,
     replayCursorIndex,
     visibleCandles,
+    lastCandleTime,
     priceFormat.precision,
     displayTimeMode,
     chartSourceTimeOffsetSeconds,
     replayPlaying,
     replaySpeed,
     macroFactorRows,
-    eventLensPinned,
+    eventLensCoverageLabel,
+    eventLensExpanded,
+    selectChartEvent,
     closeEventLens,
     toggleReplayPlayback,
     resetReplay,
@@ -784,13 +968,33 @@ export function ChartsTab({
   return (
     <div className="workspace-page workspace-page-compact charts-tab-page flex h-[calc(100vh-98px)] min-h-[560px] flex-col overflow-hidden">
       <div className="chart-workbar">
-        <ChartSymbolPicker
-          selectedSymbol={selectedSymbol}
-          symbols={symbols}
-          timeframe={timeframe}
-          onSelectedSymbolChange={onSelectedSymbolChange}
-          onTimeframeChange={setTimeframe}
-        />
+        <div className="chart-workbar-main">
+          <ChartSymbolPicker
+            selectedSymbol={selectedSymbol}
+            symbols={symbols}
+            timeframe={timeframe}
+            onSelectedSymbolChange={onSelectedSymbolChange}
+            onTimeframeChange={setTimeframe}
+          />
+
+          <ChartStatusRail
+            status={status}
+            streamStatusLabel={streamStatusLabel}
+            sessionLabel={sessionDetail.label}
+            sessionBasis={sessionDetail.basis}
+            lastCandleTime={lastCandleTime}
+            feedLabel={feedLabel}
+            currentDisplayTime={currentDisplayTime}
+            displayModeLabel={displayModeLabel}
+            displayModeShortLabel={displayModeShortLabel}
+            displayTimeMode={displayTimeMode}
+            timezoneOptions={timezoneOptions}
+            timezoneMenuOpen={timezoneMenuOpen}
+            timezoneMenuRef={timezoneMenuRef}
+            onToggleTimezoneMenu={() => setTimezoneMenuOpen((current) => !current)}
+            onDisplayTimeModeChange={handleDisplayTimeModeChange}
+          />
+        </div>
 
         <ChartToolStrip
           cursorReadoutMode={chartPreferences.cursorReadoutMode}
@@ -802,24 +1006,6 @@ export function ChartsTab({
           onOpenDrawer={openChartDrawer}
         />
       </div>
-
-      <ChartStatusRail
-        status={status}
-        streamStatusLabel={streamStatusLabel}
-        sessionLabel={sessionDetail.label}
-        sessionBasis={sessionDetail.basis}
-        lastCandleTime={lastCandleTime}
-        feedLabel={feedLabel}
-        currentDisplayTime={currentDisplayTime}
-        displayModeLabel={displayModeLabel}
-        displayModeShortLabel={displayModeShortLabel}
-        displayTimeMode={displayTimeMode}
-        timezoneOptions={timezoneOptions}
-        timezoneMenuOpen={timezoneMenuOpen}
-        timezoneMenuRef={timezoneMenuRef}
-        onToggleTimezoneMenu={() => setTimezoneMenuOpen((current) => !current)}
-        onDisplayTimeModeChange={handleDisplayTimeModeChange}
-      />
 
       <ChartSettingsDrawer
         open={historyPanelOpen}
@@ -838,6 +1024,8 @@ export function ChartsTab({
           stepOptions: REPLAY_STEP_OPTIONS,
           onDefaultSpeedChange: setReplaySpeed,
           onStepCandlesChange: setReplayStepCandles,
+          futureCandleOpacity: chartPreferences.appearance.futureCandleOpacity,
+          onFutureCandleOpacityChange: (value) => updateAppearance("futureCandleOpacity", value),
         }}
         cacheData={{
           selectedSymbol,
@@ -853,6 +1041,7 @@ export function ChartsTab({
           onClearCache: clearCurrentCache,
         }}
         debugData={{ debugLines }}
+        loadedUpcomingEventCount={loadedUpcomingEventCount}
       />
 
       <ChartViewport
@@ -863,6 +1052,7 @@ export function ChartsTab({
         activeClusterKey={activeChartEventClusterKey}
         onHoverCluster={setHoveredChartEventClusterKey}
         onSelectCluster={handleSelectChartEventCluster}
+        onSelectEvent={handleSelectChartEventFromTooltip}
         eventLens={eventLensData}
         eventLensDock={eventLensDockData}
         crosshairReadout={crosshairReadout}

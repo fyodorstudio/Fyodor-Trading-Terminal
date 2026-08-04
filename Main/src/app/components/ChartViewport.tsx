@@ -1,10 +1,10 @@
 import { type Ref } from "react";
-import { AlertTriangle, CalendarDays, Settings2 } from "lucide-react";
+import { AlertTriangle, CalendarDays, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChartEventLens, type ChartEventLensData } from "@/app/components/ChartEventLens";
 import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
-import type { BridgeStatus } from "@/app/types";
+import type { BridgeStatus, CalendarEvent } from "@/app/types";
 
 export type ChartCrosshairReadout = {
   top: number;
@@ -16,8 +16,10 @@ export type ChartEventLensDockData = {
   title: string;
   description: string;
   countLabel: string;
+  expanded: boolean;
   canEnableEvents: boolean;
   canBroadenImpact: boolean;
+  onToggleExpanded: () => void;
   onShowEvents: () => void;
   onOpenSettings: () => void;
   onShowHighMedium: () => void;
@@ -30,11 +32,13 @@ interface ChartViewportProps {
     isCapped: boolean;
     renderedEventCount: number;
     visibleEventCount: number;
+    isInteracting: boolean;
   };
   hoveredClusterKey: string | null;
   activeClusterKey: string | null;
   onHoverCluster: (key: string | null) => void;
   onSelectCluster: (key: string) => void;
+  onSelectEvent: (clusterKey: string, event: CalendarEvent) => void;
   eventLens: ChartEventLensData | null;
   eventLensDock: ChartEventLensDockData;
   crosshairReadout: ChartCrosshairReadout | null;
@@ -54,6 +58,7 @@ export function ChartViewport({
   activeClusterKey,
   onHoverCluster,
   onSelectCluster,
+  onSelectEvent,
   eventLens,
   eventLensDock,
   crosshairReadout,
@@ -66,18 +71,24 @@ export function ChartViewport({
       <div className="chart-viewport-shell relative group min-h-0 flex-1 overflow-hidden">
         <div className="chart-viewport-surface h-full overflow-hidden">
           <div className="chart-canvas-frame">
-            <div ref={containerRef} className="h-full w-full" />
-            <ChartEventOverlay
-              clusters={clusters}
-              isCapped={eventOverlay.isCapped}
-              renderedEventCount={eventOverlay.renderedEventCount}
-              visibleEventCount={eventOverlay.visibleEventCount}
-              hoveredClusterKey={hoveredClusterKey}
-              activeClusterKey={activeClusterKey}
-              onHoverCluster={onHoverCluster}
-              onSelectCluster={onSelectCluster}
-            />
-            {eventLens ? <ChartEventLens data={eventLens} /> : <ChartEventLensDock data={eventLensDock} />}
+            <div className="chart-plot-region">
+              <div ref={containerRef} className="h-full w-full" />
+              <ChartEventOverlay
+                clusters={clusters}
+                isCapped={eventOverlay.isCapped}
+                renderedEventCount={eventOverlay.renderedEventCount}
+                visibleEventCount={eventOverlay.visibleEventCount}
+                hoveredClusterKey={hoveredClusterKey}
+                activeClusterKey={activeClusterKey}
+                isInteracting={eventOverlay.isInteracting}
+                onHoverCluster={onHoverCluster}
+                onSelectCluster={onSelectCluster}
+                onSelectEvent={onSelectEvent}
+              />
+            </div>
+            <div className={`chart-event-lens-slot ${eventOverlay.isInteracting ? "is-interacting" : ""}`}>
+              {eventLens ? <ChartEventLens data={eventLens} /> : <ChartEventLensDock data={eventLensDock} />}
+            </div>
           </div>
         </div>
         {crosshairReadout && (
@@ -126,15 +137,30 @@ export function ChartViewport({
 function ChartEventLensDock({ data }: { data: ChartEventLensDockData }) {
   if (!data.visible) return null;
 
+  if (!data.expanded) {
+    return (
+      <section className="chart-event-lens-dock" aria-label="Event Lens">
+        <button type="button" className="chart-event-lens-bookmark" onClick={data.onToggleExpanded} aria-expanded={false}>
+          <span>Event Lens</span>
+          <strong>Details</strong>
+          <ChevronUp size={14} />
+        </button>
+      </section>
+    );
+  }
+
   return (
-    <section className="chart-event-lens-dock" aria-label="Event Lens">
+    <section className="chart-event-lens-dock is-expanded" aria-label="Event Lens">
       <div className="chart-event-lens-dock-title">
         <span>Event Lens</span>
         <strong>{data.title}</strong>
       </div>
       <p>{data.description}</p>
-      <span className="chart-event-lens-dock-count">{data.countLabel}</span>
       <div className="chart-event-lens-dock-actions">
+        <button type="button" onClick={data.onToggleExpanded} aria-expanded={data.expanded}>
+          <ChevronDown size={13} />
+          Collapse
+        </button>
         {data.canEnableEvents ? (
           <button type="button" onClick={data.onShowEvents}>
             <CalendarDays size={13} />
@@ -151,6 +177,16 @@ function ChartEventLensDock({ data }: { data: ChartEventLensDockData }) {
             Show high + medium
           </button>
         ) : null}
+      </div>
+      <div className="chart-event-lens-dock-body">
+        <div>
+          <span>How to use</span>
+          <strong>Click an event dot or badge on the bottom rail to load replay details.</strong>
+        </div>
+        <div>
+          <span>Coverage</span>
+          <strong>{data.countLabel}</strong>
+        </div>
       </div>
     </section>
   );
