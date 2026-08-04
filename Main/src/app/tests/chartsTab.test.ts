@@ -113,6 +113,8 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Open chart diagnostics");
     expect(html).toContain("Event Lens");
     expect(html).toContain("Details");
+    expect(html).toContain("Open Pair Matrix Time Lens");
+    expect(html).not.toContain("Loaded broker/MT5 rows only");
     expect(html).not.toContain("No loaded high-impact EUR/USD events in this visible range");
     expect(html).not.toContain("Loaded events:");
     expect(html).not.toContain("Events settings");

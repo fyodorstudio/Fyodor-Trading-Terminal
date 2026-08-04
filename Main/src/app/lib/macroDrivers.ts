@@ -154,13 +154,25 @@ export function buildMacroFactorRows(params: {
   currencies: string[];
   nowSeconds: number;
 }): MacroFactorRow[] {
+  return buildMacroFactorRowsAsOf({
+    events: params.events,
+    currencies: params.currencies,
+    anchorTimeSeconds: params.nowSeconds,
+  });
+}
+
+export function buildMacroFactorRowsAsOf(params: {
+  events: CalendarEvent[];
+  currencies: string[];
+  anchorTimeSeconds: number;
+}): MacroFactorRow[] {
   return params.currencies.flatMap((currency) =>
     MACRO_FACTOR_DEFINITIONS.map((factor) => {
       const matches = params.events
         .filter((event) => event.currency === currency && titleMatches(event.title, factor.keywords))
         .sort((left, right) => left.time - right.time);
-      const latestEvent = [...matches].reverse().find((event) => event.time < params.nowSeconds) ?? null;
-      const nextEvent = matches.find((event) => event.time >= params.nowSeconds) ?? null;
+      const latestEvent = [...matches].reverse().find((event) => event.time < params.anchorTimeSeconds) ?? null;
+      const nextEvent = matches.find((event) => event.time >= params.anchorTimeSeconds) ?? null;
       const coverageLabel = latestEvent && nextEvent ? "Current + scheduled" : latestEvent ? "Latest only" : nextEvent ? "Scheduled only" : "Missing";
 
       return {

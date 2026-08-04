@@ -92,12 +92,12 @@ This file is the current command board. Future AI sessions should read this befo
 
 ### 2. Charts Pair Matrix Time Lens
 
-- [ ] Plan separately before source edits; do not bundle with the immediate Event Lens polish unless explicitly reopened.
-- [ ] Add a second compact bookmark near Event Lens later.
-- [ ] Clicking the bookmark opens a compact Pair Matrix popover based on chart cursor time.
-- [ ] Matrix should show macro/factor data active at the hovered chart time.
-- [ ] Later design may support draggable matrix anchors placed on multiple chart times.
-- [ ] V1 should be read-only and use loaded broker/MT5 calendar rows plus active helpers only.
+- [x] Plan separately before source edits; do not bundle with the immediate Event Lens polish unless explicitly reopened.
+- [x] Add a second compact bookmark near Event Lens later.
+- [x] Clicking the bookmark opens a compact Pair Matrix popover based on chart cursor time.
+- [x] Matrix should show macro/factor data active at the hovered chart time.
+- [x] Later design may support draggable matrix anchors placed on multiple chart times.
+- [x] V1 should be read-only and use loaded broker/MT5 calendar rows plus active helpers only.
 
 ### 3. CSS Monolith Split And Guardrails
 
@@ -140,6 +140,7 @@ These are intentionally not active implementation items.
 - [x] Overview has pair selector, Pair Driver Snapshot, base/quote macro cards, factor chips, and recent-release popovers.
 - [x] Charts event overlay uses a bottom rail, visible cluster dots, badge thinning, density caps, and honest event-causality wording.
 - [x] Charts Event Replay Lens opens from chart event markers and replays loaded candles in place.
+- [x] Charts Pair Matrix Time Lens opens from a compact chart bookmark and follows cursor-time macro/factor context from loaded rows.
 - [x] Chart settings drawer has compact current-settings summary and readable wrapping.
 - [x] Active CSS now loads without garbage-drawer stylesheet bands; garbage CSS is lazy-loaded only by garbage routes.
 - [x] Economic Calendar table uses an internal desktop scroll region and wraps event titles, timezone labels, and source values.

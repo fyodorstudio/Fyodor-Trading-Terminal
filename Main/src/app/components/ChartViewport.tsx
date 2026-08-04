@@ -3,6 +3,7 @@ import { AlertTriangle, CalendarDays, ChevronDown, ChevronUp, Settings2 } from "
 import { AnimatePresence, motion } from "framer-motion";
 import { ChartEventLens, type ChartEventLensData } from "@/app/components/ChartEventLens";
 import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
+import { ChartPairMatrixTimeLens, type ChartPairMatrixTimeLensData } from "@/app/components/ChartPairMatrixTimeLens";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
 import type { BridgeStatus, CalendarEvent } from "@/app/types";
 
@@ -41,6 +42,7 @@ interface ChartViewportProps {
   onSelectEvent: (clusterKey: string, event: CalendarEvent) => void;
   eventLens: ChartEventLensData | null;
   eventLensDock: ChartEventLensDockData;
+  pairMatrixTimeLens: ChartPairMatrixTimeLensData;
   crosshairReadout: ChartCrosshairReadout | null;
   status: BridgeStatus;
   overlayCopy: {
@@ -61,6 +63,7 @@ export function ChartViewport({
   onSelectEvent,
   eventLens,
   eventLensDock,
+  pairMatrixTimeLens,
   crosshairReadout,
   status,
   overlayCopy,
@@ -88,6 +91,7 @@ export function ChartViewport({
             </div>
             <div className={`chart-event-lens-slot ${eventOverlay.isInteracting ? "is-interacting" : ""}`}>
               {eventLens ? <ChartEventLens data={eventLens} /> : <ChartEventLensDock data={eventLensDock} />}
+              <ChartPairMatrixTimeLens data={pairMatrixTimeLens} />
             </div>
           </div>
         </div>

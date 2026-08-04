@@ -13,6 +13,7 @@ import { ChartStatusRail } from "@/app/components/ChartStatusRail";
 import { ChartSymbolPicker } from "@/app/components/ChartSymbolPicker";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import { ChartViewport, type ChartCrosshairReadout, type ChartEventLensDockData } from "@/app/components/ChartViewport";
+import type { ChartPairMatrixTimeLensData } from "@/app/components/ChartPairMatrixTimeLens";
 import type { ChartEventLensData, ChartEventReleaseRow } from "@/app/components/ChartEventLens";
 import { useChartEventOverlay } from "@/app/hooks/useChartEventOverlay";
 import { useChartMarketData } from "@/app/hooks/useChartMarketData";
@@ -45,6 +46,7 @@ import {
   getChartSessionDetail,
   loadChartPreferences,
   loadChartDisplayTimeMode,
+  normalizeChartTimestampSeconds,
   saveChartPreferences,
   saveChartDisplayTimeMode,
   type ChartAppearancePreferences,
@@ -55,7 +57,7 @@ import {
 } from "@/app/lib/chartView";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
 import { getEventComparison } from "@/app/lib/eventReaction";
-import { buildMacroFactorRows } from "@/app/lib/macroDrivers";
+import { buildMacroFactorRows, buildMacroFactorRowsAsOf } from "@/app/lib/macroDrivers";
 import {
   formatCurrentTimeForDisplayTimezone,
   getDisplayTimezoneOptions,
@@ -166,6 +168,8 @@ export function ChartsTab({
   const [debugLines, setDebugLines] = useState<string[]>([]);
   const [sessionNowMs, setSessionNowMs] = useState(() => Date.now());
   const [crosshairReadout, setCrosshairReadout] = useState<ChartCrosshairReadout | null>(null);
+  const [cursorChartTime, setCursorChartTime] = useState<number | null>(null);
+  const [pairMatrixOpen, setPairMatrixOpen] = useState(false);
   const [chartRangeRevision, setChartRangeRevision] = useState(0);
   const [chartLayoutRevision, setChartLayoutRevision] = useState(0);
   const [chartInteracting, setChartInteracting] = useState(false);
@@ -596,12 +600,16 @@ export function ChartsTab({
       const point = param.point;
       if (!point || point.x < 0 || point.y < 0 || point.x > container.clientWidth || point.y > container.clientHeight) {
         setCrosshairReadout(null);
+        setCursorChartTime(null);
         return;
       }
 
       const truePrice = series.coordinateToPrice(point.y);
       const candle = param.seriesData?.get(series) as CandlestickData<Time> | undefined;
       const candlePrice = candle && typeof candle.close === "number" ? candle.close : null;
+      const candleTime = candle ? normalizeChartTimestampSeconds(candle.time) : null;
+      const pointerTime = normalizeChartTimestampSeconds(param.time);
+      setCursorChartTime(candleTime ?? pointerTime);
       const lines = formatCursorReadout({
         mode: chartPreferences.cursorReadoutMode,
         truePrice,
@@ -630,8 +638,13 @@ export function ChartsTab({
     return () => {
       chart.unsubscribeCrosshairMove(handleCrosshairMove);
       setCrosshairReadout(null);
+      setCursorChartTime(null);
     };
   }, [chartPreferences.cursorReadoutMode, priceFormat.precision]);
+
+  useEffect(() => {
+    setCursorChartTime(null);
+  }, [selectedSymbol, timeframe]);
 
   useEffect(() => {
     const series = seriesRef.current;
@@ -756,6 +769,56 @@ export function ChartsTab({
       nowSeconds: Math.floor(sessionNowMs / 1000),
     });
   }, [events, selectedSymbol, sessionNowMs]);
+
+  const pairMatrixCurrencies = useMemo(() => getChartEventRelevantCurrencies(selectedSymbol), [selectedSymbol]);
+  const pairMatrixAnchorChartTime = cursorChartTime ?? lastCandleTime ?? null;
+  const pairMatrixAnchorCalendarTime =
+    pairMatrixAnchorChartTime == null ? null : pairMatrixAnchorChartTime - chartSourceTimeOffsetSeconds;
+  const pairMatrixRows = useMemo(
+    () =>
+      pairMatrixAnchorCalendarTime == null
+        ? []
+        : buildMacroFactorRowsAsOf({
+            events,
+            currencies: pairMatrixCurrencies,
+            anchorTimeSeconds: pairMatrixAnchorCalendarTime,
+          }),
+    [events, pairMatrixCurrencies, pairMatrixAnchorCalendarTime],
+  );
+  const pairMatrixCoverageLabel = useMemo(() => {
+    if (pairMatrixRows.length === 0) return "No anchor candle";
+    const coveredRows = pairMatrixRows.filter((row) => row.latestEvent || row.nextEvent).length;
+    return `${coveredRows}/${pairMatrixRows.length} factor cells loaded`;
+  }, [pairMatrixRows]);
+  const pairMatrixTimeLensData = useMemo<ChartPairMatrixTimeLensData>(
+    () => ({
+      open: pairMatrixOpen,
+      pairLabel: selectedSymbol,
+      currencies: pairMatrixCurrencies,
+      rows: pairMatrixRows,
+      anchorLabel:
+        pairMatrixAnchorChartTime == null
+          ? "Waiting for candle"
+          : formatChartFeedTime(pairMatrixAnchorChartTime, displayTimeMode, chartSourceTimeOffsetSeconds),
+      anchorBasisLabel: cursorChartTime == null ? "latest loaded candle" : "cursor time",
+      coverageLabel: pairMatrixCoverageLabel,
+      displayTimeMode,
+      sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
+      onToggleOpen: () => setPairMatrixOpen((current) => !current),
+      onClose: () => setPairMatrixOpen(false),
+    }),
+    [
+      pairMatrixOpen,
+      selectedSymbol,
+      pairMatrixCurrencies,
+      pairMatrixRows,
+      pairMatrixAnchorChartTime,
+      displayTimeMode,
+      chartSourceTimeOffsetSeconds,
+      cursorChartTime,
+      pairMatrixCoverageLabel,
+    ],
+  );
 
   const selectChartEvent = useCallback(
     (event: CalendarEvent, cluster: ChartEventOverlayCluster | null = null) => {
@@ -1055,6 +1118,7 @@ export function ChartsTab({
         onSelectEvent={handleSelectChartEventFromTooltip}
         eventLens={eventLensData}
         eventLensDock={eventLensDockData}
+        pairMatrixTimeLens={pairMatrixTimeLensData}
         crosshairReadout={crosshairReadout}
         status={status}
         overlayCopy={overlayCopy}
