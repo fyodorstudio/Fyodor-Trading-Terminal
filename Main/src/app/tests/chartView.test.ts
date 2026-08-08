@@ -131,6 +131,31 @@ describe("chartView helpers", () => {
     expect(display[1]).toEqual({ time: futureTime });
   });
 
+  it("keeps display candle and future marker times unique and strictly ascending", () => {
+    const middle = { ...SAMPLE_CANDLE, time: SAMPLE_CANDLE.time + 4 * 60 * 60, close: 1.6 };
+    const later = { ...SAMPLE_CANDLE, time: SAMPLE_CANDLE.time + 8 * 60 * 60, close: 1.7 };
+    const display = getChartDisplayCandles([later, SAMPLE_CANDLE, middle, { ...middle, close: 1.65 }], {
+      futureTimes: [
+        SAMPLE_CANDLE.time + 12 * 60 * 60,
+        SAMPLE_CANDLE.time + 8 * 60 * 60,
+        SAMPLE_CANDLE.time + 4 * 60 * 60,
+        SAMPLE_CANDLE.time + 16 * 60 * 60,
+        SAMPLE_CANDLE.time + 12 * 60 * 60,
+        Number.NaN,
+      ],
+    });
+
+    const times = display.map((item) => Number(item.time));
+    expect(times).toEqual([
+      SAMPLE_CANDLE.time,
+      SAMPLE_CANDLE.time + 4 * 60 * 60,
+      SAMPLE_CANDLE.time + 8 * 60 * 60,
+      SAMPLE_CANDLE.time + 12 * 60 * 60,
+      SAMPLE_CANDLE.time + 16 * 60 * 60,
+    ]);
+    expect(new Set(times).size).toBe(times.length);
+  });
+
   it("formats x-axis labels by tick mark type for server and offset modes", () => {
     expect(formatChartAxisTime(SAMPLE_CANDLE.time, "H1", TickMarkType.Time, "server")).toBe("21:00");
     expect(formatChartAxisTime(SAMPLE_CANDLE.time, "H4", TickMarkType.DayOfMonth, "server")).toBe("19 Feb");

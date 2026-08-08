@@ -88,6 +88,7 @@ export interface PairMatrixFactorComparison {
 export interface PairMatrixComparisonSummary {
   state: PairMatrixComparisonState;
   stateLabel: string;
+  voteLabel: string;
   modeLabel: string;
   winnerModeLabel: string;
   baseCurrency: string | null;
@@ -585,10 +586,26 @@ export function buildPairMatrixComparisonSummary(params: {
       : params.preferences.comparisonWinnerMode === "per_factor"
         ? "Per-factor only"
         : "Factor vote";
+  const totalReadableFactors = factorReads.length;
+  const voteLabel =
+    state === "base_leads"
+      ? `${counts.base_leads}/${totalReadableFactors} factors`
+      : state === "quote_leads"
+        ? `${counts.quote_leads}/${totalReadableFactors} factors`
+        : state === "split"
+          ? `${counts.base_leads}-${counts.quote_leads}/${totalReadableFactors}`
+          : state === "both_supportive"
+            ? `${counts.both_supportive}/${totalReadableFactors} both`
+            : state === "both_weak"
+              ? `${counts.both_weak}/${totalReadableFactors} weak`
+              : state === "mixed"
+                ? `${counts.base_leads}-${counts.quote_leads}/${totalReadableFactors} mixed`
+                : `${counts.unclear}/${totalReadableFactors} unclear`;
 
   return {
     state,
     stateLabel: getComparisonStateLabel(state),
+    voteLabel,
     modeLabel,
     winnerModeLabel,
     baseCurrency,

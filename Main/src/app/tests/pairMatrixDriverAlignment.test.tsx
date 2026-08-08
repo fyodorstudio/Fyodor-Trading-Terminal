@@ -210,6 +210,7 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(rows[0]?.comparison?.base?.rawSurpriseLabel).toBe("+0.6%");
     expect(rows[0]?.comparison?.quote?.rawSurpriseLabel).toBe("+0.1%");
     expect(summary?.stateLabel).toBe("Base leads");
+    expect(summary?.voteLabel).toBe("1/1 factors");
     expect(summary?.detailLabel).toContain("EUR 1, USD 0");
   });
 
@@ -260,7 +261,14 @@ describe("Pair Matrix Driver Alignment", () => {
           forecast: "",
           previous: "3.5",
         }),
-        nextEvent: null,
+        nextEvent: event({
+          time: Date.UTC(2026, 8, 17, 4, 0, 0) / 1000,
+          currency: "USD",
+          title: "Fed Interest Rate Decision",
+          actual: "",
+          forecast: "3.75",
+          previous: "3.75",
+        }),
         coverageLabel: "Latest only",
         summary: "",
       },
@@ -268,7 +276,7 @@ describe("Pair Matrix Driver Alignment", () => {
     const rows = buildPairMatrixViewRows({
       factorRows,
       factors: [factorRows[0].factor],
-      currencies: ["USD"],
+      currencies: ["EUR", "USD"],
       selectedSymbol: "EURUSD",
       visibleCandles: [
         { time: Date.UTC(2026, 6, 30, 4, 0, 0) / 1000, open: 1.1, high: 1.1, low: 1.1, close: 1.1, volume: 1 },
@@ -284,11 +292,11 @@ describe("Pair Matrix Driver Alignment", () => {
         data: {
           open: true,
           pairLabel: "EURUSD",
-          currencies: ["USD"],
+          currencies: ["EUR", "USD"],
           rows,
           comparisonSummary: buildPairMatrixComparisonSummary({
             rows,
-            currencies: ["USD"],
+            currencies: ["EUR", "USD"],
             preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
           }),
           preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
@@ -304,11 +312,38 @@ describe("Pair Matrix Driver Alignment", () => {
       }),
     );
 
-    expect(html).toContain("Driver alignment");
-    expect(html).toContain("A 3.75%");
-    expect(html).toContain("F -");
-    expect(html).toContain("P 3.5%");
-    expect(html).toContain("-20.0 pips / -0.18%");
+    expect(html).toContain("Driver");
+    expect(html).toContain("Compare");
+    expect(html).toContain("Pair Matrix settings");
+    expect(html).toContain("chart-pair-matrix-summary-box");
+    expect(html).toMatch(/\/1 factors/);
+    expect(html).toContain("Evidence");
+    expect(html).toContain("Latest");
+    expect(html).toContain("Next");
+    expect(html).not.toContain("USD latest");
+    expect(html).not.toContain("USD next");
+    expect(html).not.toContain("EUR latest");
+    expect(html).not.toContain("EUR next");
+    expect(html).toContain("Fed Interest Rate Decision");
+    expect(html).toContain("A: 3.75%");
+    expect(html).toContain("F: -");
+    expect(html).toContain("P: 3.5%");
+    expect(html).toContain("A: -");
+    expect(html).toContain("F: 3.75%");
+    expect(html).toContain("P: 3.75%");
+    expect(html).toContain("30 Jul 2026");
+    expect(html).toContain("17 Sept 2026");
+    expect(html).toContain("-20.0 pips");
+    expect(html).toContain("-0.18%");
+    expect(html).toContain("chart-pair-matrix-settings-details");
+    expect(html).toContain("1/1 factor cells loaded");
+    expect(html).toContain("Loaded broker/MT5 rows only");
+    expect(html).not.toContain('class="chart-pair-matrix-summary-box " title="1/1 factor cells loaded');
+    expect(html).not.toContain('class="chart-pair-matrix-summary-box " title="Loaded broker/MT5 rows only');
+    expect(html).toContain(">Read<");
+    expect(html).toContain(">Sensitivity<");
+    expect(html).toContain(">Sort<");
+    expect(html).not.toContain("Density");
     expect(html).not.toContain("04:0004:00");
   });
 });

@@ -274,8 +274,9 @@ export function getChartDisplayCandles(
   const dimAfterIndex = typeof options.dimAfterIndex === "number" ? options.dimAfterIndex : null;
   const appearance = options.appearance;
   const futureTimes = options.futureTimes ?? [];
+  const normalizedCandles = validateAndSortCandles(candles);
 
-  const candleData = candles.map((candle, index) => {
+  const candleData = normalizedCandles.map((candle, index) => {
     const displayCandle: CandlestickData<Time> = {
       time: toChartTime(candle.time),
       open: candle.open,
@@ -303,9 +304,11 @@ export function getChartDisplayCandles(
 
   if (futureTimes.length === 0) return candleData;
 
-  const existingTimes = new Set(candles.map((candle) => candle.time));
-  const futureWhitespace = futureTimes
-    .filter((time) => Number.isFinite(time) && !existingTimes.has(time))
+  const existingTimes = new Set(normalizedCandles.map((candle) => candle.time));
+  const latestCandleTime = normalizedCandles[normalizedCandles.length - 1]?.time ?? Number.NEGATIVE_INFINITY;
+  const futureWhitespace = Array.from(new Set(futureTimes))
+    .filter((time) => Number.isFinite(time) && time > latestCandleTime && !existingTimes.has(time))
+    .sort((left, right) => left - right)
     .map((time) => ({ time: toChartTime(time) }));
 
   return [...candleData, ...futureWhitespace];

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
-import { Table2, X } from "lucide-react";
+import { GripHorizontal, SlidersHorizontal, Table2, X } from "lucide-react";
 import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import { formatChartEventDisplayTime } from "@/app/lib/chartEvents";
 import type { ChartDisplayTimeMode } from "@/app/lib/chartView";
@@ -43,15 +43,6 @@ const SORT_OPTIONS = [
   { value: "factor", label: "Factor" },
   { value: "driver_strength", label: "Drivers" },
 ] as const;
-const DENSITY_OPTIONS = [
-  { value: "compact", label: "Compact" },
-  { value: "comfortable", label: "Comfort" },
-] as const;
-
-function formatEventName(event: CalendarEvent | null): string {
-  if (!event) return "No loaded event";
-  return event.title;
-}
 
 function formatEventTime(
   event: CalendarEvent | null,
@@ -62,37 +53,23 @@ function formatEventTime(
   return formatChartEventDisplayTime(event.time, displayTimeMode, sourceTimeOffsetSeconds);
 }
 
-function MatrixLatestCell({
-  event,
-  displayTimeMode,
-  sourceTimeOffsetSeconds,
-}: {
-  event: CalendarEvent | null;
-  displayTimeMode: ChartDisplayTimeMode;
-  sourceTimeOffsetSeconds: number;
-}) {
+function getEventDisplayFields(event: CalendarEvent | null) {
   if (!event) {
-    return <span className="chart-pair-matrix-empty">No loaded release</span>;
+    return {
+      actual: "-",
+      forecast: "-",
+      previous: "-",
+    };
   }
 
-  const actual = getEventValueDisplay(event.actual, event.title).display;
-  const forecast = getEventValueDisplay(event.forecast, event.title).display;
-  const previous = getEventValueDisplay(event.previous, event.title).display;
-
-  return (
-    <span className="chart-pair-matrix-evidence">
-      <strong className="chart-pair-matrix-event-title">{event.title}</strong>
-      <span className="chart-pair-matrix-values">
-        <span>A {actual}</span>
-        <span>F {forecast}</span>
-        <span>P {previous}</span>
-      </span>
-      <em className="chart-pair-matrix-time">{formatEventTime(event, displayTimeMode, sourceTimeOffsetSeconds)}</em>
-    </span>
-  );
+  return {
+    actual: getEventValueDisplay(event.actual, event.title).display,
+    forecast: getEventValueDisplay(event.forecast, event.title).display,
+    previous: getEventValueDisplay(event.previous, event.title).display,
+  };
 }
 
-function MatrixNextCell({
+function EvidenceRun({
   event,
   displayTimeMode,
   sourceTimeOffsetSeconds,
@@ -101,14 +78,18 @@ function MatrixNextCell({
   displayTimeMode: ChartDisplayTimeMode;
   sourceTimeOffsetSeconds: number;
 }) {
-  if (!event) {
-    return <span className="chart-pair-matrix-empty">No loaded event</span>;
-  }
+  const fields = getEventDisplayFields(event);
+  const timeLabel = event ? formatEventTime(event, displayTimeMode, sourceTimeOffsetSeconds) : "-";
+  const formula = event
+    ? `${event.title}. Actual ${fields.actual}, Forecast ${fields.forecast}, Previous ${fields.previous}. ${timeLabel}.`
+    : "No loaded event for this side.";
 
   return (
-    <span className="chart-pair-matrix-evidence">
-      <strong className="chart-pair-matrix-event-title">{formatEventName(event)}</strong>
-      <em className="chart-pair-matrix-time">{formatEventTime(event, displayTimeMode, sourceTimeOffsetSeconds)}</em>
+    <span className={`chart-pair-matrix-evidence-run ${event ? "" : "is-empty"}`} title={formula}>
+      <span>A: {fields.actual}</span>
+      <span>F: {fields.forecast}</span>
+      <span>P: {fields.previous}</span>
+      <time>{timeLabel}</time>
     </span>
   );
 }
@@ -145,12 +126,11 @@ function PairMatrixControl<K extends keyof PairMatrixPreferences>({
 
 function DriverRead({ read }: { read: PairMatrixAlignmentRead }) {
   return (
-    <span className={`chart-pair-matrix-driver-read is-${read.status}`}>
+    <span className={`chart-pair-matrix-driver-read is-${read.status}`} title={read.reason}>
       <span className="chart-pair-matrix-driver-top">
         <strong>{read.statusLabel}</strong>
         <em>{read.currency}</em>
       </span>
-      <span className="chart-pair-matrix-driver-event">{read.eventTitle}</span>
       <span className="chart-pair-matrix-driver-line">{read.surpriseLabel}</span>
       <span className="chart-pair-matrix-driver-line">{read.priceMoveLabel}</span>
       <span className="chart-pair-matrix-driver-line">{read.expectedDirectionLabel} / {read.actualDirectionLabel}</span>
@@ -182,10 +162,9 @@ function DriverAlignmentCell({
 
 function PairComparisonSide({ side }: { side: NonNullable<PairMatrixFactorComparison["base"]> }) {
   return (
-    <span className="chart-pair-matrix-compare-side">
+    <span className="chart-pair-matrix-compare-side" title={side.formulaLabel}>
       <strong>{side.currency}</strong>
-      <span>{side.rawSurpriseLabel} / {side.relativeSurpriseLabel}</span>
-      <em>{side.formulaLabel}</em>
+      <span>{side.scoreLabel}</span>
     </span>
   );
 }
@@ -205,19 +184,186 @@ function PairComparisonCell({ comparison }: { comparison: PairMatrixFactorCompar
   );
 }
 
-function PairComparisonSummary({ summary }: { summary: PairMatrixComparisonSummary }) {
+function PairMatrixSummaryBox({
+  label,
+  detail,
+  className = "",
+  title,
+}: {
+  label: string;
+  detail?: string;
+  className?: string;
+  title?: string;
+}) {
   return (
-    <section className={`chart-pair-matrix-compare-summary is-${summary.state}`} aria-label="Base quote comparison">
-      <div>
-        <span>{summary.modeLabel} / {summary.winnerModeLabel}</span>
-        <strong>{summary.stateLabel}</strong>
-        <small>{summary.detailLabel}</small>
+    <span className={`chart-pair-matrix-summary-box ${className}`} title={title ?? `${label}${detail ? ` ${detail}` : ""}`}>
+      <strong>{label}</strong>
+      {detail ? <em>{detail}</em> : null}
+    </span>
+  );
+}
+
+function PairMatrixHeaderSummary({
+  summary,
+  anchorLabel,
+  anchorBasisLabel,
+  coverageLabel,
+  preferences,
+  onPreferenceChange,
+  onClose,
+}: {
+  summary: PairMatrixComparisonSummary | null;
+  anchorLabel: string;
+  anchorBasisLabel: string;
+  coverageLabel: string;
+  preferences: PairMatrixPreferences;
+  onPreferenceChange: ChartPairMatrixTimeLensData["onPreferenceChange"];
+  onClose: () => void;
+}) {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  return (
+    <div className="chart-pair-matrix-head-summary" aria-label="Pair Matrix summary">
+      <PairMatrixSummaryBox label={anchorLabel} detail={anchorBasisLabel} className="is-anchor" />
+      {summary ? (
+        <>
+          <PairMatrixSummaryBox
+            label={summary.stateLabel}
+            detail={summary.voteLabel}
+            className={`is-state is-${summary.state}`}
+            title={summary.detailLabel}
+          />
+          <PairMatrixSummaryBox
+            label={summary.modeLabel}
+            detail={summary.winnerModeLabel}
+            className="is-mode"
+            title={`${summary.modeLabel} / ${summary.winnerModeLabel}`}
+          />
+          <PairMatrixSummaryBox
+            label={summary.baseScoreLabel}
+            detail={summary.baseCurrency ?? "Base"}
+            className="is-score"
+          />
+          <PairMatrixSummaryBox
+            label={summary.quoteScoreLabel}
+            detail={summary.quoteCurrency ?? "Quote"}
+            className="is-score"
+          />
+        </>
+      ) : null}
+      <div className="chart-pair-matrix-settings">
+        <button
+          type="button"
+          onClick={() => setSettingsOpen((current) => !current)}
+          aria-label="Pair Matrix settings"
+          aria-expanded={settingsOpen}
+          title="Pair Matrix settings"
+        >
+          <SlidersHorizontal size={15} />
+        </button>
+        <div className="chart-pair-matrix-settings-popover" hidden={!settingsOpen}>
+          <div className="chart-pair-matrix-settings-details">
+            <span>{coverageLabel}</span>
+            <span>Loaded broker/MT5 rows only</span>
+          </div>
+            <PairMatrixControl
+              label="Read"
+              value={preferences.driverReadMode}
+              options={READ_MODE_OPTIONS}
+              onChange={(value) =>
+                onPreferenceChange("driverReadMode", value as PairMatrixPreferences["driverReadMode"])
+              }
+            />
+            <PairMatrixControl
+              label="Sensitivity"
+              value={preferences.surpriseSensitivity}
+              options={SENSITIVITY_OPTIONS}
+              onChange={(value) =>
+                onPreferenceChange("surpriseSensitivity", value as PairMatrixPreferences["surpriseSensitivity"])
+              }
+            />
+            <PairMatrixControl
+              label="Sort"
+              value={preferences.rowSortMode}
+              options={SORT_OPTIONS}
+              onChange={(value) =>
+                onPreferenceChange("rowSortMode", value as PairMatrixPreferences["rowSortMode"])
+              }
+            />
+        </div>
       </div>
-      <div className="chart-pair-matrix-compare-scores">
-        <span>{summary.baseScoreLabel}</span>
-        <span>{summary.quoteScoreLabel}</span>
+      <button type="button" onClick={onClose} aria-label="Close Pair Matrix Time Lens">
+        <X size={15} />
+      </button>
+    </div>
+  );
+}
+
+function PairMatrixFactorRow({
+  row,
+  data,
+}: {
+  row: PairMatrixFactorViewRow;
+  data: ChartPairMatrixTimeLensData;
+}) {
+  const baseCurrency = data.currencies[0] ?? "Base";
+  const quoteCurrency = data.currencies[1] ?? "Quote";
+  const baseCell = row.cells.find((cell) => cell.currency === baseCurrency) ?? row.cells[0] ?? null;
+  const quoteCell = row.cells.find((cell) => cell.currency === quoteCurrency) ?? (data.currencies.length > 1 ? row.cells[1] : null);
+  const eventNames = [
+    { currency: baseCurrency, latest: baseCell?.latestEvent?.title ?? "-", next: baseCell?.nextEvent?.title ?? "-" },
+    { currency: quoteCurrency, latest: quoteCell?.latestEvent?.title ?? "-", next: quoteCell?.nextEvent?.title ?? "-" },
+  ];
+
+  return (
+    <article className={`chart-pair-matrix-row ${row.summaryAlignment ? `is-${row.summaryAlignment.status}` : ""}`}>
+      <div className="chart-pair-matrix-factor">
+        <strong>{row.factor.label}</strong>
+        {eventNames.map((item) => (
+          <span key={item.currency} title={`${item.currency}: ${item.latest} | ${item.next}`}>
+            <b>{item.currency}</b> {item.latest} <i>|</i> {item.next}
+          </span>
+        ))}
       </div>
-    </section>
+      <div className="chart-pair-matrix-evidence-band">
+        <div className="chart-pair-matrix-currency-band">
+          <strong>{baseCurrency}</strong>
+          <EvidenceRun
+            event={baseCell?.latestEvent ?? null}
+            displayTimeMode={data.displayTimeMode}
+            sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
+          />
+          <span className="chart-pair-matrix-divider" aria-hidden="true">|</span>
+          <EvidenceRun
+            event={baseCell?.nextEvent ?? null}
+            displayTimeMode={data.displayTimeMode}
+            sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
+          />
+        </div>
+        <div className="chart-pair-matrix-currency-band">
+          <strong>{quoteCurrency}</strong>
+          <EvidenceRun
+            event={quoteCell?.latestEvent ?? null}
+            displayTimeMode={data.displayTimeMode}
+            sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
+          />
+          <span className="chart-pair-matrix-divider" aria-hidden="true">|</span>
+          <EvidenceRun
+            event={quoteCell?.nextEvent ?? null}
+            displayTimeMode={data.displayTimeMode}
+            sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
+          />
+        </div>
+      </div>
+      <div className="chart-pair-matrix-read-slot">
+        <span>Compare</span>
+        <PairComparisonCell comparison={row.comparison} />
+      </div>
+      <div className="chart-pair-matrix-read-slot">
+        <span>Driver</span>
+        <DriverAlignmentCell row={row} mode={data.preferences.driverReadMode} />
+      </div>
+    </article>
   );
 }
 
@@ -331,55 +477,18 @@ export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLen
       ) : (
         <div className="chart-pair-matrix-popover">
           <div className="chart-pair-matrix-head">
-            <div>
-              <span>Pair Matrix Time Lens</span>
+            <div className="chart-pair-matrix-title">
+              <span><GripHorizontal size={13} /> Pair Matrix Time Lens</span>
               <strong>{data.pairLabel}</strong>
-              <small>{data.anchorLabel} / {data.anchorBasisLabel}</small>
             </div>
-            <button type="button" onClick={data.onClose} aria-label="Close Pair Matrix Time Lens">
-              <X size={15} />
-            </button>
-          </div>
-
-          <div className="chart-pair-matrix-meta">
-            <span>{data.coverageLabel}</span>
-            <span>Loaded broker/MT5 rows only</span>
-          </div>
-
-          {data.comparisonSummary ? <PairComparisonSummary summary={data.comparisonSummary} /> : null}
-
-          <div className="chart-pair-matrix-controls">
-            <PairMatrixControl
-              label="Read"
-              value={data.preferences.driverReadMode}
-              options={READ_MODE_OPTIONS}
-              onChange={(value) =>
-                data.onPreferenceChange("driverReadMode", value as PairMatrixPreferences["driverReadMode"])
-              }
-            />
-            <PairMatrixControl
-              label="Sensitivity"
-              value={data.preferences.surpriseSensitivity}
-              options={SENSITIVITY_OPTIONS}
-              onChange={(value) =>
-                data.onPreferenceChange("surpriseSensitivity", value as PairMatrixPreferences["surpriseSensitivity"])
-              }
-            />
-            <PairMatrixControl
-              label="Sort"
-              value={data.preferences.rowSortMode}
-              options={SORT_OPTIONS}
-              onChange={(value) =>
-                data.onPreferenceChange("rowSortMode", value as PairMatrixPreferences["rowSortMode"])
-              }
-            />
-            <PairMatrixControl
-              label="Density"
-              value={data.preferences.displayDensity}
-              options={DENSITY_OPTIONS}
-              onChange={(value) =>
-                data.onPreferenceChange("displayDensity", value as PairMatrixPreferences["displayDensity"])
-              }
+            <PairMatrixHeaderSummary
+              summary={data.comparisonSummary}
+              anchorLabel={data.anchorLabel}
+              anchorBasisLabel={data.anchorBasisLabel}
+              coverageLabel={data.coverageLabel}
+              preferences={data.preferences}
+              onPreferenceChange={data.onPreferenceChange}
+              onClose={data.onClose}
             />
           </div>
 
@@ -389,52 +498,17 @@ export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLen
             <p className="chart-pair-matrix-note">Move the cursor over a loaded candle, or wait for chart history to load.</p>
           ) : (
             <div className="chart-pair-matrix-scroll">
-              <table className="chart-pair-matrix-table">
-                <thead>
-                  <tr>
-                    <th>Factor</th>
-                    {data.currencies.map((currency) => (
-                      [
-                        <th key={`${currency}-latest`}>{currency} latest</th>,
-                        <th key={`${currency}-next`}>{currency} next</th>,
-                      ]
-                    ))}
-                    <th>B/Q compare</th>
-                    <th>Driver alignment</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.rows.map((row) => (
-                    <tr key={row.factor.id} className={row.summaryAlignment ? `is-${row.summaryAlignment.status}` : ""}>
-                      <th scope="row">{row.factor.label}</th>
-                      {row.cells.map((cell) => {
-                        return [
-                          <td key={`${cell.currency}-${row.factor.id}-latest`}>
-                            <MatrixLatestCell
-                              event={cell.latestEvent}
-                              displayTimeMode={data.displayTimeMode}
-                              sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
-                            />
-                          </td>,
-                          <td key={`${cell.currency}-${row.factor.id}-next`}>
-                            <MatrixNextCell
-                              event={cell.nextEvent}
-                              displayTimeMode={data.displayTimeMode}
-                              sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
-                            />
-                          </td>,
-                        ];
-                      })}
-                      <td className="chart-pair-matrix-compare-cell">
-                        <PairComparisonCell comparison={row.comparison} />
-                      </td>
-                      <td className="chart-pair-matrix-driver-cell">
-                        <DriverAlignmentCell row={row} mode={data.preferences.driverReadMode} />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="chart-pair-matrix-row-head" aria-hidden="true">
+                <span>Factor</span>
+                <span>Evidence <b>Latest</b> <i>|</i> <b>Next</b></span>
+                <span>Compare</span>
+                <span>Driver</span>
+              </div>
+              <div className="chart-pair-matrix-row-list">
+                {data.rows.map((row) => (
+                  <PairMatrixFactorRow key={row.factor.id} row={row} data={data} />
+                ))}
+              </div>
             </div>
           )}
         </div>
