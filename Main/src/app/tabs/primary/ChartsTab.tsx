@@ -57,7 +57,11 @@ import {
 } from "@/app/lib/chartView";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
 import { getEventComparison } from "@/app/lib/eventReaction";
-import { buildMacroFactorRows, buildMacroFactorRowsAsOf } from "@/app/lib/macroDrivers";
+import { MACRO_FACTOR_DEFINITIONS, buildMacroFactorRows, buildMacroFactorRowsAsOf } from "@/app/lib/macroDrivers";
+import {
+  buildPairMatrixViewRows,
+  type PairMatrixPreferences,
+} from "@/app/lib/pairMatrixDriverAlignment";
 import {
   formatCurrentTimeForDisplayTimezone,
   getDisplayTimezoneOptions,
@@ -401,6 +405,19 @@ export function ChartsTab({
         ...current,
         eventOverlay: {
           ...current.eventOverlay,
+          [key]: value,
+        },
+      }));
+    },
+    [updateChartPreferences],
+  );
+
+  const updatePairMatrixPreferences = useCallback(
+    <K extends keyof PairMatrixPreferences,>(key: K, value: PairMatrixPreferences[K]) => {
+      updateChartPreferences((current) => ({
+        ...current,
+        pairMatrix: {
+          ...current.pairMatrix,
           [key]: value,
         },
       }));
@@ -790,12 +807,37 @@ export function ChartsTab({
     const coveredRows = pairMatrixRows.filter((row) => row.latestEvent || row.nextEvent).length;
     return `${coveredRows}/${pairMatrixRows.length} factor cells loaded`;
   }, [pairMatrixRows]);
+  const pairMatrixViewRows = useMemo(
+    () =>
+      pairMatrixAnchorChartTime == null
+        ? []
+        : buildPairMatrixViewRows({
+            factorRows: pairMatrixRows,
+            factors: MACRO_FACTOR_DEFINITIONS,
+            currencies: pairMatrixCurrencies,
+            selectedSymbol,
+            visibleCandles,
+            cursorChartTime: pairMatrixAnchorChartTime,
+            sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
+            preferences: chartPreferences.pairMatrix,
+          }),
+    [
+      pairMatrixRows,
+      pairMatrixCurrencies,
+      selectedSymbol,
+      visibleCandles,
+      pairMatrixAnchorChartTime,
+      chartSourceTimeOffsetSeconds,
+      chartPreferences.pairMatrix,
+    ],
+  );
   const pairMatrixTimeLensData = useMemo<ChartPairMatrixTimeLensData>(
     () => ({
       open: pairMatrixOpen,
       pairLabel: selectedSymbol,
       currencies: pairMatrixCurrencies,
-      rows: pairMatrixRows,
+      rows: pairMatrixViewRows,
+      preferences: chartPreferences.pairMatrix,
       anchorLabel:
         pairMatrixAnchorChartTime == null
           ? "Waiting for candle"
@@ -804,6 +846,7 @@ export function ChartsTab({
       coverageLabel: pairMatrixCoverageLabel,
       displayTimeMode,
       sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
+      onPreferenceChange: updatePairMatrixPreferences,
       onToggleOpen: () => setPairMatrixOpen((current) => !current),
       onClose: () => setPairMatrixOpen(false),
     }),
@@ -811,12 +854,14 @@ export function ChartsTab({
       pairMatrixOpen,
       selectedSymbol,
       pairMatrixCurrencies,
-      pairMatrixRows,
+      pairMatrixViewRows,
+      chartPreferences.pairMatrix,
       pairMatrixAnchorChartTime,
       displayTimeMode,
       chartSourceTimeOffsetSeconds,
       cursorChartTime,
       pairMatrixCoverageLabel,
+      updatePairMatrixPreferences,
     ],
   );
 

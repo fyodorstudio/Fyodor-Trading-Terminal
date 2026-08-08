@@ -8,6 +8,11 @@ import {
 } from "lightweight-charts";
 import { formatCountdown } from "@/app/lib/format";
 import {
+  DEFAULT_PAIR_MATRIX_PREFERENCES,
+  normalizePairMatrixPreferences,
+  type PairMatrixPreferences,
+} from "@/app/lib/pairMatrixDriverAlignment";
+import {
   formatDateTimeForDisplayTimezone,
   formatDayMonthForDisplayTimezone,
   formatHoverTimezoneSuffix,
@@ -53,6 +58,7 @@ export interface ChartPreferences {
   cursorReadoutMode: ChartCursorReadoutMode;
   appearance: ChartAppearancePreferences;
   eventOverlay: ChartEventOverlayPreferences;
+  pairMatrix: PairMatrixPreferences;
 }
 
 export interface HistoryCacheEntry {
@@ -112,6 +118,7 @@ export const DEFAULT_CHART_PREFERENCES: ChartPreferences = {
     maxMarkers: 80,
     futureMarkerLimit: 8,
   },
+  pairMatrix: DEFAULT_PAIR_MATRIX_PREFERENCES,
 };
 
 export function loadChartDisplayTimeMode(): ChartDisplayTimeMode {
@@ -191,6 +198,7 @@ export function normalizeChartPreferences(raw: unknown): ChartPreferences {
           : DEFAULT_CHART_PREFERENCES.cursorReadoutMode,
     appearance: normalizeChartAppearance(row.appearance),
     eventOverlay: normalizeChartEventOverlay(row.eventOverlay),
+    pairMatrix: normalizePairMatrixPreferences(row.pairMatrix),
   };
 }
 
