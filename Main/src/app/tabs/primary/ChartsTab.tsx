@@ -59,6 +59,7 @@ import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
 import { getEventComparison } from "@/app/lib/eventReaction";
 import { MACRO_FACTOR_DEFINITIONS, buildMacroFactorRows, buildMacroFactorRowsAsOf } from "@/app/lib/macroDrivers";
 import {
+  buildPairMatrixComparisonSummary,
   buildPairMatrixViewRows,
   type PairMatrixPreferences,
 } from "@/app/lib/pairMatrixDriverAlignment";
@@ -837,6 +838,11 @@ export function ChartsTab({
       pairLabel: selectedSymbol,
       currencies: pairMatrixCurrencies,
       rows: pairMatrixViewRows,
+      comparisonSummary: buildPairMatrixComparisonSummary({
+        rows: pairMatrixViewRows,
+        currencies: pairMatrixCurrencies,
+        preferences: chartPreferences.pairMatrix,
+      }),
       preferences: chartPreferences.pairMatrix,
       anchorLabel:
         pairMatrixAnchorChartTime == null
@@ -1123,6 +1129,7 @@ export function ChartsTab({
         preferences={chartPreferences}
         onCursorModeChange={handleCursorModeChange}
         onAppearanceChange={updateAppearance}
+        onPairMatrixChange={updatePairMatrixPreferences}
         onEventOverlayChange={updateEventOverlay}
         onResetAppearance={resetChartPreferences}
         replayData={{

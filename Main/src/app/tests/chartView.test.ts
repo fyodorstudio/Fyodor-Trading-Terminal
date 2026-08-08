@@ -26,6 +26,7 @@ import {
 import {
   filterChartEventsForOverlay,
   formatChartEventDisplayTime,
+  capChartEventCandidatesForOverlay,
   getFutureChartEventTimes,
   getChartEventAnchorTime,
   getChartEventCoordinateTime,
@@ -273,6 +274,50 @@ describe("chartView helpers", () => {
     expect(sliceChartEventsByTime(candidates, SAMPLE_CANDLE.time + 1, SAMPLE_CANDLE.time + 5400).map((candidate) => candidate.event.currency)).toEqual(["EUR"]);
     expect(getFutureChartEventTimes(candidates, SAMPLE_CANDLE.time + 30)).toEqual([SAMPLE_CANDLE.time + 3600]);
     expect(getFutureChartEventTimes(candidates, SAMPLE_CANDLE.time + 30, 0)).toEqual([]);
+  });
+
+  it("keeps scheduled chart candidates visible through marker caps up to the future limit", () => {
+    const candidates = filterChartEventsForOverlay({
+      events: [
+        ...Array.from({ length: 8 }, (_, index) =>
+          ({
+            ...CALENDAR_EVENTS[0],
+            id: 20 + index,
+            time: SAMPLE_CANDLE.time - 7200 + index * 600,
+            title: `Past high ${index}`,
+          }) satisfies CalendarEvent,
+        ),
+        {
+          ...CALENDAR_EVENTS[1],
+          id: 100,
+          time: SAMPLE_CANDLE.time + 3600,
+          title: "Future CPI",
+        },
+        {
+          ...CALENDAR_EVENTS[1],
+          id: 101,
+          time: SAMPLE_CANDLE.time + 7200,
+          title: "Later Future CPI",
+        },
+      ],
+      selectedSymbol: "EURUSD",
+      scope: "relevant",
+      impactFilter: "high_medium",
+      sourceTimeOffsetSeconds: 0,
+      latestCandleTime: SAMPLE_CANDLE.time,
+    });
+
+    const capped = capChartEventCandidatesForOverlay({
+      candidates,
+      maxMarkers: 4,
+      futureMarkerLimit: 1,
+      rangeMidpoint: SAMPLE_CANDLE.time - 3000,
+    });
+
+    expect(capped).toHaveLength(4);
+    expect(capped.some((candidate) => candidate.event.title === "Future CPI" && candidate.isFuture)).toBe(true);
+    expect(capped.filter((candidate) => candidate.isFuture)).toHaveLength(1);
+    expect(capped.some((candidate) => candidate.event.title === "Later Future CPI")).toBe(false);
   });
 
   it("maps calendar event timestamps into chart coordinates without losing display truth", () => {

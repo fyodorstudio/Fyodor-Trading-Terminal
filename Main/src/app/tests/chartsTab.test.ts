@@ -112,8 +112,9 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Open chart events");
     expect(html).toContain("Open chart diagnostics");
     expect(html).toContain("Event Lens");
-    expect(html).toContain("Details");
+    expect(html).toContain("Open Event Lens details");
     expect(html).toContain("Open Pair Matrix Time Lens");
+    expect(html).not.toContain(">Details<");
     expect(html).not.toContain("Loaded broker/MT5 rows only");
     expect(html).not.toContain("No loaded high-impact EUR/USD events in this visible range");
     expect(html).not.toContain("Loaded events:");
@@ -133,6 +134,7 @@ describe("getChartConnectionLabel", () => {
         preferences: DEFAULT_CHART_PREFERENCES,
         onCursorModeChange: () => {},
         onAppearanceChange: () => {},
+        onPairMatrixChange: () => {},
         onEventOverlayChange: () => {},
         onResetAppearance: () => {},
         replayData: {
@@ -185,8 +187,25 @@ describe("getChartConnectionLabel", () => {
         },
       }),
     );
+    const appearanceHtml = renderToStaticMarkup(
+      createElement(ChartSettingsDrawer, {
+        open: true,
+        mode: "appearance",
+        onModeChange: () => {},
+        onClose: () => {},
+        preferences: DEFAULT_CHART_PREFERENCES,
+        onCursorModeChange: () => {},
+        onAppearanceChange: () => {},
+        onPairMatrixChange: () => {},
+        onEventOverlayChange: () => {},
+        onResetAppearance: () => {},
+      }),
+    );
 
     expect(replayHtml).toContain("Future candle opacity");
+    expect(appearanceHtml).toContain("Experimental");
+    expect(appearanceHtml).toContain("Pair compare");
+    expect(appearanceHtml).toContain("Macro surprise");
   });
 
   it("derives session detail only from the active market status", () => {

@@ -6,6 +6,12 @@ import type { BridgeCandle, CalendarEvent, Timeframe } from "@/app/types";
 const NON_INTRADAY_TIMEFRAMES = new Set<Timeframe>(["D1", "W1", "MN1"]);
 const MAJOR_CURRENCIES = new Set<string>(MAJOR_CURRENCY_ORDER);
 
+function getChartEventImpactSortRank(impact: CalendarEvent["impact"]): number {
+  if (impact === "high") return 0;
+  if (impact === "medium") return 1;
+  return 2;
+}
+
 export interface ChartEventCandidate {
   event: CalendarEvent;
   chartTime: number;
@@ -158,4 +164,29 @@ export function getFutureChartEventTimes(
   }
 
   return times;
+}
+
+export function capChartEventCandidatesForOverlay(params: {
+  candidates: ChartEventCandidate[];
+  maxMarkers: number;
+  futureMarkerLimit: number;
+  rangeMidpoint: number;
+}): ChartEventCandidate[] {
+  const futureLimit = Math.max(0, Math.round(params.futureMarkerLimit));
+  const maxMarkers = Math.max(0, Math.round(params.maxMarkers));
+  const futureCandidates = params.candidates.filter((candidate) => candidate.isFuture).slice(0, futureLimit);
+  const historicalCandidates = params.candidates.filter((candidate) => !candidate.isFuture);
+  const historicalLimit = Math.max(0, maxMarkers - futureCandidates.length);
+  const cappedHistorical =
+    historicalCandidates.length <= historicalLimit
+      ? historicalCandidates
+      : [...historicalCandidates]
+          .sort((left, right) => {
+            const impactDelta = getChartEventImpactSortRank(left.event.impact) - getChartEventImpactSortRank(right.event.impact);
+            if (impactDelta !== 0) return impactDelta;
+            return Math.abs(left.chartTime - params.rangeMidpoint) - Math.abs(right.chartTime - params.rangeMidpoint);
+          })
+          .slice(0, historicalLimit);
+
+  return [...cappedHistorical, ...futureCandidates].sort((left, right) => left.chartTime - right.chartTime);
 }

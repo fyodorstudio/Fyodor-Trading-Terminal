@@ -4,8 +4,8 @@ import type {
   ChartCursorReadoutMode,
   ChartEventOverlayImpactFilter,
   ChartEventOverlayPreferences,
-  ChartPreferences,
 } from "@/app/lib/chartView";
+import type { PairMatrixPreferences } from "@/app/lib/pairMatrixDriverAlignment";
 
 export const CHART_CURSOR_MODE_OPTIONS: Array<{ id: ChartCursorReadoutMode; label: string; description: string }> = [
   { id: "both", label: "Crosshair", description: "Free crosshair movement with both pointer and candle readouts." },
@@ -33,6 +33,16 @@ export const CHART_EVENT_IMPACT_OPTIONS: Array<{
 
 const EVENT_MARKER_LIMIT_OPTIONS = [40, 80, 120, 200, 300];
 const FUTURE_MARKER_LIMIT_OPTIONS = [0, 4, 8, 12, 20, 40];
+const PAIR_MATRIX_COMPARISON_MODE_OPTIONS: Array<{ id: PairMatrixPreferences["comparisonMode"]; label: string }> = [
+  { id: "macro_surprise", label: "Macro surprise" },
+  { id: "macro_price", label: "Macro + price" },
+  { id: "raw_values", label: "Raw values" },
+];
+const PAIR_MATRIX_WINNER_MODE_OPTIONS: Array<{ id: PairMatrixPreferences["comparisonWinnerMode"]; label: string }> = [
+  { id: "factor_vote", label: "Factor vote" },
+  { id: "normalized_score", label: "Normalized experiment" },
+  { id: "per_factor", label: "Per-factor only" },
+];
 
 export interface ChartCacheDrawerData {
   selectedSymbol: string;
@@ -93,11 +103,15 @@ function ChartDrawerMetric({ label, value }: { label: string; value: string | nu
 
 export function ChartAppearanceSettings({
   appearance,
+  pairMatrix,
   onAppearanceChange,
+  onPairMatrixChange,
   onResetAppearance,
 }: {
   appearance: ChartAppearancePreferences;
+  pairMatrix?: PairMatrixPreferences;
   onAppearanceChange: <K extends keyof ChartAppearancePreferences>(key: K, value: ChartAppearancePreferences[K]) => void;
+  onPairMatrixChange?: <K extends keyof PairMatrixPreferences>(key: K, value: PairMatrixPreferences[K]) => void;
   onResetAppearance: () => void;
 }) {
   return (
@@ -201,6 +215,53 @@ export function ChartAppearanceSettings({
           </button>
         </div>
       </section>
+
+      {pairMatrix && onPairMatrixChange ? (
+        <section className="charts-history-section chart-drawer-card">
+          <h3>
+            <SlidersHorizontal size={14} />
+            Experimental
+          </h3>
+          <div className="chart-event-settings-grid">
+            <label className="chart-settings-row">
+              <span>Pair compare</span>
+              <select
+                value={pairMatrix.comparisonMode}
+                onChange={(event) =>
+                  onPairMatrixChange("comparisonMode", event.target.value as PairMatrixPreferences["comparisonMode"])
+                }
+              >
+                {PAIR_MATRIX_COMPARISON_MODE_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="chart-settings-row">
+              <span>Winner read</span>
+              <select
+                value={pairMatrix.comparisonWinnerMode}
+                onChange={(event) =>
+                  onPairMatrixChange(
+                    "comparisonWinnerMode",
+                    event.target.value as PairMatrixPreferences["comparisonWinnerMode"],
+                  )
+                }
+              >
+                {PAIR_MATRIX_WINNER_MODE_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <p className="chart-event-settings-note">
+            Pair comparison uses loaded broker/MT5 rows only and shows the raw math before any summary label.
+          </p>
+        </section>
+      ) : null}
     </div>
   );
 }

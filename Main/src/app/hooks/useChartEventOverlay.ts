@@ -1,6 +1,7 @@
 import { useMemo, type RefObject } from "react";
 import type { IChartApi } from "lightweight-charts";
 import {
+  capChartEventCandidatesForOverlay,
   filterChartEventsForOverlay,
   formatChartEventDisplayTime,
   getChartEventKey,
@@ -8,7 +9,6 @@ import {
 } from "@/app/lib/chartEvents";
 import {
   clusterChartEventPoints,
-  getChartEventImpactRank,
   getChartEventTooltipPlacement,
   resolveChartEventX,
   type ChartEventOverlayCluster,
@@ -107,17 +107,12 @@ export function useChartEventOverlay({
     const rangeBuffer = candleSpacing * 2;
     const rangeMidpoint = (visibleFrom + visibleTo) / 2;
     const visibleCandidates = sliceChartEventsByTime(candidates, visibleFrom - rangeBuffer, visibleTo + rangeBuffer);
-    const cappedCandidates =
-      visibleCandidates.length <= preferences.maxMarkers
-        ? visibleCandidates
-        : [...visibleCandidates]
-            .sort((left, right) => {
-              const impactDelta = getChartEventImpactRank(left.event.impact) - getChartEventImpactRank(right.event.impact);
-              if (impactDelta !== 0) return impactDelta;
-              return Math.abs(left.chartTime - rangeMidpoint) - Math.abs(right.chartTime - rangeMidpoint);
-            })
-            .slice(0, preferences.maxMarkers)
-            .sort((left, right) => left.chartTime - right.chartTime);
+    const cappedCandidates = capChartEventCandidatesForOverlay({
+      candidates: visibleCandidates,
+      maxMarkers: preferences.maxMarkers,
+      futureMarkerLimit: preferences.futureMarkerLimit,
+      rangeMidpoint,
+    });
 
     const points = cappedCandidates
       .map((candidate) => {
@@ -151,6 +146,7 @@ export function useChartEventOverlay({
     candidates,
     preferences.visible,
     preferences.maxMarkers,
+    preferences.futureMarkerLimit,
     visibleCandles,
     timeframe,
     displayTimeMode,

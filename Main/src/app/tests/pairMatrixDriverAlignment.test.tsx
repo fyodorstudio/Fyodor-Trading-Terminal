@@ -5,6 +5,7 @@ import { ChartPairMatrixTimeLens } from "@/app/components/ChartPairMatrixTimeLen
 import { MACRO_FACTOR_DEFINITIONS } from "@/app/lib/macroDrivers";
 import {
   DEFAULT_PAIR_MATRIX_PREFERENCES,
+  buildPairMatrixComparisonSummary,
   buildPairMatrixViewRows,
   derivePairMatrixAlignment,
 } from "@/app/lib/pairMatrixDriverAlignment";
@@ -170,6 +171,82 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(rows[0]?.factor.id).toBe("inflation");
   });
 
+  it("builds transparent base-vs-quote comparison from cursor-anchored factor rows", () => {
+    const rows = buildPairMatrixViewRows({
+      factorRows: [
+        {
+          factor: MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "inflation")!,
+          currency: "EUR",
+          latestEvent: event({ currency: "EUR", countryCode: "EU", title: "CPI y/y", actual: "3.6", forecast: "3.0" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor: MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "inflation")!,
+          currency: "USD",
+          latestEvent: event({ currency: "USD", title: "CPI y/y", actual: "3.1", forecast: "3.0" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+      ],
+      factors: [MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "inflation")!],
+      currencies: ["EUR", "USD"],
+      selectedSymbol: "EURUSD",
+      visibleCandles: candles(1.1, 1.103),
+      cursorChartTime: 1_600,
+      sourceTimeOffsetSeconds: 0,
+      preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+    });
+    const summary = buildPairMatrixComparisonSummary({
+      rows,
+      currencies: ["EUR", "USD"],
+      preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+    });
+
+    expect(rows[0]?.comparison?.state).toBe("base_leads");
+    expect(rows[0]?.comparison?.base?.formulaLabel).toContain("Actual vs forecast");
+    expect(rows[0]?.comparison?.base?.rawSurpriseLabel).toBe("+0.6%");
+    expect(rows[0]?.comparison?.quote?.rawSurpriseLabel).toBe("+0.1%");
+    expect(summary?.stateLabel).toBe("Base leads");
+    expect(summary?.detailLabel).toContain("EUR 1, USD 0");
+  });
+
+  it("supports macro-plus-price comparison by exposing the acceptance multiplier", () => {
+    const preferences = { ...DEFAULT_PAIR_MATRIX_PREFERENCES, comparisonMode: "macro_price" as const };
+    const rows = buildPairMatrixViewRows({
+      factorRows: [
+        {
+          factor: MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "inflation")!,
+          currency: "EUR",
+          latestEvent: event({ currency: "EUR", countryCode: "EU", title: "CPI y/y", actual: "3.3", forecast: "3.0" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor: MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "inflation")!,
+          currency: "USD",
+          latestEvent: event({ currency: "USD", title: "CPI y/y", actual: "3.0", forecast: "3.0" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+      ],
+      factors: [MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "inflation")!],
+      currencies: ["EUR", "USD"],
+      selectedSymbol: "EURUSD",
+      visibleCandles: candles(1.1, 1.103),
+      cursorChartTime: 1_600,
+      sourceTimeOffsetSeconds: 0,
+      preferences,
+    });
+
+    expect(rows[0]?.comparison?.base?.acceptanceLabel).toBe("aligned x1.25");
+    expect(rows[0]?.comparison?.base?.formulaLabel).toContain("aligned x1.25");
+  });
+
   it("renders the open popover with compact value rows and driver details", () => {
     const factorRows = [
       {
@@ -209,6 +286,11 @@ describe("Pair Matrix Driver Alignment", () => {
           pairLabel: "EURUSD",
           currencies: ["USD"],
           rows,
+          comparisonSummary: buildPairMatrixComparisonSummary({
+            rows,
+            currencies: ["USD"],
+            preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+          }),
           preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
           anchorLabel: "30 Jul 2026 05:00",
           anchorBasisLabel: "cursor time",

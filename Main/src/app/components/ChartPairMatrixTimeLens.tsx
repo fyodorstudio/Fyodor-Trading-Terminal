@@ -1,9 +1,12 @@
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { Table2, X } from "lucide-react";
 import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import { formatChartEventDisplayTime } from "@/app/lib/chartEvents";
 import type { ChartDisplayTimeMode } from "@/app/lib/chartView";
 import type {
   PairMatrixAlignmentRead,
+  PairMatrixComparisonSummary,
+  PairMatrixFactorComparison,
   PairMatrixFactorViewRow,
   PairMatrixPreferences,
 } from "@/app/lib/pairMatrixDriverAlignment";
@@ -14,12 +17,14 @@ export interface ChartPairMatrixTimeLensData {
   pairLabel: string;
   currencies: string[];
   rows: PairMatrixFactorViewRow[];
+  comparisonSummary: PairMatrixComparisonSummary | null;
   preferences: PairMatrixPreferences;
   anchorLabel: string;
   anchorBasisLabel: string;
   coverageLabel: string;
   displayTimeMode: ChartDisplayTimeMode;
   sourceTimeOffsetSeconds: number;
+  renderClosedButton?: boolean;
   onPreferenceChange: <K extends keyof PairMatrixPreferences>(key: K, value: PairMatrixPreferences[K]) => void;
   onToggleOpen: () => void;
   onClose: () => void;
@@ -175,11 +180,142 @@ function DriverAlignmentCell({
   return <span className="chart-pair-matrix-empty">No driver read</span>;
 }
 
+function PairComparisonSide({ side }: { side: NonNullable<PairMatrixFactorComparison["base"]> }) {
+  return (
+    <span className="chart-pair-matrix-compare-side">
+      <strong>{side.currency}</strong>
+      <span>{side.rawSurpriseLabel} / {side.relativeSurpriseLabel}</span>
+      <em>{side.formulaLabel}</em>
+    </span>
+  );
+}
+
+function PairComparisonCell({ comparison }: { comparison: PairMatrixFactorComparison | null }) {
+  if (!comparison) return <span className="chart-pair-matrix-empty">No base/quote read</span>;
+
+  return (
+    <span className={`chart-pair-matrix-compare-read is-${comparison.state}`}>
+      <span className="chart-pair-matrix-compare-top">
+        <strong>{comparison.stateLabel}</strong>
+        <em>{comparison.detailLabel}</em>
+      </span>
+      {comparison.base ? <PairComparisonSide side={comparison.base} /> : null}
+      {comparison.quote ? <PairComparisonSide side={comparison.quote} /> : null}
+    </span>
+  );
+}
+
+function PairComparisonSummary({ summary }: { summary: PairMatrixComparisonSummary }) {
+  return (
+    <section className={`chart-pair-matrix-compare-summary is-${summary.state}`} aria-label="Base quote comparison">
+      <div>
+        <span>{summary.modeLabel} / {summary.winnerModeLabel}</span>
+        <strong>{summary.stateLabel}</strong>
+        <small>{summary.detailLabel}</small>
+      </div>
+      <div className="chart-pair-matrix-compare-scores">
+        <span>{summary.baseScoreLabel}</span>
+        <span>{summary.quoteScoreLabel}</span>
+      </div>
+    </section>
+  );
+}
+
 export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLensData }) {
+  const lensRef = useRef<HTMLElement | null>(null);
+  const dragStartRef = useRef<{
+    pointerId: number;
+    startClientX: number;
+    startClientY: number;
+    startOffsetX: number;
+    startOffsetY: number;
+    minX: number;
+    maxX: number;
+    minY: number;
+    maxY: number;
+  } | null>(null);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+
+  const handleDragMove = useCallback((event: PointerEvent) => {
+    const start = dragStartRef.current;
+    if (!start || event.pointerId !== start.pointerId) return;
+    const nextX = Math.min(start.maxX, Math.max(start.minX, start.startOffsetX + event.clientX - start.startClientX));
+    const nextY = Math.min(start.maxY, Math.max(start.minY, start.startOffsetY + event.clientY - start.startClientY));
+    setDragOffset({ x: nextX, y: nextY });
+  }, []);
+
+  const stopDrag = useCallback((event?: PointerEvent) => {
+    if (event && dragStartRef.current && event.pointerId !== dragStartRef.current.pointerId) return;
+    dragStartRef.current = null;
+    setIsDragging(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isDragging) return undefined;
+    window.addEventListener("pointermove", handleDragMove);
+    window.addEventListener("pointerup", stopDrag);
+    window.addEventListener("pointercancel", stopDrag);
+    return () => {
+      window.removeEventListener("pointermove", handleDragMove);
+      window.removeEventListener("pointerup", stopDrag);
+      window.removeEventListener("pointercancel", stopDrag);
+    };
+  }, [handleDragMove, isDragging, stopDrag]);
+
+  const handleDragStart = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      if (!data.open || event.button !== 0) return;
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest("button, input, select, textarea, a, [role='button'], [role='group']")
+      ) {
+        return;
+      }
+      const lens = lensRef.current;
+      const parent = lens?.parentElement;
+      if (!lens || !parent) return;
+      const lensRect = lens.getBoundingClientRect();
+      const parentRect = parent.getBoundingClientRect();
+      const baseLeft = lensRect.left - dragOffset.x;
+      const baseRight = lensRect.right - dragOffset.x;
+      const baseTop = lensRect.top - dragOffset.y;
+      const baseBottom = lensRect.bottom - dragOffset.y;
+
+      dragStartRef.current = {
+        pointerId: event.pointerId,
+        startClientX: event.clientX,
+        startClientY: event.clientY,
+        startOffsetX: dragOffset.x,
+        startOffsetY: dragOffset.y,
+        minX: parentRect.left - baseLeft,
+        maxX: parentRect.right - baseRight,
+        minY: parentRect.top - baseTop,
+        maxY: parentRect.bottom - baseBottom,
+      };
+      setIsDragging(true);
+      event.preventDefault();
+    },
+    [data.open, dragOffset.x, dragOffset.y],
+  );
+
+  if (!data.open && data.renderClosedButton === false) return null;
+
+  const lensStyle = data.open
+    ? ({
+        "--pair-matrix-drag-x": `${dragOffset.x}px`,
+        "--pair-matrix-drag-y": `${dragOffset.y}px`,
+      } as CSSProperties)
+    : undefined;
+
   return (
     <section
-      className={`chart-pair-matrix-lens ${data.open ? "is-open" : ""} density-${data.preferences.displayDensity}`}
+      ref={lensRef}
+      className={`chart-pair-matrix-lens ${data.open ? "is-open" : ""} ${isDragging ? "is-dragging" : ""} density-${data.preferences.displayDensity}`}
       aria-label="Pair Matrix Time Lens"
+      style={lensStyle}
+      onPointerDown={handleDragStart}
     >
       {!data.open ? (
         <button
@@ -209,6 +345,8 @@ export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLen
             <span>{data.coverageLabel}</span>
             <span>Loaded broker/MT5 rows only</span>
           </div>
+
+          {data.comparisonSummary ? <PairComparisonSummary summary={data.comparisonSummary} /> : null}
 
           <div className="chart-pair-matrix-controls">
             <PairMatrixControl
@@ -261,6 +399,7 @@ export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLen
                         <th key={`${currency}-next`}>{currency} next</th>,
                       ]
                     ))}
+                    <th>B/Q compare</th>
                     <th>Driver alignment</th>
                   </tr>
                 </thead>
@@ -286,6 +425,9 @@ export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLen
                           </td>,
                         ];
                       })}
+                      <td className="chart-pair-matrix-compare-cell">
+                        <PairComparisonCell comparison={row.comparison} />
+                      </td>
                       <td className="chart-pair-matrix-driver-cell">
                         <DriverAlignmentCell row={row} mode={data.preferences.driverReadMode} />
                       </td>

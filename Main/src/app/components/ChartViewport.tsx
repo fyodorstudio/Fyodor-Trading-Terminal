@@ -1,5 +1,5 @@
 import { type Ref } from "react";
-import { AlertTriangle, CalendarDays, ChevronDown, ChevronUp, Settings2 } from "lucide-react";
+import { AlertTriangle, CalendarDays, ChevronDown, Settings2, Table2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChartEventLens, type ChartEventLensData } from "@/app/components/ChartEventLens";
 import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
@@ -90,8 +90,18 @@ export function ChartViewport({
               />
             </div>
             <div className={`chart-event-lens-slot ${eventOverlay.isInteracting ? "is-interacting" : ""}`}>
-              {eventLens ? <ChartEventLens data={eventLens} /> : <ChartEventLensDock data={eventLensDock} />}
-              <ChartPairMatrixTimeLens data={pairMatrixTimeLens} />
+              {!eventLens?.expanded && !eventLensDock.expanded && !pairMatrixTimeLens.open ? (
+                <ChartBookmarkDock
+                  eventLens={eventLens}
+                  eventLensDock={eventLensDock}
+                  pairMatrixTimeLens={pairMatrixTimeLens}
+                />
+              ) : null}
+              {eventLens?.expanded ? <ChartEventLens data={eventLens} /> : null}
+              {!eventLens && eventLensDock.expanded ? <ChartEventLensDock data={eventLensDock} /> : null}
+              {pairMatrixTimeLens.open ? (
+                <ChartPairMatrixTimeLens data={{ ...pairMatrixTimeLens, renderClosedButton: false }} />
+              ) : null}
             </div>
           </div>
         </div>
@@ -138,19 +148,50 @@ export function ChartViewport({
   );
 }
 
+function ChartBookmarkDock({
+  eventLens,
+  eventLensDock,
+  pairMatrixTimeLens,
+}: {
+  eventLens: ChartEventLensData | null;
+  eventLensDock: ChartEventLensDockData;
+  pairMatrixTimeLens: ChartPairMatrixTimeLensData;
+}) {
+  if (!eventLensDock.visible) return null;
+  const openEventLens = eventLens?.onToggleExpanded ?? eventLensDock.onToggleExpanded;
+  const eventLabel = eventLens ? "Open Event Lens" : "Open Event Lens details";
+
+  return (
+    <section className="chart-bookmark-dock" aria-label="Chart tools">
+      <button
+        type="button"
+        className="chart-bookmark-dock-button"
+        title={eventLabel}
+        aria-label={eventLabel}
+        onClick={openEventLens}
+        aria-expanded={false}
+      >
+        <CalendarDays size={15} />
+      </button>
+      <button
+        type="button"
+        className="chart-bookmark-dock-button"
+        title="Open Pair Matrix Time Lens"
+        aria-label="Open Pair Matrix Time Lens"
+        onClick={pairMatrixTimeLens.onToggleOpen}
+        aria-expanded={false}
+      >
+        <Table2 size={15} />
+      </button>
+    </section>
+  );
+}
+
 function ChartEventLensDock({ data }: { data: ChartEventLensDockData }) {
   if (!data.visible) return null;
 
   if (!data.expanded) {
-    return (
-      <section className="chart-event-lens-dock" aria-label="Event Lens">
-        <button type="button" className="chart-event-lens-bookmark" onClick={data.onToggleExpanded} aria-expanded={false}>
-          <span>Event Lens</span>
-          <strong>Details</strong>
-          <ChevronUp size={14} />
-        </button>
-      </section>
-    );
+    return null;
   }
 
   return (

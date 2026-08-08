@@ -19,6 +19,7 @@ import type {
   ChartEventOverlayPreferences,
   ChartPreferences,
 } from "@/app/lib/chartView";
+import type { PairMatrixPreferences } from "@/app/lib/pairMatrixDriverAlignment";
 
 export type ChartDrawerMode = "appearance" | "events" | "replay" | "diagnostics";
 
@@ -30,6 +31,7 @@ interface ChartSettingsDrawerProps {
   preferences: ChartPreferences;
   onCursorModeChange: (mode: ChartCursorReadoutMode) => void;
   onAppearanceChange: <K extends keyof ChartAppearancePreferences>(key: K, value: ChartAppearancePreferences[K]) => void;
+  onPairMatrixChange?: <K extends keyof PairMatrixPreferences>(key: K, value: PairMatrixPreferences[K]) => void;
   onEventOverlayChange?: <K extends keyof ChartEventOverlayPreferences>(
     key: K,
     value: ChartEventOverlayPreferences[K],
@@ -51,6 +53,7 @@ export function ChartSettingsDrawer({
   preferences,
   onCursorModeChange,
   onAppearanceChange,
+  onPairMatrixChange,
   onEventOverlayChange,
   onResetAppearance,
   replayData,
@@ -144,7 +147,9 @@ export function ChartSettingsDrawer({
               {activeMode === "appearance" ? (
                 <ChartAppearanceSettings
                   appearance={appearance}
+                  pairMatrix={preferences.pairMatrix}
                   onAppearanceChange={onAppearanceChange}
+                  onPairMatrixChange={onPairMatrixChange}
                   onResetAppearance={onResetAppearance}
                 />
               ) : null}

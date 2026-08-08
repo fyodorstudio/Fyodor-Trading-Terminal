@@ -22,10 +22,11 @@ This file is the current command board. Future AI sessions should read this befo
 - Pair and timeframe changes should preserve the user's chart zoom/view intent where practical.
 - Event Lens UI should feel like a clean chart tool, not a bulky text bookmark or debug panel.
 - Release history should be presented visually and readably, not as cramped raw rows.
-- Future scheduled events should remain discoverable on the right side of the chart even when historical marker caps hide older events.
+- Future scheduled events should remain discoverable/selectable on the right side of the chart even when historical marker caps hide older events.
 - Event Lens factor evidence should be interactive enough to inspect older releases by selected factor.
 - Chart-time Pair Matrix inspection is Charts-native, not an Overview expansion.
 - Pair Matrix Time Lens should become a chart-time driver-alignment tool: it should help inspect whether loaded economic data and observed price movement agree, conflict, or remain unclear.
+- Pair Matrix base-vs-quote comparison must show real values and transparent math; avoid fake precision across unlike event units.
 - Overview stays a compact pair summary for now; do not expand it into a second full analysis cockpit during the next Charts-focused pass.
 - Existing Event Replay remains available, but the next implementation should ignore the tab unless a safe active helper can be reused.
 - Chart event coverage is loaded-only in v1; missing old chart markers mean old calendar rows are not loaded, not that no event happened.
@@ -35,50 +36,25 @@ This file is the current command board. Future AI sessions should read this befo
 - Aesthetic Forge is mounted behind the header gear and stays closed by default.
 - External data sources remain out of scope unless explicitly approved later.
 - `react-world-flags` works and has a local declaration; its large `FlagIcon` chunk is known non-blocking noise.
-- Do not create broad/new test suites casually. Focused Pair Matrix tests are pre-approved for the next goal when they protect Driver Alignment math or changed rendering behavior; tests outside that scope still need explicit user agreement.
+- Do not create broad/new test suites casually. Focused Charts tests are pre-approved for the next goal when they protect bookmark dock layout, Pair Matrix comparison math/rendering, or future marker visibility.
 - `pnpm run typecheck` is expected to pass; quarantined garbage files use explicit `@ts-nocheck` rather than steering active type cleanup.
 
 ## Autonomous Goal Mode Rules
 
-- Next autonomous implementation target: `Charts Pair Matrix Time Lens Polish` only.
-- Do not expand the next goal into Event Lens redesign, Overview, Event Replay tab redesign, bridge/data contracts, external data, or CSS monolith work.
+- Current autonomous implementation status: `Charts Bookmark Dock + Pair Matrix Comparison + Future Marker Visibility` is complete as of 2026-08-08.
+- Do not start a new autonomous implementation lane until the user explicitly reopens one from Active Roadmap or Deferred / Backlog.
+- Do not expand the next goal into full Event Lens modal redesign, Overview, Event Replay tab redesign, bridge/data contracts, external data, calendar backfill, or CSS monolith work.
 - Do not delete unfinished roadmap items. Preserve non-next work under Deferred / Backlog unless the user explicitly asks to remove it.
-- Focused tests are pre-approved when they protect behavior changed by the next Pair Matrix implementation.
+- Focused tests are pre-approved when they protect behavior changed by the next Charts polish implementation.
 - Broad/full test suites remain non-default; use the targeted verification commands below unless the change clearly requires more.
 - If live MT5 candles/calendar rows are unavailable, static tests plus CDP no-data layout smoke are acceptable. Record that live-data behavior was not exercised.
 - Roadmap and deferred sections should use unchecked boxes only. Completed work belongs in the dated `Completed Work Log`, not as checked checklist items.
 
 ## Active Roadmap
 
-### 1. Charts Pair Matrix Time Lens Polish
+No active autonomous implementation target is queued after the completed Charts bookmark dock / Pair Matrix comparison / future marker visibility pass.
 
-- [ ] Keep this pass Pair Matrix-only:
-  - [ ] no Event Lens redesign;
-  - [ ] no Overview expansion;
-  - [ ] no Event Replay tab redesign;
-  - [ ] no bridge/data-contract changes;
-  - [ ] no external data sources;
-  - [ ] no CSS monolith/global cleanup.
-- [ ] Move the Pair Matrix Time Lens expand button below the pair selector area.
-- [ ] Standardize matrix cell readability:
-  - [ ] title line;
-  - [ ] compact `Actual / Forecast / Previous` value row;
-  - [ ] one clean time row;
-  - [ ] no repeated or broken timestamp text.
-- [ ] Add configurable Driver Alignment inside the open Pair Matrix:
-  - [ ] compare data bias against price movement from release to hovered cursor;
-  - [ ] show pips and percent move from release close to cursor close;
-  - [ ] show surprise value and comparison basis, not only a generic label;
-  - [ ] classify each readable row as `Aligned`, `Rejected`, `Muted`, or `Unclear`.
-- [ ] Persist Pair Matrix configuration in chart preferences.
-- [ ] Add easy in-popover controls for visual learning:
-  - [ ] driver read mode;
-  - [ ] surprise sensitivity;
-  - [ ] row sort mode, including factor order and driver-strength order;
-  - [ ] display density if needed for readability.
-- [ ] Keep visual tone readable but restrained:
-  - [ ] use chips, small bars, and subtle row accents;
-  - [ ] avoid trade-call styling, buy/sell wording, or guaranteed-edge language.
+When the user reopens a lane, move the chosen work here as unchecked actionable tasks and preserve the rest under Deferred / Backlog.
 
 ## Deferred / Backlog
 
@@ -89,10 +65,9 @@ These are intentionally not active implementation items. Preserve them for later
   - [ ] add persisted Event Lens default-selection preference under Chart Events settings;
   - [ ] remove the empty unselected Event Lens modal state;
   - [ ] preserve chart view shape on pair/timeframe changes where practical;
-  - [ ] redesign Event Lens bookmark as compact icon-only;
   - [ ] move coverage into the expanded Event Lens modal;
   - [ ] make Release Navigator visual, readable, and factor-driven;
-  - [ ] keep future scheduled markers visible/selectable while replay controls stay disabled.
+  - [ ] polish future scheduled marker behavior beyond the active visibility pass if needed.
 - [ ] External data connectors remain later.
 - [ ] COT remains later because it is weekly and not currently in the app data stack.
 - [ ] Central Banks MoM/YoY toggle remains later backlog.
@@ -108,7 +83,8 @@ These are intentionally not active implementation items. Preserve them for later
 
 - Charts Pair Matrix Time Lens v1 was added as a read-only Charts-native popover. It opens from a compact chart bookmark and follows cursor-time macro/factor context from loaded MT5/broker calendar rows.
 - Checklist command-board structure was tightened so the next autonomous goal is explicit and unfinished roadmap items are preserved instead of deleted.
-- Pair Matrix polish decisions were locked for the next autonomous pass: button placement below pair selector, standardized readable cells, persisted configuration, and Driver Alignment with pips/percent plus surprise basis.
+- Pair Matrix polish implementation completed: button placement moved below the pair selector, matrix cells use readable title/value/time rows, Driver Alignment shows pips/percent plus surprise basis, Pair Matrix configuration persists in chart preferences, and the pass was verified with targeted Charts tests, typecheck, build, and 1440x900 CDP smoke.
+- Charts bookmark dock / Pair Matrix comparison / future marker visibility implementation completed: Event Lens and Pair Matrix now share a compact icon dock, Pair Matrix opens without the old right-shift workaround, base-vs-quote comparison shows real values and transparent formulas, comparison preferences persist under Chart Settings > Appearance > Experimental, future scheduled markers are preserved through overlay caps, and the pass was verified with targeted Charts tests, typecheck, build, and 1440x900 CDP smoke.
 
 ### Prior Completed Context
 
@@ -129,24 +105,24 @@ These are intentionally not active implementation items. Preserve them for later
 ## Verification Rules
 
 - Checklist/docs-only edits require no app tests.
-- Future Pair Matrix implementation should run:
+- Future Charts or Event Lens implementation should run:
   - `pnpm --dir Main test -- chartView.test.ts chartsTab.test.ts calendarNavigation.test.ts navigationTruth.test.tsx`;
-  - focused helper/component tests for Driver Alignment math and changed Pair Matrix rendering behavior;
+  - focused helper/component tests for Pair Matrix comparison math/rendering, bookmark dock rendering, and future marker visibility where behavior changes need protection;
   - `pnpm --dir Main run typecheck`;
   - `pnpm --dir Main build`.
-- Future Pair Matrix implementation must include manual or CDP screenshot inspection at 1440x900, 100% Chrome zoom:
+- Future Charts polish implementation must include manual or CDP screenshot inspection at 1440x900, 100% Chrome zoom:
   - no whole-page chart scroll;
-  - Pair Matrix button sits below the pair selector;
-  - Pair Matrix popover does not overlap toolbar, event rail, x-axis, or Event Lens controls;
-  - matrix cells are readable and do not repeat/break timestamps;
-  - Driver Alignment updates while hovering chart candles;
-  - pips, percent, surprise value, and comparison basis are visible;
-  - configurable controls are usable without crowding the chart;
+  - shared bookmark dock sits cleanly near/below the pair selector;
+  - Event Lens and Pair Matrix buttons do not overlap chart controls;
+  - Pair Matrix popover is bounded and readable without artificial centering caused by the old Event Lens bookmark;
+  - base-vs-quote comparison updates with the cursor anchor;
+  - raw numbers, formula/basis, and winner state are visible;
+  - future markers remain visible/selectable with chart lenses open;
   - Terminal Console is no longer visible below the chart.
 - If live MT5 candles/calendar rows are unavailable, static tests plus CDP no-data layout smoke are acceptable; record the limitation in the final report.
 - Future CSS cleanup must run build and screenshot smoke checks after each extraction pass.
 - Do not run broad/full test suites after every small visual pass by default.
-- Focused tests are pre-approved for the next Pair Matrix implementation when they protect newly changed behavior.
+- Focused tests are pre-approved for the next Charts polish implementation when they protect newly changed behavior.
 - Before adding tests outside that Pair Matrix scope, get explicit user agreement and explain what behavior the test protects.
 - Bridge tests are only required if bridge contracts change.
 
@@ -157,7 +133,7 @@ These are intentionally not active implementation items. Preserve them for later
 - Old garbage/deprecated experiments are ignored by default.
 - CSS cleanup should proceed in small extraction checkpoints with build/equivalence verification.
 - The completed CSS split was extraction-first: no selector renames, no visual redesign, and no reachable garbage CSS deletion.
-- Pair Matrix Time Lens polish is the next autonomous implementation target.
+- Charts Bookmark Dock + Pair Matrix Comparison + Future Marker Visibility is complete as of 2026-08-08.
 - Pair Matrix Driver Alignment compares data-implied pair direction against price movement from release close to hovered-cursor close.
 - Driver Alignment must display actual move in pips and percent plus surprise value/basis.
 - Driver Alignment labels are `Aligned`, `Rejected`, `Muted`, and `Unclear`; they are context labels, not buy/sell calls.
@@ -165,18 +141,23 @@ These are intentionally not active implementation items. Preserve them for later
 - Unemployment/jobless-style events invert direction because lower readings are usually more supportive for the event currency.
 - Supportive base-currency data implies pair up; supportive quote-currency data implies pair down. Negative base implies pair down; negative quote implies pair up.
 - Driver strength, surprise sensitivity, row sort mode, and display density should be configurable because the user wants to learn visually which read works.
+- Pair Matrix comparison follows the same cursor-time anchor as Pair Matrix Time Lens, falling back to the latest loaded candle.
+- Pair Matrix comparison default mode is `Macro surprise`; experimental modes may expose `Macro + price` and `Raw values`.
+- Pair Matrix comparison controls belong under `Chart Settings > Appearance > Experimental`.
+- Pair Matrix comparison should expose actual values and math basis before any summary label.
+- Pair Matrix comparison winner labels are learning aids, not certainty scores or trade calls.
 - Event Lens default selection is a persisted Chart Events preference with `nearest`, `impact`, and `past` strategies.
 - "Nearest current event" means the closest loaded relevant event to the current/latest candle time, preferring visible-range events when available.
 - "Highest-impact nearby event" means higher impact wins before distance among nearby loaded relevant events.
 - "Latest past replay-ready event" means the most recent loaded past event with matching loaded candles.
-- Event Lens bookmark icon should be chosen from the existing icon library and should stay visually quiet.
+- Event Lens and Pair Matrix bookmark icons should be chosen from the existing icon library and should live together in a visually quiet shared chart dock.
 - Release Navigator visuals must stay source-honest; no source values are invented or unit-converted beyond existing conservative display helpers.
 - Release Navigator bars are relative raw-value comparisons within the matching release set only.
 - Historical marker caps still exist for performance.
-- Upcoming scheduled markers bypass historical-density hiding only up to `futureMarkerLimit`.
+- Upcoming scheduled markers bypass historical-density hiding only up to `futureMarkerLimit` and should remain selectable while lenses are open.
 - Factor selection belongs inside Event Lens, not in the chart settings drawer.
 - Factor-driven Release Navigator shows the selected factor and selected factor currency only.
-- Pair Matrix Time Lens v1 exists but needs polish before Event Lens work resumes.
+- Pair Matrix Time Lens v1, its first polish pass, comparison, and shared chart-tool layout are complete.
 - Mobile can use internal modal scrolling; "no scroll" target is desktop 1440x900.
 - The app remains decision support, not a signal bot.
 - Macro scope is current-data-only until the user explicitly approves external data.
