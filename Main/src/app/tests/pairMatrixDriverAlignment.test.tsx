@@ -44,10 +44,12 @@ describe("Pair Matrix Driver Alignment", () => {
     });
 
     expect(read.status).toBe("aligned");
-    expect(read.expectedDirectionLabel).toBe("pair down");
+    expect(read.expectedDirectionLabel).toBe("EURUSD expected down");
     expect(read.actualDirectionLabel).toBe("price down");
     expect(read.pipsLabel).toBe("-20.0 pips");
     expect(read.percentLabel).toBe("-0.18%");
+    expect(read.releaseChartTime).toBe(1_000);
+    expect(read.cursorChartTime).toBe(1_600);
     expect(read.surpriseLabel).toBe("Actual vs forecast +20");
   });
 
@@ -68,7 +70,7 @@ describe("Pair Matrix Driver Alignment", () => {
     });
 
     expect(read.status).toBe("aligned");
-    expect(read.expectedDirectionLabel).toBe("pair up");
+    expect(read.expectedDirectionLabel).toBe("EURUSD expected up");
     expect(read.surpriseLabel).toBe("Actual vs forecast -0.3%");
   });
 
@@ -211,6 +213,7 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(rows[0]?.comparison?.quote?.rawSurpriseLabel).toBe("+0.1%");
     expect(summary?.stateLabel).toBe("Base leads");
     expect(summary?.voteLabel).toBe("1/1 factors");
+    expect(summary?.voteBreakdownLabel).toBe("Base 1 / Quote 0");
     expect(summary?.detailLabel).toContain("EUR 1, USD 0");
   });
 
@@ -248,8 +251,138 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(rows[0]?.comparison?.base?.formulaLabel).toContain("aligned x1.25");
   });
 
+  it("keeps one-sided missing actual data as a partial comparison read", () => {
+    const rows = buildPairMatrixViewRows({
+      factorRows: [
+        {
+          factor: MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "inflation")!,
+          currency: "EUR",
+          latestEvent: event({
+            currency: "EUR",
+            countryCode: "EU",
+            title: "CPI y/y",
+            actual: "",
+            forecast: "14.6%",
+            previous: "10.5%",
+          }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor: MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "inflation")!,
+          currency: "USD",
+          latestEvent: event({
+            currency: "USD",
+            title: "Core PCE Price Index m/m",
+            actual: "3.3%",
+            forecast: "3.4%",
+            previous: "3.3%",
+          }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+      ],
+      factors: [MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "inflation")!],
+      currencies: ["EUR", "USD"],
+      selectedSymbol: "EURUSD",
+      visibleCandles: candles(1.1, 1.094),
+      cursorChartTime: 1_600,
+      sourceTimeOffsetSeconds: 0,
+      preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+    });
+    const summary = buildPairMatrixComparisonSummary({
+      rows,
+      currencies: ["EUR", "USD"],
+      preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+    });
+
+    expect(rows[0]?.comparison?.state).toBe("partial_read");
+    expect(rows[0]?.comparison?.stateLabel).toBe("Partial read");
+    expect(rows[0]?.comparison?.base?.scoreLabel).toBe("score N/A");
+    expect(rows[0]?.comparison?.quote?.scoreLabel).toBe("-2.9 pts");
+    expect(summary?.stateLabel).toBe("Partial read");
+    expect(summary?.voteBreakdownLabel).toBe("Base 0 / Quote 0 / Other 1");
+  });
+
+  it("labels equal actual-versus-previous policy reads as no surprise instead of split", () => {
+    const rows = buildPairMatrixViewRows({
+      factorRows: [
+        {
+          factor: MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "policy")!,
+          currency: "EUR",
+          latestEvent: event({
+            currency: "EUR",
+            countryCode: "EU",
+            title: "ECB Marginal Lending Facility Rate Decision",
+            actual: "2.65%",
+            forecast: "",
+            previous: "2.65%",
+          }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor: MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "policy")!,
+          currency: "USD",
+          latestEvent: event({
+            currency: "USD",
+            title: "Fed Interest Rate Decision",
+            actual: "3.75%",
+            forecast: "",
+            previous: "3.75%",
+          }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+      ],
+      factors: [MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "policy")!],
+      currencies: ["EUR", "USD"],
+      selectedSymbol: "EURUSD",
+      visibleCandles: candles(1.1, 1.101),
+      cursorChartTime: 1_600,
+      sourceTimeOffsetSeconds: 0,
+      preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+    });
+    const summary = buildPairMatrixComparisonSummary({
+      rows,
+      currencies: ["EUR", "USD"],
+      preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+    });
+
+    expect(rows[0]?.comparison?.state).toBe("no_surprise");
+    expect(rows[0]?.comparison?.stateLabel).toBe("No surprise");
+    expect(rows[0]?.comparison?.base?.rawSurpriseLabel).toBe("0%");
+    expect(rows[0]?.comparison?.quote?.rawSurpriseLabel).toBe("0%");
+    expect(rows[0]?.comparison?.base?.scoreLabel).toBe("0.0 pts");
+    expect(rows[0]?.comparison?.quote?.scoreLabel).toBe("0.0 pts");
+    expect(rows[0]?.comparison?.contextLabel).toBe("USD higher rate +1.10pp");
+    expect(rows[0]?.comparison?.contextTitle).toContain("USD is higher by 1.10 percentage points");
+    expect(summary?.stateLabel).toBe("No surprise");
+    expect(summary?.voteLabel).toBe("1/1 no surprise");
+  });
+
   it("renders the open popover with compact value rows and driver details", () => {
     const factorRows = [
+      {
+        factor: MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "policy")!,
+        currency: "EUR",
+        latestEvent: event({
+          time: Date.UTC(2026, 6, 23, 22, 15, 0) / 1000,
+          currency: "EUR",
+          countryCode: "EU",
+          title: "ECB Marginal Lending Facility Rate Decision",
+          actual: "2.65",
+          forecast: "",
+          previous: "2.65",
+        }),
+        nextEvent: null,
+        coverageLabel: "Latest only",
+        summary: "",
+      },
       {
         factor: MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "policy")!,
         currency: "USD",
@@ -316,7 +449,14 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).toContain("Compare");
     expect(html).toContain("Pair Matrix settings");
     expect(html).toContain("chart-pair-matrix-summary-box");
-    expect(html).toMatch(/\/1 factors/);
+    expect(html).toContain("USD higher rate +1.10pp");
+    expect(html).toContain("Macro vote");
+    expect(html).toContain("Quote leads");
+    expect(html).toContain("Base 0 / Quote 1");
+    expect(html).toContain("Driver read");
+    expect(html).toContain("1 aligned / 0 rejected");
+    expect(html).toContain("Move size");
+    expect(html).toContain("Range");
     expect(html).toContain("Evidence");
     expect(html).toContain("Latest");
     expect(html).toContain("Next");
@@ -335,9 +475,16 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).toContain("17 Sept 2026");
     expect(html).toContain("-20.0 pips");
     expect(html).toContain("-0.18%");
+    expect(html).toContain("Range 30 Jul 2026 04:00 -&gt; 30 Jul 2026 05:00");
+    expect(html).toContain("EURUSD expected down");
     expect(html).toContain("chart-pair-matrix-settings-details");
+    expect(html).toContain("Evidence Signal settings");
+    expect(html).toContain("Evidence Signal combines macro vote");
     expect(html).toContain("1/1 factor cells loaded");
     expect(html).toContain("Loaded broker/MT5 rows only");
+    expect(html).toContain("Choose whether each factor shows the strongest driver read");
+    expect(html).toContain("Controls how much data surprise and price movement");
+    expect(html).toContain("Choose normal factor order");
     expect(html).not.toContain('class="chart-pair-matrix-summary-box " title="1/1 factor cells loaded');
     expect(html).not.toContain('class="chart-pair-matrix-summary-box " title="Loaded broker/MT5 rows only');
     expect(html).toContain(">Read<");

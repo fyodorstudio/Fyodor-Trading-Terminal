@@ -31,17 +31,17 @@ export interface ChartPairMatrixTimeLensData {
 }
 
 const READ_MODE_OPTIONS = [
-  { value: "strongest", label: "Strongest" },
-  { value: "separate", label: "Separate" },
+  { value: "strongest", label: "Strongest", description: "Show the strongest loaded driver read for each factor row." },
+  { value: "separate", label: "Separate", description: "Show base and quote driver reads separately when both are loaded." },
 ] as const;
 const SENSITIVITY_OPTIONS = [
-  { value: "low", label: "Low" },
-  { value: "normal", label: "Normal" },
-  { value: "high", label: "High" },
+  { value: "low", label: "Low", description: "Accept smaller data surprises and smaller price moves." },
+  { value: "normal", label: "Normal", description: "Use the default surprise and price-move thresholds." },
+  { value: "high", label: "High", description: "Require larger data surprises and stronger price movement." },
 ] as const;
 const SORT_OPTIONS = [
-  { value: "factor", label: "Factor" },
-  { value: "driver_strength", label: "Drivers" },
+  { value: "factor", label: "Factor", description: "Keep the normal macro factor order." },
+  { value: "driver_strength", label: "Drivers", description: "Bring accepted/rejected driver reads with larger moves upward." },
 ] as const;
 
 function formatEventTime(
@@ -51,6 +51,15 @@ function formatEventTime(
 ): string {
   if (!event) return "";
   return formatChartEventDisplayTime(event.time, displayTimeMode, sourceTimeOffsetSeconds);
+}
+
+function formatChartCoordinateTime(
+  chartTime: number | null,
+  displayTimeMode: ChartDisplayTimeMode,
+  sourceTimeOffsetSeconds: number,
+): string {
+  if (chartTime == null) return "-";
+  return formatChartEventDisplayTime(chartTime - sourceTimeOffsetSeconds, displayTimeMode, sourceTimeOffsetSeconds);
 }
 
 function getEventDisplayFields(event: CalendarEvent | null) {
@@ -96,18 +105,21 @@ function EvidenceRun({
 
 function PairMatrixControl<K extends keyof PairMatrixPreferences>({
   label,
+  description,
   value,
   options,
   onChange,
 }: {
   label: string;
+  description: string;
   value: PairMatrixPreferences[K];
-  options: ReadonlyArray<{ value: PairMatrixPreferences[K]; label: string }>;
+  options: ReadonlyArray<{ value: PairMatrixPreferences[K]; label: string; description: string }>;
   onChange: (value: PairMatrixPreferences[K]) => void;
 }) {
   return (
     <div className="chart-pair-matrix-control">
-      <span>{label}</span>
+      <span title={description}>{label}</span>
+      <small>{description}</small>
       <div role="group" aria-label={label}>
         {options.map((option) => (
           <button
@@ -115,6 +127,7 @@ function PairMatrixControl<K extends keyof PairMatrixPreferences>({
             type="button"
             className={option.value === value ? "is-active" : ""}
             onClick={() => onChange(option.value)}
+            title={option.description}
           >
             {option.label}
           </button>
@@ -124,14 +137,33 @@ function PairMatrixControl<K extends keyof PairMatrixPreferences>({
   );
 }
 
-function DriverRead({ read }: { read: PairMatrixAlignmentRead }) {
+function DriverRead({
+  read,
+  displayTimeMode,
+  sourceTimeOffsetSeconds,
+}: {
+  read: PairMatrixAlignmentRead;
+  displayTimeMode: ChartDisplayTimeMode;
+  sourceTimeOffsetSeconds: number;
+}) {
+  const moveRangeLabel =
+    read.releaseChartTime != null && read.cursorChartTime != null
+      ? `${formatChartCoordinateTime(read.releaseChartTime, displayTimeMode, sourceTimeOffsetSeconds)} -> ${formatChartCoordinateTime(
+          read.cursorChartTime,
+          displayTimeMode,
+          sourceTimeOffsetSeconds,
+        )}`
+      : "Range N/A";
+  const title = `${read.reason} Move range: ${moveRangeLabel}.`;
+
   return (
-    <span className={`chart-pair-matrix-driver-read is-${read.status}`} title={read.reason}>
+    <span className={`chart-pair-matrix-driver-read is-${read.status}`} title={title}>
       <span className="chart-pair-matrix-driver-top">
         <strong>{read.statusLabel}</strong>
         <em>{read.currency}</em>
       </span>
       <span className="chart-pair-matrix-driver-line">{read.surpriseLabel}</span>
+      <span className="chart-pair-matrix-driver-line">Range {moveRangeLabel}</span>
       <span className="chart-pair-matrix-driver-line">{read.priceMoveLabel}</span>
       <span className="chart-pair-matrix-driver-line">{read.expectedDirectionLabel} / {read.actualDirectionLabel}</span>
     </span>
@@ -141,22 +173,39 @@ function DriverRead({ read }: { read: PairMatrixAlignmentRead }) {
 function DriverAlignmentCell({
   row,
   mode,
+  displayTimeMode,
+  sourceTimeOffsetSeconds,
 }: {
   row: PairMatrixFactorViewRow;
   mode: PairMatrixPreferences["driverReadMode"];
+  displayTimeMode: ChartDisplayTimeMode;
+  sourceTimeOffsetSeconds: number;
 }) {
   const reads = mode === "separate" ? row.alignmentReads.filter((read) => read.eventTime != null) : [];
   if (mode === "separate" && reads.length > 0) {
     return (
       <div className="chart-pair-matrix-driver-stack">
         {reads.map((read) => (
-          <DriverRead key={`${read.currency}:${read.eventTime}:${read.eventTitle}`} read={read} />
+          <DriverRead
+            key={`${read.currency}:${read.eventTime}:${read.eventTitle}`}
+            read={read}
+            displayTimeMode={displayTimeMode}
+            sourceTimeOffsetSeconds={sourceTimeOffsetSeconds}
+          />
         ))}
       </div>
     );
   }
 
-  if (row.summaryAlignment) return <DriverRead read={row.summaryAlignment} />;
+  if (row.summaryAlignment) {
+    return (
+      <DriverRead
+        read={row.summaryAlignment}
+        displayTimeMode={displayTimeMode}
+        sourceTimeOffsetSeconds={sourceTimeOffsetSeconds}
+      />
+    );
+  }
   return <span className="chart-pair-matrix-empty">No driver read</span>;
 }
 
@@ -177,6 +226,7 @@ function PairComparisonCell({ comparison }: { comparison: PairMatrixFactorCompar
       <span className="chart-pair-matrix-compare-top">
         <strong>{comparison.stateLabel}</strong>
         <em>{comparison.detailLabel}</em>
+        {comparison.contextLabel ? <small title={comparison.contextTitle ?? comparison.contextLabel}>{comparison.contextLabel}</small> : null}
       </span>
       {comparison.base ? <PairComparisonSide side={comparison.base} /> : null}
       {comparison.quote ? <PairComparisonSide side={comparison.quote} /> : null}
@@ -203,24 +253,79 @@ function PairMatrixSummaryBox({
   );
 }
 
+function getDriverAcceptanceSummary(rows: PairMatrixFactorViewRow[]): { label: string; detail: string; title: string } {
+  const reads = rows.map((row) => row.summaryAlignment).filter((read): read is PairMatrixAlignmentRead => read != null);
+  const aligned = reads.filter((read) => read.status === "aligned").length;
+  const rejected = reads.filter((read) => read.status === "rejected").length;
+  const muted = reads.filter((read) => read.status === "muted").length;
+  const unclear = reads.filter((read) => read.status === "unclear").length;
+  const other = muted + unclear;
+
+  if (reads.length === 0) {
+    return {
+      label: "Driver read",
+      detail: "No loaded read",
+      title: "Driver acceptance needs loaded releases and loaded candles from release close to cursor close.",
+    };
+  }
+
+  return {
+    label: "Driver read",
+    detail: `${aligned} aligned / ${rejected} rejected${other > 0 ? ` / ${other} other` : ""}`,
+    title: `Driver acceptance counts visible factor rows: aligned ${aligned}, rejected ${rejected}, muted ${muted}, unclear ${unclear}.`,
+  };
+}
+
+function getTopMoveRead(rows: PairMatrixFactorViewRow[]): PairMatrixAlignmentRead | null {
+  return rows
+    .map((row) => row.summaryAlignment)
+    .filter((read): read is PairMatrixAlignmentRead => read != null && read.releaseChartTime != null && read.cursorChartTime != null)
+    .reduce<PairMatrixAlignmentRead | null>((strongest, read) => {
+      if (!strongest) return read;
+      return read.strengthScore > strongest.strengthScore ? read : strongest;
+    }, null);
+}
+
+function getMoveRangeLabel(
+  read: PairMatrixAlignmentRead | null,
+  displayTimeMode: ChartDisplayTimeMode,
+  sourceTimeOffsetSeconds: number,
+): string {
+  if (!read) return "Range N/A";
+  return `${formatChartCoordinateTime(read.releaseChartTime, displayTimeMode, sourceTimeOffsetSeconds)} -> ${formatChartCoordinateTime(
+    read.cursorChartTime,
+    displayTimeMode,
+    sourceTimeOffsetSeconds,
+  )}`;
+}
+
 function PairMatrixHeaderSummary({
   summary,
+  rows,
   anchorLabel,
   anchorBasisLabel,
   coverageLabel,
+  displayTimeMode,
+  sourceTimeOffsetSeconds,
   preferences,
   onPreferenceChange,
   onClose,
 }: {
   summary: PairMatrixComparisonSummary | null;
+  rows: PairMatrixFactorViewRow[];
   anchorLabel: string;
   anchorBasisLabel: string;
   coverageLabel: string;
+  displayTimeMode: ChartDisplayTimeMode;
+  sourceTimeOffsetSeconds: number;
   preferences: PairMatrixPreferences;
   onPreferenceChange: ChartPairMatrixTimeLensData["onPreferenceChange"];
   onClose: () => void;
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const driverSummary = getDriverAcceptanceSummary(rows);
+  const topMoveRead = getTopMoveRead(rows);
+  const moveRangeLabel = getMoveRangeLabel(topMoveRead, displayTimeMode, sourceTimeOffsetSeconds);
 
   return (
     <div className="chart-pair-matrix-head-summary" aria-label="Pair Matrix summary">
@@ -228,16 +333,32 @@ function PairMatrixHeaderSummary({
       {summary ? (
         <>
           <PairMatrixSummaryBox
-            label={summary.stateLabel}
-            detail={summary.voteLabel}
-            className={`is-state is-${summary.state}`}
-            title={summary.detailLabel}
+            label="Macro vote"
+            detail={`${summary.stateLabel} - ${summary.voteBreakdownLabel}`}
+            className={`is-state is-vote is-${summary.state}`}
+            title={`${summary.modeLabel} / ${summary.winnerModeLabel}. ${summary.detailLabel}`}
           />
           <PairMatrixSummaryBox
-            label={summary.modeLabel}
-            detail={summary.winnerModeLabel}
-            className="is-mode"
-            title={`${summary.modeLabel} / ${summary.winnerModeLabel}`}
+            label={driverSummary.label}
+            detail={driverSummary.detail}
+            className="is-driver"
+            title={driverSummary.title}
+          />
+          <PairMatrixSummaryBox
+            label="Move size"
+            detail={topMoveRead ? topMoveRead.priceMoveLabel : "Move N/A"}
+            className="is-move"
+            title={
+              topMoveRead
+                ? `Largest visible driver move. ${topMoveRead.eventTitle}: ${topMoveRead.priceMoveLabel}.`
+                : "Move size needs loaded candles from release close to cursor close."
+            }
+          />
+          <PairMatrixSummaryBox
+            label="Range"
+            detail={moveRangeLabel}
+            className="is-range"
+            title={`Pips and percent are measured over this release-close to cursor-close range: ${moveRangeLabel}.`}
           />
           <PairMatrixSummaryBox
             label={summary.baseScoreLabel}
@@ -263,11 +384,14 @@ function PairMatrixHeaderSummary({
         </button>
         <div className="chart-pair-matrix-settings-popover" hidden={!settingsOpen}>
           <div className="chart-pair-matrix-settings-details">
-            <span>{coverageLabel}</span>
-            <span>Loaded broker/MT5 rows only</span>
+            <strong>Evidence Signal settings</strong>
+            <span title="How many base/quote factor cells currently have loaded latest or next release evidence.">{coverageLabel}</span>
+            <span title="Pair Matrix v1 only reads local MT5 candles and loaded broker/MT5 calendar rows.">Loaded broker/MT5 rows only</span>
+            <p>Evidence Signal combines macro vote, expected pair direction, and release-to-cursor price acceptance.</p>
           </div>
             <PairMatrixControl
               label="Read"
+              description="Choose whether each factor shows the strongest driver read or separate base/quote reads."
               value={preferences.driverReadMode}
               options={READ_MODE_OPTIONS}
               onChange={(value) =>
@@ -276,6 +400,7 @@ function PairMatrixHeaderSummary({
             />
             <PairMatrixControl
               label="Sensitivity"
+              description="Controls how much data surprise and price movement are needed before a read is treated as active."
               value={preferences.surpriseSensitivity}
               options={SENSITIVITY_OPTIONS}
               onChange={(value) =>
@@ -284,6 +409,7 @@ function PairMatrixHeaderSummary({
             />
             <PairMatrixControl
               label="Sort"
+              description="Choose normal factor order or bring stronger accepted/rejected driver reads upward."
               value={preferences.rowSortMode}
               options={SORT_OPTIONS}
               onChange={(value) =>
@@ -361,7 +487,12 @@ function PairMatrixFactorRow({
       </div>
       <div className="chart-pair-matrix-read-slot">
         <span>Driver</span>
-        <DriverAlignmentCell row={row} mode={data.preferences.driverReadMode} />
+        <DriverAlignmentCell
+          row={row}
+          mode={data.preferences.driverReadMode}
+          displayTimeMode={data.displayTimeMode}
+          sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
+        />
       </div>
     </article>
   );
@@ -483,9 +614,12 @@ export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLen
             </div>
             <PairMatrixHeaderSummary
               summary={data.comparisonSummary}
+              rows={data.rows}
               anchorLabel={data.anchorLabel}
               anchorBasisLabel={data.anchorBasisLabel}
               coverageLabel={data.coverageLabel}
+              displayTimeMode={data.displayTimeMode}
+              sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
               preferences={data.preferences}
               onPreferenceChange={data.onPreferenceChange}
               onClose={data.onClose}

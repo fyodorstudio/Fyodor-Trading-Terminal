@@ -1,6 +1,7 @@
 import { FX_PAIRS, MAJOR_CURRENCY_ORDER, getFxPairByName } from "@/app/config/fxPairs";
 import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import { getEventComparison } from "@/app/lib/eventReaction";
+import { parseNumericValue } from "@/app/lib/format";
 import type { MacroFactorDefinition, MacroFactorRow } from "@/app/lib/macroDrivers";
 import type { BridgeCandle, CalendarEvent } from "@/app/types";
 
@@ -16,6 +17,8 @@ export type PairMatrixComparisonState =
   | "quote_leads"
   | "both_supportive"
   | "both_weak"
+  | "partial_read"
+  | "no_surprise"
   | "split"
   | "mixed"
   | "unclear";
@@ -40,6 +43,8 @@ export interface PairMatrixAlignmentRead {
   priceMoveLabel: string;
   pipsLabel: string;
   percentLabel: string;
+  releaseChartTime: number | null;
+  cursorChartTime: number | null;
   expectedDirectionLabel: string;
   actualDirectionLabel: string;
   strengthScore: number;
@@ -64,6 +69,7 @@ export interface PairMatrixFactorViewRow {
 export interface PairMatrixComparisonSide {
   currency: string;
   eventTitle: string;
+  actualValue: number | null;
   actualLabel: string;
   comparisonLabel: string;
   basisLabel: string;
@@ -83,12 +89,15 @@ export interface PairMatrixFactorComparison {
   base: PairMatrixComparisonSide | null;
   quote: PairMatrixComparisonSide | null;
   detailLabel: string;
+  contextLabel: string | null;
+  contextTitle: string | null;
 }
 
 export interface PairMatrixComparisonSummary {
   state: PairMatrixComparisonState;
   stateLabel: string;
   voteLabel: string;
+  voteBreakdownLabel: string;
   modeLabel: string;
   winnerModeLabel: string;
   baseCurrency: string | null;
@@ -261,6 +270,8 @@ function makeUnclearRead(event: CalendarEvent | null, currency: string, reason: 
     priceMoveLabel: "-",
     pipsLabel: "-",
     percentLabel: "-",
+    releaseChartTime: null,
+    cursorChartTime: null,
     expectedDirectionLabel: "-",
     actualDirectionLabel: "-",
     strengthScore: 0,
@@ -275,11 +286,13 @@ function buildComparisonSide(
   const event = cell?.latestEvent ?? null;
   if (!event) return null;
   const comparison = getEventComparison(event);
+  const actualValue = parseNumericValue(event.actual);
   const actualLabel = getEventValueDisplay(event.actual, event.title).display;
   if (!comparison) {
     return {
       currency: event.currency,
       eventTitle: event.title,
+      actualValue,
       actualLabel,
       comparisonLabel: "-",
       basisLabel: "No numeric comparison",
@@ -309,6 +322,7 @@ function buildComparisonSide(
   return {
     currency: event.currency,
     eventTitle: event.title,
+    actualValue,
     actualLabel,
     comparisonLabel,
     basisLabel,
@@ -322,6 +336,31 @@ function buildComparisonSide(
         ? `${basisLabel}: actual ${actualLabel}, compare ${comparisonLabel}, surprise ${rawSurpriseLabel}.`
         : `${basisLabel}: ${relativeSurpriseLabel} ${mode === "macro_price" ? `x ${acceptance.label}` : "macro surprise"} = ${formatSignedFixed(score, 1)} pts.`,
   };
+}
+
+function formatPolicyLevelContext(
+  factor: MacroFactorDefinition,
+  base: PairMatrixComparisonSide | null,
+  quote: PairMatrixComparisonSide | null,
+): { label: string; title: string } | null {
+  if (factor.id !== "policy" || base?.actualValue == null || quote?.actualValue == null) return null;
+
+  const delta = quote.actualValue - base.actualValue;
+  const absoluteDelta = Math.abs(delta);
+  const leader =
+    absoluteDelta <= 0.005
+      ? null
+      : delta > 0
+        ? quote
+        : base;
+  const label = leader
+    ? `${leader.currency} higher rate +${absoluteDelta.toFixed(2)}pp`
+    : "Rate level even";
+  const title = leader
+    ? `Policy-rate level context only: ${base.currency} actual ${base.actualLabel}, ${quote.currency} actual ${quote.actualLabel}; ${leader.currency} is higher by ${absoluteDelta.toFixed(2)} percentage points. Surprise scores stay separate.`
+    : `Policy-rate level context only: ${base.currency} actual ${base.actualLabel}, ${quote.currency} actual ${quote.actualLabel}; rate levels are effectively even. Surprise scores stay separate.`;
+
+  return { label, title };
 }
 
 function compareFactorSides(params: {
@@ -338,18 +377,20 @@ function compareFactorSides(params: {
   if (baseScore == null && quoteScore == null) {
     state = "unclear";
   } else if (baseScore != null && quoteScore == null) {
-    state = baseScore > 0 ? "base_leads" : baseScore < 0 ? "both_weak" : "unclear";
+    state = "partial_read";
   } else if (baseScore == null && quoteScore != null) {
-    state = quoteScore > 0 ? "quote_leads" : quoteScore < 0 ? "both_weak" : "unclear";
+    state = "partial_read";
   } else if (baseScore != null && quoteScore != null) {
     const delta = baseScore - quoteScore;
-    if (baseScore > 0 && quoteScore > 0 && Math.abs(delta) <= closeThreshold) state = "both_supportive";
+    if (Math.abs(baseScore) <= closeThreshold && Math.abs(quoteScore) <= closeThreshold) state = "no_surprise";
+    else if (baseScore > 0 && quoteScore > 0 && Math.abs(delta) <= closeThreshold) state = "both_supportive";
     else if (baseScore < 0 && quoteScore < 0 && Math.abs(delta) <= closeThreshold) state = "both_weak";
     else if (Math.abs(delta) <= closeThreshold) state = "split";
     else state = delta > 0 ? "base_leads" : "quote_leads";
   }
 
   const stateLabel = getComparisonStateLabel(state);
+  const context = formatPolicyLevelContext(factor, base, quote);
   return {
     factorId: factor.id,
     factorLabel: factor.label,
@@ -358,6 +399,8 @@ function compareFactorSides(params: {
     base,
     quote,
     detailLabel: `${base?.currency ?? "Base"} ${base?.scoreLabel ?? "N/A"} / ${quote?.currency ?? "Quote"} ${quote?.scoreLabel ?? "N/A"}`,
+    contextLabel: context?.label ?? null,
+    contextTitle: context?.title ?? null,
   };
 }
 
@@ -366,6 +409,8 @@ export function getComparisonStateLabel(state: PairMatrixComparisonState): strin
   if (state === "quote_leads") return "Quote leads";
   if (state === "both_supportive") return "Both supportive";
   if (state === "both_weak") return "Both weak";
+  if (state === "partial_read") return "Partial read";
+  if (state === "no_surprise") return "No surprise";
   if (state === "split") return "Split";
   if (state === "mixed") return "Mixed";
   return "Unclear";
@@ -424,7 +469,8 @@ export function derivePairMatrixAlignment(params: {
         : "rejected";
 
   const basisLabel = comparison.basis === "forecast" ? "Actual vs forecast" : "Actual vs previous";
-  const expectedDirectionLabel = expectedPairDirection > 0 ? "pair up" : "pair down";
+  const symbolLabel = params.selectedSymbol.toUpperCase();
+  const expectedDirectionLabel = `${symbolLabel} expected ${expectedPairDirection > 0 ? "up" : "down"}`;
   const actualDirectionLabel = actualDirection > 0 ? "price up" : actualDirection < 0 ? "price down" : "flat";
   const pipsLabel = `${formatSignedFixed(pips, 1)} pips`;
   const percentLabel = `${formatSignedFixed(percentMove, 2, "%")}`;
@@ -440,6 +486,8 @@ export function derivePairMatrixAlignment(params: {
     priceMoveLabel: `${pipsLabel} / ${percentLabel}`,
     pipsLabel,
     percentLabel,
+    releaseChartTime: releaseCandle.time,
+    cursorChartTime: cursorCandle.time,
     expectedDirectionLabel,
     actualDirectionLabel,
     strengthScore: Math.abs(pips) + Math.abs(percentMove),
@@ -546,6 +594,8 @@ export function buildPairMatrixComparisonSummary(params: {
       quote_leads: 0,
       both_supportive: 0,
       both_weak: 0,
+      partial_read: 0,
+      no_surprise: 0,
       split: 0,
       mixed: 0,
       unclear: 0,
@@ -568,6 +618,10 @@ export function buildPairMatrixComparisonSummary(params: {
     state = "both_supportive";
   } else if (counts.both_weak > 0 && counts.base_leads === 0 && counts.quote_leads === 0) {
     state = "both_weak";
+  } else if (counts.partial_read > 0 && counts.base_leads === 0 && counts.quote_leads === 0) {
+    state = "partial_read";
+  } else if (counts.no_surprise > 0 && counts.base_leads === 0 && counts.quote_leads === 0) {
+    state = "no_surprise";
   } else if (counts.base_leads === counts.quote_leads && counts.base_leads > 0) {
     state = "split";
   } else {
@@ -587,6 +641,7 @@ export function buildPairMatrixComparisonSummary(params: {
         ? "Per-factor only"
         : "Factor vote";
   const totalReadableFactors = factorReads.length;
+  const otherVoteCount = totalReadableFactors - counts.base_leads - counts.quote_leads;
   const voteLabel =
     state === "base_leads"
       ? `${counts.base_leads}/${totalReadableFactors} factors`
@@ -598,21 +653,29 @@ export function buildPairMatrixComparisonSummary(params: {
             ? `${counts.both_supportive}/${totalReadableFactors} both`
             : state === "both_weak"
               ? `${counts.both_weak}/${totalReadableFactors} weak`
+              : state === "partial_read"
+                ? `${counts.partial_read}/${totalReadableFactors} partial`
+                : state === "no_surprise"
+                  ? `${counts.no_surprise}/${totalReadableFactors} no surprise`
               : state === "mixed"
                 ? `${counts.base_leads}-${counts.quote_leads}/${totalReadableFactors} mixed`
                 : `${counts.unclear}/${totalReadableFactors} unclear`;
+  const voteBreakdownLabel = `Base ${counts.base_leads} / Quote ${counts.quote_leads}${
+    otherVoteCount > 0 ? ` / Other ${otherVoteCount}` : ""
+  }`;
 
   return {
     state,
     stateLabel: getComparisonStateLabel(state),
     voteLabel,
+    voteBreakdownLabel,
     modeLabel,
     winnerModeLabel,
     baseCurrency,
     quoteCurrency,
     baseScoreLabel: `${baseCurrency} ${formatSignedFixed(baseScoreTotal, 1)} pts`,
     quoteScoreLabel: `${quoteCurrency} ${formatSignedFixed(quoteScoreTotal, 1)} pts`,
-    detailLabel: `${winnerModeLabel}: ${baseCurrency} ${counts.base_leads}, ${quoteCurrency} ${counts.quote_leads}, both ${counts.both_supportive}, weak ${counts.both_weak}, unclear ${counts.unclear}.`,
+    detailLabel: `${winnerModeLabel}: ${baseCurrency} ${counts.base_leads}, ${quoteCurrency} ${counts.quote_leads}, both ${counts.both_supportive}, weak ${counts.both_weak}, partial ${counts.partial_read}, no surprise ${counts.no_surprise}, unclear ${counts.unclear}.`,
     factorReads,
   };
 }

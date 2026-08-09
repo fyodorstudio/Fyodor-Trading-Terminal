@@ -12,7 +12,7 @@ This file is the current command board. Future AI sessions should read this befo
 
 ## Current Product Truth
 
-- Fyodor is manual-trading decision support, not a signal bot.
+- Fyodor is a local manual-trading support terminal. It may surface transparent Evidence Signals, but must not present automated execution or guaranteed outcomes.
 - The trusted raw data boundary is MT5 OHLCV plus broker/MT5 economic-calendar rows.
 - Calendar `Actual / Forecast / Previous` values have no source unit metadata, so formatting must stay conservative and source-preserving.
 - Chart time must be viewer-time-first: selected timezone should control axis labels, crosshair labels, latest-candle labels, and viewer clock.
@@ -27,6 +27,9 @@ This file is the current command board. Future AI sessions should read this befo
 - Chart-time Pair Matrix inspection is Charts-native, not an Overview expansion.
 - Pair Matrix Time Lens should become a chart-time driver-alignment tool: it should help inspect whether loaded economic data and observed price movement agree, conflict, or remain unclear.
 - Pair Matrix base-vs-quote comparison must show real values and transparent math; avoid fake precision across unlike event units.
+- Pair Matrix may use `Evidence Signal` wording when it shows source math and observed price reaction.
+- Pair Matrix Evidence Signal should tell what the data said, what the selected pair should have done, and whether price accepted or rejected it.
+- Pair Matrix may use directional evidence wording such as `EURUSD expected down / price up`, but should avoid blind buy/sell command wording.
 - Overview stays a compact pair summary for now; do not expand it into a second full analysis cockpit during the next Charts-focused pass.
 - Existing Event Replay remains available, but the next implementation should ignore the tab unless a safe active helper can be reused.
 - Chart event coverage is loaded-only in v1; missing old chart markers mean old calendar rows are not loaded, not that no event happened.
@@ -41,8 +44,7 @@ This file is the current command board. Future AI sessions should read this befo
 
 ## Autonomous Goal Mode Rules
 
-- Current autonomous implementation status: `Charts Bookmark Dock + Pair Matrix Comparison + Future Marker Visibility` is complete as of 2026-08-08.
-- Do not start a new autonomous implementation lane until the user explicitly reopens one from Active Roadmap or Deferred / Backlog.
+- Current autonomous implementation status: `Charts Pair Matrix Evidence Signal Polish` is the next queued target.
 - Do not expand the next goal into full Event Lens modal redesign, Overview, Event Replay tab redesign, bridge/data contracts, external data, calendar backfill, or CSS monolith work.
 - Do not delete unfinished roadmap items. Preserve non-next work under Deferred / Backlog unless the user explicitly asks to remove it.
 - Focused tests are pre-approved when they protect behavior changed by the next Charts polish implementation.
@@ -52,9 +54,20 @@ This file is the current command board. Future AI sessions should read this befo
 
 ## Active Roadmap
 
-No active autonomous implementation target is queued after the completed Charts bookmark dock / Pair Matrix comparison / future marker visibility pass.
+### Charts Pair Matrix Evidence Signal Polish
 
-When the user reopens a lane, move the chosen work here as unchecked actionable tasks and preserve the rest under Deferred / Backlog.
+- [ ] Reframe Pair Matrix header language around `Evidence Signal`, while keeping source math and observed price reaction visible.
+- [ ] Keep macro vote wording transparent, e.g. `Macro vote: Split · Base 3 / Quote 3 / Other 1`.
+- [ ] Use `Other` rather than `Unclear` for macro-vote leftovers unless the row is truly unclear, because leftovers can include split, mixed, both supportive, or both weak.
+- [ ] Keep driver rows direct and pair-specific, e.g. `EURUSD expected down / price up`.
+- [ ] Replace the tiny Pair Matrix settings popover with a larger readable popover.
+- [ ] Add tooltips/descriptions for Read, Sensitivity, Sort, coverage, source note, and Evidence Signal terms.
+- [ ] Keep coverage/source metadata inside settings, not as primary header chips.
+- [ ] Label pips/percent as the move from release-close candle to hovered-cursor candle.
+- [ ] Show the release-to-cursor time range for movement, e.g. `30 Jul 04:00 -> 09 Jun 07:00`.
+- [ ] Avoid any wording that implies the pips value is per candle.
+- [ ] Add an Evidence Signal component stack in the header instead of a fake single certainty score.
+- [ ] Evidence Signal components should include Macro vote, Driver acceptance, Move size, and Freshness/range.
 
 ## Deferred / Backlog
 
@@ -119,6 +132,12 @@ These are intentionally not active implementation items. Preserve them for later
   - raw numbers, formula/basis, and winner state are visible;
   - future markers remain visible/selectable with chart lenses open;
   - Terminal Console is no longer visible below the chart.
+- Future Pair Matrix Evidence Signal implementation should verify:
+  - settings popover is readable and tooltip-rich;
+  - Evidence Signal header does not crowd score boxes;
+  - driver rows show release-to-cursor time range;
+  - pips/percent update while hovering;
+  - no overlap with chart toolbar, x-axis, Event Lens, or Pair Matrix controls.
 - If live MT5 candles/calendar rows are unavailable, static tests plus CDP no-data layout smoke are acceptable; record the limitation in the final report.
 - Future CSS cleanup must run build and screenshot smoke checks after each extraction pass.
 - Do not run broad/full test suites after every small visual pass by default.
@@ -159,5 +178,5 @@ These are intentionally not active implementation items. Preserve them for later
 - Factor-driven Release Navigator shows the selected factor and selected factor currency only.
 - Pair Matrix Time Lens v1, its first polish pass, comparison, and shared chart-tool layout are complete.
 - Mobile can use internal modal scrolling; "no scroll" target is desktop 1440x900.
-- The app remains decision support, not a signal bot.
+- Evidence Signal means transparent directional evidence, not automated trade execution or guaranteed edge language.
 - Macro scope is current-data-only until the user explicitly approves external data.
