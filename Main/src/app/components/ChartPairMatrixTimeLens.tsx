@@ -108,17 +108,17 @@ function EvidenceRun({
 }) {
   const fields = getEventDisplayFields(event);
   const timeLabel = event ? formatEventTime(event, displayTimeMode, sourceTimeOffsetSeconds) : "-";
+  const visibleTimeLabel = event && bundleCount > 1 ? `${timeLabel} x${bundleCount}` : timeLabel;
   const formula = event
     ? `${event.title}. Actual ${fields.actual}, Forecast ${fields.forecast}, Previous ${fields.previous}. ${timeLabel}.${bundleCount > 1 ? ` Same-time bundle: ${bundleCount} matching rows.` : ""}`
     : reasonDetail;
 
   return (
-    <span className={`chart-pair-matrix-evidence-run ${event ? "" : "is-empty"}`} title={formula}>
+    <span className={`chart-pair-matrix-evidence-run ${event ? "" : "is-empty"} ${bundleCount > 1 ? "is-bundled" : ""}`} title={formula}>
       <span>A: {fields.actual}</span>
       <span>F: {fields.forecast}</span>
       <span>P: {fields.previous}</span>
-      <time>{event ? timeLabel : reasonLabel}</time>
-      {event && bundleCount > 1 ? <em title={`${bundleCount} same-time matching rows loaded for this currency/factor.`}>bundle x{bundleCount}</em> : null}
+      <time>{event ? visibleTimeLabel : reasonLabel}</time>
     </span>
   );
 }

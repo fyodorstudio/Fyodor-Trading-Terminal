@@ -140,6 +140,29 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(noWindow.status).toBe("unclear");
   });
 
+  it("labels zero-surprise driver reads without claiming the pair is unmapped", () => {
+    const read = derivePairMatrixAlignment({
+      event: event({
+        currency: "EUR",
+        countryCode: "EU",
+        title: "ECB Marginal Lending Facility Rate Decision",
+        actual: "2.65",
+        forecast: "",
+        previous: "2.65",
+      }),
+      selectedSymbol: "EURUSD",
+      visibleCandles: candles(1.1, 1.102),
+      cursorChartTime: 1_600,
+      sourceTimeOffsetSeconds: 0,
+      sensitivity: "normal",
+    });
+
+    expect(read.status).toBe("unclear");
+    expect(read.reasonCode).toBe("no_directional_surprise");
+    expect(read.reasonLabel).toBe("no directional surprise");
+    expect(read.reason).not.toContain("mapped");
+  });
+
   it("sorts factor rows by driver strength when configured", () => {
     const rows = buildPairMatrixViewRows({
       factorRows: [
@@ -538,7 +561,9 @@ describe("Pair Matrix Driver Alignment", () => {
 
     expect(rows[0]?.cells[0]?.latestBundleCount).toBe(2);
     expect(rows[0]?.comparison?.contextLabel).toContain("above 50");
-    expect(html).toContain("bundle x2");
+    expect(html).toContain("x2");
+    expect(html).toContain("Same-time bundle: 2 matching rows.");
+    expect(html).not.toContain("bundle x2</em>");
   });
 
   it("renders the open popover with compact value rows and driver details", () => {

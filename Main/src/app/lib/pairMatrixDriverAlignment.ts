@@ -20,6 +20,7 @@ export type PairMatrixEvidenceReasonCode =
   | "actual_not_released"
   | "actual_not_numeric"
   | "no_comparison_basis"
+  | "no_directional_surprise"
   | "no_release_to_cursor_candle_window"
   | "release_after_cursor"
   | "symbol_not_mapped_to_base_quote";
@@ -252,6 +253,7 @@ export function getPairMatrixReasonLabel(code: PairMatrixEvidenceReasonCode): st
   if (code === "actual_not_released") return "actual not released";
   if (code === "actual_not_numeric") return "actual not numeric";
   if (code === "no_comparison_basis") return "no forecast/previous basis";
+  if (code === "no_directional_surprise") return "no directional surprise";
   if (code === "no_release_to_cursor_candle_window") return "no release-to-cursor candle window";
   if (code === "release_after_cursor") return "release after cursor";
   return "symbol not mapped to base/quote";
@@ -272,6 +274,9 @@ function getPairMatrixReasonDetail(code: PairMatrixEvidenceReasonCode): string {
   }
   if (code === "no_comparison_basis") {
     return "The actual value is numeric, but neither forecast nor previous is numeric enough to compare.";
+  }
+  if (code === "no_directional_surprise") {
+    return "Actual matched the comparison basis closely enough that this release does not imply a pair direction.";
   }
   if (code === "no_release_to_cursor_candle_window") {
     return "Loaded candles do not cover the release-close to cursor-close window.";
@@ -511,14 +516,14 @@ function formatMacroLevelContext(
 
   if (factor.id === "inflation" && (baseLevel || quoteLevel)) {
     return {
-      label: `Inflation levels ${[baseLevel, quoteLevel].filter(Boolean).join(" / ")}`,
+      label: `Levels: ${[baseLevel, quoteLevel].filter(Boolean).join(" / ")}`,
       title: "Inflation level context only. Units are displayed from loaded MT5 values and surprise scores stay separate.",
     };
   }
 
   if (factor.id === "labor" && (baseLevel || quoteLevel)) {
     return {
-      label: `Labor levels ${[baseLevel, quoteLevel].filter(Boolean).join(" / ")}`,
+      label: `Levels: ${[baseLevel, quoteLevel].filter(Boolean).join(" / ")}`,
       title: "Labor level context only. Labor event units can differ, so this is not a normalized cross-currency score.",
     };
   }
@@ -604,8 +609,11 @@ export function derivePairMatrixAlignment(params: {
   if (!instrument) return makeUnclearRead(event, event.currency, "symbol_not_mapped_to_base_quote");
 
   const currencySupportDirection = inferCurrencySupportDirection(event, comparison.surprise);
+  if (currencySupportDirection === 0) {
+    return makeUnclearRead(event, event.currency, "no_directional_surprise");
+  }
   const expectedPairDirection =
-    currencySupportDirection === 0 ? null : getExpectedPairDirection(event.currency, currencySupportDirection, instrument);
+    getExpectedPairDirection(event.currency, currencySupportDirection, instrument);
   if (!expectedPairDirection) {
     return makeUnclearRead(event, event.currency, "symbol_not_mapped_to_base_quote", `${event.currency} is not a mapped base or quote driver for ${params.selectedSymbol}.`);
   }
