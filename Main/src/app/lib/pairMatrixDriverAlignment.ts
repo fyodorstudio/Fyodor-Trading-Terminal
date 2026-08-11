@@ -12,6 +12,17 @@ export type PairMatrixDisplayDensity = "compact" | "comfortable";
 export type PairMatrixAlignmentStatus = "aligned" | "rejected" | "muted" | "unclear";
 export type PairMatrixComparisonMode = "macro_surprise" | "macro_price" | "raw_values";
 export type PairMatrixWinnerMode = "factor_vote" | "normalized_score" | "per_factor";
+export type PairMatrixCalendarLookback = "current_400d" | "two_year";
+export type PairMatrixEvidenceReasonCode =
+  | "loaded"
+  | "outside_loaded_calendar_range"
+  | "no_loaded_matching_release"
+  | "actual_not_released"
+  | "actual_not_numeric"
+  | "no_comparison_basis"
+  | "no_release_to_cursor_candle_window"
+  | "release_after_cursor"
+  | "symbol_not_mapped_to_base_quote";
 export type PairMatrixComparisonState =
   | "base_leads"
   | "quote_leads"
@@ -30,6 +41,7 @@ export interface PairMatrixPreferences {
   displayDensity: PairMatrixDisplayDensity;
   comparisonMode: PairMatrixComparisonMode;
   comparisonWinnerMode: PairMatrixWinnerMode;
+  calendarLookback: PairMatrixCalendarLookback;
 }
 
 export interface PairMatrixAlignmentRead {
@@ -49,12 +61,22 @@ export interface PairMatrixAlignmentRead {
   actualDirectionLabel: string;
   strengthScore: number;
   reason: string;
+  reasonCode: PairMatrixEvidenceReasonCode;
+  reasonLabel: string;
 }
 
 export interface PairMatrixCurrencyCell {
   currency: string;
   latestEvent: CalendarEvent | null;
   nextEvent: CalendarEvent | null;
+  latestReasonCode: PairMatrixEvidenceReasonCode;
+  latestReasonLabel: string;
+  latestReasonDetail: string;
+  nextReasonCode: PairMatrixEvidenceReasonCode;
+  nextReasonLabel: string;
+  nextReasonDetail: string;
+  latestBundleCount: number;
+  nextBundleCount: number;
   alignment: PairMatrixAlignmentRead | null;
 }
 
@@ -79,6 +101,8 @@ export interface PairMatrixComparisonSide {
   scoreLabel: string;
   acceptanceLabel: string;
   formulaLabel: string;
+  reasonCode: PairMatrixEvidenceReasonCode;
+  reasonLabel: string;
 }
 
 export interface PairMatrixFactorComparison {
@@ -91,6 +115,7 @@ export interface PairMatrixFactorComparison {
   detailLabel: string;
   contextLabel: string | null;
   contextTitle: string | null;
+  reasonCodes: PairMatrixEvidenceReasonCode[];
 }
 
 export interface PairMatrixComparisonSummary {
@@ -105,6 +130,7 @@ export interface PairMatrixComparisonSummary {
   baseScoreLabel: string;
   quoteScoreLabel: string;
   detailLabel: string;
+  otherBreakdownLabel: string;
   factorReads: PairMatrixFactorComparison[];
 }
 
@@ -123,6 +149,7 @@ export const DEFAULT_PAIR_MATRIX_PREFERENCES: PairMatrixPreferences = {
   displayDensity: "compact",
   comparisonMode: "macro_surprise",
   comparisonWinnerMode: "factor_vote",
+  calendarLookback: "current_400d",
 };
 
 function normalizeSymbolToken(symbol: string): string {
@@ -158,6 +185,10 @@ export function normalizePairMatrixPreferences(raw: unknown): PairMatrixPreferen
       row.comparisonWinnerMode === "factor_vote"
         ? row.comparisonWinnerMode
         : fallback.comparisonWinnerMode,
+    calendarLookback:
+      row.calendarLookback === "two_year" || row.calendarLookback === "current_400d"
+        ? row.calendarLookback
+        : fallback.calendarLookback,
   };
 }
 
@@ -205,13 +236,69 @@ function formatSignedValue(value: number, eventTitle: string): string {
 }
 
 function formatRelative(value: number | null): string {
-  if (value == null) return "relative N/A";
+  if (value == null) return "relative unavailable";
   return `${formatSignedFixed(value, 1, "%")} rel`;
 }
 
 function formatSignedFixed(value: number, decimals: number, suffix = ""): string {
   const sign = value > 0 ? "+" : value < 0 ? "-" : "";
   return `${sign}${Math.abs(value).toFixed(decimals)}${suffix}`;
+}
+
+export function getPairMatrixReasonLabel(code: PairMatrixEvidenceReasonCode): string {
+  if (code === "loaded") return "loaded";
+  if (code === "outside_loaded_calendar_range") return "outside loaded calendar range";
+  if (code === "no_loaded_matching_release") return "no loaded matching release";
+  if (code === "actual_not_released") return "actual not released";
+  if (code === "actual_not_numeric") return "actual not numeric";
+  if (code === "no_comparison_basis") return "no forecast/previous basis";
+  if (code === "no_release_to_cursor_candle_window") return "no release-to-cursor candle window";
+  if (code === "release_after_cursor") return "release after cursor";
+  return "symbol not mapped to base/quote";
+}
+
+function getPairMatrixReasonDetail(code: PairMatrixEvidenceReasonCode): string {
+  if (code === "outside_loaded_calendar_range") {
+    return "The cursor anchor is outside the loaded broker/MT5 calendar range for this Pair Matrix lookback.";
+  }
+  if (code === "no_loaded_matching_release") {
+    return "No loaded broker/MT5 calendar row matched this currency and macro factor.";
+  }
+  if (code === "actual_not_released") {
+    return "The loaded row has no actual value yet, so release surprise cannot be scored.";
+  }
+  if (code === "actual_not_numeric") {
+    return "The loaded actual value is present but cannot be safely converted into a number.";
+  }
+  if (code === "no_comparison_basis") {
+    return "The actual value is numeric, but neither forecast nor previous is numeric enough to compare.";
+  }
+  if (code === "no_release_to_cursor_candle_window") {
+    return "Loaded candles do not cover the release-close to cursor-close window.";
+  }
+  if (code === "release_after_cursor") {
+    return "The release is after the cursor anchor, so there is no observed reaction yet.";
+  }
+  if (code === "symbol_not_mapped_to_base_quote") {
+    return "The selected chart symbol cannot be mapped to a base/quote currency direction.";
+  }
+  return "Loaded release evidence is available.";
+}
+
+function getMissingEventReason(
+  row: MacroFactorRow | null,
+  side: "latest" | "next",
+): PairMatrixEvidenceReasonCode {
+  const rawReason = side === "latest" ? row?.latestMissingReason : row?.nextMissingReason;
+  return rawReason === "outside_loaded_calendar_range" ? "outside_loaded_calendar_range" : "no_loaded_matching_release";
+}
+
+function getEventComparisonMissingReason(event: CalendarEvent): PairMatrixEvidenceReasonCode {
+  const rawActual = event.actual.trim();
+  const actual = parseNumericValue(event.actual);
+  if (!rawActual) return "actual_not_released";
+  if (actual == null) return "actual_not_numeric";
+  return "no_comparison_basis";
 }
 
 function inferCurrencySupportDirection(event: CalendarEvent, surprise: number): 1 | -1 | 0 {
@@ -227,7 +314,7 @@ function inferCurrencySupportDirection(event: CalendarEvent, surprise: number): 
 }
 
 function getAcceptanceMultiplier(read: PairMatrixAlignmentRead | null): { multiplier: number; label: string } {
-  if (!read) return { multiplier: 1, label: "acceptance N/A" };
+  if (!read) return { multiplier: 1, label: "acceptance unavailable" };
   if (read.status === "aligned") return { multiplier: 1.25, label: "aligned x1.25" };
   if (read.status === "rejected") return { multiplier: 0.5, label: "rejected x0.50" };
   if (read.status === "muted") return { multiplier: 0.75, label: "muted x0.75" };
@@ -258,7 +345,12 @@ function getSurpriseThreshold(sensitivity: PairMatrixSurpriseSensitivity, compar
   return Number(relativeThreshold.toFixed(4));
 }
 
-function makeUnclearRead(event: CalendarEvent | null, currency: string, reason: string): PairMatrixAlignmentRead {
+function makeUnclearRead(
+  event: CalendarEvent | null,
+  currency: string,
+  reasonCode: PairMatrixEvidenceReasonCode,
+  reason: string = getPairMatrixReasonDetail(reasonCode),
+): PairMatrixAlignmentRead {
   return {
     status: "unclear",
     statusLabel: "Unclear",
@@ -276,6 +368,8 @@ function makeUnclearRead(event: CalendarEvent | null, currency: string, reason: 
     actualDirectionLabel: "-",
     strengthScore: 0,
     reason,
+    reasonCode,
+    reasonLabel: getPairMatrixReasonLabel(reasonCode),
   };
 }
 
@@ -284,24 +378,45 @@ function buildComparisonSide(
   mode: PairMatrixComparisonMode,
 ): PairMatrixComparisonSide | null {
   const event = cell?.latestEvent ?? null;
-  if (!event) return null;
+  if (!cell) return null;
+  if (!event) {
+    return {
+      currency: cell.currency,
+      eventTitle: "No loaded release",
+      actualValue: null,
+      actualLabel: "-",
+      comparisonLabel: "-",
+      basisLabel: cell.latestReasonLabel,
+      rawSurpriseLabel: "-",
+      relativeSurpriseLabel: "relative unavailable",
+      score: null,
+      scoreLabel: cell.latestReasonLabel,
+      acceptanceLabel: "acceptance unavailable",
+      formulaLabel: cell.latestReasonDetail,
+      reasonCode: cell.latestReasonCode,
+      reasonLabel: cell.latestReasonLabel,
+    };
+  }
   const comparison = getEventComparison(event);
   const actualValue = parseNumericValue(event.actual);
   const actualLabel = getEventValueDisplay(event.actual, event.title).display;
   if (!comparison) {
+    const reasonCode = getEventComparisonMissingReason(event);
     return {
       currency: event.currency,
       eventTitle: event.title,
       actualValue,
       actualLabel,
       comparisonLabel: "-",
-      basisLabel: "No numeric comparison",
+      basisLabel: getPairMatrixReasonLabel(reasonCode),
       rawSurpriseLabel: "-",
-      relativeSurpriseLabel: "relative N/A",
+      relativeSurpriseLabel: "relative unavailable",
       score: null,
-      scoreLabel: "score N/A",
-      acceptanceLabel: "acceptance N/A",
-      formulaLabel: "Actual/forecast/previous values are not numeric enough to compare.",
+      scoreLabel: getPairMatrixReasonLabel(reasonCode),
+      acceptanceLabel: "acceptance unavailable",
+      formulaLabel: getPairMatrixReasonDetail(reasonCode),
+      reasonCode,
+      reasonLabel: getPairMatrixReasonLabel(reasonCode),
     };
   }
 
@@ -335,32 +450,80 @@ function buildComparisonSide(
       mode === "raw_values"
         ? `${basisLabel}: actual ${actualLabel}, compare ${comparisonLabel}, surprise ${rawSurpriseLabel}.`
         : `${basisLabel}: ${relativeSurpriseLabel} ${mode === "macro_price" ? `x ${acceptance.label}` : "macro surprise"} = ${formatSignedFixed(score, 1)} pts.`,
+    reasonCode: "loaded",
+    reasonLabel: getPairMatrixReasonLabel("loaded"),
   };
 }
 
-function formatPolicyLevelContext(
+function isFactorTitle(eventTitle: string, keywords: string[]): boolean {
+  const title = eventTitle.toLowerCase();
+  return keywords.some((keyword) => title.includes(keyword));
+}
+
+function formatSideLevel(side: PairMatrixComparisonSide | null): string | null {
+  if (!side || side.actualValue == null) return null;
+  return `${side.currency} ${side.actualLabel}`;
+}
+
+function formatMacroLevelContext(
   factor: MacroFactorDefinition,
   base: PairMatrixComparisonSide | null,
   quote: PairMatrixComparisonSide | null,
 ): { label: string; title: string } | null {
-  if (factor.id !== "policy" || base?.actualValue == null || quote?.actualValue == null) return null;
+  if (base?.actualValue == null && quote?.actualValue == null) return null;
+  const baseLevel = formatSideLevel(base);
+  const quoteLevel = formatSideLevel(quote);
 
-  const delta = quote.actualValue - base.actualValue;
-  const absoluteDelta = Math.abs(delta);
-  const leader =
-    absoluteDelta <= 0.005
-      ? null
-      : delta > 0
-        ? quote
-        : base;
-  const label = leader
-    ? `${leader.currency} higher rate +${absoluteDelta.toFixed(2)}pp`
-    : "Rate level even";
-  const title = leader
-    ? `Policy-rate level context only: ${base.currency} actual ${base.actualLabel}, ${quote.currency} actual ${quote.actualLabel}; ${leader.currency} is higher by ${absoluteDelta.toFixed(2)} percentage points. Surprise scores stay separate.`
-    : `Policy-rate level context only: ${base.currency} actual ${base.actualLabel}, ${quote.currency} actual ${quote.actualLabel}; rate levels are effectively even. Surprise scores stay separate.`;
+  if (factor.id === "policy" && base?.actualValue != null && quote?.actualValue != null) {
+    const delta = quote.actualValue - base.actualValue;
+    const absoluteDelta = Math.abs(delta);
+    const leader =
+      absoluteDelta <= 0.005
+        ? null
+        : delta > 0
+          ? quote
+          : base;
+    const label = leader
+      ? `${leader.currency} higher rate +${absoluteDelta.toFixed(2)}pp`
+      : "Rate level even";
+    const title = leader
+      ? `Policy-rate level context only: ${base.currency} actual ${base.actualLabel}, ${quote.currency} actual ${quote.actualLabel}; ${leader.currency} is higher by ${absoluteDelta.toFixed(2)} percentage points. Surprise scores stay separate.`
+      : `Policy-rate level context only: ${base.currency} actual ${base.actualLabel}, ${quote.currency} actual ${quote.actualLabel}; rate levels are effectively even. Surprise scores stay separate.`;
 
-  return { label, title };
+    return { label, title };
+  }
+
+  if (factor.id === "pmi") {
+    const parts = [base, quote]
+      .filter((side): side is PairMatrixComparisonSide => side?.actualValue != null)
+      .filter((side) => isFactorTitle(side.eventTitle, ["pmi", "ism"]))
+      .map((side) => {
+        const value = side.actualValue as number;
+        return `${side.currency} ${side.actualLabel} ${value >= 50 ? "above 50" : "below 50"}`;
+      });
+    if (parts.length > 0) {
+      return {
+        label: parts.join(" / "),
+        title: "PMI/ISM level context only: above 50 usually indicates expansion, below 50 contraction. Surprise scores stay separate.",
+      };
+    }
+  }
+
+  if (factor.id === "inflation" && (baseLevel || quoteLevel)) {
+    return {
+      label: `Inflation levels ${[baseLevel, quoteLevel].filter(Boolean).join(" / ")}`,
+      title: "Inflation level context only. Units are displayed from loaded MT5 values and surprise scores stay separate.",
+    };
+  }
+
+  if (factor.id === "labor" && (baseLevel || quoteLevel)) {
+    return {
+      label: `Labor levels ${[baseLevel, quoteLevel].filter(Boolean).join(" / ")}`,
+      title: "Labor level context only. Labor event units can differ, so this is not a normalized cross-currency score.",
+    };
+  }
+
+  return null;
 }
 
 function compareFactorSides(params: {
@@ -390,7 +553,9 @@ function compareFactorSides(params: {
   }
 
   const stateLabel = getComparisonStateLabel(state);
-  const context = formatPolicyLevelContext(factor, base, quote);
+  const context = formatMacroLevelContext(factor, base, quote);
+  const reasonCodes = [base?.reasonCode, quote?.reasonCode]
+    .filter((code): code is PairMatrixEvidenceReasonCode => Boolean(code) && code !== "loaded");
   return {
     factorId: factor.id,
     factorLabel: factor.label,
@@ -398,9 +563,10 @@ function compareFactorSides(params: {
     stateLabel,
     base,
     quote,
-    detailLabel: `${base?.currency ?? "Base"} ${base?.scoreLabel ?? "N/A"} / ${quote?.currency ?? "Quote"} ${quote?.scoreLabel ?? "N/A"}`,
+    detailLabel: `${base?.currency ?? "Base"} ${base?.scoreLabel ?? "missing side"} / ${quote?.currency ?? "Quote"} ${quote?.scoreLabel ?? "missing side"}`,
     contextLabel: context?.label ?? null,
     contextTitle: context?.title ?? null,
+    reasonCodes,
   };
 }
 
@@ -423,32 +589,39 @@ export function derivePairMatrixAlignment(params: {
   cursorChartTime: number | null;
   sourceTimeOffsetSeconds: number;
   sensitivity: PairMatrixSurpriseSensitivity;
+  missingReasonCode?: PairMatrixEvidenceReasonCode;
 }): PairMatrixAlignmentRead {
   const event = params.event;
-  if (!event) return makeUnclearRead(null, "", "No loaded release for this factor.");
+  if (!event) return makeUnclearRead(null, "", params.missingReasonCode ?? "no_loaded_matching_release");
 
   const comparison = getEventComparison(event);
-  if (!comparison) return makeUnclearRead(event, event.currency, "Actual/forecast/previous values are not numeric enough to compare.");
+  if (!comparison) {
+    const reasonCode = getEventComparisonMissingReason(event);
+    return makeUnclearRead(event, event.currency, reasonCode);
+  }
 
   const instrument = resolveInstrumentContext(params.selectedSymbol);
-  if (!instrument) return makeUnclearRead(event, event.currency, "This chart symbol cannot be mapped to base/quote direction.");
+  if (!instrument) return makeUnclearRead(event, event.currency, "symbol_not_mapped_to_base_quote");
 
   const currencySupportDirection = inferCurrencySupportDirection(event, comparison.surprise);
   const expectedPairDirection =
     currencySupportDirection === 0 ? null : getExpectedPairDirection(event.currency, currencySupportDirection, instrument);
   if (!expectedPairDirection) {
-    return makeUnclearRead(event, event.currency, `${event.currency} is not a mapped base or quote driver for ${params.selectedSymbol}.`);
+    return makeUnclearRead(event, event.currency, "symbol_not_mapped_to_base_quote", `${event.currency} is not a mapped base or quote driver for ${params.selectedSymbol}.`);
   }
 
   if (params.visibleCandles.length === 0 || params.cursorChartTime == null) {
-    return makeUnclearRead(event, event.currency, "Loaded candles are required to compare release close against cursor close.");
+    return makeUnclearRead(event, event.currency, "no_release_to_cursor_candle_window", "Loaded candles are required to compare release close against cursor close.");
   }
 
   const releaseChartTime = event.time + params.sourceTimeOffsetSeconds;
+  if (params.cursorChartTime < releaseChartTime) {
+    return makeUnclearRead(event, event.currency, "release_after_cursor");
+  }
   const releaseCandle = getCandleAtOrAfter(params.visibleCandles, releaseChartTime);
   const cursorCandle = getCandleAtOrBefore(params.visibleCandles, params.cursorChartTime);
   if (!releaseCandle || !cursorCandle || cursorCandle.time < releaseCandle.time) {
-    return makeUnclearRead(event, event.currency, "No loaded candle window from the release close to the cursor close.");
+    return makeUnclearRead(event, event.currency, "no_release_to_cursor_candle_window");
   }
 
   const priceDelta = cursorCandle.close - releaseCandle.close;
@@ -495,6 +668,8 @@ export function derivePairMatrixAlignment(params: {
       Math.abs(comparison.surprise) < surpriseThreshold
         ? `${event.currency} surprise was below the selected sensitivity; price moved ${pipsLabel} / ${percentLabel}.`
         : `${event.currency} data implied ${expectedDirectionLabel}; ${actualDirectionLabel} by ${pipsLabel} / ${percentLabel}.`,
+    reasonCode: "loaded",
+    reasonLabel: getPairMatrixReasonLabel("loaded"),
   };
 }
 
@@ -525,10 +700,24 @@ export function buildPairMatrixViewRows(params: {
   const viewRows = params.factors.map((factor) => {
     const cells = params.currencies.map((currency) => {
       const row = rowsByCurrencyAndFactor.get(`${currency}:${factor.id}`) ?? null;
+      const latestReasonCode: PairMatrixEvidenceReasonCode = row?.latestEvent
+        ? "loaded"
+        : getMissingEventReason(row, "latest");
+      const nextReasonCode: PairMatrixEvidenceReasonCode = row?.nextEvent
+        ? "loaded"
+        : getMissingEventReason(row, "next");
       return {
         currency,
         latestEvent: row?.latestEvent ?? null,
         nextEvent: row?.nextEvent ?? null,
+        latestReasonCode,
+        latestReasonLabel: getPairMatrixReasonLabel(latestReasonCode),
+        latestReasonDetail: getPairMatrixReasonDetail(latestReasonCode),
+        nextReasonCode,
+        nextReasonLabel: getPairMatrixReasonLabel(nextReasonCode),
+        nextReasonDetail: getPairMatrixReasonDetail(nextReasonCode),
+        latestBundleCount: row?.latestBundleCount ?? 0,
+        nextBundleCount: row?.nextBundleCount ?? 0,
         alignment: derivePairMatrixAlignment({
           event: row?.latestEvent ?? null,
           selectedSymbol: params.selectedSymbol,
@@ -536,6 +725,7 @@ export function buildPairMatrixViewRows(params: {
           cursorChartTime: params.cursorChartTime,
           sourceTimeOffsetSeconds: params.sourceTimeOffsetSeconds,
           sensitivity: params.preferences.surpriseSensitivity,
+          missingReasonCode: latestReasonCode,
         }),
       };
     });
@@ -603,13 +793,14 @@ export function buildPairMatrixComparisonSummary(params: {
   );
   const baseScoreTotal = factorReads.reduce((sum, read) => sum + (read.base?.score ?? 0), 0);
   const quoteScoreTotal = factorReads.reduce((sum, read) => sum + (read.quote?.score ?? 0), 0);
+  const scoredReadCount = factorReads.filter((read) => read.base?.score != null || read.quote?.score != null).length;
   let state: PairMatrixComparisonState = "unclear";
 
   if (params.preferences.comparisonWinnerMode === "per_factor") {
     state = "mixed";
   } else if (params.preferences.comparisonWinnerMode === "normalized_score") {
     const delta = baseScoreTotal - quoteScoreTotal;
-    state = Math.abs(delta) <= 0.5 ? "split" : delta > 0 ? "base_leads" : "quote_leads";
+    state = scoredReadCount === 0 ? "unclear" : Math.abs(delta) <= 0.5 ? "split" : delta > 0 ? "base_leads" : "quote_leads";
   } else if (counts.base_leads > counts.quote_leads) {
     state = "base_leads";
   } else if (counts.quote_leads > counts.base_leads) {
@@ -622,6 +813,8 @@ export function buildPairMatrixComparisonSummary(params: {
     state = "partial_read";
   } else if (counts.no_surprise > 0 && counts.base_leads === 0 && counts.quote_leads === 0) {
     state = "no_surprise";
+  } else if (counts.unclear > 0 && counts.base_leads === 0 && counts.quote_leads === 0) {
+    state = "unclear";
   } else if (counts.base_leads === counts.quote_leads && counts.base_leads > 0) {
     state = "split";
   } else {
@@ -642,6 +835,19 @@ export function buildPairMatrixComparisonSummary(params: {
         : "Factor vote";
   const totalReadableFactors = factorReads.length;
   const otherVoteCount = totalReadableFactors - counts.base_leads - counts.quote_leads;
+  const otherReasonCounts = factorReads.reduce<Record<string, number>>((current, read) => {
+    if (read.state === "base_leads" || read.state === "quote_leads") return current;
+    const reasons = read.reasonCodes.length > 0 ? read.reasonCodes : [read.state as PairMatrixEvidenceReasonCode | PairMatrixComparisonState];
+    reasons.forEach((reason) => {
+      const label = reason in counts ? getComparisonStateLabel(reason as PairMatrixComparisonState) : getPairMatrixReasonLabel(reason as PairMatrixEvidenceReasonCode);
+      current[label] = (current[label] ?? 0) + 1;
+    });
+    return current;
+  }, {});
+  const otherBreakdownLabel = Object.entries(otherReasonCounts)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([label, count]) => `${label} ${count}`)
+    .join(" / ");
   const voteLabel =
     state === "base_leads"
       ? `${counts.base_leads}/${totalReadableFactors} factors`
@@ -676,6 +882,7 @@ export function buildPairMatrixComparisonSummary(params: {
     baseScoreLabel: `${baseCurrency} ${formatSignedFixed(baseScoreTotal, 1)} pts`,
     quoteScoreLabel: `${quoteCurrency} ${formatSignedFixed(quoteScoreTotal, 1)} pts`,
     detailLabel: `${winnerModeLabel}: ${baseCurrency} ${counts.base_leads}, ${quoteCurrency} ${counts.quote_leads}, both ${counts.both_supportive}, weak ${counts.both_weak}, partial ${counts.partial_read}, no surprise ${counts.no_surprise}, unclear ${counts.unclear}.`,
+    otherBreakdownLabel,
     factorReads,
   };
 }

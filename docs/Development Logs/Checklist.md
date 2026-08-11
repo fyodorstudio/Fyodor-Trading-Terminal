@@ -51,7 +51,7 @@ This file is the current command board. Future AI sessions should read this befo
 
 ## Autonomous Goal Mode Rules
 
-- Current autonomous implementation status: `Charts Pair Matrix Data Reliability + Evidence Signal Robustness` is the next queued target.
+- Current autonomous implementation status: `Charts Pair Matrix Data Reliability + Evidence Signal Robustness` is implemented and ready for user audit.
 - Do not expand the next goal into full Event Lens modal redesign, Overview, Event Replay tab redesign, bridge/data contracts, external data, calendar backfill, or CSS monolith work.
 - Bridge changes remain out of scope for the next goal unless the user explicitly approves them after reading the ambiguity questions below.
 - Do not delete unfinished roadmap items. Preserve non-next work under Deferred / Backlog unless the user explicitly asks to remove it.
@@ -62,47 +62,7 @@ This file is the current command board. Future AI sessions should read this befo
 
 ## Active Roadmap
 
-### Charts Pair Matrix Data Reliability + Evidence Signal Robustness
-
-- [ ] Add Pair Matrix calendar coverage diagnostics:
-  - [ ] show the loaded calendar range in settings/details, e.g. `Loaded calendar: 05 Jul 2025 -> 07 Nov 2026`;
-  - [ ] show when the cursor anchor is before the oldest loaded matching row, after the newest loaded row, or inside the loaded row range;
-  - [ ] explain that missing old rows mean "not loaded", not "no macro event existed".
-- [ ] Replace generic `N/A` with reason-coded labels:
-  - [ ] `outside loaded calendar range`;
-  - [ ] `no loaded matching release`;
-  - [ ] `actual not released`;
-  - [ ] `actual not numeric`;
-  - [ ] `no forecast/previous basis`;
-  - [ ] `no release-to-cursor candle window`;
-  - [ ] `release after cursor`;
-  - [ ] `symbol not mapped to base/quote`.
-- [ ] Keep the current conservative parser behavior, but expose parse status in title/tooltips so source-format failures are distinguishable from genuinely missing values.
-- [ ] Add Pair Matrix calendar range strategy for goal-mode implementation:
-  - [ ] user-approved default: Pair Matrix-owned historical lookback setting, not a silent global feed expansion;
-  - [ ] first-pass presets: `400d current` and `2y`;
-  - [ ] show a deliberate load control when older calendar context is needed; do not silently auto-fetch;
-  - [ ] show fetch/load cost honestly and avoid blocking normal Charts usage;
-  - [ ] do not change bridge contracts unless explicitly approved.
-- [ ] Strengthen macro level context separately from surprise score:
-  - [ ] keep policy-rate level / rate differential visible, e.g. `USD higher rate +1.10pp`;
-  - [ ] user-approved scope: add conservative clean-value context labels where honest, such as PMI above/below 50 and inflation/labor levels; do not attempt full all-factor interpretation in this pass;
-  - [ ] do not merge level context into surprise points unless the formula is displayed and the user has chosen an experimental mode.
-- [ ] Improve score and vote language:
-  - [ ] keep `No surprise` for zero-vs-zero release-surprise reads;
-  - [ ] keep `Partial read` when one side lacks a valid score;
-  - [ ] show `Other` breakdown with reason counts, not only `Base 0 / Quote 0 / Other 7`;
-  - [ ] do not label a row `Both weak`, `Split`, `Base leads`, or `Quote leads` unless both sides have enough basis for that specific claim.
-- [ ] Add bundle/revision awareness as visible limitations:
-  - [ ] user-approved scope: show a visible limitation label first when multiple same-time releases exist for the same currency/factor;
-  - [ ] do not pretend previous-value revisions were analyzed unless explicit revision data exists in loaded rows;
-  - [ ] preserve all source values in titles/details.
-- [ ] Keep UI work scoped:
-  - [ ] no full Event Lens redesign;
-  - [ ] no Overview expansion;
-  - [ ] no external data;
-  - [ ] no calendar backfill unless the user explicitly approves deeper historical loading;
-  - [ ] CSS changes stay owned by `Main/src/styles/15-charts.css`.
+No active implementation lane is queued after the Pair Matrix reliability pass. Await user audit or an explicit next priority before reopening deferred work.
 
 ## Goal-Mode Decisions
 
@@ -114,7 +74,7 @@ These decisions are resolved for the next autonomous implementation.
 - Macro level context scope is conservative: keep policy-rate context and add clean-value labels only where honest, such as PMI above/below 50 and inflation/labor levels.
 - Same-time release bundles get a visible limitation label first, not a full bundled-read redesign.
 - Focused helper-level tests for reliability and N/A reason taxonomy are allowed when they are small and directly protect changed behavior.
-- Active Roadmap is the only next goal-mode target. Unchecked items under Deferred / Backlog are preserved future work, not part of the next autonomous pass unless the user explicitly reopens them.
+- Active Roadmap is the only next goal-mode target when populated. Unchecked items under Deferred / Backlog are preserved future work, not part of the next autonomous pass unless the user explicitly reopens them.
 
 ## Deferred / Backlog
 
@@ -142,7 +102,10 @@ These are intentionally not active implementation items. Preserve them for later
 ### 2026-08-11
 
 - Pair Matrix Evidence Signal polish completed: header component stack, readable settings popover, Evidence Signal wording, direct `EURUSD expected ... / price ...` driver rows, release-to-cursor range labels, pips/percent clarity, `Partial read`, `No surprise`, and policy-rate level context such as `USD higher rate +1.10pp`.
-- Pair Matrix reliability gap identified: old chart anchors can fall before the hard-coded app-level calendar feed window, producing generic `N/A` rows. The next active goal is to replace generic N/A behavior with reason-coded coverage diagnostics and a deliberate calendar range strategy.
+- Pair Matrix Data Reliability + Evidence Signal Robustness completed: settings/details now expose loaded calendar range, anchor coverage status, Pair Matrix lookback mode, and source/load state; missing or unsafe reads use reason-coded labels such as `outside loaded calendar range`, `no loaded matching release`, `actual not released`, `actual not numeric`, `no forecast/previous basis`, `no release-to-cursor candle window`, `release after cursor`, and `symbol not mapped to base/quote`.
+- Pair Matrix now has a deliberate Pair Matrix-owned calendar lookback path with `400d current` and `2y` presets plus a `Load 2y calendar context` control when the cursor anchor predates the current loaded calendar range. No bridge contract, external data, or global calendar-feed expansion was added.
+- Pair Matrix comparison robustness completed: policy-rate level context remains separate from surprise points, conservative PMI/inflation/labor level labels are shown only where honest, macro vote `Other` gets a reason breakdown, all-unclear reads no longer collapse into fake `Split`, and same-time release bundles show a visible `bundle xN` limitation.
+- Verification completed for the reliability pass with `pnpm --dir Main test -- pairMatrixDriverAlignment.test.tsx`, `pnpm --dir Main test -- chartView.test.ts chartsTab.test.ts calendarNavigation.test.ts navigationTruth.test.tsx`, `pnpm --dir Main run typecheck`, and `pnpm --dir Main build`. CDP browser smoke was attempted but the local command policy rejected the process-launch wrapper before execution, so live layout behavior still needs user/browser audit.
 
 ### 2026-08-08
 
@@ -190,13 +153,13 @@ These are intentionally not active implementation items. Preserve them for later
   - driver rows show release-to-cursor time range;
   - pips/percent update while hovering;
   - no overlap with chart toolbar, x-axis, Event Lens, or Pair Matrix controls.
-- Future Pair Matrix Data Reliability implementation should verify:
+- Completed Pair Matrix Data Reliability pass verification covered:
   - old anchors before the loaded calendar window show a reason-coded limitation instead of generic `N/A`;
   - missing actual, non-numeric actual, missing comparison basis, missing candle window, and unmapped symbol each produce distinct reason text;
   - loaded calendar range is visible in settings/details;
   - policy-rate level context remains visible separately from surprise score;
   - macro vote `Other` breakdown explains why rows are not base/quote winners;
-  - deeper calendar range behavior follows the user-approved ambiguity defaults or explicit answers.
+  - deeper calendar range behavior follows the user-approved deliberate-load defaults.
 - If live MT5 candles/calendar rows are unavailable, static tests plus CDP no-data layout smoke are acceptable; record the limitation in the final report.
 - Future CSS cleanup must run build and screenshot smoke checks after each extraction pass.
 - Do not run broad/full test suites after every small visual pass by default.
@@ -236,8 +199,7 @@ These are intentionally not active implementation items. Preserve them for later
 - Factor selection belongs inside Event Lens, not in the chart settings drawer.
 - Factor-driven Release Navigator shows the selected factor and selected factor currency only.
 - Pair Matrix Time Lens v1, its first polish pass, comparison, and shared chart-tool layout are complete.
-- Pair Matrix Evidence Signal header/settings/range polish is complete; do not redo it unless needed to support reliability diagnostics.
-- Pair Matrix data reliability is the next active risk: generic `N/A`, hidden calendar range limits, and missing macro-level context are more important than further visual restyling.
+- Pair Matrix Evidence Signal header/settings/range polish and data reliability pass are complete; do not redo them unless audit finds a specific defect.
 - Pair Matrix should treat loaded-data limitations as first-class evidence. The UI should say when something is not loaded, not released, not parseable, not comparable, or not candle-backed.
 - Mobile can use internal modal scrolling; "no scroll" target is desktop 1440x900.
 - Evidence Signal means transparent directional evidence, not automated trade execution or guaranteed edge language.

@@ -27,6 +27,12 @@ export interface MacroFactorRow {
   currency: string;
   latestEvent: CalendarEvent | null;
   nextEvent: CalendarEvent | null;
+  oldestMatchingEventTime?: number | null;
+  newestMatchingEventTime?: number | null;
+  latestBundleCount?: number;
+  nextBundleCount?: number;
+  latestMissingReason?: "outside_loaded_calendar_range" | "no_loaded_matching_release" | null;
+  nextMissingReason?: "outside_loaded_calendar_range" | "no_loaded_matching_release" | null;
   coverageLabel: string;
   summary: string;
 }
@@ -166,6 +172,10 @@ export function buildMacroFactorRowsAsOf(params: {
   currencies: string[];
   anchorTimeSeconds: number;
 }): MacroFactorRow[] {
+  const loadedEventTimes = params.events.map((event) => event.time);
+  const oldestLoadedEventTime = loadedEventTimes.length > 0 ? Math.min(...loadedEventTimes) : null;
+  const newestLoadedEventTime = loadedEventTimes.length > 0 ? Math.max(...loadedEventTimes) : null;
+
   return params.currencies.flatMap((currency) =>
     MACRO_FACTOR_DEFINITIONS.map((factor) => {
       const matches = params.events
@@ -173,6 +183,26 @@ export function buildMacroFactorRowsAsOf(params: {
         .sort((left, right) => left.time - right.time);
       const latestEvent = [...matches].reverse().find((event) => event.time < params.anchorTimeSeconds) ?? null;
       const nextEvent = matches.find((event) => event.time >= params.anchorTimeSeconds) ?? null;
+      const oldestMatchingEventTime = matches[0]?.time ?? null;
+      const newestMatchingEventTime = matches[matches.length - 1]?.time ?? null;
+      const latestBundleCount = latestEvent
+        ? matches.filter((event) => event.time === latestEvent.time).length
+        : 0;
+      const nextBundleCount = nextEvent
+        ? matches.filter((event) => event.time === nextEvent.time).length
+        : 0;
+      const latestMissingReason =
+        latestEvent
+          ? null
+          : oldestLoadedEventTime != null && params.anchorTimeSeconds < oldestLoadedEventTime
+            ? "outside_loaded_calendar_range"
+            : "no_loaded_matching_release";
+      const nextMissingReason =
+        nextEvent
+          ? null
+          : newestLoadedEventTime != null && params.anchorTimeSeconds > newestLoadedEventTime
+            ? "outside_loaded_calendar_range"
+            : "no_loaded_matching_release";
       const coverageLabel = latestEvent && nextEvent ? "Current + scheduled" : latestEvent ? "Latest only" : nextEvent ? "Scheduled only" : "Missing";
 
       return {
@@ -180,6 +210,12 @@ export function buildMacroFactorRowsAsOf(params: {
         currency,
         latestEvent,
         nextEvent,
+        oldestMatchingEventTime,
+        newestMatchingEventTime,
+        latestBundleCount,
+        nextBundleCount,
+        latestMissingReason,
+        nextMissingReason,
         coverageLabel,
         summary: summarizeEvent(latestEvent),
       };

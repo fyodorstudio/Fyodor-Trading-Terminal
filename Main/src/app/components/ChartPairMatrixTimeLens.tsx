@@ -9,6 +9,7 @@ import type {
   PairMatrixFactorComparison,
   PairMatrixFactorViewRow,
   PairMatrixPreferences,
+  PairMatrixCalendarLookback,
 } from "@/app/lib/pairMatrixDriverAlignment";
 import type { CalendarEvent } from "@/app/types";
 
@@ -24,8 +25,16 @@ export interface ChartPairMatrixTimeLensData {
   coverageLabel: string;
   displayTimeMode: ChartDisplayTimeMode;
   sourceTimeOffsetSeconds: number;
+  calendarDiagnostics: {
+    lookbackLabel: string;
+    loadStateLabel: string;
+    loadedRangeLabel: string;
+    anchorStatusLabel: string;
+    canLoadOlder: boolean;
+  };
   renderClosedButton?: boolean;
   onPreferenceChange: <K extends keyof PairMatrixPreferences>(key: K, value: PairMatrixPreferences[K]) => void;
+  onLoadOlderCalendarContext: () => void;
   onToggleOpen: () => void;
   onClose: () => void;
 }
@@ -42,6 +51,10 @@ const SENSITIVITY_OPTIONS = [
 const SORT_OPTIONS = [
   { value: "factor", label: "Factor", description: "Keep the normal macro factor order." },
   { value: "driver_strength", label: "Drivers", description: "Bring accepted/rejected driver reads with larger moves upward." },
+] as const;
+const LOOKBACK_OPTIONS = [
+  { value: "current_400d", label: "400d", description: "Use the current app calendar feed window." },
+  { value: "two_year", label: "2y", description: "Load a Pair Matrix-owned two-year broker/MT5 calendar window." },
 ] as const;
 
 function formatEventTime(
@@ -80,25 +93,32 @@ function getEventDisplayFields(event: CalendarEvent | null) {
 
 function EvidenceRun({
   event,
+  reasonLabel,
+  reasonDetail,
+  bundleCount,
   displayTimeMode,
   sourceTimeOffsetSeconds,
 }: {
   event: CalendarEvent | null;
+  reasonLabel: string;
+  reasonDetail: string;
+  bundleCount: number;
   displayTimeMode: ChartDisplayTimeMode;
   sourceTimeOffsetSeconds: number;
 }) {
   const fields = getEventDisplayFields(event);
   const timeLabel = event ? formatEventTime(event, displayTimeMode, sourceTimeOffsetSeconds) : "-";
   const formula = event
-    ? `${event.title}. Actual ${fields.actual}, Forecast ${fields.forecast}, Previous ${fields.previous}. ${timeLabel}.`
-    : "No loaded event for this side.";
+    ? `${event.title}. Actual ${fields.actual}, Forecast ${fields.forecast}, Previous ${fields.previous}. ${timeLabel}.${bundleCount > 1 ? ` Same-time bundle: ${bundleCount} matching rows.` : ""}`
+    : reasonDetail;
 
   return (
     <span className={`chart-pair-matrix-evidence-run ${event ? "" : "is-empty"}`} title={formula}>
       <span>A: {fields.actual}</span>
       <span>F: {fields.forecast}</span>
       <span>P: {fields.previous}</span>
-      <time>{timeLabel}</time>
+      <time>{event ? timeLabel : reasonLabel}</time>
+      {event && bundleCount > 1 ? <em title={`${bundleCount} same-time matching rows loaded for this currency/factor.`}>bundle x{bundleCount}</em> : null}
     </span>
   );
 }
@@ -146,14 +166,15 @@ function DriverRead({
   displayTimeMode: ChartDisplayTimeMode;
   sourceTimeOffsetSeconds: number;
 }) {
+  const hasMoveRange = read.releaseChartTime != null && read.cursorChartTime != null;
   const moveRangeLabel =
-    read.releaseChartTime != null && read.cursorChartTime != null
+    hasMoveRange
       ? `${formatChartCoordinateTime(read.releaseChartTime, displayTimeMode, sourceTimeOffsetSeconds)} -> ${formatChartCoordinateTime(
           read.cursorChartTime,
           displayTimeMode,
           sourceTimeOffsetSeconds,
         )}`
-      : "Range N/A";
+      : read.reasonLabel;
   const title = `${read.reason} Move range: ${moveRangeLabel}.`;
 
   return (
@@ -162,10 +183,12 @@ function DriverRead({
         <strong>{read.statusLabel}</strong>
         <em>{read.currency}</em>
       </span>
-      <span className="chart-pair-matrix-driver-line">{read.surpriseLabel}</span>
+      <span className="chart-pair-matrix-driver-line">{read.status === "unclear" ? read.reasonLabel : read.surpriseLabel}</span>
       <span className="chart-pair-matrix-driver-line">Range {moveRangeLabel}</span>
-      <span className="chart-pair-matrix-driver-line">{read.priceMoveLabel}</span>
-      <span className="chart-pair-matrix-driver-line">{read.expectedDirectionLabel} / {read.actualDirectionLabel}</span>
+      <span className="chart-pair-matrix-driver-line">{read.status === "unclear" ? read.reason : read.priceMoveLabel}</span>
+      <span className="chart-pair-matrix-driver-line">
+        {read.status === "unclear" ? read.reasonLabel : `${read.expectedDirectionLabel} / ${read.actualDirectionLabel}`}
+      </span>
     </span>
   );
 }
@@ -227,6 +250,7 @@ function PairComparisonCell({ comparison }: { comparison: PairMatrixFactorCompar
         <strong>{comparison.stateLabel}</strong>
         <em>{comparison.detailLabel}</em>
         {comparison.contextLabel ? <small title={comparison.contextTitle ?? comparison.contextLabel}>{comparison.contextLabel}</small> : null}
+        {comparison.reasonCodes.length > 0 ? <small title={comparison.reasonCodes.join(", ")}>{comparison.reasonCodes.length} reason-coded limitation</small> : null}
       </span>
       {comparison.base ? <PairComparisonSide side={comparison.base} /> : null}
       {comparison.quote ? <PairComparisonSide side={comparison.quote} /> : null}
@@ -291,7 +315,7 @@ function getMoveRangeLabel(
   displayTimeMode: ChartDisplayTimeMode,
   sourceTimeOffsetSeconds: number,
 ): string {
-  if (!read) return "Range N/A";
+  if (!read) return "no release-to-cursor candle window";
   return `${formatChartCoordinateTime(read.releaseChartTime, displayTimeMode, sourceTimeOffsetSeconds)} -> ${formatChartCoordinateTime(
     read.cursorChartTime,
     displayTimeMode,
@@ -305,10 +329,12 @@ function PairMatrixHeaderSummary({
   anchorLabel,
   anchorBasisLabel,
   coverageLabel,
+  calendarDiagnostics,
   displayTimeMode,
   sourceTimeOffsetSeconds,
   preferences,
   onPreferenceChange,
+  onLoadOlderCalendarContext,
   onClose,
 }: {
   summary: PairMatrixComparisonSummary | null;
@@ -316,10 +342,12 @@ function PairMatrixHeaderSummary({
   anchorLabel: string;
   anchorBasisLabel: string;
   coverageLabel: string;
+  calendarDiagnostics: ChartPairMatrixTimeLensData["calendarDiagnostics"];
   displayTimeMode: ChartDisplayTimeMode;
   sourceTimeOffsetSeconds: number;
   preferences: PairMatrixPreferences;
   onPreferenceChange: ChartPairMatrixTimeLensData["onPreferenceChange"];
+  onLoadOlderCalendarContext: ChartPairMatrixTimeLensData["onLoadOlderCalendarContext"];
   onClose: () => void;
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -336,7 +364,7 @@ function PairMatrixHeaderSummary({
             label="Macro vote"
             detail={`${summary.stateLabel} - ${summary.voteBreakdownLabel}`}
             className={`is-state is-vote is-${summary.state}`}
-            title={`${summary.modeLabel} / ${summary.winnerModeLabel}. ${summary.detailLabel}`}
+            title={`${summary.modeLabel} / ${summary.winnerModeLabel}. ${summary.detailLabel}${summary.otherBreakdownLabel ? ` Other: ${summary.otherBreakdownLabel}.` : ""}`}
           />
           <PairMatrixSummaryBox
             label={driverSummary.label}
@@ -346,7 +374,7 @@ function PairMatrixHeaderSummary({
           />
           <PairMatrixSummaryBox
             label="Move size"
-            detail={topMoveRead ? topMoveRead.priceMoveLabel : "Move N/A"}
+            detail={topMoveRead ? topMoveRead.priceMoveLabel : "no release-to-cursor candle window"}
             className="is-move"
             title={
               topMoveRead
@@ -387,8 +415,31 @@ function PairMatrixHeaderSummary({
             <strong>Evidence Signal settings</strong>
             <span title="How many base/quote factor cells currently have loaded latest or next release evidence.">{coverageLabel}</span>
             <span title="Pair Matrix v1 only reads local MT5 candles and loaded broker/MT5 calendar rows.">Loaded broker/MT5 rows only</span>
+            <span title="Current Pair Matrix calendar lookback mode.">{calendarDiagnostics.lookbackLabel}</span>
+            <span title="Current Pair Matrix calendar fetch state.">{calendarDiagnostics.loadStateLabel}</span>
+            <span title="Oldest and newest broker/MT5 calendar rows currently available to Pair Matrix.">{calendarDiagnostics.loadedRangeLabel}</span>
+            <span title="Whether the cursor anchor is inside the loaded Pair Matrix calendar range.">{calendarDiagnostics.anchorStatusLabel}</span>
             <p>Evidence Signal combines macro vote, expected pair direction, and release-to-cursor price acceptance.</p>
+            {calendarDiagnostics.canLoadOlder ? (
+              <button
+                type="button"
+                className="chart-pair-matrix-load-older"
+                onClick={onLoadOlderCalendarContext}
+                title="Load a Pair Matrix-owned two-year broker/MT5 calendar window. This does not expand the global app feed."
+              >
+                Load 2y calendar context
+              </button>
+            ) : null}
           </div>
+            <PairMatrixControl
+              label="Lookback"
+              description="Choose the Pair Matrix-owned calendar lookback. Deeper context loads only for Pair Matrix."
+              value={preferences.calendarLookback}
+              options={LOOKBACK_OPTIONS}
+              onChange={(value) =>
+                onPreferenceChange("calendarLookback", value as PairMatrixCalendarLookback)
+              }
+            />
             <PairMatrixControl
               label="Read"
               description="Choose whether each factor shows the strongest driver read or separate base/quote reads."
@@ -456,12 +507,18 @@ function PairMatrixFactorRow({
           <strong>{baseCurrency}</strong>
           <EvidenceRun
             event={baseCell?.latestEvent ?? null}
+            reasonLabel={baseCell?.latestReasonLabel ?? "no loaded matching release"}
+            reasonDetail={baseCell?.latestReasonDetail ?? "No loaded broker/MT5 row matched this side."}
+            bundleCount={baseCell?.latestBundleCount ?? 0}
             displayTimeMode={data.displayTimeMode}
             sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
           />
           <span className="chart-pair-matrix-divider" aria-hidden="true">|</span>
           <EvidenceRun
             event={baseCell?.nextEvent ?? null}
+            reasonLabel={baseCell?.nextReasonLabel ?? "no loaded matching release"}
+            reasonDetail={baseCell?.nextReasonDetail ?? "No loaded broker/MT5 row matched this side."}
+            bundleCount={baseCell?.nextBundleCount ?? 0}
             displayTimeMode={data.displayTimeMode}
             sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
           />
@@ -470,12 +527,18 @@ function PairMatrixFactorRow({
           <strong>{quoteCurrency}</strong>
           <EvidenceRun
             event={quoteCell?.latestEvent ?? null}
+            reasonLabel={quoteCell?.latestReasonLabel ?? "no loaded matching release"}
+            reasonDetail={quoteCell?.latestReasonDetail ?? "No loaded broker/MT5 row matched this side."}
+            bundleCount={quoteCell?.latestBundleCount ?? 0}
             displayTimeMode={data.displayTimeMode}
             sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
           />
           <span className="chart-pair-matrix-divider" aria-hidden="true">|</span>
           <EvidenceRun
             event={quoteCell?.nextEvent ?? null}
+            reasonLabel={quoteCell?.nextReasonLabel ?? "no loaded matching release"}
+            reasonDetail={quoteCell?.nextReasonDetail ?? "No loaded broker/MT5 row matched this side."}
+            bundleCount={quoteCell?.nextBundleCount ?? 0}
             displayTimeMode={data.displayTimeMode}
             sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
           />
@@ -618,10 +681,12 @@ export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLen
               anchorLabel={data.anchorLabel}
               anchorBasisLabel={data.anchorBasisLabel}
               coverageLabel={data.coverageLabel}
+              calendarDiagnostics={data.calendarDiagnostics}
               displayTimeMode={data.displayTimeMode}
               sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
               preferences={data.preferences}
               onPreferenceChange={data.onPreferenceChange}
+              onLoadOlderCalendarContext={data.onLoadOlderCalendarContext}
               onClose={data.onClose}
             />
           </div>
