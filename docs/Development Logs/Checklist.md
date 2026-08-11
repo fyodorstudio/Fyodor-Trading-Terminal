@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Checklist
 
-Last updated: 2026-08-08
+Last updated: 2026-08-11
 
 ## Active Planning Source
 
@@ -30,6 +30,13 @@ This file is the current command board. Future AI sessions should read this befo
 - Pair Matrix may use `Evidence Signal` wording when it shows source math and observed price reaction.
 - Pair Matrix Evidence Signal should tell what the data said, what the selected pair should have done, and whether price accepted or rejected it.
 - Pair Matrix may use directional evidence wording such as `EURUSD expected down / price up`, but should avoid blind buy/sell command wording.
+- Pair Matrix Evidence Signal has two distinct layers that must not be collapsed together:
+  - release surprise / reaction: actual versus forecast or previous, then release-close to cursor-close price acceptance;
+  - macro level context: current policy-rate level, inflation level, labor-market level, PMI level, or other factor context where the loaded row honestly supports it.
+- `0.0 pts` can be correct when a release has no surprise, but important macro level context such as `USD higher rate +1.10pp` must still be visible where available.
+- Pair Matrix `N/A` must be reason-coded. Do not use one generic `N/A` for missing loaded row, missing actual, unparsable source value, no comparison basis, no candle window, anchor outside loaded calendar history, event after cursor, or unmapped symbol.
+- Pair Matrix currently inherits the app-level calendar feed window, which is hard-coded at roughly `now - 400 days` through `now + 90 days`; old chart anchors before that loaded window will not have historical latest rows unless future work adds a deeper range path.
+- Economic Calendar tab range controls are separate from the app-level feed used by Charts; do not assume changing the Economic Calendar visible range gives Pair Matrix deeper historical context.
 - Overview stays a compact pair summary for now; do not expand it into a second full analysis cockpit during the next Charts-focused pass.
 - Existing Event Replay remains available, but the next implementation should ignore the tab unless a safe active helper can be reused.
 - Chart event coverage is loaded-only in v1; missing old chart markers mean old calendar rows are not loaded, not that no event happened.
@@ -44,30 +51,70 @@ This file is the current command board. Future AI sessions should read this befo
 
 ## Autonomous Goal Mode Rules
 
-- Current autonomous implementation status: `Charts Pair Matrix Evidence Signal Polish` is the next queued target.
+- Current autonomous implementation status: `Charts Pair Matrix Data Reliability + Evidence Signal Robustness` is the next queued target.
 - Do not expand the next goal into full Event Lens modal redesign, Overview, Event Replay tab redesign, bridge/data contracts, external data, calendar backfill, or CSS monolith work.
+- Bridge changes remain out of scope for the next goal unless the user explicitly approves them after reading the ambiguity questions below.
 - Do not delete unfinished roadmap items. Preserve non-next work under Deferred / Backlog unless the user explicitly asks to remove it.
-- Focused tests are pre-approved when they protect behavior changed by the next Charts polish implementation.
+- Focused tests are pre-approved when they protect Pair Matrix data reliability, N/A reason taxonomy, coverage diagnostics, comparison math, or Evidence Signal rendering changed by the next Charts polish implementation.
 - Broad/full test suites remain non-default; use the targeted verification commands below unless the change clearly requires more.
 - If live MT5 candles/calendar rows are unavailable, static tests plus CDP no-data layout smoke are acceptable. Record that live-data behavior was not exercised.
 - Roadmap and deferred sections should use unchecked boxes only. Completed work belongs in the dated `Completed Work Log`, not as checked checklist items.
 
 ## Active Roadmap
 
-### Charts Pair Matrix Evidence Signal Polish
+### Charts Pair Matrix Data Reliability + Evidence Signal Robustness
 
-- [ ] Reframe Pair Matrix header language around `Evidence Signal`, while keeping source math and observed price reaction visible.
-- [ ] Keep macro vote wording transparent, e.g. `Macro vote: Split · Base 3 / Quote 3 / Other 1`.
-- [ ] Use `Other` rather than `Unclear` for macro-vote leftovers unless the row is truly unclear, because leftovers can include split, mixed, both supportive, or both weak.
-- [ ] Keep driver rows direct and pair-specific, e.g. `EURUSD expected down / price up`.
-- [ ] Replace the tiny Pair Matrix settings popover with a larger readable popover.
-- [ ] Add tooltips/descriptions for Read, Sensitivity, Sort, coverage, source note, and Evidence Signal terms.
-- [ ] Keep coverage/source metadata inside settings, not as primary header chips.
-- [ ] Label pips/percent as the move from release-close candle to hovered-cursor candle.
-- [ ] Show the release-to-cursor time range for movement, e.g. `30 Jul 04:00 -> 09 Jun 07:00`.
-- [ ] Avoid any wording that implies the pips value is per candle.
-- [ ] Add an Evidence Signal component stack in the header instead of a fake single certainty score.
-- [ ] Evidence Signal components should include Macro vote, Driver acceptance, Move size, and Freshness/range.
+- [ ] Add Pair Matrix calendar coverage diagnostics:
+  - [ ] show the loaded calendar range in settings/details, e.g. `Loaded calendar: 05 Jul 2025 -> 07 Nov 2026`;
+  - [ ] show when the cursor anchor is before the oldest loaded matching row, after the newest loaded row, or inside the loaded row range;
+  - [ ] explain that missing old rows mean "not loaded", not "no macro event existed".
+- [ ] Replace generic `N/A` with reason-coded labels:
+  - [ ] `outside loaded calendar range`;
+  - [ ] `no loaded matching release`;
+  - [ ] `actual not released`;
+  - [ ] `actual not numeric`;
+  - [ ] `no forecast/previous basis`;
+  - [ ] `no release-to-cursor candle window`;
+  - [ ] `release after cursor`;
+  - [ ] `symbol not mapped to base/quote`.
+- [ ] Keep the current conservative parser behavior, but expose parse status in title/tooltips so source-format failures are distinguishable from genuinely missing values.
+- [ ] Add Pair Matrix calendar range strategy for goal-mode implementation:
+  - [ ] user-approved default: Pair Matrix-owned historical lookback setting, not a silent global feed expansion;
+  - [ ] first-pass presets: `400d current` and `2y`;
+  - [ ] show a deliberate load control when older calendar context is needed; do not silently auto-fetch;
+  - [ ] show fetch/load cost honestly and avoid blocking normal Charts usage;
+  - [ ] do not change bridge contracts unless explicitly approved.
+- [ ] Strengthen macro level context separately from surprise score:
+  - [ ] keep policy-rate level / rate differential visible, e.g. `USD higher rate +1.10pp`;
+  - [ ] user-approved scope: add conservative clean-value context labels where honest, such as PMI above/below 50 and inflation/labor levels; do not attempt full all-factor interpretation in this pass;
+  - [ ] do not merge level context into surprise points unless the formula is displayed and the user has chosen an experimental mode.
+- [ ] Improve score and vote language:
+  - [ ] keep `No surprise` for zero-vs-zero release-surprise reads;
+  - [ ] keep `Partial read` when one side lacks a valid score;
+  - [ ] show `Other` breakdown with reason counts, not only `Base 0 / Quote 0 / Other 7`;
+  - [ ] do not label a row `Both weak`, `Split`, `Base leads`, or `Quote leads` unless both sides have enough basis for that specific claim.
+- [ ] Add bundle/revision awareness as visible limitations:
+  - [ ] user-approved scope: show a visible limitation label first when multiple same-time releases exist for the same currency/factor;
+  - [ ] do not pretend previous-value revisions were analyzed unless explicit revision data exists in loaded rows;
+  - [ ] preserve all source values in titles/details.
+- [ ] Keep UI work scoped:
+  - [ ] no full Event Lens redesign;
+  - [ ] no Overview expansion;
+  - [ ] no external data;
+  - [ ] no calendar backfill unless the user explicitly approves deeper historical loading;
+  - [ ] CSS changes stay owned by `Main/src/styles/15-charts.css`.
+
+## Goal-Mode Decisions
+
+These decisions are resolved for the next autonomous implementation.
+
+- Pair Matrix gets its own historical lookback control instead of expanding the global app feed window.
+- When the cursor anchor is before loaded calendar history, show the limitation and provide a deliberate load control. Do not silently auto-fetch.
+- First-pass range presets are `400d current` and `2y`; `5y` and custom ranges remain later unless explicitly reopened.
+- Macro level context scope is conservative: keep policy-rate context and add clean-value labels only where honest, such as PMI above/below 50 and inflation/labor levels.
+- Same-time release bundles get a visible limitation label first, not a full bundled-read redesign.
+- Focused helper-level tests for reliability and N/A reason taxonomy are allowed when they are small and directly protect changed behavior.
+- Active Roadmap is the only next goal-mode target. Unchecked items under Deferred / Backlog are preserved future work, not part of the next autonomous pass unless the user explicitly reopens them.
 
 ## Deferred / Backlog
 
@@ -91,6 +138,11 @@ These are intentionally not active implementation items. Preserve them for later
 - [ ] Do not revive Deprecated Overview, Six Questions, WIP, or garbage logic as product sources.
 
 ## Completed Work Log
+
+### 2026-08-11
+
+- Pair Matrix Evidence Signal polish completed: header component stack, readable settings popover, Evidence Signal wording, direct `EURUSD expected ... / price ...` driver rows, release-to-cursor range labels, pips/percent clarity, `Partial read`, `No surprise`, and policy-rate level context such as `USD higher rate +1.10pp`.
+- Pair Matrix reliability gap identified: old chart anchors can fall before the hard-coded app-level calendar feed window, producing generic `N/A` rows. The next active goal is to replace generic N/A behavior with reason-coded coverage diagnostics and a deliberate calendar range strategy.
 
 ### 2026-08-08
 
@@ -138,6 +190,13 @@ These are intentionally not active implementation items. Preserve them for later
   - driver rows show release-to-cursor time range;
   - pips/percent update while hovering;
   - no overlap with chart toolbar, x-axis, Event Lens, or Pair Matrix controls.
+- Future Pair Matrix Data Reliability implementation should verify:
+  - old anchors before the loaded calendar window show a reason-coded limitation instead of generic `N/A`;
+  - missing actual, non-numeric actual, missing comparison basis, missing candle window, and unmapped symbol each produce distinct reason text;
+  - loaded calendar range is visible in settings/details;
+  - policy-rate level context remains visible separately from surprise score;
+  - macro vote `Other` breakdown explains why rows are not base/quote winners;
+  - deeper calendar range behavior follows the user-approved ambiguity defaults or explicit answers.
 - If live MT5 candles/calendar rows are unavailable, static tests plus CDP no-data layout smoke are acceptable; record the limitation in the final report.
 - Future CSS cleanup must run build and screenshot smoke checks after each extraction pass.
 - Do not run broad/full test suites after every small visual pass by default.
@@ -159,7 +218,7 @@ These are intentionally not active implementation items. Preserve them for later
 - Data bias uses Actual vs Forecast when numeric forecast exists, otherwise Actual vs Previous when available.
 - Unemployment/jobless-style events invert direction because lower readings are usually more supportive for the event currency.
 - Supportive base-currency data implies pair up; supportive quote-currency data implies pair down. Negative base implies pair down; negative quote implies pair up.
-- Driver strength, surprise sensitivity, row sort mode, and display density should be configurable because the user wants to learn visually which read works.
+- Driver strength/read mode, surprise sensitivity, and row sort mode should remain configurable because the user wants to learn visually which read works. Display density is no longer a main Pair Matrix surface control unless deliberately reintroduced later.
 - Pair Matrix comparison follows the same cursor-time anchor as Pair Matrix Time Lens, falling back to the latest loaded candle.
 - Pair Matrix comparison default mode is `Macro surprise`; experimental modes may expose `Macro + price` and `Raw values`.
 - Pair Matrix comparison controls belong under `Chart Settings > Appearance > Experimental`.
@@ -177,6 +236,9 @@ These are intentionally not active implementation items. Preserve them for later
 - Factor selection belongs inside Event Lens, not in the chart settings drawer.
 - Factor-driven Release Navigator shows the selected factor and selected factor currency only.
 - Pair Matrix Time Lens v1, its first polish pass, comparison, and shared chart-tool layout are complete.
+- Pair Matrix Evidence Signal header/settings/range polish is complete; do not redo it unless needed to support reliability diagnostics.
+- Pair Matrix data reliability is the next active risk: generic `N/A`, hidden calendar range limits, and missing macro-level context are more important than further visual restyling.
+- Pair Matrix should treat loaded-data limitations as first-class evidence. The UI should say when something is not loaded, not released, not parseable, not comparable, or not candle-backed.
 - Mobile can use internal modal scrolling; "no scroll" target is desktop 1440x900.
 - Evidence Signal means transparent directional evidence, not automated trade execution or guaranteed edge language.
 - Macro scope is current-data-only until the user explicitly approves external data.
