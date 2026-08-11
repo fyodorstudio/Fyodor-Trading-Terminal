@@ -54,6 +54,16 @@ Current rules:
 
 The CSS cleanup remains extraction-first: ownership isolation first, then dead-code deletion only after build and screenshot verification.
 
+## UI Anti-Regression Warning
+
+Future AI sessions must treat visual fit as a hard correctness requirement, not polish. A passing unit test, typecheck, or production build does not prove the UI is acceptable.
+
+- For any Charts, Pair Matrix, Event Lens, popover, dock, toolbar, table, or matrix change, verify the rendered app at 1440x900, 100% Chrome zoom before claiming completion.
+- Do not leave horizontal scroll, overlapping text, clipped normal labels, tiny unreadable data, hidden controls, or large blank wasted panel space.
+- Do not solve density problems by shrinking fonts below readable size. Rework the layout, grouping, disclosure, or information hierarchy.
+- Do not add extra badges/labels into fixed grid rows unless the grid contract is recalculated. Pair Matrix Evidence rows in particular must keep `Latest | Next`, Compare, and Driver columns aligned without bleed.
+- If browser/CDP visual inspection is blocked, record that limitation and do not present the UI as fully audited.
+
 See:
 
 - `Main/README.md` for frontend details

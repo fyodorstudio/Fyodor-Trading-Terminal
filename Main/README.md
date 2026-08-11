@@ -141,3 +141,7 @@ Use these as the active local planning sources:
 - `../docs/Development Logs/Current App Map.md`
 
 Ignore `../docs/Private` unless explicitly requested; it is archival context and can dilute future AI sessions.
+
+## UI Quality Gate
+
+Frontend changes are not done until the rendered viewport is acceptable. For Charts, Pair Matrix, Event Lens, docks, popovers, tables, and matrix layouts, verify at 1440x900 and 100% Chrome zoom. Do not leave overlapping text, clipped normal labels, horizontal scroll, hidden controls, unreadably tiny text, or blank wasted panel space. Pair Matrix fixed rows must keep `Latest | Next`, Compare, and Driver aligned; do not add extra badges or labels that become unintended grid children.

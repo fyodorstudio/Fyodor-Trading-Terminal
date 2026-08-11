@@ -42,6 +42,10 @@ This file is the current command board. Future AI sessions should read this befo
 - Chart event coverage is loaded-only in v1; missing old chart markers mean old calendar rows are not loaded, not that no event happened.
 - Raw event values and observed price movement matter more than educational explainer text or trade-call language inside Charts.
 - Active tabs target 100% Chrome zoom on normal desktop without whole-page vertical or horizontal scrolling.
+- UI fit is a correctness requirement, not optional polish. Future AI work must not ship visible overlap, clipped ordinary text, accidental horizontal scroll, hidden controls, unreadably tiny labels, or large blank wasted panel space.
+- Pair Matrix has a strict fixed-row contract: `Factor`, `Evidence Latest | Next`, `Compare`, and `Driver` must stay aligned across all seven factors. Do not add ad hoc badges, chips, or labels inside an evidence row if they create another grid item or can bleed into Compare/Driver.
+- Pair Matrix bundle/reason/source metadata must use existing slots, title/details text, settings/details, or deliberate expanded disclosure. It must not be injected as stray inline text in the matrix body.
+- Passing tests, typecheck, or build is not enough for UI changes. Any visible Charts/Pair Matrix/Event Lens change must be browser-inspected at 1440x900 and 100% Chrome zoom, or the final report must say the UI was not fully audited.
 - 100% Chrome zoom viewport audit passed at 1440x900 with live local feed data for Overview, Central Banks, Charts, Economic Calendar, Event Replay, Macro Drivers, and Differential Calculator.
 - Aesthetic Forge is mounted behind the header gear and stays closed by default.
 - External data sources remain out of scope unless explicitly approved later.
@@ -143,6 +147,9 @@ These are intentionally not active implementation items. Preserve them for later
   - shared bookmark dock sits cleanly near/below the pair selector;
   - Event Lens and Pair Matrix buttons do not overlap chart controls;
   - Pair Matrix popover is bounded and readable without artificial centering caused by the old Event Lens bookmark;
+  - Pair Matrix `Latest | Next`, Compare, and Driver columns align across all visible rows;
+  - no Pair Matrix bundle/reason/status text overlaps, clips into another column, or creates accidental horizontal scroll;
+  - no ordinary event/value text is made unreadably small to force fit;
   - base-vs-quote comparison updates with the cursor anchor;
   - raw numbers, formula/basis, and winner state are visible;
   - future markers remain visible/selectable with chart lenses open;
