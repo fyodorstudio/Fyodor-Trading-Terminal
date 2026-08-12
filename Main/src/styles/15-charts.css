@@ -251,7 +251,7 @@
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-head { min-height: 44px; padding: 4px 8px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-title > span { font-size: 8.5px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-title > strong { font-size: 13px; }
-.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-scroll { --pair-matrix-columns: minmax(132px, 0.68fr) minmax(250px, 1.35fr) minmax(250px, 1.35fr) minmax(150px, 0.78fr) minmax(190px, 0.94fr); }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-scroll { --pair-matrix-columns: minmax(132px, 0.68fr) minmax(275px, 1.45fr) minmax(275px, 1.45fr) minmax(150px, 0.78fr) minmax(160px, 0.76fr); }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-row-head { padding: 4px 10px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-row-list { padding: 0 6px 5px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-row { align-items: center; gap: 8px; padding: 4px 7px; }
@@ -335,6 +335,7 @@
 .chart-pair-matrix-scroll { position: relative; display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; overflow: hidden; background: #fbfdff; --pair-matrix-columns: minmax(150px, 0.8fr) minmax(230px, 1.25fr) minmax(230px, 1.25fr) minmax(150px, 0.78fr) minmax(180px, 0.92fr); }
 .chart-pair-matrix-row-head { display: grid; grid-template-columns: var(--pair-matrix-columns); gap: 8px; padding: 5px 10px; border-bottom: 1px solid #cbd5e1; background: rgba(248, 250, 252, 0.98); color: #64748b; font-size: 10px; font-weight: 950; letter-spacing: 0.04em; text-transform: uppercase; }
 .chart-pair-matrix-row-head span { min-width: 0; }
+.chart-pair-matrix-row-head span:nth-child(2) { padding-right: 8px; border-right: 1px solid #dbeafe; }
 .chart-pair-matrix-row-head b { color: #334155; font: inherit; }
 .chart-pair-matrix-row-head i { padding: 0 10px; color: #94a3b8; font-style: normal; }
 .chart-pair-matrix-row-list { display: grid; grid-template-rows: repeat(7, minmax(0, 1fr)); align-content: stretch; min-height: 0; flex: 1 1 auto; padding: 0 6px 6px; }
@@ -343,7 +344,7 @@
 .chart-pair-matrix-row.is-aligned { border-left-color: #10b981; background: rgba(236, 253, 245, 0.46); }
 .chart-pair-matrix-row.is-rejected { border-left-color: #ef4444; background: rgba(254, 242, 242, 0.48); }
 .chart-pair-matrix-row.is-muted { border-left-color: #94a3b8; background: rgba(248, 250, 252, 0.86); }
-.chart-pair-matrix-factor { display: grid; grid-template-rows: auto auto; align-content: center; gap: 4px; min-width: 0; min-height: 0; padding-right: 6px; border-right: 1px solid #dbeafe; }
+.chart-pair-matrix-factor { display: grid; grid-template-rows: auto auto; align-content: center; gap: 4px; min-width: 0; min-height: 0; padding-right: 6px; }
 .chart-pair-matrix-factor strong { color: #0f172a; font-size: 13px; font-weight: 950; line-height: 1.1; }
 .chart-pair-matrix-factor span { min-width: 0; overflow: hidden; color: #64748b; font-size: 10px; font-weight: 850; line-height: 1.1; text-overflow: clip; white-space: nowrap; }
 .chart-pair-matrix-factor b { display: inline-flex; min-width: 24px; color: #1d4ed8; font-size: 10px; font-weight: 950; }
@@ -352,6 +353,7 @@
 .chart-pair-matrix-signal-read,
 .chart-pair-matrix-signal-winner,
 .chart-pair-matrix-signal-reaction { display: grid; align-content: center; gap: 3px; min-width: 0; min-height: 0; overflow: hidden; padding: 0 2px; color: #334155; }
+.chart-pair-matrix-row > .chart-pair-matrix-signal-read:nth-child(2) { padding-right: 8px; border-right: 1px solid #dbeafe; }
 .chart-pair-matrix-signal-read strong,
 .chart-pair-matrix-signal-winner strong,
 .chart-pair-matrix-signal-reaction strong { min-width: 0; overflow: hidden; color: #0f172a; font-size: 12px; font-weight: 950; line-height: 1.05; text-overflow: clip; white-space: nowrap; }
