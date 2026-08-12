@@ -1,4 +1,4 @@
-import { type Ref } from "react";
+import { useCallback, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type Ref } from "react";
 import { AlertTriangle, CalendarDays, ChevronDown, Settings2, Table2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChartEventLens, type ChartEventLensData } from "@/app/components/ChartEventLens";
@@ -69,11 +69,40 @@ export function ChartViewport({
   overlayCopy,
   reachedBoundary,
 }: ChartViewportProps) {
+  const [pairMatrixPaneHeight, setPairMatrixPaneHeight] = useState(340);
+  const handlePairMatrixResizeStart = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (!pairMatrixTimeLens.open || event.button !== 0) return;
+      const frame = event.currentTarget.closest(".chart-canvas-frame");
+      const frameHeight = frame?.getBoundingClientRect().height ?? 720;
+      const startY = event.clientY;
+      const startHeight = pairMatrixPaneHeight;
+      const minHeight = 178;
+      const maxHeight = Math.max(minHeight, Math.min(520, frameHeight - 220));
+
+      const handleMove = (moveEvent: PointerEvent) => {
+        const nextHeight = startHeight + startY - moveEvent.clientY;
+        setPairMatrixPaneHeight(Math.min(maxHeight, Math.max(minHeight, nextHeight)));
+      };
+      const handleEnd = () => {
+        window.removeEventListener("pointermove", handleMove);
+        window.removeEventListener("pointerup", handleEnd);
+        window.removeEventListener("pointercancel", handleEnd);
+      };
+
+      window.addEventListener("pointermove", handleMove);
+      window.addEventListener("pointerup", handleEnd);
+      window.addEventListener("pointercancel", handleEnd);
+      event.preventDefault();
+    },
+    [pairMatrixPaneHeight, pairMatrixTimeLens.open],
+  );
+
   return (
     <>
       <div className="chart-viewport-shell relative group min-h-0 flex-1 overflow-hidden">
         <div className="chart-viewport-surface h-full overflow-hidden">
-          <div className="chart-canvas-frame">
+          <div className={`chart-canvas-frame ${pairMatrixTimeLens.open ? "has-pair-matrix-bottom" : ""}`}>
             <div className="chart-plot-region">
               <div ref={containerRef} className="h-full w-full" />
               <ChartEventOverlay
@@ -99,10 +128,23 @@ export function ChartViewport({
               ) : null}
               {eventLens?.expanded ? <ChartEventLens data={eventLens} /> : null}
               {!eventLens && eventLensDock.expanded ? <ChartEventLensDock data={eventLensDock} /> : null}
-              {pairMatrixTimeLens.open ? (
-                <ChartPairMatrixTimeLens data={{ ...pairMatrixTimeLens, renderClosedButton: false }} />
-              ) : null}
             </div>
+            {pairMatrixTimeLens.open ? (
+              <section
+                className="chart-pair-matrix-bottom-shell"
+                style={{ "--pair-matrix-pane-height": `${pairMatrixPaneHeight}px` } as CSSProperties}
+                aria-label="Pair Matrix bottom panel"
+              >
+                <div
+                  className="chart-pair-matrix-pane-resizer"
+                  role="separator"
+                  aria-orientation="horizontal"
+                  aria-label="Resize Pair Matrix panel"
+                  onPointerDown={handlePairMatrixResizeStart}
+                />
+                <ChartPairMatrixTimeLens data={{ ...pairMatrixTimeLens, renderClosedButton: false }} placement="bottom" />
+              </section>
+            ) : null}
           </div>
         </div>
         {crosshairReadout && (

@@ -118,7 +118,9 @@
 .chart-console-empty { color: #94a3b8; font-style: italic; }
 .chart-canvas-frame { position: relative; height: clamp(420px, calc(100vh - 325px), 640px); width: 100%; overflow: hidden; border-radius: 20px; --chart-axis-safe-height: 38px; }
 .charts-tab-page .chart-canvas-frame { display: block; height: 100%; min-height: 360px; }
+.charts-tab-page .chart-canvas-frame.has-pair-matrix-bottom { display: flex; flex-direction: column; }
 .chart-plot-region { position: relative; height: 100%; min-height: 0; overflow: hidden; }
+.chart-canvas-frame.has-pair-matrix-bottom .chart-plot-region { height: auto; flex: 1 1 auto; }
 .chart-event-lens-slot { position: absolute; inset: 0; z-index: 64; min-height: 0; padding: 0; pointer-events: none; }
 .chart-event-lens-slot > * { pointer-events: auto; }
 .chart-event-lens-slot:has(.is-expanded)::before { content: ""; position: absolute; inset: 0; z-index: 0; background: rgba(15, 23, 42, 0.16); backdrop-filter: blur(2px); pointer-events: none; }
@@ -239,7 +241,30 @@
 .chart-event-lens-dock-body strong { color: #0f172a; font-size: 11px; font-weight: 850; line-height: 1.35; }
 .chart-pair-matrix-lens { position: absolute; left: 12px; top: 74px; z-index: 3; width: max-content; max-width: calc(100% - 24px); pointer-events: auto; }
 .chart-pair-matrix-lens.is-open { left: 12px; top: 124px; width: min(1240px, calc(100% - 24px)); height: min(680px, calc(100% - 148px)); max-height: calc(100% - 148px); transform: translate3d(var(--pair-matrix-drag-x, 0px), var(--pair-matrix-drag-y, 0px), 0); }
+.chart-pair-matrix-bottom-shell { position: relative; z-index: 70; flex: 0 0 var(--pair-matrix-pane-height, 340px); min-height: 178px; max-height: min(520px, calc(100% - 220px)); border-top: 1px solid #cbd5e1; background: #fff; box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.08); pointer-events: auto; }
+.chart-pair-matrix-pane-resizer { position: absolute; left: 0; right: 0; top: -5px; z-index: 6; display: flex; height: 10px; cursor: ns-resize; align-items: center; justify-content: center; touch-action: none; }
+.chart-pair-matrix-pane-resizer::before { content: ""; width: 92px; height: 3px; border-radius: 999px; background: #94a3b8; opacity: 0.78; }
+.chart-pair-matrix-pane-resizer:hover::before { background: #2563eb; opacity: 1; }
+.chart-pair-matrix-lens.is-bottom-pane { position: relative; left: auto; top: auto; z-index: 1; width: 100%; max-width: none; height: 100%; max-height: none; transform: none; }
+.chart-pair-matrix-lens.is-open.is-bottom-pane { left: auto; top: auto; width: 100%; height: 100%; max-height: none; transform: none; }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-popover { border: 0; border-radius: 0; box-shadow: none; cursor: default; }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-head { min-height: 38px; padding: 4px 8px; }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-title > span { font-size: 8.5px; }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-title > strong { font-size: 13px; }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-scroll { --pair-matrix-columns: minmax(132px, 0.68fr) minmax(250px, 1.35fr) minmax(250px, 1.35fr) minmax(150px, 0.78fr) minmax(190px, 0.94fr); }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-row-head { padding: 4px 10px; }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-row-list { padding: 0 6px 5px; }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-row { align-items: center; gap: 8px; padding: 4px 7px; }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-factor { align-content: center; gap: 2px; }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-factor span { display: none; }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read { grid-template-columns: minmax(74px, max-content) minmax(0, 1fr) minmax(76px, max-content); align-items: center; gap: 8px; }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read strong,
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read span,
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read time { font-size: 11px; line-height: 1.1; }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-winner,
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-reaction { gap: 2px; }
 .chart-pair-matrix-lens.is-open .chart-pair-matrix-popover { cursor: grab; }
+.chart-pair-matrix-lens.is-open.is-bottom-pane .chart-pair-matrix-popover { cursor: default; }
 .chart-pair-matrix-lens.is-dragging { user-select: none; }
 .chart-pair-matrix-lens.is-dragging .chart-pair-matrix-popover { cursor: grabbing; }
 .chart-pair-matrix-lens.is-open button, .chart-pair-matrix-lens.is-open select { cursor: pointer; }

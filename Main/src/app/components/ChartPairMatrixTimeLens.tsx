@@ -43,6 +43,11 @@ export interface ChartPairMatrixTimeLensData {
   onClose: () => void;
 }
 
+interface ChartPairMatrixTimeLensProps {
+  data: ChartPairMatrixTimeLensData;
+  placement?: "overlay" | "bottom";
+}
+
 const READ_MODE_OPTIONS = [
   { value: "strongest", label: "Strongest", description: "Show the strongest loaded driver read for each factor row." },
   { value: "separate", label: "Separate", description: "Show base and quote driver reads separately when both are loaded." },
@@ -724,7 +729,7 @@ function PairMatrixDetailsPanel({
   );
 }
 
-export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLensData }) {
+export function ChartPairMatrixTimeLens({ data, placement = "overlay" }: ChartPairMatrixTimeLensProps) {
   const lensRef = useRef<HTMLElement | null>(null);
   const dragStartRef = useRef<{
     pointerId: number;
@@ -769,6 +774,7 @@ export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLen
 
   const handleDragStart = useCallback(
     (event: ReactPointerEvent<HTMLElement>) => {
+      if (placement === "bottom") return;
       if (!data.open || event.button !== 0) return;
       const target = event.target;
       if (
@@ -801,7 +807,7 @@ export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLen
       setIsDragging(true);
       event.preventDefault();
     },
-    [data.open, dragOffset.x, dragOffset.y],
+    [data.open, dragOffset.x, dragOffset.y, placement],
   );
 
   if (!data.open && data.renderClosedButton === false) return null;
@@ -818,7 +824,7 @@ export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLen
   return (
     <section
       ref={lensRef}
-      className={`chart-pair-matrix-lens ${data.open ? "is-open" : ""} ${isDragging ? "is-dragging" : ""} density-${data.preferences.displayDensity}`}
+      className={`chart-pair-matrix-lens ${data.open ? "is-open" : ""} ${placement === "bottom" ? "is-bottom-pane" : ""} ${isDragging ? "is-dragging" : ""} density-${data.preferences.displayDensity}`}
       aria-label="Pair Matrix Time Lens"
       style={lensStyle}
       onPointerDown={handleDragStart}
@@ -838,7 +844,7 @@ export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLen
         <div className="chart-pair-matrix-popover">
           <div className="chart-pair-matrix-head">
             <div className="chart-pair-matrix-title">
-              <span><GripHorizontal size={13} /> Pair Matrix Time Lens</span>
+              <span>{placement === "overlay" ? <GripHorizontal size={13} /> : null} Pair Matrix Time Lens</span>
               <strong>{data.pairLabel}</strong>
             </div>
             <PairMatrixHeaderSummary
