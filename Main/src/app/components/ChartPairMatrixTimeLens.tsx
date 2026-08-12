@@ -12,8 +12,6 @@ import type {
   PairMatrixCalendarLookback,
   PairMatrixBundleDisplayMode,
   PairMatrixLayoutMode,
-  PairMatrixSignalBiasMode,
-  PairMatrixSignalWordingMode,
 } from "@/app/lib/pairMatrixDriverAlignment";
 import type { CalendarEvent } from "@/app/types";
 
@@ -69,15 +67,6 @@ const LAYOUT_OPTIONS = [
   { value: "signal_bands", label: "Bands", description: "Show seven one-line signal bands." },
   { value: "audit_lines", label: "Audit", description: "Show a little more row evidence for checking the numbers." },
   { value: "top_drivers", label: "Drivers", description: "Bring stronger driver rows to the top." },
-] as const;
-const SIGNAL_BIAS_OPTIONS = [
-  { value: "macro_plus_acceptance", label: "Macro + price", description: "Use macro vote, then show whether price accepted or rejected it." },
-  { value: "macro_vote", label: "Macro vote", description: "Use only the loaded macro vote for the headline direction." },
-  { value: "accepted_drivers", label: "Drivers", description: "Use accepted/rejected driver reads for the headline." },
-] as const;
-const SIGNAL_WORDING_OPTIONS = [
-  { value: "evidence_bias", label: "Evidence", description: "Use pair-direction wording such as EURUSD up bias." },
-  { value: "trade_bias", label: "Trade bias", description: "Use Long bias or Short bias wording." },
 ] as const;
 const BUNDLE_OPTIONS = [
   { value: "strongest_with_count", label: "Strongest +N", description: "Show the strongest same-time release and count the rest." },
@@ -156,65 +145,6 @@ function getReadableRows(rows: PairMatrixFactorViewRow[], layoutMode: PairMatrix
 function formatSignedPointValue(value: number): string {
   const formatted = value.toFixed(1);
   return value > 0 ? `+${formatted}` : formatted;
-}
-
-function getSignalHeadline(
-  pairLabel: string,
-  summary: PairMatrixComparisonSummary | null,
-  rows: PairMatrixFactorViewRow[],
-  preferences: PairMatrixPreferences,
-): { label: string; detail: string; className: string; title: string } {
-  const reads = rows.map((row) => row.summaryAlignment).filter((read): read is PairMatrixAlignmentRead => Boolean(read));
-  const aligned = reads.filter((read) => read.status === "aligned").length;
-  const rejected = reads.filter((read) => read.status === "rejected").length;
-  const strongest = reads[0] ?? null;
-  const macroDirection =
-    summary?.state === "base_leads"
-      ? "up"
-      : summary?.state === "quote_leads"
-        ? "down"
-        : null;
-  const driverDirection =
-    strongest?.expectedDirectionLabel.includes(" expected up")
-      ? "up"
-      : strongest?.expectedDirectionLabel.includes(" expected down")
-        ? "down"
-        : null;
-  const direction =
-    preferences.signalBiasMode === "accepted_drivers"
-      ? driverDirection
-      : preferences.signalBiasMode === "macro_vote"
-        ? macroDirection
-        : macroDirection ?? driverDirection;
-  const reaction =
-    preferences.signalBiasMode === "macro_vote"
-      ? "macro vote"
-      : aligned > rejected
-        ? "price accepted"
-        : rejected > aligned
-          ? "price rejected"
-          : "reaction mixed";
-  const pair = pairLabel.toUpperCase();
-  const directionLabel =
-    !direction
-      ? `${pair} mixed bias`
-      : preferences.signalWordingMode === "trade_bias"
-        ? direction === "up"
-          ? "Long bias"
-          : "Short bias"
-        : `${pair} ${direction} bias`;
-
-  return {
-    label: `${directionLabel} - ${reaction}`,
-    detail:
-      preferences.signalBiasMode === "macro_vote"
-        ? "Macro vote only"
-        : preferences.signalBiasMode === "accepted_drivers"
-          ? "Driver read only"
-          : "Bias + reaction",
-    className: direction === "up" ? "is-up" : direction === "down" ? "is-down" : "is-mixed",
-    title: `${summary?.detailLabel ?? "No macro summary yet"} Driver reads: ${aligned} aligned, ${rejected} rejected.`,
-  };
 }
 
 function getEventDisplayFields(event: CalendarEvent | null) {
@@ -331,7 +261,7 @@ function getLevelCountLine(rows: PairMatrixFactorViewRow[]): PairMatrixHeaderCou
   };
 }
 
-function getDriverAcceptanceSummary(rows: PairMatrixFactorViewRow[]): PairMatrixHeaderCountLine {
+function getDriverAcceptanceSummary(rows: PairMatrixFactorViewRow[], activeRead: PairMatrixAlignmentRead | null): PairMatrixHeaderCountLine {
   const reads = rows.map((row) => row.summaryAlignment).filter((read): read is PairMatrixAlignmentRead => read != null);
   const aligned = reads.filter((read) => read.status === "aligned").length;
   const rejected = reads.filter((read) => read.status === "rejected").length;
@@ -341,7 +271,7 @@ function getDriverAcceptanceSummary(rows: PairMatrixFactorViewRow[]): PairMatrix
 
   if (reads.length === 0) {
     return {
-      label: "Price: 0/0/0",
+      label: "Reaction: 0/0/0",
       detail: "Green / Red / Outlier",
       className: "is-driver-outlier",
       title: "Driver acceptance needs loaded releases and loaded candles from release close to cursor close.",
@@ -357,10 +287,87 @@ function getDriverAcceptanceSummary(rows: PairMatrixFactorViewRow[]): PairMatrix
           : "is-driver-mixed";
 
   return {
-    label: `Price: ${aligned}/${rejected}/${outlier}`,
-    detail: "Green / Red / Outlier",
+    label: `Reaction: ${aligned}/${rejected}/${outlier}`,
+    detail: activeRead?.priceMoveLabel ?? "Green / Red / Outlier",
     className: driverClassName,
-    title: `Driver color counts visible factor rows: green ${aligned}, red ${rejected}, gray ${muted}, amber ${unclear}.`,
+    title: `Release-to-cursor window reaction. Green ${aligned}, red ${rejected}, gray ${muted}, amber ${unclear}. Selected row move: ${activeRead?.priceMoveLabel ?? "not available"}.`,
+  };
+}
+
+type PairMatrixMacroHealthCounts = {
+  good: number;
+  bad: number;
+  neutral: number;
+  unknown: number;
+  score: number;
+  known: number;
+  total: number;
+};
+
+function countMacroHealth(rows: PairMatrixFactorViewRow[], side: "base" | "quote"): PairMatrixMacroHealthCounts {
+  return rows.reduce<PairMatrixMacroHealthCounts>(
+    (current, row) => {
+      const health = row.comparison?.[side]?.macroHealth ?? null;
+      if (!health) return { ...current, unknown: current.unknown + 1, total: current.total + 1 };
+      const score = health.score ?? 0;
+      return {
+        good: current.good + (health.state === "good" ? 1 : 0),
+        bad: current.bad + (health.state === "bad" ? 1 : 0),
+        neutral: current.neutral + (health.state === "neutral" ? 1 : 0),
+        unknown: current.unknown + (health.state === "unknown" ? 1 : 0),
+        score: current.score + score,
+        known: current.known + (health.state === "unknown" ? 0 : 1),
+        total: current.total + 1,
+      };
+    },
+    { good: 0, bad: 0, neutral: 0, unknown: 0, score: 0, known: 0, total: 0 },
+  );
+}
+
+function formatMacroHealthCounts(counts: PairMatrixMacroHealthCounts): string {
+  return `${counts.good}G / ${counts.bad}B / ${counts.neutral}N / ${counts.unknown}U`;
+}
+
+function getMacroHealthCountLine(rows: PairMatrixFactorViewRow[], currency: string, side: "base" | "quote"): PairMatrixHeaderCountLine {
+  const counts = countMacroHealth(rows, side);
+  const className = counts.score > 0 ? "is-macro-good" : counts.score < 0 ? "is-macro-bad" : counts.unknown > counts.known ? "is-macro-unknown" : "is-macro-neutral";
+  return {
+    label: `${currency} Macro`,
+    detail: formatMacroHealthCounts(counts),
+    className,
+    title: `${currency} FX-supportive macro health across loaded factor rows. Good ${counts.good}, Bad ${counts.bad}, Neutral ${counts.neutral}, Unknown ${counts.unknown}. Good means usually supportive for ${currency}; Bad means usually negative; Neutral means valid but no meaningful impulse; Unknown means missing, unparsable, future, no basis, incompatible, or no safe rule.`,
+  };
+}
+
+function getMacroCompareLine(rows: PairMatrixFactorViewRow[], baseCurrency: string, quoteCurrency: string): PairMatrixHeaderCountLine {
+  const baseCounts = countMacroHealth(rows, "base");
+  const quoteCounts = countMacroHealth(rows, "quote");
+  const lowConfidence = baseCounts.known < Math.ceil(Math.max(1, baseCounts.total) / 2) || quoteCounts.known < Math.ceil(Math.max(1, quoteCounts.total) / 2);
+  const delta = baseCounts.score - quoteCounts.score;
+  let detail = "Low confidence";
+  let className = "is-compare-low";
+
+  if (!lowConfidence) {
+    if (baseCounts.score > 0 && quoteCounts.score > 0) {
+      detail = delta === 0 ? "Both strong" : delta > 0 ? `Both strong - ${baseCurrency} edges` : `Both strong - ${quoteCurrency} edges`;
+      className = "is-compare-strong";
+    } else if (baseCounts.score < 0 && quoteCounts.score < 0) {
+      detail = delta === 0 ? "Both weak" : delta > 0 ? `Both weak - ${baseCurrency} less bad` : `Both weak - ${quoteCurrency} less bad`;
+      className = "is-compare-weak";
+    } else if (delta === 0) {
+      detail = "No clean edge";
+      className = "is-compare-neutral";
+    } else {
+      detail = delta > 0 ? `${baseCurrency} stronger` : `${quoteCurrency} stronger`;
+      className = delta > 0 ? "is-compare-base" : "is-compare-quote";
+    }
+  }
+
+  return {
+    label: "Compare",
+    detail,
+    className,
+    title: `${baseCurrency} macro ${formatMacroHealthCounts(baseCounts)}; ${quoteCurrency} macro ${formatMacroHealthCounts(quoteCounts)}. Compare uses Good minus Bad counts and marks Low confidence when either side has too many Unknown rows.`,
   };
 }
 
@@ -457,18 +464,24 @@ function PairMatrixHeaderSummary({
   onClose: () => void;
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const driverSummary = getDriverAcceptanceSummary(rows);
+  const baseCurrency = summary?.baseCurrency ?? rows[0]?.cells[0]?.currency ?? pairLabel.slice(0, 3).toUpperCase() ?? "Base";
+  const quoteCurrency = summary?.quoteCurrency ?? rows[0]?.cells[1]?.currency ?? pairLabel.slice(3, 6).toUpperCase() ?? "Quote";
+  const baseMacroLine = getMacroHealthCountLine(rows, baseCurrency, "base");
+  const quoteMacroLine = getMacroHealthCountLine(rows, quoteCurrency, "quote");
+  const compareLine = getMacroCompareLine(rows, baseCurrency, quoteCurrency);
   const macroVoteLine = summary ? getMacroVoteCountLine(summary) : null;
   const levelLine = getLevelCountLine(rows);
   const activeMoveRead = activeRow?.summaryAlignment ?? null;
+  const driverSummary = getDriverAcceptanceSummary(rows, activeMoveRead);
   const moveRangeLabel = getMoveRangeLabel(activeMoveRead, displayTimeMode, sourceTimeOffsetSeconds);
   const compactMoveRangeLabel = getCompactMoveRangeLabel(activeMoveRead, displayTimeMode, sourceTimeOffsetSeconds);
-  const headline = getSignalHeadline(pairLabel, summary, rows, preferences);
   const anchorMonthLabel = getMonthYearFromLabel(anchorLabel);
 
   return (
     <div className="chart-pair-matrix-head-summary" aria-label="Pair Matrix summary">
-      <PairMatrixSummaryBox label={headline.label} detail={headline.detail} className={`is-signal ${headline.className}`} title={headline.title} />
+      <PairMatrixSummaryBox label={baseMacroLine.label} detail={baseMacroLine.detail} className={`is-macro ${baseMacroLine.className ?? ""}`} title={baseMacroLine.title} />
+      <PairMatrixSummaryBox label={quoteMacroLine.label} detail={quoteMacroLine.detail} className={`is-macro ${quoteMacroLine.className ?? ""}`} title={quoteMacroLine.title} />
+      <PairMatrixSummaryBox label={compareLine.label} detail={compareLine.detail} className={`is-compare ${compareLine.className ?? ""}`} title={compareLine.title} />
       <PairMatrixSummaryBox label={anchorLabel} detail={`${anchorBasisLabel} / ${anchorMonthLabel}`} className="is-anchor" />
       {summary && macroVoteLine ? (
         <>
@@ -489,16 +502,6 @@ function PairMatrixHeaderSummary({
             detail={driverSummary.detail}
             className={`is-state is-driver ${driverSummary.className ?? "is-driver-mixed"}`}
             title={driverSummary.title}
-          />
-          <PairMatrixSummaryBox
-            label="Move"
-            detail={activeMoveRead ? activeMoveRead.priceMoveLabel : "no window"}
-            className="is-move"
-            title={
-              activeMoveRead
-                ? `${activeRow?.factor.label ?? "Selected factor"} move from release-close candle to cursor-close candle. ${activeMoveRead.eventTitle}: ${activeMoveRead.priceMoveLabel}.`
-                : "Move needs loaded candles from the selected/fallback factor release close to cursor close."
-            }
           />
           <PairMatrixSummaryBox
             label="Window"
@@ -532,15 +535,20 @@ function PairMatrixHeaderSummary({
         <div className="chart-pair-matrix-settings-popover" hidden={!settingsOpen}>
           <div className="chart-pair-matrix-settings-details">
             <strong>Evidence Signal settings</strong>
-            <p>Evidence Signal combines macro vote, expected pair direction, and release-to-cursor price acceptance.</p>
+            <p>Macro boxes grade each currency first. Good means FX-supportive, Bad means FX-negative, Neutral means valid but no meaningful impulse, and Unknown means Pair Matrix cannot honestly classify the loaded row.</p>
             <div className="chart-pair-matrix-signal-legend" aria-label="Evidence Signal color guide">
-              <span className="is-green" title="Price moved with the data-implied pair direction."><b />Green: price accepted the read</span>
-              <span className="is-red" title="Price moved against the data-implied pair direction."><b />Red: price rejected the read</span>
+              <span className="is-green" title="Row tint means the loaded economic evidence implies EURUSD up."><b />Green row: EURUSD up bias</span>
+              <span className="is-red" title="Row tint means the loaded economic evidence implies EURUSD down."><b />Red row: EURUSD down bias</span>
+              <span className="is-green" title="Reaction stripe means price moved with the data-implied pair direction."><b />Green reaction: accepted</span>
+              <span className="is-red" title="Reaction stripe means price moved against the data-implied pair direction."><b />Red reaction: rejected</span>
               <span className="is-gray" title="Price move was below the configured sensitivity threshold."><b />Gray: move too small</span>
               <span className="is-amber" title="The loaded data cannot honestly infer a direction."><b />Amber: no clear directional read</span>
               <span className="is-blue" title="Base side scores stronger than quote side."><b />Blue: base side stronger</span>
               <span className="is-purple" title="Quote side scores stronger than base side."><b />Purple: quote side stronger</span>
             </div>
+            <p title="Shock uses actual versus forecast/previous surprise. Level compares the per-currency macro-health reads first, then only uses raw actual levels when the comparison is honest. Reaction is price movement from release-close candle to cursor-close candle.">
+              Shock = surprise. Level = grounded macro-health comparison. Reaction = release-to-cursor price response.
+            </p>
             <div className="chart-pair-matrix-settings-meta">
               <span title="How many base/quote factor cells currently have loaded latest or next release evidence.">{coverageLabel}</span>
               <span title="Pair Matrix v1 only reads local MT5 candles and loaded broker/MT5 calendar rows.">Loaded broker/MT5 rows only</span>
@@ -567,24 +575,6 @@ function PairMatrixHeaderSummary({
               options={LAYOUT_OPTIONS}
               onChange={(value) =>
                 onPreferenceChange("layoutMode", value as PairMatrixLayoutMode)
-              }
-            />
-            <PairMatrixControl
-              label="Signal"
-              description="Choose how the header bias is derived from macro vote and accepted/rejected driver reads."
-              value={preferences.signalBiasMode}
-              options={SIGNAL_BIAS_OPTIONS}
-              onChange={(value) =>
-                onPreferenceChange("signalBiasMode", value as PairMatrixSignalBiasMode)
-              }
-            />
-            <PairMatrixControl
-              label="Wording"
-              description="Choose pair-direction evidence wording or trade-bias wording for the headline."
-              value={preferences.signalWordingMode}
-              options={SIGNAL_WORDING_OPTIONS}
-              onChange={(value) =>
-                onPreferenceChange("signalWordingMode", value as PairMatrixSignalWordingMode)
               }
             />
             <PairMatrixControl
@@ -676,12 +666,13 @@ function SignalSideRead({
   const title = `Latest: ${getBundleTitle(cell?.latestBundleEvents ?? [], data)}. Next: ${getBundleTitle(
     cell?.nextBundleEvents ?? [],
     data,
-  )}. ${windowLabels.title} ${side?.formulaLabel ?? cell?.latestReasonDetail ?? ""}`;
+  )}. ${windowLabels.title} ${side?.formulaLabel ?? cell?.latestReasonDetail ?? ""} ${side?.macroHealth.title ?? ""}`;
+  const healthLabel = side?.macroHealth.label ?? "Unknown";
 
   if (!event) {
     return (
       <span className="chart-pair-matrix-signal-read is-empty" title={title}>
-        <strong>{currency}</strong>
+        <strong>{currency} - {healthLabel}</strong>
         <span>{cell?.latestReasonLabel ?? "no loaded release"}</span>
         <time title={windowLabels.title}>
           <b>{windowLabels.releaseLabel}</b>
@@ -693,7 +684,7 @@ function SignalSideRead({
 
   return (
     <span className="chart-pair-matrix-signal-read" title={title}>
-      <strong>{currency} {getEventFamilyLabel(factorId, event.title)}{bundleSuffix}</strong>
+      <strong>{currency} {getEventFamilyLabel(factorId, event.title)}{bundleSuffix} - {healthLabel}</strong>
       <span className="chart-pair-matrix-signal-values">
         <b>A {fields.actual}</b>
         <b>{basis.label} {basis.value}</b>
@@ -707,8 +698,18 @@ function SignalSideRead({
   );
 }
 
-function SignalWinnerCell({ comparison }: { comparison: PairMatrixFactorComparison | null }) {
-  if (!comparison) return <span className="chart-pair-matrix-signal-winner is-empty">No read</span>;
+function SignalLevelCell({ comparison }: { comparison: PairMatrixFactorComparison | null }) {
+  if (!comparison) return <span className="chart-pair-matrix-signal-level is-empty">No level</span>;
+  return (
+    <span className={`chart-pair-matrix-signal-level is-level-${comparison.levelState}`} title={comparison.levelTitle}>
+      <strong>{comparison.levelLabel}</strong>
+      <em>{comparison.levelDetailLabel}</em>
+    </span>
+  );
+}
+
+function SignalShockCell({ comparison }: { comparison: PairMatrixFactorComparison | null }) {
+  if (!comparison) return <span className="chart-pair-matrix-signal-shock is-empty">No shock</span>;
   const baseCurrency = comparison.base?.currency ?? "Base";
   const quoteCurrency = comparison.quote?.currency ?? "Quote";
   const baseScore = comparison.base?.score;
@@ -728,10 +729,9 @@ function SignalWinnerCell({ comparison }: { comparison: PairMatrixFactorComparis
       ? `${baseCurrency} - ${quoteCurrency}: N/A`
       : `${baseCurrency} - ${quoteCurrency}: ${formatSignedPointValue(differential)} pts`;
   return (
-    <span className={`chart-pair-matrix-signal-winner is-${comparison.state} is-level-${comparison.levelState}`} title={`${differentialLabel}. ${comparison.detailLabel}. ${comparison.levelTitle}`}>
+    <span className={`chart-pair-matrix-signal-shock is-${comparison.state}`} title={`${differentialLabel}. ${comparison.detailLabel}. Shock uses actual versus forecast/previous surprise; it does not compare raw absolute levels.`}>
       <strong>{leaderLabel}</strong>
-      <span>{comparison.levelLabel}</span>
-      <em>{comparison.levelDetailLabel}</em>
+      <em>{differentialLabel}</em>
     </span>
   );
 }
@@ -773,6 +773,12 @@ function SignalReactionCell({
   );
 }
 
+function getPairDirectionRowClass(row: PairMatrixFactorViewRow): string {
+  if (row.comparison?.levelState === "base" || row.comparison?.state === "base_leads") return "is-bullish-bias";
+  if (row.comparison?.levelState === "quote" || row.comparison?.state === "quote_leads") return "is-bearish-bias";
+  return "is-mixed-bias";
+}
+
 function PairMatrixFactorRow({
   row,
   data,
@@ -796,7 +802,7 @@ function PairMatrixFactorRow({
 
   return (
     <article
-      className={`chart-pair-matrix-row is-signal-band ${selected ? "is-selected" : ""} ${row.summaryAlignment ? `is-${row.summaryAlignment.status}` : ""} layout-${data.preferences.layoutMode}`}
+      className={`chart-pair-matrix-row is-signal-band ${selected ? "is-selected" : ""} ${getPairDirectionRowClass(row)} layout-${data.preferences.layoutMode}`}
       title={title}
       role="button"
       tabIndex={0}
@@ -826,7 +832,8 @@ function PairMatrixFactorRow({
         factorId={row.factor.id}
         data={data}
       />
-      <SignalWinnerCell comparison={row.comparison} />
+      <SignalLevelCell comparison={row.comparison} />
+      <SignalShockCell comparison={row.comparison} />
       <SignalReactionCell
         read={row.summaryAlignment}
         displayTimeMode={data.displayTimeMode}
@@ -1034,7 +1041,8 @@ export function ChartPairMatrixTimeLens({ data, placement = "overlay" }: ChartPa
                 <span>Factor</span>
                 <span>{data.currencies[0] ?? "Base"} read</span>
                 <span>{data.currencies[1] ?? "Quote"} read</span>
-                <span>Shock / Level</span>
+                <span>Level</span>
+                <span>Shock</span>
                 <span>Price</span>
               </div>
               <div className="chart-pair-matrix-row-list">

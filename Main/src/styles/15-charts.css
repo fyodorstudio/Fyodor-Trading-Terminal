@@ -251,7 +251,7 @@
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-head { min-height: 44px; padding: 4px 8px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-title > span { font-size: 8.5px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-title > strong { font-size: 13px; }
-.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-scroll { --pair-matrix-columns: minmax(132px, 0.62fr) minmax(310px, 1.5fr) minmax(310px, 1.5fr) minmax(174px, 0.82fr) minmax(184px, 0.82fr); }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-scroll { --pair-matrix-columns: minmax(132px, 0.58fr) minmax(270px, 1.2fr) minmax(270px, 1.2fr) minmax(152px, 0.62fr) minmax(150px, 0.62fr) minmax(172px, 0.76fr); }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-row-head { padding: 4px 10px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-row-list { padding: 0 6px 5px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-row { align-items: center; gap: 8px; padding: 4px 7px; }
@@ -264,7 +264,8 @@
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read time b,
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read time em,
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-values b { font-size: 11px; line-height: 1.1; }
-.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-winner,
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-level,
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-shock,
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-reaction { gap: 2px; }
 .chart-pair-matrix-lens.is-open .chart-pair-matrix-popover { cursor: grab; }
 .chart-pair-matrix-lens.is-open.is-bottom-pane .chart-pair-matrix-popover { cursor: default; }
@@ -279,20 +280,27 @@
 .chart-pair-matrix-title > span { color: #64748b; font-size: 9px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
 .chart-pair-matrix-title > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .chart-pair-matrix-title > strong { min-width: 0; color: #0f172a; font-size: 14px; font-weight: 950; line-height: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.chart-pair-matrix-head-summary { display: flex; width: 100%; min-width: 0; flex-wrap: nowrap; align-items: center; justify-content: flex-start; gap: 6px; overflow: visible; }
+.chart-pair-matrix-head-summary { display: flex; width: 100%; min-width: 0; flex-wrap: nowrap; align-items: center; justify-content: flex-start; gap: 5px; overflow: visible; }
 .chart-pair-matrix-summary-box { display: grid; width: 104px; height: 38px; min-width: 104px; align-content: center; gap: 2px; padding: 4px 7px; border: 1px solid #dbe3ef; border-radius: 6px; background: #fff; color: #334155; line-height: 1; box-sizing: border-box; }
 .chart-pair-matrix-summary-box > strong { min-width: 0; color: #0f172a; font-size: 10px; font-weight: 950; letter-spacing: 0; line-height: 1.05; overflow: hidden; text-overflow: ellipsis; text-transform: none; white-space: nowrap; }
 .chart-pair-matrix-summary-box > em { min-width: 0; color: #64748b; font-size: 8px; font-style: normal; font-weight: 900; letter-spacing: 0; line-height: 1.05; overflow: hidden; text-overflow: ellipsis; text-transform: none; white-space: nowrap; }
-.chart-pair-matrix-summary-box.is-anchor { width: 146px; min-width: 146px; }
-.chart-pair-matrix-summary-box.is-signal { width: 204px; min-width: 204px; }
-.chart-pair-matrix-summary-box.is-signal.is-up { border-color: #86efac; background: #ecfdf5; }
-.chart-pair-matrix-summary-box.is-signal.is-down { border-color: #fecaca; background: #fef2f2; }
-.chart-pair-matrix-summary-box.is-signal.is-mixed { border-color: #ddd6fe; background: #f5f3ff; }
+.chart-pair-matrix-summary-box.is-anchor { width: 142px; min-width: 142px; }
+.chart-pair-matrix-summary-box.is-macro { width: 108px; min-width: 108px; }
+.chart-pair-matrix-summary-box.is-compare { width: 136px; min-width: 136px; }
+.chart-pair-matrix-summary-box.is-macro-good,
+.chart-pair-matrix-summary-box.is-compare-base,
+.chart-pair-matrix-summary-box.is-compare-strong { border-color: #86efac; background: #ecfdf5; }
+.chart-pair-matrix-summary-box.is-macro-bad,
+.chart-pair-matrix-summary-box.is-compare-quote,
+.chart-pair-matrix-summary-box.is-compare-weak { border-color: #fecaca; background: #fef2f2; }
+.chart-pair-matrix-summary-box.is-macro-neutral,
+.chart-pair-matrix-summary-box.is-compare-neutral { border-color: #dbeafe; background: #f8fbff; }
+.chart-pair-matrix-summary-box.is-macro-unknown,
+.chart-pair-matrix-summary-box.is-compare-low { border-color: #fed7aa; background: #fff7ed; }
 .chart-pair-matrix-summary-box.is-vote,
 .chart-pair-matrix-summary-box.is-level,
-.chart-pair-matrix-summary-box.is-driver { width: 126px; min-width: 126px; }
-.chart-pair-matrix-summary-box.is-move { width: 112px; min-width: 112px; }
-.chart-pair-matrix-summary-box.is-range { width: 188px; min-width: 188px; }
+.chart-pair-matrix-summary-box.is-driver { width: 108px; min-width: 108px; }
+.chart-pair-matrix-summary-box.is-range { width: 160px; min-width: 160px; }
 .chart-pair-matrix-summary-box.is-state { background: #0f172a; border-color: #0f172a; color: #fff; }
 .chart-pair-matrix-summary-box.is-state > strong,
 .chart-pair-matrix-summary-box.is-state > em { color: #fff; }
@@ -346,7 +354,7 @@
 .chart-pair-matrix-control button:last-child { border-right: 0; }
 .chart-pair-matrix-control button:hover { background: #eef2ff; color: #1d4ed8; }
 .chart-pair-matrix-control button.is-active { background: #1e293b; color: #fff; }
-.chart-pair-matrix-scroll { position: relative; display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; overflow: hidden; background: #fbfdff; --pair-matrix-columns: minmax(150px, 0.68fr) minmax(300px, 1.42fr) minmax(300px, 1.42fr) minmax(174px, 0.82fr) minmax(184px, 0.86fr); }
+.chart-pair-matrix-scroll { position: relative; display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; overflow: hidden; background: #fbfdff; --pair-matrix-columns: minmax(138px, 0.58fr) minmax(268px, 1.22fr) minmax(268px, 1.22fr) minmax(142px, 0.58fr) minmax(142px, 0.58fr) minmax(170px, 0.74fr); }
 .chart-pair-matrix-row-head { display: grid; grid-template-columns: var(--pair-matrix-columns); gap: 8px; padding: 5px 10px; border-bottom: 1px solid #cbd5e1; background: rgba(248, 250, 252, 0.98); color: #64748b; font-size: 10px; font-weight: 950; letter-spacing: 0.04em; text-transform: uppercase; }
 .chart-pair-matrix-row-head span { min-width: 0; }
 .chart-pair-matrix-row-head span:nth-child(2) { padding-right: 8px; border-right: 1px solid #dbeafe; }
@@ -355,9 +363,9 @@
 .chart-pair-matrix-row-list { display: grid; grid-template-rows: repeat(7, minmax(0, 1fr)); align-content: stretch; min-height: 0; flex: 1 1 auto; padding: 0 6px 6px; }
 .chart-pair-matrix-row { display: grid; grid-template-columns: var(--pair-matrix-columns); gap: 7px; min-height: 0; min-width: 0; overflow: hidden; padding: 6px 5px 6px 7px; border: 0; border-bottom: 1px solid #dbeafe; border-left: 4px solid #cbd5e1; background: rgba(255, 255, 255, 0.88); text-align: left; cursor: pointer; }
 .chart-pair-matrix-row:hover, .chart-pair-matrix-row.is-selected { background: rgba(239, 246, 255, 0.86); }
-.chart-pair-matrix-row.is-aligned { border-left-color: #10b981; background: rgba(236, 253, 245, 0.46); }
-.chart-pair-matrix-row.is-rejected { border-left-color: #ef4444; background: rgba(254, 242, 242, 0.48); }
-.chart-pair-matrix-row.is-muted { border-left-color: #94a3b8; background: rgba(248, 250, 252, 0.86); }
+.chart-pair-matrix-row.is-bullish-bias { border-left-color: #10b981; background: rgba(236, 253, 245, 0.46); }
+.chart-pair-matrix-row.is-bearish-bias { border-left-color: #ef4444; background: rgba(254, 242, 242, 0.48); }
+.chart-pair-matrix-row.is-mixed-bias { border-left-color: #94a3b8; background: rgba(248, 250, 252, 0.86); }
 .chart-pair-matrix-factor { display: grid; grid-template-rows: auto auto; align-content: center; gap: 4px; min-width: 0; min-height: 0; padding-right: 6px; border-right: 1px solid #dbeafe; }
 .chart-pair-matrix-factor strong { color: #0f172a; font-size: 13px; font-weight: 950; line-height: 1.1; }
 .chart-pair-matrix-factor span { min-width: 0; overflow: hidden; color: #64748b; font-size: 10px; font-weight: 850; line-height: 1.1; text-overflow: clip; white-space: nowrap; }
@@ -365,16 +373,21 @@
 .chart-pair-matrix-factor i { padding: 0 3px; color: #94a3b8; font-style: normal; font-weight: 950; }
 .chart-pair-matrix-empty { color: #94a3b8; font-size: 10px; font-weight: 850; }
 .chart-pair-matrix-signal-read,
-.chart-pair-matrix-signal-winner,
+.chart-pair-matrix-signal-level,
+.chart-pair-matrix-signal-shock,
 .chart-pair-matrix-signal-reaction { display: grid; align-content: center; gap: 3px; min-width: 0; min-height: 0; overflow: hidden; padding: 0 2px; color: #334155; }
 .chart-pair-matrix-row > .chart-pair-matrix-signal-read:nth-child(2) { padding-right: 8px; border-right: 1px solid #dbeafe; }
+.chart-pair-matrix-row > .chart-pair-matrix-signal-read:nth-child(3) { padding-right: 8px; border-right: 1px solid #dbeafe; }
 .chart-pair-matrix-signal-read strong,
-.chart-pair-matrix-signal-winner strong,
+.chart-pair-matrix-signal-level strong,
+.chart-pair-matrix-signal-shock strong,
 .chart-pair-matrix-signal-reaction strong { min-width: 0; overflow: hidden; color: #0f172a; font-size: 12px; font-weight: 950; line-height: 1.05; text-overflow: clip; white-space: nowrap; }
 .chart-pair-matrix-signal-read span,
-.chart-pair-matrix-signal-winner span,
+.chart-pair-matrix-signal-level span,
+.chart-pair-matrix-signal-shock span,
 .chart-pair-matrix-signal-reaction span,
-.chart-pair-matrix-signal-winner em,
+.chart-pair-matrix-signal-level em,
+.chart-pair-matrix-signal-shock em,
 .chart-pair-matrix-signal-reaction em,
 .chart-pair-matrix-signal-read time { min-width: 0; overflow: hidden; color: #475569; font-size: 11px; font-style: normal; font-weight: 850; line-height: 1.08; text-overflow: clip; white-space: nowrap; }
 .chart-pair-matrix-signal-read .chart-pair-matrix-signal-values { display: grid; grid-template-columns: minmax(58px, 0.72fr) minmax(58px, 0.72fr) minmax(74px, 0.9fr); gap: 8px; align-items: center; }
@@ -388,13 +401,19 @@
 .chart-pair-matrix-move-stack em { min-width: 0; overflow: hidden; color: #0f172a; font-size: 12px; font-style: normal; font-weight: 950; line-height: 1.05; text-overflow: clip; white-space: nowrap; }
 .chart-pair-matrix-move-stack em { color: #475569; font-size: 10.5px; font-weight: 850; }
 .chart-pair-matrix-signal-read.is-empty span,
-.chart-pair-matrix-signal-winner.is-empty,
+.chart-pair-matrix-signal-level.is-empty,
+.chart-pair-matrix-signal-shock.is-empty,
 .chart-pair-matrix-signal-reaction.is-empty { color: #94a3b8; }
-.chart-pair-matrix-signal-winner { border-left: 3px solid #94a3b8; padding-left: 7px; }
-.chart-pair-matrix-signal-winner.is-base_leads { border-left-color: #2563eb; }
-.chart-pair-matrix-signal-winner.is-quote_leads { border-left-color: #7c3aed; }
-.chart-pair-matrix-signal-winner.is-both_supportive { border-left-color: #10b981; }
-.chart-pair-matrix-signal-winner.is-both_weak { border-left-color: #f59e0b; }
+.chart-pair-matrix-signal-level,
+.chart-pair-matrix-signal-shock { border-left: 3px solid #94a3b8; padding-left: 7px; }
+.chart-pair-matrix-signal-level.is-level-base { border-left-color: #2563eb; }
+.chart-pair-matrix-signal-level.is-level-quote { border-left-color: #7c3aed; }
+.chart-pair-matrix-signal-level.is-level-even { border-left-color: #94a3b8; }
+.chart-pair-matrix-signal-level.is-level-mixed { border-left-color: #f59e0b; }
+.chart-pair-matrix-signal-shock.is-base_leads { border-left-color: #2563eb; }
+.chart-pair-matrix-signal-shock.is-quote_leads { border-left-color: #7c3aed; }
+.chart-pair-matrix-signal-shock.is-both_supportive { border-left-color: #10b981; }
+.chart-pair-matrix-signal-shock.is-both_weak { border-left-color: #f59e0b; }
 .chart-pair-matrix-signal-reaction { border-left: 3px solid #f59e0b; padding-left: 7px; }
 .chart-pair-matrix-signal-reaction.is-aligned { border-left-color: #10b981; }
 .chart-pair-matrix-signal-reaction.is-rejected { border-left-color: #ef4444; }
@@ -436,6 +455,6 @@
   .chart-pair-matrix-lens.is-open { left: 12px; top: 168px; width: min(100vw - 24px, 760px); height: min(560px, calc(100% - 236px)); max-height: min(560px, calc(100% - 236px)); }
   .chart-pair-matrix-head { grid-template-columns: 1fr; }
   .chart-pair-matrix-head-summary { justify-content: flex-start; }
-  .chart-pair-matrix-scroll { --pair-matrix-columns: minmax(96px, 0.8fr) minmax(150px, 1.2fr) minmax(150px, 1.2fr) minmax(110px, 0.85fr) minmax(120px, 0.9fr); }
+  .chart-pair-matrix-scroll { --pair-matrix-columns: minmax(96px, 0.58fr) minmax(150px, 1.05fr) minmax(150px, 1.05fr) minmax(104px, 0.7fr) minmax(104px, 0.7fr) minmax(118px, 0.82fr); }
 }
 

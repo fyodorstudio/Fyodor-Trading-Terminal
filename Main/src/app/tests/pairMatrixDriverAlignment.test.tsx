@@ -1,3 +1,5 @@
+// @ts-expect-error Vitest runs this in Node, but the app tsconfig intentionally omits Node typings.
+import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -33,6 +35,19 @@ function candles(releaseClose: number, cursorClose: number): BridgeCandle[] {
 }
 
 describe("Pair Matrix Driver Alignment", () => {
+  it("keeps Pair Matrix CSS grid overrides aligned to the six rendered row cells", () => {
+    const chartsCss = readFileSync("src/styles/15-charts.css", "utf8");
+    const gridDeclarations = [...chartsCss.matchAll(/--pair-matrix-columns:\s*([^;]+);/g)].map((match) => match[1] ?? "");
+    const bottomPaneMatch = chartsCss.match(/\.chart-pair-matrix-lens\.is-bottom-pane \.chart-pair-matrix-scroll\s*\{\s*--pair-matrix-columns:\s*([^;]+);/);
+
+    expect(gridDeclarations.length).toBeGreaterThanOrEqual(3);
+    expect(bottomPaneMatch?.[1]?.match(/minmax\(/g)?.length).toBe(6);
+    for (const declaration of gridDeclarations) {
+      expect(declaration.match(/minmax\(/g)?.length).toBe(6);
+    }
+    expect(chartsCss).not.toContain(".chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-winner");
+  });
+
   it("aligns supportive quote-currency data with pair downside and shows pips, percent, and surprise", () => {
     const read = derivePairMatrixAlignment({
       event: event({ currency: "USD", title: "Nonfarm Payrolls", actual: "200", forecast: "180" }),
@@ -380,6 +395,9 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(rows[0]?.comparison?.stateLabel).toBe("No surprise");
     expect(rows[0]?.comparison?.base?.rawSurpriseLabel).toBe("0%");
     expect(rows[0]?.comparison?.quote?.rawSurpriseLabel).toBe("0%");
+    expect(rows[0]?.comparison?.base?.macroHealth.state).toBe("neutral");
+    expect(rows[0]?.comparison?.quote?.macroHealth.state).toBe("neutral");
+    expect(rows[0]?.comparison?.base?.macroHealth.title).toContain("Neutral");
     expect(rows[0]?.comparison?.base?.scoreLabel).toBe("0.0 pts");
     expect(rows[0]?.comparison?.quote?.scoreLabel).toBe("0.0 pts");
     expect(rows[0]?.comparison?.contextLabel).toBe("USD higher rate +1.10pp");
@@ -388,6 +406,122 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(rows[0]?.comparison?.levelLabel).toBe("Level: USD higher rate +1.1pp");
     expect(summary?.stateLabel).toBe("No surprise");
     expect(summary?.voteLabel).toBe("1/1 no surprise");
+  });
+
+  it("classifies macro health for CPI, unemployment, PMI, and unknown evidence", () => {
+    const inflation = MACRO_FACTOR_DEFINITIONS.find((item) => item.id === "inflation")!;
+    const labor = MACRO_FACTOR_DEFINITIONS.find((item) => item.id === "labor")!;
+    const pmi = MACRO_FACTOR_DEFINITIONS.find((item) => item.id === "pmi")!;
+    const rows = buildPairMatrixViewRows({
+      factorRows: [
+        {
+          factor: inflation,
+          currency: "EUR",
+          latestEvent: event({ currency: "EUR", countryCode: "EU", title: "CPI y/y", actual: "3.5", forecast: "3.0" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor: inflation,
+          currency: "USD",
+          latestEvent: event({ currency: "USD", title: "CPI y/y", actual: "2.6", forecast: "3.0" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor: labor,
+          currency: "EUR",
+          latestEvent: event({ currency: "EUR", countryCode: "EU", title: "Unemployment Rate", actual: "6.2", forecast: "6.5" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor: labor,
+          currency: "USD",
+          latestEvent: event({ currency: "USD", title: "Initial Jobless Claims", actual: "240K", forecast: "220K" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor: pmi,
+          currency: "EUR",
+          latestEvent: event({ currency: "EUR", countryCode: "EU", title: "Manufacturing PMI", actual: "51.2", forecast: "51.2" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor: pmi,
+          currency: "USD",
+          latestEvent: event({ currency: "USD", title: "ISM Manufacturing PMI", actual: "", forecast: "50.0" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+      ],
+      factors: [inflation, labor, pmi],
+      currencies: ["EUR", "USD"],
+      selectedSymbol: "EURUSD",
+      visibleCandles: candles(1.1, 1.102),
+      cursorChartTime: 1_600,
+      sourceTimeOffsetSeconds: 0,
+      preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+    });
+
+    const [inflationRow, laborRow, pmiRow] = rows;
+    expect(inflationRow?.comparison?.base?.macroHealth.state).toBe("good");
+    expect(inflationRow?.comparison?.base?.macroHealth.title).toContain("FX-policy pressure");
+    expect(inflationRow?.comparison?.quote?.macroHealth.state).toBe("bad");
+    expect(laborRow?.comparison?.base?.macroHealth.state).toBe("good");
+    expect(laborRow?.comparison?.base?.macroHealth.title).toContain("unemployment, claims, and claimant counts lower are Good");
+    expect(laborRow?.comparison?.quote?.macroHealth.state).toBe("bad");
+    expect(pmiRow?.comparison?.base?.macroHealth.state).toBe("good");
+    expect(pmiRow?.comparison?.base?.macroHealth.title).toContain("PMI/ISM above 50");
+    expect(pmiRow?.comparison?.quote?.macroHealth.state).toBe("unknown");
+    expect(pmiRow?.comparison?.quote?.macroHealth.title).toContain("no actual value yet");
+  });
+
+  it("does not fake a raw cross-currency level winner for same-health trade rows", () => {
+    const factor = MACRO_FACTOR_DEFINITIONS.find((item) => item.id === "trade")!;
+    const rows = buildPairMatrixViewRows({
+      factorRows: [
+        {
+          factor,
+          currency: "EUR",
+          latestEvent: event({ currency: "EUR", countryCode: "EU", title: "Trade Balance", actual: "2.55", forecast: "", previous: "3.84" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor,
+          currency: "USD",
+          latestEvent: event({ currency: "USD", title: "Goods Trade Balance", actual: "-101.46", forecast: "-94.7", previous: "-82.4" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+      ],
+      factors: [factor],
+      currencies: ["EUR", "USD"],
+      selectedSymbol: "EURUSD",
+      visibleCandles: candles(1.1, 1.099),
+      cursorChartTime: 1_600,
+      sourceTimeOffsetSeconds: 0,
+      preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+    });
+
+    expect(rows[0]?.comparison?.base?.macroHealth.state).toBe("bad");
+    expect(rows[0]?.comparison?.quote?.macroHealth.state).toBe("bad");
+    expect(rows[0]?.comparison?.levelState).toBe("mixed");
+    expect(rows[0]?.comparison?.levelLabel).toBe("Level: Both weak");
+    expect(rows[0]?.comparison?.levelDetailLabel).toBe("EUR Bad / USD Bad");
+    expect(rows[0]?.comparison?.levelTitle).toContain("does not compare raw 2.55 versus -101.46");
+    expect(rows[0]?.comparison?.levelLabel).not.toContain("higher level");
   });
 
   it("reason-codes old anchors before the loaded calendar window", () => {
@@ -570,9 +704,9 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).not.toContain("bundle x2</em>");
   });
 
-  it("renders configurable trade-bias headline wording", () => {
+  it("renders macro report-card header wording and row health explanations", () => {
     const factor = MACRO_FACTOR_DEFINITIONS.find((item) => item.id === "inflation")!;
-    const preferences = { ...DEFAULT_PAIR_MATRIX_PREFERENCES, signalWordingMode: "trade_bias" as const };
+    const preferences = DEFAULT_PAIR_MATRIX_PREFERENCES;
     const rows = buildPairMatrixViewRows({
       factorRows: [
         {
@@ -629,11 +763,308 @@ describe("Pair Matrix Driver Alignment", () => {
       }),
     );
 
-    expect(html).toContain("Long bias - price accepted");
-    expect(html).toContain(">Trade bias<");
+    expect(rows[0]?.comparison?.base?.macroHealth.state).toBe("good");
+    expect(rows[0]?.comparison?.quote?.macroHealth.state).toBe("neutral");
+    expect(rows[0]?.comparison?.levelLabel).toBe("Level: EUR healthier");
+    expect(html).toContain("EUR Macro");
+    expect(html).toContain("USD Macro");
+    expect(html).toContain("Compare");
+    expect(html).toContain("1G / 0B / 0N / 0U");
+    expect(html).toContain("0G / 0B / 1N / 0U");
+    expect(html).toContain("EUR stronger");
+    expect(html).toContain("EUR CPI - Good");
+    expect(html).toContain("USD CPI - Neutral");
+    expect(html).toContain("Inflation is treated as FX-policy pressure");
+    expect(html).toContain("Level: EUR healthier");
+    expect(html).toContain("Reaction: 1/0/0");
+    expect(html).not.toContain("Bias:");
+    expect(html).not.toContain("Setup:");
+    expect(html).not.toContain(">Now<");
+    expect(html).not.toContain("Long bias - current accepting");
+    expect(html).not.toContain("Trade Read");
+    expect(html).not.toContain(">Trade bias<");
   });
 
-  it("uses the fallback visible row for header move and window instead of the strongest global move", () => {
+  it("keeps reaction separate from macro health when the current candle rejects the read", () => {
+    const factor = MACRO_FACTOR_DEFINITIONS.find((item) => item.id === "inflation")!;
+    const releaseTime = Date.UTC(2026, 6, 28, 17, 0, 0) / 1000;
+    const priorTime = Date.UTC(2026, 6, 29, 19, 0, 0) / 1000;
+    const cursorTime = Date.UTC(2026, 6, 29, 20, 0, 0) / 1000;
+    const rows = buildPairMatrixViewRows({
+      factorRows: [
+        {
+          factor,
+          currency: "EUR",
+          latestEvent: event({ time: releaseTime, currency: "EUR", countryCode: "EU", title: "CPI y/y", actual: "3.0", forecast: "3.0" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor,
+          currency: "USD",
+          latestEvent: event({ time: releaseTime, currency: "USD", title: "CPI y/y", actual: "4.0", forecast: "3.0" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+      ],
+      factors: [factor],
+      currencies: ["EUR", "USD"],
+      selectedSymbol: "EURUSD",
+      visibleCandles: [
+        { time: releaseTime, open: 1.15, high: 1.15, low: 1.15, close: 1.15, volume: 1 },
+        { time: priorTime, open: 1.14, high: 1.14, low: 1.138, close: 1.138, volume: 1 },
+        { time: cursorTime, open: 1.138, high: 1.146, low: 1.137, close: 1.145, volume: 1 },
+      ],
+      cursorChartTime: cursorTime,
+      sourceTimeOffsetSeconds: 0,
+      preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+    });
+    const html = renderToStaticMarkup(
+      createElement(ChartPairMatrixTimeLens, {
+        data: {
+          open: true,
+          pairLabel: "EURUSD",
+          currencies: ["EUR", "USD"],
+          rows,
+          comparisonSummary: buildPairMatrixComparisonSummary({
+            rows,
+            currencies: ["EUR", "USD"],
+            preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+          }),
+          preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+          anchorLabel: "29 Jul 2026 20:00",
+          anchorBasisLabel: "cursor time",
+          coverageLabel: "2/2 factor cells loaded",
+          displayTimeMode: "server",
+          sourceTimeOffsetSeconds: 0,
+          calendarDiagnostics: {
+            lookbackLabel: "Pair Matrix lookback: 400d current",
+            loadStateLabel: "Using current app feed",
+            loadedRangeLabel: "Loaded calendar: loaded",
+            anchorStatusLabel: "Anchor inside loaded calendar range",
+            canLoadOlder: false,
+          },
+          onPreferenceChange: () => {},
+          onLoadOlderCalendarContext: () => {},
+          onToggleOpen: () => {},
+          onClose: () => {},
+        },
+      }),
+    );
+
+    expect(rows[0]?.summaryAlignment?.status).toBe("aligned");
+    expect(rows[0]?.summaryAlignment?.currentCandleStatus).toBe("rejected");
+    expect(rows[0]?.comparison?.base?.macroHealth.state).toBe("neutral");
+    expect(rows[0]?.comparison?.quote?.macroHealth.state).toBe("good");
+    expect(html).toContain("EUR Macro");
+    expect(html).toContain("USD Macro");
+    expect(html).toContain("USD stronger");
+    expect(html).toContain("EUR CPI - Neutral");
+    expect(html).toContain("USD CPI - Good");
+    expect(html).toContain("Reaction: 1/0/0");
+    expect(html).toContain("Expected down / price down");
+    expect(html).not.toContain("Setup: Reversal Triggered");
+    expect(html).not.toContain(">Now<");
+    expect(html).not.toContain("EURUSD down bias - current rejecting");
+    expect(html).not.toContain("Reversal Watch");
+  });
+
+  it("renders muted current-candle data without reintroducing setup wording", () => {
+    const factor = MACRO_FACTOR_DEFINITIONS.find((item) => item.id === "inflation")!;
+    const releaseTime = Date.UTC(2026, 6, 28, 17, 0, 0) / 1000;
+    const priorTime = Date.UTC(2026, 6, 29, 19, 0, 0) / 1000;
+    const cursorTime = Date.UTC(2026, 6, 29, 20, 0, 0) / 1000;
+    const rows = buildPairMatrixViewRows({
+      factorRows: [
+        {
+          factor,
+          currency: "EUR",
+          latestEvent: event({ time: releaseTime, currency: "EUR", countryCode: "EU", title: "CPI y/y", actual: "4.0", forecast: "3.0" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor,
+          currency: "USD",
+          latestEvent: event({ time: releaseTime, currency: "USD", title: "CPI y/y", actual: "3.0", forecast: "3.0" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+      ],
+      factors: [factor],
+      currencies: ["EUR", "USD"],
+      selectedSymbol: "EURUSD",
+      visibleCandles: [
+        { time: releaseTime, open: 1.1, high: 1.1, low: 1.1, close: 1.1, volume: 1 },
+        { time: priorTime, open: 1.101, high: 1.102, low: 1.101, close: 1.102, volume: 1 },
+        { time: cursorTime, open: 1.102, high: 1.1021, low: 1.102, close: 1.10205, volume: 1 },
+      ],
+      cursorChartTime: cursorTime,
+      sourceTimeOffsetSeconds: 0,
+      preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+    });
+    const html = renderToStaticMarkup(
+      createElement(ChartPairMatrixTimeLens, {
+        data: {
+          open: true,
+          pairLabel: "EURUSD",
+          currencies: ["EUR", "USD"],
+          rows,
+          comparisonSummary: buildPairMatrixComparisonSummary({ rows, currencies: ["EUR", "USD"], preferences: DEFAULT_PAIR_MATRIX_PREFERENCES }),
+          preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+          anchorLabel: "29 Jul 2026 20:00",
+          anchorBasisLabel: "cursor time",
+          coverageLabel: "2/2 factor cells loaded",
+          displayTimeMode: "server",
+          sourceTimeOffsetSeconds: 0,
+          calendarDiagnostics: {
+            lookbackLabel: "Pair Matrix lookback: 400d current",
+            loadStateLabel: "Using current app feed",
+            loadedRangeLabel: "Loaded calendar: loaded",
+            anchorStatusLabel: "Anchor inside loaded calendar range",
+            canLoadOlder: false,
+          },
+          onPreferenceChange: () => {},
+          onLoadOlderCalendarContext: () => {},
+          onToggleOpen: () => {},
+          onClose: () => {},
+        },
+      }),
+    );
+
+    expect(rows[0]?.summaryAlignment?.status).toBe("aligned");
+    expect(rows[0]?.summaryAlignment?.currentCandleStatus).toBe("muted");
+    expect(rows[0]?.comparison?.base?.macroHealth.state).toBe("good");
+    expect(rows[0]?.comparison?.quote?.macroHealth.state).toBe("neutral");
+    expect(html).toContain("EUR CPI - Good");
+    expect(html).toContain("USD CPI - Neutral");
+    expect(html).toContain("Reaction: 1/0/0");
+    expect(html).not.toContain("Setup: Reversal Setup");
+    expect(html).not.toContain("now fading");
+    expect(html).not.toContain(">Now<");
+  });
+
+  it("grounds Level in macro health before falling back to raw level context", () => {
+    const factor = MACRO_FACTOR_DEFINITIONS.find((item) => item.id === "policy")!;
+    const releaseTime = Date.UTC(2026, 6, 28, 17, 0, 0) / 1000;
+    const cursorTime = Date.UTC(2026, 6, 29, 20, 0, 0) / 1000;
+    const rows = buildPairMatrixViewRows({
+      factorRows: [
+        {
+          factor,
+          currency: "EUR",
+          latestEvent: event({ time: releaseTime, currency: "EUR", countryCode: "EU", title: "ECB Interest Rate Decision", actual: "3.0", forecast: "2.0" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor,
+          currency: "USD",
+          latestEvent: event({ time: releaseTime, currency: "USD", title: "Fed Interest Rate Decision", actual: "4.0", forecast: "4.0" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+      ],
+      factors: [factor],
+      currencies: ["EUR", "USD"],
+      selectedSymbol: "EURUSD",
+      visibleCandles: [
+        { time: releaseTime, open: 1.1, high: 1.1, low: 1.1, close: 1.1, volume: 1 },
+        { time: cursorTime, open: 1.1, high: 1.103, low: 1.1, close: 1.103, volume: 1 },
+      ],
+      cursorChartTime: cursorTime,
+      sourceTimeOffsetSeconds: 0,
+      preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+    });
+    const html = renderToStaticMarkup(
+      createElement(ChartPairMatrixTimeLens, {
+        data: {
+          open: true,
+          pairLabel: "EURUSD",
+          currencies: ["EUR", "USD"],
+          rows,
+          comparisonSummary: buildPairMatrixComparisonSummary({ rows, currencies: ["EUR", "USD"], preferences: DEFAULT_PAIR_MATRIX_PREFERENCES }),
+          preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+          anchorLabel: "29 Jul 2026 20:00",
+          anchorBasisLabel: "cursor time",
+          coverageLabel: "2/2 factor cells loaded",
+          displayTimeMode: "server",
+          sourceTimeOffsetSeconds: 0,
+          calendarDiagnostics: {
+            lookbackLabel: "Pair Matrix lookback: 400d current",
+            loadStateLabel: "Using current app feed",
+            loadedRangeLabel: "Loaded calendar: loaded",
+            anchorStatusLabel: "Anchor inside loaded calendar range",
+            canLoadOlder: false,
+          },
+          onPreferenceChange: () => {},
+          onLoadOlderCalendarContext: () => {},
+          onToggleOpen: () => {},
+          onClose: () => {},
+        },
+      }),
+    );
+
+    expect(rows[0]?.comparison?.base?.macroHealth.state).toBe("good");
+    expect(rows[0]?.comparison?.quote?.macroHealth.state).toBe("neutral");
+    expect(rows[0]?.comparison?.levelLabel).toBe("Level: EUR healthier");
+    expect(html).toContain("EUR Rates - Good");
+    expect(html).toContain("USD Rates - Neutral");
+    expect(html).toContain("EUR stronger");
+    expect(html).toContain("Shock: 1/0/0");
+    expect(html).toContain("Level: 1/0/0");
+    expect(html).not.toContain("Bias: Mixed Bias");
+    expect(html).not.toContain("Setup: Conflict");
+    expect(html).not.toContain("Shock and Level disagree");
+  });
+
+  it("shows low-confidence macro boxes when clean evidence is missing", () => {
+    const html = renderToStaticMarkup(
+      createElement(ChartPairMatrixTimeLens, {
+        data: {
+          open: true,
+          pairLabel: "EURUSD",
+          currencies: ["EUR", "USD"],
+          rows: [],
+          comparisonSummary: null,
+          preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+          anchorLabel: "29 Jul 2026 20:00",
+          anchorBasisLabel: "cursor time",
+          coverageLabel: "0/0 factor cells loaded",
+          displayTimeMode: "server",
+          sourceTimeOffsetSeconds: 0,
+          calendarDiagnostics: {
+            lookbackLabel: "Pair Matrix lookback: 400d current",
+            loadStateLabel: "Using current app feed",
+            loadedRangeLabel: "Loaded calendar: none",
+            anchorStatusLabel: "Anchor outside loaded calendar range",
+            canLoadOlder: false,
+          },
+          onPreferenceChange: () => {},
+          onLoadOlderCalendarContext: () => {},
+          onToggleOpen: () => {},
+          onClose: () => {},
+        },
+      }),
+    );
+
+    expect(html).toContain("EUR Macro");
+    expect(html).toContain("USD Macro");
+    expect(html).toContain("Compare");
+    expect(html).toContain("0G / 0B / 0N / 0U");
+    expect(html).toContain("Low confidence");
+    expect(html).not.toContain("Bias:");
+    expect(html).not.toContain("Setup:");
+    expect(html).not.toContain(">Now<");
+  });
+
+  it("uses the fallback visible row for header Reaction and Window instead of the strongest global move", () => {
     const policy = MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "policy")!;
     const inflation = MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "inflation")!;
     const policyTime = Date.UTC(2026, 6, 16, 23, 0, 0) / 1000;
@@ -715,9 +1146,11 @@ describe("Pair Matrix Driver Alignment", () => {
       }),
     );
 
-    expect(html).toContain("Policy rate move from release-close candle to cursor-close candle");
-    expect(html).toContain("<strong>Move</strong><em>+100.0 pips / +0.84%</em>");
+    expect(html).toContain("Selected row move: +100.0 pips / +0.84%");
+    expect(html).toContain("Reaction:");
+    expect(html).toContain("<em>+100.0 pips / +0.84%</em>");
     expect(html).toContain("Window</strong><em>16 Jul 23:00 -&gt; 12 Aug 08:00</em>");
+    expect(html).not.toContain("<strong>Move</strong>");
   });
 
   it("renders the open popover with compact value rows and driver details", () => {
@@ -810,37 +1243,49 @@ describe("Pair Matrix Driver Alignment", () => {
 
     expect(html).toContain("EUR read");
     expect(html).toContain("USD read");
-    expect(html).toContain("Shock / Level");
+    expect(html).toContain(">Level<");
+    expect(html).toContain(">Shock<");
     expect(html).toContain("Price");
-    expect(html).not.toContain(">Compare<");
+    expect(html).toContain("<strong>Compare</strong>");
     expect(html).not.toContain(">Driver<");
     expect(html).toContain("Pair Matrix settings");
     expect(html).toContain("chart-pair-matrix-summary-box");
-    expect(html).toContain("Level: USD higher rate +1.1pp");
+    expect(html).toContain("EUR Macro");
+    expect(html).toContain("USD Macro");
+    expect(html).toContain("USD stronger");
+    expect(html).toContain("Level: USD healthier");
     expect(html).toContain("Shock: USD +7.1 pts");
     expect(html).toContain("EUR - USD: -7.1 pts");
     expect(html).not.toContain("chart-pair-matrix-score-pair");
-    expect(html).toContain("EURUSD down bias - price accepted");
-    expect(html).toContain("Bias + reaction");
+    expect(html).not.toContain("Bias: EURUSD Down");
+    expect(html).not.toContain("USD evidence leads");
+    expect(html).not.toContain("Setup: Continuation");
+    expect(html).not.toContain("window and now agree");
     expect(html).toContain("Shock: 0/1/0");
     expect(html).toContain("Level: 0/1/0");
     expect(html).toContain("Base / Quote / Outlier");
     expect(html).toContain("is-state is-vote is-quote_leads");
     expect(html).toContain("is-state is-level is-level-quote");
-    expect(html).toContain("chart-pair-matrix-signal-winner is-quote_leads");
+    expect(html).toContain("chart-pair-matrix-signal-level is-level-quote");
+    expect(html).toContain("chart-pair-matrix-signal-shock is-quote_leads");
     expect(html).not.toContain("chart-pair-matrix-counter");
     expect(html).not.toContain(">Quote leads<");
     expect(html).not.toContain(">Base leads<");
     expect(html).not.toContain(">No surprise<");
     expect(html).not.toContain(">Partial read<");
-    expect(html).toContain("Price: 1/0/0");
-    expect(html).toContain("Green / Red / Outlier");
+    expect(html).toContain("Reaction: 1/0/0");
+    expect(html).toContain("Green 1, red 0");
     expect(html).toContain("is-state is-driver is-driver-green");
+    expect(html).toContain("chart-pair-matrix-row is-signal-band  is-bearish-bias");
+    expect(html).toContain("chart-pair-matrix-signal-reaction is-aligned");
     expect(html).not.toContain("Base 0 / Quote 1 /");
     expect(html).not.toContain("Green 1 / Red 0");
     expect(html).not.toContain("Other 0");
-    expect(html).toContain("Move");
     expect(html).toContain("Window");
+    expect(html).not.toContain(">Now<");
+    expect(html).not.toContain("Continuation");
+    expect(html).not.toContain("Trade Read");
+    expect(html).not.toContain("<strong>Move</strong>");
     expect(html).not.toContain(">Latest<");
     expect(html).not.toContain(">Next<");
     expect(html).not.toContain("USD latest");
@@ -848,7 +1293,8 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).not.toContain("EUR latest");
     expect(html).not.toContain("EUR next");
     expect(html).toContain("Fed Interest Rate Decision");
-    expect(html).toContain("USD Rates");
+    expect(html).toContain("EUR Rates - Neutral");
+    expect(html).toContain("USD Rates - Good");
     expect(html).toContain("chart-pair-matrix-signal-values");
     expect(html).toContain("<b>A 3.75%</b><b>P 3.5%</b><b>Surp +0.25%</b>");
     expect(html).toContain("A 3.75%");
@@ -878,10 +1324,16 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).toContain("Evidence Signal settings");
     expect(html).toContain("Hierarchy");
     expect(html).toContain("Toggle hierarchy view");
-    expect(html).toContain("Evidence Signal combines macro vote");
+    expect(html).toContain("Macro boxes grade each currency first");
+    expect(html).toContain("Good means FX-supportive");
+    expect(html).toContain("Level = grounded macro-health comparison");
+    expect(html).not.toContain("Bias shows what loaded economic evidence says the pair should do");
+    expect(html).not.toContain("Setup: Continuation = Bias, Reaction, and Now agree");
     expect(html).toContain("Evidence Signal color guide");
-    expect(html).toContain("Green: price accepted the read");
-    expect(html).toContain("Red: price rejected the read");
+    expect(html).toContain("Green row: EURUSD up bias");
+    expect(html).toContain("Red row: EURUSD down bias");
+    expect(html).toContain("Green reaction: accepted");
+    expect(html).toContain("Red reaction: rejected");
     expect(html).toContain("Blue: base side stronger");
     expect(html).toContain("Purple: quote side stronger");
     expect(html).toContain("1/1 factor cells loaded");
@@ -892,8 +1344,8 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).toContain("Anchor before loaded calendar");
     expect(html).toContain("Load 2y calendar context");
     expect(html).toContain(">Layout<");
-    expect(html).toContain(">Signal<");
-    expect(html).toContain(">Wording<");
+    expect(html).not.toContain(">Signal<");
+    expect(html).not.toContain(">Wording<");
     expect(html).toContain(">Bundles<");
     expect(html).toContain(">Lookback<");
     expect(html).toContain("Choose whether each factor shows the strongest driver read");

@@ -39,6 +39,7 @@ export type PairMatrixComparisonState =
   | "mixed"
   | "unclear";
 export type PairMatrixLevelState = "base" | "quote" | "even" | "mixed" | "unavailable";
+export type PairMatrixMacroHealthState = "good" | "bad" | "neutral" | "unknown";
 
 export interface PairMatrixPreferences {
   driverReadMode: PairMatrixDriverReadMode;
@@ -67,6 +68,12 @@ export interface PairMatrixAlignmentRead {
   percentLabel: string;
   releaseChartTime: number | null;
   cursorChartTime: number | null;
+  currentCandleTime: number | null;
+  currentCandleMoveLabel: string;
+  currentCandlePipsLabel: string;
+  currentCandlePercentLabel: string;
+  currentCandleDirectionLabel: string;
+  currentCandleStatus: PairMatrixAlignmentStatus;
   expectedDirectionLabel: string;
   actualDirectionLabel: string;
   strengthScore: number;
@@ -115,6 +122,17 @@ export interface PairMatrixComparisonSide {
   formulaLabel: string;
   reasonCode: PairMatrixEvidenceReasonCode;
   reasonLabel: string;
+  macroHealth: PairMatrixMacroHealthRead;
+}
+
+export interface PairMatrixMacroHealthRead {
+  state: PairMatrixMacroHealthState;
+  label: string;
+  shortLabel: string;
+  detailLabel: string;
+  ruleLabel: string;
+  title: string;
+  score: number | null;
 }
 
 export interface PairMatrixFactorComparison {
@@ -343,6 +361,152 @@ function getEventComparisonMissingReason(event: CalendarEvent): PairMatrixEviden
   return "no_comparison_basis";
 }
 
+function getMacroHealthLabel(state: PairMatrixMacroHealthState): string {
+  if (state === "good") return "Good";
+  if (state === "bad") return "Bad";
+  if (state === "neutral") return "Neutral";
+  return "Unknown";
+}
+
+function makeMacroHealthRead(params: {
+  state: PairMatrixMacroHealthState;
+  detailLabel: string;
+  ruleLabel: string;
+  title: string;
+}): PairMatrixMacroHealthRead {
+  const label = getMacroHealthLabel(params.state);
+  return {
+    state: params.state,
+    label,
+    shortLabel: label[0] ?? "U",
+    detailLabel: params.detailLabel,
+    ruleLabel: params.ruleLabel,
+    title: params.title,
+    score: params.state === "good" ? 1 : params.state === "bad" ? -1 : params.state === "neutral" ? 0 : null,
+  };
+}
+
+function getUnknownMacroHealthRead(currency: string, reasonCode: PairMatrixEvidenceReasonCode, detail = getPairMatrixReasonDetail(reasonCode)): PairMatrixMacroHealthRead {
+  return makeMacroHealthRead({
+    state: "unknown",
+    detailLabel: getPairMatrixReasonLabel(reasonCode),
+    ruleLabel: "Unknown",
+    title: `${currency} macro health is Unknown. ${detail}`,
+  });
+}
+
+function getNeutralMacroHealthRead(currency: string, factor: MacroFactorDefinition, basisLabel: string, actualLabel: string, comparisonLabel: string): PairMatrixMacroHealthRead {
+  return makeMacroHealthRead({
+    state: "neutral",
+    detailLabel: "Valid data, no meaningful impulse",
+    ruleLabel: `${factor.label} neutral`,
+    title: `${currency} ${factor.label} macro health is Neutral. ${basisLabel}: actual ${actualLabel}, compare ${comparisonLabel}. The result is close enough to the comparison basis that Pair Matrix does not treat it as a Good or Bad FX impulse.`,
+  });
+}
+
+function buildMacroHealthRead(params: {
+  factor: MacroFactorDefinition;
+  event: CalendarEvent;
+  actualValue: number | null;
+  actualLabel: string;
+  comparisonLabel: string;
+  basisLabel: string;
+  surprise: number;
+}): PairMatrixMacroHealthRead {
+  const { factor, event, actualValue, actualLabel, comparisonLabel, basisLabel, surprise } = params;
+  const currency = event.currency;
+  const supportDirection = inferCurrencySupportDirection(event, surprise);
+  const commonTitle = `${currency} ${event.title}. ${basisLabel}: actual ${actualLabel}, compare ${comparisonLabel}, surprise ${formatSignedValue(surprise, event.title)}.`;
+  const title = event.title.toLowerCase();
+
+  if (supportDirection === 0) {
+    if (factor.id === "pmi" && actualValue != null && isFactorTitle(event.title, ["pmi", "ism"])) {
+      const distanceFromExpansionLine = actualValue - 50;
+      if (Math.abs(distanceFromExpansionLine) <= 0.5) {
+        return makeMacroHealthRead({
+          state: "neutral",
+          detailLabel: "PMI near 50",
+          ruleLabel: "PMI level",
+          title: `${commonTitle} PMI/ISM near 50 is treated as Neutral because it is not a clean expansion or contraction signal.`,
+        });
+      }
+      return makeMacroHealthRead({
+        state: distanceFromExpansionLine > 0 ? "good" : "bad",
+        detailLabel: distanceFromExpansionLine > 0 ? "Expansion level" : "Contraction level",
+        ruleLabel: "PMI level",
+        title: `${commonTitle} PMI/ISM above 50 is FX-supportive expansion; below 50 is weak contraction. This level is ${distanceFromExpansionLine > 0 ? "Good" : "Bad"} for ${currency}.`,
+      });
+    }
+    return getNeutralMacroHealthRead(currency, factor, basisLabel, actualLabel, comparisonLabel);
+  }
+
+  if (factor.id === "policy") {
+    return makeMacroHealthRead({
+      state: supportDirection > 0 ? "good" : "bad",
+      detailLabel: supportDirection > 0 ? "Hawkish/carry supportive" : "Dovish/carry negative",
+      ruleLabel: "Policy FX pressure",
+      title: `${commonTitle} For FX, higher or hawkish policy pressure is usually supportive for ${currency}; lower or dovish policy pressure is usually negative.`,
+    });
+  }
+
+  if (factor.id === "inflation") {
+    return makeMacroHealthRead({
+      state: supportDirection > 0 ? "good" : "bad",
+      detailLabel: supportDirection > 0 ? "Hot inflation pressure" : "Cool inflation pressure",
+      ruleLabel: "Inflation policy pressure",
+      title: `${commonTitle} Inflation is treated as FX-policy pressure here, not broad economy health: hot inflation can support ${currency} when it implies tighter policy, while cool inflation can weigh on it.`,
+    });
+  }
+
+  if (factor.id === "labor") {
+    const inverse = title.includes("unemployment") || title.includes("jobless") || title.includes("claims") || title.includes("claimant");
+    return makeMacroHealthRead({
+      state: supportDirection > 0 ? "good" : "bad",
+      detailLabel: supportDirection > 0 ? (inverse ? "Lower labor stress" : "Stronger labor") : (inverse ? "Higher labor stress" : "Weaker labor"),
+      ruleLabel: inverse ? "Labor inverse" : "Labor growth",
+      title: `${commonTitle} Labor rule: payrolls, employment, wages, and earnings higher are Good; unemployment, claims, and claimant counts lower are Good.`,
+    });
+  }
+
+  if (factor.id === "retail") {
+    return makeMacroHealthRead({
+      state: supportDirection > 0 ? "good" : "bad",
+      detailLabel: supportDirection > 0 ? "Stronger demand" : "Weaker demand",
+      ruleLabel: "Retail demand",
+      title: `${commonTitle} Retail rule: stronger sales or consumer spending is FX-supportive; weaker demand is FX-negative.`,
+    });
+  }
+
+  if (factor.id === "pmi") {
+    return makeMacroHealthRead({
+      state: supportDirection > 0 ? "good" : "bad",
+      detailLabel: supportDirection > 0 ? "Activity beat" : "Activity miss",
+      ruleLabel: "PMI/activity surprise",
+      title: `${commonTitle} PMI/activity rule: above forecast is Good; below forecast is Bad. The 50 expansion line is used when the surprise itself is neutral.`,
+    });
+  }
+
+  if (factor.id === "sentiment") {
+    return makeMacroHealthRead({
+      state: supportDirection > 0 ? "good" : "bad",
+      detailLabel: supportDirection > 0 ? "Stronger confidence" : "Weaker confidence",
+      ruleLabel: "Sentiment",
+      title: `${commonTitle} Sentiment rule: higher confidence or expectations are FX-supportive; weaker sentiment is FX-negative.`,
+    });
+  }
+
+  if (factor.id === "trade") {
+    return makeMacroHealthRead({
+      state: supportDirection > 0 ? "good" : "bad",
+      detailLabel: supportDirection > 0 ? "Better external balance" : "Weaker external balance",
+      ruleLabel: "Trade balance",
+      title: `${commonTitle} Trade rule: more positive or less negative trade/current-account data is FX-supportive; deterioration is FX-negative.`,
+    });
+  }
+
+  return getUnknownMacroHealthRead(currency, "no_comparison_basis", `${factor.label} does not have a safe FX macro-health rule yet.`);
+}
+
 function inferCurrencySupportDirection(event: CalendarEvent, surprise: number): 1 | -1 | 0 {
   if (surprise === 0) return 0;
   const title = event.title.toLowerCase();
@@ -406,6 +570,12 @@ function makeUnclearRead(
     percentLabel: "-",
     releaseChartTime: null,
     cursorChartTime: null,
+    currentCandleTime: null,
+    currentCandleMoveLabel: "-",
+    currentCandlePipsLabel: "-",
+    currentCandlePercentLabel: "-",
+    currentCandleDirectionLabel: "-",
+    currentCandleStatus: "unclear",
     expectedDirectionLabel: "-",
     actualDirectionLabel: "-",
     strengthScore: 0,
@@ -416,6 +586,7 @@ function makeUnclearRead(
 }
 
 function buildComparisonSide(
+  factor: MacroFactorDefinition,
   cell: PairMatrixCurrencyCell | null,
   mode: PairMatrixComparisonMode,
 ): PairMatrixComparisonSide | null {
@@ -437,6 +608,7 @@ function buildComparisonSide(
       formulaLabel: cell.latestReasonDetail,
       reasonCode: cell.latestReasonCode,
       reasonLabel: cell.latestReasonLabel,
+      macroHealth: getUnknownMacroHealthRead(cell.currency, cell.latestReasonCode, cell.latestReasonDetail),
     };
   }
   const comparison = getEventComparison(event);
@@ -459,6 +631,7 @@ function buildComparisonSide(
       formulaLabel: getPairMatrixReasonDetail(reasonCode),
       reasonCode,
       reasonLabel: getPairMatrixReasonLabel(reasonCode),
+      macroHealth: getUnknownMacroHealthRead(event.currency, reasonCode),
     };
   }
 
@@ -475,6 +648,15 @@ function buildComparisonSide(
   const comparisonLabel = getEventValueDisplay(String(comparison.comparisonValue), event.title).display;
   const rawSurpriseLabel = formatSignedValue(comparison.surprise, event.title);
   const relativeSurpriseLabel = formatRelative(relativeScore);
+  const macroHealth = buildMacroHealthRead({
+    factor,
+    event,
+    actualValue,
+    actualLabel,
+    comparisonLabel,
+    basisLabel,
+    surprise: comparison.surprise,
+  });
 
   return {
     currency: event.currency,
@@ -494,6 +676,7 @@ function buildComparisonSide(
         : `${basisLabel}: ${relativeSurpriseLabel} ${mode === "macro_price" ? `x ${acceptance.label}` : "macro surprise"} = ${formatSignedFixed(score, 1)} pts.`,
     reasonCode: "loaded",
     reasonLabel: getPairMatrixReasonLabel("loaded"),
+    macroHealth,
   };
 }
 
@@ -579,14 +762,53 @@ function buildLevelComparison(
   const baseLevel = formatSideLevel(base);
   const quoteLevel = formatSideLevel(quote);
   const valuesLabel = [baseLevel, quoteLevel].filter(Boolean).join(" / ") || "level unavailable";
+  const healthLabel = `${base?.currency ?? "Base"} ${base?.macroHealth.label ?? "Unknown"} / ${quote?.currency ?? "Quote"} ${quote?.macroHealth.label ?? "Unknown"}`;
   const unavailable = {
     state: "unavailable" as const,
     label: "Level: N/A",
-    detailLabel: valuesLabel,
-    title: "Level context needs numeric actual values on both sides.",
+    detailLabel: healthLabel,
+    title: "Level context needs macro-health reads and numeric actual values on both sides.",
   };
 
   if (!base || !quote || base.actualValue == null || quote.actualValue == null) return unavailable;
+
+  const baseHealthScore = base.macroHealth.score;
+  const quoteHealthScore = quote.macroHealth.score;
+  if (baseHealthScore == null || quoteHealthScore == null) {
+    return {
+      state: "unavailable",
+      label: "Level: Unknown",
+      detailLabel: healthLabel,
+      title: `${factor.label} level context: ${base.currency} ${base.macroHealth.title} ${quote.currency} ${quote.macroHealth.title} Pair Matrix does not count Unknown health as a level winner.`,
+    };
+  }
+
+  if (baseHealthScore !== quoteHealthScore) {
+    const leader = baseHealthScore > quoteHealthScore ? base : quote;
+    return {
+      state: baseHealthScore > quoteHealthScore ? "base" : "quote",
+      label: `Level: ${leader.currency} healthier`,
+      detailLabel: healthLabel,
+      title: `${factor.label} level context uses FX-supportive macro health first. ${base.currency}: ${base.macroHealth.label} (${base.macroHealth.detailLabel}). ${quote.currency}: ${quote.macroHealth.label} (${quote.macroHealth.detailLabel}). ${leader.currency} wins the health comparison.`,
+    };
+  }
+
+  if (factor.id !== "policy" && factor.id !== "pmi") {
+    const sameHealthLabel =
+      base.macroHealth.state === "good"
+        ? "Level: Both supportive"
+        : base.macroHealth.state === "bad"
+          ? "Level: Both weak"
+          : base.macroHealth.state === "neutral"
+            ? "Level: Neutral"
+            : "Level: Unknown";
+    return {
+      state: base.macroHealth.state === "neutral" ? "even" : "mixed",
+      label: sameHealthLabel,
+      detailLabel: healthLabel,
+      title: `${factor.label} level context uses FX-supportive macro health first. ${base.currency}: ${base.macroHealth.label} (${base.macroHealth.detailLabel}). ${quote.currency}: ${quote.macroHealth.label} (${quote.macroHealth.detailLabel}). Both sides have the same health state, so Pair Matrix does not compare raw ${base.actualLabel} versus ${quote.actualLabel} as a cross-currency level winner.`,
+    };
+  }
 
   const basePolarity = getLevelPolarity(factor, base);
   const quotePolarity = getLevelPolarity(factor, quote);
@@ -594,13 +816,13 @@ function buildLevelComparison(
   const quoteUnit = getLevelUnit(quote);
   const baseFamily = getLevelFamily(factor, base);
   const quoteFamily = getLevelFamily(factor, quote);
-  const fullTitle = `${factor.label} level context: ${base.currency} ${base.eventTitle} actual ${base.actualLabel}; ${quote.currency} ${quote.eventTitle} actual ${quote.actualLabel}.`;
+  const fullTitle = `${factor.label} level context: ${base.currency} ${base.eventTitle} actual ${base.actualLabel} (${base.macroHealth.label}: ${base.macroHealth.detailLabel}); ${quote.currency} ${quote.eventTitle} actual ${quote.actualLabel} (${quote.macroHealth.label}: ${quote.macroHealth.detailLabel}).`;
 
   if (factor.id !== "policy" && factor.id !== "pmi" && (baseUnit !== quoteUnit || basePolarity == null || quotePolarity == null || baseFamily !== quoteFamily)) {
     return {
       state: "mixed",
       label: "Level: Mixed units",
-      detailLabel: valuesLabel,
+      detailLabel: healthLabel,
       title: `${fullTitle} These rows are not the same comparable unit/family, so Pair Matrix does not fake a level winner.`,
     };
   }
@@ -609,7 +831,7 @@ function buildLevelComparison(
     return {
       state: "mixed",
       label: "Level: Mixed",
-      detailLabel: valuesLabel,
+      detailLabel: healthLabel,
       title: `${fullTitle} Direction cannot be compared honestly across these loaded row types.`,
     };
   }
@@ -623,7 +845,7 @@ function buildLevelComparison(
     return {
       state: "even",
       label: "Level: Even",
-      detailLabel: valuesLabel,
+      detailLabel: healthLabel,
       title: `${fullTitle} Comparable levels are effectively even.`,
     };
   }
@@ -818,17 +1040,32 @@ export function derivePairMatrixAlignment(params: {
   const priceDelta = cursorCandle.close - releaseCandle.close;
   const percentMove = releaseCandle.close === 0 ? 0 : (priceDelta / releaseCandle.close) * 100;
   const pips = priceDelta / instrument.pipSize;
+  const currentCandleDelta = cursorCandle.close - cursorCandle.open;
+  const currentCandlePercentMove = cursorCandle.open === 0 ? 0 : (currentCandleDelta / cursorCandle.open) * 100;
+  const currentCandlePips = currentCandleDelta / instrument.pipSize;
   const threshold = getPriceThreshold({
     sensitivity: params.sensitivity,
     pipSize: instrument.pipSize,
     releaseClose: releaseCandle.close,
   });
+  const currentCandleThreshold = getPriceThreshold({
+    sensitivity: params.sensitivity,
+    pipSize: instrument.pipSize,
+    releaseClose: cursorCandle.open,
+  });
   const surpriseThreshold = getSurpriseThreshold(params.sensitivity, comparison.comparisonValue);
   const actualDirection = priceDelta > 0 ? 1 : priceDelta < 0 ? -1 : 0;
+  const currentCandleDirection = currentCandleDelta > 0 ? 1 : currentCandleDelta < 0 ? -1 : 0;
   const status: PairMatrixAlignmentStatus =
     Math.abs(comparison.surprise) < surpriseThreshold || Math.abs(priceDelta) < threshold || actualDirection === 0
       ? "muted"
       : actualDirection === expectedPairDirection
+        ? "aligned"
+        : "rejected";
+  const currentCandleStatus: PairMatrixAlignmentStatus =
+    Math.abs(comparison.surprise) < surpriseThreshold || Math.abs(currentCandleDelta) < currentCandleThreshold || currentCandleDirection === 0
+      ? "muted"
+      : currentCandleDirection === expectedPairDirection
         ? "aligned"
         : "rejected";
 
@@ -836,8 +1073,12 @@ export function derivePairMatrixAlignment(params: {
   const symbolLabel = params.selectedSymbol.toUpperCase();
   const expectedDirectionLabel = `${symbolLabel} expected ${expectedPairDirection > 0 ? "up" : "down"}`;
   const actualDirectionLabel = actualDirection > 0 ? "price up" : actualDirection < 0 ? "price down" : "flat";
+  const currentCandleDirectionLabel =
+    currentCandleDirection > 0 ? "current candle up" : currentCandleDirection < 0 ? "current candle down" : "current candle flat";
   const pipsLabel = `${formatSignedFixed(pips, 1)} pips`;
   const percentLabel = `${formatSignedFixed(percentMove, 2, "%")}`;
+  const currentCandlePipsLabel = `${formatSignedFixed(currentCandlePips, 1)} pips`;
+  const currentCandlePercentLabel = `${formatSignedFixed(currentCandlePercentMove, 2, "%")}`;
 
   return {
     status,
@@ -852,6 +1093,12 @@ export function derivePairMatrixAlignment(params: {
     percentLabel,
     releaseChartTime: releaseCandle.time,
     cursorChartTime: cursorCandle.time,
+    currentCandleTime: cursorCandle.time,
+    currentCandleMoveLabel: `${currentCandlePipsLabel} / ${currentCandlePercentLabel}`,
+    currentCandlePipsLabel,
+    currentCandlePercentLabel,
+    currentCandleDirectionLabel,
+    currentCandleStatus,
     expectedDirectionLabel,
     actualDirectionLabel,
     strengthScore: Math.abs(pips) + Math.abs(percentMove),
@@ -932,8 +1179,8 @@ export function buildPairMatrixViewRows(params: {
       baseCell && quoteCell
         ? compareFactorSides({
             factor,
-            base: buildComparisonSide(baseCell, params.preferences.comparisonMode),
-            quote: buildComparisonSide(quoteCell, params.preferences.comparisonMode),
+            base: buildComparisonSide(factor, baseCell, params.preferences.comparisonMode),
+            quote: buildComparisonSide(factor, quoteCell, params.preferences.comparisonMode),
           })
         : null;
 
