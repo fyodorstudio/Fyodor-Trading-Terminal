@@ -303,8 +303,11 @@
 .chart-pair-matrix-summary-box.is-state.is-driver-red { background: #dc2626; border-color: #dc2626; }
 .chart-pair-matrix-summary-box.is-state.is-driver-outlier { background: #b45309; border-color: #b45309; }
 .chart-pair-matrix-summary-box.is-state.is-driver-mixed { background: #475569; border-color: #475569; }
-.chart-pair-matrix-head-summary button { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: 0 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; color: #475569; }
-.chart-pair-matrix-head-summary button:hover { border-color: #cbd5e1; background: #f8fafc; color: #0f172a; }
+.chart-pair-matrix-hierarchy-toggle { display: inline-flex; width: 76px; height: 28px; flex: 0 0 auto; align-items: center; justify-content: center; border: 1px solid #dbeafe; border-radius: 7px; background: #fff; color: #1d4ed8; font-size: 10px; font-weight: 950; line-height: 1; white-space: nowrap; }
+.chart-pair-matrix-hierarchy-toggle:hover { border-color: #93c5fd; background: #eff6ff; }
+.chart-pair-matrix-hierarchy-toggle.is-active { border-color: #1d4ed8; background: #2563eb; color: #fff; }
+.chart-pair-matrix-head-summary button:not(.chart-pair-matrix-hierarchy-toggle) { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: 0 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; color: #475569; }
+.chart-pair-matrix-head-summary button:not(.chart-pair-matrix-hierarchy-toggle):hover { border-color: #cbd5e1; background: #f8fafc; color: #0f172a; }
 .chart-pair-matrix-settings { position: relative; display: inline-flex; flex: 0 0 auto; }
 .chart-pair-matrix-settings-popover { position: absolute; top: calc(100% + 6px); right: 0; z-index: 5; display: grid; gap: 10px; min-width: 380px; padding: 12px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; box-shadow: 0 14px 36px rgba(15, 23, 42, 0.18); }
 .chart-pair-matrix-settings-popover[hidden] { display: none; }
@@ -370,14 +373,10 @@
 .chart-pair-matrix-signal-read .chart-pair-matrix-signal-values { display: grid; grid-template-columns: minmax(58px, 0.72fr) minmax(58px, 0.72fr) minmax(74px, 0.9fr); gap: 8px; align-items: center; }
 .chart-pair-matrix-signal-values b { min-width: 0; overflow: hidden; color: #475569; font-size: 11px; font-weight: 850; line-height: 1.08; text-overflow: clip; white-space: nowrap; }
 .chart-pair-matrix-signal-read time { color: #1d4ed8; font-weight: 950; }
-.chart-pair-matrix-score-pair { display: grid; grid-template-columns: minmax(28px, max-content) minmax(0, 1fr) minmax(28px, max-content) minmax(0, 1fr); align-items: center; gap: 4px; }
-.chart-pair-matrix-score-pair b { min-width: 0; overflow: hidden; color: #0f172a; font-size: 11px; font-weight: 950; line-height: 1.05; text-overflow: clip; white-space: nowrap; }
-.chart-pair-matrix-score-pair em { min-width: 0; overflow: hidden; color: #0f172a; font-size: 11px; font-style: normal; font-weight: 950; line-height: 1.05; text-align: right; text-overflow: clip; white-space: nowrap; }
-.chart-pair-matrix-score-pair.is-secondary b,
-.chart-pair-matrix-score-pair.is-secondary em { color: #475569; font-size: 10.5px; font-weight: 850; }
-.chart-pair-matrix-move-pair { display: grid; grid-template-columns: minmax(70px, 1fr) minmax(54px, 0.76fr); align-items: center; gap: 8px; }
-.chart-pair-matrix-move-pair b { min-width: 0; overflow: hidden; color: #0f172a; font-size: 12px; font-weight: 950; line-height: 1.05; text-overflow: clip; white-space: nowrap; }
-.chart-pair-matrix-move-pair b:last-child { text-align: right; }
+.chart-pair-matrix-move-stack { display: grid; align-content: center; gap: 2px; }
+.chart-pair-matrix-move-stack b,
+.chart-pair-matrix-move-stack em { min-width: 0; overflow: hidden; color: #0f172a; font-size: 12px; font-style: normal; font-weight: 950; line-height: 1.05; text-overflow: clip; white-space: nowrap; }
+.chart-pair-matrix-move-stack em { color: #475569; font-size: 10.5px; font-weight: 850; }
 .chart-pair-matrix-signal-read.is-empty span,
 .chart-pair-matrix-signal-winner.is-empty,
 .chart-pair-matrix-signal-reaction.is-empty { color: #94a3b8; }

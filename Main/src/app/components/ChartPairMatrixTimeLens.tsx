@@ -167,6 +167,11 @@ function getReadableRows(rows: PairMatrixFactorViewRow[], layoutMode: PairMatrix
   });
 }
 
+function formatSignedPointValue(value: number): string {
+  const formatted = value.toFixed(1);
+  return value > 0 ? `+${formatted}` : formatted;
+}
+
 function getSignalHeadline(
   pairLabel: string,
   summary: PairMatrixComparisonSummary | null,
@@ -461,6 +466,17 @@ function PairMatrixHeaderSummary({
           />
         </>
       ) : null}
+      <button
+        type="button"
+        className={`chart-pair-matrix-hierarchy-toggle ${preferences.layoutMode === "top_drivers" ? "is-active" : ""}`}
+        onClick={() =>
+          onPreferenceChange("layoutMode", preferences.layoutMode === "top_drivers" ? "signal_bands" : "top_drivers")
+        }
+        title="Toggle hierarchy view. When active, stronger accepted/rejected evidence rows move upward."
+        aria-pressed={preferences.layoutMode === "top_drivers"}
+      >
+        Hierarchy
+      </button>
       <div className="chart-pair-matrix-settings">
         <button
           type="button"
@@ -646,22 +662,26 @@ function SignalWinnerCell({ comparison }: { comparison: PairMatrixFactorComparis
   if (!comparison) return <span className="chart-pair-matrix-signal-winner is-empty">No read</span>;
   const baseCurrency = comparison.base?.currency ?? "Base";
   const quoteCurrency = comparison.quote?.currency ?? "Quote";
-  const baseScore = comparison.base?.scoreLabel ?? "-";
-  const quoteScore = comparison.quote?.scoreLabel ?? "-";
+  const baseScore = comparison.base?.score;
+  const quoteScore = comparison.quote?.score;
+  const hasDifferential = baseScore != null && quoteScore != null;
+  const differential = hasDifferential ? baseScore - quoteScore : null;
+  const leaderLabel =
+    differential == null
+      ? "Diff N/A"
+      : differential > 0
+        ? `${baseCurrency} +${Math.abs(differential).toFixed(1)} pts`
+        : differential < 0
+          ? `${quoteCurrency} +${Math.abs(differential).toFixed(1)} pts`
+          : "Even 0.0 pts";
+  const differentialLabel =
+    differential == null
+      ? `${baseCurrency} - ${quoteCurrency}: N/A`
+      : `${baseCurrency} - ${quoteCurrency}: ${formatSignedPointValue(differential)} pts`;
   return (
     <span className={`chart-pair-matrix-signal-winner is-${comparison.state}`} title={`${comparison.detailLabel}. ${comparison.contextTitle ?? ""}`}>
-      <strong className="chart-pair-matrix-score-pair">
-        <b>{baseCurrency}</b>
-        <em>{baseScore}</em>
-        <b>{quoteCurrency}</b>
-        <em>{quoteScore}</em>
-      </strong>
-      <span className="chart-pair-matrix-score-pair is-secondary">
-        <b>{baseCurrency}</b>
-        <em>{baseScore}</em>
-        <b>{quoteCurrency}</b>
-        <em>{quoteScore}</em>
-      </span>
+      <strong>{leaderLabel}</strong>
+      <span>{differentialLabel}</span>
       {comparison.contextLabel ? <em>{comparison.contextLabel}</em> : null}
     </span>
   );
@@ -694,9 +714,9 @@ function SignalReactionCell({
       {read.status === "unclear" ? (
         <strong>No directional read</strong>
       ) : (
-        <strong className="chart-pair-matrix-move-pair">
-          <b>{read.pipsLabel}</b>
+        <strong className="chart-pair-matrix-move-stack">
           <b>{read.percentLabel}</b>
+          <em>{read.pipsLabel}</em>
         </strong>
       )}
       <em>{secondaryLine}</em>

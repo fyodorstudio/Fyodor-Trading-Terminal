@@ -728,7 +728,9 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).toContain("Pair Matrix settings");
     expect(html).toContain("chart-pair-matrix-summary-box");
     expect(html).toContain("USD higher rate +1.10pp");
-    expect(html).toContain("chart-pair-matrix-score-pair");
+    expect(html).toContain("USD +7.1 pts");
+    expect(html).toContain("EUR - USD: -7.1 pts");
+    expect(html).not.toContain("chart-pair-matrix-score-pair");
     expect(html).toContain("EURUSD down bias - price accepted");
     expect(html).toContain("Bias + reaction");
     expect(html).toContain("Macro Vote: 0/1/0");
@@ -768,8 +770,8 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).not.toContain(">30 Jul 2026 04:00<");
     expect(html).toContain("-20.0 pips");
     expect(html).toContain("-0.18%");
-    expect(html).toContain("chart-pair-matrix-move-pair");
-    expect(html).toContain("<b>-20.0 pips</b><b>-0.18%</b>");
+    expect(html).toContain("chart-pair-matrix-move-stack");
+    expect(html).toContain("<b>-0.18%</b><em>-20.0 pips</em>");
     expect(html).toContain("Range 30 Jul 2026 04:00 -&gt; 30 Jul 2026 05:00");
     expect(html).toContain("<em>30 Jul 04:00 -&gt; 30 Jul 05:00</em>");
     expect(html).not.toContain("<em>30 Jul 2026 04:00 -&gt; 30 Jul 2026 05:00</em>");
@@ -780,6 +782,8 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).not.toContain("<strong>Unclear</strong>");
     expect(html).toContain("chart-pair-matrix-settings-details");
     expect(html).toContain("Evidence Signal settings");
+    expect(html).toContain("Hierarchy");
+    expect(html).toContain("Toggle hierarchy view");
     expect(html).toContain("Evidence Signal combines macro vote");
     expect(html).toContain("Evidence Signal color guide");
     expect(html).toContain("Green: price accepted the read");
