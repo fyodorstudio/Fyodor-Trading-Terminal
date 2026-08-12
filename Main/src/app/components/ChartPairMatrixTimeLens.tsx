@@ -299,6 +299,7 @@ type PairMatrixHeaderCountLine = {
   label: string;
   detail: string;
   title: string;
+  className?: string;
 };
 
 function getMacroVoteCountLine(summary: PairMatrixComparisonSummary): PairMatrixHeaderCountLine {
@@ -326,13 +327,23 @@ function getDriverAcceptanceSummary(rows: PairMatrixFactorViewRow[]): PairMatrix
     return {
       label: "Driver Read: 0/0/0",
       detail: "Green / Red / Outlier",
+      className: "is-driver-outlier",
       title: "Driver acceptance needs loaded releases and loaded candles from release close to cursor close.",
     };
   }
+  const driverClassName =
+    aligned > rejected && aligned > outlier
+      ? "is-driver-green"
+      : rejected > aligned && rejected > outlier
+        ? "is-driver-red"
+        : outlier > aligned && outlier > rejected
+          ? "is-driver-outlier"
+          : "is-driver-mixed";
 
   return {
     label: `Driver Read: ${aligned}/${rejected}/${outlier}`,
     detail: "Green / Red / Outlier",
+    className: driverClassName,
     title: `Driver color counts visible factor rows: green ${aligned}, red ${rejected}, gray ${muted}, amber ${unclear}.`,
   };
 }
@@ -429,7 +440,7 @@ function PairMatrixHeaderSummary({
           <PairMatrixSummaryBox
             label={driverSummary.label}
             detail={driverSummary.detail}
-            className="is-driver"
+            className={`is-state is-driver ${driverSummary.className ?? "is-driver-mixed"}`}
             title={driverSummary.title}
           />
           <PairMatrixSummaryBox

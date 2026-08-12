@@ -299,6 +299,10 @@
 .chart-pair-matrix-summary-box.is-state.is-both_weak { background: #b45309; border-color: #b45309; }
 .chart-pair-matrix-summary-box.is-state.is-partial_read { background: #475569; border-color: #475569; }
 .chart-pair-matrix-summary-box.is-state.is-no_surprise { background: #64748b; border-color: #64748b; }
+.chart-pair-matrix-summary-box.is-state.is-driver-green { background: #059669; border-color: #059669; }
+.chart-pair-matrix-summary-box.is-state.is-driver-red { background: #dc2626; border-color: #dc2626; }
+.chart-pair-matrix-summary-box.is-state.is-driver-outlier { background: #b45309; border-color: #b45309; }
+.chart-pair-matrix-summary-box.is-state.is-driver-mixed { background: #475569; border-color: #475569; }
 .chart-pair-matrix-head-summary button { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: 0 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; color: #475569; }
 .chart-pair-matrix-head-summary button:hover { border-color: #cbd5e1; background: #f8fafc; color: #0f172a; }
 .chart-pair-matrix-settings { position: relative; display: inline-flex; flex: 0 0 auto; }

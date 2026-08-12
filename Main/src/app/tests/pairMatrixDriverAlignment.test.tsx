@@ -741,6 +741,7 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).not.toContain(">Partial read<");
     expect(html).toContain("Driver Read: 1/0/0");
     expect(html).toContain("Green / Red / Outlier");
+    expect(html).toContain("is-state is-driver is-driver-green");
     expect(html).not.toContain("Base 0 / Quote 1 /");
     expect(html).not.toContain("Green 1 / Red 0");
     expect(html).not.toContain("Other 0");
