@@ -730,8 +730,13 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).toContain("USD higher rate +1.10pp");
     expect(html).toContain("EURUSD down bias - price accepted");
     expect(html).toContain("Macro vote");
-    expect(html).toContain("Quote leads");
     expect(html).toContain("Base 0 / Quote 1");
+    expect(html).toContain("is-state is-vote is-quote_leads");
+    expect(html).toContain("chart-pair-matrix-signal-winner is-quote_leads");
+    expect(html).not.toContain(">Quote leads<");
+    expect(html).not.toContain(">Base leads<");
+    expect(html).not.toContain(">No surprise<");
+    expect(html).not.toContain(">Partial read<");
     expect(html).toContain("Driver read");
     expect(html).toContain("Green 1 / Red 0");
     expect(html).toContain("Move size");
@@ -763,7 +768,11 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).toContain("chart-pair-matrix-settings-details");
     expect(html).toContain("Evidence Signal settings");
     expect(html).toContain("Evidence Signal combines macro vote");
-    expect(html).toContain("Color guide: green = price accepted the data read; red = price moved against it; gray = move too small; amber = no honest directional read.");
+    expect(html).toContain("Evidence Signal color guide");
+    expect(html).toContain("Green: price accepted the read");
+    expect(html).toContain("Red: price rejected the read");
+    expect(html).toContain("Blue: base side stronger");
+    expect(html).toContain("Purple: quote side stronger");
     expect(html).toContain("1/1 factor cells loaded");
     expect(html).toContain("Loaded broker/MT5 rows only");
     expect(html).toContain("Pair Matrix lookback: 400d current");

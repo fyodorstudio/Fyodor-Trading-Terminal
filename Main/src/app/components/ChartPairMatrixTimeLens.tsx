@@ -215,7 +215,7 @@ function getSignalHeadline(
 
   return {
     label: `${directionLabel} - ${reaction}`,
-    detail: summary ? `${summary.stateLabel} - ${summary.voteBreakdownLabel}` : "Waiting for loaded evidence",
+    detail: summary ? summary.voteBreakdownLabel : "Waiting for loaded evidence",
     className: direction === "up" ? "is-up" : direction === "down" ? "is-down" : "is-mixed",
     title: `${summary?.detailLabel ?? "No macro summary yet"} Driver reads: ${aligned} aligned, ${rejected} rejected.`,
   };
@@ -380,7 +380,7 @@ function PairMatrixHeaderSummary({
         <>
           <PairMatrixSummaryBox
             label="Macro vote"
-            detail={`${summary.stateLabel} - ${summary.voteBreakdownLabel}`}
+            detail={summary.voteBreakdownLabel}
             className={`is-state is-vote is-${summary.state}`}
             title={`${summary.modeLabel} / ${summary.winnerModeLabel}. ${summary.detailLabel}${summary.otherBreakdownLabel ? ` Other: ${summary.otherBreakdownLabel}.` : ""}`}
           />
@@ -421,16 +421,23 @@ function PairMatrixHeaderSummary({
         <div className="chart-pair-matrix-settings-popover" hidden={!settingsOpen}>
           <div className="chart-pair-matrix-settings-details">
             <strong>Evidence Signal settings</strong>
-            <span title="How many base/quote factor cells currently have loaded latest or next release evidence.">{coverageLabel}</span>
-            <span title="Pair Matrix v1 only reads local MT5 candles and loaded broker/MT5 calendar rows.">Loaded broker/MT5 rows only</span>
-            <span title="Current Pair Matrix calendar lookback mode.">{calendarDiagnostics.lookbackLabel}</span>
-            <span title="Current Pair Matrix calendar fetch state.">{calendarDiagnostics.loadStateLabel}</span>
-            <span title="Oldest and newest broker/MT5 calendar rows currently available to Pair Matrix.">{calendarDiagnostics.loadedRangeLabel}</span>
-            <span title="Whether the cursor anchor is inside the loaded Pair Matrix calendar range.">{calendarDiagnostics.anchorStatusLabel}</span>
             <p>Evidence Signal combines macro vote, expected pair direction, and release-to-cursor price acceptance.</p>
-            <p className="chart-pair-matrix-color-guide" title="Reaction colors are visual evidence labels, not automated execution.">
-              Color guide: green = price accepted the data read; red = price moved against it; gray = move too small; amber = no honest directional read.
-            </p>
+            <div className="chart-pair-matrix-signal-legend" aria-label="Evidence Signal color guide">
+              <span className="is-green" title="Price moved with the data-implied pair direction."><b />Green: price accepted the read</span>
+              <span className="is-red" title="Price moved against the data-implied pair direction."><b />Red: price rejected the read</span>
+              <span className="is-gray" title="Price move was below the configured sensitivity threshold."><b />Gray: move too small</span>
+              <span className="is-amber" title="The loaded data cannot honestly infer a direction."><b />Amber: no clear directional read</span>
+              <span className="is-blue" title="Base side scores stronger than quote side."><b />Blue: base side stronger</span>
+              <span className="is-purple" title="Quote side scores stronger than base side."><b />Purple: quote side stronger</span>
+            </div>
+            <div className="chart-pair-matrix-settings-meta">
+              <span title="How many base/quote factor cells currently have loaded latest or next release evidence.">{coverageLabel}</span>
+              <span title="Pair Matrix v1 only reads local MT5 candles and loaded broker/MT5 calendar rows.">Loaded broker/MT5 rows only</span>
+              <span title="Current Pair Matrix calendar lookback mode.">{calendarDiagnostics.lookbackLabel}</span>
+              <span title="Current Pair Matrix calendar fetch state.">{calendarDiagnostics.loadStateLabel}</span>
+              <span title="Oldest and newest broker/MT5 calendar rows currently available to Pair Matrix.">{calendarDiagnostics.loadedRangeLabel}</span>
+              <span title="Whether the cursor anchor is inside the loaded Pair Matrix calendar range.">{calendarDiagnostics.anchorStatusLabel}</span>
+            </div>
             {calendarDiagnostics.canLoadOlder ? (
               <button
                 type="button"
@@ -581,7 +588,7 @@ function SignalWinnerCell({ comparison }: { comparison: PairMatrixFactorComparis
   if (!comparison) return <span className="chart-pair-matrix-signal-winner is-empty">No read</span>;
   return (
     <span className={`chart-pair-matrix-signal-winner is-${comparison.state}`} title={`${comparison.detailLabel}. ${comparison.contextTitle ?? ""}`}>
-      <strong>{comparison.stateLabel}</strong>
+      <strong>{comparison.detailLabel}</strong>
       <span>{comparison.base?.scoreLabel ?? "-"} / {comparison.quote?.scoreLabel ?? "-"}</span>
       {comparison.contextLabel ? <em>{comparison.contextLabel}</em> : null}
     </span>
@@ -724,7 +731,7 @@ function PairMatrixDetailsPanel({
       ))}
       {row.comparison ? (
         <p title={row.comparison.contextTitle ?? row.comparison.detailLabel}>
-          {row.comparison.stateLabel}: {row.comparison.detailLabel}
+          {row.comparison.detailLabel}
           {row.comparison.contextLabel ? ` / ${row.comparison.contextLabel}` : ""}
         </p>
       ) : null}
