@@ -644,10 +644,24 @@ function SignalSideRead({
 
 function SignalWinnerCell({ comparison }: { comparison: PairMatrixFactorComparison | null }) {
   if (!comparison) return <span className="chart-pair-matrix-signal-winner is-empty">No read</span>;
+  const baseCurrency = comparison.base?.currency ?? "Base";
+  const quoteCurrency = comparison.quote?.currency ?? "Quote";
+  const baseScore = comparison.base?.scoreLabel ?? "-";
+  const quoteScore = comparison.quote?.scoreLabel ?? "-";
   return (
     <span className={`chart-pair-matrix-signal-winner is-${comparison.state}`} title={`${comparison.detailLabel}. ${comparison.contextTitle ?? ""}`}>
-      <strong>{comparison.detailLabel}</strong>
-      <span>{comparison.base?.scoreLabel ?? "-"} / {comparison.quote?.scoreLabel ?? "-"}</span>
+      <strong className="chart-pair-matrix-score-pair">
+        <b>{baseCurrency}</b>
+        <em>{baseScore}</em>
+        <b>{quoteCurrency}</b>
+        <em>{quoteScore}</em>
+      </strong>
+      <span className="chart-pair-matrix-score-pair is-secondary">
+        <b>{baseCurrency}</b>
+        <em>{baseScore}</em>
+        <b>{quoteCurrency}</b>
+        <em>{quoteScore}</em>
+      </span>
       {comparison.contextLabel ? <em>{comparison.contextLabel}</em> : null}
     </span>
   );
@@ -673,12 +687,18 @@ function SignalReactionCell({
     : read.reasonLabel;
   const expectedShortLabel = read.expectedDirectionLabel.replace(/^[A-Z0-9]+ expected /, "Expected ");
   const directionLabel = read.status === "unclear" ? read.reasonLabel : `${expectedShortLabel} / ${read.actualDirectionLabel}`;
-  const primaryLine = read.status === "unclear" ? "No directional read" : read.priceMoveLabel;
   const secondaryLine = read.status === "unclear" ? "No expected/price match" : directionLabel;
 
   return (
     <span className={`chart-pair-matrix-signal-reaction is-${read.status}`} title={`${read.reason} Range ${rangeLabel}.`}>
-      <strong>{primaryLine}</strong>
+      {read.status === "unclear" ? (
+        <strong>No directional read</strong>
+      ) : (
+        <strong className="chart-pair-matrix-move-pair">
+          <b>{read.pipsLabel}</b>
+          <b>{read.percentLabel}</b>
+        </strong>
+      )}
       <em>{secondaryLine}</em>
     </span>
   );
