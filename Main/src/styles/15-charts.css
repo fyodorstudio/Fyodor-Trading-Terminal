@@ -277,7 +277,7 @@
 .chart-pair-matrix-title > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
 .chart-pair-matrix-title > strong { min-width: 0; color: #0f172a; font-size: 14px; font-weight: 950; line-height: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chart-pair-matrix-head-summary { display: flex; min-width: 0; flex-wrap: nowrap; align-items: center; justify-content: flex-end; gap: 6px; overflow: visible; }
-.chart-pair-matrix-summary-box { display: grid; width: 104px; height: 30px; min-width: 104px; align-content: center; gap: 1px; padding: 3px 7px; border: 1px solid #dbe3ef; border-radius: 6px; background: #fff; color: #334155; line-height: 1; box-sizing: border-box; }
+.chart-pair-matrix-summary-box { display: grid; width: 104px; height: 32px; min-width: 104px; align-content: center; gap: 1px; padding: 3px 7px; border: 1px solid #dbe3ef; border-radius: 6px; background: #fff; color: #334155; line-height: 1; box-sizing: border-box; }
 .chart-pair-matrix-summary-box > strong { min-width: 0; color: #0f172a; font-size: 10px; font-weight: 950; letter-spacing: 0; line-height: 1.05; overflow: hidden; text-overflow: ellipsis; text-transform: none; white-space: nowrap; }
 .chart-pair-matrix-summary-box > em { min-width: 0; color: #64748b; font-size: 8px; font-style: normal; font-weight: 900; letter-spacing: 0; line-height: 1.05; overflow: hidden; text-overflow: ellipsis; text-transform: none; white-space: nowrap; }
 .chart-pair-matrix-summary-box.is-anchor { width: 146px; min-width: 146px; }
@@ -285,10 +285,10 @@
 .chart-pair-matrix-summary-box.is-signal.is-up { border-color: #86efac; background: #ecfdf5; }
 .chart-pair-matrix-summary-box.is-signal.is-down { border-color: #fecaca; background: #fef2f2; }
 .chart-pair-matrix-summary-box.is-signal.is-mixed { border-color: #ddd6fe; background: #f5f3ff; }
-.chart-pair-matrix-summary-box.is-vote { width: 205px; min-width: 205px; }
-.chart-pair-matrix-summary-box.is-driver { width: 124px; min-width: 124px; }
+.chart-pair-matrix-summary-box.is-vote { width: 188px; min-width: 188px; }
+.chart-pair-matrix-summary-box.is-driver { width: 188px; min-width: 188px; }
 .chart-pair-matrix-summary-box.is-move { width: 108px; min-width: 108px; }
-.chart-pair-matrix-summary-box.is-range { width: 120px; min-width: 120px; }
+.chart-pair-matrix-summary-box.is-range { width: 188px; min-width: 188px; }
 .chart-pair-matrix-summary-box.is-state { background: #0f172a; border-color: #0f172a; color: #fff; }
 .chart-pair-matrix-summary-box.is-state > strong,
 .chart-pair-matrix-summary-box.is-state > em { color: #fff; }
@@ -298,6 +298,14 @@
 .chart-pair-matrix-summary-box.is-state.is-both_weak { background: #b45309; border-color: #b45309; }
 .chart-pair-matrix-summary-box.is-state.is-partial_read { background: #475569; border-color: #475569; }
 .chart-pair-matrix-summary-box.is-state.is-no_surprise { background: #64748b; border-color: #64748b; }
+.chart-pair-matrix-counter-group { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 3px; min-width: 0; }
+.chart-pair-matrix-counter { display: grid; min-width: 0; height: 18px; align-content: center; justify-items: center; gap: 1px; padding: 2px 3px; border: 1px solid rgba(255, 255, 255, 0.34); border-radius: 4px; background: rgba(255, 255, 255, 0.16); color: currentColor; box-sizing: border-box; }
+.chart-pair-matrix-counter em { color: currentColor; font-size: 7px; font-style: normal; font-weight: 950; line-height: 0.85; opacity: 0.82; overflow: hidden; text-overflow: clip; text-transform: uppercase; white-space: nowrap; }
+.chart-pair-matrix-counter b { color: currentColor; font-size: 9px; font-weight: 950; line-height: 0.9; }
+.chart-pair-matrix-summary-box:not(.is-state) .chart-pair-matrix-counter { border-color: #dbe3ef; background: #f8fafc; }
+.chart-pair-matrix-summary-box:not(.is-state) .chart-pair-matrix-counter.is-green { border-color: #bbf7d0; background: #ecfdf5; color: #047857; }
+.chart-pair-matrix-summary-box:not(.is-state) .chart-pair-matrix-counter.is-red { border-color: #fecaca; background: #fef2f2; color: #b91c1c; }
+.chart-pair-matrix-summary-box:not(.is-state) .chart-pair-matrix-counter.is-outlier { border-color: #fde68a; background: #fffbeb; color: #92400e; }
 .chart-pair-matrix-head-summary button { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: 0 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; color: #475569; }
 .chart-pair-matrix-head-summary button:hover { border-color: #cbd5e1; background: #f8fafc; color: #0f172a; }
 .chart-pair-matrix-settings { position: relative; display: inline-flex; flex: 0 0 auto; }

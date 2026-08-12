@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { GripHorizontal, SlidersHorizontal, Table2, X } from "lucide-react";
 import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import { formatChartEventDisplayTime } from "@/app/lib/chartEvents";
@@ -215,7 +215,12 @@ function getSignalHeadline(
 
   return {
     label: `${directionLabel} - ${reaction}`,
-    detail: summary ? summary.voteBreakdownLabel : "Waiting for loaded evidence",
+    detail:
+      preferences.signalBiasMode === "macro_vote"
+        ? "Macro vote only"
+        : preferences.signalBiasMode === "accepted_drivers"
+          ? "Driver read only"
+          : "Bias + reaction",
     className: direction === "up" ? "is-up" : direction === "down" ? "is-down" : "is-mixed",
     title: `${summary?.detailLabel ?? "No macro summary yet"} Driver reads: ${aligned} aligned, ${rejected} rejected.`,
   };
@@ -276,39 +281,82 @@ function PairMatrixSummaryBox({
   detail,
   className = "",
   title,
+  children,
 }: {
   label: string;
   detail?: string;
   className?: string;
   title?: string;
+  children?: ReactNode;
 }) {
   return (
     <span className={`chart-pair-matrix-summary-box ${className}`} title={title ?? `${label}${detail ? ` ${detail}` : ""}`}>
       <strong>{label}</strong>
-      {detail ? <em>{detail}</em> : null}
+      {children ?? (detail ? <em>{detail}</em> : null)}
     </span>
   );
 }
 
-function getDriverAcceptanceSummary(rows: PairMatrixFactorViewRow[]): { label: string; detail: string; title: string } {
+type PairMatrixHeaderCounter = {
+  label: string;
+  value: number;
+  title: string;
+  tone?: "base" | "quote" | "green" | "red" | "outlier";
+};
+
+function SummaryCounterGroup({ counters }: { counters: PairMatrixHeaderCounter[] }) {
+  return (
+    <span className="chart-pair-matrix-counter-group">
+      {counters.map((counter) => (
+        <span key={counter.label} className={`chart-pair-matrix-counter ${counter.tone ? `is-${counter.tone}` : ""}`} title={counter.title}>
+          <em>{counter.label}</em>
+          <b>{counter.value}</b>
+        </span>
+      ))}
+    </span>
+  );
+}
+
+function getMacroVoteCounters(summary: PairMatrixComparisonSummary): PairMatrixHeaderCounter[] {
+  const base = summary.factorReads.filter((read) => read.state === "base_leads").length;
+  const quote = summary.factorReads.filter((read) => read.state === "quote_leads").length;
+  const outlier = Math.max(0, summary.factorReads.length - base - quote);
+  const outlierTitle = summary.otherBreakdownLabel
+    ? `Outlier factors: ${summary.otherBreakdownLabel}.`
+    : "Outlier factors are split, mixed, both supportive, both weak, no-surprise, partial, or unclear reads.";
+
+  return [
+    { label: "Base", value: base, tone: "base", title: `${summary.baseCurrency ?? "Base"} side leads in ${base} visible factor reads.` },
+    { label: "Quote", value: quote, tone: "quote", title: `${summary.quoteCurrency ?? "Quote"} side leads in ${quote} visible factor reads.` },
+    { label: "Outlier", value: outlier, tone: "outlier", title: outlierTitle },
+  ];
+}
+
+function getDriverAcceptanceSummary(rows: PairMatrixFactorViewRow[]): { counters: PairMatrixHeaderCounter[]; title: string } {
   const reads = rows.map((row) => row.summaryAlignment).filter((read): read is PairMatrixAlignmentRead => read != null);
   const aligned = reads.filter((read) => read.status === "aligned").length;
   const rejected = reads.filter((read) => read.status === "rejected").length;
   const muted = reads.filter((read) => read.status === "muted").length;
   const unclear = reads.filter((read) => read.status === "unclear").length;
-  const other = muted + unclear;
+  const outlier = muted + unclear;
 
   if (reads.length === 0) {
     return {
-      label: "Driver read",
-      detail: "No loaded read",
+      counters: [
+        { label: "Green", value: 0, tone: "green", title: "Green counts price accepting the data-implied read." },
+        { label: "Red", value: 0, tone: "red", title: "Red counts price rejecting the data-implied read." },
+        { label: "Outlier", value: 0, tone: "outlier", title: "Outlier counts muted or unclear driver reads." },
+      ],
       title: "Driver acceptance needs loaded releases and loaded candles from release close to cursor close.",
     };
   }
 
   return {
-    label: "Driver read",
-    detail: `Green ${aligned} / Red ${rejected}${other > 0 ? ` / Other ${other}` : ""}`,
+    counters: [
+      { label: "Green", value: aligned, tone: "green", title: `Green: ${aligned} factor reads where price accepted the data-implied direction.` },
+      { label: "Red", value: rejected, tone: "red", title: `Red: ${rejected} factor reads where price moved against the data-implied direction.` },
+      { label: "Outlier", value: outlier, tone: "outlier", title: `Outlier: gray ${muted} muted reads plus amber ${unclear} unclear reads.` },
+    ],
     title: `Driver color counts visible factor rows: green ${aligned}, red ${rejected}, gray ${muted}, amber ${unclear}.`,
   };
 }
@@ -334,6 +382,22 @@ function getMoveRangeLabel(
     displayTimeMode,
     sourceTimeOffsetSeconds,
   )}`;
+}
+
+function getCompactMoveRangeLabel(
+  read: PairMatrixAlignmentRead | null,
+  displayTimeMode: ChartDisplayTimeMode,
+  sourceTimeOffsetSeconds: number,
+): string {
+  if (!read) return "no release-to-cursor window";
+  const start = formatChartCoordinateTime(read.releaseChartTime, displayTimeMode, sourceTimeOffsetSeconds);
+  const end = formatChartCoordinateTime(read.cursorChartTime, displayTimeMode, sourceTimeOffsetSeconds);
+  const startYear = getYearFromLabel(start);
+  const endYear = getYearFromLabel(end);
+  if (startYear && endYear === startYear) {
+    return `${start.replace(` ${startYear}`, "")} -> ${end.replace(` ${endYear}`, "")}`;
+  }
+  return `${start} -> ${end}`;
 }
 
 function PairMatrixHeaderSummary({
@@ -369,6 +433,7 @@ function PairMatrixHeaderSummary({
   const driverSummary = getDriverAcceptanceSummary(rows);
   const topMoveRead = getTopMoveRead(rows);
   const moveRangeLabel = getMoveRangeLabel(topMoveRead, displayTimeMode, sourceTimeOffsetSeconds);
+  const compactMoveRangeLabel = getCompactMoveRangeLabel(topMoveRead, displayTimeMode, sourceTimeOffsetSeconds);
   const headline = getSignalHeadline(pairLabel, summary, rows, preferences);
   const anchorMonthLabel = getMonthYearFromLabel(anchorLabel);
 
@@ -380,16 +445,18 @@ function PairMatrixHeaderSummary({
         <>
           <PairMatrixSummaryBox
             label="Macro vote"
-            detail={summary.voteBreakdownLabel}
             className={`is-state is-vote is-${summary.state}`}
-            title={`${summary.modeLabel} / ${summary.winnerModeLabel}. ${summary.detailLabel}${summary.otherBreakdownLabel ? ` Other: ${summary.otherBreakdownLabel}.` : ""}`}
-          />
+            title={`${summary.modeLabel} / ${summary.winnerModeLabel}. ${summary.detailLabel}${summary.otherBreakdownLabel ? ` Outlier: ${summary.otherBreakdownLabel}.` : ""}`}
+          >
+            <SummaryCounterGroup counters={getMacroVoteCounters(summary)} />
+          </PairMatrixSummaryBox>
           <PairMatrixSummaryBox
-            label={driverSummary.label}
-            detail={driverSummary.detail}
+            label="Driver read"
             className="is-driver"
             title={driverSummary.title}
-          />
+          >
+            <SummaryCounterGroup counters={driverSummary.counters} />
+          </PairMatrixSummaryBox>
           <PairMatrixSummaryBox
             label="Move size"
             detail={topMoveRead ? topMoveRead.priceMoveLabel : "no release-to-cursor candle window"}
@@ -402,7 +469,7 @@ function PairMatrixHeaderSummary({
           />
           <PairMatrixSummaryBox
             label="Range"
-            detail={moveRangeLabel}
+            detail={compactMoveRangeLabel}
             className="is-range"
             title={`Pips and percent are measured over this release-close to cursor-close range: ${moveRangeLabel}.`}
           />
