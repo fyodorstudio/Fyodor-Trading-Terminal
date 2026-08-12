@@ -38,6 +38,7 @@ export type PairMatrixComparisonState =
   | "split"
   | "mixed"
   | "unclear";
+export type PairMatrixLevelState = "base" | "quote" | "even" | "mixed" | "unavailable";
 
 export interface PairMatrixPreferences {
   driverReadMode: PairMatrixDriverReadMode;
@@ -126,6 +127,10 @@ export interface PairMatrixFactorComparison {
   detailLabel: string;
   contextLabel: string | null;
   contextTitle: string | null;
+  levelState: PairMatrixLevelState;
+  levelLabel: string;
+  levelDetailLabel: string;
+  levelTitle: string;
   reasonCodes: PairMatrixEvidenceReasonCode[];
 }
 
@@ -502,6 +507,147 @@ function formatSideLevel(side: PairMatrixComparisonSide | null): string | null {
   return `${side.currency} ${side.actualLabel}`;
 }
 
+function getLevelUnit(side: PairMatrixComparisonSide): "percent" | "thousand" | "plain" {
+  const display = side.actualLabel.toLowerCase();
+  if (display.includes("%")) return "percent";
+  if (display.endsWith("k")) return "thousand";
+  return "plain";
+}
+
+function formatLevelDelta(value: number, unit: "percent" | "thousand" | "plain"): string {
+  if (unit === "percent") return `+${Math.abs(value).toFixed(2).replace(/\.?0+$/, "")}pp`;
+  if (unit === "thousand") return `+${Math.abs(value).toFixed(1).replace(/\.?0+$/, "")}K`;
+  return `+${Math.abs(value).toFixed(2).replace(/\.?0+$/, "")}`;
+}
+
+function getLevelPolarity(factor: MacroFactorDefinition, side: PairMatrixComparisonSide): 1 | -1 | null {
+  const title = side.eventTitle.toLowerCase();
+  if (factor.id === "policy") return 1;
+  if (factor.id === "pmi") {
+    return isFactorTitle(side.eventTitle, ["pmi", "ism"]) ? 1 : null;
+  }
+  if (factor.id === "labor") {
+    if (
+      title.includes("unemployment") ||
+      title.includes("jobless") ||
+      title.includes("claims") ||
+      title.includes("claimant")
+    ) {
+      return -1;
+    }
+    if (
+      title.includes("payroll") ||
+      title.includes("employment") ||
+      title.includes("wage") ||
+      title.includes("earnings")
+    ) {
+      return 1;
+    }
+    return null;
+  }
+  if (factor.id === "inflation" || factor.id === "retail" || factor.id === "sentiment" || factor.id === "trade") {
+    return 1;
+  }
+  return null;
+}
+
+function getLevelFamily(factor: MacroFactorDefinition, side: PairMatrixComparisonSide): string {
+  const title = side.eventTitle.toLowerCase();
+  if (factor.id === "policy") return "policy";
+  if (factor.id === "pmi") return title.includes("ism") ? "activity" : title.includes("pmi") ? "activity" : "other";
+  if (factor.id === "labor") {
+    if (title.includes("unemployment")) return "unemployment";
+    if (title.includes("jobless") || title.includes("claims") || title.includes("claimant")) return "claims";
+    if (title.includes("payroll") || title.includes("employment")) return "employment";
+    if (title.includes("wage") || title.includes("earnings")) return "earnings";
+    return "labor";
+  }
+  if (factor.id === "inflation") {
+    if (title.includes("cpi")) return "cpi";
+    if (title.includes("pce")) return "pce";
+    if (title.includes("ppi")) return "ppi";
+    return "inflation";
+  }
+  return factor.id;
+}
+
+function buildLevelComparison(
+  factor: MacroFactorDefinition,
+  base: PairMatrixComparisonSide | null,
+  quote: PairMatrixComparisonSide | null,
+): { state: PairMatrixLevelState; label: string; detailLabel: string; title: string } {
+  const baseLevel = formatSideLevel(base);
+  const quoteLevel = formatSideLevel(quote);
+  const valuesLabel = [baseLevel, quoteLevel].filter(Boolean).join(" / ") || "level unavailable";
+  const unavailable = {
+    state: "unavailable" as const,
+    label: "Level: N/A",
+    detailLabel: valuesLabel,
+    title: "Level context needs numeric actual values on both sides.",
+  };
+
+  if (!base || !quote || base.actualValue == null || quote.actualValue == null) return unavailable;
+
+  const basePolarity = getLevelPolarity(factor, base);
+  const quotePolarity = getLevelPolarity(factor, quote);
+  const baseUnit = getLevelUnit(base);
+  const quoteUnit = getLevelUnit(quote);
+  const baseFamily = getLevelFamily(factor, base);
+  const quoteFamily = getLevelFamily(factor, quote);
+  const fullTitle = `${factor.label} level context: ${base.currency} ${base.eventTitle} actual ${base.actualLabel}; ${quote.currency} ${quote.eventTitle} actual ${quote.actualLabel}.`;
+
+  if (factor.id !== "policy" && factor.id !== "pmi" && (baseUnit !== quoteUnit || basePolarity == null || quotePolarity == null || baseFamily !== quoteFamily)) {
+    return {
+      state: "mixed",
+      label: "Level: Mixed units",
+      detailLabel: valuesLabel,
+      title: `${fullTitle} These rows are not the same comparable unit/family, so Pair Matrix does not fake a level winner.`,
+    };
+  }
+
+  if (basePolarity == null || quotePolarity == null || basePolarity !== quotePolarity) {
+    return {
+      state: "mixed",
+      label: "Level: Mixed",
+      detailLabel: valuesLabel,
+      title: `${fullTitle} Direction cannot be compared honestly across these loaded row types.`,
+    };
+  }
+
+  const baseLevelScore = base.actualValue * basePolarity;
+  const quoteLevelScore = quote.actualValue * quotePolarity;
+  const delta = baseLevelScore - quoteLevelScore;
+  const absoluteDelta = Math.abs(delta);
+  const tolerance = baseUnit === "percent" ? 0.005 : 0.0001;
+  if (absoluteDelta <= tolerance) {
+    return {
+      state: "even",
+      label: "Level: Even",
+      detailLabel: valuesLabel,
+      title: `${fullTitle} Comparable levels are effectively even.`,
+    };
+  }
+
+  const leader = delta > 0 ? base : quote;
+  const leaderActualValue = leader.actualValue ?? 0;
+  const adjective =
+    factor.id === "policy"
+      ? "higher rate"
+      : factor.id === "pmi"
+        ? leaderActualValue >= 50
+          ? "stronger activity"
+          : "less weak activity"
+        : basePolarity > 0
+          ? "higher level"
+          : "lower level";
+  return {
+    state: delta > 0 ? "base" : "quote",
+    label: `Level: ${leader.currency} ${adjective} ${formatLevelDelta(absoluteDelta, baseUnit)}`,
+    detailLabel: valuesLabel,
+    title: `${fullTitle} ${leader.currency} leads the comparable level read by ${formatLevelDelta(absoluteDelta, baseUnit)}.`,
+  };
+}
+
 function formatMacroLevelContext(
   factor: MacroFactorDefinition,
   base: PairMatrixComparisonSide | null,
@@ -591,6 +737,7 @@ function compareFactorSides(params: {
 
   const stateLabel = getComparisonStateLabel(state);
   const context = formatMacroLevelContext(factor, base, quote);
+  const level = buildLevelComparison(factor, base, quote);
   const reasonCodes = [base?.reasonCode, quote?.reasonCode]
     .filter((code): code is PairMatrixEvidenceReasonCode => Boolean(code) && code !== "loaded");
   return {
@@ -603,6 +750,10 @@ function compareFactorSides(params: {
     detailLabel: `${base?.currency ?? "Base"} ${base?.scoreLabel ?? "missing side"} / ${quote?.currency ?? "Quote"} ${quote?.scoreLabel ?? "missing side"}`,
     contextLabel: context?.label ?? null,
     contextTitle: context?.title ?? null,
+    levelState: level.state,
+    levelLabel: level.label,
+    levelDetailLabel: level.detailLabel,
+    levelTitle: level.title,
     reasonCodes,
   };
 }

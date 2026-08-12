@@ -384,6 +384,8 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(rows[0]?.comparison?.quote?.scoreLabel).toBe("0.0 pts");
     expect(rows[0]?.comparison?.contextLabel).toBe("USD higher rate +1.10pp");
     expect(rows[0]?.comparison?.contextTitle).toContain("USD is higher by 1.10 percentage points");
+    expect(rows[0]?.comparison?.levelState).toBe("quote");
+    expect(rows[0]?.comparison?.levelLabel).toBe("Level: USD higher rate +1.1pp");
     expect(summary?.stateLabel).toBe("No surprise");
     expect(summary?.voteLabel).toBe("1/1 no surprise");
   });
@@ -631,6 +633,93 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).toContain(">Trade bias<");
   });
 
+  it("uses the fallback visible row for header move and window instead of the strongest global move", () => {
+    const policy = MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "policy")!;
+    const inflation = MACRO_FACTOR_DEFINITIONS.find((factor) => factor.id === "inflation")!;
+    const policyTime = Date.UTC(2026, 6, 16, 23, 0, 0) / 1000;
+    const inflationTime = Date.UTC(2026, 7, 7, 23, 0, 0) / 1000;
+    const cursorTime = Date.UTC(2026, 7, 12, 8, 0, 0) / 1000;
+    const rows = buildPairMatrixViewRows({
+      factorRows: [
+        {
+          factor: policy,
+          currency: "EUR",
+          latestEvent: event({ time: policyTime, currency: "EUR", countryCode: "EU", title: "ECB Interest Rate Decision", actual: "3", forecast: "2" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor: policy,
+          currency: "USD",
+          latestEvent: event({ time: policyTime, currency: "USD", title: "Fed Interest Rate Decision", actual: "4", forecast: "4" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor: inflation,
+          currency: "EUR",
+          latestEvent: event({ time: inflationTime, currency: "EUR", countryCode: "EU", title: "CPI y/y", actual: "8", forecast: "2" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor: inflation,
+          currency: "USD",
+          latestEvent: event({ time: inflationTime, currency: "USD", title: "CPI y/y", actual: "2", forecast: "2" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+      ],
+      factors: [policy, inflation],
+      currencies: ["EUR", "USD"],
+      selectedSymbol: "EURUSD",
+      visibleCandles: [
+        { time: policyTime, open: 1.19, high: 1.19, low: 1.19, close: 1.19, volume: 1 },
+        { time: inflationTime, open: 1.1, high: 1.1, low: 1.1, close: 1.1, volume: 1 },
+        { time: cursorTime, open: 1.1, high: 1.2, low: 1.1, close: 1.2, volume: 1 },
+      ],
+      cursorChartTime: cursorTime,
+      sourceTimeOffsetSeconds: 0,
+      preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+    });
+    const html = renderToStaticMarkup(
+      createElement(ChartPairMatrixTimeLens, {
+        data: {
+          open: true,
+          pairLabel: "EURUSD",
+          currencies: ["EUR", "USD"],
+          rows,
+          comparisonSummary: buildPairMatrixComparisonSummary({ rows, currencies: ["EUR", "USD"], preferences: DEFAULT_PAIR_MATRIX_PREFERENCES }),
+          preferences: DEFAULT_PAIR_MATRIX_PREFERENCES,
+          anchorLabel: "12 Aug 2026 08:00",
+          anchorBasisLabel: "cursor time",
+          coverageLabel: "4/4 factor cells loaded",
+          displayTimeMode: "server",
+          sourceTimeOffsetSeconds: 0,
+          calendarDiagnostics: {
+            lookbackLabel: "Pair Matrix lookback: 400d current",
+            loadStateLabel: "Using current app feed",
+            loadedRangeLabel: "Loaded calendar: loaded",
+            anchorStatusLabel: "Anchor inside loaded calendar range",
+            canLoadOlder: false,
+          },
+          onPreferenceChange: () => {},
+          onLoadOlderCalendarContext: () => {},
+          onToggleOpen: () => {},
+          onClose: () => {},
+        },
+      }),
+    );
+
+    expect(html).toContain("Policy rate move from release-close candle to cursor-close candle");
+    expect(html).toContain("<strong>Move</strong><em>+100.0 pips / +0.84%</em>");
+    expect(html).toContain("Window</strong><em>16 Jul 23:00 -&gt; 12 Aug 08:00</em>");
+  });
+
   it("renders the open popover with compact value rows and driver details", () => {
     const factorRows = [
       {
@@ -721,35 +810,37 @@ describe("Pair Matrix Driver Alignment", () => {
 
     expect(html).toContain("EUR read");
     expect(html).toContain("USD read");
-    expect(html).toContain("Winner");
-    expect(html).toContain("Reaction");
+    expect(html).toContain("Shock / Level");
+    expect(html).toContain("Price");
     expect(html).not.toContain(">Compare<");
     expect(html).not.toContain(">Driver<");
     expect(html).toContain("Pair Matrix settings");
     expect(html).toContain("chart-pair-matrix-summary-box");
-    expect(html).toContain("USD higher rate +1.10pp");
-    expect(html).toContain("USD +7.1 pts");
+    expect(html).toContain("Level: USD higher rate +1.1pp");
+    expect(html).toContain("Shock: USD +7.1 pts");
     expect(html).toContain("EUR - USD: -7.1 pts");
     expect(html).not.toContain("chart-pair-matrix-score-pair");
     expect(html).toContain("EURUSD down bias - price accepted");
     expect(html).toContain("Bias + reaction");
-    expect(html).toContain("Macro Vote: 0/1/0");
+    expect(html).toContain("Shock: 0/1/0");
+    expect(html).toContain("Level: 0/1/0");
     expect(html).toContain("Base / Quote / Outlier");
     expect(html).toContain("is-state is-vote is-quote_leads");
+    expect(html).toContain("is-state is-level is-level-quote");
     expect(html).toContain("chart-pair-matrix-signal-winner is-quote_leads");
     expect(html).not.toContain("chart-pair-matrix-counter");
     expect(html).not.toContain(">Quote leads<");
     expect(html).not.toContain(">Base leads<");
     expect(html).not.toContain(">No surprise<");
     expect(html).not.toContain(">Partial read<");
-    expect(html).toContain("Driver Read: 1/0/0");
+    expect(html).toContain("Price: 1/0/0");
     expect(html).toContain("Green / Red / Outlier");
     expect(html).toContain("is-state is-driver is-driver-green");
     expect(html).not.toContain("Base 0 / Quote 1 /");
     expect(html).not.toContain("Green 1 / Red 0");
     expect(html).not.toContain("Other 0");
-    expect(html).toContain("Move size");
-    expect(html).toContain("Range");
+    expect(html).toContain("Move");
+    expect(html).toContain("Window");
     expect(html).not.toContain(">Latest<");
     expect(html).not.toContain(">Next<");
     expect(html).not.toContain("USD latest");
@@ -766,13 +857,16 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).toContain("F 3.75%");
     expect(html).toContain("30 Jul 2026");
     expect(html).toContain("17 Sept 2026");
-    expect(html).toContain(">30 Jul 04:00<");
+    expect(html).toContain("Rel 30 Jul 04:00");
+    expect(html).toContain("Next 17 Sept 04:00");
+    expect(html).toContain("Cursor 30 Jul 05:00");
     expect(html).not.toContain(">30 Jul 2026 04:00<");
     expect(html).toContain("-20.0 pips");
     expect(html).toContain("-0.18%");
     expect(html).toContain("chart-pair-matrix-move-stack");
-    expect(html).toContain("<b>-0.18%</b><em>-20.0 pips</em>");
-    expect(html).toContain("Range 30 Jul 2026 04:00 -&gt; 30 Jul 2026 05:00");
+    expect(html).toContain("<b>-20.0 pips</b><em>-0.18%</em>");
+    expect(html).toContain("Policy rate price move window");
+    expect(html).toContain("30 Jul 2026 04:00 -&gt; 30 Jul 2026 05:00");
     expect(html).toContain("<em>30 Jul 04:00 -&gt; 30 Jul 05:00</em>");
     expect(html).not.toContain("<em>30 Jul 2026 04:00 -&gt; 30 Jul 2026 05:00</em>");
     expect(html).toContain("Expected down / price down");

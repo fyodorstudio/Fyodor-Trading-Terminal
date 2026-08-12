@@ -251,16 +251,18 @@
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-head { min-height: 44px; padding: 4px 8px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-title > span { font-size: 8.5px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-title > strong { font-size: 13px; }
-.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-scroll { --pair-matrix-columns: minmax(132px, 0.68fr) minmax(275px, 1.45fr) minmax(275px, 1.45fr) minmax(150px, 0.78fr) minmax(160px, 0.76fr); }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-scroll { --pair-matrix-columns: minmax(132px, 0.62fr) minmax(310px, 1.5fr) minmax(310px, 1.5fr) minmax(174px, 0.82fr) minmax(184px, 0.82fr); }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-row-head { padding: 4px 10px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-row-list { padding: 0 6px 5px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-row { align-items: center; gap: 8px; padding: 4px 7px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-factor { align-content: center; gap: 2px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-factor span { display: none; }
-.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read { grid-template-columns: minmax(74px, 0.82fr) minmax(190px, 1.45fr) minmax(76px, max-content); align-items: center; gap: 8px; }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read { grid-template-columns: minmax(74px, 0.72fr) minmax(150px, 1.16fr) minmax(112px, max-content); align-items: center; gap: 8px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read strong,
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read span,
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read time,
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read time b,
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read time em,
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-values b { font-size: 11px; line-height: 1.1; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-winner,
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-reaction { gap: 2px; }
@@ -282,14 +284,15 @@
 .chart-pair-matrix-summary-box > strong { min-width: 0; color: #0f172a; font-size: 10px; font-weight: 950; letter-spacing: 0; line-height: 1.05; overflow: hidden; text-overflow: ellipsis; text-transform: none; white-space: nowrap; }
 .chart-pair-matrix-summary-box > em { min-width: 0; color: #64748b; font-size: 8px; font-style: normal; font-weight: 900; letter-spacing: 0; line-height: 1.05; overflow: hidden; text-overflow: ellipsis; text-transform: none; white-space: nowrap; }
 .chart-pair-matrix-summary-box.is-anchor { width: 146px; min-width: 146px; }
-.chart-pair-matrix-summary-box.is-signal { width: 210px; min-width: 210px; }
+.chart-pair-matrix-summary-box.is-signal { width: 204px; min-width: 204px; }
 .chart-pair-matrix-summary-box.is-signal.is-up { border-color: #86efac; background: #ecfdf5; }
 .chart-pair-matrix-summary-box.is-signal.is-down { border-color: #fecaca; background: #fef2f2; }
 .chart-pair-matrix-summary-box.is-signal.is-mixed { border-color: #ddd6fe; background: #f5f3ff; }
-.chart-pair-matrix-summary-box.is-vote { width: 176px; min-width: 176px; }
-.chart-pair-matrix-summary-box.is-driver { width: 176px; min-width: 176px; }
-.chart-pair-matrix-summary-box.is-move { width: 108px; min-width: 108px; }
-.chart-pair-matrix-summary-box.is-range { width: 176px; min-width: 176px; }
+.chart-pair-matrix-summary-box.is-vote,
+.chart-pair-matrix-summary-box.is-level,
+.chart-pair-matrix-summary-box.is-driver { width: 126px; min-width: 126px; }
+.chart-pair-matrix-summary-box.is-move { width: 112px; min-width: 112px; }
+.chart-pair-matrix-summary-box.is-range { width: 188px; min-width: 188px; }
 .chart-pair-matrix-summary-box.is-state { background: #0f172a; border-color: #0f172a; color: #fff; }
 .chart-pair-matrix-summary-box.is-state > strong,
 .chart-pair-matrix-summary-box.is-state > em { color: #fff; }
@@ -303,6 +306,10 @@
 .chart-pair-matrix-summary-box.is-state.is-driver-red { background: #dc2626; border-color: #dc2626; }
 .chart-pair-matrix-summary-box.is-state.is-driver-outlier { background: #b45309; border-color: #b45309; }
 .chart-pair-matrix-summary-box.is-state.is-driver-mixed { background: #475569; border-color: #475569; }
+.chart-pair-matrix-summary-box.is-state.is-level-base { background: #2563eb; border-color: #2563eb; }
+.chart-pair-matrix-summary-box.is-state.is-level-quote { background: #7c3aed; border-color: #7c3aed; }
+.chart-pair-matrix-summary-box.is-state.is-level-outlier { background: #b45309; border-color: #b45309; }
+.chart-pair-matrix-summary-box.is-state.is-level-mixed { background: #475569; border-color: #475569; }
 .chart-pair-matrix-hierarchy-toggle { display: inline-flex; width: 76px; height: 28px; flex: 0 0 auto; align-items: center; justify-content: center; border: 1px solid #dbeafe; border-radius: 7px; background: #fff; color: #1d4ed8; font-size: 10px; font-weight: 950; line-height: 1; white-space: nowrap; }
 .chart-pair-matrix-hierarchy-toggle:hover { border-color: #93c5fd; background: #eff6ff; }
 .chart-pair-matrix-hierarchy-toggle.is-active { border-color: #1d4ed8; background: #2563eb; color: #fff; }
@@ -339,7 +346,7 @@
 .chart-pair-matrix-control button:last-child { border-right: 0; }
 .chart-pair-matrix-control button:hover { background: #eef2ff; color: #1d4ed8; }
 .chart-pair-matrix-control button.is-active { background: #1e293b; color: #fff; }
-.chart-pair-matrix-scroll { position: relative; display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; overflow: hidden; background: #fbfdff; --pair-matrix-columns: minmax(150px, 0.8fr) minmax(230px, 1.25fr) minmax(230px, 1.25fr) minmax(150px, 0.78fr) minmax(180px, 0.92fr); }
+.chart-pair-matrix-scroll { position: relative; display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; overflow: hidden; background: #fbfdff; --pair-matrix-columns: minmax(150px, 0.68fr) minmax(300px, 1.42fr) minmax(300px, 1.42fr) minmax(174px, 0.82fr) minmax(184px, 0.86fr); }
 .chart-pair-matrix-row-head { display: grid; grid-template-columns: var(--pair-matrix-columns); gap: 8px; padding: 5px 10px; border-bottom: 1px solid #cbd5e1; background: rgba(248, 250, 252, 0.98); color: #64748b; font-size: 10px; font-weight: 950; letter-spacing: 0.04em; text-transform: uppercase; }
 .chart-pair-matrix-row-head span { min-width: 0; }
 .chart-pair-matrix-row-head span:nth-child(2) { padding-right: 8px; border-right: 1px solid #dbeafe; }
@@ -372,7 +379,10 @@
 .chart-pair-matrix-signal-read time { min-width: 0; overflow: hidden; color: #475569; font-size: 11px; font-style: normal; font-weight: 850; line-height: 1.08; text-overflow: clip; white-space: nowrap; }
 .chart-pair-matrix-signal-read .chart-pair-matrix-signal-values { display: grid; grid-template-columns: minmax(58px, 0.72fr) minmax(58px, 0.72fr) minmax(74px, 0.9fr); gap: 8px; align-items: center; }
 .chart-pair-matrix-signal-values b { min-width: 0; overflow: hidden; color: #475569; font-size: 11px; font-weight: 850; line-height: 1.08; text-overflow: clip; white-space: nowrap; }
-.chart-pair-matrix-signal-read time { color: #1d4ed8; font-weight: 950; }
+.chart-pair-matrix-signal-read time { display: grid; align-content: center; gap: 2px; color: #1d4ed8; font-weight: 950; }
+.chart-pair-matrix-signal-read time b,
+.chart-pair-matrix-signal-read time em { min-width: 0; overflow: hidden; color: #1d4ed8; font-size: 10.5px; font-style: normal; font-weight: 950; line-height: 1.05; text-overflow: clip; white-space: nowrap; }
+.chart-pair-matrix-signal-read time em { color: #64748b; font-size: 10px; font-weight: 850; }
 .chart-pair-matrix-move-stack { display: grid; align-content: center; gap: 2px; }
 .chart-pair-matrix-move-stack b,
 .chart-pair-matrix-move-stack em { min-width: 0; overflow: hidden; color: #0f172a; font-size: 12px; font-style: normal; font-weight: 950; line-height: 1.05; text-overflow: clip; white-space: nowrap; }
