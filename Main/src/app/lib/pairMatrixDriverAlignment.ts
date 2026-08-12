@@ -13,6 +13,10 @@ export type PairMatrixAlignmentStatus = "aligned" | "rejected" | "muted" | "uncl
 export type PairMatrixComparisonMode = "macro_surprise" | "macro_price" | "raw_values";
 export type PairMatrixWinnerMode = "factor_vote" | "normalized_score" | "per_factor";
 export type PairMatrixCalendarLookback = "current_400d" | "two_year";
+export type PairMatrixLayoutMode = "signal_bands" | "audit_lines" | "top_drivers";
+export type PairMatrixSignalBiasMode = "macro_plus_acceptance" | "macro_vote" | "accepted_drivers";
+export type PairMatrixSignalWordingMode = "evidence_bias" | "trade_bias";
+export type PairMatrixBundleDisplayMode = "strongest_with_count" | "all_in_details";
 export type PairMatrixEvidenceReasonCode =
   | "loaded"
   | "outside_loaded_calendar_range"
@@ -43,6 +47,10 @@ export interface PairMatrixPreferences {
   comparisonMode: PairMatrixComparisonMode;
   comparisonWinnerMode: PairMatrixWinnerMode;
   calendarLookback: PairMatrixCalendarLookback;
+  layoutMode: PairMatrixLayoutMode;
+  signalBiasMode: PairMatrixSignalBiasMode;
+  signalWordingMode: PairMatrixSignalWordingMode;
+  bundleDisplayMode: PairMatrixBundleDisplayMode;
 }
 
 export interface PairMatrixAlignmentRead {
@@ -70,6 +78,8 @@ export interface PairMatrixCurrencyCell {
   currency: string;
   latestEvent: CalendarEvent | null;
   nextEvent: CalendarEvent | null;
+  latestBundleEvents: CalendarEvent[];
+  nextBundleEvents: CalendarEvent[];
   latestReasonCode: PairMatrixEvidenceReasonCode;
   latestReasonLabel: string;
   latestReasonDetail: string;
@@ -151,6 +161,10 @@ export const DEFAULT_PAIR_MATRIX_PREFERENCES: PairMatrixPreferences = {
   comparisonMode: "macro_surprise",
   comparisonWinnerMode: "factor_vote",
   calendarLookback: "current_400d",
+  layoutMode: "signal_bands",
+  signalBiasMode: "macro_plus_acceptance",
+  signalWordingMode: "evidence_bias",
+  bundleDisplayMode: "strongest_with_count",
 };
 
 function normalizeSymbolToken(symbol: string): string {
@@ -190,6 +204,24 @@ export function normalizePairMatrixPreferences(raw: unknown): PairMatrixPreferen
       row.calendarLookback === "two_year" || row.calendarLookback === "current_400d"
         ? row.calendarLookback
         : fallback.calendarLookback,
+    layoutMode:
+      row.layoutMode === "audit_lines" || row.layoutMode === "top_drivers" || row.layoutMode === "signal_bands"
+        ? row.layoutMode
+        : fallback.layoutMode,
+    signalBiasMode:
+      row.signalBiasMode === "macro_vote" ||
+      row.signalBiasMode === "accepted_drivers" ||
+      row.signalBiasMode === "macro_plus_acceptance"
+        ? row.signalBiasMode
+        : fallback.signalBiasMode,
+    signalWordingMode:
+      row.signalWordingMode === "trade_bias" || row.signalWordingMode === "evidence_bias"
+        ? row.signalWordingMode
+        : fallback.signalWordingMode,
+    bundleDisplayMode:
+      row.bundleDisplayMode === "all_in_details" || row.bundleDisplayMode === "strongest_with_count"
+        ? row.bundleDisplayMode
+        : fallback.bundleDisplayMode,
   };
 }
 
@@ -718,6 +750,8 @@ export function buildPairMatrixViewRows(params: {
         currency,
         latestEvent: row?.latestEvent ?? null,
         nextEvent: row?.nextEvent ?? null,
+        latestBundleEvents: row?.latestBundleEvents ?? (row?.latestEvent ? [row.latestEvent] : []),
+        nextBundleEvents: row?.nextBundleEvents ?? (row?.nextEvent ? [row.nextEvent] : []),
         latestReasonCode,
         latestReasonLabel: getPairMatrixReasonLabel(latestReasonCode),
         latestReasonDetail: getPairMatrixReasonDetail(latestReasonCode),

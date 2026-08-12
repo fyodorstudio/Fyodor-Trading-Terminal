@@ -1,4 +1,5 @@
 import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
+import { getEventComparison } from "@/app/lib/eventReaction";
 import { parseNumericValue } from "@/app/lib/format";
 import type { BridgeCandle, CalendarEvent, CentralBankSnapshot, FxPairDefinition, Timeframe } from "@/app/types";
 
@@ -27,6 +28,8 @@ export interface MacroFactorRow {
   currency: string;
   latestEvent: CalendarEvent | null;
   nextEvent: CalendarEvent | null;
+  latestBundleEvents?: CalendarEvent[];
+  nextBundleEvents?: CalendarEvent[];
   oldestMatchingEventTime?: number | null;
   newestMatchingEventTime?: number | null;
   latestBundleCount?: number;
@@ -155,6 +158,15 @@ function summarizeEvent(event: CalendarEvent | null): string {
   return `${event.title}: Actual ${actual} / Forecast ${forecast} / Previous ${previous}`;
 }
 
+function getEventSurpriseMagnitude(event: CalendarEvent): number {
+  return Math.abs(getEventComparison(event)?.surprise ?? 0);
+}
+
+function pickStrongestSameTimeEvent(events: CalendarEvent[]): CalendarEvent | null {
+  if (events.length === 0) return null;
+  return [...events].sort((left, right) => getEventSurpriseMagnitude(right) - getEventSurpriseMagnitude(left))[0] ?? null;
+}
+
 export function buildMacroFactorRows(params: {
   events: CalendarEvent[];
   currencies: string[];
@@ -181,16 +193,16 @@ export function buildMacroFactorRowsAsOf(params: {
       const matches = params.events
         .filter((event) => event.currency === currency && titleMatches(event.title, factor.keywords))
         .sort((left, right) => left.time - right.time);
-      const latestEvent = [...matches].reverse().find((event) => event.time < params.anchorTimeSeconds) ?? null;
-      const nextEvent = matches.find((event) => event.time >= params.anchorTimeSeconds) ?? null;
+      const latestTime = [...matches].reverse().find((event) => event.time < params.anchorTimeSeconds)?.time ?? null;
+      const nextTime = matches.find((event) => event.time >= params.anchorTimeSeconds)?.time ?? null;
+      const latestBundleEvents = latestTime == null ? [] : matches.filter((event) => event.time === latestTime);
+      const nextBundleEvents = nextTime == null ? [] : matches.filter((event) => event.time === nextTime);
+      const latestEvent = pickStrongestSameTimeEvent(latestBundleEvents);
+      const nextEvent = nextBundleEvents[0] ?? null;
       const oldestMatchingEventTime = matches[0]?.time ?? null;
       const newestMatchingEventTime = matches[matches.length - 1]?.time ?? null;
-      const latestBundleCount = latestEvent
-        ? matches.filter((event) => event.time === latestEvent.time).length
-        : 0;
-      const nextBundleCount = nextEvent
-        ? matches.filter((event) => event.time === nextEvent.time).length
-        : 0;
+      const latestBundleCount = latestBundleEvents.length;
+      const nextBundleCount = nextBundleEvents.length;
       const latestMissingReason =
         latestEvent
           ? null
@@ -210,6 +222,8 @@ export function buildMacroFactorRowsAsOf(params: {
         currency,
         latestEvent,
         nextEvent,
+        latestBundleEvents,
+        nextBundleEvents,
         oldestMatchingEventTime,
         newestMatchingEventTime,
         latestBundleCount,

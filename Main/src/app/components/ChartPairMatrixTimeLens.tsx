@@ -10,6 +10,10 @@ import type {
   PairMatrixFactorViewRow,
   PairMatrixPreferences,
   PairMatrixCalendarLookback,
+  PairMatrixBundleDisplayMode,
+  PairMatrixLayoutMode,
+  PairMatrixSignalBiasMode,
+  PairMatrixSignalWordingMode,
 } from "@/app/lib/pairMatrixDriverAlignment";
 import type { CalendarEvent } from "@/app/types";
 
@@ -56,6 +60,24 @@ const LOOKBACK_OPTIONS = [
   { value: "current_400d", label: "400d", description: "Use the current app calendar feed window." },
   { value: "two_year", label: "2y", description: "Load a Pair Matrix-owned two-year broker/MT5 calendar window." },
 ] as const;
+const LAYOUT_OPTIONS = [
+  { value: "signal_bands", label: "Bands", description: "Show seven one-line signal bands." },
+  { value: "audit_lines", label: "Audit", description: "Show a little more row evidence for checking the numbers." },
+  { value: "top_drivers", label: "Drivers", description: "Bring stronger driver rows to the top." },
+] as const;
+const SIGNAL_BIAS_OPTIONS = [
+  { value: "macro_plus_acceptance", label: "Macro + price", description: "Use macro vote, then show whether price accepted or rejected it." },
+  { value: "macro_vote", label: "Macro vote", description: "Use only the loaded macro vote for the headline direction." },
+  { value: "accepted_drivers", label: "Drivers", description: "Use accepted/rejected driver reads for the headline." },
+] as const;
+const SIGNAL_WORDING_OPTIONS = [
+  { value: "evidence_bias", label: "Evidence", description: "Use pair-direction wording such as EURUSD up bias." },
+  { value: "trade_bias", label: "Trade bias", description: "Use Long bias or Short bias wording." },
+] as const;
+const BUNDLE_OPTIONS = [
+  { value: "strongest_with_count", label: "Strongest +N", description: "Show the strongest same-time release and count the rest." },
+  { value: "all_in_details", label: "All in details", description: "Keep bundled releases in row details instead of the signal band." },
+] as const;
 
 function formatEventTime(
   event: CalendarEvent | null,
@@ -75,6 +97,125 @@ function formatChartCoordinateTime(
   return formatChartEventDisplayTime(chartTime - sourceTimeOffsetSeconds, displayTimeMode, sourceTimeOffsetSeconds);
 }
 
+function getYearFromLabel(label: string): string | null {
+  return label.match(/\b(20\d{2})\b/)?.[1] ?? null;
+}
+
+function getMonthYearFromLabel(label: string): string {
+  const match = label.match(/\b([A-Z][a-z]{2,4})\s+(20\d{2})\b/);
+  return match ? `${match[1]} ${match[2]}` : label;
+}
+
+function formatCompactEventTime(
+  event: CalendarEvent | null,
+  data: Pick<ChartPairMatrixTimeLensData, "displayTimeMode" | "sourceTimeOffsetSeconds" | "anchorLabel">,
+): string {
+  if (!event) return "-";
+  const full = formatEventTime(event, data.displayTimeMode, data.sourceTimeOffsetSeconds);
+  const anchorYear = getYearFromLabel(data.anchorLabel);
+  const eventYear = getYearFromLabel(full);
+  if (anchorYear && eventYear === anchorYear) {
+    return full.replace(` ${anchorYear}`, "");
+  }
+  return full;
+}
+
+function getEventFamilyLabel(factorId: string, title: string): string {
+  const normalized = title.toLowerCase();
+  if (factorId === "policy" || normalized.includes("rate")) return "Rates";
+  if (normalized.includes("cpi")) return "CPI";
+  if (normalized.includes("pce")) return "PCE";
+  if (normalized.includes("ppi")) return "PPI";
+  if (normalized.includes("payroll") || normalized.includes("nfp")) return "Jobs";
+  if (normalized.includes("jobless") || normalized.includes("claims")) return "Claims";
+  if (normalized.includes("unemployment")) return "Unemp";
+  if (factorId === "retail") return "Retail";
+  if (normalized.includes("pmi")) return "PMI";
+  if (normalized.includes("ism")) return "ISM";
+  if (factorId === "sentiment" || normalized.includes("confidence") || normalized.includes("sentiment")) return "Sentiment";
+  if (factorId === "trade") return "Trade";
+  return title.split(/\s+/).slice(0, 2).join(" ");
+}
+
+function formatBasisShort(side: PairMatrixFactorComparison["base"] | PairMatrixFactorComparison["quote"] | null): string {
+  if (!side) return "basis -";
+  if (side.basisLabel === "Actual vs forecast") return `F ${side.comparisonLabel}`;
+  if (side.basisLabel === "Actual vs previous") return `P ${side.comparisonLabel}`;
+  return side.basisLabel;
+}
+
+function formatBundleSuffix(count: number, mode: PairMatrixBundleDisplayMode): string {
+  if (count <= 1 || mode === "all_in_details") return "";
+  return ` +${count - 1}`;
+}
+
+function getReadableRows(rows: PairMatrixFactorViewRow[], layoutMode: PairMatrixLayoutMode): PairMatrixFactorViewRow[] {
+  if (layoutMode !== "top_drivers") return rows;
+  const statusRank: Record<string, number> = { aligned: 0, rejected: 1, muted: 2, unclear: 3 };
+  return [...rows].sort((left, right) => {
+    const leftRead = left.summaryAlignment;
+    const rightRead = right.summaryAlignment;
+    if (!leftRead && !rightRead) return 0;
+    if (!leftRead) return 1;
+    if (!rightRead) return -1;
+    return statusRank[leftRead.status] - statusRank[rightRead.status] || rightRead.strengthScore - leftRead.strengthScore;
+  });
+}
+
+function getSignalHeadline(
+  pairLabel: string,
+  summary: PairMatrixComparisonSummary | null,
+  rows: PairMatrixFactorViewRow[],
+  preferences: PairMatrixPreferences,
+): { label: string; detail: string; className: string; title: string } {
+  const reads = rows.map((row) => row.summaryAlignment).filter((read): read is PairMatrixAlignmentRead => Boolean(read));
+  const aligned = reads.filter((read) => read.status === "aligned").length;
+  const rejected = reads.filter((read) => read.status === "rejected").length;
+  const strongest = reads[0] ?? null;
+  const macroDirection =
+    summary?.state === "base_leads"
+      ? "up"
+      : summary?.state === "quote_leads"
+        ? "down"
+        : null;
+  const driverDirection =
+    strongest?.expectedDirectionLabel.includes(" expected up")
+      ? "up"
+      : strongest?.expectedDirectionLabel.includes(" expected down")
+        ? "down"
+        : null;
+  const direction =
+    preferences.signalBiasMode === "accepted_drivers"
+      ? driverDirection
+      : preferences.signalBiasMode === "macro_vote"
+        ? macroDirection
+        : macroDirection ?? driverDirection;
+  const reaction =
+    preferences.signalBiasMode === "macro_vote"
+      ? "macro vote"
+      : aligned > rejected
+        ? "price accepted"
+        : rejected > aligned
+          ? "price rejected"
+          : "reaction mixed";
+  const pair = pairLabel.toUpperCase();
+  const directionLabel =
+    !direction
+      ? `${pair} mixed bias`
+      : preferences.signalWordingMode === "trade_bias"
+        ? direction === "up"
+          ? "Long bias"
+          : "Short bias"
+        : `${pair} ${direction} bias`;
+
+  return {
+    label: `${directionLabel} - ${reaction}`,
+    detail: summary ? `${summary.stateLabel} - ${summary.voteBreakdownLabel}` : "Waiting for loaded evidence",
+    className: direction === "up" ? "is-up" : direction === "down" ? "is-down" : "is-mixed",
+    title: `${summary?.detailLabel ?? "No macro summary yet"} Driver reads: ${aligned} aligned, ${rejected} rejected.`,
+  };
+}
+
 function getEventDisplayFields(event: CalendarEvent | null) {
   if (!event) {
     return {
@@ -89,38 +230,6 @@ function getEventDisplayFields(event: CalendarEvent | null) {
     forecast: getEventValueDisplay(event.forecast, event.title).display,
     previous: getEventValueDisplay(event.previous, event.title).display,
   };
-}
-
-function EvidenceRun({
-  event,
-  reasonLabel,
-  reasonDetail,
-  bundleCount,
-  displayTimeMode,
-  sourceTimeOffsetSeconds,
-}: {
-  event: CalendarEvent | null;
-  reasonLabel: string;
-  reasonDetail: string;
-  bundleCount: number;
-  displayTimeMode: ChartDisplayTimeMode;
-  sourceTimeOffsetSeconds: number;
-}) {
-  const fields = getEventDisplayFields(event);
-  const timeLabel = event ? formatEventTime(event, displayTimeMode, sourceTimeOffsetSeconds) : "-";
-  const visibleTimeLabel = event && bundleCount > 1 ? `${timeLabel} x${bundleCount}` : timeLabel;
-  const formula = event
-    ? `${event.title}. Actual ${fields.actual}, Forecast ${fields.forecast}, Previous ${fields.previous}. ${timeLabel}.${bundleCount > 1 ? ` Same-time bundle: ${bundleCount} matching rows.` : ""}`
-    : reasonDetail;
-
-  return (
-    <span className={`chart-pair-matrix-evidence-run ${event ? "" : "is-empty"} ${bundleCount > 1 ? "is-bundled" : ""}`} title={formula}>
-      <span>A: {fields.actual}</span>
-      <span>F: {fields.forecast}</span>
-      <span>P: {fields.previous}</span>
-      <time>{event ? visibleTimeLabel : reasonLabel}</time>
-    </span>
-  );
 }
 
 function PairMatrixControl<K extends keyof PairMatrixPreferences>({
@@ -154,113 +263,6 @@ function PairMatrixControl<K extends keyof PairMatrixPreferences>({
         ))}
       </div>
     </div>
-  );
-}
-
-function DriverRead({
-  read,
-  displayTimeMode,
-  sourceTimeOffsetSeconds,
-}: {
-  read: PairMatrixAlignmentRead;
-  displayTimeMode: ChartDisplayTimeMode;
-  sourceTimeOffsetSeconds: number;
-}) {
-  const hasMoveRange = read.releaseChartTime != null && read.cursorChartTime != null;
-  const moveRangeLabel =
-    hasMoveRange
-      ? `${formatChartCoordinateTime(read.releaseChartTime, displayTimeMode, sourceTimeOffsetSeconds)} -> ${formatChartCoordinateTime(
-          read.cursorChartTime,
-          displayTimeMode,
-          sourceTimeOffsetSeconds,
-        )}`
-      : read.reasonLabel;
-  const title = `${read.reason} Move range: ${moveRangeLabel}.`;
-  const metricLabel = read.status === "unclear" ? read.reasonLabel : read.surpriseLabel;
-  const rangeLine = hasMoveRange ? `Range ${moveRangeLabel}` : "Range unavailable";
-  const moveLine = read.status === "unclear" ? "Move unavailable" : read.priceMoveLabel;
-  const expectedShortLabel = read.expectedDirectionLabel.replace(/^[A-Z0-9]+ expected /, "Expected ");
-  const directionLine =
-    read.status === "unclear"
-      ? "No expected pair direction"
-      : `${expectedShortLabel} / ${read.actualDirectionLabel}`;
-
-  return (
-    <span className={`chart-pair-matrix-driver-read is-${read.status}`} title={title}>
-      <span className="chart-pair-matrix-driver-top">
-        <strong>{read.statusLabel}</strong>
-        <em>{read.currency}</em>
-      </span>
-      <span className="chart-pair-matrix-driver-line">{metricLabel}</span>
-      <span className="chart-pair-matrix-driver-line">{rangeLine}</span>
-      <span className="chart-pair-matrix-driver-line">{moveLine}</span>
-      <span className="chart-pair-matrix-driver-line">{directionLine}</span>
-    </span>
-  );
-}
-
-function DriverAlignmentCell({
-  row,
-  mode,
-  displayTimeMode,
-  sourceTimeOffsetSeconds,
-}: {
-  row: PairMatrixFactorViewRow;
-  mode: PairMatrixPreferences["driverReadMode"];
-  displayTimeMode: ChartDisplayTimeMode;
-  sourceTimeOffsetSeconds: number;
-}) {
-  const reads = mode === "separate" ? row.alignmentReads.filter((read) => read.eventTime != null) : [];
-  if (mode === "separate" && reads.length > 0) {
-    return (
-      <div className="chart-pair-matrix-driver-stack">
-        {reads.map((read) => (
-          <DriverRead
-            key={`${read.currency}:${read.eventTime}:${read.eventTitle}`}
-            read={read}
-            displayTimeMode={displayTimeMode}
-            sourceTimeOffsetSeconds={sourceTimeOffsetSeconds}
-          />
-        ))}
-      </div>
-    );
-  }
-
-  if (row.summaryAlignment) {
-    return (
-      <DriverRead
-        read={row.summaryAlignment}
-        displayTimeMode={displayTimeMode}
-        sourceTimeOffsetSeconds={sourceTimeOffsetSeconds}
-      />
-    );
-  }
-  return <span className="chart-pair-matrix-empty">No driver read</span>;
-}
-
-function PairComparisonSide({ side }: { side: NonNullable<PairMatrixFactorComparison["base"]> }) {
-  return (
-    <span className="chart-pair-matrix-compare-side" title={side.formulaLabel}>
-      <strong>{side.currency}</strong>
-      <span>{side.scoreLabel}</span>
-    </span>
-  );
-}
-
-function PairComparisonCell({ comparison }: { comparison: PairMatrixFactorComparison | null }) {
-  if (!comparison) return <span className="chart-pair-matrix-empty">No base/quote read</span>;
-
-  return (
-    <span className={`chart-pair-matrix-compare-read is-${comparison.state}`}>
-      <span className="chart-pair-matrix-compare-top">
-        <strong>{comparison.stateLabel}</strong>
-        <em>{comparison.detailLabel}</em>
-        {comparison.contextLabel ? <small title={comparison.contextTitle ?? comparison.contextLabel}>{comparison.contextLabel}</small> : null}
-        {comparison.reasonCodes.length > 0 ? <small title={comparison.reasonCodes.join(", ")}>{comparison.reasonCodes.length} reason-coded limitation</small> : null}
-      </span>
-      {comparison.base ? <PairComparisonSide side={comparison.base} /> : null}
-      {comparison.quote ? <PairComparisonSide side={comparison.quote} /> : null}
-    </span>
   );
 }
 
@@ -332,6 +334,7 @@ function getMoveRangeLabel(
 function PairMatrixHeaderSummary({
   summary,
   rows,
+  pairLabel,
   anchorLabel,
   anchorBasisLabel,
   coverageLabel,
@@ -345,6 +348,7 @@ function PairMatrixHeaderSummary({
 }: {
   summary: PairMatrixComparisonSummary | null;
   rows: PairMatrixFactorViewRow[];
+  pairLabel: string;
   anchorLabel: string;
   anchorBasisLabel: string;
   coverageLabel: string;
@@ -360,10 +364,13 @@ function PairMatrixHeaderSummary({
   const driverSummary = getDriverAcceptanceSummary(rows);
   const topMoveRead = getTopMoveRead(rows);
   const moveRangeLabel = getMoveRangeLabel(topMoveRead, displayTimeMode, sourceTimeOffsetSeconds);
+  const headline = getSignalHeadline(pairLabel, summary, rows, preferences);
+  const anchorMonthLabel = getMonthYearFromLabel(anchorLabel);
 
   return (
     <div className="chart-pair-matrix-head-summary" aria-label="Pair Matrix summary">
-      <PairMatrixSummaryBox label={anchorLabel} detail={anchorBasisLabel} className="is-anchor" />
+      <PairMatrixSummaryBox label={headline.label} detail={headline.detail} className={`is-signal ${headline.className}`} title={headline.title} />
+      <PairMatrixSummaryBox label={anchorLabel} detail={`${anchorBasisLabel} / ${anchorMonthLabel}`} className="is-anchor" />
       {summary ? (
         <>
           <PairMatrixSummaryBox
@@ -393,16 +400,6 @@ function PairMatrixHeaderSummary({
             detail={moveRangeLabel}
             className="is-range"
             title={`Pips and percent are measured over this release-close to cursor-close range: ${moveRangeLabel}.`}
-          />
-          <PairMatrixSummaryBox
-            label={summary.baseScoreLabel}
-            detail={summary.baseCurrency ?? "Base"}
-            className="is-score"
-          />
-          <PairMatrixSummaryBox
-            label={summary.quoteScoreLabel}
-            detail={summary.quoteCurrency ?? "Quote"}
-            className="is-score"
           />
         </>
       ) : null}
@@ -437,6 +434,42 @@ function PairMatrixHeaderSummary({
               </button>
             ) : null}
           </div>
+            <PairMatrixControl
+              label="Layout"
+              description="Choose the default signal bands, two-line audit rows, or top-driver focus order."
+              value={preferences.layoutMode}
+              options={LAYOUT_OPTIONS}
+              onChange={(value) =>
+                onPreferenceChange("layoutMode", value as PairMatrixLayoutMode)
+              }
+            />
+            <PairMatrixControl
+              label="Signal"
+              description="Choose how the header bias is derived from macro vote and accepted/rejected driver reads."
+              value={preferences.signalBiasMode}
+              options={SIGNAL_BIAS_OPTIONS}
+              onChange={(value) =>
+                onPreferenceChange("signalBiasMode", value as PairMatrixSignalBiasMode)
+              }
+            />
+            <PairMatrixControl
+              label="Wording"
+              description="Choose pair-direction evidence wording or trade-bias wording for the headline."
+              value={preferences.signalWordingMode}
+              options={SIGNAL_WORDING_OPTIONS}
+              onChange={(value) =>
+                onPreferenceChange("signalWordingMode", value as PairMatrixSignalWordingMode)
+              }
+            />
+            <PairMatrixControl
+              label="Bundles"
+              description="Choose whether bundled same-time releases show as strongest plus count or only inside details."
+              value={preferences.bundleDisplayMode}
+              options={BUNDLE_OPTIONS}
+              onChange={(value) =>
+                onPreferenceChange("bundleDisplayMode", value as PairMatrixBundleDisplayMode)
+              }
+            />
             <PairMatrixControl
               label="Lookback"
               description="Choose the Pair Matrix-owned calendar lookback. Deeper context loads only for Pair Matrix."
@@ -482,88 +515,212 @@ function PairMatrixHeaderSummary({
   );
 }
 
+function getBundleTitle(events: CalendarEvent[], data: ChartPairMatrixTimeLensData): string {
+  if (events.length === 0) return "none";
+  return events
+    .map((event) => {
+      const fields = getEventDisplayFields(event);
+      return `${event.title}: A ${fields.actual}, F ${fields.forecast}, P ${fields.previous}, ${formatEventTime(
+        event,
+        data.displayTimeMode,
+        data.sourceTimeOffsetSeconds,
+      )}`;
+    })
+    .join(" / ");
+}
+
+function SignalSideRead({
+  currency,
+  cell,
+  side,
+  factorId,
+  data,
+}: {
+  currency: string;
+  cell: PairMatrixFactorViewRow["cells"][number] | null;
+  side: PairMatrixFactorComparison["base"] | PairMatrixFactorComparison["quote"] | null;
+  factorId: string;
+  data: ChartPairMatrixTimeLensData;
+}) {
+  const event = cell?.latestEvent ?? null;
+  const fields = getEventDisplayFields(event);
+  const bundleSuffix = formatBundleSuffix(cell?.latestBundleCount ?? 0, data.preferences.bundleDisplayMode);
+  const title = `Latest: ${getBundleTitle(cell?.latestBundleEvents ?? [], data)}. Next: ${getBundleTitle(
+    cell?.nextBundleEvents ?? [],
+    data,
+  )}. ${side?.formulaLabel ?? cell?.latestReasonDetail ?? ""}`;
+
+  if (!event) {
+    return (
+      <span className="chart-pair-matrix-signal-read is-empty" title={title}>
+        <strong>{currency}</strong>
+        <span>{cell?.latestReasonLabel ?? "no loaded release"}</span>
+        <time>-</time>
+      </span>
+    );
+  }
+
+  return (
+    <span className="chart-pair-matrix-signal-read" title={title}>
+      <strong>{currency} {getEventFamilyLabel(factorId, event.title)}{bundleSuffix}</strong>
+      <span>A {fields.actual} / {formatBasisShort(side)} / Surp {side?.rawSurpriseLabel ?? "-"}</span>
+      <time>{formatCompactEventTime(event, data)}</time>
+    </span>
+  );
+}
+
+function SignalWinnerCell({ comparison }: { comparison: PairMatrixFactorComparison | null }) {
+  if (!comparison) return <span className="chart-pair-matrix-signal-winner is-empty">No read</span>;
+  return (
+    <span className={`chart-pair-matrix-signal-winner is-${comparison.state}`} title={`${comparison.detailLabel}. ${comparison.contextTitle ?? ""}`}>
+      <strong>{comparison.stateLabel}</strong>
+      <span>{comparison.base?.scoreLabel ?? "-"} / {comparison.quote?.scoreLabel ?? "-"}</span>
+      {comparison.contextLabel ? <em>{comparison.contextLabel}</em> : null}
+    </span>
+  );
+}
+
+function SignalReactionCell({
+  read,
+  displayTimeMode,
+  sourceTimeOffsetSeconds,
+}: {
+  read: PairMatrixAlignmentRead | null;
+  displayTimeMode: ChartDisplayTimeMode;
+  sourceTimeOffsetSeconds: number;
+}) {
+  if (!read) return <span className="chart-pair-matrix-signal-reaction is-empty">No driver</span>;
+  const hasRange = read.releaseChartTime != null && read.cursorChartTime != null;
+  const rangeLabel = hasRange
+    ? `${formatChartCoordinateTime(read.releaseChartTime, displayTimeMode, sourceTimeOffsetSeconds)} -> ${formatChartCoordinateTime(
+        read.cursorChartTime,
+        displayTimeMode,
+        sourceTimeOffsetSeconds,
+      )}`
+    : read.reasonLabel;
+  const expectedShortLabel = read.expectedDirectionLabel.replace(/^[A-Z0-9]+ expected /, "Expected ");
+  const directionLabel = read.status === "unclear" ? read.reasonLabel : `${expectedShortLabel} / ${read.actualDirectionLabel}`;
+
+  return (
+    <span className={`chart-pair-matrix-signal-reaction is-${read.status}`} title={`${read.reason} Range ${rangeLabel}.`}>
+      <strong>{read.statusLabel}</strong>
+      <span>{read.status === "unclear" ? read.reasonLabel : read.priceMoveLabel}</span>
+      <em>{directionLabel}</em>
+    </span>
+  );
+}
+
 function PairMatrixFactorRow({
   row,
   data,
+  selected,
+  onToggleDetails,
 }: {
   row: PairMatrixFactorViewRow;
   data: ChartPairMatrixTimeLensData;
+  selected: boolean;
+  onToggleDetails: () => void;
 }) {
   const baseCurrency = data.currencies[0] ?? "Base";
   const quoteCurrency = data.currencies[1] ?? "Quote";
   const baseCell = row.cells.find((cell) => cell.currency === baseCurrency) ?? row.cells[0] ?? null;
   const quoteCell = row.cells.find((cell) => cell.currency === quoteCurrency) ?? (data.currencies.length > 1 ? row.cells[1] : null);
-  const eventNames = [
-    { currency: baseCurrency, latest: baseCell?.latestEvent?.title ?? "-", next: baseCell?.nextEvent?.title ?? "-" },
-    { currency: quoteCurrency, latest: quoteCell?.latestEvent?.title ?? "-", next: quoteCell?.nextEvent?.title ?? "-" },
-  ];
+  const title = `${row.factor.label}. ${baseCurrency}: latest ${baseCell?.latestEvent?.title ?? baseCell?.latestReasonLabel ?? "-"}; next ${
+    baseCell?.nextEvent?.title ?? baseCell?.nextReasonLabel ?? "-"
+  }. ${quoteCurrency}: latest ${quoteCell?.latestEvent?.title ?? quoteCell?.latestReasonLabel ?? "-"}; next ${
+    quoteCell?.nextEvent?.title ?? quoteCell?.nextReasonLabel ?? "-"
+  }.`;
 
   return (
-    <article className={`chart-pair-matrix-row ${row.summaryAlignment ? `is-${row.summaryAlignment.status}` : ""}`}>
+    <article
+      className={`chart-pair-matrix-row is-signal-band ${selected ? "is-selected" : ""} ${row.summaryAlignment ? `is-${row.summaryAlignment.status}` : ""} layout-${data.preferences.layoutMode}`}
+      title={title}
+      role="button"
+      tabIndex={0}
+      onClick={onToggleDetails}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          onToggleDetails();
+        }
+      }}
+    >
       <div className="chart-pair-matrix-factor">
         <strong>{row.factor.label}</strong>
-        {eventNames.map((item) => (
-          <span key={item.currency} title={`${item.currency}: ${item.latest} | ${item.next}`}>
-            <b>{item.currency}</b> {item.latest} <i>|</i> {item.next}
-          </span>
-        ))}
+        <span>Details available</span>
       </div>
-      <div className="chart-pair-matrix-evidence-band">
-        <div className="chart-pair-matrix-currency-band">
-          <strong>{baseCurrency}</strong>
-          <EvidenceRun
-            event={baseCell?.latestEvent ?? null}
-            reasonLabel={baseCell?.latestReasonLabel ?? "no loaded matching release"}
-            reasonDetail={baseCell?.latestReasonDetail ?? "No loaded broker/MT5 row matched this side."}
-            bundleCount={baseCell?.latestBundleCount ?? 0}
-            displayTimeMode={data.displayTimeMode}
-            sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
-          />
-          <span className="chart-pair-matrix-divider" aria-hidden="true">|</span>
-          <EvidenceRun
-            event={baseCell?.nextEvent ?? null}
-            reasonLabel={baseCell?.nextReasonLabel ?? "no loaded matching release"}
-            reasonDetail={baseCell?.nextReasonDetail ?? "No loaded broker/MT5 row matched this side."}
-            bundleCount={baseCell?.nextBundleCount ?? 0}
-            displayTimeMode={data.displayTimeMode}
-            sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
-          />
-        </div>
-        <div className="chart-pair-matrix-currency-band">
-          <strong>{quoteCurrency}</strong>
-          <EvidenceRun
-            event={quoteCell?.latestEvent ?? null}
-            reasonLabel={quoteCell?.latestReasonLabel ?? "no loaded matching release"}
-            reasonDetail={quoteCell?.latestReasonDetail ?? "No loaded broker/MT5 row matched this side."}
-            bundleCount={quoteCell?.latestBundleCount ?? 0}
-            displayTimeMode={data.displayTimeMode}
-            sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
-          />
-          <span className="chart-pair-matrix-divider" aria-hidden="true">|</span>
-          <EvidenceRun
-            event={quoteCell?.nextEvent ?? null}
-            reasonLabel={quoteCell?.nextReasonLabel ?? "no loaded matching release"}
-            reasonDetail={quoteCell?.nextReasonDetail ?? "No loaded broker/MT5 row matched this side."}
-            bundleCount={quoteCell?.nextBundleCount ?? 0}
-            displayTimeMode={data.displayTimeMode}
-            sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
-          />
-        </div>
-      </div>
-      <div className="chart-pair-matrix-read-slot">
-        <span>Compare</span>
-        <PairComparisonCell comparison={row.comparison} />
-      </div>
-      <div className="chart-pair-matrix-read-slot">
-        <span>Driver</span>
-        <DriverAlignmentCell
-          row={row}
-          mode={data.preferences.driverReadMode}
-          displayTimeMode={data.displayTimeMode}
-          sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
-        />
-      </div>
+      <SignalSideRead
+        currency={baseCurrency}
+        cell={baseCell}
+        side={row.comparison?.base ?? null}
+        factorId={row.factor.id}
+        data={data}
+      />
+      <SignalSideRead
+        currency={quoteCurrency}
+        cell={quoteCell}
+        side={row.comparison?.quote ?? null}
+        factorId={row.factor.id}
+        data={data}
+      />
+      <SignalWinnerCell comparison={row.comparison} />
+      <SignalReactionCell
+        read={row.summaryAlignment}
+        displayTimeMode={data.displayTimeMode}
+        sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds}
+      />
     </article>
+  );
+}
+
+function PairMatrixDetailsPanel({
+  row,
+  data,
+  onClose,
+}: {
+  row: PairMatrixFactorViewRow;
+  data: ChartPairMatrixTimeLensData;
+  onClose: () => void;
+}) {
+  const renderEvents = (label: string, events: CalendarEvent[], emptyReason: string) => (
+    <div>
+      <strong>{label}</strong>
+      {events.length > 0 ? (
+        events.map((event) => {
+          const fields = getEventDisplayFields(event);
+          return (
+            <span key={`${label}:${event.id}:${event.time}`} title={event.title}>
+              {event.currency} {event.title}: A {fields.actual} / F {fields.forecast} / P {fields.previous} / {formatEventTime(event, data.displayTimeMode, data.sourceTimeOffsetSeconds)}
+            </span>
+          );
+        })
+      ) : (
+        <span>{emptyReason}</span>
+      )}
+    </div>
+  );
+
+  return (
+    <aside className="chart-pair-matrix-detail-panel" aria-label={`${row.factor.label} details`}>
+      <button type="button" onClick={onClose} aria-label="Close Pair Matrix factor details">
+        <X size={13} />
+      </button>
+      <h3>{row.factor.label}</h3>
+      {row.cells.map((cell) => (
+        <section key={cell.currency}>
+          <h4>{cell.currency}</h4>
+          {renderEvents("Latest", cell.latestBundleEvents, cell.latestReasonLabel)}
+          {renderEvents("Next", cell.nextBundleEvents, cell.nextReasonLabel)}
+        </section>
+      ))}
+      {row.comparison ? (
+        <p title={row.comparison.contextTitle ?? row.comparison.detailLabel}>
+          {row.comparison.stateLabel}: {row.comparison.detailLabel}
+          {row.comparison.contextLabel ? ` / ${row.comparison.contextLabel}` : ""}
+        </p>
+      ) : null}
+      {row.summaryAlignment ? <p title={row.summaryAlignment.reason}>{row.summaryAlignment.statusLabel}: {row.summaryAlignment.reason}</p> : null}
+    </aside>
   );
 }
 
@@ -582,6 +739,7 @@ export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLen
   } | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [selectedFactorId, setSelectedFactorId] = useState<string | null>(null);
 
   const handleDragMove = useCallback((event: PointerEvent) => {
     const start = dragStartRef.current;
@@ -654,6 +812,8 @@ export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLen
         "--pair-matrix-drag-y": `${dragOffset.y}px`,
       } as CSSProperties)
     : undefined;
+  const readableRows = getReadableRows(data.rows, data.preferences.layoutMode);
+  const selectedRow = readableRows.find((row) => row.factor.id === selectedFactorId) ?? null;
 
   return (
     <section
@@ -684,6 +844,7 @@ export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLen
             <PairMatrixHeaderSummary
               summary={data.comparisonSummary}
               rows={data.rows}
+              pairLabel={data.pairLabel}
               anchorLabel={data.anchorLabel}
               anchorBasisLabel={data.anchorBasisLabel}
               coverageLabel={data.coverageLabel}
@@ -705,15 +866,25 @@ export function ChartPairMatrixTimeLens({ data }: { data: ChartPairMatrixTimeLen
             <div className="chart-pair-matrix-scroll">
               <div className="chart-pair-matrix-row-head" aria-hidden="true">
                 <span>Factor</span>
-                <span>Evidence <b>Latest</b> <i>|</i> <b>Next</b></span>
-                <span>Compare</span>
-                <span>Driver</span>
+                <span>{data.currencies[0] ?? "Base"} read</span>
+                <span>{data.currencies[1] ?? "Quote"} read</span>
+                <span>Winner</span>
+                <span>Reaction</span>
               </div>
               <div className="chart-pair-matrix-row-list">
-                {data.rows.map((row) => (
-                  <PairMatrixFactorRow key={row.factor.id} row={row} data={data} />
+                {readableRows.map((row) => (
+                  <PairMatrixFactorRow
+                    key={row.factor.id}
+                    row={row}
+                    data={data}
+                    selected={selectedFactorId === row.factor.id}
+                    onToggleDetails={() => setSelectedFactorId((current) => (current === row.factor.id ? null : row.factor.id))}
+                  />
                 ))}
               </div>
+              {selectedRow ? (
+                <PairMatrixDetailsPanel row={selectedRow} data={data} onClose={() => setSelectedFactorId(null)} />
+              ) : null}
             </div>
           )}
         </div>

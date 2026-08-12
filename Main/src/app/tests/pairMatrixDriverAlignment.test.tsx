@@ -509,7 +509,7 @@ describe("Pair Matrix Driver Alignment", () => {
     const factorRows = buildMacroFactorRowsAsOf({
       events: [
         event({ id: 10, time: 1_000, currency: "EUR", countryCode: "EU", title: "S&P Global Manufacturing PMI", actual: "49", forecast: "48", previous: "47" }),
-        event({ id: 11, time: 1_000, currency: "EUR", countryCode: "EU", title: "S&P Global Services PMI", actual: "51", forecast: "50", previous: "49" }),
+        event({ id: 11, time: 1_000, currency: "EUR", countryCode: "EU", title: "S&P Global Services PMI", actual: "53", forecast: "50", previous: "49" }),
         event({ id: 12, time: 1_000, currency: "USD", title: "ISM Manufacturing PMI", actual: "52", forecast: "51", previous: "50" }),
       ],
       currencies: ["EUR", "USD"],
@@ -560,10 +560,75 @@ describe("Pair Matrix Driver Alignment", () => {
     );
 
     expect(rows[0]?.cells[0]?.latestBundleCount).toBe(2);
+    expect(rows[0]?.cells[0]?.latestEvent?.title).toBe("S&P Global Services PMI");
     expect(rows[0]?.comparison?.contextLabel).toContain("above 50");
-    expect(html).toContain("x2");
-    expect(html).toContain("Same-time bundle: 2 matching rows.");
+    expect(html).toContain("EUR PMI +1");
+    expect(html).toContain("S&amp;P Global Manufacturing PMI");
+    expect(html).toContain("S&amp;P Global Services PMI");
     expect(html).not.toContain("bundle x2</em>");
+  });
+
+  it("renders configurable trade-bias headline wording", () => {
+    const factor = MACRO_FACTOR_DEFINITIONS.find((item) => item.id === "inflation")!;
+    const preferences = { ...DEFAULT_PAIR_MATRIX_PREFERENCES, signalWordingMode: "trade_bias" as const };
+    const rows = buildPairMatrixViewRows({
+      factorRows: [
+        {
+          factor,
+          currency: "EUR",
+          latestEvent: event({ currency: "EUR", countryCode: "EU", title: "CPI y/y", actual: "3.6", forecast: "3.0" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+        {
+          factor,
+          currency: "USD",
+          latestEvent: event({ currency: "USD", title: "CPI y/y", actual: "3.0", forecast: "3.0" }),
+          nextEvent: null,
+          coverageLabel: "Latest only",
+          summary: "",
+        },
+      ],
+      factors: [factor],
+      currencies: ["EUR", "USD"],
+      selectedSymbol: "EURUSD",
+      visibleCandles: candles(1.1, 1.103),
+      cursorChartTime: 1_600,
+      sourceTimeOffsetSeconds: 0,
+      preferences,
+    });
+    const html = renderToStaticMarkup(
+      createElement(ChartPairMatrixTimeLens, {
+        data: {
+          open: true,
+          pairLabel: "EURUSD",
+          currencies: ["EUR", "USD"],
+          rows,
+          comparisonSummary: buildPairMatrixComparisonSummary({ rows, currencies: ["EUR", "USD"], preferences }),
+          preferences,
+          anchorLabel: "30 Jul 2026 05:00",
+          anchorBasisLabel: "cursor time",
+          coverageLabel: "1/1 factor cells loaded",
+          displayTimeMode: "server",
+          sourceTimeOffsetSeconds: 0,
+          calendarDiagnostics: {
+            lookbackLabel: "Pair Matrix lookback: 400d current",
+            loadStateLabel: "Using current app feed",
+            loadedRangeLabel: "Loaded calendar: loaded",
+            anchorStatusLabel: "Anchor inside loaded calendar range",
+            canLoadOlder: false,
+          },
+          onPreferenceChange: () => {},
+          onLoadOlderCalendarContext: () => {},
+          onToggleOpen: () => {},
+          onClose: () => {},
+        },
+      }),
+    );
+
+    expect(html).toContain("Long bias - price accepted");
+    expect(html).toContain(">Trade bias<");
   });
 
   it("renders the open popover with compact value rows and driver details", () => {
@@ -654,11 +719,16 @@ describe("Pair Matrix Driver Alignment", () => {
       }),
     );
 
-    expect(html).toContain("Driver");
-    expect(html).toContain("Compare");
+    expect(html).toContain("EUR read");
+    expect(html).toContain("USD read");
+    expect(html).toContain("Winner");
+    expect(html).toContain("Reaction");
+    expect(html).not.toContain(">Compare<");
+    expect(html).not.toContain(">Driver<");
     expect(html).toContain("Pair Matrix settings");
     expect(html).toContain("chart-pair-matrix-summary-box");
     expect(html).toContain("USD higher rate +1.10pp");
+    expect(html).toContain("EURUSD down bias - price accepted");
     expect(html).toContain("Macro vote");
     expect(html).toContain("Quote leads");
     expect(html).toContain("Base 0 / Quote 1");
@@ -666,22 +736,22 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).toContain("1 aligned / 0 rejected");
     expect(html).toContain("Move size");
     expect(html).toContain("Range");
-    expect(html).toContain("Evidence");
-    expect(html).toContain("Latest");
-    expect(html).toContain("Next");
+    expect(html).not.toContain(">Latest<");
+    expect(html).not.toContain(">Next<");
     expect(html).not.toContain("USD latest");
     expect(html).not.toContain("USD next");
     expect(html).not.toContain("EUR latest");
     expect(html).not.toContain("EUR next");
     expect(html).toContain("Fed Interest Rate Decision");
-    expect(html).toContain("A: 3.75%");
-    expect(html).toContain("F: -");
-    expect(html).toContain("P: 3.5%");
-    expect(html).toContain("A: -");
-    expect(html).toContain("F: 3.75%");
-    expect(html).toContain("P: 3.75%");
+    expect(html).toContain("USD Rates");
+    expect(html).toContain("A 3.75%");
+    expect(html).toContain("F -");
+    expect(html).toContain("P 3.5%");
+    expect(html).toContain("F 3.75%");
     expect(html).toContain("30 Jul 2026");
     expect(html).toContain("17 Sept 2026");
+    expect(html).toContain(">30 Jul 04:00<");
+    expect(html).not.toContain(">30 Jul 2026 04:00<");
     expect(html).toContain("-20.0 pips");
     expect(html).toContain("-0.18%");
     expect(html).toContain("Range 30 Jul 2026 04:00 -&gt; 30 Jul 2026 05:00");
@@ -697,6 +767,10 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).toContain("Loaded calendar: 23 Jul 2026 22:15 -&gt; 17 Sept 2026 04:00");
     expect(html).toContain("Anchor before loaded calendar");
     expect(html).toContain("Load 2y calendar context");
+    expect(html).toContain(">Layout<");
+    expect(html).toContain(">Signal<");
+    expect(html).toContain(">Wording<");
+    expect(html).toContain(">Bundles<");
     expect(html).toContain(">Lookback<");
     expect(html).toContain("Choose whether each factor shows the strongest driver read");
     expect(html).toContain("Controls how much data surprise and price movement");
