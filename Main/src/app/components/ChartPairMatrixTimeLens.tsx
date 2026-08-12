@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from "react";
 import { GripHorizontal, SlidersHorizontal, Table2, X } from "lucide-react";
 import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import { formatChartEventDisplayTime } from "@/app/lib/chartEvents";
@@ -281,58 +281,40 @@ function PairMatrixSummaryBox({
   detail,
   className = "",
   title,
-  children,
 }: {
   label: string;
   detail?: string;
   className?: string;
   title?: string;
-  children?: ReactNode;
 }) {
   return (
     <span className={`chart-pair-matrix-summary-box ${className}`} title={title ?? `${label}${detail ? ` ${detail}` : ""}`}>
       <strong>{label}</strong>
-      {children ?? (detail ? <em>{detail}</em> : null)}
+      {detail ? <em>{detail}</em> : null}
     </span>
   );
 }
 
-type PairMatrixHeaderCounter = {
+type PairMatrixHeaderCountLine = {
   label: string;
-  value: number;
+  detail: string;
   title: string;
-  tone?: "base" | "quote" | "green" | "red" | "outlier";
 };
 
-function SummaryCounterGroup({ counters }: { counters: PairMatrixHeaderCounter[] }) {
-  return (
-    <span className="chart-pair-matrix-counter-group">
-      {counters.map((counter) => (
-        <span key={counter.label} className={`chart-pair-matrix-counter ${counter.tone ? `is-${counter.tone}` : ""}`} title={counter.title}>
-          <em>{counter.label}</em>
-          <b>{counter.value}</b>
-        </span>
-      ))}
-    </span>
-  );
-}
-
-function getMacroVoteCounters(summary: PairMatrixComparisonSummary): PairMatrixHeaderCounter[] {
+function getMacroVoteCountLine(summary: PairMatrixComparisonSummary): PairMatrixHeaderCountLine {
   const base = summary.factorReads.filter((read) => read.state === "base_leads").length;
   const quote = summary.factorReads.filter((read) => read.state === "quote_leads").length;
   const outlier = Math.max(0, summary.factorReads.length - base - quote);
-  const outlierTitle = summary.otherBreakdownLabel
-    ? `Outlier factors: ${summary.otherBreakdownLabel}.`
-    : "Outlier factors are split, mixed, both supportive, both weak, no-surprise, partial, or unclear reads.";
+  const outlierTitle = summary.otherBreakdownLabel ? ` Outlier: ${summary.otherBreakdownLabel}.` : "";
 
-  return [
-    { label: "Base", value: base, tone: "base", title: `${summary.baseCurrency ?? "Base"} side leads in ${base} visible factor reads.` },
-    { label: "Quote", value: quote, tone: "quote", title: `${summary.quoteCurrency ?? "Quote"} side leads in ${quote} visible factor reads.` },
-    { label: "Outlier", value: outlier, tone: "outlier", title: outlierTitle },
-  ];
+  return {
+    label: `Macro Vote: ${base}/${quote}/${outlier}`,
+    detail: "Base / Quote / Outlier",
+    title: `${summary.modeLabel} / ${summary.winnerModeLabel}. Base ${base}, quote ${quote}, outlier ${outlier}.${outlierTitle} ${summary.detailLabel}`,
+  };
 }
 
-function getDriverAcceptanceSummary(rows: PairMatrixFactorViewRow[]): { counters: PairMatrixHeaderCounter[]; title: string } {
+function getDriverAcceptanceSummary(rows: PairMatrixFactorViewRow[]): PairMatrixHeaderCountLine {
   const reads = rows.map((row) => row.summaryAlignment).filter((read): read is PairMatrixAlignmentRead => read != null);
   const aligned = reads.filter((read) => read.status === "aligned").length;
   const rejected = reads.filter((read) => read.status === "rejected").length;
@@ -342,21 +324,15 @@ function getDriverAcceptanceSummary(rows: PairMatrixFactorViewRow[]): { counters
 
   if (reads.length === 0) {
     return {
-      counters: [
-        { label: "Green", value: 0, tone: "green", title: "Green counts price accepting the data-implied read." },
-        { label: "Red", value: 0, tone: "red", title: "Red counts price rejecting the data-implied read." },
-        { label: "Outlier", value: 0, tone: "outlier", title: "Outlier counts muted or unclear driver reads." },
-      ],
+      label: "Driver Read: 0/0/0",
+      detail: "Green / Red / Outlier",
       title: "Driver acceptance needs loaded releases and loaded candles from release close to cursor close.",
     };
   }
 
   return {
-    counters: [
-      { label: "Green", value: aligned, tone: "green", title: `Green: ${aligned} factor reads where price accepted the data-implied direction.` },
-      { label: "Red", value: rejected, tone: "red", title: `Red: ${rejected} factor reads where price moved against the data-implied direction.` },
-      { label: "Outlier", value: outlier, tone: "outlier", title: `Outlier: gray ${muted} muted reads plus amber ${unclear} unclear reads.` },
-    ],
+    label: `Driver Read: ${aligned}/${rejected}/${outlier}`,
+    detail: "Green / Red / Outlier",
     title: `Driver color counts visible factor rows: green ${aligned}, red ${rejected}, gray ${muted}, amber ${unclear}.`,
   };
 }
@@ -431,6 +407,7 @@ function PairMatrixHeaderSummary({
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const driverSummary = getDriverAcceptanceSummary(rows);
+  const macroVoteLine = summary ? getMacroVoteCountLine(summary) : null;
   const topMoveRead = getTopMoveRead(rows);
   const moveRangeLabel = getMoveRangeLabel(topMoveRead, displayTimeMode, sourceTimeOffsetSeconds);
   const compactMoveRangeLabel = getCompactMoveRangeLabel(topMoveRead, displayTimeMode, sourceTimeOffsetSeconds);
@@ -441,22 +418,20 @@ function PairMatrixHeaderSummary({
     <div className="chart-pair-matrix-head-summary" aria-label="Pair Matrix summary">
       <PairMatrixSummaryBox label={headline.label} detail={headline.detail} className={`is-signal ${headline.className}`} title={headline.title} />
       <PairMatrixSummaryBox label={anchorLabel} detail={`${anchorBasisLabel} / ${anchorMonthLabel}`} className="is-anchor" />
-      {summary ? (
+      {summary && macroVoteLine ? (
         <>
           <PairMatrixSummaryBox
-            label="Macro vote"
+            label={macroVoteLine.label}
+            detail={macroVoteLine.detail}
             className={`is-state is-vote is-${summary.state}`}
-            title={`${summary.modeLabel} / ${summary.winnerModeLabel}. ${summary.detailLabel}${summary.otherBreakdownLabel ? ` Outlier: ${summary.otherBreakdownLabel}.` : ""}`}
-          >
-            <SummaryCounterGroup counters={getMacroVoteCounters(summary)} />
-          </PairMatrixSummaryBox>
+            title={macroVoteLine.title}
+          />
           <PairMatrixSummaryBox
-            label="Driver read"
+            label={driverSummary.label}
+            detail={driverSummary.detail}
             className="is-driver"
             title={driverSummary.title}
-          >
-            <SummaryCounterGroup counters={driverSummary.counters} />
-          </PairMatrixSummaryBox>
+          />
           <PairMatrixSummaryBox
             label="Move size"
             detail={topMoveRead ? topMoveRead.priceMoveLabel : "no release-to-cursor candle window"}
