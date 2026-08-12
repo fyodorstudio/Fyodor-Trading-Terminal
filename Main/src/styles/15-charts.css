@@ -257,10 +257,11 @@
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-row { align-items: center; gap: 8px; padding: 4px 7px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-factor { align-content: center; gap: 2px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-factor span { display: none; }
-.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read { grid-template-columns: minmax(74px, max-content) minmax(0, 1fr) minmax(76px, max-content); align-items: center; gap: 8px; }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read { grid-template-columns: minmax(74px, 0.82fr) minmax(190px, 1.45fr) minmax(76px, max-content); align-items: center; gap: 8px; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read strong,
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read span,
-.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read time { font-size: 11px; line-height: 1.1; }
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-read time,
+.chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-values b { font-size: 11px; line-height: 1.1; }
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-winner,
 .chart-pair-matrix-lens.is-bottom-pane .chart-pair-matrix-signal-reaction { gap: 2px; }
 .chart-pair-matrix-lens.is-open .chart-pair-matrix-popover { cursor: grab; }
@@ -360,6 +361,8 @@
 .chart-pair-matrix-signal-winner em,
 .chart-pair-matrix-signal-reaction em,
 .chart-pair-matrix-signal-read time { min-width: 0; overflow: hidden; color: #475569; font-size: 11px; font-style: normal; font-weight: 850; line-height: 1.08; text-overflow: clip; white-space: nowrap; }
+.chart-pair-matrix-signal-read .chart-pair-matrix-signal-values { display: grid; grid-template-columns: minmax(58px, 0.72fr) minmax(58px, 0.72fr) minmax(74px, 0.9fr); gap: 8px; align-items: center; }
+.chart-pair-matrix-signal-values b { min-width: 0; overflow: hidden; color: #475569; font-size: 11px; font-weight: 850; line-height: 1.08; text-overflow: clip; white-space: nowrap; }
 .chart-pair-matrix-signal-read time { color: #1d4ed8; font-weight: 950; }
 .chart-pair-matrix-signal-read.is-empty span,
 .chart-pair-matrix-signal-winner.is-empty,

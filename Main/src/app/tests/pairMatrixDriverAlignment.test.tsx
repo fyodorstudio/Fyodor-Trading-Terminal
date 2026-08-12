@@ -754,6 +754,8 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).not.toContain("EUR next");
     expect(html).toContain("Fed Interest Rate Decision");
     expect(html).toContain("USD Rates");
+    expect(html).toContain("chart-pair-matrix-signal-values");
+    expect(html).toContain("<b>A 3.75%</b><b>P 3.5%</b><b>Surp +0.25%</b>");
     expect(html).toContain("A 3.75%");
     expect(html).toContain("F -");
     expect(html).toContain("P 3.5%");

@@ -142,11 +142,11 @@ function getEventFamilyLabel(factorId: string, title: string): string {
   return title.split(/\s+/).slice(0, 2).join(" ");
 }
 
-function formatBasisShort(side: PairMatrixFactorComparison["base"] | PairMatrixFactorComparison["quote"] | null): string {
-  if (!side) return "basis -";
-  if (side.basisLabel === "Actual vs forecast") return `F ${side.comparisonLabel}`;
-  if (side.basisLabel === "Actual vs previous") return `P ${side.comparisonLabel}`;
-  return side.basisLabel;
+function getBasisValueDisplay(side: PairMatrixFactorComparison["base"] | PairMatrixFactorComparison["quote"] | null): { label: string; value: string } {
+  if (!side) return { label: "B", value: "-" };
+  if (side.basisLabel === "Actual vs forecast") return { label: "F", value: side.comparisonLabel };
+  if (side.basisLabel === "Actual vs previous") return { label: "P", value: side.comparisonLabel };
+  return { label: "B", value: side.comparisonLabel };
 }
 
 function formatBundleSuffix(count: number, mode: PairMatrixBundleDisplayMode): string {
@@ -601,6 +601,7 @@ function SignalSideRead({
 }) {
   const event = cell?.latestEvent ?? null;
   const fields = getEventDisplayFields(event);
+  const basis = getBasisValueDisplay(side);
   const bundleSuffix = formatBundleSuffix(cell?.latestBundleCount ?? 0, data.preferences.bundleDisplayMode);
   const title = `Latest: ${getBundleTitle(cell?.latestBundleEvents ?? [], data)}. Next: ${getBundleTitle(
     cell?.nextBundleEvents ?? [],
@@ -620,7 +621,11 @@ function SignalSideRead({
   return (
     <span className="chart-pair-matrix-signal-read" title={title}>
       <strong>{currency} {getEventFamilyLabel(factorId, event.title)}{bundleSuffix}</strong>
-      <span>A {fields.actual} / {formatBasisShort(side)} / Surp {side?.rawSurpriseLabel ?? "-"}</span>
+      <span className="chart-pair-matrix-signal-values">
+        <b>A {fields.actual}</b>
+        <b>{basis.label} {basis.value}</b>
+        <b>Surp {side?.rawSurpriseLabel ?? "-"}</b>
+      </span>
       <time>{formatCompactEventTime(event, data)}</time>
     </span>
   );
