@@ -238,14 +238,14 @@
 .chart-event-lens-dock-body span { color: #64748b; font-size: 9px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
 .chart-event-lens-dock-body strong { color: #0f172a; font-size: 11px; font-weight: 850; line-height: 1.35; }
 .chart-pair-matrix-lens { position: absolute; left: 12px; top: 74px; z-index: 3; width: max-content; max-width: calc(100% - 24px); pointer-events: auto; }
-.chart-pair-matrix-lens.is-open { left: 12px; top: 124px; width: min(1320px, calc(100% - 24px)); height: auto; max-height: calc(100% - 148px); transform: translate3d(var(--pair-matrix-drag-x, 0px), var(--pair-matrix-drag-y, 0px), 0); }
+.chart-pair-matrix-lens.is-open { left: 12px; top: 124px; width: min(1320px, calc(100% - 24px)); height: min(820px, calc(100% - 148px)); max-height: calc(100% - 148px); transform: translate3d(var(--pair-matrix-drag-x, 0px), var(--pair-matrix-drag-y, 0px), 0); }
 .chart-pair-matrix-lens.is-open .chart-pair-matrix-popover { cursor: grab; }
 .chart-pair-matrix-lens.is-dragging { user-select: none; }
 .chart-pair-matrix-lens.is-dragging .chart-pair-matrix-popover { cursor: grabbing; }
 .chart-pair-matrix-lens.is-open button, .chart-pair-matrix-lens.is-open select { cursor: pointer; }
 .chart-pair-matrix-bookmark { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; padding: 0; border: 1px solid rgba(15, 23, 42, 0.14); border-left: 0; border-radius: 0 10px 10px 0; background: rgba(255, 255, 255, 0.97); color: #334155; box-shadow: 10px 0 24px rgba(15, 23, 42, 0.11); }
 .chart-pair-matrix-bookmark:hover { border-color: rgba(37, 99, 235, 0.28); background: #f8fafc; color: #1d4ed8; }
-.chart-pair-matrix-popover { display: flex; width: 100%; height: auto; max-height: inherit; min-width: 0; flex-direction: column; overflow: hidden; border: 1px solid rgba(15, 23, 42, 0.14); border-radius: 10px; background: rgba(255, 255, 255, 0.985); box-shadow: 0 20px 54px rgba(15, 23, 42, 0.2); }
+.chart-pair-matrix-popover { display: flex; width: 100%; height: 100%; max-height: inherit; min-width: 0; flex-direction: column; overflow: hidden; border: 1px solid rgba(15, 23, 42, 0.14); border-radius: 10px; background: rgba(255, 255, 255, 0.985); box-shadow: 0 20px 54px rgba(15, 23, 42, 0.2); }
 .chart-pair-matrix-head { display: grid; grid-template-columns: minmax(155px, max-content) minmax(0, 1fr); align-items: center; gap: 10px; min-width: 0; padding: 5px 8px; border-bottom: 1px solid #e2e8f0; background: linear-gradient(180deg, #fff, #f8fafc); }
 .chart-pair-matrix-title { display: grid; gap: 1px; min-width: 0; }
 .chart-pair-matrix-title > span { color: #64748b; font-size: 9px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
@@ -288,12 +288,12 @@
 .chart-pair-matrix-control button:last-child { border-right: 0; }
 .chart-pair-matrix-control button:hover { background: #eef2ff; color: #1d4ed8; }
 .chart-pair-matrix-control button.is-active { background: #1e293b; color: #fff; }
-.chart-pair-matrix-scroll { display: flex; min-height: 0; flex-direction: column; overflow: hidden; background: #fbfdff; --pair-matrix-columns: minmax(210px, 0.78fr) minmax(600px, 2.5fr) minmax(158px, 0.58fr) minmax(200px, 0.74fr); }
+.chart-pair-matrix-scroll { display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; overflow: hidden; background: #fbfdff; --pair-matrix-columns: minmax(210px, 0.78fr) minmax(600px, 2.5fr) minmax(158px, 0.58fr) minmax(200px, 0.74fr); }
 .chart-pair-matrix-row-head { display: grid; grid-template-columns: var(--pair-matrix-columns); gap: 8px; padding: 5px 10px; border-bottom: 1px solid #cbd5e1; background: rgba(248, 250, 252, 0.98); color: #64748b; font-size: 10px; font-weight: 950; letter-spacing: 0.04em; text-transform: uppercase; }
 .chart-pair-matrix-row-head span { min-width: 0; }
 .chart-pair-matrix-row-head b { color: #334155; font: inherit; }
 .chart-pair-matrix-row-head i { padding: 0 10px; color: #94a3b8; font-style: normal; }
-.chart-pair-matrix-row-list { display: grid; grid-auto-rows: auto; align-content: start; min-height: 0; flex: 0 0 auto; padding: 0 6px 6px; }
+.chart-pair-matrix-row-list { display: grid; grid-template-rows: repeat(7, minmax(0, 1fr)); align-content: stretch; min-height: 0; flex: 1 1 auto; padding: 0 6px 6px; }
 .chart-pair-matrix-row { display: grid; grid-template-columns: var(--pair-matrix-columns); gap: 8px; min-height: 0; min-width: 0; overflow: hidden; padding: 5px 4px 5px 7px; border-bottom: 1px solid #dbeafe; border-left: 4px solid #cbd5e1; background: rgba(255, 255, 255, 0.88); }
 .chart-pair-matrix-row.is-aligned { border-left-color: #10b981; background: rgba(236, 253, 245, 0.46); }
 .chart-pair-matrix-row.is-rejected { border-left-color: #ef4444; background: rgba(254, 242, 242, 0.48); }
@@ -332,7 +332,7 @@
 .chart-pair-matrix-compare-top small { min-width: 0; color: #0f172a; font-size: 9px; font-weight: 950; line-height: 1.1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .chart-pair-matrix-compare-side { min-height: 0; overflow: hidden; padding-top: 2px; border-top: 1px solid #e2e8f0; }
 .chart-pair-matrix-driver-stack { display: grid; gap: 3px; min-height: 0; overflow: hidden; }
-.chart-pair-matrix-driver-read { display: grid; grid-template-rows: 13px repeat(4, minmax(0, 1fr)); gap: 1px; min-width: 0; height: 100%; overflow: hidden; padding-left: 6px; border-left: 3px solid #f59e0b; background: transparent; }
+.chart-pair-matrix-driver-read { display: grid; grid-template-rows: repeat(5, minmax(0, max-content)); align-content: start; gap: 2px; min-width: 0; height: 100%; overflow: hidden; padding-left: 6px; border-left: 3px solid #f59e0b; background: transparent; }
 .chart-pair-matrix-driver-read.is-aligned { border-left-color: #10b981; }
 .chart-pair-matrix-driver-read.is-rejected { border-left-color: #ef4444; }
 .chart-pair-matrix-driver-read.is-muted { border-left-color: #94a3b8; }
@@ -340,7 +340,7 @@
 .chart-pair-matrix-driver-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; }
 .chart-pair-matrix-driver-top strong { color: #0f172a; font-size: 10px; font-weight: 950; line-height: 1.05; }
 .chart-pair-matrix-driver-top em { flex: 0 0 auto; color: #64748b; font-size: 9px; font-style: normal; font-weight: 950; }
-.chart-pair-matrix-driver-line { color: #64748b; font-size: 8.5px; font-weight: 850; line-height: 1.08; overflow-wrap: anywhere; }
+.chart-pair-matrix-driver-line { min-width: 0; overflow: hidden; color: #64748b; font-size: 8.5px; font-weight: 850; line-height: 1.08; text-overflow: clip; white-space: nowrap; }
 .chart-pair-matrix-empty { color: #94a3b8; font-size: 10px; font-weight: 850; }
 .chart-pair-matrix-note { margin: 0; padding: 14px 12px; color: #475569; }
 .charts-history-boundary { position: absolute; left: 18px; top: 24px; z-index: 20; pointer-events: none; }
@@ -365,6 +365,6 @@
   .chart-pair-matrix-lens.is-open { left: 12px; top: 168px; width: min(100vw - 24px, 760px); height: auto; max-height: min(560px, calc(100% - 236px)); }
   .chart-pair-matrix-head { grid-template-columns: 1fr; }
   .chart-pair-matrix-head-summary { justify-content: flex-start; }
-  .chart-pair-matrix-scroll { --pair-matrix-columns: minmax(58px, 0.5fr) repeat(4, minmax(72px, 1fr)) minmax(96px, 1.15fr) minmax(104px, 1.2fr); }
+  .chart-pair-matrix-scroll { --pair-matrix-columns: minmax(120px, 0.8fr) minmax(320px, 2fr) minmax(130px, 0.75fr) minmax(150px, 0.85fr); }
 }
 

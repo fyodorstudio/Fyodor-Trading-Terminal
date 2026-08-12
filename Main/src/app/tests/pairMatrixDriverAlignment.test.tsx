@@ -685,6 +685,7 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).toContain("-20.0 pips");
     expect(html).toContain("-0.18%");
     expect(html).toContain("Range 30 Jul 2026 04:00 -&gt; 30 Jul 2026 05:00");
+    expect(html).toContain("Expected down / price down");
     expect(html).toContain("EURUSD expected down");
     expect(html).toContain("chart-pair-matrix-settings-details");
     expect(html).toContain("Evidence Signal settings");

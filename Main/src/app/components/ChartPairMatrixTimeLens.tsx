@@ -176,6 +176,14 @@ function DriverRead({
         )}`
       : read.reasonLabel;
   const title = `${read.reason} Move range: ${moveRangeLabel}.`;
+  const metricLabel = read.status === "unclear" ? read.reasonLabel : read.surpriseLabel;
+  const rangeLine = hasMoveRange ? `Range ${moveRangeLabel}` : "Range unavailable";
+  const moveLine = read.status === "unclear" ? "Move unavailable" : read.priceMoveLabel;
+  const expectedShortLabel = read.expectedDirectionLabel.replace(/^[A-Z0-9]+ expected /, "Expected ");
+  const directionLine =
+    read.status === "unclear"
+      ? "No expected pair direction"
+      : `${expectedShortLabel} / ${read.actualDirectionLabel}`;
 
   return (
     <span className={`chart-pair-matrix-driver-read is-${read.status}`} title={title}>
@@ -183,12 +191,10 @@ function DriverRead({
         <strong>{read.statusLabel}</strong>
         <em>{read.currency}</em>
       </span>
-      <span className="chart-pair-matrix-driver-line">{read.status === "unclear" ? read.reasonLabel : read.surpriseLabel}</span>
-      <span className="chart-pair-matrix-driver-line">Range {moveRangeLabel}</span>
-      <span className="chart-pair-matrix-driver-line">{read.status === "unclear" ? read.reason : read.priceMoveLabel}</span>
-      <span className="chart-pair-matrix-driver-line">
-        {read.status === "unclear" ? read.reasonLabel : `${read.expectedDirectionLabel} / ${read.actualDirectionLabel}`}
-      </span>
+      <span className="chart-pair-matrix-driver-line">{metricLabel}</span>
+      <span className="chart-pair-matrix-driver-line">{rangeLine}</span>
+      <span className="chart-pair-matrix-driver-line">{moveLine}</span>
+      <span className="chart-pair-matrix-driver-line">{directionLine}</span>
     </span>
   );
 }
