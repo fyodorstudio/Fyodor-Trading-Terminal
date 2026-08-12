@@ -308,8 +308,8 @@ function getDriverAcceptanceSummary(rows: PairMatrixFactorViewRow[]): { label: s
 
   return {
     label: "Driver read",
-    detail: `${aligned} aligned / ${rejected} rejected${other > 0 ? ` / ${other} other` : ""}`,
-    title: `Driver acceptance counts visible factor rows: aligned ${aligned}, rejected ${rejected}, muted ${muted}, unclear ${unclear}.`,
+    detail: `Green ${aligned} / Red ${rejected}${other > 0 ? ` / Other ${other}` : ""}`,
+    title: `Driver color counts visible factor rows: green ${aligned}, red ${rejected}, gray ${muted}, amber ${unclear}.`,
   };
 }
 
@@ -428,6 +428,9 @@ function PairMatrixHeaderSummary({
             <span title="Oldest and newest broker/MT5 calendar rows currently available to Pair Matrix.">{calendarDiagnostics.loadedRangeLabel}</span>
             <span title="Whether the cursor anchor is inside the loaded Pair Matrix calendar range.">{calendarDiagnostics.anchorStatusLabel}</span>
             <p>Evidence Signal combines macro vote, expected pair direction, and release-to-cursor price acceptance.</p>
+            <p className="chart-pair-matrix-color-guide" title="Reaction colors are visual evidence labels, not automated execution.">
+              Color guide: green = price accepted the data read; red = price moved against it; gray = move too small; amber = no honest directional read.
+            </p>
             {calendarDiagnostics.canLoadOlder ? (
               <button
                 type="button"
@@ -605,12 +608,13 @@ function SignalReactionCell({
     : read.reasonLabel;
   const expectedShortLabel = read.expectedDirectionLabel.replace(/^[A-Z0-9]+ expected /, "Expected ");
   const directionLabel = read.status === "unclear" ? read.reasonLabel : `${expectedShortLabel} / ${read.actualDirectionLabel}`;
+  const primaryLine = read.status === "unclear" ? "No directional read" : read.priceMoveLabel;
+  const secondaryLine = read.status === "unclear" ? "No expected/price match" : directionLabel;
 
   return (
     <span className={`chart-pair-matrix-signal-reaction is-${read.status}`} title={`${read.reason} Range ${rangeLabel}.`}>
-      <strong>{read.statusLabel}</strong>
-      <span>{read.status === "unclear" ? read.reasonLabel : read.priceMoveLabel}</span>
-      <em>{directionLabel}</em>
+      <strong>{primaryLine}</strong>
+      <em>{secondaryLine}</em>
     </span>
   );
 }
@@ -724,7 +728,7 @@ function PairMatrixDetailsPanel({
           {row.comparison.contextLabel ? ` / ${row.comparison.contextLabel}` : ""}
         </p>
       ) : null}
-      {row.summaryAlignment ? <p title={row.summaryAlignment.reason}>{row.summaryAlignment.statusLabel}: {row.summaryAlignment.reason}</p> : null}
+      {row.summaryAlignment ? <p title={row.summaryAlignment.reason}>{row.summaryAlignment.reason}</p> : null}
     </aside>
   );
 }

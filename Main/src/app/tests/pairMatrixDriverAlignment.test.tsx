@@ -733,7 +733,7 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).toContain("Quote leads");
     expect(html).toContain("Base 0 / Quote 1");
     expect(html).toContain("Driver read");
-    expect(html).toContain("1 aligned / 0 rejected");
+    expect(html).toContain("Green 1 / Red 0");
     expect(html).toContain("Move size");
     expect(html).toContain("Range");
     expect(html).not.toContain(">Latest<");
@@ -757,9 +757,13 @@ describe("Pair Matrix Driver Alignment", () => {
     expect(html).toContain("Range 30 Jul 2026 04:00 -&gt; 30 Jul 2026 05:00");
     expect(html).toContain("Expected down / price down");
     expect(html).toContain("EURUSD expected down");
+    expect(html).not.toContain("<strong>Aligned</strong>");
+    expect(html).not.toContain("<strong>Rejected</strong>");
+    expect(html).not.toContain("<strong>Unclear</strong>");
     expect(html).toContain("chart-pair-matrix-settings-details");
     expect(html).toContain("Evidence Signal settings");
     expect(html).toContain("Evidence Signal combines macro vote");
+    expect(html).toContain("Color guide: green = price accepted the data read; red = price moved against it; gray = move too small; amber = no honest directional read.");
     expect(html).toContain("1/1 factor cells loaded");
     expect(html).toContain("Loaded broker/MT5 rows only");
     expect(html).toContain("Pair Matrix lookback: 400d current");
