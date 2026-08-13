@@ -249,6 +249,11 @@ describe("chartView helpers", () => {
     expect(DEFAULT_CHART_PREFERENCES.eventOverlay.futureMarkerLimit).toBe(8);
     expect(normalizeChartPreferences({ eventOverlay: { futureMarkerLimit: 900 } }).eventOverlay.futureMarkerLimit).toBe(40);
     expect(normalizeChartPreferences({ eventOverlay: { futureMarkerLimit: -1 } }).eventOverlay.futureMarkerLimit).toBe(0);
+    expect("pairMatrix" in normalizeChartPreferences({
+      cursorReadoutMode: "nearest_candle",
+      appearance: { backgroundColor: "#101010" },
+      pairMatrix: { calendarLookback: "two_year", comparisonMode: "macro_price" },
+    })).toBe(false);
   });
 
   it("filters chart event overlays by selected symbol and scope", () => {

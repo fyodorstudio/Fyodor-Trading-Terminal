@@ -134,7 +134,6 @@ describe("getChartConnectionLabel", () => {
         preferences: DEFAULT_CHART_PREFERENCES,
         onCursorModeChange: () => {},
         onAppearanceChange: () => {},
-        onPairMatrixChange: () => {},
         onEventOverlayChange: () => {},
         onResetAppearance: () => {},
         replayData: {
@@ -196,16 +195,15 @@ describe("getChartConnectionLabel", () => {
         preferences: DEFAULT_CHART_PREFERENCES,
         onCursorModeChange: () => {},
         onAppearanceChange: () => {},
-        onPairMatrixChange: () => {},
         onEventOverlayChange: () => {},
         onResetAppearance: () => {},
       }),
     );
 
     expect(replayHtml).toContain("Future candle opacity");
-    expect(appearanceHtml).toContain("Experimental");
-    expect(appearanceHtml).toContain("Pair compare");
-    expect(appearanceHtml).toContain("Macro surprise");
+    expect(appearanceHtml).not.toContain("Experimental");
+    expect(appearanceHtml).not.toContain("Pair compare");
+    expect(appearanceHtml).not.toContain("Macro surprise");
   });
 
   it("derives session detail only from the active market status", () => {

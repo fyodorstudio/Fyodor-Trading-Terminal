@@ -1,10 +1,11 @@
-import { useCallback, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type Ref } from "react";
+import { memo, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type Ref } from "react";
 import { AlertTriangle, CalendarDays, ChevronDown, Settings2, Table2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChartEventLens, type ChartEventLensData } from "@/app/components/ChartEventLens";
 import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
 import { ChartPairMatrixTimeLens, type ChartPairMatrixTimeLensData } from "@/app/components/ChartPairMatrixTimeLens";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
+import type { PairMatrixCandleRange, PairMatrixRangePixelBounds } from "@/app/lib/pairMatrixSnapshot";
 import type { BridgeStatus, CalendarEvent } from "@/app/types";
 
 export type ChartCrosshairReadout = {
@@ -26,6 +27,24 @@ export type ChartEventLensDockData = {
   onShowHighMedium: () => void;
 };
 
+export type ChartPairMatrixRangeOverlayData = {
+  armed: boolean;
+  cancelRevision: number;
+  lockedBounds: PairMatrixRangePixelBounds | null;
+  startPreview: (x: number, edge: "new" | "start" | "end") => PairMatrixRangePreview | null;
+  updatePreview: (x: number, originTime: number) => PairMatrixRangePreview | null;
+  onCommit: (range: PairMatrixCandleRange) => void;
+  onCancel: () => void;
+  onInteractionChange: (active: boolean) => void;
+};
+
+export type PairMatrixRangePreview = {
+  key: string;
+  originTime: number;
+  range: PairMatrixCandleRange;
+  bounds: PairMatrixRangePixelBounds;
+};
+
 interface ChartViewportProps {
   containerRef: Ref<HTMLDivElement>;
   clusters: ChartEventOverlayCluster[];
@@ -43,6 +62,7 @@ interface ChartViewportProps {
   eventLens: ChartEventLensData | null;
   eventLensDock: ChartEventLensDockData;
   pairMatrixTimeLens: ChartPairMatrixTimeLensData;
+  pairMatrixRangeOverlay: ChartPairMatrixRangeOverlayData;
   crosshairReadout: ChartCrosshairReadout | null;
   status: BridgeStatus;
   overlayCopy: {
@@ -64,40 +84,12 @@ export function ChartViewport({
   eventLens,
   eventLensDock,
   pairMatrixTimeLens,
+  pairMatrixRangeOverlay,
   crosshairReadout,
   status,
   overlayCopy,
   reachedBoundary,
 }: ChartViewportProps) {
-  const [pairMatrixPaneHeight, setPairMatrixPaneHeight] = useState(340);
-  const handlePairMatrixResizeStart = useCallback(
-    (event: ReactPointerEvent<HTMLDivElement>) => {
-      if (!pairMatrixTimeLens.open || event.button !== 0) return;
-      const frame = event.currentTarget.closest(".chart-canvas-frame");
-      const frameHeight = frame?.getBoundingClientRect().height ?? 720;
-      const startY = event.clientY;
-      const startHeight = pairMatrixPaneHeight;
-      const minHeight = 178;
-      const maxHeight = Math.max(minHeight, Math.min(520, frameHeight - 220));
-
-      const handleMove = (moveEvent: PointerEvent) => {
-        const nextHeight = startHeight + startY - moveEvent.clientY;
-        setPairMatrixPaneHeight(Math.min(maxHeight, Math.max(minHeight, nextHeight)));
-      };
-      const handleEnd = () => {
-        window.removeEventListener("pointermove", handleMove);
-        window.removeEventListener("pointerup", handleEnd);
-        window.removeEventListener("pointercancel", handleEnd);
-      };
-
-      window.addEventListener("pointermove", handleMove);
-      window.addEventListener("pointerup", handleEnd);
-      window.addEventListener("pointercancel", handleEnd);
-      event.preventDefault();
-    },
-    [pairMatrixPaneHeight, pairMatrixTimeLens.open],
-  );
-
   return (
     <>
       <div className="chart-viewport-shell relative group min-h-0 flex-1 overflow-hidden">
@@ -117,6 +109,7 @@ export function ChartViewport({
                 onSelectCluster={onSelectCluster}
                 onSelectEvent={onSelectEvent}
               />
+              <ChartPairMatrixRangeOverlay data={pairMatrixRangeOverlay} />
             </div>
             <div className={`chart-event-lens-slot ${eventOverlay.isInteracting ? "is-interacting" : ""}`}>
               {!eventLens?.expanded && !eventLensDock.expanded && !pairMatrixTimeLens.open ? (
@@ -132,17 +125,9 @@ export function ChartViewport({
             {pairMatrixTimeLens.open ? (
               <section
                 className="chart-pair-matrix-bottom-shell"
-                style={{ "--pair-matrix-pane-height": `${pairMatrixPaneHeight}px` } as CSSProperties}
                 aria-label="Pair Matrix bottom panel"
               >
-                <div
-                  className="chart-pair-matrix-pane-resizer"
-                  role="separator"
-                  aria-orientation="horizontal"
-                  aria-label="Resize Pair Matrix panel"
-                  onPointerDown={handlePairMatrixResizeStart}
-                />
-                <ChartPairMatrixTimeLens data={{ ...pairMatrixTimeLens, renderClosedButton: false }} placement="bottom" />
+                <ChartPairMatrixTimeLens data={pairMatrixTimeLens} />
               </section>
             ) : null}
           </div>
@@ -189,6 +174,136 @@ export function ChartViewport({
     </>
   );
 }
+
+const ChartPairMatrixRangeOverlay = memo(function ChartPairMatrixRangeOverlay({ data }: { data: ChartPairMatrixRangeOverlayData }) {
+  const [dragging, setDragging] = useState(false);
+  const [preview, setPreview] = useState<PairMatrixRangePreview | null>(null);
+  const draggingRef = useRef(false);
+  const previewRef = useRef<PairMatrixRangePreview | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const pendingXRef = useRef<number | null>(null);
+
+  useEffect(() => () => {
+    if (animationFrameRef.current != null) window.cancelAnimationFrame(animationFrameRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (animationFrameRef.current != null) window.cancelAnimationFrame(animationFrameRef.current);
+    animationFrameRef.current = null;
+    pendingXRef.current = null;
+    previewRef.current = null;
+    draggingRef.current = false;
+    setPreview(null);
+    setDragging(false);
+  }, [data.cancelRevision]);
+
+  const localX = (event: ReactPointerEvent<HTMLElement>) => {
+    const bounds = event.currentTarget.closest(".chart-plot-region")?.getBoundingClientRect();
+    return bounds ? event.clientX - bounds.left : 0;
+  };
+  const applyPreview = (next: PairMatrixRangePreview | null) => {
+    if (!next || previewRef.current?.key === next.key) return;
+    previewRef.current = next;
+    setPreview(next);
+  };
+  const begin = (event: ReactPointerEvent<HTMLElement>, edge: "new" | "start" | "end") => {
+    const next = data.startPreview(localX(event), edge);
+    if (!next) return;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    draggingRef.current = true;
+    setDragging(true);
+    previewRef.current = next;
+    setPreview(next);
+    data.onInteractionChange(true);
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  const move = (event: ReactPointerEvent<HTMLElement>) => {
+    if (!draggingRef.current || !previewRef.current) return;
+    pendingXRef.current = localX(event);
+    if (animationFrameRef.current == null) {
+      animationFrameRef.current = window.requestAnimationFrame(() => {
+        animationFrameRef.current = null;
+        const x = pendingXRef.current;
+        const current = previewRef.current;
+        if (x == null || !current) return;
+        applyPreview(data.updatePreview(x, current.originTime));
+      });
+    }
+    event.preventDefault();
+  };
+  const end = (event: ReactPointerEvent<HTMLElement>) => {
+    if (!draggingRef.current || !previewRef.current) return;
+    if (animationFrameRef.current != null) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    const finalPreview = data.updatePreview(localX(event), previewRef.current.originTime) ?? previewRef.current;
+    draggingRef.current = false;
+    setDragging(false);
+    setPreview(null);
+    previewRef.current = null;
+    pendingXRef.current = null;
+    data.onInteractionChange(false);
+    data.onCommit(finalPreview.range);
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  const cancel = (event: ReactPointerEvent<HTMLElement>) => {
+    if (!draggingRef.current) return;
+    if (animationFrameRef.current != null) window.cancelAnimationFrame(animationFrameRef.current);
+    animationFrameRef.current = null;
+    draggingRef.current = false;
+    previewRef.current = null;
+    pendingXRef.current = null;
+    setDragging(false);
+    setPreview(null);
+    data.onInteractionChange(false);
+    data.onCancel();
+    event.preventDefault();
+    event.stopPropagation();
+  };
+  const bounds = preview?.bounds ?? data.lockedBounds;
+  if (!bounds && !data.armed && !dragging) return null;
+  const left = bounds?.left ?? 0;
+  const width = bounds ? Math.max(2, bounds.right - bounds.left) : 0;
+  const bandStyle = { left: `${left}px`, width: `${width}px` } as CSSProperties;
+
+  return (
+    <div
+      className={`absolute inset-0 z-[35] ${data.armed ? "pointer-events-auto cursor-crosshair" : "pointer-events-none"}`}
+      aria-label={data.armed ? "Drag to select a Pair Matrix candle range" : "Locked Pair Matrix candle range"}
+      onPointerDown={data.armed ? (event) => begin(event, "new") : undefined}
+      onPointerMove={data.armed ? move : undefined}
+      onPointerUp={data.armed ? end : undefined}
+      onPointerCancel={data.armed ? cancel : undefined}
+    >
+      {bounds ? (
+        <div className="pointer-events-none absolute inset-y-0 border-x-[3px] border-blue-600 bg-blue-400/25 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.28)]" style={bandStyle} data-pair-matrix-range-band="">
+          <button
+            type="button"
+            className="pointer-events-auto absolute inset-y-0 -left-2 w-4 cursor-ew-resize bg-transparent"
+            aria-label="Adjust Pair Matrix range start"
+            onPointerDown={(event) => begin(event, "start")}
+            onPointerMove={move}
+            onPointerUp={end}
+            onPointerCancel={cancel}
+          ><span className="pointer-events-none absolute left-1/2 top-1/2 h-10 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-600" /></button>
+          <button
+            type="button"
+            className="pointer-events-auto absolute inset-y-0 -right-2 w-4 cursor-ew-resize bg-transparent"
+            aria-label="Adjust Pair Matrix range end"
+            onPointerDown={(event) => begin(event, "end")}
+            onPointerMove={move}
+            onPointerUp={end}
+            onPointerCancel={cancel}
+          ><span className="pointer-events-none absolute left-1/2 top-1/2 h-10 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-600" /></button>
+        </div>
+      ) : null}
+      {data.armed && !dragging ? <span className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded bg-slate-900/85 px-2 py-1 text-[10px] font-black text-white">Drag across complete candles</span> : null}
+    </div>
+  );
+});
 
 function ChartBookmarkDock({
   eventLens,

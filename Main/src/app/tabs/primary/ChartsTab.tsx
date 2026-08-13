@@ -12,8 +12,8 @@ import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/Char
 import { ChartStatusRail } from "@/app/components/ChartStatusRail";
 import { ChartSymbolPicker } from "@/app/components/ChartSymbolPicker";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
-import { ChartViewport, type ChartCrosshairReadout, type ChartEventLensDockData } from "@/app/components/ChartViewport";
-import type { ChartPairMatrixTimeLensData } from "@/app/components/ChartPairMatrixTimeLens";
+import { ChartViewport, type ChartCrosshairReadout, type ChartEventLensDockData, type ChartPairMatrixRangeOverlayData, type PairMatrixRangePreview } from "@/app/components/ChartViewport";
+import type { ChartPairMatrixTimeLensData, PairMatrixLoadState } from "@/app/components/ChartPairMatrixTimeLens";
 import type { ChartEventLensData, ChartEventReleaseRow } from "@/app/components/ChartEventLens";
 import { useChartEventOverlay } from "@/app/hooks/useChartEventOverlay";
 import { useChartMarketData } from "@/app/hooks/useChartMarketData";
@@ -58,12 +58,21 @@ import {
 } from "@/app/lib/chartView";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
 import { getEventComparison } from "@/app/lib/eventReaction";
-import { MACRO_FACTOR_DEFINITIONS, buildMacroFactorRows, buildMacroFactorRowsAsOf } from "@/app/lib/macroDrivers";
+import { buildMacroFactorRows } from "@/app/lib/macroDrivers";
 import {
-  buildPairMatrixComparisonSummary,
-  buildPairMatrixViewRows,
-  type PairMatrixPreferences,
-} from "@/app/lib/pairMatrixDriverAlignment";
+  buildPairMatrixTimeline,
+  calendarEventsCoverWindow,
+  getPairMatrixCandleClose,
+  getPairMatrixForexCurrencies,
+  getPairMatrixRangePixelBounds,
+  getPairMatrixTimelineWindow,
+  loadPairMatrixBeforeDays,
+  mergePairMatrixCalendarEvents,
+  normalizePairMatrixCandleRange,
+  savePairMatrixBeforeDays,
+  type PairMatrixCandleRange,
+} from "@/app/lib/pairMatrixSnapshot";
+import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
 import {
   formatCurrentTimeForDisplayTimezone,
   getDisplayTimezoneOptions,
@@ -74,9 +83,15 @@ import type { BridgeCandle, CalendarEvent, MarketStatusResponse, Timeframe } fro
 const DEBUG_MAX = 60;
 const REPLAY_SPEED_OPTIONS = [0.5, 1, 2, 4];
 const REPLAY_STEP_OPTIONS = [1, 2, 4, 8];
-const PAIR_MATRIX_CURRENT_LOOKBACK_DAYS = 400;
-const PAIR_MATRIX_TWO_YEAR_LOOKBACK_DAYS = 730;
-const PAIR_MATRIX_FORWARD_DAYS = 90;
+const PAIR_MATRIX_HISTORY_DEBOUNCE_MS = 180;
+const PAIR_MATRIX_HISTORY_CACHE_LIMIT = 8;
+
+interface PairMatrixCalendarCacheEntry {
+  currencyKey: string;
+  from: number;
+  to: number;
+  events: CalendarEvent[];
+}
 
 interface ChartsTabProps {
   marketStatus: MarketStatusResponse | null;
@@ -157,34 +172,6 @@ function getChartEventCurrencyLabel(symbol: string): string {
   return currencies.join("/");
 }
 
-function getCalendarRangeLabel(events: CalendarEvent[], formatter: (time: number) => string): string {
-  if (events.length === 0) return "Loaded calendar: no rows";
-  const times = events.map((event) => event.time);
-  return `Loaded calendar: ${formatter(Math.min(...times))} -> ${formatter(Math.max(...times))}`;
-}
-
-function getCalendarAnchorStatusLabel(
-  anchorTime: number | null,
-  events: CalendarEvent[],
-  formatter: (time: number) => string,
-): string {
-  if (anchorTime == null) return "Anchor: waiting for candle";
-  if (events.length === 0) return "Anchor: no loaded calendar rows";
-  const times = events.map((event) => event.time);
-  const oldest = Math.min(...times);
-  const newest = Math.max(...times);
-  if (anchorTime < oldest) return `Anchor before loaded calendar (${formatter(oldest)})`;
-  if (anchorTime > newest) return `Anchor after loaded calendar (${formatter(newest)})`;
-  return "Anchor inside loaded calendar range";
-}
-
-function getPairMatrixFetchWindow(daysBack: number, nowMs: number): { from: number; to: number } {
-  return {
-    from: Math.floor((nowMs - daysBack * 24 * 60 * 60 * 1000) / 1000),
-    to: Math.floor((nowMs + PAIR_MATRIX_FORWARD_DAYS * 24 * 60 * 60 * 1000) / 1000),
-  };
-}
-
 function isSameChartEventTemplate(left: CalendarEvent, right: CalendarEvent): boolean {
   return left.currency === right.currency && left.title === right.title;
 }
@@ -205,10 +192,18 @@ export function ChartsTab({
   const [debugLines, setDebugLines] = useState<string[]>([]);
   const [sessionNowMs, setSessionNowMs] = useState(() => Date.now());
   const [crosshairReadout, setCrosshairReadout] = useState<ChartCrosshairReadout | null>(null);
-  const [cursorChartTime, setCursorChartTime] = useState<number | null>(null);
+  const [hoveredCandleChartTime, setHoveredCandleChartTime] = useState<number | null>(null);
   const [pairMatrixOpen, setPairMatrixOpen] = useState(false);
-  const [pairMatrixCalendarEvents, setPairMatrixCalendarEvents] = useState<CalendarEvent[]>([]);
-  const [pairMatrixCalendarState, setPairMatrixCalendarState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [pairMatrixBeforeDays, setPairMatrixBeforeDays] = useState(loadPairMatrixBeforeDays);
+  const [pairMatrixRangeArmed, setPairMatrixRangeArmed] = useState(false);
+  const [pairMatrixRangeEditing, setPairMatrixRangeEditing] = useState(false);
+  const [pairMatrixRangeCancelRevision, setPairMatrixRangeCancelRevision] = useState(0);
+  const [pairMatrixLockedRange, setPairMatrixLockedRange] = useState<PairMatrixCandleRange | null>(null);
+  const [pairMatrixCalendarResult, setPairMatrixCalendarResult] = useState<{
+    key: string | null;
+    state: PairMatrixLoadState;
+    events: CalendarEvent[];
+  }>({ key: null, state: "idle", events: [] });
   const [chartRangeRevision, setChartRangeRevision] = useState(0);
   const [chartLayoutRevision, setChartLayoutRevision] = useState(0);
   const [chartInteracting, setChartInteracting] = useState(false);
@@ -229,6 +224,9 @@ export function ChartsTab({
   const futureRefocusSignatureRef = useRef("");
   const rangeAnimationFrameRef = useRef<number | null>(null);
   const rangeSettleTimeoutRef = useRef<number | null>(null);
+  const pairMatrixCalendarCacheRef = useRef(new Map<string, PairMatrixCalendarCacheEntry>());
+  const pairMatrixCalendarPendingRef = useRef(new Map<string, Promise<CalendarEvent[]>>());
+  const pairMatrixCalendarRequestRef = useRef(0);
 
   const addLog = useCallback((line: string) => {
     setDebugLines((current) => {
@@ -447,52 +445,6 @@ export function ChartsTab({
     [updateChartPreferences],
   );
 
-  const updatePairMatrixPreferences = useCallback(
-    <K extends keyof PairMatrixPreferences,>(key: K, value: PairMatrixPreferences[K]) => {
-      updateChartPreferences((current) => ({
-        ...current,
-        pairMatrix: {
-          ...current.pairMatrix,
-          [key]: value,
-        },
-      }));
-    },
-    [updateChartPreferences],
-  );
-
-  useEffect(() => {
-    if (chartPreferences.pairMatrix.calendarLookback !== "two_year") {
-      setPairMatrixCalendarEvents([]);
-      setPairMatrixCalendarState("idle");
-      return;
-    }
-
-    let cancelled = false;
-    const load = async () => {
-      setPairMatrixCalendarState("loading");
-      const range = getPairMatrixFetchWindow(PAIR_MATRIX_TWO_YEAR_LOOKBACK_DAYS, Date.now());
-      try {
-        const nextEvents = await fetchCalendar({
-          from: range.from,
-          to: range.to,
-          impacts: ["low", "medium", "high"],
-        });
-        if (cancelled) return;
-        setPairMatrixCalendarEvents(nextEvents);
-        setPairMatrixCalendarState("ready");
-      } catch {
-        if (cancelled) return;
-        setPairMatrixCalendarEvents([]);
-        setPairMatrixCalendarState("error");
-      }
-    };
-
-    void load();
-    return () => {
-      cancelled = true;
-    };
-  }, [chartPreferences.pairMatrix.calendarLookback]);
-
   const selectedChartEventKey = selectedChartEvent ? getChartEventKey(selectedChartEvent) : null;
 
   useEffect(() => {
@@ -685,7 +637,7 @@ export function ChartsTab({
       const point = param.point;
       if (!point || point.x < 0 || point.y < 0 || point.x > container.clientWidth || point.y > container.clientHeight) {
         setCrosshairReadout(null);
-        setCursorChartTime(null);
+        setHoveredCandleChartTime(null);
         return;
       }
 
@@ -693,8 +645,7 @@ export function ChartsTab({
       const candle = param.seriesData?.get(series) as CandlestickData<Time> | undefined;
       const candlePrice = candle && typeof candle.close === "number" ? candle.close : null;
       const candleTime = candle ? normalizeChartTimestampSeconds(candle.time) : null;
-      const pointerTime = normalizeChartTimestampSeconds(param.time);
-      setCursorChartTime(candleTime ?? pointerTime);
+      setHoveredCandleChartTime(candleTime);
       const lines = formatCursorReadout({
         mode: chartPreferences.cursorReadoutMode,
         truePrice,
@@ -723,13 +674,36 @@ export function ChartsTab({
     return () => {
       chart.unsubscribeCrosshairMove(handleCrosshairMove);
       setCrosshairReadout(null);
-      setCursorChartTime(null);
+      setHoveredCandleChartTime(null);
     };
   }, [chartPreferences.cursorReadoutMode, priceFormat.precision]);
 
   useEffect(() => {
-    setCursorChartTime(null);
+    setHoveredCandleChartTime(null);
+    setPairMatrixLockedRange(null);
+    setPairMatrixRangeArmed(false);
+    setPairMatrixRangeEditing(false);
+    setPairMatrixRangeCancelRevision((current) => current + 1);
   }, [selectedSymbol, timeframe]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || (!pairMatrixRangeArmed && !pairMatrixLockedRange)) return;
+      setPairMatrixLockedRange(null);
+      setPairMatrixRangeArmed(false);
+      setPairMatrixRangeEditing(false);
+      setPairMatrixRangeCancelRevision((current) => current + 1);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [pairMatrixRangeArmed, pairMatrixLockedRange]);
+
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    const selecting = pairMatrixRangeArmed || pairMatrixRangeEditing;
+    chart.applyOptions({ handleScroll: !selecting, handleScale: !selecting });
+  }, [pairMatrixRangeArmed, pairMatrixRangeEditing]);
 
   useEffect(() => {
     const series = seriesRef.current;
@@ -855,131 +829,303 @@ export function ChartsTab({
     });
   }, [events, selectedSymbol, sessionNowMs]);
 
-  const pairMatrixCurrencies = useMemo(() => getChartEventRelevantCurrencies(selectedSymbol), [selectedSymbol]);
-  const pairMatrixAnchorChartTime = cursorChartTime ?? lastCandleTime ?? null;
-  const pairMatrixAnchorCalendarTime =
-    pairMatrixAnchorChartTime == null ? null : pairMatrixAnchorChartTime - chartSourceTimeOffsetSeconds;
-  const pairMatrixEffectiveEvents =
-    chartPreferences.pairMatrix.calendarLookback === "two_year" && pairMatrixCalendarState === "ready"
-      ? pairMatrixCalendarEvents
-      : events;
-  const pairMatrixRangeFormatter = useCallback(
-    (time: number) => formatChartFeedTime(time + chartSourceTimeOffsetSeconds, displayTimeMode, chartSourceTimeOffsetSeconds),
-    [chartSourceTimeOffsetSeconds, displayTimeMode],
+  const pairMatrixCurrencies = useMemo(() => getPairMatrixForexCurrencies(selectedSymbol), [selectedSymbol]);
+  const pairMatrixCandleTimes = useMemo(() => visibleCandles.map((candle) => candle.time), [visibleCandles]);
+  const pairMatrixCandleIndexByTime = useMemo(
+    () => new Map(pairMatrixCandleTimes.map((time, index) => [time, index])),
+    [pairMatrixCandleTimes],
   );
-  const pairMatrixCalendarRangeLabel = useMemo(
-    () => getCalendarRangeLabel(pairMatrixEffectiveEvents, pairMatrixRangeFormatter),
-    [pairMatrixEffectiveEvents, pairMatrixRangeFormatter],
+  const pairMatrixFallbackOpen = hoveredCandleChartTime ?? lastCandleTime ?? null;
+  const pairMatrixFallbackRange = useMemo(
+    () => pairMatrixFallbackOpen == null
+      ? null
+      : normalizePairMatrixCandleRange(pairMatrixCandleTimes, pairMatrixFallbackOpen, pairMatrixFallbackOpen, timeframe),
+    [pairMatrixCandleTimes, pairMatrixFallbackOpen, timeframe],
   );
-  const pairMatrixAnchorStatusLabel = useMemo(
-    () => getCalendarAnchorStatusLabel(pairMatrixAnchorCalendarTime, pairMatrixEffectiveEvents, pairMatrixRangeFormatter),
-    [pairMatrixAnchorCalendarTime, pairMatrixEffectiveEvents, pairMatrixRangeFormatter],
+  const pairMatrixRange = pairMatrixLockedRange ?? pairMatrixFallbackRange;
+  const pairMatrixRangeOpenCalendarTime = pairMatrixRange == null
+    ? null
+    : pairMatrixRange.firstOpen - chartSourceTimeOffsetSeconds;
+  const pairMatrixRangeCloseCalendarTime = pairMatrixRange == null
+    ? null
+    : pairMatrixRange.close - chartSourceTimeOffsetSeconds;
+  const pairMatrixDuringThrough = pairMatrixRangeOpenCalendarTime == null || pairMatrixRangeCloseCalendarTime == null
+    ? null
+    : Math.min(
+        pairMatrixRangeCloseCalendarTime - 1,
+        Math.max(pairMatrixRangeOpenCalendarTime, activeMarketStatus?.checked_at ?? Math.floor(Date.now() / 1000)),
+      );
+  const pairMatrixWindow = useMemo(
+    () => pairMatrixRangeOpenCalendarTime == null || pairMatrixRangeCloseCalendarTime == null
+      ? null
+      : getPairMatrixTimelineWindow(pairMatrixRangeOpenCalendarTime, pairMatrixRangeCloseCalendarTime, pairMatrixBeforeDays),
+    [pairMatrixRangeOpenCalendarTime, pairMatrixRangeCloseCalendarTime, pairMatrixBeforeDays],
   );
-  const pairMatrixCanLoadOlder =
-    chartPreferences.pairMatrix.calendarLookback === "current_400d" &&
-    pairMatrixAnchorCalendarTime != null &&
-    pairMatrixEffectiveEvents.length > 0 &&
-    pairMatrixAnchorCalendarTime < Math.min(...pairMatrixEffectiveEvents.map((event) => event.time));
-  const pairMatrixRows = useMemo(
+  const pairMatrixCurrencyKey = pairMatrixCurrencies?.join("|") ?? "unsupported";
+  const pairMatrixCalendarKey = pairMatrixWindow
+    ? `${pairMatrixCurrencyKey}:${pairMatrixWindow.from}:${pairMatrixWindow.to}`
+    : null;
+
+  useEffect(() => {
+    const requestId = ++pairMatrixCalendarRequestRef.current;
+    if (!pairMatrixOpen || !pairMatrixCurrencies || pairMatrixRangeOpenCalendarTime == null || !pairMatrixWindow || !pairMatrixCalendarKey) {
+      setPairMatrixCalendarResult({ key: pairMatrixCalendarKey, state: "idle", events: [] });
+      return;
+    }
+
+    const relevantCurrentEvents = events.filter((event) => pairMatrixCurrencies.includes(event.currency));
+    if (calendarEventsCoverWindow(events, pairMatrixWindow.from, pairMatrixWindow.to)) {
+      setPairMatrixCalendarResult({ key: pairMatrixCalendarKey, state: "ready", events: relevantCurrentEvents });
+      return;
+    }
+
+    const exactCached = pairMatrixCalendarCacheRef.current.get(pairMatrixCalendarKey);
+    const coveringCachedMatch = exactCached
+      ? [pairMatrixCalendarKey, exactCached] as const
+      : [...pairMatrixCalendarCacheRef.current.entries()].find(
+          ([, entry]) =>
+            entry.currencyKey === pairMatrixCurrencyKey
+            && entry.from <= pairMatrixWindow.from
+            && entry.to >= pairMatrixWindow.to,
+        );
+    if (coveringCachedMatch) {
+      const [coveringKey, coveringCached] = coveringCachedMatch;
+      pairMatrixCalendarCacheRef.current.delete(coveringKey);
+      pairMatrixCalendarCacheRef.current.set(pairMatrixCalendarKey, coveringCached);
+      setPairMatrixCalendarResult({ key: pairMatrixCalendarKey, state: "ready", events: coveringCached.events });
+      return;
+    }
+
+    setPairMatrixCalendarResult({ key: pairMatrixCalendarKey, state: "loading", events: [] });
+    const timeoutId = window.setTimeout(() => {
+      const countries = pairMatrixCurrencies
+        .map((currency) => CURRENCY_TO_COUNTRY_CODE[currency as keyof typeof CURRENCY_TO_COUNTRY_CODE])
+        .filter((country): country is string => Boolean(country));
+      let pendingRequest = pairMatrixCalendarPendingRef.current.get(pairMatrixCalendarKey);
+      if (!pendingRequest) {
+        pendingRequest = fetchCalendar({
+          from: pairMatrixWindow.from,
+          to: pairMatrixWindow.to,
+          impacts: ["low", "medium", "high"],
+          countries,
+        });
+        pairMatrixCalendarPendingRef.current.set(pairMatrixCalendarKey, pendingRequest);
+        void pendingRequest.finally(() => {
+          if (pairMatrixCalendarPendingRef.current.get(pairMatrixCalendarKey) === pendingRequest) {
+            pairMatrixCalendarPendingRef.current.delete(pairMatrixCalendarKey);
+          }
+        }).catch(() => undefined);
+      }
+      void pendingRequest
+        .then((loadedEvents) => {
+          const relevantLoadedEvents = loadedEvents.filter((event) => pairMatrixCurrencies.includes(event.currency));
+          const overlappingEvents = [...pairMatrixCalendarCacheRef.current.values()]
+            .filter(
+              (entry) =>
+                entry.currencyKey === pairMatrixCurrencyKey
+                && entry.from <= pairMatrixWindow.to
+                && entry.to >= pairMatrixWindow.from,
+            )
+            .flatMap((entry) => entry.events);
+          const mergedEvents = mergePairMatrixCalendarEvents(relevantCurrentEvents, overlappingEvents, relevantLoadedEvents);
+          pairMatrixCalendarCacheRef.current.set(pairMatrixCalendarKey, {
+            currencyKey: pairMatrixCurrencyKey,
+            from: pairMatrixWindow.from,
+            to: pairMatrixWindow.to,
+            events: mergedEvents,
+          });
+          while (pairMatrixCalendarCacheRef.current.size > PAIR_MATRIX_HISTORY_CACHE_LIMIT) {
+            const oldestKey = pairMatrixCalendarCacheRef.current.keys().next().value as string | undefined;
+            if (!oldestKey) break;
+            pairMatrixCalendarCacheRef.current.delete(oldestKey);
+          }
+          if (pairMatrixCalendarRequestRef.current !== requestId) return;
+          setPairMatrixCalendarResult({ key: pairMatrixCalendarKey, state: "ready", events: mergedEvents });
+        })
+        .catch(() => {
+          if (pairMatrixCalendarRequestRef.current !== requestId) return;
+          setPairMatrixCalendarResult({ key: pairMatrixCalendarKey, state: "error", events: [] });
+        });
+    }, PAIR_MATRIX_HISTORY_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    pairMatrixOpen,
+    pairMatrixCurrencies,
+    pairMatrixCurrencyKey,
+    pairMatrixRangeOpenCalendarTime,
+    pairMatrixWindow,
+    pairMatrixCalendarKey,
+    events,
+  ]);
+
+  const pairMatrixLoadState: PairMatrixLoadState =
+    !pairMatrixCurrencies || pairMatrixRangeOpenCalendarTime == null
+      ? "idle"
+      : pairMatrixCalendarResult.key === pairMatrixCalendarKey
+        ? pairMatrixCalendarResult.state
+        : "loading";
+  const pairMatrixTimeline = useMemo(
     () =>
-      pairMatrixAnchorCalendarTime == null
-        ? []
-        : buildMacroFactorRowsAsOf({
-            events: pairMatrixEffectiveEvents,
+      pairMatrixCurrencies
+      && pairMatrixRangeOpenCalendarTime != null
+      && pairMatrixRangeCloseCalendarTime != null
+      && pairMatrixDuringThrough != null
+      && pairMatrixLoadState === "ready"
+        ? buildPairMatrixTimeline({
+            events: pairMatrixCalendarResult.events,
             currencies: pairMatrixCurrencies,
-            anchorTimeSeconds: pairMatrixAnchorCalendarTime,
-          }),
-    [pairMatrixEffectiveEvents, pairMatrixCurrencies, pairMatrixAnchorCalendarTime],
+            rangeOpen: pairMatrixRangeOpenCalendarTime,
+            rangeClose: pairMatrixRangeCloseCalendarTime,
+            duringThrough: pairMatrixDuringThrough,
+            beforeDays: pairMatrixBeforeDays,
+          })
+        : { during: [], before: [] },
+    [pairMatrixCurrencies, pairMatrixRangeOpenCalendarTime, pairMatrixRangeCloseCalendarTime, pairMatrixDuringThrough, pairMatrixBeforeDays, pairMatrixLoadState, pairMatrixCalendarResult.events],
   );
-  const pairMatrixCoverageLabel = useMemo(() => {
-    if (pairMatrixRows.length === 0) return "No anchor candle";
-    const coveredRows = pairMatrixRows.filter((row) => row.latestEvent || row.nextEvent).length;
-    return `${coveredRows}/${pairMatrixRows.length} factor cells loaded`;
-  }, [pairMatrixRows]);
-  const pairMatrixViewRows = useMemo(
-    () =>
-      pairMatrixAnchorChartTime == null
-        ? []
-        : buildPairMatrixViewRows({
-            factorRows: pairMatrixRows,
-            factors: MACRO_FACTOR_DEFINITIONS,
-            currencies: pairMatrixCurrencies,
-            selectedSymbol,
-            visibleCandles,
-            cursorChartTime: pairMatrixAnchorChartTime,
-            sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
-            preferences: chartPreferences.pairMatrix,
-          }),
-    [
-      pairMatrixRows,
-      pairMatrixCurrencies,
-      selectedSymbol,
-      visibleCandles,
-      pairMatrixAnchorChartTime,
-      chartSourceTimeOffsetSeconds,
-      chartPreferences.pairMatrix,
-    ],
-  );
+  const updatePairMatrixBeforeDays = useCallback((days: number) => {
+    setPairMatrixBeforeDays(days);
+    savePairMatrixBeforeDays(days);
+  }, []);
+  const pairMatrixRangeLabel = pairMatrixRange == null
+    ? "Waiting for candle"
+    : `${formatChartFeedTime(pairMatrixRange.firstOpen, displayTimeMode, chartSourceTimeOffsetSeconds)} → ${formatChartFeedTime(pairMatrixRange.close, displayTimeMode, chartSourceTimeOffsetSeconds)} · ${pairMatrixRange.candleCount} ${timeframe} ${pairMatrixRange.candleCount === 1 ? "candle" : "candles"}`;
+  const pairMatrixRangeBasisLabel: ChartPairMatrixTimeLensData["rangeBasisLabel"] = pairMatrixLockedRange
+    ? "Locked range"
+    : hoveredCandleChartTime == null
+      ? "Latest candle"
+      : "Hovered candle";
   const pairMatrixTimeLensData = useMemo<ChartPairMatrixTimeLensData>(
     () => ({
       open: pairMatrixOpen,
+      supported: pairMatrixCurrencies != null,
       pairLabel: selectedSymbol,
-      currencies: pairMatrixCurrencies,
-      rows: pairMatrixViewRows,
-      comparisonSummary: buildPairMatrixComparisonSummary({
-        rows: pairMatrixViewRows,
-        currencies: pairMatrixCurrencies,
-        preferences: chartPreferences.pairMatrix,
-      }),
-      preferences: chartPreferences.pairMatrix,
-      anchorLabel:
-        pairMatrixAnchorChartTime == null
-          ? "Waiting for candle"
-          : formatChartFeedTime(pairMatrixAnchorChartTime, displayTimeMode, chartSourceTimeOffsetSeconds),
-      anchorBasisLabel: cursorChartTime == null ? "latest loaded candle" : "cursor time",
-      coverageLabel: pairMatrixCoverageLabel,
+      currencies: pairMatrixCurrencies ?? [],
+      timeline: pairMatrixTimeline,
+      rangeLabel: pairMatrixRangeLabel,
+      rangeOpenTimeSeconds: pairMatrixRangeOpenCalendarTime,
+      rangeBasisLabel: pairMatrixRangeBasisLabel,
+      loadState: pairMatrixLoadState,
       displayTimeMode,
       sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
-      calendarDiagnostics: {
-        lookbackLabel:
-          chartPreferences.pairMatrix.calendarLookback === "two_year"
-            ? "Pair Matrix lookback: 2y"
-            : `Pair Matrix lookback: ${PAIR_MATRIX_CURRENT_LOOKBACK_DAYS}d current`,
-        loadStateLabel:
-          pairMatrixCalendarState === "loading"
-            ? "Loading 2y calendar context"
-            : pairMatrixCalendarState === "error"
-              ? "2y calendar load failed"
-              : chartPreferences.pairMatrix.calendarLookback === "two_year"
-                ? "2y calendar context loaded"
-                : "Using current app feed",
-        loadedRangeLabel: pairMatrixCalendarRangeLabel,
-        anchorStatusLabel: pairMatrixAnchorStatusLabel,
-        canLoadOlder: pairMatrixCanLoadOlder,
+      beforeDays: pairMatrixBeforeDays,
+      rangeSelectionArmed: pairMatrixRangeArmed,
+      hasLockedRange: pairMatrixLockedRange != null,
+      onBeforeDaysChange: updatePairMatrixBeforeDays,
+      onStartRangeSelection: () => setPairMatrixRangeArmed(true),
+      onToggleOpen: () => {
+        if (pairMatrixOpen) {
+          setPairMatrixRangeArmed(false);
+          setPairMatrixRangeEditing(false);
+          setPairMatrixRangeCancelRevision((current) => current + 1);
+        }
+        setPairMatrixOpen(!pairMatrixOpen);
       },
-      onPreferenceChange: updatePairMatrixPreferences,
-      onLoadOlderCalendarContext: () => updatePairMatrixPreferences("calendarLookback", "two_year"),
-      onToggleOpen: () => setPairMatrixOpen((current) => !current),
-      onClose: () => setPairMatrixOpen(false),
+      onClose: () => {
+        setPairMatrixOpen(false);
+        setPairMatrixRangeArmed(false);
+        setPairMatrixRangeEditing(false);
+        setPairMatrixRangeCancelRevision((current) => current + 1);
+      },
     }),
     [
       pairMatrixOpen,
       selectedSymbol,
       pairMatrixCurrencies,
-      pairMatrixViewRows,
-      chartPreferences.pairMatrix,
-      pairMatrixAnchorChartTime,
+      pairMatrixTimeline,
+      pairMatrixRangeLabel,
+      pairMatrixRangeOpenCalendarTime,
       displayTimeMode,
       chartSourceTimeOffsetSeconds,
-      cursorChartTime,
-      pairMatrixCoverageLabel,
-      pairMatrixCalendarState,
-      pairMatrixCalendarRangeLabel,
-      pairMatrixAnchorStatusLabel,
-      pairMatrixCanLoadOlder,
-      updatePairMatrixPreferences,
+      pairMatrixRangeBasisLabel,
+      pairMatrixLoadState,
+      pairMatrixBeforeDays,
+      pairMatrixRangeArmed,
+      pairMatrixLockedRange,
+      updatePairMatrixBeforeDays,
     ],
   );
+
+  const resolvePairMatrixCandleAtX = useCallback((x: number): { index: number; time: number } | null => {
+    const chart = chartRef.current;
+    if (!chart || pairMatrixCandleTimes.length === 0) return null;
+    const logical = chart.timeScale().coordinateToLogical(x);
+    if (logical == null) return null;
+    const index = Math.min(pairMatrixCandleTimes.length - 1, Math.max(0, Math.round(Number(logical))));
+    return { index, time: pairMatrixCandleTimes[index] };
+  }, [pairMatrixCandleTimes]);
+
+  const buildPairMatrixRangePreview = useCallback((range: PairMatrixCandleRange, originTime: number): PairMatrixRangePreview | null => {
+    const chart = chartRef.current;
+    const container = containerRef.current;
+    if (!chart || !container) return null;
+    const firstCenter = chart.timeScale().timeToCoordinate(range.firstOpen as Time);
+    const lastCenter = chart.timeScale().timeToCoordinate(range.lastOpen as Time);
+    const bounds = getPairMatrixRangePixelBounds(
+      firstCenter,
+      lastCenter,
+      chart.timeScale().options().barSpacing,
+      container.clientWidth,
+    );
+    if (!bounds) return null;
+    return {
+      key: `${range.firstOpen}:${range.lastOpen}`,
+      originTime,
+      range,
+      bounds,
+    };
+  }, []);
+
+  const resolvePairMatrixPreviewAtX = useCallback((x: number, originTime: number): PairMatrixRangePreview | null => {
+    const target = resolvePairMatrixCandleAtX(x);
+    const originIndex = pairMatrixCandleIndexByTime.get(originTime);
+    if (!target || originIndex == null) return null;
+    const fromIndex = Math.min(originIndex, target.index);
+    const throughIndex = Math.max(originIndex, target.index);
+    const range: PairMatrixCandleRange = {
+      firstOpen: pairMatrixCandleTimes[fromIndex],
+      lastOpen: pairMatrixCandleTimes[throughIndex],
+      close: getPairMatrixCandleClose(pairMatrixCandleTimes[throughIndex], timeframe),
+      candleCount: throughIndex - fromIndex + 1,
+    };
+    return buildPairMatrixRangePreview(range, originTime);
+  }, [buildPairMatrixRangePreview, pairMatrixCandleIndexByTime, pairMatrixCandleTimes, resolvePairMatrixCandleAtX, timeframe]);
+
+  const pairMatrixLockedBounds = useMemo(
+    () => pairMatrixLockedRange ? buildPairMatrixRangePreview(pairMatrixLockedRange, pairMatrixLockedRange.firstOpen)?.bounds ?? null : null,
+    [pairMatrixLockedRange, buildPairMatrixRangePreview, chartRangeRevision, chartLayoutRevision, pairMatrixCandleTimes],
+  );
+  const pairMatrixSelectionOriginRange = pairMatrixLockedRange ?? pairMatrixFallbackRange;
+
+  const pairMatrixRangeOverlay = useMemo<ChartPairMatrixRangeOverlayData>(() => {
+    return {
+      armed: pairMatrixOpen && pairMatrixRangeArmed,
+      cancelRevision: pairMatrixRangeCancelRevision,
+      lockedBounds: pairMatrixOpen ? pairMatrixLockedBounds : null,
+      startPreview: (x, edge) => {
+        const target = resolvePairMatrixCandleAtX(x);
+        if (!target) return null;
+        const current = pairMatrixSelectionOriginRange;
+        const originTime = edge === "start" && current
+          ? current.lastOpen
+          : edge === "end" && current
+            ? current.firstOpen
+            : target.time;
+        return resolvePairMatrixPreviewAtX(x, originTime);
+      },
+      updatePreview: resolvePairMatrixPreviewAtX,
+      onCommit: (range) => {
+        setPairMatrixLockedRange(range);
+        setPairMatrixRangeArmed(false);
+        setPairMatrixRangeEditing(false);
+      },
+      onCancel: () => {
+        setPairMatrixRangeArmed(false);
+        setPairMatrixRangeEditing(false);
+      },
+      onInteractionChange: setPairMatrixRangeEditing,
+    };
+  }, [pairMatrixOpen, pairMatrixRangeArmed, pairMatrixRangeCancelRevision, pairMatrixLockedBounds, pairMatrixSelectionOriginRange, resolvePairMatrixCandleAtX, resolvePairMatrixPreviewAtX]);
 
   const selectChartEvent = useCallback(
     (event: CalendarEvent, cluster: ChartEventOverlayCluster | null = null) => {
@@ -1239,7 +1385,6 @@ export function ChartsTab({
         preferences={chartPreferences}
         onCursorModeChange={handleCursorModeChange}
         onAppearanceChange={updateAppearance}
-        onPairMatrixChange={updatePairMatrixPreferences}
         onEventOverlayChange={updateEventOverlay}
         onResetAppearance={resetChartPreferences}
         replayData={{
@@ -1281,6 +1426,7 @@ export function ChartsTab({
         eventLens={eventLensData}
         eventLensDock={eventLensDockData}
         pairMatrixTimeLens={pairMatrixTimeLensData}
+        pairMatrixRangeOverlay={pairMatrixRangeOverlay}
         crosshairReadout={crosshairReadout}
         status={status}
         overlayCopy={overlayCopy}
