@@ -240,6 +240,12 @@
 .chart-event-lens-dock-body span { color: #64748b; font-size: 9px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
 .chart-event-lens-dock-body strong { color: #0f172a; font-size: 11px; font-weight: 850; line-height: 1.35; }
 .chart-pair-matrix-bottom-shell { position: relative; z-index: 70; flex: 0 0 clamp(260px, 34vh, 320px); min-height: 240px; max-height: calc(100% - 220px); border-top: 1px solid #cbd5e1; background: #fff; box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.08); pointer-events: auto; }
+.chart-pair-matrix-resize-handle { position: absolute; top: -6px; right: 0; left: 0; z-index: 75; display: flex; height: 12px; align-items: center; justify-content: center; cursor: ns-resize; touch-action: none; }
+.chart-pair-matrix-resize-handle::before { content: ""; position: absolute; inset: 5px 0 auto; height: 2px; background: transparent; transition: background 0.12s ease; }
+.chart-pair-matrix-resize-handle > span { position: relative; width: 52px; height: 5px; border: 1px solid #94a3b8; border-radius: 999px; background: #fff; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.16); }
+.chart-pair-matrix-resize-handle:hover::before, .chart-pair-matrix-resize-handle:focus-visible::before { background: rgba(37, 99, 235, 0.3); }
+.chart-pair-matrix-resize-handle:hover > span, .chart-pair-matrix-resize-handle:focus-visible > span { border-color: #2563eb; background: #dbeafe; }
+.chart-pair-matrix-resize-handle:focus-visible { outline: none; }
 .charts-history-boundary { position: absolute; left: 18px; top: 24px; z-index: 20; pointer-events: none; }
 .charts-history-boundary-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(148, 163, 184, 0.35); background: rgba(255, 255, 255, 0.88); color: #475569; font-size: 11px; font-weight: 700; letter-spacing: 0.01em; opacity: 0; transform: translateY(-2px); transition: opacity 0.2s ease, transform 0.2s ease; }
 .charts-history-boundary-pill.is-visible { opacity: 1; transform: translateY(0); }

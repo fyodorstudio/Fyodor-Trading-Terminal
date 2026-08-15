@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Checklist
 
-Last updated: 2026-08-13
+Last updated: 2026-08-15
 
 ## Active Planning Source
 
@@ -24,7 +24,8 @@ This file is the current command board. Future AI sessions should read it before
 - Pair Matrix shows raw `Actual`, `Forecast`, `Previous`, `Surprise`, and `Momentum`: `S = A - F`; `M = A - P`. A missing or unsafe input stays unavailable and is never replaced with a different basis.
 - Exact series remain distinct across core/headline, m/m, y/y, q/q, and index-level titles.
 - Pair Matrix infers percent only from an explicit source suffix or an explicit rate/frequency title. Percent differences display in percentage points; ambiguous values remain unitless. Plain CPI/index values must never acquire a guessed percent sign.
-- Pair Matrix does not compare unlike releases, aggregate currency strength, declare a winner, color arithmetic as good/bad, or interpret price direction.
+- Pair Matrix keeps its raw timeline factual and adds a separate deterministic momentum layer. The layer compares each registered series only with its own Forecast and Previous values; it does not compare raw magnitudes across unlike releases, declare a winner, or claim price causation.
+- Pair Matrix exposes an on-demand full-screen `How scoring works` guide. The live summary and guide share the same explicit During/Known before and Economy/Inflation/Policy vocabulary; per-column help owns arrow meaning and formula audits.
 - Pair Matrix has two outward-facing currency timelines. Each entry owns its factor, title, A/F/P/S/M, and time; horizontal placement never claims cross-currency equivalence.
 - Factor help explains how to read the category without deterministic currency labels. S/M audit text exposes the formula, raw inputs, unit handling, and the possibility that broker `Previous` is revised.
 - Pair Matrix reuses current calendar coverage and lazily requests older anchor-bucketed windows from the existing endpoint. This cannot exceed the bridge's retained calendar history; unavailable backfill must remain an honest loading/error/empty state.
@@ -37,14 +38,21 @@ This file is the current command board. Future AI sessions should read it before
 
 ## Active Roadmap
 
-No active implementation lane is queued after the Pair Matrix candle-range timeline. Await manual UI audit or an explicit next priority.
+- [x] Implement the Pair Matrix deterministic momentum engine:
+  - [x] add the exclusive, auditable `PAIR_MATRIX_MOMENTUM_REGISTRY` for conservative economy, inflation, and canonical policy-rate titles;
+  - [x] score equal-weight Surprise and Momentum directions with an agreement bonus, capped score groups, and one vote per economic factor;
+  - [x] keep During/New Evidence and Known Before/Background calculations independent;
+  - [x] render compact mirrored economy, inflation, and policy states with complete formula tooltips;
+  - [x] add neutral scored-release ticks to the locked range band without disturbing existing chart-event dots or drag performance;
+  - [x] update focused tests and complete the required typecheck, build, diff, and manual-audit handoff.
 
 ## Resolved Pair Matrix Decisions
 
 - The historical boundary is candle/range open, not free pointer time. A range closes at the last candle's nominal timeframe close rather than the next loaded candle.
 - During shows every loaded release for the pair currencies. Before shows every latest normalized exact series inside the configured lookback across all eight factors.
 - Preserve broker `Previous` as supplied even when it may already be revised.
-- Keep S/M factual and neutral. No standardized score, cross-currency winner, strength summary, or automatic judgment belongs in this version.
+- Preserve raw S/M as factual audit data. The new judgment layer uses only registered per-series comparison direction (`+1/0/-1`), an agreement bonus, capped groups, and equal factor votes; it never standardizes or compares raw values across series.
+- Economy outputs are `IMPROVING`, `WEAKENING`, `NET 0`, or `NO SCORED DATA`. Inflation and policy stay separate; the relative pair line uses economy only.
 - Keep raw-first frontend handling until MT5 metadata is propagated through the complete data path.
 - Leave `Main/mt5-bridge` unchanged for this implementation.
 
@@ -55,7 +63,6 @@ These are intentionally not active implementation items. Preserve them unless th
 - [ ] Propagate MT5 calendar `unit`, `multiplier`, `frequency`, and `event_code` through the EA, bridge, frontend types, and formatting logic.
 - [ ] Add genuine historical calendar backfill beyond the bridge's retained in-memory window.
 - [ ] Replace selected `Other releases` families with new curated factors when explicit inclusion/exclusion rules are agreed.
-- [ ] Design a tailored deterministic judgment engine only if the user later asks for interpretation; keep it separate from the factual snapshot.
 - [ ] Charts Event Lens interaction and readability polish:
   - [ ] add persisted Event Lens default-selection preference under Chart Events settings;
   - [ ] remove the empty unselected Event Lens modal state;
@@ -72,6 +79,18 @@ These are intentionally not active implementation items. Preserve them unless th
 - [ ] Do not revive Deprecated Overview, Six Questions, WIP, or garbage logic as product sources.
 
 ## Completed Work Log
+
+### 2026-08-15
+
+- Pair Matrix deterministic momentum engine completed as a separate auditable layer above the unchanged raw timeline.
+- The exclusive `PAIR_MATRIX_MOMENTUM_REGISTRY` now recognizes conservative economy and inflation families plus canonical policy decisions for USD, EUR, GBP, JPY, AUD, CAD, NZD, and CHF. Every rule records its direction, score group, rationale, and official source reference; unmatched releases remain visible but unscored.
+- Each exact series now receives equal-weight Surprise and Momentum direction points, with a same-direction agreement bonus. Related releases are capped within score groups and each economic factor casts at most one currency vote, preventing release quantity or numeric scale from dominating.
+- During/New Evidence and Known Before/Background remain fully separate. Economy reads `IMPROVING`, `WEAKENING`, `NET 0`, or `NO SCORED DATA`; inflation reads heating/cooling separately; policy reports tightening/holding/easing from the latest canonical decision without treating statement guidance as the rate value.
+- Compact mirrored summaries expose the complete formula and contributing-row audit through accessible tooltips. The pair line uses economy votes only and makes no causation or trade-direction claim.
+- Locked ranges now show neutral top-edge ticks for scored During releases, clustered per actual candle when necessary. Existing calendar dots and local-only range-drag preview behavior remain separate.
+- Pair Matrix keeps its compact default height but now has an accessible top-edge vertical resize separator, allowing an expanded chart/panel split while preserving a usable chart. Momentum summary values, vote arrows, currency codes, and enlarged flags use a consistent prominent presentation; populated timeline rows use a two-pixel type-size increase with taller rows.
+- Pair Matrix scoring onboarding completed: an edge-to-edge accessible guide teaches time boundaries, raw A/F/P/S/M, equal-weight event scoring, agreement, group caps, factor votes, lower-is-better inversion, limitations, and the chart workflow. Its collapsed registry reference is generated from the exclusive live registry and links each rule to its official source.
+- Focused Pair Matrix/Charts verification passed with 52 tests, repository typecheck passed, and the production build passed. The known large main-chunk warning remains non-blocking.
 
 ### 2026-08-13
 
@@ -93,7 +112,8 @@ These are intentionally not active implementation items. Preserve them unless th
 ## Verification Rules
 
 - Pair Matrix changes should update the existing focused Pair Matrix/Charts tests; do not create a parallel suite.
-- Verify range snapping/reset, nominal timeframe closes, During/Before boundaries, independent sorting, Other classification, pair isolation, lookback persistence, S/M formatting, honest load states, and absence of automated judgments.
+- Verify range snapping/reset, nominal timeframe closes, During/Before boundaries, independent sorting, Other classification, pair isolation, lookback persistence, S/M formatting, honest load states, exact-series-only comparisons, score inversion, group caps, factor votes, registry exclusions, canonical policy aliases, and complete audit formulas.
+- Preserve the boundary between the factual raw timeline and deterministic interpretation: no cross-series magnitude comparison, standardization, price-causation claim, trade direction, or hidden scoring of unmatched releases.
 - Run targeted Pair Matrix/Charts tests, `pnpm run typecheck`, production build, and `git diff --check`.
 - Do not run Playwright/CDP unless the user explicitly asks.
 - The user should manually inspect Charts at 1440x900 and 100% Chrome zoom for header fit, range overlay/handles, forward/reverse drag behavior, independent timeline readability, divider clarity, internal scrolling, adequate chart height, and no whole-page overflow.
@@ -101,7 +121,7 @@ These are intentionally not active implementation items. Preserve them unless th
 
 ## Stable Assumptions
 
-- Historical calendar backfill, external data, Overview redesign, Event Replay redesign, and a judgment engine remain out of scope until explicitly reopened.
+- Historical calendar backfill, external data, Overview redesign, and Event Replay redesign remain out of scope until explicitly reopened.
 - Existing Event Replay remains available but should not steer the Charts Event Replay Lens UI.
 - Old garbage/deprecated experiments are ignored by default.
 - Calendar coverage is loaded-only: a missing old row means it is not retained/loaded, not that no release occurred.

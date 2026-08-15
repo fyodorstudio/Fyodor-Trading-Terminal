@@ -65,9 +65,9 @@ export const PAIR_MATRIX_FACTORS: PairMatrixFactorDefinition[] = [
   {
     id: "inflation",
     label: "Inflation",
-    helpText: "S shows hotter or cooler inflation versus forecast and M shows change from the previous reading. Hotter inflation is not automatically currency-positive; its effect depends on policy expectations, growth, and what price already reflects.",
-    includeAny: ["core cpi", "cpi", "hicp", "cpih", "consumer price", "core pce", "pce price", "inflation rate"],
-    excludeAny: ["ppi", "producer price", "import price", "export price", "expectation", "expected inflation"],
+    helpText: "CPI, PCE, and producer-price releases describe inflation at different stages. S shows hotter or cooler inflation versus forecast and M shows change from the previous reading. Hotter inflation is not automatically currency-positive; its effect depends on policy expectations, growth, and what price already reflects.",
+    includeAny: ["core cpi", "cpi", "hicp", "cpih", "consumer price", "core pce", "pce price", "inflation rate", "ppi", "producer price"],
+    excludeAny: ["import price", "export price", "expectation", "expected inflation"],
   },
   {
     id: "labor",
@@ -84,8 +84,8 @@ export const PAIR_MATRIX_FACTORS: PairMatrixFactorDefinition[] = [
   {
     id: "pmi",
     label: "PMI / activity",
-    helpText: "PMI and ISM series are surveys with their own scales. Values above 50 often indicate expansion and below 50 contraction; S and M remain raw arithmetic rather than strength labels.",
-    includeAny: ["pmi", "purchasing managers index", "ism manufacturing", "ism services", "ism non-manufacturing"],
+    helpText: "GDP measures realized economic output, while PMI and ISM are activity surveys with their own scales. Treat each exact series independently; S and M remain raw arithmetic rather than strength labels.",
+    includeAny: ["gdp", "gross domestic product", "pmi", "purchasing managers index", "ism manufacturing", "ism services", "ism non-manufacturing"],
   },
   {
     id: "sentiment",
@@ -149,6 +149,15 @@ function parseSourceValue(raw: string): ParsedSourceValue | null {
   if (!Number.isFinite(numeric)) return null;
   const suffixToken = match[3]?.toUpperCase() ?? null;
   return { numeric, decimals: match[2]?.length ?? 0, suffix: suffixToken === "%" ? "percent" : suffixToken as ParsedSourceValue["suffix"] };
+}
+
+export function comparePairMatrixSourceValues(leftRaw: string, rightRaw: string): -1 | 0 | 1 | null {
+  const left = parseSourceValue(leftRaw);
+  const right = parseSourceValue(rightRaw);
+  if (!left || !right) return null;
+  if (left.suffix && right.suffix && left.suffix !== right.suffix) return null;
+  if (left.numeric === right.numeric) return 0;
+  return left.numeric > right.numeric ? 1 : -1;
 }
 
 function titleHasExplicitPercentBasis(title: string): boolean {

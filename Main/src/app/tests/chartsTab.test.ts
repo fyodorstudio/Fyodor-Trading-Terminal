@@ -2,12 +2,19 @@ import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ChartSettingsDrawer } from "@/app/components/ChartSettingsDrawer";
+import { ChartPairMatrixRangeOverlay, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
 import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
 import { ChartsTab } from "@/app/tabs/primary/ChartsTab";
 import { getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
 
 describe("getChartConnectionLabel", () => {
+  it("keeps Pair Matrix resizing within the default panel and usable-chart bounds", () => {
+    expect(clampPairMatrixPanelHeight(500, 900)).toBe(500);
+    expect(clampPairMatrixPanelHeight(100, 900)).toBe(240);
+    expect(clampPairMatrixPanelHeight(900, 900)).toBe(680);
+  });
+
   it("uses market and bridge specific labels", () => {
     expect(
       getChartConnectionLabel({
@@ -122,6 +129,33 @@ describe("getChartConnectionLabel", () => {
     expect(html).not.toContain("Show high + medium");
     expect(html).not.toContain(">History<");
     expect(html).not.toContain("Terminal Console");
+  });
+
+  it("renders scored-release ticks on the locked range band without duplicating the chart event rail", () => {
+    const html = renderToStaticMarkup(
+      createElement(ChartPairMatrixRangeOverlay, {
+        data: {
+          armed: false,
+          cancelRevision: 0,
+          lockedBounds: { left: 100, right: 400 },
+          releaseRail: [
+            { x: 150, count: 1, titles: ["GDP q/q"], currencies: ["USD"] },
+            { x: 250, count: 2, titles: ["CPI y/y", "Retail Sales m/m"], currencies: ["EUR", "USD"] },
+          ],
+          startPreview: () => null,
+          updatePreview: () => null,
+          onCommit: () => {},
+          onCancel: () => {},
+          onInteractionChange: () => {},
+        },
+      }),
+    );
+
+    expect(html).toContain("Locked Pair Matrix candle range");
+    expect(html).toContain("1 scored Pair Matrix release in this candle");
+    expect(html).toContain("2 scored Pair Matrix releases in this candle");
+    expect(html).toContain("×2");
+    expect(html).not.toContain("chart-event-dot");
   });
 
   it("renders event overlay controls inside the chart settings drawer", () => {

@@ -1,9 +1,17 @@
-import { memo, useEffect, useState } from "react";
-import { Info, MoveHorizontal, Table2, X } from "lucide-react";
+import { memo, useCallback, useEffect, useState } from "react";
+import { BookOpen, Crosshair, Info, MoveHorizontal, Table2, X } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
+import { ChartPairMatrixScoringGuide } from "@/app/components/ChartPairMatrixScoringGuide";
 import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
 import { formatChartEventDisplayTime } from "@/app/lib/chartEvents";
 import type { ChartDisplayTimeMode } from "@/app/lib/chartView";
+import type {
+  PairMatrixCurrencyMomentumRead,
+  PairMatrixEconomyState,
+  PairMatrixInflationState,
+  PairMatrixMomentumSnapshot,
+  PairMatrixPolicyState,
+} from "@/app/lib/pairMatrixMomentum";
 import {
   PAIR_MATRIX_BEFORE_MAX_DAYS,
   normalizePairMatrixBeforeDays,
@@ -20,6 +28,7 @@ export interface ChartPairMatrixTimeLensData {
   pairLabel: string;
   currencies: readonly string[];
   timeline: PairMatrixTimelineSnapshot;
+  momentum: PairMatrixMomentumSnapshot;
   rangeLabel: string;
   rangeBasisLabel: "Hovered candle" | "Latest candle" | "Locked range";
   rangeOpenTimeSeconds: number | null;
@@ -31,6 +40,7 @@ export interface ChartPairMatrixTimeLensData {
   hasLockedRange: boolean;
   onBeforeDaysChange: (days: number) => void;
   onStartRangeSelection: () => void;
+  onReturnToCursor: () => void;
   onToggleOpen: () => void;
   onClose: () => void;
 }
@@ -39,14 +49,128 @@ interface ChartPairMatrixTimeLensProps {
   data: ChartPairMatrixTimeLensData;
 }
 
+const ECONOMY_LABELS: Record<PairMatrixEconomyState, string> = {
+  improving: "IMPROVING",
+  weakening: "WEAKENING",
+  net_zero: "NET 0",
+  no_scored_data: "NO SCORED DATA",
+};
+
+const INFLATION_LABELS: Record<PairMatrixInflationState, string> = {
+  heating: "HEATING",
+  cooling: "COOLING",
+  net_zero: "NET 0",
+  no_scored_data: "NO SCORED DATA",
+};
+
+const POLICY_LABELS: Record<PairMatrixPolicyState, string> = {
+  tightening: "TIGHTENING",
+  holding: "HOLDING",
+  easing: "EASING",
+  no_decision: "NO NEW DECISION",
+  no_policy_data: "NO POLICY DATA",
+};
+
+const ECONOMY_HEADLINE_LABELS: Record<PairMatrixEconomyState, string> = {
+  improving: "Improving",
+  weakening: "Weakening",
+  net_zero: "Net 0",
+  no_scored_data: "No scored data",
+};
+
+const METRIC_HELP = {
+  economy: "Economy arrows count factor votes. Up means an improving factor; down means a weakening factor. Each factor receives at most one vote.",
+  inflation: "Inflation arrows count capped inflation groups. Up means heating; down means cooling. Inflation remains separate from the Economy vote.",
+  policy: "Policy compares the latest canonical rate decision Actual with its Previous value. Statement guidance is not scored as the decision value.",
+} as const;
+
+const METRIC_FORMULA = {
+  economy: "Formula: each registered exact series receives equal-weight Surprise and Momentum direction points; agreeing nonzero directions receive one matching bonus point. Related groups are capped at +/-3 and each economic factor casts at most one vote.",
+  inflation: "Formula: each registered inflation series receives equal-weight Surprise and Momentum heating/cooling points; agreeing nonzero directions receive one matching bonus point and related groups are capped at +/-3.",
+  policy: "Formula: the latest canonical policy-rate Actual is compared only with Previous. Higher is Tightening, equal is Holding, and lower is Easing.",
+} as const;
+
+function formatEconomyRead(read: PairMatrixCurrencyMomentumRead): string {
+  const label = ECONOMY_LABELS[read.economy.state];
+  if (read.economy.state === "no_scored_data") return label;
+  return `${label} · ${read.economy.upCount}↑ ${read.economy.downCount}↓`;
+}
+
+function formatInflationRead(read: PairMatrixCurrencyMomentumRead): string {
+  const label = INFLATION_LABELS[read.inflation.state];
+  if (read.inflation.state === "no_scored_data") return label;
+  return `${label} · ${read.inflation.upCount}↑ ${read.inflation.downCount}↓`;
+}
+
+function MetricHeading({ label, help, side, helpVisible, onRevealHelp }: { label: string; help: string; side: "base" | "quote"; helpVisible: boolean; onRevealHelp: () => void }) {
+  return (
+    <span className={`relative inline-flex min-w-0 items-center gap-1 text-[9px] font-black uppercase leading-[12px] tracking-[0.08em] text-slate-500 ${side === "quote" ? "justify-end text-right" : "justify-start text-left"}`} onMouseEnter={onRevealHelp}>
+      <span className="truncate">{label}</span>
+      <button type="button" className="flex-none rounded text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-400" aria-label={`${label} scoring help`} aria-expanded={helpVisible} data-pair-matrix-help-trigger="" onFocus={onRevealHelp}><Info size={11} /></button>
+      <span role="tooltip" className={`pointer-events-none absolute top-full z-20 mt-1 w-[clamp(170px,12vw,240px)] rounded-lg bg-slate-950 p-2 text-left text-[11px] font-semibold normal-case leading-4 tracking-normal text-white shadow-xl ${helpVisible ? "block" : "hidden"} ${side === "quote" ? "right-0" : "left-0"}`}>{help}</span>
+    </span>
+  );
+}
+
+function MetricValue({ value, audit, side }: { value: string; audit: string; side: "base" | "quote" }) {
+  return <strong className={`block min-w-0 truncate text-[18px] font-black leading-[22px] tracking-normal text-slate-800 ${side === "quote" ? "text-right" : "text-left"}`} title={audit} tabIndex={0} aria-label={audit}>{value}</strong>;
+}
+
+function metricAudit(read: PairMatrixCurrencyMomentumRead, metric: "economy" | "inflation" | "policy", context: string): string {
+  const contributors = read.contributors.filter((event) => event.rule.pillar === metric).map((event) => event.audit).join(" ");
+  const summary = metric === "economy" ? read.economy.audit : metric === "inflation" ? read.inflation.audit : read.policy.audit;
+  return `${context} ${metric}. ${METRIC_FORMULA[metric]} ${summary}${contributors ? ` Contributors: ${contributors}` : ""}`;
+}
+
+function CurrencyMomentumHeader({
+  currency,
+  countryCode,
+  during,
+  background,
+  side,
+  helpVisible,
+  onRevealHelp,
+}: {
+  currency: string;
+  countryCode: string;
+  during: PairMatrixCurrencyMomentumRead;
+  background: PairMatrixCurrencyMomentumRead;
+  side: "base" | "quote";
+  helpVisible: boolean;
+  onRevealHelp: () => void;
+}) {
+  const content = (
+    <div className="grid min-w-0 flex-1 grid-cols-[72px_1.2fr_1fr_1fr] grid-rows-[12px_24px_24px] items-center gap-x-2 gap-y-1">
+      <span aria-hidden="true" />
+      <MetricHeading label="Economy" help={METRIC_HELP.economy} side={side} helpVisible={helpVisible} onRevealHelp={onRevealHelp} />
+      <MetricHeading label="Inflation" help={METRIC_HELP.inflation} side={side} helpVisible={helpVisible} onRevealHelp={onRevealHelp} />
+      <MetricHeading label="Policy" help={METRIC_HELP.policy} side={side} helpVisible={helpVisible} onRevealHelp={onRevealHelp} />
+      <span className={`truncate text-[10px] font-black uppercase tracking-[0.06em] text-blue-700 ${side === "quote" ? "text-right" : "text-left"}`}>During</span>
+      <MetricValue value={formatEconomyRead(during)} audit={metricAudit(during, "economy", `${currency} During`)} side={side} />
+      <MetricValue value={formatInflationRead(during)} audit={metricAudit(during, "inflation", `${currency} During`)} side={side} />
+      <MetricValue value={POLICY_LABELS[during.policy.state]} audit={metricAudit(during, "policy", `${currency} During`)} side={side} />
+      <span className={`truncate text-[10px] font-black uppercase tracking-[0.06em] text-slate-500 ${side === "quote" ? "text-right" : "text-left"}`}>Known before</span>
+      <MetricValue value={formatEconomyRead(background)} audit={metricAudit(background, "economy", `${currency} Known before`)} side={side} />
+      <MetricValue value={formatInflationRead(background)} audit={metricAudit(background, "inflation", `${currency} Known before`)} side={side} />
+      <MetricValue value={POLICY_LABELS[background.policy.state]} audit={metricAudit(background, "policy", `${currency} Known before`)} side={side} />
+    </div>
+  );
+  return (
+    <div className="flex h-[80px] min-w-0 items-center gap-2 px-3 py-1">
+      {side === "base" ? <><FlagIcon countryCode={countryCode} className="h-5 w-8 shrink-0 border border-slate-200" /><span className="shrink-0 text-[18px] font-black leading-5 text-slate-700">{currency}</span>{content}</> : <>{content}<span className="shrink-0 text-[18px] font-black leading-5 text-slate-700">{currency}</span><FlagIcon countryCode={countryCode} className="h-5 w-8 shrink-0 border border-slate-200" /></>}
+    </div>
+  );
+}
+
 function SnapshotEventValues({ series }: { series: PairMatrixSeriesSnapshot }) {
+  const valueClassName = "block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap";
   return (
     <>
-      <b title={`Actual. Broker raw value: ${series.event.actual || "missing"}.`}>A {series.actualLabel}</b>
-      <b title={`Forecast. Broker raw value: ${series.event.forecast || "missing"}.`}>F {series.forecastLabel}</b>
-      <b title={`Previous. Broker raw value: ${series.event.previous || "missing"}. This value may already contain a broker revision.`}>P {series.previousLabel}</b>
-      <b title={series.surprise.title}>S {series.surprise.label}</b>
-      <b title={series.momentum.title}>M {series.momentum.label}</b>
+      <b className={valueClassName} title={`Actual. Broker raw value: ${series.event.actual || "missing"}.`}>A {series.actualLabel}</b>
+      <b className={valueClassName} title={`Forecast. Broker raw value: ${series.event.forecast || "missing"}.`}>F {series.forecastLabel}</b>
+      <b className={valueClassName} title={`Previous. Broker raw value: ${series.event.previous || "missing"}. This value may already contain a broker revision.`}>P {series.previousLabel}</b>
+      <b className={valueClassName} title={series.surprise.title}>S {series.surprise.label}</b>
+      <b className={valueClassName} title={series.momentum.title}>M {series.momentum.label}</b>
     </>
   );
 }
@@ -85,7 +209,7 @@ function TimelineEntry({
     : formatAge(data.rangeOpenTimeSeconds, series.event.time);
   const time = (
     <time
-      className={`whitespace-nowrap font-mono text-[10px] font-bold text-slate-500 ${side === "base" ? "text-right" : "text-left"}`}
+      className={`block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[12px] font-bold text-slate-500 ${side === "base" ? "text-right" : "text-left"}`}
       title={`${series.event.title}. ${mode === "during" ? "Released during the selected candle range" : "Latest loaded release of this exact series known before the range"}${secondaryTime ? `; ${secondaryTime}` : ""}.`}
     >
       {formatChartEventDisplayTime(series.event.time, data.displayTimeMode, data.sourceTimeOffsetSeconds)}
@@ -93,23 +217,23 @@ function TimelineEntry({
     </time>
   );
   const factor = (
-    <span className="inline-flex min-w-0 items-center gap-1 text-[9px] font-black uppercase tracking-[0.04em] text-slate-500">
+    <span className="inline-flex w-full min-w-0 items-center gap-1 overflow-hidden text-[11px] font-black uppercase tracking-[0.04em] text-slate-500">
       <span className="overflow-hidden text-ellipsis whitespace-nowrap" title={series.factor.label}>{series.factor.label}</span>
-      <span title={series.factor.helpText} aria-label={`${series.factor.label} interpretation help: ${series.factor.helpText}`}>
+      <span className="flex-none" title={series.factor.helpText} aria-label={`${series.factor.label} interpretation help: ${series.factor.helpText}`}>
         <Info size={10} aria-hidden="true" />
       </span>
     </span>
   );
-  const title = <strong className={`min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-black text-slate-900 ${side === "quote" ? "text-right" : ""}`} title={series.event.title}>{series.event.title}</strong>;
-  const values = <span className="contents whitespace-nowrap text-[11px] font-extrabold text-slate-600"><SnapshotEventValues series={series} /></span>;
+  const title = <strong className={`min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[14px] font-black text-slate-900 ${side === "quote" ? "text-right" : ""}`} title={series.event.title}>{series.event.title}</strong>;
+  const values = <span className="contents text-[13px] font-extrabold text-slate-600"><SnapshotEventValues series={series} /></span>;
 
   return side === "base" ? (
-    <div className="grid min-h-[34px] grid-cols-[100px_minmax(165px,1fr)_48px_48px_48px_54px_54px_166px] items-center gap-2 border-b border-slate-100 px-3 last:border-b-0" data-pair-matrix-timeline-entry="base">
+    <div className="grid min-h-[38px] grid-cols-[88px_minmax(80px,1fr)_64px_64px_64px_72px_72px_168px] items-center gap-1 overflow-hidden border-b border-slate-100 px-2 last:border-b-0" data-pair-matrix-timeline-entry="base">
       {factor}{title}{values}{time}
     </div>
   ) : (
-    <div className="grid min-h-[34px] grid-cols-[166px_48px_48px_48px_54px_54px_minmax(165px,1fr)_100px] items-center gap-2 border-b border-slate-100 px-3 last:border-b-0" data-pair-matrix-timeline-entry="quote">
-      {time}{values}{title}<span className="justify-self-end">{factor}</span>
+    <div className="grid min-h-[38px] grid-cols-[168px_64px_64px_64px_72px_72px_minmax(80px,1fr)_88px] items-center gap-1 overflow-hidden border-b border-slate-100 px-2 last:border-b-0" data-pair-matrix-timeline-entry="quote">
+      {time}{values}{title}<span className="min-w-0 justify-self-stretch overflow-hidden">{factor}</span>
     </div>
   );
 }
@@ -135,6 +259,9 @@ function TimelineSection({ mode, data }: { mode: "during" | "before"; data: Char
 
 export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ data }: ChartPairMatrixTimeLensProps) {
   const [lookbackInput, setLookbackInput] = useState(String(data.beforeDays));
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [metricHelpVisible, setMetricHelpVisible] = useState(false);
+  const closeTutorial = useCallback(() => setTutorialOpen(false), []);
   useEffect(() => setLookbackInput(String(data.beforeDays)), [data.beforeDays]);
   if (!data.open) return null;
 
@@ -142,6 +269,10 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
   const quoteCurrency = data.currencies[1] ?? "Quote";
   const baseCountryCode = CURRENCY_TO_COUNTRY_CODE[baseCurrency as keyof typeof CURRENCY_TO_COUNTRY_CODE] ?? "";
   const quoteCountryCode = CURRENCY_TO_COUNTRY_CODE[quoteCurrency as keyof typeof CURRENCY_TO_COUNTRY_CODE] ?? "";
+  const baseDuring = data.momentum.during.find((read) => read.currency === baseCurrency);
+  const quoteDuring = data.momentum.during.find((read) => read.currency === quoteCurrency);
+  const baseBackground = data.momentum.background.find((read) => read.currency === baseCurrency);
+  const quoteBackground = data.momentum.background.find((read) => read.currency === quoteCurrency);
   const commitLookback = () => {
     const normalized = normalizePairMatrixBeforeDays(lookbackInput);
     setLookbackInput(String(normalized));
@@ -167,6 +298,24 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
               >
                 <MoveHorizontal size={12} /> {data.rangeSelectionArmed ? "Drag on chart" : data.hasLockedRange ? "Replace range" : "Select range"}
               </button>
+              <button
+                type="button"
+                onClick={data.onReturnToCursor}
+                className={`inline-flex h-6 flex-none items-center gap-1 rounded-md border px-2 text-[10px] font-black ${!data.hasLockedRange && !data.rangeSelectionArmed ? "border-slate-700 bg-slate-700 text-white" : "border-slate-300 bg-white text-slate-700 hover:bg-slate-100"}`}
+                aria-pressed={!data.hasLockedRange && !data.rangeSelectionArmed}
+                title="Clear the selected range and return Pair Matrix to candle hover"
+              >
+                <Crosshair size={12} /> Cursor
+              </button>
+              <button
+                type="button"
+                onClick={() => setTutorialOpen(true)}
+                className="inline-flex h-6 flex-none items-center gap-1 rounded-md border border-slate-300 bg-white px-2 text-[10px] font-black text-slate-700 hover:bg-slate-100"
+                aria-haspopup="dialog"
+                aria-expanded={tutorialOpen}
+              >
+                <BookOpen size={12} /> How scoring works
+              </button>
             </div>
           </div>
         </div>
@@ -186,15 +335,30 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
       ) : data.loadState === "error" ? (
         <div className="grid min-h-0 flex-1 place-items-center p-6 text-center text-sm font-bold text-red-700" role="status">Historical calendar data could not be loaded.</div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-auto">
-          <div className="sticky top-0 z-[2] grid min-w-[1480px] grid-cols-2 divide-x divide-slate-300 border-b border-slate-300 bg-slate-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.06em] text-slate-500">
-            <span className="inline-flex items-center gap-2"><FlagIcon countryCode={baseCountryCode} className="h-4 w-6 shrink-0 border border-slate-200" />{baseCurrency}</span>
-            <span className="inline-flex items-center justify-end gap-2"><FlagIcon countryCode={quoteCountryCode} className="h-4 w-6 shrink-0 border border-slate-200" />{quoteCurrency}</span>
-          </div>
-          <div className="min-w-[1480px]">
+        <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+          {baseDuring && quoteDuring && baseBackground && quoteBackground ? (
+            <div
+              className="sticky top-0 z-[3] w-full min-w-0 border-b border-slate-300 bg-slate-100 uppercase tracking-[0.04em] text-slate-500"
+              data-pair-matrix-shared-help={metricHelpVisible ? "visible" : "hidden"}
+              onMouseLeave={() => setMetricHelpVisible(false)}
+              onBlur={(event) => {
+                const next = event.relatedTarget;
+                if (!(next instanceof Element) || !next.closest("[data-pair-matrix-help-trigger]")) setMetricHelpVisible(false);
+              }}
+            >
+              <div className="h-[18px] border-b border-slate-200 text-center text-[11px] font-black leading-[18px] tracking-[0.04em] text-slate-700" title="The pair headline uses During Economy factor votes only; inflation and policy remain separate.">
+                During-{data.hasLockedRange ? "range" : "candle"} economy: {baseCurrency} {ECONOMY_HEADLINE_LABELS[baseDuring.economy.state]} <span className="mx-1 text-slate-400">|</span> {quoteCurrency} {ECONOMY_HEADLINE_LABELS[quoteDuring.economy.state]}
+              </div>
+              <div className="grid min-w-0 grid-cols-2 divide-x divide-slate-300">
+                <CurrencyMomentumHeader currency={baseCurrency} countryCode={baseCountryCode} during={baseDuring} background={baseBackground} side="base" helpVisible={metricHelpVisible} onRevealHelp={() => setMetricHelpVisible(true)} />
+                <CurrencyMomentumHeader currency={quoteCurrency} countryCode={quoteCountryCode} during={quoteDuring} background={quoteBackground} side="quote" helpVisible={metricHelpVisible} onRevealHelp={() => setMetricHelpVisible(true)} />
+              </div>
+            </div>
+          ) : null}
+          <div className="w-full min-w-0">
             <div className="border-b border-blue-200 bg-blue-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-blue-800">During this {data.hasLockedRange ? "selected range" : "candle"}</div>
             <TimelineSection mode="during" data={data} />
-            <div className="sticky top-[29px] z-[1] flex items-center justify-between gap-4 border-y-2 border-slate-400 bg-slate-100 px-3 py-1.5">
+            <div className="sticky top-[98px] z-[2] flex items-center justify-between gap-4 border-y-2 border-slate-400 bg-slate-100 px-3 py-1.5">
               <strong className="text-[10px] font-black uppercase tracking-[0.08em] text-slate-700">Known before {data.hasLockedRange ? "range" : "candle"}</strong>
               <label className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-600">
                 Lookback
@@ -217,6 +381,7 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
           </div>
         </div>
       )}
+      <ChartPairMatrixScoringGuide open={tutorialOpen} onClose={closeTutorial} />
     </section>
   );
 });

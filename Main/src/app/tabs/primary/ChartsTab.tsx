@@ -59,6 +59,7 @@ import {
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
 import { getEventComparison } from "@/app/lib/eventReaction";
 import { buildMacroFactorRows } from "@/app/lib/macroDrivers";
+import { buildPairMatrixMomentumSnapshot, groupPairMatrixReleaseRailByCandle } from "@/app/lib/pairMatrixMomentum";
 import {
   buildPairMatrixTimeline,
   calendarEventsCoverWindow,
@@ -983,6 +984,10 @@ export function ChartsTab({
         : { during: [], before: [] },
     [pairMatrixCurrencies, pairMatrixRangeOpenCalendarTime, pairMatrixRangeCloseCalendarTime, pairMatrixDuringThrough, pairMatrixBeforeDays, pairMatrixLoadState, pairMatrixCalendarResult.events],
   );
+  const pairMatrixMomentum = useMemo(
+    () => buildPairMatrixMomentumSnapshot(pairMatrixTimeline, pairMatrixCurrencies ?? []),
+    [pairMatrixTimeline, pairMatrixCurrencies],
+  );
   const updatePairMatrixBeforeDays = useCallback((days: number) => {
     setPairMatrixBeforeDays(days);
     savePairMatrixBeforeDays(days);
@@ -1002,6 +1007,7 @@ export function ChartsTab({
       pairLabel: selectedSymbol,
       currencies: pairMatrixCurrencies ?? [],
       timeline: pairMatrixTimeline,
+      momentum: pairMatrixMomentum,
       rangeLabel: pairMatrixRangeLabel,
       rangeOpenTimeSeconds: pairMatrixRangeOpenCalendarTime,
       rangeBasisLabel: pairMatrixRangeBasisLabel,
@@ -1013,6 +1019,12 @@ export function ChartsTab({
       hasLockedRange: pairMatrixLockedRange != null,
       onBeforeDaysChange: updatePairMatrixBeforeDays,
       onStartRangeSelection: () => setPairMatrixRangeArmed(true),
+      onReturnToCursor: () => {
+        setPairMatrixLockedRange(null);
+        setPairMatrixRangeArmed(false);
+        setPairMatrixRangeEditing(false);
+        setPairMatrixRangeCancelRevision((current) => current + 1);
+      },
       onToggleOpen: () => {
         if (pairMatrixOpen) {
           setPairMatrixRangeArmed(false);
@@ -1033,6 +1045,7 @@ export function ChartsTab({
       selectedSymbol,
       pairMatrixCurrencies,
       pairMatrixTimeline,
+      pairMatrixMomentum,
       pairMatrixRangeLabel,
       pairMatrixRangeOpenCalendarTime,
       displayTimeMode,
@@ -1095,6 +1108,25 @@ export function ChartsTab({
     () => pairMatrixLockedRange ? buildPairMatrixRangePreview(pairMatrixLockedRange, pairMatrixLockedRange.firstOpen)?.bounds ?? null : null,
     [pairMatrixLockedRange, buildPairMatrixRangePreview, chartRangeRevision, chartLayoutRevision, pairMatrixCandleTimes],
   );
+  const pairMatrixReleaseRailGroups = useMemo(
+    () => pairMatrixLockedRange
+      ? groupPairMatrixReleaseRailByCandle({
+          momentum: pairMatrixMomentum,
+          candleTimes: pairMatrixCandleTimes,
+          timeframe,
+          sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
+        })
+      : [],
+    [pairMatrixLockedRange, pairMatrixMomentum, pairMatrixCandleTimes, timeframe, chartSourceTimeOffsetSeconds],
+  );
+  const pairMatrixReleaseRail = useMemo(() => {
+    const chart = chartRef.current;
+    if (!chart || !pairMatrixLockedBounds) return [];
+    return pairMatrixReleaseRailGroups.flatMap((group) => {
+      const x = chart.timeScale().timeToCoordinate(group.candleOpen as Time);
+      return x == null || x < pairMatrixLockedBounds.left || x > pairMatrixLockedBounds.right ? [] : [{ ...group, x }];
+    });
+  }, [pairMatrixReleaseRailGroups, pairMatrixLockedBounds, chartRangeRevision, chartLayoutRevision]);
   const pairMatrixSelectionOriginRange = pairMatrixLockedRange ?? pairMatrixFallbackRange;
 
   const pairMatrixRangeOverlay = useMemo<ChartPairMatrixRangeOverlayData>(() => {
@@ -1102,6 +1134,7 @@ export function ChartsTab({
       armed: pairMatrixOpen && pairMatrixRangeArmed,
       cancelRevision: pairMatrixRangeCancelRevision,
       lockedBounds: pairMatrixOpen ? pairMatrixLockedBounds : null,
+      releaseRail: pairMatrixOpen ? pairMatrixReleaseRail : [],
       startPreview: (x, edge) => {
         const target = resolvePairMatrixCandleAtX(x);
         if (!target) return null;
@@ -1125,7 +1158,7 @@ export function ChartsTab({
       },
       onInteractionChange: setPairMatrixRangeEditing,
     };
-  }, [pairMatrixOpen, pairMatrixRangeArmed, pairMatrixRangeCancelRevision, pairMatrixLockedBounds, pairMatrixSelectionOriginRange, resolvePairMatrixCandleAtX, resolvePairMatrixPreviewAtX]);
+  }, [pairMatrixOpen, pairMatrixRangeArmed, pairMatrixRangeCancelRevision, pairMatrixLockedBounds, pairMatrixReleaseRail, pairMatrixSelectionOriginRange, resolvePairMatrixCandleAtX, resolvePairMatrixPreviewAtX]);
 
   const selectChartEvent = useCallback(
     (event: CalendarEvent, cluster: ChartEventOverlayCluster | null = null) => {

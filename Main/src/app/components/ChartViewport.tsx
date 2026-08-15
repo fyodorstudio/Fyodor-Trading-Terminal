@@ -8,6 +8,16 @@ import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
 import type { PairMatrixCandleRange, PairMatrixRangePixelBounds } from "@/app/lib/pairMatrixSnapshot";
 import type { BridgeStatus, CalendarEvent } from "@/app/types";
 
+const PAIR_MATRIX_PANEL_MIN_HEIGHT = 240;
+const PAIR_MATRIX_CHART_MIN_HEIGHT = 220;
+
+export function clampPairMatrixPanelHeight(requestedHeight: number, workspaceHeight: number): number {
+  return Math.round(Math.min(
+    Math.max(PAIR_MATRIX_PANEL_MIN_HEIGHT, workspaceHeight - PAIR_MATRIX_CHART_MIN_HEIGHT),
+    Math.max(PAIR_MATRIX_PANEL_MIN_HEIGHT, requestedHeight),
+  ));
+}
+
 export type ChartCrosshairReadout = {
   top: number;
   lines: Array<{ label: string; value: string }>;
@@ -31,6 +41,7 @@ export type ChartPairMatrixRangeOverlayData = {
   armed: boolean;
   cancelRevision: number;
   lockedBounds: PairMatrixRangePixelBounds | null;
+  releaseRail: Array<{ x: number; count: number; titles: string[]; currencies: string[] }>;
   startPreview: (x: number, edge: "new" | "start" | "end") => PairMatrixRangePreview | null;
   updatePreview: (x: number, originTime: number) => PairMatrixRangePreview | null;
   onCommit: (range: PairMatrixCandleRange) => void;
@@ -123,12 +134,7 @@ export function ChartViewport({
               {!eventLens && eventLensDock.expanded ? <ChartEventLensDock data={eventLensDock} /> : null}
             </div>
             {pairMatrixTimeLens.open ? (
-              <section
-                className="chart-pair-matrix-bottom-shell"
-                aria-label="Pair Matrix bottom panel"
-              >
-                <ChartPairMatrixTimeLens data={pairMatrixTimeLens} />
-              </section>
+              <ResizablePairMatrixPanel data={pairMatrixTimeLens} />
             ) : null}
           </div>
         </div>
@@ -175,7 +181,86 @@ export function ChartViewport({
   );
 }
 
-const ChartPairMatrixRangeOverlay = memo(function ChartPairMatrixRangeOverlay({ data }: { data: ChartPairMatrixRangeOverlayData }) {
+function ResizablePairMatrixPanel({ data }: { data: ChartPairMatrixTimeLensData }) {
+  const shellRef = useRef<HTMLElement | null>(null);
+  const dragRef = useRef<{ pointerId: number; startY: number; startHeight: number } | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const pendingHeightRef = useRef<number | null>(null);
+  const [height, setHeight] = useState<number | null>(null);
+
+  useEffect(() => () => {
+    if (frameRef.current != null) cancelAnimationFrame(frameRef.current);
+  }, []);
+
+  const resolveHeight = (requestedHeight: number) => {
+    const workspaceHeight = shellRef.current?.parentElement?.clientHeight ?? 0;
+    return clampPairMatrixPanelHeight(requestedHeight, workspaceHeight);
+  };
+  const scheduleHeight = (nextHeight: number) => {
+    pendingHeightRef.current = nextHeight;
+    if (frameRef.current != null) return;
+    frameRef.current = requestAnimationFrame(() => {
+      frameRef.current = null;
+      if (pendingHeightRef.current != null) setHeight(pendingHeightRef.current);
+    });
+  };
+  const finishResize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (dragRef.current?.pointerId !== event.pointerId) return;
+    dragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+  };
+
+  return (
+    <section
+      ref={shellRef}
+      className="chart-pair-matrix-bottom-shell"
+      style={height == null ? undefined : { flexBasis: `${height}px` }}
+      aria-label="Pair Matrix bottom panel"
+    >
+      <div
+        className="chart-pair-matrix-resize-handle"
+        role="separator"
+        aria-label="Resize Pair Matrix vertically"
+        aria-orientation="horizontal"
+        aria-valuemin={PAIR_MATRIX_PANEL_MIN_HEIGHT}
+        aria-valuenow={height ?? undefined}
+        tabIndex={0}
+        title="Drag to resize Pair Matrix. Double-click to restore the default height."
+        onDoubleClick={() => setHeight(null)}
+        onKeyDown={(event) => {
+          if (event.key === "Home") {
+            event.preventDefault();
+            setHeight(null);
+            return;
+          }
+          if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+          event.preventDefault();
+          const currentHeight = height ?? shellRef.current?.offsetHeight ?? PAIR_MATRIX_PANEL_MIN_HEIGHT;
+          setHeight(resolveHeight(currentHeight + (event.key === "ArrowUp" ? 24 : -24)));
+        }}
+        onPointerDown={(event) => {
+          if (event.button !== 0) return;
+          event.preventDefault();
+          dragRef.current = { pointerId: event.pointerId, startY: event.clientY, startHeight: shellRef.current?.offsetHeight ?? PAIR_MATRIX_PANEL_MIN_HEIGHT };
+          event.currentTarget.setPointerCapture(event.pointerId);
+        }}
+        onPointerMove={(event) => {
+          const drag = dragRef.current;
+          if (!drag || drag.pointerId !== event.pointerId) return;
+          event.preventDefault();
+          scheduleHeight(resolveHeight(drag.startHeight + drag.startY - event.clientY));
+        }}
+        onPointerUp={finishResize}
+        onPointerCancel={finishResize}
+      >
+        <span aria-hidden="true" />
+      </div>
+      <ChartPairMatrixTimeLens data={data} />
+    </section>
+  );
+}
+
+export const ChartPairMatrixRangeOverlay = memo(function ChartPairMatrixRangeOverlay({ data }: { data: ChartPairMatrixRangeOverlayData }) {
   const [dragging, setDragging] = useState(false);
   const [preview, setPreview] = useState<PairMatrixRangePreview | null>(null);
   const draggingRef = useRef(false);
@@ -280,6 +365,19 @@ const ChartPairMatrixRangeOverlay = memo(function ChartPairMatrixRangeOverlay({ 
     >
       {bounds ? (
         <div className="pointer-events-none absolute inset-y-0 border-x-[3px] border-blue-600 bg-blue-400/25 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.28)]" style={bandStyle} data-pair-matrix-range-band="">
+          {!preview ? data.releaseRail.map((marker) => (
+            <span
+              key={`${marker.x}:${marker.currencies.join("|")}:${marker.titles.join("|")}`}
+              className="pointer-events-auto absolute top-0 z-[2] -translate-x-1/2"
+              style={{ left: `${marker.x - left}px` }}
+              title={`${marker.count} scored release${marker.count === 1 ? "" : "s"}: ${marker.titles.join("; ")}`}
+              aria-label={`${marker.count} scored Pair Matrix release${marker.count === 1 ? "" : "s"} in this candle`}
+              tabIndex={0}
+            >
+              <span className="block h-2 w-px bg-slate-800" />
+              {marker.count > 1 ? <small className="absolute left-1/2 top-1 -translate-x-1/2 rounded bg-slate-800 px-1 text-[8px] font-black leading-3 text-white">×{marker.count}</small> : null}
+            </span>
+          )) : null}
           <button
             type="button"
             className="pointer-events-auto absolute inset-y-0 -left-2 w-4 cursor-ew-resize bg-transparent"
