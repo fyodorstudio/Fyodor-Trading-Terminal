@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Checklist
 
-Last updated: 2026-08-15
+Last updated: 2026-08-16
 
 ## Active Planning Source
 
@@ -78,6 +78,35 @@ These are intentionally not active implementation items. Preserve them unless th
 - [ ] Event Replay tab redesign remains later.
 - [ ] Future CSS cleanup should remain small, documented, and verified after each extraction or deletion pass.
 - [ ] Do not revive Deprecated Overview, Six Questions, WIP, or garbage logic as product sources.
+
+## Pair Matrix Research Lab
+
+These are independent exploration sketches, not committed implementation specifications. Choose and refine one checkbox before implementation; preserve the trusted MT5 data boundary, factual raw timeline, and current deterministic scoring behavior while experimenting.
+
+- [ ] Refresh the Charts right-side settings panel and improve its information hierarchy.
+- [ ] Investigate Pair Matrix hover latency before choosing an architecture:
+  - profile timeline selection, scoring, grouping, and React rendering;
+  - try indexing, caching, narrower state updates, and a Web Worker first;
+  - consider bridge/backend calculation only if measured frontend work remains excessive, because moving calculations alone may not fix rerender lag.
+- [ ] Prototype a `Score chart` Pair Matrix mode:
+  - retain the normal OHLC chart above with a time-aligned economic pane below;
+  - open the mode by clicking a During-range release;
+  - provide a right-side selector for other releases or families inside the locked range;
+  - support event-point/stem views, family lanes, and experimental rolling or step-state scores;
+  - keep the current raw timeline available as the audit source.
+- [ ] Research same-family aggregation:
+  - never average raw CPI/GDP/etc. magnitudes across different exact series;
+  - experiment with aggregating their common deterministic `-3…+3` event scores;
+  - compare capped sum, mean, most-recent, and release-package aggregation before choosing a permanent rule;
+  - prevent release quantity from dominating a family.
+- [ ] Research multi-family visualization:
+  - compare selectable overlays, stacked family lanes, and small multiples;
+  - preserve a shared time axis with OHLC;
+  - distinguish discrete release impulses from background/known-before state.
+- [ ] Design an editable scoring configuration for registry inclusion, direction inversion, family assignment, caps, weighting, recency, and aggregation, with transparent formulas and safe defaults.
+- [ ] Add an experimental price-response audit that can display confirmation, rejection, or unresolved response without claiming causation or producing buy/sell calls.
+- [ ] Show country/region provenance for EUR releases and evaluate `Euro area only` versus `Euro area + member countries` scope.
+- [ ] Manually redesign the scoring tutorial after the scoring-chart workflow stabilizes.
 
 ## Completed Work Log
 
