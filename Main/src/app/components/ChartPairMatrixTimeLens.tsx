@@ -1,5 +1,5 @@
-import { memo, useCallback, useEffect, useState } from "react";
-import { BookOpen, Crosshair, Info, MoveHorizontal, Table2, X } from "lucide-react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { BookOpen, ChevronDown, ChevronRight, CornerDownRight, Crosshair, Info, MoveHorizontal, Table2, X } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { ChartPairMatrixScoringGuide } from "@/app/components/ChartPairMatrixScoringGuide";
 import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
@@ -19,6 +19,15 @@ import {
   type PairMatrixSeriesSnapshot,
   type PairMatrixTimelineSnapshot,
 } from "@/app/lib/pairMatrixSnapshot";
+import {
+  buildPairMatrixTimelineGroups,
+  getPairMatrixTimelineExpansionKey,
+  isPairMatrixTimelineGroupExpandable,
+  togglePairMatrixTimelineExpansion,
+  type PairMatrixTimelineGroup,
+  type PairMatrixTimelineGroupingMode,
+  type PairMatrixTimelineSection,
+} from "@/app/lib/pairMatrixTimelineGrouping";
 
 export type PairMatrixLoadState = "idle" | "loading" | "ready" | "error";
 
@@ -193,16 +202,18 @@ function formatElapsed(rangeOpen: number | null, releaseTime: number): string {
   return `+${hours}h${remainder ? ` ${remainder}m` : ""}`;
 }
 
-function TimelineEntry({
+export function PairMatrixTimelineEntry({
   series,
   side,
   mode,
   data,
+  hideFactor = false,
 }: {
   series: PairMatrixSeriesSnapshot;
   side: "base" | "quote";
   mode: "during" | "before";
   data: ChartPairMatrixTimeLensData;
+  hideFactor?: boolean;
 }) {
   const secondaryTime = mode === "during"
     ? formatElapsed(data.rangeOpenTimeSeconds, series.event.time)
@@ -216,7 +227,9 @@ function TimelineEntry({
       {secondaryTime ? ` · ${secondaryTime}` : ""}
     </time>
   );
-  const factor = (
+  const factor = hideFactor ? (
+    <span className={`inline-flex w-full min-w-0 items-center text-slate-300 ${side === "quote" ? "justify-end" : "justify-start"}`} aria-hidden="true"><CornerDownRight size={13} /></span>
+  ) : (
     <span className="inline-flex w-full min-w-0 items-center gap-1 overflow-hidden text-[11px] font-black uppercase tracking-[0.04em] text-slate-500">
       <span className="overflow-hidden text-ellipsis whitespace-nowrap" title={series.factor.label}>{series.factor.label}</span>
       <span className="flex-none" title={series.factor.helpText} aria-label={`${series.factor.label} interpretation help: ${series.factor.helpText}`}>
@@ -238,21 +251,81 @@ function TimelineEntry({
   );
 }
 
-function CurrencyTimeline({ timeline, side, mode, data }: { timeline: PairMatrixCurrencyTimeline | null; side: "base" | "quote"; mode: "during" | "before"; data: ChartPairMatrixTimeLensData }) {
+function formatGroupTime(time: number, data: ChartPairMatrixTimeLensData): string {
+  return formatChartEventDisplayTime(time, data.displayTimeMode, data.sourceTimeOffsetSeconds);
+}
+
+function TimelineGroupParent({ group, side, expanded, data, onToggle }: { group: PairMatrixTimelineGroup; side: "base" | "quote"; expanded: boolean; data: ChartPairMatrixTimeLensData; onToggle: () => void }) {
+  const times = group.entries.map((entry) => entry.event.time);
+  const firstTime = Math.min(...times);
+  const lastTime = Math.max(...times);
+  const timeLabel = firstTime === lastTime ? formatGroupTime(firstTime, data) : `${formatGroupTime(firstTime, data)} → ${formatGroupTime(lastTime, data)}`;
+  const title = group.kind === "factor" ? group.factor.label : `${group.entries.length} releases`;
+  const detail = group.kind === "factor"
+    ? `${group.entries.length} ${group.entries.length === 1 ? "release" : "releases"}`
+    : group.factors.map((factor) => factor.label).join(" · ");
+  const help = group.kind === "factor" ? group.factor.helpText : `All ${group.entries.length} releases share this exact broker timestamp.`;
+  const identity = (
+    <span className={`flex min-w-0 items-center gap-2 ${side === "quote" ? "flex-row-reverse text-right" : "text-left"}`}>
+      {expanded ? <ChevronDown size={14} className="flex-none" /> : <ChevronRight size={14} className="flex-none" />}
+      <span className="min-w-0"><strong className="block truncate text-[13px] font-black text-slate-900">{title}</strong><small className="block truncate text-[10px] font-bold text-slate-500">{detail}</small></span>
+      <Info size={11} className="flex-none text-slate-400" aria-hidden="true" />
+    </span>
+  );
+  const time = <time className={`min-w-0 truncate font-mono text-[11px] font-bold text-slate-500 ${side === "quote" ? "text-left" : "text-right"}`}>{timeLabel}</time>;
+  return (
+    <button
+      type="button"
+      className="grid min-h-[42px] w-full grid-cols-[minmax(0,1fr)_minmax(150px,auto)] items-center gap-3 border-b border-slate-200 bg-slate-50 px-3 text-left hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-300"
+      onClick={onToggle}
+      aria-expanded={expanded}
+      title={help}
+      data-pair-matrix-group-parent={group.kind}
+      data-pair-matrix-group-side={side}
+    >
+      {side === "base" ? <>{identity}{time}</> : <>{time}{identity}</>}
+    </button>
+  );
+}
+
+function CurrencyTimeline({ timeline, side, mode, data, groupBy, expandedGroups, onToggleGroup }: {
+  timeline: PairMatrixCurrencyTimeline | null;
+  side: "base" | "quote";
+  mode: PairMatrixTimelineSection;
+  data: ChartPairMatrixTimeLensData;
+  groupBy: PairMatrixTimelineGroupingMode;
+  expandedGroups: ReadonlySet<string>;
+  onToggleGroup: (key: string) => void;
+}) {
+  const entries = timeline?.entries ?? [];
+  const groups = useMemo(() => buildPairMatrixTimelineGroups(entries, groupBy), [entries, groupBy]);
   if (!timeline || timeline.entries.length === 0) {
     return <p className={`m-0 px-3 py-3 text-[11px] font-bold text-slate-400 ${side === "quote" ? "text-right" : ""}`}>{mode === "during" ? "No loaded releases during this range" : `No loaded releases in the prior ${data.beforeDays} days`}</p>;
   }
-  return <>{timeline.entries.map((entry) => <TimelineEntry key={`${mode}:${entry.event.id}:${entry.event.time}:${entry.event.title}`} series={entry} side={side} mode={mode} data={data} />)}</>;
+  return <>{groups.map((group) => {
+    if (!isPairMatrixTimelineGroupExpandable(group)) {
+      const entry = group.entries[0];
+      return <PairMatrixTimelineEntry key={`${mode}:${entry.event.id}:${entry.event.time}:${entry.event.title}`} series={entry} side={side} mode={mode} data={data} />;
+    }
+    const expansionKey = getPairMatrixTimelineExpansionKey({ section: mode, currency: timeline.currency, mode: groupBy, groupId: group.id });
+    const expanded = expandedGroups.has(expansionKey);
+    return (
+      <div key={expansionKey} data-pair-matrix-group={expansionKey}>
+        <TimelineGroupParent group={group} side={side} expanded={expanded} data={data} onToggle={() => onToggleGroup(expansionKey)} />
+        {expanded ? group.entries.map((entry) => <PairMatrixTimelineEntry key={`${mode}:${entry.event.id}:${entry.event.time}:${entry.event.title}`} series={entry} side={side} mode={mode} data={data} hideFactor={group.kind === "factor"} />) : null}
+      </div>
+    );
+  })}</>;
 }
 
-function TimelineSection({ mode, data }: { mode: "during" | "before"; data: ChartPairMatrixTimeLensData }) {
+function TimelineSection({ mode, data, groupBy, expandedGroups, onToggleGroup }: { mode: PairMatrixTimelineSection; data: ChartPairMatrixTimeLensData; groupBy: PairMatrixTimelineGroupingMode; expandedGroups: ReadonlySet<string>; onToggleGroup: (key: string) => void }) {
   const source = data.timeline[mode];
   const base = source.find((item) => item.currency === data.currencies[0]) ?? null;
   const quote = source.find((item) => item.currency === data.currencies[1]) ?? null;
   return (
     <div className="grid grid-cols-2 divide-x divide-slate-300">
-      <div className="min-w-0"><CurrencyTimeline timeline={base} side="base" mode={mode} data={data} /></div>
-      <div className="min-w-0"><CurrencyTimeline timeline={quote} side="quote" mode={mode} data={data} /></div>
+      <div className="min-w-0"><CurrencyTimeline timeline={base} side="base" mode={mode} data={data} groupBy={groupBy} expandedGroups={expandedGroups} onToggleGroup={onToggleGroup} /></div>
+      <div className="min-w-0"><CurrencyTimeline timeline={quote} side="quote" mode={mode} data={data} groupBy={groupBy} expandedGroups={expandedGroups} onToggleGroup={onToggleGroup} /></div>
     </div>
   );
 }
@@ -261,7 +334,10 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
   const [lookbackInput, setLookbackInput] = useState(String(data.beforeDays));
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [metricHelpVisible, setMetricHelpVisible] = useState(false);
+  const [groupBy, setGroupBy] = useState<PairMatrixTimelineGroupingMode>("factor");
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set());
   const closeTutorial = useCallback(() => setTutorialOpen(false), []);
+  const toggleTimelineGroup = useCallback((key: string) => setExpandedGroups((current) => togglePairMatrixTimelineExpansion(current, key)), []);
   useEffect(() => setLookbackInput(String(data.beforeDays)), [data.beforeDays]);
   if (!data.open) return null;
 
@@ -316,6 +392,13 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
               >
                 <BookOpen size={12} /> How scoring works
               </button>
+              <label className="inline-flex h-6 flex-none items-center gap-1 rounded-md border border-slate-300 bg-white px-2 text-[10px] font-black text-slate-600">
+                Group by
+                <select className="h-5 border-0 bg-transparent pr-1 text-[10px] font-black text-slate-800 outline-none" aria-label="Group Pair Matrix timeline by" value={groupBy} onChange={(event) => setGroupBy(event.target.value as PairMatrixTimelineGroupingMode)}>
+                  <option value="factor">Factor</option>
+                  <option value="release_time">Release time</option>
+                </select>
+              </label>
             </div>
           </div>
         </div>
@@ -357,7 +440,7 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
           ) : null}
           <div className="w-full min-w-0">
             <div className="border-b border-blue-200 bg-blue-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-blue-800">During this {data.hasLockedRange ? "selected range" : "candle"}</div>
-            <TimelineSection mode="during" data={data} />
+            <TimelineSection mode="during" data={data} groupBy={groupBy} expandedGroups={expandedGroups} onToggleGroup={toggleTimelineGroup} />
             <div className="sticky top-[98px] z-[2] flex items-center justify-between gap-4 border-y-2 border-slate-400 bg-slate-100 px-3 py-1.5">
               <strong className="text-[10px] font-black uppercase tracking-[0.08em] text-slate-700">Known before {data.hasLockedRange ? "range" : "candle"}</strong>
               <label className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-600">
@@ -377,7 +460,7 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
                 days
               </label>
             </div>
-            <TimelineSection mode="before" data={data} />
+            <TimelineSection mode="before" data={data} groupBy={groupBy} expandedGroups={expandedGroups} onToggleGroup={toggleTimelineGroup} />
           </div>
         </div>
       )}

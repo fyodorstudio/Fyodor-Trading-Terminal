@@ -27,7 +27,7 @@ const WORKFLOW_STEPS = [
   ["Select a range", "Drag across complete candles to lock a wider event window."],
   ["Read During", "These releases arrived while the selected candle or range was forming."],
   ["Read Known before", "These were the latest loaded exact-series readings already known at the opening boundary."],
-  ["Adjust the view", "Change the background lookback or drag the panel’s top edge upward for more room."],
+  ["Adjust the view", "Group rows by Factor or Release time, change the background lookback, or drag the panel’s top edge upward for more room."],
   ["Return to Cursor", "Clear the locked range and resume single-candle hover updates."],
 ] as const;
 

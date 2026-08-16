@@ -26,6 +26,7 @@ This file is the current command board. Future AI sessions should read it before
 - Pair Matrix infers percent only from an explicit source suffix or an explicit rate/frequency title. Percent differences display in percentage points; ambiguous values remain unitless. Plain CPI/index values must never acquire a guessed percent sign.
 - Pair Matrix keeps its raw timeline factual and adds a separate deterministic momentum layer. The layer compares each registered series only with its own Forecast and Previous values; it does not compare raw magnitudes across unlike releases, declare a winner, or claim price causation.
 - Pair Matrix exposes an on-demand full-screen `How scoring works` guide. The live summary and guide share the same explicit During/Known before and Economy/Inflation/Policy vocabulary; per-column help owns arrow meaning and formula audits.
+- Pair Matrix timeline rows can be grouped session-locally by `Factor` (the default) or exact `Release time`. Factor groups use the fixed eight-factor order; simultaneous packages never merge currencies, and all four currency/section rails keep independent accordion state.
 - Pair Matrix has two outward-facing currency timelines. Each entry owns its factor, title, A/F/P/S/M, and time; horizontal placement never claims cross-currency equivalence.
 - Factor help explains how to read the category without deterministic currency labels. S/M audit text exposes the formula, raw inputs, unit handling, and the possibility that broker `Previous` is revised.
 - Pair Matrix reuses current calendar coverage and lazily requests older anchor-bucketed windows from the existing endpoint. This cannot exceed the bridge's retained calendar history; unavailable backfill must remain an honest loading/error/empty state.
@@ -90,7 +91,8 @@ These are intentionally not active implementation items. Preserve them unless th
 - Locked ranges now show neutral top-edge ticks for scored During releases, clustered per actual candle when necessary. Existing calendar dots and local-only range-drag preview behavior remain separate.
 - Pair Matrix keeps its compact default height but now has an accessible top-edge vertical resize separator, allowing an expanded chart/panel split while preserving a usable chart. Momentum summary values, vote arrows, currency codes, and enlarged flags use a consistent prominent presentation; populated timeline rows use a two-pixel type-size increase with taller rows.
 - Pair Matrix scoring onboarding completed: an edge-to-edge accessible guide teaches time boundaries, raw A/F/P/S/M, equal-weight event scoring, agreement, group caps, factor votes, lower-is-better inversion, limitations, and the chart workflow. Its collapsed registry reference is generated from the exclusive live registry and links each rule to its official source.
-- Focused Pair Matrix/Charts verification passed with 52 tests, repository typecheck passed, and the production build passed. The known large main-chunk warning remains non-blocking.
+- Pair Matrix timeline grouping completed: a session-local `Group by` control defaults to collapsed factor parents and can switch to exact-timestamp packages, while EUR/USD and During/Known-before expansions remain independent and raw A/F/P/S/M child rows stay unchanged.
+- Focused Pair Matrix/Charts verification passed with 56 tests, repository typecheck passed, and the production build passed. The known large main-chunk warning remains non-blocking.
 
 ### 2026-08-13
 

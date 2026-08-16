@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ChartPairMatrixTimeLens, type ChartPairMatrixTimeLensData } from "@/app/components/ChartPairMatrixTimeLens";
+import { ChartPairMatrixTimeLens, PairMatrixTimelineEntry, type ChartPairMatrixTimeLensData } from "@/app/components/ChartPairMatrixTimeLens";
 import { PairMatrixScoringGuideDialog, handlePairMatrixGuideEscape } from "@/app/components/ChartPairMatrixScoringGuide";
 import {
   buildPairMatrixMomentumSnapshot,
@@ -27,6 +27,12 @@ import {
   normalizePairMatrixSeriesTitle,
   savePairMatrixBeforeDays,
 } from "@/app/lib/pairMatrixSnapshot";
+import {
+  buildPairMatrixTimelineGroups,
+  getPairMatrixTimelineExpansionKey,
+  isPairMatrixTimelineGroupExpandable,
+  togglePairMatrixTimelineExpansion,
+} from "@/app/lib/pairMatrixTimelineGrouping";
 import type { CalendarEvent } from "@/app/types";
 
 function event(overrides: Partial<CalendarEvent>): CalendarEvent {
@@ -309,6 +315,47 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(groups.map((group) => [group.candleOpen, group.count])).toEqual([[1_000, 2], [15_400, 1]]);
   });
 
+  it("groups entries into the fixed non-empty factor order while preserving child order", () => {
+    const entries = [
+      event({ id: 50, time: 1_040, title: "EIA Crude Oil Stocks Change" }),
+      event({ id: 51, time: 1_010, title: "GDP q/q" }),
+      event({ id: 52, time: 1_020, title: "CPI y/y" }),
+      event({ id: 53, time: 1_030, title: "GDP y/y" }),
+      event({ id: 54, time: 1_050, title: "Fed Interest Rate Decision" }),
+    ].map(buildPairMatrixSeriesSnapshot);
+    const groups = buildPairMatrixTimelineGroups(entries, "factor");
+    expect(groups.map((group) => group.id)).toEqual(["policy", "inflation", "pmi", "other"]);
+    expect(groups.find((group) => group.id === "pmi")?.entries.map((entry) => entry.event.title)).toEqual(["GDP q/q", "GDP y/y"]);
+    expect(groups.some((group) => group.id === "labor")).toBe(false);
+  });
+
+  it("groups only exact same-time releases and leaves single release packages identifiable", () => {
+    const entries = [
+      event({ id: 60, currency: "EUR", time: 1_010, title: "GDP y/y" }),
+      event({ id: 61, currency: "EUR", time: 1_010, title: "GDP q/q" }),
+      event({ id: 62, currency: "EUR", time: 1_020, title: "CPI y/y" }),
+      event({ id: 63, currency: "USD", time: 1_010, title: "GDP q/q" }),
+    ].map(buildPairMatrixSeriesSnapshot);
+    const groups = buildPairMatrixTimelineGroups(entries, "release_time");
+    expect(groups.map((group) => [group.id, group.entries.length])).toEqual([["EUR:1010", 2], ["EUR:1020", 1], ["USD:1010", 1]]);
+    expect(groups[0]?.entries.map((entry) => entry.event.title)).toEqual(["GDP q/q", "GDP y/y"]);
+    expect(isPairMatrixTimelineGroupExpandable(groups[0])).toBe(true);
+    expect(isPairMatrixTimelineGroupExpandable(groups[1])).toBe(false);
+  });
+
+  it("uses fully independent expansion keys and preserves opened keys across data/view changes", () => {
+    const eurDuring = getPairMatrixTimelineExpansionKey({ section: "during", currency: "EUR", mode: "factor", groupId: "inflation" });
+    const usdDuring = getPairMatrixTimelineExpansionKey({ section: "during", currency: "USD", mode: "factor", groupId: "inflation" });
+    const eurBefore = getPairMatrixTimelineExpansionKey({ section: "before", currency: "EUR", mode: "factor", groupId: "inflation" });
+    const eurTime = getPairMatrixTimelineExpansionKey({ section: "during", currency: "EUR", mode: "release_time", groupId: "EUR:1010" });
+    let expanded = togglePairMatrixTimelineExpansion(new Set(), eurDuring);
+    expanded = togglePairMatrixTimelineExpansion(expanded, eurTime);
+    expect(new Set([eurDuring, usdDuring, eurBefore, eurTime]).size).toBe(4);
+    expect(expanded.has(eurDuring)).toBe(true);
+    expect(expanded.has(eurTime)).toBe(true);
+    expect(togglePairMatrixTimelineExpansion(expanded, eurDuring).has(eurDuring)).toBe(false);
+  });
+
   it("recognizes configured forex pairs and rejects other instruments", () => {
     expect(getPairMatrixForexCurrencies("EURUSD.a")).toEqual(["EUR", "USD"]);
     expect(getPairMatrixForexCurrencies("XAUUSD")).toBeNull();
@@ -331,8 +378,14 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(html).toContain("During this candle");
     expect(html).toContain("Known before candle");
     expect(html).toContain("Known before range lookback days");
-    expect(html).toContain('data-pair-matrix-timeline-entry="base"');
-    expect(html).toContain('data-pair-matrix-timeline-entry="quote"');
+    expect(html).toContain("Group by");
+    expect(html).toContain('aria-label="Group Pair Matrix timeline by"');
+    expect(html).toContain('<option value="factor" selected="">Factor</option>');
+    expect(html).toContain('<option value="release_time">Release time</option>');
+    expect(html).toContain('data-pair-matrix-group-parent="factor"');
+    expect(html).toContain('data-pair-matrix-group-side="base"');
+    expect(html).toContain('data-pair-matrix-group-side="quote"');
+    expect(html).not.toContain('data-pair-matrix-timeline-entry="base"');
     expect(html).toContain("Other releases");
     expect(html).toContain("During-candle economy: EUR Weakening");
     expect(lockedHtml).toContain("During-range economy: EUR Weakening");
@@ -356,28 +409,30 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(html).not.toMatch(/NEW ECON|BG ECON|NEW INFL|BG INFL|NEW RATE|BG RATE/);
     expect(html).toContain("text-[18px]");
     expect(html).toContain("h-5 w-8");
-    expect(html).toContain("text-[14px]");
     expect(html).toContain("text-[13px]");
-    expect(html).toContain("font-mono text-[12px]");
-    expect(html).toContain("text-[11px] font-black uppercase");
     expect(html).toContain("WEAKENING");
     expect(html).toContain("IMPROVING");
     expect(html).toContain("agreement bonus -1; event score -3");
-    expect(html).toContain("+2m");
-    expect(html).toContain("1m old");
-    expect(html).toContain("A 3121500");
-    expect(html).toContain("S +3118418.5");
-    expect(html).toContain("M +3118384.4");
-    expect(html).toContain("A -101.461");
-    expect(html).toContain("S -6.764");
-    expect(html).toContain("M +4.294");
     expect(html).toContain("overflow-x-hidden overflow-y-auto");
-    expect(html).toContain("grid-cols-[88px_minmax(80px,1fr)_64px_64px_64px_72px_72px_168px]");
-    expect(html).toContain("grid-cols-[168px_64px_64px_64px_72px_72px_minmax(80px,1fr)_88px]");
     expect(html).not.toContain("min-w-[1920px]");
-    expect(html).toContain("block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap");
     expect(html).not.toMatch(/Base stronger|Quote stronger|>Winner<|Evidence Signal|>Shock<|>Reaction<|Pair compare|caused price|buy|sell/i);
     expect(ChartPairMatrixTimeLens).toHaveProperty("type");
+  });
+
+  it("keeps the complete mirrored raw-row contract for expanded group children", () => {
+    const series = buildPairMatrixSeriesSnapshot(event({ currency: "EUR", countryCode: "EU", time: 1_120, title: "Jobseekers Total", actual: "3121500", forecast: "3081.5", previous: "3115.6" }));
+    const data = renderData();
+    const base = renderToStaticMarkup(createElement(PairMatrixTimelineEntry, { series, side: "base", mode: "during", data, hideFactor: true }));
+    const quote = renderToStaticMarkup(createElement(PairMatrixTimelineEntry, { series, side: "quote", mode: "during", data }));
+    expect(base).toContain('data-pair-matrix-timeline-entry="base"');
+    expect(quote).toContain('data-pair-matrix-timeline-entry="quote"');
+    expect(base).toContain("A 3121500");
+    expect(base).toContain("S +3118418.5");
+    expect(base).toContain("M +3118384.4");
+    expect(base).toContain("+2m");
+    expect(base).toContain("grid-cols-[88px_minmax(80px,1fr)_64px_64px_64px_72px_72px_168px]");
+    expect(quote).toContain("grid-cols-[168px_64px_64px_64px_72px_72px_minmax(80px,1fr)_88px]");
+    expect(base).toContain("block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap");
   });
 
   it("renders the full-screen scoring guide, fixed examples, workflow, registry, and limitations", () => {
@@ -398,6 +453,7 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(html).toContain("2↑ 1↓ = Improving");
     expect(html).toContain("Use Pair Matrix on the chart");
     expect(html).toContain("Return to Cursor");
+    expect(html).toContain("Group rows by Factor or Release time");
     expect(html).toContain("What gets scored?");
     expect(html).toContain("Exclusive registry · collapsed by default");
     expect(html).toContain("GDP");
