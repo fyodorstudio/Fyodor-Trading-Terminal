@@ -447,6 +447,7 @@ describe("Pair Matrix candle-range timeline", () => {
       result: "Inflation groups: headline +3; net 1.",
       contributors: ["CPI y/y: hotter than forecast (+1); hotter than previous (+1); agreement bonus +1; event score +3."],
       accessibleText: "EUR During inflation. Full accessible calculation audit.",
+      readingState: "heating" as const,
     };
     const baseTarget: PairMatrixActiveAudit = { side: "base", period: "during", metric: "inflation", audit };
     const quoteTarget: PairMatrixActiveAudit = { ...baseTarget, side: "quote", period: "before", audit: { ...audit, heading: "USD Known before inflation" } };
@@ -477,6 +478,16 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(base).toContain("text-[16px]");
     expect(base).toContain('data-pair-matrix-audit-scroll="internal"');
     expect(base).toContain('data-pair-matrix-audit-persistence="explicit-close"');
+    expect(base).toContain('data-pair-matrix-reading-guide="inflation"');
+    expect(base).toContain("Inflation evidence");
+    expect(base).toContain("Possible central-bank response");
+    expect(base).toContain("Possible currency effect");
+    expect(base).toContain("Rates may remain higher or rise");
+    expect(base).toContain("Cuts may become more likely");
+    expect(base).toContain("Excessive heating");
+    expect(base).toContain("Soft landing");
+    expect(base).toContain('data-pair-matrix-reading-current="true"');
+    expect(base).toContain("not states automatically detected by this audit");
     expect(base).not.toContain("EUR During economy");
     expect(base).not.toContain("EUR During policy");
   });
@@ -512,6 +523,7 @@ describe("Pair Matrix candle-range timeline", () => {
       result: "Factor votes: 2↑ 2↓ 1 zero; net 0. labor ↓ (-3); activity ↑ (4); trade 0 (0); sentiment ↑ (4); retail ↓ (-3).",
       contributors: [],
       accessibleText: "EUR Known before Economy full audit.",
+      readingState: "net_zero" as const,
       economyBreakdown: {
         upCount: 2,
         downCount: 2,
@@ -540,7 +552,36 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(html).toContain(">↑ +4</strong>");
     expect(html).toContain(">Trade</span>");
     expect(html).toContain(">0 0</strong>");
+    expect(html).toContain('data-pair-matrix-reading-guide="economy"');
+    expect(html).toContain("Net 0 / mixed");
+    expect(html).toContain("does not include inflation or policy");
     expect(html).not.toContain("labor ↓ (-3); activity ↑ (4)");
+  });
+
+  it("explains policy action separately from unscored hawkish and dovish guidance", () => {
+    const html = renderToStaticMarkup(createElement(PairMatrixAuditOverlay, {
+      activeAudit: {
+        side: "quote",
+        period: "during",
+        metric: "policy",
+        audit: {
+          heading: "USD During Policy",
+          formula: "Formula: compare the canonical decision with its previous value.",
+          result: "Holding",
+          contributors: [],
+          accessibleText: "USD During Policy audit.",
+          readingState: "holding",
+        },
+      },
+      onClose: () => {},
+    }));
+    expect(html).toContain('data-pair-matrix-reading-guide="policy"');
+    expect(html).toContain("The policy rate was unchanged");
+    expect(html).toContain("Hawkish guidance");
+    expect(html).toContain("Dovish guidance");
+    expect(html).toContain("does not classify statements, press conferences, or guidance");
+    expect(html).toContain("not trade signals");
+    expect(html).not.toContain('data-pair-matrix-reading-guide="inflation"');
   });
 
   it("uses exact audit keys and clears Escape/context changes independently from info help", () => {

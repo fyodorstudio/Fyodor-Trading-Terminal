@@ -179,6 +179,7 @@ function metricAudit(read: PairMatrixCurrencyMomentumRead, metric: "economy" | "
     formula: METRIC_FORMULA[metric],
     result: summary,
     contributors,
+    readingState: metric === "economy" ? read.economy.state : metric === "inflation" ? read.inflation.state : read.policy.state,
     accessibleText: `${heading}. ${METRIC_FORMULA[metric]} ${summary}${contributors.length ? ` Contributors: ${contributors.join(" ")}` : ""}`,
     economyBreakdown: metric === "economy" && read.economy.factors.length > 0 ? {
       upCount: read.economy.upCount,
