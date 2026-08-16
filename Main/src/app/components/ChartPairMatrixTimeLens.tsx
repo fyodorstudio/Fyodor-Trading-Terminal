@@ -1,6 +1,15 @@
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { BookOpen, ChevronDown, ChevronRight, CornerDownRight, Crosshair, Info, MoveHorizontal, Table2, X } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
+import {
+  PairMatrixAuditOverlay,
+  getPairMatrixAuditContextKey,
+  getPairMatrixAuditKey,
+  handlePairMatrixAuditEscape,
+  togglePairMatrixActiveAudit,
+  type MetricAudit,
+  type PairMatrixActiveAudit,
+} from "@/app/components/ChartPairMatrixAuditOverlay";
 import { ChartPairMatrixScoringGuide } from "@/app/components/ChartPairMatrixScoringGuide";
 import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
 import { formatChartEventDisplayTime } from "@/app/lib/chartEvents";
@@ -111,24 +120,78 @@ function formatInflationRead(read: PairMatrixCurrencyMomentumRead): string {
   return `${label} · ${read.inflation.upCount}↑ ${read.inflation.downCount}↓`;
 }
 
-function MetricHeading({ label, help, side, helpVisible, onRevealHelp }: { label: string; help: string; side: "base" | "quote"; helpVisible: boolean; onRevealHelp: () => void }) {
+function MetricHeading({ label, help, side, helpVisible, onRevealHelp, onHideHelp }: { label: string; help: string; side: "base" | "quote"; helpVisible: boolean; onRevealHelp: () => void; onHideHelp: () => void }) {
   return (
-    <span className={`relative inline-flex min-w-0 items-center gap-1 text-[9px] font-black uppercase leading-[12px] tracking-[0.08em] text-slate-500 ${side === "quote" ? "justify-end text-right" : "justify-start text-left"}`} onMouseEnter={onRevealHelp}>
+    <span className={`relative inline-flex min-w-0 items-center gap-1 text-[9px] font-black uppercase leading-[12px] tracking-[0.08em] text-slate-500 ${side === "quote" ? "justify-end text-right" : "justify-start text-left"}`}>
       <span className="truncate">{label}</span>
-      <button type="button" className="flex-none rounded text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-400" aria-label={`${label} scoring help`} aria-expanded={helpVisible} data-pair-matrix-help-trigger="" onFocus={onRevealHelp}><Info size={11} /></button>
-      <span role="tooltip" className={`pointer-events-none absolute top-full z-20 mt-1 w-[clamp(170px,12vw,240px)] rounded-lg bg-slate-950 p-2 text-left text-[11px] font-semibold normal-case leading-4 tracking-normal text-white shadow-xl ${helpVisible ? "block" : "hidden"} ${side === "quote" ? "right-0" : "left-0"}`}>{help}</span>
+      <button
+        type="button"
+        className="flex-none rounded text-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-400"
+        aria-label={`${label} scoring help`}
+        aria-expanded={helpVisible}
+        data-pair-matrix-help-trigger=""
+        data-pair-matrix-help-hitbox="icon-only"
+        onMouseEnter={onRevealHelp}
+        onMouseLeave={onHideHelp}
+        onFocus={onRevealHelp}
+        onBlur={onHideHelp}
+      >
+        <Info size={11} />
+      </button>
+      <span role="tooltip" className={`pointer-events-none absolute inset-x-0 top-full z-20 mt-1 w-auto rounded-lg bg-slate-950 p-2 text-left text-[11px] font-semibold normal-case leading-4 tracking-normal text-white shadow-xl ${helpVisible ? "block" : "hidden"}`}>{help}</span>
     </span>
   );
 }
 
-function MetricValue({ value, audit, side }: { value: string; audit: string; side: "base" | "quote" }) {
-  return <strong className={`block min-w-0 truncate text-[18px] font-black leading-[22px] tracking-normal text-slate-800 ${side === "quote" ? "text-right" : "text-left"}`} title={audit} tabIndex={0} aria-label={audit}>{value}</strong>;
+function MetricValue({ value, audit, side, period, metric, activeAuditKey, onSelectAudit }: {
+  value: string;
+  audit: MetricAudit;
+  side: "base" | "quote";
+  period: "during" | "before";
+  metric: "economy" | "inflation" | "policy";
+  activeAuditKey: string | null;
+  onSelectAudit: (audit: PairMatrixActiveAudit) => void;
+}) {
+  const target = { side, period, metric, audit } satisfies PairMatrixActiveAudit;
+  const targetKey = getPairMatrixAuditKey(target);
+  return (
+    <button
+      type="button"
+      className={`block w-full min-w-0 appearance-none truncate border-0 bg-transparent p-0 text-[18px] font-black leading-[22px] tracking-normal text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-400 ${side === "quote" ? "text-right" : "text-left"}`}
+      aria-label={audit.accessibleText}
+      aria-expanded={activeAuditKey === targetKey}
+      aria-controls={`pair-matrix-audit-overlay-${side}`}
+      data-pair-matrix-audit-trigger={targetKey}
+      data-pair-matrix-audit-interaction="press"
+      onClick={() => onSelectAudit(target)}
+    >
+      {value}
+    </button>
+  );
 }
 
-function metricAudit(read: PairMatrixCurrencyMomentumRead, metric: "economy" | "inflation" | "policy", context: string): string {
-  const contributors = read.contributors.filter((event) => event.rule.pillar === metric).map((event) => event.audit).join(" ");
+function metricAudit(read: PairMatrixCurrencyMomentumRead, metric: "economy" | "inflation" | "policy", context: string): MetricAudit {
+  const contributors = read.contributors.filter((event) => event.rule.pillar === metric).map((event) => event.audit);
   const summary = metric === "economy" ? read.economy.audit : metric === "inflation" ? read.inflation.audit : read.policy.audit;
-  return `${context} ${metric}. ${METRIC_FORMULA[metric]} ${summary}${contributors ? ` Contributors: ${contributors}` : ""}`;
+  const heading = `${context} ${metric[0].toUpperCase()}${metric.slice(1)}`;
+  return {
+    heading,
+    formula: METRIC_FORMULA[metric],
+    result: summary,
+    contributors,
+    accessibleText: `${heading}. ${METRIC_FORMULA[metric]} ${summary}${contributors.length ? ` Contributors: ${contributors.join(" ")}` : ""}`,
+    economyBreakdown: metric === "economy" && read.economy.factors.length > 0 ? {
+      upCount: read.economy.upCount,
+      downCount: read.economy.downCount,
+      zeroCount: read.economy.zeroCount,
+      netVotes: read.economy.netVotes,
+      factors: read.economy.factors.map((factor) => ({
+        label: factor.factor === "activity" ? "Activity" : factor.factor === "labor" ? "Labor" : factor.factor === "retail" ? "Retail" : factor.factor === "sentiment" ? "Sentiment" : "Trade",
+        direction: factor.vote > 0 ? "up" : factor.vote < 0 ? "down" : "neutral",
+        score: factor.score,
+      })),
+    } : undefined,
+  };
 }
 
 function CurrencyMomentumHeader({
@@ -139,6 +202,9 @@ function CurrencyMomentumHeader({
   side,
   helpVisible,
   onRevealHelp,
+  onHideHelp,
+  activeAuditKey,
+  onSelectAudit,
 }: {
   currency: string;
   countryCode: string;
@@ -147,21 +213,24 @@ function CurrencyMomentumHeader({
   side: "base" | "quote";
   helpVisible: boolean;
   onRevealHelp: () => void;
+  onHideHelp: () => void;
+  activeAuditKey: string | null;
+  onSelectAudit: (audit: PairMatrixActiveAudit) => void;
 }) {
   const content = (
     <div className="grid min-w-0 flex-1 grid-cols-[72px_1.2fr_1fr_1fr] grid-rows-[12px_24px_24px] items-center gap-x-2 gap-y-1">
       <span aria-hidden="true" />
-      <MetricHeading label="Economy" help={METRIC_HELP.economy} side={side} helpVisible={helpVisible} onRevealHelp={onRevealHelp} />
-      <MetricHeading label="Inflation" help={METRIC_HELP.inflation} side={side} helpVisible={helpVisible} onRevealHelp={onRevealHelp} />
-      <MetricHeading label="Policy" help={METRIC_HELP.policy} side={side} helpVisible={helpVisible} onRevealHelp={onRevealHelp} />
+      <MetricHeading label="Economy" help={METRIC_HELP.economy} side={side} helpVisible={helpVisible} onRevealHelp={onRevealHelp} onHideHelp={onHideHelp} />
+      <MetricHeading label="Inflation" help={METRIC_HELP.inflation} side={side} helpVisible={helpVisible} onRevealHelp={onRevealHelp} onHideHelp={onHideHelp} />
+      <MetricHeading label="Policy" help={METRIC_HELP.policy} side={side} helpVisible={helpVisible} onRevealHelp={onRevealHelp} onHideHelp={onHideHelp} />
       <span className={`truncate text-[10px] font-black uppercase tracking-[0.06em] text-blue-700 ${side === "quote" ? "text-right" : "text-left"}`}>During</span>
-      <MetricValue value={formatEconomyRead(during)} audit={metricAudit(during, "economy", `${currency} During`)} side={side} />
-      <MetricValue value={formatInflationRead(during)} audit={metricAudit(during, "inflation", `${currency} During`)} side={side} />
-      <MetricValue value={POLICY_LABELS[during.policy.state]} audit={metricAudit(during, "policy", `${currency} During`)} side={side} />
+      <MetricValue value={formatEconomyRead(during)} audit={metricAudit(during, "economy", `${currency} During`)} side={side} period="during" metric="economy" activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
+      <MetricValue value={formatInflationRead(during)} audit={metricAudit(during, "inflation", `${currency} During`)} side={side} period="during" metric="inflation" activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
+      <MetricValue value={POLICY_LABELS[during.policy.state]} audit={metricAudit(during, "policy", `${currency} During`)} side={side} period="during" metric="policy" activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
       <span className={`truncate text-[10px] font-black uppercase tracking-[0.06em] text-slate-500 ${side === "quote" ? "text-right" : "text-left"}`}>Known before</span>
-      <MetricValue value={formatEconomyRead(background)} audit={metricAudit(background, "economy", `${currency} Known before`)} side={side} />
-      <MetricValue value={formatInflationRead(background)} audit={metricAudit(background, "inflation", `${currency} Known before`)} side={side} />
-      <MetricValue value={POLICY_LABELS[background.policy.state]} audit={metricAudit(background, "policy", `${currency} Known before`)} side={side} />
+      <MetricValue value={formatEconomyRead(background)} audit={metricAudit(background, "economy", `${currency} Known before`)} side={side} period="before" metric="economy" activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
+      <MetricValue value={formatInflationRead(background)} audit={metricAudit(background, "inflation", `${currency} Known before`)} side={side} period="before" metric="inflation" activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
+      <MetricValue value={POLICY_LABELS[background.policy.state]} audit={metricAudit(background, "policy", `${currency} Known before`)} side={side} period="before" metric="policy" activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
     </div>
   );
   return (
@@ -336,9 +405,16 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
   const [metricHelpVisible, setMetricHelpVisible] = useState(false);
   const [groupBy, setGroupBy] = useState<PairMatrixTimelineGroupingMode>("factor");
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => new Set());
+  const [activeAudit, setActiveAudit] = useState<PairMatrixActiveAudit | null>(null);
   const closeTutorial = useCallback(() => setTutorialOpen(false), []);
   const toggleTimelineGroup = useCallback((key: string) => setExpandedGroups((current) => togglePairMatrixTimelineExpansion(current, key)), []);
+  const closeAudit = useCallback(() => setActiveAudit(null), []);
+  const selectAudit = useCallback((audit: PairMatrixActiveAudit) => setActiveAudit((current) => togglePairMatrixActiveAudit(current, audit)), []);
+  const auditContextKey = getPairMatrixAuditContextKey(data);
   useEffect(() => setLookbackInput(String(data.beforeDays)), [data.beforeDays]);
+  useEffect(() => {
+    closeAudit();
+  }, [auditContextKey, closeAudit]);
   if (!data.open) return null;
 
   const baseCurrency = data.currencies[0] ?? "Base";
@@ -356,7 +432,13 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
   };
 
   return (
-    <section className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-white" aria-label="Pair Matrix Time Lens">
+    <section
+      className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-white"
+      aria-label="Pair Matrix Time Lens"
+      onKeyDownCapture={(event) => {
+        if (activeAudit) handlePairMatrixAuditEscape(event, closeAudit);
+      }}
+    >
       <header className="flex min-h-[50px] items-center justify-between gap-4 border-b border-slate-200 bg-slate-50 px-3 py-2">
         <div className="flex min-w-0 items-center gap-3">
           <span className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600"><Table2 size={15} /></span>
@@ -418,8 +500,9 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
       ) : data.loadState === "error" ? (
         <div className="grid min-h-0 flex-1 place-items-center p-6 text-center text-sm font-bold text-red-700" role="status">Historical calendar data could not be loaded.</div>
       ) : (
-        <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
-          {baseDuring && quoteDuring && baseBackground && quoteBackground ? (
+        <div className="relative min-h-0 min-w-0 flex-1">
+          <div className="h-full min-h-0 min-w-0 overflow-x-hidden overflow-y-auto">
+            {baseDuring && quoteDuring && baseBackground && quoteBackground ? (
             <div
               className="sticky top-0 z-[3] w-full min-w-0 border-b border-slate-300 bg-slate-100 uppercase tracking-[0.04em] text-slate-500"
               data-pair-matrix-shared-help={metricHelpVisible ? "visible" : "hidden"}
@@ -433,12 +516,12 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
                 During-{data.hasLockedRange ? "range" : "candle"} economy: {baseCurrency} {ECONOMY_HEADLINE_LABELS[baseDuring.economy.state]} <span className="mx-1 text-slate-400">|</span> {quoteCurrency} {ECONOMY_HEADLINE_LABELS[quoteDuring.economy.state]}
               </div>
               <div className="grid min-w-0 grid-cols-2 divide-x divide-slate-300">
-                <CurrencyMomentumHeader currency={baseCurrency} countryCode={baseCountryCode} during={baseDuring} background={baseBackground} side="base" helpVisible={metricHelpVisible} onRevealHelp={() => setMetricHelpVisible(true)} />
-                <CurrencyMomentumHeader currency={quoteCurrency} countryCode={quoteCountryCode} during={quoteDuring} background={quoteBackground} side="quote" helpVisible={metricHelpVisible} onRevealHelp={() => setMetricHelpVisible(true)} />
+                <CurrencyMomentumHeader currency={baseCurrency} countryCode={baseCountryCode} during={baseDuring} background={baseBackground} side="base" helpVisible={metricHelpVisible} onRevealHelp={() => setMetricHelpVisible(true)} onHideHelp={() => setMetricHelpVisible(false)} activeAuditKey={activeAudit ? getPairMatrixAuditKey(activeAudit) : null} onSelectAudit={selectAudit} />
+                <CurrencyMomentumHeader currency={quoteCurrency} countryCode={quoteCountryCode} during={quoteDuring} background={quoteBackground} side="quote" helpVisible={metricHelpVisible} onRevealHelp={() => setMetricHelpVisible(true)} onHideHelp={() => setMetricHelpVisible(false)} activeAuditKey={activeAudit ? getPairMatrixAuditKey(activeAudit) : null} onSelectAudit={selectAudit} />
               </div>
             </div>
-          ) : null}
-          <div className="w-full min-w-0">
+            ) : null}
+            <div className="w-full min-w-0">
             <div className="border-b border-blue-200 bg-blue-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-blue-800">During this {data.hasLockedRange ? "selected range" : "candle"}</div>
             <TimelineSection mode="during" data={data} groupBy={groupBy} expandedGroups={expandedGroups} onToggleGroup={toggleTimelineGroup} />
             <div className="sticky top-[98px] z-[2] flex items-center justify-between gap-4 border-y-2 border-slate-400 bg-slate-100 px-3 py-1.5">
@@ -461,7 +544,9 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
               </label>
             </div>
             <TimelineSection mode="before" data={data} groupBy={groupBy} expandedGroups={expandedGroups} onToggleGroup={toggleTimelineGroup} />
+            </div>
           </div>
+          {activeAudit ? <PairMatrixAuditOverlay activeAudit={activeAudit} onClose={closeAudit} /> : null}
         </div>
       )}
       <ChartPairMatrixScoringGuide open={tutorialOpen} onClose={closeTutorial} />

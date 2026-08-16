@@ -1,7 +1,20 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { ChartPairMatrixTimeLens, PairMatrixTimelineEntry, type ChartPairMatrixTimeLensData } from "@/app/components/ChartPairMatrixTimeLens";
+import {
+  ChartPairMatrixTimeLens,
+  PairMatrixTimelineEntry,
+  type ChartPairMatrixTimeLensData,
+} from "@/app/components/ChartPairMatrixTimeLens";
+import {
+  PairMatrixAuditOverlay,
+  getPairMatrixAuditContextKey,
+  getPairMatrixAuditKey,
+  handlePairMatrixAuditEscape,
+  parsePairMatrixAuditContributor,
+  togglePairMatrixActiveAudit,
+  type PairMatrixActiveAudit,
+} from "@/app/components/ChartPairMatrixAuditOverlay";
 import { PairMatrixScoringGuideDialog, handlePairMatrixGuideEscape } from "@/app/components/ChartPairMatrixScoringGuide";
 import {
   buildPairMatrixMomentumSnapshot,
@@ -401,8 +414,16 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(html).toContain("Economy arrows count factor votes");
     expect(html).toContain("Inflation arrows count capped inflation groups");
     expect(html).toContain("latest canonical rate decision Actual with its Previous value");
+    expect(html).toContain('data-pair-matrix-audit-trigger="base:during:economy"');
+    expect(html).toContain('data-pair-matrix-audit-trigger="quote:before:policy"');
+    expect(html).toContain('data-pair-matrix-audit-interaction="press"');
+    expect(html).not.toContain('data-pair-matrix-audit-overlay=""');
+    expect(html).not.toContain('data-pair-matrix-audit-tooltip=""');
+    expect(html).toContain("absolute inset-x-0 top-full");
+    expect(html).not.toContain('title="EUR During inflation');
     expect(html).toContain('data-pair-matrix-shared-help="hidden"');
     expect(html).toContain('data-pair-matrix-help-trigger=""');
+    expect(html).toContain('data-pair-matrix-help-hitbox="icon-only"');
     expect(html).not.toContain("group-hover:block");
     expect(html).toContain("How scoring works");
     expect(html).toContain('aria-expanded="false"');
@@ -417,6 +438,137 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(html).not.toContain("min-w-[1920px]");
     expect(html).not.toMatch(/Base stronger|Quote stronger|>Winner<|Evidence Signal|>Shock<|>Reaction<|Pair compare|caused price|buy|sell/i);
     expect(ChartPairMatrixTimeLens).toHaveProperty("type");
+  });
+
+  it("renders one exact-metric audit over only the selected currency half", () => {
+    const audit = {
+      heading: "EUR During inflation",
+      formula: "Formula: compare only registered inflation series.",
+      result: "Inflation groups: headline +3; net 1.",
+      contributors: ["CPI y/y: hotter than forecast (+1); hotter than previous (+1); agreement bonus +1; event score +3."],
+      accessibleText: "EUR During inflation. Full accessible calculation audit.",
+    };
+    const baseTarget: PairMatrixActiveAudit = { side: "base", period: "during", metric: "inflation", audit };
+    const quoteTarget: PairMatrixActiveAudit = { ...baseTarget, side: "quote", period: "before", audit: { ...audit, heading: "USD Known before inflation" } };
+    const callbacks = { onClose: () => {} };
+    const base = renderToStaticMarkup(createElement(PairMatrixAuditOverlay, { activeAudit: baseTarget, ...callbacks }));
+    const quote = renderToStaticMarkup(createElement(PairMatrixAuditOverlay, { activeAudit: quoteTarget, ...callbacks }));
+    expect(base.match(/data-pair-matrix-audit-overlay/g)).toHaveLength(1);
+    expect(base).toContain('data-pair-matrix-audit-side="base"');
+    expect(base).toContain('data-pair-matrix-audit-period="during"');
+    expect(base).toContain('data-pair-matrix-audit-metric="inflation"');
+    expect(base).toContain("absolute bottom-0 top-[98px]");
+    expect(base).toContain("w-1/2");
+    expect(base).toContain("left-0 border-r");
+    expect(quote).toContain("right-0 border-l");
+    expect(base).toContain(">Formula</h3>");
+    expect(base).toContain(">Result</h3>");
+    expect(base).toContain("Contributors · 1");
+    expect(base).toContain('data-pair-matrix-contributor-table=""');
+    expect(base).toContain(">Series</span>");
+    expect(base).toContain(">Forecast</span>");
+    expect(base).toContain(">Previous</span>");
+    expect(base).toContain(">Agreement</span>");
+    expect(base).toContain(">Score</span>");
+    expect(base).toContain(">CPI y/y</strong>");
+    expect(base).toContain("hotter than forecast (+1)");
+    expect(base).toContain("hotter than previous (+1)");
+    expect(base).toContain("text-[14px] leading-5");
+    expect(base).toContain("text-[16px]");
+    expect(base).toContain('data-pair-matrix-audit-scroll="internal"');
+    expect(base).toContain('data-pair-matrix-audit-persistence="explicit-close"');
+    expect(base).not.toContain("EUR During economy");
+    expect(base).not.toContain("EUR During policy");
+  });
+
+  it("normalizes contributor audit sentences into stable table columns", () => {
+    expect(parsePairMatrixAuditContributor("Trade Balance: worse than forecast (-1); weakening from previous (-1); agreement bonus -1; event score -3.")).toEqual({
+      series: "Trade Balance",
+      forecast: "worse than forecast (-1)",
+      previous: "weakening from previous (-1)",
+      agreement: "-1",
+      score: "-3",
+    });
+    expect(parsePairMatrixAuditContributor("Trade Balance EU: Forecast unavailable; improving from previous (+1); agreement bonus 0; event score +1.")).toEqual({
+      series: "Trade Balance EU",
+      forecast: "Forecast unavailable",
+      previous: "improving from previous (+1)",
+      agreement: "0",
+      score: "+1",
+    });
+    expect(parsePairMatrixAuditContributor("Fed Interest Rate Decision: Actual versus Previous is unchanged; policy action 0.")).toEqual({
+      series: "Fed Interest Rate Decision",
+      forecast: "—",
+      previous: "Actual versus Previous is unchanged",
+      agreement: "—",
+      score: "0",
+    });
+  });
+
+  it("renders economy factor votes as aligned cells instead of a semicolon sentence", () => {
+    const audit = {
+      heading: "EUR Known before Economy",
+      formula: "Formula: equal factor votes.",
+      result: "Factor votes: 2↑ 2↓ 1 zero; net 0. labor ↓ (-3); activity ↑ (4); trade 0 (0); sentiment ↑ (4); retail ↓ (-3).",
+      contributors: [],
+      accessibleText: "EUR Known before Economy full audit.",
+      economyBreakdown: {
+        upCount: 2,
+        downCount: 2,
+        zeroCount: 1,
+        netVotes: 0,
+        factors: [
+          { label: "Labor", direction: "down" as const, score: -3 },
+          { label: "Activity", direction: "up" as const, score: 4 },
+          { label: "Trade", direction: "neutral" as const, score: 0 },
+          { label: "Sentiment", direction: "up" as const, score: 4 },
+          { label: "Retail", direction: "down" as const, score: -3 },
+        ],
+      },
+    };
+    const html = renderToStaticMarkup(createElement(PairMatrixAuditOverlay, {
+      activeAudit: { side: "base", period: "before", metric: "economy", audit },
+      onClose: () => {},
+    }));
+    expect(html).toContain('data-pair-matrix-economy-result="structured"');
+    expect(html).toContain('data-pair-matrix-factor-result-table=""');
+    expect(html).toContain("repeat(5, minmax(0, 1fr))");
+    expect(html).toContain(">2↑   2↓   1 neutral</span>");
+    expect(html).toContain(">Labor</span>");
+    expect(html).toContain(">↓ -3</strong>");
+    expect(html).toContain(">Activity</span>");
+    expect(html).toContain(">↑ +4</strong>");
+    expect(html).toContain(">Trade</span>");
+    expect(html).toContain(">0 0</strong>");
+    expect(html).not.toContain("labor ↓ (-3); activity ↑ (4)");
+  });
+
+  it("uses exact audit keys and clears Escape/context changes independently from info help", () => {
+    expect(getPairMatrixAuditKey({ side: "base", period: "during", metric: "inflation" })).toBe("base:during:inflation");
+    expect(getPairMatrixAuditKey({ side: "base", period: "before", metric: "inflation" })).not.toBe("base:during:inflation");
+    const initial = renderData();
+    expect(getPairMatrixAuditContextKey(initial)).not.toBe(getPairMatrixAuditContextKey({ ...initial, rangeLabel: "30 Jun 2026 00:00 · H4" }));
+    expect(getPairMatrixAuditContextKey(initial)).not.toBe(getPairMatrixAuditContextKey({ ...initial, pairLabel: "GBPUSD" }));
+    expect(getPairMatrixAuditContextKey(initial)).not.toBe(getPairMatrixAuditContextKey({ ...initial, loadState: "loading" }));
+    const onClose = vi.fn();
+    const escape = { key: "Escape", preventDefault: vi.fn(), stopPropagation: vi.fn() };
+    expect(handlePairMatrixAuditEscape(escape, onClose)).toBe(true);
+    expect(escape.preventDefault).toHaveBeenCalledOnce();
+    expect(escape.stopPropagation).toHaveBeenCalledOnce();
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(handlePairMatrixAuditEscape({ ...escape, key: "Enter" }, onClose)).toBe(false);
+    const audit = {
+      heading: "EUR During Inflation",
+      formula: "Formula",
+      result: "Result",
+      contributors: [],
+      accessibleText: "Audit",
+    };
+    const first: PairMatrixActiveAudit = { side: "base", period: "during", metric: "inflation", audit };
+    const second: PairMatrixActiveAudit = { side: "quote", period: "before", metric: "economy", audit };
+    expect(togglePairMatrixActiveAudit(null, first)).toBe(first);
+    expect(togglePairMatrixActiveAudit(first, first)).toBeNull();
+    expect(togglePairMatrixActiveAudit(first, second)).toBe(second);
   });
 
   it("keeps the complete mirrored raw-row contract for expanded group children", () => {
