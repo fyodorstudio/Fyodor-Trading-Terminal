@@ -1,0 +1,148 @@
+# Fyodor Macro Signal Research
+
+**Date:** 2026-08-18
+**Status:** Decision log and future implementation specification. No signal engine has been implemented or validated yet.
+
+## Purpose
+
+Fyodor Macro Signal is a local, research-first attempt to answer a narrow question:
+
+> When a registered EUR or USD economic-release package produced a particular directional evidence pattern, how did EURUSD subsequently behave under one frozen H4 trade simulation?
+
+The research surface will be named **Macro Signal Lab**. Its first version will be **FMS-EURUSD-ECO-H4-v1**.
+
+The feature is intended to reduce manual economic-data reading and make historical behavior auditable. It is not an automatic order system, a guarantee of profit, or proof that an economic release caused a price move.
+
+## Locked Product Decisions
+
+- Version 1 supports EURUSD only.
+- Candidates are created by economic releases, not repeatedly on every H4 candle.
+- The first model uses registered **Economy** evidence only.
+- Inflation and Policy remain visible research context and will be investigated as separate future models before any combined model is considered.
+- Directional outputs are **Long bias**, **Short bias**, and **No direction**. They are research classifications, not executable orders.
+- The Macro Signal Lab will eventually live as a separate Specialist Tools surface. Charts integration is deferred until a frozen version has credible holdout evidence and forward paper results.
+- The initial Lab will be a fixed case explorer, not an optimizer, recipe builder, or automatic leaderboard.
+- Existing Pair Matrix raw data remains the audit source.
+
+## Frozen Economy Signal Rule
+
+One candidate is formed from each exact release-time package containing registered EUR or USD Economy events.
+
+1. Each exact series retains the existing deterministic score from `-3` through `+3`:
+   - Actual versus Forecast contributes `-1`, `0`, or `+1`.
+   - Actual versus Previous contributes `-1`, `0`, or `+1`.
+   - Matching nonzero directions contribute an agreement bonus of `-1` or `+1`.
+2. Comparisons occur only within the same normalized exact series. Missing inputs contribute nothing and are never substituted.
+3. Related exact series remain grouped and capped by the existing exclusive Pair Matrix registry.
+4. Each Economy factor contributes at most one equal directional vote, preventing release quantity inside one factor from dominating the package.
+5. EUR improvement points toward Long EURUSD; EUR weakening points toward Short EURUSD.
+6. USD improvement points toward Short EURUSD; USD weakening points toward Long EURUSD.
+7. A nonzero package majority produces a directional candidate.
+8. A package containing opposing votes is labeled **Conflicted / weak** when one direction still has a majority.
+9. An exact tie is **No direction**. It remains available for unsigned volatility research rather than being discarded.
+
+Broker impact, exact title, registered family, score pattern, and Before-state alignment are analysis dimensions. They are not fitted trading weights in v1. This allows the Lab to measure which cohorts appear more consequential without feeding hindsight-derived weights back into the same test.
+
+The **Before** economy state is recorded for aligned-versus-conflicted cohort analysis but does not filter the baseline candidate.
+
+## Frozen Backtest Contract
+
+- **Signal time:** exact broker release timestamp.
+- **Entry:** the first EURUSD H4 candle open strictly after the release timestamp.
+- **Risk distance:** one raw-price H4 ATR(14), calculated with Wilder/RMA using only candles completed before entry.
+- **Targets:** separate hypothetical tracks at `1R`, `1.5R`, and `2R`; the Lab highlights `2R` without hiding the others.
+- **Maximum duration:** 30 completed H4 candles, representing approximately five trading days rather than 120 wall-clock hours.
+- **Overlap:** every candidate is evaluated independently, even if another hypothetical trade is still active. Overlap counts must be disclosed.
+- **Intrabar ordering:** M1 candles determine whether the stop or target was reached first inside an H4 candle.
+- **Unresolvable ordering:** if stop and target are both reached within the same M1 candle, the result is **Both touched — order unknown** and is not silently counted as a win or loss.
+- **Expiry:** if neither boundary is reached, the trade expires at the close of its thirtieth H4 candle and retains its marked-to-market result in R.
+- **Costs:** results are gross. Spread, slippage, swap, and commission are excluded and must be stated prominently wherever results appear.
+- **No lookahead:** signal inputs, ATR, entry, and outcome calculations may use only information available at their respective historical timestamps.
+
+The result contract will report:
+
+- eligible and unevaluable sample counts;
+- TP-first, SL-first, expired, and ambiguous rates;
+- average and median result in R;
+- uncertainty around headline rates and expectancy;
+- Long- and Short-bias breakdowns;
+- calendar-year and fixed-period stability;
+- exact-title, family, broker-impact, score-pattern, conflict, and background-alignment cohorts;
+- underlying release, candle, entry, stop, target, and outcome audit rows.
+
+## Data and Validation Policy
+
+- Preserve all practical broker history in durable local bridge storage.
+- Treat broker-provided coverage as the boundary. Missing history must be shown honestly rather than inferred.
+- Use the latest fixed ten years as the primary research window when that much coverage exists.
+- Also show the latest five years, earlier five years, calendar-year slices, and full available history as robustness views.
+- Never select whichever historical horizon happens to produce the most attractive result.
+- Freeze `FMS-EURUSD-ECO-H4-v1` before inspecting its backtest result.
+- Use a chronological development/holdout partition and store its boundary with the version.
+- Give every formula revision an immutable version identifier, configuration snapshot, creation time, and dataset fingerprint.
+- Record every evaluated version. Do not retain only successful experiments.
+- Once a holdout has influenced a later formula, it is reused research data and must not be described as untouched.
+- Later versions require forward paper validation before Charts promotion.
+
+The intended status progression is:
+
+`Research` → `Eligible for paper validation` → `Paper validated`
+
+The exact statistical eligibility threshold and forward-paper sample requirement must be frozen before the first result is inspected. They remain an explicit implementation-time research decision, not something to tune after seeing performance.
+
+Historical MT5 calendar rows are not guaranteed vintage datasets. Broker `Previous` values may already contain revisions, and forecast availability can vary over time. These limitations must remain visible in the Lab.
+
+## Implementation Milestones
+
+1. Add durable local bridge calendar storage and explicit earliest/latest coverage reporting.
+2. Add a versioned backend backtest engine and reusable EURUSD H4/M1 candle cache so heavy research does not run in the Charts render path.
+3. Add the separate Specialist Tools **Macro Signal Lab** with an overall model result followed by family, title, and individual-case drilldowns.
+4. Run and audit the frozen Economy baseline without changing its formula in response to the result.
+5. Add forward paper-signal tracking for any version that meets the predeclared research gate.
+6. Consider Charts arrows only after holdout review and forward paper validation.
+7. Research Policy, Inflation, combined pillars, D1 variants, and learned weights only as separately versioned later work.
+
+## Deferred and Open Research Questions
+
+- The statistical threshold required for **Eligible for paper validation**.
+- The number and duration of forward paper observations required for **Paper validated**.
+- Whether broker-impact cohorts demonstrate stable enough differences to justify a future predeclared weight model.
+- Whether Before-state alignment improves out-of-sample results enough to become a future filter.
+- Whether conflicted-majority packages retain useful directional expectancy or mainly predict volatility.
+- Separate deterministic Policy rules, including rate surprises versus unchanged decisions and unscored communications.
+- Inflation interpretation across tightening, easing, and growth regimes.
+- Whether a later combined-pillar model improves untouched results rather than merely increasing complexity.
+- Event-response views such as ATR-normalized 30-minute, H4, D1, MFE, and MAE behavior.
+- Event-package attribution when multiple releases share the same timestamp.
+- Eventual manual chart integration beside the user's independent technical support/resistance process.
+
+## Future MT5 Backfill Handoff
+
+### Do not change MT5 yet
+
+The current bridge keeps calendar rows only in memory, removes rows older than 400 days, and loses its calendar history on restart. Increasing the EA lookback now would create work without preserving the result.
+
+### After durable bridge storage is implemented
+
+Perform one controlled historical import:
+
+1. Temporarily set the EA inputs to:
+   - `CurrenciesList = "USD,EUR"`
+   - `LookBackDays = 10000`
+   - `MaxEventsPerCur = 10000`
+   - keep `MaxRowsPerPost = 120`
+2. Wait for an EA timer cycle to finish with `failed_batches=0` in the MT5 Journal.
+3. Verify the bridge reports a credible stored-row count plus the earliest and latest EUR/USD release timestamps. MT5 may return less than 10,000 days; actual broker coverage is authoritative.
+4. Restore:
+   - `CurrenciesList = "USD,EUR,GBP,JPY,AUD,CAD,NZD,CHF"`
+   - `LookBackDays = 400`
+   - `MaxEventsPerCur = 1000`
+5. Leave the durable archive intact. Subsequent 400-day ingests update recent rows without deleting the older research history.
+
+Do not treat the backfill as complete when any batch failed or when coverage has not been verified.
+
+## Research Warnings and References
+
+Hypothetical results do not represent executed trades and can overstate or understate real performance. The Lab must identify all results as simulated, disclose excluded costs, and avoid claims that similar live profits are likely. See the [CFTC guidance on hypothetical trading-system results](https://www.cftc.gov/LearnAndProtect/AdvisoriesAndArticles/fraudadv_tradingsystem.html).
+
+Trying many configurations and selecting the historical winner can produce a strategy that fails out of sample. The immutable version and trial registry exists specifically to limit this problem. See [The Probability of Backtest Overfitting](https://papers.ssrn.com/sol3/Papers.cfm?abstract_id=2326253).
