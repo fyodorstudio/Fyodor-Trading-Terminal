@@ -1,5 +1,5 @@
 import { FX_PAIRS } from "@/app/config/fxPairs";
-import type { CalendarEvent, Timeframe } from "@/app/types";
+import type { BridgeCandle, CalendarEvent, Timeframe } from "@/app/types";
 
 export type PairMatrixFactorId = "policy" | "inflation" | "labor" | "retail" | "pmi" | "sentiment" | "trade" | "other";
 
@@ -43,6 +43,11 @@ export interface PairMatrixCandleRange {
   lastOpen: number;
   close: number;
   candleCount: number;
+}
+
+export interface PairMatrixTimeInterval {
+  from: number;
+  toExclusive: number;
 }
 
 export interface PairMatrixRangePixelBounds {
@@ -285,6 +290,42 @@ export function normalizePairMatrixCandleRange(candleTimes: number[], firstTarge
     close: getPairMatrixCandleClose(candleTimes[throughIndex], timeframe),
     candleCount: throughIndex - fromIndex + 1,
   };
+}
+
+export function remapPairMatrixTimeInterval(
+  candleTimes: number[],
+  interval: PairMatrixTimeInterval,
+  timeframe: Timeframe,
+): PairMatrixCandleRange | null {
+  if (candleTimes.length === 0 || interval.toExclusive <= interval.from) return null;
+  const included = candleTimes.filter((open) => (
+    open < interval.toExclusive && getPairMatrixCandleClose(open, timeframe) > interval.from
+  ));
+  if (included.length === 0) return null;
+  const firstOpen = included[0];
+  const lastOpen = included[included.length - 1];
+  return {
+    firstOpen,
+    lastOpen,
+    close: getPairMatrixCandleClose(lastOpen, timeframe),
+    candleCount: included.length,
+  };
+}
+
+export function getPairMatrixRangePipMoveLabel(
+  candles: readonly BridgeCandle[],
+  range: PairMatrixCandleRange | null,
+  quoteCurrency: string | null,
+): string | null {
+  if (!range || !quoteCurrency) return null;
+  const first = candles.find((candle) => candle.time === range.firstOpen);
+  const last = candles.find((candle) => candle.time === range.lastOpen);
+  if (!first || !last) return null;
+  const pipSize = quoteCurrency.toUpperCase() === "JPY" ? 0.01 : 0.0001;
+  const pips = (last.close - first.open) / pipSize;
+  if (!Number.isFinite(pips)) return null;
+  const normalized = Math.abs(pips) < 0.05 ? 0 : pips;
+  return `${normalized >= 0 ? "+" : ""}${normalized.toFixed(1)} pips`;
 }
 
 export function getPairMatrixRangePixelBounds(

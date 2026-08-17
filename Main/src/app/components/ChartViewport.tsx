@@ -9,6 +9,7 @@ import { usePairMatrixHoverAnchor } from "@/app/hooks/usePairMatrixHoverAnchor";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
 import type { ChartDisplayTimeMode } from "@/app/lib/chartView";
 import type { PairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
+import type { PairMatrixChartGeometryRuntime } from "@/app/lib/pairMatrixChartGeometry";
 import type { PairMatrixCandleRange, PairMatrixRangePixelBounds } from "@/app/lib/pairMatrixSnapshot";
 import type { BridgeStatus, CalendarEvent } from "@/app/types";
 
@@ -84,6 +85,8 @@ export type ChartPairMatrixRangeOverlayData = {
   armed: boolean;
   cancelRevision: number;
   lockedBounds: PairMatrixRangePixelBounds | null;
+  lockedRange?: PairMatrixCandleRange | null;
+  geometryRuntime?: PairMatrixChartGeometryRuntime;
   startPreview: (x: number, edge: "new" | "start" | "end") => PairMatrixRangePreview | null;
   updatePreview: (x: number, originTime: number) => PairMatrixRangePreview | null;
   onCommit: (range: PairMatrixCandleRange) => void;
@@ -98,6 +101,8 @@ export type ChartPairMatrixContextMarkerData = {
   sourceTimeOffsetSeconds: number;
   loadState: "idle" | "loading" | "ready" | "error";
   onSelectEvent: (event: CalendarEvent) => void;
+  onAnalyzeCandle: (candleOpen: number) => void;
+  geometryRuntime?: PairMatrixChartGeometryRuntime;
   cursorRuntime?: {
     hover: PairMatrixHoverRuntime;
     resolve: (anchor: number | null) => PairMatrixContextMarkerView[];
@@ -317,6 +322,7 @@ export const ChartPairMatrixRangeOverlay = memo(function ChartPairMatrixRangeOve
   const previewRef = useRef<PairMatrixRangePreview | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const pendingXRef = useRef<number | null>(null);
+  const bandRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => () => {
     if (animationFrameRef.current != null) window.cancelAnimationFrame(animationFrameRef.current);
@@ -331,6 +337,28 @@ export const ChartPairMatrixRangeOverlay = memo(function ChartPairMatrixRangeOve
     setPreview(null);
     setDragging(false);
   }, [data.cancelRevision]);
+
+  useEffect(() => {
+    const runtime = data.geometryRuntime;
+    if (!runtime || !data.lockedRange) return;
+    const update = () => {
+      if (draggingRef.current || previewRef.current) return;
+      const band = bandRef.current;
+      if (!band) return;
+      const next = runtime.resolveRange(data.lockedRange!);
+      if (!next) {
+        band.style.visibility = "hidden";
+        return;
+      }
+      band.style.visibility = "visible";
+      band.style.left = "0px";
+      band.style.transform = `translate3d(${next.left}px, 0, 0)`;
+      const width = `${Math.max(2, next.right - next.left)}px`;
+      if (band.style.width !== width) band.style.width = width;
+    };
+    update();
+    return runtime.subscribe(update);
+  }, [data.geometryRuntime, data.lockedRange]);
 
   const localX = (event: ReactPointerEvent<HTMLElement>) => {
     const bounds = event.currentTarget.closest(".chart-plot-region")?.getBoundingClientRect();
@@ -398,11 +426,18 @@ export const ChartPairMatrixRangeOverlay = memo(function ChartPairMatrixRangeOve
     event.preventDefault();
     event.stopPropagation();
   };
-  const bounds = preview?.bounds ?? data.lockedBounds;
-  if (!bounds && !data.armed && !dragging) return null;
+  const bounds = preview?.bounds
+    ?? data.lockedBounds
+    ?? (data.lockedRange && data.geometryRuntime ? data.geometryRuntime.resolveRange(data.lockedRange) : null);
+  if (!bounds && !data.lockedRange && !data.armed && !dragging) return null;
   const left = bounds?.left ?? 0;
   const width = bounds ? Math.max(2, bounds.right - bounds.left) : 0;
-  const bandStyle = { left: `${left}px`, width: `${width}px` } as CSSProperties;
+  const bandStyle = {
+    left: "0px",
+    width: `${width}px`,
+    visibility: bounds ? "visible" : "hidden",
+    transform: `translate3d(${left}px, 0, 0)`,
+  } as CSSProperties;
 
   return (
     <div
@@ -413,8 +448,8 @@ export const ChartPairMatrixRangeOverlay = memo(function ChartPairMatrixRangeOve
       onPointerUp={data.armed ? end : undefined}
       onPointerCancel={data.armed ? cancel : undefined}
     >
-      {bounds ? (
-        <div className="pointer-events-none absolute inset-y-0 border-x-[3px] border-blue-600 bg-blue-400/25 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.28)]" style={bandStyle} data-pair-matrix-range-band="">
+      {bounds || data.lockedRange ? (
+        <div ref={bandRef} className="pointer-events-none absolute inset-y-0 will-change-transform border-x-[3px] border-blue-600 bg-blue-400/25 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.28)]" style={bandStyle} data-pair-matrix-range-band="">
           <button
             type="button"
             className="pointer-events-auto absolute inset-y-0 -left-2 w-4 cursor-ew-resize bg-transparent"

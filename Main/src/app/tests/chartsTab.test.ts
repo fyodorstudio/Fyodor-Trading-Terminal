@@ -6,7 +6,7 @@ import { ChartPairMatrixContextMarkers, clusterPairMatrixMarkerViews } from "@/a
 import { ChartPairMatrixRangeOverlay, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
 import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
-import { captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getPairMatrixHoverSettleDelay, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange } from "@/app/tabs/primary/ChartsTab";
+import { captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange } from "@/app/tabs/primary/ChartsTab";
 import { getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
 
@@ -24,6 +24,15 @@ describe("getChartConnectionLabel", () => {
     expect(getPairMatrixHoverSettleDelay(1_000, 1_040, 120)).toBe(80);
     expect(getPairMatrixHoverSettleDelay(1_080, 1_090, 120)).toBe(110);
     expect(getPairMatrixHoverSettleDelay(1_000, 1_121, 120)).toBe(0);
+  });
+  it("locks Analyze candle to exactly one complete timeframe candle", () => {
+    expect(getPairMatrixAnalyzeCandleRange([0, 14_400, 28_800], 14_400, "H4")).toEqual({
+      firstOpen: 14_400,
+      lastOpen: 14_400,
+      close: 28_800,
+      candleCount: 1,
+    });
+    expect(getPairMatrixAnalyzeCandleRange([0, 14_400, 28_800], 7_200, "H4")).toBeNull();
   });
   it("publishes snapped candles outside ChartsTab state and ignores duplicate anchors", () => {
     const runtime = createPairMatrixHoverRuntime();
@@ -182,6 +191,7 @@ describe("getChartConnectionLabel", () => {
     );
 
     expect(html).toContain("Locked Pair Matrix candle range");
+    expect(html).toContain("translate3d(100px, 0, 0)");
     expect(html).not.toContain("chart-event-dot");
 
     const event = { id: 1, time: 110, currency: "USD", countryCode: "US", title: "CPI y/y", impact: "high" as const, actual: "2.5", forecast: "2.4", previous: "2.3" };
@@ -196,10 +206,13 @@ describe("getChartConnectionLabel", () => {
       sourceTimeOffsetSeconds: 0,
       loadState: "ready" as const,
       onSelectEvent: () => {},
+      onAnalyzeCandle: () => {},
     }));
     expect(markers).toContain('data-pair-matrix-context-markers=""');
+    expect(markers).toContain("translate3d(250px, 0, 0) translateX(-50%)");
     expect(markers).toContain("1 Pair Matrix release in this candle");
     expect(markers).toContain("impact-high");
+    expect(markers).toContain("high broker impact");
   });
 
   it("collapses visually crowded Pair Matrix markers without losing their releases", () => {
@@ -213,8 +226,11 @@ describe("getChartConnectionLabel", () => {
 
     expect(clustered).toHaveLength(1);
     expect(clustered[0]).toMatchObject({ candleCount: 2, impact: "high" });
+    expect(clustered[0].candleOpens).toEqual([100, 200]);
     expect(clustered[0].events.map((event) => event.title)).toEqual(["CPI y/y", "Core CPI y/y"]);
     expect(clustered[0].families[0].events).toHaveLength(2);
+    expect(clustered[0].eventCandleOpenByKey.get("EUR:1:110:CPI y/y")).toBe(100);
+    expect(clustered[0].eventCandleOpenByKey.get("USD:2:210:Core CPI y/y")).toBe(200);
   });
 
   it("renders event overlay controls inside the chart settings drawer", () => {

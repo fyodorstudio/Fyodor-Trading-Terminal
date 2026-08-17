@@ -1,11 +1,12 @@
-import { memo, useEffect, useMemo, useState } from "react";
-import { ChevronDown, ChevronRight, X } from "lucide-react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronRight, Crosshair, X } from "lucide-react";
 import { formatChartEventDisplayTime } from "@/app/lib/chartEvents";
 import { usePairMatrixHoverAnchor } from "@/app/hooks/usePairMatrixHoverAnchor";
 import type { ChartDisplayTimeMode } from "@/app/lib/chartView";
 import { PAIR_MATRIX_FACTORS, PAIR_MATRIX_OTHER_FACTOR } from "@/app/lib/pairMatrixSnapshot";
 import type { PairMatrixContextMarkerGroup } from "@/app/lib/pairMatrixContextMarkers";
 import type { PairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
+import type { PairMatrixChartGeometryRuntime } from "@/app/lib/pairMatrixChartGeometry";
 import type { CalendarEvent } from "@/app/types";
 
 export interface PairMatrixContextMarkerView extends PairMatrixContextMarkerGroup {
@@ -15,11 +16,17 @@ export interface PairMatrixContextMarkerView extends PairMatrixContextMarkerGrou
 
 interface PairMatrixContextMarkerDisplay extends PairMatrixContextMarkerView {
   candleCount: number;
+  candleOpens: number[];
+  eventCandleOpenByKey: ReadonlyMap<string, number>;
 }
 
 const MARKER_CLUSTER_SPAN = 64;
 const MARKER_FACTOR_ORDER = [...PAIR_MATRIX_FACTORS, PAIR_MATRIX_OTHER_FACTOR];
 const MARKER_IMPACT_RANK: Record<CalendarEvent["impact"], number> = { high: 0, medium: 1, low: 2 };
+
+function getMarkerEventIdentity(event: CalendarEvent): string {
+  return `${event.currency}:${event.id}:${event.time}:${event.title}`;
+}
 
 /**
  * Collapses markers that cannot be drawn legibly at the current zoom level.
@@ -40,7 +47,12 @@ export function clusterPairMatrixMarkerViews(
   });
 
   return buckets.map((members) => {
-    if (members.length === 1) return { ...members[0], candleCount: 1 };
+    if (members.length === 1) return {
+      ...members[0],
+      candleCount: 1,
+      candleOpens: [members[0].candleOpen],
+      eventCandleOpenByKey: new Map(members[0].events.map((event) => [getMarkerEventIdentity(event), members[0].candleOpen])),
+    };
     const events = members.flatMap((member) => member.events)
       .sort((left, right) => left.time - right.time || left.title.localeCompare(right.title));
     const eventsByFactor = new Map<string, CalendarEvent[]>();
@@ -55,6 +67,8 @@ export function clusterPairMatrixMarkerViews(
     });
     const positions = new Set(members.map((member) => member.position));
     const placements = new Set(members.map((member) => member.placement));
+    const eventCandleOpenByKey = new Map<string, number>();
+    members.forEach((member) => member.events.forEach((event) => eventCandleOpenByKey.set(getMarkerEventIdentity(event), member.candleOpen)));
     return {
       key: `cluster:${members.map((member) => member.key).join("|")}`,
       candleOpen: members[0].candleOpen,
@@ -65,6 +79,8 @@ export function clusterPairMatrixMarkerViews(
       events,
       families,
       candleCount: members.length,
+      candleOpens: members.map((member) => member.candleOpen),
+      eventCandleOpenByKey,
     };
   });
 }
@@ -76,6 +92,8 @@ export const ChartPairMatrixContextMarkers = memo(function ChartPairMatrixContex
   sourceTimeOffsetSeconds,
   loadState,
   onSelectEvent,
+  onAnalyzeCandle,
+  geometryRuntime,
   cursorRuntime,
 }: {
   markers: PairMatrixContextMarkerView[];
@@ -84,6 +102,8 @@ export const ChartPairMatrixContextMarkers = memo(function ChartPairMatrixContex
   sourceTimeOffsetSeconds: number;
   loadState: "idle" | "loading" | "ready" | "error";
   onSelectEvent: (event: CalendarEvent) => void;
+  onAnalyzeCandle: (candleOpen: number) => void;
+  geometryRuntime?: PairMatrixChartGeometryRuntime;
   cursorRuntime?: {
     hover: PairMatrixHoverRuntime;
     resolve: (anchor: number | null) => PairMatrixContextMarkerView[];
@@ -97,6 +117,30 @@ export const ChartPairMatrixContextMarkers = memo(function ChartPairMatrixContex
   const markers = useMemo(() => clusterPairMatrixMarkerViews(rawMarkers), [rawMarkers]);
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(() => new Set());
+  const markerRefs = useRef(new Map<string, HTMLDivElement>());
+
+  useEffect(() => {
+    if (!geometryRuntime) return;
+    const update = () => {
+      markers.forEach((marker) => {
+        const element = markerRefs.current.get(marker.key);
+        if (!element) return;
+        const position = geometryRuntime.resolveMarker(marker.candleOpens);
+        if (!position || !position.visible) {
+          element.style.visibility = "hidden";
+          return;
+        }
+        element.style.visibility = "visible";
+        element.style.left = "0px";
+        element.style.transform = `translate3d(${position.x}px, 0, 0) translateX(-50%)`;
+        element.classList.toggle("placement-left", position.placement === "left");
+        element.classList.toggle("placement-center", position.placement === "center");
+        element.classList.toggle("placement-right", position.placement === "right");
+      });
+    };
+    update();
+    return geometryRuntime.subscribe(update);
+  }, [geometryRuntime, markers]);
 
   useEffect(() => {
     if (passive) setActiveKey(null);
@@ -126,7 +170,15 @@ export const ChartPairMatrixContextMarkers = memo(function ChartPairMatrixContex
       {markers.map((marker) => {
         const active = marker.key === activeKey;
         return (
-          <div key={marker.key} className={`pair-matrix-context-marker impact-${marker.impact} position-${marker.position} placement-${marker.placement} ${marker.candleCount > 1 ? "is-cluster" : ""}`} style={{ left: marker.x }}>
+          <div
+            key={marker.key}
+            ref={(element) => {
+              if (element) markerRefs.current.set(marker.key, element);
+              else markerRefs.current.delete(marker.key);
+            }}
+            className={`pair-matrix-context-marker impact-${marker.impact} position-${marker.position} placement-${marker.placement} ${marker.candleCount > 1 ? "is-cluster" : ""}`}
+            style={{ left: 0, transform: `translate3d(${marker.x}px, 0, 0) translateX(-50%)` }}
+          >
             <button
               type="button"
               className="pair-matrix-context-marker-button"
@@ -137,8 +189,8 @@ export const ChartPairMatrixContextMarkers = memo(function ChartPairMatrixContex
               }}
               aria-expanded={active}
               aria-label={marker.candleCount > 1
-                ? `${marker.events.length} Pair Matrix releases across ${marker.candleCount} nearby candles`
-                : `${marker.events.length} Pair Matrix release${marker.events.length === 1 ? "" : "s"} in this candle`}
+                ? `${marker.events.length} Pair Matrix releases across ${marker.candleCount} nearby candles; ${marker.impact} broker impact`
+                : `${marker.events.length} Pair Matrix release${marker.events.length === 1 ? "" : "s"} in this candle; ${marker.impact} broker impact`}
             >
               <span className="pair-matrix-context-marker-dot" />
               {marker.events.length > 1 ? <small aria-hidden="true">{marker.events.length}</small> : null}
@@ -148,7 +200,7 @@ export const ChartPairMatrixContextMarkers = memo(function ChartPairMatrixContex
                 <header>
                   <span>
                     <strong>{marker.events.length} release{marker.events.length === 1 ? "" : "s"}</strong>
-                    <small>{marker.candleCount > 1 ? `${marker.candleCount} nearby candles` : `${marker.position} selected range`}</small>
+                    <small>{marker.candleCount > 1 ? `${marker.candleCount} nearby candles · ${marker.impact} broker impact` : `${marker.position} selected range · ${marker.impact} broker impact`}</small>
                   </span>
                   <button type="button" onClick={() => setActiveKey(null)} aria-label="Close event marker"><X size={14} /></button>
                 </header>
@@ -174,13 +226,33 @@ export const ChartPairMatrixContextMarkers = memo(function ChartPairMatrixContex
                         </button>
                         {expanded ? (
                           <div className="pair-matrix-context-marker-family-children">
-                            {family.events.map((event) => (
-                              <button key={`${event.id}:${event.time}:${event.title}`} type="button" onClick={() => onSelectEvent(event)}>
-                                <span><b>{event.currency}</b><small>{event.impact}</small></span>
-                                <strong>{event.title}</strong>
-                                <time>{formatChartEventDisplayTime(event.time, displayTimeMode, sourceTimeOffsetSeconds)}</time>
-                              </button>
-                            ))}
+                            {family.events.map((event) => {
+                              const eventKey = getMarkerEventIdentity(event);
+                              const candleOpen = marker.eventCandleOpenByKey.get(eventKey);
+                              return (
+                                <div key={eventKey} className="pair-matrix-context-marker-release">
+                                  <button type="button" className="pair-matrix-context-marker-event-action" onClick={() => onSelectEvent(event)} title="Open release in Event Lens">
+                                    <span><b>{event.currency}</b><small>{event.impact}</small></span>
+                                    <strong>{event.title}</strong>
+                                    <time>{formatChartEventDisplayTime(event.time, displayTimeMode, sourceTimeOffsetSeconds)}</time>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="pair-matrix-context-marker-analyze-action"
+                                    disabled={candleOpen == null}
+                                    onClick={() => {
+                                      if (candleOpen == null) return;
+                                      onAnalyzeCandle(candleOpen);
+                                      setActiveKey(null);
+                                    }}
+                                    aria-label={`Analyze the candle containing ${event.title}`}
+                                    title="Lock Pair Matrix to this complete candle"
+                                  >
+                                    <Crosshair size={13} /> Analyze candle
+                                  </button>
+                                </div>
+                              );
+                            })}
                           </div>
                         ) : null}
                       </div>

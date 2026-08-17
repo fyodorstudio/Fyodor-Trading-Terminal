@@ -24,7 +24,8 @@ const RAW_FIELDS = [
 
 const WORKFLOW_STEPS = [
   ["Hover a candle", "Cursor mode follows one candle and anchors the view at that candle’s opening time."],
-  ["Select a range", "Drag across complete candles to lock a wider event window."],
+  ["Analyze an event candle", "Open a Pair Matrix event marker and choose Analyze candle to lock the exact complete candle containing that release."],
+  ["Select a range", "Drag across complete candles to study evidence accumulated while a wider move developed. A broad range is valid, but it answers a different question from one-candle timing."],
   ["Read During", "These releases arrived while the selected candle or range was forming."],
   ["Read Before", "These were the latest loaded exact-series readings already known at the opening boundary."],
   ["Adjust the view", "Group rows by Factor or Release time, change the background lookback, or drag the panel’s top edge upward for more room."],
@@ -47,7 +48,7 @@ export function PairMatrixScoringGuideContent() {
   return (
     <div className="mx-auto w-full max-w-[1400px] space-y-6 px-5 py-6 lg:px-8">
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <GuideSectionTitle step="1" title="Start with when the evidence was known" description="The timeline never mixes new releases with background information." />
+        <GuideSectionTitle step="1" title="Start with when the evidence was known" description="The timeline never mixes new releases with background information. One candle isolates time-linked candidates; a range studies accumulated evidence and follow-through." />
         <div className="grid gap-3 md:grid-cols-2">
           <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
             <span className="text-[11px] font-black uppercase tracking-[0.14em] text-blue-700">During candle / range</span>
@@ -82,7 +83,7 @@ export function PairMatrixScoringGuideContent() {
           </div>
         </div>
         <div className="mt-3 rounded-xl border border-slate-300 bg-slate-950 px-4 py-3 text-center text-sm font-black text-white">
-          During-range economy: EUR Improving <span className="mx-2 text-slate-400">|</span> USD Weakening
+          During-range economic evidence: EUR Improving <span className="mx-2 text-slate-400">|</span> USD Weakening
         </div>
       </section>
 
@@ -145,13 +146,15 @@ export function PairMatrixScoringGuideContent() {
             "Inflation and policy remain outside the Economy vote.",
             "Broker impact level does not change the arithmetic score.",
             "Unregistered releases remain visible but unscored.",
+            "Economic evidence improving does not mean the currency must appreciate.",
+            "A release that arrived after a move began cannot explain the earlier move.",
             "The result does not prove why price moved and is not a trade signal.",
           ].map((text) => <div key={text} className="flex gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold leading-5 text-slate-700"><Check className="mt-0.5 h-4 w-4 flex-none text-slate-500" />{text}</div>)}
         </div>
       </section>
 
       <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-        <div className="mb-4 flex items-center gap-3"><MousePointer2 className="h-6 w-6 text-blue-700" /><div><h2 className="m-0 text-xl font-black text-slate-950">Use Pair Matrix on the chart</h2><p className="mt-1 text-sm font-semibold text-slate-600">Once the scoring path is familiar, the workflow is six short steps.</p></div></div>
+        <div className="mb-4 flex items-center gap-3"><MousePointer2 className="h-6 w-6 text-blue-700" /><div><h2 className="m-0 text-xl font-black text-slate-950">Use Pair Matrix on the chart</h2><p className="mt-1 text-sm font-semibold text-slate-600">Use one candle for event timing and wider ranges for accumulated evidence.</p></div></div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {WORKFLOW_STEPS.map(([title, description], index) => (
             <div key={title} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -162,6 +165,13 @@ export function PairMatrixScoringGuideContent() {
           ))}
         </div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs font-black text-slate-600"><span className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5"><MoveHorizontal size={13} /> Select range</span><span className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5"><Scale size={13} /> Resize panel</span><span className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5"><Table2 size={13} /> Inspect raw rows</span></div>
+        <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold text-slate-700">
+          <strong className="mr-3 font-black text-slate-950">Marker attention uses broker impact only:</strong>
+          <span className="mr-3 inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-violet-600" /> High</span>
+          <span className="mr-3 inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-blue-600" /> Medium</span>
+          <span className="inline-flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-full bg-slate-500" /> Low</span>
+          <span className="ml-3 text-slate-500">The strongest impact inside a candle or cluster sets its color and never changes its score.</span>
+        </div>
       </section>
 
       <details className="rounded-2xl border border-slate-200 bg-white shadow-sm">

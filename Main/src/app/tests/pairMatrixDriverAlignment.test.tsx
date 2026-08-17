@@ -36,15 +36,19 @@ import {
   getPairMatrixCandleClose,
   getPairMatrixForexCurrencies,
   getPairMatrixRangePixelBounds,
+  getPairMatrixRangePipMoveLabel,
   indexPairMatrixCalendar,
   loadPairMatrixBeforeDays,
   normalizePairMatrixBeforeDays,
   normalizePairMatrixCandleRange,
   normalizePairMatrixSeriesTitle,
+  remapPairMatrixTimeInterval,
   savePairMatrixBeforeDays,
 } from "@/app/lib/pairMatrixSnapshot";
 import {
+  buildPairMatrixEconomyFactorGroups,
   buildPairMatrixTimelineGroups,
+  getPairMatrixContextLayer,
   getPairMatrixTimelineExpansionKey,
   isPairMatrixTimelineGroupExpandable,
   togglePairMatrixTimelineExpansion,
@@ -88,6 +92,7 @@ function renderData(overrides: Partial<ChartPairMatrixTimeLensData> = {}): Chart
     timeline: timelineValue,
     momentum: overrides.momentum ?? buildPairMatrixMomentumSnapshot(timelineValue, currencies),
     rangeLabel: "29 Jun 2026 16:00 · H4",
+    rangeMoveLabel: null,
     rangeOpenTimeSeconds: 1_000,
     rangeBasisLabel: "Hovered candle",
     loadState: "ready",
@@ -120,6 +125,32 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(getPairMatrixCandleClose(1_000, "W1")).toBe(605_800);
     const januaryOpen = Date.UTC(2026, 0, 1) / 1_000;
     expect(getPairMatrixCandleClose(januaryOpen, "MN1")).toBe(Date.UTC(2026, 1, 1) / 1_000);
+  });
+
+  it("preserves a locked time interval by snapping outward onto the new timeframe", () => {
+    const hour = 3_600;
+    expect(remapPairMatrixTimeInterval(
+      [0, hour, 2 * hour, 3 * hour, 4 * hour, 5 * hour, 6 * hour, 7 * hour],
+      { from: 2 * hour, toExclusive: 6 * hour },
+      "H1",
+    )).toEqual({ firstOpen: 2 * hour, lastOpen: 5 * hour, close: 6 * hour, candleCount: 4 });
+    expect(remapPairMatrixTimeInterval(
+      [0, 4 * hour, 8 * hour],
+      { from: 2 * hour, toExclusive: 6 * hour },
+      "H4",
+    )).toEqual({ firstOpen: 0, lastOpen: 4 * hour, close: 8 * hour, candleCount: 2 });
+  });
+
+  it("formats the net selected-range move in standard and JPY pips", () => {
+    const candles = [
+      { time: 100, open: 1.1000, high: 1.1020, low: 1.0990, close: 1.1010, volume: 10 },
+      { time: 200, open: 1.1010, high: 1.1060, low: 1.1000, close: 1.1055, volume: 12 },
+    ];
+    const range = { firstOpen: 100, lastOpen: 200, close: 300, candleCount: 2 };
+    expect(getPairMatrixRangePipMoveLabel(candles, range, "USD")).toBe("+55.0 pips");
+    expect(getPairMatrixRangePipMoveLabel([
+      { time: 100, open: 150.20, high: 150.30, low: 150.00, close: 150.10, volume: 10 },
+    ], { firstOpen: 100, lastOpen: 100, close: 200, candleCount: 1 }, "JPY")).toBe("-10.0 pips");
   });
 
   it("builds visible one-candle and multi-candle bands from candle centers and bar spacing", () => {
@@ -375,7 +406,7 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(groups.map((group) => [group.candleOpen, group.count])).toEqual([[1_000, 2], [15_400, 1]]);
   });
 
-  it("groups entries into the fixed non-empty factor order while preserving child order", () => {
+  it("groups Factor view into fixed context layers with smart economy subgroups", () => {
     const entries = [
       event({ id: 50, time: 1_040, title: "EIA Crude Oil Stocks Change" }),
       event({ id: 51, time: 1_010, title: "GDP q/q" }),
@@ -384,9 +415,24 @@ describe("Pair Matrix candle-range timeline", () => {
       event({ id: 54, time: 1_050, title: "Fed Interest Rate Decision" }),
     ].map(buildPairMatrixSeriesSnapshot);
     const groups = buildPairMatrixTimelineGroups(entries, "factor");
-    expect(groups.map((group) => group.id)).toEqual(["policy", "inflation", "pmi", "other"]);
-    expect(groups.find((group) => group.id === "pmi")?.entries.map((entry) => entry.event.title)).toEqual(["GDP q/q", "GDP y/y"]);
-    expect(groups.some((group) => group.id === "labor")).toBe(false);
+    expect(groups.map((group) => group.id)).toEqual(["context:policy", "context:inflation", "context:economy", "context:other"]);
+    const economy = groups.find((group) => group.id === "context:economy");
+    expect(economy?.kind).toBe("context");
+    const economyFactors = economy?.kind === "context" ? buildPairMatrixEconomyFactorGroups(economy.entries) : [];
+    expect(economyFactors.map((group) => group.id)).toEqual(["pmi"]);
+    expect(economyFactors[0]?.entries.map((entry) => entry.event.title)).toEqual(["GDP q/q", "GDP y/y"]);
+    expect(economyFactors.some((group) => group.id === "labor")).toBe(false);
+  });
+
+  it("organizes policy communication as Policy context without changing its raw factor", () => {
+    const statement = buildPairMatrixSeriesSnapshot(event({ id: 55, title: "FOMC Statement" }));
+    const speech = buildPairMatrixSeriesSnapshot(event({ id: 56, title: "FOMC Member Speech" }));
+    const pressConference = buildPairMatrixSeriesSnapshot(event({ id: 57, title: "FOMC Press Conference" }));
+    expect(statement.factor.id).toBe("other");
+    expect(speech.factor.id).toBe("other");
+    expect(getPairMatrixContextLayer(statement).id).toBe("policy");
+    expect(getPairMatrixContextLayer(speech).id).toBe("policy");
+    expect(getPairMatrixContextLayer(pressConference).id).toBe("policy");
   });
 
   it("groups only exact same-time releases and leaves single release packages identifiable", () => {
@@ -430,9 +476,11 @@ describe("Pair Matrix candle-range timeline", () => {
       event({ id: 4, currency: "USD", time: 940, title: "FOMC Member Speech" }),
     ]);
     const html = renderToStaticMarkup(createElement(ChartPairMatrixTimeLens, { data: renderData({ timeline: result }) }));
-    const lockedHtml = renderToStaticMarkup(createElement(ChartPairMatrixTimeLens, { data: renderData({ timeline: result, hasLockedRange: true, rangeBasisLabel: "Locked range" }) }));
+    const lockedHtml = renderToStaticMarkup(createElement(ChartPairMatrixTimeLens, { data: renderData({ timeline: result, hasLockedRange: true, rangeBasisLabel: "Locked range", rangeMoveLabel: "+55.0 pips" }) }));
     expect(html).toContain("Economic timeline");
     expect(html).toContain("Select range");
+    expect(lockedHtml).toContain('data-pair-matrix-range-move=""');
+    expect(lockedHtml).toContain("+55.0 pips");
     expect(html).toContain("> Cursor</button>");
     expect(html).toContain("return Pair Matrix to candle hover");
     expect(html).toContain("During this candle");
@@ -442,13 +490,14 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(html).toContain('aria-label="Group Pair Matrix timeline by"');
     expect(html).toContain('<option value="factor" selected="">Factor</option>');
     expect(html).toContain('<option value="release_time">Release time</option>');
-    expect(html).toContain('data-pair-matrix-group-parent="factor"');
+    expect(html).toContain('data-pair-matrix-group-parent="context"');
     expect(html).toContain('data-pair-matrix-group-side="base"');
     expect(html).toContain('data-pair-matrix-group-side="quote"');
     expect(html).not.toContain('data-pair-matrix-timeline-entry="base"');
-    expect(html).toContain("Other releases");
-    expect(html).toContain("During-candle economy: EUR Weakening");
-    expect(lockedHtml).toContain("During-range economy: EUR Weakening");
+    expect(html).toContain('data-pair-matrix-context-layer="policy"');
+    expect(html).toContain('data-pair-matrix-context-layer="other"');
+    expect(html).toContain("During-candle economic evidence: EUR Weakening");
+    expect(lockedHtml).toContain("During-range economic evidence: EUR Weakening");
     expect(html).toContain("USD Net 0");
     expect(html).toContain(">Economy</span>");
     expect(html).toContain(">Inflation</span>");
@@ -459,6 +508,11 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(html.match(/data-pair-matrix-summary-lane="economy"/g)).toHaveLength(2);
     expect(html.match(/data-pair-matrix-summary-lane="inflation"/g)).toHaveLength(2);
     expect(html.match(/data-pair-matrix-summary-lane="policy"/g)).toHaveLength(2);
+    const quoteSummary = html.slice(html.indexOf('data-pair-matrix-summary-side="quote"'));
+    expect(quoteSummary.indexOf('data-pair-matrix-summary-lane="policy"')).toBeLessThan(quoteSummary.indexOf('data-pair-matrix-summary-lane="inflation"'));
+    expect(quoteSummary.indexOf('data-pair-matrix-summary-lane="inflation"')).toBeLessThan(quoteSummary.indexOf('data-pair-matrix-summary-lane="economy"'));
+    expect(html).toContain('data-pair-matrix-result-availability="available"');
+    expect(html).toContain('data-pair-matrix-result-availability="unavailable"');
     expect(html).not.toContain("Known before");
     expect(html).toContain("Economy scoring help");
     expect(html).toContain("Inflation scoring help");
@@ -697,6 +751,13 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(html).toContain("Lower-is-better is inverted");
     expect(html).toContain("2↑ 1↓ = Improving");
     expect(html).toContain("Use Pair Matrix on the chart");
+    expect(html).toContain("Analyze an event candle");
+    expect(html).toContain("A broad range is valid");
+    expect(html).toContain("One candle isolates time-linked candidates");
+    expect(html).toContain("Economic evidence improving does not mean the currency must appreciate");
+    expect(html).toContain("cannot explain the earlier move");
+    expect(html).toContain("Marker attention uses broker impact only");
+    expect(html).toContain("violet-600");
     expect(html).toContain("Return to Cursor");
     expect(html).toContain("Group rows by Factor or Release time");
     expect(html).toContain("What gets scored?");

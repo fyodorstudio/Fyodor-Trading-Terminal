@@ -30,6 +30,7 @@ import {
   type PairMatrixTimelineSnapshot,
 } from "@/app/lib/pairMatrixSnapshot";
 import {
+  buildPairMatrixEconomyFactorGroups,
   buildPairMatrixTimelineGroups,
   getPairMatrixTimelineExpansionKey,
   isPairMatrixTimelineGroupExpandable,
@@ -49,6 +50,7 @@ export interface ChartPairMatrixTimeLensData {
   timeline: PairMatrixTimelineSnapshot;
   momentum: PairMatrixMomentumSnapshot;
   rangeLabel: string;
+  rangeMoveLabel: string | null;
   rangeBasisLabel: "Hovered candle" | "Latest candle" | "Locked range";
   rangeOpenTimeSeconds: number | null;
   loadState: PairMatrixLoadState;
@@ -159,15 +161,19 @@ function MetricValue({ value, audit, side, period, metric, activeAuditKey, onSel
 }) {
   const target = { side, period, metric, audit } satisfies PairMatrixActiveAudit;
   const targetKey = getPairMatrixAuditKey(target);
+  const available = audit.readingState !== "no_scored_data"
+    && audit.readingState !== "no_decision"
+    && audit.readingState !== "no_policy_data";
   return (
     <button
       type="button"
-      className={`block w-full min-w-0 appearance-none truncate border-0 bg-transparent p-0 text-[18px] font-black leading-[22px] tracking-normal text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-400 ${side === "quote" ? "text-right" : "text-left"}`}
+      className={`block w-full min-w-0 appearance-none truncate border-0 bg-transparent p-0 text-[18px] font-black leading-[22px] tracking-normal focus:outline-none focus:ring-1 focus:ring-blue-400 ${available ? "text-blue-900" : "text-slate-400"} ${side === "quote" ? "text-right" : "text-left"}`}
       aria-label={audit.accessibleText}
       aria-expanded={activeAuditKey === targetKey}
       aria-controls={`pair-matrix-audit-overlay-${side}`}
       data-pair-matrix-audit-trigger={targetKey}
       data-pair-matrix-audit-interaction="press"
+      data-pair-matrix-result-availability={available ? "available" : "unavailable"}
       onClick={() => onSelectAudit(target)}
     >
       {value}
@@ -264,16 +270,20 @@ function CurrencyMomentumHeader({
   activeAuditKey: string | null;
   onSelectAudit: (audit: PairMatrixActiveAudit) => void;
 }) {
+  const metricOrder = side === "base"
+    ? (["economy", "inflation", "policy"] as const)
+    : (["policy", "inflation", "economy"] as const);
+  const metricLabels = { economy: "Economy", inflation: "Inflation", policy: "Policy" } as const;
   const content = (
-    <div className="grid min-w-0 flex-1 grid-cols-[58px_1.2fr_1fr_1fr] items-stretch" data-pair-matrix-summary-lanes="separated">
+    <div className={`grid min-w-0 flex-1 items-stretch ${side === "base" ? "grid-cols-[58px_1.2fr_1fr_1fr]" : "grid-cols-[58px_1fr_1fr_1.2fr]"}`} data-pair-matrix-summary-lanes="separated" data-pair-matrix-summary-side={side}>
       <div className="grid min-w-0 grid-rows-[12px_24px_24px] items-center gap-y-1 pr-2">
         <span aria-hidden="true" />
         <span className={`truncate text-[10px] font-black uppercase tracking-[0.06em] text-blue-700 ${side === "quote" ? "text-right" : "text-left"}`}>During</span>
         <span className={`truncate text-[10px] font-black uppercase tracking-[0.06em] text-slate-500 ${side === "quote" ? "text-right" : "text-left"}`}>Before</span>
       </div>
-      <MomentumMetricLane label="Economy" metric="economy" during={during} before={background} currency={currency} side={side} divided={false} helpVisible={helpVisible} onRevealHelp={onRevealHelp} onHideHelp={onHideHelp} activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
-      <MomentumMetricLane label="Inflation" metric="inflation" during={during} before={background} currency={currency} side={side} divided helpVisible={helpVisible} onRevealHelp={onRevealHelp} onHideHelp={onHideHelp} activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
-      <MomentumMetricLane label="Policy" metric="policy" during={during} before={background} currency={currency} side={side} divided helpVisible={helpVisible} onRevealHelp={onRevealHelp} onHideHelp={onHideHelp} activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
+      {metricOrder.map((metric, index) => (
+        <MomentumMetricLane key={metric} label={metricLabels[metric]} metric={metric} during={during} before={background} currency={currency} side={side} divided={index > 0} helpVisible={helpVisible} onRevealHelp={onRevealHelp} onHideHelp={onHideHelp} activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
+      ))}
     </div>
   );
   return (
@@ -367,16 +377,16 @@ function formatGroupTime(time: number, data: ChartPairMatrixTimeLensData): strin
   return formatChartEventDisplayTime(time, data.displayTimeMode, data.sourceTimeOffsetSeconds);
 }
 
-function TimelineGroupParent({ group, side, expanded, data, onToggle }: { group: PairMatrixTimelineGroup; side: "base" | "quote"; expanded: boolean; data: ChartPairMatrixTimeLensData; onToggle: () => void }) {
+function TimelineGroupParent({ group, side, expanded, data, onToggle, nested = false }: { group: PairMatrixTimelineGroup; side: "base" | "quote"; expanded: boolean; data: ChartPairMatrixTimeLensData; onToggle: () => void; nested?: boolean }) {
   const times = group.entries.map((entry) => entry.event.time);
   const firstTime = Math.min(...times);
   const lastTime = Math.max(...times);
   const timeLabel = firstTime === lastTime ? formatGroupTime(firstTime, data) : `${formatGroupTime(firstTime, data)} → ${formatGroupTime(lastTime, data)}`;
-  const title = group.kind === "factor" ? group.factor.label : `${group.entries.length} releases`;
-  const detail = group.kind === "factor"
-    ? `${group.entries.length} ${group.entries.length === 1 ? "release" : "releases"}`
-    : group.factors.map((factor) => factor.label).join(" · ");
-  const help = group.kind === "factor" ? group.factor.helpText : `All ${group.entries.length} releases share this exact broker timestamp.`;
+  const title = group.kind === "context" ? group.layer.label : group.kind === "factor" ? group.factor.label : `${group.entries.length} releases`;
+  const detail = group.kind === "release_time"
+    ? group.factors.map((factor) => factor.label).join(" · ")
+    : `${group.entries.length} ${group.entries.length === 1 ? "release" : "releases"}`;
+  const help = group.kind === "context" ? group.layer.helpText : group.kind === "factor" ? group.factor.helpText : `All ${group.entries.length} releases share this exact broker timestamp.`;
   const identity = (
     <span className={`flex min-w-0 items-center gap-2 ${side === "quote" ? "flex-row-reverse text-right" : "text-left"}`}>
       {expanded ? <ChevronDown size={14} className="flex-none" /> : <ChevronRight size={14} className="flex-none" />}
@@ -388,7 +398,7 @@ function TimelineGroupParent({ group, side, expanded, data, onToggle }: { group:
   return (
     <button
       type="button"
-      className="grid min-h-[42px] w-full grid-cols-[minmax(0,1fr)_minmax(150px,auto)] items-center gap-3 border-b border-slate-200 bg-slate-50 px-3 text-left hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-300"
+      className={`grid min-h-[42px] w-full grid-cols-[minmax(0,1fr)_minmax(150px,auto)] items-center gap-3 border-b border-slate-200 px-3 text-left hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-300 ${nested ? "bg-white pl-6" : group.kind === "context" ? "bg-slate-100" : "bg-slate-50"}`}
       onClick={onToggle}
       aria-expanded={expanded}
       title={help}
@@ -421,6 +431,29 @@ function CurrencyTimeline({ timeline, side, mode, data, groupBy, expandedGroups,
     }
     const expansionKey = getPairMatrixTimelineExpansionKey({ section: mode, currency: timeline.currency, mode: groupBy, groupId: group.id });
     const expanded = expandedGroups.has(expansionKey);
+    if (group.kind === "context") {
+      const economyFactors = group.layer.id === "economy" ? buildPairMatrixEconomyFactorGroups(group.entries) : [];
+      return (
+        <div key={expansionKey} data-pair-matrix-group={expansionKey} data-pair-matrix-context-layer={group.layer.id}>
+          <TimelineGroupParent group={group} side={side} expanded={expanded} data={data} onToggle={() => onToggleGroup(expansionKey)} />
+          {expanded && group.layer.id !== "economy" ? group.entries.map((entry) => (
+            <PairMatrixTimelineEntry key={`${mode}:${entry.event.id}:${entry.event.time}:${entry.event.title}`} series={entry} side={side} mode={mode} data={data} hideFactor />
+          )) : null}
+          {expanded && group.layer.id === "economy" ? economyFactors.map((factorGroup) => {
+            const factorKey = getPairMatrixTimelineExpansionKey({ section: mode, currency: timeline.currency, mode: groupBy, groupId: `${group.id}:${factorGroup.id}` });
+            const factorExpanded = expandedGroups.has(factorKey);
+            return (
+              <div key={factorKey} data-pair-matrix-group={factorKey} data-pair-matrix-economy-factor={factorGroup.id}>
+                <TimelineGroupParent group={factorGroup} side={side} expanded={factorExpanded} data={data} nested onToggle={() => onToggleGroup(factorKey)} />
+                {factorExpanded ? factorGroup.entries.map((entry) => (
+                  <PairMatrixTimelineEntry key={`${mode}:${entry.event.id}:${entry.event.time}:${entry.event.title}`} series={entry} side={side} mode={mode} data={data} hideFactor />
+                )) : null}
+              </div>
+            );
+          }) : null}
+        </div>
+      );
+    }
     return (
       <div key={expansionKey} data-pair-matrix-group={expansionKey}>
         <TimelineGroupParent group={group} side={side} expanded={expanded} data={data} onToggle={() => onToggleGroup(expansionKey)} />
@@ -528,7 +561,10 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
           </div>
         </div>
         <div className="ml-auto min-w-0 text-right">
-          <strong className="block overflow-hidden text-ellipsis whitespace-nowrap text-[12px] font-black text-slate-800">{data.rangeLabel}</strong>
+          <strong className="flex min-w-0 items-center justify-end gap-2 whitespace-nowrap text-[12px] font-black text-slate-800">
+            {data.rangeMoveLabel ? <span className="flex-none border-r border-slate-300 pr-2 font-mono text-blue-700" data-pair-matrix-range-move="">{data.rangeMoveLabel}</span> : null}
+            <span className="min-w-0 overflow-hidden text-ellipsis">{data.rangeLabel}</span>
+          </strong>
           <span className="block text-[10px] font-bold text-slate-500">{data.rangeBasisLabel}</span>
         </div>
         <button className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100" type="button" onClick={data.onClose} aria-label="Close Pair Matrix Time Lens"><X size={15} /></button>
@@ -556,7 +592,7 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
               }}
             >
               <div className="h-[18px] border-b border-slate-200 text-center text-[11px] font-black leading-[18px] tracking-[0.04em] text-slate-700" title="The pair headline uses During Economy factor votes only; inflation and policy remain separate.">
-                During-{data.hasLockedRange ? "range" : "candle"} economy: {baseCurrency} {ECONOMY_HEADLINE_LABELS[baseDuring.economy.state]} <span className="mx-1 text-slate-400">|</span> {quoteCurrency} {ECONOMY_HEADLINE_LABELS[quoteDuring.economy.state]}
+                During-{data.hasLockedRange ? "range" : "candle"} economic evidence: {baseCurrency} {ECONOMY_HEADLINE_LABELS[baseDuring.economy.state]} <span className="mx-1 text-slate-400">|</span> {quoteCurrency} {ECONOMY_HEADLINE_LABELS[quoteDuring.economy.state]}
               </div>
               <div className="grid min-w-0 grid-cols-2 divide-x divide-slate-300">
                 <CurrencyMomentumHeader currency={baseCurrency} countryCode={baseCountryCode} during={baseDuring} background={baseBackground} side="base" helpVisible={metricHelpVisible} onRevealHelp={() => setMetricHelpVisible(true)} onHideHelp={() => setMetricHelpVisible(false)} activeAuditKey={activeAudit ? getPairMatrixAuditKey(activeAudit) : null} onSelectAudit={selectAudit} />
