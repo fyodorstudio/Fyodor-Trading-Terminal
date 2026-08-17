@@ -154,11 +154,16 @@
 .pair-matrix-context-marker-status.is-error { border-color: rgba(248, 113, 113, 0.55); color: #fecaca; }
 .pair-matrix-context-marker { position: absolute; inset-block: 0; width: 36px; transform: translateX(-50%); pointer-events: none; }
 .pair-matrix-context-marker-button { position: absolute; left: 50%; bottom: var(--marker-bottom); display: grid; width: 32px; height: 28px; place-items: center; padding: 0; border: 0; border-radius: 999px; background: transparent; pointer-events: auto; cursor: pointer; transform: translateX(-50%); }
+.pair-matrix-context-marker-button:focus-visible { outline: 2px solid rgba(37, 99, 235, 0.58); outline-offset: 1px; }
 .pair-matrix-context-marker-dot { display: block; width: 10px; height: 10px; border: 2px solid #fff; border-radius: 999px; background: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.42), 0 5px 13px rgba(15, 23, 42, 0.24); }
 .pair-matrix-context-marker.impact-high .pair-matrix-context-marker-dot { background: #ef4444; box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.46), 0 5px 13px rgba(15, 23, 42, 0.24); }
 .pair-matrix-context-marker.impact-low .pair-matrix-context-marker-dot { background: #64748b; box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.38), 0 5px 13px rgba(15, 23, 42, 0.22); }
 .pair-matrix-context-marker.position-during .pair-matrix-context-marker-dot { width: 12px; height: 12px; }
+.pair-matrix-context-marker.is-cluster .pair-matrix-context-marker-button { width: 40px; }
+.pair-matrix-context-marker.is-cluster .pair-matrix-context-marker-dot,
+.pair-matrix-context-marker.is-cluster.position-during .pair-matrix-context-marker-dot { width: 22px; height: 10px; border-radius: 5px; background-image: radial-gradient(circle at 4px 50%, rgba(255, 255, 255, 0.95) 0 1px, transparent 1.5px), radial-gradient(circle at 11px 50%, rgba(255, 255, 255, 0.95) 0 1px, transparent 1.5px), radial-gradient(circle at 18px 50%, rgba(255, 255, 255, 0.95) 0 1px, transparent 1.5px); }
 .pair-matrix-context-marker-button > small { position: absolute; left: calc(50% + 7px); top: -1px; min-width: 14px; padding: 0 3px; border-radius: 999px; background: #0f172a; color: #fff; font-size: 8px; font-weight: 900; line-height: 14px; }
+.pair-matrix-context-marker.is-cluster .pair-matrix-context-marker-button > small { left: calc(50% + 9px); }
 .pair-matrix-context-markers.is-passive .pair-matrix-context-marker-button { pointer-events: none; }
 .pair-matrix-context-markers.is-passive .pair-matrix-context-marker-dot { opacity: 0.78; }
 .pair-matrix-context-marker-popover { position: absolute; left: 50%; bottom: calc(var(--marker-bottom) + 34px); display: flex; width: min(410px, calc(100vw - 48px)); max-height: min(430px, calc(100vh - 190px)); flex-direction: column; overflow: hidden; border: 1px solid #334155; border-radius: 10px; background: #020617; color: #e2e8f0; box-shadow: 0 18px 38px rgba(15, 23, 42, 0.3); transform: translateX(-50%); pointer-events: auto; }

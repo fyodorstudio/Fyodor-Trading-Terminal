@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ChartSettingsDrawer } from "@/app/components/ChartSettingsDrawer";
-import { ChartPairMatrixContextMarkers } from "@/app/components/ChartPairMatrixContextMarkers";
+import { ChartPairMatrixContextMarkers, clusterPairMatrixMarkerViews } from "@/app/components/ChartPairMatrixContextMarkers";
 import { ChartPairMatrixRangeOverlay, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
 import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
@@ -200,6 +200,21 @@ describe("getChartConnectionLabel", () => {
     expect(markers).toContain('data-pair-matrix-context-markers=""');
     expect(markers).toContain("1 Pair Matrix release in this candle");
     expect(markers).toContain("impact-high");
+  });
+
+  it("collapses visually crowded Pair Matrix markers without losing their releases", () => {
+    const factor = { id: "inflation" as const, label: "Inflation", helpText: "", includeAny: [] };
+    const first = { id: 1, time: 110, currency: "EUR", countryCode: "EU", title: "CPI y/y", impact: "high" as const, actual: "2.5", forecast: "2.4", previous: "2.3" };
+    const second = { id: 2, time: 210, currency: "USD", countryCode: "US", title: "Core CPI y/y", impact: "medium" as const, actual: "2.7", forecast: "2.6", previous: "2.5" };
+    const clustered = clusterPairMatrixMarkerViews([
+      { key: "first", candleOpen: 100, impact: "high", position: "during", x: 101, placement: "center", events: [first], families: [{ factor, events: [first] }] },
+      { key: "second", candleOpen: 200, impact: "medium", position: "during", x: 120, placement: "center", events: [second], families: [{ factor, events: [second] }] },
+    ]);
+
+    expect(clustered).toHaveLength(1);
+    expect(clustered[0]).toMatchObject({ candleCount: 2, impact: "high" });
+    expect(clustered[0].events.map((event) => event.title)).toEqual(["CPI y/y", "Core CPI y/y"]);
+    expect(clustered[0].families[0].events).toHaveLength(2);
   });
 
   it("renders event overlay controls inside the chart settings drawer", () => {
