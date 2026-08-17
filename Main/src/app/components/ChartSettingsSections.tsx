@@ -32,6 +32,7 @@ export const CHART_EVENT_IMPACT_OPTIONS: Array<{
 
 const EVENT_MARKER_LIMIT_OPTIONS = [40, 80, 120, 200, 300];
 const FUTURE_MARKER_LIMIT_OPTIONS = [0, 4, 8, 12, 20, 40];
+const PAIR_MATRIX_CONTEXT_MARKER_OPTIONS = [0, 4, 8, 12, 16];
 
 export interface ChartCacheDrawerData {
   selectedSymbol: string;
@@ -313,6 +314,19 @@ export function ChartEventSettings({
             onChange={(event) => onEventOverlayChange("futureMarkerLimit", Number(event.target.value))}
           >
             {FUTURE_MARKER_LIMIT_OPTIONS.map((limit) => (
+              <option key={limit} value={limit}>
+                {limit}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="chart-settings-row">
+          <span>Pair Matrix markers / side</span>
+          <select
+            value={eventOverlay.pairMatrixContextMarkersPerSide}
+            onChange={(event) => onEventOverlayChange("pairMatrixContextMarkersPerSide", Number(event.target.value))}
+          >
+            {PAIR_MATRIX_CONTEXT_MARKER_OPTIONS.map((limit) => (
               <option key={limit} value={limit}>
                 {limit}
               </option>

@@ -12,7 +12,7 @@ import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/Char
 import { ChartStatusRail } from "@/app/components/ChartStatusRail";
 import { ChartSymbolPicker } from "@/app/components/ChartSymbolPicker";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
-import { ChartViewport, type ChartCrosshairReadout, type ChartEventLensDockData, type ChartPairMatrixRangeOverlayData, type PairMatrixRangePreview } from "@/app/components/ChartViewport";
+import { ChartViewport, type ChartCrosshairReadout, type ChartEventLensDockData, type ChartPairMatrixContextMarkerData, type ChartPairMatrixRangeOverlayData, type PairMatrixRangePreview } from "@/app/components/ChartViewport";
 import type { ChartPairMatrixTimeLensData, PairMatrixLoadState } from "@/app/components/ChartPairMatrixTimeLens";
 import type { ChartEventLensData, ChartEventReleaseRow } from "@/app/components/ChartEventLens";
 import { useChartEventOverlay } from "@/app/hooks/useChartEventOverlay";
@@ -59,7 +59,8 @@ import {
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
 import { getEventComparison } from "@/app/lib/eventReaction";
 import { buildMacroFactorRows } from "@/app/lib/macroDrivers";
-import { buildPairMatrixMomentumSnapshot, groupPairMatrixReleaseRailByCandle } from "@/app/lib/pairMatrixMomentum";
+import { buildPairMatrixMomentumSnapshot } from "@/app/lib/pairMatrixMomentum";
+import { buildPairMatrixContextMarkerGroups } from "@/app/lib/pairMatrixContextMarkers";
 import {
   buildPairMatrixTimeline,
   calendarEventsCoverWindow,
@@ -205,6 +206,8 @@ export function ChartsTab({
     state: PairMatrixLoadState;
     events: CalendarEvent[];
   }>({ key: null, state: "idle", events: [] });
+  const [pairMatrixMarkerCalendarEvents, setPairMatrixMarkerCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [pairMatrixMarkerCalendarState, setPairMatrixMarkerCalendarState] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [chartRangeRevision, setChartRangeRevision] = useState(0);
   const [chartLayoutRevision, setChartLayoutRevision] = useState(0);
   const [chartInteracting, setChartInteracting] = useState(false);
@@ -228,6 +231,7 @@ export function ChartsTab({
   const pairMatrixCalendarCacheRef = useRef(new Map<string, PairMatrixCalendarCacheEntry>());
   const pairMatrixCalendarPendingRef = useRef(new Map<string, Promise<CalendarEvent[]>>());
   const pairMatrixCalendarRequestRef = useRef(0);
+  const pairMatrixMarkerCalendarRequestRef = useRef(0);
 
   const addLog = useCallback((line: string) => {
     setDebugLines((current) => {
@@ -862,9 +866,29 @@ export function ChartsTab({
       : getPairMatrixTimelineWindow(pairMatrixRangeOpenCalendarTime, pairMatrixRangeCloseCalendarTime, pairMatrixBeforeDays),
     [pairMatrixRangeOpenCalendarTime, pairMatrixRangeCloseCalendarTime, pairMatrixBeforeDays],
   );
+  const pairMatrixMarkerWindow = useMemo(() => {
+    if (!pairMatrixOpen || pairMatrixCandleTimes.length === 0) return null;
+    const chart = chartRef.current;
+    const visibleRange = chart?.timeScale().getVisibleRange();
+    const firstCandle = pairMatrixCandleTimes[0];
+    const lastCandle = pairMatrixCandleTimes[pairMatrixCandleTimes.length - 1];
+    const visibleFrom = typeof visibleRange?.from === "number" ? visibleRange.from : pairMatrixRange?.firstOpen ?? firstCandle;
+    const visibleTo = typeof visibleRange?.to === "number" ? visibleRange.to : pairMatrixRange?.close ?? getPairMatrixCandleClose(lastCandle, timeframe);
+    const fromChart = Math.max(firstCandle, visibleFrom);
+    const toChart = Math.min(getPairMatrixCandleClose(lastCandle, timeframe), visibleTo);
+    if (toChart < fromChart) return null;
+    const day = 24 * 60 * 60;
+    return {
+      from: Math.floor((fromChart - chartSourceTimeOffsetSeconds) / day) * day,
+      to: Math.ceil((toChart - chartSourceTimeOffsetSeconds) / day) * day,
+    };
+  }, [pairMatrixOpen, pairMatrixCandleTimes, pairMatrixRange, timeframe, chartSourceTimeOffsetSeconds, chartRangeRevision, chartLayoutRevision]);
   const pairMatrixCurrencyKey = pairMatrixCurrencies?.join("|") ?? "unsupported";
   const pairMatrixCalendarKey = pairMatrixWindow
     ? `${pairMatrixCurrencyKey}:${pairMatrixWindow.from}:${pairMatrixWindow.to}`
+    : null;
+  const pairMatrixMarkerCalendarKey = pairMatrixMarkerWindow
+    ? `markers:${pairMatrixCurrencyKey}:${pairMatrixMarkerWindow.from}:${pairMatrixMarkerWindow.to}`
     : null;
 
   useEffect(() => {
@@ -959,6 +983,66 @@ export function ChartsTab({
     pairMatrixCalendarKey,
     events,
   ]);
+
+  useEffect(() => {
+    const requestId = ++pairMatrixMarkerCalendarRequestRef.current;
+    if (!pairMatrixOpen || !pairMatrixCurrencies || !pairMatrixMarkerWindow || !pairMatrixMarkerCalendarKey) {
+      setPairMatrixMarkerCalendarEvents([]);
+      setPairMatrixMarkerCalendarState("idle");
+      return;
+    }
+    const relevantCurrentEvents = events.filter((event) => pairMatrixCurrencies.includes(event.currency));
+    const overlappingEntries = [...pairMatrixCalendarCacheRef.current.values()].filter(
+      (entry) => entry.currencyKey === pairMatrixCurrencyKey && entry.from <= pairMatrixMarkerWindow.to && entry.to >= pairMatrixMarkerWindow.from,
+    );
+    const baseline = mergePairMatrixCalendarEvents(relevantCurrentEvents, ...overlappingEntries.map((entry) => entry.events));
+    const coveringCached = overlappingEntries.find((entry) => entry.from <= pairMatrixMarkerWindow.from && entry.to >= pairMatrixMarkerWindow.to);
+    if (calendarEventsCoverWindow(events, pairMatrixMarkerWindow.from, pairMatrixMarkerWindow.to) || coveringCached) {
+      setPairMatrixMarkerCalendarEvents(coveringCached ? mergePairMatrixCalendarEvents(baseline, coveringCached.events) : baseline);
+      setPairMatrixMarkerCalendarState("ready");
+      return;
+    }
+
+    setPairMatrixMarkerCalendarEvents(baseline);
+    setPairMatrixMarkerCalendarState("loading");
+    const timeoutId = window.setTimeout(() => {
+      const countries = pairMatrixCurrencies
+        .map((currency) => CURRENCY_TO_COUNTRY_CODE[currency as keyof typeof CURRENCY_TO_COUNTRY_CODE])
+        .filter((country): country is string => Boolean(country));
+      let pendingRequest = pairMatrixCalendarPendingRef.current.get(pairMatrixMarkerCalendarKey);
+      if (!pendingRequest) {
+        pendingRequest = fetchCalendar({ from: pairMatrixMarkerWindow.from, to: pairMatrixMarkerWindow.to, impacts: ["low", "medium", "high"], countries });
+        pairMatrixCalendarPendingRef.current.set(pairMatrixMarkerCalendarKey, pendingRequest);
+        void pendingRequest.finally(() => {
+          if (pairMatrixCalendarPendingRef.current.get(pairMatrixMarkerCalendarKey) === pendingRequest) pairMatrixCalendarPendingRef.current.delete(pairMatrixMarkerCalendarKey);
+        }).catch(() => undefined);
+      }
+      void pendingRequest.then((loadedEvents) => {
+        if (pairMatrixMarkerCalendarRequestRef.current !== requestId) return;
+        const relevantLoaded = loadedEvents.filter((event) => pairMatrixCurrencies.includes(event.currency));
+        const merged = mergePairMatrixCalendarEvents(baseline, relevantLoaded);
+        pairMatrixCalendarCacheRef.current.set(pairMatrixMarkerCalendarKey, {
+          currencyKey: pairMatrixCurrencyKey,
+          from: pairMatrixMarkerWindow.from,
+          to: pairMatrixMarkerWindow.to,
+          events: merged,
+        });
+        while (pairMatrixCalendarCacheRef.current.size > PAIR_MATRIX_HISTORY_CACHE_LIMIT) {
+          const oldestKey = pairMatrixCalendarCacheRef.current.keys().next().value as string | undefined;
+          if (!oldestKey) break;
+          pairMatrixCalendarCacheRef.current.delete(oldestKey);
+        }
+        setPairMatrixMarkerCalendarEvents(merged);
+        setPairMatrixMarkerCalendarState("ready");
+      }).catch(() => {
+        if (pairMatrixMarkerCalendarRequestRef.current === requestId) {
+          setPairMatrixMarkerCalendarEvents(baseline);
+          setPairMatrixMarkerCalendarState("error");
+        }
+      });
+    }, PAIR_MATRIX_HISTORY_DEBOUNCE_MS);
+    return () => window.clearTimeout(timeoutId);
+  }, [pairMatrixOpen, pairMatrixCurrencies, pairMatrixCurrencyKey, pairMatrixMarkerWindow?.from, pairMatrixMarkerWindow?.to, pairMatrixMarkerCalendarKey, events]);
 
   const pairMatrixLoadState: PairMatrixLoadState =
     !pairMatrixCurrencies || pairMatrixRangeOpenCalendarTime == null
@@ -1108,25 +1192,25 @@ export function ChartsTab({
     () => pairMatrixLockedRange ? buildPairMatrixRangePreview(pairMatrixLockedRange, pairMatrixLockedRange.firstOpen)?.bounds ?? null : null,
     [pairMatrixLockedRange, buildPairMatrixRangePreview, chartRangeRevision, chartLayoutRevision, pairMatrixCandleTimes],
   );
-  const pairMatrixReleaseRailGroups = useMemo(
-    () => pairMatrixLockedRange
-      ? groupPairMatrixReleaseRailByCandle({
-          momentum: pairMatrixMomentum,
-          candleTimes: pairMatrixCandleTimes,
-          timeframe,
-          sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
-        })
-      : [],
-    [pairMatrixLockedRange, pairMatrixMomentum, pairMatrixCandleTimes, timeframe, chartSourceTimeOffsetSeconds],
-  );
-  const pairMatrixReleaseRail = useMemo(() => {
+  const pairMatrixContextMarkerGroups = useMemo(() => buildPairMatrixContextMarkerGroups({
+    events: mergePairMatrixCalendarEvents(events, pairMatrixCalendarResult.events, pairMatrixMarkerCalendarEvents),
+    currencies: pairMatrixCurrencies ?? [],
+    candleTimes: pairMatrixCandleTimes,
+    timeframe,
+    sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
+    range: pairMatrixRange,
+    contextPerSide: chartPreferences.eventOverlay.pairMatrixContextMarkersPerSide,
+  }), [events, pairMatrixCalendarResult.events, pairMatrixMarkerCalendarEvents, pairMatrixCurrencies, pairMatrixCandleTimes, timeframe, chartSourceTimeOffsetSeconds, pairMatrixRange, chartPreferences.eventOverlay.pairMatrixContextMarkersPerSide]);
+  const pairMatrixContextMarkerViews = useMemo(() => {
     const chart = chartRef.current;
-    if (!chart || !pairMatrixLockedBounds) return [];
-    return pairMatrixReleaseRailGroups.flatMap((group) => {
+    const width = containerRef.current?.clientWidth ?? 0;
+    if (!chart || width <= 0) return [];
+    return pairMatrixContextMarkerGroups.flatMap((group) => {
       const x = chart.timeScale().timeToCoordinate(group.candleOpen as Time);
-      return x == null || x < pairMatrixLockedBounds.left || x > pairMatrixLockedBounds.right ? [] : [{ ...group, x }];
+      if (x == null || x < -18 || x > width + 18) return [];
+      return [{ ...group, x, placement: x < 220 ? "right" as const : x > width - 220 ? "left" as const : "center" as const }];
     });
-  }, [pairMatrixReleaseRailGroups, pairMatrixLockedBounds, chartRangeRevision, chartLayoutRevision]);
+  }, [pairMatrixContextMarkerGroups, chartRangeRevision, chartLayoutRevision]);
   const pairMatrixSelectionOriginRange = pairMatrixLockedRange ?? pairMatrixFallbackRange;
 
   const pairMatrixRangeOverlay = useMemo<ChartPairMatrixRangeOverlayData>(() => {
@@ -1134,7 +1218,6 @@ export function ChartsTab({
       armed: pairMatrixOpen && pairMatrixRangeArmed,
       cancelRevision: pairMatrixRangeCancelRevision,
       lockedBounds: pairMatrixOpen ? pairMatrixLockedBounds : null,
-      releaseRail: pairMatrixOpen ? pairMatrixReleaseRail : [],
       startPreview: (x, edge) => {
         const target = resolvePairMatrixCandleAtX(x);
         if (!target) return null;
@@ -1158,7 +1241,7 @@ export function ChartsTab({
       },
       onInteractionChange: setPairMatrixRangeEditing,
     };
-  }, [pairMatrixOpen, pairMatrixRangeArmed, pairMatrixRangeCancelRevision, pairMatrixLockedBounds, pairMatrixReleaseRail, pairMatrixSelectionOriginRange, resolvePairMatrixCandleAtX, resolvePairMatrixPreviewAtX]);
+  }, [pairMatrixOpen, pairMatrixRangeArmed, pairMatrixRangeCancelRevision, pairMatrixLockedBounds, pairMatrixSelectionOriginRange, resolvePairMatrixCandleAtX, resolvePairMatrixPreviewAtX]);
 
   const selectChartEvent = useCallback(
     (event: CalendarEvent, cluster: ChartEventOverlayCluster | null = null) => {
@@ -1196,6 +1279,15 @@ export function ChartsTab({
     },
     [chartEventOverlay.clusters, selectChartEvent],
   );
+
+  const pairMatrixContextMarkerData = useMemo<ChartPairMatrixContextMarkerData>(() => ({
+    markers: pairMatrixContextMarkerViews,
+    passive: pairMatrixRangeArmed || pairMatrixRangeEditing,
+    displayTimeMode,
+    sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
+    loadState: pairMatrixMarkerCalendarState,
+    onSelectEvent: (event) => selectChartEvent(event, null),
+  }), [pairMatrixContextMarkerViews, pairMatrixRangeArmed, pairMatrixRangeEditing, displayTimeMode, chartSourceTimeOffsetSeconds, pairMatrixMarkerCalendarState, selectChartEvent]);
 
   useEffect(() => {
     closeEventLens();
@@ -1460,6 +1552,7 @@ export function ChartsTab({
         eventLensDock={eventLensDockData}
         pairMatrixTimeLens={pairMatrixTimeLensData}
         pairMatrixRangeOverlay={pairMatrixRangeOverlay}
+        pairMatrixContextMarkers={pairMatrixContextMarkerData}
         crosshairReadout={crosshairReadout}
         status={status}
         overlayCopy={overlayCopy}

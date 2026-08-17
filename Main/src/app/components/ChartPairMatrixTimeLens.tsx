@@ -195,6 +195,47 @@ function metricAudit(read: PairMatrixCurrencyMomentumRead, metric: "economy" | "
   };
 }
 
+function MomentumMetricLane({
+  label,
+  metric,
+  during,
+  before,
+  currency,
+  side,
+  divided,
+  helpVisible,
+  onRevealHelp,
+  onHideHelp,
+  activeAuditKey,
+  onSelectAudit,
+}: {
+  label: string;
+  metric: "economy" | "inflation" | "policy";
+  during: PairMatrixCurrencyMomentumRead;
+  before: PairMatrixCurrencyMomentumRead;
+  currency: string;
+  side: "base" | "quote";
+  divided: boolean;
+  helpVisible: boolean;
+  onRevealHelp: () => void;
+  onHideHelp: () => void;
+  activeAuditKey: string | null;
+  onSelectAudit: (audit: PairMatrixActiveAudit) => void;
+}) {
+  const display = (read: PairMatrixCurrencyMomentumRead) => metric === "economy"
+    ? formatEconomyRead(read)
+    : metric === "inflation"
+      ? formatInflationRead(read)
+      : POLICY_LABELS[read.policy.state];
+  return (
+    <div className={`grid min-w-0 grid-rows-[12px_24px_24px] items-center gap-y-1 px-2 ${divided ? "border-l border-slate-300" : ""}`} data-pair-matrix-summary-lane={metric}>
+      <MetricHeading label={label} help={METRIC_HELP[metric]} side={side} helpVisible={helpVisible} onRevealHelp={onRevealHelp} onHideHelp={onHideHelp} />
+      <MetricValue value={display(during)} audit={metricAudit(during, metric, `${currency} During`)} side={side} period="during" metric={metric} activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
+      <MetricValue value={display(before)} audit={metricAudit(before, metric, `${currency} Before`)} side={side} period="before" metric={metric} activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
+    </div>
+  );
+}
+
 function CurrencyMomentumHeader({
   currency,
   countryCode,
@@ -219,19 +260,15 @@ function CurrencyMomentumHeader({
   onSelectAudit: (audit: PairMatrixActiveAudit) => void;
 }) {
   const content = (
-    <div className="grid min-w-0 flex-1 grid-cols-[72px_1.2fr_1fr_1fr] grid-rows-[12px_24px_24px] items-center gap-x-2 gap-y-1">
-      <span aria-hidden="true" />
-      <MetricHeading label="Economy" help={METRIC_HELP.economy} side={side} helpVisible={helpVisible} onRevealHelp={onRevealHelp} onHideHelp={onHideHelp} />
-      <MetricHeading label="Inflation" help={METRIC_HELP.inflation} side={side} helpVisible={helpVisible} onRevealHelp={onRevealHelp} onHideHelp={onHideHelp} />
-      <MetricHeading label="Policy" help={METRIC_HELP.policy} side={side} helpVisible={helpVisible} onRevealHelp={onRevealHelp} onHideHelp={onHideHelp} />
-      <span className={`truncate text-[10px] font-black uppercase tracking-[0.06em] text-blue-700 ${side === "quote" ? "text-right" : "text-left"}`}>During</span>
-      <MetricValue value={formatEconomyRead(during)} audit={metricAudit(during, "economy", `${currency} During`)} side={side} period="during" metric="economy" activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
-      <MetricValue value={formatInflationRead(during)} audit={metricAudit(during, "inflation", `${currency} During`)} side={side} period="during" metric="inflation" activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
-      <MetricValue value={POLICY_LABELS[during.policy.state]} audit={metricAudit(during, "policy", `${currency} During`)} side={side} period="during" metric="policy" activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
-      <span className={`truncate text-[10px] font-black uppercase tracking-[0.06em] text-slate-500 ${side === "quote" ? "text-right" : "text-left"}`}>Known before</span>
-      <MetricValue value={formatEconomyRead(background)} audit={metricAudit(background, "economy", `${currency} Known before`)} side={side} period="before" metric="economy" activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
-      <MetricValue value={formatInflationRead(background)} audit={metricAudit(background, "inflation", `${currency} Known before`)} side={side} period="before" metric="inflation" activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
-      <MetricValue value={POLICY_LABELS[background.policy.state]} audit={metricAudit(background, "policy", `${currency} Known before`)} side={side} period="before" metric="policy" activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
+    <div className="grid min-w-0 flex-1 grid-cols-[58px_1.2fr_1fr_1fr] items-stretch" data-pair-matrix-summary-lanes="separated">
+      <div className="grid min-w-0 grid-rows-[12px_24px_24px] items-center gap-y-1 pr-2">
+        <span aria-hidden="true" />
+        <span className={`truncate text-[10px] font-black uppercase tracking-[0.06em] text-blue-700 ${side === "quote" ? "text-right" : "text-left"}`}>During</span>
+        <span className={`truncate text-[10px] font-black uppercase tracking-[0.06em] text-slate-500 ${side === "quote" ? "text-right" : "text-left"}`}>Before</span>
+      </div>
+      <MomentumMetricLane label="Economy" metric="economy" during={during} before={background} currency={currency} side={side} divided={false} helpVisible={helpVisible} onRevealHelp={onRevealHelp} onHideHelp={onHideHelp} activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
+      <MomentumMetricLane label="Inflation" metric="inflation" during={during} before={background} currency={currency} side={side} divided helpVisible={helpVisible} onRevealHelp={onRevealHelp} onHideHelp={onHideHelp} activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
+      <MomentumMetricLane label="Policy" metric="policy" during={during} before={background} currency={currency} side={side} divided helpVisible={helpVisible} onRevealHelp={onRevealHelp} onHideHelp={onHideHelp} activeAuditKey={activeAuditKey} onSelectAudit={onSelectAudit} />
     </div>
   );
   return (
@@ -291,7 +328,7 @@ export function PairMatrixTimelineEntry({
   const time = (
     <time
       className={`block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-mono text-[12px] font-bold text-slate-500 ${side === "base" ? "text-right" : "text-left"}`}
-      title={`${series.event.title}. ${mode === "during" ? "Released during the selected candle range" : "Latest loaded release of this exact series known before the range"}${secondaryTime ? `; ${secondaryTime}` : ""}.`}
+      title={`${series.event.title}. ${mode === "during" ? "Released during the selected candle range" : "Latest loaded release of this exact series before the range"}${secondaryTime ? `; ${secondaryTime}` : ""}.`}
     >
       {formatChartEventDisplayTime(series.event.time, data.displayTimeMode, data.sourceTimeOffsetSeconds)}
       {secondaryTime ? ` · ${secondaryTime}` : ""}
@@ -526,12 +563,12 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
             <div className="border-b border-blue-200 bg-blue-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.08em] text-blue-800">During this {data.hasLockedRange ? "selected range" : "candle"}</div>
             <TimelineSection mode="during" data={data} groupBy={groupBy} expandedGroups={expandedGroups} onToggleGroup={toggleTimelineGroup} />
             <div className="sticky top-[98px] z-[2] flex items-center justify-between gap-4 border-y-2 border-slate-400 bg-slate-100 px-3 py-1.5">
-              <strong className="text-[10px] font-black uppercase tracking-[0.08em] text-slate-700">Known before {data.hasLockedRange ? "range" : "candle"}</strong>
+              <strong className="text-[10px] font-black uppercase tracking-[0.08em] text-slate-700">Before {data.hasLockedRange ? "range" : "candle"}</strong>
               <label className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-600">
                 Lookback
                 <input
                   className="h-6 w-16 rounded border border-slate-300 bg-white px-2 text-right font-mono text-[11px] font-black text-slate-800"
-                  aria-label="Known before range lookback days"
+                  aria-label="Before range lookback days"
                   inputMode="numeric"
                   min={1}
                   max={PAIR_MATRIX_BEFORE_MAX_DAYS}

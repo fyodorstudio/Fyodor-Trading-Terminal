@@ -3,8 +3,10 @@ import { AlertTriangle, CalendarDays, ChevronDown, Settings2, Table2 } from "luc
 import { AnimatePresence, motion } from "framer-motion";
 import { ChartEventLens, type ChartEventLensData } from "@/app/components/ChartEventLens";
 import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
+import { ChartPairMatrixContextMarkers, type PairMatrixContextMarkerView } from "@/app/components/ChartPairMatrixContextMarkers";
 import { ChartPairMatrixTimeLens, type ChartPairMatrixTimeLensData } from "@/app/components/ChartPairMatrixTimeLens";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
+import type { ChartDisplayTimeMode } from "@/app/lib/chartView";
 import type { PairMatrixCandleRange, PairMatrixRangePixelBounds } from "@/app/lib/pairMatrixSnapshot";
 import type { BridgeStatus, CalendarEvent } from "@/app/types";
 
@@ -41,12 +43,20 @@ export type ChartPairMatrixRangeOverlayData = {
   armed: boolean;
   cancelRevision: number;
   lockedBounds: PairMatrixRangePixelBounds | null;
-  releaseRail: Array<{ x: number; count: number; titles: string[]; currencies: string[] }>;
   startPreview: (x: number, edge: "new" | "start" | "end") => PairMatrixRangePreview | null;
   updatePreview: (x: number, originTime: number) => PairMatrixRangePreview | null;
   onCommit: (range: PairMatrixCandleRange) => void;
   onCancel: () => void;
   onInteractionChange: (active: boolean) => void;
+};
+
+export type ChartPairMatrixContextMarkerData = {
+  markers: PairMatrixContextMarkerView[];
+  passive: boolean;
+  displayTimeMode: ChartDisplayTimeMode;
+  sourceTimeOffsetSeconds: number;
+  loadState: "idle" | "loading" | "ready" | "error";
+  onSelectEvent: (event: CalendarEvent) => void;
 };
 
 export type PairMatrixRangePreview = {
@@ -74,6 +84,7 @@ interface ChartViewportProps {
   eventLensDock: ChartEventLensDockData;
   pairMatrixTimeLens: ChartPairMatrixTimeLensData;
   pairMatrixRangeOverlay: ChartPairMatrixRangeOverlayData;
+  pairMatrixContextMarkers: ChartPairMatrixContextMarkerData;
   crosshairReadout: ChartCrosshairReadout | null;
   status: BridgeStatus;
   overlayCopy: {
@@ -96,6 +107,7 @@ export function ChartViewport({
   eventLensDock,
   pairMatrixTimeLens,
   pairMatrixRangeOverlay,
+  pairMatrixContextMarkers,
   crosshairReadout,
   status,
   overlayCopy,
@@ -108,7 +120,7 @@ export function ChartViewport({
           <div className={`chart-canvas-frame ${pairMatrixTimeLens.open ? "has-pair-matrix-bottom" : ""}`}>
             <div className="chart-plot-region">
               <div ref={containerRef} className="h-full w-full" />
-              <ChartEventOverlay
+              {!pairMatrixTimeLens.open ? <ChartEventOverlay
                 clusters={clusters}
                 isCapped={eventOverlay.isCapped}
                 renderedEventCount={eventOverlay.renderedEventCount}
@@ -119,8 +131,9 @@ export function ChartViewport({
                 onHoverCluster={onHoverCluster}
                 onSelectCluster={onSelectCluster}
                 onSelectEvent={onSelectEvent}
-              />
+              /> : null}
               <ChartPairMatrixRangeOverlay data={pairMatrixRangeOverlay} />
+              {pairMatrixTimeLens.open ? <ChartPairMatrixContextMarkers {...pairMatrixContextMarkers} /> : null}
             </div>
             <div className={`chart-event-lens-slot ${eventOverlay.isInteracting ? "is-interacting" : ""}`}>
               {!eventLens?.expanded && !eventLensDock.expanded && !pairMatrixTimeLens.open ? (
@@ -365,19 +378,6 @@ export const ChartPairMatrixRangeOverlay = memo(function ChartPairMatrixRangeOve
     >
       {bounds ? (
         <div className="pointer-events-none absolute inset-y-0 border-x-[3px] border-blue-600 bg-blue-400/25 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.28)]" style={bandStyle} data-pair-matrix-range-band="">
-          {!preview ? data.releaseRail.map((marker) => (
-            <span
-              key={`${marker.x}:${marker.currencies.join("|")}:${marker.titles.join("|")}`}
-              className="pointer-events-auto absolute top-0 z-[2] -translate-x-1/2"
-              style={{ left: `${marker.x - left}px` }}
-              title={`${marker.count} scored release${marker.count === 1 ? "" : "s"}: ${marker.titles.join("; ")}`}
-              aria-label={`${marker.count} scored Pair Matrix release${marker.count === 1 ? "" : "s"} in this candle`}
-              tabIndex={0}
-            >
-              <span className="block h-2 w-px bg-slate-800" />
-              {marker.count > 1 ? <small className="absolute left-1/2 top-1 -translate-x-1/2 rounded bg-slate-800 px-1 text-[8px] font-black leading-3 text-white">×{marker.count}</small> : null}
-            </span>
-          )) : null}
           <button
             type="button"
             className="pointer-events-auto absolute inset-y-0 -left-2 w-4 cursor-ew-resize bg-transparent"

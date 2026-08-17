@@ -26,7 +26,7 @@ const WORKFLOW_STEPS = [
   ["Hover a candle", "Cursor mode follows one candle and anchors the view at that candle’s opening time."],
   ["Select a range", "Drag across complete candles to lock a wider event window."],
   ["Read During", "These releases arrived while the selected candle or range was forming."],
-  ["Read Known before", "These were the latest loaded exact-series readings already known at the opening boundary."],
+  ["Read Before", "These were the latest loaded exact-series readings already known at the opening boundary."],
   ["Adjust the view", "Group rows by Factor or Release time, change the background lookback, or drag the panel’s top edge upward for more room."],
   ["Return to Cursor", "Clear the locked range and resume single-candle hover updates."],
 ] as const;
@@ -55,7 +55,7 @@ export function PairMatrixScoringGuideContent() {
             <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">Every loaded pair-currency release that occurred from the opening boundary up to, but not including, the closing boundary.</p>
           </div>
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-            <span className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Known before</span>
+            <span className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Before</span>
             <strong className="mt-2 block text-lg font-black text-slate-950">Background context</strong>
             <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">The latest loaded release for each exact series inside the chosen lookback, frozen at the opening boundary.</p>
           </div>

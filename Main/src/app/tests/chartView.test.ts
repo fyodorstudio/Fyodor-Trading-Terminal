@@ -247,8 +247,13 @@ describe("chartView helpers", () => {
     );
     expect(DEFAULT_CHART_PREFERENCES.eventOverlay.maxMarkers).toBe(80);
     expect(DEFAULT_CHART_PREFERENCES.eventOverlay.futureMarkerLimit).toBe(8);
+    expect(DEFAULT_CHART_PREFERENCES.eventOverlay.pairMatrixContextMarkersPerSide).toBe(8);
     expect(normalizeChartPreferences({ eventOverlay: { futureMarkerLimit: 900 } }).eventOverlay.futureMarkerLimit).toBe(40);
     expect(normalizeChartPreferences({ eventOverlay: { futureMarkerLimit: -1 } }).eventOverlay.futureMarkerLimit).toBe(0);
+    [0, 4, 8, 12, 16].forEach((value) => {
+      expect(normalizeChartPreferences({ eventOverlay: { pairMatrixContextMarkersPerSide: value } }).eventOverlay.pairMatrixContextMarkersPerSide).toBe(value);
+    });
+    expect(normalizeChartPreferences({ eventOverlay: { pairMatrixContextMarkersPerSide: 7 } }).eventOverlay.pairMatrixContextMarkersPerSide).toBe(8);
     expect("pairMatrix" in normalizeChartPreferences({
       cursorReadoutMode: "nearest_candle",
       appearance: { backgroundColor: "#101010" },

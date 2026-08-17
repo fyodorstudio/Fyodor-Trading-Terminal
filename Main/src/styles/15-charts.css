@@ -149,6 +149,41 @@
 .chart-event-marker.is-future .chart-event-dot { width: 8px; height: 8px; border-color: #fff; background: #7c3aed; box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.32), 0 0 0 5px rgba(124, 58, 237, 0.08), 0 7px 14px rgba(76, 29, 149, 0.14); }
 .chart-event-marker.is-future .chart-event-line { background: rgba(124, 58, 237, 0.42); }
 .chart-event-marker.is-interacting .chart-event-dot { width: 6px; height: 6px; bottom: 10px; box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12); }
+.pair-matrix-context-markers { position: absolute; inset: 0; z-index: 42; pointer-events: none; --marker-bottom: calc(var(--chart-axis-safe-height) + 13px); }
+.pair-matrix-context-marker-status { position: absolute; top: 10px; left: 50%; z-index: 3; padding: 5px 9px; border: 1px solid rgba(148, 163, 184, 0.45); border-radius: 999px; background: rgba(15, 23, 42, 0.9); color: #e2e8f0; font-size: 9px; font-weight: 850; transform: translateX(-50%); }
+.pair-matrix-context-marker-status.is-error { border-color: rgba(248, 113, 113, 0.55); color: #fecaca; }
+.pair-matrix-context-marker { position: absolute; inset-block: 0; width: 36px; transform: translateX(-50%); pointer-events: none; }
+.pair-matrix-context-marker-button { position: absolute; left: 50%; bottom: var(--marker-bottom); display: grid; width: 32px; height: 28px; place-items: center; padding: 0; border: 0; border-radius: 999px; background: transparent; pointer-events: auto; cursor: pointer; transform: translateX(-50%); }
+.pair-matrix-context-marker-dot { display: block; width: 10px; height: 10px; border: 2px solid #fff; border-radius: 999px; background: #2563eb; box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.42), 0 5px 13px rgba(15, 23, 42, 0.24); }
+.pair-matrix-context-marker.impact-high .pair-matrix-context-marker-dot { background: #ef4444; box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.46), 0 5px 13px rgba(15, 23, 42, 0.24); }
+.pair-matrix-context-marker.impact-low .pair-matrix-context-marker-dot { background: #64748b; box-shadow: 0 0 0 2px rgba(100, 116, 139, 0.38), 0 5px 13px rgba(15, 23, 42, 0.22); }
+.pair-matrix-context-marker.position-during .pair-matrix-context-marker-dot { width: 12px; height: 12px; }
+.pair-matrix-context-marker-button > small { position: absolute; left: calc(50% + 7px); top: -1px; min-width: 14px; padding: 0 3px; border-radius: 999px; background: #0f172a; color: #fff; font-size: 8px; font-weight: 900; line-height: 14px; }
+.pair-matrix-context-markers.is-passive .pair-matrix-context-marker-button { pointer-events: none; }
+.pair-matrix-context-markers.is-passive .pair-matrix-context-marker-dot { opacity: 0.78; }
+.pair-matrix-context-marker-popover { position: absolute; left: 50%; bottom: calc(var(--marker-bottom) + 34px); display: flex; width: min(410px, calc(100vw - 48px)); max-height: min(430px, calc(100vh - 190px)); flex-direction: column; overflow: hidden; border: 1px solid #334155; border-radius: 10px; background: #020617; color: #e2e8f0; box-shadow: 0 18px 38px rgba(15, 23, 42, 0.3); transform: translateX(-50%); pointer-events: auto; }
+.pair-matrix-context-marker.placement-left .pair-matrix-context-marker-popover { right: 4px; left: auto; transform: none; }
+.pair-matrix-context-marker.placement-right .pair-matrix-context-marker-popover { left: 4px; transform: none; }
+.pair-matrix-context-marker-popover > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-bottom: 1px solid #334155; }
+.pair-matrix-context-marker-popover > header span { display: flex; min-width: 0; align-items: baseline; gap: 8px; }
+.pair-matrix-context-marker-popover > header strong { color: #fff; font-size: 13px; font-weight: 900; }
+.pair-matrix-context-marker-popover > header small { color: #94a3b8; font-size: 10px; font-weight: 800; text-transform: capitalize; }
+.pair-matrix-context-marker-popover > header button { display: inline-grid; width: 24px; height: 24px; flex: none; place-items: center; border: 1px solid #334155; border-radius: 6px; background: transparent; color: #cbd5e1; }
+.pair-matrix-context-marker-families { min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.pair-matrix-context-marker-family { border-bottom: 1px solid #1e293b; }
+.pair-matrix-context-marker-family:last-child { border-bottom: 0; }
+.pair-matrix-context-marker-family-parent { display: grid; width: 100%; grid-template-columns: 16px minmax(0, 1fr) auto; align-items: center; gap: 7px; padding: 9px 11px; border: 0; background: #0f172a; color: #e2e8f0; text-align: left; }
+.pair-matrix-context-marker-family-parent:hover, .pair-matrix-context-marker-family-parent:focus-visible { background: #172554; outline: none; }
+.pair-matrix-context-marker-family-parent strong { font-size: 12px; font-weight: 900; }
+.pair-matrix-context-marker-family-parent small { min-width: 20px; border-radius: 999px; background: #1e293b; color: #bfdbfe; font-size: 9px; font-weight: 900; line-height: 18px; text-align: center; }
+.pair-matrix-context-marker-family-children { display: grid; background: #020617; }
+.pair-matrix-context-marker-family-children > button { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 3px 9px; padding: 9px 12px 9px 34px; border: 0; border-top: 1px solid #1e293b; background: transparent; color: #cbd5e1; text-align: left; }
+.pair-matrix-context-marker-family-children > button:hover, .pair-matrix-context-marker-family-children > button:focus-visible { background: #172554; outline: none; }
+.pair-matrix-context-marker-family-children span { display: flex; align-items: center; gap: 4px; }
+.pair-matrix-context-marker-family-children span b { color: #fff; font-size: 10px; font-weight: 900; }
+.pair-matrix-context-marker-family-children span small { color: #93c5fd; font-size: 8px; font-weight: 900; text-transform: uppercase; }
+.pair-matrix-context-marker-family-children strong { min-width: 0; color: #f8fafc; font-size: 11px; font-weight: 850; overflow-wrap: anywhere; }
+.pair-matrix-context-marker-family-children time { grid-column: 2; color: #94a3b8; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9px; font-weight: 700; }
 .chart-event-badge { position: absolute; left: 50%; bottom: 3px; z-index: 26; display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 30px; max-width: 92px; height: 22px; padding: 0 7px; border-radius: 999px; border: 1px solid rgba(37, 99, 235, 0.24); background: rgba(255, 255, 255, 0.96); color: #1d4ed8; font-size: 10px; font-weight: 900; line-height: 1; box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1); transform: translateX(-50%); white-space: nowrap; pointer-events: none; }
 .chart-event-badge strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .chart-event-badge small { color: #64748b; font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.08em; }

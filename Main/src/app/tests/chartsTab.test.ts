@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ChartSettingsDrawer } from "@/app/components/ChartSettingsDrawer";
+import { ChartPairMatrixContextMarkers } from "@/app/components/ChartPairMatrixContextMarkers";
 import { ChartPairMatrixRangeOverlay, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
 import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
 import { ChartsTab } from "@/app/tabs/primary/ChartsTab";
@@ -131,17 +132,13 @@ describe("getChartConnectionLabel", () => {
     expect(html).not.toContain("Terminal Console");
   });
 
-  it("renders scored-release ticks on the locked range band without duplicating the chart event rail", () => {
+  it("keeps the locked range band separate from Pair Matrix context markers", () => {
     const html = renderToStaticMarkup(
       createElement(ChartPairMatrixRangeOverlay, {
         data: {
           armed: false,
           cancelRevision: 0,
           lockedBounds: { left: 100, right: 400 },
-          releaseRail: [
-            { x: 150, count: 1, titles: ["GDP q/q"], currencies: ["USD"] },
-            { x: 250, count: 2, titles: ["CPI y/y", "Retail Sales m/m"], currencies: ["EUR", "USD"] },
-          ],
           startPreview: () => null,
           updatePreview: () => null,
           onCommit: () => {},
@@ -152,10 +149,24 @@ describe("getChartConnectionLabel", () => {
     );
 
     expect(html).toContain("Locked Pair Matrix candle range");
-    expect(html).toContain("1 scored Pair Matrix release in this candle");
-    expect(html).toContain("2 scored Pair Matrix releases in this candle");
-    expect(html).toContain("×2");
     expect(html).not.toContain("chart-event-dot");
+
+    const event = { id: 1, time: 110, currency: "USD", countryCode: "US", title: "CPI y/y", impact: "high" as const, actual: "2.5", forecast: "2.4", previous: "2.3" };
+    const markers = renderToStaticMarkup(createElement(ChartPairMatrixContextMarkers, {
+      markers: [{
+        key: "marker", candleOpen: 100, impact: "high" as const, position: "after" as const, x: 250, placement: "center" as const,
+        events: [event],
+        families: [{ factor: { id: "inflation" as const, label: "Inflation", helpText: "", includeAny: [] }, events: [event] }],
+      }],
+      passive: false,
+      displayTimeMode: "local" as const,
+      sourceTimeOffsetSeconds: 0,
+      loadState: "ready" as const,
+      onSelectEvent: () => {},
+    }));
+    expect(markers).toContain('data-pair-matrix-context-markers=""');
+    expect(markers).toContain("1 Pair Matrix release in this candle");
+    expect(markers).toContain("impact-high");
   });
 
   it("renders event overlay controls inside the chart settings drawer", () => {
@@ -194,6 +205,7 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Max markers");
     expect(html).toContain("Loaded upcoming events");
     expect(html).toContain("Show next scheduled");
+    expect(html).toContain("Pair Matrix markers / side");
     expect(html).toContain("Selected pair");
     expect(html).toContain("All currencies");
 

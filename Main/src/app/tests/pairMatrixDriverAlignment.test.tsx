@@ -21,6 +21,7 @@ import {
   groupPairMatrixReleaseRailByCandle,
   scorePairMatrixSeries,
 } from "@/app/lib/pairMatrixMomentum";
+import { buildPairMatrixContextMarkerGroups } from "@/app/lib/pairMatrixContextMarkers";
 import {
   findPairMatrixMomentumRule,
   PAIR_MATRIX_MOMENTUM_REGISTRY,
@@ -124,6 +125,37 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(getPairMatrixRangePixelBounds(100, 300, 12, 500)).toEqual({ left: 94, right: 306 });
     expect(getPairMatrixRangePixelBounds(2, 498, 12, 500)).toEqual({ left: 0, right: 500 });
     expect(getPairMatrixRangePixelBounds(null, 300, 12, 500)).toBeNull();
+  });
+
+  it("groups all pair releases by candle and keeps bounded context on each side", () => {
+    const candleTimes = [0, 3_600, 7_200, 10_800, 14_400, 18_000, 21_600];
+    const events = [
+      event({ id: 1, currency: "EUR", time: 3_700, title: "CPI y/y", impact: "high" }),
+      event({ id: 2, currency: "USD", time: 7_300, title: "Retail Sales m/m", impact: "medium" }),
+      event({ id: 3, currency: "EUR", time: 10_900, title: "GDP q/q", impact: "medium" }),
+      event({ id: 4, currency: "USD", time: 11_000, title: "CPI m/m", impact: "high" }),
+      event({ id: 5, currency: "USD", time: 14_500, title: "Fed Interest Rate Decision", impact: "high" }),
+      event({ id: 6, currency: "EUR", time: 18_100, title: "Trade Balance", impact: "low" }),
+      event({ id: 7, currency: "JPY", time: 14_600, title: "CPI y/y", impact: "high" }),
+    ];
+    const params = {
+      events,
+      currencies: ["EUR", "USD"],
+      candleTimes,
+      timeframe: "H1" as const,
+      sourceTimeOffsetSeconds: 0,
+      range: { firstOpen: 10_800, lastOpen: 14_400, close: 18_000, candleCount: 2 },
+    };
+    const groups = buildPairMatrixContextMarkerGroups({ ...params, contextPerSide: 1 });
+    expect(groups.map((group) => [group.candleOpen, group.position, group.events.length])).toEqual([
+      [7_200, "before", 1],
+      [10_800, "during", 2],
+      [14_400, "during", 1],
+      [18_000, "after", 1],
+    ]);
+    expect(groups[1].families.map((family) => family.factor.id)).toEqual(["inflation", "pmi"]);
+    expect(groups.flatMap((group) => group.events).some((item) => item.currency === "JPY")).toBe(false);
+    expect(buildPairMatrixContextMarkerGroups({ ...params, contextPerSide: 0 }).every((group) => group.position === "during")).toBe(true);
   });
 
   it("places open-time releases in During, excludes the close boundary, and retains every release", () => {
@@ -389,8 +421,8 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(html).toContain("> Cursor</button>");
     expect(html).toContain("return Pair Matrix to candle hover");
     expect(html).toContain("During this candle");
-    expect(html).toContain("Known before candle");
-    expect(html).toContain("Known before range lookback days");
+    expect(html).toContain("Before candle");
+    expect(html).toContain("Before range lookback days");
     expect(html).toContain("Group by");
     expect(html).toContain('aria-label="Group Pair Matrix timeline by"');
     expect(html).toContain('<option value="factor" selected="">Factor</option>');
@@ -407,7 +439,12 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(html).toContain(">Inflation</span>");
     expect(html).toContain(">Policy</span>");
     expect(html).toContain(">During</span>");
-    expect(html).toContain(">Known before</span>");
+    expect(html).toContain(">Before</span>");
+    expect(html).toContain('data-pair-matrix-summary-lanes="separated"');
+    expect(html.match(/data-pair-matrix-summary-lane="economy"/g)).toHaveLength(2);
+    expect(html.match(/data-pair-matrix-summary-lane="inflation"/g)).toHaveLength(2);
+    expect(html.match(/data-pair-matrix-summary-lane="policy"/g)).toHaveLength(2);
+    expect(html).not.toContain("Known before");
     expect(html).toContain("Economy scoring help");
     expect(html).toContain("Inflation scoring help");
     expect(html).toContain("Policy scoring help");
@@ -450,7 +487,7 @@ describe("Pair Matrix candle-range timeline", () => {
       readingState: "heating" as const,
     };
     const baseTarget: PairMatrixActiveAudit = { side: "base", period: "during", metric: "inflation", audit };
-    const quoteTarget: PairMatrixActiveAudit = { ...baseTarget, side: "quote", period: "before", audit: { ...audit, heading: "USD Known before inflation" } };
+    const quoteTarget: PairMatrixActiveAudit = { ...baseTarget, side: "quote", period: "before", audit: { ...audit, heading: "USD Before inflation" } };
     const callbacks = { onClose: () => {} };
     const base = renderToStaticMarkup(createElement(PairMatrixAuditOverlay, { activeAudit: baseTarget, ...callbacks }));
     const quote = renderToStaticMarkup(createElement(PairMatrixAuditOverlay, { activeAudit: quoteTarget, ...callbacks }));
@@ -518,11 +555,11 @@ describe("Pair Matrix candle-range timeline", () => {
 
   it("renders economy factor votes as aligned cells instead of a semicolon sentence", () => {
     const audit = {
-      heading: "EUR Known before Economy",
+      heading: "EUR Before Economy",
       formula: "Formula: equal factor votes.",
       result: "Factor votes: 2↑ 2↓ 1 zero; net 0. labor ↓ (-3); activity ↑ (4); trade 0 (0); sentiment ↑ (4); retail ↓ (-3).",
       contributors: [],
-      accessibleText: "EUR Known before Economy full audit.",
+      accessibleText: "EUR Before Economy full audit.",
       readingState: "net_zero" as const,
       economyBreakdown: {
         upCount: 2,

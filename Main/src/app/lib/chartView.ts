@@ -46,6 +46,7 @@ export interface ChartEventOverlayPreferences {
   impactFilter: ChartEventOverlayImpactFilter;
   maxMarkers: number;
   futureMarkerLimit: number;
+  pairMatrixContextMarkersPerSide: number;
 }
 
 export interface ChartPreferences {
@@ -111,6 +112,7 @@ export const DEFAULT_CHART_PREFERENCES: ChartPreferences = {
     impactFilter: "high",
     maxMarkers: 80,
     futureMarkerLimit: 8,
+    pairMatrixContextMarkersPerSide: 8,
   },
 };
 
@@ -159,6 +161,7 @@ function normalizeChartEventOverlay(raw: unknown): ChartEventOverlayPreferences 
   const impactFilter = row.impactFilter;
   const maxMarkers = Number(row.maxMarkers);
   const futureMarkerLimit = Number(row.futureMarkerLimit);
+  const pairMatrixContextMarkersPerSide = Number(row.pairMatrixContextMarkersPerSide);
 
   return {
     visible: typeof row.visible === "boolean" ? row.visible : fallback.visible,
@@ -173,6 +176,11 @@ function normalizeChartEventOverlay(raw: unknown): ChartEventOverlayPreferences 
     futureMarkerLimit: Number.isFinite(futureMarkerLimit)
       ? Math.min(40, Math.max(0, Math.round(futureMarkerLimit)))
       : fallback.futureMarkerLimit,
+    pairMatrixContextMarkersPerSide: Number.isFinite(pairMatrixContextMarkersPerSide)
+      ? [0, 4, 8, 12, 16].includes(Math.round(pairMatrixContextMarkersPerSide))
+        ? Math.round(pairMatrixContextMarkersPerSide)
+        : fallback.pairMatrixContextMarkersPerSide
+      : fallback.pairMatrixContextMarkersPerSide,
   };
 }
 
