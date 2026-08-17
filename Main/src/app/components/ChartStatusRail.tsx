@@ -1,24 +1,17 @@
-import { type Ref } from "react";
+import { useEffect, useMemo, useState, type Ref } from "react";
 import { Activity, Check, ChevronDown, Clock, Database } from "lucide-react";
-import type { ChartDisplayTimeMode } from "@/app/lib/chartView";
-import type { BridgeStatus } from "@/app/types";
+import { getChartSessionDetail } from "@/app/lib/chartView";
+import { getChartDisplayModeLabel, type ChartDisplayTimeMode } from "@/app/lib/chartView";
+import { formatCurrentTimeForDisplayTimezone, getDisplayTimezoneOptions, getDisplayTimezoneShortLabel } from "@/app/lib/timezoneDisplay";
+import type { BridgeStatus, MarketStatusResponse } from "@/app/types";
 
 interface ChartStatusRailProps {
   status: BridgeStatus;
   streamStatusLabel: string;
-  sessionLabel: string;
-  sessionBasis: string;
+  marketStatus: MarketStatusResponse | null;
   lastCandleTime: number | null;
   feedLabel: string;
-  currentDisplayTime: string;
-  displayModeLabel: string;
-  displayModeShortLabel: string;
   displayTimeMode: ChartDisplayTimeMode;
-  timezoneOptions: Array<{
-    id: ChartDisplayTimeMode;
-    label: string;
-    isHighlighted?: boolean;
-  }>;
   timezoneMenuOpen: boolean;
   timezoneMenuRef: Ref<HTMLDivElement>;
   onToggleTimezoneMenu: () => void;
@@ -28,20 +21,32 @@ interface ChartStatusRailProps {
 export function ChartStatusRail({
   status,
   streamStatusLabel,
-  sessionLabel,
-  sessionBasis,
+  marketStatus,
   lastCandleTime,
   feedLabel,
-  currentDisplayTime,
-  displayModeLabel,
-  displayModeShortLabel,
   displayTimeMode,
-  timezoneOptions,
   timezoneMenuOpen,
   timezoneMenuRef,
   onToggleTimezoneMenu,
   onDisplayTimeModeChange,
 }: ChartStatusRailProps) {
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNowMs(Date.now()), 1_000);
+    return () => window.clearInterval(id);
+  }, []);
+  const sessionDetail = useMemo(() => getChartSessionDetail(marketStatus, nowMs), [marketStatus, nowMs]);
+  const timezoneOptions = useMemo(() => getDisplayTimezoneOptions(new Date(nowMs)), [nowMs]);
+  const displayModeLabel = getChartDisplayModeLabel(displayTimeMode);
+  const displayModeShortLabel = getDisplayTimezoneShortLabel(displayTimeMode, new Date(nowMs));
+  const currentDisplayTime = formatCurrentTimeForDisplayTimezone({
+    nowMs,
+    selection: displayTimeMode,
+    serverTimeSeconds: marketStatus?.server_time ?? lastCandleTime,
+    serverFetchedAtMs: marketStatus?.checked_at != null ? marketStatus.checked_at * 1_000 : null,
+  });
+  const sessionLabel = sessionDetail.label;
+  const sessionBasis = sessionDetail.basis;
   const compactSessionLabel = sessionLabel
     .replace(/^Scheduled session /, "")
     .replace(/^closes in /, "Closes ")

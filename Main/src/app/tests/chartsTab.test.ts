@@ -5,11 +5,44 @@ import { ChartSettingsDrawer } from "@/app/components/ChartSettingsDrawer";
 import { ChartPairMatrixContextMarkers } from "@/app/components/ChartPairMatrixContextMarkers";
 import { ChartPairMatrixRangeOverlay, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
 import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
-import { ChartsTab } from "@/app/tabs/primary/ChartsTab";
+import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
+import { captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getPairMatrixHoverSettleDelay, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange } from "@/app/tabs/primary/ChartsTab";
 import { getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
 
 describe("getChartConnectionLabel", () => {
+  it("updates Pair Matrix hover once per snapped candle and never while disabled", () => {
+    expect(resolvePairMatrixHoveredCandleUpdate(null, 100, false)).toEqual({ shouldUpdate: false, value: 100 });
+    expect(resolvePairMatrixHoveredCandleUpdate(100, 100, true)).toEqual({ shouldUpdate: false, value: 100 });
+    expect(resolvePairMatrixHoveredCandleUpdate(100, 200, true)).toEqual({ shouldUpdate: true, value: 200 });
+  });
+  it("defers chart-range React updates until interaction settles while Pair Matrix is open", () => {
+    expect(getChartRangeUpdateCadence(false)).toBe("animation_frame");
+    expect(getChartRangeUpdateCadence(true)).toBe("settled");
+  });
+  it("restarts the hover quiet period when raw pointer motion continues", () => {
+    expect(getPairMatrixHoverSettleDelay(1_000, 1_040, 120)).toBe(80);
+    expect(getPairMatrixHoverSettleDelay(1_080, 1_090, 120)).toBe(110);
+    expect(getPairMatrixHoverSettleDelay(1_000, 1_121, 120)).toBe(0);
+  });
+  it("publishes snapped candles outside ChartsTab state and ignores duplicate anchors", () => {
+    const runtime = createPairMatrixHoverRuntime();
+    const published: Array<number | null> = [];
+    const unsubscribe = runtime.subscribe((anchor) => published.push(anchor));
+    runtime.publishAnchor(100);
+    runtime.publishAnchor(100);
+    runtime.publishAnchor(200);
+    unsubscribe();
+    runtime.publishAnchor(300);
+    expect(runtime.getAnchor()).toBe(300);
+    expect(published).toEqual([100, 200]);
+  });
+  it("preserves horizontal candle span and latest-side padding across market changes", () => {
+    const snapshot = captureChartZoomSnapshot({ from: 40, to: 120 }, 100);
+    expect(snapshot).toEqual({ span: 80, rightOffset: 20 });
+    expect(restoreChartZoomRange(snapshot!, 500)).toEqual({ from: 440, to: 520 });
+    expect(captureChartZoomSnapshot({ from: 0, to: 1 }, 1)).toBeNull();
+  });
   it("keeps Pair Matrix resizing within the default panel and usable-chart bounds", () => {
     expect(clampPairMatrixPanelHeight(500, 900)).toBe(500);
     expect(clampPairMatrixPanelHeight(100, 900)).toBe(240);
@@ -178,6 +211,7 @@ describe("getChartConnectionLabel", () => {
         onClose: () => {},
         preferences: DEFAULT_CHART_PREFERENCES,
         onCursorModeChange: () => {},
+        onPreserveZoomChange: () => {},
         onAppearanceChange: () => {},
         onEventOverlayChange: () => {},
         onResetAppearance: () => {},
@@ -217,6 +251,7 @@ describe("getChartConnectionLabel", () => {
         onClose: () => {},
         preferences: DEFAULT_CHART_PREFERENCES,
         onCursorModeChange: () => {},
+        onPreserveZoomChange: () => {},
         onAppearanceChange: () => {},
         onEventOverlayChange: () => {},
         onResetAppearance: () => {},
@@ -240,6 +275,7 @@ describe("getChartConnectionLabel", () => {
         onClose: () => {},
         preferences: DEFAULT_CHART_PREFERENCES,
         onCursorModeChange: () => {},
+        onPreserveZoomChange: () => {},
         onAppearanceChange: () => {},
         onEventOverlayChange: () => {},
         onResetAppearance: () => {},
@@ -248,6 +284,7 @@ describe("getChartConnectionLabel", () => {
 
     expect(replayHtml).toContain("Future candle opacity");
     expect(appearanceHtml).not.toContain("Experimental");
+    expect(appearanceHtml).toContain("Keep horizontal zoom when changing symbol or timeframe");
     expect(appearanceHtml).not.toContain("Pair compare");
     expect(appearanceHtml).not.toContain("Macro surprise");
   });

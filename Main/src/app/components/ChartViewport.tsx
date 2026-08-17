@@ -1,12 +1,14 @@
-import { memo, useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type Ref } from "react";
+import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type Ref } from "react";
 import { AlertTriangle, CalendarDays, ChevronDown, Settings2, Table2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChartEventLens, type ChartEventLensData } from "@/app/components/ChartEventLens";
 import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
 import { ChartPairMatrixContextMarkers, type PairMatrixContextMarkerView } from "@/app/components/ChartPairMatrixContextMarkers";
 import { ChartPairMatrixTimeLens, type ChartPairMatrixTimeLensData } from "@/app/components/ChartPairMatrixTimeLens";
+import { usePairMatrixHoverAnchor } from "@/app/hooks/usePairMatrixHoverAnchor";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
 import type { ChartDisplayTimeMode } from "@/app/lib/chartView";
+import type { PairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
 import type { PairMatrixCandleRange, PairMatrixRangePixelBounds } from "@/app/lib/pairMatrixSnapshot";
 import type { BridgeStatus, CalendarEvent } from "@/app/types";
 
@@ -24,6 +26,45 @@ export type ChartCrosshairReadout = {
   top: number;
   lines: Array<{ label: string; value: string }>;
 };
+
+export type ChartCrosshairReadoutHandle = {
+  update: (readout: ChartCrosshairReadout | null) => void;
+};
+
+export const ChartCrosshairReadoutOverlay = memo(forwardRef<ChartCrosshairReadoutHandle>(function ChartCrosshairReadoutOverlay(_, ref) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const rowsRef = useRef<Array<{ row: HTMLDivElement; label: HTMLSpanElement; value: HTMLElement }>>([]);
+  useImperativeHandle(ref, () => ({
+    update: (readout) => {
+      const root = rootRef.current;
+      if (!root) return;
+      if (!readout) {
+        root.hidden = true;
+        return;
+      }
+      root.hidden = false;
+      root.style.top = `${readout.top}px`;
+      while (rowsRef.current.length < readout.lines.length) {
+        const row = document.createElement("div");
+        row.className = "chart-crosshair-readout-line";
+        const label = document.createElement("span");
+        const value = document.createElement("strong");
+        row.append(label, value);
+        root.append(row);
+        rowsRef.current.push({ row, label, value });
+      }
+      while (rowsRef.current.length > readout.lines.length) rowsRef.current.pop()?.row.remove();
+      readout.lines.forEach((line, index) => {
+        const rendered = rowsRef.current[index];
+        if (rendered.label.textContent !== line.label) rendered.label.textContent = line.label;
+        if (rendered.value.textContent !== line.value) rendered.value.textContent = line.value;
+      });
+    },
+  }), []);
+  return (
+    <div ref={rootRef} className="chart-crosshair-readout" hidden aria-hidden="true" data-chart-crosshair-isolated="" />
+  );
+}));
 
 export type ChartEventLensDockData = {
   visible: boolean;
@@ -57,6 +98,10 @@ export type ChartPairMatrixContextMarkerData = {
   sourceTimeOffsetSeconds: number;
   loadState: "idle" | "loading" | "ready" | "error";
   onSelectEvent: (event: CalendarEvent) => void;
+  cursorRuntime?: {
+    hover: PairMatrixHoverRuntime;
+    resolve: (anchor: number | null) => PairMatrixContextMarkerView[];
+  };
 };
 
 export type PairMatrixRangePreview = {
@@ -85,7 +130,7 @@ interface ChartViewportProps {
   pairMatrixTimeLens: ChartPairMatrixTimeLensData;
   pairMatrixRangeOverlay: ChartPairMatrixRangeOverlayData;
   pairMatrixContextMarkers: ChartPairMatrixContextMarkerData;
-  crosshairReadout: ChartCrosshairReadout | null;
+  crosshairReadoutRef: Ref<ChartCrosshairReadoutHandle>;
   status: BridgeStatus;
   overlayCopy: {
     title: string;
@@ -108,7 +153,7 @@ export function ChartViewport({
   pairMatrixTimeLens,
   pairMatrixRangeOverlay,
   pairMatrixContextMarkers,
-  crosshairReadout,
+  crosshairReadoutRef,
   status,
   overlayCopy,
   reachedBoundary,
@@ -151,20 +196,7 @@ export function ChartViewport({
             ) : null}
           </div>
         </div>
-        {crosshairReadout && (
-          <div
-            className="chart-crosshair-readout"
-            style={{ top: crosshairReadout.top }}
-            aria-hidden="true"
-          >
-            {crosshairReadout.lines.map((line) => (
-              <div key={line.label} className="chart-crosshair-readout-line">
-                <span>{line.label}</span>
-                <strong>{line.value}</strong>
-              </div>
-            ))}
-          </div>
-        )}
+        <ChartCrosshairReadoutOverlay ref={crosshairReadoutRef} />
         <div className="charts-history-boundary" aria-live="polite">
           <span className={`charts-history-boundary-pill ${reachedBoundary ? "is-visible" : ""}`}>
             Oldest available MT5 candle, approximate
@@ -200,6 +232,11 @@ function ResizablePairMatrixPanel({ data }: { data: ChartPairMatrixTimeLensData 
   const frameRef = useRef<number | null>(null);
   const pendingHeightRef = useRef<number | null>(null);
   const [height, setHeight] = useState<number | null>(null);
+  const hoverAnchor = usePairMatrixHoverAnchor(data.hasLockedRange ? null : data.cursorRuntime?.hover ?? null);
+  const resolvedData = useMemo(
+    () => data.hasLockedRange || !data.cursorRuntime ? data : data.cursorRuntime.resolve(hoverAnchor),
+    [data, hoverAnchor],
+  );
 
   useEffect(() => () => {
     if (frameRef.current != null) cancelAnimationFrame(frameRef.current);
@@ -268,7 +305,7 @@ function ResizablePairMatrixPanel({ data }: { data: ChartPairMatrixTimeLensData 
       >
         <span aria-hidden="true" />
       </div>
-      <ChartPairMatrixTimeLens data={data} />
+      <ChartPairMatrixTimeLens data={resolvedData} />
     </section>
   );
 }

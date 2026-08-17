@@ -149,7 +149,7 @@
 .chart-event-marker.is-future .chart-event-dot { width: 8px; height: 8px; border-color: #fff; background: #7c3aed; box-shadow: 0 0 0 1px rgba(124, 58, 237, 0.32), 0 0 0 5px rgba(124, 58, 237, 0.08), 0 7px 14px rgba(76, 29, 149, 0.14); }
 .chart-event-marker.is-future .chart-event-line { background: rgba(124, 58, 237, 0.42); }
 .chart-event-marker.is-interacting .chart-event-dot { width: 6px; height: 6px; bottom: 10px; box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.12); }
-.pair-matrix-context-markers { position: absolute; inset: 0; z-index: 42; pointer-events: none; --marker-bottom: calc(var(--chart-axis-safe-height) + 13px); }
+.pair-matrix-context-markers { position: absolute; inset: 0; z-index: 42; contain: layout paint style; pointer-events: none; --marker-bottom: calc(var(--chart-axis-safe-height) + 13px); }
 .pair-matrix-context-marker-status { position: absolute; top: 10px; left: 50%; z-index: 3; padding: 5px 9px; border: 1px solid rgba(148, 163, 184, 0.45); border-radius: 999px; background: rgba(15, 23, 42, 0.9); color: #e2e8f0; font-size: 9px; font-weight: 850; transform: translateX(-50%); }
 .pair-matrix-context-marker-status.is-error { border-color: rgba(248, 113, 113, 0.55); color: #fecaca; }
 .pair-matrix-context-marker { position: absolute; inset-block: 0; width: 36px; transform: translateX(-50%); pointer-events: none; }
@@ -274,7 +274,10 @@
 .chart-event-lens-dock-body div { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc; }
 .chart-event-lens-dock-body span { color: #64748b; font-size: 9px; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase; }
 .chart-event-lens-dock-body strong { color: #0f172a; font-size: 11px; font-weight: 850; line-height: 1.35; }
-.chart-pair-matrix-bottom-shell { position: relative; z-index: 70; flex: 0 0 clamp(260px, 34vh, 320px); min-height: 240px; max-height: calc(100% - 220px); border-top: 1px solid #cbd5e1; background: #fff; box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.08); pointer-events: auto; }
+.chart-pair-matrix-bottom-shell { position: relative; z-index: 70; flex: 0 0 clamp(260px, 34vh, 320px); min-height: 240px; max-height: calc(100% - 220px); contain: layout paint style; border-top: 1px solid #cbd5e1; background: #fff; box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.08); pointer-events: auto; }
+.chart-pair-matrix-bottom-shell [data-pair-matrix-timeline-entry],
+.chart-pair-matrix-bottom-shell [data-pair-matrix-group-parent] { contain: layout paint style; }
+.chart-pair-matrix-bottom-shell [data-pair-matrix-timeline-entry] { content-visibility: auto; contain-intrinsic-size: 38px; }
 .chart-pair-matrix-resize-handle { position: absolute; top: -6px; right: 0; left: 0; z-index: 75; display: flex; height: 12px; align-items: center; justify-content: center; cursor: ns-resize; touch-action: none; }
 .chart-pair-matrix-resize-handle::before { content: ""; position: absolute; inset: 5px 0 auto; height: 2px; background: transparent; transition: background 0.12s ease; }
 .chart-pair-matrix-resize-handle > span { position: relative; width: 52px; height: 5px; border: 1px solid #94a3b8; border-radius: 999px; background: #fff; box-shadow: 0 1px 4px rgba(15, 23, 42, 0.16); }

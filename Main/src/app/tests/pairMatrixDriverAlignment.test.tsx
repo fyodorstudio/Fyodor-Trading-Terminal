@@ -21,7 +21,7 @@ import {
   groupPairMatrixReleaseRailByCandle,
   scorePairMatrixSeries,
 } from "@/app/lib/pairMatrixMomentum";
-import { buildPairMatrixContextMarkerGroups } from "@/app/lib/pairMatrixContextMarkers";
+import { buildPairMatrixContextMarkerGroups, indexPairMatrixContextMarkers, selectPairMatrixContextMarkerGroups } from "@/app/lib/pairMatrixContextMarkers";
 import {
   findPairMatrixMomentumRule,
   PAIR_MATRIX_MOMENTUM_REGISTRY,
@@ -31,10 +31,12 @@ import {
   PAIR_MATRIX_BEFORE_STORAGE_KEY,
   buildPairMatrixSeriesSnapshot,
   buildPairMatrixTimeline,
+  buildPairMatrixTimelineFromIndex,
   classifyPairMatrixEvent,
   getPairMatrixCandleClose,
   getPairMatrixForexCurrencies,
   getPairMatrixRangePixelBounds,
+  indexPairMatrixCalendar,
   loadPairMatrixBeforeDays,
   normalizePairMatrixBeforeDays,
   normalizePairMatrixCandleRange,
@@ -156,6 +158,19 @@ describe("Pair Matrix candle-range timeline", () => {
     expect(groups[1].families.map((family) => family.factor.id)).toEqual(["inflation", "pmi"]);
     expect(groups.flatMap((group) => group.events).some((item) => item.currency === "JPY")).toBe(false);
     expect(buildPairMatrixContextMarkerGroups({ ...params, contextPerSide: 0 }).every((group) => group.position === "during")).toBe(true);
+    const index = indexPairMatrixContextMarkers(params);
+    expect(selectPairMatrixContextMarkerGroups({ groups: index, range: params.range, contextPerSide: 1 })).toEqual(groups);
+    expect(selectPairMatrixContextMarkerGroups({ groups: index, range: { firstOpen: 14_400, lastOpen: 14_400, close: 18_000, candleCount: 1 }, contextPerSide: 1 }).map((group) => group.candleOpen)).toEqual([10_800, 14_400, 18_000]);
+  });
+
+  it("keeps indexed timeline selection equivalent to the public timeline builder", () => {
+    const events = [
+      event({ id: 1, currency: "EUR", time: 900, title: "CPI y/y" }),
+      event({ id: 2, currency: "EUR", time: 1_100, title: "CPI y/y" }),
+      event({ id: 3, currency: "USD", time: 1_200, title: "Retail Sales m/m" }),
+    ];
+    const params = { events, currencies: ["EUR", "USD"], rangeOpen: 1_000, rangeClose: 1_400, duringThrough: 1_399, beforeDays: 90 };
+    expect(buildPairMatrixTimelineFromIndex({ ...params, index: indexPairMatrixCalendar(events, params.currencies) })).toEqual(buildPairMatrixTimeline(params));
   });
 
   it("places open-time releases in During, excludes the close boundary, and retains every release", () => {

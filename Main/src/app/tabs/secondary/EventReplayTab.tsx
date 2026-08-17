@@ -433,6 +433,7 @@ export function EventReplayTab({
         onClose={() => setChartDrawerOpen(false)}
         preferences={chartPreferences}
         onCursorModeChange={handleCursorModeChange}
+        onPreserveZoomChange={(preserve) => updateChartPreferences((current) => ({ ...current, preserveZoomOnMarketChange: preserve }))}
         onAppearanceChange={updateAppearance}
         onResetAppearance={resetChartPreferences}
         title="Replay Chart Settings"

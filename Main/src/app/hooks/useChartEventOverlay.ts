@@ -21,6 +21,7 @@ import type {
 import type { BridgeCandle, CalendarEvent, Timeframe } from "@/app/types";
 
 interface UseChartEventOverlayArgs {
+  enabled?: boolean;
   chartRef: RefObject<IChartApi | null>;
   containerRef: RefObject<HTMLDivElement | null>;
   events: CalendarEvent[];
@@ -44,6 +45,7 @@ interface ChartEventOverlayData {
 }
 
 export function useChartEventOverlay({
+  enabled = true,
   chartRef,
   containerRef,
   events,
@@ -63,15 +65,16 @@ export function useChartEventOverlay({
 } {
   const candidates = useMemo(
     () =>
-      filterChartEventsForOverlay({
+      enabled ? filterChartEventsForOverlay({
         events,
         selectedSymbol,
         scope: preferences.scope,
         impactFilter: preferences.impactFilter,
         sourceTimeOffsetSeconds,
         latestCandleTime: visibleCandles[visibleCandles.length - 1]?.time ?? null,
-      }),
+      }) : [],
     [
+      enabled,
       events,
       selectedSymbol,
       preferences.scope,
@@ -84,7 +87,7 @@ export function useChartEventOverlay({
   const overlayData = useMemo<ChartEventOverlayData>(() => {
     const chart = chartRef.current;
     const container = containerRef.current;
-    if (!chart || !container || !preferences.visible || visibleCandles.length === 0) {
+    if (!enabled || !chart || !container || !preferences.visible || visibleCandles.length === 0) {
       return { points: [], visibleEventCount: 0, renderedEventCount: 0, isCapped: false, isInteracting };
     }
 
@@ -143,6 +146,7 @@ export function useChartEventOverlay({
       isInteracting,
     };
   }, [
+    enabled,
     candidates,
     preferences.visible,
     preferences.maxMarkers,

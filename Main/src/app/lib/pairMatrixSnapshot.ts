@@ -346,6 +346,83 @@ export function calendarEventsCoverWindow(events: CalendarEvent[], from: number,
   return oldest <= from && newest >= through;
 }
 
+export interface PairMatrixCalendarIndex {
+  currencies: Map<string, { events: CalendarEvent[]; series: Map<string, CalendarEvent[]> }>;
+}
+
+function lowerBoundEvents(events: readonly CalendarEvent[], target: number): number {
+  let low = 0;
+  let high = events.length;
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    if (events[mid].time < target) low = mid + 1; else high = mid;
+  }
+  return low;
+}
+
+function upperBoundEvents(events: readonly CalendarEvent[], target: number): number {
+  let low = 0;
+  let high = events.length;
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    if (events[mid].time <= target) low = mid + 1; else high = mid;
+  }
+  return low;
+}
+
+export function indexPairMatrixCalendar(events: CalendarEvent[], currencies: readonly string[]): PairMatrixCalendarIndex {
+  const currencySet = new Set(currencies);
+  const indexed = new Map<string, { events: CalendarEvent[]; series: Map<string, CalendarEvent[]> }>();
+  currencies.forEach((currency) => indexed.set(currency, { events: [], series: new Map() }));
+  mergePairMatrixCalendarEvents(events).forEach((event) => {
+    if (!currencySet.has(event.currency)) return;
+    const currency = indexed.get(event.currency)!;
+    currency.events.push(event);
+    const key = normalizePairMatrixSeriesTitle(event.title);
+    const series = currency.series.get(key) ?? [];
+    series.push(event);
+    currency.series.set(key, series);
+  });
+  return { currencies: indexed };
+}
+
+export function buildPairMatrixTimelineFromIndex(params: {
+  index: PairMatrixCalendarIndex;
+  currencies: readonly string[];
+  rangeOpen: number;
+  rangeClose: number;
+  duringThrough: number;
+  beforeDays: number;
+}): PairMatrixTimelineSnapshot {
+  const beforeFrom = params.rangeOpen - normalizePairMatrixBeforeDays(params.beforeDays) * 24 * 60 * 60;
+  const duringThrough = Math.min(params.duringThrough, params.rangeClose - 1);
+  return {
+    during: params.currencies.map((currency) => {
+      const events = params.index.currencies.get(currency)?.events ?? [];
+      return {
+        currency,
+        entries: events
+          .slice(lowerBoundEvents(events, params.rangeOpen), upperBoundEvents(events, duringThrough))
+          .map(buildPairMatrixSeriesSnapshot),
+      };
+    }),
+    before: params.currencies.map((currency) => {
+      const series = params.index.currencies.get(currency)?.series ?? new Map<string, CalendarEvent[]>();
+      const latest: CalendarEvent[] = [];
+      series.forEach((events) => {
+        const candidate = events[lowerBoundEvents(events, params.rangeOpen) - 1];
+        if (candidate && candidate.time >= beforeFrom) latest.push(candidate);
+      });
+      return {
+        currency,
+        entries: latest
+          .sort((left, right) => right.time - left.time || left.title.localeCompare(right.title) || left.id - right.id)
+          .map(buildPairMatrixSeriesSnapshot),
+      };
+    }),
+  };
+}
+
 export function buildPairMatrixTimeline(params: {
   events: CalendarEvent[];
   currencies: readonly string[];
@@ -354,31 +431,5 @@ export function buildPairMatrixTimeline(params: {
   duringThrough: number;
   beforeDays: number;
 }): PairMatrixTimelineSnapshot {
-  const relevantEvents = mergePairMatrixCalendarEvents(params.events).filter((event) => params.currencies.includes(event.currency));
-  const beforeFrom = params.rangeOpen - normalizePairMatrixBeforeDays(params.beforeDays) * 24 * 60 * 60;
-  return {
-    during: params.currencies.map((currency) => ({
-      currency,
-      entries: relevantEvents
-        .filter((event) => event.currency === currency && event.time >= params.rangeOpen && event.time < params.rangeClose && event.time <= params.duringThrough)
-        .sort((left, right) => left.time - right.time || left.title.localeCompare(right.title) || left.id - right.id)
-        .map(buildPairMatrixSeriesSnapshot),
-    })),
-    before: params.currencies.map((currency) => {
-      const latestBySeries = new Map<string, CalendarEvent>();
-      relevantEvents
-        .filter((event) => event.currency === currency && event.time >= beforeFrom && event.time < params.rangeOpen)
-        .sort((left, right) => right.time - left.time || left.title.localeCompare(right.title) || left.id - right.id)
-        .forEach((event) => {
-          const key = normalizePairMatrixSeriesTitle(event.title);
-          if (!latestBySeries.has(key)) latestBySeries.set(key, event);
-        });
-      return {
-        currency,
-        entries: [...latestBySeries.values()]
-          .sort((left, right) => right.time - left.time || left.title.localeCompare(right.title) || left.id - right.id)
-          .map(buildPairMatrixSeriesSnapshot),
-      };
-    }),
-  };
+  return buildPairMatrixTimelineFromIndex({ ...params, index: indexPairMatrixCalendar(params.events, params.currencies) });
 }

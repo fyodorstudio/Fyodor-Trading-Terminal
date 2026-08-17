@@ -52,6 +52,7 @@ export interface ChartEventOverlayPreferences {
 export interface ChartPreferences {
   version: number;
   cursorReadoutMode: ChartCursorReadoutMode;
+  preserveZoomOnMarketChange: boolean;
   appearance: ChartAppearancePreferences;
   eventOverlay: ChartEventOverlayPreferences;
 }
@@ -93,6 +94,7 @@ const MAX_SOURCE_TIME_OFFSET_SECONDS = 14 * 60 * 60;
 export const DEFAULT_CHART_PREFERENCES: ChartPreferences = {
   version: CHART_PREFERENCES_VERSION,
   cursorReadoutMode: "both",
+  preserveZoomOnMarketChange: true,
   appearance: {
     backgroundColor: "#ffffff",
     gridColor: "#e2e8f0",
@@ -197,6 +199,9 @@ export function normalizeChartPreferences(raw: unknown): ChartPreferences {
         : mode === "nearest_candle" || mode === "both"
           ? mode
           : DEFAULT_CHART_PREFERENCES.cursorReadoutMode,
+    preserveZoomOnMarketChange: typeof row.preserveZoomOnMarketChange === "boolean"
+      ? row.preserveZoomOnMarketChange
+      : DEFAULT_CHART_PREFERENCES.preserveZoomOnMarketChange,
     appearance: normalizeChartAppearance(row.appearance),
     eventOverlay: normalizeChartEventOverlay(row.eventOverlay),
   };

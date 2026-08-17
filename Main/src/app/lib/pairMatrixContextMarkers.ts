@@ -15,6 +15,8 @@ export interface PairMatrixContextMarkerGroup {
   position: "before" | "during" | "after";
 }
 
+export type PairMatrixContextMarkerIndexGroup = Omit<PairMatrixContextMarkerGroup, "position">;
+
 const FACTOR_ORDER = [...PAIR_MATRIX_FACTORS, PAIR_MATRIX_OTHER_FACTOR];
 const IMPACT_RANK: Record<CalendarEvent["impact"], number> = { high: 0, medium: 1, low: 2 };
 
@@ -36,16 +38,14 @@ function findContainingCandle(candleTimes: readonly number[], chartTime: number,
   return chartTime < getPairMatrixCandleClose(candleOpen, timeframe) ? candleOpen : null;
 }
 
-export function buildPairMatrixContextMarkerGroups(params: {
+export function indexPairMatrixContextMarkers(params: {
   events: readonly CalendarEvent[];
   currencies: readonly string[];
   candleTimes: readonly number[];
   timeframe: Timeframe;
   sourceTimeOffsetSeconds: number;
-  range: PairMatrixCandleRange | null;
-  contextPerSide: number;
-}): PairMatrixContextMarkerGroup[] {
-  if (!params.range || params.currencies.length === 0 || params.candleTimes.length === 0) return [];
+}): PairMatrixContextMarkerIndexGroup[] {
+  if (params.currencies.length === 0 || params.candleTimes.length === 0) return [];
   const currencies = new Set(params.currencies);
   const byCandle = new Map<number, CalendarEvent[]>();
 
@@ -60,24 +60,63 @@ export function buildPairMatrixContextMarkerGroups(params: {
 
   const groups = [...byCandle.entries()].sort(([left], [right]) => left - right).map(([candleOpen, sourceEvents]) => {
     const events = [...sourceEvents].sort((left, right) => left.time - right.time || left.title.localeCompare(right.title));
-    const families = FACTOR_ORDER.flatMap((factor) => {
-      const matches = events.filter((event) => classifyPairMatrixEvent(event).id === factor.id);
-      return matches.length > 0 ? [{ factor, events: matches }] : [];
+    const eventsByFactor = new Map<string, CalendarEvent[]>();
+    events.forEach((event) => {
+      const factorId = classifyPairMatrixEvent(event).id;
+      const matches = eventsByFactor.get(factorId) ?? [];
+      matches.push(event);
+      eventsByFactor.set(factorId, matches);
     });
-    const position = candleOpen < params.range!.firstOpen ? "before" : candleOpen > params.range!.lastOpen ? "after" : "during";
+    const families = FACTOR_ORDER.flatMap((factor) => {
+      const matches = eventsByFactor.get(factor.id);
+      return matches ? [{ factor, events: matches }] : [];
+    });
     return {
       key: `${candleOpen}:${events.map((event) => `${event.id}:${event.time}`).join("|")}`,
       candleOpen,
       impact: events.reduce((dominant, event) => IMPACT_RANK[event.impact] < IMPACT_RANK[dominant] ? event.impact : dominant, "low" as CalendarEvent["impact"]),
       events,
       families,
-      position,
-    } satisfies PairMatrixContextMarkerGroup;
+    } satisfies PairMatrixContextMarkerIndexGroup;
   });
 
+  return groups;
+}
+
+function lowerBoundGroups(groups: readonly PairMatrixContextMarkerIndexGroup[], target: number): number {
+  let low = 0;
+  let high = groups.length;
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2);
+    if (groups[mid].candleOpen < target) low = mid + 1; else high = mid;
+  }
+  return low;
+}
+
+export function selectPairMatrixContextMarkerGroups(params: {
+  groups: readonly PairMatrixContextMarkerIndexGroup[];
+  range: PairMatrixCandleRange | null;
+  contextPerSide: number;
+}): PairMatrixContextMarkerGroup[] {
+  if (!params.range || params.groups.length === 0) return [];
+  const start = lowerBoundGroups(params.groups, params.range.firstOpen);
+  const afterStart = lowerBoundGroups(params.groups, params.range.lastOpen + 1);
+
   const limit = Math.max(0, Math.round(params.contextPerSide));
-  const before = limit === 0 ? [] : groups.filter((group) => group.position === "before").slice(-limit);
-  const during = groups.filter((group) => group.position === "during");
-  const after = groups.filter((group) => group.position === "after").slice(0, limit);
+  const before = limit === 0 ? [] : params.groups.slice(Math.max(0, start - limit), start).map((group) => ({ ...group, position: "before" as const }));
+  const during = params.groups.slice(start, afterStart).map((group) => ({ ...group, position: "during" as const }));
+  const after = limit === 0 ? [] : params.groups.slice(afterStart, afterStart + limit).map((group) => ({ ...group, position: "after" as const }));
   return [...before, ...during, ...after];
+}
+
+export function buildPairMatrixContextMarkerGroups(params: {
+  events: readonly CalendarEvent[];
+  currencies: readonly string[];
+  candleTimes: readonly number[];
+  timeframe: Timeframe;
+  sourceTimeOffsetSeconds: number;
+  range: PairMatrixCandleRange | null;
+  contextPerSide: number;
+}): PairMatrixContextMarkerGroup[] {
+  return selectPairMatrixContextMarkerGroups({ groups: indexPairMatrixContextMarkers(params), range: params.range, contextPerSide: params.contextPerSide });
 }

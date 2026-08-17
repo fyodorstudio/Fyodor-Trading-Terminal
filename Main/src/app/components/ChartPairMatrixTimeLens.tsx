@@ -14,6 +14,7 @@ import { ChartPairMatrixScoringGuide } from "@/app/components/ChartPairMatrixSco
 import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
 import { formatChartEventDisplayTime } from "@/app/lib/chartEvents";
 import type { ChartDisplayTimeMode } from "@/app/lib/chartView";
+import type { PairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
 import type {
   PairMatrixCurrencyMomentumRead,
   PairMatrixEconomyState,
@@ -61,6 +62,10 @@ export interface ChartPairMatrixTimeLensData {
   onReturnToCursor: () => void;
   onToggleOpen: () => void;
   onClose: () => void;
+  cursorRuntime?: {
+    hover: PairMatrixHoverRuntime;
+    resolve: (anchor: number | null) => ChartPairMatrixTimeLensData;
+  };
 }
 
 interface ChartPairMatrixTimeLensProps {

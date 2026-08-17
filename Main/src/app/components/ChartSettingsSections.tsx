@@ -93,11 +93,15 @@ function ChartDrawerMetric({ label, value }: { label: string; value: string | nu
 
 export function ChartAppearanceSettings({
   appearance,
+  preserveZoomOnMarketChange,
   onAppearanceChange,
+  onPreserveZoomChange,
   onResetAppearance,
 }: {
   appearance: ChartAppearancePreferences;
+  preserveZoomOnMarketChange: boolean;
   onAppearanceChange: <K extends keyof ChartAppearancePreferences>(key: K, value: ChartAppearancePreferences[K]) => void;
+  onPreserveZoomChange: (preserve: boolean) => void;
   onResetAppearance: () => void;
 }) {
   return (
@@ -132,6 +136,22 @@ export function ChartAppearanceSettings({
             <span>Show chart grid</span>
           </label>
         </div>
+      </section>
+
+      <section className="charts-history-section chart-drawer-card">
+        <h3>
+          <SlidersHorizontal size={14} />
+          Viewport
+        </h3>
+        <label className="chart-settings-check chart-settings-check-card chart-settings-check-strong">
+          <input
+            type="checkbox"
+            checked={preserveZoomOnMarketChange}
+            onChange={(event) => onPreserveZoomChange(event.target.checked)}
+          />
+          <span>Keep horizontal zoom when changing symbol or timeframe</span>
+        </label>
+        <p>Preserves candle width and right-side spacing. The price axis still auto-fits the newly loaded market.</p>
       </section>
 
       <section className="charts-history-section chart-drawer-card">

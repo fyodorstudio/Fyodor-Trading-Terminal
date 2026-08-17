@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronRight, X } from "lucide-react";
 import { formatChartEventDisplayTime } from "@/app/lib/chartEvents";
+import { usePairMatrixHoverAnchor } from "@/app/hooks/usePairMatrixHoverAnchor";
 import type { ChartDisplayTimeMode } from "@/app/lib/chartView";
 import type { PairMatrixContextMarkerGroup } from "@/app/lib/pairMatrixContextMarkers";
+import type { PairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
 import type { CalendarEvent } from "@/app/types";
 
 export interface PairMatrixContextMarkerView extends PairMatrixContextMarkerGroup {
@@ -10,13 +12,14 @@ export interface PairMatrixContextMarkerView extends PairMatrixContextMarkerGrou
   placement: "left" | "center" | "right";
 }
 
-export function ChartPairMatrixContextMarkers({
-  markers,
+export const ChartPairMatrixContextMarkers = memo(function ChartPairMatrixContextMarkers({
+  markers: sourceMarkers,
   passive,
   displayTimeMode,
   sourceTimeOffsetSeconds,
   loadState,
   onSelectEvent,
+  cursorRuntime,
 }: {
   markers: PairMatrixContextMarkerView[];
   passive: boolean;
@@ -24,7 +27,16 @@ export function ChartPairMatrixContextMarkers({
   sourceTimeOffsetSeconds: number;
   loadState: "idle" | "loading" | "ready" | "error";
   onSelectEvent: (event: CalendarEvent) => void;
+  cursorRuntime?: {
+    hover: PairMatrixHoverRuntime;
+    resolve: (anchor: number | null) => PairMatrixContextMarkerView[];
+  };
 }) {
+  const hoverAnchor = usePairMatrixHoverAnchor(cursorRuntime?.hover ?? null);
+  const markers = useMemo(
+    () => cursorRuntime ? cursorRuntime.resolve(hoverAnchor) : sourceMarkers,
+    [cursorRuntime, hoverAnchor, sourceMarkers],
+  );
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [expandedFamilies, setExpandedFamilies] = useState<Set<string>>(() => new Set());
 
@@ -119,4 +131,4 @@ export function ChartPairMatrixContextMarkers({
       })}
     </div>
   );
-}
+});
