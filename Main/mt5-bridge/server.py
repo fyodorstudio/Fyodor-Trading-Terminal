@@ -787,8 +787,19 @@ async def calendar_ingest(request: Request) -> Dict[str, Any]:
 
 
 @app.post("/calendar_ingest_cycle")
-def calendar_ingest_cycle(payload: CalendarIngestCycleRequest) -> Dict[str, Any]:
+async def calendar_ingest_cycle(request: Request) -> Dict[str, Any]:
   """Acknowledge one complete EA upload cycle before freezing forward releases."""
+  body_bytes = await request.body()
+  while body_bytes and body_bytes[-1:] == b"\x00":
+    body_bytes = body_bytes[:-1]
+  try:
+    raw = json.loads(body_bytes.decode("utf-8", errors="replace"))
+    payload = CalendarIngestCycleRequest.model_validate(raw)
+  except (json.JSONDecodeError, ValidationError) as error:
+    raise HTTPException(
+      status_code=422,
+      detail={"message": "Invalid calendar cycle acknowledgement", "error": str(error)},
+    )
   completed_at = int(payload.completedAt)
   observed_at = int(_time.time())
   _research_store.set_metadata("last_calendar_cycle_at", str(observed_at))

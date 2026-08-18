@@ -151,7 +151,8 @@ def test_cycle_acknowledgement_rejects_failed_upload_and_freezes_success(monkeyp
   assert failed.json()["accepted"] is False
   assert scheduled == []
 
-  completed = client.post("/calendar_ingest_cycle", json={"completedAt": release_time + 2, "failedBatches": 0})
+  cycle_body = json.dumps({"completedAt": release_time + 2, "failedBatches": 0}).encode("utf-8") + b"\x00"
+  completed = client.post("/calendar_ingest_cycle", content=cycle_body)
   assert completed.status_code == 200
   assert completed.json()["accepted"] is True
   assert completed.json()["captured"] >= 1
