@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from macro_signal import (
   aggregate_outcomes,
+  build_backtest_result,
   build_signal_candidates,
   calculate_atr_by_candle,
   evaluate_candidate,
@@ -174,3 +175,29 @@ def test_expired_result_is_marked_to_market_and_included_in_expectancy() -> None
   assert result["resultR"] is not None
   assert metrics["expiredCount"] == 1
   assert metrics["averageR"] == result["resultR"]
+
+
+def test_backtest_reports_split_cohorts_data_quality_and_plain_conclusion() -> None:
+  rows = candles(count=100)
+  events = [
+    calendar_event(1, rows[20]["time"] + 1, "EUR", "GDP q/q", "2.0", "1.5", "1.0"),
+    calendar_event(2, rows[50]["time"] + 1, "USD", "GDP q/q", "2.0", "1.5", "1.0"),
+    calendar_event(3, rows[55]["time"] + 1, "USD", "GDP q/q", "", "1.5", "1.0"),
+  ]
+  result = build_backtest_result(
+    events,
+    rows,
+    None,
+    {"count": 3, "earliest": events[0]["time"], "latest": events[-1]["time"], "currencies": []},
+    rows[-1]["time"] + 1,
+  )
+
+  activity = result["cohorts"]["factor"][0]
+  assert result["resultSchemaVersion"] == 2
+  assert activity["key"] == "activity"
+  assert activity["development"] is not None
+  assert activity["holdout"] is not None
+  assert result["dataQuality"]["registeredEconomyRows"] == 3
+  assert result["dataQuality"]["missingActualRows"] == 1
+  assert result["conclusion"]["code"] == "no_validated_edge"
+  assert "must not be placed on Charts" in result["conclusion"]["summary"]

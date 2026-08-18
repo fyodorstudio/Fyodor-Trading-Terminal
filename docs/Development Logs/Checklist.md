@@ -114,8 +114,10 @@ These are independent exploration sketches, not committed implementation specifi
 - [x] Replace the bridge's temporary calendar list with durable local SQLite history and explicit EUR/USD coverage reporting.
 - [x] Add the versioned backend Economy simulation with strict next-H4 entry, ATR(14) Wilder risk, 1R/1.5R/2R targets, 30-H4 expiry, independent cases, and M1 ambiguity resolution.
 - [x] Add the bounded Specialist Tools `Macro Signal Lab` with coverage/backfill guidance, target summaries, holdout gate, cohort breakdowns, and case audit.
-- [ ] Perform the controlled EUR/USD MT5 historical backfill and verify actual broker coverage.
-- [ ] Run the frozen v1 result once, audit data quality and chronological holdout evidence, and record the outcome without changing the formula.
+- [x] Perform the controlled EUR/USD MT5 historical backfill and verify actual broker coverage.
+- [x] Run the frozen v1 result once, audit chronological holdout evidence, and record `No validated edge` without changing the formula.
+- [x] Add plain-language v1 conclusions, development-versus-holdout cohort comparisons, and a source-data quality audit to Macro Signal Lab.
+- [ ] Pre-register exactly one exploratory v2 hypothesis after reviewing the split diagnostics; the already-viewed v1 holdout must not be described as untouched evidence for v2.
 - [ ] Freeze a forward-paper sample requirement before beginning paper validation.
 - [ ] Keep Inflation, Policy, learned weights, and Charts arrows deferred until separately versioned research justifies them.
 

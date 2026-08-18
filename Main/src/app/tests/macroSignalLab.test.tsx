@@ -58,6 +58,7 @@ const run: MacroSignalBacktestRun = {
   status: "completed",
   error: null,
   result: {
+    resultSchemaVersion: 2,
     versionId: version.id,
     versionHash: version.hash,
     datasetFingerprint: "dataset",
@@ -148,11 +149,38 @@ const run: MacroSignalBacktestRun = {
     },
     robustness: { fullAvailable: metrics, byYear: [] },
     cohorts: {
-      agreement: [{ key: "conflicted_weak", metrics }],
-      backgroundAlignment: [{ key: "conflicted", metrics }],
-      impact: [{ key: "high", metrics }],
-      factor: [{ key: "activity", metrics }],
-      exactSeries: [{ key: "EUR · GDP q/q", metrics }],
+      agreement: [{ key: "conflicted_weak", metrics, development: metrics, holdout: metrics }],
+      backgroundAlignment: [{ key: "conflicted", metrics, development: metrics, holdout: metrics }],
+      impact: [{ key: "high", metrics, development: metrics, holdout: metrics }],
+      factor: [{ key: "activity", metrics, development: metrics, holdout: metrics }],
+      exactSeries: [{ key: "EUR · GDP q/q", metrics, development: metrics, holdout: metrics }],
+    },
+    dataQuality: {
+      pairRows: 640,
+      historicalRows: 620,
+      futureScheduledRows: 20,
+      registeredEconomyRows: 300,
+      scoredEconomyRows: 280,
+      unregisteredHistoricalRows: 320,
+      candidatePackages: 40,
+      missingActualRows: 5,
+      missingForecastRows: 12,
+      missingPreviousRows: 4,
+      unparsableActualRows: 0,
+      unparsableForecastRows: 1,
+      unparsablePreviousRows: 0,
+      duplicateExactSeriesTimestampRows: 0,
+      registeredByFactor: [{ factor: "activity", rows: 100 }],
+    },
+    conclusion: {
+      code: "no_validated_edge",
+      title: "No validated edge in frozen v1",
+      summary: "The frozen Economy-only rule did not pass its predeclared holdout gate. It must not be placed on Charts.",
+      developmentAverageR: 0.08,
+      holdoutAverageR: -0.04,
+      holdoutExpectancyCi95: { lower: -0.1, upper: 0.02 },
+      exploratoryFactorLeads: [{ key: "labor", developmentAverageR: 0.04, holdoutAverageR: 0.08, developmentN: 80, holdoutN: 40 }],
+      selectionWarning: "Exploratory leads were noticed after viewing v1 and are not untouched validation evidence.",
     },
     limitations: ["Hypothetical results do not represent executed trades."],
   },
@@ -171,6 +199,11 @@ describe("Macro Signal Lab", () => {
     expect(html).toContain("Conflicted / weak");
     expect(html).toContain("Both touched — order unknown");
     expect(html).toContain("Paper-eligibility gate");
+    expect(html).toContain("What v1 means");
+    expect(html).toContain("No validated edge in frozen v1");
+    expect(html).toContain("Development versus holdout");
+    expect(html).toContain("Data-quality audit");
+    expect(html).toContain("Ideas worth researching next—not proven signals");
     expect(html).not.toContain("Buy signal");
     expect(html).not.toContain("Sell signal");
   });

@@ -193,7 +193,7 @@
 .macro-signal-target > strong { display: block; margin-top: 5px; font-size: 24px; }
 .macro-signal-target p { margin: 2px 0 0; color: #64748b; font-size: 11px; font-weight: 700; }
 
-.macro-signal-gate-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 7px; }
+.macro-signal-gate-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
 .macro-signal-gate-grid div { min-width: 0; border: 1px solid #e2e8f0; border-radius: 7px; background: #f8fafc; padding: 8px; }
 .macro-signal-gate-grid div.is-passed { border-color: #c7d2fe; background: #eef2ff; }
 .macro-signal-gate-grid span { display: block; color: #64748b; font-size: 9px; font-weight: 900; text-transform: uppercase; }
@@ -219,6 +219,31 @@
 .macro-signal-cohort-grid details strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .macro-signal-cohort-grid details span { color: #64748b; text-align: right; }
 
+.macro-signal-verdict { border-color: #c7d2fe; background: linear-gradient(135deg, #fff 0%, #f5f7ff 100%); }
+.macro-signal-verdict-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.macro-signal-verdict-grid > div { min-width: 0; border: 1px solid #dbe3ef; border-radius: 8px; background: #fff; padding: 10px; }
+.macro-signal-verdict-grid > div.is-rejected { border-color: #cbd5e1; background: #f8fafc; }
+.macro-signal-verdict-grid > div.is-eligible { border-color: #a5b4fc; background: #eef2ff; }
+.macro-signal-verdict-grid span { display: block; color: #4f46e5; font-size: 9px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+.macro-signal-verdict-grid strong { display: block; margin-top: 4px; font-size: 14px; font-weight: 900; }
+.macro-signal-verdict-grid p { margin: 4px 0 0; color: #64748b; font-size: 10px; font-weight: 650; line-height: 1.4; }
+.macro-signal-verdict-foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; margin-top: 8px; color: #475569; font-size: 10px; font-weight: 800; }
+.macro-signal-research-leads { margin-top: 9px; border-top: 1px solid #dbe3ef; padding-top: 8px; }
+.macro-signal-research-leads > strong { display: block; font-size: 11px; }
+.macro-signal-research-leads > div { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
+.macro-signal-research-leads > div span { border: 1px solid #dbe3ef; border-radius: 6px; background: #fff; padding: 4px 7px; color: #334155; font-size: 10px; font-weight: 800; }
+.macro-signal-research-leads small,
+.macro-signal-audit-note { display: block; margin: 6px 0 0; color: #64748b; font-size: 9px; font-weight: 650; line-height: 1.4; }
+
+.macro-signal-cohort-comparison > div {
+  display: grid !important;
+  grid-template-columns: minmax(120px, 1fr) 104px 104px !important;
+  align-items: center;
+}
+.macro-signal-cohort-comparison > div.is-heading { position: sticky; top: 0; z-index: 1; background: #f1f5f9; color: #475569; font-size: 9px; font-weight: 900; text-transform: uppercase; }
+.macro-signal-cohort-comparison > div > span { display: block; color: #0f172a; font-weight: 900; text-align: right; }
+.macro-signal-cohort-comparison > div > span small { display: block; color: #64748b; font-size: 8px; font-weight: 750; }
+
 .macro-signal-robustness-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .macro-signal-robustness-grid > div { min-width: 0; border: 1px solid #e2e8f0; border-radius: 7px; background: #f8fafc; padding: 8px; }
 .macro-signal-robustness-grid span,
@@ -237,4 +262,5 @@
   .macro-signal-results { overflow: visible; }
   .macro-signal-sidebar { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .macro-signal-metrics-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .macro-signal-verdict-grid { grid-template-columns: 1fr; }
 }

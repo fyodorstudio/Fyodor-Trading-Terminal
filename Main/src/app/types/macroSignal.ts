@@ -110,9 +110,47 @@ export interface MacroSignalTargetResult {
 export interface MacroSignalCohortRow {
   key: string;
   metrics: MacroSignalMetrics;
+  development: MacroSignalMetrics | null;
+  holdout: MacroSignalMetrics | null;
+}
+
+export interface MacroSignalDataQuality {
+  pairRows: number;
+  historicalRows: number;
+  futureScheduledRows: number;
+  registeredEconomyRows: number;
+  scoredEconomyRows: number;
+  unregisteredHistoricalRows: number;
+  candidatePackages: number;
+  missingActualRows: number;
+  missingForecastRows: number;
+  missingPreviousRows: number;
+  unparsableActualRows: number;
+  unparsableForecastRows: number;
+  unparsablePreviousRows: number;
+  duplicateExactSeriesTimestampRows: number;
+  registeredByFactor: Array<{ factor: string; rows: number }>;
+}
+
+export interface MacroSignalConclusion {
+  code: "eligible_for_paper_validation" | "no_validated_edge";
+  title: string;
+  summary: string;
+  developmentAverageR: number | null;
+  holdoutAverageR: number | null;
+  holdoutExpectancyCi95: { lower: number; upper: number } | null;
+  exploratoryFactorLeads: Array<{
+    key: string;
+    developmentAverageR: number;
+    holdoutAverageR: number;
+    developmentN: number;
+    holdoutN: number;
+  }>;
+  selectionWarning: string;
 }
 
 export interface MacroSignalBacktestResult {
+  resultSchemaVersion: number;
   versionId: string;
   versionHash: string;
   datasetFingerprint: string;
@@ -155,6 +193,8 @@ export interface MacroSignalBacktestResult {
     byYear: Array<{ year: number; metrics: MacroSignalMetrics }>;
   };
   cohorts: Record<string, MacroSignalCohortRow[]>;
+  dataQuality: MacroSignalDataQuality;
+  conclusion: MacroSignalConclusion;
   limitations: string[];
 }
 

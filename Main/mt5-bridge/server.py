@@ -20,6 +20,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from macro_signal import (
+  RESULT_SCHEMA_VERSION,
   VERSION_CONFIGURATION,
   VERSION_CREATED_AT,
   VERSION_HASH,
@@ -946,6 +947,7 @@ def start_research_backtest(payload: MacroBacktestRequest) -> Dict[str, Any]:
     and latest["status"] == "completed"
     and isinstance(latest.get("result"), dict)
     and latest["result"].get("eventFingerprint") == fingerprint
+    and latest["result"].get("resultSchemaVersion") == RESULT_SCHEMA_VERSION
     and latest["result"].get("targets", {}).get("2.0", {}).get("overall", {}).get("unevaluableCount", 1) == 0
   ):
     return {**latest, "cached": True}

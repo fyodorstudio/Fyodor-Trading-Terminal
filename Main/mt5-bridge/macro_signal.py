@@ -13,6 +13,7 @@ from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Seque
 
 VERSION_ID = "FMS-EURUSD-ECO-H4-v1"
 VERSION_CREATED_AT = 1786982400  # 2026-08-18 00:00:00 UTC
+RESULT_SCHEMA_VERSION = 2
 H4_SECONDS = 4 * 60 * 60
 PRIMARY_WINDOW_DAYS = 3652
 RECENT_WINDOW_DAYS = 1826
@@ -505,15 +506,76 @@ def _filtered_outcomes(outcomes: Sequence[Dict[str, Any]], start: Optional[int],
   ]
 
 
-def _cohort_rows(outcomes: Sequence[Dict[str, Any]], key_fn: Callable[[Dict[str, Any]], Iterable[str]]) -> List[Dict[str, Any]]:
+def _cohort_rows(
+  outcomes: Sequence[Dict[str, Any]],
+  key_fn: Callable[[Dict[str, Any]], Iterable[str]],
+  split_time: Optional[int] = None,
+) -> List[Dict[str, Any]]:
   groups: Dict[str, List[Dict[str, Any]]] = {}
   for outcome in outcomes:
     for key in key_fn(outcome):
       groups.setdefault(key, []).append(outcome)
   return [
-    {"key": key, "metrics": aggregate_outcomes(rows)}
+    {
+      "key": key,
+      "metrics": aggregate_outcomes(rows),
+      "development": aggregate_outcomes(_filtered_outcomes(rows, None, split_time)) if split_time is not None else None,
+      "holdout": aggregate_outcomes(_filtered_outcomes(rows, split_time, None)) if split_time is not None else None,
+    }
     for key, rows in sorted(groups.items(), key=lambda item: (-len(item[1]), item[0]))
   ]
+
+
+def build_data_quality_audit(
+  events: Sequence[Dict[str, Any]],
+  candidates: Sequence[Dict[str, Any]],
+  generated_at: int,
+) -> Dict[str, Any]:
+  pair_rows = [event for event in events if str(event.get("currency", "")).upper() in {"EUR", "USD"}]
+  historical_rows = [event for event in pair_rows if int(event.get("time", 0)) <= generated_at]
+  future_rows = [event for event in pair_rows if int(event.get("time", 0)) > generated_at]
+  registered_rows = [event for event in historical_rows if find_economy_rule(event) is not None]
+  scored_rows = [event for event in registered_rows if score_event(event) is not None]
+  exact_keys: Dict[Tuple[str, str, int], int] = {}
+  factor_counts: Dict[str, int] = {}
+  for event in registered_rows:
+    rule = find_economy_rule(event)
+    if rule is not None:
+      factor_counts[rule.factor] = factor_counts.get(rule.factor, 0) + 1
+    key = (
+      str(event.get("currency", "")).upper(),
+      normalize_title(str(event.get("title", ""))),
+      int(event.get("time", 0)),
+    )
+    exact_keys[key] = exact_keys.get(key, 0) + 1
+
+  def missing(event: Dict[str, Any], key: str) -> bool:
+    return not str(event.get(key) or "").strip()
+
+  def unparsable_present(event: Dict[str, Any], key: str) -> bool:
+    value = event.get(key)
+    return bool(str(value or "").strip()) and parse_source_value(value) is None
+
+  return {
+    "pairRows": len(pair_rows),
+    "historicalRows": len(historical_rows),
+    "futureScheduledRows": len(future_rows),
+    "registeredEconomyRows": len(registered_rows),
+    "scoredEconomyRows": len(scored_rows),
+    "unregisteredHistoricalRows": len(historical_rows) - len(registered_rows),
+    "candidatePackages": len(candidates),
+    "missingActualRows": sum(missing(event, "actual") for event in registered_rows),
+    "missingForecastRows": sum(missing(event, "forecast") for event in registered_rows),
+    "missingPreviousRows": sum(missing(event, "previous") for event in registered_rows),
+    "unparsableActualRows": sum(unparsable_present(event, "actual") for event in registered_rows),
+    "unparsableForecastRows": sum(unparsable_present(event, "forecast") for event in registered_rows),
+    "unparsablePreviousRows": sum(unparsable_present(event, "previous") for event in registered_rows),
+    "duplicateExactSeriesTimestampRows": sum(max(0, count - 1) for count in exact_keys.values()),
+    "registeredByFactor": [
+      {"factor": factor, "rows": count}
+      for factor, count in sorted(factor_counts.items())
+    ],
+  }
 
 
 def build_backtest_result(
@@ -602,18 +664,52 @@ def build_backtest_result(
   ]
 
   cohorts = {
-    "agreement": _cohort_rows(highlighted_primary, lambda outcome: [str(outcome["agreement"])]),
-    "backgroundAlignment": _cohort_rows(highlighted_primary, lambda outcome: [str(outcome["backgroundAlignment"])]),
-    "direction": _cohort_rows(highlighted_primary, lambda outcome: [str(outcome["direction"])]),
-    "impact": _cohort_rows(highlighted_primary, lambda outcome: [str(outcome["highestImpact"])]),
-    "factor": _cohort_rows(highlighted_primary, lambda outcome: {str(vote["factor"]) for vote in outcome["factorVotes"]}),
+    "agreement": _cohort_rows(highlighted_primary, lambda outcome: [str(outcome["agreement"])], split_time),
+    "backgroundAlignment": _cohort_rows(highlighted_primary, lambda outcome: [str(outcome["backgroundAlignment"])], split_time),
+    "direction": _cohort_rows(highlighted_primary, lambda outcome: [str(outcome["direction"])], split_time),
+    "impact": _cohort_rows(highlighted_primary, lambda outcome: [str(outcome["highestImpact"])], split_time),
+    "factor": _cohort_rows(highlighted_primary, lambda outcome: {str(vote["factor"]) for vote in outcome["factorVotes"]}, split_time),
     "exactSeries": _cohort_rows(
       highlighted_primary,
       lambda outcome: {f"{event['currency']} · {event['title']}" for event in outcome["events"]},
+      split_time,
     ),
+  }
+  factor_leads = [
+    {
+      "key": row["key"],
+      "developmentAverageR": row["development"]["averageR"],
+      "holdoutAverageR": row["holdout"]["averageR"],
+      "developmentN": row["development"]["evaluableCount"],
+      "holdoutN": row["holdout"]["evaluableCount"],
+    }
+    for row in cohorts["factor"]
+    if row["development"] is not None
+    and row["holdout"] is not None
+    and row["development"]["evaluableCount"] >= 30
+    and row["holdout"]["evaluableCount"] >= 30
+    and row["development"]["averageR"] is not None
+    and row["holdout"]["averageR"] is not None
+    and row["development"]["averageR"] > 0
+    and row["holdout"]["averageR"] > 0
+  ]
+  conclusion = {
+    "code": "eligible_for_paper_validation" if eligible else "no_validated_edge",
+    "title": "Eligible for paper validation" if eligible else "No validated edge in frozen v1",
+    "summary": (
+      "The predeclared research gate passed. This permits forward paper validation, not chart signals or live orders."
+      if eligible else
+      "The frozen Economy-only rule did not pass its predeclared holdout gate. It must not be placed on Charts."
+    ),
+    "developmentAverageR": development_metrics["averageR"],
+    "holdoutAverageR": holdout_metrics["averageR"],
+    "holdoutExpectancyCi95": holdout_metrics["expectancyCi95"],
+    "exploratoryFactorLeads": factor_leads,
+    "selectionWarning": "Exploratory leads were noticed after viewing v1 and are not untouched validation evidence.",
   }
 
   return {
+    "resultSchemaVersion": RESULT_SCHEMA_VERSION,
     "versionId": VERSION_ID,
     "versionHash": VERSION_HASH,
     "generatedAt": generated_at,
@@ -639,6 +735,8 @@ def build_backtest_result(
     "eligibility": {"eligible": eligible, "checks": checks, "gate": ELIGIBILITY_GATE},
     "robustness": robustness,
     "cohorts": cohorts,
+    "dataQuality": build_data_quality_audit(events, candidates, generated_at),
+    "conclusion": conclusion,
     "limitations": [
       "Hypothetical results do not represent executed trades.",
       "Broker Previous values may already contain revisions; this is not guaranteed vintage data.",

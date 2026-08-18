@@ -1,7 +1,7 @@
 # Fyodor Macro Signal Research
 
 **Date:** 2026-08-18
-**Status:** Foundation implemented. Durable storage, the frozen backend engine, and Macro Signal Lab exist; historical backfill, the first frozen result, and validation remain incomplete.
+**Status:** Frozen v1 baseline completed and rejected for Charts. Durable storage contains the broker backfill, the first chronological holdout did not validate an edge, and diagnostic research is active.
 
 ## Purpose
 
@@ -106,10 +106,23 @@ Historical MT5 calendar rows are not guaranteed vintage datasets. Broker `Previo
 1. **Implemented:** durable local bridge calendar storage and explicit earliest/latest coverage reporting.
 2. **Implemented:** versioned backend backtest engine and reusable EURUSD H4/M1 candle cache so heavy research does not run in the Charts render path.
 3. **Implemented:** separate Specialist Tools **Macro Signal Lab** with an overall model result followed by family, title, and individual-case drilldowns.
-4. Run and audit the frozen Economy baseline without changing its formula in response to the result.
+4. **Implemented:** run and audit the frozen Economy baseline without changing its formula in response to the result.
 5. Add forward paper-signal tracking for any version that meets the predeclared research gate.
 6. Consider Charts arrows only after holdout review and forward paper validation.
 7. Research Policy, Inflation, combined pillars, D1 variants, and learned weights only as separately versioned later work.
+
+## First Frozen Result
+
+The first `FMS-EURUSD-ECO-H4-v1` run used durable broker coverage beginning in 2007 and produced 5,666 evaluable primary-window 2R cases across the chronological split.
+
+- Development: 3,961 evaluable cases, `+0.024R` average.
+- Holdout: 1,705 evaluable cases, `-0.036R` average and `31.7%` target-first.
+- Approximate holdout expectancy interval: `-0.102R` through `+0.030R`.
+- Decision: **No validated edge in frozen v1. Do not place it on Charts.**
+
+The result is useful because it rejected the broad Economy-only hypothesis without changing the formula after seeing history. Factor behavior was unstable between development and holdout. Labor was positive in both partitions, but that observation was discovered after inspecting v1 and is therefore only an exploratory lead. It is not untouched validation evidence.
+
+The Lab's diagnostic schema now reports development and holdout separately for every cohort, records missing/unparseable source values and duplicate exact-series timestamps, and states the model decision in plain language. These reporting additions do not alter the immutable v1 signal or simulation.
 
 ## Deferred and Open Research Questions
 
@@ -124,30 +137,16 @@ Historical MT5 calendar rows are not guaranteed vintage datasets. Broker `Previo
 - Event-package attribution when multiple releases share the same timestamp.
 - Eventual manual chart integration beside the user's independent technical support/resistance process.
 
-## Future MT5 Backfill Handoff
+## Completed MT5 Backfill and Ongoing Settings
 
-### Do not change MT5 yet
+The controlled historical import was completed on 2026-08-18. The durable SQLite archive survives bridge and app restarts. The EA should now remain on its normal update settings:
 
-The current bridge keeps calendar rows only in memory, removes rows older than 400 days, and loses its calendar history on restart. Increasing the EA lookback now would create work without preserving the result.
+- `CurrenciesList = "USD,EUR,GBP,JPY,AUD,CAD,NZD,CHF"`
+- `LookBackDays = 400`
+- `MaxEventsPerCur = 1000`
+- `MaxRowsPerPost = 120`
 
-### After durable bridge storage is implemented
-
-Perform one controlled historical import:
-
-1. Temporarily set the EA inputs to:
-   - `CurrenciesList = "USD,EUR"`
-   - `LookBackDays = 10000`
-   - `MaxEventsPerCur = 10000`
-   - keep `MaxRowsPerPost = 120`
-2. Wait for an EA timer cycle to finish with `failed_batches=0` in the MT5 Journal.
-3. Verify the bridge reports a credible stored-row count plus the earliest and latest EUR/USD release timestamps. MT5 may return less than 10,000 days; actual broker coverage is authoritative.
-4. Restore:
-   - `CurrenciesList = "USD,EUR,GBP,JPY,AUD,CAD,NZD,CHF"`
-   - `LookBackDays = 400`
-   - `MaxEventsPerCur = 1000`
-5. Leave the durable archive intact. Subsequent 400-day ingests update recent rows without deleting the older research history.
-
-Do not treat the backfill as complete when any batch failed or when coverage has not been verified.
+These smaller recurring ingests update recent and newly released rows without deleting the older archive. The 10,000-day configuration should not remain active during normal operation.
 
 ## Research Warnings and References
 

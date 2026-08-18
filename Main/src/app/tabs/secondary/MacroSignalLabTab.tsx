@@ -41,6 +41,11 @@ function formatR(value: number | null): string {
   return `${value > 0 ? "+" : ""}${value.toFixed(2)}R`;
 }
 
+function formatRange(value: { lower: number; upper: number } | null | undefined): string {
+  if (!value) return "—";
+  return `${formatR(value.lower)} to ${formatR(value.upper)}`;
+}
+
 function formatPrice(value: number | undefined): string {
   return value == null ? "—" : value.toFixed(5);
 }
@@ -206,6 +211,23 @@ export function MacroSignalLabView({
             </ul>
             <div className="macro-signal-hash" title={version?.hash}>Version hash {version?.hash?.slice(0, 12) ?? "loading"}</div>
           </section>
+
+          {result?.dataQuality ? (
+            <section className="macro-signal-panel">
+              <div className="macro-signal-section-title"><Database size={16} /><h3>Data-quality audit</h3></div>
+              <dl className="macro-signal-definition-list">
+                <div><dt>EUR/USD rows</dt><dd>{result.dataQuality.pairRows}</dd></div>
+                <div><dt>Economy rows</dt><dd>{result.dataQuality.registeredEconomyRows}</dd></div>
+                <div><dt>Scored rows</dt><dd>{result.dataQuality.scoredEconomyRows}</dd></div>
+                <div><dt>Packages</dt><dd>{result.dataQuality.candidatePackages}</dd></div>
+                <div><dt>Missing A</dt><dd>{result.dataQuality.missingActualRows}</dd></div>
+                <div><dt>Missing F</dt><dd>{result.dataQuality.missingForecastRows}</dd></div>
+                <div><dt>Missing P</dt><dd>{result.dataQuality.missingPreviousRows}</dd></div>
+                <div><dt>Duplicates</dt><dd>{result.dataQuality.duplicateExactSeriesTimestampRows}</dd></div>
+              </dl>
+              <p className="macro-signal-audit-note">Missing values contribute nothing. Unregistered rows remain outside v1 rather than being guessed into a factor.</p>
+            </section>
+          ) : null}
         </aside>
 
         <main className="macro-signal-results">
@@ -219,6 +241,28 @@ export function MacroSignalLabView({
             <div className="macro-signal-empty"><Beaker /><strong>No frozen backtest result yet</strong><span>{coverage?.count ? "Run the model when MT5 is connected." : "Complete the durable calendar backfill first."}</span></div>
           ) : (
             <>
+              {result.conclusion ? (
+                <section className="macro-signal-panel macro-signal-verdict">
+                  <div className="macro-signal-section-title"><ShieldCheck size={16} /><h3>What v1 means</h3><span>Plain-language decision</span></div>
+                  <div className="macro-signal-verdict-grid">
+                    <div><span>1 · Build</span><strong>Development {formatR(result.conclusion.developmentAverageR)}</strong><p>The older 70% was used to observe how the frozen rule behaved.</p></div>
+                    <div><span>2 · Check</span><strong>Holdout {formatR(result.conclusion.holdoutAverageR)}</strong><p>The newer 30% checked whether that behavior survived later data.</p></div>
+                    <div className={result.conclusion.code === "eligible_for_paper_validation" ? "is-eligible" : "is-rejected"}><span>3 · Decision</span><strong>{result.conclusion.title}</strong><p>{result.conclusion.summary}</p></div>
+                  </div>
+                  <div className="macro-signal-verdict-foot">
+                    <span>Holdout uncertainty: {formatRange(result.conclusion.holdoutExpectancyCi95)}</span>
+                    <span>Chart indicator: {result.conclusion.code === "eligible_for_paper_validation" ? "Still disabled until paper validation" : "Not allowed"}</span>
+                  </div>
+                  {result.conclusion.exploratoryFactorLeads.length ? (
+                    <div className="macro-signal-research-leads">
+                      <strong>Ideas worth researching next—not proven signals</strong>
+                      <div>{result.conclusion.exploratoryFactorLeads.map((lead) => <span key={lead.key}>{lead.key}: development {formatR(lead.developmentAverageR)}, holdout {formatR(lead.holdoutAverageR)}</span>)}</div>
+                      <small>{result.conclusion.selectionWarning}</small>
+                    </div>
+                  ) : null}
+                </section>
+              ) : null}
+
               <section className="macro-signal-overview macro-signal-panel">
                 <div className="macro-signal-result-heading">
                   <div>
@@ -283,14 +327,19 @@ export function MacroSignalLabView({
               </section>
 
               <section className="macro-signal-panel">
-                <div className="macro-signal-section-title"><h3>Research breakdowns</h3><span>Not fitted weights</span></div>
+                <div className="macro-signal-section-title"><h3>Development versus holdout</h3><span>Consistency matters more than the prettiest number</span></div>
                 <div className="macro-signal-cohort-grid">
                   {(["agreement", "backgroundAlignment", "impact", "factor", "exactSeries"] as const).map((cohort) => (
                     <details key={cohort}>
                       <summary>{cohort === "exactSeries" ? "Exact series" : cohort} <span>{result.cohorts[cohort]?.length ?? 0}</span></summary>
-                      <div>
+                      <div className="macro-signal-cohort-comparison">
+                        <div className="is-heading"><strong>Cohort</strong><span>Development</span><span>Holdout</span></div>
                         {(result.cohorts[cohort] ?? []).map((row) => (
-                          <div key={row.key}><strong>{row.key}</strong><span>N {row.metrics.evaluableCount}</span><span>TP {formatPercent(row.metrics.targetHitRate)}</span><span>{formatR(row.metrics.averageR)}</span></div>
+                          <div key={row.key}>
+                            <strong title={row.key}>{row.key}</strong>
+                            <span title={`Development: N ${row.development?.evaluableCount ?? 0}; target-first ${formatPercent(row.development?.targetHitRate ?? null)}`}>{formatR(row.development?.averageR ?? null)}<small>N {row.development?.evaluableCount ?? 0}</small></span>
+                            <span title={`Holdout: N ${row.holdout?.evaluableCount ?? 0}; target-first ${formatPercent(row.holdout?.targetHitRate ?? null)}`}>{formatR(row.holdout?.averageR ?? null)}<small>N {row.holdout?.evaluableCount ?? 0}</small></span>
+                          </div>
                         ))}
                       </div>
                     </details>
