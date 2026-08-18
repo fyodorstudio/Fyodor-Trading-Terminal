@@ -9,6 +9,7 @@ describe("navigation truth", () => {
       { id: "dashboard", label: "DIFFERENTIAL CALCULATOR", groupLabel: "Active Tool" },
       { id: "macro-drivers", label: "MACRO DRIVERS", groupLabel: "Active Tool" },
       { id: "event-tools", label: "EVENT REPLAY", groupLabel: "Active Experiment" },
+      { id: "macro-signal-lab", label: "MACRO SIGNAL LAB", groupLabel: "Active Experiment" },
       { id: "prototyping", label: "PROTOTYPING", groupLabel: "Garbage / Ignore" },
     ]);
     expect(ANALYSIS_TAB_ORDER).not.toContainEqual({ id: "terminal-questions", label: "SIX QUESTIONS DRAFT" });
@@ -18,6 +19,7 @@ describe("navigation truth", () => {
     expect(specialist?.children).toContainEqual({ id: "dashboard", label: "DIFFERENTIAL CALCULATOR", groupLabel: "Active Tool" });
     expect(specialist?.children).toContainEqual({ id: "macro-drivers", label: "MACRO DRIVERS", groupLabel: "Active Tool" });
     expect(specialist?.children).toContainEqual({ id: "event-tools", label: "EVENT REPLAY", groupLabel: "Active Experiment" });
+    expect(specialist?.children).toContainEqual({ id: "macro-signal-lab", label: "MACRO SIGNAL LAB", groupLabel: "Active Experiment" });
     expect(specialist?.children).toContainEqual({ id: "prototyping", label: "PROTOTYPING", groupLabel: "Garbage / Ignore" });
   });
 

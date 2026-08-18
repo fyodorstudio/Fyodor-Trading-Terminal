@@ -16,6 +16,7 @@ export const ANALYSIS_TAB_ORDER: AppTabChild[] = [
   { id: "dashboard", label: "DIFFERENTIAL CALCULATOR", groupLabel: "Active Tool" },
   { id: "macro-drivers", label: "MACRO DRIVERS", groupLabel: "Active Tool" },
   { id: "event-tools", label: "EVENT REPLAY", groupLabel: "Active Experiment" },
+  { id: "macro-signal-lab", label: "MACRO SIGNAL LAB", groupLabel: "Active Experiment" },
   { id: "prototyping", label: "PROTOTYPING", groupLabel: "Garbage / Ignore" },
 ];
 

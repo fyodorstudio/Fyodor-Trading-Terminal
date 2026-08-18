@@ -1,7 +1,7 @@
 # Fyodor Macro Signal Research
 
 **Date:** 2026-08-18
-**Status:** Decision log and future implementation specification. No signal engine has been implemented or validated yet.
+**Status:** Foundation implemented. Durable storage, the frozen backend engine, and Macro Signal Lab exist; historical backfill, the first frozen result, and validation remain incomplete.
 
 ## Purpose
 
@@ -20,7 +20,7 @@ The feature is intended to reduce manual economic-data reading and make historic
 - The first model uses registered **Economy** evidence only.
 - Inflation and Policy remain visible research context and will be investigated as separate future models before any combined model is considered.
 - Directional outputs are **Long bias**, **Short bias**, and **No direction**. They are research classifications, not executable orders.
-- The Macro Signal Lab will eventually live as a separate Specialist Tools surface. Charts integration is deferred until a frozen version has credible holdout evidence and forward paper results.
+- The Macro Signal Lab lives as a separate Specialist Tools surface. Charts integration is deferred until a frozen version has credible holdout evidence and forward paper results.
 - The initial Lab will be a fixed case explorer, not an optimizer, recipe builder, or automatic leaderboard.
 - Existing Pair Matrix raw data remains the audit source.
 
@@ -88,15 +88,24 @@ The intended status progression is:
 
 `Research` → `Eligible for paper validation` → `Paper validated`
 
-The exact statistical eligibility threshold and forward-paper sample requirement must be frozen before the first result is inspected. They remain an explicit implementation-time research decision, not something to tune after seeing performance.
+The paper-eligibility threshold was frozen before the first result:
+
+- at least five years of stored EUR/USD calendar coverage;
+- cached H4 prices covering the complete primary research window and ATR warm-up;
+- at least 30 evaluable 2R holdout cases;
+- positive 2R development expectancy;
+- an approximate 95% lower confidence bound above zero for 2R holdout expectancy;
+- no more than 5% ambiguous holdout outcomes.
+
+Passing means only **Eligible for paper validation**. The forward-paper sample requirement must still be frozen before paper validation begins.
 
 Historical MT5 calendar rows are not guaranteed vintage datasets. Broker `Previous` values may already contain revisions, and forecast availability can vary over time. These limitations must remain visible in the Lab.
 
 ## Implementation Milestones
 
-1. Add durable local bridge calendar storage and explicit earliest/latest coverage reporting.
-2. Add a versioned backend backtest engine and reusable EURUSD H4/M1 candle cache so heavy research does not run in the Charts render path.
-3. Add the separate Specialist Tools **Macro Signal Lab** with an overall model result followed by family, title, and individual-case drilldowns.
+1. **Implemented:** durable local bridge calendar storage and explicit earliest/latest coverage reporting.
+2. **Implemented:** versioned backend backtest engine and reusable EURUSD H4/M1 candle cache so heavy research does not run in the Charts render path.
+3. **Implemented:** separate Specialist Tools **Macro Signal Lab** with an overall model result followed by family, title, and individual-case drilldowns.
 4. Run and audit the frozen Economy baseline without changing its formula in response to the result.
 5. Add forward paper-signal tracking for any version that meets the predeclared research gate.
 6. Consider Charts arrows only after holdout review and forward paper validation.
@@ -104,7 +113,6 @@ Historical MT5 calendar rows are not guaranteed vintage datasets. Broker `Previo
 
 ## Deferred and Open Research Questions
 
-- The statistical threshold required for **Eligible for paper validation**.
 - The number and duration of forward paper observations required for **Paper validated**.
 - Whether broker-impact cohorts demonstrate stable enough differences to justify a future predeclared weight model.
 - Whether Before-state alignment improves out-of-sample results enough to become a future filter.

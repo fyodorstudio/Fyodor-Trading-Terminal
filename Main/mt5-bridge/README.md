@@ -11,6 +11,11 @@ It exposes the MT5-backed endpoints the frontend needs:
 - `GET /history_range`
 - `GET /calendar`
 - `GET /market_status`
+- `GET /research/coverage`
+- `GET /research/versions/current`
+- `GET /research/backtests/latest`
+- `GET /research/backtests/{run_id}`
+- `POST /research/backtests`
 - `POST /calendar_ingest`
 - `WS /stream`
 
@@ -25,6 +30,10 @@ Use that EA version if you want the bridge/app to preserve:
 - future blank schedule rows needed for next-event dates
 
 The bridge also exposes health metadata the frontend relies on, including `last_calendar_ingest_at`, and it is now part of the app's trust-state story rather than just a passive candle proxy.
+
+Calendar rows are stored durably in a local SQLite database rather than a 400-day in-memory list. Set `FYODOR_RESEARCH_DB` to override its location; the Windows default is `%LOCALAPPDATA%\Fyodor Trading Terminal\fyodor-research.sqlite3`.
+
+The research endpoints own the frozen `FMS-EURUSD-ECO-H4-v1` simulation used by Macro Signal Lab. Backtests run on a single background worker, reuse cached H4 candles, fetch M1 only when an H4 bar touches both stop and target, and never execute an order.
 
 ## Normal Usage
 
@@ -45,6 +54,7 @@ The normal frontend/bridge contract is:
 - market-session status for `Overview` and `Charts`
 - central-bank derivation source data for `Central Banks Data`
 - historical range access for `Event Reaction Engine`
+- durable calendar coverage and versioned EURUSD/H4 research for `Macro Signal Lab`
 
 ## Manual Usage
 
@@ -67,7 +77,8 @@ From `Main/mt5-bridge`:
 Current test coverage focuses on:
 
 - calendar-ingest contract behavior
-- dedupe rules for `(event id, event time)`
+- durable `(event id, event time)` history and release-row updates
 - ingest timestamp health behavior
 - `history_range` validation
 - market-status/session helper behavior
+- frozen signal scoring, strict H4 entry timing, ATR risk, expiry, and ambiguous intrabar outcomes

@@ -21,6 +21,9 @@ const DifferentialCalculatorTab = lazy(() =>
 const MacroDriversTab = lazy(() =>
   import("@/app/tabs/secondary/MacroDriversTab").then((module) => ({ default: module.MacroDriversTab })),
 );
+const MacroSignalLabTab = lazy(() =>
+  import("@/app/tabs/secondary/MacroSignalLabTab").then((module) => ({ default: module.MacroSignalLabTab })),
+);
 const StrengthMeterTab = lazy(() =>
   import("@/styles/garbage.css").then(() =>
     import("@/app/tabs/garbage/StrengthMeterTab").then((module) => ({ default: module.StrengthMeterTab })),
@@ -146,6 +149,7 @@ export function AppRoutes({
           initialSymbol={overviewSymbol}
         />
       )}
+      {activeTab === "macro-signal-lab" && <MacroSignalLabTab />}
       {activeTab === "strength-meter" && (
         <StrengthMeterTab
           snapshots={centralBankResult.snapshots}

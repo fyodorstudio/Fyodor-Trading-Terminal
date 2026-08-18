@@ -1,6 +1,6 @@
 # Current App Map
 
-Last updated: 2026-07-02
+Last updated: 2026-08-18
 
 This is the short orientation doc for future AI and human sessions. Read it with `Checklist.md` before using older roadmap, audit, or patch notes.
 
@@ -44,7 +44,7 @@ This is the short orientation doc for future AI and human sessions. Read it with
    - Event explanations should remain cautious and concise.
 
 5. `Specialist Tools`
-   - Current state: short grouped drawer with Differential Calculator, Macro Drivers, active Event Replay, and the Prototyping garbage drawer.
+   - Current state: short grouped drawer with Differential Calculator, Macro Drivers, active Event Replay, research-only Macro Signal Lab, and the Prototyping garbage drawer.
    - Six Questions and WIP Map are no longer direct Specialist Tools children.
 
 ## App Loading
@@ -71,7 +71,13 @@ Current direct children under `Specialist Tools`:
    - Primary pair-first replay surface for studying scheduled event reactions.
    - Shows base/quote event types first, major global movers separately, past releases, replay controls, and descriptive replay notes.
 
-4. `Garbage / Ignore` / `PROTOTYPING`
+4. `Active Experiment` / `MACRO SIGNAL LAB`
+   - EURUSD/H4-only frozen Economy backtest surface.
+   - Uses durable bridge calendar storage and cached MT5 H4/M1 candles.
+   - Reports gross historical Long/Short bias cases, explicit ambiguity, holdout results, and paper-eligibility checks without placing orders or adding Charts arrows.
+   - Awaiting the controlled historical MT5 backfill and first frozen result.
+
+5. `Garbage / Ignore` / `PROTOTYPING`
    - Garbage drawer for old unfinished surfaces, deprecated planning drafts, and ignored tools.
    - This is not the final workflow surface.
    - Contains Six Questions Draft and WIP Map Archive.
@@ -106,7 +112,7 @@ Current Event Replay implementation entrypoint:
 ## Tab Folder Map
 
 - `Main/src/app/tabs/primary/` contains always-visible primary workflow tabs.
-- `Main/src/app/tabs/secondary/` contains Event Replay, Differential Calculator, Macro Drivers, and the Prototyping shell.
+- `Main/src/app/tabs/secondary/` contains Event Replay, Differential Calculator, Macro Drivers, Macro Signal Lab, and the Prototyping shell.
 - `Main/src/app/tabs/garbage/` contains old unfinished, deprecated, or ignored routed surfaces. Ignore it unless the user explicitly asks for one of those screens.
 - `Main/src/app/lib/garbage/` contains supporting logic for garbage-drawer routes. Ignore it unless the user explicitly asks for that logic.
 - `Main/src/app/tests/garbage/` contains tests for garbage-drawer routes and logic. Ignore it unless the user explicitly asks for garbage-drawer work.

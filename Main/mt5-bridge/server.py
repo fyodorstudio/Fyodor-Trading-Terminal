@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import logging
 import os
 import time as _time
+import uuid
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
 from threading import Lock
 from typing import Any, Dict, List, Optional, Set, Tuple
@@ -15,6 +18,17 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
+
+from macro_signal import (
+  VERSION_CONFIGURATION,
+  VERSION_CREATED_AT,
+  VERSION_HASH,
+  VERSION_ID,
+  build_backtest_result,
+  build_signal_candidates,
+  dataset_fingerprint,
+)
+from research_store import ResearchStore
 
 logger = logging.getLogger("mt5_bridge")
 
@@ -87,17 +101,16 @@ class CalendarIngestRequest(BaseModel):
   events: List[CalendarEventPayload]
 
 
-# In-memory store for calendar events. Keyed by (id, time).
-_calendar_events: List[Dict[str, Any]] = []
-_calendar_event_keys: Set[Tuple[int, int]] = set()
-_calendar_lock: Lock = Lock()
+class MacroBacktestRequest(BaseModel):
+  versionId: str = VERSION_ID
+
+
+_research_store = ResearchStore()
+_research_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="fyodor-research")
+_research_mt5_lock = Lock()
 
 # Last symbol used successfully in GET /history; used by GET /server_time when no symbol param.
 _last_history_symbol: Optional[str] = None
-
-# UNIX timestamp of last successful POST /calendar_ingest; exposed in GET /health.
-_last_calendar_ingest_at: Optional[float] = None
-
 
 def _ensure_mt5_initialized() -> bool:
   """Return True when the Python MT5 API has an active terminal connection.
@@ -399,6 +412,14 @@ def _get_last_error() -> Optional[Dict[str, Any]]:
 def on_startup() -> None:
   global terminal_connected, last_error
 
+  _research_store.ensure_signal_version(
+    VERSION_ID,
+    VERSION_CREATED_AT,
+    VERSION_CONFIGURATION,
+    VERSION_HASH,
+  )
+  _research_store.mark_unfinished_runs_failed("Bridge restarted before this research job completed")
+
   if not _ensure_mt5_initialized():
     terminal_connected = False
     last_error = _get_last_error()
@@ -468,6 +489,16 @@ def convert_rate_row(row: Any) -> Dict[str, Any]:
   }
 
 
+def _metadata_float(key: str) -> Optional[float]:
+  raw = _research_store.get_metadata(key)
+  if raw is None:
+    return None
+  try:
+    return float(raw)
+  except ValueError:
+    return None
+
+
 @app.get("/health")
 def health() -> Dict[str, Any]:
   # Determine connection status directly from MT5, rather than relying on
@@ -489,8 +520,8 @@ def health() -> Dict[str, Any]:
     "mt5_version": version,
     "account_login": account.login if account is not None else None,
     "last_error": last_error_info,
-    "calendar_events_count": len(_calendar_events),
-    "last_calendar_ingest_at": _last_calendar_ingest_at,
+    "calendar_events_count": _research_store.calendar_count(),
+    "last_calendar_ingest_at": _metadata_float("last_calendar_ingest_at"),
   }
   return payload
 
@@ -708,47 +739,22 @@ async def calendar_ingest(request: Request) -> Dict[str, Any]:
     )
     raise HTTPException(status_code=422, detail=_json_sanitize(e.errors()))
 
-  ingested = 0
-  with _calendar_lock:
-    for event in payload.events:
-      key = (event.id, event.time)
-      if key in _calendar_event_keys:
-        continue
-      record = event.model_copy().model_dump()
-      _calendar_events.append(record)
-      _calendar_event_keys.add(key)
-      ingested += 1
-
-  # Keep enough history for quarterly CPI and prior policy decisions.
-  horizon_days = 400
-  cutoff_ts = int(_time.time()) - horizon_days * 24 * 60 * 60
-  with _calendar_lock:
-    if _calendar_events:
-      recent: List[Dict[str, Any]] = []
-      recent_keys: Set[Tuple[int, int]] = set()
-      for e in _calendar_events:
-        t = int(e.get("time", 0))
-        if t >= cutoff_ts:
-          key = (int(e.get("id", 0)), t)
-          recent.append(e)
-          recent_keys.add(key)
-      _calendar_events.clear()
-      _calendar_events.extend(recent)
-      _calendar_event_keys.clear()
-      _calendar_event_keys.update(recent_keys)
-
-  total = len(_calendar_events)
-  global _last_calendar_ingest_at
-  _last_calendar_ingest_at = _time.time()
+  ingested_at = int(_time.time())
+  records = [event.model_copy().model_dump() for event in payload.events]
+  ingest_result = _research_store.upsert_calendar_events(records, ingested_at)
+  ingested = ingest_result["inserted"]
+  updated = ingest_result["updated"]
+  total = ingest_result["total"]
   duration_ms = int((_time.perf_counter() - t0) * 1000)
   logger.info(
-    "calendar_ingest method=POST path=/calendar_ingest status=200 body_size=%s ingested=%s total=%s duration_ms=%s",
+    "calendar_ingest method=POST path=/calendar_ingest status=200 body_size=%s ingested=%s updated=%s total=%s duration_ms=%s",
     body_size,
     ingested,
+    updated,
     total,
     duration_ms,
   )
-  return {"ingested": ingested, "total": total}
+  return {"ingested": ingested, "updated": updated, "total": total}
 
 
 @app.get("/calendar")
@@ -779,31 +785,205 @@ def calendar(
     if raw_countries:
       countries = set(raw_countries)
 
-  with _calendar_lock:
-    events = list(_calendar_events)
+  return _research_store.query_calendar(
+    from_time=from_,
+    to_time=to,
+    impacts=impacts,
+    countries=countries,
+  )
 
-  def include(e: Dict[str, Any]) -> bool:
-    t = int(e.get("time", 0))
-    if from_ is not None and t < from_:
-      return False
-    if to is not None and t > to:
-      return False
 
-    if impacts is not None:
-      lvl = str(e.get("impact", "")).lower()
-      if lvl not in impacts:
-        return False
+def _research_price_fingerprint(candles: List[Dict[str, Any]]) -> str:
+  compact = [
+    [
+      int(candle["time"]),
+      float(candle["open"]),
+      float(candle["high"]),
+      float(candle["low"]),
+      float(candle["close"]),
+    ]
+    for candle in candles
+  ]
+  return hashlib.sha256(json.dumps(compact, separators=(",", ":")).encode("utf-8")).hexdigest()
 
-    if countries is not None:
-      code = str(e.get("countryCode", "")).upper()
-      if code not in countries:
-        return False
 
-    return True
+def _fetch_research_candles(
+  symbol: str,
+  timeframe: str,
+  from_time: int,
+  to_time: int,
+  chunk_days: int,
+) -> List[Dict[str, Any]]:
+  cached = _research_store.query_candles(symbol, timeframe, from_time, to_time)
+  if not _ensure_mt5_initialized():
+    return cached
 
-  filtered = [e for e in events if include(e)]
-  filtered.sort(key=lambda e: int(e.get("time", 0)))
-  return filtered
+  mt5_tf = mt5_timeframe(timeframe)
+  ensure_symbol_selected(symbol)
+  fetched: List[Dict[str, Any]] = []
+  cursor = from_time
+  chunk_seconds = chunk_days * 24 * 60 * 60
+  while cursor < to_time:
+    end = min(to_time, cursor + chunk_seconds)
+    rates = mt5.copy_rates_range(
+      symbol,
+      mt5_tf,
+      datetime.fromtimestamp(cursor, tz=timezone.utc),
+      datetime.fromtimestamp(end, tz=timezone.utc),
+    )
+    if rates is not None and len(rates) > 0:
+      fetched.extend(convert_rate_row(row) for row in rates)
+    cursor = end + 1
+
+  if fetched:
+    deduped = {int(candle["time"]): candle for candle in fetched}
+    rows = [deduped[key] for key in sorted(deduped)]
+    _research_store.upsert_candles(symbol, timeframe, rows)
+    return _research_store.query_candles(symbol, timeframe, from_time, to_time)
+  return cached
+
+
+def _execute_macro_backtest(run_id: str, event_fingerprint: str) -> None:
+  created_at = int(_time.time())
+  try:
+    _research_store.save_backtest_run(
+      run_id, VERSION_ID, event_fingerprint, created_at, "running"
+    )
+    events = _research_store.query_calendar(currencies=["EUR", "USD"])
+    candidates = build_signal_candidates(events, now=created_at)
+    if not candidates:
+      raise RuntimeError("No registered EUR/USD Economy release packages are stored yet")
+
+    earliest = min(int(candidate["eventTime"]) for candidate in candidates) - 60 * 24 * 60 * 60
+    latest = min(
+      created_at,
+      max(int(candidate["eventTime"]) for candidate in candidates),
+    ) + 10 * 24 * 60 * 60
+
+    with _research_mt5_lock:
+      h4_candles = _fetch_research_candles("EURUSD", "H4", earliest, latest, 366)
+      if not h4_candles:
+        raise RuntimeError("No EURUSD H4 candles are available from MT5 or the research cache")
+
+      def m1_provider(from_time: int, to_time: int) -> List[Dict[str, Any]]:
+        return _fetch_research_candles("EURUSD", "M1", from_time, to_time, 1)
+
+      coverage = _research_store.calendar_coverage(["EUR", "USD"])
+      result = build_backtest_result(events, h4_candles, m1_provider, coverage, created_at)
+
+    combined_fingerprint = hashlib.sha256(
+      f"{event_fingerprint}:{_research_price_fingerprint(h4_candles)}".encode("utf-8")
+    ).hexdigest()
+    result["datasetFingerprint"] = combined_fingerprint
+    result["eventFingerprint"] = event_fingerprint
+    _research_store.save_backtest_run(
+      run_id,
+      VERSION_ID,
+      combined_fingerprint,
+      created_at,
+      "completed",
+      result=result,
+    )
+  except Exception as error:
+    logger.exception("macro_signal_backtest run_id=%s failed", run_id)
+    _research_store.save_backtest_run(
+      run_id,
+      VERSION_ID,
+      event_fingerprint,
+      created_at,
+      "failed",
+      error=str(error),
+    )
+
+
+@app.get("/research/coverage")
+def research_coverage() -> Dict[str, Any]:
+  coverage = _research_store.calendar_coverage(["EUR", "USD"])
+  return {
+    **coverage,
+    "durable": True,
+    "versionId": VERSION_ID,
+    "backfillRecommended": coverage["earliest"] is None
+    or int(_time.time()) - int(coverage["earliest"]) < 5 * 365 * 24 * 60 * 60,
+    "recommendedBackfill": {
+      "currenciesList": "USD,EUR",
+      "lookBackDays": 10000,
+      "maxEventsPerCurrency": 10000,
+      "restoreLookBackDays": 400,
+    },
+  }
+
+
+@app.get("/research/versions/current")
+def research_current_version() -> Dict[str, Any]:
+  return {
+    "id": VERSION_ID,
+    "hash": VERSION_HASH,
+    "createdAt": VERSION_CREATED_AT,
+    "configuration": VERSION_CONFIGURATION,
+  }
+
+
+@app.post("/research/backtests")
+def start_research_backtest(payload: MacroBacktestRequest) -> Dict[str, Any]:
+  if payload.versionId != VERSION_ID:
+    raise HTTPException(status_code=400, detail=f"Unsupported signal version: {payload.versionId}")
+  _research_store.ensure_signal_version(
+    VERSION_ID,
+    VERSION_CREATED_AT,
+    VERSION_CONFIGURATION,
+    VERSION_HASH,
+  )
+  events = _research_store.query_calendar(currencies=["EUR", "USD"])
+  if not events:
+    raise HTTPException(status_code=409, detail="No durable EUR/USD calendar history is available")
+  fingerprint = dataset_fingerprint(events)
+  latest = _research_store.latest_backtest_run(VERSION_ID)
+  if latest and latest["status"] in {"queued", "running"}:
+    return {**latest, "cached": True}
+  if (
+    latest
+    and latest["status"] == "completed"
+    and isinstance(latest.get("result"), dict)
+    and latest["result"].get("eventFingerprint") == fingerprint
+    and latest["result"].get("targets", {}).get("2.0", {}).get("overall", {}).get("unevaluableCount", 1) == 0
+  ):
+    return {**latest, "cached": True}
+
+  run_id = f"{VERSION_ID}-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
+  created_at = int(_time.time())
+  _research_store.save_backtest_run(
+    run_id, VERSION_ID, fingerprint, created_at, "queued"
+  )
+  _research_executor.submit(_execute_macro_backtest, run_id, fingerprint)
+  return {
+    "id": run_id,
+    "versionId": VERSION_ID,
+    "datasetFingerprint": fingerprint,
+    "createdAt": created_at,
+    "status": "queued",
+    "result": None,
+    "error": None,
+    "cached": False,
+  }
+
+
+@app.get("/research/backtests/latest")
+def latest_research_backtest(versionId: str = VERSION_ID) -> Dict[str, Any]:
+  if versionId != VERSION_ID:
+    raise HTTPException(status_code=400, detail=f"Unsupported signal version: {versionId}")
+  run = _research_store.latest_backtest_run(versionId)
+  if run is None:
+    raise HTTPException(status_code=404, detail="No backtest has been run for this version")
+  return run
+
+
+@app.get("/research/backtests/{run_id}")
+def research_backtest(run_id: str) -> Dict[str, Any]:
+  run = _research_store.get_backtest_run(run_id)
+  if run is None:
+    raise HTTPException(status_code=404, detail="Unknown backtest run")
+  return run
 
 
 @app.websocket("/stream")

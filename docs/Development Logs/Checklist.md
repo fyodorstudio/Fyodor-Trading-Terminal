@@ -108,6 +108,17 @@ These are independent exploration sketches, not committed implementation specifi
 - [ ] Show country/region provenance for EUR releases and evaluate `Euro area only` versus `Euro area + member countries` scope.
 - [ ] Manually redesign the scoring tutorial after the scoring-chart workflow stabilizes.
 
+## Fyodor Macro Signal
+
+- [x] Freeze and document `FMS-EURUSD-ECO-H4-v1` before inspecting results.
+- [x] Replace the bridge's temporary calendar list with durable local SQLite history and explicit EUR/USD coverage reporting.
+- [x] Add the versioned backend Economy simulation with strict next-H4 entry, ATR(14) Wilder risk, 1R/1.5R/2R targets, 30-H4 expiry, independent cases, and M1 ambiguity resolution.
+- [x] Add the bounded Specialist Tools `Macro Signal Lab` with coverage/backfill guidance, target summaries, holdout gate, cohort breakdowns, and case audit.
+- [ ] Perform the controlled EUR/USD MT5 historical backfill and verify actual broker coverage.
+- [ ] Run the frozen v1 result once, audit data quality and chronological holdout evidence, and record the outcome without changing the formula.
+- [ ] Freeze a forward-paper sample requirement before beginning paper validation.
+- [ ] Keep Inflation, Policy, learned weights, and Charts arrows deferred until separately versioned research justifies them.
+
 ## Completed Work Log
 
 ### 2026-08-15

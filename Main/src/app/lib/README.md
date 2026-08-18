@@ -5,6 +5,7 @@ This folder holds pure helpers, bridge adapters, and feature engines. Prefer edi
 ## Primary / Shared
 
 - `bridge.ts` is the frontend HTTP/WebSocket adapter for the local MT5 bridge.
+- `bridge.ts` also owns the typed Macro Signal Lab coverage, version, start-run, and polling requests; the calculation remains in the Python bridge.
 - `status.ts`, `format.ts`, `timezoneDisplay.ts`, and `calendarRanges.ts` are shared UI/data helpers.
 - `centralBankDerive.ts` is primary product logic for Central Banks Data.
 - `chartDisplay.ts`, `chartStorage.ts`, `chartView.ts`, `chartEvents.ts`, and `chartEventOverlay.ts` support the primary Charts tab.

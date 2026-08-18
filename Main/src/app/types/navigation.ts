@@ -5,6 +5,7 @@ export type TabId =
   | "watchlist-engine-prototype"
   | "dashboard"
   | "macro-drivers"
+  | "macro-signal-lab"
   | "strength-meter"
   | "event-tools"
   | "terminal-questions"

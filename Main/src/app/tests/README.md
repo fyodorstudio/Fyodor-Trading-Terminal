@@ -11,6 +11,7 @@ Prefer targeted tests. Do not run the full suite after every small pass unless t
 - `economicCalendarTab.test.tsx`, `calendarNavigation.test.ts`, and `calendarRanges.test.ts` cover Economic Calendar rendering, event drawer behavior, navigation intents, freshness labels, and date ranges.
 - `overviewPlaceholderTab.test.tsx` covers the intentionally blank rebuild Overview surface.
 - `navigationTruth.test.tsx` covers top navigation and Specialist Tools grouping.
+- `macroSignalLab.test.tsx` covers the frozen Macro Signal Lab research contract, cost warning, outcome audit, and controlled MT5 backfill handoff.
 
 ## Event Replay
 

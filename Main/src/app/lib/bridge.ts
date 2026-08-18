@@ -4,6 +4,9 @@ import type {
   BridgeSymbol,
   CalendarEvent,
   ImpactLevel,
+  MacroSignalBacktestRun,
+  MacroSignalCoverage,
+  MacroSignalVersion,
   MarketStatusResponse,
 } from "@/app/types";
 
@@ -245,6 +248,50 @@ export async function fetchCalendar(params: {
     .map(normalizeCalendarEvent)
     .filter((item): item is CalendarEvent => item !== null)
     .sort((a, b) => a.time - b.time);
+}
+
+export async function fetchMacroSignalCoverage(): Promise<MacroSignalCoverage> {
+  return fetchJson<MacroSignalCoverage>(`${BRIDGE_BASE}/research/coverage`);
+}
+
+export async function fetchMacroSignalVersion(): Promise<MacroSignalVersion> {
+  return fetchJson<MacroSignalVersion>(`${BRIDGE_BASE}/research/versions/current`);
+}
+
+export async function fetchLatestMacroSignalBacktest(): Promise<MacroSignalBacktestRun | null> {
+  try {
+    return await fetchJson<MacroSignalBacktestRun>(
+      `${BRIDGE_BASE}/research/backtests/latest?versionId=${encodeURIComponent("FMS-EURUSD-ECO-H4-v1")}`,
+    );
+  } catch (error) {
+    if (error instanceof Error && error.message.includes("returned 404")) return null;
+    throw error;
+  }
+}
+
+export async function fetchMacroSignalBacktest(runId: string): Promise<MacroSignalBacktestRun> {
+  return fetchJson<MacroSignalBacktestRun>(
+    `${BRIDGE_BASE}/research/backtests/${encodeURIComponent(runId)}`,
+  );
+}
+
+export async function startMacroSignalBacktest(): Promise<MacroSignalBacktestRun> {
+  const response = await fetch(`${BRIDGE_BASE}/research/backtests`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ versionId: "FMS-EURUSD-ECO-H4-v1" }),
+  });
+  if (!response.ok) {
+    let detail = "";
+    try {
+      const payload = (await response.json()) as { detail?: unknown };
+      detail = typeof payload.detail === "string" ? payload.detail : "";
+    } catch {
+      // The generic status below remains honest when the bridge returns a non-JSON error.
+    }
+    throw new Error(`Bridge returned ${response.status}${detail ? `: ${detail}` : ""}`);
+  }
+  return (await response.json()) as MacroSignalBacktestRun;
 }
 
 export async function fetchMarketStatus(symbol: string): Promise<MarketStatusResponse> {

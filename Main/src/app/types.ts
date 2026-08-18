@@ -8,3 +8,4 @@ export * from "@/app/types/strength";
 export * from "@/app/types/watchlist";
 export * from "@/app/types/eventQuality";
 export * from "@/app/types/eventReaction";
+export * from "@/app/types/macroSignal";

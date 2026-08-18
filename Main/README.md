@@ -25,7 +25,8 @@ Important current-state note:
 1. `DIFFERENTIAL CALCULATOR` under `Active Tool`
 2. `MACRO DRIVERS` under `Active Tool`
 3. `EVENT REPLAY` under `Active Experiment`
-4. `PROTOTYPING` under `Garbage / Ignore`
+4. `MACRO SIGNAL LAB` under `Active Experiment`
+5. `PROTOTYPING` under `Garbage / Ignore`
 
 The `PROTOTYPING` area is a garbage drawer for old unfinished surfaces. It contains unstable experiments, old planning drafts such as `Six Questions Draft` and `WIP Map Archive`, and older tools such as `Strength Meter` and `Deprecated Overview`. Ignore it unless explicitly requested.
 
@@ -76,6 +77,7 @@ It also expects the MT5 EA calendar bridge to be pushing economic calendar event
 - `Central Banks Data` is derived from MT5 calendar events using strict mapping rules for the major 8 currencies. If a match is uncertain, the UI shows `N/A` instead of guessing.
 - `Specialist Tools` is the routing shell for Differential Calculator, Macro Drivers, Event Replay, and the Prototyping archive.
 - `Event Replay` is the main pair-first event replay surface. It is descriptive study support, not a signal engine.
+- `Macro Signal Lab` is a EURUSD/H4-only research experiment backed by durable MT5 calendar history and a frozen gross simulation. Its Long/Short bias labels describe historical test cases, never automatic orders, and Charts promotion remains disabled.
 - `tabs/primary/` contains always-visible primary workflow tabs.
 - `tabs/secondary/` contains Differential Calculator, Macro Drivers, Event Replay, and the Prototyping shell.
 - `tabs/garbage/` contains old unfinished, deprecated, or ignored routed surfaces. Do not read it for general orientation unless explicitly requested.
