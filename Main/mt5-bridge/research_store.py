@@ -100,6 +100,38 @@ class ResearchStore:
 
         CREATE INDEX IF NOT EXISTS idx_backtest_runs_version_created
           ON backtest_runs (version_id, created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS release_observations (
+          id INTEGER NOT NULL,
+          time INTEGER NOT NULL,
+          country_code TEXT NOT NULL,
+          currency TEXT NOT NULL,
+          title TEXT NOT NULL,
+          impact TEXT NOT NULL,
+          actual TEXT NOT NULL,
+          forecast TEXT,
+          previous TEXT,
+          first_seen_at INTEGER NOT NULL,
+          PRIMARY KEY (id, time)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_release_observations_time
+          ON release_observations (time);
+
+        CREATE TABLE IF NOT EXISTS paper_cases (
+          version_id TEXT NOT NULL,
+          event_time INTEGER NOT NULL,
+          frozen_at INTEGER NOT NULL,
+          state TEXT NOT NULL,
+          candidate_json TEXT NOT NULL,
+          outcomes_json TEXT NOT NULL,
+          updated_at INTEGER NOT NULL,
+          PRIMARY KEY (version_id, event_time),
+          FOREIGN KEY (version_id) REFERENCES signal_versions(id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_paper_cases_version_time
+          ON paper_cases (version_id, event_time DESC);
         """
       )
 
@@ -282,6 +314,122 @@ class ResearchStore:
         "actual": row["actual"],
         "forecast": row["forecast"],
         "previous": row["previous"],
+      }
+      for row in rows
+    ]
+
+  def capture_release_observations(self, activated_at: int, observed_at: int) -> int:
+    """Freeze first-seen released values after the forward ledger was activated."""
+    with self._write_lock, self._connect() as connection:
+      cursor = connection.execute(
+        """
+        INSERT OR IGNORE INTO release_observations(
+          id, time, country_code, currency, title, impact,
+          actual, forecast, previous, first_seen_at
+        )
+        SELECT id, time, country_code, currency, title, impact,
+               actual, forecast, previous, ?
+        FROM calendar_events
+        WHERE time >= ? AND time <= ?
+          AND actual IS NOT NULL
+          AND TRIM(actual) NOT IN ('', '-', '—')
+        """,
+        (observed_at, activated_at, observed_at),
+      )
+      return int(cursor.rowcount)
+
+  def query_release_observations(
+    self,
+    from_time: Optional[int] = None,
+    currencies: Optional[Sequence[str]] = None,
+  ) -> List[Dict[str, Any]]:
+    clauses: List[str] = []
+    params: List[Any] = []
+    if from_time is not None:
+      clauses.append("time >= ?")
+      params.append(from_time)
+    if currencies:
+      normalized = [currency.upper() for currency in currencies]
+      clauses.append(f"currency IN ({','.join(['?'] * len(normalized))})")
+      params.extend(normalized)
+    where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
+    with self._connect() as connection:
+      rows = connection.execute(
+        "SELECT id, time, country_code, currency, title, impact, actual, forecast, previous, first_seen_at "
+        f"FROM release_observations{where} ORDER BY time, currency, title, id",
+        params,
+      ).fetchall()
+    return [
+      {
+        "id": int(row["id"]),
+        "time": int(row["time"]),
+        "countryCode": str(row["country_code"]),
+        "currency": str(row["currency"]),
+        "title": str(row["title"]),
+        "impact": str(row["impact"]),
+        "actual": row["actual"],
+        "forecast": row["forecast"],
+        "previous": row["previous"],
+        "firstSeenAt": int(row["first_seen_at"]),
+      }
+      for row in rows
+    ]
+
+  def save_paper_case(
+    self,
+    version_id: str,
+    event_time: int,
+    frozen_at: int,
+    state: str,
+    candidate: Dict[str, Any],
+    outcomes: Dict[str, Any],
+    updated_at: int,
+  ) -> bool:
+    candidate_json = json.dumps(candidate, sort_keys=True, separators=(",", ":"))
+    outcomes_json = json.dumps(outcomes, sort_keys=True, separators=(",", ":"))
+    with self._write_lock, self._connect() as connection:
+      cursor = connection.execute(
+        """
+        INSERT OR IGNORE INTO paper_cases(
+          version_id, event_time, frozen_at, state, candidate_json, outcomes_json, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (version_id, event_time, frozen_at, state, candidate_json, outcomes_json, updated_at),
+      )
+      return int(cursor.rowcount) > 0
+
+  def update_paper_case(
+    self,
+    version_id: str,
+    event_time: int,
+    state: str,
+    outcomes: Dict[str, Any],
+    updated_at: int,
+  ) -> None:
+    outcomes_json = json.dumps(outcomes, sort_keys=True, separators=(",", ":"))
+    with self._write_lock, self._connect() as connection:
+      connection.execute(
+        "UPDATE paper_cases SET state = ?, outcomes_json = ?, updated_at = ? "
+        "WHERE version_id = ? AND event_time = ?",
+        (state, outcomes_json, updated_at, version_id, event_time),
+      )
+
+  def query_paper_cases(self, version_id: str) -> List[Dict[str, Any]]:
+    with self._connect() as connection:
+      rows = connection.execute(
+        "SELECT version_id, event_time, frozen_at, state, candidate_json, outcomes_json, updated_at "
+        "FROM paper_cases WHERE version_id = ? ORDER BY event_time",
+        (version_id,),
+      ).fetchall()
+    return [
+      {
+        "versionId": str(row["version_id"]),
+        "eventTime": int(row["event_time"]),
+        "frozenAt": int(row["frozen_at"]),
+        "state": str(row["state"]),
+        "candidate": json.loads(row["candidate_json"]),
+        "outcomes": json.loads(row["outcomes_json"]),
+        "updatedAt": int(row["updated_at"]),
       }
       for row in rows
     ]

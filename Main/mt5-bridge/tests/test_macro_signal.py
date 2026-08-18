@@ -131,6 +131,24 @@ def test_entry_is_strictly_after_release_and_uses_completed_atr() -> None:
   assert result["atr"] == atr[20]
 
 
+def test_live_paper_outcome_remains_pending_until_the_full_window_completes() -> None:
+  rows = candles(count=30)
+  atr = calculate_atr_by_candle(rows)
+  result = evaluate_candidate(
+    candidate(event_time=rows[20]["time"]),
+    rows,
+    [row["time"] for row in rows],
+    atr,
+    2.0,
+    allow_pending=True,
+    as_of=rows[-1]["time"] + 60,
+  )
+
+  assert result["status"] == "pending"
+  assert result["entryTime"] == rows[21]["time"]
+  assert aggregate_outcomes([result])["pendingCount"] == 1
+
+
 def test_same_m1_bar_touch_is_ambiguous() -> None:
   rows = candles()
   atr = calculate_atr_by_candle(rows)

@@ -129,6 +129,40 @@ def test_calendar_ingest_updates_health_timestamp_near_now():
   assert before - 5 <= float(last_ingest) <= time.time() + 5
 
 
+def test_cycle_acknowledgement_rejects_failed_upload_and_freezes_success(monkeypatch):
+  release_time = max(server.FORWARD_LEDGER_ACTIVATED_AT, int(time.time()) - 1)
+  body = {
+    "events": [{
+      **MINIMAL_EVENT,
+      "id": 91_337,
+      "time": release_time,
+      "title": "Initial Jobless Claims",
+      "actual": "210",
+      "forecast": "215",
+      "previous": "220",
+    }]
+  }
+  assert client.post("/calendar_ingest", json=body).status_code == 200
+  scheduled = []
+  monkeypatch.setattr(server, "_schedule_forward_reconcile", lambda timestamp: scheduled.append(timestamp) or True)
+
+  failed = client.post("/calendar_ingest_cycle", json={"completedAt": release_time + 1, "failedBatches": 1})
+  assert failed.status_code == 200
+  assert failed.json()["accepted"] is False
+  assert scheduled == []
+
+  completed = client.post("/calendar_ingest_cycle", json={"completedAt": release_time + 2, "failedBatches": 0})
+  assert completed.status_code == 200
+  assert completed.json()["accepted"] is True
+  assert completed.json()["captured"] >= 1
+  assert len(scheduled) == 1
+  assert abs(scheduled[0] - int(time.time())) <= 2
+  ledger = client.get("/research/forward", params={"versionId": server.V2_VERSION_ID})
+  assert ledger.status_code == 200
+  assert ledger.json()["immutable"] is True
+  assert ledger.json()["lastSuccessfulCycleAt"] is not None
+
+
 def test_history_range_validates_range_order():
   r = client.get("/history_range", params={"symbol": "EURUSD", "tf": "M1", "from_": 20, "to": 10})
   assert r.status_code == 400

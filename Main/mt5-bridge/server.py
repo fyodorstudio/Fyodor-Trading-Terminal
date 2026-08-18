@@ -21,11 +21,18 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from macro_signal import (
   ACTIVE_VERSION_ID,
+  FORWARD_PAPER_GATE,
+  H4_SECONDS,
   RESULT_SCHEMA_VERSION,
   SIGNAL_DEFINITIONS,
+  TARGET_R_VALUES,
+  V2_VERSION_ID,
+  aggregate_outcomes,
   build_backtest_result,
   build_signal_candidates,
+  calculate_atr_by_candle,
   dataset_fingerprint,
+  evaluate_candidate,
   get_signal_definition,
 )
 from research_store import ResearchStore
@@ -105,9 +112,26 @@ class MacroBacktestRequest(BaseModel):
   versionId: str = ACTIVE_VERSION_ID
 
 
+class CalendarIngestCycleRequest(BaseModel):
+  completedAt: int
+  failedBatches: int = 0
+
+  @field_validator("completedAt", "failedBatches", mode="before")
+  @classmethod
+  def coerce_cycle_int_fields(cls, v: Any) -> int:
+    return _coerce_int(v)
+
+
 _research_store = ResearchStore()
 _research_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="fyodor-research")
+_forward_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="fyodor-forward")
 _research_mt5_lock = Lock()
+_forward_schedule_lock = Lock()
+_forward_reconcile_scheduled = False
+
+# First timestamp at which Fyodor can honestly guarantee immutable first-seen
+# release values and complete EA upload cycles for forward paper evidence.
+FORWARD_LEDGER_ACTIVATED_AT = 1787047068  # 2026-08-18 09:57:48 UTC
 
 # Last symbol used successfully in GET /history; used by GET /server_time when no symbol param.
 _last_history_symbol: Optional[str] = None
@@ -420,6 +444,10 @@ def on_startup() -> None:
       definition.configuration_hash,
     )
   _research_store.mark_unfinished_runs_failed("Bridge restarted before this research job completed")
+  if _research_store.query_release_observations(
+    from_time=FORWARD_LEDGER_ACTIVATED_AT, currencies=["EUR", "USD"]
+  ):
+    _schedule_forward_reconcile(int(_time.time()))
 
   if not _ensure_mt5_initialized():
     terminal_connected = False
@@ -758,6 +786,35 @@ async def calendar_ingest(request: Request) -> Dict[str, Any]:
   return {"ingested": ingested, "updated": updated, "total": total}
 
 
+@app.post("/calendar_ingest_cycle")
+def calendar_ingest_cycle(payload: CalendarIngestCycleRequest) -> Dict[str, Any]:
+  """Acknowledge one complete EA upload cycle before freezing forward releases."""
+  completed_at = int(payload.completedAt)
+  observed_at = int(_time.time())
+  _research_store.set_metadata("last_calendar_cycle_at", str(observed_at))
+  _research_store.set_metadata("last_calendar_cycle_failed_batches", str(payload.failedBatches))
+  if payload.failedBatches > 0:
+    return {
+      "accepted": False,
+      "captured": 0,
+      "reconcileScheduled": False,
+      "reason": "Incomplete upload cycle",
+    }
+  _research_store.set_metadata("last_calendar_successful_cycle_at", str(observed_at))
+  captured = _research_store.capture_release_observations(
+    FORWARD_LEDGER_ACTIVATED_AT, observed_at
+  )
+  scheduled = _schedule_forward_reconcile(observed_at)
+  return {
+    "accepted": True,
+    "captured": captured,
+    "reconcileScheduled": scheduled,
+    "activatedAt": FORWARD_LEDGER_ACTIVATED_AT,
+    "eaCompletedAt": completed_at,
+    "observedAt": observed_at,
+  }
+
+
 @app.get("/calendar")
 def calendar(
   from_: Optional[int] = None,
@@ -842,6 +899,176 @@ def _fetch_research_candles(
     _research_store.upsert_candles(symbol, timeframe, rows)
     return _research_store.query_candles(symbol, timeframe, from_time, to_time)
   return cached
+
+
+def _paper_case_state(outcomes: Dict[str, Dict[str, Any]]) -> str:
+  statuses = {str(outcome.get("status", "")) for outcome in outcomes.values()}
+  if "pending" in statuses:
+    return "monitoring"
+  if "unevaluable" in statuses:
+    return "unevaluable"
+  return "completed"
+
+
+def _reconcile_forward_paper(observed_at: int) -> None:
+  """Freeze newly observed v2 packages and advance open paper outcomes."""
+  definition = get_signal_definition(V2_VERSION_ID)
+  if definition is None:
+    return
+  observations = _research_store.query_release_observations(
+    from_time=FORWARD_LEDGER_ACTIVATED_AT,
+    currencies=["EUR", "USD"],
+  )
+  candidates = build_signal_candidates(observations, now=observed_at, definition=definition)
+  existing = {
+    int(case["eventTime"]): case
+    for case in _research_store.query_paper_cases(definition.id)
+  }
+  first_seen_by_time: Dict[int, int] = {}
+  for event in observations:
+    event_time = int(event["time"])
+    first_seen_by_time[event_time] = max(
+      first_seen_by_time.get(event_time, 0), int(event["firstSeenAt"])
+    )
+  for candidate in candidates:
+    event_time = int(candidate["eventTime"])
+    if event_time in existing:
+      continue
+    frozen_at = first_seen_by_time.get(event_time, observed_at)
+    initial_outcomes = {
+      str(target): {
+        "eventTime": event_time,
+        "direction": candidate["direction"],
+        "targetR": target,
+        "status": "no_direction" if candidate["direction"] == "none" else "pending",
+        "resultR": None,
+        "reason": "Exact factor-vote tie" if candidate["direction"] == "none" else "Waiting for price monitoring",
+      }
+      for target in TARGET_R_VALUES
+    }
+    state = "no_direction" if candidate["direction"] == "none" else "monitoring"
+    _research_store.save_paper_case(
+      definition.id, event_time, frozen_at, state, candidate, initial_outcomes, observed_at
+    )
+
+  cases = _research_store.query_paper_cases(definition.id)
+  directional = [
+    case for case in cases
+    if case["candidate"].get("direction") != "none"
+    and case["state"] in {"monitoring", "unevaluable"}
+  ]
+  if not directional:
+    return
+
+  earliest = min(int(case["eventTime"]) for case in directional) - 60 * 24 * 60 * 60
+  with _research_mt5_lock:
+    h4_candles = _fetch_research_candles("EURUSD", "H4", earliest, observed_at + H4_SECONDS, 31)
+    if not h4_candles:
+      return
+    candle_times = [int(candle["time"]) for candle in h4_candles]
+    atr_values = calculate_atr_by_candle(h4_candles)
+
+    def m1_provider(from_time: int, to_time: int) -> List[Dict[str, Any]]:
+      return _fetch_research_candles("EURUSD", "M1", from_time, to_time, 1)
+
+    for case in directional:
+      candidate = case["candidate"]
+      outcomes = {
+        str(target): evaluate_candidate(
+          candidate,
+          h4_candles,
+          candle_times,
+          atr_values,
+          target,
+          m1_provider,
+          allow_pending=True,
+          as_of=observed_at,
+        )
+        for target in TARGET_R_VALUES
+      }
+      entry_times = [
+        int(outcome["entryTime"])
+        for outcome in outcomes.values()
+        if outcome.get("entryTime") is not None
+      ]
+      state = _paper_case_state(outcomes)
+      if entry_times and min(entry_times) <= int(case["frozenAt"]):
+        state = "late_for_contract"
+      _research_store.update_paper_case(
+        definition.id, int(case["eventTime"]), state, outcomes, observed_at
+      )
+
+
+def _run_scheduled_forward_reconcile(observed_at: int) -> None:
+  global _forward_reconcile_scheduled
+  try:
+    _reconcile_forward_paper(observed_at)
+  except Exception:
+    logger.exception("forward_paper_reconcile failed observed_at=%s", observed_at)
+  finally:
+    with _forward_schedule_lock:
+      _forward_reconcile_scheduled = False
+
+
+def _schedule_forward_reconcile(observed_at: int) -> bool:
+  global _forward_reconcile_scheduled
+  with _forward_schedule_lock:
+    if _forward_reconcile_scheduled:
+      return False
+    _forward_reconcile_scheduled = True
+  _forward_executor.submit(_run_scheduled_forward_reconcile, observed_at)
+  return True
+
+
+def _forward_paper_payload(version_id: str) -> Dict[str, Any]:
+  if version_id != V2_VERSION_ID:
+    raise HTTPException(status_code=400, detail="Forward paper ledger is available for v2 only")
+  cases = _research_store.query_paper_cases(version_id)
+  eligible_cases = [case for case in cases if case["state"] != "late_for_contract"]
+  target_metrics: Dict[str, Dict[str, Any]] = {}
+  for target in TARGET_R_VALUES:
+    key = str(target)
+    outcomes = [case["outcomes"][key] for case in eligible_cases if key in case["outcomes"]]
+    target_metrics[key] = aggregate_outcomes(outcomes)
+  highlighted = target_metrics[str(2.0)]
+  now = int(_time.time())
+  elapsed_days = max(0, (now - FORWARD_LEDGER_ACTIVATED_AT) // (24 * 60 * 60))
+  ci = highlighted.get("expectancyCi95")
+  checks = {
+    "minimumElapsedDays": elapsed_days >= int(FORWARD_PAPER_GATE["minimumElapsedDays"]),
+    "minimumEvaluable": highlighted["evaluableCount"] >= int(FORWARD_PAPER_GATE["minimumEvaluable"]),
+    "maximumAmbiguousRate": (
+      highlighted["ambiguousRate"] is not None
+      and highlighted["ambiguousRate"] <= float(FORWARD_PAPER_GATE["maximumAmbiguousRate"])
+    ),
+    "positiveExpectancyLower95": ci is not None and float(ci["lower"]) > 0,
+    "costModel": False,
+  }
+  observation_count = len(_research_store.query_release_observations(
+    from_time=FORWARD_LEDGER_ACTIVATED_AT, currencies=["EUR", "USD"]
+  ))
+  last_cycle_raw = _research_store.get_metadata("last_calendar_successful_cycle_at")
+  failed_batches_raw = _research_store.get_metadata("last_calendar_cycle_failed_batches")
+  return {
+    "versionId": version_id,
+    "activatedAt": FORWARD_LEDGER_ACTIVATED_AT,
+    "elapsedDays": elapsed_days,
+    "immutable": True,
+    "lastSuccessfulCycleAt": int(last_cycle_raw) if last_cycle_raw is not None else None,
+    "lastCycleFailedBatches": int(failed_batches_raw or "0"),
+    "observationCount": observation_count,
+    "caseCount": len(cases),
+    "directionalCount": sum(case["candidate"].get("direction") != "none" for case in cases),
+    "monitoringCount": sum(case["state"] == "monitoring" for case in cases),
+    "completedCount": sum(case["state"] == "completed" for case in cases),
+    "noDirectionCount": sum(case["state"] == "no_direction" for case in cases),
+    "lateForContractCount": sum(case["state"] == "late_for_contract" for case in cases),
+    "targets": target_metrics,
+    "checks": checks,
+    "eligible": all(checks.values()),
+    "gate": FORWARD_PAPER_GATE,
+    "recentCases": list(reversed(cases[-30:])),
+  }
 
 
 def _execute_macro_backtest(run_id: str, event_fingerprint: str, version_id: str) -> None:
@@ -941,6 +1168,11 @@ def research_versions() -> List[Dict[str, Any]]:
     }
     for definition in SIGNAL_DEFINITIONS.values()
   ]
+
+
+@app.get("/research/forward")
+def research_forward(versionId: str = V2_VERSION_ID) -> Dict[str, Any]:
+  return _forward_paper_payload(versionId)
 
 
 @app.post("/research/backtests")

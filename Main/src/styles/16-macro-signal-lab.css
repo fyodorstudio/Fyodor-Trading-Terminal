@@ -252,6 +252,11 @@
 .macro-signal-forward-grid span { display: block; color: #64748b; font-size: 9px; font-weight: 900; text-transform: uppercase; }
 .macro-signal-forward-grid strong { display: block; margin-top: 3px; font-size: 12px; }
 .macro-signal-forward > p { margin: 8px 0 0; color: #64748b; font-size: 10px; font-weight: 700; }
+.macro-signal-forward-cases { margin-top: 8px; border: 1px solid #e2e8f0; border-radius: 7px; overflow: hidden; }
+.macro-signal-forward-cases summary { display: flex; cursor: pointer; justify-content: space-between; padding: 8px 10px; background: #f8fafc; font-size: 10px; font-weight: 900; }
+.macro-signal-forward-cases > div { max-height: 180px; overflow: auto; }
+.macro-signal-forward-cases > div > div { display: grid; grid-template-columns: 155px 72px 105px minmax(0, 1fr); gap: 8px; align-items: center; border-top: 1px solid #e2e8f0; padding: 6px 9px; font-size: 10px; }
+.macro-signal-forward-cases > div > div > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 .macro-signal-cohort-comparison > div {
   display: grid !important;

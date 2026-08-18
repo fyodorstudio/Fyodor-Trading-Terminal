@@ -6,6 +6,7 @@ import type {
   ImpactLevel,
   MacroSignalBacktestRun,
   MacroSignalCoverage,
+  MacroSignalForwardPaper,
   MacroSignalVersion,
   MarketStatusResponse,
 } from "@/app/types";
@@ -260,6 +261,12 @@ export async function fetchMacroSignalVersion(): Promise<MacroSignalVersion> {
 
 export async function fetchMacroSignalVersions(): Promise<MacroSignalVersion[]> {
   return fetchJson<MacroSignalVersion[]>(`${BRIDGE_BASE}/research/versions`);
+}
+
+export async function fetchMacroSignalForwardPaper(versionId = "FMS-EURUSD-LABOR-H4-v2"): Promise<MacroSignalForwardPaper> {
+  return fetchJson<MacroSignalForwardPaper>(
+    `${BRIDGE_BASE}/research/forward?versionId=${encodeURIComponent(versionId)}`,
+  );
 }
 
 export async function fetchLatestMacroSignalBacktest(versionId = "FMS-EURUSD-LABOR-H4-v2"): Promise<MacroSignalBacktestRun | null> {

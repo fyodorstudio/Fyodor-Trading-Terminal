@@ -41,6 +41,7 @@ export interface MacroSignalMetrics {
   expiredCount: number;
   ambiguousCount: number;
   unevaluableCount: number;
+  pendingCount?: number;
   targetHitRate: number | null;
   stopHitRate: number | null;
   expiredRate: number | null;
@@ -91,7 +92,7 @@ export interface MacroSignalOutcome {
   targetR: number;
   factorVotes: MacroSignalFactorVote[];
   events: MacroSignalScoredEvent[];
-  status: "target_hit" | "stop_hit" | "expired" | "ambiguous" | "unevaluable" | "no_direction";
+  status: "target_hit" | "stop_hit" | "expired" | "ambiguous" | "unevaluable" | "no_direction" | "pending";
   resultR: number | null;
   reason: string;
   entryTime?: number;
@@ -231,4 +232,41 @@ export interface MacroSignalBacktestRun {
   result: MacroSignalBacktestResult | null;
   error: string | null;
   cached?: boolean;
+}
+
+export interface MacroSignalForwardCase {
+  versionId: string;
+  eventTime: number;
+  frozenAt: number;
+  state: "monitoring" | "completed" | "no_direction" | "late_for_contract" | "unevaluable";
+  candidate: {
+    eventTime: number;
+    direction: MacroSignalDirection;
+    agreement: "consensus" | "conflicted_weak" | "no_direction";
+    pairVote: number;
+    events: MacroSignalScoredEvent[];
+  };
+  outcomes: Record<string, MacroSignalOutcome>;
+  updatedAt: number;
+}
+
+export interface MacroSignalForwardPaper {
+  versionId: string;
+  activatedAt: number;
+  elapsedDays: number;
+  immutable: boolean;
+  lastSuccessfulCycleAt: number | null;
+  lastCycleFailedBatches: number;
+  observationCount: number;
+  caseCount: number;
+  directionalCount: number;
+  monitoringCount: number;
+  completedCount: number;
+  noDirectionCount: number;
+  lateForContractCount: number;
+  targets: Record<string, MacroSignalMetrics>;
+  checks: Record<string, boolean>;
+  eligible: boolean;
+  gate: Record<string, unknown>;
+  recentCases: MacroSignalForwardCase[];
 }

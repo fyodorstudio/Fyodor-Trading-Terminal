@@ -477,6 +477,8 @@ def evaluate_candidate(
   atr_values: Sequence[Optional[float]],
   target_r: float,
   m1_provider: Optional[M1Provider] = None,
+  allow_pending: bool = False,
+  as_of: Optional[int] = None,
 ) -> Dict[str, Any]:
   base = {
     "eventTime": candidate["eventTime"],
@@ -495,13 +497,17 @@ def evaluate_candidate(
     return {**base, "status": "no_direction", "resultR": None, "reason": "Exact factor-vote tie"}
 
   entry_index = bisect_right(candle_times, int(candidate["eventTime"]))
-  if entry_index <= 0 or entry_index >= len(candles):
+  if entry_index <= 0:
+    return {**base, "status": "unevaluable", "resultR": None, "reason": "No strictly later H4 entry candle"}
+  if entry_index >= len(candles):
+    if allow_pending:
+      return {**base, "status": "pending", "resultR": None, "reason": "Waiting for the first strictly later H4 entry candle"}
     return {**base, "status": "unevaluable", "resultR": None, "reason": "No strictly later H4 entry candle"}
   atr = atr_values[entry_index - 1]
   if atr is None or not math.isfinite(atr) or atr <= 0:
     return {**base, "status": "unevaluable", "resultR": None, "reason": "Insufficient completed H4 candles for ATR(14)"}
   final_index = entry_index + HOLDING_CANDLES - 1
-  if final_index >= len(candles):
+  if final_index >= len(candles) and not allow_pending:
     return {**base, "status": "unevaluable", "resultR": None, "reason": "Incomplete 30-candle outcome window"}
 
   entry = float(candles[entry_index]["open"])
@@ -517,7 +523,8 @@ def evaluate_candidate(
     "target": target,
   }
 
-  for index in range(entry_index, final_index + 1):
+  available_final_index = min(final_index, len(candles) - 1)
+  for index in range(entry_index, available_final_index + 1):
     candle = candles[index]
     stop_hit, target_hit = _bar_touches(candle, candidate["direction"], stop, target)
     if stop_hit and target_hit:
@@ -533,6 +540,19 @@ def evaluate_candidate(
       return {**detail, "status": "stop_hit", "resultR": -1.0, "exitTime": int(candle["time"]), "reason": "H4 stop first"}
     if target_hit:
       return {**detail, "status": "target_hit", "resultR": target_r, "exitTime": int(candle["time"]), "reason": "H4 target first"}
+
+  observation_time = as_of if as_of is not None else int(datetime.now(timezone.utc).timestamp())
+  final_candle_complete = (
+    final_index < len(candles)
+    and int(candles[final_index]["time"]) + H4_SECONDS <= observation_time
+  )
+  if allow_pending and not final_candle_complete:
+    return {
+      **detail,
+      "status": "pending",
+      "resultR": None,
+      "reason": "Monitoring the open 30-candle paper outcome window",
+    }
 
   expiry_candle = candles[final_index]
   expiry_r = direction_sign * (float(expiry_candle["close"]) - entry) / atr
@@ -575,6 +595,7 @@ def aggregate_outcomes(outcomes: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
   expired = sum(outcome["status"] == "expired" for outcome in evaluable)
   ambiguous = sum(outcome["status"] == "ambiguous" for outcome in attempted)
   unevaluable = sum(outcome["status"] == "unevaluable" for outcome in attempted)
+  pending = sum(outcome["status"] == "pending" for outcome in attempted)
   total = len(evaluable)
   return {
     "candidateCount": len(outcomes),
@@ -585,6 +606,7 @@ def aggregate_outcomes(outcomes: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     "expiredCount": expired,
     "ambiguousCount": ambiguous,
     "unevaluableCount": unevaluable,
+    "pendingCount": pending,
     "targetHitRate": wins / total if total else None,
     "stopHitRate": losses / total if total else None,
     "expiredRate": expired / total if total else None,

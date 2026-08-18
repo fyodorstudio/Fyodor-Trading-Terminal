@@ -47,6 +47,37 @@ def test_calendar_ingest_updates_a_scheduled_row_when_actual_arrives(tmp_path: P
   assert store.query_calendar()[0]["actual"] == "1.2"
 
 
+def test_forward_observation_keeps_first_seen_values_after_calendar_revision(tmp_path: Path) -> None:
+  store = ResearchStore(tmp_path / "research.sqlite3")
+  released = event(3, 500, actual="1.2")
+  store.upsert_calendar_events([released], ingested_at=501)
+
+  assert store.capture_release_observations(activated_at=400, observed_at=502) == 1
+  revised = {**released, "actual": "1.4", "previous": "0.9"}
+  store.upsert_calendar_events([revised], ingested_at=503)
+  assert store.capture_release_observations(activated_at=400, observed_at=504) == 0
+
+  frozen = store.query_release_observations(from_time=400, currencies=["USD"])[0]
+  assert frozen["actual"] == "1.2"
+  assert frozen["previous"] == "0.7"
+  assert frozen["firstSeenAt"] == 502
+
+
+def test_paper_case_candidate_is_immutable_while_outcomes_advance(tmp_path: Path) -> None:
+  store = ResearchStore(tmp_path / "research.sqlite3")
+  store.ensure_signal_version("v2", 1, {"rule": "fixed"}, "hash-v2")
+  candidate = {"eventTime": 600, "direction": "long"}
+  assert store.save_paper_case("v2", 600, 605, "monitoring", candidate, {"2.0": {"status": "pending"}}, 605)
+  assert not store.save_paper_case("v2", 600, 700, "monitoring", {"direction": "short"}, {}, 700)
+
+  store.update_paper_case("v2", 600, "completed", {"2.0": {"status": "target_hit"}}, 800)
+  saved = store.query_paper_cases("v2")[0]
+  assert saved["candidate"] == candidate
+  assert saved["frozenAt"] == 605
+  assert saved["state"] == "completed"
+  assert saved["outcomes"]["2.0"]["status"] == "target_hit"
+
+
 def test_signal_versions_are_immutable(tmp_path: Path) -> None:
   store = ResearchStore(tmp_path / "research.sqlite3")
   store.ensure_signal_version("v1", 1, {"rule": "fixed"}, "hash-a")

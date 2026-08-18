@@ -39,7 +39,7 @@ string EscapeJsonString(const string s)
       else if(ch < 32)
          result += " ";
       else
-         result += CharToString(ch);
+         result += ShortToString(ch);
    }
 
    return result;
@@ -180,6 +180,29 @@ bool SendEventsToBridge(const string eventsJson, const int eventCount)
    return (status >= 200 && status < 300);
 }
 
+bool SendCycleCompletion(const datetime completedAt, const int failedBatches)
+{
+   string cycleUrl = BridgeUrl + "_cycle";
+   string body = "{\"completedAt\":" + IntegerToString((int)completedAt)
+               + ",\"failedBatches\":" + IntegerToString(failedBatches) + "}";
+   uchar data[];
+   int written = StringToCharArray(body, data, 0, WHOLE_ARRAY, CP_UTF8);
+   int data_size = written;
+   if(data_size > 0 && data[data_size - 1] == 0)
+      data_size--;
+
+   uchar result[];
+   string result_headers;
+   string headers = "Content-Type: application/json\r\n";
+   ResetLastError();
+   int status = WebRequest("POST", cycleUrl, headers, "", RequestTimeoutMs, data, data_size, result, result_headers);
+   int err = GetLastError();
+   string response = CharArrayToString(result, 0, -1, CP_UTF8);
+   PrintFormat("FyodorCalendarBridge: cycle acknowledgement status=%d error=%d body=%s", status, err, response);
+   ResetLastError();
+   return (status >= 200 && status < 300);
+}
+
 bool FlushBatch(string &batchJson,
                 int &batchCount,
                 int &successBatches,
@@ -282,4 +305,5 @@ void OnTimer()
 
    PrintFormat("FyodorCalendarBridge: timer complete. rows=%d success_batches=%d failed_batches=%d",
                totalRows, successBatches, failedBatches);
+   SendCycleCompletion(TimeCurrent(), failedBatches);
 }

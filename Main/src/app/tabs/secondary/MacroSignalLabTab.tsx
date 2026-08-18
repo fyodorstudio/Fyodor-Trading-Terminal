@@ -14,12 +14,14 @@ import {
   fetchLatestMacroSignalBacktest,
   fetchMacroSignalBacktest,
   fetchMacroSignalCoverage,
+  fetchMacroSignalForwardPaper,
   fetchMacroSignalVersions,
   startMacroSignalBacktest,
 } from "@/app/lib/bridge";
 import type {
   MacroSignalBacktestRun,
   MacroSignalCoverage,
+  MacroSignalForwardPaper,
   MacroSignalMetrics,
   MacroSignalOutcome,
   MacroSignalVersion,
@@ -62,6 +64,7 @@ function resultLabel(outcome: MacroSignalOutcome): string {
   if (outcome.status === "expired") return "Expired";
   if (outcome.status === "ambiguous") return "Both touched — order unknown";
   if (outcome.status === "no_direction") return "No direction";
+  if (outcome.status === "pending") return "Monitoring";
   return "Unevaluable";
 }
 
@@ -133,6 +136,7 @@ interface MacroSignalLabViewProps {
   version: MacroSignalVersion | null;
   versions?: MacroSignalVersion[];
   run: MacroSignalBacktestRun | null;
+  forwardPaper?: MacroSignalForwardPaper | null;
   loading: boolean;
   error: string | null;
   onRun: () => void;
@@ -145,6 +149,7 @@ export function MacroSignalLabView({
   version,
   versions = version ? [version] : [],
   run,
+  forwardPaper = null,
   loading,
   error,
   onRun,
@@ -288,16 +293,34 @@ export function MacroSignalLabView({
                 </section>
               ) : null}
 
-              {result.forwardPaper && result.status === "exploratory_reused_history" ? (
+              {result.status === "exploratory_reused_history" ? (
                 <section className="macro-signal-panel macro-signal-forward">
-                  <div className="macro-signal-section-title"><Clock3 size={16} /><h3>Forward paper evidence</h3><span>Only post-registration releases count</span></div>
+                  <div className="macro-signal-section-title"><Clock3 size={16} /><h3>Automatic forward paper ledger</h3><span>Immutable first-seen releases only</span></div>
                   <div className="macro-signal-forward-grid">
-                    <div><span>Started</span><strong>{formatTimestamp(result.forwardPaper.start)}</strong></div>
-                    <div><span>Elapsed</span><strong>{result.forwardPaper.elapsedDays} days</strong></div>
-                    <div><span>Evaluable</span><strong>{result.forwardPaper.metrics.evaluableCount} / 100 minimum</strong></div>
-                    <div><span>Average</span><strong>{formatR(result.forwardPaper.metrics.averageR)}</strong></div>
+                    <div><span>Activated</span><strong>{formatTimestamp(forwardPaper?.activatedAt)}</strong></div>
+                    <div><span>Elapsed</span><strong>{forwardPaper?.elapsedDays ?? 0} / 365 days</strong></div>
+                    <div><span>Frozen releases</span><strong>{forwardPaper?.observationCount ?? 0}</strong></div>
+                    <div><span>Paper cases</span><strong>{forwardPaper?.caseCount ?? 0}</strong></div>
+                    <div><span>Monitoring</span><strong>{forwardPaper?.monitoringCount ?? 0}</strong></div>
+                    <div><span>2R evaluable</span><strong>{forwardPaper?.targets["2.0"]?.evaluableCount ?? 0} / 100</strong></div>
+                    <div><span>2R average</span><strong>{formatR(forwardPaper?.targets["2.0"]?.averageR ?? null)}</strong></div>
+                    <div><span>EA cycle</span><strong>{forwardPaper?.lastSuccessfulCycleAt ? formatTimestamp(forwardPaper.lastSuccessfulCycleAt) : "Waiting for upgraded EA"}</strong></div>
+                    <div><span>Ledger integrity</span><strong>{forwardPaper?.immutable ? "First-seen locked" : "Unavailable"}</strong></div>
                   </div>
-                  <p>No historical result can complete this gate because v2 was chosen after v1 was inspected.</p>
+                  <p>The EA records candidates automatically after each complete upload cycle. Historical rows, late-seen releases, and later broker revisions cannot retroactively improve this evidence.</p>
+                  {forwardPaper?.recentCases.length ? (
+                    <details className="macro-signal-forward-cases">
+                      <summary>Recent forward cases <span>{forwardPaper.recentCases.length}</span></summary>
+                      <div>{forwardPaper.recentCases.map((paperCase) => (
+                        <div key={paperCase.eventTime}>
+                          <strong>{formatTimestamp(paperCase.eventTime)}</strong>
+                          <span>{paperCase.candidate.direction === "long" ? "Long bias" : paperCase.candidate.direction === "short" ? "Short bias" : "No direction"}</span>
+                          <span>{paperCase.state.replaceAll("_", " ")}</span>
+                          <span>{paperCase.candidate.events.map((event) => event.title).join(" · ")}</span>
+                        </div>
+                      ))}</div>
+                    </details>
+                  ) : null}
                 </section>
               ) : null}
 
@@ -402,6 +425,7 @@ export function MacroSignalLabTab() {
   const [version, setVersion] = useState<MacroSignalVersion | null>(null);
   const [versions, setVersions] = useState<MacroSignalVersion[]>([]);
   const [run, setRun] = useState<MacroSignalBacktestRun | null>(null);
+  const [forwardPaper, setForwardPaper] = useState<MacroSignalForwardPaper | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -411,11 +435,13 @@ export function MacroSignalLabTab() {
       .then(async ([nextCoverage, nextVersions]) => {
         const nextVersion = nextVersions.find((item) => item.active) ?? nextVersions[nextVersions.length - 1] ?? null;
         const nextRun = nextVersion ? await fetchLatestMacroSignalBacktest(nextVersion.id) : null;
+        const nextForward = nextVersion?.id.includes("LABOR") ? await fetchMacroSignalForwardPaper(nextVersion.id) : null;
         if (cancelled) return;
         setCoverage(nextCoverage);
         setVersions(nextVersions);
         setVersion(nextVersion);
         setRun(nextRun);
+        setForwardPaper(nextForward);
         setError(null);
       })
       .catch((loadError: unknown) => {
@@ -426,6 +452,25 @@ export function MacroSignalLabTab() {
       });
     return () => { cancelled = true; };
   }, []);
+
+  useEffect(() => {
+    if (!version?.id.includes("LABOR")) {
+      setForwardPaper(null);
+      return;
+    }
+    let cancelled = false;
+    const refreshForward = () => {
+      fetchMacroSignalForwardPaper(version.id)
+        .then((next) => { if (!cancelled) setForwardPaper(next); })
+        .catch(() => { /* Historical research remains usable if forward polling is temporarily unavailable. */ });
+    };
+    refreshForward();
+    const timer = window.setInterval(refreshForward, 60_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [version?.id]);
 
   useEffect(() => {
     if (!run || (run.status !== "queued" && run.status !== "running")) return;
@@ -458,12 +503,13 @@ export function MacroSignalLabTab() {
   const handleRefresh = () => {
     setLoading(true);
     setError(null);
-    Promise.all([fetchMacroSignalCoverage(), fetchMacroSignalVersions(), version ? fetchLatestMacroSignalBacktest(version.id) : Promise.resolve(null)])
-      .then(([nextCoverage, nextVersions, nextRun]) => {
+    Promise.all([fetchMacroSignalCoverage(), fetchMacroSignalVersions(), version ? fetchLatestMacroSignalBacktest(version.id) : Promise.resolve(null), version?.id.includes("LABOR") ? fetchMacroSignalForwardPaper(version.id) : Promise.resolve(null)])
+      .then(([nextCoverage, nextVersions, nextRun, nextForward]) => {
         setCoverage(nextCoverage);
         setVersions(nextVersions);
         setVersion((current) => nextVersions.find((item) => item.id === current?.id) ?? nextVersions.find((item) => item.active) ?? null);
         setRun(nextRun);
+        setForwardPaper(nextForward);
       })
       .catch((refreshError: unknown) => setError(refreshError instanceof Error ? refreshError.message : "Research state could not refresh"))
       .finally(() => setLoading(false));
@@ -474,6 +520,7 @@ export function MacroSignalLabTab() {
     if (!nextVersion || nextVersion.id === version?.id) return;
     setVersion(nextVersion);
     setRun(null);
+    setForwardPaper(null);
     setLoading(true);
     setError(null);
     fetchLatestMacroSignalBacktest(versionId)
@@ -482,5 +529,5 @@ export function MacroSignalLabTab() {
       .finally(() => setLoading(false));
   };
 
-  return <MacroSignalLabView coverage={coverage} version={version} versions={versions} run={run} loading={loading} error={error} onRun={handleRun} onRefresh={handleRefresh} onSelectVersion={handleSelectVersion} />;
+  return <MacroSignalLabView coverage={coverage} version={version} versions={versions} run={run} forwardPaper={forwardPaper} loading={loading} error={error} onRun={handleRun} onRefresh={handleRefresh} onSelectVersion={handleSelectVersion} />;
 }

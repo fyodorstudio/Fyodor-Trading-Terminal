@@ -4,6 +4,7 @@ import { MacroSignalLabView } from "@/app/tabs/secondary/MacroSignalLabTab";
 import type {
   MacroSignalBacktestRun,
   MacroSignalCoverage,
+  MacroSignalForwardPaper,
   MacroSignalMetrics,
   MacroSignalVersion,
 } from "@/app/types";
@@ -56,6 +57,27 @@ const v2Version: MacroSignalVersion = {
   createdAt: 1_780_045_252,
   configuration: { seriesIdentity: "currency_country_code_normalized_title" },
   active: true,
+};
+
+const forwardPaper: MacroSignalForwardPaper = {
+  versionId: v2Version.id,
+  activatedAt: 1_787_047_068,
+  elapsedDays: 0,
+  immutable: true,
+  lastSuccessfulCycleAt: 1_787_047_100,
+  lastCycleFailedBatches: 0,
+  observationCount: 3,
+  caseCount: 1,
+  directionalCount: 1,
+  monitoringCount: 1,
+  completedCount: 0,
+  noDirectionCount: 0,
+  lateForContractCount: 0,
+  targets: { "1.0": metrics, "1.5": metrics, "2.0": metrics },
+  checks: { minimumElapsedDays: false, minimumEvaluable: false, maximumAmbiguousRate: true, positiveExpectancyLower95: false, costModel: false },
+  eligible: false,
+  gate: {},
+  recentCases: [],
 };
 
 const run: MacroSignalBacktestRun = {
@@ -272,13 +294,14 @@ describe("Macro Signal Lab", () => {
       } : null,
     };
     const html = renderToStaticMarkup(
-      <MacroSignalLabView coverage={coverage} version={v2Version} versions={[version, v2Version]} run={v2Run} loading={false} error={null} onRun={() => {}} onRefresh={() => {}} onSelectVersion={() => {}} />,
+      <MacroSignalLabView coverage={coverage} version={v2Version} versions={[version, v2Version]} run={v2Run} forwardPaper={forwardPaper} loading={false} error={null} onRun={() => {}} onRefresh={() => {}} onSelectVersion={() => {}} />,
     );
 
     expect(html).toContain("v1 · Economy baseline");
     expect(html).toContain("v2 · Country-aware Labor");
-    expect(html).toContain("Forward paper evidence");
-    expect(html).toContain("Only post-registration releases count");
+    expect(html).toContain("Automatic forward paper ledger");
+    expect(html).toContain("Immutable first-seen releases only");
+    expect(html).toContain("First-seen locked");
     expect(html).toContain("currency + country/region + title");
     expect(html).toContain("Collisions");
   });

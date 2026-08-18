@@ -1,7 +1,7 @@
 # Fyodor Macro Signal Research
 
 **Date:** 2026-08-18
-**Status:** Frozen v1 baseline completed and rejected for Charts. Country-aware labor v2 is registered as an exploratory model and awaits its first run plus genuinely post-registration forward evidence.
+**Status:** Frozen v1 baseline completed and rejected for Charts. Country-aware labor v2 remains exploratory on reused history. Its automatic immutable forward-paper ledger activates at `2026-08-18 09:57:48 UTC` after the upgraded EA completes its first successful upload cycle.
 
 ## Purpose
 
@@ -116,7 +116,7 @@ Historical MT5 calendar rows are not guaranteed vintage datasets. Broker `Previo
 2. **Implemented:** versioned backend backtest engine and reusable EURUSD H4/M1 candle cache so heavy research does not run in the Charts render path.
 3. **Implemented:** separate Specialist Tools **Macro Signal Lab** with an overall model result followed by family, title, and individual-case drilldowns.
 4. **Implemented:** run and audit the frozen Economy baseline without changing its formula in response to the result.
-5. Add forward paper-signal tracking for any version that meets the predeclared research gate.
+5. **Implemented:** automatic v2 forward paper-signal tracking with immutable first-seen release values, complete-cycle EA acknowledgement, late-entry exclusion, and live 1R/1.5R/2R monitoring.
 6. Consider Charts arrows only after holdout review and forward paper validation.
 7. Research Policy, Inflation, combined pillars, D1 variants, and learned weights only as separately versioned later work.
 
@@ -137,7 +137,9 @@ The Lab's diagnostic schema now reports development and holdout separately for e
 
 ## V2 Forward-Paper Boundary
 
-`FMS-EURUSD-LABOR-H4-v2` was registered at `2026-08-18 09:27:32 UTC`. Historical results before that timestamp are exploratory reused data. Only subsequently released broker rows can accumulate forward-paper evidence.
+`FMS-EURUSD-LABOR-H4-v2` was registered at `2026-08-18 09:27:32 UTC`, but the trustworthy automatic ledger begins at `2026-08-18 09:57:48 UTC`, when immutable first-seen storage and complete EA-cycle acknowledgement became available. Historical results before the ledger activation remain exploratory reused data. Only broker releases first observed by the upgraded ledger after activation can accumulate forward-paper evidence.
+
+The ledger freezes Actual, Forecast, Previous, title, currency, country/region, impact, release timestamp, and signal package at first successful observation. Later broker revisions cannot rewrite a paper case. A failed or incomplete EA upload cycle creates no candidate. If Fyodor first observes a directional release only after its contractually required H4 entry candle has already opened, the case is retained as `late for contract` but excluded from validation rather than backdated.
 
 The forward gate was frozen before observing any post-registration v2 outcomes:
 
@@ -172,6 +174,8 @@ The controlled historical import was completed on 2026-08-18. The durable SQLite
 - `MaxRowsPerPost = 120`
 
 These smaller recurring ingests update recent and newly released rows without deleting the older archive. The 10,000-day configuration should not remain active during normal operation.
+
+The upgraded EA also posts a completion acknowledgement after every timer cycle. This is required for automatic forward tracking because the bridge must know that all upload batches arrived before freezing a same-time release package. The normal settings above remain unchanged.
 
 ## Research Warnings and References
 
