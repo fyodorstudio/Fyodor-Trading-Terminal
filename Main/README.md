@@ -77,7 +77,7 @@ It also expects the MT5 EA calendar bridge to be pushing economic calendar event
 - `Central Banks Data` is derived from MT5 calendar events using strict mapping rules for the major 8 currencies. If a match is uncertain, the UI shows `N/A` instead of guessing.
 - `Specialist Tools` is the routing shell for Differential Calculator, Macro Drivers, Event Replay, and the Prototyping archive.
 - `Event Replay` is the main pair-first event replay surface. It is descriptive study support, not a signal engine.
-- `Macro Signal Lab` is a EURUSD/H4-only research experiment backed by durable MT5 calendar history and a frozen gross simulation. Its Long/Short bias labels describe historical test cases, never automatic orders, and Charts promotion remains disabled.
+- `Macro Signal Lab` is a EURUSD/H4-only immutable-version research experiment backed by durable MT5 calendar history. It preserves rejected Economy v1 and active country-aware Labor v2, whose historical result is exploratory and whose validation clock starts only after registration. Long/Short bias labels describe research cases, never automatic orders, and Charts promotion remains disabled.
 - `tabs/primary/` contains always-visible primary workflow tabs.
 - `tabs/secondary/` contains Differential Calculator, Macro Drivers, Event Replay, and the Prototyping shell.
 - `tabs/garbage/` contains old unfinished, deprecated, or ignored routed surfaces. Do not read it for general orientation unless explicitly requested.

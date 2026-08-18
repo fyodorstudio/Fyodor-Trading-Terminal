@@ -258,10 +258,14 @@ export async function fetchMacroSignalVersion(): Promise<MacroSignalVersion> {
   return fetchJson<MacroSignalVersion>(`${BRIDGE_BASE}/research/versions/current`);
 }
 
-export async function fetchLatestMacroSignalBacktest(): Promise<MacroSignalBacktestRun | null> {
+export async function fetchMacroSignalVersions(): Promise<MacroSignalVersion[]> {
+  return fetchJson<MacroSignalVersion[]>(`${BRIDGE_BASE}/research/versions`);
+}
+
+export async function fetchLatestMacroSignalBacktest(versionId = "FMS-EURUSD-LABOR-H4-v2"): Promise<MacroSignalBacktestRun | null> {
   try {
     return await fetchJson<MacroSignalBacktestRun>(
-      `${BRIDGE_BASE}/research/backtests/latest?versionId=${encodeURIComponent("FMS-EURUSD-ECO-H4-v1")}`,
+      `${BRIDGE_BASE}/research/backtests/latest?versionId=${encodeURIComponent(versionId)}`,
     );
   } catch (error) {
     if (error instanceof Error && error.message.includes("returned 404")) return null;
@@ -275,11 +279,11 @@ export async function fetchMacroSignalBacktest(runId: string): Promise<MacroSign
   );
 }
 
-export async function startMacroSignalBacktest(): Promise<MacroSignalBacktestRun> {
+export async function startMacroSignalBacktest(versionId = "FMS-EURUSD-LABOR-H4-v2"): Promise<MacroSignalBacktestRun> {
   const response = await fetch(`${BRIDGE_BASE}/research/backtests`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ versionId: "FMS-EURUSD-ECO-H4-v1" }),
+    body: JSON.stringify({ versionId }),
   });
   if (!response.ok) {
     let detail = "";

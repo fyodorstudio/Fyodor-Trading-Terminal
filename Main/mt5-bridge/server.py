@@ -20,14 +20,13 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from macro_signal import (
+  ACTIVE_VERSION_ID,
   RESULT_SCHEMA_VERSION,
-  VERSION_CONFIGURATION,
-  VERSION_CREATED_AT,
-  VERSION_HASH,
-  VERSION_ID,
+  SIGNAL_DEFINITIONS,
   build_backtest_result,
   build_signal_candidates,
   dataset_fingerprint,
+  get_signal_definition,
 )
 from research_store import ResearchStore
 
@@ -103,7 +102,7 @@ class CalendarIngestRequest(BaseModel):
 
 
 class MacroBacktestRequest(BaseModel):
-  versionId: str = VERSION_ID
+  versionId: str = ACTIVE_VERSION_ID
 
 
 _research_store = ResearchStore()
@@ -413,12 +412,13 @@ def _get_last_error() -> Optional[Dict[str, Any]]:
 def on_startup() -> None:
   global terminal_connected, last_error
 
-  _research_store.ensure_signal_version(
-    VERSION_ID,
-    VERSION_CREATED_AT,
-    VERSION_CONFIGURATION,
-    VERSION_HASH,
-  )
+  for definition in SIGNAL_DEFINITIONS.values():
+    _research_store.ensure_signal_version(
+      definition.id,
+      definition.created_at,
+      definition.configuration,
+      definition.configuration_hash,
+    )
   _research_store.mark_unfinished_runs_failed("Bridge restarted before this research job completed")
 
   if not _ensure_mt5_initialized():
@@ -844,14 +844,17 @@ def _fetch_research_candles(
   return cached
 
 
-def _execute_macro_backtest(run_id: str, event_fingerprint: str) -> None:
+def _execute_macro_backtest(run_id: str, event_fingerprint: str, version_id: str) -> None:
   created_at = int(_time.time())
+  definition = get_signal_definition(version_id)
+  if definition is None:
+    return
   try:
     _research_store.save_backtest_run(
-      run_id, VERSION_ID, event_fingerprint, created_at, "running"
+      run_id, definition.id, event_fingerprint, created_at, "running"
     )
     events = _research_store.query_calendar(currencies=["EUR", "USD"])
-    candidates = build_signal_candidates(events, now=created_at)
+    candidates = build_signal_candidates(events, now=created_at, definition=definition)
     if not candidates:
       raise RuntimeError("No registered EUR/USD Economy release packages are stored yet")
 
@@ -870,7 +873,7 @@ def _execute_macro_backtest(run_id: str, event_fingerprint: str) -> None:
         return _fetch_research_candles("EURUSD", "M1", from_time, to_time, 1)
 
       coverage = _research_store.calendar_coverage(["EUR", "USD"])
-      result = build_backtest_result(events, h4_candles, m1_provider, coverage, created_at)
+      result = build_backtest_result(events, h4_candles, m1_provider, coverage, created_at, definition)
 
     combined_fingerprint = hashlib.sha256(
       f"{event_fingerprint}:{_research_price_fingerprint(h4_candles)}".encode("utf-8")
@@ -879,7 +882,7 @@ def _execute_macro_backtest(run_id: str, event_fingerprint: str) -> None:
     result["eventFingerprint"] = event_fingerprint
     _research_store.save_backtest_run(
       run_id,
-      VERSION_ID,
+      definition.id,
       combined_fingerprint,
       created_at,
       "completed",
@@ -889,7 +892,7 @@ def _execute_macro_backtest(run_id: str, event_fingerprint: str) -> None:
     logger.exception("macro_signal_backtest run_id=%s failed", run_id)
     _research_store.save_backtest_run(
       run_id,
-      VERSION_ID,
+      definition.id,
       event_fingerprint,
       created_at,
       "failed",
@@ -903,7 +906,7 @@ def research_coverage() -> Dict[str, Any]:
   return {
     **coverage,
     "durable": True,
-    "versionId": VERSION_ID,
+    "versionId": ACTIVE_VERSION_ID,
     "backfillRecommended": coverage["earliest"] is None
     or int(_time.time()) - int(coverage["earliest"]) < 5 * 365 * 24 * 60 * 60,
     "recommendedBackfill": {
@@ -917,29 +920,45 @@ def research_coverage() -> Dict[str, Any]:
 
 @app.get("/research/versions/current")
 def research_current_version() -> Dict[str, Any]:
+  definition = SIGNAL_DEFINITIONS[ACTIVE_VERSION_ID]
   return {
-    "id": VERSION_ID,
-    "hash": VERSION_HASH,
-    "createdAt": VERSION_CREATED_AT,
-    "configuration": VERSION_CONFIGURATION,
+    "id": definition.id,
+    "hash": definition.configuration_hash,
+    "createdAt": definition.created_at,
+    "configuration": definition.configuration,
   }
+
+
+@app.get("/research/versions")
+def research_versions() -> List[Dict[str, Any]]:
+  return [
+    {
+      "id": definition.id,
+      "hash": definition.configuration_hash,
+      "createdAt": definition.created_at,
+      "configuration": definition.configuration,
+      "active": definition.id == ACTIVE_VERSION_ID,
+    }
+    for definition in SIGNAL_DEFINITIONS.values()
+  ]
 
 
 @app.post("/research/backtests")
 def start_research_backtest(payload: MacroBacktestRequest) -> Dict[str, Any]:
-  if payload.versionId != VERSION_ID:
+  definition = get_signal_definition(payload.versionId)
+  if definition is None:
     raise HTTPException(status_code=400, detail=f"Unsupported signal version: {payload.versionId}")
   _research_store.ensure_signal_version(
-    VERSION_ID,
-    VERSION_CREATED_AT,
-    VERSION_CONFIGURATION,
-    VERSION_HASH,
+    definition.id,
+    definition.created_at,
+    definition.configuration,
+    definition.configuration_hash,
   )
   events = _research_store.query_calendar(currencies=["EUR", "USD"])
   if not events:
     raise HTTPException(status_code=409, detail="No durable EUR/USD calendar history is available")
-  fingerprint = dataset_fingerprint(events)
-  latest = _research_store.latest_backtest_run(VERSION_ID)
+  fingerprint = dataset_fingerprint(events, definition)
+  latest = _research_store.latest_backtest_run(definition.id)
   if latest and latest["status"] in {"queued", "running"}:
     return {**latest, "cached": True}
   if (
@@ -952,15 +971,15 @@ def start_research_backtest(payload: MacroBacktestRequest) -> Dict[str, Any]:
   ):
     return {**latest, "cached": True}
 
-  run_id = f"{VERSION_ID}-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
+  run_id = f"{definition.id}-{int(_time.time())}-{uuid.uuid4().hex[:8]}"
   created_at = int(_time.time())
   _research_store.save_backtest_run(
-    run_id, VERSION_ID, fingerprint, created_at, "queued"
+    run_id, definition.id, fingerprint, created_at, "queued"
   )
-  _research_executor.submit(_execute_macro_backtest, run_id, fingerprint)
+  _research_executor.submit(_execute_macro_backtest, run_id, fingerprint, definition.id)
   return {
     "id": run_id,
-    "versionId": VERSION_ID,
+    "versionId": definition.id,
     "datasetFingerprint": fingerprint,
     "createdAt": created_at,
     "status": "queued",
@@ -971,8 +990,8 @@ def start_research_backtest(payload: MacroBacktestRequest) -> Dict[str, Any]:
 
 
 @app.get("/research/backtests/latest")
-def latest_research_backtest(versionId: str = VERSION_ID) -> Dict[str, Any]:
-  if versionId != VERSION_ID:
+def latest_research_backtest(versionId: str = ACTIVE_VERSION_ID) -> Dict[str, Any]:
+  if get_signal_definition(versionId) is None:
     raise HTTPException(status_code=400, detail=f"Unsupported signal version: {versionId}")
   run = _research_store.latest_backtest_run(versionId)
   if run is None:

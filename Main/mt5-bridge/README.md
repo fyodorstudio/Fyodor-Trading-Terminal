@@ -13,6 +13,7 @@ It exposes the MT5-backed endpoints the frontend needs:
 - `GET /market_status`
 - `GET /research/coverage`
 - `GET /research/versions/current`
+- `GET /research/versions`
 - `GET /research/backtests/latest`
 - `GET /research/backtests/{run_id}`
 - `POST /research/backtests`
@@ -33,7 +34,7 @@ The bridge also exposes health metadata the frontend relies on, including `last_
 
 Calendar rows are stored durably in a local SQLite database rather than a 400-day in-memory list. Set `FYODOR_RESEARCH_DB` to override its location; the Windows default is `%LOCALAPPDATA%\Fyodor Trading Terminal\fyodor-research.sqlite3`.
 
-The research endpoints own the frozen `FMS-EURUSD-ECO-H4-v1` simulation used by Macro Signal Lab. Backtests run on a single background worker, reuse cached H4 candles, fetch M1 only when an H4 bar touches both stop and target, and never execute an order.
+The research endpoints own immutable Macro Signal versions used by Macro Signal Lab. Frozen v1 remains the failed Economy baseline; active `FMS-EURUSD-LABOR-H4-v2` uses country-aware exact-series identity and treats all pre-registration history as exploratory. Backtests run on a single background worker, reuse cached H4 candles, fetch M1 only when an H4 bar touches both stop and target, and never execute an order.
 
 ## Normal Usage
 

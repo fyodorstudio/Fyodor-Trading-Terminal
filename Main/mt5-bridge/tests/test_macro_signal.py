@@ -6,7 +6,9 @@ from macro_signal import (
   build_signal_candidates,
   calculate_atr_by_candle,
   evaluate_candidate,
+  get_signal_definition,
   score_event,
+  V2_VERSION_ID,
 )
 
 
@@ -193,7 +195,7 @@ def test_backtest_reports_split_cohorts_data_quality_and_plain_conclusion() -> N
   )
 
   activity = result["cohorts"]["factor"][0]
-  assert result["resultSchemaVersion"] == 2
+  assert result["resultSchemaVersion"] == 3
   assert activity["key"] == "activity"
   assert activity["development"] is not None
   assert activity["holdout"] is not None
@@ -201,3 +203,34 @@ def test_backtest_reports_split_cohorts_data_quality_and_plain_conclusion() -> N
   assert result["dataQuality"]["missingActualRows"] == 1
   assert result["conclusion"]["code"] == "no_validated_edge"
   assert "must not be placed on Charts" in result["conclusion"]["summary"]
+
+
+def test_v2_is_labor_only_country_aware_and_scoped_to_eu_us_aggregates() -> None:
+  definition = get_signal_definition(V2_VERSION_ID)
+  assert definition is not None
+  events = [
+    {**calendar_event(1, 100, "EUR", "Unemployment Rate", "4.0", "4.2", "4.3"), "countryCode": "EU"},
+    {**calendar_event(2, 100, "EUR", "Unemployment Rate", "6.0", "5.8", "5.7"), "countryCode": "DE"},
+    {**calendar_event(3, 100, "EUR", "GDP q/q", "2.0", "1.5", "1.0"), "countryCode": "EU"},
+    {**calendar_event(4, 200, "EUR", "Unemployment Rate", "3.9", "4.0", "4.0"), "countryCode": "EU"},
+  ]
+
+  packages = build_signal_candidates(events, now=300, definition=definition)
+
+  assert [event["factor"] for event in packages[0]["events"]] == ["labor"]
+  assert packages[0]["events"][0]["countryCode"] == "EU"
+  assert all(event["title"] != "GDP q/q" for package in packages for event in package["events"])
+  assert packages[1]["backgroundDirection"] == "long"
+
+  result = build_backtest_result(
+    events,
+    candles(count=80),
+    None,
+    {"count": len(events), "earliest": 100, "latest": 200, "currencies": []},
+    definition.created_at + 1,
+    definition,
+  )
+  assert result["status"] == "exploratory_reused_history"
+  assert result["eligibility"]["historicalEligibilityDisabled"] is True
+  assert result["forwardPaper"]["metrics"]["candidateCount"] == 0
+  assert result["conclusion"]["code"] == "forward_observation_required"

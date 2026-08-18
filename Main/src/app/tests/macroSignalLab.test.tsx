@@ -50,6 +50,14 @@ const version: MacroSignalVersion = {
   configuration: {},
 };
 
+const v2Version: MacroSignalVersion = {
+  id: "FMS-EURUSD-LABOR-H4-v2",
+  hash: "abcdef1234567890",
+  createdAt: 1_780_045_252,
+  configuration: { seriesIdentity: "currency_country_code_normalized_title" },
+  active: true,
+};
+
 const run: MacroSignalBacktestRun = {
   id: "run-1",
   versionId: version.id,
@@ -110,6 +118,7 @@ const run: MacroSignalBacktestRun = {
             id: 1,
             time: 1_750_000_000,
             currency: "EUR",
+            countryCode: "EU",
             title: "GDP q/q",
             impact: "high",
             actual: "2.0",
@@ -170,6 +179,10 @@ const run: MacroSignalBacktestRun = {
       unparsableForecastRows: 1,
       unparsablePreviousRows: 0,
       duplicateExactSeriesTimestampRows: 0,
+      countryTitleCollisionRows: 0,
+      countryTitleCollisionGroups: [],
+      seriesIdentity: "currency + title (legacy v1)",
+      countryScope: "all EUR/USD country sources",
       registeredByFactor: [{ factor: "activity", rows: 100 }],
     },
     conclusion: {
@@ -181,6 +194,15 @@ const run: MacroSignalBacktestRun = {
       holdoutExpectancyCi95: { lower: -0.1, upper: 0.02 },
       exploratoryFactorLeads: [{ key: "labor", developmentAverageR: 0.04, holdoutAverageR: 0.08, developmentN: 80, holdoutN: 40 }],
       selectionWarning: "Exploratory leads were noticed after viewing v1 and are not untouched validation evidence.",
+    },
+    forwardPaper: {
+      start: 1_780_000_000,
+      elapsedDays: 0,
+      metrics,
+      checks: { elapsedTime: false, sample: false, expectancyLower95: false, ambiguity: true, costModel: false },
+      gate: {},
+      eligible: false,
+      outcomes: [],
     },
     limitations: ["Hypothetical results do not represent executed trades."],
   },
@@ -225,5 +247,39 @@ describe("Macro Signal Lab", () => {
     expect(html).toContain("LookBackDays = 10000");
     expect(html).toContain("MaxEventsPerCur = 10000");
     expect(html).toContain("failed_batches=0");
+  });
+
+  it("exposes immutable version switching and the forward-only v2 boundary", () => {
+    const v2Run: MacroSignalBacktestRun = {
+      ...run,
+      versionId: v2Version.id,
+      result: run.result ? {
+        ...run.result,
+        versionId: v2Version.id,
+        status: "exploratory_reused_history",
+        conclusion: {
+          ...run.result.conclusion,
+          code: "forward_observation_required",
+          title: "Exploratory history only — forward evidence required",
+          summary: "Only post-registration observations count.",
+        },
+        dataQuality: {
+          ...run.result.dataQuality,
+          countryTitleCollisionRows: 7,
+          seriesIdentity: "currency + country/region + title",
+          countryScope: { EUR: ["EU"], USD: ["US"] },
+        },
+      } : null,
+    };
+    const html = renderToStaticMarkup(
+      <MacroSignalLabView coverage={coverage} version={v2Version} versions={[version, v2Version]} run={v2Run} loading={false} error={null} onRun={() => {}} onRefresh={() => {}} onSelectVersion={() => {}} />,
+    );
+
+    expect(html).toContain("v1 · Economy baseline");
+    expect(html).toContain("v2 · Country-aware Labor");
+    expect(html).toContain("Forward paper evidence");
+    expect(html).toContain("Only post-registration releases count");
+    expect(html).toContain("currency + country/region + title");
+    expect(html).toContain("Collisions");
   });
 });

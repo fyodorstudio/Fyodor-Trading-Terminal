@@ -117,8 +117,9 @@ These are independent exploration sketches, not committed implementation specifi
 - [x] Perform the controlled EUR/USD MT5 historical backfill and verify actual broker coverage.
 - [x] Run the frozen v1 result once, audit chronological holdout evidence, and record `No validated edge` without changing the formula.
 - [x] Add plain-language v1 conclusions, development-versus-holdout cohort comparisons, and a source-data quality audit to Macro Signal Lab.
-- [ ] Pre-register exactly one exploratory v2 hypothesis after reviewing the split diagnostics; the already-viewed v1 holdout must not be described as untouched evidence for v2.
-- [ ] Freeze a forward-paper sample requirement before beginning paper validation.
+- [x] Pre-register country-aware Labor-only `FMS-EURUSD-LABOR-H4-v2`; disclose that its historical data was selected after viewing v1 and is not untouched evidence.
+- [x] Freeze the v2 forward-paper boundary at registration plus a 365-day, 100-evaluable-case, positive-lower-95%, ambiguity, and future cost-model gate.
+- [ ] Run v2's exploratory historical baseline and begin accumulating post-registration forward observations without promoting it to Charts.
 - [ ] Keep Inflation, Policy, learned weights, and Charts arrows deferred until separately versioned research justifies them.
 
 ## Completed Work Log

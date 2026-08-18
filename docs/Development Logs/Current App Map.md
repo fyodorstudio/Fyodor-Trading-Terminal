@@ -72,7 +72,7 @@ Current direct children under `Specialist Tools`:
    - Shows base/quote event types first, major global movers separately, past releases, replay controls, and descriptive replay notes.
 
 4. `Active Experiment` / `MACRO SIGNAL LAB`
-   - EURUSD/H4-only frozen Economy backtest surface.
+   - EURUSD/H4 immutable-version research surface: rejected Economy v1 plus active country-aware, aggregate-EU/US Labor v2 with a post-registration forward-paper boundary.
    - Uses durable bridge calendar storage and cached MT5 H4/M1 candles.
    - Reports gross historical Long/Short bias cases, explicit ambiguity, holdout results, and paper-eligibility checks without placing orders or adding Charts arrows.
    - Awaiting the controlled historical MT5 backfill and first frozen result.

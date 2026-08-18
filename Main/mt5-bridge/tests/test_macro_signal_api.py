@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 import server
-from macro_signal import VERSION_ID
+from macro_signal import ACTIVE_VERSION_ID, VERSION_ID, V2_VERSION_ID
 from research_store import ResearchStore
 
 
@@ -72,3 +72,15 @@ def test_unknown_signal_version_is_rejected(tmp_path: Path, monkeypatch) -> None
 
   assert response.status_code == 400
   assert "Unsupported signal version" in response.text
+
+
+def test_version_registry_exposes_failed_v1_and_active_country_aware_v2() -> None:
+  response = client.get("/research/versions")
+
+  assert response.status_code == 200
+  versions = response.json()
+  assert [row["id"] for row in versions] == [VERSION_ID, V2_VERSION_ID]
+  active = next(row for row in versions if row["active"])
+  assert active["id"] == ACTIVE_VERSION_ID
+  assert active["configuration"]["seriesIdentity"] == "currency_country_code_normalized_title"
+  assert active["configuration"]["historicalEligibility"] == "disabled_due_to_reused_history"

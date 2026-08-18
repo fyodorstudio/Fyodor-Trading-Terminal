@@ -29,6 +29,7 @@ export interface MacroSignalVersion {
   hash: string;
   createdAt: number;
   configuration: Record<string, unknown>;
+  active?: boolean;
 }
 
 export interface MacroSignalMetrics {
@@ -62,6 +63,7 @@ export interface MacroSignalScoredEvent {
   id: number;
   time: number;
   currency: string;
+  countryCode: string;
   title: string;
   impact: string;
   actual: string | null;
@@ -129,11 +131,22 @@ export interface MacroSignalDataQuality {
   unparsableForecastRows: number;
   unparsablePreviousRows: number;
   duplicateExactSeriesTimestampRows: number;
+  countryTitleCollisionRows: number;
+  countryTitleCollisionGroups: Array<{
+    currency: string;
+    normalizedTitle: string;
+    title: string;
+    time: number;
+    rows: number;
+    countryCodes: string[];
+  }>;
+  seriesIdentity: string;
+  countryScope: Record<string, string[]> | string;
   registeredByFactor: Array<{ factor: string; rows: number }>;
 }
 
 export interface MacroSignalConclusion {
-  code: "eligible_for_paper_validation" | "no_validated_edge";
+  code: "eligible_for_paper_validation" | "no_validated_edge" | "forward_observation_required" | "forward_paper_validated";
   title: string;
   summary: string;
   developmentAverageR: number | null;
@@ -158,7 +171,7 @@ export interface MacroSignalBacktestResult {
   generatedAt: number;
   symbol: "EURUSD";
   timeframe: "H4";
-  status: "research" | "eligible_for_paper_validation";
+  status: "research" | "eligible_for_paper_validation" | "exploratory_reused_history";
   costs: string;
   coverage: {
     count: number;
@@ -185,6 +198,17 @@ export interface MacroSignalBacktestResult {
     eligible: boolean;
     checks: Record<string, boolean>;
     gate: Record<string, unknown>;
+    historicalGatePassed?: boolean;
+    historicalEligibilityDisabled?: boolean;
+  };
+  forwardPaper: {
+    start: number;
+    elapsedDays: number;
+    metrics: MacroSignalMetrics;
+    checks: Record<string, boolean>;
+    gate: Record<string, unknown>;
+    eligible: boolean;
+    outcomes: MacroSignalOutcome[];
   };
   robustness: {
     latestFiveYears?: MacroSignalMetrics;

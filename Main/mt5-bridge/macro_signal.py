@@ -13,7 +13,10 @@ from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Seque
 
 VERSION_ID = "FMS-EURUSD-ECO-H4-v1"
 VERSION_CREATED_AT = 1786982400  # 2026-08-18 00:00:00 UTC
-RESULT_SCHEMA_VERSION = 2
+V2_VERSION_ID = "FMS-EURUSD-LABOR-H4-v2"
+V2_VERSION_CREATED_AT = 1787045252  # 2026-08-18 09:27:32 UTC
+ACTIVE_VERSION_ID = V2_VERSION_ID
+RESULT_SCHEMA_VERSION = 3
 H4_SECONDS = 4 * 60 * 60
 PRIMARY_WINDOW_DAYS = 3652
 RECENT_WINDOW_DAYS = 1826
@@ -30,6 +33,14 @@ ELIGIBILITY_GATE = {
   "requirePrimaryPriceCoverage": True,
   "requirePositiveDevelopmentExpectancy": True,
   "requirePositiveHoldoutExpectancyLower95": True,
+}
+
+FORWARD_PAPER_GATE = {
+  "minimumElapsedDays": 365,
+  "minimumEvaluable": 100,
+  "maximumAmbiguousRate": 0.05,
+  "requirePositiveExpectancyLower95": True,
+  "costModelRequiredBeforeCharts": True,
 }
 
 
@@ -143,6 +154,67 @@ VERSION_HASH = hashlib.sha256(
   json.dumps(VERSION_CONFIGURATION, sort_keys=True, separators=(",", ":")).encode("utf-8")
 ).hexdigest()
 
+V2_VERSION_CONFIGURATION: Dict[str, Any] = {
+  **{key: value for key, value in VERSION_CONFIGURATION.items() if key not in {"id", "pillar", "rules", "eligibilityGate"}},
+  "id": V2_VERSION_ID,
+  "pillar": "labor_only",
+  "seriesIdentity": "currency_country_code_normalized_title",
+  "countryScope": {"EUR": ["EU"], "USD": ["US"]},
+  "selectionDisclosure": "Labor was selected after inspecting v1, including its holdout. All pre-registration history is exploratory reused data.",
+  "historicalEligibility": "disabled_due_to_reused_history",
+  "forwardPaperStart": V2_VERSION_CREATED_AT,
+  "forwardPaperGate": FORWARD_PAPER_GATE,
+  "rules": [
+    {
+      "id": rule.id,
+      "label": rule.label,
+      "factor": rule.factor,
+      "scoreGroup": rule.score_group,
+      "direction": rule.direction,
+      "includeAny": list(rule.include_any),
+      "excludeAny": list(rule.exclude_any),
+    }
+    for rule in ECONOMY_RULES
+    if rule.factor == "labor"
+  ],
+}
+V2_VERSION_HASH = hashlib.sha256(
+  json.dumps(V2_VERSION_CONFIGURATION, sort_keys=True, separators=(",", ":")).encode("utf-8")
+).hexdigest()
+
+
+@dataclass(frozen=True)
+class SignalDefinition:
+  id: str
+  created_at: int
+  configuration: Dict[str, Any]
+  configuration_hash: str
+  allowed_factors: Optional[frozenset[str]]
+  country_aware_series: bool
+  historical_gate_allowed: bool
+  country_scope: Optional[Dict[str, frozenset[str]]]
+
+
+SIGNAL_DEFINITIONS: Dict[str, SignalDefinition] = {
+  VERSION_ID: SignalDefinition(
+    VERSION_ID, VERSION_CREATED_AT, VERSION_CONFIGURATION, VERSION_HASH, None, False, True, None,
+  ),
+  V2_VERSION_ID: SignalDefinition(
+    V2_VERSION_ID,
+    V2_VERSION_CREATED_AT,
+    V2_VERSION_CONFIGURATION,
+    V2_VERSION_HASH,
+    frozenset({"labor"}),
+    True,
+    False,
+    {"EUR": frozenset({"EU"}), "USD": frozenset({"US"})},
+  ),
+}
+
+
+def get_signal_definition(version_id: str) -> Optional[SignalDefinition]:
+  return SIGNAL_DEFINITIONS.get(version_id)
+
 
 SOURCE_VALUE_RE = re.compile(r"^([+-]?\d+(?:\.\d+)?)\s*(%|[kmbt])?$", re.IGNORECASE)
 
@@ -208,6 +280,7 @@ def score_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     "id": int(event["id"]),
     "time": int(event["time"]),
     "currency": str(event["currency"]).upper(),
+    "countryCode": str(event.get("countryCode", "")).upper(),
     "title": str(event["title"]),
     "impact": str(event.get("impact", "low")).lower(),
     "actual": event.get("actual"),
@@ -255,12 +328,41 @@ def _build_factor_votes(scored_events: Sequence[Dict[str, Any]]) -> List[Dict[st
   ]
 
 
-def build_signal_candidates(events: Sequence[Dict[str, Any]], now: Optional[int] = None) -> List[Dict[str, Any]]:
+def _series_identity(event: Dict[str, Any], country_aware: bool) -> Tuple[str, ...]:
+  currency = str(event.get("currency", "")).upper()
+  title = normalize_title(str(event.get("title", "")))
+  if country_aware:
+    return currency, str(event.get("countryCode", "")).upper(), title
+  return currency, title
+
+
+def _event_belongs_to_definition(event: Dict[str, Any], definition: SignalDefinition) -> bool:
+  rule = find_economy_rule(event)
+  if rule is None:
+    return False
+  if definition.allowed_factors is not None and rule.factor not in definition.allowed_factors:
+    return False
+  if definition.country_scope is not None:
+    currency = str(event.get("currency", "")).upper()
+    allowed_countries = definition.country_scope.get(currency)
+    if allowed_countries is None or str(event.get("countryCode", "")).upper() not in allowed_countries:
+      return False
+  return True
+
+
+def build_signal_candidates(
+  events: Sequence[Dict[str, Any]],
+  now: Optional[int] = None,
+  definition: Optional[SignalDefinition] = None,
+) -> List[Dict[str, Any]]:
+  selected_definition = definition or SIGNAL_DEFINITIONS[VERSION_ID]
   cutoff = now if now is not None else int(datetime.now(timezone.utc).timestamp())
   packages: Dict[int, List[Dict[str, Any]]] = {}
   for event in events:
     event_time = int(event.get("time", 0))
     if event_time > cutoff:
+      continue
+    if not _event_belongs_to_definition(event, selected_definition):
       continue
     scored = score_event(event)
     if scored is None:
@@ -268,7 +370,7 @@ def build_signal_candidates(events: Sequence[Dict[str, Any]], now: Optional[int]
     packages.setdefault(event_time, []).append(scored)
 
   candidates: List[Dict[str, Any]] = []
-  latest_series: Dict[Tuple[str, str], Dict[str, Any]] = {}
+  latest_series: Dict[Tuple[str, ...], Dict[str, Any]] = {}
   for event_time, scored_events in sorted(packages.items()):
     background_cutoff = event_time - 90 * 24 * 60 * 60
     background_events = [
@@ -315,7 +417,7 @@ def build_signal_candidates(events: Sequence[Dict[str, Any]], now: Optional[int]
       "highestImpact": _highest_impact(event["impact"] for event in scored_events),
     })
     for event in scored_events:
-      latest_series[(event["currency"], normalize_title(event["title"]))] = event
+      latest_series[_series_identity(event, selected_definition.country_aware_series)] = event
   return candidates
 
 
@@ -530,13 +632,16 @@ def build_data_quality_audit(
   events: Sequence[Dict[str, Any]],
   candidates: Sequence[Dict[str, Any]],
   generated_at: int,
+  definition: Optional[SignalDefinition] = None,
 ) -> Dict[str, Any]:
+  selected_definition = definition or SIGNAL_DEFINITIONS[VERSION_ID]
   pair_rows = [event for event in events if str(event.get("currency", "")).upper() in {"EUR", "USD"}]
   historical_rows = [event for event in pair_rows if int(event.get("time", 0)) <= generated_at]
   future_rows = [event for event in pair_rows if int(event.get("time", 0)) > generated_at]
-  registered_rows = [event for event in historical_rows if find_economy_rule(event) is not None]
+  registered_rows = [event for event in historical_rows if _event_belongs_to_definition(event, selected_definition)]
   scored_rows = [event for event in registered_rows if score_event(event) is not None]
   exact_keys: Dict[Tuple[str, str, int], int] = {}
+  collision_rows: Dict[Tuple[str, str, int], List[Dict[str, Any]]] = {}
   factor_counts: Dict[str, int] = {}
   for event in registered_rows:
     rule = find_economy_rule(event)
@@ -548,6 +653,7 @@ def build_data_quality_audit(
       int(event.get("time", 0)),
     )
     exact_keys[key] = exact_keys.get(key, 0) + 1
+    collision_rows.setdefault(key, []).append(event)
 
   def missing(event: Dict[str, Any], key: str) -> bool:
     return not str(event.get(key) or "").strip()
@@ -555,6 +661,21 @@ def build_data_quality_audit(
   def unparsable_present(event: Dict[str, Any], key: str) -> bool:
     value = event.get(key)
     return bool(str(value or "").strip()) and parse_source_value(value) is None
+
+  collision_groups = [
+    {
+      "currency": key[0],
+      "normalizedTitle": key[1],
+      "title": sorted({str(event.get("title", "")) for event in rows})[0],
+      "time": key[2],
+      "rows": len(rows),
+      "countryCodes": sorted({str(event.get("countryCode", "")).upper() for event in rows}),
+    }
+    for key, rows in collision_rows.items()
+    if len(rows) > 1
+  ]
+  collision_groups.sort(key=lambda row: (-int(row["rows"]), -int(row["time"]), str(row["title"])))
+  collision_excess = sum(max(0, count - 1) for count in exact_keys.values())
 
   return {
     "pairRows": len(pair_rows),
@@ -570,7 +691,11 @@ def build_data_quality_audit(
     "unparsableActualRows": sum(unparsable_present(event, "actual") for event in registered_rows),
     "unparsableForecastRows": sum(unparsable_present(event, "forecast") for event in registered_rows),
     "unparsablePreviousRows": sum(unparsable_present(event, "previous") for event in registered_rows),
-    "duplicateExactSeriesTimestampRows": sum(max(0, count - 1) for count in exact_keys.values()),
+    "duplicateExactSeriesTimestampRows": collision_excess,
+    "countryTitleCollisionRows": collision_excess,
+    "countryTitleCollisionGroups": collision_groups[:50],
+    "seriesIdentity": "currency + country/region + title" if selected_definition.country_aware_series else "currency + title (legacy v1)",
+    "countryScope": selected_definition.configuration.get("countryScope", "all EUR/USD country sources"),
     "registeredByFactor": [
       {"factor": factor, "rows": count}
       for factor, count in sorted(factor_counts.items())
@@ -584,11 +709,13 @@ def build_backtest_result(
   m1_provider: Optional[M1Provider],
   coverage: Dict[str, Any],
   generated_at: int,
+  definition: Optional[SignalDefinition] = None,
 ) -> Dict[str, Any]:
+  selected_definition = definition or SIGNAL_DEFINITIONS[VERSION_ID]
   candles = sorted(h4_candles, key=lambda candle: int(candle["time"]))
   candle_times = [int(candle["time"]) for candle in candles]
   atr_values = calculate_atr_by_candle(candles)
-  candidates = build_signal_candidates(events, now=generated_at)
+  candidates = build_signal_candidates(events, now=generated_at, definition=selected_definition)
   directional = [candidate for candidate in candidates if candidate["direction"] != "none"]
   latest_event = max((int(candidate["eventTime"]) for candidate in candidates), default=None)
   primary_start = latest_event - PRIMARY_WINDOW_DAYS * 86400 if latest_event is not None else None
@@ -645,7 +772,8 @@ def build_backtest_result(
     "holdoutExpectancyLower95": holdout_ci.get("lower") is not None and holdout_ci["lower"] > 0,
     "ambiguity": (holdout_metrics["ambiguousRate"] or 0) <= ELIGIBILITY_GATE["maximumAmbiguousRate"],
   }
-  eligible = all(checks.values())
+  historical_gate_passed = all(checks.values())
+  eligible = historical_gate_passed and selected_definition.historical_gate_allowed
 
   recent_start = latest_event - RECENT_WINDOW_DAYS * 86400 if latest_event is not None else None
   earlier_start = latest_event - PRIMARY_WINDOW_DAYS * 86400 if latest_event is not None else None
@@ -693,29 +821,60 @@ def build_backtest_result(
     and row["development"]["averageR"] > 0
     and row["holdout"]["averageR"] > 0
   ]
+  forward_outcomes = _filtered_outcomes(highlighted_primary, selected_definition.created_at, None)
+  forward_metrics = aggregate_outcomes(forward_outcomes)
+  forward_ci = forward_metrics.get("expectancyCi95") or {}
+  forward_elapsed_days = max(0, (generated_at - selected_definition.created_at) // 86400)
+  forward_checks = {
+    "elapsedTime": forward_elapsed_days >= FORWARD_PAPER_GATE["minimumElapsedDays"],
+    "sample": forward_metrics["evaluableCount"] >= FORWARD_PAPER_GATE["minimumEvaluable"],
+    "expectancyLower95": forward_ci.get("lower") is not None and forward_ci["lower"] > 0,
+    "ambiguity": (forward_metrics["ambiguousRate"] or 0) <= FORWARD_PAPER_GATE["maximumAmbiguousRate"],
+    "costModel": False,
+  }
+  forward_eligible = all(forward_checks.values())
+
+  is_reused_history = not selected_definition.historical_gate_allowed
+  conclusion_code = (
+    "forward_paper_validated" if forward_eligible
+    else "forward_observation_required" if is_reused_history
+    else "eligible_for_paper_validation" if eligible
+    else "no_validated_edge"
+  )
+  conclusion_title = (
+    "Forward paper gate passed" if forward_eligible
+    else "Exploratory history only — forward evidence required" if is_reused_history
+    else "Eligible for paper validation" if eligible
+    else "No validated edge in frozen v1"
+  )
+  conclusion_summary = (
+    "The forward gate passed, but Charts still require an approved cost model and explicit product review."
+    if forward_eligible else
+    "This version was designed after v1 history was inspected. Past results can guide research but cannot validate it; only post-registration observations count."
+    if is_reused_history else
+    "The predeclared research gate passed. This permits forward paper validation, not chart signals or live orders."
+    if eligible else
+    "The frozen Economy-only rule did not pass its predeclared holdout gate. It must not be placed on Charts."
+  )
   conclusion = {
-    "code": "eligible_for_paper_validation" if eligible else "no_validated_edge",
-    "title": "Eligible for paper validation" if eligible else "No validated edge in frozen v1",
-    "summary": (
-      "The predeclared research gate passed. This permits forward paper validation, not chart signals or live orders."
-      if eligible else
-      "The frozen Economy-only rule did not pass its predeclared holdout gate. It must not be placed on Charts."
-    ),
+    "code": conclusion_code,
+    "title": conclusion_title,
+    "summary": conclusion_summary,
     "developmentAverageR": development_metrics["averageR"],
     "holdoutAverageR": holdout_metrics["averageR"],
     "holdoutExpectancyCi95": holdout_metrics["expectancyCi95"],
-    "exploratoryFactorLeads": factor_leads,
+    "exploratoryFactorLeads": factor_leads if selected_definition.id == VERSION_ID else [],
     "selectionWarning": "Exploratory leads were noticed after viewing v1 and are not untouched validation evidence.",
   }
 
   return {
     "resultSchemaVersion": RESULT_SCHEMA_VERSION,
-    "versionId": VERSION_ID,
-    "versionHash": VERSION_HASH,
+    "versionId": selected_definition.id,
+    "versionHash": selected_definition.configuration_hash,
     "generatedAt": generated_at,
     "symbol": "EURUSD",
     "timeframe": "H4",
-    "status": "eligible_for_paper_validation" if eligible else "research",
+    "status": "eligible_for_paper_validation" if eligible else "exploratory_reused_history" if is_reused_history else "research",
     "costs": "Gross simulation; spread, slippage, swap, and commission are excluded.",
     "coverage": {**coverage, "coverageDays": coverage_days},
     "priceCoverage": {
@@ -732,10 +891,25 @@ def build_backtest_result(
       "developmentHoldoutBoundary": split_time,
     },
     "targets": target_results,
-    "eligibility": {"eligible": eligible, "checks": checks, "gate": ELIGIBILITY_GATE},
+    "eligibility": {
+      "eligible": eligible,
+      "checks": {**checks, **({"untouchedHistoricalHoldout": False} if is_reused_history else {})},
+      "gate": ELIGIBILITY_GATE,
+      "historicalGatePassed": historical_gate_passed,
+      "historicalEligibilityDisabled": is_reused_history,
+    },
+    "forwardPaper": {
+      "start": selected_definition.created_at,
+      "elapsedDays": forward_elapsed_days,
+      "metrics": forward_metrics,
+      "checks": forward_checks,
+      "gate": FORWARD_PAPER_GATE,
+      "eligible": forward_eligible,
+      "outcomes": forward_outcomes,
+    },
     "robustness": robustness,
     "cohorts": cohorts,
-    "dataQuality": build_data_quality_audit(events, candidates, generated_at),
+    "dataQuality": build_data_quality_audit(events, candidates, generated_at, selected_definition),
     "conclusion": conclusion,
     "limitations": [
       "Hypothetical results do not represent executed trades.",
@@ -746,12 +920,17 @@ def build_backtest_result(
   }
 
 
-def dataset_fingerprint(events: Sequence[Dict[str, Any]]) -> str:
+def dataset_fingerprint(
+  events: Sequence[Dict[str, Any]],
+  definition: Optional[SignalDefinition] = None,
+) -> str:
+  selected_definition = definition or SIGNAL_DEFINITIONS[VERSION_ID]
   relevant = [
     {
       "id": int(event["id"]),
       "time": int(event["time"]),
       "currency": str(event.get("currency", "")),
+      "countryCode": str(event.get("countryCode", "")),
       "title": str(event.get("title", "")),
       "impact": str(event.get("impact", "")),
       "actual": event.get("actual"),
@@ -759,7 +938,7 @@ def dataset_fingerprint(events: Sequence[Dict[str, Any]]) -> str:
       "previous": event.get("previous"),
     }
     for event in events
-    if str(event.get("currency", "")).upper() in {"EUR", "USD"}
+    if _event_belongs_to_definition(event, selected_definition)
   ]
-  payload = {"versionHash": VERSION_HASH, "events": relevant}
+  payload = {"versionHash": selected_definition.configuration_hash, "events": relevant}
   return hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()

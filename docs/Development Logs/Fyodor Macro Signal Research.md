@@ -1,7 +1,7 @@
 # Fyodor Macro Signal Research
 
 **Date:** 2026-08-18
-**Status:** Frozen v1 baseline completed and rejected for Charts. Durable storage contains the broker backfill, the first chronological holdout did not validate an edge, and diagnostic research is active.
+**Status:** Frozen v1 baseline completed and rejected for Charts. Country-aware labor v2 is registered as an exploratory model and awaits its first run plus genuinely post-registration forward evidence.
 
 ## Purpose
 
@@ -12,6 +12,15 @@ Fyodor Macro Signal is a local, research-first attempt to answer a narrow questi
 The research surface will be named **Macro Signal Lab**. Its first version will be **FMS-EURUSD-ECO-H4-v1**.
 
 The feature is intended to reduce manual economic-data reading and make historical behavior auditable. It is not an automatic order system, a guarantee of profit, or proof that an economic release caused a price move.
+
+## Registered Versions
+
+- `FMS-EURUSD-ECO-H4-v1` is the immutable Economy baseline. It uses the legacy `currency + normalized title` series identity and is permanently recorded as **No validated edge**.
+- `FMS-EURUSD-LABOR-H4-v2` is the active exploratory version. It retains only registered Labor rules, identifies an exact series with `currency + country/region code + normalized title`, and initially scopes EUR to aggregate `EU` rows and USD to `US` rows.
+
+V2 was chosen after v1's complete history and holdout were inspected. Therefore, no pre-registration v2 history is untouched validation evidence, regardless of how attractive its historical result appears.
+
+Member-country EUR releases are not assumed irrelevant. They are excluded from v2 because mixing Euro-area, German, French, Italian, and other releases as equal EUR votes would introduce an arbitrary quantity weighting. A member-country or explicitly weighted regional model requires its own future version and validation record.
 
 ## Locked Product Decisions
 
@@ -122,7 +131,23 @@ The first `FMS-EURUSD-ECO-H4-v1` run used durable broker coverage beginning in 2
 
 The result is useful because it rejected the broad Economy-only hypothesis without changing the formula after seeing history. Factor behavior was unstable between development and holdout. Labor was positive in both partitions, but that observation was discovered after inspecting v1 and is therefore only an exploratory lead. It is not untouched validation evidence.
 
-The Lab's diagnostic schema now reports development and holdout separately for every cohort, records missing/unparseable source values and duplicate exact-series timestamps, and states the model decision in plain language. These reporting additions do not alter the immutable v1 signal or simulation.
+The data-quality audit also found 498 legacy `currency + title + timestamp` collisions. These were not duplicate database ingests. They were primarily EUR-denominated releases with identical titles from multiple regions—for example Euro area, Germany, France, and Italy Construction PMI rows at the same timestamp. This proves that currency and title alone are not a complete exact-series identity for a shared currency. V1 remains unchanged for reproducibility; v2 corrects the identity with `countryCode`.
+
+The Lab's diagnostic schema now reports development and holdout separately for every cohort, records missing/unparseable source values and country/title collisions, and states the model decision in plain language. These reporting additions do not alter the immutable v1 signal or simulation.
+
+## V2 Forward-Paper Boundary
+
+`FMS-EURUSD-LABOR-H4-v2` was registered at `2026-08-18 09:27:32 UTC`. Historical results before that timestamp are exploratory reused data. Only subsequently released broker rows can accumulate forward-paper evidence.
+
+The forward gate was frozen before observing any post-registration v2 outcomes:
+
+- at least 365 elapsed calendar days;
+- at least 100 evaluable forward 2R observations;
+- an approximate 95% lower expectancy bound above zero;
+- no more than 5% ambiguous outcomes;
+- an approved transaction-cost model before any Charts promotion.
+
+Even passing this gate does not automatically add an indicator. It permits a separate product and cost-model review.
 
 ## Deferred and Open Research Questions
 

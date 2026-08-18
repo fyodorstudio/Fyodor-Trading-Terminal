@@ -14,7 +14,7 @@ import {
   fetchLatestMacroSignalBacktest,
   fetchMacroSignalBacktest,
   fetchMacroSignalCoverage,
-  fetchMacroSignalVersion,
+  fetchMacroSignalVersions,
   startMacroSignalBacktest,
 } from "@/app/lib/bridge";
 import type {
@@ -44,6 +44,12 @@ function formatR(value: number | null): string {
 function formatRange(value: { lower: number; upper: number } | null | undefined): string {
   if (!value) return "—";
   return `${formatR(value.lower)} to ${formatR(value.upper)}`;
+}
+
+function formatCountryScope(value: Record<string, string[]> | string | undefined): string {
+  if (!value) return "All EUR/USD sources (legacy v1)";
+  if (typeof value === "string") return value;
+  return Object.entries(value).map(([currency, countries]) => `${currency}: ${countries.join("/")}`).join(" · ");
 }
 
 function formatPrice(value: number | undefined): string {
@@ -105,7 +111,7 @@ function OutcomeTable({ outcomes }: { outcomes: MacroSignalOutcome[] }) {
             <tr key={`${outcome.eventTime}-${outcome.targetR}`}>
               <td>
                 <strong>{formatTimestamp(outcome.eventTime)}</strong>
-                <small>{outcome.events.map((event) => `${event.currency} ${event.title}`).join(" · ")}</small>
+                <small>{outcome.events.map((event) => `${event.currency}/${event.countryCode || "?"} ${event.title}`).join(" · ")}</small>
               </td>
               <td><strong>{outcome.direction === "long" ? "Long bias" : outcome.direction === "short" ? "Short bias" : "No direction"}</strong></td>
               <td title={`Before evidence: ${outcome.backgroundAlignment}`}>{outcome.agreement === "consensus" ? "Consensus" : outcome.agreement === "conflicted_weak" ? "Conflicted / weak" : "Exact tie"}</td>
@@ -125,21 +131,25 @@ function OutcomeTable({ outcomes }: { outcomes: MacroSignalOutcome[] }) {
 interface MacroSignalLabViewProps {
   coverage: MacroSignalCoverage | null;
   version: MacroSignalVersion | null;
+  versions?: MacroSignalVersion[];
   run: MacroSignalBacktestRun | null;
   loading: boolean;
   error: string | null;
   onRun: () => void;
   onRefresh: () => void;
+  onSelectVersion?: (versionId: string) => void;
 }
 
 export function MacroSignalLabView({
   coverage,
   version,
+  versions = version ? [version] : [],
   run,
   loading,
   error,
   onRun,
   onRefresh,
+  onSelectVersion = () => {},
 }: MacroSignalLabViewProps) {
   const result = run?.result ?? null;
   const running = run?.status === "queued" || run?.status === "running";
@@ -155,7 +165,7 @@ export function MacroSignalLabView({
             <h2>Macro Signal Lab</h2>
             <span>EURUSD</span><span>H4</span><span>{version?.id ?? "FMS-EURUSD-ECO-H4-v1"}</span>
           </div>
-          <p>Frozen Economy evidence model. Historical behavior research—not an order, guarantee, or proof of causation.</p>
+          <p>{version?.id.includes("LABOR") ? "Country-aware Labor evidence model. Reused history is exploratory; forward evidence starts at registration." : "Frozen Economy evidence model. Historical behavior research—not an order, guarantee, or proof of causation."}</p>
         </div>
         <button type="button" className="macro-signal-run-button" disabled={runDisabled} onClick={onRun}>
           {running ? <RefreshCw className="animate-spin" size={17} /> : <Play size={17} />}
@@ -167,6 +177,17 @@ export function MacroSignalLabView({
         <ShieldCheck size={17} />
         <strong>Gross simulation:</strong> spread, slippage, swap, and commission are excluded. Chart arrows remain disabled.
       </div>
+
+      {versions.length > 1 ? (
+        <div className="macro-signal-version-switch" aria-label="Research version">
+          <span>Research version</span>
+          {versions.map((item) => (
+            <button key={item.id} type="button" className={item.id === version?.id ? "is-active" : ""} onClick={() => onSelectVersion(item.id)}>
+              {item.id.includes("LABOR") ? "v2 · Country-aware Labor" : "v1 · Economy baseline"}
+            </button>
+          ))}
+        </div>
+      ) : null}
 
       {error ? <div className="macro-signal-error"><AlertTriangle size={18} />{error}</div> : null}
 
@@ -204,7 +225,8 @@ export function MacroSignalLabView({
             <div className="macro-signal-section-title"><Beaker size={16} /><h3>Frozen method</h3></div>
             <ul className="macro-signal-compact-list">
               <li>One candidate per exact release-time package.</li>
-              <li>Equal capped Economy factor votes.</li>
+              <li>{version?.id.includes("LABOR") ? "Aggregate EU and US Labor releases only." : "Equal capped Economy factor votes."}</li>
+              <li>{version?.id.includes("LABOR") ? "Series identity includes country/region provenance." : "Legacy series identity uses currency and title."}</li>
               <li>Entry at the first strictly later H4 open.</li>
               <li>ATR(14) Wilder stop; 30-H4-candle expiry.</li>
               <li>M1 resolves same-H4 target/stop order.</li>
@@ -223,9 +245,12 @@ export function MacroSignalLabView({
                 <div><dt>Missing A</dt><dd>{result.dataQuality.missingActualRows}</dd></div>
                 <div><dt>Missing F</dt><dd>{result.dataQuality.missingForecastRows}</dd></div>
                 <div><dt>Missing P</dt><dd>{result.dataQuality.missingPreviousRows}</dd></div>
-                <div><dt>Duplicates</dt><dd>{result.dataQuality.duplicateExactSeriesTimestampRows}</dd></div>
+                <div><dt>Collisions</dt><dd>{result.dataQuality.countryTitleCollisionRows ?? result.dataQuality.duplicateExactSeriesTimestampRows}</dd></div>
+                <div><dt>Series key</dt><dd>{result.dataQuality.seriesIdentity ?? "currency + title (legacy v1)"}</dd></div>
+                <div><dt>Country scope</dt><dd>{formatCountryScope(result.dataQuality.countryScope)}</dd></div>
               </dl>
-              <p className="macro-signal-audit-note">Missing values contribute nothing. Unregistered rows remain outside v1 rather than being guessed into a factor.</p>
+              <p className="macro-signal-audit-note">Collisions are legitimate countries/regions sharing a currency, title, and timestamp—not duplicate ingestion. Missing values contribute nothing.</p>
+              {(result.dataQuality.countryTitleCollisionGroups ?? []).length ? <details className="macro-signal-collision-details"><summary>Review collision examples</summary><div>{(result.dataQuality.countryTitleCollisionGroups ?? []).slice(0, 12).map((row) => <div key={`${row.currency}-${row.normalizedTitle}-${row.time}`}><strong>{row.title}</strong><span>{row.countryCodes.join(" / ")}</span></div>)}</div></details> : null}
             </section>
           ) : null}
         </aside>
@@ -247,11 +272,11 @@ export function MacroSignalLabView({
                   <div className="macro-signal-verdict-grid">
                     <div><span>1 · Build</span><strong>Development {formatR(result.conclusion.developmentAverageR)}</strong><p>The older 70% was used to observe how the frozen rule behaved.</p></div>
                     <div><span>2 · Check</span><strong>Holdout {formatR(result.conclusion.holdoutAverageR)}</strong><p>The newer 30% checked whether that behavior survived later data.</p></div>
-                    <div className={result.conclusion.code === "eligible_for_paper_validation" ? "is-eligible" : "is-rejected"}><span>3 · Decision</span><strong>{result.conclusion.title}</strong><p>{result.conclusion.summary}</p></div>
+                    <div className={result.conclusion.code === "eligible_for_paper_validation" || result.conclusion.code === "forward_paper_validated" ? "is-eligible" : "is-rejected"}><span>3 · Decision</span><strong>{result.conclusion.title}</strong><p>{result.conclusion.summary}</p></div>
                   </div>
                   <div className="macro-signal-verdict-foot">
                     <span>Holdout uncertainty: {formatRange(result.conclusion.holdoutExpectancyCi95)}</span>
-                    <span>Chart indicator: {result.conclusion.code === "eligible_for_paper_validation" ? "Still disabled until paper validation" : "Not allowed"}</span>
+                    <span>Chart indicator: {result.conclusion.code === "forward_paper_validated" ? "Pending cost-model and product review" : "Not allowed"}</span>
                   </div>
                   {result.conclusion.exploratoryFactorLeads.length ? (
                     <div className="macro-signal-research-leads">
@@ -263,11 +288,24 @@ export function MacroSignalLabView({
                 </section>
               ) : null}
 
+              {result.forwardPaper && result.status === "exploratory_reused_history" ? (
+                <section className="macro-signal-panel macro-signal-forward">
+                  <div className="macro-signal-section-title"><Clock3 size={16} /><h3>Forward paper evidence</h3><span>Only post-registration releases count</span></div>
+                  <div className="macro-signal-forward-grid">
+                    <div><span>Started</span><strong>{formatTimestamp(result.forwardPaper.start)}</strong></div>
+                    <div><span>Elapsed</span><strong>{result.forwardPaper.elapsedDays} days</strong></div>
+                    <div><span>Evaluable</span><strong>{result.forwardPaper.metrics.evaluableCount} / 100 minimum</strong></div>
+                    <div><span>Average</span><strong>{formatR(result.forwardPaper.metrics.averageR)}</strong></div>
+                  </div>
+                  <p>No historical result can complete this gate because v2 was chosen after v1 was inspected.</p>
+                </section>
+              ) : null}
+
               <section className="macro-signal-overview macro-signal-panel">
                 <div className="macro-signal-result-heading">
                   <div>
                     <span className="macro-signal-kicker">Overall model · highlighted 2R</span>
-                    <h3>{result.status === "eligible_for_paper_validation" ? "Eligible for paper validation" : "Research evidence only"}</h3>
+                    <h3>{result.status === "eligible_for_paper_validation" ? "Eligible for paper validation" : result.status === "exploratory_reused_history" ? "Exploratory reused history" : "Research evidence only"}</h3>
                     <p>Chronological holdout begins {formatTimestamp(result.candidateSummary.developmentHoldoutBoundary)}.</p>
                   </div>
                   <div className="macro-signal-headline-number">
@@ -362,16 +400,20 @@ export function MacroSignalLabView({
 export function MacroSignalLabTab() {
   const [coverage, setCoverage] = useState<MacroSignalCoverage | null>(null);
   const [version, setVersion] = useState<MacroSignalVersion | null>(null);
+  const [versions, setVersions] = useState<MacroSignalVersion[]>([]);
   const [run, setRun] = useState<MacroSignalBacktestRun | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchMacroSignalCoverage(), fetchMacroSignalVersion(), fetchLatestMacroSignalBacktest()])
-      .then(([nextCoverage, nextVersion, nextRun]) => {
+    Promise.all([fetchMacroSignalCoverage(), fetchMacroSignalVersions()])
+      .then(async ([nextCoverage, nextVersions]) => {
+        const nextVersion = nextVersions.find((item) => item.active) ?? nextVersions[nextVersions.length - 1] ?? null;
+        const nextRun = nextVersion ? await fetchLatestMacroSignalBacktest(nextVersion.id) : null;
         if (cancelled) return;
         setCoverage(nextCoverage);
+        setVersions(nextVersions);
         setVersion(nextVersion);
         setRun(nextRun);
         setError(null);
@@ -404,9 +446,10 @@ export function MacroSignalLabTab() {
   }, [run?.id, run?.status]);
 
   const handleRun = () => {
+    if (!version) return;
     setError(null);
     setLoading(true);
-    startMacroSignalBacktest()
+    startMacroSignalBacktest(version.id)
       .then(setRun)
       .catch((runError: unknown) => setError(runError instanceof Error ? runError.message : "Backtest could not start"))
       .finally(() => setLoading(false));
@@ -415,15 +458,29 @@ export function MacroSignalLabTab() {
   const handleRefresh = () => {
     setLoading(true);
     setError(null);
-    Promise.all([fetchMacroSignalCoverage(), fetchMacroSignalVersion(), fetchLatestMacroSignalBacktest()])
-      .then(([nextCoverage, nextVersion, nextRun]) => {
+    Promise.all([fetchMacroSignalCoverage(), fetchMacroSignalVersions(), version ? fetchLatestMacroSignalBacktest(version.id) : Promise.resolve(null)])
+      .then(([nextCoverage, nextVersions, nextRun]) => {
         setCoverage(nextCoverage);
-        setVersion(nextVersion);
+        setVersions(nextVersions);
+        setVersion((current) => nextVersions.find((item) => item.id === current?.id) ?? nextVersions.find((item) => item.active) ?? null);
         setRun(nextRun);
       })
       .catch((refreshError: unknown) => setError(refreshError instanceof Error ? refreshError.message : "Research state could not refresh"))
       .finally(() => setLoading(false));
   };
 
-  return <MacroSignalLabView coverage={coverage} version={version} run={run} loading={loading} error={error} onRun={handleRun} onRefresh={handleRefresh} />;
+  const handleSelectVersion = (versionId: string) => {
+    const nextVersion = versions.find((item) => item.id === versionId);
+    if (!nextVersion || nextVersion.id === version?.id) return;
+    setVersion(nextVersion);
+    setRun(null);
+    setLoading(true);
+    setError(null);
+    fetchLatestMacroSignalBacktest(versionId)
+      .then(setRun)
+      .catch((selectError: unknown) => setError(selectError instanceof Error ? selectError.message : "Research version could not load"))
+      .finally(() => setLoading(false));
+  };
+
+  return <MacroSignalLabView coverage={coverage} version={version} versions={versions} run={run} loading={loading} error={error} onRun={handleRun} onRefresh={handleRefresh} onSelectVersion={handleSelectVersion} />;
 }
