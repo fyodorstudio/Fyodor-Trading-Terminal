@@ -39,7 +39,8 @@ STRESS_STOP_ATR_VALUES = (0.5, 0.75, 1.0, 1.25, 1.5, 2.0)
 STRESS_TARGET_R_VALUES = PATH_RESEARCH_THRESHOLDS_R
 STRESS_HOLDING_CANDLES = (6, 12, 18, 30, 42, 60)
 STRESS_MINIMUM_SIGNATURE_CASES = 10
-CANDIDATE_STRESS_SCHEMA_VERSION = 2
+CANDIDATE_STRESS_SCHEMA_VERSION = 6
+NUMERIC_ROBUSTNESS_VERSION_ID = "FMS-EURUSD-NUMERIC-ROBUST-H4-v11"
 
 ELIGIBILITY_GATE = {
   "targetR": 2.0,
@@ -1046,13 +1047,36 @@ def _evaluate_path_configuration(
   target_r: float,
   holding_candles: int,
 ) -> Dict[str, Any]:
-  simulations = [
+  simulations = _simulate_path_configuration(profiles, stop_atr, target_r, holding_candles)
+  return _summarize_path_configuration(
+    simulations, split_time, latest_event_time, stop_atr, target_r, holding_candles
+  )
+
+
+def _simulate_path_configuration(
+  profiles: Sequence[Dict[str, Any]],
+  stop_atr: float,
+  target_r: float,
+  holding_candles: int,
+) -> List[Dict[str, Any]]:
+  return [
     {
       **simulate_candidate_path(profile, stop_atr, target_r, holding_candles),
       "eventTime": int(profile["eventTime"]),
+      "numericRobustness": dict(profile["outcome"].get("numericRobustness", {})),
     }
     for profile in profiles
   ]
+
+
+def _summarize_path_configuration(
+  simulations: Sequence[Dict[str, Any]],
+  split_time: int,
+  latest_event_time: int,
+  stop_atr: float,
+  target_r: float,
+  holding_candles: int,
+) -> Dict[str, Any]:
   development = [row for row in simulations if int(row["eventTime"]) < split_time]
   holdout = [row for row in simulations if int(row["eventTime"]) >= split_time]
   recent_cutoff = latest_event_time - CHART_SIGNAL_RECENT_DAYS * 86400
@@ -1076,6 +1100,57 @@ def _evaluate_path_configuration(
       "positiveYears": len(positive_years),
       "positiveYearShare": len(positive_years) / len(evaluable_years) if evaluable_years else 0.0,
     },
+  }
+
+
+def _select_stress_configuration(
+  configurations: Sequence[Dict[str, Any]],
+  case_count: int,
+) -> Optional[Dict[str, Any]]:
+  selectable = [
+    row for row in configurations
+    if row["development"]["evaluableCount"] >= CHART_SIGNAL_QUALIFICATION["minimumDevelopmentEvaluable"]
+    and (row["development"]["ambiguousRate"] or 0) <= CHART_SIGNAL_QUALIFICATION["maximumAmbiguousRate"]
+    and row["development"]["stressedAverageR"] is not None
+  ]
+  selection_pool = selectable or [
+    row for row in configurations
+    if row["development"]["evaluableCount"] >= min(10, case_count)
+    and row["development"]["stressedAverageR"] is not None
+  ]
+
+  def selection_key(row: Dict[str, Any]) -> Tuple[float, float, float, float, float]:
+    ci = row["development"].get("stressedExpectancyCi95") or {}
+    lower = float(ci.get("lower")) if ci.get("lower") is not None else -999.0
+    average = float(row["development"].get("stressedAverageR") or -999.0)
+    baseline_distance = (
+      abs(float(row["stopAtr"]) - 1.0)
+      + abs(float(row["targetR"]) - 2.0)
+      + abs(int(row["holdingCandles"]) - 30) / 30
+    )
+    return lower, average, -baseline_distance, -float(row["stopAtr"]), -float(row["targetR"])
+
+  return max(selection_pool, key=selection_key) if selection_pool else None
+
+
+def _stress_configuration_checks(selected: Dict[str, Any]) -> Tuple[Dict[str, bool], Dict[str, bool]]:
+  checks = {
+    "overallSample": selected["overall"]["evaluableCount"] >= CHART_SIGNAL_QUALIFICATION["minimumOverallEvaluable"],
+    "developmentSample": selected["development"]["evaluableCount"] >= CHART_SIGNAL_QUALIFICATION["minimumDevelopmentEvaluable"],
+    "holdoutSample": selected["holdout"]["evaluableCount"] >= CHART_SIGNAL_QUALIFICATION["minimumHoldoutEvaluable"],
+    "recentSample": selected["recent"]["evaluableCount"] >= 10,
+    "overallAverageR": (selected["overall"]["stressedAverageR"] or 0) >= CHART_SIGNAL_QUALIFICATION["minimumAverageR"],
+    "developmentAverageR": (selected["development"]["stressedAverageR"] or 0) >= CHART_SIGNAL_QUALIFICATION["minimumAverageR"],
+    "holdoutAverageR": (selected["holdout"]["stressedAverageR"] or 0) >= CHART_SIGNAL_QUALIFICATION["minimumAverageR"],
+    "recentAverageR": (selected["recent"]["stressedAverageR"] or 0) >= CHART_SIGNAL_QUALIFICATION["minimumAverageR"],
+    "yearCoverage": selected["yearStability"]["evaluableYears"] >= 8,
+    "positiveYearShare": selected["yearStability"]["positiveYearShare"] >= 0.60,
+    "ambiguity": (selected["overall"]["ambiguousRate"] or 0) <= CHART_SIGNAL_QUALIFICATION["maximumAmbiguousRate"],
+  }
+  holdout_ci = selected["holdout"].get("stressedExpectancyCi95") or {}
+  return checks, {
+    **checks,
+    "holdoutLower95Positive": holdout_ci.get("lower") is not None and float(holdout_ci["lower"]) > 0,
   }
 
 
@@ -1118,6 +1193,260 @@ def _configuration_stability(
   }
 
 
+def _rule_by_id(rule_id: str) -> Optional[EconomyRule]:
+  return next((rule for rule in ALL_SIGNAL_RULES if rule.id == rule_id), None)
+
+
+def _annotate_numeric_robustness(outcomes: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+  """Attach only known-at-release numeric audit dimensions to each package.
+
+  Broker Previous is compared with the prior archived Actual from the exact
+  currency/country/title series. This cannot recreate a missing vintage, but it
+  reveals whether the direction of Momentum depends on the supplied revision.
+  """
+  latest_actual: Dict[Tuple[str, str, str], Any] = {}
+  annotated: List[Dict[str, Any]] = []
+  for outcome in sorted(outcomes, key=lambda row: int(row["eventTime"])):
+    events: List[Dict[str, Any]] = []
+    evidence_modes: List[str] = []
+    revision_states: List[str] = []
+    pending_actuals: List[Tuple[Tuple[str, str, str], Any]] = []
+    for source_event in outcome.get("events", []):
+      event = dict(source_event)
+      surprise = event.get("surprisePoint")
+      momentum = event.get("momentumPoint")
+      if surprise is None:
+        evidence_modes.append("momentum_only")
+      elif momentum is None:
+        evidence_modes.append("surprise_only")
+      elif surprise != 0 and surprise == momentum:
+        evidence_modes.append("agreement")
+      elif surprise != 0 and momentum != 0 and surprise == -momentum:
+        evidence_modes.append("conflict")
+      else:
+        evidence_modes.append("mixed_or_zero")
+
+      identity = (
+        str(event.get("currency", "")).upper(),
+        str(event.get("countryCode", "")).upper(),
+        normalize_title(str(event.get("title", ""))),
+      )
+      archived_point: Optional[int] = None
+      prior_actual = latest_actual.get(identity)
+      rule = _rule_by_id(str(event.get("ruleId", "")))
+      if prior_actual is not None and rule is not None:
+        archived_point = _orient(compare_source_values(event.get("actual"), prior_actual), rule)
+      if archived_point is None or momentum is None:
+        revision_state = "incomplete"
+      elif _sign(float(archived_point)) == _sign(float(momentum)):
+        revision_state = "robust"
+      else:
+        revision_state = "sensitive"
+      revision_states.append(revision_state)
+      event["priorArchivedActual"] = prior_actual
+      event["archivedMomentumPoint"] = archived_point
+      event["revisionState"] = revision_state
+      events.append(event)
+      if parse_source_value(event.get("actual")) is not None:
+        pending_actuals.append((identity, event.get("actual")))
+
+    for identity, actual in pending_actuals:
+      latest_actual[identity] = actual
+
+    if evidence_modes and all(mode == "agreement" for mode in evidence_modes):
+      evidence_mode = "agreement"
+    elif "conflict" in evidence_modes:
+      evidence_mode = "conflict"
+    elif evidence_modes and all(mode == "surprise_only" for mode in evidence_modes):
+      evidence_mode = "surprise_only"
+    elif evidence_modes and all(mode == "momentum_only" for mode in evidence_modes):
+      evidence_mode = "momentum_only"
+    else:
+      evidence_mode = "mixed_or_zero"
+
+    if revision_states and all(state == "robust" for state in revision_states):
+      revision_reliability = "robust"
+    elif "sensitive" in revision_states:
+      revision_reliability = "sensitive"
+    else:
+      revision_reliability = "incomplete"
+
+    package_score = abs(sum(int(event.get("score", 0)) for event in events))
+    score_strength = "strong" if package_score >= 3 else "moderate" if package_score == 2 else "weak"
+    annotated.append({
+      **outcome,
+      "events": events,
+      "numericRobustness": {
+        "evidenceMode": evidence_mode,
+        "revisionReliability": revision_reliability,
+        "backgroundAlignment": str(outcome.get("backgroundAlignment", "neutral")),
+        "scoreStrength": score_strength,
+      },
+    })
+  return annotated
+
+
+def _package_completeness(
+  outcome: Dict[str, Any],
+  pattern: Optional[Dict[str, Any]],
+) -> str:
+  titles = {
+    normalize_title(str(event.get("title", "")))
+    for event in outcome.get("events", [])
+    if str(event.get("title", "")).strip()
+  }
+  required_titles = {
+    normalize_title(str(title)) for title in (pattern or {}).get("requiredExactTitles", ())
+  }
+  if required_titles:
+    if required_titles.issubset(titles):
+      return "full"
+    return "single" if len(titles) <= 1 else "partial"
+  expected_groups = set(str(outcome.get("signature", "")).split("|")[1:])
+  actual_groups = {
+    f"{str(event.get('currency', '')).upper()}:{str(event.get('scoreGroup', ''))}"
+    for event in outcome.get("events", []) if event.get("scoreGroup")
+  }
+  if len(titles) <= 1:
+    return "single"
+  return "full" if not expected_groups or expected_groups.issubset(actual_groups) else "partial"
+
+
+ROBUSTNESS_DIMENSION_LABELS = {
+  "evidenceMode": "S/M evidence",
+  "revisionReliability": "Revision reliability",
+  "packageCompleteness": "Package completeness",
+  "backgroundAlignment": "Before alignment",
+  "scoreStrength": "Vote strength",
+}
+
+
+def _build_numeric_robustness_variants(
+  profiles: Sequence[Dict[str, Any]],
+  base_simulations: Sequence[Tuple[float, float, int, Sequence[Dict[str, Any]]]],
+  split_time: int,
+  latest_event_time: int,
+) -> Tuple[List[Dict[str, Any]], int]:
+  variants: List[Dict[str, Any]] = []
+  configurations_tested = 0
+
+  def evaluate_variant(
+    dimension: str,
+    cohort: str,
+    selected_profiles: Sequence[Dict[str, Any]],
+    reaction: str,
+  ) -> None:
+    nonlocal configurations_tested
+    if len(selected_profiles) < STRESS_MINIMUM_SIGNATURE_CASES:
+      return
+    selected_ids = {int(profile["eventTime"]) for profile in selected_profiles}
+    simulation_grid: List[Tuple[float, float, int, Sequence[Dict[str, Any]]]] = []
+    if reaction == "continuation":
+      for stop_atr, target_r, holding_candles, simulations in base_simulations:
+        filtered = [row for row in simulations if int(row["eventTime"]) in selected_ids]
+        simulation_grid.append((stop_atr, target_r, holding_candles, filtered))
+    else:
+      working_profiles = []
+      for profile in selected_profiles:
+        outcome = {**profile["outcome"], "direction": "short" if profile["direction"] == "long" else "long"}
+        working_profiles.append({
+          **profile,
+          "outcome": outcome,
+          "direction": outcome["direction"],
+          "sign": -float(profile["sign"]),
+        })
+      simulation_grid = [
+        (
+          stop_atr,
+          target_r,
+          holding_candles,
+          _simulate_path_configuration(working_profiles, stop_atr, target_r, holding_candles),
+        )
+        for stop_atr in STRESS_STOP_ATR_VALUES
+        for target_r in STRESS_TARGET_R_VALUES
+        for holding_candles in STRESS_HOLDING_CANDLES
+      ]
+    configurations_tested += len(simulation_grid)
+    selection_rows = [
+      {
+        "stopAtr": stop_atr,
+        "targetR": target_r,
+        "holdingCandles": holding_candles,
+        "development": _aggregate_path_simulations([
+          row for row in simulations if int(row["eventTime"]) < split_time
+        ]),
+      }
+      for stop_atr, target_r, holding_candles, simulations in simulation_grid
+    ]
+    selected_stub = _select_stress_configuration(selection_rows, len(selected_profiles))
+    if selected_stub is None:
+      return
+    stop_index = STRESS_STOP_ATR_VALUES.index(float(selected_stub["stopAtr"]))
+    target_index = STRESS_TARGET_R_VALUES.index(float(selected_stub["targetR"]))
+    holding_index = STRESS_HOLDING_CANDLES.index(int(selected_stub["holdingCandles"]))
+    neighbour_grid = [
+      row for row in simulation_grid
+      if abs(STRESS_STOP_ATR_VALUES.index(float(row[0])) - stop_index) <= 1
+      and abs(STRESS_TARGET_R_VALUES.index(float(row[1])) - target_index) <= 1
+      and abs(STRESS_HOLDING_CANDLES.index(int(row[2])) - holding_index) <= 1
+    ]
+    configurations = [
+      _summarize_path_configuration(
+        simulations, split_time, latest_event_time, stop_atr, target_r, holding_candles
+      )
+      for stop_atr, target_r, holding_candles, simulations in neighbour_grid
+    ]
+    selected = next(
+      row for row in configurations
+      if float(row["stopAtr"]) == float(selected_stub["stopAtr"])
+      and float(row["targetR"]) == float(selected_stub["targetR"])
+      and int(row["holdingCandles"]) == int(selected_stub["holdingCandles"])
+    )
+    checks, diagnostic_checks = _stress_configuration_checks(selected)
+    variants.append({
+      "dimension": dimension,
+      "dimensionLabel": "Reaction direction" if dimension == "reaction" else ROBUSTNESS_DIMENSION_LABELS[dimension],
+      "cohort": cohort,
+      "reaction": reaction,
+      "cohortFingerprint": hashlib.sha256(
+        ",".join(str(value) for value in sorted(selected_ids)).encode("utf-8")
+      ).hexdigest()[:12],
+      "historicalN": len(selected_profiles),
+      "selectedOn": "development_only",
+      "selectedConfiguration": selected,
+      "configurationStability": _configuration_stability(configurations, selected),
+      "checks": diagnostic_checks,
+      "passesExploratoryScreen": all(checks.values()),
+      "passesStrictHoldoutCheck": all(diagnostic_checks.values()),
+    })
+
+  for dimension in ROBUSTNESS_DIMENSION_LABELS:
+    categories = sorted({
+      str(profile["outcome"].get("numericRobustness", {}).get(dimension, "unknown"))
+      for profile in profiles
+    })
+    for category in categories:
+      evaluate_variant(
+        dimension,
+        category,
+        [
+          profile for profile in profiles
+          if str(profile["outcome"].get("numericRobustness", {}).get(dimension, "unknown")) == category
+        ],
+        "continuation",
+      )
+  evaluate_variant("reaction", "continuation", profiles, "continuation")
+  evaluate_variant("reaction", "contrarian", profiles, "contrarian")
+  variants.sort(key=lambda row: (
+    not row["passesExploratoryScreen"],
+    -(float(row["selectedConfiguration"]["holdout"].get("stressedAverageR") or -999.0)),
+    -int(row["historicalN"]),
+    str(row["dimension"]),
+    str(row["cohort"]),
+  ))
+  return variants, configurations_tested
+
+
 def build_candidate_stress_report(
   source_results: Sequence[Dict[str, Any]],
   h4_candles: Sequence[Dict[str, Any]],
@@ -1138,16 +1467,29 @@ def build_candidate_stress_report(
   }
   candidates: List[Dict[str, Any]] = []
   configurations_tested = 0
+  robustness_configurations_tested = 0
   for source in source_results:
     source_version = str(source["versionId"])
     split_time = int(source["splitTime"])
-    outcomes = list(source["outcomes"])
+    outcomes = _annotate_numeric_robustness(list(source["outcomes"]))
     latest_event_time = max((int(row["eventTime"]) for row in outcomes), default=generated_at)
     grouped: Dict[str, List[Dict[str, Any]]] = {}
     for outcome in outcomes:
       if outcome.get("direction") in {"long", "short"}:
         grouped.setdefault(candidate_pattern_signature(outcome), []).append(outcome)
     for signature, rows in sorted(grouped.items()):
+      pattern = known_patterns.get((source_version, signature))
+      rows = [
+        {
+          **row,
+          "signature": signature,
+          "numericRobustness": {
+            **dict(row.get("numericRobustness", {})),
+            "packageCompleteness": _package_completeness({**row, "signature": signature}, pattern),
+          },
+        }
+        for row in rows
+      ]
       profiles = [
         profile for row in sorted(rows, key=lambda item: int(item["eventTime"]))
         if (profile := build_candidate_path_profile(row, candles, candle_times)) is not None
@@ -1155,52 +1497,20 @@ def build_candidate_stress_report(
       if len(profiles) < STRESS_MINIMUM_SIGNATURE_CASES:
         continue
       configurations: List[Dict[str, Any]] = []
+      base_simulations: List[Tuple[float, float, int, Sequence[Dict[str, Any]]]] = []
       for stop_atr in STRESS_STOP_ATR_VALUES:
         for target_r in STRESS_TARGET_R_VALUES:
           for holding_candles in STRESS_HOLDING_CANDLES:
-            configurations.append(_evaluate_path_configuration(
-              profiles, split_time, latest_event_time, stop_atr, target_r, holding_candles
+            simulations = _simulate_path_configuration(profiles, stop_atr, target_r, holding_candles)
+            base_simulations.append((stop_atr, target_r, holding_candles, simulations))
+            configurations.append(_summarize_path_configuration(
+              simulations, split_time, latest_event_time, stop_atr, target_r, holding_candles
             ))
       configurations_tested += len(configurations)
-      selectable = [
-        row for row in configurations
-        if row["development"]["evaluableCount"] >= CHART_SIGNAL_QUALIFICATION["minimumDevelopmentEvaluable"]
-        and (row["development"]["ambiguousRate"] or 0) <= CHART_SIGNAL_QUALIFICATION["maximumAmbiguousRate"]
-        and row["development"]["stressedAverageR"] is not None
-      ]
-      selection_pool = selectable or [
-        row for row in configurations
-        if row["development"]["evaluableCount"] >= min(10, len(profiles))
-        and row["development"]["stressedAverageR"] is not None
-      ]
-      def selection_key(row: Dict[str, Any]) -> Tuple[float, float, float, float, float]:
-        ci = row["development"].get("stressedExpectancyCi95") or {}
-        lower = float(ci.get("lower")) if ci.get("lower") is not None else -999.0
-        average = float(row["development"].get("stressedAverageR") or -999.0)
-        baseline_distance = abs(float(row["stopAtr"]) - 1.0) + abs(float(row["targetR"]) - 2.0) + abs(int(row["holdingCandles"]) - 30) / 30
-        return lower, average, -baseline_distance, -float(row["stopAtr"]), -float(row["targetR"])
-      selected = max(selection_pool, key=selection_key) if selection_pool else None
+      selected = _select_stress_configuration(configurations, len(profiles))
       if selected is None:
         continue
-      checks = {
-        "overallSample": selected["overall"]["evaluableCount"] >= CHART_SIGNAL_QUALIFICATION["minimumOverallEvaluable"],
-        "developmentSample": selected["development"]["evaluableCount"] >= CHART_SIGNAL_QUALIFICATION["minimumDevelopmentEvaluable"],
-        "holdoutSample": selected["holdout"]["evaluableCount"] >= CHART_SIGNAL_QUALIFICATION["minimumHoldoutEvaluable"],
-        "recentSample": selected["recent"]["evaluableCount"] >= 10,
-        "overallAverageR": (selected["overall"]["stressedAverageR"] or 0) >= CHART_SIGNAL_QUALIFICATION["minimumAverageR"],
-        "developmentAverageR": (selected["development"]["stressedAverageR"] or 0) >= CHART_SIGNAL_QUALIFICATION["minimumAverageR"],
-        "holdoutAverageR": (selected["holdout"]["stressedAverageR"] or 0) >= CHART_SIGNAL_QUALIFICATION["minimumAverageR"],
-        "recentAverageR": (selected["recent"]["stressedAverageR"] or 0) >= CHART_SIGNAL_QUALIFICATION["minimumAverageR"],
-        "yearCoverage": selected["yearStability"]["evaluableYears"] >= 8,
-        "positiveYearShare": selected["yearStability"]["positiveYearShare"] >= 0.60,
-        "ambiguity": (selected["overall"]["ambiguousRate"] or 0) <= CHART_SIGNAL_QUALIFICATION["maximumAmbiguousRate"],
-      }
-      holdout_ci = selected["holdout"].get("stressedExpectancyCi95") or {}
-      diagnostic_checks = {
-        **checks,
-        "holdoutLower95Positive": holdout_ci.get("lower") is not None and float(holdout_ci["lower"]) > 0,
-      }
-      pattern = known_patterns.get((source_version, signature))
+      checks, diagnostic_checks = _stress_configuration_checks(selected)
       registered_execution = dict(pattern["execution"]) if pattern and pattern.get("current") else None
       registered_configuration = next((
         row for row in configurations
@@ -1209,6 +1519,10 @@ def build_candidate_stress_report(
         and float(row["targetR"]) == float(registered_execution["targetR"])
         and int(row["holdingCandles"]) == int(registered_execution["expiryCandles"])
       ), None)
+      robustness_variants, robustness_test_count = _build_numeric_robustness_variants(
+        profiles, base_simulations, split_time, latest_event_time
+      )
+      robustness_configurations_tested += robustness_test_count
       example_events = [event for row in rows for event in row.get("events", [])]
       candidates.append({
         "sourceVersionId": source_version,
@@ -1230,12 +1544,53 @@ def build_candidate_stress_report(
         "checks": diagnostic_checks,
         "passesExploratoryScreen": all(checks.values()),
         "passesStrictHoldoutCheck": all(diagnostic_checks.values()),
+        "numericRobustness": {
+          "versionId": NUMERIC_ROBUSTNESS_VERSION_ID,
+          "variantsTested": len(robustness_variants),
+          "variants": robustness_variants,
+        },
         "reusedHistory": True,
       })
   candidates.sort(key=lambda row: (
     not row["currentRegistered"],
     not row["passesExploratoryScreen"],
     -(float(row["selectedConfiguration"]["holdout"].get("stressedAverageR") or -999.0)),
+    -int(row["historicalN"]),
+    str(row["label"]),
+  ))
+  dimension_priority = {
+    "evidenceMode": 0,
+    "backgroundAlignment": 1,
+    "packageCompleteness": 2,
+    "revisionReliability": 3,
+    "scoreStrength": 4,
+    "reaction": 5,
+  }
+  unique_robustness_leads: Dict[Tuple[str, str, str, str], Dict[str, Any]] = {}
+  for candidate in candidates:
+    for variant in candidate["numericRobustness"]["variants"]:
+      enriched = {
+        **variant,
+        "sourceVersionId": str(candidate["sourceVersionId"]),
+        "signature": str(candidate["signature"]),
+        "label": str(candidate["label"]),
+        "direction": str(candidate["direction"]),
+        "currentRegistered": bool(candidate["currentRegistered"]),
+      }
+      key = (
+        str(candidate["sourceVersionId"]),
+        str(candidate["signature"]),
+        str(variant["reaction"]),
+        str(variant["cohortFingerprint"]),
+      )
+      existing = unique_robustness_leads.get(key)
+      if existing is None or dimension_priority[str(variant["dimension"])] < dimension_priority[str(existing["dimension"])]:
+        unique_robustness_leads[key] = enriched
+  robustness_leads = list(unique_robustness_leads.values())
+  robustness_leads.sort(key=lambda row: (
+    not row["passesExploratoryScreen"],
+    -(float(row["selectedConfiguration"]["holdout"].get("stressedAverageR") or -999.0)),
+    -(float(row["selectedConfiguration"]["recent"].get("stressedAverageR") or -999.0)),
     -int(row["historicalN"]),
     str(row["label"]),
   ))
@@ -1257,18 +1612,22 @@ def build_candidate_stress_report(
     "schemaVersion": CANDIDATE_STRESS_SCHEMA_VERSION,
     "generatedAt": generated_at,
     "modelId": CHART_SIGNAL_MODEL_ID,
+    "researchVersionId": NUMERIC_ROBUSTNESS_VERSION_ID,
     "protocol": protocol,
     "protocolHash": hashlib.sha256(json.dumps(protocol, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest(),
     "sourceVersions": [str(source["versionId"]) for source in source_results],
+    "researchPriceCutoff": max((int(source.get("generatedAt", generated_at)) for source in source_results), default=generated_at),
     "candleCoverage": {
       "count": len(candles),
       "earliest": candle_times[0] if candle_times else None,
       "latest": candle_times[-1] if candle_times else None,
     },
-    "configurationsTested": configurations_tested,
-    "signaturesTested": configurations_tested // (
-      len(STRESS_STOP_ATR_VALUES) * len(STRESS_TARGET_R_VALUES) * len(STRESS_HOLDING_CANDLES)
-    ),
+    "configurationsTested": configurations_tested + robustness_configurations_tested,
+    "baseConfigurationsTested": configurations_tested,
+    "robustnessConfigurationsTested": robustness_configurations_tested,
+    "signaturesTested": len(candidates),
+    "robustnessVariantsTested": len(robustness_leads),
+    "robustnessLeads": robustness_leads[:40],
     "candidateCount": len(candidates),
     "candidates": candidates,
     "limitations": [
@@ -1276,6 +1635,8 @@ def build_candidate_stress_report(
       "The flexible matrix excludes spread, commission, slippage, and swap and applies only the existing three-pip result stress.",
       "Maximum favorable excursion is known only afterward and cannot itself be used as a live exit.",
       "Trying many configurations increases selection risk; the chosen rule must be frozen before later evaluation.",
+      "Revision reliability compares the broker-supplied Previous momentum direction with the prior archived Actual; it does not recreate missing historical vintages.",
+      "V11 cohorts are numeric reused-history research. They do not change the immutable v10 Charts registry or create live arrows.",
     ],
   }
 

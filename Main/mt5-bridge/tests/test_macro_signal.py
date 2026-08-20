@@ -19,6 +19,8 @@ from macro_signal import (
   score_event,
   simulate_candidate_path,
   summarize_candidate_paths,
+  _annotate_numeric_robustness,
+  _package_completeness,
   V2_VERSION_ID,
   SENTIMENT_VERSION_ID,
   POLICY_INFLATION_VERSION_ID,
@@ -132,6 +134,35 @@ def test_event_score_matches_existing_equal_surprise_momentum_formula() -> None:
   assert positive and positive["score"] == 3
   assert conflict and conflict["score"] == 0
   assert unemployment and unemployment["score"] == 3
+
+
+def test_v11_revision_audit_uses_prior_exact_series_actual_without_replacing_broker_previous() -> None:
+  packages = build_signal_candidates([
+    calendar_event(1, 100, "USD", "Industrial Production m/m", "0.1", "0.0", "-0.1"),
+    calendar_event(2, 200, "USD", "Industrial Production m/m", "0.2", "0.3", "0.3"),
+  ], now=300, definition=get_signal_definition(GROWTH_VERSION_ID))
+  annotated = _annotate_numeric_robustness(packages)
+
+  assert annotated[0]["numericRobustness"]["revisionReliability"] == "incomplete"
+  assert annotated[1]["events"][0]["previous"] == "0.3"
+  assert annotated[1]["events"][0]["priorArchivedActual"] == "0.1"
+  assert annotated[1]["events"][0]["momentumPoint"] == -1
+  assert annotated[1]["events"][0]["archivedMomentumPoint"] == 1
+  assert annotated[1]["numericRobustness"]["revisionReliability"] == "sensitive"
+
+
+def test_v11_package_completeness_separates_full_partial_and_single_packages() -> None:
+  pattern = {
+    "requiredExactTitles": ("Core PPI m/m", "Core PPI y/y", "PPI m/m", "PPI y/y"),
+  }
+  event = lambda title: {"currency": "USD", "scoreGroup": "producer_inflation", "title": title}
+  full = {"events": [event(title) for title in pattern["requiredExactTitles"]]}
+  partial = {"events": [event("Core PPI m/m"), event("PPI m/m")]}
+  single = {"events": [event("PPI m/m")]}
+
+  assert _package_completeness(full, pattern) == "full"
+  assert _package_completeness(partial, pattern) == "partial"
+  assert _package_completeness(single, pattern) == "single"
 
 
 def test_release_packages_orient_eur_and_usd_and_retain_conflicted_majority() -> None:

@@ -365,13 +365,45 @@ export interface MacroSignalStressCandidate {
   checks: Record<string, boolean>;
   passesExploratoryScreen: boolean;
   passesStrictHoldoutCheck: boolean;
+  numericRobustness: {
+    versionId: string;
+    variantsTested: number;
+    variants: MacroSignalRobustnessVariant[];
+  };
   reusedHistory: true;
+}
+
+export interface MacroSignalRobustnessVariant {
+  sourceVersionId?: string;
+  signature?: string;
+  label?: string;
+  direction?: "long" | "short";
+  currentRegistered?: boolean;
+  dimension: "evidenceMode" | "revisionReliability" | "packageCompleteness" | "backgroundAlignment" | "scoreStrength" | "reaction";
+  dimensionLabel: string;
+  cohort: string;
+  reaction: "continuation" | "contrarian";
+  cohortFingerprint: string;
+  historicalN: number;
+  selectedOn: "development_only";
+  selectedConfiguration: MacroSignalStressConfiguration;
+  configurationStability: {
+    neighbourhoodCount: number;
+    definition: string;
+    development: MacroSignalConfigurationStabilityPartition;
+    holdout: MacroSignalConfigurationStabilityPartition;
+    recent: MacroSignalConfigurationStabilityPartition;
+  };
+  checks: Record<string, boolean>;
+  passesExploratoryScreen: boolean;
+  passesStrictHoldoutCheck: boolean;
 }
 
 export interface MacroSignalExpansionReport {
   schemaVersion: number;
   generatedAt: number;
   modelId: string;
+  researchVersionId: string;
   protocol: {
     pathHorizonCandles: number;
     maximumPathHorizonCandles: number;
@@ -389,9 +421,14 @@ export interface MacroSignalExpansionReport {
   protocolHash: string;
   sourceVersions: string[];
   sourceRunIds: string[];
+  researchPriceCutoff: number;
   candleCoverage: { count: number; earliest: number | null; latest: number | null };
   configurationsTested: number;
+  baseConfigurationsTested: number;
+  robustnessConfigurationsTested: number;
   signaturesTested: number;
+  robustnessVariantsTested: number;
+  robustnessLeads: MacroSignalRobustnessVariant[];
   candidateCount: number;
   candidates: MacroSignalStressCandidate[];
   limitations: string[];

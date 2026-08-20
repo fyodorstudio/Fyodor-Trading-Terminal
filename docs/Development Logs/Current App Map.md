@@ -80,6 +80,7 @@ Current direct children under `Specialist Tools`:
    - Uses durable bridge calendar storage and cached MT5 H4/M1 candles.
    - Reports gross historical Long/Short bias cases, explicit ambiguity, holdout results, and paper-eligibility checks without placing orders.
    - Historical backfill and v1/v2/v3/v5/v7 source runs are complete. The upgraded EA's successful cycle acknowledgement activates immutable first-seen capture. Charts v10 consumes registered source observations for post-activation signals, enforces exact package identities where declared, carries a frozen execution contract per setup, keeps unregistered candidates in hindsight research, and never uses context as an unstated signal filter.
+   - Macro Signal Lab also exposes `FMS-EURUSD-NUMERIC-ROBUST-H4-v11` reused-history research. It independently tests S/M agreement, broker-Previous versus prior-Actual revision reliability, package completeness, Before alignment, score magnitude, continuation/rejection direction, and flexible exits. V11 findings do not mutate the v10 Charts registry.
 
 5. `Garbage / Ignore` / `PROTOTYPING`
    - Garbage drawer for old unfinished surfaces, deprecated planning drafts, and ignored tools.

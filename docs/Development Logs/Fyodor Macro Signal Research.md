@@ -1,7 +1,7 @@
 # Fyodor Macro Signal Research
 
 **Date:** 2026-08-21
-**Status:** Economy v1 was rejected. Country-aware Labor v2, Sentiment v3, Policy/Inflation v5, and Growth v7 remain source-research models with immutable forward ledgers. Charts uses frozen multi-source `FMS-EURUSD-MULTI-H4-CQ-v10`, with post-activation Current Model signals strictly separated from hindsight Research Replay.
+**Status:** Economy v1 was rejected. Country-aware Labor v2, Sentiment v3, Policy/Inflation v5, and Growth v7 remain source-research models with immutable forward ledgers. Charts uses frozen multi-source `FMS-EURUSD-MULTI-H4-CQ-v10`, with post-activation Current Model signals strictly separated from hindsight Research Replay. Numeric robustness research is implemented separately as `FMS-EURUSD-NUMERIC-ROBUST-H4-v11`; it has not changed the v10 Charts registry.
 
 **AI working-memory rule:** This is the single canonical FMS research record for future AI sessions. Preserve decisions, failed trials, candidate diagnoses, and unresolved ideas here so research is not reconstructed from chat memory. Do not create a second FMS roadmap unless the user explicitly changes this rule.
 
@@ -412,6 +412,42 @@ None of the 64 candidates passed the stricter requirement that the selected conf
 - Existing v9 patterns retain `1 ATR / 2R / 30 H4`. Payroll uses `2 ATR / 1R / 6 H4`. Producer inflation uses `2 ATR / 1.25R / 18 H4`.
 - Per-setup execution is part of the immutable registry and is exposed by Charts audits and Shadow Trader. Generic source-model 2R metrics remain explicitly labeled as source research when shown beside a different registered exit.
 - Macro Signal Lab path/exit research is deliberately reduced to two functional tables: Registered setups and Potential setups not yet registered.
+
+### V11 Numeric Robustness Research - 2026-08-21
+
+`FMS-EURUSD-NUMERIC-ROBUST-H4-v11` is now implemented as a reused-history research layer over the immutable v10 Charts registry. It does not change, remove, or add Current Model arrows. Its purpose is to determine whether a numeric release pattern becomes more repeatable when the existing broker data is separated into honest known-at-release cohorts.
+
+The v11 engine tests each eligible exact direction signature across:
+
+- Surprise/Momentum agreement, conflict, surprise-only, momentum-only, and mixed/zero evidence;
+- revision reliability by comparing the broker-supplied Previous momentum direction with the prior archived Actual from the same `currency + country/region + normalized exact title` series;
+- full, partial, and single-series packages, with existing exact-package definitions preserved;
+- aligned, conflicted, and neutral Before evidence;
+- weak, moderate, and strong underlying event-score magnitude;
+- evidence-direction continuation versus an explicitly inverted contrarian/rejection response;
+- the existing stop grid `0.5–2 ATR`, target grid `0.5–4R`, and `6/12/18/30/42/60 H4` holding grid.
+
+Configuration selection remains development-only. Holdout, recent, year stability, neighbouring configurations, and the strict lower-95 holdout check remain audits. The engine never replaces a missing value, and the archived-Actual comparison does not pretend to reconstruct unavailable original data vintages.
+
+The completed durable archive run used 64 base signatures, tested 436 deduplicated numeric cohorts and 220,968 declared configuration/cohort combinations, and produced 12 deduplicated exploratory-screen leads. The measured cold schema-v6 calculation took approximately 77 seconds after path-reuse optimization; its durable and in-memory cache returns in roughly one second. Price coverage is frozen at the source backtests' generation cutoff, so ordinary new H4 candles cannot silently alter or repeatedly invalidate the report; rerunning a source backtest creates the next deliberate research revision. Macro Signal Lab owns this research job; Charts and the v10 signal endpoint do not execute it.
+
+Most important v11 findings:
+
+| Numeric cohort | N | Development | Holdout | Recent | Development-selected exit | Decision |
+|---|---:|---:|---:|---:|---|---|
+| EUR manufacturing PMI, S/M agreement -> Long EURUSD | 48 | +0.39R | +0.59R | +0.47R | 2 ATR / 3R / 60 H4 | Strongest new expansion lead; research only |
+| USD manufacturing PMI weakness, S/M agreement -> Long EURUSD | 55 | +0.10R | +0.39R | +0.52R | 1.5 ATR / 1.5R / 60 H4 | New expansion lead; research only |
+| USD manufacturing PMI weakness, strong numeric score -> Long EURUSD | 81 | +0.13R | +0.24R | +0.45R | 1.5 ATR / 1.5R / 60 H4 | Broader related lead; research only |
+| EUR business-sentiment weakness, contrarian/rejection -> Long EURUSD | 96 | +0.23R | +0.19R | +0.13R | 1.25 ATR / 2R / 30 H4 | First explicit rejection-pattern lead; research only |
+| USD consumer-confidence weakness with conflicted Before -> Long EURUSD | 40 | +0.59R | +0.23R | +0.35R | 1 ATR / 2R / 12 H4 | Conditional lead; research only |
+| USD consumer-confidence weakness with S/M agreement -> Long EURUSD | 130 | +0.28R | +0.10R | +0.16R | 1.25 ATR / 1.5R / 18 H4 | Higher-N conditional lead; research only |
+| Complete USD CPI-cooling package -> Long EURUSD | 107 | +0.47R | +0.11R | +0.18R | 2 ATR / 4R / 60 H4 | Still sits on the target/horizon boundary; unregistered |
+
+Existing v10 producer-inflation Long, payroll Short, and EUR-sentiment-weakening Short remain positive under their corresponding v11 cohorts. Partial packages are now evaluated independently instead of being silently treated as complete, but no partial-package cohort cleared the current exploratory screen in this run.
+
+The registered US-industrial-output Short pattern was specifically audited because of the 2026-08-18 failure. Revision-robust cases did not improve it: approximately `+0.02R` development, `+0.03R` holdout, and flat/slightly negative recent expectancy at the selected `2 ATR / 0.5R / 6 H4` research exit. Full packages and aligned/conflicted Before splits also failed to produce stable development/holdout/recent evidence. V11 therefore does not promote a refined industrial rule. V10 remains immutable, but a future Charts registry should reconsider carrying this setup rather than treating the single failed example as an isolated anomaly.
+
+No v11 cohort passed the stricter positive holdout lower-95 expectancy requirement. These 12 rows are prioritized research leads, not validated arrows. The next version decision should freeze a small non-overlapping subset—starting with manufacturing-PMI agreement and the business-sentiment rejection rule—before any new Charts registry is created.
 
 ### Diagnosing Failed and High-N Families
 

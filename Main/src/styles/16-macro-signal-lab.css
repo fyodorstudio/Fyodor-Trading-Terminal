@@ -306,6 +306,11 @@
 .macro-signal-expansion-table th:nth-child(3) { width: 150px; }
 .macro-signal-expansion-table th:nth-child(7) { width: 85px; }
 .macro-signal-expansion-table th:last-child { width: 130px; }
+.macro-signal-robustness-table th:first-child { width: 250px; }
+.macro-signal-robustness-table th:nth-child(2) { width: 150px; }
+.macro-signal-robustness-table th:nth-child(3) { width: 55px; }
+.macro-signal-robustness-table th:nth-child(4) { width: 150px; }
+.macro-signal-robustness-table th:last-child { width: 110px; }
 .macro-signal-expansion-table td strong,
 .macro-signal-expansion-table td small { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .macro-signal-expansion-table td small { margin-top: 2px; color: #64748b; font-size: 8px; font-weight: 750; }

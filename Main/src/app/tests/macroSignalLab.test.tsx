@@ -110,10 +110,31 @@ const pathSummary = {
   thresholdReach: [{ thresholdR: 2, count: 18, rate: 0.45 }],
 };
 
+const robustnessVariant = {
+  sourceVersionId: "v7",
+  signature: "long|USD:pmi_manufacturing",
+  label: "US manufacturing PMI",
+  direction: "long" as const,
+  currentRegistered: false,
+  dimension: "evidenceMode" as const,
+  dimensionLabel: "S/M evidence",
+  cohort: "agreement",
+  reaction: "continuation" as const,
+  cohortFingerprint: "cohort123",
+  historicalN: 48,
+  selectedOn: "development_only" as const,
+  selectedConfiguration: { stopAtr: 2, targetR: 3, holdingCandles: 60, overall: stressMetrics, development: stressMetrics, holdout: stressMetrics, recent: stressMetrics, yearStability: { evaluableYears: 11, positiveYears: 8, positiveYearShare: 8 / 11 } },
+  configurationStability: { neighbourhoodCount: 12, definition: "adjacent grid", development: { count: 12, positiveCount: 10, positiveShare: 10 / 12, minimumR: -0.1, medianR: 0.2, maximumR: 0.5 }, holdout: { count: 12, positiveCount: 11, positiveShare: 11 / 12, minimumR: -0.1, medianR: 0.3, maximumR: 0.6 }, recent: { count: 12, positiveCount: 11, positiveShare: 11 / 12, minimumR: -0.1, medianR: 0.3, maximumR: 0.6 } },
+  checks: { overallAverageR: true },
+  passesExploratoryScreen: true,
+  passesStrictHoldoutCheck: false,
+};
+
 const expansionReport: MacroSignalExpansionReport = {
-  schemaVersion: 2,
+  schemaVersion: 6,
   generatedAt: 1_780_000_000,
   modelId: "FMS-EURUSD-MULTI-H4-CQ-v10",
+  researchVersionId: "FMS-EURUSD-NUMERIC-ROBUST-H4-v11",
   protocol: {
     pathHorizonCandles: 30,
     maximumPathHorizonCandles: 60,
@@ -131,9 +152,14 @@ const expansionReport: MacroSignalExpansionReport = {
   protocolHash: "abcdef1234567890",
   sourceVersions: ["v5"],
   sourceRunIds: ["run-5"],
+  researchPriceCutoff: 1_780_000_000,
   candleCoverage: { count: 30_000, earliest: 1_500_000_000, latest: 1_780_000_000 },
   configurationsTested: 23_004,
+  baseConfigurationsTested: 23_004,
+  robustnessConfigurationsTested: 648,
   signaturesTested: 71,
+  robustnessVariantsTested: 1,
+  robustnessLeads: [robustnessVariant],
   candidateCount: 64,
   candidates: [
     {
@@ -155,6 +181,7 @@ const expansionReport: MacroSignalExpansionReport = {
       checks: { overallAverageR: true },
       passesExploratoryScreen: true,
       passesStrictHoldoutCheck: false,
+      numericRobustness: { versionId: "FMS-EURUSD-NUMERIC-ROBUST-H4-v11", variantsTested: 0, variants: [] },
       reusedHistory: true,
     },
     {
@@ -176,6 +203,7 @@ const expansionReport: MacroSignalExpansionReport = {
       checks: { overallAverageR: true },
       passesExploratoryScreen: true,
       passesStrictHoldoutCheck: false,
+      numericRobustness: { versionId: "FMS-EURUSD-NUMERIC-ROBUST-H4-v11", variantsTested: 0, variants: [] },
       reusedHistory: true,
     },
   ],
@@ -421,6 +449,10 @@ describe("Macro Signal Lab", () => {
     expect(html).toContain("Best tested exit");
     expect(html).toContain("Registered v10");
     expect(html).toContain("Passed screen");
+    expect(html).toContain("V11 numeric robustness cohorts");
+    expect(html).toContain("S/M evidence");
+    expect(html).toContain("US manufacturing PMI");
+    expect(html).toContain("Charts stays v10");
     expect(html).not.toContain("Best next setup to discuss");
     expect(html).not.toContain("MFE");
   });

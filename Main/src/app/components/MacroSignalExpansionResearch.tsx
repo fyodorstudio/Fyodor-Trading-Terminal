@@ -1,5 +1,5 @@
 import { AlertTriangle, FlaskConical, RefreshCw } from "lucide-react";
-import type { MacroSignalExpansionReport, MacroSignalStressCandidate } from "@/app/types";
+import type { MacroSignalExpansionReport, MacroSignalRobustnessVariant, MacroSignalStressCandidate } from "@/app/types";
 
 interface MacroSignalExpansionResearchProps {
   report: MacroSignalExpansionReport | null;
@@ -66,6 +66,41 @@ function CandidateTable({ rows, registered }: { rows: MacroSignalStressCandidate
   );
 }
 
+function readableCohort(value: string): string {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function RobustnessTable({ rows }: { rows: MacroSignalRobustnessVariant[] }) {
+  return (
+    <div className="macro-signal-expansion-table-scroll">
+      <table className="macro-signal-expansion-table macro-signal-robustness-table">
+        <thead><tr><th>Pattern</th><th>Numeric cohort</th><th>N</th><th>Best tested exit</th><th>Development</th><th>Holdout</th><th>Recent</th><th>Status</th></tr></thead>
+        <tbody>
+          {rows.map((variant, index) => {
+            const selected = variant.selectedConfiguration;
+            const baseDirection = variant.direction ?? "long";
+            const direction = variant.reaction === "contrarian"
+              ? (baseDirection === "long" ? "Short" : "Long")
+              : (baseDirection === "long" ? "Long" : "Short");
+            return (
+              <tr key={`${variant.sourceVersionId}-${variant.signature}-${variant.dimension}-${variant.cohort}-${index}`}>
+                <td><strong>{direction} EURUSD · {variant.label}</strong><small>{variant.reaction === "contrarian" ? "Opposite/rejection response" : "Evidence-direction response"}</small></td>
+                <td><strong>{variant.dimensionLabel}</strong><small>{readableCohort(variant.cohort)}</small></td>
+                <td>{variant.historicalN}</td>
+                <td>{selected.stopAtr} ATR / {selected.targetR}R / {selected.holdingCandles} H4</td>
+                <td>{formatR(selected.development.stressedAverageR)}<small>N {selected.development.evaluableCount}</small></td>
+                <td>{formatR(selected.holdout.stressedAverageR)}<small>N {selected.holdout.evaluableCount}</small></td>
+                <td>{formatR(selected.recent.stressedAverageR)}<small>N {selected.recent.evaluableCount}</small></td>
+                <td><strong>{variant.passesStrictHoldoutCheck ? "Strict pass" : variant.passesExploratoryScreen ? "Passed screen" : "Research split"}</strong><small>Reused history</small></td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export function MacroSignalExpansionResearch({ report, loading, error, onRefresh }: MacroSignalExpansionResearchProps) {
   if (!report) {
     return (
@@ -86,12 +121,15 @@ export function MacroSignalExpansionResearch({ report, loading, error, onRefresh
 
   const registered = report.candidates.filter((candidate) => candidate.currentRegistered);
   const potential = report.candidates.filter((candidate) => !candidate.currentRegistered);
+  const robustnessLeads = report.robustnessLeads ?? [];
+  const passedRobustness = robustnessLeads.filter((variant) => variant.passesExploratoryScreen);
+  const visibleRobustness = passedRobustness.length ? passedRobustness : robustnessLeads.slice(0, 16);
 
   return (
     <section className="macro-signal-panel macro-signal-expansion" data-fms-expansion-report="">
       <div className="macro-signal-section-title">
         <FlaskConical size={16} /><h3>Path and exit stress research</h3>
-        <span>Charts registry {report.modelId.split("-").slice(-1)[0]}</span>
+        <span>{report.researchVersionId?.split("-").slice(-1)[0] ?? "v11"} research · Charts stays {report.modelId.split("-").slice(-1)[0]}</span>
         <button type="button" className="macro-signal-refresh-button" onClick={onRefresh} disabled={loading} aria-label="Refresh FMS path and exit research">
           <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
         </button>
@@ -107,8 +145,13 @@ export function MacroSignalExpansionResearch({ report, loading, error, onRefresh
         {potential.length ? <CandidateTable rows={potential} registered={false} /> : <p>No unregistered candidate is available.</p>}
       </section>
 
+      <section className="macro-signal-expansion-list" aria-label="FMS v11 numeric robustness cohorts">
+        <header><h4>V11 numeric robustness cohorts</h4><span>{passedRobustness.length} passed screen · {report.robustnessVariantsTested ?? 0} tested</span></header>
+        {visibleRobustness.length ? <RobustnessTable rows={visibleRobustness} /> : <p>No numeric cohort has enough evaluable history yet.</p>}
+      </section>
+
       <p className="macro-signal-expansion-note">
-        Development selected each tested exit. Holdout and recent history are checks, not selectors. Results reuse history and exclude exact trading costs.
+        V11 separately tests S/M agreement, revision reliability, package completeness, Before alignment, vote strength, and opposite/rejection responses. Development selects each exit; holdout and recent history only check it. V10 arrows are unchanged.
       </p>
     </section>
   );

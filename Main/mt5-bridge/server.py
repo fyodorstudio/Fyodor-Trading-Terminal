@@ -1225,10 +1225,12 @@ def research_expansion_report() -> Dict[str, Any]:
       "outcomes": outcomes,
       "splitTime": split_time,
       "currentPatterns": current_patterns,
+      "generatedAt": int(result.get("generatedAt") or _time.time()),
     })
     run_ids.append(str(run.get("id", "")))
 
-  h4_candles = _research_store.query_candles("EURUSD", "H4", 0, int(_time.time()) + H4_SECONDS)
+  research_price_cutoff = max(int(source["generatedAt"]) for source in sources)
+  h4_candles = _research_store.query_candles("EURUSD", "H4", 0, research_price_cutoff + H4_SECONDS)
   if not h4_candles:
     raise HTTPException(status_code=409, detail="No durable EURUSD H4 candles are available for path research")
   candle_revision = f"{len(h4_candles)}:{int(h4_candles[-1]['time'])}"
