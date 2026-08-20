@@ -1,7 +1,7 @@
 # Fyodor Macro Signal Research
 
 **Date:** 2026-08-21
-**Status:** Economy v1 was rejected. Country-aware Labor v2, Sentiment v3, Policy/Inflation v5, and Growth v7 remain exploratory source models with immutable forward ledgers. Charts uses frozen multi-source `FMS-EURUSD-MULTI-H4-CQ-v9`, with post-activation Current Model signals strictly separated from hindsight Research Replay.
+**Status:** Economy v1 was rejected. Country-aware Labor v2, Sentiment v3, Policy/Inflation v5, and Growth v7 remain source-research models with immutable forward ledgers. Charts uses frozen multi-source `FMS-EURUSD-MULTI-H4-CQ-v10`, with post-activation Current Model signals strictly separated from hindsight Research Replay.
 
 **AI working-memory rule:** This is the single canonical FMS research record for future AI sessions. Preserve decisions, failed trials, candidate diagnoses, and unresolved ideas here so research is not reconstructed from chat memory. Do not create a second FMS roadmap unless the user explicitly changes this rule.
 
@@ -26,6 +26,7 @@ The feature is intended to reduce manual economic-data reading and make historic
 - `FMS-EURUSD-GROWTH-H4-v7` is a country-aware Growth source frozen before its results were inspected. It accepts aggregate EU/US GDP/output, strict PMI/ISM, industrial production, retail demand, trade balance, and current-account rows while excluding price indexes, generic regional surveys, terms of trade, duplicates, and EUR member-country rows.
 - `FMS-EURUSD-MULTI-H4-CQ-v8` is an immutable interim registry created when the US-industrial-output pattern first passed the existing gates. It observed zero Current Model signals before being superseded.
 - `FMS-EURUSD-MULTI-H4-CQ-v9` is the current Charts registry. It preserves v8, explicitly requires positive stressed 1R, 1.5R, and 2R target sensitivity, and begins a new Current Model boundary after that stronger gate was frozen.
+- `FMS-EURUSD-MULTI-H4-CQ-v10` is the current Charts registry. It preserves directional Euro-area consumer sentiment and aggregate-US industrial output, restores the exact three-group US payroll Short package with a frozen `2 ATR / 1R / 6 H4` contract, and adds only the complete same-time four-series US Core PPI/PPI m/m+y/y cooling package as Long with `2 ATR / 1.25R / 18 H4`. It begins a new immutable Current Model boundary on 2026-08-20 19:53:55 UTC.
 
 V2 was chosen after v1's complete history and holdout were inspected. Therefore, no pre-registration v2 history is untouched validation evidence, regardless of how attractive its historical result appears.
 
@@ -324,12 +325,14 @@ The ten-year window was selected before the v1 result as a fixed compromise betw
 
 ### Registered Setups and Nearest Leads
 
-Current `FMS-EURUSD-MULTI-H4-CQ-v9` setups:
+Current `FMS-EURUSD-MULTI-H4-CQ-v10` setups:
 
 | Setup | Frozen direction | Historical N | Gross 2R target first | Gross average R |
 |---|---|---:|---:|---:|
 | Aggregate-US industrial production/output | Improving USD package -> Short EURUSD | 54 | 44.4% | +0.33R |
 | Aggregate-Euro-area consumer sentiment | Improving -> Long; weakening -> Short | 99 | 40.4% | +0.24R |
+| Aggregate-US payroll package | Improving USD employment+wages+unemployment -> Short EURUSD | 55 | Flexible path contract | 2 ATR / 1R / 6 H4 |
+| Complete US producer-inflation cooling package | Cooling Core PPI/PPI m/m+y/y -> Long EURUSD | 46 | Flexible path contract | 2 ATR / 1.25R / 18 H4 |
 
 Nearest reused-history leads remain producer inflation, payroll with an alternative exit study, core/headline retail, EUR GDP weakness, and the small-sample wage/current-account cohorts documented above. A failed gate is diagnostic evidence, not a defect to bypass. It may indicate unstable years, the wrong directional treatment, family over-breadth, package conflict, entry mismatch, exit mismatch, insufficient observations, revisions, or outlier dependence.
 
@@ -399,7 +402,16 @@ Three unregistered direction signatures cleared the exploratory screen:
 
 Thirty-H4 path medians further distinguish the candidates: producer-inflation Long had approximately `2.73R` MFE versus `1.53R` MAE; payroll Short had `2.47R` MFE versus `2.15R` MAE; CPI-cooling Long had `2.82R` MFE versus `2.01R` MAE. MFE and MAE are look-after diagnostics, not live inputs.
 
-None of the 64 candidates passed the stricter requirement that the selected configuration's holdout expectancy lower-95 bound be above zero. Therefore this run does **not** add a Registered Current Setup. The best next freeze discussion is a narrow US producer-inflation-cooling Long experiment because it has the strongest partition consistency, 9/11 positive years, favorable MFE/MAE balance, and all 18 neighboring holdout configurations positive. Payroll Short is the second choice and specifically tests whether its old fixed 1R/1.5R weakness was an exit-contract problem. CPI-cooling Long is third because its apparent edge depends on the matrix boundary of a 4R target and 60-H4 horizon, making it more vulnerable to selection and duration risk.
+None of the 64 candidates passed the stricter requirement that the selected configuration's holdout expectancy lower-95 bound be above zero. The user explicitly chose a more direct research posture after reviewing this limitation. V10 therefore registers the two strongest non-boundary expansions as transparent reused-history hypotheses: the complete US producer-inflation-cooling Long package and the US payroll Short package, each with its independently frozen exit contract. CPI-cooling Long remains unregistered because its apparent edge sits on the matrix boundary of a 4R target and 60-H4 horizon.
+
+### V10 Registry Decision - 2026-08-21
+
+- Current directional variants: Euro-area consumer sentiment Long/Short, aggregate-US industrial-output Short, aggregate-US payroll Short, and complete-US-producer-inflation-cooling Long.
+- Payroll identity remains exactly `USD:employment + USD:labor_wages + USD:unemployment` at one timestamp. Partial packages do not qualify.
+- Producer-inflation identity requires all four titles at one timestamp: `Core PPI m/m`, `Core PPI y/y`, `PPI m/m`, and `PPI y/y`; the aggregate score must produce the existing USD-cooling/Long signature. A lone PPI row or partial package does not qualify.
+- Existing v9 patterns retain `1 ATR / 2R / 30 H4`. Payroll uses `2 ATR / 1R / 6 H4`. Producer inflation uses `2 ATR / 1.25R / 18 H4`.
+- Per-setup execution is part of the immutable registry and is exposed by Charts audits and Shadow Trader. Generic source-model 2R metrics remain explicitly labeled as source research when shown beside a different registered exit.
+- Macro Signal Lab path/exit research is deliberately reduced to two functional tables: Registered setups and Potential setups not yet registered.
 
 ### Diagnosing Failed and High-N Families
 
@@ -440,16 +452,16 @@ Also measure which registered families dominate signal frequency and realized ex
 - Intraday views may show release-to-H4-activation geometry. On a coarse candle containing both timestamps, show the activation arrow without inventing a visible intrabar separation.
 - Current Model data is viewport-independent and preloads at app startup, regardless of whether Charts or Macro Bias has been opened. Opening the control reveals cached data while Charts can refresh it silently against the current calendar revision.
 - Research Replay remains a windowed historical view because it can contain hundreds of markers.
-- A blank Current Model is honest when no immutable post-v9 release has qualified. Research Replay arrows must never be relabeled as live/post-activation Current Model evidence.
+- A blank Current Model is honest when no immutable post-v10 release has qualified. Research Replay arrows must never be relabeled as live/post-activation Current Model evidence.
 
 ### Research Order
 
 1. **Completed:** add path-level MFE/MAE and threshold/first-touch reporting without changing v9.
 2. **Completed:** build the fixed Candidate Stress Lab matrix and record its protocol hash.
 3. **Completed:** run the declared path/exit/stop/horizon matrix across 64 eligible exact direction signatures.
-4. Discuss and freeze the next candidate treatment. Current recommendation: US producer inflation cooling -> Long EURUSD, with payroll Short as the alternative.
+4. **Completed:** freeze v10 with exact-package US producer-inflation Long and US payroll Short, including per-setup exits.
 5. Diagnose high-N families under direct, rejection, volatility-only, package-conflict, timing, and known-at-entry regime treatments.
-6. Promote only a separately versioned rule that passes its declared gates; leave v9 intact otherwise.
+6. Promote only separately versioned, auditable rules; leave v10 immutable otherwise.
 7. Repeat with retail, small-sample accumulation, policy, inflation, and combined evidence only after earlier experiments are recorded.
 
 ## Research Warnings and References

@@ -1172,7 +1172,6 @@ export function ChartsTab({
     modelHash: macroBiasResponse.modelHash,
     datasetFingerprint: macroBiasResponse.datasetFingerprint,
     mode: macroBiasResponse.mode,
-    targetR: macroBiasResponse.targetR,
     generatedAt: macroBiasResponse.generatedAt,
     onClose: () => setSelectedMacroBiasId(null),
   } : null;

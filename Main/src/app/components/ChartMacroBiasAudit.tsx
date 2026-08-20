@@ -9,7 +9,7 @@ export interface ChartMacroBiasAuditData {
   modelHash: string;
   datasetFingerprint?: string;
   mode: MacroSignalChartMode;
-  targetR: number;
+  targetR?: number;
   generatedAt?: number;
   onClose: () => void;
 }
@@ -38,6 +38,8 @@ function formatOutcome(signal: MacroSignalChartSignal): string {
 
 export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData }) {
   const { signal, pattern } = data;
+  const stopAtr = signal.stopAtr ?? pattern.execution?.stopAtr ?? 1;
+  const targetR = signal.targetR ?? pattern.execution?.targetR ?? 2;
   const historicalReplay = data.mode === "research_replay" || signal.historicalReplay;
   return (
     <aside className="chart-macro-bias-audit" aria-label={`${signal.direction} macro bias audit`}>
@@ -60,7 +62,8 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
       </div>
       <div className="chart-macro-bias-stats">
         <div><span>Historical N</span><strong>{pattern.overall.evaluableCount}</strong></div>
-        <div><span>{data.targetR}R target first</span><strong>{formatPercent(pattern.overall.targetHitRate)}</strong></div>
+        <div><span>Registered exit</span><strong>{stopAtr} ATR / {targetR}R / {signal.expiryCandles} H4</strong></div>
+        <div><span>Source 2R target first</span><strong>{formatPercent(pattern.overall.targetHitRate)}</strong></div>
         <div><span>Stop first</span><strong>{formatPercent(pattern.overall.stopHitRate)}</strong></div>
         <div><span>Gross average</span><strong>{formatR(pattern.overall.averageR)}</strong></div>
         <div><span>{pattern.executionStress.pips} pip stress</span><strong>{formatR(pattern.executionStress.overall.averageR)}</strong></div>

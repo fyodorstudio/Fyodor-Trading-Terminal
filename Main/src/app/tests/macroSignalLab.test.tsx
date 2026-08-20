@@ -113,7 +113,7 @@ const pathSummary = {
 const expansionReport: MacroSignalExpansionReport = {
   schemaVersion: 2,
   generatedAt: 1_780_000_000,
-  modelId: "FMS-EURUSD-MULTI-H4-CQ-v9",
+  modelId: "FMS-EURUSD-MULTI-H4-CQ-v10",
   protocol: {
     pathHorizonCandles: 30,
     maximumPathHorizonCandles: 60,
@@ -146,6 +146,7 @@ const expansionReport: MacroSignalExpansionReport = {
       historicalN: 44,
       currentRegistered: true,
       currentPatternId: "sentiment-short",
+      registeredExecution: { stopAtr: 1, targetR: 2, expiryCandles: 30 },
       path30: pathSummary,
       path60: { ...pathSummary, holdingCandles: 60 },
       selectedOn: "development_only",
@@ -166,6 +167,7 @@ const expansionReport: MacroSignalExpansionReport = {
       historicalN: 46,
       currentRegistered: false,
       currentPatternId: null,
+      registeredExecution: null,
       path30: pathSummary,
       path60: { ...pathSummary, holdingCandles: 60 },
       selectedOn: "development_only",
@@ -407,18 +409,19 @@ describe("Macro Signal Lab", () => {
     expect(html).toContain("Collisions");
   });
 
-  it("shows registered setups and development-selected expansion candidates without promoting them", () => {
+  it("shows registered and potential setups in two functional tables", () => {
     const html = renderToStaticMarkup(
       <MacroSignalLabView coverage={coverage} version={version} run={run} expansionReport={expansionReport} loading={false} error={null} onRun={() => {}} onRefresh={() => {}} />,
     );
 
     expect(html).toContain("Path and exit stress research");
-    expect(html).toContain("Registered current setups");
-    expect(html).toContain("Best next setup to discuss");
-    expect(html).toContain("USD inflation cooling -&gt; Long EURUSD");
-    expect(html).toContain("development history only");
-    expect(html).toContain("has not been registered");
-    expect(html).toContain("MFE");
-    expect(html).toContain("Nearby holdout +");
+    expect(html).toContain("Registered setups");
+    expect(html).toContain("Potential setups · not registered");
+    expect(html).toContain("Frozen exit");
+    expect(html).toContain("Best tested exit");
+    expect(html).toContain("Registered v10");
+    expect(html).toContain("Passed screen");
+    expect(html).not.toContain("Best next setup to discuss");
+    expect(html).not.toContain("MFE");
   });
 });

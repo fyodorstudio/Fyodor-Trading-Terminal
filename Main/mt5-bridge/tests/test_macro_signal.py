@@ -11,6 +11,7 @@ from macro_signal import (
   build_policy_inflation_context,
   build_signal_candidates,
   calculate_atr_by_candle,
+  candidate_matches_chart_pattern,
   candidate_pattern_signature,
   discover_qualified_chart_patterns,
   evaluate_candidate,
@@ -356,10 +357,28 @@ def test_v7_growth_rules_are_country_aware_narrow_and_deduplicated() -> None:
     "growth_trade_balance",
   ]
   pattern = next(row for row in CHART_SIGNAL_PATTERN_DEFINITIONS if row["id"] == "us-industrial-output-short")
-  assert CHART_SIGNAL_MODEL_ID == "FMS-EURUSD-MULTI-H4-CQ-v9"
+  assert CHART_SIGNAL_MODEL_ID == "FMS-EURUSD-MULTI-H4-CQ-v10"
   assert pattern["sourceVersion"] == GROWTH_VERSION_ID
   assert pattern["signatures"] == ("short|USD:industrial_output",)
   assert pattern["current"] is True
+
+
+def test_v10_registers_payroll_and_only_the_complete_us_ppi_cooling_package() -> None:
+  payroll = next(row for row in CHART_SIGNAL_PATTERN_DEFINITIONS if row["id"] == "us-payroll-short")
+  ppi = next(row for row in CHART_SIGNAL_PATTERN_DEFINITIONS if row["id"] == "us-producer-inflation-cooling-long")
+  assert payroll["execution"] == {"stopAtr": 2.0, "targetR": 1.0, "expiryCandles": 6}
+  assert ppi["execution"] == {"stopAtr": 2.0, "targetR": 1.25, "expiryCandles": 18}
+
+  complete = {
+    **candidate(direction="long"),
+    "events": [
+      {"currency": "USD", "scoreGroup": "producer_inflation", "title": title}
+      for title in ("Core PPI m/m", "Core PPI y/y", "PPI m/m", "PPI y/y")
+    ],
+  }
+  partial = {**complete, "events": complete["events"][:-1]}
+  assert candidate_matches_chart_pattern(complete, ppi) is True
+  assert candidate_matches_chart_pattern(partial, ppi) is False
 
 
 def test_same_m1_bar_touch_is_ambiguous() -> None:
@@ -408,6 +427,20 @@ def test_expired_result_is_marked_to_market_and_included_in_expectancy() -> None
   assert result["resultR"] is not None
   assert metrics["expiredCount"] == 1
   assert metrics["averageR"] == result["resultR"]
+
+
+def test_candidate_evaluation_uses_the_registered_per_setup_exit_contract() -> None:
+  rows = candles()
+  atr = calculate_atr_by_candle(rows)
+  result = evaluate_candidate(
+    candidate(), rows, [row["time"] for row in rows], atr, 1.25,
+    stop_atr=2.0, holding_candles=18,
+  )
+
+  assert result["stopAtr"] == 2.0
+  assert result["targetR"] == 1.25
+  assert result["expiryCandles"] == 18
+  assert round(abs(result["entry"] - result["stop"]), 10) == round(abs(result["target"] - result["entry"]) / 1.25, 10)
 
 
 def test_backtest_reports_split_cohorts_data_quality_and_plain_conclusion() -> None:

@@ -345,6 +345,12 @@ export interface MacroSignalStressCandidate {
   historicalN: number;
   currentRegistered: boolean;
   currentPatternId: string | null;
+  registeredExecution?: {
+    stopAtr: number;
+    targetR: number;
+    expiryCandles: number;
+  } | null;
+  registeredConfiguration?: MacroSignalStressConfiguration | null;
   path30: MacroSignalPathSummary;
   path60: MacroSignalPathSummary;
   selectedOn: "development_only";
@@ -399,6 +405,12 @@ export interface MacroSignalChartPattern {
   sourceVersionId: string;
   label: string;
   condition: string;
+  execution?: {
+    stopAtr: number;
+    targetR: number;
+    expiryCandles: number;
+  };
+  requiredExactTitles?: string[];
   direction: "long" | "short" | "both";
   groups: string[];
   overall: MacroSignalMetrics;
@@ -458,6 +470,13 @@ export interface MacroSignalChartSignal {
   highestImpact: "high" | "medium" | "low";
   events: MacroSignalScoredEvent[];
   activationTime: number | null;
+  execution?: {
+    stopAtr: number;
+    targetR: number;
+    expiryCandles: number;
+  };
+  stopAtr?: number;
+  targetR?: number;
   expiryCandles: number;
   entry?: number | null;
   atr?: number | null;

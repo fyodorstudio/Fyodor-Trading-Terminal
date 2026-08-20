@@ -111,13 +111,14 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
         <details key={pattern.id} open>
           <summary>
             <span><b>{pattern.label}</b><small>{pattern.condition}</small></span>
-            <strong>{formatPercent(pattern.overall.targetHitRate)}<small>2R target first</small></strong>
+            <strong>{pattern.execution?.targetR ?? 2}R<small>{pattern.execution?.stopAtr ?? 1} ATR · {pattern.execution?.expiryCandles ?? 30} H4</small></strong>
           </summary>
           <div className="chart-shadow-benchmark-grid">
             <div><span>Historical N</span><strong>{pattern.overall.evaluableCount}</strong></div>
-            <div><span>2R target first</span><strong>{pattern.overall.targetHitCount} / {pattern.overall.evaluableCount} · {formatPercent(pattern.overall.targetHitRate)}</strong></div>
-            <div><span>Stop first</span><strong>{pattern.overall.stopHitCount} / {pattern.overall.evaluableCount} · {formatPercent(pattern.overall.stopHitRate)}</strong></div>
-            <div><span>Gross average</span><strong>{formatR(pattern.overall.averageR)}</strong></div>
+            <div><span>Registered contract</span><strong>{pattern.execution?.stopAtr ?? 1} ATR stop · {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</strong></div>
+            <div><span>Source 2R target first</span><strong>{pattern.overall.targetHitCount} / {pattern.overall.evaluableCount} · {formatPercent(pattern.overall.targetHitRate)}</strong></div>
+            <div><span>Source 2R stop first</span><strong>{pattern.overall.stopHitCount} / {pattern.overall.evaluableCount} · {formatPercent(pattern.overall.stopHitRate)}</strong></div>
+            <div><span>Source 2R gross average</span><strong>{formatR(pattern.overall.averageR)}</strong></div>
             <div><span>Recent window</span><strong>{formatR(pattern.recentWindow.metrics.averageR)} · N {pattern.recentWindow.metrics.evaluableCount}</strong></div>
             <div><span>Positive years</span><strong>{pattern.yearStability.positiveYears}/{pattern.yearStability.evaluableYears}</strong></div>
             <div><span>Development</span><strong>{formatR(pattern.development.averageR)} · N {pattern.development.evaluableCount}</strong></div>

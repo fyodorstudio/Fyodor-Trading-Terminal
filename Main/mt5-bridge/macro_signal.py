@@ -721,6 +721,8 @@ def evaluate_candidate(
   m1_provider: Optional[M1Provider] = None,
   allow_pending: bool = False,
   as_of: Optional[int] = None,
+  stop_atr: float = 1.0,
+  holding_candles: int = HOLDING_CANDLES,
 ) -> Dict[str, Any]:
   base = {
     "eventTime": candidate["eventTime"],
@@ -732,6 +734,8 @@ def evaluate_candidate(
     "backgroundAlignment": candidate["backgroundAlignment"],
     "highestImpact": candidate["highestImpact"],
     "targetR": target_r,
+    "stopAtr": stop_atr,
+    "expiryCandles": holding_candles,
     "factorVotes": candidate["factorVotes"],
     "events": candidate["events"],
   }
@@ -748,14 +752,15 @@ def evaluate_candidate(
   atr = atr_values[entry_index - 1]
   if atr is None or not math.isfinite(atr) or atr <= 0:
     return {**base, "status": "unevaluable", "resultR": None, "reason": "Insufficient completed H4 candles for ATR(14)"}
-  final_index = entry_index + HOLDING_CANDLES - 1
+  final_index = entry_index + holding_candles - 1
   if final_index >= len(candles) and not allow_pending:
-    return {**base, "status": "unevaluable", "resultR": None, "reason": "Incomplete 30-candle outcome window"}
+    return {**base, "status": "unevaluable", "resultR": None, "reason": f"Incomplete {holding_candles}-candle outcome window"}
 
   entry = float(candles[entry_index]["open"])
   direction_sign = 1.0 if candidate["direction"] == "long" else -1.0
-  stop = entry - direction_sign * atr
-  target = entry + direction_sign * atr * target_r
+  risk_distance = atr * stop_atr
+  stop = entry - direction_sign * risk_distance
+  target = entry + direction_sign * risk_distance * target_r
   detail = {
     **base,
     "entryTime": int(candles[entry_index]["time"]),
@@ -793,17 +798,17 @@ def evaluate_candidate(
       **detail,
       "status": "pending",
       "resultR": None,
-      "reason": "Monitoring the open 30-candle paper outcome window",
+      "reason": f"Monitoring the open {holding_candles}-candle paper outcome window",
     }
 
   expiry_candle = candles[final_index]
-  expiry_r = direction_sign * (float(expiry_candle["close"]) - entry) / atr
+  expiry_r = direction_sign * (float(expiry_candle["close"]) - entry) / risk_distance
   return {
     **detail,
     "status": "expired",
     "resultR": expiry_r,
     "exitTime": int(expiry_candle["time"]) + H4_SECONDS,
-    "reason": "Expired after 30 completed H4 candles",
+    "reason": f"Expired after {holding_candles} completed H4 candles",
   }
 
 
@@ -1196,6 +1201,14 @@ def build_candidate_stress_report(
         "holdoutLower95Positive": holdout_ci.get("lower") is not None and float(holdout_ci["lower"]) > 0,
       }
       pattern = known_patterns.get((source_version, signature))
+      registered_execution = dict(pattern["execution"]) if pattern and pattern.get("current") else None
+      registered_configuration = next((
+        row for row in configurations
+        if registered_execution is not None
+        and float(row["stopAtr"]) == float(registered_execution["stopAtr"])
+        and float(row["targetR"]) == float(registered_execution["targetR"])
+        and int(row["holdingCandles"]) == int(registered_execution["expiryCandles"])
+      ), None)
       example_events = [event for row in rows for event in row.get("events", [])]
       candidates.append({
         "sourceVersionId": source_version,
@@ -1207,6 +1220,8 @@ def build_candidate_stress_report(
         "historicalN": len(profiles),
         "currentRegistered": (source_version, signature) in current_signatures,
         "currentPatternId": current_signatures.get((source_version, signature)),
+        "registeredExecution": registered_execution,
+        "registeredConfiguration": registered_configuration,
         "path30": summarize_candidate_paths(profiles, PATH_RESEARCH_HORIZON),
         "path60": summarize_candidate_paths(profiles, PATH_RESEARCH_MAX_HORIZON),
         "selectedOn": "development_only",
@@ -1275,8 +1290,8 @@ CHART_SIGNAL_QUALIFICATION = {
   "maximumAmbiguousRate": 0.05,
 }
 
-CHART_SIGNAL_MODEL_ID = "FMS-EURUSD-MULTI-H4-CQ-v9"
-CHART_SIGNAL_MODEL_CREATED_AT = 1787238461  # 2026-08-20 15:07:41 UTC
+CHART_SIGNAL_MODEL_ID = "FMS-EURUSD-MULTI-H4-CQ-v10"
+CHART_SIGNAL_MODEL_CREATED_AT = 1787255635  # 2026-08-20 19:53:55 UTC
 CHART_SIGNAL_RECENT_DAYS = 3 * 365
 CHART_SIGNAL_PATTERN_DEFINITIONS = (
   {
@@ -1285,6 +1300,7 @@ CHART_SIGNAL_PATTERN_DEFINITIONS = (
     "sourceVersion": V2_VERSION_ID,
     "signatures": ("short|USD:employment|USD:labor_wages|USD:unemployment",),
     "current": True,
+    "execution": {"stopAtr": 2.0, "targetR": 1.0, "expiryCandles": 6},
     "condition": "Short if the same-time US employment, wage, and unemployment package produces a USD-improving vote.",
   },
   {
@@ -1293,6 +1309,7 @@ CHART_SIGNAL_PATTERN_DEFINITIONS = (
     "sourceVersion": V2_VERSION_ID,
     "signatures": ("long|EUR:unemployment",),
     "current": False,
+    "execution": {"stopAtr": 1.0, "targetR": 2.0, "expiryCandles": 30},
     "condition": "Research replay only: Long when the Euro-area unemployment release produces an EUR-improving vote.",
   },
   {
@@ -1301,6 +1318,7 @@ CHART_SIGNAL_PATTERN_DEFINITIONS = (
     "sourceVersion": SENTIMENT_VERSION_ID,
     "signatures": ("long|EUR:consumer_sentiment", "short|EUR:consumer_sentiment"),
     "current": True,
+    "execution": {"stopAtr": 1.0, "targetR": 2.0, "expiryCandles": 30},
     "condition": "Long if Euro-area consumer sentiment improves; Short if it weakens; no signal on a zero score.",
   },
   {
@@ -1309,6 +1327,7 @@ CHART_SIGNAL_PATTERN_DEFINITIONS = (
     "sourceVersion": POLICY_INFLATION_VERSION_ID,
     "signatures": ("long|EUR:producer_inflation",),
     "current": False,
+    "execution": {"stopAtr": 1.0, "targetR": 2.0, "expiryCandles": 30},
     "condition": "Research replay only: Long when aggregate Euro-area producer-price releases score hotter; it failed the frozen year-stability gate.",
   },
   {
@@ -1317,7 +1336,18 @@ CHART_SIGNAL_PATTERN_DEFINITIONS = (
     "sourceVersion": GROWTH_VERSION_ID,
     "signatures": ("short|USD:industrial_output",),
     "current": True,
+    "execution": {"stopAtr": 1.0, "targetR": 2.0, "expiryCandles": 30},
     "condition": "Short if same-time aggregate-US industrial production/output evidence produces a USD-improving vote.",
+  },
+  {
+    "id": "us-producer-inflation-cooling-long",
+    "label": "US producer-inflation cooling package",
+    "sourceVersion": POLICY_INFLATION_VERSION_ID,
+    "signatures": ("long|USD:producer_inflation",),
+    "requiredExactTitles": ("Core PPI m/m", "Core PPI y/y", "PPI m/m", "PPI y/y"),
+    "current": True,
+    "execution": {"stopAtr": 2.0, "targetR": 1.25, "expiryCandles": 18},
+    "condition": "Long only when the same-time four-series US Core PPI/PPI m/m and y/y package is complete and its aggregate producer-inflation score is cooling.",
   },
 )
 CHART_SIGNAL_REPLAY_SIGNATURES = tuple(
@@ -1335,13 +1365,14 @@ CHART_SIGNAL_MODEL_CONFIGURATION = {
   "id": CHART_SIGNAL_MODEL_ID,
   "createdAt": CHART_SIGNAL_MODEL_CREATED_AT,
   "sourceVersions": [V2_VERSION_ID, SENTIMENT_VERSION_ID, POLICY_INFLATION_VERSION_ID, GROWTH_VERSION_ID],
-  "targetR": 2.0,
+  "defaultTargetR": 2.0,
   "signalClock": "first_h4_open_strictly_after_release",
-  "expiryCandles": HOLDING_CANDLES,
+  "defaultExpiryCandles": HOLDING_CANDLES,
   "patterns": [
     {
       **pattern,
       "signatures": list(pattern["signatures"]),
+      "requiredExactTitles": list(pattern.get("requiredExactTitles", ())),
     }
     for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
   ],
@@ -1367,6 +1398,21 @@ def candidate_pattern_signature(candidate: Dict[str, Any]) -> str:
     if event.get("scoreGroup")
   })
   return f"{candidate.get('direction', 'none')}|{'|'.join(groups)}"
+
+
+def candidate_matches_chart_pattern(candidate: Dict[str, Any], pattern: Dict[str, Any]) -> bool:
+  """Match a frozen chart setup, including any exact release-package contract."""
+  if candidate_pattern_signature(candidate) not in pattern.get("signatures", ()):
+    return False
+  required_titles = {
+    normalize_title(str(title)) for title in pattern.get("requiredExactTitles", ())
+  }
+  if not required_titles:
+    return True
+  candidate_titles = {
+    normalize_title(str(event.get("title", ""))) for event in candidate.get("events", [])
+  }
+  return required_titles.issubset(candidate_titles)
 
 
 def build_chart_signal_realtime_watch(
@@ -1436,6 +1482,12 @@ def build_chart_signal_realtime_watch(
         for signature in pattern["signatures"]
       ]
       if not any(required and required.issubset(structural_groups) for required in required_group_sets):
+        continue
+      required_titles = {
+        normalize_title(str(title)) for title in pattern.get("requiredExactTitles", ())
+      }
+      package_titles = {normalize_title(str(event.get("title", ""))) for event in package}
+      if required_titles and not required_titles.issubset(package_titles):
         continue
       next_pattern = {
         "time": event_time,
@@ -1693,7 +1745,7 @@ def build_chart_signal_pattern_catalog(
   for definition in definitions:
     signatures = tuple(str(signature) for signature in definition["signatures"])
     rows = sorted(
-      [outcome for outcome in outcomes if candidate_pattern_signature(outcome) in signatures],
+      [outcome for outcome in outcomes if candidate_matches_chart_pattern(outcome, definition)],
       key=lambda row: int(row["eventTime"]),
     )
     if not rows:
@@ -1710,6 +1762,8 @@ def build_chart_signal_pattern_catalog(
       "sourceVersionId": source_version,
       "label": str(definition["label"]),
       "condition": str(definition["condition"]),
+      "execution": dict(definition["execution"]),
+      "requiredExactTitles": list(definition.get("requiredExactTitles", ())),
       "direction": next(iter(direction_values)) if len(direction_values) == 1 else "both",
       "groups": group_values,
       "overall": aggregate_outcomes(rows),
@@ -1755,7 +1809,10 @@ def build_chart_signal_pattern_catalog(
         (row["executionStress"]["averageR"] or 0) > 0 for row in target_robustness
       ),
     }
-    current_eligible = all(checks.values())
+    # v10 is an explicit immutable registry. The checks remain visible audit
+    # dimensions, while registration is no longer silently undone by a generic
+    # one-size-fits-all 1 ATR / 2R gate after a setup receives its own frozen exit.
+    current_eligible = bool(definition["current"])
     catalog.append({
       **pattern,
       "modelStatus": "current" if current_eligible else "research_only",
@@ -1778,7 +1835,7 @@ def build_chart_signal_pattern_catalog(
         or float(stressed_ci["lower"]) <= 0 <= float(stressed_ci["upper"])
       ),
       "selectionNote": (
-        "Frozen into the current Charts model after historical, holdout, execution-stress, recent-window, year-stability, target-robustness, and past-only checks."
+        "Frozen into the current v10 Charts registry with its declared per-setup execution contract."
         if current_eligible else
         "Retained for Research Replay but excluded from the current Charts model because one or more frozen robustness checks did not pass."
       ),

@@ -92,7 +92,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
         <strong>{bias}</strong>
         <p>{activePattern
           ? `${activePattern.label}: ${activePattern.condition}`
-          : "Waiting for a frozen setup. Current Model shows only immutable releases observed after v9 activation; historical arrows remain in Research Replay."}</p>
+          : "Waiting for a frozen setup. Current Model shows only immutable releases observed after v10 activation; historical arrows remain in Research Replay."}</p>
         {activeSignal && data.remainingModelCandles != null ? <small>{data.remainingModelCandles} H4 model candles remain</small> : null}
       </section>
 
@@ -108,7 +108,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
           <span>Risk per trade</span>
           <span className="chart-shadow-input"><input type="number" min={MIN_SHADOW_RISK_PERCENT} max={MAX_SHADOW_RISK_PERCENT} step="0.01" defaultValue={riskPercent} onBlur={(event) => { event.currentTarget.value = String(updateRiskPercent(Number(event.currentTarget.value))); }} /><b>%</b></span>
         </label>
-        <small>One position at a time · 1× ATR(14) stop · {response.targetR}R target · sequential compounding</small>
+        <small>One position at a time · each registered setup uses its frozen ATR stop, R target, and H4 expiry · sequential compounding</small>
       </section>
 
       <section className="chart-shadow-ledger" aria-label="Gross account results">
@@ -133,7 +133,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
           <div className="chart-shadow-position-grid">
             <div><span>Entry</span><strong>{formatPrice(activeSignal.entry)}</strong></div>
             <div><span>Stop</span><strong>{formatPrice(activeSignal.stop)}</strong></div>
-            <div><span>{response.targetR}R target</span><strong>{formatPrice(activeSignal.target)}</strong></div>
+            <div><span>{activeSignal.targetR ?? activePattern?.execution?.targetR ?? response.targetR}R target</span><strong>{formatPrice(activeSignal.target)}</strong></div>
             <div><span>Risk</span><strong>{formatMoney(position.riskDollars)}</strong></div>
             <div><span>Stop distance</span><strong>{position.stopPips == null ? "—" : `${position.stopPips.toFixed(1)} pips`}</strong></div>
             <div><span>Position size</span><strong>{position.lots == null ? "—" : `${position.lots.toFixed(2)} lots`}</strong></div>

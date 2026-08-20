@@ -125,15 +125,16 @@ describe("getChartConnectionLabel", () => {
       expectancyCi95: { lower: -0.2, upper: 0.58 }, targetHitCi95: { lower: 0.27, upper: 0.52 },
     };
     const signal: MacroSignalChartSignal = {
-      id: "signal", patternId: "pattern", sourceVersionId: "v2", eventTime: 1_000, activationTime: 14_400, expiryCandles: 30,
+      id: "signal", patternId: "pattern", sourceVersionId: "v2", eventTime: 1_000, activationTime: 14_400,
+      execution: { stopAtr: 2, targetR: 1, expiryCandles: 6 }, stopAtr: 2, targetR: 1, expiryCandles: 6,
       historicalReplay: true, direction: "short", label: "US payroll package", agreement: "consensus", pairVote: -1,
       backgroundDirection: "short", backgroundPairVote: -1, backgroundAlignment: "aligned", backgroundCoverageComplete: true,
-      highestImpact: "high", events: [], outcomeStatus: "target_hit", resultR: 2, exitTime: 28_800,
+      highestImpact: "high", events: [], outcomeStatus: "target_hit", resultR: 1, exitTime: 28_800,
     };
     const html = renderToStaticMarkup(createElement(ChartMacroBiasAudit, { data: {
       signal,
       pattern: {
-        id: "pattern", signature: "short|USD:employment", signatures: ["short|USD:employment"], sourceVersionId: "v2", label: "US payroll package", condition: "Short when USD payroll evidence improves.", direction: "short", groups: ["USD:employment"],
+        id: "pattern", signature: "short|USD:employment", signatures: ["short|USD:employment"], sourceVersionId: "v2", label: "US payroll package", condition: "Short when USD payroll evidence improves.", execution: { stopAtr: 2, targetR: 1, expiryCandles: 6 }, direction: "short", groups: ["USD:employment"],
         overall: metrics, development: metrics, holdout: metrics, qualification: {}, exampleTitles: [], modelStatus: "current", currentEligible: true,
         modelChecks: {}, executionStress: { pips: 3, overall: { ...metrics, averageR: 0.087 }, development: metrics, holdout: metrics, recent: metrics },
         recentWindow: { from: 0, to: 1, metrics }, yearStability: { evaluableYears: 11, positiveYears: 7, positiveYearShare: 7 / 11, byYear: [] },
@@ -149,7 +150,8 @@ describe("getChartConnectionLabel", () => {
     } }));
 
     expect(html).toContain("Known-afterward simulation");
-    expect(html).toContain("Target first · +2.00R");
+    expect(html).toContain("Target first · +1.00R");
+    expect(html).toContain("2 ATR / 1R / 6 H4");
     expect(html).toContain("1R target");
     expect(html).toContain("-0.17R");
     expect(html).toContain("5.7 pips per case");
@@ -164,7 +166,7 @@ describe("getChartConnectionLabel", () => {
     };
     const pattern = {
       id: "sentiment", signature: "long|EUR:consumer_sentiment", signatures: ["long|EUR:consumer_sentiment", "short|EUR:consumer_sentiment"],
-      sourceVersionId: "v3", label: "Euro-area consumer sentiment", condition: "Long if sentiment improves; Short if it weakens.", direction: "both",
+      sourceVersionId: "v3", label: "Euro-area consumer sentiment", condition: "Long if sentiment improves; Short if it weakens.", execution: { stopAtr: 1, targetR: 2, expiryCandles: 30 }, direction: "both",
       groups: ["EUR:consumer_sentiment"], overall: metrics, development: metrics, holdout: metrics, qualification: {}, exampleTitles: [],
       modelStatus: "current", currentEligible: true, modelChecks: {}, executionStress: { pips: 3, overall: metrics, development: metrics, holdout: metrics, recent: metrics },
       recentWindow: { from: 0, to: 1, metrics }, yearStability: { evaluableYears: 10, positiveYears: 7, positiveYearShare: .7, byYear: [] },

@@ -188,7 +188,7 @@ export function MacroSignalLabView({
           <div className="macro-signal-kicker"><FlaskConical size={14} /> Active research experiment</div>
           <div className="macro-signal-title-line">
             <h2>Macro Signal Lab</h2>
-            <span>EURUSD</span><span>H4</span><span>{version?.id ?? "FMS-EURUSD-ECO-H4-v1"}</span>
+            <span>EURUSD</span><span>H4</span><span>Charts registry v10</span><span>Source {version?.id ?? "FMS-EURUSD-ECO-H4-v1"}</span>
           </div>
           <p>{isGrowthVersion ? "Country-aware Growth research for strict GDP/output, PMI/ISM, retail-demand, and trade/current-account releases. Rules were frozen before v7 results were inspected." : isPolicyInflationVersion ? "Country-aware Policy/Inflation context research. Direct decision arrows and broad inflation arrows remain unqualified unless a frozen pattern passes every gate." : isSentimentVersion ? "Country-aware Sentiment evidence model. Reused history is exploratory; only post-registration observations can validate it." : isLaborVersion ? "Country-aware Labor evidence model. Reused history is exploratory; forward evidence starts at registration." : "Frozen Economy evidence model. Historical behavior research—not an order, guarantee, or proof of causation."}</p>
         </div>
@@ -200,12 +200,12 @@ export function MacroSignalLabView({
 
       <div className="macro-signal-notice">
         <ShieldCheck size={17} />
-        <strong>Gross simulation:</strong> exact historical spread, slippage, swap, and commission are unavailable. Charts v9 separates frozen current patterns from hindsight Research Replay and shows a three-pip result stress.
+        <strong>Gross simulation:</strong> exact historical spread, slippage, swap, and commission are unavailable. Charts v10 separates frozen current patterns from hindsight Research Replay and shows a three-pip result stress.
       </div>
 
       {versions.length > 1 ? (
-        <div className="macro-signal-version-switch" aria-label="Research version">
-          <span>Research version</span>
+        <div className="macro-signal-version-switch" aria-label="Source research versions">
+          <span>Source research versions</span>
           {versions.map((item) => (
             <button key={item.id} type="button" className={item.id === version?.id ? "is-active" : ""} onClick={() => onSelectVersion(item.id)}>
               {item.id.includes("GROWTH") ? "v7 · Country-aware Growth" : item.id.includes("POLICY-INFL") ? "v5 · Policy / Inflation" : item.id.includes("SENTIMENT") ? "v3 · Country-aware Sentiment" : item.id.includes("LABOR") ? "v2 · Country-aware Labor" : "v1 · Economy baseline"}
@@ -307,7 +307,7 @@ export function MacroSignalLabView({
                   </div>
                   <div className="macro-signal-verdict-foot">
                     <span>Holdout uncertainty: {formatRange(result.conclusion.holdoutExpectancyCi95)}</span>
-                    <span>Chart indicator: {isGrowthVersion ? "v9 current source + explicit Research Replay" : isPolicyInflationVersion ? "v9 context + failed-gate replay only" : isLaborVersion || isSentimentVersion ? "v9 current source + explicit Research Replay" : result.conclusion.code === "forward_paper_validated" ? "Pending cost-model and product review" : "Not allowed"}</span>
+                    <span>Chart indicator: {isGrowthVersion ? "v10 current source + explicit Research Replay" : isPolicyInflationVersion ? "v10 registered package/context + replay research" : isLaborVersion || isSentimentVersion ? "v10 current source + explicit Research Replay" : result.conclusion.code === "forward_paper_validated" ? "Pending cost-model and product review" : "Not allowed"}</span>
                   </div>
                   {result.conclusion.exploratoryFactorLeads.length ? (
                     <div className="macro-signal-research-leads">

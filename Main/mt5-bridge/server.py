@@ -40,6 +40,7 @@ from macro_signal import (
   build_policy_inflation_context,
   build_signal_candidates,
   calculate_atr_by_candle,
+  candidate_matches_chart_pattern,
   candidate_pattern_signature,
   dataset_fingerprint,
   evaluate_candidate,
@@ -1366,11 +1367,15 @@ def research_chart_signals(
     pattern for pattern in catalog
     if normalized_mode == "research_replay" or pattern["currentEligible"]
   ]
-  pattern_by_signature = {
-    (pattern["sourceVersionId"], signature): pattern
-    for pattern in patterns
-    for signature in pattern["signatures"]
-  }
+  def matching_pattern(source_version: str, candidate: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    return next(
+      (
+        pattern for pattern in patterns
+        if pattern["sourceVersionId"] == source_version
+        and candidate_matches_chart_pattern(candidate, pattern)
+      ),
+      None,
+    )
   observed_events = _research_store.query_release_observations(
     from_time=FORWARD_LEDGER_ACTIVATED_AT,
     currencies=["EUR", "USD"],
@@ -1405,16 +1410,54 @@ def research_chart_signals(
     if (from_ is None or int(candidate["eventTime"]) >= from_)
     and (to is None or int(candidate["eventTime"]) <= to)
   ]
+  generated_at = _get_server_time_from_mt5(normalized_symbol) or int(_time.time())
+  custom_execution_candidates = [
+    (source_version, candidate, pattern)
+    for source_version, candidate in window_candidates
+    for pattern in [matching_pattern(source_version, candidate)]
+    if pattern is not None and pattern.get("execution") != {
+      "stopAtr": 1.0, "targetR": 2.0, "expiryCandles": 30,
+    }
+  ]
+  custom_candles: List[Dict[str, Any]] = []
+  custom_candle_times: List[int] = []
+  custom_atr_values: List[Optional[float]] = []
+  if custom_execution_candidates:
+    earliest_custom = min(int(candidate["eventTime"]) for _, candidate, _ in custom_execution_candidates)
+    latest_custom = max(int(candidate["eventTime"]) for _, candidate, _ in custom_execution_candidates)
+    custom_candles = _research_store.query_candles(
+      "EURUSD", "H4", earliest_custom - 45 * 24 * 60 * 60,
+      min(generated_at + H4_SECONDS, latest_custom + 75 * 24 * 60 * 60),
+    )
+    custom_candle_times = [int(candle["time"]) for candle in custom_candles]
+    custom_atr_values = calculate_atr_by_candle(custom_candles)
   signals: List[Dict[str, Any]] = []
   for source_version, candidate in window_candidates:
     event_time = int(candidate["eventTime"])
-    pattern = pattern_by_signature.get((source_version, candidate_pattern_signature(candidate)))
+    pattern = matching_pattern(source_version, candidate)
     if pattern is None:
       continue
     paper_outcome = paper_cases.get((source_version, event_time), {}).get("outcomes", {}).get("2.0", {})
-    activation_time = candidate.get("entryTime") or paper_outcome.get("entryTime")
+    execution = pattern["execution"]
+    evaluated = candidate
+    uses_custom_execution = execution != {"stopAtr": 1.0, "targetR": 2.0, "expiryCandles": 30}
+    if uses_custom_execution and custom_candles:
+      evaluated = evaluate_candidate(
+        candidate,
+        custom_candles,
+        custom_candle_times,
+        custom_atr_values,
+        float(execution["targetR"]),
+        allow_pending=normalized_mode == "current",
+        as_of=generated_at,
+        stop_atr=float(execution["stopAtr"]),
+        holding_candles=int(execution["expiryCandles"]),
+      )
+    activation_time = evaluated.get("entryTime") or (None if uses_custom_execution else paper_outcome.get("entryTime"))
     def outcome_value(name: str) -> Any:
-      return candidate.get(name) if candidate.get(name) is not None else paper_outcome.get(name)
+      if uses_custom_execution:
+        return evaluated.get(name)
+      return evaluated.get(name) if evaluated.get(name) is not None else paper_outcome.get(name)
     signals.append({
       "id": f"{pattern['id']}:{event_time}",
       "patternId": pattern["id"],
@@ -1437,14 +1480,17 @@ def research_chart_signals(
       "highestImpact": candidate["highestImpact"],
       "events": candidate["events"],
       "activationTime": int(activation_time) if activation_time is not None else None,
-      "expiryCandles": 30,
+      "execution": pattern["execution"],
+      "stopAtr": float(pattern["execution"]["stopAtr"]),
+      "targetR": float(pattern["execution"]["targetR"]),
+      "expiryCandles": int(pattern["execution"]["expiryCandles"]),
       "entry": outcome_value("entry"),
       "atr": outcome_value("atr"),
       "stop": outcome_value("stop"),
       "target": outcome_value("target"),
-      "outcomeStatus": candidate.get("status") or paper_outcome.get("status"),
-      "resultR": candidate.get("resultR") if candidate.get("resultR") is not None else paper_outcome.get("resultR"),
-      "exitTime": candidate.get("exitTime") or paper_outcome.get("exitTime"),
+      "outcomeStatus": evaluated.get("status") or (None if uses_custom_execution else paper_outcome.get("status")),
+      "resultR": evaluated.get("resultR") if uses_custom_execution else (evaluated.get("resultR") if evaluated.get("resultR") is not None else paper_outcome.get("resultR")),
+      "exitTime": evaluated.get("exitTime") or (None if uses_custom_execution else paper_outcome.get("exitTime")),
       "historicalReplay": normalized_mode == "research_replay",
     })
   latest_matched_event_at = max((int(signal["eventTime"]) for signal in signals), default=None)
@@ -1462,9 +1508,8 @@ def research_chart_signals(
     for source_version, candidate in window_candidates
     if latest_matched_event_at is not None
     and int(candidate["eventTime"]) > latest_matched_event_at
-    and (source_version, candidate_pattern_signature(candidate)) not in pattern_by_signature
+    and matching_pattern(source_version, candidate) is None
   )
-  generated_at = _get_server_time_from_mt5(normalized_symbol) or int(_time.time())
   scheduled_events = _research_store.query_calendar(
     from_time=generated_at + 1,
     currencies=["EUR", "USD"],
@@ -1518,7 +1563,7 @@ def research_chart_signals(
     "currentPatternCount": sum(pattern["currentEligible"] for pattern in catalog),
     "researchPatternCount": len(catalog),
     "message": (
-      "Current v9 model: only post-activation releases matching frozen, recent-stress-qualified and target-robust patterns are eligible; policy/inflation context is descriptive only."
+      "Current v10 model: only post-activation releases matching the frozen registry and each setup's declared execution contract are eligible; policy/inflation context is descriptive only."
       if normalized_mode == "current" else
       "Historical research replay: arrows use patterns selected after reviewing the archive and were not available in real time."
     ),
