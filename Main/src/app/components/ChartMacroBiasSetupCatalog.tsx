@@ -110,9 +110,10 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
       {registered.map((pattern) => (
         <details key={pattern.id} open>
           <summary>
-            <span><b>{pattern.label}</b><small>{pattern.condition}</small></span>
+            <span><b>{pattern.label}</b></span>
             <strong>{pattern.execution?.targetR ?? 2}R<small>{pattern.execution?.stopAtr ?? 1} ATR · {pattern.execution?.expiryCandles ?? 30} H4</small></strong>
           </summary>
+          <p className="chart-shadow-catalog-rule"><b>Frozen rule:</b> {pattern.condition}</p>
           <div className="chart-shadow-benchmark-grid">
             <div><span>Historical N</span><strong>{pattern.overall.evaluableCount}</strong></div>
             <div><span>Registered contract</span><strong>{pattern.execution?.stopAtr ?? 1} ATR stop · {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</strong></div>
@@ -130,7 +131,6 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
               <span key={target.targetR}><b>{target.targetR}R</b> {formatR(target.gross.averageR)} · N {target.gross.evaluableCount}</span>
             ))}
           </div>
-          <p>{pattern.selectionNote}</p>
         </details>
       ))}
     </section>

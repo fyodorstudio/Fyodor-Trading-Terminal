@@ -236,16 +236,17 @@
 .chart-shadow-catalog summary { display: grid; grid-template-columns: minmax(0, 1fr) 92px; gap: 10px; align-items: center; cursor: pointer; padding: 9px 12px; list-style-position: inside; }
 .chart-shadow-catalog summary > span { min-width: 0; }
 .chart-shadow-catalog summary b { display: block; font-size: 12px; }
-.chart-shadow-catalog summary small { display: block; margin-top: 2px; overflow: hidden; color: #64748b; font-size: 9px; font-weight: 750; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.chart-shadow-catalog summary small { display: block; margin-top: 2px; color: #64748b; font-size: 9px; font-weight: 750; line-height: 1.3; }
 .chart-shadow-catalog summary > strong { color: #312e81; font-size: 14px; text-align: right; }
 .chart-shadow-catalog summary > strong small { text-transform: uppercase; }
+.chart-shadow-catalog-rule { margin: 0 12px 8px; border: 1px solid #e0e7ff; border-radius: 6px; background: #f8faff; padding: 7px 8px; color: #334155; font-size: 10px; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
+.chart-shadow-catalog-rule b { color: #312e81; }
 .chart-shadow-benchmark-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; padding: 0 12px 8px; }
 .chart-shadow-benchmark-grid > div { min-width: 0; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc; padding: 6px; }
 .chart-shadow-benchmark-grid span { display: block; overflow: hidden; color: #64748b; font-size: 8px; font-weight: 900; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
 .chart-shadow-benchmark-grid strong { display: block; margin-top: 2px; overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
 .chart-shadow-target-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; padding: 0 12px 8px; }
 .chart-shadow-target-strip span { min-width: 0; border-radius: 5px; background: #eef2ff; padding: 5px; color: #475569; font-size: 9px; font-weight: 800; text-align: center; }
-.chart-shadow-catalog details > p { border-top: 1px solid #edf2f7; padding: 7px 12px 9px; color: #64748b; font-size: 10px; font-weight: 700; }
 @media (max-width: 900px) { .chart-macro-bias-audit { top: 198px; max-height: calc(100% - 208px); } .chart-macro-bias-realtime { top: 152px; right: 10px; width: min(360px,calc(100% - 20px)); max-height: calc(100% - 162px); } }
 .chart-canvas-frame.has-pair-matrix-bottom .chart-plot-region { height: auto; flex: 1 1 auto; }
 .chart-event-lens-slot { position: absolute; inset: 0; z-index: 64; min-height: 0; padding: 0; pointer-events: none; }
