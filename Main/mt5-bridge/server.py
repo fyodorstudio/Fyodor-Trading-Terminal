@@ -31,7 +31,9 @@ from macro_signal import (
   build_backtest_result,
   build_signal_candidates,
   calculate_atr_by_candle,
+  candidate_pattern_signature,
   dataset_fingerprint,
+  discover_qualified_chart_patterns,
   evaluate_candidate,
   get_signal_definition,
 )
@@ -1184,6 +1186,83 @@ def research_versions() -> List[Dict[str, Any]]:
 @app.get("/research/forward")
 def research_forward(versionId: str = V2_VERSION_ID) -> Dict[str, Any]:
   return _forward_paper_payload(versionId)
+
+
+@app.get("/research/chart-signals")
+def research_chart_signals(
+  symbol: str = "EURUSD",
+  tf: str = "H4",
+  from_: Optional[int] = None,
+  to: Optional[int] = None,
+) -> Dict[str, Any]:
+  normalized_symbol = symbol.upper()
+  normalized_tf = tf.upper()
+  if normalized_symbol != "EURUSD" or normalized_tf != "H4":
+    return {
+      "supported": False,
+      "versionId": V2_VERSION_ID,
+      "symbol": normalized_symbol,
+      "timeframe": normalized_tf,
+      "targetR": 2.0,
+      "patterns": [],
+      "signals": [],
+      "message": "Fyodor Macro Bias currently supports EURUSD H4 only.",
+    }
+  run = _research_store.latest_backtest_run(V2_VERSION_ID)
+  result = run.get("result") if run and run.get("status") == "completed" else None
+  if not isinstance(result, dict):
+    raise HTTPException(status_code=409, detail="Run the v2 historical research baseline before loading chart signals")
+  target_result = result.get("targets", {}).get("2.0", {})
+  outcomes = target_result.get("outcomes", [])
+  split_time = result.get("candidateSummary", {}).get("developmentHoldoutBoundary")
+  if not isinstance(outcomes, list) or not isinstance(split_time, int):
+    raise HTTPException(status_code=409, detail="The latest v2 result does not contain a qualifying historical split")
+  patterns = discover_qualified_chart_patterns(outcomes, split_time)
+  pattern_by_signature = {pattern["signature"]: pattern for pattern in patterns}
+  definition = get_signal_definition(V2_VERSION_ID)
+  generated_at = int(result.get("generatedAt", 0))
+  recent_events = _research_store.query_calendar(
+    from_time=max(0, generated_at - 90 * 24 * 60 * 60),
+    currencies=["EUR", "USD"],
+  )
+  live_candidates = [
+    candidate
+    for candidate in build_signal_candidates(recent_events, now=int(_time.time()), definition=definition)
+    if int(candidate["eventTime"]) > generated_at
+  ]
+  candidates = [*outcomes, *live_candidates]
+  signals: List[Dict[str, Any]] = []
+  for candidate in candidates:
+    event_time = int(candidate["eventTime"])
+    if from_ is not None and event_time < from_:
+      continue
+    if to is not None and event_time > to:
+      continue
+    pattern = pattern_by_signature.get(candidate_pattern_signature(candidate))
+    if pattern is None:
+      continue
+    signals.append({
+      "id": f"{pattern['id']}:{event_time}",
+      "patternId": pattern["id"],
+      "eventTime": event_time,
+      "direction": candidate["direction"],
+      "label": pattern["label"],
+      "agreement": candidate["agreement"],
+      "pairVote": candidate["pairVote"],
+      "events": candidate["events"],
+    })
+  return {
+    "supported": True,
+    "versionId": V2_VERSION_ID,
+    "versionHash": SIGNAL_DEFINITIONS[V2_VERSION_ID].configuration_hash,
+    "symbol": normalized_symbol,
+    "timeframe": normalized_tf,
+    "targetR": 2.0,
+    "generatedAt": int(_time.time()),
+    "patterns": patterns,
+    "signals": signals,
+    "message": "Historically qualified experimental biases; not automatic orders or guaranteed outcomes.",
+  }
 
 
 @app.post("/research/backtests")

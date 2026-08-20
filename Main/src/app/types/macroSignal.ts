@@ -270,3 +270,40 @@ export interface MacroSignalForwardPaper {
   gate: Record<string, unknown>;
   recentCases: MacroSignalForwardCase[];
 }
+
+export interface MacroSignalChartPattern {
+  id: string;
+  signature: string;
+  label: string;
+  direction: "long" | "short";
+  groups: string[];
+  overall: MacroSignalMetrics;
+  development: MacroSignalMetrics;
+  holdout: MacroSignalMetrics;
+  qualification: Record<string, number>;
+  exampleTitles: string[];
+}
+
+export interface MacroSignalChartSignal {
+  id: string;
+  patternId: string;
+  eventTime: number;
+  direction: "long" | "short";
+  label: string;
+  agreement: "consensus" | "conflicted_weak" | "no_direction";
+  pairVote: number;
+  events: MacroSignalScoredEvent[];
+}
+
+export interface MacroSignalChartSignalResponse {
+  supported: boolean;
+  versionId: string;
+  versionHash?: string;
+  symbol: string;
+  timeframe: string;
+  targetR: number;
+  generatedAt?: number;
+  patterns: MacroSignalChartPattern[];
+  signals: MacroSignalChartSignal[];
+  message: string;
+}

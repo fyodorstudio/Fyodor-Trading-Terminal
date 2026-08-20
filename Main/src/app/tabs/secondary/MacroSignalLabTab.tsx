@@ -180,7 +180,7 @@ export function MacroSignalLabView({
 
       <div className="macro-signal-notice">
         <ShieldCheck size={17} />
-        <strong>Gross simulation:</strong> spread, slippage, swap, and commission are excluded. Chart arrows remain disabled.
+        <strong>Gross simulation:</strong> spread, slippage, swap, and commission are excluded. Charts may show only historically qualified v2 patterns as experimental Macro Bias arrows.
       </div>
 
       {versions.length > 1 ? (
@@ -273,7 +273,7 @@ export function MacroSignalLabView({
             <>
               {result.conclusion ? (
                 <section className="macro-signal-panel macro-signal-verdict">
-                  <div className="macro-signal-section-title"><ShieldCheck size={16} /><h3>What v1 means</h3><span>Plain-language decision</span></div>
+                  <div className="macro-signal-section-title"><ShieldCheck size={16} /><h3>What {version?.id.includes("LABOR") ? "v2" : "v1"} means</h3><span>Plain-language decision</span></div>
                   <div className="macro-signal-verdict-grid">
                     <div><span>1 · Build</span><strong>Development {formatR(result.conclusion.developmentAverageR)}</strong><p>The older 70% was used to observe how the frozen rule behaved.</p></div>
                     <div><span>2 · Check</span><strong>Holdout {formatR(result.conclusion.holdoutAverageR)}</strong><p>The newer 30% checked whether that behavior survived later data.</p></div>
@@ -281,7 +281,7 @@ export function MacroSignalLabView({
                   </div>
                   <div className="macro-signal-verdict-foot">
                     <span>Holdout uncertainty: {formatRange(result.conclusion.holdoutExpectancyCi95)}</span>
-                    <span>Chart indicator: {result.conclusion.code === "forward_paper_validated" ? "Pending cost-model and product review" : "Not allowed"}</span>
+                    <span>Chart indicator: {version?.id.includes("LABOR") ? "Qualified recurring patterns only · experimental" : result.conclusion.code === "forward_paper_validated" ? "Pending cost-model and product review" : "Not allowed"}</span>
                   </div>
                   {result.conclusion.exploratoryFactorLeads.length ? (
                     <div className="macro-signal-research-leads">

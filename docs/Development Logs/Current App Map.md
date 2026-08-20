@@ -36,7 +36,8 @@ This is the short orientation doc for future AI and human sessions. Read it with
 3. `Charts`
    - Current state: primary, useful surface.
    - Uses `lightweight-charts`, MT5 history/stream data, chart cache, cursor readout modes, chart settings, and clustered broker-calendar event markers.
-   - This is price-context and inspection support, not a prediction surface.
+   - EURUSD H4 has an opt-in `Macro bias` layer. It plots experimental Long/Short arrows only for recurring country-aware Labor v2 patterns that pass fixed development-and-holdout historical gates; clicking an arrow opens its sample, expectancy, and source-event audit.
+   - Arrows are research classifications, not automatic orders, guarantees, or proof that the release caused the later move.
 
 4. `Economic Calendar`
    - Current state: primary, useful surface.
@@ -74,8 +75,8 @@ Current direct children under `Specialist Tools`:
 4. `Active Experiment` / `MACRO SIGNAL LAB`
    - EURUSD/H4 immutable-version research surface: rejected Economy v1 plus active country-aware, aggregate-EU/US Labor v2 with an automatic immutable forward-paper ledger.
    - Uses durable bridge calendar storage and cached MT5 H4/M1 candles.
-   - Reports gross historical Long/Short bias cases, explicit ambiguity, holdout results, and paper-eligibility checks without placing orders or adding Charts arrows.
-   - Historical backfill and v1/v2 exploratory runs are complete. The upgraded EA's successful cycle acknowledgement activates first-seen forward capture; Charts promotion remains disabled.
+   - Reports gross historical Long/Short bias cases, explicit ambiguity, holdout results, and paper-eligibility checks without placing orders.
+   - Historical backfill and v1/v2 exploratory runs are complete. The upgraded EA's successful cycle acknowledgement activates first-seen forward capture. Charts can show the narrower set of historically qualified recurring v2 patterns immediately, while forward evidence monitors their post-registration behavior.
 
 5. `Garbage / Ignore` / `PROTOTYPING`
    - Garbage drawer for old unfinished surfaces, deprecated planning drafts, and ignored tools.

@@ -6,7 +6,8 @@ import { ChartPairMatrixContextMarkers, clusterPairMatrixMarkerViews } from "@/a
 import { ChartPairMatrixRangeOverlay, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
 import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
-import { captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange } from "@/app/tabs/primary/ChartsTab";
+import { buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange } from "@/app/tabs/primary/ChartsTab";
+import type { MacroSignalChartSignal } from "@/app/types";
 import { getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
 
@@ -19,6 +20,22 @@ describe("getChartConnectionLabel", () => {
   it("defers chart-range React updates until interaction settles while Pair Matrix is open", () => {
     expect(getChartRangeUpdateCadence(false)).toBe("animation_frame");
     expect(getChartRangeUpdateCadence(true)).toBe("settled");
+  });
+  it("anchors qualified long and short Macro Bias arrows to their containing H4 candles", () => {
+    const makeSignal = (id: string, eventTime: number, direction: "long" | "short"): MacroSignalChartSignal => ({
+      id, patternId: `pattern-${id}`, eventTime, direction, label: "Historical pattern", agreement: "consensus", pairVote: direction === "long" ? 1 : -1, events: [],
+    });
+    const candles = [0, 14_400, 28_800].map((time) => ({ time, open: 1.1, high: 1.2, low: 1.0, close: 1.15, volume: 1 }));
+    const built = buildMacroBiasSeriesMarkers([
+      makeSignal("long", 1_000, "long"),
+      makeSignal("short", 15_000, "short"),
+    ], candles, "H4", 0);
+
+    expect(built.markers.map((marker) => ({ time: marker.time, shape: marker.shape, text: marker.text }))).toEqual([
+      { time: 0, shape: "arrowUp", text: "LONG BIAS" },
+      { time: 14_400, shape: "arrowDown", text: "SHORT BIAS" },
+    ]);
+    expect([...built.signalByMarkerId]).toHaveLength(2);
   });
   it("restarts the hover quiet period when raw pointer motion continues", () => {
     expect(getPairMatrixHoverSettleDelay(1_000, 1_040, 120)).toBe(80);
@@ -161,6 +178,7 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Open chart appearance");
     expect(html).toContain("Open chart events");
     expect(html).toContain("Open chart diagnostics");
+    expect(html).toContain("Macro bias");
     expect(html).toContain("Event Lens");
     expect(html).toContain("Open Event Lens details");
     expect(html).toContain("Open Pair Matrix Time Lens");

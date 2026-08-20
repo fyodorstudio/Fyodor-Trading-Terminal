@@ -1,4 +1,4 @@
-import { CalendarDays, Focus, HardDrive, MousePointer2, Settings2 } from "lucide-react";
+import { Activity, CalendarDays, Focus, HardDrive, MousePointer2, Settings2 } from "lucide-react";
 import type { ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
 import type { ChartCursorReadoutMode } from "@/app/lib/chartView";
 
@@ -12,9 +12,14 @@ interface ChartToolStripProps {
   eventOverlayVisible: boolean;
   eventCandidateCount: number;
   eventVisibleCount: number;
+  macroBiasVisible: boolean;
+  macroBiasCount: number;
+  macroBiasSupported: boolean;
+  macroBiasStatusLabel: string;
   onCursorModeChange: (mode: ChartCursorReadoutMode) => void;
   onRefocusChart: () => void;
   onOpenDrawer: (mode: ChartDrawerMode) => void;
+  onToggleMacroBias: () => void;
 }
 
 export function ChartToolStrip({
@@ -22,9 +27,14 @@ export function ChartToolStrip({
   eventOverlayVisible,
   eventCandidateCount,
   eventVisibleCount,
+  macroBiasVisible,
+  macroBiasCount,
+  macroBiasSupported,
+  macroBiasStatusLabel,
   onCursorModeChange,
   onRefocusChart,
   onOpenDrawer,
+  onToggleMacroBias,
 }: ChartToolStripProps) {
   const eventButtonLabel = !eventOverlayVisible
     ? "Chart events hidden"
@@ -50,6 +60,17 @@ export function ChartToolStrip({
       </div>
       <button type="button" className="chart-icon-button" title="Refocus chart" aria-label="Refocus chart" onClick={onRefocusChart}>
         <Focus className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        className={macroBiasVisible ? "chart-macro-bias-toggle is-active" : "chart-macro-bias-toggle"}
+        title={macroBiasSupported ? macroBiasStatusLabel : "Macro Bias currently supports EURUSD H4 only"}
+        aria-pressed={macroBiasVisible}
+        onClick={onToggleMacroBias}
+      >
+        <Activity className="h-4 w-4" />
+        Macro bias
+        {macroBiasVisible && macroBiasCount > 0 ? <small>{macroBiasCount}</small> : null}
       </button>
       <button
         type="button"

@@ -21,6 +21,10 @@
 .chart-icon-button { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; color: #334155; transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease; }
 .chart-icon-button:hover { background: #f8fafc; border-color: #cbd5e1; color: #0f172a; }
 .chart-icon-button.is-active { border-color: #bfdbfe; background: #eff6ff; color: #2563eb; }
+.chart-macro-bias-toggle { display: inline-flex; height: 38px; align-items: center; gap: 6px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; padding: 0 10px; color: #334155; font-size: 11px; font-weight: 900; }
+.chart-macro-bias-toggle:hover { border-color: #cbd5e1; background: #f8fafc; }
+.chart-macro-bias-toggle.is-active { border-color: #a5b4fc; background: #eef2ff; color: #3730a3; }
+.chart-macro-bias-toggle small { display: inline-flex; min-width: 18px; height: 18px; align-items: center; justify-content: center; border-radius: 999px; background: #3730a3; padding: 0 5px; color: #fff; font-size: 9px; }
 .chart-status-rail { display: inline-flex; align-items: center; gap: 2px; min-width: 0; min-height: 38px; padding: 3px; border: 1px solid rgba(203, 213, 225, 0.78); border-radius: 9px; background: rgba(255, 255, 255, 0.9); box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06); position: relative; z-index: 45; overflow: visible; }
 .chart-status-chip { display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 0 8px; border: 0; border-radius: 7px; background: #f8fafc; color: #475569; font-size: 11px; font-weight: 850; max-width: 100%; white-space: nowrap; }
 .chart-status-chip span { min-width: 0; overflow-wrap: anywhere; }
@@ -120,6 +124,23 @@
 .charts-tab-page .chart-canvas-frame { display: block; height: 100%; min-height: 360px; }
 .charts-tab-page .chart-canvas-frame.has-pair-matrix-bottom { display: flex; flex-direction: column; }
 .chart-plot-region { position: relative; height: 100%; min-height: 0; overflow: hidden; }
+.chart-macro-bias-audit { position: absolute; z-index: 36; top: 10px; left: 10px; width: min(440px, calc(100% - 20px)); max-height: calc(100% - 20px); overflow: auto; border: 1px solid #c7d2fe; border-radius: 10px; background: rgba(255,255,255,0.97); box-shadow: 0 16px 40px rgba(15,23,42,0.18); color: #0f172a; }
+.chart-macro-bias-audit header { position: sticky; top: 0; display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid #e2e8f0; background: #eef2ff; padding: 10px 12px; }
+.chart-macro-bias-audit header div { min-width: 0; }
+.chart-macro-bias-audit header span, .chart-macro-bias-audit header small { display: block; color: #64748b; font-size: 9px; font-weight: 800; }
+.chart-macro-bias-audit header span { color: #4f46e5; text-transform: uppercase; letter-spacing: .06em; }
+.chart-macro-bias-audit header strong { display: block; margin: 2px 0; font-size: 16px; }
+.chart-macro-bias-audit header button { display: inline-flex; width: 28px; height: 28px; flex: 0 0 auto; align-items: center; justify-content: center; border: 1px solid #cbd5e1; border-radius: 7px; background: #fff; }
+.chart-macro-bias-stats { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 6px; padding: 10px 10px 6px; }
+.chart-macro-bias-stats > div { min-width: 0; border: 1px solid #e2e8f0; border-radius: 7px; background: #f8fafc; padding: 7px; }
+.chart-macro-bias-stats span { display: block; color: #64748b; font-size: 8px; font-weight: 900; text-transform: uppercase; }
+.chart-macro-bias-stats strong { display: block; margin-top: 2px; font-size: 12px; }
+.chart-macro-bias-splits { display: flex; gap: 12px; padding: 2px 12px 8px; color: #475569; font-size: 10px; font-weight: 800; }
+.chart-macro-bias-events { max-height: 180px; overflow: auto; border-top: 1px solid #e2e8f0; }
+.chart-macro-bias-events > div { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 10px; border-bottom: 1px solid #e2e8f0; padding: 7px 12px; font-size: 10px; }
+.chart-macro-bias-events > div > * { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chart-macro-bias-events span { color: #475569; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.chart-macro-bias-audit footer { padding: 8px 12px; color: #64748b; font-size: 9px; font-weight: 700; }
 .chart-canvas-frame.has-pair-matrix-bottom .chart-plot-region { height: auto; flex: 1 1 auto; }
 .chart-event-lens-slot { position: absolute; inset: 0; z-index: 64; min-height: 0; padding: 0; pointer-events: none; }
 .chart-event-lens-slot > * { pointer-events: auto; }

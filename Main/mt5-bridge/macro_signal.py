@@ -618,6 +618,97 @@ def aggregate_outcomes(outcomes: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
   }
 
 
+CHART_SIGNAL_QUALIFICATION = {
+  "targetR": 2.0,
+  "minimumOverallEvaluable": 40,
+  "minimumDevelopmentEvaluable": 25,
+  "minimumHoldoutEvaluable": 10,
+  "minimumAverageR": 0.10,
+  "minimumTargetHitRate": 1 / 3,
+  "maximumAmbiguousRate": 0.05,
+}
+
+
+def candidate_pattern_signature(candidate: Dict[str, Any]) -> str:
+  groups = sorted({
+    f"{str(event.get('currency', '')).upper()}:{str(event.get('scoreGroup', ''))}"
+    for event in candidate.get("events", [])
+    if event.get("scoreGroup")
+  })
+  return f"{candidate.get('direction', 'none')}|{'|'.join(groups)}"
+
+
+def _pattern_label(signature: str, events: Sequence[Dict[str, Any]]) -> str:
+  _direction, _, groups_raw = signature.partition("|")
+  groups = groups_raw.split("|") if groups_raw else []
+  if groups == ["USD:employment", "USD:labor_wages", "USD:unemployment"]:
+    return "US payroll package"
+  if groups == ["USD:employment"]:
+    return "US employment release"
+  if groups == ["EUR:unemployment"]:
+    return "Euro-area unemployment"
+  titles = sorted({str(event.get("title", "")) for event in events if event.get("title")})
+  if titles:
+    return titles[0] if len(titles) == 1 else f"{titles[0]} package"
+  return "Economic release package"
+
+
+def discover_qualified_chart_patterns(
+  outcomes: Sequence[Dict[str, Any]],
+  split_time: int,
+) -> List[Dict[str, Any]]:
+  """Find frozen recurring v2 patterns that are positive on both time partitions."""
+  groups: Dict[str, List[Dict[str, Any]]] = {}
+  for outcome in outcomes:
+    if outcome.get("direction") not in {"long", "short"}:
+      continue
+    groups.setdefault(candidate_pattern_signature(outcome), []).append(outcome)
+
+  qualified: List[Dict[str, Any]] = []
+  for signature, rows in groups.items():
+    development = [row for row in rows if int(row["eventTime"]) < split_time]
+    holdout = [row for row in rows if int(row["eventTime"]) >= split_time]
+    overall_metrics = aggregate_outcomes(rows)
+    development_metrics = aggregate_outcomes(development)
+    holdout_metrics = aggregate_outcomes(holdout)
+    metrics_rows = (overall_metrics, development_metrics, holdout_metrics)
+    if overall_metrics["evaluableCount"] < CHART_SIGNAL_QUALIFICATION["minimumOverallEvaluable"]:
+      continue
+    if development_metrics["evaluableCount"] < CHART_SIGNAL_QUALIFICATION["minimumDevelopmentEvaluable"]:
+      continue
+    if holdout_metrics["evaluableCount"] < CHART_SIGNAL_QUALIFICATION["minimumHoldoutEvaluable"]:
+      continue
+    if any(
+      metrics["averageR"] is None
+      or float(metrics["averageR"]) < CHART_SIGNAL_QUALIFICATION["minimumAverageR"]
+      or metrics["targetHitRate"] is None
+      or float(metrics["targetHitRate"]) < CHART_SIGNAL_QUALIFICATION["minimumTargetHitRate"]
+      for metrics in metrics_rows
+    ):
+      continue
+    if any(
+      metrics["ambiguousRate"] is not None
+      and float(metrics["ambiguousRate"]) > CHART_SIGNAL_QUALIFICATION["maximumAmbiguousRate"]
+      for metrics in metrics_rows
+    ):
+      continue
+    event_examples = [event for row in rows for event in row.get("events", [])]
+    pattern_id = hashlib.sha256(signature.encode("utf-8")).hexdigest()[:12]
+    qualified.append({
+      "id": pattern_id,
+      "signature": signature,
+      "label": _pattern_label(signature, event_examples),
+      "direction": signature.split("|", 1)[0],
+      "groups": signature.split("|")[1:],
+      "overall": overall_metrics,
+      "development": development_metrics,
+      "holdout": holdout_metrics,
+      "qualification": CHART_SIGNAL_QUALIFICATION,
+      "exampleTitles": sorted({str(event.get("title", "")) for event in event_examples if event.get("title")})[:12],
+    })
+  return sorted(qualified, key=lambda item: (-item["holdout"]["averageR"], item["label"], item["direction"]))
+
+
 def _timestamp_year(timestamp: int) -> int:
   return datetime.fromtimestamp(timestamp, tz=timezone.utc).year
 

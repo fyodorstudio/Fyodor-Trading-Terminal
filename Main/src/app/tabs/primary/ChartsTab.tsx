@@ -2,10 +2,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   CandlestickSeries,
   createChart,
+  createSeriesMarkers,
   type CandlestickData,
   type IChartApi,
   type ISeriesApi,
+  type ISeriesMarkersPluginApi,
   type MouseEventParams,
+  type SeriesMarker,
   type Time,
 } from "lightweight-charts";
 import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
@@ -17,7 +20,7 @@ import type { ChartPairMatrixTimeLensData, PairMatrixLoadState } from "@/app/com
 import type { ChartEventLensData, ChartEventReleaseRow } from "@/app/components/ChartEventLens";
 import { useChartEventOverlay } from "@/app/hooks/useChartEventOverlay";
 import { useChartMarketData } from "@/app/hooks/useChartMarketData";
-import { fetchCalendar } from "@/app/lib/bridge";
+import { fetchCalendar, fetchMacroSignalChartSignals } from "@/app/lib/bridge";
 import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import {
   getChartConnectionLabel,
@@ -81,7 +84,7 @@ import {
   type PairMatrixTimeInterval,
 } from "@/app/lib/pairMatrixSnapshot";
 import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
-import type { BridgeCandle, CalendarEvent, MarketStatusResponse, Timeframe } from "@/app/types";
+import type { BridgeCandle, CalendarEvent, MacroSignalChartSignal, MacroSignalChartSignalResponse, MarketStatusResponse, Timeframe } from "@/app/types";
 
 const DEBUG_MAX = 60;
 const REPLAY_SPEED_OPTIONS = [0.5, 1, 2, 4];
@@ -89,6 +92,7 @@ const REPLAY_STEP_OPTIONS = [1, 2, 4, 8];
 const PAIR_MATRIX_HISTORY_DEBOUNCE_MS = 180;
 const PAIR_MATRIX_HOVER_SETTLE_MS = 120;
 const PAIR_MATRIX_HISTORY_CACHE_LIMIT = 8;
+const MACRO_BIAS_VISIBILITY_KEY = "fyodor.charts.macro-bias-visible";
 
 interface PairMatrixCalendarCacheEntry {
   currencyKey: string;
@@ -145,6 +149,48 @@ export function captureChartZoomSnapshot(range: { from: number; to: number } | n
 export function restoreChartZoomRange(snapshot: ChartZoomSnapshot, lastCandleIndex: number): { from: number; to: number } {
   const to = lastCandleIndex + snapshot.rightOffset;
   return { from: to - snapshot.span, to };
+}
+
+export function buildMacroBiasSeriesMarkers(
+  signals: MacroSignalChartSignal[],
+  candles: BridgeCandle[],
+  timeframe: Timeframe,
+  sourceTimeOffsetSeconds: number,
+): { markers: SeriesMarker<Time>[]; signalByMarkerId: Map<string, MacroSignalChartSignal> } {
+  const signalByMarkerId = new Map<string, MacroSignalChartSignal>();
+  const markers = signals.flatMap((signal): SeriesMarker<Time>[] => {
+    const chartEventTime = getChartEventCoordinateTime(signal.eventTime, sourceTimeOffsetSeconds);
+    let low = 0;
+    let high = candles.length - 1;
+    let candleIndex = -1;
+    while (low <= high) {
+      const middle = Math.floor((low + high) / 2);
+      if (candles[middle].time <= chartEventTime) {
+        candleIndex = middle;
+        low = middle + 1;
+      } else {
+        high = middle - 1;
+      }
+    }
+    const candleOpen = candleIndex >= 0 ? candles[candleIndex].time : null;
+    const nextOpen = candleIndex >= 0 ? candles[candleIndex + 1]?.time : null;
+    const nominalClose = candleOpen == null ? null : getPairMatrixCandleClose(candleOpen, timeframe);
+    const containingClose = nominalClose == null ? null : nextOpen == null ? nominalClose : Math.min(nextOpen, nominalClose);
+    if (containingClose == null || chartEventTime >= containingClose) return [];
+    if (candleOpen == null) return [];
+    const markerId = `macro-bias:${signal.id}`;
+    signalByMarkerId.set(markerId, signal);
+    return [{
+      id: markerId,
+      time: candleOpen as Time,
+      position: signal.direction === "long" ? "belowBar" : "aboveBar",
+      shape: signal.direction === "long" ? "arrowUp" : "arrowDown",
+      color: signal.direction === "long" ? "#2563eb" : "#7c3aed",
+      text: signal.direction === "long" ? "LONG BIAS" : "SHORT BIAS",
+      size: 1.4,
+    }];
+  });
+  return { markers, signalByMarkerId };
 }
 
 function getDefaultClusterEvent(cluster: { events: Array<{ event: CalendarEvent }> }): CalendarEvent | null {
@@ -237,6 +283,14 @@ export function ChartsTab({
   const [chartDrawerMode, setChartDrawerMode] = useState<ChartDrawerMode>("appearance");
   const [debugLines, setDebugLines] = useState<string[]>([]);
   const [pairMatrixOpen, setPairMatrixOpen] = useState(false);
+  const [macroBiasVisible, setMacroBiasVisible] = useState(() => {
+    try { return typeof window !== "undefined" && window.localStorage.getItem(MACRO_BIAS_VISIBILITY_KEY) === "true"; }
+    catch { return false; }
+  });
+  const [macroBiasResponse, setMacroBiasResponse] = useState<MacroSignalChartSignalResponse | null>(null);
+  const [macroBiasLoading, setMacroBiasLoading] = useState(false);
+  const [macroBiasError, setMacroBiasError] = useState<string | null>(null);
+  const [selectedMacroBiasId, setSelectedMacroBiasId] = useState<string | null>(null);
   const [pairMatrixBeforeDays, setPairMatrixBeforeDays] = useState(loadPairMatrixBeforeDays);
   const [pairMatrixCoverageAnchor, setPairMatrixCoverageAnchor] = useState<number | null>(null);
   const [pairMatrixRangeArmed, setPairMatrixRangeArmed] = useState(false);
@@ -281,6 +335,8 @@ export function ChartsTab({
   const chartMarketIdentityRef = useRef(`${selectedSymbol}:${timeframe}`);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  const macroBiasMarkersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
+  const macroBiasSignalByMarkerIdRef = useRef(new Map<string, MacroSignalChartSignal>());
   const shouldRefocusRef = useRef(true);
   const futureRefocusSignatureRef = useRef("");
   const rangeAnimationFrameRef = useRef<number | null>(null);
@@ -710,6 +766,12 @@ export function ChartsTab({
 
     chartRef.current = chart;
     seriesRef.current = series;
+    const handleChartClick = (params: MouseEventParams<Time>) => {
+      const markerId = typeof params.hoveredObjectId === "string" ? params.hoveredObjectId : null;
+      const signal = markerId ? macroBiasSignalByMarkerIdRef.current.get(markerId) : null;
+      if (signal) setSelectedMacroBiasId(signal.id);
+    };
+    chart.subscribeClick(handleChartClick);
 
     const applySize = () => {
       const rect = container.getBoundingClientRect();
@@ -726,11 +788,101 @@ export function ChartsTab({
 
     return () => {
       observer.disconnect();
+      chart.unsubscribeClick(handleChartClick);
+      macroBiasMarkersRef.current?.detach();
+      macroBiasMarkersRef.current = null;
       chart.remove();
       chartRef.current = null;
       seriesRef.current = null;
     };
   }, [schedulePairMatrixGeometryUpdate]);
+
+  const macroBiasSupported = selectedSymbol.toUpperCase() === "EURUSD" && timeframe === "H4";
+  const macroBiasFrom = visibleCandles[0]?.time;
+  const macroBiasTo = visibleCandles[visibleCandles.length - 1]?.time;
+  const macroBiasCalendarRevision = useMemo(() => {
+    if (!macroBiasVisible || !macroBiasSupported || macroBiasFrom == null || macroBiasTo == null) return "";
+    return events
+      .filter((event) => (event.currency === "EUR" || event.currency === "USD") && event.time >= macroBiasFrom && event.time <= macroBiasTo)
+      .map((event) => `${event.id}:${event.time}:${event.actual}:${event.forecast}:${event.previous}`)
+      .sort()
+      .join("|");
+  }, [events, macroBiasFrom, macroBiasSupported, macroBiasTo, macroBiasVisible]);
+
+  useEffect(() => {
+    if (!macroBiasVisible || !macroBiasSupported || macroBiasFrom == null || macroBiasTo == null) {
+      setMacroBiasResponse(null);
+      setMacroBiasLoading(false);
+      setMacroBiasError(null);
+      setSelectedMacroBiasId(null);
+      return;
+    }
+    let cancelled = false;
+    setMacroBiasLoading(true);
+    setMacroBiasError(null);
+    fetchMacroSignalChartSignals({
+      symbol: selectedSymbol,
+      timeframe,
+      from: macroBiasFrom - 4 * 60 * 60,
+      to: macroBiasTo + 4 * 60 * 60,
+    })
+      .then((response) => {
+        if (!cancelled) setMacroBiasResponse(response);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setMacroBiasResponse(null);
+          setMacroBiasError(error instanceof Error ? error.message : "Macro Bias signals could not be loaded");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setMacroBiasLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [macroBiasVisible, macroBiasSupported, macroBiasFrom, macroBiasTo, macroBiasCalendarRevision, selectedSymbol, timeframe]);
+
+  useEffect(() => {
+    const series = seriesRef.current;
+    macroBiasMarkersRef.current?.detach();
+    macroBiasMarkersRef.current = null;
+    macroBiasSignalByMarkerIdRef.current.clear();
+    if (!series || !macroBiasVisible || !macroBiasResponse?.supported) return;
+    const built = buildMacroBiasSeriesMarkers(
+      macroBiasResponse.signals,
+      visibleCandles,
+      timeframe,
+      chartSourceTimeOffsetSeconds,
+    );
+    macroBiasSignalByMarkerIdRef.current = built.signalByMarkerId;
+    macroBiasMarkersRef.current = createSeriesMarkers(series, built.markers);
+    return () => {
+      macroBiasMarkersRef.current?.detach();
+      macroBiasMarkersRef.current = null;
+      macroBiasSignalByMarkerIdRef.current.clear();
+    };
+  }, [macroBiasVisible, macroBiasResponse, chartSourceTimeOffsetSeconds, macroBiasFrom, macroBiasTo, timeframe]);
+
+  const selectedMacroBias = macroBiasResponse?.signals.find((signal) => signal.id === selectedMacroBiasId) ?? null;
+  const selectedMacroBiasPattern = selectedMacroBias
+    ? macroBiasResponse?.patterns.find((pattern) => pattern.id === selectedMacroBias.patternId) ?? null
+    : null;
+  const macroBiasAudit = selectedMacroBias && selectedMacroBiasPattern && macroBiasResponse ? {
+    signal: selectedMacroBias,
+    pattern: selectedMacroBiasPattern,
+    versionId: macroBiasResponse.versionId,
+    targetR: macroBiasResponse.targetR,
+    generatedAt: macroBiasResponse.generatedAt,
+    onClose: () => setSelectedMacroBiasId(null),
+  } : null;
+
+  const toggleMacroBias = useCallback(() => {
+    setMacroBiasVisible((current) => {
+      const next = !current;
+      try { window.localStorage.setItem(MACRO_BIAS_VISIBILITY_KEY, String(next)); } catch { /* optional preference */ }
+      if (!next) setSelectedMacroBiasId(null);
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -1850,9 +2002,14 @@ export function ChartsTab({
           eventOverlayVisible={chartPreferences.eventOverlay.visible}
           eventCandidateCount={chartEventOverlay.candidatesCount}
           eventVisibleCount={chartEventOverlay.overlayData.visibleEventCount}
+          macroBiasVisible={macroBiasVisible}
+          macroBiasCount={macroBiasResponse?.signals.length ?? 0}
+          macroBiasSupported={macroBiasSupported}
+          macroBiasStatusLabel={macroBiasLoading ? "Loading historically qualified Macro Bias signals" : macroBiasError ?? `${macroBiasResponse?.signals.length ?? 0} historically qualified biases loaded`}
           onCursorModeChange={handleCursorModeChange}
           onRefocusChart={refocusChart}
           onOpenDrawer={openChartDrawer}
+          onToggleMacroBias={toggleMacroBias}
         />
       </div>
 
@@ -1908,6 +2065,7 @@ export function ChartsTab({
         pairMatrixTimeLens={pairMatrixTimeLensData}
         pairMatrixRangeOverlay={pairMatrixRangeOverlay}
         pairMatrixContextMarkers={pairMatrixContextMarkerData}
+        macroBiasAudit={macroBiasAudit}
         crosshairReadoutRef={crosshairReadoutRef}
         status={status}
         overlayCopy={overlayCopy}

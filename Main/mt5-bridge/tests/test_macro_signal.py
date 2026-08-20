@@ -5,6 +5,8 @@ from macro_signal import (
   build_backtest_result,
   build_signal_candidates,
   calculate_atr_by_candle,
+  candidate_pattern_signature,
+  discover_qualified_chart_patterns,
   evaluate_candidate,
   get_signal_definition,
   score_event,
@@ -147,6 +149,27 @@ def test_live_paper_outcome_remains_pending_until_the_full_window_completes() ->
   assert result["status"] == "pending"
   assert result["entryTime"] == rows[21]["time"]
   assert aggregate_outcomes([result])["pendingCount"] == 1
+
+
+def test_chart_pattern_requires_repeatable_positive_development_and_holdout_results() -> None:
+  def outcome(event_time: int, target_hit: bool) -> dict:
+    return {
+      **candidate(direction="short", event_time=event_time),
+      "targetR": 2.0,
+      "events": [{"currency": "USD", "scoreGroup": "employment", "title": "ADP Nonfarm Employment Change"}],
+      "status": "target_hit" if target_hit else "stop_hit",
+      "resultR": 2.0 if target_hit else -1.0,
+    }
+
+  development = [outcome(index, index < 12) for index in range(30)]
+  holdout = [outcome(100 + index, index < 4) for index in range(10)]
+  patterns = discover_qualified_chart_patterns([*development, *holdout], split_time=100)
+
+  assert candidate_pattern_signature(development[0]) == "short|USD:employment"
+  assert len(patterns) == 1
+  assert patterns[0]["direction"] == "short"
+  assert patterns[0]["development"]["averageR"] == 0.2
+  assert patterns[0]["holdout"]["averageR"] == 0.2
 
 
 def test_same_m1_bar_touch_is_ambiguous() -> None:

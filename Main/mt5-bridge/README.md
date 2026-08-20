@@ -17,6 +17,7 @@ It exposes the MT5-backed endpoints the frontend needs:
 - `GET /research/backtests/latest`
 - `GET /research/backtests/{run_id}`
 - `GET /research/forward`
+- `GET /research/chart-signals`
 - `POST /research/backtests`
 - `POST /calendar_ingest`
 - `POST /calendar_ingest_cycle`
@@ -39,6 +40,8 @@ Calendar rows are stored durably in a local SQLite database rather than a 400-da
 The research endpoints own immutable Macro Signal versions used by Macro Signal Lab. Frozen v1 remains the failed Economy baseline; active `FMS-EURUSD-LABOR-H4-v2` uses country-aware exact-series identity and treats all pre-registration history as exploratory. Backtests run on a single background worker, reuse cached H4 candles, fetch M1 only when an H4 bar touches both stop and target, and never execute an order.
 
 The EA posts `/calendar_ingest_cycle` only after all batches in a timer pass have been attempted. A successful zero-failure cycle lets the bridge freeze first-seen released values for the v2 forward-paper ledger; failed cycles never create paper candidates. The ledger advances outcomes in a separate background worker and is exposed by `/research/forward`.
+
+`/research/chart-signals` is the read-only EURUSD/H4 Charts contract. It discovers recurring Labor v2 score-group patterns from the latest completed 2R research run, requires positive expectancy and adequate samples in the complete set, older development partition, and later holdout partition, and returns only matching historical/live release packages for the requested chart window. The endpoint never places an order and its output remains explicitly experimental.
 
 ## Normal Usage
 

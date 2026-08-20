@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChartEventLens, type ChartEventLensData } from "@/app/components/ChartEventLens";
 import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
 import { ChartPairMatrixContextMarkers, type PairMatrixContextMarkerView } from "@/app/components/ChartPairMatrixContextMarkers";
+import { ChartMacroBiasAudit, type ChartMacroBiasAuditData } from "@/app/components/ChartMacroBiasAudit";
 import { ChartPairMatrixTimeLens, type ChartPairMatrixTimeLensData } from "@/app/components/ChartPairMatrixTimeLens";
 import { usePairMatrixHoverAnchor } from "@/app/hooks/usePairMatrixHoverAnchor";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
@@ -135,6 +136,7 @@ interface ChartViewportProps {
   pairMatrixTimeLens: ChartPairMatrixTimeLensData;
   pairMatrixRangeOverlay: ChartPairMatrixRangeOverlayData;
   pairMatrixContextMarkers: ChartPairMatrixContextMarkerData;
+  macroBiasAudit: ChartMacroBiasAuditData | null;
   crosshairReadoutRef: Ref<ChartCrosshairReadoutHandle>;
   status: BridgeStatus;
   overlayCopy: {
@@ -158,6 +160,7 @@ export function ChartViewport({
   pairMatrixTimeLens,
   pairMatrixRangeOverlay,
   pairMatrixContextMarkers,
+  macroBiasAudit,
   crosshairReadoutRef,
   status,
   overlayCopy,
@@ -184,6 +187,7 @@ export function ChartViewport({
               /> : null}
               <ChartPairMatrixRangeOverlay data={pairMatrixRangeOverlay} />
               {pairMatrixTimeLens.open ? <ChartPairMatrixContextMarkers {...pairMatrixContextMarkers} /> : null}
+              {macroBiasAudit ? <ChartMacroBiasAudit data={macroBiasAudit} /> : null}
             </div>
             <div className={`chart-event-lens-slot ${eventOverlay.isInteracting ? "is-interacting" : ""}`}>
               {!eventLens?.expanded && !eventLensDock.expanded && !pairMatrixTimeLens.open ? (

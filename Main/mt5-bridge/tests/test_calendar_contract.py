@@ -169,6 +169,13 @@ def test_history_range_validates_range_order():
   assert r.status_code == 400
 
 
+def test_macro_chart_signals_are_honest_for_unsupported_instruments() -> None:
+  response = client.get("/research/chart-signals", params={"symbol": "GBPUSD", "tf": "H4"})
+  assert response.status_code == 200
+  assert response.json()["supported"] is False
+  assert response.json()["signals"] == []
+
+
 def test_history_range_validates_range_size():
   start = int(time.time())
   end = start + 50 * 24 * 60 * 60

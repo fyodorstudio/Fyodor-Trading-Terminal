@@ -6,6 +6,7 @@ import type {
   ImpactLevel,
   MacroSignalBacktestRun,
   MacroSignalCoverage,
+  MacroSignalChartSignalResponse,
   MacroSignalForwardPaper,
   MacroSignalVersion,
   MarketStatusResponse,
@@ -266,6 +267,20 @@ export async function fetchMacroSignalVersions(): Promise<MacroSignalVersion[]> 
 export async function fetchMacroSignalForwardPaper(versionId = "FMS-EURUSD-LABOR-H4-v2"): Promise<MacroSignalForwardPaper> {
   return fetchJson<MacroSignalForwardPaper>(
     `${BRIDGE_BASE}/research/forward?versionId=${encodeURIComponent(versionId)}`,
+  );
+}
+
+export async function fetchMacroSignalChartSignals(params: {
+  symbol: string;
+  timeframe: string;
+  from?: number;
+  to?: number;
+}): Promise<MacroSignalChartSignalResponse> {
+  const search = new URLSearchParams({ symbol: params.symbol, tf: params.timeframe });
+  if (params.from != null) search.set("from_", String(params.from));
+  if (params.to != null) search.set("to", String(params.to));
+  return fetchJson<MacroSignalChartSignalResponse>(
+    `${BRIDGE_BASE}/research/chart-signals?${search.toString()}`,
   );
 }
 

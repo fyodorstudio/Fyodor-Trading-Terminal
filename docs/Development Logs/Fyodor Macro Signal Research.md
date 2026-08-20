@@ -1,7 +1,7 @@
 # Fyodor Macro Signal Research
 
 **Date:** 2026-08-18
-**Status:** Frozen v1 baseline completed and rejected for Charts. Country-aware labor v2 remains exploratory on reused history. Its automatic immutable forward-paper ledger activates at `2026-08-18 09:57:48 UTC` after the upgraded EA completes its first successful upload cycle.
+**Status:** Frozen v1 baseline completed and rejected for Charts. Country-aware labor v2 remains exploratory on reused history. Its automatic immutable forward-paper ledger activated at `2026-08-18 09:57:48 UTC`. A narrower opt-in Charts layer now exposes only recurring v2 patterns that pass fixed historical development-and-holdout qualification gates.
 
 ## Purpose
 
@@ -29,7 +29,7 @@ Member-country EUR releases are not assumed irrelevant. They are excluded from v
 - The first model uses registered **Economy** evidence only.
 - Inflation and Policy remain visible research context and will be investigated as separate future models before any combined model is considered.
 - Directional outputs are **Long bias**, **Short bias**, and **No direction**. They are research classifications, not executable orders.
-- The Macro Signal Lab lives as a separate Specialist Tools surface. Charts integration is deferred until a frozen version has credible holdout evidence and forward paper results.
+- The Macro Signal Lab remains the full research surface. Charts may show historically recurring v2 patterns immediately when they pass fixed development-and-holdout gates, but they must be labeled experimental and expose their audit. Forward paper results determine whether those patterns can later be called validated.
 - The initial Lab will be a fixed case explorer, not an optimizer, recipe builder, or automatic leaderboard.
 - Existing Pair Matrix raw data remains the audit source.
 
@@ -91,7 +91,7 @@ The result contract will report:
 - Give every formula revision an immutable version identifier, configuration snapshot, creation time, and dataset fingerprint.
 - Record every evaluated version. Do not retain only successful experiments.
 - Once a holdout has influenced a later formula, it is reused research data and must not be described as untouched.
-- Later versions require forward paper validation before Charts promotion.
+- Later versions require forward paper validation before being described as validated. An explicitly experimental, opt-in Charts research layer may display predeclared historically qualified patterns without implying validation.
 
 The intended status progression is:
 
@@ -117,7 +117,7 @@ Historical MT5 calendar rows are not guaranteed vintage datasets. Broker `Previo
 3. **Implemented:** separate Specialist Tools **Macro Signal Lab** with an overall model result followed by family, title, and individual-case drilldowns.
 4. **Implemented:** run and audit the frozen Economy baseline without changing its formula in response to the result.
 5. **Implemented:** automatic v2 forward paper-signal tracking with immutable first-seen release values, complete-cycle EA acknowledgement, late-entry exclusion, and live 1R/1.5R/2R monitoring.
-6. Consider Charts arrows only after holdout review and forward paper validation.
+6. **Implemented:** opt-in EURUSD/H4 Charts arrows for recurring v2 patterns passing fixed historical development-and-holdout gates, with clickable source and performance audits. These remain experimental while forward evidence accumulates.
 7. Research Policy, Inflation, combined pillars, D1 variants, and learned weights only as separately versioned later work.
 
 ## First Frozen Result
@@ -149,7 +149,7 @@ The forward gate was frozen before observing any post-registration v2 outcomes:
 - no more than 5% ambiguous outcomes;
 - an approved transaction-cost model before any Charts promotion.
 
-Even passing this gate does not automatically add an indicator. It permits a separate product and cost-model review.
+The historical Charts layer does not wait for this gate because it is explicitly an experimental research display. Passing the forward gate would permit a later product and cost-model review and is required before describing any pattern as forward validated.
 
 ## Deferred and Open Research Questions
 
