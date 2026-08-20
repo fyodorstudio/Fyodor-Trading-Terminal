@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { deriveCentralBankSnapshots } from "@/app/lib/centralBankDerive";
 import { createCalendarNavigationIntent } from "@/app/lib/calendarNavigation";
 import { getNextHighImpactEvent } from "@/app/lib/eventHorizon";
@@ -10,6 +10,7 @@ import { useCalendarFeed } from "@/app/hooks/useCalendarFeed";
 import { useCurrentTime } from "@/app/hooks/useCurrentTime";
 import { useMarketStatus } from "@/app/hooks/useMarketStatus";
 import { useTerminalTheme } from "@/app/hooks/useTerminalTheme";
+import { preloadMacroSignalCurrentModel } from "@/app/lib/bridge";
 import type { CalendarEvent, CalendarNavigationIntent, TabId } from "@/app/types";
 
 export default function App() {
@@ -24,6 +25,12 @@ export default function App() {
   const chartMarketStatus = useMarketStatus(chartSymbol);
   const overviewMarketStatus = useMarketStatus(overviewSymbol);
   const terminalTheme = useTerminalTheme();
+
+  useEffect(() => {
+    void preloadMacroSignalCurrentModel().catch(() => {
+      // Charts retains its normal visible error/retry path if the bridge is not ready at app startup.
+    });
+  }, []);
 
   const centralBankResult = useMemo(() => deriveCentralBankSnapshots(feedEvents), [feedEvents]);
 

@@ -1,8 +1,12 @@
-import { Clock3, ShieldCheck, WalletCards } from "lucide-react";
+import { ShieldCheck, WalletCards } from "lucide-react";
 import { useMemo, useState } from "react";
+import { ChartMacroBiasNextSetup, ChartMacroBiasSetupCatalog } from "@/app/components/ChartMacroBiasSetupCatalog";
 import {
   DEFAULT_SHADOW_RISK_PERCENT,
   DEFAULT_SHADOW_STARTING_BALANCE,
+  MAX_SHADOW_RISK_PERCENT,
+  MIN_SHADOW_RISK_PERCENT,
+  MIN_SHADOW_STARTING_BALANCE,
   buildMacroSignalShadowAccount,
   buildMacroSignalShadowPosition,
   normalizeShadowRiskPercent,
@@ -35,21 +39,12 @@ function formatUtc(value: number | null | undefined): string {
   return value == null ? "No scheduled row loaded" : `${new Date(value * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC`;
 }
 
-function formatR(value: number | null): string {
-  return value == null ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(2)}R`;
-}
-
 function formatMoney(value: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 }
 
 function formatPrice(value: number | null | undefined): string {
   return value == null ? "Waiting for entry" : value.toFixed(5);
-}
-
-function outcomeCount(pattern: MacroSignalChartPattern | null, key: "targetHitCount" | "stopHitCount"): string {
-  if (!pattern) return "—";
-  return `${pattern.executionStress.overall[key]} / ${pattern.executionStress.overall.evaluableCount}`;
 }
 
 export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealtimeCardData }) {
@@ -61,7 +56,6 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
   const watchPattern = nextWatch
     ? response.patterns.find((pattern) => pattern.id === nextWatch.patternId) ?? null
     : null;
-  const historicalPattern = activePattern ?? watchPattern;
   const settings = useMemo(() => ({ startingBalance, riskPercent }), [startingBalance, riskPercent]);
   const liveAccount = useMemo(() => buildMacroSignalShadowAccount(response.signals, settings), [response.signals, settings]);
   const historicalAccount = useMemo(
@@ -71,10 +65,8 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
   const position = activeSignal ? buildMacroSignalShadowPosition(activeSignal, liveAccount.balance, riskPercent) : null;
   const bias = activeSignal ? (activeSignal.direction === "long" ? "Hypothetical long EURUSD" : "Hypothetical short EURUSD") : "No trade";
   const timeframeLabel = data.chartTimeframe === response.modelTimeframe
-    ? `${response.modelTimeframe} model`
-    : `${response.modelTimeframe} model on ${data.chartTimeframe}`;
-  const nextWatchCurrency = nextWatch?.events[0]?.currency ?? "EUR/USD";
-  const nextWatchTitles = nextWatch?.events.map((event) => event.title).join(" + ") ?? null;
+    ? `${response.modelTimeframe} backtest model`
+    : `${response.modelTimeframe} backtest · shown on ${data.chartTimeframe}`;
 
   const updateStartingBalance = (value: number) => {
     const normalized = normalizeShadowStartingBalance(value);
@@ -100,19 +92,21 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
         <strong>{bias}</strong>
         <p>{activePattern
           ? `${activePattern.label}: ${activePattern.condition}`
-          : "Waiting for a frozen setup. No Current Model condition is active."}</p>
+          : "Waiting for a frozen setup. Current Model shows only immutable releases observed after v9 activation; historical arrows remain in Research Replay."}</p>
         {activeSignal && data.remainingModelCandles != null ? <small>{data.remainingModelCandles} H4 model candles remain</small> : null}
       </section>
+
+      <ChartMacroBiasNextSetup watch={nextWatch} pattern={watchPattern} asOf={response.realtime?.asOf ?? response.generatedAt ?? Math.floor(Date.now() / 1_000)} />
 
       <section className="chart-shadow-settings" aria-label="Gross shadow account assumptions">
         <div className="chart-macro-bias-realtime-kicker"><WalletCards size={12} /> Gross shadow simulation</div>
         <label>
           <span>Starting balance</span>
-          <span className="chart-shadow-input"><b>$</b><input type="number" min="100" step="100" defaultValue={startingBalance} onBlur={(event) => { event.currentTarget.value = String(updateStartingBalance(Number(event.currentTarget.value))); }} /></span>
+          <span className="chart-shadow-input"><b>$</b><input type="number" min={MIN_SHADOW_STARTING_BALANCE} step="1" defaultValue={startingBalance} onBlur={(event) => { event.currentTarget.value = String(updateStartingBalance(Number(event.currentTarget.value))); }} /></span>
         </label>
         <label>
           <span>Risk per trade</span>
-          <span className="chart-shadow-input"><input type="number" min="0.1" max="5" step="0.1" defaultValue={riskPercent} onBlur={(event) => { event.currentTarget.value = String(updateRiskPercent(Number(event.currentTarget.value))); }} /><b>%</b></span>
+          <span className="chart-shadow-input"><input type="number" min={MIN_SHADOW_RISK_PERCENT} max={MAX_SHADOW_RISK_PERCENT} step="0.01" defaultValue={riskPercent} onBlur={(event) => { event.currentTarget.value = String(updateRiskPercent(Number(event.currentTarget.value))); }} /><b>%</b></span>
         </label>
         <small>One position at a time · 1× ATR(14) stop · {response.targetR}R target · sequential compounding</small>
       </section>
@@ -148,23 +142,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
         </section>
       ) : null}
 
-      <section className="chart-macro-bias-realtime-watch">
-        <div className="chart-macro-bias-realtime-kicker"><Clock3 size={12} /> Possible next setup</div>
-        {nextWatch ? (
-          <>
-            <strong>{formatUtc(nextWatch.time)}</strong>
-            <span>{nextWatchCurrency} · {nextWatchTitles || nextWatch.label}</span>
-            <p>{nextWatch.condition}</p>
-            <small>Direction is decided only after Actual arrives. A missing, zero, or nonmatching score produces no trade.</small>
-          </>
-        ) : <p>No registered setup is scheduled in the loaded calendar window.</p>}
-      </section>
-
-      <section className="chart-macro-bias-realtime-history" aria-label="Historical results for the active or next watched pattern">
-        <div><span>{activePattern ? "Active · 2R first" : "Possible setup · 2R first"}</span><strong>{outcomeCount(historicalPattern, "targetHitCount")}</strong></div>
-        <div><span>Stop first</span><strong>{outcomeCount(historicalPattern, "stopHitCount")}</strong></div>
-        <div><span>Gross average R</span><strong>{formatR(historicalPattern?.overall.averageR ?? null)}</strong></div>
-      </section>
+      <ChartMacroBiasSetupCatalog patterns={response.patterns} />
 
       {response.policyInflationContext ? (
         <section className="chart-macro-bias-realtime-context" aria-label="Policy and inflation context">

@@ -2,6 +2,10 @@ import type { MacroSignalChartSignal } from "@/app/types";
 
 export const DEFAULT_SHADOW_STARTING_BALANCE = 1_000;
 export const DEFAULT_SHADOW_RISK_PERCENT = 0.5;
+export const MIN_SHADOW_STARTING_BALANCE = 1;
+export const MAX_SHADOW_STARTING_BALANCE = 1_000_000_000;
+export const MIN_SHADOW_RISK_PERCENT = 0.01;
+export const MAX_SHADOW_RISK_PERCENT = 100;
 const H4_SECONDS = 4 * 60 * 60;
 
 function roundMoney(value: number): number {
@@ -35,11 +39,15 @@ export interface MacroSignalShadowPosition {
 }
 
 export function normalizeShadowStartingBalance(value: number): number {
-  return Number.isFinite(value) ? Math.min(10_000_000, Math.max(100, Math.round(value * 100) / 100)) : DEFAULT_SHADOW_STARTING_BALANCE;
+  return Number.isFinite(value)
+    ? Math.min(MAX_SHADOW_STARTING_BALANCE, Math.max(MIN_SHADOW_STARTING_BALANCE, Math.round(value * 100) / 100))
+    : DEFAULT_SHADOW_STARTING_BALANCE;
 }
 
 export function normalizeShadowRiskPercent(value: number): number {
-  return Number.isFinite(value) ? Math.min(5, Math.max(0.1, Math.round(value * 10) / 10)) : DEFAULT_SHADOW_RISK_PERCENT;
+  return Number.isFinite(value)
+    ? Math.min(MAX_SHADOW_RISK_PERCENT, Math.max(MIN_SHADOW_RISK_PERCENT, Math.round(value * 100) / 100))
+    : DEFAULT_SHADOW_RISK_PERCENT;
 }
 
 function availableAfter(signal: MacroSignalChartSignal): number {

@@ -1,7 +1,9 @@
 # Fyodor Macro Signal Research
 
-**Date:** 2026-08-20
+**Date:** 2026-08-21
 **Status:** Economy v1 was rejected. Country-aware Labor v2, Sentiment v3, Policy/Inflation v5, and Growth v7 remain exploratory source models with immutable forward ledgers. Charts uses frozen multi-source `FMS-EURUSD-MULTI-H4-CQ-v9`, with post-activation Current Model signals strictly separated from hindsight Research Replay.
+
+**AI working-memory rule:** This is the single canonical FMS research record for future AI sessions. Preserve decisions, failed trials, candidate diagnoses, and unresolved ideas here so research is not reconstructed from chat memory. Do not create a second FMS roadmap unless the user explicitly changes this rule.
 
 ## Purpose
 
@@ -254,12 +256,35 @@ Charts now places `FMS Shadow Trader` in the former Current Model card position.
 - Current Model alone determines whether the card says hypothetical Long EURUSD, hypothetical Short EURUSD, or No trade.
 - The idle state says that it is waiting for a frozen setup and shows the next scheduled registered setup when one is available. Direction is withheld until Actual arrives; missing, zero, or nonmatching evidence remains No trade.
 - The default hypothetical account is `$1,000` risking `0.5%` of current balance per accepted setup. Both values are user-configurable and local to Charts.
+- Starting balance accepts `$1` or more and risk accepts `0.01%` through `100%`; these wider controls are for hypothetical stress testing, not a risk recommendation.
 - The replay allows one position at a time, uses the frozen first strictly later H4 entry, 1x H4 ATR(14) stop, current 2R target, 30-H4 expiry, and sequential balance compounding. Later overlapping signals are skipped until the open simulation resolves.
 - The bridge exposes each signal's frozen entry, ATR, stop, and target so the card can show the hypothetical risk amount, stop distance, and EURUSD lot calculation without reconstructing execution geometry in React.
 - The historical account uses only patterns eligible for the current v9 registry, but it remains explicitly labeled hindsight Research Replay. It does not leak historical arrows into Current Model.
 - Results are gross. Spread, commission, slippage, and swap are excluded and are not estimated. No order is sent to MT5.
+- The next-setup block uses the bridge/MT5 `asOf` clock for a live countdown and displays the frozen if/then Long, Short, No-trade, or Wait outcomes before Actual is available.
+- Every Current Model-eligible pattern appears in an expandable registry benchmark showing gross sample size, 2R target-first and stop-first counts/rates, gross average R, recent window, positive years, development, holdout, past-only audit, and 1R/1.5R/2R sensitivity. This is an audit catalog, not a model selector.
+- Current Model requests are independent of the visible chart window and reuse the same frozen H4 response on H4 and H1. Policy/inflation context is cached by durable calendar revision, normalized-title parsing is cached, and only a 400-day current-context window is scanned. Measured local endpoint latency fell from roughly 11.7 seconds per request to roughly 0.54 seconds cold and 0.27–0.35 seconds warm.
 
 The Research Replay audit is vertically inset below the Pair Matrix chart dock so both controls remain usable when the replay card is open.
+
+## 2026-08-21 Expansion Candidate Audit
+
+An exhaustive scan of the registered Labor, Sentiment, Policy/Inflation, and Growth source outcomes was rerun with the current three-pip research stress, chronological development/holdout, recent-three-year sample, year stability, past-only qualification, and 1R/1.5R/2R checks. This did not register new arrows.
+
+The two current v9 setups remain the only complete passes:
+
+- Aggregate-US industrial production/output improving -> Short EURUSD: 54 evaluable gross cases, 44.4% 2R target-first, `+0.33R` gross average; its stressed result remains positive at 1R, 1.5R, and 2R.
+- Directional aggregate-Euro-area consumer sentiment: 99 evaluable gross cases, 40.4% 2R target-first, `+0.24R` gross average, and 8/11 positive stressed years.
+
+The nearest archive-mined candidates are research leads, not current setups:
+
+- Euro-area producer inflation hotter -> Long EURUSD: 51 evaluable cases and approximately `+0.19R` after the existing three-pip stress; it passed the other scanned checks but only 6/11 years were positive, below the frozen year-share gate.
+- Improving US payroll package -> Short EURUSD: 54 evaluable cases and approximately `+0.09R` stressed at 2R, but stressed 1R and 1.5R remained negative.
+- Improving US core/headline retail package -> Short EURUSD: 57 evaluable cases and approximately `+0.16R` stressed, but only 6/11 positive years and approximately `-0.40R` in the past-only audit.
+- EUR wage weakness -> Short, US current-account improvement -> Short, and US wage improvement -> Short each showed attractive averages but only 14–15 cases, inadequate recent/year coverage, and no past-only qualifying sample.
+- EUR GDP weakness -> Short showed approximately `+0.33R` stressed across 25 cases, but had only six recent cases, 5/9 positive years, no past-only sample, and negative stressed 1R.
+
+The next responsible expansion is therefore a separately versioned producer-inflation experiment, followed by predeclared retail and small-sample accumulation studies. The scan must not silently weaken v9 merely to create more arrows: historical trade selection can manufacture impressive-looking results, and every examined lead is now reused-history evidence.
 
 ## Deferred and Open Research Questions
 
@@ -286,6 +311,146 @@ The controlled historical import was completed on 2026-08-18. The durable SQLite
 These smaller recurring ingests update recent and newly released rows without deleting the older archive. The 10,000-day configuration should not remain active during normal operation.
 
 The upgraded EA also posts a completion acknowledgement after every timer cycle. This is required for automatic forward tracking because the bridge must know that all upload batches arrived before freezing a same-time release package. The normal settings above remain unchanged.
+
+## Expansion Research Program (2026-08-21)
+
+This section supersedes the separate `Fyodor Macro Signal Expansion Roadmap.md`. It records research directions, not registered Current Model rules. No item below creates an arrow until its definition is frozen, tested under the declared protocol, and versioned.
+
+### What `Historical N` Means
+
+`Historical N` is the number of evaluable occurrences of the exact registered release-package signature inside the fixed latest-ten-year primary window. It is not the number of broker rows in the full archive. A case needs a directional signature, a strictly later H4 entry, completed pre-entry ATR data, and sufficient later price coverage. Ambiguous and unevaluable cases remain separate.
+
+The ten-year window was selected before the v1 result as a fixed compromise between current relevance and sample size, not because pre-2016 data is presumed invalid. The archive beginning in 2007 remains valuable. Future work must compare rolling three-, five-, and ten-year windows, calendar eras, and the full archive rather than assuming either the newest or oldest period is universally representative.
+
+### Registered Setups and Nearest Leads
+
+Current `FMS-EURUSD-MULTI-H4-CQ-v9` setups:
+
+| Setup | Frozen direction | Historical N | Gross 2R target first | Gross average R |
+|---|---|---:|---:|---:|
+| Aggregate-US industrial production/output | Improving USD package -> Short EURUSD | 54 | 44.4% | +0.33R |
+| Aggregate-Euro-area consumer sentiment | Improving -> Long; weakening -> Short | 99 | 40.4% | +0.24R |
+
+Nearest reused-history leads remain producer inflation, payroll with an alternative exit study, core/headline retail, EUR GDP weakness, and the small-sample wage/current-account cohorts documented above. A failed gate is diagnostic evidence, not a defect to bypass. It may indicate unstable years, the wrong directional treatment, family over-breadth, package conflict, entry mismatch, exit mismatch, insufficient observations, revisions, or outlier dependence.
+
+### Flexible Path Research: MFE, MAE, and Threshold Curves
+
+The next outcome engine should retain the fixed 1R/1.5R/2R simulations for comparability but also record the complete post-entry path over the frozen observation horizon:
+
+- maximum favorable excursion (`MFE`) in R;
+- maximum adverse excursion (`MAE`) in R;
+- H4 candle/time to MFE and MAE;
+- whether adverse excursion occurred before favorable excursion;
+- probability of reaching at least `0.5R, 0.75R, 1R, 1.25R, 1.5R, 2R, 2.5R, 3R, 4R`, and higher observed thresholds;
+- first-touch results for every predeclared stop/target pair;
+- mean, median, minimum, maximum, quartiles, and upper/lower percentiles of MFE and MAE.
+
+Maximum alone must never define the recommended target because it is dominated by outliers and uses information unavailable at entry. Historical path distributions may propose a rule; that rule must then be frozen and evaluated on later or otherwise unselected data.
+
+Keep 30 completed H4 candles as the primary horizon initially so new results remain comparable. Add `6, 12, 18, 42, 60`-candle sensitivity as separately reported experiments. Do not silently replace the primary horizon after seeing which duration wins.
+
+### Candidate Stress Lab
+
+Every expansion candidate should run through the same versioned matrix and every attempted configuration must enter a trial registry:
+
+- targets/thresholds: `0.5R` through at least `4R`;
+- ATR stop widths: `0.5, 0.75, 1, 1.25, 1.5, 2 x H4 ATR(14)`;
+- horizons: `6, 12, 18, 30, 42, 60` completed H4 candles;
+- baseline entry: first strictly later H4 open;
+- separate entry experiments: first-H4-close confirmation and other rules using only data known then;
+- separate exit experiments: fixed target, trailing stop, and break-even movement;
+- chronological development/holdout, rolling/year stability, recent window, past-only/prequential qualification, sample/coverage checks, and uncertainty;
+- explicit disclosure of the number of families, directions, filters, entries, stops, targets, and horizons inspected.
+
+Trailing, break-even, alternative stops, and confirmation rules are update-bucket experiments. They must not be mixed into v9 or selected per trade after the fact.
+
+### Completed Path and Exit Matrix - 2026-08-21
+
+The first fixed path/exit matrix is now implemented and exposed in Macro Signal Lab. Protocol hash: `eb517c8f7c2837858336b99a7e3834680828883afe1fa4b3f1cf99a593ec0c43`.
+
+- Durable EURUSD coverage: 30,710 H4 candles from 2006-12-25 00:00 UTC through 2026-08-20 16:00 UTC.
+- Exact direction signatures entering the matrix: 71; 64 had enough development data to produce a reportable selected configuration.
+- Declared configurations evaluated: 23,004.
+- Stops: `0.5, 0.75, 1, 1.25, 1.5, 2 x ATR`.
+- Targets: `0.5R, 0.75R, 1R, 1.25R, 1.5R, 2R, 2.5R, 3R, 4R`.
+- Holding periods: `6, 12, 18, 30, 42, 60` completed H4 candles.
+- Each signature's configuration was selected using the older development partition only: highest development lower-95 expectancy, then development average. Holdout never entered configuration selection.
+- The exploratory screen requires the fixed sample thresholds, at least `+0.10R` after the existing three-pip result stress in overall/development/holdout/recent partitions, at least eight evaluable years, at least 60% positive years, and bounded ambiguity.
+- Nearby-configuration stability reports the selected grid point plus immediately adjacent stop, target, and holding values. It is diagnostic and never enters selection.
+- The complete report is cached durably by source-run IDs, H4 candle revision, Charts-model hash, and report-schema version. The measured first calculation took about 35 seconds; the verified durable/in-memory reuse path returned in about 0.45 seconds and does not block the ordinary version result while loading.
+
+Current v9 direction variants under this new and deliberately different flexible-exit screen:
+
+| Current direction variant | N | Development | Holdout | Recent | Selected exit | Positive years | Nearby holdout positive |
+|---|---:|---:|---:|---:|---|---:|---:|
+| EUR consumer sentiment weakening -> Short EURUSD | 44 | +0.16R | +0.36R | +0.36R | 2 ATR / 1R / 30 H4 | 7/11 | 18/18 |
+| Aggregate-US industrial output improving -> Short EURUSD | 54 | +0.02R | +0.03R | -0.00R | 2 ATR / 0.5R / 6 H4 | 7/11 | 6/8 |
+| EUR consumer sentiment improving -> Long EURUSD | 55 | -0.03R | -0.02R | +0.16R | 2 ATR / 0.5R / 6 H4 | 5/11 | 2/8 |
+
+This does not rewrite v9. The existing current patterns were admitted under v9's frozen fixed-target, target-sensitivity, past-only, and other gates. The flexible matrix is a new diagnostic that reveals directional and exit asymmetry; it cannot retroactively remove or promote an arrow.
+
+Three unregistered direction signatures cleared the exploratory screen:
+
+| Research candidate | N | Overall | Development | Holdout | Recent | Selected exit | Positive years | Nearby holdout positive |
+|---|---:|---:|---:|---:|---:|---|---:|---:|
+| US producer inflation cooling -> Long EURUSD | 46 | +0.36R | +0.30R | +0.52R | +0.52R | 2 ATR / 1.25R / 18 H4 | 9/11 | 18/18 |
+| US payroll package improving -> Short EURUSD | 55 | +0.14R | +0.11R | +0.25R | +0.28R | 2 ATR / 1R / 6 H4 | 8/11 | 12/12 |
+| US core/headline CPI cooling -> Long EURUSD | 107 | +0.35R | +0.47R | +0.11R | +0.18R | 2 ATR / 4R / 60 H4 | 9/11 | 7/8 |
+
+Thirty-H4 path medians further distinguish the candidates: producer-inflation Long had approximately `2.73R` MFE versus `1.53R` MAE; payroll Short had `2.47R` MFE versus `2.15R` MAE; CPI-cooling Long had `2.82R` MFE versus `2.01R` MAE. MFE and MAE are look-after diagnostics, not live inputs.
+
+None of the 64 candidates passed the stricter requirement that the selected configuration's holdout expectancy lower-95 bound be above zero. Therefore this run does **not** add a Registered Current Setup. The best next freeze discussion is a narrow US producer-inflation-cooling Long experiment because it has the strongest partition consistency, 9/11 positive years, favorable MFE/MAE balance, and all 18 neighboring holdout configurations positive. Payroll Short is the second choice and specifically tests whether its old fixed 1R/1.5R weakness was an exit-contract problem. CPI-cooling Long is third because its apparent edge depends on the matrix boundary of a 4R target and 60-H4 horizon, making it more vulnerable to selection and duration risk.
+
+### Diagnosing Failed and High-N Families
+
+Frequent releases are not automatically directional releases. When a high-N direct rule is weak, test these hypotheses separately rather than forcing the original mapping to pass:
+
+- direct directional continuation;
+- contrarian/rejection response;
+- volatility-only behavior with no directional arrow;
+- surprise/momentum magnitude bins defined within the same exact series;
+- same-time package agreement versus conflict;
+- pre-release displacement or evidence already priced before entry;
+- Before-state alignment/conflict;
+- policy, inflation, trend, and volatility regimes known at entry;
+- delayed versus immediate response;
+- first-candle confirmation versus unconditional entry.
+
+Candidate identities must retain country/region, exact normalized title or declared same-time package, direction, missing-value policy, and broker revision handling. Do not merge unrelated titles merely to increase N.
+
+Specific weak high-N observations already recorded:
+
+- US claims Short: about 229 cases, negative/near-zero stressed and weak across holdout/recent/past-only partitions.
+- USD consumer inflation Short: about 186 cases, small full-history positive result but negative recent/holdout behavior and failed stressed 1R.
+- USD consumer sentiment: about 145-149 cases, weak or negative important partitions.
+- EUR business sentiment: about 94-117 cases, negative recent/holdout behavior.
+
+These may contain conditional volatility, rejection, or regime patterns; their unconditional direct mappings are not currently robust arrows.
+
+### Regime Research
+
+Use the entire retained archive to test whether event-family behavior changes across time. Report pre/post-2016 and rolling-window results instead of assuming that older data is unusable. Candidate regimes may include monetary-policy stance, inflation direction, growth cycle, realized volatility, and H4/D1 trend, but every regime label used in a simulation must be computable from information available at entry.
+
+Also measure which registered families dominate signal frequency and realized excursion through time. Descriptive family dominance is not automatically a tradable regime; it becomes a model input only after a frozen definition and later evaluation.
+
+### Charts Projection and Loading Contract
+
+- The model remains H4: release classification, first-later-H4 activation, ATR, outcomes, and the 30-H4 horizon were researched on H4.
+- Every EURUSD chart timeframe may display the same frozen H4 activation. Non-H4 views must explicitly say `H4 model` or `backtested on H4` and must not imply an M1/M15/D1/W1 backtest.
+- Intraday views may show release-to-H4-activation geometry. On a coarse candle containing both timestamps, show the activation arrow without inventing a visible intrabar separation.
+- Current Model data is viewport-independent and preloads at app startup, regardless of whether Charts or Macro Bias has been opened. Opening the control reveals cached data while Charts can refresh it silently against the current calendar revision.
+- Research Replay remains a windowed historical view because it can contain hundreds of markers.
+- A blank Current Model is honest when no immutable post-v9 release has qualified. Research Replay arrows must never be relabeled as live/post-activation Current Model evidence.
+
+### Research Order
+
+1. **Completed:** add path-level MFE/MAE and threshold/first-touch reporting without changing v9.
+2. **Completed:** build the fixed Candidate Stress Lab matrix and record its protocol hash.
+3. **Completed:** run the declared path/exit/stop/horizon matrix across 64 eligible exact direction signatures.
+4. Discuss and freeze the next candidate treatment. Current recommendation: US producer inflation cooling -> Long EURUSD, with payroll Short as the alternative.
+5. Diagnose high-N families under direct, rejection, volatility-only, package-conflict, timing, and known-at-entry regime treatments.
+6. Promote only a separately versioned rule that passes its declared gates; leave v9 intact otherwise.
+7. Repeat with retail, small-sample accumulation, policy, inflation, and combined evidence only after earlier experiments are recorded.
 
 ## Research Warnings and References
 

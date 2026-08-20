@@ -18,12 +18,15 @@ interface ChartToolStripProps {
   macroBiasSupported: boolean;
   macroBiasStatusLabel: string;
   macroBiasMode: MacroSignalChartMode;
+  macroBiasHistoricalMatchesVisible: boolean;
+  macroBiasHistoricalMatchesCount: number;
   macroBiasActiveLabel: string;
   onCursorModeChange: (mode: ChartCursorReadoutMode) => void;
   onRefocusChart: () => void;
   onOpenDrawer: (mode: ChartDrawerMode) => void;
   onToggleMacroBias: () => void;
   onMacroBiasModeChange: (mode: MacroSignalChartMode) => void;
+  onToggleMacroBiasHistoricalMatches: () => void;
 }
 
 export function ChartToolStrip({
@@ -36,12 +39,15 @@ export function ChartToolStrip({
   macroBiasSupported,
   macroBiasStatusLabel,
   macroBiasMode,
+  macroBiasHistoricalMatchesVisible,
+  macroBiasHistoricalMatchesCount,
   macroBiasActiveLabel,
   onCursorModeChange,
   onRefocusChart,
   onOpenDrawer,
   onToggleMacroBias,
   onMacroBiasModeChange,
+  onToggleMacroBiasHistoricalMatches,
 }: ChartToolStripProps) {
   const eventButtonLabel = !eventOverlayVisible
     ? "Chart events hidden"
@@ -81,13 +87,20 @@ export function ChartToolStrip({
           </select>
         </div>
       ) : null}
+      {macroBiasVisible && macroBiasSupported && macroBiasMode === "current" ? (
+        <label className="chart-macro-bias-history-toggle" title="Show hindsight matches of only the frozen Current Model setups">
+          <input type="checkbox" checked={macroBiasHistoricalMatchesVisible} onChange={onToggleMacroBiasHistoricalMatches} />
+          <span>Historical matches</span>
+          {macroBiasHistoricalMatchesCount > 0 ? <small>{macroBiasHistoricalMatchesCount}</small> : null}
+        </label>
+      ) : null}
       {macroBiasVisible && macroBiasSupported ? (
         <span className={`chart-macro-bias-floating-state ${macroBiasMode === "current" ? "is-current" : "is-replay"}`} title={macroBiasActiveLabel}>{macroBiasActiveLabel}</span>
       ) : null}
       <button
         type="button"
         className={macroBiasVisible ? "chart-macro-bias-toggle is-active" : "chart-macro-bias-toggle"}
-        title={macroBiasSupported ? macroBiasStatusLabel : "Macro Bias currently supports EURUSD H4 and an H4-model view on H1 only"}
+        title={macroBiasSupported ? macroBiasStatusLabel : "Macro Bias currently supports EURUSD only; its research contract is H4"}
         aria-pressed={macroBiasVisible}
         onClick={onToggleMacroBias}
       >

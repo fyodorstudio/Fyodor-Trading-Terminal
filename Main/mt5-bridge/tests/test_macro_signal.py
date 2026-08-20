@@ -7,6 +7,7 @@ from macro_signal import (
   build_backtest_result,
   build_chart_signal_pattern_catalog,
   build_chart_signal_realtime_watch,
+  build_candidate_path_profile,
   build_policy_inflation_context,
   build_signal_candidates,
   calculate_atr_by_candle,
@@ -15,6 +16,8 @@ from macro_signal import (
   evaluate_candidate,
   get_signal_definition,
   score_event,
+  simulate_candidate_path,
+  summarize_candidate_paths,
   V2_VERSION_ID,
   SENTIMENT_VERSION_ID,
   POLICY_INFLATION_VERSION_ID,
@@ -22,6 +25,47 @@ from macro_signal import (
   CHART_SIGNAL_MODEL_ID,
   CHART_SIGNAL_PATTERN_DEFINITIONS,
 )
+
+
+def test_candidate_path_profile_reports_mfe_mae_and_threshold_reach() -> None:
+  rows = [
+    {"time": 100, "open": 1.1000, "high": 1.1020, "low": 1.0990, "close": 1.1010, "volume": 1},
+    {"time": 200, "open": 1.1010, "high": 1.1040, "low": 1.1000, "close": 1.1030, "volume": 1},
+  ]
+  outcome = {"eventTime": 90, "entryTime": 100, "entry": 1.1000, "atr": 0.0020, "direction": "long"}
+  profile = build_candidate_path_profile(outcome, rows, [100, 200], maximum_holding_candles=2)
+
+  assert profile is not None
+  summary = summarize_candidate_paths([profile], holding_candles=2)
+  assert round(summary["mfeR"]["median"], 6) == 2.0
+  assert round(summary["maeR"]["median"], 6) == 0.5
+  assert next(row for row in summary["thresholdReach"] if row["thresholdR"] == 2.0)["rate"] == 1.0
+
+
+def test_flexible_path_simulation_respects_direction_expiry_and_same_bar_ambiguity() -> None:
+  long_profile = {
+    "entry": 1.1000, "atr": 0.0010, "direction": "long", "sign": 1.0,
+    "candles": [{"time": 100, "open": 1.1000, "high": 1.1021, "low": 1.0995, "close": 1.1020}],
+  }
+  short_profile = {
+    "entry": 1.1000, "atr": 0.0010, "direction": "short", "sign": -1.0,
+    "candles": [{"time": 100, "open": 1.1000, "high": 1.1005, "low": 1.0979, "close": 1.0980}],
+  }
+  ambiguous_profile = {
+    "entry": 1.1000, "atr": 0.0010, "direction": "long", "sign": 1.0,
+    "candles": [{"time": 100, "open": 1.1000, "high": 1.1021, "low": 1.0989, "close": 1.1005}],
+  }
+  expired_profile = {
+    "entry": 1.1000, "atr": 0.0010, "direction": "long", "sign": 1.0,
+    "candles": [{"time": 100, "open": 1.1000, "high": 1.1006, "low": 1.0995, "close": 1.1005}],
+  }
+
+  assert simulate_candidate_path(long_profile, 1.0, 2.0, 1, stress_pips=0)["status"] == "target_hit"
+  assert simulate_candidate_path(short_profile, 1.0, 2.0, 1, stress_pips=0)["status"] == "target_hit"
+  assert simulate_candidate_path(ambiguous_profile, 1.0, 2.0, 1, stress_pips=0)["status"] == "ambiguous"
+  expired = simulate_candidate_path(expired_profile, 1.0, 2.0, 1, stress_pips=0)
+  assert expired["status"] == "expired"
+  assert round(expired["grossResultR"], 6) == 0.5
 
 
 def calendar_event(

@@ -105,3 +105,69 @@ def test_growth_source_has_an_independent_forward_ledger(tmp_path: Path, monkeyp
 
   assert response.status_code == 200
   assert response.json()["versionId"] == GROWTH_VERSION_ID
+
+
+def test_expansion_report_uses_actual_current_catalog_not_declared_candidates(monkeypatch) -> None:
+  class FakeStore:
+    def __init__(self) -> None:
+      self.metadata = {}
+
+    def latest_backtest_run(self, version_id: str) -> dict:
+      return {
+        "id": f"run-{version_id}",
+        "status": "completed",
+        "result": {
+          "targets": {
+            "1.0": {"outcomes": []},
+            "1.5": {"outcomes": []},
+            "2.0": {"outcomes": []},
+          },
+          "candidateSummary": {"developmentHoldoutBoundary": 100},
+        },
+      }
+
+    def query_candles(self, _symbol: str, _timeframe: str, _from: int, _to: int) -> list[dict]:
+      return [{"time": 100, "open": 1.1, "high": 1.2, "low": 1.0, "close": 1.15, "volume": 1}]
+
+    def get_metadata(self, key: str):
+      return self.metadata.get(key)
+
+    def set_metadata(self, key: str, value: str) -> None:
+      self.metadata[key] = value
+
+  captured = {}
+
+  def fake_catalog(_outcomes, _split, _by_target, source_version):
+    return [{
+      "id": f"eligible-{source_version}",
+      "signatures": [f"long|{source_version}:eligible"],
+      "currentEligible": True,
+    }, {
+      "id": f"rejected-{source_version}",
+      "signatures": [f"short|{source_version}:rejected"],
+      "currentEligible": False,
+    }]
+
+  def fake_report(sources, _candles, _generated_at):
+    captured["reportCalls"] = captured.get("reportCalls", 0) + 1
+    captured["sources"] = sources
+    return {"schemaVersion": 2, "modelId": "test", "candidates": [], "candidateCount": 0, "configurationsTested": 0}
+
+  monkeypatch.setattr(server, "_research_store", FakeStore())
+  monkeypatch.setattr(server, "build_chart_signal_pattern_catalog", fake_catalog)
+  monkeypatch.setattr(server, "build_candidate_stress_report", fake_report)
+  server._candidate_stress_cache.clear()
+
+  response = client.get("/research/expansion-report")
+
+  assert response.status_code == 200
+  assert response.json()["modelId"] == "test"
+  assert captured["sources"]
+  for source in captured["sources"]:
+    assert source["currentPatterns"] == {
+      f"long|{source['versionId']}:eligible": f"eligible-{source['versionId']}"
+    }
+  second = client.get("/research/expansion-report")
+  assert second.status_code == 200
+  assert second.json()["cached"] is True
+  assert captured["reportCalls"] == 1

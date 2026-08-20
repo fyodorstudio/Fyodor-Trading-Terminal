@@ -25,6 +25,7 @@ from macro_signal import (
   CHART_SIGNAL_MODEL_HASH,
   CHART_SIGNAL_MODEL_ID,
   CHART_SIGNAL_PATTERN_DEFINITIONS,
+  CANDIDATE_STRESS_SCHEMA_VERSION,
   FORWARD_PAPER_GATE,
   H4_SECONDS,
   RESULT_SCHEMA_VERSION,
@@ -33,6 +34,7 @@ from macro_signal import (
   V2_VERSION_ID,
   aggregate_outcomes,
   build_backtest_result,
+  build_candidate_stress_report,
   build_chart_signal_pattern_catalog,
   build_chart_signal_realtime_watch,
   build_policy_inflation_context,
@@ -145,6 +147,10 @@ _forward_schedule_lock = Lock()
 _forward_reconcile_scheduled = False
 _chart_signal_catalog_lock = Lock()
 _chart_signal_catalog_cache: Dict[str, List[Dict[str, Any]]] = {}
+_chart_signal_context_lock = Lock()
+_chart_signal_context_cache: Dict[str, Dict[str, Any]] = {}
+_candidate_stress_lock = Lock()
+_candidate_stress_cache: Dict[str, Dict[str, Any]] = {}
 
 # First timestamp at which Fyodor can honestly guarantee immutable first-seen
 # release values and complete EA upload cycles for forward paper evidence.
@@ -1186,6 +1192,77 @@ def research_coverage() -> Dict[str, Any]:
   }
 
 
+@app.get("/research/expansion-report")
+def research_expansion_report() -> Dict[str, Any]:
+  """Return the fixed path/excursion and development-selected stress matrix."""
+  source_versions = sorted({str(pattern["sourceVersion"]) for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS})
+  sources: List[Dict[str, Any]] = []
+  run_ids: List[str] = []
+  for source_version in source_versions:
+    run = _research_store.latest_backtest_run(source_version)
+    result = run.get("result") if run and run.get("status") == "completed" else None
+    if not isinstance(result, dict):
+      raise HTTPException(status_code=409, detail=f"Run {source_version} before loading the FMS expansion report")
+    outcomes = result.get("targets", {}).get("2.0", {}).get("outcomes")
+    split_time = result.get("candidateSummary", {}).get("developmentHoldoutBoundary")
+    if not isinstance(outcomes, list) or not isinstance(split_time, int):
+      raise HTTPException(status_code=409, detail=f"{source_version} lacks the frozen candidate split required by expansion research")
+    outcomes_by_target = {
+      target_r: target_payload.get("outcomes", [])
+      for target_r, target_payload in result.get("targets", {}).items()
+      if isinstance(target_payload, dict)
+    }
+    catalog = build_chart_signal_pattern_catalog(outcomes, split_time, outcomes_by_target, source_version)
+    current_patterns = {
+      signature: str(pattern["id"])
+      for pattern in catalog
+      if pattern["currentEligible"]
+      for signature in pattern["signatures"]
+    }
+    sources.append({
+      "versionId": source_version,
+      "outcomes": outcomes,
+      "splitTime": split_time,
+      "currentPatterns": current_patterns,
+    })
+    run_ids.append(str(run.get("id", "")))
+
+  h4_candles = _research_store.query_candles("EURUSD", "H4", 0, int(_time.time()) + H4_SECONDS)
+  if not h4_candles:
+    raise HTTPException(status_code=409, detail="No durable EURUSD H4 candles are available for path research")
+  candle_revision = f"{len(h4_candles)}:{int(h4_candles[-1]['time'])}"
+  cache_key = hashlib.sha256("|".join([
+    *run_ids,
+    candle_revision,
+    CHART_SIGNAL_MODEL_HASH,
+    str(CANDIDATE_STRESS_SCHEMA_VERSION),
+  ]).encode("utf-8")).hexdigest()
+  with _candidate_stress_lock:
+    cached = _candidate_stress_cache.get(cache_key)
+  if cached is not None:
+    return {**cached, "cached": True}
+  durable_cache_key = f"fms_expansion_report:{cache_key}"
+  durable_cached = _research_store.get_metadata(durable_cache_key)
+  if durable_cached:
+    try:
+      parsed = json.loads(durable_cached)
+      if isinstance(parsed, dict) and parsed.get("schemaVersion") == CANDIDATE_STRESS_SCHEMA_VERSION:
+        with _candidate_stress_lock:
+          _candidate_stress_cache.clear()
+          _candidate_stress_cache[cache_key] = parsed
+        return {**parsed, "cached": True}
+    except (TypeError, ValueError):
+      logger.warning("Ignoring unreadable durable FMS expansion report cache")
+
+  report = build_candidate_stress_report(sources, h4_candles, int(_time.time()))
+  report["sourceRunIds"] = run_ids
+  _research_store.set_metadata(durable_cache_key, json.dumps(report, separators=(",", ":")))
+  with _candidate_stress_lock:
+    _candidate_stress_cache.clear()
+    _candidate_stress_cache[cache_key] = report
+  return {**report, "cached": False}
+
+
 @app.get("/research/versions/current")
 def research_current_version() -> Dict[str, Any]:
   definition = SIGNAL_DEFINITIONS[ACTIVE_VERSION_ID]
@@ -1397,12 +1474,21 @@ def research_chart_signals(
     generated_at,
     frozenset(str(pattern["id"]) for pattern in catalog if pattern["currentEligible"]),
   )
-  context_events = _research_store.query_calendar(
-    from_time=generated_at - 5 * 365 * 24 * 60 * 60,
-    to_time=generated_at,
-    currencies=["EUR", "USD"],
-  )
-  policy_inflation_context = build_policy_inflation_context(context_events, generated_at)
+  context_revision = _research_store.get_metadata("last_calendar_ingest_at") or "unversioned"
+  context_key = f"{id(_research_store)}:{context_revision}"
+  with _chart_signal_context_lock:
+    cached_context = _chart_signal_context_cache.get(context_key)
+  if cached_context is None:
+    context_events = _research_store.query_calendar(
+      from_time=generated_at - 400 * 24 * 60 * 60,
+      to_time=generated_at,
+      currencies=["EUR", "USD"],
+    )
+    cached_context = build_policy_inflation_context(context_events, generated_at)
+    with _chart_signal_context_lock:
+      _chart_signal_context_cache.clear()
+      _chart_signal_context_cache[context_key] = cached_context
+  policy_inflation_context = {**cached_context, "asOf": generated_at}
   return {
     "supported": True,
     "versionId": CHART_SIGNAL_MODEL_ID,

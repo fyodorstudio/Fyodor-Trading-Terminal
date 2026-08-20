@@ -18,6 +18,8 @@ This folder contains shared app-shell and feature support components. Keep featu
 - `ChartToolStrip.tsx` - Charts cursor mode, refocus, events, appearance, and cache tool buttons.
 - `ChartViewport.tsx` - Charts canvas frame, event overlay mounting, crosshair readout, Macro Bias overlays, error overlay, and terminal console rendering.
 - `ChartMacroBiasRealtimeCard.tsx` - bounded `FMS Shadow Trader` card. It shows the Current Model decision, a gross-only configurable shadow account, a one-position-at-a-time historical replay, and the next structurally possible frozen setup; it must keep H4-model-on-H1 provenance and never imply order execution.
+- `ChartMacroBiasSetupCatalog.tsx` - countdown/if-then presentation for the next scheduled frozen setup plus expandable gross benchmark cards for every Current Model-eligible registry entry.
+- `MacroSignalExpansionResearch.tsx` - Macro Signal Lab's background-loaded MFE/MAE, flexible-exit stress matrix, current-setup diagnostics, and explicitly unregistered next-candidate table.
 - `../lib/macroSignalShadow.ts` - pure gross shadow-account replay and hypothetical EURUSD position sizing. Costs are deliberately excluded rather than estimated.
 - `../lib/macroBiasConnectorPrimitive.ts` - native Lightweight Charts release-ring to next-H4 activation connector; it paints in the chart pane's own render cycle and exposes release-ring hit testing for audit access.
 - `ChartMacroBiasAudit.tsx` - clicked-arrow source, outcome, robustness, cost-stress, and model-provenance audit.

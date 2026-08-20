@@ -272,6 +272,126 @@ export interface MacroSignalForwardPaper {
   recentCases: MacroSignalForwardCase[];
 }
 
+export interface MacroSignalPathDistribution {
+  minimum: number | null;
+  p25: number | null;
+  median: number | null;
+  mean: number | null;
+  p75: number | null;
+  p90: number | null;
+  maximum: number | null;
+}
+
+export interface MacroSignalPathSummary {
+  holdingCandles: number;
+  evaluableCount: number;
+  mfeR: MacroSignalPathDistribution;
+  maeR: MacroSignalPathDistribution;
+  timeToMfeCandles: MacroSignalPathDistribution;
+  timeToMaeCandles: MacroSignalPathDistribution;
+  adverseBeforeFavorableRate: number | null;
+  thresholdReach: Array<{ thresholdR: number; count: number; rate: number | null }>;
+}
+
+export interface MacroSignalStressMetrics {
+  attemptedCount: number;
+  evaluableCount: number;
+  targetHitCount: number;
+  stopHitCount: number;
+  expiredCount: number;
+  ambiguousCount: number;
+  unevaluableCount: number;
+  targetHitRate: number | null;
+  stopHitRate: number | null;
+  expiredRate: number | null;
+  ambiguousRate: number | null;
+  grossAverageR: number | null;
+  stressedAverageR: number | null;
+  stressedMedianR: number | null;
+  stressedExpectancyCi95: { lower: number; upper: number } | null;
+}
+
+export interface MacroSignalStressConfiguration {
+  stopAtr: number;
+  targetR: number;
+  holdingCandles: number;
+  overall: MacroSignalStressMetrics;
+  development: MacroSignalStressMetrics;
+  holdout: MacroSignalStressMetrics;
+  recent: MacroSignalStressMetrics;
+  yearStability: {
+    evaluableYears: number;
+    positiveYears: number;
+    positiveYearShare: number;
+  };
+}
+
+export interface MacroSignalConfigurationStabilityPartition {
+  count: number;
+  positiveCount: number;
+  positiveShare: number | null;
+  minimumR: number | null;
+  medianR: number | null;
+  maximumR: number | null;
+}
+
+export interface MacroSignalStressCandidate {
+  sourceVersionId: string;
+  signature: string;
+  label: string;
+  direction: "long" | "short";
+  groups: string[];
+  exampleTitles: string[];
+  historicalN: number;
+  currentRegistered: boolean;
+  currentPatternId: string | null;
+  path30: MacroSignalPathSummary;
+  path60: MacroSignalPathSummary;
+  selectedOn: "development_only";
+  selectedConfiguration: MacroSignalStressConfiguration;
+  configurationStability: {
+    neighbourhoodCount: number;
+    definition: string;
+    development: MacroSignalConfigurationStabilityPartition;
+    holdout: MacroSignalConfigurationStabilityPartition;
+    recent: MacroSignalConfigurationStabilityPartition;
+  };
+  checks: Record<string, boolean>;
+  passesExploratoryScreen: boolean;
+  passesStrictHoldoutCheck: boolean;
+  reusedHistory: true;
+}
+
+export interface MacroSignalExpansionReport {
+  schemaVersion: number;
+  generatedAt: number;
+  modelId: string;
+  protocol: {
+    pathHorizonCandles: number;
+    maximumPathHorizonCandles: number;
+    thresholdsR: number[];
+    stopAtrValues: number[];
+    targetRValues: number[];
+    holdingCandles: number[];
+    entry: string;
+    selection: string;
+    exploratoryScreen: string;
+    intrabar: string;
+    stressPips: number;
+    primaryWindowDays: number;
+  };
+  protocolHash: string;
+  sourceVersions: string[];
+  sourceRunIds: string[];
+  candleCoverage: { count: number; earliest: number | null; latest: number | null };
+  configurationsTested: number;
+  signaturesTested: number;
+  candidateCount: number;
+  candidates: MacroSignalStressCandidate[];
+  limitations: string[];
+  cached: boolean;
+}
+
 export interface MacroSignalChartPattern {
   id: string;
   signature: string;

@@ -17,11 +17,14 @@ import {
   fetchMacroSignalForwardPaper,
   fetchMacroSignalVersions,
   startMacroSignalBacktest,
+  fetchMacroSignalExpansionReport,
 } from "@/app/lib/bridge";
+import { MacroSignalExpansionResearch } from "@/app/components/MacroSignalExpansionResearch";
 import type {
   MacroSignalBacktestRun,
   MacroSignalCoverage,
   MacroSignalForwardPaper,
+  MacroSignalExpansionReport,
   MacroSignalMetrics,
   MacroSignalOutcome,
   MacroSignalVersion,
@@ -137,11 +140,15 @@ interface MacroSignalLabViewProps {
   versions?: MacroSignalVersion[];
   run: MacroSignalBacktestRun | null;
   forwardPaper?: MacroSignalForwardPaper | null;
+  expansionReport?: MacroSignalExpansionReport | null;
+  expansionLoading?: boolean;
+  expansionError?: string | null;
   loading: boolean;
   error: string | null;
   onRun: () => void;
   onRefresh: () => void;
   onSelectVersion?: (versionId: string) => void;
+  onRefreshExpansion?: () => void;
 }
 
 function versionUsesForwardLedger(version: MacroSignalVersion | null | undefined): boolean {
@@ -154,11 +161,15 @@ export function MacroSignalLabView({
   versions = version ? [version] : [],
   run,
   forwardPaper = null,
+  expansionReport = null,
+  expansionLoading = false,
+  expansionError = null,
   loading,
   error,
   onRun,
   onRefresh,
   onSelectVersion = () => {},
+  onRefreshExpansion = () => {},
 }: MacroSignalLabViewProps) {
   const result = run?.result ?? null;
   const running = run?.status === "queued" || run?.status === "running";
@@ -270,6 +281,12 @@ export function MacroSignalLabView({
         </aside>
 
         <main className="macro-signal-results">
+          <MacroSignalExpansionResearch
+            report={expansionReport}
+            loading={expansionLoading}
+            error={expansionError}
+            onRefresh={onRefreshExpansion}
+          />
           {loading && !run ? (
             <div className="macro-signal-empty"><RefreshCw className="animate-spin" /><strong>Loading research state</strong></div>
           ) : running ? (
@@ -435,6 +452,9 @@ export function MacroSignalLabTab() {
   const [versions, setVersions] = useState<MacroSignalVersion[]>([]);
   const [run, setRun] = useState<MacroSignalBacktestRun | null>(null);
   const [forwardPaper, setForwardPaper] = useState<MacroSignalForwardPaper | null>(null);
+  const [expansionReport, setExpansionReport] = useState<MacroSignalExpansionReport | null>(null);
+  const [expansionLoading, setExpansionLoading] = useState(true);
+  const [expansionError, setExpansionError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -459,6 +479,25 @@ export function MacroSignalLabTab() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+    return () => { cancelled = true; };
+  }, []);
+
+  const refreshExpansionReport = () => {
+    setExpansionLoading(true);
+    setExpansionError(null);
+    fetchMacroSignalExpansionReport()
+      .then(setExpansionReport)
+      .catch((loadError: unknown) => setExpansionError(loadError instanceof Error ? loadError.message : "Path research could not load"))
+      .finally(() => setExpansionLoading(false));
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    setExpansionLoading(true);
+    fetchMacroSignalExpansionReport()
+      .then((next) => { if (!cancelled) setExpansionReport(next); })
+      .catch((loadError: unknown) => { if (!cancelled) setExpansionError(loadError instanceof Error ? loadError.message : "Path research could not load"); })
+      .finally(() => { if (!cancelled) setExpansionLoading(false); });
     return () => { cancelled = true; };
   }, []);
 
@@ -539,5 +578,5 @@ export function MacroSignalLabTab() {
       .finally(() => setLoading(false));
   };
 
-  return <MacroSignalLabView coverage={coverage} version={version} versions={versions} run={run} forwardPaper={forwardPaper} loading={loading} error={error} onRun={handleRun} onRefresh={handleRefresh} onSelectVersion={handleSelectVersion} />;
+  return <MacroSignalLabView coverage={coverage} version={version} versions={versions} run={run} forwardPaper={forwardPaper} expansionReport={expansionReport} expansionLoading={expansionLoading} expansionError={expansionError} loading={loading} error={error} onRun={handleRun} onRefresh={handleRefresh} onSelectVersion={handleSelectVersion} onRefreshExpansion={refreshExpansionReport} />;
 }

@@ -6,6 +6,7 @@ import type {
   ImpactLevel,
   MacroSignalBacktestRun,
   MacroSignalCoverage,
+  MacroSignalExpansionReport,
   MacroSignalChartMode,
   MacroSignalChartSignalResponse,
   MacroSignalForwardPaper,
@@ -257,6 +258,10 @@ export async function fetchMacroSignalCoverage(): Promise<MacroSignalCoverage> {
   return fetchJson<MacroSignalCoverage>(`${BRIDGE_BASE}/research/coverage`);
 }
 
+export async function fetchMacroSignalExpansionReport(): Promise<MacroSignalExpansionReport> {
+  return fetchJson<MacroSignalExpansionReport>(`${BRIDGE_BASE}/research/expansion-report`);
+}
+
 export async function fetchMacroSignalVersion(): Promise<MacroSignalVersion> {
   return fetchJson<MacroSignalVersion>(`${BRIDGE_BASE}/research/versions/current`);
 }
@@ -284,6 +289,29 @@ export async function fetchMacroSignalChartSignals(params: {
   return fetchJson<MacroSignalChartSignalResponse>(
     `${BRIDGE_BASE}/research/chart-signals?${search.toString()}`,
   );
+}
+
+let preloadedMacroSignalCurrentModel: MacroSignalChartSignalResponse | null = null;
+let preloadedMacroSignalCurrentPromise: Promise<MacroSignalChartSignalResponse> | null = null;
+
+export function getPreloadedMacroSignalCurrentModel(): MacroSignalChartSignalResponse | null {
+  return preloadedMacroSignalCurrentModel;
+}
+
+export function preloadMacroSignalCurrentModel(): Promise<MacroSignalChartSignalResponse> {
+  if (preloadedMacroSignalCurrentModel) return Promise.resolve(preloadedMacroSignalCurrentModel);
+  if (preloadedMacroSignalCurrentPromise) return preloadedMacroSignalCurrentPromise;
+  preloadedMacroSignalCurrentPromise = fetchMacroSignalChartSignals({
+    symbol: "EURUSD",
+    timeframe: "H4",
+    mode: "current",
+  }).then((response) => {
+    preloadedMacroSignalCurrentModel = response;
+    return response;
+  }).finally(() => {
+    preloadedMacroSignalCurrentPromise = null;
+  });
+  return preloadedMacroSignalCurrentPromise;
 }
 
 export async function fetchLatestMacroSignalBacktest(versionId = "FMS-EURUSD-LABOR-H4-v2"): Promise<MacroSignalBacktestRun | null> {

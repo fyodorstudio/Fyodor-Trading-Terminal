@@ -5,6 +5,7 @@ import type {
   MacroSignalBacktestRun,
   MacroSignalCoverage,
   MacroSignalForwardPaper,
+  MacroSignalExpansionReport,
   MacroSignalMetrics,
   MacroSignalVersion,
 } from "@/app/types";
@@ -78,6 +79,106 @@ const forwardPaper: MacroSignalForwardPaper = {
   eligible: false,
   gate: {},
   recentCases: [],
+};
+
+const stressMetrics = {
+  attemptedCount: 40,
+  evaluableCount: 38,
+  targetHitCount: 18,
+  stopHitCount: 17,
+  expiredCount: 3,
+  ambiguousCount: 2,
+  unevaluableCount: 0,
+  targetHitRate: 18 / 38,
+  stopHitRate: 17 / 38,
+  expiredRate: 3 / 38,
+  ambiguousRate: 2 / 40,
+  grossAverageR: 0.35,
+  stressedAverageR: 0.3,
+  stressedMedianR: 0.2,
+  stressedExpectancyCi95: { lower: 0.01, upper: 0.59 },
+};
+
+const pathSummary = {
+  holdingCandles: 30,
+  evaluableCount: 40,
+  mfeR: { minimum: 0, p25: 0.8, median: 1.7, mean: 2, p75: 2.8, p90: 4, maximum: 7 },
+  maeR: { minimum: 0, p25: 0.3, median: 0.9, mean: 1, p75: 1.4, p90: 2, maximum: 4 },
+  timeToMfeCandles: { minimum: 1, p25: 4, median: 9, mean: 10, p75: 15, p90: 22, maximum: 30 },
+  timeToMaeCandles: { minimum: 1, p25: 3, median: 8, mean: 9, p75: 14, p90: 20, maximum: 30 },
+  adverseBeforeFavorableRate: 0.45,
+  thresholdReach: [{ thresholdR: 2, count: 18, rate: 0.45 }],
+};
+
+const expansionReport: MacroSignalExpansionReport = {
+  schemaVersion: 2,
+  generatedAt: 1_780_000_000,
+  modelId: "FMS-EURUSD-MULTI-H4-CQ-v9",
+  protocol: {
+    pathHorizonCandles: 30,
+    maximumPathHorizonCandles: 60,
+    thresholdsR: [0.5, 1, 2, 3, 4],
+    stopAtrValues: [1, 2],
+    targetRValues: [1, 2],
+    holdingCandles: [6, 30],
+    entry: "first_h4_open_strictly_after_release",
+    selection: "development only",
+    exploratoryScreen: "fixed screen",
+    intrabar: "ambiguous",
+    stressPips: 3,
+    primaryWindowDays: 3650,
+  },
+  protocolHash: "abcdef1234567890",
+  sourceVersions: ["v5"],
+  sourceRunIds: ["run-5"],
+  candleCoverage: { count: 30_000, earliest: 1_500_000_000, latest: 1_780_000_000 },
+  configurationsTested: 23_004,
+  signaturesTested: 71,
+  candidateCount: 64,
+  candidates: [
+    {
+      sourceVersionId: "v5",
+      signature: "short|EUR:consumer_sentiment",
+      label: "Euro-area consumer sentiment",
+      direction: "short",
+      groups: ["EUR:consumer_sentiment"],
+      exampleTitles: ["Consumer Confidence"],
+      historicalN: 44,
+      currentRegistered: true,
+      currentPatternId: "sentiment-short",
+      path30: pathSummary,
+      path60: { ...pathSummary, holdingCandles: 60 },
+      selectedOn: "development_only",
+      selectedConfiguration: { stopAtr: 2, targetR: 1, holdingCandles: 30, overall: stressMetrics, development: stressMetrics, holdout: stressMetrics, recent: stressMetrics, yearStability: { evaluableYears: 11, positiveYears: 7, positiveYearShare: 7 / 11 } },
+      configurationStability: { neighbourhoodCount: 12, definition: "adjacent grid", development: { count: 12, positiveCount: 10, positiveShare: 10 / 12, minimumR: -0.1, medianR: 0.2, maximumR: 0.5 }, holdout: { count: 12, positiveCount: 11, positiveShare: 11 / 12, minimumR: -0.1, medianR: 0.3, maximumR: 0.6 }, recent: { count: 12, positiveCount: 11, positiveShare: 11 / 12, minimumR: -0.1, medianR: 0.3, maximumR: 0.6 } },
+      checks: { overallAverageR: true },
+      passesExploratoryScreen: true,
+      passesStrictHoldoutCheck: false,
+      reusedHistory: true,
+    },
+    {
+      sourceVersionId: "v5",
+      signature: "long|USD:producer_inflation",
+      label: "Core PPI m/m package",
+      direction: "long",
+      groups: ["USD:producer_inflation"],
+      exampleTitles: ["Core PPI m/m"],
+      historicalN: 46,
+      currentRegistered: false,
+      currentPatternId: null,
+      path30: pathSummary,
+      path60: { ...pathSummary, holdingCandles: 60 },
+      selectedOn: "development_only",
+      selectedConfiguration: { stopAtr: 2, targetR: 1.25, holdingCandles: 18, overall: stressMetrics, development: stressMetrics, holdout: stressMetrics, recent: stressMetrics, yearStability: { evaluableYears: 11, positiveYears: 9, positiveYearShare: 9 / 11 } },
+      configurationStability: { neighbourhoodCount: 18, definition: "adjacent grid", development: { count: 18, positiveCount: 17, positiveShare: 17 / 18, minimumR: -0.1, medianR: 0.3, maximumR: 0.7 }, holdout: { count: 18, positiveCount: 18, positiveShare: 1, minimumR: 0.1, medianR: 0.5, maximumR: 0.8 }, recent: { count: 18, positiveCount: 18, positiveShare: 1, minimumR: 0.1, medianR: 0.5, maximumR: 0.8 } },
+      checks: { overallAverageR: true },
+      passesExploratoryScreen: true,
+      passesStrictHoldoutCheck: false,
+      reusedHistory: true,
+    },
+  ],
+  limitations: ["Reused history"],
+  cached: true,
 };
 
 const run: MacroSignalBacktestRun = {
@@ -304,5 +405,20 @@ describe("Macro Signal Lab", () => {
     expect(html).toContain("First-seen locked");
     expect(html).toContain("currency + country/region + title");
     expect(html).toContain("Collisions");
+  });
+
+  it("shows registered setups and development-selected expansion candidates without promoting them", () => {
+    const html = renderToStaticMarkup(
+      <MacroSignalLabView coverage={coverage} version={version} run={run} expansionReport={expansionReport} loading={false} error={null} onRun={() => {}} onRefresh={() => {}} />,
+    );
+
+    expect(html).toContain("Path and exit stress research");
+    expect(html).toContain("Registered current setups");
+    expect(html).toContain("Best next setup to discuss");
+    expect(html).toContain("USD inflation cooling -&gt; Long EURUSD");
+    expect(html).toContain("development history only");
+    expect(html).toContain("has not been registered");
+    expect(html).toContain("MFE");
+    expect(html).toContain("Nearby holdout +");
   });
 });

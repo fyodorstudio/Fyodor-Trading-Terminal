@@ -8,6 +8,7 @@ import statistics
 from bisect import bisect_right
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from functools import lru_cache
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Sequence, Tuple
 
 
@@ -30,6 +31,15 @@ HOLDING_CANDLES = 30
 ATR_PERIOD = 14
 TARGET_R_VALUES = (1.0, 1.5, 2.0)
 DEVELOPMENT_SHARE = 0.70
+CHART_SIGNAL_EXECUTION_STRESS_PIPS = 3.0
+PATH_RESEARCH_HORIZON = 30
+PATH_RESEARCH_MAX_HORIZON = 60
+PATH_RESEARCH_THRESHOLDS_R = (0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0)
+STRESS_STOP_ATR_VALUES = (0.5, 0.75, 1.0, 1.25, 1.5, 2.0)
+STRESS_TARGET_R_VALUES = PATH_RESEARCH_THRESHOLDS_R
+STRESS_HOLDING_CANDLES = (6, 12, 18, 30, 42, 60)
+STRESS_MINIMUM_SIGNATURE_CASES = 10
+CANDIDATE_STRESS_SCHEMA_VERSION = 2
 
 ELIGIBILITY_GATE = {
   "targetR": 2.0,
@@ -421,6 +431,7 @@ def get_signal_definition(version_id: str) -> Optional[SignalDefinition]:
 SOURCE_VALUE_RE = re.compile(r"^([+-]?\d+(?:\.\d+)?)\s*(%|[kmbt])?$", re.IGNORECASE)
 
 
+@lru_cache(maxsize=8_192)
 def normalize_title(value: str) -> str:
   return re.sub(r"\s+", " ", re.sub(r"[^a-z0-9]+", " ", value.lower())).strip()
 
@@ -849,6 +860,411 @@ def aggregate_outcomes(outcomes: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
   }
 
 
+def _quantile(values: Sequence[float], probability: float) -> Optional[float]:
+  if not values:
+    return None
+  ordered = sorted(float(value) for value in values)
+  if len(ordered) == 1:
+    return ordered[0]
+  position = max(0.0, min(1.0, probability)) * (len(ordered) - 1)
+  lower = math.floor(position)
+  upper = math.ceil(position)
+  if lower == upper:
+    return ordered[lower]
+  weight = position - lower
+  return ordered[lower] * (1 - weight) + ordered[upper] * weight
+
+
+def _path_distribution(values: Sequence[float]) -> Dict[str, Optional[float]]:
+  if not values:
+    return {"minimum": None, "p25": None, "median": None, "mean": None, "p75": None, "p90": None, "maximum": None}
+  return {
+    "minimum": min(values),
+    "p25": _quantile(values, 0.25),
+    "median": statistics.median(values),
+    "mean": statistics.fmean(values),
+    "p75": _quantile(values, 0.75),
+    "p90": _quantile(values, 0.90),
+    "maximum": max(values),
+  }
+
+
+def build_candidate_path_profile(
+  outcome: Dict[str, Any],
+  candles: Sequence[Dict[str, Any]],
+  candle_times: Sequence[int],
+  maximum_holding_candles: int = PATH_RESEARCH_MAX_HORIZON,
+) -> Optional[Dict[str, Any]]:
+  """Measure the post-entry path in baseline one-ATR units without choosing an exit."""
+  entry_time = outcome.get("entryTime")
+  entry = outcome.get("entry")
+  atr = outcome.get("atr")
+  direction = str(outcome.get("direction", ""))
+  if entry_time is None or entry is None or atr is None or direction not in {"long", "short"}:
+    return None
+  atr_value = float(atr)
+  if not math.isfinite(atr_value) or atr_value <= 0:
+    return None
+  entry_index = bisect_right(candle_times, int(entry_time) - 1)
+  if entry_index >= len(candles) or int(candles[entry_index]["time"]) != int(entry_time):
+    return None
+  window = list(candles[entry_index:entry_index + maximum_holding_candles])
+  if not window:
+    return None
+  entry_value = float(entry)
+  sign = 1.0 if direction == "long" else -1.0
+  favorable = [
+    max(0.0, (float(candle["high"]) - entry_value) / atr_value)
+    if sign > 0 else max(0.0, (entry_value - float(candle["low"])) / atr_value)
+    for candle in window
+  ]
+  adverse = [
+    max(0.0, (entry_value - float(candle["low"])) / atr_value)
+    if sign > 0 else max(0.0, (float(candle["high"]) - entry_value) / atr_value)
+    for candle in window
+  ]
+  return {
+    "outcome": outcome,
+    "eventTime": int(outcome["eventTime"]),
+    "entryTime": int(entry_time),
+    "entry": entry_value,
+    "atr": atr_value,
+    "direction": direction,
+    "sign": sign,
+    "candles": window,
+    "favorable": favorable,
+    "adverse": adverse,
+  }
+
+
+def summarize_candidate_paths(
+  profiles: Sequence[Dict[str, Any]],
+  holding_candles: int = PATH_RESEARCH_HORIZON,
+) -> Dict[str, Any]:
+  eligible = [profile for profile in profiles if len(profile["candles"]) >= holding_candles]
+  mfe_values: List[float] = []
+  mae_values: List[float] = []
+  time_to_mfe: List[float] = []
+  time_to_mae: List[float] = []
+  adverse_before_favorable = 0
+  for profile in eligible:
+    favorable = profile["favorable"][:holding_candles]
+    adverse = profile["adverse"][:holding_candles]
+    mfe = max(favorable)
+    mae = max(adverse)
+    mfe_index = favorable.index(mfe) + 1
+    mae_index = adverse.index(mae) + 1
+    mfe_values.append(mfe)
+    mae_values.append(mae)
+    time_to_mfe.append(float(mfe_index))
+    time_to_mae.append(float(mae_index))
+    adverse_before_favorable += mae_index < mfe_index
+  count = len(eligible)
+  return {
+    "holdingCandles": holding_candles,
+    "evaluableCount": count,
+    "mfeR": _path_distribution(mfe_values),
+    "maeR": _path_distribution(mae_values),
+    "timeToMfeCandles": _path_distribution(time_to_mfe),
+    "timeToMaeCandles": _path_distribution(time_to_mae),
+    "adverseBeforeFavorableRate": adverse_before_favorable / count if count else None,
+    "thresholdReach": [
+      {
+        "thresholdR": threshold,
+        "count": sum(value >= threshold for value in mfe_values),
+        "rate": sum(value >= threshold for value in mfe_values) / count if count else None,
+      }
+      for threshold in PATH_RESEARCH_THRESHOLDS_R
+    ],
+  }
+
+
+def simulate_candidate_path(
+  profile: Dict[str, Any],
+  stop_atr: float,
+  target_r: float,
+  holding_candles: int,
+  stress_pips: float = CHART_SIGNAL_EXECUTION_STRESS_PIPS,
+) -> Dict[str, Any]:
+  if len(profile["candles"]) < holding_candles:
+    return {"status": "unevaluable", "grossResultR": None, "stressedResultR": None}
+  entry = float(profile["entry"])
+  atr = float(profile["atr"])
+  sign = float(profile["sign"])
+  risk_distance = atr * stop_atr
+  stop = entry - sign * risk_distance
+  target = entry + sign * risk_distance * target_r
+  for candle in profile["candles"][:holding_candles]:
+    stop_hit, target_hit = _bar_touches(candle, profile["direction"], stop, target)
+    if stop_hit and target_hit:
+      return {"status": "ambiguous", "grossResultR": None, "stressedResultR": None}
+    if stop_hit:
+      gross = -1.0
+      return {"status": "stop_hit", "grossResultR": gross, "stressedResultR": gross - stress_pips * 0.0001 / risk_distance}
+    if target_hit:
+      gross = target_r
+      return {"status": "target_hit", "grossResultR": gross, "stressedResultR": gross - stress_pips * 0.0001 / risk_distance}
+  final_close = float(profile["candles"][holding_candles - 1]["close"])
+  gross = sign * (final_close - entry) / risk_distance
+  return {"status": "expired", "grossResultR": gross, "stressedResultR": gross - stress_pips * 0.0001 / risk_distance}
+
+
+def _aggregate_path_simulations(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+  evaluable = [row for row in rows if row["status"] in {"target_hit", "stop_hit", "expired"}]
+  stressed = [float(row["stressedResultR"]) for row in evaluable if row.get("stressedResultR") is not None]
+  gross = [float(row["grossResultR"]) for row in evaluable if row.get("grossResultR") is not None]
+  count = len(evaluable)
+  return {
+    "attemptedCount": len(rows),
+    "evaluableCount": count,
+    "targetHitCount": sum(row["status"] == "target_hit" for row in evaluable),
+    "stopHitCount": sum(row["status"] == "stop_hit" for row in evaluable),
+    "expiredCount": sum(row["status"] == "expired" for row in evaluable),
+    "ambiguousCount": sum(row["status"] == "ambiguous" for row in rows),
+    "unevaluableCount": sum(row["status"] == "unevaluable" for row in rows),
+    "targetHitRate": sum(row["status"] == "target_hit" for row in evaluable) / count if count else None,
+    "stopHitRate": sum(row["status"] == "stop_hit" for row in evaluable) / count if count else None,
+    "expiredRate": sum(row["status"] == "expired" for row in evaluable) / count if count else None,
+    "ambiguousRate": sum(row["status"] == "ambiguous" for row in rows) / len(rows) if rows else None,
+    "grossAverageR": statistics.fmean(gross) if gross else None,
+    "stressedAverageR": statistics.fmean(stressed) if stressed else None,
+    "stressedMedianR": statistics.median(stressed) if stressed else None,
+    "stressedExpectancyCi95": _mean_ci95(stressed),
+  }
+
+
+def _evaluate_path_configuration(
+  profiles: Sequence[Dict[str, Any]],
+  split_time: int,
+  latest_event_time: int,
+  stop_atr: float,
+  target_r: float,
+  holding_candles: int,
+) -> Dict[str, Any]:
+  simulations = [
+    {
+      **simulate_candidate_path(profile, stop_atr, target_r, holding_candles),
+      "eventTime": int(profile["eventTime"]),
+    }
+    for profile in profiles
+  ]
+  development = [row for row in simulations if int(row["eventTime"]) < split_time]
+  holdout = [row for row in simulations if int(row["eventTime"]) >= split_time]
+  recent_cutoff = latest_event_time - CHART_SIGNAL_RECENT_DAYS * 86400
+  recent = [row for row in simulations if int(row["eventTime"]) >= recent_cutoff]
+  by_year = []
+  for year in sorted({_timestamp_year(int(row["eventTime"])) for row in simulations}):
+    metrics = _aggregate_path_simulations([row for row in simulations if _timestamp_year(int(row["eventTime"])) == year])
+    by_year.append({"year": year, "metrics": metrics})
+  evaluable_years = [row for row in by_year if row["metrics"]["evaluableCount"] > 0]
+  positive_years = [row for row in evaluable_years if (row["metrics"]["stressedAverageR"] or 0) > 0]
+  return {
+    "stopAtr": stop_atr,
+    "targetR": target_r,
+    "holdingCandles": holding_candles,
+    "overall": _aggregate_path_simulations(simulations),
+    "development": _aggregate_path_simulations(development),
+    "holdout": _aggregate_path_simulations(holdout),
+    "recent": _aggregate_path_simulations(recent),
+    "yearStability": {
+      "evaluableYears": len(evaluable_years),
+      "positiveYears": len(positive_years),
+      "positiveYearShare": len(positive_years) / len(evaluable_years) if evaluable_years else 0.0,
+    },
+  }
+
+
+def _configuration_stability(
+  configurations: Sequence[Dict[str, Any]],
+  selected: Dict[str, Any],
+) -> Dict[str, Any]:
+  """Summarize adjacent declared configurations without using them to select the winner."""
+  stop_index = STRESS_STOP_ATR_VALUES.index(float(selected["stopAtr"]))
+  target_index = STRESS_TARGET_R_VALUES.index(float(selected["targetR"]))
+  holding_index = STRESS_HOLDING_CANDLES.index(int(selected["holdingCandles"]))
+  neighbours = [
+    row for row in configurations
+    if abs(STRESS_STOP_ATR_VALUES.index(float(row["stopAtr"])) - stop_index) <= 1
+    and abs(STRESS_TARGET_R_VALUES.index(float(row["targetR"])) - target_index) <= 1
+    and abs(STRESS_HOLDING_CANDLES.index(int(row["holdingCandles"])) - holding_index) <= 1
+  ]
+
+  def partition_summary(partition: str) -> Dict[str, Any]:
+    values = [
+      float(row[partition]["stressedAverageR"])
+      for row in neighbours
+      if row[partition].get("stressedAverageR") is not None
+    ]
+    return {
+      "count": len(values),
+      "positiveCount": sum(value > 0 for value in values),
+      "positiveShare": sum(value > 0 for value in values) / len(values) if values else None,
+      "minimumR": min(values) if values else None,
+      "medianR": statistics.median(values) if values else None,
+      "maximumR": max(values) if values else None,
+    }
+
+  return {
+    "neighbourhoodCount": len(neighbours),
+    "definition": "selected grid point plus immediately adjacent stop, target, and holding values",
+    "development": partition_summary("development"),
+    "holdout": partition_summary("holdout"),
+    "recent": partition_summary("recent"),
+  }
+
+
+def build_candidate_stress_report(
+  source_results: Sequence[Dict[str, Any]],
+  h4_candles: Sequence[Dict[str, Any]],
+  generated_at: int,
+) -> Dict[str, Any]:
+  """Run a declared path/exit matrix without altering the immutable Charts registry."""
+  candles = sorted(h4_candles, key=lambda candle: int(candle["time"]))
+  candle_times = [int(candle["time"]) for candle in candles]
+  current_signatures = {
+    (str(source["versionId"]), str(signature)): str(pattern_id)
+    for source in source_results
+    for signature, pattern_id in dict(source.get("currentPatterns", {})).items()
+  }
+  known_patterns = {
+    (str(pattern["sourceVersion"]), str(signature)): pattern
+    for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
+    for signature in pattern["signatures"]
+  }
+  candidates: List[Dict[str, Any]] = []
+  configurations_tested = 0
+  for source in source_results:
+    source_version = str(source["versionId"])
+    split_time = int(source["splitTime"])
+    outcomes = list(source["outcomes"])
+    latest_event_time = max((int(row["eventTime"]) for row in outcomes), default=generated_at)
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    for outcome in outcomes:
+      if outcome.get("direction") in {"long", "short"}:
+        grouped.setdefault(candidate_pattern_signature(outcome), []).append(outcome)
+    for signature, rows in sorted(grouped.items()):
+      profiles = [
+        profile for row in sorted(rows, key=lambda item: int(item["eventTime"]))
+        if (profile := build_candidate_path_profile(row, candles, candle_times)) is not None
+      ]
+      if len(profiles) < STRESS_MINIMUM_SIGNATURE_CASES:
+        continue
+      configurations: List[Dict[str, Any]] = []
+      for stop_atr in STRESS_STOP_ATR_VALUES:
+        for target_r in STRESS_TARGET_R_VALUES:
+          for holding_candles in STRESS_HOLDING_CANDLES:
+            configurations.append(_evaluate_path_configuration(
+              profiles, split_time, latest_event_time, stop_atr, target_r, holding_candles
+            ))
+      configurations_tested += len(configurations)
+      selectable = [
+        row for row in configurations
+        if row["development"]["evaluableCount"] >= CHART_SIGNAL_QUALIFICATION["minimumDevelopmentEvaluable"]
+        and (row["development"]["ambiguousRate"] or 0) <= CHART_SIGNAL_QUALIFICATION["maximumAmbiguousRate"]
+        and row["development"]["stressedAverageR"] is not None
+      ]
+      selection_pool = selectable or [
+        row for row in configurations
+        if row["development"]["evaluableCount"] >= min(10, len(profiles))
+        and row["development"]["stressedAverageR"] is not None
+      ]
+      def selection_key(row: Dict[str, Any]) -> Tuple[float, float, float, float, float]:
+        ci = row["development"].get("stressedExpectancyCi95") or {}
+        lower = float(ci.get("lower")) if ci.get("lower") is not None else -999.0
+        average = float(row["development"].get("stressedAverageR") or -999.0)
+        baseline_distance = abs(float(row["stopAtr"]) - 1.0) + abs(float(row["targetR"]) - 2.0) + abs(int(row["holdingCandles"]) - 30) / 30
+        return lower, average, -baseline_distance, -float(row["stopAtr"]), -float(row["targetR"])
+      selected = max(selection_pool, key=selection_key) if selection_pool else None
+      if selected is None:
+        continue
+      checks = {
+        "overallSample": selected["overall"]["evaluableCount"] >= CHART_SIGNAL_QUALIFICATION["minimumOverallEvaluable"],
+        "developmentSample": selected["development"]["evaluableCount"] >= CHART_SIGNAL_QUALIFICATION["minimumDevelopmentEvaluable"],
+        "holdoutSample": selected["holdout"]["evaluableCount"] >= CHART_SIGNAL_QUALIFICATION["minimumHoldoutEvaluable"],
+        "recentSample": selected["recent"]["evaluableCount"] >= 10,
+        "overallAverageR": (selected["overall"]["stressedAverageR"] or 0) >= CHART_SIGNAL_QUALIFICATION["minimumAverageR"],
+        "developmentAverageR": (selected["development"]["stressedAverageR"] or 0) >= CHART_SIGNAL_QUALIFICATION["minimumAverageR"],
+        "holdoutAverageR": (selected["holdout"]["stressedAverageR"] or 0) >= CHART_SIGNAL_QUALIFICATION["minimumAverageR"],
+        "recentAverageR": (selected["recent"]["stressedAverageR"] or 0) >= CHART_SIGNAL_QUALIFICATION["minimumAverageR"],
+        "yearCoverage": selected["yearStability"]["evaluableYears"] >= 8,
+        "positiveYearShare": selected["yearStability"]["positiveYearShare"] >= 0.60,
+        "ambiguity": (selected["overall"]["ambiguousRate"] or 0) <= CHART_SIGNAL_QUALIFICATION["maximumAmbiguousRate"],
+      }
+      holdout_ci = selected["holdout"].get("stressedExpectancyCi95") or {}
+      diagnostic_checks = {
+        **checks,
+        "holdoutLower95Positive": holdout_ci.get("lower") is not None and float(holdout_ci["lower"]) > 0,
+      }
+      pattern = known_patterns.get((source_version, signature))
+      example_events = [event for row in rows for event in row.get("events", [])]
+      candidates.append({
+        "sourceVersionId": source_version,
+        "signature": signature,
+        "label": str(pattern["label"]) if pattern else _pattern_label(signature, example_events),
+        "direction": signature.split("|", 1)[0],
+        "groups": signature.split("|")[1:],
+        "exampleTitles": sorted({str(event.get("title", "")) for event in example_events if event.get("title")})[:8],
+        "historicalN": len(profiles),
+        "currentRegistered": (source_version, signature) in current_signatures,
+        "currentPatternId": current_signatures.get((source_version, signature)),
+        "path30": summarize_candidate_paths(profiles, PATH_RESEARCH_HORIZON),
+        "path60": summarize_candidate_paths(profiles, PATH_RESEARCH_MAX_HORIZON),
+        "selectedOn": "development_only",
+        "selectedConfiguration": selected,
+        "configurationStability": _configuration_stability(configurations, selected),
+        "checks": diagnostic_checks,
+        "passesExploratoryScreen": all(checks.values()),
+        "passesStrictHoldoutCheck": all(diagnostic_checks.values()),
+        "reusedHistory": True,
+      })
+  candidates.sort(key=lambda row: (
+    not row["currentRegistered"],
+    not row["passesExploratoryScreen"],
+    -(float(row["selectedConfiguration"]["holdout"].get("stressedAverageR") or -999.0)),
+    -int(row["historicalN"]),
+    str(row["label"]),
+  ))
+  protocol = {
+    "pathHorizonCandles": PATH_RESEARCH_HORIZON,
+    "maximumPathHorizonCandles": PATH_RESEARCH_MAX_HORIZON,
+    "thresholdsR": list(PATH_RESEARCH_THRESHOLDS_R),
+    "stopAtrValues": list(STRESS_STOP_ATR_VALUES),
+    "targetRValues": list(STRESS_TARGET_R_VALUES),
+    "holdingCandles": list(STRESS_HOLDING_CANDLES),
+    "entry": "first_h4_open_strictly_after_release",
+    "selection": "configuration selected on development lower-95 expectancy, then development average; holdout never enters configuration selection",
+    "exploratoryScreen": "minimum samples, at least +0.10R stressed average in overall/development/holdout/recent, 8 years, 60% positive years, and bounded ambiguity",
+    "intrabar": "same-H4 stop-and-target touches are ambiguous in this matrix; existing frozen 1R/1.5R/2R results retain M1 resolution",
+    "stressPips": CHART_SIGNAL_EXECUTION_STRESS_PIPS,
+    "primaryWindowDays": PRIMARY_WINDOW_DAYS,
+  }
+  return {
+    "schemaVersion": CANDIDATE_STRESS_SCHEMA_VERSION,
+    "generatedAt": generated_at,
+    "modelId": CHART_SIGNAL_MODEL_ID,
+    "protocol": protocol,
+    "protocolHash": hashlib.sha256(json.dumps(protocol, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest(),
+    "sourceVersions": [str(source["versionId"]) for source in source_results],
+    "candleCoverage": {
+      "count": len(candles),
+      "earliest": candle_times[0] if candle_times else None,
+      "latest": candle_times[-1] if candle_times else None,
+    },
+    "configurationsTested": configurations_tested,
+    "signaturesTested": configurations_tested // (
+      len(STRESS_STOP_ATR_VALUES) * len(STRESS_TARGET_R_VALUES) * len(STRESS_HOLDING_CANDLES)
+    ),
+    "candidateCount": len(candidates),
+    "candidates": candidates,
+    "limitations": [
+      "Every candidate and configuration is reused-history research and cannot be promoted directly from this report.",
+      "The flexible matrix excludes spread, commission, slippage, and swap and applies only the existing three-pip result stress.",
+      "Maximum favorable excursion is known only afterward and cannot itself be used as a live exit.",
+      "Trying many configurations increases selection risk; the chosen rule must be frozen before later evaluation.",
+    ],
+  }
+
+
 CHART_SIGNAL_QUALIFICATION = {
   "targetR": 2.0,
   "minimumOverallEvaluable": 40,
@@ -861,7 +1277,6 @@ CHART_SIGNAL_QUALIFICATION = {
 
 CHART_SIGNAL_MODEL_ID = "FMS-EURUSD-MULTI-H4-CQ-v9"
 CHART_SIGNAL_MODEL_CREATED_AT = 1787238461  # 2026-08-20 15:07:41 UTC
-CHART_SIGNAL_EXECUTION_STRESS_PIPS = 3.0
 CHART_SIGNAL_RECENT_DAYS = 3 * 365
 CHART_SIGNAL_PATTERN_DEFINITIONS = (
   {

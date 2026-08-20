@@ -9,9 +9,9 @@ import { ChartPairMatrixContextMarkers, clusterPairMatrixMarkerViews } from "@/a
 import { ChartPairMatrixRangeOverlay, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
 import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
 import { MacroBiasConnectorPrimitive } from "@/app/lib/macroBiasConnectorPrimitive";
-import { buildMacroSignalShadowAccount, buildMacroSignalShadowPosition } from "@/app/lib/macroSignalShadow";
+import { buildMacroSignalShadowAccount, buildMacroSignalShadowPosition, normalizeShadowRiskPercent, normalizeShadowStartingBalance } from "@/app/lib/macroSignalShadow";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
-import { buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasReplayStatusLabel, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange } from "@/app/tabs/primary/ChartsTab";
+import { buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasReplayStatusLabel, getMacroBiasRequestScope, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange } from "@/app/tabs/primary/ChartsTab";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalMetrics } from "@/app/types";
 import { getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
@@ -67,6 +67,19 @@ describe("getChartConnectionLabel", () => {
     const h1Signal = { ...makeSignal("h1", 1_000, "long"), activationTime: 3_600 };
     expect(getMacroBiasActiveState([h1Signal], h1Candles, 0, "H1")).toMatchObject({ remainingCandles: 1 });
     expect(getMacroBiasActiveState([{ ...h1Signal, activationTime: null }], h1Candles, 0, "H1")).toBeNull();
+
+    const m15Candles = Array.from({ length: 20 }, (_, index) => ({ time: index * 900, open: 1.1, high: 1.2, low: 1, close: 1.15, volume: 1 }));
+    const m15Built = buildMacroBiasSeriesMarkers([makeSignal("m15", 1_000, "long")], m15Candles, "M15", 0);
+    expect(m15Built.markers).toMatchObject([{ time: 14_400, shape: "arrowUp" }]);
+    expect(m15Built.connectors).toMatchObject([{ releaseTime: 900, activationTime: 14_400 }]);
+
+    const d1Candles = [0, 86_400].map((time) => ({ time, open: 1.1, high: 1.2, low: 1, close: 1.15, volume: 1 }));
+    const d1Built = buildMacroBiasSeriesMarkers([makeSignal("d1", 1_000, "short")], d1Candles, "D1", 0);
+    expect(d1Built.markers).toMatchObject([{ time: 0, shape: "arrowDown" }]);
+    expect(d1Built.connectors).toEqual([]);
+    expect([...d1Built.signalByMarkerId.keys()]).toEqual(["macro-bias-activation:d1"]);
+    expect(getMacroBiasActiveState([makeSignal("d1-active", 1_000, "long")], [d1Candles[0]], 0, "D1"))
+      .toMatchObject({ activationCandleOpen: 0, remainingCandles: null, expiryCandleOpen: null });
   });
   it("keeps the current model separate from hindsight research replay in the chart toolbar", () => {
     expect(getMacroBiasReplayStatusLabel({
@@ -87,16 +100,21 @@ describe("getChartConnectionLabel", () => {
       macroBiasSupported: true,
       macroBiasStatusLabel: "One current pattern",
       macroBiasMode: "current",
+      macroBiasHistoricalMatchesVisible: true,
+      macroBiasHistoricalMatchesCount: 42,
       macroBiasActiveLabel: "No active bias",
       onCursorModeChange: () => {},
       onRefocusChart: () => {},
       onOpenDrawer: () => {},
       onToggleMacroBias: () => {},
       onMacroBiasModeChange: () => {},
+      onToggleMacroBiasHistoricalMatches: () => {},
     }));
 
     expect(html).toContain("Current model");
     expect(html).toContain("Research replay");
+    expect(html).toContain("Historical matches");
+    expect(html).toContain(">42<");
     expect(html).toContain("No active bias");
   });
   it("makes target sensitivity, resolved outcomes, costs, and uncertainty explicit in the bias audit", () => {
@@ -178,7 +196,16 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("No trade");
     expect(html).toContain("Waiting for a frozen setup");
     expect(html).toContain("Possible next setup");
-    expect(html).toContain("H4 model on H1");
+    expect(html).toContain("Automatically selected from the frozen current registry");
+    expect(html).toContain("Registered current setups");
+    expect(html).toContain("2R target first");
+    expect(html).toContain("Historical N");
+    expect(html).toContain("Recent window");
+    expect(html).toContain("Past-only audit");
+    expect(html).toContain("Registered EUR evidence improves");
+    expect(html).toContain("Long EURUSD");
+    expect(html).toContain("Zero, missing, or nonmatching");
+    expect(html).toContain("H4 backtest · shown on H1");
     expect(html).toContain("1970-01-01 00:05 UTC");
     expect(html).toContain("Long if sentiment improves; Short if it weakens.");
     expect(html).toContain("4 / 10");
@@ -208,6 +235,19 @@ describe("getChartConnectionLabel", () => {
     expect(position.riskDollars).toBe(5);
     expect(position.stopPips).toBeCloseTo(50);
     expect(position.lots).toBeCloseTo(.01);
+    expect(normalizeShadowStartingBalance(25)).toBe(25);
+    expect(normalizeShadowRiskPercent(12.5)).toBe(12.5);
+    expect(normalizeShadowStartingBalance(0)).toBe(1);
+    expect(normalizeShadowRiskPercent(150)).toBe(100);
+  });
+  it("reuses the H4 Current Model on every timeframe while replay remains viewport-specific", () => {
+    const currentH4 = getMacroBiasRequestScope({ mode: "current", symbol: "EURUSD", timeframe: "H4", from: 100, to: 200, calendarRevision: "calendar-a" });
+    const currentH1 = getMacroBiasRequestScope({ mode: "current", symbol: "EURUSD", timeframe: "H1", from: 300, to: 400, calendarRevision: "calendar-a" });
+    expect(currentH1).toBe(currentH4);
+    expect(getMacroBiasRequestScope({ mode: "current", symbol: "EURUSD", timeframe: "M1", from: 500, to: 600, calendarRevision: "calendar-a" })).toBe(currentH4);
+    expect(getMacroBiasRequestScope({ mode: "current", symbol: "EURUSD", timeframe: "MN1", from: 700, to: 800, calendarRevision: "calendar-a" })).toBe(currentH4);
+    expect(getMacroBiasRequestScope({ mode: "research_replay", symbol: "EURUSD", timeframe: "H4", from: 100, to: 200, calendarRevision: "calendar-a" }))
+      .not.toBe(getMacroBiasRequestScope({ mode: "research_replay", symbol: "EURUSD", timeframe: "H4", from: 300, to: 400, calendarRevision: "calendar-a" }));
   });
   it("restarts the hover quiet period when raw pointer motion continues", () => {
     expect(getPairMatrixHoverSettleDelay(1_000, 1_040, 120)).toBe(80);
