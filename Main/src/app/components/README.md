@@ -16,7 +16,11 @@ This folder contains shared app-shell and feature support components. Keep featu
 - `ChartStatusRail.tsx` - Charts connection/session/latest-candle status rail and timezone dropdown.
 - `ChartSymbolPicker.tsx` - Charts symbol search, favorites, group expansion, and timeframe strip.
 - `ChartToolStrip.tsx` - Charts cursor mode, refocus, events, appearance, and cache tool buttons.
-- `ChartViewport.tsx` - Charts canvas frame, event overlay mounting, crosshair readout, error overlay, and terminal console rendering.
+- `ChartViewport.tsx` - Charts canvas frame, event overlay mounting, crosshair readout, Macro Bias overlays, error overlay, and terminal console rendering.
+- `ChartMacroBiasRealtimeCard.tsx` - bounded `FMS Shadow Trader` card. It shows the Current Model decision, a gross-only configurable shadow account, a one-position-at-a-time historical replay, and the next structurally possible frozen setup; it must keep H4-model-on-H1 provenance and never imply order execution.
+- `../lib/macroSignalShadow.ts` - pure gross shadow-account replay and hypothetical EURUSD position sizing. Costs are deliberately excluded rather than estimated.
+- `../lib/macroBiasConnectorPrimitive.ts` - native Lightweight Charts release-ring to next-H4 activation connector; it paints in the chart pane's own render cycle and exposes release-ring hit testing for audit access.
+- `ChartMacroBiasAudit.tsx` - clicked-arrow source, outcome, robustness, cost-stress, and model-provenance audit.
 - `CentralBanksViews.tsx` - Central Banks command/focus view rendering; `CentralBanksTab.tsx` owns only mode state and shell controls.
 - `EconomicCalendarControls.tsx` - Economic Calendar help tooltip, freshness chip, impact summary, and clock cards.
 - `EconomicCalendarEventsTable.tsx` - Economic Calendar grouped event table and row selection rendering.

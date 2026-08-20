@@ -176,6 +176,12 @@ def test_macro_chart_signals_are_honest_for_unsupported_instruments() -> None:
   assert response.json()["signals"] == []
 
 
+def test_macro_chart_signals_reject_an_unknown_signal_view() -> None:
+  response = client.get("/research/chart-signals", params={"symbol": "EURUSD", "tf": "H4", "mode": "best_hindsight"})
+  assert response.status_code == 400
+  assert response.json()["detail"] == "Macro Bias mode must be current or research_replay"
+
+
 def test_history_range_validates_range_size():
   start = int(time.time())
   end = start + 50 * 24 * 60 * 60

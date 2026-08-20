@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Checklist
 
-Last updated: 2026-08-16
+Last updated: 2026-08-20
 
 ## Active Planning Source
 
@@ -122,7 +122,15 @@ These are independent exploration sketches, not committed implementation specifi
 - [x] Run v2's exploratory historical baseline and implement its immutable automatic forward-paper ledger without promoting it to Charts.
 - [x] Activate the forward ledger by compiling/reloading the upgraded calendar EA and verify a successful complete-cycle acknowledgement; genuinely new v2 releases now accumulate without manual backtest refreshes.
 - [x] Add an opt-in EURUSD/H4 `Macro bias` Charts layer for recurring v2 patterns that pass fixed development-and-holdout historical gates, with clickable sample/expectancy/source-event audits and no automatic execution.
-- [ ] Keep Inflation, Policy, learned weights, and broader signal patterns deferred until separately versioned research justifies them.
+- [x] Harden Charts signals as `FMS-EURUSD-LABOR-H4-CQ-v3`: separate immutable post-activation Current Model from hindsight Research Replay; move directional arrows to the first strictly later H4 entry candle; retain a release dot; end active state on resolved outcomes; add three-pip stress, 1R/1.5R/2R sensitivity, cost break-even, uncertainty, recent-window, year-stability, and past-only qualification audits; freeze US-payroll Short as current while demoting recently weakened Euro-area-unemployment Long to replay-only.
+- [x] Run a fixed-factor EURUSD/H4 search across registered Economy families; reject unstable activity, trade, and retail leads; register country-aware `FMS-EURUSD-SENTIMENT-H4-v3`; and freeze `FMS-EURUSD-MULTI-H4-CQ-v4` with US-payroll Short plus symmetric Euro-area-consumer-sentiment direction as Current Model patterns.
+- [x] Add the Charts v4 real-time decision card: explicit Long/Short/No-qualified-bias state, exact condition, historical target-first/stop-first/stressed-average audit, next EUR/USD event, next structurally possible frozen setup, and an honest H4-model-on-H1 view.
+- [x] Explain sparse Macro Bias regions with the last replay-arrow date and later nonmatching scored-package count; repair the audit/current-card toolbar overlap; and make release connectors follow chart drag/zoom through imperative frame updates rather than React rerenders.
+- [x] Freeze country-aware Growth source `FMS-EURUSD-GROWTH-H4-v7`, reject the negative broad baseline and unstable GDP/PMI/retail/trade signatures, preserve interim v8 immutably, then freeze Charts `FMS-EURUSD-MULTI-H4-CQ-v9` with positive stressed 1R/1.5R/2R required, promote US-industrial-output Short, and move payroll Short to Research Replay after its lower targets failed that stronger gate.
+- [x] Freeze and run country-aware `FMS-EURUSD-POLICY-INFL-H4-v5`: deduplicate exact series/timestamps, test strict consumer/producer inflation and canonical Fed/ECB decisions, reject direct policy arrows, and retain Euro-area producer-inflation Long as failed-year-gate research only.
+- [x] Freeze Charts `FMS-EURUSD-MULTI-H4-CQ-v6`: preserve the two v4 Current Model patterns, add factual EUR/USD Policy/Inflation context, add the v5 producer-inflation candidate only to Research Replay, and connect each release ring visually to its strictly later H4 activation arrow.
+- [x] Replace the Current Model card with `FMS Shadow Trader`: configurable `$1,000`/`0.5%` defaults, one gross hypothetical position at a time, 1x ATR(14) stop, frozen 2R target, sequential compounding, historical current-pattern replay, explicit No-trade/Waiting/Possible-next-setup states, and no MT5 execution. Exclude spread, commission, slippage, and swap instead of estimating them; keep the Research Replay audit below the Pair Matrix dock.
+- [ ] Keep learned weights, policy-language interpretation, regime-fitted filters, and additional broader signal patterns deferred until separately versioned research justifies them.
 
 ## Completed Work Log
 

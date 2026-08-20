@@ -21,6 +21,10 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from macro_signal import (
   ACTIVE_VERSION_ID,
+  CHART_SIGNAL_MODEL_CREATED_AT,
+  CHART_SIGNAL_MODEL_HASH,
+  CHART_SIGNAL_MODEL_ID,
+  CHART_SIGNAL_PATTERN_DEFINITIONS,
   FORWARD_PAPER_GATE,
   H4_SECONDS,
   RESULT_SCHEMA_VERSION,
@@ -29,11 +33,13 @@ from macro_signal import (
   V2_VERSION_ID,
   aggregate_outcomes,
   build_backtest_result,
+  build_chart_signal_pattern_catalog,
+  build_chart_signal_realtime_watch,
+  build_policy_inflation_context,
   build_signal_candidates,
   calculate_atr_by_candle,
   candidate_pattern_signature,
   dataset_fingerprint,
-  discover_qualified_chart_patterns,
   evaluate_candidate,
   get_signal_definition,
 )
@@ -125,11 +131,20 @@ class CalendarIngestCycleRequest(BaseModel):
 
 
 _research_store = ResearchStore()
+_chart_model_metadata_key = f"chart_signal_model_hash:{CHART_SIGNAL_MODEL_ID}"
+_stored_chart_model_hash = _research_store.get_metadata(_chart_model_metadata_key)
+if _stored_chart_model_hash is not None and _stored_chart_model_hash != CHART_SIGNAL_MODEL_HASH:
+  raise RuntimeError(
+    f"Chart signal model {CHART_SIGNAL_MODEL_ID} already exists with a different configuration; create a new model id"
+  )
+_research_store.set_metadata(_chart_model_metadata_key, CHART_SIGNAL_MODEL_HASH)
 _research_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="fyodor-research")
 _forward_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="fyodor-forward")
 _research_mt5_lock = Lock()
 _forward_schedule_lock = Lock()
 _forward_reconcile_scheduled = False
+_chart_signal_catalog_lock = Lock()
+_chart_signal_catalog_cache: Dict[str, List[Dict[str, Any]]] = {}
 
 # First timestamp at which Fyodor can honestly guarantee immutable first-seen
 # release values and complete EA upload cycles for forward paper evidence.
@@ -923,16 +938,16 @@ def _paper_case_state(outcomes: Dict[str, Dict[str, Any]]) -> str:
   return "completed"
 
 
-def _reconcile_forward_paper(observed_at: int) -> None:
-  """Freeze newly observed v2 packages and advance open paper outcomes."""
-  definition = get_signal_definition(V2_VERSION_ID)
-  if definition is None:
-    return
-  observations = _research_store.query_release_observations(
-    from_time=FORWARD_LEDGER_ACTIVATED_AT,
-    currencies=["EUR", "USD"],
-  )
-  candidates = build_signal_candidates(observations, now=observed_at, definition=definition)
+def _reconcile_forward_paper_definition(
+  definition: Any,
+  observed_at: int,
+  observations: List[Dict[str, Any]],
+) -> None:
+  """Freeze and advance one immutable research definition's paper cases."""
+  candidates = [
+    candidate for candidate in build_signal_candidates(observations, now=observed_at, definition=definition)
+    if int(candidate["eventTime"]) >= int(definition.created_at)
+  ]
   existing = {
     int(case["eventTime"]): case
     for case in _research_store.query_paper_cases(definition.id)
@@ -1012,6 +1027,17 @@ def _reconcile_forward_paper(observed_at: int) -> None:
       )
 
 
+def _reconcile_forward_paper(observed_at: int) -> None:
+  """Advance every source model used by the current Charts signal model."""
+  observations = _research_store.query_release_observations(
+    from_time=FORWARD_LEDGER_ACTIVATED_AT,
+    currencies=["EUR", "USD"],
+  )
+  for definition in SIGNAL_DEFINITIONS.values():
+    if not definition.historical_gate_allowed:
+      _reconcile_forward_paper_definition(definition, observed_at, observations)
+
+
 def _run_scheduled_forward_reconcile(observed_at: int) -> None:
   global _forward_reconcile_scheduled
   try:
@@ -1034,8 +1060,9 @@ def _schedule_forward_reconcile(observed_at: int) -> bool:
 
 
 def _forward_paper_payload(version_id: str) -> Dict[str, Any]:
-  if version_id != V2_VERSION_ID:
-    raise HTTPException(status_code=400, detail="Forward paper ledger is available for v2 only")
+  definition = get_signal_definition(version_id)
+  if definition is None or definition.historical_gate_allowed:
+    raise HTTPException(status_code=400, detail="Forward paper ledger is available for registered exploratory source models only")
   cases = _research_store.query_paper_cases(version_id)
   eligible_cases = [case for case in cases if case["state"] != "late_for_contract"]
   target_metrics: Dict[str, Dict[str, Any]] = {}
@@ -1045,7 +1072,8 @@ def _forward_paper_payload(version_id: str) -> Dict[str, Any]:
     target_metrics[key] = aggregate_outcomes(outcomes)
   highlighted = target_metrics[str(2.0)]
   now = int(_time.time())
-  elapsed_days = max(0, (now - FORWARD_LEDGER_ACTIVATED_AT) // (24 * 60 * 60))
+  activated_at = max(FORWARD_LEDGER_ACTIVATED_AT, int(definition.created_at))
+  elapsed_days = max(0, (now - activated_at) // (24 * 60 * 60))
   ci = highlighted.get("expectancyCi95")
   checks = {
     "minimumElapsedDays": elapsed_days >= int(FORWARD_PAPER_GATE["minimumElapsedDays"]),
@@ -1064,7 +1092,7 @@ def _forward_paper_payload(version_id: str) -> Dict[str, Any]:
   failed_batches_raw = _research_store.get_metadata("last_calendar_cycle_failed_batches")
   return {
     "versionId": version_id,
-    "activatedAt": FORWARD_LEDGER_ACTIVATED_AT,
+    "activatedAt": activated_at,
     "elapsedDays": elapsed_days,
     "immutable": True,
     "lastSuccessfulCycleAt": int(last_cycle_raw) if last_cycle_raw is not None else None,
@@ -1192,76 +1220,222 @@ def research_forward(versionId: str = V2_VERSION_ID) -> Dict[str, Any]:
 def research_chart_signals(
   symbol: str = "EURUSD",
   tf: str = "H4",
+  mode: str = "current",
   from_: Optional[int] = None,
   to: Optional[int] = None,
 ) -> Dict[str, Any]:
   normalized_symbol = symbol.upper()
   normalized_tf = tf.upper()
-  if normalized_symbol != "EURUSD" or normalized_tf != "H4":
+  normalized_mode = mode.lower()
+  if normalized_mode not in {"current", "research_replay"}:
+    raise HTTPException(status_code=400, detail="Macro Bias mode must be current or research_replay")
+  if normalized_symbol != "EURUSD" or normalized_tf not in {"H1", "H4"}:
     return {
       "supported": False,
-      "versionId": V2_VERSION_ID,
+      "versionId": CHART_SIGNAL_MODEL_ID,
+      "modelId": CHART_SIGNAL_MODEL_ID,
+      "modelHash": CHART_SIGNAL_MODEL_HASH,
+      "modelActivatedAt": CHART_SIGNAL_MODEL_CREATED_AT,
+      "mode": normalized_mode,
       "symbol": normalized_symbol,
       "timeframe": normalized_tf,
+      "modelTimeframe": "H4",
       "targetR": 2.0,
       "patterns": [],
       "signals": [],
-      "message": "Fyodor Macro Bias currently supports EURUSD H4 only.",
+      "message": "Fyodor Macro Bias currently supports EURUSD H4 and an H4-model view on H1 only.",
     }
-  run = _research_store.latest_backtest_run(V2_VERSION_ID)
-  result = run.get("result") if run and run.get("status") == "completed" else None
-  if not isinstance(result, dict):
-    raise HTTPException(status_code=409, detail="Run the v2 historical research baseline before loading chart signals")
-  target_result = result.get("targets", {}).get("2.0", {})
-  outcomes = target_result.get("outcomes", [])
-  split_time = result.get("candidateSummary", {}).get("developmentHoldoutBoundary")
-  if not isinstance(outcomes, list) or not isinstance(split_time, int):
-    raise HTTPException(status_code=409, detail="The latest v2 result does not contain a qualifying historical split")
-  patterns = discover_qualified_chart_patterns(outcomes, split_time)
-  pattern_by_signature = {pattern["signature"]: pattern for pattern in patterns}
-  definition = get_signal_definition(V2_VERSION_ID)
-  generated_at = int(result.get("generatedAt", 0))
-  recent_events = _research_store.query_calendar(
-    from_time=max(0, generated_at - 90 * 24 * 60 * 60),
+  source_versions = sorted({str(pattern["sourceVersion"]) for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS})
+  source_runs: Dict[str, Dict[str, Any]] = {}
+  source_results: Dict[str, Dict[str, Any]] = {}
+  for source_version in source_versions:
+    run = _research_store.latest_backtest_run(source_version)
+    result = run.get("result") if run and run.get("status") == "completed" else None
+    if not isinstance(result, dict):
+      raise HTTPException(status_code=409, detail=f"Run the {source_version} historical research baseline before loading chart signals")
+    outcomes = result.get("targets", {}).get("2.0", {}).get("outcomes", [])
+    split_time = result.get("candidateSummary", {}).get("developmentHoldoutBoundary")
+    if not isinstance(outcomes, list) or not isinstance(split_time, int):
+      raise HTTPException(status_code=409, detail=f"The latest {source_version} result does not contain a qualifying historical split")
+    source_runs[source_version] = run
+    source_results[source_version] = result
+  dataset_fingerprint = hashlib.sha256(
+    "|".join(
+      f"{version}:{source_results[version].get('datasetFingerprint', '')}"
+      for version in source_versions
+    ).encode("utf-8")
+  ).hexdigest()
+  catalog_key = f"{':'.join(str(source_runs[version].get('id', '')) for version in source_versions)}:{dataset_fingerprint}:{CHART_SIGNAL_MODEL_HASH}"
+  with _chart_signal_catalog_lock:
+    catalog = _chart_signal_catalog_cache.get(catalog_key)
+  if catalog is None:
+    catalog = []
+    for source_version in source_versions:
+      result = source_results[source_version]
+      catalog.extend(build_chart_signal_pattern_catalog(
+        result["targets"]["2.0"]["outcomes"],
+        result["candidateSummary"]["developmentHoldoutBoundary"],
+        {
+          target_r: target_payload.get("outcomes", [])
+          for target_r, target_payload in result.get("targets", {}).items()
+          if isinstance(target_payload, dict)
+        },
+        source_version,
+      ))
+    with _chart_signal_catalog_lock:
+      _chart_signal_catalog_cache.clear()
+      _chart_signal_catalog_cache[catalog_key] = catalog
+  patterns = [
+    pattern for pattern in catalog
+    if normalized_mode == "research_replay" or pattern["currentEligible"]
+  ]
+  pattern_by_signature = {
+    (pattern["sourceVersionId"], signature): pattern
+    for pattern in patterns
+    for signature in pattern["signatures"]
+  }
+  observed_events = _research_store.query_release_observations(
+    from_time=FORWARD_LEDGER_ACTIVATED_AT,
     currencies=["EUR", "USD"],
   )
-  live_candidates = [
-    candidate
-    for candidate in build_signal_candidates(recent_events, now=int(_time.time()), definition=definition)
-    if int(candidate["eventTime"]) > generated_at
+  observation_coverage_start = min((int(event["time"]) for event in observed_events), default=None)
+  current_candidates: List[Tuple[str, Dict[str, Any]]] = []
+  for source_version in source_versions:
+    definition = get_signal_definition(source_version)
+    if definition is None:
+      continue
+    current_candidates.extend(
+      (source_version, candidate)
+      for candidate in build_signal_candidates(observed_events, now=int(_time.time()), definition=definition)
+      if int(candidate["eventTime"]) >= CHART_SIGNAL_MODEL_CREATED_AT
+    )
+  paper_cases = {
+    (source_version, int(case["eventTime"])): case
+    for source_version in source_versions
+    for case in _research_store.query_paper_cases(source_version)
+  }
+  # Keep the two views provenance-pure. Current signals must remain based on
+  # immutable first-seen EA observations even after a historical backtest is
+  # refreshed; replay signals must remain the frozen archive reconstruction.
+  candidates = current_candidates if normalized_mode == "current" else [
+    (source_version, outcome)
+    for source_version in source_versions
+    for outcome in source_results[source_version]["targets"]["2.0"]["outcomes"]
   ]
-  candidates = [*outcomes, *live_candidates]
+  window_candidates = [
+    (source_version, candidate)
+    for source_version, candidate in candidates
+    if (from_ is None or int(candidate["eventTime"]) >= from_)
+    and (to is None or int(candidate["eventTime"]) <= to)
+  ]
   signals: List[Dict[str, Any]] = []
-  for candidate in candidates:
+  for source_version, candidate in window_candidates:
     event_time = int(candidate["eventTime"])
-    if from_ is not None and event_time < from_:
-      continue
-    if to is not None and event_time > to:
-      continue
-    pattern = pattern_by_signature.get(candidate_pattern_signature(candidate))
+    pattern = pattern_by_signature.get((source_version, candidate_pattern_signature(candidate)))
     if pattern is None:
       continue
+    paper_outcome = paper_cases.get((source_version, event_time), {}).get("outcomes", {}).get("2.0", {})
+    activation_time = candidate.get("entryTime") or paper_outcome.get("entryTime")
+    def outcome_value(name: str) -> Any:
+      return candidate.get(name) if candidate.get(name) is not None else paper_outcome.get(name)
     signals.append({
       "id": f"{pattern['id']}:{event_time}",
       "patternId": pattern["id"],
+      "sourceVersionId": source_version,
       "eventTime": event_time,
       "direction": candidate["direction"],
       "label": pattern["label"],
       "agreement": candidate["agreement"],
       "pairVote": candidate["pairVote"],
+      "backgroundDirection": candidate["backgroundDirection"],
+      "backgroundPairVote": candidate["backgroundPairVote"],
+      "backgroundAlignment": candidate["backgroundAlignment"],
+      "backgroundCoverageComplete": (
+        normalized_mode == "research_replay"
+        or (
+          observation_coverage_start is not None
+          and event_time - observation_coverage_start >= 90 * 24 * 60 * 60
+        )
+      ),
+      "highestImpact": candidate["highestImpact"],
       "events": candidate["events"],
+      "activationTime": int(activation_time) if activation_time is not None else None,
+      "expiryCandles": 30,
+      "entry": outcome_value("entry"),
+      "atr": outcome_value("atr"),
+      "stop": outcome_value("stop"),
+      "target": outcome_value("target"),
+      "outcomeStatus": candidate.get("status") or paper_outcome.get("status"),
+      "resultR": candidate.get("resultR") if candidate.get("resultR") is not None else paper_outcome.get("resultR"),
+      "exitTime": candidate.get("exitTime") or paper_outcome.get("exitTime"),
+      "historicalReplay": normalized_mode == "research_replay",
     })
+  latest_matched_event_at = max((int(signal["eventTime"]) for signal in signals), default=None)
+  latest_arrow_at = max(
+    (
+      int(signal["activationTime"])
+      if signal.get("activationTime") is not None
+      else (int(signal["eventTime"]) // H4_SECONDS + 1) * H4_SECONDS
+      for signal in signals
+    ),
+    default=None,
+  )
+  later_unmatched_package_count = sum(
+    1
+    for source_version, candidate in window_candidates
+    if latest_matched_event_at is not None
+    and int(candidate["eventTime"]) > latest_matched_event_at
+    and (source_version, candidate_pattern_signature(candidate)) not in pattern_by_signature
+  )
+  generated_at = _get_server_time_from_mt5(normalized_symbol) or int(_time.time())
+  scheduled_events = _research_store.query_calendar(
+    from_time=generated_at + 1,
+    currencies=["EUR", "USD"],
+  )
+  realtime = build_chart_signal_realtime_watch(
+    scheduled_events,
+    generated_at,
+    frozenset(str(pattern["id"]) for pattern in catalog if pattern["currentEligible"]),
+  )
+  context_events = _research_store.query_calendar(
+    from_time=generated_at - 5 * 365 * 24 * 60 * 60,
+    to_time=generated_at,
+    currencies=["EUR", "USD"],
+  )
+  policy_inflation_context = build_policy_inflation_context(context_events, generated_at)
   return {
     "supported": True,
-    "versionId": V2_VERSION_ID,
-    "versionHash": SIGNAL_DEFINITIONS[V2_VERSION_ID].configuration_hash,
+    "versionId": CHART_SIGNAL_MODEL_ID,
+    "versionHash": CHART_SIGNAL_MODEL_HASH,
+    "modelId": CHART_SIGNAL_MODEL_ID,
+    "modelHash": CHART_SIGNAL_MODEL_HASH,
+    "modelActivatedAt": CHART_SIGNAL_MODEL_CREATED_AT,
+    "datasetFingerprint": dataset_fingerprint,
+    "mode": normalized_mode,
     "symbol": normalized_symbol,
     "timeframe": normalized_tf,
+    "modelTimeframe": "H4",
     "targetR": 2.0,
-    "generatedAt": int(_time.time()),
+    "generatedAt": generated_at,
+    "realtime": realtime,
+    "policyInflationContext": policy_inflation_context,
+    "evaluationSummary": {
+      "evaluatedPackageCount": len(window_candidates),
+      "matchingPackageCount": len(signals),
+      "latestEvaluatedAt": max((int(candidate["eventTime"]) for _, candidate in window_candidates), default=None),
+      "latestMatchedEventAt": latest_matched_event_at,
+      "latestArrowAt": latest_arrow_at,
+      "laterUnmatchedPackageCount": later_unmatched_package_count,
+    },
     "patterns": patterns,
     "signals": signals,
-    "message": "Historically qualified experimental biases; not automatic orders or guaranteed outcomes.",
+    "currentPatternCount": sum(pattern["currentEligible"] for pattern in catalog),
+    "researchPatternCount": len(catalog),
+    "message": (
+      "Current v9 model: only post-activation releases matching frozen, recent-stress-qualified and target-robust patterns are eligible; policy/inflation context is descriptive only."
+      if normalized_mode == "current" else
+      "Historical research replay: arrows use patterns selected after reviewing the archive and were not available in real time."
+    ),
   }
 
 

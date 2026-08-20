@@ -1,5 +1,6 @@
 export type MacroSignalDirection = "long" | "short" | "none";
 export type MacroSignalRunStatus = "queued" | "running" | "completed" | "failed";
+export type MacroSignalOutcomeStatus = "target_hit" | "stop_hit" | "expired" | "ambiguous" | "unevaluable" | "no_direction" | "pending";
 
 export interface MacroSignalCoverageCurrency {
   currency: string;
@@ -92,7 +93,7 @@ export interface MacroSignalOutcome {
   targetR: number;
   factorVotes: MacroSignalFactorVote[];
   events: MacroSignalScoredEvent[];
-  status: "target_hit" | "stop_hit" | "expired" | "ambiguous" | "unevaluable" | "no_direction" | "pending";
+  status: MacroSignalOutcomeStatus;
   resultR: number | null;
   reason: string;
   entryTime?: number;
@@ -274,36 +275,154 @@ export interface MacroSignalForwardPaper {
 export interface MacroSignalChartPattern {
   id: string;
   signature: string;
+  signatures: string[];
+  sourceVersionId: string;
   label: string;
-  direction: "long" | "short";
+  condition: string;
+  direction: "long" | "short" | "both";
   groups: string[];
   overall: MacroSignalMetrics;
   development: MacroSignalMetrics;
   holdout: MacroSignalMetrics;
   qualification: Record<string, number>;
   exampleTitles: string[];
+  modelStatus: "current" | "research_only";
+  currentEligible: boolean;
+  modelChecks: Record<string, boolean>;
+  executionStress: {
+    pips: number;
+    overall: MacroSignalMetrics;
+    development: MacroSignalMetrics;
+    holdout: MacroSignalMetrics;
+    recent: MacroSignalMetrics;
+  };
+  recentWindow: { from: number; to: number; metrics: MacroSignalMetrics };
+  yearStability: {
+    evaluableYears: number;
+    positiveYears: number;
+    positiveYearShare: number;
+    byYear: Array<{ year: number; metrics: MacroSignalMetrics }>;
+  };
+  prequentialAudit: {
+    evaluableCount: number;
+    gross: MacroSignalMetrics;
+    executionStress: MacroSignalMetrics;
+    firstEligibleEventTime: number | null;
+    lastEligibleEventTime: number | null;
+  };
+  targetRobustness: Array<{
+    targetR: number;
+    gross: MacroSignalMetrics;
+    executionStress: MacroSignalMetrics;
+  }>;
+  estimatedBreakEvenStressPips: number | null;
+  uncertaintyIncludesNoEdge: boolean;
+  selectionNote: string;
 }
+
+export type MacroSignalChartMode = "current" | "research_replay";
 
 export interface MacroSignalChartSignal {
   id: string;
   patternId: string;
+  sourceVersionId: string;
   eventTime: number;
   direction: "long" | "short";
   label: string;
   agreement: "consensus" | "conflicted_weak" | "no_direction";
   pairVote: number;
+  backgroundDirection: MacroSignalDirection;
+  backgroundPairVote: number;
+  backgroundAlignment: "aligned" | "conflicted" | "neutral";
+  backgroundCoverageComplete: boolean;
+  highestImpact: "high" | "medium" | "low";
   events: MacroSignalScoredEvent[];
+  activationTime: number | null;
+  expiryCandles: number;
+  entry?: number | null;
+  atr?: number | null;
+  stop?: number | null;
+  target?: number | null;
+  outcomeStatus?: MacroSignalOutcomeStatus | null;
+  resultR?: number | null;
+  exitTime?: number | null;
+  historicalReplay: boolean;
+}
+
+export interface MacroSignalScheduledEvent {
+  id: number;
+  time: number;
+  currency: string;
+  countryCode: string;
+  title: string;
+  impact: "high" | "medium" | "low";
+  actual: string | null;
+  forecast: string | null;
+  previous: string | null;
+}
+
+export interface MacroSignalRealtimeWatch {
+  asOf: number;
+  nextPairEvent: MacroSignalScheduledEvent | null;
+  nextPatternWatch: {
+    time: number;
+    patternId: string;
+    label: string;
+    condition: string;
+    sourceVersionId: string;
+    requiredGroups: string[];
+    events: MacroSignalScheduledEvent[];
+  } | null;
+}
+
+export interface MacroSignalPolicyInflationContext {
+  asOf: number;
+  currencies: Record<"EUR" | "USD", {
+    policy: {
+      state: "tightening" | "holding" | "easing" | "unresolved";
+      time: number | null;
+      title: string | null;
+      actual: string | null;
+      previous: string | null;
+    };
+    inflation: {
+      state: "heating" | "cooling" | "mixed" | "no_change" | "unresolved";
+      time: number | null;
+      heatingGroups: number;
+      coolingGroups: number;
+      titles: string[];
+    };
+  }>;
+  usage: string;
 }
 
 export interface MacroSignalChartSignalResponse {
   supported: boolean;
   versionId: string;
   versionHash?: string;
+  modelId: string;
+  modelHash: string;
+  modelActivatedAt: number;
+  datasetFingerprint?: string;
+  mode: MacroSignalChartMode;
   symbol: string;
   timeframe: string;
+  modelTimeframe: "H4";
   targetR: number;
   generatedAt?: number;
   patterns: MacroSignalChartPattern[];
   signals: MacroSignalChartSignal[];
+  currentPatternCount?: number;
+  researchPatternCount?: number;
+  realtime?: MacroSignalRealtimeWatch;
+  policyInflationContext?: MacroSignalPolicyInflationContext;
+  evaluationSummary?: {
+    evaluatedPackageCount: number;
+    matchingPackageCount: number;
+    latestEvaluatedAt: number | null;
+    latestMatchedEventAt: number | null;
+    latestArrowAt: number | null;
+    laterUnmatchedPackageCount: number;
+  };
   message: string;
 }

@@ -6,6 +6,7 @@ import type {
   ImpactLevel,
   MacroSignalBacktestRun,
   MacroSignalCoverage,
+  MacroSignalChartMode,
   MacroSignalChartSignalResponse,
   MacroSignalForwardPaper,
   MacroSignalVersion,
@@ -273,10 +274,11 @@ export async function fetchMacroSignalForwardPaper(versionId = "FMS-EURUSD-LABOR
 export async function fetchMacroSignalChartSignals(params: {
   symbol: string;
   timeframe: string;
+  mode: MacroSignalChartMode;
   from?: number;
   to?: number;
 }): Promise<MacroSignalChartSignalResponse> {
-  const search = new URLSearchParams({ symbol: params.symbol, tf: params.timeframe });
+  const search = new URLSearchParams({ symbol: params.symbol, tf: params.timeframe, mode: params.mode });
   if (params.from != null) search.set("from_", String(params.from));
   if (params.to != null) search.set("to", String(params.to));
   return fetchJson<MacroSignalChartSignalResponse>(

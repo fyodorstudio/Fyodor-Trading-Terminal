@@ -36,7 +36,9 @@ This is the short orientation doc for future AI and human sessions. Read it with
 3. `Charts`
    - Current state: primary, useful surface.
    - Uses `lightweight-charts`, MT5 history/stream data, chart cache, cursor readout modes, chart settings, and clustered broker-calendar event markers.
-   - EURUSD H4 has an opt-in `Macro bias` layer. It plots experimental Long/Short arrows only for recurring country-aware Labor v2 patterns that pass fixed development-and-holdout historical gates; clicking an arrow opens its sample, expectancy, and source-event audit.
+   - EURUSD H4 has an opt-in `Macro bias` layer with `Current model` and `Research replay` views. A gray dot owns the release candle; the directional arrow begins at the first strictly later H4 open used by the simulation. Resolved current outcomes stop being active, and the audit exposes target sensitivity, execution stress, recent/year stability, uncertainty, and immutable model/data fingerprints.
+   - Current `FMS-EURUSD-MULTI-H4-CQ-v9` uses immutable first-seen releases after activation and admits symmetric Euro-area-consumer-sentiment direction plus US-industrial-output Short. US-payroll Short remains visible in Research Replay after failing v9's stressed 1R/1.5R target-robustness gate. The top-right `FMS Shadow Trader` reports Long/Short/No-trade, exact reason, a configurable gross-only `$1,000`/`0.5%` default account, one-position-at-a-time sequential replay, hypothetical 1x ATR(14) stop/2R position sizing, next possible registered setup, and factual EUR/USD policy/inflation context. Spread, commission, slippage, and swap are excluded rather than estimated; no order is sent to MT5. H1 displays the frozen H4 model without claiming an H1 backtest. Euro-area unemployment Long and Euro-area producer-inflation Long also remain hindsight replay only.
+   - The toolbar exposes active/expired state over the frozen 30-H4-candle horizon. Clicking either marker opens sample, target-first, stress, recent, year-stability, past-only, timestamp, source-event, model-hash, and dataset-hash evidence.
    - Arrows are research classifications, not automatic orders, guarantees, or proof that the release caused the later move.
 
 4. `Economic Calendar`
@@ -76,7 +78,7 @@ Current direct children under `Specialist Tools`:
    - EURUSD/H4 immutable-version research surface: rejected Economy v1 plus active country-aware, aggregate-EU/US Labor v2 with an automatic immutable forward-paper ledger.
    - Uses durable bridge calendar storage and cached MT5 H4/M1 candles.
    - Reports gross historical Long/Short bias cases, explicit ambiguity, holdout results, and paper-eligibility checks without placing orders.
-   - Historical backfill and v1/v2 exploratory runs are complete. The upgraded EA's successful cycle acknowledgement activates first-seen forward capture. Charts can show the narrower set of historically qualified recurring v2 patterns immediately, while forward evidence monitors their post-registration behavior.
+   - Historical backfill and v1/v2/v3/v5/v7 exploratory runs are complete. The upgraded EA's successful cycle acknowledgement activates immutable first-seen forward capture. Charts v9 consumes registered source observations for post-activation signals, keeps failed-gate candidates in hindsight replay, requires positive stressed 1R/1.5R/2R target sensitivity, and never uses context as an unstated signal filter.
 
 5. `Garbage / Ignore` / `PROTOTYPING`
    - Garbage drawer for old unfinished surfaces, deprecated planning drafts, and ignored tools.

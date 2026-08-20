@@ -1,6 +1,7 @@
 import { Activity, CalendarDays, Focus, HardDrive, MousePointer2, Settings2 } from "lucide-react";
 import type { ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
 import type { ChartCursorReadoutMode } from "@/app/lib/chartView";
+import type { MacroSignalChartMode } from "@/app/types";
 
 const CURSOR_MODE_OPTIONS: Array<{ id: ChartCursorReadoutMode; label: string; description: string }> = [
   { id: "both", label: "Crosshair", description: "Free crosshair movement with both pointer and candle readouts." },
@@ -16,10 +17,13 @@ interface ChartToolStripProps {
   macroBiasCount: number;
   macroBiasSupported: boolean;
   macroBiasStatusLabel: string;
+  macroBiasMode: MacroSignalChartMode;
+  macroBiasActiveLabel: string;
   onCursorModeChange: (mode: ChartCursorReadoutMode) => void;
   onRefocusChart: () => void;
   onOpenDrawer: (mode: ChartDrawerMode) => void;
   onToggleMacroBias: () => void;
+  onMacroBiasModeChange: (mode: MacroSignalChartMode) => void;
 }
 
 export function ChartToolStrip({
@@ -31,10 +35,13 @@ export function ChartToolStrip({
   macroBiasCount,
   macroBiasSupported,
   macroBiasStatusLabel,
+  macroBiasMode,
+  macroBiasActiveLabel,
   onCursorModeChange,
   onRefocusChart,
   onOpenDrawer,
   onToggleMacroBias,
+  onMacroBiasModeChange,
 }: ChartToolStripProps) {
   const eventButtonLabel = !eventOverlayVisible
     ? "Chart events hidden"
@@ -61,10 +68,26 @@ export function ChartToolStrip({
       <button type="button" className="chart-icon-button" title="Refocus chart" aria-label="Refocus chart" onClick={onRefocusChart}>
         <Focus className="h-4 w-4" />
       </button>
+      {macroBiasVisible && macroBiasSupported ? (
+        <div className="chart-macro-bias-mode" aria-label="Macro Bias signal view">
+          <select
+            value={macroBiasMode}
+            title="Choose current post-activation signals or historical hindsight replay"
+            aria-label="Macro Bias signal view"
+            onChange={(event) => onMacroBiasModeChange(event.target.value as MacroSignalChartMode)}
+          >
+            <option value="current">Current model</option>
+            <option value="research_replay">Research replay</option>
+          </select>
+        </div>
+      ) : null}
+      {macroBiasVisible && macroBiasSupported ? (
+        <span className={`chart-macro-bias-floating-state ${macroBiasMode === "current" ? "is-current" : "is-replay"}`} title={macroBiasActiveLabel}>{macroBiasActiveLabel}</span>
+      ) : null}
       <button
         type="button"
         className={macroBiasVisible ? "chart-macro-bias-toggle is-active" : "chart-macro-bias-toggle"}
-        title={macroBiasSupported ? macroBiasStatusLabel : "Macro Bias currently supports EURUSD H4 only"}
+        title={macroBiasSupported ? macroBiasStatusLabel : "Macro Bias currently supports EURUSD H4 and an H4-model view on H1 only"}
         aria-pressed={macroBiasVisible}
         onClick={onToggleMacroBias}
       >

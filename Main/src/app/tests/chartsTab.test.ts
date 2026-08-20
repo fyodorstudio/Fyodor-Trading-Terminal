@@ -2,12 +2,17 @@ import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ChartSettingsDrawer } from "@/app/components/ChartSettingsDrawer";
+import { ChartMacroBiasAudit } from "@/app/components/ChartMacroBiasAudit";
+import { ChartMacroBiasRealtimeCard } from "@/app/components/ChartMacroBiasRealtimeCard";
+import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import { ChartPairMatrixContextMarkers, clusterPairMatrixMarkerViews } from "@/app/components/ChartPairMatrixContextMarkers";
 import { ChartPairMatrixRangeOverlay, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
 import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
+import { MacroBiasConnectorPrimitive } from "@/app/lib/macroBiasConnectorPrimitive";
+import { buildMacroSignalShadowAccount, buildMacroSignalShadowPosition } from "@/app/lib/macroSignalShadow";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
-import { buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange } from "@/app/tabs/primary/ChartsTab";
-import type { MacroSignalChartSignal } from "@/app/types";
+import { buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasReplayStatusLabel, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange } from "@/app/tabs/primary/ChartsTab";
+import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalMetrics } from "@/app/types";
 import { getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
 
@@ -21,21 +26,188 @@ describe("getChartConnectionLabel", () => {
     expect(getChartRangeUpdateCadence(false)).toBe("animation_frame");
     expect(getChartRangeUpdateCadence(true)).toBe("settled");
   });
-  it("anchors qualified long and short Macro Bias arrows to their containing H4 candles", () => {
+  it("keeps the release-to-activation link separate from the strictly later H4 arrow", () => {
     const makeSignal = (id: string, eventTime: number, direction: "long" | "short"): MacroSignalChartSignal => ({
-      id, patternId: `pattern-${id}`, eventTime, direction, label: "Historical pattern", agreement: "consensus", pairVote: direction === "long" ? 1 : -1, events: [],
+      id, patternId: `pattern-${id}`, sourceVersionId: "v2", eventTime, activationTime: eventTime < 14_400 ? 14_400 : 28_800, expiryCandles: 30, historicalReplay: true, direction, label: "Historical pattern", agreement: "consensus", pairVote: direction === "long" ? 1 : -1, backgroundDirection: "none", backgroundPairVote: 0, backgroundAlignment: "neutral", backgroundCoverageComplete: true, highestImpact: "high", events: [],
     });
     const candles = [0, 14_400, 28_800].map((time) => ({ time, open: 1.1, high: 1.2, low: 1.0, close: 1.15, volume: 1 }));
-    const built = buildMacroBiasSeriesMarkers([
-      makeSignal("long", 1_000, "long"),
-      makeSignal("short", 15_000, "short"),
-    ], candles, "H4", 0);
+    const signals = [makeSignal("long", 1_000, "long"), makeSignal("short", 15_000, "short")];
+    const built = buildMacroBiasSeriesMarkers(signals, candles, "H4", 0);
 
     expect(built.markers.map((marker) => ({ time: marker.time, shape: marker.shape, text: marker.text }))).toEqual([
-      { time: 0, shape: "arrowUp", text: "LONG BIAS" },
-      { time: 14_400, shape: "arrowDown", text: "SHORT BIAS" },
+      { time: 14_400, shape: "arrowUp", text: "LONG BIAS" },
+      { time: 28_800, shape: "arrowDown", text: "SHORT BIAS" },
     ]);
-    expect([...built.signalByMarkerId]).toHaveLength(2);
+    expect(built.connectors).toEqual([
+      { signalId: "long", direction: "long", releaseTime: 0, releasePrice: 1, activationTime: 14_400, activationPrice: 1 },
+      { signalId: "short", direction: "short", releaseTime: 14_400, releasePrice: 1.2, activationTime: 28_800, activationPrice: 1.2 },
+    ]);
+    expect([...built.signalByMarkerId.keys()]).toEqual([
+      "macro-bias-activation:long",
+      "macro-bias-release:long",
+      "macro-bias-activation:short",
+      "macro-bias-release:short",
+    ]);
+    const primitive = new MacroBiasConnectorPrimitive(built.connectors);
+    primitive.attached({
+      chart: { timeScale: () => ({ timeToCoordinate: (time: number) => time / 100 }) },
+      series: { priceToCoordinate: (price: number) => price * 100 },
+      requestUpdate: () => {},
+    } as never);
+    expect(primitive.hitTest(0, 113)).toMatchObject({ externalId: "macro-bias-release:long", cursorStyle: "pointer" });
+    primitive.detached();
+    expect(primitive.hitTest(0, 113)).toBeNull();
+    expect(getMacroBiasActiveState([makeSignal("active", 1_000, "long")], candles, 0)).toMatchObject({
+      activationCandleOpen: 14_400,
+      remainingCandles: 29,
+    });
+    expect(getMacroBiasActiveState([{ ...makeSignal("resolved", 1_000, "long"), outcomeStatus: "target_hit" }], candles, 0)).toBeNull();
+
+    const h1Candles = Array.from({ length: 120 }, (_, index) => ({ time: index * 3_600, open: 1.1, high: 1.2, low: 1, close: 1.15, volume: 1 }));
+    const h1Signal = { ...makeSignal("h1", 1_000, "long"), activationTime: 3_600 };
+    expect(getMacroBiasActiveState([h1Signal], h1Candles, 0, "H1")).toMatchObject({ remainingCandles: 1 });
+    expect(getMacroBiasActiveState([{ ...h1Signal, activationTime: null }], h1Candles, 0, "H1")).toBeNull();
+  });
+  it("keeps the current model separate from hindsight research replay in the chart toolbar", () => {
+    expect(getMacroBiasReplayStatusLabel({
+      evaluatedPackageCount: 20,
+      matchingPackageCount: 4,
+      latestEvaluatedAt: 2_000,
+      latestMatchedEventAt: 1_000,
+      latestArrowAt: 86_400,
+      laterUnmatchedPackageCount: 7,
+    })).toBe("Hindsight replay · last arrow 1970-01-02 · 7 later scored packages did not match");
+    const html = renderToStaticMarkup(createElement(ChartToolStrip, {
+      cursorReadoutMode: "both",
+      eventOverlayVisible: true,
+      eventCandidateCount: 0,
+      eventVisibleCount: 0,
+      macroBiasVisible: true,
+      macroBiasCount: 0,
+      macroBiasSupported: true,
+      macroBiasStatusLabel: "One current pattern",
+      macroBiasMode: "current",
+      macroBiasActiveLabel: "No active bias",
+      onCursorModeChange: () => {},
+      onRefocusChart: () => {},
+      onOpenDrawer: () => {},
+      onToggleMacroBias: () => {},
+      onMacroBiasModeChange: () => {},
+    }));
+
+    expect(html).toContain("Current model");
+    expect(html).toContain("Research replay");
+    expect(html).toContain("No active bias");
+  });
+  it("makes target sensitivity, resolved outcomes, costs, and uncertainty explicit in the bias audit", () => {
+    const metrics: MacroSignalMetrics = {
+      candidateCount: 55, directionalCount: 55, evaluableCount: 54, targetHitCount: 21, stopHitCount: 32,
+      expiredCount: 1, ambiguousCount: 1, unevaluableCount: 0, targetHitRate: 0.389, stopHitRate: 0.593,
+      expiredRate: 0.018, ambiguousRate: 0.018, averageR: 0.184, medianR: -1,
+      expectancyCi95: { lower: -0.2, upper: 0.58 }, targetHitCi95: { lower: 0.27, upper: 0.52 },
+    };
+    const signal: MacroSignalChartSignal = {
+      id: "signal", patternId: "pattern", sourceVersionId: "v2", eventTime: 1_000, activationTime: 14_400, expiryCandles: 30,
+      historicalReplay: true, direction: "short", label: "US payroll package", agreement: "consensus", pairVote: -1,
+      backgroundDirection: "short", backgroundPairVote: -1, backgroundAlignment: "aligned", backgroundCoverageComplete: true,
+      highestImpact: "high", events: [], outcomeStatus: "target_hit", resultR: 2, exitTime: 28_800,
+    };
+    const html = renderToStaticMarkup(createElement(ChartMacroBiasAudit, { data: {
+      signal,
+      pattern: {
+        id: "pattern", signature: "short|USD:employment", signatures: ["short|USD:employment"], sourceVersionId: "v2", label: "US payroll package", condition: "Short when USD payroll evidence improves.", direction: "short", groups: ["USD:employment"],
+        overall: metrics, development: metrics, holdout: metrics, qualification: {}, exampleTitles: [], modelStatus: "current", currentEligible: true,
+        modelChecks: {}, executionStress: { pips: 3, overall: { ...metrics, averageR: 0.087 }, development: metrics, holdout: metrics, recent: metrics },
+        recentWindow: { from: 0, to: 1, metrics }, yearStability: { evaluableYears: 11, positiveYears: 7, positiveYearShare: 7 / 11, byYear: [] },
+        prequentialAudit: { evaluableCount: 2, gross: metrics, executionStress: metrics, firstEligibleEventTime: 0, lastEligibleEventTime: 1 },
+        targetRobustness: [
+          { targetR: 1, gross: metrics, executionStress: { ...metrics, averageR: -0.171 } },
+          { targetR: 1.5, gross: metrics, executionStress: { ...metrics, averageR: -0.032 } },
+          { targetR: 2, gross: metrics, executionStress: { ...metrics, averageR: 0.087 } },
+        ],
+        estimatedBreakEvenStressPips: 5.67, uncertaintyIncludesNoEdge: true, selectionNote: "Frozen research pattern.",
+      },
+      versionId: "v2", modelId: "v3", modelHash: "abcdef123456", datasetFingerprint: "123456abcdef", mode: "research_replay", targetR: 2, onClose: () => {},
+    } }));
+
+    expect(html).toContain("Known-afterward simulation");
+    expect(html).toContain("Target first · +2.00R");
+    expect(html).toContain("1R target");
+    expect(html).toContain("-0.17R");
+    expect(html).toContain("5.7 pips per case");
+    expect(html).toContain("95% expectancy interval still includes zero edge");
+  });
+  it("shows the current bias, historical wins and failures, next event, and next frozen condition", () => {
+    const metrics: MacroSignalMetrics = {
+      candidateCount: 10, directionalCount: 10, evaluableCount: 10, targetHitCount: 4, stopHitCount: 6,
+      expiredCount: 0, ambiguousCount: 0, unevaluableCount: 0, targetHitRate: .4, stopHitRate: .6,
+      expiredRate: 0, ambiguousRate: 0, averageR: .2, medianR: -1,
+      expectancyCi95: { lower: -.2, upper: .6 }, targetHitCi95: { lower: .2, upper: .6 },
+    };
+    const pattern = {
+      id: "sentiment", signature: "long|EUR:consumer_sentiment", signatures: ["long|EUR:consumer_sentiment", "short|EUR:consumer_sentiment"],
+      sourceVersionId: "v3", label: "Euro-area consumer sentiment", condition: "Long if sentiment improves; Short if it weakens.", direction: "both",
+      groups: ["EUR:consumer_sentiment"], overall: metrics, development: metrics, holdout: metrics, qualification: {}, exampleTitles: [],
+      modelStatus: "current", currentEligible: true, modelChecks: {}, executionStress: { pips: 3, overall: metrics, development: metrics, holdout: metrics, recent: metrics },
+      recentWindow: { from: 0, to: 1, metrics }, yearStability: { evaluableYears: 10, positiveYears: 7, positiveYearShare: .7, byYear: [] },
+      prequentialAudit: { evaluableCount: 3, gross: metrics, executionStress: metrics, firstEligibleEventTime: 0, lastEligibleEventTime: 1 },
+      targetRobustness: [], estimatedBreakEvenStressPips: 4, uncertaintyIncludesNoEdge: true, selectionNote: "Frozen.",
+    } satisfies MacroSignalChartPattern;
+    const response = {
+      supported: true, versionId: "v4", modelId: "v4", modelHash: "hash", modelActivatedAt: 1, datasetFingerprint: "data",
+      mode: "current", symbol: "EURUSD", timeframe: "H1", modelTimeframe: "H4", targetR: 2, patterns: [pattern], signals: [], message: "Current",
+      realtime: {
+        asOf: 100,
+        nextPairEvent: { id: 1, time: 200, currency: "USD", countryCode: "US", title: "Leading Index", impact: "high", actual: null, forecast: "1", previous: "0" },
+        nextPatternWatch: { time: 300, patternId: "sentiment", label: pattern.label, condition: pattern.condition, sourceVersionId: "v3", requiredGroups: ["EUR:consumer_sentiment"], events: [] },
+      },
+      policyInflationContext: {
+        asOf: 100,
+        currencies: {
+          EUR: { policy: { state: "holding", time: 50, title: "ECB Deposit Facility Rate Decision", actual: "2.25", previous: "2.25" }, inflation: { state: "cooling", time: 80, heatingGroups: 0, coolingGroups: 1, titles: ["CPI y/y"] } },
+          USD: { policy: { state: "holding", time: 60, title: "Fed Interest Rate Decision", actual: "3.75", previous: "3.75" }, inflation: { state: "heating", time: 90, heatingGroups: 2, coolingGroups: 0, titles: ["Core CPI y/y"] } },
+        },
+        usage: "Context only.",
+      },
+    } satisfies MacroSignalChartSignalResponse;
+    const html = renderToStaticMarkup(createElement(ChartMacroBiasRealtimeCard, { data: {
+      response, activeSignal: null, activePattern: null, remainingModelCandles: null, chartTimeframe: "H1", historicalSignals: [],
+    } }));
+
+    expect(html).toContain("FMS Shadow Trader");
+    expect(html).toContain("No trade");
+    expect(html).toContain("Waiting for a frozen setup");
+    expect(html).toContain("Possible next setup");
+    expect(html).toContain("H4 model on H1");
+    expect(html).toContain("1970-01-01 00:05 UTC");
+    expect(html).toContain("Long if sentiment improves; Short if it weakens.");
+    expect(html).toContain("4 / 10");
+    expect(html).toContain("6 / 10");
+    expect(html).toContain("+0.20R");
+    expect(html).toContain("$1,000.00");
+    expect(html).toContain("One position at a time");
+    expect(html).toContain("spread, commission, slippage, and swap are excluded");
+    expect(html).toContain("Policy holding 2.25");
+    expect(html).toContain("Inflation heating");
+    expect(html).toContain("does not filter or reverse the hypothetical position");
+  });
+  it("compounds the gross shadow account sequentially and skips overlapping signals", () => {
+    const makeSignal = (id: string, activationTime: number, exitTime: number, resultR: number, outcomeStatus: "target_hit" | "stop_hit"): MacroSignalChartSignal => ({
+      id, patternId: "pattern", sourceVersionId: "v9", eventTime: activationTime - 60, activationTime, exitTime,
+      expiryCandles: 30, historicalReplay: true, direction: "long", label: "Pattern", agreement: "consensus",
+      pairVote: 1, backgroundDirection: "none", backgroundPairVote: 0, backgroundAlignment: "neutral",
+      backgroundCoverageComplete: true, highestImpact: "high", events: [], resultR, outcomeStatus,
+    });
+    const account = buildMacroSignalShadowAccount([
+      makeSignal("win", 100, 200, 2, "target_hit"),
+      makeSignal("overlap", 150, 180, -1, "stop_hit"),
+      makeSignal("loss", 300, 400, -1, "stop_hit"),
+    ], { startingBalance: 1_000, riskPercent: 1 });
+    expect(account).toMatchObject({ balance: 1_009.8, profit: 9.8, takenTrades: 2, targetHits: 1, stopHits: 1, skippedOverlap: 1 });
+    const position = buildMacroSignalShadowPosition({ ...makeSignal("position", 500, 600, 2, "target_hit"), entry: 1.1, stop: 1.095 }, 1_000, 0.5);
+    expect(position.riskDollars).toBe(5);
+    expect(position.stopPips).toBeCloseTo(50);
+    expect(position.lots).toBeCloseTo(.01);
   });
   it("restarts the hover quiet period when raw pointer motion continues", () => {
     expect(getPairMatrixHoverSettleDelay(1_000, 1_040, 120)).toBe(80);

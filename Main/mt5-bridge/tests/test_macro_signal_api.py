@@ -5,7 +5,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 import server
-from macro_signal import ACTIVE_VERSION_ID, VERSION_ID, V2_VERSION_ID
+from macro_signal import ACTIVE_VERSION_ID, GROWTH_VERSION_ID, POLICY_INFLATION_VERSION_ID, SENTIMENT_VERSION_ID, VERSION_ID, V2_VERSION_ID
 from research_store import ResearchStore
 
 
@@ -79,8 +79,29 @@ def test_version_registry_exposes_failed_v1_and_active_country_aware_v2() -> Non
 
   assert response.status_code == 200
   versions = response.json()
-  assert [row["id"] for row in versions] == [VERSION_ID, V2_VERSION_ID]
+  assert [row["id"] for row in versions] == [VERSION_ID, V2_VERSION_ID, SENTIMENT_VERSION_ID, POLICY_INFLATION_VERSION_ID, GROWTH_VERSION_ID]
   active = next(row for row in versions if row["active"])
   assert active["id"] == ACTIVE_VERSION_ID
   assert active["configuration"]["seriesIdentity"] == "currency_country_code_normalized_title"
   assert active["configuration"]["historicalEligibility"] == "disabled_due_to_reused_history"
+
+
+def test_policy_inflation_source_has_an_independent_forward_ledger(tmp_path: Path, monkeypatch) -> None:
+  monkeypatch.setattr(server, "_research_store", ResearchStore(tmp_path / "research.sqlite3"))
+
+  response = client.get("/research/forward", params={"versionId": POLICY_INFLATION_VERSION_ID})
+
+  assert response.status_code == 200
+  payload = response.json()
+  assert payload["versionId"] == POLICY_INFLATION_VERSION_ID
+  assert payload["immutable"] is True
+  assert payload["activatedAt"] > 0
+
+
+def test_growth_source_has_an_independent_forward_ledger(tmp_path: Path, monkeypatch) -> None:
+  monkeypatch.setattr(server, "_research_store", ResearchStore(tmp_path / "research.sqlite3"))
+
+  response = client.get("/research/forward", params={"versionId": GROWTH_VERSION_ID})
+
+  assert response.status_code == 200
+  assert response.json()["versionId"] == GROWTH_VERSION_ID

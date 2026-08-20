@@ -5,6 +5,7 @@ import { ChartEventLens, type ChartEventLensData } from "@/app/components/ChartE
 import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
 import { ChartPairMatrixContextMarkers, type PairMatrixContextMarkerView } from "@/app/components/ChartPairMatrixContextMarkers";
 import { ChartMacroBiasAudit, type ChartMacroBiasAuditData } from "@/app/components/ChartMacroBiasAudit";
+import { ChartMacroBiasRealtimeCard, type ChartMacroBiasRealtimeCardData } from "@/app/components/ChartMacroBiasRealtimeCard";
 import { ChartPairMatrixTimeLens, type ChartPairMatrixTimeLensData } from "@/app/components/ChartPairMatrixTimeLens";
 import { usePairMatrixHoverAnchor } from "@/app/hooks/usePairMatrixHoverAnchor";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
@@ -137,6 +138,7 @@ interface ChartViewportProps {
   pairMatrixRangeOverlay: ChartPairMatrixRangeOverlayData;
   pairMatrixContextMarkers: ChartPairMatrixContextMarkerData;
   macroBiasAudit: ChartMacroBiasAuditData | null;
+  macroBiasRealtime: ChartMacroBiasRealtimeCardData | null;
   crosshairReadoutRef: Ref<ChartCrosshairReadoutHandle>;
   status: BridgeStatus;
   overlayCopy: {
@@ -159,9 +161,10 @@ export function ChartViewport({
   eventLensDock,
   pairMatrixTimeLens,
   pairMatrixRangeOverlay,
-  pairMatrixContextMarkers,
-  macroBiasAudit,
-  crosshairReadoutRef,
+    pairMatrixContextMarkers,
+    macroBiasAudit,
+    macroBiasRealtime,
+    crosshairReadoutRef,
   status,
   overlayCopy,
   reachedBoundary,
@@ -184,10 +187,11 @@ export function ChartViewport({
                 onHoverCluster={onHoverCluster}
                 onSelectCluster={onSelectCluster}
                 onSelectEvent={onSelectEvent}
-              /> : null}
-              <ChartPairMatrixRangeOverlay data={pairMatrixRangeOverlay} />
-              {pairMatrixTimeLens.open ? <ChartPairMatrixContextMarkers {...pairMatrixContextMarkers} /> : null}
-              {macroBiasAudit ? <ChartMacroBiasAudit data={macroBiasAudit} /> : null}
+                /> : null}
+                <ChartPairMatrixRangeOverlay data={pairMatrixRangeOverlay} />
+                {pairMatrixTimeLens.open ? <ChartPairMatrixContextMarkers {...pairMatrixContextMarkers} /> : null}
+                {macroBiasRealtime ? <ChartMacroBiasRealtimeCard data={macroBiasRealtime} /> : null}
+                {macroBiasAudit ? <ChartMacroBiasAudit data={macroBiasAudit} /> : null}
             </div>
             <div className={`chart-event-lens-slot ${eventOverlay.isInteracting ? "is-interacting" : ""}`}>
               {!eventLens?.expanded && !eventLensDock.expanded && !pairMatrixTimeLens.open ? (

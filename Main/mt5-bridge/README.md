@@ -41,7 +41,7 @@ The research endpoints own immutable Macro Signal versions used by Macro Signal 
 
 The EA posts `/calendar_ingest_cycle` only after all batches in a timer pass have been attempted. A successful zero-failure cycle lets the bridge freeze first-seen released values for the v2 forward-paper ledger; failed cycles never create paper candidates. The ledger advances outcomes in a separate background worker and is exposed by `/research/forward`.
 
-`/research/chart-signals` is the read-only EURUSD/H4 Charts contract. It discovers recurring Labor v2 score-group patterns from the latest completed 2R research run, requires positive expectancy and adequate samples in the complete set, older development partition, and later holdout partition, and returns only matching historical/live release packages for the requested chart window. The endpoint never places an order and its output remains explicitly experimental.
+`/research/chart-signals` is the read-only EURUSD H4/H1 Charts contract. `mode=current` exposes only post-v9-activation packages from immutable first-seen EA observations matching frozen Euro-area-consumer-sentiment direction or US-industrial-output Short. `mode=research_replay` additionally exposes payroll, unemployment, and producer-inflation candidates as explicit hindsight. The response includes release and first-later-H4 activation times, model/source/data fingerprints, three-pip stress, recent/year/past-only/target-robustness evidence, replay-gap diagnostics, next event/setup, and factual Policy/Inflation context. The H1 response remains an H4-model view. The endpoint never places an order.
 
 ## Normal Usage
 
@@ -63,6 +63,7 @@ The normal frontend/bridge contract is:
 - central-bank derivation source data for `Central Banks Data`
 - historical range access for `Event Reaction Engine`
 - durable calendar coverage and versioned EURUSD/H4 research for `Macro Signal Lab`
+- frozen v9 Charts bias/replay payloads, real-time next-event/setup watches, descriptive Policy/Inflation context, and an H4-model view on H1
 
 ## Manual Usage
 

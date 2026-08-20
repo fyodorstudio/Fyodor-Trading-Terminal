@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from macro_signal import (
   aggregate_outcomes,
   build_backtest_result,
+  build_chart_signal_pattern_catalog,
+  build_chart_signal_realtime_watch,
+  build_policy_inflation_context,
   build_signal_candidates,
   calculate_atr_by_candle,
   candidate_pattern_signature,
@@ -11,6 +16,11 @@ from macro_signal import (
   get_signal_definition,
   score_event,
   V2_VERSION_ID,
+  SENTIMENT_VERSION_ID,
+  POLICY_INFLATION_VERSION_ID,
+  GROWTH_VERSION_ID,
+  CHART_SIGNAL_MODEL_ID,
+  CHART_SIGNAL_PATTERN_DEFINITIONS,
 )
 
 
@@ -170,6 +180,142 @@ def test_chart_pattern_requires_repeatable_positive_development_and_holdout_resu
   assert patterns[0]["direction"] == "short"
   assert patterns[0]["development"]["averageR"] == 0.2
   assert patterns[0]["holdout"]["averageR"] == 0.2
+
+
+def test_v3_current_pattern_survives_execution_recent_and_year_stability_gates() -> None:
+  outcomes = []
+  for year in range(2016, 2027):
+    for index in range(5):
+      target_hit = index < 3
+      event_time = int(datetime(year, 1, index + 1, tzinfo=timezone.utc).timestamp())
+      outcomes.append({
+        **candidate(direction="short", event_time=event_time),
+        "targetR": 2.0,
+        "events": [
+          {"currency": "USD", "scoreGroup": "employment", "title": "Nonfarm Payrolls"},
+          {"currency": "USD", "scoreGroup": "labor_wages", "title": "Average Hourly Earnings"},
+          {"currency": "USD", "scoreGroup": "unemployment", "title": "Unemployment Rate"},
+        ],
+        "status": "target_hit" if target_hit else "stop_hit",
+        "resultR": 2.0 if target_hit else -1.0,
+        "atr": 0.01,
+        "entryTime": event_time + 14_400,
+      })
+
+  split_time = int(datetime(2024, 1, 1, tzinfo=timezone.utc).timestamp())
+  catalog = build_chart_signal_pattern_catalog(
+    outcomes,
+    split_time,
+    {str(target): [{**row, "targetR": target} for row in outcomes] for target in (1.0, 1.5, 2.0)},
+  )
+
+  assert len(catalog) == 1
+  assert catalog[0]["label"] == "US payroll package"
+  assert catalog[0]["currentEligible"] is True
+  assert catalog[0]["executionStress"]["recent"]["evaluableCount"] >= 10
+  assert catalog[0]["executionStress"]["recent"]["averageR"] > 0
+  assert catalog[0]["yearStability"]["positiveYearShare"] >= 0.60
+  assert [row["targetR"] for row in catalog[0]["targetRobustness"]] == [1.0, 1.5, 2.0]
+  assert catalog[0]["estimatedBreakEvenStressPips"] > 0
+  assert isinstance(catalog[0]["uncertaintyIncludesNoEdge"], bool)
+
+
+def test_directional_sentiment_is_one_pattern_and_future_watch_never_predicts_direction() -> None:
+  outcomes = []
+  for index in range(20):
+    direction = "long" if index % 2 == 0 else "short"
+    outcomes.append({
+      **candidate(direction=direction, event_time=1_000 + index),
+      "targetR": 2.0,
+      "events": [{"currency": "EUR", "scoreGroup": "consumer_sentiment", "title": "Consumer Confidence Index"}],
+      "status": "target_hit" if index % 3 != 0 else "stop_hit",
+      "resultR": 2.0 if index % 3 != 0 else -1.0,
+      "atr": 0.01,
+      "entryTime": 15_400 + index,
+    })
+  catalog = build_chart_signal_pattern_catalog(
+    outcomes,
+    1_015,
+    {"2.0": outcomes},
+    SENTIMENT_VERSION_ID,
+  )
+
+  assert len(catalog) == 1
+  assert catalog[0]["id"] == "euro-consumer-sentiment-directional"
+  assert catalog[0]["direction"] == "both"
+  assert catalog[0]["overall"]["evaluableCount"] == 20
+
+  watch = build_chart_signal_realtime_watch([
+    calendar_event(1, 110, "USD", "CB Leading Economic Index m/m", "", "1", "0"),
+    calendar_event(2, 120, "EUR", "Consumer Confidence Index", "", "1", "0", "medium"),
+    calendar_event(3, 105, "GBP", "Consumer Confidence Index", "", "1", "0"),
+  ], as_of=100)
+  assert watch["nextPairEvent"]["title"] == "CB Leading Economic Index m/m"
+  assert watch["nextPatternWatch"]["patternId"] == "euro-consumer-sentiment-directional"
+  assert "direction" not in watch["nextPatternWatch"]
+  filtered_watch = build_chart_signal_realtime_watch(
+    [calendar_event(2, 120, "EUR", "Consumer Confidence Index", "", "1", "0", "medium")],
+    as_of=100,
+    eligible_pattern_ids=frozenset({"us-industrial-output-short"}),
+  )
+  assert filtered_watch["nextPatternWatch"] is None
+
+
+def test_v5_deduplicates_exact_inflation_series_and_keeps_policy_context_descriptive() -> None:
+  definition = get_signal_definition(POLICY_INFLATION_VERSION_ID)
+  assert definition is not None
+  rows = [
+    calendar_event(1, 100, "USD", "Core CPI y/y", "3.2", "3.0", "2.9"),
+    calendar_event(2, 100, "USD", "Core CPI y/y", "3.2", "3.0", "2.9"),
+    calendar_event(3, 110, "USD", "Fed Interest Rate Decision", "3.75", "", "3.75"),
+    calendar_event(4, 110, "USD", "FOMC Statement", "", "", ""),
+    calendar_event(5, 120, "EUR", "PPI y/y", "2.0", "1.0", "0.5"),
+  ]
+  candidates = build_signal_candidates(rows, now=200, definition=definition)
+
+  inflation = next(row for row in candidates if row["eventTime"] == 100)
+  assert inflation["direction"] == "short"
+  assert len(inflation["events"]) == 1
+  policy = next(row for row in candidates if row["eventTime"] == 110)
+  assert policy["direction"] == "none"
+  assert [event["title"] for event in policy["events"]] == ["Fed Interest Rate Decision"]
+
+  context = build_policy_inflation_context(rows, as_of=200)
+  assert context["currencies"]["USD"]["policy"]["state"] == "holding"
+  assert context["currencies"]["USD"]["inflation"]["state"] == "heating"
+  assert context["currencies"]["EUR"]["inflation"]["state"] == "heating"
+  assert "do not filter or reverse" in context["usage"]
+
+
+def test_v7_growth_rules_are_country_aware_narrow_and_deduplicated() -> None:
+  definition = get_signal_definition(GROWTH_VERSION_ID)
+  assert definition is not None
+  rows = [
+    calendar_event(1, 100, "EUR", "GDP q/q", "0.5", "0.2", "0.1"),
+    calendar_event(2, 100, "EUR", "GDP q/q", "0.5", "0.2", "0.1"),
+    calendar_event(3, 110, "USD", "GDP Price Index q/q", "3.0", "2.0", "1.0"),
+    calendar_event(4, 120, "USD", "Kansas City Fed Manufacturing Composite", "10", "5", "0"),
+    calendar_event(5, 130, "USD", "Industrial Production m/m", "0.4", "0.2", "0.1"),
+    calendar_event(6, 140, "USD", "Retail Sales m/m", "0.5", "0.2", "0.1"),
+    calendar_event(7, 150, "EUR", "Trade Balance", "20", "15", "10"),
+    {**calendar_event(8, 160, "EUR", "GDP y/y", "1.0", "0.5", "0.2"), "countryCode": "DE"},
+  ]
+
+  candidates = build_signal_candidates(rows, now=200, definition=definition)
+
+  assert [row["eventTime"] for row in candidates] == [100, 130, 140, 150]
+  assert len(candidates[0]["events"]) == 1
+  assert [row["events"][0]["ruleId"] for row in candidates] == [
+    "growth_gdp",
+    "growth_industrial_output",
+    "growth_headline_retail",
+    "growth_trade_balance",
+  ]
+  pattern = next(row for row in CHART_SIGNAL_PATTERN_DEFINITIONS if row["id"] == "us-industrial-output-short")
+  assert CHART_SIGNAL_MODEL_ID == "FMS-EURUSD-MULTI-H4-CQ-v9"
+  assert pattern["sourceVersion"] == GROWTH_VERSION_ID
+  assert pattern["signatures"] == ("short|USD:industrial_output",)
+  assert pattern["current"] is True
 
 
 def test_same_m1_bar_touch_is_ambiguous() -> None:

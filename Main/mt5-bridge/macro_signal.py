@@ -15,6 +15,12 @@ VERSION_ID = "FMS-EURUSD-ECO-H4-v1"
 VERSION_CREATED_AT = 1786982400  # 2026-08-18 00:00:00 UTC
 V2_VERSION_ID = "FMS-EURUSD-LABOR-H4-v2"
 V2_VERSION_CREATED_AT = 1787045252  # 2026-08-18 09:27:32 UTC
+SENTIMENT_VERSION_ID = "FMS-EURUSD-SENTIMENT-H4-v3"
+SENTIMENT_VERSION_CREATED_AT = 1787232138  # 2026-08-20 13:22:18 UTC
+POLICY_INFLATION_VERSION_ID = "FMS-EURUSD-POLICY-INFL-H4-v5"
+POLICY_INFLATION_VERSION_CREATED_AT = 1787234220  # 2026-08-20 13:57:00 UTC
+GROWTH_VERSION_ID = "FMS-EURUSD-GROWTH-H4-v7"
+GROWTH_VERSION_CREATED_AT = 1787237834  # 2026-08-20 14:57:14 UTC
 ACTIVE_VERSION_ID = V2_VERSION_ID
 RESULT_SCHEMA_VERSION = 3
 H4_SECONDS = 4 * 60 * 60
@@ -50,9 +56,10 @@ class EconomyRule:
   label: str
   factor: str
   score_group: str
-  direction: Literal["higher_is_better", "lower_is_better"]
+  direction: Literal["higher_is_better", "lower_is_better", "higher_is_hotter", "policy_action"]
   include_any: Tuple[str, ...]
   exclude_any: Tuple[str, ...] = ()
+  currencies: Tuple[str, ...] = ()
 
 
 ECONOMY_RULES: Tuple[EconomyRule, ...] = (
@@ -119,6 +126,72 @@ ECONOMY_RULES: Tuple[EconomyRule, ...] = (
   ),
 )
 
+POLICY_INFLATION_RULES: Tuple[EconomyRule, ...] = (
+  EconomyRule(
+    "core_consumer_inflation", "Core consumer inflation", "inflation", "core_consumer_inflation", "higher_is_hotter",
+    ("core cpi", "core hicp", "core pce", "trimmed mean cpi", "weighted median cpi", "median cpi"),
+    ("expectation",),
+  ),
+  EconomyRule(
+    "producer_inflation", "Producer inflation", "inflation", "producer_inflation", "higher_is_hotter",
+    ("ppi", "producer price"), ("expectation",),
+  ),
+  EconomyRule(
+    "headline_consumer_inflation", "Headline consumer inflation", "inflation", "headline_consumer_inflation", "higher_is_hotter",
+    ("cpi", "hicp", "cpih", "consumer price", "pce price", "inflation rate"),
+    ("core", "trimmed", "median", "producer", "ppi", "expectation"),
+  ),
+  EconomyRule(
+    "usd_primary_policy_rate", "Fed policy rate", "policy", "primary_policy_rate", "policy_action",
+    ("fed interest rate decision", "federal funds rate decision", "fomc interest rate decision"),
+    ("statement", "minutes", "conference", "speech", "testimony"), ("USD",),
+  ),
+  EconomyRule(
+    "eur_primary_policy_rate", "ECB deposit facility rate", "policy", "primary_policy_rate", "policy_action",
+    ("ecb deposit facility rate decision", "deposit facility rate decision"),
+    ("statement", "minutes", "conference", "speech"), ("EUR",),
+  ),
+)
+GROWTH_RULES: Tuple[EconomyRule, ...] = (
+  EconomyRule(
+    "growth_gdp", "GDP growth", "activity", "gdp", "higher_is_better",
+    ("gdp", "gross domestic product"), ("price index", "price deflator", "deflator"),
+  ),
+  EconomyRule(
+    "growth_composite_pmi", "Composite PMI", "activity", "pmi_composite", "higher_is_better",
+    ("composite pmi", "composite purchasing managers index"),
+  ),
+  EconomyRule(
+    "growth_services_pmi", "Services PMI/ISM", "activity", "pmi_services", "higher_is_better",
+    ("services pmi", "service pmi", "ism services", "ism non manufacturing", "non manufacturing pmi"),
+  ),
+  EconomyRule(
+    "growth_manufacturing_pmi", "Manufacturing PMI/ISM", "activity", "pmi_manufacturing", "higher_is_better",
+    ("manufacturing pmi", "ism manufacturing", "manufacturing purchasing managers index"),
+  ),
+  EconomyRule(
+    "growth_industrial_output", "Industrial output", "activity", "industrial_output", "higher_is_better",
+    ("industrial production", "industrial output", "factory output"), ("price", "ppi"),
+  ),
+  EconomyRule(
+    "growth_core_retail", "Core retail demand", "retail", "retail_core", "higher_is_better",
+    ("retail control", "retail sales excl", "retail sales ex"),
+  ),
+  EconomyRule(
+    "growth_headline_retail", "Retail demand", "retail", "retail_headline", "higher_is_better",
+    ("retail sales", "consumer spending"), ("excl", "excluding", "control"),
+  ),
+  EconomyRule(
+    "growth_trade_balance", "Trade balance", "trade", "trade_balance", "higher_is_better",
+    ("trade balance", "goods trade balance", "merchandise trade"), ("terms of trade",),
+  ),
+  EconomyRule(
+    "growth_current_account", "Current account", "trade", "current_account", "higher_is_better",
+    ("current account",),
+  ),
+)
+ALL_SIGNAL_RULES = (*ECONOMY_RULES, *POLICY_INFLATION_RULES, *GROWTH_RULES)
+
 
 VERSION_CONFIGURATION: Dict[str, Any] = {
   "id": VERSION_ID,
@@ -182,6 +255,102 @@ V2_VERSION_HASH = hashlib.sha256(
   json.dumps(V2_VERSION_CONFIGURATION, sort_keys=True, separators=(",", ":")).encode("utf-8")
 ).hexdigest()
 
+SENTIMENT_VERSION_CONFIGURATION: Dict[str, Any] = {
+  **{key: value for key, value in VERSION_CONFIGURATION.items() if key not in {"id", "pillar", "rules", "eligibilityGate"}},
+  "id": SENTIMENT_VERSION_ID,
+  "pillar": "sentiment_only",
+  "seriesIdentity": "currency_country_code_normalized_title",
+  "countryScope": {"EUR": ["EU"], "USD": ["US"]},
+  "selectionDisclosure": "Directional Euro-area consumer sentiment was selected after inspecting existing archive research. All pre-registration history is exploratory reused data.",
+  "historicalEligibility": "disabled_due_to_reused_history",
+  "forwardPaperStart": SENTIMENT_VERSION_CREATED_AT,
+  "forwardPaperGate": FORWARD_PAPER_GATE,
+  "rules": [
+    {
+      "id": rule.id,
+      "label": rule.label,
+      "factor": rule.factor,
+      "scoreGroup": rule.score_group,
+      "direction": rule.direction,
+      "includeAny": list(rule.include_any),
+      "excludeAny": list(rule.exclude_any),
+    }
+    for rule in ECONOMY_RULES
+    if rule.factor == "sentiment"
+  ],
+}
+SENTIMENT_VERSION_HASH = hashlib.sha256(
+  json.dumps(SENTIMENT_VERSION_CONFIGURATION, sort_keys=True, separators=(",", ":")).encode("utf-8")
+).hexdigest()
+
+POLICY_INFLATION_VERSION_CONFIGURATION: Dict[str, Any] = {
+  **{key: value for key, value in VERSION_CONFIGURATION.items() if key not in {"id", "pillar", "rules", "eligibilityGate"}},
+  "id": POLICY_INFLATION_VERSION_ID,
+  "pillar": "policy_inflation_context",
+  "seriesIdentity": "currency_country_code_normalized_title",
+  "countryScope": {"EUR": ["EU"], "USD": ["US"]},
+  "deduplicateExactSeriesTimestamp": True,
+  "selectionDisclosure": "Inflation and policy families were tested after v4 archive inspection. All pre-registration results are exploratory reused history.",
+  "historicalEligibility": "disabled_due_to_reused_history",
+  "forwardPaperStart": POLICY_INFLATION_VERSION_CREATED_AT,
+  "forwardPaperGate": FORWARD_PAPER_GATE,
+  "interpretation": {
+    "inflation": "Higher source values are hotter; EUR heat points Long and USD heat points Short before any context filter.",
+    "policy": "A higher canonical decision value is tighter; unchanged decisions are neutral unless a numeric forecast supplies a surprise.",
+    "communications": "Statements, minutes, conferences, testimony, and speeches are not numerically scored.",
+  },
+  "rules": [
+    {
+      "id": rule.id,
+      "label": rule.label,
+      "factor": rule.factor,
+      "scoreGroup": rule.score_group,
+      "direction": rule.direction,
+      "includeAny": list(rule.include_any),
+      "excludeAny": list(rule.exclude_any),
+      "currencies": list(rule.currencies),
+    }
+    for rule in POLICY_INFLATION_RULES
+  ],
+}
+POLICY_INFLATION_VERSION_HASH = hashlib.sha256(
+  json.dumps(POLICY_INFLATION_VERSION_CONFIGURATION, sort_keys=True, separators=(",", ":")).encode("utf-8")
+).hexdigest()
+
+GROWTH_VERSION_CONFIGURATION: Dict[str, Any] = {
+  **{key: value for key, value in VERSION_CONFIGURATION.items() if key not in {"id", "pillar", "rules", "eligibilityGate"}},
+  "id": GROWTH_VERSION_ID,
+  "pillar": "country_aware_growth",
+  "seriesIdentity": "currency_country_code_normalized_title",
+  "countryScope": {"EUR": ["EU"], "USD": ["US"]},
+  "deduplicateExactSeriesTimestamp": True,
+  "selectionDisclosure": "GDP/output, strict PMI/ISM, retail demand, and trade/current-account rules were frozen before inspecting v7 results. Pre-registration history remains exploratory reused data.",
+  "historicalEligibility": "disabled_due_to_reused_history",
+  "forwardPaperStart": GROWTH_VERSION_CREATED_AT,
+  "forwardPaperGate": FORWARD_PAPER_GATE,
+  "exclusions": [
+    "GDP price indexes and deflators",
+    "generic or regional manufacturing surveys that are not explicit PMI/ISM",
+    "terms of trade",
+    "unrelated consumer-card proxies",
+  ],
+  "rules": [
+    {
+      "id": rule.id,
+      "label": rule.label,
+      "factor": rule.factor,
+      "scoreGroup": rule.score_group,
+      "direction": rule.direction,
+      "includeAny": list(rule.include_any),
+      "excludeAny": list(rule.exclude_any),
+    }
+    for rule in GROWTH_RULES
+  ],
+}
+GROWTH_VERSION_HASH = hashlib.sha256(
+  json.dumps(GROWTH_VERSION_CONFIGURATION, sort_keys=True, separators=(",", ":")).encode("utf-8")
+).hexdigest()
+
 
 @dataclass(frozen=True)
 class SignalDefinition:
@@ -193,6 +362,7 @@ class SignalDefinition:
   country_aware_series: bool
   historical_gate_allowed: bool
   country_scope: Optional[Dict[str, frozenset[str]]]
+  rule_ids: Optional[frozenset[str]] = None
 
 
 SIGNAL_DEFINITIONS: Dict[str, SignalDefinition] = {
@@ -208,6 +378,38 @@ SIGNAL_DEFINITIONS: Dict[str, SignalDefinition] = {
     True,
     False,
     {"EUR": frozenset({"EU"}), "USD": frozenset({"US"})},
+  ),
+  SENTIMENT_VERSION_ID: SignalDefinition(
+    SENTIMENT_VERSION_ID,
+    SENTIMENT_VERSION_CREATED_AT,
+    SENTIMENT_VERSION_CONFIGURATION,
+    SENTIMENT_VERSION_HASH,
+    frozenset({"sentiment"}),
+    True,
+    False,
+    {"EUR": frozenset({"EU"}), "USD": frozenset({"US"})},
+  ),
+  POLICY_INFLATION_VERSION_ID: SignalDefinition(
+    POLICY_INFLATION_VERSION_ID,
+    POLICY_INFLATION_VERSION_CREATED_AT,
+    POLICY_INFLATION_VERSION_CONFIGURATION,
+    POLICY_INFLATION_VERSION_HASH,
+    frozenset({"inflation", "policy"}),
+    True,
+    False,
+    {"EUR": frozenset({"EU"}), "USD": frozenset({"US"})},
+    frozenset(rule.id for rule in POLICY_INFLATION_RULES),
+  ),
+  GROWTH_VERSION_ID: SignalDefinition(
+    GROWTH_VERSION_ID,
+    GROWTH_VERSION_CREATED_AT,
+    GROWTH_VERSION_CONFIGURATION,
+    GROWTH_VERSION_HASH,
+    frozenset({"activity", "retail", "trade"}),
+    True,
+    False,
+    {"EUR": frozenset({"EU"}), "USD": frozenset({"US"})},
+    frozenset(rule.id for rule in GROWTH_RULES),
   ),
 }
 
@@ -260,14 +462,32 @@ def find_economy_rule(event: Dict[str, Any]) -> Optional[EconomyRule]:
   return None
 
 
+def find_signal_rule(event: Dict[str, Any], definition: SignalDefinition) -> Optional[EconomyRule]:
+  currency = str(event.get("currency", "")).upper()
+  if currency not in {"EUR", "USD"}:
+    return None
+  title = normalize_title(str(event.get("title", "")))
+  candidates = ALL_SIGNAL_RULES if definition.rule_ids is not None else ECONOMY_RULES
+  for rule in candidates:
+    if definition.rule_ids is not None and rule.id not in definition.rule_ids:
+      continue
+    if rule.currencies and currency not in rule.currencies:
+      continue
+    if any(normalize_title(term) in title for term in rule.exclude_any):
+      continue
+    if any(normalize_title(term) in title for term in rule.include_any):
+      return rule
+  return None
+
+
 def _orient(point: Optional[int], rule: EconomyRule) -> Optional[int]:
   if point is None:
     return None
   return -point if rule.direction == "lower_is_better" else point
 
 
-def score_event(event: Dict[str, Any]) -> Optional[Dict[str, Any]]:
-  rule = find_economy_rule(event)
+def score_event(event: Dict[str, Any], definition: Optional[SignalDefinition] = None) -> Optional[Dict[str, Any]]:
+  rule = find_signal_rule(event, definition) if definition is not None else find_economy_rule(event)
   if rule is None:
     return None
   surprise = _orient(compare_source_values(event.get("actual"), event.get("forecast")), rule)
@@ -337,7 +557,7 @@ def _series_identity(event: Dict[str, Any], country_aware: bool) -> Tuple[str, .
 
 
 def _event_belongs_to_definition(event: Dict[str, Any], definition: SignalDefinition) -> bool:
-  rule = find_economy_rule(event)
+  rule = find_signal_rule(event, definition)
   if rule is None:
     return False
   if definition.allowed_factors is not None and rule.factor not in definition.allowed_factors:
@@ -358,13 +578,24 @@ def build_signal_candidates(
   selected_definition = definition or SIGNAL_DEFINITIONS[VERSION_ID]
   cutoff = now if now is not None else int(datetime.now(timezone.utc).timestamp())
   packages: Dict[int, List[Dict[str, Any]]] = {}
-  for event in events:
+  candidate_events: Sequence[Dict[str, Any]] = events
+  if selected_definition.configuration.get("deduplicateExactSeriesTimestamp"):
+    deduplicated: Dict[Tuple[Any, ...], Dict[str, Any]] = {}
+    for event in events:
+      key = (int(event.get("time", 0)), *_series_identity(event, selected_definition.country_aware_series))
+      current = deduplicated.get(key)
+      quality = sum(bool(str(event.get(field) or "").strip()) for field in ("actual", "forecast", "previous"))
+      current_quality = sum(bool(str(current.get(field) or "").strip()) for field in ("actual", "forecast", "previous")) if current else -1
+      if current is None or (quality, int(event.get("id", 0))) > (current_quality, int(current.get("id", 0))):
+        deduplicated[key] = event
+    candidate_events = list(deduplicated.values())
+  for event in candidate_events:
     event_time = int(event.get("time", 0))
     if event_time > cutoff:
       continue
     if not _event_belongs_to_definition(event, selected_definition):
       continue
-    scored = score_event(event)
+    scored = score_event(event, selected_definition)
     if scored is None:
       continue
     packages.setdefault(event_time, []).append(scored)
@@ -628,6 +859,91 @@ CHART_SIGNAL_QUALIFICATION = {
   "maximumAmbiguousRate": 0.05,
 }
 
+CHART_SIGNAL_MODEL_ID = "FMS-EURUSD-MULTI-H4-CQ-v9"
+CHART_SIGNAL_MODEL_CREATED_AT = 1787238461  # 2026-08-20 15:07:41 UTC
+CHART_SIGNAL_EXECUTION_STRESS_PIPS = 3.0
+CHART_SIGNAL_RECENT_DAYS = 3 * 365
+CHART_SIGNAL_PATTERN_DEFINITIONS = (
+  {
+    "id": "us-payroll-short",
+    "label": "US payroll package",
+    "sourceVersion": V2_VERSION_ID,
+    "signatures": ("short|USD:employment|USD:labor_wages|USD:unemployment",),
+    "current": True,
+    "condition": "Short if the same-time US employment, wage, and unemployment package produces a USD-improving vote.",
+  },
+  {
+    "id": "euro-unemployment-long",
+    "label": "Euro-area unemployment",
+    "sourceVersion": V2_VERSION_ID,
+    "signatures": ("long|EUR:unemployment",),
+    "current": False,
+    "condition": "Research replay only: Long when the Euro-area unemployment release produces an EUR-improving vote.",
+  },
+  {
+    "id": "euro-consumer-sentiment-directional",
+    "label": "Euro-area consumer sentiment",
+    "sourceVersion": SENTIMENT_VERSION_ID,
+    "signatures": ("long|EUR:consumer_sentiment", "short|EUR:consumer_sentiment"),
+    "current": True,
+    "condition": "Long if Euro-area consumer sentiment improves; Short if it weakens; no signal on a zero score.",
+  },
+  {
+    "id": "euro-producer-inflation-long",
+    "label": "Euro-area producer inflation heat",
+    "sourceVersion": POLICY_INFLATION_VERSION_ID,
+    "signatures": ("long|EUR:producer_inflation",),
+    "current": False,
+    "condition": "Research replay only: Long when aggregate Euro-area producer-price releases score hotter; it failed the frozen year-stability gate.",
+  },
+  {
+    "id": "us-industrial-output-short",
+    "label": "US industrial-production package",
+    "sourceVersion": GROWTH_VERSION_ID,
+    "signatures": ("short|USD:industrial_output",),
+    "current": True,
+    "condition": "Short if same-time aggregate-US industrial production/output evidence produces a USD-improving vote.",
+  },
+)
+CHART_SIGNAL_REPLAY_SIGNATURES = tuple(
+  signature
+  for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
+  for signature in pattern["signatures"]
+)
+CHART_SIGNAL_CURRENT_SIGNATURES = tuple(
+  signature
+  for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
+  if pattern["current"]
+  for signature in pattern["signatures"]
+)
+CHART_SIGNAL_MODEL_CONFIGURATION = {
+  "id": CHART_SIGNAL_MODEL_ID,
+  "createdAt": CHART_SIGNAL_MODEL_CREATED_AT,
+  "sourceVersions": [V2_VERSION_ID, SENTIMENT_VERSION_ID, POLICY_INFLATION_VERSION_ID, GROWTH_VERSION_ID],
+  "targetR": 2.0,
+  "signalClock": "first_h4_open_strictly_after_release",
+  "expiryCandles": HOLDING_CANDLES,
+  "patterns": [
+    {
+      **pattern,
+      "signatures": list(pattern["signatures"]),
+    }
+    for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
+  ],
+  "historicalQualification": CHART_SIGNAL_QUALIFICATION,
+  "executionStressPips": CHART_SIGNAL_EXECUTION_STRESS_PIPS,
+  "recentWindowDays": CHART_SIGNAL_RECENT_DAYS,
+  "recentMinimumEvaluable": 10,
+  "minimumEvaluableYears": 8,
+  "minimumPositiveYearShare": 0.60,
+  "prequentialMinimumEvaluable": 2,
+  "targetRobustness": "positive_after_execution_stress_at_1R_1_5R_and_2R",
+  "costDisclosure": "Three-pip result stress only; historical spread, slippage, swap, and commission are unavailable.",
+}
+CHART_SIGNAL_MODEL_HASH = hashlib.sha256(
+  json.dumps(CHART_SIGNAL_MODEL_CONFIGURATION, sort_keys=True, separators=(",", ":")).encode("utf-8")
+).hexdigest()
+
 
 def candidate_pattern_signature(candidate: Dict[str, Any]) -> str:
   groups = sorted({
@@ -636,6 +952,168 @@ def candidate_pattern_signature(candidate: Dict[str, Any]) -> str:
     if event.get("scoreGroup")
   })
   return f"{candidate.get('direction', 'none')}|{'|'.join(groups)}"
+
+
+def build_chart_signal_realtime_watch(
+  events: Sequence[Dict[str, Any]],
+  as_of: int,
+  eligible_pattern_ids: Optional[frozenset[str]] = None,
+) -> Dict[str, Any]:
+  """Describe the next pair event and the next structurally relevant pattern package.
+
+  Scheduled rows do not have an Actual value, so this deliberately does not try to
+  predict a direction. It only identifies whether the titles/countries in a future
+  release package could satisfy one of the frozen current pattern structures once
+  Actual values arrive.
+  """
+  future = sorted(
+    (
+      event for event in events
+      if int(event.get("time", 0)) > as_of
+      and str(event.get("currency", "")).upper() in {"EUR", "USD"}
+    ),
+    key=lambda event: (
+      int(event.get("time", 0)),
+      str(event.get("currency", "")),
+      normalize_title(str(event.get("title", ""))),
+      int(event.get("id", 0)),
+    ),
+  )
+
+  def public_event(event: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+      "id": int(event.get("id", 0)),
+      "time": int(event.get("time", 0)),
+      "currency": str(event.get("currency", "")).upper(),
+      "countryCode": str(event.get("countryCode", "")).upper(),
+      "title": str(event.get("title", "")),
+      "impact": str(event.get("impact", "low")).lower(),
+      "actual": event.get("actual"),
+      "forecast": event.get("forecast"),
+      "previous": event.get("previous"),
+    }
+
+  next_event = public_event(future[0]) if future else None
+  packages: Dict[int, List[Dict[str, Any]]] = {}
+  for event in future:
+    packages.setdefault(int(event["time"]), []).append(event)
+
+  next_pattern = None
+  for event_time in sorted(packages):
+    package = packages[event_time]
+    for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS:
+      if not pattern["current"]:
+        continue
+      if eligible_pattern_ids is not None and str(pattern["id"]) not in eligible_pattern_ids:
+        continue
+      definition = get_signal_definition(str(pattern["sourceVersion"]))
+      if definition is None:
+        continue
+      structural_groups = {
+        f"{str(event.get('currency', '')).upper()}:{rule.score_group}"
+        for event in package
+        if _event_belongs_to_definition(event, definition)
+        for rule in [find_signal_rule(event, definition)]
+        if rule is not None
+      }
+      required_group_sets = [
+        set(signature.split("|")[1:])
+        for signature in pattern["signatures"]
+      ]
+      if not any(required and required.issubset(structural_groups) for required in required_group_sets):
+        continue
+      next_pattern = {
+        "time": event_time,
+        "patternId": pattern["id"],
+        "label": pattern["label"],
+        "condition": pattern["condition"],
+        "sourceVersionId": pattern["sourceVersion"],
+        "requiredGroups": sorted(set().union(*required_group_sets)),
+        "events": [public_event(event) for event in package],
+      }
+      break
+    if next_pattern is not None:
+      break
+
+  return {
+    "asOf": as_of,
+    "nextPairEvent": next_event,
+    "nextPatternWatch": next_pattern,
+  }
+
+
+def build_policy_inflation_context(
+  events: Sequence[Dict[str, Any]],
+  as_of: int,
+) -> Dict[str, Any]:
+  """Return factual latest policy action and inflation direction for EUR and USD.
+
+  This context never changes signal eligibility. It deliberately avoids inferring
+  tone from statements or claiming that hotter inflation is currency-positive.
+  """
+  definition = SIGNAL_DEFINITIONS[POLICY_INFLATION_VERSION_ID]
+  deduplicated: Dict[Tuple[Any, ...], Dict[str, Any]] = {}
+  for event in events:
+    if int(event.get("time", 0)) > as_of or not _event_belongs_to_definition(event, definition):
+      continue
+    key = (int(event.get("time", 0)), *_series_identity(event, True))
+    current = deduplicated.get(key)
+    quality = sum(bool(str(event.get(field) or "").strip()) for field in ("actual", "forecast", "previous"))
+    current_quality = sum(bool(str(current.get(field) or "").strip()) for field in ("actual", "forecast", "previous")) if current else -1
+    if current is None or (quality, int(event.get("id", 0))) > (current_quality, int(current.get("id", 0))):
+      deduplicated[key] = event
+
+  scored = [
+    row for event in deduplicated.values()
+    if (row := score_event(event, definition)) is not None
+  ]
+  result: Dict[str, Any] = {}
+  for currency in ("EUR", "USD"):
+    policy_rows = sorted(
+      [row for row in scored if row["currency"] == currency and row["factor"] == "policy"],
+      key=lambda row: (int(row["time"]), int(row["id"])),
+    )
+    latest_policy = policy_rows[-1] if policy_rows else None
+    policy_change = compare_source_values(latest_policy.get("actual"), latest_policy.get("previous")) if latest_policy else None
+    policy_state = "tightening" if policy_change == 1 else "easing" if policy_change == -1 else "holding" if policy_change == 0 else "unresolved"
+
+    inflation_rows = [row for row in scored if row["currency"] == currency and row["factor"] == "inflation"]
+    inflation_time = max((int(row["time"]) for row in inflation_rows), default=None)
+    latest_inflation = [row for row in inflation_rows if inflation_time is not None and int(row["time"]) == inflation_time]
+    group_scores: Dict[str, int] = {}
+    for row in latest_inflation:
+      group = str(row["scoreGroup"])
+      group_scores[group] = _clamp_group(group_scores.get(group, 0) + int(row["score"]))
+    heating_groups = sum(score > 0 for score in group_scores.values())
+    cooling_groups = sum(score < 0 for score in group_scores.values())
+    inflation_state = (
+      "heating" if heating_groups > cooling_groups else
+      "cooling" if cooling_groups > heating_groups else
+      "mixed" if heating_groups or cooling_groups else
+      "no_change" if latest_inflation else
+      "unresolved"
+    )
+    result[currency] = {
+      "policy": {
+        "state": policy_state,
+        "time": int(latest_policy["time"]) if latest_policy else None,
+        "title": str(latest_policy["title"]) if latest_policy else None,
+        "actual": latest_policy.get("actual") if latest_policy else None,
+        "previous": latest_policy.get("previous") if latest_policy else None,
+      },
+      "inflation": {
+        "state": inflation_state,
+        "time": inflation_time,
+        "heatingGroups": heating_groups,
+        "coolingGroups": cooling_groups,
+        "titles": sorted({str(row["title"]) for row in latest_inflation}),
+      },
+    }
+  return {
+    "asOf": as_of,
+    "currencies": result,
+    "usage": "Context only; policy and inflation do not filter or reverse current Charts arrows.",
+  }
 
 
 def _pattern_label(signature: str, events: Sequence[Dict[str, Any]]) -> str:
@@ -653,6 +1131,246 @@ def _pattern_label(signature: str, events: Sequence[Dict[str, Any]]) -> str:
   return "Economic release package"
 
 
+def _chart_pattern_summary(
+  signature: str,
+  rows: Sequence[Dict[str, Any]],
+  split_time: int,
+) -> Dict[str, Any]:
+  development = [row for row in rows if int(row["eventTime"]) < split_time]
+  holdout = [row for row in rows if int(row["eventTime"]) >= split_time]
+  event_examples = [event for row in rows for event in row.get("events", [])]
+  pattern_id = hashlib.sha256(signature.encode("utf-8")).hexdigest()[:12]
+  return {
+    "id": pattern_id,
+    "signature": signature,
+    "label": _pattern_label(signature, event_examples),
+    "direction": signature.split("|", 1)[0],
+    "groups": signature.split("|")[1:],
+    "overall": aggregate_outcomes(rows),
+    "development": aggregate_outcomes(development),
+    "holdout": aggregate_outcomes(holdout),
+    "qualification": CHART_SIGNAL_QUALIFICATION,
+    "exampleTitles": sorted({str(event.get("title", "")) for event in event_examples if event.get("title")})[:12],
+  }
+
+
+def execution_stressed_outcomes(
+  outcomes: Sequence[Dict[str, Any]],
+  stress_pips: float = CHART_SIGNAL_EXECUTION_STRESS_PIPS,
+) -> List[Dict[str, Any]]:
+  """Subtract a deterministic EURUSD execution stress from realized R results."""
+  stressed: List[Dict[str, Any]] = []
+  for outcome in outcomes:
+    row = dict(outcome)
+    result_r = row.get("resultR")
+    atr = row.get("atr")
+    if result_r is not None and atr is not None and float(atr) > 0:
+      row["resultR"] = float(result_r) - stress_pips * 0.0001 / float(atr)
+    stressed.append(row)
+  return stressed
+
+
+def _chart_metrics_pass(
+  overall: Dict[str, Any],
+  development: Dict[str, Any],
+  holdout: Dict[str, Any],
+) -> bool:
+  metrics_rows = (overall, development, holdout)
+  return (
+    overall["evaluableCount"] >= CHART_SIGNAL_QUALIFICATION["minimumOverallEvaluable"]
+    and development["evaluableCount"] >= CHART_SIGNAL_QUALIFICATION["minimumDevelopmentEvaluable"]
+    and holdout["evaluableCount"] >= CHART_SIGNAL_QUALIFICATION["minimumHoldoutEvaluable"]
+    and all(
+      metrics["averageR"] is not None
+      and float(metrics["averageR"]) >= CHART_SIGNAL_QUALIFICATION["minimumAverageR"]
+      and metrics["targetHitRate"] is not None
+      and float(metrics["targetHitRate"]) >= CHART_SIGNAL_QUALIFICATION["minimumTargetHitRate"]
+      and (
+        metrics["ambiguousRate"] is None
+        or float(metrics["ambiguousRate"]) <= CHART_SIGNAL_QUALIFICATION["maximumAmbiguousRate"]
+      )
+      for metrics in metrics_rows
+    )
+  )
+
+
+def _prequential_pattern_audit(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+  """Replay qualification using only outcomes strictly before each candidate."""
+  selected: List[Dict[str, Any]] = []
+  for index, row in enumerate(rows):
+    prior = list(rows[:index])
+    if len(prior) < CHART_SIGNAL_QUALIFICATION["minimumOverallEvaluable"]:
+      continue
+    split_index = max(1, min(len(prior) - 1, math.floor(len(prior) * DEVELOPMENT_SHARE)))
+    overall = aggregate_outcomes(prior)
+    development = aggregate_outcomes(prior[:split_index])
+    holdout = aggregate_outcomes(prior[split_index:])
+    if not _chart_metrics_pass(overall, development, holdout):
+      continue
+    stressed_partitions = (
+      aggregate_outcomes(execution_stressed_outcomes(prior)),
+      aggregate_outcomes(execution_stressed_outcomes(prior[:split_index])),
+      aggregate_outcomes(execution_stressed_outcomes(prior[split_index:])),
+    )
+    if any((metrics["averageR"] or 0) <= 0 for metrics in stressed_partitions):
+      continue
+    selected.append(row)
+  return {
+    "evaluableCount": aggregate_outcomes(selected)["evaluableCount"],
+    "gross": aggregate_outcomes(selected),
+    "executionStress": aggregate_outcomes(execution_stressed_outcomes(selected)),
+    "firstEligibleEventTime": int(selected[0]["eventTime"]) if selected else None,
+    "lastEligibleEventTime": int(selected[-1]["eventTime"]) if selected else None,
+  }
+
+
+def _estimated_break_even_stress_pips(rows: Sequence[Dict[str, Any]]) -> Optional[float]:
+  """Return the linear result-stress level that reduces average R to zero."""
+  evaluable = [
+    row for row in rows
+    if row.get("resultR") is not None and row.get("atr") is not None and float(row["atr"]) > 0
+  ]
+  if not evaluable:
+    return None
+  gross_average = statistics.fmean(float(row["resultR"]) for row in evaluable)
+  average_r_per_pip = statistics.fmean(0.0001 / float(row["atr"]) for row in evaluable)
+  if gross_average <= 0 or average_r_per_pip <= 0:
+    return 0.0
+  return gross_average / average_r_per_pip
+
+
+def _target_robustness_rows(
+  signatures: Sequence[str],
+  outcomes_by_target: Optional[Dict[str, Sequence[Dict[str, Any]]]],
+) -> List[Dict[str, Any]]:
+  if not outcomes_by_target:
+    return []
+  rows: List[Dict[str, Any]] = []
+  for target_r in TARGET_R_VALUES:
+    target_rows = [
+      outcome for outcome in outcomes_by_target.get(str(target_r), [])
+      if candidate_pattern_signature(outcome) in signatures
+    ]
+    if not target_rows:
+      continue
+    rows.append({
+      "targetR": target_r,
+      "gross": aggregate_outcomes(target_rows),
+      "executionStress": aggregate_outcomes(execution_stressed_outcomes(target_rows)),
+    })
+  return rows
+
+
+def build_chart_signal_pattern_catalog(
+  outcomes: Sequence[Dict[str, Any]],
+  split_time: int,
+  outcomes_by_target: Optional[Dict[str, Sequence[Dict[str, Any]]]] = None,
+  source_version: str = V2_VERSION_ID,
+) -> List[Dict[str, Any]]:
+  """Build replay/current patterns belonging to one frozen source version."""
+  definitions = [
+    pattern for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
+    if pattern["sourceVersion"] == source_version
+  ]
+  latest_event_time = max((int(row["eventTime"]) for row in outcomes), default=0)
+  recent_cutoff = latest_event_time - CHART_SIGNAL_RECENT_DAYS * 24 * 60 * 60
+  catalog: List[Dict[str, Any]] = []
+  for definition in definitions:
+    signatures = tuple(str(signature) for signature in definition["signatures"])
+    rows = sorted(
+      [outcome for outcome in outcomes if candidate_pattern_signature(outcome) in signatures],
+      key=lambda row: int(row["eventTime"]),
+    )
+    if not rows:
+      continue
+    development = [row for row in rows if int(row["eventTime"]) < split_time]
+    holdout = [row for row in rows if int(row["eventTime"]) >= split_time]
+    event_examples = [event for row in rows for event in row.get("events", [])]
+    direction_values = {signature.split("|", 1)[0] for signature in signatures}
+    group_values = sorted({group for signature in signatures for group in signature.split("|")[1:]})
+    pattern = {
+      "id": str(definition["id"]),
+      "signature": " || ".join(signatures),
+      "signatures": list(signatures),
+      "sourceVersionId": source_version,
+      "label": str(definition["label"]),
+      "condition": str(definition["condition"]),
+      "direction": next(iter(direction_values)) if len(direction_values) == 1 else "both",
+      "groups": group_values,
+      "overall": aggregate_outcomes(rows),
+      "development": aggregate_outcomes(development),
+      "holdout": aggregate_outcomes(holdout),
+      "qualification": CHART_SIGNAL_QUALIFICATION,
+      "exampleTitles": sorted({str(event.get("title", "")) for event in event_examples if event.get("title")})[:12],
+    }
+    recent = [row for row in rows if int(row["eventTime"]) >= recent_cutoff]
+    stress = {
+      "pips": CHART_SIGNAL_EXECUTION_STRESS_PIPS,
+      "overall": aggregate_outcomes(execution_stressed_outcomes(rows)),
+      "development": aggregate_outcomes(execution_stressed_outcomes(development)),
+      "holdout": aggregate_outcomes(execution_stressed_outcomes(holdout)),
+      "recent": aggregate_outcomes(execution_stressed_outcomes(recent)),
+    }
+    by_year = []
+    for year in sorted({_timestamp_year(int(row["eventTime"])) for row in rows}):
+      year_rows = [row for row in rows if _timestamp_year(int(row["eventTime"])) == year]
+      by_year.append({"year": year, "metrics": aggregate_outcomes(execution_stressed_outcomes(year_rows))})
+    evaluable_years = [row for row in by_year if row["metrics"]["evaluableCount"] > 0]
+    positive_years = [row for row in evaluable_years if (row["metrics"]["averageR"] or 0) > 0]
+    positive_year_share = len(positive_years) / len(evaluable_years) if evaluable_years else 0.0
+    prequential = _prequential_pattern_audit(rows)
+    target_robustness = _target_robustness_rows(signatures, outcomes_by_target)
+    stressed_ci = stress["overall"].get("expectancyCi95") or {}
+    checks = {
+      "frozenCurrentPattern": bool(definition["current"]),
+      "historicallyQualified": _chart_metrics_pass(
+        pattern["overall"], pattern["development"], pattern["holdout"]
+      ),
+      "executionStressOverallPositive": (stress["overall"]["averageR"] or 0) > 0,
+      "executionStressDevelopmentPositive": (stress["development"]["averageR"] or 0) > 0,
+      "executionStressHoldoutPositive": (stress["holdout"]["averageR"] or 0) > 0,
+      "recentSample": stress["recent"]["evaluableCount"] >= 10,
+      "recentExecutionStressPositive": (stress["recent"]["averageR"] or 0) > 0,
+      "yearCoverage": len(evaluable_years) >= 8,
+      "positiveYearShare": positive_year_share >= 0.60,
+      "prequentialSample": prequential["evaluableCount"] >= 2,
+      "prequentialExecutionStressPositive": (prequential["executionStress"]["averageR"] or 0) > 0,
+      "targetRobustnessComplete": len(target_robustness) == len(TARGET_R_VALUES),
+      "targetRobustnessPositive": all(
+        (row["executionStress"]["averageR"] or 0) > 0 for row in target_robustness
+      ),
+    }
+    current_eligible = all(checks.values())
+    catalog.append({
+      **pattern,
+      "modelStatus": "current" if current_eligible else "research_only",
+      "currentEligible": current_eligible,
+      "modelChecks": checks,
+      "executionStress": stress,
+      "recentWindow": {"from": recent_cutoff, "to": latest_event_time, "metrics": stress["recent"]},
+      "yearStability": {
+        "evaluableYears": len(evaluable_years),
+        "positiveYears": len(positive_years),
+        "positiveYearShare": positive_year_share,
+        "byYear": by_year,
+      },
+      "prequentialAudit": prequential,
+      "targetRobustness": target_robustness,
+      "estimatedBreakEvenStressPips": _estimated_break_even_stress_pips(rows),
+      "uncertaintyIncludesNoEdge": (
+        stressed_ci.get("lower") is None
+        or stressed_ci.get("upper") is None
+        or float(stressed_ci["lower"]) <= 0 <= float(stressed_ci["upper"])
+      ),
+      "selectionNote": (
+        "Frozen into the current Charts model after historical, holdout, execution-stress, recent-window, year-stability, target-robustness, and past-only checks."
+        if current_eligible else
+        "Retained for Research Replay but excluded from the current Charts model because one or more frozen robustness checks did not pass."
+      ),
+    })
+  return catalog
+
+
 def discover_qualified_chart_patterns(
   outcomes: Sequence[Dict[str, Any]],
   split_time: int,
@@ -666,46 +1384,13 @@ def discover_qualified_chart_patterns(
 
   qualified: List[Dict[str, Any]] = []
   for signature, rows in groups.items():
-    development = [row for row in rows if int(row["eventTime"]) < split_time]
-    holdout = [row for row in rows if int(row["eventTime"]) >= split_time]
-    overall_metrics = aggregate_outcomes(rows)
-    development_metrics = aggregate_outcomes(development)
-    holdout_metrics = aggregate_outcomes(holdout)
-    metrics_rows = (overall_metrics, development_metrics, holdout_metrics)
-    if overall_metrics["evaluableCount"] < CHART_SIGNAL_QUALIFICATION["minimumOverallEvaluable"]:
+    pattern = _chart_pattern_summary(signature, rows, split_time)
+    overall_metrics = pattern["overall"]
+    development_metrics = pattern["development"]
+    holdout_metrics = pattern["holdout"]
+    if not _chart_metrics_pass(overall_metrics, development_metrics, holdout_metrics):
       continue
-    if development_metrics["evaluableCount"] < CHART_SIGNAL_QUALIFICATION["minimumDevelopmentEvaluable"]:
-      continue
-    if holdout_metrics["evaluableCount"] < CHART_SIGNAL_QUALIFICATION["minimumHoldoutEvaluable"]:
-      continue
-    if any(
-      metrics["averageR"] is None
-      or float(metrics["averageR"]) < CHART_SIGNAL_QUALIFICATION["minimumAverageR"]
-      or metrics["targetHitRate"] is None
-      or float(metrics["targetHitRate"]) < CHART_SIGNAL_QUALIFICATION["minimumTargetHitRate"]
-      for metrics in metrics_rows
-    ):
-      continue
-    if any(
-      metrics["ambiguousRate"] is not None
-      and float(metrics["ambiguousRate"]) > CHART_SIGNAL_QUALIFICATION["maximumAmbiguousRate"]
-      for metrics in metrics_rows
-    ):
-      continue
-    event_examples = [event for row in rows for event in row.get("events", [])]
-    pattern_id = hashlib.sha256(signature.encode("utf-8")).hexdigest()[:12]
-    qualified.append({
-      "id": pattern_id,
-      "signature": signature,
-      "label": _pattern_label(signature, event_examples),
-      "direction": signature.split("|", 1)[0],
-      "groups": signature.split("|")[1:],
-      "overall": overall_metrics,
-      "development": development_metrics,
-      "holdout": holdout_metrics,
-      "qualification": CHART_SIGNAL_QUALIFICATION,
-      "exampleTitles": sorted({str(event.get("title", "")) for event in event_examples if event.get("title")})[:12],
-    })
+    qualified.append(pattern)
   return sorted(qualified, key=lambda item: (-item["holdout"]["averageR"], item["label"], item["direction"]))
 
 
@@ -752,7 +1437,7 @@ def build_data_quality_audit(
   historical_rows = [event for event in pair_rows if int(event.get("time", 0)) <= generated_at]
   future_rows = [event for event in pair_rows if int(event.get("time", 0)) > generated_at]
   registered_rows = [event for event in historical_rows if _event_belongs_to_definition(event, selected_definition)]
-  scored_rows = [event for event in registered_rows if score_event(event) is not None]
+  scored_rows = [event for event in registered_rows if score_event(event, selected_definition) is not None]
   exact_keys: Dict[Tuple[str, str, int], int] = {}
   collision_rows: Dict[Tuple[str, str, int], List[Dict[str, Any]]] = {}
   factor_counts: Dict[str, int] = {}

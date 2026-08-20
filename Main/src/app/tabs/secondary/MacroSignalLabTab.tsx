@@ -144,6 +144,10 @@ interface MacroSignalLabViewProps {
   onSelectVersion?: (versionId: string) => void;
 }
 
+function versionUsesForwardLedger(version: MacroSignalVersion | null | undefined): boolean {
+  return version?.configuration.historicalEligibility === "disabled_due_to_reused_history";
+}
+
 export function MacroSignalLabView({
   coverage,
   version,
@@ -160,6 +164,11 @@ export function MacroSignalLabView({
   const running = run?.status === "queued" || run?.status === "running";
   const highlighted = result?.targets["2.0"] ?? null;
   const runDisabled = loading || running || !coverage || coverage.count === 0;
+  const isSentimentVersion = version?.id.includes("SENTIMENT") ?? false;
+  const isLaborVersion = version?.id.includes("LABOR") ?? false;
+  const isPolicyInflationVersion = version?.id.includes("POLICY-INFL") ?? false;
+  const isGrowthVersion = version?.id.includes("GROWTH") ?? false;
+  const versionNumber = isGrowthVersion ? "v7" : isPolicyInflationVersion ? "v5" : isSentimentVersion ? "v3" : isLaborVersion ? "v2" : "v1";
 
   return (
     <section className="macro-signal-page" data-macro-signal-lab="">
@@ -170,7 +179,7 @@ export function MacroSignalLabView({
             <h2>Macro Signal Lab</h2>
             <span>EURUSD</span><span>H4</span><span>{version?.id ?? "FMS-EURUSD-ECO-H4-v1"}</span>
           </div>
-          <p>{version?.id.includes("LABOR") ? "Country-aware Labor evidence model. Reused history is exploratory; forward evidence starts at registration." : "Frozen Economy evidence model. Historical behavior research—not an order, guarantee, or proof of causation."}</p>
+          <p>{isGrowthVersion ? "Country-aware Growth research for strict GDP/output, PMI/ISM, retail-demand, and trade/current-account releases. Rules were frozen before v7 results were inspected." : isPolicyInflationVersion ? "Country-aware Policy/Inflation context research. Direct decision arrows and broad inflation arrows remain unqualified unless a frozen pattern passes every gate." : isSentimentVersion ? "Country-aware Sentiment evidence model. Reused history is exploratory; only post-registration observations can validate it." : isLaborVersion ? "Country-aware Labor evidence model. Reused history is exploratory; forward evidence starts at registration." : "Frozen Economy evidence model. Historical behavior research—not an order, guarantee, or proof of causation."}</p>
         </div>
         <button type="button" className="macro-signal-run-button" disabled={runDisabled} onClick={onRun}>
           {running ? <RefreshCw className="animate-spin" size={17} /> : <Play size={17} />}
@@ -180,7 +189,7 @@ export function MacroSignalLabView({
 
       <div className="macro-signal-notice">
         <ShieldCheck size={17} />
-        <strong>Gross simulation:</strong> spread, slippage, swap, and commission are excluded. Charts may show only historically qualified v2 patterns as experimental Macro Bias arrows.
+        <strong>Gross simulation:</strong> exact historical spread, slippage, swap, and commission are unavailable. Charts v9 separates frozen current patterns from hindsight Research Replay and shows a three-pip result stress.
       </div>
 
       {versions.length > 1 ? (
@@ -188,7 +197,7 @@ export function MacroSignalLabView({
           <span>Research version</span>
           {versions.map((item) => (
             <button key={item.id} type="button" className={item.id === version?.id ? "is-active" : ""} onClick={() => onSelectVersion(item.id)}>
-              {item.id.includes("LABOR") ? "v2 · Country-aware Labor" : "v1 · Economy baseline"}
+              {item.id.includes("GROWTH") ? "v7 · Country-aware Growth" : item.id.includes("POLICY-INFL") ? "v5 · Policy / Inflation" : item.id.includes("SENTIMENT") ? "v3 · Country-aware Sentiment" : item.id.includes("LABOR") ? "v2 · Country-aware Labor" : "v1 · Economy baseline"}
             </button>
           ))}
         </div>
@@ -273,7 +282,7 @@ export function MacroSignalLabView({
             <>
               {result.conclusion ? (
                 <section className="macro-signal-panel macro-signal-verdict">
-                  <div className="macro-signal-section-title"><ShieldCheck size={16} /><h3>What {version?.id.includes("LABOR") ? "v2" : "v1"} means</h3><span>Plain-language decision</span></div>
+                  <div className="macro-signal-section-title"><ShieldCheck size={16} /><h3>What {versionNumber} means</h3><span>Plain-language decision</span></div>
                   <div className="macro-signal-verdict-grid">
                     <div><span>1 · Build</span><strong>Development {formatR(result.conclusion.developmentAverageR)}</strong><p>The older 70% was used to observe how the frozen rule behaved.</p></div>
                     <div><span>2 · Check</span><strong>Holdout {formatR(result.conclusion.holdoutAverageR)}</strong><p>The newer 30% checked whether that behavior survived later data.</p></div>
@@ -281,7 +290,7 @@ export function MacroSignalLabView({
                   </div>
                   <div className="macro-signal-verdict-foot">
                     <span>Holdout uncertainty: {formatRange(result.conclusion.holdoutExpectancyCi95)}</span>
-                    <span>Chart indicator: {version?.id.includes("LABOR") ? "Qualified recurring patterns only · experimental" : result.conclusion.code === "forward_paper_validated" ? "Pending cost-model and product review" : "Not allowed"}</span>
+                    <span>Chart indicator: {isGrowthVersion ? "v9 current source + explicit Research Replay" : isPolicyInflationVersion ? "v9 context + failed-gate replay only" : isLaborVersion || isSentimentVersion ? "v9 current source + explicit Research Replay" : result.conclusion.code === "forward_paper_validated" ? "Pending cost-model and product review" : "Not allowed"}</span>
                   </div>
                   {result.conclusion.exploratoryFactorLeads.length ? (
                     <div className="macro-signal-research-leads">
@@ -435,7 +444,7 @@ export function MacroSignalLabTab() {
       .then(async ([nextCoverage, nextVersions]) => {
         const nextVersion = nextVersions.find((item) => item.active) ?? nextVersions[nextVersions.length - 1] ?? null;
         const nextRun = nextVersion ? await fetchLatestMacroSignalBacktest(nextVersion.id) : null;
-        const nextForward = nextVersion?.id.includes("LABOR") ? await fetchMacroSignalForwardPaper(nextVersion.id) : null;
+        const nextForward = versionUsesForwardLedger(nextVersion) ? await fetchMacroSignalForwardPaper(nextVersion.id) : null;
         if (cancelled) return;
         setCoverage(nextCoverage);
         setVersions(nextVersions);
@@ -454,13 +463,14 @@ export function MacroSignalLabTab() {
   }, []);
 
   useEffect(() => {
-    if (!version?.id.includes("LABOR")) {
+    const versionId = version?.id;
+    if (!versionId || !versionUsesForwardLedger(version)) {
       setForwardPaper(null);
       return;
     }
     let cancelled = false;
     const refreshForward = () => {
-      fetchMacroSignalForwardPaper(version.id)
+      fetchMacroSignalForwardPaper(versionId)
         .then((next) => { if (!cancelled) setForwardPaper(next); })
         .catch(() => { /* Historical research remains usable if forward polling is temporarily unavailable. */ });
     };
@@ -503,7 +513,7 @@ export function MacroSignalLabTab() {
   const handleRefresh = () => {
     setLoading(true);
     setError(null);
-    Promise.all([fetchMacroSignalCoverage(), fetchMacroSignalVersions(), version ? fetchLatestMacroSignalBacktest(version.id) : Promise.resolve(null), version?.id.includes("LABOR") ? fetchMacroSignalForwardPaper(version.id) : Promise.resolve(null)])
+    Promise.all([fetchMacroSignalCoverage(), fetchMacroSignalVersions(), version ? fetchLatestMacroSignalBacktest(version.id) : Promise.resolve(null), version && versionUsesForwardLedger(version) ? fetchMacroSignalForwardPaper(version.id) : Promise.resolve(null)])
       .then(([nextCoverage, nextVersions, nextRun, nextForward]) => {
         setCoverage(nextCoverage);
         setVersions(nextVersions);
