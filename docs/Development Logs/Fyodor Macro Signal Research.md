@@ -500,6 +500,20 @@ Also measure which registered families dominate signal frequency and realized ex
 6. Promote only separately versioned, auditable rules; leave v10 immutable otherwise.
 7. Repeat with retail, small-sample accumulation, policy, inflation, and combined evidence only after earlier experiments are recorded.
 
+### Deferred Forecast-Quality Experiment - 2026-08-22
+
+The 2026-08-21 Euro-area Consumer Confidence release exposed a confirmed bad-source edge case in the MT5 calendar. MT5 froze `Actual -15.5`, `Forecast 0.1`, and `Previous -15.9`, while the external release table reported Forecast `-16.0`. The current equal-weight rule therefore produced Surprise `-1`, Momentum `+1`, agreement `0`, and total score `0`, even though Actual improved from Previous. Preserve this result as an honest failure of the current input policy; do not retroactively create a trade.
+
+Before the next Charts registry, backtest three frozen alternatives side by side:
+
+1. Existing baseline: always use numeric Forecast and Previous as currently supplied.
+2. Momentum-only challenger: ignore Forecast for every eligible release and derive direction solely from Actual versus Previous; equal, missing, or nonnumeric momentum remains non-directional.
+3. Forecast-quality challenger: retain Forecast normally, but mark it suspect when `|Forecast - Previous|` is anomalous relative to earlier releases of the same country/region plus normalized exact-title series. The detector must use only information known before that release and must never inspect later values.
+
+For a suspect Forecast, preserve and display the raw broker value, contribute nothing from Surprise, compare Actual with Previous normally, and award no agreement bonus. In the confirmed Consumer Confidence example this would yield Momentum `+1` and a Long-qualifying direction under the challenger rather than silently replacing `0.1` with an external value.
+
+The experiment must report average R, target/stop/expiry rates, maximum drawdown, development/holdout/recent performance, yearly stability, signal count, excluded-Forecast count, and representative exclusions. Prefer momentum-only if it performs comparably because it is simpler. Promote the quality gate only if its improvement survives chronological holdout and robustness checks. Any winning policy becomes a new immutable FMS version governing future releases; v10 and its already-observed decisions remain unchanged.
+
 ## Research Warnings and References
 
 Hypothetical results do not represent executed trades and can overstate or understate real performance. The Lab must identify all results as simulated, disclose excluded costs, and avoid claims that similar live profits are likely. See the [CFTC guidance on hypothetical trading-system results](https://www.cftc.gov/LearnAndProtect/AdvisoriesAndArticles/fraudadv_tradingsystem.html).

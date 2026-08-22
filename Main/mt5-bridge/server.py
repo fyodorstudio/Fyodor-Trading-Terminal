@@ -837,7 +837,9 @@ async def calendar_ingest_cycle(request: Request) -> Dict[str, Any]:
     }
   _research_store.set_metadata("last_calendar_successful_cycle_at", str(observed_at))
   captured = _research_store.capture_release_observations(
-    FORWARD_LEDGER_ACTIVATED_AT, observed_at
+    FORWARD_LEDGER_ACTIVATED_AT,
+    observed_at,
+    released_through=completed_at,
   )
   scheduled = _schedule_forward_reconcile(observed_at)
   return {
@@ -1382,6 +1384,7 @@ def research_chart_signals(
     from_time=FORWARD_LEDGER_ACTIVATED_AT,
     currencies=["EUR", "USD"],
   )
+  generated_at = _get_server_time_from_mt5(normalized_symbol) or int(_time.time())
   observation_coverage_start = min((int(event["time"]) for event in observed_events), default=None)
   current_candidates: List[Tuple[str, Dict[str, Any]]] = []
   for source_version in source_versions:
@@ -1390,7 +1393,7 @@ def research_chart_signals(
       continue
     current_candidates.extend(
       (source_version, candidate)
-      for candidate in build_signal_candidates(observed_events, now=int(_time.time()), definition=definition)
+      for candidate in build_signal_candidates(observed_events, now=generated_at, definition=definition)
       if int(candidate["eventTime"]) >= CHART_SIGNAL_MODEL_CREATED_AT
     )
   paper_cases = {
@@ -1412,7 +1415,6 @@ def research_chart_signals(
     if (from_ is None or int(candidate["eventTime"]) >= from_)
     and (to is None or int(candidate["eventTime"]) <= to)
   ]
-  generated_at = _get_server_time_from_mt5(normalized_symbol) or int(_time.time())
   custom_execution_candidates = [
     (source_version, candidate, pattern)
     for source_version, candidate in window_candidates
@@ -1513,13 +1515,15 @@ def research_chart_signals(
     and matching_pattern(source_version, candidate) is None
   )
   scheduled_events = _research_store.query_calendar(
-    from_time=generated_at + 1,
+    from_time=max(CHART_SIGNAL_MODEL_CREATED_AT, generated_at - 7 * 24 * 60 * 60),
     currencies=["EUR", "USD"],
   )
   realtime = build_chart_signal_realtime_watch(
     scheduled_events,
     generated_at,
     frozenset(str(pattern["id"]) for pattern in catalog if pattern["currentEligible"]),
+    current_candidates,
+    frozenset(int(event["time"]) for event in observed_events),
   )
   context_revision = _research_store.get_metadata("last_calendar_ingest_at") or "unversioned"
   context_key = f"{id(_research_store)}:{context_revision}"

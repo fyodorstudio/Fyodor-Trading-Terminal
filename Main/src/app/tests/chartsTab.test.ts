@@ -196,7 +196,11 @@ describe("getChartConnectionLabel", () => {
 
     expect(html).toContain("FMS Shadow Trader");
     expect(html).toContain("No trade");
-    expect(html).toContain("Waiting for a frozen setup");
+    expect(html).toContain("All registered FMS setups");
+    expect(html).toContain("Registered setup");
+    expect(html).toContain("State");
+    expect(html).toContain("Relevant time");
+    expect(html).toContain("Waiting");
     expect(html).toContain("Possible next setup");
     expect(html).toContain("Automatically selected from the frozen current registry");
     expect(html).toContain("Registered current setups");

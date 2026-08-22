@@ -1049,6 +1049,27 @@ export function ChartsTab({
     return () => { cancelled = true; };
   }, [macroBiasSupported, macroBiasCurrentRequestKey]);
 
+  const macroBiasLifecycleNeedsRefresh = macroBiasCurrentResponse?.realtime?.latestPatternAssessment?.status === "awaiting_observation"
+    || macroBiasCurrentResponse?.signals.some((signal) => signal.outcomeStatus === "pending") === true;
+  useEffect(() => {
+    if (!macroBiasSupported || !macroBiasLifecycleNeedsRefresh) return undefined;
+    let cancelled = false;
+    let requestRunning = false;
+    const refreshLifecycle = () => {
+      if (requestRunning) return;
+      requestRunning = true;
+      fetchMacroSignalChartSignals({ symbol: selectedSymbol, timeframe: "H4", mode: "current" })
+        .then((response) => { if (!cancelled) setMacroBiasCurrentResponse(response); })
+        .catch(() => { /* retain the last honest lifecycle state */ })
+        .finally(() => { requestRunning = false; });
+    };
+    const timer = window.setInterval(refreshLifecycle, 15_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [macroBiasLifecycleNeedsRefresh, macroBiasSupported, selectedSymbol]);
+
   useEffect(() => {
     const replayWindowUnavailable = macroBiasFrom == null || macroBiasTo == null;
     if (!macroBiasVisible || !macroBiasSupported || macroBiasMode !== "research_replay" || replayWindowUnavailable) {

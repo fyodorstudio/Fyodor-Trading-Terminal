@@ -537,10 +537,7 @@ export interface MacroSignalScheduledEvent {
   previous: string | null;
 }
 
-export interface MacroSignalRealtimeWatch {
-  asOf: number;
-  nextPairEvent: MacroSignalScheduledEvent | null;
-  nextPatternWatch: {
+export interface MacroSignalUpcomingPatternWatch {
     time: number;
     patternId: string;
     label: string;
@@ -548,7 +545,36 @@ export interface MacroSignalRealtimeWatch {
     sourceVersionId: string;
     requiredGroups: string[];
     events: MacroSignalScheduledEvent[];
-  } | null;
+}
+
+export interface MacroSignalPatternAssessment {
+    time: number;
+    patternId: string;
+    label: string;
+    condition: string;
+    status: "awaiting_observation" | "qualified" | "no_trade";
+    direction: "long" | "short" | null;
+    reason: string;
+    events: MacroSignalScheduledEvent[];
+    calculations?: Array<{
+      title: string;
+      actual: string | null;
+      forecast: string | null;
+      previous: string | null;
+      surprisePoint: number;
+      momentumPoint: number;
+      agreementBonus: number;
+      score: number;
+    }>;
+}
+
+export interface MacroSignalRealtimeWatch {
+  asOf: number;
+  nextPairEvent: MacroSignalScheduledEvent | null;
+  nextPatternWatch: MacroSignalUpcomingPatternWatch | null;
+  latestPatternAssessment?: MacroSignalPatternAssessment | null;
+  upcomingPatternWatches?: MacroSignalUpcomingPatternWatch[];
+  latestPatternAssessments?: MacroSignalPatternAssessment[];
 }
 
 export interface MacroSignalPolicyInflationContext {

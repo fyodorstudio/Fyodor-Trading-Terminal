@@ -1780,6 +1780,8 @@ def build_chart_signal_realtime_watch(
   events: Sequence[Dict[str, Any]],
   as_of: int,
   eligible_pattern_ids: Optional[frozenset[str]] = None,
+  observed_candidates: Optional[Sequence[Tuple[str, Dict[str, Any]]]] = None,
+  observed_event_times: Optional[frozenset[int]] = None,
 ) -> Dict[str, Any]:
   """Describe the next pair event and the next structurally relevant pattern package.
 
@@ -1788,11 +1790,10 @@ def build_chart_signal_realtime_watch(
   release package could satisfy one of the frozen current pattern structures once
   Actual values arrive.
   """
-  future = sorted(
+  pair_events = sorted(
     (
       event for event in events
-      if int(event.get("time", 0)) > as_of
-      and str(event.get("currency", "")).upper() in {"EUR", "USD"}
+      if str(event.get("currency", "")).upper() in {"EUR", "USD"}
     ),
     key=lambda event: (
       int(event.get("time", 0)),
@@ -1801,6 +1802,7 @@ def build_chart_signal_realtime_watch(
       int(event.get("id", 0)),
     ),
   )
+  future = [event for event in pair_events if int(event.get("time", 0)) > as_of]
 
   def public_event(event: Dict[str, Any]) -> Dict[str, Any]:
     return {
@@ -1817,12 +1819,11 @@ def build_chart_signal_realtime_watch(
 
   next_event = public_event(future[0]) if future else None
   packages: Dict[int, List[Dict[str, Any]]] = {}
-  for event in future:
+  for event in pair_events:
     packages.setdefault(int(event["time"]), []).append(event)
 
-  next_pattern = None
-  for event_time in sorted(packages):
-    package = packages[event_time]
+  def structural_patterns(package: Sequence[Dict[str, Any]]) -> List[Tuple[Dict[str, Any], List[set[str]]]]:
+    matches: List[Tuple[Dict[str, Any], List[set[str]]]] = []
     for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS:
       if not pattern["current"]:
         continue
@@ -1838,35 +1839,121 @@ def build_chart_signal_realtime_watch(
         for rule in [find_signal_rule(event, definition)]
         if rule is not None
       }
-      required_group_sets = [
-        set(signature.split("|")[1:])
-        for signature in pattern["signatures"]
-      ]
+      required_group_sets = [set(signature.split("|")[1:]) for signature in pattern["signatures"]]
       if not any(required and required.issubset(structural_groups) for required in required_group_sets):
         continue
-      required_titles = {
-        normalize_title(str(title)) for title in pattern.get("requiredExactTitles", ())
-      }
+      required_titles = {normalize_title(str(title)) for title in pattern.get("requiredExactTitles", ())}
       package_titles = {normalize_title(str(event.get("title", ""))) for event in package}
       if required_titles and not required_titles.issubset(package_titles):
         continue
-      next_pattern = {
+      matches.append((pattern, required_group_sets))
+    return matches
+
+  def watch_payload(event_time: int, package: Sequence[Dict[str, Any]], pattern: Dict[str, Any], required_group_sets: Sequence[set[str]]) -> Dict[str, Any]:
+    return {
+      "time": event_time,
+      "patternId": pattern["id"],
+      "label": pattern["label"],
+      "condition": pattern["condition"],
+      "sourceVersionId": pattern["sourceVersion"],
+      "requiredGroups": sorted(set().union(*required_group_sets)),
+      "events": [public_event(event) for event in package],
+    }
+
+  next_pattern = None
+  upcoming_by_pattern: Dict[str, Dict[str, Any]] = {}
+  for event_time in sorted(time for time in packages if time > as_of):
+    package = packages[event_time]
+    for pattern, required_group_sets in structural_patterns(package):
+      pattern_id = str(pattern["id"])
+      payload = watch_payload(event_time, package, pattern, required_group_sets)
+      upcoming_by_pattern.setdefault(pattern_id, payload)
+      if next_pattern is None:
+        next_pattern = payload
+
+  candidates = list(observed_candidates or ())
+  frozen_times = observed_event_times or frozenset()
+  assessments_by_pattern: Dict[str, Dict[str, Any]] = {}
+
+  def point_text(point: Any, positive: str, negative: str) -> str:
+    return positive if point == 1 else negative if point == -1 else "equal or unavailable (0)"
+
+  for event_time in sorted((time for time in packages if time <= as_of), reverse=True):
+    package = packages[event_time]
+    for pattern, _required_group_sets in structural_patterns(package):
+      pattern_id = str(pattern["id"])
+      if pattern_id in assessments_by_pattern:
+        continue
+      matching_candidates = [
+        candidate for source_version, candidate in candidates
+        if source_version == str(pattern["sourceVersion"])
+        and int(candidate.get("eventTime", 0)) == event_time
+      ]
+      qualified = next((candidate for candidate in matching_candidates if candidate_matches_chart_pattern(candidate, pattern)), None)
+      candidate = qualified or (matching_candidates[0] if matching_candidates else None)
+      scored_events = list(candidate.get("events", [])) if candidate is not None else []
+      calculations = [
+        (
+          f"{row.get('title')}: A {row.get('actual') or '–'} vs F {row.get('forecast') or '–'} = "
+          f"{point_text(row.get('surprisePoint'), 'better (+1)', 'worse (-1)')}; "
+          f"A {row.get('actual') or '–'} vs P {row.get('previous') or '–'} = "
+          f"{point_text(row.get('momentumPoint'), 'improving (+1)', 'weakening (-1)')}; "
+          f"agreement {int(row.get('agreementBonus', 0)):+d}; score {int(row.get('score', 0)):+d}."
+        )
+        for row in scored_events
+      ]
+      calculation = " ".join(calculations)
+      if event_time not in frozen_times:
+        status = "awaiting_observation"
+        reason = "Release time passed; waiting for the next completed EA cycle to freeze the first-seen values."
+      elif qualified is not None:
+        status = "qualified"
+        reason = f"{calculation} Frozen rule qualified {str(qualified.get('direction', '')).upper()} EURUSD."
+      elif matching_candidates:
+        status = "no_trade"
+        reason = f"{calculation} Frozen rule: {pattern['condition']} This package produced no matching nonzero direction."
+      else:
+        status = "no_trade"
+        source_values = "; ".join(
+          f"{event.get('title')}: A {event.get('actual') or '–'}, F {event.get('forecast') or '–'}, P {event.get('previous') or '–'}"
+          for event in package
+        )
+        reason = f"{source_values}. Frozen rule: {pattern['condition']} No complete numeric registered package was produced."
+      assessments_by_pattern[pattern_id] = {
         "time": event_time,
         "patternId": pattern["id"],
         "label": pattern["label"],
         "condition": pattern["condition"],
-        "sourceVersionId": pattern["sourceVersion"],
-        "requiredGroups": sorted(set().union(*required_group_sets)),
+        "status": status,
+        "direction": qualified.get("direction") if qualified is not None else None,
+        "reason": reason,
         "events": [public_event(event) for event in package],
+        "calculations": [
+          {
+            "title": str(row.get("title", "")),
+            "actual": row.get("actual"),
+            "forecast": row.get("forecast"),
+            "previous": row.get("previous"),
+            "surprisePoint": int(row.get("surprisePoint", 0)),
+            "momentumPoint": int(row.get("momentumPoint", 0)),
+            "agreementBonus": int(row.get("agreementBonus", 0)),
+            "score": int(row.get("score", 0)),
+          }
+          for row in scored_events
+        ],
       }
-      break
-    if next_pattern is not None:
-      break
+
+  assessments = sorted(assessments_by_pattern.values(), key=lambda row: (-int(row["time"]), str(row["label"])))
+  upcoming = sorted(upcoming_by_pattern.values(), key=lambda row: (int(row["time"]), str(row["label"])))
+  latest_assessment = assessments[0] if assessments else None
 
   return {
     "asOf": as_of,
     "nextPairEvent": next_event,
     "nextPatternWatch": next_pattern,
+    "upcomingPatternWatches": upcoming,
+    "latestPatternAssessment": latest_assessment,
+    "latestPatternAssessments": assessments,
   }
 
 

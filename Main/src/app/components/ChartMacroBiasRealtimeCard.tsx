@@ -1,5 +1,5 @@
 import { ShieldCheck, WalletCards } from "lucide-react";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { ChartMacroBiasNextSetup, ChartMacroBiasSetupCatalog } from "@/app/components/ChartMacroBiasSetupCatalog";
 import {
   DEFAULT_SHADOW_RISK_PERCENT,
@@ -47,12 +47,46 @@ function formatPrice(value: number | null | undefined): string {
   return value == null ? "Waiting for entry" : value.toFixed(5);
 }
 
+function formatOutcome(signal: MacroSignalChartSignal): string {
+  if (signal.outcomeStatus === "target_hit") return `Target reached · +${signal.resultR?.toFixed(2) ?? signal.targetR ?? 0}R`;
+  if (signal.outcomeStatus === "stop_hit") return `Stop reached · ${signal.resultR?.toFixed(2) ?? "-1.00"}R`;
+  if (signal.outcomeStatus === "expired") return `Expired · ${signal.resultR == null ? "result unavailable" : `${signal.resultR >= 0 ? "+" : ""}${signal.resultR.toFixed(2)}R`}`;
+  if (signal.outcomeStatus === "ambiguous") return "Both boundaries touched · order unknown";
+  if (signal.outcomeStatus === "unevaluable") return "Could not be evaluated from loaded prices";
+  return "Qualified · waiting for the frozen H4 entry";
+}
+
+function formatPoint(value: number): string {
+  return value > 0 ? `+${value}` : String(value);
+}
+
+function surpriseMeaning(value: number): string {
+  return value > 0 ? "better" : value < 0 ? "worse" : "equal / unavailable";
+}
+
+function momentumMeaning(value: number): string {
+  return value > 0 ? "improving" : value < 0 ? "weakening" : "equal / unavailable";
+}
+
 export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealtimeCardData }) {
   const { response, activeSignal, activePattern } = data;
   const [startingBalance, setStartingBalance] = useState(() => normalizeShadowStartingBalance(readStoredNumber(SHADOW_BALANCE_KEY, DEFAULT_SHADOW_STARTING_BALANCE)));
   const [riskPercent, setRiskPercent] = useState(() => normalizeShadowRiskPercent(readStoredNumber(SHADOW_RISK_KEY, DEFAULT_SHADOW_RISK_PERCENT)));
   const nextEvent = response.realtime?.nextPairEvent ?? null;
   const nextWatch = response.realtime?.nextPatternWatch ?? null;
+  const latestAssessment = response.realtime?.latestPatternAssessment ?? null;
+  const registeredPatterns = useMemo(
+    () => response.patterns.filter((pattern) => pattern.currentEligible).sort((left, right) => left.label.localeCompare(right.label)),
+    [response.patterns],
+  );
+  const assessmentsByPattern = useMemo(
+    () => new Map((response.realtime?.latestPatternAssessments ?? []).map((assessment) => [assessment.patternId, assessment])),
+    [response.realtime?.latestPatternAssessments],
+  );
+  const upcomingByPattern = useMemo(
+    () => new Map((response.realtime?.upcomingPatternWatches ?? []).map((watch) => [watch.patternId, watch])),
+    [response.realtime?.upcomingPatternWatches],
+  );
   const watchPattern = nextWatch
     ? response.patterns.find((pattern) => pattern.id === nextWatch.patternId) ?? null
     : null;
@@ -63,7 +97,6 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
     [data.historicalSignals, settings],
   );
   const position = activeSignal ? buildMacroSignalShadowPosition(activeSignal, liveAccount.balance, riskPercent) : null;
-  const bias = activeSignal ? (activeSignal.direction === "long" ? "Hypothetical long EURUSD" : "Hypothetical short EURUSD") : "No trade";
   const timeframeLabel = data.chartTimeframe === response.modelTimeframe
     ? `${response.modelTimeframe} backtest model`
     : `${response.modelTimeframe} backtest · shown on ${data.chartTimeframe}`;
@@ -87,13 +120,70 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
         <div><ShieldCheck size={14} /><span>FMS Shadow Trader</span></div>
         <small>{timeframeLabel}</small>
       </header>
-      <section className="chart-macro-bias-realtime-state">
-        <span>Current hypothetical decision</span>
-        <strong>{bias}</strong>
-        <p>{activePattern
-          ? `${activePattern.label}: ${activePattern.condition}`
-          : "Waiting for a frozen setup. Current Model shows only immutable releases observed after v10 activation; historical arrows remain in Research Replay."}</p>
-        {activeSignal && data.remainingModelCandles != null ? <small>{data.remainingModelCandles} H4 model candles remain</small> : null}
+      <section className="chart-shadow-priority" aria-label="All registered FMS setups">
+        <table>
+          <thead><tr><th>Registered setup</th><th>State</th><th>Relevant time</th></tr></thead>
+          <tbody>
+            {registeredPatterns.map((pattern) => {
+              const patternSignals = response.signals
+                .filter((signal) => signal.patternId === pattern.id)
+                .sort((left, right) => right.eventTime - left.eventTime || right.id.localeCompare(left.id));
+              const patternSignal = activeSignal?.patternId === pattern.id ? activeSignal : patternSignals[0] ?? null;
+              const assessment = assessmentsByPattern.get(pattern.id) ?? (latestAssessment?.patternId === pattern.id ? latestAssessment : null);
+              const upcoming = upcomingByPattern.get(pattern.id) ?? (nextWatch?.patternId === pattern.id ? nextWatch : null);
+              const assessmentIsNewer = assessment && (!patternSignal || assessment.time > patternSignal.eventTime);
+              const openOrPending = patternSignal && !assessmentIsNewer && patternSignal.outcomeStatus === "pending";
+              const latestTime = assessmentIsNewer ? assessment.time : patternSignal?.eventTime ?? assessment?.time ?? null;
+              return (
+                <Fragment key={pattern.id}>
+                  <tr className={openOrPending ? "is-current" : undefined}>
+                    <td><strong>{pattern.label}</strong></td>
+                    <td>{openOrPending ? (
+                      <><strong>{activeSignal?.id === patternSignal.id ? "Open hypothetical trade" : "Qualified · waiting H4 entry"}</strong><small>{patternSignal.direction === "long" ? "Long EURUSD" : "Short EURUSD"}</small></>
+                    ) : patternSignal && !assessmentIsNewer && patternSignal.outcomeStatus && patternSignal.outcomeStatus !== "pending" ? (
+                      <strong>{formatOutcome(patternSignal)}</strong>
+                    ) : assessment ? (
+                      <strong>{assessment.status === "awaiting_observation" ? "Processing release" : assessment.status === "qualified" ? "Qualified" : "No trade"}</strong>
+                    ) : <span>Waiting</span>}</td>
+                    <td>
+                      {latestTime != null ? <strong>Latest · {formatUtc(latestTime)}</strong> : null}
+                      {upcoming ? <small><b>Next ·</b> {formatUtc(upcoming.time)}</small> : latestTime == null ? <span>No upcoming release loaded</span> : null}
+                    </td>
+                  </tr>
+                  <tr className="chart-shadow-priority-detail">
+                    <td colSpan={3}>
+                      {assessment?.calculations?.length ? (
+                        <div className="chart-shadow-calculation" aria-label={assessment.reason}>
+                          <div className="chart-shadow-calculation-heading">
+                            <strong>{assessment.status === "no_trade" ? "Why no trade" : "Latest frozen calculation"}</strong>
+                            <span>MT5 first-seen values</span>
+                          </div>
+                          {assessment.calculations.map((calculation) => (
+                            <div className="chart-shadow-calculation-event" key={`${assessment.time}-${calculation.title}`}>
+                              <strong>{calculation.title}</strong>
+                              <div className="chart-shadow-calculation-values">
+                                <span><b>Actual</b>{calculation.actual ?? "–"}</span>
+                                <span><b>Forecast</b>{calculation.forecast ?? "–"}</span>
+                                <span><b>Previous</b>{calculation.previous ?? "–"}</span>
+                                <span><b>A vs F</b>{surpriseMeaning(calculation.surprisePoint)} ({formatPoint(calculation.surprisePoint)})</span>
+                                <span><b>A vs P</b>{momentumMeaning(calculation.momentumPoint)} ({formatPoint(calculation.momentumPoint)})</span>
+                                <span><b>Bonus</b>{formatPoint(calculation.agreementBonus)}</span>
+                                <span><b>Total</b>{formatPoint(calculation.score)}</span>
+                              </div>
+                              {calculation.score === 0 ? <p><b>Decision:</b> equal-weight evidence cancelled to zero, so this frozen rule cannot open a trade.</p> : null}
+                              <small className="chart-shadow-source-note">FMS follows the frozen MT5 values above. A different Forecast from another calendar can produce a different decision.</small>
+                            </div>
+                          ))}
+                        </div>
+                      ) : assessment ? <p className="chart-shadow-assessment-reason" aria-label={assessment.reason}>{assessment.reason}</p> : null}
+                      <p className="chart-shadow-frozen-rule"><b>Frozen rule:</b> {pattern.condition}</p>
+                    </td>
+                  </tr>
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
       </section>
 
       <ChartMacroBiasNextSetup watch={nextWatch} pattern={watchPattern} asOf={response.realtime?.asOf ?? response.generatedAt ?? Math.floor(Date.now() / 1_000)} />
@@ -129,7 +219,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
 
       {activeSignal && position ? (
         <section className="chart-shadow-position" aria-label="Hypothetical position">
-          <div className="chart-macro-bias-realtime-kicker">Hypothetical position · no MT5 order</div>
+          <div className="chart-macro-bias-realtime-kicker">Open hypothetical trade · no MT5 order</div>
           <div className="chart-shadow-position-grid">
             <div><span>Entry</span><strong>{formatPrice(activeSignal.entry)}</strong></div>
             <div><span>Stop</span><strong>{formatPrice(activeSignal.stop)}</strong></div>

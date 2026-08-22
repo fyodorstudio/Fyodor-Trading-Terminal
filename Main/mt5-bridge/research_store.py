@@ -318,8 +318,14 @@ class ResearchStore:
       for row in rows
     ]
 
-  def capture_release_observations(self, activated_at: int, observed_at: int) -> int:
+  def capture_release_observations(
+    self,
+    activated_at: int,
+    observed_at: int,
+    released_through: Optional[int] = None,
+  ) -> int:
     """Freeze first-seen released values after the forward ledger was activated."""
+    release_cutoff = observed_at if released_through is None else released_through
     with self._write_lock, self._connect() as connection:
       cursor = connection.execute(
         """
@@ -334,7 +340,7 @@ class ResearchStore:
           AND actual IS NOT NULL
           AND TRIM(actual) NOT IN ('', '-', '—')
         """,
-        (observed_at, activated_at, observed_at),
+        (observed_at, activated_at, release_cutoff),
       )
       return int(cursor.rowcount)
 

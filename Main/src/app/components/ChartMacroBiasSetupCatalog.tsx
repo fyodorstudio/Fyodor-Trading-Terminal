@@ -1,4 +1,4 @@
-import { Clock3 } from "lucide-react";
+import { BookOpen, Clock3, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { MacroSignalChartPattern, MacroSignalRealtimeWatch } from "@/app/types";
 
@@ -97,6 +97,7 @@ export function ChartMacroBiasNextSetup({
 }
 
 export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignalChartPattern[] }) {
+  const [guideOpen, setGuideOpen] = useState(false);
   const registered = useMemo(
     () => [...patterns].filter((pattern) => pattern.currentEligible).sort((left, right) => left.label.localeCompare(right.label)),
     [patterns],
@@ -105,8 +106,36 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
     <section className="chart-shadow-catalog" aria-label="Registered current setup benchmarks">
       <div className="chart-shadow-catalog-heading">
         <div><span>Registered current setups</span><strong>{registered.length}</strong></div>
-        <small>Frozen gross historical benchmarks—not guaranteed win rates</small>
+        <div className="chart-shadow-catalog-actions">
+          <small>Frozen gross historical benchmarks—not guaranteed win rates</small>
+          <button type="button" onClick={() => setGuideOpen((open) => !open)} aria-expanded={guideOpen} aria-controls="chart-shadow-score-guide">
+            {guideOpen ? <X size={12} /> : <BookOpen size={12} />} {guideOpen ? "Close guide" : "How to read"}
+          </button>
+        </div>
       </div>
+      {guideOpen ? (
+        <section id="chart-shadow-score-guide" className="chart-shadow-score-guide" aria-label="How to read FMS setup benchmarks">
+          <h4>Stops, targets, and time</h4>
+          <dl>
+            <div><dt>ATR</dt><dd>Average H4 movement over the previous 14 completed H4 candles.</dd></div>
+            <div><dt>1 / 2 ATR</dt><dd>The stop is one or two ATR from entry. A wider stop produces a smaller position for the same dollar risk.</dd></div>
+            <div><dt>R</dt><dd>Your initial risk. A stop is about −1R; a 1R, 1.25R, or 2R target pays that multiple of the risk.</dd></div>
+            <div><dt>6 / 18 / 30 H4</dt><dd>Maximum completed H4 candles before an unresolved trade expires.</dd></div>
+          </dl>
+          <h4>Benchmark boxes</h4>
+          <dl>
+            <div><dt>Historical N</dt><dd>Evaluable historical releases matching this exact frozen setup.</dd></div>
+            <div><dt>Target / stop first</dt><dd>How often price reached the source 2R target or stop first. The registered contract may use a different target.</dd></div>
+            <div><dt>Gross average R</dt><dd>Average historical result measured in R, before spread, commission, slippage, and swap.</dd></div>
+            <div><dt>Development / holdout</dt><dd>Older research sample versus the later chronological check sample.</dd></div>
+            <div><dt>Recent window</dt><dd>The setup's result in the latest fixed recent-history slice.</dd></div>
+            <div><dt>Positive years</dt><dd>Calendar years above 0R divided by evaluable years.</dd></div>
+            <div><dt>Past-only audit</dt><dd>Cases that would have qualified using only information from earlier cases.</dd></div>
+            <div><dt>1R / 1.5R / 2R</dt><dd>Gross average at each alternative target; this checks dependence on one target.</dd></div>
+          </dl>
+          <p>Example: with a $1,000 account risking 1%, 1R is $10. A stop loses about $10 and a 2R target gains about $20. ATR changes position size, not the chosen $10 risk.</p>
+        </section>
+      ) : null}
       {registered.map((pattern) => (
         <details key={pattern.id} open>
           <summary>
