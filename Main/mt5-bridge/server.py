@@ -153,6 +153,7 @@ class FmsExperimentExecution(BaseModel):
 class FmsExperimentRequest(BaseModel):
   friendlyName: str = Field(min_length=1, max_length=80)
   catalogId: str
+  directionSelection: str = "both"
   scoringPolicy: str
   cohort: FmsExperimentCohort = Field(default_factory=FmsExperimentCohort)
   reaction: str
@@ -164,6 +165,13 @@ class FmsExperimentRequest(BaseModel):
     if not value.strip():
       raise ValueError("Experiment name cannot be blank")
     return value.strip()
+
+  @field_validator("directionSelection")
+  @classmethod
+  def validate_direction_selection(cls, value: str) -> str:
+    if value not in {"long", "short", "both"}:
+      raise ValueError("Direction selection must be long, short, or both")
+    return value
 
 
 class FmsCandidateFreezeRequest(BaseModel):
@@ -1394,7 +1402,7 @@ def _workbench_source_bundle(run_ids: Optional[List[str]] = None) -> Dict[str, A
 def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
   report = _latest_cached_expansion_report()
   report_revision = str(int((report or {}).get("generatedAt", 0)))
-  cache_key = f"fms_workbench_catalog:{bundle['datasetFingerprint']}:{report_revision}"
+  cache_key = f"fms_workbench_catalog_v2:{bundle['datasetFingerprint']}:{report_revision}"
   durable_cached = _research_store.get_metadata(cache_key)
   if durable_cached:
     try:
@@ -1413,7 +1421,7 @@ def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
     if pattern.get("current")
     for signature in pattern["signatures"]
   }
-  catalog: List[Dict[str, Any]] = []
+  directional_catalog: List[Dict[str, Any]] = []
   for source in bundle["sources"]:
     source_version = str(source["versionId"])
     grouped: Dict[str, List[Dict[str, Any]]] = {}
@@ -1449,7 +1457,7 @@ def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
             "historicalN": int(variant["historicalN"]),
           })
       catalog_id = hashlib.sha256(f"{source_version}|{signature}".encode("utf-8")).hexdigest()[:16]
-      catalog.append({
+      directional_catalog.append({
         "id": catalog_id,
         "sourceVersionId": source_version,
         "signature": signature,
@@ -1463,6 +1471,46 @@ def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
         "registeredExecution": dict(pattern["execution"]) if pattern else None,
         "treatments": treatments,
       })
+  grouped_catalog: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
+  for item in directional_catalog:
+    directionless_signature = str(item["signature"]).split("|", 1)[-1]
+    grouped_catalog.setdefault((str(item["sourceVersionId"]), directionless_signature), []).append(item)
+  catalog: List[Dict[str, Any]] = []
+  for (source_version, directionless_signature), variants in grouped_catalog.items():
+    variants.sort(key=lambda row: (str(row["direction"]), str(row["signature"])))
+    treatment_totals: Dict[Tuple[str, str, str], Dict[str, Any]] = {}
+    for variant in variants:
+      for treatment in variant["treatments"]:
+        key = (str(treatment["dimension"]), str(treatment["value"]), str(treatment["reaction"]))
+        existing = treatment_totals.get(key)
+        if existing is None:
+          treatment_totals[key] = {**treatment, "historicalN": int(treatment["historicalN"])}
+        else:
+          existing["historicalN"] = int(existing["historicalN"]) + int(treatment["historicalN"])
+    registered_variant = next((row for row in variants if row["registered"]), None)
+    parent_id = hashlib.sha256(f"{source_version}|{directionless_signature}".encode("utf-8")).hexdigest()[:16]
+    directions = {str(row["direction"]) for row in variants}
+    catalog.append({
+      "id": parent_id,
+      "sourceVersionId": source_version,
+      "signature": str(variants[0]["signature"]),
+      "signatures": [str(row["signature"]) for row in variants],
+      "label": str((registered_variant or variants[0])["label"]),
+      "direction": "both" if len(directions) > 1 else next(iter(directions)),
+      "family": str(variants[0]["family"]),
+      "groups": list(variants[0]["groups"]),
+      "exactTitles": sorted({title for row in variants for title in row["exactTitles"]}),
+      "historicalN": sum(int(row["historicalN"]) for row in variants),
+      "registered": any(bool(row["registered"]) for row in variants),
+      "registeredExecution": dict(registered_variant["registeredExecution"]) if registered_variant else None,
+      "directionVariants": [{
+        "direction": str(row["direction"]),
+        "signature": str(row["signature"]),
+        "historicalN": int(row["historicalN"]),
+        "treatments": list(row["treatments"]),
+      } for row in variants],
+      "treatments": sorted(treatment_totals.values(), key=lambda row: (str(row["dimension"]) != "none", str(row["label"]))),
+    })
   catalog.sort(key=lambda row: (not row["registered"], -int(row["historicalN"]), str(row["label"])))
   result = {
     "items": catalog,
@@ -1496,6 +1544,14 @@ def _experiment_summary(experiment: Dict[str, Any]) -> Dict[str, Any]:
 def research_workbench() -> Dict[str, Any]:
   bundle = _workbench_source_bundle()
   catalog = _workbench_catalog(bundle)
+  calendar_coverage = _research_store.calendar_coverage(["EUR", "USD"])
+  research_times = [
+    int(outcome["eventTime"])
+    for source in bundle["sources"]
+    for outcome in source["outcomes"]
+    if outcome.get("eventTime") is not None
+  ]
+  price_times = [int(candle["time"]) for candle in bundle["candles"]]
   return {
     "currentModel": {
       "id": CHART_SIGNAL_MODEL_ID,
@@ -1526,6 +1582,20 @@ def research_workbench() -> Dict[str, Any]:
     "experiments": [_experiment_summary(row) for row in _research_store.list_fms_experiments(100)],
     "candidates": _research_store.list_fms_candidates(),
     "archive": _research_store.list_signal_version_archive(),
+    "dataPeriods": {
+      "durableCalendar": {
+        "start": calendar_coverage.get("earliest"),
+        "end": calendar_coverage.get("latest"),
+      },
+      "workbenchResearch": {
+        "start": min(research_times, default=None),
+        "end": max(research_times, default=None),
+      },
+      "h4Prices": {
+        "start": min(price_times, default=None),
+        "end": max(price_times, default=None),
+      },
+    },
     "datasetFingerprint": bundle["datasetFingerprint"],
     "sourceRunIds": bundle["runIds"],
     "candleRevision": bundle["candleRevision"],
@@ -1538,7 +1608,17 @@ def _validate_experiment_request(payload: FmsExperimentRequest, catalog: Dict[st
     raise HTTPException(status_code=400, detail="Unknown or stale FMS catalog selection")
   if payload.scoringPolicy not in {"baseline", "momentum_only", "forecast_quality"}:
     raise HTTPException(status_code=400, detail="Unsupported scoring policy")
-  treatment = next((row for row in item["treatments"] if (
+  variants = list(item.get("directionVariants") or [{
+    "direction": item.get("direction"), "signature": item.get("signature"),
+    "historicalN": item.get("historicalN"), "treatments": item.get("treatments", []),
+  }])
+  selected_variants = variants if payload.directionSelection == "both" else [
+    row for row in variants if str(row["direction"]) == payload.directionSelection
+  ]
+  if not selected_variants:
+    raise HTTPException(status_code=400, detail="Selected direction is unavailable for this setup")
+  available_treatments = item["treatments"] if payload.directionSelection == "both" else selected_variants[0]["treatments"]
+  treatment = next((row for row in available_treatments if (
     row["dimension"] == payload.cohort.dimension
     and row["value"] == payload.cohort.value
     and row["reaction"] == payload.reaction
@@ -1559,7 +1639,7 @@ def _validate_experiment_request(payload: FmsExperimentRequest, catalog: Dict[st
     len(execution.stopAtrValues) == len(execution.targetRValues) == len(execution.holdingCandles) == 1
   ):
     raise HTTPException(status_code=400, detail="Single-contract experiments require one stop, target, and expiry")
-  return {"item": item, "treatment": treatment}
+  return {"item": item, "treatment": treatment, "variants": selected_variants}
 
 
 def _execute_workbench_experiment(experiment_id: str) -> None:
@@ -1575,6 +1655,7 @@ def _execute_workbench_experiment(experiment_id: str) -> None:
     result = build_workbench_experiment(
       bundle["sources"], bundle["candles"], configuration, int(_time.time())
     )
+    raw_audit = result.pop("rawAudit", None)
     result.update({
       "experimentId": experiment_id,
       "configurationHash": experiment["configurationHash"],
@@ -1582,6 +1663,8 @@ def _execute_workbench_experiment(experiment_id: str) -> None:
       "catalogSnapshot": experiment["catalogSnapshot"],
     })
     _research_store.update_fms_experiment(experiment_id, "completed", result=result)
+    if isinstance(raw_audit, dict):
+      _research_store.set_metadata(f"fms_raw_audit:{experiment_id}", json.dumps(raw_audit, separators=(",", ":")))
   except Exception as exc:  # noqa: BLE001 - persist the complete local research failure
     logger.exception("FMS workbench experiment %s failed", experiment_id)
     _research_store.update_fms_experiment(experiment_id, "failed", error=str(exc))
@@ -1594,7 +1677,9 @@ def create_research_experiment(payload: FmsExperimentRequest) -> Dict[str, Any]:
   selection = _validate_experiment_request(payload, catalog)
   configuration = {
     "sourceVersionId": selection["item"]["sourceVersionId"],
-    "signature": selection["item"]["signature"],
+    "signature": selection["variants"][0]["signature"],
+    "signatures": [row["signature"] for row in selection["variants"]],
+    "directionSelection": payload.directionSelection,
     "scoringPolicy": payload.scoringPolicy,
     "cohort": payload.cohort.model_dump(),
     "reaction": payload.reaction,
@@ -1623,6 +1708,9 @@ def create_research_experiment(payload: FmsExperimentRequest) -> Dict[str, Any]:
   if cached and cached["id"] != experiment_id and cached.get("result"):
     result = {**cached["result"], "experimentId": experiment_id, "reusedResultFrom": cached["id"]}
     _research_store.update_fms_experiment(experiment_id, "completed", result=result)
+    cached_audit = _research_store.get_metadata(f"fms_raw_audit:{cached['id']}")
+    if cached_audit:
+      _research_store.set_metadata(f"fms_raw_audit:{experiment_id}", cached_audit)
   else:
     _research_executor.submit(_execute_workbench_experiment, experiment_id)
   return _research_store.get_fms_experiment(experiment_id) or {}
@@ -1639,6 +1727,86 @@ def get_research_experiment(experiment_id: str) -> Dict[str, Any]:
   if experiment is None:
     raise HTTPException(status_code=404, detail="Unknown FMS experiment")
   return experiment
+
+
+@app.get("/research/experiments/{experiment_id}/raw-cases")
+def get_research_experiment_raw_cases(
+  experiment_id: str,
+  page: int = 1,
+  pageSize: int = 50,
+  contract: str = "",
+  search: str = "",
+  direction: str = "all",
+  inclusion: str = "all",
+  reliability: str = "all",
+  outcome: str = "all",
+  dateFrom: int = 0,
+  dateTo: int = 0,
+) -> Dict[str, Any]:
+  experiment = _research_store.get_fms_experiment(experiment_id)
+  if experiment is None:
+    raise HTTPException(status_code=404, detail="Unknown FMS experiment")
+  if experiment.get("status") != "completed":
+    raise HTTPException(status_code=409, detail="Raw data is available only for completed experiments")
+  encoded = _research_store.get_metadata(f"fms_raw_audit:{experiment_id}")
+  if not encoded:
+    configuration = dict(experiment.get("configuration") or {})
+    try:
+      bundle = _workbench_source_bundle(list(configuration.get("sourceRunIds") or []))
+      if str(bundle["datasetFingerprint"]) != str(experiment.get("datasetFingerprint")):
+        raise ValueError("The immutable source fingerprint is no longer available")
+      rebuilt = build_workbench_experiment(bundle["sources"], bundle["candles"], configuration, int(_time.time()))
+      audit_value = rebuilt.get("rawAudit")
+      if not isinstance(audit_value, dict):
+        raise ValueError("Raw audit could not be reconstructed")
+      encoded = json.dumps(audit_value, separators=(",", ":"))
+      _research_store.set_metadata(f"fms_raw_audit:{experiment_id}", encoded)
+    except Exception as exc:  # noqa: BLE001 - return an honest immutable-history failure
+      raise HTTPException(status_code=409, detail=f"Legacy raw audit could not be reconstructed: {exc}") from exc
+  audit = json.loads(encoded)
+  contract_key = contract or str(audit.get("selectedContractKey", ""))
+  results = {str(row["caseId"]): row for row in audit.get("contractResults", {}).get(contract_key, [])}
+  query = search.strip().lower()
+  rows = []
+  for raw_case in audit.get("cases", []):
+    row = {**raw_case, "simulation": results.get(str(raw_case["caseId"]))}
+    events = list(row.get("events", []))
+    is_unreliable = any(bool(event.get("forecastSuspect")) for event in events)
+    status = str((row.get("simulation") or {}).get("status", "unavailable"))
+    searchable = " ".join(str(event.get(key, "")) for event in events for key in ("currency", "countryCode", "title")).lower()
+    if query and query not in searchable:
+      continue
+    if direction != "all" and str(row.get("direction")) != direction:
+      continue
+    if inclusion == "included" and not row.get("included"):
+      continue
+    if inclusion == "excluded" and row.get("included"):
+      continue
+    if reliability == "unreliable" and not is_unreliable:
+      continue
+    if reliability == "reliable" and is_unreliable:
+      continue
+    if outcome != "all" and status != outcome:
+      continue
+    if dateFrom and int(row.get("eventTime", 0)) < dateFrom:
+      continue
+    if dateTo and int(row.get("eventTime", 0)) >= dateTo:
+      continue
+    rows.append({**row, "forecastUnreliable": is_unreliable})
+  page = max(1, page)
+  pageSize = min(200, max(10, pageSize))
+  start = (page - 1) * pageSize
+  return {
+    "experimentId": experiment_id,
+    "datasetFingerprint": experiment.get("datasetFingerprint"),
+    "selectedContractKey": str(audit.get("selectedContractKey", "")),
+    "activeContractKey": contract_key,
+    "contracts": audit.get("contracts", []),
+    "page": page,
+    "pageSize": pageSize,
+    "total": len(rows),
+    "rows": rows[start:start + pageSize],
+  }
 
 
 @app.post("/research/experiments/{experiment_id}/freeze")

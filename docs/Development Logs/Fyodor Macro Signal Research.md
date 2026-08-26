@@ -9,6 +9,8 @@
 
 FMS Experiment Workbench is the guarded no-code research surface. It automates repeatable calculations while leaving interpretation and Charts promotion to explicit human/AI review.
 
+As of 2026-08-27, matching Long and Short signatures share one setup entry with separate Long, Short, and Both-direction case counts. New experiments freeze the selected underlying signatures while legacy single-signature E/C records remain readable. The builder uses `SL (ATR)`, `TP (R + ATR)`, `Maximum trade duration (H4 candles)`, `Cases included`, and `Single/Combined Contracts`; Combined Contracts are independent full-position simulations, not partial exits. Completed experiments retain a durable, paginated raw audit of included/excluded packages, A/F/P/S/M source values and score votes, Forecast Guard flags, and contract-specific price outcomes.
+
 - `FMS-EURUSD-H4-E001`: immutable recorded experiment. Every official button-triggered run receives a new E identifier, including failures.
 - `FMS-EURUSD-H4-C001`: immutable frozen review candidate referencing exactly one E record. Failed gates require explicit acknowledgement and remain visible.
 - `FMS-EURUSD-H4-M001`: reserved for a future reviewed Charts model. The Lab has no promotion endpoint or control.

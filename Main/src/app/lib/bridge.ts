@@ -272,6 +272,7 @@ export async function fetchFmsWorkbench(): Promise<FmsWorkbench> {
 export async function createFmsExperiment(payload: {
   friendlyName: string;
   catalogId: string;
+  directionSelection: "long" | "short" | "both";
   scoringPolicy: "baseline" | "momentum_only" | "forecast_quality";
   cohort: { dimension: string; value: string };
   reaction: "continuation" | "contrarian";
@@ -296,6 +297,26 @@ export async function createFmsExperiment(payload: {
 
 export async function fetchFmsExperiment(experimentId: string): Promise<FmsExperiment> {
   return fetchJson<FmsExperiment>(`${BRIDGE_BASE}/research/experiments/${encodeURIComponent(experimentId)}`);
+}
+
+export async function fetchFmsRawCases(
+  experimentId: string,
+  filters: {
+    page?: number;
+    pageSize?: number;
+    contract?: string;
+    search?: string;
+    direction?: string;
+    inclusion?: string;
+    reliability?: string;
+    outcome?: string;
+  } = {},
+): Promise<import("@/app/types").FmsRawCasesPage> {
+  const query = new URLSearchParams();
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value !== undefined && value !== "") query.set(key, String(value));
+  });
+  return fetchJson<import("@/app/types").FmsRawCasesPage>(`${BRIDGE_BASE}/research/experiments/${encodeURIComponent(experimentId)}/raw-cases?${query}`);
 }
 
 export async function freezeFmsExperiment(

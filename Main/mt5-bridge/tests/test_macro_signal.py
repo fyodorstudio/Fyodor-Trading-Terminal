@@ -602,3 +602,43 @@ def test_workbench_single_contract_preserves_signature_and_declared_execution() 
   assert result["selectedConfiguration"]["targetR"] == 2.0
   assert result["selectedConfiguration"]["holdingCandles"] == 30
   assert result["limitations"][1].startswith("The simulation is gross")
+  assert result["rawAudit"]["selectedContractKey"] == "1|2|30"
+  assert result["rawAudit"]["contracts"][0]["targetAtr"] == 2.0
+  assert result["rawAudit"]["cases"][0]["events"][0]["actual"] is not None
+  assert result["rawAudit"]["cases"][0]["events"][0]["surpriseRaw"] is not None
+  assert result["rawAudit"]["cases"][0]["events"][0]["momentumRaw"] is not None
+
+  combined_outcomes = [
+    {**outcome, "direction": "short", "pairVote": -abs(int(outcome.get("pairVote") or 1))}
+    if index % 2 else outcome
+    for index, outcome in enumerate(outcomes)
+  ]
+  signatures = sorted({candidate_pattern_signature(outcome) for outcome in combined_outcomes})
+  combined = build_workbench_experiment(
+    [{
+      "versionId": V2_VERSION_ID,
+      "outcomes": combined_outcomes,
+      "splitTime": int(combined_outcomes[28]["eventTime"]),
+      "generatedAt": 14_400 * 149,
+    }],
+    candle_rows,
+    {
+      "sourceVersionId": V2_VERSION_ID,
+      "signature": signatures[0],
+      "signatures": signatures,
+      "directionSelection": "both",
+      "scoringPolicy": "baseline",
+      "cohort": {"dimension": "none", "value": "all"},
+      "reaction": "continuation",
+      "execution": {
+        "mode": "single",
+        "stopAtrValues": [1.0],
+        "targetRValues": [2.0],
+        "holdingCandles": [30],
+      },
+    },
+    generated_at=14_400 * 150,
+  )
+  assert combined["directionSelection"] == "both"
+  assert combined["signatures"] == signatures
+  assert combined["historicalN"] == result["historicalN"]

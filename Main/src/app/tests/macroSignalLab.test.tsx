@@ -38,6 +38,7 @@ const catalogItem: FmsCatalogItem = {
   id: "catalog-1",
   sourceVersionId: "FMS-EURUSD-GROWTH-H4-v7",
   signature: "long|EUR:pmi_manufacturing",
+  signatures: ["long|EUR:pmi_manufacturing"],
   label: "Euro-area manufacturing PMI",
   direction: "long",
   family: "pmi manufacturing",
@@ -46,6 +47,15 @@ const catalogItem: FmsCatalogItem = {
   historicalN: 48,
   registered: false,
   registeredExecution: null,
+  directionVariants: [{
+    direction: "long",
+    signature: "long|EUR:pmi_manufacturing",
+    historicalN: 48,
+    treatments: [
+      { id: "base", dimension: "none", value: "all", reaction: "continuation", label: "All matching cases", historicalN: 48 },
+      { id: "agreement", dimension: "evidenceMode", value: "agreement", reaction: "continuation", label: "S/M evidence: agreement", historicalN: 42 },
+    ],
+  }],
   treatments: [
     { id: "base", dimension: "none", value: "all", reaction: "continuation", label: "All matching cases", historicalN: 48 },
     { id: "agreement", dimension: "evidenceMode", value: "agreement", reaction: "continuation", label: "S/M evidence: agreement", historicalN: 42 },
@@ -85,6 +95,7 @@ const experiment: FmsExperiment = {
     splitTime: 1_700_000_000,
     selection: "development_lower95_then_average",
     configurationsTested: 8,
+    configurations: [selectedConfiguration, { ...selectedConfiguration, stopAtr: 1, targetR: 2, holdingCandles: 30 }],
     selectedConfiguration,
     configurationStability: {
       neighbourhoodCount: 8,
@@ -153,6 +164,11 @@ const workbench: FmsWorkbench = {
   experiments: [],
   candidates: [],
   archive: [{ id: "FMS-EURUSD-ECO-H4-v1", createdAt: 1_776_000_000, configuration: {}, configurationHash: "legacyhash", latestRun: { id: "run-v1", createdAt: 1_780_000_000, status: "completed", datasetFingerprint: "legacydata", error: null } }],
+  dataPeriods: {
+    durableCalendar: { start: 1_168_126_200, end: 1_795_554_000 },
+    workbenchResearch: { start: 1_471_564_800, end: 1_787_241_600 },
+    h4Prices: { start: 1_168_041_600, end: 1_787_241_600 },
+  },
   datasetFingerprint: "dataset",
   sourceRunIds: ["run-v7"],
   candleRevision: "30000:1780000000",
@@ -163,16 +179,24 @@ describe("FMS Experiment Workbench", () => {
     const html = renderToStaticMarkup(<MacroSignalLabView workbench={workbench} selectedExperiment={null} loading={false} running={false} error={null} onRun={() => {}} onSelectExperiment={() => {}} onFreeze={() => {}} onRefresh={() => {}} />);
     expect(html).toContain("FMS Experiment Workbench");
     expect(html).toContain("Forecast Guard · Legacy v13");
-    expect(html).toContain("Choose exact signature");
-    expect(html).toContain("Single contract");
-    expect(html).toContain("Controlled matrix");
+    expect(html).toContain("Choose economic setup");
+    expect(html).toContain("Single Contract");
+    expect(html).toContain("Combined Contracts");
+    expect(html).toContain("SL (ATR)");
+    expect(html).toContain("TP (R + ATR)");
+    expect(html).toContain("Maximum trade duration (H4 candles)");
     expect(html).toContain("Run recorded experiment");
     expect(html).toContain("How to use the Workbench");
     expect(html).toContain("Research Archive");
     expect(html).toContain("Current registered setups");
     expect(html).toContain("fms-current-setups");
     expect(html).toContain("How each release is scored");
-    expect(html).toContain("Cohort means a subset of historical cases");
+    expect(html).toContain("Cases included");
+    expect(html).toContain("How Forecast Guard works");
+    expect(html).toContain("Durable EUR/USD calendar");
+    expect(html).toContain("Workbench research cases");
+    expect(html).toContain("Stored H4 prices");
+    expect(html).toContain("2007 → 2026");
     expect(html).not.toContain("Source research versions");
     expect(html).not.toContain("Promote to Charts");
   });
@@ -182,6 +206,7 @@ describe("FMS Experiment Workbench", () => {
       ...catalogItem,
       sourceVersionId: "FMS-EURUSD-SENTIMENT-H4-v3",
       signature: "long|EUR:consumer_sentiment",
+      signatures: ["long|EUR:consumer_sentiment", "short|EUR:consumer_sentiment"],
       label: "Euro-area consumer sentiment",
       family: "consumer sentiment",
       groups: ["EUR:consumer_sentiment"],
@@ -189,6 +214,11 @@ describe("FMS Experiment Workbench", () => {
       historicalN: 99,
       registered: true,
       registeredExecution: { stopAtr: 1, targetR: 2, expiryCandles: 30 },
+      direction: "both",
+      directionVariants: [
+        { direction: "long", signature: "long|EUR:consumer_sentiment", historicalN: 48, treatments: catalogItem.treatments },
+        { direction: "short", signature: "short|EUR:consumer_sentiment", historicalN: 51, treatments: catalogItem.treatments },
+      ],
     } satisfies FmsCatalogItem;
     const html = renderToStaticMarkup(<MacroSignalLabView workbench={{ ...workbench, catalog: { ...workbench.catalog, items: [registeredCatalog] } }} selectedExperiment={null} loading={false} running={false} error={null} onRun={() => {}} onSelectExperiment={() => {}} onFreeze={() => {}} onRefresh={() => {}} />);
     expect(html).toContain("Registered recipe");
@@ -196,6 +226,9 @@ describe("FMS Experiment Workbench", () => {
     expect(html).toContain("99 cases");
     expect(html).toContain("40 target first");
     expect(html).toContain("Current Charts model adds Forecast Guard");
+    expect(html).toContain("Long · N 48");
+    expect(html).toContain("Short · N 51");
+    expect(html).toContain("Both directions · N 99");
   });
 
   it("renders auditable results, handoff actions, and failed-gate freeze acknowledgement", () => {
@@ -203,6 +236,17 @@ describe("FMS Experiment Workbench", () => {
     expect(html).toContain("FMS-EURUSD-H4-E001");
     expect(html).toContain("Copy AI summary");
     expect(html).toContain("Download JSON");
+    expect(html).toContain("View raw data");
+    expect(html).toContain("TP 3R = 6 ATR");
+    expect(html).toContain("Recorded recipe");
+    expect(html).toContain("Immutable configuration");
+    expect(html).toContain("Forecast Guard");
+    expect(html).not.toContain("Forecast Quality");
+    expect(html).toContain("Price reaction");
+    expect(html).toContain("Continuation");
+    expect(html).toContain("First strictly later H4 open");
+    expect(html).toContain("Independent simulations · no partial exits");
+    expect(html).toContain("2 Forecasts flagged unreliable");
     expect(html).toContain("Development");
     expect(html).toContain("Holdout");
     expect(html).toContain("Gross sequential account replay");
@@ -225,11 +269,23 @@ describe("FMS Experiment Workbench", () => {
     expect(source).toContain("does not mean better performance");
     expect(source).toContain("Surprise / Momentum");
     expect(source).toContain("MFE / MAE");
+    expect(source).toContain("Combined Contracts");
+    expect(source).toContain("Raw data audit");
     expect(source).toContain("Development");
     expect(source).toContain("Holdout");
     expect(source).toContain("Copy AI summary");
     expect(source).toContain("spread, commission, slippage, and swap");
     expect(source).toContain("role=\"dialog\"");
     expect(source).toContain("aria-modal=\"true\"");
+    const rawAuditSource = readFileSync(
+      new URL("../components/FmsRawDataAudit.tsx", import.meta.url),
+      "utf8",
+    );
+    expect(rawAuditSource).toContain("Raw experiment audit");
+    expect(rawAuditSource).toContain("Cases included");
+    expect(rawAuditSource).toContain("Forecast unreliable");
+    expect(rawAuditSource).toContain("TP first");
+    expect(rawAuditSource).toContain("role=\"dialog\"");
+    expect(rawAuditSource).toContain("aria-modal=\"true\"");
   });
 });

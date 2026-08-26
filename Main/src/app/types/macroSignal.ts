@@ -514,19 +514,28 @@ export interface FmsCatalogItem {
   sourceVersionId: string;
   signature: string;
   label: string;
-  direction: "long" | "short";
+  signatures: string[];
+  direction: "long" | "short" | "both";
   family: string;
   groups: string[];
   exactTitles: string[];
   historicalN: number;
   registered: boolean;
   registeredExecution: { stopAtr: number; targetR: number; expiryCandles: number } | null;
+  directionVariants: Array<{
+    direction: "long" | "short";
+    signature: string;
+    historicalN: number;
+    treatments: FmsCatalogTreatment[];
+  }>;
   treatments: FmsCatalogTreatment[];
 }
 
 export interface FmsExperimentConfiguration {
   sourceVersionId: string;
   signature: string;
+  signatures?: string[];
+  directionSelection?: "long" | "short" | "both";
   scoringPolicy: "baseline" | "momentum_only" | "forecast_quality";
   cohort: { dimension: FmsCatalogTreatment["dimension"]; value: string };
   reaction: "continuation" | "contrarian";
@@ -547,6 +556,8 @@ export interface FmsExperimentResult {
   generatedAt: number;
   sourceVersionId: string;
   signature: string;
+  signatures?: string[];
+  directionSelection?: "long" | "short" | "both";
   scoringPolicy: string;
   cohort: { dimension: string; value: string };
   reaction: string;
@@ -554,6 +565,7 @@ export interface FmsExperimentResult {
   splitTime: number;
   selection: string;
   configurationsTested: number;
+  configurations?: MacroSignalStressConfiguration[];
   selectedConfiguration: MacroSignalStressConfiguration;
   configurationStability: MacroSignalStressCandidate["configurationStability"];
   path: MacroSignalPathSummary;
@@ -576,6 +588,76 @@ export interface FmsExperimentResult {
   datasetFingerprint: string;
   catalogSnapshot: FmsCatalogItem;
   reusedResultFrom?: string;
+}
+
+export interface FmsRawContract {
+  key: string;
+  stopAtr: number;
+  targetR: number;
+  targetAtr: number;
+  holdingCandles: number;
+  overall: MacroSignalStressMetrics;
+  development: MacroSignalStressMetrics;
+  holdout: MacroSignalStressMetrics;
+  recent: MacroSignalStressMetrics;
+}
+
+export interface FmsRawCaseEvent {
+  currency?: string;
+  countryCode?: string;
+  title?: string;
+  actual?: unknown;
+  forecast?: unknown;
+  previous?: unknown;
+  surprisePoint?: number | null;
+  momentumPoint?: number | null;
+  surpriseRaw?: string | null;
+  momentumRaw?: string | null;
+  agreementBonus?: number | null;
+  score?: number | null;
+  forecastSuspect?: boolean;
+  forecastGap?: number | null;
+  forecastAnomalyThreshold?: number | null;
+  scoringPolicy?: string;
+}
+
+export interface FmsRawCase {
+  caseId: string;
+  eventTime: number;
+  direction: "long" | "short";
+  included: boolean;
+  inclusionReason: string;
+  forecastUnreliable: boolean;
+  entryTime: number | null;
+  entry: number | null;
+  atr: number | null;
+  events: FmsRawCaseEvent[];
+  simulation: null | {
+    status: string;
+    grossResultR: number | null;
+    stressedResultR: number | null;
+    exitTime: number | null;
+    entryTime: number;
+    entry: number;
+    stop: number;
+    target: number;
+    stopAtr: number;
+    targetR: number;
+    targetAtr: number;
+    holdingCandles: number;
+  };
+}
+
+export interface FmsRawCasesPage {
+  experimentId: string;
+  datasetFingerprint: string;
+  selectedContractKey: string;
+  activeContractKey: string;
+  contracts: FmsRawContract[];
+  page: number;
+  pageSize: number;
+  total: number;
+  rows: FmsRawCase[];
 }
 
 export interface FmsExperiment {
@@ -670,6 +752,11 @@ export interface FmsWorkbench {
   experiments: FmsExperiment[];
   candidates: FmsFrozenCandidate[];
   archive: FmsLegacyArchiveItem[];
+  dataPeriods?: {
+    durableCalendar: { start: number | null; end: number | null };
+    workbenchResearch: { start: number | null; end: number | null };
+    h4Prices: { start: number | null; end: number | null };
+  };
   datasetFingerprint: string;
   sourceRunIds: string[];
   candleRevision: string;

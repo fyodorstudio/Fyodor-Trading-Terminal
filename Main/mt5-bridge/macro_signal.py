@@ -1078,6 +1078,8 @@ def _simulate_path_configuration(
     {
       **simulate_candidate_path(profile, stop_atr, target_r, holding_candles),
       "eventTime": int(profile["eventTime"]),
+      "direction": str(profile["direction"]),
+      "signature": str(profile["outcome"].get("signature", "")),
       "numericRobustness": dict(profile["outcome"].get("numericRobustness", {})),
     }
     for profile in profiles
@@ -1505,6 +1507,24 @@ def _strict_numeric_gap(left: Any, right: Any) -> Optional[float]:
   if left_value is None or right_value is None or left_value[1] != right_value[1]:
     return None
   return abs(float(left_value[0]) - float(right_value[0]))
+
+
+def _raw_source_delta(left: Any, right: Any) -> Optional[str]:
+  left_value = parse_source_value(left)
+  right_value = parse_source_value(right)
+  if left_value is None or right_value is None or left_value[1] != right_value[1]:
+    return None
+  delta = float(left_value[0]) - float(right_value[0])
+  def precision(value: Any) -> int:
+    text = str(value).strip().replace(",", "")
+    numeric = re.sub(r"[^0-9.+-]", "", text)
+    return len(numeric.split(".", 1)[1]) if "." in numeric else 0
+  places = min(8, max(precision(left), precision(right)))
+  rendered = f"{delta:+.{places}f}" if places else f"{delta:+.0f}"
+  if delta == 0:
+    rendered = f"{0:.{places}f}" if places else "0"
+  suffix = left_value[1]
+  return f"{rendered}{'pp' if suffix == '%' else suffix or ''}"
 
 
 def _linear_quantile(values: Sequence[float], quantile: float) -> float:
@@ -2094,7 +2114,10 @@ def build_workbench_experiment(
 ) -> Dict[str, Any]:
   """Evaluate one guarded, recorded Lab experiment without changing Charts."""
   source_version = str(configuration["sourceVersionId"])
-  signature = str(configuration["signature"])
+  signatures = tuple(str(value) for value in (configuration.get("signatures") or [configuration.get("signature")]) if value)
+  if not signatures:
+    raise ValueError("Experiment configuration has no directional signature")
+  signature = str(configuration.get("signature") or signatures[0])
   scoring_policy = str(configuration["scoringPolicy"])
   reaction = str(configuration["reaction"])
   cohort = dict(configuration.get("cohort") or {})
@@ -2117,27 +2140,37 @@ def build_workbench_experiment(
   known_pattern = next((
     pattern for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
     if str(pattern["sourceVersion"]) == source_version
-    and signature in pattern["signatures"]
+    and any(value in pattern["signatures"] for value in signatures)
   ), None)
   rows: List[Dict[str, Any]] = []
+  audit_rows: List[Dict[str, Any]] = []
   for outcome in outcomes:
     if outcome.get("direction") not in {"long", "short"}:
       continue
-    if candidate_pattern_signature(outcome) != signature:
+    outcome_signature = candidate_pattern_signature(outcome)
+    if outcome_signature not in signatures:
       continue
     robustness = {
       **dict(outcome.get("numericRobustness", {})),
       "packageCompleteness": _package_completeness(
-        {**outcome, "signature": signature}, known_pattern
+        {**outcome, "signature": outcome_signature}, known_pattern
       ),
     }
     dimension = str(cohort.get("dimension") or "none")
     value = str(cohort.get("value") or "all")
-    if dimension != "none" and str(robustness.get(dimension, "unknown")) != value:
+    included = dimension == "none" or str(robustness.get(dimension, "unknown")) == value
+    audit_rows.append({
+      **outcome,
+      "signature": outcome_signature,
+      "numericRobustness": robustness,
+      "included": included,
+      "inclusionReason": "Included by Cases included" if included else f"Excluded: {dimension} is {robustness.get(dimension, 'unknown')}, not {value}",
+    })
+    if not included:
       continue
     rows.append({
       **outcome,
-      "signature": signature,
+      "signature": outcome_signature,
       "numericRobustness": robustness,
     })
 
@@ -2218,7 +2251,7 @@ def build_workbench_experiment(
       **simulation,
       "activationTime": int(profile["entryTime"]),
       "direction": str(profile["direction"]),
-      "patternId": signature,
+      "patternId": str(profile["outcome"].get("signature") or signature),
       "maximumAdverseR": min(
         1.0,
         max(adverse, default=0.0) / float(selected["stopAtr"]),
@@ -2227,10 +2260,66 @@ def build_workbench_experiment(
   checks, strict_checks = _stress_configuration_checks(selected)
   stability = _configuration_stability(configurations, selected)
   path = summarize_candidate_paths(profiles, int(selected["holdingCandles"]))
+  profiles_by_time = {
+    int(profile["eventTime"]): profile
+    for profile in profiles
+  }
+  raw_cases = []
+  for row in sorted(audit_rows, key=lambda item: (int(item["eventTime"]), str(item.get("direction", "")))):
+    profile = profiles_by_time.get(int(row["eventTime"])) if row["included"] else None
+    raw_cases.append({
+      "caseId": hashlib.sha256(f"{source_version}|{row['eventTime']}|{row['signature']}".encode("utf-8")).hexdigest()[:16],
+      "eventTime": int(row["eventTime"]),
+      "direction": str(row.get("direction", "none")),
+      "included": bool(row["included"] and profile is not None),
+      "inclusionReason": row["inclusionReason"] if profile is not None or not row["included"] else "Excluded: no complete H4 path is available",
+      "numericRobustness": dict(row.get("numericRobustness", {})),
+      "entryTime": int(profile["entryTime"]) if profile else None,
+      "entry": float(profile["entry"]) if profile else None,
+      "atr": float(profile["atr"]) if profile else None,
+      "events": [{
+        key: event.get(key) for key in (
+          "currency", "countryCode", "title", "actual", "forecast", "previous",
+          "surprisePoint", "momentumPoint", "agreementBonus", "score",
+          "forecastSuspect", "forecastGap", "forecastAnomalyThreshold", "scoringPolicy",
+        )
+      } | {
+        "surpriseRaw": _raw_source_delta(event.get("actual"), event.get("forecast")),
+        "momentumRaw": _raw_source_delta(event.get("actual"), event.get("previous")),
+      } for event in row.get("events", [])],
+    })
+  contract_results: Dict[str, List[Dict[str, Any]]] = {}
+  for configuration_row in configurations:
+    stop_atr = float(configuration_row["stopAtr"])
+    target_r = float(configuration_row["targetR"])
+    duration = int(configuration_row["holdingCandles"])
+    contract_key = f"{stop_atr:g}|{target_r:g}|{duration}"
+    contract_results[contract_key] = []
+    for simulation in _simulate_path_configuration(profiles, stop_atr, target_r, duration):
+      profile = profiles_by_time.get(int(simulation["eventTime"]))
+      if profile is None:
+        continue
+      risk_distance = float(profile["atr"]) * stop_atr
+      sign = float(profile["sign"])
+      contract_results[contract_key].append({
+        **simulation,
+        "caseId": hashlib.sha256(f"{source_version}|{simulation['eventTime']}|{profile['outcome'].get('signature', signature)}".encode("utf-8")).hexdigest()[:16],
+        "entryTime": int(profile["entryTime"]),
+        "entry": float(profile["entry"]),
+        "stop": float(profile["entry"]) - sign * risk_distance,
+        "target": float(profile["entry"]) + sign * risk_distance * target_r,
+        "stopAtr": stop_atr,
+        "targetR": target_r,
+        "targetAtr": stop_atr * target_r,
+        "holdingCandles": duration,
+      })
+  selected_contract_key = f"{float(selected['stopAtr']):g}|{float(selected['targetR']):g}|{int(selected['holdingCandles'])}"
   return {
     "generatedAt": generated_at,
     "sourceVersionId": source_version,
     "signature": signature,
+    "signatures": list(signatures),
+    "directionSelection": str(configuration.get("directionSelection") or ("both" if len(signatures) > 1 else signatures[0].split("|", 1)[0])),
     "scoringPolicy": scoring_policy,
     "cohort": cohort,
     "reaction": reaction,
@@ -2241,6 +2330,7 @@ def build_workbench_experiment(
       else "development_lower95_then_average"
     ),
     "configurationsTested": len(configurations),
+    "configurations": configurations,
     "selectedConfiguration": selected,
     "configurationStability": stability,
     "path": path,
@@ -2249,6 +2339,22 @@ def build_workbench_experiment(
     "passesExploratoryScreen": all(checks.values()),
     "passesStrictHoldoutCheck": all(strict_checks.values()),
     "forecastQualityAudit": forecast_audit,
+    "rawAudit": {
+      "selectedContractKey": selected_contract_key,
+      "contracts": [{
+        "key": f"{float(row['stopAtr']):g}|{float(row['targetR']):g}|{int(row['holdingCandles'])}",
+        "stopAtr": float(row["stopAtr"]),
+        "targetR": float(row["targetR"]),
+        "targetAtr": float(row["stopAtr"]) * float(row["targetR"]),
+        "holdingCandles": int(row["holdingCandles"]),
+        "overall": row["overall"],
+        "development": row["development"],
+        "holdout": row["holdout"],
+        "recent": row["recent"],
+      } for row in configurations],
+      "cases": raw_cases,
+      "contractResults": contract_results,
+    },
     "limitations": [
       "Reused historical research cannot validate itself or prove causation.",
       "The simulation is gross; spread, commission, slippage, and swap are excluded.",

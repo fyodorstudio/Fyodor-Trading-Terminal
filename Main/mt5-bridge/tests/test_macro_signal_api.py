@@ -200,6 +200,36 @@ def test_workbench_validation_rejects_unrestricted_treatment_combinations() -> N
     assert "Unsupported evidence-treatment" in str(error.detail)
 
 
+def test_workbench_catalog_groups_long_and_short_variants_without_duplicate_packages(monkeypatch) -> None:
+  class MetadataStore:
+    values = {}
+    def get_metadata(self, key: str):
+      return self.values.get(key)
+    def set_metadata(self, key: str, value: str) -> None:
+      self.values[key] = value
+
+  monkeypatch.setattr(server, "_research_store", MetadataStore())
+  monkeypatch.setattr(server, "_latest_cached_expansion_report", lambda: None)
+  base_event = {"currency": "EUR", "countryCode": "EU", "title": "Consumer Confidence Index", "scoreGroup": "consumer_sentiment"}
+  bundle = {
+    "datasetFingerprint": "grouping-test",
+    "sources": [{
+      "versionId": SENTIMENT_VERSION_ID,
+      "outcomes": [
+        {"eventTime": 100, "direction": "long", "events": [{**base_event, "actual": "1"}]},
+        {"eventTime": 200, "direction": "short", "events": [{**base_event, "actual": "-1"}]},
+      ],
+    }],
+  }
+  catalog = server._workbench_catalog(bundle)
+  assert len(catalog["items"]) == 1
+  item = catalog["items"][0]
+  assert item["direction"] == "both"
+  assert item["historicalN"] == 2
+  assert [row["direction"] for row in item["directionVariants"]] == ["long", "short"]
+  assert item["treatments"][0]["historicalN"] == 2
+
+
 def test_failed_gate_freeze_requires_acknowledgement_and_never_promotes_charts(tmp_path: Path, monkeypatch) -> None:
   store = ResearchStore(tmp_path / "research.sqlite3")
   experiment_id = store.allocate_fms_id("E")
@@ -235,3 +265,28 @@ def test_failed_gate_freeze_requires_acknowledgement_and_never_promotes_charts(t
   assert accepted.json()["failedGateAcknowledged"] is True
   assert client.get("/research/candidates/FMS-EURUSD-H4-C001").json()["experimentId"] == experiment_id
   assert client.post("/research/candidates/FMS-EURUSD-H4-C001/promote").status_code == 404
+
+
+def test_completed_experiment_raw_cases_are_paginated_and_contract_specific(tmp_path: Path, monkeypatch) -> None:
+  store = ResearchStore(tmp_path / "research.sqlite3")
+  experiment_id = store.allocate_fms_id("E")
+  store.create_fms_experiment(experiment_id, "Raw audit", 100, {"signature": "long|EUR:sentiment"}, "config", {"id": "catalog"}, "dataset")
+  store.update_fms_experiment(experiment_id, "completed", result={"checks": {}})
+  store.set_metadata(f"fms_raw_audit:{experiment_id}", server.json.dumps({
+    "selectedContractKey": "1|2|30",
+    "contracts": [{"key": "1|2|30", "stopAtr": 1, "targetR": 2, "targetAtr": 2, "holdingCandles": 30}],
+    "cases": [{
+      "caseId": "case-1", "eventTime": 100, "direction": "long", "included": True,
+      "inclusionReason": "Included by Cases included", "events": [{"currency": "EUR", "countryCode": "EU", "title": "Consumer Confidence", "actual": "1", "forecast": "0", "previous": "-1", "surprisePoint": 1, "momentumPoint": 1, "agreementBonus": 1, "score": 3, "forecastSuspect": True}],
+    }],
+    "contractResults": {"1|2|30": [{"caseId": "case-1", "status": "target_hit", "stressedResultR": 1.9, "targetAtr": 2}]},
+  }))
+  monkeypatch.setattr(server, "_research_store", store)
+
+  response = client.get(f"/research/experiments/{experiment_id}/raw-cases", params={"reliability": "unreliable", "pageSize": 10})
+  assert response.status_code == 200
+  payload = response.json()
+  assert payload["total"] == 1
+  assert payload["rows"][0]["events"][0]["score"] == 3
+  assert payload["rows"][0]["forecastUnreliable"] is True
+  assert payload["rows"][0]["simulation"]["targetAtr"] == 2

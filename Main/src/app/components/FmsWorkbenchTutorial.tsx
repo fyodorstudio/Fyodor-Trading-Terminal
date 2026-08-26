@@ -75,20 +75,23 @@ export function FmsWorkbenchTutorial({ open, onClose }: FmsWorkbenchTutorialProp
             <article><h4>Exact signature</h4><p>Currency, country/region, scoring family, direction, and exact package identity. Different titles are never averaged as raw values.</p></article>
             <article><h4>Surprise / Momentum</h4><p>Surprise compares Actual with Forecast. Momentum compares Actual with Previous. Forecast Guard can exclude an historically anomalous Forecast while retaining Momentum.</p></article>
             <article><h4>Continuation / rejection</h4><p>Continuation tests price in the evidence direction. Rejection deliberately tests the opposite direction. It is a historical treatment, not a causal claim.</p></article>
-            <article><h4>One cohort</h4><p>The guarded builder permits one known-at-release cohort at a time—agreement, revisions, package completeness, Before alignment, or score magnitude—to reduce uncontrolled data mining.</p></article>
+            <article><h4>Cases included</h4><p>A filter selects one understandable subset of otherwise matching historical cases—for example agreement, revisions, package completeness, Before alignment, or score magnitude.</p></article>
           </div></section>
 
           <section><h3>Reading the trade contract</h3><div className="fms-guide-table">
             <div><strong>ATR</strong><span>H4 Average True Range. A 1 ATR stop is one completed pre-entry H4 ATR away from entry.</span></div>
-            <div><strong>R</strong><span>Risk unit defined by the stop distance. A 2R target seeks twice the amount risked.</span></div>
+            <div><strong>SL (ATR)</strong><span>The stop-loss distance in completed pre-entry H4 ATR units.</span></div>
+            <div><strong>TP (R + ATR)</strong><span>R is the SL risk unit. ATR-equivalent TP distance equals SL ATR × TP R; for example, SL 2 ATR and TP 2R means TP 4 ATR away.</span></div>
             <div><strong>Expiry</strong><span>Maximum completed H4 candles before the simulation closes at market.</span></div>
             <div><strong>MFE / MAE</strong><span>Maximum favorable/adverse movement observed after entry. These are audit statistics known only afterward.</span></div>
           </div></section>
 
-          <section><h3>Single contract versus controlled matrix</h3><div className="fms-guide-grid">
-            <article><h4>Single</h4><p>Tests exactly one stop, target, and expiry. Use it when the execution rule is already declared.</p></article>
-            <article><h4>Matrix</h4><p>Tests only your selected grid values. Development chooses by lower-95 expectancy and then average R; holdout and recent results never select the winner.</p></article>
+          <section><h3>Single Contract versus Combined Contracts</h3><div className="fms-guide-grid">
+            <article><h4>Single Contract</h4><p>Tests exactly one SL, TP, and maximum duration.</p></article>
+            <article><h4>Combined Contracts</h4><p>Tests every selected SL × TP × duration combination as an independent full-position simulation. It does not create partial take-profits. Development highlights one contract; every tested contract remains visible.</p></article>
           </div></section>
+
+          <section><h3>Raw data audit</h3><p>After an experiment completes, <strong>View raw data</strong> shows each included or excluded release package, its A/F/P/S/M values, Forecast Guard flag, score, simulated SL/TP, outcome, and result. This is the audit source behind the summaries.</p></section>
 
           <section><h3>Reading the result</h3><div className="fms-guide-table">
             <div><strong>Development</strong><span>Older data used to choose a matrix configuration.</span></div>

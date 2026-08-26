@@ -1,6 +1,6 @@
 # Current App Map
 
-Last updated: 2026-08-18
+Last updated: 2026-08-27
 
 This is the short orientation doc for future AI and human sessions. Read it with `Checklist.md` before using older roadmap, audit, or patch notes.
 
@@ -76,7 +76,7 @@ Current direct children under `Specialist Tools`:
    - Shows base/quote event types first, major global movers separately, past releases, replay controls, and descriptive replay notes.
 
 4. `Active Tool` / `FMS EXPERIMENT WORKBENCH`
-   - Bounded EURUSD/H4 FMS Experiment Workbench with a current-model strip, searchable exact-signature builder, recorded single/matrix experiments, frozen review candidates, AI/JSON handoff, tutorial, and collapsed legacy archive.
+   - Bounded EURUSD/H4 FMS Experiment Workbench with one setup entry per directionless package, explicit Long/Short/Both-direction variants and N counts, plainly named Single/Combined Contracts, live R-to-ATR TP conversion, inline Forecast Guard disclosure, recorded experiments, frozen review candidates, and a full-screen raw A/F/P/S/M plus trade-outcome audit.
    - New durable identifiers are E (recorded experiment), C (frozen review candidate), and reserved M (reviewed Charts model). Freezing never changes Charts; there is intentionally no promotion API or UI.
    - Uses durable bridge calendar storage and cached MT5 H4/M1 candles.
    - Reports gross historical Long/Short bias cases, explicit ambiguity, holdout results, and paper-eligibility checks without placing orders.
