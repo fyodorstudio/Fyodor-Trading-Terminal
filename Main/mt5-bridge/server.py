@@ -33,6 +33,8 @@ from macro_signal import (
   GBPUSD_SENTIMENT_VERSION_ID,
   GBPUSD_V2_VERSION_ID,
   H4_SECONDS,
+  MARKET_RESEARCH_SPECS,
+  MARKET_SOURCE_VERSION_IDS,
   RESULT_SCHEMA_VERSION,
   SIGNAL_DEFINITIONS,
   STRESS_HOLDING_CANDLES,
@@ -62,18 +64,10 @@ from research_store import ResearchStore
 logger = logging.getLogger("mt5_bridge")
 
 WORKBENCH_MARKETS = {
-  "EURUSD": {
-    "currencies": ["EUR", "USD"],
-    "sourceVersions": None,  # Retains the existing immutable EURUSD source registry.
-  },
-  "GBPUSD": {
-    "currencies": ["GBP", "USD"],
-    "sourceVersions": [
-      GBPUSD_V2_VERSION_ID,
-      GBPUSD_SENTIMENT_VERSION_ID,
-      GBPUSD_POLICY_INFLATION_VERSION_ID,
-      GBPUSD_GROWTH_VERSION_ID,
-    ],
+  "EURUSD": {"currencies": ["EUR", "USD"], "sourceVersions": list(MARKET_SOURCE_VERSION_IDS["EURUSD"])},
+  **{
+    symbol: {"currencies": [base, quote], "sourceVersions": list(MARKET_SOURCE_VERSION_IDS[symbol])}
+    for symbol, (base, quote, _scope) in MARKET_RESEARCH_SPECS.items()
   },
 }
 
@@ -151,6 +145,18 @@ class MacroBacktestRequest(BaseModel):
   versionId: str = ACTIVE_VERSION_ID
 
 
+class FmsMarketCacheRequest(BaseModel):
+  market: str
+
+  @field_validator("market")
+  @classmethod
+  def validate_market(cls, value: str) -> str:
+    normalized = value.upper()
+    if normalized not in WORKBENCH_MARKETS:
+      raise ValueError("Unsupported FMS research market")
+    return normalized
+
+
 class FmsExperimentCohort(BaseModel):
   dimension: str = "none"
   value: str = "all"
@@ -198,8 +204,8 @@ class FmsExperimentRequest(BaseModel):
   @classmethod
   def validate_market(cls, value: str) -> str:
     normalized = value.upper()
-    if normalized not in {"EURUSD", "GBPUSD"}:
-      raise ValueError("FMS market must be EURUSD or GBPUSD")
+    if normalized not in WORKBENCH_MARKETS:
+      raise ValueError("Unsupported FMS research market")
     return normalized
 
 
@@ -1291,6 +1297,29 @@ def research_coverage() -> Dict[str, Any]:
       "maxEventsPerCurrency": 10000,
       "restoreLookBackDays": 400,
     },
+  }
+
+
+@app.post("/research/cache-market")
+def cache_research_market(payload: FmsMarketCacheRequest) -> Dict[str, Any]:
+  """Durably cache H4 prices for a declared market; M1 remains lazy and path-only."""
+  market = payload.market
+  currencies = WORKBENCH_MARKETS[market]["currencies"]
+  coverage = _research_store.calendar_coverage(currencies)
+  earliest = coverage.get("earliest")
+  if earliest is None:
+    raise HTTPException(status_code=409, detail=f"No durable {market} calendar history is available")
+  candles = _fetch_research_candles(market, "H4", int(earliest) - 60 * 24 * 60 * 60, int(_time.time()), 366)
+  if not candles:
+    raise HTTPException(status_code=409, detail=f"MT5 did not provide {market} H4 history")
+  return {
+    "market": market,
+    "timeframe": "H4",
+    "count": len(candles),
+    "earliest": int(candles[0]["time"]),
+    "latest": int(candles[-1]["time"]),
+    "calendarCoverage": coverage,
+    "m1Policy": "Not cached here; fetched only for H4 bars that need intrabar stop/target resolution.",
   }
 
 

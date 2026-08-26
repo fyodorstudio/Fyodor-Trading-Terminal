@@ -433,21 +433,22 @@ SIGNAL_DEFINITIONS: Dict[str, SignalDefinition] = {
 }
 
 
-def _gbpusd_definition(
-  source: SignalDefinition, version_id: str,
+def _market_definition(
+  source: SignalDefinition, version_id: str, symbol: str, base_currency: str,
+  quote_currency: str, country_scope: Dict[str, frozenset[str]],
 ) -> SignalDefinition:
   """Create a separate, market-labelled source definition without mutating EURUSD."""
   configuration = json.loads(json.dumps(source.configuration))
   configuration.update({
     "id": version_id,
-    "symbol": "GBPUSD",
-    "market": "GBPUSD",
-    "baseCurrency": "GBP",
-    "quoteCurrency": "USD",
-    "marketCurrencies": ["GBP", "USD"],
-    "countryScope": {"GBP": ["GB"], "USD": ["US"]},
+    "symbol": symbol,
+    "market": symbol,
+    "baseCurrency": base_currency,
+    "quoteCurrency": quote_currency,
+    "marketCurrencies": [base_currency, quote_currency],
+    "countryScope": {currency: sorted(countries) for currency, countries in country_scope.items()},
     "selectionDisclosure": (
-      "GBPUSD uses the unchanged guarded Workbench protocol. It is a separate "
+      f"{symbol} uses the unchanged guarded Workbench protocol. It is a separate "
       "market research definition and has no Charts registration."
     ),
   })
@@ -462,10 +463,24 @@ def _gbpusd_definition(
     source.allowed_factors,
     source.country_aware_series,
     False,
-    {"GBP": frozenset({"GB"}), "USD": frozenset({"US"})},
+    country_scope,
     source.rule_ids,
   )
 
+
+MARKET_RESEARCH_SPECS: Dict[str, Tuple[str, str, Dict[str, frozenset[str]]]] = {
+  "GBPUSD": ("GBP", "USD", {"GBP": frozenset({"GB"}), "USD": frozenset({"US"})}),
+  "USDJPY": ("USD", "JPY", {"USD": frozenset({"US"}), "JPY": frozenset({"JP"})}),
+  "AUDUSD": ("AUD", "USD", {"AUD": frozenset({"AU"}), "USD": frozenset({"US"})}),
+  "USDCAD": ("USD", "CAD", {"USD": frozenset({"US"}), "CAD": frozenset({"CA"})}),
+  "NZDUSD": ("NZD", "USD", {"NZD": frozenset({"NZ"}), "USD": frozenset({"US"})}),
+  "USDCHF": ("USD", "CHF", {"USD": frozenset({"US"}), "CHF": frozenset({"CH"})}),
+}
+
+MARKET_SOURCE_VERSION_IDS: Dict[str, Tuple[str, ...]] = {
+  "EURUSD": (V2_VERSION_ID, SENTIMENT_VERSION_ID, POLICY_INFLATION_VERSION_ID, GROWTH_VERSION_ID),
+  "GBPUSD": (GBPUSD_V2_VERSION_ID, GBPUSD_SENTIMENT_VERSION_ID, GBPUSD_POLICY_INFLATION_VERSION_ID, GBPUSD_GROWTH_VERSION_ID),
+}
 
 for _source_id, _gbp_id in (
   (V2_VERSION_ID, GBPUSD_V2_VERSION_ID),
@@ -473,7 +488,16 @@ for _source_id, _gbp_id in (
   (POLICY_INFLATION_VERSION_ID, GBPUSD_POLICY_INFLATION_VERSION_ID),
   (GROWTH_VERSION_ID, GBPUSD_GROWTH_VERSION_ID),
 ):
-  SIGNAL_DEFINITIONS[_gbp_id] = _gbpusd_definition(SIGNAL_DEFINITIONS[_source_id], _gbp_id)
+  _base, _quote, _scope = MARKET_RESEARCH_SPECS["GBPUSD"]
+  SIGNAL_DEFINITIONS[_gbp_id] = _market_definition(SIGNAL_DEFINITIONS[_source_id], _gbp_id, "GBPUSD", _base, _quote, _scope)
+
+for _symbol, (_base, _quote, _scope) in MARKET_RESEARCH_SPECS.items():
+  if _symbol == "GBPUSD":
+    continue
+  _ids = tuple(f"FMS-{_symbol}-{suffix}" for suffix in ("LABOR-H4-v2", "SENTIMENT-H4-v3", "POLICY-INFL-H4-v5", "GROWTH-H4-v7"))
+  MARKET_SOURCE_VERSION_IDS[_symbol] = _ids
+  for _source_id, _market_id in zip(MARKET_SOURCE_VERSION_IDS["EURUSD"], _ids):
+    SIGNAL_DEFINITIONS[_market_id] = _market_definition(SIGNAL_DEFINITIONS[_source_id], _market_id, _symbol, _base, _quote, _scope)
 
 
 def get_signal_definition(version_id: str) -> Optional[SignalDefinition]:
@@ -3409,7 +3433,7 @@ def build_backtest_result(
     "versionId": selected_definition.id,
     "versionHash": selected_definition.configuration_hash,
     "generatedAt": generated_at,
-    "symbol": "EURUSD",
+    "symbol": str(selected_definition.configuration.get("symbol") or "EURUSD"),
     "timeframe": "H4",
     "status": "eligible_for_paper_validation" if eligible else "exploratory_reused_history" if is_reused_history else "research",
     "costs": "Gross simulation; spread, slippage, swap, and commission are excluded.",

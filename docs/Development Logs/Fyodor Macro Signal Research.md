@@ -581,6 +581,16 @@ Next reproducible GBPUSD sequence, without changing the frozen contract:
 4. Record each declared experiment as `FMS-GBPUSD-H4-Exxx`; retain failures. Freeze only review-worthy E results into `C` identifiers. A separate reviewed `M` change is required before any Charts integration.
 5. Add no GBPUSD arrow unless the unchanged development, holdout, recent, year-stability, uncertainty, and neighbouring-contract checks all pass. A positive full-history average alone remains insufficient.
 
+### GBPUSD First Guarded Baseline - 2026-08-27
+
+The requested calendar backfill completed successfully. Durable GBP rows now span `2007-01-11` through `2026-11-20` (17,215 rows, 115 distinct titles). H4 caching was then run separately for the available major-pair markets: EURUSD 30,939; GBPUSD 30,890; USDJPY 13,351; AUDUSD 13,402; USDCAD 13,452; NZDUSD 13,464; and USDCHF 13,455 candles. All begin at the broker-provided `2006-11-08` boundary; M1 remains lazy and is requested only for an H4 stop/target tie. These markets are selectable in the Workbench, but only GBPUSD was backtested in this pass.
+
+The four separate GBPUSD source runs completed with immutable identifiers `FMS-GBPUSD-LABOR-H4-v2-1787786501-a2e4025b`, `FMS-GBPUSD-SENTIMENT-H4-v3-1787786505-d2ec45d5`, `FMS-GBPUSD-POLICY-INFL-H4-v5-1787786508-7c0fcb09`, and `FMS-GBPUSD-GROWTH-H4-v7-1787786511-699d492b`. The resulting guarded catalog contained 47 package families. Experiments `FMS-GBPUSD-H4-E001` through `E024` record the complete all-case Forecast Guard continuation baseline for every family with at least 40 catalog cases. Each uses the unchanged declared 6-stop × 9-target × 6-holding H4 matrix and development-only contract selection.
+
+No baseline passed the strict holdout contract. The strongest apparent row, `E012` (USD producer inflation, 105 cases), selected `2 ATR / 4R / 60 H4` and measured approximately `+0.22R` development, `+0.31R` holdout, and `+0.41R` recent, but its holdout lower-95 bound was `-0.38R` and only 6/11 years were positive. It is rejected, not a near-promotion. Other positive-holdout rows either had negative development expectancy or also failed uncertainty and stability. No GBPUSD C candidate was frozen, no M model was created, and no GBPUSD arrow, Shadow Trader setup, or chart integration was added.
+
+This pass does not justify a filter search selected after viewing the baseline. Any later GBPUSD refinements must be declared in advance from the existing single-treatment catalog, retain the 40-case boundary, and satisfy every unchanged strict gate.
+
 ## Research Warnings and References
 
 Hypothetical results do not represent executed trades and can overstate or understate real performance. The Lab must identify all results as simulated, disclose excluded costs, and avoid claims that similar live profits are likely. See the [CFTC guidance on hypothetical trading-system results](https://www.cftc.gov/LearnAndProtect/AdvisoriesAndArticles/fraudadv_tradingsystem.html).

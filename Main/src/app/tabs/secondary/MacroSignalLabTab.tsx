@@ -3,7 +3,7 @@ import { AlertTriangle, Archive, Beaker, BookOpen, Check, Copy, Database, Downlo
 import { createFmsExperiment, fetchFmsExperiment, fetchFmsWorkbench, freezeFmsExperiment } from "@/app/lib/bridge";
 import { FmsWorkbenchTutorial } from "@/app/components/FmsWorkbenchTutorial";
 import { FmsRawDataAudit } from "@/app/components/FmsRawDataAudit";
-import type { FmsCatalogItem, FmsCatalogTreatment, FmsExperiment, FmsExperimentResult, FmsFrozenCandidate, FmsWorkbench, MacroSignalStressMetrics } from "@/app/types";
+import type { FmsCatalogItem, FmsCatalogTreatment, FmsExperiment, FmsExperimentResult, FmsFrozenCandidate, FmsResearchMarket, FmsWorkbench, MacroSignalStressMetrics } from "@/app/types";
 
 const DEFAULT_STOPS = [1, 1.5, 2];
 const DEFAULT_TARGETS = [1, 1.5, 2];
@@ -151,7 +151,7 @@ function ValuePicker({ label, values, selected, multiple, onChange, formatValue 
 }
 
 interface MacroSignalLabViewProps {
-  market?: "EURUSD" | "GBPUSD";
+  market?: FmsResearchMarket;
   workbench: FmsWorkbench | null;
   selectedExperiment: FmsExperiment | null;
   loading: boolean;
@@ -161,7 +161,7 @@ interface MacroSignalLabViewProps {
   onSelectExperiment: (experimentId: string) => void;
   onFreeze: (name: string, acknowledge: boolean) => void;
   onRefresh: () => void;
-  onMarketChange?: (market: "EURUSD" | "GBPUSD") => void;
+  onMarketChange?: (market: FmsResearchMarket) => void;
 }
 
 export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExperiment, loading, running, error, onRun, onSelectExperiment, onFreeze, onRefresh, onMarketChange = () => {} }: MacroSignalLabViewProps) {
@@ -208,7 +208,7 @@ export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExper
   if (!workbench && loading) return <section className="macro-signal-page"><div className="fms-workbench-empty"><RefreshCw className="animate-spin" /><strong>Loading FMS workbench</strong></div></section>;
   return <section className="macro-signal-page fms-workbench" data-macro-signal-lab="">
     <header className="fms-workbench-header"><div><div className="macro-signal-kicker"><FlaskConical size={14} />Active FMS research tool</div><h2>FMS Experiment Workbench</h2><p>Recorded EURUSD/H4 research—not an order, guarantee, or automatic optimizer.</p></div><div><button type="button" onClick={() => setGuideOpen(true)}><BookOpen size={15} />How to use the Workbench</button><button type="button" onClick={onRefresh} disabled={loading}><RefreshCw size={14} className={loading ? "animate-spin" : ""} />Refresh</button></div></header>
-    <div className="fms-market-picker"><label className="fms-field">Research market<select value={market} onChange={(event) => onMarketChange(event.target.value as "EURUSD" | "GBPUSD")}><option value="EURUSD">EURUSD</option><option value="GBPUSD">GBPUSD</option></select></label><small>{market === "EURUSD" ? "Legacy v13 remains the only Charts model." : "GBPUSD is research-only; no arrows are registered."}</small></div>
+    <div className="fms-market-picker"><label className="fms-field">Research market<select value={market} onChange={(event) => onMarketChange(event.target.value as FmsResearchMarket)}><option value="EURUSD">EURUSD</option><option value="GBPUSD">GBPUSD</option><option value="USDJPY">USDJPY</option><option value="AUDUSD">AUDUSD</option><option value="USDCAD">USDCAD</option><option value="NZDUSD">NZDUSD</option><option value="USDCHF">USDCHF</option></select></label><small>{market === "EURUSD" ? "Legacy v13 remains the only Charts model." : `${market} is research-only; no arrows are registered.`}</small></div>
     {error ? <div className="macro-signal-error"><AlertTriangle size={16} />{error}</div> : null}
     {workbench?.availability && !workbench.availability.ready ? <div className="macro-signal-error"><AlertTriangle size={16} />{workbench.availability.message}</div> : null}
     {workbench ? <section className="fms-current-strip"><div><span>Current Charts model</span><strong>{workbench.currentModel.friendlyName} · {workbench.currentModel.displayId}</strong><small>{workbench.currentModel.id}</small></div><div><Metric label="Market" value="EURUSD" /><Metric label="Backtest timeframe" value="H4" /><Metric label="Registered setups" value={String(workbench.currentModel.registeredSetups.length)} /><Metric label="Promotion" value="Reviewed only" /></div></section> : null}
@@ -243,7 +243,7 @@ export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExper
 }
 
 export function MacroSignalLabTab() {
-  const [market, setMarket] = useState<"EURUSD" | "GBPUSD">("EURUSD");
+  const [market, setMarket] = useState<FmsResearchMarket>("EURUSD");
   const [workbench, setWorkbench] = useState<FmsWorkbench | null>(null);
   const [selectedExperiment, setSelectedExperiment] = useState<FmsExperiment | null>(null);
   const [loading, setLoading] = useState(true);

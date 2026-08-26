@@ -499,6 +499,7 @@ export interface MacroSignalExpansionReport {
 }
 
 export type FmsExperimentStatus = "queued" | "running" | "completed" | "failed";
+export type FmsResearchMarket = "EURUSD" | "GBPUSD" | "USDJPY" | "AUDUSD" | "USDCAD" | "NZDUSD" | "USDCHF";
 
 export interface FmsCatalogTreatment {
   id: string;
@@ -510,7 +511,7 @@ export interface FmsCatalogTreatment {
 }
 
 export interface FmsCatalogItem {
-  market?: "EURUSD" | "GBPUSD";
+  market?: FmsResearchMarket;
   id: string;
   sourceVersionId: string;
   signature: string;
@@ -533,7 +534,7 @@ export interface FmsCatalogItem {
 }
 
 export interface FmsExperimentConfiguration {
-  market?: "EURUSD" | "GBPUSD";
+  market?: FmsResearchMarket;
   sourceVersionId: string;
   signature: string;
   signatures?: string[];
@@ -554,7 +555,7 @@ export interface FmsExperimentConfiguration {
 }
 
 export interface FmsExperimentResult {
-  market?: "EURUSD" | "GBPUSD";
+  market?: FmsResearchMarket;
   experimentId: string;
   generatedAt: number;
   sourceVersionId: string;
@@ -707,7 +708,7 @@ export interface FmsLegacyArchiveItem {
 }
 
 export interface FmsWorkbench {
-  market?: "EURUSD" | "GBPUSD";
+  market?: FmsResearchMarket;
   currentModel: {
     id: string;
     friendlyName: string;
