@@ -19,6 +19,8 @@ from macro_signal import (
   score_event,
   simulate_candidate_path,
   summarize_candidate_paths,
+  compare_source_values_strict,
+  _rescore_policy_outcomes,
   _annotate_numeric_robustness,
   _package_completeness,
   V2_VERSION_ID,
@@ -134,6 +136,25 @@ def test_event_score_matches_existing_equal_surprise_momentum_formula() -> None:
   assert positive and positive["score"] == 3
   assert conflict and conflict["score"] == 0
   assert unemployment and unemployment["score"] == 3
+
+
+def test_v12_strict_units_and_past_only_forecast_quality_preserve_bad_raw_value() -> None:
+  assert compare_source_values_strict("200K", "200") is None
+  outcomes = []
+  for index in range(12):
+    event = score_event(calendar_event(index + 1, 100 + index, "EUR", "Consumer Confidence", "-15.5", "-16.0", "-15.9"), get_signal_definition(SENTIMENT_VERSION_ID))
+    assert event is not None
+    outcomes.append({**candidate("long", 100 + index), "events": [event]})
+  bad = score_event(calendar_event(99, 200, "EUR", "Consumer Confidence", "-15.5", "0.1", "-15.9"), get_signal_definition(SENTIMENT_VERSION_ID))
+  assert bad is not None and bad["score"] == 0
+  rescored, audit = _rescore_policy_outcomes([*outcomes, {**candidate("long", 200), "events": [bad]}], "forecast_quality")
+  final_event = rescored[-1]["events"][0]
+  assert final_event["forecast"] == "0.1"
+  assert final_event["forecastSuspect"] is True
+  assert final_event["surprisePoint"] is None
+  assert final_event["momentumPoint"] == 1
+  assert final_event["score"] == 1
+  assert audit["excludedForecastCount"] == 1
 
 
 def test_v11_revision_audit_uses_prior_exact_series_actual_without_replacing_broker_previous() -> None:
@@ -388,13 +409,13 @@ def test_v7_growth_rules_are_country_aware_narrow_and_deduplicated() -> None:
     "growth_trade_balance",
   ]
   pattern = next(row for row in CHART_SIGNAL_PATTERN_DEFINITIONS if row["id"] == "us-industrial-output-short")
-  assert CHART_SIGNAL_MODEL_ID == "FMS-EURUSD-MULTI-H4-CQ-v10"
+  assert CHART_SIGNAL_MODEL_ID == "FMS-EURUSD-FORECAST-GUARD-H4-v13"
   assert pattern["sourceVersion"] == GROWTH_VERSION_ID
   assert pattern["signatures"] == ("short|USD:industrial_output",)
   assert pattern["current"] is True
 
 
-def test_v10_registers_payroll_and_only_the_complete_us_ppi_cooling_package() -> None:
+def test_v13_retains_payroll_and_only_the_complete_us_ppi_cooling_package() -> None:
   payroll = next(row for row in CHART_SIGNAL_PATTERN_DEFINITIONS if row["id"] == "us-payroll-short")
   ppi = next(row for row in CHART_SIGNAL_PATTERN_DEFINITIONS if row["id"] == "us-producer-inflation-cooling-long")
   assert payroll["execution"] == {"stopAtr": 2.0, "targetR": 1.0, "expiryCandles": 6}

@@ -30,12 +30,15 @@ export interface MacroSignalShadowAccount {
   ambiguous: number;
   unevaluable: number;
   skippedOverlap: number;
+  skippedConflict: number;
+  drawdownBasis: "intratrade_mae_when_available";
 }
 
 export interface MacroSignalShadowPosition {
   riskDollars: number;
   stopPips: number | null;
   lots: number | null;
+  sizingNote: string;
 }
 
 export function normalizeShadowStartingBalance(value: number): number {
@@ -52,6 +55,7 @@ export function normalizeShadowRiskPercent(value: number): number {
 
 function availableAfter(signal: MacroSignalChartSignal): number {
   if (signal.exitTime != null) return signal.exitTime;
+  if (signal.expiryTime != null) return signal.expiryTime;
   if (signal.activationTime != null) return signal.activationTime + signal.expiryCandles * H4_SECONDS;
   return signal.eventTime + (signal.expiryCandles + 1) * H4_SECONDS;
 }
@@ -74,30 +78,47 @@ export function buildMacroSignalShadowAccount(
   let ambiguous = 0;
   let unevaluable = 0;
   let skippedOverlap = 0;
+  let skippedConflict = 0;
 
   const ordered = [...signals].sort((left, right) => (
     (left.activationTime ?? left.eventTime) - (right.activationTime ?? right.eventTime)
     || left.eventTime - right.eventTime
     || left.id.localeCompare(right.id)
   ));
-  for (const signal of ordered) {
+  for (let index = 0; index < ordered.length;) {
+    const activation = ordered[index].activationTime ?? ordered[index].eventTime;
+    const simultaneous: MacroSignalChartSignal[] = [];
+    while (index < ordered.length && (ordered[index].activationTime ?? ordered[index].eventTime) === activation) {
+      simultaneous.push(ordered[index]);
+      index += 1;
+    }
+    const evaluable = simultaneous.filter((signal) => signal.activationTime != null && signal.outcomeStatus !== "unevaluable");
+    unevaluable += simultaneous.length - evaluable.length;
+    if (!evaluable.length) continue;
+    if (activation < unavailableUntil) {
+      skippedOverlap += evaluable.length;
+      continue;
+    }
+    if (new Set(evaluable.map((signal) => signal.direction)).size > 1) {
+      skippedConflict += evaluable.length;
+      continue;
+    }
+    const signal = [...evaluable].sort((left, right) => left.patternId.localeCompare(right.patternId) || left.id.localeCompare(right.id))[0];
+    skippedOverlap += evaluable.length - 1;
     const activationTime = signal.activationTime;
-    if (activationTime == null || signal.outcomeStatus === "unevaluable") {
-      unevaluable += 1;
-      continue;
-    }
-    if (activationTime < unavailableUntil) {
-      skippedOverlap += 1;
-      continue;
-    }
+    if (activationTime == null) continue;
     unavailableUntil = availableAfter(signal);
+    const riskDollars = roundMoney(balance * riskFraction);
+    if (signal.maximumAdverseR != null) {
+      const intratradeEquity = balance - riskDollars * Math.max(0, signal.maximumAdverseR);
+      maxDrawdownPercent = Math.max(maxDrawdownPercent, peak > 0 ? ((peak - intratradeEquity) / peak) * 100 : 0);
+    }
     if (signal.outcomeStatus === "ambiguous") {
       ambiguous += 1;
       continue;
     }
     if (signal.outcomeStatus === "pending" || signal.resultR == null) continue;
 
-    const riskDollars = roundMoney(balance * riskFraction);
     balance = roundMoney(balance + riskDollars * signal.resultR);
     takenTrades += 1;
     if (signal.outcomeStatus === "target_hit") targetHits += 1;
@@ -120,6 +141,8 @@ export function buildMacroSignalShadowAccount(
     ambiguous,
     unevaluable,
     skippedOverlap,
+    skippedConflict,
+    drawdownBasis: "intratrade_mae_when_available",
   };
 }
 
@@ -131,8 +154,9 @@ export function buildMacroSignalShadowPosition(
   const riskDollars = roundMoney(Math.max(0, Number.isFinite(balance) ? balance : 0) * (normalizeShadowRiskPercent(riskPercent) / 100));
   const entry = signal.entry;
   const stop = signal.stop;
-  if (entry == null || stop == null || entry === stop) return { riskDollars, stopPips: null, lots: null };
+  const sizingNote = "Indicative USD-account sizing at $10 per pip per standard EURUSD lot; MT5 margin and broker volume limits are not applied.";
+  if (entry == null || stop == null || entry === stop) return { riskDollars, stopPips: null, lots: null, sizingNote };
   const stopPips = Math.abs(entry - stop) / 0.0001;
   const lots = stopPips > 0 ? riskDollars / (stopPips * 10) : null;
-  return { riskDollars, stopPips, lots };
+  return { riskDollars, stopPips, lots, sizingNote };
 }

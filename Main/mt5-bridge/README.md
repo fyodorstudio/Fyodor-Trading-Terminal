@@ -42,7 +42,7 @@ The research endpoints own immutable Macro Signal versions used by Macro Signal 
 
 The EA posts `/calendar_ingest_cycle` only after all batches in a timer pass have been attempted. A successful zero-failure cycle lets the bridge freeze first-seen released values for the v2 forward-paper ledger; failed cycles never create paper candidates. The ledger advances outcomes in a separate background worker and is exposed by `/research/forward`.
 
-`/research/chart-signals` is the read-only EURUSD Charts contract for the frozen H4 model. `mode=current` exposes only post-v9-activation packages from immutable first-seen EA observations matching frozen Euro-area-consumer-sentiment direction or US-industrial-output Short. `mode=research_replay` additionally exposes failed or hindsight-only candidates. The frontend may project the H4 activation onto any EURUSD chart timeframe but never claims a native backtest for that timeframe. The response includes release and first-later-H4 activation times, model/source/data fingerprints, three-pip stress, recent/year/past-only/target-robustness evidence, replay-gap diagnostics, next event/setup, and factual Policy/Inflation context. The endpoint never places an order.
+`/research/chart-signals` is the read-only EURUSD Charts contract for the frozen H4 model. `mode=current` exposes only post-v13-activation packages from immutable first-seen EA observations matching the retained registered setup identities. V13 preserves raw Forecast values but excludes historically anomalous Forecast comparisons using an exact-series, past-only quality gate; Momentum remains eligible. `mode=research_replay` remains the historical research view. The frontend may project the H4 activation onto any EURUSD chart timeframe but never claims a native backtest for that timeframe. The response includes release and first-later-H4 activation times, model/source/data fingerprints, three-pip stress, recent/year/past-only/target-robustness evidence, replay-gap diagnostics, next event/setup, and factual Policy/Inflation context. The endpoint never places an order.
 
 `/research/expansion-report` is the heavier, cached Macro Signal Lab contract. It computes 30/60-H4 MFE/MAE paths and a declared development-selected stop/target/holding matrix across eligible exact direction signatures. It identifies reused-history freeze candidates but never mutates the current Charts registry.
 
@@ -66,7 +66,7 @@ The normal frontend/bridge contract is:
 - central-bank derivation source data for `Central Banks Data`
 - historical range access for `Event Reaction Engine`
 - durable calendar coverage and versioned EURUSD/H4 research for `Macro Signal Lab`
-- frozen v9 Charts bias/replay payloads, real-time next-event/setup watches, descriptive Policy/Inflation context, and an H4-model view on H1
+- prospective v13 Charts Forecast-Guard payloads, historical replay, real-time next-event/setup watches, descriptive Policy/Inflation context, and an H4-model view on H1
 
 ## Manual Usage
 

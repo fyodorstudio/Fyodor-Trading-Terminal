@@ -34,6 +34,7 @@ from macro_signal import (
   V2_VERSION_ID,
   aggregate_outcomes,
   build_backtest_result,
+  build_candidate_path_profile,
   build_candidate_stress_report,
   build_chart_signal_pattern_catalog,
   build_chart_signal_realtime_watch,
@@ -45,6 +46,7 @@ from macro_signal import (
   dataset_fingerprint,
   evaluate_candidate,
   get_signal_definition,
+  rescore_forecast_quality_outcomes,
 )
 from research_store import ResearchStore
 
@@ -1387,13 +1389,23 @@ def research_chart_signals(
   generated_at = _get_server_time_from_mt5(normalized_symbol) or int(_time.time())
   observation_coverage_start = min((int(event["time"]) for event in observed_events), default=None)
   current_candidates: List[Tuple[str, Dict[str, Any]]] = []
+  assessment_candidates: List[Tuple[str, Dict[str, Any]]] = []
   for source_version in source_versions:
     definition = get_signal_definition(source_version)
     if definition is None:
       continue
+    observed_source_candidates = build_signal_candidates(observed_events, now=generated_at, definition=definition)
+    observed_times = {int(candidate["eventTime"]) for candidate in observed_source_candidates}
+    historical_seed = [
+      outcome for outcome in source_results[source_version]["targets"]["2.0"]["outcomes"]
+      if observation_coverage_start is None or int(outcome["eventTime"]) < observation_coverage_start
+    ]
+    rescored, _forecast_audit = rescore_forecast_quality_outcomes([*historical_seed, *observed_source_candidates])
+    rescored_observed = [candidate for candidate in rescored if int(candidate["eventTime"]) in observed_times]
+    assessment_candidates.extend((source_version, candidate) for candidate in rescored_observed)
     current_candidates.extend(
       (source_version, candidate)
-      for candidate in build_signal_candidates(observed_events, now=generated_at, definition=definition)
+      for candidate in rescored_observed
       if int(candidate["eventTime"]) >= CHART_SIGNAL_MODEL_CREATED_AT
     )
   paper_cases = {
@@ -1415,20 +1427,21 @@ def research_chart_signals(
     if (from_ is None or int(candidate["eventTime"]) >= from_)
     and (to is None or int(candidate["eventTime"]) <= to)
   ]
-  custom_execution_candidates = [
+  direct_evaluation_candidates = [
     (source_version, candidate, pattern)
     for source_version, candidate in window_candidates
     for pattern in [matching_pattern(source_version, candidate)]
-    if pattern is not None and pattern.get("execution") != {
-      "stopAtr": 1.0, "targetR": 2.0, "expiryCandles": 30,
-    }
+    if pattern is not None and (
+      normalized_mode == "current"
+      or pattern.get("execution") != {"stopAtr": 1.0, "targetR": 2.0, "expiryCandles": 30}
+    )
   ]
   custom_candles: List[Dict[str, Any]] = []
   custom_candle_times: List[int] = []
   custom_atr_values: List[Optional[float]] = []
-  if custom_execution_candidates:
-    earliest_custom = min(int(candidate["eventTime"]) for _, candidate, _ in custom_execution_candidates)
-    latest_custom = max(int(candidate["eventTime"]) for _, candidate, _ in custom_execution_candidates)
+  if direct_evaluation_candidates:
+    earliest_custom = min(int(candidate["eventTime"]) for _, candidate, _ in direct_evaluation_candidates)
+    latest_custom = max(int(candidate["eventTime"]) for _, candidate, _ in direct_evaluation_candidates)
     custom_candles = _research_store.query_candles(
       "EURUSD", "H4", earliest_custom - 45 * 24 * 60 * 60,
       min(generated_at + H4_SECONDS, latest_custom + 75 * 24 * 60 * 60),
@@ -1445,7 +1458,8 @@ def research_chart_signals(
     execution = pattern["execution"]
     evaluated = candidate
     uses_custom_execution = execution != {"stopAtr": 1.0, "targetR": 2.0, "expiryCandles": 30}
-    if uses_custom_execution and custom_candles:
+    uses_direct_evaluation = normalized_mode == "current" or uses_custom_execution
+    if uses_direct_evaluation and custom_candles:
       evaluated = evaluate_candidate(
         candidate,
         custom_candles,
@@ -1457,9 +1471,9 @@ def research_chart_signals(
         stop_atr=float(execution["stopAtr"]),
         holding_candles=int(execution["expiryCandles"]),
       )
-    activation_time = evaluated.get("entryTime") or (None if uses_custom_execution else paper_outcome.get("entryTime"))
+    activation_time = evaluated.get("entryTime") or (None if uses_direct_evaluation else paper_outcome.get("entryTime"))
     def outcome_value(name: str) -> Any:
-      if uses_custom_execution:
+      if uses_direct_evaluation:
         return evaluated.get(name)
       return evaluated.get(name) if evaluated.get(name) is not None else paper_outcome.get(name)
     signals.append({
@@ -1493,10 +1507,40 @@ def research_chart_signals(
       "stop": outcome_value("stop"),
       "target": outcome_value("target"),
       "outcomeStatus": evaluated.get("status") or (None if uses_custom_execution else paper_outcome.get("status")),
-      "resultR": evaluated.get("resultR") if uses_custom_execution else (evaluated.get("resultR") if evaluated.get("resultR") is not None else paper_outcome.get("resultR")),
-      "exitTime": evaluated.get("exitTime") or (None if uses_custom_execution else paper_outcome.get("exitTime")),
+      "resultR": evaluated.get("resultR") if uses_direct_evaluation else (evaluated.get("resultR") if evaluated.get("resultR") is not None else paper_outcome.get("resultR")),
+      "exitTime": evaluated.get("exitTime") or (None if uses_direct_evaluation else paper_outcome.get("exitTime")),
       "historicalReplay": normalized_mode == "research_replay",
     })
+  signal_activation_times = [int(signal["activationTime"]) for signal in signals if signal.get("activationTime") is not None]
+  if signal_activation_times:
+    signal_candles = _research_store.query_candles(
+      "EURUSD", "H4", min(signal_activation_times), max(signal_activation_times) + 90 * 24 * 60 * 60,
+    )
+    signal_candle_times = [int(candle["time"]) for candle in signal_candles]
+    for signal in signals:
+      if signal.get("activationTime") is None or signal.get("entry") is None or signal.get("atr") is None:
+        signal["expiryTime"] = None
+        signal["maximumAdverseR"] = None
+        continue
+      profile = build_candidate_path_profile({
+        "eventTime": int(signal["eventTime"]),
+        "entryTime": int(signal["activationTime"]),
+        "entry": float(signal["entry"]),
+        "atr": float(signal["atr"]),
+        "direction": str(signal["direction"]),
+      }, signal_candles, signal_candle_times, int(signal["expiryCandles"]))
+      if profile is None:
+        signal["expiryTime"] = None
+        signal["maximumAdverseR"] = None
+        continue
+      expiry_candles = int(signal["expiryCandles"])
+      signal["expiryTime"] = int(profile["candles"][expiry_candles - 1]["time"]) if len(profile["candles"]) >= expiry_candles else None
+      exit_time = signal.get("exitTime")
+      adverse = [
+        value for candle, value in zip(profile["candles"], profile["adverse"])
+        if exit_time is None or int(candle["time"]) <= int(exit_time)
+      ]
+      signal["maximumAdverseR"] = min(1.0, max(adverse, default=0.0) / float(signal["stopAtr"]))
   latest_matched_event_at = max((int(signal["eventTime"]) for signal in signals), default=None)
   latest_arrow_at = max(
     (
@@ -1515,15 +1559,16 @@ def research_chart_signals(
     and matching_pattern(source_version, candidate) is None
   )
   scheduled_events = _research_store.query_calendar(
-    from_time=max(CHART_SIGNAL_MODEL_CREATED_AT, generated_at - 7 * 24 * 60 * 60),
+    from_time=generated_at - 7 * 24 * 60 * 60,
     currencies=["EUR", "USD"],
   )
   realtime = build_chart_signal_realtime_watch(
     scheduled_events,
     generated_at,
     frozenset(str(pattern["id"]) for pattern in catalog if pattern["currentEligible"]),
-    current_candidates,
+    assessment_candidates,
     frozenset(int(event["time"]) for event in observed_events),
+    CHART_SIGNAL_MODEL_CREATED_AT,
   )
   context_revision = _research_store.get_metadata("last_calendar_ingest_at") or "unversioned"
   context_key = f"{id(_research_store)}:{context_revision}"

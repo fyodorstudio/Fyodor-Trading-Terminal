@@ -70,6 +70,10 @@ function readableCohort(value: string): string {
   return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
+function readablePolicy(value: string): string {
+  return value === "momentum_only" ? "Momentum only" : value === "forecast_quality" ? "Forecast-quality gate" : "Forecast + Previous baseline";
+}
+
 function RobustnessTable({ rows }: { rows: MacroSignalRobustnessVariant[] }) {
   return (
     <div className="macro-signal-expansion-table-scroll">
@@ -124,6 +128,7 @@ export function MacroSignalExpansionResearch({ report, loading, error, onRefresh
   const robustnessLeads = report.robustnessLeads ?? [];
   const passedRobustness = robustnessLeads.filter((variant) => variant.passesExploratoryScreen);
   const visibleRobustness = passedRobustness.length ? passedRobustness : robustnessLeads.slice(0, 16);
+  const v12 = report.v12Challenger;
 
   return (
     <section className="macro-signal-panel macro-signal-expansion" data-fms-expansion-report="">
@@ -134,6 +139,35 @@ export function MacroSignalExpansionResearch({ report, loading, error, onRefresh
           <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
         </button>
       </div>
+
+      {v12 ? (
+        <section className="macro-signal-expansion-list" aria-label="FMS v12 challenger decision">
+          <header>
+            <h4>V12 scoring and setup decision</h4>
+            <span>{v12.registryDecision === "create_v12" ? `${v12.promotedPatternIds.length} promoted` : "No promotion · v10 retained"}</span>
+          </header>
+          <p className="macro-signal-expansion-note">
+            <b>Selected input:</b> {readablePolicy(v12.selectedPolicy)}. {v12.policyComparisons.map((row) => `${readablePolicy(row.policy)} H ${formatR(row.holdout.stressedAverageR)} / recent ${formatR(row.recent.stressedAverageR)}`).join(" · ")}. {v12.forecastQualityAudits.reduce((sum, row) => sum + row.excludedForecastCount, 0)} suspect Forecast values were ignored only by the quality challenger; raw MT5 values remain unchanged.
+          </p>
+          <div className="macro-signal-expansion-table-scroll">
+            <table className="macro-signal-expansion-table">
+              <thead><tr><th>Fixed challenger</th><th>N</th><th>Tested exit</th><th>Development</th><th>Holdout</th><th>Recent</th><th>Typical move</th><th>Decision</th></tr></thead>
+              <tbody>{v12.candidates.map((candidate) => (
+                <tr key={candidate.id}>
+                  <td><strong>{candidate.direction === "long" ? "Long" : "Short"} EURUSD · {candidate.label}</strong><small>{candidate.condition}</small></td>
+                  <td>{candidate.historicalN}</td>
+                  <td>{candidate.selectedConfiguration.stopAtr} ATR / {candidate.selectedConfiguration.targetR}R / {candidate.selectedConfiguration.holdingCandles} H4</td>
+                  <td>{formatR(candidate.selectedConfiguration.development.stressedAverageR)}</td>
+                  <td>{formatR(candidate.selectedConfiguration.holdout.stressedAverageR)}</td>
+                  <td>{formatR(candidate.selectedConfiguration.recent.stressedAverageR)}</td>
+                  <td>{candidate.typicalMfePips == null ? "—" : `${candidate.typicalMfePips.toFixed(0)} favorable pips`}<small>{candidate.typicalMaePips == null ? "" : `${candidate.typicalMaePips.toFixed(0)} adverse pips`}</small></td>
+                  <td><strong>{candidate.promoted ? "Registered v12" : "Failed gate"}</strong><small>{Object.entries(candidate.checks).filter(([, passed]) => !passed).map(([name]) => readableCohort(name)).join(", ") || "All checks passed"}</small></td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
 
       <section className="macro-signal-expansion-list" aria-label="Registered FMS setups">
         <header><h4>Registered setups</h4><span>{registered.length} directional variants</span></header>

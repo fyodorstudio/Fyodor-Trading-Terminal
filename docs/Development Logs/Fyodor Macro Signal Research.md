@@ -1,7 +1,7 @@
 # Fyodor Macro Signal Research
 
 **Date:** 2026-08-21
-**Status:** Economy v1 was rejected. Country-aware Labor v2, Sentiment v3, Policy/Inflation v5, and Growth v7 remain source-research models with immutable forward ledgers. Charts uses frozen multi-source `FMS-EURUSD-MULTI-H4-CQ-v10`, with post-activation Current Model signals strictly separated from hindsight Research Replay. Numeric robustness research is implemented separately as `FMS-EURUSD-NUMERIC-ROBUST-H4-v11`; it has not changed the v10 Charts registry.
+**Status:** Economy v1 was rejected. Country-aware Labor v2, Sentiment v3, Policy/Inflation v5, and Growth v7 remain source-research models with immutable forward ledgers. Charts uses prospective `FMS-EURUSD-FORECAST-GUARD-H4-v13`, retaining the v10 setup identities while excluding only past-detectable anomalous Forecast comparisons. Current Model signals remain strictly separated from hindsight Research Replay. Numeric robustness and Forecast-policy research remain documented as v11/v12.
 
 **AI working-memory rule:** This is the single canonical FMS research record for future AI sessions. Preserve decisions, failed trials, candidate diagnoses, and unresolved ideas here so research is not reconstructed from chat memory. Do not create a second FMS roadmap unless the user explicitly changes this rule.
 
@@ -26,7 +26,7 @@ The feature is intended to reduce manual economic-data reading and make historic
 - `FMS-EURUSD-GROWTH-H4-v7` is a country-aware Growth source frozen before its results were inspected. It accepts aggregate EU/US GDP/output, strict PMI/ISM, industrial production, retail demand, trade balance, and current-account rows while excluding price indexes, generic regional surveys, terms of trade, duplicates, and EUR member-country rows.
 - `FMS-EURUSD-MULTI-H4-CQ-v8` is an immutable interim registry created when the US-industrial-output pattern first passed the existing gates. It observed zero Current Model signals before being superseded.
 - `FMS-EURUSD-MULTI-H4-CQ-v9` is the current Charts registry. It preserves v8, explicitly requires positive stressed 1R, 1.5R, and 2R target sensitivity, and begins a new Current Model boundary after that stronger gate was frozen.
-- `FMS-EURUSD-MULTI-H4-CQ-v10` is the current Charts registry. It preserves directional Euro-area consumer sentiment and aggregate-US industrial output, restores the exact three-group US payroll Short package with a frozen `2 ATR / 1R / 6 H4` contract, and adds only the complete same-time four-series US Core PPI/PPI m/m+y/y cooling package as Long with `2 ATR / 1.25R / 18 H4`. It begins a new immutable Current Model boundary on 2026-08-20 19:53:55 UTC.
+- `FMS-EURUSD-MULTI-H4-CQ-v10` froze the setup registry inherited by current v13: directional Euro-area consumer sentiment, aggregate-US industrial output, exact three-group US payroll Short with `2 ATR / 1R / 6 H4`, and the complete same-time four-series US Core PPI/PPI m/m+y/y cooling package as Long with `2 ATR / 1.25R / 18 H4`.
 
 V2 was chosen after v1's complete history and holdout were inspected. Therefore, no pre-registration v2 history is untouched validation evidence, regardless of how attractive its historical result appears.
 
@@ -325,7 +325,7 @@ The ten-year window was selected before the v1 result as a fixed compromise betw
 
 ### Registered Setups and Nearest Leads
 
-Current `FMS-EURUSD-MULTI-H4-CQ-v10` setups:
+Current v13 setup identities inherited from `FMS-EURUSD-MULTI-H4-CQ-v10`:
 
 | Setup | Frozen direction | Historical N | Gross 2R target first | Gross average R |
 |---|---|---:|---:|---:|
@@ -513,6 +513,29 @@ Before the next Charts registry, backtest three frozen alternatives side by side
 For a suspect Forecast, preserve and display the raw broker value, contribute nothing from Surprise, compare Actual with Previous normally, and award no agreement bonus. In the confirmed Consumer Confidence example this would yield Momentum `+1` and a Long-qualifying direction under the challenger rather than silently replacing `0.1` with an external value.
 
 The experiment must report average R, target/stop/expiry rates, maximum drawdown, development/holdout/recent performance, yearly stability, signal count, excluded-Forecast count, and representative exclusions. Prefer momentum-only if it performs comparably because it is simpler. Promote the quality gate only if its improvement survives chronological holdout and robustness checks. Any winning policy becomes a new immutable FMS version governing future releases; v10 and its already-observed decisions remain unchanged.
+
+### V12 Forecast Robustness and Fixed-Challenger Run - 2026-08-26
+
+The deferred three-policy experiment is implemented in the durable expansion report as `FMS-EURUSD-FORECAST-ROBUST-H4-v12` research. It preserves v10 and the 2026-08-21 Consumer Confidence No Trade. The quality detector uses only earlier exact-series releases, activates after 12 prior numeric Forecast/Previous gaps, and marks a Forecast suspect above the expanding median gap plus six MAD. Raw MT5 values are never replaced.
+
+The initial detector over-flagged ordinary changes whenever MAD collapsed to zero. The corrected gate retains the median-plus-six-MAD threshold but also requires the Forecast/Previous gap to exceed four times the prior 90th-percentile movement scale built from both Forecast/Previous and Actual/Previous movements. On the frozen v10 setup portfolio, Forecast-quality remains selected. After the existing three-pip stress, its holdout/recent expectancy is approximately `+0.38R/+0.46R`, versus baseline `+0.36R/+0.44R` and Momentum-only `+0.29R/+0.37R`. Momentum-only remains outside the predeclared 0.03R simplicity allowance. Across all four source archives, exclusions fell from 1,084 to 140 while the confirmed Consumer Confidence errors remained detected.
+
+Four fixed broad challengers were rescored under the selected baseline. None passed every practical check, so no v12 Charts registry was created and v10 remains current:
+
+| Challenger | N | Selected exit | Development | Holdout | Recent | Decision |
+|---|---:|---|---:|---:|---:|---|
+| EUR business-sentiment weakness, contrarian Long | 96 | 1.25 ATR / 2R / 30 H4 | +0.23R | +0.19R | +0.14R | Failed neighbouring-configuration stability |
+| EUR manufacturing-PMI improvement, Long | 56 | 2 ATR / 0.75R / 6 H4 | -0.04R | -0.05R | -0.08R | Failed expectancy, stability, boundary, year share, and prequential checks |
+| USD manufacturing-PMI weakness, Long | 95 | 2 ATR / 1R / 60 H4 | -0.00R | +0.10R | +0.25R | Failed overall/development/holdout threshold, stability, boundary, year share, and prequential checks |
+| USD consumer-confidence weakness, Long | 47 | 0.75 ATR / 1R / 30 H4 | +0.23R | -0.29R | -0.27R | Failed overall/holdout/recent expectancy, stability, year share, and prequential checks |
+
+The Shadow Trader now prefers completed-H4 expiry timestamps supplied by the bridge, skips simultaneous opposing setups deterministically, distinguishes conflicts from ordinary overlap, uses path MAE when available for drawdown, and labels EURUSD lot sizing as an indicative USD-account calculation without MT5 margin or broker-volume enforcement.
+
+### Forecast Guard Charts Version - 2026-08-26
+
+`FMS-EURUSD-FORECAST-GUARD-H4-v13` is the prospective Charts model activated at `2026-08-26 03:16:40 UTC`. It retains the v10 registered setup identities and their frozen execution contracts; no failed v12 expansion candidate was promoted. Its only signal-policy change is the corrected past-only Forecast-quality guard selected by the fixed policy comparison.
+
+When a Forecast is suspect, FMS preserves and displays the raw MT5 value, excludes Surprise, continues to compare Actual with Previous, and awards no agreement bonus. The 2026-08-21 Euro-area Consumer Confidence row is therefore reclassified as Momentum `+1` / Long EURUSD under the guard: its raw `16.0` Forecast/Previous gap exceeded the `6.0` past-only threshold. Because this release occurred before v13 activation, it remains audit-only and no hypothetical trade is created after the fact. Releases observed after activation use the guard prospectively and enter only at the first strictly later H4 open when a retained setup qualifies.
 
 ## Research Warnings and References
 

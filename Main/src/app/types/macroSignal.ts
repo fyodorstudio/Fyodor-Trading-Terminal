@@ -431,6 +431,69 @@ export interface MacroSignalExpansionReport {
   robustnessLeads: MacroSignalRobustnessVariant[];
   candidateCount: number;
   candidates: MacroSignalStressCandidate[];
+  v12Challenger?: {
+    versionId: string;
+    selectedPolicy: "baseline" | "momentum_only" | "forecast_quality";
+    policySelectionRule: string;
+    policyComparisons: Array<{
+      policy: "baseline" | "momentum_only" | "forecast_quality";
+      signalCount: number;
+      overall: MacroSignalStressMetrics;
+      development: MacroSignalStressMetrics;
+      holdout: MacroSignalStressMetrics;
+      recent: MacroSignalStressMetrics;
+      sequentialAccount: {
+        takenTrades: number;
+        cumulativeStressedR: number;
+        maximumDrawdownR: number;
+        skippedOverlap: number;
+        skippedConflict: number;
+        drawdownBasis: "intratrade_mae_when_available";
+      };
+    }>;
+    forecastQualityAudits: Array<{
+      sourceVersionId: string;
+      excludedForecastCount: number;
+      representativeExclusions: Array<{
+        eventTime: number;
+        currency: string;
+        countryCode: string;
+        title: string;
+        actual: string | null;
+        forecast: string | null;
+        previous: string | null;
+        gap: number;
+        threshold: number;
+        priorCount: number;
+      }>;
+      minimumHistory: number;
+      madMultiplier: number;
+      scaleMultiplier?: number;
+    }>;
+    candidateDefinitionsTested: number;
+    candidates: Array<{
+      id: string;
+      label: string;
+      sourceVersion: string;
+      evidenceSignature: string;
+      direction: "long" | "short";
+      condition: string;
+      historicalN: number;
+      selectedConfiguration: MacroSignalStressConfiguration;
+      configurationStability: MacroSignalStressCandidate["configurationStability"];
+      prequentialAudit: { evaluableCount: number; stressedAverageR: number | null };
+      boundaryAudit: { required: boolean; passed: boolean; configuration: MacroSignalStressConfiguration | null };
+      path: MacroSignalPathSummary;
+      typicalStopPips: number | null;
+      typicalMfePips: number | null;
+      typicalMaePips: number | null;
+      checks: Record<string, boolean>;
+      promoted: boolean;
+    }>;
+    promotedPatternIds: string[];
+    registryDecision: "create_v12" | "retain_v10";
+    reusedHistory: true;
+  };
   limitations: string[];
   cached: boolean;
 }
@@ -522,6 +585,8 @@ export interface MacroSignalChartSignal {
   outcomeStatus?: MacroSignalOutcomeStatus | null;
   resultR?: number | null;
   exitTime?: number | null;
+  expiryTime?: number | null;
+  maximumAdverseR?: number | null;
   historicalReplay: boolean;
 }
 
@@ -552,7 +617,7 @@ export interface MacroSignalPatternAssessment {
     patternId: string;
     label: string;
     condition: string;
-    status: "awaiting_observation" | "qualified" | "no_trade";
+    status: "awaiting_observation" | "qualified" | "no_trade" | "pre_activation_audit";
     direction: "long" | "short" | null;
     reason: string;
     events: MacroSignalScheduledEvent[];
@@ -561,10 +626,14 @@ export interface MacroSignalPatternAssessment {
       actual: string | null;
       forecast: string | null;
       previous: string | null;
-      surprisePoint: number;
-      momentumPoint: number;
+      surprisePoint: number | null;
+      momentumPoint: number | null;
       agreementBonus: number;
       score: number;
+      forecastSuspect?: boolean;
+      forecastGap?: number | null;
+      forecastAnomalyThreshold?: number | null;
+      scoringPolicy?: string | null;
     }>;
 }
 

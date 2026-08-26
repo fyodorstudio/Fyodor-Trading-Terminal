@@ -245,6 +245,19 @@ describe("getChartConnectionLabel", () => {
     expect(normalizeShadowRiskPercent(12.5)).toBe(12.5);
     expect(normalizeShadowStartingBalance(0)).toBe(1);
     expect(normalizeShadowRiskPercent(150)).toBe(100);
+    expect(position.sizingNote).toContain("USD-account sizing");
+
+    const conflict = buildMacroSignalShadowAccount([
+      { ...makeSignal("long", 500, 600, 2, "target_hit"), direction: "long", maximumAdverseR: 0.5, expiryTime: 900 },
+      { ...makeSignal("short", 500, 600, -1, "stop_hit"), direction: "short", maximumAdverseR: 1, expiryTime: 900 },
+    ], { startingBalance: 1_000, riskPercent: 1 });
+    expect(conflict).toMatchObject({ balance: 1_000, takenTrades: 0, skippedConflict: 2 });
+
+    const pathDrawdown = buildMacroSignalShadowAccount([
+      { ...makeSignal("mae", 700, 800, 2, "target_hit"), maximumAdverseR: 0.75, expiryTime: 1_000 },
+    ], { startingBalance: 1_000, riskPercent: 10 });
+    expect(pathDrawdown.maxDrawdownPercent).toBeCloseTo(7.5);
+    expect(pathDrawdown.drawdownBasis).toBe("intratrade_mae_when_available");
   });
   it("reuses the H4 Current Model on every timeframe while replay remains viewport-specific", () => {
     const currentH4 = getMacroBiasRequestScope({ mode: "current", symbol: "EURUSD", timeframe: "H4", from: 100, to: 200, calendarRevision: "calendar-a" });

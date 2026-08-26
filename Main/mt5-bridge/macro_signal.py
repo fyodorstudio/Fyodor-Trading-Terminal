@@ -39,8 +39,12 @@ STRESS_STOP_ATR_VALUES = (0.5, 0.75, 1.0, 1.25, 1.5, 2.0)
 STRESS_TARGET_R_VALUES = PATH_RESEARCH_THRESHOLDS_R
 STRESS_HOLDING_CANDLES = (6, 12, 18, 30, 42, 60)
 STRESS_MINIMUM_SIGNATURE_CASES = 10
-CANDIDATE_STRESS_SCHEMA_VERSION = 6
+CANDIDATE_STRESS_SCHEMA_VERSION = 8
 NUMERIC_ROBUSTNESS_VERSION_ID = "FMS-EURUSD-NUMERIC-ROBUST-H4-v11"
+V12_CHALLENGER_VERSION_ID = "FMS-EURUSD-FORECAST-ROBUST-H4-v12"
+FORECAST_QUALITY_MINIMUM_HISTORY = 12
+FORECAST_QUALITY_MAD_MULTIPLIER = 6.0
+FORECAST_QUALITY_SCALE_MULTIPLIER = 4.0
 
 ELIGIBILITY_GATE = {
   "targetR": 2.0,
@@ -456,6 +460,17 @@ def compare_source_values(left: Any, right: Any) -> Optional[int]:
   if left_value is None or right_value is None:
     return None
   if left_value[1] and right_value[1] and left_value[1] != right_value[1]:
+    return None
+  if left_value[0] == right_value[0]:
+    return 0
+  return 1 if left_value[0] > right_value[0] else -1
+
+
+def compare_source_values_strict(left: Any, right: Any) -> Optional[int]:
+  """Compare only like-for-like numeric units for post-v10 challengers."""
+  left_value = parse_source_value(left)
+  right_value = parse_source_value(right)
+  if left_value is None or right_value is None or left_value[1] != right_value[1]:
     return None
   if left_value[0] == right_value[0]:
     return 0
@@ -993,7 +1008,7 @@ def simulate_candidate_path(
   stress_pips: float = CHART_SIGNAL_EXECUTION_STRESS_PIPS,
 ) -> Dict[str, Any]:
   if len(profile["candles"]) < holding_candles:
-    return {"status": "unevaluable", "grossResultR": None, "stressedResultR": None}
+    return {"status": "unevaluable", "grossResultR": None, "stressedResultR": None, "exitTime": None}
   entry = float(profile["entry"])
   atr = float(profile["atr"])
   sign = float(profile["sign"])
@@ -1003,16 +1018,16 @@ def simulate_candidate_path(
   for candle in profile["candles"][:holding_candles]:
     stop_hit, target_hit = _bar_touches(candle, profile["direction"], stop, target)
     if stop_hit and target_hit:
-      return {"status": "ambiguous", "grossResultR": None, "stressedResultR": None}
+      return {"status": "ambiguous", "grossResultR": None, "stressedResultR": None, "exitTime": int(candle["time"])}
     if stop_hit:
       gross = -1.0
-      return {"status": "stop_hit", "grossResultR": gross, "stressedResultR": gross - stress_pips * 0.0001 / risk_distance}
+      return {"status": "stop_hit", "grossResultR": gross, "stressedResultR": gross - stress_pips * 0.0001 / risk_distance, "exitTime": int(candle["time"])}
     if target_hit:
       gross = target_r
-      return {"status": "target_hit", "grossResultR": gross, "stressedResultR": gross - stress_pips * 0.0001 / risk_distance}
+      return {"status": "target_hit", "grossResultR": gross, "stressedResultR": gross - stress_pips * 0.0001 / risk_distance, "exitTime": int(candle["time"])}
   final_close = float(profile["candles"][holding_candles - 1]["close"])
   gross = sign * (final_close - entry) / risk_distance
-  return {"status": "expired", "grossResultR": gross, "stressedResultR": gross - stress_pips * 0.0001 / risk_distance}
+  return {"status": "expired", "grossResultR": gross, "stressedResultR": gross - stress_pips * 0.0001 / risk_distance, "exitTime": int(profile["candles"][holding_candles - 1]["time"])}
 
 
 def _aggregate_path_simulations(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
@@ -1447,6 +1462,426 @@ def _build_numeric_robustness_variants(
   return variants, configurations_tested
 
 
+V12_CANDIDATE_DEFINITIONS = (
+  {
+    "id": "eur-business-sentiment-rejection-long",
+    "label": "Euro-area business-sentiment rejection",
+    "sourceVersion": SENTIMENT_VERSION_ID,
+    "evidenceSignature": "short|EUR:business_sentiment",
+    "direction": "long",
+    "condition": "Long EURUSD when the selected numeric policy scores an exact Euro-area business-sentiment package as weakening; this is an explicitly contrarian response.",
+  },
+  {
+    "id": "eur-manufacturing-pmi-long",
+    "label": "Euro-area manufacturing PMI improvement",
+    "sourceVersion": GROWTH_VERSION_ID,
+    "evidenceSignature": "long|EUR:pmi_manufacturing",
+    "direction": "long",
+    "condition": "Long EURUSD when the selected numeric policy scores an exact Euro-area manufacturing-PMI package as improving.",
+  },
+  {
+    "id": "usd-manufacturing-pmi-weakness-long",
+    "label": "US manufacturing PMI weakness",
+    "sourceVersion": GROWTH_VERSION_ID,
+    "evidenceSignature": "long|USD:pmi_manufacturing",
+    "direction": "long",
+    "condition": "Long EURUSD when the selected numeric policy scores an exact US manufacturing-PMI package as weakening.",
+  },
+  {
+    "id": "usd-consumer-confidence-weakness-long",
+    "label": "US consumer-confidence weakness",
+    "sourceVersion": SENTIMENT_VERSION_ID,
+    "evidenceSignature": "long|USD:consumer_sentiment",
+    "direction": "long",
+    "requiredTitleTerm": "consumer confidence",
+    "condition": "Long EURUSD when the selected numeric policy scores an exact US consumer-confidence package as weakening.",
+  },
+)
+
+
+def _strict_numeric_gap(left: Any, right: Any) -> Optional[float]:
+  left_value = parse_source_value(left)
+  right_value = parse_source_value(right)
+  if left_value is None or right_value is None or left_value[1] != right_value[1]:
+    return None
+  return abs(float(left_value[0]) - float(right_value[0]))
+
+
+def _linear_quantile(values: Sequence[float], quantile: float) -> float:
+  ordered = sorted(float(value) for value in values)
+  if not ordered:
+    return 0.0
+  position = (len(ordered) - 1) * min(1.0, max(0.0, quantile))
+  lower = int(math.floor(position))
+  upper = int(math.ceil(position))
+  if lower == upper:
+    return ordered[lower]
+  weight = position - lower
+  return ordered[lower] * (1.0 - weight) + ordered[upper] * weight
+
+
+def _rescore_policy_outcomes(
+  outcomes: Sequence[Dict[str, Any]],
+  policy: str,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+  """Rescore archived packages without mutating the frozen v10 calculation."""
+  gap_history: Dict[Tuple[str, str, str], List[float]] = {}
+  actual_move_history: Dict[Tuple[str, str, str], List[float]] = {}
+  excluded: List[Dict[str, Any]] = []
+  rescored: List[Dict[str, Any]] = []
+  for source_outcome in sorted(outcomes, key=lambda row: int(row["eventTime"])):
+    scored_events: List[Dict[str, Any]] = []
+    for source_event in source_outcome.get("events", []):
+      event = dict(source_event)
+      rule = _rule_by_id(str(event.get("ruleId", "")))
+      if rule is None:
+        continue
+      identity = (
+        str(event.get("currency", "")).upper(),
+        str(event.get("countryCode", "")).upper(),
+        normalize_title(str(event.get("title", ""))),
+      )
+      prior_gaps = gap_history.setdefault(identity, [])
+      prior_actual_moves = actual_move_history.setdefault(identity, [])
+      current_gap = _strict_numeric_gap(event.get("forecast"), event.get("previous"))
+      current_actual_move = _strict_numeric_gap(event.get("actual"), event.get("previous"))
+      suspect = False
+      threshold: Optional[float] = None
+      if policy == "forecast_quality" and current_gap is not None and len(prior_gaps) >= FORECAST_QUALITY_MINIMUM_HISTORY:
+        median_gap = statistics.median(prior_gaps)
+        mad = statistics.median(abs(value - median_gap) for value in prior_gaps)
+        reference_scale = _linear_quantile([*prior_gaps, *prior_actual_moves], 0.90)
+        threshold = max(
+          median_gap + FORECAST_QUALITY_MAD_MULTIPLIER * mad,
+          FORECAST_QUALITY_SCALE_MULTIPLIER * reference_scale,
+        )
+        suspect = reference_scale > 0 and current_gap > threshold
+      if policy == "baseline":
+        surprise = event.get("surprisePoint")
+        momentum = event.get("momentumPoint")
+      else:
+        momentum = _orient(compare_source_values_strict(event.get("actual"), event.get("previous")), rule)
+        surprise = None if policy == "momentum_only" or suspect else _orient(
+          compare_source_values_strict(event.get("actual"), event.get("forecast")), rule
+        )
+      if current_gap is not None:
+        prior_gaps.append(current_gap)
+      if current_actual_move is not None:
+        prior_actual_moves.append(current_actual_move)
+      if surprise is None and momentum is None:
+        continue
+      agreement = surprise if surprise is not None and surprise != 0 and surprise == momentum else 0
+      score = int(surprise or 0) + int(momentum or 0) + int(agreement)
+      event.update({
+        "surprisePoint": surprise,
+        "momentumPoint": momentum,
+        "agreementBonus": agreement,
+        "score": score,
+        "forecastSuspect": suspect,
+        "forecastGap": current_gap,
+        "forecastAnomalyThreshold": threshold,
+        "scoringPolicy": policy,
+      })
+      scored_events.append(event)
+      if suspect:
+        excluded.append({
+          "eventTime": int(source_outcome["eventTime"]),
+          "currency": identity[0],
+          "countryCode": identity[1],
+          "title": str(event.get("title", "")),
+          "actual": event.get("actual"),
+          "forecast": event.get("forecast"),
+          "previous": event.get("previous"),
+          "gap": current_gap,
+          "threshold": threshold,
+          "priorCount": len(prior_gaps) - 1,
+        })
+    factor_votes = _build_factor_votes(scored_events)
+    pair_vote = sum(int(vote["pairVote"]) for vote in factor_votes if int(vote["pairVote"]) != 0)
+    direction = "long" if pair_vote > 0 else "short" if pair_vote < 0 else "none"
+    nonzero = [int(vote["pairVote"]) for vote in factor_votes if int(vote["pairVote"]) != 0]
+    agreement_state = "no_direction" if not nonzero or pair_vote == 0 else "consensus" if all(value == nonzero[0] for value in nonzero) else "conflicted_weak"
+    rescored.append({
+      **source_outcome,
+      "direction": direction,
+      "pairVote": pair_vote,
+      "agreement": agreement_state,
+      "factorVotes": factor_votes,
+      "events": scored_events,
+      "scoringPolicy": policy,
+    })
+  return rescored, {
+    "policy": policy,
+    "excludedForecastCount": len(excluded),
+    "representativeExclusions": excluded[-12:],
+    "minimumHistory": FORECAST_QUALITY_MINIMUM_HISTORY,
+    "madMultiplier": FORECAST_QUALITY_MAD_MULTIPLIER,
+    "scaleMultiplier": FORECAST_QUALITY_SCALE_MULTIPLIER,
+  }
+
+
+def rescore_forecast_quality_outcomes(
+  outcomes: Sequence[Dict[str, Any]],
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+  """Apply the frozen past-only Forecast guard while preserving every raw value."""
+  return _rescore_policy_outcomes(outcomes, "forecast_quality")
+
+
+def _policy_portfolio_summary(
+  rescored_by_source: Dict[str, Tuple[List[Dict[str, Any]], int]],
+  candles: Sequence[Dict[str, Any]],
+  candle_times: Sequence[int],
+  atr_values: Sequence[Optional[float]],
+) -> Dict[str, Any]:
+  simulations: List[Dict[str, Any]] = []
+  latest_event_time = 0
+  for source_version, (outcomes, split_time) in rescored_by_source.items():
+    patterns = [
+      pattern for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
+      if pattern["current"] and str(pattern["sourceVersion"]) == source_version
+    ]
+    for outcome in outcomes:
+      pattern = next((row for row in patterns if candidate_matches_chart_pattern(outcome, row)), None)
+      if pattern is None:
+        continue
+      profile = _build_policy_path_profile(outcome, candles, candle_times, atr_values)
+      if profile is None:
+        continue
+      execution = pattern["execution"]
+      simulation = simulate_candidate_path(
+        profile, float(execution["stopAtr"]), float(execution["targetR"]), int(execution["expiryCandles"])
+      )
+      simulations.append({
+        **simulation,
+        "eventTime": int(outcome["eventTime"]),
+        "activationTime": int(profile["entryTime"]),
+        "direction": str(outcome["direction"]),
+        "patternId": str(pattern["id"]),
+        "splitTime": split_time,
+        "maximumAdverseR": min(1.0, max([
+          adverse for candle, adverse in zip(profile["candles"][:int(execution["expiryCandles"])], profile["adverse"][:int(execution["expiryCandles"])])
+          if simulation.get("exitTime") is None or int(candle["time"]) <= int(simulation["exitTime"])
+        ], default=0.0) / float(execution["stopAtr"])),
+      })
+      latest_event_time = max(latest_event_time, int(outcome["eventTime"]))
+  development = [row for row in simulations if int(row["eventTime"]) < int(row["splitTime"])]
+  holdout = [row for row in simulations if int(row["eventTime"]) >= int(row["splitTime"])]
+  recent_cutoff = latest_event_time - CHART_SIGNAL_RECENT_DAYS * 86400
+  recent = [row for row in simulations if int(row["eventTime"]) >= recent_cutoff]
+  return {
+    "signalCount": len(simulations),
+    "overall": _aggregate_path_simulations(simulations),
+    "development": _aggregate_path_simulations(development),
+    "holdout": _aggregate_path_simulations(holdout),
+    "recent": _aggregate_path_simulations(recent),
+    "sequentialAccount": _sequential_research_account(simulations),
+  }
+
+
+def _sequential_research_account(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+  cumulative_r = 0.0
+  peak_r = 0.0
+  maximum_drawdown_r = 0.0
+  unavailable_until = -1
+  taken = 0
+  skipped_overlap = 0
+  skipped_conflict = 0
+  ordered = sorted(rows, key=lambda row: (int(row["activationTime"]), str(row["patternId"])))
+  index = 0
+  while index < len(ordered):
+    activation = int(ordered[index]["activationTime"])
+    simultaneous: List[Dict[str, Any]] = []
+    while index < len(ordered) and int(ordered[index]["activationTime"]) == activation:
+      simultaneous.append(ordered[index])
+      index += 1
+    if activation < unavailable_until:
+      skipped_overlap += len(simultaneous)
+      continue
+    if len({str(row["direction"]) for row in simultaneous}) > 1:
+      skipped_conflict += len(simultaneous)
+      continue
+    selected = simultaneous[0]
+    skipped_overlap += len(simultaneous) - 1
+    unavailable_until = int(selected.get("exitTime") or activation)
+    intratrade_low = cumulative_r - float(selected.get("maximumAdverseR") or 0)
+    maximum_drawdown_r = max(maximum_drawdown_r, peak_r - intratrade_low)
+    result = selected.get("stressedResultR")
+    if result is None:
+      continue
+    cumulative_r += float(result)
+    peak_r = max(peak_r, cumulative_r)
+    maximum_drawdown_r = max(maximum_drawdown_r, peak_r - cumulative_r)
+    taken += 1
+  return {
+    "takenTrades": taken,
+    "cumulativeStressedR": cumulative_r,
+    "maximumDrawdownR": maximum_drawdown_r,
+    "skippedOverlap": skipped_overlap,
+    "skippedConflict": skipped_conflict,
+    "drawdownBasis": "intratrade_mae_when_available",
+  }
+
+
+def _build_policy_path_profile(
+  outcome: Dict[str, Any],
+  candles: Sequence[Dict[str, Any]],
+  candle_times: Sequence[int],
+  atr_values: Sequence[Optional[float]],
+) -> Optional[Dict[str, Any]]:
+  existing = build_candidate_path_profile(outcome, candles, candle_times)
+  if existing is not None:
+    return existing
+  if outcome.get("direction") not in {"long", "short"}:
+    return None
+  entry_index = bisect_right(candle_times, int(outcome["eventTime"]))
+  if entry_index <= 0 or entry_index >= len(candles):
+    return None
+  atr = atr_values[entry_index - 1]
+  if atr is None or float(atr) <= 0:
+    return None
+  hydrated = {
+    **outcome,
+    "entryTime": int(candles[entry_index]["time"]),
+    "entry": float(candles[entry_index]["open"]),
+    "atr": float(atr),
+  }
+  return build_candidate_path_profile(hydrated, candles, candle_times)
+
+
+def _prequential_selected_audit(simulations: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
+  prior: List[Dict[str, Any]] = []
+  qualified: List[Dict[str, Any]] = []
+  for row in sorted(simulations, key=lambda item: int(item["eventTime"])):
+    prior_metrics = _aggregate_path_simulations(prior)
+    if prior_metrics["evaluableCount"] >= 25 and float(prior_metrics.get("stressedAverageR") or 0) >= 0.10:
+      qualified.append(row)
+    prior.append(row)
+  metrics = _aggregate_path_simulations(qualified)
+  return {"evaluableCount": metrics["evaluableCount"], "stressedAverageR": metrics["stressedAverageR"]}
+
+
+def _boundary_inward_check(configurations: Sequence[Dict[str, Any]], selected: Dict[str, Any]) -> Dict[str, Any]:
+  stop_index = STRESS_STOP_ATR_VALUES.index(float(selected["stopAtr"]))
+  target_index = STRESS_TARGET_R_VALUES.index(float(selected["targetR"]))
+  holding_index = STRESS_HOLDING_CANDLES.index(int(selected["holdingCandles"]))
+  boundary = stop_index in {0, len(STRESS_STOP_ATR_VALUES) - 1} or target_index in {0, len(STRESS_TARGET_R_VALUES) - 1} or holding_index in {0, len(STRESS_HOLDING_CANDLES) - 1}
+  if not boundary:
+    return {"required": False, "passed": True, "configuration": None}
+  inward = (
+    1 if stop_index == 0 else len(STRESS_STOP_ATR_VALUES) - 2 if stop_index == len(STRESS_STOP_ATR_VALUES) - 1 else stop_index,
+    1 if target_index == 0 else len(STRESS_TARGET_R_VALUES) - 2 if target_index == len(STRESS_TARGET_R_VALUES) - 1 else target_index,
+    1 if holding_index == 0 else len(STRESS_HOLDING_CANDLES) - 2 if holding_index == len(STRESS_HOLDING_CANDLES) - 1 else holding_index,
+  )
+  row = next((item for item in configurations if (
+    float(item["stopAtr"]) == STRESS_STOP_ATR_VALUES[inward[0]]
+    and float(item["targetR"]) == STRESS_TARGET_R_VALUES[inward[1]]
+    and int(item["holdingCandles"]) == STRESS_HOLDING_CANDLES[inward[2]]
+  )), None)
+  passed = row is not None and all(float(row[name].get("stressedAverageR") or 0) >= 0.10 for name in ("overall", "development", "holdout", "recent"))
+  return {"required": True, "passed": passed, "configuration": row}
+
+
+def build_v12_challenger_report(
+  source_results: Sequence[Dict[str, Any]],
+  h4_candles: Sequence[Dict[str, Any]],
+  generated_at: int,
+) -> Dict[str, Any]:
+  candles = sorted(h4_candles, key=lambda candle: int(candle["time"]))
+  candle_times = [int(candle["time"]) for candle in candles]
+  atr_values = calculate_atr_by_candle(candles)
+  policies: Dict[str, Dict[str, Tuple[List[Dict[str, Any]], int]]] = {}
+  audits: Dict[str, List[Dict[str, Any]]] = {}
+  comparisons: List[Dict[str, Any]] = []
+  for policy in ("baseline", "momentum_only", "forecast_quality"):
+    by_source: Dict[str, Tuple[List[Dict[str, Any]], int]] = {}
+    audits[policy] = []
+    for source in source_results:
+      rescored, audit = _rescore_policy_outcomes(list(source["outcomes"]), policy)
+      by_source[str(source["versionId"])] = (rescored, int(source["splitTime"]))
+      audits[policy].append({"sourceVersionId": str(source["versionId"]), **audit})
+    policies[policy] = by_source
+    comparisons.append({"policy": policy, **_policy_portfolio_summary(by_source, candles, candle_times, atr_values)})
+  ranked = sorted(comparisons, key=lambda row: min(
+    float(row["holdout"].get("stressedAverageR") or -999.0),
+    float(row["recent"].get("stressedAverageR") or -999.0),
+  ), reverse=True)
+  best = ranked[0]
+  momentum = next(row for row in comparisons if row["policy"] == "momentum_only")
+  best_holdout = float(best["holdout"].get("stressedAverageR") or -999.0)
+  best_recent = float(best["recent"].get("stressedAverageR") or -999.0)
+  selected_policy = "momentum_only" if (
+    float(momentum["holdout"].get("stressedAverageR") or -999.0) >= best_holdout - 0.03
+    and float(momentum["recent"].get("stressedAverageR") or -999.0) >= best_recent - 0.03
+  ) else str(best["policy"])
+
+  candidates: List[Dict[str, Any]] = []
+  for definition in V12_CANDIDATE_DEFINITIONS:
+    source_version = str(definition["sourceVersion"])
+    outcomes, split_time = policies[selected_policy][source_version]
+    rows = []
+    for outcome in outcomes:
+      if candidate_pattern_signature(outcome) != str(definition["evidenceSignature"]):
+        continue
+      required_term = normalize_title(str(definition.get("requiredTitleTerm", "")))
+      if required_term and not any(required_term in normalize_title(str(event.get("title", ""))) for event in outcome.get("events", [])):
+        continue
+      rows.append({**outcome, "direction": str(definition["direction"])})
+    profiles = [
+      profile for row in rows
+      if (profile := _build_policy_path_profile(row, candles, candle_times, atr_values)) is not None
+    ]
+    configurations = [
+      _evaluate_path_configuration(profiles, split_time, max((int(row["eventTime"]) for row in rows), default=generated_at), stop_atr, target_r, holding)
+      for stop_atr in STRESS_STOP_ATR_VALUES
+      for target_r in STRESS_TARGET_R_VALUES
+      for holding in STRESS_HOLDING_CANDLES
+    ]
+    selected = _select_stress_configuration(configurations, len(profiles))
+    if selected is None:
+      continue
+    simulations = _simulate_path_configuration(profiles, float(selected["stopAtr"]), float(selected["targetR"]), int(selected["holdingCandles"]))
+    checks, _strict = _stress_configuration_checks(selected)
+    stability = _configuration_stability(configurations, selected)
+    prequential = _prequential_selected_audit(simulations)
+    boundary = _boundary_inward_check(configurations, selected)
+    practical_checks = {
+      **checks,
+      "historicalN": len(profiles) >= 40,
+      "prequential": prequential["evaluableCount"] >= 2 and float(prequential.get("stressedAverageR") or 0) > 0,
+      "configurationStability": all(float(stability[name].get("positiveShare") or 0) >= 0.60 for name in ("development", "holdout", "recent")),
+      "boundaryInward": bool(boundary["passed"]),
+    }
+    path = summarize_candidate_paths(profiles, int(selected["holdingCandles"]))
+    median_atr_pips = statistics.median(float(profile["atr"]) / 0.0001 for profile in profiles) if profiles else None
+    candidates.append({
+      **definition,
+      "historicalN": len(profiles),
+      "selectedConfiguration": selected,
+      "configurationStability": stability,
+      "prequentialAudit": prequential,
+      "boundaryAudit": boundary,
+      "path": path,
+      "typicalStopPips": median_atr_pips * float(selected["stopAtr"]) if median_atr_pips is not None else None,
+      "typicalMfePips": median_atr_pips * float(path["mfeR"]["median"]) if median_atr_pips is not None and path["mfeR"]["median"] is not None else None,
+      "typicalMaePips": median_atr_pips * float(path["maeR"]["median"]) if median_atr_pips is not None and path["maeR"]["median"] is not None else None,
+      "checks": practical_checks,
+      "promoted": all(practical_checks.values()),
+    })
+  promoted = [row for row in candidates if row["promoted"]]
+  return {
+    "versionId": V12_CHALLENGER_VERSION_ID,
+    "selectedPolicy": selected_policy,
+    "policySelectionRule": "Prefer Momentum-only when both holdout and recent stressed expectancy are within 0.03R of the best policy; otherwise maximize the weaker of holdout and recent.",
+    "policyComparisons": comparisons,
+    "forecastQualityAudits": audits["forecast_quality"],
+    "candidateDefinitionsTested": len(V12_CANDIDATE_DEFINITIONS),
+    "candidates": candidates,
+    "promotedPatternIds": [str(row["id"]) for row in promoted],
+    "registryDecision": "create_v12" if promoted else "retain_v10",
+    "reusedHistory": True,
+  }
+
+
 def build_candidate_stress_report(
   source_results: Sequence[Dict[str, Any]],
   h4_candles: Sequence[Dict[str, Any]],
@@ -1608,6 +2043,7 @@ def build_candidate_stress_report(
     "stressPips": CHART_SIGNAL_EXECUTION_STRESS_PIPS,
     "primaryWindowDays": PRIMARY_WINDOW_DAYS,
   }
+  v12_challenger = build_v12_challenger_report(source_results, candles, generated_at)
   return {
     "schemaVersion": CANDIDATE_STRESS_SCHEMA_VERSION,
     "generatedAt": generated_at,
@@ -1630,6 +2066,7 @@ def build_candidate_stress_report(
     "robustnessLeads": robustness_leads[:40],
     "candidateCount": len(candidates),
     "candidates": candidates,
+    "v12Challenger": v12_challenger,
     "limitations": [
       "Every candidate and configuration is reused-history research and cannot be promoted directly from this report.",
       "The flexible matrix excludes spread, commission, slippage, and swap and applies only the existing three-pip result stress.",
@@ -1637,6 +2074,7 @@ def build_candidate_stress_report(
       "Trying many configurations increases selection risk; the chosen rule must be frozen before later evaluation.",
       "Revision reliability compares the broker-supplied Previous momentum direction with the prior archived Actual; it does not recreate missing historical vintages.",
       "V11 cohorts are numeric reused-history research. They do not change the immutable v10 Charts registry or create live arrows.",
+      "V12 is created only when a fixed challenger passes every practical registration check; otherwise Charts remains on immutable v10.",
     ],
   }
 
@@ -1651,8 +2089,8 @@ CHART_SIGNAL_QUALIFICATION = {
   "maximumAmbiguousRate": 0.05,
 }
 
-CHART_SIGNAL_MODEL_ID = "FMS-EURUSD-MULTI-H4-CQ-v10"
-CHART_SIGNAL_MODEL_CREATED_AT = 1787255635  # 2026-08-20 19:53:55 UTC
+CHART_SIGNAL_MODEL_ID = "FMS-EURUSD-FORECAST-GUARD-H4-v13"
+CHART_SIGNAL_MODEL_CREATED_AT = 1787714200  # 2026-08-26 03:16:40 UTC
 CHART_SIGNAL_RECENT_DAYS = 3 * 365
 CHART_SIGNAL_PATTERN_DEFINITIONS = (
   {
@@ -1728,6 +2166,13 @@ CHART_SIGNAL_MODEL_CONFIGURATION = {
   "sourceVersions": [V2_VERSION_ID, SENTIMENT_VERSION_ID, POLICY_INFLATION_VERSION_ID, GROWTH_VERSION_ID],
   "defaultTargetR": 2.0,
   "signalClock": "first_h4_open_strictly_after_release",
+  "scoringPolicy": {
+    "id": "past_only_forecast_quality",
+    "minimumExactSeriesHistory": FORECAST_QUALITY_MINIMUM_HISTORY,
+    "madMultiplier": FORECAST_QUALITY_MAD_MULTIPLIER,
+    "scaleMultiplier": FORECAST_QUALITY_SCALE_MULTIPLIER,
+    "suspectForecastTreatment": "preserve_raw_exclude_surprise_keep_momentum_no_agreement_bonus",
+  },
   "defaultExpiryCandles": HOLDING_CANDLES,
   "patterns": [
     {
@@ -1782,6 +2227,7 @@ def build_chart_signal_realtime_watch(
   eligible_pattern_ids: Optional[frozenset[str]] = None,
   observed_candidates: Optional[Sequence[Tuple[str, Dict[str, Any]]]] = None,
   observed_event_times: Optional[frozenset[int]] = None,
+  model_activated_at: Optional[int] = None,
 ) -> Dict[str, Any]:
   """Describe the next pair event and the next structurally relevant pattern package.
 
@@ -1895,7 +2341,7 @@ def build_chart_signal_realtime_watch(
       calculations = [
         (
           f"{row.get('title')}: A {row.get('actual') or '–'} vs F {row.get('forecast') or '–'} = "
-          f"{point_text(row.get('surprisePoint'), 'better (+1)', 'worse (-1)')}; "
+          f"{'excluded as historically anomalous' if row.get('forecastSuspect') else point_text(row.get('surprisePoint'), 'better (+1)', 'worse (-1)')}; "
           f"A {row.get('actual') or '–'} vs P {row.get('previous') or '–'} = "
           f"{point_text(row.get('momentumPoint'), 'improving (+1)', 'weakening (-1)')}; "
           f"agreement {int(row.get('agreementBonus', 0)):+d}; score {int(row.get('score', 0)):+d}."
@@ -1903,9 +2349,13 @@ def build_chart_signal_realtime_watch(
         for row in scored_events
       ]
       calculation = " ".join(calculations)
+      predates_model = model_activated_at is not None and event_time < model_activated_at
       if event_time not in frozen_times:
         status = "awaiting_observation"
         reason = "Release time passed; waiting for the next completed EA cycle to freeze the first-seen values."
+      elif predates_model and qualified is not None:
+        status = "pre_activation_audit"
+        reason = f"{calculation} Forecast Guard classifies {str(qualified.get('direction', '')).upper()} EURUSD, but this release predates model activation, so no hypothetical trade was opened."
       elif qualified is not None:
         status = "qualified"
         reason = f"{calculation} Frozen rule qualified {str(qualified.get('direction', '')).upper()} EURUSD."
@@ -1934,10 +2384,14 @@ def build_chart_signal_realtime_watch(
             "actual": row.get("actual"),
             "forecast": row.get("forecast"),
             "previous": row.get("previous"),
-            "surprisePoint": int(row.get("surprisePoint", 0)),
-            "momentumPoint": int(row.get("momentumPoint", 0)),
+            "surprisePoint": int(row["surprisePoint"]) if row.get("surprisePoint") is not None else None,
+            "momentumPoint": int(row["momentumPoint"]) if row.get("momentumPoint") is not None else None,
             "agreementBonus": int(row.get("agreementBonus", 0)),
             "score": int(row.get("score", 0)),
+            "forecastSuspect": bool(row.get("forecastSuspect", False)),
+            "forecastGap": row.get("forecastGap"),
+            "forecastAnomalyThreshold": row.get("forecastAnomalyThreshold"),
+            "scoringPolicy": row.get("scoringPolicy"),
           }
           for row in scored_events
         ],

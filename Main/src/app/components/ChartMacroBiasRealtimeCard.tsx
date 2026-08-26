@@ -56,15 +56,18 @@ function formatOutcome(signal: MacroSignalChartSignal): string {
   return "Qualified · waiting for the frozen H4 entry";
 }
 
-function formatPoint(value: number): string {
+function formatPoint(value: number | null): string {
+  if (value == null) return "—";
   return value > 0 ? `+${value}` : String(value);
 }
 
-function surpriseMeaning(value: number): string {
+function surpriseMeaning(value: number | null): string {
+  if (value == null) return "excluded";
   return value > 0 ? "better" : value < 0 ? "worse" : "equal / unavailable";
 }
 
-function momentumMeaning(value: number): string {
+function momentumMeaning(value: number | null): string {
+  if (value == null) return "unavailable";
   return value > 0 ? "improving" : value < 0 ? "weakening" : "equal / unavailable";
 }
 
@@ -143,7 +146,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
                     ) : patternSignal && !assessmentIsNewer && patternSignal.outcomeStatus && patternSignal.outcomeStatus !== "pending" ? (
                       <strong>{formatOutcome(patternSignal)}</strong>
                     ) : assessment ? (
-                      <strong>{assessment.status === "awaiting_observation" ? "Processing release" : assessment.status === "qualified" ? "Qualified" : "No trade"}</strong>
+                      <strong>{assessment.status === "awaiting_observation" ? "Processing release" : assessment.status === "qualified" ? "Qualified" : assessment.status === "pre_activation_audit" ? `Audit only · ${assessment.direction === "long" ? "Long" : "Short"}` : "No trade"}</strong>
                     ) : <span>Waiting</span>}</td>
                     <td>
                       {latestTime != null ? <strong>Latest · {formatUtc(latestTime)}</strong> : null}
@@ -155,7 +158,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
                       {assessment?.calculations?.length ? (
                         <div className="chart-shadow-calculation" aria-label={assessment.reason}>
                           <div className="chart-shadow-calculation-heading">
-                            <strong>{assessment.status === "no_trade" ? "Why no trade" : "Latest frozen calculation"}</strong>
+                            <strong>{assessment.status === "no_trade" ? "Why no trade" : assessment.status === "pre_activation_audit" ? "Forecast Guard reclassification" : "Latest frozen calculation"}</strong>
                             <span>MT5 first-seen values</span>
                           </div>
                           {assessment.calculations.map((calculation) => (
@@ -165,13 +168,14 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
                                 <span><b>Actual</b>{calculation.actual ?? "–"}</span>
                                 <span><b>Forecast</b>{calculation.forecast ?? "–"}</span>
                                 <span><b>Previous</b>{calculation.previous ?? "–"}</span>
-                                <span><b>A vs F</b>{surpriseMeaning(calculation.surprisePoint)} ({formatPoint(calculation.surprisePoint)})</span>
+                                <span><b>A vs F</b>{calculation.forecastSuspect ? "excluded · suspect" : `${surpriseMeaning(calculation.surprisePoint)} (${formatPoint(calculation.surprisePoint)})`}</span>
                                 <span><b>A vs P</b>{momentumMeaning(calculation.momentumPoint)} ({formatPoint(calculation.momentumPoint)})</span>
                                 <span><b>Bonus</b>{formatPoint(calculation.agreementBonus)}</span>
                                 <span><b>Total</b>{formatPoint(calculation.score)}</span>
                               </div>
                               {calculation.score === 0 ? <p><b>Decision:</b> equal-weight evidence cancelled to zero, so this frozen rule cannot open a trade.</p> : null}
-                              <small className="chart-shadow-source-note">FMS follows the frozen MT5 values above. A different Forecast from another calendar can produce a different decision.</small>
+                              {assessment.status === "pre_activation_audit" ? <p><b>Decision:</b> the Forecast Guard produces {assessment.direction === "long" ? "Long EURUSD" : "Short EURUSD"}, but this release occurred before the new model activated, so no hypothetical trade was opened.</p> : null}
+                              <small className="chart-shadow-source-note">{calculation.forecastSuspect ? `Raw MT5 Forecast ${calculation.forecast ?? "–"} was preserved but excluded: its ${calculation.forecastGap?.toFixed(2) ?? "–"} Forecast/Previous gap exceeded the past-only ${calculation.forecastAnomalyThreshold?.toFixed(2) ?? "–"} threshold.` : "FMS uses the frozen first-seen MT5 values above."}</small>
                             </div>
                           ))}
                         </div>
@@ -212,8 +216,8 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
           <strong>{historicalAccount ? formatMoney(historicalAccount.balance) : "Loading…"}</strong>
           <small>{historicalAccount ? `${historicalAccount.takenTrades} trades · ${historicalAccount.returnPercent >= 0 ? "+" : ""}${historicalAccount.returnPercent.toFixed(1)}% · DD ${historicalAccount.maxDrawdownPercent.toFixed(1)}%` : "Current-pattern history only"}</small>
         </div>
-        {historicalAccount && (historicalAccount.skippedOverlap > 0 || historicalAccount.ambiguous > 0 || historicalAccount.unevaluable > 0) ? (
-          <p>{historicalAccount.skippedOverlap} overlapping skipped · {historicalAccount.ambiguous} ambiguous excluded · {historicalAccount.unevaluable} unevaluable excluded</p>
+        {historicalAccount && (historicalAccount.skippedOverlap > 0 || historicalAccount.skippedConflict > 0 || historicalAccount.ambiguous > 0 || historicalAccount.unevaluable > 0) ? (
+          <p>{historicalAccount.skippedOverlap} overlapping skipped · {historicalAccount.skippedConflict} simultaneous conflicts skipped · {historicalAccount.ambiguous} ambiguous excluded · {historicalAccount.unevaluable} unevaluable excluded</p>
         ) : null}
       </section>
 
@@ -229,6 +233,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
             <div><span>Position size</span><strong>{position.lots == null ? "—" : `${position.lots.toFixed(2)} lots`}</strong></div>
           </div>
           <p>{activeSignal.events.map((event) => `${event.currency} ${event.title}: score ${event.score > 0 ? "+" : ""}${event.score}`).join(" · ")}</p>
+          <small className="chart-shadow-source-note">{position.sizingNote}</small>
         </section>
       ) : null}
 

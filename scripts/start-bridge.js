@@ -1,4 +1,6 @@
 import fs from "node:fs";
+import http from "node:http";
+import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawn, spawnSync } from "node:child_process";
@@ -8,11 +10,88 @@ const rootDir = path.resolve(__dirname, "..");
 const bridgeDir = path.join(rootDir, "Main", "mt5-bridge");
 const requirementsPath = path.join(bridgeDir, "requirements.txt");
 const venvDir = path.join(bridgeDir, ".venv");
+const bridgeHost = "127.0.0.1";
+const bridgePort = 8001;
+const bridgeHealthUrl = `http://${bridgeHost}:${bridgePort}/health`;
 const venvPython = path.join(
   venvDir,
   process.platform === "win32" ? "Scripts" : "bin",
   process.platform === "win32" ? "python.exe" : "python",
 );
+
+function wait(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+function probeBridgeHealth(timeoutMs = 1500) {
+  return new Promise((resolve) => {
+    const request = http.get(bridgeHealthUrl, { timeout: timeoutMs }, (response) => {
+      let body = "";
+      response.setEncoding("utf8");
+      response.on("data", (chunk) => {
+        body += chunk;
+      });
+      response.on("end", () => {
+        try {
+          const payload = JSON.parse(body);
+          resolve(
+            response.statusCode === 200 &&
+              payload?.ok === true &&
+              payload?.bridge_connected === true,
+          );
+        } catch {
+          resolve(false);
+        }
+      });
+    });
+
+    request.on("timeout", () => request.destroy());
+    request.on("error", () => resolve(false));
+  });
+}
+
+function isBridgePortInUse(timeoutMs = 500) {
+  return new Promise((resolve) => {
+    const socket = net.createConnection({ host: bridgeHost, port: bridgePort });
+    const finish = (inUse) => {
+      socket.destroy();
+      resolve(inUse);
+    };
+
+    socket.setTimeout(timeoutMs);
+    socket.once("connect", () => finish(true));
+    socket.once("timeout", () => finish(false));
+    socket.once("error", () => finish(false));
+  });
+}
+
+async function findRunningBridge() {
+  // A reloader may briefly own the port before the FastAPI app is ready.
+  // Retry before deciding that another application owns the bridge port.
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (await probeBridgeHealth()) {
+      return true;
+    }
+    if (attempt < 2) {
+      await wait(500);
+    }
+  }
+  return false;
+}
+
+function superviseExistingBridge() {
+  console.log(`Fyodor bridge is already running at ${bridgeHealthUrl}. Reusing it.`);
+
+  // Keep this command alive so concurrently does not interpret successful
+  // bridge reuse as a completed child and terminate the frontend.
+  const keepAlive = setInterval(() => {}, 60_000);
+  const stop = () => {
+    clearInterval(keepAlive);
+    process.exit(0);
+  };
+  process.once("SIGINT", stop);
+  process.once("SIGTERM", stop);
+}
 
 function runOrThrow(command, args, options = {}) {
   const result = spawnSync(command, args, {
@@ -79,7 +158,7 @@ function ensureVenv() {
 function startBridge() {
   const child = spawn(
     venvPython,
-    ["-m", "uvicorn", "server:app", "--reload", "--host", "127.0.0.1", "--port", "8001"],
+    ["-m", "uvicorn", "server:app", "--reload", "--host", bridgeHost, "--port", String(bridgePort)],
     {
       cwd: bridgeDir,
       stdio: "inherit",
@@ -92,11 +171,25 @@ function startBridge() {
   });
 }
 
-try {
+async function main() {
   ensureBridgeFiles();
+
+  if (await findRunningBridge()) {
+    superviseExistingBridge();
+    return;
+  }
+
+  if (await isBridgePortInUse()) {
+    throw new Error(
+      `Port ${bridgePort} is already in use, but ${bridgeHealthUrl} is not a healthy Fyodor bridge. Close the process using that port and try again.`,
+    );
+  }
+
   ensureVenv();
   startBridge();
-} catch (error) {
+}
+
+main().catch((error) => {
   console.error(error instanceof Error ? error.message : String(error));
   process.exit(1);
-}
+});
