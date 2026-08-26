@@ -28,6 +28,10 @@ from macro_signal import (
   CHART_SIGNAL_REGISTRATION_EVIDENCE,
   CANDIDATE_STRESS_SCHEMA_VERSION,
   FORWARD_PAPER_GATE,
+  GBPUSD_GROWTH_VERSION_ID,
+  GBPUSD_POLICY_INFLATION_VERSION_ID,
+  GBPUSD_SENTIMENT_VERSION_ID,
+  GBPUSD_V2_VERSION_ID,
   H4_SECONDS,
   RESULT_SCHEMA_VERSION,
   SIGNAL_DEFINITIONS,
@@ -56,6 +60,22 @@ from macro_signal import (
 from research_store import ResearchStore
 
 logger = logging.getLogger("mt5_bridge")
+
+WORKBENCH_MARKETS = {
+  "EURUSD": {
+    "currencies": ["EUR", "USD"],
+    "sourceVersions": None,  # Retains the existing immutable EURUSD source registry.
+  },
+  "GBPUSD": {
+    "currencies": ["GBP", "USD"],
+    "sourceVersions": [
+      GBPUSD_V2_VERSION_ID,
+      GBPUSD_SENTIMENT_VERSION_ID,
+      GBPUSD_POLICY_INFLATION_VERSION_ID,
+      GBPUSD_GROWTH_VERSION_ID,
+    ],
+  },
+}
 
 app = FastAPI(title="MT5 Bridge", version="0.1.0")
 
@@ -151,6 +171,7 @@ class FmsExperimentExecution(BaseModel):
 
 
 class FmsExperimentRequest(BaseModel):
+  market: str = "EURUSD"
   friendlyName: str = Field(min_length=1, max_length=80)
   catalogId: str
   directionSelection: str = "both"
@@ -172,6 +193,14 @@ class FmsExperimentRequest(BaseModel):
     if value not in {"long", "short", "both"}:
       raise ValueError("Direction selection must be long, short, or both")
     return value
+
+  @field_validator("market")
+  @classmethod
+  def validate_market(cls, value: str) -> str:
+    normalized = value.upper()
+    if normalized not in {"EURUSD", "GBPUSD"}:
+      raise ValueError("FMS market must be EURUSD or GBPUSD")
+    return normalized
 
 
 class FmsCandidateFreezeRequest(BaseModel):
@@ -1197,10 +1226,12 @@ def _execute_macro_backtest(run_id: str, event_fingerprint: str, version_id: str
     _research_store.save_backtest_run(
       run_id, definition.id, event_fingerprint, created_at, "running"
     )
-    events = _research_store.query_calendar(currencies=["EUR", "USD"])
+    currencies = list(definition.configuration.get("marketCurrencies") or ["EUR", "USD"])
+    symbol = str(definition.configuration.get("symbol") or "EURUSD")
+    events = _research_store.query_calendar(currencies=currencies)
     candidates = build_signal_candidates(events, now=created_at, definition=definition)
     if not candidates:
-      raise RuntimeError("No registered EUR/USD Economy release packages are stored yet")
+      raise RuntimeError(f"No registered {symbol} release packages are stored yet")
 
     earliest = min(int(candidate["eventTime"]) for candidate in candidates) - 60 * 24 * 60 * 60
     latest = min(
@@ -1209,14 +1240,14 @@ def _execute_macro_backtest(run_id: str, event_fingerprint: str, version_id: str
     ) + 10 * 24 * 60 * 60
 
     with _research_mt5_lock:
-      h4_candles = _fetch_research_candles("EURUSD", "H4", earliest, latest, 366)
+      h4_candles = _fetch_research_candles(symbol, "H4", earliest, latest, 366)
       if not h4_candles:
-        raise RuntimeError("No EURUSD H4 candles are available from MT5 or the research cache")
+        raise RuntimeError(f"No {symbol} H4 candles are available from MT5 or the research cache")
 
       def m1_provider(from_time: int, to_time: int) -> List[Dict[str, Any]]:
-        return _fetch_research_candles("EURUSD", "M1", from_time, to_time, 1)
+        return _fetch_research_candles(symbol, "M1", from_time, to_time, 1)
 
-      coverage = _research_store.calendar_coverage(["EUR", "USD"])
+      coverage = _research_store.calendar_coverage(currencies)
       result = build_backtest_result(events, h4_candles, m1_provider, coverage, created_at, definition)
 
     combined_fingerprint = hashlib.sha256(
@@ -1224,6 +1255,7 @@ def _execute_macro_backtest(run_id: str, event_fingerprint: str, version_id: str
     ).hexdigest()
     result["datasetFingerprint"] = combined_fingerprint
     result["eventFingerprint"] = event_fingerprint
+    result["market"] = symbol
     _research_store.save_backtest_run(
       run_id,
       definition.id,
@@ -1350,8 +1382,12 @@ def _latest_cached_expansion_report() -> Optional[Dict[str, Any]]:
   return max(candidates, key=lambda row: int(row.get("generatedAt", 0)), default=None)
 
 
-def _workbench_source_bundle(run_ids: Optional[List[str]] = None) -> Dict[str, Any]:
-  source_versions = sorted({str(pattern["sourceVersion"]) for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS})
+def _workbench_source_bundle(market: str = "EURUSD", run_ids: Optional[List[str]] = None) -> Dict[str, Any]:
+  normalized_market = market.upper()
+  market_definition = WORKBENCH_MARKETS.get(normalized_market)
+  if market_definition is None:
+    raise HTTPException(status_code=400, detail="Unsupported FMS market")
+  source_versions = market_definition["sourceVersions"] or sorted({str(pattern["sourceVersion"]) for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS})
   sources: List[Dict[str, Any]] = []
   resolved_run_ids: List[str] = []
   fingerprints: List[str] = []
@@ -1384,12 +1420,13 @@ def _workbench_source_bundle(run_ids: Optional[List[str]] = None) -> Dict[str, A
     resolved_run_ids.append(str(run["id"]))
     fingerprints.append(str(run.get("datasetFingerprint", "")))
   cutoff = max(int(source["generatedAt"]) for source in sources)
-  candles = _research_store.query_candles("EURUSD", "H4", 0, cutoff + H4_SECONDS)
+  candles = _research_store.query_candles(normalized_market, "H4", 0, cutoff + H4_SECONDS)
   if not candles:
-    raise HTTPException(status_code=409, detail="No durable EURUSD H4 candles are available")
+    raise HTTPException(status_code=409, detail=f"No durable {normalized_market} H4 candles are available")
   candle_revision = f"{len(candles)}:{int(candles[-1]['time'])}"
-  dataset = hashlib.sha256("|".join([*fingerprints, candle_revision]).encode("utf-8")).hexdigest()
+  dataset = hashlib.sha256("|".join([normalized_market, *fingerprints, candle_revision]).encode("utf-8")).hexdigest()
   return {
+    "market": normalized_market,
     "sources": sources,
     "runIds": resolved_run_ids,
     "candles": candles,
@@ -1400,9 +1437,10 @@ def _workbench_source_bundle(run_ids: Optional[List[str]] = None) -> Dict[str, A
 
 
 def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
+  market = str(bundle.get("market") or "EURUSD")
   report = _latest_cached_expansion_report()
   report_revision = str(int((report or {}).get("generatedAt", 0)))
-  cache_key = f"fms_workbench_catalog_v2:{bundle['datasetFingerprint']}:{report_revision}"
+  cache_key = f"fms_workbench_catalog_v3:{market}:{bundle['datasetFingerprint']}:{report_revision}"
   durable_cached = _research_store.get_metadata(cache_key)
   if durable_cached:
     try:
@@ -1418,7 +1456,7 @@ def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
   registered = {
     (str(pattern["sourceVersion"]), str(signature)): pattern
     for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
-    if pattern.get("current")
+    if market == "EURUSD" and pattern.get("current")
     for signature in pattern["signatures"]
   }
   directional_catalog: List[Dict[str, Any]] = []
@@ -1456,8 +1494,9 @@ def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
             "label": f"{variant['dimensionLabel']}: {variant['cohort']}",
             "historicalN": int(variant["historicalN"]),
           })
-      catalog_id = hashlib.sha256(f"{source_version}|{signature}".encode("utf-8")).hexdigest()[:16]
+      catalog_id = hashlib.sha256(f"{market}|{source_version}|{signature}".encode("utf-8")).hexdigest()[:16]
       directional_catalog.append({
+        "market": market,
         "id": catalog_id,
         "sourceVersionId": source_version,
         "signature": signature,
@@ -1488,9 +1527,10 @@ def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
         else:
           existing["historicalN"] = int(existing["historicalN"]) + int(treatment["historicalN"])
     registered_variant = next((row for row in variants if row["registered"]), None)
-    parent_id = hashlib.sha256(f"{source_version}|{directionless_signature}".encode("utf-8")).hexdigest()[:16]
+    parent_id = hashlib.sha256(f"{market}|{source_version}|{directionless_signature}".encode("utf-8")).hexdigest()[:16]
     directions = {str(row["direction"]) for row in variants}
     catalog.append({
+      "market": market,
       "id": parent_id,
       "sourceVersionId": source_version,
       "signature": str(variants[0]["signature"]),
@@ -1541,10 +1581,31 @@ def _experiment_summary(experiment: Dict[str, Any]) -> Dict[str, Any]:
 
 
 @app.get("/research/workbench")
-def research_workbench() -> Dict[str, Any]:
-  bundle = _workbench_source_bundle()
+def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
+  normalized_market = market.upper()
+  market_definition = WORKBENCH_MARKETS.get(normalized_market)
+  if market_definition is None:
+    raise HTTPException(status_code=400, detail="Unsupported FMS market")
+  calendar_coverage = _research_store.calendar_coverage(market_definition["currencies"])
+  required_versions = market_definition["sourceVersions"] or sorted({str(pattern["sourceVersion"]) for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS})
+  missing_source_versions = [
+    version for version in required_versions
+    if not (_research_store.latest_backtest_run(version) or {}).get("status") == "completed"
+  ]
+  h4_prices = _research_store.query_candles(normalized_market, "H4", 0, int(_time.time()))
+  if missing_source_versions or not h4_prices:
+    return {
+      "market": normalized_market,
+      "currentModel": {"id": CHART_SIGNAL_MODEL_ID, "friendlyName": "Forecast Guard", "displayId": "Legacy v13", "hash": CHART_SIGNAL_MODEL_HASH, "activatedAt": CHART_SIGNAL_MODEL_CREATED_AT, "timeframe": "H4", "registeredSetups": []},
+      "catalog": {"items": [], "advancedTreatmentsReady": False, "generatedAt": int(_time.time())},
+      "protocol": {"stopAtrValues": list(STRESS_STOP_ATR_VALUES), "targetRValues": list(STRESS_TARGET_R_VALUES), "holdingCandles": list(STRESS_HOLDING_CANDLES), "scoringPolicies": ["baseline", "momentum_only", "forecast_quality"], "entry": "first_h4_open_strictly_after_release", "selection": "development_lower95_then_average"},
+      "experiments": [], "candidates": [], "archive": _research_store.list_signal_version_archive(),
+      "dataPeriods": {"durableCalendar": {"start": calendar_coverage.get("earliest"), "end": calendar_coverage.get("latest")}, "workbenchResearch": {"start": None, "end": None}, "h4Prices": {"start": min((int(row["time"]) for row in h4_prices), default=None), "end": max((int(row["time"]) for row in h4_prices), default=None)}},
+      "datasetFingerprint": f"unavailable:{normalized_market}", "sourceRunIds": [], "candleRevision": "unavailable",
+      "availability": {"ready": False, "missingSourceVersions": missing_source_versions, "missingH4Prices": not h4_prices, "message": f"{normalized_market} research is blocked until durable GBP/USD calendar history and {normalized_market} H4 prices are backfilled, then its four market-labelled source backtests complete."},
+    }
+  bundle = _workbench_source_bundle(normalized_market)
   catalog = _workbench_catalog(bundle)
-  calendar_coverage = _research_store.calendar_coverage(["EUR", "USD"])
   research_times = [
     int(outcome["eventTime"])
     for source in bundle["sources"]
@@ -1553,6 +1614,7 @@ def research_workbench() -> Dict[str, Any]:
   ]
   price_times = [int(candle["time"]) for candle in bundle["candles"]]
   return {
+    "market": normalized_market,
     "currentModel": {
       "id": CHART_SIGNAL_MODEL_ID,
       "friendlyName": "Forecast Guard",
@@ -1579,8 +1641,8 @@ def research_workbench() -> Dict[str, Any]:
       "entry": "first_h4_open_strictly_after_release",
       "selection": "development_lower95_then_average",
     },
-    "experiments": [_experiment_summary(row) for row in _research_store.list_fms_experiments(100)],
-    "candidates": _research_store.list_fms_candidates(),
+    "experiments": [row for row in (_experiment_summary(row) for row in _research_store.list_fms_experiments(500)) if str((row.get("configuration") or {}).get("market", "EURUSD")) == normalized_market],
+    "candidates": [row for row in _research_store.list_fms_candidates() if str((row.get("configuration") or {}).get("market", "EURUSD")) == normalized_market],
     "archive": _research_store.list_signal_version_archive(),
     "dataPeriods": {
       "durableCalendar": {
@@ -1649,7 +1711,7 @@ def _execute_workbench_experiment(experiment_id: str) -> None:
   try:
     _research_store.update_fms_experiment(experiment_id, "running")
     configuration = dict(experiment["configuration"])
-    bundle = _workbench_source_bundle(list(configuration["sourceRunIds"]))
+    bundle = _workbench_source_bundle(str(configuration.get("market", "EURUSD")), list(configuration["sourceRunIds"]))
     if bundle["datasetFingerprint"] != experiment["datasetFingerprint"]:
       raise ValueError("The recorded source dataset changed before this experiment started; submit a new E experiment")
     result = build_workbench_experiment(
@@ -1672,10 +1734,11 @@ def _execute_workbench_experiment(experiment_id: str) -> None:
 
 @app.post("/research/experiments")
 def create_research_experiment(payload: FmsExperimentRequest) -> Dict[str, Any]:
-  bundle = _workbench_source_bundle()
+  bundle = _workbench_source_bundle(payload.market)
   catalog = _workbench_catalog(bundle)
   selection = _validate_experiment_request(payload, catalog)
   configuration = {
+    "market": payload.market,
     "sourceVersionId": selection["item"]["sourceVersionId"],
     "signature": selection["variants"][0]["signature"],
     "signatures": [row["signature"] for row in selection["variants"]],
@@ -1692,7 +1755,7 @@ def create_research_experiment(payload: FmsExperimentRequest) -> Dict[str, Any]:
   configuration_hash = hashlib.sha256(
     json.dumps(configuration, sort_keys=True, separators=(",", ":")).encode("utf-8")
   ).hexdigest()
-  experiment_id = _research_store.allocate_fms_id("E")
+  experiment_id = _research_store.allocate_fms_id("E", payload.market)
   _research_store.create_fms_experiment(
     experiment_id,
     payload.friendlyName.strip(),
@@ -1831,7 +1894,7 @@ def freeze_research_experiment(
       status_code=409,
       detail=f"Acknowledge failed gates before freezing: {', '.join(failed)}",
     )
-  candidate_id = _research_store.allocate_fms_id("C")
+  candidate_id = _research_store.allocate_fms_id("C", str(experiment["configuration"].get("market", "EURUSD")))
   _research_store.create_fms_candidate(
     candidate_id,
     experiment_id,
@@ -1878,7 +1941,10 @@ def research_current_version() -> Dict[str, Any]:
 
 
 @app.get("/research/versions")
-def research_versions() -> List[Dict[str, Any]]:
+def research_versions(market: Optional[str] = None) -> List[Dict[str, Any]]:
+  normalized_market = (market or "EURUSD").upper()
+  if normalized_market not in WORKBENCH_MARKETS:
+    raise HTTPException(status_code=400, detail="Unsupported FMS market")
   return [
     {
       "id": definition.id,
@@ -1888,6 +1954,7 @@ def research_versions() -> List[Dict[str, Any]]:
       "active": definition.id == ACTIVE_VERSION_ID,
     }
     for definition in SIGNAL_DEFINITIONS.values()
+    if str(definition.configuration.get("market") or definition.configuration.get("symbol") or "EURUSD") == normalized_market
   ]
 
 
@@ -2228,9 +2295,11 @@ def start_research_backtest(payload: MacroBacktestRequest) -> Dict[str, Any]:
     definition.configuration,
     definition.configuration_hash,
   )
-  events = _research_store.query_calendar(currencies=["EUR", "USD"])
+  currencies = list(definition.configuration.get("marketCurrencies") or ["EUR", "USD"])
+  symbol = str(definition.configuration.get("symbol") or "EURUSD")
+  events = _research_store.query_calendar(currencies=currencies)
   if not events:
-    raise HTTPException(status_code=409, detail="No durable EUR/USD calendar history is available")
+    raise HTTPException(status_code=409, detail=f"No durable {symbol} calendar history is available")
   fingerprint = dataset_fingerprint(events, definition)
   latest = _research_store.latest_backtest_run(definition.id)
   if latest and latest["status"] in {"queued", "running"}:

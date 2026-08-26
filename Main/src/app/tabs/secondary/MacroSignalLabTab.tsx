@@ -134,7 +134,7 @@ function ResultPanel({ experiment, onFreeze, busy }: { experiment: FmsExperiment
     URL.revokeObjectURL(url);
   };
   return <div className="fms-result-stack">
-    <section className="fms-workbench-card fms-result-heading"><div><span>Recorded experiment</span><h3>{experiment.friendlyName}</h3><p>{experiment.id} · {(result.directionSelection ?? experiment.catalogSnapshot.direction).toUpperCase()} EURUSD · {result.historicalN} historical cases</p></div><div className="fms-result-actions"><button type="button" onClick={() => setRawOpen(true)}><Database size={13} />View raw data</button><button type="button" onClick={copySummary}><Copy size={13} />Copy AI summary</button><button type="button" onClick={downloadJson}><Download size={13} />Download JSON</button></div></section>
+    <section className="fms-workbench-card fms-result-heading"><div><span>Recorded experiment</span><h3>{experiment.friendlyName}</h3><p>{experiment.id} · {(result.directionSelection ?? experiment.catalogSnapshot.direction).toUpperCase()} {result.market ?? experiment.configuration.market ?? experiment.catalogSnapshot.market ?? "EURUSD"} · {result.historicalN} historical cases</p></div><div className="fms-result-actions"><button type="button" onClick={() => setRawOpen(true)}><Database size={13} />View raw data</button><button type="button" onClick={copySummary}><Copy size={13} />Copy AI summary</button><button type="button" onClick={downloadJson}><Download size={13} />Download JSON</button></div></section>
     <section className="fms-workbench-card fms-recorded-recipe"><div className="fms-section-title"><h3>Recorded recipe</h3><span>Immutable configuration</span></div><div className="fms-recorded-recipe-grid"><Metric label="Economic setup" value={experiment.catalogSnapshot.label} detail={(result.signatures ?? experiment.configuration.signatures ?? [experiment.configuration.signature]).join(" | ")} /><Metric label="Direction" value={readable(result.directionSelection ?? experiment.configuration.directionSelection ?? experiment.catalogSnapshot.direction)} /><Metric label="Scoring" value={scoringPolicyLabel(result.scoringPolicy)} /><Metric label="Cases included" value={result.cohort.dimension === "none" ? "All matching releases" : `${readable(result.cohort.dimension)} · ${readable(result.cohort.value)}`} /><Metric label="Price reaction" value={reactionLabel(result.reaction)} /><Metric label="Entry" value="First strictly later H4 open" /><Metric label="Configured contracts" value={`${experiment.configuration.execution.mode === "single" ? "Single Contract" : "Combined Contracts"} · ${configuredContracts}`} /><Metric label="Highlighted contract" value={`SL ${selected.stopAtr} ATR · TP ${selected.targetR}R = ${selected.stopAtr * selected.targetR} ATR · ${selected.holdingCandles} H4`} detail={selectionLabel(result.selection)} /></div>{result.scoringPolicy === "forecast_quality" ? <p className="fms-forecast-result"><strong>{result.forecastQualityAudit.excludedForecastCount} Forecast{result.forecastQualityAudit.excludedForecastCount === 1 ? "" : "s"} flagged unreliable by Forecast Guard.</strong> Their raw values remain auditable; Surprise was excluded while Momentum remained eligible.</p> : null}</section>
     {result.configurations && result.configurations.length > 1 ? <section className="fms-workbench-card"><div className="fms-section-title"><h3>Combined Contracts</h3><span>Independent simulations · no partial exits</span></div><div className="fms-contract-comparison"><div><span>Contract</span><span>Development</span><span>Holdout</span><span>Recent</span><span>Overall</span></div>{result.configurations.map((item) => { const highlighted = item.stopAtr === selected.stopAtr && item.targetR === selected.targetR && item.holdingCandles === selected.holdingCandles; return <div key={`${item.stopAtr}-${item.targetR}-${item.holdingCandles}`} className={highlighted ? "is-highlighted" : ""}><span>SL {item.stopAtr} ATR · TP {item.targetR}R = {item.stopAtr * item.targetR} ATR · {item.holdingCandles} H4{highlighted ? " · Highlighted" : ""}</span><span>{formatR(item.development.stressedAverageR)} · N {item.development.evaluableCount}</span><span>{formatR(item.holdout.stressedAverageR)} · N {item.holdout.evaluableCount}</span><span>{formatR(item.recent.stressedAverageR)} · N {item.recent.evaluableCount}</span><span>{formatR(item.overall.stressedAverageR)} · N {item.overall.evaluableCount}</span></div>; })}</div></section> : null}
     <section className="fms-result-partitions"><PartitionMetrics label="Overall" metrics={selected.overall} /><PartitionMetrics label="Development" metrics={selected.development} /><PartitionMetrics label="Holdout" metrics={selected.holdout} /><PartitionMetrics label="Recent" metrics={selected.recent} /></section>
@@ -151,6 +151,7 @@ function ValuePicker({ label, values, selected, multiple, onChange, formatValue 
 }
 
 interface MacroSignalLabViewProps {
+  market?: "EURUSD" | "GBPUSD";
   workbench: FmsWorkbench | null;
   selectedExperiment: FmsExperiment | null;
   loading: boolean;
@@ -160,9 +161,10 @@ interface MacroSignalLabViewProps {
   onSelectExperiment: (experimentId: string) => void;
   onFreeze: (name: string, acknowledge: boolean) => void;
   onRefresh: () => void;
+  onMarketChange?: (market: "EURUSD" | "GBPUSD") => void;
 }
 
-export function MacroSignalLabView({ workbench, selectedExperiment, loading, running, error, onRun, onSelectExperiment, onFreeze, onRefresh }: MacroSignalLabViewProps) {
+export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExperiment, loading, running, error, onRun, onSelectExperiment, onFreeze, onRefresh, onMarketChange = () => {} }: MacroSignalLabViewProps) {
   const [guideOpen, setGuideOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [catalogId, setCatalogId] = useState("");
@@ -202,11 +204,13 @@ export function MacroSignalLabView({ workbench, selectedExperiment, loading, run
     setHolding([registeredSetup.execution.expiryCandles]);
   }, [registeredSetup?.id, selectedItem?.signature]);
   const switchMode = (next: "single" | "matrix") => { setMode(next); if (next === "single") { setStops([1]); setTargets([2]); setHolding([30]); } else { setStops(DEFAULT_STOPS); setTargets(DEFAULT_TARGETS); setHolding(DEFAULT_HOLDING); } };
-  const submit = () => { if (!selectedItem || !selectedTreatment || !friendlyName.trim()) return; onRun({ friendlyName: friendlyName.trim(), catalogId: selectedItem.id, directionSelection, scoringPolicy: policy, cohort: { dimension: selectedTreatment.dimension, value: selectedTreatment.value }, reaction: selectedTreatment.reaction, execution: { mode, stopAtrValues: stops, targetRValues: targets, holdingCandles: holding } }); };
+  const submit = () => { if (!selectedItem || !selectedTreatment || !friendlyName.trim()) return; onRun({ market, friendlyName: friendlyName.trim(), catalogId: selectedItem.id, directionSelection, scoringPolicy: policy, cohort: { dimension: selectedTreatment.dimension, value: selectedTreatment.value }, reaction: selectedTreatment.reaction, execution: { mode, stopAtrValues: stops, targetRValues: targets, holdingCandles: holding } }); };
   if (!workbench && loading) return <section className="macro-signal-page"><div className="fms-workbench-empty"><RefreshCw className="animate-spin" /><strong>Loading FMS workbench</strong></div></section>;
   return <section className="macro-signal-page fms-workbench" data-macro-signal-lab="">
     <header className="fms-workbench-header"><div><div className="macro-signal-kicker"><FlaskConical size={14} />Active FMS research tool</div><h2>FMS Experiment Workbench</h2><p>Recorded EURUSD/H4 research—not an order, guarantee, or automatic optimizer.</p></div><div><button type="button" onClick={() => setGuideOpen(true)}><BookOpen size={15} />How to use the Workbench</button><button type="button" onClick={onRefresh} disabled={loading}><RefreshCw size={14} className={loading ? "animate-spin" : ""} />Refresh</button></div></header>
+    <div className="fms-market-picker"><label className="fms-field">Research market<select value={market} onChange={(event) => onMarketChange(event.target.value as "EURUSD" | "GBPUSD")}><option value="EURUSD">EURUSD</option><option value="GBPUSD">GBPUSD</option></select></label><small>{market === "EURUSD" ? "Legacy v13 remains the only Charts model." : "GBPUSD is research-only; no arrows are registered."}</small></div>
     {error ? <div className="macro-signal-error"><AlertTriangle size={16} />{error}</div> : null}
+    {workbench?.availability && !workbench.availability.ready ? <div className="macro-signal-error"><AlertTriangle size={16} />{workbench.availability.message}</div> : null}
     {workbench ? <section className="fms-current-strip"><div><span>Current Charts model</span><strong>{workbench.currentModel.friendlyName} · {workbench.currentModel.displayId}</strong><small>{workbench.currentModel.id}</small></div><div><Metric label="Market" value="EURUSD" /><Metric label="Backtest timeframe" value="H4" /><Metric label="Registered setups" value={String(workbench.currentModel.registeredSetups.length)} /><Metric label="Promotion" value="Reviewed only" /></div></section> : null}
     {workbench && calendarPeriod && researchPeriod && pricePeriod ? <section className="fms-data-periods" aria-label="FMS data periods"><div><span>Data periods</span><small>Fixed and reported—not user-selected</small></div><Metric label="Durable EUR/USD calendar" value={calendarPeriod.years} detail={calendarPeriod.dates} /><Metric label="Workbench research cases" value={researchPeriod.years} detail={researchPeriod.dates} /><Metric label="Stored H4 prices" value={pricePeriod.years} detail={pricePeriod.dates} /></section> : null}
     <div className="fms-workbench-body">
@@ -239,6 +243,7 @@ export function MacroSignalLabView({ workbench, selectedExperiment, loading, run
 }
 
 export function MacroSignalLabTab() {
+  const [market, setMarket] = useState<"EURUSD" | "GBPUSD">("EURUSD");
   const [workbench, setWorkbench] = useState<FmsWorkbench | null>(null);
   const [selectedExperiment, setSelectedExperiment] = useState<FmsExperiment | null>(null);
   const [loading, setLoading] = useState(true);
@@ -247,7 +252,7 @@ export function MacroSignalLabTab() {
   const load = async (preserveSelection = true) => {
     setLoading(true);
     try {
-      const next = await fetchFmsWorkbench();
+      const next = await fetchFmsWorkbench(market);
       setWorkbench(next);
       const selectedId = preserveSelection ? selectedExperiment?.id : null;
       const nextExperiment = selectedId ? await fetchFmsExperiment(selectedId) : next.experiments[0] ? await fetchFmsExperiment(next.experiments[0].id) : null;
@@ -256,7 +261,7 @@ export function MacroSignalLabTab() {
     } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "FMS workbench unavailable"); }
     finally { setLoading(false); }
   };
-  useEffect(() => { void load(false); }, []);
+  useEffect(() => { void load(false); }, [market]);
   useEffect(() => {
     if (!selectedExperiment || !["queued", "running"].includes(selectedExperiment.status)) return;
     let cancelled = false;
@@ -266,5 +271,5 @@ export function MacroSignalLabTab() {
   const run = async (payload: Parameters<typeof createFmsExperiment>[0]) => { setRunning(true); setError(null); try { const experiment = await createFmsExperiment(payload); setSelectedExperiment(experiment); setRunning(["queued", "running"].includes(experiment.status)); setWorkbench((current) => current ? { ...current, experiments: [experiment, ...current.experiments] } : current); } catch (runError) { setError(runError instanceof Error ? runError.message : "Experiment could not start"); setRunning(false); } };
   const selectExperiment = async (id: string) => { try { setSelectedExperiment(await fetchFmsExperiment(id)); setError(null); } catch (selectError) { setError(selectError instanceof Error ? selectError.message : "Experiment could not load"); } };
   const freeze = async (name: string, acknowledge: boolean) => { if (!selectedExperiment) return; setLoading(true); try { await freezeFmsExperiment(selectedExperiment.id, { friendlyName: name, acknowledgeFailedGates: acknowledge }); await load(true); } catch (freezeError) { setError(freezeError instanceof Error ? freezeError.message : "Candidate could not be frozen"); setLoading(false); } };
-  return <MacroSignalLabView workbench={workbench} selectedExperiment={selectedExperiment} loading={loading} running={running} error={error} onRun={run} onSelectExperiment={selectExperiment} onFreeze={freeze} onRefresh={() => void load(true)} />;
+  return <MacroSignalLabView market={market} workbench={workbench} selectedExperiment={selectedExperiment} loading={loading} running={running} error={error} onRun={run} onSelectExperiment={selectExperiment} onFreeze={freeze} onRefresh={() => void load(true)} onMarketChange={setMarket} />;
 }

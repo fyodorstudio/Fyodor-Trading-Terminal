@@ -510,6 +510,7 @@ export interface FmsCatalogTreatment {
 }
 
 export interface FmsCatalogItem {
+  market?: "EURUSD" | "GBPUSD";
   id: string;
   sourceVersionId: string;
   signature: string;
@@ -532,6 +533,7 @@ export interface FmsCatalogItem {
 }
 
 export interface FmsExperimentConfiguration {
+  market?: "EURUSD" | "GBPUSD";
   sourceVersionId: string;
   signature: string;
   signatures?: string[];
@@ -552,6 +554,7 @@ export interface FmsExperimentConfiguration {
 }
 
 export interface FmsExperimentResult {
+  market?: "EURUSD" | "GBPUSD";
   experimentId: string;
   generatedAt: number;
   sourceVersionId: string;
@@ -704,6 +707,7 @@ export interface FmsLegacyArchiveItem {
 }
 
 export interface FmsWorkbench {
+  market?: "EURUSD" | "GBPUSD";
   currentModel: {
     id: string;
     friendlyName: string;
@@ -760,6 +764,12 @@ export interface FmsWorkbench {
   datasetFingerprint: string;
   sourceRunIds: string[];
   candleRevision: string;
+  availability?: {
+    ready: boolean;
+    missingSourceVersions: string[];
+    missingH4Prices: boolean;
+    message: string;
+  };
 }
 
 export interface MacroSignalChartPattern {

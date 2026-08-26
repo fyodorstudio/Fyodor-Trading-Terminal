@@ -265,11 +265,12 @@ export async function fetchMacroSignalExpansionReport(): Promise<MacroSignalExpa
   return fetchJson<MacroSignalExpansionReport>(`${BRIDGE_BASE}/research/expansion-report`);
 }
 
-export async function fetchFmsWorkbench(): Promise<FmsWorkbench> {
-  return fetchJson<FmsWorkbench>(`${BRIDGE_BASE}/research/workbench`);
+export async function fetchFmsWorkbench(market: "EURUSD" | "GBPUSD" = "EURUSD"): Promise<FmsWorkbench> {
+  return fetchJson<FmsWorkbench>(`${BRIDGE_BASE}/research/workbench?market=${market}`);
 }
 
 export async function createFmsExperiment(payload: {
+  market: "EURUSD" | "GBPUSD";
   friendlyName: string;
   catalogId: string;
   directionSelection: "long" | "short" | "both";

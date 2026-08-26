@@ -565,6 +565,22 @@ The other notable regime-dependent result was aligned US manufacturing PMI (`E06
 
 Operational conclusion: EURUSD is exhausted under the current catalog, current data, minimum-N boundary, and permitted single-treatment Workbench design. This does not prove that EURUSD contains no further edge; it means no additional rule can be promoted honestly from the currently declared search space. Arbitrary filter intersections and sub-40-case signatures remain excluded because they would increase selection risk and cannot satisfy the existing sample contract. `FMS-EURUSD-FORECAST-GUARD-H4-v13` therefore remains unchanged with its four registered setups. The next expansion should generalize the recorded E/C/M research pipeline to another major pair rather than weaken EURUSD qualification gates.
 
+### GBPUSD Generalization Gate - 2026-08-27
+
+Before creating a GBPUSD experiment, the live durable store was inspected. It contains 1,257 GBP calendar rows across 97 distinct titles, from `2025-07-15 23:00 UTC` to `2026-11-20 23:30 UTC`; the relevant USD archive remains long-lived, but this GBP history is only about 16 months and includes future scheduled rows. It cannot satisfy the existing multi-year development, chronological holdout, recent, year-stability, or lower-95 holdout qualification contract. The release-observation ledger contains only eight GBP observations, all from the recent live period.
+
+The durable price cache contains **zero** GBPUSD H4 candles and **zero** GBPUSD M1 candles. By contrast, EURUSD coverage remains intact and is not reused for GBPUSD: 30,736 H4 candles span `2006-12-25` through `2026-08-27`, while the small M1 cache is only used for its existing path-resolution work. Therefore no GBPUSD backtest or E experiment was run, no result was viewed, and no qualification gate was changed.
+
+The Workbench pipeline is now market-scoped. GBPUSD source definitions are separately labelled `FMS-GBPUSD-LABOR-H4-v2`, `FMS-GBPUSD-SENTIMENT-H4-v3`, `FMS-GBPUSD-POLICY-INFL-H4-v5`, and `FMS-GBPUSD-GROWTH-H4-v7`, with base/quote orientation GBP/USD and GB/US country scope. Catalog entries, configuration hashes, dataset fingerprints, cache keys, and new E/C identifiers include the market. EURUSD retains its original identifiers, sequence, catalog, cache namespace, four registered setups, Charts arrows, and Shadow Trader unchanged. A GBPUSD workbench request truthfully reports unavailable rather than borrowing EURUSD data; it creates no accidental GBPUSD Charts model.
+
+Next reproducible GBPUSD sequence, without changing the frozen contract:
+
+1. Backfill durable GBP calendar history to a period sufficient for the unchanged multi-year partitions, retaining raw broker rows and their country codes.
+2. Backfill matching GBPUSD H4 candles across the same research interval, and M1 only where required to resolve intrabar stop/target order.
+3. Run the four market-labelled source backtests, freeze their exact run IDs and the market-labelled dataset fingerprint, then generate the guarded catalog.
+4. Record each declared experiment as `FMS-GBPUSD-H4-Exxx`; retain failures. Freeze only review-worthy E results into `C` identifiers. A separate reviewed `M` change is required before any Charts integration.
+5. Add no GBPUSD arrow unless the unchanged development, holdout, recent, year-stability, uncertainty, and neighbouring-contract checks all pass. A positive full-history average alone remains insufficient.
+
 ## Research Warnings and References
 
 Hypothetical results do not represent executed trades and can overstate or understate real performance. The Lab must identify all results as simulated, disclose excluded costs, and avoid claims that similar live profits are likely. See the [CFTC guidance on hypothetical trading-system results](https://www.cftc.gov/LearnAndProtect/AdvisoriesAndArticles/fraudadv_tradingsystem.html).

@@ -45,6 +45,10 @@ V12_CHALLENGER_VERSION_ID = "FMS-EURUSD-FORECAST-ROBUST-H4-v12"
 FORECAST_QUALITY_MINIMUM_HISTORY = 12
 FORECAST_QUALITY_MAD_MULTIPLIER = 6.0
 FORECAST_QUALITY_SCALE_MULTIPLIER = 4.0
+GBPUSD_V2_VERSION_ID = "FMS-GBPUSD-LABOR-H4-v2"
+GBPUSD_SENTIMENT_VERSION_ID = "FMS-GBPUSD-SENTIMENT-H4-v3"
+GBPUSD_POLICY_INFLATION_VERSION_ID = "FMS-GBPUSD-POLICY-INFL-H4-v5"
+GBPUSD_GROWTH_VERSION_ID = "FMS-GBPUSD-GROWTH-H4-v7"
 
 ELIGIBILITY_GATE = {
   "targetR": 2.0,
@@ -429,6 +433,49 @@ SIGNAL_DEFINITIONS: Dict[str, SignalDefinition] = {
 }
 
 
+def _gbpusd_definition(
+  source: SignalDefinition, version_id: str,
+) -> SignalDefinition:
+  """Create a separate, market-labelled source definition without mutating EURUSD."""
+  configuration = json.loads(json.dumps(source.configuration))
+  configuration.update({
+    "id": version_id,
+    "symbol": "GBPUSD",
+    "market": "GBPUSD",
+    "baseCurrency": "GBP",
+    "quoteCurrency": "USD",
+    "marketCurrencies": ["GBP", "USD"],
+    "countryScope": {"GBP": ["GB"], "USD": ["US"]},
+    "selectionDisclosure": (
+      "GBPUSD uses the unchanged guarded Workbench protocol. It is a separate "
+      "market research definition and has no Charts registration."
+    ),
+  })
+  configuration_hash = hashlib.sha256(
+    json.dumps(configuration, sort_keys=True, separators=(",", ":")).encode("utf-8")
+  ).hexdigest()
+  return SignalDefinition(
+    version_id,
+    1787875200,  # 2026-08-27 00:00:00 UTC: market-generalization registration
+    configuration,
+    configuration_hash,
+    source.allowed_factors,
+    source.country_aware_series,
+    False,
+    {"GBP": frozenset({"GB"}), "USD": frozenset({"US"})},
+    source.rule_ids,
+  )
+
+
+for _source_id, _gbp_id in (
+  (V2_VERSION_ID, GBPUSD_V2_VERSION_ID),
+  (SENTIMENT_VERSION_ID, GBPUSD_SENTIMENT_VERSION_ID),
+  (POLICY_INFLATION_VERSION_ID, GBPUSD_POLICY_INFLATION_VERSION_ID),
+  (GROWTH_VERSION_ID, GBPUSD_GROWTH_VERSION_ID),
+):
+  SIGNAL_DEFINITIONS[_gbp_id] = _gbpusd_definition(SIGNAL_DEFINITIONS[_source_id], _gbp_id)
+
+
 def get_signal_definition(version_id: str) -> Optional[SignalDefinition]:
   return SIGNAL_DEFINITIONS.get(version_id)
 
@@ -489,9 +536,16 @@ def find_economy_rule(event: Dict[str, Any]) -> Optional[EconomyRule]:
   return None
 
 
+def _definition_currencies(definition: SignalDefinition) -> frozenset[str]:
+  configured = definition.configuration.get("marketCurrencies")
+  if isinstance(configured, list) and configured:
+    return frozenset(str(value).upper() for value in configured)
+  return frozenset({"EUR", "USD"})
+
+
 def find_signal_rule(event: Dict[str, Any], definition: SignalDefinition) -> Optional[EconomyRule]:
   currency = str(event.get("currency", "")).upper()
-  if currency not in {"EUR", "USD"}:
+  if currency not in _definition_currencies(definition):
     return None
   title = normalize_title(str(event.get("title", "")))
   candidates = ALL_SIGNAL_RULES if definition.rule_ids is not None else ECONOMY_RULES
@@ -552,7 +606,9 @@ def _clamp_group(value: int) -> int:
   return max(-3, min(3, value))
 
 
-def _build_factor_votes(scored_events: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def _build_factor_votes(
+  scored_events: Sequence[Dict[str, Any]], base_currency: str = "EUR",
+) -> List[Dict[str, Any]]:
   group_scores: Dict[Tuple[str, str, str], int] = {}
   for event in scored_events:
     key = (event["currency"], event["factor"], event["scoreGroup"])
@@ -569,7 +625,7 @@ def _build_factor_votes(scored_events: Sequence[Dict[str, Any]]) -> List[Dict[st
       "factor": factor,
       "score": score,
       "vote": _sign(score),
-      "pairVote": _sign(score) if currency == "EUR" else -_sign(score),
+      "pairVote": _sign(score) if currency == base_currency else -_sign(score),
     }
     for (currency, factor), score in sorted(factor_scores.items())
   ]
@@ -603,6 +659,7 @@ def build_signal_candidates(
   definition: Optional[SignalDefinition] = None,
 ) -> List[Dict[str, Any]]:
   selected_definition = definition or SIGNAL_DEFINITIONS[VERSION_ID]
+  base_currency = str(selected_definition.configuration.get("baseCurrency", "EUR")).upper()
   cutoff = now if now is not None else int(datetime.now(timezone.utc).timestamp())
   packages: Dict[int, List[Dict[str, Any]]] = {}
   candidate_events: Sequence[Dict[str, Any]] = events
@@ -635,11 +692,11 @@ def build_signal_candidates(
       event for event in latest_series.values()
       if int(event["time"]) >= background_cutoff
     ]
-    background_factor_votes = _build_factor_votes(background_events)
+    background_factor_votes = _build_factor_votes(background_events, base_currency)
     background_pair_vote = sum(vote["pairVote"] for vote in background_factor_votes if vote["pairVote"] != 0)
     background_direction = "long" if background_pair_vote > 0 else "short" if background_pair_vote < 0 else "none"
 
-    factor_votes = _build_factor_votes(scored_events)
+    factor_votes = _build_factor_votes(scored_events, base_currency)
     nonzero_pair_votes = [vote["pairVote"] for vote in factor_votes if vote["pairVote"] != 0]
     pair_vote = sum(nonzero_pair_votes)
     if pair_vote > 0:
@@ -2315,6 +2372,7 @@ def build_workbench_experiment(
       })
   selected_contract_key = f"{float(selected['stopAtr']):g}|{float(selected['targetR']):g}|{int(selected['holdingCandles'])}"
   return {
+    "market": str(configuration.get("market") or "EURUSD"),
     "generatedAt": generated_at,
     "sourceVersionId": source_version,
     "signature": signature,

@@ -591,25 +591,30 @@ class ResearchStore:
       )
       return int(cursor.rowcount)
 
-  def allocate_fms_id(self, kind: str) -> str:
+  def allocate_fms_id(self, kind: str, market: str = "EURUSD") -> str:
     normalized = kind.upper()
     if normalized not in {"E", "C", "M"}:
       raise ValueError(f"Unsupported FMS identifier kind: {kind}")
+    normalized_market = market.upper()
+    if normalized_market not in {"EURUSD", "GBPUSD"}:
+      raise ValueError(f"Unsupported FMS market: {market}")
+    # EURUSD retains its original sequence key and identifiers; new markets are isolated.
+    sequence_key = normalized if normalized_market == "EURUSD" else f"{normalized_market}:{normalized}"
     with self._write_lock, self._connect() as connection:
       connection.execute("BEGIN IMMEDIATE")
       connection.execute(
         "INSERT OR IGNORE INTO fms_sequences(kind, next_value) VALUES (?, 1)",
-        (normalized,),
+        (sequence_key,),
       )
       row = connection.execute(
-        "SELECT next_value FROM fms_sequences WHERE kind = ?", (normalized,)
+        "SELECT next_value FROM fms_sequences WHERE kind = ?", (sequence_key,)
       ).fetchone()
       value = int(row["next_value"])
       connection.execute(
         "UPDATE fms_sequences SET next_value = ? WHERE kind = ?",
-        (value + 1, normalized),
+        (value + 1, sequence_key),
       )
-    return f"FMS-EURUSD-H4-{normalized}{value:03d}"
+    return f"FMS-{normalized_market}-H4-{normalized}{value:03d}"
 
   def create_fms_experiment(
     self,
