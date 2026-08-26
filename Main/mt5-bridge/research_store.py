@@ -132,6 +132,42 @@ class ResearchStore:
 
         CREATE INDEX IF NOT EXISTS idx_paper_cases_version_time
           ON paper_cases (version_id, event_time DESC);
+
+        CREATE TABLE IF NOT EXISTS fms_sequences (
+          kind TEXT PRIMARY KEY,
+          next_value INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS fms_experiments (
+          id TEXT PRIMARY KEY,
+          friendly_name TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          status TEXT NOT NULL,
+          configuration_json TEXT NOT NULL,
+          configuration_hash TEXT NOT NULL,
+          catalog_snapshot_json TEXT NOT NULL,
+          dataset_fingerprint TEXT NOT NULL,
+          result_json TEXT,
+          error TEXT
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_fms_experiments_created
+          ON fms_experiments (created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS fms_candidates (
+          id TEXT PRIMARY KEY,
+          experiment_id TEXT NOT NULL UNIQUE,
+          friendly_name TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          failed_gate_acknowledged INTEGER NOT NULL,
+          checks_json TEXT NOT NULL,
+          configuration_hash TEXT NOT NULL,
+          dataset_fingerprint TEXT NOT NULL,
+          FOREIGN KEY (experiment_id) REFERENCES fms_experiments(id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_fms_candidates_created
+          ON fms_candidates (created_at DESC);
         """
       )
 
@@ -147,6 +183,13 @@ class ResearchStore:
     with self._connect() as connection:
       row = connection.execute("SELECT value FROM metadata WHERE key = ?", (key,)).fetchone()
     return str(row["value"]) if row else None
+
+  def metadata_values(self, prefix: str) -> List[str]:
+    with self._connect() as connection:
+      rows = connection.execute(
+        "SELECT value FROM metadata WHERE key LIKE ?", (f"{prefix}%",)
+      ).fetchall()
+    return [str(row["value"]) for row in rows]
 
   def upsert_calendar_events(self, events: Sequence[Dict[str, Any]], ingested_at: int) -> Dict[str, int]:
     if not events:
@@ -547,6 +590,218 @@ class ResearchStore:
         (reason,),
       )
       return int(cursor.rowcount)
+
+  def allocate_fms_id(self, kind: str) -> str:
+    normalized = kind.upper()
+    if normalized not in {"E", "C", "M"}:
+      raise ValueError(f"Unsupported FMS identifier kind: {kind}")
+    with self._write_lock, self._connect() as connection:
+      connection.execute("BEGIN IMMEDIATE")
+      connection.execute(
+        "INSERT OR IGNORE INTO fms_sequences(kind, next_value) VALUES (?, 1)",
+        (normalized,),
+      )
+      row = connection.execute(
+        "SELECT next_value FROM fms_sequences WHERE kind = ?", (normalized,)
+      ).fetchone()
+      value = int(row["next_value"])
+      connection.execute(
+        "UPDATE fms_sequences SET next_value = ? WHERE kind = ?",
+        (value + 1, normalized),
+      )
+    return f"FMS-EURUSD-H4-{normalized}{value:03d}"
+
+  def create_fms_experiment(
+    self,
+    experiment_id: str,
+    friendly_name: str,
+    created_at: int,
+    configuration: Dict[str, Any],
+    configuration_hash: str,
+    catalog_snapshot: Dict[str, Any],
+    dataset_fingerprint: str,
+  ) -> None:
+    with self._write_lock, self._connect() as connection:
+      connection.execute(
+        """
+        INSERT INTO fms_experiments(
+          id, friendly_name, created_at, status, configuration_json,
+          configuration_hash, catalog_snapshot_json, dataset_fingerprint
+        ) VALUES (?, ?, ?, 'queued', ?, ?, ?, ?)
+        """,
+        (
+          experiment_id,
+          friendly_name,
+          created_at,
+          json.dumps(configuration, sort_keys=True, separators=(",", ":")),
+          configuration_hash,
+          json.dumps(catalog_snapshot, sort_keys=True, separators=(",", ":")),
+          dataset_fingerprint,
+        ),
+      )
+
+  def update_fms_experiment(
+    self,
+    experiment_id: str,
+    status: str,
+    result: Optional[Dict[str, Any]] = None,
+    error: Optional[str] = None,
+  ) -> None:
+    if status not in {"queued", "running", "completed", "failed"}:
+      raise ValueError(f"Unsupported FMS experiment status: {status}")
+    result_json = json.dumps(result, sort_keys=True, separators=(",", ":")) if result is not None else None
+    with self._write_lock, self._connect() as connection:
+      connection.execute(
+        "UPDATE fms_experiments SET status = ?, result_json = ?, error = ? WHERE id = ?",
+        (status, result_json, error, experiment_id),
+      )
+
+  def get_fms_experiment(self, experiment_id: str) -> Optional[Dict[str, Any]]:
+    with self._connect() as connection:
+      row = connection.execute(
+        "SELECT * FROM fms_experiments WHERE id = ?", (experiment_id,)
+      ).fetchone()
+    return self._deserialize_fms_experiment(row) if row else None
+
+  def list_fms_experiments(self, limit: int = 100) -> List[Dict[str, Any]]:
+    with self._connect() as connection:
+      rows = connection.execute(
+        "SELECT * FROM fms_experiments ORDER BY created_at DESC, id DESC LIMIT ?",
+        (max(1, min(limit, 500)),),
+      ).fetchall()
+    return [self._deserialize_fms_experiment(row) for row in rows]
+
+  def find_completed_fms_experiment(
+    self, configuration_hash: str, dataset_fingerprint: str
+  ) -> Optional[Dict[str, Any]]:
+    with self._connect() as connection:
+      row = connection.execute(
+        """
+        SELECT * FROM fms_experiments
+        WHERE configuration_hash = ? AND dataset_fingerprint = ?
+          AND status = 'completed' AND result_json IS NOT NULL
+        ORDER BY created_at DESC LIMIT 1
+        """,
+        (configuration_hash, dataset_fingerprint),
+      ).fetchone()
+    return self._deserialize_fms_experiment(row) if row else None
+
+  def mark_unfinished_fms_experiments_failed(self, reason: str) -> int:
+    with self._write_lock, self._connect() as connection:
+      cursor = connection.execute(
+        "UPDATE fms_experiments SET status = 'failed', error = ? "
+        "WHERE status IN ('queued', 'running')",
+        (reason,),
+      )
+      return int(cursor.rowcount)
+
+  def create_fms_candidate(
+    self,
+    candidate_id: str,
+    experiment_id: str,
+    friendly_name: str,
+    created_at: int,
+    failed_gate_acknowledged: bool,
+    checks: Dict[str, bool],
+    configuration_hash: str,
+    dataset_fingerprint: str,
+  ) -> None:
+    with self._write_lock, self._connect() as connection:
+      connection.execute(
+        """
+        INSERT INTO fms_candidates(
+          id, experiment_id, friendly_name, created_at,
+          failed_gate_acknowledged, checks_json, configuration_hash,
+          dataset_fingerprint
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+          candidate_id,
+          experiment_id,
+          friendly_name,
+          created_at,
+          int(failed_gate_acknowledged),
+          json.dumps(checks, sort_keys=True, separators=(",", ":")),
+          configuration_hash,
+          dataset_fingerprint,
+        ),
+      )
+
+  def list_fms_candidates(self) -> List[Dict[str, Any]]:
+    with self._connect() as connection:
+      rows = connection.execute(
+        """
+        SELECT candidate.*, experiment.status AS experiment_status,
+          experiment.result_json AS experiment_result_json,
+          experiment.configuration_json AS experiment_configuration_json,
+          experiment.catalog_snapshot_json AS experiment_catalog_snapshot_json
+        FROM fms_candidates AS candidate
+        JOIN fms_experiments AS experiment ON experiment.id = candidate.experiment_id
+        ORDER BY candidate.created_at DESC, candidate.id DESC
+        """
+      ).fetchall()
+    return [self._deserialize_fms_candidate(row) for row in rows]
+
+  def list_signal_version_archive(self) -> List[Dict[str, Any]]:
+    with self._connect() as connection:
+      rows = connection.execute(
+        """
+        SELECT version.*, run.id AS run_id, run.created_at AS run_created_at,
+          run.status AS run_status, run.dataset_fingerprint, run.error
+        FROM signal_versions AS version
+        LEFT JOIN backtest_runs AS run ON run.id = (
+          SELECT latest.id FROM backtest_runs AS latest
+          WHERE latest.version_id = version.id
+          ORDER BY latest.created_at DESC LIMIT 1
+        )
+        ORDER BY version.created_at DESC, version.id DESC
+        """
+      ).fetchall()
+    return [{
+      "id": str(row["id"]),
+      "createdAt": int(row["created_at"]),
+      "configuration": json.loads(row["configuration_json"]),
+      "configurationHash": str(row["configuration_hash"]),
+      "latestRun": None if row["run_id"] is None else {
+        "id": str(row["run_id"]),
+        "createdAt": int(row["run_created_at"]),
+        "status": str(row["run_status"]),
+        "datasetFingerprint": str(row["dataset_fingerprint"]),
+        "error": row["error"],
+      },
+    } for row in rows]
+
+  @staticmethod
+  def _deserialize_fms_experiment(row: sqlite3.Row) -> Dict[str, Any]:
+    return {
+      "id": str(row["id"]),
+      "friendlyName": str(row["friendly_name"]),
+      "createdAt": int(row["created_at"]),
+      "status": str(row["status"]),
+      "configuration": json.loads(row["configuration_json"]),
+      "configurationHash": str(row["configuration_hash"]),
+      "catalogSnapshot": json.loads(row["catalog_snapshot_json"]),
+      "datasetFingerprint": str(row["dataset_fingerprint"]),
+      "result": json.loads(row["result_json"]) if row["result_json"] else None,
+      "error": row["error"],
+    }
+
+  @staticmethod
+  def _deserialize_fms_candidate(row: sqlite3.Row) -> Dict[str, Any]:
+    return {
+      "id": str(row["id"]),
+      "experimentId": str(row["experiment_id"]),
+      "friendlyName": str(row["friendly_name"]),
+      "createdAt": int(row["created_at"]),
+      "failedGateAcknowledged": bool(row["failed_gate_acknowledged"]),
+      "checks": json.loads(row["checks_json"]),
+      "configurationHash": str(row["configuration_hash"]),
+      "datasetFingerprint": str(row["dataset_fingerprint"]),
+      "experimentStatus": str(row["experiment_status"]),
+      "result": json.loads(row["experiment_result_json"]) if row["experiment_result_json"] else None,
+      "configuration": json.loads(row["experiment_configuration_json"]),
+      "catalogSnapshot": json.loads(row["experiment_catalog_snapshot_json"]),
+    }
 
   @staticmethod
   def _deserialize_run(row: sqlite3.Row) -> Dict[str, Any]:

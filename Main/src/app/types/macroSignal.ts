@@ -498,6 +498,183 @@ export interface MacroSignalExpansionReport {
   cached: boolean;
 }
 
+export type FmsExperimentStatus = "queued" | "running" | "completed" | "failed";
+
+export interface FmsCatalogTreatment {
+  id: string;
+  dimension: "none" | "evidenceMode" | "revisionReliability" | "packageCompleteness" | "backgroundAlignment" | "scoreStrength" | "reaction";
+  value: string;
+  reaction: "continuation" | "contrarian";
+  label: string;
+  historicalN: number;
+}
+
+export interface FmsCatalogItem {
+  id: string;
+  sourceVersionId: string;
+  signature: string;
+  label: string;
+  direction: "long" | "short";
+  family: string;
+  groups: string[];
+  exactTitles: string[];
+  historicalN: number;
+  registered: boolean;
+  registeredExecution: { stopAtr: number; targetR: number; expiryCandles: number } | null;
+  treatments: FmsCatalogTreatment[];
+}
+
+export interface FmsExperimentConfiguration {
+  sourceVersionId: string;
+  signature: string;
+  scoringPolicy: "baseline" | "momentum_only" | "forecast_quality";
+  cohort: { dimension: FmsCatalogTreatment["dimension"]; value: string };
+  reaction: "continuation" | "contrarian";
+  execution: {
+    mode: "single" | "matrix";
+    stopAtrValues: number[];
+    targetRValues: number[];
+    holdingCandles: number[];
+  };
+  entry: "first_h4_open_strictly_after_release";
+  sourceRunIds: string[];
+  researchPriceCutoff: number;
+  candleRevision: string;
+}
+
+export interface FmsExperimentResult {
+  experimentId: string;
+  generatedAt: number;
+  sourceVersionId: string;
+  signature: string;
+  scoringPolicy: string;
+  cohort: { dimension: string; value: string };
+  reaction: string;
+  historicalN: number;
+  splitTime: number;
+  selection: string;
+  configurationsTested: number;
+  selectedConfiguration: MacroSignalStressConfiguration;
+  configurationStability: MacroSignalStressCandidate["configurationStability"];
+  path: MacroSignalPathSummary;
+  sequentialAccount: {
+    takenTrades: number;
+    cumulativeStressedR: number;
+    maximumDrawdownR: number;
+    skippedOverlap: number;
+    skippedConflict: number;
+    drawdownBasis: string;
+    resultsR: number[];
+    grossResultsR: number[];
+  };
+  checks: Record<string, boolean>;
+  passesExploratoryScreen: boolean;
+  passesStrictHoldoutCheck: boolean;
+  forecastQualityAudit: { excludedForecastCount: number };
+  limitations: string[];
+  configurationHash: string;
+  datasetFingerprint: string;
+  catalogSnapshot: FmsCatalogItem;
+  reusedResultFrom?: string;
+}
+
+export interface FmsExperiment {
+  id: string;
+  friendlyName: string;
+  createdAt: number;
+  status: FmsExperimentStatus;
+  configuration: FmsExperimentConfiguration;
+  configurationHash: string;
+  catalogSnapshot: FmsCatalogItem;
+  datasetFingerprint: string;
+  result: FmsExperimentResult | null;
+  resultSummary?: Pick<FmsExperimentResult, "historicalN" | "selectedConfiguration" | "checks" | "passesExploratoryScreen" | "passesStrictHoldoutCheck"> | null;
+  error: string | null;
+}
+
+export interface FmsFrozenCandidate {
+  id: string;
+  experimentId: string;
+  friendlyName: string;
+  createdAt: number;
+  failedGateAcknowledged: boolean;
+  checks: Record<string, boolean>;
+  configurationHash: string;
+  datasetFingerprint: string;
+  experimentStatus: FmsExperimentStatus;
+  result: FmsExperimentResult;
+  configuration: FmsExperimentConfiguration;
+  catalogSnapshot: FmsCatalogItem;
+}
+
+export interface FmsLegacyArchiveItem {
+  id: string;
+  createdAt: number;
+  configuration: Record<string, unknown>;
+  configurationHash: string;
+  latestRun: null | {
+    id: string;
+    createdAt: number;
+    status: string;
+    datasetFingerprint: string;
+    error: string | null;
+  };
+}
+
+export interface FmsWorkbench {
+  currentModel: {
+    id: string;
+    friendlyName: string;
+    displayId: string;
+    hash: string;
+    activatedAt: number;
+    timeframe: "H4";
+    registeredSetups: Array<{
+      id: string;
+      label: string;
+      condition: string;
+      sourceVersionId: string;
+      signatures: string[];
+      execution: { stopAtr: number; targetR: number; expiryCandles: number };
+      registrationEvidence: null | {
+        scoringPolicy: "baseline" | "momentum_only" | "forecast_quality";
+        cohort: "all_matching_cases";
+        reaction: "continuation" | "contrarian";
+        evaluable: number;
+        targetFirst: number;
+        stopFirst: number;
+        expired: number;
+        stressedAverageR: number;
+        developmentAverageR: number;
+        holdoutAverageR: number;
+        recentAverageR: number;
+        positiveYears: number;
+        evaluatedYears: number;
+        stressPips: number;
+      };
+    }>;
+  };
+  catalog: {
+    items: FmsCatalogItem[];
+    advancedTreatmentsReady: boolean;
+    generatedAt: number;
+  };
+  protocol: {
+    stopAtrValues: number[];
+    targetRValues: number[];
+    holdingCandles: number[];
+    scoringPolicies: Array<"baseline" | "momentum_only" | "forecast_quality">;
+    entry: string;
+    selection: string;
+  };
+  experiments: FmsExperiment[];
+  candidates: FmsFrozenCandidate[];
+  archive: FmsLegacyArchiveItem[];
+  datasetFingerprint: string;
+  sourceRunIds: string[];
+  candleRevision: string;
+}
+
 export interface MacroSignalChartPattern {
   id: string;
   signature: string;

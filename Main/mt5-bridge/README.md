@@ -19,6 +19,13 @@ It exposes the MT5-backed endpoints the frontend needs:
 - `GET /research/backtests/{run_id}`
 - `GET /research/forward`
 - `GET /research/chart-signals`
+- `GET /research/workbench`
+- `GET/POST /research/experiments`
+- `GET /research/experiments/{experiment_id}`
+- `POST /research/experiments/{experiment_id}/freeze`
+- `GET /research/candidates`
+- `GET /research/candidates/{candidate_id}`
+- `GET /research/archive`
 - `POST /research/backtests`
 - `POST /calendar_ingest`
 - `POST /calendar_ingest_cycle`
@@ -45,6 +52,8 @@ The EA posts `/calendar_ingest_cycle` only after all batches in a timer pass hav
 `/research/chart-signals` is the read-only EURUSD Charts contract for the frozen H4 model. `mode=current` exposes only post-v13-activation packages from immutable first-seen EA observations matching the retained registered setup identities. V13 preserves raw Forecast values but excludes historically anomalous Forecast comparisons using an exact-series, past-only quality gate; Momentum remains eligible. `mode=research_replay` remains the historical research view. The frontend may project the H4 activation onto any EURUSD chart timeframe but never claims a native backtest for that timeframe. The response includes release and first-later-H4 activation times, model/source/data fingerprints, three-pip stress, recent/year/past-only/target-robustness evidence, replay-gap diagnostics, next event/setup, and factual Policy/Inflation context. The endpoint never places an order.
 
 `/research/expansion-report` is the heavier, cached Macro Signal Lab contract. It computes 30/60-H4 MFE/MAE paths and a declared development-selected stop/target/holding matrix across eligible exact direction signatures. It identifies reused-history freeze candidates but never mutates the current Charts registry.
+
+`/research/workbench` is the bounded FMS experiment contract. It serves the current Forecast Guard summary, a durable exact-signature catalog, immutable recorded E experiments, frozen C review candidates, and legacy archive summaries. Official runs are asynchronous and recorded even when they fail. Matrix selection uses development data only; freezing never changes Charts, and no M-model promotion endpoint exists.
 
 ## Normal Usage
 

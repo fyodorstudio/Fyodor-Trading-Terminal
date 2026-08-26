@@ -52,13 +52,12 @@ Primary top-nav surfaces:
 
 Secondary surfaces:
 
-- `Event Replay` is an active secondary experiment.
-- `Differential Calculator` is an active Specialist Tools child using route id `dashboard`.
-- `Macro Drivers` is an active Specialist Tools child using current MT5 OHLCV, broker calendar rows, and central-bank snapshots for forex/gold driver context.
-- `Prototyping` is a garbage drawer for old unfinished surfaces.
+- `FMS Experiment Workbench` is the active Specialist Tool using the stable route id `macro-signal-lab`.
+- `Differential Calculator` is an active experiment using route id `dashboard`.
+- `Event Replay`, `Macro Drivers`, and `Prototyping` are grouped under `Garbage / Ignore`; their stable routes remain available but they must not steer active product design.
 - `Main/src/app/tabs/secondary` should contain only active secondary shells/surfaces.
 - Ignore `Main/src/app/tabs/garbage` unless the user explicitly asks for a file or route inside it. Do not read garbage files for general orientation.
-- Ignore `Main/src/app/lib/garbage` unless the user explicitly asks for garbage-drawer supporting logic. Active Event Replay, Differential Calculator, and Macro Drivers helpers remain in `Main/src/app/lib`.
+- Ignore `Main/src/app/lib/garbage` unless the user explicitly asks for garbage-drawer supporting logic. Active Differential Calculator and FMS helpers remain in `Main/src/app/lib`; retained Event Replay and Macro Drivers helpers must not steer active product work.
 
 ## Repo Hygiene
 
@@ -71,3 +70,11 @@ Secondary surfaces:
 - `pnpm run typecheck` is the repo-level TypeScript gate. Garbage files that are intentionally quarantined may use `@ts-nocheck` so archived code does not pollute active-surface checks.
 - `react-world-flags` currently works and has a local declaration at `Main/src/types/react-world-flags.d.ts`. Its large `FlagIcon` build chunk is known non-blocking noise; do not replace or refactor flags unless the user explicitly asks.
 - Garbage tests live under `Main/src/app/tests/garbage`. Ignore them unless the user explicitly asks for garbage-drawer work.
+
+## Token-Efficient Agent Protocol
+
+- Do not repeat an accepted plan or narrate routine file inspection, edits, and verification.
+- Combine related inspections and verification commands when practical.
+- During clear implementation work, stay silent except when blocked, when material risk is discovered, when user input is required, or when higher-level runtime rules require a brief progress update.
+- Finish with only a minimal completion statement, material caveats, and the exact manual audit checklist.
+- This protocol never overrides safety requirements, approval boundaries, or higher-priority system/developer instructions.

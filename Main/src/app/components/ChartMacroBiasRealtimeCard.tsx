@@ -12,7 +12,7 @@ import {
   normalizeShadowRiskPercent,
   normalizeShadowStartingBalance,
 } from "@/app/lib/macroSignalShadow";
-import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse } from "@/app/types";
+import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalPatternAssessment } from "@/app/types";
 
 const SHADOW_BALANCE_KEY = "fyodor.charts.shadow-starting-balance";
 const SHADOW_RISK_KEY = "fyodor.charts.shadow-risk-percent";
@@ -71,6 +71,43 @@ function momentumMeaning(value: number | null): string {
   return value > 0 ? "improving" : value < 0 ? "weakening" : "equal / unavailable";
 }
 
+function LatestDecisionSection({ assessment, pattern }: { assessment: MacroSignalPatternAssessment; pattern: MacroSignalChartPattern | null }) {
+  const status = assessment.status === "pre_activation_audit"
+    ? "Audit only"
+    : assessment.status === "no_trade"
+      ? "No trade"
+      : assessment.status === "qualified"
+        ? "Qualified"
+        : "Processing";
+  return (
+    <section className="chart-shadow-decision" aria-label="Latest FMS decision">
+      <div className="chart-shadow-section-heading">
+        <div><span>Latest decision</span><strong>{pattern?.label ?? assessment.label}</strong></div>
+        <b className={`chart-shadow-status is-${assessment.status}`}>{status}</b>
+      </div>
+      <time>{formatUtc(assessment.time)}</time>
+      {assessment.calculations?.map((calculation) => (
+        <div className="chart-shadow-decision-audit" key={`${assessment.time}-${calculation.title}`}>
+          <h4>{calculation.title}</h4>
+          <dl>
+            <div><dt>Actual</dt><dd>{calculation.actual ?? "–"}</dd></div>
+            <div><dt>Forecast</dt><dd>{calculation.forecast ?? "–"}</dd></div>
+            <div><dt>Previous</dt><dd>{calculation.previous ?? "–"}</dd></div>
+            <div><dt>Surprise</dt><dd>{calculation.forecastSuspect ? "Excluded · suspect" : `${surpriseMeaning(calculation.surprisePoint)} ${formatPoint(calculation.surprisePoint)}`}</dd></div>
+            <div><dt>Momentum</dt><dd>{momentumMeaning(calculation.momentumPoint)} {formatPoint(calculation.momentumPoint)}</dd></div>
+            <div><dt>Total</dt><dd>{formatPoint(calculation.score)}</dd></div>
+          </dl>
+          {calculation.score === 0 ? <p><b>Decision:</b> evidence cancelled to zero, so no trade was opened.</p> : null}
+          {assessment.status === "pre_activation_audit" ? <p><b>Decision:</b> {assessment.direction === "long" ? "Long EURUSD" : "Short EURUSD"} under Forecast Guard, but audit-only because the release predates model activation.</p> : null}
+          <small>{calculation.forecastSuspect ? `Raw Forecast ${calculation.forecast ?? "–"} retained; ${calculation.forecastGap?.toFixed(2) ?? "–"} gap exceeded the past-only ${calculation.forecastAnomalyThreshold?.toFixed(2) ?? "–"} threshold.` : "Frozen first-seen MT5 values."}</small>
+        </div>
+      ))}
+      {!assessment.calculations?.length ? <p>{assessment.reason}</p> : null}
+      {pattern ? <p className="chart-shadow-decision-rule"><b>Rule:</b> {pattern.condition}</p> : null}
+    </section>
+  );
+}
+
 export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealtimeCardData }) {
   const { response, activeSignal, activePattern } = data;
   const [startingBalance, setStartingBalance] = useState(() => normalizeShadowStartingBalance(readStoredNumber(SHADOW_BALANCE_KEY, DEFAULT_SHADOW_STARTING_BALANCE)));
@@ -92,6 +129,9 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
   );
   const watchPattern = nextWatch
     ? response.patterns.find((pattern) => pattern.id === nextWatch.patternId) ?? null
+    : null;
+  const latestAssessmentPattern = latestAssessment
+    ? response.patterns.find((pattern) => pattern.id === latestAssessment.patternId) ?? null
     : null;
   const settings = useMemo(() => ({ startingBalance, riskPercent }), [startingBalance, riskPercent]);
   const liveAccount = useMemo(() => buildMacroSignalShadowAccount(response.signals, settings), [response.signals, settings]);
@@ -123,7 +163,11 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
         <div><ShieldCheck size={14} /><span>FMS Shadow Trader</span></div>
         <small>{timeframeLabel}</small>
       </header>
+      {latestAssessment ? <LatestDecisionSection assessment={latestAssessment} pattern={latestAssessmentPattern} /> : null}
       <section className="chart-shadow-priority" aria-label="All registered FMS setups">
+        <div className="chart-shadow-section-heading">
+          <div><span>Registered setups</span><strong>{registeredPatterns.length} frozen rules monitored</strong></div>
+        </div>
         <table>
           <thead><tr><th>Registered setup</th><th>State</th><th>Relevant time</th></tr></thead>
           <tbody>
@@ -153,7 +197,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
                       {upcoming ? <small><b>Next ·</b> {formatUtc(upcoming.time)}</small> : latestTime == null ? <span>No upcoming release loaded</span> : null}
                     </td>
                   </tr>
-                  <tr className="chart-shadow-priority-detail">
+                  <tr className="chart-shadow-priority-detail" hidden>
                     <td colSpan={3}>
                       {assessment?.calculations?.length ? (
                         <div className="chart-shadow-calculation" aria-label={assessment.reason}>
@@ -193,7 +237,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
       <ChartMacroBiasNextSetup watch={nextWatch} pattern={watchPattern} asOf={response.realtime?.asOf ?? response.generatedAt ?? Math.floor(Date.now() / 1_000)} />
 
       <section className="chart-shadow-settings" aria-label="Gross shadow account assumptions">
-        <div className="chart-macro-bias-realtime-kicker"><WalletCards size={12} /> Gross shadow simulation</div>
+        <div className="chart-shadow-section-heading"><div><span><WalletCards size={12} /> Shadow account</span><strong>Gross sequential replay</strong></div></div>
         <label>
           <span>Starting balance</span>
           <span className="chart-shadow-input"><b>$</b><input type="number" min={MIN_SHADOW_STARTING_BALANCE} step="1" defaultValue={startingBalance} onBlur={(event) => { event.currentTarget.value = String(updateStartingBalance(Number(event.currentTarget.value))); }} /></span>
@@ -206,6 +250,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
       </section>
 
       <section className="chart-shadow-ledger" aria-label="Gross account results">
+        <div className="chart-shadow-section-heading"><div><span>Performance replay</span><strong>Account results</strong></div></div>
         <div>
           <span>Current-model account</span>
           <strong>{formatMoney(liveAccount.balance)}</strong>

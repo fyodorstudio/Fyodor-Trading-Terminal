@@ -13,10 +13,10 @@ export interface AppTabConfig {
 }
 
 export const ANALYSIS_TAB_ORDER: AppTabChild[] = [
-  { id: "dashboard", label: "DIFFERENTIAL CALCULATOR", groupLabel: "Active Tool" },
-  { id: "macro-drivers", label: "MACRO DRIVERS", groupLabel: "Active Tool" },
-  { id: "event-tools", label: "EVENT REPLAY", groupLabel: "Active Experiment" },
-  { id: "macro-signal-lab", label: "MACRO SIGNAL LAB", groupLabel: "Active Experiment" },
+  { id: "macro-signal-lab", label: "FMS EXPERIMENT WORKBENCH", groupLabel: "Active Tool" },
+  { id: "dashboard", label: "DIFFERENTIAL CALCULATOR", groupLabel: "Active Experiment" },
+  { id: "event-tools", label: "EVENT REPLAY", groupLabel: "Garbage / Ignore" },
+  { id: "macro-drivers", label: "MACRO DRIVERS", groupLabel: "Garbage / Ignore" },
   { id: "prototyping", label: "PROTOTYPING", groupLabel: "Garbage / Ignore" },
 ];
 

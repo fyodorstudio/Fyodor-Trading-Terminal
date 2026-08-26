@@ -25,17 +25,22 @@ from macro_signal import (
   CHART_SIGNAL_MODEL_HASH,
   CHART_SIGNAL_MODEL_ID,
   CHART_SIGNAL_PATTERN_DEFINITIONS,
+  CHART_SIGNAL_REGISTRATION_EVIDENCE,
   CANDIDATE_STRESS_SCHEMA_VERSION,
   FORWARD_PAPER_GATE,
   H4_SECONDS,
   RESULT_SCHEMA_VERSION,
   SIGNAL_DEFINITIONS,
+  STRESS_HOLDING_CANDLES,
+  STRESS_STOP_ATR_VALUES,
+  STRESS_TARGET_R_VALUES,
   TARGET_R_VALUES,
   V2_VERSION_ID,
   aggregate_outcomes,
   build_backtest_result,
   build_candidate_path_profile,
   build_candidate_stress_report,
+  build_workbench_experiment,
   build_chart_signal_pattern_catalog,
   build_chart_signal_realtime_watch,
   build_policy_inflation_context,
@@ -87,6 +92,7 @@ app.add_middleware(
 
 terminal_connected: bool = False
 last_error: Optional[Dict[str, Any]] = None
+BRIDGE_API_REVISION = "2026-08-26-fms-workbench-v1"
 
 
 def _coerce_int(v: Any) -> int:
@@ -125,6 +131,53 @@ class MacroBacktestRequest(BaseModel):
   versionId: str = ACTIVE_VERSION_ID
 
 
+class FmsExperimentCohort(BaseModel):
+  dimension: str = "none"
+  value: str = "all"
+
+
+class FmsExperimentExecution(BaseModel):
+  mode: str
+  stopAtrValues: List[float]
+  targetRValues: List[float]
+  holdingCandles: List[int]
+
+  @field_validator("mode")
+  @classmethod
+  def validate_mode(cls, value: str) -> str:
+    if value not in {"single", "matrix"}:
+      raise ValueError("Execution mode must be single or matrix")
+    return value
+
+
+class FmsExperimentRequest(BaseModel):
+  friendlyName: str = Field(min_length=1, max_length=80)
+  catalogId: str
+  scoringPolicy: str
+  cohort: FmsExperimentCohort = Field(default_factory=FmsExperimentCohort)
+  reaction: str
+  execution: FmsExperimentExecution
+
+  @field_validator("friendlyName")
+  @classmethod
+  def validate_friendly_name(cls, value: str) -> str:
+    if not value.strip():
+      raise ValueError("Experiment name cannot be blank")
+    return value.strip()
+
+
+class FmsCandidateFreezeRequest(BaseModel):
+  friendlyName: str = Field(min_length=1, max_length=80)
+  acknowledgeFailedGates: bool = False
+
+  @field_validator("friendlyName")
+  @classmethod
+  def validate_friendly_name(cls, value: str) -> str:
+    if not value.strip():
+      raise ValueError("Candidate name cannot be blank")
+    return value.strip()
+
+
 class CalendarIngestCycleRequest(BaseModel):
   completedAt: int
   failedBatches: int = 0
@@ -154,6 +207,9 @@ _chart_signal_context_lock = Lock()
 _chart_signal_context_cache: Dict[str, Dict[str, Any]] = {}
 _candidate_stress_lock = Lock()
 _candidate_stress_cache: Dict[str, Dict[str, Any]] = {}
+_research_store.mark_unfinished_fms_experiments_failed(
+  "Bridge restarted before the recorded experiment completed"
+)
 
 # First timestamp at which Fyodor can honestly guarantee immutable first-seen
 # release values and complete EA upload cycles for forward paper evidence.
@@ -571,6 +627,7 @@ def health() -> Dict[str, Any]:
   payload: Dict[str, Any] = {
     "ok": True,
     "bridge_connected": True,
+    "api_revision": BRIDGE_API_REVISION,
     "terminal_connected": terminal_connected,
     "mt5_version": version,
     "account_login": account.login if account is not None else None,
@@ -1264,10 +1321,381 @@ def research_expansion_report() -> Dict[str, Any]:
   report = build_candidate_stress_report(sources, h4_candles, int(_time.time()))
   report["sourceRunIds"] = run_ids
   _research_store.set_metadata(durable_cache_key, json.dumps(report, separators=(",", ":")))
+  _research_store.set_metadata("fms_expansion_report:latest", json.dumps(report, separators=(",", ":")))
   with _candidate_stress_lock:
     _candidate_stress_cache.clear()
     _candidate_stress_cache[cache_key] = report
   return {**report, "cached": False}
+
+
+def _latest_cached_expansion_report() -> Optional[Dict[str, Any]]:
+  candidates: List[Dict[str, Any]] = []
+  with _candidate_stress_lock:
+    candidates.extend(_candidate_stress_cache.values())
+  for raw in _research_store.metadata_values("fms_expansion_report:"):
+    try:
+      parsed = json.loads(raw)
+      if isinstance(parsed, dict) and parsed.get("schemaVersion") == CANDIDATE_STRESS_SCHEMA_VERSION:
+        candidates.append(parsed)
+    except (TypeError, ValueError):
+      continue
+  return max(candidates, key=lambda row: int(row.get("generatedAt", 0)), default=None)
+
+
+def _workbench_source_bundle(run_ids: Optional[List[str]] = None) -> Dict[str, Any]:
+  source_versions = sorted({str(pattern["sourceVersion"]) for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS})
+  sources: List[Dict[str, Any]] = []
+  resolved_run_ids: List[str] = []
+  fingerprints: List[str] = []
+  requested_runs = {
+    str(run.get("versionId")): run
+    for run_id in (run_ids or [])
+    if (run := _research_store.get_backtest_run(run_id)) is not None
+  }
+  if run_ids and len(requested_runs) != len(run_ids):
+    raise HTTPException(status_code=409, detail="A recorded source run is no longer available")
+  for source_version in source_versions:
+    run = (
+      requested_runs.get(source_version)
+      if run_ids is not None
+      else _research_store.latest_backtest_run(source_version)
+    )
+    result = run.get("result") if run and run.get("status") == "completed" else None
+    if not isinstance(result, dict):
+      raise HTTPException(status_code=409, detail=f"Run {source_version} before using the FMS workbench")
+    outcomes = result.get("targets", {}).get("2.0", {}).get("outcomes")
+    split_time = result.get("candidateSummary", {}).get("developmentHoldoutBoundary")
+    if not isinstance(outcomes, list) or not isinstance(split_time, int):
+      raise HTTPException(status_code=409, detail=f"{source_version} lacks a frozen research split")
+    sources.append({
+      "versionId": source_version,
+      "outcomes": outcomes,
+      "splitTime": split_time,
+      "generatedAt": int(result.get("generatedAt") or _time.time()),
+    })
+    resolved_run_ids.append(str(run["id"]))
+    fingerprints.append(str(run.get("datasetFingerprint", "")))
+  cutoff = max(int(source["generatedAt"]) for source in sources)
+  candles = _research_store.query_candles("EURUSD", "H4", 0, cutoff + H4_SECONDS)
+  if not candles:
+    raise HTTPException(status_code=409, detail="No durable EURUSD H4 candles are available")
+  candle_revision = f"{len(candles)}:{int(candles[-1]['time'])}"
+  dataset = hashlib.sha256("|".join([*fingerprints, candle_revision]).encode("utf-8")).hexdigest()
+  return {
+    "sources": sources,
+    "runIds": resolved_run_ids,
+    "candles": candles,
+    "cutoff": cutoff,
+    "candleRevision": candle_revision,
+    "datasetFingerprint": dataset,
+  }
+
+
+def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
+  report = _latest_cached_expansion_report()
+  report_revision = str(int((report or {}).get("generatedAt", 0)))
+  cache_key = f"fms_workbench_catalog:{bundle['datasetFingerprint']}:{report_revision}"
+  durable_cached = _research_store.get_metadata(cache_key)
+  if durable_cached:
+    try:
+      parsed = json.loads(durable_cached)
+      if isinstance(parsed, dict) and isinstance(parsed.get("items"), list):
+        return parsed
+    except (TypeError, ValueError):
+      logger.warning("Ignoring unreadable durable FMS workbench catalog")
+  report_candidates = {
+    (str(row["sourceVersionId"]), str(row["signature"])): row
+    for row in (report or {}).get("candidates", [])
+  }
+  registered = {
+    (str(pattern["sourceVersion"]), str(signature)): pattern
+    for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
+    if pattern.get("current")
+    for signature in pattern["signatures"]
+  }
+  catalog: List[Dict[str, Any]] = []
+  for source in bundle["sources"]:
+    source_version = str(source["versionId"])
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    for outcome in source["outcomes"]:
+      if outcome.get("direction") in {"long", "short"}:
+        grouped.setdefault(candidate_pattern_signature(outcome), []).append(outcome)
+    for signature, rows in sorted(grouped.items()):
+      enriched = report_candidates.get((source_version, signature))
+      pattern = registered.get((source_version, signature))
+      events = [event for row in rows for event in row.get("events", [])]
+      groups = signature.split("|")[1:]
+      treatments = [{
+        "id": "base",
+        "dimension": "none",
+        "value": "all",
+        "reaction": "continuation",
+        "label": "All matching cases",
+        "historicalN": int(enriched.get("historicalN", len(rows))) if enriched else len(rows),
+      }]
+      if enriched:
+        seen = {("none", "all", "continuation")}
+        for variant in enriched.get("numericRobustness", {}).get("variants", []):
+          key = (str(variant["dimension"]), str(variant["cohort"]), str(variant["reaction"]))
+          if key in seen:
+            continue
+          seen.add(key)
+          treatments.append({
+            "id": hashlib.sha256("|".join(key).encode("utf-8")).hexdigest()[:12],
+            "dimension": key[0],
+            "value": key[1],
+            "reaction": key[2],
+            "label": f"{variant['dimensionLabel']}: {variant['cohort']}",
+            "historicalN": int(variant["historicalN"]),
+          })
+      catalog_id = hashlib.sha256(f"{source_version}|{signature}".encode("utf-8")).hexdigest()[:16]
+      catalog.append({
+        "id": catalog_id,
+        "sourceVersionId": source_version,
+        "signature": signature,
+        "label": str((enriched or pattern or {}).get("label") or " + ".join(groups)),
+        "direction": signature.split("|", 1)[0],
+        "family": " + ".join(group.split(":", 1)[-1].replace("_", " ") for group in groups),
+        "groups": groups,
+        "exactTitles": sorted({str(event.get("title", "")) for event in events if event.get("title")}),
+        "historicalN": int(enriched.get("historicalN", len(rows))) if enriched else len(rows),
+        "registered": pattern is not None,
+        "registeredExecution": dict(pattern["execution"]) if pattern else None,
+        "treatments": treatments,
+      })
+  catalog.sort(key=lambda row: (not row["registered"], -int(row["historicalN"]), str(row["label"])))
+  result = {
+    "items": catalog,
+    "advancedTreatmentsReady": report is not None,
+    "generatedAt": int((report or {}).get("generatedAt", _time.time())),
+  }
+  _research_store.set_metadata(cache_key, json.dumps(result, separators=(",", ":")))
+  return result
+
+
+def _experiment_summary(experiment: Dict[str, Any]) -> Dict[str, Any]:
+  result = experiment.get("result") or {}
+  return {
+    **{key: experiment.get(key) for key in (
+      "id", "friendlyName", "createdAt", "status", "configurationHash",
+      "datasetFingerprint", "error",
+    )},
+    "catalogSnapshot": experiment.get("catalogSnapshot"),
+    "configuration": experiment.get("configuration"),
+    "resultSummary": None if not result else {
+      "historicalN": result.get("historicalN"),
+      "selectedConfiguration": result.get("selectedConfiguration"),
+      "checks": result.get("checks"),
+      "passesExploratoryScreen": result.get("passesExploratoryScreen"),
+      "passesStrictHoldoutCheck": result.get("passesStrictHoldoutCheck"),
+    },
+  }
+
+
+@app.get("/research/workbench")
+def research_workbench() -> Dict[str, Any]:
+  bundle = _workbench_source_bundle()
+  catalog = _workbench_catalog(bundle)
+  return {
+    "currentModel": {
+      "id": CHART_SIGNAL_MODEL_ID,
+      "friendlyName": "Forecast Guard",
+      "displayId": "Legacy v13",
+      "hash": CHART_SIGNAL_MODEL_HASH,
+      "activatedAt": CHART_SIGNAL_MODEL_CREATED_AT,
+      "timeframe": "H4",
+      "registeredSetups": [{
+        "id": str(pattern["id"]),
+        "label": str(pattern["label"]),
+        "condition": str(pattern["condition"]),
+        "sourceVersionId": str(pattern["sourceVersion"]),
+        "signatures": list(pattern["signatures"]),
+        "execution": dict(pattern["execution"]),
+        "registrationEvidence": dict(CHART_SIGNAL_REGISTRATION_EVIDENCE[str(pattern["id"])]) if str(pattern["id"]) in CHART_SIGNAL_REGISTRATION_EVIDENCE else None,
+      } for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS if pattern.get("current")],
+    },
+    "catalog": catalog,
+    "protocol": {
+      "stopAtrValues": list(STRESS_STOP_ATR_VALUES),
+      "targetRValues": list(STRESS_TARGET_R_VALUES),
+      "holdingCandles": list(STRESS_HOLDING_CANDLES),
+      "scoringPolicies": ["baseline", "momentum_only", "forecast_quality"],
+      "entry": "first_h4_open_strictly_after_release",
+      "selection": "development_lower95_then_average",
+    },
+    "experiments": [_experiment_summary(row) for row in _research_store.list_fms_experiments(100)],
+    "candidates": _research_store.list_fms_candidates(),
+    "archive": _research_store.list_signal_version_archive(),
+    "datasetFingerprint": bundle["datasetFingerprint"],
+    "sourceRunIds": bundle["runIds"],
+    "candleRevision": bundle["candleRevision"],
+  }
+
+
+def _validate_experiment_request(payload: FmsExperimentRequest, catalog: Dict[str, Any]) -> Dict[str, Any]:
+  item = next((row for row in catalog["items"] if row["id"] == payload.catalogId), None)
+  if item is None:
+    raise HTTPException(status_code=400, detail="Unknown or stale FMS catalog selection")
+  if payload.scoringPolicy not in {"baseline", "momentum_only", "forecast_quality"}:
+    raise HTTPException(status_code=400, detail="Unsupported scoring policy")
+  treatment = next((row for row in item["treatments"] if (
+    row["dimension"] == payload.cohort.dimension
+    and row["value"] == payload.cohort.value
+    and row["reaction"] == payload.reaction
+  )), None)
+  if treatment is None:
+    raise HTTPException(status_code=400, detail="Unsupported evidence-treatment combination")
+  allowed_stops = set(float(value) for value in STRESS_STOP_ATR_VALUES)
+  allowed_targets = set(float(value) for value in STRESS_TARGET_R_VALUES)
+  allowed_holding = set(int(value) for value in STRESS_HOLDING_CANDLES)
+  execution = payload.execution
+  if not execution.stopAtrValues or not set(execution.stopAtrValues).issubset(allowed_stops):
+    raise HTTPException(status_code=400, detail="Unsupported ATR stop selection")
+  if not execution.targetRValues or not set(execution.targetRValues).issubset(allowed_targets):
+    raise HTTPException(status_code=400, detail="Unsupported R target selection")
+  if not execution.holdingCandles or not set(execution.holdingCandles).issubset(allowed_holding):
+    raise HTTPException(status_code=400, detail="Unsupported H4 expiry selection")
+  if execution.mode == "single" and not (
+    len(execution.stopAtrValues) == len(execution.targetRValues) == len(execution.holdingCandles) == 1
+  ):
+    raise HTTPException(status_code=400, detail="Single-contract experiments require one stop, target, and expiry")
+  return {"item": item, "treatment": treatment}
+
+
+def _execute_workbench_experiment(experiment_id: str) -> None:
+  experiment = _research_store.get_fms_experiment(experiment_id)
+  if experiment is None:
+    return
+  try:
+    _research_store.update_fms_experiment(experiment_id, "running")
+    configuration = dict(experiment["configuration"])
+    bundle = _workbench_source_bundle(list(configuration["sourceRunIds"]))
+    if bundle["datasetFingerprint"] != experiment["datasetFingerprint"]:
+      raise ValueError("The recorded source dataset changed before this experiment started; submit a new E experiment")
+    result = build_workbench_experiment(
+      bundle["sources"], bundle["candles"], configuration, int(_time.time())
+    )
+    result.update({
+      "experimentId": experiment_id,
+      "configurationHash": experiment["configurationHash"],
+      "datasetFingerprint": experiment["datasetFingerprint"],
+      "catalogSnapshot": experiment["catalogSnapshot"],
+    })
+    _research_store.update_fms_experiment(experiment_id, "completed", result=result)
+  except Exception as exc:  # noqa: BLE001 - persist the complete local research failure
+    logger.exception("FMS workbench experiment %s failed", experiment_id)
+    _research_store.update_fms_experiment(experiment_id, "failed", error=str(exc))
+
+
+@app.post("/research/experiments")
+def create_research_experiment(payload: FmsExperimentRequest) -> Dict[str, Any]:
+  bundle = _workbench_source_bundle()
+  catalog = _workbench_catalog(bundle)
+  selection = _validate_experiment_request(payload, catalog)
+  configuration = {
+    "sourceVersionId": selection["item"]["sourceVersionId"],
+    "signature": selection["item"]["signature"],
+    "scoringPolicy": payload.scoringPolicy,
+    "cohort": payload.cohort.model_dump(),
+    "reaction": payload.reaction,
+    "execution": payload.execution.model_dump(),
+    "entry": "first_h4_open_strictly_after_release",
+    "sourceRunIds": bundle["runIds"],
+    "researchPriceCutoff": bundle["cutoff"],
+    "candleRevision": bundle["candleRevision"],
+  }
+  configuration_hash = hashlib.sha256(
+    json.dumps(configuration, sort_keys=True, separators=(",", ":")).encode("utf-8")
+  ).hexdigest()
+  experiment_id = _research_store.allocate_fms_id("E")
+  _research_store.create_fms_experiment(
+    experiment_id,
+    payload.friendlyName.strip(),
+    int(_time.time()),
+    configuration,
+    configuration_hash,
+    selection["item"],
+    bundle["datasetFingerprint"],
+  )
+  cached = _research_store.find_completed_fms_experiment(
+    configuration_hash, bundle["datasetFingerprint"]
+  )
+  if cached and cached["id"] != experiment_id and cached.get("result"):
+    result = {**cached["result"], "experimentId": experiment_id, "reusedResultFrom": cached["id"]}
+    _research_store.update_fms_experiment(experiment_id, "completed", result=result)
+  else:
+    _research_executor.submit(_execute_workbench_experiment, experiment_id)
+  return _research_store.get_fms_experiment(experiment_id) or {}
+
+
+@app.get("/research/experiments")
+def list_research_experiments() -> List[Dict[str, Any]]:
+  return [_experiment_summary(row) for row in _research_store.list_fms_experiments(500)]
+
+
+@app.get("/research/experiments/{experiment_id}")
+def get_research_experiment(experiment_id: str) -> Dict[str, Any]:
+  experiment = _research_store.get_fms_experiment(experiment_id)
+  if experiment is None:
+    raise HTTPException(status_code=404, detail="Unknown FMS experiment")
+  return experiment
+
+
+@app.post("/research/experiments/{experiment_id}/freeze")
+def freeze_research_experiment(
+  experiment_id: str, payload: FmsCandidateFreezeRequest
+) -> Dict[str, Any]:
+  existing = next((
+    row for row in _research_store.list_fms_candidates()
+    if row["experimentId"] == experiment_id
+  ), None)
+  if existing is not None:
+    return existing
+  experiment = _research_store.get_fms_experiment(experiment_id)
+  if experiment is None:
+    raise HTTPException(status_code=404, detail="Unknown FMS experiment")
+  if experiment["status"] != "completed" or not isinstance(experiment.get("result"), dict):
+    raise HTTPException(status_code=409, detail="Only completed experiments can be frozen")
+  checks = dict(experiment["result"].get("checks") or {})
+  failed = [name for name, passed in checks.items() if not passed]
+  if failed and not payload.acknowledgeFailedGates:
+    raise HTTPException(
+      status_code=409,
+      detail=f"Acknowledge failed gates before freezing: {', '.join(failed)}",
+    )
+  candidate_id = _research_store.allocate_fms_id("C")
+  _research_store.create_fms_candidate(
+    candidate_id,
+    experiment_id,
+    payload.friendlyName.strip(),
+    int(_time.time()),
+    payload.acknowledgeFailedGates,
+    checks,
+    experiment["configurationHash"],
+    experiment["datasetFingerprint"],
+  )
+  return next(row for row in _research_store.list_fms_candidates() if row["id"] == candidate_id)
+
+
+@app.get("/research/candidates")
+def list_research_candidates() -> List[Dict[str, Any]]:
+  return _research_store.list_fms_candidates()
+
+
+@app.get("/research/candidates/{candidate_id}")
+def get_research_candidate(candidate_id: str) -> Dict[str, Any]:
+  candidate = next((
+    row for row in _research_store.list_fms_candidates()
+    if row["id"] == candidate_id
+  ), None)
+  if candidate is None:
+    raise HTTPException(status_code=404, detail="Unknown frozen FMS candidate")
+  return candidate
+
+
+@app.get("/research/archive")
+def research_archive() -> List[Dict[str, Any]]:
+  return _research_store.list_signal_version_archive()
 
 
 @app.get("/research/versions/current")

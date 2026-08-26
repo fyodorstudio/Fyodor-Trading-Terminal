@@ -15,7 +15,7 @@ const TAB_HELP_TEXT: Partial<Record<TabId, string>> = {
   charts: "What is price doing right now?",
   calendar: "What events are scheduled and when?",
   "central-banks": "What is the policy and inflation backdrop?",
-  dashboard: "Active specialist tools: replay, macro drivers, and differential calculator.",
+  dashboard: "Open the FMS Experiment Workbench or other specialist research surfaces.",
 };
 
 export function TabNavigation({ activeTab, setActiveTab, tabOrder, placement = "page" }: TabNavigationProps) {

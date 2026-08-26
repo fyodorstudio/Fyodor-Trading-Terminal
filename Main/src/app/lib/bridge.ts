@@ -11,6 +11,9 @@ import type {
   MacroSignalChartSignalResponse,
   MacroSignalForwardPaper,
   MacroSignalVersion,
+  FmsExperiment,
+  FmsFrozenCandidate,
+  FmsWorkbench,
   MarketStatusResponse,
 } from "@/app/types";
 
@@ -260,6 +263,58 @@ export async function fetchMacroSignalCoverage(): Promise<MacroSignalCoverage> {
 
 export async function fetchMacroSignalExpansionReport(): Promise<MacroSignalExpansionReport> {
   return fetchJson<MacroSignalExpansionReport>(`${BRIDGE_BASE}/research/expansion-report`);
+}
+
+export async function fetchFmsWorkbench(): Promise<FmsWorkbench> {
+  return fetchJson<FmsWorkbench>(`${BRIDGE_BASE}/research/workbench`);
+}
+
+export async function createFmsExperiment(payload: {
+  friendlyName: string;
+  catalogId: string;
+  scoringPolicy: "baseline" | "momentum_only" | "forecast_quality";
+  cohort: { dimension: string; value: string };
+  reaction: "continuation" | "contrarian";
+  execution: {
+    mode: "single" | "matrix";
+    stopAtrValues: number[];
+    targetRValues: number[];
+    holdingCandles: number[];
+  };
+}): Promise<FmsExperiment> {
+  const response = await fetch(`${BRIDGE_BASE}/research/experiments`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { detail?: string } | null;
+    throw new Error(body?.detail || `Experiment request failed (${response.status})`);
+  }
+  return response.json() as Promise<FmsExperiment>;
+}
+
+export async function fetchFmsExperiment(experimentId: string): Promise<FmsExperiment> {
+  return fetchJson<FmsExperiment>(`${BRIDGE_BASE}/research/experiments/${encodeURIComponent(experimentId)}`);
+}
+
+export async function freezeFmsExperiment(
+  experimentId: string,
+  payload: { friendlyName: string; acknowledgeFailedGates: boolean },
+): Promise<FmsFrozenCandidate> {
+  const response = await fetch(
+    `${BRIDGE_BASE}/research/experiments/${encodeURIComponent(experimentId)}/freeze`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    },
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => null) as { detail?: string } | null;
+    throw new Error(body?.detail || `Candidate freeze failed (${response.status})`);
+  }
+  return response.json() as Promise<FmsFrozenCandidate>;
 }
 
 export async function fetchMacroSignalVersion(): Promise<MacroSignalVersion> {

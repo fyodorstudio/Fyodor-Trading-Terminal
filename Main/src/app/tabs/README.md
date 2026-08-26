@@ -17,7 +17,7 @@ Treat these as active product surfaces.
 
 ## `secondary/`
 
-Secondary tabs live under Specialist Tools. Active secondary tools currently include `EventReplayTab.tsx`, `DifferentialCalculatorTab.tsx`, `MacroDriversTab.tsx`, and the research-only `MacroSignalLabTab.tsx`; `PrototypingTab.tsx` is only the shell that opens the garbage drawer.
+Secondary routes live under Specialist Tools. `MacroSignalLabTab.tsx` renders the active **FMS Experiment Workbench** and `DifferentialCalculatorTab.tsx` remains an active experiment. Event Replay, Macro Drivers, and Prototyping retain stable routes but are presented under `Garbage / Ignore` and must not steer active product design.
 
 Keep this folder limited to active secondary surfaces and shells.
 

@@ -13,6 +13,7 @@ const venvDir = path.join(bridgeDir, ".venv");
 const bridgeHost = "127.0.0.1";
 const bridgePort = 8001;
 const bridgeHealthUrl = `http://${bridgeHost}:${bridgePort}/health`;
+const expectedApiRevision = "2026-08-26-fms-workbench-v1";
 const venvPython = path.join(
   venvDir,
   process.platform === "win32" ? "Scripts" : "bin",
@@ -34,19 +35,19 @@ function probeBridgeHealth(timeoutMs = 1500) {
       response.on("end", () => {
         try {
           const payload = JSON.parse(body);
-          resolve(
-            response.statusCode === 200 &&
-              payload?.ok === true &&
-              payload?.bridge_connected === true,
-          );
+          if (response.statusCode !== 200 || payload?.ok !== true || payload?.bridge_connected !== true) {
+            resolve("unavailable");
+          } else {
+            resolve(payload?.api_revision === expectedApiRevision ? "compatible" : "stale");
+          }
         } catch {
-          resolve(false);
+          resolve("unavailable");
         }
       });
     });
 
     request.on("timeout", () => request.destroy());
-    request.on("error", () => resolve(false));
+    request.on("error", () => resolve("unavailable"));
   });
 }
 
@@ -69,14 +70,15 @@ async function findRunningBridge() {
   // A reloader may briefly own the port before the FastAPI app is ready.
   // Retry before deciding that another application owns the bridge port.
   for (let attempt = 0; attempt < 3; attempt += 1) {
-    if (await probeBridgeHealth()) {
-      return true;
+    const status = await probeBridgeHealth();
+    if (status !== "unavailable") {
+      return status;
     }
     if (attempt < 2) {
       await wait(500);
     }
   }
-  return false;
+  return "unavailable";
 }
 
 function superviseExistingBridge() {
@@ -174,9 +176,16 @@ function startBridge() {
 async function main() {
   ensureBridgeFiles();
 
-  if (await findRunningBridge()) {
+  const runningBridge = await findRunningBridge();
+  if (runningBridge === "compatible") {
     superviseExistingBridge();
     return;
+  }
+
+  if (runningBridge === "stale") {
+    throw new Error(
+      `An outdated Fyodor bridge is already running on port ${bridgePort}. Stop that bridge and run this command again so the current API can start.`,
+    );
   }
 
   if (await isBridgePortInUse()) {

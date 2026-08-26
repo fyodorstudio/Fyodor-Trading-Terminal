@@ -48,7 +48,7 @@ This is the short orientation doc for future AI and human sessions. Read it with
    - Event explanations should remain cautious and concise.
 
 5. `Specialist Tools`
-   - Current state: short grouped drawer with Differential Calculator, Macro Drivers, active Event Replay, research-only Macro Signal Lab, and the Prototyping garbage drawer.
+   - Current state: `FMS Experiment Workbench` is the sole Active Tool; Differential Calculator is an Active Experiment; Event Replay, Macro Drivers, and Prototyping are retained under Garbage / Ignore.
    - Six Questions and WIP Map are no longer direct Specialist Tools children.
 
 ## App Loading
@@ -75,12 +75,13 @@ Current direct children under `Specialist Tools`:
    - Primary pair-first replay surface for studying scheduled event reactions.
    - Shows base/quote event types first, major global movers separately, past releases, replay controls, and descriptive replay notes.
 
-4. `Active Experiment` / `MACRO SIGNAL LAB`
-   - EURUSD/H4 immutable-version research surface: rejected Economy v1 plus active country-aware, aggregate-EU/US Labor v2 with an automatic immutable forward-paper ledger.
+4. `Active Tool` / `FMS EXPERIMENT WORKBENCH`
+   - Bounded EURUSD/H4 FMS Experiment Workbench with a current-model strip, searchable exact-signature builder, recorded single/matrix experiments, frozen review candidates, AI/JSON handoff, tutorial, and collapsed legacy archive.
+   - New durable identifiers are E (recorded experiment), C (frozen review candidate), and reserved M (reviewed Charts model). Freezing never changes Charts; there is intentionally no promotion API or UI.
    - Uses durable bridge calendar storage and cached MT5 H4/M1 candles.
    - Reports gross historical Long/Short bias cases, explicit ambiguity, holdout results, and paper-eligibility checks without placing orders.
    - Historical backfill and v1/v2/v3/v5/v7 source runs are complete. The upgraded EA's successful cycle acknowledgement activates immutable first-seen capture. Charts v13 consumes registered source observations prospectively, enforces exact package identities where declared, carries a frozen execution contract per setup, applies the past-only Forecast guard, keeps unregistered candidates in hindsight research, and never uses context as an unstated signal filter.
-   - Macro Signal Lab also exposes v11 numeric-robustness and v12 Forecast-policy reused-history research. These reports informed v13's input safeguard but did not promote any failed expansion candidate.
+   - Legacy v1-v13 definitions and runs remain reproducible but no longer occupy primary Lab navigation. V11/v12 artifacts inform guarded catalog treatments when their durable cache exists; opening the Lab does not recalculate them.
 
 5. `Garbage / Ignore` / `PROTOTYPING`
    - Garbage drawer for old unfinished surfaces, deprecated planning drafts, and ignored tools.
@@ -117,7 +118,7 @@ Current Event Replay implementation entrypoint:
 ## Tab Folder Map
 
 - `Main/src/app/tabs/primary/` contains always-visible primary workflow tabs.
-- `Main/src/app/tabs/secondary/` contains Event Replay, Differential Calculator, Macro Drivers, Macro Signal Lab, and the Prototyping shell.
+- `Main/src/app/tabs/secondary/` retains the stable route components, but only FMS Experiment Workbench and Differential Calculator are active product surfaces. Event Replay, Macro Drivers, and Prototyping are navigation-level Garbage / Ignore surfaces.
 - `Main/src/app/tabs/garbage/` contains old unfinished, deprecated, or ignored routed surfaces. Ignore it unless the user explicitly asks for one of those screens.
 - `Main/src/app/lib/garbage/` contains supporting logic for garbage-drawer routes. Ignore it unless the user explicitly asks for that logic.
 - `Main/src/app/tests/garbage/` contains tests for garbage-drawer routes and logic. Ignore it unless the user explicitly asks for garbage-drawer work.

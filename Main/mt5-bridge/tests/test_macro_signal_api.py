@@ -171,3 +171,67 @@ def test_expansion_report_uses_actual_current_catalog_not_declared_candidates(mo
   assert second.status_code == 200
   assert second.json()["cached"] is True
   assert captured["reportCalls"] == 1
+
+
+def test_workbench_validation_rejects_unrestricted_treatment_combinations() -> None:
+  catalog = {"items": [{
+    "id": "catalog-a",
+    "treatments": [{"dimension": "none", "value": "all", "reaction": "continuation"}],
+  }]}
+  payload = server.FmsExperimentRequest.model_validate({
+    "friendlyName": "Invalid intersection",
+    "catalogId": "catalog-a",
+    "scoringPolicy": "forecast_quality",
+    "cohort": {"dimension": "evidenceMode", "value": "agreement"},
+    "reaction": "continuation",
+    "execution": {
+      "mode": "single",
+      "stopAtrValues": [1],
+      "targetRValues": [2],
+      "holdingCandles": [30],
+    },
+  })
+
+  try:
+    server._validate_experiment_request(payload, catalog)
+    raise AssertionError("expected unsupported treatment rejection")
+  except server.HTTPException as error:
+    assert error.status_code == 400
+    assert "Unsupported evidence-treatment" in str(error.detail)
+
+
+def test_failed_gate_freeze_requires_acknowledgement_and_never_promotes_charts(tmp_path: Path, monkeypatch) -> None:
+  store = ResearchStore(tmp_path / "research.sqlite3")
+  experiment_id = store.allocate_fms_id("E")
+  store.create_fms_experiment(
+    experiment_id,
+    "Weak holdout",
+    100,
+    {"signature": "long|EUR:sentiment"},
+    "config-a",
+    {"id": "catalog-a"},
+    "dataset-a",
+  )
+  store.update_fms_experiment(
+    experiment_id,
+    "completed",
+    result={"checks": {"holdoutLower95Positive": False}},
+  )
+  monkeypatch.setattr(server, "_research_store", store)
+
+  rejected = client.post(
+    f"/research/experiments/{experiment_id}/freeze",
+    json={"friendlyName": "Review", "acknowledgeFailedGates": False},
+  )
+  assert rejected.status_code == 409
+  assert "Acknowledge failed gates" in rejected.text
+
+  accepted = client.post(
+    f"/research/experiments/{experiment_id}/freeze",
+    json={"friendlyName": "Review", "acknowledgeFailedGates": True},
+  )
+  assert accepted.status_code == 200
+  assert accepted.json()["id"] == "FMS-EURUSD-H4-C001"
+  assert accepted.json()["failedGateAcknowledged"] is True
+  assert client.get("/research/candidates/FMS-EURUSD-H4-C001").json()["experimentId"] == experiment_id
+  assert client.post("/research/candidates/FMS-EURUSD-H4-C001/promote").status_code == 404

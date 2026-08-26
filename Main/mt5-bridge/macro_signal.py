@@ -1686,6 +1686,8 @@ def _sequential_research_account(rows: Sequence[Dict[str, Any]]) -> Dict[str, An
   taken = 0
   skipped_overlap = 0
   skipped_conflict = 0
+  results_r: List[float] = []
+  gross_results_r: List[float] = []
   ordered = sorted(rows, key=lambda row: (int(row["activationTime"]), str(row["patternId"])))
   index = 0
   while index < len(ordered):
@@ -1709,6 +1711,9 @@ def _sequential_research_account(rows: Sequence[Dict[str, Any]]) -> Dict[str, An
     if result is None:
       continue
     cumulative_r += float(result)
+    results_r.append(float(result))
+    if selected.get("grossResultR") is not None:
+      gross_results_r.append(float(selected["grossResultR"]))
     peak_r = max(peak_r, cumulative_r)
     maximum_drawdown_r = max(maximum_drawdown_r, peak_r - cumulative_r)
     taken += 1
@@ -1719,6 +1724,8 @@ def _sequential_research_account(rows: Sequence[Dict[str, Any]]) -> Dict[str, An
     "skippedOverlap": skipped_overlap,
     "skippedConflict": skipped_conflict,
     "drawdownBasis": "intratrade_mae_when_available",
+    "resultsR": results_r,
+    "grossResultsR": gross_results_r,
   }
 
 
@@ -2079,6 +2086,178 @@ def build_candidate_stress_report(
   }
 
 
+def build_workbench_experiment(
+  source_results: Sequence[Dict[str, Any]],
+  h4_candles: Sequence[Dict[str, Any]],
+  configuration: Dict[str, Any],
+  generated_at: int,
+) -> Dict[str, Any]:
+  """Evaluate one guarded, recorded Lab experiment without changing Charts."""
+  source_version = str(configuration["sourceVersionId"])
+  signature = str(configuration["signature"])
+  scoring_policy = str(configuration["scoringPolicy"])
+  reaction = str(configuration["reaction"])
+  cohort = dict(configuration.get("cohort") or {})
+  execution = dict(configuration["execution"])
+  source = next(
+    (row for row in source_results if str(row["versionId"]) == source_version),
+    None,
+  )
+  if source is None:
+    raise ValueError(f"Unknown source version: {source_version}")
+  if scoring_policy not in {"baseline", "momentum_only", "forecast_quality"}:
+    raise ValueError(f"Unsupported scoring policy: {scoring_policy}")
+  if reaction not in {"continuation", "contrarian"}:
+    raise ValueError(f"Unsupported reaction: {reaction}")
+
+  rescored, forecast_audit = _rescore_policy_outcomes(
+    list(source["outcomes"]), scoring_policy
+  )
+  outcomes = _annotate_numeric_robustness(rescored)
+  known_pattern = next((
+    pattern for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
+    if str(pattern["sourceVersion"]) == source_version
+    and signature in pattern["signatures"]
+  ), None)
+  rows: List[Dict[str, Any]] = []
+  for outcome in outcomes:
+    if outcome.get("direction") not in {"long", "short"}:
+      continue
+    if candidate_pattern_signature(outcome) != signature:
+      continue
+    robustness = {
+      **dict(outcome.get("numericRobustness", {})),
+      "packageCompleteness": _package_completeness(
+        {**outcome, "signature": signature}, known_pattern
+      ),
+    }
+    dimension = str(cohort.get("dimension") or "none")
+    value = str(cohort.get("value") or "all")
+    if dimension != "none" and str(robustness.get(dimension, "unknown")) != value:
+      continue
+    rows.append({
+      **outcome,
+      "signature": signature,
+      "numericRobustness": robustness,
+    })
+
+  candles = sorted(h4_candles, key=lambda candle: int(candle["time"]))
+  candle_times = [int(candle["time"]) for candle in candles]
+  atr_values = calculate_atr_by_candle(candles)
+  profiles = [
+    profile for row in sorted(rows, key=lambda item: int(item["eventTime"]))
+    if (profile := _build_policy_path_profile(row, candles, candle_times, atr_values)) is not None
+  ]
+  if reaction == "contrarian":
+    profiles = [{
+      **profile,
+      "outcome": {
+        **profile["outcome"],
+        "direction": "short" if profile["direction"] == "long" else "long",
+      },
+      "direction": "short" if profile["direction"] == "long" else "long",
+      "sign": -float(profile["sign"]),
+    } for profile in profiles]
+  if not profiles:
+    raise ValueError("No evaluable historical cases match this guarded experiment")
+
+  stop_values = [float(value) for value in execution["stopAtrValues"]]
+  target_values = [float(value) for value in execution["targetRValues"]]
+  holding_values = [int(value) for value in execution["holdingCandles"]]
+  latest_event_time = max(int(row["eventTime"]) for row in rows)
+  split_time = int(source["splitTime"])
+  configurations = [
+    _evaluate_path_configuration(
+      profiles, split_time, latest_event_time, stop_atr, target_r, holding
+    )
+    for stop_atr in stop_values
+    for target_r in target_values
+    for holding in holding_values
+  ]
+  if str(execution["mode"]) == "single":
+    selected = configurations[0]
+  else:
+    selectable = [
+      row for row in configurations
+      if row["development"].get("stressedAverageR") is not None
+    ]
+    def workbench_selection_key(row: Dict[str, Any]) -> Tuple[float, float, float]:
+      lower = (row["development"].get("stressedExpectancyCi95") or {}).get("lower")
+      average = row["development"].get("stressedAverageR")
+      return (
+        float(lower) if lower is not None else -999.0,
+        float(average) if average is not None else -999.0,
+        -abs(float(row["stopAtr"]) - 1.0)
+        -abs(float(row["targetR"]) - 2.0)
+        -abs(int(row["holdingCandles"]) - 30) / 30,
+      )
+    selected = max(
+      selectable,
+      key=workbench_selection_key,
+      default=None,
+    )
+    if selected is None:
+      raise ValueError("The selected matrix has insufficient development cases")
+
+  simulations = _simulate_path_configuration(
+    profiles,
+    float(selected["stopAtr"]),
+    float(selected["targetR"]),
+    int(selected["holdingCandles"]),
+  )
+  profiles_by_time = {int(profile["eventTime"]): profile for profile in profiles}
+  account_rows = []
+  for simulation in simulations:
+    profile = profiles_by_time[int(simulation["eventTime"])]
+    exit_time = simulation.get("exitTime")
+    adverse = [
+      value for candle, value in zip(profile["candles"], profile["adverse"])
+      if exit_time is None or int(candle["time"]) <= int(exit_time)
+    ]
+    account_rows.append({
+      **simulation,
+      "activationTime": int(profile["entryTime"]),
+      "direction": str(profile["direction"]),
+      "patternId": signature,
+      "maximumAdverseR": min(
+        1.0,
+        max(adverse, default=0.0) / float(selected["stopAtr"]),
+      ),
+    })
+  checks, strict_checks = _stress_configuration_checks(selected)
+  stability = _configuration_stability(configurations, selected)
+  path = summarize_candidate_paths(profiles, int(selected["holdingCandles"]))
+  return {
+    "generatedAt": generated_at,
+    "sourceVersionId": source_version,
+    "signature": signature,
+    "scoringPolicy": scoring_policy,
+    "cohort": cohort,
+    "reaction": reaction,
+    "historicalN": len(profiles),
+    "splitTime": split_time,
+    "selection": (
+      "single_declared_contract" if execution["mode"] == "single"
+      else "development_lower95_then_average"
+    ),
+    "configurationsTested": len(configurations),
+    "selectedConfiguration": selected,
+    "configurationStability": stability,
+    "path": path,
+    "sequentialAccount": _sequential_research_account(account_rows),
+    "checks": strict_checks,
+    "passesExploratoryScreen": all(checks.values()),
+    "passesStrictHoldoutCheck": all(strict_checks.values()),
+    "forecastQualityAudit": forecast_audit,
+    "limitations": [
+      "Reused historical research cannot validate itself or prove causation.",
+      "The simulation is gross; spread, commission, slippage, and swap are excluded.",
+      "The entry remains the first H4 open strictly after the release.",
+      "Holdout and recent results never select a matrix configuration.",
+    ],
+  }
+
+
 CHART_SIGNAL_QUALIFICATION = {
   "targetR": 2.0,
   "minimumOverallEvaluable": 40,
@@ -2195,6 +2374,28 @@ CHART_SIGNAL_MODEL_CONFIGURATION = {
 CHART_SIGNAL_MODEL_HASH = hashlib.sha256(
   json.dumps(CHART_SIGNAL_MODEL_CONFIGURATION, sort_keys=True, separators=(",", ":")).encode("utf-8")
 ).hexdigest()
+
+# Historical registration snapshots are display/audit metadata. They are kept
+# outside CHART_SIGNAL_MODEL_CONFIGURATION so they cannot rewrite an immutable
+# Charts-model hash.
+CHART_SIGNAL_REGISTRATION_EVIDENCE = {
+  "euro-consumer-sentiment-directional": {
+    "scoringPolicy": "baseline",
+    "cohort": "all_matching_cases",
+    "reaction": "continuation",
+    "evaluable": 99,
+    "targetFirst": 40,
+    "stopFirst": 57,
+    "expired": 2,
+    "stressedAverageR": 0.133,
+    "developmentAverageR": 0.068,
+    "holdoutAverageR": 0.327,
+    "recentAverageR": 0.523,
+    "positiveYears": 8,
+    "evaluatedYears": 11,
+    "stressPips": 3.0,
+  },
+}
 
 
 def candidate_pattern_signature(candidate: Dict[str, Any]) -> str:

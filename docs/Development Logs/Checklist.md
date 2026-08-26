@@ -110,6 +110,8 @@ These are independent exploration sketches, not committed implementation specifi
 
 ## Fyodor Macro Signal
 
+- [x] Replace the version-heavy Macro Signal Lab with the bounded FMS Experiment Workbench: guarded exact-signature experiments, single/controlled-matrix execution, durable E/C records, failed-gate acknowledgement, current-model summary, frozen-candidate table, AI/JSON handoff, full-screen tutorial, and collapsed immutable v1-v13 archive. Reserve M identifiers for a separate reviewed Charts implementation and expose no automatic promotion path.
+
 - [x] Freeze and document `FMS-EURUSD-ECO-H4-v1` before inspecting results.
 - [x] Replace the bridge's temporary calendar list with durable local SQLite history and explicit EUR/USD coverage reporting.
 - [x] Add the versioned backend Economy simulation with strict next-H4 entry, ATR(14) Wilder risk, 1R/1.5R/2R targets, 30-H4 expiry, independent cases, and M1 ambiguity resolution.

@@ -1,9 +1,23 @@
 # Fyodor Macro Signal Research
 
-**Date:** 2026-08-21
+**Date:** 2026-08-26
 **Status:** Economy v1 was rejected. Country-aware Labor v2, Sentiment v3, Policy/Inflation v5, and Growth v7 remain source-research models with immutable forward ledgers. Charts uses prospective `FMS-EURUSD-FORECAST-GUARD-H4-v13`, retaining the v10 setup identities while excluding only past-detectable anomalous Forecast comparisons. Current Model signals remain strictly separated from hindsight Research Replay. Numeric robustness and Forecast-policy research remain documented as v11/v12.
 
 **AI working-memory rule:** This is the single canonical FMS research record for future AI sessions. Preserve decisions, failed trials, candidate diagnoses, and unresolved ideas here so research is not reconstructed from chat memory. Do not create a second FMS roadmap unless the user explicitly changes this rule.
+
+## Experiment Workbench Namespace (2026-08-26)
+
+FMS Experiment Workbench is the guarded no-code research surface. It automates repeatable calculations while leaving interpretation and Charts promotion to explicit human/AI review.
+
+- `FMS-EURUSD-H4-E001`: immutable recorded experiment. Every official button-triggered run receives a new E identifier, including failures.
+- `FMS-EURUSD-H4-C001`: immutable frozen review candidate referencing exactly one E record. Failed gates require explicit acknowledgement and remain visible.
+- `FMS-EURUSD-H4-M001`: reserved for a future reviewed Charts model. The Lab has no promotion endpoint or control.
+- Existing v1-v13 identifiers are immutable history and remain reproducible in the collapsed Research Archive.
+- The current Charts model remains `FMS-EURUSD-FORECAST-GUARD-H4-v13`, displayed as `Forecast Guard · Legacy v13`, until a reviewed M model replaces it.
+
+The first builder is deliberately guarded: one detected EURUSD directional signature, one scoring policy (Baseline, Momentum-only, or Forecast Guard), one supported cohort, and either continuation or rejection. It rejects arbitrary title expressions and unrestricted intersections. Entry and historical partitions remain fixed. A single-contract run tests one declared stop/target/expiry; a controlled matrix tests selected values from the existing fixed grids and selects only with development lower-95 expectancy followed by development average. Holdout and recent data remain audits.
+
+Experiment and candidate rows persist configuration/catalog snapshots, hashes, dataset fingerprints, status, results or errors, and parent references in SQLite. Opening the Lab uses durable catalog/cache artifacts and does not launch the expensive expansion scan. Account balance and risk are presentation-only; all research remains gross with spread, commission, slippage, and swap excluded.
 
 ## Purpose
 
@@ -11,7 +25,7 @@ Fyodor Macro Signal is a local, research-first attempt to answer a narrow questi
 
 > When a registered EUR or USD economic-release package produced a particular directional evidence pattern, how did EURUSD subsequently behave under one frozen H4 trade simulation?
 
-The research surface will be named **Macro Signal Lab**. Its first version will be **FMS-EURUSD-ECO-H4-v1**.
+The active research surface is named **FMS Experiment Workbench** and retains the stable internal route id `macro-signal-lab`. Its first historical version remains **FMS-EURUSD-ECO-H4-v1**.
 
 The feature is intended to reduce manual economic-data reading and make historical behavior auditable. It is not an automatic order system, a guarantee of profit, or proof that an economic release caused a price move.
 
@@ -39,7 +53,7 @@ Member-country EUR releases are not assumed irrelevant. They are excluded from v
 - The first model uses registered **Economy** evidence only.
 - Inflation and Policy remain visible research context and will be investigated as separate future models before any combined model is considered.
 - Directional outputs are **Long bias**, **Short bias**, and **No direction**. They are research classifications, not executable orders.
-- The Macro Signal Lab remains the full research surface. Charts may show historically recurring v2 patterns immediately when they pass fixed development-and-holdout gates, but they must be labeled experimental and expose their audit. Forward paper results determine whether those patterns can later be called validated.
+- FMS Experiment Workbench remains the full research surface. Charts may show historically recurring v2 patterns immediately when they pass fixed development-and-holdout gates, but they must be labeled experimental and expose their audit. Forward paper results determine whether those patterns can later be called validated.
 - The initial Lab will be a fixed case explorer, not an optimizer, recipe builder, or automatic leaderboard.
 - Existing Pair Matrix raw data remains the audit source.
 

@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from macro_signal import (
   aggregate_outcomes,
   build_backtest_result,
+  build_workbench_experiment,
   build_chart_signal_pattern_catalog,
   build_chart_signal_realtime_watch,
   build_candidate_path_profile,
@@ -550,3 +551,54 @@ def test_v2_is_labor_only_country_aware_and_scoped_to_eu_us_aggregates() -> None
   assert result["eligibility"]["historicalEligibilityDisabled"] is True
   assert result["forwardPaper"]["metrics"]["candidateCount"] == 0
   assert result["conclusion"]["code"] == "forward_observation_required"
+
+
+def test_workbench_single_contract_preserves_signature_and_declared_execution() -> None:
+  definition = get_signal_definition(V2_VERSION_ID)
+  candle_rows = candles(count=150)
+  events = [{
+    **calendar_event(
+      index,
+      14_400 * (20 + index * 2) + 1,
+      "EUR",
+      "Unemployment Rate",
+      str(4.5 - index * 0.01),
+      str(4.6 - index * 0.01),
+      str(4.7 - index * 0.01),
+    ),
+    "countryCode": "EU",
+  } for index in range(1, 41)]
+  outcomes = build_signal_candidates(events, now=14_400 * 149, definition=definition)
+  signature = candidate_pattern_signature(outcomes[0])
+
+  result = build_workbench_experiment(
+    [{
+      "versionId": V2_VERSION_ID,
+      "outcomes": outcomes,
+      "splitTime": int(outcomes[28]["eventTime"]),
+      "generatedAt": 14_400 * 149,
+    }],
+    candle_rows,
+    {
+      "sourceVersionId": V2_VERSION_ID,
+      "signature": signature,
+      "scoringPolicy": "baseline",
+      "cohort": {"dimension": "none", "value": "all"},
+      "reaction": "continuation",
+      "execution": {
+        "mode": "single",
+        "stopAtrValues": [1.0],
+        "targetRValues": [2.0],
+        "holdingCandles": [30],
+      },
+    },
+    generated_at=14_400 * 150,
+  )
+
+  assert result["signature"] == signature
+  assert result["selection"] == "single_declared_contract"
+  assert result["configurationsTested"] == 1
+  assert result["selectedConfiguration"]["stopAtr"] == 1.0
+  assert result["selectedConfiguration"]["targetR"] == 2.0
+  assert result["selectedConfiguration"]["holdingCandles"] == 30
+  assert result["limitations"][1].startswith("The simulation is gross")

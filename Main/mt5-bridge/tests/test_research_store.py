@@ -109,3 +109,63 @@ def test_unfinished_research_runs_are_failed_after_bridge_restart(tmp_path: Path
   }
   assert store.get_backtest_run("running")["status"] == "failed"
   assert store.get_backtest_run("completed")["status"] == "completed"
+
+
+def test_fms_experiments_and_candidates_are_durable_immutable_snapshots(tmp_path: Path) -> None:
+  path = tmp_path / "research.sqlite3"
+  store = ResearchStore(path)
+  experiment_id = store.allocate_fms_id("E")
+  configuration = {"signature": "long|EUR:pmi", "execution": {"targetR": 2}}
+  catalog = {"id": "catalog-a", "exactTitles": ["Manufacturing PMI"]}
+  store.create_fms_experiment(
+    experiment_id, "EUR PMI", 100, configuration, "config-a", catalog, "dataset-a"
+  )
+  store.update_fms_experiment(
+    experiment_id,
+    "completed",
+    result={"checks": {"holdout": False}, "configurationHash": "config-a"},
+  )
+  candidate_id = store.allocate_fms_id("C")
+  store.create_fms_candidate(
+    candidate_id,
+    experiment_id,
+    "EUR PMI review",
+    110,
+    True,
+    {"holdout": False},
+    "config-a",
+    "dataset-a",
+  )
+
+  reopened = ResearchStore(path)
+  assert reopened.allocate_fms_id("E") == "FMS-EURUSD-H4-E002"
+  assert reopened.allocate_fms_id("C") == "FMS-EURUSD-H4-C002"
+  saved = reopened.get_fms_experiment("FMS-EURUSD-H4-E001")
+  assert saved["configuration"] == configuration
+  assert saved["catalogSnapshot"] == catalog
+  assert saved["configurationHash"] == "config-a"
+  assert saved["datasetFingerprint"] == "dataset-a"
+  candidate = reopened.list_fms_candidates()[0]
+  assert candidate["experimentId"] == experiment_id
+  assert candidate["failedGateAcknowledged"] is True
+  assert candidate["checks"] == {"holdout": False}
+
+
+def test_unfinished_fms_experiments_are_retained_as_failures(tmp_path: Path) -> None:
+  store = ResearchStore(tmp_path / "research.sqlite3")
+  for status in ("queued", "running", "completed"):
+    experiment_id = store.allocate_fms_id("E")
+    store.create_fms_experiment(
+      experiment_id, status, 100, {"status": status}, status, {"id": status}, "dataset"
+    )
+    store.update_fms_experiment(
+      experiment_id,
+      status,
+      result={"ok": True} if status == "completed" else None,
+    )
+
+  assert store.mark_unfinished_fms_experiments_failed("Bridge restarted") == 2
+  rows = {row["friendlyName"]: row for row in store.list_fms_experiments()}
+  assert rows["queued"]["status"] == "failed"
+  assert rows["running"]["error"] == "Bridge restarted"
+  assert rows["completed"]["status"] == "completed"

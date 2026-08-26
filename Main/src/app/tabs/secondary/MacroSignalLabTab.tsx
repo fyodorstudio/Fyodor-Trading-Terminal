@@ -1,582 +1,224 @@
 import { useEffect, useMemo, useState } from "react";
-import {
-  AlertTriangle,
-  Beaker,
-  CheckCircle2,
-  Clock3,
-  Database,
-  FlaskConical,
-  Play,
-  RefreshCw,
-  ShieldCheck,
-} from "lucide-react";
-import {
-  fetchLatestMacroSignalBacktest,
-  fetchMacroSignalBacktest,
-  fetchMacroSignalCoverage,
-  fetchMacroSignalForwardPaper,
-  fetchMacroSignalVersions,
-  startMacroSignalBacktest,
-  fetchMacroSignalExpansionReport,
-} from "@/app/lib/bridge";
-import { MacroSignalExpansionResearch } from "@/app/components/MacroSignalExpansionResearch";
-import type {
-  MacroSignalBacktestRun,
-  MacroSignalCoverage,
-  MacroSignalForwardPaper,
-  MacroSignalExpansionReport,
-  MacroSignalMetrics,
-  MacroSignalOutcome,
-  MacroSignalVersion,
-} from "@/app/types";
+import { AlertTriangle, Archive, Beaker, BookOpen, Check, Copy, Download, FlaskConical, Play, RefreshCw, Snowflake } from "lucide-react";
+import { createFmsExperiment, fetchFmsExperiment, fetchFmsWorkbench, freezeFmsExperiment } from "@/app/lib/bridge";
+import { FmsWorkbenchTutorial } from "@/app/components/FmsWorkbenchTutorial";
+import type { FmsCatalogItem, FmsCatalogTreatment, FmsExperiment, FmsExperimentResult, FmsFrozenCandidate, FmsWorkbench, MacroSignalStressMetrics } from "@/app/types";
 
-const TARGET_KEYS = ["1.0", "1.5", "2.0"] as const;
+const DEFAULT_STOPS = [1, 1.5, 2];
+const DEFAULT_TARGETS = [1, 1.5, 2];
+const DEFAULT_HOLDING = [18, 30, 42];
 
-function formatTimestamp(value: number | null | undefined): string {
-  if (value == null) return "Not available";
-  return new Date(value * 1000).toISOString().slice(0, 16).replace("T", " ") + " UTC";
-}
-
-function formatPercent(value: number | null): string {
-  return value == null ? "—" : `${(value * 100).toFixed(1)}%`;
-}
-
-function formatR(value: number | null): string {
+function formatR(value: number | null | undefined): string {
   if (value == null) return "—";
   return `${value > 0 ? "+" : ""}${value.toFixed(2)}R`;
 }
 
-function formatRange(value: { lower: number; upper: number } | null | undefined): string {
-  if (!value) return "—";
-  return `${formatR(value.lower)} to ${formatR(value.upper)}`;
+function formatPercent(value: number | null | undefined): string {
+  return value == null ? "—" : `${(value * 100).toFixed(1)}%`;
 }
 
-function formatCountryScope(value: Record<string, string[]> | string | undefined): string {
-  if (!value) return "All EUR/USD sources (legacy v1)";
-  if (typeof value === "string") return value;
-  return Object.entries(value).map(([currency, countries]) => `${currency}: ${countries.join("/")}`).join(" · ");
+function formatTime(value: number | null | undefined): string {
+  return value == null ? "—" : new Date(value * 1000).toISOString().slice(0, 16).replace("T", " ") + " UTC";
 }
 
-function formatPrice(value: number | undefined): string {
-  return value == null ? "—" : value.toFixed(5);
+function readable(value: string): string {
+  return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-function resultLabel(outcome: MacroSignalOutcome): string {
-  if (outcome.status === "target_hit") return "Target first";
-  if (outcome.status === "stop_hit") return "Stop first";
-  if (outcome.status === "expired") return "Expired";
-  if (outcome.status === "ambiguous") return "Both touched — order unknown";
-  if (outcome.status === "no_direction") return "No direction";
-  if (outcome.status === "pending") return "Monitoring";
-  return "Unevaluable";
+function scoringPolicyExplanation(policy: "baseline" | "momentum_only" | "forecast_quality"): string {
+  if (policy === "momentum_only") return "Momentum only: compare Actual with Previous. Forecast is ignored.";
+  if (policy === "baseline") return "Original baseline: Actual vs Forecast and Actual vs Previous receive equal weight.";
+  return "Forecast Guard: use the same two comparisons, but discard the Surprise vote when the broker Forecast looks historically unreliable. Momentum remains.";
 }
 
-function MetricsGrid({ metrics }: { metrics: MacroSignalMetrics }) {
-  const cells = [
-    ["Evaluable", String(metrics.evaluableCount)],
-    ["Target first", formatPercent(metrics.targetHitRate)],
-    ["Stop first", formatPercent(metrics.stopHitRate)],
-    ["Expired", formatPercent(metrics.expiredRate)],
-    ["Average", formatR(metrics.averageR)],
-    ["Ambiguous", String(metrics.ambiguousCount)],
-  ];
-  return (
-    <div className="macro-signal-metrics-grid">
-      {cells.map(([label, value]) => (
-        <div key={label} className="macro-signal-metric">
-          <span>{label}</span>
-          <strong>{value}</strong>
-        </div>
-      ))}
-    </div>
-  );
+function cohortExplanation(treatment: FmsCatalogTreatment | null): string {
+  if (!treatment || treatment.dimension === "none") return "All matching releases are included. No historical cases are filtered out.";
+  return `Only the ${treatment.label.toLowerCase()} subset is included. This is the cohort: a filtered group of otherwise matching historical releases.`;
 }
 
-function OutcomeTable({ outcomes }: { outcomes: MacroSignalOutcome[] }) {
-  const rows = useMemo(
-    () => [...outcomes].sort((left, right) => right.eventTime - left.eventTime),
-    [outcomes],
-  );
-  return (
-    <div className="macro-signal-table-scroll">
-      <table className="macro-signal-table">
-        <thead>
-          <tr>
-            <th>Release package</th>
-            <th>Bias</th>
-            <th>Evidence</th>
-            <th>Entry</th>
-            <th>Stop</th>
-            <th>2R target</th>
-            <th>Outcome</th>
-            <th>Result</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((outcome) => (
-            <tr key={`${outcome.eventTime}-${outcome.targetR}`}>
-              <td>
-                <strong>{formatTimestamp(outcome.eventTime)}</strong>
-                <small>{outcome.events.map((event) => `${event.currency}/${event.countryCode || "?"} ${event.title}`).join(" · ")}</small>
-              </td>
-              <td><strong>{outcome.direction === "long" ? "Long bias" : outcome.direction === "short" ? "Short bias" : "No direction"}</strong></td>
-              <td title={`Before evidence: ${outcome.backgroundAlignment}`}>{outcome.agreement === "consensus" ? "Consensus" : outcome.agreement === "conflicted_weak" ? "Conflicted / weak" : "Exact tie"}</td>
-              <td>{formatPrice(outcome.entry)}</td>
-              <td>{formatPrice(outcome.stop)}</td>
-              <td>{formatPrice(outcome.target)}</td>
-              <td title={outcome.reason}>{resultLabel(outcome)}</td>
-              <td><strong>{formatR(outcome.resultR)}</strong></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
+function compoundAccount(results: number[], startingBalance: number, riskPercent: number) {
+  let balance = startingBalance;
+  let peak = balance;
+  let maximumDrawdown = 0;
+  for (const result of results) {
+    balance *= Math.max(0, 1 + (riskPercent / 100) * result);
+    peak = Math.max(peak, balance);
+    maximumDrawdown = Math.max(maximumDrawdown, peak > 0 ? (peak - balance) / peak : 0);
+  }
+  return { balance, maximumDrawdown };
+}
+
+function buildAiSummary(experiment: FmsExperiment): string {
+  const result = experiment.result;
+  if (!result) return `${experiment.id} has no completed result.`;
+  const selected = result.selectedConfiguration;
+  const failures = Object.entries(result.checks).filter(([, passed]) => !passed).map(([name]) => readable(name));
+  return [
+    `# ${experiment.id} · ${experiment.friendlyName}`,
+    `- Setup: ${experiment.catalogSnapshot.label} (${experiment.catalogSnapshot.signature})`,
+    `- Evidence: ${readable(result.scoringPolicy)}; ${result.cohort.dimension === "none" ? "all matching cases" : `${readable(result.cohort.dimension)} = ${readable(result.cohort.value)}`}; ${readable(result.reaction)}`,
+    `- Contract: ${selected.stopAtr} ATR / ${selected.targetR}R / ${selected.holdingCandles} H4; ${result.selection}; ${result.configurationsTested} configurations`,
+    `- Historical N: ${result.historicalN}`,
+    `- Development: ${formatR(selected.development.stressedAverageR)} (N ${selected.development.evaluableCount})`,
+    `- Holdout: ${formatR(selected.holdout.stressedAverageR)} (N ${selected.holdout.evaluableCount}; lower 95% ${formatR(selected.holdout.stressedExpectancyCi95?.lower)})`,
+    `- Recent: ${formatR(selected.recent.stressedAverageR)} (N ${selected.recent.evaluableCount})`,
+    `- Positive years: ${selected.yearStability.positiveYears}/${selected.yearStability.evaluableYears}`,
+    `- Checks: ${failures.length ? `failed — ${failures.join(", ")}` : "all passed"}`,
+    `- Configuration hash: ${experiment.configurationHash}`,
+    `- Dataset fingerprint: ${experiment.datasetFingerprint}`,
+    `- Caveat: reused historical research; spread, commission, slippage, and swap are excluded.`,
+  ].join("\n");
+}
+
+function Metric({ label, value, detail }: { label: string; value: string; detail?: string }) {
+  return <div className="fms-workbench-metric"><span>{label}</span><strong>{value}</strong>{detail ? <small>{detail}</small> : null}</div>;
+}
+
+function PartitionMetrics({ label, metrics }: { label: string; metrics: MacroSignalStressMetrics }) {
+  return <article className="fms-result-partition"><h4>{label}</h4><div><Metric label="Average" value={formatR(metrics.stressedAverageR)} /><Metric label="N" value={String(metrics.evaluableCount)} /><Metric label="Target first" value={formatPercent(metrics.targetHitRate)} /><Metric label="Stop first" value={formatPercent(metrics.stopHitRate)} /><Metric label="Lower 95%" value={formatR(metrics.stressedExpectancyCi95?.lower)} /></div></article>;
+}
+
+function ResultPanel({ experiment, onFreeze, busy }: { experiment: FmsExperiment | null; onFreeze: (name: string, acknowledge: boolean) => void; busy: boolean }) {
+  const [candidateName, setCandidateName] = useState("");
+  const [acknowledge, setAcknowledge] = useState(false);
+  const [startingBalance, setStartingBalance] = useState(1000);
+  const [riskPercent, setRiskPercent] = useState(1);
+  useEffect(() => { setCandidateName(experiment?.friendlyName ?? ""); setAcknowledge(false); }, [experiment?.id]);
+  if (!experiment) return <div className="fms-workbench-empty"><Beaker size={24} /><strong>No recorded experiment selected</strong><span>Choose a signature and run a declared contract or controlled matrix.</span></div>;
+  if (experiment.status === "queued" || experiment.status === "running") return <div className="fms-workbench-empty"><RefreshCw className="animate-spin" /><strong>{experiment.id} is running</strong><span>The recorded job continues in the bridge without blocking this tab.</span></div>;
+  if (experiment.status === "failed") return <div className="fms-workbench-empty is-error"><AlertTriangle /><strong>{experiment.id} failed</strong><span>{experiment.error}</span></div>;
+  const result = experiment.result;
+  if (!result) return null;
+  const selected = result.selectedConfiguration;
+  const failed = Object.entries(result.checks).filter(([, passed]) => !passed).map(([name]) => name);
+  const account = compoundAccount(result.sequentialAccount.grossResultsR ?? [], startingBalance, riskPercent);
+  const copySummary = async () => { await navigator.clipboard.writeText(buildAiSummary(experiment)); };
+  const downloadJson = () => {
+    const blob = new Blob([JSON.stringify(experiment, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `${experiment.id}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+  return <div className="fms-result-stack">
+    <section className="fms-workbench-card fms-result-heading"><div><span>Recorded experiment</span><h3>{experiment.friendlyName}</h3><p>{experiment.id} · {experiment.catalogSnapshot.direction.toUpperCase()} EURUSD · {result.historicalN} historical cases</p></div><div className="fms-result-actions"><button type="button" onClick={copySummary}><Copy size={13} />Copy AI summary</button><button type="button" onClick={downloadJson}><Download size={13} />Download JSON</button></div></section>
+    <section className="fms-workbench-card"><div className="fms-contract-strip"><Metric label="Selected contract" value={`${selected.stopAtr} ATR / ${selected.targetR}R / ${selected.holdingCandles} H4`} detail={result.selection.replaceAll("_", " ")} /><Metric label="Configurations" value={String(result.configurationsTested)} /><Metric label="Policy" value={readable(result.scoringPolicy)} /><Metric label="Treatment" value={result.cohort.dimension === "none" ? "All cases" : `${readable(result.cohort.dimension)} · ${readable(result.cohort.value)}`} /></div></section>
+    <section className="fms-result-partitions"><PartitionMetrics label="Overall" metrics={selected.overall} /><PartitionMetrics label="Development" metrics={selected.development} /><PartitionMetrics label="Holdout" metrics={selected.holdout} /><PartitionMetrics label="Recent" metrics={selected.recent} /></section>
+    <section className="fms-workbench-card"><div className="fms-section-title"><h3>Stability and path audit</h3><span>Known only after historical simulation</span></div><div className="fms-contract-strip"><Metric label="Positive years" value={`${selected.yearStability.positiveYears}/${selected.yearStability.evaluableYears}`} /><Metric label="Nearby holdout positive" value={formatPercent(result.configurationStability.holdout.positiveShare)} detail={`${result.configurationStability.holdout.positiveCount}/${result.configurationStability.holdout.count}`} /><Metric label="Median MFE" value={formatR(result.path.mfeR.median)} /><Metric label="Median MAE" value={formatR(result.path.maeR.median)} /><Metric label="Adverse first" value={formatPercent(result.path.adverseBeforeFavorableRate)} /></div></section>
+    <section className="fms-workbench-card"><div className="fms-section-title"><h3>Gross sequential account replay</h3><span>One position at a time · costs excluded</span></div><div className="fms-account-controls"><label>Starting balance<input type="number" min="1" value={startingBalance} onChange={(event) => setStartingBalance(Math.max(1, Number(event.target.value) || 1))} /></label><label>Risk per trade %<input type="number" min="0.01" max="100" step="0.01" value={riskPercent} onChange={(event) => setRiskPercent(Math.min(100, Math.max(.01, Number(event.target.value) || .01)))} /></label><Metric label="Taken trades" value={String(result.sequentialAccount.takenTrades)} /><Metric label="Ending balance" value={`$${account.balance.toFixed(2)}`} /><Metric label="Max closed-trade DD" value={formatPercent(account.maximumDrawdown)} /></div></section>
+    <section className="fms-workbench-card"><div className="fms-section-title"><h3>Qualification checks</h3><span>{failed.length ? `${failed.length} not met` : "All checks passed"}</span></div><div className="fms-check-grid">{Object.entries(result.checks).map(([name, passed]) => <div key={name} className={passed ? "is-pass" : "is-fail"}><span>{passed ? "Pass" : "Not met"}</span><strong>{readable(name)}</strong></div>)}</div></section>
+    <section className="fms-workbench-card fms-freeze-card"><div><Snowflake size={16} /><div><h3>Freeze for review</h3><p>Creates an immutable C record. It cannot change Charts or execute an order.</p></div></div><div className="fms-freeze-controls"><input aria-label="Frozen candidate friendly name" value={candidateName} onChange={(event) => setCandidateName(event.target.value)} />{failed.length ? <label><input type="checkbox" checked={acknowledge} onChange={(event) => setAcknowledge(event.target.checked)} />I acknowledge the failed checks remain part of this candidate.</label> : null}<button type="button" disabled={busy || !candidateName.trim() || (failed.length > 0 && !acknowledge)} onClick={() => onFreeze(candidateName.trim(), acknowledge)}><Snowflake size={13} />Freeze candidate</button></div></section>
+  </div>;
+}
+
+function ValuePicker({ label, values, selected, multiple, onChange }: { label: string; values: number[]; selected: number[]; multiple: boolean; onChange: (values: number[]) => void }) {
+  return <fieldset className="fms-value-picker"><legend>{label}</legend>{values.map((value) => { const active = selected.includes(value); return <button key={value} type="button" className={active ? "is-active" : ""} onClick={() => { if (!multiple) onChange([value]); else if (active && selected.length > 1) onChange(selected.filter((item) => item !== value)); else if (!active) onChange([...selected, value].sort((a, b) => a - b)); }}>{value}</button>; })}</fieldset>;
 }
 
 interface MacroSignalLabViewProps {
-  coverage: MacroSignalCoverage | null;
-  version: MacroSignalVersion | null;
-  versions?: MacroSignalVersion[];
-  run: MacroSignalBacktestRun | null;
-  forwardPaper?: MacroSignalForwardPaper | null;
-  expansionReport?: MacroSignalExpansionReport | null;
-  expansionLoading?: boolean;
-  expansionError?: string | null;
+  workbench: FmsWorkbench | null;
+  selectedExperiment: FmsExperiment | null;
   loading: boolean;
+  running: boolean;
   error: string | null;
-  onRun: () => void;
+  onRun: (payload: Parameters<typeof createFmsExperiment>[0]) => void;
+  onSelectExperiment: (experimentId: string) => void;
+  onFreeze: (name: string, acknowledge: boolean) => void;
   onRefresh: () => void;
-  onSelectVersion?: (versionId: string) => void;
-  onRefreshExpansion?: () => void;
 }
 
-function versionUsesForwardLedger(version: MacroSignalVersion | null | undefined): boolean {
-  return version?.configuration.historicalEligibility === "disabled_due_to_reused_history";
-}
-
-export function MacroSignalLabView({
-  coverage,
-  version,
-  versions = version ? [version] : [],
-  run,
-  forwardPaper = null,
-  expansionReport = null,
-  expansionLoading = false,
-  expansionError = null,
-  loading,
-  error,
-  onRun,
-  onRefresh,
-  onSelectVersion = () => {},
-  onRefreshExpansion = () => {},
-}: MacroSignalLabViewProps) {
-  const result = run?.result ?? null;
-  const running = run?.status === "queued" || run?.status === "running";
-  const highlighted = result?.targets["2.0"] ?? null;
-  const runDisabled = loading || running || !coverage || coverage.count === 0;
-  const isSentimentVersion = version?.id.includes("SENTIMENT") ?? false;
-  const isLaborVersion = version?.id.includes("LABOR") ?? false;
-  const isPolicyInflationVersion = version?.id.includes("POLICY-INFL") ?? false;
-  const isGrowthVersion = version?.id.includes("GROWTH") ?? false;
-  const versionNumber = isGrowthVersion ? "v7" : isPolicyInflationVersion ? "v5" : isSentimentVersion ? "v3" : isLaborVersion ? "v2" : "v1";
-
-  return (
-    <section className="macro-signal-page" data-macro-signal-lab="">
-      <header className="macro-signal-header">
-        <div className="min-w-0">
-          <div className="macro-signal-kicker"><FlaskConical size={14} /> Active research experiment</div>
-          <div className="macro-signal-title-line">
-            <h2>Macro Signal Lab</h2>
-            <span>EURUSD</span><span>H4</span><span>Charts registry v10</span><span>Source {version?.id ?? "FMS-EURUSD-ECO-H4-v1"}</span>
-          </div>
-          <p>{isGrowthVersion ? "Country-aware Growth research for strict GDP/output, PMI/ISM, retail-demand, and trade/current-account releases. Rules were frozen before v7 results were inspected." : isPolicyInflationVersion ? "Country-aware Policy/Inflation context research. Direct decision arrows and broad inflation arrows remain unqualified unless a frozen pattern passes every gate." : isSentimentVersion ? "Country-aware Sentiment evidence model. Reused history is exploratory; only post-registration observations can validate it." : isLaborVersion ? "Country-aware Labor evidence model. Reused history is exploratory; forward evidence starts at registration." : "Frozen Economy evidence model. Historical behavior research—not an order, guarantee, or proof of causation."}</p>
-        </div>
-        <button type="button" className="macro-signal-run-button" disabled={runDisabled} onClick={onRun}>
-          {running ? <RefreshCw className="animate-spin" size={17} /> : <Play size={17} />}
-          {running ? "Running frozen backtest" : result ? "Refresh frozen backtest" : "Run frozen backtest"}
-        </button>
-      </header>
-
-      <div className="macro-signal-notice">
-        <ShieldCheck size={17} />
-        <strong>Gross simulation:</strong> exact historical spread, slippage, swap, and commission are unavailable. Charts v10 separates frozen current patterns from hindsight Research Replay and shows a three-pip result stress.
-      </div>
-
-      {versions.length > 1 ? (
-        <div className="macro-signal-version-switch" aria-label="Source research versions">
-          <span>Source research versions</span>
-          {versions.map((item) => (
-            <button key={item.id} type="button" className={item.id === version?.id ? "is-active" : ""} onClick={() => onSelectVersion(item.id)}>
-              {item.id.includes("GROWTH") ? "v7 · Country-aware Growth" : item.id.includes("POLICY-INFL") ? "v5 · Policy / Inflation" : item.id.includes("SENTIMENT") ? "v3 · Country-aware Sentiment" : item.id.includes("LABOR") ? "v2 · Country-aware Labor" : "v1 · Economy baseline"}
-            </button>
-          ))}
-        </div>
-      ) : null}
-
-      {error ? <div className="macro-signal-error"><AlertTriangle size={18} />{error}</div> : null}
-
-      <div className="macro-signal-body">
-        <aside className="macro-signal-sidebar">
-          <section className="macro-signal-panel">
-            <div className="macro-signal-section-title">
-              <Database size={16} /><h3>Durable coverage</h3>
-              <button type="button" className="macro-signal-refresh-button" onClick={onRefresh} disabled={loading} aria-label="Refresh Macro Signal coverage"><RefreshCw size={13} className={loading ? "animate-spin" : ""} /></button>
-            </div>
-            <dl className="macro-signal-definition-list">
-              <div><dt>Rows</dt><dd>{coverage?.count ?? 0}</dd></div>
-              <div><dt>Earliest</dt><dd>{formatTimestamp(coverage?.earliest)}</dd></div>
-              <div><dt>Latest</dt><dd>{formatTimestamp(coverage?.latest)}</dd></div>
-              <div><dt>Storage</dt><dd>{coverage?.durable ? "SQLite / persistent" : "Unavailable"}</dd></div>
-              {result ? <div><dt>H4 prices</dt><dd>{result.priceCoverage.count} candles</dd></div> : null}
-              {result ? <div><dt>H4 primary</dt><dd>{result.priceCoverage.coversPrimaryWindow ? "Covered" : "Incomplete"}</dd></div> : null}
-            </dl>
-          </section>
-
-          {coverage?.backfillRecommended ? (
-            <section className="macro-signal-panel macro-signal-backfill">
-              <div className="macro-signal-section-title"><Clock3 size={16} /><h3>Historical backfill needed</h3></div>
-              <p>Run one controlled MT5 import now that durable storage exists.</p>
-              <ol>
-                <li><code>CurrenciesList = "{coverage.recommendedBackfill.currenciesList}"</code></li>
-                <li><code>LookBackDays = {coverage.recommendedBackfill.lookBackDays}</code></li>
-                <li><code>MaxEventsPerCur = {coverage.recommendedBackfill.maxEventsPerCurrency}</code></li>
-                <li>Wait for <code>failed_batches=0</code>, verify coverage here, then restore the normal currency list, <code>LookBackDays = {coverage.recommendedBackfill.restoreLookBackDays}</code>, and <code>MaxEventsPerCur = 1000</code>.</li>
-              </ol>
-            </section>
-          ) : null}
-
-          <section className="macro-signal-panel">
-            <div className="macro-signal-section-title"><Beaker size={16} /><h3>Frozen method</h3></div>
-            <ul className="macro-signal-compact-list">
-              <li>One candidate per exact release-time package.</li>
-              <li>{version?.id.includes("LABOR") ? "Aggregate EU and US Labor releases only." : "Equal capped Economy factor votes."}</li>
-              <li>{version?.id.includes("LABOR") ? "Series identity includes country/region provenance." : "Legacy series identity uses currency and title."}</li>
-              <li>Entry at the first strictly later H4 open.</li>
-              <li>ATR(14) Wilder stop; 30-H4-candle expiry.</li>
-              <li>M1 resolves same-H4 target/stop order.</li>
-            </ul>
-            <div className="macro-signal-hash" title={version?.hash}>Version hash {version?.hash?.slice(0, 12) ?? "loading"}</div>
-          </section>
-
-          {result?.dataQuality ? (
-            <section className="macro-signal-panel">
-              <div className="macro-signal-section-title"><Database size={16} /><h3>Data-quality audit</h3></div>
-              <dl className="macro-signal-definition-list">
-                <div><dt>EUR/USD rows</dt><dd>{result.dataQuality.pairRows}</dd></div>
-                <div><dt>Economy rows</dt><dd>{result.dataQuality.registeredEconomyRows}</dd></div>
-                <div><dt>Scored rows</dt><dd>{result.dataQuality.scoredEconomyRows}</dd></div>
-                <div><dt>Packages</dt><dd>{result.dataQuality.candidatePackages}</dd></div>
-                <div><dt>Missing A</dt><dd>{result.dataQuality.missingActualRows}</dd></div>
-                <div><dt>Missing F</dt><dd>{result.dataQuality.missingForecastRows}</dd></div>
-                <div><dt>Missing P</dt><dd>{result.dataQuality.missingPreviousRows}</dd></div>
-                <div><dt>Collisions</dt><dd>{result.dataQuality.countryTitleCollisionRows ?? result.dataQuality.duplicateExactSeriesTimestampRows}</dd></div>
-                <div><dt>Series key</dt><dd>{result.dataQuality.seriesIdentity ?? "currency + title (legacy v1)"}</dd></div>
-                <div><dt>Country scope</dt><dd>{formatCountryScope(result.dataQuality.countryScope)}</dd></div>
-              </dl>
-              <p className="macro-signal-audit-note">Collisions are legitimate countries/regions sharing a currency, title, and timestamp—not duplicate ingestion. Missing values contribute nothing.</p>
-              {(result.dataQuality.countryTitleCollisionGroups ?? []).length ? <details className="macro-signal-collision-details"><summary>Review collision examples</summary><div>{(result.dataQuality.countryTitleCollisionGroups ?? []).slice(0, 12).map((row) => <div key={`${row.currency}-${row.normalizedTitle}-${row.time}`}><strong>{row.title}</strong><span>{row.countryCodes.join(" / ")}</span></div>)}</div></details> : null}
-            </section>
-          ) : null}
-        </aside>
-
-        <main className="macro-signal-results">
-          <MacroSignalExpansionResearch
-            report={expansionReport}
-            loading={expansionLoading}
-            error={expansionError}
-            onRefresh={onRefreshExpansion}
-          />
-          {loading && !run ? (
-            <div className="macro-signal-empty"><RefreshCw className="animate-spin" /><strong>Loading research state</strong></div>
-          ) : running ? (
-            <div className="macro-signal-empty"><RefreshCw className="animate-spin" /><strong>Building the frozen historical simulation</strong><span>MT5 H4 history is loaded first; M1 is requested only for ambiguous H4 bars.</span></div>
-          ) : run?.status === "failed" ? (
-            <div className="macro-signal-empty"><AlertTriangle /><strong>Backtest could not finish</strong><span>{run.error}</span></div>
-          ) : !result ? (
-            <div className="macro-signal-empty"><Beaker /><strong>No frozen backtest result yet</strong><span>{coverage?.count ? "Run the model when MT5 is connected." : "Complete the durable calendar backfill first."}</span></div>
-          ) : (
-            <>
-              {result.conclusion ? (
-                <section className="macro-signal-panel macro-signal-verdict">
-                  <div className="macro-signal-section-title"><ShieldCheck size={16} /><h3>What {versionNumber} means</h3><span>Plain-language decision</span></div>
-                  <div className="macro-signal-verdict-grid">
-                    <div><span>1 · Build</span><strong>Development {formatR(result.conclusion.developmentAverageR)}</strong><p>The older 70% was used to observe how the frozen rule behaved.</p></div>
-                    <div><span>2 · Check</span><strong>Holdout {formatR(result.conclusion.holdoutAverageR)}</strong><p>The newer 30% checked whether that behavior survived later data.</p></div>
-                    <div className={result.conclusion.code === "eligible_for_paper_validation" || result.conclusion.code === "forward_paper_validated" ? "is-eligible" : "is-rejected"}><span>3 · Decision</span><strong>{result.conclusion.title}</strong><p>{result.conclusion.summary}</p></div>
-                  </div>
-                  <div className="macro-signal-verdict-foot">
-                    <span>Holdout uncertainty: {formatRange(result.conclusion.holdoutExpectancyCi95)}</span>
-                    <span>Chart indicator: {isGrowthVersion ? "v10 current source + explicit Research Replay" : isPolicyInflationVersion ? "v10 registered package/context + replay research" : isLaborVersion || isSentimentVersion ? "v10 current source + explicit Research Replay" : result.conclusion.code === "forward_paper_validated" ? "Pending cost-model and product review" : "Not allowed"}</span>
-                  </div>
-                  {result.conclusion.exploratoryFactorLeads.length ? (
-                    <div className="macro-signal-research-leads">
-                      <strong>Ideas worth researching next—not proven signals</strong>
-                      <div>{result.conclusion.exploratoryFactorLeads.map((lead) => <span key={lead.key}>{lead.key}: development {formatR(lead.developmentAverageR)}, holdout {formatR(lead.holdoutAverageR)}</span>)}</div>
-                      <small>{result.conclusion.selectionWarning}</small>
-                    </div>
-                  ) : null}
-                </section>
-              ) : null}
-
-              {result.status === "exploratory_reused_history" ? (
-                <section className="macro-signal-panel macro-signal-forward">
-                  <div className="macro-signal-section-title"><Clock3 size={16} /><h3>Automatic forward paper ledger</h3><span>Immutable first-seen releases only</span></div>
-                  <div className="macro-signal-forward-grid">
-                    <div><span>Activated</span><strong>{formatTimestamp(forwardPaper?.activatedAt)}</strong></div>
-                    <div><span>Elapsed</span><strong>{forwardPaper?.elapsedDays ?? 0} / 365 days</strong></div>
-                    <div><span>Frozen releases</span><strong>{forwardPaper?.observationCount ?? 0}</strong></div>
-                    <div><span>Paper cases</span><strong>{forwardPaper?.caseCount ?? 0}</strong></div>
-                    <div><span>Monitoring</span><strong>{forwardPaper?.monitoringCount ?? 0}</strong></div>
-                    <div><span>2R evaluable</span><strong>{forwardPaper?.targets["2.0"]?.evaluableCount ?? 0} / 100</strong></div>
-                    <div><span>2R average</span><strong>{formatR(forwardPaper?.targets["2.0"]?.averageR ?? null)}</strong></div>
-                    <div><span>EA cycle</span><strong>{forwardPaper?.lastSuccessfulCycleAt ? formatTimestamp(forwardPaper.lastSuccessfulCycleAt) : "Waiting for upgraded EA"}</strong></div>
-                    <div><span>Ledger integrity</span><strong>{forwardPaper?.immutable ? "First-seen locked" : "Unavailable"}</strong></div>
-                  </div>
-                  <p>The EA records candidates automatically after each complete upload cycle. Historical rows, late-seen releases, and later broker revisions cannot retroactively improve this evidence.</p>
-                  {forwardPaper?.recentCases.length ? (
-                    <details className="macro-signal-forward-cases">
-                      <summary>Recent forward cases <span>{forwardPaper.recentCases.length}</span></summary>
-                      <div>{forwardPaper.recentCases.map((paperCase) => (
-                        <div key={paperCase.eventTime}>
-                          <strong>{formatTimestamp(paperCase.eventTime)}</strong>
-                          <span>{paperCase.candidate.direction === "long" ? "Long bias" : paperCase.candidate.direction === "short" ? "Short bias" : "No direction"}</span>
-                          <span>{paperCase.state.replaceAll("_", " ")}</span>
-                          <span>{paperCase.candidate.events.map((event) => event.title).join(" · ")}</span>
-                        </div>
-                      ))}</div>
-                    </details>
-                  ) : null}
-                </section>
-              ) : null}
-
-              <section className="macro-signal-overview macro-signal-panel">
-                <div className="macro-signal-result-heading">
-                  <div>
-                    <span className="macro-signal-kicker">Overall model · highlighted 2R</span>
-                    <h3>{result.status === "eligible_for_paper_validation" ? "Eligible for paper validation" : result.status === "exploratory_reused_history" ? "Exploratory reused history" : "Research evidence only"}</h3>
-                    <p>Chronological holdout begins {formatTimestamp(result.candidateSummary.developmentHoldoutBoundary)}.</p>
-                  </div>
-                  <div className="macro-signal-headline-number">
-                    <span>Holdout target-first</span>
-                    <strong>{formatPercent(highlighted?.holdout.targetHitRate ?? null)}</strong>
-                    <small>{highlighted?.holdout.evaluableCount ?? 0} evaluable cases</small>
-                  </div>
-                </div>
-                {highlighted ? <MetricsGrid metrics={highlighted.holdout} /> : null}
-              </section>
-
-              <section className="macro-signal-target-grid">
-                {TARGET_KEYS.map((key) => {
-                  const target = result.targets[key];
-                  return (
-                    <article key={key} className={`macro-signal-panel macro-signal-target ${key === "2.0" ? "is-highlighted" : ""}`}>
-                      <div><span>{key.replace(".0", "")}R target</span>{key === "2.0" ? <b>Highlighted</b> : null}</div>
-                      <strong>{formatPercent(target?.holdout.targetHitRate ?? null)}</strong>
-                      <p>Holdout average {formatR(target?.holdout.averageR ?? null)} · N {target?.holdout.evaluableCount ?? 0}</p>
-                    </article>
-                  );
-                })}
-              </section>
-
-              <section className="macro-signal-panel">
-                <div className="macro-signal-section-title"><CheckCircle2 size={16} /><h3>Paper-eligibility gate</h3></div>
-                <div className="macro-signal-gate-grid">
-                  {Object.entries(result.eligibility.checks).map(([key, passed]) => (
-                    <div key={key} className={passed ? "is-passed" : ""}>
-                      <span>{passed ? "Pass" : "Not met"}</span><strong>{key.replace(/([A-Z])/g, " $1")}</strong>
-                    </div>
-                  ))}
-                </div>
-              </section>
-
-              <section className="macro-signal-panel">
-                <div className="macro-signal-section-title"><h3>Time robustness · 2R</h3><span>Fixed windows, never best-picked</span></div>
-                <div className="macro-signal-robustness-grid">
-                  {[
-                    ["Latest 5 years", result.robustness.latestFiveYears],
-                    ["Earlier 5 years", result.robustness.earlierFiveYears],
-                    ["Full archive", result.robustness.fullAvailable],
-                  ].map(([label, metrics]) => {
-                    const row = metrics as MacroSignalMetrics | undefined;
-                    return <div key={label as string}><span>{label as string}</span><strong>{formatR(row?.averageR ?? null)}</strong><small>N {row?.evaluableCount ?? 0} · TP {formatPercent(row?.targetHitRate ?? null)}</small></div>;
-                  })}
-                </div>
-                <details className="macro-signal-year-details">
-                  <summary>Calendar-year stability <span>{result.robustness.byYear.length} years</span></summary>
-                  <div>{result.robustness.byYear.map((row) => <div key={row.year}><strong>{row.year}</strong><span>N {row.metrics.evaluableCount}</span><span>TP {formatPercent(row.metrics.targetHitRate)}</span><span>{formatR(row.metrics.averageR)}</span></div>)}</div>
-                </details>
-              </section>
-
-              <section className="macro-signal-panel macro-signal-cases-panel">
-                <div className="macro-signal-section-title"><h3>2R historical cases</h3><span>{highlighted?.outcomes.length ?? 0} primary-window packages</span></div>
-                <OutcomeTable outcomes={highlighted?.outcomes ?? []} />
-              </section>
-
-              <section className="macro-signal-panel">
-                <div className="macro-signal-section-title"><h3>Development versus holdout</h3><span>Consistency matters more than the prettiest number</span></div>
-                <div className="macro-signal-cohort-grid">
-                  {(["agreement", "backgroundAlignment", "impact", "factor", "exactSeries"] as const).map((cohort) => (
-                    <details key={cohort}>
-                      <summary>{cohort === "exactSeries" ? "Exact series" : cohort} <span>{result.cohorts[cohort]?.length ?? 0}</span></summary>
-                      <div className="macro-signal-cohort-comparison">
-                        <div className="is-heading"><strong>Cohort</strong><span>Development</span><span>Holdout</span></div>
-                        {(result.cohorts[cohort] ?? []).map((row) => (
-                          <div key={row.key}>
-                            <strong title={row.key}>{row.key}</strong>
-                            <span title={`Development: N ${row.development?.evaluableCount ?? 0}; target-first ${formatPercent(row.development?.targetHitRate ?? null)}`}>{formatR(row.development?.averageR ?? null)}<small>N {row.development?.evaluableCount ?? 0}</small></span>
-                            <span title={`Holdout: N ${row.holdout?.evaluableCount ?? 0}; target-first ${formatPercent(row.holdout?.targetHitRate ?? null)}`}>{formatR(row.holdout?.averageR ?? null)}<small>N {row.holdout?.evaluableCount ?? 0}</small></span>
-                          </div>
-                        ))}
-                      </div>
-                    </details>
-                  ))}
-                </div>
-              </section>
-
-              <section className="macro-signal-panel macro-signal-limitations">
-                <div className="macro-signal-section-title"><AlertTriangle size={16} /><h3>Read before interpreting</h3></div>
-                <ul>{result.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>
-              </section>
-            </>
-          )}
-        </main>
-      </div>
-    </section>
-  );
+export function MacroSignalLabView({ workbench, selectedExperiment, loading, running, error, onRun, onSelectExperiment, onFreeze, onRefresh }: MacroSignalLabViewProps) {
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [catalogId, setCatalogId] = useState("");
+  const [treatmentId, setTreatmentId] = useState("base");
+  const [friendlyName, setFriendlyName] = useState("");
+  const [policy, setPolicy] = useState<"baseline" | "momentum_only" | "forecast_quality">("forecast_quality");
+  const [mode, setMode] = useState<"single" | "matrix">("single");
+  const [stops, setStops] = useState([1]);
+  const [targets, setTargets] = useState([2]);
+  const [holding, setHolding] = useState([30]);
+  const catalog = workbench?.catalog.items ?? [];
+  const filtered = useMemo(() => { const query = search.trim().toLowerCase(); return query ? catalog.filter((item) => [item.label, item.family, item.signature, ...item.exactTitles].join(" ").toLowerCase().includes(query)) : catalog; }, [catalog, search]);
+  const selectedItem = catalog.find((item) => item.id === catalogId) ?? catalog[0] ?? null;
+  const selectedTreatment = selectedItem?.treatments.find((item) => item.id === treatmentId) ?? selectedItem?.treatments[0] ?? null;
+  const registeredSetup = selectedItem ? workbench?.currentModel.registeredSetups.find((setup) => setup.signatures.includes(selectedItem.signature)) ?? null : null;
+  useEffect(() => { if (!catalogId && catalog[0]) { setCatalogId(catalog[0].id); setFriendlyName(`${catalog[0].label} experiment`); } }, [catalogId, catalog]);
+  useEffect(() => { if (selectedItem && !selectedItem.treatments.some((item) => item.id === treatmentId)) setTreatmentId(selectedItem.treatments[0]?.id ?? "base"); }, [selectedItem?.id, treatmentId]);
+  useEffect(() => {
+    if (!registeredSetup) return;
+    setPolicy("forecast_quality");
+    setTreatmentId("base");
+    setMode("single");
+    setStops([registeredSetup.execution.stopAtr]);
+    setTargets([registeredSetup.execution.targetR]);
+    setHolding([registeredSetup.execution.expiryCandles]);
+  }, [registeredSetup?.id, selectedItem?.signature]);
+  const switchMode = (next: "single" | "matrix") => { setMode(next); if (next === "single") { setStops([1]); setTargets([2]); setHolding([30]); } else { setStops(DEFAULT_STOPS); setTargets(DEFAULT_TARGETS); setHolding(DEFAULT_HOLDING); } };
+  const submit = () => { if (!selectedItem || !selectedTreatment || !friendlyName.trim()) return; onRun({ friendlyName: friendlyName.trim(), catalogId: selectedItem.id, scoringPolicy: policy, cohort: { dimension: selectedTreatment.dimension, value: selectedTreatment.value }, reaction: selectedTreatment.reaction, execution: { mode, stopAtrValues: stops, targetRValues: targets, holdingCandles: holding } }); };
+  if (!workbench && loading) return <section className="macro-signal-page"><div className="fms-workbench-empty"><RefreshCw className="animate-spin" /><strong>Loading FMS workbench</strong></div></section>;
+  return <section className="macro-signal-page fms-workbench" data-macro-signal-lab="">
+    <header className="fms-workbench-header"><div><div className="macro-signal-kicker"><FlaskConical size={14} />Active FMS research tool</div><h2>FMS Experiment Workbench</h2><p>Recorded EURUSD/H4 research—not an order, guarantee, or automatic optimizer.</p></div><div><button type="button" onClick={() => setGuideOpen(true)}><BookOpen size={15} />How to use the Workbench</button><button type="button" onClick={onRefresh} disabled={loading}><RefreshCw size={14} className={loading ? "animate-spin" : ""} />Refresh</button></div></header>
+    {error ? <div className="macro-signal-error"><AlertTriangle size={16} />{error}</div> : null}
+    {workbench ? <section className="fms-current-strip"><div><span>Current Charts model</span><strong>{workbench.currentModel.friendlyName} · {workbench.currentModel.displayId}</strong><small>{workbench.currentModel.id}</small></div><div><Metric label="Market" value="EURUSD" /><Metric label="Backtest timeframe" value="H4" /><Metric label="Registered setups" value={String(workbench.currentModel.registeredSetups.length)} /><Metric label="Promotion" value="Reviewed only" /></div></section> : null}
+    <div className="fms-workbench-body">
+      <aside className="fms-builder">
+        <section className="fms-workbench-card"><div className="fms-section-title"><h3>1 · Choose exact signature</h3><span>{catalog.length} detected</span></div><input className="fms-search" placeholder="Search family, title, or signature" value={search} onChange={(event) => setSearch(event.target.value)} /><div className="fms-catalog-list">{filtered.map((item) => <button key={item.id} type="button" className={item.id === selectedItem?.id ? "is-active" : ""} onClick={() => { setCatalogId(item.id); setTreatmentId("base"); setFriendlyName(`${item.label} experiment`); }}><span>{item.registered ? "Registered" : "Research"} · N {item.historicalN}</span><strong>{item.direction === "long" ? "Long" : "Short"} EURUSD · {item.label}</strong><small>{item.exactTitles.join(" · ") || item.family}</small></button>)}</div></section>
+        {registeredSetup ? <section className="fms-workbench-card fms-registered-recipe">
+          <div className="fms-section-title"><h3>Registered recipe</h3><span>Loaded below</span></div>
+          <strong>{registeredSetup.label}</strong>
+          <p>{registeredSetup.condition}</p>
+          {registeredSetup.registrationEvidence ? <>
+            <div className="fms-recipe-grid"><span><small>Original scoring</small>Surprise + Momentum</span><span><small>Cases included</small>All matching releases</span><span><small>Price reaction</small>Continuation</span><span><small>Execution</small>{registeredSetup.execution.stopAtr} ATR / {registeredSetup.execution.targetR}R / {registeredSetup.execution.expiryCandles} H4</span></div>
+            <div className="fms-recipe-result"><strong>Why it was registered</strong><span>{registeredSetup.registrationEvidence.evaluable} cases · {registeredSetup.registrationEvidence.targetFirst} target first · {registeredSetup.registrationEvidence.stopFirst} stop first · {registeredSetup.registrationEvidence.expired} expired</span><span>{formatR(registeredSetup.registrationEvidence.stressedAverageR)} average after its historical {registeredSetup.registrationEvidence.stressPips}-pip stress · {registeredSetup.registrationEvidence.positiveYears}/{registeredSetup.registrationEvidence.evaluatedYears} positive years</span><small>Development {formatR(registeredSetup.registrationEvidence.developmentAverageR)} · Holdout {formatR(registeredSetup.registrationEvidence.holdoutAverageR)} · Recent {formatR(registeredSetup.registrationEvidence.recentAverageR)}</small></div>
+          </> : <p className="fms-inline-note">This signature is registered, but its original qualification snapshot is available in the Research Archive.</p>}
+          <small className="fms-current-guard-note">Current Charts model adds Forecast Guard to the original recipe; it does not rewrite the original backtest.</small>
+        </section> : null}
+        <section className="fms-workbench-card"><div className="fms-section-title"><h3>2 · How to score and filter</h3><span>{registeredSetup ? "Current model values loaded" : "One filter maximum"}</span></div><label className="fms-field">How each release is scored<select value={policy} onChange={(event) => setPolicy(event.target.value as typeof policy)}><option value="forecast_quality">Forecast Guard</option><option value="baseline">Surprise + Momentum baseline</option><option value="momentum_only">Momentum only</option></select></label><p className="fms-control-explanation">{scoringPolicyExplanation(policy)}</p><label className="fms-field">Which matching cases are included<select value={selectedTreatment?.id ?? "base"} onChange={(event) => setTreatmentId(event.target.value)}>{selectedItem?.treatments.map((item) => <option key={item.id} value={item.id}>{item.label} · {readable(item.reaction)} · N {item.historicalN}</option>)}</select></label><p className="fms-control-explanation"><strong>Cohort means a subset of historical cases.</strong> {cohortExplanation(selectedTreatment)} {selectedTreatment?.reaction === "contrarian" ? "Contrarian tests price moving against the evidence direction." : "Continuation tests price moving in the evidence direction."}</p>{!workbench?.catalog.advancedTreatmentsReady ? <p className="fms-inline-note">Advanced case filters are unavailable until the durable stress catalog has been generated. All matching cases remain usable.</p> : null}</section>
+        <section className="fms-workbench-card"><div className="fms-section-title"><h3>3 · Trade simulation rules</h3><span>{registeredSetup ? `Registered: ${registeredSetup.execution.stopAtr} ATR / ${registeredSetup.execution.targetR}R / ${registeredSetup.execution.expiryCandles} H4` : "Entry: first later H4 open"}</span></div><div className="fms-mode-toggle"><button type="button" className={mode === "single" ? "is-active" : ""} onClick={() => switchMode("single")}>Single contract</button><button type="button" className={mode === "matrix" ? "is-active" : ""} onClick={() => switchMode("matrix")}>Controlled matrix</button></div>{workbench ? <><ValuePicker label="ATR stop" values={workbench.protocol.stopAtrValues} selected={stops} multiple={mode === "matrix"} onChange={setStops} /><ValuePicker label="R target" values={workbench.protocol.targetRValues} selected={targets} multiple={mode === "matrix"} onChange={setTargets} /><ValuePicker label="H4 expiry" values={workbench.protocol.holdingCandles} selected={holding} multiple={mode === "matrix"} onChange={setHolding} /></> : null}<div className="fms-run-preview"><span>{stops.length * targets.length * holding.length} configuration{stops.length * targets.length * holding.length === 1 ? "" : "s"}</span><span>{selectedTreatment?.historicalN ?? selectedItem?.historicalN ?? 0} matching cases</span></div></section>
+        <section className="fms-workbench-card"><label className="fms-field">Experiment name<input value={friendlyName} maxLength={80} onChange={(event) => setFriendlyName(event.target.value)} /></label><button type="button" className="fms-run-button" disabled={running || !selectedItem || !friendlyName.trim()} onClick={submit}>{running ? <RefreshCw className="animate-spin" size={15} /> : <Play size={15} />}{running ? "Running recorded experiment" : "Run recorded experiment"}</button><p className="fms-inline-note">Every run receives an immutable E identifier, including failures.</p></section>
+      </aside>
+      <main className="fms-workbench-results"><ResultPanel experiment={selectedExperiment} onFreeze={onFreeze} busy={loading} /></main>
+      <aside className="fms-history-rail">
+        <details className="fms-workbench-card fms-archive fms-current-setups"><summary><Check size={14} />Current registered setups <span>{workbench?.currentModel.registeredSetups.length ?? 0}</span></summary><div>{workbench?.currentModel.registeredSetups.map((setup) => <article key={setup.id}><strong>{setup.label}</strong><span>{setup.execution.stopAtr} ATR / {setup.execution.targetR}R / {setup.execution.expiryCandles} H4</span><small>{setup.condition}</small></article>)}</div></details>
+        <section className="fms-workbench-card"><div className="fms-section-title"><h3>Recorded experiments</h3><span>{workbench?.experiments.length ?? 0}</span></div><div className="fms-record-list">{workbench?.experiments.map((experiment) => <button key={experiment.id} type="button" className={experiment.id === selectedExperiment?.id ? "is-active" : ""} onClick={() => onSelectExperiment(experiment.id)}><span>{experiment.id} · {readable(experiment.status)}</span><strong>{experiment.friendlyName}</strong><small>{experiment.catalogSnapshot?.label}</small></button>)}{!workbench?.experiments.length ? <p>No recorded experiments yet.</p> : null}</div></section>
+        <section className="fms-workbench-card"><div className="fms-section-title"><h3>Frozen candidates</h3><span>{workbench?.candidates.length ?? 0}</span></div><div className="fms-candidate-list">{workbench?.candidates.map((candidate: FmsFrozenCandidate) => { const passed = Object.values(candidate.checks).filter(Boolean).length; const failed = Object.keys(candidate.checks).length - passed; return <article key={candidate.id} className={failed ? "has-failed-gates" : ""}><span>{candidate.id} · Review required</span><strong>{candidate.friendlyName}</strong><small>{candidate.catalogSnapshot.label} · {passed}/{Object.keys(candidate.checks).length} checks</small><small>{failed ? `${failed} failed gate${failed === 1 ? "" : "s"} · acknowledged` : "All recorded checks passed"}</small></article>; })}{!workbench?.candidates.length ? <p>No candidate frozen for review.</p> : null}</div></section>
+        <details className="fms-workbench-card fms-archive"><summary><Archive size={14} />Research Archive <span>{workbench?.archive.length ?? 0}</span></summary><div>{workbench?.archive.map((item) => <article key={item.id}><strong>{item.id}</strong><span>{item.latestRun?.status ?? "No run"}</span><small>{item.configurationHash.slice(0, 12)} · {formatTime(item.createdAt)}</small></article>)}</div></details>
+      </aside>
+    </div>
+    <FmsWorkbenchTutorial open={guideOpen} onClose={() => setGuideOpen(false)} />
+  </section>;
 }
 
 export function MacroSignalLabTab() {
-  const [coverage, setCoverage] = useState<MacroSignalCoverage | null>(null);
-  const [version, setVersion] = useState<MacroSignalVersion | null>(null);
-  const [versions, setVersions] = useState<MacroSignalVersion[]>([]);
-  const [run, setRun] = useState<MacroSignalBacktestRun | null>(null);
-  const [forwardPaper, setForwardPaper] = useState<MacroSignalForwardPaper | null>(null);
-  const [expansionReport, setExpansionReport] = useState<MacroSignalExpansionReport | null>(null);
-  const [expansionLoading, setExpansionLoading] = useState(true);
-  const [expansionError, setExpansionError] = useState<string | null>(null);
+  const [workbench, setWorkbench] = useState<FmsWorkbench | null>(null);
+  const [selectedExperiment, setSelectedExperiment] = useState<FmsExperiment | null>(null);
   const [loading, setLoading] = useState(true);
+  const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    Promise.all([fetchMacroSignalCoverage(), fetchMacroSignalVersions()])
-      .then(async ([nextCoverage, nextVersions]) => {
-        const nextVersion = nextVersions.find((item) => item.active) ?? nextVersions[nextVersions.length - 1] ?? null;
-        const nextRun = nextVersion ? await fetchLatestMacroSignalBacktest(nextVersion.id) : null;
-        const nextForward = versionUsesForwardLedger(nextVersion) ? await fetchMacroSignalForwardPaper(nextVersion.id) : null;
-        if (cancelled) return;
-        setCoverage(nextCoverage);
-        setVersions(nextVersions);
-        setVersion(nextVersion);
-        setRun(nextRun);
-        setForwardPaper(nextForward);
-        setError(null);
-      })
-      .catch((loadError: unknown) => {
-        if (!cancelled) setError(loadError instanceof Error ? loadError.message : "Research bridge unavailable");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, []);
-
-  const refreshExpansionReport = () => {
-    setExpansionLoading(true);
-    setExpansionError(null);
-    fetchMacroSignalExpansionReport()
-      .then(setExpansionReport)
-      .catch((loadError: unknown) => setExpansionError(loadError instanceof Error ? loadError.message : "Path research could not load"))
-      .finally(() => setExpansionLoading(false));
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-    setExpansionLoading(true);
-    fetchMacroSignalExpansionReport()
-      .then((next) => { if (!cancelled) setExpansionReport(next); })
-      .catch((loadError: unknown) => { if (!cancelled) setExpansionError(loadError instanceof Error ? loadError.message : "Path research could not load"); })
-      .finally(() => { if (!cancelled) setExpansionLoading(false); });
-    return () => { cancelled = true; };
-  }, []);
-
-  useEffect(() => {
-    const versionId = version?.id;
-    if (!versionId || !versionUsesForwardLedger(version)) {
-      setForwardPaper(null);
-      return;
-    }
-    let cancelled = false;
-    const refreshForward = () => {
-      fetchMacroSignalForwardPaper(versionId)
-        .then((next) => { if (!cancelled) setForwardPaper(next); })
-        .catch(() => { /* Historical research remains usable if forward polling is temporarily unavailable. */ });
-    };
-    refreshForward();
-    const timer = window.setInterval(refreshForward, 60_000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [version?.id]);
-
-  useEffect(() => {
-    if (!run || (run.status !== "queued" && run.status !== "running")) return;
-    let cancelled = false;
-    const timer = window.setInterval(() => {
-      fetchMacroSignalBacktest(run.id)
-        .then((nextRun) => {
-          if (!cancelled) setRun(nextRun);
-        })
-        .catch((pollError: unknown) => {
-          if (!cancelled) setError(pollError instanceof Error ? pollError.message : "Backtest polling failed");
-        });
-    }, 1000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [run?.id, run?.status]);
-
-  const handleRun = () => {
-    if (!version) return;
-    setError(null);
+  const load = async (preserveSelection = true) => {
     setLoading(true);
-    startMacroSignalBacktest(version.id)
-      .then(setRun)
-      .catch((runError: unknown) => setError(runError instanceof Error ? runError.message : "Backtest could not start"))
-      .finally(() => setLoading(false));
+    try {
+      const next = await fetchFmsWorkbench();
+      setWorkbench(next);
+      const selectedId = preserveSelection ? selectedExperiment?.id : null;
+      const nextExperiment = selectedId ? await fetchFmsExperiment(selectedId) : next.experiments[0] ? await fetchFmsExperiment(next.experiments[0].id) : null;
+      setSelectedExperiment(nextExperiment);
+      setError(null);
+    } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "FMS workbench unavailable"); }
+    finally { setLoading(false); }
   };
-
-  const handleRefresh = () => {
-    setLoading(true);
-    setError(null);
-    Promise.all([fetchMacroSignalCoverage(), fetchMacroSignalVersions(), version ? fetchLatestMacroSignalBacktest(version.id) : Promise.resolve(null), version && versionUsesForwardLedger(version) ? fetchMacroSignalForwardPaper(version.id) : Promise.resolve(null)])
-      .then(([nextCoverage, nextVersions, nextRun, nextForward]) => {
-        setCoverage(nextCoverage);
-        setVersions(nextVersions);
-        setVersion((current) => nextVersions.find((item) => item.id === current?.id) ?? nextVersions.find((item) => item.active) ?? null);
-        setRun(nextRun);
-        setForwardPaper(nextForward);
-      })
-      .catch((refreshError: unknown) => setError(refreshError instanceof Error ? refreshError.message : "Research state could not refresh"))
-      .finally(() => setLoading(false));
-  };
-
-  const handleSelectVersion = (versionId: string) => {
-    const nextVersion = versions.find((item) => item.id === versionId);
-    if (!nextVersion || nextVersion.id === version?.id) return;
-    setVersion(nextVersion);
-    setRun(null);
-    setForwardPaper(null);
-    setLoading(true);
-    setError(null);
-    fetchLatestMacroSignalBacktest(versionId)
-      .then(setRun)
-      .catch((selectError: unknown) => setError(selectError instanceof Error ? selectError.message : "Research version could not load"))
-      .finally(() => setLoading(false));
-  };
-
-  return <MacroSignalLabView coverage={coverage} version={version} versions={versions} run={run} forwardPaper={forwardPaper} expansionReport={expansionReport} expansionLoading={expansionLoading} expansionError={expansionError} loading={loading} error={error} onRun={handleRun} onRefresh={handleRefresh} onSelectVersion={handleSelectVersion} onRefreshExpansion={refreshExpansionReport} />;
+  useEffect(() => { void load(false); }, []);
+  useEffect(() => {
+    if (!selectedExperiment || !["queued", "running"].includes(selectedExperiment.status)) return;
+    let cancelled = false;
+    const timer = window.setInterval(() => { fetchFmsExperiment(selectedExperiment.id).then((next) => { if (cancelled) return; setSelectedExperiment(next); if (!["queued", "running"].includes(next.status)) { setRunning(false); void load(true); } }).catch((pollError) => { if (!cancelled) setError(pollError instanceof Error ? pollError.message : "Experiment polling failed"); }); }, 1000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [selectedExperiment?.id, selectedExperiment?.status]);
+  const run = async (payload: Parameters<typeof createFmsExperiment>[0]) => { setRunning(true); setError(null); try { const experiment = await createFmsExperiment(payload); setSelectedExperiment(experiment); setRunning(["queued", "running"].includes(experiment.status)); setWorkbench((current) => current ? { ...current, experiments: [experiment, ...current.experiments] } : current); } catch (runError) { setError(runError instanceof Error ? runError.message : "Experiment could not start"); setRunning(false); } };
+  const selectExperiment = async (id: string) => { try { setSelectedExperiment(await fetchFmsExperiment(id)); setError(null); } catch (selectError) { setError(selectError instanceof Error ? selectError.message : "Experiment could not load"); } };
+  const freeze = async (name: string, acknowledge: boolean) => { if (!selectedExperiment) return; setLoading(true); try { await freezeFmsExperiment(selectedExperiment.id, { friendlyName: name, acknowledgeFailedGates: acknowledge }); await load(true); } catch (freezeError) { setError(freezeError instanceof Error ? freezeError.message : "Candidate could not be frozen"); setLoading(false); } };
+  return <MacroSignalLabView workbench={workbench} selectedExperiment={selectedExperiment} loading={loading} running={running} error={error} onRun={run} onSelectExperiment={selectExperiment} onFreeze={freeze} onRefresh={() => void load(true)} />;
 }

@@ -6,20 +6,20 @@ import { PrototypingTab } from "@/app/tabs/secondary/PrototypingTab";
 describe("navigation truth", () => {
   it("promotes active Specialist Tools children before the garbage drawer", () => {
     expect(ANALYSIS_TAB_ORDER).toEqual([
-      { id: "dashboard", label: "DIFFERENTIAL CALCULATOR", groupLabel: "Active Tool" },
-      { id: "macro-drivers", label: "MACRO DRIVERS", groupLabel: "Active Tool" },
-      { id: "event-tools", label: "EVENT REPLAY", groupLabel: "Active Experiment" },
-      { id: "macro-signal-lab", label: "MACRO SIGNAL LAB", groupLabel: "Active Experiment" },
+      { id: "macro-signal-lab", label: "FMS EXPERIMENT WORKBENCH", groupLabel: "Active Tool" },
+      { id: "dashboard", label: "DIFFERENTIAL CALCULATOR", groupLabel: "Active Experiment" },
+      { id: "event-tools", label: "EVENT REPLAY", groupLabel: "Garbage / Ignore" },
+      { id: "macro-drivers", label: "MACRO DRIVERS", groupLabel: "Garbage / Ignore" },
       { id: "prototyping", label: "PROTOTYPING", groupLabel: "Garbage / Ignore" },
     ]);
     expect(ANALYSIS_TAB_ORDER).not.toContainEqual({ id: "terminal-questions", label: "SIX QUESTIONS DRAFT" });
     expect(ANALYSIS_TAB_ORDER).not.toContainEqual({ id: "work-in-progress", label: "WIP MAP ARCHIVE" });
 
     const specialist = TAB_ORDER.find((tab) => tab.id === "dashboard");
-    expect(specialist?.children).toContainEqual({ id: "dashboard", label: "DIFFERENTIAL CALCULATOR", groupLabel: "Active Tool" });
-    expect(specialist?.children).toContainEqual({ id: "macro-drivers", label: "MACRO DRIVERS", groupLabel: "Active Tool" });
-    expect(specialist?.children).toContainEqual({ id: "event-tools", label: "EVENT REPLAY", groupLabel: "Active Experiment" });
-    expect(specialist?.children).toContainEqual({ id: "macro-signal-lab", label: "MACRO SIGNAL LAB", groupLabel: "Active Experiment" });
+    expect(specialist?.children).toContainEqual({ id: "macro-signal-lab", label: "FMS EXPERIMENT WORKBENCH", groupLabel: "Active Tool" });
+    expect(specialist?.children).toContainEqual({ id: "dashboard", label: "DIFFERENTIAL CALCULATOR", groupLabel: "Active Experiment" });
+    expect(specialist?.children).toContainEqual({ id: "event-tools", label: "EVENT REPLAY", groupLabel: "Garbage / Ignore" });
+    expect(specialist?.children).toContainEqual({ id: "macro-drivers", label: "MACRO DRIVERS", groupLabel: "Garbage / Ignore" });
     expect(specialist?.children).toContainEqual({ id: "prototyping", label: "PROTOTYPING", groupLabel: "Garbage / Ignore" });
   });
 
