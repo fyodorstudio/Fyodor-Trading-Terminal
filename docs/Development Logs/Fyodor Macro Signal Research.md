@@ -591,6 +591,16 @@ No baseline passed the strict holdout contract. The strongest apparent row, `E01
 
 This pass does not justify a filter search selected after viewing the baseline. Any later GBPUSD refinements must be declared in advance from the existing single-treatment catalog, retain the 40-case boundary, and satisfy every unchanged strict gate.
 
+### Qualification v2 and GBPUSD E012 Audit - 2026-08-27
+
+`FMS-QUALIFICATION-v2` is an additive evaluation overlay: it does not rewrite an immutable E record, its stored fingerprint, its selected historical contract, or the legacy strict checks. It grades each completed experiment as **Rejected**, **Research candidate**, or **Statistically confirmed**. The current strict checks remain visible; positive strict holdout lower-95 is retained as a requirement only for the strongest grade.
+
+V2 requires at least 60 evaluable cases, takes the earliest 50% as initial history, then performs five chronological outer folds of at least eight cases. A Combined Contract is selected inside each preceding history by the existing development lower-95, then development-average rule and applied only to the immediately next fold. The pooled report contains only those out-of-fold results. Research-candidate checks require positive overall/development/holdout/recent/pooled-walk-forward averages, 30 pooled cases, at least three positive folds, 50% positive years, <=5% ambiguity, concentration below 50% for both the best year and top three trades, a 90% lower bound >= -0.05R, and a documented neighbouring-contract stability audit. Statistical confirmation additionally requires positive 95% walk-forward and strict-holdout lower bounds, 60% positive years, and a trial-adjusted confidence pass.
+
+The selection-bias audit uses a deterministic configuration-hash-seeded nonparametric bootstrap of pooled trade R. Its unadjusted confidence is the share of bootstrap means above zero; its conservative adjusted confidence compounds that value across the declared candidate-rule count times the tested contract count. This is explicitly an audit, never a selector. The independence-style compounding is conservative and does not model correlation among adjacent contracts.
+
+`FMS-GBPUSD-H4-E012` was separately audited under its predeclared fixed `2 ATR / 4R / 60 H4` contract, not relabelled as untouched holdout evidence. Its pooled five-fold out-of-fold result was `N=42`, approximately `+0.056R`, with two positive folds. It is **Rejected**: it misses the required three positive folds, 50% positive years, 90% lower-bound threshold, and its legacy strict holdout lower-95 remains negative. No C or M record was created and no GBPUSD arrow was added.
+
 ## Research Warnings and References
 
 Hypothetical results do not represent executed trades and can overstate or understate real performance. The Lab must identify all results as simulated, disclose excluded costs, and avoid claims that similar live profits are likely. See the [CFTC guidance on hypothetical trading-system results](https://www.cftc.gov/LearnAndProtect/AdvisoriesAndArticles/fraudadv_tradingsystem.html).

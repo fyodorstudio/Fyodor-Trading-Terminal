@@ -168,6 +168,15 @@ class ResearchStore:
 
         CREATE INDEX IF NOT EXISTS idx_fms_candidates_created
           ON fms_candidates (created_at DESC);
+
+        CREATE TABLE IF NOT EXISTS fms_qualification_audits (
+          id TEXT PRIMARY KEY, experiment_id TEXT NOT NULL, qualification_version TEXT NOT NULL,
+          configuration_hash TEXT NOT NULL, dataset_fingerprint TEXT NOT NULL, method_hash TEXT NOT NULL,
+          created_at INTEGER NOT NULL, result_json TEXT NOT NULL,
+          UNIQUE(experiment_id, qualification_version, configuration_hash, dataset_fingerprint, method_hash)
+        );
+        CREATE TABLE IF NOT EXISTS fms_sweeps (id TEXT PRIMARY KEY, manifest_hash TEXT NOT NULL UNIQUE, created_at INTEGER NOT NULL, status TEXT NOT NULL, manifest_json TEXT NOT NULL, error TEXT);
+        CREATE TABLE IF NOT EXISTS fms_sweep_entries (sweep_id TEXT NOT NULL, entry_id TEXT NOT NULL, state TEXT NOT NULL, experiment_id TEXT, audit_id TEXT, error TEXT, PRIMARY KEY(sweep_id, entry_id));
         """
       )
 
@@ -596,7 +605,9 @@ class ResearchStore:
     if normalized not in {"E", "C", "M"}:
       raise ValueError(f"Unsupported FMS identifier kind: {kind}")
     normalized_market = market.upper()
-    if normalized_market not in {"EURUSD", "GBPUSD"}:
+    if normalized_market not in {
+      "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "NZDUSD", "USDCHF",
+    }:
       raise ValueError(f"Unsupported FMS market: {market}")
     # EURUSD retains its original sequence key and identifiers; new markets are isolated.
     sequence_key = normalized if normalized_market == "EURUSD" else f"{normalized_market}:{normalized}"
@@ -746,6 +757,35 @@ class ResearchStore:
         """
       ).fetchall()
     return [self._deserialize_fms_candidate(row) for row in rows]
+
+  def get_fms_qualification_audit(self, experiment_id: str, version: str, configuration_hash: str, dataset_fingerprint: str, method_hash: str) -> Optional[Dict[str, Any]]:
+    with self._connect() as connection:
+      row = connection.execute("SELECT * FROM fms_qualification_audits WHERE experiment_id=? AND qualification_version=? AND configuration_hash=? AND dataset_fingerprint=? AND method_hash=?", (experiment_id, version, configuration_hash, dataset_fingerprint, method_hash)).fetchone()
+    return json.loads(row["result_json"]) if row else None
+
+  def save_fms_qualification_audit(self, audit: Dict[str, Any], method_hash: str) -> None:
+    with self._write_lock, self._connect() as connection:
+      connection.execute("INSERT OR IGNORE INTO fms_qualification_audits(id,experiment_id,qualification_version,configuration_hash,dataset_fingerprint,method_hash,created_at,result_json) VALUES(?,?,?,?,?,?,?,?)", (audit["auditId"], audit["experimentId"], audit["version"], audit["configurationHash"], audit["datasetFingerprint"], method_hash, audit["createdAt"], json.dumps(audit, sort_keys=True, separators=(",", ":"))))
+
+  def create_fms_sweep(self, sweep_id: str, manifest_hash: str, created_at: int, manifest: Dict[str, Any]) -> None:
+    with self._write_lock, self._connect() as connection:
+      connection.execute("INSERT INTO fms_sweeps(id,manifest_hash,created_at,status,manifest_json) VALUES(?,?,?,'queued',?)", (sweep_id, manifest_hash, created_at, json.dumps(manifest, sort_keys=True, separators=(",", ":"))))
+      connection.executemany("INSERT INTO fms_sweep_entries(sweep_id,entry_id,state) VALUES(?,?,'waiting_for_source')", [(sweep_id, row["id"]) for row in manifest["entries"]])
+
+  def get_fms_sweep(self, sweep_id: str) -> Optional[Dict[str, Any]]:
+    with self._connect() as connection:
+      sweep=connection.execute("SELECT * FROM fms_sweeps WHERE id=?",(sweep_id,)).fetchone(); entries=connection.execute("SELECT * FROM fms_sweep_entries WHERE sweep_id=? ORDER BY entry_id",(sweep_id,)).fetchall()
+    return None if not sweep else {"id":sweep["id"],"manifestHash":sweep["manifest_hash"],"createdAt":sweep["created_at"],"status":sweep["status"],"manifest":json.loads(sweep["manifest_json"]),"entries":[dict(row) for row in entries]}
+
+  def list_fms_sweeps(self) -> List[Dict[str, Any]]:
+    with self._connect() as connection: rows=connection.execute("SELECT id FROM fms_sweeps ORDER BY created_at DESC").fetchall()
+    return [self.get_fms_sweep(str(row["id"])) for row in rows]
+
+  def update_fms_sweep_entry(self, sweep_id: str, entry_id: str, state: str, experiment_id: Optional[str] = None, audit_id: Optional[str] = None, error: Optional[str] = None) -> None:
+    with self._write_lock, self._connect() as connection: connection.execute("UPDATE fms_sweep_entries SET state=?,experiment_id=COALESCE(?,experiment_id),audit_id=COALESCE(?,audit_id),error=? WHERE sweep_id=? AND entry_id=?",(state,experiment_id,audit_id,error,sweep_id,entry_id))
+
+  def update_fms_sweep_status(self, sweep_id: str, status: str, error: Optional[str] = None) -> None:
+    with self._write_lock, self._connect() as connection: connection.execute("UPDATE fms_sweeps SET status=?,error=? WHERE id=?",(status,error,sweep_id))
 
   def list_signal_version_archive(self) -> List[Dict[str, Any]]:
     with self._connect() as connection:

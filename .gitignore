@@ -19,6 +19,7 @@ __pycache__/
 # `.pytest_cache/` = cache created by the pytest test runner to speed up test runs.
 .pytest_cache/
 **/.pytest_cache/
+Main/mt5-bridge/research-artifacts/
 
 # Editor / operating system
 # `.vscode/` = personal VS Code workspace settings. Usually machine-specific, not project source code.

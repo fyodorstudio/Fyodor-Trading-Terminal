@@ -4,7 +4,10 @@ import asyncio
 import hashlib
 import json
 import logging
+import math
 import os
+import random
+import statistics
 import time as _time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -1609,6 +1612,181 @@ def _experiment_summary(experiment: Dict[str, Any]) -> Dict[str, Any]:
   }
 
 
+QUALIFICATION_V2_ID = "FMS-QUALIFICATION-v2"
+
+
+def _qv2_metrics(
+  rows: List[Dict[str, Any]], seed: int = 0, bootstrap: bool = True,
+) -> Dict[str, Any]:
+  evaluable = [row for row in rows if row.get("status") in {"target_hit", "stop_hit", "expired"} and row.get("stressedResultR") is not None]
+  values = [float(row["stressedResultR"]) for row in evaluable]
+  n = len(values)
+  mean = statistics.fmean(values) if values else None
+  blocks: Dict[int, List[float]] = {}
+  for row in evaluable:
+    blocks.setdefault(datetime.fromtimestamp(int(row["eventTime"]), timezone.utc).year, []).append(float(row["stressedResultR"]))
+  interval_note = None
+  intervals = {"80": None, "90": None, "95": None}
+  p_value = None
+  if bootstrap and len(blocks) >= 5 and values:
+    rng = random.Random(seed)
+    years = sorted(blocks)
+    reps = [statistics.fmean([value for _ in years for value in blocks[years[rng.randrange(len(years))]]]) for _ in range(10_000)]
+    reps.sort()
+    intervals = {str(int(level * 100)): {"lower": reps[int((1 - level) / 2 * 9_999)], "upper": reps[int((1 + level) / 2 * 9_999)]} for level in (.8, .9, .95)}
+    centered = {year: [value - mean for value in block] for year, block in blocks.items()}
+    null_means = [statistics.fmean([value for _ in years for value in centered[years[rng.randrange(len(years))]]]) for _ in range(10_000)]
+    p_value = (1 + sum(value >= mean for value in null_means)) / 10_001
+  elif bootstrap:
+    interval_note = "Insufficient year coverage: calendar-year block bootstrap requires at least five represented years."
+  return {"n": n, "averageR": mean, "targetRate": sum(row["status"] == "target_hit" for row in evaluable) / n if n else None, "stopRate": sum(row["status"] == "stop_hit" for row in evaluable) / n if n else None, "expiryRate": sum(row["status"] == "expired" for row in evaluable) / n if n else None, "ambiguityRate": sum(row.get("status") == "ambiguous" for row in rows) / len(rows) if rows else None, "intervals": intervals, "representedYears": len(blocks), "intervalNote": interval_note, "oneSidedNoEdgePValue": p_value, "bootstrap": {"method": "calendar-year block bootstrap; percentile intervals; centered-year null", "replications": 10000}, "values": values}
+
+
+def _qv2_select(rows_by_contract: Dict[str, List[Dict[str, Any]]], before: int) -> Optional[str]:
+  candidates = []
+  for contract, rows in rows_by_contract.items():
+    values = [
+      float(row["stressedResultR"])
+      for row in rows
+      if int(row["eventTime"]) < before
+      and row.get("status") in {"target_hit", "stop_hit", "expired"}
+      and row.get("stressedResultR") is not None
+    ]
+    if values:
+      average = statistics.fmean(values)
+      margin = 1.959963985 * statistics.stdev(values) / math.sqrt(len(values)) if len(values) > 1 else 0.0
+      candidates.append((average - margin, average, contract))
+  return max(candidates)[2] if candidates else None
+
+
+def _qv2_contract_neighbours(
+  rows_by_contract: Dict[str, List[Dict[str, Any]]], selected: Optional[str],
+) -> List[str]:
+  if not selected:
+    return []
+  parsed = []
+  for key in rows_by_contract:
+    try:
+      stop, target, holding = key.split("|")
+      parsed.append((key, float(stop), float(target), int(holding)))
+    except (TypeError, ValueError):
+      continue
+  try:
+    selected_stop, selected_target, selected_holding = selected.split("|")
+    selected_values = (float(selected_stop), float(selected_target), int(selected_holding))
+  except (TypeError, ValueError):
+    return []
+  stops = sorted({row[1] for row in parsed})
+  targets = sorted({row[2] for row in parsed})
+  holdings = sorted({row[3] for row in parsed})
+  selected_indices = (
+    stops.index(selected_values[0]), targets.index(selected_values[1]),
+    holdings.index(selected_values[2]),
+  )
+  return [
+    key for key, stop, target, holding in parsed
+    if key != selected and all(abs(left - right) <= 1 for left, right in zip(
+      (stops.index(stop), targets.index(target), holdings.index(holding)),
+      selected_indices,
+    ))
+  ]
+
+
+def _qualification_v2(experiment: Dict[str, Any], declared_rules: int = 1, fixed_contract: Optional[str] = None) -> Dict[str, Any]:
+  seed = int(hashlib.sha256(f"{QUALIFICATION_V2_ID}|{experiment['configurationHash']}|{experiment['datasetFingerprint']}|standalone".encode()).hexdigest()[:16], 16)
+  raw = _research_store.get_metadata(f"fms_raw_audit:{experiment['id']}")
+  if not raw:
+    raise HTTPException(status_code=409, detail="This immutable experiment has no retained raw path audit")
+  audit = json.loads(raw)
+  rows_by_contract = {str(key): list(value) for key, value in dict(audit.get("contractResults") or {}).items()}
+  reference = next(iter(rows_by_contract.values()), [])
+  event_times = sorted({int(row["eventTime"]) for row in reference if row.get("status") in {"target_hit", "stop_hit", "expired"}})
+  if len(event_times) < 80:
+    return {"version": QUALIFICATION_V2_ID, "tier": "Rejected", "checks": {"minimumCases": False}, "reason": "Five-fold nested walk-forward requires at least 80 evaluable cases."}
+  initial = len(event_times) // 2
+  remaining = event_times[initial:]
+  fold_size = len(remaining) // 5
+  folds, pooled, neighbour_fold_results = [], [], []
+  for index in range(5):
+    test_times = remaining[index * fold_size:(index + 1) * fold_size if index < 4 else len(remaining)]
+    if not test_times: continue
+    selected = fixed_contract or _qv2_select(rows_by_contract, test_times[0])
+    test = [row for row in rows_by_contract.get(selected or "", []) if int(row["eventTime"]) in set(test_times)]
+    metrics = _qv2_metrics(test, seed + index, bootstrap=False)
+    usable = metrics["n"] >= 8
+    neighbour_rows = []
+    for neighbour in _qv2_contract_neighbours(rows_by_contract, selected):
+      neighbour_test = [
+        row for row in rows_by_contract[neighbour]
+        if int(row["eventTime"]) in set(test_times)
+      ]
+      neighbour_metrics = _qv2_metrics(neighbour_test, bootstrap=False)
+      if neighbour_metrics["n"] >= 8 and neighbour_metrics["averageR"] is not None:
+        neighbour_row = {
+          "fold": index + 1, "contract": neighbour,
+          "n": neighbour_metrics["n"], "averageR": neighbour_metrics["averageR"],
+        }
+        neighbour_rows.append(neighbour_row)
+        neighbour_fold_results.append(neighbour_row)
+    folds.append({"index": index + 1, "start": test_times[0], "end": test_times[-1], "selectedContract": selected, "usable": usable, "neighbours": neighbour_rows, **{key: value for key, value in metrics.items() if key != "values"}})
+    if usable: pooled.extend(test)
+  pooled_metrics = _qv2_metrics(pooled, seed)
+  neighbour_values = [float(row["averageR"]) for row in neighbour_fold_results]
+  neighbour_positive = sum(value > 0 for value in neighbour_values)
+  neighbour_stability = {
+    "evaluatedCount": len(neighbour_values),
+    "positiveCount": neighbour_positive,
+    "positiveShare": neighbour_positive / len(neighbour_values) if neighbour_values else None,
+    "minimumR": min(neighbour_values) if neighbour_values else None,
+    "medianR": statistics.median(neighbour_values) if neighbour_values else None,
+    "maximumR": max(neighbour_values) if neighbour_values else None,
+  }
+  years: Dict[int, List[float]] = {}
+  for row in pooled:
+    if row.get("stressedResultR") is not None: years.setdefault(datetime.fromtimestamp(int(row["eventTime"]), timezone.utc).year, []).append(float(row["stressedResultR"]))
+  positive_years = sum(statistics.fmean(values) > 0 for values in years.values())
+  positives = sorted([value for value in pooled_metrics["values"] if value > 0], reverse=True)
+  total_positive = sum(positives)
+  top_three = sum(positives[:3]) / total_positive if total_positive else 1.0
+  best_year = max((sum(value for value in values if value > 0) for values in years.values()), default=0.0) / total_positive if total_positive else 1.0
+  equity, peak, drawdown = 0.0, 0.0, 0.0
+  for row in sorted(pooled, key=lambda row: int(row["eventTime"])):
+    equity += float(row.get("stressedResultR") or 0.0); peak = max(peak, equity); drawdown = max(drawdown, peak - equity)
+  contract_count = len(rows_by_contract)
+  values = pooled_metrics["values"]
+  effective_trials = max(1, declared_rules * contract_count)
+  existing = experiment.get("result") or {}
+  selected = existing.get("selectedConfiguration") or {}
+  strict = dict(existing.get("checks") or {})
+  wf_positive = sum(bool(fold.get("averageR") and fold["averageR"] > 0) for fold in folds if fold.get("usable"))
+  pooled_lower90 = (pooled_metrics["intervals"]["90"] or {}).get("lower")
+  checks = {
+    "overallPositive": (selected.get("overall", {}).get("stressedAverageR") or 0) > 0,
+    "developmentPositive": (selected.get("development", {}).get("stressedAverageR") or 0) > 0,
+    "holdoutPositive": (selected.get("holdout", {}).get("stressedAverageR") or 0) > 0,
+    "recentPositive": (selected.get("recent", {}).get("stressedAverageR") or 0) > 0,
+    "walkForwardPositive": (pooled_metrics["averageR"] or 0) > 0,
+    "minimumCases": int(existing.get("historicalN") or 0) >= 80,
+    "walkForwardSample": pooled_metrics["n"] >= 30,
+    "positiveFolds": wf_positive >= 3,
+    "positiveYears": len(years) > 0 and positive_years / len(years) >= .5,
+    "ambiguity": (pooled_metrics["ambiguityRate"] or 0) <= .05,
+    "concentrationYears": best_year <= .5,
+    "concentrationTrades": top_three <= .5,
+    "uncertainty90": pooled_lower90 is not None and float(pooled_lower90) >= -.05,
+    "neighbourStability": (
+      neighbour_stability["positiveShare"] is not None
+      and float(neighbour_stability["positiveShare"]) >= .70
+    ),
+  }
+  research = all(checks.values())
+  strict_lower = (selected.get("holdout", {}).get("stressedExpectancyCi95") or {}).get("lower")
+  raw_p = pooled_metrics.get("oneSidedNoEdgePValue")
+  pooled_lower95 = (pooled_metrics["intervals"]["95"] or {}).get("lower")
+  confirmed = research and pooled_lower95 is not None and float(pooled_lower95) > 0 and strict_lower is not None and float(strict_lower) > 0 and (positive_years / len(years) if years else 0) >= .6 and raw_p is not None and raw_p <= .05
+  return {"version": QUALIFICATION_V2_ID, "tier": "Statistically confirmed" if confirmed else "Research candidate" if research else "Rejected", "fixedContract": fixed_contract, "strictChecks": strict, "checks": checks, "walkForward": {"pooled": {key: value for key, value in pooled_metrics.items() if key != "values"}, "folds": folds, "positiveFoldCount": wf_positive, "positiveYears": positive_years, "calendarYears": len(years), "maximumDrawdownR": drawdown, "topThreeTradeContribution": top_three, "bestYearContribution": best_year, "neighbourStability": neighbour_stability}, "multipleTesting": {"status": "pending sweep context", "method": "Holm-Bonferroni is applied only inside an immutable sweep manifest", "seed": seed, "declaredCandidateRuleCount": None, "contractCount": contract_count, "effectiveTrialCount": None, "rawPValue": raw_p, "holmAdjustedPValue": None, "passes": False, "limitations": "An individual experiment is not a frozen sweep family."}}
+
+
 @app.get("/research/workbench")
 def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
   normalized_market = market.upper()
@@ -1819,6 +1997,24 @@ def get_research_experiment(experiment_id: str) -> Dict[str, Any]:
   if experiment is None:
     raise HTTPException(status_code=404, detail="Unknown FMS experiment")
   return experiment
+
+
+@app.get("/research/experiments/{experiment_id}/qualification-v2")
+def get_research_experiment_qualification_v2(experiment_id: str) -> Dict[str, Any]:
+  experiment = _research_store.get_fms_experiment(experiment_id)
+  if experiment is None:
+    raise HTTPException(status_code=404, detail="Unknown FMS experiment")
+  if experiment.get("status") != "completed":
+    raise HTTPException(status_code=409, detail="Qualification v2 requires a completed experiment")
+  fixed_contract = "2|4|60" if experiment_id == "FMS-GBPUSD-H4-E012" else None
+  method_hash = hashlib.sha256(b"FMS-QUALIFICATION-v2:year-block-bootstrap:10000:oos-neighbours:holm-pending").hexdigest()
+  cached = _research_store.get_fms_qualification_audit(experiment_id, QUALIFICATION_V2_ID, experiment["configurationHash"], experiment["datasetFingerprint"], method_hash)
+  if cached: return cached
+  result = _qualification_v2(experiment, fixed_contract=fixed_contract)
+  now = int(_time.time())
+  audit = {**result, "auditId": f"FMS-{experiment['configuration'].get('market','EURUSD')}-Q2-{hashlib.sha256((experiment_id+method_hash).encode()).hexdigest()[:12]}", "experimentId": experiment_id, "market": experiment["configuration"].get("market", "EURUSD"), "configurationHash": experiment["configurationHash"], "datasetFingerprint": experiment["datasetFingerprint"], "sweepManifestHash": None, "createdAt": now}
+  _research_store.save_fms_qualification_audit(audit, method_hash)
+  return audit
 
 
 @app.get("/research/experiments/{experiment_id}/raw-cases")
