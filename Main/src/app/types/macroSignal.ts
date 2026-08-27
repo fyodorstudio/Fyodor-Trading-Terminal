@@ -775,11 +775,31 @@ export interface FmsWorkbench {
 
 export interface MacroSignalChartPattern {
   id: string;
+  market?: string;
   signature: string;
   signatures: string[];
   sourceVersionId: string;
   label: string;
   condition: string;
+  scoringPolicy?: "baseline" | "momentum_only" | "forecast_quality";
+  historicalBenchmark?: null | {
+    experimentId: string;
+    historicalN: number;
+    walkForwardN: number;
+    walkForwardAverageR: number;
+    targetFirstRate: number;
+    stopFirstRate: number;
+    status: "historically_profitable";
+  };
+  registrationProvenance?: {
+    status: "verified" | "mismatch" | "unavailable" | "legacy_snapshot";
+    experimentId: string | null;
+    configurationHash: string | null;
+    datasetFingerprint: string | null;
+    qualificationAuditId: string | null;
+    checks: Record<string, boolean>;
+    note: string;
+  };
   execution?: {
     stopAtr: number;
     targetR: number;
@@ -971,4 +991,22 @@ export interface MacroSignalChartSignalResponse {
     laterUnmatchedPackageCount: number;
   };
   message: string;
+}
+
+export interface MacroSignalResearchIntelligence {
+  id: string;
+  status: "registered" | "contender" | "avoid";
+  market: string;
+  label: string;
+  evidence: string;
+  conclusion: string;
+}
+
+export interface MacroSignalGlobalResponse {
+  modelId: string;
+  modelHash: string;
+  generatedAt: number;
+  markets: MacroSignalChartSignalResponse[];
+  researchIntelligence: MacroSignalResearchIntelligence[];
+  explanation: string;
 }

@@ -1728,6 +1728,15 @@ def rescore_forecast_quality_outcomes(
   return _rescore_policy_outcomes(outcomes, "forecast_quality")
 
 
+def rescore_policy_outcomes(
+  outcomes: Sequence[Dict[str, Any]], policy: str,
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+  """Apply one declared scoring policy without changing the raw source values."""
+  if policy not in {"baseline", "momentum_only", "forecast_quality"}:
+    raise ValueError(f"Unsupported scoring policy: {policy}")
+  return _rescore_policy_outcomes(outcomes, policy)
+
+
 def _policy_portfolio_summary(
   rescored_by_source: Dict[str, Tuple[List[Dict[str, Any]], int]],
   candles: Sequence[Dict[str, Any]],
@@ -2614,9 +2623,12 @@ def build_chart_signal_realtime_watch(
   events: Sequence[Dict[str, Any]],
   as_of: int,
   eligible_pattern_ids: Optional[frozenset[str]] = None,
-  observed_candidates: Optional[Sequence[Tuple[str, Dict[str, Any]]]] = None,
+  observed_candidates: Optional[Sequence[Tuple[Any, ...]]] = None,
   observed_event_times: Optional[frozenset[int]] = None,
   model_activated_at: Optional[int] = None,
+  pattern_definitions: Optional[Sequence[Dict[str, Any]]] = None,
+  market_currencies: Sequence[str] = ("EUR", "USD"),
+  symbol: str = "EURUSD",
 ) -> Dict[str, Any]:
   """Describe the next pair event and the next structurally relevant pattern package.
 
@@ -2628,7 +2640,7 @@ def build_chart_signal_realtime_watch(
   pair_events = sorted(
     (
       event for event in events
-      if str(event.get("currency", "")).upper() in {"EUR", "USD"}
+      if str(event.get("currency", "")).upper() in {str(value).upper() for value in market_currencies}
     ),
     key=lambda event: (
       int(event.get("time", 0)),
@@ -2659,7 +2671,7 @@ def build_chart_signal_realtime_watch(
 
   def structural_patterns(package: Sequence[Dict[str, Any]]) -> List[Tuple[Dict[str, Any], List[set[str]]]]:
     matches: List[Tuple[Dict[str, Any], List[set[str]]]] = []
-    for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS:
+    for pattern in (pattern_definitions or CHART_SIGNAL_PATTERN_DEFINITIONS):
       if not pattern["current"]:
         continue
       if eligible_pattern_ids is not None and str(pattern["id"]) not in eligible_pattern_ids:
@@ -2707,6 +2719,8 @@ def build_chart_signal_realtime_watch(
         next_pattern = payload
 
   candidates = list(observed_candidates or ())
+  def candidate_parts(row: Tuple[Any, ...]) -> Tuple[str, Optional[str], Dict[str, Any]]:
+    return (str(row[0]), str(row[1]), row[2]) if len(row) == 3 else (str(row[0]), None, row[1])
   frozen_times = observed_event_times or frozenset()
   assessments_by_pattern: Dict[str, Dict[str, Any]] = {}
 
@@ -2720,8 +2734,9 @@ def build_chart_signal_realtime_watch(
       if pattern_id in assessments_by_pattern:
         continue
       matching_candidates = [
-        candidate for source_version, candidate in candidates
+        candidate for source_version, scoring_policy, candidate in map(candidate_parts, candidates)
         if source_version == str(pattern["sourceVersion"])
+        and (scoring_policy is None or scoring_policy == str(pattern.get("scoringPolicy", "forecast_quality")))
         and int(candidate.get("eventTime", 0)) == event_time
       ]
       qualified = next((candidate for candidate in matching_candidates if candidate_matches_chart_pattern(candidate, pattern)), None)
@@ -2738,16 +2753,17 @@ def build_chart_signal_realtime_watch(
         for row in scored_events
       ]
       calculation = " ".join(calculations)
-      predates_model = model_activated_at is not None and event_time < model_activated_at
+      activation_boundary = pattern.get("activatedAt", model_activated_at)
+      predates_model = activation_boundary is not None and event_time < int(activation_boundary)
       if event_time not in frozen_times:
         status = "awaiting_observation"
         reason = "Release time passed; waiting for the next completed EA cycle to freeze the first-seen values."
       elif predates_model and qualified is not None:
         status = "pre_activation_audit"
-        reason = f"{calculation} Forecast Guard classifies {str(qualified.get('direction', '')).upper()} EURUSD, but this release predates model activation, so no hypothetical trade was opened."
+        reason = f"{calculation} The frozen policy classifies {str(qualified.get('direction', '')).upper()} {symbol}, but this release predates setup activation, so no hypothetical trade was opened."
       elif qualified is not None:
         status = "qualified"
-        reason = f"{calculation} Frozen rule qualified {str(qualified.get('direction', '')).upper()} EURUSD."
+        reason = f"{calculation} Frozen rule qualified {str(qualified.get('direction', '')).upper()} {symbol}."
       elif matching_candidates:
         status = "no_trade"
         reason = f"{calculation} Frozen rule: {pattern['condition']} This package produced no matching nonzero direction."
@@ -3024,11 +3040,14 @@ def build_chart_signal_pattern_catalog(
   split_time: int,
   outcomes_by_target: Optional[Dict[str, Sequence[Dict[str, Any]]]] = None,
   source_version: str = V2_VERSION_ID,
+  pattern_definitions: Optional[Sequence[Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
   """Build replay/current patterns belonging to one frozen source version."""
   definitions = [
     pattern for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
     if pattern["sourceVersion"] == source_version
+  ] if pattern_definitions is None else [
+    pattern for pattern in pattern_definitions if pattern["sourceVersion"] == source_version
   ]
   latest_event_time = max((int(row["eventTime"]) for row in outcomes), default=0)
   recent_cutoff = latest_event_time - CHART_SIGNAL_RECENT_DAYS * 24 * 60 * 60
@@ -3054,6 +3073,9 @@ def build_chart_signal_pattern_catalog(
       "label": str(definition["label"]),
       "condition": str(definition["condition"]),
       "execution": dict(definition["execution"]),
+      "market": str(definition.get("market", "EURUSD")),
+      "scoringPolicy": str(definition.get("scoringPolicy", "forecast_quality")),
+      "historicalBenchmark": dict(definition.get("historicalBenchmark", {})) or None,
       "requiredExactTitles": list(definition.get("requiredExactTitles", ())),
       "direction": next(iter(direction_values)) if len(direction_values) == 1 else "both",
       "groups": group_values,

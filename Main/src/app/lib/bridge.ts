@@ -9,6 +9,7 @@ import type {
   MacroSignalExpansionReport,
   MacroSignalChartMode,
   MacroSignalChartSignalResponse,
+  MacroSignalGlobalResponse,
   MacroSignalForwardPaper,
   MacroSignalVersion,
   FmsExperiment,
@@ -367,6 +368,29 @@ export async function fetchMacroSignalChartSignals(params: {
   return fetchJson<MacroSignalChartSignalResponse>(
     `${BRIDGE_BASE}/research/chart-signals?${search.toString()}`,
   );
+}
+
+export async function fetchMacroSignalGlobalRegistry(): Promise<MacroSignalGlobalResponse> {
+  return fetchJson<MacroSignalGlobalResponse>(`${BRIDGE_BASE}/research/chart-signals/global?tf=H4`);
+}
+
+let preloadedMacroSignalGlobalRegistry: MacroSignalGlobalResponse | null = null;
+let preloadedMacroSignalGlobalPromise: Promise<MacroSignalGlobalResponse> | null = null;
+
+export function getPreloadedMacroSignalGlobalRegistry(): MacroSignalGlobalResponse | null {
+  return preloadedMacroSignalGlobalRegistry;
+}
+
+export function preloadMacroSignalGlobalRegistry(): Promise<MacroSignalGlobalResponse> {
+  if (preloadedMacroSignalGlobalRegistry) return Promise.resolve(preloadedMacroSignalGlobalRegistry);
+  if (preloadedMacroSignalGlobalPromise) return preloadedMacroSignalGlobalPromise;
+  preloadedMacroSignalGlobalPromise = fetchMacroSignalGlobalRegistry().then((response) => {
+    preloadedMacroSignalGlobalRegistry = response;
+    return response;
+  }).finally(() => {
+    preloadedMacroSignalGlobalPromise = null;
+  });
+  return preloadedMacroSignalGlobalPromise;
 }
 
 let preloadedMacroSignalCurrentModel: MacroSignalChartSignalResponse | null = null;

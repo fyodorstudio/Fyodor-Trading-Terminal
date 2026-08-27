@@ -326,7 +326,7 @@ def run(args: argparse.Namespace) -> int:
   try:
     for position, entry in enumerate(manifest["entries"], 1):
       runtime = checkpoint["entries"].setdefault(entry["id"], {"state": "pending", "attempts": 0})
-      if runtime.get("state") in TERMINAL_STATES:
+      if runtime.get("state") in TERMINAL_STATES and not (args.refresh_audits and runtime.get("state") == "completed"):
         continue
       if not entry["supported"]:
         runtime.update({"state": "insufficient", "error": entry.get("preflightReason")})
@@ -421,6 +421,7 @@ def parse_args() -> argparse.Namespace:
   parser.add_argument("--artifacts-dir", default=str(Path(__file__).resolve().parents[1] / "research-artifacts"))
   parser.add_argument("--poll-seconds", type=float, default=1.0)
   parser.add_argument("--manifest-only", action="store_true")
+  parser.add_argument("--refresh-audits", action="store_true", help="Recompute qualification audits without rerunning completed experiments")
   return parser.parse_args()
 
 

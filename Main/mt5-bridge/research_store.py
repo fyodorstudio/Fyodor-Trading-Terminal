@@ -763,6 +763,20 @@ class ResearchStore:
       row = connection.execute("SELECT * FROM fms_qualification_audits WHERE experiment_id=? AND qualification_version=? AND configuration_hash=? AND dataset_fingerprint=? AND method_hash=?", (experiment_id, version, configuration_hash, dataset_fingerprint, method_hash)).fetchone()
     return json.loads(row["result_json"]) if row else None
 
+  def latest_fms_qualification_audit(self, experiment_id: str) -> Optional[Dict[str, Any]]:
+    """Return the newest immutable qualification record for one experiment."""
+    with self._connect() as connection:
+      row = connection.execute(
+        """
+        SELECT result_json FROM fms_qualification_audits
+        WHERE experiment_id = ?
+        ORDER BY created_at DESC, id DESC
+        LIMIT 1
+        """,
+        (experiment_id,),
+      ).fetchone()
+    return json.loads(row["result_json"]) if row else None
+
   def save_fms_qualification_audit(self, audit: Dict[str, Any], method_hash: str) -> None:
     with self._write_lock, self._connect() as connection:
       connection.execute("INSERT OR IGNORE INTO fms_qualification_audits(id,experiment_id,qualification_version,configuration_hash,dataset_fingerprint,method_hash,created_at,result_json) VALUES(?,?,?,?,?,?,?,?)", (audit["auditId"], audit["experimentId"], audit["version"], audit["configurationHash"], audit["datasetFingerprint"], method_hash, audit["createdAt"], json.dumps(audit, sort_keys=True, separators=(",", ":"))))

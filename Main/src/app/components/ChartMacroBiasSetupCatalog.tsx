@@ -30,15 +30,19 @@ function formatCountdown(seconds: number): string {
   ].filter(Boolean).join(" ");
 }
 
-function buildOutcomeRows(pattern: MacroSignalChartPattern, watch: NextPatternWatch): Array<[string, string]> {
+function buildOutcomeRows(pattern: MacroSignalChartPattern, watch: NextPatternWatch, symbol: string): Array<[string, string]> {
   const currency = watch.events[0]?.currency ?? watch.requiredGroups[0]?.split(":")[0] ?? "EUR";
   if (pattern.direction === "both") {
-    return currency === "USD"
-      ? [["Registered USD evidence improves", "Short EURUSD"], ["Registered USD evidence weakens", "Long EURUSD"], ["Zero, missing, or nonmatching", "No trade"]]
-      : [["Registered EUR evidence improves", "Long EURUSD"], ["Registered EUR evidence weakens", "Short EURUSD"], ["Zero, missing, or nonmatching", "No trade"]];
+    const improvingAction = symbol.startsWith(currency) ? `Long ${symbol}` : `Short ${symbol}`;
+    const weakeningAction = symbol.startsWith(currency) ? `Short ${symbol}` : `Long ${symbol}`;
+    return [
+      [`Registered ${currency} evidence improves`, improvingAction],
+      [`Registered ${currency} evidence weakens`, weakeningAction],
+      ["Zero, missing, or nonmatching", "No trade"],
+    ];
   }
   return [
-    ["Frozen condition matches", pattern.direction === "long" ? "Long EURUSD" : "Short EURUSD"],
+    ["Frozen condition matches", pattern.direction === "long" ? `Long ${symbol}` : `Short ${symbol}`],
     ["Opposite, partial, conflicted, or zero", "No trade"],
     ["Actual is not available yet", "Wait"],
   ];
@@ -48,10 +52,12 @@ export function ChartMacroBiasNextSetup({
   watch,
   pattern,
   asOf,
+  symbol,
 }: {
   watch: NextPatternWatch | null;
   pattern: MacroSignalChartPattern | null;
   asOf: number;
+  symbol: string;
 }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   useEffect(() => {
@@ -64,8 +70,8 @@ export function ChartMacroBiasNextSetup({
   }, [asOf, watch?.time]);
 
   const outcomeRows = useMemo(
-    () => watch && pattern ? buildOutcomeRows(pattern, watch) : [],
-    [pattern, watch],
+    () => watch && pattern ? buildOutcomeRows(pattern, watch, symbol) : [],
+    [pattern, symbol, watch],
   );
 
   return (
@@ -125,7 +131,7 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
           <h4>Benchmark boxes</h4>
           <dl>
             <div><dt>Historical N</dt><dd>Evaluable historical releases matching this exact frozen setup.</dd></div>
-            <div><dt>Target / stop first</dt><dd>How often price reached the source 2R target or stop first. The registered contract may use a different target.</dd></div>
+            <div><dt>Target / stop first</dt><dd>How often the exact registered contract reached its own target or stop first. Broader source diagnostics are separated below each recipe.</dd></div>
             <div><dt>Gross average R</dt><dd>Average historical result measured in R, before spread, commission, slippage, and swap.</dd></div>
             <div><dt>Development / holdout</dt><dd>Older research sample versus the later chronological check sample.</dd></div>
             <div><dt>Recent window</dt><dd>The setup's result in the latest fixed recent-history slice.</dd></div>
@@ -137,29 +143,46 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
         </section>
       ) : null}
       {registered.map((pattern) => (
-        <details key={pattern.id} open>
+        <details key={`${pattern.market ?? "EURUSD"}:${pattern.id}`} open={registered.length <= 4}>
           <summary>
             <span><b>{pattern.label}</b></span>
             <strong>{pattern.execution?.targetR ?? 2}R<small>{pattern.execution?.stopAtr ?? 1} ATR · {pattern.execution?.expiryCandles ?? 30} H4</small></strong>
           </summary>
           <p className="chart-shadow-catalog-rule"><b>Frozen rule:</b> {pattern.condition}</p>
           <div className="chart-shadow-benchmark-grid">
-            <div><span>Historical N</span><strong>{pattern.overall.evaluableCount}</strong></div>
+            <div><span>Historical N</span><strong>{pattern.historicalBenchmark?.historicalN ?? pattern.overall.evaluableCount}</strong></div>
             <div><span>Registered contract</span><strong>{pattern.execution?.stopAtr ?? 1} ATR stop · {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</strong></div>
-            <div><span>Source 2R target first</span><strong>{pattern.overall.targetHitCount} / {pattern.overall.evaluableCount} · {formatPercent(pattern.overall.targetHitRate)}</strong></div>
-            <div><span>Source 2R stop first</span><strong>{pattern.overall.stopHitCount} / {pattern.overall.evaluableCount} · {formatPercent(pattern.overall.stopHitRate)}</strong></div>
-            <div><span>Source 2R gross average</span><strong>{formatR(pattern.overall.averageR)}</strong></div>
-            <div><span>Recent window</span><strong>{formatR(pattern.recentWindow.metrics.averageR)} · N {pattern.recentWindow.metrics.evaluableCount}</strong></div>
-            <div><span>Positive years</span><strong>{pattern.yearStability.positiveYears}/{pattern.yearStability.evaluableYears}</strong></div>
-            <div><span>Development</span><strong>{formatR(pattern.development.averageR)} · N {pattern.development.evaluableCount}</strong></div>
-            <div><span>Holdout</span><strong>{formatR(pattern.holdout.averageR)} · N {pattern.holdout.evaluableCount}</strong></div>
-            <div><span>Past-only audit</span><strong>{formatR(pattern.prequentialAudit.gross.averageR)} · N {pattern.prequentialAudit.evaluableCount}</strong></div>
+            {pattern.historicalBenchmark ? (
+              <>
+                <div><span>Walk-forward N</span><strong>{pattern.historicalBenchmark.walkForwardN}</strong></div>
+                <div><span>Target first</span><strong>{formatPercent(pattern.historicalBenchmark.targetFirstRate)}</strong></div>
+                <div><span>Stop first</span><strong>{formatPercent(pattern.historicalBenchmark.stopFirstRate)}</strong></div>
+                <div><span>Walk-forward average</span><strong>{formatR(pattern.historicalBenchmark.walkForwardAverageR)}</strong></div>
+                <div><span>Research recipe</span><strong>{pattern.historicalBenchmark.experimentId}</strong></div>
+              </>
+            ) : <><div><span>Benchmark status</span><strong>Legacy snapshot</strong></div><div><span>Exact contract metrics</span><strong>Not linked</strong></div></>}
           </div>
-          <div className="chart-shadow-target-strip">
-            {pattern.targetRobustness.map((target) => (
-              <span key={target.targetR}><b>{target.targetR}R</b> {formatR(target.gross.averageR)} · N {target.gross.evaluableCount}</span>
-            ))}
-          </div>
+          {pattern.registrationProvenance ? <p className={`chart-shadow-provenance is-${pattern.registrationProvenance.status}`}><b>{pattern.registrationProvenance.status === "verified" ? "Verified immutable recipe" : pattern.registrationProvenance.status === "mismatch" ? "Audit mismatch" : pattern.registrationProvenance.status === "unavailable" ? "Experiment unavailable" : "Legacy snapshot"}:</b> {pattern.registrationProvenance.note}</p> : null}
+          <details className="chart-shadow-source-diagnostics">
+            <summary>Source research diagnostics <span>different benchmark</span></summary>
+            <p>These broader source-pattern figures may use a different case population or exit. They do not replace the exact registered benchmark above.</p>
+            <div className="chart-shadow-benchmark-grid">
+              <div><span>Source N</span><strong>{pattern.overall.evaluableCount}</strong></div>
+              <div><span>Source 2R target first</span><strong>{pattern.overall.targetHitCount} / {pattern.overall.evaluableCount} · {formatPercent(pattern.overall.targetHitRate)}</strong></div>
+              <div><span>Source stop first</span><strong>{pattern.overall.stopHitCount} / {pattern.overall.evaluableCount} · {formatPercent(pattern.overall.stopHitRate)}</strong></div>
+              <div><span>Source gross average</span><strong>{formatR(pattern.overall.averageR)}</strong></div>
+              <div><span>Source recent</span><strong>{formatR(pattern.recentWindow.metrics.averageR)} · N {pattern.recentWindow.metrics.evaluableCount}</strong></div>
+              <div><span>Source positive years</span><strong>{pattern.yearStability.positiveYears}/{pattern.yearStability.evaluableYears}</strong></div>
+              <div><span>Source development</span><strong>{formatR(pattern.development.averageR)} · N {pattern.development.evaluableCount}</strong></div>
+              <div><span>Source holdout</span><strong>{formatR(pattern.holdout.averageR)} · N {pattern.holdout.evaluableCount}</strong></div>
+              <div><span>Source past-only audit</span><strong>{formatR(pattern.prequentialAudit.gross.averageR)} · N {pattern.prequentialAudit.evaluableCount}</strong></div>
+            </div>
+            <div className="chart-shadow-target-strip">
+              {pattern.targetRobustness.map((target) => (
+                <span key={target.targetR}><b>{target.targetR}R</b> {formatR(target.gross.averageR)} · N {target.gross.evaluableCount}</span>
+              ))}
+            </div>
+          </details>
         </details>
       ))}
     </section>

@@ -150,13 +150,24 @@ export function buildMacroSignalShadowPosition(
   signal: MacroSignalChartSignal,
   balance: number,
   riskPercent: number,
+  symbol = "EURUSD",
 ): MacroSignalShadowPosition {
   const riskDollars = roundMoney(Math.max(0, Number.isFinite(balance) ? balance : 0) * (normalizeShadowRiskPercent(riskPercent) / 100));
   const entry = signal.entry;
   const stop = signal.stop;
-  const sizingNote = "Indicative USD-account sizing at $10 per pip per standard EURUSD lot; MT5 margin and broker volume limits are not applied.";
+  const normalizedSymbol = symbol.toUpperCase();
+  const isJpyQuote = normalizedSymbol.endsWith("JPY");
+  const pipSize = isJpyQuote ? 0.01 : 0.0001;
+  const usdQuoted = normalizedSymbol.endsWith("USD");
+  const usdBased = normalizedSymbol.startsWith("USD");
+  const sizingNote = usdQuoted
+    ? `Indicative USD-account sizing at $10 per pip per standard ${normalizedSymbol} lot; MT5 margin and broker volume limits are not applied.`
+    : usdBased
+      ? `Indicative USD-account sizing converts ${normalizedSymbol}'s quote-currency pip value at the entry price; MT5 margin and broker volume limits are not applied.`
+      : "Position size is unavailable because this USD-account estimate does not have a live quote-to-USD conversion.";
   if (entry == null || stop == null || entry === stop) return { riskDollars, stopPips: null, lots: null, sizingNote };
-  const stopPips = Math.abs(entry - stop) / 0.0001;
-  const lots = stopPips > 0 ? riskDollars / (stopPips * 10) : null;
+  const stopPips = Math.abs(entry - stop) / pipSize;
+  const pipValueUsd = usdQuoted ? 10 : usdBased ? (pipSize * 100_000) / entry : null;
+  const lots = stopPips > 0 && pipValueUsd != null ? riskDollars / (stopPips * pipValueUsd) : null;
   return { riskDollars, stopPips, lots, sizingNote };
 }

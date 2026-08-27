@@ -12,7 +12,7 @@ import { MacroBiasConnectorPrimitive } from "@/app/lib/macroBiasConnectorPrimiti
 import { buildMacroSignalShadowAccount, buildMacroSignalShadowPosition, normalizeShadowRiskPercent, normalizeShadowStartingBalance } from "@/app/lib/macroSignalShadow";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
 import { buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasReplayStatusLabel, getMacroBiasRequestScope, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange } from "@/app/tabs/primary/ChartsTab";
-import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalMetrics } from "@/app/types";
+import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MacroSignalMetrics } from "@/app/types";
 import { getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
 
@@ -126,15 +126,17 @@ describe("getChartConnectionLabel", () => {
     };
     const signal: MacroSignalChartSignal = {
       id: "signal", patternId: "pattern", sourceVersionId: "v2", eventTime: 1_000, activationTime: 14_400,
-      execution: { stopAtr: 2, targetR: 1, expiryCandles: 6 }, stopAtr: 2, targetR: 1, expiryCandles: 6,
-      historicalReplay: true, direction: "short", label: "US payroll package", agreement: "consensus", pairVote: -1,
+      execution: { stopAtr: 2, targetR: .5, expiryCandles: 42 }, stopAtr: 2, targetR: .5, expiryCandles: 42,
+      historicalReplay: true, direction: "long", label: "US labor claims improvement", agreement: "consensus", pairVote: 1,
       backgroundDirection: "short", backgroundPairVote: -1, backgroundAlignment: "aligned", backgroundCoverageComplete: true,
-      highestImpact: "high", events: [], outcomeStatus: "target_hit", resultR: 1, exitTime: 28_800,
+      highestImpact: "high", events: [], outcomeStatus: "target_hit", resultR: .5, exitTime: 28_800,
     };
     const html = renderToStaticMarkup(createElement(ChartMacroBiasAudit, { data: {
       signal,
       pattern: {
-        id: "pattern", signature: "short|USD:employment", signatures: ["short|USD:employment"], sourceVersionId: "v2", label: "US payroll package", condition: "Short when USD payroll evidence improves.", execution: { stopAtr: 2, targetR: 1, expiryCandles: 6 }, direction: "short", groups: ["USD:employment"],
+        id: "pattern", market: "USDCAD", signature: "long|USD:labor_claims", signatures: ["long|USD:labor_claims"], sourceVersionId: "v2", label: "US labor claims improvement", condition: "Long USDCAD when claims evidence improves.", execution: { stopAtr: 2, targetR: .5, expiryCandles: 42 }, direction: "long", groups: ["USD:labor_claims"],
+        historicalBenchmark: { experimentId: "FMS-USDCAD-H4-E030", historicalN: 178, walkForwardN: 67, walkForwardAverageR: .143, targetFirstRate: .776, stopFirstRate: .224, status: "historically_profitable" },
+        registrationProvenance: { status: "verified", experimentId: "FMS-USDCAD-H4-E030", configurationHash: "config", datasetFingerprint: "data", qualificationAuditId: "audit", checks: { market: true }, note: "Verified against the immutable experiment." },
         overall: metrics, development: metrics, holdout: metrics, qualification: {}, exampleTitles: [], modelStatus: "current", currentEligible: true,
         modelChecks: {}, executionStress: { pips: 3, overall: { ...metrics, averageR: 0.087 }, development: metrics, holdout: metrics, recent: metrics },
         recentWindow: { from: 0, to: 1, metrics }, yearStability: { evaluableYears: 11, positiveYears: 7, positiveYearShare: 7 / 11, byYear: [] },
@@ -150,12 +152,23 @@ describe("getChartConnectionLabel", () => {
     } }));
 
     expect(html).toContain("Known-afterward simulation");
-    expect(html).toContain("Target first · +1.00R");
-    expect(html).toContain("2 ATR / 1R / 6 H4");
-    expect(html).toContain("1R target");
+    expect(html).toContain("Long USDCAD bias");
+    expect(html).not.toContain("Long EURUSD bias");
+    expect(html).toContain("Closed — target reached");
+    expect(html).toContain("Later price movement does not change this result");
+    expect(html).toContain("Target first · +0.50R");
+    expect(html).toContain("SL 2 ATR · TP 0.5R = 1 ATR · maximum 42 H4 candles");
+    expect(html).toContain("Exact registered recipe");
+    expect(html).toContain("FMS-USDCAD-H4-E030");
+    expect(html).toContain("+0.14R");
+    expect(html).toContain("77.6%");
+    expect(html).toContain("Verified immutable recipe");
+    expect(html).toContain("Source research diagnostics");
+    expect(html).toContain("different benchmark");
+    expect(html).toContain("1R source target");
     expect(html).toContain("-0.17R");
     expect(html).toContain("5.7 pips per case");
-    expect(html).toContain("95% expectancy interval still includes zero edge");
+    expect(html).toContain("source stressed 95% expectancy interval includes zero edge");
   });
   it("shows the current bias, historical wins and failures, next event, and next frozen condition", () => {
     const metrics: MacroSignalMetrics = {
@@ -167,6 +180,7 @@ describe("getChartConnectionLabel", () => {
     const pattern = {
       id: "sentiment", signature: "long|EUR:consumer_sentiment", signatures: ["long|EUR:consumer_sentiment", "short|EUR:consumer_sentiment"],
       sourceVersionId: "v3", label: "Euro-area consumer sentiment", condition: "Long if sentiment improves; Short if it weakens.", execution: { stopAtr: 1, targetR: 2, expiryCandles: 30 }, direction: "both",
+      market: "EURUSD", scoringPolicy: "forecast_quality", historicalBenchmark: { experimentId: "FMS-EURUSD-H4-E197", historicalN: 48, walkForwardN: 35, walkForwardAverageR: .14, targetFirstRate: .75, stopFirstRate: .17, status: "historically_profitable" },
       groups: ["EUR:consumer_sentiment"], overall: metrics, development: metrics, holdout: metrics, qualification: {}, exampleTitles: [],
       modelStatus: "current", currentEligible: true, modelChecks: {}, executionStress: { pips: 3, overall: metrics, development: metrics, holdout: metrics, recent: metrics },
       recentWindow: { from: 0, to: 1, metrics }, yearStability: { evaluableYears: 10, positiveYears: 7, positiveYearShare: .7, byYear: [] },
@@ -190,8 +204,28 @@ describe("getChartConnectionLabel", () => {
         usage: "Context only.",
       },
     } satisfies MacroSignalChartSignalResponse;
+    const gbpPattern = { ...pattern, id: "gbp-industrial", market: "GBPUSD", label: "US industrial-production package" } satisfies MacroSignalChartPattern;
+    const gbpResponse = {
+      ...response,
+      symbol: "GBPUSD",
+      patterns: [gbpPattern],
+      realtime: {
+        asOf: 100,
+        nextPairEvent: null,
+        nextPatternWatch: { time: 400, patternId: gbpPattern.id, label: gbpPattern.label, condition: gbpPattern.condition, sourceVersionId: "v7", requiredGroups: ["USD:industrial_output"], events: [] },
+      },
+      policyInflationContext: undefined,
+    } satisfies MacroSignalChartSignalResponse;
+    const globalResponse = {
+      modelId: "global", modelHash: "global-hash", generatedAt: 100, markets: [response, gbpResponse],
+      explanation: "Registered, contender, and avoid meanings.",
+      researchIntelligence: [
+        { id: "contender", status: "contender", market: "EURUSD", label: "Retail sales", evidence: "Positive in some partitions.", conclusion: "Retest later." },
+        { id: "avoid", status: "avoid", market: "GBPUSD", label: "Producer inflation", evidence: "Repeated tests were unstable.", conclusion: "Avoid standalone direction." },
+      ],
+    } satisfies MacroSignalGlobalResponse;
     const html = renderToStaticMarkup(createElement(ChartMacroBiasRealtimeCard, { data: {
-      response, activeSignal: null, activePattern: null, remainingModelCandles: null, chartTimeframe: "H1", historicalSignals: [],
+      response, activeSignal: null, activePattern: null, remainingModelCandles: null, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
     } }));
 
     expect(html).toContain("FMS Shadow Trader");
@@ -204,18 +238,25 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Possible next setup");
     expect(html).toContain("Automatically selected from the frozen current registry");
     expect(html).toContain("Registered current setups");
-    expect(html).toContain("2R target first");
+    expect(html).toContain("Walk-forward average");
+    expect(html).toContain("FMS-EURUSD-H4-E197");
+    expect(html).toContain("Highest average R");
+    expect(html).toContain("Highest target-first rate");
+    expect(html).toContain("2 markets · 2 setups");
+    expect(html).toContain("GBPUSD · US industrial-production package");
+    expect(html).toContain("What history says");
+    expect(html).toContain("Research contenders");
+    expect(html).toContain("Avoid as standalone direction");
     expect(html).toContain("Historical N");
-    expect(html).toContain("Recent window");
-    expect(html).toContain("Past-only audit");
+    expect(html).toContain("Source recent");
+    expect(html).toContain("Source past-only audit");
     expect(html).toContain("Registered EUR evidence improves");
     expect(html).toContain("Long EURUSD");
     expect(html).toContain("Zero, missing, or nonmatching");
-    expect(html).toContain("H4 backtest · shown on H1");
     expect(html).toContain("1970-01-01 00:05 UTC");
     expect(html).toContain("Long if sentiment improves; Short if it weakens.");
-    expect(html).toContain("4 / 10");
-    expect(html).toContain("6 / 10");
+    expect(html).toContain("75.0%");
+    expect(html).toContain("17.0%");
     expect(html).toContain("+0.20R");
     expect(html).toContain("$1,000.00");
     expect(html).toContain("One position at a time");
@@ -246,6 +287,9 @@ describe("getChartConnectionLabel", () => {
     expect(normalizeShadowStartingBalance(0)).toBe(1);
     expect(normalizeShadowRiskPercent(150)).toBe(100);
     expect(position.sizingNote).toContain("USD-account sizing");
+    const jpyPosition = buildMacroSignalShadowPosition({ ...makeSignal("jpy-position", 500, 600, 2, "target_hit"), entry: 150, stop: 149.5 }, 1_000, 1, "USDJPY");
+    expect(jpyPosition.stopPips).toBeCloseTo(50);
+    expect(jpyPosition.lots).toBeCloseTo(.03);
 
     const conflict = buildMacroSignalShadowAccount([
       { ...makeSignal("long", 500, 600, 2, "target_hit"), direction: "long", maximumAdverseR: 0.5, expiryTime: 900 },

@@ -595,11 +595,65 @@ This pass does not justify a filter search selected after viewing the baseline. 
 
 `FMS-QUALIFICATION-v2` is an additive evaluation overlay: it does not rewrite an immutable E record, its stored fingerprint, its selected historical contract, or the legacy strict checks. It grades each completed experiment as **Rejected**, **Research candidate**, or **Statistically confirmed**. The current strict checks remain visible; positive strict holdout lower-95 is retained as a requirement only for the strongest grade.
 
-V2 requires at least 60 evaluable cases, takes the earliest 50% as initial history, then performs five chronological outer folds of at least eight cases. A Combined Contract is selected inside each preceding history by the existing development lower-95, then development-average rule and applied only to the immediately next fold. The pooled report contains only those out-of-fold results. Research-candidate checks require positive overall/development/holdout/recent/pooled-walk-forward averages, 30 pooled cases, at least three positive folds, 50% positive years, <=5% ambiguity, concentration below 50% for both the best year and top three trades, a 90% lower bound >= -0.05R, and a documented neighbouring-contract stability audit. Statistical confirmation additionally requires positive 95% walk-forward and strict-holdout lower bounds, 60% positive years, and a trial-adjusted confidence pass.
+V2 requires at least 80 evaluable cases, takes the earliest 50% as initial history, then performs five chronological outer folds of at least eight cases. A Combined Contract is selected inside each preceding history by the existing development lower-95, then development-average rule and applied only to the immediately next fold. The pooled report contains only those out-of-fold results. Research-candidate checks require positive overall/development/holdout/recent/pooled-walk-forward averages, 30 pooled cases, at least three positive folds, 50% positive years, <=5% ambiguity, concentration below 50% for both the best year and top three trades, a 90% lower bound >= -0.05R, and at least 70% positive results across adjacent SL/TP/duration contracts evaluated in the same outer folds. Statistical confirmation additionally requires positive 95% walk-forward and strict-holdout lower bounds, 60% positive years, and a family-wide Holm-adjusted confidence pass.
 
-The selection-bias audit uses a deterministic configuration-hash-seeded nonparametric bootstrap of pooled trade R. Its unadjusted confidence is the share of bootstrap means above zero; its conservative adjusted confidence compounds that value across the declared candidate-rule count times the tested contract count. This is explicitly an audit, never a selector. The independence-style compounding is conservative and does not model correlation among adjacent contracts.
+The selection-bias audit uses a deterministic configuration-hash-seeded calendar-year block bootstrap of pooled trade R. It reports percentile intervals and a centered-null one-sided p-value. Ordinary audits use 10,000 replications; extreme tails deterministically refine the p-value to 250,000 replications so a large frozen family does not make confirmation numerically impossible. Family-wide multiplicity is handled by Holm-Bonferroni across the complete immutable manifest, including insufficient and failed declarations as p=1. This is explicitly an audit, never a selector.
 
 `FMS-GBPUSD-H4-E012` was separately audited under its predeclared fixed `2 ATR / 4R / 60 H4` contract, not relabelled as untouched holdout evidence. Its pooled five-fold out-of-fold result was `N=42`, approximately `+0.056R`, with two positive folds. It is **Rejected**: it misses the required three positive folds, 50% positive years, 90% lower-bound threshold, and its legacy strict holdout lower-95 remains negative. No C or M record was created and no GBPUSD arrow was added.
+
+### Seven-Market Guarded Sweep - 2026-08-27
+
+The frozen manifest `b8e529042ccf67ef631be8d850dae085799c7e7f304c274eb58f332e3bd2687f` declared 1,128 rule entries across EURUSD, GBPUSD, USDJPY, AUDUSD, USDCAD, NZDUSD, and USDCHF before family-wide results were finalized. It retained the full `0.5-2 ATR` stop, `0.5-4R` target, and `6/12/18/30/42/60 H4` duration matrix. Of those declarations, 381 completed historical simulations and Qualification-v2 audits; 747 were recorded as insufficient because the requested direction/treatment was unavailable, below the 80-case preflight boundary, or produced no evaluable path. There were no final runtime failures.
+
+The sweep found 11 **Research candidates** and zero **Statistically confirmed** setups. Two candidates survived the family-wide Holm correction, but neither passed the unchanged positive strict-holdout lower-95 requirement, so neither becomes a C candidate, registered setup, Charts arrow, or Shadow Trader rule:
+
+| Market | Pattern | Treatment | Pooled OOS | 90% lower | Folds | Years | Holm p | Decision |
+|---|---|---|---:|---:|---:|---:|---:|---|
+| USDCAD | USD composite + services PMI | Momentum-only, both directions | N 47, +0.215R | +0.117R | 4/5 | 6/6 | 0.0045 | Research candidate; strict holdout lower-95 failed |
+| USDJPY | JPY labor wages | Forecast Guard, both directions | N 42, +0.548R | +0.489R | 5/5 | 6/6 | 0.0045 | Research candidate; strict holdout lower-95 failed |
+
+The other nine v2 research candidates were USDCAD USD composite/services PMI baseline; USDJPY USD consumer sentiment Momentum-only; EURUSD US industrial production baseline; USDJPY short USD labor claims; USDCAD long USD labor claims; GBPUSD USD industrial output baseline; USDJPY JPY labor wages Momentum-only; USDJPY JPY headline/core inflation baseline; and USDJPY short JPY headline/core inflation. Their family-wide adjusted p-values did not pass.
+
+Operational conclusion: the broader search produced promising research leads but no defensible new registered setup. Existing live FMS models remain unchanged. The two Holm-surviving candidates should be reviewed as fixed, named challengers against genuinely new forward observations or a new untouched broker/time period; their historical contracts and gates must not be retuned after seeing this sweep.
+
+### Practical Historical Registry - 2026-08-27
+
+The product objective was explicitly reset from academic confirmation to practical historical discovery. `FMS-HISTORICALLY-PROFITABLE-H4-v1` registers an event recipe when its identity, scoring treatment, entry, SL, TP, and expiry are frozen without lookahead; its pooled chronological walk-forward sample is usable (normally at least 30 cases); and its gross walk-forward average R is positive. Confidence intervals, fold consistency, year stability, concentration, and omitted costs remain visible risk diagnostics. They no longer erase a positive historical result merely because a lower confidence bound crosses zero. This is a historical-profitability registry, not proof of future profit.
+
+Overlapping discoveries with the same event package are deduplicated to the strongest practical recipe rather than generating several arrows for the same release. The registry currently projects these new unique recipes in addition to the three preserved EURUSD rules:
+
+| Market | Registered setup | Scoring | Frozen contract | Walk-forward result |
+|---|---|---|---|---|
+| EURUSD | US industrial-production package, both directions | Forecast Guard | 1.5 ATR / 0.5R / 12 H4 | N 48, +0.138R |
+| GBPUSD | US industrial-production package, both directions | Forecast Guard | 1 ATR / 0.5R / 6 H4 | N 48, +0.105R |
+| USDCAD | US composite + services PMI, both directions | Momentum-only | 2 ATR / 0.5R / 12 H4 | N 47, +0.215R |
+| USDCAD | US labor-claims improvement, Long only | Forecast Guard | 2 ATR / 0.5R / 42 H4 | N 67, +0.143R |
+| USDJPY | US consumer sentiment, both directions | Momentum-only | 0.75 ATR / 0.5R / 30 H4 | N 159, +0.084R |
+| USDJPY | US labor claims, Short only | Forecast Guard | 0.5 ATR / 0.75R / 30 H4 | N 96, +0.065R |
+| USDJPY | Japan labor wages, both directions | Forecast Guard | 0.75 ATR / 4R / 6 H4 | N 42, +0.548R |
+| USDJPY | Japan headline + core inflation, both directions | Forecast Guard | 2 ATR / 1R / 30 H4 | N 90, +0.123R |
+
+Charts now exposes the registry for EURUSD, GBPUSD, USDCAD, and USDJPY. Research Replay displays the historical matches as hindsight; Current mode waits for immutable post-activation releases and never fabricates a current arrow. Shadow Trader sorts the monitored rules by walk-forward average R, target-first rate, or name and shows the matching upcoming releases. AUDUSD, NZDUSD, and USDCHF remain unsupported in Charts because the completed sweep found no positive practical recipe meeting this registration standard.
+
+### Global Shadow Trader and Negative Research Value - 2026-08-27
+
+Shadow Trader is now a global registry monitor rather than a selected-pair-only list. It combines the current immutable state and upcoming registered releases for EURUSD, GBPUSD, USDCAD, and USDJPY while Charts arrows remain scoped to the selected symbol. Its setup list remains sortable by historical average R, target-first rate, or name.
+
+Failed backtests are treated as useful evidence, not discarded noise. The UI distinguishes:
+
+- **Registered:** a fixed no-lookahead directional recipe with positive practical walk-forward expectancy;
+- **Contender:** an interesting reaction that was positive in some meaningful partitions but unstable or regime-dependent;
+- **Avoid as standalone direction:** repeated tests did not support reliably mapping the release's economic direction directly to the pair's price direction.
+
+“Avoid” never means the event is economically irrelevant. It means the tested direct arrow is unsupported; the release may still create volatility, interact with another event, or become useful under a separately frozen entry-known treatment. The initial intelligence registry records the unstable EURUSD retail-sales and aligned-US-manufacturing-PMI contenders, plus unsupported direct mappings for GBPUSD US producer inflation and EURUSD US labor claims, US consumer inflation, and US consumer sentiment. These labels must stay tied to recorded experiment evidence and must never be invented from one chart example.
+
+## Registered-Recipe Integrity and Loss Review - 2026-08-28
+
+FMS must never mix the performance of a broad source experiment with the performance of the exact registered arrow recipe. Charts therefore treats the immutable registered experiment and its frozen SL, TP, duration, scoring policy, direction, and walk-forward audit as the primary benchmark. Broader source 2R statistics and alternative-target diagnostics are a separately collapsed research reference. Eight practical-registry recipes currently reconcile exactly with their immutable Workbench experiment and latest Qualification-v2 walk-forward audit. The three preserved EURUSD v10 registrations remain explicitly labelled legacy snapshots until equivalent immutable experiment links are reconstructed; their broader source statistics must not be presented as exact registered-contract results.
+
+An arrow is a finite hypothetical trade lifecycle, not a permanent directional forecast. Target first, stop first, expiry, ambiguity, or unavailable price coverage ends that lifecycle. Price reversing after a target was already reached does not convert the recorded win into a loss. A future persistent-macro-bias model would require its own separately frozen horizon and evaluation contract.
+
+The next FMS refinement loop is loss review rather than ad-hoc rule loosening. Genuine stop-first and negative-expiry cases should be compared with winners using only entry-known fields: exact release package, Surprise/Momentum composition, Forecast Guard status, package completeness, Before alignment, broker impact, prior H4 trend/volatility, and release session. Any apparent separator becomes a named immutable challenger while the registered parent remains unchanged. Promotion requires positive gross walk-forward average R, a target-first rate above that contract's simple gross break-even threshold, usable temporal coverage, and transparent drawdown/streak diagnostics. One visually surprising chart case must never be used as a fitted exception.
 
 ## Research Warnings and References
 

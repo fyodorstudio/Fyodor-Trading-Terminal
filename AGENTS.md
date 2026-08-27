@@ -16,6 +16,8 @@ Ignore `docs/Private` unless the user explicitly asks for it.
 
 Fyodor is a local manual-trading support terminal. It helps inspect MT5 candles, broker economic-calendar rows, central-bank context, and event replay. It must not pretend to generate guaranteed trades or buy/sell calls.
 
+FMS is the primary product objective. Its practical research loop is: discover immutable, no-lookahead economic-event recipes with positive historical walk-forward expectancy; register the non-duplicated recipes with their fixed scoring and execution contracts; display their historical arrows; then monitor future releases in Shadow Trader. Statistical confidence, stability, sample size, and trading-cost omissions must remain visible diagnostics, but an academic confidence threshold must not automatically veto an otherwise positive historical recipe. Never relabel this as guaranteed profitability or send an MT5 order.
+
 Trusted live data is intentionally limited to MT5 OHLCV plus broker/MT5 economic-calendar rows unless the user explicitly changes that boundary.
 
 ## UI / Viewport Rule

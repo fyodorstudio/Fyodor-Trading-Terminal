@@ -60,6 +60,7 @@ from macro_signal import (
   dataset_fingerprint,
   evaluate_candidate,
   get_signal_definition,
+  rescore_policy_outcomes,
   rescore_forecast_quality_outcomes,
 )
 from research_store import ResearchStore
@@ -73,6 +74,161 @@ WORKBENCH_MARKETS = {
     for symbol, (base, quote, _scope) in MARKET_RESEARCH_SPECS.items()
   },
 }
+
+PRACTICAL_MODEL_ID = "FMS-HISTORICALLY-PROFITABLE-H4-v1"
+PRACTICAL_MODEL_CREATED_AT = 1787792400
+
+
+def _practical_pattern(
+  market: str, pattern_id: str, label: str, source_version: str,
+  signatures: List[str], scoring_policy: str, stop_atr: float, target_r: float,
+  expiry: int, experiment_id: str, historical_n: int, walk_forward_n: int,
+  average_r: float, target_rate: float, stop_rate: float, condition: str,
+) -> Dict[str, Any]:
+  return {
+    "market": market, "id": pattern_id, "label": label,
+    "sourceVersion": source_version, "signatures": tuple(signatures),
+    "scoringPolicy": scoring_policy, "current": True,
+    "activatedAt": PRACTICAL_MODEL_CREATED_AT,
+    "execution": {"stopAtr": stop_atr, "targetR": target_r, "expiryCandles": expiry},
+    "condition": condition,
+    "historicalBenchmark": {
+      "experimentId": experiment_id, "historicalN": historical_n,
+      "walkForwardN": walk_forward_n, "walkForwardAverageR": average_r,
+      "targetFirstRate": target_rate, "stopFirstRate": stop_rate,
+      "status": "historically_profitable",
+    },
+  }
+
+
+_preserved_eurusd_patterns = tuple({
+  **pattern, "market": "EURUSD", "scoringPolicy": "forecast_quality",
+  "activatedAt": CHART_SIGNAL_MODEL_CREATED_AT,
+} for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS if pattern.get("current") and pattern["id"] != "us-industrial-output-short")
+
+PRACTICAL_PATTERN_DEFINITIONS = (
+  *_preserved_eurusd_patterns,
+  _practical_pattern("EURUSD", "us-industrial-output-directional", "US industrial-production package", "FMS-EURUSD-GROWTH-H4-v7", ["long|USD:industrial_output", "short|USD:industrial_output"], "forecast_quality", 1.5, .5, 12, "FMS-EURUSD-H4-E197", 105, 48, .1383022907, .75, .1666666667, "Follow the scored USD industrial-output direction: USD improvement points Short EURUSD; USD weakening points Long EURUSD."),
+  _practical_pattern("GBPUSD", "gbpusd-us-industrial-output", "US industrial-production package", "FMS-GBPUSD-GROWTH-H4-v7", ["long|USD:industrial_output", "short|USD:industrial_output"], "forecast_quality", 1, .5, 6, "FMS-GBPUSD-H4-E011", 105, 48, .1053096835, .7916666667, .2083333333, "Follow the scored USD industrial-output direction for GBPUSD."),
+  _practical_pattern("USDCAD", "usdcad-us-pmi", "US composite and services PMI", "FMS-USDCAD-GROWTH-H4-v7", ["long|USD:pmi_composite|USD:pmi_services", "short|USD:pmi_composite|USD:pmi_services"], "momentum_only", 2, .5, 12, "FMS-USDCAD-H4-E007", 109, 47, .2151555498, .8085106383, .1276595745, "Use Actual versus Previous only; follow the historically profitable USDCAD direction."),
+  _practical_pattern("USDCAD", "usdcad-us-labor-claims-long", "US labor claims improvement", "FMS-USDCAD-LABOR-H4-v2", ["long|USD:labor_claims"], "forecast_quality", 2, .5, 42, "FMS-USDCAD-H4-E030", 178, 67, .1427782278, .776119403, .223880597, "Long USDCAD only when the registered US labor-claims evidence produces this direction."),
+  _practical_pattern("USDJPY", "usdjpy-us-consumer-sentiment", "US consumer sentiment", "FMS-USDJPY-SENTIMENT-H4-v3", ["long|USD:consumer_sentiment", "short|USD:consumer_sentiment"], "momentum_only", .75, .5, 30, "FMS-USDJPY-H4-E005", 355, 159, .0840090486, .6163522013, .2327044025, "Use Actual versus Previous only; follow the scored USDJPY direction."),
+  _practical_pattern("USDJPY", "usdjpy-us-labor-claims-short", "US labor claims", "FMS-USDJPY-LABOR-H4-v2", ["short|USD:labor_claims"], "forecast_quality", .5, .75, 30, "FMS-USDJPY-H4-E024", 233, 96, .0651900472, .5520833333, .3229166667, "Short USDJPY only when the registered labor-claims evidence produces this direction."),
+  _practical_pattern("USDJPY", "usdjpy-jpy-labor-wages", "Japan labor wages", "FMS-USDJPY-LABOR-H4-v2", ["long|JPY:labor_wages", "short|JPY:labor_wages"], "forecast_quality", .75, 4, 6, "FMS-USDJPY-H4-E047", 97, 42, .5477584014, .119047619, .4761904762, "Follow the scored JPY wage direction using Forecast Guard."),
+  _practical_pattern("USDJPY", "usdjpy-jpy-inflation", "Japan headline and core inflation", "FMS-USDJPY-POLICY-INFL-H4-v5", ["long|JPY:core_consumer_inflation|JPY:headline_consumer_inflation", "short|JPY:core_consumer_inflation|JPY:headline_consumer_inflation"], "forecast_quality", 2, 1, 30, "FMS-USDJPY-H4-E044", 208, 90, .1233094645, .5777777778, .3333333333, "Follow the scored JPY headline/core inflation direction using Forecast Guard."),
+)
+PRACTICAL_MODEL_HASH = hashlib.sha256(json.dumps(PRACTICAL_PATTERN_DEFINITIONS, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+FMS_RESEARCH_INTELLIGENCE = (
+  {
+    "id": "eurusd-retail-sales-contender", "status": "contender", "market": "EURUSD",
+    "label": "Euro-area retail-sales improvement",
+    "evidence": "Restricted result was positive across development, holdout, recent, and 9/11 years, but the full contract grid reversed the selected edge.",
+    "conclusion": "Worth a fixed future retest; not stable enough for a Charts arrow.",
+  },
+  {
+    "id": "eurusd-us-manufacturing-pmi-contender", "status": "contender", "market": "EURUSD",
+    "label": "Aligned US manufacturing PMI",
+    "evidence": "Later history was strongly positive, while the older development period was approximately flat.",
+    "conclusion": "Possible regime-dependent reaction; do not register until the older weakness is explained by an entry-known rule.",
+  },
+  {
+    "id": "gbpusd-us-producer-inflation-avoid", "status": "avoid", "market": "GBPUSD",
+    "label": "US producer inflation",
+    "evidence": "The fixed walk-forward audit produced only 2/5 positive folds and a negative 90% lower bound.",
+    "conclusion": "Do not use its direct economic direction as a standalone GBPUSD arrow.",
+  },
+  {
+    "id": "eurusd-us-labor-claims-avoid", "status": "avoid", "market": "EURUSD",
+    "label": "US labor claims",
+    "evidence": "Broad continuation and S/M-agreement experiments both had negative holdout and recent average R.",
+    "conclusion": "The direct release direction has not been historically dependable for EURUSD.",
+  },
+  {
+    "id": "eurusd-us-consumer-inflation-avoid", "status": "avoid", "market": "EURUSD",
+    "label": "US consumer inflation direct mapping",
+    "evidence": "A small full-history positive result did not persist in the important later partitions.",
+    "conclusion": "Treat as context or volatility risk, not a standalone directional arrow.",
+  },
+  {
+    "id": "eurusd-us-consumer-sentiment-avoid", "status": "avoid", "market": "EURUSD",
+    "label": "US consumer sentiment direct mapping",
+    "evidence": "High-N direct tests were weak or negative across important partitions.",
+    "conclusion": "Do not assume EURUSD will follow the release direction without a separately frozen condition.",
+  },
+)
+
+
+def _registration_provenance(pattern: Dict[str, Any]) -> Dict[str, Any]:
+  """Reconcile a practical registration with its immutable experiment/audit."""
+  benchmark = pattern.get("historicalBenchmark")
+  if not isinstance(benchmark, dict):
+    return {
+      "status": "legacy_snapshot",
+      "experimentId": None,
+      "configurationHash": None,
+      "datasetFingerprint": None,
+      "qualificationAuditId": None,
+      "checks": {},
+      "note": "Legacy registration: no immutable Workbench experiment is linked, so source diagnostics are not a registered-contract benchmark.",
+    }
+  experiment_id = str(benchmark.get("experimentId") or "")
+  experiment = _research_store.get_fms_experiment(experiment_id) if experiment_id else None
+  if not experiment or experiment.get("status") != "completed" or not isinstance(experiment.get("result"), dict):
+    return {
+      "status": "unavailable",
+      "experimentId": experiment_id or None,
+      "configurationHash": None if not experiment else experiment.get("configurationHash"),
+      "datasetFingerprint": None if not experiment else experiment.get("datasetFingerprint"),
+      "qualificationAuditId": None,
+      "checks": {},
+      "note": "The linked immutable experiment is unavailable or incomplete. Treat the registration benchmark as unverified.",
+    }
+  result = experiment["result"]
+  configuration = experiment.get("configuration") or {}
+  selected = result.get("selectedConfiguration") or {}
+  audit = _research_store.latest_fms_qualification_audit(experiment_id)
+  pooled = ((audit or {}).get("walkForward") or {}).get("pooled") or {}
+  execution = pattern.get("execution") or {}
+  expected_signatures = sorted(str(value) for value in pattern.get("signatures") or ())
+  actual_signatures = sorted(str(value) for value in configuration.get("signatures") or ())
+  if not actual_signatures and configuration.get("signature"):
+    actual_signatures = [str(configuration["signature"])]
+
+  def close(left: Any, right: Any, tolerance: float = 1e-8) -> bool:
+    try:
+      return abs(float(left) - float(right)) <= tolerance
+    except (TypeError, ValueError):
+      return False
+
+  checks = {
+    "market": str(configuration.get("market") or result.get("market") or "") == str(pattern.get("market") or "EURUSD"),
+    "sourceVersion": str(result.get("sourceVersionId") or configuration.get("sourceVersionId") or "") == str(pattern.get("sourceVersion") or pattern.get("sourceVersionId") or ""),
+    "signatures": actual_signatures == expected_signatures,
+    "scoringPolicy": str(configuration.get("scoringPolicy") or result.get("scoringPolicy") or "") == str(pattern.get("scoringPolicy") or "forecast_quality"),
+    "stopAtr": close(selected.get("stopAtr"), execution.get("stopAtr")),
+    "targetR": close(selected.get("targetR"), execution.get("targetR")),
+    "expiryCandles": int(selected.get("holdingCandles") or -1) == int(execution.get("expiryCandles") or -2),
+    "historicalN": int(result.get("historicalN") or -1) == int(benchmark.get("historicalN") or -2),
+    "walkForwardN": int(pooled.get("n") or -1) == int(benchmark.get("walkForwardN") or -2),
+    "walkForwardAverageR": close(pooled.get("averageR"), benchmark.get("walkForwardAverageR")),
+    "targetFirstRate": close(pooled.get("targetRate"), benchmark.get("targetFirstRate")),
+    "stopFirstRate": close(pooled.get("stopRate"), benchmark.get("stopFirstRate")),
+  }
+  verified = all(checks.values())
+  return {
+    "status": "verified" if verified else "mismatch",
+    "experimentId": experiment_id,
+    "configurationHash": experiment.get("configurationHash"),
+    "datasetFingerprint": experiment.get("datasetFingerprint"),
+    "qualificationAuditId": None if not audit else audit.get("auditId"),
+    "checks": checks,
+    "note": (
+      "Verified against the immutable experiment configuration and its latest walk-forward qualification audit."
+      if verified else
+      "Registration values do not fully reconcile with the linked immutable experiment. Treat this setup as an audit failure until repaired."
+    ),
+  }
 
 app = FastAPI(title="MT5 Bridge", version="0.1.0")
 
@@ -1628,18 +1784,29 @@ def _qv2_metrics(
   interval_note = None
   intervals = {"80": None, "90": None, "95": None}
   p_value = None
+  p_replications = 10_000
   if bootstrap and len(blocks) >= 5 and values:
     rng = random.Random(seed)
     years = sorted(blocks)
-    reps = [statistics.fmean([value for _ in years for value in blocks[years[rng.randrange(len(years))]]]) for _ in range(10_000)]
+    block_stats = {year: (sum(blocks[year]), len(blocks[year])) for year in years}
+    def sampled_mean(source: Dict[int, tuple[float, int]]) -> float:
+      selected = [years[rng.randrange(len(years))] for _ in years]
+      total = sum(source[year][0] for year in selected)
+      count = sum(source[year][1] for year in selected)
+      return total / count
+    reps = [sampled_mean(block_stats) for _ in range(10_000)]
     reps.sort()
     intervals = {str(int(level * 100)): {"lower": reps[int((1 - level) / 2 * 9_999)], "upper": reps[int((1 + level) / 2 * 9_999)]} for level in (.8, .9, .95)}
     centered = {year: [value - mean for value in block] for year, block in blocks.items()}
-    null_means = [statistics.fmean([value for _ in years for value in centered[years[rng.randrange(len(years))]]]) for _ in range(10_000)]
-    p_value = (1 + sum(value >= mean for value in null_means)) / 10_001
+    centered_stats = {year: (sum(centered[year]), len(centered[year])) for year in years}
+    exceedances = sum(sampled_mean(centered_stats) >= mean for _ in range(10_000))
+    if exceedances <= 20:
+      p_replications = 250_000
+      exceedances += sum(sampled_mean(centered_stats) >= mean for _ in range(p_replications - 10_000))
+    p_value = (1 + exceedances) / (p_replications + 1)
   elif bootstrap:
     interval_note = "Insufficient year coverage: calendar-year block bootstrap requires at least five represented years."
-  return {"n": n, "averageR": mean, "targetRate": sum(row["status"] == "target_hit" for row in evaluable) / n if n else None, "stopRate": sum(row["status"] == "stop_hit" for row in evaluable) / n if n else None, "expiryRate": sum(row["status"] == "expired" for row in evaluable) / n if n else None, "ambiguityRate": sum(row.get("status") == "ambiguous" for row in rows) / len(rows) if rows else None, "intervals": intervals, "representedYears": len(blocks), "intervalNote": interval_note, "oneSidedNoEdgePValue": p_value, "bootstrap": {"method": "calendar-year block bootstrap; percentile intervals; centered-year null", "replications": 10000}, "values": values}
+  return {"n": n, "averageR": mean, "targetRate": sum(row["status"] == "target_hit" for row in evaluable) / n if n else None, "stopRate": sum(row["status"] == "stop_hit" for row in evaluable) / n if n else None, "expiryRate": sum(row["status"] == "expired" for row in evaluable) / n if n else None, "ambiguityRate": sum(row.get("status") == "ambiguous" for row in rows) / len(rows) if rows else None, "intervals": intervals, "representedYears": len(blocks), "intervalNote": interval_note, "oneSidedNoEdgePValue": p_value, "bootstrap": {"method": "calendar-year block bootstrap; percentile intervals; centered-year null; deterministic extreme-tail refinement", "intervalReplications": 10000, "pValueReplications": p_replications}, "values": values}
 
 
 def _qv2_select(rows_by_contract: Dict[str, List[Dict[str, Any]]], before: int) -> Optional[str]:
@@ -2007,7 +2174,7 @@ def get_research_experiment_qualification_v2(experiment_id: str) -> Dict[str, An
   if experiment.get("status") != "completed":
     raise HTTPException(status_code=409, detail="Qualification v2 requires a completed experiment")
   fixed_contract = "2|4|60" if experiment_id == "FMS-GBPUSD-H4-E012" else None
-  method_hash = hashlib.sha256(b"FMS-QUALIFICATION-v2:year-block-bootstrap:10000:oos-neighbours:holm-pending").hexdigest()
+  method_hash = hashlib.sha256(b"FMS-QUALIFICATION-v2:year-block-bootstrap:10000:tail-250000:oos-neighbours:holm-pending").hexdigest()
   cached = _research_store.get_fms_qualification_audit(experiment_id, QUALIFICATION_V2_ID, experiment["configurationHash"], experiment["datasetFingerprint"], method_hash)
   if cached: return cached
   result = _qualification_v2(experiment, fixed_contract=fixed_contract)
@@ -2201,13 +2368,14 @@ def research_chart_signals(
   normalized_mode = mode.lower()
   if normalized_mode not in {"current", "research_replay"}:
     raise HTTPException(status_code=400, detail="Macro Bias mode must be current or research_replay")
-  if normalized_symbol != "EURUSD" or normalized_tf not in {"H1", "H4"}:
+  market_patterns = [pattern for pattern in PRACTICAL_PATTERN_DEFINITIONS if pattern["market"] == normalized_symbol]
+  if not market_patterns:
     return {
       "supported": False,
-      "versionId": CHART_SIGNAL_MODEL_ID,
-      "modelId": CHART_SIGNAL_MODEL_ID,
-      "modelHash": CHART_SIGNAL_MODEL_HASH,
-      "modelActivatedAt": CHART_SIGNAL_MODEL_CREATED_AT,
+      "versionId": PRACTICAL_MODEL_ID,
+      "modelId": PRACTICAL_MODEL_ID,
+      "modelHash": PRACTICAL_MODEL_HASH,
+      "modelActivatedAt": PRACTICAL_MODEL_CREATED_AT,
       "mode": normalized_mode,
       "symbol": normalized_symbol,
       "timeframe": normalized_tf,
@@ -2215,9 +2383,10 @@ def research_chart_signals(
       "targetR": 2.0,
       "patterns": [],
       "signals": [],
-      "message": "Fyodor Macro Bias currently supports EURUSD H4 and an H4-model view on H1 only.",
+      "message": "No historically profitable FMS registry is available for this market yet.",
     }
-  source_versions = sorted({str(pattern["sourceVersion"]) for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS})
+  market_currencies = list(WORKBENCH_MARKETS[normalized_symbol]["currencies"])
+  source_versions = sorted({str(pattern["sourceVersion"]) for pattern in market_patterns})
   source_runs: Dict[str, Dict[str, Any]] = {}
   source_results: Dict[str, Dict[str, Any]] = {}
   for source_version in source_versions:
@@ -2237,47 +2406,53 @@ def research_chart_signals(
       for version in source_versions
     ).encode("utf-8")
   ).hexdigest()
-  catalog_key = f"{':'.join(str(source_runs[version].get('id', '')) for version in source_versions)}:{dataset_fingerprint}:{CHART_SIGNAL_MODEL_HASH}"
+  catalog_key = f"{normalized_symbol}:{':'.join(str(source_runs[version].get('id', '')) for version in source_versions)}:{dataset_fingerprint}:{PRACTICAL_MODEL_HASH}"
   with _chart_signal_catalog_lock:
     catalog = _chart_signal_catalog_cache.get(catalog_key)
   if catalog is None:
     catalog = []
     for source_version in source_versions:
       result = source_results[source_version]
-      catalog.extend(build_chart_signal_pattern_catalog(
-        result["targets"]["2.0"]["outcomes"],
-        result["candidateSummary"]["developmentHoldoutBoundary"],
-        {
-          target_r: target_payload.get("outcomes", [])
+      for scoring_policy in sorted({str(pattern.get("scoringPolicy", "forecast_quality")) for pattern in market_patterns if pattern["sourceVersion"] == source_version}):
+        rescored, _audit = rescore_policy_outcomes(result["targets"]["2.0"]["outcomes"], scoring_policy)
+        rescored_targets = {
+          target_r: rescore_policy_outcomes(target_payload.get("outcomes", []), scoring_policy)[0]
           for target_r, target_payload in result.get("targets", {}).items()
           if isinstance(target_payload, dict)
-        },
-        source_version,
-      ))
+        }
+        catalog.extend(build_chart_signal_pattern_catalog(
+          rescored,
+          result["candidateSummary"]["developmentHoldoutBoundary"],
+          rescored_targets,
+          source_version,
+          [pattern for pattern in market_patterns if pattern["sourceVersion"] == source_version and pattern.get("scoringPolicy", "forecast_quality") == scoring_policy],
+        ))
     with _chart_signal_catalog_lock:
       _chart_signal_catalog_cache.clear()
       _chart_signal_catalog_cache[catalog_key] = catalog
   patterns = [
-    pattern for pattern in catalog
+    {**pattern, "registrationProvenance": _registration_provenance(pattern)}
+    for pattern in catalog
     if normalized_mode == "research_replay" or pattern["currentEligible"]
   ]
-  def matching_pattern(source_version: str, candidate: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+  def matching_pattern(source_version: str, scoring_policy: str, candidate: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return next(
       (
         pattern for pattern in patterns
         if pattern["sourceVersionId"] == source_version
+        and pattern.get("scoringPolicy", "forecast_quality") == scoring_policy
         and candidate_matches_chart_pattern(candidate, pattern)
       ),
       None,
     )
   observed_events = _research_store.query_release_observations(
     from_time=FORWARD_LEDGER_ACTIVATED_AT,
-    currencies=["EUR", "USD"],
+    currencies=market_currencies,
   )
   generated_at = _get_server_time_from_mt5(normalized_symbol) or int(_time.time())
   observation_coverage_start = min((int(event["time"]) for event in observed_events), default=None)
-  current_candidates: List[Tuple[str, Dict[str, Any]]] = []
-  assessment_candidates: List[Tuple[str, Dict[str, Any]]] = []
+  current_candidates: List[Tuple[str, str, Dict[str, Any]]] = []
+  assessment_candidates: List[Tuple[str, str, Dict[str, Any]]] = []
   for source_version in source_versions:
     definition = get_signal_definition(source_version)
     if definition is None:
@@ -2288,14 +2463,12 @@ def research_chart_signals(
       outcome for outcome in source_results[source_version]["targets"]["2.0"]["outcomes"]
       if observation_coverage_start is None or int(outcome["eventTime"]) < observation_coverage_start
     ]
-    rescored, _forecast_audit = rescore_forecast_quality_outcomes([*historical_seed, *observed_source_candidates])
-    rescored_observed = [candidate for candidate in rescored if int(candidate["eventTime"]) in observed_times]
-    assessment_candidates.extend((source_version, candidate) for candidate in rescored_observed)
-    current_candidates.extend(
-      (source_version, candidate)
-      for candidate in rescored_observed
-      if int(candidate["eventTime"]) >= CHART_SIGNAL_MODEL_CREATED_AT
-    )
+    policies = {str(pattern.get("scoringPolicy", "forecast_quality")) for pattern in market_patterns if pattern["sourceVersion"] == source_version}
+    for scoring_policy in policies:
+      rescored, _policy_audit = rescore_policy_outcomes([*historical_seed, *observed_source_candidates], scoring_policy)
+      rescored_observed = [candidate for candidate in rescored if int(candidate["eventTime"]) in observed_times]
+      assessment_candidates.extend((source_version, scoring_policy, candidate) for candidate in rescored_observed)
+      current_candidates.extend((source_version, scoring_policy, candidate) for candidate in rescored_observed)
   paper_cases = {
     (source_version, int(case["eventTime"])): case
     for source_version in source_versions
@@ -2305,20 +2478,21 @@ def research_chart_signals(
   # immutable first-seen EA observations even after a historical backtest is
   # refreshed; replay signals must remain the frozen archive reconstruction.
   candidates = current_candidates if normalized_mode == "current" else [
-    (source_version, outcome)
+    (source_version, scoring_policy, outcome)
     for source_version in source_versions
-    for outcome in source_results[source_version]["targets"]["2.0"]["outcomes"]
+    for scoring_policy in {str(pattern.get("scoringPolicy", "forecast_quality")) for pattern in market_patterns if pattern["sourceVersion"] == source_version}
+    for outcome in rescore_policy_outcomes(source_results[source_version]["targets"]["2.0"]["outcomes"], scoring_policy)[0]
   ]
   window_candidates = [
-    (source_version, candidate)
-    for source_version, candidate in candidates
+    (source_version, scoring_policy, candidate)
+    for source_version, scoring_policy, candidate in candidates
     if (from_ is None or int(candidate["eventTime"]) >= from_)
     and (to is None or int(candidate["eventTime"]) <= to)
   ]
   direct_evaluation_candidates = [
-    (source_version, candidate, pattern)
-    for source_version, candidate in window_candidates
-    for pattern in [matching_pattern(source_version, candidate)]
+    (source_version, scoring_policy, candidate, pattern)
+    for source_version, scoring_policy, candidate in window_candidates
+    for pattern in [matching_pattern(source_version, scoring_policy, candidate)]
     if pattern is not None and (
       normalized_mode == "current"
       or pattern.get("execution") != {"stopAtr": 1.0, "targetR": 2.0, "expiryCandles": 30}
@@ -2328,19 +2502,21 @@ def research_chart_signals(
   custom_candle_times: List[int] = []
   custom_atr_values: List[Optional[float]] = []
   if direct_evaluation_candidates:
-    earliest_custom = min(int(candidate["eventTime"]) for _, candidate, _ in direct_evaluation_candidates)
-    latest_custom = max(int(candidate["eventTime"]) for _, candidate, _ in direct_evaluation_candidates)
+    earliest_custom = min(int(candidate["eventTime"]) for _, _, candidate, _ in direct_evaluation_candidates)
+    latest_custom = max(int(candidate["eventTime"]) for _, _, candidate, _ in direct_evaluation_candidates)
     custom_candles = _research_store.query_candles(
-      "EURUSD", "H4", earliest_custom - 45 * 24 * 60 * 60,
+      normalized_symbol, "H4", earliest_custom - 45 * 24 * 60 * 60,
       min(generated_at + H4_SECONDS, latest_custom + 75 * 24 * 60 * 60),
     )
     custom_candle_times = [int(candle["time"]) for candle in custom_candles]
     custom_atr_values = calculate_atr_by_candle(custom_candles)
   signals: List[Dict[str, Any]] = []
-  for source_version, candidate in window_candidates:
+  for source_version, scoring_policy, candidate in window_candidates:
     event_time = int(candidate["eventTime"])
-    pattern = matching_pattern(source_version, candidate)
+    pattern = matching_pattern(source_version, scoring_policy, candidate)
     if pattern is None:
+      continue
+    if normalized_mode == "current" and event_time < int(pattern.get("activatedAt", PRACTICAL_MODEL_CREATED_AT)):
       continue
     paper_outcome = paper_cases.get((source_version, event_time), {}).get("outcomes", {}).get("2.0", {})
     execution = pattern["execution"]
@@ -2402,7 +2578,7 @@ def research_chart_signals(
   signal_activation_times = [int(signal["activationTime"]) for signal in signals if signal.get("activationTime") is not None]
   if signal_activation_times:
     signal_candles = _research_store.query_candles(
-      "EURUSD", "H4", min(signal_activation_times), max(signal_activation_times) + 90 * 24 * 60 * 60,
+      normalized_symbol, "H4", min(signal_activation_times), max(signal_activation_times) + 90 * 24 * 60 * 60,
     )
     signal_candle_times = [int(candle["time"]) for candle in signal_candles]
     for signal in signals:
@@ -2441,14 +2617,14 @@ def research_chart_signals(
   )
   later_unmatched_package_count = sum(
     1
-    for source_version, candidate in window_candidates
+    for source_version, scoring_policy, candidate in window_candidates
     if latest_matched_event_at is not None
     and int(candidate["eventTime"]) > latest_matched_event_at
-    and matching_pattern(source_version, candidate) is None
+    and matching_pattern(source_version, scoring_policy, candidate) is None
   )
   scheduled_events = _research_store.query_calendar(
     from_time=generated_at - 7 * 24 * 60 * 60,
-    currencies=["EUR", "USD"],
+    currencies=market_currencies,
   )
   realtime = build_chart_signal_realtime_watch(
     scheduled_events,
@@ -2456,30 +2632,31 @@ def research_chart_signals(
     frozenset(str(pattern["id"]) for pattern in catalog if pattern["currentEligible"]),
     assessment_candidates,
     frozenset(int(event["time"]) for event in observed_events),
-    CHART_SIGNAL_MODEL_CREATED_AT,
+    PRACTICAL_MODEL_CREATED_AT,
+    market_patterns,
+    market_currencies,
+    normalized_symbol,
   )
-  context_revision = _research_store.get_metadata("last_calendar_ingest_at") or "unversioned"
-  context_key = f"{id(_research_store)}:{context_revision}"
-  with _chart_signal_context_lock:
-    cached_context = _chart_signal_context_cache.get(context_key)
-  if cached_context is None:
-    context_events = _research_store.query_calendar(
-      from_time=generated_at - 400 * 24 * 60 * 60,
-      to_time=generated_at,
-      currencies=["EUR", "USD"],
-    )
-    cached_context = build_policy_inflation_context(context_events, generated_at)
+  policy_inflation_context = None
+  if normalized_symbol == "EURUSD":
+    context_revision = _research_store.get_metadata("last_calendar_ingest_at") or "unversioned"
+    context_key = f"{id(_research_store)}:{context_revision}"
     with _chart_signal_context_lock:
-      _chart_signal_context_cache.clear()
-      _chart_signal_context_cache[context_key] = cached_context
-  policy_inflation_context = {**cached_context, "asOf": generated_at}
+      cached_context = _chart_signal_context_cache.get(context_key)
+    if cached_context is None:
+      context_events = _research_store.query_calendar(from_time=generated_at - 400 * 24 * 60 * 60, to_time=generated_at, currencies=market_currencies)
+      cached_context = build_policy_inflation_context(context_events, generated_at)
+      with _chart_signal_context_lock:
+        _chart_signal_context_cache.clear()
+        _chart_signal_context_cache[context_key] = cached_context
+    policy_inflation_context = {**cached_context, "asOf": generated_at}
   return {
     "supported": True,
-    "versionId": CHART_SIGNAL_MODEL_ID,
-    "versionHash": CHART_SIGNAL_MODEL_HASH,
-    "modelId": CHART_SIGNAL_MODEL_ID,
-    "modelHash": CHART_SIGNAL_MODEL_HASH,
-    "modelActivatedAt": CHART_SIGNAL_MODEL_CREATED_AT,
+    "versionId": PRACTICAL_MODEL_ID,
+    "versionHash": PRACTICAL_MODEL_HASH,
+    "modelId": PRACTICAL_MODEL_ID,
+    "modelHash": PRACTICAL_MODEL_HASH,
+    "modelActivatedAt": PRACTICAL_MODEL_CREATED_AT,
     "datasetFingerprint": dataset_fingerprint,
     "mode": normalized_mode,
     "symbol": normalized_symbol,
@@ -2492,7 +2669,7 @@ def research_chart_signals(
     "evaluationSummary": {
       "evaluatedPackageCount": len(window_candidates),
       "matchingPackageCount": len(signals),
-      "latestEvaluatedAt": max((int(candidate["eventTime"]) for _, candidate in window_candidates), default=None),
+      "latestEvaluatedAt": max((int(candidate["eventTime"]) for _, _, candidate in window_candidates), default=None),
       "latestMatchedEventAt": latest_matched_event_at,
       "latestArrowAt": latest_arrow_at,
       "laterUnmatchedPackageCount": later_unmatched_package_count,
@@ -2502,10 +2679,44 @@ def research_chart_signals(
     "currentPatternCount": sum(pattern["currentEligible"] for pattern in catalog),
     "researchPatternCount": len(catalog),
     "message": (
-      "Current v10 model: only post-activation releases matching the frozen registry and each setup's declared execution contract are eligible; policy/inflation context is descriptive only."
+      "Current practical model: historically profitable no-lookahead setups use their frozen scoring policy and execution contract; diagnostics remain visible and no MT5 order is placed."
       if normalized_mode == "current" else
       "Historical research replay: arrows use patterns selected after reviewing the archive and were not available in real time."
     ),
+  }
+
+
+@app.get("/research/chart-signals/global")
+def research_global_chart_signals(tf: str = "H4") -> Dict[str, Any]:
+  """Return every practical current registry without changing the selected chart."""
+  markets = [
+    research_chart_signals(symbol=market, tf=tf, mode="current")
+    for market in sorted({str(pattern["market"]) for pattern in PRACTICAL_PATTERN_DEFINITIONS})
+  ]
+  registered = [
+    {
+      "id": f"registered:{pattern['market']}:{pattern['id']}",
+      "status": "registered",
+      "market": pattern["market"],
+      "label": pattern["label"],
+      "evidence": (
+        f"Positive no-lookahead walk-forward average "
+        f"{float(pattern['historicalBenchmark']['walkForwardAverageR']):+.3f}R across "
+        f"{int(pattern['historicalBenchmark']['walkForwardN'])} evaluable cases."
+        if pattern.get("historicalBenchmark") else
+        "Preserved registered setup with positive frozen historical evidence."
+      ),
+      "conclusion": "Registered: monitor future matching releases and display historical arrows.",
+    }
+    for pattern in PRACTICAL_PATTERN_DEFINITIONS
+  ]
+  return {
+    "modelId": PRACTICAL_MODEL_ID,
+    "modelHash": PRACTICAL_MODEL_HASH,
+    "generatedAt": max((int(row.get("generatedAt") or 0) for row in markets), default=int(_time.time())),
+    "markets": markets,
+    "researchIntelligence": [*registered, *FMS_RESEARCH_INTELLIGENCE],
+    "explanation": "Registered means historically positive under its frozen no-lookahead recipe. Contender means potentially useful but unstable. Avoid means repeated tests did not support a standalone directional rule; it may still matter as context or volatility.",
   }
 
 

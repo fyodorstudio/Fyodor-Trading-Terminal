@@ -26,6 +26,24 @@ def event(timestamp: int) -> dict:
   }
 
 
+def test_qualification_v2_refines_extreme_bootstrap_tails() -> None:
+  rows = [
+    {
+      "eventTime": int(server.datetime(2020 + year, 1, 1, tzinfo=server.timezone.utc).timestamp()) + index,
+      "status": "target_hit",
+      "stressedResultR": 1.0,
+    }
+    for year in range(6)
+    for index in range(10)
+  ]
+
+  result = server._qv2_metrics(rows, seed=7)
+
+  assert result["oneSidedNoEdgePValue"] < (0.05 / 1_128)
+  assert result["bootstrap"]["intervalReplications"] == 10_000
+  assert result["bootstrap"]["pValueReplications"] == 250_000
+
+
 def test_research_coverage_reports_durable_currency_boundaries(tmp_path: Path, monkeypatch) -> None:
   store = ResearchStore(tmp_path / "research.sqlite3")
   store.upsert_calendar_events([event(100), {**event(200), "id": 78, "currency": "USD", "countryCode": "US"}], 300)
@@ -237,7 +255,7 @@ def test_failed_gate_freeze_requires_acknowledgement_and_never_promotes_charts(t
     experiment_id,
     "Weak holdout",
     100,
-    {"signature": "long|EUR:sentiment"},
+    {"market": "EURUSD", "sourceVersionId": "source-v3", "signature": "long|EUR:sentiment", "signatures": ["long|EUR:sentiment"], "scoringPolicy": "forecast_quality"},
     "config-a",
     {"id": "catalog-a"},
     "dataset-a",
@@ -245,8 +263,13 @@ def test_failed_gate_freeze_requires_acknowledgement_and_never_promotes_charts(t
   store.update_fms_experiment(
     experiment_id,
     "completed",
-    result={"checks": {"holdoutLower95Positive": False}},
+    result={"checks": {"holdoutLower95Positive": False}, "market": "EURUSD", "sourceVersionId": "source-v3", "historicalN": 48, "selectedConfiguration": {"stopAtr": 1, "targetR": 2, "holdingCandles": 30}},
   )
+  store.save_fms_qualification_audit({
+    "auditId": "audit-1", "experimentId": experiment_id, "version": "FMS-QUALIFICATION-v2",
+    "configurationHash": "config-a", "datasetFingerprint": "dataset-a", "createdAt": 101,
+    "walkForward": {"pooled": {"n": 35, "averageR": .14, "targetRate": .75, "stopRate": .17}},
+  }, "method-a")
   monkeypatch.setattr(server, "_research_store", store)
 
   rejected = client.post(
@@ -265,6 +288,14 @@ def test_failed_gate_freeze_requires_acknowledgement_and_never_promotes_charts(t
   assert accepted.json()["failedGateAcknowledged"] is True
   assert client.get("/research/candidates/FMS-EURUSD-H4-C001").json()["experimentId"] == experiment_id
   assert client.post("/research/candidates/FMS-EURUSD-H4-C001/promote").status_code == 404
+  provenance = server._registration_provenance({
+    "market": "EURUSD", "sourceVersionId": "source-v3", "signatures": ["long|EUR:sentiment"],
+    "scoringPolicy": "forecast_quality", "execution": {"stopAtr": 1, "targetR": 2, "expiryCandles": 30},
+    "historicalBenchmark": {"experimentId": experiment_id, "historicalN": 48, "walkForwardN": 35, "walkForwardAverageR": .14, "targetFirstRate": .75, "stopFirstRate": .17},
+  })
+  assert provenance["status"] == "verified"
+  assert provenance["qualificationAuditId"] == "audit-1"
+  assert all(provenance["checks"].values())
 
 
 def test_completed_experiment_raw_cases_are_paginated_and_contract_specific(tmp_path: Path, monkeypatch) -> None:

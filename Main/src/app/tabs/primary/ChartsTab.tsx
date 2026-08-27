@@ -21,7 +21,7 @@ import type { ChartPairMatrixTimeLensData, PairMatrixLoadState } from "@/app/com
 import type { ChartEventLensData, ChartEventReleaseRow } from "@/app/components/ChartEventLens";
 import { useChartEventOverlay } from "@/app/hooks/useChartEventOverlay";
 import { useChartMarketData } from "@/app/hooks/useChartMarketData";
-import { fetchCalendar, fetchMacroSignalChartSignals, getPreloadedMacroSignalCurrentModel, preloadMacroSignalCurrentModel } from "@/app/lib/bridge";
+import { fetchCalendar, fetchMacroSignalChartSignals, getPreloadedMacroSignalCurrentModel, getPreloadedMacroSignalGlobalRegistry, preloadMacroSignalCurrentModel, preloadMacroSignalGlobalRegistry } from "@/app/lib/bridge";
 import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import {
   getChartConnectionLabel,
@@ -86,7 +86,7 @@ import {
   type PairMatrixTimeInterval,
 } from "@/app/lib/pairMatrixSnapshot";
 import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
-import type { BridgeCandle, CalendarEvent, MacroSignalChartMode, MacroSignalChartSignal, MacroSignalChartSignalResponse, MarketStatusResponse, Timeframe } from "@/app/types";
+import type { BridgeCandle, CalendarEvent, MacroSignalChartMode, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MarketStatusResponse, Timeframe } from "@/app/types";
 
 const DEBUG_MAX = 60;
 const REPLAY_SPEED_OPTIONS = [0.5, 1, 2, 4];
@@ -97,6 +97,7 @@ const PAIR_MATRIX_HISTORY_CACHE_LIMIT = 8;
 const MACRO_BIAS_VISIBILITY_KEY = "fyodor.charts.macro-bias-visible";
 const MACRO_BIAS_MODE_KEY = "fyodor.charts.macro-bias-mode";
 const MACRO_BIAS_HISTORICAL_MATCHES_KEY = "fyodor.charts.macro-bias-historical-matches";
+const MACRO_BIAS_MARKETS = new Set(["EURUSD", "GBPUSD", "USDJPY", "USDCAD"]);
 
 interface PairMatrixCalendarCacheEntry {
   currencyKey: string;
@@ -429,6 +430,9 @@ export function ChartsTab({
   const [macroBiasCurrentResponse, setMacroBiasCurrentResponse] = useState<MacroSignalChartSignalResponse | null>(getPreloadedMacroSignalCurrentModel);
   const [macroBiasReplayResponse, setMacroBiasReplayResponse] = useState<MacroSignalChartSignalResponse | null>(null);
   const [macroBiasShadowHistoryResponse, setMacroBiasShadowHistoryResponse] = useState<MacroSignalChartSignalResponse | null>(null);
+  const [macroBiasGlobalResponse, setMacroBiasGlobalResponse] = useState<MacroSignalGlobalResponse | null>(getPreloadedMacroSignalGlobalRegistry);
+  const [macroBiasGlobalLoading, setMacroBiasGlobalLoading] = useState(false);
+  const [macroBiasGlobalError, setMacroBiasGlobalError] = useState<string | null>(null);
   const [macroBiasCurrentLoading, setMacroBiasCurrentLoading] = useState(false);
   const [macroBiasReplayLoading, setMacroBiasReplayLoading] = useState(false);
   const [macroBiasCurrentError, setMacroBiasCurrentError] = useState<string | null>(null);
@@ -983,26 +987,30 @@ export function ChartsTab({
     };
   }, [schedulePairMatrixGeometryUpdate]);
 
-  const macroBiasSupported = selectedSymbol.toUpperCase() === "EURUSD";
+  const macroBiasSupported = MACRO_BIAS_MARKETS.has(selectedSymbol.toUpperCase());
+  const macroBiasCurrencies = useMemo(() => {
+    const symbol = selectedSymbol.toUpperCase();
+    return symbol.length === 6 ? new Set([symbol.slice(0, 3), symbol.slice(3)]) : new Set<string>();
+  }, [selectedSymbol]);
   const macroBiasFrom = visibleCandles[0]?.time;
   const macroBiasTo = visibleCandles[visibleCandles.length - 1]?.time;
   const macroBiasCalendarRevision = useMemo(() => {
     if (!macroBiasVisible || !macroBiasSupported || macroBiasMode !== "research_replay" || macroBiasFrom == null || macroBiasTo == null) return "";
     return events
-      .filter((event) => (event.currency === "EUR" || event.currency === "USD") && event.time >= macroBiasFrom && event.time <= macroBiasTo)
+      .filter((event) => macroBiasCurrencies.has(event.currency) && event.time >= macroBiasFrom && event.time <= macroBiasTo)
       .map((event) => `${event.id}:${event.time}:${event.actual}:${event.forecast}:${event.previous}`)
       .sort()
       .join("|");
-  }, [events, macroBiasFrom, macroBiasMode, macroBiasSupported, macroBiasTo, macroBiasVisible]);
+  }, [events, macroBiasCurrencies, macroBiasFrom, macroBiasMode, macroBiasSupported, macroBiasTo, macroBiasVisible]);
   const macroBiasCurrentCalendarRevision = useMemo(() => {
     if (!macroBiasSupported) return "";
     return events
-      .filter((event) => event.currency === "EUR" || event.currency === "USD")
+      .filter((event) => macroBiasCurrencies.has(event.currency))
       .sort((left, right) => right.time - left.time || right.id - left.id)
       .slice(0, 64)
       .map((event) => `${event.id}:${event.time}:${event.actual}:${event.forecast}:${event.previous}`)
       .join("|");
-  }, [events, macroBiasSupported]);
+  }, [events, macroBiasCurrencies, macroBiasSupported]);
   const macroBiasCurrentRequestKey = getMacroBiasRequestScope({
     mode: "current",
     symbol: selectedSymbol,
@@ -1028,9 +1036,10 @@ export function ChartsTab({
     let cancelled = false;
     const reusableResponse = macroBiasCurrentResponse?.supported
       && macroBiasCurrentResponse.symbol === selectedSymbol;
+    if (!reusableResponse) setMacroBiasCurrentResponse(null);
     setMacroBiasCurrentLoading(!reusableResponse);
     setMacroBiasCurrentError(null);
-    const request = !macroBiasCurrentResponse && !macroBiasCurrentCalendarRevision
+    const request = selectedSymbol.toUpperCase() === "EURUSD" && !macroBiasCurrentResponse && !macroBiasCurrentCalendarRevision
       ? preloadMacroSignalCurrentModel()
       : fetchMacroSignalChartSignals({ symbol: selectedSymbol, timeframe: "H4", mode: "current" });
     request
@@ -1048,6 +1057,22 @@ export function ChartsTab({
       });
     return () => { cancelled = true; };
   }, [macroBiasSupported, macroBiasCurrentRequestKey]);
+
+  useEffect(() => {
+    if (!macroBiasVisible || macroBiasMode !== "current") return;
+    let cancelled = false;
+    const cached = getPreloadedMacroSignalGlobalRegistry();
+    if (cached) setMacroBiasGlobalResponse(cached);
+    setMacroBiasGlobalLoading(!cached);
+    setMacroBiasGlobalError(null);
+    preloadMacroSignalGlobalRegistry()
+      .then((response) => { if (!cancelled) setMacroBiasGlobalResponse(response); })
+      .catch((error: unknown) => {
+        if (!cancelled) setMacroBiasGlobalError(error instanceof Error ? error.message : "Global FMS registry could not be loaded");
+      })
+      .finally(() => { if (!cancelled) setMacroBiasGlobalLoading(false); });
+    return () => { cancelled = true; };
+  }, [macroBiasMode, macroBiasVisible]);
 
   const macroBiasLifecycleNeedsRefresh = macroBiasCurrentResponse?.realtime?.latestPatternAssessment?.status === "awaiting_observation"
     || macroBiasCurrentResponse?.signals.some((signal) => signal.outcomeStatus === "pending") === true;
@@ -1081,6 +1106,7 @@ export function ChartsTab({
     let cancelled = false;
     const reusableResponse = macroBiasReplayResponse?.supported
       && macroBiasReplayResponse.symbol === selectedSymbol;
+    if (!reusableResponse) setMacroBiasReplayResponse(null);
     setMacroBiasReplayLoading(!reusableResponse);
     setMacroBiasReplayError(null);
     fetchMacroSignalChartSignals({
@@ -1111,6 +1137,7 @@ export function ChartsTab({
       return;
     }
     let cancelled = false;
+    setMacroBiasShadowHistoryResponse(null);
     fetchMacroSignalChartSignals({ symbol: selectedSymbol, timeframe: "H4", mode: "research_replay" })
       .then((response) => {
         if (!cancelled) setMacroBiasShadowHistoryResponse(response);
@@ -1188,6 +1215,7 @@ export function ChartsTab({
       ? { ...selectedMacroBias, activationTime: selectedMacroBiasActivationOpen - chartSourceTimeOffsetSeconds }
       : selectedMacroBias,
     pattern: selectedMacroBiasPattern,
+    symbol: macroBiasResponse.symbol,
     versionId: selectedMacroBiasPattern.sourceVersionId,
     modelId: macroBiasResponse.modelId,
     modelHash: macroBiasResponse.modelHash,
@@ -1216,6 +1244,9 @@ export function ChartsTab({
         remainingModelCandles: macroBiasActiveState?.remainingCandles ?? null,
         chartTimeframe: timeframe,
         historicalSignals: macroBiasShadowHistoricalSignals,
+        globalResponse: macroBiasGlobalResponse,
+        globalLoading: macroBiasGlobalLoading,
+        globalError: macroBiasGlobalError,
       }
     : null;
   const replayEvaluation = macroBiasResponse?.evaluationSummary;
