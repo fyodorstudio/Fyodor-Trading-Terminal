@@ -51,6 +51,27 @@ export function formatUtcDateTime(timestampSeconds: number): string {
   return `${day} ${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}`;
 }
 
+/** Canonical user-facing UTC timestamp: time first, then unambiguous written date and zone. */
+export function formatUtcDisplayDateTime(timestampSeconds: number): string {
+  const date = new Date(timestampSeconds * 1000);
+  const day = date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  return `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())} · ${day} · UTC`;
+}
+
+export function formatUtcDisplayDate(timestampSeconds: number): string {
+  return new Date(timestampSeconds * 1000).toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+}
+
 export function formatLocalDateTime(timestampSeconds: number): string {
   const date = new Date(timestampSeconds * 1000);
   const day = date.toLocaleDateString("en-GB", {

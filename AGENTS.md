@@ -7,8 +7,9 @@ Use this file as the first stop for future AI sessions.
 1. `README.md`
 2. `Main/README.md`
 3. `docs/Development Logs/Current App Map.md`
-4. `Main/src/app/tabs/README.md`
-5. The smallest relevant source files for the requested task
+4. `docs/Development Logs/UI Design.md`
+5. `Main/src/app/tabs/README.md`
+6. The smallest relevant source files for the requested task
 
 Ignore `docs/Private` unless the user explicitly asks for it.
 

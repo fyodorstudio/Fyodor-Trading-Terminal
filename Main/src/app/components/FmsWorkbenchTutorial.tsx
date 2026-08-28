@@ -74,6 +74,7 @@ export function FmsWorkbenchTutorial({ open, onClose }: FmsWorkbenchTutorialProp
           <section><h3>Reading the evidence</h3><div className="fms-guide-grid">
             <article><h4>Exact signature</h4><p>Currency, country/region, scoring family, direction, and exact package identity. Different titles are never averaged as raw values.</p></article>
             <article><h4>Surprise / Momentum</h4><p>Surprise compares Actual with Forecast. Momentum compares Actual with Previous. Forecast Guard can exclude an historically anomalous Forecast while retaining Momentum.</p></article>
+            <article><h4>Relative magnitude</h4><p>A 94th-percentile Surprise means its absolute Actual-versus-Forecast gap was larger than about 94% of earlier releases of that exact series. It never compares unlike indicators, and it uses no future rows.</p></article>
             <article><h4>Continuation / rejection</h4><p>Continuation tests price in the evidence direction. Rejection deliberately tests the opposite direction. It is a historical treatment, not a causal claim.</p></article>
             <article><h4>Cases included</h4><p>A filter selects one understandable subset of otherwise matching historical cases—for example agreement, revisions, package completeness, Before alignment, or score magnitude.</p></article>
           </div></section>

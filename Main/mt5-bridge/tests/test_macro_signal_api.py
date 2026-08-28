@@ -255,7 +255,7 @@ def test_failed_gate_freeze_requires_acknowledgement_and_never_promotes_charts(t
     experiment_id,
     "Weak holdout",
     100,
-    {"market": "EURUSD", "sourceVersionId": "source-v3", "signature": "long|EUR:sentiment", "signatures": ["long|EUR:sentiment"], "scoringPolicy": "forecast_quality"},
+    {"market": "EURUSD", "sourceVersionId": "source-v3", "signature": "long|EUR:sentiment", "signatures": ["long|EUR:sentiment"], "scoringPolicy": "forecast_quality", "scoringEngineVersion": server.WORKBENCH_SCORING_ENGINE_VERSION, "researchDiagnosticsVersion": server.WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION},
     "config-a",
     {"id": "catalog-a"},
     "dataset-a",

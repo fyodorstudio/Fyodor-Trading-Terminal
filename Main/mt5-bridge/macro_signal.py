@@ -34,6 +34,8 @@ DEVELOPMENT_SHARE = 0.70
 CHART_SIGNAL_EXECUTION_STRESS_PIPS = 3.0
 PATH_RESEARCH_HORIZON = 30
 PATH_RESEARCH_MAX_HORIZON = 60
+WORKBENCH_SCORING_ENGINE_VERSION = "relative-magnitude-v3"
+WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION = "unmanaged-path-support-resistance-v1"
 PATH_RESEARCH_THRESHOLDS_R = (0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0)
 STRESS_STOP_ATR_VALUES = (0.5, 0.75, 1.0, 1.25, 1.5, 2.0)
 STRESS_TARGET_R_VALUES = PATH_RESEARCH_THRESHOLDS_R
@@ -991,6 +993,52 @@ def _path_distribution(values: Sequence[float]) -> Dict[str, Optional[float]]:
   }
 
 
+def _entry_known_support_resistance(
+  candles: Sequence[Dict[str, Any]],
+  entry_index: int,
+  entry: float,
+  atr: float,
+  lookback: int = 120,
+  pivot_span: int = 2,
+  tolerance_atr: float = 0.25,
+) -> Dict[str, Any]:
+  """Describe confirmed pre-entry H4 turning zones without using future bars."""
+  prior = list(candles[max(0, entry_index - lookback):entry_index])
+  tolerance = max(atr * tolerance_atr, 1e-12)
+  pivots: List[Tuple[str, float]] = []
+  for index in range(pivot_span, len(prior) - pivot_span):
+    candle = prior[index]
+    neighbors = prior[index - pivot_span:index] + prior[index + 1:index + pivot_span + 1]
+    high = float(candle["high"])
+    low = float(candle["low"])
+    if high >= max(float(row["high"]) for row in neighbors):
+      pivots.append(("resistance", high))
+    if low <= min(float(row["low"]) for row in neighbors):
+      pivots.append(("support", low))
+
+  zones: List[Dict[str, Any]] = []
+  for kind, level in sorted(pivots, key=lambda row: (row[0], row[1])):
+    match = next((zone for zone in zones if zone["kind"] == kind and abs(float(zone["level"]) - level) <= tolerance), None)
+    if match is None:
+      zones.append({"kind": kind, "level": level, "touches": 1})
+    else:
+      touches = int(match["touches"]) + 1
+      match["level"] = (float(match["level"]) * int(match["touches"]) + level) / touches
+      match["touches"] = touches
+  confirmed = [zone for zone in zones if int(zone["touches"]) >= 2]
+  supports = [zone for zone in confirmed if zone["kind"] == "support" and float(zone["level"]) < entry]
+  resistances = [zone for zone in confirmed if zone["kind"] == "resistance" and float(zone["level"]) > entry]
+  support = max(supports, key=lambda zone: float(zone["level"]), default=None)
+  resistance = min(resistances, key=lambda zone: float(zone["level"]), default=None)
+  return {
+    "method": "confirmed H4 pivot zones; 120 completed bars; 2-bar confirmation; 0.25 ATR clustering; minimum 2 touches",
+    "lookbackCandles": len(prior),
+    "confirmedZoneCount": len(confirmed),
+    "support": None if support is None else {**support, "distanceAtr": (entry - float(support["level"])) / atr},
+    "resistance": None if resistance is None else {**resistance, "distanceAtr": (float(resistance["level"]) - entry) / atr},
+  }
+
+
 def build_candidate_path_profile(
   outcome: Dict[str, Any],
   candles: Sequence[Dict[str, Any]],
@@ -1036,6 +1084,9 @@ def build_candidate_path_profile(
     "candles": window,
     "favorable": favorable,
     "adverse": adverse,
+    "supportResistance": _entry_known_support_resistance(
+      candles, entry_index, entry_value, atr_value
+    ),
   }
 
 
@@ -1078,6 +1129,27 @@ def summarize_candidate_paths(
       }
       for threshold in PATH_RESEARCH_THRESHOLDS_R
     ],
+    "unmanagedCloseR": _path_distribution([
+      float(profile["sign"]) * (float(profile["candles"][holding_candles - 1]["close"]) - float(profile["entry"])) / float(profile["atr"])
+      for profile in eligible
+    ]),
+    "unmanagedPositiveRate": (
+      sum(
+        float(profile["sign"]) * (float(profile["candles"][holding_candles - 1]["close"]) - float(profile["entry"])) > 0
+        for profile in eligible
+      ) / count if count else None
+    ),
+    "directionalRoomAtr": _path_distribution([
+      float((profile["supportResistance"]["resistance"] if profile["direction"] == "long" else profile["supportResistance"]["support"])["distanceAtr"])
+      for profile in eligible
+      if (profile["supportResistance"]["resistance"] if profile["direction"] == "long" else profile["supportResistance"]["support"]) is not None
+    ]),
+    "supportResistanceCoverageRate": (
+      sum(
+        (profile["supportResistance"]["resistance"] if profile["direction"] == "long" else profile["supportResistance"]["support"]) is not None
+        for profile in eligible
+      ) / count if count else None
+    ),
   }
 
 
@@ -1295,6 +1367,65 @@ def _rule_by_id(rule_id: str) -> Optional[EconomyRule]:
   return next((rule for rule in ALL_SIGNAL_RULES if rule.id == rule_id), None)
 
 
+RELATIVE_MAGNITUDE_MINIMUM_HISTORY = 12
+
+
+def _signed_source_delta(left: Any, right: Any) -> Optional[float]:
+  left_value = parse_source_value(left)
+  right_value = parse_source_value(right)
+  if left_value is None or right_value is None or left_value[1] != right_value[1]:
+    return None
+  return float(left_value[0]) - float(right_value[0])
+
+
+def _magnitude_histogram(prior_absolute: Sequence[float], current_absolute: float) -> List[Dict[str, Any]]:
+  upper = max([current_absolute, *prior_absolute], default=0.0)
+  if upper <= 0:
+    return [{"lower": 0.0, "upper": 0.0, "count": len(prior_absolute), "containsCurrent": True}]
+  width = upper / 8.0
+  bins = [{
+    "lower": index * width,
+    "upper": (index + 1) * width,
+    "count": 0,
+    "containsCurrent": index == min(7, int(current_absolute / width)),
+  } for index in range(8)]
+  for value in prior_absolute:
+    bins[min(7, int(value / width))]["count"] += 1
+  return bins
+
+
+def _relative_magnitude(delta: Optional[float], prior_deltas: Sequence[float]) -> Dict[str, Any]:
+  if delta is None:
+    return {"status": "unavailable", "priorCount": len(prior_deltas)}
+  absolute = abs(float(delta))
+  prior_absolute = [abs(float(value)) for value in prior_deltas]
+  base = {
+    "status": "ready" if len(prior_absolute) >= RELATIVE_MAGNITUDE_MINIMUM_HISTORY else "insufficient",
+    "rawDelta": float(delta),
+    "absoluteDelta": absolute,
+    "priorCount": len(prior_absolute),
+    "minimumHistory": RELATIVE_MAGNITUDE_MINIMUM_HISTORY,
+    "histogram": _magnitude_histogram(prior_absolute, absolute),
+  }
+  if not prior_absolute:
+    return base
+  less = sum(value < absolute for value in prior_absolute)
+  equal = sum(value == absolute for value in prior_absolute)
+  percentile = (less + 0.5 * equal) / len(prior_absolute)
+  typical = statistics.median(prior_absolute)
+  median = statistics.median(prior_absolute)
+  mad = statistics.median(abs(value - median) for value in prior_absolute)
+  category = "exceptional" if percentile >= .95 else "large" if percentile >= .80 else "ordinary"
+  return {
+    **base,
+    "percentile": percentile,
+    "category": category,
+    "typicalAbsoluteDelta": typical,
+    "relativeToTypical": absolute / typical if typical > 0 else None,
+    "robustDistance": (absolute - median) / (1.4826 * mad) if mad > 0 else None,
+  }
+
+
 def _annotate_numeric_robustness(outcomes: Sequence[Dict[str, Any]]) -> List[Dict[str, Any]]:
   """Attach only known-at-release numeric audit dimensions to each package.
 
@@ -1303,12 +1434,15 @@ def _annotate_numeric_robustness(outcomes: Sequence[Dict[str, Any]]) -> List[Dic
   reveals whether the direction of Momentum depends on the supplied revision.
   """
   latest_actual: Dict[Tuple[str, str, str], Any] = {}
+  surprise_history: Dict[Tuple[str, str, str], List[float]] = {}
+  momentum_history: Dict[Tuple[str, str, str], List[float]] = {}
   annotated: List[Dict[str, Any]] = []
   for outcome in sorted(outcomes, key=lambda row: int(row["eventTime"])):
     events: List[Dict[str, Any]] = []
     evidence_modes: List[str] = []
     revision_states: List[str] = []
     pending_actuals: List[Tuple[Tuple[str, str, str], Any]] = []
+    pending_deltas: List[Tuple[Tuple[str, str, str], Optional[float], Optional[float]]] = []
     for source_event in outcome.get("events", []):
       event = dict(source_event)
       surprise = event.get("surprisePoint")
@@ -1341,15 +1475,29 @@ def _annotate_numeric_robustness(outcomes: Sequence[Dict[str, Any]]) -> List[Dic
       else:
         revision_state = "sensitive"
       revision_states.append(revision_state)
+      surprise_delta = _signed_source_delta(event.get("actual"), event.get("forecast"))
+      momentum_delta = _signed_source_delta(event.get("actual"), event.get("previous"))
+      event["surpriseMagnitude"] = _relative_magnitude(
+        surprise_delta, surprise_history.setdefault(identity, [])
+      )
+      event["momentumMagnitude"] = _relative_magnitude(
+        momentum_delta, momentum_history.setdefault(identity, [])
+      )
       event["priorArchivedActual"] = prior_actual
       event["archivedMomentumPoint"] = archived_point
       event["revisionState"] = revision_state
       events.append(event)
       if parse_source_value(event.get("actual")) is not None:
         pending_actuals.append((identity, event.get("actual")))
+      pending_deltas.append((identity, surprise_delta, momentum_delta))
 
     for identity, actual in pending_actuals:
       latest_actual[identity] = actual
+    for identity, surprise_delta, momentum_delta in pending_deltas:
+      if surprise_delta is not None:
+        surprise_history.setdefault(identity, []).append(surprise_delta)
+      if momentum_delta is not None:
+        momentum_history.setdefault(identity, []).append(momentum_delta)
 
     if evidence_modes and all(mode == "agreement" for mode in evidence_modes):
       evidence_mode = "agreement"
@@ -1371,6 +1519,21 @@ def _annotate_numeric_robustness(outcomes: Sequence[Dict[str, Any]]) -> List[Dic
 
     package_score = abs(sum(int(event.get("score", 0)) for event in events))
     score_strength = "strong" if package_score >= 3 else "moderate" if package_score == 2 else "weak"
+    contributing_percentiles = [
+      float(magnitude["percentile"])
+      for event in events
+      for point_key, magnitude_key in (("surprisePoint", "surpriseMagnitude"), ("momentumPoint", "momentumMagnitude"))
+      if event.get(point_key) not in (None, 0)
+      and (magnitude := event.get(magnitude_key, {})).get("status") == "ready"
+      and magnitude.get("percentile") is not None
+    ]
+    package_percentile = statistics.median(contributing_percentiles) if contributing_percentiles else None
+    relative_magnitude = (
+      "exceptional" if package_percentile is not None and package_percentile >= .95
+      else "large" if package_percentile is not None and package_percentile >= .80
+      else "ordinary" if package_percentile is not None
+      else "insufficient"
+    )
     annotated.append({
       **outcome,
       "events": events,
@@ -1379,6 +1542,8 @@ def _annotate_numeric_robustness(outcomes: Sequence[Dict[str, Any]]) -> List[Dic
         "revisionReliability": revision_reliability,
         "backgroundAlignment": str(outcome.get("backgroundAlignment", "neutral")),
         "scoreStrength": score_strength,
+        "relativeMagnitude": relative_magnitude,
+        "relativeMagnitudePercentile": package_percentile,
       },
     })
   return annotated
@@ -1416,6 +1581,7 @@ ROBUSTNESS_DIMENSION_LABELS = {
   "packageCompleteness": "Package completeness",
   "backgroundAlignment": "Before alignment",
   "scoreStrength": "Vote strength",
+  "relativeMagnitude": "Relative magnitude",
 }
 
 
@@ -1626,6 +1792,19 @@ def _rescore_policy_outcomes(
   policy: str,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
   """Rescore archived packages without mutating the frozen v10 calculation."""
+  # Archived factor votes already encode whether a currency is the base (+1)
+  # or quote (-1) side of its market. Preserve that orientation when applying
+  # another scoring policy; the old EUR default inverted non-EURUSD markets.
+  pair_orientation_by_currency: Dict[str, int] = {}
+  for source_outcome in outcomes:
+    for vote in source_outcome.get("factorVotes", []):
+      factor_vote = int(vote.get("vote", 0))
+      pair_vote = int(vote.get("pairVote", 0))
+      if factor_vote != 0 and pair_vote != 0:
+        pair_orientation_by_currency.setdefault(
+          str(vote.get("currency", "")).upper(),
+          1 if _sign(factor_vote) == _sign(pair_vote) else -1,
+        )
   gap_history: Dict[Tuple[str, str, str], List[float]] = {}
   actual_move_history: Dict[Tuple[str, str, str], List[float]] = {}
   excluded: List[Dict[str, Any]] = []
@@ -1661,7 +1840,9 @@ def _rescore_policy_outcomes(
         surprise = event.get("surprisePoint")
         momentum = event.get("momentumPoint")
       else:
-        momentum = _orient(compare_source_values_strict(event.get("actual"), event.get("previous")), rule)
+        momentum = None if policy == "surprise_only" else _orient(
+          compare_source_values_strict(event.get("actual"), event.get("previous")), rule
+        )
         surprise = None if policy == "momentum_only" or suspect else _orient(
           compare_source_values_strict(event.get("actual"), event.get("forecast")), rule
         )
@@ -1671,7 +1852,12 @@ def _rescore_policy_outcomes(
         prior_actual_moves.append(current_actual_move)
       if surprise is None and momentum is None:
         continue
-      agreement = surprise if surprise is not None and surprise != 0 and surprise == momentum else 0
+      agreement = (
+        surprise
+        if policy not in {"surprise_only", "momentum_only", "agreement_no_bonus"}
+        and surprise is not None and surprise != 0 and surprise == momentum
+        else 0
+      )
       score = int(surprise or 0) + int(momentum or 0) + int(agreement)
       event.update({
         "surprisePoint": surprise,
@@ -1698,6 +1884,10 @@ def _rescore_policy_outcomes(
           "priorCount": len(prior_gaps) - 1,
         })
     factor_votes = _build_factor_votes(scored_events)
+    for vote in factor_votes:
+      orientation = pair_orientation_by_currency.get(str(vote.get("currency", "")).upper())
+      if orientation is not None:
+        vote["pairVote"] = int(vote["vote"]) * orientation
     pair_vote = sum(int(vote["pairVote"]) for vote in factor_votes if int(vote["pairVote"]) != 0)
     direction = "long" if pair_vote > 0 else "short" if pair_vote < 0 else "none"
     nonzero = [int(vote["pairVote"]) for vote in factor_votes if int(vote["pairVote"]) != 0]
@@ -1732,7 +1922,7 @@ def rescore_policy_outcomes(
   outcomes: Sequence[Dict[str, Any]], policy: str,
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
   """Apply one declared scoring policy without changing the raw source values."""
-  if policy not in {"baseline", "momentum_only", "forecast_quality"}:
+  if policy not in {"baseline", "surprise_only", "momentum_only", "agreement_no_bonus", "forecast_quality"}:
     raise ValueError(f"Unsupported scoring policy: {policy}")
   return _rescore_policy_outcomes(outcomes, policy)
 
@@ -2218,7 +2408,7 @@ def build_workbench_experiment(
   )
   if source is None:
     raise ValueError(f"Unknown source version: {source_version}")
-  if scoring_policy not in {"baseline", "momentum_only", "forecast_quality"}:
+  if scoring_policy not in {"baseline", "surprise_only", "momentum_only", "agreement_no_bonus", "forecast_quality"}:
     raise ValueError(f"Unsupported scoring policy: {scoring_policy}")
   if reaction not in {"continuation", "contrarian"}:
     raise ValueError(f"Unsupported reaction: {reaction}")
@@ -2248,7 +2438,12 @@ def build_workbench_experiment(
     }
     dimension = str(cohort.get("dimension") or "none")
     value = str(cohort.get("value") or "all")
-    included = dimension == "none" or str(robustness.get(dimension, "unknown")) == value
+    observed_value = str(robustness.get(dimension, "unknown"))
+    included = (
+      dimension == "none"
+      or observed_value == value
+      or (dimension == "relativeMagnitude" and value == "upper_tail" and observed_value in {"large", "exceptional"})
+    )
     audit_rows.append({
       **outcome,
       "signature": outcome_signature,
@@ -2350,6 +2545,10 @@ def build_workbench_experiment(
   checks, strict_checks = _stress_configuration_checks(selected)
   stability = _configuration_stability(configurations, selected)
   path = summarize_candidate_paths(profiles, int(selected["holdingCandles"]))
+  path_by_horizon = {
+    str(holding): summarize_candidate_paths(profiles, holding)
+    for holding in sorted(set(STRESS_HOLDING_CANDLES))
+  }
   profiles_by_time = {
     int(profile["eventTime"]): profile
     for profile in profiles
@@ -2367,11 +2566,13 @@ def build_workbench_experiment(
       "entryTime": int(profile["entryTime"]) if profile else None,
       "entry": float(profile["entry"]) if profile else None,
       "atr": float(profile["atr"]) if profile else None,
+      "supportResistance": dict(profile.get("supportResistance", {})) if profile else None,
       "events": [{
         key: event.get(key) for key in (
           "currency", "countryCode", "title", "actual", "forecast", "previous",
           "surprisePoint", "momentumPoint", "agreementBonus", "score",
           "forecastSuspect", "forecastGap", "forecastAnomalyThreshold", "scoringPolicy",
+          "surpriseMagnitude", "momentumMagnitude",
         )
       } | {
         "surpriseRaw": _raw_source_delta(event.get("actual"), event.get("forecast")),
@@ -2425,6 +2626,7 @@ def build_workbench_experiment(
     "selectedConfiguration": selected,
     "configurationStability": stability,
     "path": path,
+    "pathByHorizon": path_by_horizon,
     "sequentialAccount": _sequential_research_account(account_rows),
     "checks": strict_checks,
     "passesExploratoryScreen": all(checks.values()),
@@ -2451,6 +2653,8 @@ def build_workbench_experiment(
       "The simulation is gross; spread, commission, slippage, and swap are excluded.",
       "The entry remains the first H4 open strictly after the release.",
       "Holdout and recent results never select a matrix configuration.",
+      "Unmanaged close, MFE, and MAE describe what happened after entry; maximum excursion is hindsight and is never treated as a tradable exit.",
+      "Support/resistance uses only confirmed H4 pivot zones from completed pre-entry candles; it remains a research diagnostic, not a fitted registration filter.",
     ],
   }
 
@@ -2797,6 +3001,8 @@ def build_chart_signal_realtime_watch(
             "forecastGap": row.get("forecastGap"),
             "forecastAnomalyThreshold": row.get("forecastAnomalyThreshold"),
             "scoringPolicy": row.get("scoringPolicy"),
+            "surpriseMagnitude": row.get("surpriseMagnitude"),
+            "momentumMagnitude": row.get("momentumMagnitude"),
           }
           for row in scored_events
         ],

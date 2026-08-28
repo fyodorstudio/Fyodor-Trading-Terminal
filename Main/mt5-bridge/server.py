@@ -44,6 +44,9 @@ from macro_signal import (
   STRESS_STOP_ATR_VALUES,
   STRESS_TARGET_R_VALUES,
   TARGET_R_VALUES,
+  WORKBENCH_SCORING_ENGINE_VERSION,
+  WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION,
+  _annotate_numeric_robustness,
   V2_VERSION_ID,
   aggregate_outcomes,
   build_backtest_result,
@@ -75,8 +78,8 @@ WORKBENCH_MARKETS = {
   },
 }
 
-PRACTICAL_MODEL_ID = "FMS-HISTORICALLY-PROFITABLE-H4-v1"
-PRACTICAL_MODEL_CREATED_AT = 1787792400
+PRACTICAL_MODEL_ID = "FMS-REGISTERED-REACTION-H4-v2"
+PRACTICAL_MODEL_CREATED_AT = 1787893200
 
 
 def _practical_pattern(
@@ -107,19 +110,33 @@ _preserved_eurusd_patterns = tuple({
 } for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS if pattern.get("current") and pattern["id"] != "us-industrial-output-short")
 
 PRACTICAL_PATTERN_DEFINITIONS = (
-  *_preserved_eurusd_patterns,
-  _practical_pattern("EURUSD", "us-industrial-output-directional", "US industrial-production package", "FMS-EURUSD-GROWTH-H4-v7", ["long|USD:industrial_output", "short|USD:industrial_output"], "forecast_quality", 1.5, .5, 12, "FMS-EURUSD-H4-E197", 105, 48, .1383022907, .75, .1666666667, "Follow the scored USD industrial-output direction: USD improvement points Short EURUSD; USD weakening points Long EURUSD."),
-  _practical_pattern("GBPUSD", "gbpusd-us-industrial-output", "US industrial-production package", "FMS-GBPUSD-GROWTH-H4-v7", ["long|USD:industrial_output", "short|USD:industrial_output"], "forecast_quality", 1, .5, 6, "FMS-GBPUSD-H4-E011", 105, 48, .1053096835, .7916666667, .2083333333, "Follow the scored USD industrial-output direction for GBPUSD."),
-  _practical_pattern("USDCAD", "usdcad-us-pmi", "US composite and services PMI", "FMS-USDCAD-GROWTH-H4-v7", ["long|USD:pmi_composite|USD:pmi_services", "short|USD:pmi_composite|USD:pmi_services"], "momentum_only", 2, .5, 12, "FMS-USDCAD-H4-E007", 109, 47, .2151555498, .8085106383, .1276595745, "Use Actual versus Previous only; follow the historically profitable USDCAD direction."),
-  _practical_pattern("USDCAD", "usdcad-us-labor-claims-long", "US labor claims improvement", "FMS-USDCAD-LABOR-H4-v2", ["long|USD:labor_claims"], "forecast_quality", 2, .5, 42, "FMS-USDCAD-H4-E030", 178, 67, .1427782278, .776119403, .223880597, "Long USDCAD only when the registered US labor-claims evidence produces this direction."),
-  _practical_pattern("USDJPY", "usdjpy-us-consumer-sentiment", "US consumer sentiment", "FMS-USDJPY-SENTIMENT-H4-v3", ["long|USD:consumer_sentiment", "short|USD:consumer_sentiment"], "momentum_only", .75, .5, 30, "FMS-USDJPY-H4-E005", 355, 159, .0840090486, .6163522013, .2327044025, "Use Actual versus Previous only; follow the scored USDJPY direction."),
-  _practical_pattern("USDJPY", "usdjpy-us-labor-claims-short", "US labor claims", "FMS-USDJPY-LABOR-H4-v2", ["short|USD:labor_claims"], "forecast_quality", .5, .75, 30, "FMS-USDJPY-H4-E024", 233, 96, .0651900472, .5520833333, .3229166667, "Short USDJPY only when the registered labor-claims evidence produces this direction."),
-  _practical_pattern("USDJPY", "usdjpy-jpy-labor-wages", "Japan labor wages", "FMS-USDJPY-LABOR-H4-v2", ["long|JPY:labor_wages", "short|JPY:labor_wages"], "forecast_quality", .75, 4, 6, "FMS-USDJPY-H4-E047", 97, 42, .5477584014, .119047619, .4761904762, "Follow the scored JPY wage direction using Forecast Guard."),
-  _practical_pattern("USDJPY", "usdjpy-jpy-inflation", "Japan headline and core inflation", "FMS-USDJPY-POLICY-INFL-H4-v5", ["long|JPY:core_consumer_inflation|JPY:headline_consumer_inflation", "short|JPY:core_consumer_inflation|JPY:headline_consumer_inflation"], "forecast_quality", 2, 1, 30, "FMS-USDJPY-H4-E044", 208, 90, .1233094645, .5777777778, .3333333333, "Follow the scored JPY headline/core inflation direction using Forecast Guard."),
+  _practical_pattern("EURUSD", "us-industrial-output-directional", "US industrial-production package", "FMS-EURUSD-GROWTH-H4-v7", ["long|USD:industrial_output", "short|USD:industrial_output"], "forecast_quality", 1.5, .5, 12, "FMS-EURUSD-H4-E281", 105, 48, .1383022907, .75, .1666666667, "Follow the scored USD industrial-output direction: USD improvement points Short EURUSD; USD weakening points Long EURUSD."),
+  _practical_pattern("GBPUSD", "gbpusd-us-industrial-output", "US industrial-production package", "FMS-GBPUSD-GROWTH-H4-v7", ["long|USD:industrial_output", "short|USD:industrial_output"], "forecast_quality", 1, .5, 6, "FMS-GBPUSD-H4-E059", 105, 48, .1053096835, .7916666667, .2083333333, "Follow the scored USD industrial-output direction for GBPUSD."),
+  _practical_pattern("USDJPY", "usdjpy-us-consumer-sentiment", "US consumer sentiment", "FMS-USDJPY-SENTIMENT-H4-v3", ["long|USD:consumer_sentiment", "short|USD:consumer_sentiment"], "momentum_only", 2, 1, 60, "FMS-USDJPY-H4-E061", 355, 155, .0399971427, .5096774194, .4838709677, "Use Actual versus Previous only; follow the scored USDJPY direction."),
+  _practical_pattern("USDJPY", "usdjpy-jpy-labor-wages", "Japan labor wages", "FMS-USDJPY-LABOR-H4-v2", ["long|JPY:labor_wages", "short|JPY:labor_wages"], "forecast_quality", .75, 4, 6, "FMS-USDJPY-H4-E062", 97, 42, .5477584014, .119047619, .4761904762, "Follow the scored JPY wage direction using Forecast Guard."),
+  _practical_pattern("USDJPY", "usdjpy-jpy-inflation", "Japan headline and core inflation", "FMS-USDJPY-POLICY-INFL-H4-v5", ["long|JPY:core_consumer_inflation|JPY:headline_consumer_inflation", "short|JPY:core_consumer_inflation|JPY:headline_consumer_inflation"], "forecast_quality", 2, 1, 30, "FMS-USDJPY-H4-E063", 208, 90, .1233094645, .5777777778, .3333333333, "Follow the scored JPY headline/core inflation direction using Forecast Guard."),
 )
 PRACTICAL_MODEL_HASH = hashlib.sha256(json.dumps(PRACTICAL_PATTERN_DEFINITIONS, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 FMS_RESEARCH_INTELLIGENCE = (
+  {
+    "id": "usdcad-us-pmi-orientation-rejected", "status": "avoid", "market": "USDCAD",
+    "label": "US composite and services PMI",
+    "evidence": "The corrected base/quote replay reversed the old registration and produced -0.22R across 47 later walk-forward cases.",
+    "conclusion": "The old USDCAD arrow was an orientation defect. Do not use this direct mapping as a registered setup.",
+  },
+  {
+    "id": "usdcad-us-labor-claims-orientation-rejected", "status": "avoid", "market": "USDCAD",
+    "label": "US labor claims",
+    "evidence": "After pair-orientation repair, its selected-contract holdout and recent averages were negative and the walk-forward average was only +0.01R.",
+    "conclusion": "Removed from the registered scanner; retain it only as research context.",
+  },
+  {
+    "id": "usdjpy-us-labor-claims-rejected", "status": "avoid", "market": "USDJPY",
+    "label": "US labor claims",
+    "evidence": "The corrected rebuild selected a contract whose fixed later holdout and recent averages were negative.",
+    "conclusion": "Removed from the registered scanner until an entry-known treatment survives later data.",
+  },
   {
     "id": "eurusd-retail-sales-contender", "status": "contender", "market": "EURUSD",
     "label": "Euro-area retail-sales improvement",
@@ -206,6 +223,7 @@ def _registration_provenance(pattern: Dict[str, Any]) -> Dict[str, Any]:
     "sourceVersion": str(result.get("sourceVersionId") or configuration.get("sourceVersionId") or "") == str(pattern.get("sourceVersion") or pattern.get("sourceVersionId") or ""),
     "signatures": actual_signatures == expected_signatures,
     "scoringPolicy": str(configuration.get("scoringPolicy") or result.get("scoringPolicy") or "") == str(pattern.get("scoringPolicy") or "forecast_quality"),
+    "scoringEngine": str(configuration.get("scoringEngineVersion") or "") == WORKBENCH_SCORING_ENGINE_VERSION,
     "stopAtr": close(selected.get("stopAtr"), execution.get("stopAtr")),
     "targetR": close(selected.get("targetR"), execution.get("targetR")),
     "expiryCandles": int(selected.get("holdingCandles") or -1) == int(execution.get("expiryCandles") or -2),
@@ -1628,7 +1646,7 @@ def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
   market = str(bundle.get("market") or "EURUSD")
   report = _latest_cached_expansion_report()
   report_revision = str(int((report or {}).get("generatedAt", 0)))
-  cache_key = f"fms_workbench_catalog_v3:{market}:{bundle['datasetFingerprint']}:{report_revision}"
+  cache_key = f"fms_workbench_catalog_v6:{market}:{bundle['datasetFingerprint']}:{report_revision}:{WORKBENCH_SCORING_ENGINE_VERSION}"
   durable_cached = _research_store.get_metadata(cache_key)
   if durable_cached:
     try:
@@ -1643,15 +1661,15 @@ def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
   }
   registered = {
     (str(pattern["sourceVersion"]), str(signature)): pattern
-    for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
-    if market == "EURUSD" and pattern.get("current")
+    for pattern in PRACTICAL_PATTERN_DEFINITIONS
+    if str(pattern.get("market")) == market and pattern.get("current")
     for signature in pattern["signatures"]
   }
   directional_catalog: List[Dict[str, Any]] = []
   for source in bundle["sources"]:
     source_version = str(source["versionId"])
     grouped: Dict[str, List[Dict[str, Any]]] = {}
-    for outcome in source["outcomes"]:
+    for outcome in _annotate_numeric_robustness(source["outcomes"]):
       if outcome.get("direction") in {"long", "short"}:
         grouped.setdefault(candidate_pattern_signature(outcome), []).append(outcome)
     for signature, rows in sorted(grouped.items()):
@@ -1667,6 +1685,31 @@ def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
         "label": "All matching cases",
         "historicalN": int(enriched.get("historicalN", len(rows))) if enriched else len(rows),
       }]
+      magnitude_counts: Dict[str, int] = {}
+      for row in rows:
+        category = str((row.get("numericRobustness") or {}).get("relativeMagnitude", "insufficient"))
+        magnitude_counts[category] = magnitude_counts.get(category, 0) + 1
+      for category in ("ordinary", "large", "exceptional", "insufficient"):
+        count = magnitude_counts.get(category, 0)
+        if count:
+          treatments.append({
+            "id": hashlib.sha256(f"relativeMagnitude|{category}|continuation".encode("utf-8")).hexdigest()[:12],
+            "dimension": "relativeMagnitude",
+            "value": category,
+            "reaction": "continuation",
+            "label": f"Relative magnitude: {category}",
+            "historicalN": count,
+          })
+      upper_tail_count = magnitude_counts.get("large", 0) + magnitude_counts.get("exceptional", 0)
+      if upper_tail_count:
+        treatments.append({
+          "id": hashlib.sha256(b"relativeMagnitude|upper_tail|continuation").hexdigest()[:12],
+          "dimension": "relativeMagnitude",
+          "value": "upper_tail",
+          "reaction": "continuation",
+          "label": "Relative magnitude: top 20%",
+          "historicalN": upper_tail_count,
+        })
       if enriched:
         seen = {("none", "all", "continuation")}
         for variant in enriched.get("numericRobustness", {}).get("variants", []):
@@ -1970,9 +2013,9 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
   if missing_source_versions or not h4_prices:
     return {
       "market": normalized_market,
-      "currentModel": {"id": CHART_SIGNAL_MODEL_ID, "friendlyName": "Forecast Guard", "displayId": "Legacy v13", "hash": CHART_SIGNAL_MODEL_HASH, "activatedAt": CHART_SIGNAL_MODEL_CREATED_AT, "timeframe": "H4", "registeredSetups": []},
+      "currentModel": {"id": PRACTICAL_MODEL_ID, "friendlyName": "Registered Reaction", "displayId": "Registered v2", "hash": PRACTICAL_MODEL_HASH, "activatedAt": PRACTICAL_MODEL_CREATED_AT, "timeframe": "H4", "registeredSetups": []},
       "catalog": {"items": [], "advancedTreatmentsReady": False, "generatedAt": int(_time.time())},
-      "protocol": {"stopAtrValues": list(STRESS_STOP_ATR_VALUES), "targetRValues": list(STRESS_TARGET_R_VALUES), "holdingCandles": list(STRESS_HOLDING_CANDLES), "scoringPolicies": ["baseline", "momentum_only", "forecast_quality"], "entry": "first_h4_open_strictly_after_release", "selection": "development_lower95_then_average"},
+      "protocol": {"stopAtrValues": list(STRESS_STOP_ATR_VALUES), "targetRValues": list(STRESS_TARGET_R_VALUES), "holdingCandles": list(STRESS_HOLDING_CANDLES), "scoringPolicies": ["baseline", "surprise_only", "momentum_only", "agreement_no_bonus", "forecast_quality"], "entry": "first_h4_open_strictly_after_release", "selection": "development_lower95_then_average"},
       "experiments": [], "candidates": [], "archive": _research_store.list_signal_version_archive(),
       "dataPeriods": {"durableCalendar": {"start": calendar_coverage.get("earliest"), "end": calendar_coverage.get("latest")}, "workbenchResearch": {"start": None, "end": None}, "h4Prices": {"start": min((int(row["time"]) for row in h4_prices), default=None), "end": max((int(row["time"]) for row in h4_prices), default=None)}},
       "datasetFingerprint": f"unavailable:{normalized_market}", "sourceRunIds": [], "candleRevision": "unavailable",
@@ -1990,11 +2033,11 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
   return {
     "market": normalized_market,
     "currentModel": {
-      "id": CHART_SIGNAL_MODEL_ID,
-      "friendlyName": "Forecast Guard",
-      "displayId": "Legacy v13",
-      "hash": CHART_SIGNAL_MODEL_HASH,
-      "activatedAt": CHART_SIGNAL_MODEL_CREATED_AT,
+      "id": PRACTICAL_MODEL_ID,
+      "friendlyName": "Registered Reaction",
+      "displayId": "Registered v2",
+      "hash": PRACTICAL_MODEL_HASH,
+      "activatedAt": PRACTICAL_MODEL_CREATED_AT,
       "timeframe": "H4",
       "registeredSetups": [{
         "id": str(pattern["id"]),
@@ -2003,15 +2046,15 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
         "sourceVersionId": str(pattern["sourceVersion"]),
         "signatures": list(pattern["signatures"]),
         "execution": dict(pattern["execution"]),
-        "registrationEvidence": dict(CHART_SIGNAL_REGISTRATION_EVIDENCE[str(pattern["id"])]) if str(pattern["id"]) in CHART_SIGNAL_REGISTRATION_EVIDENCE else None,
-      } for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS if pattern.get("current")],
+        "registrationEvidence": None,
+      } for pattern in PRACTICAL_PATTERN_DEFINITIONS if pattern.get("current") and str(pattern.get("market")) == normalized_market],
     },
     "catalog": catalog,
     "protocol": {
       "stopAtrValues": list(STRESS_STOP_ATR_VALUES),
       "targetRValues": list(STRESS_TARGET_R_VALUES),
       "holdingCandles": list(STRESS_HOLDING_CANDLES),
-      "scoringPolicies": ["baseline", "momentum_only", "forecast_quality"],
+      "scoringPolicies": ["baseline", "surprise_only", "momentum_only", "agreement_no_bonus", "forecast_quality"],
       "entry": "first_h4_open_strictly_after_release",
       "selection": "development_lower95_then_average",
     },
@@ -2042,7 +2085,7 @@ def _validate_experiment_request(payload: FmsExperimentRequest, catalog: Dict[st
   item = next((row for row in catalog["items"] if row["id"] == payload.catalogId), None)
   if item is None:
     raise HTTPException(status_code=400, detail="Unknown or stale FMS catalog selection")
-  if payload.scoringPolicy not in {"baseline", "momentum_only", "forecast_quality"}:
+  if payload.scoringPolicy not in {"baseline", "surprise_only", "momentum_only", "agreement_no_bonus", "forecast_quality"}:
     raise HTTPException(status_code=400, detail="Unsupported scoring policy")
   variants = list(item.get("directionVariants") or [{
     "direction": item.get("direction"), "signature": item.get("signature"),
@@ -2118,6 +2161,8 @@ def create_research_experiment(payload: FmsExperimentRequest) -> Dict[str, Any]:
     "signatures": [row["signature"] for row in selection["variants"]],
     "directionSelection": payload.directionSelection,
     "scoringPolicy": payload.scoringPolicy,
+    "scoringEngineVersion": WORKBENCH_SCORING_ENGINE_VERSION,
+    "researchDiagnosticsVersion": WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION,
     "cohort": payload.cohort.model_dump(),
     "reaction": payload.reaction,
     "execution": payload.execution.model_dump(),
@@ -2466,6 +2511,7 @@ def research_chart_signals(
     policies = {str(pattern.get("scoringPolicy", "forecast_quality")) for pattern in market_patterns if pattern["sourceVersion"] == source_version}
     for scoring_policy in policies:
       rescored, _policy_audit = rescore_policy_outcomes([*historical_seed, *observed_source_candidates], scoring_policy)
+      rescored = _annotate_numeric_robustness(rescored)
       rescored_observed = [candidate for candidate in rescored if int(candidate["eventTime"]) in observed_times]
       assessment_candidates.extend((source_version, scoring_policy, candidate) for candidate in rescored_observed)
       current_candidates.extend((source_version, scoring_policy, candidate) for candidate in rescored_observed)
@@ -2481,7 +2527,7 @@ def research_chart_signals(
     (source_version, scoring_policy, outcome)
     for source_version in source_versions
     for scoring_policy in {str(pattern.get("scoringPolicy", "forecast_quality")) for pattern in market_patterns if pattern["sourceVersion"] == source_version}
-    for outcome in rescore_policy_outcomes(source_results[source_version]["targets"]["2.0"]["outcomes"], scoring_policy)[0]
+    for outcome in _annotate_numeric_robustness(rescore_policy_outcomes(source_results[source_version]["targets"]["2.0"]["outcomes"], scoring_policy)[0])
   ]
   window_candidates = [
     (source_version, scoring_policy, candidate)

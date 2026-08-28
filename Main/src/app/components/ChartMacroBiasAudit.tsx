@@ -1,4 +1,5 @@
 import { X } from "lucide-react";
+import { formatUtcDisplayDateTime } from "@/app/lib/format";
 import type { MacroSignalChartMode, MacroSignalChartPattern, MacroSignalChartSignal } from "@/app/types";
 
 export interface ChartMacroBiasAuditData {
@@ -24,12 +25,12 @@ function formatR(value: number | null | undefined): string {
 }
 
 function formatUtc(value: number | null | undefined): string {
-  return value == null ? "Waiting for next H4 open" : `${new Date(value * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC`;
+  return value == null ? "Waiting for next H4 open" : formatUtcDisplayDateTime(value);
 }
 
 function formatOutcome(signal: MacroSignalChartSignal): string {
-  if (signal.outcomeStatus === "target_hit") return `Target first · ${formatR(signal.resultR)}`;
-  if (signal.outcomeStatus === "stop_hit") return `Stop first · ${formatR(signal.resultR)}`;
+  if (signal.outcomeStatus === "target_hit") return `TP reached · ${formatR(signal.resultR)}`;
+  if (signal.outcomeStatus === "stop_hit") return `SL reached · ${formatR(signal.resultR)}`;
   if (signal.outcomeStatus === "expired") return `Duration ended · ${formatR(signal.resultR)}`;
   if (signal.outcomeStatus === "ambiguous") return "Both touched · order unknown";
   if (signal.outcomeStatus === "unevaluable") return "Not evaluable";
@@ -47,10 +48,10 @@ function lifecycleCopy(signal: MacroSignalChartSignal): { state: string; detail:
 }
 
 function provenanceLabel(status: NonNullable<MacroSignalChartPattern["registrationProvenance"]>["status"]): string {
-  if (status === "verified") return "Verified immutable recipe";
-  if (status === "mismatch") return "Audit mismatch";
-  if (status === "unavailable") return "Experiment unavailable";
-  return "Legacy snapshot";
+  if (status === "verified") return "Backtest record verified";
+  if (status === "mismatch") return "Backtest record mismatch";
+  if (status === "unavailable") return "Backtest record unavailable";
+  return "Older saved setup";
 }
 
 export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData }) {
@@ -67,92 +68,67 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
     <aside className="chart-macro-bias-audit" aria-label={`${signal.direction} ${market} macro bias audit`}>
       <header>
         <div>
-          <span>{historicalReplay ? "Historical research replay" : "Current frozen model"} · {pattern.modelStatus === "current" ? "registered pattern" : "research only"}</span>
-          <strong>{signal.direction === "long" ? "Long" : "Short"} {market} bias</strong>
-          <small>{pattern.label}</small>
+          <span>{historicalReplay ? "Past FMS result" : "Current FMS signal"}</span>
+          <strong>{pattern.label}</strong>
+          <div className="chart-macro-bias-header-status">
+            <b>{signal.direction === "long" ? "Long" : "Short"} {market}</b>
+            <em>{formatOutcome(signal)}</em>
+          </div>
         </div>
         <button type="button" onClick={data.onClose} aria-label="Close macro bias audit"><X size={15} /></button>
       </header>
-      <div className="chart-macro-bias-clock">
-        <div><span>Economic release</span><strong>{formatUtc(signal.eventTime)}</strong></div>
-        <div><span>Bias active from</span><strong>{formatUtc(signal.activationTime)}</strong></div>
-      </div>
+
+      <section className="chart-macro-bias-trigger" aria-label="Economic releases that triggered this signal">
+        <div className="chart-macro-bias-trigger-heading">
+          <span>Why the arrow appeared</span>
+          <strong>{signal.events.length > 0 ? `${signal.events.length} release${signal.events.length === 1 ? "" : "s"} matched this setup` : "Registered event package"}</strong>
+        </div>
+        <div className="chart-macro-bias-events">
+          {signal.events.map((event) => (
+            <div key={`${event.id}:${event.time}`}>
+              <strong>{event.title}</strong>
+              <small>{event.currency}/{event.countryCode}</small>
+              <span>A {event.actual || "—"} · F {event.forecast || "—"} · P {event.previous || "—"}</span>
+              <b>Score {event.score > 0 ? "+" : ""}{event.score}</b>
+            </div>
+          ))}
+        </div>
+      </section>
+
       <div className={`chart-macro-bias-lifecycle ${lifecycle.resolved ? "is-resolved" : "is-active"}`}>
-        <div><span>Trade lifecycle</span><strong>{lifecycle.state}</strong></div>
+        <div><span>{historicalReplay ? "What happened afterward" : "Trade monitor"}</span><strong>{lifecycle.state}</strong></div>
         <p>{lifecycle.detail}</p>
       </div>
-      <div className="chart-macro-bias-outcome">
-        <span>{historicalReplay ? "Known-afterward simulation" : "Current paper lifecycle"}</span>
-        <strong>{formatOutcome(signal)}</strong>
-        <small>{historicalReplay ? "The outcome uses price after activation and was unknown when the arrow appeared." : "No order is sent to MT5; this is a hypothetical frozen-rule monitor."}</small>
+      <div className="chart-macro-bias-clock" aria-label="Signal timing">
+        <div><span>Release time</span><strong>{formatUtc(signal.eventTime)}</strong></div>
+        <div><span>Trade started</span><strong>{formatUtc(signal.activationTime)}</strong></div>
       </div>
 
       {benchmark ? (
-        <section className="chart-macro-bias-registered" aria-label="Exact registered recipe benchmark">
-          <div className="chart-macro-bias-section-title"><span>Exact registered recipe</span><strong>{benchmark.experimentId}</strong></div>
+        <section className="chart-macro-bias-registered" aria-label="Historical setup performance">
+          <div className="chart-macro-bias-section-title"><span>Historical performance of this exact setup</span><strong>{benchmark.experimentId}</strong></div>
           <div className="chart-macro-bias-stats">
-            <div><span>Historical matches</span><strong>{benchmark.historicalN}</strong></div>
-            <div><span>Walk-forward cases</span><strong>{benchmark.walkForwardN}</strong></div>
-            <div><span>Walk-forward average</span><strong>{formatR(benchmark.walkForwardAverageR)}</strong></div>
-            <div><span>Target first</span><strong>{formatPercent(benchmark.targetFirstRate)}</strong></div>
-            <div><span>Stop first</span><strong>{formatPercent(benchmark.stopFirstRate)}</strong></div>
-            <div><span>Simple gross break-even</span><strong>{formatPercent(simpleBreakEven)}</strong></div>
+            <div className="is-primary"><span>Average per trade</span><strong>{formatR(benchmark.walkForwardAverageR)}</strong></div>
+            <div><span>TP before SL</span><strong>{formatPercent(benchmark.targetFirstRate)}</strong></div>
+            <div><span>Later test trades</span><strong>{benchmark.walkForwardN}</strong></div>
+            <div><span>All matching events</span><strong>{benchmark.historicalN}</strong></div>
+            <div><span>SL before TP</span><strong>{formatPercent(benchmark.stopFirstRate)}</strong></div>
+            <div><span>TP rate needed</span><strong>{formatPercent(simpleBreakEven)}</strong></div>
           </div>
-          <div className="chart-macro-bias-contract"><b>Frozen contract</b><span>SL {stopAtr} ATR · TP {targetR}R = {stopAtr * targetR} ATR · maximum {signal.expiryCandles} H4 candles</span></div>
+          <div className="chart-macro-bias-contract"><b>Trade rules used in this test</b><span>SL {stopAtr} ATR · TP {targetR}R = {stopAtr * targetR} ATR · maximum {signal.expiryCandles} H4 candles</span></div>
           {provenance ? <div className={`chart-macro-bias-provenance is-${provenance.status}`}><strong>{provenanceLabel(provenance.status)}</strong><span>{provenance.note}</span></div> : null}
         </section>
       ) : (
         <section className="chart-macro-bias-legacy-warning">
-          <strong>Legacy registration — exact contract benchmark is not linked</strong>
-          <span>The source diagnostics below are useful research context, but they must not be read as this registered contract's performance.</span>
+          <strong>This older setup has no linked backtest record</strong>
+          <span>Its signal is retained for audit, but exact historical performance is unavailable here.</span>
         </section>
       )}
 
-      <details className="chart-macro-bias-source-audit">
-        <summary>Source research diagnostics <span>different benchmark</span></summary>
-        <p>These figures describe the broader source-pattern research and alternative target tests. They may use a different population or exit than the exact registered recipe above.</p>
-        <div className="chart-macro-bias-stats">
-          <div><span>Source historical N</span><strong>{pattern.overall.evaluableCount}</strong></div>
-          <div><span>Source 2R target first</span><strong>{formatPercent(pattern.overall.targetHitRate)}</strong></div>
-          <div><span>Source stop first</span><strong>{formatPercent(pattern.overall.stopHitRate)}</strong></div>
-          <div><span>Source gross average</span><strong>{formatR(pattern.overall.averageR)}</strong></div>
-          <div><span>{pattern.executionStress.pips} pip stress</span><strong>{formatR(pattern.executionStress.overall.averageR)}</strong></div>
-          <div><span>Source recent 3 years</span><strong>{formatR(pattern.executionStress.recent.averageR)}</strong></div>
-        </div>
-        {pattern.targetRobustness.length > 0 ? (
-          <div className="chart-macro-bias-targets" aria-label="Source target sensitivity after execution stress">
-            {pattern.targetRobustness.map((target) => (
-              <div key={target.targetR}>
-                <span>{target.targetR}R source target</span>
-                <strong>{formatR(target.executionStress.averageR)}</strong>
-                <small>gross {formatR(target.gross.averageR)}</small>
-              </div>
-            ))}
-          </div>
-        ) : null}
-        <div className="chart-macro-bias-splits">
-          <span>Source development: N {pattern.executionStress.development.evaluableCount} · {formatR(pattern.executionStress.development.averageR)}</span>
-          <span>Source holdout: N {pattern.executionStress.holdout.evaluableCount} · {formatR(pattern.executionStress.holdout.averageR)}</span>
-          <span>Source positive years: {pattern.yearStability.positiveYears}/{pattern.yearStability.evaluableYears}</span>
-          <span>Source past-only audit: N {pattern.prequentialAudit.evaluableCount} · {formatR(pattern.prequentialAudit.executionStress.averageR)}</span>
-        </div>
-        <p className={`chart-macro-bias-selection-note ${pattern.uncertaintyIncludesNoEdge ? "is-warning" : ""}`}>
-          {pattern.selectionNote} {signal.backgroundCoverageComplete ? `Release context: Before evidence was ${signal.backgroundAlignment}; this remains an audit dimension, not a fitted filter.` : "The immutable ledger does not contain a complete 90-day Before window for this signal."}
-          {pattern.uncertaintyIncludesNoEdge ? " The source stressed 95% expectancy interval includes zero edge." : ""}
-          {pattern.estimatedBreakEvenStressPips != null ? ` The linear source stress reaches zero near ${pattern.estimatedBreakEvenStressPips.toFixed(1)} pips per case; this is not an execution-cost estimate.` : ""}
-        </p>
-      </details>
-
-      <div className="chart-macro-bias-events">
-        {signal.events.map((event) => (
-          <div key={`${event.id}:${event.time}`}>
-            <strong>{event.currency}/{event.countryCode} · {event.title}</strong>
-            <span>A {event.actual || "—"} · F {event.forecast || "—"} · P {event.previous || "—"} · score {event.score > 0 ? "+" : ""}{event.score}</span>
-          </div>
-        ))}
-      </div>
       <footer>
-        {data.modelId} ({data.modelHash.slice(0, 10)}) from {data.versionId}{data.datasetFingerprint ? ` · data ${data.datasetFingerprint.slice(0, 10)}` : ""}. Gross hypothetical research excludes spread, slippage, swap, and commission. {historicalReplay ? "This old arrow is hindsight replay and was not available in real time." : "This release matched the frozen current model."} Not a guaranteed outcome or automatic order.
+        <strong>Important</strong>
+        <span>Gross results exclude spread, slippage, swap, and commission. {historicalReplay ? "This past arrow is hindsight and was not available in real time." : "This release matched a registered FMS setup."} No order is sent to MT5.</span>
+        <small>Recorded setup {data.modelId} ({data.modelHash.slice(0, 10)}){data.datasetFingerprint ? ` · data ${data.datasetFingerprint.slice(0, 10)}` : ""}</small>
       </footer>
     </aside>
   );

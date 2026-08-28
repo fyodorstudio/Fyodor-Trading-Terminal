@@ -633,7 +633,7 @@ Overlapping discoveries with the same event package are deduplicated to the stro
 | USDJPY | Japan labor wages, both directions | Forecast Guard | 0.75 ATR / 4R / 6 H4 | N 42, +0.548R |
 | USDJPY | Japan headline + core inflation, both directions | Forecast Guard | 2 ATR / 1R / 30 H4 | N 90, +0.123R |
 
-Charts now exposes the registry for EURUSD, GBPUSD, USDCAD, and USDJPY. Research Replay displays the historical matches as hindsight; Current mode waits for immutable post-activation releases and never fabricates a current arrow. Shadow Trader sorts the monitored rules by walk-forward average R, target-first rate, or name and shows the matching upcoming releases. AUDUSD, NZDUSD, and USDCHF remain unsupported in Charts because the completed sweep found no positive practical recipe meeting this registration standard.
+Charts now exposes the registry for EURUSD, GBPUSD, USDCAD, and USDJPY through one FMS view. The current registered scanner is always authoritative; `Past arrows` is only an optional hindsight overlay of the same setups. The global FMS Shadow Trader sorts monitored rules by exact-setup average R, TP-before-SL rate, or pair/setup name and shows live state plus matching upcoming releases. AUDUSD, NZDUSD, and USDCHF remain unsupported in Charts because the completed sweep found no positive practical recipe meeting this registration standard.
 
 ### Global Shadow Trader and Negative Research Value - 2026-08-27
 
@@ -654,6 +654,62 @@ FMS must never mix the performance of a broad source experiment with the perform
 An arrow is a finite hypothetical trade lifecycle, not a permanent directional forecast. Target first, stop first, expiry, ambiguity, or unavailable price coverage ends that lifecycle. Price reversing after a target was already reached does not convert the recorded win into a loss. A future persistent-macro-bias model would require its own separately frozen horizon and evaluation contract.
 
 The next FMS refinement loop is loss review rather than ad-hoc rule loosening. Genuine stop-first and negative-expiry cases should be compared with winners using only entry-known fields: exact release package, Surprise/Momentum composition, Forecast Guard status, package completeness, Before alignment, broker impact, prior H4 trend/volatility, and release session. Any apparent separator becomes a named immutable challenger while the registered parent remains unchanged. Promotion requires positive gross walk-forward average R, a target-first rate above that contract's simple gross break-even threshold, usable temporal coverage, and transparent drawdown/streak diagnostics. One visually surprising chart case must never be used as a fitted exception.
+
+## Pair-Orientation Integrity Rebuild and Registered Reaction v2 - 2026-08-28
+
+The Workbench rescoring engine previously rebuilt factor votes with an implicit EURUSD orientation. That defect inverted USD evidence whenever USD was the base currency. Immutable old E records remain preserved, but they are no longer accepted as current registration evidence. New experiment configurations include `pair-orientation-v2`, so corrected calculations cannot reuse an old configuration hash.
+
+The active Charts registry is now `FMS-REGISTERED-REACTION-H4-v2`. Every active row below reconciles with a newly computed immutable experiment and its fixed-contract Qualification-v2 audit:
+
+| Market | Registered setup | Fixed contract | Later walk-forward result |
+|---|---|---|---|
+| EURUSD | US industrial-production package | 1.5 ATR SL / 0.5R TP / 12 H4 | E281: N 48, +0.138R |
+| GBPUSD | US industrial-production package | 1 ATR SL / 0.5R TP / 6 H4 | E059: N 48, +0.105R |
+| USDJPY | US consumer sentiment | 2 ATR SL / 1R TP / 60 H4 | E061: N 155, +0.040R |
+| USDJPY | Japan labor wages | 0.75 ATR SL / 4R TP / 6 H4 | E062: N 42, +0.548R |
+| USDJPY | Japan headline/core inflation | 2 ATR SL / 1R TP / 30 H4 | E063: N 90, +0.123R |
+
+The corrected results removed USDCAD composite/services PMI, USDCAD labor claims, and USDJPY US labor claims from the live registry. The first became materially negative after correcting USD-base orientation; the other two failed the fixed later-period check. They remain visible as avoid-directional-use research rather than being erased.
+
+The same rebuilt experiments store entry-known support/resistance diagnostics and unmanaged path results. Support/resistance uses only the prior 120 completed H4 candles, confirmed two-bar pivots, 0.25-ATR clustering, and at least two touches. Flexible path reporting shows MFE, MAE, time-to-extreme, final close R, and directional room at every declared H4 horizon. It does not call maximum future profit a tradable exit. The first audit demonstrates why: EURUSD and GBPUSD industrial-output recipes retained positive fixed-contract walk-forward averages while their unmanaged selected-horizon close averages were negative. Their small fixed targets are therefore part of the historical recipe, not an arbitrary limitation to remove.
+
+Shadow Trader must always say `Can I follow this blindly? No.` A verified row means its immutable recipe produced a positive gross later-test historical average under the displayed contract. It does not include spread, commission, slippage, or swap and does not prove the next trade will profit.
+
+### Assessment of the +1/+3 Evidence Score
+
+The current event score is a useful transparent baseline, not a complete trading model. A directional comparison contributes `+1` or `-1` for Actual versus Forecast and another `+1` or `-1` for Actual versus Previous. Matching nonzero directions add one agreement point, producing `+3` or `-3`. This deliberately treats the result as ordinal evidence: it records direction and agreement but not how economically large or unusual the release was.
+
+That simplicity is valuable for auditability, missing Forecasts, and small samples. It is insufficient by itself for an automated strategy because a tiny beat and an exceptional beat receive the same score; forecast reliability and revisions vary; simultaneous packages are not equally informative; inflation and policy can change meaning with the policy regime; and the same release can produce different reactions across pairs. The present score should remain the immutable baseline feature while challengers are tested against it, never be silently replaced after inspecting outcomes.
+
+The recommended next FMS research architecture is:
+
+1. Preserve the current sign/agreement score as the explainable baseline.
+2. Add a past-only robust surprise magnitude for each exact series separately, such as `(Actual - Forecast) / rolling MAD or standard deviation`; never standardize unlike titles together.
+3. Keep Actual-versus-Previous Momentum as a separate feature rather than pretending it is identical to market surprise.
+4. Learn and freeze an event/pair reaction map: continuation, rejection, volatility-only, or insufficient evidence, measured independently at short impulse and longer follow-through horizons.
+5. Cap simultaneous packages by family so release quantity cannot dominate.
+6. Treat policy decisions, policy-path/guidance evidence, headline/core/producer inflation, and ordinary growth data as separate models before testing combinations.
+7. Add only entry-known price context, including prior trend, volatility, session, and the confirmed support/resistance zones now stored by the Workbench.
+8. Select all thresholds and exits on development history, freeze them, and judge them only on later walk-forward cases.
+
+The current registered average R values do not by themselves prove that price respected the economic direction more often than not. A positive average can come from a lower win rate paired with a larger payoff, as demonstrated by Japan labor wages. FMS must therefore report two separate claims: `directional respect` (the sign and magnitude of price response at fixed horizons) and `trade expectancy` (the result of a declared entry/SL/TP/expiry contract). Neither is proof of causation.
+
+This result cannot be copied unchanged to other pairs or methods. Pair orientation, relative policy expectations, liquidity, session timing, and event sensitivity differ. The same predeclared research protocol may be reused across pairs; the measured coefficients, direction map, and execution contract must be estimated and audited independently for each pair.
+
+### Past-Only Exact-Series Relative Magnitude - 2026-08-28
+
+The Workbench now measures the absolute size of `Actual - Forecast` and `Actual - Previous` against only earlier releases of the same `currency + country/region + normalized exact title`. It does not compare CPI with payrolls, m/m with y/y, or a national series with a Euro-area series. The first 12 earlier observations are treated as insufficient. Thereafter the raw audit reports a percentile, ordinary/large/exceptional class, prior N, typical absolute gap, robust distance, and an eight-bin historical distribution. The current row is never added to its own reference history.
+
+Magnitude remains separate from the directional `-1/0/+1` vote. It does not turn an exceptional result into an arbitrary `+5`. Package-level relative magnitude is the median percentile of nonzero contributing Surprise/Momentum comparisons, preventing one extreme row or a larger package from automatically dominating. The predeclared upper-tail treatment means at least the 80th percentile; it is a filter for controlled experiments, not a live weight.
+
+Five scoring recipes are now explicit: original Surprise + Momentum, Surprise only, Momentum only, Surprise + Momentum without the agreement bonus, and Forecast Guard. Their fixed-contract comparison on the active registered families produced a clear conclusion: **relative magnitude is useful, but not a universal monotonic rule**.
+
+- EURUSD and GBPUSD US industrial output remained positive across older, later, and recent partitions when all releases were used. Their upper-tail subsets were too small and had no meaningful later sample. Filtering for only large surprises would weaken rather than improve these recipes.
+- USDJPY US consumer sentiment remained strongest and most repeatable under Momentum-only. The ordinary-magnitude subset (`E065`) recorded N 260, development `+0.138R`, holdout `+0.121R` (N 91), recent `+0.176R`, and five-fold pooled OOS `+0.097R` (N 129). It missed only the neighbouring-contract stability check in Qualification v2; this does not replace the already registered all-case recipe.
+- USDJPY headline/core inflation remained positive with or without the upper-tail filter. The upper-tail experiment (`E066`) had N 53 and positive development/holdout/recent averages, but only 14 holdout cases and insufficient coverage for the five-fold gate. Magnitude is informative here, not promotion evidence.
+- USDJPY labor wages showed the strongest magnitude separation. The fixed registered `0.75 ATR SL / 4R TP / 6 H4` upper-tail experiment (`E064`) had N 29, development `+0.578R`, holdout `+1.350R` (N 11), recent `+1.154R`, and 7/10 positive years. This is a high-value challenger but is explicitly under-sampled; it must not replace the broader registered rule from this reused history alone.
+
+The answer to the product question is therefore four-part: strength is the fixed-contract average and response size; stability is performance across years and nearby contracts; repeatability is later walk-forward and recent consistency; economic usability requires enough exact-series history and a rule that does not depend on one tiny subgroup. A high percentile can improve some families, be irrelevant to others, and remove the usable sample from others. FMS must show that difference rather than assume “bigger news always means better trade.”
 
 ## Research Warnings and References
 

@@ -158,6 +158,22 @@ def test_v12_strict_units_and_past_only_forecast_quality_preserve_bad_raw_value(
   assert audit["excludedForecastCount"] == 1
 
 
+def test_policy_rescore_preserves_non_eurusd_base_currency_direction() -> None:
+  definition = get_signal_definition("FMS-USDCAD-LABOR-H4-v2")
+  assert definition is not None
+  package = build_signal_candidates([
+    calendar_event(1, 100, "USD", "Continuing Jobless Claims", "1778", "1790", "1799"),
+    calendar_event(2, 100, "USD", "Initial Jobless Claims", "203", "216", "206"),
+    calendar_event(3, 100, "USD", "Initial Jobless Claims 4-Week Average", "205.5", "208.459", "204"),
+  ], now=200, definition=definition)[0]
+
+  assert package["direction"] == "long"
+  rescored, _audit = _rescore_policy_outcomes([package], "forecast_quality")
+  assert [event["score"] for event in rescored[0]["events"]] == [3, 3, 0]
+  assert rescored[0]["direction"] == "long"
+  assert rescored[0]["pairVote"] == 1
+
+
 def test_v11_revision_audit_uses_prior_exact_series_actual_without_replacing_broker_previous() -> None:
   packages = build_signal_candidates([
     calendar_event(1, 100, "USD", "Industrial Production m/m", "0.1", "0.0", "-0.1"),
@@ -171,6 +187,24 @@ def test_v11_revision_audit_uses_prior_exact_series_actual_without_replacing_bro
   assert annotated[1]["events"][0]["momentumPoint"] == -1
   assert annotated[1]["events"][0]["archivedMomentumPoint"] == 1
   assert annotated[1]["numericRobustness"]["revisionReliability"] == "sensitive"
+
+
+def test_relative_magnitude_uses_only_earlier_releases_of_the_same_exact_series() -> None:
+  events = [
+    calendar_event(index, 100 + index, "USD", "Industrial Production m/m", str(index + 1), "0", "0")
+    for index in range(1, 15)
+  ]
+  events.append(calendar_event(99, 200, "USD", "Industrial Production y/y", "100", "0", "0"))
+  packages = build_signal_candidates(events, now=300, definition=get_signal_definition(GROWTH_VERSION_ID))
+  annotated = _annotate_numeric_robustness(packages)
+  monthly = next(row for row in annotated if row["eventTime"] == 114)["events"][0]
+  annual = next(row for row in annotated if row["eventTime"] == 200)["events"][0]
+
+  assert monthly["surpriseMagnitude"]["status"] == "ready"
+  assert monthly["surpriseMagnitude"]["priorCount"] == 13
+  assert monthly["surpriseMagnitude"]["category"] == "exceptional"
+  assert annual["surpriseMagnitude"]["status"] == "insufficient"
+  assert annual["surpriseMagnitude"]["priorCount"] == 0
 
 
 def test_v11_package_completeness_separates_full_partial_and_single_packages() -> None:

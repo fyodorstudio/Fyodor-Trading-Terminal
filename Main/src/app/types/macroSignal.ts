@@ -291,6 +291,10 @@ export interface MacroSignalPathSummary {
   timeToMaeCandles: MacroSignalPathDistribution;
   adverseBeforeFavorableRate: number | null;
   thresholdReach: Array<{ thresholdR: number; count: number; rate: number | null }>;
+  unmanagedCloseR?: MacroSignalPathDistribution;
+  unmanagedPositiveRate?: number | null;
+  directionalRoomAtr?: MacroSignalPathDistribution;
+  supportResistanceCoverageRate?: number | null;
 }
 
 export interface MacroSignalStressMetrics {
@@ -503,7 +507,7 @@ export type FmsResearchMarket = "EURUSD" | "GBPUSD" | "USDJPY" | "AUDUSD" | "USD
 
 export interface FmsCatalogTreatment {
   id: string;
-  dimension: "none" | "evidenceMode" | "revisionReliability" | "packageCompleteness" | "backgroundAlignment" | "scoreStrength" | "reaction";
+  dimension: "none" | "evidenceMode" | "revisionReliability" | "packageCompleteness" | "backgroundAlignment" | "scoreStrength" | "relativeMagnitude" | "reaction";
   value: string;
   reaction: "continuation" | "contrarian";
   label: string;
@@ -539,7 +543,7 @@ export interface FmsExperimentConfiguration {
   signature: string;
   signatures?: string[];
   directionSelection?: "long" | "short" | "both";
-  scoringPolicy: "baseline" | "momentum_only" | "forecast_quality";
+  scoringPolicy: "baseline" | "surprise_only" | "momentum_only" | "agreement_no_bonus" | "forecast_quality";
   cohort: { dimension: FmsCatalogTreatment["dimension"]; value: string };
   reaction: "continuation" | "contrarian";
   execution: {
@@ -573,6 +577,7 @@ export interface FmsExperimentResult {
   selectedConfiguration: MacroSignalStressConfiguration;
   configurationStability: MacroSignalStressCandidate["configurationStability"];
   path: MacroSignalPathSummary;
+  pathByHorizon?: Record<string, MacroSignalPathSummary>;
   sequentialAccount: {
     takenTrades: number;
     cumulativeStressedR: number;
@@ -623,6 +628,22 @@ export interface FmsRawCaseEvent {
   forecastGap?: number | null;
   forecastAnomalyThreshold?: number | null;
   scoringPolicy?: string;
+  surpriseMagnitude?: FmsRelativeMagnitude;
+  momentumMagnitude?: FmsRelativeMagnitude;
+}
+
+export interface FmsRelativeMagnitude {
+  status: "unavailable" | "insufficient" | "ready";
+  rawDelta?: number;
+  absoluteDelta?: number;
+  priorCount: number;
+  minimumHistory?: number;
+  percentile?: number;
+  category?: "ordinary" | "large" | "exceptional";
+  typicalAbsoluteDelta?: number;
+  relativeToTypical?: number | null;
+  robustDistance?: number | null;
+  histogram?: Array<{ lower: number; upper: number; count: number; containsCurrent: boolean }>;
 }
 
 export interface FmsRawCase {
@@ -635,6 +656,13 @@ export interface FmsRawCase {
   entryTime: number | null;
   entry: number | null;
   atr: number | null;
+  supportResistance?: null | {
+    method: string;
+    lookbackCandles: number;
+    confirmedZoneCount: number;
+    support: null | { level: number; touches: number; distanceAtr: number };
+    resistance: null | { level: number; touches: number; distanceAtr: number };
+  };
   events: FmsRawCaseEvent[];
   simulation: null | {
     status: string;
@@ -724,7 +752,7 @@ export interface FmsWorkbench {
       signatures: string[];
       execution: { stopAtr: number; targetR: number; expiryCandles: number };
       registrationEvidence: null | {
-        scoringPolicy: "baseline" | "momentum_only" | "forecast_quality";
+        scoringPolicy: "baseline" | "surprise_only" | "momentum_only" | "agreement_no_bonus" | "forecast_quality";
         cohort: "all_matching_cases";
         reaction: "continuation" | "contrarian";
         evaluable: number;
@@ -750,7 +778,7 @@ export interface FmsWorkbench {
     stopAtrValues: number[];
     targetRValues: number[];
     holdingCandles: number[];
-    scoringPolicies: Array<"baseline" | "momentum_only" | "forecast_quality">;
+    scoringPolicies: Array<"baseline" | "surprise_only" | "momentum_only" | "agreement_no_bonus" | "forecast_quality">;
     entry: string;
     selection: string;
   };
@@ -929,6 +957,8 @@ export interface MacroSignalPatternAssessment {
       forecastGap?: number | null;
       forecastAnomalyThreshold?: number | null;
       scoringPolicy?: string | null;
+      surpriseMagnitude?: FmsRelativeMagnitude;
+      momentumMagnitude?: FmsRelativeMagnitude;
     }>;
 }
 

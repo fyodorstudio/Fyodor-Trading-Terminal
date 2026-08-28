@@ -276,7 +276,7 @@ export async function createFmsExperiment(payload: {
   friendlyName: string;
   catalogId: string;
   directionSelection: "long" | "short" | "both";
-  scoringPolicy: "baseline" | "momentum_only" | "forecast_quality";
+  scoringPolicy: "baseline" | "surprise_only" | "momentum_only" | "agreement_no_bonus" | "forecast_quality";
   cohort: { dimension: string; value: string };
   reaction: "continuation" | "contrarian";
   execution: {

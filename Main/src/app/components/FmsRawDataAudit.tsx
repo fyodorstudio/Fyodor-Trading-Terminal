@@ -2,14 +2,26 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown, ChevronRight, Database, X } from "lucide-react";
 import { fetchFmsRawCases } from "@/app/lib/bridge";
-import type { FmsExperiment, FmsRawCasesPage } from "@/app/types";
+import { formatUtcDisplayDateTime } from "@/app/lib/format";
+import type { FmsExperiment, FmsRawCasesPage, FmsRelativeMagnitude } from "@/app/types";
 
 function time(value: number | null | undefined) {
-  return value == null ? "—" : new Date(value * 1000).toISOString().slice(0, 16).replace("T", " ") + " UTC";
+  return value == null ? "—" : formatUtcDisplayDateTime(value);
 }
 
 function raw(value: unknown) {
   return value == null || value === "" ? "—" : String(value);
+}
+
+function Magnitude({ value }: { value?: FmsRelativeMagnitude }) {
+  if (!value || value.status === "unavailable") return <small>relative size unavailable</small>;
+  if (value.status === "insufficient" || value.percentile == null) return <small>relative size needs {value.minimumHistory ?? 12} earlier releases · N {value.priorCount}</small>;
+  const percentage = Math.round(value.percentile * 100);
+  const maximum = Math.max(1, ...(value.histogram ?? []).map((bin) => bin.count));
+  return <span className="fms-magnitude" title={`${percentage}th percentile by absolute size versus ${value.priorCount} earlier releases of this exact series`}>
+    <small>{percentage}th pct · {value.category} · prior N {value.priorCount}</small>
+    <span className="fms-magnitude-histogram" aria-hidden="true">{value.histogram?.map((bin, index) => <i key={index} className={bin.containsCurrent ? "is-current" : ""} style={{ height: `${Math.max(12, (bin.count / maximum) * 100)}%` }} />)}</span>
+  </span>;
 }
 
 export function FmsRawDataAudit({ experiment, open, onClose }: { experiment: FmsExperiment; open: boolean; onClose: () => void }) {
@@ -80,7 +92,7 @@ export function FmsRawDataAudit({ experiment, open, onClose }: { experiment: Fms
               <span className={row.included ? "is-included" : "is-excluded"}>{row.included ? "Included" : "Excluded"}<small>{row.inclusionReason}</small></span>
               <span>{row.direction.toUpperCase()}</span><span>{raw(simulation?.entry)}</span><span>{raw(simulation?.stop)}<small>{simulation ? `${simulation.stopAtr} ATR` : "—"}</small></span><span>{raw(simulation?.target)}<small>{simulation ? `${simulation.targetR}R = ${simulation.targetAtr} ATR` : "—"}</small></span><span>{simulation ? `${simulation.holdingCandles} H4` : "—"}</span><span>{simulation ? simulation.status.replaceAll("_", " ") : "Unavailable"}<small>{time(simulation?.exitTime)}</small></span><span>{simulation?.stressedResultR == null ? "—" : `${simulation.stressedResultR > 0 ? "+" : ""}${simulation.stressedResultR.toFixed(2)}R`}</span>
             </button>
-            {isOpen ? <div className="fms-raw-events"><div className="fms-raw-event-head"><span>Release</span><span>A</span><span>F</span><span>P</span><span>S</span><span>M</span><span>Bonus</span><span>Score</span><span>Forecast</span></div>{row.events.map((event, index) => <div className="fms-raw-event" key={`${row.caseId}-${index}`}><span><b>{event.title || "Untitled release"}</b><small>{event.currency || "—"} · {event.countryCode || "—"}</small></span><span>{raw(event.actual)}</span><span>{raw(event.forecast)}</span><span>{raw(event.previous)}</span><span>{raw(event.surpriseRaw)}<small>vote {raw(event.surprisePoint)}</small></span><span>{raw(event.momentumRaw)}<small>vote {raw(event.momentumPoint)}</small></span><span>{raw(event.agreementBonus)}</span><span>{raw(event.score)}</span><span className={event.forecastSuspect ? "is-unreliable" : ""}>{event.forecastSuspect ? "Forecast unreliable" : "Not flagged"}{event.forecastSuspect ? <small>Gap {raw(event.forecastGap)} · threshold {raw(event.forecastAnomalyThreshold)}</small> : null}</span></div>)}</div> : null}
+            {isOpen ? <div className="fms-raw-events"><div className="fms-raw-event-head"><span>Release</span><span>A</span><span>F</span><span>P</span><span>Surprise + relative size</span><span>Momentum + relative size</span><span>Bonus</span><span>Score</span><span>Forecast</span></div>{row.events.map((event, index) => <div className="fms-raw-event" key={`${row.caseId}-${index}`}><span><b>{event.title || "Untitled release"}</b><small>{event.currency || "—"} · {event.countryCode || "—"}</small></span><span>{raw(event.actual)}</span><span>{raw(event.forecast)}</span><span>{raw(event.previous)}</span><span>{raw(event.surpriseRaw)}<small>vote {raw(event.surprisePoint)}</small><Magnitude value={event.surpriseMagnitude} /></span><span>{raw(event.momentumRaw)}<small>vote {raw(event.momentumPoint)}</small><Magnitude value={event.momentumMagnitude} /></span><span>{raw(event.agreementBonus)}</span><span>{raw(event.score)}</span><span className={event.forecastSuspect ? "is-unreliable" : ""}>{event.forecastSuspect ? "Forecast unreliable" : "Not flagged"}{event.forecastSuspect ? <small>Gap {raw(event.forecastGap)} · threshold {raw(event.forecastAnomalyThreshold)}</small> : null}</span></div>)}</div> : null}
           </div>; })}
         </div>
         {!loading && data && !data.rows.length ? <div className="fms-raw-message">No raw cases match these filters.</div> : null}

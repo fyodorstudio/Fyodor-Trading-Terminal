@@ -81,7 +81,7 @@ describe("getChartConnectionLabel", () => {
     expect(getMacroBiasActiveState([makeSignal("d1-active", 1_000, "long")], [d1Candles[0]], 0, "D1"))
       .toMatchObject({ activationCandleOpen: 0, remainingCandles: null, expiryCandleOpen: null });
   });
-  it("keeps the current model separate from hindsight research replay in the chart toolbar", () => {
+  it("uses one FMS view with an optional past-arrow overlay", () => {
     expect(getMacroBiasReplayStatusLabel({
       evaluatedPackageCount: 20,
       matchingPackageCount: 4,
@@ -89,7 +89,7 @@ describe("getChartConnectionLabel", () => {
       latestMatchedEventAt: 1_000,
       latestArrowAt: 86_400,
       laterUnmatchedPackageCount: 7,
-    })).toBe("Hindsight replay · last arrow 1970-01-02 · 7 later scored packages did not match");
+    })).toBe("Hindsight replay · last arrow 02 Jan 1970 · 7 later scored packages did not match");
     const html = renderToStaticMarkup(createElement(ChartToolStrip, {
       cursorReadoutMode: "both",
       eventOverlayVisible: true,
@@ -99,7 +99,6 @@ describe("getChartConnectionLabel", () => {
       macroBiasCount: 0,
       macroBiasSupported: true,
       macroBiasStatusLabel: "One current pattern",
-      macroBiasMode: "current",
       macroBiasHistoricalMatchesVisible: true,
       macroBiasHistoricalMatchesCount: 42,
       macroBiasActiveLabel: "No active bias",
@@ -107,13 +106,12 @@ describe("getChartConnectionLabel", () => {
       onRefocusChart: () => {},
       onOpenDrawer: () => {},
       onToggleMacroBias: () => {},
-      onMacroBiasModeChange: () => {},
       onToggleMacroBiasHistoricalMatches: () => {},
     }));
 
-    expect(html).toContain("Current model");
-    expect(html).toContain("Research replay");
-    expect(html).toContain("Historical matches");
+    expect(html).not.toContain("Current model");
+    expect(html).not.toContain("Research replay");
+    expect(html).toContain("Past arrows");
     expect(html).toContain(">42<");
     expect(html).toContain("No active bias");
   });
@@ -151,24 +149,21 @@ describe("getChartConnectionLabel", () => {
       versionId: "v2", modelId: "v3", modelHash: "abcdef123456", datasetFingerprint: "123456abcdef", mode: "research_replay", targetR: 2, onClose: () => {},
     } }));
 
-    expect(html).toContain("Known-afterward simulation");
-    expect(html).toContain("Long USDCAD bias");
-    expect(html).not.toContain("Long EURUSD bias");
+    expect(html).toContain("Past FMS result");
+    expect(html).toContain("Long USDCAD");
+    expect(html).not.toContain("Long EURUSD");
+    expect(html).toContain("Why the arrow appeared");
+    expect(html.indexOf("US labor claims improvement")).toBeLessThan(html.indexOf("Release time"));
     expect(html).toContain("Closed — target reached");
     expect(html).toContain("Later price movement does not change this result");
-    expect(html).toContain("Target first · +0.50R");
+    expect(html).toContain("TP reached · +0.50R");
     expect(html).toContain("SL 2 ATR · TP 0.5R = 1 ATR · maximum 42 H4 candles");
-    expect(html).toContain("Exact registered recipe");
+    expect(html).toContain("Historical performance of this exact setup");
     expect(html).toContain("FMS-USDCAD-H4-E030");
     expect(html).toContain("+0.14R");
     expect(html).toContain("77.6%");
-    expect(html).toContain("Verified immutable recipe");
-    expect(html).toContain("Source research diagnostics");
-    expect(html).toContain("different benchmark");
-    expect(html).toContain("1R source target");
-    expect(html).toContain("-0.17R");
-    expect(html).toContain("5.7 pips per case");
-    expect(html).toContain("source stressed 95% expectancy interval includes zero edge");
+    expect(html).toContain("Backtest record verified");
+    expect(html).not.toContain("Source research diagnostics");
   });
   it("shows the current bias, historical wins and failures, next event, and next frozen condition", () => {
     const metrics: MacroSignalMetrics = {
@@ -194,6 +189,14 @@ describe("getChartConnectionLabel", () => {
         asOf: 100,
         nextPairEvent: { id: 1, time: 200, currency: "USD", countryCode: "US", title: "Leading Index", impact: "high", actual: null, forecast: "1", previous: "0" },
         nextPatternWatch: { time: 300, patternId: "sentiment", label: pattern.label, condition: pattern.condition, sourceVersionId: "v3", requiredGroups: ["EUR:consumer_sentiment"], events: [] },
+        latestPatternAssessment: {
+          time: 90, patternId: "sentiment", label: pattern.label, condition: pattern.condition, status: "no_trade", direction: null,
+          reason: "The complete package produced no registered direction.", events: [],
+          calculations: [
+            { title: "Consumer Confidence", actual: "90", forecast: "80", previous: "70", surprisePoint: 1, momentumPoint: 1, agreementBonus: 1, score: 3, forecastSuspect: false, forecastGap: 10, forecastAnomalyThreshold: 20, scoringPolicy: "forecast_quality" },
+            { title: "Consumer Confidence Average", actual: "80", forecast: "70", previous: "90", surprisePoint: 1, momentumPoint: -1, agreementBonus: 0, score: 0, forecastSuspect: false, forecastGap: 20, forecastAnomalyThreshold: 30, scoringPolicy: "forecast_quality" },
+          ],
+        },
       },
       policyInflationContext: {
         asOf: 100,
@@ -229,35 +232,47 @@ describe("getChartConnectionLabel", () => {
     } }));
 
     expect(html).toContain("FMS Shadow Trader");
-    expect(html).toContain("No trade");
+    expect(html).toContain("EURUSD flags");
+    expect(html).toContain("GBPUSD flags");
+    expect(html).toContain("Scanning");
+    expect(html).toContain("What FMS is hunting");
+    expect(html).toContain("IF registered EUR evidence improves");
+    expect(html).toContain("Long EURUSD");
+    expect(html).toContain("This release only:");
+    expect(html).toContain("It does not cancel the other releases.");
+    expect(html).toContain("Complete package decision");
+    expect(html).not.toContain("evidence cancelled to zero, so no trade was opened");
+    expect(html).toContain("00:01 · 01 Jan 1970 · UTC");
     expect(html).toContain("All registered FMS setups");
-    expect(html).toContain("Registered setup");
-    expect(html).toContain("State");
-    expect(html).toContain("Relevant time");
-    expect(html).toContain("Waiting");
+    expect(html).toContain("Pair and setup");
+    expect(html).toContain("Now");
+    expect(html).toContain("Relevant event");
+    expect(html).toContain("Historical result");
+    expect(html).toContain("Watching");
     expect(html).toContain("Possible next setup");
-    expect(html).toContain("Automatically selected from the frozen current registry");
-    expect(html).toContain("Registered current setups");
-    expect(html).toContain("Walk-forward average");
+    expect(html).toContain("Automatically selected from registered setups");
+    expect(html).toContain("Registered setups");
+    expect(html).toContain("Average per trade");
+    expect(html).toContain("View details");
+    expect(html).toContain("Show");
     expect(html).toContain("FMS-EURUSD-H4-E197");
-    expect(html).toContain("Highest average R");
-    expect(html).toContain("Highest target-first rate");
-    expect(html).toContain("2 markets · 2 setups");
+    expect(html).toContain("Best average result");
+    expect(html).toContain("Highest TP-first rate");
+    expect(html).toContain("2 markets live");
     expect(html).toContain("GBPUSD · US industrial-production package");
     expect(html).toContain("What history says");
     expect(html).toContain("Research contenders");
     expect(html).toContain("Avoid as standalone direction");
-    expect(html).toContain("Historical N");
-    expect(html).toContain("Source recent");
-    expect(html).toContain("Source past-only audit");
+    expect(html).toContain("All matching events");
+    expect(html).toContain("Later test trades");
     expect(html).toContain("Registered EUR evidence improves");
     expect(html).toContain("Long EURUSD");
     expect(html).toContain("Zero, missing, or nonmatching");
-    expect(html).toContain("1970-01-01 00:05 UTC");
+    expect(html).toContain("00:05 · 01 Jan 1970 · UTC");
     expect(html).toContain("Long if sentiment improves; Short if it weakens.");
     expect(html).toContain("75.0%");
     expect(html).toContain("17.0%");
-    expect(html).toContain("+0.20R");
+    expect(html).toContain("+0.14R");
     expect(html).toContain("$1,000.00");
     expect(html).toContain("One position at a time");
     expect(html).toContain("spread, commission, slippage, and swap are excluded");

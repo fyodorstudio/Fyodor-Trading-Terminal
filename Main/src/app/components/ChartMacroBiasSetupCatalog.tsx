@@ -1,11 +1,12 @@
-import { BookOpen, Clock3, X } from "lucide-react";
+import { BookOpen, ChevronDown, Clock3, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { formatUtcDisplayDateTime } from "@/app/lib/format";
 import type { MacroSignalChartPattern, MacroSignalRealtimeWatch } from "@/app/types";
 
 type NextPatternWatch = NonNullable<MacroSignalRealtimeWatch["nextPatternWatch"]>;
 
 function formatUtc(value: number): string {
-  return `${new Date(value * 1000).toISOString().slice(0, 16).replace("T", " ")} UTC`;
+  return formatUtcDisplayDateTime(value);
 }
 
 function formatPercent(value: number | null | undefined): string {
@@ -79,7 +80,7 @@ export function ChartMacroBiasNextSetup({
       <div className="chart-shadow-next-heading">
         <div>
           <span><Clock3 size={14} /> Possible next setup</span>
-          <small>Automatically selected from the frozen current registry</small>
+          <small>Automatically selected from registered setups</small>
         </div>
         {watch ? <strong>{formatCountdown(Math.max(0, watch.time - (asOf + elapsedSeconds)))}</strong> : null}
       </div>
@@ -95,7 +96,7 @@ export function ChartMacroBiasNextSetup({
               <div key={evidence}><span>{evidence}</span><strong>{action}</strong></div>
             ))}
           </div>
-          <p className="chart-shadow-next-condition"><b>Frozen rule:</b> {pattern.condition}</p>
+          <p className="chart-shadow-next-condition"><b>Trade rule:</b> {pattern.condition}</p>
         </>
       ) : <p>No registered setup is scheduled in the loaded calendar window.</p>}
     </section>
@@ -111,7 +112,7 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
   return (
     <section className="chart-shadow-catalog" aria-label="Registered current setup benchmarks">
       <div className="chart-shadow-catalog-heading">
-        <div><span>Registered current setups</span><strong>{registered.length}</strong></div>
+        <div><span>Registered setups</span><strong>{registered.length}</strong></div>
         <div className="chart-shadow-catalog-actions">
           <small>Frozen gross historical benchmarks—not guaranteed win rates</small>
           <button type="button" onClick={() => setGuideOpen((open) => !open)} aria-expanded={guideOpen} aria-controls="chart-shadow-score-guide">
@@ -130,13 +131,10 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
           </dl>
           <h4>Benchmark boxes</h4>
           <dl>
-            <div><dt>Historical N</dt><dd>Evaluable historical releases matching this exact frozen setup.</dd></div>
-            <div><dt>Target / stop first</dt><dd>How often the exact registered contract reached its own target or stop first. Broader source diagnostics are separated below each recipe.</dd></div>
-            <div><dt>Gross average R</dt><dd>Average historical result measured in R, before spread, commission, slippage, and swap.</dd></div>
-            <div><dt>Development / holdout</dt><dd>Older research sample versus the later chronological check sample.</dd></div>
-            <div><dt>Recent window</dt><dd>The setup's result in the latest fixed recent-history slice.</dd></div>
-            <div><dt>Positive years</dt><dd>Calendar years above 0R divided by evaluable years.</dd></div>
-            <div><dt>Past-only audit</dt><dd>Cases that would have qualified using only information from earlier cases.</dd></div>
+            <div><dt>All matching events</dt><dd>Past releases that matched this exact setup.</dd></div>
+            <div><dt>TP / SL first</dt><dd>How often the registered trade rules reached take profit or stop loss first.</dd></div>
+            <div><dt>Average per trade</dt><dd>Average historical result measured in R, before spread, commission, slippage, and swap.</dd></div>
+            <div><dt>Later test trades</dt><dd>Trades from the later part of history used to check whether the pattern continued.</dd></div>
             <div><dt>1R / 1.5R / 2R</dt><dd>Gross average at each alternative target; this checks dependence on one target.</dd></div>
           </dl>
           <p>Example: with a $1,000 account risking 1%, 1R is $10. A stop loses about $10 and a 2R target gains about $20. ATR changes position size, not the chosen $10 risk.</p>
@@ -147,42 +145,23 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
           <summary>
             <span><b>{pattern.label}</b></span>
             <strong>{pattern.execution?.targetR ?? 2}R<small>{pattern.execution?.stopAtr ?? 1} ATR · {pattern.execution?.expiryCandles ?? 30} H4</small></strong>
+            <em className="chart-shadow-disclosure-cue">View details <ChevronDown size={13} /></em>
           </summary>
-          <p className="chart-shadow-catalog-rule"><b>Frozen rule:</b> {pattern.condition}</p>
+          <p className="chart-shadow-catalog-rule"><b>Trade rule:</b> {pattern.condition}</p>
           <div className="chart-shadow-benchmark-grid">
-            <div><span>Historical N</span><strong>{pattern.historicalBenchmark?.historicalN ?? pattern.overall.evaluableCount}</strong></div>
-            <div><span>Registered contract</span><strong>{pattern.execution?.stopAtr ?? 1} ATR stop · {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</strong></div>
+            <div><span>All matching events</span><strong>{pattern.historicalBenchmark?.historicalN ?? pattern.overall.evaluableCount}</strong></div>
+            <div><span>Trade rules</span><strong>SL {pattern.execution?.stopAtr ?? 1} ATR · TP {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</strong></div>
             {pattern.historicalBenchmark ? (
               <>
-                <div><span>Walk-forward N</span><strong>{pattern.historicalBenchmark.walkForwardN}</strong></div>
-                <div><span>Target first</span><strong>{formatPercent(pattern.historicalBenchmark.targetFirstRate)}</strong></div>
-                <div><span>Stop first</span><strong>{formatPercent(pattern.historicalBenchmark.stopFirstRate)}</strong></div>
-                <div><span>Walk-forward average</span><strong>{formatR(pattern.historicalBenchmark.walkForwardAverageR)}</strong></div>
-                <div><span>Research recipe</span><strong>{pattern.historicalBenchmark.experimentId}</strong></div>
+                <div><span>Later test trades</span><strong>{pattern.historicalBenchmark.walkForwardN}</strong></div>
+                <div><span>TP before SL</span><strong>{formatPercent(pattern.historicalBenchmark.targetFirstRate)}</strong></div>
+                <div><span>SL before TP</span><strong>{formatPercent(pattern.historicalBenchmark.stopFirstRate)}</strong></div>
+                <div><span>Average per trade</span><strong>{formatR(pattern.historicalBenchmark.walkForwardAverageR)}</strong></div>
+                <div><span>Backtest record</span><strong>{pattern.historicalBenchmark.experimentId}</strong></div>
               </>
             ) : <><div><span>Benchmark status</span><strong>Legacy snapshot</strong></div><div><span>Exact contract metrics</span><strong>Not linked</strong></div></>}
           </div>
-          {pattern.registrationProvenance ? <p className={`chart-shadow-provenance is-${pattern.registrationProvenance.status}`}><b>{pattern.registrationProvenance.status === "verified" ? "Verified immutable recipe" : pattern.registrationProvenance.status === "mismatch" ? "Audit mismatch" : pattern.registrationProvenance.status === "unavailable" ? "Experiment unavailable" : "Legacy snapshot"}:</b> {pattern.registrationProvenance.note}</p> : null}
-          <details className="chart-shadow-source-diagnostics">
-            <summary>Source research diagnostics <span>different benchmark</span></summary>
-            <p>These broader source-pattern figures may use a different case population or exit. They do not replace the exact registered benchmark above.</p>
-            <div className="chart-shadow-benchmark-grid">
-              <div><span>Source N</span><strong>{pattern.overall.evaluableCount}</strong></div>
-              <div><span>Source 2R target first</span><strong>{pattern.overall.targetHitCount} / {pattern.overall.evaluableCount} · {formatPercent(pattern.overall.targetHitRate)}</strong></div>
-              <div><span>Source stop first</span><strong>{pattern.overall.stopHitCount} / {pattern.overall.evaluableCount} · {formatPercent(pattern.overall.stopHitRate)}</strong></div>
-              <div><span>Source gross average</span><strong>{formatR(pattern.overall.averageR)}</strong></div>
-              <div><span>Source recent</span><strong>{formatR(pattern.recentWindow.metrics.averageR)} · N {pattern.recentWindow.metrics.evaluableCount}</strong></div>
-              <div><span>Source positive years</span><strong>{pattern.yearStability.positiveYears}/{pattern.yearStability.evaluableYears}</strong></div>
-              <div><span>Source development</span><strong>{formatR(pattern.development.averageR)} · N {pattern.development.evaluableCount}</strong></div>
-              <div><span>Source holdout</span><strong>{formatR(pattern.holdout.averageR)} · N {pattern.holdout.evaluableCount}</strong></div>
-              <div><span>Source past-only audit</span><strong>{formatR(pattern.prequentialAudit.gross.averageR)} · N {pattern.prequentialAudit.evaluableCount}</strong></div>
-            </div>
-            <div className="chart-shadow-target-strip">
-              {pattern.targetRobustness.map((target) => (
-                <span key={target.targetR}><b>{target.targetR}R</b> {formatR(target.gross.averageR)} · N {target.gross.evaluableCount}</span>
-              ))}
-            </div>
-          </details>
+          {pattern.registrationProvenance ? <p className={`chart-shadow-provenance is-${pattern.registrationProvenance.status}`}><b>{pattern.registrationProvenance.status === "verified" ? "Backtest record verified" : pattern.registrationProvenance.status === "mismatch" ? "Backtest mismatch" : pattern.registrationProvenance.status === "unavailable" ? "Backtest unavailable" : "Older saved setup"}:</b> {pattern.registrationProvenance.note}</p> : null}
         </details>
       ))}
     </section>
