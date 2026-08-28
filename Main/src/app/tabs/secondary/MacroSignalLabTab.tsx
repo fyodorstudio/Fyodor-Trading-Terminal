@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { AlertTriangle, Archive, Beaker, BookOpen, Check, Copy, Database, Download, FlaskConical, Play, RefreshCw, Snowflake } from "lucide-react";
 import { createFmsExperiment, fetchFmsExperiment, fetchFmsWorkbench, freezeFmsExperiment } from "@/app/lib/bridge";
 import { FmsWorkbenchTutorial } from "@/app/components/FmsWorkbenchTutorial";
@@ -9,6 +9,7 @@ import type { FmsCatalogItem, FmsCatalogTreatment, FmsExperiment, FmsExperimentR
 const DEFAULT_STOPS = [1, 1.5, 2];
 const DEFAULT_TARGETS = [1, 1.5, 2];
 const DEFAULT_HOLDING = [18, 30, 42];
+const workbenchMarketCache = new Map<FmsResearchMarket, FmsWorkbench>();
 
 function formatR(value: number | null | undefined): string {
   if (value == null) return "—";
@@ -174,6 +175,25 @@ interface MacroSignalLabViewProps {
   onMarketChange?: (market: FmsResearchMarket) => void;
 }
 
+function InspectorDisclosure({
+  title,
+  count,
+  icon,
+  children,
+}: {
+  title: string;
+  count: number;
+  icon: ReactNode;
+  children: (close: () => void) => ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const close = () => setOpen(false);
+  return <details className="fms-workbench-card fms-archive fms-inspector" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+    <summary>{icon}{title}<span>{count}</span></summary>
+    {open ? <div>{children(close)}</div> : null}
+  </details>;
+}
+
 export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExperiment, loading, running, error, onRun, onSelectExperiment, onFreeze, onRefresh, onMarketChange = () => {} }: MacroSignalLabViewProps) {
   const [guideOpen, setGuideOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -207,7 +227,7 @@ export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExper
   useEffect(() => {
     if (!registeredSetup) return;
     setPolicy(registeredSetup.scoringPolicy);
-    const registeredTreatment = availableTreatments.find((item) => item.dimension === "none" && item.reaction === registeredSetup.reaction);
+    const registeredTreatment = availableTreatments.find((item) => item.dimension === registeredSetup.cohort.dimension && item.value === registeredSetup.cohort.value && item.reaction === registeredSetup.reaction);
     setTreatmentId(registeredTreatment?.id ?? "base");
     setMode("single");
     setStops([registeredSetup.execution.stopAtr]);
@@ -232,7 +252,7 @@ export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExper
           <strong>{registeredSetup.label}</strong>
           <p>{registeredSetup.condition}</p>
           {registeredSetup.registrationEvidence ? <>
-            <div className="fms-recipe-grid"><span><small>Frozen scoring</small>{scoringPolicyLabel(registeredSetup.scoringPolicy)}</span><span><small>Cases included</small>All matching releases</span><span><small>Price reaction</small>{reactionLabel(registeredSetup.reaction)}</span><span><small>Execution</small>{registeredSetup.execution.stopAtr} ATR / {registeredSetup.execution.targetR}R / {registeredSetup.execution.expiryCandles} H4</span></div>
+            <div className="fms-recipe-grid"><span><small>Frozen scoring</small>{scoringPolicyLabel(registeredSetup.scoringPolicy)}</span><span><small>Cases included</small>{registeredSetup.cohort.dimension === "none" ? "All matching releases" : `${readable(registeredSetup.cohort.dimension)} · ${readable(registeredSetup.cohort.value)}`}</span><span><small>Price reaction</small>{reactionLabel(registeredSetup.reaction)}</span><span><small>Execution</small>{registeredSetup.execution.stopAtr} ATR / {registeredSetup.execution.targetR}R / {registeredSetup.execution.expiryCandles} H4</span></div>
             <div className="fms-recipe-result"><strong>Why it was registered</strong><span>{registeredSetup.registrationEvidence.evaluable} cases · {registeredSetup.registrationEvidence.targetFirst} target first · {registeredSetup.registrationEvidence.stopFirst} stop first · {registeredSetup.registrationEvidence.expired} expired</span><span>{formatR(registeredSetup.registrationEvidence.stressedAverageR)} average after its historical {registeredSetup.registrationEvidence.stressPips}-pip stress · {registeredSetup.registrationEvidence.positiveYears}/{registeredSetup.registrationEvidence.evaluatedYears} positive years</span><small>Development {formatR(registeredSetup.registrationEvidence.developmentAverageR)} · Holdout {formatR(registeredSetup.registrationEvidence.holdoutAverageR)} · Recent {formatR(registeredSetup.registrationEvidence.recentAverageR)}</small></div>
           </> : <p className="fms-inline-note">This signature is registered, but its original qualification snapshot is available in the Research Archive.</p>}
           <small className="fms-current-guard-note">Charts and Shadow Trader use this exact frozen scoring, reaction, and execution recipe.</small>
@@ -243,10 +263,21 @@ export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExper
       </aside>
       <main className="fms-workbench-results"><ResultPanel experiment={selectedExperiment} onFreeze={onFreeze} busy={loading} /></main>
       <aside className="fms-history-rail">
-        <details className="fms-workbench-card fms-archive fms-current-setups"><summary><Check size={14} />Current registered setups <span>{workbench?.currentModel.registeredSetups.length ?? 0}</span></summary><div>{workbench?.currentModel.registeredSetups.map((setup) => <article key={setup.id}><strong>{setup.label}</strong><span>{setup.execution.stopAtr} ATR / {setup.execution.targetR}R / {setup.execution.expiryCandles} H4</span><small>{setup.condition}</small></article>)}</div></details>
-        <section className="fms-workbench-card"><div className="fms-section-title"><h3>Recorded experiments</h3><span>{workbench?.experiments.length ?? 0}</span></div><div className="fms-record-list">{workbench?.experiments.map((experiment) => <button key={experiment.id} type="button" className={experiment.id === selectedExperiment?.id ? "is-active" : ""} onClick={() => onSelectExperiment(experiment.id)}><span>{experiment.id} · {readable(experiment.status)}</span><strong>{experiment.friendlyName}</strong><small>{experiment.catalogSnapshot?.label}</small></button>)}{!workbench?.experiments.length ? <p>No recorded experiments yet.</p> : null}</div></section>
-        <section className="fms-workbench-card"><div className="fms-section-title"><h3>Frozen candidates</h3><span>{workbench?.candidates.length ?? 0}</span></div><div className="fms-candidate-list">{workbench?.candidates.map((candidate: FmsFrozenCandidate) => { const passed = Object.values(candidate.checks).filter(Boolean).length; const failed = Object.keys(candidate.checks).length - passed; return <article key={candidate.id} className={failed ? "has-failed-gates" : ""}><span>{candidate.id} · Review required</span><strong>{candidate.friendlyName}</strong><small>{candidate.catalogSnapshot.label} · {passed}/{Object.keys(candidate.checks).length} checks</small><small>{failed ? `${failed} failed gate${failed === 1 ? "" : "s"} · acknowledged` : "All recorded checks passed"}</small></article>; })}{!workbench?.candidates.length ? <p>No candidate frozen for review.</p> : null}</div></section>
-        <details className="fms-workbench-card fms-archive"><summary><Archive size={14} />Research Archive <span>{workbench?.archive.length ?? 0}</span></summary><div>{workbench?.archive.map((item) => <article key={item.id}><strong>{item.id}</strong><span>{item.latestRun?.status ?? "No run"}</span><small>{item.configurationHash.slice(0, 12)} · {formatTime(item.createdAt)}</small></article>)}</div></details>
+        <InspectorDisclosure title="Current registered setups" count={workbench?.currentModel.registeredSetups.length ?? 0} icon={<Check size={14} />}>
+          {() => workbench?.currentModel.registeredSetups.length ? workbench.currentModel.registeredSetups.map((setup) => <article key={setup.id}><strong>{setup.label}</strong><span>{setup.execution.stopAtr} ATR / {setup.execution.targetR}R / {setup.execution.expiryCandles} H4</span><small>{setup.condition}</small></article>) : <p>No setup is registered for this market.</p>}
+        </InspectorDisclosure>
+        <InspectorDisclosure title="Reaction Atlas" count={workbench?.reactionAtlas?.rows.length ?? 0} icon={<FlaskConical size={14} />}>
+          {() => workbench?.reactionAtlas ? <><article className="fms-atlas-summary"><strong>What the archive says</strong><span>{workbench.reactionAtlas.counts.historically_profitable_candidate ?? 0} candidates · {workbench.reactionAtlas.counts.directional_contender ?? 0} contenders</span><small>{workbench.reactionAtlas.counts.avoid_standalone_direction ?? 0} avoid as standalone direction · {workbench.reactionAtlas.counts.insufficient_evidence ?? 0} insufficient</small></article>{workbench.reactionAtlas.rows.map((row) => <article key={row.id}><strong>{row.label}</strong><span>{row.classificationLabel}</span><small>{scoringPolicyLabel(row.policy)} · {readable(row.reaction)} · N {row.historicalN} · {row.horizonH4} H4 · later {formatR(row.holdoutAverageR)}</small></article>)}</> : <p>No durable atlas is available.</p>}
+        </InspectorDisclosure>
+        <InspectorDisclosure title="Recorded experiments" count={workbench?.experiments.length ?? 0} icon={<Beaker size={14} />}>
+          {(close) => <div className="fms-record-list">{workbench?.experiments.map((experiment) => <button key={experiment.id} type="button" className={experiment.id === selectedExperiment?.id ? "is-active" : ""} onClick={() => { onSelectExperiment(experiment.id); close(); }}><span>{experiment.id} · {readable(experiment.status)}</span><strong>{experiment.friendlyName}</strong><small>{experiment.catalogSnapshot?.label}</small></button>)}{!workbench?.experiments.length ? <p>No recorded experiments yet.</p> : null}</div>}
+        </InspectorDisclosure>
+        <InspectorDisclosure title="Frozen candidates" count={workbench?.candidates.length ?? 0} icon={<Snowflake size={14} />}>
+          {() => <div className="fms-candidate-list">{workbench?.candidates.map((candidate: FmsFrozenCandidate) => { const passed = Object.values(candidate.checks).filter(Boolean).length; const failed = Object.keys(candidate.checks).length - passed; return <article key={candidate.id} className={failed ? "has-failed-gates" : ""}><span>{candidate.id} · Review required</span><strong>{candidate.friendlyName}</strong><small>{candidate.catalogSnapshot.label} · {passed}/{Object.keys(candidate.checks).length} checks</small><small>{failed ? `${failed} failed gate${failed === 1 ? "" : "s"} · acknowledged` : "All recorded checks passed"}</small></article>; })}{!workbench?.candidates.length ? <p>No candidate frozen for review.</p> : null}</div>}
+        </InspectorDisclosure>
+        <InspectorDisclosure title="Research Archive" count={workbench?.archive.length ?? 0} icon={<Archive size={14} />}>
+          {() => workbench?.archive.map((item) => <article key={item.id}><strong>{item.id}</strong><span>{item.latestRun?.status ?? "No run"}</span><small>{item.configurationHash.slice(0, 12)} · {formatTime(item.createdAt)}</small></article>)}
+        </InspectorDisclosure>
       </aside>
     </div>
     <FmsWorkbenchTutorial open={guideOpen} onClose={() => setGuideOpen(false)} />
@@ -260,17 +291,21 @@ export function MacroSignalLabTab() {
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const loadRequestRef = useRef(0);
   const load = async (preserveSelection = true) => {
-    setLoading(true);
+    const requestId = ++loadRequestRef.current;
+    const cached = workbenchMarketCache.get(market);
+    if (cached) setWorkbench(cached);
+    setLoading(!cached);
     try {
       const next = await fetchFmsWorkbench(market);
+      if (requestId !== loadRequestRef.current) return;
+      workbenchMarketCache.set(market, next);
       setWorkbench(next);
-      const selectedId = preserveSelection ? selectedExperiment?.id : null;
-      const nextExperiment = selectedId ? await fetchFmsExperiment(selectedId) : next.experiments[0] ? await fetchFmsExperiment(next.experiments[0].id) : null;
-      setSelectedExperiment(nextExperiment);
+      if (!preserveSelection || !next.experiments.some((row) => row.id === selectedExperiment?.id)) setSelectedExperiment(null);
       setError(null);
-    } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "FMS workbench unavailable"); }
-    finally { setLoading(false); }
+    } catch (loadError) { if (requestId === loadRequestRef.current) setError(loadError instanceof Error ? loadError.message : "FMS workbench unavailable"); }
+    finally { if (requestId === loadRequestRef.current) setLoading(false); }
   };
   useEffect(() => { void load(false); }, [market]);
   useEffect(() => {
@@ -282,5 +317,5 @@ export function MacroSignalLabTab() {
   const run = async (payload: Parameters<typeof createFmsExperiment>[0]) => { setRunning(true); setError(null); try { const experiment = await createFmsExperiment(payload); setSelectedExperiment(experiment); setRunning(["queued", "running"].includes(experiment.status)); setWorkbench((current) => current ? { ...current, experiments: [experiment, ...current.experiments] } : current); } catch (runError) { setError(runError instanceof Error ? runError.message : "Experiment could not start"); setRunning(false); } };
   const selectExperiment = async (id: string) => { try { setSelectedExperiment(await fetchFmsExperiment(id)); setError(null); } catch (selectError) { setError(selectError instanceof Error ? selectError.message : "Experiment could not load"); } };
   const freeze = async (name: string, acknowledge: boolean) => { if (!selectedExperiment) return; setLoading(true); try { await freezeFmsExperiment(selectedExperiment.id, { friendlyName: name, acknowledgeFailedGates: acknowledge }); await load(true); } catch (freezeError) { setError(freezeError instanceof Error ? freezeError.message : "Candidate could not be frozen"); setLoading(false); } };
-  return <MacroSignalLabView market={market} workbench={workbench} selectedExperiment={selectedExperiment} loading={loading} running={running} error={error} onRun={run} onSelectExperiment={selectExperiment} onFreeze={freeze} onRefresh={() => void load(true)} onMarketChange={setMarket} />;
+  return <MacroSignalLabView market={market} workbench={workbench} selectedExperiment={selectedExperiment} loading={loading} running={running} error={error} onRun={run} onSelectExperiment={selectExperiment} onFreeze={freeze} onRefresh={() => void load(true)} onMarketChange={(nextMarket) => { loadRequestRef.current += 1; setSelectedExperiment(null); setMarket(nextMarket); }} />;
 }

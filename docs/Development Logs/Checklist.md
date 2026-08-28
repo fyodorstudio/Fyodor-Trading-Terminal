@@ -75,11 +75,11 @@ The program must remain honest about the word **proven**:
 
 ### Phase 2 — Build the Event/Price Reaction Atlas
 
-#### Deferred next goal — Seven-Pair Event Reaction Atlas
+#### Completed pass — Seven-Pair Event Reaction Atlas
 
-> **Paused handoff — 2026-08-28:** the all-case and declared magnitude atlas runs produced retained research artifacts, but candidate reconciliation, registry/UI integration, specialized models, and full verification were intentionally deferred by the user. Resume from the existing working tree and the `Deferred Goal Handoff` in `Fyodor Macro Signal Research.md`; do not treat this phase as shipped.
+> **Completed — 2026-08-29:** the all-case and declared magnitude atlas runs, candidate reconciliation, Registered Reaction v3 integration, Workbench/Shadow intelligence, and current-engine provenance verification are complete. Specialized Policy, policy-guidance, and richer context models remain separate future research rather than unfinished v3 work.
 
-- [ ] Run a staged, immutable reaction sweep across EURUSD, GBPUSD, USDJPY, AUDUSD, USDCAD, NZDUSD, and USDCHF without unrestricted filter mining.
+- [x] Run a staged, immutable reaction sweep across EURUSD, GBPUSD, USDJPY, AUDUSD, USDCAD, NZDUSD, and USDCHF without unrestricted filter mining.
 - [ ] Classify every sufficiently sampled exact series/package for each pair as:
   - continuation;
   - rejection;
@@ -87,32 +87,32 @@ The program must remain honest about the word **proven**:
   - volatility-only;
   - avoid as standalone direction;
   - insufficient evidence.
-- [ ] First test all-case scoring recipes; apply ordinary/top-20% magnitude treatments only as predeclared challengers so magnitude does not create an uncontrolled combinatorial search.
-- [ ] Record both useful and failed results as immutable experiments and expose a pair-specific reaction atlas in Workbench and Shadow Trader.
-- [ ] Promote no recipe automatically; register only non-duplicated practical recipes with positive development, later-period, recent, and walk-forward expectancy under a fixed execution contract.
+- [x] First test all-case scoring recipes; apply ordinary/top-20% magnitude treatments only as predeclared challengers so magnitude does not create an uncontrolled combinatorial search.
+- [x] Record both useful and failed results in the durable atlas, materialize practical finalists as immutable experiments, and expose pair-specific reaction evidence in Workbench and Shadow Trader.
+- [x] Promote no recipe automatically; register only non-duplicated practical recipes with positive development, later-period, recent, and walk-forward expectancy under a fixed execution contract.
 
 #### Deferred specialized models
 
 - [ ] Build Policy as a separate model covering canonical decisions, Holding/Tightening/Easing, and later policy-path/guidance research; do not score it as ordinary growth evidence.
 - [ ] Build Inflation as a separate model covering headline/core/producer evidence and heating/cooling; test policy context independently before combining it with Economy.
-- [ ] Measure direction, volatility, MFE/MAE, and continuation/reversal after 1, 3, 6, 12, and 30 H4 candles for every sufficiently sampled candidate.
+- [x] Measure directional continuation/reversal after 1, 3, 6, 12, and 30 H4 candles for every sufficiently sampled candidate; retain MFE/MAE and volatility-only classification as separate path research.
 
 #### Deferred magnitude and context challengers
 
-- [ ] Re-audit every active registered setup against baseline, Surprise-only, Momentum-only, no-agreement-bonus, Forecast Guard, ordinary magnitude, and top-20% magnitude while keeping its registered execution contract fixed.
-- [ ] Prioritize Japan wages exceptional-magnitude, USDJPY consumer-sentiment Momentum-only, and Japan inflation magnitude as named challengers; retain their current sample-size limitations.
-- [ ] Apply entry-known H4 trend, volatility regime, release session, and confirmed support/resistance only to specific finalist/loss-review hypotheses—not as unrestricted intersections.
-- [ ] After completing these staged passes, explicitly record whether the current MT5 archive is exhausted for each pair/family and whether the next useful expansion requires more pairs, more historical coverage, or new forward observations.
+- [x] Re-audit every active registered setup against baseline, Surprise-only, Momentum-only, no-agreement-bonus, Forecast Guard, ordinary magnitude, and top-20% magnitude while keeping its registered execution contract fixed.
+- [x] Prioritize Japan wages exceptional-magnitude, USDJPY consumer-sentiment Momentum-only, and Japan inflation magnitude as named challengers; retain their current sample-size limitations.
+- [x] Apply entry-known H4 trend, volatility regime, release session, and confirmed support/resistance only to specific finalist/loss-review hypotheses—not as unrestricted intersections. These remain named research challengers and do not silently filter live signals.
+- [x] Record the archive conclusion: all-case and magnitude expansion produced additional recipes, USDCHF produced none, upper-tail magnitude was not broadly useful, and further gains require specialized models, more independent observations, or new trusted inputs rather than unrestricted filter mining.
 
 - [x] Add past-only exact-series Surprise and Momentum magnitude percentiles with no cross-series normalization or future leakage.
 - [x] Add ordinary, large, exceptional, and predeclared top-20% magnitude treatments while retaining raw directional votes.
 - [x] Add separate Surprise-only, Momentum-only, and no-agreement-bonus scoring challengers without rewriting existing experiments.
 - [x] Record the first fixed-contract magnitude challengers: USDJPY E064-E066.
-- [ ] Extend the magnitude comparison from the five active recipes to every sufficiently sampled atlas family, preserving one declared family of trials and immutable failures.
+- [x] Extend the magnitude comparison from the five active recipes to every sufficiently sampled atlas family, preserving one declared family of trials and immutable failures.
 - [ ] Treat USDJPY wage upper-tail magnitude as an under-sampled challenger; do not replace the broad registered rule until later observations increase its independent sample.
 
-- [ ] Evaluate every supported exact series and same-time package independently for each supported pair; never assume one event behaves the same across pairs.
-- [ ] For each economic direction, record both possible price responses:
+- [x] Evaluate every supported exact series and same-time package independently for each supported pair; never assume one event behaves the same across pairs.
+- [x] For each economic direction, record both possible price responses:
   - continuation: price follows the economic direction;
   - rejection: price consistently moves against the economic direction.
 - [ ] Produce four evidence lists directly in Shadow Trader and Workbench:

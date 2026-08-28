@@ -361,10 +361,12 @@ export async function fetchMacroSignalChartSignals(params: {
   mode: MacroSignalChartMode;
   from?: number;
   to?: number;
+  refresh?: boolean;
 }): Promise<MacroSignalChartSignalResponse> {
   const search = new URLSearchParams({ symbol: params.symbol, tf: params.timeframe, mode: params.mode });
   if (params.from != null) search.set("from_", String(params.from));
   if (params.to != null) search.set("to", String(params.to));
+  if (params.refresh) search.set("refresh", "true");
   return fetchJson<MacroSignalChartSignalResponse>(
     `${BRIDGE_BASE}/research/chart-signals?${search.toString()}`,
   );

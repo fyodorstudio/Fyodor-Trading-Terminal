@@ -1,7 +1,7 @@
 # Fyodor Macro Signal Research
 
 **Date:** 2026-08-26
-**Status:** Economy v1 was rejected. Country-aware Labor v2, Sentiment v3, Policy/Inflation v5, and Growth v7 remain source-research models with immutable forward ledgers. Charts uses prospective `FMS-EURUSD-FORECAST-GUARD-H4-v13`, retaining the v10 setup identities while excluding only past-detectable anomalous Forecast comparisons. Current Model signals remain strictly separated from hindsight Research Replay. Numeric robustness and Forecast-policy research remain documented as v11/v12.
+**Status:** Source models remain immutable research inputs. Charts and global Shadow Trader use `FMS-REGISTERED-REACTION-H4-v3`: 16 reconciled recipes across six major pairs, with frozen scoring, case filter, continuation/rejection mapping, and execution contract. Historical arrows remain hindsight replay; current monitoring uses immutable first-seen observations only. USDCHF remains research-only. Nothing is an automatic order or guaranteed edge.
 
 **AI working-memory rule:** This is the single canonical FMS research record for future AI sessions. Preserve decisions, failed trials, candidate diagnoses, and unresolved ideas here so research is not reconstructed from chat memory. Do not create a second FMS roadmap unless the user explicitly changes this rule.
 
@@ -711,33 +711,36 @@ Five scoring recipes are now explicit: original Surprise + Momentum, Surprise on
 
 The answer to the product question is therefore four-part: strength is the fixed-contract average and response size; stability is performance across years and nearby contracts; repeatability is later walk-forward and recent consistency; economic usability requires enough exact-series history and a rule that does not depend on one tiny subgroup. A high percentile can improve some families, be irrelevant to others, and remove the usable sample from others. FMS must show that difference rather than assume “bigger news always means better trade.”
 
-### Deferred Expansion Sequence
+### Seven-Pair Reaction Atlas and Registered Reaction v3 - 2026-08-29
 
-The next goal session should begin with a staged **Seven-Pair Event Reaction Atlas**, not another unrestricted optimizer. It will evaluate every sufficiently sampled exact series/package independently for EURUSD, GBPUSD, USDJPY, AUDUSD, USDCAD, NZDUSD, and USDCHF and classify it as continuation, rejection, magnitude-dependent, volatility-only, avoid as standalone direction, or insufficient evidence. All-case scoring recipes come first; magnitude subsets are declared challengers rather than freely mined intersections.
+The staged atlas is complete for EURUSD, GBPUSD, USDJPY, AUDUSD, USDCAD, NZDUSD, and USDCHF. It evaluated every sufficiently sampled exact package under five declared scoring policies, chose continuation or rejection and the 1/3/6/12/30-H4 response horizon on development history only, then selected a fixed contract from the declared coarse grid without consulting holdout or recent results. Ordinary and top-20% past-only exact-series magnitude were separate declared challengers rather than unrestricted intersections. Artifact `e20b9016d8be9ae8eee4608b5ab18f9adca8dd19e559dac83ea45a67b3095664` preserves the run.
 
-After the atlas, build independent Policy and Inflation models, measure price response at 1/3/6/12/30 H4 horizons, and re-audit the active registry under the new scoring and magnitude diagnostics while preserving each frozen execution contract. Entry-known trend, volatility, session, and support/resistance are reserved for named finalist hypotheses. Japan-wage exceptional magnitude, USDJPY consumer-sentiment Momentum-only, and Japan-inflation magnitude are the first named challengers. The complete checkbox contract is maintained in `Checklist.md`.
+`FMS-REGISTERED-REACTION-H4-v3` contains 16 practical recipes. Every row below now reconciles with an immutable experiment using the current `relative-magnitude-v3` scoring engine and its latest walk-forward audit:
 
-### Deferred Goal Handoff - 2026-08-28
+| Market | Registered setup | Scoring | Cases | Reaction | Experiment | Later N | Later average |
+|---|---|---|---|---|---|---:|---:|
+| EURUSD | US industrial-production package | Forecast Guard | all | continuation | E282 | 52 | +0.170R |
+| GBPUSD | US industrial-production package | Forecast Guard | all | continuation | E062 | 50 | +0.148R |
+| GBPUSD | US labor claims | no agreement bonus | ordinary magnitude | continuation | E061 | 178 | +0.207R |
+| AUDUSD | US producer inflation | Momentum only | all | continuation | E050 | 47 | +0.109R |
+| AUDUSD | Australia business confidence | Momentum only | all | rejection | E051 | 63 | +0.040R |
+| NZDUSD | US producer inflation | Momentum only | all | continuation | E044 | 47 | +0.159R |
+| NZDUSD | US trade balance | Momentum only | all | continuation | E045 | 99 | +0.040R |
+| USDCAD | US headline/core inflation | no agreement bonus | all | continuation | E043 | 132 | +0.208R |
+| USDCAD | US producer inflation | Momentum only | all | continuation | E044 | 46 | +0.220R |
+| USDCAD | Canada retail sales | Momentum only | all | continuation | E045 | 42 | +0.322R |
+| USDJPY | US consumer sentiment | Momentum only | all | continuation | E073 | 176 | +0.090R |
+| USDJPY | Japan labor wages | Forecast Guard | all | continuation | E074 | 49 | +0.429R |
+| USDJPY | Japan headline/core inflation | Forecast Guard | all | continuation | E075 | 104 | +0.101R |
+| USDJPY | US producer inflation | Surprise only | all | rejection | E067 | 51 | +0.101R |
+| USDJPY | US manufacturing employment | Forecast Guard | all | continuation | E068 | 97 | +0.067R |
+| USDJPY | US trade balance | Surprise only | ordinary magnitude | continuation | E070 | 55 | +0.172R |
 
-The user intentionally ended the current goal and deferred every unfinished pass to a later goal session. Preserve the completed reaction-atlas artifacts, immutable experiments, and current working-tree research changes; do not present the unfinished work as a verified production registration.
+The ordinary-magnitude GBPUSD labor-claims rule replaced its weaker all-case predecessor. USDJPY ordinary-magnitude trade balance was added because all five walk-forward folds were positive and its year-block-bootstrap 95% lower bound remained above zero. The ordinary-magnitude USD employment rejection remained a contender because it represented only four years and had mixed folds. Entry-known trend/volatility/session/room filters also remain named challengers: several looked strong, but they were selected after finalist inspection and are not silently used by the live scanner.
 
-Work completed far enough to retain:
+The atlas found no practical USDCHF registration. Upper-tail magnitude produced no broad improvement and often removed too much history. Policy decisions/guidance also produced no practical standalone directional recipe in this pass; policy remains context. Inflation did produce pair-specific recipes, but that does not justify a universal heating/cooling trade rule. The Workbench now exposes the complete pair atlas, while Shadow Trader exposes registered, contender, and avoid-directional-use evidence.
 
-- the seven-pair all-case Reaction Atlas and the declared ordinary/top-20% magnitude sweep were executed against the current MT5 archive;
-- fixed-horizon continuation and rejection responses were measured at 1, 3, 6, 12, and 30 H4 candles;
-- ten positive all-case finalists were materialized for audit, while ordinary-magnitude challengers and one-dimensional entry-known context hypotheses were identified;
-- the atlas found no broad evidence that upper-tail magnitude alone is a universal improvement.
-
-Explicitly deferred until the next goal session:
-
-1. finish global deduplication/materialization of magnitude candidates and reconcile the durable candidate-audit artifact;
-2. decide whether any magnitude or context challenger deserves a separately frozen live-compatible recipe;
-3. finish and verify the Registered Reaction v3 registry, Workbench evidence, Shadow Trader intelligence, and contrarian reaction handling;
-4. resolve any preserved legacy registration/provenance mismatch rather than silently accepting it;
-5. build the independent Policy and Inflation models and any later combined/context models;
-6. run the targeted bridge/frontend tests, typecheck, production build, `git diff --check`, bridge restart, and the required 1440x900 manual UI audit.
-
-The next AI session must inspect the existing working tree and durable atlas artifacts before rerunning research. It must not start a fresh unrestricted sweep or treat the present unverified code as ready for live-following decisions.
+This completes the previously paused v3 implementation. Richer policy-language interpretation, volatility-only classification, combined macro/context models, and additional forward observations remain future research—not missing parts of the active v3 contract.
 
 ## Research Warnings and References
 

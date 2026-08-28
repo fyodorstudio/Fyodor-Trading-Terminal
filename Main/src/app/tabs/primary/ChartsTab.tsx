@@ -1058,7 +1058,7 @@ export function ChartsTab({
     const refreshLifecycle = () => {
       if (requestRunning) return;
       requestRunning = true;
-      fetchMacroSignalChartSignals({ symbol: selectedSymbol, timeframe: "H4", mode: "current" })
+      fetchMacroSignalChartSignals({ symbol: selectedSymbol, timeframe: "H4", mode: "current", refresh: true })
         .then((response) => { if (!cancelled) setMacroBiasCurrentResponse(response); })
         .catch(() => { /* retain the last honest lifecycle state */ })
         .finally(() => { requestRunning = false; });

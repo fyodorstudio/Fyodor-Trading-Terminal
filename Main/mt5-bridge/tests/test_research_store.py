@@ -145,6 +145,10 @@ def test_fms_experiments_and_candidates_are_durable_immutable_snapshots(tmp_path
   assert saved["catalogSnapshot"] == catalog
   assert saved["configurationHash"] == "config-a"
   assert saved["datasetFingerprint"] == "dataset-a"
+  headers = reopened.list_fms_experiment_headers("EURUSD")
+  assert headers[0]["id"] == "FMS-EURUSD-H4-E001"
+  assert headers[0]["catalogSnapshot"] == {"id": "catalog-a", "label": "Economic setup"}
+  assert "result" not in headers[0]
   candidate = reopened.list_fms_candidates()[0]
   assert candidate["experimentId"] == experiment_id
   assert candidate["failedGateAcknowledged"] is True

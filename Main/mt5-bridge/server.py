@@ -89,12 +89,14 @@ def _practical_pattern(
   expiry: int, experiment_id: str, historical_n: int, walk_forward_n: int,
   average_r: float, target_rate: float, stop_rate: float, condition: str,
   reaction: str = "continuation",
+  cohort: Optional[Dict[str, str]] = None,
 ) -> Dict[str, Any]:
   return {
     "market": market, "id": pattern_id, "label": label,
     "sourceVersion": source_version, "signatures": tuple(signatures),
     "scoringPolicy": scoring_policy, "current": True,
     "reaction": reaction,
+    "cohort": dict(cohort or {"dimension": "none", "value": "all"}),
     "activatedAt": PRACTICAL_MODEL_CREATED_AT,
     "execution": {"stopAtr": stop_atr, "targetR": target_r, "expiryCandles": expiry},
     "condition": condition,
@@ -113,14 +115,14 @@ _preserved_eurusd_patterns = tuple({
 } for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS if pattern.get("current") and pattern["id"] != "us-industrial-output-short")
 
 PRACTICAL_PATTERN_DEFINITIONS = (
-  _practical_pattern("EURUSD", "us-industrial-output-directional", "US industrial-production package", "FMS-EURUSD-GROWTH-H4-v7", ["long|USD:industrial_output", "short|USD:industrial_output"], "forecast_quality", 1.5, .5, 12, "FMS-EURUSD-H4-E281", 105, 48, .1383022907, .75, .1666666667, "Follow the scored USD industrial-output direction: USD improvement points Short EURUSD; USD weakening points Long EURUSD."),
-  _practical_pattern("GBPUSD", "gbpusd-us-industrial-output", "US industrial-production package", "FMS-GBPUSD-GROWTH-H4-v7", ["long|USD:industrial_output", "short|USD:industrial_output"], "forecast_quality", 1, .5, 6, "FMS-GBPUSD-H4-E059", 105, 48, .1053096835, .7916666667, .2083333333, "Follow the scored USD industrial-output direction for GBPUSD."),
-  _practical_pattern("USDJPY", "usdjpy-us-consumer-sentiment", "US consumer sentiment", "FMS-USDJPY-SENTIMENT-H4-v3", ["long|USD:consumer_sentiment", "short|USD:consumer_sentiment"], "momentum_only", 2, 1, 60, "FMS-USDJPY-H4-E061", 355, 155, .0399971427, .5096774194, .4838709677, "Use Actual versus Previous only; follow the scored USDJPY direction."),
-  _practical_pattern("USDJPY", "usdjpy-jpy-labor-wages", "Japan labor wages", "FMS-USDJPY-LABOR-H4-v2", ["long|JPY:labor_wages", "short|JPY:labor_wages"], "forecast_quality", .75, 4, 6, "FMS-USDJPY-H4-E062", 97, 42, .5477584014, .119047619, .4761904762, "Follow the scored JPY wage direction using Forecast Guard."),
-  _practical_pattern("USDJPY", "usdjpy-jpy-inflation", "Japan headline and core inflation", "FMS-USDJPY-POLICY-INFL-H4-v5", ["long|JPY:core_consumer_inflation|JPY:headline_consumer_inflation", "short|JPY:core_consumer_inflation|JPY:headline_consumer_inflation"], "forecast_quality", 2, 1, 30, "FMS-USDJPY-H4-E063", 208, 90, .1233094645, .5777777778, .3333333333, "Follow the scored JPY headline/core inflation direction using Forecast Guard."),
+  _practical_pattern("EURUSD", "us-industrial-output-directional", "US industrial-production package", "FMS-EURUSD-GROWTH-H4-v7", ["long|USD:industrial_output", "short|USD:industrial_output"], "forecast_quality", 1.5, .5, 12, "FMS-EURUSD-H4-E282", 105, 52, .1704458426, .8076923077, .1538461538, "Follow the scored USD industrial-output direction: USD improvement points Short EURUSD; USD weakening points Long EURUSD."),
+  _practical_pattern("GBPUSD", "gbpusd-us-industrial-output", "US industrial-production package", "FMS-GBPUSD-GROWTH-H4-v7", ["long|USD:industrial_output", "short|USD:industrial_output"], "forecast_quality", 1, .5, 6, "FMS-GBPUSD-H4-E062", 105, 50, .1478691956, .82, .18, "Follow the scored USD industrial-output direction for GBPUSD."),
+  _practical_pattern("USDJPY", "usdjpy-us-consumer-sentiment", "US consumer sentiment", "FMS-USDJPY-SENTIMENT-H4-v3", ["long|USD:consumer_sentiment", "short|USD:consumer_sentiment"], "momentum_only", 2, 1, 60, "FMS-USDJPY-H4-E073", 355, 176, .0903866493, .5397727273, .4488636364, "Use Actual versus Previous only; follow the scored USDJPY direction."),
+  _practical_pattern("USDJPY", "usdjpy-jpy-labor-wages", "Japan labor wages", "FMS-USDJPY-LABOR-H4-v2", ["long|JPY:labor_wages", "short|JPY:labor_wages"], "forecast_quality", .75, 4, 6, "FMS-USDJPY-H4-E074", 97, 49, .428517575, .1224489796, .5306122449, "Follow the scored JPY wage direction using Forecast Guard."),
+  _practical_pattern("USDJPY", "usdjpy-jpy-inflation", "Japan headline and core inflation", "FMS-USDJPY-POLICY-INFL-H4-v5", ["long|JPY:core_consumer_inflation|JPY:headline_consumer_inflation", "short|JPY:core_consumer_inflation|JPY:headline_consumer_inflation"], "forecast_quality", 2, 1, 30, "FMS-USDJPY-H4-E075", 208, 104, .1013164501, .5288461538, .4326923077, "Follow the scored JPY headline/core inflation direction using Forecast Guard."),
   _practical_pattern("AUDUSD", "audusd-us-producer-inflation", "US producer inflation", "FMS-AUDUSD-POLICY-INFL-H4-v5", ["long|USD:producer_inflation", "short|USD:producer_inflation"], "momentum_only", 2, 2, 12, "FMS-AUDUSD-H4-E050", 94, 47, .1090984769, .1489361702, .3617021277, "Use Actual versus Previous only; follow the scored AUDUSD direction."),
   _practical_pattern("AUDUSD", "audusd-business-confidence-rejection", "Australia business confidence rejection", "FMS-AUDUSD-SENTIMENT-H4-v3", ["long|AUD:business_sentiment", "short|AUD:business_sentiment"], "momentum_only", 1.5, .5, 30, "FMS-AUDUSD-H4-E051", 127, 63, .04015157, .746031746, .253968254, "Use Actual versus Previous only; trade opposite the scored AUD business-confidence direction.", "contrarian"),
-  _practical_pattern("GBPUSD", "gbpusd-us-labor-claims", "US labor claims", "FMS-GBPUSD-LABOR-H4-v2", ["long|USD:labor_claims", "short|USD:labor_claims"], "forecast_quality", 2, 4, 12, "FMS-GBPUSD-H4-E060", 427, 214, .0796041643, .0046728972, .308411215, "Follow the Forecast Guard-scored US labor-claims direction for GBPUSD."),
+  _practical_pattern("GBPUSD", "gbpusd-us-labor-claims", "US labor claims · ordinary magnitude", "FMS-GBPUSD-LABOR-H4-v2", ["long|USD:labor_claims", "short|USD:labor_claims"], "agreement_no_bonus", 2, 4, 60, "FMS-GBPUSD-H4-E061", 357, 178, .2069688213, .1516853933, .6348314607, "Follow the scored US labor-claims direction only when the package's past-only exact-series magnitude is ordinary.", "continuation", {"dimension": "relativeMagnitude", "value": "ordinary"}),
   _practical_pattern("NZDUSD", "nzdusd-us-producer-inflation", "US producer inflation", "FMS-NZDUSD-POLICY-INFL-H4-v5", ["long|USD:producer_inflation", "short|USD:producer_inflation"], "momentum_only", 2, 2, 12, "FMS-NZDUSD-H4-E044", 94, 47, .1585086236, .2127659574, .3404255319, "Use Actual versus Previous only; follow the scored NZDUSD direction."),
   _practical_pattern("NZDUSD", "nzdusd-us-trade-balance", "US trade balance", "FMS-NZDUSD-GROWTH-H4-v7", ["long|USD:trade_balance", "short|USD:trade_balance"], "momentum_only", 1.5, 4, 30, "FMS-NZDUSD-H4-E045", 198, 99, .0401787828, .101010101, .6464646465, "Use Actual versus Previous only; follow the scored NZDUSD direction."),
   _practical_pattern("USDCAD", "usdcad-us-consumer-inflation", "US headline and core inflation", "FMS-USDCAD-POLICY-INFL-H4-v5", ["long|USD:core_consumer_inflation|USD:headline_consumer_inflation", "short|USD:core_consumer_inflation|USD:headline_consumer_inflation"], "agreement_no_bonus", 1.5, 4, 60, "FMS-USDCAD-H4-E043", 265, 132, .2080814094, .2121212121, .696969697, "Follow the scored US headline/core inflation direction without an agreement bonus."),
@@ -128,6 +130,7 @@ PRACTICAL_PATTERN_DEFINITIONS = (
   _practical_pattern("USDCAD", "usdcad-canada-retail-sales", "Canada retail sales", "FMS-USDCAD-GROWTH-H4-v7", ["long|CAD:retail_headline", "short|CAD:retail_headline"], "momentum_only", 1.5, 4, 30, "FMS-USDCAD-H4-E045", 84, 42, .3224750324, .1666666667, .619047619, "Use Actual versus Previous only; follow the scored Canada retail-sales direction."),
   _practical_pattern("USDJPY", "usdjpy-us-producer-inflation-rejection", "US producer inflation rejection", "FMS-USDJPY-POLICY-INFL-H4-v5", ["long|USD:producer_inflation", "short|USD:producer_inflation"], "surprise_only", 1, 2, 6, "FMS-USDJPY-H4-E067", 101, 51, .1011688719, .2549019608, .5098039216, "Use Actual versus Forecast only; trade opposite the scored USD producer-inflation direction.", "contrarian"),
   _practical_pattern("USDJPY", "usdjpy-us-manufacturing-employment", "US manufacturing employment", "FMS-USDJPY-GROWTH-H4-v7", ["long|USD:pmi_manufacturing", "short|USD:pmi_manufacturing"], "forecast_quality", 2, .5, 60, "FMS-USDJPY-H4-E068", 194, 97, .0666507331, .7113402062, .2886597938, "Follow the Forecast Guard-scored US manufacturing-employment package direction."),
+  _practical_pattern("USDJPY", "usdjpy-us-trade-balance-ordinary", "US trade balance · ordinary magnitude", "FMS-USDJPY-GROWTH-H4-v7", ["long|USD:trade_balance", "short|USD:trade_balance"], "surprise_only", 2, .5, 30, "FMS-USDJPY-H4-E070", 109, 55, .1723702861, .7818181818, .2181818182, "Use Actual versus Forecast only; follow the scored USDJPY direction when the package's past-only exact-series magnitude is ordinary.", "continuation", {"dimension": "relativeMagnitude", "value": "ordinary"}),
 )
 PRACTICAL_MODEL_HASH = hashlib.sha256(json.dumps(PRACTICAL_PATTERN_DEFINITIONS, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
@@ -237,6 +240,7 @@ def _registration_provenance(pattern: Dict[str, Any]) -> Dict[str, Any]:
     "signatures": actual_signatures == expected_signatures,
     "scoringPolicy": str(configuration.get("scoringPolicy") or result.get("scoringPolicy") or "") == str(pattern.get("scoringPolicy") or "forecast_quality"),
     "reaction": str(configuration.get("reaction") or result.get("reaction") or "continuation") == str(pattern.get("reaction") or "continuation"),
+    "cohort": dict(configuration.get("cohort") or {"dimension": "none", "value": "all"}) == dict(pattern.get("cohort") or {"dimension": "none", "value": "all"}),
     "scoringEngine": str(configuration.get("scoringEngineVersion") or "") == WORKBENCH_SCORING_ENGINE_VERSION,
     "stopAtr": close(selected.get("stopAtr"), execution.get("stopAtr")),
     "targetR": close(selected.get("targetR"), execution.get("targetR")),
@@ -277,7 +281,7 @@ def _registration_display_evidence(pattern: Dict[str, Any]) -> Optional[Dict[str
   stop_rate = float(overall.get("stopHitRate") or 0)
   return {
     "scoringPolicy": str(pattern.get("scoringPolicy", "forecast_quality")),
-    "cohort": "all_matching_cases",
+    "cohort": dict(pattern.get("cohort") or {"dimension": "none", "value": "all"}),
     "reaction": str(pattern.get("reaction", "continuation")),
     "evaluable": evaluable,
     "targetFirst": round(evaluable * target_rate),
@@ -467,6 +471,10 @@ _forward_schedule_lock = Lock()
 _forward_reconcile_scheduled = False
 _chart_signal_catalog_lock = Lock()
 _chart_signal_catalog_cache: Dict[str, List[Dict[str, Any]]] = {}
+_chart_signal_response_lock = Lock()
+_chart_signal_response_cache: Dict[str, Dict[str, Any]] = {}
+_chart_signal_current_candidates_lock = Lock()
+_chart_signal_current_candidates_cache: Dict[str, Dict[str, Any]] = {}
 _chart_signal_context_lock = Lock()
 _chart_signal_context_cache: Dict[str, Dict[str, Any]] = {}
 _candidate_stress_lock = Lock()
@@ -1690,7 +1698,7 @@ def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
   market = str(bundle.get("market") or "EURUSD")
   report = _latest_cached_expansion_report()
   report_revision = str(int((report or {}).get("generatedAt", 0)))
-  cache_key = f"fms_workbench_catalog_v7:{market}:{bundle['datasetFingerprint']}:{report_revision}:{WORKBENCH_SCORING_ENGINE_VERSION}"
+  cache_key = f"fms_workbench_catalog_v8:{market}:{bundle['datasetFingerprint']}:{report_revision}:{WORKBENCH_SCORING_ENGINE_VERSION}:{PRACTICAL_MODEL_HASH}"
   durable_cached = _research_store.get_metadata(cache_key)
   if durable_cached:
     try:
@@ -1841,6 +1849,64 @@ def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
   }
   _research_store.set_metadata(cache_key, json.dumps(result, separators=(",", ":")))
   return result
+
+
+def _workbench_reaction_atlas(market: str) -> Optional[Dict[str, Any]]:
+  raw = _research_store.get_metadata("fms_reaction_atlas:latest")
+  if not raw:
+    return None
+  try:
+    artifact = json.loads(raw)
+  except (TypeError, ValueError):
+    return None
+  market_payload = next((
+    row for row in artifact.get("markets", [])
+    if str(row.get("market", "")).upper() == market.upper()
+  ), None)
+  if not isinstance(market_payload, dict):
+    return None
+  labels = {
+    "historically_profitable_candidate": "Historically profitable candidate",
+    "directional_contender": "Directional contender",
+    "avoid_standalone_direction": "Avoid as standalone direction",
+    "insufficient_evidence": "Insufficient evidence",
+  }
+  rows = []
+  for row in market_payload.get("rows", []):
+    execution = row.get("execution") or {}
+    rows.append({
+      "id": hashlib.sha256(
+        f"{market}|{row.get('sourceVersionId')}|{row.get('identity')}|{row.get('policy')}|{row.get('reaction')}".encode("utf-8")
+      ).hexdigest()[:16],
+      "label": str(row.get("label", "Economic release package")),
+      "classification": str(row.get("classification", "insufficient_evidence")),
+      "classificationLabel": labels.get(str(row.get("classification")), "Insufficient evidence"),
+      "policy": str(row.get("policy", "baseline")),
+      "reaction": str(row.get("reaction", "continuation")),
+      "historicalN": int(row.get("historicalN", 0)),
+      "horizonH4": int(row.get("selectedHorizonH4", 0)),
+      "holdoutAverageR": (execution.get("holdout") or {}).get("stressedAverageR"),
+      "recentAverageR": (execution.get("recent") or {}).get("stressedAverageR"),
+    })
+  order = {
+    "historically_profitable_candidate": 0,
+    "directional_contender": 1,
+    "avoid_standalone_direction": 2,
+    "insufficient_evidence": 3,
+  }
+  rows.sort(key=lambda row: (
+    order.get(row["classification"], 4),
+    -float(row["holdoutAverageR"] if row["holdoutAverageR"] is not None else -999),
+    -int(row["historicalN"]),
+    row["label"],
+  ))
+  return {
+    "version": str(artifact.get("version", "")),
+    "artifactHash": str(artifact.get("artifactHash", "")),
+    "generatedAt": int(artifact.get("generatedAt", 0)),
+    "counts": dict(market_payload.get("counts") or {}),
+    "rows": rows,
+  }
 
 
 def _experiment_summary(experiment: Dict[str, Any]) -> Dict[str, Any]:
@@ -2068,6 +2134,7 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
       "catalog": {"items": [], "advancedTreatmentsReady": False, "generatedAt": int(_time.time())},
       "protocol": {"stopAtrValues": list(STRESS_STOP_ATR_VALUES), "targetRValues": list(STRESS_TARGET_R_VALUES), "holdingCandles": list(STRESS_HOLDING_CANDLES), "scoringPolicies": ["baseline", "surprise_only", "momentum_only", "agreement_no_bonus", "forecast_quality"], "entry": "first_h4_open_strictly_after_release", "selection": "development_lower95_then_average"},
       "experiments": [], "candidates": [], "archive": _research_store.list_signal_version_archive(),
+      "reactionAtlas": _workbench_reaction_atlas(normalized_market),
       "dataPeriods": {"durableCalendar": {"start": calendar_coverage.get("earliest"), "end": calendar_coverage.get("latest")}, "workbenchResearch": {"start": None, "end": None}, "h4Prices": {"start": min((int(row["time"]) for row in h4_prices), default=None), "end": max((int(row["time"]) for row in h4_prices), default=None)}},
       "datasetFingerprint": f"unavailable:{normalized_market}", "sourceRunIds": [], "candleRevision": "unavailable",
       "availability": {"ready": False, "missingSourceVersions": missing_source_versions, "missingH4Prices": not h4_prices, "message": f"{normalized_market} research is blocked until durable GBP/USD calendar history and {normalized_market} H4 prices are backfilled, then its four market-labelled source backtests complete."},
@@ -2098,6 +2165,7 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
         "signatures": list(pattern["signatures"]),
         "scoringPolicy": str(pattern.get("scoringPolicy", "forecast_quality")),
         "reaction": str(pattern.get("reaction", "continuation")),
+        "cohort": dict(pattern.get("cohort") or {"dimension": "none", "value": "all"}),
         "execution": dict(pattern["execution"]),
         "registrationEvidence": _registration_display_evidence(pattern),
       } for pattern in PRACTICAL_PATTERN_DEFINITIONS if pattern.get("current") and str(pattern.get("market")) == normalized_market],
@@ -2111,9 +2179,10 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
       "entry": "first_h4_open_strictly_after_release",
       "selection": "development_lower95_then_average",
     },
-    "experiments": [row for row in (_experiment_summary(row) for row in _research_store.list_fms_experiments(500)) if str((row.get("configuration") or {}).get("market", "EURUSD")) == normalized_market],
+    "experiments": _research_store.list_fms_experiment_headers(normalized_market, 500),
     "candidates": [row for row in _research_store.list_fms_candidates() if str((row.get("configuration") or {}).get("market", "EURUSD")) == normalized_market],
     "archive": _research_store.list_signal_version_archive(),
+    "reactionAtlas": _workbench_reaction_atlas(normalized_market),
     "dataPeriods": {
       "durableCalendar": {
         "start": calendar_coverage.get("earliest"),
@@ -2460,6 +2529,7 @@ def research_chart_signals(
   mode: str = "current",
   from_: Optional[int] = None,
   to: Optional[int] = None,
+  refresh: bool = False,
 ) -> Dict[str, Any]:
   normalized_symbol = symbol.upper()
   normalized_tf = tf.upper()
@@ -2485,6 +2555,46 @@ def research_chart_signals(
     }
   market_currencies = list(WORKBENCH_MARKETS[normalized_symbol]["currencies"])
   source_versions = sorted({str(pattern["sourceVersion"]) for pattern in market_patterns})
+  cacheable = from_ is None and to is None
+  response_cache_key: Optional[str] = None
+  if cacheable:
+    run_headers = [_research_store.latest_backtest_run_header(version) for version in source_versions]
+    if all(run is not None and run.get("status") == "completed" for run in run_headers):
+      calendar_revision = (
+        f"{_research_store.release_observation_revision(market_currencies)}:{int(_time.time()) // 86400}"
+        if normalized_mode == "current" else "immutable-replay"
+      )
+      response_cache_key = hashlib.sha256("|".join([
+        normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
+        calendar_revision,
+        *(f"{run['id']}:{run['datasetFingerprint']}" for run in run_headers if run),
+      ]).encode("utf-8")).hexdigest()
+      with _chart_signal_response_lock:
+        cached_wrapper = _chart_signal_response_cache.get(response_cache_key)
+      if cached_wrapper is None:
+        durable_key = (
+          f"fms_chart_response:current:{normalized_symbol}"
+          if normalized_mode == "current"
+          else f"fms_chart_response:replay:{response_cache_key}"
+        )
+        raw_cached = _research_store.get_metadata(durable_key)
+        if raw_cached:
+          try:
+            parsed = json.loads(raw_cached)
+            if parsed.get("key") == response_cache_key and isinstance(parsed.get("response"), dict):
+              cached_wrapper = parsed
+              with _chart_signal_response_lock:
+                _chart_signal_response_cache[response_cache_key] = parsed
+          except (TypeError, ValueError):
+            logger.warning("Ignoring unreadable FMS chart response cache for %s", normalized_symbol)
+      if cached_wrapper is not None:
+        cached_response = cached_wrapper["response"]
+        assessment_status = str((((cached_response.get("realtime") or {}).get("latestPatternAssessment") or {}).get("status") or ""))
+        has_pending_signal = any(signal.get("outcomeStatus") == "pending" for signal in cached_response.get("signals", []))
+        needs_live_refresh = assessment_status == "awaiting_observation" or has_pending_signal
+        age = int(_time.time()) - int(cached_wrapper.get("createdAt", 0))
+        if not refresh or normalized_mode == "research_replay" or not needs_live_refresh or age < 12:
+          return cached_response
   source_runs: Dict[str, Dict[str, Any]] = {}
   source_results: Dict[str, Dict[str, Any]] = {}
   for source_version in source_versions:
@@ -2549,25 +2659,40 @@ def research_chart_signals(
   )
   generated_at = _get_server_time_from_mt5(normalized_symbol) or int(_time.time())
   observation_coverage_start = min((int(event["time"]) for event in observed_events), default=None)
-  current_candidates: List[Tuple[str, str, Dict[str, Any]]] = []
-  assessment_candidates: List[Tuple[str, str, Dict[str, Any]]] = []
-  for source_version in source_versions:
-    definition = get_signal_definition(source_version)
-    if definition is None:
-      continue
-    observed_source_candidates = build_signal_candidates(observed_events, now=generated_at, definition=definition)
-    observed_times = {int(candidate["eventTime"]) for candidate in observed_source_candidates}
-    historical_seed = [
-      outcome for outcome in source_results[source_version]["targets"]["2.0"]["outcomes"]
-      if observation_coverage_start is None or int(outcome["eventTime"]) < observation_coverage_start
-    ]
-    policies = {str(pattern.get("scoringPolicy", "forecast_quality")) for pattern in market_patterns if pattern["sourceVersion"] == source_version}
-    for scoring_policy in policies:
-      rescored, _policy_audit = rescore_policy_outcomes([*historical_seed, *observed_source_candidates], scoring_policy)
-      rescored = _annotate_numeric_robustness(rescored)
-      rescored_observed = [candidate for candidate in rescored if int(candidate["eventTime"]) in observed_times]
-      assessment_candidates.extend((source_version, scoring_policy, candidate) for candidate in rescored_observed)
-      current_candidates.extend((source_version, scoring_policy, candidate) for candidate in rescored_observed)
+  candidate_cache_key = hashlib.sha256("|".join([
+    normalized_symbol, PRACTICAL_MODEL_HASH, dataset_fingerprint,
+    _research_store.release_observation_revision(market_currencies),
+  ]).encode("utf-8")).hexdigest()
+  with _chart_signal_current_candidates_lock:
+    cached_candidates = _chart_signal_current_candidates_cache.get(candidate_cache_key)
+  if cached_candidates is not None:
+    current_candidates = cached_candidates["current"]
+    assessment_candidates = cached_candidates["assessment"]
+  else:
+    current_candidates: List[Tuple[str, str, Dict[str, Any]]] = []
+    assessment_candidates: List[Tuple[str, str, Dict[str, Any]]] = []
+    for source_version in source_versions:
+      definition = get_signal_definition(source_version)
+      if definition is None:
+        continue
+      observed_source_candidates = build_signal_candidates(observed_events, now=generated_at, definition=definition)
+      observed_times = {int(candidate["eventTime"]) for candidate in observed_source_candidates}
+      historical_seed = [
+        outcome for outcome in source_results[source_version]["targets"]["2.0"]["outcomes"]
+        if observation_coverage_start is None or int(outcome["eventTime"]) < observation_coverage_start
+      ]
+      policies = {str(pattern.get("scoringPolicy", "forecast_quality")) for pattern in market_patterns if pattern["sourceVersion"] == source_version}
+      for scoring_policy in policies:
+        rescored, _policy_audit = rescore_policy_outcomes([*historical_seed, *observed_source_candidates], scoring_policy)
+        rescored = _annotate_numeric_robustness(rescored)
+        rescored_observed = [candidate for candidate in rescored if int(candidate["eventTime"]) in observed_times]
+        assessment_candidates.extend((source_version, scoring_policy, candidate) for candidate in rescored_observed)
+        current_candidates.extend((source_version, scoring_policy, candidate) for candidate in rescored_observed)
+    with _chart_signal_current_candidates_lock:
+      _chart_signal_current_candidates_cache[candidate_cache_key] = {
+        "current": current_candidates,
+        "assessment": assessment_candidates,
+      }
   paper_cases = {
     (source_version, int(case["eventTime"])): case
     for source_version in source_versions
@@ -2750,7 +2875,7 @@ def research_chart_signals(
         _chart_signal_context_cache.clear()
         _chart_signal_context_cache[context_key] = cached_context
     policy_inflation_context = {**cached_context, "asOf": generated_at}
-  return {
+  response = {
     "supported": True,
     "versionId": PRACTICAL_MODEL_ID,
     "versionHash": PRACTICAL_MODEL_HASH,
@@ -2784,6 +2909,17 @@ def research_chart_signals(
       "Historical research replay: arrows use patterns selected after reviewing the archive and were not available in real time."
     ),
   }
+  if response_cache_key is not None:
+    wrapper = {"key": response_cache_key, "createdAt": int(_time.time()), "response": response}
+    durable_key = (
+      f"fms_chart_response:current:{normalized_symbol}"
+      if normalized_mode == "current"
+      else f"fms_chart_response:replay:{response_cache_key}"
+    )
+    _research_store.set_metadata(durable_key, json.dumps(wrapper, separators=(",", ":")))
+    with _chart_signal_response_lock:
+      _chart_signal_response_cache[response_cache_key] = wrapper
+  return response
 
 
 @app.get("/research/chart-signals/global")

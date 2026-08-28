@@ -142,10 +142,11 @@ const workbench: FmsWorkbench = {
       signatures: ["long|EUR:consumer_sentiment", "short|EUR:consumer_sentiment"],
       scoringPolicy: "baseline",
       reaction: "continuation",
+      cohort: { dimension: "none", value: "all" },
       execution: { stopAtr: 1, targetR: 2, expiryCandles: 30 },
       registrationEvidence: {
         scoringPolicy: "baseline",
-        cohort: "all_matching_cases",
+        cohort: { dimension: "none", value: "all" },
         reaction: "continuation",
         evaluable: 99,
         targetFirst: 40,
@@ -166,6 +167,13 @@ const workbench: FmsWorkbench = {
   experiments: [],
   candidates: [],
   archive: [{ id: "FMS-EURUSD-ECO-H4-v1", createdAt: 1_776_000_000, configuration: {}, configurationHash: "legacyhash", latestRun: { id: "run-v1", createdAt: 1_780_000_000, status: "completed", datasetFingerprint: "legacydata", error: null } }],
+  reactionAtlas: {
+    version: "FMS-SEVEN-PAIR-REACTION-ATLAS-v1",
+    artifactHash: "atlashash",
+    generatedAt: 1_780_000_000,
+    counts: { historically_profitable_candidate: 1, directional_contender: 2, avoid_standalone_direction: 3, insufficient_evidence: 4 },
+    rows: [{ id: "atlas-1", label: "Industrial output", classification: "historically_profitable_candidate", classificationLabel: "Historically profitable candidate", policy: "forecast_quality", reaction: "continuation", historicalN: 105, horizonH4: 3, holdoutAverageR: .12, recentAverageR: .16 }],
+  },
   dataPeriods: {
     durableCalendar: { start: 1_168_126_200, end: 1_795_554_000 },
     workbenchResearch: { start: 1_471_564_800, end: 1_787_241_600 },
@@ -191,7 +199,9 @@ describe("FMS Experiment Workbench", () => {
     expect(html).toContain("How to use the Workbench");
     expect(html).toContain("Research Archive");
     expect(html).toContain("Current registered setups");
-    expect(html).toContain("fms-current-setups");
+    expect(html).toContain("Reaction Atlas");
+    expect(html).toContain("fms-inspector");
+    expect(html).not.toContain("Historically profitable candidate");
     expect(html).toContain("How each release is scored");
     expect(html).toContain("Cases included");
     expect(html).toContain("How Forecast Guard works");
@@ -227,7 +237,7 @@ describe("FMS Experiment Workbench", () => {
     expect(html).toContain("Why it was registered");
     expect(html).toContain("99 cases");
     expect(html).toContain("40 target first");
-    expect(html).toContain("Current Charts model adds Forecast Guard");
+    expect(html).toContain("Charts and Shadow Trader use this exact frozen scoring, reaction, and execution recipe.");
     expect(html).toContain("Long · N 48");
     expect(html).toContain("Short · N 51");
     expect(html).toContain("Both directions · N 99");

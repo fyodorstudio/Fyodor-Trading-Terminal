@@ -433,6 +433,19 @@ class ResearchStore:
       for row in rows
     ]
 
+  def release_observation_revision(self, currencies: Sequence[str]) -> str:
+    normalized = [currency.upper() for currency in currencies]
+    if not normalized:
+      return "0:0:0"
+    placeholders = ",".join(["?"] * len(normalized))
+    with self._connect() as connection:
+      row = connection.execute(
+        f"SELECT COUNT(*) AS count, MAX(first_seen_at) AS latest_seen, MAX(time) AS latest_release "
+        f"FROM release_observations WHERE currency IN ({placeholders})",
+        normalized,
+      ).fetchone()
+    return f"{int(row['count'])}:{int(row['latest_seen'] or 0)}:{int(row['latest_release'] or 0)}"
+
   def save_paper_case(
     self,
     version_id: str,
@@ -592,6 +605,25 @@ class ResearchStore:
       ).fetchone()
     return self._deserialize_run(row) if row else None
 
+  def latest_backtest_run_header(self, version_id: str) -> Optional[Dict[str, Any]]:
+    """Return run identity without decoding the potentially very large result JSON."""
+    with self._connect() as connection:
+      row = connection.execute(
+        "SELECT id, version_id, dataset_fingerprint, created_at, status, error "
+        "FROM backtest_runs WHERE version_id = ? ORDER BY created_at DESC LIMIT 1",
+        (version_id,),
+      ).fetchone()
+    if row is None:
+      return None
+    return {
+      "id": str(row["id"]),
+      "versionId": str(row["version_id"]),
+      "datasetFingerprint": str(row["dataset_fingerprint"]),
+      "createdAt": int(row["created_at"]),
+      "status": str(row["status"]),
+      "error": row["error"],
+    }
+
   def mark_unfinished_runs_failed(self, reason: str) -> int:
     with self._write_lock, self._connect() as connection:
       cursor = connection.execute(
@@ -686,6 +718,38 @@ class ResearchStore:
         (max(1, min(limit, 500)),),
       ).fetchall()
     return [self._deserialize_fms_experiment(row) for row in rows]
+
+  def list_fms_experiment_headers(
+    self, market: str = "EURUSD", limit: int = 500,
+  ) -> List[Dict[str, Any]]:
+    """List lightweight Workbench rows without decoding complete result artifacts."""
+    normalized_market = market.upper()
+    with self._connect() as connection:
+      rows = connection.execute(
+        "SELECT id, friendly_name, created_at, status, "
+        "configuration_hash, catalog_snapshot_json, dataset_fingerprint, error "
+        "FROM fms_experiments "
+        "WHERE COALESCE(json_extract(configuration_json, '$.market'), 'EURUSD') = ? "
+        "ORDER BY created_at DESC, id DESC LIMIT ?",
+        (normalized_market, max(1, min(limit, 500))),
+      ).fetchall()
+    headers: List[Dict[str, Any]] = []
+    for row in rows:
+      snapshot = json.loads(row["catalog_snapshot_json"])
+      headers.append({
+        "id": str(row["id"]),
+        "friendlyName": str(row["friendly_name"]),
+        "createdAt": int(row["created_at"]),
+        "status": str(row["status"]),
+        "configurationHash": str(row["configuration_hash"]),
+        "catalogSnapshot": {
+          "id": str(snapshot.get("id", "")),
+          "label": str(snapshot.get("label", "Economic setup")),
+        },
+        "datasetFingerprint": str(row["dataset_fingerprint"]),
+        "error": row["error"],
+      })
+    return headers
 
   def find_completed_fms_experiment(
     self, configuration_hash: str, dataset_fingerprint: str

@@ -3058,6 +3058,17 @@ def candidate_matches_chart_pattern(candidate: Dict[str, Any], pattern: Dict[str
   """Match a frozen chart setup, including any exact release-package contract."""
   if candidate_pattern_signature(candidate) not in pattern.get("signatures", ()):
     return False
+  cohort = dict(pattern.get("cohort") or {})
+  dimension = str(cohort.get("dimension") or "none")
+  value = str(cohort.get("value") or "all")
+  if dimension != "none":
+    observed = str((candidate.get("numericRobustness") or {}).get(dimension, "unknown"))
+    if observed != value and not (
+      dimension == "relativeMagnitude"
+      and value == "upper_tail"
+      and observed in {"large", "exceptional"}
+    ):
+      return False
   required_titles = {
     normalize_title(str(title)) for title in pattern.get("requiredExactTitles", ())
   }
@@ -3512,6 +3523,7 @@ def build_chart_signal_pattern_catalog(
   pattern_definitions: Optional[Sequence[Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
   """Build replay/current patterns belonging to one frozen source version."""
+  outcomes = _annotate_numeric_robustness(outcomes)
   definitions = [
     pattern for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
     if pattern["sourceVersion"] == source_version
@@ -3544,6 +3556,7 @@ def build_chart_signal_pattern_catalog(
       "execution": dict(definition["execution"]),
       "market": str(definition.get("market", "EURUSD")),
       "scoringPolicy": str(definition.get("scoringPolicy", "forecast_quality")),
+      "cohort": dict(definition.get("cohort") or {"dimension": "none", "value": "all"}),
       "reaction": str(definition.get("reaction", "continuation")),
       "historicalBenchmark": dict(definition.get("historicalBenchmark", {})) or None,
       "requiredExactTitles": list(definition.get("requiredExactTitles", ())),

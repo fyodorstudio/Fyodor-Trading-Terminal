@@ -706,6 +706,17 @@ export interface FmsExperiment {
   error: string | null;
 }
 
+export interface FmsExperimentListItem {
+  id: string;
+  friendlyName: string;
+  createdAt: number;
+  status: FmsExperimentStatus;
+  configurationHash: string;
+  catalogSnapshot: Pick<FmsCatalogItem, "id" | "label">;
+  datasetFingerprint: string;
+  error: string | null;
+}
+
 export interface FmsFrozenCandidate {
   id: string;
   experimentId: string;
@@ -752,10 +763,11 @@ export interface FmsWorkbench {
       signatures: string[];
       scoringPolicy: "baseline" | "surprise_only" | "momentum_only" | "agreement_no_bonus" | "forecast_quality";
       reaction: "continuation" | "contrarian";
+      cohort: { dimension: string; value: string };
       execution: { stopAtr: number; targetR: number; expiryCandles: number };
       registrationEvidence: null | {
         scoringPolicy: "baseline" | "surprise_only" | "momentum_only" | "agreement_no_bonus" | "forecast_quality";
-        cohort: "all_matching_cases";
+        cohort: { dimension: string; value: string };
         reaction: "continuation" | "contrarian";
         evaluable: number;
         targetFirst: number;
@@ -784,9 +796,27 @@ export interface FmsWorkbench {
     entry: string;
     selection: string;
   };
-  experiments: FmsExperiment[];
+  experiments: FmsExperimentListItem[];
   candidates: FmsFrozenCandidate[];
   archive: FmsLegacyArchiveItem[];
+  reactionAtlas?: null | {
+    version: string;
+    artifactHash: string;
+    generatedAt: number;
+    counts: Record<string, number>;
+    rows: Array<{
+      id: string;
+      label: string;
+      classification: "historically_profitable_candidate" | "directional_contender" | "avoid_standalone_direction" | "insufficient_evidence";
+      classificationLabel: string;
+      policy: string;
+      reaction: "continuation" | "rejection";
+      historicalN: number;
+      horizonH4: number;
+      holdoutAverageR: number | null;
+      recentAverageR: number | null;
+    }>;
+  };
   dataPeriods?: {
     durableCalendar: { start: number | null; end: number | null };
     workbenchResearch: { start: number | null; end: number | null };
@@ -813,6 +843,7 @@ export interface MacroSignalChartPattern {
   condition: string;
   scoringPolicy?: "baseline" | "surprise_only" | "momentum_only" | "agreement_no_bonus" | "forecast_quality";
   reaction?: "continuation" | "contrarian";
+  cohort?: { dimension: string; value: string };
   historicalBenchmark?: null | {
     experimentId: string;
     historicalN: number;

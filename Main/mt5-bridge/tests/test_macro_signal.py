@@ -470,9 +470,18 @@ def test_v13_retains_payroll_and_only_the_complete_us_ppi_cooling_package() -> N
 
 
 def test_registered_rejection_inverts_direction_only_after_raw_package_match() -> None:
-  raw = {**candidate(direction="long"), "pairVote": 2}
-  pattern = {"reaction": "contrarian", "signatures": [candidate_pattern_signature(raw)]}
+  raw = {
+    **candidate(direction="long"),
+    "pairVote": 2,
+    "numericRobustness": {"relativeMagnitude": "ordinary"},
+  }
+  pattern = {
+    "reaction": "contrarian",
+    "signatures": [candidate_pattern_signature(raw)],
+    "cohort": {"dimension": "relativeMagnitude", "value": "ordinary"},
+  }
   assert candidate_matches_chart_pattern(raw, pattern) is True
+  assert candidate_matches_chart_pattern({**raw, "numericRobustness": {"relativeMagnitude": "large"}}, pattern) is False
   transformed = apply_chart_pattern_reaction(raw, pattern)
   assert transformed["direction"] == "short"
   assert transformed["pairVote"] == -2
