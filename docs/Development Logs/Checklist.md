@@ -75,6 +75,35 @@ The program must remain honest about the word **proven**:
 
 ### Phase 2 — Build the Event/Price Reaction Atlas
 
+#### Deferred next goal — Seven-Pair Event Reaction Atlas
+
+> **Paused handoff — 2026-08-28:** the all-case and declared magnitude atlas runs produced retained research artifacts, but candidate reconciliation, registry/UI integration, specialized models, and full verification were intentionally deferred by the user. Resume from the existing working tree and the `Deferred Goal Handoff` in `Fyodor Macro Signal Research.md`; do not treat this phase as shipped.
+
+- [ ] Run a staged, immutable reaction sweep across EURUSD, GBPUSD, USDJPY, AUDUSD, USDCAD, NZDUSD, and USDCHF without unrestricted filter mining.
+- [ ] Classify every sufficiently sampled exact series/package for each pair as:
+  - continuation;
+  - rejection;
+  - magnitude-dependent;
+  - volatility-only;
+  - avoid as standalone direction;
+  - insufficient evidence.
+- [ ] First test all-case scoring recipes; apply ordinary/top-20% magnitude treatments only as predeclared challengers so magnitude does not create an uncontrolled combinatorial search.
+- [ ] Record both useful and failed results as immutable experiments and expose a pair-specific reaction atlas in Workbench and Shadow Trader.
+- [ ] Promote no recipe automatically; register only non-duplicated practical recipes with positive development, later-period, recent, and walk-forward expectancy under a fixed execution contract.
+
+#### Deferred specialized models
+
+- [ ] Build Policy as a separate model covering canonical decisions, Holding/Tightening/Easing, and later policy-path/guidance research; do not score it as ordinary growth evidence.
+- [ ] Build Inflation as a separate model covering headline/core/producer evidence and heating/cooling; test policy context independently before combining it with Economy.
+- [ ] Measure direction, volatility, MFE/MAE, and continuation/reversal after 1, 3, 6, 12, and 30 H4 candles for every sufficiently sampled candidate.
+
+#### Deferred magnitude and context challengers
+
+- [ ] Re-audit every active registered setup against baseline, Surprise-only, Momentum-only, no-agreement-bonus, Forecast Guard, ordinary magnitude, and top-20% magnitude while keeping its registered execution contract fixed.
+- [ ] Prioritize Japan wages exceptional-magnitude, USDJPY consumer-sentiment Momentum-only, and Japan inflation magnitude as named challengers; retain their current sample-size limitations.
+- [ ] Apply entry-known H4 trend, volatility regime, release session, and confirmed support/resistance only to specific finalist/loss-review hypotheses—not as unrestricted intersections.
+- [ ] After completing these staged passes, explicitly record whether the current MT5 archive is exhausted for each pair/family and whether the next useful expansion requires more pairs, more historical coverage, or new forward observations.
+
 - [x] Add past-only exact-series Surprise and Momentum magnitude percentiles with no cross-series normalization or future leakage.
 - [x] Add ordinary, large, exceptional, and predeclared top-20% magnitude treatments while retaining raw directional votes.
 - [x] Add separate Surprise-only, Momentum-only, and no-agreement-bonus scoring challengers without rewriting existing experiments.

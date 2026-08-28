@@ -750,6 +750,8 @@ export interface FmsWorkbench {
       condition: string;
       sourceVersionId: string;
       signatures: string[];
+      scoringPolicy: "baseline" | "surprise_only" | "momentum_only" | "agreement_no_bonus" | "forecast_quality";
+      reaction: "continuation" | "contrarian";
       execution: { stopAtr: number; targetR: number; expiryCandles: number };
       registrationEvidence: null | {
         scoringPolicy: "baseline" | "surprise_only" | "momentum_only" | "agreement_no_bonus" | "forecast_quality";
@@ -809,7 +811,8 @@ export interface MacroSignalChartPattern {
   sourceVersionId: string;
   label: string;
   condition: string;
-  scoringPolicy?: "baseline" | "momentum_only" | "forecast_quality";
+  scoringPolicy?: "baseline" | "surprise_only" | "momentum_only" | "agreement_no_bonus" | "forecast_quality";
+  reaction?: "continuation" | "contrarian";
   historicalBenchmark?: null | {
     experimentId: string;
     historicalN: number;

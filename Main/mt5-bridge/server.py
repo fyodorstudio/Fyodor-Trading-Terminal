@@ -49,6 +49,7 @@ from macro_signal import (
   _annotate_numeric_robustness,
   V2_VERSION_ID,
   aggregate_outcomes,
+  apply_chart_pattern_reaction,
   build_backtest_result,
   build_candidate_path_profile,
   build_candidate_stress_report,
@@ -78,7 +79,7 @@ WORKBENCH_MARKETS = {
   },
 }
 
-PRACTICAL_MODEL_ID = "FMS-REGISTERED-REACTION-H4-v2"
+PRACTICAL_MODEL_ID = "FMS-REGISTERED-REACTION-H4-v3"
 PRACTICAL_MODEL_CREATED_AT = 1787893200
 
 
@@ -87,11 +88,13 @@ def _practical_pattern(
   signatures: List[str], scoring_policy: str, stop_atr: float, target_r: float,
   expiry: int, experiment_id: str, historical_n: int, walk_forward_n: int,
   average_r: float, target_rate: float, stop_rate: float, condition: str,
+  reaction: str = "continuation",
 ) -> Dict[str, Any]:
   return {
     "market": market, "id": pattern_id, "label": label,
     "sourceVersion": source_version, "signatures": tuple(signatures),
     "scoringPolicy": scoring_policy, "current": True,
+    "reaction": reaction,
     "activatedAt": PRACTICAL_MODEL_CREATED_AT,
     "execution": {"stopAtr": stop_atr, "targetR": target_r, "expiryCandles": expiry},
     "condition": condition,
@@ -115,6 +118,16 @@ PRACTICAL_PATTERN_DEFINITIONS = (
   _practical_pattern("USDJPY", "usdjpy-us-consumer-sentiment", "US consumer sentiment", "FMS-USDJPY-SENTIMENT-H4-v3", ["long|USD:consumer_sentiment", "short|USD:consumer_sentiment"], "momentum_only", 2, 1, 60, "FMS-USDJPY-H4-E061", 355, 155, .0399971427, .5096774194, .4838709677, "Use Actual versus Previous only; follow the scored USDJPY direction."),
   _practical_pattern("USDJPY", "usdjpy-jpy-labor-wages", "Japan labor wages", "FMS-USDJPY-LABOR-H4-v2", ["long|JPY:labor_wages", "short|JPY:labor_wages"], "forecast_quality", .75, 4, 6, "FMS-USDJPY-H4-E062", 97, 42, .5477584014, .119047619, .4761904762, "Follow the scored JPY wage direction using Forecast Guard."),
   _practical_pattern("USDJPY", "usdjpy-jpy-inflation", "Japan headline and core inflation", "FMS-USDJPY-POLICY-INFL-H4-v5", ["long|JPY:core_consumer_inflation|JPY:headline_consumer_inflation", "short|JPY:core_consumer_inflation|JPY:headline_consumer_inflation"], "forecast_quality", 2, 1, 30, "FMS-USDJPY-H4-E063", 208, 90, .1233094645, .5777777778, .3333333333, "Follow the scored JPY headline/core inflation direction using Forecast Guard."),
+  _practical_pattern("AUDUSD", "audusd-us-producer-inflation", "US producer inflation", "FMS-AUDUSD-POLICY-INFL-H4-v5", ["long|USD:producer_inflation", "short|USD:producer_inflation"], "momentum_only", 2, 2, 12, "FMS-AUDUSD-H4-E050", 94, 47, .1090984769, .1489361702, .3617021277, "Use Actual versus Previous only; follow the scored AUDUSD direction."),
+  _practical_pattern("AUDUSD", "audusd-business-confidence-rejection", "Australia business confidence rejection", "FMS-AUDUSD-SENTIMENT-H4-v3", ["long|AUD:business_sentiment", "short|AUD:business_sentiment"], "momentum_only", 1.5, .5, 30, "FMS-AUDUSD-H4-E051", 127, 63, .04015157, .746031746, .253968254, "Use Actual versus Previous only; trade opposite the scored AUD business-confidence direction.", "contrarian"),
+  _practical_pattern("GBPUSD", "gbpusd-us-labor-claims", "US labor claims", "FMS-GBPUSD-LABOR-H4-v2", ["long|USD:labor_claims", "short|USD:labor_claims"], "forecast_quality", 2, 4, 12, "FMS-GBPUSD-H4-E060", 427, 214, .0796041643, .0046728972, .308411215, "Follow the Forecast Guard-scored US labor-claims direction for GBPUSD."),
+  _practical_pattern("NZDUSD", "nzdusd-us-producer-inflation", "US producer inflation", "FMS-NZDUSD-POLICY-INFL-H4-v5", ["long|USD:producer_inflation", "short|USD:producer_inflation"], "momentum_only", 2, 2, 12, "FMS-NZDUSD-H4-E044", 94, 47, .1585086236, .2127659574, .3404255319, "Use Actual versus Previous only; follow the scored NZDUSD direction."),
+  _practical_pattern("NZDUSD", "nzdusd-us-trade-balance", "US trade balance", "FMS-NZDUSD-GROWTH-H4-v7", ["long|USD:trade_balance", "short|USD:trade_balance"], "momentum_only", 1.5, 4, 30, "FMS-NZDUSD-H4-E045", 198, 99, .0401787828, .101010101, .6464646465, "Use Actual versus Previous only; follow the scored NZDUSD direction."),
+  _practical_pattern("USDCAD", "usdcad-us-consumer-inflation", "US headline and core inflation", "FMS-USDCAD-POLICY-INFL-H4-v5", ["long|USD:core_consumer_inflation|USD:headline_consumer_inflation", "short|USD:core_consumer_inflation|USD:headline_consumer_inflation"], "agreement_no_bonus", 1.5, 4, 60, "FMS-USDCAD-H4-E043", 265, 132, .2080814094, .2121212121, .696969697, "Follow the scored US headline/core inflation direction without an agreement bonus."),
+  _practical_pattern("USDCAD", "usdcad-us-producer-inflation", "US producer inflation", "FMS-USDCAD-POLICY-INFL-H4-v5", ["long|USD:producer_inflation", "short|USD:producer_inflation"], "momentum_only", 2, 1, 30, "FMS-USDCAD-H4-E044", 91, 46, .2196882345, .6086956522, .347826087, "Use Actual versus Previous only; follow the scored USDCAD direction."),
+  _practical_pattern("USDCAD", "usdcad-canada-retail-sales", "Canada retail sales", "FMS-USDCAD-GROWTH-H4-v7", ["long|CAD:retail_headline", "short|CAD:retail_headline"], "momentum_only", 1.5, 4, 30, "FMS-USDCAD-H4-E045", 84, 42, .3224750324, .1666666667, .619047619, "Use Actual versus Previous only; follow the scored Canada retail-sales direction."),
+  _practical_pattern("USDJPY", "usdjpy-us-producer-inflation-rejection", "US producer inflation rejection", "FMS-USDJPY-POLICY-INFL-H4-v5", ["long|USD:producer_inflation", "short|USD:producer_inflation"], "surprise_only", 1, 2, 6, "FMS-USDJPY-H4-E067", 101, 51, .1011688719, .2549019608, .5098039216, "Use Actual versus Forecast only; trade opposite the scored USD producer-inflation direction.", "contrarian"),
+  _practical_pattern("USDJPY", "usdjpy-us-manufacturing-employment", "US manufacturing employment", "FMS-USDJPY-GROWTH-H4-v7", ["long|USD:pmi_manufacturing", "short|USD:pmi_manufacturing"], "forecast_quality", 2, .5, 60, "FMS-USDJPY-H4-E068", 194, 97, .0666507331, .7113402062, .2886597938, "Follow the Forecast Guard-scored US manufacturing-employment package direction."),
 )
 PRACTICAL_MODEL_HASH = hashlib.sha256(json.dumps(PRACTICAL_PATTERN_DEFINITIONS, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
@@ -223,6 +236,7 @@ def _registration_provenance(pattern: Dict[str, Any]) -> Dict[str, Any]:
     "sourceVersion": str(result.get("sourceVersionId") or configuration.get("sourceVersionId") or "") == str(pattern.get("sourceVersion") or pattern.get("sourceVersionId") or ""),
     "signatures": actual_signatures == expected_signatures,
     "scoringPolicy": str(configuration.get("scoringPolicy") or result.get("scoringPolicy") or "") == str(pattern.get("scoringPolicy") or "forecast_quality"),
+    "reaction": str(configuration.get("reaction") or result.get("reaction") or "continuation") == str(pattern.get("reaction") or "continuation"),
     "scoringEngine": str(configuration.get("scoringEngineVersion") or "") == WORKBENCH_SCORING_ENGINE_VERSION,
     "stopAtr": close(selected.get("stopAtr"), execution.get("stopAtr")),
     "targetR": close(selected.get("targetR"), execution.get("targetR")),
@@ -246,6 +260,36 @@ def _registration_provenance(pattern: Dict[str, Any]) -> Dict[str, Any]:
       if verified else
       "Registration values do not fully reconcile with the linked immutable experiment. Treat this setup as an audit failure until repaired."
     ),
+  }
+
+
+def _registration_display_evidence(pattern: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+  benchmark = pattern.get("historicalBenchmark") or {}
+  experiment = _research_store.get_fms_experiment(str(benchmark.get("experimentId") or ""))
+  result = (experiment or {}).get("result") or {}
+  selected = result.get("selectedConfiguration") or {}
+  if not selected:
+    return None
+  overall = selected.get("overall") or {}
+  year_stability = selected.get("yearStability") or {}
+  evaluable = int(overall.get("evaluableCount") or result.get("historicalN") or 0)
+  target_rate = float(overall.get("targetHitRate") or 0)
+  stop_rate = float(overall.get("stopHitRate") or 0)
+  return {
+    "scoringPolicy": str(pattern.get("scoringPolicy", "forecast_quality")),
+    "cohort": "all_matching_cases",
+    "reaction": str(pattern.get("reaction", "continuation")),
+    "evaluable": evaluable,
+    "targetFirst": round(evaluable * target_rate),
+    "stopFirst": round(evaluable * stop_rate),
+    "expired": int(overall.get("expiredCount") or 0),
+    "stressedAverageR": overall.get("stressedAverageR"),
+    "developmentAverageR": (selected.get("development") or {}).get("stressedAverageR"),
+    "holdoutAverageR": (selected.get("holdout") or {}).get("stressedAverageR"),
+    "recentAverageR": (selected.get("recent") or {}).get("stressedAverageR"),
+    "positiveYears": int(year_stability.get("positiveYears") or 0),
+    "evaluatedYears": int(year_stability.get("evaluableYears") or 0),
+    "stressPips": 3.0,
   }
 
 app = FastAPI(title="MT5 Bridge", version="0.1.0")
@@ -1646,7 +1690,7 @@ def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
   market = str(bundle.get("market") or "EURUSD")
   report = _latest_cached_expansion_report()
   report_revision = str(int((report or {}).get("generatedAt", 0)))
-  cache_key = f"fms_workbench_catalog_v6:{market}:{bundle['datasetFingerprint']}:{report_revision}:{WORKBENCH_SCORING_ENGINE_VERSION}"
+  cache_key = f"fms_workbench_catalog_v7:{market}:{bundle['datasetFingerprint']}:{report_revision}:{WORKBENCH_SCORING_ENGINE_VERSION}"
   durable_cached = _research_store.get_metadata(cache_key)
   if durable_cached:
     try:
@@ -1684,6 +1728,13 @@ def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
         "reaction": "continuation",
         "label": "All matching cases",
         "historicalN": int(enriched.get("historicalN", len(rows))) if enriched else len(rows),
+      }, {
+        "id": "base-contrarian",
+        "dimension": "none",
+        "value": "all",
+        "reaction": "contrarian",
+        "label": "All matching cases",
+        "historicalN": int(enriched.get("historicalN", len(rows))) if enriched else len(rows),
       }]
       magnitude_counts: Dict[str, int] = {}
       for row in rows:
@@ -1711,7 +1762,7 @@ def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
           "historicalN": upper_tail_count,
         })
       if enriched:
-        seen = {("none", "all", "continuation")}
+        seen = {("none", "all", "continuation"), ("none", "all", "contrarian")}
         for variant in enriched.get("numericRobustness", {}).get("variants", []):
           key = (str(variant["dimension"]), str(variant["cohort"]), str(variant["reaction"]))
           if key in seen:
@@ -2013,7 +2064,7 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
   if missing_source_versions or not h4_prices:
     return {
       "market": normalized_market,
-      "currentModel": {"id": PRACTICAL_MODEL_ID, "friendlyName": "Registered Reaction", "displayId": "Registered v2", "hash": PRACTICAL_MODEL_HASH, "activatedAt": PRACTICAL_MODEL_CREATED_AT, "timeframe": "H4", "registeredSetups": []},
+      "currentModel": {"id": PRACTICAL_MODEL_ID, "friendlyName": "Registered Reaction Atlas", "displayId": "Registered v3", "hash": PRACTICAL_MODEL_HASH, "activatedAt": PRACTICAL_MODEL_CREATED_AT, "timeframe": "H4", "registeredSetups": []},
       "catalog": {"items": [], "advancedTreatmentsReady": False, "generatedAt": int(_time.time())},
       "protocol": {"stopAtrValues": list(STRESS_STOP_ATR_VALUES), "targetRValues": list(STRESS_TARGET_R_VALUES), "holdingCandles": list(STRESS_HOLDING_CANDLES), "scoringPolicies": ["baseline", "surprise_only", "momentum_only", "agreement_no_bonus", "forecast_quality"], "entry": "first_h4_open_strictly_after_release", "selection": "development_lower95_then_average"},
       "experiments": [], "candidates": [], "archive": _research_store.list_signal_version_archive(),
@@ -2034,8 +2085,8 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
     "market": normalized_market,
     "currentModel": {
       "id": PRACTICAL_MODEL_ID,
-      "friendlyName": "Registered Reaction",
-      "displayId": "Registered v2",
+      "friendlyName": "Registered Reaction Atlas",
+      "displayId": "Registered v3",
       "hash": PRACTICAL_MODEL_HASH,
       "activatedAt": PRACTICAL_MODEL_CREATED_AT,
       "timeframe": "H4",
@@ -2045,8 +2096,10 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
         "condition": str(pattern["condition"]),
         "sourceVersionId": str(pattern["sourceVersion"]),
         "signatures": list(pattern["signatures"]),
+        "scoringPolicy": str(pattern.get("scoringPolicy", "forecast_quality")),
+        "reaction": str(pattern.get("reaction", "continuation")),
         "execution": dict(pattern["execution"]),
-        "registrationEvidence": None,
+        "registrationEvidence": _registration_display_evidence(pattern),
       } for pattern in PRACTICAL_PATTERN_DEFINITIONS if pattern.get("current") and str(pattern.get("market")) == normalized_market],
     },
     "catalog": catalog,
@@ -2566,12 +2619,13 @@ def research_chart_signals(
       continue
     paper_outcome = paper_cases.get((source_version, event_time), {}).get("outcomes", {}).get("2.0", {})
     execution = pattern["execution"]
-    evaluated = candidate
+    signal_candidate = apply_chart_pattern_reaction(candidate, pattern)
+    evaluated = signal_candidate
     uses_custom_execution = execution != {"stopAtr": 1.0, "targetR": 2.0, "expiryCandles": 30}
     uses_direct_evaluation = normalized_mode == "current" or uses_custom_execution
     if uses_direct_evaluation and custom_candles:
       evaluated = evaluate_candidate(
-        candidate,
+        signal_candidate,
         custom_candles,
         custom_candle_times,
         custom_atr_values,
@@ -2591,10 +2645,10 @@ def research_chart_signals(
       "patternId": pattern["id"],
       "sourceVersionId": source_version,
       "eventTime": event_time,
-      "direction": candidate["direction"],
+      "direction": signal_candidate["direction"],
       "label": pattern["label"],
       "agreement": candidate["agreement"],
-      "pairVote": candidate["pairVote"],
+      "pairVote": signal_candidate["pairVote"],
       "backgroundDirection": candidate["backgroundDirection"],
       "backgroundPairVote": candidate["backgroundPairVote"],
       "backgroundAlignment": candidate["backgroundAlignment"],
@@ -2756,12 +2810,76 @@ def research_global_chart_signals(tf: str = "H4") -> Dict[str, Any]:
     }
     for pattern in PRACTICAL_PATTERN_DEFINITIONS
   ]
+  atlas_intelligence: List[Dict[str, Any]] = []
+  atlas_raw = _research_store.get_metadata("fms_reaction_atlas:latest")
+  if atlas_raw:
+    try:
+      atlas = json.loads(atlas_raw)
+      registered_keys = {
+        (str(pattern["market"]), str(pattern["sourceVersion"]), str(signature).split("|", 1)[-1])
+        for pattern in PRACTICAL_PATTERN_DEFINITIONS
+        for signature in pattern["signatures"]
+      }
+      for market_payload in atlas.get("markets", []):
+        market = str(market_payload.get("market", ""))
+        selected: Dict[Tuple[str, str], Dict[str, Any]] = {}
+        for row in market_payload.get("rows", []):
+          identity = str(row.get("identity", ""))
+          if (market, str(row.get("sourceVersionId", "")), identity) in registered_keys:
+            continue
+          classification = str(row.get("classification", ""))
+          status = "avoid" if classification == "avoid_standalone_direction" else "contender" if classification in {"historically_profitable_candidate", "directional_contender"} else ""
+          if not status:
+            continue
+          execution = row.get("execution") or {}
+          fixed_holdout = ((execution.get("holdout") or {}).get("stressedAverageR"))
+          directional_holdout = ((row.get("directional") or {}).get("holdout") or {}).get("meanAtr")
+          rank = (
+            float(fixed_holdout) if fixed_holdout is not None else float(directional_holdout or -999),
+            int(row.get("historicalN", 0)),
+          )
+          key = (status, identity)
+          if key not in selected or rank > selected[key]["rank"]:
+            selected[key] = {"rank": rank, "row": row}
+        by_status = {
+          status: sorted(
+            (value for (row_status, _identity), value in selected.items() if row_status == status),
+            key=lambda value: value["rank"], reverse=status == "contender",
+          )[:3]
+          for status in ("contender", "avoid")
+        }
+        for status, values in by_status.items():
+          for value in values:
+            row = value["row"]
+            execution = row.get("execution") or {}
+            holdout_r = ((execution.get("holdout") or {}).get("stressedAverageR"))
+            directional = row.get("directional") or {}
+            holdout_atr = (directional.get("holdout") or {}).get("meanAtr")
+            recent_atr = (directional.get("recent") or {}).get("meanAtr")
+            atlas_intelligence.append({
+              "id": f"atlas:{market}:{status}:{hashlib.sha256(str(row.get('identity','')).encode()).hexdigest()[:10]}",
+              "status": status,
+              "market": market,
+              "label": str(row.get("label", "Economic release package")),
+              "evidence": (
+                f"{int(row.get('historicalN', 0))} cases; fixed-contract later average {float(holdout_r):+.2f}R under {str(row.get('policy', '')).replace('_', ' ')}."
+                if holdout_r is not None else
+                f"{int(row.get('historicalN', 0))} cases; later directional response {float(holdout_atr or 0):+.2f} ATR and recent response {float(recent_atr or 0):+.2f} ATR."
+              ),
+              "conclusion": (
+                "Research contender only; its frozen checks were not strong enough for registration."
+                if status == "contender" else
+                "Avoid as a standalone directional rule; retain it as context or volatility information."
+              ),
+            })
+    except (TypeError, ValueError):
+      logger.warning("Ignoring unreadable FMS reaction-atlas intelligence")
   return {
     "modelId": PRACTICAL_MODEL_ID,
     "modelHash": PRACTICAL_MODEL_HASH,
     "generatedAt": max((int(row.get("generatedAt") or 0) for row in markets), default=int(_time.time())),
     "markets": markets,
-    "researchIntelligence": [*registered, *FMS_RESEARCH_INTELLIGENCE],
+    "researchIntelligence": [*registered, *atlas_intelligence, *FMS_RESEARCH_INTELLIGENCE],
     "explanation": "Registered means historically positive under its frozen no-lookahead recipe. Contender means potentially useful but unstable. Avoid means repeated tests did not support a standalone directional rule; it may still matter as context or volatility.",
   }
 

@@ -5,7 +5,7 @@ import json
 import math
 import re
 import statistics
-from bisect import bisect_right
+from bisect import bisect_left, bisect_right
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from functools import lru_cache
@@ -36,6 +36,11 @@ PATH_RESEARCH_HORIZON = 30
 PATH_RESEARCH_MAX_HORIZON = 60
 WORKBENCH_SCORING_ENGINE_VERSION = "relative-magnitude-v3"
 WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION = "unmanaged-path-support-resistance-v1"
+REACTION_ATLAS_VERSION = "FMS-SEVEN-PAIR-REACTION-ATLAS-v1"
+REACTION_ATLAS_HORIZONS = (1, 3, 6, 12, 30)
+REACTION_ATLAS_STOP_ATR_VALUES = (.75, 1.0, 1.5, 2.0)
+REACTION_ATLAS_TARGET_R_VALUES = (.5, 1.0, 2.0, 4.0)
+REACTION_ATLAS_HOLDING_CANDLES = (6, 12, 30, 60)
 PATH_RESEARCH_THRESHOLDS_R = (0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0)
 STRESS_STOP_ATR_VALUES = (0.5, 0.75, 1.0, 1.25, 1.5, 2.0)
 STRESS_TARGET_R_VALUES = PATH_RESEARCH_THRESHOLDS_R
@@ -2202,6 +2207,8 @@ def build_candidate_stress_report(
     for source in source_results
     for signature, pattern_id in dict(source.get("currentPatterns", {})).items()
   }
+
+
   known_patterns = {
     (str(pattern["sourceVersion"]), str(signature)): pattern
     for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
@@ -2383,6 +2390,245 @@ def build_candidate_stress_report(
       "V11 cohorts are numeric reused-history research. They do not change the immutable v10 Charts registry or create live arrows.",
       "V12 is created only when a fixed challenger passes every practical registration check; otherwise Charts remains on immutable v10.",
     ],
+  }
+
+
+def _reaction_partition(
+  profiles: Sequence[Dict[str, Any]], horizon: int, reaction_sign: float,
+) -> Dict[str, Any]:
+  eligible = [profile for profile in profiles if len(profile["candles"]) >= horizon]
+  values = [
+    reaction_sign * float(profile["sign"])
+    * (float(profile["candles"][horizon - 1]["close"]) - float(profile["entry"]))
+    / float(profile["atr"])
+    for profile in eligible
+  ]
+  ci = _mean_ci95(values)
+  return {
+    "n": len(values),
+    "meanAtr": statistics.fmean(values) if values else None,
+    "medianAtr": statistics.median(values) if values else None,
+    "positiveRate": sum(value > 0 for value in values) / len(values) if values else None,
+    "ci95": ci,
+  }
+
+
+def _reaction_context(profile: Dict[str, Any], candles: Sequence[Dict[str, Any]], candle_times: Sequence[int]) -> Dict[str, str]:
+  entry_index = bisect_left(candle_times, int(profile["entryTime"]))
+  prior = list(candles[max(0, entry_index - 120):entry_index])
+  atr = float(profile["atr"])
+  trend = 0.0
+  if len(prior) >= 12 and atr > 0:
+    trend = (float(prior[-1]["close"]) - float(prior[-12]["close"])) / atr
+  true_ranges = [
+    max(
+      float(candle["high"]) - float(candle["low"]),
+      abs(float(candle["high"]) - float(prior[index - 1]["close"])) if index else 0.0,
+      abs(float(candle["low"]) - float(prior[index - 1]["close"])) if index else 0.0,
+    )
+    for index, candle in enumerate(prior)
+  ]
+  typical_range = statistics.median(true_ranges) if true_ranges else 0.0
+  volatility_ratio = atr / typical_range if typical_range > 0 else 1.0
+  hour = datetime.fromtimestamp(int(profile["eventTime"]), timezone.utc).hour
+  room = profile.get("supportResistance", {}).get(
+    "resistance" if profile["direction"] == "long" else "support"
+  )
+  return {
+    "trend": "aligned" if float(profile["sign"]) * trend > .5 else "opposed" if float(profile["sign"]) * trend < -.5 else "neutral",
+    "volatility": "high" if volatility_ratio >= 1.25 else "low" if volatility_ratio <= .8 else "normal",
+    "session": "asia" if hour < 7 else "europe" if hour < 13 else "us",
+    "room": "open" if room is None or float(room.get("distanceAtr", 0)) >= 1.0 else "blocked",
+  }
+
+
+def build_reaction_atlas(
+  market: str,
+  source_results: Sequence[Dict[str, Any]],
+  h4_candles: Sequence[Dict[str, Any]],
+  generated_at: int,
+  minimum_cases: int = 40,
+) -> Dict[str, Any]:
+  """Build a staged event/price atlas without using holdout to select rules."""
+  candles = sorted(h4_candles, key=lambda candle: int(candle["time"]))
+  candle_times = [int(candle["time"]) for candle in candles]
+  atr_values = calculate_atr_by_candle(candles)
+  policies = ("baseline", "surprise_only", "momentum_only", "agreement_no_bonus", "forecast_quality")
+  atlas_rows: List[Dict[str, Any]] = []
+  for source in source_results:
+    source_version = str(source["versionId"])
+    split_time = int(source["splitTime"])
+    latest_event_time = max((int(row["eventTime"]) for row in source["outcomes"]), default=generated_at)
+    recent_cutoff = latest_event_time - CHART_SIGNAL_RECENT_DAYS * 86400
+    for policy in policies:
+      rescored, _audit = _rescore_policy_outcomes(source["outcomes"], policy)
+      outcomes = _annotate_numeric_robustness(rescored)
+      grouped: Dict[str, List[Dict[str, Any]]] = {}
+      for outcome in outcomes:
+        if outcome.get("direction") not in {"long", "short"}:
+          continue
+        identity = candidate_pattern_signature(outcome).split("|", 1)[-1]
+        grouped.setdefault(identity, []).append(outcome)
+      for identity, rows in grouped.items():
+        profiles = [
+          profile for row in sorted(rows, key=lambda item: int(item["eventTime"]))
+          if (profile := _build_policy_path_profile(row, candles, candle_times, atr_values)) is not None
+        ]
+        if len(profiles) < minimum_cases:
+          continue
+        development = [profile for profile in profiles if int(profile["eventTime"]) < split_time]
+        holdout = [profile for profile in profiles if int(profile["eventTime"]) >= split_time]
+        recent = [profile for profile in profiles if int(profile["eventTime"]) >= recent_cutoff]
+        horizon_candidates: List[Dict[str, Any]] = []
+        for horizon in REACTION_ATLAS_HORIZONS:
+          raw_development = _reaction_partition(development, horizon, 1.0)
+          mean = raw_development.get("meanAtr")
+          if mean is None:
+            continue
+          reaction_sign = 1.0 if float(mean) >= 0 else -1.0
+          selected_development = _reaction_partition(development, horizon, reaction_sign)
+          lower = (selected_development.get("ci95") or {}).get("lower")
+          horizon_candidates.append({
+            "horizon": horizon,
+            "reaction": "continuation" if reaction_sign > 0 else "rejection",
+            "reactionSign": reaction_sign,
+            "development": selected_development,
+            "selectionScore": float(lower) if lower is not None else -999.0,
+          })
+        if not horizon_candidates:
+          continue
+        selected_horizon = max(horizon_candidates, key=lambda row: (
+          float(row["selectionScore"]),
+          float(row["development"].get("meanAtr") or -999.0),
+          -int(row["horizon"]),
+        ))
+        horizon = int(selected_horizon["horizon"])
+        reaction_sign = float(selected_horizon["reactionSign"])
+        if reaction_sign < 0:
+          execution_profiles = [{
+            **profile,
+            "outcome": {**profile["outcome"], "direction": "short" if profile["direction"] == "long" else "long"},
+            "direction": "short" if profile["direction"] == "long" else "long",
+            "sign": -float(profile["sign"]),
+          } for profile in profiles]
+        else:
+          execution_profiles = list(profiles)
+        partitions = {
+          "development": selected_horizon["development"],
+          "holdout": _reaction_partition(holdout, horizon, reaction_sign),
+          "recent": _reaction_partition(recent, horizon, reaction_sign),
+          "overall": _reaction_partition(profiles, horizon, reaction_sign),
+        }
+        development_directional = partitions["development"]
+        staged_for_execution = (
+          (development_directional.get("meanAtr") or 0) >= .05
+          and (development_directional.get("positiveRate") or 0) >= .52
+          and ((development_directional.get("ci95") or {}).get("lower") or -999) >= -.05
+        )
+        configurations = [
+          _evaluate_path_configuration(
+            execution_profiles, split_time, latest_event_time, stop_atr, target_r, holding
+          )
+          for stop_atr in REACTION_ATLAS_STOP_ATR_VALUES
+          for target_r in REACTION_ATLAS_TARGET_R_VALUES
+          for holding in REACTION_ATLAS_HOLDING_CANDLES
+        ] if staged_for_execution else []
+        selected_contract = _select_stress_configuration(configurations, len(execution_profiles))
+        execution_positive = selected_contract is not None and all(
+          (selected_contract[name].get("stressedAverageR") or 0) > 0
+          for name in ("development", "holdout", "recent", "overall")
+        )
+        directional_positive = all(
+          (partitions[name].get("meanAtr") or 0) > 0
+          for name in ("development", "holdout", "recent", "overall")
+        )
+        classification = (
+          "historically_profitable_candidate" if execution_positive and directional_positive
+          else "directional_contender" if directional_positive
+          else "avoid_standalone_direction" if (
+            (partitions["holdout"].get("meanAtr") or 0) <= 0
+            and (partitions["recent"].get("meanAtr") or 0) <= 0
+          )
+          else "insufficient_evidence"
+        )
+        context_rows = []
+        if selected_contract is not None and classification in {"historically_profitable_candidate", "directional_contender"}:
+          for dimension in ("trend", "volatility", "session", "room"):
+            categories: Dict[str, List[Dict[str, Any]]] = {}
+            for profile in execution_profiles:
+              categories.setdefault(_reaction_context(profile, candles, candle_times)[dimension], []).append(profile)
+            for category, selected_profiles in categories.items():
+              if len(selected_profiles) < minimum_cases:
+                continue
+              simulations = _simulate_path_configuration(
+                selected_profiles,
+                float(selected_contract["stopAtr"]),
+                float(selected_contract["targetR"]),
+                int(selected_contract["holdingCandles"]),
+              )
+              context_rows.append({
+                "dimension": dimension,
+                "value": category,
+                "n": len(selected_profiles),
+                "development": _aggregate_path_simulations([
+                  row for row in simulations if int(row["eventTime"]) < split_time
+                ]),
+                "holdout": _aggregate_path_simulations([
+                  row for row in simulations if int(row["eventTime"]) >= split_time
+                ]),
+                "recent": _aggregate_path_simulations([
+                  row for row in simulations if int(row["eventTime"]) >= recent_cutoff
+                ]),
+              })
+        example_events = [event for row in rows for event in row.get("events", [])]
+        atlas_rows.append({
+          "market": market,
+          "sourceVersionId": source_version,
+          "identity": identity,
+          "label": _pattern_label(f"long|{identity}", example_events),
+          "family": " + ".join(value.split(":", 1)[-1].replace("_", " ") for value in identity.split("|")),
+          "policy": policy,
+          "historicalN": len(profiles),
+          "selectedOn": "development_only",
+          "reaction": selected_horizon["reaction"],
+          "horizonH4": horizon,
+          "directional": partitions,
+          "execution": selected_contract,
+          "stagedForExecution": staged_for_execution,
+          "classification": classification,
+          "contextChallengers": context_rows,
+          "exampleTitles": sorted({str(event.get("title", "")) for event in example_events if event.get("title")})[:10],
+        })
+  atlas_rows.sort(key=lambda row: (
+    {"historically_profitable_candidate": 0, "directional_contender": 1, "insufficient_evidence": 2, "avoid_standalone_direction": 3}[row["classification"]],
+    -(float(((row.get("execution") or {}).get("holdout") or {}).get("stressedAverageR") or -999.0)),
+    -int(row["historicalN"]),
+    str(row["label"]),
+  ))
+  counts = {
+    classification: sum(row["classification"] == classification for row in atlas_rows)
+    for classification in ("historically_profitable_candidate", "directional_contender", "avoid_standalone_direction", "insufficient_evidence")
+  }
+  protocol = {
+    "version": REACTION_ATLAS_VERSION,
+    "minimumCases": minimum_cases,
+    "policies": list(policies),
+    "horizonsH4": list(REACTION_ATLAS_HORIZONS),
+    "stopAtrValues": list(REACTION_ATLAS_STOP_ATR_VALUES),
+    "targetRValues": list(REACTION_ATLAS_TARGET_R_VALUES),
+    "holdingCandles": list(REACTION_ATLAS_HOLDING_CANDLES),
+    "horizonAndReactionSelection": "development lower-95 directional close ATR; holdout and recent never select",
+    "executionSelection": "development lower-95 stressed R, then development average",
+    "context": "one entry-known dimension at a time; minimum sample unchanged",
+  }
+  return {
+    "version": REACTION_ATLAS_VERSION,
+    "market": market,
+    "generatedAt": generated_at,
+    "protocol": protocol,
+    "protocolHash": hashlib.sha256(json.dumps(protocol, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+    "counts": counts,
+    "rows": atlas_rows,
   }
 
 
@@ -2823,6 +3069,21 @@ def candidate_matches_chart_pattern(candidate: Dict[str, Any], pattern: Dict[str
   return required_titles.issubset(candidate_titles)
 
 
+def apply_chart_pattern_reaction(candidate: Dict[str, Any], pattern: Dict[str, Any]) -> Dict[str, Any]:
+  """Apply a frozen continuation/rejection rule after matching the raw package."""
+  if str(pattern.get("reaction", "continuation")) != "contrarian":
+    return candidate
+  direction = str(candidate.get("direction", "none"))
+  if direction not in {"long", "short"}:
+    return candidate
+  return {
+    **candidate,
+    "direction": "short" if direction == "long" else "long",
+    "pairVote": -float(candidate.get("pairVote") or 0),
+    "reaction": "contrarian",
+  }
+
+
 def build_chart_signal_realtime_watch(
   events: Sequence[Dict[str, Any]],
   as_of: int,
@@ -2944,6 +3205,8 @@ def build_chart_signal_realtime_watch(
         and int(candidate.get("eventTime", 0)) == event_time
       ]
       qualified = next((candidate for candidate in matching_candidates if candidate_matches_chart_pattern(candidate, pattern)), None)
+      if qualified is not None:
+        qualified = apply_chart_pattern_reaction(qualified, pattern)
       candidate = qualified or (matching_candidates[0] if matching_candidates else None)
       scored_events = list(candidate.get("events", [])) if candidate is not None else []
       calculations = [
@@ -3281,6 +3544,7 @@ def build_chart_signal_pattern_catalog(
       "execution": dict(definition["execution"]),
       "market": str(definition.get("market", "EURUSD")),
       "scoringPolicy": str(definition.get("scoringPolicy", "forecast_quality")),
+      "reaction": str(definition.get("reaction", "continuation")),
       "historicalBenchmark": dict(definition.get("historicalBenchmark", {})) or None,
       "requiredExactTitles": list(definition.get("requiredExactTitles", ())),
       "direction": next(iter(direction_values)) if len(direction_values) == 1 else "both",

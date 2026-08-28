@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from macro_signal import (
   aggregate_outcomes,
+  apply_chart_pattern_reaction,
   build_backtest_result,
   build_workbench_experiment,
   build_chart_signal_pattern_catalog,
@@ -466,6 +467,16 @@ def test_v13_retains_payroll_and_only_the_complete_us_ppi_cooling_package() -> N
   partial = {**complete, "events": complete["events"][:-1]}
   assert candidate_matches_chart_pattern(complete, ppi) is True
   assert candidate_matches_chart_pattern(partial, ppi) is False
+
+
+def test_registered_rejection_inverts_direction_only_after_raw_package_match() -> None:
+  raw = {**candidate(direction="long"), "pairVote": 2}
+  pattern = {"reaction": "contrarian", "signatures": [candidate_pattern_signature(raw)]}
+  assert candidate_matches_chart_pattern(raw, pattern) is True
+  transformed = apply_chart_pattern_reaction(raw, pattern)
+  assert transformed["direction"] == "short"
+  assert transformed["pairVote"] == -2
+  assert raw["direction"] == "long"
 
 
 def test_same_m1_bar_touch_is_ambiguous() -> None:

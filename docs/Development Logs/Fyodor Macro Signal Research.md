@@ -711,6 +711,34 @@ Five scoring recipes are now explicit: original Surprise + Momentum, Surprise on
 
 The answer to the product question is therefore four-part: strength is the fixed-contract average and response size; stability is performance across years and nearby contracts; repeatability is later walk-forward and recent consistency; economic usability requires enough exact-series history and a rule that does not depend on one tiny subgroup. A high percentile can improve some families, be irrelevant to others, and remove the usable sample from others. FMS must show that difference rather than assume “bigger news always means better trade.”
 
+### Deferred Expansion Sequence
+
+The next goal session should begin with a staged **Seven-Pair Event Reaction Atlas**, not another unrestricted optimizer. It will evaluate every sufficiently sampled exact series/package independently for EURUSD, GBPUSD, USDJPY, AUDUSD, USDCAD, NZDUSD, and USDCHF and classify it as continuation, rejection, magnitude-dependent, volatility-only, avoid as standalone direction, or insufficient evidence. All-case scoring recipes come first; magnitude subsets are declared challengers rather than freely mined intersections.
+
+After the atlas, build independent Policy and Inflation models, measure price response at 1/3/6/12/30 H4 horizons, and re-audit the active registry under the new scoring and magnitude diagnostics while preserving each frozen execution contract. Entry-known trend, volatility, session, and support/resistance are reserved for named finalist hypotheses. Japan-wage exceptional magnitude, USDJPY consumer-sentiment Momentum-only, and Japan-inflation magnitude are the first named challengers. The complete checkbox contract is maintained in `Checklist.md`.
+
+### Deferred Goal Handoff - 2026-08-28
+
+The user intentionally ended the current goal and deferred every unfinished pass to a later goal session. Preserve the completed reaction-atlas artifacts, immutable experiments, and current working-tree research changes; do not present the unfinished work as a verified production registration.
+
+Work completed far enough to retain:
+
+- the seven-pair all-case Reaction Atlas and the declared ordinary/top-20% magnitude sweep were executed against the current MT5 archive;
+- fixed-horizon continuation and rejection responses were measured at 1, 3, 6, 12, and 30 H4 candles;
+- ten positive all-case finalists were materialized for audit, while ordinary-magnitude challengers and one-dimensional entry-known context hypotheses were identified;
+- the atlas found no broad evidence that upper-tail magnitude alone is a universal improvement.
+
+Explicitly deferred until the next goal session:
+
+1. finish global deduplication/materialization of magnitude candidates and reconcile the durable candidate-audit artifact;
+2. decide whether any magnitude or context challenger deserves a separately frozen live-compatible recipe;
+3. finish and verify the Registered Reaction v3 registry, Workbench evidence, Shadow Trader intelligence, and contrarian reaction handling;
+4. resolve any preserved legacy registration/provenance mismatch rather than silently accepting it;
+5. build the independent Policy and Inflation models and any later combined/context models;
+6. run the targeted bridge/frontend tests, typecheck, production build, `git diff --check`, bridge restart, and the required 1440x900 manual UI audit.
+
+The next AI session must inspect the existing working tree and durable atlas artifacts before rerunning research. It must not start a fresh unrestricted sweep or treat the present unverified code as ready for live-following decisions.
+
 ## Research Warnings and References
 
 Hypothetical results do not represent executed trades and can overstate or understate real performance. The Lab must identify all results as simulated, disclose excluded costs, and avoid claims that similar live profits are likely. See the [CFTC guidance on hypothetical trading-system results](https://www.cftc.gov/LearnAndProtect/AdvisoriesAndArticles/fraudadv_tradingsystem.html).

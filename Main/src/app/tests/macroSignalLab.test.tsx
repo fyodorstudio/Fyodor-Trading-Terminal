@@ -140,6 +140,8 @@ const workbench: FmsWorkbench = {
       condition: "Directional sentiment",
       sourceVersionId: "FMS-EURUSD-SENTIMENT-H4-v3",
       signatures: ["long|EUR:consumer_sentiment", "short|EUR:consumer_sentiment"],
+      scoringPolicy: "baseline",
+      reaction: "continuation",
       execution: { stopAtr: 1, targetR: 2, expiryCandles: 30 },
       registrationEvidence: {
         scoringPolicy: "baseline",
