@@ -18,26 +18,43 @@ from macro_signal import (
 
 
 def candidate_rows(artifact: Dict[str, Any]) -> List[Dict[str, Any]]:
-  best: Dict[Tuple[str, str, str], Tuple[Tuple[float, float, int], Dict[str, Any]]] = {}
+  """Return one practical, development-selected direction per market/package.
+
+  The atlas already froze its candidate grid. This screen deliberately keeps
+  academic confidence diagnostics separate from practical registration: the
+  recipe must have at least 40 cases and positive stressed average R in the
+  development, later holdout, recent, and full-history partitions. Follow and
+  reject variants compete for one package slot so the live registry can never
+  emit contradictory arrows for the same release package.
+  """
+  best: Dict[Tuple[str, str], Tuple[Tuple[float, float, int, int], Dict[str, Any]]] = {}
   for market in [*artifact.get("markets", []), *artifact.get("magnitudeMarkets", [])]:
     for row in market["rows"]:
-      if row["classification"] != "historically_profitable_candidate" or int(row["historicalN"]) < 80:
+      if int(row.get("historicalN", 0)) < 40:
         continue
       execution = row.get("execution") or {}
-      holdout = float((execution.get("holdout") or {}).get("stressedAverageR") or 0)
-      recent = float((execution.get("recent") or {}).get("stressedAverageR") or 0)
-      overall = float((execution.get("overall") or {}).get("stressedAverageR") or 0)
-      if min(holdout, recent) < .02 or overall < .05:
+      averages = [
+        (execution.get(partition) or {}).get("stressedAverageR")
+        for partition in ("development", "holdout", "recent", "overall")
+      ]
+      if any(value is None or float(value) <= 0 for value in averages):
         continue
       development = execution["development"]
       rank = (
         float(((development.get("stressedExpectancyCi95") or {}).get("lower")) or -999),
         float(development.get("stressedAverageR") or -999),
+        int(row.get("historicalN", 0)),
         1 if row["policy"] == "forecast_quality" else 0,
       )
-      key = (str(market["market"]), str(row["identity"]), str(row["reaction"]))
+      key = (str(market["market"]), str(row["identity"]))
       if key not in best or rank > best[key][0]:
-        best[key] = (rank, {**row, "market": market["market"], "datasetFingerprint": market["datasetFingerprint"], "cohort": str(row.get("cohort") or market.get("cohort") or "all")})
+        best[key] = (rank, {
+          **row,
+          "market": market["market"],
+          "datasetFingerprint": market["datasetFingerprint"],
+          "cohort": str(row.get("cohort") or market.get("cohort") or "all"),
+          "practicalScreen": "positive development + holdout + recent + overall; N >= 40",
+        })
   return sorted((value[1] for value in best.values()), key=lambda row: (row["market"], row["label"]))
 
 

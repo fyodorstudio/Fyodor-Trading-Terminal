@@ -135,6 +135,8 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
             <div><dt>TP / SL first</dt><dd>How often the registered trade rules reached take profit or stop loss first.</dd></div>
             <div><dt>Average per trade</dt><dd>Average historical result measured in R, before spread, commission, slippage, and swap.</dd></div>
             <div><dt>Later test trades</dt><dd>Trades from the later part of history used to check whether the pattern continued.</dd></div>
+            <div><dt>Direction worked after 6 H4</dt><dd>How often price was in this registered recipe&apos;s direction six H4 candles after entry. It is separate from TP/SL.</dd></div>
+            <div><dt>Worked, but trade lost</dt><dd>Price was in the registered direction after six H4 candles, but the exact SL/TP/duration contract still finished without a profit.</dd></div>
             <div><dt>1R / 1.5R / 2R</dt><dd>Gross average at each alternative target; this checks dependence on one target.</dd></div>
           </dl>
           <p>Example: with a $1,000 account risking 1%, 1R is $10. A stop loses about $10 and a 2R target gains about $20. ATR changes position size, not the chosen $10 risk.</p>
@@ -158,9 +160,20 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
                 <div><span>SL before TP</span><strong>{formatPercent(pattern.historicalBenchmark.stopFirstRate)}</strong></div>
                 <div><span>Average per trade</span><strong>{formatR(pattern.historicalBenchmark.walkForwardAverageR)}</strong></div>
                 <div><span>Backtest record</span><strong>{pattern.historicalBenchmark.experimentId}</strong></div>
+                {pattern.reactionAudit ? (
+                  <>
+                    <div><span>Direction worked after {pattern.reactionAudit.horizonCandles} H4</span><strong>{formatPercent(pattern.reactionAudit.positiveResponseRate)}</strong></div>
+                    <div><span>Direction worked + trade profited</span><strong>{pattern.reactionAudit.directionWorkedTradeProfited} / {pattern.reactionAudit.evaluableN}</strong></div>
+                    <div><span>Direction worked + trade lost</span><strong>{pattern.reactionAudit.directionWorkedTradeLost} / {pattern.reactionAudit.evaluableN}</strong></div>
+                    <div><span>Direction failed + trade profited</span><strong>{pattern.reactionAudit.directionFailedTradeProfited} / {pattern.reactionAudit.evaluableN}</strong></div>
+                    <div><span>Direction failed + trade lost</span><strong>{pattern.reactionAudit.directionFailedTradeLost} / {pattern.reactionAudit.evaluableN}</strong></div>
+                    <div><span>Median {pattern.reactionAudit.horizonCandles}-H4 response</span><strong>{formatR(pattern.reactionAudit.medianResponseR)}</strong></div>
+                  </>
+                ) : null}
               </>
             ) : <><div><span>Benchmark status</span><strong>Legacy snapshot</strong></div><div><span>Exact contract metrics</span><strong>Not linked</strong></div></>}
           </div>
+          {pattern.reactionAudit ? <p className="chart-shadow-reaction-note"><b>Direction and execution are separate:</b> the six-H4 response checks whether price moved in this registered recipe&apos;s direction; TP/SL and average R judge whether its frozen trade rules captured that movement.</p> : null}
           {pattern.registrationProvenance ? <p className={`chart-shadow-provenance is-${pattern.registrationProvenance.status}`}><b>{pattern.registrationProvenance.status === "verified" ? "Backtest record verified" : pattern.registrationProvenance.status === "mismatch" ? "Backtest mismatch" : pattern.registrationProvenance.status === "unavailable" ? "Backtest unavailable" : "Older saved setup"}:</b> {pattern.registrationProvenance.note}</p> : null}
         </details>
       ))}

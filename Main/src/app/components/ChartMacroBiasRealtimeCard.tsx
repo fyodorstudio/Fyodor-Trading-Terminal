@@ -1,5 +1,5 @@
 import { ChevronDown, ShieldCheck, WalletCards } from "lucide-react";
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { ChartMacroBiasNextSetup, ChartMacroBiasSetupCatalog } from "@/app/components/ChartMacroBiasSetupCatalog";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
@@ -55,6 +55,33 @@ function readStoredNumber(key: string, fallback: number): number {
 
 function formatUtc(value: number | null | undefined): string {
   return value == null ? "No scheduled row loaded" : formatUtcDisplayDateTime(value);
+}
+
+function formatCountdown(seconds: number): string {
+  if (seconds <= 0) return "Awaiting release update";
+  const days = Math.floor(seconds / 86_400);
+  const hours = Math.floor((seconds % 86_400) / 3_600);
+  const minutes = Math.floor((seconds % 3_600) / 60);
+  const remainingSeconds = seconds % 60;
+  if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+  if (hours > 0) return `${hours}h ${minutes}m ${remainingSeconds}s`;
+  return `${minutes}m ${remainingSeconds}s`;
+}
+
+function EventCountdown({ targetTime }: { targetTime: number }) {
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    const update = () => setNow(Math.floor(Date.now() / 1_000));
+    update();
+    const timer = window.setInterval(update, 1_000);
+    return () => window.clearInterval(timer);
+  }, [targetTime]);
+  return (
+    <span className="chart-shadow-event-countdown" aria-label={`Countdown to ${formatUtc(targetTime)}`}>
+      <small>Starts in</small>
+      <strong>{now == null ? "Calculating…" : formatCountdown(targetTime - now)}</strong>
+    </span>
+  );
 }
 
 function formatMoney(value: number): string {
@@ -205,7 +232,7 @@ function LatestDecisionSection({ assessment, pattern, symbol }: { assessment: Ma
 
 export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealtimeCardData }) {
   const { response, activeSignal, activePattern } = data;
-  const [setupSort, setSetupSort] = useState<"profitability" | "accuracy" | "name">("profitability");
+  const [setupSort, setSetupSort] = useState<"profitability" | "accuracy" | "soonest" | "name">("accuracy");
   const [startingBalance, setStartingBalance] = useState(() => normalizeShadowStartingBalance(readStoredNumber(SHADOW_BALANCE_KEY, DEFAULT_SHADOW_STARTING_BALANCE)));
   const [riskPercent, setRiskPercent] = useState(() => normalizeShadowRiskPercent(readStoredNumber(SHADOW_RISK_KEY, DEFAULT_SHADOW_RISK_PERCENT)));
   const registryResponses = useMemo(
@@ -221,24 +248,19 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
     .flatMap((market) => (market.realtime?.latestPatternAssessments ?? (market.realtime?.latestPatternAssessment ? [market.realtime.latestPatternAssessment] : [])).map((assessment) => ({ market, assessment })))
     .sort((left, right) => right.assessment.time - left.assessment.time || left.market.symbol.localeCompare(right.market.symbol))[0] ?? null, [registryResponses]);
   const latestAssessment = latestAssessmentEntry?.assessment ?? null;
-  const registeredPatterns = useMemo(
-    () => registryResponses.flatMap((market) => market.patterns.filter((pattern) => pattern.currentEligible)).sort((left, right) => {
-      if (setupSort === "name") return left.label.localeCompare(right.label);
-      const leftValue = setupSort === "accuracy" ? historicalAccuracy(left) : historicalAverage(left);
-      const rightValue = setupSort === "accuracy" ? historicalAccuracy(right) : historicalAverage(right);
-      return rightValue - leftValue || left.label.localeCompare(right.label);
-    }),
-    [registryResponses, setupSort],
+  const registeredPatternRows = useMemo(
+    () => registryResponses.flatMap((market) => market.patterns.filter((pattern) => pattern.currentEligible)),
+    [registryResponses],
   );
   const openSignals = useMemo(
     () => registryResponses.flatMap((market) => market.signals.filter((signal) => signal.outcomeStatus === "pending")),
     [registryResponses],
   );
   const verifiedPatterns = useMemo(
-    () => registeredPatterns.filter((pattern) => pattern.registrationProvenance?.status === "verified"),
-    [registeredPatterns],
+    () => registeredPatternRows.filter((pattern) => pattern.registrationProvenance?.status === "verified"),
+    [registeredPatternRows],
   );
-  const registryHistoricallyReady = registeredPatterns.length > 0 && verifiedPatterns.length === registeredPatterns.length;
+  const registryHistoricallyReady = registeredPatternRows.length > 0 && verifiedPatterns.length === registeredPatternRows.length;
   const assessmentsByPattern = useMemo(
     () => new Map(registryResponses.flatMap((market) => (market.realtime?.latestPatternAssessments ?? (market.realtime?.latestPatternAssessment ? [market.realtime.latestPatternAssessment] : [])).map((assessment) => [`${market.symbol}:${assessment.patternId}`, assessment]))),
     [registryResponses],
@@ -247,6 +269,19 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
     () => new Map(registryResponses.flatMap((market) => (market.realtime?.upcomingPatternWatches ?? (market.realtime?.nextPatternWatch ? [market.realtime.nextPatternWatch] : [])).map((watch) => [`${market.symbol}:${watch.patternId}`, watch]))),
     [registryResponses],
   );
+  const registeredPatterns = useMemo(() => [...registeredPatternRows].sort((left, right) => {
+    const leftMarket = left.market ?? response.symbol;
+    const rightMarket = right.market ?? response.symbol;
+    if (setupSort === "name") return leftMarket.localeCompare(rightMarket) || left.label.localeCompare(right.label);
+    if (setupSort === "soonest") {
+      const leftTime = upcomingByPattern.get(`${leftMarket}:${left.id}`)?.time ?? Number.POSITIVE_INFINITY;
+      const rightTime = upcomingByPattern.get(`${rightMarket}:${right.id}`)?.time ?? Number.POSITIVE_INFINITY;
+      return leftTime - rightTime || leftMarket.localeCompare(rightMarket) || left.label.localeCompare(right.label);
+    }
+    const leftValue = setupSort === "accuracy" ? historicalAccuracy(left) : historicalAverage(left);
+    const rightValue = setupSort === "accuracy" ? historicalAccuracy(right) : historicalAverage(right);
+    return rightValue - leftValue || leftMarket.localeCompare(rightMarket) || left.label.localeCompare(right.label);
+  }), [registeredPatternRows, response.symbol, setupSort, upcomingByPattern]);
   const watchPattern = nextWatch
     ? nextWatchEntry?.market.patterns.find((pattern) => pattern.id === nextWatch.patternId) ?? null
     : null;
@@ -267,7 +302,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
     ? { label: "Trade open", detail: `${openSignals.length} hypothetical trade${openSignals.length === 1 ? "" : "s"} being monitored` }
     : latestAssessment?.status === "awaiting_observation"
       ? { label: "Checking release", detail: "Waiting for the broker's Actual value" }
-      : { label: "Scanning", detail: `Watching ${registeredPatterns.length} registered setup${registeredPatterns.length === 1 ? "" : "s"}` };
+      : { label: "Scanning", detail: `Watching ${registeredPatternRows.length} registered setup${registeredPatternRows.length === 1 ? "" : "s"}` };
 
   const updateStartingBalance = (value: number) => {
     const normalized = normalizeShadowStartingBalance(value);
@@ -295,7 +330,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
         </div>
         <p>{registryHistoricallyReady
           ? `${verifiedPatterns.length} registered recipe${verifiedPatterns.length === 1 ? " has" : "s have"} positive later-test historical averages and verified immutable records. This is research support, not proof that the next trade will profit.`
-          : `${verifiedPatterns.length} of ${registeredPatterns.length} registered recipes currently reconcile with corrected immutable backtests. Do not act on an unverified recipe.`}</p>
+          : `${verifiedPatterns.length} of ${registeredPatternRows.length} registered recipes currently reconcile with corrected immutable backtests. Do not act on an unverified recipe.`}</p>
       </section>
       <section className="chart-shadow-scanner" aria-label="FMS scanner status">
         <div className="chart-shadow-scanner-state">
@@ -304,7 +339,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
           <small>No MT5 order is sent.</small>
         </div>
         <div className="chart-shadow-scanner-grid">
-          <div><span>Registered setups</span><strong>{registeredPatterns.length}</strong></div>
+          <div><span>Registered setups</span><strong>{registeredPatternRows.length}</strong></div>
           <div><span>Markets watched</span><strong>{registryResponses.length}</strong></div>
           <div><span>Next registered event</span><strong>{nextWatch ? formatUtc(nextWatch.time) : "None loaded"}</strong></div>
         </div>
@@ -315,7 +350,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
       <section className="chart-shadow-priority" aria-label="All registered FMS setups">
         <div className="chart-shadow-section-heading">
           <div><span>Live watchlist</span><strong>Every registered setup</strong></div>
-          <label><span>Sort</span><select value={setupSort} onChange={(event) => setSetupSort(event.target.value as typeof setupSort)}><option value="profitability">Best average result</option><option value="accuracy">Highest TP-first rate</option><option value="name">Pair / setup</option></select></label>
+          <label><span>Sort</span><select value={setupSort} onChange={(event) => setSetupSort(event.target.value as typeof setupSort)}><option value="accuracy">Highest TP-before-SL</option><option value="soonest">Soonest registered release</option><option value="profitability">Best average result</option><option value="name">Pair / setup (A–Z)</option></select></label>
         </div>
         <table>
           <thead><tr><th>Pair and setup</th><th>Now</th><th>Relevant event</th><th>Historical result</th></tr></thead>
@@ -335,22 +370,37 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
               return (
                 <Fragment key={pattern.id}>
                   <tr className={openOrPending ? "is-current" : undefined}>
-                    <td><strong className="chart-shadow-setup-title"><PairFlags symbol={patternMarket} />{patternMarket} · {pattern.label}</strong><small>SL {pattern.execution?.stopAtr ?? 1} ATR · TP {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</small></td>
-                    <td>{openOrPending ? (
+                    <td><strong className="chart-shadow-setup-title"><PairFlags symbol={patternMarket} />{patternMarket} · {pattern.label}</strong><small className="chart-shadow-contract-line">SL {pattern.execution?.stopAtr ?? 1} ATR · TP {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</small><span className={`chart-shadow-reaction is-${pattern.reaction === "contrarian" ? "rejected" : "followed"}`}>{pattern.reaction === "contrarian" ? "Rejected evidence" : "Followed evidence"}</span></td>
+                    <td className="chart-shadow-now-cell">{openOrPending ? (
                       <><strong>{patternSignal.activationTime != null ? "Trade open" : "Waiting for H4 entry"}</strong><small>{patternSignal.direction === "long" ? `Long ${patternMarket}` : `Short ${patternMarket}`}</small></>
                     ) : patternSignal && !assessmentIsNewer && patternSignal.outcomeStatus && patternSignal.outcomeStatus !== "pending" ? (
                       <strong>{formatOutcome(patternSignal)}</strong>
                     ) : assessment ? (
                       <strong>{assessment.status === "awaiting_observation" ? "Checking release" : assessment.status === "qualified" ? "Trade qualified" : assessment.status === "pre_activation_audit" ? `Past result · ${assessment.direction === "long" ? "Long" : "Short"}` : "Watching"}</strong>
                     ) : <span>Watching</span>}</td>
-                    <td>
-                      {latestTime != null ? <strong>Latest · {formatUtc(latestTime)}</strong> : null}
-                      {upcoming ? <small><b>Next ·</b> {formatUtc(upcoming.time)}</small> : latestTime == null ? <span>No upcoming release loaded</span> : null}
+                    <td className="chart-shadow-event-cell">
+                      {upcoming ? (
+                        <div className="chart-shadow-event-block is-next">
+                          <span className="chart-shadow-event-kicker">Next registered release</span>
+                          <strong>{formatUtc(upcoming.time)}</strong>
+                          <EventCountdown targetTime={upcoming.time} />
+                        </div>
+                      ) : null}
+                      {latestTime != null ? (
+                        <div className="chart-shadow-event-block is-latest">
+                          <span className="chart-shadow-event-kicker">Latest matching release</span>
+                          <strong>{formatUtc(latestTime)}</strong>
+                        </div>
+                      ) : !upcoming ? <span className="chart-shadow-event-empty">No upcoming release loaded</span> : null}
                     </td>
                     <td className="chart-shadow-history-cell">
-                      <strong>{historicalAverage(pattern) >= 0 ? "+" : ""}{historicalAverage(pattern).toFixed(2)}R</strong>
-                      <small>average per trade</small>
-                      <span>{(historicalAccuracy(pattern) * 100).toFixed(1)}% TP before SL · {historicalSample(pattern)} later test trades</span>
+                      <span className="chart-shadow-history-kicker">Later-test history</span>
+                      {pattern.historicalBenchmark?.strength === "positive_but_fragile" ? <span className="chart-shadow-history-strength">Positive but fragile</span> : null}
+                      <div className="chart-shadow-history-primary"><strong>{historicalAverage(pattern) >= 0 ? "+" : ""}{historicalAverage(pattern).toFixed(2)}R</strong><small>average per trade</small></div>
+                      <div className="chart-shadow-history-metrics">
+                        <span><b>{(historicalAccuracy(pattern) * 100).toFixed(1)}%</b> TP before SL</span>
+                        <span><b>{historicalSample(pattern)}</b> later test trades</span>
+                      </div>
                     </td>
                   </tr>
                   <tr className="chart-shadow-priority-detail" hidden>

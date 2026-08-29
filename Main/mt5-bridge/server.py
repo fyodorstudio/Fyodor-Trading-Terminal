@@ -22,6 +22,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
+from registered_reaction_audits import registered_reaction_audit
+
 from macro_signal import (
   ACTIVE_VERSION_ID,
   CHART_SIGNAL_MODEL_CREATED_AT,
@@ -79,8 +81,8 @@ WORKBENCH_MARKETS = {
   },
 }
 
-PRACTICAL_MODEL_ID = "FMS-REGISTERED-REACTION-H4-v3"
-PRACTICAL_MODEL_CREATED_AT = 1787893200
+PRACTICAL_MODEL_ID = "FMS-REGISTERED-REACTION-H4-v4"
+PRACTICAL_MODEL_CREATED_AT = 1787970337
 
 
 def _practical_pattern(
@@ -90,6 +92,8 @@ def _practical_pattern(
   average_r: float, target_rate: float, stop_rate: float, condition: str,
   reaction: str = "continuation",
   cohort: Optional[Dict[str, str]] = None,
+  benchmark_basis: str = "qualification_pooled",
+  strength: str = "stronger_history",
 ) -> Dict[str, Any]:
   return {
     "market": market, "id": pattern_id, "label": label,
@@ -104,7 +108,8 @@ def _practical_pattern(
       "experimentId": experiment_id, "historicalN": historical_n,
       "walkForwardN": walk_forward_n, "walkForwardAverageR": average_r,
       "targetFirstRate": target_rate, "stopFirstRate": stop_rate,
-      "status": "historically_profitable",
+      "status": "historically_profitable", "basis": benchmark_basis,
+      "strength": strength,
     },
   }
 
@@ -132,6 +137,82 @@ PRACTICAL_PATTERN_DEFINITIONS = (
   _practical_pattern("USDJPY", "usdjpy-us-manufacturing-employment", "US manufacturing employment", "FMS-USDJPY-GROWTH-H4-v7", ["long|USD:pmi_manufacturing", "short|USD:pmi_manufacturing"], "forecast_quality", 2, .5, 60, "FMS-USDJPY-H4-E068", 194, 97, .0666507331, .7113402062, .2886597938, "Follow the Forecast Guard-scored US manufacturing-employment package direction."),
   _practical_pattern("USDJPY", "usdjpy-us-trade-balance-ordinary", "US trade balance · ordinary magnitude", "FMS-USDJPY-GROWTH-H4-v7", ["long|USD:trade_balance", "short|USD:trade_balance"], "surprise_only", 2, .5, 30, "FMS-USDJPY-H4-E070", 109, 55, .1723702861, .7818181818, .2181818182, "Use Actual versus Forecast only; follow the scored USDJPY direction when the package's past-only exact-series magnitude is ordinary.", "continuation", {"dimension": "relativeMagnitude", "value": "ordinary"}),
 )
+def _discovered_condition(label: str, scoring_policy: str, reaction: str, cohort: Dict[str, str]) -> str:
+  score_text = {
+    "baseline": "Use the original Surprise plus Momentum score",
+    "surprise_only": "Use Actual versus Forecast only",
+    "momentum_only": "Use Actual versus Previous only",
+    "agreement_no_bonus": "Use Surprise plus Momentum without the agreement bonus",
+    "forecast_quality": "Use Forecast Guard",
+  }[scoring_policy]
+  reaction_text = "trade opposite the scored pair direction" if reaction == "contrarian" else "follow the scored pair direction"
+  cohort_text = " when its past-only exact-series magnitude is ordinary" if cohort == {"dimension": "relativeMagnitude", "value": "ordinary"} else ""
+  return f"{score_text}; {reaction_text} for {label}{cohort_text}."
+
+
+# One development-selected direction per market/package. Each row is linked to
+# an immutable current-engine experiment and its untouched chronological holdout.
+_PRACTICAL_DISCOVERY_ROWS = (
+  ('AUDUSD', 'audusd-ism-manufacturing-employment-package', 'ISM Manufacturing Employment', 'FMS-AUDUSD-GROWTH-H4-v7', ('long|USD:pmi_manufacturing', 'short|USD:pmi_manufacturing'), 'forecast_quality', 'contrarian', {'dimension': 'relativeMagnitude', 'value': 'ordinary'}, 0.75, 4.0, 12, 'FMS-AUDUSD-H4-E055', 154, 44, 0.0516272054, 0.2045454545, 0.7272727273, 'stronger_history'),
+  ('AUDUSD', 'audusd-s-p-global-manufacturing-pmi', 'S&P Global Manufacturing PMI', 'FMS-AUDUSD-GROWTH-H4-v7', ('long|AUD:pmi_manufacturing', 'short|AUD:pmi_manufacturing'), 'momentum_only', 'continuation', {'dimension': 'none', 'value': 'all'}, 2.0, 0.5, 6, 'FMS-AUDUSD-H4-E057', 83, 36, 0.0008395462, 0.5555555556, 0.1388888889, 'positive_but_fragile'),
+  ('AUDUSD', 'audusd-us-payroll-package', 'US payroll', 'FMS-AUDUSD-LABOR-H4-v2', ('long|USD:employment|USD:labor_wages|USD:unemployment', 'short|USD:employment|USD:labor_wages|USD:unemployment'), 'agreement_no_bonus', 'contrarian', {'dimension': 'relativeMagnitude', 'value': 'ordinary'}, 1.5, 1.0, 30, 'FMS-AUDUSD-H4-E058', 77, 31, 0.0509961771, 0.5483870968, 0.4193548387, 'stronger_history'),
+  ('EURUSD', 'eurusd-business-climate-indicator-package', 'Business Climate Indicator', 'FMS-EURUSD-SENTIMENT-H4-v3', ('long|EUR:business_sentiment|EUR:consumer_sentiment', 'short|EUR:business_sentiment|EUR:consumer_sentiment'), 'surprise_only', 'continuation', {'dimension': 'relativeMagnitude', 'value': 'ordinary'}, 1.0, 1.0, 6, 'FMS-EURUSD-H4-E283', 68, 27, 0.072615107, 0.5555555556, 0.3333333333, 'stronger_history'),
+  ('EURUSD', 'eurusd-cpi-package', 'US CPI · ordinary magnitude', 'FMS-EURUSD-POLICY-INFL-H4-v5', ('long|USD:core_consumer_inflation|USD:headline_consumer_inflation', 'short|USD:core_consumer_inflation|USD:headline_consumer_inflation'), 'agreement_no_bonus', 'continuation', {'dimension': 'relativeMagnitude', 'value': 'ordinary'}, 2.0, 4.0, 30, 'FMS-EURUSD-H4-E284', 206, 73, 0.0563732631, 0.0684931507, 0.5753424658, 'positive_but_fragile'),
+  ('EURUSD', 'eurusd-ism-manufacturing-employment-package', 'US manufacturing employment rejection', 'FMS-EURUSD-GROWTH-H4-v7', ('long|USD:pmi_manufacturing', 'short|USD:pmi_manufacturing'), 'forecast_quality', 'contrarian', {'dimension': 'relativeMagnitude', 'value': 'ordinary'}, 2.0, 1.0, 6, 'FMS-EURUSD-H4-E286', 154, 42, 0.0410342046, 0.2857142857, 0.2142857143, 'positive_but_fragile'),
+  ('EURUSD', 'eurusd-retail-sales-m-m-package', 'Euro-area retail sales', 'FMS-EURUSD-GROWTH-H4-v7', ('long|EUR:retail_headline', 'short|EUR:retail_headline'), 'baseline', 'continuation', {'dimension': 'none', 'value': 'all'}, 2.0, 4.0, 30, 'FMS-EURUSD-H4-E287', 95, 28, 0.0249631544, 0.0, 0.5357142857, 'positive_but_fragile'),
+  ('EURUSD', 'eurusd-s-p-global-composite-pmi-package', 'Euro-area composite PMI', 'FMS-EURUSD-GROWTH-H4-v7', ('long|EUR:pmi_composite|EUR:pmi_manufacturing|EUR:pmi_services', 'short|EUR:pmi_composite|EUR:pmi_manufacturing|EUR:pmi_services'), 'surprise_only', 'continuation', {'dimension': 'relativeMagnitude', 'value': 'ordinary'}, 2.0, 0.5, 6, 'FMS-EURUSD-H4-E288', 54, 25, 0.0984286905, 0.64, 0.12, 'stronger_history'),
+  ('GBPUSD', 'gbpusd-average-weekly-earnings-regular-pay-y-y-package', 'UK labor package rejection', 'FMS-GBPUSD-LABOR-H4-v2', ('long|GBP:employment|GBP:labor_claims|GBP:labor_wages|GBP:unemployment', 'short|GBP:employment|GBP:labor_claims|GBP:labor_wages|GBP:unemployment'), 'surprise_only', 'contrarian', {'dimension': 'none', 'value': 'all'}, 2.0, 2.0, 12, 'FMS-GBPUSD-H4-E063', 57, 16, 0.4391023316, 0.25, 0.25, 'stronger_history'),
+  ('GBPUSD', 'gbpusd-gdp-sales-q-q-package', 'US GDP rejection', 'FMS-GBPUSD-GROWTH-H4-v7', ('long|USD:gdp', 'short|USD:gdp'), 'forecast_quality', 'contrarian', {'dimension': 'none', 'value': 'all'}, 2.0, 1.0, 12, 'FMS-GBPUSD-H4-E065', 68, 17, 0.0966002026, 0.4117647059, 0.1764705882, 'stronger_history'),
+  ('GBPUSD', 'gbpusd-ism-non-manufacturing-business-activity-package', 'US services activity', 'FMS-GBPUSD-GROWTH-H4-v7', ('long|USD:pmi_services', 'short|USD:pmi_services'), 'forecast_quality', 'continuation', {'dimension': 'none', 'value': 'all'}, 2.0, 1.0, 6, 'FMS-GBPUSD-H4-E066', 85, 30, 0.0534054655, 0.2, 0.1666666667, 'stronger_history'),
+  ('NZDUSD', 'nzdusd-gdp-annual-change-package', 'New Zealand GDP rejection', 'FMS-NZDUSD-GROWTH-H4-v7', ('long|NZD:gdp', 'short|NZD:gdp'), 'momentum_only', 'contrarian', {'dimension': 'none', 'value': 'all'}, 1.0, 4.0, 12, 'FMS-NZDUSD-H4-E048', 58, 21, 0.3484534399, 0.1428571429, 0.5714285714, 'stronger_history'),
+  ('NZDUSD', 'nzdusd-gdp-sales-q-q-package', 'US GDP', 'FMS-NZDUSD-GROWTH-H4-v7', ('long|USD:gdp', 'short|USD:gdp'), 'momentum_only', 'continuation', {'dimension': 'none', 'value': 'all'}, 1.0, 1.0, 30, 'FMS-NZDUSD-H4-E049', 67, 16, 0.1080757074, 0.625, 0.375, 'stronger_history'),
+  ('NZDUSD', 'nzdusd-us-payroll-package', 'US payroll rejection', 'FMS-NZDUSD-LABOR-H4-v2', ('long|USD:employment|USD:labor_wages|USD:unemployment', 'short|USD:employment|USD:labor_wages|USD:unemployment'), 'surprise_only', 'contrarian', {'dimension': 'relativeMagnitude', 'value': 'ordinary'}, 2.0, 1.0, 60, 'FMS-NZDUSD-H4-E052', 63, 27, 0.1900285888, 0.6296296296, 0.3703703704, 'stronger_history'),
+  ('USDCAD', 'usdcad-gdp-annualized-q-q-package', 'Canada GDP rejection', 'FMS-USDCAD-GROWTH-H4-v7', ('long|CAD:gdp', 'short|CAD:gdp'), 'agreement_no_bonus', 'contrarian', {'dimension': 'relativeMagnitude', 'value': 'ordinary'}, 1.5, 0.5, 12, 'FMS-USDCAD-H4-E049', 68, 26, 0.0186839436, 0.7307692308, 0.2692307692, 'positive_but_fragile'),
+  ('USDCAD', 'usdcad-gdp-sales-q-q-package', 'US GDP rejection', 'FMS-USDCAD-GROWTH-H4-v7', ('long|USD:gdp', 'short|USD:gdp'), 'momentum_only', 'contrarian', {'dimension': 'none', 'value': 'all'}, 1.5, 4.0, 60, 'FMS-USDCAD-H4-E050', 49, 11, 0.5415198612, 0.2727272727, 0.6363636364, 'stronger_history'),
+  ('USDCAD', 'usdcad-ism-manufacturing-employment-package', 'US manufacturing employment rejection', 'FMS-USDCAD-GROWTH-H4-v7', ('long|USD:pmi_manufacturing', 'short|USD:pmi_manufacturing'), 'forecast_quality', 'contrarian', {'dimension': 'relativeMagnitude', 'value': 'ordinary'}, 1.0, 2.0, 12, 'FMS-USDCAD-H4-E051', 154, 44, 0.0866762372, 0.3863636364, 0.5454545455, 'stronger_history'),
+  ('USDCAD', 'usdcad-s-p-global-composite-pmi-package', 'US composite PMI rejection', 'FMS-USDCAD-GROWTH-H4-v7', ('long|USD:pmi_composite|USD:pmi_services', 'short|USD:pmi_composite|USD:pmi_services'), 'surprise_only', 'contrarian', {'dimension': 'none', 'value': 'all'}, 2.0, 0.5, 12, 'FMS-USDCAD-H4-E052', 90, 27, 0.0616019765, 0.7407407407, 0.2222222222, 'positive_but_fragile'),
+  ('USDCHF', 'usdchf-fed-industrial-production-m-m-package', 'US industrial-production rejection', 'FMS-USDCHF-GROWTH-H4-v7', ('long|USD:industrial_output', 'short|USD:industrial_output'), 'momentum_only', 'contrarian', {'dimension': 'none', 'value': 'all'}, 2.0, 2.0, 6, 'FMS-USDCHF-H4-E052', 88, 29, 0.0020527979, 0.0344827586, 0.1034482759, 'positive_but_fragile'),
+  ('USDCHF', 'usdchf-ppi-m-m-package', 'Switzerland producer inflation', 'FMS-USDCHF-POLICY-INFL-H4-v5', ('long|CHF:producer_inflation', 'short|CHF:producer_inflation'), 'momentum_only', 'continuation', {'dimension': 'relativeMagnitude', 'value': 'ordinary'}, 1.5, 0.5, 6, 'FMS-USDCHF-H4-E053', 62, 26, 0.0115849761, 0.6153846154, 0.1538461538, 'positive_but_fragile'),
+  ('USDCHF', 'usdchf-us-employment-release', 'US employment rejection', 'FMS-USDCHF-LABOR-H4-v2', ('long|USD:employment', 'short|USD:employment'), 'momentum_only', 'contrarian', {'dimension': 'none', 'value': 'all'}, 2.0, 0.5, 6, 'FMS-USDCHF-H4-E054', 118, 37, 0.0068248223, 0.5675675676, 0.1081081081, 'positive_but_fragile'),
+  ('USDJPY', 'usdjpy-adjusted-current-account-package', 'Japan current-account rejection', 'FMS-USDJPY-GROWTH-H4-v7', ('long|JPY:current_account|JPY:trade_balance', 'short|JPY:current_account|JPY:trade_balance'), 'surprise_only', 'contrarian', {'dimension': 'relativeMagnitude', 'value': 'ordinary'}, 1.0, 0.5, 6, 'FMS-USDJPY-H4-E076', 52, 21, 0.0826437667, 0.7142857143, 0.2380952381, 'stronger_history'),
+  ('USDJPY', 'usdjpy-consumer-confidence-index', 'Japan consumer-confidence rejection', 'FMS-USDJPY-SENTIMENT-H4-v3', ('long|JPY:consumer_sentiment', 'short|JPY:consumer_sentiment'), 'forecast_quality', 'contrarian', {'dimension': 'relativeMagnitude', 'value': 'ordinary'}, 1.0, 1.0, 6, 'FMS-USDJPY-H4-E077', 64, 24, 0.1371245061, 0.5416666667, 0.4166666667, 'stronger_history'),
+  ('USDJPY', 'usdjpy-fed-industrial-production-m-m-package', 'US industrial-production rejection', 'FMS-USDJPY-GROWTH-H4-v7', ('long|USD:industrial_output', 'short|USD:industrial_output'), 'forecast_quality', 'contrarian', {'dimension': 'relativeMagnitude', 'value': 'ordinary'}, 2.0, 0.5, 30, 'FMS-USDJPY-H4-E078', 78, 34, 0.0143626214, 0.6764705882, 0.3235294118, 'positive_but_fragile'),
+  ('USDJPY', 'usdjpy-ism-non-manufacturing-business-activity-package', 'US services activity', 'FMS-USDJPY-GROWTH-H4-v7', ('long|USD:pmi_services', 'short|USD:pmi_services'), 'forecast_quality', 'continuation', {'dimension': 'relativeMagnitude', 'value': 'ordinary'}, 2.0, 4.0, 60, 'FMS-USDJPY-H4-E081', 64, 30, 0.1030859274, 0.1, 0.6333333333, 'stronger_history'),
+  ('USDJPY', 'usdjpy-industrial-production-forecast-1-month-ahead-m-m-package', 'Japan industrial output and retail rejection', 'FMS-USDJPY-GROWTH-H4-v7', ('long|JPY:industrial_output|JPY:retail_headline', 'short|JPY:industrial_output|JPY:retail_headline'), 'baseline', 'contrarian', {'dimension': 'none', 'value': 'all'}, 2.0, 0.5, 6, 'FMS-USDJPY-H4-E082', 46, 21, 0.1779117676, 0.619047619, 0.0952380952, 'stronger_history'),
+  ('USDJPY', 'usdjpy-us-employment-release', 'US employment rejection', 'FMS-USDJPY-LABOR-H4-v2', ('long|USD:employment', 'short|USD:employment'), 'surprise_only', 'contrarian', {'dimension': 'none', 'value': 'all'}, 2.0, 2.0, 6, 'FMS-USDJPY-H4-E083', 107, 36, 0.0836099257, 0.0833333333, 0.2222222222, 'positive_but_fragile'),
+  ('USDJPY', 'usdjpy-us-payroll-package', 'US payroll rejection', 'FMS-USDJPY-LABOR-H4-v2', ('long|USD:employment|USD:labor_wages|USD:unemployment', 'short|USD:employment|USD:labor_wages|USD:unemployment'), 'baseline', 'contrarian', {'dimension': 'relativeMagnitude', 'value': 'ordinary'}, 0.75, 0.5, 30, 'FMS-USDJPY-H4-E084', 77, 26, 0.0953631248, 0.7307692308, 0.2692307692, 'stronger_history'),
+)
+
+PRACTICAL_PATTERN_DEFINITIONS += tuple(
+  _practical_pattern(
+    market, pattern_id, label, source_version, list(signatures), scoring_policy,
+    stop_atr, target_r, expiry, experiment_id, historical_n, later_n,
+    later_average_r, target_rate, stop_rate,
+    _discovered_condition(label, scoring_policy, reaction, cohort),
+    reaction, cohort, "chronological_holdout", strength,
+  )
+  for (
+    market, pattern_id, label, source_version, signatures, scoring_policy,
+    reaction, cohort, stop_atr, target_r, expiry, experiment_id, historical_n,
+    later_n, later_average_r, target_rate, stop_rate, strength,
+  ) in _PRACTICAL_DISCOVERY_ROWS
+)
+
+_legacy_by_id = {pattern["id"]: pattern for pattern in _preserved_eurusd_patterns}
+PRACTICAL_PATTERN_DEFINITIONS += (
+  _practical_pattern("EURUSD", "eurusd-us-payroll-short-restored", "US payroll", _legacy_by_id["us-payroll-short"]["sourceVersion"], list(_legacy_by_id["us-payroll-short"]["signatures"]), "forecast_quality", 2, 1, 6, "FMS-EURUSD-H4-E289", 55, 14, .2498051148, .3571428571, .0714285714, _legacy_by_id["us-payroll-short"]["condition"], "continuation", {"dimension": "none", "value": "all"}, "chronological_holdout", "stronger_history"),
+  _practical_pattern("EURUSD", "eurusd-consumer-sentiment-restored", "Euro-area consumer sentiment", _legacy_by_id["euro-consumer-sentiment-directional"]["sourceVersion"], list(_legacy_by_id["euro-consumer-sentiment-directional"]["signatures"]), "forecast_quality", 1, 2, 30, "FMS-EURUSD-H4-E291", 100, 26, .3847168593, .5, .5, _legacy_by_id["euro-consumer-sentiment-directional"]["condition"], "continuation", {"dimension": "none", "value": "all"}, "chronological_holdout", "stronger_history"),
+  {
+    **_practical_pattern("EURUSD", "eurusd-us-producer-inflation-cooling-restored", "US producer-inflation cooling package", _legacy_by_id["us-producer-inflation-cooling-long"]["sourceVersion"], list(_legacy_by_id["us-producer-inflation-cooling-long"]["signatures"]), "forecast_quality", 2, 1.25, 18, "FMS-EURUSD-H4-E293", 46, 11, .5249552155, .5454545455, .1818181818, _legacy_by_id["us-producer-inflation-cooling-long"]["condition"], "continuation", {"dimension": "none", "value": "all"}, "chronological_holdout", "stronger_history"),
+    "requiredExactTitles": tuple(_legacy_by_id["us-producer-inflation-cooling-long"].get("requiredExactTitles", ())),
+  },
+)
+
+PRACTICAL_PATTERN_DEFINITIONS = tuple({
+  **pattern,
+  "reactionAudit": registered_reaction_audit(str(pattern["market"]), str(pattern["id"])),
+} for pattern in PRACTICAL_PATTERN_DEFINITIONS)
+
 PRACTICAL_MODEL_HASH = hashlib.sha256(json.dumps(PRACTICAL_PATTERN_DEFINITIONS, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 FMS_RESEARCH_INTELLIGENCE = (
@@ -154,12 +235,6 @@ FMS_RESEARCH_INTELLIGENCE = (
     "conclusion": "Removed from the registered scanner until an entry-known treatment survives later data.",
   },
   {
-    "id": "eurusd-retail-sales-contender", "status": "contender", "market": "EURUSD",
-    "label": "Euro-area retail-sales improvement",
-    "evidence": "Restricted result was positive across development, holdout, recent, and 9/11 years, but the full contract grid reversed the selected edge.",
-    "conclusion": "Worth a fixed future retest; not stable enough for a Charts arrow.",
-  },
-  {
     "id": "eurusd-us-manufacturing-pmi-contender", "status": "contender", "market": "EURUSD",
     "label": "Aligned US manufacturing PMI",
     "evidence": "Later history was strongly positive, while the older development period was approximately flat.",
@@ -179,9 +254,9 @@ FMS_RESEARCH_INTELLIGENCE = (
   },
   {
     "id": "eurusd-us-consumer-inflation-avoid", "status": "avoid", "market": "EURUSD",
-    "label": "US consumer inflation direct mapping",
-    "evidence": "A small full-history positive result did not persist in the important later partitions.",
-    "conclusion": "Treat as context or volatility risk, not a standalone directional arrow.",
+    "label": "Broad US consumer inflation direct mapping",
+    "evidence": "The unrestricted all-case direction did not persist in important later partitions. This does not invalidate the separately registered ordinary-magnitude CPI package.",
+    "conclusion": "Avoid the broad mapping; use only the exact frozen magnitude-conditioned recipe shown in the registered list.",
   },
   {
     "id": "eurusd-us-consumer-sentiment-avoid", "status": "avoid", "market": "EURUSD",
@@ -222,6 +297,12 @@ def _registration_provenance(pattern: Dict[str, Any]) -> Dict[str, Any]:
   selected = result.get("selectedConfiguration") or {}
   audit = _research_store.latest_fms_qualification_audit(experiment_id)
   pooled = ((audit or {}).get("walkForward") or {}).get("pooled") or {}
+  benchmark_basis = str(benchmark.get("basis") or "qualification_pooled")
+  benchmark_partition = (
+    selected.get("holdout") or {}
+    if benchmark_basis == "chronological_holdout"
+    else pooled
+  )
   execution = pattern.get("execution") or {}
   expected_signatures = sorted(str(value) for value in pattern.get("signatures") or ())
   actual_signatures = sorted(str(value) for value in configuration.get("signatures") or ())
@@ -241,15 +322,16 @@ def _registration_provenance(pattern: Dict[str, Any]) -> Dict[str, Any]:
     "scoringPolicy": str(configuration.get("scoringPolicy") or result.get("scoringPolicy") or "") == str(pattern.get("scoringPolicy") or "forecast_quality"),
     "reaction": str(configuration.get("reaction") or result.get("reaction") or "continuation") == str(pattern.get("reaction") or "continuation"),
     "cohort": dict(configuration.get("cohort") or {"dimension": "none", "value": "all"}) == dict(pattern.get("cohort") or {"dimension": "none", "value": "all"}),
+    "requiredExactTitles": sorted(str(value) for value in configuration.get("requiredExactTitles") or ()) == sorted(str(value) for value in pattern.get("requiredExactTitles") or ()),
     "scoringEngine": str(configuration.get("scoringEngineVersion") or "") == WORKBENCH_SCORING_ENGINE_VERSION,
     "stopAtr": close(selected.get("stopAtr"), execution.get("stopAtr")),
     "targetR": close(selected.get("targetR"), execution.get("targetR")),
     "expiryCandles": int(selected.get("holdingCandles") or -1) == int(execution.get("expiryCandles") or -2),
     "historicalN": int(result.get("historicalN") or -1) == int(benchmark.get("historicalN") or -2),
-    "walkForwardN": int(pooled.get("n") or -1) == int(benchmark.get("walkForwardN") or -2),
-    "walkForwardAverageR": close(pooled.get("averageR"), benchmark.get("walkForwardAverageR")),
-    "targetFirstRate": close(pooled.get("targetRate"), benchmark.get("targetFirstRate")),
-    "stopFirstRate": close(pooled.get("stopRate"), benchmark.get("stopFirstRate")),
+    "walkForwardN": int(benchmark_partition.get("evaluableCount" if benchmark_basis == "chronological_holdout" else "n") or -1) == int(benchmark.get("walkForwardN") or -2),
+    "walkForwardAverageR": close(benchmark_partition.get("stressedAverageR" if benchmark_basis == "chronological_holdout" else "averageR"), benchmark.get("walkForwardAverageR")),
+    "targetFirstRate": close(benchmark_partition.get("targetHitRate" if benchmark_basis == "chronological_holdout" else "targetRate"), benchmark.get("targetFirstRate")),
+    "stopFirstRate": close(benchmark_partition.get("stopHitRate" if benchmark_basis == "chronological_holdout" else "stopRate"), benchmark.get("stopFirstRate")),
   }
   verified = all(checks.values())
   return {
@@ -2565,7 +2647,7 @@ def research_chart_signals(
         if normalized_mode == "current" else "immutable-replay"
       )
       response_cache_key = hashlib.sha256("|".join([
-        normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
+        "chart-response-v3", normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
         calendar_revision,
         *(f"{run['id']}:{run['datasetFingerprint']}" for run in run_headers if run),
       ]).encode("utf-8")).hexdigest()
@@ -2638,8 +2720,13 @@ def research_chart_signals(
     with _chart_signal_catalog_lock:
       _chart_signal_catalog_cache.clear()
       _chart_signal_catalog_cache[catalog_key] = catalog
+  definitions_by_id = {str(pattern["id"]): pattern for pattern in market_patterns}
   patterns = [
-    {**pattern, "registrationProvenance": _registration_provenance(pattern)}
+    {
+      **pattern,
+      "reactionAudit": (definitions_by_id.get(str(pattern["id"])) or {}).get("reactionAudit"),
+      "registrationProvenance": _registration_provenance(pattern),
+    }
     for pattern in catalog
     if normalized_mode == "research_replay" or pattern["currentEligible"]
   ]
@@ -2772,6 +2859,7 @@ def research_chart_signals(
       "eventTime": event_time,
       "direction": signal_candidate["direction"],
       "label": pattern["label"],
+      "evidenceReaction": "rejected" if str(pattern.get("reaction")) == "contrarian" else "followed",
       "agreement": candidate["agreement"],
       "pairVote": signal_candidate["pairVote"],
       "backgroundDirection": candidate["backgroundDirection"],
@@ -2811,13 +2899,14 @@ def research_chart_signals(
         signal["expiryTime"] = None
         signal["maximumAdverseR"] = None
         continue
+      path_horizon = max(30, int(signal["expiryCandles"]))
       profile = build_candidate_path_profile({
         "eventTime": int(signal["eventTime"]),
         "entryTime": int(signal["activationTime"]),
         "entry": float(signal["entry"]),
         "atr": float(signal["atr"]),
         "direction": str(signal["direction"]),
-      }, signal_candles, signal_candle_times, int(signal["expiryCandles"]))
+      }, signal_candles, signal_candle_times, path_horizon)
       if profile is None:
         signal["expiryTime"] = None
         signal["maximumAdverseR"] = None
@@ -2829,7 +2918,58 @@ def research_chart_signals(
         value for candle, value in zip(profile["candles"], profile["adverse"])
         if exit_time is None or int(candle["time"]) <= int(exit_time)
       ]
-      signal["maximumAdverseR"] = min(1.0, max(adverse, default=0.0) / float(signal["stopAtr"]))
+      favorable = [
+        value for candle, value in zip(profile["candles"], profile["favorable"])
+        if exit_time is None or int(candle["time"]) <= int(exit_time)
+      ]
+      stop_atr = float(signal["stopAtr"])
+      atr = float(signal["atr"])
+      pip_size = .01 if normalized_symbol.endswith("JPY") else .0001
+      maximum_favorable_atr = max(favorable, default=0.0)
+      maximum_adverse_atr = max(adverse, default=0.0)
+      maximum_favorable_r = maximum_favorable_atr / stop_atr
+      maximum_adverse_r = maximum_adverse_atr / stop_atr
+      signal["maximumAdverseR"] = maximum_adverse_r
+      fixed_horizon_responses = [
+        {
+          "holdingCandles": horizon,
+          "responseR": (
+            float(profile["sign"])
+            * (float(profile["candles"][horizon - 1]["close"]) - float(profile["entry"]))
+            / (atr * stop_atr)
+          ),
+        }
+        for horizon in (1, 3, 6, 12, 30)
+        if len(profile["candles"]) >= horizon
+      ]
+      six_h4_response = next((row for row in fixed_horizon_responses if row["holdingCandles"] == 6), None)
+      loss_observations: List[str] = []
+      if signal.get("resultR") is not None and float(signal["resultR"]) < 0:
+        if maximum_favorable_r >= .5:
+          loss_observations.append("favourable_then_giveback")
+        if maximum_favorable_r < float(signal["targetR"]):
+          loss_observations.append("target_not_reached_before_close")
+        if favorable and adverse and adverse.index(maximum_adverse_atr) < favorable.index(maximum_favorable_atr):
+          loss_observations.append("adverse_before_best_favourable_move")
+        if six_h4_response is not None and float(six_h4_response["responseR"]) <= 0:
+          loss_observations.append("direction_not_working_at_six_h4")
+        if signal.get("outcomeStatus") == "expired":
+          loss_observations.append("duration_ended_negative")
+      signal["pathAudit"] = {
+        "evidenceReaction": signal["evidenceReaction"],
+        "reactionHorizonCandles": 6,
+        "reactionResponseR": None if six_h4_response is None else float(six_h4_response["responseR"]),
+        "directionWorked": None if six_h4_response is None else float(six_h4_response["responseR"]) > 0,
+        "lossReview": loss_observations,
+        "maximumFavorableR": maximum_favorable_r,
+        "maximumFavorablePips": maximum_favorable_atr * atr / pip_size,
+        "maximumAdverseR": maximum_adverse_r,
+        "maximumAdversePips": maximum_adverse_atr * atr / pip_size,
+        "timeToMfeCandles": favorable.index(maximum_favorable_atr) + 1 if favorable else None,
+        "timeToMaeCandles": adverse.index(maximum_adverse_atr) + 1 if adverse else None,
+        "givebackR": maximum_favorable_r - float(signal.get("resultR")) if signal.get("resultR") is not None else None,
+        "fixedHorizonResponses": fixed_horizon_responses,
+      }
   latest_matched_event_at = max((int(signal["eventTime"]) for signal in signals), default=None)
   latest_arrow_at = max(
     (

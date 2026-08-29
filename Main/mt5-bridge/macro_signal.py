@@ -2648,6 +2648,11 @@ def build_workbench_experiment(
   reaction = str(configuration["reaction"])
   cohort = dict(configuration.get("cohort") or {})
   execution = dict(configuration["execution"])
+  required_exact_titles = {
+    normalize_title(str(title))
+    for title in configuration.get("requiredExactTitles", ())
+    if str(title).strip()
+  }
   source = next(
     (row for row in source_results if str(row["versionId"]) == source_version),
     None,
@@ -2685,17 +2690,30 @@ def build_workbench_experiment(
     dimension = str(cohort.get("dimension") or "none")
     value = str(cohort.get("value") or "all")
     observed_value = str(robustness.get(dimension, "unknown"))
-    included = (
+    cohort_included = (
       dimension == "none"
       or observed_value == value
       or (dimension == "relativeMagnitude" and value == "upper_tail" and observed_value in {"large", "exceptional"})
     )
+    observed_titles = {
+      normalize_title(str(event.get("title") or ""))
+      for event in outcome.get("events", ())
+    }
+    exact_package_included = not required_exact_titles or required_exact_titles.issubset(observed_titles)
+    included = cohort_included and exact_package_included
+    if not exact_package_included:
+      missing_titles = sorted(required_exact_titles - observed_titles)
+      inclusion_reason = f"Excluded: exact package missing {', '.join(missing_titles)}"
+    elif not cohort_included:
+      inclusion_reason = f"Excluded: {dimension} is {robustness.get(dimension, 'unknown')}, not {value}"
+    else:
+      inclusion_reason = "Included by Cases included"
     audit_rows.append({
       **outcome,
       "signature": outcome_signature,
       "numericRobustness": robustness,
       "included": included,
-      "inclusionReason": "Included by Cases included" if included else f"Excluded: {dimension} is {robustness.get(dimension, 'unknown')}, not {value}",
+      "inclusionReason": inclusion_reason,
     })
     if not included:
       continue
@@ -2838,6 +2856,20 @@ def build_workbench_experiment(
         continue
       risk_distance = float(profile["atr"]) * stop_atr
       sign = float(profile["sign"])
+      exit_time = simulation.get("exitTime")
+      favorable = [
+        value for candle, value in zip(profile["candles"], profile["favorable"])
+        if exit_time is None or int(candle["time"]) <= int(exit_time)
+      ]
+      adverse = [
+        value for candle, value in zip(profile["candles"], profile["adverse"])
+        if exit_time is None or int(candle["time"]) <= int(exit_time)
+      ]
+      maximum_favorable_atr = max(favorable, default=0.0)
+      maximum_adverse_atr = max(adverse, default=0.0)
+      maximum_favorable_r = maximum_favorable_atr / stop_atr
+      maximum_adverse_r = maximum_adverse_atr / stop_atr
+      pip_size = .01 if str(configuration.get("market") or "").endswith("JPY") else .0001
       contract_results[contract_key].append({
         **simulation,
         "caseId": hashlib.sha256(f"{source_version}|{simulation['eventTime']}|{profile['outcome'].get('signature', signature)}".encode("utf-8")).hexdigest()[:16],
@@ -2849,6 +2881,23 @@ def build_workbench_experiment(
         "targetR": target_r,
         "targetAtr": stop_atr * target_r,
         "holdingCandles": duration,
+        "pathAudit": {
+          "maximumFavorableR": maximum_favorable_r,
+          "maximumFavorablePips": maximum_favorable_atr * float(profile["atr"]) / pip_size,
+          "maximumAdverseR": maximum_adverse_r,
+          "maximumAdversePips": maximum_adverse_atr * float(profile["atr"]) / pip_size,
+          "timeToMfeCandles": favorable.index(maximum_favorable_atr) + 1 if favorable else None,
+          "timeToMaeCandles": adverse.index(maximum_adverse_atr) + 1 if adverse else None,
+          "givebackR": maximum_favorable_r - float(simulation["resultR"]) if simulation.get("resultR") is not None else None,
+          "fixedHorizonResponses": [
+            {
+              "holdingCandles": horizon,
+              "responseR": sign * (float(profile["candles"][horizon - 1]["close"]) - float(profile["entry"])) / risk_distance,
+            }
+            for horizon in (1, 3, 6, 12, 30)
+            if len(profile["candles"]) >= horizon
+          ],
+        },
       })
   selected_contract_key = f"{float(selected['stopAtr']):g}|{float(selected['targetR']):g}|{int(selected['holdingCandles'])}"
   return {
@@ -2860,6 +2909,7 @@ def build_workbench_experiment(
     "directionSelection": str(configuration.get("directionSelection") or ("both" if len(signatures) > 1 else signatures[0].split("|", 1)[0])),
     "scoringPolicy": scoring_policy,
     "cohort": cohort,
+    "requiredExactTitles": sorted(required_exact_titles),
     "reaction": reaction,
     "historicalN": len(profiles),
     "splitTime": split_time,

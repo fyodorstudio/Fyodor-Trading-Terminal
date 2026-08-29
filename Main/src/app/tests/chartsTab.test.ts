@@ -128,12 +128,20 @@ describe("getChartConnectionLabel", () => {
       historicalReplay: true, direction: "long", label: "US labor claims improvement", agreement: "consensus", pairVote: 1,
       backgroundDirection: "short", backgroundPairVote: -1, backgroundAlignment: "aligned", backgroundCoverageComplete: true,
       highestImpact: "high", events: [], outcomeStatus: "target_hit", resultR: .5, exitTime: 28_800,
+      evidenceReaction: "followed",
+      pathAudit: {
+        evidenceReaction: "followed", reactionHorizonCandles: 6, reactionResponseR: .65, directionWorked: true, lossReview: ["favourable_then_giveback", "target_not_reached_before_close"], maximumFavorableR: 1.39, maximumFavorablePips: 69,
+        maximumAdverseR: .4, maximumAdversePips: 20, timeToMfeCandles: 18,
+        timeToMaeCandles: 2, givebackR: .89,
+        fixedHorizonResponses: [{ holdingCandles: 6, responseR: .65 }, { holdingCandles: 30, responseR: -.58 }],
+      },
     };
     const html = renderToStaticMarkup(createElement(ChartMacroBiasAudit, { data: {
       signal,
       pattern: {
         id: "pattern", market: "USDCAD", signature: "long|USD:labor_claims", signatures: ["long|USD:labor_claims"], sourceVersionId: "v2", label: "US labor claims improvement", condition: "Long USDCAD when claims evidence improves.", execution: { stopAtr: 2, targetR: .5, expiryCandles: 42 }, direction: "long", groups: ["USD:labor_claims"],
         historicalBenchmark: { experimentId: "FMS-USDCAD-H4-E030", historicalN: 178, walkForwardN: 67, walkForwardAverageR: .143, targetFirstRate: .776, stopFirstRate: .224, status: "historically_profitable" },
+        reactionAudit: { schema: "registered-reaction-audit-v1", scope: "chronological later-test cases", horizonCandles: 6, evaluableN: 67, directionWorkedTradeProfited: 30, directionWorkedTradeLost: 7, directionFailedTradeProfited: 8, directionFailedTradeLost: 22, positiveResponseRate: .552, medianResponseR: .18 },
         registrationProvenance: { status: "verified", experimentId: "FMS-USDCAD-H4-E030", configurationHash: "config", datasetFingerprint: "data", qualificationAuditId: "audit", checks: { market: true }, note: "Verified against the immutable experiment." },
         overall: metrics, development: metrics, holdout: metrics, qualification: {}, exampleTitles: [], modelStatus: "current", currentEligible: true,
         modelChecks: {}, executionStress: { pips: 3, overall: { ...metrics, averageR: 0.087 }, development: metrics, holdout: metrics, recent: metrics },
@@ -153,6 +161,18 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Long USDCAD");
     expect(html).not.toContain("Long EURUSD");
     expect(html).toContain("Why the arrow appeared");
+    expect(html).toContain("Reaction versus trade result");
+    expect(html).toContain("Follows evidence");
+    expect(html).toContain("Direction after 6 H4");
+    expect(html).toContain("Worked");
+    expect(html).toContain("Loss-path observations");
+    expect(html).toContain("Favourable move, then giveback");
+    expect(html).toContain("Best open profit");
+    expect(html).toContain("+1.39R");
+    expect(html).toContain("+69.0 pips");
+    expect(html).toContain("Direction worked after 6 H4");
+    expect(html).toContain("Worked, but trade lost");
+    expect(html).toContain("Different measurements:");
     expect(html.indexOf("US labor claims improvement")).toBeLessThan(html.indexOf("Release time"));
     expect(html).toContain("Closed — target reached");
     expect(html).toContain("Later price movement does not change this result");
@@ -176,6 +196,7 @@ describe("getChartConnectionLabel", () => {
       id: "sentiment", signature: "long|EUR:consumer_sentiment", signatures: ["long|EUR:consumer_sentiment", "short|EUR:consumer_sentiment"],
       sourceVersionId: "v3", label: "Euro-area consumer sentiment", condition: "Long if sentiment improves; Short if it weakens.", execution: { stopAtr: 1, targetR: 2, expiryCandles: 30 }, direction: "both",
       market: "EURUSD", scoringPolicy: "forecast_quality", historicalBenchmark: { experimentId: "FMS-EURUSD-H4-E197", historicalN: 48, walkForwardN: 35, walkForwardAverageR: .14, targetFirstRate: .75, stopFirstRate: .17, status: "historically_profitable" },
+      reactionAudit: { schema: "registered-reaction-audit-v1", scope: "chronological later-test cases", horizonCandles: 6, evaluableN: 35, directionWorkedTradeProfited: 20, directionWorkedTradeLost: 4, directionFailedTradeProfited: 3, directionFailedTradeLost: 8, positiveResponseRate: 24 / 35, medianResponseR: .22 },
       groups: ["EUR:consumer_sentiment"], overall: metrics, development: metrics, holdout: metrics, qualification: {}, exampleTitles: [],
       modelStatus: "current", currentEligible: true, modelChecks: {}, executionStress: { pips: 3, overall: metrics, development: metrics, holdout: metrics, recent: metrics },
       recentWindow: { from: 0, to: 1, metrics }, yearStability: { evaluableYears: 10, positiveYears: 7, positiveYearShare: .7, byYear: [] },
@@ -248,6 +269,11 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Now");
     expect(html).toContain("Relevant event");
     expect(html).toContain("Historical result");
+    expect(html).toContain("Next registered release");
+    expect(html).toContain("Starts in");
+    expect(html).toContain("Calculating…");
+    expect(html).toContain("Latest matching release");
+    expect(html).toContain("Later-test history");
     expect(html).toContain("Watching");
     expect(html).toContain("Possible next setup");
     expect(html).toContain("Automatically selected from registered setups");
@@ -257,7 +283,8 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Show");
     expect(html).toContain("FMS-EURUSD-H4-E197");
     expect(html).toContain("Best average result");
-    expect(html).toContain("Highest TP-first rate");
+    expect(html).toContain("Highest TP-before-SL");
+    expect(html).toContain("Soonest registered release");
     expect(html).toContain("2 markets live");
     expect(html).toContain("GBPUSD · US industrial-production package");
     expect(html).toContain("What history says");
@@ -273,6 +300,11 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("75.0%");
     expect(html).toContain("17.0%");
     expect(html).toContain("+0.14R");
+    expect(html).toContain("Direction worked + trade profited");
+    expect(html).toContain("Direction worked + trade lost");
+    expect(html).toContain("Direction failed + trade profited");
+    expect(html).toContain("Direction failed + trade lost");
+    expect(html).toContain("Direction and execution are separate:");
     expect(html).toContain("$1,000.00");
     expect(html).toContain("One position at a time");
     expect(html).toContain("spread, commission, slippage, and swap are excluded");

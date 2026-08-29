@@ -1,7 +1,7 @@
 # Fyodor Macro Signal Research
 
 **Date:** 2026-08-26
-**Status:** Source models remain immutable research inputs. Charts and global Shadow Trader use `FMS-REGISTERED-REACTION-H4-v3`: 16 reconciled recipes across six major pairs, with frozen scoring, case filter, continuation/rejection mapping, and execution contract. Historical arrows remain hindsight replay; current monitoring uses immutable first-seen observations only. USDCHF remains research-only. Nothing is an automatic order or guaranteed edge.
+**Status:** Source models remain immutable research inputs. Charts and global Shadow Trader use `FMS-REGISTERED-REACTION-H4-v4`: 47 reconciled recipes across seven major pairs, with frozen scoring, case filter, continuation/rejection mapping, and execution contract. Historical arrows remain hindsight replay; current monitoring uses immutable first-seen observations only. Eleven marginal positive histories are explicitly labelled fragile. Nothing is an automatic order or guaranteed edge.
 
 **AI working-memory rule:** This is the single canonical FMS research record for future AI sessions. Preserve decisions, failed trials, candidate diagnoses, and unresolved ideas here so research is not reconstructed from chat memory. Do not create a second FMS roadmap unless the user explicitly changes this rule.
 
@@ -741,6 +741,283 @@ The ordinary-magnitude GBPUSD labor-claims rule replaced its weaker all-case pre
 The atlas found no practical USDCHF registration. Upper-tail magnitude produced no broad improvement and often removed too much history. Policy decisions/guidance also produced no practical standalone directional recipe in this pass; policy remains context. Inflation did produce pair-specific recipes, but that does not justify a universal heating/cooling trade rule. The Workbench now exposes the complete pair atlas, while Shadow Trader exposes registered, contender, and avoid-directional-use evidence.
 
 This completes the previously paused v3 implementation. Richer policy-language interpretation, volatility-only classification, combined macro/context models, and additional forward observations remain future research—not missing parts of the active v3 contract.
+
+### Deferred Shadow Trader Watchlist and Reaction Review - 2026-08-29
+
+The next Shadow Trader pass should use one stable vocabulary instead of overlapping terms:
+
+- **TP-before-SL rate** is the trade hit rate for the row's exact frozen SL, TP, and expiry. This is the only user-facing name for that percentage. It is contract-dependent and must not be relabelled as proof that price respected the news.
+- **Evidence reaction** has only two directional labels: `Followed evidence` when the tested price direction matches the economic score, and `Rejected evidence` when the repeatable rule trades opposite it. `No dependable reaction` remains research/avoid rather than a registered trade rule.
+- **Average per trade (R)** remains the common profitability result. A low TP-before-SL rate must not automatically disqualify a large-TP setup when its later walk-forward average R is positive.
+
+Deferred Shadow Trader UI work:
+
+- Increase the registered-contract line (`SL 0.75 ATR · TP 4R · 6 H4`, etc.) by approximately 2px and strengthen its contrast without competing with the setup title.
+- Add `Soonest registered release` sorting. Future registered releases sort by remaining countdown ascending; rows without a loaded future release appear last. Countdown sorting changes attention order only, never setup quality.
+- Make `Highest TP-before-SL` the default at the user's explicit preference. Keep `Best average result` available and retain a short explanation that TP-before-SL percentages cannot be compared as if every row used the same target.
+- Rename `Pair / setup` sorting to `Pair / setup (A–Z)`. It means alphabetical market symbol first and setup name second; it is not a performance grouping.
+- Display the setup's Evidence reaction as `Followed evidence` or `Rejected evidence` so a successful contrarian rule is unmistakable.
+
+The current Reaction v3 registry contains only one reconstructed EURUSD recipe: US industrial production. Older EURUSD registrations must not be silently discarded or silently restored. Rebuild Euro-area consumer sentiment, US payrolls, and US producer-inflation cooling as new immutable experiments under the current pair-orientation, Forecast Guard/relative-magnitude, exact-package, and later walk-forward engine. Compare each old fixed contract with a predeclared coarse contract matrix selected on development history only. Restore a recipe only when its exact current-engine later walk-forward average remains positive; otherwise classify it explicitly as a contender or avoid-directional-use result and preserve the reason.
+
+Run a dedicated rejection-pattern review after the EURUSD reconstruction. The Reaction Atlas already tested both follow and reject directions, so this review must audit and surface its strongest non-duplicated rejection results rather than invent unrestricted filters. For every sufficiently sampled package, retain one of `Followed evidence`, `Rejected evidence`, or `No dependable reaction`, together with its fixed contract, later N, TP-before-SL rate, and average R. Rejection is a successful discovery when the opposite mapping remains historically positive under a frozen, no-lookahead walk-forward recipe.
+
+#### Separate Evidence Reaction from Trade Execution
+
+The GBPUSD US-labor-claims release at `15:30 · 23 Jul 2026 · UTC` is the canonical motivating case. The frozen Short entered at `1.33418`, initially moved approximately 69 pips in the expected direction to `1.32728` (about `+1.39R` maximum favourable excursion), but its `2 ATR SL / 4R TP` contract required a target near `1.31434`. Price later reversed and crossed the `1.33914` stop during the `12:00 · 30 Jul 2026 · UTC` H4 candle. The immutable trade result is correctly `SL reached · -1R`; the initial evidence reaction was nevertheless directionally correct. Later decline after the stop is outside that trade lifecycle.
+
+FMS must therefore answer two separate questions for every registered recipe and historical case:
+
+1. **Did price respond to the evidence?** Classify the frozen pair/event mapping as `Followed evidence`, `Rejected evidence`, or `No dependable reaction`, using direction-adjusted price response at predeclared `1/3/6/12/30 H4` horizons.
+2. **Did the declared trade contract monetize that response?** Report TP-before-SL, SL-before-TP, expiry, result R, and average R for the exact SL/TP/duration contract.
+
+Do not call a stopped trade a direction failure when it first produced meaningful favourable movement. Do not call favourable movement a profitable trade when the declared exit was never achieved. Shadow Trader and arrow audits should display both without allowing either to overwrite the other.
+
+Use a four-outcome audit instead of one overloaded `win/loss` label:
+
+| Evidence reaction | Frozen trade | Meaning |
+| --- | --- | --- |
+| Followed | Profitable | The directional rule and execution contract both worked. |
+| Followed | Unprofitable | The direction had information, but the entry/SL/TP/expiry failed to monetize it. |
+| Rejected | Profitable | The registered contrarian rule and its execution contract both worked. |
+| Rejected or wrong | Unprofitable | The directional premise failed and execution did not rescue it. |
+
+This table is descriptive, not a new scoring input. A case may move favourably first and still stop later; classification must therefore use predeclared horizons and thresholds, never the most flattering future point chosen after seeing the chart.
+
+#### Two Independent Research Gates
+
+Treat signal quality and trade quality as separate gates:
+
+1. **Reaction gate:** determine whether the exact frozen evidence mapping has a repeatable direction at declared `1/3/6/12/30 H4` horizons. Report positive-response rate, median direction-adjusted return, distribution, MFE/MAE, and N. Do not use TP-before-SL as a synonym for direction accuracy.
+2. **Execution gate:** determine whether a fully declared entry, SL, TP, expiry, and management rule produces positive later walk-forward average R. Report TP-before-SL, SL-before-TP, expiry, ambiguity, average R, drawdown, losing streak, and N.
+
+A recipe may remain valuable reaction knowledge when it fails the execution gate. It may become a registered trade setup only when one immutable execution contract also survives its later walk-forward evaluation. This prevents FMS from discarding a useful directional event merely because its first tested target was too ambitious, while also preventing favourable hindsight movement from being sold as a tradable profit.
+
+Add the following immutable path diagnostics to completed-case audits and aggregate recipe summaries:
+
+- maximum favourable excursion (MFE) in R and pips before the trade closes;
+- maximum adverse excursion (MAE) in R and pips;
+- time/candle count to MFE and MAE;
+- direction-adjusted return after `1/3/6/12/30 H4` candles;
+- percentage of cases with positive direction-adjusted response at each horizon;
+- median response and distribution, not only the average;
+- how frequently price reached `+0.5R`, `+1R`, `+1.5R`, `+2R`, `+3R`, and `+4R` before the original stop;
+- giveback from MFE to the final trade result.
+
+Research execution as a separate challenger layer while preserving the registered parent signal:
+
+- fixed TP challengers across the existing declared R grid;
+- maximum-duration challengers across the existing H4 grid;
+- break-even challengers activated only after predeclared favourable thresholds;
+- ATR trailing-stop challengers with predeclared activation and distance;
+- optional staged/partial-exit challengers only after single-exit results are understood;
+- development-only contract selection followed by untouched later walk-forward evaluation;
+- nearby-contract stability, drawdown, losing streak, and omitted-cost diagnostics remain visible.
+
+Never retrofit a break-even or trailing rule because it rescues this one GBPUSD example. The case identifies the research question; historical development data selects a challenger; later walk-forward data judges it. A replacement execution contract may be promoted only as a new immutable recipe version, while the original result remains reproducible.
+
+For each parent reaction recipe, use this controlled execution sequence:
+
+1. reproduce the original frozen contract unchanged;
+2. build one reusable path artifact from post-entry M1/H4 candles so challengers do not repeatedly rescan price history;
+3. test only the predeclared coarse SL/TP/expiry matrix on development data;
+4. allow at most a small declared set of break-even/trailing challengers after the fixed-exit comparison;
+5. freeze the development-selected challenger before reading later walk-forward results;
+6. retain both the original and challenger records, including failures;
+7. promote the challenger only if its later average R is positive and the improvement is not explained by one year, one package, or a few extreme trades.
+
+MFE is an audit measurement, not an exit price known in real time. `Best open profit` must never be counted as realized R unless a predeclared exit rule could actually have captured it. Same-candle SL/TP ordering must continue to use M1 when available and remain ambiguous when even M1 cannot establish order.
+
+#### Planned Shadow Trader Presentation
+
+Keep the watchlist compact, but let an opened setup audit state the complete result hierarchy in plain language:
+
+- `Evidence reaction: Followed / Rejected / No dependable reaction`;
+- `Best open profit before close: +x.xxR · x pips`;
+- `Final trade result: TP / SL / Expired · x.xxR`;
+- `Why they differ`, when meaningful favourable movement was later surrendered;
+- exact entry, stop, target, expiry, and close timestamps;
+- aggregate TP-before-SL, average R, reaction-follow/reject rate at the selected fixed horizon, and later N.
+
+The watchlist remains action-oriented: countdown and current state first, setup identity and reaction type second, historical trade expectancy third. Detailed path diagnostics belong in the arrow audit or an expanded row, not squeezed into the fixed watchlist columns.
+
+#### Grand Implementation Pass: More Registrations and Actionable Reaction Knowledge
+
+The next implementation goal is not merely another UI pass. It must leave FMS with more honestly registered, non-duplicated setups where the available history supports them, and with a reusable explanation for cases where a correct initial reaction did not become a profitable frozen trade.
+
+Execute this as one traceable pipeline:
+
+1. **Freeze the discovery protocol before reviewing new winners.** Reuse the completed seven-pair Reaction Atlas and its declared scoring policies, magnitude treatments, follow/reject directions, response horizons, and coarse execution grid. Do not invent a title filter after seeing its result.
+2. **Use a practical registration gate.** A recipe may enter the practical registry when its immutable current-engine experiment has enough usable history and positive gross average R in development, later walk-forward, recent, and overall partitions. Statistical intervals, year stability, neighbouring contracts, drawdown, sample size, and omitted costs remain visible risk diagnostics; an academic lower-bound test is not an automatic veto. Marginal positive results must be labelled as such rather than presented as equally strong.
+3. **Prevent duplicate or contradictory registrations.** Deduplicate by market plus exact package identity. If follow and reject mappings compete for the same package, retain the development-selected mapping and show the losing alternative in research diagnostics; never emit simultaneous opposing arrows from the same release package.
+4. **Materialize every surviving rule as immutable evidence.** Each registration must reference its experiment id, dataset fingerprint, scoring policy, magnitude treatment, direction mapping, entry rule, SL, TP, expiry, activation boundary, development result, later result, recent result, TP-before-SL rate, and average R. A setup does not become registered from an Atlas summary alone.
+5. **Reconstruct the missing EURUSD legacy ideas under the current engine.** Re-audit Euro-area consumer sentiment, US payrolls, and the exact US producer-inflation cooling package. Preserve exact-title/package semantics. Compare the old declared contract with the predeclared coarse matrix, using development only for selection. Restore only positive current-engine survivors; otherwise preserve them as contender or avoid knowledge.
+6. **Mine the remaining non-duplicated practical survivors across all seven pairs.** Prioritize candidates whose development, later, recent, and overall gross averages are all positive, including valid rejection mappings. Do not require a high TP-before-SL percentage when a larger target still gives positive later average R. Do not register a result merely because one partition or one historical year is spectacular.
+7. **Reconcile the live product from immutable records.** Update the registered-reaction model, Charts arrows, signal audits, and global Shadow Trader from the exact same registry source. There must be no handwritten UI-only setup and no registered backend setup missing from the watchlist.
+8. **Add the reaction-versus-execution audit.** For each historical signal, calculate MFE, MAE, time to each extreme, fixed-horizon direction-adjusted responses, threshold reaches, giveback, and final frozen-contract result. The GBPUSD labor-claims case must visibly read as an initially followed reaction that later stopped out, not as either an unqualified success or an unexplained contradiction.
+9. **Keep execution research subordinate and reproducible.** Break-even, trailing, different expiry, and staged exits are challengers to an existing signal recipe. Select them on development history and audit them later; never rewrite the original trade result or retrofit the July GBPUSD case.
+10. **Make Shadow Trader operationally scannable.** Default to `Highest TP-before-SL`; add `Soonest registered release`, `Best average result`, and `Pair / setup (A-Z)`. Enlarge contract text, show countdowns, display `Followed evidence` or `Rejected evidence`, and keep average R beside the exact TP/SL contract. Expanded audits carry path details; fixed watchlist rows remain compact.
+11. **Publish a reaction/execution matrix for every recipe.** Aggregate the four outcomes above, show the declared reaction horizon, and let users distinguish `direction worked, trade failed` from `direction failed`. Never collapse these into one accuracy percentage.
+12. **Use loss review to create hypotheses, not exceptions.** Cluster losses by failure mode: wrong direction immediately, adverse move before favourable move, favourable move then full giveback, target too distant, expiry too short, or unresolved intrabar order. Any proposed remedy must be tested across the complete parent recipe, not applied only to the chart that inspired it.
+13. **Stop expanding a recipe honestly.** Mark execution research exhausted when the declared fixed matrix and small management challenger set fail later walk-forward profitability or produce unstable neighbouring results. Preserve the reaction finding and move to another family/pair instead of adding bespoke filters.
+
+Registration strength should be communicated in plain language without changing whether the setup exists:
+
+- **Stronger history:** positive development, later, recent, and overall averages with useful N and broad stability.
+- **Positive but fragile:** positive required averages but small N, weak interval, concentrated years, unstable neighbours, or large drawdown.
+- **Contender:** interesting reaction or expectancy that fails one required positive partition or lacks enough later history.
+- **Avoid standalone direction:** repeated evidence that the economic sign by itself does not provide a dependable directional rule.
+
+The pass is complete only when all of the following are proven from current artifacts, not inferred from code intent:
+
+- every newly registered setup has a reproducible immutable experiment and later walk-forward result;
+- no market/package has conflicting live directions or duplicate release-package arrows;
+- the three legacy EURUSD recipes have an explicit reconstructed outcome;
+- Charts and Shadow Trader expose the same expanded registry;
+- the GBPUSD `23 Jul 2026` case shows both its favourable excursion and its eventual stop result;
+- every registered row exposes separate reaction and execution gates, their horizons/contracts, and their four-outcome counts;
+- no MFE or best-future-path value is presented as realized profit;
+- sorting, countdown, reaction labels, and larger contract text work without clipped rows or whole-page overflow;
+- targeted bridge/frontend tests, TypeScript typecheck, production build, and `git diff --check` pass;
+- the user manually audits Charts and Shadow Trader at `1440x900`, `100%` Chrome zoom because automated browser auditing remains intentionally excluded.
+
+This pass may discover that some markets genuinely have no additional practical survivor. That is still valuable knowledge, but it is not permission to stop after querying only the existing strict candidate list. The implementation must run the declared practical screen, reconstruct the missing EURUSD ideas, inspect rejection mappings, materialize all survivors, and preserve every rejected result with its exact reason before calling the dataset exhausted.
+
+### Registered Reaction v4 Implementation Result - 2026-08-29
+
+The declared practical screen and EURUSD reconstruction are complete. `FMS-REGISTERED-REACTION-H4-v4` contains 47 non-duplicated immutable registrations:
+
+| Market | Registered setups |
+| --- | ---: |
+| EURUSD | 9 |
+| GBPUSD | 5 |
+| USDJPY | 13 |
+| AUDUSD | 5 |
+| USDCAD | 7 |
+| NZDUSD | 5 |
+| USDCHF | 3 |
+
+All 47 rows reconcile with completed immutable experiments. No market/package identity has simultaneous continuation and rejection registrations. Thirty-six registrations are labelled `Stronger history`; eleven small, concentrated, or near-zero later-positive survivors remain available but visibly labelled `Positive but fragile` rather than being presented as equivalent evidence.
+
+The missing EURUSD ideas were reconstructed under the current engine rather than copied from old summaries:
+
+- US payroll: later `N 14`, approximately `+0.250R` under `2 ATR / 1R / 6 H4`;
+- Euro-area consumer sentiment: later `N 26`, approximately `+0.385R` under `1 ATR / 2R / 30 H4`;
+- exact four-title US producer-inflation cooling package: later `N 11`, approximately `+0.525R` under `2 ATR / 1.25R / 18 H4`.
+
+The registered-reaction audit now freezes a separate six-H4 direction check over chronological later-test cases. This produced an important finding: **positive trade expectancy and short-horizon directional alignment are not interchangeable**. Several profitable frozen contracts have fewer than half of later cases positive at exactly six H4 candles, while their asymmetric targets, expiry results, or longer paths still produce positive average R. Conversely, a case can move correctly at six H4 and later stop. Therefore:
+
+- TP-before-SL must not be renamed directional accuracy;
+- a registered continuation/rejection mapping describes the frozen recipe, not a promise that every case follows it;
+- Shadow Trader must show both the six-H4 reaction result and the final frozen trade result;
+- the reaction horizon is a diagnostic and does not replace the registered execution contract;
+- future execution tuning must optimize on development history and validate later, rather than choosing the most flattering horizon per setup after inspection.
+
+The canonical GBPUSD labor-claims case reproduces this distinction exactly: the Short produced about `+1.39R` / `69 pips` MFE, remained positive after 1, 3, 6, and 12 H4 candles, then reversed and stopped at `-1R`; its 30-H4 direction-adjusted response was negative. FMS now retains the initial information and the failed trade without rewriting either.
+
+### Grand Plan: Reaction-First FMS Refinement
+
+The next goal is not to loosen every rule until more arrows appear, nor to treat the current `47` registrations as finished trading systems. It is to separate three questions that the earlier UI and research sometimes blended together:
+
+1. **Was the economic interpretation correct?** The package produced a frozen Long or Short mapping from information available at release time.
+2. **Did price respect that direction?** Direction-adjusted price response is measured independently at fixed horizons and through the complete post-entry path.
+3. **Could a declared trade contract monetize it?** Entry, SL, TP, expiry, and optional management rules determine the realized simulated R result.
+
+The GBPUSD labor-claims example is the reference case: the answer was `yes`, `yes initially`, and `no` respectively. This is valuable evidence, not a contradiction and not permission to rewrite the loss.
+
+#### Phase 1 - Freeze truth before further tuning
+
+- Preserve `FMS-REGISTERED-REACTION-H4-v4` and all 47 recipes as an immutable baseline. Any changed scoring, reaction horizon, or execution rule creates a new challenger; it never edits v4 history.
+- Reconcile every arrow, Workbench experiment, Reaction Atlas row, and Shadow Trader row to one immutable experiment id, dataset fingerprint, exact package identity, pair orientation, direction mapping, and execution contract.
+- Finish golden raw-row cases for each setup so Actual/Forecast/Previous values, score direction, entry candle, and outcome cannot silently disagree across surfaces.
+- Treat gross historical expectancy as research evidence only. Spread, slippage, commission, swap, first-seen latency, and real fills remain unresolved until measured rather than guessed.
+
+#### Phase 2 - Build a reaction curve for every recipe
+
+- Calculate direction-adjusted returns at `1/3/6/12/18/30/42/60 H4` from the first strictly later H4 entry, using only candles after that entry.
+- Retain positive-response rate, median and mean response R, distribution bands, MFE, MAE, time to MFE/MAE, and giveback for every horizon.
+- Select at most one **declared reaction horizon** per recipe using development history only. Later walk-forward and recent periods judge that choice; they never select it.
+- Classify the recipe in plain language:
+  - `Usually followed` when the frozen evidence direction repeats sufficiently at its declared horizon;
+  - `Usually rejected` when the opposite direction repeats sufficiently;
+  - `Volatility response only` when movement is material but direction is unstable;
+  - `No dependable reaction` when neither direction nor volatility behavior is stable.
+- Never equate TP-before-SL with directional respect. Display both measurements side by side.
+
+#### Phase 3 - Turn losing trades into aggregate research questions
+
+- Classify every losing case, without changing its result, as one or more of:
+  - `Wrong direction early`;
+  - `Adverse move before favourable move`;
+  - `Favourable move, then giveback`;
+  - `Target exceeded the typical favourable path`;
+  - `Expiry ended before the typical reaction matured`;
+  - `Stop too close for the typical adverse path`;
+  - `Both levels touched inside one M1 candle - order unknown`;
+  - `No dependable path pattern`.
+- Aggregate those labels per recipe and pair. One memorable chart may reveal a question, but only the complete parent sample may justify a challenger.
+- Add path-efficiency diagnostics: percentage reaching `+0.25/+0.5/+1/+1.5/+2/+3/+4R`, percentage giving back half or all MFE, median favourable/adverse excursion, and time-to-threshold distributions.
+- Do not present MFE, an ideal exit, or the best observed threshold as realized profit.
+
+#### Phase 4 - Test a small predeclared execution challenger set
+
+- Keep the economic direction and case membership frozen while testing execution. This prevents a better exit from being mistaken for a better signal.
+- Use a bounded, declared grid rather than unrestricted optimization:
+  - SL: `0.75/1/1.5/2 ATR`;
+  - TP: `0.5/1/1.5/2/3/4R`;
+  - maximum duration: `6/12/18/30/42/60 H4`.
+- Add only a small management challenger set after the fixed grid is audited:
+  - original fixed exit;
+  - break-even after a declared favourable threshold;
+  - one ATR-based trailing rule activated after a declared threshold;
+  - time exit at the recipe's development-selected reaction horizon.
+- Select one challenger on development history using average R, drawdown, neighbouring-contract stability, and adequate N. The untouched later walk-forward period determines whether it survives.
+- Reject a challenger that merely rescues a single case, depends on a tiny subgroup, or improves average R by concentrating profit in one year.
+
+#### Phase 5 - Maintain two honest knowledge layers
+
+- **Reaction knowledge:** packages that show repeatable follow, rejection, or volatility behavior, even when no profitable execution contract survives.
+- **Trade registry:** the non-duplicated subset whose frozen direction and one fixed execution contract retain positive later walk-forward expectancy.
+- A reaction-qualified recipe is not automatically a trade. A trade-qualified recipe must always retain its parent reaction audit.
+- Preserve negative results as `Avoid standalone direction` or `Execution exhausted`; they tell the user which releases should not be traded from their economic sign alone.
+
+#### Phase 6 - Promote only reproducible improvements
+
+- A new registered setup or replacement contract must have positive development, later walk-forward, recent, and overall gross average R under one immutable recipe.
+- Small N, weak intervals, unstable years, concentrated profits, large drawdown, or fragile neighbouring parameters do not automatically erase positive history, but they must remain prominent strength labels.
+- Deduplicate by pair plus exact release package. Competing follow/reject mappings cannot both produce a live arrow for the same package.
+- Prefer a simpler neighbouring contract when performance is materially similar. Do not publish the single sharp historical maximum.
+- Stop searching a parent recipe after the declared grid and management challengers are exhausted. Move to another family or pair instead of creating bespoke filters.
+
+#### Phase 7 - Make Shadow Trader usable without hiding uncertainty
+
+- The watchlist should answer, in order: `What is being hunted?`, `When is the next release?`, `What would open Long/Short/No trade?`, `What fixed contract would be used?`, and `How has this exact recipe behaved later in history?`.
+- Each active or historical decision should show:
+  - triggering package and frozen A/F/P evidence;
+  - evidence direction and declared reaction horizon;
+  - whether this case followed or rejected the evidence;
+  - best/worst path and giveback;
+  - final frozen trade result;
+  - aggregate reaction rate, TP-before-SL, average R, later N, and strength label.
+- The global setup table should support `Soonest release`, `Highest average R`, `Highest TP-before-SL`, and `Pair/setup A-Z`, while explaining that the first two performance statistics answer different questions.
+- `No trade` must state the exact failed rule. Missing, zero, conflicting, partial, or Forecast-guarded evidence must never be collapsed into a vague status.
+
+#### Completion gates for the next implementation pass
+
+The next pass is complete only when:
+
+- every v4 recipe has a reproducible reaction curve and aggregate loss-path classification;
+- the four reaction/execution outcome cells reconcile exactly to the later-test N;
+- the canonical GBPUSD case shows `direction followed initially`, `favourable then giveback`, and `SL reached -1R` simultaneously;
+- the bounded execution challengers are selected on development history and evaluated on untouched later history;
+- surviving challengers become new immutable experiments rather than rewritten v4 records;
+- reaction-only findings and avoid-direction findings remain searchable even when they produce no arrow;
+- Charts, Shadow Trader, Workbench, and the atlas use the same registry and terminology;
+- no UI calls MFE realized profit, TP-before-SL directional accuracy, or historical expectancy a guaranteed future result;
+- targeted bridge/frontend tests, typecheck, production build, and `git diff --check` pass;
+- the user manually audits Charts and Shadow Trader at `1440x900`, `100%` Chrome zoom with no clipped text, overlap, accidental page scroll, or ambiguous state.
+
+This plan deliberately seeks more useful setups, but the output may be more than new arrows: it may also prove that an event has a repeatable reaction but no robust execution, or that its economic sign should be avoided as a standalone direction. All three outcomes improve FMS.
 
 ## Research Warnings and References
 

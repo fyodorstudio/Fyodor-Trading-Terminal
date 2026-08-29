@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Checklist
 
-Last updated: 2026-08-28
+Last updated: 2026-08-29
 
 ## Active Planning Source
 
@@ -61,7 +61,7 @@ The program must remain honest about the word **proven**:
 
 - [x] Preserve all existing identifiers and results as immutable legacy research; do not rename history in place.
 - [ ] Freeze the new research engine as `FMS-RELEASE-REACTION-H4-v1`.
-- [x] Freeze the corrected Charts/Shadow registry as `FMS-REGISTERED-REACTION-H4-v2` after rebuilding the complete practical registry.
+- [x] Freeze the corrected and expanded Charts/Shadow registry as `FMS-REGISTERED-REACTION-H4-v4`: 47 immutable, provenance-verified recipes across seven supported pairs, with no duplicate market/package direction.
 - [x] Make the active registry contain only recipes reconstructed from immutable Workbench experiments with:
   - exact market and pair orientation;
   - exact country/region and normalized-series identity;
@@ -134,6 +134,10 @@ The program must remain honest about the word **proven**:
 ### Phase 3 — Replace One Fixed Exit with Path Research
 
 - [ ] Keep every existing fixed-contract backtest reproducible as the baseline.
+- [ ] Split every setup audit into two explicit gates:
+  - `Evidence reaction`: whether price followed or rejected the frozen economic direction at declared `1/3/6/12/30 H4` horizons;
+  - `Trade execution`: whether the exact entry, SL, TP, expiry, and management contract produced positive later walk-forward average R.
+- [ ] Record four outcomes separately: `reaction worked + trade profited`, `reaction worked + trade lost`, `reaction rejected + contrarian trade profited`, and `direction/execution both failed`. Never compress them into one ambiguous accuracy number.
 - [ ] Complete the path-research artifact for every candidate, calculated from data strictly after its entry. The rebuilt engine already records MFE/MAE, time-to-extreme, unmanaged close R, declared H4 horizons, and entry-known support/resistance; 90/120-H4 and the remaining threshold/giveback views are still pending:
   - maximum favorable excursion (MFE) in ATR/R;
   - maximum adverse excursion (MAE) in ATR/R;
@@ -142,6 +146,7 @@ The program must remain honest about the word **proven**:
   - first reach of ±0.25, ±0.5, ±0.75, ±1, ±1.5, ±2, ±3, and ±4 ATR;
   - reversal after favorable excursion and drawdown before eventual target.
 - [ ] Use unrestricted path observation only for discovery. Never report the maximum future profit as a tradable result because that value was unknowable at entry.
+- [ ] Classify loss paths without rewriting them: wrong immediately, adverse-before-favourable, favourable-then-giveback, target-too-distant, expiry-too-short, or unresolved intrabar order.
 - [ ] Convert discovered path behavior into a small predeclared contract set on development data only:
   - fixed SL/TP;
   - time exit;
@@ -150,7 +155,10 @@ The program must remain honest about the word **proven**:
   - partial exit only as a separately declared strategy;
   - no-SL/no-expiry observation only as research, never live readiness.
 - [ ] Freeze the chosen contract before later walk-forward/holdout evaluation. Holdout data must never choose the best exit.
-- [ ] Display both directional accuracy and actual strategy expectancy; an event can predict direction yet remain unprofitable under a poor exit.
+- [ ] Build price-path artifacts once and reuse them across the declared contract grid; do not repeatedly rescan candle history for each SL/TP/expiry combination.
+- [ ] Require any execution challenger to improve the complete parent recipe on later walk-forward data; never add a rescue rule because it fixes one memorable losing chart.
+- [ ] Preserve a useful directional recipe as reaction knowledge when no execution contract survives, and mark its execution research `Exhausted` after the fixed matrix and small declared management set fail honestly.
+- [x] Display both directional reaction and actual strategy expectancy; every registered setup now carries a chronological later-test six-H4 reaction audit, while each arrow audit preserves MFE/MAE, fixed-horizon responses, giveback, and the final frozen-contract result.
 
 ### Phase 4 — Research Entry at Release Without Lookahead
 
@@ -237,6 +245,7 @@ Test one additional entry-known condition at a time. Do not mine unrestricted co
 - [ ] Add a prominent `What would FMS do now?` card, but never send an MT5 order.
 - [ ] Add a durable live decision ledger so every first-seen qualified/no-trade decision remains reviewable even after broker revisions.
 - [ ] Add post-trade loss review linking the frozen decision, other same-time releases, Before context, MFE/MAE path, and final lifecycle without rewriting the original rule.
+- [ ] In every opened historical signal, present information in this order: triggering evidence and direction, evidence reaction, best/worst path, frozen trade result, why reaction and execution differed, then aggregate recipe history.
 
 ### Phase 8 — Paper and Limited-Live Validation
 

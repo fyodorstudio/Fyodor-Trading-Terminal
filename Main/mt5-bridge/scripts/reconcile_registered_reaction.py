@@ -26,6 +26,7 @@ def configuration_for(pattern: Dict[str, Any], bundle: Dict[str, Any]) -> Dict[s
     "scoringEngineVersion": WORKBENCH_SCORING_ENGINE_VERSION,
     "researchDiagnosticsVersion": WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION,
     "cohort": pattern.get("cohort", {"dimension": "none", "value": "all"}),
+    "requiredExactTitles": list(pattern.get("requiredExactTitles", ())),
     "reaction": pattern.get("reaction", "continuation"),
     "execution": {
       "mode": "single",
@@ -37,7 +38,7 @@ def configuration_for(pattern: Dict[str, Any], bundle: Dict[str, Any]) -> Dict[s
     "sourceRunIds": bundle["runIds"],
     "researchPriceCutoff": bundle["cutoff"],
     "candleRevision": bundle["candleRevision"],
-    "reconciliation": "registered-reaction-v3-current-engine-fixed-contract",
+    "reconciliation": "registered-reaction-v4-current-engine-fixed-contract",
   }
 
 
@@ -96,14 +97,17 @@ def main() -> None:
     result = experiment.get("result") or {}
     selected = result.get("selectedConfiguration") or {}
     pooled = (qualification.get("walkForward") or {}).get("pooled") or {}
+    holdout = selected.get("holdout") or {}
+    benchmark = pattern.get("historicalBenchmark") or {}
+    uses_chronological_holdout = benchmark.get("basis") == "chronological_holdout"
     row = {
       "patternId": pattern["id"],
       "id": experiment_id,
       "historicalN": result.get("historicalN"),
-      "walkForwardN": pooled.get("n"),
-      "walkForwardAverageR": pooled.get("averageR"),
-      "targetFirstRate": pooled.get("targetRate"),
-      "stopFirstRate": pooled.get("stopRate"),
+      "walkForwardN": holdout.get("evaluableCount") if uses_chronological_holdout else pooled.get("n"),
+      "walkForwardAverageR": holdout.get("stressedAverageR") if uses_chronological_holdout else pooled.get("averageR"),
+      "targetFirstRate": holdout.get("targetHitRate") if uses_chronological_holdout else pooled.get("targetRate"),
+      "stopFirstRate": holdout.get("stopHitRate") if uses_chronological_holdout else pooled.get("stopRate"),
       "developmentAverageR": (selected.get("development") or {}).get("stressedAverageR"),
       "holdoutAverageR": (selected.get("holdout") or {}).get("stressedAverageR"),
       "recentAverageR": (selected.get("recent") or {}).get("stressedAverageR"),

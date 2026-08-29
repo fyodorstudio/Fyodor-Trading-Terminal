@@ -852,6 +852,20 @@ export interface MacroSignalChartPattern {
     targetFirstRate: number;
     stopFirstRate: number;
     status: "historically_profitable";
+    basis?: "qualification_pooled" | "chronological_holdout";
+    strength?: "stronger_history" | "positive_but_fragile";
+  };
+  reactionAudit?: null | {
+    schema: "registered-reaction-audit-v1";
+    scope: "chronological later-test cases";
+    horizonCandles: number;
+    evaluableN: number;
+    directionWorkedTradeProfited: number;
+    directionWorkedTradeLost: number;
+    directionFailedTradeProfited: number;
+    directionFailedTradeLost: number;
+    positiveResponseRate: number;
+    medianResponseR: number;
   };
   registrationProvenance?: {
     status: "verified" | "mismatch" | "unavailable" | "legacy_snapshot";
@@ -944,6 +958,22 @@ export interface MacroSignalChartSignal {
   exitTime?: number | null;
   expiryTime?: number | null;
   maximumAdverseR?: number | null;
+  evidenceReaction?: "followed" | "rejected";
+  pathAudit?: null | {
+    evidenceReaction: "followed" | "rejected";
+    reactionHorizonCandles: number;
+    reactionResponseR: number | null;
+    directionWorked: boolean | null;
+    lossReview: Array<"favourable_then_giveback" | "target_not_reached_before_close" | "adverse_before_best_favourable_move" | "direction_not_working_at_six_h4" | "duration_ended_negative">;
+    maximumFavorableR: number;
+    maximumFavorablePips: number;
+    maximumAdverseR: number;
+    maximumAdversePips: number;
+    timeToMfeCandles: number | null;
+    timeToMaeCandles: number | null;
+    givebackR: number | null;
+    fixedHorizonResponses: Array<{ holdingCandles: number; responseR: number }>;
+  };
   historicalReplay: boolean;
 }
 

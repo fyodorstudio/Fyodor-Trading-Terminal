@@ -170,7 +170,7 @@ def test_history_range_validates_range_order():
 
 
 def test_macro_chart_signals_are_honest_for_unsupported_instruments() -> None:
-  response = client.get("/research/chart-signals", params={"symbol": "GBPUSD", "tf": "H4"})
+  response = client.get("/research/chart-signals", params={"symbol": "BTCUSD", "tf": "H4"})
   assert response.status_code == 200
   assert response.json()["supported"] is False
   assert response.json()["signals"] == []

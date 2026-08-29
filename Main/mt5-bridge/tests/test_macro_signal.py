@@ -636,6 +636,7 @@ def test_workbench_single_contract_preserves_signature_and_declared_execution() 
     {
       "sourceVersionId": V2_VERSION_ID,
       "signature": signature,
+      "requiredExactTitles": ["Unemployment Rate"],
       "scoringPolicy": "baseline",
       "cohort": {"dimension": "none", "value": "all"},
       "reaction": "continuation",
@@ -661,6 +662,11 @@ def test_workbench_single_contract_preserves_signature_and_declared_execution() 
   assert result["rawAudit"]["cases"][0]["events"][0]["actual"] is not None
   assert result["rawAudit"]["cases"][0]["events"][0]["surpriseRaw"] is not None
   assert result["rawAudit"]["cases"][0]["events"][0]["momentumRaw"] is not None
+  assert result["requiredExactTitles"] == ["unemployment rate"]
+  selected_results = result["rawAudit"]["contractResults"]["1|2|30"]
+  assert selected_results[0]["pathAudit"]["maximumFavorableR"] >= 0
+  assert selected_results[0]["pathAudit"]["maximumAdverseR"] >= 0
+  assert selected_results[0]["pathAudit"]["fixedHorizonResponses"]
 
   combined_outcomes = [
     {**outcome, "direction": "short", "pairVote": -abs(int(outcome.get("pairVote") or 1))}
