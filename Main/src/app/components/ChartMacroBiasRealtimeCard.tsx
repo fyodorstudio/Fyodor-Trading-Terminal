@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronRight, ShieldCheck, WalletCards } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { ChartMacroBiasNextSetup, ChartMacroBiasSetupCatalog } from "@/app/components/ChartMacroBiasSetupCatalog";
+import { ChartMacroBiasSetupCatalog } from "@/app/components/ChartMacroBiasSetupCatalog";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
 import {
@@ -15,7 +15,7 @@ import {
   normalizeShadowStartingBalance,
 } from "@/app/lib/macroSignalShadow";
 import { formatUtcDisplayDateTime } from "@/app/lib/format";
-import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MacroSignalPatternAssessment } from "@/app/types";
+import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MacroSignalPatternAssessment, MacroSignalUpcomingPatternWatch } from "@/app/types";
 
 const SHADOW_BALANCE_KEY = "fyodor.charts.shadow-starting-balance";
 const SHADOW_RISK_KEY = "fyodor.charts.shadow-risk-percent";
@@ -282,34 +282,26 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
   const { response, activeSignal, activePattern } = data;
   const [setupSort, setSetupSort] = useState<"profitability" | "accuracy" | "soonest" | "name">("accuracy");
   const [selectedTradeKey, setSelectedTradeKey] = useState<string | null>(null);
+  const [hiddenMarkets, setHiddenMarkets] = useState<Set<string>>(() => new Set());
   const [startingBalance, setStartingBalance] = useState(() => normalizeShadowStartingBalance(readStoredNumber(SHADOW_BALANCE_KEY, DEFAULT_SHADOW_STARTING_BALANCE)));
   const [riskPercent, setRiskPercent] = useState(() => normalizeShadowRiskPercent(readStoredNumber(SHADOW_RISK_KEY, DEFAULT_SHADOW_RISK_PERCENT)));
   const registryResponses = useMemo(
     () => data.globalResponse?.markets.filter((market) => market.supported) ?? [response],
     [data.globalResponse, response],
   );
-  const nextEvent = response.realtime?.nextPairEvent ?? null;
-  const nextWatchEntry = useMemo(() => registryResponses
-    .flatMap((market) => (market.realtime?.upcomingPatternWatches ?? (market.realtime?.nextPatternWatch ? [market.realtime.nextPatternWatch] : [])).map((watch) => ({ market, watch })))
-    .sort((left, right) => left.watch.time - right.watch.time || left.market.symbol.localeCompare(right.market.symbol))[0] ?? null, [registryResponses]);
-  const nextWatch = nextWatchEntry?.watch ?? null;
-  const latestAssessmentEntry = useMemo(() => registryResponses
-    .flatMap((market) => (market.realtime?.latestPatternAssessments ?? (market.realtime?.latestPatternAssessment ? [market.realtime.latestPatternAssessment] : [])).map((assessment) => ({ market, assessment })))
-    .sort((left, right) => right.assessment.time - left.assessment.time || left.market.symbol.localeCompare(right.market.symbol))[0] ?? null, [registryResponses]);
-  const latestAssessment = latestAssessmentEntry?.assessment ?? null;
+  const marketSymbols = useMemo(() => registryResponses.map((market) => market.symbol).sort(), [registryResponses]);
+  const upcomingWatchEntries = useMemo(() => {
+    const unique = new Map<string, { market: MacroSignalChartSignalResponse; watch: MacroSignalUpcomingPatternWatch }>();
+    for (const market of registryResponses) {
+      const watches = market.realtime?.upcomingPatternWatches ?? (market.realtime?.nextPatternWatch ? [market.realtime.nextPatternWatch] : []);
+      for (const watch of watches) unique.set(`${market.symbol}:${watch.patternId}:${watch.time}`, { market, watch });
+    }
+    return [...unique.values()].sort((left, right) => left.watch.time - right.watch.time || left.market.symbol.localeCompare(right.market.symbol) || left.watch.label.localeCompare(right.watch.label));
+  }, [registryResponses]);
   const registeredPatternRows = useMemo(
     () => registryResponses.flatMap((market) => market.patterns.filter((pattern) => pattern.currentEligible)),
     [registryResponses],
   );
-  const openSignals = useMemo(
-    () => registryResponses.flatMap((market) => market.signals.filter((signal) => signal.outcomeStatus === "pending" && signal.activationTime != null && signal.entry != null)),
-    [registryResponses],
-  );
-  const verifiedPatterns = useMemo(
-    () => registeredPatternRows.filter((pattern) => pattern.registrationProvenance?.status === "verified"),
-    [registeredPatternRows],
-  );
-  const registryHistoricallyReady = registeredPatternRows.length > 0 && verifiedPatterns.length === registeredPatternRows.length;
   const assessmentsByPattern = useMemo(
     () => new Map(registryResponses.flatMap((market) => (market.realtime?.latestPatternAssessments ?? (market.realtime?.latestPatternAssessment ? [market.realtime.latestPatternAssessment] : [])).map((assessment) => [`${market.symbol}:${assessment.patternId}`, assessment]))),
     [registryResponses],
@@ -346,7 +338,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
     () => new Map(registryResponses.flatMap((market) => (market.realtime?.upcomingPatternWatches ?? (market.realtime?.nextPatternWatch ? [market.realtime.nextPatternWatch] : [])).map((watch) => [`${market.symbol}:${watch.patternId}`, watch]))),
     [registryResponses],
   );
-  const registeredPatterns = useMemo(() => [...registeredPatternRows].sort((left, right) => {
+  const registeredPatterns = useMemo(() => registeredPatternRows.filter((pattern) => !hiddenMarkets.has(pattern.market ?? response.symbol)).sort((left, right) => {
     const leftMarket = left.market ?? response.symbol;
     const rightMarket = right.market ?? response.symbol;
     if (setupSort === "name") return leftMarket.localeCompare(rightMarket) || left.label.localeCompare(right.label);
@@ -358,12 +350,12 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
     const leftValue = setupSort === "accuracy" ? historicalAccuracy(left) : historicalAverage(left);
     const rightValue = setupSort === "accuracy" ? historicalAccuracy(right) : historicalAverage(right);
     return rightValue - leftValue || leftMarket.localeCompare(rightMarket) || left.label.localeCompare(right.label);
-  }), [registeredPatternRows, response.symbol, setupSort, upcomingByPattern]);
-  const watchPattern = nextWatch
-    ? nextWatchEntry?.market.patterns.find((pattern) => pattern.id === nextWatch.patternId) ?? null
-    : null;
+  }), [hiddenMarkets, registeredPatternRows, response.symbol, setupSort, upcomingByPattern]);
   const settings = useMemo(() => ({ startingBalance, riskPercent }), [startingBalance, riskPercent]);
-  const liveAccount = useMemo(() => buildMacroSignalShadowAccount(registryResponses.flatMap((market) => market.signals), settings), [registryResponses, settings]);
+  const liveAccount = useMemo(() => buildMacroSignalShadowAccount(
+    registryResponses.flatMap((market) => market.signals.map((signal) => ({ ...signal, market: market.symbol }))),
+    settings,
+  ), [registryResponses, settings]);
   const historicalAccount = useMemo(
     () => data.historicalSignals == null ? null : buildMacroSignalShadowAccount(data.historicalSignals, settings),
     [data.historicalSignals, settings],
@@ -372,12 +364,6 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
   const timeframeLabel = data.chartTimeframe === response.modelTimeframe
     ? `${response.modelTimeframe} backtest model`
     : `${response.modelTimeframe} backtest · shown on ${data.chartTimeframe}`;
-  const scannerState = openSignals.length > 0
-    ? { label: "Trade open", detail: `${openSignals.length} hypothetical trade${openSignals.length === 1 ? "" : "s"} being monitored` }
-    : latestAssessment?.status === "awaiting_observation"
-      ? { label: "Checking release", detail: "Waiting for the broker's Actual value" }
-      : { label: "Scanning", detail: `Watching ${registeredPatternRows.length} registered setup${registeredPatternRows.length === 1 ? "" : "s"}` };
-
   const updateStartingBalance = (value: number) => {
     const normalized = normalizeShadowStartingBalance(value);
     setStartingBalance(normalized);
@@ -427,7 +413,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
       <section className="chart-shadow-trade-monitor" aria-label="Current and recent hypothetical FMS trades">
         <div className="chart-shadow-section-heading">
           <div><span>Trade monitor</span><strong>What FMS has opened</strong></div>
-          <small>Hypothetical only · click a row for its decision audit</small>
+          <small>Setup-level simulations · click a row for its audit · the account replay separately skips portfolio overlaps</small>
         </div>
         <table>
           <thead><tr><th>Setup and direction</th><th>Opened</th><th>State and rules</th><th>Audit</th></tr></thead>
@@ -438,39 +424,63 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
             {lastOpenedTrade ? renderTradeRow(lastOpenedTrade) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No earlier opened trade is loaded.</td></tr>}
           </tbody>
         </table>
+        <details className="chart-shadow-upcoming-list">
+          <summary>
+            <span><b>Possible next setups</b><small>Upcoming registered releases</small></span>
+            <span><b>{upcomingWatchEntries.length}</b><em>Show</em><ChevronDown size={14} /></span>
+          </summary>
+          <div className="chart-shadow-upcoming-scroll">
+            {upcomingWatchEntries.length > 0 ? (
+              <table aria-label="Upcoming registered FMS setups">
+                <thead><tr><th>Pair and setup</th><th>Release time</th><th>What happens next</th><th>Countdown</th></tr></thead>
+                <tbody>{upcomingWatchEntries.map(({ market, watch }) => {
+                  const pattern = market.patterns.find((candidate) => candidate.id === watch.patternId) ?? null;
+                  return (
+                    <tr key={`${market.symbol}:${watch.patternId}:${watch.time}`}>
+                      <td><strong><PairFlags symbol={market.symbol} />{watch.label}</strong><small>{watch.condition}</small></td>
+                      <td><strong>{formatUtc(watch.time)}</strong></td>
+                      <td><strong>Wait for Actual</strong>{pattern ? <small>{buildDecisionScenarios(pattern, market.symbol).map(([condition, action]) => `${condition} → ${action}`).join(" · ")}</small> : <small>Long, Short, or No trade only after the frozen package is complete.</small>}</td>
+                      <td><EventCountdown targetTime={watch.time} /></td>
+                    </tr>
+                  );
+                })}</tbody>
+              </table>
+            ) : <p>No upcoming registered release is loaded.</p>}
+          </div>
+        </details>
       </section>
       {selectedTrade ? <LatestDecisionSection assessment={selectedTrade.assessment} pattern={selectedTrade.pattern} symbol={selectedTrade.market} signal={selectedTrade.signal} /> : null}
-      <section className={`chart-shadow-readiness ${registryHistoricallyReady ? "is-audited" : "is-blocked"}`} aria-label="FMS readiness">
-        <div>
-          <span>Can I follow this blindly?</span>
-          <strong>No.</strong>
-        </div>
-        <p>{registryHistoricallyReady
-          ? `${verifiedPatterns.length} registered recipe${verifiedPatterns.length === 1 ? " has" : "s have"} positive later-test historical averages and verified immutable records. This is research support, not proof that the next trade will profit.`
-          : `${verifiedPatterns.length} of ${registeredPatternRows.length} registered recipes currently reconcile with corrected immutable backtests. Do not act on an unverified recipe.`}</p>
-      </section>
-      <section className="chart-shadow-scanner" aria-label="FMS scanner status">
-        <div className="chart-shadow-scanner-state">
-          <span>{scannerState.label}</span>
-          <strong>{scannerState.detail}</strong>
-          <small>No MT5 order is sent.</small>
-        </div>
-        <div className="chart-shadow-scanner-grid">
-          <div><span>Registered setups</span><strong>{registeredPatternRows.length}</strong></div>
-          <div><span>Markets watched</span><strong>{registryResponses.length}</strong></div>
-          <div><span>Next registered event</span><strong>{nextWatch ? formatUtc(nextWatch.time) : "None loaded"}</strong></div>
-        </div>
-      </section>
       {data.globalLoading ? <section className="chart-shadow-global-state">Loading the global registry…</section> : null}
       {data.globalError ? <section className="chart-shadow-global-state is-error">Global registry unavailable: {data.globalError}. Showing {response.symbol} only.</section> : null}
       <section className="chart-shadow-priority" aria-label="All registered FMS setups">
         <div className="chart-shadow-section-heading">
           <div><span>Live watchlist</span><strong>Every registered setup</strong></div>
+          <nav className="chart-shadow-market-filters" aria-label="Show or hide market rows">
+            {marketSymbols.map((market) => {
+              const visible = !hiddenMarkets.has(market);
+              return (
+                <button
+                  type="button"
+                  key={market}
+                  className={visible ? "is-visible" : "is-hidden"}
+                  aria-pressed={visible}
+                  title={`${visible ? "Hide" : "Show"} ${market}`}
+                  onClick={() => setHiddenMarkets((current) => {
+                    const next = new Set(current);
+                    if (next.has(market)) next.delete(market); else next.add(market);
+                    return next;
+                  })}
+                ><PairFlags symbol={market} /><span>{market}</span></button>
+              );
+            })}
+            {hiddenMarkets.size > 0 ? <button type="button" className="chart-shadow-market-reset" onClick={() => setHiddenMarkets(new Set())}>Show all</button> : null}
+          </nav>
           <label><span>Sort</span><select value={setupSort} onChange={(event) => setSetupSort(event.target.value as typeof setupSort)}><option value="accuracy">Highest TP-before-SL</option><option value="soonest">Soonest registered release</option><option value="profitability">Best average result</option><option value="name">Pair / setup (A–Z)</option></select></label>
         </div>
         <table>
           <thead><tr><th>Pair and setup</th><th>Now</th><th>Relevant event</th><th>Historical result</th></tr></thead>
           <tbody>
+            {registeredPatterns.length === 0 ? <tr className="chart-shadow-watchlist-empty"><td colSpan={4}>All pair rows are hidden. Use <b>Show all</b> above to restore the watchlist.</td></tr> : null}
             {registeredPatterns.map((pattern) => {
               const patternMarket = pattern.market ?? response.symbol;
               const patternResponse = registryResponses.find((market) => market.symbol === patternMarket) ?? response;
@@ -556,37 +566,90 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
         </table>
       </section>
 
-      <ChartMacroBiasNextSetup watch={nextWatch} pattern={watchPattern} symbol={nextWatchEntry?.market.symbol ?? response.symbol} asOf={nextWatchEntry?.market.realtime?.asOf ?? response.realtime?.asOf ?? response.generatedAt ?? Math.floor(Date.now() / 1_000)} />
-
-      <section className="chart-shadow-settings" aria-label="Gross shadow account assumptions">
-        <div className="chart-shadow-section-heading"><div><span><WalletCards size={12} /> Hypothetical account</span><strong>Past trades applied in sequence</strong></div></div>
-        <label>
-          <span>Starting balance</span>
-          <span className="chart-shadow-input"><b>$</b><input type="number" min={MIN_SHADOW_STARTING_BALANCE} step="1" defaultValue={startingBalance} onBlur={(event) => { event.currentTarget.value = String(updateStartingBalance(Number(event.currentTarget.value))); }} /></span>
-        </label>
-        <label>
-          <span>Risk per trade</span>
-          <span className="chart-shadow-input"><input type="number" min={MIN_SHADOW_RISK_PERCENT} max={MAX_SHADOW_RISK_PERCENT} step="0.01" defaultValue={riskPercent} onBlur={(event) => { event.currentTarget.value = String(updateRiskPercent(Number(event.currentTarget.value))); }} /><b>%</b></span>
-        </label>
-        <small>One position at a time · each registered setup uses its frozen ATR stop, R target, and H4 expiry · sequential compounding</small>
+      <section className="chart-shadow-account" aria-label="Gross hypothetical account and performance replay">
+        <div className="chart-shadow-section-heading"><div><span><WalletCards size={12} /> Hypothetical account</span><strong>Assumptions and performance replay</strong></div></div>
+        <div className="chart-shadow-account-controls">
+          <label>
+            <span>Starting balance</span>
+            <span className="chart-shadow-input"><b>$</b><input type="number" min={MIN_SHADOW_STARTING_BALANCE} step="1" defaultValue={startingBalance} onBlur={(event) => { event.currentTarget.value = String(updateStartingBalance(Number(event.currentTarget.value))); }} /></span>
+          </label>
+          <label>
+            <span>Risk per trade</span>
+            <span className="chart-shadow-input"><input type="number" min={MIN_SHADOW_RISK_PERCENT} max={MAX_SHADOW_RISK_PERCENT} step="0.01" defaultValue={riskPercent} onBlur={(event) => { event.currentTarget.value = String(updateRiskPercent(Number(event.currentTarget.value))); }} /><b>%</b></span>
+          </label>
+          <small>Gross simulation · one position at a time · frozen setup SL, TP, and duration · sequential compounding</small>
+        </div>
+        <div className="chart-shadow-account-results">
+          <article>
+            <span>All registered pairs since activation</span>
+            <strong>{formatMoney(liveAccount.balance)}</strong>
+            <small>{liveAccount.takenTrades} closed · {formatMoney(liveAccount.profit)} P/L · {liveAccount.returnPercent >= 0 ? "+" : ""}{liveAccount.returnPercent.toFixed(1)}%</small>
+          </article>
+          <article>
+            <span>{response.symbol} historical replay · selected pair only</span>
+            <strong>{historicalAccount ? formatMoney(historicalAccount.balance) : "Loading…"}</strong>
+            <small>{historicalAccount ? `${historicalAccount.takenTrades} trades · ${historicalAccount.returnPercent >= 0 ? "+" : ""}${historicalAccount.returnPercent.toFixed(1)}% · DD ${historicalAccount.maxDrawdownPercent.toFixed(1)}%` : "Historical replay is not loaded"}</small>
+          </article>
+        </div>
+        <p className="chart-shadow-account-scope">These are separate scopes and are never added together. The first uses immutable post-activation observations across loaded registered pairs; the second replays the selected chart pair&apos;s historical matches.</p>
+        <details className="chart-shadow-account-audit">
+          <summary><span>How the account is calculated</span><strong>View formula and exclusions</strong><ChevronDown size={14} /></summary>
+          <div>
+            <p><b>Per trade:</b> risk dollars = balance before trade × risk %. Balance after trade = balance before trade + (risk dollars × result R).</p>
+            <p><b>Portfolio rule:</b> one hypothetical position at a time. Earlier activation wins. Exact-time candidates use fixed pair → setup → signal ordering; the others are recorded as simultaneous alternatives. Opposing decisions are conflicts only when they concern the same pair.</p>
+            <dl>
+              <div><dt>All-pair overlap</dt><dd>{liveAccount.skippedOverlap}</dd></div>
+              <div><dt>All-pair alternatives</dt><dd>{liveAccount.skippedSimultaneousAlternative}</dd></div>
+              <div><dt>All-pair conflicts</dt><dd>{liveAccount.skippedConflict}</dd></div>
+              <div><dt>All-pair ambiguous</dt><dd>{liveAccount.ambiguous}</dd></div>
+              <div><dt>All-pair unevaluable</dt><dd>{liveAccount.unevaluable}</dd></div>
+              <div><dt>{response.symbol} overlap</dt><dd>{historicalAccount?.skippedOverlap ?? "—"}</dd></div>
+              <div><dt>{response.symbol} alternatives</dt><dd>{historicalAccount?.skippedSimultaneousAlternative ?? "—"}</dd></div>
+              <div><dt>{response.symbol} conflicts</dt><dd>{historicalAccount?.skippedConflict ?? "—"}</dd></div>
+              <div><dt>{response.symbol} ambiguous</dt><dd>{historicalAccount?.ambiguous ?? "—"}</dd></div>
+              <div><dt>{response.symbol} unevaluable</dt><dd>{historicalAccount?.unevaluable ?? "—"}</dd></div>
+            </dl>
+            <p><b>Definitions:</b> overlap = another signal arrived while a position was active; alternative = another same-time opportunity lost the fixed portfolio tie-break; conflict = the same pair produced opposing directions; ambiguous = TP and SL order could not be resolved; unevaluable = required activation or price outcome was unavailable.</p>
+          </div>
+        </details>
       </section>
 
-      <section className="chart-shadow-ledger" aria-label="Gross account results">
-        <div className="chart-shadow-section-heading"><div><span>Performance replay</span><strong>Account results</strong></div></div>
-        <div>
-          <span>Registered setups since activation</span>
-          <strong>{formatMoney(liveAccount.balance)}</strong>
-          <small>{liveAccount.takenTrades} closed · {formatMoney(liveAccount.profit)} P/L</small>
-        </div>
-        <div>
-          <span>{response.symbol} past registered setups</span>
-          <strong>{historicalAccount ? formatMoney(historicalAccount.balance) : "Loading…"}</strong>
-          <small>{historicalAccount ? `${historicalAccount.takenTrades} trades · ${historicalAccount.returnPercent >= 0 ? "+" : ""}${historicalAccount.returnPercent.toFixed(1)}% · DD ${historicalAccount.maxDrawdownPercent.toFixed(1)}%` : "Current-pattern history only"}</small>
-        </div>
-        {historicalAccount && (historicalAccount.skippedOverlap > 0 || historicalAccount.skippedConflict > 0 || historicalAccount.ambiguous > 0 || historicalAccount.unevaluable > 0) ? (
-          <p>{historicalAccount.skippedOverlap} overlapping skipped · {historicalAccount.skippedConflict} simultaneous conflicts skipped · {historicalAccount.ambiguous} ambiguous excluded · {historicalAccount.unevaluable} unevaluable excluded</p>
-        ) : null}
-      </section>
+      {activeSignal && position ? (
+        <section className="chart-shadow-position" aria-label="Hypothetical position">
+          <div className="chart-macro-bias-realtime-kicker">Open hypothetical trade · no MT5 order</div>
+          <div className="chart-shadow-position-grid">
+            <div><span>Entry</span><strong>{formatPrice(activeSignal.entry)}</strong></div>
+            <div><span>Stop</span><strong>{formatPrice(activeSignal.stop)}</strong></div>
+            <div><span>{activeSignal.targetR ?? activePattern?.execution?.targetR ?? response.targetR}R target</span><strong>{formatPrice(activeSignal.target)}</strong></div>
+            <div><span>Risk</span><strong>{formatMoney(position.riskDollars)}</strong></div>
+            <div><span>Stop distance</span><strong>{position.stopPips == null ? "—" : `${position.stopPips.toFixed(1)} pips`}</strong></div>
+            <div><span>Position size</span><strong>{position.lots == null ? "—" : `${position.lots.toFixed(2)} lots`}</strong></div>
+          </div>
+          <p>{activeSignal.events.map((event) => `${event.currency} ${event.title}: score ${event.score > 0 ? "+" : ""}${event.score}`).join(" · ")}</p>
+          <small className="chart-shadow-source-note">{position.sizingNote}</small>
+        </section>
+      ) : null}
+
+      <ChartMacroBiasSetupCatalog patterns={registeredPatternRows} />
+
+      {response.policyInflationContext ? (
+        <details className="chart-macro-bias-realtime-context" aria-label="Policy and inflation background context">
+          <summary><span>Policy / inflation background</span><strong>Not used by frozen rules</strong><ChevronDown size={14} /></summary>
+          <div className="chart-shadow-context-grid">
+            {(["EUR", "USD"] as const).map((currency) => {
+              const context = response.policyInflationContext!.currencies[currency];
+              return (
+                <div key={currency}>
+                  <strong>{currency}</strong>
+                  <span>Policy {context.policy.state}{context.policy.actual ? ` ${context.policy.actual}` : ""}</span>
+                  <span>Inflation {context.inflation.state} · {context.inflation.heatingGroups}↑ {context.inflation.coolingGroups}↓</span>
+                </div>
+              );
+            })}
+          </div>
+          <small>Observation only. This background does not filter, reverse, suppress, or justify a registered trade. Any context-aware rule must be tested and registered as a separate immutable recipe.</small>
+        </details>
+      ) : null}
 
       {data.globalResponse ? (
         <section className="chart-shadow-intelligence" aria-label="FMS historical research intelligence">
@@ -613,48 +676,6 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
             );
           })}
           <small className="chart-shadow-source-note">“Avoid” does not mean the release is irrelevant. It means its economic direction did not produce a dependable standalone price-direction rule in the recorded tests.</small>
-        </section>
-      ) : null}
-
-      {activeSignal && position ? (
-        <section className="chart-shadow-position" aria-label="Hypothetical position">
-          <div className="chart-macro-bias-realtime-kicker">Open hypothetical trade · no MT5 order</div>
-          <div className="chart-shadow-position-grid">
-            <div><span>Entry</span><strong>{formatPrice(activeSignal.entry)}</strong></div>
-            <div><span>Stop</span><strong>{formatPrice(activeSignal.stop)}</strong></div>
-            <div><span>{activeSignal.targetR ?? activePattern?.execution?.targetR ?? response.targetR}R target</span><strong>{formatPrice(activeSignal.target)}</strong></div>
-            <div><span>Risk</span><strong>{formatMoney(position.riskDollars)}</strong></div>
-            <div><span>Stop distance</span><strong>{position.stopPips == null ? "—" : `${position.stopPips.toFixed(1)} pips`}</strong></div>
-            <div><span>Position size</span><strong>{position.lots == null ? "—" : `${position.lots.toFixed(2)} lots`}</strong></div>
-          </div>
-          <p>{activeSignal.events.map((event) => `${event.currency} ${event.title}: score ${event.score > 0 ? "+" : ""}${event.score}`).join(" · ")}</p>
-          <small className="chart-shadow-source-note">{position.sizingNote}</small>
-        </section>
-      ) : null}
-
-      <ChartMacroBiasSetupCatalog patterns={registeredPatterns} />
-
-      {response.policyInflationContext ? (
-        <section className="chart-macro-bias-realtime-context" aria-label="Policy and inflation context">
-          <span>Policy / inflation context</span>
-          {(["EUR", "USD"] as const).map((currency) => {
-            const context = response.policyInflationContext!.currencies[currency];
-            return (
-              <div key={currency}>
-                <strong>{currency}</strong>
-                <span>Policy {context.policy.state}{context.policy.actual ? ` ${context.policy.actual}` : ""}</span>
-                <span>Inflation {context.inflation.state} · {context.inflation.heatingGroups}↑ {context.inflation.coolingGroups}↓</span>
-              </div>
-            );
-          })}
-          <small>Context only—it does not filter or reverse the hypothetical position.</small>
-        </section>
-      ) : null}
-
-      {nextEvent && (!nextWatch || nextEvent.time < nextWatch.time) ? (
-        <section className="chart-macro-bias-realtime-next">
-          <div className="chart-macro-bias-realtime-kicker">Earlier {response.symbol} calendar row</div>
-          <strong>{nextEvent.currency} · {nextEvent.title}</strong><span>{formatUtc(nextEvent.time)} · {nextEvent.impact} impact · not a registered setup</span>
         </section>
       ) : null}
       <footer>Hypothetical results only: spread, commission, slippage, and swap are excluded. No order is sent to MT5. Past results do not guarantee the next trade.</footer>

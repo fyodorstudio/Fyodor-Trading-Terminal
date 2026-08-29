@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Checklist
 
-Last updated: 2026-08-29
+Last updated: 2026-08-30
 
 ## Active Planning Source
 
@@ -19,21 +19,15 @@ The program must remain honest about the word **proven**:
 - `Historically profitable` means the exact immutable recipe and execution contract produced positive no-lookahead walk-forward average R on the recorded MT5 calendar and candle archive.
 - It does **not** mathematically prove that the next trade will profit.
 - No backtest alone makes a setup safe to follow blindly with real money.
-- The top of Shadow Trader must always answer two separate questions: `Historically qualified?` and `Eligible for rule-based live use?`
+- Shadow Trader must keep `Historically qualified?` separate from `Eligible for rule-based live use?`, but that distinction does not require a permanent oversized banner above the operating workflow.
 - The app must never use `Safe to follow blindly: Yes`. Even a live-validated model can fail, enter a losing streak, or stop matching the market regime.
 
-### Required Shadow Trader Readiness Banner
+### Shadow Trader Readiness Presentation
 
-- [ ] Add a permanent first section above every other Shadow Trader section, visible without scrolling:
-  - exact overall state: `DO NOT FOLLOW — AUDIT INCOMPLETE`, `RESEARCH ONLY`, `HISTORICALLY QUALIFIED`, `PAPER VALIDATED`, `LIMITED LIVE VALIDATION`, or `LIVE VALIDATED`;
-  - explicit line `Safe to follow blindly: No — no trading system can guarantee the next result`;
-  - explicit line `Eligible for rule-based live use: Yes/No` with the failed requirements directly below it;
-  - count of registered setups, quarantined setups, paper-validated setups, and currently actionable setups;
-  - data freshness, latest completed EA cycle, price-feed freshness, calendar coverage, and model/dataset fingerprint;
-  - gross/net evidence boundary and whether actual execution costs are available;
-  - direct link to the exact readiness audit rather than a vague disclaimer.
+- [x] Remove the redundant full-width `Can I follow this blindly?` and `Watching N registered setups` blocks. The first viewport now begins with the operational Trade Monitor.
+- [x] Preserve readiness honestly in compact setup/account details and the bottom research explanation rather than repeating a large generic warning before every useful row.
 - [ ] Give every setup its own readiness badge. Global readiness must never hide a setup-level failure.
-- [ ] Default the banner to `DO NOT FOLLOW — AUDIT INCOMPLETE` after any scoring, direction, entry, data-identity, or execution-contract change until all required audits are rebuilt.
+- [ ] Default affected setup readiness to `AUDIT INCOMPLETE` after any scoring, direction, entry, data-identity, or execution-contract change until all required audits are rebuilt.
 
 ### Phase 0 — Contain and Audit the Currency-Orientation Defect
 
@@ -223,6 +217,19 @@ Test one additional entry-known condition at a time. Do not mine unrestricted co
 
 ### Phase 7 — Shadow Trader as the Daily Operating Surface
 
+- [x] Apply the deferred information-architecture pass:
+  - begin with one compact Trade Monitor showing open hypothetical trades, then the last opened trade;
+  - move `Possible next setups` directly under the last-opened row, support multiple upcoming registered releases, and keep the list collapsed by default;
+  - remove the redundant scanner/count summary and `Earlier <pair> calendar row` box;
+  - move `What history says / What to watch and avoid` to the bottom;
+  - center clickable pair-flag filters between the Live Watchlist title and sort control, with clear selected/unselected states and a reset/show-all action;
+  - merge Hypothetical Account and Performance Replay into one coherent account-replay box.
+- [x] Repair and explain account-replay credibility before treating its total as meaningful:
+  - distinguish the all-pair since-activation ledger from selected-pair history, or build a true all-registered-pair historical ledger before labelling it global;
+  - define the portfolio collision rule in advance instead of allowing stable-id ordering to silently choose among simultaneous setups;
+  - count opposite directions as a conflict only when they concern the same pair; different-pair simultaneous signals are competing opportunities, not directional contradictions;
+  - display the exact sequential-compounding formula and plain-language definitions for overlap, simultaneous alternative/conflict, ambiguous, pending, and unevaluable cases;
+  - reconcile displayed totals against the immutable signal ledger and retain the gross/no-cost boundary.
 - [ ] Make the global table the primary daily workflow, sortable by:
   - actionable now;
   - readiness state;

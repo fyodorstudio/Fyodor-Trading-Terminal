@@ -31,8 +31,14 @@ export interface MacroSignalShadowAccount {
   unevaluable: number;
   skippedOverlap: number;
   skippedConflict: number;
+  skippedSimultaneousAlternative: number;
   drawdownBasis: "intratrade_mae_when_available";
 }
+
+export type MacroSignalShadowAccountSignal = MacroSignalChartSignal & {
+  /** Required when replaying more than one market so pair-local conflicts stay pair-local. */
+  market?: string;
+};
 
 export interface MacroSignalShadowPosition {
   riskDollars: number;
@@ -62,7 +68,7 @@ function availableAfter(signal: MacroSignalChartSignal): number {
 
 /** Sequential, one-position-at-a-time, gross account replay. */
 export function buildMacroSignalShadowAccount(
-  signals: readonly MacroSignalChartSignal[],
+  signals: readonly MacroSignalShadowAccountSignal[],
   settings: MacroSignalShadowSettings,
 ): MacroSignalShadowAccount {
   const startingBalance = normalizeShadowStartingBalance(settings.startingBalance);
@@ -79,6 +85,7 @@ export function buildMacroSignalShadowAccount(
   let unevaluable = 0;
   let skippedOverlap = 0;
   let skippedConflict = 0;
+  let skippedSimultaneousAlternative = 0;
 
   const ordered = [...signals].sort((left, right) => (
     (left.activationTime ?? left.eventTime) - (right.activationTime ?? right.eventTime)
@@ -87,7 +94,7 @@ export function buildMacroSignalShadowAccount(
   ));
   for (let index = 0; index < ordered.length;) {
     const activation = ordered[index].activationTime ?? ordered[index].eventTime;
-    const simultaneous: MacroSignalChartSignal[] = [];
+    const simultaneous: MacroSignalShadowAccountSignal[] = [];
     while (index < ordered.length && (ordered[index].activationTime ?? ordered[index].eventTime) === activation) {
       simultaneous.push(ordered[index]);
       index += 1;
@@ -99,12 +106,25 @@ export function buildMacroSignalShadowAccount(
       skippedOverlap += evaluable.length;
       continue;
     }
-    if (new Set(evaluable.map((signal) => signal.direction)).size > 1) {
-      skippedConflict += evaluable.length;
-      continue;
+    const byMarket = new Map<string, MacroSignalShadowAccountSignal[]>();
+    for (const signal of evaluable) {
+      const market = signal.market ?? "__single_market__";
+      const rows = byMarket.get(market) ?? [];
+      rows.push(signal);
+      byMarket.set(market, rows);
     }
-    const signal = [...evaluable].sort((left, right) => left.patternId.localeCompare(right.patternId) || left.id.localeCompare(right.id))[0];
-    skippedOverlap += evaluable.length - 1;
+    const nonConflicting = [...byMarket.entries()].flatMap(([, rows]) => {
+      if (new Set(rows.map((signal) => signal.direction)).size <= 1) return rows;
+      skippedConflict += rows.length;
+      return [];
+    });
+    if (!nonConflicting.length) continue;
+    const signal = [...nonConflicting].sort((left, right) => (
+      (left.market ?? "").localeCompare(right.market ?? "")
+      || left.patternId.localeCompare(right.patternId)
+      || left.id.localeCompare(right.id)
+    ))[0];
+    skippedSimultaneousAlternative += nonConflicting.length - 1;
     const activationTime = signal.activationTime;
     if (activationTime == null) continue;
     unavailableUntil = availableAfter(signal);
@@ -142,6 +162,7 @@ export function buildMacroSignalShadowAccount(
     unevaluable,
     skippedOverlap,
     skippedConflict,
+    skippedSimultaneousAlternative,
     drawdownBasis: "intratrade_mae_when_available",
   };
 }

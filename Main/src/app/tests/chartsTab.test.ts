@@ -290,8 +290,9 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Latest matching release");
     expect(html).toContain("Later-test history");
     expect(html).toContain("Watching");
-    expect(html).toContain("Possible next setup");
-    expect(html).toContain("Automatically selected from registered setups");
+    expect(html).toContain("Possible next setups");
+    expect(html).toContain("Upcoming registered releases");
+    expect(html).toContain("Wait for Actual");
     expect(html).toContain("Registered setups");
     expect(html).toContain("Average per trade");
     expect(html).toContain("View details");
@@ -301,15 +302,18 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Highest TP-before-SL");
     expect(html).toContain("Soonest registered release");
     expect(html).toContain("2 markets live");
+    expect(html).toContain("Show or hide market rows");
+    expect(html).toContain('title="Hide EURUSD"');
+    expect(html).toContain('title="Hide GBPUSD"');
     expect(html).toContain("GBPUSD · US industrial-production package");
     expect(html).toContain("What history says");
     expect(html).toContain("Research contenders");
     expect(html).toContain("Avoid as standalone direction");
     expect(html).toContain("All matching events");
     expect(html).toContain("Later test trades");
-    expect(html).toContain("Registered EUR evidence improves");
+    expect(html).toContain("IF registered EUR evidence improves");
     expect(html).toContain("Long EURUSD");
-    expect(html).toContain("Zero, missing, or nonmatching");
+    expect(html).toContain("IF evidence is zero, missing, or conflicted");
     expect(html).toContain("00:05 · 01 Jan 1970 · UTC");
     expect(html).toContain("Long if sentiment improves; Short if it weakens.");
     expect(html).toContain("75.0%");
@@ -321,11 +325,17 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Direction failed + trade lost");
     expect(html).toContain("Direction and execution are separate:");
     expect(html).toContain("$1,000.00");
-    expect(html).toContain("One position at a time");
+    expect(html).toContain("All registered pairs since activation");
+    expect(html).toContain("EURUSD historical replay · selected pair only");
+    expect(html).toContain("risk dollars = balance before trade × risk %");
+    expect(html).toContain("Opposing decisions are conflicts only when they concern the same pair.");
     expect(html).toContain("spread, commission, slippage, and swap are excluded");
     expect(html).toContain("Policy holding 2.25");
     expect(html).toContain("Inflation heating");
-    expect(html).toContain("does not filter or reverse the hypothetical position");
+    expect(html).toContain("Not used by frozen rules");
+    expect(html).toContain("does not filter, reverse, suppress, or justify a registered trade");
+    expect(html).not.toContain("Can I follow this blindly?");
+    expect(html).not.toContain("Earlier EURUSD calendar row");
   });
   it("compounds the gross shadow account sequentially and skips overlapping signals", () => {
     const makeSignal = (id: string, activationTime: number, exitTime: number, resultR: number, outcomeStatus: "target_hit" | "stop_hit"): MacroSignalChartSignal => ({
@@ -358,6 +368,17 @@ describe("getChartConnectionLabel", () => {
       { ...makeSignal("short", 500, 600, -1, "stop_hit"), direction: "short", maximumAdverseR: 1, expiryTime: 900 },
     ], { startingBalance: 1_000, riskPercent: 1 });
     expect(conflict).toMatchObject({ balance: 1_000, takenTrades: 0, skippedConflict: 2 });
+
+    const crossMarketAlternative = buildMacroSignalShadowAccount([
+      { ...makeSignal("gbp-long", 600, 700, 2, "target_hit"), market: "GBPUSD", direction: "long" },
+      { ...makeSignal("jpy-short", 600, 700, -1, "stop_hit"), market: "USDJPY", direction: "short" },
+    ], { startingBalance: 1_000, riskPercent: 1 });
+    expect(crossMarketAlternative).toMatchObject({
+      balance: 1_020,
+      takenTrades: 1,
+      skippedConflict: 0,
+      skippedSimultaneousAlternative: 1,
+    });
 
     const pathDrawdown = buildMacroSignalShadowAccount([
       { ...makeSignal("mae", 700, 800, 2, "target_hit"), maximumAdverseR: 0.75, expiryTime: 1_000 },

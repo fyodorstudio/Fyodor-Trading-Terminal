@@ -1019,6 +1019,60 @@ The next pass is complete only when:
 
 This plan deliberately seeks more useful setups, but the output may be more than new arrows: it may also prove that an event has a repeatable reaction but no robust execution, or that its economic sign should be avoided as a standalone direction. All three outcomes improve FMS.
 
+### Deferred Shadow Trader Operating-Surface Consolidation - 2026-08-29
+
+This is a deferred UI and audit pass, not a change to any frozen recipe, historical arrow, or live decision rule.
+
+#### Information hierarchy
+
+- Remove the large `Can I follow this blindly?` and scanner-count blocks. They repeat information while pushing the actionable monitor below the fold. Preserve the safety boundary in compact setup/account disclosures and the bottom research explanation.
+- Make the first surface a compact Trade Monitor: currently open hypothetical trades first, then the most recently opened trade.
+- Move `Possible next setups` immediately below the last-opened trade. It must support multiple upcoming registered releases, show the pair/setup and countdown, and remain collapsed by default.
+- Remove `Earlier <pair> calendar row`; it duplicates the last/next registered-event workflow without producing an actionable registered setup.
+- Move `What history says / What to watch and avoid` to the very bottom.
+- In the Live Watchlist heading, center clickable pair flags between `Live watchlist / Every registered setup` and the sorting selector. Each flag toggles that pair's rows without changing the registry or research result. Selected and hidden states must be unmistakable, keyboard accessible, and must not permit an unexplained empty table; provide a reset/show-all action.
+
+#### One credible account-replay box
+
+Merge `Hypothetical account` and `Performance replay` into one bounded box, but do not merge unlike datasets under one unexplained number. The current calculation has two different scopes:
+
+- the since-activation account consumes current registry signals loaded across watched markets;
+- the historical account consumes only the selected Chart pair's historical signals, despite appearing beside the global monitor.
+
+The future UI must label those scopes exactly, or construct a real all-pair historical ledger before calling the replay global. It must never imply that a selected-pair replay already includes the other markets.
+
+The current gross replay formula is sequential compounding:
+
+`risk dollars = balance before trade x risk percent`
+
+`balance after trade = balance before trade + (risk dollars x result R)`
+
+Signals are ordered by activation time. One position is allowed at a time; signals activating before that position becomes available are skipped. Same-time evaluable rows currently select one stable-id row, count the remainder as overlap, and treat differing Long/Short labels as a conflict. That last rule is not credible across different pairs: Long USDJPY and Short GBPUSD are not inherently contradictory. Before presenting a global historical account as credible, define and freeze a portfolio collision policy, count only same-pair opposing decisions as directional conflicts, label different-pair collisions as skipped competing opportunities, and audit sensitivity to the selection priority. Ambiguous cases are excluded from P/L; unevaluable cases lack a usable activation/outcome; pending cases must not be presented as closed trades. Drawdown uses intratrade MAE when supplied and balance drawdown otherwise. Spread, commission, slippage, and swap remain excluded.
+
+The exclusion line must expose this formula and definitions through an inline explanation rather than only showing counts such as `overlapping skipped`, `simultaneous conflicts skipped`, `ambiguous excluded`, and `unevaluable excluded`.
+
+#### Policy and inflation as background research
+
+Policy and inflation may be useful background context, but they must not be retrofitted into the existing frozen recipes. The safe progression is:
+
+1. Display only entry-known policy/inflation state as a non-filtering observational audit beside historical and future decisions. It cannot reverse, suppress, or justify a current registered arrow.
+2. Predeclare a small challenger using coarse states known before the release, for example policy differential `widening / flat / narrowing` and inflation context `heating / cooling / mixed` for the two currencies.
+3. Select any interaction rule on development history only, then judge it on later walk-forward and recent cases. Keep the parent recipe result visible.
+4. Promote a surviving interaction as a new immutable recipe/version. Never rewrite the old recipe or imply causation.
+
+This research can reveal whether a recipe behaves differently under broad macro regimes, but it may add no benefit. Policy changes are infrequent, context states are correlated and slow-moving, and splitting a recipe can destroy an already limited sample. Begin with observational stratification, require adequate cases in every claimed subgroup, and stop if the apparent improvement is concentrated or unstable.
+
+#### Implementation result - 2026-08-30
+
+The operating-surface consolidation is implemented without changing any frozen setup:
+
+- Shadow Trader now begins with open hypothetical trades and the most recently opened trade. Multiple upcoming registered releases live directly beneath them in a collapsed disclosure.
+- The redundant readiness/scanner blocks and unrelated earlier-calendar-row card are removed. Research contenders and avoid-direction knowledge now sit at the bottom.
+- Session-local pair-flag controls filter only the Live Watchlist and provide an explicit `Show all` recovery action.
+- Hypothetical Account and Performance Replay share one surface while retaining honest scope labels: all registered pairs since activation versus selected-pair historical replay. The scopes are never added together.
+- The replay exposes its compounding formula and every exclusion count. Cross-pair simultaneous Long/Short opportunities are no longer misclassified as directional conflicts; only opposing decisions for the same pair conflict. Different-pair exact-time opportunities follow the documented pair/setup/signal tie-break and are counted separately as simultaneous alternatives.
+- Policy/inflation is a collapsed observational background. It explicitly cannot filter, reverse, suppress, or justify the frozen trade. Context-aware interaction research remains a separately versioned future challenger.
+
 ## Research Warnings and References
 
 Hypothetical results do not represent executed trades and can overstate or understate real performance. The Lab must identify all results as simulated, disclose excluded costs, and avoid claims that similar live profits are likely. See the [CFTC guidance on hypothetical trading-system results](https://www.cftc.gov/LearnAndProtect/AdvisoriesAndArticles/fraudadv_tradingsystem.html).
