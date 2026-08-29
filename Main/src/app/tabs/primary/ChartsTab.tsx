@@ -25,6 +25,7 @@ import { fetchCalendar, fetchMacroSignalChartSignals, getPreloadedMacroSignalCur
 import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import { formatUtcDisplayDate } from "@/app/lib/format";
 import {
+  DEFAULT_CHART_TIMEFRAME,
   getChartConnectionLabel,
   getChartPriceFormat,
   getCrosshairMode,
@@ -41,6 +42,7 @@ import {
 import {
   DEFAULT_CHART_PREFERENCES,
   formatChartFeedTime,
+  formatChartHeaderFeedTime,
   formatCursorReadout,
   getChartDisplayCandles,
   getChartGridColor,
@@ -62,7 +64,6 @@ import {
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
 import { getEventComparison } from "@/app/lib/eventReaction";
 import { buildMacroFactorRows } from "@/app/lib/macroDrivers";
-import { MacroBiasConnectorPrimitive, type MacroBiasConnectorDatum } from "@/app/lib/macroBiasConnectorPrimitive";
 import { buildPairMatrixMomentumSnapshot, type PairMatrixMomentumSnapshot } from "@/app/lib/pairMatrixMomentum";
 import { indexPairMatrixContextMarkers, selectPairMatrixContextMarkerGroups } from "@/app/lib/pairMatrixContextMarkers";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
@@ -222,9 +223,8 @@ export function buildMacroBiasSeriesMarkers(
   candles: BridgeCandle[],
   timeframe: Timeframe,
   sourceTimeOffsetSeconds: number,
-): { markers: SeriesMarker<Time>[]; connectors: MacroBiasConnectorDatum[]; signalByMarkerId: Map<string, MacroSignalChartSignal> } {
+): { markers: SeriesMarker<Time>[]; signalByMarkerId: Map<string, MacroSignalChartSignal> } {
   const signalByMarkerId = new Map<string, MacroSignalChartSignal>();
-  const connectors: MacroBiasConnectorDatum[] = [];
   const candleByTime = new Map(candles.map((candle) => [candle.time, candle] as const));
   const markers = signals.flatMap((signal): SeriesMarker<Time>[] => {
     const chartReleaseTime = getChartEventCoordinateTime(signal.eventTime, sourceTimeOffsetSeconds);
@@ -250,23 +250,9 @@ export function buildMacroBiasSeriesMarkers(
 
     const built: SeriesMarker<Time>[] = [];
     if (activationCandleOpen == null || activationCandleOpen < releaseCandleOpen) return built;
-    const releaseCandle = candles[releaseIndex];
-    const activationCandle = candleByTime.get(activationCandleOpen);
-    if (!activationCandle) return built;
+    if (!candleByTime.has(activationCandleOpen)) return built;
     const activationMarkerId = `macro-bias-activation:${signal.id}`;
-    const releaseMarkerId = `macro-bias-release:${signal.id}`;
     signalByMarkerId.set(activationMarkerId, signal);
-    if (activationCandleOpen > releaseCandleOpen) {
-      signalByMarkerId.set(releaseMarkerId, signal);
-      connectors.push({
-        signalId: signal.id,
-        direction: signal.direction,
-        releaseTime: releaseCandleOpen,
-        releasePrice: signal.direction === "long" ? releaseCandle.low : releaseCandle.high,
-        activationTime: activationCandleOpen,
-        activationPrice: signal.direction === "long" ? activationCandle.low : activationCandle.high,
-      });
-    }
     built.push({
       id: activationMarkerId,
       time: activationCandleOpen as Time,
@@ -279,8 +265,7 @@ export function buildMacroBiasSeriesMarkers(
     return built;
   });
   markers.sort((left, right) => Number(left.time) - Number(right.time));
-  connectors.sort((left, right) => left.releaseTime - right.releaseTime || left.signalId.localeCompare(right.signalId));
-  return { markers, connectors, signalByMarkerId };
+  return { markers, signalByMarkerId };
 }
 
 export interface MacroBiasActiveState {
@@ -406,7 +391,7 @@ export function ChartsTab({
   events,
   onOpenCalendarEvent,
 }: ChartsTabProps) {
-  const [timeframe, setTimeframe] = useState<Timeframe>("H1");
+  const [timeframe, setTimeframe] = useState<Timeframe>(DEFAULT_CHART_TIMEFRAME);
   const [displayTimeMode, setDisplayTimeMode] = useState<ChartDisplayTimeMode>(() => loadChartDisplayTimeMode());
   const [chartPreferences, setChartPreferences] = useState<ChartPreferences>(() => loadChartPreferences());
   const [timezoneMenuOpen, setTimezoneMenuOpen] = useState(false);
@@ -475,7 +460,6 @@ export function ChartsTab({
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const macroBiasMarkersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
-  const macroBiasConnectorPrimitiveRef = useRef<MacroBiasConnectorPrimitive | null>(null);
   const macroBiasSignalByMarkerIdRef = useRef(new Map<string, MacroSignalChartSignal>());
   const shouldRefocusRef = useRef(true);
   const futureRefocusSignatureRef = useRef("");
@@ -969,10 +953,6 @@ export function ChartsTab({
       chart.unsubscribeClick(handleChartClick);
       macroBiasMarkersRef.current?.detach();
       macroBiasMarkersRef.current = null;
-      if (macroBiasConnectorPrimitiveRef.current && seriesRef.current) {
-        seriesRef.current.detachPrimitive(macroBiasConnectorPrimitiveRef.current);
-      }
-      macroBiasConnectorPrimitiveRef.current = null;
       chart.remove();
       chartRef.current = null;
       seriesRef.current = null;
@@ -1114,10 +1094,6 @@ export function ChartsTab({
     const series = seriesRef.current;
     macroBiasMarkersRef.current?.detach();
     macroBiasMarkersRef.current = null;
-    if (macroBiasConnectorPrimitiveRef.current && series) {
-      series.detachPrimitive(macroBiasConnectorPrimitiveRef.current);
-    }
-    macroBiasConnectorPrimitiveRef.current = null;
     macroBiasSignalByMarkerIdRef.current.clear();
     if (!series || !macroBiasVisible || !macroBiasResponse?.supported) return;
     const built = buildMacroBiasSeriesMarkers(
@@ -1128,16 +1104,9 @@ export function ChartsTab({
     );
     macroBiasSignalByMarkerIdRef.current = built.signalByMarkerId;
     macroBiasMarkersRef.current = createSeriesMarkers(series, built.markers);
-    const connectorPrimitive = new MacroBiasConnectorPrimitive(built.connectors);
-    series.attachPrimitive(connectorPrimitive);
-    macroBiasConnectorPrimitiveRef.current = connectorPrimitive;
     return () => {
       macroBiasMarkersRef.current?.detach();
       macroBiasMarkersRef.current = null;
-      series.detachPrimitive(connectorPrimitive);
-      if (macroBiasConnectorPrimitiveRef.current === connectorPrimitive) {
-        macroBiasConnectorPrimitiveRef.current = null;
-      }
       macroBiasSignalByMarkerIdRef.current.clear();
     };
   }, [macroBiasVisible, macroBiasResponse, macroBiasDisplaySignals, chartSourceTimeOffsetSeconds, macroBiasFrom, macroBiasTo, timeframe]);
@@ -1478,7 +1447,7 @@ export function ChartsTab({
   }, [historyState, visibleCandles.length, futureChartEventTimes, chartInteracting, refocusChart]);
 
   const feedLabel = lastCandleTime
-    ? `Latest candle: ${formatChartFeedTime(lastCandleTime, displayTimeMode, chartSourceTimeOffsetSeconds)}`
+    ? `Latest candle: ${formatChartHeaderFeedTime(lastCandleTime, displayTimeMode, chartSourceTimeOffsetSeconds)}`
     : "Waiting for data";
   const cacheOldestLabel = cacheSummary.oldestTime
     ? formatChartFeedTime(cacheSummary.oldestTime, displayTimeMode, chartSourceTimeOffsetSeconds)
@@ -2343,11 +2312,15 @@ export function ChartsTab({
           macroBiasHistoricalMatchesVisible={macroBiasHistoricalMatchesVisible}
           macroBiasHistoricalMatchesCount={macroBiasShadowHistoricalSignals?.length ?? 0}
           macroBiasActiveLabel={macroBiasActiveLabel}
+          eventLensExpanded={eventLensExpanded}
+          pairMatrixOpen={pairMatrixOpen}
           onCursorModeChange={handleCursorModeChange}
           onRefocusChart={refocusChart}
           onOpenDrawer={openChartDrawer}
           onToggleMacroBias={toggleMacroBias}
           onToggleMacroBiasHistoricalMatches={toggleMacroBiasHistoricalMatches}
+          onToggleEventLens={eventLensData?.onToggleExpanded ?? eventLensDockData.onToggleExpanded}
+          onTogglePairMatrix={pairMatrixTimeLensData.onToggleOpen}
         />
       </div>
 

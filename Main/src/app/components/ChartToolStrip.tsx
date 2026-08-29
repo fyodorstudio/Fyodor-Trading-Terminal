@@ -1,4 +1,4 @@
-import { Activity, CalendarDays, Focus, HardDrive, MousePointer2, Settings2 } from "lucide-react";
+import { Activity, BookOpen, CalendarDays, Focus, HardDrive, MousePointer2, Settings2, Table2 } from "lucide-react";
 import type { ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
 import type { ChartCursorReadoutMode } from "@/app/lib/chartView";
 
@@ -19,11 +19,15 @@ interface ChartToolStripProps {
   macroBiasHistoricalMatchesVisible: boolean;
   macroBiasHistoricalMatchesCount: number;
   macroBiasActiveLabel: string;
+  eventLensExpanded: boolean;
+  pairMatrixOpen: boolean;
   onCursorModeChange: (mode: ChartCursorReadoutMode) => void;
   onRefocusChart: () => void;
   onOpenDrawer: (mode: ChartDrawerMode) => void;
   onToggleMacroBias: () => void;
   onToggleMacroBiasHistoricalMatches: () => void;
+  onToggleEventLens: () => void;
+  onTogglePairMatrix: () => void;
 }
 
 export function ChartToolStrip({
@@ -38,11 +42,15 @@ export function ChartToolStrip({
   macroBiasHistoricalMatchesVisible,
   macroBiasHistoricalMatchesCount,
   macroBiasActiveLabel,
+  eventLensExpanded,
+  pairMatrixOpen,
   onCursorModeChange,
   onRefocusChart,
   onOpenDrawer,
   onToggleMacroBias,
   onToggleMacroBiasHistoricalMatches,
+  onToggleEventLens,
+  onTogglePairMatrix,
 }: ChartToolStripProps) {
   const eventButtonLabel = !eventOverlayVisible
     ? "Chart events hidden"
@@ -66,6 +74,28 @@ export function ChartToolStrip({
           </button>
         ))}
       </div>
+      <div className="chart-lens-tool-group" aria-label="Economic chart tools">
+        <button
+          type="button"
+          className={eventLensExpanded ? "is-active" : ""}
+          title="Open Event Lens"
+          aria-label="Open Event Lens"
+          aria-pressed={eventLensExpanded}
+          onClick={onToggleEventLens}
+        >
+          <BookOpen className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className={pairMatrixOpen ? "is-active" : ""}
+          title="Open Pair Matrix Time Lens"
+          aria-label="Open Pair Matrix Time Lens"
+          aria-pressed={pairMatrixOpen}
+          onClick={onTogglePairMatrix}
+        >
+          <Table2 className="h-4 w-4" />
+        </button>
+      </div>
       <button type="button" className="chart-icon-button" title="Refocus chart" aria-label="Refocus chart" onClick={onRefocusChart}>
         <Focus className="h-4 w-4" />
       </button>
@@ -77,7 +107,7 @@ export function ChartToolStrip({
         </label>
       ) : null}
       {macroBiasVisible && macroBiasSupported ? (
-        <span className="chart-macro-bias-floating-state is-current" title={macroBiasActiveLabel}>{macroBiasActiveLabel}</span>
+        <span className="sr-only" aria-live="polite">{macroBiasActiveLabel}</span>
       ) : null}
       <button
         type="button"

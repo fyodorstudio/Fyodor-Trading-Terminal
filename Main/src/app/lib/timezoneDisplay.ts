@@ -195,6 +195,21 @@ export function formatDateTimeForDisplayTimezone(timestampSeconds: number, selec
   return `${day} ${pad(getDatePart(date, mode, "hours"))}:${pad(getDatePart(date, mode, "minutes"))}`;
 }
 
+export function formatWeekdayDateTimeForDisplayTimezone(timestampSeconds: number, selection: DisplayTimezoneSelection): string {
+  const { date, mode } = getDisplayDate(timestampSeconds, selection);
+  const weekday = date.toLocaleDateString("en-GB", {
+    weekday: "short",
+    ...(mode === "utc" ? { timeZone: "UTC" } : {}),
+  });
+  const day = date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    ...(mode === "utc" ? { timeZone: "UTC" } : {}),
+  });
+  return `${pad(getDatePart(date, mode, "hours"))}:${pad(getDatePart(date, mode, "minutes"))} · ${weekday}, ${day}`;
+}
+
 export function formatTimeForDisplayTimezone(
   timestampSeconds: number,
   selection: DisplayTimezoneSelection,

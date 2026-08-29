@@ -8,15 +8,17 @@ import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import { ChartPairMatrixContextMarkers, clusterPairMatrixMarkerViews } from "@/app/components/ChartPairMatrixContextMarkers";
 import { ChartPairMatrixRangeOverlay, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
 import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
-import { MacroBiasConnectorPrimitive } from "@/app/lib/macroBiasConnectorPrimitive";
 import { buildMacroSignalShadowAccount, buildMacroSignalShadowPosition, normalizeShadowRiskPercent, normalizeShadowStartingBalance } from "@/app/lib/macroSignalShadow";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
 import { buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasReplayStatusLabel, getMacroBiasRequestScope, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange } from "@/app/tabs/primary/ChartsTab";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MacroSignalMetrics } from "@/app/types";
-import { getChartConnectionLabel } from "@/app/lib/chartDisplay";
+import { DEFAULT_CHART_TIMEFRAME, getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
 
 describe("getChartConnectionLabel", () => {
+  it("opens Charts on the H4 timeframe by default", () => {
+    expect(DEFAULT_CHART_TIMEFRAME).toBe("H4");
+  });
   it("updates Pair Matrix hover once per snapped candle and never while disabled", () => {
     expect(resolvePairMatrixHoveredCandleUpdate(null, 100, false)).toEqual({ shouldUpdate: false, value: 100 });
     expect(resolvePairMatrixHoveredCandleUpdate(100, 100, true)).toEqual({ shouldUpdate: false, value: 100 });
@@ -26,7 +28,7 @@ describe("getChartConnectionLabel", () => {
     expect(getChartRangeUpdateCadence(false)).toBe("animation_frame");
     expect(getChartRangeUpdateCadence(true)).toBe("settled");
   });
-  it("keeps the release-to-activation link separate from the strictly later H4 arrow", () => {
+  it("renders one clickable activation arrow per signal without a redundant release dot", () => {
     const makeSignal = (id: string, eventTime: number, direction: "long" | "short"): MacroSignalChartSignal => ({
       id, patternId: `pattern-${id}`, sourceVersionId: "v2", eventTime, activationTime: eventTime < 14_400 ? 14_400 : 28_800, expiryCandles: 30, historicalReplay: true, direction, label: "Historical pattern", agreement: "consensus", pairVote: direction === "long" ? 1 : -1, backgroundDirection: "none", backgroundPairVote: 0, backgroundAlignment: "neutral", backgroundCoverageComplete: true, highestImpact: "high", events: [],
     });
@@ -38,25 +40,10 @@ describe("getChartConnectionLabel", () => {
       { time: 14_400, shape: "arrowUp", text: "LONG BIAS" },
       { time: 28_800, shape: "arrowDown", text: "SHORT BIAS" },
     ]);
-    expect(built.connectors).toEqual([
-      { signalId: "long", direction: "long", releaseTime: 0, releasePrice: 1, activationTime: 14_400, activationPrice: 1 },
-      { signalId: "short", direction: "short", releaseTime: 14_400, releasePrice: 1.2, activationTime: 28_800, activationPrice: 1.2 },
-    ]);
     expect([...built.signalByMarkerId.keys()]).toEqual([
       "macro-bias-activation:long",
-      "macro-bias-release:long",
       "macro-bias-activation:short",
-      "macro-bias-release:short",
     ]);
-    const primitive = new MacroBiasConnectorPrimitive(built.connectors);
-    primitive.attached({
-      chart: { timeScale: () => ({ timeToCoordinate: (time: number) => time / 100 }) },
-      series: { priceToCoordinate: (price: number) => price * 100 },
-      requestUpdate: () => {},
-    } as never);
-    expect(primitive.hitTest(0, 113)).toMatchObject({ externalId: "macro-bias-release:long", cursorStyle: "pointer" });
-    primitive.detached();
-    expect(primitive.hitTest(0, 113)).toBeNull();
     expect(getMacroBiasActiveState([makeSignal("active", 1_000, "long")], candles, 0)).toMatchObject({
       activationCandleOpen: 14_400,
       remainingCandles: 29,
@@ -71,12 +58,10 @@ describe("getChartConnectionLabel", () => {
     const m15Candles = Array.from({ length: 20 }, (_, index) => ({ time: index * 900, open: 1.1, high: 1.2, low: 1, close: 1.15, volume: 1 }));
     const m15Built = buildMacroBiasSeriesMarkers([makeSignal("m15", 1_000, "long")], m15Candles, "M15", 0);
     expect(m15Built.markers).toMatchObject([{ time: 14_400, shape: "arrowUp" }]);
-    expect(m15Built.connectors).toMatchObject([{ releaseTime: 900, activationTime: 14_400 }]);
 
     const d1Candles = [0, 86_400].map((time) => ({ time, open: 1.1, high: 1.2, low: 1, close: 1.15, volume: 1 }));
     const d1Built = buildMacroBiasSeriesMarkers([makeSignal("d1", 1_000, "short")], d1Candles, "D1", 0);
     expect(d1Built.markers).toMatchObject([{ time: 0, shape: "arrowDown" }]);
-    expect(d1Built.connectors).toEqual([]);
     expect([...d1Built.signalByMarkerId.keys()]).toEqual(["macro-bias-activation:d1"]);
     expect(getMacroBiasActiveState([makeSignal("d1-active", 1_000, "long")], [d1Candles[0]], 0, "D1"))
       .toMatchObject({ activationCandleOpen: 0, remainingCandles: null, expiryCandleOpen: null });
@@ -102,11 +87,15 @@ describe("getChartConnectionLabel", () => {
       macroBiasHistoricalMatchesVisible: true,
       macroBiasHistoricalMatchesCount: 42,
       macroBiasActiveLabel: "No active bias",
+      eventLensExpanded: false,
+      pairMatrixOpen: false,
       onCursorModeChange: () => {},
       onRefocusChart: () => {},
       onOpenDrawer: () => {},
       onToggleMacroBias: () => {},
       onToggleMacroBiasHistoricalMatches: () => {},
+      onToggleEventLens: () => {},
+      onTogglePairMatrix: () => {},
     }));
 
     expect(html).not.toContain("Current model");
@@ -114,6 +103,9 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Past arrows");
     expect(html).toContain(">42<");
     expect(html).toContain("No active bias");
+    expect(html).toContain('class="sr-only"');
+    expect(html).toContain('aria-label="Open Event Lens"');
+    expect(html).toContain('aria-label="Open Pair Matrix Time Lens"');
   });
   it("makes target sensitivity, resolved outcomes, costs, and uncertainty explicit in the bias audit", () => {
     const metrics: MacroSignalMetrics = {
@@ -199,6 +191,7 @@ describe("getChartConnectionLabel", () => {
       reactionAudit: { schema: "registered-reaction-audit-v1", scope: "chronological later-test cases", horizonCandles: 6, evaluableN: 35, directionWorkedTradeProfited: 20, directionWorkedTradeLost: 4, directionFailedTradeProfited: 3, directionFailedTradeLost: 8, positiveResponseRate: 24 / 35, medianResponseR: .22 },
       groups: ["EUR:consumer_sentiment"], overall: metrics, development: metrics, holdout: metrics, qualification: {}, exampleTitles: [],
       modelStatus: "current", currentEligible: true, modelChecks: {}, executionStress: { pips: 3, overall: metrics, development: metrics, holdout: metrics, recent: metrics },
+      readiness: { auditStatus: "complete", historicalStatus: "historically_qualified", liveStatus: "not_live_validated", label: "Historical audit complete", actionableInShadowTrader: true },
       recentWindow: { from: 0, to: 1, metrics }, yearStability: { evaluableYears: 10, positiveYears: 7, positiveYearShare: .7, byYear: [] },
       prequentialAudit: { evaluableCount: 3, gross: metrics, executionStress: metrics, firstEligibleEventTime: 0, lastEligibleEventTime: 1 },
       targetRobustness: [], estimatedBreakEvenStressPips: 4, uncertaintyIncludesNoEdge: true, selectionNote: "Frozen.",
@@ -289,6 +282,7 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Calculating…");
     expect(html).toContain("Latest matching release");
     expect(html).toContain("Later-test history");
+    expect(html).toContain("Historical audit complete");
     expect(html).toContain("Watching");
     expect(html).toContain("Possible next setups");
     expect(html).toContain("Upcoming registered releases");
@@ -303,8 +297,13 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Soonest registered release");
     expect(html).toContain("2 markets live");
     expect(html).toContain("Show or hide market rows");
+    expect(html).toContain('aria-label="Hide EURUSD"');
+    expect(html).toContain('aria-label="Hide GBPUSD"');
     expect(html).toContain('title="Hide EURUSD"');
     expect(html).toContain('title="Hide GBPUSD"');
+    const eurMarketFilter = html.match(/<button[^>]*title="Hide EURUSD"[^>]*>(.*?)<\/button>/)?.[1] ?? "";
+    expect(eurMarketFilter).toContain("EURUSD flags");
+    expect(eurMarketFilter).not.toContain(">EURUSD<");
     expect(html).toContain("GBPUSD · US industrial-production package");
     expect(html).toContain("What history says");
     expect(html).toContain("Research contenders");
@@ -538,7 +537,7 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Open chart diagnostics");
     expect(html).toContain("Macro bias");
     expect(html).toContain("Event Lens");
-    expect(html).toContain("Open Event Lens details");
+    expect(html).toContain("Open Event Lens");
     expect(html).toContain("Open Pair Matrix Time Lens");
     expect(html).not.toContain(">Details<");
     expect(html).not.toContain("Loaded broker/MT5 rows only");

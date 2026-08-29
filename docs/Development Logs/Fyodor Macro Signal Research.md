@@ -266,6 +266,8 @@ V9 admits US-industrial-output Short and directional Euro-area consumer sentimen
 
 The release visualization now uses a small ring at the actual release candle plus a curved dotted connector into the first strictly later H4 activation arrow. This preserves the frozen timing contract while making the two timestamps read as one sequence.
 
+Later Charts UI consolidation (2026-08-30) removed the redundant release ring and connector. Each setup now renders one clickable arrow on its actionable activation candle; the exact economic release time remains available in the audit. This changes presentation only, not the frozen entry or scoring contract.
+
 ## FMS Shadow Trader
 
 Charts now places `FMS Shadow Trader` in the former Current Model card position. It is a decision-and-audit simulator, not an execution system:

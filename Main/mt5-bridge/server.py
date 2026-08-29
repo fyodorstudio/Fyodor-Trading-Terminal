@@ -378,6 +378,27 @@ def _registration_display_evidence(pattern: Dict[str, Any]) -> Optional[Dict[str
     "stressPips": 3.0,
   }
 
+
+def _pattern_readiness(pattern: Dict[str, Any], provenance: Dict[str, Any]) -> Dict[str, Any]:
+  """Keep historical qualification, audit integrity, and live validation separate."""
+  audit_complete = provenance.get("status") == "verified"
+  fragile = (pattern.get("historicalBenchmark") or {}).get("strength") == "positive_but_fragile"
+  return {
+    "auditStatus": "complete" if audit_complete else "incomplete",
+    "historicalStatus": (
+      "historically_positive_fragile" if audit_complete and fragile else
+      "historically_qualified" if audit_complete else
+      "unverified"
+    ),
+    "liveStatus": "not_live_validated",
+    "label": (
+      "Historical audit complete · fragile" if audit_complete and fragile else
+      "Historical audit complete" if audit_complete else
+      "Audit incomplete"
+    ),
+    "actionableInShadowTrader": audit_complete,
+  }
+
 app = FastAPI(title="MT5 Bridge", version="0.1.0")
 
 
@@ -2721,15 +2742,17 @@ def research_chart_signals(
       _chart_signal_catalog_cache.clear()
       _chart_signal_catalog_cache[catalog_key] = catalog
   definitions_by_id = {str(pattern["id"]): pattern for pattern in market_patterns}
-  patterns = [
-    {
+  patterns = []
+  for pattern in catalog:
+    if normalized_mode != "research_replay" and not pattern["currentEligible"]:
+      continue
+    provenance = _registration_provenance(pattern)
+    patterns.append({
       **pattern,
       "reactionAudit": (definitions_by_id.get(str(pattern["id"])) or {}).get("reactionAudit"),
-      "registrationProvenance": _registration_provenance(pattern),
-    }
-    for pattern in catalog
-    if normalized_mode == "research_replay" or pattern["currentEligible"]
-  ]
+      "registrationProvenance": provenance,
+      "readiness": _pattern_readiness(pattern, provenance),
+    })
   def matching_pattern(source_version: str, scoring_policy: str, candidate: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return next(
       (

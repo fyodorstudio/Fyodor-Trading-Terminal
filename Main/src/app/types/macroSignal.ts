@@ -876,6 +876,13 @@ export interface MacroSignalChartPattern {
     checks: Record<string, boolean>;
     note: string;
   };
+  readiness?: {
+    auditStatus: "complete" | "incomplete";
+    historicalStatus: "historically_qualified" | "historically_positive_fragile" | "unverified";
+    liveStatus: "not_live_validated";
+    label: string;
+    actionableInShadowTrader: boolean;
+  };
   execution?: {
     stopAtr: number;
     targetR: number;

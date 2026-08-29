@@ -3,6 +3,7 @@ import type { ChartCursorReadoutMode } from "@/app/lib/chartView";
 import type { BridgeSymbol, MarketStatusResponse, Timeframe } from "@/app/types";
 
 export const DEFAULT_CHART_SYMBOL = "EURUSD";
+export const DEFAULT_CHART_TIMEFRAME: Timeframe = "H4";
 export const CHART_TIMEFRAMES: Timeframe[] = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"];
 export const PREFERRED_CHART_SYMBOLS = ["EURUSD", "USDJPY", "GBPUSD", "XAUUSD"];
 export const CHART_HISTORY_RANGE_MAX_SECONDS = 40 * 24 * 60 * 60;

@@ -463,6 +463,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
                   type="button"
                   key={market}
                   className={visible ? "is-visible" : "is-hidden"}
+                  aria-label={`${visible ? "Hide" : "Show"} ${market}`}
                   aria-pressed={visible}
                   title={`${visible ? "Hide" : "Show"} ${market}`}
                   onClick={() => setHiddenMarkets((current) => {
@@ -470,10 +471,10 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
                     if (next.has(market)) next.delete(market); else next.add(market);
                     return next;
                   })}
-                ><PairFlags symbol={market} /><span>{market}</span></button>
+                ><PairFlags symbol={market} /></button>
               );
             })}
-            {hiddenMarkets.size > 0 ? <button type="button" className="chart-shadow-market-reset" onClick={() => setHiddenMarkets(new Set())}>Show all</button> : null}
+            {hiddenMarkets.size > 0 ? <button type="button" className="chart-shadow-market-reset" aria-label="Show all markets" title="Show all markets" onClick={() => setHiddenMarkets(new Set())}>All</button> : null}
           </nav>
           <label><span>Sort</span><select value={setupSort} onChange={(event) => setSetupSort(event.target.value as typeof setupSort)}><option value="accuracy">Highest TP-before-SL</option><option value="soonest">Soonest registered release</option><option value="profitability">Best average result</option><option value="name">Pair / setup (A–Z)</option></select></label>
         </div>
@@ -496,7 +497,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
               return (
                 <Fragment key={pattern.id}>
                   <tr className={openOrPending ? "is-current" : undefined}>
-                    <td><strong className="chart-shadow-setup-title"><PairFlags symbol={patternMarket} />{patternMarket} · {pattern.label}</strong><small className="chart-shadow-contract-line">SL {pattern.execution?.stopAtr ?? 1} ATR · TP {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</small><span className={`chart-shadow-reaction is-${pattern.reaction === "contrarian" ? "rejected" : "followed"}`}>{pattern.reaction === "contrarian" ? "Rejected evidence" : "Followed evidence"}</span></td>
+                    <td><strong className="chart-shadow-setup-title"><PairFlags symbol={patternMarket} />{patternMarket} · {pattern.label}</strong><small className="chart-shadow-contract-line">SL {pattern.execution?.stopAtr ?? 1} ATR · TP {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</small><span className={`chart-shadow-readiness is-${pattern.readiness?.auditStatus ?? "incomplete"}`}>{pattern.readiness?.label ?? "Audit incomplete"}</span><span className={`chart-shadow-reaction is-${pattern.reaction === "contrarian" ? "rejected" : "followed"}`}>{pattern.reaction === "contrarian" ? "Rejected evidence" : "Followed evidence"}</span></td>
                     <td className="chart-shadow-now-cell">{openOrPending ? (
                       <><strong>{patternSignal.activationTime != null ? "Trade open" : "Waiting for H4 entry"}</strong><small>{patternSignal.direction === "long" ? `Long ${patternMarket}` : `Short ${patternMarket}`}</small></>
                     ) : patternSignal && !assessmentIsNewer && patternSignal.outcomeStatus && patternSignal.outcomeStatus !== "pending" ? (

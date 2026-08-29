@@ -52,41 +52,43 @@ export function ChartStatusRail({
     .replace(/^closes in /, "Closes ")
     .replace(/^opens in /, "Opens ");
   const compactFeedLabel = feedLabel.replace(/^Latest candle:\s*/i, "");
+  const marketReferenceSeconds = marketStatus?.server_time ?? Math.floor(nowMs / 1_000);
+  const marketReferenceDay = new Date(marketReferenceSeconds * 1_000).getUTCDay();
+  const isWeekend = marketReferenceDay === 0 || marketReferenceDay === 6;
+  const marketStateLabel = status === "live"
+    ? marketStatus?.session_state === "closed"
+      ? isWeekend ? "Weekend" : "Closed"
+      : "Open"
+    : streamStatusLabel;
+  const marketStateTitle = `${streamStatusLabel}. ${sessionLabel}. ${sessionBasis}`;
 
   return (
     <div className="chart-status-rail">
-      <div className={`chart-status-chip chart-status-${status}`} title={streamStatusLabel}>
+      <div className={`chart-status-chip chart-status-${status}`} title={marketStateTitle}>
         <Activity className={status === "live" ? "h-4 w-4 animate-pulse" : "h-4 w-4"} />
-        <span>{streamStatusLabel}</span>
-      </div>
-      <div className="chart-status-chip" title={sessionBasis}>
-        <Clock className="h-4 w-4" />
-        <span>{compactSessionLabel}</span>
+        <span>{marketStateLabel}</span>
       </div>
       <div className="chart-status-chip chart-feed-chip">
         <div className="tv-toolbar-anchor" ref={timezoneMenuRef}>
           <button
             type="button"
             onClick={onToggleTimezoneMenu}
-            title={`Chart timezone. Current mode: ${displayModeLabel}.`}
+            title={`${compactFeedLabel}. Time display: ${displayModeLabel}. Viewer clock: ${currentDisplayTime}. ${compactSessionLabel}.`}
             className="chart-feed-button"
           >
             <Database className={lastCandleTime ? "h-4 w-4 text-blue-400" : "h-4 w-4 text-slate-500"} />
             <span className="chart-feed-main">
-              <span>Latest</span>
               <b>{compactFeedLabel}</b>
             </span>
-            <span className="chart-feed-sub">
-              Viewer {currentDisplayTime} / {displayModeShortLabel}
-            </span>
+            <span className="chart-feed-zone">{displayModeShortLabel}</span>
             <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${timezoneMenuOpen ? "rotate-180" : ""}`} />
           </button>
 
           {timezoneMenuOpen && (
             <div className="tv-popover tv-filter-popover chart-timezone-popover">
               <div className="tv-popover-head">
-                <strong>Chart timezone</strong>
-                <span>Axis labels and crosshair labels are candle timestamps. Viewer clock is only the current time in the selected display timezone.</span>
+                <strong>Time display</strong>
+                <span>Choose the timezone used by chart dates, the axis, and crosshair labels.</span>
               </div>
               <div className="tv-timezone-list">
                 {timezoneOptions.map((option) => (

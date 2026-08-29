@@ -4,6 +4,7 @@ import {
   DEFAULT_CHART_PREFERENCES,
   formatChartAxisTime,
   formatChartFeedTime,
+  formatChartHeaderFeedTime,
   formatChartHoverTime,
   formatCursorReadout,
   getChartDisplayCandles,
@@ -406,6 +407,7 @@ describe("chartView helpers", () => {
 
   it("formats hover and feed labels for local, server, and fixed UTC offset modes", () => {
     expect(formatChartFeedTime(SAMPLE_CANDLE.time, "server")).toBe("19 Feb 2026 21:00");
+    expect(formatChartHeaderFeedTime(SAMPLE_CANDLE.time, "server")).toBe("21:00 · Thu, 19 Feb 2026");
     expect(formatChartHoverTime(SAMPLE_CANDLE.time, "server")).toBe("19 Feb 2026 21:00 MT5/Server");
     expect(formatChartFeedTime(SAMPLE_CANDLE.time, "local")).toBe(formatDateTimeForDisplayTimezone(SAMPLE_CANDLE.time, "local"));
     expect(formatChartHoverTime(SAMPLE_CANDLE.time, "local")).toBe(

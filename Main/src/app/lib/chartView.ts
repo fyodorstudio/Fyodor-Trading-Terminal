@@ -13,6 +13,7 @@ import {
   formatHoverTimezoneSuffix,
   formatMonthYearForDisplayTimezone,
   formatTimeForDisplayTimezone,
+  formatWeekdayDateTimeForDisplayTimezone,
   formatYearForDisplayTimezone,
   loadDisplayTimezoneSelection,
   saveDisplayTimezoneSelection,
@@ -418,6 +419,15 @@ export function formatChartFeedTime(
 ): string {
   const viewerTimestampSeconds = toViewerTimestampSeconds(timestampSeconds, mode, sourceTimeOffsetSeconds);
   return formatDateTimeForDisplayTimezone(viewerTimestampSeconds, mode);
+}
+
+export function formatChartHeaderFeedTime(
+  timestampSeconds: number,
+  mode: ChartDisplayTimeMode,
+  sourceTimeOffsetSeconds = 0,
+): string {
+  const viewerTimestampSeconds = toViewerTimestampSeconds(timestampSeconds, mode, sourceTimeOffsetSeconds);
+  return formatWeekdayDateTimeForDisplayTimezone(viewerTimestampSeconds, mode);
 }
 
 export function getChartDisplayModeLabel(mode: ChartDisplayTimeMode): string {

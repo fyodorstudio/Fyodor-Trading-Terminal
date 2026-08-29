@@ -29,6 +29,8 @@ from macro_signal import (
   SENTIMENT_VERSION_ID,
   POLICY_INFLATION_VERSION_ID,
   GROWTH_VERSION_ID,
+  MARKET_RESEARCH_SPECS,
+  MARKET_SOURCE_VERSION_IDS,
   CHART_SIGNAL_MODEL_ID,
   CHART_SIGNAL_PATTERN_DEFINITIONS,
 )
@@ -173,6 +175,32 @@ def test_policy_rescore_preserves_non_eurusd_base_currency_direction() -> None:
   assert [event["score"] for event in rescored[0]["events"]] == [3, 3, 0]
   assert rescored[0]["direction"] == "long"
   assert rescored[0]["pairVote"] == 1
+
+
+def test_every_supported_pair_currency_orientation_survives_all_scoring_policies() -> None:
+  market_specs = {
+    "EURUSD": ("EUR", "USD", {"EUR": frozenset({"EU"}), "USD": frozenset({"US"})}),
+    **MARKET_RESEARCH_SPECS,
+  }
+  policies = ("baseline", "surprise_only", "momentum_only", "agreement_no_bonus", "forecast_quality")
+  for market, (base, quote, country_scope) in market_specs.items():
+    definition = get_signal_definition(MARKET_SOURCE_VERSION_IDS[market][3])
+    assert definition is not None
+    for currency, expected_improvement, expected_weakening in (
+      (base, "long", "short"),
+      (quote, "short", "long"),
+    ):
+      country = sorted(country_scope[currency])[0]
+      for actual, expected in (("2", expected_improvement), ("0", expected_weakening)):
+        source = {
+          **calendar_event(1, 100, currency, "GDP q/q", actual, "1", "1"),
+          "countryCode": country,
+        }
+        package = build_signal_candidates([source], now=200, definition=definition)[0]
+        assert package["direction"] == expected, (market, currency, actual, "baseline")
+        for policy in policies:
+          rescored, _audit = _rescore_policy_outcomes([package], policy)
+          assert rescored[0]["direction"] == expected, (market, currency, actual, policy)
 
 
 def test_v11_revision_audit_uses_prior_exact_series_actual_without_replacing_broker_previous() -> None:

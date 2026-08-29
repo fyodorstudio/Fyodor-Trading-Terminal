@@ -296,6 +296,17 @@ def test_failed_gate_freeze_requires_acknowledgement_and_never_promotes_charts(t
   assert provenance["status"] == "verified"
   assert provenance["qualificationAuditId"] == "audit-1"
   assert all(provenance["checks"].values())
+  readiness = server._pattern_readiness({"historicalBenchmark": {"strength": "stronger_history"}}, provenance)
+  assert readiness == {
+    "auditStatus": "complete",
+    "historicalStatus": "historically_qualified",
+    "liveStatus": "not_live_validated",
+    "label": "Historical audit complete",
+    "actionableInShadowTrader": True,
+  }
+  incomplete = server._pattern_readiness({}, {"status": "mismatch"})
+  assert incomplete["auditStatus"] == "incomplete"
+  assert incomplete["actionableInShadowTrader"] is False
 
 
 def test_completed_experiment_raw_cases_are_paginated_and_contract_specific(tmp_path: Path, monkeypatch) -> None:

@@ -356,7 +356,7 @@ These are intentionally not active implementation items. Preserve them unless th
 - [ ] Charts Event Lens interaction and readability polish:
   - [ ] add persisted Event Lens default-selection preference under Chart Events settings;
   - [ ] remove the empty unselected Event Lens modal state;
-  - [ ] preserve chart view shape on pair/timeframe changes where practical;
+  - [x] preserve chart view shape on pair/timeframe changes where practical;
   - [ ] move coverage into the expanded Event Lens modal;
   - [ ] make Release Navigator visual, readable, and factor-driven;
   - [ ] polish future scheduled marker behavior if audit finds a specific problem.
@@ -416,7 +416,7 @@ These are independent exploration sketches, not committed implementation specifi
 - [x] Harden Charts signals as `FMS-EURUSD-LABOR-H4-CQ-v3`: separate immutable post-activation Current Model from hindsight Research Replay; move directional arrows to the first strictly later H4 entry candle; retain a release dot; end active state on resolved outcomes; add three-pip stress, 1R/1.5R/2R sensitivity, cost break-even, uncertainty, recent-window, year-stability, and past-only qualification audits; freeze US-payroll Short as current while demoting recently weakened Euro-area-unemployment Long to replay-only.
 - [x] Run a fixed-factor EURUSD/H4 search across registered Economy families; reject unstable activity, trade, and retail leads; register country-aware `FMS-EURUSD-SENTIMENT-H4-v3`; and freeze `FMS-EURUSD-MULTI-H4-CQ-v4` with US-payroll Short plus symmetric Euro-area-consumer-sentiment direction as Current Model patterns.
 - [x] Add the Charts v4 real-time decision card: explicit Long/Short/No-qualified-bias state, exact condition, historical target-first/stop-first/stressed-average audit, next EUR/USD event, next structurally possible frozen setup, and an honest H4-model-on-H1 view.
-- [x] Explain sparse Macro Bias regions with the last replay-arrow date and later nonmatching scored-package count; repair the audit/current-card toolbar overlap; and make release connectors follow chart drag/zoom through imperative frame updates rather than React rerenders.
+- [x] Explain sparse Macro Bias regions with the last replay-arrow date and later nonmatching scored-package count; repair the audit/current-card toolbar overlap; then simplify each signal to one activation arrow with release timing retained in its audit.
 - [x] Freeze country-aware Growth source `FMS-EURUSD-GROWTH-H4-v7`, reject the negative broad baseline and unstable GDP/PMI/retail/trade signatures, preserve interim v8 immutably, then freeze Charts `FMS-EURUSD-MULTI-H4-CQ-v9` with positive stressed 1R/1.5R/2R required, promote US-industrial-output Short, and move payroll Short to Research Replay after its lower targets failed that stronger gate.
 - [x] Freeze and run country-aware `FMS-EURUSD-POLICY-INFL-H4-v5`: deduplicate exact series/timestamps, test strict consumer/producer inflation and canonical Fed/ECB decisions, reject direct policy arrows, and retain Euro-area producer-inflation Long as failed-year-gate research only.
 - [x] Freeze Charts `FMS-EURUSD-MULTI-H4-CQ-v6`: preserve the two v4 Current Model patterns, add factual EUR/USD Policy/Inflation context, add the v5 producer-inflation candidate only to Research Replay, and connect each release ring visually to its strictly later H4 activation arrow.

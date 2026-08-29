@@ -21,7 +21,7 @@ This folder contains shared app-shell and feature support components. Keep featu
 - `ChartMacroBiasSetupCatalog.tsx` - countdown/if-then presentation for the next scheduled frozen setup plus expandable gross benchmark cards for every Current Model-eligible registry entry.
 - `MacroSignalExpansionResearch.tsx` - Macro Signal Lab's background-loaded MFE/MAE, flexible-exit stress matrix, current-setup diagnostics, and explicitly unregistered next-candidate table.
 - `../lib/macroSignalShadow.ts` - pure gross shadow-account replay and hypothetical EURUSD position sizing. Costs are deliberately excluded rather than estimated.
-- `../lib/macroBiasConnectorPrimitive.ts` - native Lightweight Charts release-ring to next-H4 activation connector; it paints in the chart pane's own render cycle and exposes release-ring hit testing for audit access.
+- FMS signals use one clickable Lightweight Charts arrow at the frozen trade-activation candle; release timing remains available inside the arrow audit instead of a second chart dot.
 - `ChartMacroBiasAudit.tsx` - clicked-arrow source, outcome, robustness, cost-stress, and model-provenance audit.
 - `CentralBanksViews.tsx` - Central Banks command/focus view rendering; `CentralBanksTab.tsx` owns only mode state and shell controls.
 - `EconomicCalendarControls.tsx` - Economic Calendar help tooltip, freshness chip, impact summary, and clock cards.
