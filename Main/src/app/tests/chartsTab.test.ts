@@ -203,9 +203,21 @@ describe("getChartConnectionLabel", () => {
       prequentialAudit: { evaluableCount: 3, gross: metrics, executionStress: metrics, firstEligibleEventTime: 0, lastEligibleEventTime: 1 },
       targetRobustness: [], estimatedBreakEvenStressPips: 4, uncertaintyIncludesNoEdge: true, selectionNote: "Frozen.",
     } satisfies MacroSignalChartPattern;
+    const closedSignal = {
+      id: "sentiment-closed", patternId: "sentiment", sourceVersionId: "v3", eventTime: 60, activationTime: 64,
+      historicalReplay: false, direction: "short", label: pattern.label, agreement: "consensus", pairVote: -1,
+      backgroundDirection: "none", backgroundPairVote: 0, backgroundAlignment: "neutral", backgroundCoverageComplete: true,
+      highestImpact: "high", events: [], execution: { stopAtr: 1, targetR: 2, expiryCandles: 30 }, stopAtr: 1, targetR: 2,
+      expiryCandles: 30, entry: 1.1, atr: .01, stop: 1.11, target: 1.08, outcomeStatus: "target_hit", resultR: 2, exitTime: 80,
+    } satisfies MacroSignalChartSignal;
+    const openSignal = {
+      ...closedSignal,
+      id: "sentiment-open", eventTime: 95, activationTime: 96, direction: "long", pairVote: 1,
+      entry: 1.2, stop: 1.19, target: 1.22, outcomeStatus: "pending", resultR: null, exitTime: null,
+    } satisfies MacroSignalChartSignal;
     const response = {
       supported: true, versionId: "v4", modelId: "v4", modelHash: "hash", modelActivatedAt: 1, datasetFingerprint: "data",
-      mode: "current", symbol: "EURUSD", timeframe: "H1", modelTimeframe: "H4", targetR: 2, patterns: [pattern], signals: [], message: "Current",
+      mode: "current", symbol: "EURUSD", timeframe: "H1", modelTimeframe: "H4", targetR: 2, patterns: [pattern], signals: [closedSignal, openSignal], message: "Current",
       realtime: {
         asOf: 100,
         nextPairEvent: { id: 1, time: 200, currency: "USD", countryCode: "US", title: "Leading Index", impact: "high", actual: null, forecast: "1", previous: "0" },
@@ -255,13 +267,16 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("FMS Shadow Trader");
     expect(html).toContain("EURUSD flags");
     expect(html).toContain("GBPUSD flags");
-    expect(html).toContain("Scanning");
-    expect(html).toContain("What FMS is hunting");
-    expect(html).toContain("IF registered EUR evidence improves");
-    expect(html).toContain("Long EURUSD");
+    expect(html).toContain("Trade open");
+    expect(html).toContain("What FMS has opened");
+    expect(html).toContain("Open now");
+    expect(html).toContain("Last opened trade");
+    expect(html).toContain("View audit");
+    expect(html).toContain("Target reached");
+    expect(html).not.toContain("Trade decision audit");
     expect(html).toContain("This release only:");
     expect(html).toContain("It does not cancel the other releases.");
-    expect(html).toContain("Complete package decision");
+    expect(html).not.toContain("Complete package decision");
     expect(html).not.toContain("evidence cancelled to zero, so no trade was opened");
     expect(html).toContain("00:01 · 01 Jan 1970 · UTC");
     expect(html).toContain("All registered FMS setups");

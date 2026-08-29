@@ -740,6 +740,34 @@
 .chart-macro-bias-realtime > header div { font-size: 15px; letter-spacing: .025em; text-transform: none; }
 .chart-macro-bias-realtime > header small { font-size: 10px; }
 
+/* Shadow Trader opens with the actionable trade ledger; detailed release math stays opt-in. */
+.chart-shadow-trade-monitor { padding: 0 !important; overflow: hidden; border-color: #a5b4fc !important; }
+.chart-shadow-trade-monitor > .chart-shadow-section-heading { align-items: flex-end; padding: 11px 13px 9px; background: linear-gradient(135deg,#eef2ff,#fff); }
+.chart-shadow-trade-monitor > .chart-shadow-section-heading span { color: #4f46e5; }
+.chart-shadow-trade-monitor > .chart-shadow-section-heading strong { font-size: 15px; }
+.chart-shadow-trade-monitor > .chart-shadow-section-heading > small { max-width: 230px; color: #64748b; font-size: 8px; font-weight: 800; line-height: 1.35; text-align: right; }
+.chart-shadow-trade-monitor table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.chart-shadow-trade-monitor thead th { border-top: 1px solid #dbe3ef; border-bottom: 1px solid #dbe3ef; background: #f8fafc; padding: 6px 8px; color: #64748b; font-size: 8px; font-weight: 950; letter-spacing: .025em; text-align: left; text-transform: uppercase; }
+.chart-shadow-trade-monitor thead th:nth-child(1) { width: 32%; }
+.chart-shadow-trade-monitor thead th:nth-child(2) { width: 25%; }
+.chart-shadow-trade-monitor thead th:nth-child(3) { width: 32%; }
+.chart-shadow-trade-monitor thead th:nth-child(4) { width: 11%; text-align: right; }
+.chart-shadow-trade-monitor tbody tr[role="button"] { cursor: pointer; outline: none; }
+.chart-shadow-trade-monitor tbody tr[role="button"]:hover td { background: #f8faff; }
+.chart-shadow-trade-monitor tbody tr[role="button"]:focus-visible td { background: #eef2ff; box-shadow: inset 0 2px #6366f1, inset 0 -2px #6366f1; }
+.chart-shadow-trade-monitor tbody tr.is-selected td { background: #eef2ff; }
+.chart-shadow-trade-monitor td { min-width: 0; border-bottom: 1px solid #e2e8f0; padding: 9px 8px; vertical-align: middle; }
+.chart-shadow-trade-monitor td > strong, .chart-shadow-trade-monitor td > small { display: block; min-width: 0; }
+.chart-shadow-trade-monitor td > strong { color: #0f172a; font-size: 10px; font-weight: 900; line-height: 1.35; overflow-wrap: anywhere; }
+.chart-shadow-trade-monitor td > strong .chart-shadow-pair-flags { margin-right: 6px; vertical-align: -2px; }
+.chart-shadow-trade-monitor td > small { margin-top: 3px; color: #64748b; font-size: 8px; font-weight: 750; line-height: 1.35; overflow-wrap: anywhere; }
+.chart-shadow-trade-monitor td:last-child { color: #4f46e5; text-align: right; }
+.chart-shadow-trade-monitor td:last-child > span { display: inline; font-size: 8px; font-weight: 950; white-space: nowrap; }
+.chart-shadow-trade-monitor td:last-child svg { margin-left: 3px; vertical-align: -3px; }
+.chart-shadow-trade-group th { border-top: 1px solid #c7d2fe; border-bottom: 1px solid #e0e7ff; background: #eef2ff; padding: 5px 8px; color: #4338ca; font-size: 8px; font-weight: 950; letter-spacing: .075em; text-align: left; text-transform: uppercase; }
+.chart-shadow-trade-empty td { background: #fff; padding: 9px 10px; color: #94a3b8; font-size: 9px; font-weight: 800; }
+.chart-shadow-trade-monitor + .chart-shadow-decision { margin-top: 6px; }
+
 /* Latest decision: rule and possible action precede the released values. */
 .chart-shadow-decision .chart-shadow-section-heading { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, auto); }
 .chart-shadow-decision-meta { display: flex; min-width: 0; max-width: 100%; align-items: center; justify-content: flex-end; gap: 8px; }

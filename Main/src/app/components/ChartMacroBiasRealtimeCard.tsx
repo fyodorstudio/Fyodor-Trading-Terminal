@@ -1,4 +1,4 @@
-import { ChevronDown, ShieldCheck, WalletCards } from "lucide-react";
+import { ChevronDown, ChevronRight, ShieldCheck, WalletCards } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import { ChartMacroBiasNextSetup, ChartMacroBiasSetupCatalog } from "@/app/components/ChartMacroBiasSetupCatalog";
 import { FlagIcon } from "@/app/components/FlagIcon";
@@ -177,19 +177,67 @@ function packageDecisionCopy(assessment: MacroSignalPatternAssessment, pattern: 
   };
 }
 
-function LatestDecisionSection({ assessment, pattern, symbol }: { assessment: MacroSignalPatternAssessment; pattern: MacroSignalChartPattern | null; symbol: string }) {
-  const status = assessment.status === "pre_activation_audit"
+interface ShadowTradeRow {
+  key: string;
+  market: string;
+  signal: MacroSignalChartSignal;
+  pattern: MacroSignalChartPattern | null;
+  assessment: MacroSignalPatternAssessment;
+}
+
+function assessmentForSignal(
+  signal: MacroSignalChartSignal,
+  pattern: MacroSignalChartPattern | null,
+  exactAssessment: MacroSignalPatternAssessment | null,
+): MacroSignalPatternAssessment {
+  if (exactAssessment?.time === signal.eventTime) return exactAssessment;
+  return {
+    time: signal.eventTime,
+    patternId: signal.patternId,
+    label: pattern?.label ?? signal.label,
+    condition: pattern?.condition ?? "This release matched a registered FMS setup.",
+    status: "qualified",
+    direction: signal.direction,
+    reason: "This package produced a registered hypothetical trade.",
+    events: [],
+    calculations: signal.events.map((event) => ({
+      title: event.title,
+      actual: event.actual,
+      forecast: event.forecast,
+      previous: event.previous,
+      surprisePoint: event.surprisePoint,
+      momentumPoint: event.momentumPoint,
+      agreementBonus: event.agreementBonus,
+      score: event.score,
+      scoringPolicy: pattern?.scoringPolicy ?? null,
+    })),
+  };
+}
+
+function LatestDecisionSection({ assessment, pattern, symbol, signal }: { assessment: MacroSignalPatternAssessment; pattern: MacroSignalChartPattern | null; symbol: string; signal?: MacroSignalChartSignal | null }) {
+  const status = signal
+    ? signal.outcomeStatus === "pending"
+      ? signal.activationTime == null ? "Waiting for H4 entry" : "Trade open"
+      : formatOutcome(signal)
+    : assessment.status === "pre_activation_audit"
     ? "Audit only"
     : assessment.status === "no_trade"
       ? "No trade"
       : assessment.status === "qualified"
         ? "Qualified"
         : "Processing";
-  const packageDecision = packageDecisionCopy(assessment, pattern, symbol);
+  const packageDecision = signal ? {
+    title: `${signal.direction === "long" ? "Long" : "Short"} ${symbol}`,
+    detail: signal.outcomeStatus === "pending"
+      ? signal.activationTime == null
+        ? "The registered package qualified. The hypothetical trade waits for the first strictly later H4 open."
+        : "The hypothetical trade is open and being monitored under this setup's frozen SL, TP, and maximum duration."
+      : `This hypothetical trade is closed: ${formatOutcome(signal)}. Its historical result remains fixed.`,
+  } : packageDecisionCopy(assessment, pattern, symbol);
   return (
-    <section className="chart-shadow-decision" aria-label="Latest FMS decision">
+    <section className="chart-shadow-decision" aria-label="Selected FMS trade decision audit">
       <div className="chart-shadow-section-heading">
-        <div><span>Latest decision</span><strong className="chart-shadow-decision-title"><PairFlags symbol={symbol} />{pattern?.label ?? assessment.label}</strong></div>
+        <div><span>Trade decision audit</span><strong className="chart-shadow-decision-title"><PairFlags symbol={symbol} />{pattern?.label ?? assessment.label}</strong></div>
         <div className="chart-shadow-decision-meta">
           <b className={`chart-shadow-status is-${assessment.status}`}>{status}</b>
           <time>{formatUtc(assessment.time)}</time>
@@ -233,6 +281,7 @@ function LatestDecisionSection({ assessment, pattern, symbol }: { assessment: Ma
 export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealtimeCardData }) {
   const { response, activeSignal, activePattern } = data;
   const [setupSort, setSetupSort] = useState<"profitability" | "accuracy" | "soonest" | "name">("accuracy");
+  const [selectedTradeKey, setSelectedTradeKey] = useState<string | null>(null);
   const [startingBalance, setStartingBalance] = useState(() => normalizeShadowStartingBalance(readStoredNumber(SHADOW_BALANCE_KEY, DEFAULT_SHADOW_STARTING_BALANCE)));
   const [riskPercent, setRiskPercent] = useState(() => normalizeShadowRiskPercent(readStoredNumber(SHADOW_RISK_KEY, DEFAULT_SHADOW_RISK_PERCENT)));
   const registryResponses = useMemo(
@@ -253,7 +302,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
     [registryResponses],
   );
   const openSignals = useMemo(
-    () => registryResponses.flatMap((market) => market.signals.filter((signal) => signal.outcomeStatus === "pending")),
+    () => registryResponses.flatMap((market) => market.signals.filter((signal) => signal.outcomeStatus === "pending" && signal.activationTime != null && signal.entry != null)),
     [registryResponses],
   );
   const verifiedPatterns = useMemo(
@@ -265,6 +314,34 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
     () => new Map(registryResponses.flatMap((market) => (market.realtime?.latestPatternAssessments ?? (market.realtime?.latestPatternAssessment ? [market.realtime.latestPatternAssessment] : [])).map((assessment) => [`${market.symbol}:${assessment.patternId}`, assessment]))),
     [registryResponses],
   );
+  const tradeRows = useMemo<ShadowTradeRow[]>(() => registryResponses.flatMap((market) => {
+    const assessments = market.realtime?.latestPatternAssessments ?? (market.realtime?.latestPatternAssessment ? [market.realtime.latestPatternAssessment] : []);
+    const exactAssessments = new Map(assessments.map((assessment) => [`${assessment.patternId}:${assessment.time}`, assessment]));
+    const patterns = new Map(market.patterns.map((pattern) => [pattern.id, pattern]));
+    return market.signals
+      .filter((signal) => signal.activationTime != null)
+      .map((signal) => {
+        const pattern = patterns.get(signal.patternId) ?? null;
+        const exactAssessment = exactAssessments.get(`${signal.patternId}:${signal.eventTime}`) ?? null;
+        return {
+          key: `${market.symbol}:${signal.id}`,
+          market: market.symbol,
+          signal,
+          pattern,
+          assessment: assessmentForSignal(signal, pattern, exactAssessment),
+        };
+      });
+  }).sort((left, right) => (right.signal.activationTime ?? 0) - (left.signal.activationTime ?? 0) || right.signal.eventTime - left.signal.eventTime || left.key.localeCompare(right.key)), [registryResponses]);
+  const currentTradeRows = useMemo(
+    () => tradeRows.filter((row) => row.signal.outcomeStatus === "pending" && row.signal.entry != null),
+    [tradeRows],
+  );
+  const currentTradeKeys = useMemo(() => new Set(currentTradeRows.map((row) => row.key)), [currentTradeRows]);
+  const lastOpenedTrade = useMemo(
+    () => tradeRows.find((row) => !currentTradeKeys.has(row.key)) ?? null,
+    [currentTradeKeys, tradeRows],
+  );
+  const selectedTrade = selectedTradeKey == null ? null : tradeRows.find((row) => row.key === selectedTradeKey) ?? null;
   const upcomingByPattern = useMemo(
     () => new Map(registryResponses.flatMap((market) => (market.realtime?.upcomingPatternWatches ?? (market.realtime?.nextPatternWatch ? [market.realtime.nextPatternWatch] : [])).map((watch) => [`${market.symbol}:${watch.patternId}`, watch]))),
     [registryResponses],
@@ -284,9 +361,6 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
   }), [registeredPatternRows, response.symbol, setupSort, upcomingByPattern]);
   const watchPattern = nextWatch
     ? nextWatchEntry?.market.patterns.find((pattern) => pattern.id === nextWatch.patternId) ?? null
-    : null;
-  const latestAssessmentPattern = latestAssessment
-    ? latestAssessmentEntry?.market.patterns.find((pattern) => pattern.id === latestAssessment.patternId) ?? null
     : null;
   const settings = useMemo(() => ({ startingBalance, riskPercent }), [startingBalance, riskPercent]);
   const liveAccount = useMemo(() => buildMacroSignalShadowAccount(registryResponses.flatMap((market) => market.signals), settings), [registryResponses, settings]);
@@ -317,12 +391,55 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
     return normalized;
   };
 
+  const renderTradeRow = (row: ShadowTradeRow) => {
+    const selected = selectedTradeKey === row.key;
+    const signal = row.signal;
+    const state = signal.outcomeStatus === "pending" ? "Open" : formatOutcome(signal);
+    return (
+      <tr
+        key={row.key}
+        className={selected ? "is-selected" : undefined}
+        role="button"
+        tabIndex={0}
+        aria-expanded={selected}
+        onClick={() => setSelectedTradeKey((current) => current === row.key ? null : row.key)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setSelectedTradeKey((current) => current === row.key ? null : row.key);
+          }
+        }}
+      >
+        <td><strong><PairFlags symbol={row.market} />{row.pattern?.label ?? signal.label}</strong><small>{signal.direction === "long" ? `Long ${row.market}` : `Short ${row.market}`}</small></td>
+        <td><strong>{formatUtc(signal.activationTime)}</strong><small>Release {formatUtc(signal.eventTime)}</small></td>
+        <td><strong>{state}</strong><small>SL {signal.stopAtr ?? row.pattern?.execution?.stopAtr ?? 1} ATR · TP {signal.targetR ?? row.pattern?.execution?.targetR ?? 2}R · {signal.expiryCandles} H4</small></td>
+        <td><span>{selected ? "Hide audit" : "View audit"}</span>{selected ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
+      </tr>
+    );
+  };
+
   return (
     <aside className="chart-macro-bias-realtime" aria-label="FMS Shadow Trader">
       <header>
         <div><ShieldCheck size={14} /><span>FMS Shadow Trader</span></div>
         <small>{data.globalResponse ? `${registryResponses.length} markets live` : timeframeLabel}</small>
       </header>
+      <section className="chart-shadow-trade-monitor" aria-label="Current and recent hypothetical FMS trades">
+        <div className="chart-shadow-section-heading">
+          <div><span>Trade monitor</span><strong>What FMS has opened</strong></div>
+          <small>Hypothetical only · click a row for its decision audit</small>
+        </div>
+        <table>
+          <thead><tr><th>Setup and direction</th><th>Opened</th><th>State and rules</th><th>Audit</th></tr></thead>
+          <tbody>
+            <tr className="chart-shadow-trade-group"><th colSpan={4}>Open now</th></tr>
+            {currentTradeRows.length > 0 ? currentTradeRows.map(renderTradeRow) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No hypothetical trade is currently open.</td></tr>}
+            <tr className="chart-shadow-trade-group"><th colSpan={4}>Last opened trade</th></tr>
+            {lastOpenedTrade ? renderTradeRow(lastOpenedTrade) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No earlier opened trade is loaded.</td></tr>}
+          </tbody>
+        </table>
+      </section>
+      {selectedTrade ? <LatestDecisionSection assessment={selectedTrade.assessment} pattern={selectedTrade.pattern} symbol={selectedTrade.market} signal={selectedTrade.signal} /> : null}
       <section className={`chart-shadow-readiness ${registryHistoricallyReady ? "is-audited" : "is-blocked"}`} aria-label="FMS readiness">
         <div>
           <span>Can I follow this blindly?</span>
@@ -344,7 +461,6 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
           <div><span>Next registered event</span><strong>{nextWatch ? formatUtc(nextWatch.time) : "None loaded"}</strong></div>
         </div>
       </section>
-      {latestAssessment ? <LatestDecisionSection assessment={latestAssessment} pattern={latestAssessmentPattern} symbol={latestAssessmentEntry?.market.symbol ?? response.symbol} /> : null}
       {data.globalLoading ? <section className="chart-shadow-global-state">Loading the global registry…</section> : null}
       {data.globalError ? <section className="chart-shadow-global-state is-error">Global registry unavailable: {data.globalError}. Showing {response.symbol} only.</section> : null}
       <section className="chart-shadow-priority" aria-label="All registered FMS setups">
