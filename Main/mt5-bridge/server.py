@@ -40,6 +40,9 @@ from macro_signal import (
   H4_SECONDS,
   MARKET_RESEARCH_SPECS,
   MARKET_SOURCE_VERSION_IDS,
+  PAIR_ORIENTATION_VERSION,
+  PATH_RESEARCH_HORIZONS,
+  RELEASE_REACTION_ENGINE_ID,
   RESULT_SCHEMA_VERSION,
   SIGNAL_DEFINITIONS,
   STRESS_HOLDING_CANDLES,
@@ -278,7 +281,7 @@ def _registration_provenance(pattern: Dict[str, Any]) -> Dict[str, Any]:
       "datasetFingerprint": None,
       "qualificationAuditId": None,
       "checks": {},
-      "note": "Legacy registration: no immutable Workbench experiment is linked, so source diagnostics are not a registered-contract benchmark.",
+      "note": "Archived snapshot: no immutable Workbench experiment is linked, so source diagnostics are not an active registered-contract benchmark.",
     }
   experiment_id = str(benchmark.get("experimentId") or "")
   experiment = _research_store.get_fms_experiment(experiment_id) if experiment_id else None
@@ -324,6 +327,10 @@ def _registration_provenance(pattern: Dict[str, Any]) -> Dict[str, Any]:
     "cohort": dict(configuration.get("cohort") or {"dimension": "none", "value": "all"}) == dict(pattern.get("cohort") or {"dimension": "none", "value": "all"}),
     "requiredExactTitles": sorted(str(value) for value in configuration.get("requiredExactTitles") or ()) == sorted(str(value) for value in pattern.get("requiredExactTitles") or ()),
     "scoringEngine": str(configuration.get("scoringEngineVersion") or "") == WORKBENCH_SCORING_ENGINE_VERSION,
+    "pairOrientation": (
+      str(configuration.get("pairOrientationVersion") or "") == PAIR_ORIENTATION_VERSION
+      or not str(pattern.get("market") or "EURUSD").startswith("USD")
+    ),
     "stopAtr": close(selected.get("stopAtr"), execution.get("stopAtr")),
     "targetR": close(selected.get("targetR"), execution.get("targetR")),
     "expiryCandles": int(selected.get("holdingCandles") or -1) == int(execution.get("expiryCandles") or -2),
@@ -391,13 +398,41 @@ def _pattern_readiness(pattern: Dict[str, Any], provenance: Dict[str, Any]) -> D
       "unverified"
     ),
     "liveStatus": "not_live_validated",
+    "orientationAudited": audit_complete,
     "label": (
       "Historical audit complete · fragile" if audit_complete and fragile else
-      "Historical audit complete" if audit_complete else
+      "Historical audit complete · orientation audited" if audit_complete else
       "Audit incomplete"
     ),
     "actionableInShadowTrader": audit_complete,
   }
+
+
+def _reconciled_pattern(pattern: Dict[str, Any]) -> Dict[str, Any]:
+  """Overlay a corrected immutable reconciliation without rewriting registry history."""
+  raw = _research_store.get_metadata("fms_registered_reaction:reconciliation")
+  if not raw:
+    return pattern
+  try:
+    payload = json.loads(raw)
+  except (TypeError, ValueError):
+    return pattern
+  row = next(
+    (item for item in payload.get("rows", ()) if str(item.get("patternId")) == str(pattern.get("id"))),
+    None,
+  )
+  if not isinstance(row, dict) or not row.get("id"):
+    return pattern
+  benchmark = dict(pattern.get("historicalBenchmark") or {})
+  benchmark.update({
+    "experimentId": row["id"],
+    "historicalN": row.get("historicalN"),
+    "walkForwardN": row.get("walkForwardN"),
+    "walkForwardAverageR": row.get("walkForwardAverageR"),
+    "targetFirstRate": row.get("targetFirstRate"),
+    "stopFirstRate": row.get("stopFirstRate"),
+  })
+  return {**pattern, "historicalBenchmark": benchmark}
 
 app = FastAPI(title="MT5 Bridge", version="0.1.0")
 
@@ -1485,6 +1520,11 @@ def _run_scheduled_forward_reconcile(observed_at: int) -> None:
   global _forward_reconcile_scheduled
   try:
     _reconcile_forward_paper(observed_at)
+    for market in WORKBENCH_MARKETS:
+      try:
+        research_chart_signals(symbol=market, tf="H4", mode="current", refresh=True)
+      except Exception:
+        logger.exception("registered_shadow_reconcile failed market=%s observed_at=%s", market, observed_at)
   except Exception:
     logger.exception("forward_paper_reconcile failed observed_at=%s", observed_at)
   finally:
@@ -2225,22 +2265,40 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
     raise HTTPException(status_code=400, detail="Unsupported FMS market")
   calendar_coverage = _research_store.calendar_coverage(market_definition["currencies"])
   required_versions = market_definition["sourceVersions"] or sorted({str(pattern["sourceVersion"]) for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS})
-  missing_source_versions = [
-    version for version in required_versions
-    if not (_research_store.latest_backtest_run(version) or {}).get("status") == "completed"
-  ]
-  h4_prices = _research_store.query_candles(normalized_market, "H4", 0, int(_time.time()))
-  if missing_source_versions or not h4_prices:
+  source_headers = [_research_store.latest_backtest_run_header(version) for version in required_versions]
+  missing_source_versions = [version for version, header in zip(required_versions, source_headers) if not header or header.get("status") != "completed"]
+  h4_coverage = _research_store.candle_coverage(normalized_market, "H4")
+  static_revision = hashlib.sha256("|".join([
+    normalized_market, PRACTICAL_MODEL_HASH,
+    str(_research_store.get_metadata("fms_reaction_atlas:revision") or "unversioned"),
+    *(str((header or {}).get("id") or "missing") for header in source_headers),
+    str(h4_coverage.get("count") or 0), str(h4_coverage.get("latest") or 0),
+  ]).encode("utf-8")).hexdigest()
+  static_key = f"fms_workbench_static_v1:{static_revision}"
+  static_cached = _research_store.get_metadata(static_key)
+  if static_cached and not missing_source_versions and h4_coverage.get("count"):
+    try:
+      static_payload = json.loads(static_cached)
+      if isinstance(static_payload, dict):
+        return {
+          **static_payload,
+          "experiments": _research_store.list_fms_experiment_headers(normalized_market, 500),
+          "candidates": [row for row in _research_store.list_fms_candidates() if str((row.get("configuration") or {}).get("market", "EURUSD")) == normalized_market],
+          "archive": _research_store.list_signal_version_archive(),
+        }
+    except (TypeError, ValueError):
+      logger.warning("Ignoring unreadable durable FMS workbench shell for %s", normalized_market)
+  if missing_source_versions or not h4_coverage.get("count"):
     return {
       "market": normalized_market,
-      "currentModel": {"id": PRACTICAL_MODEL_ID, "friendlyName": "Registered Reaction Atlas", "displayId": "Registered v3", "hash": PRACTICAL_MODEL_HASH, "activatedAt": PRACTICAL_MODEL_CREATED_AT, "timeframe": "H4", "registeredSetups": []},
+      "currentModel": {"id": PRACTICAL_MODEL_ID, "researchEngineId": RELEASE_REACTION_ENGINE_ID, "friendlyName": "Registered Reaction Atlas", "displayId": "Active registered v4", "hash": PRACTICAL_MODEL_HASH, "activatedAt": PRACTICAL_MODEL_CREATED_AT, "timeframe": "H4", "registeredSetups": []},
       "catalog": {"items": [], "advancedTreatmentsReady": False, "generatedAt": int(_time.time())},
       "protocol": {"stopAtrValues": list(STRESS_STOP_ATR_VALUES), "targetRValues": list(STRESS_TARGET_R_VALUES), "holdingCandles": list(STRESS_HOLDING_CANDLES), "scoringPolicies": ["baseline", "surprise_only", "momentum_only", "agreement_no_bonus", "forecast_quality"], "entry": "first_h4_open_strictly_after_release", "selection": "development_lower95_then_average"},
       "experiments": [], "candidates": [], "archive": _research_store.list_signal_version_archive(),
       "reactionAtlas": _workbench_reaction_atlas(normalized_market),
-      "dataPeriods": {"durableCalendar": {"start": calendar_coverage.get("earliest"), "end": calendar_coverage.get("latest")}, "workbenchResearch": {"start": None, "end": None}, "h4Prices": {"start": min((int(row["time"]) for row in h4_prices), default=None), "end": max((int(row["time"]) for row in h4_prices), default=None)}},
+      "dataPeriods": {"durableCalendar": {"start": calendar_coverage.get("earliest"), "end": calendar_coverage.get("latest")}, "workbenchResearch": {"start": None, "end": None}, "h4Prices": {"start": h4_coverage.get("earliest"), "end": h4_coverage.get("latest")}},
       "datasetFingerprint": f"unavailable:{normalized_market}", "sourceRunIds": [], "candleRevision": "unavailable",
-      "availability": {"ready": False, "missingSourceVersions": missing_source_versions, "missingH4Prices": not h4_prices, "message": f"{normalized_market} research is blocked until durable GBP/USD calendar history and {normalized_market} H4 prices are backfilled, then its four market-labelled source backtests complete."},
+      "availability": {"ready": False, "missingSourceVersions": missing_source_versions, "missingH4Prices": not h4_coverage.get("count"), "message": f"{normalized_market} research is blocked until durable calendar history and {normalized_market} H4 prices are backfilled, then its market-labelled source backtests complete."},
     }
   bundle = _workbench_source_bundle(normalized_market)
   catalog = _workbench_catalog(bundle)
@@ -2251,12 +2309,13 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
     if outcome.get("eventTime") is not None
   ]
   price_times = [int(candle["time"]) for candle in bundle["candles"]]
-  return {
+  payload = {
     "market": normalized_market,
     "currentModel": {
       "id": PRACTICAL_MODEL_ID,
+      "researchEngineId": RELEASE_REACTION_ENGINE_ID,
       "friendlyName": "Registered Reaction Atlas",
-      "displayId": "Registered v3",
+      "displayId": "Active registered v4",
       "hash": PRACTICAL_MODEL_HASH,
       "activatedAt": PRACTICAL_MODEL_CREATED_AT,
       "timeframe": "H4",
@@ -2271,7 +2330,9 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
         "cohort": dict(pattern.get("cohort") or {"dimension": "none", "value": "all"}),
         "execution": dict(pattern["execution"]),
         "registrationEvidence": _registration_display_evidence(pattern),
-      } for pattern in PRACTICAL_PATTERN_DEFINITIONS if pattern.get("current") and str(pattern.get("market")) == normalized_market],
+      } for original in PRACTICAL_PATTERN_DEFINITIONS
+        for pattern in [_reconciled_pattern(original)]
+        if pattern.get("current") and str(pattern.get("market")) == normalized_market],
     },
     "catalog": catalog,
     "protocol": {
@@ -2304,6 +2365,10 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
     "sourceRunIds": bundle["runIds"],
     "candleRevision": bundle["candleRevision"],
   }
+  _research_store.set_metadata(static_key, json.dumps({
+    key: value for key, value in payload.items() if key not in {"experiments", "candidates", "archive"}
+  }, separators=(",", ":")))
+  return payload
 
 
 def _validate_experiment_request(payload: FmsExperimentRequest, catalog: Dict[str, Any]) -> Dict[str, Any]:
@@ -2387,6 +2452,7 @@ def create_research_experiment(payload: FmsExperimentRequest) -> Dict[str, Any]:
     "directionSelection": payload.directionSelection,
     "scoringPolicy": payload.scoringPolicy,
     "scoringEngineVersion": WORKBENCH_SCORING_ENGINE_VERSION,
+    "pairOrientationVersion": PAIR_ORIENTATION_VERSION,
     "researchDiagnosticsVersion": WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION,
     "cohort": payload.cohort.model_dump(),
     "reaction": payload.reaction,
@@ -2487,7 +2553,7 @@ def get_research_experiment_raw_cases(
       encoded = json.dumps(audit_value, separators=(",", ":"))
       _research_store.set_metadata(f"fms_raw_audit:{experiment_id}", encoded)
     except Exception as exc:  # noqa: BLE001 - return an honest immutable-history failure
-      raise HTTPException(status_code=409, detail=f"Legacy raw audit could not be reconstructed: {exc}") from exc
+      raise HTTPException(status_code=409, detail=f"Archived raw audit could not be reconstructed: {exc}") from exc
   audit = json.loads(encoded)
   contract_key = contract or str(audit.get("selectedContractKey", ""))
   results = {str(row["caseId"]): row for row in audit.get("contractResults", {}).get(contract_key, [])}
@@ -2639,7 +2705,11 @@ def research_chart_signals(
   normalized_mode = mode.lower()
   if normalized_mode not in {"current", "research_replay"}:
     raise HTTPException(status_code=400, detail="Macro Bias mode must be current or research_replay")
-  market_patterns = [pattern for pattern in PRACTICAL_PATTERN_DEFINITIONS if pattern["market"] == normalized_symbol]
+  market_patterns = [
+    _reconciled_pattern(pattern)
+    for pattern in PRACTICAL_PATTERN_DEFINITIONS
+    if pattern["market"] == normalized_symbol
+  ]
   if not market_patterns:
     return {
       "supported": False,
@@ -2668,7 +2738,8 @@ def research_chart_signals(
         if normalized_mode == "current" else "immutable-replay"
       )
       response_cache_key = hashlib.sha256("|".join([
-        "chart-response-v3", normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
+        "chart-response-v5-orientation", normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
+        str(_research_store.get_metadata("fms_registered_reaction:reconciliation") or ""),
         calendar_revision,
         *(f"{run['id']}:{run['datasetFingerprint']}" for run in run_headers if run),
       ]).encode("utf-8")).hexdigest()
@@ -2758,6 +2829,7 @@ def research_chart_signals(
       (
         pattern for pattern in patterns
         if pattern["sourceVersionId"] == source_version
+        and (pattern.get("readiness") or {}).get("actionableInShadowTrader", False)
         and pattern.get("scoringPolicy", "forecast_quality") == scoring_policy
         and candidate_matches_chart_pattern(candidate, pattern)
       ),
@@ -2962,7 +3034,7 @@ def research_chart_signals(
             / (atr * stop_atr)
           ),
         }
-        for horizon in (1, 3, 6, 12, 30)
+        for horizon in PATH_RESEARCH_HORIZONS
         if len(profile["candles"]) >= horizon
       ]
       six_h4_response = next((row for row in fixed_horizon_responses if row["holdingCandles"] == 6), None)
@@ -3025,6 +3097,28 @@ def research_chart_signals(
     market_currencies,
     normalized_symbol,
   )
+  if normalized_mode == "current":
+    realtime_assessments = realtime.get("latestPatternAssessments") or (
+      [realtime["latestPatternAssessment"]] if realtime.get("latestPatternAssessment") else []
+    )
+    signal_by_key = {(str(signal["patternId"]), int(signal["eventTime"])): signal for signal in signals}
+    for assessment in realtime_assessments:
+      if assessment.get("status") not in {"qualified", "no_trade"}:
+        continue
+      event_time = int(assessment["time"])
+      if event_time < PRACTICAL_MODEL_CREATED_AT:
+        continue
+      _research_store.record_fms_live_decision(
+        PRACTICAL_MODEL_ID,
+        normalized_symbol,
+        str(assessment["patternId"]),
+        event_time,
+        generated_at,
+        str(assessment["status"]),
+        assessment.get("direction"),
+        assessment,
+        signal_by_key.get((str(assessment["patternId"]), event_time)),
+      )
   policy_inflation_context = None
   if normalized_symbol == "EURUSD":
     context_revision = _research_store.get_metadata("last_calendar_ingest_at") or "unversioned"
@@ -3088,9 +3182,10 @@ def research_chart_signals(
 @app.get("/research/chart-signals/global")
 def research_global_chart_signals(tf: str = "H4") -> Dict[str, Any]:
   """Return every practical current registry without changing the selected chart."""
+  effective_patterns = [_reconciled_pattern(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS]
   markets = [
     research_chart_signals(symbol=market, tf=tf, mode="current")
-    for market in sorted({str(pattern["market"]) for pattern in PRACTICAL_PATTERN_DEFINITIONS})
+    for market in sorted({str(pattern["market"]) for pattern in effective_patterns})
   ]
   registered = [
     {
@@ -3107,7 +3202,7 @@ def research_global_chart_signals(tf: str = "H4") -> Dict[str, Any]:
       ),
       "conclusion": "Registered: monitor future matching releases and display historical arrows.",
     }
-    for pattern in PRACTICAL_PATTERN_DEFINITIONS
+    for pattern in effective_patterns
   ]
   atlas_intelligence: List[Dict[str, Any]] = []
   atlas_raw = _research_store.get_metadata("fms_reaction_atlas:latest")
@@ -3116,7 +3211,7 @@ def research_global_chart_signals(tf: str = "H4") -> Dict[str, Any]:
       atlas = json.loads(atlas_raw)
       registered_keys = {
         (str(pattern["market"]), str(pattern["sourceVersion"]), str(signature).split("|", 1)[-1])
-        for pattern in PRACTICAL_PATTERN_DEFINITIONS
+        for pattern in effective_patterns
         for signature in pattern["signatures"]
       }
       for market_payload in atlas.get("markets", []):
@@ -3127,7 +3222,12 @@ def research_global_chart_signals(tf: str = "H4") -> Dict[str, Any]:
           if (market, str(row.get("sourceVersionId", "")), identity) in registered_keys:
             continue
           classification = str(row.get("classification", ""))
-          status = "avoid" if classification == "avoid_standalone_direction" else "contender" if classification in {"historically_profitable_candidate", "directional_contender"} else ""
+          status = (
+            "avoid" if classification == "avoid_standalone_direction" else
+            "contender" if classification in {"historically_profitable_candidate", "directional_contender"} else
+            "insufficient" if classification == "insufficient_evidence" else
+            ""
+          )
           if not status:
             continue
           execution = row.get("execution") or {}
@@ -3144,8 +3244,8 @@ def research_global_chart_signals(tf: str = "H4") -> Dict[str, Any]:
           status: sorted(
             (value for (row_status, _identity), value in selected.items() if row_status == status),
             key=lambda value: value["rank"], reverse=status == "contender",
-          )[:3]
-          for status in ("contender", "avoid")
+          )
+          for status in ("contender", "avoid", "insufficient")
         }
         for status, values in by_status.items():
           for value in values:
@@ -3169,6 +3269,8 @@ def research_global_chart_signals(tf: str = "H4") -> Dict[str, Any]:
                 "Research contender only; its frozen checks were not strong enough for registration."
                 if status == "contender" else
                 "Avoid as a standalone directional rule; retain it as context or volatility information."
+                if status == "avoid" else
+                "Insufficient evidence: the archive cannot support a directional conclusion yet."
               ),
             })
     except (TypeError, ValueError):
@@ -3178,8 +3280,87 @@ def research_global_chart_signals(tf: str = "H4") -> Dict[str, Any]:
     "modelHash": PRACTICAL_MODEL_HASH,
     "generatedAt": max((int(row.get("generatedAt") or 0) for row in markets), default=int(_time.time())),
     "markets": markets,
+    "liveDecisions": _research_store.list_fms_live_decisions(limit=50),
     "researchIntelligence": [*registered, *atlas_intelligence, *FMS_RESEARCH_INTELLIGENCE],
-    "explanation": "Registered means historically positive under its frozen no-lookahead recipe. Contender means potentially useful but unstable. Avoid means repeated tests did not support a standalone directional rule; it may still matter as context or volatility.",
+    "explanation": "Registered means historically positive under its frozen no-lookahead recipe. Contender means potentially useful but unstable. Avoid means repeated tests did not support a standalone directional rule; it may still matter as context or volatility. Insufficient means the archive cannot support an honest conclusion yet.",
+  }
+
+
+@app.get("/research/live-decisions")
+def research_live_decisions(market: Optional[str] = None, limit: int = 100) -> Dict[str, Any]:
+  normalized_market = None if market is None else market.upper()
+  if normalized_market is not None and normalized_market not in WORKBENCH_MARKETS:
+    raise HTTPException(status_code=400, detail="Unsupported FMS market")
+  rows = _research_store.list_fms_live_decisions(normalized_market, limit)
+  return {
+    "modelId": PRACTICAL_MODEL_ID,
+    "immutableFirstSeen": True,
+    "count": len(rows),
+    "rows": rows,
+  }
+
+
+@app.get("/research/readiness-report")
+def research_readiness_report() -> Dict[str, Any]:
+  effective_patterns = [_reconciled_pattern(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS]
+  registered_rows = []
+  for pattern in effective_patterns:
+    provenance = _registration_provenance(pattern)
+    readiness = _pattern_readiness(pattern, provenance)
+    registered_rows.append({
+      "market": str(pattern.get("market") or "EURUSD"),
+      "patternId": str(pattern.get("id") or ""),
+      "label": str(pattern.get("label") or "Registered setup"),
+      "condition": str(pattern.get("condition") or ""),
+      "reaction": str(pattern.get("reaction") or "continuation"),
+      "execution": dict(pattern.get("execution") or {}),
+      "historicalBenchmark": dict(pattern.get("historicalBenchmark") or {}),
+      "reactionAudit": pattern.get("reactionAudit"),
+      "readiness": readiness,
+      "registrationProvenance": provenance,
+    })
+  decisions = _research_store.list_fms_live_decisions(limit=500)
+  complete = sum(row["readiness"]["auditStatus"] == "complete" for row in registered_rows)
+  quarantined = [
+    {
+      "id": str(row.get("id") or ""),
+      "market": str(row.get("market") or "EURUSD"),
+      "label": str(row.get("label") or "Research rule"),
+      "status": str(row.get("status") or "avoid"),
+      "evidence": str(row.get("evidence") or ""),
+      "conclusion": str(row.get("conclusion") or ""),
+    }
+    for row in FMS_RESEARCH_INTELLIGENCE
+    if str(row.get("status")) in {"avoid", "retired"}
+  ]
+  return {
+    "modelId": PRACTICAL_MODEL_ID,
+    "researchEngineId": RELEASE_REACTION_ENGINE_ID,
+    "generatedAt": int(_time.time()),
+    "activeRegisteredSetups": len(effective_patterns),
+    "orientationAuditedSetups": sum(bool(row["readiness"].get("orientationAudited")) for row in registered_rows),
+    "historicalAuditCompleteSetups": complete,
+    "historicalAuditIncompleteSetups": len(registered_rows) - complete,
+    "registeredSetups": registered_rows,
+    "quarantinedOrRetiredSetups": quarantined,
+    "immutableLiveDecisions": len(decisions),
+    "qualifiedLiveDecisions": sum(row["status"] == "qualified" for row in decisions),
+    "noTradeLiveDecisions": sum(row["status"] == "no_trade" for row in decisions),
+    "paperLiveEvidence": {
+      "immutableFirstSeen": True,
+      "decisionCount": len(decisions),
+      "actualBrokerFillsRecorded": 0,
+      "status": "observation_only",
+    },
+    "knownCosts": [],
+    "unknownOrExcludedCosts": ["spread", "commission", "slippage", "swap"],
+    "unresolvedIntegrityRisks": [
+      "Historical profitability does not prove future profitability.",
+      "The registered entry remains the first strictly later H4 open, not an executable release-time fill.",
+      "Live decisions are captured, but actual broker fills and trading costs are not yet recorded.",
+    ],
+    "eligibleForRuleBasedLiveUse": False,
+    "eligibleForRuleBasedLiveUseReason": "No. Historical and orientation audits are complete, but setup-specific paper execution, actual costs, risk limits, and a kill switch are not complete.",
   }
 
 

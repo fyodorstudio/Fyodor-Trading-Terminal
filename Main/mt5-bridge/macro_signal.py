@@ -33,15 +33,18 @@ TARGET_R_VALUES = (1.0, 1.5, 2.0)
 DEVELOPMENT_SHARE = 0.70
 CHART_SIGNAL_EXECUTION_STRESS_PIPS = 3.0
 PATH_RESEARCH_HORIZON = 30
-PATH_RESEARCH_MAX_HORIZON = 60
+PATH_RESEARCH_MAX_HORIZON = 120
+PATH_RESEARCH_HORIZONS = (1, 3, 6, 12, 18, 30, 42, 60, 90, 120)
 WORKBENCH_SCORING_ENGINE_VERSION = "relative-magnitude-v3"
+PAIR_ORIENTATION_VERSION = "pair-orientation-v2"
+RELEASE_REACTION_ENGINE_ID = "FMS-RELEASE-REACTION-H4-v1"
 WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION = "unmanaged-path-support-resistance-v1"
 REACTION_ATLAS_VERSION = "FMS-SEVEN-PAIR-REACTION-ATLAS-v1"
 REACTION_ATLAS_HORIZONS = (1, 3, 6, 12, 30)
 REACTION_ATLAS_STOP_ATR_VALUES = (.75, 1.0, 1.5, 2.0)
 REACTION_ATLAS_TARGET_R_VALUES = (.5, 1.0, 2.0, 4.0)
 REACTION_ATLAS_HOLDING_CANDLES = (6, 12, 30, 60)
-PATH_RESEARCH_THRESHOLDS_R = (0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0)
+PATH_RESEARCH_THRESHOLDS_R = (0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5, 3.0, 4.0)
 STRESS_STOP_ATR_VALUES = (0.5, 0.75, 1.0, 1.25, 1.5, 2.0)
 STRESS_TARGET_R_VALUES = PATH_RESEARCH_THRESHOLDS_R
 STRESS_HOLDING_CANDLES = (6, 12, 18, 30, 42, 60)
@@ -637,8 +640,24 @@ def _clamp_group(value: int) -> int:
   return max(-3, min(3, value))
 
 
+def _pair_vote_for_currency(
+  currency_vote: int,
+  currency: str,
+  base_currency: str,
+  quote_currency: Optional[str] = None,
+) -> int:
+  normalized_currency = currency.upper()
+  if normalized_currency == base_currency.upper():
+    return currency_vote
+  if quote_currency is None or normalized_currency == quote_currency.upper():
+    return -currency_vote
+  return 0
+
+
 def _build_factor_votes(
-  scored_events: Sequence[Dict[str, Any]], base_currency: str = "EUR",
+  scored_events: Sequence[Dict[str, Any]],
+  base_currency: str = "EUR",
+  quote_currency: Optional[str] = "USD",
 ) -> List[Dict[str, Any]]:
   group_scores: Dict[Tuple[str, str, str], int] = {}
   for event in scored_events:
@@ -656,7 +675,7 @@ def _build_factor_votes(
       "factor": factor,
       "score": score,
       "vote": _sign(score),
-      "pairVote": _sign(score) if currency == base_currency else -_sign(score),
+      "pairVote": _pair_vote_for_currency(_sign(score), currency, base_currency, quote_currency),
     }
     for (currency, factor), score in sorted(factor_scores.items())
   ]
@@ -691,6 +710,7 @@ def build_signal_candidates(
 ) -> List[Dict[str, Any]]:
   selected_definition = definition or SIGNAL_DEFINITIONS[VERSION_ID]
   base_currency = str(selected_definition.configuration.get("baseCurrency", "EUR")).upper()
+  quote_currency = str(selected_definition.configuration.get("quoteCurrency", "USD")).upper()
   cutoff = now if now is not None else int(datetime.now(timezone.utc).timestamp())
   packages: Dict[int, List[Dict[str, Any]]] = {}
   candidate_events: Sequence[Dict[str, Any]] = events
@@ -723,11 +743,11 @@ def build_signal_candidates(
       event for event in latest_series.values()
       if int(event["time"]) >= background_cutoff
     ]
-    background_factor_votes = _build_factor_votes(background_events, base_currency)
+    background_factor_votes = _build_factor_votes(background_events, base_currency, quote_currency)
     background_pair_vote = sum(vote["pairVote"] for vote in background_factor_votes if vote["pairVote"] != 0)
     background_direction = "long" if background_pair_vote > 0 else "short" if background_pair_vote < 0 else "none"
 
-    factor_votes = _build_factor_votes(scored_events, base_currency)
+    factor_votes = _build_factor_votes(scored_events, base_currency, quote_currency)
     nonzero_pair_votes = [vote["pairVote"] for vote in factor_votes if vote["pairVote"] != 0]
     pair_vote = sum(nonzero_pair_votes)
     if pair_vote > 0:
@@ -752,6 +772,8 @@ def build_signal_candidates(
 
     candidates.append({
       "eventTime": event_time,
+      "pairBaseCurrency": base_currency,
+      "pairQuoteCurrency": quote_currency,
       "direction": direction,
       "agreement": agreement,
       "pairVote": pair_vote,
@@ -1888,11 +1910,18 @@ def _rescore_policy_outcomes(
           "threshold": threshold,
           "priorCount": len(prior_gaps) - 1,
         })
-    factor_votes = _build_factor_votes(scored_events)
-    for vote in factor_votes:
-      orientation = pair_orientation_by_currency.get(str(vote.get("currency", "")).upper())
-      if orientation is not None:
-        vote["pairVote"] = int(vote["vote"]) * orientation
+    explicit_base = str(source_outcome.get("pairBaseCurrency") or "").upper()
+    explicit_quote = str(source_outcome.get("pairQuoteCurrency") or "").upper()
+    factor_votes = _build_factor_votes(
+      scored_events,
+      explicit_base or "EUR",
+      explicit_quote or ("USD" if explicit_base in {"", "EUR"} else None),
+    )
+    if not explicit_base:
+      for vote in factor_votes:
+        orientation = pair_orientation_by_currency.get(str(vote.get("currency", "")).upper())
+        if orientation is not None:
+          vote["pairVote"] = int(vote["vote"]) * orientation
     pair_vote = sum(int(vote["pairVote"]) for vote in factor_votes if int(vote["pairVote"]) != 0)
     direction = "long" if pair_vote > 0 else "short" if pair_vote < 0 else "none"
     nonzero = [int(vote["pairVote"]) for vote in factor_votes if int(vote["pairVote"]) != 0]
@@ -2894,7 +2923,7 @@ def build_workbench_experiment(
               "holdingCandles": horizon,
               "responseR": sign * (float(profile["candles"][horizon - 1]["close"]) - float(profile["entry"])) / risk_distance,
             }
-            for horizon in (1, 3, 6, 12, 30)
+            for horizon in PATH_RESEARCH_HORIZONS
             if len(profile["candles"]) >= horizon
           ],
         },

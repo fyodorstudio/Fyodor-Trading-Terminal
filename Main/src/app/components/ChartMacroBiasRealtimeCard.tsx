@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronRight, ShieldCheck, WalletCards } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { ChartMacroBiasSetupCatalog } from "@/app/components/ChartMacroBiasSetupCatalog";
+import { ChartMacroBiasSetupCatalog, macroSignalSetupCredibility } from "@/app/components/ChartMacroBiasSetupCatalog";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
 import {
@@ -15,7 +15,7 @@ import {
   normalizeShadowStartingBalance,
 } from "@/app/lib/macroSignalShadow";
 import { formatUtcDisplayDateTime } from "@/app/lib/format";
-import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MacroSignalPatternAssessment, MacroSignalUpcomingPatternWatch } from "@/app/types";
+import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MacroSignalPatternAssessment, MacroSignalResearchIntelligence, MacroSignalUpcomingPatternWatch } from "@/app/types";
 
 const SHADOW_BALANCE_KEY = "fyodor.charts.shadow-starting-balance";
 const SHADOW_RISK_KEY = "fyodor.charts.shadow-risk-percent";
@@ -280,8 +280,10 @@ function LatestDecisionSection({ assessment, pattern, symbol, signal }: { assess
 
 export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealtimeCardData }) {
   const { response, activeSignal, activePattern } = data;
-  const [setupSort, setSetupSort] = useState<"profitability" | "accuracy" | "soonest" | "name">("accuracy");
+  const [setupSort, setSetupSort] = useState<"actionable" | "readiness" | "credibility" | "profitability" | "accuracy" | "sample" | "soonest" | "market_family">("accuracy");
   const [selectedTradeKey, setSelectedTradeKey] = useState<string | null>(null);
+  const [expandedWatchKey, setExpandedWatchKey] = useState<string | null>(null);
+  const [openIntelligence, setOpenIntelligence] = useState<Set<MacroSignalResearchIntelligence["status"]>>(() => new Set());
   const [hiddenMarkets, setHiddenMarkets] = useState<Set<string>>(() => new Set());
   const [startingBalance, setStartingBalance] = useState(() => normalizeShadowStartingBalance(readStoredNumber(SHADOW_BALANCE_KEY, DEFAULT_SHADOW_STARTING_BALANCE)));
   const [riskPercent, setRiskPercent] = useState(() => normalizeShadowRiskPercent(readStoredNumber(SHADOW_RISK_KEY, DEFAULT_SHADOW_RISK_PERCENT)));
@@ -311,7 +313,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
     const exactAssessments = new Map(assessments.map((assessment) => [`${assessment.patternId}:${assessment.time}`, assessment]));
     const patterns = new Map(market.patterns.map((pattern) => [pattern.id, pattern]));
     return market.signals
-      .filter((signal) => signal.activationTime != null)
+      .filter((signal) => signal.activationTime != null && patterns.get(signal.patternId)?.readiness?.actionableInShadowTrader !== false)
       .map((signal) => {
         const pattern = patterns.get(signal.patternId) ?? null;
         const exactAssessment = exactAssessments.get(`${signal.patternId}:${signal.eventTime}`) ?? null;
@@ -338,19 +340,53 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
     () => new Map(registryResponses.flatMap((market) => (market.realtime?.upcomingPatternWatches ?? (market.realtime?.nextPatternWatch ? [market.realtime.nextPatternWatch] : [])).map((watch) => [`${market.symbol}:${watch.patternId}`, watch]))),
     [registryResponses],
   );
+  const latestSignalByPattern = useMemo(() => {
+    const rows = new Map<string, MacroSignalChartSignal>();
+    for (const market of registryResponses) {
+      for (const signal of market.signals) {
+        const key = `${market.symbol}:${signal.patternId}`;
+        const current = rows.get(key);
+        if (!current || signal.eventTime > current.eventTime) rows.set(key, signal);
+      }
+    }
+    return rows;
+  }, [registryResponses]);
   const registeredPatterns = useMemo(() => registeredPatternRows.filter((pattern) => !hiddenMarkets.has(pattern.market ?? response.symbol)).sort((left, right) => {
     const leftMarket = left.market ?? response.symbol;
     const rightMarket = right.market ?? response.symbol;
-    if (setupSort === "name") return leftMarket.localeCompare(rightMarket) || left.label.localeCompare(right.label);
+    if (setupSort === "market_family") return leftMarket.localeCompare(rightMarket) || left.sourceVersionId.localeCompare(right.sourceVersionId) || left.label.localeCompare(right.label);
     if (setupSort === "soonest") {
       const leftTime = upcomingByPattern.get(`${leftMarket}:${left.id}`)?.time ?? Number.POSITIVE_INFINITY;
       const rightTime = upcomingByPattern.get(`${rightMarket}:${right.id}`)?.time ?? Number.POSITIVE_INFINITY;
       return leftTime - rightTime || leftMarket.localeCompare(rightMarket) || left.label.localeCompare(right.label);
     }
-    const leftValue = setupSort === "accuracy" ? historicalAccuracy(left) : historicalAverage(left);
-    const rightValue = setupSort === "accuracy" ? historicalAccuracy(right) : historicalAverage(right);
+    if (setupSort === "readiness") {
+      const leftReady = left.readiness?.auditStatus === "complete" ? 1 : 0;
+      const rightReady = right.readiness?.auditStatus === "complete" ? 1 : 0;
+      return rightReady - leftReady || leftMarket.localeCompare(rightMarket) || left.label.localeCompare(right.label);
+    }
+    if (setupSort === "credibility") {
+      const rank = { Strong: 3, Moderate: 2, Fragile: 1, Unproven: 0 } as const;
+      const difference = rank[macroSignalSetupCredibility(right).label] - rank[macroSignalSetupCredibility(left).label];
+      if (difference !== 0) return difference;
+    }
+    if (setupSort === "actionable") {
+      const rank = (pattern: MacroSignalChartPattern, market: string) => {
+        if (pattern.readiness?.actionableInShadowTrader === false) return 0;
+        const signal = latestSignalByPattern.get(`${market}:${pattern.id}`);
+        if (signal?.outcomeStatus === "pending") return signal.entry != null ? 6 : 5;
+        const assessment = assessmentsByPattern.get(`${market}:${pattern.id}`);
+        if (assessment?.status === "qualified") return 5;
+        if (assessment?.status === "awaiting_observation") return 4;
+        if (upcomingByPattern.has(`${market}:${pattern.id}`)) return 3;
+        return 1;
+      };
+      return rank(right, rightMarket) - rank(left, leftMarket) || leftMarket.localeCompare(rightMarket) || left.label.localeCompare(right.label);
+    }
+    const leftValue = setupSort === "accuracy" ? historicalAccuracy(left) : setupSort === "sample" ? historicalSample(left) : historicalAverage(left);
+    const rightValue = setupSort === "accuracy" ? historicalAccuracy(right) : setupSort === "sample" ? historicalSample(right) : historicalAverage(right);
     return rightValue - leftValue || leftMarket.localeCompare(rightMarket) || left.label.localeCompare(right.label);
-  }), [hiddenMarkets, registeredPatternRows, response.symbol, setupSort, upcomingByPattern]);
+  }), [assessmentsByPattern, hiddenMarkets, latestSignalByPattern, registeredPatternRows, response.symbol, setupSort, upcomingByPattern]);
   const settings = useMemo(() => ({ startingBalance, riskPercent }), [startingBalance, riskPercent]);
   const liveAccount = useMemo(() => buildMacroSignalShadowAccount(
     registryResponses.flatMap((market) => market.signals.map((signal) => ({ ...signal, market: market.symbol }))),
@@ -412,7 +448,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
       </header>
       <section className="chart-shadow-trade-monitor" aria-label="Current and recent hypothetical FMS trades">
         <div className="chart-shadow-section-heading">
-          <div><span>Trade monitor</span><strong>What FMS has opened</strong></div>
+          <div><span>Trade monitor</span><strong>What would FMS do now?</strong></div>
           <small>Setup-level simulations · click a row for its audit · the account replay separately skips portfolio overlaps</small>
         </div>
         <table>
@@ -476,7 +512,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
             })}
             {hiddenMarkets.size > 0 ? <button type="button" className="chart-shadow-market-reset" aria-label="Show all markets" title="Show all markets" onClick={() => setHiddenMarkets(new Set())}>All</button> : null}
           </nav>
-          <label><span>Sort</span><select value={setupSort} onChange={(event) => setSetupSort(event.target.value as typeof setupSort)}><option value="accuracy">Highest TP-before-SL</option><option value="soonest">Soonest registered release</option><option value="profitability">Best average result</option><option value="name">Pair / setup (A–Z)</option></select></label>
+          <label><span>Sort</span><select value={setupSort} onChange={(event) => setSetupSort(event.target.value as typeof setupSort)}><option value="accuracy">Highest TP-before-SL</option><option value="actionable">Actionable now</option><option value="readiness">Audit readiness</option><option value="credibility">Historical credibility</option><option value="profitability">Best average result</option><option value="sample">Largest later-test sample</option><option value="soonest">Soonest registered release</option><option value="market_family">Market and family</option></select></label>
         </div>
         <table>
           <thead><tr><th>Pair and setup</th><th>Now</th><th>Relevant event</th><th>Historical result</th></tr></thead>
@@ -484,6 +520,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
             {registeredPatterns.length === 0 ? <tr className="chart-shadow-watchlist-empty"><td colSpan={4}>All pair rows are hidden. Use <b>Show all</b> above to restore the watchlist.</td></tr> : null}
             {registeredPatterns.map((pattern) => {
               const patternMarket = pattern.market ?? response.symbol;
+              const watchKey = `${patternMarket}:${pattern.id}`;
               const patternResponse = registryResponses.find((market) => market.symbol === patternMarket) ?? response;
               const patternSignals = patternResponse.signals
                 .filter((signal) => signal.patternId === pattern.id)
@@ -494,16 +531,31 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
               const assessmentIsNewer = assessment && (!patternSignal || assessment.time > patternSignal.eventTime);
               const openOrPending = patternSignal && !assessmentIsNewer && patternSignal.outcomeStatus === "pending";
               const latestTime = assessmentIsNewer ? assessment.time : patternSignal?.eventTime ?? assessment?.time ?? null;
+              const blocked = pattern.readiness?.actionableInShadowTrader === false;
               return (
                 <Fragment key={pattern.id}>
-                  <tr className={openOrPending ? "is-current" : undefined}>
-                    <td><strong className="chart-shadow-setup-title"><PairFlags symbol={patternMarket} />{patternMarket} · {pattern.label}</strong><small className="chart-shadow-contract-line">SL {pattern.execution?.stopAtr ?? 1} ATR · TP {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</small><span className={`chart-shadow-readiness is-${pattern.readiness?.auditStatus ?? "incomplete"}`}>{pattern.readiness?.label ?? "Audit incomplete"}</span><span className={`chart-shadow-reaction is-${pattern.reaction === "contrarian" ? "rejected" : "followed"}`}>{pattern.reaction === "contrarian" ? "Rejected evidence" : "Followed evidence"}</span></td>
-                    <td className="chart-shadow-now-cell">{openOrPending ? (
-                      <><strong>{patternSignal.activationTime != null ? "Trade open" : "Waiting for H4 entry"}</strong><small>{patternSignal.direction === "long" ? `Long ${patternMarket}` : `Short ${patternMarket}`}</small></>
+                  <tr
+                    className={openOrPending ? "is-current" : undefined}
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={expandedWatchKey === watchKey}
+                    onClick={() => setExpandedWatchKey((current) => current === watchKey ? null : watchKey)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setExpandedWatchKey((current) => current === watchKey ? null : watchKey);
+                      }
+                    }}
+                  >
+                    <td><strong className="chart-shadow-setup-title"><PairFlags symbol={patternMarket} />{patternMarket} · {pattern.label}</strong><small className="chart-shadow-contract-line">SL {pattern.execution?.stopAtr ?? 1} ATR · TP {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</small><span className={`chart-shadow-readiness is-${pattern.readiness?.auditStatus ?? "incomplete"}`}>{pattern.readiness?.label ?? "Audit incomplete"}</span>{pattern.readiness?.orientationAudited && <span className="chart-shadow-readiness is-complete">Orientation audited</span>}<span className={`chart-shadow-reaction is-${pattern.reaction === "contrarian" ? "rejected" : "followed"}`}>{pattern.reaction === "contrarian" ? "Rejected evidence" : "Followed evidence"}</span></td>
+                    <td className="chart-shadow-now-cell">{blocked ? (
+                      <><strong>Blocked</strong><small>Registration audit must be rebuilt.</small></>
+                    ) : openOrPending ? (
+                      <><strong>{patternSignal.entry != null ? "Trade open" : "Qualified — waiting entry"}</strong><small>{patternSignal.direction === "long" ? `Long ${patternMarket}` : `Short ${patternMarket}`}</small></>
                     ) : patternSignal && !assessmentIsNewer && patternSignal.outcomeStatus && patternSignal.outcomeStatus !== "pending" ? (
                       <strong>{formatOutcome(patternSignal)}</strong>
                     ) : assessment ? (
-                      <strong>{assessment.status === "awaiting_observation" ? "Checking release" : assessment.status === "qualified" ? "Trade qualified" : assessment.status === "pre_activation_audit" ? `Past result · ${assessment.direction === "long" ? "Long" : "Short"}` : "Watching"}</strong>
+                      <strong>{assessment.status === "awaiting_observation" ? "Awaiting Actual" : assessment.status === "qualified" ? "Qualified — waiting entry" : assessment.status === "no_trade" ? "No trade" : assessment.status === "pre_activation_audit" ? `Past result · ${assessment.direction === "long" ? "Long" : "Short"}` : "Watching"}</strong>
                     ) : <span>Watching</span>}</td>
                     <td className="chart-shadow-event-cell">
                       {upcoming ? (
@@ -522,7 +574,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
                     </td>
                     <td className="chart-shadow-history-cell">
                       <span className="chart-shadow-history-kicker">Later-test history</span>
-                      {pattern.historicalBenchmark?.strength === "positive_but_fragile" ? <span className="chart-shadow-history-strength">Positive but fragile</span> : null}
+                      <span className={`chart-shadow-history-strength is-${macroSignalSetupCredibility(pattern).label.toLowerCase()}`}>{macroSignalSetupCredibility(pattern).label} historical evidence</span>
                       <div className="chart-shadow-history-primary"><strong>{historicalAverage(pattern) >= 0 ? "+" : ""}{historicalAverage(pattern).toFixed(2)}R</strong><small>average per trade</small></div>
                       <div className="chart-shadow-history-metrics">
                         <span><b>{(historicalAccuracy(pattern) * 100).toFixed(1)}%</b> TP before SL</span>
@@ -530,8 +582,14 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
                       </div>
                     </td>
                   </tr>
-                  <tr className="chart-shadow-priority-detail" hidden>
+                  <tr className="chart-shadow-priority-detail" hidden={expandedWatchKey !== watchKey}>
                     <td colSpan={4}>
+                      <div className="chart-shadow-hunt-plan">
+                        <div className="chart-shadow-hunt-rule"><span>Exact registered rule</span><strong>{pattern.condition}</strong></div>
+                        <div className="chart-shadow-if-grid" aria-label={`Possible ${patternMarket} decisions`}>
+                          {buildDecisionScenarios(pattern, patternMarket).map(([condition, action]) => <div key={condition}><span>{condition}</span><strong>{action}</strong></div>)}
+                        </div>
+                      </div>
                       {assessment?.calculations?.length ? (
                         <div className="chart-shadow-calculation" aria-label={assessment.reason}>
                           <div className="chart-shadow-calculation-heading">
@@ -631,6 +689,22 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
         </section>
       ) : null}
 
+      {data.globalResponse?.liveDecisions?.length ? (
+        <details className="chart-shadow-account-audit chart-shadow-decision-ledger">
+          <summary><span>Immutable decision ledger</span><strong>{data.globalResponse.liveDecisions.length} first-seen decisions</strong><ChevronDown size={14} /></summary>
+          <div>
+            <p>Broker revisions cannot rewrite these original qualified/no-trade decisions.</p>
+            <table aria-label="Immutable FMS first-seen decisions">
+              <thead><tr><th>Pair and setup</th><th>Release</th><th>Decision</th><th>Recorded</th></tr></thead>
+              <tbody>{data.globalResponse.liveDecisions.map((decision) => {
+                const pattern = registeredPatternRows.find((row) => row.id === decision.patternId && (row.market ?? response.symbol) === decision.market);
+                return <tr key={`${decision.market}:${decision.patternId}:${decision.eventTime}`}><td><strong><PairFlags symbol={decision.market} />{pattern?.label ?? decision.patternId}</strong></td><td>{formatUtc(decision.eventTime)}</td><td><strong>{decision.status === "qualified" ? `${decision.direction === "long" ? "Long" : "Short"} ${decision.market}` : "No trade"}</strong></td><td>{formatUtc(decision.firstDecidedAt)}</td></tr>;
+              })}</tbody>
+            </table>
+          </div>
+        </details>
+      ) : null}
+
       <ChartMacroBiasSetupCatalog patterns={registeredPatternRows} />
 
       {response.policyInflationContext ? (
@@ -658,21 +732,36 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
             <div><span>What history says</span><strong>What to watch and avoid</strong></div>
           </div>
           <p>{data.globalResponse.explanation}</p>
-          {(["contender", "avoid"] as const).map((status) => {
+          {(["registered", "contender", "avoid", "insufficient"] as const).map((status) => {
             const rows = data.globalResponse!.researchIntelligence.filter((row) => row.status === status);
+            const open = openIntelligence.has(status);
+            const title = status === "registered"
+              ? "Registered — historically profitable directional recipe"
+              : status === "contender"
+                ? "Contender — promising but unstable"
+                : status === "avoid"
+                  ? "Avoid as standalone direction"
+                  : "Insufficient evidence";
             return (
-              <details key={status}>
+              <details key={status} open={open} onToggle={(event) => {
+                const nextOpen = event.currentTarget.open;
+                setOpenIntelligence((current) => {
+                  const next = new Set(current);
+                  if (nextOpen) next.add(status); else next.delete(status);
+                  return next;
+                });
+              }}>
                 <summary>
-                  <strong>{status === "contender" ? "Research contenders" : "Avoid as standalone direction"}</strong>
+                  <strong>{title}</strong>
                   <span><b>{rows.length}</b><em>Show</em><ChevronDown size={13} /></span>
                 </summary>
-                {rows.map((row) => (
+                {open ? rows.map((row) => (
                   <article key={row.id}>
                     <h4>{row.market} · {row.label}</h4>
                     <p>{row.evidence}</p>
                     <small>{row.conclusion}</small>
                   </article>
-                ))}
+                )) : null}
               </details>
             );
           })}

@@ -48,6 +48,7 @@ def test_candidate_path_profile_reports_mfe_mae_and_threshold_reach() -> None:
   summary = summarize_candidate_paths([profile], holding_candles=2)
   assert round(summary["mfeR"]["median"], 6) == 2.0
   assert round(summary["maeR"]["median"], 6) == 0.5
+  assert next(row for row in summary["thresholdReach"] if row["thresholdR"] == 0.25)["rate"] == 1.0
   assert next(row for row in summary["thresholdReach"] if row["thresholdR"] == 2.0)["rate"] == 1.0
 
 
@@ -192,15 +193,18 @@ def test_every_supported_pair_currency_orientation_survives_all_scoring_policies
     ):
       country = sorted(country_scope[currency])[0]
       for actual, expected in (("2", expected_improvement), ("0", expected_weakening)):
-        source = {
-          **calendar_event(1, 100, currency, "GDP q/q", actual, "1", "1"),
-          "countryCode": country,
-        }
-        package = build_signal_candidates([source], now=200, definition=definition)[0]
-        assert package["direction"] == expected, (market, currency, actual, "baseline")
-        for policy in policies:
-          rescored, _audit = _rescore_policy_outcomes([package], policy)
-          assert rescored[0]["direction"] == expected, (market, currency, actual, policy)
+        for titles in (("GDP q/q",), ("GDP q/q", "GDP y/y")):
+          sources = [{
+            **calendar_event(index, 100, currency, title, actual, "1", "1"),
+            "countryCode": country,
+          } for index, title in enumerate(titles, start=1)]
+          package = build_signal_candidates(sources, now=200, definition=definition)[0]
+          assert package["pairBaseCurrency"] == base
+          assert package["pairQuoteCurrency"] == quote
+          assert package["direction"] == expected, (market, currency, actual, titles, "baseline")
+          for policy in policies:
+            rescored, _audit = _rescore_policy_outcomes([package], policy)
+            assert rescored[0]["direction"] == expected, (market, currency, actual, titles, policy)
 
 
 def test_v11_revision_audit_uses_prior_exact_series_actual_without_replacing_broker_previous() -> None:

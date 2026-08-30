@@ -117,6 +117,7 @@ describe("getChartConnectionLabel", () => {
     const signal: MacroSignalChartSignal = {
       id: "signal", patternId: "pattern", sourceVersionId: "v2", eventTime: 1_000, activationTime: 14_400,
       execution: { stopAtr: 2, targetR: .5, expiryCandles: 42 }, stopAtr: 2, targetR: .5, expiryCandles: 42,
+      entry: 1.35000, stop: 1.34000, target: 1.35500,
       historicalReplay: true, direction: "long", label: "US labor claims improvement", agreement: "consensus", pairVote: 1,
       backgroundDirection: "short", backgroundPairVote: -1, backgroundAlignment: "aligned", backgroundCoverageComplete: true,
       highestImpact: "high", events: [], outcomeStatus: "target_hit", resultR: .5, exitTime: 28_800,
@@ -159,7 +160,8 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Worked");
     expect(html).toContain("Loss-path observations");
     expect(html).toContain("Favourable move, then giveback");
-    expect(html).toContain("Best open profit");
+    expect(html).toContain("Best favorable move");
+    expect(html).toContain("not realized profit");
     expect(html).toContain("+1.39R");
     expect(html).toContain("+69.0 pips");
     expect(html).toContain("Direction worked after 6 H4");
@@ -169,6 +171,9 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Closed — target reached");
     expect(html).toContain("Later price movement does not change this result");
     expect(html).toContain("TP reached · +0.50R");
+    expect(html).toContain("Frozen trade price levels");
+    expect(html).toContain("Risk · SL");
+    expect(html).toContain("Reward · TP");
     expect(html).toContain("SL 2 ATR · TP 0.5R = 1 ATR · maximum 42 H4 candles");
     expect(html).toContain("Historical performance of this exact setup");
     expect(html).toContain("FMS-USDCAD-H4-E030");
@@ -233,7 +238,7 @@ describe("getChartConnectionLabel", () => {
         usage: "Context only.",
       },
     } satisfies MacroSignalChartSignalResponse;
-    const gbpPattern = { ...pattern, id: "gbp-industrial", market: "GBPUSD", label: "US industrial-production package" } satisfies MacroSignalChartPattern;
+    const gbpPattern = { ...pattern, id: "gbp-industrial", market: "GBPUSD", label: "US industrial-production package", readiness: { auditStatus: "incomplete", historicalStatus: "unverified", liveStatus: "not_live_validated", label: "Audit incomplete", actionableInShadowTrader: false } } satisfies MacroSignalChartPattern;
     const gbpResponse = {
       ...response,
       symbol: "GBPUSD",
@@ -247,10 +252,12 @@ describe("getChartConnectionLabel", () => {
     } satisfies MacroSignalChartSignalResponse;
     const globalResponse = {
       modelId: "global", modelHash: "global-hash", generatedAt: 100, markets: [response, gbpResponse],
+      liveDecisions: [{ modelId: "global", market: "EURUSD", patternId: pattern.id, eventTime: 90, firstDecidedAt: 91, status: "no_trade", direction: null, assessment: response.realtime.latestPatternAssessment!, signal: null }],
       explanation: "Registered, contender, and avoid meanings.",
       researchIntelligence: [
         { id: "contender", status: "contender", market: "EURUSD", label: "Retail sales", evidence: "Positive in some partitions.", conclusion: "Retest later." },
         { id: "avoid", status: "avoid", market: "GBPUSD", label: "Producer inflation", evidence: "Repeated tests were unstable.", conclusion: "Avoid standalone direction." },
+        { id: "insufficient", status: "insufficient", market: "GBPUSD", label: "Small sample", evidence: "Too few cases.", conclusion: "No conclusion yet." },
       ],
     } satisfies MacroSignalGlobalResponse;
     const html = renderToStaticMarkup(createElement(ChartMacroBiasRealtimeCard, { data: {
@@ -261,7 +268,7 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("EURUSD flags");
     expect(html).toContain("GBPUSD flags");
     expect(html).toContain("Trade open");
-    expect(html).toContain("What FMS has opened");
+    expect(html).toContain("What would FMS do now?");
     expect(html).toContain("Open now");
     expect(html).toContain("Last opened trade");
     expect(html).toContain("View audit");
@@ -279,22 +286,34 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Historical result");
     expect(html).toContain("Next registered release");
     expect(html).toContain("Starts in");
-    expect(html).toContain("Calculating…");
+    expect(html).toContain("Exact registered rule");
+    expect(html).toContain('aria-expanded="false"');
     expect(html).toContain("Latest matching release");
     expect(html).toContain("Later-test history");
     expect(html).toContain("Historical audit complete");
-    expect(html).toContain("Watching");
+    expect(html).toContain("Audit incomplete");
+    expect(html).toContain("Blocked");
     expect(html).toContain("Possible next setups");
     expect(html).toContain("Upcoming registered releases");
     expect(html).toContain("Wait for Actual");
     expect(html).toContain("Registered setups");
     expect(html).toContain("Average per trade");
+    expect(html).toContain("Historical credibility");
+    expect(html).toContain("Moderate");
+    expect(html).toContain("Not live validated");
+    expect(html).toContain("Spread, commission, slippage, and swap excluded");
     expect(html).toContain("View details");
     expect(html).toContain("Show");
     expect(html).toContain("FMS-EURUSD-H4-E197");
     expect(html).toContain("Best average result");
     expect(html).toContain("Highest TP-before-SL");
     expect(html).toContain("Soonest registered release");
+    expect(html).toContain("Actionable now");
+    expect(html).toContain("Audit readiness");
+    expect(html).toContain("Historical credibility");
+    expect(html).toContain("Moderate historical evidence");
+    expect(html).toContain("Largest later-test sample");
+    expect(html).toContain("Market and family");
     expect(html).toContain("2 markets live");
     expect(html).toContain("Show or hide market rows");
     expect(html).toContain('aria-label="Hide EURUSD"');
@@ -306,8 +325,13 @@ describe("getChartConnectionLabel", () => {
     expect(eurMarketFilter).not.toContain(">EURUSD<");
     expect(html).toContain("GBPUSD · US industrial-production package");
     expect(html).toContain("What history says");
-    expect(html).toContain("Research contenders");
+    expect(html).toContain("Immutable decision ledger");
+    expect(html).toContain("first-seen decisions");
+    expect(html).toContain("Broker revisions cannot rewrite");
+    expect(html).toContain("Registered — historically profitable directional recipe");
+    expect(html).toContain("Contender — promising but unstable");
     expect(html).toContain("Avoid as standalone direction");
+    expect(html).toContain("Insufficient evidence");
     expect(html).toContain("All matching events");
     expect(html).toContain("Later test trades");
     expect(html).toContain("IF registered EUR evidence improves");

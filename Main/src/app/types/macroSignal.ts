@@ -750,6 +750,7 @@ export interface FmsWorkbench {
   market?: FmsResearchMarket;
   currentModel: {
     id: string;
+    researchEngineId?: string;
     friendlyName: string;
     displayId: string;
     hash: string;
@@ -880,6 +881,7 @@ export interface MacroSignalChartPattern {
     auditStatus: "complete" | "incomplete";
     historicalStatus: "historically_qualified" | "historically_positive_fragile" | "unverified";
     liveStatus: "not_live_validated";
+    orientationAudited?: boolean;
     label: string;
     actionableInShadowTrader: boolean;
   };
@@ -1096,7 +1098,7 @@ export interface MacroSignalChartSignalResponse {
 
 export interface MacroSignalResearchIntelligence {
   id: string;
-  status: "registered" | "contender" | "avoid";
+  status: "registered" | "contender" | "avoid" | "insufficient";
   market: string;
   label: string;
   evidence: string;
@@ -1108,6 +1110,17 @@ export interface MacroSignalGlobalResponse {
   modelHash: string;
   generatedAt: number;
   markets: MacroSignalChartSignalResponse[];
+  liveDecisions?: Array<{
+    modelId: string;
+    market: string;
+    patternId: string;
+    eventTime: number;
+    firstDecidedAt: number;
+    status: "qualified" | "no_trade";
+    direction: "long" | "short" | null;
+    assessment: MacroSignalPatternAssessment;
+    signal: MacroSignalChartSignal | null;
+  }>;
   researchIntelligence: MacroSignalResearchIntelligence[];
   explanation: string;
 }

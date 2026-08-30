@@ -62,6 +62,14 @@ def test_forward_observation_keeps_first_seen_values_after_calendar_revision(tmp
   assert frozen["previous"] == "0.7"
   assert frozen["firstSeenAt"] == 502
 
+  assessment = {"time": 500, "patternId": "claims", "status": "qualified", "direction": "long"}
+  assert store.record_fms_live_decision("model-v1", "EURUSD", "claims", 500, 505, "qualified", "long", assessment, None)
+  assert not store.record_fms_live_decision("model-v1", "EURUSD", "claims", 500, 900, "no_trade", None, {**assessment, "status": "no_trade"}, None)
+  decision = ResearchStore(store.path).list_fms_live_decisions("EURUSD")[0]
+  assert decision["firstDecidedAt"] == 505
+  assert decision["status"] == "qualified"
+  assert decision["assessment"] == assessment
+
 
 def test_paper_case_candidate_is_immutable_while_outcomes_advance(tmp_path: Path) -> None:
   store = ResearchStore(tmp_path / "research.sqlite3")

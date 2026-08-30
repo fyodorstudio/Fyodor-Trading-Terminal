@@ -10,7 +10,7 @@ from typing import Any, Dict
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import server
-from macro_signal import WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION, WORKBENCH_SCORING_ENGINE_VERSION, build_workbench_experiment
+from macro_signal import PAIR_ORIENTATION_VERSION, WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION, WORKBENCH_SCORING_ENGINE_VERSION, build_workbench_experiment
 
 
 def configuration_for(pattern: Dict[str, Any], bundle: Dict[str, Any]) -> Dict[str, Any]:
@@ -24,6 +24,7 @@ def configuration_for(pattern: Dict[str, Any], bundle: Dict[str, Any]) -> Dict[s
     "directionSelection": "both" if len(signatures) > 1 else signatures[0].split("|", 1)[0],
     "scoringPolicy": pattern.get("scoringPolicy", "forecast_quality"),
     "scoringEngineVersion": WORKBENCH_SCORING_ENGINE_VERSION,
+    "pairOrientationVersion": PAIR_ORIENTATION_VERSION,
     "researchDiagnosticsVersion": WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION,
     "cohort": pattern.get("cohort", {"dimension": "none", "value": "all"}),
     "requiredExactTitles": list(pattern.get("requiredExactTitles", ())),
@@ -43,9 +44,15 @@ def configuration_for(pattern: Dict[str, Any], bundle: Dict[str, Any]) -> Dict[s
 
 
 def main() -> None:
-  output = []
+  existing_payload = json.loads(server._research_store.get_metadata("fms_registered_reaction:reconciliation") or "{}")
+  output_by_pattern = {
+    str(row["patternId"]): row
+    for row in existing_payload.get("rows", ())
+    if isinstance(row, dict) and row.get("patternId")
+  }
+  reconciled_count = 0
   for pattern in server.PRACTICAL_PATTERN_DEFINITIONS:
-    provenance = server._registration_provenance(pattern)
+    provenance = server._registration_provenance(server._reconciled_pattern(pattern))
     if provenance.get("status") == "verified":
       continue
     bundle = server._workbench_source_bundle(pattern["market"])
@@ -113,12 +120,13 @@ def main() -> None:
       "recentAverageR": (selected.get("recent") or {}).get("stressedAverageR"),
       "qualificationTier": qualification.get("tier"),
     }
-    output.append(row)
+    output_by_pattern[str(pattern["id"])] = row
+    reconciled_count += 1
     print(json.dumps(row), flush=True)
-  if output:
+  if reconciled_count:
     server._research_store.set_metadata(
       "fms_registered_reaction:reconciliation",
-      json.dumps({"createdAt": int(time.time()), "rows": output}, separators=(",", ":")),
+      json.dumps({"createdAt": int(time.time()), "rows": list(output_by_pattern.values())}, separators=(",", ":")),
     )
   else:
     print(json.dumps({"reconciled": 0, "message": "All current registrations already verify."}))

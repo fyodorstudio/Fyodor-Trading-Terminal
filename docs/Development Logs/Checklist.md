@@ -26,8 +26,8 @@ The program must remain honest about the word **proven**:
 
 - [x] Remove the redundant full-width `Can I follow this blindly?` and `Watching N registered setups` blocks. The first viewport now begins with the operational Trade Monitor.
 - [x] Preserve readiness honestly in compact setup/account details and the bottom research explanation rather than repeating a large generic warning before every useful row.
-- [ ] Give every setup its own readiness badge. Global readiness must never hide a setup-level failure.
-- [ ] Default affected setup readiness to `AUDIT INCOMPLETE` after any scoring, direction, entry, data-identity, or execution-contract change until all required audits are rebuilt.
+- [x] Give every setup its own readiness badge. Global readiness must never hide a setup-level failure.
+- [x] Default affected setup readiness to `AUDIT INCOMPLETE` after any scoring, direction, entry, data-identity, or execution-contract change until all required audits are rebuilt.
 
 ### Phase 0 — Contain and Audit the Currency-Orientation Defect
 
@@ -38,23 +38,23 @@ The program must remain honest about the word **proven**:
   - all USD-driven USDJPY registrations;
   - every non-EURUSD registration driven by that market's base currency;
   - any experiment or candidate whose immutable snapshot used the affected rescoring path.
-- [ ] Build a complete orientation truth table for every supported pair and both currencies:
+- [x] Build a complete orientation truth table for every supported pair and both currencies:
   - base improves → Long pair;
   - base weakens → Short pair;
   - quote improves → Short pair;
   - quote weakens → Long pair.
-- [ ] Apply that truth table to baseline, Momentum-only, Forecast Guard, exact-package, single-series, partial-package, and Both-directions paths.
+- [x] Apply that truth table to baseline, Surprise-only, Momentum-only, no-agreement-bonus, Forecast Guard, single-series, and same-time package paths; downstream exact/partial/Both-direction selection preserves the candidate's explicit base/quote identity.
 - [x] Recompute the complete practical registry from the corrected engine and relink every surviving active benchmark to its new immutable experiment/audit. Historical arrows, Shadow Trader assessments, and account replay now consume only the rebuilt registry.
 - [x] Invalidate stale experiment reuse by including `pair-orientation-v2` in immutable experiment configurations and registration provenance checks.
-- [ ] Compare old versus corrected direction and outcome case-by-case; publish changed setup counts and changed historical P/L rather than silently replacing history.
+- [x] Compare old versus corrected direction and outcome case-by-case. The durable `pair-orientation-v2` audit compared 2,910 cases across 23 rebuilt USD-base registrations: 0 direction changes, 0 inclusion changes, 0 outcome changes, and 0.0R aggregate stressed-P/L change. The rebuilt immutable experiments now own the active provenance.
 - [x] Remove or demote every registration that is no longer historically profitable after correction: USDCAD PMI, USDCAD labor claims, and USDJPY US labor claims are no longer active.
-- [ ] Keep unaffected EURUSD and quote-currency recipes explicitly labelled `orientation-audited`, not merely assumed safe.
-- [ ] Do not allow `Eligible for rule-based live use: Yes` until the orientation audit is complete across the whole active registry.
+- [x] Keep every provenance-verified recipe explicitly labelled `Orientation audited`, including unaffected EURUSD and quote-currency recipes.
+- [x] Do not allow `Eligible for rule-based live use: Yes`; all 47 active recipes are historically audited but remain explicitly `not_live_validated`.
 
 ### Phase 1 — Freeze a Serious New FMS Generation
 
 - [x] Preserve all existing identifiers and results as immutable legacy research; do not rename history in place.
-- [ ] Freeze the new research engine as `FMS-RELEASE-REACTION-H4-v1`.
+- [x] Freeze the corrected research engine identity as `FMS-RELEASE-REACTION-H4-v1`, distinct from the active `FMS-REGISTERED-REACTION-H4-v4` registry assembled from its immutable experiments.
 - [x] Freeze the corrected and expanded Charts/Shadow registry as `FMS-REGISTERED-REACTION-H4-v4`: 47 immutable, provenance-verified recipes across seven supported pairs, with no duplicate market/package direction.
 - [x] Make the active registry contain only recipes reconstructed from immutable Workbench experiments with:
   - exact market and pair orientation;
@@ -65,7 +65,7 @@ The program must remain honest about the word **proven**:
   - exact entry, SL, TP/exit, and maximum-duration contract;
   - fixed dataset fingerprint, configuration hash, and activation boundary.
 - [x] Move every old unlinked, mismatched, or corrected-negative registration out of the active registry while preserving its immutable history.
-- [ ] Replace vague `legacy` labels with plain states: `Archived`, `Rebuilt`, `Quarantined`, or `Active registered setup`.
+- [x] Replace vague user-facing `legacy` labels with plain archive/active language. Internal compatibility identifiers remain stable, while active setup readiness is stated as `Historical audit complete`, `Orientation audited`, or `Audit incomplete`.
 
 ### Phase 2 — Build the Event/Price Reaction Atlas
 
@@ -109,7 +109,7 @@ The program must remain honest about the word **proven**:
 - [x] For each economic direction, record both possible price responses:
   - continuation: price follows the economic direction;
   - rejection: price consistently moves against the economic direction.
-- [ ] Produce four evidence lists directly in Shadow Trader and Workbench:
+- [x] Produce four evidence lists directly in Shadow Trader and Workbench:
   - `Registered — historically profitable directional recipe`;
   - `Contender — promising but unstable or under-sampled`;
   - `Avoid as standalone direction — repeated price rejection/randomness`;
@@ -127,20 +127,20 @@ The program must remain honest about the word **proven**:
 
 ### Phase 3 — Replace One Fixed Exit with Path Research
 
-- [ ] Keep every existing fixed-contract backtest reproducible as the baseline.
+- [x] Keep every existing fixed-contract backtest reproducible as the immutable baseline.
 - [ ] Split every setup audit into two explicit gates:
   - `Evidence reaction`: whether price followed or rejected the frozen economic direction at declared `1/3/6/12/30 H4` horizons;
   - `Trade execution`: whether the exact entry, SL, TP, expiry, and management contract produced positive later walk-forward average R.
-- [ ] Record four outcomes separately: `reaction worked + trade profited`, `reaction worked + trade lost`, `reaction rejected + contrarian trade profited`, and `direction/execution both failed`. Never compress them into one ambiguous accuracy number.
-- [ ] Complete the path-research artifact for every candidate, calculated from data strictly after its entry. The rebuilt engine already records MFE/MAE, time-to-extreme, unmanaged close R, declared H4 horizons, and entry-known support/resistance; 90/120-H4 and the remaining threshold/giveback views are still pending:
+- [x] Record four outcomes separately in every registered reaction audit: direction worked + trade profited, direction worked + trade lost, direction failed + trade profited, and direction/execution both failed.
+- [x] Complete the reusable path-research artifact for every newly evaluated candidate, calculated from data strictly after its entry:
   - maximum favorable excursion (MFE) in ATR/R;
   - maximum adverse excursion (MAE) in ATR/R;
   - time to MFE and MAE;
   - return after 1, 3, 6, 12, 18, 30, 42, 60, 90, and 120 H4 candles;
   - first reach of ±0.25, ±0.5, ±0.75, ±1, ±1.5, ±2, ±3, and ±4 ATR;
   - reversal after favorable excursion and drawdown before eventual target.
-- [ ] Use unrestricted path observation only for discovery. Never report the maximum future profit as a tradable result because that value was unknowable at entry.
-- [ ] Classify loss paths without rewriting them: wrong immediately, adverse-before-favourable, favourable-then-giveback, target-too-distant, expiry-too-short, or unresolved intrabar order.
+- [x] Use unrestricted path observation only for discovery. Maximum future profit remains an audit field and is never presented as a tradable entry-time result.
+- [x] Preserve loss-path observations without rewriting the original signal: adverse-before-best-favourable, favourable-then-giveback, target not reached, direction not working at six H4, duration ended negative, plus the separate ambiguous intrabar outcome.
 - [ ] Convert discovered path behavior into a small predeclared contract set on development data only:
   - fixed SL/TP;
   - time exit;
@@ -149,7 +149,7 @@ The program must remain honest about the word **proven**:
   - partial exit only as a separately declared strategy;
   - no-SL/no-expiry observation only as research, never live readiness.
 - [ ] Freeze the chosen contract before later walk-forward/holdout evaluation. Holdout data must never choose the best exit.
-- [ ] Build price-path artifacts once and reuse them across the declared contract grid; do not repeatedly rescan candle history for each SL/TP/expiry combination.
+- [x] Build price-path profiles once per candidate and reuse them across the declared contract grid rather than rescanning candle history per contract.
 - [ ] Require any execution challenger to improve the complete parent recipe on later walk-forward data; never add a rescue rule because it fixes one memorable losing chart.
 - [ ] Preserve a useful directional recipe as reaction knowledge when no execution contract survives, and mark its execution research `Exhausted` after the fixed matrix and small declared management set fail honestly.
 - [x] Display both directional reaction and actual strategy expectancy; every registered setup now carries a chronological later-test six-H4 reaction audit, while each arrow audit preserves MFE/MAE, fixed-horizon responses, giveback, and the final frozen-contract result.
@@ -230,7 +230,7 @@ Test one additional entry-known condition at a time. Do not mine unrestricted co
   - count opposite directions as a conflict only when they concern the same pair; different-pair simultaneous signals are competing opportunities, not directional contradictions;
   - display the exact sequential-compounding formula and plain-language definitions for overlap, simultaneous alternative/conflict, ambiguous, pending, and unevaluable cases;
   - reconcile displayed totals against the immutable signal ledger and retain the gross/no-cost boundary.
-- [ ] Make the global table the primary daily workflow, sortable by:
+- [x] Make the global table the primary daily workflow, sortable by:
   - actionable now;
   - readiness state;
   - historical average R;
@@ -238,7 +238,7 @@ Test one additional entry-known condition at a time. Do not mine unrestricted co
   - sample size;
   - next registered release time;
   - market and family.
-- [ ] Each row must show `Watching`, `Awaiting Actual`, `Calculating`, `Qualified — waiting entry`, `Trade open`, `Target reached`, `Stop reached`, `Expired`, `No trade`, `Blocked`, or `Retired`.
+- [x] Active rows distinguish `Watching`, `Awaiting Actual`, `Qualified — waiting entry`, `Trade open`, `Target reached`, `Stop reached`, `Expired`, `No trade`, and `Blocked`; retired recipes remain outside the active table in the research archive.
 - [ ] Every actionable row must state, in reading order:
   - pair flags and exact setup;
   - exact triggering release/package;
@@ -249,14 +249,14 @@ Test one additional entry-known condition at a time. Do not mine unrestricted co
   - exact historical walk-forward benchmark for that contract;
   - readiness state and missing live requirements.
 - [ ] Keep individual event scores distinct from the complete package decision. A zero subrow must never imply that positive sibling rows were cancelled.
-- [ ] Add a prominent `What would FMS do now?` card, but never send an MT5 order.
-- [ ] Add a durable live decision ledger so every first-seen qualified/no-trade decision remains reviewable even after broker revisions.
-- [ ] Add post-trade loss review linking the frozen decision, other same-time releases, Before context, MFE/MAE path, and final lifecycle without rewriting the original rule.
-- [ ] In every opened historical signal, present information in this order: triggering evidence and direction, evidence reaction, best/worst path, frozen trade result, why reaction and execution differed, then aggregate recipe history.
+- [x] Add a prominent `What would FMS do now?` trade monitor, but never send an MT5 order.
+- [x] Add a durable immutable live decision ledger. First-seen qualified/no-trade assessments are insert-only, survive bridge restarts and broker revisions, and are reviewable from a collapsed Shadow Trader table and bridge endpoint.
+- [x] Add post-trade loss review to arrow audits with the frozen release package, observational context, MFE/MAE, fixed-horizon responses, giveback, loss-path observations, and final lifecycle without rewriting the original rule.
+- [x] Historical arrow audits present triggering evidence/direction first, then reaction, best/worst path, frozen trade result, the reaction/execution distinction, and aggregate recipe history.
 
 ### Phase 8 — Paper and Limited-Live Validation
 
-- [ ] Automatically paper-track every historically qualified future setup from first-seen immutable values; do not cherry-pick which live cases count.
+- [x] After every successful complete EA cycle, automatically reconcile every registered market from immutable first-seen observations and append every qualified/no-trade decision to the durable ledger; no Charts visit or manual cherry-pick is required.
 - [ ] Compare paper execution with historical assumptions: entry delay, spread, slippage, missed trades, and package completeness.
 - [ ] Keep the minimum paper requirement setup-specific and show elapsed time plus case count; do not promise that waiting a fixed year guarantees anything.
 - [ ] Do not permit `Paper validated` when only historical replay exists.
@@ -273,7 +273,7 @@ Test one additional entry-known condition at a time. Do not mine unrestricted co
 - [ ] Rebuild all active registry results from a clean durable database and compare fingerprints with the shipped registry.
 - [ ] Run targeted bridge/FMS/Charts tests, repository typecheck, production build, and `git diff --check` after each phase.
 - [ ] Manually audit Charts and Shadow Trader at 1440x900 and 100% zoom for hierarchy, flags, timestamps, readiness visibility, no clipped explanations, no overlap, internal scrolling, and no whole-page overflow.
-- [ ] Final release report must list:
+- [x] Add a live readiness-report endpoint that lists:
   - active registered setups;
   - quarantined/retired setups;
   - corrected historical metrics;
@@ -298,6 +298,75 @@ FMS is ready for rule-based limited real-money consideration only when all of th
 - [ ] the readiness banner says `Eligible for rule-based live use: Yes` for the exact setup.
 
 Even then, `Safe to follow blindly` remains `No`. The correct final product is a reproducible, evidence-backed, rule-based trading assistant—not a guarantee that the next trade will win.
+
+## Deferred — FMS Pattern Discovery, Setup Ratings, and Demo Execution
+
+**Recorded:** 2026-08-30
+
+These are research directions, not approved live-trading behavior. FMS seeks repeatable historical behavior without pretending to know every causal driver. Historical repeatability, directional alignment, volatility information, and trade profitability remain separate claims. Existing path research already calculates much of the required MFE/MAE and fixed-horizon behavior; this backlog expands complete coverage, classification, and UI exposure.
+
+### Near-term research
+
+- [ ] Add a registered-setup reaction table showing, per exact setup and evidence direction:
+  - historical Surprise/Momentum magnitude or percentile;
+  - price alignment at fixed `1/3/6/12/30 H4` horizons;
+  - minimum, maximum, median, and average direction-adjusted movement in pips, ATR, and R;
+  - MFE, MAE, time to each extreme, volatility duration, and giveback;
+  - TP-before-SL and SL-before-TP for the frozen contract;
+  - continuation, rejection, volatility-only, or no-dependable-reaction classification.
+- [ ] Keep every horizon explicit; never present one context-free percentage as universal `price respect`.
+- [x] Surface existing MFE/path data beside TP/SL results:
+  - label it `Best favorable move`, not realized profit;
+  - show maximum favorable and adverse movement;
+  - preserve the actual frozen trade result separately;
+  - never imply hindsight maximum gain was capturable.
+- [x] Add a transparent registered-setup credibility scorecard using separate visible dimensions:
+  - later walk-forward expectancy;
+  - sample size and represented years;
+  - directional alignment;
+  - drawdown and losing streak;
+  - parameter/year stability;
+  - data/package reliability;
+  - immutable forward observations;
+  - known and excluded execution costs.
+- [x] Produce `Strong`, `Moderate`, `Fragile`, or `Unproven` from frozen rules rather than subjective AI judgment. Never translate the rating into guaranteed safety. `Strong` requires the declared sample, expectancy, year, direction-audit, and uncertainty checks; live validation remains separate.
+
+### Controlled pattern expansion
+
+- [ ] Create a separate Pattern Atlas for predeclared, explainable calendar families:
+  - Christmas/year-end;
+  - month-end and quarter-end;
+  - weekday;
+  - trading session;
+  - major scheduled release windows.
+- [ ] Test calendar patterns independently per pair and timeframe using chronological walk-forward evaluation.
+- [ ] Measure direction, magnitude, volatility, duration, MFE/MAE, and execution expectancy even when no economic cause is claimed.
+- [ ] Record every declared trial and failed result to prevent repeatedly rediscovering flattering coincidences.
+- [ ] Apply multiple-testing, year-concentration, regime-stability, and neighbouring-parameter diagnostics.
+- [ ] Do not permit arbitrary unrestricted OHLC/calendar mining or promote a pattern solely because its full-history average is positive.
+- [ ] Keep causal economic recipes and non-causal recurring market patterns visibly separated while allowing both to become registered only through immutable evidence.
+
+### Arrow-audit presentation
+
+- [x] Rename hindsight MFE to `Best favorable move`, label it as not-realized profit, retain the frozen outcome separately, and draw selected-signal Entry/SL/TP price lines directly on the chart.
+
+- [ ] Redesign the Past FMS Result popover to show:
+  - exact event/pattern and decision first;
+  - frozen SL/TP/expiry and actual outcome;
+  - clear risk and reward levels on the chart;
+  - best favorable and adverse path as separate hindsight diagnostics;
+  - entry, SL, TP, expiry, and exit markers without detached duplicate dots.
+- [x] Use outcome colors only for realized frozen results and selected-signal price levels; keep evidence direction and credibility neutral.
+
+### Demo-account automation — far future
+
+- [ ] Add an explicitly opt-in, demo-only MT5 execution mode after paper-readiness work is complete.
+- [ ] Verify through MT5 account metadata that the connected account is a demo account before every order; fail closed when account type cannot be verified.
+- [ ] Make real-account order transmission unavailable in this phase.
+- [ ] Require frozen per-setup contracts, maximum risk per trade, maximum simultaneous exposure, duplicate-order protection, stale/incomplete-data blocks, connection-health checks, and an immediate kill switch.
+- [ ] Record decision time, requested order, broker acknowledgement, fill, spread, slippage, commission, swap, modification, and exit in an immutable execution ledger.
+- [ ] Show demo positions prominently in Shadow Trader so the user can inspect them and independently decide whether to place a real trade manually.
+- [ ] Never copy a demo order into a real account or describe demo profitability as proof of future real execution.
 
 ## Current Product Truth
 

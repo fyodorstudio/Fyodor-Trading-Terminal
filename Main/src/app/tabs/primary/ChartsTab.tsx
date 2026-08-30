@@ -3,8 +3,10 @@ import {
   CandlestickSeries,
   createChart,
   createSeriesMarkers,
+  LineStyle,
   type CandlestickData,
   type IChartApi,
+  type IPriceLine,
   type ISeriesApi,
   type ISeriesMarkersPluginApi,
   type MouseEventParams,
@@ -460,6 +462,7 @@ export function ChartsTab({
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const macroBiasMarkersRef = useRef<ISeriesMarkersPluginApi<Time> | null>(null);
+  const macroBiasTradeLinesRef = useRef<IPriceLine[]>([]);
   const macroBiasSignalByMarkerIdRef = useRef(new Map<string, MacroSignalChartSignal>());
   const shouldRefocusRef = useRef(true);
   const futureRefocusSignatureRef = useRef("");
@@ -1118,6 +1121,32 @@ export function ChartsTab({
   const selectedMacroBiasActivationOpen = selectedMacroBias
     ? getMacroBiasActivationCandleOpen(selectedMacroBias, visibleCandles, chartSourceTimeOffsetSeconds, timeframe)
     : null;
+  useEffect(() => {
+    const series = seriesRef.current;
+    macroBiasTradeLinesRef.current.forEach((line) => series?.removePriceLine(line));
+    macroBiasTradeLinesRef.current = [];
+    if (!series || !selectedMacroBias) return;
+    const levels = [
+      { value: selectedMacroBias.entry, title: "ENTRY", color: "#64748b", lineStyle: LineStyle.Dashed },
+      { value: selectedMacroBias.stop, title: "SL", color: "#dc2626", lineStyle: LineStyle.Solid },
+      { value: selectedMacroBias.target, title: "TP", color: "#16a34a", lineStyle: LineStyle.Solid },
+    ];
+    macroBiasTradeLinesRef.current = levels.flatMap((level) => {
+      if (level.value == null || !Number.isFinite(level.value)) return [];
+      return [series.createPriceLine({
+        price: level.value,
+        color: level.color,
+        lineWidth: 1,
+        lineStyle: level.lineStyle,
+        axisLabelVisible: true,
+        title: level.title,
+      })];
+    });
+    return () => {
+      macroBiasTradeLinesRef.current.forEach((line) => series.removePriceLine(line));
+      macroBiasTradeLinesRef.current = [];
+    };
+  }, [selectedMacroBias]);
   const macroBiasAudit = selectedMacroBias && selectedMacroBiasPattern && macroBiasResponse ? {
     signal: selectedMacroBias.activationTime == null && selectedMacroBiasActivationOpen != null
       ? { ...selectedMacroBias, activationTime: selectedMacroBiasActivationOpen - chartSourceTimeOffsetSeconds }

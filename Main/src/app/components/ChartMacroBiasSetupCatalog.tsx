@@ -17,6 +17,27 @@ function formatR(value: number | null | undefined): string {
   return value == null ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(2)}R`;
 }
 
+export function macroSignalSetupCredibility(pattern: MacroSignalChartPattern): { label: "Strong" | "Moderate" | "Fragile" | "Unproven"; detail: string } {
+  const benchmark = pattern.historicalBenchmark;
+  if (pattern.readiness?.auditStatus !== "complete" || !benchmark || benchmark.walkForwardAverageR <= 0) {
+    return { label: "Unproven", detail: "The immutable audit is incomplete or later-test average R is not positive." };
+  }
+  if (benchmark.strength === "positive_but_fragile" || benchmark.walkForwardN < 20 || pattern.yearStability.evaluableYears < 5) {
+    return { label: "Fragile", detail: "Positive later history, but sample, represented years, stability, or uncertainty remains weak." };
+  }
+  if (
+    benchmark.walkForwardN >= 60
+    && benchmark.walkForwardAverageR >= .15
+    && pattern.yearStability.evaluableYears >= 8
+    && pattern.yearStability.positiveYearShare >= .65
+    && (pattern.reactionAudit?.evaluableN ?? 0) >= 30
+    && pattern.uncertaintyIncludesNoEdge === false
+  ) {
+    return { label: "Strong", detail: "Stronger positive later history across sample, years, direction audit, and uncertainty checks." };
+  }
+  return { label: "Moderate", detail: "Verified positive later history, with one or more strength checks below the Strong threshold." };
+}
+
 function formatCountdown(seconds: number): string {
   if (seconds <= 0) return "Awaiting released Actual";
   const days = Math.floor(seconds / 86_400);
@@ -139,10 +160,20 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
             <div><dt>Worked, but trade lost</dt><dd>Price was in the registered direction after six H4 candles, but the exact SL/TP/duration contract still finished without a profit.</dd></div>
             <div><dt>1R / 1.5R / 2R</dt><dd>Gross average at each alternative target; this checks dependence on one target.</dd></div>
           </dl>
+          <h4>Historical credibility</h4>
+          <dl>
+            <div><dt>Strong</dt><dd>Verified, at least 60 later trades, +0.15R average, 8 represented years with at least 65% positive, at least 30 direction-audit cases, and an uncertainty interval that excludes zero.</dd></div>
+            <div><dt>Moderate</dt><dd>Verified positive later history that does not satisfy every Strong threshold.</dd></div>
+            <div><dt>Fragile</dt><dd>Positive history with a fragile registry flag, fewer than 20 later trades, or fewer than 5 represented years.</dd></div>
+            <div><dt>Unproven</dt><dd>The immutable audit is incomplete or later-test average R is not positive.</dd></div>
+          </dl>
+          <p>Credibility summarizes historical evidence only. Live validation and real execution costs remain separate and can keep a setup ineligible for live use.</p>
           <p>Example: with a $1,000 account risking 1%, 1R is $10. A stop loses about $10 and a 2R target gains about $20. ATR changes position size, not the chosen $10 risk.</p>
         </section>
       ) : null}
-      {registered.map((pattern) => (
+      {registered.map((pattern) => {
+        const credibility = macroSignalSetupCredibility(pattern);
+        return (
         <details key={`${pattern.market ?? "EURUSD"}:${pattern.id}`} open={registered.length <= 4}>
           <summary>
             <span><b>{pattern.label}</b></span>
@@ -150,6 +181,10 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
             <em className="chart-shadow-disclosure-cue">View details <ChevronDown size={13} /></em>
           </summary>
           <p className="chart-shadow-catalog-rule"><b>Trade rule:</b> {pattern.condition}</p>
+          <section className={`chart-shadow-credibility is-${credibility.label.toLowerCase()}`} aria-label={`${pattern.label} historical credibility`}>
+            <div><span>Historical credibility</span><strong>{credibility.label}</strong></div>
+            <p>{credibility.detail} This is a historical evidence rating, not permission to follow the setup blindly.</p>
+          </section>
           <div className="chart-shadow-benchmark-grid">
             <div><span>All matching events</span><strong>{pattern.historicalBenchmark?.historicalN ?? pattern.overall.evaluableCount}</strong></div>
             <div><span>Trade rules</span><strong>SL {pattern.execution?.stopAtr ?? 1} ATR · TP {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</strong></div>
@@ -159,6 +194,10 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
                 <div><span>TP before SL</span><strong>{formatPercent(pattern.historicalBenchmark.targetFirstRate)}</strong></div>
                 <div><span>SL before TP</span><strong>{formatPercent(pattern.historicalBenchmark.stopFirstRate)}</strong></div>
                 <div><span>Average per trade</span><strong>{formatR(pattern.historicalBenchmark.walkForwardAverageR)}</strong></div>
+                <div><span>Positive years</span><strong>{pattern.yearStability.positiveYears} / {pattern.yearStability.evaluableYears}</strong></div>
+                <div><span>Uncertainty</span><strong>{pattern.uncertaintyIncludesNoEdge ? "Still includes no edge" : "Positive interval"}</strong></div>
+                <div><span>Live evidence</span><strong>{pattern.readiness?.liveStatus === "not_live_validated" ? "Not live validated" : pattern.readiness?.liveStatus ?? "Unavailable"}</strong></div>
+                <div><span>Execution costs</span><strong>Spread, commission, slippage, and swap excluded</strong></div>
                 <div><span>Backtest record</span><strong>{pattern.historicalBenchmark.experimentId}</strong></div>
                 {pattern.reactionAudit ? (
                   <>
@@ -171,12 +210,12 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
                   </>
                 ) : null}
               </>
-            ) : <><div><span>Benchmark status</span><strong>Legacy snapshot</strong></div><div><span>Exact contract metrics</span><strong>Not linked</strong></div></>}
+            ) : <><div><span>Benchmark status</span><strong>Archived snapshot</strong></div><div><span>Exact contract metrics</span><strong>Not linked</strong></div></>}
           </div>
           {pattern.reactionAudit ? <p className="chart-shadow-reaction-note"><b>Direction and execution are separate:</b> the six-H4 response checks whether price moved in this registered recipe&apos;s direction; TP/SL and average R judge whether its frozen trade rules captured that movement.</p> : null}
           {pattern.registrationProvenance ? <p className={`chart-shadow-provenance is-${pattern.registrationProvenance.status}`}><b>{pattern.registrationProvenance.status === "verified" ? "Backtest record verified" : pattern.registrationProvenance.status === "mismatch" ? "Backtest mismatch" : pattern.registrationProvenance.status === "unavailable" ? "Backtest unavailable" : "Older saved setup"}:</b> {pattern.registrationProvenance.note}</p> : null}
         </details>
-      ))}
+      )})}
     </section>
   );
 }

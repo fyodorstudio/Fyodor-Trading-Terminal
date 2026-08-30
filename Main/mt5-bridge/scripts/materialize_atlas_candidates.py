@@ -11,6 +11,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import server
 from macro_signal import (
+  PAIR_ORIENTATION_VERSION,
   WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION,
   WORKBENCH_SCORING_ENGINE_VERSION,
   build_workbench_experiment,
@@ -75,6 +76,7 @@ def main() -> None:
       "directionSelection": "both",
       "scoringPolicy": row["policy"],
       "scoringEngineVersion": WORKBENCH_SCORING_ENGINE_VERSION,
+      "pairOrientationVersion": PAIR_ORIENTATION_VERSION,
       "researchDiagnosticsVersion": WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION,
       "cohort": (
         {"dimension": "none", "value": "all"}

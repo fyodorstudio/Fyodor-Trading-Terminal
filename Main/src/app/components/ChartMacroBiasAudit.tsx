@@ -28,6 +28,11 @@ function formatPips(value: number | null | undefined): string {
   return value == null ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(1)} pips`;
 }
 
+function formatPrice(value: number | null | undefined, market: string): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return value.toFixed(market.endsWith("JPY") ? 3 : 5);
+}
+
 function formatUtc(value: number | null | undefined): string {
   return value == null ? "Waiting for next H4 open" : formatUtcDisplayDateTime(value);
 }
@@ -103,17 +108,24 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
         <div><span>{historicalReplay ? "What happened afterward" : "Trade monitor"}</span><strong>{lifecycle.state}</strong></div>
         <p>{lifecycle.detail}</p>
       </div>
+      {signal.entry != null || signal.stop != null || signal.target != null ? (
+        <section className="chart-macro-bias-levels" aria-label="Frozen trade price levels">
+          <div className="is-entry"><span>Entry</span><strong>{formatPrice(signal.entry, market)}</strong><small>Trade activation price</small></div>
+          <div className="is-risk"><span>Risk · SL</span><strong>{formatPrice(signal.stop, market)}</strong><small>−1R boundary</small></div>
+          <div className="is-reward"><span>Reward · TP</span><strong>{formatPrice(signal.target, market)}</strong><small>+{targetR}R boundary</small></div>
+        </section>
+      ) : null}
       {signal.pathAudit ? (
         <section className="chart-macro-bias-path-audit" aria-label="Evidence reaction and trade execution">
           <div className="chart-macro-bias-section-title"><span>Reaction versus trade result</span><strong>Two separate questions</strong></div>
           <div className="chart-macro-bias-path-grid">
             <div><span>Registered mapping</span><strong>{signal.pathAudit.evidenceReaction === "rejected" ? "Rejects evidence" : "Follows evidence"}</strong></div>
             <div><span>Direction after {signal.pathAudit.reactionHorizonCandles} H4</span><strong>{signal.pathAudit.directionWorked == null ? "Unavailable" : signal.pathAudit.directionWorked ? "Worked" : "Did not work"}</strong><small>{formatR(signal.pathAudit.reactionResponseR)}</small></div>
-            <div><span>Best open profit</span><strong>{formatR(signal.pathAudit.maximumFavorableR)}</strong><small>{formatPips(signal.pathAudit.maximumFavorablePips)} · after {signal.pathAudit.timeToMfeCandles ?? "—"} H4</small></div>
+            <div><span>Best favorable move</span><strong>{formatR(signal.pathAudit.maximumFavorableR)}</strong><small>{formatPips(signal.pathAudit.maximumFavorablePips)} · after {signal.pathAudit.timeToMfeCandles ?? "—"} H4 · not realized profit</small></div>
             <div><span>Worst open pressure</span><strong>{formatR(-signal.pathAudit.maximumAdverseR)}</strong><small>{formatPips(-signal.pathAudit.maximumAdversePips)} · after {signal.pathAudit.timeToMaeCandles ?? "—"} H4</small></div>
             <div><span>Final frozen trade</span><strong>{formatOutcome(signal)}</strong>{signal.pathAudit.givebackR != null ? <small>{formatR(signal.pathAudit.givebackR)} given back from the best open point</small> : null}</div>
           </div>
-          {signal.pathAudit.maximumFavorableR >= .5 && (signal.resultR ?? 0) < 0 ? <p><b>Why they differ:</b> price initially moved in the registered direction, but not far enough to reach this setup’s TP before reversing into its SL. The direction insight and frozen trade result are both retained.</p> : null}
+          {signal.pathAudit.maximumFavorableR >= .5 && (signal.resultR ?? 0) < 0 ? <p><b>Why they differ:</b> price initially moved in the registered direction, but not far enough to reach this setup’s TP before reversing into its SL. The best favorable move is hindsight path evidence, not profit the frozen rule captured.</p> : null}
           {(signal.pathAudit.lossReview ?? []).length > 0 ? <div className="chart-macro-bias-loss-review"><span>Loss-path observations</span>{(signal.pathAudit.lossReview ?? []).map((reason) => <b key={reason}>{reason === "favourable_then_giveback" ? "Favourable move, then giveback" : reason === "target_not_reached_before_close" ? "Target was not reached before close" : reason === "adverse_before_best_favourable_move" ? "Adverse move came before the best favourable point" : reason === "direction_not_working_at_six_h4" ? "Direction was not working at six H4" : "Maximum duration ended negative"}</b>)}</div> : null}
           {signal.pathAudit.fixedHorizonResponses.length > 0 ? <div className="chart-macro-bias-horizon-strip">{signal.pathAudit.fixedHorizonResponses.map((row) => <span key={row.holdingCandles}><b>{row.holdingCandles} H4</b>{formatR(row.responseR)}</span>)}</div> : null}
         </section>

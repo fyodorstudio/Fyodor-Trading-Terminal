@@ -216,6 +216,7 @@ def main() -> None:
   server._research_store.set_metadata(
     "fms_reaction_atlas:latest", json.dumps(artifact, separators=(",", ":"))
   )
+  server._research_store.set_metadata("fms_reaction_atlas:revision", artifact["artifactHash"])
   print(json.dumps({
     "stored": True,
     "artifactHash": artifact["artifactHash"],

@@ -255,7 +255,7 @@ def test_failed_gate_freeze_requires_acknowledgement_and_never_promotes_charts(t
     experiment_id,
     "Weak holdout",
     100,
-    {"market": "EURUSD", "sourceVersionId": "source-v3", "signature": "long|EUR:sentiment", "signatures": ["long|EUR:sentiment"], "scoringPolicy": "forecast_quality", "scoringEngineVersion": server.WORKBENCH_SCORING_ENGINE_VERSION, "researchDiagnosticsVersion": server.WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION},
+    {"market": "EURUSD", "sourceVersionId": "source-v3", "signature": "long|EUR:sentiment", "signatures": ["long|EUR:sentiment"], "scoringPolicy": "forecast_quality", "scoringEngineVersion": server.WORKBENCH_SCORING_ENGINE_VERSION, "pairOrientationVersion": server.PAIR_ORIENTATION_VERSION, "researchDiagnosticsVersion": server.WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION},
     "config-a",
     {"id": "catalog-a"},
     "dataset-a",
@@ -301,12 +301,30 @@ def test_failed_gate_freeze_requires_acknowledgement_and_never_promotes_charts(t
     "auditStatus": "complete",
     "historicalStatus": "historically_qualified",
     "liveStatus": "not_live_validated",
-    "label": "Historical audit complete",
+    "orientationAudited": True,
+    "label": "Historical audit complete · orientation audited",
     "actionableInShadowTrader": True,
   }
   incomplete = server._pattern_readiness({}, {"status": "mismatch"})
   assert incomplete["auditStatus"] == "incomplete"
   assert incomplete["actionableInShadowTrader"] is False
+
+  saved_experiment = store.get_fms_experiment(experiment_id)
+  legacy_usd_configuration = dict(saved_experiment["configuration"])
+  legacy_usd_configuration["market"] = "USDJPY"
+  legacy_usd_configuration.pop("pairOrientationVersion")
+  monkeypatch.setattr(server._research_store, "get_fms_experiment", lambda _experiment_id: {
+    **saved_experiment,
+    "configuration": legacy_usd_configuration,
+  })
+  usd_pattern = {
+    "market": "USDJPY", "sourceVersionId": "source-v3", "signatures": ["long|EUR:sentiment"],
+    "scoringPolicy": "forecast_quality", "execution": {"stopAtr": 1, "targetR": 2, "expiryCandles": 30},
+    "historicalBenchmark": {"experimentId": experiment_id, "historicalN": 48, "walkForwardN": 35, "walkForwardAverageR": .14, "targetFirstRate": .75, "stopFirstRate": .17},
+  }
+  legacy_usd = server._registration_provenance(usd_pattern)
+  assert legacy_usd["checks"]["pairOrientation"] is False
+  assert legacy_usd["status"] == "mismatch"
 
 
 def test_completed_experiment_raw_cases_are_paginated_and_contract_specific(tmp_path: Path, monkeypatch) -> None:
@@ -332,3 +350,31 @@ def test_completed_experiment_raw_cases_are_paginated_and_contract_specific(tmp_
   assert payload["rows"][0]["events"][0]["score"] == 3
   assert payload["rows"][0]["forecastUnreliable"] is True
   assert payload["rows"][0]["simulation"]["targetAtr"] == 2
+
+
+def test_readiness_report_exposes_setup_level_evidence_and_keeps_live_gate_closed(monkeypatch) -> None:
+  class ReadinessStore:
+    def get_metadata(self, _key: str):
+      return None
+    def get_fms_experiment(self, _experiment_id: str):
+      return None
+    def latest_fms_qualification_audit(self, _experiment_id: str):
+      return None
+    def list_fms_live_decisions(self, limit: int = 500):
+      assert limit == 500
+      return [{"status": "no_trade"}, {"status": "qualified"}]
+
+  monkeypatch.setattr(server, "_research_store", ReadinessStore())
+  report = server.research_readiness_report()
+  assert report["activeRegisteredSetups"] == len(server.PRACTICAL_PATTERN_DEFINITIONS)
+  assert len(report["registeredSetups"]) == len(server.PRACTICAL_PATTERN_DEFINITIONS)
+  assert report["registeredSetups"][0]["execution"]
+  assert "historicalBenchmark" in report["registeredSetups"][0]
+  assert report["quarantinedOrRetiredSetups"]
+  assert report["paperLiveEvidence"] == {
+    "immutableFirstSeen": True,
+    "decisionCount": 2,
+    "actualBrokerFillsRecorded": 0,
+    "status": "observation_only",
+  }
+  assert report["eligibleForRuleBasedLiveUse"] is False

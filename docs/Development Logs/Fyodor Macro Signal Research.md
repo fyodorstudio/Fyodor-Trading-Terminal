@@ -3,6 +3,8 @@
 **Date:** 2026-08-26
 **Status:** Source models remain immutable research inputs. Charts and global Shadow Trader use `FMS-REGISTERED-REACTION-H4-v4`: 47 reconciled recipes across seven major pairs, with frozen scoring, case filter, continuation/rejection mapping, and execution contract. Historical arrows remain hindsight replay; current monitoring uses immutable first-seen observations only. Eleven marginal positive histories are explicitly labelled fragile. Nothing is an automatic order or guaranteed edge.
 
+**2026-08-30 presentation/readiness pass:** setup details now expose a deterministic historical-credibility scorecard rather than subjective AI judgment. `Strong`, `Moderate`, `Fragile`, and `Unproven` summarize declared immutable-audit, later-test, represented-year, direction-audit, and uncertainty checks; they never override the separate `not live validated` state. Arrow audits call hindsight MFE `Best favorable move`, keep the realized frozen result separate, and draw Entry/SL/TP levels only while that arrow is selected. `/research/readiness-report` now returns setup-level contracts, historical/reaction audits, immutable provenance, quarantined research rules, first-seen decision counts, excluded costs, and an explicit closed live-use gate.
+
 **AI working-memory rule:** This is the single canonical FMS research record for future AI sessions. Preserve decisions, failed trials, candidate diagnoses, and unresolved ideas here so research is not reconstructed from chat memory. Do not create a second FMS roadmap unless the user explicitly changes this rule.
 
 ## Experiment Workbench Namespace (2026-08-26)
@@ -267,6 +269,16 @@ V9 admits US-industrial-output Short and directional Euro-area consumer sentimen
 The release visualization now uses a small ring at the actual release candle plus a curved dotted connector into the first strictly later H4 activation arrow. This preserves the frozen timing contract while making the two timestamps read as one sequence.
 
 Later Charts UI consolidation (2026-08-30) removed the redundant release ring and connector. Each setup now renders one clickable arrow on its actionable activation candle; the exact economic release time remains available in the audit. This changes presentation only, not the frozen entry or scoring contract.
+
+The same integrity pass made pair orientation explicit on every newly built candidate (`pairBaseCurrency` and `pairQuoteCurrency`) and verified the base/quote truth table across all seven supported markets, both currencies, all five scoring policies, single-series releases, and same-time packages. Shadow Trader now derives a setup-level readiness state from immutable registration provenance. A missing or mismatched audit is labelled `Audit incomplete` and cannot produce a new hypothetical match; historically verified setups remain explicitly separate from `not live validated`.
+
+Shadow Trader and Workbench now expose the same four-way archive vocabulary: registered historically profitable recipes, unstable contenders, avoid-as-standalone-direction evidence, and insufficient evidence. The global Shadow view receives the full deduplicated atlas lists but mounts their detail rows only when a section is opened, so research completeness does not reintroduce idle Charts rendering cost.
+
+### Pair-orientation v2 registry audit — 2026-08-30
+
+Every active USD-base registration was rebuilt as a new immutable experiment carrying `pair-orientation-v2`; unaffected quote-USD recipes were explicitly orientation-audited rather than silently assumed correct. A durable case-by-case comparison covers 2,910 matching cases across 23 rebuilt registrations. It found zero direction changes, zero inclusion changes, zero simulated-outcome changes, and an aggregate stressed-P/L difference of `0.0R`. All 47 active registry entries now reconcile to immutable experiments and are labelled orientation-audited. This is a historical-integrity result, not live validation: every setup remains `not_live_validated`.
+
+The frozen engine/registry namespace is now explicit: `FMS-RELEASE-REACTION-H4-v1` is the corrected research engine and `FMS-REGISTERED-REACTION-H4-v4` is the reviewed active registry. Candidate path artifacts now retain 1/3/6/12/18/30/42/60/90/120-H4 responses and first-reach thresholds beginning at 0.25 ATR. Workbench static catalog/model/coverage data is cached by source-run, candle, atlas, and registry revision so reopening the tab no longer rebuilds its research shell.
 
 ## FMS Shadow Trader
 

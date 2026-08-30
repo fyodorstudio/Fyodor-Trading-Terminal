@@ -177,6 +177,20 @@ class ResearchStore:
         );
         CREATE TABLE IF NOT EXISTS fms_sweeps (id TEXT PRIMARY KEY, manifest_hash TEXT NOT NULL UNIQUE, created_at INTEGER NOT NULL, status TEXT NOT NULL, manifest_json TEXT NOT NULL, error TEXT);
         CREATE TABLE IF NOT EXISTS fms_sweep_entries (sweep_id TEXT NOT NULL, entry_id TEXT NOT NULL, state TEXT NOT NULL, experiment_id TEXT, audit_id TEXT, error TEXT, PRIMARY KEY(sweep_id, entry_id));
+        CREATE TABLE IF NOT EXISTS fms_live_decisions (
+          model_id TEXT NOT NULL,
+          market TEXT NOT NULL,
+          pattern_id TEXT NOT NULL,
+          event_time INTEGER NOT NULL,
+          first_decided_at INTEGER NOT NULL,
+          status TEXT NOT NULL,
+          direction TEXT,
+          assessment_json TEXT NOT NULL,
+          signal_json TEXT,
+          PRIMARY KEY (model_id, market, pattern_id, event_time)
+        );
+        CREATE INDEX IF NOT EXISTS idx_fms_live_decisions_recent
+          ON fms_live_decisions (first_decided_at DESC);
         """
       )
 
@@ -187,6 +201,55 @@ class ResearchStore:
         "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
         (key, value),
       )
+
+  def record_fms_live_decision(
+    self,
+    model_id: str,
+    market: str,
+    pattern_id: str,
+    event_time: int,
+    first_decided_at: int,
+    status: str,
+    direction: Optional[str],
+    assessment: Dict[str, Any],
+    signal: Optional[Dict[str, Any]],
+  ) -> bool:
+    with self._write_lock, self._connect() as connection:
+      cursor = connection.execute(
+        "INSERT OR IGNORE INTO fms_live_decisions(model_id, market, pattern_id, event_time, first_decided_at, status, direction, assessment_json, signal_json) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+          model_id, market.upper(), pattern_id, int(event_time), int(first_decided_at), status, direction,
+          json.dumps(assessment, sort_keys=True, separators=(",", ":")),
+          None if signal is None else json.dumps(signal, sort_keys=True, separators=(",", ":")),
+        ),
+      )
+      return cursor.rowcount > 0
+
+  def list_fms_live_decisions(self, market: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
+    bounded_limit = max(1, min(int(limit), 500))
+    with self._connect() as connection:
+      if market:
+        rows = connection.execute(
+          "SELECT * FROM fms_live_decisions WHERE market = ? ORDER BY first_decided_at DESC, event_time DESC LIMIT ?",
+          (market.upper(), bounded_limit),
+        ).fetchall()
+      else:
+        rows = connection.execute(
+          "SELECT * FROM fms_live_decisions ORDER BY first_decided_at DESC, event_time DESC LIMIT ?",
+          (bounded_limit,),
+        ).fetchall()
+    return [{
+      "modelId": str(row["model_id"]),
+      "market": str(row["market"]),
+      "patternId": str(row["pattern_id"]),
+      "eventTime": int(row["event_time"]),
+      "firstDecidedAt": int(row["first_decided_at"]),
+      "status": str(row["status"]),
+      "direction": None if row["direction"] is None else str(row["direction"]),
+      "assessment": json.loads(row["assessment_json"]),
+      "signal": None if row["signal_json"] is None else json.loads(row["signal_json"]),
+    } for row in rows]
 
   def get_metadata(self, key: str) -> Optional[str]:
     with self._connect() as connection:
@@ -535,6 +598,19 @@ class ResearchStore:
         """,
         rows,
       )
+
+  def candle_coverage(self, symbol: str, timeframe: str) -> Dict[str, Optional[int]]:
+    with self._connect() as connection:
+      row = connection.execute(
+        "SELECT COUNT(*) AS count, MIN(time) AS earliest, MAX(time) AS latest "
+        "FROM candle_cache WHERE symbol = ? AND timeframe = ?",
+        (symbol.upper(), timeframe.upper()),
+      ).fetchone()
+    return {
+      "count": int(row["count"] or 0),
+      "earliest": None if row["earliest"] is None else int(row["earliest"]),
+      "latest": None if row["latest"] is None else int(row["latest"]),
+    }
 
   def query_candles(self, symbol: str, timeframe: str, from_time: int, to_time: int) -> List[Dict[str, Any]]:
     with self._connect() as connection:
