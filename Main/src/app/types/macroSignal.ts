@@ -2,6 +2,25 @@ export type MacroSignalDirection = "long" | "short" | "none";
 export type MacroSignalRunStatus = "queued" | "running" | "completed" | "failed";
 export type MacroSignalOutcomeStatus = "target_hit" | "stop_hit" | "expired" | "ambiguous" | "unevaluable" | "no_direction" | "pending";
 
+export interface MacroSignalDistribution {
+  minimum: number | null;
+  p25: number | null;
+  median: number | null;
+  mean: number | null;
+  p75: number | null;
+  maximum: number | null;
+}
+
+export interface MacroSignalReactionContractAudit {
+  stopAtr: number;
+  targetR: number;
+  holdingCandles: number;
+  developmentAverageR: number | null;
+  laterAverageR: number | null;
+  laterTargetRate: number | null;
+  laterStopRate: number | null;
+}
+
 export interface MacroSignalCoverageCurrency {
   currency: string;
   count: number;
@@ -867,6 +886,31 @@ export interface MacroSignalChartPattern {
     directionFailedTradeLost: number;
     positiveResponseRate: number;
     medianResponseR: number;
+    profile?: {
+      schema: "registered-reaction-profile-v1";
+      scope: "chronological later-test cases";
+      experimentId: string;
+      evaluableN: number;
+      standardWindowCandles: number;
+      classification: "continuation" | "short_lived_impulse" | "delayed_continuation" | "initial_rejection" | "volatility_only" | "no_dependable_reaction";
+      horizons: Array<{
+        holdingCandles: number;
+        evaluableN: number;
+        alignmentRate: number;
+        atr: MacroSignalDistribution;
+        r: MacroSignalDistribution;
+        pips: MacroSignalDistribution;
+      }>;
+      mfe: { atr: MacroSignalDistribution; r: MacroSignalDistribution; pips: MacroSignalDistribution; timeCandles: MacroSignalDistribution };
+      mae: { atr: MacroSignalDistribution; r: MacroSignalDistribution; pips: MacroSignalDistribution; timeCandles: MacroSignalDistribution };
+      givebackAtr: MacroSignalDistribution;
+      contractResearch: {
+        selectionRule: string;
+        status: "historically_improved_candidate" | "keep_frozen_contract";
+        frozen: MacroSignalReactionContractAudit | null;
+        developmentSelected: MacroSignalReactionContractAudit | null;
+      };
+    };
   };
   registrationProvenance?: {
     status: "verified" | "mismatch" | "unavailable" | "legacy_snapshot";

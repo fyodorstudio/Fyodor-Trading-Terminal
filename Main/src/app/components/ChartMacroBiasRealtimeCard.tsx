@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronRight, ShieldCheck, WalletCards } from "lucide-react";
 import { Fragment, useEffect, useMemo, useState } from "react";
-import { ChartMacroBiasSetupCatalog, macroSignalSetupCredibility } from "@/app/components/ChartMacroBiasSetupCatalog";
+import { ChartMacroBiasSetupCatalog, macroSignalReactionLabel, macroSignalSetupCredibility } from "@/app/components/ChartMacroBiasSetupCatalog";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
 import {
@@ -547,7 +547,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
                       }
                     }}
                   >
-                    <td><strong className="chart-shadow-setup-title"><PairFlags symbol={patternMarket} />{patternMarket} · {pattern.label}</strong><small className="chart-shadow-contract-line">SL {pattern.execution?.stopAtr ?? 1} ATR · TP {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</small><span className={`chart-shadow-readiness is-${pattern.readiness?.auditStatus ?? "incomplete"}`}>{pattern.readiness?.label ?? "Audit incomplete"}</span>{pattern.readiness?.orientationAudited && <span className="chart-shadow-readiness is-complete">Orientation audited</span>}<span className={`chart-shadow-reaction is-${pattern.reaction === "contrarian" ? "rejected" : "followed"}`}>{pattern.reaction === "contrarian" ? "Rejected evidence" : "Followed evidence"}</span></td>
+                    <td><strong className="chart-shadow-setup-title"><PairFlags symbol={patternMarket} />{patternMarket} · {pattern.label}</strong><small className="chart-shadow-contract-line">SL {pattern.execution?.stopAtr ?? 1} ATR · TP {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</small><span className={`chart-shadow-readiness is-${pattern.readiness?.auditStatus ?? "incomplete"}`}>{pattern.readiness?.label ?? "Audit incomplete"}</span>{pattern.readiness?.orientationAudited && <span className="chart-shadow-readiness is-complete">Orientation audited</span>}<span className={`chart-shadow-reaction is-${pattern.reaction === "contrarian" ? "rejected" : "followed"}`}>{pattern.reaction === "contrarian" ? "Rejected evidence" : "Followed evidence"}</span>{pattern.reactionAudit?.profile ? <span className="chart-shadow-reaction-shape">Reaction: {macroSignalReactionLabel(pattern.reactionAudit.profile.classification)}</span> : null}</td>
                     <td className="chart-shadow-now-cell">{blocked ? (
                       <><strong>Blocked</strong><small>Registration audit must be rebuilt.</small></>
                     ) : openOrPending ? (

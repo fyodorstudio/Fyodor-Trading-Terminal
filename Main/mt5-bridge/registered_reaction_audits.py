@@ -11,7 +11,16 @@ distinction between an economic direction and the execution contract used to
 trade it.
 """
 
+import json
+from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
+
+
+_PROFILE_PATH = Path(__file__).with_name("registered_reaction_profiles.json")
+try:
+  _PROFILE_ROWS = json.loads(_PROFILE_PATH.read_text(encoding="utf-8")).get("profiles", {})
+except (OSError, TypeError, ValueError):
+  _PROFILE_ROWS = {}
 
 
 REACTION_AUDIT_V1: Dict[Tuple[str, str], Tuple[int, int, int, int, int, float, float]] = {
@@ -70,7 +79,7 @@ def registered_reaction_audit(market: str, pattern_id: str) -> Optional[Dict[str
   if row is None:
     return None
   n, worked_profit, worked_loss, failed_profit, failed_loss, positive_rate, median_r = row
-  return {
+  payload = {
     "schema": "registered-reaction-audit-v1",
     "scope": "chronological later-test cases",
     "horizonCandles": 6,
@@ -82,3 +91,7 @@ def registered_reaction_audit(market: str, pattern_id: str) -> Optional[Dict[str
     "positiveResponseRate": positive_rate,
     "medianResponseR": median_r,
   }
+  profile = _PROFILE_ROWS.get(f"{market}|{pattern_id}")
+  if isinstance(profile, dict):
+    payload["profile"] = profile
+  return payload

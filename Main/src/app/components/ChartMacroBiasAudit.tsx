@@ -73,6 +73,11 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
   const provenance = pattern.registrationProvenance;
   const lifecycle = lifecycleCopy(signal);
   const simpleBreakEven = 1 / (1 + targetR);
+  const initialReaction = signal.pathAudit?.fixedHorizonResponses.find((row) => row.holdingCandles === 1) ?? null;
+  const initialReactionPips = initialReaction && signal.atr != null
+    ? initialReaction.responseR * stopAtr * signal.atr / (market.endsWith("JPY") ? .01 : .0001)
+    : null;
+  const initialReactionFollowed = initialReaction == null ? null : initialReaction.responseR > 0;
   return (
     <aside className="chart-macro-bias-audit" aria-label={`${signal.direction} ${market} macro bias audit`}>
       <header>
@@ -81,7 +86,8 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
           <strong>{pattern.label}</strong>
           <div className="chart-macro-bias-header-status">
             <b>{signal.direction === "long" ? "Long" : "Short"} {market}</b>
-            <em>{formatOutcome(signal)}</em>
+            {initialReaction ? <em className={initialReactionFollowed ? "is-followed" : "is-rejected"}>Initial move {initialReactionFollowed ? "followed" : "opposed"} · {formatR(initialReaction.responseR)}</em> : null}
+            <em>Frozen trade · {formatOutcome(signal)}</em>
           </div>
         </div>
         <button type="button" onClick={data.onClose} aria-label="Close macro bias audit"><X size={15} /></button>
@@ -104,8 +110,16 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
         </div>
       </section>
 
+      {initialReaction ? (
+        <section className={`chart-macro-bias-reaction-verdict ${initialReactionFollowed ? "is-followed" : "is-rejected"}`} aria-label="Initial price reaction">
+          <div><span>Initial price reaction</span><strong>{initialReactionFollowed ? "Price followed the arrow" : "Price opposed the arrow"}</strong></div>
+          <b>{formatR(initialReaction.responseR)}{initialReactionPips == null ? "" : ` · ${formatPips(initialReactionPips)}`} after 1 H4</b>
+          <p>This measures direction after the first completed H4 candle. It is separate from whether the frozen TP or SL was reached later.</p>
+        </section>
+      ) : null}
+
       <div className={`chart-macro-bias-lifecycle ${lifecycle.resolved ? "is-resolved" : "is-active"}`}>
-        <div><span>{historicalReplay ? "What happened afterward" : "Trade monitor"}</span><strong>{lifecycle.state}</strong></div>
+        <div><span>{historicalReplay ? "Frozen trade result" : "Trade monitor"}</span><strong>{lifecycle.state}</strong></div>
         <p>{lifecycle.detail}</p>
       </div>
       {signal.entry != null || signal.stop != null || signal.target != null ? (

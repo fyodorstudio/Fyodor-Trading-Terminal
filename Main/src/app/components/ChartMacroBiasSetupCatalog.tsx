@@ -17,6 +17,32 @@ function formatR(value: number | null | undefined): string {
   return value == null ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(2)}R`;
 }
 
+function formatSigned(value: number | null | undefined, digits = 2, suffix = ""): string {
+  return value == null ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(digits)}${suffix}`;
+}
+
+const REACTION_LABELS = {
+  continuation: "Continuation",
+  short_lived_impulse: "Short-lived impulse",
+  delayed_continuation: "Delayed continuation",
+  initial_rejection: "Initial rejection",
+  volatility_only: "Volatility-only",
+  no_dependable_reaction: "No dependable reaction",
+} as const;
+
+export function macroSignalReactionLabel(classification: keyof typeof REACTION_LABELS): string {
+  return REACTION_LABELS[classification];
+}
+
+const REACTION_EXPLANATIONS = {
+  continuation: "The registered direction commonly remained positive across several fixed horizons.",
+  short_lived_impulse: "Price commonly followed early, but that alignment usually faded at later horizons.",
+  delayed_continuation: "The early response was inconsistent, while later horizons aligned more often.",
+  initial_rejection: "Price commonly moved against the arrow during the early fixed horizons.",
+  volatility_only: "The release produced movement on both sides without dependable directional alignment.",
+  no_dependable_reaction: "No fixed horizon currently shows a stable enough directional response.",
+} as const;
+
 export function macroSignalSetupCredibility(pattern: MacroSignalChartPattern): { label: "Strong" | "Moderate" | "Fragile" | "Unproven"; detail: string } {
   const benchmark = pattern.historicalBenchmark;
   if (pattern.readiness?.auditStatus !== "complete" || !benchmark || benchmark.walkForwardAverageR <= 0) {
@@ -185,6 +211,44 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
             <div><span>Historical credibility</span><strong>{credibility.label}</strong></div>
             <p>{credibility.detail} This is a historical evidence rating, not permission to follow the setup blindly.</p>
           </section>
+          {pattern.reactionAudit?.profile ? (
+            <section className="chart-shadow-reaction-profile" aria-label={`${pattern.label} registered reaction profile`}>
+              <div className="chart-shadow-reaction-profile-heading">
+                <div><span>How price usually reacted</span><strong>{macroSignalReactionLabel(pattern.reactionAudit.profile.classification)}</strong></div>
+                <small>{pattern.reactionAudit.profile.evaluableN} chronological later-test cases · fixed entry-known measurements</small>
+              </div>
+              <p>{REACTION_EXPLANATIONS[pattern.reactionAudit.profile.classification]} This describes price reaction; the frozen TP/SL result remains a separate test.</p>
+              <div className="chart-shadow-reaction-table-wrap">
+                <table className="chart-shadow-reaction-table">
+                  <thead><tr><th>After entry</th><th>Arrow direction followed</th><th>Pips · min / median / average / max</th><th>ATR · min / median / average / max</th><th>R · min / median / average / max</th></tr></thead>
+                  <tbody>{pattern.reactionAudit.profile.horizons.map((row) => (
+                    <tr key={row.holdingCandles}>
+                      <th>{row.holdingCandles} H4</th>
+                      <td><strong>{formatPercent(row.alignmentRate)}</strong></td>
+                      <td>{formatSigned(row.pips.minimum, 1)} / <b>{formatSigned(row.pips.median, 1)}</b> / {formatSigned(row.pips.mean, 1)} / {formatSigned(row.pips.maximum, 1)}</td>
+                      <td>{formatSigned(row.atr.minimum)} / <b>{formatSigned(row.atr.median)}</b> / {formatSigned(row.atr.mean)} / {formatSigned(row.atr.maximum)}</td>
+                      <td>{formatSigned(row.r.minimum, 2, "R")} / <b>{formatSigned(row.r.median, 2, "R")}</b> / {formatSigned(row.r.mean, 2, "R")} / {formatSigned(row.r.maximum, 2, "R")}</td>
+                    </tr>
+                  ))}</tbody>
+                </table>
+              </div>
+              <div className="chart-shadow-reaction-path">
+                <div><span>Typical best favorable move</span><strong>{formatSigned(pattern.reactionAudit.profile.mfe.pips.median, 1, " pips")}</strong><small>{formatSigned(pattern.reactionAudit.profile.mfe.atr.median, 2, " ATR")} · {formatSigned(pattern.reactionAudit.profile.mfe.r.median, 2, "R")} · around {pattern.reactionAudit.profile.mfe.timeCandles.median?.toFixed(0) ?? "—"} H4</small></div>
+                <div><span>Typical worst adverse move</span><strong>{formatSigned(pattern.reactionAudit.profile.mae.pips.median == null ? null : -pattern.reactionAudit.profile.mae.pips.median, 1, " pips")}</strong><small>{formatSigned(pattern.reactionAudit.profile.mae.atr.median == null ? null : -pattern.reactionAudit.profile.mae.atr.median, 2, " ATR")} · around {pattern.reactionAudit.profile.mae.timeCandles.median?.toFixed(0) ?? "—"} H4</small></div>
+                <div><span>Typical giveback by 30 H4</span><strong>{formatSigned(pattern.reactionAudit.profile.givebackAtr.median, 2, " ATR")}</strong><small>Hindsight path diagnostic, not realized profit</small></div>
+              </div>
+              <div className={`chart-shadow-contract-research is-${pattern.reactionAudit.profile.contractResearch.status}`}>
+                <div>
+                  <span>Execution-contract research</span>
+                  <strong>{pattern.reactionAudit.profile.contractResearch.status === "historically_improved_candidate" ? "Alternative contract found — research only" : "Frozen contract retained"}</strong>
+                </div>
+                {pattern.reactionAudit.profile.contractResearch.status === "historically_improved_candidate" && pattern.reactionAudit.profile.contractResearch.developmentSelected ? (
+                  <p>Older development cases selected SL {pattern.reactionAudit.profile.contractResearch.developmentSelected.stopAtr} ATR · TP {pattern.reactionAudit.profile.contractResearch.developmentSelected.targetR}R · {pattern.reactionAudit.profile.contractResearch.developmentSelected.holdingCandles} H4. Its later historical average was {formatR(pattern.reactionAudit.profile.contractResearch.developmentSelected.laterAverageR)} versus {formatR(pattern.reactionAudit.profile.contractResearch.frozen?.laterAverageR)} for the active frozen contract. It has not replaced the arrows.</p>
+                ) : <p>The development-only selector did not produce a different contract with a better positive later historical average. Existing arrow outcomes remain unchanged.</p>}
+                <small>{pattern.reactionAudit.profile.contractResearch.selectionRule}</small>
+              </div>
+            </section>
+          ) : null}
           <div className="chart-shadow-benchmark-grid">
             <div><span>All matching events</span><strong>{pattern.historicalBenchmark?.historicalN ?? pattern.overall.evaluableCount}</strong></div>
             <div><span>Trade rules</span><strong>SL {pattern.execution?.stopAtr ?? 1} ATR · TP {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</strong></div>

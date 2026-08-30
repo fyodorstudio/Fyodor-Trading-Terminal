@@ -624,6 +624,7 @@
 .chart-shadow-contract-line { display: block; margin-top: 5px; color: #475569 !important; font-size: 11px !important; font-weight: 850 !important; line-height: 1.3; }
 .chart-shadow-reaction { display: inline-flex; width: fit-content; margin-top: 5px; border: 1px solid #cbd5e1; border-radius: 999px; background: #f8fafc; padding: 3px 6px; color: #475569; font-size: 8px; font-weight: 950; letter-spacing: .035em; line-height: 1; text-transform: uppercase; }
 .chart-shadow-reaction.is-rejected { border-color: #c4b5fd; background: #f5f3ff; color: #5b21b6; }
+.chart-shadow-reaction-shape { display: block; width: fit-content; margin-top: 4px; color: #475569; font-size: 8px; font-weight: 850; }
 .chart-shadow-history-strength { display: inline-flex !important; width: fit-content; margin-top: 4px !important; border-radius: 999px; background: #fff7ed; padding: 3px 6px; color: #9a3412 !important; font-size: 8px !important; font-weight: 950; letter-spacing: .025em; text-transform: uppercase; }
 .chart-shadow-history-strength.is-strong { background: #eff6ff; color: #1e40af !important; }
 .chart-shadow-history-strength.is-moderate { background: #eef2ff; color: #3730a3 !important; }
@@ -669,6 +670,16 @@
 .chart-macro-bias-header-status b, .chart-macro-bias-header-status em { display: inline-flex; min-height: 24px; align-items: center; border-radius: 999px; padding: 4px 8px; font-size: 10px; font-style: normal; font-weight: 900; line-height: 1; }
 .chart-macro-bias-header-status b { background: #4f46e5; color: #fff; }
 .chart-macro-bias-header-status em { border: 1px solid #cbd5e1; background: #f8fafc; color: #334155; }
+.chart-macro-bias-header-status em.is-followed { border-color: #a5b4fc; background: #eef2ff; color: #3730a3; }
+.chart-macro-bias-header-status em.is-rejected { border-color: #cbd5e1; background: #f1f5f9; color: #475569; }
+.chart-macro-bias-reaction-verdict { border-bottom: 1px solid #cbd5e1; border-left: 4px solid #6366f1; background: #eef2ff; padding: 9px 12px; }
+.chart-macro-bias-reaction-verdict > div { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.chart-macro-bias-reaction-verdict span { color: #4f46e5; font-size: 9px; font-weight: 950; letter-spacing: .055em; text-transform: uppercase; }
+.chart-macro-bias-reaction-verdict strong { color: #1e1b4b; font-size: 13px; }
+.chart-macro-bias-reaction-verdict > b { display: block; margin-top: 4px; color: #312e81; font-size: 15px; }
+.chart-macro-bias-reaction-verdict p { margin: 4px 0 0; color: #475569; font-size: 9px; font-weight: 700; line-height: 1.4; }
+.chart-macro-bias-reaction-verdict.is-rejected { border-left-color: #94a3b8; background: #f8fafc; }
+.chart-macro-bias-reaction-verdict.is-rejected span, .chart-macro-bias-reaction-verdict.is-rejected > b { color: #475569; }
 .chart-macro-bias-levels { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; border-bottom: 1px solid #cbd5e1; background: #fff; padding: 9px 12px; }
 .chart-macro-bias-levels > div { min-width: 0; border: 1px solid #dbe3ef; border-radius: 7px; padding: 7px 8px; }
 .chart-macro-bias-levels span, .chart-macro-bias-levels small { display: block; color: #64748b; font-size: 9px; font-weight: 800; }
@@ -725,6 +736,34 @@
 .chart-shadow-credibility p { margin: 0; color: #475569; font-size: 9px; font-weight: 700; line-height: 1.45; }
 .chart-shadow-credibility.is-fragile { border-color: #c4b5fd; background: #faf5ff; }
 .chart-shadow-credibility.is-unproven { border-color: #cbd5e1; background: #f8fafc; }
+.chart-shadow-reaction-profile { margin: 0 14px 10px; border: 1px solid #c7d2fe; border-radius: 9px; background: #fff; overflow: hidden; }
+.chart-shadow-reaction-profile-heading { display: flex; justify-content: space-between; gap: 12px; align-items: end; border-bottom: 1px solid #dbe3ef; background: #eef2ff; padding: 9px 10px; }
+.chart-shadow-reaction-profile-heading span, .chart-shadow-reaction-profile-heading strong { display: block; }
+.chart-shadow-reaction-profile-heading span { color: #4f46e5; font-size: 8px; font-weight: 950; letter-spacing: .07em; text-transform: uppercase; }
+.chart-shadow-reaction-profile-heading strong { margin-top: 2px; color: #1e1b4b; font-size: 14px; }
+.chart-shadow-reaction-profile-heading small { color: #475569; font-size: 9px; font-weight: 750; text-align: right; }
+.chart-shadow-reaction-profile > p { margin: 0; padding: 8px 10px; color: #475569; font-size: 9px; font-weight: 700; line-height: 1.45; }
+.chart-shadow-reaction-table-wrap { max-width: 100%; overflow-x: auto; border-top: 1px solid #e2e8f0; }
+.chart-shadow-reaction-table { width: 100%; min-width: 760px; border-collapse: collapse; font-size: 9px; }
+.chart-shadow-reaction-table th, .chart-shadow-reaction-table td { padding: 7px 8px; border-bottom: 1px solid #e2e8f0; text-align: left; white-space: nowrap; }
+.chart-shadow-reaction-table thead th { background: #f8fafc; color: #64748b; font-size: 8px; letter-spacing: .035em; text-transform: uppercase; }
+.chart-shadow-reaction-table tbody th { color: #312e81; }
+.chart-shadow-reaction-table td { color: #475569; font-variant-numeric: tabular-nums; }
+.chart-shadow-reaction-table td strong, .chart-shadow-reaction-table td b { color: #0f172a; }
+.chart-shadow-reaction-path { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 6px; padding: 9px 10px 10px; }
+.chart-shadow-reaction-path > div { min-width: 0; border: 1px solid #dbe3ef; border-radius: 7px; background: #f8fafc; padding: 7px 8px; }
+.chart-shadow-reaction-path span, .chart-shadow-reaction-path strong, .chart-shadow-reaction-path small { display: block; }
+.chart-shadow-reaction-path span { color: #64748b; font-size: 8px; font-weight: 900; text-transform: uppercase; }
+.chart-shadow-reaction-path strong { margin: 2px 0; color: #1e1b4b; font-size: 13px; }
+.chart-shadow-reaction-path small { color: #64748b; font-size: 8px; font-weight: 700; line-height: 1.35; }
+.chart-shadow-contract-research { margin: 0 10px 10px; border-left: 3px solid #94a3b8; background: #f8fafc; padding: 8px 9px; }
+.chart-shadow-contract-research div { display: flex; justify-content: space-between; gap: 10px; }
+.chart-shadow-contract-research span { color: #64748b; font-size: 8px; font-weight: 950; letter-spacing: .045em; text-transform: uppercase; }
+.chart-shadow-contract-research strong { color: #334155; font-size: 10px; }
+.chart-shadow-contract-research p { margin: 5px 0; color: #475569; font-size: 9px; font-weight: 700; line-height: 1.45; }
+.chart-shadow-contract-research small { color: #64748b; font-size: 8px; font-weight: 700; }
+.chart-shadow-contract-research.is-historically_improved_candidate { border-left-color: #6366f1; background: #eef2ff; }
+.chart-shadow-contract-research.is-historically_improved_candidate strong { color: #3730a3; }
 .chart-macro-bias-provenance { margin: 8px 12px 0; border: 0 !important; border-radius: 0; background: transparent !important; padding: 0; color: #475569 !important; }
 .chart-macro-bias-provenance strong { color: #0f766e; }
 .chart-macro-bias-audit footer { display: grid; gap: 3px; border-top: 1px solid #cbd5e1; background: #f8fafc; padding: 10px 14px 12px; }

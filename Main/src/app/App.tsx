@@ -10,7 +10,6 @@ import { useCalendarFeed } from "@/app/hooks/useCalendarFeed";
 import { useCurrentTime } from "@/app/hooks/useCurrentTime";
 import { useMarketStatus } from "@/app/hooks/useMarketStatus";
 import { useTerminalTheme } from "@/app/hooks/useTerminalTheme";
-import { preloadMacroSignalCurrentModel, preloadMacroSignalGlobalRegistry } from "@/app/lib/bridge";
 import type { CalendarEvent, CalendarNavigationIntent, TabId } from "@/app/types";
 
 export default function App() {
@@ -25,15 +24,6 @@ export default function App() {
   const chartMarketStatus = useMarketStatus(chartSymbol);
   const overviewMarketStatus = useMarketStatus(overviewSymbol);
   const terminalTheme = useTerminalTheme();
-
-  useEffect(() => {
-    void preloadMacroSignalCurrentModel().catch(() => {
-      // Charts retains its normal visible error/retry path if the bridge is not ready at app startup.
-    });
-    void preloadMacroSignalGlobalRegistry().catch(() => {
-      // Shadow Trader retries when opened if the global registry is not ready yet.
-    });
-  }, []);
 
   const centralBankResult = useMemo(() => deriveCentralBankSnapshots(feedEvents), [feedEvents]);
 

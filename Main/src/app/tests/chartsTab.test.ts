@@ -126,7 +126,7 @@ describe("getChartConnectionLabel", () => {
         evidenceReaction: "followed", reactionHorizonCandles: 6, reactionResponseR: .65, directionWorked: true, lossReview: ["favourable_then_giveback", "target_not_reached_before_close"], maximumFavorableR: 1.39, maximumFavorablePips: 69,
         maximumAdverseR: .4, maximumAdversePips: 20, timeToMfeCandles: 18,
         timeToMaeCandles: 2, givebackR: .89,
-        fixedHorizonResponses: [{ holdingCandles: 6, responseR: .65 }, { holdingCandles: 30, responseR: -.58 }],
+        fixedHorizonResponses: [{ holdingCandles: 1, responseR: .67 }, { holdingCandles: 6, responseR: .65 }, { holdingCandles: 30, responseR: -.58 }],
       },
     };
     const html = renderToStaticMarkup(createElement(ChartMacroBiasAudit, { data: {
@@ -154,6 +154,10 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Long USDCAD");
     expect(html).not.toContain("Long EURUSD");
     expect(html).toContain("Why the arrow appeared");
+    expect(html).toContain("Initial move followed");
+    expect(html).toContain("Price followed the arrow");
+    expect(html).toContain("after 1 H4");
+    expect(html).toContain("Frozen trade result");
     expect(html).toContain("Reaction versus trade result");
     expect(html).toContain("Follows evidence");
     expect(html).toContain("Direction after 6 H4");
@@ -189,11 +193,12 @@ describe("getChartConnectionLabel", () => {
       expiredRate: 0, ambiguousRate: 0, averageR: .2, medianR: -1,
       expectancyCi95: { lower: -.2, upper: .6 }, targetHitCi95: { lower: .2, upper: .6 },
     };
+    const distribution = { minimum: -.5, p25: -.1, median: .2, mean: .25, p75: .6, maximum: 1.5 };
     const pattern = {
       id: "sentiment", signature: "long|EUR:consumer_sentiment", signatures: ["long|EUR:consumer_sentiment", "short|EUR:consumer_sentiment"],
       sourceVersionId: "v3", label: "Euro-area consumer sentiment", condition: "Long if sentiment improves; Short if it weakens.", execution: { stopAtr: 1, targetR: 2, expiryCandles: 30 }, direction: "both",
       market: "EURUSD", scoringPolicy: "forecast_quality", historicalBenchmark: { experimentId: "FMS-EURUSD-H4-E197", historicalN: 48, walkForwardN: 35, walkForwardAverageR: .14, targetFirstRate: .75, stopFirstRate: .17, status: "historically_profitable" },
-      reactionAudit: { schema: "registered-reaction-audit-v1", scope: "chronological later-test cases", horizonCandles: 6, evaluableN: 35, directionWorkedTradeProfited: 20, directionWorkedTradeLost: 4, directionFailedTradeProfited: 3, directionFailedTradeLost: 8, positiveResponseRate: 24 / 35, medianResponseR: .22 },
+      reactionAudit: { schema: "registered-reaction-audit-v1", scope: "chronological later-test cases", horizonCandles: 6, evaluableN: 35, directionWorkedTradeProfited: 20, directionWorkedTradeLost: 4, directionFailedTradeProfited: 3, directionFailedTradeLost: 8, positiveResponseRate: 24 / 35, medianResponseR: .22, profile: { schema: "registered-reaction-profile-v1", scope: "chronological later-test cases", experimentId: "FMS-EURUSD-H4-E197", evaluableN: 35, standardWindowCandles: 30, classification: "short_lived_impulse", horizons: [1, 3, 6, 12, 30].map((holdingCandles) => ({ holdingCandles, evaluableN: 35, alignmentRate: holdingCandles <= 3 ? .68 : .48, atr: distribution, r: distribution, pips: distribution })), mfe: { atr: distribution, r: distribution, pips: distribution, timeCandles: distribution }, mae: { atr: distribution, r: distribution, pips: distribution, timeCandles: distribution }, givebackAtr: distribution, contractResearch: { selectionRule: "Development only", status: "keep_frozen_contract", frozen: { stopAtr: 1, targetR: 2, holdingCandles: 30, developmentAverageR: .2, laterAverageR: .14, laterTargetRate: .75, laterStopRate: .17 }, developmentSelected: { stopAtr: 1, targetR: 2, holdingCandles: 30, developmentAverageR: .2, laterAverageR: .14, laterTargetRate: .75, laterStopRate: .17 } } } },
       groups: ["EUR:consumer_sentiment"], overall: metrics, development: metrics, holdout: metrics, qualification: {}, exampleTitles: [],
       modelStatus: "current", currentEligible: true, modelChecks: {}, executionStress: { pips: 3, overall: metrics, development: metrics, holdout: metrics, recent: metrics },
       readiness: { auditStatus: "complete", historicalStatus: "historically_qualified", liveStatus: "not_live_validated", label: "Historical audit complete", actionableInShadowTrader: true },
@@ -299,6 +304,12 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Registered setups");
     expect(html).toContain("Average per trade");
     expect(html).toContain("Historical credibility");
+    expect(html).toContain("How price usually reacted");
+    expect(html).toContain("Short-lived impulse");
+    expect(html).toContain("Arrow direction followed");
+    expect(html).toContain("Typical best favorable move");
+    expect(html).toContain("Execution-contract research");
+    expect(html).toContain("Frozen contract retained");
     expect(html).toContain("Moderate");
     expect(html).toContain("Not live validated");
     expect(html).toContain("Spread, commission, slippage, and swap excluded");

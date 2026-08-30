@@ -991,6 +991,7 @@ export function ChartsTab({
       setMacroBiasCurrentError(null);
       return;
     }
+    if (historyState !== "ready" || visibleCandles.length === 0) return;
     let cancelled = false;
     const reusableResponse = macroBiasCurrentResponse?.supported
       && macroBiasCurrentResponse.symbol === selectedSymbol;
@@ -1014,10 +1015,10 @@ export function ChartsTab({
         if (!cancelled) setMacroBiasCurrentLoading(false);
       });
     return () => { cancelled = true; };
-  }, [macroBiasSupported, macroBiasCurrentRequestKey]);
+  }, [macroBiasSupported, macroBiasCurrentRequestKey, historyState]);
 
   useEffect(() => {
-    if (!macroBiasVisible) return;
+    if (!macroBiasVisible || historyState !== "ready" || visibleCandles.length === 0) return;
     let cancelled = false;
     const cached = getPreloadedMacroSignalGlobalRegistry();
     if (cached) setMacroBiasGlobalResponse(cached);
@@ -1030,7 +1031,7 @@ export function ChartsTab({
       })
       .finally(() => { if (!cancelled) setMacroBiasGlobalLoading(false); });
     return () => { cancelled = true; };
-  }, [macroBiasVisible]);
+  }, [macroBiasVisible, historyState]);
 
   const macroBiasLifecycleNeedsRefresh = macroBiasCurrentResponse?.realtime?.latestPatternAssessment?.status === "awaiting_observation"
     || macroBiasCurrentResponse?.signals.some((signal) => signal.outcomeStatus === "pending") === true;
@@ -1054,7 +1055,7 @@ export function ChartsTab({
   }, [macroBiasLifecycleNeedsRefresh, macroBiasSupported, selectedSymbol]);
 
   useEffect(() => {
-    if (!macroBiasSupported || !macroBiasVisible || !macroBiasHistoricalMatchesVisible) {
+    if (!macroBiasSupported || !macroBiasVisible || !macroBiasHistoricalMatchesVisible || historyState !== "ready" || visibleCandles.length === 0) {
       setMacroBiasShadowHistoryResponse(null);
       return;
     }
@@ -1068,7 +1069,7 @@ export function ChartsTab({
         if (!cancelled) setMacroBiasShadowHistoryResponse(null);
       });
     return () => { cancelled = true; };
-  }, [macroBiasHistoricalMatchesVisible, macroBiasSupported, macroBiasVisible, selectedSymbol]);
+  }, [macroBiasHistoricalMatchesVisible, macroBiasSupported, macroBiasVisible, selectedSymbol, historyState]);
 
   const macroBiasResponse = macroBiasCurrentResponse;
   const macroBiasLoading = macroBiasCurrentLoading;

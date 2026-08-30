@@ -370,6 +370,8 @@ def test_readiness_report_exposes_setup_level_evidence_and_keeps_live_gate_close
   assert len(report["registeredSetups"]) == len(server.PRACTICAL_PATTERN_DEFINITIONS)
   assert report["registeredSetups"][0]["execution"]
   assert "historicalBenchmark" in report["registeredSetups"][0]
+  assert report["registeredSetups"][0]["reactionAudit"]["profile"]["schema"] == "registered-reaction-profile-v1"
+  assert [row["holdingCandles"] for row in report["registeredSetups"][0]["reactionAudit"]["profile"]["horizons"]] == [1, 3, 6, 12, 30]
   assert report["quarantinedOrRetiredSetups"]
   assert report["paperLiveEvidence"] == {
     "immutableFirstSeen": True,
