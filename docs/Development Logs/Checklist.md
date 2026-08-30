@@ -307,14 +307,15 @@ These are research directions, not approved live-trading behavior. FMS seeks rep
 
 ### Near-term research
 
-- [ ] Add a registered-setup reaction table showing, per exact setup and evidence direction:
-  - historical Surprise/Momentum magnitude or percentile;
+- [x] Add a registered-setup reaction table showing, per exact setup and evidence direction:
   - price alignment at fixed `1/3/6/12/30 H4` horizons;
-  - minimum, maximum, median, and average direction-adjusted movement in pips, ATR, and R;
-  - MFE, MAE, time to each extreme, volatility duration, and giveback;
-  - TP-before-SL and SL-before-TP for the frozen contract;
-  - continuation, rejection, volatility-only, or no-dependable-reaction classification.
-- [ ] Keep every horizon explicit; never present one context-free percentage as universal `price respect`.
+  - minimum, lower quartile, median, average, upper quartile, and maximum direction-adjusted movement in pips, ATR, and R;
+  - MFE, MAE, time to each extreme, and giveback over the declared 30-H4 path;
+  - TP-before-SL and SL-before-TP remain visible as separate execution statistics;
+  - deterministic continuation, short-lived impulse, delayed continuation, initial rejection, volatility-only, or no-dependable-reaction classification.
+- [ ] Add historical Surprise/Momentum percentile conditioning to the reaction table. The 2026-08-30 reaction-profile artifact intentionally measures price paths without silently changing the frozen evidence recipe.
+- [x] Keep every horizon explicit; never present one context-free percentage as universal `price respect`.
+- [x] Materialize all 47 registered reaction profiles into one durable artifact and expose development-selected execution-contract challengers as research only. A challenger never rewrites the frozen arrow or trade result.
 - [x] Surface existing MFE/path data beside TP/SL results:
   - label it `Best favorable move`, not realized profit;
   - show maximum favorable and adverse movement;
@@ -350,12 +351,13 @@ These are research directions, not approved live-trading behavior. FMS seeks rep
 
 - [x] Rename hindsight MFE to `Best favorable move`, label it as not-realized profit, retain the frozen outcome separately, and draw selected-signal Entry/SL/TP price lines directly on the chart.
 
-- [ ] Redesign the Past FMS Result popover to show:
+- [x] Redesign the Past FMS Result popover to show:
   - exact event/pattern and decision first;
   - frozen SL/TP/expiry and actual outcome;
   - clear risk and reward levels on the chart;
   - best favorable and adverse path as separate hindsight diagnostics;
-  - entry, SL, TP, expiry, and exit markers without detached duplicate dots.
+  - the first-H4 direction-adjusted reaction before the frozen trade result, so `price followed the arrow` and `SL reached -1R` can both be true and visible.
+- [ ] Add distinct expiry and exit markers when they can be rendered without reintroducing detached duplicate chart dots. Entry, SL, and TP levels are already integrated with the selected arrow.
 - [x] Use outcome colors only for realized frozen results and selected-signal price levels; keep evidence direction and credibility neutral.
 
 ### Demo-account automation — far future

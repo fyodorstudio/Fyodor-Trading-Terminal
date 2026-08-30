@@ -368,6 +368,8 @@ def test_readiness_report_exposes_setup_level_evidence_and_keeps_live_gate_close
   report = server.research_readiness_report()
   assert report["activeRegisteredSetups"] == len(server.PRACTICAL_PATTERN_DEFINITIONS)
   assert len(report["registeredSetups"]) == len(server.PRACTICAL_PATTERN_DEFINITIONS)
+  assert all(row["reactionAudit"]["profile"]["schema"] == "registered-reaction-profile-v1" for row in report["registeredSetups"])
+  assert all(row["reactionAudit"]["profile"]["evaluableN"] > 0 for row in report["registeredSetups"])
   assert report["registeredSetups"][0]["execution"]
   assert "historicalBenchmark" in report["registeredSetups"][0]
   assert report["registeredSetups"][0]["reactionAudit"]["profile"]["schema"] == "registered-reaction-profile-v1"
