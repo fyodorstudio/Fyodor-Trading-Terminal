@@ -1,6 +1,6 @@
 # Current App Map
 
-Last updated: 2026-08-30
+Last updated: 2026-08-31
 
 This is the short orientation doc for future AI and human sessions. Read it with `Checklist.md` before using older roadmap, audit, or patch notes.
 
@@ -16,7 +16,7 @@ This is the short orientation doc for future AI and human sessions. Read it with
 - The user does technical analysis outside the app, mainly in TradingView, then uses Fyodor to inspect fundamentals, calendar risk, central-bank context, and event reaction history for the pair of interest.
 - Current trusted raw data is limited to MT5 OHLCV plus broker/MT5 economic-calendar rows.
 - Central Banks Data is the strongest current reference surface and should remain stable unless a targeted bug requires changes.
-- Event Replay is a core study/edge surface.
+- FMS is the primary research objective. Event Replay and Macro Drivers are retained garbage/reference surfaces and must not steer active work.
 - Six Questions and Work In Progress are deprecated/context-risk surfaces for now; do not use them as controlling product direction. Aesthetic Forge is mounted behind the header gear and stays closed by default.
 
 ## Current Top-Level Tabs
@@ -38,13 +38,13 @@ This is the short orientation doc for future AI and human sessions. Read it with
    - Research engine `FMS-RELEASE-REACTION-H4-v1` feeds the active `FMS-REGISTERED-REACTION-H4-v4` registry, which contains 47 immutable, pair-orientation-correct recipes across EURUSD, GBPUSD, USDJPY, AUDUSD, USDCAD, NZDUSD, and USDCHF. It supports continuation and rejection mappings plus declared past-only ordinary-magnitude filters. Every row reconciles with a current-scoring-engine experiment and chronological later-test audit; 11 marginal survivors are visibly labelled `Positive but fragile`. The three missing EURUSD archived ideas were reconstructed under the current engine. Shadow Trader explicitly says no setup is safe to follow blindly.
    - Workbench static catalog/model/data-period payloads are cached durably by source-run, candle, and registry revision. Opening the Workbench reads the small shell plus current experiment/candidate headers; it does not deserialize every candle and source outcome after each tab visit.
    - Uses `lightweight-charts`, MT5 history/stream data, chart cache, cursor readout modes, chart settings, and clustered broker-calendar event markers.
+   - Bridge MT5 access is serialized because the Python MT5 session is process-global. Foreground history routes use a bounded wait and durable-candle fallback, so background FMS work cannot indefinitely block Charts; successful live reads refresh the cache.
    - Registered FMS markets have one opt-in `Macro bias` view. The scanner always uses the registered current rules; `Past arrows` merely shows or hides their hindsight history, so users no longer choose between separate Current Model and Research Replay modes. All arrows project the frozen H4 contract across the selected chart timeframe; they do not claim a native lower- or higher-timeframe backtest. One clickable directional arrow owns the first strictly later H4 activation candle; the release timestamp remains in its audit instead of using a detached dot and connector.
    - The top-right `FMS Shadow Trader` is global across registered markets. It opens with `What would FMS do now?`, the current/last hypothetical Trade Monitor, and a collapsed multi-release upcoming-setup list. Pair-flag controls filter the Live Watchlist without changing the registry. Every setup owns an explicit historical-audit readiness badge; an incomplete or mismatched immutable audit blocks new Shadow Trader matching while preserving the row for inspection. The watchlist sorts by actionability, readiness, historical average R, TP-before-SL, sample, next release, or market/family. Its combined account/replay surface explicitly separates the all-pair post-activation ledger from selected-pair historical replay, documents sequential compounding and collision exclusions, and no longer treats opposing directions on different pairs as conflicts. Policy/inflation remains collapsed observational background and cannot alter a frozen trade. Research contenders and avoid-direction knowledge remain available at the bottom. Arrow audits follow the task reading order—triggering event/package and direction first, result second, timing third, historical benchmark fourth, disclaimer last—and leave broader diagnostics to the Workbench. Spread, commission, slippage, and swap are excluded rather than estimated; no order is sent to MT5.
    - Expanded Shadow Trader setup rows now expose fixed-horizon reaction profiles at `1/3/6/12/30 H4`, direction-adjusted pips/ATR/R distributions, MFE/MAE timing and giveback, deterministic reaction classifications, and development-selected contract research that cannot rewrite the active contract. Arrow audits show the first-H4 price reaction before the frozen TP/SL result, so `price followed the arrow` and `SL reached -1R` remain separate, simultaneously valid facts.
    - Every successful complete EA cycle now reconciles all seven registered markets in the background. Qualified and no-trade assessments are inserted once into an immutable first-seen decision ledger, exposed through a collapsed Shadow Trader audit and `/research/live-decisions`; later broker revisions cannot rewrite the recorded decision.
    - Registered setup details now include a deterministic `Strong / Moderate / Fragile / Unproven` historical-credibility scorecard built from immutable-audit status, later-test expectancy/sample, represented years, direction-audit coverage, and uncertainty. This rating is historical evidence only and remains separate from live validation. Selecting an arrow draws integrated Entry, SL, and TP chart levels; its MFE is labelled `Best favorable move` and never counted as realized profit.
-   - FMS requests wait until chart history is ready and a visible candle range exists; the app does not preload the complete Current Model at startup. This prevents macro-signal work from starving H4 candle loading. The toolbar exposes active/expired state over the frozen 30-H4-candle horizon. Clicking an arrow opens its evidence and reaction-versus-execution audit.
-   - Charts defaults to Current Model. Its separate default-on `Historical matches` control projects the exact current rules backward without relabeling them post-activation/live. Macro Signal Lab loads its heavier MFE/MAE and flexible-exit report independently so the existing research view remains usable during calculation.
+   - FMS requests wait until chart history and a visible candle range exist. The scanner always uses registered current rules; `Past arrows` controls only the hindsight projection. Clicking an arrow opens its evidence and reaction-versus-execution audit.
    - Arrows are research classifications, not automatic orders, guarantees, or proof that the release caused the later move.
 
 4. `Economic Calendar`
@@ -66,32 +66,20 @@ This is the short orientation doc for future AI and human sessions. Read it with
 
 Current direct children under `Specialist Tools`:
 
-1. `Active Tool` / `DIFFERENTIAL CALCULATOR`
-   - Active arithmetic view for policy-rate and inflation differentials across major FX pairs.
-   - Keeps route id `dashboard` for compatibility.
-
-2. `Active Tool` / `MACRO DRIVERS`
-   - Active current-data-only driver map for forex and gold.
-   - Uses MT5 OHLCV, broker/MT5 calendar rows, and central-bank snapshots.
-   - Explains trend state, current macro snapshot, coverage summary, and missing data without producing trade calls.
-   - Detailed pair-level calendar factor coverage now belongs in Overview, not in Macro Drivers.
-
-3. `Active Experiment` / `EVENT REPLAY`
-   - Primary pair-first replay surface for studying scheduled event reactions.
-   - Shows base/quote event types first, major global movers separately, past releases, replay controls, and descriptive replay notes.
-
-4. `Active Tool` / `FMS EXPERIMENT WORKBENCH`
-   - Bounded EURUSD/H4 FMS Experiment Workbench with one setup entry per directionless package, explicit Long/Short/Both-direction variants and N counts, plainly named Single/Combined Contracts, live R-to-ATR TP conversion, inline Forecast Guard disclosure, recorded experiments, frozen review candidates, and a full-screen raw A/F/P/S/M plus trade-outcome audit.
+1. `Active Tool` / `FMS EXPERIMENT WORKBENCH`
+   - Bounded registered-market H4 workbench with direction variants, plainly named contract controls, recorded experiments, frozen review candidates, Reaction Atlas, and raw A/F/P/S/M plus trade-outcome audits.
    - New durable identifiers are E (recorded experiment), C (frozen review candidate), and reserved M (reviewed Charts model). Freezing never changes Charts; there is intentionally no promotion API or UI.
    - Uses durable bridge calendar storage and cached MT5 H4/M1 candles.
    - Reports gross historical Long/Short bias cases, explicit ambiguity, holdout results, and paper-eligibility checks without placing orders.
-   - Historical backfill and v1/v2/v3/v5/v7 source runs are complete. The upgraded EA's successful cycle acknowledgement activates immutable first-seen capture. Charts v13 consumes registered source observations prospectively, enforces exact package identities where declared, carries a frozen execution contract per setup, applies the past-only Forecast guard, keeps unregistered candidates in hindsight research, and never uses context as an unstated signal filter.
-   - Legacy v1-v13 definitions and runs remain reproducible but no longer occupy primary Lab navigation. V11/v12 artifacts inform guarded catalog treatments when their durable cache exists; opening the Lab does not recalculate them.
+   - Completed EA cycle acknowledgements activate immutable first-seen capture. Registered recipes enforce their declared package identity, scoring treatment, case filter, reaction mapping, and execution contract. Unregistered candidates remain research only.
+   - Legacy definitions and runs remain reproducible but no longer occupy primary Workbench navigation; opening the Workbench reads durable summaries rather than recalculating historical research.
 
-5. `Garbage / Ignore` / `PROTOTYPING`
-   - Garbage drawer for old unfinished surfaces, deprecated planning drafts, and ignored tools.
-   - This is not the final workflow surface.
-   - Contains Six Questions Draft and WIP Map Archive.
+2. `Active Experiment` / `DIFFERENTIAL CALCULATOR`
+   - Rate/inflation arithmetic view for major FX pairs.
+   - Keeps route id `dashboard` for compatibility.
+
+3. `Garbage / Ignore`
+   - Event Replay, Macro Drivers, Prototyping, older planning drafts, and ignored tools remain routed only for reference.
 
 ## Secondary Routes
 
@@ -107,19 +95,6 @@ Garbage drawer routes:
 
 Do not read, delete, or promote these unless the user explicitly asks for garbage-drawer work.
 
-Archive candidates not currently routed as the main workflow:
-
-- `ArchivedEventReactionStudyTab.tsx`
-- `ArchivedEventQualityStudyTab.tsx`
-
-Current Event Replay implementation entrypoint:
-
-- `tabs/secondary/EventReplayTab.tsx`
-- `EventReplayCandlestickChart.tsx`
-- `EventReplayPanels.tsx`
-- `eventReplayStorage.ts`
-- `eventReplayView.ts`
-
 ## Tab Folder Map
 
 - `Main/src/app/tabs/primary/` contains always-visible primary workflow tabs.
@@ -133,58 +108,6 @@ Current Event Replay implementation entrypoint:
 - Do not create new tests unless the user explicitly agrees.
 - Before creating a test, explain in plain English what behavior it protects.
 - Prefer targeted verification. Do not run broad/full test suites after every small pass.
-
-## Six Questions And Current Owners
-
-1. Can I trust the app right now?
-   - Current owners: header/status surfaces, Economic Calendar freshness, bridge health, Central Banks resolution.
-   - Current Overview owner: selected-pair market session and pair context only; broader trust still belongs to the header/status surfaces.
-
-2. What deserves attention right now?
-   - Current owner: Overview shows the selected pair's next loaded event and upcoming pair-relevant events.
-   - Do not revive Watchlist Engine or Strength Meter for this unless the user explicitly asks.
-
-3. Is the macro backdrop supportive, hostile, or unclear?
-   - Current owners: Central Banks Data, active Differential Calculator, and Macro Drivers. Macro State remains a prototype only.
-
-4. Is event risk close enough to invalidate a clean setup?
-   - Current owners: Economic Calendar, Event Replay primary surface.
-   - Future owner: shared event explainer knowledge base should deepen the selected-event explanation.
-
-5. Which side is winning, and why?
-   - Current owner: no active surface makes a promoted strength claim.
-   - Overview shows base/quote policy and inflation context only. It must not infer winners from deprecated strength logic.
-
-6. Should I watch, study, prepare, wait, or ignore?
-   - Current owners: selected specialist surfaces; Six Questions remains only as deprecated planning context.
-   - Future owner: Overview only after the underlying specialist outputs are mature enough.
-
-The six-question list is no longer the active product framework. Keep it as a historical scaffold until each useful surface is remapped to the user's actual workflow.
-
-## Event Replay
-
-Event Replay is the current primary pair-first event reaction study surface.
-
-Current v1 behavior:
-
-- pair-first workflow;
-- Event Replay owns and remembers its selected pair;
-- base/quote events shown first;
-- major global movers shown separately;
-- user can choose an event type and prior release sample;
-- chart replay shows how candles reacted around release time;
-- selected releases reuse the same concise event explainer pipeline as Economic Calendar;
-- actual-vs-forecast is the main comparison;
-- actual-vs-previous is used only when the broker feed has no numeric forecast;
-- language stays descriptive and avoids trade calls.
-
-Replay history depth should use the current broker calendar/history window for v1, while leaving room for a configurable history-depth setting later.
-
-Recent UI polish:
-
-- Event Replay follows pair -> event -> release -> replay setup -> playback.
-- Select Event, Past Releases, and Replay Brief use centered overlay panels.
-- The main chart-first cockpit should fit more comfortably on normal desktop viewports.
 
 ## Docs Noise Rule
 

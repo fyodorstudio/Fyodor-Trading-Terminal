@@ -14,23 +14,21 @@ Current top-level navigation:
 
 Important current-state note:
 
-- `Overview` is now a fresh pair-brief surface: pair selector, next pair-relevant event/countdown, upcoming pair events, base/quote macro cards, and route buttons into Charts, Event Replay, Economic Calendar, and Central Banks.
+- `Overview` is a pair-brief surface: pair selector, next pair-relevant event/countdown, upcoming pair events, base/quote macro cards, and routes into the active primary surfaces.
 - The previous large overview is still available as `Deprecated Overview` through Specialist Tools > Prototyping.
-- The strongest current primary surfaces are `Central Banks Data`, `Charts`, `Economic Calendar`, `Event Replay`, and the `Specialist Tools` shell.
+- The strongest current primary surfaces are `Central Banks Data`, `Charts`, `Economic Calendar`, and the `Specialist Tools` shell.
 - `Central Banks Data` is the current reference surface and should remain stable unless a targeted fix is needed.
 - `Six Questions` and `Work In Progress` are historical/prototype context, not active product direction. `Aesthetic Forge` is available only from the header gear.
 
 `Specialist Tools` currently contains:
 
-1. `DIFFERENTIAL CALCULATOR` under `Active Tool`
-2. `MACRO DRIVERS` under `Active Tool`
-3. `EVENT REPLAY` under `Active Experiment`
-4. `MACRO SIGNAL LAB` under `Active Experiment`
-5. `PROTOTYPING` under `Garbage / Ignore`
+1. `FMS EXPERIMENT WORKBENCH` under `Active Tool`
+2. `DIFFERENTIAL CALCULATOR` under `Active Experiment`
+3. `EVENT REPLAY`, `MACRO DRIVERS`, and `PROTOTYPING` under `Garbage / Ignore`
 
 The `PROTOTYPING` area is a garbage drawer for old unfinished surfaces. It contains unstable experiments, old planning drafts such as `Six Questions Draft` and `WIP Map Archive`, and older tools such as `Strength Meter` and `Deprecated Overview`. Ignore it unless explicitly requested.
 
-`Differential Calculator` is the active rate/inflation arithmetic tool under Specialist Tools. `Event Replay` is the promoted pair-first replay workflow. It lets the user pick a pair, inspect base/quote event types first, keep major global movers separate, select past releases, and replay MT5 candles around the release marker.
+`FMS Experiment Workbench` records and audits immutable economic-event experiments. `Differential Calculator` remains an active arithmetic experiment. Garbage routes remain available for reference but do not steer active product work.
 
 The current product goal is to keep the app connection-first and honest: show what is live, what is stale, what is unresolved, and what macro/event context may explain or threaten the user's chart idea without pretending to generate trade predictions.
 
@@ -75,13 +73,12 @@ It also expects the MT5 EA calendar bridge to be pushing economic calendar event
 - `Charts` keeps the live MT5 chart workflow and debug log, and shows explicit no-data / error states instead of fake candles.
 - `Economic Calendar` is MT5-backed, supports range/filter/search workflows, and can deep-link from `Overview` into a target event with highlight + explainer behavior.
 - `Central Banks Data` is derived from MT5 calendar events using strict mapping rules for the major 8 currencies. If a match is uncertain, the UI shows `N/A` instead of guessing.
-- `Specialist Tools` is the routing shell for Differential Calculator, Macro Drivers, Event Replay, and the Prototyping archive.
-- `Event Replay` is the main pair-first event replay surface. It is descriptive study support, not a signal engine.
+- `Specialist Tools` routes FMS Experiment Workbench, Differential Calculator, and retained garbage surfaces.
 - `FMS Experiment Workbench` records immutable H4 economic-event experiments across the cached major-pair markets. Charts owns `FMS-REGISTERED-REACTION-H4-v4`: 47 pair-orientation-audited recipes across EURUSD, GBPUSD, USDJPY, AUDUSD, USDCAD, NZDUSD, and USDCHF expose positive gross no-lookahead later-test average R with frozen scoring, case filter, reaction, SL, TP, and expiry. Workbench also exposes the pair-specific Reaction Atlas. Arrow audits now separate the six-H4 evidence reaction from the final frozen trade result, including MFE, MAE, giveback, and fixed-horizon responses. Confidence, stability, fragile-history labels, and omitted costs remain visible diagnostics, and Shadow Trader explicitly states that no setup is safe to follow blindly.
-- `Research replay` shows historical matches as hindsight. `Current model` uses immutable post-activation observations only. The global `FMS Shadow Trader` combines every registered market, reports Long/Short/No-trade, exact rule, nearest upcoming registered release, sortable historical average-R/target-first benchmarks, a configurable gross sequential replay, and the selected-pair hypothetical ATR position. Its research-intelligence disclosure retains unstable contenders and repeatedly unsupported directional mappings as “avoid standalone direction” knowledge. It permits one simulated position at a time, excludes spread/commission/slippage/swap, sends no order, and guarantees nothing.
+- `Past arrows` shows historical matches as hindsight; the scanner itself always uses registered current rules. The global `FMS Shadow Trader` combines every registered market, reports Long/Short/No-trade, exact rule, nearest upcoming registered release, sortable historical average-R/target-first benchmarks, a configurable gross sequential replay, and the selected-pair hypothetical ATR position. Its research-intelligence disclosure retains unstable contenders and repeatedly unsupported directional mappings as `avoid standalone direction` knowledge. It permits one simulated position at a time, excludes spread/commission/slippage/swap, sends no order, and guarantees nothing.
 - All chart timeframes show the same frozen H4 model. Every signal uses one arrow on the strictly later H4 activation candle; the release timestamp stays in its audit without inventing intrabar detail.
 - `tabs/primary/` contains always-visible primary workflow tabs.
-- `tabs/secondary/` contains Differential Calculator, Macro Drivers, Event Replay, and the Prototyping shell.
+- `tabs/secondary/` contains active secondary route shells. Garbage implementations and helpers remain isolated under their named garbage folders.
 - `tabs/garbage/` contains old unfinished, deprecated, or ignored routed surfaces. Do not read it for general orientation unless explicitly requested.
 - `tests/garbage/` contains tests for garbage-drawer surfaces. Do not read or run them for normal active-surface work unless explicitly requested.
 - `hooks/` contains app-shell side effects extracted from `App.tsx`.

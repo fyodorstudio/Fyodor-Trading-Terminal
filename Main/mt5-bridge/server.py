@@ -11,8 +11,9 @@ import statistics
 import time as _time
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-from threading import Lock
+from threading import Lock, RLock
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 import MetaTrader5 as mt5
@@ -604,7 +605,8 @@ if _stored_chart_model_hash is not None and _stored_chart_model_hash != CHART_SI
 _research_store.set_metadata(_chart_model_metadata_key, CHART_SIGNAL_MODEL_HASH)
 _research_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="fyodor-research")
 _forward_executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="fyodor-forward")
-_research_mt5_lock = Lock()
+_mt5_lock = RLock()
+_MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS = 2.0
 _forward_schedule_lock = Lock()
 _forward_reconcile_scheduled = False
 _chart_signal_catalog_lock = Lock()
@@ -627,6 +629,42 @@ FORWARD_LEDGER_ACTIVATED_AT = 1787047068  # 2026-08-18 09:57:48 UTC
 
 # Last symbol used successfully in GET /history; used by GET /server_time when no symbol param.
 _last_history_symbol: Optional[str] = None
+_last_symbols_payload: List[Dict[str, Any]] = []
+
+
+class Mt5BusyError(RuntimeError):
+  pass
+
+
+@contextmanager
+def _mt5_access(timeout: Optional[float] = None):
+  """Serialize access to MetaTrader5's process-global IPC session.
+
+  The Python MT5 package is not safe to call concurrently. Foreground routes
+  use a bounded wait so a background reconciliation cannot make Charts or
+  bridge health hang indefinitely.
+  """
+  acquired = _mt5_lock.acquire(timeout=timeout) if timeout is not None else _mt5_lock.acquire()
+  if not acquired:
+    raise Mt5BusyError("MT5 connection is busy with another bridge operation")
+  try:
+    yield
+  finally:
+    _mt5_lock.release()
+
+
+def _cached_history(
+  symbol: str,
+  timeframe: str,
+  *,
+  bars: Optional[int] = None,
+  from_time: int = 0,
+  to_time: Optional[int] = None,
+) -> List[Dict[str, Any]]:
+  rows = _research_store.query_candles(
+    symbol.upper(), timeframe.upper(), from_time, to_time or int(_time.time()) + 24 * 60 * 60,
+  )
+  return rows[-bars:] if bars is not None else rows
 
 def _ensure_mt5_initialized() -> bool:
   """Return True when the Python MT5 API has an active terminal connection.
@@ -637,21 +675,22 @@ def _ensure_mt5_initialized() -> bool:
   """
   global terminal_connected, last_error
 
-  if mt5.terminal_info() is not None:
-    terminal_connected = True
-    last_error = None
-    return True
+  with _mt5_access():
+    if mt5.terminal_info() is not None:
+      terminal_connected = True
+      last_error = None
+      return True
 
-  mt5_path = os.environ.get("MT5_EXE")
-  initialized = mt5.initialize(path=mt5_path) if mt5_path else mt5.initialize()
-  if initialized:
-    terminal_connected = True
-    last_error = None
-    return True
+    mt5_path = os.environ.get("MT5_EXE")
+    initialized = mt5.initialize(path=mt5_path) if mt5_path else mt5.initialize()
+    if initialized:
+      terminal_connected = True
+      last_error = None
+      return True
 
-  _update_last_error()
-  terminal_connected = False
-  return False
+    _update_last_error()
+    terminal_connected = False
+    return False
 
 
 def _namedtuple_to_dict(value: Any) -> Dict[str, Any]:
@@ -790,7 +829,7 @@ def _next_daily_boundary(now_utc: datetime, hours: int) -> int:
   return int(boundary.timestamp())
 
 
-def _session_snapshot(symbol: str) -> Dict[str, Any]:
+def _session_snapshot_unlocked(symbol: str) -> Dict[str, Any]:
   checked_at = int(datetime.now(timezone.utc).timestamp())
   if not _ensure_mt5_initialized():
     return {
@@ -908,9 +947,42 @@ def _session_snapshot(symbol: str) -> Dict[str, Any]:
   }
 
 
+def _session_snapshot(symbol: str) -> Dict[str, Any]:
+  try:
+    with _mt5_access(_MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
+      return _session_snapshot_unlocked(symbol)
+  except Mt5BusyError:
+    checked_at = int(_time.time())
+    asset_class = _infer_asset_class(symbol, None)
+    session_state = "unavailable"
+    is_open: Optional[bool] = None
+    next_open_time: Optional[int] = None
+    next_close_time: Optional[int] = None
+    if asset_class in {"forex", "metals"}:
+      is_open, next_open_time, next_close_time, _ = _forex_session_window(
+        datetime.fromtimestamp(checked_at, tz=timezone.utc)
+      )
+      session_state = "open" if is_open else "closed"
+    return {
+      "symbol": symbol,
+      "symbol_path": None,
+      "asset_class": asset_class,
+      "session_state": session_state,
+      "is_open": is_open,
+      "terminal_connected": terminal_connected,
+      "checked_at": checked_at,
+      "server_time": None,
+      "last_tick_time": None,
+      "next_open_time": next_open_time,
+      "next_close_time": next_close_time,
+      "reason": "mt5_busy",
+    }
+
+
 def _update_last_error() -> None:
   global last_error
-  code, message = mt5.last_error()
+  with _mt5_access():
+    code, message = mt5.last_error()
   if code != 0:
     last_error = {"code": code, "message": message}
   else:
@@ -918,7 +990,8 @@ def _update_last_error() -> None:
 
 
 def _get_last_error() -> Optional[Dict[str, Any]]:
-  code, message = mt5.last_error()
+  with _mt5_access():
+    code, message = mt5.last_error()
   if code == 0:
     return None
   return {"code": code, "message": message}
@@ -936,11 +1009,6 @@ def on_startup() -> None:
       definition.configuration_hash,
     )
   _research_store.mark_unfinished_runs_failed("Bridge restarted before this research job completed")
-  if _research_store.query_release_observations(
-    from_time=FORWARD_LEDGER_ACTIVATED_AT, currencies=["EUR", "USD"]
-  ):
-    _schedule_forward_reconcile(int(_time.time()))
-
   if not _ensure_mt5_initialized():
     terminal_connected = False
     last_error = _get_last_error()
@@ -953,7 +1021,8 @@ def on_startup() -> None:
 def on_shutdown() -> None:
   global terminal_connected
   if terminal_connected:
-    mt5.shutdown()
+    with _mt5_access():
+      mt5.shutdown()
     terminal_connected = False
 
 
@@ -977,13 +1046,14 @@ def mt5_timeframe(tf: str) -> int:
 
 
 def ensure_symbol_selected(symbol: str) -> None:
-  if not mt5.symbol_select(symbol, True):
-    _update_last_error()
-    err = _get_last_error()
-    raise HTTPException(
-      status_code=502,
-      detail={"message": f"symbol_select failed for {symbol!r}", "mt5_error": err},
-    )
+  with _mt5_access():
+    if not mt5.symbol_select(symbol, True):
+      _update_last_error()
+      err = _get_last_error()
+      raise HTTPException(
+        status_code=502,
+        detail={"message": f"symbol_select failed for {symbol!r}", "mt5_error": err},
+      )
 
 
 def convert_rate_row(row: Any) -> Dict[str, Any]:
@@ -1022,23 +1092,27 @@ def _metadata_float(key: str) -> Optional[float]:
 
 @app.get("/health")
 def health() -> Dict[str, Any]:
-  # Determine connection status directly from MT5, rather than relying on
-  # cached globals, so this reflects the real-time terminal state.
-  terminal_connected = _ensure_mt5_initialized()
-
-  # Optional metadata
-  version = mt5.version() if terminal_connected else None
-  account = mt5.account_info() if terminal_connected else None
-
-  # Last error is purely informational and does not affect `ok`
-  err_code, err_message = mt5.last_error()
-  last_error_info = {"code": err_code, "message": err_message}
+  mt5_busy = False
+  try:
+    with _mt5_access(_MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
+      connected = _ensure_mt5_initialized()
+      version = mt5.version() if connected else None
+      account = mt5.account_info() if connected else None
+      err_code, err_message = mt5.last_error()
+      last_error_info = {"code": err_code, "message": err_message}
+  except Mt5BusyError:
+    mt5_busy = True
+    connected = terminal_connected
+    version = None
+    account = None
+    last_error_info = last_error
 
   payload: Dict[str, Any] = {
     "ok": True,
     "bridge_connected": True,
     "api_revision": BRIDGE_API_REVISION,
-    "terminal_connected": terminal_connected,
+    "terminal_connected": connected,
+    "mt5_busy": mt5_busy,
     "mt5_version": version,
     "account_login": account.login if account is not None else None,
     "last_error": last_error_info,
@@ -1048,7 +1122,7 @@ def health() -> Dict[str, Any]:
   return payload
 
 
-def _get_server_time_from_mt5(symbol: Optional[str] = None) -> Optional[int]:
+def _get_server_time_from_mt5_unlocked(symbol: Optional[str] = None) -> Optional[int]:
   """Get MT5 server time. If symbol is set, try only that symbol. Else try _last_history_symbol, then fallbacks."""
   if not _ensure_mt5_initialized():
     return None
@@ -1094,6 +1168,14 @@ def _get_server_time_from_mt5(symbol: Optional[str] = None) -> Optional[int]:
   return None
 
 
+def _get_server_time_from_mt5(symbol: Optional[str] = None) -> Optional[int]:
+  try:
+    with _mt5_access(_MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
+      return _get_server_time_from_mt5_unlocked(symbol)
+  except Mt5BusyError:
+    return None
+
+
 @app.get("/server_time")
 def server_time(symbol: Optional[str] = None) -> Dict[str, Any]:
   """Return current MT5 server time as UNIX seconds. Optional query param symbol= to use a specific symbol."""
@@ -1106,33 +1188,40 @@ def server_time(symbol: Optional[str] = None) -> Dict[str, Any]:
 @app.get("/symbols")
 def symbols() -> List[Dict[str, Any]]:
   """Return all symbols from MT5 with optional path for grouping."""
-  if not _ensure_mt5_initialized():
-    raise HTTPException(status_code=503, detail="MT5 terminal not connected")
+  global _last_symbols_payload
+  try:
+    with _mt5_access(_MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
+      if not _ensure_mt5_initialized():
+        raise HTTPException(status_code=503, detail="MT5 terminal not connected")
 
-  syms = mt5.symbols_get()
-  if syms is None:
-    _update_last_error()
-    err = _get_last_error()
-    raise HTTPException(
-      status_code=502,
-      detail={"message": "symbols_get failed", "mt5_error": err},
-    )
+      syms = mt5.symbols_get()
+      if syms is None:
+        _update_last_error()
+        err = _get_last_error()
+        raise HTTPException(
+          status_code=502,
+          detail={"message": "symbols_get failed", "mt5_error": err},
+        )
 
-  result: List[Dict[str, Any]] = []
-  for s in syms:
-    name = getattr(s, "name", None)
-    if name is None:
-      continue
-    path: Optional[str] = None
-    try:
-      info = mt5.symbol_info(name)
-      if info is not None:
-        path = getattr(info, "path", None) or None
-    except Exception:
-      pass
-    result.append({"name": name, "path": path})
-
-  return result
+      result: List[Dict[str, Any]] = []
+      for s in syms:
+        name = getattr(s, "name", None)
+        if name is None:
+          continue
+        path: Optional[str] = None
+        try:
+          info = mt5.symbol_info(name)
+          if info is not None:
+            path = getattr(info, "path", None) or None
+        except Exception:
+          pass
+        result.append({"name": name, "path": path})
+      _last_symbols_payload = result
+      return result
+  except Mt5BusyError:
+    if _last_symbols_payload:
+      return _last_symbols_payload
+    return [{"name": market, "path": None} for market in WORKBENCH_MARKETS]
 
 
 @app.get("/market_status")
@@ -1147,27 +1236,36 @@ def history(symbol: str, tf: str, bars: int = 500) -> List[Dict[str, Any]]:
   if bars > 5000:
     raise HTTPException(status_code=400, detail="bars must be <= 5000")
 
-  # Check live terminal state instead of relying on cached globals.
-  if not _ensure_mt5_initialized():
-    raise HTTPException(status_code=503, detail="MT5 terminal not connected")
-
   timeframe = mt5_timeframe(tf)
-  ensure_symbol_selected(symbol)
-
-  rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, bars)
-  if rates is None or len(rates) == 0:
-    _update_last_error()
-    err = _get_last_error()
-    raise HTTPException(
-      status_code=502,
-      detail={"message": "No data from MT5", "mt5_error": err},
-    )
-
-  candles = [convert_rate_row(row) for row in rates]
-  candles.sort(key=lambda c: c["time"])
-  global _last_history_symbol
-  _last_history_symbol = symbol
-  return candles
+  try:
+    with _mt5_access(_MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
+      if not _ensure_mt5_initialized():
+        raise HTTPException(status_code=503, detail="MT5 terminal not connected")
+      ensure_symbol_selected(symbol)
+      rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, bars)
+      if rates is None or len(rates) == 0:
+        _update_last_error()
+        err = _get_last_error()
+        raise HTTPException(
+          status_code=502,
+          detail={"message": "No data from MT5", "mt5_error": err},
+        )
+      candles = [convert_rate_row(row) for row in rates]
+      candles.sort(key=lambda c: c["time"])
+      _research_store.upsert_candles(symbol, tf, candles)
+      global _last_history_symbol
+      _last_history_symbol = symbol
+      return candles
+  except Mt5BusyError:
+    cached = _cached_history(symbol, tf, bars=bars)
+    if cached:
+      return cached
+    raise HTTPException(status_code=503, detail="MT5 is busy and no cached chart history is available")
+  except HTTPException as error:
+    cached = _cached_history(symbol, tf, bars=bars)
+    if cached and error.status_code in {502, 503}:
+      return cached
+    raise
 
 
 @app.get("/history_range")
@@ -1179,52 +1277,72 @@ def history_range(symbol: str, tf: str, from_: int, to: int) -> List[Dict[str, A
   if to - from_ > max_range_seconds:
     raise HTTPException(status_code=400, detail="requested range is too large")
 
-  if not _ensure_mt5_initialized():
-    raise HTTPException(status_code=503, detail="MT5 terminal not connected")
-
   timeframe = mt5_timeframe(tf)
-  ensure_symbol_selected(symbol)
-
-  from_dt = datetime.fromtimestamp(from_, tz=timezone.utc)
-  to_dt = datetime.fromtimestamp(to, tz=timezone.utc)
-  rates = mt5.copy_rates_range(symbol, timeframe, from_dt, to_dt)
-  if rates is None or len(rates) == 0:
-    _update_last_error()
-    err = _get_last_error()
-    raise HTTPException(
-      status_code=502,
-      detail={"message": "No data from MT5", "mt5_error": err},
-    )
-
-  candles = [convert_rate_row(row) for row in rates]
-  candles.sort(key=lambda c: c["time"])
-  global _last_history_symbol
-  _last_history_symbol = symbol
-  return candles
+  try:
+    with _mt5_access(_MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
+      if not _ensure_mt5_initialized():
+        raise HTTPException(status_code=503, detail="MT5 terminal not connected")
+      ensure_symbol_selected(symbol)
+      from_dt = datetime.fromtimestamp(from_, tz=timezone.utc)
+      to_dt = datetime.fromtimestamp(to, tz=timezone.utc)
+      rates = mt5.copy_rates_range(symbol, timeframe, from_dt, to_dt)
+      if rates is None or len(rates) == 0:
+        _update_last_error()
+        err = _get_last_error()
+        raise HTTPException(
+          status_code=502,
+          detail={"message": "No data from MT5", "mt5_error": err},
+        )
+      candles = [convert_rate_row(row) for row in rates]
+      candles.sort(key=lambda c: c["time"])
+      _research_store.upsert_candles(symbol, tf, candles)
+      global _last_history_symbol
+      _last_history_symbol = symbol
+      return candles
+  except Mt5BusyError:
+    cached = _cached_history(symbol, tf, from_time=from_, to_time=to)
+    if cached:
+      return cached
+    raise HTTPException(status_code=503, detail="MT5 is busy and no cached chart range is available")
+  except HTTPException as error:
+    cached = _cached_history(symbol, tf, from_time=from_, to_time=to)
+    if cached and error.status_code in {502, 503}:
+      return cached
+    raise
 
 
 @app.get("/history_boundary")
 def history_boundary(symbol: str, tf: str) -> Dict[str, Any]:
-  if not _ensure_mt5_initialized():
-    raise HTTPException(status_code=503, detail="MT5 terminal not connected")
-
   timeframe = mt5_timeframe(tf)
-  ensure_symbol_selected(symbol)
-
-  earliest = datetime(1971, 1, 1, tzinfo=timezone.utc)
-  rates = mt5.copy_rates_from(symbol, timeframe, earliest, 1)
-  if rates is None or len(rates) == 0:
-    _update_last_error()
-    err = _get_last_error()
-    raise HTTPException(
-      status_code=502,
-      detail={"message": "No boundary data from MT5", "mt5_error": err},
-    )
-
-  candle = convert_rate_row(rates[0])
-  global _last_history_symbol
-  _last_history_symbol = symbol
-  return {"oldest_time": candle["time"], "approximate": True}
+  try:
+    with _mt5_access(_MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
+      if not _ensure_mt5_initialized():
+        raise HTTPException(status_code=503, detail="MT5 terminal not connected")
+      ensure_symbol_selected(symbol)
+      earliest = datetime(1971, 1, 1, tzinfo=timezone.utc)
+      rates = mt5.copy_rates_from(symbol, timeframe, earliest, 1)
+      if rates is None or len(rates) == 0:
+        _update_last_error()
+        err = _get_last_error()
+        raise HTTPException(
+          status_code=502,
+          detail={"message": "No boundary data from MT5", "mt5_error": err},
+        )
+      candle = convert_rate_row(rates[0])
+      _research_store.upsert_candles(symbol, tf, [candle])
+      global _last_history_symbol
+      _last_history_symbol = symbol
+      return {"oldest_time": candle["time"], "approximate": True}
+  except Mt5BusyError:
+    coverage = _research_store.candle_coverage(symbol, tf)
+    if coverage["earliest"] is not None:
+      return {"oldest_time": coverage["earliest"], "approximate": True, "source": "durable_cache"}
+    raise HTTPException(status_code=503, detail="MT5 is busy and no cached history boundary is available")
+  except HTTPException as error:
+    coverage = _research_store.candle_coverage(symbol, tf)
+    if coverage["earliest"] is not None and error.status_code in {502, 503}:
+      return {"oldest_time": coverage["earliest"], "approximate": True, "source": "durable_cache"}
+    raise
 
 
 @app.post("/calendar_ingest")
@@ -1371,7 +1489,7 @@ def _research_price_fingerprint(candles: List[Dict[str, Any]]) -> str:
   return hashlib.sha256(json.dumps(compact, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
-def _fetch_research_candles(
+def _fetch_research_candles_unlocked(
   symbol: str,
   timeframe: str,
   from_time: int,
@@ -1405,6 +1523,17 @@ def _fetch_research_candles(
     _research_store.upsert_candles(symbol, timeframe, rows)
     return _research_store.query_candles(symbol, timeframe, from_time, to_time)
   return cached
+
+
+def _fetch_research_candles(
+  symbol: str,
+  timeframe: str,
+  from_time: int,
+  to_time: int,
+  chunk_days: int,
+) -> List[Dict[str, Any]]:
+  with _mt5_access():
+    return _fetch_research_candles_unlocked(symbol, timeframe, from_time, to_time, chunk_days)
 
 
 def _paper_case_state(outcomes: Dict[str, Dict[str, Any]]) -> str:
@@ -1467,42 +1596,41 @@ def _reconcile_forward_paper_definition(
     return
 
   earliest = min(int(case["eventTime"]) for case in directional) - 60 * 24 * 60 * 60
-  with _research_mt5_lock:
-    h4_candles = _fetch_research_candles("EURUSD", "H4", earliest, observed_at + H4_SECONDS, 31)
-    if not h4_candles:
-      return
-    candle_times = [int(candle["time"]) for candle in h4_candles]
-    atr_values = calculate_atr_by_candle(h4_candles)
+  h4_candles = _fetch_research_candles("EURUSD", "H4", earliest, observed_at + H4_SECONDS, 31)
+  if not h4_candles:
+    return
+  candle_times = [int(candle["time"]) for candle in h4_candles]
+  atr_values = calculate_atr_by_candle(h4_candles)
 
-    def m1_provider(from_time: int, to_time: int) -> List[Dict[str, Any]]:
-      return _fetch_research_candles("EURUSD", "M1", from_time, to_time, 1)
+  def m1_provider(from_time: int, to_time: int) -> List[Dict[str, Any]]:
+    return _fetch_research_candles("EURUSD", "M1", from_time, to_time, 1)
 
-    for case in directional:
-      candidate = case["candidate"]
-      outcomes = {
-        str(target): evaluate_candidate(
-          candidate,
-          h4_candles,
-          candle_times,
-          atr_values,
-          target,
-          m1_provider,
-          allow_pending=True,
-          as_of=observed_at,
-        )
-        for target in TARGET_R_VALUES
-      }
-      entry_times = [
-        int(outcome["entryTime"])
-        for outcome in outcomes.values()
-        if outcome.get("entryTime") is not None
-      ]
-      state = _paper_case_state(outcomes)
-      if entry_times and min(entry_times) <= int(case["frozenAt"]):
-        state = "late_for_contract"
-      _research_store.update_paper_case(
-        definition.id, int(case["eventTime"]), state, outcomes, observed_at
+  for case in directional:
+    candidate = case["candidate"]
+    outcomes = {
+      str(target): evaluate_candidate(
+        candidate,
+        h4_candles,
+        candle_times,
+        atr_values,
+        target,
+        m1_provider,
+        allow_pending=True,
+        as_of=observed_at,
       )
+      for target in TARGET_R_VALUES
+    }
+    entry_times = [
+      int(outcome["entryTime"])
+      for outcome in outcomes.values()
+      if outcome.get("entryTime") is not None
+    ]
+    state = _paper_case_state(outcomes)
+    if entry_times and min(entry_times) <= int(case["frozenAt"]):
+      state = "late_for_contract"
+    _research_store.update_paper_case(
+      definition.id, int(case["eventTime"]), state, outcomes, observed_at
+    )
 
 
 def _reconcile_forward_paper(observed_at: int) -> None:
@@ -1522,7 +1650,9 @@ def _run_scheduled_forward_reconcile(observed_at: int) -> None:
     _reconcile_forward_paper(observed_at)
     for market in WORKBENCH_MARKETS:
       try:
-        research_chart_signals(symbol=market, tf="H4", mode="current", refresh=True)
+        # The release-observation revision already invalidates stale responses.
+        # Do not force a full seven-market rebuild after every EA cycle.
+        research_chart_signals(symbol=market, tf="H4", mode="current")
       except Exception:
         logger.exception("registered_shadow_reconcile failed market=%s observed_at=%s", market, observed_at)
   except Exception:
@@ -1617,16 +1747,15 @@ def _execute_macro_backtest(run_id: str, event_fingerprint: str, version_id: str
       max(int(candidate["eventTime"]) for candidate in candidates),
     ) + 10 * 24 * 60 * 60
 
-    with _research_mt5_lock:
-      h4_candles = _fetch_research_candles(symbol, "H4", earliest, latest, 366)
-      if not h4_candles:
-        raise RuntimeError(f"No {symbol} H4 candles are available from MT5 or the research cache")
+    h4_candles = _fetch_research_candles(symbol, "H4", earliest, latest, 366)
+    if not h4_candles:
+      raise RuntimeError(f"No {symbol} H4 candles are available from MT5 or the research cache")
 
-      def m1_provider(from_time: int, to_time: int) -> List[Dict[str, Any]]:
-        return _fetch_research_candles(symbol, "M1", from_time, to_time, 1)
+    def m1_provider(from_time: int, to_time: int) -> List[Dict[str, Any]]:
+      return _fetch_research_candles(symbol, "M1", from_time, to_time, 1)
 
-      coverage = _research_store.calendar_coverage(currencies)
-      result = build_backtest_result(events, h4_candles, m1_provider, coverage, created_at, definition)
+    coverage = _research_store.calendar_coverage(currencies)
+    result = build_backtest_result(events, h4_candles, m1_provider, coverage, created_at, definition)
 
     combined_fingerprint = hashlib.sha256(
       f"{event_fingerprint}:{_research_price_fingerprint(h4_candles)}".encode("utf-8")
@@ -2839,7 +2968,10 @@ def research_chart_signals(
     from_time=FORWARD_LEDGER_ACTIVATED_AT,
     currencies=market_currencies,
   )
-  generated_at = _get_server_time_from_mt5(normalized_symbol) or int(_time.time())
+  # Economic observations and cached candles already use epoch UTC. Avoid an
+  # unnecessary MT5 IPC call while constructing FMS responses; chart/history
+  # routes must remain available while background signal work is running.
+  generated_at = int(_time.time())
   observation_coverage_start = min((int(event["time"]) for event in observed_events), default=None)
   candidate_cache_key = hashlib.sha256("|".join([
     normalized_symbol, PRACTICAL_MODEL_HASH, dataset_fingerprint,
@@ -3444,18 +3576,6 @@ async def stream(websocket: WebSocket, symbol: str, tf: str) -> None:
     }
   )
 
-  # If the MT5 terminal is not currently available, fail fast.
-  if not _ensure_mt5_initialized():
-    await websocket.send_json(
-      {
-        "type": "status",
-        "message": "mt5_not_connected",
-        "error": _get_last_error(),
-      }
-    )
-    await websocket.close()
-    return
-
   try:
     timeframe = mt5_timeframe(tf)
   except HTTPException as exc:
@@ -3469,38 +3589,42 @@ async def stream(websocket: WebSocket, symbol: str, tf: str) -> None:
     await websocket.close()
     return
 
-  try:
-    ensure_symbol_selected(symbol)
-  except HTTPException as exc:
-    await websocket.send_json(
-      {"type": "status", "message": "symbol_error", "error": exc.detail}
-    )
-    await websocket.close()
-    return
-
   last_bar_time: Optional[int] = None
 
   try:
     while True:
-      if not _ensure_mt5_initialized():
+      try:
+        with _mt5_access(.5):
+          if not _ensure_mt5_initialized():
+            error = _get_last_error()
+            rates = None
+          else:
+            ensure_symbol_selected(symbol)
+            rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, 2)
+            error = _get_last_error() if rates is None or len(rates) == 0 else None
+      except Mt5BusyError:
         await websocket.send_json(
           {
             "type": "status",
-            "message": "mt5_not_connected",
-            "error": _get_last_error(),
+            "message": "mt5_busy",
+            "error": "Another bridge operation is using MT5; cached candles remain available.",
           }
         )
-        await asyncio.sleep(2.0)
+        await asyncio.sleep(1.0)
         continue
+      except HTTPException as exc:
+        await websocket.send_json(
+          {"type": "status", "message": "symbol_error", "error": exc.detail}
+        )
+        await websocket.close()
+        return
 
-      rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, 2)
       if rates is None or len(rates) == 0:
-        _update_last_error()
         await websocket.send_json(
           {
             "type": "status",
-            "message": "no_data",
-            "error": _get_last_error(),
+            "message": "mt5_not_connected" if not terminal_connected else "no_data",
+            "error": error,
           }
         )
         await asyncio.sleep(1.0)

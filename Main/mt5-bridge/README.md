@@ -45,13 +45,15 @@ The bridge also exposes health metadata the frontend relies on, including `last_
 
 Calendar rows are stored durably in a local SQLite database rather than a 400-day in-memory list. Set `FYODOR_RESEARCH_DB` to override its location; the Windows default is `%LOCALAPPDATA%\Fyodor Trading Terminal\fyodor-research.sqlite3`.
 
-The research endpoints own immutable Macro Signal versions used by Macro Signal Lab. Frozen v1 remains the failed Economy baseline; active `FMS-EURUSD-LABOR-H4-v2` uses country-aware exact-series identity and treats all pre-registration history as exploratory. Backtests run on a single background worker, reuse cached H4 candles, fetch M1 only when an H4 bar touches both stop and target, and never execute an order.
+The research endpoints own immutable FMS definitions used by FMS Experiment Workbench and Charts. The current registered registry spans the supported major-pair markets; older versions remain immutable research history. Backtests run on a single background worker, reuse cached H4 candles, fetch M1 only when an H4 bar touches both stop and target, and never execute an order.
+
+MetaTrader5's Python IPC is process-global, so all MT5 calls are serialized. Foreground chart routes use a bounded wait and fall back to the durable candle cache when MT5 is temporarily busy; this prevents one research or reconciliation operation from freezing every chart. Successful live history reads continuously refresh that cache. Startup does not launch an eager all-market reconciliation; completed EA cycles schedule it after the bridge is available.
 
 The EA posts `/calendar_ingest_cycle` only after all batches in a timer pass have been attempted. A successful zero-failure cycle lets the bridge freeze first-seen released values for the v2 forward-paper ledger; failed cycles never create paper candidates. The ledger advances outcomes in a separate background worker and is exposed by `/research/forward`.
 
-`/research/chart-signals` is the read-only EURUSD Charts contract for the frozen H4 model. `mode=current` exposes only post-v13-activation packages from immutable first-seen EA observations matching the retained registered setup identities. V13 preserves raw Forecast values but excludes historically anomalous Forecast comparisons using an exact-series, past-only quality gate; Momentum remains eligible. `mode=research_replay` remains the historical research view. The frontend may project the H4 activation onto any EURUSD chart timeframe but never claims a native backtest for that timeframe. The response includes release and first-later-H4 activation times, model/source/data fingerprints, three-pip stress, recent/year/past-only/target-robustness evidence, replay-gap diagnostics, next event/setup, and factual Policy/Inflation context. The endpoint never places an order.
+`/research/chart-signals` is the read-only Charts contract for the registered H4 model. Current observations come only from immutable first-seen EA values after each recipe's activation; historical matches remain hindsight research. The frontend may project an H4 activation onto another chart timeframe but never claims a native backtest for that timeframe. The endpoint never places an order.
 
-`/research/expansion-report` is the heavier, cached Macro Signal Lab contract. It computes 30/60-H4 MFE/MAE paths and a declared development-selected stop/target/holding matrix across eligible exact direction signatures. It identifies reused-history freeze candidates but never mutates the current Charts registry.
+`/research/expansion-report` is the heavier, cached FMS research contract. It computes 30/60-H4 MFE/MAE paths and a declared development-selected stop/target/holding matrix across eligible exact direction signatures. It identifies reused-history freeze candidates but never mutates the current Charts registry.
 
 `/research/workbench` is the bounded FMS experiment contract. It serves the current Forecast Guard summary, a durable exact-signature catalog, immutable recorded E experiments, frozen C review candidates, and legacy archive summaries. Official runs are asynchronous and recorded even when they fail. Matrix selection uses development data only; freezing never changes Charts, and no M-model promotion endpoint exists.
 
@@ -74,8 +76,8 @@ The normal frontend/bridge contract is:
 - market-session status for `Overview` and `Charts`
 - central-bank derivation source data for `Central Banks Data`
 - historical range access for `Event Reaction Engine`
-- durable calendar coverage and versioned EURUSD/H4 research for `Macro Signal Lab`
-- prospective v13 Charts Forecast-Guard payloads, historical replay, real-time next-event/setup watches, descriptive Policy/Inflation context, and an H4-model view on H1
+- durable calendar coverage and registered-market H4 research for `FMS Experiment Workbench`
+- prospective registered Charts payloads, historical matches, real-time next-event/setup watches, and the same H4 model projected onto supported chart timeframes
 
 ## Manual Usage
 

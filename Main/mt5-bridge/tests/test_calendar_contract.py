@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import json
 import time
+from contextlib import contextmanager
 
 from fastapi.testclient import TestClient
 
@@ -242,3 +243,47 @@ def test_history_range_returns_candles_with_mocked_mt5(monkeypatch):
   assert isinstance(payload, list)
   assert payload[0]["time"] == _EVENT_TIME
   assert payload[0]["close"] == 1.15
+  assert server._research_store.candle_coverage("EURUSD", "M1")["count"] >= 1
+
+
+def test_chart_history_and_health_remain_available_while_mt5_is_busy(monkeypatch):
+  candle_time = 1_700_000_000
+  server._research_store.upsert_candles("USDJPY", "H4", [{
+    "time": candle_time,
+    "open": 149.1,
+    "high": 149.4,
+    "low": 148.9,
+    "close": 149.2,
+    "volume": 100,
+  }])
+
+  @contextmanager
+  def busy_access(_timeout=None):
+    raise server.Mt5BusyError("busy")
+    yield
+
+  monkeypatch.setattr(server, "_mt5_access", busy_access)
+
+  history_response = client.get("/history", params={"symbol": "USDJPY", "tf": "H4", "bars": 200})
+  assert history_response.status_code == 200
+  assert history_response.json()[-1]["time"] == candle_time
+
+  boundary_response = client.get("/history_boundary", params={"symbol": "USDJPY", "tf": "H4"})
+  assert boundary_response.status_code == 200
+  assert boundary_response.json()["oldest_time"] == candle_time
+  assert boundary_response.json()["source"] == "durable_cache"
+
+  health_response = client.get("/health")
+  assert health_response.status_code == 200
+  assert health_response.json()["ok"] is True
+  assert health_response.json()["mt5_busy"] is True
+
+
+def test_startup_does_not_eagerly_schedule_full_market_reconciliation(monkeypatch):
+  scheduled = []
+  monkeypatch.setattr(server, "_schedule_forward_reconcile", lambda timestamp: scheduled.append(timestamp) or True)
+  monkeypatch.setattr(server, "_ensure_mt5_initialized", lambda: True)
+
+  server.on_startup()
+
+  assert scheduled == []
