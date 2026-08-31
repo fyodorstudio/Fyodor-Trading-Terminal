@@ -63,12 +63,46 @@ def test_forward_observation_keeps_first_seen_values_after_calendar_revision(tmp
   assert frozen["firstSeenAt"] == 502
 
   assessment = {"time": 500, "patternId": "claims", "status": "qualified", "direction": "long"}
-  assert store.record_fms_live_decision("model-v1", "EURUSD", "claims", 500, 505, "qualified", "long", assessment, None)
+  assert store.record_fms_live_decision("model-v1", "EURUSD", "claims", 500, 505, "qualified", "long", assessment, None, True, "captured_before_frozen_entry")
   assert not store.record_fms_live_decision("model-v1", "EURUSD", "claims", 500, 900, "no_trade", None, {**assessment, "status": "no_trade"}, None)
   decision = ResearchStore(store.path).list_fms_live_decisions("EURUSD")[0]
   assert decision["firstDecidedAt"] == 505
   assert decision["status"] == "qualified"
+  assert decision["prospectiveEligible"] is True
+  assert decision["eligibilityReason"] == "captured_before_frozen_entry"
   assert decision["assessment"] == assessment
+
+  pending = {
+    "patternId": "claims", "eventTime": 500, "outcomeStatus": "pending", "resultR": None,
+    "activationTime": 600, "pendingLifecycle": {"phase": "trade_running", "asOf": 610},
+  }
+  assert store.record_fms_live_execution_observation("model-v1", "EURUSD", "claims", 500, 610, pending)
+  assert not store.record_fms_live_execution_observation(
+    "model-v1", "EURUSD", "claims", 500, 620,
+    {**pending, "pendingLifecycle": {**pending["pendingLifecycle"], "asOf": 620}},
+  )
+  quote = {"bid": 1.1, "ask": 1.1001, "quality": "near_entry"}
+  assert store.record_fms_live_execution_observation("model-v1", "EURUSD", "claims", 500, 621, pending, quote)
+  completed = {**pending, "outcomeStatus": "target_hit", "resultR": 2.0, "exitTime": 900}
+  assert store.record_fms_live_execution_observation("model-v1", "EURUSD", "claims", 500, 900, completed, quote)
+  case = ResearchStore(store.path).list_fms_live_execution_cases("EURUSD")[0]
+  assert case["state"] == "target_hit"
+  assert case["resultR"] == 2.0
+  assert case["entryQuote"] == quote
+  assert store.count_fms_live_execution_observations("model-v1", "EURUSD", "claims", 500) == 3
+
+  deal = {
+    "ticket": 77, "time": 650, "symbol": "EURUSD", "position_id": 88,
+    "entry": 0, "type": 0, "volume": .1, "price": 1.1002,
+    "commission": -1.2, "swap": 0, "profit": 0, "fee": -.1,
+    "comment": "FMS-ABC1234567",
+  }
+  assert store.record_fms_demo_deal(1234, "FMS-ABC1234567", 651, deal)
+  assert not store.record_fms_demo_deal(1234, "FMS-ABC1234567", 700, {**deal, "price": 9})
+  saved_deal = ResearchStore(store.path).list_fms_demo_deals("FMS-ABC1234567")[0]
+  assert saved_deal["dealTicket"] == 77
+  assert saved_deal["price"] == 1.1002
+  assert saved_deal["commission"] == -1.2
 
 
 def test_paper_case_candidate_is_immutable_while_outcomes_advance(tmp_path: Path) -> None:

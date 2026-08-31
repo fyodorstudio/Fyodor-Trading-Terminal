@@ -1018,6 +1018,13 @@ export type MacroSignalChartMode = "current" | "research_replay";
 
 export interface MacroSignalChartSignal {
   id: string;
+  demoTag?: string;
+  prospectiveCapture?: {
+    eligible: boolean;
+    reason: string;
+    firstSeenAt: number | null;
+    activationTime: number | null;
+  } | null;
   patternId: string;
   sourceVersionId: string;
   eventTime: number;
@@ -1117,7 +1124,7 @@ export interface MacroSignalPatternAssessment {
     patternId: string;
     label: string;
     condition: string;
-    status: "awaiting_observation" | "qualified" | "no_trade" | "pre_activation_audit";
+    status: "awaiting_observation" | "qualified" | "no_trade" | "pre_activation_audit" | "late_for_contract";
     direction: "long" | "short" | null;
     reason: string;
     events: MacroSignalScheduledEvent[];
@@ -1137,6 +1144,12 @@ export interface MacroSignalPatternAssessment {
       surpriseMagnitude?: FmsRelativeMagnitude;
       momentumMagnitude?: FmsRelativeMagnitude;
     }>;
+    prospectiveCapture?: {
+      eligible: boolean;
+      reason: string;
+      firstSeenAt: number | null;
+      activationTime: number | null;
+    };
 }
 
 export interface MacroSignalRealtimeWatch {
@@ -1220,11 +1233,122 @@ export interface MacroSignalGlobalResponse {
     patternId: string;
     eventTime: number;
     firstDecidedAt: number;
-    status: "qualified" | "no_trade";
+    status: "qualified" | "no_trade" | "late_for_contract";
     direction: "long" | "short" | null;
+    prospectiveEligible: boolean;
+    eligibilityReason: string;
     assessment: MacroSignalPatternAssessment;
     signal: MacroSignalChartSignal | null;
   }>;
+  forwardValidation?: {
+    schema: "fms-forward-validation-v1";
+    status: "collecting_forward_evidence" | "paper_evidence_ready" | "real_money_evidence_ready" | "demo_monitoring_ready";
+    modelId: string;
+    startedAt: number;
+    qualifiedDecisions: number;
+    trackedCases: number;
+    resolvedCases: number;
+    pendingCases: number;
+    ambiguousOrUnavailableCases: number;
+    representedSetups: number;
+    paperReadySetups: number;
+    setupSummaries: Array<{
+      market: string;
+      patternId: string;
+      resolvedCases: number;
+      averageR: number | null;
+      nearEntryQuoteCoverage: number | null;
+      eligibleForPaperReliance: boolean;
+    }>;
+    averageR: number | null;
+    nearEntryQuoteCount: number;
+    quoteEligibleCount: number;
+    paperChecks: Record<string, boolean>;
+    eligibleForPaperReliance: boolean;
+    demoTradingChecks: Record<string, boolean>;
+    eligibleForDemoTrading: boolean;
+    realMoneyChecks: Record<string, boolean>;
+    demoExecution?: {
+      schema: "fms-demo-execution-v1";
+      captureStatus: { status: string; accountLogin?: number | null; orderTransmission?: boolean };
+      taggedDeals: number;
+      matchedTrades: number;
+      completedTrades: number;
+      representedSetups: number;
+      demoReadySetups: number;
+      setupSummaries: Array<{
+        market: string;
+        patternId: string;
+        completedTrades: number;
+        averageNetR: number | null;
+        contractAdherent: boolean;
+        eligibleForDemoReliance: boolean;
+      }>;
+      openOrPartialTrades: number;
+      totalNetAccountResult: number;
+      averageGrossFillR: number | null;
+      averageNetR: number | null;
+      riskPolicy: {
+        id: string;
+        maximumRiskPerTradePercent: number;
+        maximumOpenTrades: number;
+        maximumPortfolioRiskPercent: number;
+        maximumPeakToTroughDrawdownPercent: number;
+        maximumConsecutiveLosingTrades: number;
+        stopRequired: boolean;
+        scope: string;
+        observed: boolean;
+        riskKnownForEveryCompletedTrade: boolean;
+        contractAdherentForEveryTrade: boolean;
+        excessiveRiskObserved: boolean;
+        contractViolationObserved: boolean;
+        duplicateTagObserved: boolean;
+        maximumOpenTradesObserved: number;
+        maximumDrawdownAccount: number;
+        maximumDrawdownPercent: number | null;
+        maximumConsecutiveLosingTradesObserved: number;
+        killSwitchImplemented: boolean;
+        killSwitchTriggered: boolean;
+        operationalTradingAllowed: boolean;
+      };
+      trades: Array<{
+        signalTag: string;
+        accountLogin: number;
+        market: string;
+        patternId: string;
+        eventTime: number;
+        positionId: number;
+        status: "completed" | "open_or_partial";
+        entryTime: number | null;
+        exitTime: number | null;
+        entryPrice: number | null;
+        exitPrice: number | null;
+        volume: number;
+        grossFillR: number | null;
+        initialRiskAccount: number | null;
+        riskPercent: number | null;
+        actualStop: number | null;
+        actualTarget: number | null;
+        directionMatches: boolean;
+        stopMatches: boolean;
+        targetMatches: boolean;
+        lifecycleMatches: boolean;
+        contractAdherent: boolean;
+        netR: number | null;
+        profit: number;
+        commission: number;
+        swap: number;
+        fee: number;
+        netAccountResult: number;
+        dealCount: number;
+      }>;
+      orderTransmission: false;
+      instructions: string;
+    } | null;
+    eligibleForRealMoneyReliance: boolean;
+    decision: string;
+    limitations: string[];
+  };
   researchIntelligence: MacroSignalResearchIntelligence[];
   outcomeReview?: {
     unresolvedByReason: Record<string, number>;

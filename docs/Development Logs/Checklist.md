@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Checklist
 
-Last updated: 2026-08-30
+Last updated: 2026-09-01
 
 ## Active Planning Source
 
@@ -235,14 +235,8 @@ Test one additional entry-known condition at a time. Do not mine unrestricted co
   - count opposite directions as a conflict only when they concern the same pair; different-pair simultaneous signals are competing opportunities, not directional contradictions;
   - display the exact sequential-compounding formula and plain-language definitions for overlap, simultaneous alternative/conflict, ambiguous, pending, and unevaluable cases;
   - reconcile displayed totals against the immutable signal ledger and retain the gross/no-cost boundary.
-- [x] Make the global table the primary daily workflow, sortable by:
-  - actionable now;
-  - readiness state;
-  - historical average R;
-  - TP-before-SL rate;
-  - sample size;
-  - next registered release time;
-  - market and family.
+- [x] Make the global table the primary daily workflow with three deliberate sorts only: TP-before-SL rate, next registered release, and historical average R. Filter with one flag per currency; selecting only USD includes every registered pair containing USD.
+- [x] Keep the open Shadow Trader interaction path lightweight: one shared imperative countdown ticker, a memoized panel with stable Charts props, indexed latest-signal lookup, and lazily mounted registered-setup diagnostics so collapsed rows do not build every reaction table.
 - [x] Active rows distinguish `Watching`, `Awaiting Actual`, `Qualified — waiting entry`, `Trade open`, `Target reached`, `Stop reached`, `Expired`, `No trade`, and `Blocked`; retired recipes remain outside the active table in the research archive.
 - [ ] Every actionable row must state, in reading order:
   - pair flags and exact setup;
@@ -258,10 +252,20 @@ Test one additional entry-known condition at a time. Do not mine unrestricted co
 - [x] Add a durable immutable live decision ledger. First-seen qualified/no-trade assessments are insert-only, survive bridge restarts and broker revisions, and are reviewable from a collapsed Shadow Trader table and bridge endpoint.
 - [x] Add post-trade loss review to arrow audits with the frozen release package, observational context, MFE/MAE, fixed-horizon responses, giveback, loss-path observations, and final lifecycle without rewriting the original rule.
 - [x] Historical arrow audits present triggering evidence/direction first, then reaction, best/worst path, frozen trade result, the reaction/execution distinction, and aggregate recipe history.
+- [x] Restructure Past FMS Result around the event and its two headline outcomes, then show one aligned ATR/Entry/SL/TP geometry table with pip/ATR/R distances, a release-to-result timeline, and collapsed exact-setup history.
+- [x] Replace the Trade Monitor's misleading `Last opened trade` row with `Latest registered decision`, including No trade, audit-only, waiting-entry, open, and resolved registered releases, with a click-through calculation audit.
 
 ### Phase 8 — Paper and Limited-Live Validation
 
 - [x] After every successful complete EA cycle, automatically reconcile every registered market from immutable first-seen observations and append every qualified/no-trade decision to the durable ledger; no Charts visit or manual cherry-pick is required.
+- [x] Add an append-only forward execution lifecycle for the practical registry. Pending trades advance automatically from fresh MT5 H4/M1 candles after successful EA cycles, terminal outcomes cannot rewrite the first-seen decision, and the first available post-entry bid/ask is retained with capture lag and `near entry` versus `late snapshot` quality.
+- [x] Add a compact Shadow Trader demo-readiness surface showing prospective decisions, tracked/resolved cases, and forward average without making future-sample breadth, fills, costs, or strict account-risk checks block demo-only monitoring.
+- [x] Preserve the earlier 30-trade/five-setup manual-demo breadth calculation as an optional diagnostic only; it no longer gates the user's demo-only Shadow Trader workflow.
+- [x] Add read-only manual-demo reconciliation. Every qualified signal receives a short deterministic `FMS-…` order-comment tag; the bridge records only explicitly tagged deals from an MT5 account verified as demo, follows the same position id through untagged exit deals, persists actual entry/exit/profit/commission/swap/fee, verifies direction plus the frozen SL/TP and terminal lifecycle, blocks duplicate positions using one tag, and never calls an order API.
+- [x] Preserve `FMS-MANUAL-DEMO-RISK-v1` as an optional diagnostic, but do not let that deliberately conservative legacy policy suppress demo-only Shadow Trader signals.
+- [x] Exclude bridge-start catch-up releases from prospective decisions whenever the complete package or its decision was first observed at/after the frozen H4 entry. Keep them as explicit audit-only `late_for_contract` rows.
+- [x] Freeze a qualifying decision before its future H4 entry candle exists, calculate the planned strictly-later H4 boundary, show it under `Queued for the next H4 entry`, and transition it to Open only when that candle becomes available.
+- [x] Refresh the visible global Shadow Trader every 30 seconds even when no trade is currently pending. A newly released registered package can therefore appear as No trade or Queued without a page reload; the same refresh advances Pending/Open results and covers all seven registered markets without clearing the previous honest state on a transient failure.
 - [ ] Compare paper execution with historical assumptions: entry delay, spread, slippage, missed trades, and package completeness.
 - [ ] Keep the minimum paper requirement setup-specific and show elapsed time plus case count; do not promise that waiting a fixed year guarantees anything.
 - [ ] Do not permit `Paper validated` when only historical replay exists.
@@ -368,6 +372,7 @@ These are research directions, not approved live-trading behavior. FMS seeks rep
 ### Demo-account automation — far future
 
 - [ ] Add an explicitly opt-in, demo-only MT5 execution mode after paper-readiness work is complete.
+- [x] Before any automated execution, provide a safer manual-demo evidence path: show the exact FMS comment tag on an open hypothetical trade and ingest matching demo-account history without sending or modifying orders.
 - [ ] Verify through MT5 account metadata that the connected account is a demo account before every order; fail closed when account type cannot be verified.
 - [ ] Make real-account order transmission unavailable in this phase.
 - [ ] Require frozen per-setup contracts, maximum risk per trade, maximum simultaneous exposure, duplicate-order protection, stale/incomplete-data blocks, connection-health checks, and an immediate kill switch.

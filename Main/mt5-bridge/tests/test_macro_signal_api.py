@@ -13,6 +13,27 @@ from research_store import ResearchStore
 client = TestClient(server.app)
 
 
+def test_global_chart_refresh_reaches_each_current_market_request(monkeypatch) -> None:
+  calls = []
+
+  class StopAfterFirstMarket(Exception):
+    pass
+
+  def capture_request(**kwargs):
+    calls.append(kwargs)
+    raise StopAfterFirstMarket
+
+  monkeypatch.setattr(server, "research_chart_signals", capture_request)
+  try:
+    server.research_global_chart_signals(refresh=True)
+  except StopAfterFirstMarket:
+    pass
+
+  assert calls
+  assert calls[0]["mode"] == "current"
+  assert calls[0]["refresh"] is True
+
+
 def event(timestamp: int) -> dict:
   return {
     "id": 77,
@@ -400,6 +421,138 @@ def test_readiness_report_exposes_setup_level_evidence_and_keeps_live_gate_close
   assert report["eligibleForRuleBasedLiveUse"] is False
 
 
+def test_forward_validation_requires_prospective_breadth_and_never_claims_real_fills() -> None:
+  empty = server._forward_validation_payload([], [])
+  assert empty["status"] == "demo_monitoring_ready"
+  assert empty["eligibleForDemoTrading"] is True
+  assert empty["eligibleForPaperReliance"] is False
+  assert empty["eligibleForRealMoneyReliance"] is False
+
+  event = {"id": 7, "time": 100}
+  first_seen = {(7, 100): 110}
+  assert server._prospective_capture_eligibility([event], 100, 200, 120, first_seen)["eligible"] is True
+  assert server._prospective_capture_eligibility([event], 100, 200, 200, first_seen)["reason"] == "decision_after_frozen_entry"
+  assert server._prospective_capture_eligibility([event], 100, 200, 120, {(7, 100): 200})["reason"] == "observed_after_frozen_entry"
+  assert server._prospective_capture_eligibility([event], 100, 200, 120, {})["reason"] == "missing_first_seen_timestamp"
+  assert server._planned_strictly_later_h4_open(14_500, [0, 14_400]) == 28_800
+  assert server._planned_strictly_later_h4_open(14_400, [0, 14_400]) == 28_800
+  assert server._planned_strictly_later_h4_open(10_000, [0, 14_400]) == 14_400
+
+  decisions = []
+  cases = []
+  for index in range(50):
+    pattern_id = f"setup-{index % 5}"
+    decisions.append({
+        "modelId": server.PRACTICAL_MODEL_ID, "market": "EURUSD", "patternId": pattern_id,
+        "eventTime": index, "status": "qualified", "prospectiveEligible": True,
+    })
+    cases.append({
+      "modelId": server.PRACTICAL_MODEL_ID, "market": "EURUSD", "patternId": pattern_id,
+      "eventTime": index, "state": "target_hit" if index % 2 == 0 else "stop_hit",
+      "resultR": 2.0 if index % 2 == 0 else -1.0,
+      "signal": {"activationTime": index + 1},
+      "entryQuote": {"quality": "near_entry" if index < 40 else "late_snapshot"},
+    })
+  ready = server._forward_validation_payload(decisions, cases)
+  assert ready["resolvedCases"] == 50
+  assert ready["representedSetups"] == 5
+  assert ready["paperReadySetups"] == 5
+  assert ready["averageR"] == .5
+  assert ready["nearEntryQuoteCount"] == 40
+  assert ready["eligibleForPaperReliance"] is True
+  assert ready["eligibleForDemoTrading"] is True
+  assert ready["eligibleForRealMoneyReliance"] is False
+  assert ready["realMoneyChecks"]["realMoneyExecutionInScope"] is False
+
+  demo_case = {
+    "modelId": server.PRACTICAL_MODEL_ID, "market": "EURUSD", "patternId": "setup-demo",
+    "eventTime": 100, "signal": {"entry": 1.1, "initialStop": 1.09, "target": 1.12, "direction": "long", "outcomeStatus": "expired", "resultR": .98, "exitTime": 120},
+  }
+  demo_tag = server._forward_demo_tag(server.PRACTICAL_MODEL_ID, "EURUSD", "setup-demo", 100)
+  demo = server._demo_execution_payload([demo_case], [
+    {"signalTag": demo_tag, "positionId": 7, "entryType": 0, "dealType": 0, "time": 110, "volume": .1, "price": 1.1001, "profit": 0, "commission": -1, "swap": 0, "fee": 0, "deal": {"fms_actual_stop": 1.09, "fms_actual_target": 1.12, "fms_symbol_point": .0001, "fms_initial_risk_account": 100, "fms_risk_percent": .2, "fms_account_balance": 50000}},
+    {"signalTag": demo_tag, "positionId": 7, "entryType": 1, "dealType": 1, "time": 120, "volume": .1, "price": 1.11, "profit": 100, "commission": -1, "swap": -.5, "fee": 0, "deal": {}},
+  ], {"status": "capturing_demo_deals", "orderTransmission": False})
+  assert demo["completedTrades"] == 1
+  assert demo["totalNetAccountResult"] == 97.5
+  assert demo["trades"][0]["grossFillR"] > 0
+  assert demo["trades"][0]["contractAdherent"] is True
+  assert demo["trades"][0]["netR"] == .975
+  assert demo["orderTransmission"] is False
+
+  demo_cases = []
+  sequential_deals = []
+  for index in range(30):
+    demo_case_index = index % 5
+    event_time = 100 + index
+    exit_time = 1005 + index * 20
+    demo_cases.append({
+      **demo_case, "patternId": f"setup-{demo_case_index}", "eventTime": event_time,
+      "signal": {**demo_case["signal"], "outcomeStatus": "expired", "resultR": .1, "exitTime": exit_time},
+    })
+    setup_tag = server._forward_demo_tag(
+      server.PRACTICAL_MODEL_ID, "EURUSD", f"setup-{demo_case_index}", event_time,
+    )
+    sequential_deals.extend([
+      {"accountLogin": 123, "signalTag": setup_tag, "positionId": index + 1, "entryType": 0, "dealType": 0, "time": 1000 + index * 20, "volume": .1, "price": 1.1, "profit": 0, "commission": -.25, "swap": 0, "fee": 0, "deal": {"fms_actual_stop": 1.09, "fms_actual_target": 1.12, "fms_symbol_point": .0001, "fms_initial_risk_account": 100, "fms_risk_percent": .2, "fms_account_balance": 50000}},
+      {"accountLogin": 123, "signalTag": setup_tag, "positionId": index + 1, "entryType": 1, "dealType": 1, "time": exit_time, "volume": .1, "price": 1.101, "profit": 10, "commission": -.25, "swap": 0, "fee": 0, "deal": {}},
+    ])
+  sufficient_demo = server._demo_execution_payload(
+    demo_cases, sequential_deals,
+    {"status": "capturing_demo_deals", "accountLogin": 123, "orderTransmission": False, "checkedAt": 2000},
+  )
+  assert sufficient_demo["riskPolicy"]["observed"] is True
+  assert sufficient_demo["demoReadySetups"] == 5
+  fully_ready = server._forward_validation_payload(decisions, cases, sufficient_demo)
+  assert fully_ready["eligibleForDemoTrading"] is True
+  assert fully_ready["eligibleForRealMoneyReliance"] is False
+
+
+def test_demo_deal_capture_requires_explicit_tag_and_demo_account(tmp_path: Path, monkeypatch) -> None:
+  from collections import namedtuple
+
+  store = ResearchStore(tmp_path / "research.sqlite3")
+  assessment = {"patternId": "claims", "time": 500, "status": "qualified", "direction": "long"}
+  assert store.record_fms_live_decision(
+    server.PRACTICAL_MODEL_ID, "EURUSD", "claims", 500, 501, "qualified", "long", assessment, None,
+    True, "captured_before_frozen_entry",
+  )
+  assert store.record_fms_live_execution_observation(
+    server.PRACTICAL_MODEL_ID, "EURUSD", "claims", 500, 502,
+    {"direction": "long", "entry": 1.1, "initialStop": 1.09, "stop": 1.09, "target": 1.12, "outcomeStatus": "pending"},
+  )
+  tag = server._forward_demo_tag(server.PRACTICAL_MODEL_ID, "EURUSD", "claims", 500)
+  Account = namedtuple("Account", "login trade_mode balance")
+  Deal = namedtuple("Deal", "ticket time symbol position_id entry type volume price commission swap profit fee comment")
+  Position = namedtuple("Position", "sl tp")
+  SymbolInfo = namedtuple("SymbolInfo", "point")
+  tagged = Deal(1, 600, "EURUSD", 10, 0, 0, .1, 1.1, -1, 0, 0, 0, tag)
+  untagged = Deal(2, 601, "EURUSD", 20, 0, 0, .1, 1.2, -1, 0, 0, 0, "manual")
+  monkeypatch.setattr(server, "_research_store", store)
+  monkeypatch.setattr(server, "_ensure_mt5_initialized", lambda: True)
+  monkeypatch.setattr(server.mt5, "account_info", lambda: Account(123, 0, 10000))
+  monkeypatch.setattr(server.mt5, "history_deals_get", lambda *_args: [tagged, untagged])
+  monkeypatch.setattr(server.mt5, "positions_get", lambda **_kwargs: [Position(1.09, 1.12)])
+  monkeypatch.setattr(server.mt5, "history_orders_get", lambda **_kwargs: [])
+  monkeypatch.setattr(server.mt5, "symbol_info", lambda _symbol: SymbolInfo(.0001))
+  monkeypatch.setattr(server.mt5, "order_calc_profit", lambda *_args: -25)
+
+  result = server._capture_tagged_demo_deals(700)
+  assert result["status"] == "capturing_demo_deals"
+  assert result["captured"] == 1
+  assert result["orderTransmission"] is False
+  assert [row["dealTicket"] for row in store.list_fms_demo_deals()] == [1]
+  saved = store.list_fms_demo_deals()[0]["deal"]
+  assert saved["fms_actual_stop"] == 1.09
+  assert saved["fms_actual_target"] == 1.12
+  assert saved["fms_risk_percent"] == .25
+
+  monkeypatch.setattr(server.mt5, "account_info", lambda: Account(999, 2, 10000))
+  blocked = server._capture_tagged_demo_deals(701)
+  assert blocked["status"] == "blocked_non_demo_account"
+  assert blocked["captured"] == 0
+
+
 def test_execution_challengers_are_immutable_and_only_explicitly_reviewed_contracts_activate() -> None:
   payload = server.research_execution_challengers()
   assert payload["schema"] == "fms-execution-challenger-index-v1"
@@ -420,3 +573,7 @@ def test_execution_challengers_are_immutable_and_only_explicitly_reviewed_contra
   }
   assert all(row["execution"]["managementFamily"] == "break_even" for row in reviewed.values())
   assert all(row["baseExecution"] != row["execution"] for row in reviewed.values())
+  for row in reviewed.values():
+    activation = int(row["executionReview"]["activatedAt"])
+    assert server._execution_for_event(row, activation - 1) == row["baseExecution"]
+    assert server._execution_for_event(row, activation) == row["execution"]

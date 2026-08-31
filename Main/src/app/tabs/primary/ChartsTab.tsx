@@ -23,7 +23,7 @@ import type { ChartPairMatrixTimeLensData, PairMatrixLoadState } from "@/app/com
 import type { ChartEventLensData, ChartEventReleaseRow } from "@/app/components/ChartEventLens";
 import { useChartEventOverlay } from "@/app/hooks/useChartEventOverlay";
 import { useChartMarketData } from "@/app/hooks/useChartMarketData";
-import { fetchCalendar, fetchMacroSignalChartSignals, getPreloadedMacroSignalCurrentModel, getPreloadedMacroSignalGlobalRegistry, preloadMacroSignalCurrentModel, preloadMacroSignalGlobalRegistry } from "@/app/lib/bridge";
+import { fetchCalendar, fetchMacroSignalChartSignals, getPreloadedMacroSignalCurrentModel, getPreloadedMacroSignalGlobalRegistry, preloadMacroSignalCurrentModel, preloadMacroSignalGlobalRegistry, refreshMacroSignalGlobalRegistry } from "@/app/lib/bridge";
 import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import { formatUtcDisplayDate } from "@/app/lib/format";
 import {
@@ -100,7 +100,12 @@ const PAIR_MATRIX_HOVER_SETTLE_MS = 120;
 const PAIR_MATRIX_HISTORY_CACHE_LIMIT = 8;
 const MACRO_BIAS_VISIBILITY_KEY = "fyodor.charts.macro-bias-visible";
 const MACRO_BIAS_HISTORICAL_MATCHES_KEY = "fyodor.charts.macro-bias-historical-matches";
-const MACRO_BIAS_MARKETS = new Set(["EURUSD", "GBPUSD", "USDJPY", "USDCAD"]);
+const MACRO_BIAS_MARKETS = new Set(["AUDUSD", "EURUSD", "GBPUSD", "NZDUSD", "USDCAD", "USDCHF", "USDJPY"]);
+const MACRO_BIAS_LIVE_REFRESH_MS = 30_000;
+
+export function isMacroBiasMarketSupported(symbol: string): boolean {
+  return MACRO_BIAS_MARKETS.has(symbol.toUpperCase());
+}
 
 interface PairMatrixCalendarCacheEntry {
   currencyKey: string;
@@ -141,6 +146,14 @@ export function getMacroBiasRequestScope(args: {
   return args.mode === "current"
     ? `${args.symbol}:H4:current:${args.calendarRevision}`
     : `${args.symbol}:${args.timeframe}:research_replay:${args.from ?? ""}:${args.to ?? ""}:${args.calendarRevision}`;
+}
+
+export function shouldApplyMacroBiasRefresh(
+  current: MacroSignalChartSignalResponse | MacroSignalGlobalResponse | null,
+  next: MacroSignalChartSignalResponse | MacroSignalGlobalResponse,
+): boolean {
+  if (!current) return true;
+  return current.generatedAt !== next.generatedAt;
 }
 
 export function getMacroBiasReplayStatusLabel(
@@ -962,7 +975,7 @@ export function ChartsTab({
     };
   }, [schedulePairMatrixGeometryUpdate]);
 
-  const macroBiasSupported = MACRO_BIAS_MARKETS.has(selectedSymbol.toUpperCase());
+  const macroBiasSupported = isMacroBiasMarketSupported(selectedSymbol);
   const macroBiasCurrencies = useMemo(() => {
     const symbol = selectedSymbol.toUpperCase();
     return symbol.length === 6 ? new Set([symbol.slice(0, 3), symbol.slice(3)]) : new Set<string>();
@@ -1033,26 +1046,33 @@ export function ChartsTab({
     return () => { cancelled = true; };
   }, [macroBiasVisible, historyState]);
 
-  const macroBiasLifecycleNeedsRefresh = macroBiasCurrentResponse?.realtime?.latestPatternAssessment?.status === "awaiting_observation"
-    || macroBiasCurrentResponse?.signals.some((signal) => signal.outcomeStatus === "pending") === true;
   useEffect(() => {
-    if (!macroBiasSupported || !macroBiasLifecycleNeedsRefresh) return undefined;
+    if (!macroBiasVisible || historyState !== "ready" || visibleCandles.length === 0) return undefined;
     let cancelled = false;
     let requestRunning = false;
     const refreshLifecycle = () => {
       if (requestRunning) return;
       requestRunning = true;
-      fetchMacroSignalChartSignals({ symbol: selectedSymbol, timeframe: "H4", mode: "current", refresh: true })
-        .then((response) => { if (!cancelled) setMacroBiasCurrentResponse(response); })
+      refreshMacroSignalGlobalRegistry()
+        .then((response) => {
+          if (cancelled) return;
+          setMacroBiasGlobalResponse((current) => shouldApplyMacroBiasRefresh(current, response) ? response : current);
+          const selectedMarket = response.markets.find((market) => market.symbol === selectedSymbol.toUpperCase());
+          if (selectedMarket) {
+            setMacroBiasCurrentResponse((current) => shouldApplyMacroBiasRefresh(current, selectedMarket) ? selectedMarket : current);
+          }
+          setMacroBiasGlobalError(null);
+        })
         .catch(() => { /* retain the last honest lifecycle state */ })
         .finally(() => { requestRunning = false; });
     };
-    const timer = window.setInterval(refreshLifecycle, 15_000);
+    refreshLifecycle();
+    const timer = window.setInterval(refreshLifecycle, MACRO_BIAS_LIVE_REFRESH_MS);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [macroBiasLifecycleNeedsRefresh, macroBiasSupported, selectedSymbol]);
+  }, [macroBiasVisible, historyState, selectedSymbol, visibleCandles.length]);
 
   useEffect(() => {
     if (!macroBiasSupported || !macroBiasVisible || !macroBiasHistoricalMatchesVisible || historyState !== "ready" || visibleCandles.length === 0) {
@@ -1169,10 +1189,10 @@ export function ChartsTab({
       : null,
     [macroBiasResponse, visibleCandles, chartSourceTimeOffsetSeconds, timeframe],
   );
-  const macroBiasActivePattern = macroBiasActiveState
+  const macroBiasActivePattern = useMemo(() => macroBiasActiveState
     ? macroBiasResponse?.patterns.find((pattern) => pattern.id === macroBiasActiveState.signal.patternId) ?? null
-    : null;
-  const macroBiasRealtime: ChartMacroBiasRealtimeCardData | null = macroBiasVisible
+    : null, [macroBiasActiveState, macroBiasResponse?.patterns]);
+  const macroBiasRealtime = useMemo<ChartMacroBiasRealtimeCardData | null>(() => macroBiasVisible
     && macroBiasResponse?.supported
     ? {
         response: macroBiasResponse,
@@ -1185,7 +1205,17 @@ export function ChartsTab({
         globalLoading: macroBiasGlobalLoading,
         globalError: macroBiasGlobalError,
       }
-    : null;
+    : null, [
+      macroBiasActivePattern,
+      macroBiasActiveState,
+      macroBiasGlobalError,
+      macroBiasGlobalLoading,
+      macroBiasGlobalResponse,
+      macroBiasResponse,
+      macroBiasShadowHistoricalSignals,
+      macroBiasVisible,
+      timeframe,
+    ]);
   const macroBiasActiveLabel = macroBiasActiveState
       ? macroBiasActiveState.remainingCandles == null
         ? `Trade active · ${macroBiasActiveState.signal.direction === "long" ? "Long" : "Short"} ${selectedSymbol}`

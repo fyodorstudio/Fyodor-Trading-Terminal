@@ -152,6 +152,7 @@ export function ChartMacroBiasNextSetup({
 
 export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignalChartPattern[] }) {
   const [guideOpen, setGuideOpen] = useState(false);
+  const [setupOpenState, setSetupOpenState] = useState<Record<string, boolean>>({});
   const registered = useMemo(
     () => [...patterns].filter((pattern) => pattern.currentEligible).sort((left, right) => left.label.localeCompare(right.label)),
     [patterns],
@@ -199,13 +200,23 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
       ) : null}
       {registered.map((pattern) => {
         const credibility = macroSignalSetupCredibility(pattern);
+        const setupKey = `${pattern.market ?? "EURUSD"}:${pattern.id}`;
+        const setupOpen = setupOpenState[setupKey] ?? registered.length <= 4;
         return (
-        <details key={`${pattern.market ?? "EURUSD"}:${pattern.id}`} open={registered.length <= 4}>
+        <details
+          key={setupKey}
+          open={setupOpen}
+          onToggle={(event) => {
+            const nextOpen = event.currentTarget.open;
+            setSetupOpenState((current) => current[setupKey] === nextOpen ? current : { ...current, [setupKey]: nextOpen });
+          }}
+        >
           <summary>
             <span><b>{pattern.label}</b></span>
             <strong>{pattern.execution?.targetR ?? 2}R<small>{pattern.execution?.stopAtr ?? 1} ATR · {pattern.execution?.expiryCandles ?? 30} H4</small></strong>
             <em className="chart-shadow-disclosure-cue">View details <ChevronDown size={13} /></em>
           </summary>
+          {setupOpen ? <>
           <p className="chart-shadow-catalog-rule"><b>Trade rule:</b> {pattern.condition}</p>
           <section className={`chart-shadow-credibility is-${credibility.label.toLowerCase()}`} aria-label={`${pattern.label} historical credibility`}>
             <div><span>Historical credibility</span><strong>{credibility.label}</strong></div>
@@ -278,6 +289,7 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
           </div>
           {pattern.reactionAudit ? <p className="chart-shadow-reaction-note"><b>Direction and execution are separate:</b> the six-H4 response checks whether price moved in this registered recipe&apos;s direction; TP/SL and average R judge whether its frozen trade rules captured that movement.</p> : null}
           {pattern.registrationProvenance ? <p className={`chart-shadow-provenance is-${pattern.registrationProvenance.status}`}><b>{pattern.registrationProvenance.status === "verified" ? "Backtest record verified" : pattern.registrationProvenance.status === "mismatch" ? "Backtest mismatch" : pattern.registrationProvenance.status === "unavailable" ? "Backtest unavailable" : "Older saved setup"}:</b> {pattern.registrationProvenance.note}</p> : null}
+          </> : null}
         </details>
       )})}
     </section>

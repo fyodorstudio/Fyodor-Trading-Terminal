@@ -33,6 +33,24 @@ function formatPrice(value: number | null | undefined, market: string): string {
   return value.toFixed(market.endsWith("JPY") ? 3 : 5);
 }
 
+function pipSize(market: string): number {
+  return market.endsWith("JPY") ? .01 : .0001;
+}
+
+function distancePips(from: number | null | undefined, to: number | null | undefined, market: string): number | null {
+  return from == null || to == null ? null : Math.abs(to - from) / pipSize(market);
+}
+
+function formatAtr(value: number | null | undefined): string {
+  return value == null || !Number.isFinite(value) ? "—" : `${value.toFixed(2)} ATR`;
+}
+
+function formatHoldingCandles(from: number | null | undefined, to: number | null | undefined): string {
+  if (from == null || to == null || to < from) return "—";
+  const candles = (to - from) / 14_400;
+  return `${Number.isInteger(candles) ? candles.toFixed(0) : candles.toFixed(1)} H4`;
+}
+
 function formatUtc(value: number | null | undefined): string {
   return value == null ? "Waiting for next H4 open" : formatUtcDisplayDateTime(value);
 }
@@ -91,6 +109,14 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
     ? initialReaction.responseR * stopAtr * signal.atr / (market.endsWith("JPY") ? .01 : .0001)
     : null;
   const initialReactionFollowed = initialReaction == null ? null : initialReaction.responseR > 0;
+  const frozenStop = signal.initialStop ?? signal.stop;
+  const riskPips = distancePips(signal.entry, frozenStop, market);
+  const rewardPips = distancePips(signal.entry, signal.target, market);
+  const atrPips = signal.atr == null ? null : signal.atr / pipSize(market);
+  const riskAtr = signal.entry == null || frozenStop == null || signal.atr == null || signal.atr === 0 ? null : Math.abs(signal.entry - frozenStop) / signal.atr;
+  const rewardAtr = signal.entry == null || signal.target == null || signal.atr == null || signal.atr === 0 ? null : Math.abs(signal.target - signal.entry) / signal.atr;
+  const resultPips = signal.resultR == null || riskPips == null ? null : signal.resultR * riskPips;
+  const timelineEnd = signal.exitTime ?? signal.pendingLifecycle?.asOf ?? signal.expiryTime ?? null;
   return (
     <aside className="chart-macro-bias-audit" aria-label={`${signal.direction} ${market} macro bias audit`}>
       <header>
@@ -136,12 +162,29 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
         <p>{lifecycle.detail}</p>
       </div>
       {signal.entry != null || signal.stop != null || signal.target != null ? (
-        <section className="chart-macro-bias-levels" aria-label="Frozen trade price levels">
-          <div className="is-entry"><span>Entry</span><strong>{formatPrice(signal.entry, market)}</strong><small>Trade activation price</small></div>
-          <div className="is-risk"><span>{signal.breakEvenArmed ? "Break-even · SL" : "Risk · SL"}</span><strong>{formatPrice(signal.stop, market)}</strong><small>{signal.breakEvenArmed ? "Moved to entry · 0R before costs" : "−1R boundary"}</small></div>
-          <div className="is-reward"><span>Reward · TP</span><strong>{formatPrice(signal.target, market)}</strong><small>+{targetR}R boundary</small></div>
+        <section className="chart-macro-bias-geometry" aria-label="Frozen trade geometry">
+          <div className="chart-macro-bias-section-title"><span>Trade geometry</span><strong>Prices, ATR, pips, and R</strong></div>
+          <div className="chart-macro-bias-atr-reference"><span>ATR(14) at entry</span><strong>{formatPrice(signal.atr, market)}{atrPips == null ? "" : ` · ${atrPips.toFixed(1)} pips`}</strong><small>One typical H4 range used to size this frozen setup.</small></div>
+          <table>
+            <thead><tr><th>Level</th><th>Price</th><th>Distance from entry</th><th>Meaning</th></tr></thead>
+            <tbody>
+              <tr className="is-entry"><th>Entry</th><td>{formatPrice(signal.entry, market)}</td><td>0 pips · 0R</td><td>First strictly later H4 open</td></tr>
+              <tr className="is-risk"><th>SL</th><td>{formatPrice(frozenStop, market)}</td><td>{riskPips == null ? "—" : `${riskPips.toFixed(1)} pips`} · {formatAtr(riskAtr)} · −1R</td><td>{signal.breakEvenArmed ? `Original risk; current stop moved to ${formatPrice(signal.stop, market)}` : "Frozen maximum loss before costs"}</td></tr>
+              <tr className="is-reward"><th>TP</th><td>{formatPrice(signal.target, market)}</td><td>{rewardPips == null ? "—" : `${rewardPips.toFixed(1)} pips`} · {formatAtr(rewardAtr)} · +{targetR}R</td><td>Frozen take-profit reward</td></tr>
+            </tbody>
+          </table>
+          <p><b>Frozen plan:</b> risk {riskPips == null ? "—" : `${riskPips.toFixed(1)} pips`} to seek {rewardPips == null ? "—" : `${rewardPips.toFixed(1)} pips`}; maximum {signal.expiryCandles} H4 candles.</p>
         </section>
       ) : null}
+      <section className="chart-macro-bias-timeline" aria-label="Release and trade timeline">
+        <div className="chart-macro-bias-section-title"><span>What happened</span><strong>Release to frozen result</strong></div>
+        <ol>
+          <li><span>1</span><div><b>Economic release</b><strong>{formatUtc(signal.eventTime)}</strong></div></li>
+          <li><span>2</span><div><b>Trade activated</b><strong>{formatUtc(signal.activationTime)}</strong></div></li>
+          {signal.pathAudit ? <li><span>3</span><div><b>Best favorable move</b><strong>{formatPips(signal.pathAudit.maximumFavorablePips)} · {formatR(signal.pathAudit.maximumFavorableR)} · after {signal.pathAudit.timeToMfeCandles ?? "—"} H4</strong></div></li> : null}
+          <li><span>{signal.pathAudit ? "4" : "3"}</span><div><b>{lifecycle.resolved ? "Frozen trade closed" : "Current lifecycle"}</b><strong>{formatOutcome(signal)}{resultPips == null ? "" : ` · ${formatPips(resultPips)}`} · held {formatHoldingCandles(signal.activationTime, timelineEnd)}</strong><small>{signal.exitTime == null ? lifecycle.state : formatUtc(signal.exitTime)}</small></div></li>
+        </ol>
+      </section>
       {signal.pathAudit ? (
         <section className="chart-macro-bias-path-audit" aria-label="Evidence reaction and trade execution">
           <div className="chart-macro-bias-section-title"><span>Reaction versus trade result</span><strong>Two separate questions</strong></div>
@@ -157,14 +200,10 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
           {signal.pathAudit.fixedHorizonResponses.length > 0 ? <div className="chart-macro-bias-horizon-strip">{signal.pathAudit.fixedHorizonResponses.map((row) => <span key={row.holdingCandles}><b>{row.holdingCandles} H4</b>{formatR(row.responseR)}</span>)}</div> : null}
         </section>
       ) : null}
-      <div className="chart-macro-bias-clock" aria-label="Signal timing">
-        <div><span>Release time</span><strong>{formatUtc(signal.eventTime)}</strong></div>
-        <div><span>Trade started</span><strong>{formatUtc(signal.activationTime)}</strong></div>
-      </div>
-
       {benchmark ? (
-        <section className="chart-macro-bias-registered" aria-label="Historical setup performance">
-          <div className="chart-macro-bias-section-title"><span>Historical performance of this exact setup</span><strong>{benchmark.experimentId}</strong></div>
+        <details className="chart-macro-bias-registered" aria-label="Historical setup performance">
+          <summary><span>Historical performance of this exact setup</span><strong>{benchmark.experimentId}</strong></summary>
+          <div className="chart-macro-bias-registered-body">
           <div className="chart-macro-bias-stats">
             <div className="is-primary"><span>Average per trade</span><strong>{formatR(benchmarkAverage)}</strong></div>
             <div><span>TP before SL</span><strong>{formatPercent(benchmarkTargetRate)}</strong></div>
@@ -179,7 +218,8 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
           <div className="chart-macro-bias-contract"><b>Trade rules used in this test</b><span>SL {stopAtr} ATR · TP {targetR}R = {stopAtr * targetR} ATR · maximum {signal.expiryCandles} H4 candles{signal.managementFamily === "break_even" ? ` · move SL to entry after a completed H4 reaches +${signal.managementTriggerR ?? 1}R` : ""}</span></div>
           {reviewedExecutionApplies ? <div className="chart-macro-bias-provenance is-verified"><strong>Reviewed execution contract</strong><span>{pattern.executionReview?.reason} Historical result remains gross and is not live validation.</span></div> : null}
           {provenance ? <div className={`chart-macro-bias-provenance is-${provenance.status}`}><strong>{provenanceLabel(provenance.status)}</strong><span>{provenance.note}</span></div> : null}
-        </section>
+          </div>
+        </details>
       ) : (
         <section className="chart-macro-bias-legacy-warning">
           <strong>This older setup has no linked backtest record</strong>

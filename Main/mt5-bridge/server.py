@@ -88,6 +88,16 @@ WORKBENCH_MARKETS = {
 PRACTICAL_MODEL_ID = "FMS-REGISTERED-REACTION-H4-v5"
 PRACTICAL_MODEL_CREATED_AT = 1787970337
 REVIEWED_EXECUTION_ACTIVATED_AT = 1788134400
+FMS_MANUAL_DEMO_RISK_POLICY = {
+  "id": "FMS-MANUAL-DEMO-RISK-v1",
+  "maximumRiskPerTradePercent": .25,
+  "maximumOpenTrades": 1,
+  "maximumPortfolioRiskPercent": .25,
+  "maximumPeakToTroughDrawdownPercent": 5.0,
+  "maximumConsecutiveLosingTrades": 5,
+  "stopRequired": True,
+  "scope": "Optional manually placed MT5 demo trades carrying an exact FMS tag; no order transmission.",
+}
 
 
 def _practical_pattern(
@@ -1748,14 +1758,273 @@ def _run_scheduled_forward_reconcile(observed_at: int) -> None:
       try:
         # The release-observation revision already invalidates stale responses.
         # Do not force a full seven-market rebuild after every EA cycle.
-        research_chart_signals(symbol=market, tf="H4", mode="current")
+        response = research_chart_signals(symbol=market, tf="H4", mode="current", refresh=True)
+        qualified_keys = {
+          (str(row["patternId"]), int(row["eventTime"]))
+          for row in _research_store.list_fms_live_decisions(market, 500)
+          if row.get("status") == "qualified" and row.get("prospectiveEligible") is True
+        }
+        has_live_case = any(
+          (str(signal.get("patternId") or ""), int(signal.get("eventTime") or 0)) in qualified_keys
+          and signal.get("outcomeStatus") == "pending"
+          for signal in response.get("signals") or []
+        )
+        if has_live_case:
+          _fetch_research_candles(
+            market, "H4", observed_at - 60 * 24 * 60 * 60,
+            observed_at + H4_SECONDS, 60,
+          )
+          response = research_chart_signals(symbol=market, tf="H4", mode="current", refresh=True)
+        _capture_forward_entry_quotes(response, observed_at)
       except Exception:
         logger.exception("registered_shadow_reconcile failed market=%s observed_at=%s", market, observed_at)
+    _capture_tagged_demo_deals(observed_at)
   except Exception:
-    logger.exception("forward_paper_reconcile failed observed_at=%s", observed_at)
+      logger.exception("forward_paper_reconcile failed observed_at=%s", observed_at)
   finally:
     with _forward_schedule_lock:
       _forward_reconcile_scheduled = False
+
+
+def _quote_snapshot_for_forward_case(symbol: str, activation_time: int, observed_at: int) -> Optional[Dict[str, Any]]:
+  """Capture the first available broker quote after paper entry; never infer a fill."""
+  try:
+    with _mt5_access():
+      if not _ensure_mt5_initialized() or not mt5.symbol_select(symbol, True):
+        return None
+      tick = mt5.symbol_info_tick(symbol)
+      info = mt5.symbol_info(symbol)
+      if tick is None or info is None:
+        return None
+      tick_data = _namedtuple_to_dict(tick)
+      bid = float(tick_data.get("bid") or getattr(tick, "bid", 0) or 0)
+      ask = float(tick_data.get("ask") or getattr(tick, "ask", 0) or 0)
+      quote_time = int(tick_data.get("time") or getattr(tick, "time", 0) or 0)
+      if bid <= 0 or ask <= 0 or ask < bid or quote_time < int(activation_time):
+        return None
+      point = float(getattr(info, "point", 0) or 0)
+      lag = max(0, quote_time - int(activation_time))
+      return {
+        "bid": bid,
+        "ask": ask,
+        "spreadPrice": ask - bid,
+        "spreadPoints": None if point <= 0 else (ask - bid) / point,
+        "point": point or None,
+        "digits": int(getattr(info, "digits", 0) or 0),
+        "quoteTime": quote_time,
+        "capturedAt": int(observed_at),
+        "entryLagSeconds": lag,
+        "quality": "near_entry" if lag <= 120 else "late_snapshot",
+        "disclosure": "Observed bid/ask only; this is not a broker fill and excludes commission, slippage, and swap.",
+      }
+  except Exception:
+    logger.exception("forward_quote_capture_failed symbol=%s activation=%s", symbol, activation_time)
+    return None
+
+
+def _forward_demo_tag(model_id: str, market: str, pattern_id: str, event_time: int) -> str:
+  digest = hashlib.sha256(
+    f"{model_id}|{market.upper()}|{pattern_id}|{int(event_time)}".encode("utf-8")
+  ).hexdigest()[:10].upper()
+  return f"FMS-{digest}"
+
+
+def _prospective_capture_eligibility(
+  events: List[Dict[str, Any]],
+  event_time: int,
+  activation_time: Optional[int],
+  decided_at: int,
+  first_seen_by_event: Dict[Tuple[int, int], int],
+) -> Dict[str, Any]:
+  """Accept a live setup only when its complete package was known before entry."""
+  first_seen_values = [
+    first_seen_by_event[(int(event["id"]), int(event["time"]))]
+    for event in events
+    if event.get("id") is not None
+    and (int(event["id"]), int(event["time"])) in first_seen_by_event
+  ]
+  package_first_seen = max(first_seen_values, default=None)
+  if package_first_seen is None:
+    return {"eligible": False, "reason": "missing_first_seen_timestamp", "firstSeenAt": None, "activationTime": activation_time}
+  if package_first_seen < int(event_time):
+    return {"eligible": False, "reason": "invalid_pre_release_observation", "firstSeenAt": package_first_seen, "activationTime": activation_time}
+  if activation_time is None:
+    return {"eligible": False, "reason": "entry_candle_unavailable", "firstSeenAt": package_first_seen, "activationTime": None}
+  if package_first_seen >= int(activation_time):
+    return {"eligible": False, "reason": "observed_after_frozen_entry", "firstSeenAt": package_first_seen, "activationTime": int(activation_time)}
+  if int(decided_at) >= int(activation_time):
+    return {"eligible": False, "reason": "decision_after_frozen_entry", "firstSeenAt": package_first_seen, "activationTime": int(activation_time)}
+  return {"eligible": True, "reason": "captured_before_frozen_entry", "firstSeenAt": package_first_seen, "activationTime": int(activation_time)}
+
+
+def _planned_strictly_later_h4_open(event_time: int, candle_times: List[int]) -> int:
+  """Return the next H4 boundary even before that future candle is loaded."""
+  loaded_next = next((int(timestamp) for timestamp in candle_times if int(timestamp) > int(event_time)), None)
+  if loaded_next is not None:
+    return loaded_next
+  phase = int(candle_times[-1]) % H4_SECONDS if candle_times else 0
+  intervals = (int(event_time) - phase) // H4_SECONDS + 1
+  return phase + intervals * H4_SECONDS
+
+
+def _capture_tagged_demo_deals(observed_at: int) -> Dict[str, Any]:
+  """Read explicitly tagged demo deals. This function never sends or changes an order."""
+  def finish(payload: Dict[str, Any]) -> Dict[str, Any]:
+    status = {**payload, "checkedAt": int(observed_at), "orderTransmission": False}
+    _research_store.set_metadata("fms_demo_capture_status", json.dumps(status, separators=(",", ":")))
+    return status
+
+  decisions = [
+    row for row in _research_store.list_fms_live_decisions(limit=500)
+    if row.get("modelId") == PRACTICAL_MODEL_ID and row.get("status") == "qualified" and row.get("prospectiveEligible") is True
+  ]
+  tag_map = {
+    _forward_demo_tag(PRACTICAL_MODEL_ID, row["market"], row["patternId"], row["eventTime"]): row
+    for row in decisions
+  }
+  case_by_tag = {
+    _forward_demo_tag(PRACTICAL_MODEL_ID, row["market"], row["patternId"], row["eventTime"]): row
+    for row in _research_store.list_fms_live_execution_cases(limit=2000)
+    if row.get("modelId") == PRACTICAL_MODEL_ID
+  }
+  if not tag_map:
+    return finish({"status": "waiting_for_qualified_signal", "captured": 0, "accountLogin": None})
+  try:
+    with _mt5_access():
+      if not _ensure_mt5_initialized():
+        return finish({"status": "mt5_unavailable", "captured": 0, "accountLogin": None})
+      account = mt5.account_info()
+      if account is None:
+        return finish({"status": "account_unavailable", "captured": 0, "accountLogin": None})
+      account_data = _namedtuple_to_dict(account)
+      account_login = int(account_data.get("login") or getattr(account, "login", 0) or 0)
+      account_balance = float(account_data.get("balance") or getattr(account, "balance", 0) or 0)
+      trade_mode = int(account_data.get("trade_mode") if account_data.get("trade_mode") is not None else getattr(account, "trade_mode", -1))
+      demo_mode = int(getattr(mt5, "ACCOUNT_TRADE_MODE_DEMO", 0))
+      if trade_mode != demo_mode:
+        return finish({"status": "blocked_non_demo_account", "captured": 0, "accountLogin": account_login, "tradeMode": trade_mode})
+      deals = mt5.history_deals_get(
+        datetime.fromtimestamp(FORWARD_LEDGER_ACTIVATED_AT, tz=timezone.utc),
+        datetime.fromtimestamp(int(observed_at) + 1, tz=timezone.utc),
+      )
+  except Exception:
+    logger.exception("fms_demo_deal_capture_failed observed_at=%s", observed_at)
+    return finish({"status": "capture_failed", "captured": 0, "accountLogin": None})
+  captured = 0
+  position_tags = {
+    int(row["positionId"]): str(row["signalTag"])
+    for row in _research_store.list_fms_demo_deals(limit=20000)
+    if row.get("positionId") is not None and str(row.get("signalTag") or "") in tag_map
+  }
+  for deal in sorted(deals or [], key=lambda row: (int(getattr(row, "time", 0) or 0), int(getattr(row, "ticket", 0) or 0))):
+    raw = _namedtuple_to_dict(deal)
+    comment = str(raw.get("comment") or getattr(deal, "comment", "") or "").strip()
+    token = comment.split(maxsplit=1)[0].upper() if comment else ""
+    position_id = int(raw.get("position_id") or 0)
+    if token not in tag_map and position_id in position_tags:
+      token = position_tags[position_id]
+    decision = tag_map.get(token)
+    if decision is None or str(raw.get("symbol") or "").upper() != str(decision["market"]).upper():
+      continue
+    case = case_by_tag.get(token) or {}
+    signal = case.get("signal") or {}
+    entry_type = raw.get("entry")
+    if entry_type == int(getattr(mt5, "DEAL_ENTRY_IN", 0)) and signal.get("stop") is not None:
+      direction = str(signal.get("direction") or decision.get("direction") or "")
+      order_type = getattr(mt5, "ORDER_TYPE_BUY", 0) if direction == "long" else getattr(mt5, "ORDER_TYPE_SELL", 1)
+      initial_risk = None
+      try:
+        with _mt5_access():
+          calculated = mt5.order_calc_profit(
+            order_type, str(raw.get("symbol") or ""), float(raw.get("volume") or 0),
+            float(raw.get("price") or 0), float(signal.get("initialStop") or signal["stop"]),
+          )
+        initial_risk = None if calculated is None else abs(float(calculated))
+      except Exception:
+        logger.exception("fms_demo_risk_calculation_failed tag=%s ticket=%s", token, raw.get("ticket"))
+      actual_stop = None
+      actual_target = None
+      symbol_point = None
+      try:
+        with _mt5_access():
+          positions = mt5.positions_get(ticket=position_id) if position_id else None
+          orders = mt5.history_orders_get(position=position_id) if position_id else None
+          symbol_info = mt5.symbol_info(str(raw.get("symbol") or ""))
+        protection_sources = [
+          *(_namedtuple_to_dict(row) for row in (positions or [])),
+          *(_namedtuple_to_dict(row) for row in (orders or [])),
+        ]
+        for source in protection_sources:
+          source_stop = float(source.get("sl") or 0)
+          source_target = float(source.get("tp") or 0)
+          if actual_stop is None and source_stop > 0:
+            actual_stop = source_stop
+          if actual_target is None and source_target > 0:
+            actual_target = source_target
+          if actual_stop is not None and actual_target is not None:
+            break
+        symbol_point = float(getattr(symbol_info, "point", 0) or 0) or None
+        if actual_stop is not None:
+          with _mt5_access():
+            calculated = mt5.order_calc_profit(
+              order_type, str(raw.get("symbol") or ""), float(raw.get("volume") or 0),
+              float(raw.get("price") or 0), float(actual_stop),
+            )
+          initial_risk = None if calculated is None else abs(float(calculated))
+      except Exception:
+        logger.exception("fms_demo_protection_capture_failed tag=%s position=%s", token, position_id)
+      raw = {
+        **raw,
+        "fms_model_entry": signal.get("entry"),
+        "fms_model_stop": signal.get("initialStop") or signal.get("stop"),
+        "fms_account_balance": account_balance,
+        "fms_initial_risk_account": initial_risk,
+        "fms_actual_stop": actual_stop,
+        "fms_actual_target": actual_target,
+        "fms_protection_verified": actual_stop is not None and actual_target is not None,
+        "fms_symbol_point": symbol_point,
+        "fms_risk_percent": (
+          None if initial_risk is None or account_balance <= 0
+          else initial_risk / account_balance * 100
+        ),
+        "fms_capture_lag_seconds": max(0, int(observed_at) - int(raw.get("time") or observed_at)),
+      }
+    if _research_store.record_fms_demo_deal(account_login, token, observed_at, raw):
+      captured += 1
+    if position_id:
+      position_tags[position_id] = token
+  return finish({
+    "status": "capturing_demo_deals", "captured": captured, "accountLogin": account_login,
+    "tradeMode": demo_mode, "recognizedTags": len(tag_map),
+  })
+
+
+def _capture_forward_entry_quotes(response: Dict[str, Any], observed_at: int) -> None:
+  market = str(response.get("symbol") or "").upper()
+  if not market:
+    return
+  existing = {
+    (str(row["patternId"]), int(row["eventTime"])): row
+    for row in _research_store.list_fms_live_execution_cases(market, 500)
+  }
+  decision_keys = {
+    (str(row["patternId"]), int(row["eventTime"]))
+    for row in _research_store.list_fms_live_decisions(market, 500)
+    if row.get("status") == "qualified" and row.get("prospectiveEligible") is True
+  }
+  for signal in response.get("signals") or []:
+    key = (str(signal.get("patternId") or ""), int(signal.get("eventTime") or 0))
+    activation = signal.get("activationTime")
+    if key not in decision_keys or activation is None or int(activation) > int(observed_at):
+      continue
+    if (existing.get(key) or {}).get("entryQuote") is not None:
+      continue
+    quote = _quote_snapshot_for_forward_case(market, int(activation), observed_at)
+    if quote is None:
+      continue
+    _research_store.record_fms_live_execution_observation(
+      PRACTICAL_MODEL_ID, market, key[0], key[1], observed_at, signal, quote,
+    )
 
 
 def _schedule_forward_reconcile(observed_at: int) -> bool:
@@ -2963,7 +3232,7 @@ def research_chart_signals(
         if normalized_mode == "current" else "immutable-replay"
       )
       response_cache_key = hashlib.sha256("|".join([
-        "chart-response-v6-outcome-reasons", normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
+        "chart-response-v7-forward-demo", normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
         str(_research_store.get_metadata("fms_registered_reaction:reconciliation") or ""),
         calendar_revision,
         *(f"{run['id']}:{run['datasetFingerprint']}" for run in run_headers if run),
@@ -2991,8 +3260,7 @@ def research_chart_signals(
         assessment_status = str((((cached_response.get("realtime") or {}).get("latestPatternAssessment") or {}).get("status") or ""))
         has_pending_signal = any(signal.get("outcomeStatus") == "pending" for signal in cached_response.get("signals", []))
         needs_live_refresh = assessment_status == "awaiting_observation" or has_pending_signal
-        age = int(_time.time()) - int(cached_wrapper.get("createdAt", 0))
-        if not refresh or normalized_mode == "research_replay" or not needs_live_refresh or age < 12:
+        if not refresh or normalized_mode == "research_replay" or not needs_live_refresh:
           return cached_response
   source_runs: Dict[str, Dict[str, Any]] = {}
   source_results: Dict[str, Dict[str, Any]] = {}
@@ -3074,6 +3342,11 @@ def research_chart_signals(
   # unnecessary MT5 IPC call while constructing FMS responses; chart/history
   # routes must remain available while background signal work is running.
   generated_at = int(_time.time())
+  first_seen_by_event = {
+    (int(event["id"]), int(event["time"])): int(event["firstSeenAt"])
+    for event in observed_events if event.get("firstSeenAt") is not None
+  }
+
   observation_coverage_start = min((int(event["time"]) for event in observed_events), default=None)
   candidate_cache_key = hashlib.sha256("|".join([
     normalized_symbol, PRACTICAL_MODEL_HASH, dataset_fingerprint,
@@ -3156,6 +3429,7 @@ def research_chart_signals(
       m1_cache[key] = cached_minutes if cache_covers_interval else _fetch_research_candles(normalized_symbol, "M1", start, end, 1)
     return m1_cache[key]
   signals: List[Dict[str, Any]] = []
+  prospective_capture_by_key: Dict[Tuple[str, int], Dict[str, Any]] = {}
   for source_version, scoring_policy, candidate in window_candidates:
     event_time = int(candidate["eventTime"])
     pattern = matching_pattern(source_version, scoring_policy, candidate)
@@ -3204,10 +3478,23 @@ def research_chart_signals(
         management_trigger_r=execution.get("managementTriggerR"),
       )
     activation_time = evaluated.get("entryTime")
+    prospective_activation_time = (
+      int(activation_time) if activation_time is not None
+      else _planned_strictly_later_h4_open(event_time, custom_candle_times)
+    )
+    prospective_capture = _prospective_capture_eligibility(
+      list(candidate.get("events") or []), event_time,
+      prospective_activation_time, generated_at,
+      first_seen_by_event,
+    )
+    prospective_capture_by_key[(str(pattern["id"]), event_time)] = prospective_capture
+    if normalized_mode == "current" and not prospective_capture["eligible"]:
+      continue
     def outcome_value(name: str) -> Any:
       return evaluated.get(name)
     signals.append({
       "id": f"{pattern['id']}:{event_time}",
+      "demoTag": _forward_demo_tag(PRACTICAL_MODEL_ID, normalized_symbol, pattern["id"], event_time),
       "patternId": pattern["id"],
       "sourceVersionId": source_version,
       "eventTime": event_time,
@@ -3249,6 +3536,7 @@ def research_chart_signals(
       "outcomeCoverage": evaluated.get("coverage"),
       "pendingLifecycle": evaluated.get("pendingLifecycle"),
       "historicalReplay": normalized_mode == "research_replay",
+      "prospectiveCapture": prospective_capture if normalized_mode == "current" else None,
     })
   signal_activation_times = [int(signal["activationTime"]) for signal in signals if signal.get("activationTime") is not None]
   if signal_activation_times:
@@ -3375,6 +3663,21 @@ def research_chart_signals(
       event_time = int(assessment["time"])
       if event_time < PRACTICAL_MODEL_CREATED_AT:
         continue
+      assessment_key = (str(assessment["patternId"]), event_time)
+      prospective_capture = prospective_capture_by_key.get(assessment_key)
+      if prospective_capture is None:
+        prospective_capture = _prospective_capture_eligibility(
+          list(assessment.get("events") or []), event_time,
+          _planned_strictly_later_h4_open(event_time, custom_candle_times), generated_at,
+          first_seen_by_event,
+        )
+      assessment["prospectiveCapture"] = prospective_capture
+      if assessment.get("status") == "qualified" and not prospective_capture["eligible"]:
+        assessment["status"] = "late_for_contract"
+        assessment["reason"] = (
+          f"The package matched, but it was not processed before the frozen H4 entry "
+          f"({prospective_capture['reason']}). It is audit-only and cannot enter forward statistics."
+        )
       _research_store.record_fms_live_decision(
         PRACTICAL_MODEL_ID,
         normalized_symbol,
@@ -3384,7 +3687,26 @@ def research_chart_signals(
         str(assessment["status"]),
         assessment.get("direction"),
         assessment,
-        signal_by_key.get((str(assessment["patternId"]), event_time)),
+        signal_by_key.get(assessment_key),
+        bool(prospective_capture["eligible"]),
+        str(prospective_capture["reason"]),
+      )
+    qualified_decision_keys = {
+      (str(row["patternId"]), int(row["eventTime"]))
+      for row in _research_store.list_fms_live_decisions(normalized_symbol, 500)
+      if row.get("status") == "qualified" and row.get("prospectiveEligible") is True
+    }
+    for signal in signals:
+      signal_key = (str(signal["patternId"]), int(signal["eventTime"]))
+      if signal_key not in qualified_decision_keys:
+        continue
+      _research_store.record_fms_live_execution_observation(
+        PRACTICAL_MODEL_ID,
+        normalized_symbol,
+        signal_key[0],
+        signal_key[1],
+        generated_at,
+        signal,
       )
   policy_inflation_context = None
   if normalized_symbol == "EURUSD":
@@ -3446,12 +3768,343 @@ def research_chart_signals(
   return response
 
 
+def _demo_execution_payload(
+  cases: List[Dict[str, Any]],
+  deals: List[Dict[str, Any]],
+  capture_status: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+  case_by_tag = {
+    _forward_demo_tag(PRACTICAL_MODEL_ID, row["market"], row["patternId"], row["eventTime"]): row
+    for row in cases if row.get("modelId") == PRACTICAL_MODEL_ID
+  }
+  current_account = (capture_status or {}).get("accountLogin")
+  scoped_deals = [
+    deal for deal in deals
+    if current_account is None or int(deal.get("accountLogin") or 0) == int(current_account)
+  ]
+  grouped: Dict[Tuple[int, str, int], List[Dict[str, Any]]] = {}
+  for deal in scoped_deals:
+    if deal.get("signalTag") not in case_by_tag or deal.get("positionId") is None:
+      continue
+    grouped.setdefault((int(deal.get("accountLogin") or 0), str(deal["signalTag"]), int(deal["positionId"])), []).append(deal)
+  entry_in = int(getattr(mt5, "DEAL_ENTRY_IN", 0))
+  entry_out = int(getattr(mt5, "DEAL_ENTRY_OUT", 1))
+  entry_inout = int(getattr(mt5, "DEAL_ENTRY_INOUT", 2))
+  entry_out_by = int(getattr(mt5, "DEAL_ENTRY_OUT_BY", 3))
+  trades = []
+  for (account_login, tag, position_id), position_deals in sorted(grouped.items(), key=lambda row: row[0]):
+    entries = [row for row in position_deals if row.get("entryType") in {entry_in, entry_inout}]
+    exits = [row for row in position_deals if row.get("entryType") in {entry_out, entry_inout, entry_out_by}]
+    entry_volume = sum(float(row["volume"]) for row in entries)
+    exit_volume = sum(float(row["volume"]) for row in exits)
+    entry_price = (
+      sum(float(row["price"]) * float(row["volume"]) for row in entries) / entry_volume
+      if entry_volume > 0 else None
+    )
+    exit_price = (
+      sum(float(row["price"]) * float(row["volume"]) for row in exits) / exit_volume
+      if exit_volume > 0 else None
+    )
+    case = case_by_tag[tag]
+    signal = case.get("signal") or {}
+    actual_stop = next((row["deal"].get("fms_actual_stop") for row in entries if row.get("deal", {}).get("fms_actual_stop") is not None), None)
+    actual_target = next((row["deal"].get("fms_actual_target") for row in entries if row.get("deal", {}).get("fms_actual_target") is not None), None)
+    risk_distance = abs(float(entry_price) - float(actual_stop)) if entry_price is not None and actual_stop is not None else None
+    direction_sign = 1.0 if signal.get("direction") == "long" else -1.0
+    expected_deal_type = int(getattr(mt5, "DEAL_TYPE_BUY", 0)) if direction_sign > 0 else int(getattr(mt5, "DEAL_TYPE_SELL", 1))
+    direction_matches = bool(entries) and all(row.get("dealType") == expected_deal_type for row in entries)
+    point = next((float(row["deal"].get("fms_symbol_point") or 0) for row in entries if row.get("deal", {}).get("fms_symbol_point")), 0.0)
+    tolerance = max(point * 2, 1e-10)
+    model_stop = signal.get("initialStop") or signal.get("stop")
+    model_target = signal.get("target")
+    stop_matches = actual_stop is not None and model_stop is not None and abs(float(actual_stop) - float(model_stop)) <= tolerance
+    target_matches = actual_target is not None and model_target is not None and abs(float(actual_target) - float(model_target)) <= tolerance
+    entry_contract_adherent = direction_matches and stop_matches and target_matches
+    completed = bool(entries and exits and exit_volume >= entry_volume - 1e-9)
+    gross_fill_r = (
+      direction_sign * (float(exit_price) - float(entry_price)) / risk_distance
+      if completed and entry_price is not None and exit_price is not None and risk_distance and risk_distance > 0
+      else None
+    )
+    initial_risk_account = next((row["deal"].get("fms_initial_risk_account") for row in entries if row.get("deal", {}).get("fms_initial_risk_account") is not None), None)
+    net_account_result = sum(
+      float(row["profit"]) + float(row["commission"]) + float(row["swap"]) + float(row["fee"])
+      for row in position_deals
+    )
+    expected_result_r = signal.get("resultR")
+    expected_exit_time = signal.get("exitTime")
+    terminal_state = str(signal.get("outcomeStatus") or "") in {
+      "target_hit", "stop_hit", "break_even_hit", "expired",
+    }
+    lifecycle_matches = (
+      not completed
+      or (
+        terminal_state
+        and expected_result_r is not None and gross_fill_r is not None
+        and abs(float(gross_fill_r) - float(expected_result_r)) <= .15
+        and expected_exit_time is not None
+        and abs(max((int(row["time"]) for row in exits), default=0) - int(expected_exit_time)) <= 300
+      )
+    )
+    contract_adherent = entry_contract_adherent and lifecycle_matches
+    trades.append({
+      "signalTag": tag, "accountLogin": account_login, "market": case["market"], "patternId": case["patternId"],
+      "eventTime": case["eventTime"], "positionId": position_id,
+      "status": "completed" if completed else "open_or_partial",
+      "entryPrice": entry_price, "exitPrice": exit_price,
+      "entryTime": min((int(row["time"]) for row in entries), default=None),
+      "exitTime": max((int(row["time"]) for row in exits), default=None),
+      "volume": entry_volume, "grossFillR": gross_fill_r,
+      "initialRiskAccount": initial_risk_account,
+      "riskPercent": next((row["deal"].get("fms_risk_percent") for row in entries if row.get("deal", {}).get("fms_risk_percent") is not None), None),
+      "actualStop": actual_stop, "actualTarget": actual_target,
+      "directionMatches": direction_matches, "stopMatches": stop_matches,
+      "targetMatches": target_matches, "lifecycleMatches": lifecycle_matches,
+      "contractAdherent": contract_adherent,
+      "profit": sum(float(row["profit"]) for row in position_deals),
+      "commission": sum(float(row["commission"]) for row in position_deals),
+      "swap": sum(float(row["swap"]) for row in position_deals),
+      "fee": sum(float(row["fee"]) for row in position_deals),
+      "netAccountResult": net_account_result,
+      "netR": (
+        net_account_result / float(initial_risk_account)
+        if completed and initial_risk_account is not None and float(initial_risk_account) > 0 else None
+      ),
+      "dealCount": len(position_deals),
+    })
+  completed_trades = [row for row in trades if row["status"] == "completed"]
+  demo_setup_groups: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
+  for trade in completed_trades:
+    demo_setup_groups.setdefault((str(trade["market"]), str(trade["patternId"])), []).append(trade)
+  demo_setup_summaries = []
+  for (market, pattern_id), rows in sorted(demo_setup_groups.items()):
+    net_rows = [float(row["netR"]) for row in rows if row.get("netR") is not None]
+    average_net_r = statistics.mean(net_rows) if net_rows else None
+    ready = len(rows) >= 5 and len(net_rows) == len(rows) and average_net_r is not None and average_net_r > 0 and all(row.get("contractAdherent") for row in rows)
+    demo_setup_summaries.append({
+      "market": market, "patternId": pattern_id, "completedTrades": len(rows),
+      "averageNetR": average_net_r, "contractAdherent": all(row.get("contractAdherent") for row in rows),
+      "eligibleForDemoReliance": ready,
+    })
+  demo_ready_setups = sum(bool(row["eligibleForDemoReliance"]) for row in demo_setup_summaries)
+  ordered_completed = sorted(completed_trades, key=lambda row: (int(row.get("exitTime") or 0), int(row["positionId"])))
+  running_result = 0.0
+  peak_result = 0.0
+  maximum_drawdown_account = 0.0
+  consecutive_losses = 0
+  maximum_consecutive_losses = 0
+  for trade in ordered_completed:
+    result = float(trade["netAccountResult"])
+    running_result += result
+    peak_result = max(peak_result, running_result)
+    maximum_drawdown_account = max(maximum_drawdown_account, peak_result - running_result)
+    consecutive_losses = consecutive_losses + 1 if result < 0 else 0
+    maximum_consecutive_losses = max(maximum_consecutive_losses, consecutive_losses)
+  starting_balance = next((
+    float(row["deal"].get("fms_account_balance"))
+    for row in scoped_deals if row.get("deal", {}).get("fms_account_balance")
+  ), None)
+  maximum_drawdown_percent = (
+    maximum_drawdown_account / starting_balance * 100
+    if starting_balance and starting_balance > 0 else None
+  )
+  observed_until = int((capture_status or {}).get("checkedAt") or _time.time())
+  intervals = sorted(
+    (int(row["entryTime"]), int(row.get("exitTime") or observed_until))
+    for row in trades if row.get("entryTime") is not None
+  )
+  boundaries = sorted([*( (start, 1) for start, _end in intervals), *( (end, -1) for _start, end in intervals)], key=lambda row: (row[0], row[1]))
+  open_count = 0
+  maximum_open_trades = 0
+  for _timestamp, change in boundaries:
+    open_count += change
+    maximum_open_trades = max(maximum_open_trades, open_count)
+  risk_known = bool(completed_trades) and all(row.get("riskPercent") is not None for row in completed_trades)
+  excessive_risk = any(
+    row.get("riskPercent") is None
+    or float(row["riskPercent"]) > float(FMS_MANUAL_DEMO_RISK_POLICY["maximumRiskPerTradePercent"])
+    for row in trades
+  ) if trades else False
+  positions_per_tag: Dict[str, set] = {}
+  for trade in trades:
+    positions_per_tag.setdefault(str(trade["signalTag"]), set()).add(int(trade["positionId"]))
+  duplicate_tag_observed = any(len(position_ids) > 1 for position_ids in positions_per_tag.values())
+  contract_violation = any(not bool(row.get("contractAdherent")) for row in trades)
+  kill_switch_triggered = (
+    (maximum_drawdown_percent is not None and maximum_drawdown_percent >= float(FMS_MANUAL_DEMO_RISK_POLICY["maximumPeakToTroughDrawdownPercent"]))
+    or maximum_consecutive_losses >= int(FMS_MANUAL_DEMO_RISK_POLICY["maximumConsecutiveLosingTrades"])
+    or maximum_open_trades > int(FMS_MANUAL_DEMO_RISK_POLICY["maximumOpenTrades"])
+    or excessive_risk
+    or contract_violation
+    or duplicate_tag_observed
+  )
+  risk_policy_observed = (
+    len(completed_trades) >= 30
+    and risk_known
+    and not excessive_risk
+    and not contract_violation
+    and not duplicate_tag_observed
+    and maximum_open_trades <= int(FMS_MANUAL_DEMO_RISK_POLICY["maximumOpenTrades"])
+    and maximum_drawdown_percent is not None
+    and maximum_drawdown_percent <= float(FMS_MANUAL_DEMO_RISK_POLICY["maximumPeakToTroughDrawdownPercent"])
+    and maximum_consecutive_losses <= int(FMS_MANUAL_DEMO_RISK_POLICY["maximumConsecutiveLosingTrades"])
+    and not kill_switch_triggered
+  )
+  return {
+    "schema": "fms-demo-execution-v1",
+    "captureStatus": capture_status or {"status": "not_checked", "orderTransmission": False},
+    "taggedDeals": sum(row["dealCount"] for row in trades),
+    "matchedTrades": len(trades),
+    "completedTrades": len(completed_trades),
+    "representedSetups": len(demo_setup_summaries),
+    "demoReadySetups": demo_ready_setups,
+    "setupSummaries": demo_setup_summaries,
+    "openOrPartialTrades": len(trades) - len(completed_trades),
+    "totalNetAccountResult": sum(float(row["netAccountResult"]) for row in completed_trades),
+    "averageGrossFillR": (
+      statistics.mean(float(row["grossFillR"]) for row in completed_trades if row.get("grossFillR") is not None)
+      if any(row.get("grossFillR") is not None for row in completed_trades) else None
+    ),
+    "averageNetR": (
+      statistics.mean(float(row["netR"]) for row in completed_trades if row.get("netR") is not None)
+      if any(row.get("netR") is not None for row in completed_trades) else None
+    ),
+    "riskPolicy": {
+      **FMS_MANUAL_DEMO_RISK_POLICY,
+      "observed": risk_policy_observed,
+      "killSwitchImplemented": True,
+      "killSwitchTriggered": kill_switch_triggered,
+      "operationalTradingAllowed": not kill_switch_triggered,
+      "riskKnownForEveryCompletedTrade": risk_known,
+      "contractAdherentForEveryTrade": bool(trades) and not contract_violation,
+      "excessiveRiskObserved": excessive_risk,
+      "contractViolationObserved": contract_violation,
+      "duplicateTagObserved": duplicate_tag_observed,
+      "maximumOpenTradesObserved": maximum_open_trades,
+      "maximumDrawdownAccount": maximum_drawdown_account,
+      "maximumDrawdownPercent": maximum_drawdown_percent,
+      "maximumConsecutiveLosingTradesObserved": maximum_consecutive_losses,
+    },
+    "trades": sorted(
+      trades, key=lambda row: (int(row.get("entryTime") or 0), int(row["positionId"])), reverse=True,
+    )[:50],
+    "orderTransmission": False,
+    "instructions": "On an MT5 demo account only, manually place the FMS direction and paste its exact FMS demo tag into the order Comment. Fyodor records matching deals but never sends the order.",
+  }
+
+
+def _forward_validation_payload(
+  decisions: List[Dict[str, Any]],
+  cases: List[Dict[str, Any]],
+  demo_execution: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+  forward_decisions = [
+    row for row in decisions
+    if row["modelId"] == PRACTICAL_MODEL_ID and row["status"] == "qualified" and row.get("prospectiveEligible") is True
+  ]
+  forward_cases = [row for row in cases if row["modelId"] == PRACTICAL_MODEL_ID]
+  resolved_forward = [
+    row for row in forward_cases
+    if row.get("resultR") is not None and row.get("state") in {"target_hit", "stop_hit", "expired"}
+  ]
+  grouped_cases: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
+  for row in forward_cases:
+    grouped_cases.setdefault((str(row["market"]), str(row["patternId"])), []).append(row)
+  setup_summaries = []
+  for (market, pattern_id), setup_cases in sorted(grouped_cases.items()):
+    setup_resolved = [
+      row for row in setup_cases
+      if row.get("resultR") is not None and row.get("state") in {"target_hit", "stop_hit", "expired"}
+    ]
+    setup_quote_eligible = sum(row.get("signal", {}).get("activationTime") is not None for row in setup_cases)
+    setup_near_quotes = sum(
+      (row.get("entryQuote") or {}).get("quality") == "near_entry"
+      for row in setup_cases if row.get("signal", {}).get("activationTime") is not None
+    )
+    setup_average = (
+      statistics.mean(float(row["resultR"]) for row in setup_resolved)
+      if setup_resolved else None
+    )
+    setup_quote_coverage = setup_near_quotes / setup_quote_eligible if setup_quote_eligible else None
+    setup_ready = (
+      len(setup_resolved) >= 10
+      and setup_average is not None and setup_average > 0
+      and setup_quote_coverage is not None and setup_quote_coverage >= .8
+    )
+    setup_summaries.append({
+      "market": market, "patternId": pattern_id, "resolvedCases": len(setup_resolved),
+      "averageR": setup_average, "nearEntryQuoteCoverage": setup_quote_coverage,
+      "eligibleForPaperReliance": setup_ready,
+    })
+  represented_setups = sum(bool(row["resolvedCases"]) for row in setup_summaries)
+  paper_ready_setups = sum(bool(row["eligibleForPaperReliance"]) for row in setup_summaries)
+  quote_eligible = sum(row.get("signal", {}).get("activationTime") is not None for row in forward_cases)
+  near_entry_quotes = sum(
+    (row.get("entryQuote") or {}).get("quality") == "near_entry"
+    for row in forward_cases
+    if row.get("signal", {}).get("activationTime") is not None
+  )
+  forward_average_r = (
+    statistics.mean(float(row["resultR"]) for row in resolved_forward)
+    if resolved_forward else None
+  )
+  paper_checks = {
+    "minimumResolvedCases": len(resolved_forward) >= 50,
+    "minimumPaperReadySetups": paper_ready_setups >= 5,
+    "positiveAverageR": forward_average_r is not None and forward_average_r > 0,
+    "nearEntryQuoteCoverage": quote_eligible > 0 and near_entry_quotes / quote_eligible >= .8,
+  }
+  demo_trading_checks = {
+    "registeredSetupsAvailable": bool(PRACTICAL_PATTERN_DEFINITIONS),
+    "immutableFirstSeenCapture": True,
+    "lateCaptureExcluded": True,
+    "deterministicEntryAndOutcomeLifecycle": True,
+  }
+  paper_ready = all(paper_checks.values())
+  demo_trading_ready = all(demo_trading_checks.values())
+  return {
+    "schema": "fms-forward-validation-v1",
+    "status": "demo_monitoring_ready" if demo_trading_ready else "collecting_forward_evidence",
+    "modelId": PRACTICAL_MODEL_ID,
+    "startedAt": FORWARD_LEDGER_ACTIVATED_AT,
+    "qualifiedDecisions": len(forward_decisions),
+    "trackedCases": len(forward_cases),
+    "resolvedCases": len(resolved_forward),
+    "pendingCases": sum(row.get("state") == "pending" for row in forward_cases),
+    "ambiguousOrUnavailableCases": sum(row.get("state") in {"ambiguous", "unevaluable"} for row in forward_cases),
+    "representedSetups": represented_setups,
+    "paperReadySetups": paper_ready_setups,
+    "setupSummaries": setup_summaries,
+    "averageR": forward_average_r,
+    "nearEntryQuoteCount": near_entry_quotes,
+    "quoteEligibleCount": quote_eligible,
+    "paperChecks": paper_checks,
+    "eligibleForPaperReliance": paper_ready,
+    "demoTradingChecks": demo_trading_checks,
+    "eligibleForDemoTrading": demo_trading_ready,
+    "realMoneyChecks": {"realMoneyExecutionInScope": False},
+    "demoExecution": demo_execution,
+    "eligibleForRealMoneyReliance": False,
+    "decision": (
+      "Ready for demo-only Shadow Trader monitoring. A trade appears only when a registered setup is captured before its frozen H4 entry; late catch-up data remains audit-only."
+      if demo_trading_ready else
+      "Demo monitoring is unavailable until the prospective signal lifecycle is operational."
+    ),
+    "limitations": [
+      "Forward cases remain useful evidence, but they do not block demo-only monitoring.",
+      "Results are gross; execution costs are deliberately deferred.",
+      "Historical and forward profitability cannot guarantee the next demo trade.",
+      "Real-money execution is outside the current product boundary.",
+    ],
+  }
+
+
 @app.get("/research/chart-signals/global")
-def research_global_chart_signals(tf: str = "H4") -> Dict[str, Any]:
+def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict[str, Any]:
   """Return every practical current registry without changing the selected chart."""
   effective_patterns = [_reconciled_pattern(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS]
   markets = [
-    research_chart_signals(symbol=market, tf=tf, mode="current")
+    research_chart_signals(symbol=market, tf=tf, mode="current", refresh=refresh)
     for market in sorted({str(pattern["market"]) for pattern in effective_patterns})
   ]
   unresolved_by_reason: Dict[str, int] = {}
@@ -3488,11 +4141,11 @@ def research_global_chart_signals(tf: str = "H4") -> Dict[str, Any]:
       "status": "review_worthy" if review_worthy else "active_evidence_weakened",
       "active": frozen, "challenger": challenger,
       "reason": (
-        "The development-selected fixed-contract challenger stayed positive later and exceeded the active contract. Codex review is required before any registry change."
+        "The development-selected execution challenger stayed positive later and exceeded the active contract. Codex review is required before any registry change."
         if review_worthy else
         "The active contract's later average is no longer positive. It remains active, but its execution needs review."
       ),
-      "artifact": str(research.get("schema") or "fms-execution-challenger-v1"),
+      "artifact": str(research.get("schema") or "fms-execution-challenger-v2"),
       "configurationHash": research.get("configurationHash"),
       "candleFingerprint": research.get("candleFingerprint"),
       "familyWinners": research.get("familyWinners") or [],
@@ -3514,6 +4167,21 @@ def research_global_chart_signals(tf: str = "H4") -> Dict[str, Any]:
     }
     for pattern in effective_patterns
   ]
+
+  forward_decisions = _research_store.list_fms_live_decisions(limit=500)
+  forward_cases = _research_store.list_fms_live_execution_cases(limit=2000)
+  demo_status = None
+  demo_status_raw = _research_store.get_metadata("fms_demo_capture_status")
+  if demo_status_raw:
+    try:
+      parsed_demo_status = json.loads(demo_status_raw)
+      demo_status = parsed_demo_status if isinstance(parsed_demo_status, dict) else None
+    except (TypeError, ValueError):
+      demo_status = {"status": "unreadable_capture_status", "orderTransmission": False}
+  demo_execution = _demo_execution_payload(
+    forward_cases, _research_store.list_fms_demo_deals(limit=20000), demo_status,
+  )
+  forward_validation = _forward_validation_payload(forward_decisions, forward_cases, demo_execution)
   atlas_intelligence: List[Dict[str, Any]] = []
   atlas_raw = _research_store.get_metadata("fms_reaction_atlas:latest")
   if atlas_raw:
@@ -3591,6 +4259,7 @@ def research_global_chart_signals(tf: str = "H4") -> Dict[str, Any]:
     "generatedAt": max((int(row.get("generatedAt") or 0) for row in markets), default=int(_time.time())),
     "markets": markets,
     "liveDecisions": _research_store.list_fms_live_decisions(limit=50),
+    "forwardValidation": forward_validation,
     "outcomeReview": {"unresolvedByReason": unresolved_by_reason, "executionReviews": execution_reviews},
     "researchIntelligence": [*registered, *atlas_intelligence, *FMS_RESEARCH_INTELLIGENCE],
     "explanation": "Registered means historically positive under its frozen no-lookahead recipe. Contender means potentially useful but unstable. Avoid means repeated tests did not support a standalone directional rule; it may still matter as context or volatility. Insufficient means the archive cannot support an honest conclusion yet.",
@@ -3672,7 +4341,7 @@ def research_readiness_report() -> Dict[str, Any]:
     "registeredSetups": registered_rows,
     "quarantinedOrRetiredSetups": quarantined,
     "immutableLiveDecisions": len(decisions),
-    "qualifiedLiveDecisions": sum(row["status"] == "qualified" for row in decisions),
+    "qualifiedLiveDecisions": sum(row["status"] == "qualified" and row.get("prospectiveEligible") is True for row in decisions),
     "noTradeLiveDecisions": sum(row["status"] == "no_trade" for row in decisions),
     "paperLiveEvidence": {
       "immutableFirstSeen": True,
@@ -3685,10 +4354,12 @@ def research_readiness_report() -> Dict[str, Any]:
     "unresolvedIntegrityRisks": [
       "Historical profitability does not prove future profitability.",
       "The registered entry remains the first strictly later H4 open, not an executable release-time fill.",
-      "Live decisions are captured, but actual broker fills and trading costs are not yet recorded.",
+      "Execution costs are deliberately deferred during demo-only model validation.",
     ],
+    "eligibleForDemoShadowUse": complete == len(registered_rows) and bool(registered_rows),
+    "eligibleForDemoShadowUseReason": "Yes. Registered recipes are historically audited and prospective late-capture protection is active; use remains demo-only.",
     "eligibleForRuleBasedLiveUse": False,
-    "eligibleForRuleBasedLiveUseReason": "No. Historical and orientation audits are complete, but setup-specific paper execution, actual costs, risk limits, and a kill switch are not complete.",
+    "eligibleForRuleBasedLiveUseReason": "No. Real-money execution is outside the current product boundary; FMS is currently scoped to demo-only monitoring.",
   }
 
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import sqlite3
 from pathlib import Path
@@ -185,14 +186,66 @@ class ResearchStore:
           first_decided_at INTEGER NOT NULL,
           status TEXT NOT NULL,
           direction TEXT,
+          prospective_eligible INTEGER NOT NULL DEFAULT 0,
+          eligibility_reason TEXT NOT NULL DEFAULT 'legacy_unverified',
           assessment_json TEXT NOT NULL,
           signal_json TEXT,
           PRIMARY KEY (model_id, market, pattern_id, event_time)
         );
         CREATE INDEX IF NOT EXISTS idx_fms_live_decisions_recent
           ON fms_live_decisions (first_decided_at DESC);
+        CREATE TABLE IF NOT EXISTS fms_live_execution_observations (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          model_id TEXT NOT NULL,
+          market TEXT NOT NULL,
+          pattern_id TEXT NOT NULL,
+          event_time INTEGER NOT NULL,
+          observed_at INTEGER NOT NULL,
+          state TEXT NOT NULL,
+          result_r REAL,
+          snapshot_hash TEXT NOT NULL,
+          signal_json TEXT NOT NULL,
+          quote_json TEXT,
+          UNIQUE (model_id, market, pattern_id, event_time, snapshot_hash)
+        );
+        CREATE INDEX IF NOT EXISTS idx_fms_live_execution_latest
+          ON fms_live_execution_observations
+          (model_id, market, pattern_id, event_time, observed_at DESC, id DESC);
+        CREATE TABLE IF NOT EXISTS fms_demo_deals (
+          account_login INTEGER NOT NULL,
+          deal_ticket INTEGER NOT NULL,
+          signal_tag TEXT NOT NULL,
+          captured_at INTEGER NOT NULL,
+          deal_time INTEGER NOT NULL,
+          symbol TEXT NOT NULL,
+          position_id INTEGER,
+          entry_type INTEGER,
+          deal_type INTEGER,
+          volume REAL NOT NULL,
+          price REAL NOT NULL,
+          commission REAL NOT NULL,
+          swap REAL NOT NULL,
+          profit REAL NOT NULL,
+          fee REAL NOT NULL,
+          comment TEXT NOT NULL,
+          deal_json TEXT NOT NULL,
+          PRIMARY KEY (account_login, deal_ticket)
+        );
+        CREATE INDEX IF NOT EXISTS idx_fms_demo_deals_signal
+          ON fms_demo_deals (signal_tag, deal_time, deal_ticket);
         """
       )
+      decision_columns = {
+        str(row["name"]) for row in connection.execute("PRAGMA table_info(fms_live_decisions)").fetchall()
+      }
+      if "prospective_eligible" not in decision_columns:
+        connection.execute(
+          "ALTER TABLE fms_live_decisions ADD COLUMN prospective_eligible INTEGER NOT NULL DEFAULT 0"
+        )
+      if "eligibility_reason" not in decision_columns:
+        connection.execute(
+          "ALTER TABLE fms_live_decisions ADD COLUMN eligibility_reason TEXT NOT NULL DEFAULT 'legacy_unverified'"
+        )
 
   def set_metadata(self, key: str, value: str) -> None:
     with self._write_lock, self._connect() as connection:
@@ -213,13 +266,16 @@ class ResearchStore:
     direction: Optional[str],
     assessment: Dict[str, Any],
     signal: Optional[Dict[str, Any]],
+    prospective_eligible: bool = False,
+    eligibility_reason: str = "legacy_unverified",
   ) -> bool:
     with self._write_lock, self._connect() as connection:
       cursor = connection.execute(
-        "INSERT OR IGNORE INTO fms_live_decisions(model_id, market, pattern_id, event_time, first_decided_at, status, direction, assessment_json, signal_json) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT OR IGNORE INTO fms_live_decisions(model_id, market, pattern_id, event_time, first_decided_at, status, direction, prospective_eligible, eligibility_reason, assessment_json, signal_json) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
           model_id, market.upper(), pattern_id, int(event_time), int(first_decided_at), status, direction,
+          1 if prospective_eligible else 0, eligibility_reason,
           json.dumps(assessment, sort_keys=True, separators=(",", ":")),
           None if signal is None else json.dumps(signal, sort_keys=True, separators=(",", ":")),
         ),
@@ -247,8 +303,164 @@ class ResearchStore:
       "firstDecidedAt": int(row["first_decided_at"]),
       "status": str(row["status"]),
       "direction": None if row["direction"] is None else str(row["direction"]),
+      "prospectiveEligible": bool(row["prospective_eligible"]),
+      "eligibilityReason": str(row["eligibility_reason"]),
       "assessment": json.loads(row["assessment_json"]),
       "signal": None if row["signal_json"] is None else json.loads(row["signal_json"]),
+    } for row in rows]
+
+  def record_fms_live_execution_observation(
+    self,
+    model_id: str,
+    market: str,
+    pattern_id: str,
+    event_time: int,
+    observed_at: int,
+    signal: Dict[str, Any],
+    quote: Optional[Dict[str, Any]] = None,
+  ) -> bool:
+    """Append a changed forward-paper lifecycle snapshot without rewriting history."""
+    with self._write_lock, self._connect() as connection:
+      quote_json = None if quote is None else json.dumps(quote, sort_keys=True, separators=(",", ":"))
+      if quote_json is None:
+        prior_quote = connection.execute(
+          "SELECT quote_json FROM fms_live_execution_observations "
+          "WHERE model_id = ? AND market = ? AND pattern_id = ? AND event_time = ? AND quote_json IS NOT NULL "
+          "ORDER BY observed_at DESC, id DESC LIMIT 1",
+          (model_id, market.upper(), pattern_id, int(event_time)),
+        ).fetchone()
+        quote_json = None if prior_quote is None else str(prior_quote["quote_json"])
+      signal_json = json.dumps(signal, sort_keys=True, separators=(",", ":"))
+      hash_signal = json.loads(signal_json)
+      if isinstance(hash_signal.get("pendingLifecycle"), dict):
+        hash_signal["pendingLifecycle"].pop("asOf", None)
+      stable_signal_json = json.dumps(hash_signal, sort_keys=True, separators=(",", ":"))
+      snapshot_hash = hashlib.sha256(f"{stable_signal_json}|{quote_json or ''}".encode("utf-8")).hexdigest()
+      state = str(signal.get("outcomeStatus") or "unknown")
+      result = signal.get("resultR")
+      result_r = None if result is None else float(result)
+      cursor = connection.execute(
+        "INSERT OR IGNORE INTO fms_live_execution_observations("
+        "model_id, market, pattern_id, event_time, observed_at, state, result_r, snapshot_hash, signal_json, quote_json"
+        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+          model_id, market.upper(), pattern_id, int(event_time), int(observed_at), state,
+          result_r, snapshot_hash, signal_json, quote_json,
+        ),
+      )
+      return cursor.rowcount > 0
+
+  def list_fms_live_execution_cases(
+    self,
+    market: Optional[str] = None,
+    limit: int = 500,
+  ) -> List[Dict[str, Any]]:
+    """Return the latest lifecycle snapshot while retaining the append-only audit trail."""
+    bounded_limit = max(1, min(int(limit), 2000))
+    market_clause = "AND market = ?" if market else ""
+    params: tuple[Any, ...] = ((market.upper(), bounded_limit) if market else (bounded_limit,))
+    with self._connect() as connection:
+      rows = connection.execute(
+        f"""
+        SELECT * FROM (
+          SELECT observation.*,
+                 ROW_NUMBER() OVER (
+                   PARTITION BY model_id, market, pattern_id, event_time
+                   ORDER BY observed_at DESC, id DESC
+                 ) AS row_number
+          FROM fms_live_execution_observations AS observation
+          WHERE 1 = 1 {market_clause}
+        ) WHERE row_number = 1
+        ORDER BY observed_at DESC, event_time DESC
+        LIMIT ?
+        """,
+        params,
+      ).fetchall()
+    return [{
+      "modelId": str(row["model_id"]),
+      "market": str(row["market"]),
+      "patternId": str(row["pattern_id"]),
+      "eventTime": int(row["event_time"]),
+      "observedAt": int(row["observed_at"]),
+      "state": str(row["state"]),
+      "resultR": None if row["result_r"] is None else float(row["result_r"]),
+      "signal": json.loads(row["signal_json"]),
+      "entryQuote": None if row["quote_json"] is None else json.loads(row["quote_json"]),
+    } for row in rows]
+
+  def count_fms_live_execution_observations(
+    self,
+    model_id: str,
+    market: str,
+    pattern_id: str,
+    event_time: int,
+  ) -> int:
+    with self._connect() as connection:
+      row = connection.execute(
+        "SELECT COUNT(*) AS count FROM fms_live_execution_observations "
+        "WHERE model_id = ? AND market = ? AND pattern_id = ? AND event_time = ?",
+        (model_id, market.upper(), pattern_id, int(event_time)),
+      ).fetchone()
+    return int(row["count"])
+
+  def record_fms_demo_deal(
+    self,
+    account_login: int,
+    signal_tag: str,
+    captured_at: int,
+    deal: Dict[str, Any],
+  ) -> bool:
+    with self._write_lock, self._connect() as connection:
+      cursor = connection.execute(
+        "INSERT OR IGNORE INTO fms_demo_deals("
+        "account_login, deal_ticket, signal_tag, captured_at, deal_time, symbol, position_id, entry_type, deal_type, "
+        "volume, price, commission, swap, profit, fee, comment, deal_json"
+        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        (
+          int(account_login), int(deal["ticket"]), signal_tag, int(captured_at), int(deal.get("time") or 0),
+          str(deal.get("symbol") or "").upper(), int(deal.get("position_id") or 0) or None,
+          None if deal.get("entry") is None else int(deal["entry"]),
+          None if deal.get("type") is None else int(deal["type"]),
+          float(deal.get("volume") or 0), float(deal.get("price") or 0),
+          float(deal.get("commission") or 0), float(deal.get("swap") or 0),
+          float(deal.get("profit") or 0), float(deal.get("fee") or 0),
+          str(deal.get("comment") or ""),
+          json.dumps(deal, sort_keys=True, separators=(",", ":"), default=str),
+        ),
+      )
+      return cursor.rowcount > 0
+
+  def list_fms_demo_deals(self, signal_tag: Optional[str] = None, limit: int = 5000) -> List[Dict[str, Any]]:
+    bounded_limit = max(1, min(int(limit), 20000))
+    with self._connect() as connection:
+      if signal_tag:
+        rows = connection.execute(
+          "SELECT * FROM fms_demo_deals WHERE signal_tag = ? ORDER BY deal_time, deal_ticket LIMIT ?",
+          (signal_tag, bounded_limit),
+        ).fetchall()
+      else:
+        rows = connection.execute(
+          "SELECT * FROM fms_demo_deals ORDER BY deal_time DESC, deal_ticket DESC LIMIT ?",
+          (bounded_limit,),
+        ).fetchall()
+    return [{
+      "accountLogin": int(row["account_login"]),
+      "dealTicket": int(row["deal_ticket"]),
+      "signalTag": str(row["signal_tag"]),
+      "capturedAt": int(row["captured_at"]),
+      "time": int(row["deal_time"]),
+      "symbol": str(row["symbol"]),
+      "positionId": None if row["position_id"] is None else int(row["position_id"]),
+      "entryType": None if row["entry_type"] is None else int(row["entry_type"]),
+      "dealType": None if row["deal_type"] is None else int(row["deal_type"]),
+      "volume": float(row["volume"]),
+      "price": float(row["price"]),
+      "commission": float(row["commission"]),
+      "swap": float(row["swap"]),
+      "profit": float(row["profit"]),
+      "fee": float(row["fee"]),
+      "comment": str(row["comment"]),
+      "deal": json.loads(row["deal_json"]),
     } for row in rows]
 
   def get_metadata(self, key: str) -> Optional[str]:

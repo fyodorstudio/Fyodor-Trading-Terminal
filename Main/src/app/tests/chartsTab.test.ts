@@ -3,19 +3,26 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ChartSettingsDrawer } from "@/app/components/ChartSettingsDrawer";
 import { ChartMacroBiasAudit } from "@/app/components/ChartMacroBiasAudit";
-import { ChartMacroBiasRealtimeCard } from "@/app/components/ChartMacroBiasRealtimeCard";
+import { ChartMacroBiasRealtimeCard, marketMatchesCurrencySelection } from "@/app/components/ChartMacroBiasRealtimeCard";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import { ChartPairMatrixContextMarkers, clusterPairMatrixMarkerViews } from "@/app/components/ChartPairMatrixContextMarkers";
 import { ChartPairMatrixRangeOverlay, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
 import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
 import { buildMacroSignalShadowAccount, buildMacroSignalShadowPosition, normalizeShadowRiskPercent, normalizeShadowStartingBalance } from "@/app/lib/macroSignalShadow";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
-import { buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasReplayStatusLabel, getMacroBiasRequestScope, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange } from "@/app/tabs/primary/ChartsTab";
+import { buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasReplayStatusLabel, getMacroBiasRequestScope, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, isMacroBiasMarketSupported, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange, shouldApplyMacroBiasRefresh } from "@/app/tabs/primary/ChartsTab";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MacroSignalMetrics } from "@/app/types";
 import { DEFAULT_CHART_TIMEFRAME, getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
 
 describe("getChartConnectionLabel", () => {
+  it("keeps live FMS discovery enabled for every registered market without redundant rerenders", () => {
+    expect(["AUDUSD", "EURUSD", "GBPUSD", "NZDUSD", "USDCAD", "USDCHF", "USDJPY"].every(isMacroBiasMarketSupported)).toBe(true);
+    expect(isMacroBiasMarketSupported("BTCUSD")).toBe(false);
+    const current = { generatedAt: 100 } as MacroSignalGlobalResponse;
+    expect(shouldApplyMacroBiasRefresh(current, { generatedAt: 100 } as MacroSignalGlobalResponse)).toBe(false);
+    expect(shouldApplyMacroBiasRefresh(current, { generatedAt: 101 } as MacroSignalGlobalResponse)).toBe(true);
+  });
   it("opens Charts on the H4 timeframe by default", () => {
     expect(DEFAULT_CHART_TIMEFRAME).toBe("H4");
   });
@@ -117,7 +124,7 @@ describe("getChartConnectionLabel", () => {
     const signal: MacroSignalChartSignal = {
       id: "signal", patternId: "pattern", sourceVersionId: "v2", eventTime: 1_000, activationTime: 14_400,
       execution: { stopAtr: 2, targetR: .5, expiryCandles: 42 }, stopAtr: 2, targetR: .5, expiryCandles: 42,
-      entry: 1.35000, stop: 1.34000, target: 1.35500,
+      entry: 1.35000, atr: .00500, stop: 1.34000, target: 1.35500,
       historicalReplay: true, direction: "long", label: "US labor claims improvement", agreement: "consensus", pairVote: 1,
       backgroundDirection: "short", backgroundPairVote: -1, backgroundAlignment: "aligned", backgroundCoverageComplete: true,
       highestImpact: "high", events: [], outcomeStatus: "target_hit", resultR: .5, exitTime: 28_800,
@@ -171,13 +178,19 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Direction worked after 6 H4");
     expect(html).toContain("Worked, but trade lost");
     expect(html).toContain("Different measurements:");
-    expect(html.indexOf("US labor claims improvement")).toBeLessThan(html.indexOf("Release time"));
+    expect(html.indexOf("Initial move followed")).toBeLessThan(html.indexOf("Why the arrow appeared"));
+    expect(html.indexOf("Frozen trade · TP reached · +0.50R")).toBeLessThan(html.indexOf("Why the arrow appeared"));
     expect(html).toContain("Closed — target reached");
     expect(html).toContain("Later price movement does not change this result");
     expect(html).toContain("TP reached · +0.50R");
-    expect(html).toContain("Frozen trade price levels");
-    expect(html).toContain("Risk · SL");
-    expect(html).toContain("Reward · TP");
+    expect(html).toContain("Trade geometry");
+    expect(html).toContain("ATR(14) at entry");
+    expect(html).toContain("0.00500 · 50.0 pips");
+    expect(html).toContain("100.0 pips · 2.00 ATR · −1R");
+    expect(html).toContain("50.0 pips · 1.00 ATR · +0.5R");
+    expect(html).toContain("What happened");
+    expect(html).toContain("Release to frozen result");
+    expect(html).toContain("Frozen trade closed");
     expect(html).toContain("SL 2 ATR · TP 0.5R = 1 ATR · maximum 42 H4 candles");
     expect(html).toContain("Historical performance of this exact setup");
     expect(html).toContain("FMS-USDCAD-H4-E030");
@@ -196,7 +209,8 @@ describe("getChartConnectionLabel", () => {
     const distribution = { minimum: -.5, p25: -.1, median: .2, mean: .25, p75: .6, maximum: 1.5 };
     const pattern = {
       id: "sentiment", signature: "long|EUR:consumer_sentiment", signatures: ["long|EUR:consumer_sentiment", "short|EUR:consumer_sentiment"],
-      sourceVersionId: "v3", label: "Euro-area consumer sentiment", condition: "Long if sentiment improves; Short if it weakens.", execution: { stopAtr: 1, targetR: 2, expiryCandles: 30 }, direction: "both",
+      sourceVersionId: "v3", label: "Euro-area consumer sentiment", condition: "Long if sentiment improves; Short if it weakens.", execution: { stopAtr: 1, targetR: 2, expiryCandles: 30, managementFamily: "break_even", managementTriggerR: 1 }, baseExecution: { stopAtr: 1, targetR: 2, expiryCandles: 30 }, direction: "both",
+      executionReview: { status: "reviewed_active", activatedAt: 50, reason: "Later execution improved.", limitations: "Gross reused history.", currentExecution: { stopAtr: 1, targetR: 2, expiryCandles: 30, managementFamily: "break_even", managementTriggerR: 1 }, previousExecution: { stopAtr: 1, targetR: 2, expiryCandles: 30 }, later: { averageR: .3, tpBeforeSl: .55, evaluableN: 30 } },
       market: "EURUSD", scoringPolicy: "forecast_quality", historicalBenchmark: { experimentId: "FMS-EURUSD-H4-E197", historicalN: 48, walkForwardN: 35, walkForwardAverageR: .14, targetFirstRate: .75, stopFirstRate: .17, status: "historically_profitable" },
       reactionAudit: { schema: "registered-reaction-audit-v1", scope: "chronological later-test cases", horizonCandles: 6, evaluableN: 35, directionWorkedTradeProfited: 20, directionWorkedTradeLost: 4, directionFailedTradeProfited: 3, directionFailedTradeLost: 8, positiveResponseRate: 24 / 35, medianResponseR: .22, profile: { schema: "registered-reaction-profile-v1", scope: "chronological later-test cases", experimentId: "FMS-EURUSD-H4-E197", evaluableN: 35, standardWindowCandles: 30, classification: "short_lived_impulse", horizons: [1, 3, 6, 12, 30].map((holdingCandles) => ({ holdingCandles, evaluableN: 35, alignmentRate: holdingCandles <= 3 ? .68 : .48, atr: distribution, r: distribution, pips: distribution })), mfe: { atr: distribution, r: distribution, pips: distribution, timeCandles: distribution }, mae: { atr: distribution, r: distribution, pips: distribution, timeCandles: distribution }, givebackAtr: distribution, contractResearch: { selectionRule: "Development only", status: "keep_frozen_contract", frozen: { stopAtr: 1, targetR: 2, holdingCandles: 30, developmentAverageR: .2, laterAverageR: .14, laterTargetRate: .75, laterStopRate: .17 }, developmentSelected: { stopAtr: 1, targetR: 2, holdingCandles: 30, developmentAverageR: .2, laterAverageR: .14, laterTargetRate: .75, laterStopRate: .17 } } } },
       groups: ["EUR:consumer_sentiment"], overall: metrics, development: metrics, holdout: metrics, qualification: {}, exampleTitles: [],
@@ -207,11 +221,11 @@ describe("getChartConnectionLabel", () => {
       targetRobustness: [], estimatedBreakEvenStressPips: 4, uncertaintyIncludesNoEdge: true, selectionNote: "Frozen.",
     } satisfies MacroSignalChartPattern;
     const closedSignal = {
-      id: "sentiment-closed", patternId: "sentiment", sourceVersionId: "v3", eventTime: 60, activationTime: 64,
+      id: "sentiment-closed", demoTag: "FMS-ABC1234567", patternId: "sentiment", sourceVersionId: "v3", eventTime: 60, activationTime: 64,
       historicalReplay: false, direction: "short", label: pattern.label, agreement: "consensus", pairVote: -1,
       backgroundDirection: "none", backgroundPairVote: 0, backgroundAlignment: "neutral", backgroundCoverageComplete: true,
-      highestImpact: "high", events: [], execution: { stopAtr: 1, targetR: 2, expiryCandles: 30 }, stopAtr: 1, targetR: 2,
-      expiryCandles: 30, entry: 1.1, atr: .01, stop: 1.11, target: 1.08, outcomeStatus: "target_hit", resultR: 2, exitTime: 80,
+      highestImpact: "high", events: [], execution: { stopAtr: 1, targetR: 2, expiryCandles: 30, managementFamily: "break_even", managementTriggerR: 1 }, stopAtr: 1, targetR: 2,
+      expiryCandles: 30, managementFamily: "break_even", managementTriggerR: 1, entry: 1.1, atr: .01, initialStop: 1.11, stop: 1.1, breakEvenArmed: true, target: 1.08, outcomeStatus: "target_hit", resultR: 2, exitTime: 80,
     } satisfies MacroSignalChartSignal;
     const openSignal = {
       ...closedSignal,
@@ -219,7 +233,7 @@ describe("getChartConnectionLabel", () => {
       entry: 1.2, stop: 1.19, target: 1.22, outcomeStatus: "pending", resultR: null, exitTime: null,
     } satisfies MacroSignalChartSignal;
     const response = {
-      supported: true, versionId: "v4", modelId: "v4", modelHash: "hash", modelActivatedAt: 1, datasetFingerprint: "data",
+      supported: true, versionId: "v5", modelId: "v5", modelHash: "hash", modelActivatedAt: 1, datasetFingerprint: "data",
       mode: "current", symbol: "EURUSD", timeframe: "H1", modelTimeframe: "H4", targetR: 2, patterns: [pattern], signals: [closedSignal, openSignal], message: "Current",
       realtime: {
         asOf: 100,
@@ -257,7 +271,24 @@ describe("getChartConnectionLabel", () => {
     } satisfies MacroSignalChartSignalResponse;
     const globalResponse = {
       modelId: "global", modelHash: "global-hash", generatedAt: 100, markets: [response, gbpResponse],
-      liveDecisions: [{ modelId: "global", market: "EURUSD", patternId: pattern.id, eventTime: 90, firstDecidedAt: 91, status: "no_trade", direction: null, assessment: response.realtime.latestPatternAssessment!, signal: null }],
+      liveDecisions: [{ modelId: "global", market: "EURUSD", patternId: pattern.id, eventTime: 90, firstDecidedAt: 91, status: "no_trade", direction: null, prospectiveEligible: false, eligibilityReason: "no_registered_direction", assessment: response.realtime.latestPatternAssessment!, signal: null }],
+      forwardValidation: {
+        schema: "fms-forward-validation-v1", status: "collecting_forward_evidence", modelId: "global", startedAt: 1,
+        qualifiedDecisions: 4, trackedCases: 3, resolvedCases: 2, pendingCases: 1, ambiguousOrUnavailableCases: 0,
+        representedSetups: 2, paperReadySetups: 0, setupSummaries: [], averageR: .25, nearEntryQuoteCount: 2, quoteEligibleCount: 3,
+        paperChecks: { minimumResolvedCases: false }, eligibleForPaperReliance: false,
+        demoTradingChecks: { registeredSetupsAvailable: true, immutableFirstSeenCapture: true, lateCaptureExcluded: true, deterministicEntryAndOutcomeLifecycle: true }, eligibleForDemoTrading: true,
+        realMoneyChecks: { actualBrokerFillsRecorded: false }, eligibleForRealMoneyReliance: false,
+        demoExecution: {
+          schema: "fms-demo-execution-v1", captureStatus: { status: "capturing_demo_deals", accountLogin: 123, orderTransmission: false },
+          taggedDeals: 2, matchedTrades: 1, completedTrades: 1, representedSetups: 1, demoReadySetups: 0, setupSummaries: [{ market: "EURUSD", patternId: pattern.id, completedTrades: 1, averageNetR: .4, contractAdherent: true, eligibleForDemoReliance: false }], openOrPartialTrades: 0,
+          totalNetAccountResult: 10, averageGrossFillR: .5, averageNetR: .4, trades: [{ signalTag: "FMS-ABC1234567", accountLogin: 123, market: "EURUSD", patternId: pattern.id, eventTime: 90, positionId: 77, status: "completed", entryTime: 96, exitTime: 100, entryPrice: 1.1, exitPrice: 1.11, volume: .1, grossFillR: .5, initialRiskAccount: 25, riskPercent: .25, actualStop: 1.09, actualTarget: 1.12, directionMatches: true, stopMatches: true, targetMatches: true, lifecycleMatches: true, contractAdherent: true, netR: .4, profit: 11, commission: -1, swap: 0, fee: 0, netAccountResult: 10, dealCount: 2 }], orderTransmission: false,
+          riskPolicy: { id: "risk-v1", maximumRiskPerTradePercent: .25, maximumOpenTrades: 1, maximumPortfolioRiskPercent: .25, maximumPeakToTroughDrawdownPercent: 5, maximumConsecutiveLosingTrades: 5, stopRequired: true, scope: "demo", observed: false, riskKnownForEveryCompletedTrade: true, contractAdherentForEveryTrade: true, excessiveRiskObserved: false, contractViolationObserved: false, duplicateTagObserved: false, maximumOpenTradesObserved: 1, maximumDrawdownAccount: 0, maximumDrawdownPercent: 0, maximumConsecutiveLosingTradesObserved: 0, killSwitchImplemented: true, killSwitchTriggered: false, operationalTradingAllowed: true },
+          instructions: "Use the exact FMS demo tag. Fyodor records matching deals but never sends the order.",
+        },
+        decision: "Ready for demo-only Shadow Trader monitoring.",
+        limitations: ["Paper outcomes use MT5 candle paths, not broker order fills."],
+      },
       outcomeReview: {
         unresolvedByReason: { missing_outcome_candles: 2, trade_still_running: 1 },
         executionReviews: [
@@ -277,14 +308,68 @@ describe("getChartConnectionLabel", () => {
     } }));
 
     expect(html).toContain("FMS Shadow Trader");
+    expect(html).toContain("Ready for demo monitoring");
+    expect(html).toContain("Prospective guard active");
+    expect(html).toContain("Optional tagged demo history");
+    expect(html).toContain("1 completed");
+    expect(html).toContain("never sends the order");
+    expect(html).toContain("strict account-risk qualification are deferred");
+    expect(html).toContain("Matched MT5 demo trades");
+    expect(html).toContain("Matched");
+    const activeHtml = renderToStaticMarkup(createElement(ChartMacroBiasRealtimeCard, { data: {
+      response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
+    } }));
+    expect(activeHtml).toContain("MT5 demo order comment");
+    expect(activeHtml).toContain("FMS-ABC1234567");
+    expect(activeHtml).toContain("FMS sends no order");
+    const queuedSignal = {
+      ...openSignal,
+      id: "sentiment-queued", eventTime: 101, activationTime: null,
+      entry: null, atr: null, initialStop: null, stop: null, target: null,
+      outcomeStatus: "unevaluable", resultR: null, exitTime: null,
+      prospectiveCapture: { eligible: true, reason: "captured_before_frozen_entry", firstSeenAt: 102, activationTime: 144 },
+    } satisfies MacroSignalChartSignal;
+    const queuedResponse = {
+      ...response,
+      signals: [closedSignal, queuedSignal],
+      realtime: {
+        ...response.realtime,
+        latestPatternAssessment: {
+          time: 101, patternId: "sentiment", label: pattern.label, condition: pattern.condition,
+          status: "qualified" as const, direction: "long" as const, reason: "Qualified before entry.", events: [], calculations: [],
+          prospectiveCapture: queuedSignal.prospectiveCapture,
+        },
+      },
+    } satisfies MacroSignalChartSignalResponse;
+    const queuedHtml = renderToStaticMarkup(createElement(ChartMacroBiasRealtimeCard, { data: {
+      response: queuedResponse, activeSignal: null, activePattern: null, remainingModelCandles: null, chartTimeframe: "H1", historicalSignals: [], globalResponse: { ...globalResponse, markets: [queuedResponse, gbpResponse] }, globalLoading: false, globalError: null,
+    } }));
+    expect(queuedHtml).toContain("Queued for the next H4 entry");
+    expect(queuedHtml).toContain("Queued for H4 entry");
+    expect(queuedHtml).toContain("01 Jan 1970");
+    const pausedGlobal = {
+      ...globalResponse,
+      forwardValidation: {
+        ...globalResponse.forwardValidation!,
+        demoExecution: {
+          ...globalResponse.forwardValidation!.demoExecution!,
+          riskPolicy: { ...globalResponse.forwardValidation!.demoExecution!.riskPolicy, killSwitchTriggered: true, operationalTradingAllowed: false },
+        },
+      },
+    } satisfies MacroSignalGlobalResponse;
+    const pausedHtml = renderToStaticMarkup(createElement(ChartMacroBiasRealtimeCard, { data: {
+      response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10, chartTimeframe: "H1", historicalSignals: [], globalResponse: pausedGlobal, globalLoading: false, globalError: null,
+    } }));
+    expect(pausedHtml).not.toContain("FMS risk kill switch is active");
+    expect(pausedHtml).toContain("MT5 demo order comment");
     expect(html).toContain("EURUSD flags");
     expect(html).toContain("GBPUSD flags");
     expect(html).toContain("Trade open");
     expect(html).toContain("What would FMS do now?");
     expect(html).toContain("Open now");
-    expect(html).toContain("Last opened trade");
+    expect(html).toContain("Latest registered decision");
+    expect(html).toContain("Registered package produced no direction");
     expect(html).toContain("View audit");
-    expect(html).toContain("Target reached");
     expect(html).not.toContain("Trade decision audit");
     expect(html).toContain("This release only:");
     expect(html).toContain("It does not cancel the other releases.");
@@ -303,6 +388,8 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Latest matching release");
     expect(html).toContain("Later-test history");
     expect(html).toContain("Historical audit complete");
+    expect(html).toContain("Reviewed execution active");
+    expect(html).toContain("move SL to entry after a completed H4 reaches +1R");
     expect(html).toContain("Audit incomplete");
     expect(html).toContain("Blocked");
     expect(html).toContain("Possible next setups");
@@ -325,22 +412,25 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("FMS-EURUSD-H4-E197");
     expect(html).toContain("Best average result");
     expect(html).toContain("Highest TP-before-SL");
-    expect(html).toContain("Soonest registered release");
-    expect(html).toContain("Actionable now");
-    expect(html).toContain("Audit readiness");
-    expect(html).toContain("Historical credibility");
+    expect(html).toContain("Soonest release");
     expect(html).toContain("Moderate historical evidence");
-    expect(html).toContain("Largest later-test sample");
-    expect(html).toContain("Market and family");
+    expect(html).not.toContain("Actionable now");
+    expect(html).not.toContain("Audit readiness");
+    expect(html).not.toContain("Largest later-test sample");
+    expect(html).not.toContain("Market and family");
     expect(html).toContain("2 markets live");
-    expect(html).toContain("Show or hide market rows");
-    expect(html).toContain('aria-label="Hide EURUSD"');
-    expect(html).toContain('aria-label="Hide GBPUSD"');
-    expect(html).toContain('title="Hide EURUSD"');
-    expect(html).toContain('title="Hide GBPUSD"');
-    const eurMarketFilter = html.match(/<button[^>]*title="Hide EURUSD"[^>]*>(.*?)<\/button>/)?.[1] ?? "";
-    expect(eurMarketFilter).toContain("EURUSD flags");
-    expect(eurMarketFilter).not.toContain(">EURUSD<");
+    expect(html).toContain("Filter setups by currency");
+    expect(html).toContain('aria-label="Hide setups containing EUR"');
+    expect(html).toContain('aria-label="Hide setups containing USD"');
+    expect(html).toContain('aria-label="Hide setups containing GBP"');
+    const usdCurrencyFilter = html.match(/<button[^>]*title="Hide setups containing USD"[^>]*>(.*?)<\/button>/)?.[1] ?? "";
+    expect(usdCurrencyFilter.match(/chart-shadow-currency-flag/g)).toHaveLength(1);
+    expect(usdCurrencyFilter).not.toContain("USDJPY flags");
+    const usdOnly = new Set(["USD"]);
+    for (const market of ["AUDUSD", "EURUSD", "GBPUSD", "NZDUSD", "USDCAD", "USDCHF", "USDJPY"]) {
+      expect(marketMatchesCurrencySelection(market, usdOnly)).toBe(true);
+    }
+    expect(marketMatchesCurrencySelection("EURGBP", usdOnly)).toBe(false);
     expect(html).toContain("GBPUSD · US industrial-production package");
     expect(html).toContain("What history says");
     expect(html).toContain("Immutable decision ledger");

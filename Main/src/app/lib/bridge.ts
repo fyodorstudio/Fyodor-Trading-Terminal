@@ -372,8 +372,10 @@ export async function fetchMacroSignalChartSignals(params: {
   );
 }
 
-export async function fetchMacroSignalGlobalRegistry(): Promise<MacroSignalGlobalResponse> {
-  return fetchJson<MacroSignalGlobalResponse>(`${BRIDGE_BASE}/research/chart-signals/global?tf=H4`);
+export async function fetchMacroSignalGlobalRegistry(options: { refresh?: boolean } = {}): Promise<MacroSignalGlobalResponse> {
+  const search = new URLSearchParams({ tf: "H4" });
+  if (options.refresh) search.set("refresh", "true");
+  return fetchJson<MacroSignalGlobalResponse>(`${BRIDGE_BASE}/research/chart-signals/global?${search.toString()}`);
 }
 
 let preloadedMacroSignalGlobalRegistry: MacroSignalGlobalResponse | null = null;
@@ -387,6 +389,17 @@ export function preloadMacroSignalGlobalRegistry(): Promise<MacroSignalGlobalRes
   if (preloadedMacroSignalGlobalRegistry) return Promise.resolve(preloadedMacroSignalGlobalRegistry);
   if (preloadedMacroSignalGlobalPromise) return preloadedMacroSignalGlobalPromise;
   preloadedMacroSignalGlobalPromise = fetchMacroSignalGlobalRegistry().then((response) => {
+    preloadedMacroSignalGlobalRegistry = response;
+    return response;
+  }).finally(() => {
+    preloadedMacroSignalGlobalPromise = null;
+  });
+  return preloadedMacroSignalGlobalPromise;
+}
+
+export async function refreshMacroSignalGlobalRegistry(): Promise<MacroSignalGlobalResponse> {
+  if (preloadedMacroSignalGlobalPromise) return preloadedMacroSignalGlobalPromise;
+  preloadedMacroSignalGlobalPromise = fetchMacroSignalGlobalRegistry({ refresh: true }).then((response) => {
     preloadedMacroSignalGlobalRegistry = response;
     return response;
   }).finally(() => {
