@@ -322,8 +322,51 @@ def test_live_paper_outcome_remains_pending_until_the_full_window_completes() ->
   )
 
   assert result["status"] == "pending"
+  assert result["reasonCode"] == "trade_still_running"
+  assert result["reason"] == "Trade still running"
+  assert result["coverage"]["requiredCandles"] == 30
+  assert result["pendingLifecycle"]["phase"] == "trade_running"
   assert result["entryTime"] == rows[21]["time"]
   assert aggregate_outcomes([result])["pendingCount"] == 1
+
+  managed_rows = candles(count=20)
+  for row in managed_rows:
+    row.update({"open": 1.1000, "high": 1.1002, "low": 1.0998, "close": 1.1000})
+  managed_rows[15].update({"high": 1.1006, "low": 1.0998, "close": 1.1004})
+  managed_rows[16].update({"high": 1.1002, "low": 1.0999, "close": 1.1000})
+  managed_atr = [0.001] * len(managed_rows)
+  managed = evaluate_candidate(
+    candidate(event_time=managed_rows[14]["time"]), managed_rows,
+    [row["time"] for row in managed_rows], managed_atr, 4.0,
+    as_of=managed_rows[-1]["time"] + 14_400,
+    stop_atr=1.0, holding_candles=3,
+    management_family="break_even", management_trigger_r=.5,
+  )
+  assert managed["status"] == "stop_hit"
+  assert managed["reasonCode"] == "resolved_break_even"
+  assert managed["resultR"] == 0
+  assert managed["breakEvenArmed"] is True
+  assert round(managed["initialStop"], 6) == 1.099
+  assert managed["stop"] == managed["entry"]
+
+
+def test_unresolved_outcomes_have_stable_reason_codes_and_coverage() -> None:
+  rows = candles(count=10)
+  times = [row["time"] for row in rows]
+  atr = calculate_atr_by_candle(rows)
+  waiting = evaluate_candidate(candidate(event_time=rows[-1]["time"]), rows, times, atr, 2.0, allow_pending=True, as_of=rows[-1]["time"] + 60)
+  missing_atr = evaluate_candidate(candidate(event_time=rows[2]["time"]), rows, times, atr, 2.0)
+
+  assert waiting["status"] == "pending"
+  assert waiting["reasonCode"] == "waiting_for_entry_candle"
+  assert waiting["coverage"]["requiredCandles"] == 1
+  assert waiting["pendingLifecycle"]["phase"] == "waiting_entry"
+  assert missing_atr["status"] == "unevaluable"
+  assert missing_atr["reasonCode"] == "missing_atr_history"
+  assert missing_atr["coverage"]["requiredCandles"] == 14
+  unavailable = evaluate_candidate(candidate(event_time=100), [], [], [], 2.0, as_of=1_000_000)
+  assert unavailable["reasonCode"] == "historical_price_data_unavailable"
+  assert unavailable["coverage"]["availableCandles"] == 0
 
 
 def test_chart_pattern_requires_repeatable_positive_development_and_holdout_results() -> None:

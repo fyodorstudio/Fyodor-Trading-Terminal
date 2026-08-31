@@ -99,8 +99,13 @@ export function buildMacroSignalShadowAccount(
       simultaneous.push(ordered[index]);
       index += 1;
     }
-    const evaluable = simultaneous.filter((signal) => signal.activationTime != null && signal.outcomeStatus !== "unevaluable");
-    unevaluable += simultaneous.length - evaluable.length;
+    unevaluable += simultaneous.filter((signal) => signal.outcomeStatus === "unevaluable" || signal.activationTime == null).length;
+    ambiguous += simultaneous.filter((signal) => signal.outcomeStatus === "ambiguous").length;
+    const evaluable = simultaneous.filter((signal) => (
+      signal.activationTime != null
+      && signal.resultR != null
+      && ["target_hit", "stop_hit", "expired"].includes(signal.outcomeStatus ?? "")
+    ));
     if (!evaluable.length) continue;
     if (activation < unavailableUntil) {
       skippedOverlap += evaluable.length;
@@ -133,13 +138,9 @@ export function buildMacroSignalShadowAccount(
       const intratradeEquity = balance - riskDollars * Math.max(0, signal.maximumAdverseR);
       maxDrawdownPercent = Math.max(maxDrawdownPercent, peak > 0 ? ((peak - intratradeEquity) / peak) * 100 : 0);
     }
-    if (signal.outcomeStatus === "ambiguous") {
-      ambiguous += 1;
-      continue;
-    }
-    if (signal.outcomeStatus === "pending" || signal.resultR == null) continue;
-
-    balance = roundMoney(balance + riskDollars * signal.resultR);
+    const resultR = signal.resultR;
+    if (resultR == null) continue;
+    balance = roundMoney(balance + riskDollars * resultR);
     takenTrades += 1;
     if (signal.outcomeStatus === "target_hit") targetHits += 1;
     else if (signal.outcomeStatus === "stop_hit") stopHits += 1;

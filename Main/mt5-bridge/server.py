@@ -85,8 +85,9 @@ WORKBENCH_MARKETS = {
   },
 }
 
-PRACTICAL_MODEL_ID = "FMS-REGISTERED-REACTION-H4-v4"
+PRACTICAL_MODEL_ID = "FMS-REGISTERED-REACTION-H4-v5"
 PRACTICAL_MODEL_CREATED_AT = 1787970337
+REVIEWED_EXECUTION_ACTIVATED_AT = 1788134400
 
 
 def _practical_pattern(
@@ -217,6 +218,88 @@ PRACTICAL_PATTERN_DEFINITIONS = tuple({
   "reactionAudit": registered_reaction_audit(str(pattern["market"]), str(pattern["id"])),
 } for pattern in PRACTICAL_PATTERN_DEFINITIONS)
 
+# Explicit human/AI-reviewed promotions. The allowlist freezes the exact
+# execution rule and the immutable price/calendar fingerprints reviewed on
+# 2026-08-31. Regenerating research cannot silently change an active contract.
+_REVIEWED_EXECUTION_APPROVALS: Dict[Tuple[str, str], Dict[str, Any]] = {
+  ("AUDUSD", "audusd-us-producer-inflation"): {
+    "family": "break_even", "stopAtr": 2.0, "targetR": 2.5,
+    "expiryCandles": 60, "triggerR": 1.5,
+    "candleFingerprint": "73b091939216f1e2fad7735fa4d7d0376769149a95d35e781870c51098026c8d",
+    "datasetFingerprint": "3004f4677e656baa24faae6ac9eba9c0eacd53adca942836f077fb7b4c0c9abd",
+  },
+  ("NZDUSD", "nzdusd-us-producer-inflation"): {
+    "family": "break_even", "stopAtr": 1.25, "targetR": 2.5,
+    "expiryCandles": 30, "triggerR": 1.0,
+    "candleFingerprint": "93dc9e641f9c7703270b5d82341a2942aea7019e55374d2ffbc1e69903525bb7",
+    "datasetFingerprint": "235163109f95be38c8436174658589d2f3394057585b3694b415a1df7927d2e1",
+  },
+  ("USDJPY", "usdjpy-jpy-inflation"): {
+    "family": "break_even", "stopAtr": .5, "targetR": 4.0,
+    "expiryCandles": 30, "triggerR": .5,
+    "candleFingerprint": "4cc95054fca2ac4bfe07b835ed59065357ddd7bb5fa56ceca654fea7e4e98f16",
+    "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+  },
+}
+
+
+def _apply_reviewed_execution(pattern: Dict[str, Any]) -> Dict[str, Any]:
+  approval = _REVIEWED_EXECUTION_APPROVALS.get((str(pattern["market"]), str(pattern["id"])))
+  if not approval:
+    return pattern
+  artifact = (((pattern.get("reactionAudit") or {}).get("profile") or {}).get("executionChallenger") or {})
+  best = artifact.get("bestChallenger") or {}
+  review = artifact.get("registryReview") or {}
+  expected = {
+    "family": approval["family"], "stopAtr": approval["stopAtr"],
+    "targetR": approval["targetR"], "holdingCandles": approval["expiryCandles"],
+    "triggerR": approval["triggerR"],
+  }
+  artifact_matches = (
+    artifact.get("schema") == "fms-execution-challenger-v2"
+    and review.get("decision") == "approved_for_registry_review"
+    and all(best.get(key) == value for key, value in expected.items())
+    and artifact.get("candleFingerprint") == approval["candleFingerprint"]
+    and artifact.get("datasetFingerprint") == approval["datasetFingerprint"]
+  )
+  if not artifact_matches:
+    return {
+      **pattern,
+      "executionReview": {
+        "status": "blocked_artifact_mismatch", "activatedAt": REVIEWED_EXECUTION_ACTIVATED_AT,
+        "reason": "The reviewed challenger no longer matches its immutable artifact; the prior contract remains active.",
+      },
+    }
+  base_execution = dict(pattern["execution"])
+  current_execution = {
+    "stopAtr": approval["stopAtr"], "targetR": approval["targetR"],
+    "expiryCandles": approval["expiryCandles"],
+    "managementFamily": approval["family"], "managementTriggerR": approval["triggerR"],
+  }
+  later = best.get("later") or {}
+  stability = best.get("nearbyStability") or {}
+  return {
+    **pattern,
+    "baseExecution": base_execution,
+    "execution": current_execution,
+    "executionReview": {
+      "status": "reviewed_active", "activatedAt": REVIEWED_EXECUTION_ACTIVATED_AT,
+      "artifactSchema": artifact.get("schema"),
+      "configurationHash": artifact.get("configurationHash"),
+      "candleFingerprint": artifact.get("candleFingerprint"),
+      "datasetFingerprint": artifact.get("datasetFingerprint"),
+      "previousExecution": base_execution,
+      "currentExecution": current_execution,
+      "later": later,
+      "nearbyStability": stability,
+      "reason": review.get("reason"),
+      "limitations": review.get("limitations"),
+    },
+  }
+
+
+PRACTICAL_PATTERN_DEFINITIONS = tuple(_apply_reviewed_execution(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS)
+
 PRACTICAL_MODEL_HASH = hashlib.sha256(json.dumps(PRACTICAL_PATTERN_DEFINITIONS, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 FMS_RESEARCH_INTELLIGENCE = (
@@ -307,7 +390,9 @@ def _registration_provenance(pattern: Dict[str, Any]) -> Dict[str, Any]:
     if benchmark_basis == "chronological_holdout"
     else pooled
   )
-  execution = pattern.get("execution") or {}
+  # The immutable source experiment verifies the originally registered fixed
+  # contract. A reviewed execution overlay owns separate artifact provenance.
+  execution = pattern.get("baseExecution") or pattern.get("execution") or {}
   expected_signatures = sorted(str(value) for value in pattern.get("signatures") or ())
   actual_signatures = sorted(str(value) for value in configuration.get("signatures") or ())
   if not actual_signatures and configuration.get("signature"):
@@ -434,6 +519,17 @@ def _reconciled_pattern(pattern: Dict[str, Any]) -> Dict[str, Any]:
     "stopFirstRate": row.get("stopFirstRate"),
   })
   return {**pattern, "historicalBenchmark": benchmark}
+
+
+def _execution_for_event(pattern: Dict[str, Any], event_time: int) -> Dict[str, Any]:
+  """Preserve the contract that was active when a historical signal occurred."""
+  review = pattern.get("executionReview") or {}
+  if (
+    review.get("status") == "reviewed_active"
+    and event_time < int(review.get("activatedAt") or REVIEWED_EXECUTION_ACTIVATED_AT)
+  ):
+    return dict(pattern.get("baseExecution") or pattern.get("execution") or {})
+  return dict(pattern.get("execution") or {})
 
 app = FastAPI(title="MT5 Bridge", version="0.1.0")
 
@@ -2867,7 +2963,7 @@ def research_chart_signals(
         if normalized_mode == "current" else "immutable-replay"
       )
       response_cache_key = hashlib.sha256("|".join([
-        "chart-response-v5-orientation", normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
+        "chart-response-v6-outcome-reasons", normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
         str(_research_store.get_metadata("fms_registered_reaction:reconciliation") or ""),
         calendar_revision,
         *(f"{run['id']}:{run['datasetFingerprint']}" for run in run_headers if run),
@@ -2946,12 +3042,18 @@ def research_chart_signals(
   for pattern in catalog:
     if normalized_mode != "research_replay" and not pattern["currentEligible"]:
       continue
-    provenance = _registration_provenance(pattern)
-    patterns.append({
+    definition = definitions_by_id.get(str(pattern["id"])) or {}
+    enriched_pattern = {
       **pattern,
-      "reactionAudit": (definitions_by_id.get(str(pattern["id"])) or {}).get("reactionAudit"),
+      "baseExecution": definition.get("baseExecution"),
+      "executionReview": definition.get("executionReview"),
+    }
+    provenance = _registration_provenance(enriched_pattern)
+    patterns.append({
+      **enriched_pattern,
+      "reactionAudit": definition.get("reactionAudit"),
       "registrationProvenance": provenance,
-      "readiness": _pattern_readiness(pattern, provenance),
+      "readiness": _pattern_readiness(enriched_pattern, provenance),
     })
   def matching_pattern(source_version: str, scoring_policy: str, candidate: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return next(
@@ -3007,11 +3109,6 @@ def research_chart_signals(
         "current": current_candidates,
         "assessment": assessment_candidates,
       }
-  paper_cases = {
-    (source_version, int(case["eventTime"])): case
-    for source_version in source_versions
-    for case in _research_store.query_paper_cases(source_version)
-  }
   # Keep the two views provenance-pure. Current signals must remain based on
   # immutable first-seen EA observations even after a historical backtest is
   # refreshed; replay signals must remain the frozen archive reconstruction.
@@ -3031,23 +3128,33 @@ def research_chart_signals(
     (source_version, scoring_policy, candidate, pattern)
     for source_version, scoring_policy, candidate in window_candidates
     for pattern in [matching_pattern(source_version, scoring_policy, candidate)]
-    if pattern is not None and (
-      normalized_mode == "current"
-      or pattern.get("execution") != {"stopAtr": 1.0, "targetR": 2.0, "expiryCandles": 30}
-    )
+    if pattern is not None
   ]
   custom_candles: List[Dict[str, Any]] = []
   custom_candle_times: List[int] = []
   custom_atr_values: List[Optional[float]] = []
+  history_backfill_attempted = False
   if direct_evaluation_candidates:
     earliest_custom = min(int(candidate["eventTime"]) for _, _, candidate, _ in direct_evaluation_candidates)
     latest_custom = max(int(candidate["eventTime"]) for _, _, candidate, _ in direct_evaluation_candidates)
     custom_candles = _research_store.query_candles(
       normalized_symbol, "H4", earliest_custom - 45 * 24 * 60 * 60,
-      min(generated_at + H4_SECONDS, latest_custom + 75 * 24 * 60 * 60),
+      min(generated_at + H4_SECONDS, latest_custom + 120 * 24 * 60 * 60),
     )
     custom_candle_times = [int(candle["time"]) for candle in custom_candles]
     custom_atr_values = calculate_atr_by_candle(custom_candles)
+  m1_cache: Dict[Tuple[int, int], List[Dict[str, Any]]] = {}
+  def evaluation_m1_provider(start: int, end: int) -> List[Dict[str, Any]]:
+    key = (start, end)
+    if key not in m1_cache:
+      cached_minutes = _research_store.query_candles(normalized_symbol, "M1", start, end)
+      cache_covers_interval = bool(
+        cached_minutes
+        and int(cached_minutes[0]["time"]) <= start + 60
+        and int(cached_minutes[-1]["time"]) >= end - 120
+      )
+      m1_cache[key] = cached_minutes if cache_covers_interval else _fetch_research_candles(normalized_symbol, "M1", start, end, 1)
+    return m1_cache[key]
   signals: List[Dict[str, Any]] = []
   for source_version, scoring_policy, candidate in window_candidates:
     event_time = int(candidate["eventTime"])
@@ -3056,29 +3163,49 @@ def research_chart_signals(
       continue
     if normalized_mode == "current" and event_time < int(pattern.get("activatedAt", PRACTICAL_MODEL_CREATED_AT)):
       continue
-    paper_outcome = paper_cases.get((source_version, event_time), {}).get("outcomes", {}).get("2.0", {})
-    execution = pattern["execution"]
+    execution = _execution_for_event(pattern, event_time)
     signal_candidate = apply_chart_pattern_reaction(candidate, pattern)
-    evaluated = signal_candidate
-    uses_custom_execution = execution != {"stopAtr": 1.0, "targetR": 2.0, "expiryCandles": 30}
-    uses_direct_evaluation = normalized_mode == "current" or uses_custom_execution
-    if uses_direct_evaluation and custom_candles:
+    evaluated = evaluate_candidate(
+      signal_candidate,
+      custom_candles,
+      custom_candle_times,
+      custom_atr_values,
+      float(execution["targetR"]),
+      m1_provider=evaluation_m1_provider,
+      allow_pending=normalized_mode == "current",
+      as_of=generated_at,
+      stop_atr=float(execution["stopAtr"]),
+      holding_candles=int(execution["expiryCandles"]),
+      management_family=str(execution.get("managementFamily") or "fixed"),
+      management_trigger_r=execution.get("managementTriggerR"),
+    )
+    if evaluated.get("status") == "unevaluable" and not history_backfill_attempted and direct_evaluation_candidates:
+      history_backfill_attempted = True
+      earliest_custom = min(int(row[2]["eventTime"]) for row in direct_evaluation_candidates)
+      latest_custom = max(int(row[2]["eventTime"]) for row in direct_evaluation_candidates)
+      custom_candles = _fetch_research_candles(
+        normalized_symbol, "H4", earliest_custom - 45 * 24 * 60 * 60,
+        min(generated_at + H4_SECONDS, latest_custom + 120 * 24 * 60 * 60), 365,
+      )
+      custom_candle_times = [int(candle["time"]) for candle in custom_candles]
+      custom_atr_values = calculate_atr_by_candle(custom_candles)
       evaluated = evaluate_candidate(
         signal_candidate,
         custom_candles,
         custom_candle_times,
         custom_atr_values,
         float(execution["targetR"]),
+        m1_provider=evaluation_m1_provider,
         allow_pending=normalized_mode == "current",
         as_of=generated_at,
         stop_atr=float(execution["stopAtr"]),
         holding_candles=int(execution["expiryCandles"]),
+        management_family=str(execution.get("managementFamily") or "fixed"),
+        management_trigger_r=execution.get("managementTriggerR"),
       )
-    activation_time = evaluated.get("entryTime") or (None if uses_direct_evaluation else paper_outcome.get("entryTime"))
+    activation_time = evaluated.get("entryTime")
     def outcome_value(name: str) -> Any:
-      if uses_direct_evaluation:
-        return evaluated.get(name)
-      return evaluated.get(name) if evaluated.get(name) is not None else paper_outcome.get(name)
+      return evaluated.get(name)
     signals.append({
       "id": f"{pattern['id']}:{event_time}",
       "patternId": pattern["id"],
@@ -3102,17 +3229,25 @@ def research_chart_signals(
       "highestImpact": candidate["highestImpact"],
       "events": candidate["events"],
       "activationTime": int(activation_time) if activation_time is not None else None,
-      "execution": pattern["execution"],
-      "stopAtr": float(pattern["execution"]["stopAtr"]),
-      "targetR": float(pattern["execution"]["targetR"]),
-      "expiryCandles": int(pattern["execution"]["expiryCandles"]),
+      "execution": execution,
+      "stopAtr": float(execution["stopAtr"]),
+      "targetR": float(execution["targetR"]),
+      "expiryCandles": int(execution["expiryCandles"]),
+      "managementFamily": str(execution.get("managementFamily") or "fixed"),
+      "managementTriggerR": execution.get("managementTriggerR"),
       "entry": outcome_value("entry"),
       "atr": outcome_value("atr"),
       "stop": outcome_value("stop"),
+      "initialStop": outcome_value("initialStop"),
+      "breakEvenArmed": bool(outcome_value("breakEvenArmed")),
       "target": outcome_value("target"),
-      "outcomeStatus": evaluated.get("status") or (None if uses_custom_execution else paper_outcome.get("status")),
-      "resultR": evaluated.get("resultR") if uses_direct_evaluation else (evaluated.get("resultR") if evaluated.get("resultR") is not None else paper_outcome.get("resultR")),
-      "exitTime": evaluated.get("exitTime") or (None if uses_direct_evaluation else paper_outcome.get("exitTime")),
+      "outcomeStatus": evaluated.get("status"),
+      "resultR": evaluated.get("resultR"),
+      "exitTime": evaluated.get("exitTime"),
+      "outcomeReasonCode": evaluated.get("reasonCode"),
+      "outcomeReason": evaluated.get("reason"),
+      "outcomeCoverage": evaluated.get("coverage"),
+      "pendingLifecycle": evaluated.get("pendingLifecycle"),
       "historicalReplay": normalized_mode == "research_replay",
     })
   signal_activation_times = [int(signal["activationTime"]) for signal in signals if signal.get("activationTime") is not None]
@@ -3319,6 +3454,49 @@ def research_global_chart_signals(tf: str = "H4") -> Dict[str, Any]:
     research_chart_signals(symbol=market, tf=tf, mode="current")
     for market in sorted({str(pattern["market"]) for pattern in effective_patterns})
   ]
+  unresolved_by_reason: Dict[str, int] = {}
+  for market_payload in markets:
+    for signal in market_payload.get("signals", []):
+      if signal.get("outcomeStatus") not in {"pending", "ambiguous", "unevaluable"}:
+        continue
+      code = str(signal.get("outcomeReasonCode") or signal.get("outcomeStatus") or "unknown")
+      unresolved_by_reason[code] = unresolved_by_reason.get(code, 0) + 1
+  execution_reviews: List[Dict[str, Any]] = []
+  for pattern in effective_patterns:
+    profile = ((pattern.get("reactionAudit") or {}).get("profile") or {})
+    research = profile.get("executionChallenger") or {}
+    for code, count in (research.get("unresolvedByReason") or {}).items():
+      unresolved_by_reason[str(code)] = unresolved_by_reason.get(str(code), 0) + int(count)
+    active_later = research.get("activeLater")
+    challenger = research.get("bestChallenger")
+    if not isinstance(active_later, dict) or not isinstance(challenger, dict):
+      continue
+    if (pattern.get("executionReview") or {}).get("status") == "reviewed_active":
+      continue
+    active_execution = dict(pattern.get("execution") or {})
+    active_ci = active_later.get("expectancyCi95") or {}
+    frozen = {**active_execution, **{key: value for key, value in active_later.items() if key != "expectancyCi95"}, "laterAverageR": active_later.get("averageR"), "laterLower95": active_ci.get("lower"), "laterUpper95": active_ci.get("upper"), "holdingCandles": active_execution.get("expiryCandles")}
+    challenger_later = challenger.get("later") or {}
+    challenger_ci = challenger_later.get("expectancyCi95") or {}
+    challenger = {**challenger, **{f"later{key[0].upper()}{key[1:]}": value for key, value in challenger_later.items() if key != "expectancyCi95"}, "laterAverageR": challenger_later.get("averageR"), "laterLower95": challenger_ci.get("lower"), "laterUpper95": challenger_ci.get("upper")}
+    review_worthy = bool(research.get("reviewWorthy"))
+    weakened = active_later.get("averageR") is not None and float(active_later["averageR"]) <= 0
+    if not review_worthy and not weakened:
+      continue
+    execution_reviews.append({
+      "market": pattern["market"], "patternId": pattern["id"], "label": pattern["label"],
+      "status": "review_worthy" if review_worthy else "active_evidence_weakened",
+      "active": frozen, "challenger": challenger,
+      "reason": (
+        "The development-selected fixed-contract challenger stayed positive later and exceeded the active contract. Codex review is required before any registry change."
+        if review_worthy else
+        "The active contract's later average is no longer positive. It remains active, but its execution needs review."
+      ),
+      "artifact": str(research.get("schema") or "fms-execution-challenger-v1"),
+      "configurationHash": research.get("configurationHash"),
+      "candleFingerprint": research.get("candleFingerprint"),
+      "familyWinners": research.get("familyWinners") or [],
+    })
   registered = [
     {
       "id": f"registered:{pattern['market']}:{pattern['id']}",
@@ -3413,8 +3591,26 @@ def research_global_chart_signals(tf: str = "H4") -> Dict[str, Any]:
     "generatedAt": max((int(row.get("generatedAt") or 0) for row in markets), default=int(_time.time())),
     "markets": markets,
     "liveDecisions": _research_store.list_fms_live_decisions(limit=50),
+    "outcomeReview": {"unresolvedByReason": unresolved_by_reason, "executionReviews": execution_reviews},
     "researchIntelligence": [*registered, *atlas_intelligence, *FMS_RESEARCH_INTELLIGENCE],
     "explanation": "Registered means historically positive under its frozen no-lookahead recipe. Contender means potentially useful but unstable. Avoid means repeated tests did not support a standalone directional rule; it may still matter as context or volatility. Insufficient means the archive cannot support an honest conclusion yet.",
+  }
+
+
+@app.get("/research/execution-challengers")
+def research_execution_challengers() -> Dict[str, Any]:
+  """Expose immutable audit artifacts; this endpoint cannot mutate the registry."""
+  rows = []
+  for pattern in (_reconciled_pattern(row) for row in PRACTICAL_PATTERN_DEFINITIONS):
+    artifact = (((pattern.get("reactionAudit") or {}).get("profile") or {}).get("executionChallenger"))
+    if isinstance(artifact, dict):
+      rows.append({"market": pattern["market"], "patternId": pattern["id"], "label": pattern["label"], **artifact})
+  return {
+    "schema": "fms-execution-challenger-index-v1",
+    "registryRevision": PRACTICAL_MODEL_HASH,
+    "count": len(rows),
+    "rows": rows,
+    "promotionAvailable": False,
   }
 
 

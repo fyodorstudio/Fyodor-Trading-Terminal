@@ -849,7 +849,11 @@ def evaluate_candidate(
   as_of: Optional[int] = None,
   stop_atr: float = 1.0,
   holding_candles: int = HOLDING_CANDLES,
+  management_family: str = "fixed",
+  management_trigger_r: Optional[float] = None,
 ) -> Dict[str, Any]:
+  if management_family not in {"fixed", "break_even"}:
+    raise ValueError(f"Unsupported active execution management: {management_family}")
   base = {
     "eventTime": candidate["eventTime"],
     "direction": candidate["direction"],
@@ -862,41 +866,64 @@ def evaluate_candidate(
     "targetR": target_r,
     "stopAtr": stop_atr,
     "expiryCandles": holding_candles,
+    "managementFamily": management_family,
+    "managementTriggerR": management_trigger_r,
     "factorVotes": candidate["factorVotes"],
     "events": candidate["events"],
   }
+  available_from = int(candles[0]["time"]) if candles else None
+  available_to = int(candles[-1]["time"]) + H4_SECONDS if candles else None
+  def unresolved(status: str, code: str, reason: str, *, required_from: Optional[int] = None, required_to: Optional[int] = None, required_candles: Optional[int] = None) -> Dict[str, Any]:
+    return {
+      **base, "status": status, "resultR": None, "reason": reason, "reasonCode": code,
+      "coverage": {
+        "requiredFrom": required_from, "requiredTo": required_to,
+        "availableFrom": available_from, "availableTo": available_to,
+        "requiredCandles": required_candles, "availableCandles": len(candles),
+      },
+    }
   if candidate["direction"] == "none":
-    return {**base, "status": "no_direction", "resultR": None, "reason": "Exact factor-vote tie"}
+    return {**base, "status": "no_direction", "resultR": None, "reason": "Exact factor-vote tie", "reasonCode": "no_direction"}
+
+  observation_time = as_of if as_of is not None else int(datetime.now(timezone.utc).timestamp())
+  if not candles:
+    if allow_pending and int(candidate["eventTime"]) + H4_SECONDS > observation_time:
+      return {**unresolved("pending", "waiting_for_entry_candle", "Waiting for entry candle", required_from=int(candidate["eventTime"]), required_to=int(candidate["eventTime"]) + H4_SECONDS, required_candles=1), "pendingLifecycle": {"phase": "waiting_entry", "asOf": observation_time, "requiredUntil": int(candidate["eventTime"]) + H4_SECONDS}}
+    return unresolved("unevaluable", "historical_price_data_unavailable", "Historical price data unavailable", required_from=int(candidate["eventTime"]) - ATR_PERIOD * H4_SECONDS, required_to=int(candidate["eventTime"]) + H4_SECONDS, required_candles=ATR_PERIOD + 1)
 
   entry_index = bisect_right(candle_times, int(candidate["eventTime"]))
   if entry_index <= 0:
-    return {**base, "status": "unevaluable", "resultR": None, "reason": "No strictly later H4 entry candle"}
+    return unresolved("unevaluable", "historical_price_data_unavailable", "Historical price data unavailable", required_from=int(candidate["eventTime"]) - ATR_PERIOD * H4_SECONDS, required_to=int(candidate["eventTime"]) + H4_SECONDS, required_candles=ATR_PERIOD + 1)
   if entry_index >= len(candles):
-    if allow_pending:
-      return {**base, "status": "pending", "resultR": None, "reason": "Waiting for the first strictly later H4 entry candle"}
-    return {**base, "status": "unevaluable", "resultR": None, "reason": "No strictly later H4 entry candle"}
+    if allow_pending and int(candidate["eventTime"]) + H4_SECONDS > observation_time:
+      return {**unresolved("pending", "waiting_for_entry_candle", "Waiting for entry candle", required_from=int(candidate["eventTime"]), required_to=int(candidate["eventTime"]) + H4_SECONDS, required_candles=1), "pendingLifecycle": {"phase": "waiting_entry", "asOf": observation_time, "requiredUntil": int(candidate["eventTime"]) + H4_SECONDS}}
+    return unresolved("unevaluable", "missing_outcome_candles", "Missing outcome candles", required_from=int(candidate["eventTime"]), required_to=int(candidate["eventTime"]) + H4_SECONDS, required_candles=1)
   atr = atr_values[entry_index - 1]
   if atr is None or not math.isfinite(atr) or atr <= 0:
-    return {**base, "status": "unevaluable", "resultR": None, "reason": "Insufficient completed H4 candles for ATR(14)"}
+    return unresolved("unevaluable", "missing_atr_history", "Missing ATR history", required_from=int(candles[entry_index]["time"]) - ATR_PERIOD * H4_SECONDS, required_to=int(candles[entry_index]["time"]), required_candles=ATR_PERIOD)
   final_index = entry_index + holding_candles - 1
-  if final_index >= len(candles) and not allow_pending:
-    return {**base, "status": "unevaluable", "resultR": None, "reason": f"Incomplete {holding_candles}-candle outcome window"}
+  required_outcome_to = int(candles[entry_index]["time"]) + holding_candles * H4_SECONDS
+  if final_index >= len(candles) and (not allow_pending or required_outcome_to <= observation_time):
+    return unresolved("unevaluable", "missing_outcome_candles", "Missing outcome candles", required_from=int(candles[entry_index]["time"]), required_to=int(candles[entry_index]["time"]) + holding_candles * H4_SECONDS, required_candles=holding_candles)
 
   entry = float(candles[entry_index]["open"])
   direction_sign = 1.0 if candidate["direction"] == "long" else -1.0
   risk_distance = atr * stop_atr
-  stop = entry - direction_sign * risk_distance
+  initial_stop = entry - direction_sign * risk_distance
+  stop = initial_stop
   target = entry + direction_sign * risk_distance * target_r
   detail = {
     **base,
     "entryTime": int(candles[entry_index]["time"]),
     "entry": entry,
     "atr": atr,
+    "initialStop": initial_stop,
     "stop": stop,
     "target": target,
   }
 
   available_final_index = min(final_index, len(candles) - 1)
+  break_even_armed = False
   for index in range(entry_index, available_final_index + 1):
     candle = candles[index]
     stop_hit, target_hit = _bar_touches(candle, candidate["direction"], stop, target)
@@ -905,16 +932,27 @@ def evaluate_candidate(
       minute_candles = m1_provider(int(candle["time"]), end_time) if m1_provider else []
       resolved = _resolve_m1_order(minute_candles, candidate["direction"], stop, target)
       if resolved == "stop_hit":
-        return {**detail, "status": "stop_hit", "resultR": -1.0, "exitTime": int(candle["time"]), "reason": "M1 resolved stop first"}
+        result_r = 0.0 if management_family == "break_even" and break_even_armed else -1.0
+        return {**detail, "stop": stop, "breakEvenArmed": break_even_armed, "status": "stop_hit", "resultR": result_r, "exitTime": int(candle["time"]), "reason": "M1 resolved stop first", "reasonCode": "resolved_break_even" if result_r == 0 else "resolved_stop"}
       if resolved == "target_hit":
-        return {**detail, "status": "target_hit", "resultR": target_r, "exitTime": int(candle["time"]), "reason": "M1 resolved target first"}
-      return {**detail, "status": "ambiguous", "resultR": None, "exitTime": int(candle["time"]), "reason": "Both touched — order unknown"}
+        return {**detail, "stop": stop, "breakEvenArmed": break_even_armed, "status": "target_hit", "resultR": target_r, "exitTime": int(candle["time"]), "reason": "M1 resolved target first", "reasonCode": "resolved_target"}
+      return {**detail, "stop": stop, "breakEvenArmed": break_even_armed, "status": "ambiguous", "resultR": None, "exitTime": int(candle["time"]), "reason": "Both touched — order unknown", "reasonCode": "both_touched_order_unknown"}
     if stop_hit:
-      return {**detail, "status": "stop_hit", "resultR": -1.0, "exitTime": int(candle["time"]), "reason": "H4 stop first"}
+      result_r = 0.0 if management_family == "break_even" and break_even_armed else -1.0
+      return {**detail, "stop": stop, "breakEvenArmed": break_even_armed, "status": "stop_hit", "resultR": result_r, "exitTime": int(candle["time"]), "reason": "H4 stop first", "reasonCode": "resolved_break_even" if result_r == 0 else "resolved_stop"}
     if target_hit:
-      return {**detail, "status": "target_hit", "resultR": target_r, "exitTime": int(candle["time"]), "reason": "H4 target first"}
+      return {**detail, "stop": stop, "breakEvenArmed": break_even_armed, "status": "target_hit", "resultR": target_r, "exitTime": int(candle["time"]), "reason": "H4 target first", "reasonCode": "resolved_target"}
+    candle_complete = int(candle["time"]) + H4_SECONDS <= observation_time
+    if management_family == "break_even" and not break_even_armed and candle_complete:
+      favorable_reach_r = (
+        (float(candle["high"]) - entry) / risk_distance
+        if candidate["direction"] == "long"
+        else (entry - float(candle["low"])) / risk_distance
+      )
+      if favorable_reach_r >= float(management_trigger_r or 1.0):
+        break_even_armed = True
+        stop = entry
 
-  observation_time = as_of if as_of is not None else int(datetime.now(timezone.utc).timestamp())
   final_candle_complete = (
     final_index < len(candles)
     and int(candles[final_index]["time"]) + H4_SECONDS <= observation_time
@@ -922,19 +960,31 @@ def evaluate_candidate(
   if allow_pending and not final_candle_complete:
     return {
       **detail,
+      "stop": stop,
+      "breakEvenArmed": break_even_armed,
       "status": "pending",
       "resultR": None,
-      "reason": f"Monitoring the open {holding_candles}-candle paper outcome window",
+      "reason": "Trade still running",
+      "reasonCode": "trade_still_running",
+      "coverage": {
+        "requiredFrom": int(candles[entry_index]["time"]), "requiredTo": int(candles[entry_index]["time"]) + holding_candles * H4_SECONDS,
+        "availableFrom": available_from, "availableTo": available_to,
+        "requiredCandles": holding_candles, "availableCandles": max(0, len(candles) - entry_index),
+      },
+      "pendingLifecycle": {"phase": "trade_running", "asOf": observation_time, "entryTime": int(candles[entry_index]["time"]), "requiredUntil": required_outcome_to},
     }
 
   expiry_candle = candles[final_index]
   expiry_r = direction_sign * (float(expiry_candle["close"]) - entry) / risk_distance
   return {
     **detail,
+    "stop": stop,
+    "breakEvenArmed": break_even_armed,
     "status": "expired",
     "resultR": expiry_r,
     "exitTime": int(expiry_candle["time"]) + H4_SECONDS,
     "reason": f"Expired after {holding_candles} completed H4 candles",
+    "reasonCode": "resolved_expiry",
   }
 
 
@@ -1215,6 +1265,15 @@ def _aggregate_path_simulations(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any
   stressed = [float(row["stressedResultR"]) for row in evaluable if row.get("stressedResultR") is not None]
   gross = [float(row["grossResultR"]) for row in evaluable if row.get("grossResultR") is not None]
   count = len(evaluable)
+  equity = peak = 0.0
+  maximum_drawdown = 0.0
+  losing_streak = longest_losing_streak = 0
+  for result in gross:
+    equity += result
+    peak = max(peak, equity)
+    maximum_drawdown = max(maximum_drawdown, peak - equity)
+    losing_streak = losing_streak + 1 if result < 0 else 0
+    longest_losing_streak = max(longest_losing_streak, losing_streak)
   return {
     "attemptedCount": len(rows),
     "evaluableCount": count,
@@ -1231,6 +1290,8 @@ def _aggregate_path_simulations(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any
     "stressedAverageR": statistics.fmean(stressed) if stressed else None,
     "stressedMedianR": statistics.median(stressed) if stressed else None,
     "stressedExpectancyCi95": _mean_ci95(stressed),
+    "maximumDrawdownR": maximum_drawdown,
+    "longestLosingStreak": longest_losing_streak,
   }
 
 

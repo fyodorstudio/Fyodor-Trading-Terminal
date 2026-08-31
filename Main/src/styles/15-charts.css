@@ -915,6 +915,15 @@
 .chart-shadow-account-audit dl > div:nth-child(n+6) { border-top: 1px solid #e2e8f0; }
 .chart-shadow-account-audit dt { color: #64748b; font-size: 7px; font-weight: 950; line-height: 1.25; text-transform: uppercase; }
 .chart-shadow-account-audit dd { margin: 3px 0 0; color: #172554; font-size: 12px; font-weight: 950; }
+.chart-shadow-review-queue .chart-shadow-review-card { display: grid; gap: 6px; padding: 9px; border: 1px solid #dbe3ef; border-radius: 7px; background: #fff; }
+.chart-shadow-review-card header { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.chart-shadow-review-card header strong { color: #172554; font-size: 11px; }
+.chart-shadow-review-card header em { color: #92400e; font-size: 8px; font-style: normal; font-weight: 950; text-transform: uppercase; }
+.chart-shadow-review-card > div { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 6px; }
+.chart-shadow-review-card > div span { min-width: 0; padding: 7px; border-radius: 5px; background: #f8fafc; color: #334155; font-size: 9px; font-weight: 750; line-height: 1.45; }
+.chart-shadow-review-card > div b { display: block; color: #64748b; font-size: 7px; text-transform: uppercase; }
+.chart-shadow-copy-review { justify-self: start; min-height: 30px; border: 1px solid #a5b4fc; border-radius: 6px; padding: 0 10px; background: #eef2ff; color: #3730a3; font-size: 9px; font-weight: 900; cursor: pointer; }
+.chart-shadow-needs-review { display: inline-flex; margin-top: 4px; border: 1px solid #f59e0b; border-radius: 999px; padding: 2px 6px; background: #fffbeb; color: #92400e; font-size: 8px; font-weight: 950; text-transform: uppercase; }
 
 .chart-macro-bias-realtime > details.chart-macro-bias-realtime-context { margin: 8px 8px 0; border: 1px solid #dbe3ef; border-radius: 10px; background: #fbfcfe; overflow: hidden; }
 .chart-macro-bias-realtime-context > summary { display: grid; grid-template-columns: minmax(0,1fr) auto auto; gap: 8px; align-items: center; padding: 10px 12px; cursor: pointer; list-style: none; }

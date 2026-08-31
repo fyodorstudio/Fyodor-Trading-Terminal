@@ -887,7 +887,7 @@ export interface MacroSignalChartPattern {
     positiveResponseRate: number;
     medianResponseR: number;
     profile?: {
-      schema: "registered-reaction-profile-v1";
+      schema: "registered-reaction-profile-v1" | "registered-reaction-profile-v2";
       scope: "chronological later-test cases";
       experimentId: string;
       evaluableN: number;
@@ -909,6 +909,23 @@ export interface MacroSignalChartPattern {
         status: "historically_improved_candidate" | "keep_frozen_contract";
         frozen: MacroSignalReactionContractAudit | null;
         developmentSelected: MacroSignalReactionContractAudit | null;
+      };
+      executionChallenger?: {
+        schema: "fms-execution-challenger-v1" | "fms-execution-challenger-v2";
+        declaredConfigurationCount: number;
+        selection: string;
+        activeLater: Record<string, unknown> | null;
+        familyWinners: Array<Record<string, unknown>>;
+        bestChallenger: Record<string, unknown> | null;
+        reviewWorthy: boolean;
+        recipe: string;
+        registryRevision: string;
+        configurationHash: string;
+        candleFingerprint: string;
+        datasetFingerprint: string;
+        activeContractPreserved: true;
+        unresolvedByReason: Record<string, number>;
+        costsExcluded: string[];
       };
     };
   };
@@ -933,6 +950,27 @@ export interface MacroSignalChartPattern {
     stopAtr: number;
     targetR: number;
     expiryCandles: number;
+    managementFamily?: "fixed" | "break_even";
+    managementTriggerR?: number | null;
+  };
+  baseExecution?: null | {
+    stopAtr: number;
+    targetR: number;
+    expiryCandles: number;
+  };
+  executionReview?: null | {
+    status: "reviewed_active" | "blocked_artifact_mismatch";
+    activatedAt: number;
+    reason: string;
+    limitations?: string;
+    artifactSchema?: string;
+    configurationHash?: string;
+    candleFingerprint?: string;
+    datasetFingerprint?: string;
+    previousExecution?: { stopAtr: number; targetR: number; expiryCandles: number };
+    currentExecution?: { stopAtr: number; targetR: number; expiryCandles: number; managementFamily: "fixed" | "break_even"; managementTriggerR: number | null };
+    later?: Record<string, unknown>;
+    nearbyStability?: Record<string, unknown>;
   };
   requiredExactTitles?: string[];
   direction: "long" | "short" | "both";
@@ -998,6 +1036,8 @@ export interface MacroSignalChartSignal {
     stopAtr: number;
     targetR: number;
     expiryCandles: number;
+    managementFamily?: "fixed" | "break_even";
+    managementTriggerR?: number | null;
   };
   stopAtr?: number;
   targetR?: number;
@@ -1005,8 +1045,28 @@ export interface MacroSignalChartSignal {
   entry?: number | null;
   atr?: number | null;
   stop?: number | null;
+  initialStop?: number | null;
   target?: number | null;
+  managementFamily?: "fixed" | "break_even";
+  managementTriggerR?: number | null;
+  breakEvenArmed?: boolean;
   outcomeStatus?: MacroSignalOutcomeStatus | null;
+  outcomeReasonCode?: "waiting_for_entry_candle" | "trade_still_running" | "missing_atr_history" | "missing_outcome_candles" | "historical_price_data_unavailable" | "both_touched_order_unknown" | string | null;
+  outcomeReason?: string | null;
+  outcomeCoverage?: {
+    requiredFrom: number | null;
+    requiredTo: number | null;
+    availableFrom: number | null;
+    availableTo: number | null;
+    requiredCandles: number | null;
+    availableCandles: number;
+  } | null;
+  pendingLifecycle?: {
+    phase: "waiting_entry" | "trade_running";
+    asOf: number;
+    entryTime?: number;
+    requiredUntil: number;
+  } | null;
   resultR?: number | null;
   exitTime?: number | null;
   expiryTime?: number | null;
@@ -1166,5 +1226,18 @@ export interface MacroSignalGlobalResponse {
     signal: MacroSignalChartSignal | null;
   }>;
   researchIntelligence: MacroSignalResearchIntelligence[];
+  outcomeReview?: {
+    unresolvedByReason: Record<string, number>;
+    executionReviews: Array<{
+      market: string;
+      patternId: string;
+      label: string;
+      status: "review_worthy" | "active_evidence_weakened";
+      active: Record<string, number | string | boolean | null>;
+      challenger: Record<string, number | string | boolean | null>;
+      reason: string;
+      artifact: string;
+    }>;
+  };
   explanation: string;
 }

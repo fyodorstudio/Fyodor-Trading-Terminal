@@ -1,7 +1,7 @@
 # Fyodor Macro Signal Research
 
 **Date:** 2026-08-26
-**Status:** Source models remain immutable research inputs. Charts and global Shadow Trader use `FMS-REGISTERED-REACTION-H4-v4`: 47 reconciled recipes across seven major pairs, with frozen scoring, case filter, continuation/rejection mapping, and execution contract. Historical arrows remain hindsight replay; current monitoring uses immutable first-seen observations only. Eleven marginal positive histories are explicitly labelled fragile. Nothing is an automatic order or guaranteed edge.
+**Status:** Source models remain immutable research inputs. Charts and global Shadow Trader use `FMS-REGISTERED-REACTION-H4-v5`: the 47 reconciled v4 recipes plus three explicitly reviewed break-even execution overlays. Historical arrows preserve the contract active at their event time; current monitoring uses immutable first-seen observations only. Eleven marginal positive histories are explicitly labelled fragile. Nothing is an automatic order or guaranteed edge.
 
 **2026-08-30 presentation/readiness pass:** setup details now expose a deterministic historical-credibility scorecard rather than subjective AI judgment. `Strong`, `Moderate`, `Fragile`, and `Unproven` summarize declared immutable-audit, later-test, represented-year, direction-audit, and uncertainty checks; they never override the separate `not live validated` state. Arrow audits call hindsight MFE `Best favorable move`, keep the realized frozen result separate, and draw Entry/SL/TP levels only while that arrow is selected. `/research/readiness-report` now returns setup-level contracts, historical/reaction audits, immutable provenance, quarantined research rules, first-seen decision counts, excluded costs, and an explicit closed live-use gate.
 
@@ -1090,6 +1090,20 @@ The operating-surface consolidation is implemented without changing any frozen s
 - Hypothetical Account and Performance Replay share one surface while retaining honest scope labels: all registered pairs since activation versus selected-pair historical replay. The scopes are never added together.
 - The replay exposes its compounding formula and every exclusion count. Cross-pair simultaneous Long/Short opportunities are no longer misclassified as directional conflicts; only opposing decisions for the same pair conflict. Different-pair exact-time opportunities follow the documented pair/setup/signal tie-break and are counted separately as simultaneous alternatives.
 - Policy/inflation is a collapsed observational background. It explicitly cannot filter, reverse, suppress, or justify the frozen trade. Context-aware interaction research remains a separately versioned future challenger.
+
+#### Reviewed execution overlays - 2026-08-31
+
+`fms-execution-challenger-v2` evaluates the immutable v4 recipes without changing their event scoring. Development history selects one contract per supported management family; later history judges it. The review additionally requires at least 50 development and 30 later cases, positive later average of at least +0.10R, at least three positive later years and a 75% positive-year share, no worse drawdown or losing streak, at least +0.10R improvement over the original contract, and positive behavior across a majority of one-grid-step neighboring contracts.
+
+Three break-even contracts passed and are explicitly fingerprint-locked into `FMS-REGISTERED-REACTION-H4-v5`:
+
+- AUDUSD / US producer inflation: SL 2 ATR, TP 2.5R, maximum 60 H4; after a completed H4 reaches +1.5R, move SL to entry. Later N 31, average +0.39R, 3/4 positive years.
+- NZDUSD / US producer inflation: SL 1.25 ATR, TP 2.5R, maximum 30 H4; after a completed H4 reaches +1R, move SL to entry. Later N 32, average +0.49R, 3/4 positive years.
+- USDJPY / Japan headline/core inflation: SL 0.5 ATR, TP 4R, maximum 30 H4; after a completed H4 reaches +0.5R, move SL to entry. Later N 64, average +0.52R, 4/4 positive years; its 95% historical mean interval was +0.07R to +0.96R.
+
+The original v4 execution remains attached to events before the v5 activation boundary. A reviewed break-even move becomes effective only after a completed H4 candle reaches its trigger; touching the moved stop records 0R before costs. Regeneration always compares challengers with the original contract and cannot mutate the explicit promotion allowlist.
+
+This is stronger reused historical evidence, not immutable forward validation. Spread, commission, slippage, and swap remain excluded. These upgrades do not justify a real-money green light.
 
 ## Research Warnings and References
 

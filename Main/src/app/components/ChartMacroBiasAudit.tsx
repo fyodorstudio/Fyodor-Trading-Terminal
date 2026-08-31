@@ -42,17 +42,24 @@ function formatOutcome(signal: MacroSignalChartSignal): string {
   if (signal.outcomeStatus === "stop_hit") return `SL reached · ${formatR(signal.resultR)}`;
   if (signal.outcomeStatus === "expired") return `Duration ended · ${formatR(signal.resultR)}`;
   if (signal.outcomeStatus === "ambiguous") return "Both touched · order unknown";
-  if (signal.outcomeStatus === "unevaluable") return "Not evaluable";
-  if (signal.outcomeStatus === "pending") return "Monitoring the frozen outcome window";
+  if (signal.outcomeStatus === "unevaluable") return signal.outcomeReason ?? "Historical price data unavailable";
+  if (signal.outcomeStatus === "pending") return signal.outcomeReason ?? "Trade still running";
   return signal.activationTime == null ? "Waiting for the next H4 open" : "Awaiting paper-ledger reconciliation";
 }
 
 function lifecycleCopy(signal: MacroSignalChartSignal): { state: string; detail: string; resolved: boolean } {
   if (signal.outcomeStatus === "target_hit") return { state: "Closed — target reached", detail: "The frozen trade ended at its target. Later price movement does not change this result.", resolved: true };
+  if (signal.outcomeStatus === "stop_hit" && signal.resultR === 0) return { state: "Closed — break-even stop reached", detail: "The reviewed rule had already moved the stop to entry, so this case closed at 0R before costs.", resolved: true };
   if (signal.outcomeStatus === "stop_hit") return { state: "Closed — stop reached", detail: "The frozen trade ended at its stop. This is a losing case for loss-review research.", resolved: true };
   if (signal.outcomeStatus === "expired") return { state: "Closed — maximum duration reached", detail: "Neither boundary won before expiry; the final marked-to-market R is retained.", resolved: true };
   if (signal.outcomeStatus === "ambiguous") return { state: "Closed — intrabar order unknown", detail: "Both boundaries touched inside the same smallest loaded candle, so no win or loss is invented.", resolved: true };
-  if (signal.outcomeStatus === "unevaluable") return { state: "Unavailable", detail: "Loaded price history cannot truthfully resolve this case.", resolved: true };
+  if (signal.outcomeStatus === "unevaluable") {
+    const coverage = signal.outcomeCoverage;
+    const required = coverage?.requiredFrom != null && coverage.requiredTo != null ? `${formatUtc(coverage.requiredFrom)} to ${formatUtc(coverage.requiredTo)}` : "the required trade interval";
+    const available = coverage?.availableFrom != null && coverage.availableTo != null ? `${formatUtc(coverage.availableFrom)} to ${formatUtc(coverage.availableTo)}` : "none";
+    return { state: signal.outcomeReason ?? "Historical price data unavailable", detail: `Required MT5 coverage: ${required} (${coverage?.requiredCandles ?? "additional"} H4 candles). Available coverage: ${available}.`, resolved: true };
+  }
+  if (signal.outcomeStatus === "pending") return { state: signal.outcomeReason ?? "Trade still running", detail: signal.outcomeReasonCode === "waiting_for_entry_candle" ? "The release is known; the first strictly later H4 entry candle has not opened yet." : "The hypothetical trade remains open until TP, SL, ambiguity, or its maximum H4 duration resolves it.", resolved: false };
   return { state: signal.activationTime == null ? "Waiting for H4 entry" : "Active hypothetical trade", detail: "The arrow remains active only until its target, stop, or maximum duration ends the frozen trade.", resolved: false };
 }
 
@@ -71,6 +78,12 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
   const historicalReplay = data.mode === "research_replay" || signal.historicalReplay;
   const benchmark = pattern.historicalBenchmark;
   const provenance = pattern.registrationProvenance;
+  const reviewedExecutionApplies = pattern.executionReview?.status === "reviewed_active"
+    && signal.eventTime >= pattern.executionReview.activatedAt;
+  const reviewedLater = reviewedExecutionApplies ? pattern.executionReview?.later : null;
+  const benchmarkAverage = typeof reviewedLater?.averageR === "number" ? reviewedLater.averageR : benchmark?.walkForwardAverageR;
+  const benchmarkTargetRate = typeof reviewedLater?.tpBeforeSl === "number" ? reviewedLater.tpBeforeSl : benchmark?.targetFirstRate;
+  const benchmarkSample = typeof reviewedLater?.evaluableN === "number" ? reviewedLater.evaluableN : benchmark?.walkForwardN;
   const lifecycle = lifecycleCopy(signal);
   const simpleBreakEven = 1 / (1 + targetR);
   const initialReaction = signal.pathAudit?.fixedHorizonResponses.find((row) => row.holdingCandles === 1) ?? null;
@@ -125,7 +138,7 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
       {signal.entry != null || signal.stop != null || signal.target != null ? (
         <section className="chart-macro-bias-levels" aria-label="Frozen trade price levels">
           <div className="is-entry"><span>Entry</span><strong>{formatPrice(signal.entry, market)}</strong><small>Trade activation price</small></div>
-          <div className="is-risk"><span>Risk · SL</span><strong>{formatPrice(signal.stop, market)}</strong><small>−1R boundary</small></div>
+          <div className="is-risk"><span>{signal.breakEvenArmed ? "Break-even · SL" : "Risk · SL"}</span><strong>{formatPrice(signal.stop, market)}</strong><small>{signal.breakEvenArmed ? "Moved to entry · 0R before costs" : "−1R boundary"}</small></div>
           <div className="is-reward"><span>Reward · TP</span><strong>{formatPrice(signal.target, market)}</strong><small>+{targetR}R boundary</small></div>
         </section>
       ) : null}
@@ -153,9 +166,9 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
         <section className="chart-macro-bias-registered" aria-label="Historical setup performance">
           <div className="chart-macro-bias-section-title"><span>Historical performance of this exact setup</span><strong>{benchmark.experimentId}</strong></div>
           <div className="chart-macro-bias-stats">
-            <div className="is-primary"><span>Average per trade</span><strong>{formatR(benchmark.walkForwardAverageR)}</strong></div>
-            <div><span>TP before SL</span><strong>{formatPercent(benchmark.targetFirstRate)}</strong></div>
-            <div><span>Later test trades</span><strong>{benchmark.walkForwardN}</strong></div>
+            <div className="is-primary"><span>Average per trade</span><strong>{formatR(benchmarkAverage)}</strong></div>
+            <div><span>TP before SL</span><strong>{formatPercent(benchmarkTargetRate)}</strong></div>
+            <div><span>Later test trades</span><strong>{benchmarkSample ?? "—"}</strong></div>
             <div><span>All matching events</span><strong>{benchmark.historicalN}</strong></div>
             <div><span>SL before TP</span><strong>{formatPercent(benchmark.stopFirstRate)}</strong></div>
             <div><span>TP rate needed</span><strong>{formatPercent(simpleBreakEven)}</strong></div>
@@ -163,7 +176,8 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
             {pattern.reactionAudit ? <div><span>Worked, but trade lost</span><strong>{pattern.reactionAudit.directionWorkedTradeLost} / {pattern.reactionAudit.evaluableN}</strong></div> : null}
           </div>
           {pattern.reactionAudit ? <p className="chart-macro-bias-reaction-note"><b>Different measurements:</b> direction checks the registered price response after {pattern.reactionAudit.horizonCandles} H4 candles. The final trade result uses this setup&apos;s exact SL, TP, and maximum duration.</p> : null}
-          <div className="chart-macro-bias-contract"><b>Trade rules used in this test</b><span>SL {stopAtr} ATR · TP {targetR}R = {stopAtr * targetR} ATR · maximum {signal.expiryCandles} H4 candles</span></div>
+          <div className="chart-macro-bias-contract"><b>Trade rules used in this test</b><span>SL {stopAtr} ATR · TP {targetR}R = {stopAtr * targetR} ATR · maximum {signal.expiryCandles} H4 candles{signal.managementFamily === "break_even" ? ` · move SL to entry after a completed H4 reaches +${signal.managementTriggerR ?? 1}R` : ""}</span></div>
+          {reviewedExecutionApplies ? <div className="chart-macro-bias-provenance is-verified"><strong>Reviewed execution contract</strong><span>{pattern.executionReview?.reason} Historical result remains gross and is not live validation.</span></div> : null}
           {provenance ? <div className={`chart-macro-bias-provenance is-${provenance.status}`}><strong>{provenanceLabel(provenance.status)}</strong><span>{provenance.note}</span></div> : null}
         </section>
       ) : (

@@ -258,6 +258,13 @@ describe("getChartConnectionLabel", () => {
     const globalResponse = {
       modelId: "global", modelHash: "global-hash", generatedAt: 100, markets: [response, gbpResponse],
       liveDecisions: [{ modelId: "global", market: "EURUSD", patternId: pattern.id, eventTime: 90, firstDecidedAt: 91, status: "no_trade", direction: null, assessment: response.realtime.latestPatternAssessment!, signal: null }],
+      outcomeReview: {
+        unresolvedByReason: { missing_outcome_candles: 2, trade_still_running: 1 },
+        executionReviews: [
+          { market: "EURUSD", patternId: pattern.id, label: pattern.label, status: "review_worthy", active: { stopAtr: 1, targetR: 2, holdingCandles: 30, laterAverageR: .1 }, challenger: { stopAtr: .75, targetR: 1.5, holdingCandles: 18, laterAverageR: .2 }, reason: "Later evidence improved without changing the active contract.", artifact: "fms-execution-challenger-v1" },
+          { market: "GBPUSD", patternId: gbpPattern.id, label: gbpPattern.label, status: "active_evidence_weakened", active: { stopAtr: 1, targetR: 2, holdingCandles: 30, laterAverageR: -.1 }, challenger: { stopAtr: 1, targetR: 1, holdingCandles: 12, laterAverageR: -.05 }, reason: "Later evidence weakened.", artifact: "fms-execution-challenger-v1" },
+        ],
+      },
       explanation: "Registered, contender, and avoid meanings.",
       researchIntelligence: [
         { id: "contender", status: "contender", market: "EURUSD", label: "Retail sales", evidence: "Positive in some partitions.", conclusion: "Retest later." },
@@ -367,6 +374,14 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Policy holding 2.25");
     expect(html).toContain("Inflation heating");
     expect(html).toContain("Not used by frozen rules");
+    expect(html).toContain("Needs Codex review");
+    expect(html).toContain("3 unresolved · 2 execution reviews");
+    expect(html).toContain("missing outcome candles");
+    expect(html).toContain("Challenger worth review");
+    expect(html).toContain("Needs execution review");
+    expect(html).toContain("Copy AI review");
+    expect(html).toContain("backtest-overfitting research");
+    expect(html).toContain("95% range");
     expect(html).toContain("does not filter, reverse, suppress, or justify a registered trade");
     expect(html).not.toContain("Can I follow this blindly?");
     expect(html).not.toContain("Earlier EURUSD calendar row");
@@ -384,6 +399,11 @@ describe("getChartConnectionLabel", () => {
       makeSignal("loss", 300, 400, -1, "stop_hit"),
     ], { startingBalance: 1_000, riskPercent: 1 });
     expect(account).toMatchObject({ balance: 1_009.8, profit: 9.8, takenTrades: 2, targetHits: 1, stopHits: 1, skippedOverlap: 1 });
+    const unresolved = buildMacroSignalShadowAccount([
+      { ...makeSignal("pending", 50, 999, 0, "target_hit"), outcomeStatus: "pending", resultR: null },
+      { ...makeSignal("resolved", 100, 200, 2, "target_hit") },
+    ], { startingBalance: 1_000, riskPercent: 1 });
+    expect(unresolved).toMatchObject({ balance: 1_020, takenTrades: 1, skippedOverlap: 0 });
     const position = buildMacroSignalShadowPosition({ ...makeSignal("position", 500, 600, 2, "target_hit"), entry: 1.1, stop: 1.095 }, 1_000, 0.5);
     expect(position.riskDollars).toBe(5);
     expect(position.stopPips).toBeCloseTo(50);

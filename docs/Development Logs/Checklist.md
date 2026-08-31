@@ -141,18 +141,23 @@ The program must remain honest about the word **proven**:
   - reversal after favorable excursion and drawdown before eventual target.
 - [x] Use unrestricted path observation only for discovery. Maximum future profit remains an audit field and is never presented as a tradable entry-time result.
 - [x] Preserve loss-path observations without rewriting the original signal: adverse-before-best-favourable, favourable-then-giveback, target not reached, direction not working at six H4, duration ended negative, plus the separate ambiguous intrabar outcome.
-- [ ] Convert discovered path behavior into a small predeclared contract set on development data only:
+- [x] Convert discovered path behavior into a small predeclared contract set on development data only:
   - fixed SL/TP;
   - time exit;
   - break-even rule;
   - trailing stop;
   - partial exit only as a separately declared strategy;
   - no-SL/no-expiry observation only as research, never live readiness.
-- [ ] Freeze the chosen contract before later walk-forward/holdout evaluation. Holdout data must never choose the best exit.
+- [x] Freeze the chosen challenger per management family from development data before later walk-forward evaluation. Later data judges but never selects it.
 - [x] Build price-path profiles once per candidate and reuse them across the declared contract grid rather than rescanning candle history per contract.
-- [ ] Require any execution challenger to improve the complete parent recipe on later walk-forward data; never add a rescue rule because it fixes one memorable losing chart.
+- [x] Require any execution challenger to improve the complete parent recipe on later walk-forward data without materially worsening drawdown or losing streak; never add a rescue rule because it fixes one memorable losing chart.
 - [ ] Preserve a useful directional recipe as reaction knowledge when no execution contract survives, and mark its execution research `Exhausted` after the fixed matrix and small declared management set fail honestly.
 - [x] Display both directional reaction and actual strategy expectancy; every registered setup now carries a chronological later-test six-H4 reaction audit, while each arrow audit preserves MFE/MAE, fixed-horizon responses, giveback, and the final frozen-contract result.
+- [x] Replace generic `Not evaluable` with stable lifecycle/reason codes: waiting for entry candle, trade still running, missing ATR history, missing outcome candles, historical price data unavailable, or intrabar order unknown. Pending, ambiguous, and unavailable cases never enter expectancy or account replay.
+- [x] Retry missing registered-arrow H4/M1 history from MT5 before preserving an unavailable result; retain the exact required and available coverage interval when repair cannot succeed.
+- [x] Add a collapsed Shadow Trader `Needs Codex review` queue. It reports unresolved reasons, weakened active contracts, and immutable execution challengers without exposing a promotion path or rewriting the active registry.
+- [x] Materialize `fms-execution-challenger-v1` for all 47 registered recipes: 1,908 declared fixed/break-even/trailing/partial configurations per recipe, M1 ordering when available, immutable dataset/configuration/candle fingerprints, and ten review-worthy challengers in the 2026-08-31 artifact. These are review findings only; zero active contracts were changed.
+- [x] Upgrade the artifact to `fms-execution-challenger-v2` with one-grid-step neighboring-contract stability and a frozen practical review gate. Explicitly activate three fingerprint-locked break-even overlays in `FMS-REGISTERED-REACTION-H4-v5`: AUDUSD US producer inflation, NZDUSD US producer inflation, and USDJPY Japan inflation. Preserve v4 contracts for every historical event before the v5 activation boundary; no regenerated artifact can silently change the allowlist.
 
 ### Phase 4 — Research Entry at Release Without Lookahead
 

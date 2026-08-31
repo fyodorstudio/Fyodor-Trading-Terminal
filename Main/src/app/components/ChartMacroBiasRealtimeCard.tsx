@@ -21,15 +21,31 @@ const SHADOW_BALANCE_KEY = "fyodor.charts.shadow-starting-balance";
 const SHADOW_RISK_KEY = "fyodor.charts.shadow-risk-percent";
 
 function historicalAverage(pattern: MacroSignalChartPattern): number {
+  const reviewed = pattern.executionReview?.status === "reviewed_active" ? pattern.executionReview.later : null;
+  if (typeof reviewed?.averageR === "number") return reviewed.averageR;
   return pattern.historicalBenchmark?.walkForwardAverageR ?? pattern.executionStress.overall.averageR ?? Number.NEGATIVE_INFINITY;
 }
 
 function historicalAccuracy(pattern: MacroSignalChartPattern): number {
+  const reviewed = pattern.executionReview?.status === "reviewed_active" ? pattern.executionReview.later : null;
+  if (typeof reviewed?.tpBeforeSl === "number") return reviewed.tpBeforeSl;
   return pattern.historicalBenchmark?.targetFirstRate ?? pattern.overall.targetHitRate ?? Number.NEGATIVE_INFINITY;
 }
 
 function historicalSample(pattern: MacroSignalChartPattern): number {
+  const reviewed = pattern.executionReview?.status === "reviewed_active" ? pattern.executionReview.later : null;
+  if (typeof reviewed?.evaluableN === "number") return reviewed.evaluableN;
   return pattern.historicalBenchmark?.walkForwardN ?? pattern.overall.evaluableCount;
+}
+
+function executionRule(execution: MacroSignalChartPattern["execution"] | MacroSignalChartSignal["execution"] | undefined): string {
+  const stopAtr = execution?.stopAtr ?? 1;
+  const targetR = execution?.targetR ?? 2;
+  const expiry = execution?.expiryCandles ?? 30;
+  const base = `SL ${stopAtr} ATR · TP ${targetR}R · ${expiry} H4`;
+  return execution?.managementFamily === "break_even"
+    ? `${base} · move SL to entry after a completed H4 reaches +${execution.managementTriggerR ?? 1}R`
+    : base;
 }
 
 export interface ChartMacroBiasRealtimeCardData {
@@ -88,6 +104,10 @@ function formatMoney(value: number): string {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 }
 
+function formatSignedR(value: number | null | undefined): string {
+  return value == null ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(2)}R`;
+}
+
 function formatPrice(value: number | null | undefined): string {
   return value == null ? "Waiting for entry" : value.toFixed(5);
 }
@@ -97,7 +117,8 @@ function formatOutcome(signal: MacroSignalChartSignal): string {
   if (signal.outcomeStatus === "stop_hit") return `Stop reached · ${signal.resultR?.toFixed(2) ?? "-1.00"}R`;
   if (signal.outcomeStatus === "expired") return `Expired · ${signal.resultR == null ? "result unavailable" : `${signal.resultR >= 0 ? "+" : ""}${signal.resultR.toFixed(2)}R`}`;
   if (signal.outcomeStatus === "ambiguous") return "Both boundaries touched · order unknown";
-  if (signal.outcomeStatus === "unevaluable") return "Could not be evaluated from loaded prices";
+  if (signal.outcomeStatus === "unevaluable") return signal.outcomeReason ?? "Historical price data unavailable";
+  if (signal.outcomeStatus === "pending") return signal.outcomeReason ?? "Trade still running";
   return "Qualified · waiting for the frozen H4 entry";
 }
 
@@ -281,6 +302,11 @@ function LatestDecisionSection({ assessment, pattern, symbol, signal }: { assess
 export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealtimeCardData }) {
   const { response, activeSignal, activePattern } = data;
   const [setupSort, setSetupSort] = useState<"actionable" | "readiness" | "credibility" | "profitability" | "accuracy" | "sample" | "soonest" | "market_family">("accuracy");
+  const weakenedPatternKeys = useMemo(() => new Set(
+    (data.globalResponse?.outcomeReview?.executionReviews ?? [])
+      .filter((row) => row.status === "active_evidence_weakened")
+      .map((row) => `${row.market}:${row.patternId}`),
+  ), [data.globalResponse?.outcomeReview?.executionReviews]);
   const [selectedTradeKey, setSelectedTradeKey] = useState<string | null>(null);
   const [expandedWatchKey, setExpandedWatchKey] = useState<string | null>(null);
   const [openIntelligence, setOpenIntelligence] = useState<Set<MacroSignalResearchIntelligence["status"]>>(() => new Set());
@@ -434,7 +460,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
       >
         <td><strong><PairFlags symbol={row.market} />{row.pattern?.label ?? signal.label}</strong><small>{signal.direction === "long" ? `Long ${row.market}` : `Short ${row.market}`}</small></td>
         <td><strong>{formatUtc(signal.activationTime)}</strong><small>Release {formatUtc(signal.eventTime)}</small></td>
-        <td><strong>{state}</strong><small>SL {signal.stopAtr ?? row.pattern?.execution?.stopAtr ?? 1} ATR · TP {signal.targetR ?? row.pattern?.execution?.targetR ?? 2}R · {signal.expiryCandles} H4</small></td>
+        <td><strong>{state}</strong><small>{executionRule(signal.execution ?? row.pattern?.execution)}</small></td>
         <td><span>{selected ? "Hide audit" : "View audit"}</span>{selected ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
       </tr>
     );
@@ -532,6 +558,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
               const openOrPending = patternSignal && !assessmentIsNewer && patternSignal.outcomeStatus === "pending";
               const latestTime = assessmentIsNewer ? assessment.time : patternSignal?.eventTime ?? assessment?.time ?? null;
               const blocked = pattern.readiness?.actionableInShadowTrader === false;
+              const needsExecutionReview = weakenedPatternKeys.has(`${patternMarket}:${pattern.id}`);
               return (
                 <Fragment key={pattern.id}>
                   <tr
@@ -547,7 +574,7 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
                       }
                     }}
                   >
-                    <td><strong className="chart-shadow-setup-title"><PairFlags symbol={patternMarket} />{patternMarket} · {pattern.label}</strong><small className="chart-shadow-contract-line">SL {pattern.execution?.stopAtr ?? 1} ATR · TP {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</small><span className={`chart-shadow-readiness is-${pattern.readiness?.auditStatus ?? "incomplete"}`}>{pattern.readiness?.label ?? "Audit incomplete"}</span>{pattern.readiness?.orientationAudited && <span className="chart-shadow-readiness is-complete">Orientation audited</span>}<span className={`chart-shadow-reaction is-${pattern.reaction === "contrarian" ? "rejected" : "followed"}`}>{pattern.reaction === "contrarian" ? "Rejected evidence" : "Followed evidence"}</span>{pattern.reactionAudit?.profile ? <span className="chart-shadow-reaction-shape">Reaction: {macroSignalReactionLabel(pattern.reactionAudit.profile.classification)}</span> : null}</td>
+                    <td><strong className="chart-shadow-setup-title"><PairFlags symbol={patternMarket} />{patternMarket} · {pattern.label}</strong><small className="chart-shadow-contract-line">{executionRule(pattern.execution)}</small>{pattern.executionReview?.status === "reviewed_active" ? <span className="chart-shadow-readiness is-complete">Reviewed execution active</span> : null}{needsExecutionReview ? <span className="chart-shadow-needs-review">Needs execution review</span> : null}<span className={`chart-shadow-readiness is-${pattern.readiness?.auditStatus ?? "incomplete"}`}>{pattern.readiness?.label ?? "Audit incomplete"}</span>{pattern.readiness?.orientationAudited && <span className="chart-shadow-readiness is-complete">Orientation audited</span>}<span className={`chart-shadow-reaction is-${pattern.reaction === "contrarian" ? "rejected" : "followed"}`}>{pattern.reaction === "contrarian" ? "Rejected evidence" : "Followed evidence"}</span>{pattern.reactionAudit?.profile ? <span className="chart-shadow-reaction-shape">Reaction: {macroSignalReactionLabel(pattern.reactionAudit.profile.classification)}</span> : null}</td>
                     <td className="chart-shadow-now-cell">{blocked ? (
                       <><strong>Blocked</strong><small>Registration audit must be rebuilt.</small></>
                     ) : openOrPending ? (
@@ -706,6 +733,42 @@ export function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealt
       ) : null}
 
       <ChartMacroBiasSetupCatalog patterns={registeredPatternRows} />
+
+      {data.globalResponse?.outcomeReview ? (
+        <details className="chart-shadow-account-audit chart-shadow-review-queue">
+          <summary>
+            <span>Needs Codex review</span>
+            <strong>{Object.values(data.globalResponse.outcomeReview.unresolvedByReason).reduce((sum, count) => sum + count, 0)} unresolved · {data.globalResponse.outcomeReview.executionReviews.length} execution reviews</strong>
+            <ChevronDown size={14} />
+          </summary>
+          <div>
+            <p>Active contracts are unchanged. Pending, ambiguous, and unavailable cases are excluded from win rates, average R, and account replay.</p>
+            {Object.entries(data.globalResponse.outcomeReview.unresolvedByReason).length > 0 ? (
+              <dl>{Object.entries(data.globalResponse.outcomeReview.unresolvedByReason).map(([reason, count]) => <div key={reason}><dt>{reason.replaceAll("_", " ")}</dt><dd>{count}</dd></div>)}</dl>
+            ) : <p>Every loaded registered arrow currently has a resolved or genuinely live lifecycle.</p>}
+            {data.globalResponse.outcomeReview.executionReviews.map((review) => (
+              <article key={`${review.market}:${review.patternId}`} className="chart-shadow-review-card">
+                <header><strong>{review.market} · {review.label}</strong><em>{review.status === "review_worthy" ? "Challenger worth review" : "Active evidence weakened"}</em></header>
+                <p>{review.reason}</p>
+                <div>
+                  <span><b>Active</b>{review.active.stopAtr ?? "—"} ATR SL · {review.active.targetR ?? "—"}R TP · {review.active.holdingCandles ?? "—"} H4<br />Later N {review.active.evaluableN ?? "—"} · avg {formatSignedR(review.active.laterAverageR as number | null)} · TP first {review.active.tpBeforeSl == null ? "—" : `${((review.active.tpBeforeSl as number) * 100).toFixed(1)}%`}<br />95% range {formatSignedR(review.active.laterLower95 as number | null)} to {formatSignedR(review.active.laterUpper95 as number | null)} · DD {formatSignedR(review.active.maximumDrawdownR as number | null)} · streak {review.active.longestLosingStreak ?? "—"} · positive years {review.active.positiveYears ?? "—"}/{review.active.evaluableYears ?? "—"}</span>
+                  <span><b>Challenger · {String(review.challenger.family ?? "managed").replaceAll("_", " ")}</b>{review.challenger.stopAtr ?? "—"} ATR SL · {review.challenger.targetR ?? "—"}R TP · {review.challenger.holdingCandles ?? "—"} H4<br />Later N {review.challenger.laterEvaluableN ?? "—"} · avg {formatSignedR(review.challenger.laterAverageR as number | null)} · TP first {review.challenger.laterTpBeforeSl == null ? "—" : `${((review.challenger.laterTpBeforeSl as number) * 100).toFixed(1)}%`}<br />95% range {formatSignedR(review.challenger.laterLower95 as number | null)} to {formatSignedR(review.challenger.laterUpper95 as number | null)} · DD {formatSignedR(review.challenger.laterMaximumDrawdownR as number | null)} · streak {review.challenger.laterLongestLosingStreak ?? "—"} · positive years {review.challenger.laterPositiveYears ?? "—"}/{review.challenger.laterEvaluableYears ?? "—"}</span>
+                </div>
+              </article>
+            ))}
+            <button type="button" className="chart-shadow-copy-review" onClick={() => {
+              const review = data.globalResponse!.outcomeReview!;
+              const markdown = [
+                "# FMS execution review",
+                ...Object.entries(review.unresolvedByReason).map(([reason, count]) => `- Unresolved ${reason}: ${count}`),
+                ...review.executionReviews.map((row) => `- ${row.market} · ${row.label}: ${row.status}. Active ${row.active.stopAtr} ATR/${row.active.targetR}R/${row.active.holdingCandles} H4, later ${row.active.evaluableN ?? "—"} cases at ${formatSignedR(row.active.laterAverageR as number | null)}. Challenger ${String(row.challenger.family ?? "managed")}, ${row.challenger.stopAtr} ATR/${row.challenger.targetR}R/${row.challenger.holdingCandles} H4, later ${row.challenger.laterEvaluableN ?? "—"} cases at ${formatSignedR(row.challenger.laterAverageR as number | null)}. ${row.reason}`),
+              ].join("\n");
+              void navigator.clipboard?.writeText(markdown);
+            }}>Copy AI review</button>
+            <p className="chart-shadow-source-note">Hypothetical results can benefit from hindsight and do not reproduce actual execution. See <a href="https://www.cftc.gov/LearnAndProtect/AdvisoriesAndArticles/fraudadv_tradingsystem.html" target="_blank" rel="noreferrer">CFTC guidance</a> and <a href="https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2308659" target="_blank" rel="noreferrer">backtest-overfitting research</a>. Spread, commission, slippage, and swap remain excluded.</p>
+          </div>
+        </details>
+      ) : null}
 
       {response.policyInflationContext ? (
         <details className="chart-macro-bias-realtime-context" aria-label="Policy and inflation background context">

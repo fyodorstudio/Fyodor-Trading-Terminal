@@ -5,6 +5,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 import server
+from scripts.materialize_registered_reaction_profiles import simulate_managed
 from macro_signal import ACTIVE_VERSION_ID, GROWTH_VERSION_ID, POLICY_INFLATION_VERSION_ID, SENTIMENT_VERSION_ID, VERSION_ID, V2_VERSION_ID
 from research_store import ResearchStore
 
@@ -24,6 +25,21 @@ def event(timestamp: int) -> dict:
     "forecast": "1.5",
     "previous": "1.0",
   }
+
+
+def test_execution_management_rules_are_deterministic_and_preserve_ambiguity() -> None:
+  profile = {"sign": 1, "entry": 100.0, "atr": 1.0, "candles": [
+    {"time": 1, "open": 100, "high": 100.6, "low": 99.5, "close": 100.2},
+    {"time": 2, "open": 100.2, "high": 100.4, "low": 99.9, "close": 100.1},
+  ]}
+  break_even = simulate_managed(profile, "break_even", 1, 2, 2, .5)
+  assert break_even == {"status": "stop_hit", "resultR": 0.0}
+
+  same_bar = {**profile, "candles": [{"time": 1, "open": 100, "high": 101.1, "low": 98.9, "close": 100}]}
+  partial = simulate_managed(same_bar, "partial", 1, 3, 1, 1)
+  assert partial == {"status": "ambiguous", "resultR": None}
+  resolved_partial = simulate_managed(same_bar, "partial", 1, 3, 1, 1, lambda *_args: "target_hit")
+  assert resolved_partial == {"status": "stop_hit", "resultR": 0.0}
 
 
 def test_qualification_v2_refines_extreme_bootstrap_tails() -> None:
@@ -368,11 +384,11 @@ def test_readiness_report_exposes_setup_level_evidence_and_keeps_live_gate_close
   report = server.research_readiness_report()
   assert report["activeRegisteredSetups"] == len(server.PRACTICAL_PATTERN_DEFINITIONS)
   assert len(report["registeredSetups"]) == len(server.PRACTICAL_PATTERN_DEFINITIONS)
-  assert all(row["reactionAudit"]["profile"]["schema"] == "registered-reaction-profile-v1" for row in report["registeredSetups"])
+  assert all(row["reactionAudit"]["profile"]["schema"] == "registered-reaction-profile-v2" for row in report["registeredSetups"])
   assert all(row["reactionAudit"]["profile"]["evaluableN"] > 0 for row in report["registeredSetups"])
   assert report["registeredSetups"][0]["execution"]
   assert "historicalBenchmark" in report["registeredSetups"][0]
-  assert report["registeredSetups"][0]["reactionAudit"]["profile"]["schema"] == "registered-reaction-profile-v1"
+  assert report["registeredSetups"][0]["reactionAudit"]["profile"]["schema"] == "registered-reaction-profile-v2"
   assert [row["holdingCandles"] for row in report["registeredSetups"][0]["reactionAudit"]["profile"]["horizons"]] == [1, 3, 6, 12, 30]
   assert report["quarantinedOrRetiredSetups"]
   assert report["paperLiveEvidence"] == {
@@ -382,3 +398,25 @@ def test_readiness_report_exposes_setup_level_evidence_and_keeps_live_gate_close
     "status": "observation_only",
   }
   assert report["eligibleForRuleBasedLiveUse"] is False
+
+
+def test_execution_challengers_are_immutable_and_only_explicitly_reviewed_contracts_activate() -> None:
+  payload = server.research_execution_challengers()
+  assert payload["schema"] == "fms-execution-challenger-index-v1"
+  assert payload["count"] == len(server.PRACTICAL_PATTERN_DEFINITIONS)
+  assert payload["promotionAvailable"] is False
+  assert all(row["configurationHash"] and row["candleFingerprint"] for row in payload["rows"])
+  assert all(row["activeContractPreserved"] is True for row in payload["rows"])
+  assert {winner["family"] for row in payload["rows"] for winner in row["familyWinners"]} == {"fixed", "break_even", "trailing", "partial"}
+  reviewed = {
+    (row["market"], row["id"]): row
+    for row in server.PRACTICAL_PATTERN_DEFINITIONS
+    if (row.get("executionReview") or {}).get("status") == "reviewed_active"
+  }
+  assert set(reviewed) == {
+    ("AUDUSD", "audusd-us-producer-inflation"),
+    ("NZDUSD", "nzdusd-us-producer-inflation"),
+    ("USDJPY", "usdjpy-jpy-inflation"),
+  }
+  assert all(row["execution"]["managementFamily"] == "break_even" for row in reviewed.values())
+  assert all(row["baseExecution"] != row["execution"] for row in reviewed.values())
