@@ -48,6 +48,31 @@ function executionRule(execution: MacroSignalChartPattern["execution"] | MacroSi
     : base;
 }
 
+type DecisionCalculation = NonNullable<MacroSignalPatternAssessment["calculations"]>[number];
+
+function scoringRuleLabel(policy: string | null | undefined): string {
+  if (policy === "momentum_only") return "Compare Actual with Previous. Forecast is ignored.";
+  if (policy === "surprise_only") return "Compare Actual with Forecast. Previous is ignored.";
+  if (policy === "forecast_quality") return "Use Forecast Guard: compare Actual with Forecast when reliable, and Actual with Previous.";
+  if (policy === "agreement_no_bonus") return "Compare Actual with Forecast and Previous with equal weight; no agreement bonus.";
+  return "Compare Actual with Forecast and Previous with equal weight.";
+}
+
+function zeroScoreExplanation(calculation: DecisionCalculation): string {
+  if (calculation.scoringPolicy === "momentum_only") {
+    return calculation.momentumPoint === 0
+      ? `Actual ${calculation.actual ?? "â€“"} did not improve or weaken versus Previous ${calculation.previous ?? "â€“"}. Forecast ${calculation.forecast ?? "â€“"} is ignored by this frozen rule.`
+      : "The eligible Actual-versus-Previous comparison produced no registered direction.";
+  }
+  if (calculation.surprisePoint != null && calculation.momentumPoint != null && calculation.surprisePoint === -calculation.momentumPoint) {
+    return "Actual-versus-Forecast and Actual-versus-Previous pointed in opposite directions, so they cancelled to 0.";
+  }
+  if (calculation.forecastSuspect && calculation.momentumPoint === 0) {
+    return "Forecast Guard excluded Surprise, and Actual-versus-Previous produced 0, so this release contributed no direction.";
+  }
+  return "The eligible comparisons produced a total score of 0, so this release contributed no direction.";
+}
+
 export interface ChartMacroBiasRealtimeCardData {
   response: MacroSignalChartSignalResponse;
   activeSignal: MacroSignalChartSignal | null;
@@ -191,6 +216,38 @@ function PairFlags({ symbol }: { symbol: string }) {
   );
 }
 
+type DemoExecution = NonNullable<NonNullable<MacroSignalGlobalResponse["forwardValidation"]>["demoExecution"]>;
+
+function formatExecutionDelay(seconds: number | null): string {
+  if (seconds == null) return "â€”";
+  const absolute = Math.abs(Math.round(seconds));
+  if (absolute < 60) return `${seconds < 0 ? "-" : ""}${absolute}s`;
+  const minutes = Math.floor(absolute / 60);
+  const remainder = absolute % 60;
+  return `${seconds < 0 ? "-" : ""}${minutes}m ${remainder}s`;
+}
+
+function DemoExecutionAudit({ execution, patterns, captureStatusText }: { execution: DemoExecution; patterns: MacroSignalChartPattern[]; captureStatusText: string }) {
+  const comparison = execution.executionComparison;
+  return (
+    <div className="chart-shadow-demo-validation">
+      <strong>Observed MT5 demo execution</strong><span>{captureStatusText}</span>
+      <p>{execution.completedTrades} completed Â· {execution.openOrPartialTrades} open/partial Â· gross fill result {formatSignedR(execution.averageGrossFillR)} Â· after recorded costs {formatSignedR(execution.averageNetR)}.</p>
+      <div className="chart-shadow-demo-comparison" aria-label="Planned versus actual demo execution">
+        <div><span>Comparable entries</span><strong>{comparison.entryComparableTrades}</strong></div>
+        <div><span>Average entry delay</span><strong>{formatExecutionDelay(comparison.averageEntryDelaySeconds)}</strong></div>
+        <div><span>Entry difference</span><strong>{formatSignedR(comparison.averageAdverseEntryDifferenceR)}</strong><small>Positive is worse for the planned direction</small></div>
+        <div><span>Actual versus candle result</span><strong>{formatSignedR(comparison.averageGrossResultDifferenceR)}</strong></div>
+        <div><span>Recorded costs</span><strong>{formatSignedR(comparison.averageExecutionCostsR)}</strong><small>Commission, swap, and fee</small></div>
+        <div><span>Contract matched</span><strong>{comparison.contractAdherentTrades}/{execution.matchedTrades}</strong></div>
+      </div>
+      <p>{execution.instructions}</p>
+      {execution.trades.length ? <table className="chart-shadow-demo-trades" aria-label="Matched MT5 demo trades"><thead><tr><th>Trade</th><th>Entry difference</th><th>Gross / net</th><th>Contract</th></tr></thead><tbody>{execution.trades.slice(0, 5).map((trade) => { const demoPattern = patterns.find((row) => row.id === trade.patternId && (row.market ?? trade.market) === trade.market); return <tr key={`${trade.accountLogin}:${trade.signalTag}:${trade.positionId}`}><td><b><PairFlags symbol={trade.market} />{demoPattern?.label ?? trade.patternId}</b><small>{trade.entryTime == null ? trade.signalTag : formatUtc(trade.entryTime)}</small></td><td>{formatSignedR(trade.entryDifferenceR)}<small>{formatExecutionDelay(trade.entryDelaySeconds)} after planned entry</small></td><td>{formatSignedR(trade.grossFillR)} / {formatSignedR(trade.netR)}</td><td className={trade.contractAdherent ? "is-valid" : "is-invalid"}>{trade.contractAdherent ? "Matched" : "Deviation"}</td></tr>; })}</tbody></table> : null}
+      <small>{comparison.note} Demo audit only; Fyodor sends no order.</small>
+    </div>
+  );
+}
+
 function packageDecisionCopy(assessment: MacroSignalPatternAssessment, pattern: MacroSignalChartPattern | null, symbol: string) {
   if (assessment.status === "qualified") {
     const plannedEntry = assessment.prospectiveCapture?.activationTime;
@@ -273,6 +330,8 @@ function assessmentForSignal(
 }
 
 function LatestDecisionSection({ assessment, pattern, symbol, signal }: { assessment: MacroSignalPatternAssessment; pattern: MacroSignalChartPattern | null; symbol: string; signal?: MacroSignalChartSignal | null }) {
+  const primaryCalculation = assessment.calculations?.[0] ?? null;
+  const scoringPolicy = primaryCalculation?.scoringPolicy ?? pattern?.scoringPolicy;
   const status = signal
     ? signal.outcomeStatus === "pending"
       ? signal.activationTime == null ? "Waiting for H4 entry" : "Trade open"
@@ -303,9 +362,16 @@ function LatestDecisionSection({ assessment, pattern, symbol, signal }: { assess
           <time>{formatUtc(assessment.time)}</time>
         </div>
       </div>
+      {assessment.status === "no_trade" ? (
+        <div className="chart-shadow-no-trade-explanation">
+          <span>Why no trade</span>
+          <strong>{primaryCalculation ? zeroScoreExplanation(primaryCalculation) : assessment.reason}</strong>
+          <p><b>The event name matched this registered setup.</b> Its released values did not produce the positive or negative score required by the frozen rule, so neither Long nor Short qualified.</p>
+        </div>
+      ) : null}
       {pattern ? (
         <div className="chart-shadow-hunt-plan">
-          <div className="chart-shadow-hunt-rule"><span>What FMS is hunting</span><strong>{pattern.condition}</strong></div>
+          <div className="chart-shadow-hunt-rule"><span>Frozen rule</span><strong>{scoringRuleLabel(scoringPolicy)}</strong><small>{pattern.condition}</small></div>
           <div className="chart-shadow-if-grid" aria-label="Possible FMS decisions">
             {buildDecisionScenarios(pattern, symbol).map(([condition, action]) => (
               <div key={condition}><span>{condition}</span><strong>{action}</strong></div>
@@ -321,7 +387,9 @@ function LatestDecisionSection({ assessment, pattern, symbol, signal }: { assess
           <small>Use only on a manually placed demo trade matching this exact direction and frozen contract. Fyodor sends no order.</small>
         </div>
       ) : null}
-      {assessment.calculations?.map((calculation) => (
+      {assessment.calculations?.length ? <details className="chart-shadow-released-values" open={assessment.status !== "no_trade"}>
+        <summary><span>Released values and scoring</span><strong>{assessment.calculations.length} release{assessment.calculations.length === 1 ? "" : "s"}</strong><ChevronDown size={14} /></summary>
+        {assessment.calculations.map((calculation) => (
         <div className="chart-shadow-decision-audit" key={`${assessment.time}-${calculation.title}`}>
           <h4>{calculation.title}</h4>
           <dl>
@@ -332,11 +400,12 @@ function LatestDecisionSection({ assessment, pattern, symbol, signal }: { assess
             <div><dt>Momentum</dt><dd>{momentumMeaning(calculation.momentumPoint)} {formatPoint(calculation.momentumPoint)}<small>{relativeMagnitude(calculation.momentumMagnitude)}</small></dd></div>
             <div><dt>Total</dt><dd>{formatPoint(calculation.score)}</dd></div>
           </dl>
-          {calculation.score === 0 ? <p><b>This release only:</b> Surprise and Momentum offset each other, so this row contributes 0. It does not cancel the other releases.</p> : null}
+          {calculation.score === 0 ? <p><b>Why this row scored 0:</b> {zeroScoreExplanation(calculation)} It does not cancel other releases in the same package.</p> : null}
           {assessment.status === "pre_activation_audit" ? <p><b>Decision:</b> {assessment.direction === "long" ? `Long ${symbol}` : `Short ${symbol}`} under the frozen scoring rule, but audit-only because the release predates model activation.</p> : null}
           <small>{calculation.forecastSuspect ? `Raw Forecast ${calculation.forecast ?? "–"} retained; ${calculation.forecastGap?.toFixed(2) ?? "–"} gap exceeded the past-only ${calculation.forecastAnomalyThreshold?.toFixed(2) ?? "–"} threshold.` : "Frozen first-seen MT5 values."}</small>
         </div>
-      ))}
+        ))}
+      </details> : null}
       <div className={`chart-shadow-package-decision is-${assessment.status}`}>
         <span>Complete package decision</span>
         <strong>{packageDecision.title}</strong>
@@ -386,6 +455,20 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
     () => registryResponses.flatMap((market) => market.patterns.filter((pattern) => pattern.currentEligible)),
     [registryResponses],
   );
+  const forwardSetupByKey = useMemo(
+    () => new Map((data.globalResponse?.forwardValidation?.setupSummaries ?? []).map((row) => [`${row.market}:${row.patternId}`, row])),
+    [data.globalResponse?.forwardValidation?.setupSummaries],
+  );
+  const forwardSetupLabel = (market: string, patternId: string) => {
+    const summary = forwardSetupByKey.get(`${market}:${patternId}`);
+    if (!summary) return null;
+    const title = summary.manualLimitedLiveReviewBlockers.join(" ");
+    if (summary.eligibleForManualLimitedLiveReview) return { className: "is-supportive", text: `Eligible for manual limited-live review · ${summary.demoCompletedTrades} demo trades`, title };
+    if (summary.status === "supportive") return { className: "is-supportive", text: `Forward supportive · demo execution ${summary.demoCompletedTrades}/5`, title };
+    if (summary.status === "degraded") return { className: "is-degraded", text: `Needs review · forward average ${formatSignedR(summary.averageR)}`, title };
+    if (summary.status === "coverage_incomplete") return { className: "is-incomplete", text: `Forward quote coverage incomplete · ${Math.round((summary.nearEntryQuoteCoverage ?? 0) * 100)}%`, title };
+    return { className: "is-collecting", text: `Forward evidence collecting · ${summary.resolvedCases}/10 cases · ${summary.elapsedDays}/90 days`, title };
+  };
   const assessmentsByPattern = useMemo(
     () => new Map(registryResponses.flatMap((market) => (market.realtime?.latestPatternAssessments ?? (market.realtime?.latestPatternAssessment ? [market.realtime.latestPatternAssessment] : [])).map((assessment) => [`${market.symbol}:${assessment.patternId}`, assessment]))),
     [registryResponses],
@@ -498,6 +581,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
     const state = signal.entry == null && signal.prospectiveCapture?.eligible === true
       ? "Queued for H4 entry"
       : signal.outcomeStatus === "pending" ? "Open" : formatOutcome(signal);
+    const forwardStatus = forwardSetupLabel(row.market, signal.patternId);
     return (
       <tr
         key={row.key}
@@ -515,7 +599,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       >
         <td><strong><PairFlags symbol={row.market} />{row.pattern?.label ?? signal.label}</strong><small>{signal.direction === "long" ? `Long ${row.market}` : `Short ${row.market}`}</small></td>
         <td><strong>{formatUtc(plannedEntry)}</strong><small>Release {formatUtc(signal.eventTime)}</small></td>
-        <td><strong>{state}</strong><small>{executionRule(signal.execution ?? row.pattern?.execution)}</small></td>
+        <td><strong>{state}</strong><small>{executionRule(signal.execution ?? row.pattern?.execution)}</small>{forwardStatus ? <small className={`chart-shadow-forward-status ${forwardStatus.className}`} title={forwardStatus.title}>{forwardStatus.text}</small> : null}</td>
         <td><span>{selected ? "Hide audit" : "View audit"}</span>{selected ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
       </tr>
     );
@@ -530,6 +614,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       : row.assessment.status === "late_for_contract" ? "Audit only · late"
       : row.assessment.status === "qualified" ? "Qualified · waiting entry"
       : "Waiting for Actual";
+    const forwardStatus = forwardSetupLabel(row.market, row.assessment.patternId);
     return (
       <tr
         key={row.key}
@@ -547,7 +632,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       >
         <td><strong><PairFlags symbol={row.market} />{row.pattern?.label ?? row.assessment.label}</strong><small>{direction ? `${direction === "long" ? "Long" : "Short"} ${row.market}` : "Registered package produced no direction"}</small></td>
         <td><strong>{formatUtc(row.assessment.time)}</strong><small>Registered decision time</small></td>
-        <td><strong>{state}</strong><small>{row.pattern ? executionRule(row.pattern.execution) : row.assessment.reason}</small></td>
+        <td><strong>{state}</strong><small>{row.pattern ? executionRule(row.pattern.execution) : row.assessment.reason}</small>{forwardStatus ? <small className={`chart-shadow-forward-status ${forwardStatus.className}`} title={forwardStatus.title}>{forwardStatus.text}</small> : null}</td>
         <td><span>{selected ? "Hide audit" : "View audit"}</span>{selected ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
       </tr>
     );
@@ -561,6 +646,8 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       </header>
       {data.globalResponse?.forwardValidation ? (() => {
         const validation = data.globalResponse.forwardValidation;
+        const operationalReady = validation.operationalPreflight?.signalMonitoringReadyNow ?? true;
+        const demoEngineReady = validation.eligibleForDemoTrading && operationalReady;
         const captureStatus = validation.demoExecution?.captureStatus.status;
         const captureStatusText = captureStatus === "capturing_demo_deals" ? "Demo account verified"
           : captureStatus === "blocked_non_demo_account" ? "Blocked: connected account is not demo"
@@ -572,17 +659,21 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
         return (
           <section className="chart-shadow-forward-gate" aria-label="FMS demo monitoring readiness">
             <div className="chart-shadow-forward-gate-heading">
-              <div><span>Demo signal engine</span><strong>{validation.eligibleForDemoTrading ? "Ready for demo monitoring" : "Not ready"}</strong></div>
-              <em className={validation.eligibleForDemoTrading ? "is-paper-ready" : "is-collecting"}>{validation.eligibleForDemoTrading ? "Prospective guard active" : "Unavailable"}</em>
+              <div><span>Demo signal engine</span><strong>{demoEngineReady ? "Ready for demo monitoring" : validation.eligibleForDemoTrading ? "Signal engine ready · feed waiting" : "Not ready"}</strong></div>
+              <em className={demoEngineReady ? "is-paper-ready" : "is-collecting"}>{demoEngineReady ? "EA cycle current" : validation.eligibleForDemoTrading ? "Preflight blocked" : "Unavailable"}</em>
             </div>
             <div className="chart-shadow-forward-gate-grid">
               <div><span>Qualified live decisions</span><strong>{validation.qualifiedDecisions}</strong></div>
               <div><span>Trades being tracked</span><strong>{validation.trackedCases}</strong></div>
               <div><span>Resolved demo-paper cases</span><strong>{validation.resolvedCases}</strong></div>
               <div><span>Forward average</span><strong>{formatSignedR(validation.averageR)}</strong></div>
+              <div><span>Supportive setups</span><strong>{validation.paperReadySetups}</strong></div>
+              <div><span>Needs review</span><strong>{validation.degradedSetups}</strong></div>
             </div>
             <p>{validation.decision}</p>
-            <details><summary>Evidence audit <ChevronDown size={13} /></summary><ul>{validation.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>{validation.demoExecution ? <div className="chart-shadow-demo-validation"><strong>Optional tagged demo history</strong><span>{captureStatusText}</span><p>{validation.demoExecution.completedTrades} completed · {validation.demoExecution.openOrPartialTrades} open/partial · gross comparison {formatSignedR(validation.demoExecution.averageGrossFillR)}.</p><p>{validation.demoExecution.instructions}</p>{validation.demoExecution.trades.length ? <table className="chart-shadow-demo-trades" aria-label="Matched MT5 demo trades"><thead><tr><th>Trade</th><th>State</th><th>Gross R</th><th>Contract</th></tr></thead><tbody>{validation.demoExecution.trades.slice(0, 5).map((trade) => { const demoPattern = registeredPatternRows.find((row) => row.id === trade.patternId && (row.market ?? trade.market) === trade.market); return <tr key={`${trade.accountLogin}:${trade.signalTag}:${trade.positionId}`}><td><b><PairFlags symbol={trade.market} />{demoPattern?.label ?? trade.patternId}</b><small>{trade.entryTime == null ? trade.signalTag : formatUtc(trade.entryTime)}</small></td><td>{trade.status === "completed" ? "Closed" : "Open / partial"}</td><td>{formatSignedR(trade.grossFillR)}</td><td className={trade.contractAdherent ? "is-valid" : "is-invalid"}>{trade.contractAdherent ? "Matched" : "Deviation"}</td></tr>; })}</tbody></table> : null}<small>Demo-only audit. Execution costs and strict account-risk qualification are deferred. Fyodor sends no order.</small></div> : null}</details>
+            <div className="chart-shadow-limited-live-review"><strong>Manual limited-live review</strong><span>{validation.manualLimitedLiveReview.decision}</span></div>
+            {validation.operationalPreflight && !operationalReady ? <div className="chart-shadow-preflight-block"><strong>Do not act on a new signal yet</strong>{validation.operationalPreflight.blockingReasons.map((reason) => <span key={reason}>{reason}</span>)}</div> : null}
+            <details><summary>Evidence audit <ChevronDown size={13} /></summary><ul>{validation.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>{validation.demoExecution ? <DemoExecutionAudit execution={validation.demoExecution} patterns={registeredPatternRows} captureStatusText={captureStatusText} /> : null}</details>
           </section>
         );
       })() : null}

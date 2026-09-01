@@ -52,7 +52,7 @@ def test_forward_observation_keeps_first_seen_values_after_calendar_revision(tmp
   released = event(3, 500, actual="1.2")
   store.upsert_calendar_events([released], ingested_at=501)
 
-  assert store.capture_release_observations(activated_at=400, observed_at=502) == 1
+  assert store.capture_release_observations(activated_at=400, observed_at=502, ea_completed_at=501) == 1
   revised = {**released, "actual": "1.4", "previous": "0.9"}
   store.upsert_calendar_events([revised], ingested_at=503)
   assert store.capture_release_observations(activated_at=400, observed_at=504) == 0
@@ -61,6 +61,8 @@ def test_forward_observation_keeps_first_seen_values_after_calendar_revision(tmp
   assert frozen["actual"] == "1.2"
   assert frozen["previous"] == "0.7"
   assert frozen["firstSeenAt"] == 502
+  assert frozen["eaCompletedAt"] == 501
+  assert frozen["bridgeAcknowledgedAt"] == 502
 
   assessment = {"time": 500, "patternId": "claims", "status": "qualified", "direction": "long"}
   assert store.record_fms_live_decision("model-v1", "EURUSD", "claims", 500, 505, "qualified", "long", assessment, None, True, "captured_before_frozen_entry")

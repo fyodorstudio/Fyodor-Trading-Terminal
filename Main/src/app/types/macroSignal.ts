@@ -1025,6 +1025,40 @@ export interface MacroSignalChartSignal {
     firstSeenAt: number | null;
     activationTime: number | null;
   } | null;
+  releaseObservationQuote?: {
+    bid: number;
+    ask: number;
+    spreadPrice: number;
+    spreadPoints: number | null;
+    quoteTime: number;
+    capturedAt: number;
+    entryLagSeconds: number;
+    quality: "first_tick" | "near_entry" | "late_snapshot";
+    source?: "first_tick_after_observation" | "current_snapshot";
+    disclosure: string;
+  } | null;
+  entryTimingAudit?: {
+    schema: "fms-prospective-entry-timing-v1";
+    status: "prospective_observation_only";
+    eventTime: number;
+    firstSeenAt: number;
+    firstSeenDelaySeconds: number;
+    decisionAt: number | null;
+    decisionDelaySeconds: number | null;
+    processingDelaySeconds: number | null;
+    quoteTime: number;
+    quoteDelaySeconds: number;
+    observedMid: number;
+    entries: Array<{
+      timeframe: "M1" | "H1" | "H4";
+      status: "observed" | "waiting_for_candle" | "quote_captured_after_entry";
+      entryTime: number | null;
+      entryOpen: number | null;
+      gapPips: number | null;
+      directionAdjustedGapPips: number | null;
+    }>;
+    disclosure: string;
+  } | null;
   patternId: string;
   sourceVersionId: string;
   eventTime: number;
@@ -1093,6 +1127,15 @@ export interface MacroSignalChartSignal {
     timeToMaeCandles: number | null;
     givebackR: number | null;
     fixedHorizonResponses: Array<{ holdingCandles: number; responseR: number }>;
+    targetLadder?: Array<{
+      targetR: number;
+      targetPrice: number;
+      distanceAtr: number;
+      distancePips: number;
+      status: "target_before_sl" | "sl_before_target" | "ambiguous" | "not_reached" | "pending";
+      reachedAt: number | null;
+      timeToTargetCandles: number | null;
+    }>;
   };
   historicalReplay: boolean;
 }
@@ -1252,13 +1295,32 @@ export interface MacroSignalGlobalResponse {
     ambiguousOrUnavailableCases: number;
     representedSetups: number;
     paperReadySetups: number;
+    degradedSetups: number;
+    collectingSetups: number;
+    manualLimitedLiveReviewCandidates: number;
+    setupForwardGate: {
+      id: string;
+      minimumResolvedCases: number;
+      minimumElapsedDays: number;
+      minimumNearEntryQuoteCoverage: number;
+    };
     setupSummaries: Array<{
       market: string;
       patternId: string;
       resolvedCases: number;
       averageR: number | null;
       nearEntryQuoteCoverage: number | null;
+      firstObservedAt: number | null;
+      lastObservedAt: number | null;
+      elapsedDays: number;
+      status: "collecting" | "supportive" | "coverage_incomplete" | "degraded";
+      statusReason: string;
       eligibleForPaperReliance: boolean;
+      demoCompletedTrades: number;
+      demoAverageNetR: number | null;
+      demoContractAdherent: boolean;
+      eligibleForManualLimitedLiveReview: boolean;
+      manualLimitedLiveReviewBlockers: string[];
     }>;
     averageR: number | null;
     nearEntryQuoteCount: number;
@@ -1288,6 +1350,16 @@ export interface MacroSignalGlobalResponse {
       totalNetAccountResult: number;
       averageGrossFillR: number | null;
       averageNetR: number | null;
+      executionComparison: {
+        completedComparableTrades: number;
+        entryComparableTrades: number;
+        averageEntryDelaySeconds: number | null;
+        averageAdverseEntryDifferenceR: number | null;
+        averageGrossResultDifferenceR: number | null;
+        averageExecutionCostsR: number | null;
+        contractAdherentTrades: number;
+        note: string;
+      };
       riskPolicy: {
         id: string;
         maximumRiskPerTradePercent: number;
@@ -1325,6 +1397,14 @@ export interface MacroSignalGlobalResponse {
         exitPrice: number | null;
         volume: number;
         grossFillR: number | null;
+        modelEntryPrice: number | null;
+        modelEntryTime: number | null;
+        entryDelaySeconds: number | null;
+        entryDifferencePrice: number | null;
+        entryDifferencePoints: number | null;
+        entryDifferenceR: number | null;
+        expectedGrossR: number | null;
+        grossResultDifferenceR: number | null;
         initialRiskAccount: number | null;
         riskPercent: number | null;
         actualStop: number | null;
@@ -1340,11 +1420,32 @@ export interface MacroSignalGlobalResponse {
         swap: number;
         fee: number;
         netAccountResult: number;
+        executionCostsAccount: number;
+        executionCostsR: number | null;
         dealCount: number;
       }>;
       orderTransmission: false;
       instructions: string;
     } | null;
+    operationalPreflight?: {
+      schema: "fms-operational-preflight-v1";
+      checkedAt: number;
+      lastSuccessfulCalendarCycleAt: number | null;
+      calendarCycleAgeSeconds: number | null;
+      failedCalendarBatches: number;
+      calendarFresh: boolean;
+      signalMonitoringReadyNow: boolean;
+      blockingReasons: string[];
+      orderTransmission: false;
+    } | null;
+    manualLimitedLiveReview: {
+      schema: "fms-manual-limited-live-review-v1";
+      eligibleSetups: number;
+      globalDemoRiskPolicyObserved: boolean;
+      operationalPreflightReady: boolean;
+      orderTransmission: false;
+      decision: string;
+    };
     eligibleForRealMoneyReliance: boolean;
     decision: string;
     limitations: string[];

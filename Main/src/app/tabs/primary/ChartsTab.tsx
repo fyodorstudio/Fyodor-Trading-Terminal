@@ -23,7 +23,7 @@ import type { ChartPairMatrixTimeLensData, PairMatrixLoadState } from "@/app/com
 import type { ChartEventLensData, ChartEventReleaseRow } from "@/app/components/ChartEventLens";
 import { useChartEventOverlay } from "@/app/hooks/useChartEventOverlay";
 import { useChartMarketData } from "@/app/hooks/useChartMarketData";
-import { fetchCalendar, fetchMacroSignalChartSignals, getPreloadedMacroSignalCurrentModel, getPreloadedMacroSignalGlobalRegistry, preloadMacroSignalCurrentModel, preloadMacroSignalGlobalRegistry, refreshMacroSignalGlobalRegistry } from "@/app/lib/bridge";
+import { fetchCalendar, fetchMacroSignalChartSignals, fetchMacroSignalTargetLadder, getPreloadedMacroSignalCurrentModel, getPreloadedMacroSignalGlobalRegistry, preloadMacroSignalCurrentModel, preloadMacroSignalGlobalRegistry, refreshMacroSignalGlobalRegistry } from "@/app/lib/bridge";
 import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import { formatUtcDisplayDate } from "@/app/lib/format";
 import {
@@ -430,6 +430,7 @@ export function ChartsTab({
   const [macroBiasCurrentLoading, setMacroBiasCurrentLoading] = useState(false);
   const [macroBiasCurrentError, setMacroBiasCurrentError] = useState<string | null>(null);
   const [selectedMacroBiasId, setSelectedMacroBiasId] = useState<string | null>(null);
+  const [macroBiasSignalAudits, setMacroBiasSignalAudits] = useState<Record<string, MacroSignalChartSignal>>({});
   const [pairMatrixBeforeDays, setPairMatrixBeforeDays] = useState(loadPairMatrixBeforeDays);
   const [pairMatrixCoverageAnchor, setPairMatrixCoverageAnchor] = useState<number | null>(null);
   const [pairMatrixRangeArmed, setPairMatrixRangeArmed] = useState(false);
@@ -1081,7 +1082,7 @@ export function ChartsTab({
     }
     let cancelled = false;
     setMacroBiasShadowHistoryResponse(null);
-    fetchMacroSignalChartSignals({ symbol: selectedSymbol, timeframe: "H4", mode: "research_replay" })
+    fetchMacroSignalChartSignals({ symbol: selectedSymbol, timeframe: "H4", mode: "research_replay", compact: true })
       .then((response) => {
         if (!cancelled) setMacroBiasShadowHistoryResponse(response);
       })
@@ -1142,6 +1143,24 @@ export function ChartsTab({
   const selectedMacroBiasActivationOpen = selectedMacroBias
     ? getMacroBiasActivationCandleOpen(selectedMacroBias, visibleCandles, chartSourceTimeOffsetSeconds, timeframe)
     : null;
+  const selectedMacroBiasLadderKey = selectedMacroBias ? `${selectedSymbol}:${selectedMacroBias.id}` : null;
+  const selectedMacroBiasAudit = selectedMacroBiasLadderKey ? macroBiasSignalAudits[selectedMacroBiasLadderKey] : undefined;
+  useEffect(() => {
+    if (!selectedMacroBias || !selectedMacroBiasLadderKey || selectedMacroBiasAudit) return;
+    let cancelled = false;
+    fetchMacroSignalTargetLadder({
+      symbol: selectedSymbol,
+      patternId: selectedMacroBias.patternId,
+      eventTime: selectedMacroBias.eventTime,
+      mode: selectedMacroBias.historicalReplay ? "research_replay" : "current",
+    }).then(({ signal }) => {
+      if (!cancelled) setMacroBiasSignalAudits((current) => ({ ...current, [selectedMacroBiasLadderKey]: signal }));
+    }).catch(() => { /* The frozen target remains available if path research cannot load. */ });
+    return () => { cancelled = true; };
+  }, [selectedMacroBias, selectedMacroBiasLadderKey, selectedMacroBiasAudit, selectedSymbol]);
+  const selectedMacroBiasWithTargetLadder = selectedMacroBias?.historicalReplay
+    ? selectedMacroBiasAudit ?? null
+    : selectedMacroBiasAudit ?? selectedMacroBias;
   useEffect(() => {
     const series = seriesRef.current;
     macroBiasTradeLinesRef.current.forEach((line) => series?.removePriceLine(line));
@@ -1168,17 +1187,17 @@ export function ChartsTab({
       macroBiasTradeLinesRef.current = [];
     };
   }, [selectedMacroBias]);
-  const macroBiasAudit = selectedMacroBias && selectedMacroBiasPattern && macroBiasResponse ? {
-    signal: selectedMacroBias.activationTime == null && selectedMacroBiasActivationOpen != null
-      ? { ...selectedMacroBias, activationTime: selectedMacroBiasActivationOpen - chartSourceTimeOffsetSeconds }
-      : selectedMacroBias,
+  const macroBiasAudit = selectedMacroBiasWithTargetLadder && selectedMacroBiasPattern && macroBiasResponse ? {
+    signal: selectedMacroBiasWithTargetLadder.activationTime == null && selectedMacroBiasActivationOpen != null
+      ? { ...selectedMacroBiasWithTargetLadder, activationTime: selectedMacroBiasActivationOpen - chartSourceTimeOffsetSeconds }
+      : selectedMacroBiasWithTargetLadder,
     pattern: selectedMacroBiasPattern,
     symbol: macroBiasResponse.symbol,
     versionId: selectedMacroBiasPattern.sourceVersionId,
     modelId: macroBiasResponse.modelId,
     modelHash: macroBiasResponse.modelHash,
     datasetFingerprint: macroBiasResponse.datasetFingerprint,
-    mode: (selectedMacroBias.historicalReplay ? "research_replay" : "current") as MacroSignalChartMode,
+    mode: (selectedMacroBiasWithTargetLadder.historicalReplay ? "research_replay" : "current") as MacroSignalChartMode,
     generatedAt: macroBiasResponse.generatedAt,
     onClose: () => setSelectedMacroBiasId(null),
   } : null;

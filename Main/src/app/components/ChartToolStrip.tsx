@@ -117,7 +117,7 @@ export function ChartToolStrip({
         onClick={onToggleMacroBias}
       >
         <Activity className="h-4 w-4" />
-        Macro bias
+        FMS
         {macroBiasVisible && macroBiasCount > 0 ? <small>{macroBiasCount}</small> : null}
       </button>
       <button

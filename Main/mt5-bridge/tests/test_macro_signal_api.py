@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 import server
@@ -400,6 +401,12 @@ def test_readiness_report_exposes_setup_level_evidence_and_keeps_live_gate_close
     def list_fms_live_decisions(self, limit: int = 500):
       assert limit == 500
       return [{"status": "no_trade"}, {"status": "qualified"}]
+    def list_fms_live_execution_cases(self, limit: int = 2000):
+      assert limit == 2000
+      return []
+    def list_fms_demo_deals(self, limit: int = 20000):
+      assert limit == 20000
+      return []
 
   monkeypatch.setattr(server, "_research_store", ReadinessStore())
   report = server.research_readiness_report()
@@ -412,12 +419,12 @@ def test_readiness_report_exposes_setup_level_evidence_and_keeps_live_gate_close
   assert report["registeredSetups"][0]["reactionAudit"]["profile"]["schema"] == "registered-reaction-profile-v2"
   assert [row["holdingCandles"] for row in report["registeredSetups"][0]["reactionAudit"]["profile"]["horizons"]] == [1, 3, 6, 12, 30]
   assert report["quarantinedOrRetiredSetups"]
-  assert report["paperLiveEvidence"] == {
-    "immutableFirstSeen": True,
-    "decisionCount": 2,
-    "actualBrokerFillsRecorded": 0,
-    "status": "observation_only",
-  }
+  assert report["paperLiveEvidence"]["immutableFirstSeen"] is True
+  assert report["paperLiveEvidence"]["decisionCount"] == 2
+  assert report["paperLiveEvidence"]["actualBrokerFillsRecorded"] == 0
+  assert report["paperLiveEvidence"]["completedDemoTrades"] == 0
+  assert report["paperLiveEvidence"]["status"] == "observation_only"
+  assert report["paperLiveEvidence"]["executionComparison"]["entryComparableTrades"] == 0
   assert report["eligibleForRuleBasedLiveUse"] is False
 
 
@@ -427,6 +434,32 @@ def test_forward_validation_requires_prospective_breadth_and_never_claims_real_f
   assert empty["eligibleForDemoTrading"] is True
   assert empty["eligibleForPaperReliance"] is False
   assert empty["eligibleForRealMoneyReliance"] is False
+
+  class OperationalStore:
+    def __init__(self, last_cycle: int | None, failed_batches: int):
+      self.last_cycle = last_cycle
+      self.failed_batches = failed_batches
+    def get_metadata(self, key: str):
+      if key == "last_calendar_successful_cycle_at":
+        return None if self.last_cycle is None else str(self.last_cycle)
+      if key == "last_calendar_cycle_failed_batches":
+        return str(self.failed_batches)
+      return None
+
+  original_store = server._research_store
+  try:
+    server._research_store = OperationalStore(900, 0)
+    assert server._fms_operational_preflight(1000)["signalMonitoringReadyNow"] is True
+    server._research_store = OperationalStore(700, 0)
+    stale = server._fms_operational_preflight(1000)
+    assert stale["signalMonitoringReadyNow"] is False
+    assert "300 seconds old" in stale["blockingReasons"][0]
+    server._research_store = OperationalStore(900, 2)
+    failed = server._fms_operational_preflight(1000)
+    assert failed["signalMonitoringReadyNow"] is False
+    assert failed["failedCalendarBatches"] == 2
+  finally:
+    server._research_store = original_store
 
   event = {"id": 7, "time": 100}
   first_seen = {(7, 100): 110}
@@ -457,6 +490,9 @@ def test_forward_validation_requires_prospective_breadth_and_never_claims_real_f
   assert ready["resolvedCases"] == 50
   assert ready["representedSetups"] == 5
   assert ready["paperReadySetups"] == 5
+  assert ready["degradedSetups"] == 0
+  assert ready["collectingSetups"] == 0
+  assert all(row["status"] == "supportive" for row in ready["setupSummaries"])
   assert ready["averageR"] == .5
   assert ready["nearEntryQuoteCount"] == 40
   assert ready["eligibleForPaperReliance"] is True
@@ -464,9 +500,19 @@ def test_forward_validation_requires_prospective_breadth_and_never_claims_real_f
   assert ready["eligibleForRealMoneyReliance"] is False
   assert ready["realMoneyChecks"]["realMoneyExecutionInScope"] is False
 
+  degraded_cases = [{
+    "modelId": server.PRACTICAL_MODEL_ID, "market": "EURUSD", "patternId": "degraded",
+    "eventTime": index, "state": "stop_hit", "resultR": -1.0,
+    "signal": {"activationTime": index + 1}, "entryQuote": {"quality": "near_entry"},
+  } for index in range(10)]
+  degraded = server._forward_validation_payload([], degraded_cases)
+  assert degraded["degradedSetups"] == 1
+  assert degraded["setupSummaries"][0]["status"] == "degraded"
+  assert degraded["setupSummaries"][0]["eligibleForPaperReliance"] is False
+
   demo_case = {
     "modelId": server.PRACTICAL_MODEL_ID, "market": "EURUSD", "patternId": "setup-demo",
-    "eventTime": 100, "signal": {"entry": 1.1, "initialStop": 1.09, "target": 1.12, "direction": "long", "outcomeStatus": "expired", "resultR": .98, "exitTime": 120},
+    "eventTime": 100, "signal": {"entry": 1.1, "activationTime": 100, "initialStop": 1.09, "target": 1.12, "direction": "long", "outcomeStatus": "expired", "resultR": .98, "exitTime": 120},
   }
   demo_tag = server._forward_demo_tag(server.PRACTICAL_MODEL_ID, "EURUSD", "setup-demo", 100)
   demo = server._demo_execution_payload([demo_case], [
@@ -478,6 +524,12 @@ def test_forward_validation_requires_prospective_breadth_and_never_claims_real_f
   assert demo["trades"][0]["grossFillR"] > 0
   assert demo["trades"][0]["contractAdherent"] is True
   assert demo["trades"][0]["netR"] == .975
+  assert demo["trades"][0]["entryDelaySeconds"] == 10
+  assert demo["trades"][0]["entryDifferencePoints"] == pytest.approx(1)
+  assert demo["trades"][0]["executionCostsR"] == -.025
+  assert demo["executionComparison"]["completedComparableTrades"] == 1
+  assert demo["executionComparison"]["averageEntryDelaySeconds"] == 10
+  assert demo["executionComparison"]["averageExecutionCostsR"] == -.025
   assert demo["orderTransmission"] is False
 
   demo_cases = []
@@ -503,8 +555,14 @@ def test_forward_validation_requires_prospective_breadth_and_never_claims_real_f
   )
   assert sufficient_demo["riskPolicy"]["observed"] is True
   assert sufficient_demo["demoReadySetups"] == 5
-  fully_ready = server._forward_validation_payload(decisions, cases, sufficient_demo)
+  fully_ready = server._forward_validation_payload(
+    decisions, cases, sufficient_demo, {"signalMonitoringReadyNow": True},
+  )
   assert fully_ready["eligibleForDemoTrading"] is True
+  assert fully_ready["manualLimitedLiveReviewCandidates"] == 5
+  assert fully_ready["manualLimitedLiveReview"]["eligibleSetups"] == 5
+  assert fully_ready["manualLimitedLiveReview"]["orderTransmission"] is False
+  assert all(row["eligibleForManualLimitedLiveReview"] for row in fully_ready["setupSummaries"])
   assert fully_ready["eligibleForRealMoneyReliance"] is False
 
 
@@ -561,6 +619,8 @@ def test_execution_challengers_are_immutable_and_only_explicitly_reviewed_contra
   assert all(row["configurationHash"] and row["candleFingerprint"] for row in payload["rows"])
   assert all(row["activeContractPreserved"] is True for row in payload["rows"])
   assert {winner["family"] for row in payload["rows"] for winner in row["familyWinners"]} == {"fixed", "break_even", "trailing", "partial"}
+  assert all(row["targetFrontier"]["rows"] for row in payload["rows"])
+  assert all(row["targetFrontier"]["definition"].startswith("Independent full-position targets") for row in payload["rows"])
   reviewed = {
     (row["market"], row["id"]): row
     for row in server.PRACTICAL_PATTERN_DEFINITIONS
@@ -577,3 +637,62 @@ def test_execution_challengers_are_immutable_and_only_explicitly_reviewed_contra
     activation = int(row["executionReview"]["activatedAt"])
     assert server._execution_for_event(row, activation - 1) == row["baseExecution"]
     assert server._execution_for_event(row, activation) == row["execution"]
+
+
+def test_target_path_ladder_keeps_frozen_result_separate_and_does_not_invent_intrabar_order(monkeypatch) -> None:
+  class NoM1Store:
+    def query_candles(self, *_args, **_kwargs):
+      return []
+
+  monkeypatch.setattr(server, "_research_store", NoM1Store())
+  profile = {
+    "entry": 1.0, "atr": .1, "sign": 1.0,
+    "candles": [
+      {"time": 100, "open": 1.0, "high": 1.06, "low": .98, "close": 1.04},
+      {"time": 200, "open": 1.04, "high": 1.12, "low": .89, "close": .91},
+    ],
+  }
+  rows = server._target_path_ladder(profile, 1.0, 2, "EURUSD")
+  by_target = {row["targetR"]: row for row in rows}
+  assert by_target[.25]["status"] == "target_before_sl"
+  assert by_target[.25]["timeToTargetCandles"] == 1
+  assert by_target[.5]["distancePips"] == 500
+  assert by_target[1.0]["status"] == "ambiguous"
+  assert by_target[1.5]["status"] == "sl_before_target"
+
+
+def test_post_release_quote_is_observed_not_relabelled_as_a_fill(monkeypatch) -> None:
+  from collections import namedtuple
+
+  Tick = namedtuple("Tick", "bid ask time")
+  Info = namedtuple("Info", "point digits")
+  monkeypatch.setattr(server, "_ensure_mt5_initialized", lambda: True)
+  monkeypatch.setattr(server.mt5, "symbol_select", lambda *_args: True)
+  monkeypatch.setattr(server.mt5, "copy_ticks_range", lambda *_args: [Tick(1.1, 1.1004, 112)])
+  monkeypatch.setattr(server.mt5, "symbol_info_tick", lambda *_args: Tick(1.1, 1.1004, 112))
+  monkeypatch.setattr(server.mt5, "symbol_info", lambda *_args: Info(.0001, 5))
+  quote = server._quote_snapshot_for_forward_case("EURUSD", 100, 113)
+  assert quote is not None
+  assert quote["entryLagSeconds"] == 12
+  assert quote["spreadPoints"] == pytest.approx(4)
+  assert quote["quality"] == "first_tick"
+  assert quote["source"] == "first_tick_after_observation"
+  assert "not a broker fill" in quote["disclosure"]
+
+  timing = server._entry_timing_audit(
+    100, 110, "short", quote,
+    {
+      "M1": [{"time": 120, "open": 1.1000}],
+      "H1": [{"time": 3_600, "open": 1.1010}],
+      "H4": [],
+    },
+  )
+  assert timing["status"] == "prospective_observation_only"
+  assert timing["firstSeenDelaySeconds"] == 10
+  assert timing["decisionDelaySeconds"] is None
+  assert timing["quoteDelaySeconds"] == 12
+  assert timing["entries"][0]["status"] == "observed"
+  assert timing["entries"][0]["gapPips"] == pytest.approx(-2)
+  assert timing["entries"][0]["directionAdjustedGapPips"] == pytest.approx(2)
+  assert timing["entries"][2]["status"] == "waiting_for_candle"
+  assert "not broker fills" in timing["disclosure"]

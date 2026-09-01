@@ -158,20 +158,26 @@ The program must remain honest about the word **proven**:
 - [x] Add a collapsed Shadow Trader `Needs Codex review` queue. It reports unresolved reasons, weakened active contracts, and immutable execution challengers without exposing a promotion path or rewriting the active registry.
 - [x] Materialize `fms-execution-challenger-v1` for all 47 registered recipes: 1,908 declared fixed/break-even/trailing/partial configurations per recipe, M1 ordering when available, immutable dataset/configuration/candle fingerprints, and ten review-worthy challengers in the 2026-08-31 artifact. These are review findings only; zero active contracts were changed.
 - [x] Upgrade the artifact to `fms-execution-challenger-v2` with one-grid-step neighboring-contract stability and a frozen practical review gate. Explicitly activate three fingerprint-locked break-even overlays in `FMS-REGISTERED-REACTION-H4-v5`: AUDUSD US producer inflation, NZDUSD US producer inflation, and USDJPY Japan inflation. Preserve v4 contracts for every historical event before the v5 activation boundary; no regenerated artifact can silently change the allowlist.
+- [x] Add a universal per-arrow target path ladder at `0.25/0.5/0.75/1/1.5/2/3/4R`, measured independently against the original SL and maximum duration. Resolve same-H4 ordering from M1 when available; otherwise preserve `Both touched — order unknown`.
+- [x] Add an immutable per-recipe target frontier that holds the active SL and duration constant, selects one target on older development history, and reports later performance without changing the registered target.
+- [x] Redesign Past FMS Result so Signal, Initial move, Frozen plan, and Frozen result appear as a plain at-a-glance table. Show ATR, Entry, original SL, the complete target ladder, pips, ATR, R, and result meaning in one stable hierarchy rather than status pills.
 
 ### Phase 4 — Research Entry at Release Without Lookahead
 
-- [ ] Preserve `first strictly later H4 open` as the reproducible baseline entry.
-- [ ] Do not call the exact scheduled release timestamp a tradable entry: Actual values, bridge delivery, calculation, and order decision necessarily arrive afterward.
+- [x] Preserve `first strictly later H4 open` as the reproducible baseline entry.
+- [x] Do not call the exact scheduled release timestamp a tradable entry: Actual values, bridge delivery, calculation, and order decision necessarily arrive afterward.
 - [ ] Add alternative entry contracts only when their required data exists:
   - first M1 open strictly after the first-seen EA observation;
   - first tradable MT5 tick after the complete package is frozen;
   - first H1 open after observation;
   - current first strictly later H4 open.
-- [ ] Persist first-seen EA receipt time, bridge acknowledgement time, completed-package time, decision time, and the first subsequent MT5 bid/ask tick.
-- [ ] Use actual observed bid/ask and spread when available; never invent or estimate spread, commission, slippage, or swap.
-- [ ] Treat old history without first-seen latency/tick evidence as incapable of proving release-time execution. It may remain H4/M1 reaction research only.
-- [ ] Compare latency, missed entries, price gaps, and expectancy across entry contracts before changing the live registry.
+- [x] Persist first-seen EA receipt/bridge-acknowledgement time, EA completed-package time, immutable decision time, and the first retrievable MT5 bid/ask tick after observation. Fall back explicitly to a current observed snapshot when tick history is unavailable.
+- [x] Use actual observed bid/ask and spread when available; never invent or estimate spread, commission, slippage, or swap.
+- [x] Treat old history without first-seen latency/tick evidence as incapable of proving release-time execution. It may remain H4/M1 reaction research only.
+- [x] Compare prospective observation delay, missed candle entries, and price gaps across the first later M1, H1, and H4 opens in each arrow audit without changing its frozen result.
+- [ ] Compare expectancy across prospective entry contracts after enough immutable observations exist; do not backfill or reconstruct unavailable release-time prices.
+- [x] Begin prospective post-release-entry evidence by capturing the first FMS-observed MT5 bid/ask quote for a newly processed registered package within the release window. Persist it with the immutable decision/signal and label its delay from scheduled release; it is an observed quote, never a claimed fill.
+- [x] Keep historical arrows honest: old rows without immutable first-seen quote evidence continue to use the later-H4 baseline and cannot prove an executable release-time entry.
 
 ### Phase 5 — Sensible Context Progression
 
@@ -266,13 +272,15 @@ Test one additional entry-known condition at a time. Do not mine unrestricted co
 - [x] Exclude bridge-start catch-up releases from prospective decisions whenever the complete package or its decision was first observed at/after the frozen H4 entry. Keep them as explicit audit-only `late_for_contract` rows.
 - [x] Freeze a qualifying decision before its future H4 entry candle exists, calculate the planned strictly-later H4 boundary, show it under `Queued for the next H4 entry`, and transition it to Open only when that candle becomes available.
 - [x] Refresh the visible global Shadow Trader every 30 seconds even when no trade is currently pending. A newly released registered package can therefore appear as No trade or Queued without a page reload; the same refresh advances Pending/Open results and covers all seven registered markets without clearing the previous honest state on a transient failure.
-- [ ] Compare paper execution with historical assumptions: entry delay, spread, slippage, missed trades, and package completeness.
-- [ ] Keep the minimum paper requirement setup-specific and show elapsed time plus case count; do not promise that waiting a fixed year guarantees anything.
+- [x] Add a fail-closed operational preflight for new demo decisions: a missing/stale successful EA cycle or any failed calendar batch changes Shadow Trader to `feed waiting` and states exactly why the user must not act yet. This blocks presentation only; Fyodor still sends no order.
+- [x] Compare tagged MT5 demo execution with the frozen candle-path assumption: actual entry delay, direction-adjusted entry difference in R, gross fill result versus frozen result, recorded costs, and contract adherence. Treat entry difference as the combined effect of delay, spread, and market movement because deal history cannot truthfully decompose it.
+- [x] Keep the minimum paper requirement setup-specific and show elapsed time plus case count; do not promise that waiting a fixed year guarantees anything. `FMS-SETUP-FORWARD-GATE-v1` requires at least 10 resolved cases, 90 elapsed days, positive average R, and 80% near-entry quote coverage for that exact setup.
 - [ ] Do not permit `Paper validated` when only historical replay exists.
 - [ ] If the user chooses real execution, keep it manual and begin with a separately configured limited-live ledger; never infer fills from candle OHLC.
-- [ ] Record actual entry, exit, spread, commission, slippage, swap, partial fills, and user deviations when supplied by MT5/account history.
+- [x] Record actual tagged-demo entry, exit, volume, commission, swap, fee, protection levels, partial/open lifecycle, and user contract deviations when supplied by MT5 account history. Preserve spread/slippage decomposition as unknown rather than estimating it.
 - [ ] Require explicit maximum risk per trade, maximum simultaneous risk, and a kill-switch condition before showing `Eligible for rule-based live use: Yes`.
-- [ ] Automatically revert readiness when live results breach the frozen degradation boundary; never move the boundary after losses merely to preserve a setup.
+- [x] Automatically revert setup-level prospective readiness when at least 10 resolved forward cases have non-positive average R. Keep the historical registration intact, show `Needs review`, and never move the frozen boundary after losses merely to preserve a setup.
+- [x] Add an advisory manual limited-live review gate per exact setup. It requires the setup-specific forward gate, at least five completed contract-adherent tagged demo trades with positive average net R, the globally observed 30-trade manual-demo risk policy, and a current operational preflight. Keep order transmission disabled and show every unmet requirement instead of converting this into a live-trading permission.
 
 ### Phase 9 — Verification and Release Gate
 

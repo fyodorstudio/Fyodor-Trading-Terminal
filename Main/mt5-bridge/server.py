@@ -99,6 +99,72 @@ FMS_MANUAL_DEMO_RISK_POLICY = {
   "scope": "Optional manually placed MT5 demo trades carrying an exact FMS tag; no order transmission.",
 }
 
+FMS_TARGET_PATH_LADDER_R = (.25, .5, .75, 1.0, 1.5, 2.0, 3.0, 4.0)
+
+
+def _target_path_ladder(
+  profile: Dict[str, Any], stop_atr: float, expiry_candles: int, market: str,
+  incomplete: bool = False,
+  m1_by_candle: Optional[Dict[int, List[Dict[str, Any]]]] = None,
+) -> List[Dict[str, Any]]:
+  """Compare fixed targets against the original SL without rewriting the frozen trade."""
+  entry = float(profile["entry"])
+  atr = float(profile["atr"])
+  sign = float(profile["sign"])
+  risk = atr * float(stop_atr)
+  stop = entry - sign * risk
+  pip_size = .01 if market.endswith("JPY") else .0001
+  candles = list(profile.get("candles") or [])[:int(expiry_candles)]
+  def same_candle_order(candle: Dict[str, Any], target: float) -> Optional[str]:
+    candle_time = int(candle["time"])
+    rows = (m1_by_candle or {}).get(candle_time, [])
+    if not rows:
+      return None
+    for row in rows:
+      low, high = float(row["low"]), float(row["high"])
+      stop_hit = low <= stop if sign > 0 else high >= stop
+      target_hit = high >= target if sign > 0 else low <= target
+      if stop_hit and target_hit:
+        return "ambiguous"
+      if target_hit:
+        return "target_before_sl"
+      if stop_hit:
+        return "sl_before_target"
+    return None
+
+  ladder: List[Dict[str, Any]] = []
+  for target_r in FMS_TARGET_PATH_LADDER_R:
+    target = entry + sign * risk * target_r
+    status = "pending" if incomplete else "not_reached"
+    reached_at: Optional[int] = None
+    time_to_target: Optional[int] = None
+    for index, candle in enumerate(candles):
+      low, high = float(candle["low"]), float(candle["high"])
+      stop_hit = low <= stop if sign > 0 else high >= stop
+      target_hit = high >= target if sign > 0 else low <= target
+      if stop_hit and target_hit:
+        status = same_candle_order(candle, target) or "ambiguous"
+      elif target_hit:
+        status = "target_before_sl"
+      elif stop_hit:
+        status = "sl_before_target"
+      else:
+        continue
+      reached_at = int(candle["time"])
+      if status == "target_before_sl":
+        time_to_target = index + 1
+      break
+    ladder.append({
+      "targetR": target_r,
+      "targetPrice": target,
+      "distanceAtr": stop_atr * target_r,
+      "distancePips": risk * target_r / pip_size,
+      "status": status,
+      "reachedAt": reached_at,
+      "timeToTargetCandles": time_to_target,
+    })
+  return ladder
+
 
 def _practical_pattern(
   market: str, pattern_id: str, label: str, source_version: str,
@@ -806,6 +872,9 @@ def _namedtuple_to_dict(value: Any) -> Dict[str, Any]:
     return value._asdict()
   if isinstance(value, dict):
     return value
+  names = getattr(getattr(value, "dtype", None), "names", None)
+  if names:
+    return {str(name): value[name].item() if hasattr(value[name], "item") else value[name] for name in names}
   return {}
 
 
@@ -1533,6 +1602,7 @@ async def calendar_ingest_cycle(request: Request) -> Dict[str, Any]:
     FORWARD_LEDGER_ACTIVATED_AT,
     observed_at,
     released_through=completed_at,
+    ea_completed_at=completed_at,
   )
   scheduled = _schedule_forward_reconcile(observed_at)
   return {
@@ -1787,14 +1857,31 @@ def _run_scheduled_forward_reconcile(observed_at: int) -> None:
 
 
 def _quote_snapshot_for_forward_case(symbol: str, activation_time: int, observed_at: int) -> Optional[Dict[str, Any]]:
-  """Capture the first available broker quote after paper entry; never infer a fill."""
+  """Capture the first available broker quote after a declared reference time; never infer a fill."""
   try:
     with _mt5_access():
       if not _ensure_mt5_initialized() or not mt5.symbol_select(symbol, True):
         return None
-      tick = mt5.symbol_info_tick(symbol)
       info = mt5.symbol_info(symbol)
-      if tick is None or info is None:
+      if info is None:
+        return None
+      tick = None
+      source = "current_snapshot"
+      try:
+        ticks = mt5.copy_ticks_range(
+          symbol,
+          datetime.fromtimestamp(int(activation_time), tz=timezone.utc),
+          datetime.fromtimestamp(int(observed_at), tz=timezone.utc),
+          mt5.COPY_TICKS_INFO,
+        )
+        if ticks is not None and len(ticks) > 0:
+          tick = ticks[0]
+          source = "first_tick_after_observation"
+      except Exception:
+        logger.debug("forward_tick_history_unavailable symbol=%s reference=%s", symbol, activation_time)
+      if tick is None:
+        tick = mt5.symbol_info_tick(symbol)
+      if tick is None:
         return None
       tick_data = _namedtuple_to_dict(tick)
       bid = float(tick_data.get("bid") or getattr(tick, "bid", 0) or 0)
@@ -1814,12 +1901,99 @@ def _quote_snapshot_for_forward_case(symbol: str, activation_time: int, observed
         "quoteTime": quote_time,
         "capturedAt": int(observed_at),
         "entryLagSeconds": lag,
-        "quality": "near_entry" if lag <= 120 else "late_snapshot",
-        "disclosure": "Observed bid/ask only; this is not a broker fill and excludes commission, slippage, and swap.",
+        "quality": "first_tick" if source == "first_tick_after_observation" else "near_entry" if lag <= 120 else "late_snapshot",
+        "source": source,
+        "disclosure": "Observed MT5 bid/ask only; this is not a broker fill and excludes commission, slippage, and swap.",
       }
   except Exception:
     logger.exception("forward_quote_capture_failed symbol=%s activation=%s", symbol, activation_time)
     return None
+
+
+def _entry_timing_audit(
+  event_time: int,
+  first_seen_at: int,
+  direction: str,
+  quote: Dict[str, Any],
+  candles_by_timeframe: Dict[str, List[Dict[str, Any]]],
+  decided_at: Optional[int] = None,
+) -> Dict[str, Any]:
+  """Compare immutable observed timing with later candle opens without inferring a fill."""
+  quote_time = int(quote["quoteTime"])
+  bid = float(quote["bid"])
+  ask = float(quote["ask"])
+  midpoint = (bid + ask) / 2
+  point = float(quote.get("point") or 0)
+  digits = int(quote.get("digits") or 0)
+  pip_size = .01 if digits in {2, 3} else .0001 if digits in {4, 5} else point or None
+  sign = 1 if direction == "long" else -1
+  entries: List[Dict[str, Any]] = []
+  for timeframe in ("M1", "H1", "H4"):
+    candle = next(
+      (row for row in candles_by_timeframe.get(timeframe, []) if int(row["time"]) > int(first_seen_at)),
+      None,
+    )
+    if candle is None:
+      entries.append({
+        "timeframe": timeframe, "status": "waiting_for_candle", "entryTime": None,
+        "entryOpen": None, "gapPips": None, "directionAdjustedGapPips": None,
+      })
+      continue
+    entry_time = int(candle["time"])
+    entry_open = float(candle["open"])
+    comparable = entry_time >= quote_time and pip_size is not None and pip_size > 0
+    gap_pips = None if not comparable else (entry_open - midpoint) / pip_size
+    entries.append({
+      "timeframe": timeframe,
+      "status": "observed" if comparable else "quote_captured_after_entry",
+      "entryTime": entry_time,
+      "entryOpen": entry_open,
+      "gapPips": gap_pips,
+      "directionAdjustedGapPips": None if gap_pips is None else gap_pips * sign,
+    })
+  return {
+    "schema": "fms-prospective-entry-timing-v1",
+    "status": "prospective_observation_only",
+    "eventTime": int(event_time),
+    "firstSeenAt": int(first_seen_at),
+    "firstSeenDelaySeconds": max(0, int(first_seen_at) - int(event_time)),
+    "decisionAt": None if decided_at is None else int(decided_at),
+    "decisionDelaySeconds": None if decided_at is None else max(0, int(decided_at) - int(event_time)),
+    "processingDelaySeconds": None if decided_at is None else max(0, int(decided_at) - int(first_seen_at)),
+    "quoteTime": quote_time,
+    "quoteDelaySeconds": max(0, quote_time - int(event_time)),
+    "observedMid": midpoint,
+    "entries": entries,
+    "disclosure": (
+      "Observed MT5 quote and later candle opens only. These are not broker fills, and no historical "
+      "release-time price is reconstructed."
+    ),
+  }
+
+
+def _entry_timing_audit_for_signal(
+  market: str,
+  signal: Dict[str, Any],
+  quote: Dict[str, Any],
+  first_seen_at: int,
+  observed_at: int,
+  fetch_missing: bool = False,
+  decided_at: Optional[int] = None,
+) -> Dict[str, Any]:
+  ranges = {"M1": 2 * 60, "H1": 2 * 60 * 60, "H4": 2 * H4_SECONDS}
+  candles: Dict[str, List[Dict[str, Any]]] = {}
+  for timeframe, duration in ranges.items():
+    to_time = min(int(observed_at), int(first_seen_at) + duration)
+    rows = _research_store.query_candles(market, timeframe, int(first_seen_at), to_time)
+    if fetch_missing and to_time > int(first_seen_at) and not any(
+      int(row["time"]) > int(first_seen_at) for row in rows
+    ):
+      rows = _fetch_research_candles(market, timeframe, int(first_seen_at), to_time, 1)
+    candles[timeframe] = rows
+  return _entry_timing_audit(
+    int(signal.get("eventTime") or 0), int(first_seen_at), str(signal.get("direction") or "long"),
+    quote, candles, decided_at,
+  )
 
 
 def _forward_demo_tag(model_id: str, market: str, pattern_id: str, event_time: int) -> str:
@@ -2008,20 +2182,29 @@ def _capture_forward_entry_quotes(response: Dict[str, Any], observed_at: int) ->
     for row in _research_store.list_fms_live_execution_cases(market, 500)
   }
   decision_keys = {
-    (str(row["patternId"]), int(row["eventTime"]))
+    (str(row["patternId"]), int(row["eventTime"])): row
     for row in _research_store.list_fms_live_decisions(market, 500)
     if row.get("status") == "qualified" and row.get("prospectiveEligible") is True
   }
   for signal in response.get("signals") or []:
     key = (str(signal.get("patternId") or ""), int(signal.get("eventTime") or 0))
-    activation = signal.get("activationTime")
-    if key not in decision_keys or activation is None or int(activation) > int(observed_at):
+    decision = decision_keys.get(key)
+    if decision is None or key[1] > int(observed_at):
       continue
-    if (existing.get(key) or {}).get("entryQuote") is not None:
+    prior = existing.get(key) or {}
+    quote = prior.get("entryQuote")
+    first_seen_at = ((decision.get("assessment") or {}).get("prospectiveCapture") or {}).get("firstSeenAt")
+    if first_seen_at is None:
       continue
-    quote = _quote_snapshot_for_forward_case(market, int(activation), observed_at)
+    if quote is None:
+      quote = _quote_snapshot_for_forward_case(market, int(first_seen_at), observed_at)
     if quote is None:
       continue
+    signal["releaseObservationQuote"] = quote
+    signal["entryTimingAudit"] = _entry_timing_audit_for_signal(
+      market, signal, quote, int(first_seen_at), observed_at, fetch_missing=True,
+      decided_at=int(decision.get("firstDecidedAt") or observed_at),
+    )
     _research_store.record_fms_live_execution_observation(
       PRACTICAL_MODEL_ID, market, key[0], key[1], observed_at, signal, quote,
     )
@@ -3193,7 +3376,20 @@ def research_chart_signals(
   from_: Optional[int] = None,
   to: Optional[int] = None,
   refresh: bool = False,
+  compact: bool = False,
 ) -> Dict[str, Any]:
+  def response_for_client(payload: Dict[str, Any]) -> Dict[str, Any]:
+    if not compact:
+      return payload
+    compact_signals = []
+    for row in payload.get("signals", []):
+      compact_signals.append({
+        key: row.get(key) for key in (
+          "id", "patternId", "sourceVersionId", "eventTime", "activationTime",
+          "direction", "label", "historicalReplay", "outcomeStatus", "expiryCandles",
+        )
+      })
+    return {**payload, "signals": compact_signals}
   normalized_symbol = symbol.upper()
   normalized_tf = tf.upper()
   normalized_mode = mode.lower()
@@ -3232,8 +3428,9 @@ def research_chart_signals(
         if normalized_mode == "current" else "immutable-replay"
       )
       response_cache_key = hashlib.sha256("|".join([
-        "chart-response-v7-forward-demo", normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
+        "chart-response-v9-lazy-target-path", normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
         str(_research_store.get_metadata("fms_registered_reaction:reconciliation") or ""),
+        str(_research_store.get_metadata("fms_live_execution_revision") or ""),
         calendar_revision,
         *(f"{run['id']}:{run['datasetFingerprint']}" for run in run_headers if run),
       ]).encode("utf-8")).hexdigest()
@@ -3261,7 +3458,7 @@ def research_chart_signals(
         has_pending_signal = any(signal.get("outcomeStatus") == "pending" for signal in cached_response.get("signals", []))
         needs_live_refresh = assessment_status == "awaiting_observation" or has_pending_signal
         if not refresh or normalized_mode == "research_replay" or not needs_live_refresh:
-          return cached_response
+          return response_for_client(cached_response)
   source_runs: Dict[str, Dict[str, Any]] = {}
   source_results: Dict[str, Dict[str, Any]] = {}
   for source_version in source_versions:
@@ -3657,6 +3854,14 @@ def research_chart_signals(
       [realtime["latestPatternAssessment"]] if realtime.get("latestPatternAssessment") else []
     )
     signal_by_key = {(str(signal["patternId"]), int(signal["eventTime"])): signal for signal in signals}
+    existing_live_decisions = {
+      (str(row["patternId"]), int(row["eventTime"])): row
+      for row in _research_store.list_fms_live_decisions(normalized_symbol, 500)
+    }
+    existing_execution_cases = {
+      (str(row["patternId"]), int(row["eventTime"])): row
+      for row in _research_store.list_fms_live_execution_cases(normalized_symbol, 500)
+    }
     for assessment in realtime_assessments:
       if assessment.get("status") not in {"qualified", "no_trade"}:
         continue
@@ -3672,6 +3877,21 @@ def research_chart_signals(
           first_seen_by_event,
         )
       assessment["prospectiveCapture"] = prospective_capture
+      existing_decision = existing_live_decisions.get(assessment_key)
+      release_quote = ((existing_decision or {}).get("assessment") or {}).get("releaseObservationQuote")
+      execution_case = existing_execution_cases.get(assessment_key) or {}
+      release_quote = release_quote or execution_case.get("entryQuote")
+      if release_quote is None and generated_at - event_time <= 15 * 60:
+        release_quote = _quote_snapshot_for_forward_case(
+          normalized_symbol, int(prospective_capture.get("firstSeenAt") or event_time), generated_at,
+        )
+      assessment["releaseObservationQuote"] = release_quote
+      matching_signal = signal_by_key.get(assessment_key)
+      if matching_signal is not None:
+        matching_signal["releaseObservationQuote"] = release_quote
+        prior_timing = (execution_case.get("signal") or {}).get("entryTimingAudit")
+        if prior_timing is not None:
+          matching_signal["entryTimingAudit"] = prior_timing
       if assessment.get("status") == "qualified" and not prospective_capture["eligible"]:
         assessment["status"] = "late_for_contract"
         assessment["reason"] = (
@@ -3687,7 +3907,7 @@ def research_chart_signals(
         str(assessment["status"]),
         assessment.get("direction"),
         assessment,
-        signal_by_key.get(assessment_key),
+        matching_signal,
         bool(prospective_capture["eligible"]),
         str(prospective_capture["reason"]),
       )
@@ -3700,6 +3920,12 @@ def research_chart_signals(
       signal_key = (str(signal["patternId"]), int(signal["eventTime"]))
       if signal_key not in qualified_decision_keys:
         continue
+      execution_case = existing_execution_cases.get(signal_key) or {}
+      if signal.get("releaseObservationQuote") is None and execution_case.get("entryQuote") is not None:
+        signal["releaseObservationQuote"] = execution_case["entryQuote"]
+      prior_timing = (execution_case.get("signal") or {}).get("entryTimingAudit")
+      if signal.get("entryTimingAudit") is None and prior_timing is not None:
+        signal["entryTimingAudit"] = prior_timing
       _research_store.record_fms_live_execution_observation(
         PRACTICAL_MODEL_ID,
         normalized_symbol,
@@ -3765,7 +3991,74 @@ def research_chart_signals(
     _research_store.set_metadata(durable_key, json.dumps(wrapper, separators=(",", ":")))
     with _chart_signal_response_lock:
       _chart_signal_response_cache[response_cache_key] = wrapper
-  return response
+  return response_for_client(response)
+
+
+@app.get("/research/chart-signal-target-ladder")
+def research_chart_signal_target_ladder(
+  symbol: str,
+  patternId: str,
+  eventTime: int,
+  mode: str = "research_replay",
+) -> Dict[str, Any]:
+  """Build the expensive multi-target audit only for the arrow the user opened."""
+  normalized_symbol = symbol.upper()
+  response = research_chart_signals(symbol=normalized_symbol, tf="H4", mode=mode)
+  signal = next(
+    (
+      row for row in response.get("signals", [])
+      if str(row.get("patternId")) == patternId and int(row.get("eventTime") or 0) == int(eventTime)
+    ),
+    None,
+  )
+  if signal is None:
+    raise HTTPException(status_code=404, detail="FMS chart signal was not found")
+  activation_time = signal.get("activationTime")
+  entry = signal.get("entry")
+  atr = signal.get("atr")
+  if activation_time is None or entry is None or atr is None:
+    return {"signal": signal}
+  expiry_candles = int(signal.get("expiryCandles") or 30)
+  path_horizon = max(30, expiry_candles)
+  candles = _research_store.query_candles(
+    normalized_symbol, "H4", int(activation_time), int(activation_time) + (path_horizon + 20) * H4_SECONDS,
+  )
+  candle_times = [int(candle["time"]) for candle in candles]
+  profile = build_candidate_path_profile({
+    "eventTime": int(signal["eventTime"]),
+    "entryTime": int(activation_time),
+    "entry": float(entry),
+    "atr": float(atr),
+    "direction": str(signal["direction"]),
+  }, candles, candle_times, path_horizon)
+  if profile is None:
+    return {"signal": signal}
+  m1_by_h4: Dict[int, List[Dict[str, Any]]] = {}
+  profile_times = {int(candle["time"]) for candle in profile.get("candles") or []}
+  if profile_times:
+    h4_phase = min(profile_times) % H4_SECONDS
+    m1_rows = _research_store.query_candles(
+      normalized_symbol, "M1", min(profile_times), max(profile_times) + H4_SECONDS - 1,
+    )
+    for row in m1_rows:
+      row_time = int(row["time"])
+      containing_h4 = h4_phase + ((row_time - h4_phase) // H4_SECONDS) * H4_SECONDS
+      if containing_h4 in profile_times:
+        m1_by_h4.setdefault(containing_h4, []).append(row)
+  target_ladder = _target_path_ladder(
+      profile,
+      float(signal.get("stopAtr") or 1.0),
+      expiry_candles,
+      normalized_symbol,
+      signal.get("outcomeStatus") == "pending",
+      m1_by_h4,
+    )
+  return {
+    "signal": {
+      **signal,
+      "pathAudit": {**(signal.get("pathAudit") or {}), "targetLadder": target_ladder},
+    },
+  }
 
 
 def _demo_execution_payload(
@@ -3817,6 +4110,8 @@ def _demo_execution_payload(
     tolerance = max(point * 2, 1e-10)
     model_stop = signal.get("initialStop") or signal.get("stop")
     model_target = signal.get("target")
+    model_entry = signal.get("entry")
+    model_entry_time = signal.get("activationTime")
     stop_matches = actual_stop is not None and model_stop is not None and abs(float(actual_stop) - float(model_stop)) <= tolerance
     target_matches = actual_target is not None and model_target is not None and abs(float(actual_target) - float(model_target)) <= tolerance
     entry_contract_adherent = direction_matches and stop_matches and target_matches
@@ -3847,14 +4142,49 @@ def _demo_execution_payload(
       )
     )
     contract_adherent = entry_contract_adherent and lifecycle_matches
+    entry_time = min((int(row["time"]) for row in entries), default=None)
+    entry_difference_price = (
+      direction_sign * (float(entry_price) - float(model_entry))
+      if entry_price is not None and model_entry is not None else None
+    )
+    entry_difference_points = (
+      entry_difference_price / point
+      if entry_difference_price is not None and point > 0 else None
+    )
+    entry_difference_r = (
+      entry_difference_price / risk_distance
+      if entry_difference_price is not None and risk_distance and risk_distance > 0 else None
+    )
+    entry_delay_seconds = (
+      int(entry_time) - int(model_entry_time)
+      if entry_time is not None and model_entry_time is not None else None
+    )
+    execution_costs_account = sum(
+      float(row["commission"]) + float(row["swap"]) + float(row["fee"])
+      for row in position_deals
+    )
+    execution_costs_r = (
+      execution_costs_account / float(initial_risk_account)
+      if initial_risk_account is not None and float(initial_risk_account) > 0 else None
+    )
     trades.append({
       "signalTag": tag, "accountLogin": account_login, "market": case["market"], "patternId": case["patternId"],
       "eventTime": case["eventTime"], "positionId": position_id,
       "status": "completed" if completed else "open_or_partial",
       "entryPrice": entry_price, "exitPrice": exit_price,
-      "entryTime": min((int(row["time"]) for row in entries), default=None),
+      "entryTime": entry_time,
       "exitTime": max((int(row["time"]) for row in exits), default=None),
       "volume": entry_volume, "grossFillR": gross_fill_r,
+      "modelEntryPrice": model_entry, "modelEntryTime": model_entry_time,
+      "entryDelaySeconds": entry_delay_seconds,
+      "entryDifferencePrice": entry_difference_price,
+      "entryDifferencePoints": entry_difference_points,
+      "entryDifferenceR": entry_difference_r,
+      "expectedGrossR": expected_result_r,
+      "grossResultDifferenceR": (
+        float(gross_fill_r) - float(expected_result_r)
+        if gross_fill_r is not None and expected_result_r is not None else None
+      ),
       "initialRiskAccount": initial_risk_account,
       "riskPercent": next((row["deal"].get("fms_risk_percent") for row in entries if row.get("deal", {}).get("fms_risk_percent") is not None), None),
       "actualStop": actual_stop, "actualTarget": actual_target,
@@ -3866,6 +4196,8 @@ def _demo_execution_payload(
       "swap": sum(float(row["swap"]) for row in position_deals),
       "fee": sum(float(row["fee"]) for row in position_deals),
       "netAccountResult": net_account_result,
+      "executionCostsAccount": execution_costs_account,
+      "executionCostsR": execution_costs_r,
       "netR": (
         net_account_result / float(initial_risk_account)
         if completed and initial_risk_account is not None and float(initial_risk_account) > 0 else None
@@ -3887,6 +4219,9 @@ def _demo_execution_payload(
       "eligibleForDemoReliance": ready,
     })
   demo_ready_setups = sum(bool(row["eligibleForDemoReliance"]) for row in demo_setup_summaries)
+  comparable_entries = [row for row in trades if row.get("entryDifferenceR") is not None]
+  comparable_results = [row for row in completed_trades if row.get("grossResultDifferenceR") is not None]
+  cost_known = [row for row in completed_trades if row.get("executionCostsR") is not None]
   ordered_completed = sorted(completed_trades, key=lambda row: (int(row.get("exitTime") or 0), int(row["positionId"])))
   running_result = 0.0
   peak_result = 0.0
@@ -3969,6 +4304,28 @@ def _demo_execution_payload(
       statistics.mean(float(row["netR"]) for row in completed_trades if row.get("netR") is not None)
       if any(row.get("netR") is not None for row in completed_trades) else None
     ),
+    "executionComparison": {
+      "completedComparableTrades": len(comparable_results),
+      "entryComparableTrades": len(comparable_entries),
+      "averageEntryDelaySeconds": (
+        statistics.mean(float(row["entryDelaySeconds"]) for row in comparable_entries if row.get("entryDelaySeconds") is not None)
+        if any(row.get("entryDelaySeconds") is not None for row in comparable_entries) else None
+      ),
+      "averageAdverseEntryDifferenceR": (
+        statistics.mean(float(row["entryDifferenceR"]) for row in comparable_entries)
+        if comparable_entries else None
+      ),
+      "averageGrossResultDifferenceR": (
+        statistics.mean(float(row["grossResultDifferenceR"]) for row in comparable_results)
+        if comparable_results else None
+      ),
+      "averageExecutionCostsR": (
+        statistics.mean(float(row["executionCostsR"]) for row in cost_known)
+        if cost_known else None
+      ),
+      "contractAdherentTrades": sum(bool(row.get("contractAdherent")) for row in trades),
+      "note": "Entry difference combines manual delay, spread, and market movement; it is observed but cannot be decomposed from MT5 deal history alone.",
+    },
     "riskPolicy": {
       **FMS_MANUAL_DEMO_RISK_POLICY,
       "observed": risk_policy_observed,
@@ -3993,16 +4350,69 @@ def _demo_execution_payload(
   }
 
 
+def _current_demo_execution_payload() -> Dict[str, Any]:
+  demo_status = None
+  demo_status_raw = _research_store.get_metadata("fms_demo_capture_status")
+  if demo_status_raw:
+    try:
+      parsed_demo_status = json.loads(demo_status_raw)
+      demo_status = parsed_demo_status if isinstance(parsed_demo_status, dict) else None
+    except (TypeError, ValueError):
+      demo_status = {"status": "unreadable_capture_status", "orderTransmission": False}
+  return _demo_execution_payload(
+    _research_store.list_fms_live_execution_cases(limit=2000),
+    _research_store.list_fms_demo_deals(limit=20000),
+    demo_status,
+  )
+
+
+def _fms_operational_preflight(now: Optional[int] = None) -> Dict[str, Any]:
+  observed_at = int(now or _time.time())
+  last_cycle_raw = _research_store.get_metadata("last_calendar_successful_cycle_at")
+  failed_batches_raw = _research_store.get_metadata("last_calendar_cycle_failed_batches")
+  last_cycle = int(last_cycle_raw) if last_cycle_raw is not None else None
+  age_seconds = None if last_cycle is None else max(0, observed_at - last_cycle)
+  failed_batches = int(failed_batches_raw or "0")
+  calendar_fresh = age_seconds is not None and age_seconds <= 180
+  reasons = []
+  if last_cycle is None:
+    reasons.append("No successful EA calendar cycle has been recorded.")
+  elif not calendar_fresh:
+    reasons.append(f"The last successful EA calendar cycle is {age_seconds} seconds old.")
+  if failed_batches > 0:
+    reasons.append(f"The latest EA calendar cycle reported {failed_batches} failed batch(es).")
+  return {
+    "schema": "fms-operational-preflight-v1",
+    "checkedAt": observed_at,
+    "lastSuccessfulCalendarCycleAt": last_cycle,
+    "calendarCycleAgeSeconds": age_seconds,
+    "failedCalendarBatches": failed_batches,
+    "calendarFresh": calendar_fresh,
+    "signalMonitoringReadyNow": calendar_fresh and failed_batches == 0,
+    "blockingReasons": reasons,
+    "orderTransmission": False,
+  }
+
+
 def _forward_validation_payload(
   decisions: List[Dict[str, Any]],
   cases: List[Dict[str, Any]],
   demo_execution: Optional[Dict[str, Any]] = None,
+  operational_preflight: Optional[Dict[str, Any]] = None,
+  evaluated_at: Optional[int] = None,
 ) -> Dict[str, Any]:
+  evaluated_at = int(evaluated_at or _time.time())
+  setup_gate = {
+    "id": "FMS-SETUP-FORWARD-GATE-v1",
+    "minimumResolvedCases": 10,
+    "minimumElapsedDays": 90,
+    "minimumNearEntryQuoteCoverage": .8,
+  }
   forward_decisions = [
     row for row in decisions
-    if row["modelId"] == PRACTICAL_MODEL_ID and row["status"] == "qualified" and row.get("prospectiveEligible") is True
+    if row.get("modelId") == PRACTICAL_MODEL_ID and row.get("status") == "qualified" and row.get("prospectiveEligible") is True
   ]
-  forward_cases = [row for row in cases if row["modelId"] == PRACTICAL_MODEL_ID]
+  forward_cases = [row for row in cases if row.get("modelId") == PRACTICAL_MODEL_ID]
   resolved_forward = [
     row for row in forward_cases
     if row.get("resultR") is not None and row.get("state") in {"target_hit", "stop_hit", "expired"}
@@ -4018,7 +4428,7 @@ def _forward_validation_payload(
     ]
     setup_quote_eligible = sum(row.get("signal", {}).get("activationTime") is not None for row in setup_cases)
     setup_near_quotes = sum(
-      (row.get("entryQuote") or {}).get("quality") == "near_entry"
+      (row.get("entryQuote") or {}).get("quality") in {"first_tick", "near_entry"}
       for row in setup_cases if row.get("signal", {}).get("activationTime") is not None
     )
     setup_average = (
@@ -4026,21 +4436,77 @@ def _forward_validation_payload(
       if setup_resolved else None
     )
     setup_quote_coverage = setup_near_quotes / setup_quote_eligible if setup_quote_eligible else None
-    setup_ready = (
-      len(setup_resolved) >= 10
-      and setup_average is not None and setup_average > 0
-      and setup_quote_coverage is not None and setup_quote_coverage >= .8
+    observed_times = [
+      int(row.get("observedAt") or row.get("eventTime") or 0)
+      for row in setup_cases if row.get("observedAt") is not None or row.get("eventTime") is not None
+    ]
+    first_observed_at = min(observed_times) if observed_times else None
+    last_observed_at = max(observed_times) if observed_times else None
+    elapsed_days = (
+      max(0, (evaluated_at - first_observed_at) // 86_400)
+      if first_observed_at is not None else 0
     )
+    enough_cases = len(setup_resolved) >= setup_gate["minimumResolvedCases"]
+    enough_time = elapsed_days >= setup_gate["minimumElapsedDays"]
+    quote_coverage_ready = (
+      setup_quote_coverage is not None
+      and setup_quote_coverage >= setup_gate["minimumNearEntryQuoteCoverage"]
+    )
+    setup_ready = (
+      enough_cases and enough_time
+      and setup_average is not None and setup_average > 0
+      and quote_coverage_ready
+    )
+    if enough_cases and setup_average is not None and setup_average <= 0:
+      forward_status = "degraded"
+      status_reason = "Forward resolved cases currently have a non-positive average R. The registered historical rule remains unchanged but needs review."
+    elif enough_cases and enough_time and not quote_coverage_ready:
+      forward_status = "coverage_incomplete"
+      status_reason = "The setup has enough elapsed time and resolved cases, but near-entry quote coverage remains below 80%."
+    elif setup_ready:
+      forward_status = "supportive"
+      status_reason = "The setup has positive forward average R with at least 10 resolved cases, 90 elapsed days, and 80% near-entry quote coverage."
+    else:
+      forward_status = "collecting"
+      status_reason = "Forward evidence is still collecting until the setup reaches 10 resolved cases and 90 elapsed days."
     setup_summaries.append({
       "market": market, "patternId": pattern_id, "resolvedCases": len(setup_resolved),
       "averageR": setup_average, "nearEntryQuoteCoverage": setup_quote_coverage,
+      "firstObservedAt": first_observed_at, "lastObservedAt": last_observed_at,
+      "elapsedDays": elapsed_days, "status": forward_status, "statusReason": status_reason,
       "eligibleForPaperReliance": setup_ready,
     })
   represented_setups = sum(bool(row["resolvedCases"]) for row in setup_summaries)
   paper_ready_setups = sum(bool(row["eligibleForPaperReliance"]) for row in setup_summaries)
+  degraded_setups = sum(row["status"] == "degraded" for row in setup_summaries)
+  collecting_setups = sum(row["status"] == "collecting" for row in setup_summaries)
+  demo_setup_by_key = {
+    (str(row.get("market")), str(row.get("patternId"))): row
+    for row in (demo_execution or {}).get("setupSummaries", [])
+  }
+  global_demo_risk_observed = bool(((demo_execution or {}).get("riskPolicy") or {}).get("observed"))
+  operational_ready = bool((operational_preflight or {}).get("signalMonitoringReadyNow"))
+  for summary in setup_summaries:
+    demo_summary = demo_setup_by_key.get((summary["market"], summary["patternId"])) or {}
+    demo_ready = bool(demo_summary.get("eligibleForDemoReliance"))
+    blockers = []
+    if not summary["eligibleForPaperReliance"]:
+      blockers.append(summary["statusReason"])
+    if not demo_ready:
+      blockers.append("At least 5 completed, contract-adherent tagged demo trades with positive average net R are required for this exact setup.")
+    if not global_demo_risk_observed:
+      blockers.append("The frozen manual-demo risk policy has not yet been observed across 30 completed tagged demo trades.")
+    if not operational_ready:
+      blockers.append("The EA/calendar operational preflight is not currently ready.")
+    summary["demoCompletedTrades"] = int(demo_summary.get("completedTrades") or 0)
+    summary["demoAverageNetR"] = demo_summary.get("averageNetR")
+    summary["demoContractAdherent"] = bool(demo_summary.get("contractAdherent"))
+    summary["eligibleForManualLimitedLiveReview"] = not blockers
+    summary["manualLimitedLiveReviewBlockers"] = blockers
+  manual_limited_live_candidates = sum(bool(row["eligibleForManualLimitedLiveReview"]) for row in setup_summaries)
   quote_eligible = sum(row.get("signal", {}).get("activationTime") is not None for row in forward_cases)
   near_entry_quotes = sum(
-    (row.get("entryQuote") or {}).get("quality") == "near_entry"
+    (row.get("entryQuote") or {}).get("quality") in {"first_tick", "near_entry"}
     for row in forward_cases
     if row.get("signal", {}).get("activationTime") is not None
   )
@@ -4074,6 +4540,10 @@ def _forward_validation_payload(
     "ambiguousOrUnavailableCases": sum(row.get("state") in {"ambiguous", "unevaluable"} for row in forward_cases),
     "representedSetups": represented_setups,
     "paperReadySetups": paper_ready_setups,
+    "degradedSetups": degraded_setups,
+    "collectingSetups": collecting_setups,
+    "manualLimitedLiveReviewCandidates": manual_limited_live_candidates,
+    "setupForwardGate": setup_gate,
     "setupSummaries": setup_summaries,
     "averageR": forward_average_r,
     "nearEntryQuoteCount": near_entry_quotes,
@@ -4084,6 +4554,19 @@ def _forward_validation_payload(
     "eligibleForDemoTrading": demo_trading_ready,
     "realMoneyChecks": {"realMoneyExecutionInScope": False},
     "demoExecution": demo_execution,
+    "operationalPreflight": operational_preflight,
+    "manualLimitedLiveReview": {
+      "schema": "fms-manual-limited-live-review-v1",
+      "eligibleSetups": manual_limited_live_candidates,
+      "globalDemoRiskPolicyObserved": global_demo_risk_observed,
+      "operationalPreflightReady": operational_ready,
+      "orderTransmission": False,
+      "decision": (
+        "One or more exact setups have enough forward and observed demo evidence for a later human limited-live review. Fyodor still sends no order."
+        if manual_limited_live_candidates else
+        "No exact setup has yet satisfied the combined forward, observed-demo, risk-policy, and operational requirements for limited-live review."
+      ),
+    },
     "eligibleForRealMoneyReliance": False,
     "decision": (
       "Ready for demo-only Shadow Trader monitoring. A trade appears only when a registered setup is captured before its frozen H4 entry; late catch-up data remains audit-only."
@@ -4092,7 +4575,7 @@ def _forward_validation_payload(
     ),
     "limitations": [
       "Forward cases remain useful evidence, but they do not block demo-only monitoring.",
-      "Results are gross; execution costs are deliberately deferred.",
+      "Forward candle-path results are gross; tagged demo trades separately report recorded commission, swap, and fees when available.",
       "Historical and forward profitability cannot guarantee the next demo trade.",
       "Real-money execution is outside the current product boundary.",
     ],
@@ -4170,18 +4653,10 @@ def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict
 
   forward_decisions = _research_store.list_fms_live_decisions(limit=500)
   forward_cases = _research_store.list_fms_live_execution_cases(limit=2000)
-  demo_status = None
-  demo_status_raw = _research_store.get_metadata("fms_demo_capture_status")
-  if demo_status_raw:
-    try:
-      parsed_demo_status = json.loads(demo_status_raw)
-      demo_status = parsed_demo_status if isinstance(parsed_demo_status, dict) else None
-    except (TypeError, ValueError):
-      demo_status = {"status": "unreadable_capture_status", "orderTransmission": False}
-  demo_execution = _demo_execution_payload(
-    forward_cases, _research_store.list_fms_demo_deals(limit=20000), demo_status,
+  demo_execution = _current_demo_execution_payload()
+  forward_validation = _forward_validation_payload(
+    forward_decisions, forward_cases, demo_execution, _fms_operational_preflight(),
   )
-  forward_validation = _forward_validation_payload(forward_decisions, forward_cases, demo_execution)
   atlas_intelligence: List[Dict[str, Any]] = []
   atlas_raw = _research_store.get_metadata("fms_reaction_atlas:latest")
   if atlas_raw:
@@ -4317,6 +4792,14 @@ def research_readiness_report() -> Dict[str, Any]:
       "registrationProvenance": provenance,
     })
   decisions = _research_store.list_fms_live_decisions(limit=500)
+  forward_cases = _research_store.list_fms_live_execution_cases(limit=2000)
+  demo_execution = _current_demo_execution_payload()
+  operational_preflight = _fms_operational_preflight()
+  forward_validation = _forward_validation_payload(
+    decisions, forward_cases, demo_execution, operational_preflight,
+  )
+  completed_demo_trades = int(demo_execution.get("completedTrades") or 0)
+  matched_demo_trades = int(demo_execution.get("matchedTrades") or 0)
   complete = sum(row["readiness"]["auditStatus"] == "complete" for row in registered_rows)
   quarantined = [
     {
@@ -4346,11 +4829,23 @@ def research_readiness_report() -> Dict[str, Any]:
     "paperLiveEvidence": {
       "immutableFirstSeen": True,
       "decisionCount": len(decisions),
-      "actualBrokerFillsRecorded": 0,
-      "status": "observation_only",
+      "actualBrokerFillsRecorded": matched_demo_trades,
+      "completedDemoTrades": completed_demo_trades,
+      "executionComparison": demo_execution.get("executionComparison"),
+      "operationalPreflight": operational_preflight,
+      "setupForwardGate": forward_validation.get("setupForwardGate"),
+      "setupSummaries": forward_validation.get("setupSummaries"),
+      "supportiveSetups": forward_validation.get("paperReadySetups"),
+      "degradedSetups": forward_validation.get("degradedSetups"),
+      "collectingSetups": forward_validation.get("collectingSetups"),
+      "manualLimitedLiveReview": forward_validation.get("manualLimitedLiveReview"),
+      "status": "demo_execution_observed" if matched_demo_trades else "observation_only",
     },
-    "knownCosts": [],
-    "unknownOrExcludedCosts": ["spread", "commission", "slippage", "swap"],
+    "knownCosts": (["commission", "swap", "fee"] if completed_demo_trades else []),
+    "unknownOrExcludedCosts": [
+      "spread decomposition", "slippage decomposition",
+      *([] if completed_demo_trades else ["commission", "swap", "fee"]),
+    ],
     "unresolvedIntegrityRisks": [
       "Historical profitability does not prove future profitability.",
       "The registered entry remains the first strictly later H4 open, not an executable release-time fill.",

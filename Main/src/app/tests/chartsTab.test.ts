@@ -6,7 +6,7 @@ import { ChartMacroBiasAudit } from "@/app/components/ChartMacroBiasAudit";
 import { ChartMacroBiasRealtimeCard, marketMatchesCurrencySelection } from "@/app/components/ChartMacroBiasRealtimeCard";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import { ChartPairMatrixContextMarkers, clusterPairMatrixMarkerViews } from "@/app/components/ChartPairMatrixContextMarkers";
-import { ChartPairMatrixRangeOverlay, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
+import { ChartPairMatrixRangeOverlay, clampFmsDockWidth, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
 import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
 import { buildMacroSignalShadowAccount, buildMacroSignalShadowPosition, normalizeShadowRiskPercent, normalizeShadowStartingBalance } from "@/app/lib/macroSignalShadow";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
@@ -125,6 +125,17 @@ describe("getChartConnectionLabel", () => {
       id: "signal", patternId: "pattern", sourceVersionId: "v2", eventTime: 1_000, activationTime: 14_400,
       execution: { stopAtr: 2, targetR: .5, expiryCandles: 42 }, stopAtr: 2, targetR: .5, expiryCandles: 42,
       entry: 1.35000, atr: .00500, stop: 1.34000, target: 1.35500,
+      releaseObservationQuote: { bid: 1.3498, ask: 1.3502, spreadPrice: .0004, spreadPoints: 4, quoteTime: 1_020, capturedAt: 1_021, entryLagSeconds: 20, quality: "near_entry", disclosure: "Observed quote, not a fill." },
+      entryTimingAudit: {
+        schema: "fms-prospective-entry-timing-v1", status: "prospective_observation_only", eventTime: 1_000,
+        firstSeenAt: 1_010, firstSeenDelaySeconds: 10, decisionAt: 1_015, decisionDelaySeconds: 15, processingDelaySeconds: 5, quoteTime: 1_020, quoteDelaySeconds: 20, observedMid: 1.35,
+        entries: [
+          { timeframe: "M1", status: "observed", entryTime: 1_080, entryOpen: 1.3505, gapPips: 5, directionAdjustedGapPips: 5 },
+          { timeframe: "H1", status: "quote_captured_after_entry", entryTime: 1_015, entryOpen: 1.349, gapPips: null, directionAdjustedGapPips: null },
+          { timeframe: "H4", status: "waiting_for_candle", entryTime: null, entryOpen: null, gapPips: null, directionAdjustedGapPips: null },
+        ],
+        disclosure: "Observed MT5 quote and later candle opens only. These are not broker fills.",
+      },
       historicalReplay: true, direction: "long", label: "US labor claims improvement", agreement: "consensus", pairVote: 1,
       backgroundDirection: "short", backgroundPairVote: -1, backgroundAlignment: "aligned", backgroundCoverageComplete: true,
       highestImpact: "high", events: [], outcomeStatus: "target_hit", resultR: .5, exitTime: 28_800,
@@ -134,6 +145,11 @@ describe("getChartConnectionLabel", () => {
         maximumAdverseR: .4, maximumAdversePips: 20, timeToMfeCandles: 18,
         timeToMaeCandles: 2, givebackR: .89,
         fixedHorizonResponses: [{ holdingCandles: 1, responseR: .67 }, { holdingCandles: 6, responseR: .65 }, { holdingCandles: 30, responseR: -.58 }],
+        targetLadder: [
+          { targetR: .25, targetPrice: 1.3525, distanceAtr: .5, distancePips: 25, status: "target_before_sl", reachedAt: 14_400, timeToTargetCandles: 1 },
+          { targetR: .5, targetPrice: 1.355, distanceAtr: 1, distancePips: 50, status: "target_before_sl", reachedAt: 28_800, timeToTargetCandles: 2 },
+          { targetR: 1, targetPrice: 1.36, distanceAtr: 2, distancePips: 100, status: "sl_before_target", reachedAt: 43_200, timeToTargetCandles: null },
+        ],
       },
     };
     const html = renderToStaticMarkup(createElement(ChartMacroBiasAudit, { data: {
@@ -161,7 +177,8 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Long USDCAD");
     expect(html).not.toContain("Long EURUSD");
     expect(html).toContain("Why the arrow appeared");
-    expect(html).toContain("Initial move followed");
+    expect(html).toContain("Initial move");
+    expect(html).toContain("Followed · +0.67R");
     expect(html).toContain("Price followed the arrow");
     expect(html).toContain("after 1 H4");
     expect(html).toContain("Frozen trade result");
@@ -178,8 +195,10 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Direction worked after 6 H4");
     expect(html).toContain("Worked, but trade lost");
     expect(html).toContain("Different measurements:");
-    expect(html.indexOf("Initial move followed")).toBeLessThan(html.indexOf("Why the arrow appeared"));
-    expect(html.indexOf("Frozen trade · TP reached · +0.50R")).toBeLessThan(html.indexOf("Why the arrow appeared"));
+    expect(html.indexOf("Initial move")).toBeLessThan(html.indexOf("Why the arrow appeared"));
+    expect(html.indexOf("Frozen plan")).toBeLessThan(html.indexOf("Why the arrow appeared"));
+    expect(html.indexOf("Frozen trade")).toBeLessThan(html.indexOf("Why the arrow appeared"));
+    expect(html).toContain("Risk −1R to seek +0.5R");
     expect(html).toContain("Closed — target reached");
     expect(html).toContain("Later price movement does not change this result");
     expect(html).toContain("TP reached · +0.50R");
@@ -188,8 +207,20 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("0.00500 · 50.0 pips");
     expect(html).toContain("100.0 pips · 2.00 ATR · −1R");
     expect(html).toContain("50.0 pips · 1.00 ATR · +0.5R");
+    expect(html).toContain("Frozen TP · 0.5R");
+    expect(html).toContain("TP option · 0.25R");
+    expect(html).toContain("Reached before original SL · after 1 H4");
+    expect(html).toContain("Original SL came first");
+    expect(html).toContain("hindsight path research, not partial exits or captured profit");
     expect(html).toContain("What happened");
     expect(html).toContain("Release to frozen result");
+    expect(html).toContain("First FMS-observed post-release quote");
+    expect(html).toContain("20s after scheduled release · observed quote, not a fill");
+    expect(html).toContain("Entry timing research");
+    expect(html).toContain("First later M1 open");
+    expect(html).toContain("+5.0 pips raw · +5.0 pips with arrow");
+    expect(html).toContain("Quote arrived too late to compare");
+    expect(html).toContain("Not formed yet");
     expect(html).toContain("Frozen trade closed");
     expect(html).toContain("SL 2 ATR · TP 0.5R = 1 ATR · maximum 42 H4 candles");
     expect(html).toContain("Historical performance of this exact setup");
@@ -275,17 +306,22 @@ describe("getChartConnectionLabel", () => {
       forwardValidation: {
         schema: "fms-forward-validation-v1", status: "collecting_forward_evidence", modelId: "global", startedAt: 1,
         qualifiedDecisions: 4, trackedCases: 3, resolvedCases: 2, pendingCases: 1, ambiguousOrUnavailableCases: 0,
-        representedSetups: 2, paperReadySetups: 0, setupSummaries: [], averageR: .25, nearEntryQuoteCount: 2, quoteEligibleCount: 3,
+        representedSetups: 2, paperReadySetups: 0, degradedSetups: 0, collectingSetups: 1, manualLimitedLiveReviewCandidates: 0,
+        setupForwardGate: { id: "FMS-SETUP-FORWARD-GATE-v1", minimumResolvedCases: 10, minimumElapsedDays: 90, minimumNearEntryQuoteCoverage: .8 },
+        setupSummaries: [{ market: "EURUSD", patternId: pattern.id, resolvedCases: 2, averageR: .25, nearEntryQuoteCoverage: 1, firstObservedAt: 90, lastObservedAt: 100, elapsedDays: 1, status: "collecting", statusReason: "Forward evidence is still collecting.", eligibleForPaperReliance: false, demoCompletedTrades: 1, demoAverageNetR: .4, demoContractAdherent: true, eligibleForManualLimitedLiveReview: false, manualLimitedLiveReviewBlockers: ["More forward cases are required."] }], averageR: .25, nearEntryQuoteCount: 2, quoteEligibleCount: 3,
         paperChecks: { minimumResolvedCases: false }, eligibleForPaperReliance: false,
         demoTradingChecks: { registeredSetupsAvailable: true, immutableFirstSeenCapture: true, lateCaptureExcluded: true, deterministicEntryAndOutcomeLifecycle: true }, eligibleForDemoTrading: true,
         realMoneyChecks: { actualBrokerFillsRecorded: false }, eligibleForRealMoneyReliance: false,
         demoExecution: {
           schema: "fms-demo-execution-v1", captureStatus: { status: "capturing_demo_deals", accountLogin: 123, orderTransmission: false },
           taggedDeals: 2, matchedTrades: 1, completedTrades: 1, representedSetups: 1, demoReadySetups: 0, setupSummaries: [{ market: "EURUSD", patternId: pattern.id, completedTrades: 1, averageNetR: .4, contractAdherent: true, eligibleForDemoReliance: false }], openOrPartialTrades: 0,
-          totalNetAccountResult: 10, averageGrossFillR: .5, averageNetR: .4, trades: [{ signalTag: "FMS-ABC1234567", accountLogin: 123, market: "EURUSD", patternId: pattern.id, eventTime: 90, positionId: 77, status: "completed", entryTime: 96, exitTime: 100, entryPrice: 1.1, exitPrice: 1.11, volume: .1, grossFillR: .5, initialRiskAccount: 25, riskPercent: .25, actualStop: 1.09, actualTarget: 1.12, directionMatches: true, stopMatches: true, targetMatches: true, lifecycleMatches: true, contractAdherent: true, netR: .4, profit: 11, commission: -1, swap: 0, fee: 0, netAccountResult: 10, dealCount: 2 }], orderTransmission: false,
+          totalNetAccountResult: 10, averageGrossFillR: .5, averageNetR: .4,
+          executionComparison: { completedComparableTrades: 1, entryComparableTrades: 1, averageEntryDelaySeconds: 60, averageAdverseEntryDifferenceR: .02, averageGrossResultDifferenceR: -.1, averageExecutionCostsR: -.04, contractAdherentTrades: 1, note: "Observed entry difference cannot be decomposed." },
+          trades: [{ signalTag: "FMS-ABC1234567", accountLogin: 123, market: "EURUSD", patternId: pattern.id, eventTime: 90, positionId: 77, status: "completed", entryTime: 96, exitTime: 100, entryPrice: 1.1, exitPrice: 1.11, volume: .1, grossFillR: .5, modelEntryPrice: 1.0998, modelEntryTime: 36, entryDelaySeconds: 60, entryDifferencePrice: .0002, entryDifferencePoints: 2, entryDifferenceR: .02, expectedGrossR: .6, grossResultDifferenceR: -.1, initialRiskAccount: 25, riskPercent: .25, actualStop: 1.09, actualTarget: 1.12, directionMatches: true, stopMatches: true, targetMatches: true, lifecycleMatches: true, contractAdherent: true, netR: .4, profit: 11, commission: -1, swap: 0, fee: 0, netAccountResult: 10, executionCostsAccount: -1, executionCostsR: -.04, dealCount: 2 }], orderTransmission: false,
           riskPolicy: { id: "risk-v1", maximumRiskPerTradePercent: .25, maximumOpenTrades: 1, maximumPortfolioRiskPercent: .25, maximumPeakToTroughDrawdownPercent: 5, maximumConsecutiveLosingTrades: 5, stopRequired: true, scope: "demo", observed: false, riskKnownForEveryCompletedTrade: true, contractAdherentForEveryTrade: true, excessiveRiskObserved: false, contractViolationObserved: false, duplicateTagObserved: false, maximumOpenTradesObserved: 1, maximumDrawdownAccount: 0, maximumDrawdownPercent: 0, maximumConsecutiveLosingTradesObserved: 0, killSwitchImplemented: true, killSwitchTriggered: false, operationalTradingAllowed: true },
           instructions: "Use the exact FMS demo tag. Fyodor records matching deals but never sends the order.",
         },
+        manualLimitedLiveReview: { schema: "fms-manual-limited-live-review-v1", eligibleSetups: 0, globalDemoRiskPolicyObserved: false, operationalPreflightReady: false, orderTransmission: false, decision: "No exact setup has yet satisfied the combined requirements." },
         decision: "Ready for demo-only Shadow Trader monitoring.",
         limitations: ["Paper outcomes use MT5 candle paths, not broker order fills."],
       },
@@ -309,13 +345,21 @@ describe("getChartConnectionLabel", () => {
 
     expect(html).toContain("FMS Shadow Trader");
     expect(html).toContain("Ready for demo monitoring");
-    expect(html).toContain("Prospective guard active");
-    expect(html).toContain("Optional tagged demo history");
+    expect(html).toContain("EA cycle current");
+    expect(html).toContain("Observed MT5 demo execution");
+    expect(html).toContain("Planned versus actual demo execution");
+    expect(html).toContain("Average entry delay");
+    expect(html).toContain("Recorded costs");
     expect(html).toContain("1 completed");
     expect(html).toContain("never sends the order");
-    expect(html).toContain("strict account-risk qualification are deferred");
+    expect(html).toContain("Positive is worse for the planned direction");
+    expect(html).toContain("Observed entry difference cannot be decomposed");
     expect(html).toContain("Matched MT5 demo trades");
     expect(html).toContain("Matched");
+    expect(html).toContain("Forward evidence collecting");
+    expect(html).toContain("2/10 cases");
+    expect(html).toContain("Manual limited-live review");
+    expect(html).toContain("No exact setup has yet satisfied");
     const activeHtml = renderToStaticMarkup(createElement(ChartMacroBiasRealtimeCard, { data: {
       response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
     } }));
@@ -351,6 +395,7 @@ describe("getChartConnectionLabel", () => {
       ...globalResponse,
       forwardValidation: {
         ...globalResponse.forwardValidation!,
+        operationalPreflight: { schema: "fms-operational-preflight-v1", checkedAt: 100, lastSuccessfulCalendarCycleAt: 0, calendarCycleAgeSeconds: 100, failedCalendarBatches: 1, calendarFresh: true, signalMonitoringReadyNow: false, blockingReasons: ["The latest EA calendar cycle reported 1 failed batch(es)."], orderTransmission: false },
         demoExecution: {
           ...globalResponse.forwardValidation!.demoExecution!,
           riskPolicy: { ...globalResponse.forwardValidation!.demoExecution!.riskPolicy, killSwitchTriggered: true, operationalTradingAllowed: false },
@@ -361,6 +406,9 @@ describe("getChartConnectionLabel", () => {
       response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10, chartTimeframe: "H1", historicalSignals: [], globalResponse: pausedGlobal, globalLoading: false, globalError: null,
     } }));
     expect(pausedHtml).not.toContain("FMS risk kill switch is active");
+    expect(pausedHtml).toContain("Signal engine ready · feed waiting");
+    expect(pausedHtml).toContain("Do not act on a new signal yet");
+    expect(pausedHtml).toContain("failed batch(es)");
     expect(pausedHtml).toContain("MT5 demo order comment");
     expect(html).toContain("EURUSD flags");
     expect(html).toContain("GBPUSD flags");
@@ -575,6 +623,9 @@ describe("getChartConnectionLabel", () => {
     expect(clampPairMatrixPanelHeight(500, 900)).toBe(500);
     expect(clampPairMatrixPanelHeight(100, 900)).toBe(240);
     expect(clampPairMatrixPanelHeight(900, 900)).toBe(680);
+    expect(clampFmsDockWidth(100, 1440)).toBe(340);
+    expect(clampFmsDockWidth(460, 1440)).toBe(460);
+    expect(clampFmsDockWidth(900, 1440)).toBe(720);
   });
 
   it("uses market and bridge specific labels", () => {
@@ -680,7 +731,7 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Open chart appearance");
     expect(html).toContain("Open chart events");
     expect(html).toContain("Open chart diagnostics");
-    expect(html).toContain("Macro bias");
+    expect(html).toContain(">FMS<");
     expect(html).toContain("Event Lens");
     expect(html).toContain("Open Event Lens");
     expect(html).toContain("Open Pair Matrix Time Lens");

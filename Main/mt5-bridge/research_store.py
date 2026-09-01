@@ -113,6 +113,8 @@ class ResearchStore:
           forecast TEXT,
           previous TEXT,
           first_seen_at INTEGER NOT NULL,
+          ea_completed_at INTEGER,
+          bridge_acknowledged_at INTEGER,
           PRIMARY KEY (id, time)
         );
 
@@ -246,6 +248,13 @@ class ResearchStore:
         connection.execute(
           "ALTER TABLE fms_live_decisions ADD COLUMN eligibility_reason TEXT NOT NULL DEFAULT 'legacy_unverified'"
         )
+      observation_columns = {
+        str(row["name"]) for row in connection.execute("PRAGMA table_info(release_observations)").fetchall()
+      }
+      if "ea_completed_at" not in observation_columns:
+        connection.execute("ALTER TABLE release_observations ADD COLUMN ea_completed_at INTEGER")
+      if "bridge_acknowledged_at" not in observation_columns:
+        connection.execute("ALTER TABLE release_observations ADD COLUMN bridge_acknowledged_at INTEGER")
 
   def set_metadata(self, key: str, value: str) -> None:
     with self._write_lock, self._connect() as connection:
@@ -348,6 +357,12 @@ class ResearchStore:
           result_r, snapshot_hash, signal_json, quote_json,
         ),
       )
+      if cursor.rowcount > 0:
+        connection.execute(
+          "INSERT INTO metadata(key, value) VALUES ('fms_live_execution_revision', ?) "
+          "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+          (f"{int(observed_at)}:{snapshot_hash}",),
+        )
       return cursor.rowcount > 0
 
   def list_fms_live_execution_cases(
@@ -650,6 +665,7 @@ class ResearchStore:
     activated_at: int,
     observed_at: int,
     released_through: Optional[int] = None,
+    ea_completed_at: Optional[int] = None,
   ) -> int:
     """Freeze first-seen released values after the forward ledger was activated."""
     release_cutoff = observed_at if released_through is None else released_through
@@ -658,16 +674,16 @@ class ResearchStore:
         """
         INSERT OR IGNORE INTO release_observations(
           id, time, country_code, currency, title, impact,
-          actual, forecast, previous, first_seen_at
+          actual, forecast, previous, first_seen_at, ea_completed_at, bridge_acknowledged_at
         )
         SELECT id, time, country_code, currency, title, impact,
-               actual, forecast, previous, ?
+               actual, forecast, previous, ?, ?, ?
         FROM calendar_events
         WHERE time >= ? AND time <= ?
           AND actual IS NOT NULL
           AND TRIM(actual) NOT IN ('', '-', '—')
         """,
-        (observed_at, activated_at, release_cutoff),
+        (observed_at, ea_completed_at, observed_at, activated_at, release_cutoff),
       )
       return int(cursor.rowcount)
 
@@ -688,7 +704,7 @@ class ResearchStore:
     where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
     with self._connect() as connection:
       rows = connection.execute(
-        "SELECT id, time, country_code, currency, title, impact, actual, forecast, previous, first_seen_at "
+        "SELECT id, time, country_code, currency, title, impact, actual, forecast, previous, first_seen_at, ea_completed_at, bridge_acknowledged_at "
         f"FROM release_observations{where} ORDER BY time, currency, title, id",
         params,
       ).fetchall()
@@ -704,6 +720,8 @@ class ResearchStore:
         "forecast": row["forecast"],
         "previous": row["previous"],
         "firstSeenAt": int(row["first_seen_at"]),
+        "eaCompletedAt": None if row["ea_completed_at"] is None else int(row["ea_completed_at"]),
+        "bridgeAcknowledgedAt": None if row["bridge_acknowledged_at"] is None else int(row["bridge_acknowledged_at"]),
       }
       for row in rows
     ]

@@ -279,6 +279,23 @@ def management_challengers(profiles: List[Dict[str, Any]], split_time: int, acti
   simplicity = {"fixed": 4, "break_even": 3, "trailing": 2, "partial": 1}
   best = max(winners, key=lambda row: (float(row["development"]["averageR"]), -float(row["development"]["maximumDrawdownR"]), -int(row["development"]["longestLosingStreak"]), simplicity[row["family"]], int(row["development"]["evaluableN"])), default=None)
   review_worthy = bool(best and active_later and best["later"]["averageR"] is not None and active_later["averageR"] is not None and float(best["later"]["averageR"]) > 0 and float(best["later"]["averageR"]) > float(active_later["averageR"]) and float(best["later"]["maximumDrawdownR"]) <= float(active_later["maximumDrawdownR"]) * 1.1 and int(best["later"]["longestLosingStreak"]) <= int(active_later["longestLosingStreak"]) + 2)
+  active_stop = float(active.get("stopAtr", 1))
+  active_holding = int(active.get("expiryCandles", 30))
+  target_frontier_rows = [
+    row for row in families
+    if row["family"] == "fixed"
+    and float(row["stopAtr"]) == active_stop
+    and int(row["holdingCandles"]) == active_holding
+  ]
+  target_frontier_selected = max(
+    target_frontier_rows,
+    key=lambda row: (
+      float((row.get("development") or {}).get("averageR") or -999),
+      -float((row.get("development") or {}).get("maximumDrawdownR") or math.inf),
+      -int((row.get("development") or {}).get("longestLosingStreak") or 999),
+    ),
+    default=None,
+  )
   return {
     "schema": "fms-execution-challenger-v2",
     "declaredConfigurationCount": len(declared),
@@ -288,6 +305,27 @@ def management_challengers(profiles: List[Dict[str, Any]], split_time: int, acti
     "bestChallenger": best,
     "reviewWorthy": review_worthy,
     "registryReview": review_execution_challenger(best, active_later),
+    "targetFrontier": {
+      "definition": "Independent full-position targets with the active SL and duration; no partial exits.",
+      "selection": "Older development cases select the target; later cases audit it unchanged.",
+      "activeTargetR": float(active.get("targetR", 2)),
+      "developmentSelectedTargetR": None if target_frontier_selected is None else float(target_frontier_selected["targetR"]),
+      "rows": [{
+        "targetR": float(row["targetR"]),
+        "development": {
+          key: row["development"].get(key) for key in (
+            "evaluableN", "averageR", "tpBeforeSl", "maximumDrawdownR",
+            "longestLosingStreak", "positiveYears", "evaluableYears",
+          )
+        },
+        "later": {
+          key: row["later"].get(key) for key in (
+            "evaluableN", "averageR", "tpBeforeSl", "maximumDrawdownR",
+            "longestLosingStreak", "positiveYears", "evaluableYears",
+          )
+        },
+      } for row in target_frontier_rows],
+    },
   }
 
 

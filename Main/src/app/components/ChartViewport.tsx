@@ -1,4 +1,4 @@
-import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type Ref } from "react";
+import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type Ref } from "react";
 import { AlertTriangle, CalendarDays, ChevronDown, Settings2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChartEventLens, type ChartEventLensData } from "@/app/components/ChartEventLens";
@@ -17,6 +17,14 @@ import type { BridgeStatus, CalendarEvent } from "@/app/types";
 
 const PAIR_MATRIX_PANEL_MIN_HEIGHT = 240;
 const PAIR_MATRIX_CHART_MIN_HEIGHT = 220;
+const FMS_DOCK_MIN_WIDTH = 340;
+const FMS_DOCK_DEFAULT_WIDTH = 460;
+const FMS_DOCK_WIDTH_KEY = "fyodor.charts.fms-dock-width";
+
+export function clampFmsDockWidth(requestedWidth: number, workspaceWidth: number): number {
+  const maximum = Math.max(FMS_DOCK_MIN_WIDTH, Math.min(720, workspaceWidth * .62));
+  return Math.round(Math.min(maximum, Math.max(FMS_DOCK_MIN_WIDTH, requestedWidth)));
+}
 
 export function clampPairMatrixPanelHeight(requestedHeight: number, workspaceHeight: number): number {
   return Math.round(Math.min(
@@ -169,10 +177,88 @@ export function ChartViewport({
   overlayCopy,
   reachedBoundary,
 }: ChartViewportProps) {
+  const [fmsDockTab, setFmsDockTab] = useState<"shadow" | "result">(macroBiasAudit ? "result" : "shadow");
+  const [fmsDockWidth, setFmsDockWidth] = useState(() => {
+    try {
+      const saved = Number(window.localStorage.getItem(FMS_DOCK_WIDTH_KEY));
+      return Number.isFinite(saved) ? Math.max(FMS_DOCK_MIN_WIDTH, saved) : FMS_DOCK_DEFAULT_WIDTH;
+    } catch {
+      return FMS_DOCK_DEFAULT_WIDTH;
+    }
+  });
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const fmsDockVisible = macroBiasRealtime != null || macroBiasAudit != null;
+
+  useEffect(() => {
+    if (macroBiasAudit) setFmsDockTab("result");
+    else if (macroBiasRealtime) setFmsDockTab("shadow");
+  }, [macroBiasAudit?.signal.id, Boolean(macroBiasRealtime)]);
+
+  const startFmsDockResize = (event: ReactPointerEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const pointerId = event.pointerId;
+    const handle = event.currentTarget;
+    handle.setPointerCapture(pointerId);
+    const bounds = viewportRef.current?.getBoundingClientRect();
+    if (!bounds) return;
+    const update = (clientX: number) => setFmsDockWidth(clampFmsDockWidth(clientX - bounds.left, bounds.width));
+    const onMove = (moveEvent: PointerEvent) => update(moveEvent.clientX);
+    const finish = (finishEvent: PointerEvent) => {
+      update(finishEvent.clientX);
+      try {
+        if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
+      } catch {
+        // The browser may already have released capture during cancellation.
+      }
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", finish);
+      try { window.localStorage.setItem(FMS_DOCK_WIDTH_KEY, String(clampFmsDockWidth(finishEvent.clientX - bounds.left, bounds.width))); } catch { /* optional preference */ }
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", finish);
+  };
+
+  const resizeFmsDockFromKeyboard = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== "Home") return;
+    event.preventDefault();
+    const workspaceWidth = viewportRef.current?.getBoundingClientRect().width ?? window.innerWidth;
+    const requested = event.key === "Home"
+      ? FMS_DOCK_DEFAULT_WIDTH
+      : fmsDockWidth + (event.key === "ArrowLeft" ? -24 : 24);
+    const nextWidth = clampFmsDockWidth(requested, workspaceWidth);
+    setFmsDockWidth(nextWidth);
+    try { window.localStorage.setItem(FMS_DOCK_WIDTH_KEY, String(nextWidth)); } catch { /* optional preference */ }
+  };
+
   return (
     <>
-      <div className="chart-viewport-shell relative group min-h-0 flex-1 overflow-hidden">
-        <div className="chart-viewport-surface h-full overflow-hidden">
+      <div ref={viewportRef} className="chart-viewport-shell relative group min-h-0 flex-1 overflow-hidden">
+        <div className={`chart-viewport-surface h-full overflow-hidden ${fmsDockVisible ? "has-fms-dock" : ""}`}>
+          {fmsDockVisible ? (
+            <aside className="chart-fms-dock" style={{ width: fmsDockWidth }} aria-label="FMS chart workspace">
+              <nav className="chart-fms-dock-tabs" aria-label="FMS windows">
+                <button type="button" className={fmsDockTab === "shadow" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => setFmsDockTab("shadow")}>FMS Shadow Trader</button>
+                <button type="button" className={fmsDockTab === "result" ? "is-active" : ""} disabled={!macroBiasAudit} onClick={() => setFmsDockTab("result")}>Past FMS Result</button>
+              </nav>
+              <div className="chart-fms-dock-content">
+                {fmsDockTab === "result" && macroBiasAudit ? <ChartMacroBiasAudit data={macroBiasAudit} /> : macroBiasRealtime ? <ChartMacroBiasRealtimeCard data={macroBiasRealtime} /> : null}
+              </div>
+              <div
+                className="chart-fms-dock-resize"
+                role="separator"
+                tabIndex={0}
+                aria-label="Resize FMS panel"
+                aria-orientation="vertical"
+                aria-valuemin={FMS_DOCK_MIN_WIDTH}
+                aria-valuemax={720}
+                aria-valuenow={fmsDockWidth}
+                onPointerDown={startFmsDockResize}
+                onKeyDown={resizeFmsDockFromKeyboard}
+              ><span /></div>
+            </aside>
+          ) : null}
           <div className={`chart-canvas-frame ${pairMatrixTimeLens.open ? "has-pair-matrix-bottom" : ""}`}>
             <div className="chart-plot-region">
               <div ref={containerRef} className="h-full w-full" />
@@ -190,8 +276,6 @@ export function ChartViewport({
                 /> : null}
                 <ChartPairMatrixRangeOverlay data={pairMatrixRangeOverlay} />
                 {pairMatrixTimeLens.open ? <ChartPairMatrixContextMarkers {...pairMatrixContextMarkers} /> : null}
-                {macroBiasRealtime ? <ChartMacroBiasRealtimeCard data={macroBiasRealtime} /> : null}
-                {macroBiasAudit ? <ChartMacroBiasAudit data={macroBiasAudit} /> : null}
             </div>
             <div className={`chart-event-lens-slot ${eventOverlay.isInteracting ? "is-interacting" : ""}`}>
               {eventLens?.expanded ? <ChartEventLens data={eventLens} /> : null}

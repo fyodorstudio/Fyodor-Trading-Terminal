@@ -53,7 +53,7 @@ export default function App() {
             onOpenSettings={() => setSettingsOpen(true)}
           />
 
-          <main className="main-area mt-4">
+          <main className={`main-area ${activeTab === "charts" ? "main-area-charts" : "mt-4"}`}>
             <AppRoutes
               activeTab={activeTab}
               currentTime={currentTime}

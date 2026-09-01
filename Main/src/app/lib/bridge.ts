@@ -8,6 +8,7 @@ import type {
   MacroSignalCoverage,
   MacroSignalExpansionReport,
   MacroSignalChartMode,
+  MacroSignalChartSignal,
   MacroSignalChartSignalResponse,
   MacroSignalGlobalResponse,
   MacroSignalForwardPaper,
@@ -362,14 +363,31 @@ export async function fetchMacroSignalChartSignals(params: {
   from?: number;
   to?: number;
   refresh?: boolean;
+  compact?: boolean;
 }): Promise<MacroSignalChartSignalResponse> {
   const search = new URLSearchParams({ symbol: params.symbol, tf: params.timeframe, mode: params.mode });
   if (params.from != null) search.set("from_", String(params.from));
   if (params.to != null) search.set("to", String(params.to));
   if (params.refresh) search.set("refresh", "true");
+  if (params.compact) search.set("compact", "true");
   return fetchJson<MacroSignalChartSignalResponse>(
     `${BRIDGE_BASE}/research/chart-signals?${search.toString()}`,
   );
+}
+
+export async function fetchMacroSignalTargetLadder(params: {
+  symbol: string;
+  patternId: string;
+  eventTime: number;
+  mode: MacroSignalChartMode;
+}): Promise<{ signal: MacroSignalChartSignal }> {
+  const search = new URLSearchParams({
+    symbol: params.symbol,
+    patternId: params.patternId,
+    eventTime: String(params.eventTime),
+    mode: params.mode,
+  });
+  return fetchJson(`${BRIDGE_BASE}/research/chart-signal-target-ladder?${search.toString()}`);
 }
 
 export async function fetchMacroSignalGlobalRegistry(options: { refresh?: boolean } = {}): Promise<MacroSignalGlobalResponse> {
