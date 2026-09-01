@@ -1295,10 +1295,10 @@ export interface MacroSignalGlobalResponse {
     ambiguousOrUnavailableCases: number;
     representedSetups: number;
     paperReadySetups: number;
-    degradedSetups: number;
-    collectingSetups: number;
-    manualLimitedLiveReviewCandidates: number;
-    setupForwardGate: {
+    degradedSetups?: number;
+    collectingSetups?: number;
+    manualLimitedLiveReviewCandidates?: number;
+    setupForwardGate?: {
       id: string;
       minimumResolvedCases: number;
       minimumElapsedDays: number;
@@ -1310,17 +1310,17 @@ export interface MacroSignalGlobalResponse {
       resolvedCases: number;
       averageR: number | null;
       nearEntryQuoteCoverage: number | null;
-      firstObservedAt: number | null;
-      lastObservedAt: number | null;
-      elapsedDays: number;
-      status: "collecting" | "supportive" | "coverage_incomplete" | "degraded";
-      statusReason: string;
+      firstObservedAt?: number | null;
+      lastObservedAt?: number | null;
+      elapsedDays?: number;
+      status?: "collecting" | "supportive" | "coverage_incomplete" | "degraded";
+      statusReason?: string;
       eligibleForPaperReliance: boolean;
-      demoCompletedTrades: number;
-      demoAverageNetR: number | null;
-      demoContractAdherent: boolean;
-      eligibleForManualLimitedLiveReview: boolean;
-      manualLimitedLiveReviewBlockers: string[];
+      demoCompletedTrades?: number;
+      demoAverageNetR?: number | null;
+      demoContractAdherent?: boolean;
+      eligibleForManualLimitedLiveReview?: boolean;
+      manualLimitedLiveReviewBlockers?: string[];
     }>;
     averageR: number | null;
     nearEntryQuoteCount: number;
@@ -1350,7 +1350,7 @@ export interface MacroSignalGlobalResponse {
       totalNetAccountResult: number;
       averageGrossFillR: number | null;
       averageNetR: number | null;
-      executionComparison: {
+      executionComparison?: {
         completedComparableTrades: number;
         entryComparableTrades: number;
         averageEntryDelaySeconds: number | null;
@@ -1383,7 +1383,7 @@ export interface MacroSignalGlobalResponse {
         killSwitchTriggered: boolean;
         operationalTradingAllowed: boolean;
       };
-      trades: Array<{
+      trades?: Array<{
         signalTag: string;
         accountLogin: number;
         market: string;
@@ -1438,7 +1438,7 @@ export interface MacroSignalGlobalResponse {
       blockingReasons: string[];
       orderTransmission: false;
     } | null;
-    manualLimitedLiveReview: {
+    manualLimitedLiveReview?: {
       schema: "fms-manual-limited-live-review-v1";
       eligibleSetups: number;
       globalDemoRiskPolicyObserved: boolean;

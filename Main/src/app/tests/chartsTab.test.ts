@@ -360,6 +360,20 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("2/10 cases");
     expect(html).toContain("Manual limited-live review");
     expect(html).toContain("No exact setup has yet satisfied");
+    const { manualLimitedLiveReview: _manualReview, degradedSetups: _degraded, collectingSetups: _collecting, manualLimitedLiveReviewCandidates: _candidates, setupForwardGate: _setupGate, ...legacyForwardValidation } = globalResponse.forwardValidation!;
+    const legacyHtml = renderToStaticMarkup(createElement(ChartMacroBiasRealtimeCard, { data: {
+      response, activeSignal: null, activePattern: null, remainingModelCandles: null, chartTimeframe: "H1", historicalSignals: [],
+      globalResponse: { ...globalResponse, forwardValidation: legacyForwardValidation }, globalLoading: false, globalError: null,
+    } }));
+    expect(legacyHtml).toContain("Readiness details will appear after the bridge reloads");
+    expect(legacyHtml).toContain("Needs review</span><strong>0</strong>");
+    const { executionComparison: _executionComparison, trades: _demoTrades, ...legacyDemoExecution } = globalResponse.forwardValidation!.demoExecution!;
+    const legacyDemoHtml = renderToStaticMarkup(createElement(ChartMacroBiasRealtimeCard, { data: {
+      response, activeSignal: null, activePattern: null, remainingModelCandles: null, chartTimeframe: "H1", historicalSignals: [],
+      globalResponse: { ...globalResponse, forwardValidation: { ...globalResponse.forwardValidation!, demoExecution: legacyDemoExecution } }, globalLoading: false, globalError: null,
+    } }));
+    expect(legacyDemoHtml).toContain("Detailed execution comparison will appear after the bridge is restarted");
+    expect(legacyDemoHtml).toContain("Observed MT5 demo execution");
     const activeHtml = renderToStaticMarkup(createElement(ChartMacroBiasRealtimeCard, { data: {
       response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
     } }));

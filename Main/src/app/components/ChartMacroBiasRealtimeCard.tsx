@@ -229,21 +229,22 @@ function formatExecutionDelay(seconds: number | null): string {
 
 function DemoExecutionAudit({ execution, patterns, captureStatusText }: { execution: DemoExecution; patterns: MacroSignalChartPattern[]; captureStatusText: string }) {
   const comparison = execution.executionComparison;
+  const trades = execution.trades ?? [];
   return (
     <div className="chart-shadow-demo-validation">
       <strong>Observed MT5 demo execution</strong><span>{captureStatusText}</span>
       <p>{execution.completedTrades} completed Â· {execution.openOrPartialTrades} open/partial Â· gross fill result {formatSignedR(execution.averageGrossFillR)} Â· after recorded costs {formatSignedR(execution.averageNetR)}.</p>
-      <div className="chart-shadow-demo-comparison" aria-label="Planned versus actual demo execution">
+      {comparison ? <div className="chart-shadow-demo-comparison" aria-label="Planned versus actual demo execution">
         <div><span>Comparable entries</span><strong>{comparison.entryComparableTrades}</strong></div>
         <div><span>Average entry delay</span><strong>{formatExecutionDelay(comparison.averageEntryDelaySeconds)}</strong></div>
         <div><span>Entry difference</span><strong>{formatSignedR(comparison.averageAdverseEntryDifferenceR)}</strong><small>Positive is worse for the planned direction</small></div>
         <div><span>Actual versus candle result</span><strong>{formatSignedR(comparison.averageGrossResultDifferenceR)}</strong></div>
         <div><span>Recorded costs</span><strong>{formatSignedR(comparison.averageExecutionCostsR)}</strong><small>Commission, swap, and fee</small></div>
         <div><span>Contract matched</span><strong>{comparison.contractAdherentTrades}/{execution.matchedTrades}</strong></div>
-      </div>
+      </div> : <p className="chart-shadow-demo-compatibility-note">Detailed execution comparison will appear after the bridge is restarted with the current build.</p>}
       <p>{execution.instructions}</p>
-      {execution.trades.length ? <table className="chart-shadow-demo-trades" aria-label="Matched MT5 demo trades"><thead><tr><th>Trade</th><th>Entry difference</th><th>Gross / net</th><th>Contract</th></tr></thead><tbody>{execution.trades.slice(0, 5).map((trade) => { const demoPattern = patterns.find((row) => row.id === trade.patternId && (row.market ?? trade.market) === trade.market); return <tr key={`${trade.accountLogin}:${trade.signalTag}:${trade.positionId}`}><td><b><PairFlags symbol={trade.market} />{demoPattern?.label ?? trade.patternId}</b><small>{trade.entryTime == null ? trade.signalTag : formatUtc(trade.entryTime)}</small></td><td>{formatSignedR(trade.entryDifferenceR)}<small>{formatExecutionDelay(trade.entryDelaySeconds)} after planned entry</small></td><td>{formatSignedR(trade.grossFillR)} / {formatSignedR(trade.netR)}</td><td className={trade.contractAdherent ? "is-valid" : "is-invalid"}>{trade.contractAdherent ? "Matched" : "Deviation"}</td></tr>; })}</tbody></table> : null}
-      <small>{comparison.note} Demo audit only; Fyodor sends no order.</small>
+      {trades.length ? <table className="chart-shadow-demo-trades" aria-label="Matched MT5 demo trades"><thead><tr><th>Trade</th><th>Entry difference</th><th>Gross / net</th><th>Contract</th></tr></thead><tbody>{trades.slice(0, 5).map((trade) => { const demoPattern = patterns.find((row) => row.id === trade.patternId && (row.market ?? trade.market) === trade.market); return <tr key={`${trade.accountLogin}:${trade.signalTag}:${trade.positionId}`}><td><b><PairFlags symbol={trade.market} />{demoPattern?.label ?? trade.patternId}</b><small>{trade.entryTime == null ? trade.signalTag : formatUtc(trade.entryTime)}</small></td><td>{formatSignedR(trade.entryDifferenceR)}<small>{formatExecutionDelay(trade.entryDelaySeconds)} after planned entry</small></td><td>{formatSignedR(trade.grossFillR)} / {formatSignedR(trade.netR)}</td><td className={trade.contractAdherent ? "is-valid" : "is-invalid"}>{trade.contractAdherent ? "Matched" : "Deviation"}</td></tr>; })}</tbody></table> : null}
+      <small>{comparison?.note ? `${comparison.note} ` : ""}Demo audit only; Fyodor sends no order.</small>
     </div>
   );
 }
@@ -462,12 +463,12 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
   const forwardSetupLabel = (market: string, patternId: string) => {
     const summary = forwardSetupByKey.get(`${market}:${patternId}`);
     if (!summary) return null;
-    const title = summary.manualLimitedLiveReviewBlockers.join(" ");
-    if (summary.eligibleForManualLimitedLiveReview) return { className: "is-supportive", text: `Eligible for manual limited-live review · ${summary.demoCompletedTrades} demo trades`, title };
-    if (summary.status === "supportive") return { className: "is-supportive", text: `Forward supportive · demo execution ${summary.demoCompletedTrades}/5`, title };
+    const title = (summary.manualLimitedLiveReviewBlockers ?? []).join(" ");
+    if (summary.eligibleForManualLimitedLiveReview) return { className: "is-supportive", text: `Eligible for manual limited-live review · ${summary.demoCompletedTrades ?? 0} demo trades`, title };
+    if (summary.status === "supportive" || summary.eligibleForPaperReliance) return { className: "is-supportive", text: `Forward supportive · demo execution ${summary.demoCompletedTrades ?? 0}/5`, title };
     if (summary.status === "degraded") return { className: "is-degraded", text: `Needs review · forward average ${formatSignedR(summary.averageR)}`, title };
     if (summary.status === "coverage_incomplete") return { className: "is-incomplete", text: `Forward quote coverage incomplete · ${Math.round((summary.nearEntryQuoteCoverage ?? 0) * 100)}%`, title };
-    return { className: "is-collecting", text: `Forward evidence collecting · ${summary.resolvedCases}/10 cases · ${summary.elapsedDays}/90 days`, title };
+    return { className: "is-collecting", text: `Forward evidence collecting · ${summary.resolvedCases}/10 cases · ${summary.elapsedDays ?? 0}/90 days`, title };
   };
   const assessmentsByPattern = useMemo(
     () => new Map(registryResponses.flatMap((market) => (market.realtime?.latestPatternAssessments ?? (market.realtime?.latestPatternAssessment ? [market.realtime.latestPatternAssessment] : [])).map((assessment) => [`${market.symbol}:${assessment.patternId}`, assessment]))),
@@ -668,10 +669,10 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
               <div><span>Resolved demo-paper cases</span><strong>{validation.resolvedCases}</strong></div>
               <div><span>Forward average</span><strong>{formatSignedR(validation.averageR)}</strong></div>
               <div><span>Supportive setups</span><strong>{validation.paperReadySetups}</strong></div>
-              <div><span>Needs review</span><strong>{validation.degradedSetups}</strong></div>
+              <div><span>Needs review</span><strong>{validation.degradedSetups ?? 0}</strong></div>
             </div>
             <p>{validation.decision}</p>
-            <div className="chart-shadow-limited-live-review"><strong>Manual limited-live review</strong><span>{validation.manualLimitedLiveReview.decision}</span></div>
+            <div className="chart-shadow-limited-live-review"><strong>Manual limited-live review</strong><span>{validation.manualLimitedLiveReview?.decision ?? "Readiness details will appear after the bridge reloads the current FMS schema."}</span></div>
             {validation.operationalPreflight && !operationalReady ? <div className="chart-shadow-preflight-block"><strong>Do not act on a new signal yet</strong>{validation.operationalPreflight.blockingReasons.map((reason) => <span key={reason}>{reason}</span>)}</div> : null}
             <details><summary>Evidence audit <ChevronDown size={13} /></summary><ul>{validation.limitations.map((limitation) => <li key={limitation}>{limitation}</li>)}</ul>{validation.demoExecution ? <DemoExecutionAudit execution={validation.demoExecution} patterns={registeredPatternRows} captureStatusText={captureStatusText} /> : null}</details>
           </section>

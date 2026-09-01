@@ -263,6 +263,17 @@ Test one additional entry-known condition at a time. Do not mine unrestricted co
 
 ### Phase 8 — Paper and Limited-Live Validation
 
+#### Deferred historical-repeatability real-money workflow
+
+The user explicitly accepts the product claim: `This fixed setup showed positive gross historical repeatability and may repeat again.` This workflow must not be blocked on future evidence and must keep spread, commission, slippage, and swap excluded rather than estimated. It is not a claim of safety or guaranteed performance.
+
+- [ ] Rebuild all registered setups as one chronological gross portfolio with overlaps, conflicts, drawdown, losing streaks, and account replay.
+- [ ] Add configurable per-trade risk, total open risk, correlated-currency exposure, drawdown pause, and consecutive-loss pause.
+- [ ] Produce one immediate `Trade / No trade` card containing pair, direction, evidence, entry, SL, TP, position size, expiry, historical record, and every skip reason.
+- [ ] Fail closed on stale/incomplete calendar packages, missing ATR/price data, late entry, conflicting signals, or breached portfolio limits.
+- [ ] Freeze one reproducible historical-repeatability release containing registry, formulas, contracts, dataset fingerprint, portfolio settings, and gross results. Later changes create a new version.
+- [ ] Add an immutable manual-trade journal recording FMS instruction, actual user execution, deviations, and result without enabling MT5 order transmission.
+
 - [x] After every successful complete EA cycle, automatically reconcile every registered market from immutable first-seen observations and append every qualified/no-trade decision to the durable ledger; no Charts visit or manual cherry-pick is required.
 - [x] Add an append-only forward execution lifecycle for the practical registry. Pending trades advance automatically from fresh MT5 H4/M1 candles after successful EA cycles, terminal outcomes cannot rewrite the first-seen decision, and the first available post-entry bid/ask is retained with capture lag and `near entry` versus `late snapshot` quality.
 - [x] Add a compact Shadow Trader demo-readiness surface showing prospective decisions, tracked/resolved cases, and forward average without making future-sample breadth, fills, costs, or strict account-risk checks block demo-only monitoring.
