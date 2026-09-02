@@ -68,8 +68,8 @@ export function normalizeCalendarEvent(raw: unknown): CalendarEvent | null {
   };
 }
 
-async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
+async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, init);
   if (!response.ok) {
     let detail = "";
     try {
@@ -91,11 +91,11 @@ async function fetchJson<T>(url: string): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function fetchHistory(symbol: string, tf: string, bars = 200): Promise<BridgeCandle[]> {
+export async function fetchHistory(symbol: string, tf: string, bars = 200, signal?: AbortSignal): Promise<BridgeCandle[]> {
   const url =
     `${BRIDGE_BASE}/history?symbol=${encodeURIComponent(symbol)}` +
     `&tf=${encodeURIComponent(tf)}&bars=${encodeURIComponent(String(bars))}`;
-  const payload = await fetchJson<unknown[]>(url);
+  const payload = await fetchJson<unknown[]>(url, { signal });
   return payload
     .map((item) => {
       if (!item || typeof item !== "object") return null;

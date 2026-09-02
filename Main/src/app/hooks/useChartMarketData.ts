@@ -39,6 +39,20 @@ interface UseChartMarketDataResult {
   clearCurrentCache: () => void;
 }
 
+const INITIAL_CHART_CANDLES = 1500;
+const MIN_REFRESH_CANDLES = 12;
+const CHART_CACHE_WRITE_DELAY_MS = 1500;
+const TIMEFRAME_SECONDS: Record<Timeframe, number> = {
+  M1: 60, M5: 300, M15: 900, M30: 1800,
+  H1: 3600, H4: 14_400, D1: 86_400, W1: 604_800, MN1: 2_592_000,
+};
+
+export function getChartRefreshBars(cachedLatest: number | null, timeframe: Timeframe, nowSeconds: number) {
+  if (cachedLatest == null) return INITIAL_CHART_CANDLES;
+  const missingBars = Math.ceil(Math.max(0, nowSeconds - cachedLatest) / TIMEFRAME_SECONDS[timeframe]) + 4;
+  return Math.min(INITIAL_CHART_CANDLES, Math.max(MIN_REFRESH_CANDLES, missingBars));
+}
+
 export function useChartMarketData({
   selectedSymbol,
   onSelectedSymbolChange,
@@ -60,6 +74,24 @@ export function useChartMarketData({
   const loadRequestIdRef = useRef(0);
   const boundaryCacheRef = useRef(new Map<string, number | null>());
   const initialSymbolRef = useRef(selectedSymbol);
+  const pendingCacheWriteRef = useRef<{ symbol: string; timeframe: Timeframe; candles: BridgeCandle[] } | null>(null);
+  const cacheWriteTimerRef = useRef<number | null>(null);
+
+  const flushPendingCacheWrite = useCallback(() => {
+    if (cacheWriteTimerRef.current != null) window.clearTimeout(cacheWriteTimerRef.current);
+    cacheWriteTimerRef.current = null;
+    const pending = pendingCacheWriteRef.current;
+    pendingCacheWriteRef.current = null;
+    if (pending) saveChartHistoryCache(pending.symbol, pending.timeframe, pending.candles);
+  }, []);
+
+  const scheduleCacheWrite = useCallback((symbol: string, tf: Timeframe, candles: BridgeCandle[]) => {
+    pendingCacheWriteRef.current = { symbol, timeframe: tf, candles };
+    if (cacheWriteTimerRef.current != null) return;
+    cacheWriteTimerRef.current = window.setTimeout(flushPendingCacheWrite, CHART_CACHE_WRITE_DELAY_MS);
+  }, [flushPendingCacheWrite]);
+
+  useEffect(() => flushPendingCacheWrite, [flushPendingCacheWrite]);
 
   const clearCurrentCache = useCallback(() => {
     clearChartHistoryCache(selectedSymbol, timeframe);
@@ -85,6 +117,7 @@ export function useChartMarketData({
 
   useEffect(() => {
     let cancelled = false;
+    const controller = new AbortController();
     const requestId = loadRequestIdRef.current + 1;
     loadRequestIdRef.current = requestId;
     const cached = readChartHistoryCache(selectedSymbol, timeframe);
@@ -103,8 +136,11 @@ export function useChartMarketData({
         const cachedBoundary = boundaryCacheRef.current.get(boundaryCacheKey);
         if (cachedBoundary !== undefined) setBoundaryTime(cachedBoundary);
 
-        const candles = await fetchHistory(selectedSymbol, timeframe, 5000);
+        const cachedLatest = cached[cached.length - 1]?.time;
+        const refreshBars = getChartRefreshBars(cachedLatest ?? null, timeframe, Date.now() / 1000);
+        const refreshed = await fetchHistory(selectedSymbol, timeframe, refreshBars, controller.signal);
         if (cancelled || loadRequestIdRef.current !== requestId) return;
+        const candles = cached.length > 0 ? mergeChartCandles(cached, refreshed) : refreshed;
         if (candles.length === 0) {
           if (cached.length > 0) {
             addLog(`history refresh returned no candles for ${selectedSymbol} ${timeframe}; keeping cached history visible`);
@@ -136,6 +172,7 @@ export function useChartMarketData({
         }
       } catch (error) {
         if (cancelled || loadRequestIdRef.current !== requestId) return;
+        if (error instanceof DOMException && error.name === "AbortError") return;
         const message = error instanceof Error ? error.message : String(error);
         if (cached.length > 0) {
           setHistoryState("ready");
@@ -165,9 +202,11 @@ export function useChartMarketData({
     void load();
     return () => {
       cancelled = true;
+      controller.abort();
       loadingOlderRef.current = false;
+      flushPendingCacheWrite();
     };
-  }, [selectedSymbol, timeframe, addLog, activeMarketStatus?.asset_class]);
+  }, [selectedSymbol, timeframe, addLog, flushPendingCacheWrite]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -201,7 +240,7 @@ export function useChartMarketData({
             currentCandles = merged;
             currentOldest = merged[0]?.time ?? currentOldest;
             setVisibleCandles(merged);
-            saveChartHistoryCache(selectedSymbol, timeframe, merged);
+            scheduleCacheWrite(selectedSymbol, timeframe, merged);
           } else {
             break;
           }
@@ -220,7 +259,7 @@ export function useChartMarketData({
 
     chart.timeScale().subscribeVisibleLogicalRangeChange(onRangeChange);
     return () => chart.timeScale().unsubscribeVisibleLogicalRangeChange(onRangeChange);
-  }, [chartRef, selectedSymbol, timeframe, historyState, visibleCandles, addLog]);
+  }, [chartRef, selectedSymbol, timeframe, historyState, visibleCandles, addLog, scheduleCacheWrite]);
 
   const marketClassLabel =
     activeMarketStatus?.asset_class === "crypto"
@@ -278,7 +317,7 @@ export function useChartMarketData({
           } satisfies BridgeCandle;
           setVisibleCandles((current) => {
             const next = mergeChartCandles(current, [nextCandle]);
-            saveChartHistoryCache(selectedSymbol, timeframe, next);
+            scheduleCacheWrite(selectedSymbol, timeframe, next);
             return next;
           });
           setLastCandleTime(nextCandle.time);
@@ -304,6 +343,7 @@ export function useChartMarketData({
     activeMarketStatus?.asset_class,
     marketOpenLogLine,
     addLog,
+    scheduleCacheWrite,
   ]);
 
   const cacheSummary = useMemo(

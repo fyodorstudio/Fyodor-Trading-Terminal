@@ -3129,15 +3129,12 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
   }
   static_revision = hashlib.sha256("|".join([
     normalized_market,
-    str(_research_store.get_metadata("fms_reaction_atlas:revision") or "unversioned"),
     *(str((header or {}).get("id") or "missing") for header in source_headers),
-    str(h4_coverage.get("count") or 0), str(h4_coverage.get("latest") or 0),
   ]).encode("utf-8")).hexdigest()
   static_key = f"fms_workbench_static_v1:{static_revision}"
   static_cached = _research_store.get_metadata(static_key)
   if not static_cached and not missing_source_versions and h4_coverage.get("count"):
     expected_runs = [str((header or {}).get("id") or "") for header in source_headers]
-    expected_period = {"start": h4_coverage.get("earliest"), "end": h4_coverage.get("latest")}
     for prior_value in reversed(_research_store.metadata_values("fms_workbench_static_v1:")):
       try:
         prior_payload = json.loads(prior_value)
@@ -3147,7 +3144,6 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
         isinstance(prior_payload, dict)
         and prior_payload.get("market") == normalized_market
         and list(prior_payload.get("sourceRunIds") or []) == expected_runs
-        and (prior_payload.get("dataPeriods") or {}).get("h4Prices") == expected_period
       ):
         static_cached = prior_value
         _research_store.set_metadata(static_key, prior_value)
@@ -3160,6 +3156,7 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
           **static_payload,
           "currentModel": current_model_summary,
           "contextFollowup": followup_summary,
+          "reactionAtlas": _workbench_reaction_atlas(normalized_market),
           "experiments": _research_store.list_fms_experiment_headers(normalized_market, 500),
           "candidates": [row for row in _research_store.list_fms_candidates() if str((row.get("configuration") or {}).get("market", "EURUSD")) == normalized_market],
           "archive": _research_store.list_signal_version_archive(),

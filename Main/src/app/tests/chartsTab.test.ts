@@ -14,6 +14,7 @@ import { buildMacroBiasPriceLineLevels, buildMacroBiasSeriesMarkers, captureChar
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalContextResearch, MacroSignalGlobalResponse, MacroSignalMetrics } from "@/app/types";
 import { DEFAULT_CHART_TIMEFRAME, getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
+import { getChartRefreshBars } from "@/app/hooks/useChartMarketData";
 
 describe("getChartConnectionLabel", () => {
   it("keeps live FMS discovery enabled for every registered market without redundant rerenders", () => {
@@ -25,6 +26,11 @@ describe("getChartConnectionLabel", () => {
   });
   it("opens Charts on the H4 timeframe by default", () => {
     expect(DEFAULT_CHART_TIMEFRAME).toBe("H4");
+  });
+  it("loads a bounded cold chart and refreshes only the missing tail from cache", () => {
+    expect(getChartRefreshBars(null, "H4", 1_000_000)).toBe(1500);
+    expect(getChartRefreshBars(999_000, "H4", 1_000_000)).toBe(12);
+    expect(getChartRefreshBars(0, "M1", 1_000_000)).toBe(1500);
   });
   it("updates Pair Matrix hover once per snapped candle and never while disabled", () => {
     expect(resolvePairMatrixHoveredCandleUpdate(null, 100, false)).toEqual({ shouldUpdate: false, value: 100 });
