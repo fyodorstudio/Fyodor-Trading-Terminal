@@ -11,6 +11,158 @@ export interface MacroSignalDistribution {
   maximum: number | null;
 }
 
+export interface MacroSignalMarketContext {
+  schema: "fms-market-context-v1";
+  knownAt: number;
+  eventTime: number;
+  price: {
+    regime: "uptrend" | "downtrend" | "range" | "transition" | "insufficient_history";
+    relationToSignal: "aligned" | "opposed" | "neutral";
+    shortChangeAtr: number | null;
+    mediumChangeAtr: number | null;
+    method: string;
+  };
+  volatility: {
+    regime: "compressed" | "normal" | "expanded" | "extreme" | "insufficient_history";
+    percentile: number | null;
+    priorCount: number;
+    method: string;
+  };
+  supportResistance: {
+    method: string;
+    lookbackCandles: number;
+    confirmedZoneCount: number;
+    support: null | MacroSignalPriceZone;
+    resistance: null | MacroSignalPriceZone;
+    directionalBarrier: null | MacroSignalPriceZone;
+    directionalRoomAtr: number | null;
+    roomState: "open" | "limited" | "blocked";
+  };
+  macroBackground: {
+    direction: "long" | "short" | "none" | "unknown";
+    pairVote: number | null;
+    relationToSignal: "aligned" | "conflicted" | "neutral" | "unknown";
+    method: string;
+  };
+  releaseEnvironment: {
+    session: "asia" | "europe" | "us";
+    packageSize: number;
+    highestImpact?: "low" | "medium" | "high" | null;
+  };
+  limitations: string[];
+}
+
+export interface MacroSignalPriceZone {
+  kind?: "support" | "resistance";
+  level: number;
+  touches: number;
+  distanceAtr: number;
+  touchTimes?: number[];
+  lastTouchedAt?: number | null;
+  medianRejectionAtr?: number | null;
+  strength?: "confirmed" | "strong";
+}
+
+export interface MacroSignalContextResearch {
+  schema: "fms-context-challenger-v1";
+  researchExperimentId?: string;
+  recipe: string;
+  registryRevision: string;
+  configurationHash: string;
+  candleFingerprint: string;
+  datasetFingerprint: string;
+  activeArrowPreserved: true;
+  dimensions: Array<{
+    dimension: "priceRegime" | "trendRelation" | "volatilityRegime" | "directionalRoom" | "macroBackground" | "releaseSession";
+    value: string;
+    historicalN: number;
+    developmentReaction: { evaluableN: number; alignmentRate: number | null; medianAtr: number | null; averageAtr: number | null; ci95: { lower: number | null; upper: number | null } };
+    laterReaction: { evaluableN: number; alignmentRate: number | null; medianAtr: number | null; averageAtr: number | null; ci95: { lower: number | null; upper: number | null } };
+    developmentExecution: Record<string, number | null>;
+    laterExecution: Record<string, number | null>;
+    outsideDevelopmentReaction: { evaluableN: number; alignmentRate: number | null; medianAtr: number | null; averageAtr: number | null; ci95: { lower: number | null; upper: number | null } };
+    outsideLaterReaction: { evaluableN: number; alignmentRate: number | null; medianAtr: number | null; averageAtr: number | null; ci95: { lower: number | null; upper: number | null } };
+    outsideDevelopmentExecution: Record<string, number | null>;
+    outsideLaterExecution: Record<string, number | null>;
+    developmentExecutionUpliftR: number;
+    laterExecutionUpliftR: number;
+    developmentAlignmentUplift: number;
+    laterAlignmentUplift: number;
+    status: "insufficient" | "promising_context" | "no_stable_improvement";
+  }>;
+  selection: string;
+  selectedCandidate: null | {
+    dimension: "priceRegime" | "trendRelation" | "volatilityRegime" | "directionalRoom" | "macroBackground" | "releaseSession";
+    value: string;
+    status: "later_supported" | "later_rejected";
+    selectionBasis: string;
+    developmentReaction: { evaluableN: number; alignmentRate: number | null; medianAtr: number | null; averageAtr: number | null; ci95: { lower: number | null; upper: number | null } };
+    laterReaction: { evaluableN: number; alignmentRate: number | null; medianAtr: number | null; averageAtr: number | null; ci95: { lower: number | null; upper: number | null } };
+    developmentExecution: Record<string, number | null>;
+    laterExecution: Record<string, number | null>;
+    outsideLaterReaction: { evaluableN: number; alignmentRate: number | null; medianAtr: number | null; averageAtr: number | null; ci95: { lower: number | null; upper: number | null } };
+    outsideLaterExecution: Record<string, number | null>;
+    developmentExecutionUpliftR: number;
+    laterExecutionUpliftR: number;
+    developmentAlignmentUplift: number;
+    laterAlignmentUplift: number;
+    activeArrowChanged: false;
+  };
+  minimumSamples: { development: number; later: number };
+  baseline: {
+    developmentReaction: { evaluableN: number; alignmentRate: number | null; medianAtr: number | null; averageAtr: number | null; ci95: { lower: number | null; upper: number | null } };
+    laterReaction: { evaluableN: number; alignmentRate: number | null; medianAtr: number | null; averageAtr: number | null; ci95: { lower: number | null; upper: number | null } };
+    developmentExecution: Record<string, number | null>;
+    laterExecution: Record<string, number | null>;
+  };
+  activeContract: { managementFamily: string; stopAtr: number; targetR: number; holdingCandles: number; managementTriggerR: number | null };
+  conditionedExecution?: {
+    schema: "fms-context-conditioned-execution-v1";
+    status: "not_run" | "research_only" | "approved_for_code_review";
+    reason?: string;
+    parentBehaviorWhenContextDoesNotMatch?: "retain_parent";
+    condition?: { dimension: string; value: string; knownAt: "entry" };
+    selectedExecutionSource?: "parent_contract" | "context_challenger";
+    selectedExecution?: MacroSignalExecutionContract;
+    selectedDevelopment?: Record<string, unknown> | null;
+    selectedLater?: Record<string, unknown> | null;
+    activeContextLater?: Record<string, unknown> | null;
+    checks?: Record<string, boolean>;
+  };
+  activeRegistryPreserved: true;
+}
+
+export interface MacroSignalExecutionContract {
+  stopAtr: number;
+  targetR: number;
+  expiryCandles: number;
+  managementFamily?: "fixed" | "break_even";
+  managementTriggerR?: number | null;
+}
+
+export interface MacroSignalContextRegistration {
+  id: string;
+  modelId: "FMS-CONTEXT-CONDITIONAL-H4-v1";
+  status: "reviewed_active" | "blocked_artifact_mismatch";
+  activatedAt: number;
+  parentPatternId?: string;
+  market?: string;
+  condition?: { dimension: string; value: string; knownAt: "entry" };
+  execution?: MacroSignalExecutionContract;
+  parentBehaviorWhenContextDoesNotMatch?: "retain_parent";
+  configurationHash?: string;
+  researchExperimentId?: string;
+  candleFingerprint?: string;
+  datasetFingerprint?: string;
+  development?: Record<string, unknown> | null;
+  later?: Record<string, unknown> | null;
+  parentOnSameContextLater?: Record<string, unknown> | null;
+  reaction?: Record<string, unknown> | null;
+  relationship?: string;
+  limitations?: string;
+  reason?: string;
+}
+
 export interface MacroSignalReactionContractAudit {
   stopAtr: number;
   targetR: number;
@@ -910,6 +1062,7 @@ export interface MacroSignalChartPattern {
         frozen: MacroSignalReactionContractAudit | null;
         developmentSelected: MacroSignalReactionContractAudit | null;
       };
+      contextResearch?: MacroSignalContextResearch;
       executionChallenger?: {
         schema: "fms-execution-challenger-v1" | "fms-execution-challenger-v2";
         declaredConfigurationCount: number;
@@ -972,6 +1125,7 @@ export interface MacroSignalChartPattern {
     later?: Record<string, unknown>;
     nearbyStability?: Record<string, unknown>;
   };
+  contextRegistration?: null | MacroSignalContextRegistration;
   requiredExactTitles?: string[];
   direction: "long" | "short" | "both";
   groups: string[];
@@ -1137,6 +1291,25 @@ export interface MacroSignalChartSignal {
       timeToTargetCandles: number | null;
     }>;
   };
+  marketContext?: MacroSignalMarketContext | null;
+  contextOverlay?: null | {
+    registrationId: string;
+    modelId: "FMS-CONTEXT-CONDITIONAL-H4-v1";
+    parentPatternId: string;
+    condition: { dimension: string; value: string; knownAt: "entry" };
+    observedValue: string | null;
+    matched: boolean;
+    activeForEvent: boolean;
+    executionApplied: boolean;
+    parentBehaviorWhenContextDoesNotMatch: "retain_parent";
+    parentExecution: MacroSignalExecutionContract;
+    contextExecution: MacroSignalExecutionContract;
+    later?: Record<string, unknown> | null;
+    parentOnSameContextLater?: Record<string, unknown> | null;
+    reaction?: Record<string, unknown> | null;
+    relationship?: string | null;
+    limitations?: string | null;
+  };
   historicalReplay: boolean;
 }
 
@@ -1245,6 +1418,11 @@ export interface MacroSignalChartSignalResponse {
   researchPatternCount?: number;
   realtime?: MacroSignalRealtimeWatch;
   policyInflationContext?: MacroSignalPolicyInflationContext;
+  contextConditionalModel?: {
+    id: "FMS-CONTEXT-CONDITIONAL-H4-v1";
+    activatedAt: number;
+    registeredSetups: number;
+  };
   evaluationSummary?: {
     evaluatedPackageCount: number;
     matchingPackageCount: number;

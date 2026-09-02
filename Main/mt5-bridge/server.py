@@ -88,6 +88,8 @@ WORKBENCH_MARKETS = {
 PRACTICAL_MODEL_ID = "FMS-REGISTERED-REACTION-H4-v5"
 PRACTICAL_MODEL_CREATED_AT = 1787970337
 REVIEWED_EXECUTION_ACTIVATED_AT = 1788134400
+CONTEXT_CONDITIONAL_MODEL_ID = "FMS-CONTEXT-CONDITIONAL-H4-v1"
+CONTEXT_CONDITIONAL_ACTIVATED_AT = 1788314400
 FMS_MANUAL_DEMO_RISK_POLICY = {
   "id": "FMS-MANUAL-DEMO-RISK-v1",
   "maximumRiskPerTradePercent": .25,
@@ -376,6 +378,105 @@ def _apply_reviewed_execution(pattern: Dict[str, Any]) -> Dict[str, Any]:
 
 PRACTICAL_PATTERN_DEFINITIONS = tuple(_apply_reviewed_execution(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS)
 
+# Exact context registrations are added only after the generated artifact has
+# been reviewed. The allowlist is intentionally code-owned: regenerating a
+# research file cannot silently alter a live Shadow Trader rule.
+_REVIEWED_CONTEXT_APPROVALS: Dict[Tuple[str, str], Dict[str, Any]] = {
+  ("NZDUSD", "nzdusd-us-trade-balance"): {
+    "id": "FMS-NZDUSD-H4-CTX-C001", "dimension": "trendRelation", "value": "opposed",
+    "managementFamily": "fixed", "managementTriggerR": None,
+    "stopAtr": 1.5, "targetR": 4.0, "expiryCandles": 30,
+    "configurationHash": "8daf8f1fd4d4c58f5cbf26799201a7e55a0a71317656e121b7fd40586810b7ec",
+    "candleFingerprint": "54ac23a123b5f899b51f3a66e55f0dec03527971e75f7392d8bdcb43f9c4b2c6",
+    "datasetFingerprint": "235163109f95be38c8436174658589d2f3394057585b3694b415a1df7927d2e1",
+  },
+  ("USDJPY", "usdjpy-us-consumer-sentiment"): {
+    "id": "FMS-USDJPY-H4-CTX-C001", "dimension": "macroBackground", "value": "aligned",
+    "managementFamily": "fixed", "managementTriggerR": None,
+    "stopAtr": 2.0, "targetR": 1.0, "expiryCandles": 60,
+    "configurationHash": "8daf8f1fd4d4c58f5cbf26799201a7e55a0a71317656e121b7fd40586810b7ec",
+    "candleFingerprint": "480d247a5c840372bd6498236fd77cd89f7e8c21148c49a0b49bb530691bdd58",
+    "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+  },
+  ("USDJPY", "usdjpy-us-manufacturing-employment"): {
+    "id": "FMS-USDJPY-H4-CTX-C002", "dimension": "macroBackground", "value": "aligned",
+    "managementFamily": "fixed", "managementTriggerR": None,
+    "stopAtr": .75, "targetR": 3.0, "expiryCandles": 18,
+    "configurationHash": "8daf8f1fd4d4c58f5cbf26799201a7e55a0a71317656e121b7fd40586810b7ec",
+    "candleFingerprint": "459218e89490d46778c74594e433b296cf33a426e3fb717b182b23393026f5d3",
+    "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+  },
+  ("USDJPY", "usdjpy-us-payroll-package"): {
+    "id": "FMS-USDJPY-H4-CTX-C003", "dimension": "directionalRoom", "value": "open",
+    "managementFamily": "fixed", "managementTriggerR": None,
+    "stopAtr": .75, "targetR": .5, "expiryCandles": 30,
+    "configurationHash": "8daf8f1fd4d4c58f5cbf26799201a7e55a0a71317656e121b7fd40586810b7ec",
+    "candleFingerprint": "02bc5b4faa5bd632a100bb9f2a2c1dbd9a1acce5516d5f94c6d9d3c90df8afef",
+    "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+  },
+}
+
+
+def _apply_reviewed_context(pattern: Dict[str, Any]) -> Dict[str, Any]:
+  approval = _REVIEWED_CONTEXT_APPROVALS.get((str(pattern["market"]), str(pattern["id"])))
+  if not approval:
+    return pattern
+  research = (((pattern.get("reactionAudit") or {}).get("profile") or {}).get("contextResearch") or {})
+  conditioned = research.get("conditionedExecution") or {}
+  condition = conditioned.get("condition") or {}
+  execution = conditioned.get("selectedExecution") or {}
+  expected_execution = {
+    "managementFamily": approval["managementFamily"],
+    "managementTriggerR": approval.get("managementTriggerR"),
+    "stopAtr": approval["stopAtr"],
+    "targetR": approval["targetR"],
+    "expiryCandles": approval["expiryCandles"],
+  }
+  artifact_matches = (
+    conditioned.get("schema") == "fms-context-conditioned-execution-v1"
+    and conditioned.get("status") == "approved_for_code_review"
+    and condition.get("dimension") == approval["dimension"]
+    and condition.get("value") == approval["value"]
+    and condition.get("knownAt") == "entry"
+    and all(execution.get(key) == value for key, value in expected_execution.items())
+    and research.get("configurationHash") == approval["configurationHash"]
+    and research.get("candleFingerprint") == approval["candleFingerprint"]
+    and research.get("datasetFingerprint") == approval["datasetFingerprint"]
+  )
+  if not artifact_matches:
+    return {
+      **pattern,
+      "contextRegistration": {
+        "id": approval["id"], "modelId": CONTEXT_CONDITIONAL_MODEL_ID,
+        "status": "blocked_artifact_mismatch", "activatedAt": CONTEXT_CONDITIONAL_ACTIVATED_AT,
+        "reason": "The reviewed context no longer matches its immutable artifact; the parent setup remains unchanged.",
+      },
+    }
+  return {
+    **pattern,
+    "contextRegistration": {
+      "id": approval["id"], "modelId": CONTEXT_CONDITIONAL_MODEL_ID,
+      "status": "reviewed_active", "activatedAt": CONTEXT_CONDITIONAL_ACTIVATED_AT,
+      "parentPatternId": str(pattern["id"]), "market": str(pattern["market"]),
+      "condition": {"dimension": approval["dimension"], "value": approval["value"], "knownAt": "entry"},
+      "execution": expected_execution,
+      "parentBehaviorWhenContextDoesNotMatch": "retain_parent",
+      "configurationHash": research.get("configurationHash"),
+      "researchExperimentId": research.get("researchExperimentId"),
+      "candleFingerprint": research.get("candleFingerprint"),
+      "datasetFingerprint": research.get("datasetFingerprint"),
+      "development": conditioned.get("selectedDevelopment"),
+      "later": conditioned.get("selectedLater"),
+      "parentOnSameContextLater": conditioned.get("activeContextLater"),
+      "reaction": (research.get("selectedCandidate") or {}).get("laterReaction"),
+      "relationship": (research.get("selectedCandidate") or {}).get("relationship"),
+      "limitations": conditioned.get("limitations"),
+    },
+  }
+
+
+PRACTICAL_PATTERN_DEFINITIONS = tuple(_apply_reviewed_context(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS)
+
 PRACTICAL_MODEL_HASH = hashlib.sha256(json.dumps(PRACTICAL_PATTERN_DEFINITIONS, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 FMS_RESEARCH_INTELLIGENCE = (
@@ -606,6 +707,47 @@ def _execution_for_event(pattern: Dict[str, Any], event_time: int) -> Dict[str, 
   ):
     return dict(pattern.get("baseExecution") or pattern.get("execution") or {})
   return dict(pattern.get("execution") or {})
+
+
+def _market_context_dimension_value(context: Optional[Dict[str, Any]], dimension: str) -> Optional[str]:
+  if not context:
+    return None
+  if dimension == "priceRegime":
+    return str((context.get("price") or {}).get("regime") or "unknown")
+  if dimension == "trendRelation":
+    return str((context.get("price") or {}).get("relationToSignal") or "unknown")
+  if dimension == "volatilityRegime":
+    return str((context.get("volatility") or {}).get("regime") or "unknown")
+  if dimension == "directionalRoom":
+    return str((context.get("supportResistance") or {}).get("roomState") or "unknown")
+  if dimension == "macroBackground":
+    return str((context.get("macroBackground") or {}).get("relationToSignal") or "unknown")
+  return None
+
+
+def _context_overlay_for_signal(pattern: Dict[str, Any], signal: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+  registration = pattern.get("contextRegistration") or {}
+  if registration.get("status") != "reviewed_active":
+    return None
+  condition = registration.get("condition") or {}
+  actual_value = _market_context_dimension_value(signal.get("marketContext"), str(condition.get("dimension") or ""))
+  matched = actual_value == condition.get("value")
+  active_for_event = int(signal["eventTime"]) >= int(registration.get("activatedAt") or CONTEXT_CONDITIONAL_ACTIVATED_AT)
+  return {
+    "registrationId": registration["id"], "modelId": registration["modelId"],
+    "parentPatternId": registration["parentPatternId"],
+    "condition": condition, "observedValue": actual_value,
+    "matched": matched, "activeForEvent": active_for_event,
+    "executionApplied": matched and active_for_event,
+    "parentBehaviorWhenContextDoesNotMatch": registration["parentBehaviorWhenContextDoesNotMatch"],
+    "parentExecution": dict(signal.get("execution") or {}),
+    "contextExecution": dict(registration.get("execution") or {}),
+    "later": registration.get("later"),
+    "parentOnSameContextLater": registration.get("parentOnSameContextLater"),
+    "reaction": registration.get("reaction"),
+    "relationship": registration.get("relationship"),
+    "limitations": registration.get("limitations"),
+  }
 
 app = FastAPI(title="MT5 Bridge", version="0.1.0")
 
@@ -3387,6 +3529,7 @@ def research_chart_signals(
         key: row.get(key) for key in (
           "id", "patternId", "sourceVersionId", "eventTime", "activationTime",
           "direction", "label", "historicalReplay", "outcomeStatus", "expiryCandles",
+          "contextOverlay",
         )
       })
     return {**payload, "signals": compact_signals}
@@ -3412,6 +3555,10 @@ def research_chart_signals(
       "timeframe": normalized_tf,
       "modelTimeframe": "H4",
       "targetR": 2.0,
+      "contextConditionalModel": {
+        "id": CONTEXT_CONDITIONAL_MODEL_ID, "activatedAt": CONTEXT_CONDITIONAL_ACTIVATED_AT,
+        "registeredSetups": len(_REVIEWED_CONTEXT_APPROVALS),
+      },
       "patterns": [],
       "signals": [],
       "message": "No historically profitable FMS registry is available for this market yet.",
@@ -3512,6 +3659,7 @@ def research_chart_signals(
       **pattern,
       "baseExecution": definition.get("baseExecution"),
       "executionReview": definition.get("executionReview"),
+      "contextRegistration": definition.get("contextRegistration"),
     }
     provenance = _registration_provenance(enriched_pattern)
     patterns.append({
@@ -3626,6 +3774,7 @@ def research_chart_signals(
       m1_cache[key] = cached_minutes if cache_covers_interval else _fetch_research_candles(normalized_symbol, "M1", start, end, 1)
     return m1_cache[key]
   signals: List[Dict[str, Any]] = []
+  signal_candidates_by_key: Dict[Tuple[str, int], Dict[str, Any]] = {}
   prospective_capture_by_key: Dict[Tuple[str, int], Dict[str, Any]] = {}
   for source_version, scoring_policy, candidate in window_candidates:
     event_time = int(candidate["eventTime"])
@@ -3689,6 +3838,7 @@ def research_chart_signals(
       continue
     def outcome_value(name: str) -> Any:
       return evaluated.get(name)
+    signal_candidates_by_key[(str(pattern["id"]), event_time)] = signal_candidate
     signals.append({
       "id": f"{pattern['id']}:{event_time}",
       "demoTag": _forward_demo_tag(PRACTICAL_MODEL_ID, normalized_symbol, pattern["id"], event_time),
@@ -3738,7 +3888,8 @@ def research_chart_signals(
   signal_activation_times = [int(signal["activationTime"]) for signal in signals if signal.get("activationTime") is not None]
   if signal_activation_times:
     signal_candles = _research_store.query_candles(
-      normalized_symbol, "H4", min(signal_activation_times), max(signal_activation_times) + 90 * 24 * 60 * 60,
+      normalized_symbol, "H4", min(signal_activation_times) - 140 * H4_SECONDS,
+      max(signal_activation_times) + 90 * 24 * 60 * 60,
     )
     signal_candle_times = [int(candle["time"]) for candle in signal_candles]
     for signal in signals:
@@ -3753,12 +3904,73 @@ def research_chart_signals(
         "entry": float(signal["entry"]),
         "atr": float(signal["atr"]),
         "direction": str(signal["direction"]),
+        "backgroundDirection": signal.get("backgroundDirection"),
+        "backgroundPairVote": signal.get("backgroundPairVote"),
+        "backgroundAlignment": signal.get("backgroundAlignment"),
+        "highestImpact": signal.get("highestImpact"),
+        "events": list(signal.get("events") or []),
       }, signal_candles, signal_candle_times, path_horizon)
       if profile is None:
         signal["expiryTime"] = None
         signal["maximumAdverseR"] = None
         continue
       expiry_candles = int(signal["expiryCandles"])
+      signal["marketContext"] = profile.get("marketContext")
+      pattern_definition = definitions_by_id.get(str(signal["patternId"])) or {}
+      context_overlay = _context_overlay_for_signal(pattern_definition, signal)
+      signal["contextOverlay"] = context_overlay
+      if context_overlay and context_overlay.get("executionApplied"):
+        context_execution = dict(context_overlay.get("contextExecution") or {})
+        evaluation_candidate = signal_candidates_by_key.get((str(signal["patternId"]), int(signal["eventTime"])))
+        if evaluation_candidate is not None:
+          context_evaluated = evaluate_candidate(
+            evaluation_candidate,
+            custom_candles,
+            custom_candle_times,
+            custom_atr_values,
+            float(context_execution["targetR"]),
+            m1_provider=evaluation_m1_provider,
+            allow_pending=normalized_mode == "current",
+            as_of=generated_at,
+            stop_atr=float(context_execution["stopAtr"]),
+            holding_candles=int(context_execution["expiryCandles"]),
+            management_family=str(context_execution.get("managementFamily") or "fixed"),
+            management_trigger_r=context_execution.get("managementTriggerR"),
+          )
+          signal.update({
+            "execution": context_execution,
+            "stopAtr": float(context_execution["stopAtr"]),
+            "targetR": float(context_execution["targetR"]),
+            "expiryCandles": int(context_execution["expiryCandles"]),
+            "managementFamily": str(context_execution.get("managementFamily") or "fixed"),
+            "managementTriggerR": context_execution.get("managementTriggerR"),
+            "activationTime": context_evaluated.get("entryTime"),
+            "entry": context_evaluated.get("entry"), "atr": context_evaluated.get("atr"),
+            "stop": context_evaluated.get("stop"), "initialStop": context_evaluated.get("initialStop"),
+            "breakEvenArmed": bool(context_evaluated.get("breakEvenArmed")),
+            "target": context_evaluated.get("target"), "outcomeStatus": context_evaluated.get("status"),
+            "resultR": context_evaluated.get("resultR"), "exitTime": context_evaluated.get("exitTime"),
+            "outcomeReasonCode": context_evaluated.get("reasonCode"),
+            "outcomeReason": context_evaluated.get("reason"),
+            "outcomeCoverage": context_evaluated.get("coverage"),
+            "pendingLifecycle": context_evaluated.get("pendingLifecycle"),
+          })
+          expiry_candles = int(signal["expiryCandles"])
+          if len(profile.get("candles") or []) < max(30, expiry_candles):
+            expanded_profile = build_candidate_path_profile({
+              "eventTime": int(signal["eventTime"]),
+              "entryTime": int(signal["activationTime"]),
+              "entry": float(signal["entry"]),
+              "atr": float(signal["atr"]),
+              "direction": str(signal["direction"]),
+              "backgroundDirection": signal.get("backgroundDirection"),
+              "backgroundPairVote": signal.get("backgroundPairVote"),
+              "backgroundAlignment": signal.get("backgroundAlignment"),
+              "highestImpact": signal.get("highestImpact"),
+              "events": list(signal.get("events") or []),
+            }, signal_candles, signal_candle_times, max(30, expiry_candles))
+            if expanded_profile is not None:
+              profile = expanded_profile
       signal["expiryTime"] = int(profile["candles"][expiry_candles - 1]["time"]) if len(profile["candles"]) >= expiry_candles else None
       exit_time = signal.get("exitTime")
       adverse = [
@@ -3960,6 +4172,10 @@ def research_chart_signals(
     "timeframe": normalized_tf,
     "modelTimeframe": "H4",
     "targetR": 2.0,
+    "contextConditionalModel": {
+      "id": CONTEXT_CONDITIONAL_MODEL_ID, "activatedAt": CONTEXT_CONDITIONAL_ACTIVATED_AT,
+      "registeredSetups": len(_REVIEWED_CONTEXT_APPROVALS),
+    },
     "generatedAt": generated_at,
     "realtime": realtime,
     "policyInflationContext": policy_inflation_context,
@@ -4788,6 +5004,7 @@ def research_readiness_report() -> Dict[str, Any]:
       "execution": dict(pattern.get("execution") or {}),
       "historicalBenchmark": dict(pattern.get("historicalBenchmark") or {}),
       "reactionAudit": pattern.get("reactionAudit"),
+      "contextRegistration": pattern.get("contextRegistration"),
       "readiness": readiness,
       "registrationProvenance": provenance,
     })

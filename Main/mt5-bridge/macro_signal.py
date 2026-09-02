@@ -1082,27 +1082,38 @@ def _entry_known_support_resistance(
   """Describe confirmed pre-entry H4 turning zones without using future bars."""
   prior = list(candles[max(0, entry_index - lookback):entry_index])
   tolerance = max(atr * tolerance_atr, 1e-12)
-  pivots: List[Tuple[str, float]] = []
+  pivots: List[Tuple[str, float, int, float]] = []
   for index in range(pivot_span, len(prior) - pivot_span):
     candle = prior[index]
     neighbors = prior[index - pivot_span:index] + prior[index + 1:index + pivot_span + 1]
     high = float(candle["high"])
     low = float(candle["low"])
     if high >= max(float(row["high"]) for row in neighbors):
-      pivots.append(("resistance", high))
+      rejection = max(0.0, high - min(float(row["close"]) for row in prior[index + 1:index + pivot_span + 1])) / atr
+      pivots.append(("resistance", high, int(candle["time"]), rejection))
     if low <= min(float(row["low"]) for row in neighbors):
-      pivots.append(("support", low))
+      rejection = max(0.0, max(float(row["close"]) for row in prior[index + 1:index + pivot_span + 1]) - low) / atr
+      pivots.append(("support", low, int(candle["time"]), rejection))
 
   zones: List[Dict[str, Any]] = []
-  for kind, level in sorted(pivots, key=lambda row: (row[0], row[1])):
+  for kind, level, touched_at, rejection_atr in sorted(pivots, key=lambda row: (row[0], row[1], row[2])):
     match = next((zone for zone in zones if zone["kind"] == kind and abs(float(zone["level"]) - level) <= tolerance), None)
     if match is None:
-      zones.append({"kind": kind, "level": level, "touches": 1})
+      zones.append({"kind": kind, "level": level, "touches": 1, "touchTimes": [touched_at], "rejectionsAtr": [rejection_atr]})
     else:
       touches = int(match["touches"]) + 1
       match["level"] = (float(match["level"]) * int(match["touches"]) + level) / touches
       match["touches"] = touches
+      match["touchTimes"].append(touched_at)
+      match["rejectionsAtr"].append(rejection_atr)
   confirmed = [zone for zone in zones if int(zone["touches"]) >= 2]
+  for zone in confirmed:
+    rejection_values = [float(value) for value in zone.pop("rejectionsAtr", [])]
+    touch_times = [int(value) for value in zone.get("touchTimes", [])]
+    zone["lastTouchedAt"] = max(touch_times) if touch_times else None
+    zone.pop("touchTimes", None)
+    zone["medianRejectionAtr"] = statistics.median(rejection_values) if rejection_values else None
+    zone["strength"] = "strong" if int(zone["touches"]) >= 3 and (zone["medianRejectionAtr"] or 0) >= .5 else "confirmed"
   supports = [zone for zone in confirmed if zone["kind"] == "support" and float(zone["level"]) < entry]
   resistances = [zone for zone in confirmed if zone["kind"] == "resistance" and float(zone["level"]) > entry]
   support = max(supports, key=lambda zone: float(zone["level"]), default=None)
@@ -1113,6 +1124,104 @@ def _entry_known_support_resistance(
     "confirmedZoneCount": len(confirmed),
     "support": None if support is None else {**support, "distanceAtr": (entry - float(support["level"])) / atr},
     "resistance": None if resistance is None else {**resistance, "distanceAtr": (float(resistance["level"]) - entry) / atr},
+  }
+
+
+def _past_only_percentile_rank(values: Sequence[float], current: float) -> Optional[float]:
+  usable = [float(value) for value in values if math.isfinite(float(value))]
+  if not usable or not math.isfinite(current):
+    return None
+  below = sum(value < current for value in usable)
+  equal = sum(value == current for value in usable)
+  return (below + .5 * equal) / len(usable)
+
+
+def build_entry_market_context(
+  candles: Sequence[Dict[str, Any]],
+  candle_times: Sequence[int],
+  entry_time: int,
+  event_time: int,
+  entry: float,
+  atr: float,
+  direction: str,
+  outcome: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+  """Build an explainable state using completed candles and evidence known before entry."""
+  entry_index = bisect_left(candle_times, int(entry_time))
+  prior = list(candles[max(0, entry_index - 140):entry_index])
+  support_resistance = _entry_known_support_resistance(candles, entry_index, entry, atr)
+  sign = 1.0 if direction == "long" else -1.0
+  short_change = None
+  medium_change = None
+  price_regime = "insufficient_history"
+  if len(prior) >= 49 and atr > 0:
+    short_change = (float(prior[-1]["close"]) - float(prior[-13]["close"])) / atr
+    medium_change = (float(prior[-1]["close"]) - float(prior[-49]["close"])) / atr
+    if short_change >= .75 and medium_change >= 1.5:
+      price_regime = "uptrend"
+    elif short_change <= -.75 and medium_change <= -1.5:
+      price_regime = "downtrend"
+    elif short_change * medium_change < 0 and max(abs(short_change), abs(medium_change)) >= .75:
+      price_regime = "transition"
+    else:
+      price_regime = "range"
+  trend_relation = (
+    "aligned" if price_regime == ("uptrend" if sign > 0 else "downtrend")
+    else "opposed" if price_regime == ("downtrend" if sign > 0 else "uptrend")
+    else "neutral"
+  )
+  prior_atr = [value for value in calculate_atr_by_candle(prior) if value is not None]
+  volatility_percentile = _past_only_percentile_rank(prior_atr[-120:], atr)
+  volatility_regime = (
+    "insufficient_history" if volatility_percentile is None
+    else "extreme" if volatility_percentile >= .90
+    else "expanded" if volatility_percentile >= .75
+    else "compressed" if volatility_percentile <= .25
+    else "normal"
+  )
+  barrier = support_resistance.get("resistance" if direction == "long" else "support")
+  room_atr = float(barrier["distanceAtr"]) if barrier is not None else None
+  room_state = "open" if room_atr is None or room_atr >= 1.5 else "limited" if room_atr >= .75 else "blocked"
+  source = outcome or {}
+  background_alignment = str(source.get("backgroundAlignment") or "unknown")
+  return {
+    "schema": "fms-market-context-v1",
+    "knownAt": int(entry_time),
+    "eventTime": int(event_time),
+    "price": {
+      "regime": price_regime,
+      "relationToSignal": trend_relation,
+      "shortChangeAtr": short_change,
+      "mediumChangeAtr": medium_change,
+      "method": "12/48 completed-H4 close change normalized by entry-known ATR",
+    },
+    "volatility": {
+      "regime": volatility_regime,
+      "percentile": volatility_percentile,
+      "priorCount": len(prior_atr[-120:]),
+      "method": "entry-known ATR percentile against up to 120 prior completed H4 ATR observations",
+    },
+    "supportResistance": {
+      **support_resistance,
+      "directionalBarrier": barrier,
+      "directionalRoomAtr": room_atr,
+      "roomState": room_state,
+    },
+    "macroBackground": {
+      "direction": str(source.get("backgroundDirection") or "unknown"),
+      "pairVote": source.get("backgroundPairVote"),
+      "relationToSignal": background_alignment,
+      "method": "latest exact-series Economy evidence inside the existing 90-day Before window",
+    },
+    "releaseEnvironment": {
+      "session": "asia" if datetime.fromtimestamp(int(event_time), timezone.utc).hour < 7 else "europe" if datetime.fromtimestamp(int(event_time), timezone.utc).hour < 13 else "us",
+      "packageSize": len(source.get("events") or []),
+      "highestImpact": source.get("highestImpact"),
+    },
+    "limitations": [
+      "Context is descriptive by itself; only a separately fingerprint-locked, code-reviewed context registration may change the contract attached to the same parent arrow.",
+      "Every candle input was completed before the frozen entry; future touches never create a historical level.",
+    ],
   }
 
 
@@ -1163,6 +1272,10 @@ def build_candidate_path_profile(
     "adverse": adverse,
     "supportResistance": _entry_known_support_resistance(
       candles, entry_index, entry_value, atr_value
+    ),
+    "marketContext": build_entry_market_context(
+      candles, candle_times, int(entry_time), int(outcome["eventTime"]), entry_value,
+      atr_value, direction, outcome,
     ),
   }
 
@@ -2917,6 +3030,10 @@ def build_workbench_experiment(
       "included": bool(row["included"] and profile is not None),
       "inclusionReason": row["inclusionReason"] if profile is not None or not row["included"] else "Excluded: no complete H4 path is available",
       "numericRobustness": dict(row.get("numericRobustness", {})),
+      "backgroundDirection": row.get("backgroundDirection"),
+      "backgroundPairVote": row.get("backgroundPairVote"),
+      "backgroundAlignment": row.get("backgroundAlignment"),
+      "highestImpact": row.get("highestImpact"),
       "entryTime": int(profile["entryTime"]) if profile else None,
       "entry": float(profile["entry"]) if profile else None,
       "atr": float(profile["atr"]) if profile else None,

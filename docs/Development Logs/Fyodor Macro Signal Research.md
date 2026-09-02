@@ -1141,6 +1141,167 @@ The forward observation record now also freezes the EA completed-package timesta
 
 For each new eligible registered release, the Past FMS Result audit compares that observed quote with the first candle open strictly after first-seen observation on M1, H1, and H4. It reports the raw price gap and the direction-adjusted gap, or states that the candle has not formed or that the quote was captured too late for a valid comparison. The active frozen contract remains the first strictly later H4 open. No historical release-time quote is reconstructed, no registry contract changes, and no execution expectancy claim is permitted until enough immutable prospective cases have accumulated.
 
+### Entry-Known Regime and Support/Resistance Context - 2026-09-01
+
+FMS now materializes two separate, immutable research contracts without changing any registered decision or execution rule:
+
+- `fms-market-context-v1` describes the state known by the frozen H4 entry. Price is classified from 12/48 completed-H4 close changes normalized by entry ATR. Volatility is the current entry-known ATR percentile against at most 120 earlier completed H4 ATR observations. Support/resistance uses the earlier 120 completed H4 candles, two-bar-confirmed pivots, 0.25-ATR clustering, and at least two touches; later touches can never create an earlier zone. Directional room is `blocked` below 0.75 ATR, `limited` from 0.75 to below 1.5 ATR, and `open` otherwise. Existing Before-window Economy alignment and release session remain separate descriptive fields.
+- `fms-context-challenger-v1` stratifies each registered recipe one dimension at a time across price regime, trend relation, volatility regime, directional room, Before alignment, and release session. Older development and later chronological cases are reported separately. One candidate per recipe is selected using development history only: it needs at least 20 evaluable development cases, 10 outside-category development cases, positive reaction/execution, at least +0.05R execution uplift, and no alignment reduction. Later history is then read exactly once with at least 10 category and 5 outside-category cases. Release session remains observational and is excluded from selection because it can proxy event identity or daylight-saving schedule changes.
+
+The first descriptive replay produced 11 interesting one-dimensional rows across 9 recipes, but that label inspected both historical partitions and was not a valid model-selection rule. The corrected development-only pass selected 27 of 47 recipe contexts before examining their later partition; only 5 retained the declared later support checks:
+
+- NZDUSD US trade balance when the entry-known H4 trend opposed the signal: later reaction N 15, 73.3% six-H4 alignment, +1.34R average under the parent contract, and +1.18R versus the unfiltered parent.
+- USDCAD Canada retail sales with open directional room: later N 17, 47.1% alignment, +0.57R average, and +0.29R uplift. Directional alignment remained below half, so this is execution behavior—not evidence that price usually followed the arrow.
+- USDJPY US consumer sentiment with aligned Before evidence: later reaction N 34 / execution N 33, 58.8% alignment, +0.33R average, and +0.21R uplift.
+- USDJPY US manufacturing employment with aligned Before evidence: later reaction N 24 / execution N 22, 66.7% alignment, +0.23R average, and +0.13R uplift.
+- USDJPY US payrolls with open directional room: later reaction N 21 / execution N 16, 66.7% alignment, +0.22R average, and +0.16R uplift; five cases remained ambiguous for execution.
+
+These five are immutable review candidates, not active filters. Their small subgroup sizes, mining across 47 recipes and five selectable dimensions, wide uncertainty, and excluded execution costs remain material. The other 22 development-selected candidates failed their untouched later audit and remain recorded rather than disappearing. No registered arrow, scoring rule, or execution contract changed.
+
+Past FMS Result shows the exact context known before that arrow, whether it matches the development-selected candidate, and the untouched later audit. This first observational stage listed all five later-supported candidates inside `Needs Codex review`; the later context-conditioned implementation moved four fingerprint-locked reviews into their own registry and retained USDCAD retail as research-only. Clicking a past arrow draws the nearest confirmed H4 support/resistance barrier as a neutral amber line alongside Entry, SL, and TP; closing the audit removes it. The generator has a context-only preservation mode so refreshing this research cannot rewrite the fingerprint-locked execution artifacts approved earlier.
+
+This pass answers the user's support/resistance and regime question as an observational audit, not as an automatic gate. Initial direction alignment and favorable movement still do not by themselves prove a profitable trade: adverse excursion, boundary order, duration, and giveback remain separate. Multi-context intersections, threshold fitting, automatic registry mutation, and causal claims remain prohibited until a separately declared challenger survives later evaluation.
+
+## Implemented: FMS Context-Conditional H4 v1 - 2026-09-02
+
+### Objective
+
+Create `FMS-CONTEXT-CONDITIONAL-H4-v1` as a separate, event-specific research and registration layer above the existing 47 immutable registered setups. Its purpose is to discover whether an exact setup becomes more historically repeatable under a particular entry-known market condition. It must not assume that one regime rule works for every economic release.
+
+The intended claim is probabilistic and practical: a frozen event/context combination behaved more favorably in recorded historical cases and therefore may repeat. It is never a guarantee about the next release.
+
+### Product and Registry Boundary
+
+- Preserve every existing parent setup, historical arrow, score, and execution contract exactly.
+- Never silently add a global trend, volatility, support/resistance, macro-background, session, inflation, or policy filter to all arrows.
+- Store context-conditioned recipes in a separate immutable registry namespace rather than calling them revisions of their parent recipes.
+- Suggested identifiers:
+  - research experiment: `FMS-<PAIR>-H4-CTX-E001`;
+  - review candidate: `FMS-<PAIR>-H4-CTX-C001`;
+  - reviewed context model: `FMS-CONTEXT-CONDITIONAL-H4-v1`.
+- A context recipe must reference its exact parent recipe, market, package identity, scoring rule, context definition, execution contract, source dataset fingerprint, and activation boundary.
+- Context research must never create two arrows for one release. A matched context is additional provenance attached to the one registered decision.
+
+### Event-Specific Context Contract
+
+Evaluate every exact registered setup independently. Test only bounded, entry-known context families:
+
+1. H4 price regime: uptrend, downtrend, range, or transition.
+2. Signal relationship to H4 trend: aligned, opposed, or neutral.
+3. Past-only ATR regime: compressed, normal, expanded, or extreme.
+4. Directional room to a confirmed prior H4 pivot zone: blocked, limited, or open.
+5. Before-window economic evidence: aligned, conflicted, neutral, or unavailable.
+6. Release session remains descriptive in v1 and cannot select a recipe because it may proxy event identity or daylight-saving changes.
+7. Policy and inflation regimes remain a later independent extension; do not mix them into the first context revision.
+
+Support/resistance remains deterministic and past-only: use completed candles before entry, two-bar-confirmed pivots, fixed ATR-normalized clustering, a minimum touch count, and no later candle capable of creating an earlier zone.
+
+### Research Procedure
+
+#### Pass 1 - Reproduce and freeze inputs
+
+- Reproduce all 47 parent recipes and their exact historical paths without changing existing results.
+- Verify context values use information available no later than the frozen entry.
+- Freeze the context algorithm, thresholds, dataset fingerprint, candle fingerprint, and recipe universe before reviewing winners.
+- Preserve unavailable context explicitly rather than guessing or borrowing future candles.
+
+#### Pass 2 - One-dimensional event-specific scan
+
+- Compare every eligible context value with the same parent recipe's unfiltered result.
+- Select at most one candidate per parent recipe using older development history only.
+- Require adequate cases both inside and outside the selected context so a near-constant label cannot masquerade as a filter.
+- Rank development candidates by average-R improvement, directional-alignment improvement, drawdown, losing streak, simplicity, and sample size using one frozen ordering.
+- Keep every selected and rejected result in the artifact.
+
+#### Pass 3 - Untouched later evaluation
+
+- Apply the selected context unchanged to the later chronological partition.
+- Report later N, average R, TP-before-SL, directional alignment at `1/3/6/12/30 H4`, MFE, MAE, drawdown, losing streak, positive years, and behavior outside the context.
+- Classify each parent/context relationship as:
+  - `Context improves this setup`;
+  - `Context weakens this setup`;
+  - `No meaningful difference`;
+  - `Not enough cases`.
+- A positive execution result with weak directional alignment must be described as execution behavior, not evidence that price usually respected the economic direction.
+
+#### Pass 4 - Event-specific execution challenger
+
+- For context relationships that survive later evaluation, test whether the context requires a different SL, TP, duration, break-even, trailing, or partial-exit contract.
+- Select execution parameters using development cases only and judge them on later cases without reselection.
+- Compare the context contract with both the parent contract on the same cases and the unfiltered parent population.
+- Keep initial price reaction, directional alignment, maximum favorable movement, and the final simulated trade result as separate measurements.
+
+#### Pass 5 - Codex review and registration
+
+- Present each surviving recipe under `Needs Codex review` with exact parent, condition, sample, historical improvement, stability, and failure modes.
+- Review the five existing later-supported candidates first:
+  - USDJPY US consumer sentiment with aligned Before evidence;
+  - NZDUSD US trade balance with opposed trend;
+  - USDJPY US manufacturing employment with aligned Before evidence;
+  - USDJPY US payrolls with open directional room;
+  - USDCAD Canada retail sales with open directional room.
+- Treat USDJPY consumer sentiment as the strongest first registration review.
+- Treat USDCAD retail sales cautiously because its positive execution did not coincide with majority directional alignment.
+- Registration is an explicit code-reviewed action; no automatic Promote button or registry-writing endpoint is permitted.
+
+#### Pass 6 - Charts and Shadow Trader integration
+
+- Add a separate `Context-conditioned setups` section beside the unchanged parent registry.
+- For a matched reviewed context, render one arrow with a clear `Context matched` state, the exact condition, and its frozen context-specific contract.
+- Define per recipe whether a nonmatching context retains the parent arrow or suppresses it; never infer that behavior globally.
+- Past FMS Result must show parent evidence, context known at entry, matched condition, contract used, and parent-versus-context historical comparison.
+- Shadow Trader must state exactly which parent and context rule produced or rejected the hypothetical trade.
+- Keep the neutral amber confirmed H4 support/resistance level visible when inspecting an arrow; context colors must not imply guaranteed profit.
+
+### Current Baseline Findings
+
+The completed `fms-context-challenger-v1` replay evaluated all 47 registered parents. Development-only selection produced 27 candidates; five remained supported on untouched later history and 22 failed. At the baseline stage none modified an arrow or contract; the code-reviewed implementation result below subsequently registered four exact rules and retained one as research-only.
+
+### Interpretation and Discovery Discipline
+
+FMS is explicitly searching for repeatable historical behavior. Trying many conditions is allowed and valuable, but every declared trial must remain recorded because a large search will inevitably surface attractive coincidences. This is not used as a veto; it is handled through immutable manifests, development-only selection, untouched later evaluation, comparison with the unfiltered parent, and continued visibility of failed recipes.
+
+Different releases may require different treatment. A condition that helps consumer sentiment must not be assumed to help payrolls, retail sales, inflation, or trade balance. Likewise, a context can improve execution without improving directional alignment. The system must preserve those distinctions rather than compressing them into one universal regime score.
+
+### Implementation Result
+
+The six-pass plan is implemented as `FMS-CONTEXT-CONDITIONAL-H4-v1`. Every context scan has a durable per-market `FMS-<PAIR>-H4-CTX-E###` experiment identity. Four exact, fingerprint-locked reviews were accepted as `CTX-C` registrations:
+
+- `FMS-NZDUSD-H4-CTX-C001`: US trade balance when H4 trend is opposed; retain the parent `1.5 ATR / 4R / 30 H4` contract. Later N 15, average `+1.34R`, six-H4 alignment `73.3%`, all four represented later years positive.
+- `FMS-USDJPY-H4-CTX-C001`: US consumer sentiment when Before evidence is aligned; retain the parent `2 ATR / 1R / 60 H4` contract. Later execution N 33, average `+0.33R`, six-H4 alignment `57.1%`.
+- `FMS-USDJPY-H4-CTX-C002`: US manufacturing employment when Before evidence is aligned; use the development-selected fixed `.75 ATR / 3R / 18 H4` contract. Later N 24, average `+0.78R`, six-H4 alignment `66.7%`, all four represented later years positive.
+- `FMS-USDJPY-H4-CTX-C003`: US payrolls with open directional room; retain the parent `.75 ATR / .5R / 30 H4` contract. Later execution N 16, average `+0.22R`, six-H4 alignment `66.7%`.
+
+USDCAD Canada retail sales with open room remains an inspectable research candidate, not a context registration: its later execution was positive, but six-H4 directional alignment was only `47.1%`. That distinction prevents profitable path geometry from being mislabeled as evidence that price usually followed the arrow.
+
+Reviewed contexts never create a second signal. For releases after the activation boundary, an exact match attaches the reviewed provenance and, where declared, the context contract to the one parent arrow. A nonmatch retains the parent decision and parent contract. Pre-activation historical arrows preserve their original outcome and show the context match only as research provenance. Artifact/hash mismatches fail closed to the parent behavior.
+
+### Next Exhaustive Passes
+
+The next work is explicitly staged so a future session does not mistake v1 for exhaustion:
+
+1. **Prospective context ledger:** accumulate immutable first-seen matches/nonmatches and compare their realized path with the reused-history expectation without changing v1.
+2. **Policy/inflation context v1:** declare slow-moving policy differential and inflation-state families separately, using only state known before entry; do not retrofit them into the four v1 rules.
+3. **Bounded two-context interactions:** test only predeclared interactions motivated by v1, require adequate inside/outside cases, select on development, and audit untouched later history. No unrestricted intersections.
+4. **Rejected/insufficient refresh:** rerun the exact frozen manifest only after material calendar/price coverage growth; never keep retrying unchanged history until a winner appears.
+5. **Execution follow-up:** challenge fixed/break-even/trailing/partial management inside newly surviving contexts, again selecting on development and judging later cases once.
+6. **Cross-market transfer:** test whether an exact context definition transfers to another pair as a new experiment; never assume that a USDJPY context applies to EURUSD or another market.
+
+Each pass can add reviewed rules, retain research-only knowledge, or prove no stable improvement. Failed results remain valuable and durable. The model is not considered exhausted merely because one pass ends, but later passes must stay separately named and fingerprinted.
+
+### Verification Contract
+
+- Existing 47 parent setups, arrows, historical outcomes, and Shadow Trader decisions remain byte/replay compatible.
+- Every context value is reproducible from entry-known data.
+- Candidate selection reads development data only; later results cannot influence which candidate was selected.
+- Context and outside-context sample counts reconcile with the parent population.
+- Release session cannot become a selectable context in v1.
+- No duplicate arrows appear for a parent/context match.
+- A context-specific execution contract is used only when that exact reviewed context matches.
+- Unsupported, rejected, and insufficient candidates remain inspectable.
+- Run focused bridge/FMS/Charts tests, `pnpm run typecheck`, production build, and `git diff --check`.
+- Manually audit at 1440x900 and 100% zoom for one-arrow behavior, readable context provenance, support/resistance levels, Shadow Trader decisions, bounded scrolling, and no overlap.
+
 ## Research Warnings and References
 
 Hypothetical results do not represent executed trades and can overstate or understate real performance. The Lab must identify all results as simulated, disclose excluded costs, and avoid claims that similar live profits are likely. See the [CFTC guidance on hypothetical trading-system results](https://www.cftc.gov/LearnAndProtect/AdvisoriesAndArticles/fraudadv_tradingsystem.html).

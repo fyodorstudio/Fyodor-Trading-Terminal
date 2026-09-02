@@ -58,6 +58,38 @@ function scoringRuleLabel(policy: string | null | undefined): string {
   return "Compare Actual with Forecast and Previous with equal weight.";
 }
 
+function contextLabel(value: string | null | undefined): string {
+  if (!value) return "Unavailable";
+  const dimensionLabels: Record<string, string> = {
+    priceRegime: "Price regime",
+    trendRelation: "Trend relation",
+    volatilityRegime: "Volatility regime",
+    directionalRoom: "Directional room",
+    macroBackground: "Macro background",
+    releaseSession: "Release session",
+  };
+  if (dimensionLabels[value]) return dimensionLabels[value];
+  return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function contextPercentile(value: number): string {
+  const rounded = Math.round(value * 100);
+  const suffix = rounded % 100 >= 11 && rounded % 100 <= 13 ? "th" : rounded % 10 === 1 ? "st" : rounded % 10 === 2 ? "nd" : rounded % 10 === 3 ? "rd" : "th";
+  return `${rounded}${suffix} percentile`;
+}
+
+function signalContextValue(signal: MacroSignalChartSignal, dimension: string): string | null {
+  const context = signal.marketContext;
+  if (!context) return null;
+  if (dimension === "priceRegime") return context.price.regime;
+  if (dimension === "trendRelation") return context.price.relationToSignal;
+  if (dimension === "volatilityRegime") return context.volatility.regime;
+  if (dimension === "directionalRoom") return context.supportResistance.roomState;
+  if (dimension === "macroBackground") return context.macroBackground.relationToSignal;
+  if (dimension === "releaseSession") return context.releaseEnvironment.session;
+  return null;
+}
+
 function zeroScoreExplanation(calculation: DecisionCalculation): string {
   if (calculation.scoringPolicy === "momentum_only") {
     return calculation.momentumPoint === 0
@@ -378,6 +410,13 @@ function LatestDecisionSection({ assessment, pattern, symbol, signal }: { assess
               <div key={condition}><span>{condition}</span><strong>{action}</strong></div>
             ))}
           </div>
+          {pattern.contextRegistration?.status === "reviewed_active" ? (
+            <div className="chart-shadow-context-rule">
+              <span>H4 entry context rule · {pattern.contextRegistration.id}</span>
+              <strong>IF {contextLabel(pattern.contextRegistration.condition?.dimension ?? "context")} = {contextLabel(pattern.contextRegistration.condition?.value ?? "unknown")}, use SL {pattern.contextRegistration.execution?.stopAtr} ATR · TP {pattern.contextRegistration.execution?.targetR}R · maximum {pattern.contextRegistration.execution?.expiryCandles} H4.</strong>
+              <small>{signal?.contextOverlay ? `Observed at entry: ${contextLabel(signal.contextOverlay.observedValue ?? "unknown")} · ${signal.contextOverlay.executionApplied ? "context contract applied" : "parent contract retained"}.` : "This condition is checked only when the first strictly later H4 entry opens. If it does not match, the parent setup remains active under its parent contract."}</small>
+            </div>
+          ) : null}
         </div>
       ) : null}
       {signal?.outcomeStatus === "pending" && signal.demoTag ? (
@@ -427,6 +466,8 @@ function CurrencyFlag({ currency }: { currency: string }) {
 
 export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealtimeCardData }) {
   const { response, activeSignal, activePattern } = data;
+  const activeContextCandidate = activePattern?.reactionAudit?.profile?.contextResearch?.selectedCandidate ?? null;
+  const activeContextMatches = Boolean(activeSignal && activeContextCandidate && signalContextValue(activeSignal, activeContextCandidate.dimension) === activeContextCandidate.value);
   const [setupSort, setSetupSort] = useState<"accuracy" | "profitability" | "soonest">("accuracy");
   const weakenedPatternKeys = useMemo(() => new Set(
     (data.globalResponse?.outcomeReview?.executionReviews ?? [])
@@ -455,6 +496,22 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
   const registeredPatternRows = useMemo(
     () => registryResponses.flatMap((market) => market.patterns.filter((pattern) => pattern.currentEligible)),
     [registryResponses],
+  );
+  const selectedContextReviews = useMemo(() => registeredPatternRows.flatMap((pattern) => {
+    const candidate = pattern.reactionAudit?.profile?.contextResearch?.selectedCandidate;
+    return candidate ? [{ pattern, candidate }] : [];
+  }), [registeredPatternRows]);
+  const supportedContextReviews = useMemo(
+    () => selectedContextReviews.filter(({ candidate }) => candidate.status === "later_supported"),
+    [selectedContextReviews],
+  );
+  const registeredContextPatterns = useMemo(
+    () => registeredPatternRows.filter((pattern) => pattern.contextRegistration?.status === "reviewed_active"),
+    [registeredPatternRows],
+  );
+  const unregisteredSupportedContextReviews = useMemo(
+    () => supportedContextReviews.filter(({ pattern }) => pattern.contextRegistration?.status !== "reviewed_active"),
+    [supportedContextReviews],
   );
   const forwardSetupByKey = useMemo(
     () => new Map((data.globalResponse?.forwardValidation?.setupSummaries ?? []).map((row) => [`${row.market}:${row.patternId}`, row])),
@@ -917,6 +974,18 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
             <div><span>Position size</span><strong>{position.lots == null ? "—" : `${position.lots.toFixed(2)} lots`}</strong></div>
           </div>
           <p>{activeSignal.events.map((event) => `${event.currency} ${event.title}: score ${event.score > 0 ? "+" : ""}${event.score}`).join(" · ")}</p>
+          {activeSignal.marketContext ? (
+            <div className="chart-shadow-position-context" aria-label="Market context known before this trade entry">
+              <header><strong>Context known before entry</strong><span>{activeSignal.contextOverlay?.executionApplied ? "Reviewed context contract used" : activeSignal.contextOverlay?.matched ? "Historical context match" : activeSignal.contextOverlay ? "Parent setup retained" : "Research comparison"}</span></header>
+              <dl>
+                <div><dt>Price</dt><dd>{contextLabel(activeSignal.marketContext.price.regime)} · {contextLabel(activeSignal.marketContext.price.relationToSignal)}</dd></div>
+                <div><dt>Volatility</dt><dd>{contextLabel(activeSignal.marketContext.volatility.regime)}{activeSignal.marketContext.volatility.percentile == null ? "" : ` · ${contextPercentile(activeSignal.marketContext.volatility.percentile)}`}</dd></div>
+                <div><dt>Room</dt><dd>{contextLabel(activeSignal.marketContext.supportResistance.roomState)}{activeSignal.marketContext.supportResistance.directionalRoomAtr == null ? " · no confirmed barrier" : ` · ${activeSignal.marketContext.supportResistance.directionalRoomAtr.toFixed(2)} ATR`}</dd></div>
+                <div><dt>Background</dt><dd>{contextLabel(activeSignal.marketContext.macroBackground.relationToSignal)}</dd></div>
+              </dl>
+              {activeSignal.contextOverlay ? <p><b>{activeSignal.contextOverlay.registrationId}:</b> {contextLabel(activeSignal.contextOverlay.condition.dimension)} must be {contextLabel(activeSignal.contextOverlay.condition.value)}. Entry context was {contextLabel(activeSignal.contextOverlay.observedValue ?? "unknown")} — {activeSignal.contextOverlay.executionApplied ? "matched; context contract applied" : activeSignal.contextOverlay.matched ? "matched historically; parent result preserved" : "did not match; parent contract retained"}.</p> : activeContextCandidate ? <p><b>Selected context challenger:</b> {contextLabel(activeContextCandidate.dimension)} = {contextLabel(activeContextCandidate.value)} · {activeContextCandidate.status === "later_supported" ? "later supported" : "later rejected"} · {activeContextMatches ? "this trade matches" : "this trade does not match"}. Research only.</p> : null}
+            </div>
+          ) : null}
           {activeSignal.demoTag ? <div className="chart-shadow-demo-tag"><span>MT5 demo order comment</span><code>{activeSignal.demoTag}</code><button type="button" onClick={() => void navigator.clipboard?.writeText(activeSignal.demoTag!)}>Copy</button><small>Optional manual demo validation only. FMS sends no order.</small></div> : null}
           <small className="chart-shadow-source-note">{position.sizingNote}</small>
         </section>
@@ -940,19 +1009,40 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
 
       <ChartMacroBiasSetupCatalog patterns={registeredPatternRows} />
 
-      {data.globalResponse?.outcomeReview ? (
+      {registeredContextPatterns.length > 0 ? (
+        <details className="chart-shadow-context-registry" open>
+          <summary><span>Context-conditioned setups</span><strong>{registeredContextPatterns.length} reviewed rules</strong><ChevronDown size={14} /></summary>
+          <div>
+            <p>These rules sit above an unchanged parent setup. A matching entry context uses the shown contract; a nonmatch keeps the parent arrow and parent contract.</p>
+            {registeredContextPatterns.map((pattern) => {
+              const registration = pattern.contextRegistration!;
+              const laterN = typeof registration.later?.evaluableN === "number" ? registration.later.evaluableN : null;
+              const laterAverage = typeof registration.later?.averageR === "number" ? registration.later.averageR : null;
+              const parentAverage = typeof registration.parentOnSameContextLater?.averageR === "number" ? registration.parentOnSameContextLater.averageR : null;
+              const alignment = typeof registration.reaction?.alignmentRate === "number" ? registration.reaction.alignmentRate : null;
+              return <article key={registration.id}>
+                <header><strong>{pattern.market} · {pattern.label}</strong><em>{registration.id}</em></header>
+                <span>IF {contextLabel(registration.condition?.dimension ?? "context")} = {contextLabel(registration.condition?.value ?? "unknown")}</span>
+                <small>SL {registration.execution?.stopAtr} ATR · TP {registration.execution?.targetR}R · maximum {registration.execution?.expiryCandles} H4 · later N {laterN ?? "—"} · average {formatSignedR(laterAverage)} · parent on same cases {formatSignedR(parentAverage)} · followed after 6 H4 {alignment == null ? "—" : `${(alignment * 100).toFixed(1)}%`}</small>
+              </article>;
+            })}
+          </div>
+        </details>
+      ) : null}
+
+      {data.globalResponse?.outcomeReview || unregisteredSupportedContextReviews.length > 0 ? (
         <details className="chart-shadow-account-audit chart-shadow-review-queue">
           <summary>
             <span>Needs Codex review</span>
-            <strong>{Object.values(data.globalResponse.outcomeReview.unresolvedByReason).reduce((sum, count) => sum + count, 0)} unresolved · {data.globalResponse.outcomeReview.executionReviews.length} execution reviews</strong>
+            <strong>{data.globalResponse?.outcomeReview ? Object.values(data.globalResponse.outcomeReview.unresolvedByReason).reduce((sum, count) => sum + count, 0) : 0} unresolved · {unregisteredSupportedContextReviews.length} context candidates</strong>
             <ChevronDown size={14} />
           </summary>
           <div>
             <p>Active contracts are unchanged. Pending, ambiguous, and unavailable cases are excluded from win rates, average R, and account replay.</p>
-            {Object.entries(data.globalResponse.outcomeReview.unresolvedByReason).length > 0 ? (
+            {data.globalResponse?.outcomeReview && Object.entries(data.globalResponse.outcomeReview.unresolvedByReason).length > 0 ? (
               <dl>{Object.entries(data.globalResponse.outcomeReview.unresolvedByReason).map(([reason, count]) => <div key={reason}><dt>{reason.replaceAll("_", " ")}</dt><dd>{count}</dd></div>)}</dl>
             ) : <p>Every loaded registered arrow currently has a resolved or genuinely live lifecycle.</p>}
-            {data.globalResponse.outcomeReview.executionReviews.map((review) => (
+            {(data.globalResponse?.outcomeReview?.executionReviews ?? []).map((review) => (
               <article key={`${review.market}:${review.patternId}`} className="chart-shadow-review-card">
                 <header><strong>{review.market} · {review.label}</strong><em>{review.status === "review_worthy" ? "Challenger worth review" : "Active evidence weakened"}</em></header>
                 <p>{review.reason}</p>
@@ -962,12 +1052,24 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
                 </div>
               </article>
             ))}
+            {unregisteredSupportedContextReviews.length > 0 ? <section className="chart-shadow-context-review" aria-label="Later-supported context challengers">
+              <header><strong>Later-supported context challengers</strong><span>{unregisteredSupportedContextReviews.length} unregistered</span></header>
+              <p>Development history selected one bounded context per setup. Later history then tested it unchanged. These are research candidates only; no arrow or contract is filtered.</p>
+              {unregisteredSupportedContextReviews.map(({ pattern, candidate }) => (
+                <article key={`${pattern.market}:${pattern.id}:${candidate.dimension}:${candidate.value}`}>
+                  <strong>{pattern.market} · {pattern.label}</strong>
+                  <span>{contextLabel(candidate.dimension)} = {contextLabel(candidate.value)}</span>
+                  <small>Later N {candidate.laterExecution.evaluableN ?? candidate.laterReaction.evaluableN} · average {formatSignedR(candidate.laterExecution.averageR as number | null)} · versus parent {formatSignedR(candidate.laterExecutionUpliftR)} · followed after 6 H4 {candidate.laterReaction.alignmentRate == null ? "—" : `${(candidate.laterReaction.alignmentRate * 100).toFixed(1)}%`}</small>
+                </article>
+              ))}
+            </section> : null}
             <button type="button" className="chart-shadow-copy-review" onClick={() => {
-              const review = data.globalResponse!.outcomeReview!;
+              const review = data.globalResponse?.outcomeReview;
               const markdown = [
-                "# FMS execution review",
-                ...Object.entries(review.unresolvedByReason).map(([reason, count]) => `- Unresolved ${reason}: ${count}`),
-                ...review.executionReviews.map((row) => `- ${row.market} · ${row.label}: ${row.status}. Active ${row.active.stopAtr} ATR/${row.active.targetR}R/${row.active.holdingCandles} H4, later ${row.active.evaluableN ?? "—"} cases at ${formatSignedR(row.active.laterAverageR as number | null)}. Challenger ${String(row.challenger.family ?? "managed")}, ${row.challenger.stopAtr} ATR/${row.challenger.targetR}R/${row.challenger.holdingCandles} H4, later ${row.challenger.laterEvaluableN ?? "—"} cases at ${formatSignedR(row.challenger.laterAverageR as number | null)}. ${row.reason}`),
+                "# FMS review",
+                ...Object.entries(review?.unresolvedByReason ?? {}).map(([reason, count]) => `- Unresolved ${reason}: ${count}`),
+                ...(review?.executionReviews ?? []).map((row) => `- ${row.market} · ${row.label}: ${row.status}. Active ${row.active.stopAtr} ATR/${row.active.targetR}R/${row.active.holdingCandles} H4, later ${row.active.evaluableN ?? "—"} cases at ${formatSignedR(row.active.laterAverageR as number | null)}. Challenger ${String(row.challenger.family ?? "managed")}, ${row.challenger.stopAtr} ATR/${row.challenger.targetR}R/${row.challenger.holdingCandles} H4, later ${row.challenger.laterEvaluableN ?? "—"} cases at ${formatSignedR(row.challenger.laterAverageR as number | null)}. ${row.reason}`),
+                 ...unregisteredSupportedContextReviews.map(({ pattern, candidate }) => `- ${pattern.market} · ${pattern.label}: later-supported context ${candidate.dimension}=${candidate.value}. Later N ${candidate.laterExecution.evaluableN ?? candidate.laterReaction.evaluableN}, average ${formatSignedR(candidate.laterExecution.averageR as number | null)}, uplift versus parent ${formatSignedR(candidate.laterExecutionUpliftR)}, 6-H4 alignment ${candidate.laterReaction.alignmentRate == null ? "—" : `${(candidate.laterReaction.alignmentRate * 100).toFixed(1)}%`}. Research only; active arrow unchanged.`),
               ].join("\n");
               void navigator.clipboard?.writeText(markdown);
             }}>Copy AI review</button>

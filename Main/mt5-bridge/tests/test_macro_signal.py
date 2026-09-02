@@ -10,6 +10,7 @@ from macro_signal import (
   build_chart_signal_pattern_catalog,
   build_chart_signal_realtime_watch,
   build_candidate_path_profile,
+  build_entry_market_context,
   build_policy_inflation_context,
   build_signal_candidates,
   calculate_atr_by_candle,
@@ -34,6 +35,34 @@ from macro_signal import (
   CHART_SIGNAL_MODEL_ID,
   CHART_SIGNAL_PATTERN_DEFINITIONS,
 )
+
+
+def test_entry_market_context_is_past_only_and_finds_repeated_turning_zones() -> None:
+  rows = []
+  for index in range(150):
+    center = 1.1000
+    high = 1.1010
+    low = 1.0990
+    close = center
+    if index in {20, 40, 60, 80, 100, 120}:
+      high = 1.1050
+      close = 1.1010
+    if index in {30, 50, 70, 90, 110}:
+      low = 1.0950
+      close = 1.0990
+    rows.append({"time": index * 14_400, "open": center, "high": high, "low": low, "close": close, "volume": 1})
+  entry_time = 130 * 14_400
+  context = build_entry_market_context(rows, [row["time"] for row in rows], entry_time, entry_time - 60, 1.1000, .0020, "long")
+  extended = [*rows, {"time": 200 * 14_400, "open": 1.1, "high": 1.3, "low": .8, "close": 1.25, "volume": 1}]
+  future_context = build_entry_market_context(extended, [row["time"] for row in extended], entry_time, entry_time - 60, 1.1000, .0020, "long")
+
+  assert context == future_context
+  assert context["schema"] == "fms-market-context-v1"
+  assert context["knownAt"] == entry_time
+  assert context["supportResistance"]["support"]["touches"] >= 2
+  assert context["supportResistance"]["resistance"]["touches"] >= 2
+  assert context["supportResistance"]["directionalBarrier"]["kind"] == "resistance"
+  assert context["volatility"]["priorCount"] > 0
 
 
 def test_candidate_path_profile_reports_mfe_mae_and_threshold_reach() -> None:

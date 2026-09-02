@@ -274,13 +274,28 @@ export function buildMacroBiasSeriesMarkers(
       position: signal.direction === "long" ? "belowBar" : "aboveBar",
       shape: signal.direction === "long" ? "arrowUp" : "arrowDown",
       color: signal.direction === "long" ? "#2563eb" : "#7c3aed",
-      text: signal.direction === "long" ? "LONG BIAS" : "SHORT BIAS",
+      text: `${signal.direction === "long" ? "LONG BIAS" : "SHORT BIAS"}${signal.contextOverlay?.matched ? " · CONTEXT" : ""}`,
       size: 1.4,
     });
     return built;
   });
   markers.sort((left, right) => Number(left.time) - Number(right.time));
   return { markers, signalByMarkerId };
+}
+
+export function buildMacroBiasPriceLineLevels(signal: MacroSignalChartSignal) {
+  const barrier = signal.marketContext?.supportResistance.directionalBarrier;
+  return [
+    { value: signal.entry, title: "ENTRY", color: "#64748b", lineStyle: LineStyle.Dashed },
+    { value: signal.stop, title: "SL", color: "#dc2626", lineStyle: LineStyle.Solid },
+    { value: signal.target, title: "TP", color: "#16a34a", lineStyle: LineStyle.Solid },
+    {
+      value: barrier?.level,
+      title: barrier ? `H4 ${barrier.kind === "support" ? "SUP" : "RES"} ${barrier.touches}x` : "CONTEXT",
+      color: "#d97706",
+      lineStyle: LineStyle.Dotted,
+    },
+  ].filter((level): level is typeof level & { value: number } => level.value != null && Number.isFinite(level.value));
 }
 
 export interface MacroBiasActiveState {
@@ -1166,22 +1181,14 @@ export function ChartsTab({
     macroBiasTradeLinesRef.current.forEach((line) => series?.removePriceLine(line));
     macroBiasTradeLinesRef.current = [];
     if (!series || !selectedMacroBias) return;
-    const levels = [
-      { value: selectedMacroBias.entry, title: "ENTRY", color: "#64748b", lineStyle: LineStyle.Dashed },
-      { value: selectedMacroBias.stop, title: "SL", color: "#dc2626", lineStyle: LineStyle.Solid },
-      { value: selectedMacroBias.target, title: "TP", color: "#16a34a", lineStyle: LineStyle.Solid },
-    ];
-    macroBiasTradeLinesRef.current = levels.flatMap((level) => {
-      if (level.value == null || !Number.isFinite(level.value)) return [];
-      return [series.createPriceLine({
+    macroBiasTradeLinesRef.current = buildMacroBiasPriceLineLevels(selectedMacroBias).map((level) => series.createPriceLine({
         price: level.value,
         color: level.color,
         lineWidth: 1,
         lineStyle: level.lineStyle,
         axisLabelVisible: true,
         title: level.title,
-      })];
-    });
+      }));
     return () => {
       macroBiasTradeLinesRef.current.forEach((line) => series.removePriceLine(line));
       macroBiasTradeLinesRef.current = [];

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from pathlib import Path
 
 import pytest
@@ -418,6 +419,36 @@ def test_readiness_report_exposes_setup_level_evidence_and_keeps_live_gate_close
   assert "historicalBenchmark" in report["registeredSetups"][0]
   assert report["registeredSetups"][0]["reactionAudit"]["profile"]["schema"] == "registered-reaction-profile-v2"
   assert [row["holdingCandles"] for row in report["registeredSetups"][0]["reactionAudit"]["profile"]["horizons"]] == [1, 3, 6, 12, 30]
+  assert all(row["reactionAudit"]["profile"]["contextResearch"]["schema"] == "fms-context-challenger-v1" for row in report["registeredSetups"])
+  assert all(row["reactionAudit"]["profile"]["contextResearch"]["activeArrowPreserved"] is True for row in report["registeredSetups"])
+  assert all(row["reactionAudit"]["profile"]["contextResearch"]["configurationHash"] for row in report["registeredSetups"])
+  selected_contexts = [row["reactionAudit"]["profile"]["contextResearch"]["selectedCandidate"] for row in report["registeredSetups"] if row["reactionAudit"]["profile"]["contextResearch"]["selectedCandidate"]]
+  assert len(selected_contexts) == 27
+  assert sum(row["status"] == "later_supported" for row in selected_contexts) == 5
+  assert all(row["dimension"] != "releaseSession" for row in selected_contexts)
+  assert all(row["activeArrowChanged"] is False for row in selected_contexts)
+  assert all("later cases were untouched during selection" in row["selectionBasis"] for row in selected_contexts)
+  for setup in report["registeredSetups"]:
+    research = setup["reactionAudit"]["profile"]["contextResearch"]
+    selected = research["selectedCandidate"]
+    if not selected:
+      continue
+    row = next(item for item in research["dimensions"] if item["dimension"] == selected["dimension"] and item["value"] == selected["value"])
+    assert row["developmentReaction"]["evaluableN"] + row["outsideDevelopmentReaction"]["evaluableN"] == research["baseline"]["developmentReaction"]["evaluableN"]
+    assert row["laterReaction"]["evaluableN"] + row["outsideLaterReaction"]["evaluableN"] == research["baseline"]["laterReaction"]["evaluableN"]
+  context_registrations = [row["contextRegistration"] for row in report["registeredSetups"] if row.get("contextRegistration")]
+  assert len(context_registrations) == 4
+  assert all(row["status"] == "reviewed_active" for row in context_registrations)
+  assert all(row["researchExperimentId"].startswith(f"FMS-{row['market']}-H4-CTX-E") for row in context_registrations)
+  assert {row["id"] for row in context_registrations} == {
+    "FMS-NZDUSD-H4-CTX-C001",
+    "FMS-USDJPY-H4-CTX-C001",
+    "FMS-USDJPY-H4-CTX-C002",
+    "FMS-USDJPY-H4-CTX-C003",
+  }
+  retail = next(row for row in report["registeredSetups"] if row["market"] == "USDCAD" and row["patternId"] == "usdcad-canada-retail-sales")
+  assert retail.get("contextRegistration") is None
+  assert retail["reactionAudit"]["profile"]["contextResearch"]["selectedCandidate"]["status"] == "later_supported"
   assert report["quarantinedOrRetiredSetups"]
   assert report["paperLiveEvidence"]["immutableFirstSeen"] is True
   assert report["paperLiveEvidence"]["decisionCount"] == 2
@@ -426,6 +457,46 @@ def test_readiness_report_exposes_setup_level_evidence_and_keeps_live_gate_close
   assert report["paperLiveEvidence"]["status"] == "observation_only"
   assert report["paperLiveEvidence"]["executionComparison"]["entryComparableTrades"] == 0
   assert report["eligibleForRuleBasedLiveUse"] is False
+
+
+def test_context_registration_matches_exact_entry_state_and_fails_closed_on_artifact_drift() -> None:
+  pattern = next(
+    row for row in server.PRACTICAL_PATTERN_DEFINITIONS
+    if row["market"] == "USDJPY" and row["id"] == "usdjpy-us-manufacturing-employment"
+  )
+  signal = {
+    "eventTime": server.CONTEXT_CONDITIONAL_ACTIVATED_AT + 60,
+    "marketContext": {"macroBackground": {"relationToSignal": "aligned"}},
+  }
+  matched = server._context_overlay_for_signal(pattern, signal)
+  assert matched["matched"] is True
+  assert matched["executionApplied"] is True
+  assert matched["contextExecution"] == {
+    "managementFamily": "fixed", "managementTriggerR": None,
+    "stopAtr": .75, "targetR": 3.0, "expiryCandles": 18,
+  }
+  nonmatch = server._context_overlay_for_signal(
+    pattern,
+    {**signal, "marketContext": {"macroBackground": {"relationToSignal": "conflicted"}}},
+  )
+  assert nonmatch["matched"] is False
+  assert nonmatch["executionApplied"] is False
+  assert nonmatch["parentBehaviorWhenContextDoesNotMatch"] == "retain_parent"
+
+  historical = server._context_overlay_for_signal(
+    pattern,
+    {**signal, "eventTime": server.CONTEXT_CONDITIONAL_ACTIVATED_AT - 60},
+  )
+  assert historical["matched"] is True
+  assert historical["activeForEvent"] is False
+  assert historical["executionApplied"] is False
+
+  drifted = copy.deepcopy(pattern)
+  drifted.pop("contextRegistration", None)
+  drifted["reactionAudit"]["profile"]["contextResearch"]["configurationHash"] = "drifted"
+  blocked = server._apply_reviewed_context(drifted)
+  assert blocked["contextRegistration"]["status"] == "blocked_artifact_mismatch"
+  assert blocked["execution"] == pattern["execution"]
 
 
 def test_forward_validation_requires_prospective_breadth_and_never_claims_real_fills() -> None:

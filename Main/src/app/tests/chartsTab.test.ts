@@ -10,8 +10,8 @@ import { ChartPairMatrixRangeOverlay, clampFmsDockWidth, clampPairMatrixPanelHei
 import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
 import { buildMacroSignalShadowAccount, buildMacroSignalShadowPosition, normalizeShadowRiskPercent, normalizeShadowStartingBalance } from "@/app/lib/macroSignalShadow";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
-import { buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasReplayStatusLabel, getMacroBiasRequestScope, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, isMacroBiasMarketSupported, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange, shouldApplyMacroBiasRefresh } from "@/app/tabs/primary/ChartsTab";
-import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MacroSignalMetrics } from "@/app/types";
+import { buildMacroBiasPriceLineLevels, buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasReplayStatusLabel, getMacroBiasRequestScope, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, isMacroBiasMarketSupported, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange, shouldApplyMacroBiasRefresh } from "@/app/tabs/primary/ChartsTab";
+import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalContextResearch, MacroSignalGlobalResponse, MacroSignalMetrics } from "@/app/types";
 import { DEFAULT_CHART_TIMEFRAME, getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
 
@@ -40,11 +40,14 @@ describe("getChartConnectionLabel", () => {
       id, patternId: `pattern-${id}`, sourceVersionId: "v2", eventTime, activationTime: eventTime < 14_400 ? 14_400 : 28_800, expiryCandles: 30, historicalReplay: true, direction, label: "Historical pattern", agreement: "consensus", pairVote: direction === "long" ? 1 : -1, backgroundDirection: "none", backgroundPairVote: 0, backgroundAlignment: "neutral", backgroundCoverageComplete: true, highestImpact: "high", events: [],
     });
     const candles = [0, 14_400, 28_800].map((time) => ({ time, open: 1.1, high: 1.2, low: 1.0, close: 1.15, volume: 1 }));
-    const signals = [makeSignal("long", 1_000, "long"), makeSignal("short", 15_000, "short")];
+    const signals = [{
+      ...makeSignal("long", 1_000, "long"),
+      contextOverlay: { registrationId: "FMS-EURUSD-H4-CTX-C001", modelId: "FMS-CONTEXT-CONDITIONAL-H4-v1" as const, parentPatternId: "pattern-long", condition: { dimension: "macroBackground", value: "aligned", knownAt: "entry" as const }, observedValue: "aligned", matched: true, activeForEvent: true, executionApplied: true, parentBehaviorWhenContextDoesNotMatch: "retain_parent" as const, parentExecution: { stopAtr: 1, targetR: 2, expiryCandles: 30 }, contextExecution: { stopAtr: .75, targetR: 3, expiryCandles: 18 } },
+    }, makeSignal("short", 15_000, "short")];
     const built = buildMacroBiasSeriesMarkers(signals, candles, "H4", 0);
 
     expect(built.markers.map((marker) => ({ time: marker.time, shape: marker.shape, text: marker.text }))).toEqual([
-      { time: 14_400, shape: "arrowUp", text: "LONG BIAS" },
+      { time: 14_400, shape: "arrowUp", text: "LONG BIAS · CONTEXT" },
       { time: 28_800, shape: "arrowDown", text: "SHORT BIAS" },
     ]);
     expect([...built.signalByMarkerId.keys()]).toEqual([
@@ -72,6 +75,24 @@ describe("getChartConnectionLabel", () => {
     expect([...d1Built.signalByMarkerId.keys()]).toEqual(["macro-bias-activation:d1"]);
     expect(getMacroBiasActiveState([makeSignal("d1-active", 1_000, "long")], [d1Candles[0]], 0, "D1"))
       .toMatchObject({ activationCandleOpen: 0, remainingCandles: null, expiryCandleOpen: null });
+  });
+  it("adds the entry-known support or resistance barrier beside selected-arrow trade levels", () => {
+    const signal = {
+      id: "context", patternId: "pattern", sourceVersionId: "v1", eventTime: 1, activationTime: 2, historicalReplay: true,
+      direction: "short", label: "Context signal", agreement: "consensus", pairVote: -1, expiryCandles: 30, backgroundDirection: "none", backgroundPairVote: 0,
+      backgroundAlignment: "neutral", backgroundCoverageComplete: true, highestImpact: "high", events: [], entry: 1.2, stop: 1.21, target: 1.18,
+      marketContext: {
+        schema: "fms-market-context-v1", knownAt: 1, eventTime: 1,
+        price: { regime: "downtrend", relationToSignal: "aligned", shortChangeAtr: -1, mediumChangeAtr: -2, method: "past-only" },
+        volatility: { regime: "normal", percentile: .5, priorCount: 120, method: "past-only" },
+        supportResistance: { method: "past-only pivots", lookbackCandles: 120, confirmedZoneCount: 1, support: null, resistance: { kind: "resistance", level: 1.205, touches: 4, distanceAtr: .5 }, directionalBarrier: { kind: "resistance", level: 1.205, touches: 4, distanceAtr: .5 }, directionalRoomAtr: .5, roomState: "blocked" },
+        macroBackground: { direction: "none", pairVote: 0, relationToSignal: "neutral", method: "Before evidence" },
+        releaseEnvironment: { session: "us", packageSize: 1, highestImpact: "high" }, limitations: [],
+      },
+    } satisfies MacroSignalChartSignal;
+    expect(buildMacroBiasPriceLineLevels(signal).map(({ value, title }) => ({ value, title }))).toEqual([
+      { value: 1.2, title: "ENTRY" }, { value: 1.21, title: "SL" }, { value: 1.18, title: "TP" }, { value: 1.205, title: "H4 RES 4x" },
+    ]);
   });
   it("uses one FMS view with an optional past-arrow overlay", () => {
     expect(getMacroBiasReplayStatusLabel({
@@ -151,6 +172,15 @@ describe("getChartConnectionLabel", () => {
           { targetR: 1, targetPrice: 1.36, distanceAtr: 2, distancePips: 100, status: "sl_before_target", reachedAt: 43_200, timeToTargetCandles: null },
         ],
       },
+      marketContext: {
+        schema: "fms-market-context-v1", knownAt: 14_400, eventTime: 1_000,
+        price: { regime: "uptrend", relationToSignal: "aligned", shortChangeAtr: 1.2, mediumChangeAtr: 2.4, method: "past-only trend" },
+        volatility: { regime: "expanded", percentile: .82, priorCount: 120, method: "past-only ATR percentile" },
+        supportResistance: { method: "past-only pivots", lookbackCandles: 120, confirmedZoneCount: 2, support: null, resistance: { kind: "resistance", level: 1.36, touches: 3, distanceAtr: 2 }, directionalBarrier: { kind: "resistance", level: 1.36, touches: 3, distanceAtr: 2 }, directionalRoomAtr: 2, roomState: "open" },
+        macroBackground: { direction: "long", pairVote: 1, relationToSignal: "aligned", method: "Before evidence" },
+        releaseEnvironment: { session: "us", packageSize: 3, highestImpact: "high" },
+        limitations: ["Research only."],
+      },
     };
     const html = renderToStaticMarkup(createElement(ChartMacroBiasAudit, { data: {
       signal,
@@ -177,6 +207,13 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Long USDCAD");
     expect(html).not.toContain("Long EURUSD");
     expect(html).toContain("Why the arrow appeared");
+    expect(html).toContain("Context known before entry");
+    expect(html).toContain("Research comparison");
+    expect(html).toContain("A reviewed match can change only this exact setup&#x27;s contract");
+    expect(html).toContain("Price regime");
+    expect(html).toContain("Uptrend");
+    expect(html).toContain("82nd past-only percentile");
+    expect(html).toContain("2.00 ATR to confirmed resistance at 1.36000 · 3 touches");
     expect(html).toContain("Initial move");
     expect(html).toContain("Followed · +0.67R");
     expect(html).toContain("Price followed the arrow");
@@ -238,12 +275,28 @@ describe("getChartConnectionLabel", () => {
       expectancyCi95: { lower: -.2, upper: .6 }, targetHitCi95: { lower: .2, upper: .6 },
     };
     const distribution = { minimum: -.5, p25: -.1, median: .2, mean: .25, p75: .6, maximum: 1.5 };
+    const contextReaction = { evaluableN: 34, alignmentRate: .588, medianAtr: .2, averageAtr: .3, ci95: { lower: .01, upper: .59 } };
+    const contextExecution = { evaluableN: 33, averageR: .333 };
+    const contextResearch = {
+      schema: "fms-context-challenger-v1", recipe: "EURUSD|sentiment", registryRevision: "v1", configurationHash: "context-config", candleFingerprint: "candles", datasetFingerprint: "data", activeArrowPreserved: true,
+      dimensions: [], selection: "Development-only selection; untouched later audit.",
+      selectedCandidate: {
+        dimension: "macroBackground", value: "aligned", status: "later_supported", selectionBasis: "later cases were untouched during selection",
+        developmentReaction: contextReaction, laterReaction: contextReaction, developmentExecution: contextExecution, laterExecution: contextExecution,
+        outsideLaterReaction: { ...contextReaction, evaluableN: 20, alignmentRate: .4 }, outsideLaterExecution: { evaluableN: 20, averageR: .125 },
+        developmentExecutionUpliftR: .15, laterExecutionUpliftR: .208, developmentAlignmentUplift: .1, laterAlignmentUplift: .188, activeArrowChanged: false,
+      },
+      minimumSamples: { development: 20, later: 10 },
+      baseline: { developmentReaction: contextReaction, laterReaction: contextReaction, developmentExecution: contextExecution, laterExecution: contextExecution },
+      activeContract: { managementFamily: "break_even", stopAtr: 1, targetR: 2, holdingCandles: 30, managementTriggerR: 1 }, activeRegistryPreserved: true,
+    } satisfies MacroSignalContextResearch;
     const pattern = {
       id: "sentiment", signature: "long|EUR:consumer_sentiment", signatures: ["long|EUR:consumer_sentiment", "short|EUR:consumer_sentiment"],
       sourceVersionId: "v3", label: "Euro-area consumer sentiment", condition: "Long if sentiment improves; Short if it weakens.", execution: { stopAtr: 1, targetR: 2, expiryCandles: 30, managementFamily: "break_even", managementTriggerR: 1 }, baseExecution: { stopAtr: 1, targetR: 2, expiryCandles: 30 }, direction: "both",
       executionReview: { status: "reviewed_active", activatedAt: 50, reason: "Later execution improved.", limitations: "Gross reused history.", currentExecution: { stopAtr: 1, targetR: 2, expiryCandles: 30, managementFamily: "break_even", managementTriggerR: 1 }, previousExecution: { stopAtr: 1, targetR: 2, expiryCandles: 30 }, later: { averageR: .3, tpBeforeSl: .55, evaluableN: 30 } },
+      contextRegistration: { id: "FMS-EURUSD-H4-CTX-C001", researchExperimentId: "FMS-EURUSD-H4-CTX-E001", modelId: "FMS-CONTEXT-CONDITIONAL-H4-v1", status: "reviewed_active", activatedAt: 90, parentPatternId: "sentiment", market: "EURUSD", condition: { dimension: "macroBackground", value: "aligned", knownAt: "entry" }, execution: { stopAtr: .75, targetR: 3, expiryCandles: 18, managementFamily: "fixed", managementTriggerR: null }, parentBehaviorWhenContextDoesNotMatch: "retain_parent", later: { evaluableN: 33, averageR: .333 }, parentOnSameContextLater: { evaluableN: 33, averageR: .125 }, reaction: { alignmentRate: .588 } },
       market: "EURUSD", scoringPolicy: "forecast_quality", historicalBenchmark: { experimentId: "FMS-EURUSD-H4-E197", historicalN: 48, walkForwardN: 35, walkForwardAverageR: .14, targetFirstRate: .75, stopFirstRate: .17, status: "historically_profitable" },
-      reactionAudit: { schema: "registered-reaction-audit-v1", scope: "chronological later-test cases", horizonCandles: 6, evaluableN: 35, directionWorkedTradeProfited: 20, directionWorkedTradeLost: 4, directionFailedTradeProfited: 3, directionFailedTradeLost: 8, positiveResponseRate: 24 / 35, medianResponseR: .22, profile: { schema: "registered-reaction-profile-v1", scope: "chronological later-test cases", experimentId: "FMS-EURUSD-H4-E197", evaluableN: 35, standardWindowCandles: 30, classification: "short_lived_impulse", horizons: [1, 3, 6, 12, 30].map((holdingCandles) => ({ holdingCandles, evaluableN: 35, alignmentRate: holdingCandles <= 3 ? .68 : .48, atr: distribution, r: distribution, pips: distribution })), mfe: { atr: distribution, r: distribution, pips: distribution, timeCandles: distribution }, mae: { atr: distribution, r: distribution, pips: distribution, timeCandles: distribution }, givebackAtr: distribution, contractResearch: { selectionRule: "Development only", status: "keep_frozen_contract", frozen: { stopAtr: 1, targetR: 2, holdingCandles: 30, developmentAverageR: .2, laterAverageR: .14, laterTargetRate: .75, laterStopRate: .17 }, developmentSelected: { stopAtr: 1, targetR: 2, holdingCandles: 30, developmentAverageR: .2, laterAverageR: .14, laterTargetRate: .75, laterStopRate: .17 } } } },
+      reactionAudit: { schema: "registered-reaction-audit-v1", scope: "chronological later-test cases", horizonCandles: 6, evaluableN: 35, directionWorkedTradeProfited: 20, directionWorkedTradeLost: 4, directionFailedTradeProfited: 3, directionFailedTradeLost: 8, positiveResponseRate: 24 / 35, medianResponseR: .22, profile: { schema: "registered-reaction-profile-v1", scope: "chronological later-test cases", experimentId: "FMS-EURUSD-H4-E197", evaluableN: 35, standardWindowCandles: 30, classification: "short_lived_impulse", horizons: [1, 3, 6, 12, 30].map((holdingCandles) => ({ holdingCandles, evaluableN: 35, alignmentRate: holdingCandles <= 3 ? .68 : .48, atr: distribution, r: distribution, pips: distribution })), mfe: { atr: distribution, r: distribution, pips: distribution, timeCandles: distribution }, mae: { atr: distribution, r: distribution, pips: distribution, timeCandles: distribution }, givebackAtr: distribution, contractResearch: { selectionRule: "Development only", status: "keep_frozen_contract", frozen: { stopAtr: 1, targetR: 2, holdingCandles: 30, developmentAverageR: .2, laterAverageR: .14, laterTargetRate: .75, laterStopRate: .17 }, developmentSelected: { stopAtr: 1, targetR: 2, holdingCandles: 30, developmentAverageR: .2, laterAverageR: .14, laterTargetRate: .75, laterStopRate: .17 } }, contextResearch } },
       groups: ["EUR:consumer_sentiment"], overall: metrics, development: metrics, holdout: metrics, qualification: {}, exampleTitles: [],
       modelStatus: "current", currentEligible: true, modelChecks: {}, executionStress: { pips: 3, overall: metrics, development: metrics, holdout: metrics, recent: metrics },
       readiness: { auditStatus: "complete", historicalStatus: "historically_qualified", liveStatus: "not_live_validated", label: "Historical audit complete", actionableInShadowTrader: true },
@@ -262,10 +315,12 @@ describe("getChartConnectionLabel", () => {
       ...closedSignal,
       id: "sentiment-open", eventTime: 95, activationTime: 96, direction: "long", pairVote: 1,
       entry: 1.2, stop: 1.19, target: 1.22, outcomeStatus: "pending", resultR: null, exitTime: null,
+      marketContext: { schema: "fms-market-context-v1", knownAt: 96, eventTime: 95, price: { regime: "uptrend", relationToSignal: "aligned", shortChangeAtr: 1, mediumChangeAtr: 2, method: "past only" }, volatility: { regime: "normal", percentile: .5, priorCount: 120, method: "past only" }, supportResistance: { method: "past only", lookbackCandles: 120, confirmedZoneCount: 0, support: null, resistance: null, directionalBarrier: null, directionalRoomAtr: null, roomState: "open" }, macroBackground: { direction: "long", pairVote: 1, relationToSignal: "aligned", method: "Before" }, releaseEnvironment: { session: "us", packageSize: 1, highestImpact: "high" }, limitations: [] },
+      contextOverlay: { registrationId: "FMS-EURUSD-H4-CTX-C001", modelId: "FMS-CONTEXT-CONDITIONAL-H4-v1", parentPatternId: "sentiment", condition: { dimension: "macroBackground", value: "aligned", knownAt: "entry" }, observedValue: "aligned", matched: true, activeForEvent: true, executionApplied: true, parentBehaviorWhenContextDoesNotMatch: "retain_parent", parentExecution: { stopAtr: 1, targetR: 2, expiryCandles: 30, managementFamily: "break_even", managementTriggerR: 1 }, contextExecution: { stopAtr: .75, targetR: 3, expiryCandles: 18, managementFamily: "fixed", managementTriggerR: null }, later: { evaluableN: 33, averageR: .333 }, parentOnSameContextLater: { evaluableN: 33, averageR: .125 }, reaction: { alignmentRate: .588 }, relationship: "context_improves_setup" },
     } satisfies MacroSignalChartSignal;
     const response = {
       supported: true, versionId: "v5", modelId: "v5", modelHash: "hash", modelActivatedAt: 1, datasetFingerprint: "data",
-      mode: "current", symbol: "EURUSD", timeframe: "H1", modelTimeframe: "H4", targetR: 2, patterns: [pattern], signals: [closedSignal, openSignal], message: "Current",
+      mode: "current", symbol: "EURUSD", timeframe: "H1", modelTimeframe: "H4", targetR: 2, contextConditionalModel: { id: "FMS-CONTEXT-CONDITIONAL-H4-v1", activatedAt: 90, registeredSetups: 1 }, patterns: [pattern], signals: [closedSignal, openSignal], message: "Current",
       realtime: {
         asOf: 100,
         nextPairEvent: { id: 1, time: 200, currency: "USD", countryCode: "US", title: "Leading Index", impact: "high", actual: null, forecast: "1", previous: "0" },
@@ -288,7 +343,7 @@ describe("getChartConnectionLabel", () => {
         usage: "Context only.",
       },
     } satisfies MacroSignalChartSignalResponse;
-    const gbpPattern = { ...pattern, id: "gbp-industrial", market: "GBPUSD", label: "US industrial-production package", readiness: { auditStatus: "incomplete", historicalStatus: "unverified", liveStatus: "not_live_validated", label: "Audit incomplete", actionableInShadowTrader: false } } satisfies MacroSignalChartPattern;
+    const gbpPattern = { ...pattern, id: "gbp-industrial", market: "GBPUSD", label: "US industrial-production package", contextRegistration: undefined, readiness: { auditStatus: "incomplete", historicalStatus: "unverified", liveStatus: "not_live_validated", label: "Audit incomplete", actionableInShadowTrader: false } } satisfies MacroSignalChartPattern;
     const gbpResponse = {
       ...response,
       symbol: "GBPUSD",
@@ -380,6 +435,9 @@ describe("getChartConnectionLabel", () => {
     expect(activeHtml).toContain("MT5 demo order comment");
     expect(activeHtml).toContain("FMS-ABC1234567");
     expect(activeHtml).toContain("FMS sends no order");
+    expect(activeHtml).toContain("Reviewed context contract used");
+    expect(activeHtml).toContain("Macro background = Aligned");
+    expect(activeHtml).toContain("FMS-EURUSD-H4-CTX-C001");
     const queuedSignal = {
       ...openSignal,
       id: "sentiment-queued", eventTime: 101, activationTime: null,
@@ -527,10 +585,17 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Inflation heating");
     expect(html).toContain("Not used by frozen rules");
     expect(html).toContain("Needs Codex review");
-    expect(html).toContain("3 unresolved · 2 execution reviews");
+    expect(html).toContain("3 unresolved · 1 context candidates");
     expect(html).toContain("missing outcome candles");
     expect(html).toContain("Challenger worth review");
     expect(html).toContain("Needs execution review");
+    expect(html).toContain("Later-supported context challengers");
+    expect(html).toContain("Macro background = Aligned");
+    expect(html).toContain("versus parent +0.21R");
+    expect(html).toContain("These are research candidates only; no arrow or contract is filtered");
+    expect(html).toContain("Context-conditioned setups");
+    expect(html).toContain("1 reviewed rules");
+    expect(html).toContain("A matching entry context uses the shown contract; a nonmatch keeps the parent arrow and parent contract");
     expect(html).toContain("Copy AI review");
     expect(html).toContain("backtest-overfitting research");
     expect(html).toContain("95% range");

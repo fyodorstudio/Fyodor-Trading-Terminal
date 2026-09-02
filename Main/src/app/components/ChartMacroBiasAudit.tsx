@@ -45,6 +45,39 @@ function formatAtr(value: number | null | undefined): string {
   return value == null || !Number.isFinite(value) ? "—" : `${value.toFixed(2)} ATR`;
 }
 
+function readableContext(value: string | null | undefined): string {
+  if (!value) return "Unavailable";
+  return value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function ordinalPercentile(value: number): string {
+  const rounded = Math.round(value * 100);
+  const suffix = rounded % 100 >= 11 && rounded % 100 <= 13 ? "th" : rounded % 10 === 1 ? "st" : rounded % 10 === 2 ? "nd" : rounded % 10 === 3 ? "rd" : "th";
+  return `${rounded}${suffix} past-only percentile`;
+}
+
+function contextHistory(
+  pattern: MacroSignalChartPattern,
+  dimension: "priceRegime" | "trendRelation" | "volatilityRegime" | "directionalRoom" | "macroBackground" | "releaseSession",
+  value: string,
+) {
+  return pattern.reactionAudit?.profile?.contextResearch?.dimensions.find((row) => row.dimension === dimension && row.value === value) ?? null;
+}
+
+function marketContextValue(
+  signal: MacroSignalChartSignal,
+  dimension: "priceRegime" | "trendRelation" | "volatilityRegime" | "directionalRoom" | "macroBackground" | "releaseSession",
+): string | null {
+  const context = signal.marketContext;
+  if (!context) return null;
+  if (dimension === "priceRegime") return context.price.regime;
+  if (dimension === "trendRelation") return context.price.relationToSignal;
+  if (dimension === "volatilityRegime") return context.volatility.regime;
+  if (dimension === "directionalRoom") return context.supportResistance.roomState;
+  if (dimension === "macroBackground") return context.macroBackground.relationToSignal;
+  return context.releaseEnvironment.session;
+}
+
 function formatHoldingCandles(from: number | null | undefined, to: number | null | undefined): string {
   if (from == null || to == null || to < from) return "—";
   const candles = (to - from) / 14_400;
@@ -126,6 +159,22 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
   const resultPips = signal.resultR == null || riskPips == null ? null : signal.resultR * riskPips;
   const timelineEnd = signal.exitTime ?? signal.pendingLifecycle?.asOf ?? signal.expiryTime ?? null;
   const targetLadder = signal.pathAudit?.targetLadder ?? [];
+  const marketContext = signal.marketContext;
+  const contextOverlay = signal.contextOverlay;
+  const selectedContextCandidate = pattern.reactionAudit?.profile?.contextResearch?.selectedCandidate ?? null;
+  const selectedContextMatches = selectedContextCandidate
+    ? marketContextValue(signal, selectedContextCandidate.dimension) === selectedContextCandidate.value
+    : false;
+  const directionalBarrier = marketContext?.supportResistance.directionalBarrier;
+  const directionalRoomDetail = marketContext?.supportResistance.directionalRoomAtr == null
+    ? "No confirmed opposing H4 zone"
+    : `${marketContext.supportResistance.directionalRoomAtr.toFixed(2)} ATR to ${directionalBarrier?.strength ?? "confirmed"} ${directionalBarrier?.kind ?? "zone"}${directionalBarrier ? ` at ${formatPrice(directionalBarrier.level, market)} · ${directionalBarrier.touches} touches` : ""}`;
+  const contextRows = marketContext ? [
+    { label: "Price regime", dimension: "priceRegime" as const, value: marketContext.price.regime, detail: `${readableContext(marketContext.price.relationToSignal)} with arrow` },
+    { label: "Volatility", dimension: "volatilityRegime" as const, value: marketContext.volatility.regime, detail: marketContext.volatility.percentile == null ? `${marketContext.volatility.priorCount} prior ATR observations` : ordinalPercentile(marketContext.volatility.percentile) },
+    { label: "Room toward target", dimension: "directionalRoom" as const, value: marketContext.supportResistance.roomState, detail: directionalRoomDetail },
+    { label: "Economic background", dimension: "macroBackground" as const, value: marketContext.macroBackground.relationToSignal, detail: `${marketContext.macroBackground.pairVote ?? 0} Before-window pair vote` },
+  ] : [];
   return (
     <aside className="chart-macro-bias-audit" aria-label={`${signal.direction} ${market} macro bias audit`}>
       <header>
@@ -175,6 +224,53 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
           ))}
         </div>
       </section>
+
+      {marketContext ? (
+        <section className="chart-macro-bias-market-context" aria-label="Market context known before entry">
+          <div className="chart-macro-bias-section-title"><span>Context known before entry</span><strong>{contextOverlay?.executionApplied ? "Reviewed context contract used" : contextOverlay?.matched ? "Historical context match" : contextOverlay ? "Parent setup retained" : "Research comparison"}</strong></div>
+          {contextOverlay ? (
+            <div className={`chart-macro-bias-context-registration ${contextOverlay.matched ? "is-matched" : "is-not-matched"}`}>
+              <div>
+                <span>{contextOverlay.registrationId} · {readableContext(contextOverlay.condition.dimension)}</span>
+                <strong>{contextOverlay.matched ? "Context matched" : "Context did not match"}</strong>
+                <small>Rule: {readableContext(contextOverlay.condition.dimension)} must be {readableContext(contextOverlay.condition.value)}. At this entry it was {readableContext(contextOverlay.observedValue)}.</small>
+              </div>
+              <p>{contextOverlay.executionApplied
+                ? `This reviewed context rule used SL ${contextOverlay.contextExecution.stopAtr} ATR, TP ${contextOverlay.contextExecution.targetR}R, maximum ${contextOverlay.contextExecution.expiryCandles} H4.`
+                : contextOverlay.matched
+                  ? "The historical arrow matches the reviewed condition, but its original parent result is preserved because the context model was not active then."
+                  : "The condition did not match, so this recipe explicitly retained the parent arrow and parent execution contract."}</p>
+              <dl>
+                <div><dt>Later context trades</dt><dd>{typeof contextOverlay.later?.evaluableN === "number" ? contextOverlay.later.evaluableN : "—"}</dd></div>
+                <div><dt>Context average</dt><dd>{formatR(typeof contextOverlay.later?.averageR === "number" ? contextOverlay.later.averageR : null)}</dd></div>
+                <div><dt>Parent on same cases</dt><dd>{formatR(typeof contextOverlay.parentOnSameContextLater?.averageR === "number" ? contextOverlay.parentOnSameContextLater.averageR : null)}</dd></div>
+                <div><dt>Followed after 6 H4</dt><dd>{formatPercent(typeof contextOverlay.reaction?.alignmentRate === "number" ? contextOverlay.reaction.alignmentRate : null)}</dd></div>
+              </dl>
+            </div>
+          ) : null}
+          <div className="chart-macro-bias-context-grid">
+            {contextRows.map((row) => {
+              const history = contextHistory(pattern, row.dimension, row.value);
+              return <div key={row.dimension}><span>{row.label}</span><strong>{readableContext(row.value)}</strong><small>{row.detail}</small>{history ? <em>{history.laterReaction.evaluableN} later cases · {formatPercent(history.laterReaction.alignmentRate)} followed after 6 H4</em> : <em>No stable setup-specific comparison yet</em>}</div>;
+            })}
+          </div>
+          {!contextOverlay && selectedContextCandidate ? (
+            <div className="chart-macro-bias-context-challenger">
+              <span>Development-selected context challenger</span>
+              <strong>{readableContext(selectedContextCandidate.dimension)} = {readableContext(selectedContextCandidate.value)}</strong>
+              <small>{selectedContextMatches ? "This arrow matches the selected historical context." : "This arrow does not match the selected historical context."}</small>
+              <dl>
+                <div><dt>Later audit</dt><dd>{selectedContextCandidate.status === "later_supported" ? "Supported" : "Rejected"}</dd></div>
+                <div><dt>Later cases</dt><dd>{selectedContextCandidate.laterReaction.evaluableN}</dd></div>
+                <div><dt>Followed after 6 H4</dt><dd>{formatPercent(selectedContextCandidate.laterReaction.alignmentRate)}</dd></div>
+                <div><dt>Average trade</dt><dd>{formatR(selectedContextCandidate.laterExecution.averageR)}</dd></div>
+                <div><dt>Versus parent recipe</dt><dd>{formatR(selectedContextCandidate.laterExecutionUpliftR)}</dd></div>
+              </dl>
+            </div>
+          ) : null}
+          <p>These labels use only completed candles and economic evidence available no later than the H4 entry. A reviewed match can change only this exact setup&apos;s contract; it never creates a duplicate arrow or reverses the economic direction.</p>
+        </section>
+      ) : null}
 
       {initialReaction ? (
         <section className={`chart-macro-bias-reaction-verdict ${initialReactionFollowed ? "is-followed" : "is-rejected"}`} aria-label="Initial price reaction">
