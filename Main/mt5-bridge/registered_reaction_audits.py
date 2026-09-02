@@ -18,6 +18,7 @@ from typing import Any, Dict, Optional, Tuple
 
 _PROFILE_PATH = Path(__file__).with_name("registered_reaction_profiles.json")
 _CONTEXT_PROFILE_PATH = Path(__file__).with_name("registered_market_context_profiles.json")
+_FOLLOWUP_PROFILE_PATH = Path(__file__).with_name("registered_context_followups.json")
 try:
   _PROFILE_ROWS = json.loads(_PROFILE_PATH.read_text(encoding="utf-8")).get("profiles", {})
 except (OSError, TypeError, ValueError):
@@ -26,6 +27,12 @@ try:
   _CONTEXT_PROFILE_ROWS = json.loads(_CONTEXT_PROFILE_PATH.read_text(encoding="utf-8")).get("profiles", {})
 except (OSError, TypeError, ValueError):
   _CONTEXT_PROFILE_ROWS = {}
+try:
+  _FOLLOWUP_PAYLOAD = json.loads(_FOLLOWUP_PROFILE_PATH.read_text(encoding="utf-8"))
+  _FOLLOWUP_PROFILE_ROWS = _FOLLOWUP_PAYLOAD.get("profiles", {})
+except (OSError, TypeError, ValueError):
+  _FOLLOWUP_PAYLOAD = {}
+  _FOLLOWUP_PROFILE_ROWS = {}
 
 
 REACTION_AUDIT_V1: Dict[Tuple[str, str], Tuple[int, int, int, int, int, float, float]] = {
@@ -99,5 +106,14 @@ def registered_reaction_audit(market: str, pattern_id: str) -> Optional[Dict[str
   profile = _PROFILE_ROWS.get(f"{market}|{pattern_id}")
   if isinstance(profile, dict):
     context_research = _CONTEXT_PROFILE_ROWS.get(f"{market}|{pattern_id}")
-    payload["profile"] = {**profile, **({"contextResearch": context_research} if isinstance(context_research, dict) else {})}
+    followup_research = _FOLLOWUP_PROFILE_ROWS.get(f"{market}|{pattern_id}")
+    payload["profile"] = {
+      **profile,
+      **({"contextResearch": context_research} if isinstance(context_research, dict) else {}),
+      **({"followupResearch": followup_research} if isinstance(followup_research, dict) else {}),
+    }
   return payload
+
+
+def registered_context_followup_index() -> Dict[str, Any]:
+  return dict(_FOLLOWUP_PAYLOAD) if isinstance(_FOLLOWUP_PAYLOAD, dict) else {}

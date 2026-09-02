@@ -87,46 +87,30 @@ export function useChartMarketData({
     let cancelled = false;
     const requestId = loadRequestIdRef.current + 1;
     loadRequestIdRef.current = requestId;
-    setHistoryState("loading");
+    const cached = readChartHistoryCache(selectedSymbol, timeframe);
+    setHistoryState(cached.length > 0 ? "ready" : "loading");
     setChartLoadError(null);
-    setVisibleCandles([]);
+    setVisibleCandles(cached);
+    setLastCandleTime(cached[cached.length - 1]?.time ?? null);
     setBoundaryTime(null);
+    if (cached.length > 0) {
+      addLog(`loaded ${cached.length} cached candles for ${selectedSymbol} ${timeframe} while refreshing`);
+    }
 
     const load = async () => {
       try {
         const boundaryCacheKey = `${selectedSymbol.toUpperCase()}|${timeframe}`;
-        const cached = readChartHistoryCache(selectedSymbol, timeframe);
-        if (cached.length > 0) {
-          setVisibleCandles(cached);
-          setLastCandleTime(cached[cached.length - 1]?.time ?? null);
-          setHistoryState("ready");
-          addLog(`loaded ${cached.length} cached candles for ${selectedSymbol} ${timeframe} while refreshing`);
-        }
-
-        const cachedBoundary = boundaryCacheRef.current.get(boundaryCacheKey) ?? null;
-        let boundaryTimeValue = cachedBoundary;
-        if (boundaryTimeValue == null) {
-          try {
-            const boundary = await fetchHistoryBoundary({ symbol: selectedSymbol, tf: timeframe });
-            boundaryTimeValue = boundary.oldest_time;
-            boundaryCacheRef.current.set(boundaryCacheKey, boundaryTimeValue);
-          } catch {
-            boundaryTimeValue = null;
-            boundaryCacheRef.current.delete(boundaryCacheKey);
-          }
-        }
-        if (cancelled || loadRequestIdRef.current !== requestId) return;
+        const cachedBoundary = boundaryCacheRef.current.get(boundaryCacheKey);
+        if (cachedBoundary !== undefined) setBoundaryTime(cachedBoundary);
 
         const candles = await fetchHistory(selectedSymbol, timeframe, 5000);
         if (cancelled || loadRequestIdRef.current !== requestId) return;
         if (candles.length === 0) {
           if (cached.length > 0) {
-            setBoundaryTime(boundaryTimeValue);
             addLog(`history refresh returned no candles for ${selectedSymbol} ${timeframe}; keeping cached history visible`);
             return;
           }
           setVisibleCandles([]);
-          setBoundaryTime(boundaryTimeValue);
           setHistoryState("no_data");
           setLastCandleTime(null);
           setChartLoadError(`No candle history returned for ${selectedSymbol} ${timeframe}. The broker may not expose this symbol or timeframe, or MT5 has no history downloaded yet.`);
@@ -137,16 +121,34 @@ export function useChartMarketData({
         setHistoryState("ready");
         setLastCandleTime(candles[candles.length - 1]?.time ?? null);
         setVisibleCandles(candles);
-        setBoundaryTime(boundaryTimeValue);
         saveChartHistoryCache(selectedSymbol, timeframe, candles);
         addLog(`history loaded ${candles.length} candles for ${selectedSymbol} ${timeframe}`);
+
+        if (cachedBoundary === undefined) {
+          try {
+            const boundary = await fetchHistoryBoundary({ symbol: selectedSymbol, tf: timeframe });
+            if (cancelled || loadRequestIdRef.current !== requestId) return;
+            boundaryCacheRef.current.set(boundaryCacheKey, boundary.oldest_time);
+            setBoundaryTime(boundary.oldest_time);
+          } catch {
+            boundaryCacheRef.current.delete(boundaryCacheKey);
+          }
+        }
       } catch (error) {
         if (cancelled || loadRequestIdRef.current !== requestId) return;
+        const message = error instanceof Error ? error.message : String(error);
+        if (cached.length > 0) {
+          setHistoryState("ready");
+          setVisibleCandles(cached);
+          setLastCandleTime(cached[cached.length - 1]?.time ?? null);
+          setChartLoadError(`Live history refresh failed; showing ${cached.length} cached ${selectedSymbol} ${timeframe} candles.`);
+          addLog(`history refresh failed for ${selectedSymbol} ${timeframe}; retained cached candles: ${message}`);
+          return;
+        }
         setVisibleCandles([]);
         setBoundaryTime(null);
         setHistoryState("error");
         setLastCandleTime(null);
-        const message = error instanceof Error ? error.message : String(error);
         setChartLoadError(
           message.includes("symbol_select failed")
             ? `MT5 could not select ${selectedSymbol}. This usually means the broker does not offer this symbol under that exact name.`

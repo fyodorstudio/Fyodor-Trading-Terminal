@@ -1289,6 +1289,24 @@ The next work is explicitly staged so a future session does not mistake v1 for e
 
 Each pass can add reviewed rules, retain research-only knowledge, or prove no stable improvement. Failed results remain valuable and durable. The model is not considered exhausted merely because one pass ends, but later passes must stay separately named and fingerprinted.
 
+### Follow-up implementation result - 2026-09-02
+
+The six declared follow-up passes now have a durable first implementation in `fms-context-followup-index-v1`. This remains a research layer: it cannot edit the active registry, create a second arrow, or change a registered contract.
+
+1. **Prospective context ledger implemented.** Shadow Trader now keeps immutable first-seen matched and nonmatched decisions separate for each reviewed context rule. Resolved future cases report average R and positive-result rate beside the reused-history expectation. Empty future samples remain visibly empty rather than borrowing historical results.
+2. **Policy/inflation context v1 implemented.** Policy and inflation states are calculated independently for the two currencies from strict rows known before the registered release. The declared development-only scan found one later-supported result: `NZDUSD|nzdusd-us-trade-balance` when the inflation differential opposed the signal. Later execution was N 24, average `+0.91R`, six-H4 directional alignment `62.5%`, and three of four represented years positive. Its unchanged parent `1.5 ATR / 4R / 30 H4` contract remained the strongest declared execution; alternative management was audited but not selected for registration.
+3. **Bounded two-context interactions implemented.** Only the existing v1 selected context plus one policy or inflation state was tested. No interaction met the frozen development and later requirements. This is a useful negative result and remains recorded.
+4. **Coverage-aware refresh implemented.** The exact follow-up manifest can be refreshed without repeatedly mining unchanged history. A refresh is material only when its immutable fingerprint changes, at least ten cases are added, or the latest event coverage advances by at least ninety days.
+5. **Execution follow-up implemented.** Surviving slow-context candidates reuse the existing fixed, break-even, trailing, and partial management challenger. Development chooses; later cases audit once. No active contract changes automatically.
+6. **Cross-market transfer implemented.** Reviewed context definitions were tested as separately fingerprinted experiments against same-family registered recipes in other markets. Three transfers survived the declared later checks:
+   - NZDUSD opposed-trend definition applied to USDJPY US manufacturing employment: later execution N 14, `+0.50R`, six-H4 alignment `80.0%`.
+   - USDJPY aligned-Before definition applied to EURUSD US manufacturing employment rejection: later execution N 15, `+0.31R`, alignment `73.3%`.
+   - USDJPY aligned-Before definition applied to EURUSD Euro-area composite PMI: later execution N 12, `+0.33R`, alignment `58.3%`.
+
+These four findings are **review candidates only**. The slow-context result and all three transfers reuse historical data, have modest later samples, exclude actual trading costs, and do not authorize a setup, arrow, filter, or contract change. Their configuration, calendar dataset, and candle fingerprints are stored in the follow-up artifact so a future review can reproduce the exact claims.
+
+The active context registry still contains exactly four code-reviewed rules. During regeneration, the USDJPY consumer-sentiment candidate's encompassing candle fingerprint changed while its selected condition, development/later metrics, calendar dataset fingerprint, and configuration hash remained identical; the reviewed approval was updated to that reproducible candle fingerprint. No behavior or threshold was reselected.
+
 ### Verification Contract
 
 - Existing 47 parent setups, arrows, historical outcomes, and Shadow Trader decisions remain byte/replay compatible.

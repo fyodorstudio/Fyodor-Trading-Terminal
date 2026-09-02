@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import server
 from macro_signal import (
+  MARKET_SOURCE_VERSION_IDS,
   STRESS_HOLDING_CANDLES,
   STRESS_STOP_ATR_VALUES,
   STRESS_TARGET_R_VALUES,
@@ -22,6 +23,9 @@ from macro_signal import (
   _simulate_path_configuration,
   _summarize_path_configuration,
   build_candidate_path_profile,
+  compare_source_values,
+  get_signal_definition,
+  score_event,
 )
 
 
@@ -76,6 +80,7 @@ def context_categories(profile: Dict[str, Any]) -> Dict[str, str]:
   support = context.get("supportResistance") or {}
   background = context.get("macroBackground") or {}
   environment = context.get("releaseEnvironment") or {}
+  policy_inflation = context.get("policyInflation") or {}
   return {
     "priceRegime": str(price.get("regime") or "unknown"),
     "trendRelation": str(price.get("relationToSignal") or "unknown"),
@@ -83,7 +88,95 @@ def context_categories(profile: Dict[str, Any]) -> Dict[str, str]:
     "directionalRoom": str(support.get("roomState") or "unknown"),
     "macroBackground": str(background.get("relationToSignal") or "unknown"),
     "releaseSession": str(environment.get("session") or "unknown"),
+    "policyDifferential": str(policy_inflation.get("policyDifferential") or "unknown"),
+    "inflationDifferential": str(policy_inflation.get("inflationDifferential") or "unknown"),
   }
+
+
+def entry_known_policy_inflation_context(
+  market: str,
+  event_times: Iterable[int],
+) -> Dict[int, Dict[str, Any]]:
+  """Build slow context snapshots using only calendar rows strictly before each release."""
+  ordered_times = sorted({int(value) for value in event_times})
+  if not ordered_times:
+    return {}
+  source_ids = MARKET_SOURCE_VERSION_IDS.get(market) or ()
+  definition = get_signal_definition(source_ids[2]) if len(source_ids) > 2 else None
+  if definition is None:
+    return {value: {"policyDifferential": "unknown", "inflationDifferential": "unknown"} for value in ordered_times}
+  base, quote = market[:3], market[3:6]
+  events = server._research_store.query_calendar(
+    from_time=ordered_times[0] - 800 * 86_400,
+    to_time=ordered_times[-1] - 1,
+    currencies=[base, quote],
+  )
+  scored = []
+  seen = set()
+  for event in events:
+    row = score_event(event, definition)
+    if row is None:
+      continue
+    key = (int(row["time"]), str(row["currency"]), str(row.get("countryCode") or ""), str(row["title"]).lower())
+    if key in seen:
+      continue
+    seen.add(key)
+    scored.append(row)
+  scored.sort(key=lambda row: (int(row["time"]), int(row.get("id") or 0), str(row["title"])))
+  policy: Dict[str, Dict[str, Any]] = {}
+  inflation_time: Dict[str, int] = {}
+  inflation_groups: Dict[str, Dict[str, int]] = {}
+  cursor = 0
+
+  def policy_value(currency: str) -> int | None:
+    row = policy.get(currency)
+    if row is None:
+      return None
+    return compare_source_values(row.get("actual"), row.get("previous"))
+
+  def inflation_value(currency: str) -> int | None:
+    groups = inflation_groups.get(currency)
+    if not groups:
+      return None
+    heating = sum(value > 0 for value in groups.values())
+    cooling = sum(value < 0 for value in groups.values())
+    return 1 if heating > cooling else -1 if cooling > heating else 0
+
+  snapshots: Dict[int, Dict[str, Any]] = {}
+  for event_time in ordered_times:
+    while cursor < len(scored) and int(scored[cursor]["time"]) < event_time:
+      row = scored[cursor]
+      currency = str(row["currency"])
+      if row["factor"] == "policy":
+        policy[currency] = row
+      elif row["factor"] == "inflation":
+        timestamp = int(row["time"])
+        if inflation_time.get(currency) != timestamp:
+          inflation_time[currency] = timestamp
+          inflation_groups[currency] = {}
+        group = str(row["scoreGroup"])
+        inflation_groups[currency][group] = max(-3, min(3, inflation_groups[currency].get(group, 0) + int(row["score"])))
+      cursor += 1
+    # Direction is attached later because the same release time can theoretically
+    # occur in either directional variant.
+    snapshots[event_time] = {
+      "basePolicy": policy_value(base), "quotePolicy": policy_value(quote),
+      "baseInflation": inflation_value(base), "quoteInflation": inflation_value(quote),
+      "basePolicyTime": int(policy[base]["time"]) if base in policy else None,
+      "quotePolicyTime": int(policy[quote]["time"]) if quote in policy else None,
+      "baseInflationTime": inflation_time.get(base), "quoteInflationTime": inflation_time.get(quote),
+      "method": "latest policy decision and latest inflation release package strictly before the signal release",
+      "knownAt": "before_release",
+    }
+  return snapshots
+
+
+def directional_context_relation(base_value: Any, quote_value: Any, direction: str) -> str:
+  if base_value is None or quote_value is None:
+    return "unknown"
+  differential = int(base_value) - int(quote_value)
+  signal_sign = 1 if direction == "long" else -1
+  return "aligned" if differential * signal_sign > 0 else "opposed" if differential * signal_sign < 0 else "balanced"
 
 
 def context_reaction_metrics(profiles: List[Dict[str, Any]], horizon: int = 6) -> Dict[str, Any]:
@@ -152,6 +245,10 @@ def build_context_research(
   split_time: int,
   active: Dict[str, Any],
   m1_resolver=None,
+  dimensions: tuple[str, ...] = ("priceRegime", "trendRelation", "volatilityRegime", "directionalRoom", "macroBackground", "releaseSession"),
+  schema: str = "fms-context-challenger-v1",
+  excluded_values: frozenset[str] = frozenset({"unknown", "insufficient_history"}),
+  minimum_later_alignment: float = 0.0,
 ) -> Dict[str, Any]:
   family = str(active.get("managementFamily") or "fixed")
   stop_atr = float(active.get("stopAtr") or 1)
@@ -169,7 +266,6 @@ def build_context_research(
   baseline_later_execution = aggregate_managed([row for row in baseline_simulations if row["eventTime"] >= split_time])
   baseline_development_reaction = context_reaction_metrics(baseline_development)
   baseline_later_reaction = context_reaction_metrics(baseline_later)
-  dimensions = ("priceRegime", "trendRelation", "volatilityRegime", "directionalRoom", "macroBackground", "releaseSession")
   for dimension in dimensions:
     values = sorted({context_categories(profile)[dimension] for profile in profiles})
     for value in values:
@@ -230,7 +326,7 @@ def build_context_research(
       })
   selectable = [
     row for row in rows
-    if row["value"] not in {"unknown", "insufficient_history"}
+    if row["value"] not in excluded_values
     # Release session remains useful descriptive context, but it is often a
     # proxy for the release identity or a daylight-saving schedule change.
     # Do not let that proxy become an arrow-filter candidate.
@@ -259,6 +355,7 @@ def build_context_research(
     and int(development_selected["outsideLaterReaction"]["evaluableN"] or 0) >= 5
     and float(development_selected["laterExecution"].get("averageR") or 0) > 0
     and float(development_selected["laterReaction"].get("averageAtr") or 0) > 0
+    and float(development_selected["laterReaction"].get("alignmentRate") or 0) >= minimum_later_alignment
     and float(development_selected["laterExecutionUpliftR"]) >= .05
     and float(development_selected["laterAlignmentUplift"]) >= 0
   )
@@ -293,11 +390,12 @@ def build_context_research(
     "activeArrowChanged": False,
   }
   return {
-    "schema": "fms-context-challenger-v1",
+    "schema": schema,
     "dimensions": rows,
-    "selection": "One price/regime context is selected per recipe using development data only; later cases audit it unchanged. Release session remains observational. No row changes live eligibility or the active contract.",
+    "selection": "One declared context is selected per recipe using development data only; later cases audit it unchanged. No row changes live eligibility or the active contract.",
     "selectedCandidate": selected_candidate,
     "minimumSamples": {"development": 20, "later": 10},
+    "minimumLaterAlignment": minimum_later_alignment,
     "baseline": {
       "developmentReaction": baseline_development_reaction,
       "laterReaction": baseline_later_reaction,
@@ -390,6 +488,103 @@ def build_context_conditioned_execution(
     "checks": checks,
     "challenger": challenger,
     "limitations": "Gross reused history; costs and immutable forward execution remain unavailable.",
+    "activeRegistryPreserved": True,
+  }
+
+
+def build_bounded_interactions(
+  profiles: List[Dict[str, Any]],
+  split_time: int,
+  active: Dict[str, Any],
+  parent_context: Dict[str, Any],
+  m1_resolver=None,
+) -> Dict[str, Any]:
+  """Test only v1's selected context plus one predeclared slow macro context."""
+  parent = parent_context.get("selectedCandidate") or {}
+  if not parent.get("dimension") or not parent.get("value"):
+    return {"schema": "fms-bounded-two-context-v1", "status": "not_run", "reason": "No development-selected v1 context.", "rows": [], "activeRegistryPreserved": True}
+  primary_dimension, primary_value = str(parent["dimension"]), str(parent["value"])
+  primary_profiles = [row for row in profiles if context_categories(row).get(primary_dimension) == primary_value]
+  family = str(active.get("managementFamily") or "fixed")
+  stop_atr = float(active.get("stopAtr") or 1)
+  target_r = float(active.get("targetR") or 2)
+  holding = int(active.get("expiryCandles") or 30)
+  trigger = active.get("managementTriggerR")
+
+  def simulated(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+    return aggregate_managed([
+      {**simulate_managed(row, family, stop_atr, target_r, holding, trigger, m1_resolver), "eventTime": int(row["eventTime"])}
+      for row in rows
+    ])
+
+  primary_dev = [row for row in primary_profiles if int(row["eventTime"]) < split_time]
+  primary_later = [row for row in primary_profiles if int(row["eventTime"]) >= split_time]
+  primary_dev_exec, primary_later_exec = simulated(primary_dev), simulated(primary_later)
+  primary_dev_reaction, primary_later_reaction = context_reaction_metrics(primary_dev), context_reaction_metrics(primary_later)
+  rows: List[Dict[str, Any]] = []
+  for secondary_dimension in ("policyDifferential", "inflationDifferential"):
+    for secondary_value in sorted({context_categories(row)[secondary_dimension] for row in primary_profiles}):
+      if secondary_value in {"unknown", "insufficient_history"}:
+        continue
+      selected = [row for row in primary_profiles if context_categories(row)[secondary_dimension] == secondary_value]
+      development = [row for row in selected if int(row["eventTime"]) < split_time]
+      later = [row for row in selected if int(row["eventTime"]) >= split_time]
+      outside_dev = [row for row in primary_dev if row not in development]
+      outside_later = [row for row in primary_later if row not in later]
+      dev_exec, later_exec = simulated(development), simulated(later)
+      dev_reaction, later_reaction = context_reaction_metrics(development), context_reaction_metrics(later)
+      row = {
+        "conditions": [
+          {"dimension": primary_dimension, "value": primary_value},
+          {"dimension": secondary_dimension, "value": secondary_value},
+        ],
+        "developmentExecution": dev_exec, "laterExecution": later_exec,
+        "developmentReaction": dev_reaction, "laterReaction": later_reaction,
+        "outsideDevelopmentN": len(outside_dev), "outsideLaterN": len(outside_later),
+        "developmentExecutionUpliftR": float(dev_exec.get("averageR") or 0) - float(primary_dev_exec.get("averageR") or 0),
+        "laterExecutionUpliftR": float(later_exec.get("averageR") or 0) - float(primary_later_exec.get("averageR") or 0),
+        "developmentAlignmentUplift": float(dev_reaction.get("alignmentRate") or 0) - float(primary_dev_reaction.get("alignmentRate") or 0),
+        "laterAlignmentUplift": float(later_reaction.get("alignmentRate") or 0) - float(primary_later_reaction.get("alignmentRate") or 0),
+      }
+      row["developmentEligible"] = bool(
+        len(development) >= 15 and len(outside_dev) >= 10
+        and float(dev_exec.get("averageR") or 0) > 0
+        and float(dev_reaction.get("averageAtr") or 0) > 0
+        and row["developmentExecutionUpliftR"] >= .05
+        and row["developmentAlignmentUplift"] >= 0
+      )
+      rows.append(row)
+  eligible = [row for row in rows if row["developmentEligible"]]
+  selected = sorted(eligible, key=lambda row: (
+    -float(row["developmentExecutionUpliftR"]), -float(row["developmentAlignmentUplift"]),
+    float((row["developmentExecution"] or {}).get("maximumDrawdownR") or math.inf),
+    -int((row["developmentExecution"] or {}).get("evaluableN") or 0),
+    str(row["conditions"]),
+  ))[0] if eligible else None
+  later_supported = bool(selected) and bool(
+    int((selected["laterExecution"] or {}).get("evaluableN") or 0) >= 8
+    and int(selected["outsideLaterN"]) >= 5
+    and float((selected["laterExecution"] or {}).get("averageR") or 0) > 0
+    and float((selected["laterReaction"] or {}).get("averageAtr") or 0) > 0
+    and float(selected["laterExecutionUpliftR"]) >= .05
+    and float(selected["laterAlignmentUplift"]) >= 0
+  )
+  execution_followup = None
+  if selected and later_supported:
+    conditions = selected["conditions"]
+    selected_profiles = [
+      profile for profile in profiles
+      if all(context_categories(profile).get(item["dimension"]) == item["value"] for item in conditions)
+    ]
+    execution_followup = management_challengers(selected_profiles, split_time, active, m1_resolver)
+  return {
+    "schema": "fms-bounded-two-context-v1",
+    "status": "later_supported" if later_supported else "later_rejected" if selected else "no_development_candidate",
+    "declaredInteraction": "v1 development-selected context plus exactly one policy or inflation differential",
+    "minimumSamples": {"development": 15, "later": 8, "outsideDevelopment": 10, "outsideLater": 5},
+    "rows": rows,
+    "selectedCandidate": None if selected is None else {**selected, "status": "later_supported" if later_supported else "later_rejected"},
+    "executionFollowup": execution_followup,
     "activeRegistryPreserved": True,
   }
 def simulate_managed(profile: Dict[str, Any], family: str, stop_atr: float, target_r: float, holding: int, trigger: float | None = None, m1_resolver=None) -> Dict[str, Any]:
@@ -694,6 +889,9 @@ def build_profile(pattern: Dict[str, Any]) -> Dict[str, Any] | None:
     for row in ((source_result.get("targets") or {}).get("2.0") or {}).get("outcomes", [])
     if row.get("eventTime") is not None
   }
+  policy_inflation_by_time = entry_known_policy_inflation_context(
+    market, (int(row["eventTime"]) for row in all_cases),
+  )
   earliest = min(int(row["entryTime"]) for row in all_cases) - 120 * 4 * 60 * 60
   latest = max(int(row["entryTime"]) for row in all_cases) + (max(STRESS_HOLDING_CANDLES) + 2) * 4 * 60 * 60
   candles = server._research_store.query_candles(market, "H4", earliest, latest)
@@ -714,6 +912,16 @@ def build_profile(pattern: Dict[str, Any]) -> Dict[str, Any] | None:
       "events": list(row.get("events") or source_context.get("events") or []),
     }, candles, candle_times, max(STRESS_HOLDING_CANDLES))
     if profile is not None and len(profile["candles"]) >= WINDOW:
+      slow_context = dict(policy_inflation_by_time.get(int(row["eventTime"])) or {})
+      slow_context.update({
+        "policyDifferential": directional_context_relation(
+          slow_context.get("basePolicy"), slow_context.get("quotePolicy"), str(row["direction"]),
+        ),
+        "inflationDifferential": directional_context_relation(
+          slow_context.get("baseInflation"), slow_context.get("quoteInflation"), str(row["direction"]),
+        ),
+      })
+      profile["marketContext"]["policyInflation"] = slow_context
       profile["outcome"].update({
         "signature": str(row.get("signature") or ""),
         "numericRobustness": dict(row.get("numericRobustness") or {}),
@@ -820,6 +1028,40 @@ def build_profile(pattern: Dict[str, Any]) -> Dict[str, Any] | None:
     "datasetFingerprint": str(result.get("datasetFingerprint") or ""),
     "activeArrowPreserved": True,
   }
+  policy_inflation_research = build_context_research(
+    all_profiles,
+    split_time,
+    pattern.get("execution") or frozen_execution,
+    resolve_with_m1,
+    dimensions=("policyDifferential", "inflationDifferential"),
+    schema="fms-policy-inflation-context-v1",
+    excluded_values=frozenset({"unknown", "insufficient_history", "balanced"}),
+    minimum_later_alignment=.55,
+  )
+  policy_inflation_research["conditionedExecution"] = build_context_conditioned_execution(
+    all_profiles, split_time, pattern.get("execution") or frozen_execution,
+    policy_inflation_research, resolve_with_m1,
+  )
+  bounded_interactions = build_bounded_interactions(
+    all_profiles, split_time, pattern.get("execution") or frozen_execution,
+    context_research, resolve_with_m1,
+  )
+  followup_research = {
+    "schema": "fms-context-followup-v1",
+    "recipe": f"{market}|{pattern['id']}",
+    "registryRevision": server.PRACTICAL_MODEL_HASH,
+    "datasetFingerprint": str(result.get("datasetFingerprint") or ""),
+    "candleFingerprint": candle_fingerprint,
+    "coverage": {
+      "caseCount": len(all_profiles),
+      "earliestEventTime": min(int(row["eventTime"]) for row in all_profiles),
+      "latestEventTime": max(int(row["eventTime"]) for row in all_profiles),
+      "materialRefreshRule": "refresh only when fingerprint changes and at least 10 new cases or 90 newer calendar days are available",
+    },
+    "policyInflation": policy_inflation_research,
+    "boundedInteractions": bounded_interactions,
+    "activeRegistryPreserved": True,
+  }
   frozen = next((row for row in configurations if (
     float(row["stopAtr"]) == float(frozen_execution.get("stopAtr") or 1)
     and float(row["targetR"]) == float(frozen_execution.get("targetR") or 2)
@@ -876,6 +1118,7 @@ def build_profile(pattern: Dict[str, Any]) -> Dict[str, Any] | None:
       },
     },
     "contextResearch": context_research,
+    "followupResearch": followup_research,
     "executionChallenger": {
       **management_research,
       "recipe": f"{market}|{pattern['id']}",
@@ -898,9 +1141,43 @@ def main() -> None:
     default=None,
     help="Preserve an immutable prior reaction/execution profile and replace only contextResearch.",
   )
+  parser.add_argument(
+    "--if-material-growth",
+    action="store_true",
+    help="Skip regeneration unless a recipe gained 10 cases, 90 calendar days, or a changed immutable dataset fingerprint.",
+  )
   args = parser.parse_args()
   destination = Path(__file__).resolve().parents[1] / "registered_reaction_profiles.json"
   context_destination = destination.with_name("registered_market_context_profiles.json")
+  followup_destination = destination.with_name("registered_context_followups.json")
+  if args.if_material_growth and followup_destination.exists():
+    try:
+      prior = json.loads(followup_destination.read_text(encoding="utf-8-sig"))
+      prior_profiles = dict(prior.get("profiles") or {})
+      materially_changed = False
+      for pattern in server.PRACTICAL_PATTERN_DEFINITIONS:
+        key = f"{pattern['market']}|{pattern['id']}"
+        experiment_id = ((pattern.get("historicalBenchmark") or {}).get("experimentId"))
+        experiment = server._research_store.get_fms_experiment(str(experiment_id)) if experiment_id else None
+        result = (experiment or {}).get("result") or {}
+        raw_text = server._research_store.get_metadata(f"fms_raw_audit:{experiment_id}") if experiment_id else None
+        raw = json.loads(raw_text) if raw_text else {}
+        included = [row for row in raw.get("cases", []) if row.get("included")]
+        current_count = len(included)
+        current_latest = max((int(row.get("eventTime") or 0) for row in included), default=0)
+        previous = ((prior_profiles.get(key) or {}).get("coverage") or {})
+        if (
+          str(result.get("datasetFingerprint") or "") != str((prior_profiles.get(key) or {}).get("datasetFingerprint") or "")
+          or current_count >= int(previous.get("caseCount") or 0) + 10
+          or current_latest >= int(previous.get("latestEventTime") or 0) + 90 * 86_400
+        ):
+          materially_changed = True
+          break
+      if not materially_changed:
+        print(json.dumps({"destination": str(followup_destination), "skipped": True, "reason": "no_material_coverage_growth"}))
+        return
+    except (OSError, TypeError, ValueError):
+      pass
   base_profiles: Dict[str, Any] = {}
   if args.context_only_base is not None:
     base_payload = json.loads(args.context_only_base.read_text(encoding="utf-8-sig"))
@@ -915,6 +1192,7 @@ def main() -> None:
       profiles[(market, pattern_id)] = {
         **(base_profiles.get(key) or profile),
         "contextResearch": profile["contextResearch"],
+        "followupResearch": profile["followupResearch"],
       }
   existing_context_profiles: Dict[str, Any] = {}
   try:
@@ -949,17 +1227,88 @@ def main() -> None:
     "profiles": {f"{market}|{pattern_id}": profile["contextResearch"] for (market, pattern_id), profile in sorted(profiles.items())},
   }
   context_destination.write_text(json.dumps(context_payload, separators=(",", ":"), sort_keys=True) + "\n", encoding="utf-8")
+  pattern_by_key = {
+    (str(pattern["market"]), str(pattern["id"])): pattern
+    for pattern in server.PRACTICAL_PATTERN_DEFINITIONS
+  }
+  def source_family(pattern: Dict[str, Any]) -> str:
+    source = str(pattern.get("sourceVersion") or "").upper()
+    return next((name.lower() for name in ("LABOR", "SENTIMENT", "POLICY-INFL", "GROWTH") if name in source), "other")
+  transfers = []
+  for (source_market, source_pattern_id), source_pattern in sorted(pattern_by_key.items()):
+    registration = source_pattern.get("contextRegistration") or {}
+    condition = registration.get("condition") or {}
+    if registration.get("status") != "reviewed_active" or not condition.get("dimension"):
+      continue
+    for (target_market, target_pattern_id), target_pattern in sorted(pattern_by_key.items()):
+      if target_market == source_market or source_family(target_pattern) != source_family(source_pattern):
+        continue
+      target_profile = profiles.get((target_market, target_pattern_id)) or {}
+      row = next((item for item in ((target_profile.get("contextResearch") or {}).get("dimensions") or []) if item.get("dimension") == condition.get("dimension") and item.get("value") == condition.get("value")), None)
+      if row is None:
+        continue
+      later_execution = row.get("laterExecution") or {}
+      later_reaction = row.get("laterReaction") or {}
+      supported = bool(
+        int(later_execution.get("evaluableN") or 0) >= 10
+        and float(later_execution.get("averageR") or 0) > 0
+        and float(later_reaction.get("averageAtr") or 0) > 0
+        and float(later_reaction.get("alignmentRate") or 0) >= .55
+        and float(row.get("laterExecutionUpliftR") or 0) >= .05
+        and float(row.get("laterAlignmentUplift") or 0) >= 0
+      )
+      identity = f"{registration.get('id')}|{target_market}|{target_pattern_id}"
+      transfer_configuration = {
+        "sourceRegistrationId": registration.get("id"),
+        "targetMarket": target_market,
+        "targetPatternId": target_pattern_id,
+        "family": source_family(target_pattern),
+        "condition": condition,
+        "contract": target_pattern.get("execution"),
+        "selection": "predeclared source context; target later history is audit-only",
+      }
+      transfers.append({
+        "id": f"FMS-{target_market}-H4-XFER-{hashlib.sha256(identity.encode()).hexdigest()[:10]}",
+        "sourceRegistrationId": registration.get("id"),
+        "sourceMarket": source_market,
+        "targetMarket": target_market,
+        "targetPatternId": target_pattern_id,
+        "targetLabel": target_pattern.get("label"),
+        "family": source_family(target_pattern),
+        "condition": condition,
+        "configurationHash": hashlib.sha256(json.dumps(transfer_configuration, sort_keys=True, separators=(",", ":")).encode()).hexdigest(),
+        "datasetFingerprint": (target_profile.get("contextResearch") or {}).get("datasetFingerprint"),
+        "candleFingerprint": (target_profile.get("contextResearch") or {}).get("candleFingerprint"),
+        "status": "later_supported" if supported else "rejected_or_insufficient",
+        "laterExecution": later_execution,
+        "laterReaction": later_reaction,
+        "laterExecutionUpliftR": row.get("laterExecutionUpliftR"),
+        "laterAlignmentUplift": row.get("laterAlignmentUplift"),
+        "activeRegistryPreserved": True,
+      })
+  followup_payload = {
+    "schema": "fms-context-followup-index-v1",
+    "generatedAt": int(server._time.time()),
+    "refreshPolicy": "Exact frozen recipes refresh only after 10 new cases, 90 newer calendar days, or a changed immutable dataset fingerprint.",
+    "profiles": {
+      f"{market}|{pattern_id}": profile["followupResearch"]
+      for (market, pattern_id), profile in sorted(profiles.items())
+    },
+    "crossMarketTransfers": transfers,
+    "activeRegistryPreserved": True,
+  }
+  followup_destination.write_text(json.dumps(followup_payload, separators=(",", ":"), sort_keys=True) + "\n", encoding="utf-8")
   if args.context_only_base is None:
     payload = {
       "schema": "registered-reaction-profile-v2",
       "horizons": list(HORIZONS),
       "profiles": {
-        f"{market}|{pattern_id}": {key: value for key, value in profile.items() if key != "contextResearch"}
+        f"{market}|{pattern_id}": {key: value for key, value in profile.items() if key not in {"contextResearch", "followupResearch"}}
         for (market, pattern_id), profile in sorted(profiles.items())
       },
     }
     destination.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-  print(json.dumps({"destination": str(context_destination), "profiles": len(profiles), "reactionProfilesPreserved": args.context_only_base is not None}))
+  print(json.dumps({"destination": str(context_destination), "followupDestination": str(followup_destination), "profiles": len(profiles), "transfers": len(transfers), "reactionProfilesPreserved": args.context_only_base is not None}))
 
 
 if __name__ == "__main__":

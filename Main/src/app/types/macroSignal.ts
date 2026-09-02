@@ -989,6 +989,21 @@ export interface FmsWorkbench {
       recentAverageR: number | null;
     }>;
   };
+  contextFollowup?: {
+    schema: "fms-context-followup-index-v1";
+    generatedAt: number | null;
+    refreshPolicy: string | null;
+    recipesAudited: number;
+    policyInflationSupported: number;
+    boundedInteractionsSupported: number;
+    transferCandidates: Array<{
+      id: string; sourceRegistrationId: string; targetMarket: string; targetLabel: string;
+      condition: { dimension?: string; value?: string };
+      laterExecution: { evaluableN: number; averageR: number | null };
+      laterReaction: { alignmentRate: number | null };
+    }>;
+    activeRegistryPreserved: true;
+  };
   dataPeriods?: {
     durableCalendar: { start: number | null; end: number | null };
     workbenchResearch: { start: number | null; end: number | null };
@@ -1461,6 +1476,53 @@ export interface MacroSignalGlobalResponse {
     assessment: MacroSignalPatternAssessment;
     signal: MacroSignalChartSignal | null;
   }>;
+  prospectiveContextLedger?: {
+    schema: "fms-prospective-context-ledger-v1";
+    immutableFirstSeen: true;
+    matchedDecisions: number;
+    resolvedMatchedCases: number;
+    usage: string;
+    rows: Array<{
+      registrationId: string;
+      market: string;
+      patternId: string;
+      label: string;
+      condition: { dimension?: string; value?: string; knownAt?: string };
+      historicalExpectation: { evaluableN: number | null; averageR: number | null; alignmentRate: number | null };
+      prospective: {
+        matched: { decisionCount: number; resolvedCount: number; averageR: number | null; positiveRate: number | null };
+        notMatched: { decisionCount: number; resolvedCount: number; averageR: number | null; positiveRate: number | null };
+      };
+    }>;
+  };
+  contextFollowupResearch?: {
+    schema: "fms-context-followup-index-v1";
+    generatedAt: number | null;
+    refreshPolicy: string | null;
+    recipesAudited: number;
+    policyInflationCandidates: Array<{
+      recipe: string; dimension: string; value: string; status: string;
+      laterExecution: { evaluableN: number; averageR: number | null };
+      laterReaction: { evaluableN: number; alignmentRate: number | null; averageAtr: number | null };
+      laterExecutionUpliftR: number;
+    }>;
+    boundedInteractionCandidates: Array<{
+      recipe: string; status: string;
+      conditions: Array<{ dimension: string; value: string }>;
+      laterExecution: { evaluableN: number; averageR: number | null };
+      laterReaction: { evaluableN: number; alignmentRate: number | null; averageAtr: number | null };
+      laterExecutionUpliftR: number;
+    }>;
+    crossMarketTransferCandidates: Array<{
+      id: string; sourceRegistrationId: string; sourceMarket: string; targetMarket: string;
+      targetPatternId: string; targetLabel: string; family: string; status: string;
+      condition: { dimension?: string; value?: string };
+      laterExecution: { evaluableN: number; averageR: number | null };
+      laterReaction: { evaluableN: number; alignmentRate: number | null; averageAtr: number | null };
+      laterExecutionUpliftR: number;
+    }>;
+    activeRegistryPreserved: true;
+  };
   forwardValidation?: {
     schema: "fms-forward-validation-v1";
     status: "collecting_forward_evidence" | "paper_evidence_ready" | "real_money_evidence_ready" | "demo_monitoring_ready";

@@ -15,6 +15,37 @@ from research_store import ResearchStore
 client = TestClient(server.app)
 
 
+def test_chart_projection_keeps_visible_context_audit_and_omits_heavy_research_grids() -> None:
+  later_reaction = {"evaluableN": 18, "alignmentRate": .61}
+  projected = server._interactive_chart_pattern({
+    "id": "setup",
+    "overall": {"evaluableCount": 40, "targetHitRate": .5, "stopHitRate": .4, "averageR": .2, "outcomes": [1] * 500},
+    "executionStress": {"pips": 3, "overall": {"averageR": .1}, "development": {"outcomes": [1] * 500}},
+    "yearStability": {"evaluableYears": 8, "positiveYears": 6, "positiveYearShare": .75, "byYear": [{"large": [1] * 500}]},
+    "targetRobustness": [{"large": [1] * 500}],
+    "reactionAudit": {
+      "schema": "registered-reaction-audit-v1",
+      "profile": {
+        "schema": "registered-reaction-profile-v2",
+        "horizons": [], "mfe": {}, "mae": {}, "givebackAtr": {}, "contractResearch": {},
+        "executionChallenger": {"familyWinners": [{"large": [1] * 500}]},
+        "contextResearch": {
+          "schema": "fms-context-challenger-v1", "selectedCandidate": {"dimension": "macroBackground", "value": "aligned"},
+          "dimensions": [{"dimension": "macroBackground", "value": "aligned", "historicalN": 20, "laterReaction": later_reaction, "developmentExecution": {"large": [1] * 500}, "status": "promising_context"}],
+        },
+      },
+    },
+  })
+
+  assert projected["overall"] == {"evaluableCount": 40, "targetHitRate": .5, "stopHitRate": .4, "averageR": .2}
+  assert "targetRobustness" not in projected
+  assert "byYear" not in projected["yearStability"]
+  assert "executionChallenger" not in projected["reactionAudit"]["profile"]
+  context = projected["reactionAudit"]["profile"]["contextResearch"]
+  assert context["selectedCandidate"]["value"] == "aligned"
+  assert context["dimensions"] == [{"dimension": "macroBackground", "value": "aligned", "historicalN": 20, "laterReaction": later_reaction, "status": "promising_context"}]
+
+
 def test_global_chart_refresh_reaches_each_current_market_request(monkeypatch) -> None:
   calls = []
 
@@ -34,6 +65,32 @@ def test_global_chart_refresh_reaches_each_current_market_request(monkeypatch) -
   assert calls
   assert calls[0]["mode"] == "current"
   assert calls[0]["refresh"] is True
+
+
+def test_prospective_context_ledger_keeps_matches_separate_and_immutable() -> None:
+  patterns = [{
+    "market": "EURUSD", "id": "setup", "label": "Setup",
+    "contextRegistration": {
+      "id": "CTX-C001", "status": "reviewed_active",
+      "condition": {"dimension": "trendRelation", "value": "aligned", "knownAt": "entry"},
+      "later": {"evaluableN": 12, "averageR": .25},
+      "reaction": {"alignmentRate": .6},
+    },
+  }]
+  decisions = [
+    {"modelId": server.PRACTICAL_MODEL_ID, "market": "EURUSD", "patternId": "setup", "eventTime": 10, "status": "qualified", "prospectiveEligible": True, "signal": {"contextOverlay": {"matched": True, "registration": {"id": "CTX-C001"}}}},
+    {"modelId": server.PRACTICAL_MODEL_ID, "market": "EURUSD", "patternId": "setup", "eventTime": 20, "status": "qualified", "prospectiveEligible": True, "signal": {"contextOverlay": {"matched": False}}},
+  ]
+  cases = [
+    {"market": "EURUSD", "patternId": "setup", "eventTime": 10, "state": "target_hit", "resultR": 2},
+    {"market": "EURUSD", "patternId": "setup", "eventTime": 20, "state": "stop_hit", "resultR": -1},
+  ]
+  ledger = server._prospective_context_ledger(patterns, decisions, cases)
+  row = ledger["rows"][0]
+  assert ledger["immutableFirstSeen"] is True
+  assert row["prospective"]["matched"] == {"decisionCount": 1, "resolvedCount": 1, "averageR": 2.0, "positiveRate": 1.0}
+  assert row["prospective"]["notMatched"] == {"decisionCount": 1, "resolvedCount": 1, "averageR": -1.0, "positiveRate": 0.0}
+  assert row["historicalExpectation"] == {"evaluableN": 12, "averageR": .25, "alignmentRate": .6}
 
 
 def event(timestamp: int) -> dict:

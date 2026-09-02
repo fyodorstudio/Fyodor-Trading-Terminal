@@ -909,6 +909,14 @@
 .chart-shadow-intelligence > .chart-shadow-source-note { margin-top: 9px; border-left: 3px solid #94a3b8; padding-left: 8px; }
 .chart-macro-bias-realtime > header div { font-size: 15px; letter-spacing: .025em; text-transform: none; }
 .chart-macro-bias-realtime > header small { font-size: 10px; }
+.chart-macro-bias-realtime > .chart-shadow-context-summary { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 6px 12px; border-color: #c7d2fe; background: #f5f7ff; padding: 9px 11px; }
+.chart-shadow-context-summary > div span, .chart-shadow-context-summary > div strong { display: block; }
+.chart-shadow-context-summary > div span { color: #6366f1; font-size: 9px; font-weight: 950; letter-spacing: .055em; text-transform: uppercase; }
+.chart-shadow-context-summary > div strong { margin-top: 1px; font-size: 13px; }
+.chart-shadow-context-summary > p { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.chart-shadow-context-summary > p span { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #c7d2fe; border-radius: 999px; background: #fff; padding: 3px 7px; color: #312e81; font-size: 10px; font-weight: 900; }
+.chart-shadow-context-summary > p svg, .chart-shadow-context-summary > p img { width: 16px; height: 11px; }
+.chart-shadow-context-summary > small { grid-column: 1 / -1; color: #475569; font-size: 10px; font-weight: 700; line-height: 1.35; }
 
 .chart-shadow-forward-gate { display: grid; gap: 9px; border: 1px solid #fdba74 !important; background: #fffaf3 !important; padding: 11px 13px !important; }
 .chart-shadow-forward-gate-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

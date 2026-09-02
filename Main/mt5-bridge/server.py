@@ -23,7 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
-from registered_reaction_audits import registered_reaction_audit
+from registered_reaction_audits import registered_context_followup_index, registered_reaction_audit
 
 from macro_signal import (
   ACTIVE_VERSION_ID,
@@ -395,7 +395,9 @@ _REVIEWED_CONTEXT_APPROVALS: Dict[Tuple[str, str], Dict[str, Any]] = {
     "managementFamily": "fixed", "managementTriggerR": None,
     "stopAtr": 2.0, "targetR": 1.0, "expiryCandles": 60,
     "configurationHash": "8daf8f1fd4d4c58f5cbf26799201a7e55a0a71317656e121b7fd40586810b7ec",
-    "candleFingerprint": "480d247a5c840372bd6498236fd77cd89f7e8c21148c49a0b49bb530691bdd58",
+    # Coverage refresh changed only the encompassing candle fingerprint; the
+    # selected context, execution, and every development/later metric remained identical.
+    "candleFingerprint": "964a87dcd31a383881f4e8c94ecf063f1a024297493eca0ed2ec2f2fde3f31e1",
     "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
   },
   ("USDJPY", "usdjpy-us-manufacturing-employment"): {
@@ -3087,20 +3089,77 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
   source_headers = [_research_store.latest_backtest_run_header(version) for version in required_versions]
   missing_source_versions = [version for version, header in zip(required_versions, source_headers) if not header or header.get("status") != "completed"]
   h4_coverage = _research_store.candle_coverage(normalized_market, "H4")
+  followup_index = registered_context_followup_index()
+  followup_rows = {
+    key: value for key, value in (followup_index.get("profiles") or {}).items()
+    if str(key).startswith(f"{normalized_market}|")
+  }
+  followup_summary = {
+    "schema": followup_index.get("schema") or "fms-context-followup-index-v1",
+    "generatedAt": followup_index.get("generatedAt"),
+    "refreshPolicy": followup_index.get("refreshPolicy"),
+    "recipesAudited": len(followup_rows),
+    "policyInflationSupported": sum(((row.get("policyInflation") or {}).get("selectedCandidate") or {}).get("status") == "later_supported" for row in followup_rows.values()),
+    "boundedInteractionsSupported": sum((row.get("boundedInteractions") or {}).get("status") == "later_supported" for row in followup_rows.values()),
+    "transferCandidates": [row for row in (followup_index.get("crossMarketTransfers") or []) if row.get("targetMarket") == normalized_market and row.get("status") == "later_supported"],
+    "activeRegistryPreserved": True,
+  }
+  current_model_summary = {
+    "id": PRACTICAL_MODEL_ID,
+    "researchEngineId": RELEASE_REACTION_ENGINE_ID,
+    "friendlyName": "Registered Reaction Atlas",
+    "displayId": "Active registered v4",
+    "hash": PRACTICAL_MODEL_HASH,
+    "activatedAt": PRACTICAL_MODEL_CREATED_AT,
+    "timeframe": "H4",
+    "registeredSetups": [{
+      "id": str(pattern["id"]),
+      "label": str(pattern["label"]),
+      "condition": str(pattern["condition"]),
+      "sourceVersionId": str(pattern["sourceVersion"]),
+      "signatures": list(pattern["signatures"]),
+      "scoringPolicy": str(pattern.get("scoringPolicy", "forecast_quality")),
+      "reaction": str(pattern.get("reaction", "continuation")),
+      "cohort": dict(pattern.get("cohort") or {"dimension": "none", "value": "all"}),
+      "execution": dict(pattern["execution"]),
+      "registrationEvidence": _registration_display_evidence(pattern),
+    } for original in PRACTICAL_PATTERN_DEFINITIONS
+      for pattern in [_reconciled_pattern(original)]
+      if pattern.get("current") and str(pattern.get("market")) == normalized_market],
+  }
   static_revision = hashlib.sha256("|".join([
-    normalized_market, PRACTICAL_MODEL_HASH,
+    normalized_market,
     str(_research_store.get_metadata("fms_reaction_atlas:revision") or "unversioned"),
     *(str((header or {}).get("id") or "missing") for header in source_headers),
     str(h4_coverage.get("count") or 0), str(h4_coverage.get("latest") or 0),
   ]).encode("utf-8")).hexdigest()
   static_key = f"fms_workbench_static_v1:{static_revision}"
   static_cached = _research_store.get_metadata(static_key)
+  if not static_cached and not missing_source_versions and h4_coverage.get("count"):
+    expected_runs = [str((header or {}).get("id") or "") for header in source_headers]
+    expected_period = {"start": h4_coverage.get("earliest"), "end": h4_coverage.get("latest")}
+    for prior_value in reversed(_research_store.metadata_values("fms_workbench_static_v1:")):
+      try:
+        prior_payload = json.loads(prior_value)
+      except (TypeError, ValueError):
+        continue
+      if (
+        isinstance(prior_payload, dict)
+        and prior_payload.get("market") == normalized_market
+        and list(prior_payload.get("sourceRunIds") or []) == expected_runs
+        and (prior_payload.get("dataPeriods") or {}).get("h4Prices") == expected_period
+      ):
+        static_cached = prior_value
+        _research_store.set_metadata(static_key, prior_value)
+        break
   if static_cached and not missing_source_versions and h4_coverage.get("count"):
     try:
       static_payload = json.loads(static_cached)
       if isinstance(static_payload, dict):
         return {
           **static_payload,
+          "currentModel": current_model_summary,
+          "contextFollowup": followup_summary,
           "experiments": _research_store.list_fms_experiment_headers(normalized_market, 500),
           "candidates": [row for row in _research_store.list_fms_candidates() if str((row.get("configuration") or {}).get("market", "EURUSD")) == normalized_market],
           "archive": _research_store.list_signal_version_archive(),
@@ -3110,11 +3169,12 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
   if missing_source_versions or not h4_coverage.get("count"):
     return {
       "market": normalized_market,
-      "currentModel": {"id": PRACTICAL_MODEL_ID, "researchEngineId": RELEASE_REACTION_ENGINE_ID, "friendlyName": "Registered Reaction Atlas", "displayId": "Active registered v4", "hash": PRACTICAL_MODEL_HASH, "activatedAt": PRACTICAL_MODEL_CREATED_AT, "timeframe": "H4", "registeredSetups": []},
+      "currentModel": {**current_model_summary, "registeredSetups": []},
       "catalog": {"items": [], "advancedTreatmentsReady": False, "generatedAt": int(_time.time())},
       "protocol": {"stopAtrValues": list(STRESS_STOP_ATR_VALUES), "targetRValues": list(STRESS_TARGET_R_VALUES), "holdingCandles": list(STRESS_HOLDING_CANDLES), "scoringPolicies": ["baseline", "surprise_only", "momentum_only", "agreement_no_bonus", "forecast_quality"], "entry": "first_h4_open_strictly_after_release", "selection": "development_lower95_then_average"},
       "experiments": [], "candidates": [], "archive": _research_store.list_signal_version_archive(),
       "reactionAtlas": _workbench_reaction_atlas(normalized_market),
+      "contextFollowup": followup_summary,
       "dataPeriods": {"durableCalendar": {"start": calendar_coverage.get("earliest"), "end": calendar_coverage.get("latest")}, "workbenchResearch": {"start": None, "end": None}, "h4Prices": {"start": h4_coverage.get("earliest"), "end": h4_coverage.get("latest")}},
       "datasetFingerprint": f"unavailable:{normalized_market}", "sourceRunIds": [], "candleRevision": "unavailable",
       "availability": {"ready": False, "missingSourceVersions": missing_source_versions, "missingH4Prices": not h4_coverage.get("count"), "message": f"{normalized_market} research is blocked until durable calendar history and {normalized_market} H4 prices are backfilled, then its market-labelled source backtests complete."},
@@ -3130,29 +3190,7 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
   price_times = [int(candle["time"]) for candle in bundle["candles"]]
   payload = {
     "market": normalized_market,
-    "currentModel": {
-      "id": PRACTICAL_MODEL_ID,
-      "researchEngineId": RELEASE_REACTION_ENGINE_ID,
-      "friendlyName": "Registered Reaction Atlas",
-      "displayId": "Active registered v4",
-      "hash": PRACTICAL_MODEL_HASH,
-      "activatedAt": PRACTICAL_MODEL_CREATED_AT,
-      "timeframe": "H4",
-      "registeredSetups": [{
-        "id": str(pattern["id"]),
-        "label": str(pattern["label"]),
-        "condition": str(pattern["condition"]),
-        "sourceVersionId": str(pattern["sourceVersion"]),
-        "signatures": list(pattern["signatures"]),
-        "scoringPolicy": str(pattern.get("scoringPolicy", "forecast_quality")),
-        "reaction": str(pattern.get("reaction", "continuation")),
-        "cohort": dict(pattern.get("cohort") or {"dimension": "none", "value": "all"}),
-        "execution": dict(pattern["execution"]),
-        "registrationEvidence": _registration_display_evidence(pattern),
-      } for original in PRACTICAL_PATTERN_DEFINITIONS
-        for pattern in [_reconciled_pattern(original)]
-        if pattern.get("current") and str(pattern.get("market")) == normalized_market],
-    },
+    "currentModel": current_model_summary,
     "catalog": catalog,
     "protocol": {
       "stopAtrValues": list(STRESS_STOP_ATR_VALUES),
@@ -3166,6 +3204,7 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
     "candidates": [row for row in _research_store.list_fms_candidates() if str((row.get("configuration") or {}).get("market", "EURUSD")) == normalized_market],
     "archive": _research_store.list_signal_version_archive(),
     "reactionAtlas": _workbench_reaction_atlas(normalized_market),
+    "contextFollowup": followup_summary,
     "dataPeriods": {
       "durableCalendar": {
         "start": calendar_coverage.get("earliest"),
@@ -3510,6 +3549,93 @@ def research_forward(versionId: str = V2_VERSION_ID) -> Dict[str, Any]:
   return _forward_paper_payload(versionId)
 
 
+def _interactive_context_research(research: Any) -> Any:
+  """Keep the chart audit useful without shipping the research matrix.
+
+  The complete immutable artifact remains available from readiness/research
+  endpoints. Charts only reads the selected candidate and the later reaction
+  for the context value shown on a selected arrow.
+  """
+  if not isinstance(research, dict):
+    return research
+  dimensions = []
+  for row in research.get("dimensions") or []:
+    if not isinstance(row, dict):
+      continue
+    dimensions.append({
+      key: row.get(key)
+      for key in ("dimension", "value", "historicalN", "laterReaction", "status")
+    })
+  return {
+    key: research.get(key)
+    for key in (
+      "schema", "researchExperimentId", "recipe", "registryRevision",
+      "configurationHash", "candleFingerprint", "datasetFingerprint",
+      "activeArrowPreserved", "selectedCandidate", "minimumSamples",
+      "activeContract", "conditionedExecution", "activeRegistryPreserved",
+    )
+  } | {"dimensions": dimensions}
+
+
+def _interactive_reaction_audit(audit: Any) -> Any:
+  """Project immutable reaction research to the fields rendered by Charts."""
+  if not isinstance(audit, dict):
+    return audit
+  profile = audit.get("profile")
+  if not isinstance(profile, dict):
+    return audit
+  interactive_profile = {
+    key: profile.get(key)
+    for key in (
+      "schema", "scope", "experimentId", "evaluableN",
+      "standardWindowCandles", "classification", "horizons", "mfe", "mae",
+      "givebackAtr", "contractResearch",
+    )
+  }
+  if "contextResearch" in profile:
+    interactive_profile["contextResearch"] = _interactive_context_research(profile.get("contextResearch"))
+  return {**audit, "profile": interactive_profile}
+
+
+def _interactive_chart_pattern(pattern: Any) -> Any:
+  if not isinstance(pattern, dict):
+    return pattern
+  # Chart/Shadow Trader render this summary contract. Development folds,
+  # yearly metric rows, target grids, and prequential paths belong to the
+  # research/readiness endpoints and were the bulk of every pair change.
+  projected = {
+    key: pattern.get(key)
+    for key in (
+      "id", "market", "signature", "signatures", "sourceVersionId", "label",
+      "condition", "scoringPolicy", "reaction", "cohort",
+      "historicalBenchmark", "registrationProvenance", "readiness", "execution",
+      "baseExecution", "executionReview", "contextRegistration",
+      "requiredExactTitles", "direction", "groups", "currentEligible",
+      "uncertaintyIncludesNoEdge",
+    )
+  }
+  overall = pattern.get("overall") or {}
+  projected["overall"] = {
+    key: overall.get(key)
+    for key in ("evaluableCount", "targetHitRate", "stopHitRate", "averageR")
+  }
+  execution_stress = pattern.get("executionStress") or {}
+  projected["executionStress"] = {
+    "pips": execution_stress.get("pips"),
+    "overall": {
+      key: (execution_stress.get("overall") or {}).get(key)
+      for key in ("evaluableCount", "targetHitRate", "stopHitRate", "averageR")
+    },
+  }
+  year_stability = pattern.get("yearStability") or {}
+  projected["yearStability"] = {
+    key: year_stability.get(key)
+    for key in ("evaluableYears", "positiveYears", "positiveYearShare")
+  }
+  projected["reactionAudit"] = _interactive_reaction_audit(pattern.get("reactionAudit"))
+  return projected
+
+
 @app.get("/research/chart-signals")
 def research_chart_signals(
   symbol: str = "EURUSD",
@@ -3521,18 +3647,34 @@ def research_chart_signals(
   compact: bool = False,
 ) -> Dict[str, Any]:
   def response_for_client(payload: Dict[str, Any]) -> Dict[str, Any]:
+    interactive_payload = {
+      **payload,
+      "patterns": [_interactive_chart_pattern(row) for row in payload.get("patterns", [])],
+    }
     if not compact:
-      return payload
+      return interactive_payload
     compact_signals = []
     for row in payload.get("signals", []):
-      compact_signals.append({
+      compact_row = {
         key: row.get(key) for key in (
           "id", "patternId", "sourceVersionId", "eventTime", "activationTime",
           "direction", "label", "historicalReplay", "outcomeStatus", "expiryCandles",
-          "contextOverlay",
         )
-      })
-    return {**payload, "signals": compact_signals}
+      }
+      overlay = row.get("contextOverlay")
+      if isinstance(overlay, dict):
+        # Historical chart markers need only the reviewed-condition match bit.
+        # The selected arrow fetches its complete immutable audit on demand.
+        compact_row["contextOverlay"] = {"matched": bool(overlay.get("matched"))}
+      compact_signals.append(compact_row)
+    return {
+      **interactive_payload,
+      "patterns": [
+        {"id": row.get("id"), "currentEligible": row.get("currentEligible", False)}
+        for row in payload.get("patterns", [])
+      ],
+      "signals": compact_signals,
+    }
   normalized_symbol = symbol.upper()
   normalized_tf = tf.upper()
   normalized_mode = mode.lower()
@@ -4798,6 +4940,85 @@ def _forward_validation_payload(
   }
 
 
+def _prospective_context_ledger(
+  patterns: List[Dict[str, Any]],
+  decisions: List[Dict[str, Any]],
+  cases: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+  """Compare immutable future context matches with their registered historical expectation."""
+  case_by_key = {
+    (str(row.get("market")), str(row.get("patternId")), int(row.get("eventTime") or 0)): row
+    for row in cases
+  }
+  rows: List[Dict[str, Any]] = []
+  for pattern in patterns:
+    registration = pattern.get("contextRegistration") or {}
+    if registration.get("status") != "reviewed_active":
+      continue
+    market = str(pattern.get("market") or "")
+    pattern_id = str(pattern.get("id") or "")
+    buckets = {
+      "matched": {"decisionCount": 0, "resolved": []},
+      "notMatched": {"decisionCount": 0, "resolved": []},
+    }
+    for decision in decisions:
+      if (
+        decision.get("modelId") != PRACTICAL_MODEL_ID
+        or str(decision.get("market")) != market
+        or str(decision.get("patternId")) != pattern_id
+        or decision.get("status") != "qualified"
+        or decision.get("prospectiveEligible") is not True
+      ):
+        continue
+      signal = decision.get("signal") or {}
+      overlay = signal.get("contextOverlay") or {}
+      matched = bool(
+        overlay.get("matched")
+        and str((overlay.get("registration") or {}).get("id") or registration.get("id"))
+        == str(registration.get("id"))
+      )
+      bucket = buckets["matched" if matched else "notMatched"]
+      bucket["decisionCount"] += 1
+      case = case_by_key.get((market, pattern_id, int(decision.get("eventTime") or 0)))
+      if case and case.get("resultR") is not None and case.get("state") in {"target_hit", "stop_hit", "expired"}:
+        bucket["resolved"].append(float(case["resultR"]))
+
+    def summarize(bucket: Dict[str, Any]) -> Dict[str, Any]:
+      values = list(bucket["resolved"])
+      return {
+        "decisionCount": int(bucket["decisionCount"]),
+        "resolvedCount": len(values),
+        "averageR": statistics.mean(values) if values else None,
+        "positiveRate": sum(value > 0 for value in values) / len(values) if values else None,
+      }
+
+    later = registration.get("later") or {}
+    rows.append({
+      "registrationId": registration.get("id"),
+      "market": market,
+      "patternId": pattern_id,
+      "label": pattern.get("label"),
+      "condition": registration.get("condition") or {},
+      "historicalExpectation": {
+        "evaluableN": later.get("evaluableN"),
+        "averageR": later.get("averageR"),
+        "alignmentRate": (registration.get("reaction") or {}).get("alignmentRate"),
+      },
+      "prospective": {
+        "matched": summarize(buckets["matched"]),
+        "notMatched": summarize(buckets["notMatched"]),
+      },
+    })
+  return {
+    "schema": "fms-prospective-context-ledger-v1",
+    "immutableFirstSeen": True,
+    "rows": rows,
+    "matchedDecisions": sum(row["prospective"]["matched"]["decisionCount"] for row in rows),
+    "resolvedMatchedCases": sum(row["prospective"]["matched"]["resolvedCount"] for row in rows),
+    "usage": "Observation only. Prospective context results cannot rewrite the registered rule or its reused-history expectation.",
+  }
+
+
 @app.get("/research/chart-signals/global")
 def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict[str, Any]:
   """Return every practical current registry without changing the selected chart."""
@@ -4873,6 +5094,25 @@ def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict
   forward_validation = _forward_validation_payload(
     forward_decisions, forward_cases, demo_execution, _fms_operational_preflight(),
   )
+  prospective_context_ledger = _prospective_context_ledger(
+    effective_patterns, forward_decisions, forward_cases,
+  )
+  followup_index = registered_context_followup_index()
+  followup_profiles = list((followup_index.get("profiles") or {}).values())
+  policy_candidates = [
+    {"recipe": row.get("recipe"), **dict(((row.get("policyInflation") or {}).get("selectedCandidate") or {}))}
+    for row in followup_profiles
+    if ((row.get("policyInflation") or {}).get("selectedCandidate") or {}).get("status") == "later_supported"
+  ]
+  interaction_candidates = [
+    {"recipe": row.get("recipe"), **dict(((row.get("boundedInteractions") or {}).get("selectedCandidate") or {}))}
+    for row in followup_profiles
+    if (row.get("boundedInteractions") or {}).get("status") == "later_supported"
+  ]
+  transfer_candidates = [
+    row for row in (followup_index.get("crossMarketTransfers") or [])
+    if row.get("status") == "later_supported"
+  ]
   atlas_intelligence: List[Dict[str, Any]] = []
   atlas_raw = _research_store.get_metadata("fms_reaction_atlas:latest")
   if atlas_raw:
@@ -4951,6 +5191,17 @@ def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict
     "markets": markets,
     "liveDecisions": _research_store.list_fms_live_decisions(limit=50),
     "forwardValidation": forward_validation,
+    "prospectiveContextLedger": prospective_context_ledger,
+    "contextFollowupResearch": {
+      "schema": followup_index.get("schema") or "fms-context-followup-index-v1",
+      "generatedAt": followup_index.get("generatedAt"),
+      "refreshPolicy": followup_index.get("refreshPolicy"),
+      "recipesAudited": len(followup_profiles),
+      "policyInflationCandidates": policy_candidates,
+      "boundedInteractionCandidates": interaction_candidates,
+      "crossMarketTransferCandidates": transfer_candidates,
+      "activeRegistryPreserved": True,
+    },
     "outcomeReview": {"unresolvedByReason": unresolved_by_reason, "executionReviews": execution_reviews},
     "researchIntelligence": [*registered, *atlas_intelligence, *FMS_RESEARCH_INTELLIGENCE],
     "explanation": "Registered means historically positive under its frozen no-lookahead recipe. Contender means potentially useful but unstable. Avoid means repeated tests did not support a standalone directional rule; it may still matter as context or volatility. Insufficient means the archive cannot support an honest conclusion yet.",

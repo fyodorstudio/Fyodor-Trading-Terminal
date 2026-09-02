@@ -702,6 +702,16 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
         <div><ShieldCheck size={14} /><span>FMS Shadow Trader</span></div>
         <small>{data.globalResponse ? `${registryResponses.length} markets live` : timeframeLabel}</small>
       </header>
+      {registeredContextPatterns.length > 0 ? (
+        <section className="chart-shadow-context-summary" aria-label="Reviewed context rule availability">
+          <div><span>Reviewed H4 context rules</span><strong>{registeredContextPatterns.length} exact setup rules</strong></div>
+          <p>{[...new Set(registeredContextPatterns.map((pattern) => pattern.market ?? response.symbol))].map((market) => {
+            const count = registeredContextPatterns.filter((pattern) => (pattern.market ?? response.symbol) === market).length;
+            return <span key={market}><PairFlags symbol={market} />{market} x{count}</span>;
+          })}</p>
+          <small>Only matching arrows on these exact setups show <b>CONTEXT</b>. Click a past arrow to load its audit; when that entry had a confirmed opposing H4 zone, the chart shows it as an amber H4 support/resistance line.</small>
+        </section>
+      ) : null}
       {data.globalResponse?.forwardValidation ? (() => {
         const validation = data.globalResponse.forwardValidation;
         const operationalReady = validation.operationalPreflight?.signalMonitoringReadyNow ?? true;
@@ -1026,6 +1036,68 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
                 <small>SL {registration.execution?.stopAtr} ATR · TP {registration.execution?.targetR}R · maximum {registration.execution?.expiryCandles} H4 · later N {laterN ?? "—"} · average {formatSignedR(laterAverage)} · parent on same cases {formatSignedR(parentAverage)} · followed after 6 H4 {alignment == null ? "—" : `${(alignment * 100).toFixed(1)}%`}</small>
               </article>;
             })}
+          </div>
+        </details>
+      ) : null}
+
+      {data.globalResponse?.prospectiveContextLedger?.rows.length ? (
+        <details className="chart-shadow-context-registry chart-shadow-context-ledger">
+          <summary>
+            <span>Live context check</span>
+            <strong>{data.globalResponse.prospectiveContextLedger.matchedDecisions} matched · {data.globalResponse.prospectiveContextLedger.resolvedMatchedCases} resolved</strong>
+            <ChevronDown size={14} />
+          </summary>
+          <div>
+            <p>First-seen future releases are compared with the historical context result. They never rewrite an active setup.</p>
+            {data.globalResponse.prospectiveContextLedger.rows.map((row) => (
+              <article key={row.registrationId}>
+                <header><strong>{row.market} · {row.label}</strong><em>{row.registrationId}</em></header>
+                <span>IF {contextLabel(row.condition.dimension ?? "context")} = {contextLabel(row.condition.value ?? "unknown")}</span>
+                <small>
+                  Historical later: N {row.historicalExpectation.evaluableN ?? "—"} · avg {formatSignedR(row.historicalExpectation.averageR)} · followed {row.historicalExpectation.alignmentRate == null ? "—" : `${(row.historicalExpectation.alignmentRate * 100).toFixed(1)}%`}
+                  <br />Future matched: {row.prospective.matched.decisionCount} decisions · {row.prospective.matched.resolvedCount} resolved · avg {formatSignedR(row.prospective.matched.averageR)}
+                  <br />Future nonmatches: {row.prospective.notMatched.decisionCount} decisions · {row.prospective.notMatched.resolvedCount} resolved · avg {formatSignedR(row.prospective.notMatched.averageR)}
+                </small>
+              </article>
+            ))}
+          </div>
+        </details>
+      ) : null}
+
+      {data.globalResponse?.contextFollowupResearch ? (
+        <details className="chart-shadow-context-registry chart-shadow-context-followup">
+          <summary>
+            <span>Context research follow-up</span>
+            <strong>
+              {data.globalResponse.contextFollowupResearch.policyInflationCandidates.length} slow-context · {data.globalResponse.contextFollowupResearch.boundedInteractionCandidates.length} combined · {data.globalResponse.contextFollowupResearch.crossMarketTransferCandidates.length} transfer
+            </strong>
+            <ChevronDown size={14} />
+          </summary>
+          <div>
+            <p>{data.globalResponse.contextFollowupResearch.recipesAudited} registered recipes audited. These are review-only findings; no setup, arrow, or contract changed automatically.</p>
+            {data.globalResponse.contextFollowupResearch.policyInflationCandidates.map((candidate) => (
+              <article key={`slow:${candidate.recipe}:${candidate.dimension}:${candidate.value}`}>
+                <header><strong>{candidate.recipe.replace("|", " · ")}</strong><em>Policy / inflation candidate</em></header>
+                <span>IF {contextLabel(candidate.dimension)} = {contextLabel(candidate.value)}</span>
+                <small>Later N {candidate.laterExecution.evaluableN} · avg {formatSignedR(candidate.laterExecution.averageR)} · uplift {formatSignedR(candidate.laterExecutionUpliftR)} · followed {candidate.laterReaction.alignmentRate == null ? "—" : `${(candidate.laterReaction.alignmentRate * 100).toFixed(1)}%`}</small>
+              </article>
+            ))}
+            {data.globalResponse.contextFollowupResearch.boundedInteractionCandidates.map((candidate) => (
+              <article key={`combined:${candidate.recipe}:${candidate.conditions.map((row) => `${row.dimension}:${row.value}`).join("|")}`}>
+                <header><strong>{candidate.recipe.replace("|", " · ")}</strong><em>Two-context candidate</em></header>
+                <span>{candidate.conditions.map((row) => `${contextLabel(row.dimension)} = ${contextLabel(row.value)}`).join(" + ")}</span>
+                <small>Later N {candidate.laterExecution.evaluableN} · avg {formatSignedR(candidate.laterExecution.averageR)} · uplift {formatSignedR(candidate.laterExecutionUpliftR)} · followed {candidate.laterReaction.alignmentRate == null ? "—" : `${(candidate.laterReaction.alignmentRate * 100).toFixed(1)}%`}</small>
+              </article>
+            ))}
+            {data.globalResponse.contextFollowupResearch.crossMarketTransferCandidates.map((candidate) => (
+              <article key={candidate.id}>
+                <header><strong>{candidate.targetMarket} · {candidate.targetLabel}</strong><em>Cross-market transfer</em></header>
+                <span>{candidate.sourceRegistrationId} tested as {contextLabel(candidate.condition.dimension ?? "context")} = {contextLabel(candidate.condition.value ?? "unknown")}</span>
+                <small>Later N {candidate.laterExecution.evaluableN} · avg {formatSignedR(candidate.laterExecution.averageR)} · uplift {formatSignedR(candidate.laterExecutionUpliftR)} · followed {candidate.laterReaction.alignmentRate == null ? "—" : `${(candidate.laterReaction.alignmentRate * 100).toFixed(1)}%`}</small>
+              </article>
+            ))}
+            {!data.globalResponse.contextFollowupResearch.policyInflationCandidates.length && !data.globalResponse.contextFollowupResearch.boundedInteractionCandidates.length && !data.globalResponse.contextFollowupResearch.crossMarketTransferCandidates.length ? <p>No declared follow-up context survived later-history review.</p> : null}
+            <p>{data.globalResponse.contextFollowupResearch.refreshPolicy}</p>
           </div>
         </details>
       ) : null}

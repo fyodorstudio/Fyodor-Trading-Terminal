@@ -275,6 +275,13 @@ export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExper
         <InspectorDisclosure title="Frozen candidates" count={workbench?.candidates.length ?? 0} icon={<Snowflake size={14} />}>
           {() => <div className="fms-candidate-list">{workbench?.candidates.map((candidate: FmsFrozenCandidate) => { const passed = Object.values(candidate.checks).filter(Boolean).length; const failed = Object.keys(candidate.checks).length - passed; return <article key={candidate.id} className={failed ? "has-failed-gates" : ""}><span>{candidate.id} · Review required</span><strong>{candidate.friendlyName}</strong><small>{candidate.catalogSnapshot.label} · {passed}/{Object.keys(candidate.checks).length} checks</small><small>{failed ? `${failed} failed gate${failed === 1 ? "" : "s"} · acknowledged` : "All recorded checks passed"}</small></article>; })}{!workbench?.candidates.length ? <p>No candidate frozen for review.</p> : null}</div>}
         </InspectorDisclosure>
+        <InspectorDisclosure title="Context follow-up" count={(workbench?.contextFollowup?.policyInflationSupported ?? 0) + (workbench?.contextFollowup?.boundedInteractionsSupported ?? 0) + (workbench?.contextFollowup?.transferCandidates.length ?? 0)} icon={<FlaskConical size={14} />}>
+          {() => workbench?.contextFollowup ? <>
+            <article className="fms-atlas-summary"><strong>{workbench.contextFollowup.recipesAudited} recipes audited</strong><span>{workbench.contextFollowup.policyInflationSupported} Policy/Inflation · {workbench.contextFollowup.boundedInteractionsSupported} combined</span><small>{workbench.contextFollowup.transferCandidates.length} cross-market transfer candidates · review only</small></article>
+            {workbench.contextFollowup.transferCandidates.map((row) => <article key={row.id}><strong>{row.targetLabel}</strong><span>{row.sourceRegistrationId} → {row.targetMarket}</span><small>{readable(row.condition.dimension ?? "context")} = {readable(row.condition.value ?? "unknown")} · later N {row.laterExecution.evaluableN} · {formatR(row.laterExecution.averageR)}</small></article>)}
+            <p>{workbench.contextFollowup.refreshPolicy}</p>
+          </> : <p>No context follow-up artifact is available.</p>}
+        </InspectorDisclosure>
         <InspectorDisclosure title="Research Archive" count={workbench?.archive.length ?? 0} icon={<Archive size={14} />}>
           {() => workbench?.archive.map((item) => <article key={item.id}><strong>{item.id}</strong><span>{item.latestRun?.status ?? "No run"}</span><small>{item.configurationHash.slice(0, 12)} · {formatTime(item.createdAt)}</small></article>)}
         </InspectorDisclosure>

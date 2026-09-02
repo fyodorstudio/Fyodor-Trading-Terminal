@@ -1020,10 +1020,15 @@ export function ChartsTab({
       setMacroBiasCurrentError(null);
       return;
     }
-    if (historyState !== "ready" || visibleCandles.length === 0) return;
     let cancelled = false;
-    const reusableResponse = macroBiasCurrentResponse?.supported
-      && macroBiasCurrentResponse.symbol === selectedSymbol;
+    const globalMarket = getPreloadedMacroSignalGlobalRegistry()?.markets.find(
+      (market) => market.symbol === selectedSymbol.toUpperCase(),
+    ) ?? null;
+    const reusableResponse = (macroBiasCurrentResponse?.supported
+      && macroBiasCurrentResponse.symbol === selectedSymbol)
+      ? macroBiasCurrentResponse
+      : globalMarket;
+    if (globalMarket && reusableResponse === globalMarket) setMacroBiasCurrentResponse(globalMarket);
     if (!reusableResponse) setMacroBiasCurrentResponse(null);
     setMacroBiasCurrentLoading(!reusableResponse);
     setMacroBiasCurrentError(null);
@@ -1044,10 +1049,10 @@ export function ChartsTab({
         if (!cancelled) setMacroBiasCurrentLoading(false);
       });
     return () => { cancelled = true; };
-  }, [macroBiasSupported, macroBiasCurrentRequestKey, historyState]);
+  }, [macroBiasSupported, macroBiasCurrentRequestKey]);
 
   useEffect(() => {
-    if (!macroBiasVisible || historyState !== "ready" || visibleCandles.length === 0) return;
+    if (!macroBiasVisible) return;
     let cancelled = false;
     const cached = getPreloadedMacroSignalGlobalRegistry();
     if (cached) setMacroBiasGlobalResponse(cached);
@@ -1060,10 +1065,10 @@ export function ChartsTab({
       })
       .finally(() => { if (!cancelled) setMacroBiasGlobalLoading(false); });
     return () => { cancelled = true; };
-  }, [macroBiasVisible, historyState]);
+  }, [macroBiasVisible]);
 
   useEffect(() => {
-    if (!macroBiasVisible || historyState !== "ready" || visibleCandles.length === 0) return undefined;
+    if (!macroBiasVisible) return undefined;
     let cancelled = false;
     let requestRunning = false;
     const refreshLifecycle = () => {
@@ -1073,10 +1078,6 @@ export function ChartsTab({
         .then((response) => {
           if (cancelled) return;
           setMacroBiasGlobalResponse((current) => shouldApplyMacroBiasRefresh(current, response) ? response : current);
-          const selectedMarket = response.markets.find((market) => market.symbol === selectedSymbol.toUpperCase());
-          if (selectedMarket) {
-            setMacroBiasCurrentResponse((current) => shouldApplyMacroBiasRefresh(current, selectedMarket) ? selectedMarket : current);
-          }
           setMacroBiasGlobalError(null);
         })
         .catch(() => { /* retain the last honest lifecycle state */ })
@@ -1088,7 +1089,7 @@ export function ChartsTab({
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [macroBiasVisible, historyState, selectedSymbol, visibleCandles.length]);
+  }, [macroBiasVisible]);
 
   useEffect(() => {
     if (!macroBiasSupported || !macroBiasVisible || !macroBiasHistoricalMatchesVisible || historyState !== "ready" || visibleCandles.length === 0) {
@@ -1180,8 +1181,8 @@ export function ChartsTab({
     const series = seriesRef.current;
     macroBiasTradeLinesRef.current.forEach((line) => series?.removePriceLine(line));
     macroBiasTradeLinesRef.current = [];
-    if (!series || !selectedMacroBias) return;
-    macroBiasTradeLinesRef.current = buildMacroBiasPriceLineLevels(selectedMacroBias).map((level) => series.createPriceLine({
+    if (!series || !selectedMacroBiasWithTargetLadder) return;
+    macroBiasTradeLinesRef.current = buildMacroBiasPriceLineLevels(selectedMacroBiasWithTargetLadder).map((level) => series.createPriceLine({
         price: level.value,
         color: level.color,
         lineWidth: 1,
@@ -1193,7 +1194,7 @@ export function ChartsTab({
       macroBiasTradeLinesRef.current.forEach((line) => series.removePriceLine(line));
       macroBiasTradeLinesRef.current = [];
     };
-  }, [selectedMacroBias]);
+  }, [selectedMacroBiasWithTargetLadder]);
   const macroBiasAudit = selectedMacroBiasWithTargetLadder && selectedMacroBiasPattern && macroBiasResponse ? {
     signal: selectedMacroBiasWithTargetLadder.activationTime == null && selectedMacroBiasActivationOpen != null
       ? { ...selectedMacroBiasWithTargetLadder, activationTime: selectedMacroBiasActivationOpen - chartSourceTimeOffsetSeconds }
