@@ -510,7 +510,7 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
   return (
     <section
       className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-white"
-      aria-label="Pair Matrix Time Lens"
+      aria-label="Matrix"
       onKeyDownCapture={(event) => {
         if (activeAudit) handlePairMatrixAuditEscape(event, closeAudit);
       }}
@@ -519,7 +519,7 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
         <div className="flex min-w-0 items-center gap-3">
           <span className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600"><Table2 size={15} /></span>
           <div className="min-w-0">
-            <p className="m-0 text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">Pair Matrix - Economic timeline</p>
+            <p className="m-0 text-[9px] font-black uppercase tracking-[0.12em] text-slate-500">Matrix · Economic timeline</p>
             <div className="flex min-w-0 items-center gap-2">
               <h2 className="m-0 overflow-hidden text-ellipsis whitespace-nowrap text-sm font-black text-slate-950">{data.pairLabel}</h2>
               <button
@@ -567,7 +567,7 @@ export const ChartPairMatrixTimeLens = memo(function ChartPairMatrixTimeLens({ d
           </strong>
           <span className="block text-[10px] font-bold text-slate-500">{data.rangeBasisLabel}</span>
         </div>
-        <button className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100" type="button" onClick={data.onClose} aria-label="Close Pair Matrix Time Lens"><X size={15} /></button>
+        <button className="inline-flex h-8 w-8 flex-none items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-100" type="button" onClick={data.onClose} aria-label="Close Matrix"><X size={15} /></button>
       </header>
 
       {!data.supported ? (

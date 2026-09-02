@@ -1,4 +1,4 @@
-import { Activity, BookOpen, CalendarDays, Focus, HardDrive, MousePointer2, Settings2, Table2 } from "lucide-react";
+import { CalendarDays, Focus, MousePointer2, PanelBottom, PanelLeft, PanelRight } from "lucide-react";
 import type { ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
 import type { ChartCursorReadoutMode } from "@/app/lib/chartView";
 
@@ -21,13 +21,14 @@ interface ChartToolStripProps {
   macroBiasActiveLabel: string;
   eventLensExpanded: boolean;
   pairMatrixOpen: boolean;
+  rightPanelOpen: boolean;
   onCursorModeChange: (mode: ChartCursorReadoutMode) => void;
   onRefocusChart: () => void;
   onOpenDrawer: (mode: ChartDrawerMode) => void;
   onToggleMacroBias: () => void;
   onToggleMacroBiasHistoricalMatches: () => void;
-  onToggleEventLens: () => void;
-  onTogglePairMatrix: () => void;
+  onToggleBottomPanel: () => void;
+  onToggleRightPanel: () => void;
 }
 
 export function ChartToolStrip({
@@ -44,13 +45,14 @@ export function ChartToolStrip({
   macroBiasActiveLabel,
   eventLensExpanded,
   pairMatrixOpen,
+  rightPanelOpen,
   onCursorModeChange,
   onRefocusChart,
   onOpenDrawer,
   onToggleMacroBias,
   onToggleMacroBiasHistoricalMatches,
-  onToggleEventLens,
-  onTogglePairMatrix,
+  onToggleBottomPanel,
+  onToggleRightPanel,
 }: ChartToolStripProps) {
   const eventButtonLabel = !eventOverlayVisible
     ? "Chart events hidden"
@@ -74,26 +76,36 @@ export function ChartToolStrip({
           </button>
         ))}
       </div>
-      <div className="chart-lens-tool-group" aria-label="Economic chart tools">
+      <div className="chart-layout-tool-group" aria-label="Chart panel layout">
         <button
           type="button"
-          className={eventLensExpanded ? "is-active" : ""}
-          title="Open Event Lens"
-          aria-label="Open Event Lens"
-          aria-pressed={eventLensExpanded}
-          onClick={onToggleEventLens}
+          className={macroBiasVisible ? "is-active" : ""}
+          title="Toggle left panel"
+          aria-label="Toggle left panel"
+          aria-pressed={macroBiasVisible}
+          onClick={onToggleMacroBias}
         >
-          <BookOpen className="h-4 w-4" />
+          <PanelLeft className="h-4 w-4" />
         </button>
         <button
           type="button"
-          className={pairMatrixOpen ? "is-active" : ""}
-          title="Open Pair Matrix Time Lens"
-          aria-label="Open Pair Matrix Time Lens"
-          aria-pressed={pairMatrixOpen}
-          onClick={onTogglePairMatrix}
+          className={eventLensExpanded || pairMatrixOpen ? "is-active" : ""}
+          title="Toggle bottom panel"
+          aria-label="Toggle bottom panel"
+          aria-pressed={eventLensExpanded || pairMatrixOpen}
+          onClick={onToggleBottomPanel}
         >
-          <Table2 className="h-4 w-4" />
+          <PanelBottom className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          className={rightPanelOpen ? "is-active" : ""}
+          title="Toggle right panel"
+          aria-label="Toggle right panel"
+          aria-pressed={rightPanelOpen}
+          onClick={onToggleRightPanel}
+        >
+          <PanelRight className="h-4 w-4" />
         </button>
       </div>
       <button type="button" className="chart-icon-button" title="Refocus chart" aria-label="Refocus chart" onClick={onRefocusChart}>
@@ -109,17 +121,9 @@ export function ChartToolStrip({
       {macroBiasVisible && macroBiasSupported ? (
         <span className="sr-only" aria-live="polite">{macroBiasActiveLabel}</span>
       ) : null}
-      <button
-        type="button"
-        className={macroBiasVisible ? "chart-macro-bias-toggle is-active" : "chart-macro-bias-toggle"}
-        title={macroBiasSupported ? macroBiasStatusLabel : "No registered FMS setup is available for this market yet; registered contracts are H4-based"}
-        aria-pressed={macroBiasVisible}
-        onClick={onToggleMacroBias}
-      >
-        <Activity className="h-4 w-4" />
-        FMS
-        {macroBiasVisible && macroBiasCount > 0 ? <small>{macroBiasCount}</small> : null}
-      </button>
+      <span className="sr-only" aria-live="polite">
+        {macroBiasSupported ? `${macroBiasStatusLabel}. ${macroBiasCount} FMS signals.` : "No registered FMS setup is available for this market yet."}
+      </span>
       <button
         type="button"
         className={eventOverlayVisible ? "chart-icon-button is-active" : "chart-icon-button"}
@@ -128,24 +132,6 @@ export function ChartToolStrip({
         onClick={() => onOpenDrawer("events")}
       >
         <CalendarDays className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className="chart-icon-button"
-        title="Chart appearance"
-        aria-label="Open chart appearance"
-        onClick={() => onOpenDrawer("appearance")}
-      >
-        <Settings2 className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className="chart-icon-button"
-        title="Diagnostics"
-        aria-label="Open chart diagnostics"
-        onClick={() => onOpenDrawer("diagnostics")}
-      >
-        <HardDrive className="h-4 w-4" />
       </button>
     </div>
   );

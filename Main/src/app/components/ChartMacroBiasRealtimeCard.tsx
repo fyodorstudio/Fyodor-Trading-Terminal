@@ -464,7 +464,9 @@ function CurrencyFlag({ currency }: { currency: string }) {
   return <FlagIcon countryCode={CURRENCY_TO_COUNTRY_CODE[currency as keyof typeof CURRENCY_TO_COUNTRY_CODE] ?? ""} className="chart-shadow-currency-flag" />;
 }
 
-export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCard({ data }: { data: ChartMacroBiasRealtimeCardData }) {
+export type ChartMacroBiasRealtimeView = "all" | "setups" | "research";
+
+export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCard({ data, view = "all" }: { data: ChartMacroBiasRealtimeCardData; view?: ChartMacroBiasRealtimeView }) {
   const { response, activeSignal, activePattern } = data;
   const activeContextCandidate = activePattern?.reactionAudit?.profile?.contextResearch?.selectedCandidate ?? null;
   const activeContextMatches = Boolean(activeSignal && activeContextCandidate && signalContextValue(activeSignal, activeContextCandidate.dimension) === activeContextCandidate.value);
@@ -573,7 +575,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
     () => tradeRows.filter((row) => row.signal.entry == null && row.signal.prospectiveCapture?.eligible === true),
     [tradeRows],
   );
-  const latestRegisteredDecision = registeredDecisionRows[0] ?? null;
+  const recentRegisteredDecisions = registeredDecisionRows.slice(0, 10);
   const selectedDecision = selectedDecisionKey == null
     ? null
     : registeredDecisionRows.find((row) => row.key === selectedDecisionKey)
@@ -697,13 +699,13 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
   };
 
   return (
-    <aside className="chart-macro-bias-realtime" aria-label="FMS Shadow Trader">
+    <aside className="chart-macro-bias-realtime" aria-label={view === "research" ? "FMS Research" : view === "setups" ? "Registered FMS Setups" : "FMS Shadow Trader"} data-fms-view={view}>
       <header>
-        <div><ShieldCheck size={14} /><span>FMS Shadow Trader</span></div>
-        <small>{data.globalResponse ? `${registryResponses.length} markets live` : timeframeLabel}</small>
+        <div><ShieldCheck size={14} /><span>{view === "research" ? "FMS Research" : view === "setups" ? "Registered Setups" : "FMS Shadow Trader"}</span></div>
+        <small>{view === "research" ? "Diagnostics and review" : data.globalResponse ? `${registryResponses.length} markets live` : timeframeLabel}</small>
       </header>
       {registeredContextPatterns.length > 0 ? (
-        <section className="chart-shadow-context-summary" aria-label="Reviewed context rule availability">
+        <section className="chart-shadow-context-summary fms-research-only" aria-label="Reviewed context rule availability">
           <div><span>Reviewed H4 context rules</span><strong>{registeredContextPatterns.length} exact setup rules</strong></div>
           <p>{[...new Set(registeredContextPatterns.map((pattern) => pattern.market ?? response.symbol))].map((market) => {
             const count = registeredContextPatterns.filter((pattern) => (pattern.market ?? response.symbol) === market).length;
@@ -725,7 +727,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           : captureStatus === "waiting_for_qualified_signal" ? "Waiting for a qualified setup"
           : "Demo capture not checked yet";
         return (
-          <section className="chart-shadow-forward-gate" aria-label="FMS demo monitoring readiness">
+          <section className="chart-shadow-forward-gate fms-research-only" aria-label="FMS demo monitoring readiness">
             <div className="chart-shadow-forward-gate-heading">
               <div><span>Demo signal engine</span><strong>{demoEngineReady ? "Ready for demo monitoring" : validation.eligibleForDemoTrading ? "Signal engine ready · feed waiting" : "Not ready"}</strong></div>
               <em className={demoEngineReady ? "is-paper-ready" : "is-collecting"}>{demoEngineReady ? "EA cycle current" : validation.eligibleForDemoTrading ? "Preflight blocked" : "Unavailable"}</em>
@@ -745,7 +747,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           </section>
         );
       })() : null}
-      <section className="chart-shadow-trade-monitor" aria-label="Current and recent hypothetical FMS trades">
+      <section className="chart-shadow-trade-monitor fms-setups-only" aria-label="Current and recent hypothetical FMS trades">
         <div className="chart-shadow-section-heading">
           <div><span>Trade monitor</span><strong>What would FMS do now?</strong></div>
           <small>Setup-level simulations · click a row for its audit · the account replay separately skips portfolio overlaps</small>
@@ -757,10 +759,20 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
             {currentTradeRows.length > 0 ? currentTradeRows.map(renderTradeRow) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No hypothetical trade is currently open.</td></tr>}
             <tr className="chart-shadow-trade-group"><th colSpan={4}>Queued for the next H4 entry</th></tr>
             {queuedTradeRows.length > 0 ? queuedTradeRows.map(renderTradeRow) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No qualified setup is waiting for entry.</td></tr>}
-            <tr className="chart-shadow-trade-group"><th colSpan={4}>Latest registered decision</th></tr>
-            {latestRegisteredDecision ? renderDecisionRow(latestRegisteredDecision) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No registered release decision is loaded.</td></tr>}
           </tbody>
         </table>
+        <div className="chart-shadow-recent-decisions-heading">
+          <strong>Latest registered decisions</strong>
+          <small>{recentRegisteredDecisions.length} of 10</small>
+        </div>
+        <div className="chart-shadow-recent-decisions-scroll">
+          <table aria-label="Latest registered FMS decisions">
+            <tbody>
+              {recentRegisteredDecisions.length > 0 ? recentRegisteredDecisions.map(renderDecisionRow) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No registered release decision is loaded.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+        {selectedDecision ? <LatestDecisionSection assessment={selectedDecision.assessment} pattern={selectedDecision.pattern} symbol={selectedDecision.market} signal={selectedDecision.signal} /> : null}
         <details className="chart-shadow-upcoming-list">
           <summary>
             <span><b>Possible next setups</b><small>Upcoming registered releases</small></span>
@@ -786,10 +798,9 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           </div>
         </details>
       </section>
-      {selectedDecision ? <LatestDecisionSection assessment={selectedDecision.assessment} pattern={selectedDecision.pattern} symbol={selectedDecision.market} signal={selectedDecision.signal} /> : null}
-      {data.globalLoading ? <section className="chart-shadow-global-state">Loading the global registry…</section> : null}
-      {data.globalError ? <section className="chart-shadow-global-state is-error">Global registry unavailable: {data.globalError}. Showing {response.symbol} only.</section> : null}
-      <section className="chart-shadow-priority" aria-label="All registered FMS setups">
+      {data.globalLoading ? <section className="chart-shadow-global-state fms-setups-only">Loading the global registry…</section> : null}
+      {data.globalError ? <section className="chart-shadow-global-state is-error fms-setups-only">Global registry unavailable: {data.globalError}. Showing {response.symbol} only.</section> : null}
+      <section className="chart-shadow-priority fms-setups-only" aria-label="All registered FMS setups">
         <div className="chart-shadow-section-heading">
           <div><span>Live watchlist</span><strong>Every registered setup</strong></div>
           <nav className="chart-shadow-market-filters" aria-label="Filter setups by currency">
@@ -924,7 +935,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
         </table>
       </section>
 
-      <section className="chart-shadow-account" aria-label="Gross hypothetical account and performance replay">
+      <section className="chart-shadow-account fms-setups-only" aria-label="Gross hypothetical account and performance replay">
         <div className="chart-shadow-section-heading"><div><span><WalletCards size={12} /> Hypothetical account</span><strong>Assumptions and performance replay</strong></div></div>
         <div className="chart-shadow-account-controls">
           <label>
@@ -973,7 +984,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       </section>
 
       {activeSignal && position ? (
-        <section className="chart-shadow-position" aria-label="Hypothetical position">
+        <section className="chart-shadow-position fms-setups-only" aria-label="Hypothetical position">
           <div className="chart-macro-bias-realtime-kicker">Open hypothetical trade · no MT5 order</div>
           <div className="chart-shadow-position-grid">
             <div><span>Entry</span><strong>{formatPrice(activeSignal.entry)}</strong></div>
@@ -1002,7 +1013,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       ) : null}
 
       {data.globalResponse?.liveDecisions?.length ? (
-        <details className="chart-shadow-account-audit chart-shadow-decision-ledger">
+        <details className="chart-shadow-account-audit chart-shadow-decision-ledger fms-setups-only">
           <summary><span>Immutable decision ledger</span><strong>{data.globalResponse.liveDecisions.length} first-seen decisions</strong><ChevronDown size={14} /></summary>
           <div>
             <p>Broker revisions cannot rewrite these original qualified/no-trade decisions.</p>
@@ -1017,10 +1028,10 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
         </details>
       ) : null}
 
-      <ChartMacroBiasSetupCatalog patterns={registeredPatternRows} />
+      <div className="fms-setups-only"><ChartMacroBiasSetupCatalog patterns={registeredPatternRows} /></div>
 
       {registeredContextPatterns.length > 0 ? (
-        <details className="chart-shadow-context-registry" open>
+        <details className="chart-shadow-context-registry fms-research-only" open>
           <summary><span>Context-conditioned setups</span><strong>{registeredContextPatterns.length} reviewed rules</strong><ChevronDown size={14} /></summary>
           <div>
             <p>These rules sit above an unchanged parent setup. A matching entry context uses the shown contract; a nonmatch keeps the parent arrow and parent contract.</p>
@@ -1041,7 +1052,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       ) : null}
 
       {data.globalResponse?.prospectiveContextLedger?.rows.length ? (
-        <details className="chart-shadow-context-registry chart-shadow-context-ledger">
+        <details className="chart-shadow-context-registry chart-shadow-context-ledger fms-research-only">
           <summary>
             <span>Live context check</span>
             <strong>{data.globalResponse.prospectiveContextLedger.matchedDecisions} matched · {data.globalResponse.prospectiveContextLedger.resolvedMatchedCases} resolved</strong>
@@ -1065,7 +1076,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       ) : null}
 
       {data.globalResponse?.contextFollowupResearch ? (
-        <details className="chart-shadow-context-registry chart-shadow-context-followup">
+        <details className="chart-shadow-context-registry chart-shadow-context-followup fms-research-only">
           <summary>
             <span>Context research follow-up</span>
             <strong>
@@ -1103,7 +1114,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       ) : null}
 
       {data.globalResponse?.outcomeReview || unregisteredSupportedContextReviews.length > 0 ? (
-        <details className="chart-shadow-account-audit chart-shadow-review-queue">
+        <details className="chart-shadow-account-audit chart-shadow-review-queue fms-research-only">
           <summary>
             <span>Needs Codex review</span>
             <strong>{data.globalResponse?.outcomeReview ? Object.values(data.globalResponse.outcomeReview.unresolvedByReason).reduce((sum, count) => sum + count, 0) : 0} unresolved · {unregisteredSupportedContextReviews.length} context candidates</strong>
@@ -1151,7 +1162,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       ) : null}
 
       {response.policyInflationContext ? (
-        <details className="chart-macro-bias-realtime-context" aria-label="Policy and inflation background context">
+        <details className="chart-macro-bias-realtime-context fms-research-only" aria-label="Policy and inflation background context">
           <summary><span>Policy / inflation background</span><strong>Not used by frozen rules</strong><ChevronDown size={14} /></summary>
           <div className="chart-shadow-context-grid">
             {(["EUR", "USD"] as const).map((currency) => {
@@ -1170,7 +1181,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       ) : null}
 
       {data.globalResponse ? (
-        <section className="chart-shadow-intelligence" aria-label="FMS historical research intelligence">
+        <section className="chart-shadow-intelligence fms-research-only" aria-label="FMS historical research intelligence">
           <div className="chart-shadow-section-heading">
             <div><span>What history says</span><strong>What to watch and avoid</strong></div>
           </div>
@@ -1211,7 +1222,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           <small className="chart-shadow-source-note">“Avoid” does not mean the release is irrelevant. It means its economic direction did not produce a dependable standalone price-direction rule in the recorded tests.</small>
         </section>
       ) : null}
-      <footer>Hypothetical results only: spread, commission, slippage, and swap are excluded. No order is sent to MT5. Past results do not guarantee the next trade.</footer>
+      <footer>{view === "research" ? "Research findings do not change active registered setups automatically." : "Hypothetical results only: spread, commission, slippage, and swap are excluded. No order is sent to MT5. Past results do not guarantee the next trade."}</footer>
     </aside>
   );
 });

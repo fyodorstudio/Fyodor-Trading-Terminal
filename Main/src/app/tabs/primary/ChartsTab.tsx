@@ -2401,13 +2401,21 @@ export function ChartsTab({
           macroBiasActiveLabel={macroBiasActiveLabel}
           eventLensExpanded={eventLensExpanded}
           pairMatrixOpen={pairMatrixOpen}
+          rightPanelOpen={historyPanelOpen}
           onCursorModeChange={handleCursorModeChange}
           onRefocusChart={refocusChart}
           onOpenDrawer={openChartDrawer}
           onToggleMacroBias={toggleMacroBias}
           onToggleMacroBiasHistoricalMatches={toggleMacroBiasHistoricalMatches}
-          onToggleEventLens={eventLensData?.onToggleExpanded ?? eventLensDockData.onToggleExpanded}
-          onTogglePairMatrix={pairMatrixTimeLensData.onToggleOpen}
+          onToggleBottomPanel={() => {
+            if (pairMatrixOpen || eventLensExpanded) {
+              if (pairMatrixOpen) pairMatrixTimeLensData.onClose();
+              if (eventLensExpanded) closeEventLens();
+              return;
+            }
+            pairMatrixTimeLensData.onToggleOpen();
+          }}
+          onToggleRightPanel={() => setHistoryPanelOpen((current) => !current)}
         />
       </div>
 

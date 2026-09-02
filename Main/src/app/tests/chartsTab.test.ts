@@ -123,13 +123,14 @@ describe("getChartConnectionLabel", () => {
       macroBiasActiveLabel: "No active bias",
       eventLensExpanded: false,
       pairMatrixOpen: false,
+      rightPanelOpen: false,
       onCursorModeChange: () => {},
       onRefocusChart: () => {},
       onOpenDrawer: () => {},
       onToggleMacroBias: () => {},
       onToggleMacroBiasHistoricalMatches: () => {},
-      onToggleEventLens: () => {},
-      onTogglePairMatrix: () => {},
+      onToggleBottomPanel: () => {},
+      onToggleRightPanel: () => {},
     }));
 
     expect(html).not.toContain("Current model");
@@ -138,8 +139,9 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain(">42<");
     expect(html).toContain("No active bias");
     expect(html).toContain('class="sr-only"');
-    expect(html).toContain('aria-label="Open Event Lens"');
-    expect(html).toContain('aria-label="Open Pair Matrix Time Lens"');
+    expect(html).toContain('aria-label="Toggle left panel"');
+    expect(html).toContain('aria-label="Toggle bottom panel"');
+    expect(html).toContain('aria-label="Toggle right panel"');
   });
   it("makes target sensitivity, resolved outcomes, costs, and uncertainty explicit in the bias audit", () => {
     const metrics: MacroSignalMetrics = {
@@ -496,7 +498,7 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Trade open");
     expect(html).toContain("What would FMS do now?");
     expect(html).toContain("Open now");
-    expect(html).toContain("Latest registered decision");
+    expect(html).toContain("Latest registered decisions");
     expect(html).toContain("Registered package produced no direction");
     expect(html).toContain("View audit");
     expect(html).not.toContain("Trade decision audit");
@@ -816,13 +818,10 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Cursor readout mode");
     expect(html).toContain("Crosshair");
     expect(html).toContain("Sticky");
-    expect(html).toContain("Open chart appearance");
     expect(html).toContain("Open chart events");
-    expect(html).toContain("Open chart diagnostics");
-    expect(html).toContain(">FMS<");
-    expect(html).toContain("Event Lens");
-    expect(html).toContain("Open Event Lens");
-    expect(html).toContain("Open Pair Matrix Time Lens");
+    expect(html).toContain("Toggle left panel");
+    expect(html).toContain("Toggle bottom panel");
+    expect(html).toContain("Toggle right panel");
     expect(html).not.toContain(">Details<");
     expect(html).not.toContain("Loaded broker/MT5 rows only");
     expect(html).not.toContain("No loaded high-impact EUR/USD events in this visible range");

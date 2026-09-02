@@ -177,7 +177,7 @@ export function ChartViewport({
   overlayCopy,
   reachedBoundary,
 }: ChartViewportProps) {
-  const [fmsDockTab, setFmsDockTab] = useState<"shadow" | "result">(macroBiasAudit ? "result" : "shadow");
+  const [fmsDockTab, setFmsDockTab] = useState<"setups" | "research" | "result">(macroBiasAudit ? "result" : "setups");
   const [fmsDockWidth, setFmsDockWidth] = useState(() => {
     try {
       const saved = Number(window.localStorage.getItem(FMS_DOCK_WIDTH_KEY));
@@ -187,12 +187,33 @@ export function ChartViewport({
     }
   });
   const viewportRef = useRef<HTMLDivElement | null>(null);
+  const fmsDockRef = useRef<HTMLElement | null>(null);
   const fmsDockVisible = macroBiasRealtime != null || macroBiasAudit != null;
+  const lensOpen = Boolean(eventLens?.expanded || eventLensDock.expanded);
+  const bottomDockVisible = pairMatrixTimeLens.open || lensOpen;
+  const [bottomDockTab, setBottomDockTab] = useState<"matrix" | "lens">(lensOpen ? "lens" : "matrix");
+  const previousMatrixOpenRef = useRef(pairMatrixTimeLens.open);
+  const previousLensOpenRef = useRef(lensOpen);
 
   useEffect(() => {
     if (macroBiasAudit) setFmsDockTab("result");
-    else if (macroBiasRealtime) setFmsDockTab("shadow");
+    else if (macroBiasRealtime) setFmsDockTab("setups");
   }, [macroBiasAudit?.signal.id, Boolean(macroBiasRealtime)]);
+
+  useEffect(() => {
+    if (pairMatrixTimeLens.open && !previousMatrixOpenRef.current) setBottomDockTab("matrix");
+    previousMatrixOpenRef.current = pairMatrixTimeLens.open;
+  }, [pairMatrixTimeLens.open]);
+
+  useEffect(() => {
+    if (lensOpen && !previousLensOpenRef.current) setBottomDockTab("lens");
+    previousLensOpenRef.current = lensOpen;
+  }, [lensOpen]);
+
+  useEffect(() => {
+    if (bottomDockTab === "matrix" && !pairMatrixTimeLens.open && lensOpen) setBottomDockTab("lens");
+    if (bottomDockTab === "lens" && !lensOpen && pairMatrixTimeLens.open) setBottomDockTab("matrix");
+  }, [bottomDockTab, lensOpen, pairMatrixTimeLens.open]);
 
   const startFmsDockResize = (event: ReactPointerEvent<HTMLDivElement>) => {
     event.preventDefault();
@@ -201,10 +222,15 @@ export function ChartViewport({
     handle.setPointerCapture(pointerId);
     const bounds = viewportRef.current?.getBoundingClientRect();
     if (!bounds) return;
-    const update = (clientX: number) => setFmsDockWidth(clampFmsDockWidth(clientX - bounds.left, bounds.width));
+    let previewWidth = fmsDockWidth;
+    const update = (clientX: number) => {
+      previewWidth = clampFmsDockWidth(clientX - bounds.left, bounds.width);
+      if (fmsDockRef.current) fmsDockRef.current.style.width = `${previewWidth}px`;
+    };
     const onMove = (moveEvent: PointerEvent) => update(moveEvent.clientX);
     const finish = (finishEvent: PointerEvent) => {
       update(finishEvent.clientX);
+      setFmsDockWidth(previewWidth);
       try {
         if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
       } catch {
@@ -213,7 +239,7 @@ export function ChartViewport({
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", finish);
       window.removeEventListener("pointercancel", finish);
-      try { window.localStorage.setItem(FMS_DOCK_WIDTH_KEY, String(clampFmsDockWidth(finishEvent.clientX - bounds.left, bounds.width))); } catch { /* optional preference */ }
+      try { window.localStorage.setItem(FMS_DOCK_WIDTH_KEY, String(previewWidth)); } catch { /* optional preference */ }
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", finish);
@@ -237,13 +263,18 @@ export function ChartViewport({
       <div ref={viewportRef} className="chart-viewport-shell relative group min-h-0 flex-1 overflow-hidden">
         <div className={`chart-viewport-surface h-full overflow-hidden ${fmsDockVisible ? "has-fms-dock" : ""}`}>
           {fmsDockVisible ? (
-            <aside className="chart-fms-dock" style={{ width: fmsDockWidth }} aria-label="FMS chart workspace">
+            <aside ref={fmsDockRef} className="chart-fms-dock" style={{ width: fmsDockWidth }} aria-label="FMS chart workspace">
               <nav className="chart-fms-dock-tabs" aria-label="FMS windows">
-                <button type="button" className={fmsDockTab === "shadow" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => setFmsDockTab("shadow")}>FMS Shadow Trader</button>
-                <button type="button" className={fmsDockTab === "result" ? "is-active" : ""} disabled={!macroBiasAudit} onClick={() => setFmsDockTab("result")}>Past FMS Result</button>
+                <button type="button" className={fmsDockTab === "setups" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => setFmsDockTab("setups")}>Setups</button>
+                <button type="button" className={fmsDockTab === "research" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => setFmsDockTab("research")}>Research</button>
+                <button type="button" className={fmsDockTab === "result" ? "is-active" : ""} disabled={!macroBiasAudit} onClick={() => setFmsDockTab("result")}>Past Result</button>
               </nav>
               <div className="chart-fms-dock-content">
-                {fmsDockTab === "result" && macroBiasAudit ? <ChartMacroBiasAudit data={macroBiasAudit} /> : macroBiasRealtime ? <ChartMacroBiasRealtimeCard data={macroBiasRealtime} /> : null}
+                {fmsDockTab === "result" && macroBiasAudit
+                  ? <ChartMacroBiasAudit data={macroBiasAudit} />
+                  : macroBiasRealtime
+                    ? <ChartMacroBiasRealtimeCard data={macroBiasRealtime} view={fmsDockTab === "research" ? "research" : "setups"} />
+                    : null}
               </div>
               <div
                 className="chart-fms-dock-resize"
@@ -259,7 +290,7 @@ export function ChartViewport({
               ><span /></div>
             </aside>
           ) : null}
-          <div className={`chart-canvas-frame ${pairMatrixTimeLens.open ? "has-pair-matrix-bottom" : ""}`}>
+          <div className={`chart-canvas-frame ${bottomDockVisible ? "has-pair-matrix-bottom" : ""}`}>
             <div className="chart-plot-region">
               <div ref={containerRef} className="h-full w-full" />
               {!pairMatrixTimeLens.open ? <ChartEventOverlay
@@ -277,12 +308,14 @@ export function ChartViewport({
                 <ChartPairMatrixRangeOverlay data={pairMatrixRangeOverlay} />
                 {pairMatrixTimeLens.open ? <ChartPairMatrixContextMarkers {...pairMatrixContextMarkers} /> : null}
             </div>
-            <div className={`chart-event-lens-slot ${eventOverlay.isInteracting ? "is-interacting" : ""}`}>
-              {eventLens?.expanded ? <ChartEventLens data={eventLens} /> : null}
-              {!eventLens && eventLensDock.expanded ? <ChartEventLensDock data={eventLensDock} /> : null}
-            </div>
-            {pairMatrixTimeLens.open ? (
-              <ResizablePairMatrixPanel data={pairMatrixTimeLens} />
+            {bottomDockVisible ? (
+              <ResizableChartBottomPanel
+                pairMatrixData={pairMatrixTimeLens}
+                eventLens={eventLens}
+                eventLensDock={eventLensDock}
+                activeTab={bottomDockTab}
+                onActiveTabChange={setBottomDockTab}
+              />
             ) : null}
           </div>
         </div>
@@ -316,16 +349,28 @@ export function ChartViewport({
   );
 }
 
-function ResizablePairMatrixPanel({ data }: { data: ChartPairMatrixTimeLensData }) {
+function ResizableChartBottomPanel({
+  pairMatrixData,
+  eventLens,
+  eventLensDock,
+  activeTab,
+  onActiveTabChange,
+}: {
+  pairMatrixData: ChartPairMatrixTimeLensData;
+  eventLens: ChartEventLensData | null;
+  eventLensDock: ChartEventLensDockData;
+  activeTab: "matrix" | "lens";
+  onActiveTabChange: (tab: "matrix" | "lens") => void;
+}) {
   const shellRef = useRef<HTMLElement | null>(null);
   const dragRef = useRef<{ pointerId: number; startY: number; startHeight: number } | null>(null);
   const frameRef = useRef<number | null>(null);
   const pendingHeightRef = useRef<number | null>(null);
   const [height, setHeight] = useState<number | null>(null);
-  const hoverAnchor = usePairMatrixHoverAnchor(data.hasLockedRange ? null : data.cursorRuntime?.hover ?? null);
+  const hoverAnchor = usePairMatrixHoverAnchor(pairMatrixData.hasLockedRange ? null : pairMatrixData.cursorRuntime?.hover ?? null);
   const resolvedData = useMemo(
-    () => data.hasLockedRange || !data.cursorRuntime ? data : data.cursorRuntime.resolve(hoverAnchor),
-    [data, hoverAnchor],
+    () => pairMatrixData.hasLockedRange || !pairMatrixData.cursorRuntime ? pairMatrixData : pairMatrixData.cursorRuntime.resolve(hoverAnchor),
+    [pairMatrixData, hoverAnchor],
   );
 
   useEffect(() => () => {
@@ -341,12 +386,15 @@ function ResizablePairMatrixPanel({ data }: { data: ChartPairMatrixTimeLensData 
     if (frameRef.current != null) return;
     frameRef.current = requestAnimationFrame(() => {
       frameRef.current = null;
-      if (pendingHeightRef.current != null) setHeight(pendingHeightRef.current);
+      if (pendingHeightRef.current != null && shellRef.current) shellRef.current.style.height = `${pendingHeightRef.current}px`;
     });
   };
   const finishResize = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (dragRef.current?.pointerId !== event.pointerId) return;
     dragRef.current = null;
+    const committedHeight = pendingHeightRef.current ?? shellRef.current?.offsetHeight ?? null;
+    pendingHeightRef.current = null;
+    if (committedHeight != null) setHeight(committedHeight);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
@@ -354,19 +402,23 @@ function ResizablePairMatrixPanel({ data }: { data: ChartPairMatrixTimeLensData 
     <section
       ref={shellRef}
       className="chart-pair-matrix-bottom-shell"
-      style={height == null ? undefined : { flexBasis: `${height}px` }}
-      aria-label="Pair Matrix bottom panel"
+      style={height == null ? undefined : { height: `${height}px` }}
+      aria-label="Chart bottom panel"
     >
       <div
         className="chart-pair-matrix-resize-handle"
         role="separator"
-        aria-label="Resize Pair Matrix vertically"
+        aria-label="Resize chart bottom panel vertically"
         aria-orientation="horizontal"
         aria-valuemin={PAIR_MATRIX_PANEL_MIN_HEIGHT}
         aria-valuenow={height ?? undefined}
         tabIndex={0}
-        title="Drag to resize Pair Matrix. Double-click to restore the default height."
-        onDoubleClick={() => setHeight(null)}
+        title="Drag to resize the bottom panel. Double-click to restore the default height."
+        onDoubleClick={() => {
+          pendingHeightRef.current = null;
+          if (shellRef.current) shellRef.current.style.removeProperty("height");
+          setHeight(null);
+        }}
         onKeyDown={(event) => {
           if (event.key === "Home") {
             event.preventDefault();
@@ -395,7 +447,33 @@ function ResizablePairMatrixPanel({ data }: { data: ChartPairMatrixTimeLensData 
       >
         <span aria-hidden="true" />
       </div>
-      <ChartPairMatrixTimeLens data={resolvedData} />
+      <nav className="chart-bottom-dock-tabs" aria-label="Bottom panel windows">
+        <button
+          type="button"
+          className={activeTab === "matrix" ? "is-active" : ""}
+          aria-selected={activeTab === "matrix"}
+          onClick={() => {
+            onActiveTabChange("matrix");
+            if (!pairMatrixData.open) pairMatrixData.onToggleOpen();
+          }}
+        >Matrix</button>
+        <button
+          type="button"
+          className={activeTab === "lens" ? "is-active" : ""}
+          aria-selected={activeTab === "lens"}
+          onClick={() => {
+            onActiveTabChange("lens");
+            if (!eventLens?.expanded && !eventLensDock.expanded) {
+              (eventLens?.onToggleExpanded ?? eventLensDock.onToggleExpanded)();
+            }
+          }}
+        >Lens</button>
+      </nav>
+      <div className="chart-bottom-dock-content">
+        {activeTab === "matrix" && pairMatrixData.open ? <ChartPairMatrixTimeLens data={resolvedData} /> : null}
+        {activeTab === "lens" && eventLens?.expanded ? <ChartEventLens data={eventLens} /> : null}
+        {activeTab === "lens" && !eventLens && eventLensDock.expanded ? <ChartEventLensDock data={eventLensDock} /> : null}
+      </div>
     </section>
   );
 }
@@ -568,9 +646,9 @@ function ChartEventLensDock({ data }: { data: ChartEventLensDockData }) {
   }
 
   return (
-    <section className="chart-event-lens-dock is-expanded" aria-label="Event Lens">
+    <section className="chart-event-lens-dock is-expanded" aria-label="Lens">
       <div className="chart-event-lens-dock-title">
-        <span>Event Lens</span>
+        <span>Lens</span>
         <strong>{data.title}</strong>
       </div>
       <p>{data.description}</p>

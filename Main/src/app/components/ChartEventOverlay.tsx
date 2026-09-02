@@ -71,7 +71,7 @@ export function ChartEventOverlay(props: {
               onClick={() => props.onSelectCluster(cluster.key)}
               onFocus={() => keepTooltipOpen(cluster.key)}
               onBlur={scheduleTooltipClose}
-              aria-label={`Open Event Lens for ${cluster.events.length} ${hasFuture ? "scheduled" : "loaded"} chart event${cluster.events.length === 1 ? "" : "s"}`}
+              aria-label={`Open Lens for ${cluster.events.length} ${hasFuture ? "scheduled" : "loaded"} chart event${cluster.events.length === 1 ? "" : "s"}`}
             >
               <span className="chart-event-dot" />
               {shouldShowBadge && (

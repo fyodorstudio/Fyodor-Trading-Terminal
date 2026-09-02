@@ -55,10 +55,10 @@ function formatNextEvent(row: MacroFactorRow): string {
 
 export function ChartEventLens({ data }: { data: ChartEventLensData }) {
   return (
-    <section className={`chart-event-lens ${data.expanded ? "is-expanded" : ""}`} aria-label="Event Lens">
+    <section className={`chart-event-lens ${data.expanded ? "is-expanded" : ""}`} aria-label="Lens">
       {!data.expanded ? (
         <button type="button" className="chart-event-lens-bookmark" onClick={data.onToggleExpanded} aria-expanded={false}>
-          <span>Event Lens</span>
+          <span>Lens</span>
           <strong>Details</strong>
           <ChevronUp size={14} />
         </button>
@@ -66,7 +66,7 @@ export function ChartEventLens({ data }: { data: ChartEventLensData }) {
         <>
           <div className="chart-event-lens-strip">
             <div className="chart-event-lens-title">
-              <span>{data.selectedEventIsFuture ? "Scheduled Event Lens" : "Event Lens"}</span>
+              <span>{data.selectedEventIsFuture ? "Scheduled Lens" : "Lens"}</span>
               <strong>{data.selectedEvent.currency} / {data.selectedEvent.title}</strong>
               <small>{data.timeLabel}</small>
               <small>{data.coverageLabel}</small>
@@ -97,7 +97,7 @@ export function ChartEventLens({ data }: { data: ChartEventLensData }) {
                 <ChevronDown size={14} />
                 Collapse
               </button>
-              <button type="button" className="chart-event-lens-icon" onClick={data.onClose} aria-label="Close Event Lens">
+              <button type="button" className="chart-event-lens-icon" onClick={data.onClose} aria-label="Close Lens">
                 <X size={15} />
               </button>
             </div>

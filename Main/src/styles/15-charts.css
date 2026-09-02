@@ -5,10 +5,13 @@
 .charts-tab-page .chart-viewport-surface { width: 100%; height: 100%; background: #fff; }
 .charts-tab-page .chart-viewport-surface.has-fms-dock { display: flex; min-width: 0; }
 .chart-fms-dock { position: relative; z-index: 34; display: flex; flex: 0 0 auto; min-width: 340px; max-width: 62%; height: 100%; min-height: 0; flex-direction: column; border-right: 1px solid #cbd5e1; background: #f8fafc; padding-top: 56px; }
-.chart-fms-dock-tabs { display: grid; flex: 0 0 auto; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; background: #e2e8f0; padding: 3px 3px 0; }
-.chart-fms-dock-tabs button { min-width: 0; min-height: 34px; border: 0; border-bottom: 3px solid transparent; background: transparent; padding: 7px 9px; color: #64748b; font-size: 11px; font-weight: 900; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.chart-fms-dock-tabs { display: grid; flex: 0 0 auto; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; background: #e2e8f0; padding: 3px 3px 0; }
+.chart-fms-dock-tabs button { min-width: 0; min-height: 43px; border: 0; border-bottom: 3px solid transparent; background: transparent; padding: 5px 7px; color: #64748b; font-size: 11px; font-weight: 900; cursor: pointer; overflow: hidden; }
+.chart-fms-dock-tabs button > span { display: grid; min-width: 0; gap: 1px; line-height: 1.1; }
+.chart-fms-dock-tabs button small { overflow: hidden; color: #94a3b8; font-size: 8px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .chart-fms-dock-tabs button:hover:not(:disabled) { background: rgba(255,255,255,.6); color: #312e81; }
 .chart-fms-dock-tabs button.is-active { border-bottom-color: #4f46e5; background: #fff; color: #172554; }
+.chart-fms-dock-tabs button.is-active small { color: #6366f1; }
 .chart-fms-dock-tabs button:disabled { cursor: default; opacity: .48; }
 .chart-fms-dock-content { position: relative; min-height: 0; flex: 1 1 auto; overflow: hidden; background: #fff; }
 .chart-fms-dock .chart-macro-bias-realtime,
@@ -18,6 +21,14 @@
 .chart-fms-dock-resize:hover::before, .chart-fms-dock-resize:active::before { left: 3px; width: 3px; background: #6366f1; }
 .chart-fms-dock-resize:focus-visible { outline: 2px solid #6366f1; outline-offset: -2px; }
 .chart-fms-dock-resize span { position: absolute; top: 50%; left: 1px; width: 8px; height: 46px; transform: translateY(-50%); border: 1px solid #cbd5e1; border-radius: 5px; background: #fff; box-shadow: 0 2px 8px rgba(15,23,42,.12); }
+.chart-macro-bias-realtime[data-fms-view="setups"] .fms-research-only,
+.chart-macro-bias-realtime[data-fms-view="research"] .fms-setups-only { display: none !important; }
+.chart-shadow-workspace-intro { display: grid; gap: 3px; padding: 11px 13px 12px; border-bottom: 1px solid #cbd5e1; background: #f8fafc; }
+.chart-shadow-workspace-intro > span { color: #4f46e5; font-size: 8px; font-weight: 950; letter-spacing: .11em; text-transform: uppercase; }
+.chart-shadow-workspace-intro > strong { color: #0f172a; font-size: 13px; font-weight: 900; line-height: 1.25; }
+.chart-shadow-workspace-intro > small { color: #64748b; font-size: 10px; font-weight: 700; line-height: 1.35; }
+.chart-shadow-workspace-intro.is-research { border-left: 3px solid #8b5cf6; background: #faf5ff; }
+.chart-shadow-workspace-intro.is-setups { border-left: 3px solid #2563eb; background: #eff6ff; }
 .charts-tab-page .chart-viewport-surface.has-fms-dock > .chart-canvas-frame { min-width: 0; width: auto; flex: 1 1 auto; }
 .charts-tab-page .chart-canvas-frame { height: 100%; min-height: 0; border-radius: 0; }
 .chart-workbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; background: rgba(255, 255, 255, 0.74); box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); backdrop-filter: blur(14px); position: relative; z-index: 50; }
@@ -1000,6 +1011,12 @@
 .chart-shadow-trade-monitor td:last-child { color: #4f46e5; text-align: right; }
 .chart-shadow-trade-monitor td:last-child > span { display: inline; font-size: 8px; font-weight: 950; white-space: nowrap; }
 .chart-shadow-trade-monitor td:last-child svg { margin-left: 3px; vertical-align: -3px; }
+.chart-shadow-recent-decisions-heading { display: flex; min-height: 30px; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid #c7d2fe; border-bottom: 1px solid #dbe3ef; background: #eef2ff; padding: 6px 8px; }
+.chart-shadow-recent-decisions-heading strong { color: #3730a3; font-size: 9px; font-weight: 950; letter-spacing: .04em; text-transform: uppercase; }
+.chart-shadow-recent-decisions-heading small { color: #64748b; font-size: 8px; font-weight: 800; }
+.chart-shadow-recent-decisions-scroll { max-height: 190px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; }
+.chart-shadow-recent-decisions-scroll table { margin: 0; }
+.chart-shadow-trade-monitor > .chart-shadow-decision { margin: 0; border: 0; border-top: 1px solid #c7d2fe !important; border-radius: 0; box-shadow: none; }
 .chart-shadow-trade-group th { border-top: 1px solid #c7d2fe; border-bottom: 1px solid #e0e7ff; background: #eef2ff; padding: 5px 8px; color: #4338ca; font-size: 8px; font-weight: 950; letter-spacing: .075em; text-align: left; text-transform: uppercase; }
 .chart-shadow-trade-empty td { background: #fff; padding: 9px 10px; color: #94a3b8; font-size: 9px; font-weight: 800; }
 .chart-shadow-trade-monitor + .chart-shadow-decision { margin-top: 6px; }
@@ -1210,11 +1227,13 @@
 .charts-tab-page .chart-tool-strip { flex-wrap: nowrap; gap: 2px; margin-right: 0; }
 .charts-tab-page .chart-readout-toggle { padding: 2px 3px 2px 7px; }
 .charts-tab-page .chart-readout-toggle button { height: 30px; padding: 0 8px; }
-.chart-lens-tool-group { display: inline-flex; min-height: 34px; align-items: center; gap: 2px; border-radius: 8px; background: #f4f7fb; padding: 2px; }
-.chart-lens-tool-group button { display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; border: 0; border-radius: 6px; background: transparent; color: #475569; }
-.chart-lens-tool-group button:hover { background: #e8edf5; color: #0f172a; }
-.chart-lens-tool-group button.is-active { background: #e0e7ff; color: #3730a3; }
-.chart-lens-tool-group button:focus-visible { outline: 2px solid #818cf8; outline-offset: 1px; }
+.chart-layout-tool-group { display: inline-flex; min-height: 34px; align-items: center; gap: 0; border: 1px solid #e2e8f0; border-radius: 7px; background: #f4f7fb; padding: 1px; }
+.chart-layout-tool-group button { display: inline-flex; width: 30px; height: 30px; align-items: center; justify-content: center; border: 0; border-right: 1px solid #e2e8f0; border-radius: 0; background: transparent; color: #475569; }
+.chart-layout-tool-group button:first-child { border-radius: 5px 0 0 5px; }
+.chart-layout-tool-group button:last-child { border-right: 0; border-radius: 0 5px 5px 0; }
+.chart-layout-tool-group button:hover { background: #e8edf5; color: #0f172a; }
+.chart-layout-tool-group button.is-active { background: #fff; color: #3730a3; }
+.chart-layout-tool-group button:focus-visible { outline: 2px solid #818cf8; outline-offset: -2px; }
 .charts-tab-page .chart-icon-button { width: 34px; height: 34px; background: transparent; }
 .charts-tab-page .chart-macro-bias-history-toggle,
 .charts-tab-page .chart-macro-bias-toggle { height: 34px; background: transparent; }
@@ -1310,5 +1329,389 @@
 
 @media (max-width: 760px) {
   .chart-fms-dock { min-width: 300px; max-width: 72%; }
+}
+
+/* FMS dock visual language: compact desktop utility, not a dashboard of cards. */
+.chart-fms-dock { background: #f3f4f6; }
+.chart-fms-dock-tabs {
+  min-height: 34px;
+  border-top: 0;
+  border-bottom-color: #b8bec7;
+  background: #e5e7eb;
+  padding: 0;
+}
+.chart-fms-dock-tabs button {
+  min-height: 34px;
+  border-right: 1px solid #cbd0d7;
+  border-bottom-width: 2px;
+  padding: 0 10px;
+  color: #5b6472;
+  font-size: 11px;
+  font-weight: 650;
+}
+.chart-fms-dock-tabs button:last-child { border-right: 0; }
+.chart-fms-dock-tabs button:hover:not(:disabled) { background: #f1f3f5; color: #111827; }
+.chart-fms-dock-tabs button.is-active { border-bottom-color: #4f46e5; background: #fff; color: #111827; }
+.chart-fms-dock-content { background: #fff; }
+
+.chart-fms-dock .chart-macro-bias-realtime,
+.chart-fms-dock .chart-macro-bias-audit {
+  background: #fff;
+  color: #1f2937;
+  font-family: Arial, "Segoe UI", sans-serif;
+}
+.chart-fms-dock .chart-macro-bias-realtime *,
+.chart-fms-dock .chart-macro-bias-audit * { box-shadow: none !important; }
+.chart-fms-dock .chart-macro-bias-realtime > header,
+.chart-fms-dock .chart-macro-bias-audit > header {
+  min-height: 34px;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid #cbd0d7;
+  background: #f7f7f8;
+  padding: 7px 10px;
+}
+.chart-fms-dock .chart-macro-bias-realtime > header div {
+  color: #1f2937;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.chart-fms-dock .chart-macro-bias-realtime > header small {
+  color: #6b7280;
+  font-size: 10px;
+  font-weight: 500;
+}
+.chart-fms-dock .chart-macro-bias-audit > header span {
+  color: #6b7280;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.chart-fms-dock .chart-macro-bias-audit > header strong {
+  margin: 1px 0 0;
+  color: #111827;
+  font-size: 15px;
+  font-weight: 700;
+}
+.chart-fms-dock .chart-macro-bias-audit > header button {
+  width: 26px;
+  height: 26px;
+  border: 1px solid #b8bec7;
+  border-radius: 2px;
+  background: #fff;
+}
+
+.chart-fms-dock .chart-macro-bias-realtime > section,
+.chart-fms-dock .chart-macro-bias-realtime > details,
+.chart-fms-dock .chart-macro-bias-realtime > .fms-setups-only > section,
+.chart-fms-dock .chart-macro-bias-realtime > .fms-setups-only > details,
+.chart-fms-dock .chart-macro-bias-audit > section,
+.chart-fms-dock .chart-macro-bias-audit > details,
+.chart-fms-dock .chart-macro-bias-audit > div {
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid #d7dbe0;
+  border-radius: 0;
+  background: #fff;
+}
+.chart-fms-dock .chart-macro-bias-realtime :is(section, details, article),
+.chart-fms-dock .chart-macro-bias-audit :is(section, details, article) { border-radius: 0; }
+.chart-fms-dock .chart-macro-bias-realtime :is(section, details, article):not(.is-error),
+.chart-fms-dock .chart-macro-bias-audit :is(section, details, article):not(.is-risk):not(.is-reward) {
+  background-color: #fff;
+  background-image: none;
+}
+.chart-fms-dock .chart-macro-bias-realtime :is(strong, b),
+.chart-fms-dock .chart-macro-bias-audit :is(strong, b) { font-weight: 700; }
+.chart-fms-dock .chart-macro-bias-realtime :is(p, small),
+.chart-fms-dock .chart-macro-bias-audit :is(p, small) { font-weight: 500; }
+
+.chart-fms-dock .chart-shadow-section-heading {
+  min-height: 34px;
+  border-bottom: 1px solid #d7dbe0;
+  background: #f7f7f8;
+  padding: 7px 10px;
+}
+.chart-fms-dock .chart-shadow-section-heading > div > span,
+.chart-fms-dock .chart-shadow-section-heading > div > strong {
+  color: #1f2937;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.chart-fms-dock .chart-shadow-section-heading > div > span { color: #6b7280; font-size: 9px; }
+.chart-fms-dock .chart-shadow-section-heading > small { color: #6b7280; font-size: 9px; font-weight: 400; }
+.chart-fms-dock .chart-shadow-trade-monitor,
+.chart-fms-dock .chart-shadow-priority,
+.chart-fms-dock .chart-shadow-account,
+.chart-fms-dock .chart-shadow-catalog { padding: 0 !important; }
+
+.chart-fms-dock :is(.chart-shadow-trade-monitor, .chart-shadow-priority, .chart-shadow-upcoming-scroll) table {
+  border-collapse: collapse;
+  background: #fff;
+}
+.chart-fms-dock :is(.chart-shadow-trade-monitor, .chart-shadow-priority, .chart-shadow-upcoming-scroll) :is(th, td) {
+  border-color: #d7dbe0;
+  padding: 6px 8px;
+}
+.chart-fms-dock :is(.chart-shadow-trade-monitor, .chart-shadow-priority, .chart-shadow-upcoming-scroll) thead th,
+.chart-fms-dock .chart-shadow-trade-group th {
+  background: #f1f2f4;
+  color: #4b5563;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.chart-fms-dock .chart-shadow-trade-monitor tbody tr[role="button"]:hover td,
+.chart-fms-dock .chart-shadow-priority tbody tr[role="button"]:hover td { background: #eef2f7; }
+
+.chart-fms-dock :is(.chart-shadow-context-summary, .chart-shadow-forward-gate, .chart-shadow-context-registry, .chart-shadow-review-queue, .chart-shadow-intelligence) {
+  margin: 0;
+  border: 0;
+  border-bottom: 1px solid #d7dbe0;
+  border-radius: 0;
+  padding: 8px 10px;
+}
+.chart-fms-dock .chart-shadow-context-registry > summary,
+.chart-fms-dock .chart-shadow-account-audit > summary,
+.chart-fms-dock .chart-macro-bias-realtime-context > summary,
+.chart-fms-dock .chart-shadow-upcoming-list > summary {
+  min-height: 32px;
+  border: 0;
+  border-radius: 0;
+  background: #f7f7f8;
+  padding: 6px 9px;
+}
+.chart-fms-dock .chart-shadow-context-registry article,
+.chart-fms-dock .chart-shadow-review-card,
+.chart-fms-dock .chart-shadow-context-review article,
+.chart-fms-dock .chart-shadow-account-results,
+.chart-fms-dock .chart-shadow-account-results article,
+.chart-fms-dock .chart-shadow-position-grid > div,
+.chart-fms-dock .chart-shadow-calculation,
+.chart-fms-dock .chart-shadow-calculation-values > span {
+  border-color: #d7dbe0;
+  border-radius: 0;
+  background: #fff;
+}
+.chart-fms-dock .chart-shadow-context-registry article { border-left: 1px solid #d7dbe0; }
+.chart-fms-dock .chart-shadow-readiness,
+.chart-fms-dock .chart-shadow-reaction,
+.chart-fms-dock .chart-shadow-history-strength,
+.chart-fms-dock .chart-shadow-needs-review { border-radius: 2px; padding: 2px 4px; }
+
+.chart-fms-dock .chart-macro-bias-at-a-glance,
+.chart-fms-dock .chart-macro-bias-trigger,
+.chart-fms-dock .chart-macro-bias-market-context,
+.chart-fms-dock .chart-macro-bias-geometry,
+.chart-fms-dock .chart-macro-bias-timeline,
+.chart-fms-dock .chart-macro-bias-path-audit { background: #fff; }
+.chart-fms-dock .chart-macro-bias-at-a-glance > div,
+.chart-fms-dock .chart-macro-bias-trigger .chart-macro-bias-events > div,
+.chart-fms-dock .chart-macro-bias-context-grid > div,
+.chart-fms-dock .chart-macro-bias-path-grid > div,
+.chart-fms-dock .chart-macro-bias-timeline li > div,
+.chart-fms-dock .chart-macro-bias-atr-reference,
+.chart-fms-dock .chart-macro-bias-geometry table,
+.chart-fms-dock .chart-macro-bias-stats > div {
+  border-color: #d7dbe0;
+  border-radius: 0;
+  background: #fff;
+}
+.chart-fms-dock .chart-macro-bias-reaction-verdict,
+.chart-fms-dock .chart-macro-bias-path-audit > p,
+.chart-fms-dock .chart-macro-bias-reaction-note {
+  border-left: 0;
+  background: #f4f5f7;
+  color: #1f2937;
+}
+.chart-fms-dock .chart-macro-bias-section-title span,
+.chart-fms-dock .chart-macro-bias-trigger-heading span,
+.chart-fms-dock .chart-macro-bias-at-a-glance span {
+  color: #4b5563;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.chart-fms-dock .chart-macro-bias-audit footer,
+.chart-fms-dock .chart-macro-bias-realtime footer {
+  border-top: 0;
+  background: #f1f2f4;
+  color: #596170;
+}
+.chart-fms-dock .chart-macro-bias-realtime :is(span, small, p, td, th, dt, dd, em),
+.chart-fms-dock .chart-macro-bias-audit :is(span, small, p, td, th, dt, dd, em) {
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  text-transform: none !important;
+}
+.chart-fms-dock .chart-macro-bias-realtime :is(strong, b),
+.chart-fms-dock .chart-macro-bias-audit :is(strong, b) { font-weight: 700 !important; }
+.chart-fms-dock .chart-shadow-forward-gate {
+  gap: 7px;
+  border: 0 !important;
+  border-bottom: 1px solid #d7dbe0 !important;
+  background: #fff !important;
+  padding: 8px 10px !important;
+}
+.chart-fms-dock .chart-shadow-forward-gate-heading :is(span, strong, em),
+.chart-fms-dock .chart-shadow-forward-gate > p { color: #1f2937; }
+.chart-fms-dock .chart-shadow-forward-gate-heading em {
+  border: 1px solid #cbd0d7;
+  border-radius: 2px;
+  background: #f1f2f4;
+  padding: 2px 5px;
+}
+.chart-fms-dock .chart-shadow-forward-gate-grid {
+  border-color: #d7dbe0;
+  border-radius: 0;
+}
+.chart-fms-dock .chart-shadow-forward-gate-grid > div + div { border-left-color: #d7dbe0; }
+.chart-fms-dock .chart-shadow-forward-gate-grid > div:nth-child(n+4) { border-top-color: #d7dbe0; }
+.chart-fms-dock .chart-shadow-forward-gate details { border-top-color: #d7dbe0; }
+.chart-fms-dock .chart-shadow-context-summary > p span {
+  border-color: #d7dbe0;
+  border-radius: 2px;
+  background: #fff;
+  color: #1f2937;
+}
+.chart-fms-dock .chart-shadow-priority { background: #fff; }
+.chart-fms-dock .chart-shadow-priority tr.is-current td,
+.chart-fms-dock .chart-shadow-trade-monitor tr.is-selected td { background: #eef2f7; color: #1f2937; }
+.chart-fms-dock .chart-shadow-history-kicker,
+.chart-fms-dock .chart-shadow-history-primary > small,
+.chart-fms-dock .chart-shadow-history-primary > strong { color: #1f2937 !important; }
+.chart-fms-dock .chart-shadow-history-strength {
+  border: 1px solid #cbd0d7;
+  background: #f1f2f4 !important;
+  color: #4b5563 !important;
+}
+.chart-fms-dock .chart-shadow-market-filters button {
+  width: 32px;
+  min-height: 27px;
+  border-color: #cbd0d7;
+  border-radius: 2px;
+  background: #f7f7f8;
+}
+.chart-fms-dock .chart-shadow-market-filters button:hover { border-color: #9ca3af; background: #eceef1; }
+.chart-fms-dock .chart-shadow-account-results,
+.chart-fms-dock .chart-shadow-position-context,
+.chart-fms-dock .chart-shadow-hunt-plan,
+.chart-fms-dock .chart-shadow-released-values { border-radius: 0; }
+.chart-fms-dock .chart-shadow-account-results article { padding: 7px 9px; }
+.chart-fms-dock .chart-shadow-account-results strong { color: #111827; font-size: 16px; }
+.chart-fms-dock .chart-macro-bias-at-a-glance { background: #fff; }
+.chart-fms-dock .chart-macro-bias-at-a-glance > div { padding: 7px 10px; }
+.chart-fms-dock .chart-macro-bias-at-a-glance :is(strong, small) { color: #1f2937; }
+.chart-fms-dock .chart-macro-bias-trigger,
+.chart-fms-dock .chart-macro-bias-market-context,
+.chart-fms-dock .chart-macro-bias-geometry,
+.chart-fms-dock .chart-macro-bias-timeline,
+.chart-fms-dock .chart-macro-bias-path-audit { padding-top: 9px; padding-bottom: 9px; }
+.chart-fms-dock .chart-macro-bias-timeline li > span {
+  border-radius: 2px;
+  background: #6b7280;
+}
+.chart-fms-dock .chart-macro-bias-timeline li:not(:last-child)::after { width: 1px; background: #cbd0d7; }
+.chart-fms-dock .chart-macro-bias-registered > summary,
+.chart-fms-dock .chart-shadow-catalog summary { background: #fff; }
+.chart-fms-dock .chart-macro-bias-stats > div.is-primary,
+.chart-fms-dock .chart-shadow-credibility,
+.chart-fms-dock .chart-shadow-reaction-profile-heading,
+.chart-fms-dock .chart-shadow-contract-research.is-historically_improved_candidate {
+  border-color: #d7dbe0;
+  background: #fff;
+}
+
+/* Inspection panels float over a stable chart. Resizing a panel must never
+   change the chart's own layout or visible time scale. */
+.charts-tab-page .chart-viewport-surface.has-fms-dock {
+  position: relative;
+  display: block;
+}
+.charts-tab-page .chart-viewport-surface.has-fms-dock > .chart-fms-dock {
+  position: absolute;
+  inset: 46px auto 0 0;
+  z-index: 80;
+  height: auto;
+  padding-top: 0;
+}
+.charts-tab-page .chart-fms-dock-resize { top: 0; }
+.charts-tab-page .chart-viewport-surface.has-fms-dock > .chart-canvas-frame {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+}
+.charts-tab-page .chart-canvas-frame.has-pair-matrix-bottom {
+  position: relative;
+  display: block;
+}
+.chart-canvas-frame.has-pair-matrix-bottom .chart-plot-region {
+  width: 100%;
+  height: 100%;
+}
+.chart-pair-matrix-bottom-shell {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 70;
+  width: 100%;
+  height: clamp(260px, 34vh, 320px);
+  max-height: calc(100% - 220px);
+  min-height: 240px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+}
+.chart-bottom-dock-tabs { display: flex; flex: 0 0 31px; align-items: end; border-bottom: 1px solid #cbd5e1; background: #e5e7eb; padding: 0 4px; }
+.chart-bottom-dock-tabs button { min-width: 86px; height: 30px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #64748b; font-size: 11px; font-weight: 700; cursor: pointer; }
+.chart-bottom-dock-tabs button:hover { background: #f1f3f5; color: #111827; }
+.chart-bottom-dock-tabs button.is-active { border-bottom-color: #4f46e5; background: #fff; color: #111827; }
+.chart-bottom-dock-tabs button:focus-visible { outline: 2px solid #6366f1; outline-offset: -2px; }
+.chart-bottom-dock-content { position: relative; min-width: 0; min-height: 0; flex: 1 1 auto; overflow: hidden; background: #fff; }
+.chart-bottom-dock-content > section { height: 100%; min-height: 0; }
+.chart-bottom-dock-content .chart-event-lens.is-expanded,
+.chart-bottom-dock-content .chart-event-lens-dock.is-expanded { position: relative; inset: auto; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; transform: none; }
+
+/* Compact editor-style scrollbars for both FMS and Pair Matrix inspectors. */
+.chart-fms-dock,
+.chart-fms-dock *,
+.chart-pair-matrix-bottom-shell,
+.chart-pair-matrix-bottom-shell * {
+  scrollbar-width: thin;
+  scrollbar-color: #7d8494 transparent;
+}
+.chart-fms-dock ::-webkit-scrollbar,
+.chart-pair-matrix-bottom-shell ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.chart-fms-dock ::-webkit-scrollbar-track,
+.chart-pair-matrix-bottom-shell ::-webkit-scrollbar-track { background: transparent; }
+.chart-fms-dock ::-webkit-scrollbar-thumb,
+.chart-pair-matrix-bottom-shell ::-webkit-scrollbar-thumb {
+  min-width: 28px;
+  min-height: 28px;
+  border: 2px solid transparent;
+  border-radius: 0;
+  background: #7d8494;
+  background-clip: padding-box;
+}
+.chart-fms-dock ::-webkit-scrollbar-thumb:hover,
+.chart-pair-matrix-bottom-shell ::-webkit-scrollbar-thumb:hover { background-color: #626978; }
+.chart-fms-dock ::-webkit-scrollbar-corner,
+.chart-pair-matrix-bottom-shell ::-webkit-scrollbar-corner { background: transparent; }
+.chart-fms-dock ::-webkit-scrollbar-button,
+.chart-pair-matrix-bottom-shell ::-webkit-scrollbar-button { display: none; }
+
+@media (max-width: 1500px) {
+  .charts-tab-page .chart-viewport-surface.has-fms-dock > .chart-fms-dock { top: 80px; }
+}
+
+@media (max-width: 1120px) {
+  .charts-tab-page .chart-viewport-surface.has-fms-dock > .chart-fms-dock { top: 124px; }
 }
 

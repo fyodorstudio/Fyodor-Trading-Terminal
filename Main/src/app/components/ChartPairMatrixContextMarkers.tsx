@@ -231,7 +231,7 @@ export const ChartPairMatrixContextMarkers = memo(function ChartPairMatrixContex
                               const candleOpen = marker.eventCandleOpenByKey.get(eventKey);
                               return (
                                 <div key={eventKey} className="pair-matrix-context-marker-release">
-                                  <button type="button" className="pair-matrix-context-marker-event-action" onClick={() => onSelectEvent(event)} title="Open release in Event Lens">
+                                  <button type="button" className="pair-matrix-context-marker-event-action" onClick={() => onSelectEvent(event)} title="Open release in Lens">
                                     <span><b>{event.currency}</b><small>{event.impact}</small></span>
                                     <strong>{event.title}</strong>
                                     <time>{formatChartEventDisplayTime(event.time, displayTimeMode, sourceTimeOffsetSeconds)}</time>
