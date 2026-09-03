@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Checklist
 
-Last updated: 2026-09-01
+Last updated: 2026-09-03
 
 ## Active Planning Source
 
@@ -34,6 +34,36 @@ This is the controlling ten-part roadmap for turning historical FMS research int
 - [ ] Decide whether correlated USD exposure should block a second pair or merely reduce user-selected risk.
 - [ ] Decide whether reviewed policy/inflation context can alter an active setup or must remain a separate signal family.
 - [ ] Decide whether the manual `Enter now` grace window should remain 90 seconds after the exact H4 open; changing it requires an operational-contract revision, not an invisible UI tweak.
+
+#### Deferred Charts Trade-Dock Usability and Journal Pass — 2026-09-03
+
+This is a later implementation pass. It must improve presentation and loading without changing scoring, registered recipes, frozen contracts, or outcome calculations.
+
+- [ ] Repair the narrow-width Trade-dock overlap where status/source text collides with the right edge, scrollbar, or Jakarta timestamp. Test every compact row and expanded state at the minimum supported dock width; ordinary labels must wrap or truncate deliberately rather than occupy the same pixels.
+- [ ] Make Charts cold start, pair changes, timeframe changes, candle display, and arrow display feel immediate:
+  - measure bridge, candle-cache, React render, chart-series, current-signal, and historical-arrow timings separately before optimizing;
+  - show cached candles and cached current decisions first, then refresh without blanking valid content;
+  - prioritize the selected pair, visible candle range, current journal arrows, and recent frozen arrows before older history;
+  - deduplicate and cancel stale pair/timeframe requests so late responses cannot replace the active selection;
+  - avoid rebuilding unchanged chart series, markers, and FMS global-registry projections;
+  - retain honest loading, disconnected, stale, and unavailable states instead of freezing the interface.
+- [ ] Rebuild the Trade dock around three compact table sections in this order: `Next registered setups`, `Current registered setups`, and `Recent FMS activity`.
+  - keep summary rows short and internally scroll bounded lists;
+  - make every row expandable directly beneath itself;
+  - show pair, setup, direction/state, Jakarta release/entry time, countdown where applicable, frozen SL in ATR and price/pips when known, frozen TP in R and price/pips when known, maximum duration/expiry, entry, lifecycle result, and evidence summary;
+  - upcoming rows explain the possible Long/Short/No-trade frozen mapping without pretending a direction exists before Actual is known;
+  - current rows put actionable entry geometry and lifecycle first;
+  - recent rows put the recorded decision and observed outcome first, with deeper evidence hidden until expanded;
+  - do not return to stacked cards or repeat the same release in multiple sections.
+- [ ] Treat `Recent FMS activity` as the single post-registration journal rather than adding a redundant fourth Journal section:
+  - combine live-captured decisions, `No trade` decisions, pending/resolved journal trades, and recovered-offline decisions into one newest-first stream;
+  - preserve explicit provenance labels: `Live captured`, `Recovered offline`, and `No trade`;
+  - include recovered signals in the chart's journal-arrow source so qualified recovered Long/Short decisions are visible;
+  - use green/red only for post-registration journal Long/Short arrows, including recovered-offline arrows, while retaining a visible `Recovered offline` audit label;
+  - keep frozen historical/backtest Long/Short arrows blue/purple;
+  - never count a reconstructed-offline observation as immutable first-seen forward evidence.
+- [ ] In each expanded journal row, present the frozen expected contract beside the post-registration observed path/result. Keep this trade-level journal distinct from `Hypothetical account and replay`, which is an aggregate portfolio simulation with overlap/conflict rules; audit that aggregate so it cannot silently mix historical replay, first-seen journal trades, and recovered-offline trades.
+- [ ] Remove or relocate any remaining `Scanning / Do not enter now`, `Trade monitor / What would FMS do now?`, latest-decision, or offline-summary block that duplicates these three tables. Integrity blocks and conflicts remain visible inside the affected current row rather than as a generic oversized banner.
 
 This is the highest-priority product program. Its practical goal is a Shadow Trader that can monitor every frozen registered setup, state exactly what it would do, and show the evidence supporting that decision without requiring the user to manually interpret every calendar release.
 
