@@ -1,5 +1,5 @@
 .charts-tab-page { position: relative; width: calc(100% + 40px); height: calc(100vh - 78px) !important; min-height: 0 !important; gap: 0 !important; margin: -12px -20px -16px; padding: 0 !important; background: #fff; }
-.charts-tab-page .chart-workbar { position: absolute; top: 10px; right: 10px; left: 10px; z-index: 60; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; pointer-events: none; }
+.charts-tab-page .chart-workbar { position: absolute; top: 10px; right: 10px; left: 10px; z-index: 100; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; backdrop-filter: none; pointer-events: none; }
 .charts-tab-page .chart-workbar-main, .charts-tab-page .chart-tool-strip { pointer-events: auto; }
 .charts-tab-page .chart-viewport-shell { position: absolute; inset: 0; min-height: 0; }
 .charts-tab-page .chart-viewport-surface { width: 100%; height: 100%; background: #fff; }
@@ -22,7 +22,6 @@
 .chart-fms-dock-resize::before { position: absolute; top: 0; bottom: 0; left: 4px; width: 1px; background: #cbd5e1; content: ""; }
 .chart-fms-dock-resize:hover::before, .chart-fms-dock-resize:active::before { left: 3px; width: 3px; background: #6366f1; }
 .chart-fms-dock-resize:focus-visible { outline: 2px solid #6366f1; outline-offset: -2px; }
-.chart-fms-dock-resize span { position: absolute; top: 50%; left: 1px; width: 8px; height: 46px; transform: translateY(-50%); border: 1px solid #cbd5e1; border-radius: 5px; background: #fff; box-shadow: 0 2px 8px rgba(15,23,42,.12); }
 .chart-macro-bias-realtime[data-fms-view="setups"] .fms-research-only,
 .chart-macro-bias-realtime[data-fms-view="research"] .fms-setups-only { display: none !important; }
 .chart-shadow-workspace-intro { display: grid; gap: 3px; padding: 11px 13px 12px; border-bottom: 1px solid #cbd5e1; background: #f8fafc; }
@@ -1013,6 +1012,8 @@
 .chart-shadow-trade-monitor td:last-child { color: #4f46e5; text-align: right; }
 .chart-shadow-trade-monitor td:last-child > span { display: inline; font-size: 8px; font-weight: 950; white-space: nowrap; }
 .chart-shadow-trade-monitor td:last-child svg { margin-left: 3px; vertical-align: -3px; }
+.chart-shadow-trade-monitor .chart-shadow-inline-audit > td { padding: 0 !important; background: #fff !important; text-align: left; }
+.chart-shadow-inline-audit .chart-shadow-decision { margin: 0; border: 0; border-top: 2px solid #6366f1; border-radius: 0; box-shadow: inset 3px 0 #6366f1; }
 .chart-shadow-recent-decisions-heading { display: flex; min-height: 30px; align-items: center; justify-content: space-between; gap: 10px; border-top: 1px solid #c7d2fe; border-bottom: 1px solid #dbe3ef; background: #eef2ff; padding: 6px 8px; }
 .chart-shadow-recent-decisions-heading strong { color: #3730a3; font-size: 9px; font-weight: 950; letter-spacing: .04em; text-transform: uppercase; }
 .chart-shadow-recent-decisions-heading small { color: #64748b; font-size: 8px; font-weight: 800; }
@@ -1728,11 +1729,37 @@
 /* Dedicated FMS action and durable-knowledge dock views. */
 .fms-action-card,
 .fms-knowledge-card { min-width: 0; background: #fff; color: #111827; }
+.fms-action-display-controls { position: sticky; z-index: 4; top: 0; display: flex; min-height: 35px; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d7dbe0; background: #f8fafc; padding: 5px 10px; }
+.fms-action-display-controls label { display: inline-flex; align-items: center; gap: 6px; color: #334155; font-size: 10px; font-weight: 800; cursor: pointer; }
+.fms-action-display-controls input { width: 14px; height: 14px; accent-color: #4f46e5; }
+.fms-action-display-controls label small { color: #6366f1; font-size: 9px; }
+.fms-arrow-color-key { display: inline-flex; align-items: center; gap: 4px; color: #64748b; font-size: 8px; white-space: nowrap; }
+.fms-arrow-color-key i { width: 7px; height: 7px; border-radius: 50%; background: linear-gradient(135deg, #2563eb 0 50%, #7c3aed 50%); }
+.fms-arrow-color-key i.is-journal { background: linear-gradient(135deg, #16a34a 0 50%, #dc2626 50%); }
 .fms-action-card > header,
 .fms-knowledge-card > header { position: sticky; z-index: 3; top: 0; display: flex; min-height: 40px; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid #d7dbe0; background: #fff; padding: 8px 10px; }
+.fms-action-card > header { position: sticky; top: 35px; }
 .fms-action-card > header > div,
 .fms-knowledge-card > header > div { display: flex; min-width: 0; align-items: center; gap: 6px; color: #312e81; font-size: 13px; font-weight: 750; }
 .fms-action-card > header small { color: #6b7280; font-size: 9px; text-align: right; }
+.fms-action-schedule { border-bottom: 1px solid #d7dbe0; background: #fff; }
+.fms-action-schedule-heading { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 10px; }
+.fms-action-schedule-heading > div { display: grid; gap: 1px; }
+.fms-action-schedule-heading span { color: #312e81; font-size: 10px; font-weight: 850; text-transform: uppercase; }
+.fms-action-schedule-heading strong { color: #475569; font-size: 9px; }
+.fms-action-schedule-heading > small { color: #64748b; font-size: 8px; font-weight: 750; }
+.fms-action-schedule-scroll { max-height: 190px; overflow-x: hidden; overflow-y: auto; border-top: 1px solid #e5e7eb; }
+.fms-action-schedule-scroll > p { margin: 0; padding: 12px 10px; color: #64748b; font-size: 10px; }
+.fms-action-schedule-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; min-height: 38px; align-items: center; gap: 10px; padding: 6px 10px; border-bottom: 1px solid #eceff3; color: #64748b; }
+.fms-action-schedule-row:last-child { border-bottom: 0; }
+.fms-action-schedule-row.is-scheduled { color: #111827; background: #f8fafc; }
+.fms-action-schedule-row > div:first-child { display: flex; min-width: 0; align-items: center; gap: 5px; }
+.fms-action-schedule-row > div:first-child strong { flex: 0 0 auto; font-size: 9px; }
+.fms-action-schedule-row > div:first-child > span { overflow: hidden; font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.fms-action-schedule-row > div:last-child { display: grid; justify-items: end; gap: 1px; text-align: right; }
+.fms-action-schedule-row time { color: #334155; font-size: 8px; font-weight: 700; white-space: nowrap; }
+.fms-action-schedule-row b { color: #4f46e5; font-size: 9px; }
+.fms-action-schedule-row > small { font-size: 8px; white-space: nowrap; }
 .fms-action-decision { display: grid; gap: 3px; border-bottom: 1px solid #d7dbe0; border-left: 4px solid #64748b; padding: 14px 12px; }
 .fms-action-decision > span { color: #64748b; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
 .fms-action-decision > strong { font-size: 19px; line-height: 1.15; }

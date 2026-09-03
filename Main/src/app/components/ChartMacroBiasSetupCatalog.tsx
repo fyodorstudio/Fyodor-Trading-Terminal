@@ -1,12 +1,12 @@
 import { BookOpen, ChevronDown, Clock3, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { formatUtcDisplayDateTime } from "@/app/lib/format";
+import { formatJakartaDisplayDateTime } from "@/app/lib/format";
 import type { MacroSignalChartPattern, MacroSignalRealtimeWatch } from "@/app/types";
 
 type NextPatternWatch = NonNullable<MacroSignalRealtimeWatch["nextPatternWatch"]>;
 
 function formatUtc(value: number): string {
-  return formatUtcDisplayDateTime(value);
+  return formatJakartaDisplayDateTime(value);
 }
 
 function formatPercent(value: number | null | undefined): string {

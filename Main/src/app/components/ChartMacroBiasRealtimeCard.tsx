@@ -14,7 +14,7 @@ import {
   normalizeShadowRiskPercent,
   normalizeShadowStartingBalance,
 } from "@/app/lib/macroSignalShadow";
-import { formatUtcDisplayDateTime } from "@/app/lib/format";
+import { formatJakartaDisplayDateTime } from "@/app/lib/format";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MacroSignalPatternAssessment, MacroSignalResearchIntelligence, MacroSignalUpcomingPatternWatch } from "@/app/types";
 
 const SHADOW_BALANCE_KEY = "fyodor.charts.shadow-starting-balance";
@@ -127,7 +127,7 @@ function readStoredNumber(key: string, fallback: number): number {
 }
 
 function formatUtc(value: number | null | undefined): string {
-  return value == null ? "No scheduled row loaded" : formatUtcDisplayDateTime(value);
+  return value == null ? "No scheduled row loaded" : formatJakartaDisplayDateTime(value);
 }
 
 function formatCountdown(seconds: number): string {
@@ -597,11 +597,6 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
     [tradeRows],
   );
   const recentRegisteredDecisions = registeredDecisionRows.slice(0, 10);
-  const selectedDecision = selectedDecisionKey == null
-    ? null
-    : registeredDecisionRows.find((row) => row.key === selectedDecisionKey)
-      ?? tradeRows.find((row) => row.key === selectedDecisionKey)
-      ?? null;
   const upcomingByPattern = useMemo(
     () => new Map(registryResponses.flatMap((market) => (market.realtime?.upcomingPatternWatches ?? (market.realtime?.nextPatternWatch ? [market.realtime.nextPatternWatch] : [])).map((watch) => [`${market.symbol}:${watch.patternId}`, watch]))),
     [registryResponses],
@@ -724,6 +719,20 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
     );
   };
 
+  const renderInlineDecisionAudit = (row: ShadowTradeRow | ShadowDecisionRow) => selectedDecisionKey === row.key ? (
+    <tr className="chart-shadow-inline-audit" key={`${row.key}:audit`}>
+      <td colSpan={4}>
+        <LatestDecisionSection
+          assessment={row.assessment}
+          pattern={row.pattern}
+          symbol={row.market}
+          signal={row.signal}
+          forwardSummary={forwardSetupByKey.get(`${row.market}:${row.assessment.patternId}`) ?? null}
+        />
+      </td>
+    </tr>
+  ) : null;
+
   return (
     <aside className="chart-macro-bias-realtime" aria-label={view === "research" ? "FMS Research" : view === "setups" ? "Registered FMS Setups" : "FMS Shadow Trader"} data-fms-view={view}>
       <header>
@@ -782,11 +791,11 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           <thead><tr><th>Setup and direction</th><th>Opened</th><th>State and rules</th><th>Audit</th></tr></thead>
           <tbody>
             <tr className="chart-shadow-trade-group"><th colSpan={4}>Open now</th></tr>
-            {currentTradeRows.length > 0 ? currentTradeRows.map(renderTradeRow) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No hypothetical trade is currently open.</td></tr>}
+            {currentTradeRows.length > 0 ? currentTradeRows.map((row) => <Fragment key={row.key}>{renderTradeRow(row)}{renderInlineDecisionAudit(row)}</Fragment>) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No hypothetical trade is currently open.</td></tr>}
             <tr className="chart-shadow-trade-group"><th colSpan={4}>Queued for the next H4 entry</th></tr>
-            {queuedTradeRows.length > 0 ? queuedTradeRows.map(renderTradeRow) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No qualified setup is waiting for entry.</td></tr>}
+            {queuedTradeRows.length > 0 ? queuedTradeRows.map((row) => <Fragment key={row.key}>{renderTradeRow(row)}{renderInlineDecisionAudit(row)}</Fragment>) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No qualified setup is waiting for entry.</td></tr>}
             <tr className="chart-shadow-trade-group"><th colSpan={4}>Recovered while Fyodor was offline</th></tr>
-            {recoveredTradeRows.length > 0 ? recoveredTradeRows.map(renderTradeRow) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No offline decision required historical reconstruction.</td></tr>}
+            {recoveredTradeRows.length > 0 ? recoveredTradeRows.map((row) => <Fragment key={row.key}>{renderTradeRow(row)}{renderInlineDecisionAudit(row)}</Fragment>) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No offline decision required historical reconstruction.</td></tr>}
           </tbody>
         </table>
         <div className="chart-shadow-recent-decisions-heading">
@@ -796,11 +805,10 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
         <div className="chart-shadow-recent-decisions-scroll">
           <table aria-label="Latest registered FMS decisions">
             <tbody>
-              {recentRegisteredDecisions.length > 0 ? recentRegisteredDecisions.map(renderDecisionRow) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No registered release decision is loaded.</td></tr>}
+              {recentRegisteredDecisions.length > 0 ? recentRegisteredDecisions.map((row) => <Fragment key={row.key}>{renderDecisionRow(row)}{renderInlineDecisionAudit(row)}</Fragment>) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No registered release decision is loaded.</td></tr>}
             </tbody>
           </table>
         </div>
-        {selectedDecision ? <LatestDecisionSection assessment={selectedDecision.assessment} pattern={selectedDecision.pattern} symbol={selectedDecision.market} signal={selectedDecision.signal} forwardSummary={forwardSetupByKey.get(`${selectedDecision.market}:${selectedDecision.assessment.patternId}`) ?? null} /> : null}
         <details className="chart-shadow-upcoming-list">
           <summary>
             <span><b>Possible next setups</b><small>Upcoming registered releases</small></span>

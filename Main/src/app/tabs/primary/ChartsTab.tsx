@@ -273,7 +273,9 @@ export function buildMacroBiasSeriesMarkers(
       time: activationCandleOpen as Time,
       position: signal.direction === "long" ? "belowBar" : "aboveBar",
       shape: signal.direction === "long" ? "arrowUp" : "arrowDown",
-      color: signal.direction === "long" ? "#2563eb" : "#7c3aed",
+      color: signal.historicalReplay
+        ? signal.direction === "long" ? "#2563eb" : "#7c3aed"
+        : signal.direction === "long" ? "#16a34a" : "#dc2626",
       text: `${signal.direction === "long" ? "LONG BIAS" : "SHORT BIAS"}${signal.contextOverlay?.matched ? " · CONTEXT" : ""}`,
       size: 1.4,
     });
@@ -1098,15 +1100,30 @@ export function ChartsTab({
     }
     let cancelled = false;
     setMacroBiasShadowHistoryResponse(null);
-    fetchMacroSignalChartSignals({ symbol: selectedSymbol, timeframe: "H4", mode: "research_replay", compact: true })
+    const latestLoadedTime = macroBiasTo ?? Math.floor(Date.now() / 1_000);
+    const recentFrom = Math.max(0, latestLoadedTime - 366 * 24 * 60 * 60);
+    let completeHistoryApplied = false;
+    const recentRequest = fetchMacroSignalChartSignals({
+      symbol: selectedSymbol,
+      timeframe: "H4",
+      mode: "research_replay",
+      from: recentFrom,
+      to: latestLoadedTime,
+      compact: true,
+    }).then((response) => {
+      if (!cancelled && !completeHistoryApplied) setMacroBiasShadowHistoryResponse(response);
+    }).catch(() => { /* the complete request can still succeed */ });
+    const completeRequest = fetchMacroSignalChartSignals({ symbol: selectedSymbol, timeframe: "H4", mode: "research_replay", compact: true })
       .then((response) => {
-        if (!cancelled) setMacroBiasShadowHistoryResponse(response);
+        if (!cancelled) {
+          completeHistoryApplied = true;
+          setMacroBiasShadowHistoryResponse(response);
+        }
       })
-      .catch(() => {
-        if (!cancelled) setMacroBiasShadowHistoryResponse(null);
-      });
+      .catch(() => { /* retain a successful recent response */ });
+    void Promise.allSettled([recentRequest, completeRequest]);
     return () => { cancelled = true; };
-  }, [macroBiasHistoricalMatchesVisible, macroBiasSupported, macroBiasVisible, selectedSymbol, historyState]);
+  }, [macroBiasHistoricalMatchesVisible, macroBiasSupported, macroBiasVisible, selectedSymbol, historyState, macroBiasTo]);
 
   const macroBiasResponse = macroBiasCurrentResponse;
   const macroBiasLoading = macroBiasCurrentLoading;
@@ -2396,8 +2413,6 @@ export function ChartsTab({
             ? "Loading FMS scanner"
             : macroBiasError
               ?? `${macroBiasResponse?.currentPatternCount ?? 0} registered setups · ${macroBiasResponse?.signals.length ?? 0} live-model signals`}
-          macroBiasHistoricalMatchesVisible={macroBiasHistoricalMatchesVisible}
-          macroBiasHistoricalMatchesCount={macroBiasShadowHistoricalSignals?.length ?? 0}
           macroBiasActiveLabel={macroBiasActiveLabel}
           eventLensExpanded={eventLensExpanded}
           pairMatrixOpen={pairMatrixOpen}
@@ -2406,7 +2421,6 @@ export function ChartsTab({
           onRefocusChart={refocusChart}
           onOpenDrawer={openChartDrawer}
           onToggleMacroBias={toggleMacroBias}
-          onToggleMacroBiasHistoricalMatches={toggleMacroBiasHistoricalMatches}
           onToggleBottomPanel={() => {
             if (pairMatrixOpen || eventLensExpanded) {
               if (pairMatrixOpen) pairMatrixTimeLensData.onClose();
@@ -2473,6 +2487,9 @@ export function ChartsTab({
         pairMatrixContextMarkers={pairMatrixContextMarkerData}
         macroBiasAudit={macroBiasAudit}
         macroBiasRealtime={macroBiasRealtime}
+        macroBiasHistoricalMatchesVisible={macroBiasHistoricalMatchesVisible}
+        macroBiasHistoricalMatchesCount={macroBiasShadowHistoricalSignals?.length ?? 0}
+        onToggleMacroBiasHistoricalMatches={toggleMacroBiasHistoricalMatches}
         crosshairReadoutRef={crosshairReadoutRef}
         status={status}
         overlayCopy={overlayCopy}

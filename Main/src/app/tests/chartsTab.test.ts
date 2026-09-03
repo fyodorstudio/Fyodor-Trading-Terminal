@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { ChartSettingsDrawer } from "@/app/components/ChartSettingsDrawer";
 import { ChartMacroBiasAudit } from "@/app/components/ChartMacroBiasAudit";
 import { ChartMacroBiasRealtimeCard, marketMatchesCurrencySelection } from "@/app/components/ChartMacroBiasRealtimeCard";
-import { ChartFmsActionCard } from "@/app/components/ChartFmsActionCard";
+import { buildRegisteredSetupSchedule, ChartFmsActionCard } from "@/app/components/ChartFmsActionCard";
 import { ChartFmsKnowledgeCard } from "@/app/components/ChartFmsKnowledgeCard";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import { ChartPairMatrixContextMarkers, clusterPairMatrixMarkerViews } from "@/app/components/ChartPairMatrixContextMarkers";
@@ -54,10 +54,15 @@ describe("getChartConnectionLabel", () => {
     }, makeSignal("short", 15_000, "short")];
     const built = buildMacroBiasSeriesMarkers(signals, candles, "H4", 0);
 
-    expect(built.markers.map((marker) => ({ time: marker.time, shape: marker.shape, text: marker.text }))).toEqual([
-      { time: 14_400, shape: "arrowUp", text: "LONG BIAS · CONTEXT" },
-      { time: 28_800, shape: "arrowDown", text: "SHORT BIAS" },
+    expect(built.markers.map((marker) => ({ time: marker.time, shape: marker.shape, text: marker.text, color: marker.color }))).toEqual([
+      { time: 14_400, shape: "arrowUp", text: "LONG BIAS · CONTEXT", color: "#2563eb" },
+      { time: 28_800, shape: "arrowDown", text: "SHORT BIAS", color: "#7c3aed" },
     ]);
+    const journaled = buildMacroBiasSeriesMarkers([
+      { ...makeSignal("journal-long", 1_000, "long"), historicalReplay: false },
+      { ...makeSignal("journal-short", 15_000, "short"), historicalReplay: false },
+    ], candles, "H4", 0);
+    expect(journaled.markers.map((marker) => marker.color)).toEqual(["#16a34a", "#dc2626"]);
     expect([...built.signalByMarkerId.keys()]).toEqual([
       "macro-bias-activation:long",
       "macro-bias-activation:short",
@@ -120,8 +125,6 @@ describe("getChartConnectionLabel", () => {
       macroBiasCount: 0,
       macroBiasSupported: true,
       macroBiasStatusLabel: "One current pattern",
-      macroBiasHistoricalMatchesVisible: true,
-      macroBiasHistoricalMatchesCount: 42,
       macroBiasActiveLabel: "No active bias",
       eventLensExpanded: false,
       pairMatrixOpen: false,
@@ -130,15 +133,13 @@ describe("getChartConnectionLabel", () => {
       onRefocusChart: () => {},
       onOpenDrawer: () => {},
       onToggleMacroBias: () => {},
-      onToggleMacroBiasHistoricalMatches: () => {},
       onToggleBottomPanel: () => {},
       onToggleRightPanel: () => {},
     }));
 
     expect(html).not.toContain("Current model");
     expect(html).not.toContain("Research replay");
-    expect(html).toContain("Past arrows");
-    expect(html).toContain(">42<");
+    expect(html).not.toContain("Past arrows");
     expect(html).toContain("No active bias");
     expect(html).toContain('class="sr-only"');
     expect(html).toContain('aria-label="Toggle left panel"');
@@ -453,12 +454,19 @@ describe("getChartConnectionLabel", () => {
     expect(activeHtml).toContain("FMS-EURUSD-H4-CTX-C001");
     const actionHtml = renderToStaticMarkup(createElement(ChartFmsActionCard, { data: {
       response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
-    } }));
+    }, historicalMatchesVisible: true, historicalMatchesCount: 42, onToggleHistoricalMatches: () => {} }));
     expect(actionHtml).toContain("FMS Trade");
+    expect(actionHtml).toContain("Past arrows");
+    expect(actionHtml).toContain("Next registered setups");
     expect(actionHtml).toContain("Do not enter late");
     expect(actionHtml).toContain("Frozen entry");
     expect(actionHtml).toContain("Risk amount");
     expect(actionHtml).toContain("Decision integrity");
+    const schedule = buildRegisteredSetupSchedule([response, gbpResponse], 100);
+    expect(schedule.map((row) => [row.market, row.watch?.time ?? null])).toEqual([
+      ["EURUSD", 300],
+      ["GBPUSD", 400],
+    ]);
     const knowledgeHtml = renderToStaticMarkup(createElement(ChartFmsKnowledgeCard, { data: {
       response, activeSignal: null, activePattern: null, remainingModelCandles: null, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
     } }));
@@ -551,7 +559,8 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("It does not cancel the other releases.");
     expect(html).not.toContain("Complete package decision");
     expect(html).not.toContain("evidence cancelled to zero, so no trade was opened");
-    expect(html).toContain("00:01 · 01 Jan 1970 · UTC");
+    expect(html).toContain("07:01 AM · 01 Jan 1970 · Asia/Jakarta");
+    expect(html).not.toContain('aria-label="Next registered FMS setup"');
     expect(html).toContain("All registered FMS setups");
     expect(html).toContain("Pair and setup");
     expect(html).toContain("Now");
@@ -621,7 +630,7 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("IF registered EUR evidence improves");
     expect(html).toContain("Long EURUSD");
     expect(html).toContain("IF evidence is zero, missing, or conflicted");
-    expect(html).toContain("00:05 · 01 Jan 1970 · UTC");
+    expect(html).toContain("07:05 AM · 01 Jan 1970 · Asia/Jakarta");
     expect(html).toContain("Long if sentiment improves; Short if it weakens.");
     expect(html).toContain("75.0%");
     expect(html).toContain("17.0%");

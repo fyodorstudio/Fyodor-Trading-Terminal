@@ -16,8 +16,6 @@ interface ChartToolStripProps {
   macroBiasCount: number;
   macroBiasSupported: boolean;
   macroBiasStatusLabel: string;
-  macroBiasHistoricalMatchesVisible: boolean;
-  macroBiasHistoricalMatchesCount: number;
   macroBiasActiveLabel: string;
   eventLensExpanded: boolean;
   pairMatrixOpen: boolean;
@@ -26,7 +24,6 @@ interface ChartToolStripProps {
   onRefocusChart: () => void;
   onOpenDrawer: (mode: ChartDrawerMode) => void;
   onToggleMacroBias: () => void;
-  onToggleMacroBiasHistoricalMatches: () => void;
   onToggleBottomPanel: () => void;
   onToggleRightPanel: () => void;
 }
@@ -40,8 +37,6 @@ export function ChartToolStrip({
   macroBiasCount,
   macroBiasSupported,
   macroBiasStatusLabel,
-  macroBiasHistoricalMatchesVisible,
-  macroBiasHistoricalMatchesCount,
   macroBiasActiveLabel,
   eventLensExpanded,
   pairMatrixOpen,
@@ -50,7 +45,6 @@ export function ChartToolStrip({
   onRefocusChart,
   onOpenDrawer,
   onToggleMacroBias,
-  onToggleMacroBiasHistoricalMatches,
   onToggleBottomPanel,
   onToggleRightPanel,
 }: ChartToolStripProps) {
@@ -111,13 +105,6 @@ export function ChartToolStrip({
       <button type="button" className="chart-icon-button" title="Refocus chart" aria-label="Refocus chart" onClick={onRefocusChart}>
         <Focus className="h-4 w-4" />
       </button>
-      {macroBiasVisible && macroBiasSupported ? (
-        <label className="chart-macro-bias-history-toggle" title="Show or hide old arrows from the same registered setups. Old results are hindsight, not live signals.">
-          <input type="checkbox" checked={macroBiasHistoricalMatchesVisible} onChange={onToggleMacroBiasHistoricalMatches} />
-          <span>Past arrows</span>
-          {macroBiasHistoricalMatchesCount > 0 ? <small>{macroBiasHistoricalMatchesCount}</small> : null}
-        </label>
-      ) : null}
       {macroBiasVisible && macroBiasSupported ? (
         <span className="sr-only" aria-live="polite">{macroBiasActiveLabel}</span>
       ) : null}

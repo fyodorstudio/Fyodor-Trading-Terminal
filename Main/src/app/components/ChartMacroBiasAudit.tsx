@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { formatUtcDisplayDateTime } from "@/app/lib/format";
+import { formatJakartaDisplayDateTime } from "@/app/lib/format";
 import type { MacroSignalChartMode, MacroSignalChartPattern, MacroSignalChartSignal } from "@/app/types";
 
 export interface ChartMacroBiasAuditData {
@@ -85,7 +85,7 @@ function formatHoldingCandles(from: number | null | undefined, to: number | null
 }
 
 function formatUtc(value: number | null | undefined): string {
-  return value == null ? "Waiting for next H4 open" : formatUtcDisplayDateTime(value);
+  return value == null ? "Waiting for next H4 open" : formatJakartaDisplayDateTime(value);
 }
 
 function formatOutcome(signal: MacroSignalChartSignal): string {

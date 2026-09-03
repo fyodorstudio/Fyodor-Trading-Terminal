@@ -72,6 +72,24 @@ export function formatUtcDisplayDate(timestampSeconds: number): string {
   });
 }
 
+/** Primary user-facing timestamp for the owner's Jakarta trading workflow. */
+export function formatJakartaDisplayDateTime(timestampSeconds: number): string {
+  const date = new Date(timestampSeconds * 1000);
+  const time = date.toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Jakarta",
+  });
+  const day = date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    timeZone: "Asia/Jakarta",
+  });
+  return `${time} · ${day} · Asia/Jakarta`;
+}
+
 export function formatLocalDateTime(timestampSeconds: number): string {
   const date = new Date(timestampSeconds * 1000);
   const day = date.toLocaleDateString("en-GB", {

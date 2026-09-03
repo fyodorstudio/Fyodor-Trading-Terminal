@@ -149,6 +149,9 @@ interface ChartViewportProps {
   pairMatrixContextMarkers: ChartPairMatrixContextMarkerData;
   macroBiasAudit: ChartMacroBiasAuditData | null;
   macroBiasRealtime: ChartMacroBiasRealtimeCardData | null;
+  macroBiasHistoricalMatchesVisible: boolean;
+  macroBiasHistoricalMatchesCount: number;
+  onToggleMacroBiasHistoricalMatches: () => void;
   crosshairReadoutRef: Ref<ChartCrosshairReadoutHandle>;
   status: BridgeStatus;
   overlayCopy: {
@@ -174,6 +177,9 @@ export function ChartViewport({
     pairMatrixContextMarkers,
     macroBiasAudit,
     macroBiasRealtime,
+    macroBiasHistoricalMatchesVisible,
+    macroBiasHistoricalMatchesCount,
+    onToggleMacroBiasHistoricalMatches,
     crosshairReadoutRef,
   status,
   overlayCopy,
@@ -277,7 +283,12 @@ export function ChartViewport({
                 {fmsDockTab === "result" && macroBiasAudit
                   ? <ChartMacroBiasAudit data={macroBiasAudit} />
                   : fmsDockTab === "trade" && macroBiasRealtime
-                    ? <ChartFmsActionCard data={macroBiasRealtime} />
+                    ? <ChartFmsActionCard
+                        data={macroBiasRealtime}
+                        historicalMatchesVisible={macroBiasHistoricalMatchesVisible}
+                        historicalMatchesCount={macroBiasHistoricalMatchesCount}
+                        onToggleHistoricalMatches={onToggleMacroBiasHistoricalMatches}
+                      />
                   : fmsDockTab === "knowledge" && macroBiasRealtime
                     ? <ChartFmsKnowledgeCard data={macroBiasRealtime} />
                   : macroBiasRealtime
@@ -295,7 +306,7 @@ export function ChartViewport({
                 aria-valuenow={fmsDockWidth}
                 onPointerDown={startFmsDockResize}
                 onKeyDown={resizeFmsDockFromKeyboard}
-              ><span /></div>
+              />
             </aside>
           ) : null}
           <div className={`chart-canvas-frame ${bottomDockVisible ? "has-pair-matrix-bottom" : ""}`}>
