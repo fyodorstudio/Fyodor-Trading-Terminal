@@ -1187,6 +1187,7 @@ export type MacroSignalChartMode = "current" | "research_replay";
 
 export interface MacroSignalChartSignal {
   id: string;
+  observationMode?: "live_captured" | "recovered_offline" | "historical_replay";
   demoTag?: string;
   prospectiveCapture?: {
     eligible: boolean;
@@ -1429,6 +1430,7 @@ export interface MacroSignalChartSignalResponse {
   generatedAt?: number;
   patterns: MacroSignalChartPattern[];
   signals: MacroSignalChartSignal[];
+  recoveredSignals?: MacroSignalChartSignal[];
   currentPatternCount?: number;
   researchPatternCount?: number;
   realtime?: MacroSignalRealtimeWatch;

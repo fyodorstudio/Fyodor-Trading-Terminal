@@ -1320,6 +1320,23 @@ The active context registry still contains exactly four code-reviewed rules. Dur
 - Run focused bridge/FMS/Charts tests, `pnpm run typecheck`, production build, and `git diff --check`.
 - Manually audit at 1440x900 and 100% zoom for one-arrow behavior, readable context provenance, support/resistance levels, Shadow Trader decisions, bounded scrolling, and no overlap.
 
+## Operational Knowledge Register — 2026-09-03
+
+This compact register preserves the findings that must survive UI rewrites and future AI sessions. Immutable experiment artifacts remain the numerical source of truth.
+
+- **Economic direction and trade execution answer different questions.** A release can initially move in the registered direction and still lose under its frozen SL/TP/duration. Reaction alignment, MFE/MAE, and final R must never be collapsed into one success label.
+- **TP-before-SL percentage is contract-dependent.** A setup with a large R target can lose more often than it wins and still have positive average R. Read hit rate beside the target, break-even hit rate, average R, drawdown, and sample.
+- **Frequent releases are not automatically tradable.** Larger N improves measurement but does not create directional expectancy. Claims/labor and other high-frequency families have repeatedly produced useful negative findings.
+- **Evidence magnitude is relative to its own exact series.** Past-only Surprise/Momentum percentiles distinguish ordinary from unusually large releases without pretending that unlike raw units share a scale. Magnitude helped selected recipes, not the entire market.
+- **Continuation and rejection are both legitimate mappings.** Some registered recipes follow the economic evidence; others repeatably reject it. The mapping is frozen per market and exact package and must be displayed plainly.
+- **Context is setup-specific.** Entry-known trend, volatility, support/resistance room, Before evidence, and policy/inflation background improved only a small subset of recipes. A context result cannot be generalized to another event or pair without a new experiment.
+- **Offline recovery is audit evidence, not live evidence.** When Fyodor was closed, stored MT5 H4/M1 candles can reconstruct the exact frozen entry and subsequent result. Those recovered trades remain separate from immutable first-seen forward observations.
+- **No hidden causation claim exists.** FMS searches repeatable historical event/price behavior. A profitable recipe does not prove that the calendar release was the sole cause of the move.
+- **The active registry is immutable by default.** Research candidates, execution challengers, and weakened histories never silently rewrite Charts or Shadow Trader. A reviewed registration has explicit identity, activation boundary, configuration hash, and dataset/candle fingerprints.
+- **Current trusted inputs remain MT5-only.** OHLCV and broker/MT5 calendar data are the data boundary. Missing or suspicious inputs remain visible; they are not repaired with invented values.
+
+The Charts dock mirrors this register in a `Knowledge` tab generated from current registry, research-intelligence, outcome-review, and forward-observation responses. It is an operational memory aid, while the Workbench and durable artifacts remain the complete audit source.
+
 ## Research Warnings and References
 
 Hypothetical results do not represent executed trades and can overstate or understate real performance. The Lab must identify all results as simulated, disclose excluded costs, and avoid claims that similar live profits are likely. See the [CFTC guidance on hypothetical trading-system results](https://www.cftc.gov/LearnAndProtect/AdvisoriesAndArticles/fraudadv_tradingsystem.html).

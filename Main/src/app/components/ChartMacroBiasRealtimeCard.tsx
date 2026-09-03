@@ -362,10 +362,15 @@ function assessmentForSignal(
   };
 }
 
-function LatestDecisionSection({ assessment, pattern, symbol, signal }: { assessment: MacroSignalPatternAssessment; pattern: MacroSignalChartPattern | null; symbol: string; signal?: MacroSignalChartSignal | null }) {
+type ForwardSetupSummary = NonNullable<NonNullable<MacroSignalGlobalResponse["forwardValidation"]>["setupSummaries"]>[number];
+
+function LatestDecisionSection({ assessment, pattern, symbol, signal, forwardSummary }: { assessment: MacroSignalPatternAssessment; pattern: MacroSignalChartPattern | null; symbol: string; signal?: MacroSignalChartSignal | null; forwardSummary?: ForwardSetupSummary | null }) {
   const primaryCalculation = assessment.calculations?.[0] ?? null;
   const scoringPolicy = primaryCalculation?.scoringPolicy ?? pattern?.scoringPolicy;
-  const status = signal
+  const recovered = signal?.observationMode === "recovered_offline";
+  const status = recovered
+    ? signal?.outcomeStatus === "pending" ? "Recovered paper trade · open" : `Recovered · ${formatOutcome(signal!)}`
+    : signal
     ? signal.outcomeStatus === "pending"
       ? signal.activationTime == null ? "Waiting for H4 entry" : "Trade open"
       : formatOutcome(signal)
@@ -380,7 +385,11 @@ function LatestDecisionSection({ assessment, pattern, symbol, signal }: { assess
         : "Processing";
   const packageDecision = signal ? {
     title: `${signal.direction === "long" ? "Long" : "Short"} ${symbol}`,
-    detail: signal.outcomeStatus === "pending"
+    detail: recovered
+      ? signal.outcomeStatus === "pending"
+        ? "Fyodor missed the original decision window, then reconstructed the frozen entry from MT5 history. This counterfactual paper trade is still being tracked; it was not observed live."
+        : `Fyodor missed the original decision window and reconstructed the frozen trade from MT5 history. Result: ${formatOutcome(signal)}. This is offline-recovered evidence, not a live-captured trade.`
+      : signal.outcomeStatus === "pending"
       ? signal.activationTime == null
         ? "The registered package qualified. The hypothetical trade waits for the first strictly later H4 open."
         : "The hypothetical trade is open and being monitored under this setup's frozen SL, TP, and maximum duration."
@@ -450,6 +459,14 @@ function LatestDecisionSection({ assessment, pattern, symbol, signal }: { assess
         <span>Complete package decision</span>
         <strong>{packageDecision.title}</strong>
         <p>{packageDecision.detail}</p>
+      </div>
+      <div className={`chart-shadow-post-freeze ${recovered ? "is-recovered" : "is-live"}`}>
+        <span>Post-freeze observation</span>
+        <strong>{recovered ? "Recovered after Fyodor was offline" : assessment.status === "pre_activation_audit" ? "Predates this registered setup" : "Captured while monitoring"}</strong>
+        <p>{recovered
+          ? "The release, frozen H4 entry, ATR, SL, TP, and outcome are replayed from stored MT5 candles. It remains separate from true first-seen forward statistics."
+          : "This decision keeps its original first-seen timing and contributes to forward monitoring only when it was captured before entry."}</p>
+        {forwardSummary ? <small>True forward record for this setup: {forwardSummary.resolvedCases} resolved · average {formatSignedR(forwardSummary.averageR)} · {forwardSummary.statusReason ?? forwardSummary.status ?? "collecting"}.</small> : <small>No true first-seen forward case has been captured for this setup yet.</small>}
       </div>
     </section>
   );
@@ -537,7 +554,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
     const assessments = market.realtime?.latestPatternAssessments ?? (market.realtime?.latestPatternAssessment ? [market.realtime.latestPatternAssessment] : []);
     const exactAssessments = new Map(assessments.map((assessment) => [`${assessment.patternId}:${assessment.time}`, assessment]));
     const patterns = new Map(market.patterns.map((pattern) => [pattern.id, pattern]));
-    return market.signals
+    return [...market.signals, ...(market.recoveredSignals ?? [])]
       .filter((signal) => patterns.get(signal.patternId)?.readiness?.actionableInShadowTrader !== false)
       .map((signal) => {
         const pattern = patterns.get(signal.patternId) ?? null;
@@ -553,7 +570,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
   }).sort((left, right) => (right.signal.activationTime ?? 0) - (left.signal.activationTime ?? 0) || right.signal.eventTime - left.signal.eventTime || left.key.localeCompare(right.key)), [registryResponses]);
   const registeredDecisionRows = useMemo<ShadowDecisionRow[]>(() => registryResponses.flatMap((market) => {
     const patterns = new Map(market.patterns.filter((pattern) => pattern.currentEligible).map((pattern) => [pattern.id, pattern]));
-    const signals = new Map(market.signals.map((signal) => [`${signal.patternId}:${signal.eventTime}`, signal]));
+    const signals = new Map([...market.signals, ...(market.recoveredSignals ?? [])].map((signal) => [`${signal.patternId}:${signal.eventTime}`, signal]));
     const assessments = market.realtime?.latestPatternAssessments ?? (market.realtime?.latestPatternAssessment ? [market.realtime.latestPatternAssessment] : []);
     return assessments.flatMap((assessment): ShadowDecisionRow[] => {
       const pattern = patterns.get(assessment.patternId) ?? null;
@@ -568,11 +585,15 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
     });
   }).sort((left, right) => right.assessment.time - left.assessment.time || left.market.localeCompare(right.market) || left.assessment.label.localeCompare(right.assessment.label)), [registryResponses]);
   const currentTradeRows = useMemo(
-    () => tradeRows.filter((row) => row.signal.outcomeStatus === "pending" && row.signal.entry != null),
+    () => tradeRows.filter((row) => row.signal.observationMode !== "recovered_offline" && row.signal.outcomeStatus === "pending" && row.signal.entry != null),
     [tradeRows],
   );
   const queuedTradeRows = useMemo(
     () => tradeRows.filter((row) => row.signal.entry == null && row.signal.prospectiveCapture?.eligible === true),
+    [tradeRows],
+  );
+  const recoveredTradeRows = useMemo(
+    () => tradeRows.filter((row) => row.signal.observationMode === "recovered_offline").slice(0, 10),
     [tradeRows],
   );
   const recentRegisteredDecisions = registeredDecisionRows.slice(0, 10);
@@ -638,7 +659,10 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
     const selected = selectedDecisionKey === row.key;
     const signal = row.signal;
     const plannedEntry = signal.prospectiveCapture?.activationTime ?? signal.activationTime;
-    const state = signal.entry == null && signal.prospectiveCapture?.eligible === true
+    const recovered = signal.observationMode === "recovered_offline";
+    const state = recovered
+      ? signal.outcomeStatus === "pending" ? "Recovered paper trade · open" : `Recovered · ${formatOutcome(signal)}`
+      : signal.entry == null && signal.prospectiveCapture?.eligible === true
       ? "Queued for H4 entry"
       : signal.outcomeStatus === "pending" ? "Open" : formatOutcome(signal);
     const forwardStatus = forwardSetupLabel(row.market, signal.patternId);
@@ -659,7 +683,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       >
         <td><strong><PairFlags symbol={row.market} />{row.pattern?.label ?? signal.label}</strong><small>{signal.direction === "long" ? `Long ${row.market}` : `Short ${row.market}`}</small></td>
         <td><strong>{formatUtc(plannedEntry)}</strong><small>Release {formatUtc(signal.eventTime)}</small></td>
-        <td><strong>{state}</strong><small>{executionRule(signal.execution ?? row.pattern?.execution)}</small>{forwardStatus ? <small className={`chart-shadow-forward-status ${forwardStatus.className}`} title={forwardStatus.title}>{forwardStatus.text}</small> : null}</td>
+        <td><strong>{state}</strong><small>{recovered ? "Reconstructed from MT5 history · not captured live" : executionRule(signal.execution ?? row.pattern?.execution)}</small>{recovered ? <small>{executionRule(signal.execution ?? row.pattern?.execution)}</small> : null}{forwardStatus ? <small className={`chart-shadow-forward-status ${forwardStatus.className}`} title={forwardStatus.title}>{forwardStatus.text}</small> : null}</td>
         <td><span>{selected ? "Hide audit" : "View audit"}</span>{selected ? <ChevronDown size={14} /> : <ChevronRight size={14} />}</td>
       </tr>
     );
@@ -668,7 +692,9 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
   const renderDecisionRow = (row: ShadowDecisionRow) => {
     const selected = selectedDecisionKey === row.key;
     const direction = row.signal?.direction ?? row.assessment.direction;
-    const state = row.signal ? formatOutcome(row.signal)
+    const state = row.signal?.observationMode === "recovered_offline"
+      ? row.signal.outcomeStatus === "pending" ? "Recovered paper trade · open" : `Recovered · ${formatOutcome(row.signal)}`
+      : row.signal ? formatOutcome(row.signal)
       : row.assessment.status === "no_trade" ? "No trade"
       : row.assessment.status === "pre_activation_audit" ? "Audit only"
       : row.assessment.status === "late_for_contract" ? "Audit only · late"
@@ -759,6 +785,8 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
             {currentTradeRows.length > 0 ? currentTradeRows.map(renderTradeRow) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No hypothetical trade is currently open.</td></tr>}
             <tr className="chart-shadow-trade-group"><th colSpan={4}>Queued for the next H4 entry</th></tr>
             {queuedTradeRows.length > 0 ? queuedTradeRows.map(renderTradeRow) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No qualified setup is waiting for entry.</td></tr>}
+            <tr className="chart-shadow-trade-group"><th colSpan={4}>Recovered while Fyodor was offline</th></tr>
+            {recoveredTradeRows.length > 0 ? recoveredTradeRows.map(renderTradeRow) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No offline decision required historical reconstruction.</td></tr>}
           </tbody>
         </table>
         <div className="chart-shadow-recent-decisions-heading">
@@ -772,7 +800,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
             </tbody>
           </table>
         </div>
-        {selectedDecision ? <LatestDecisionSection assessment={selectedDecision.assessment} pattern={selectedDecision.pattern} symbol={selectedDecision.market} signal={selectedDecision.signal} /> : null}
+        {selectedDecision ? <LatestDecisionSection assessment={selectedDecision.assessment} pattern={selectedDecision.pattern} symbol={selectedDecision.market} signal={selectedDecision.signal} forwardSummary={forwardSetupByKey.get(`${selectedDecision.market}:${selectedDecision.assessment.patternId}`) ?? null} /> : null}
         <details className="chart-shadow-upcoming-list">
           <summary>
             <span><b>Possible next setups</b><small>Upcoming registered releases</small></span>
@@ -800,9 +828,11 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       </section>
       {data.globalLoading ? <section className="chart-shadow-global-state fms-setups-only">Loading the global registry…</section> : null}
       {data.globalError ? <section className="chart-shadow-global-state is-error fms-setups-only">Global registry unavailable: {data.globalError}. Showing {response.symbol} only.</section> : null}
-      <section className="chart-shadow-priority fms-setups-only" aria-label="All registered FMS setups">
+      <details className="chart-shadow-lower-disclosure fms-setups-only">
+        <summary><span>Every registered setup</span><strong>{registeredPatterns.length}</strong><ChevronDown size={14} /></summary>
+      <section className="chart-shadow-priority" aria-label="All registered FMS setups">
         <div className="chart-shadow-section-heading">
-          <div><span>Live watchlist</span><strong>Every registered setup</strong></div>
+          <div><span>Live watchlist</span><strong>Filters and historical ranking</strong></div>
           <nav className="chart-shadow-market-filters" aria-label="Filter setups by currency">
             {currencySymbols.map((currency) => {
               const visible = selectedCurrencies == null || selectedCurrencies.has(currency);
@@ -934,8 +964,11 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           </tbody>
         </table>
       </section>
+      </details>
 
-      <section className="chart-shadow-account fms-setups-only" aria-label="Gross hypothetical account and performance replay">
+      <details className="chart-shadow-lower-disclosure fms-setups-only">
+        <summary><span>Hypothetical account and replay</span><strong>{formatMoney(liveAccount.balance)}</strong><ChevronDown size={14} /></summary>
+      <section className="chart-shadow-account" aria-label="Gross hypothetical account and performance replay">
         <div className="chart-shadow-section-heading"><div><span><WalletCards size={12} /> Hypothetical account</span><strong>Assumptions and performance replay</strong></div></div>
         <div className="chart-shadow-account-controls">
           <label>
@@ -982,9 +1015,12 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           </div>
         </details>
       </section>
+      </details>
 
       {activeSignal && position ? (
-        <section className="chart-shadow-position fms-setups-only" aria-label="Hypothetical position">
+        <details className="chart-shadow-lower-disclosure fms-setups-only">
+          <summary><span>Open hypothetical trade</span><strong>{activeSignal.direction === "long" ? "Long" : "Short"} {response.symbol}</strong><ChevronDown size={14} /></summary>
+        <section className="chart-shadow-position" aria-label="Hypothetical position">
           <div className="chart-macro-bias-realtime-kicker">Open hypothetical trade · no MT5 order</div>
           <div className="chart-shadow-position-grid">
             <div><span>Entry</span><strong>{formatPrice(activeSignal.entry)}</strong></div>
@@ -1010,6 +1046,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           {activeSignal.demoTag ? <div className="chart-shadow-demo-tag"><span>MT5 demo order comment</span><code>{activeSignal.demoTag}</code><button type="button" onClick={() => void navigator.clipboard?.writeText(activeSignal.demoTag!)}>Copy</button><small>Optional manual demo validation only. FMS sends no order.</small></div> : null}
           <small className="chart-shadow-source-note">{position.sizingNote}</small>
         </section>
+        </details>
       ) : null}
 
       {data.globalResponse?.liveDecisions?.length ? (
@@ -1028,7 +1065,10 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
         </details>
       ) : null}
 
-      <div className="fms-setups-only"><ChartMacroBiasSetupCatalog patterns={registeredPatternRows} /></div>
+      <details className="chart-shadow-lower-disclosure fms-setups-only">
+        <summary><span>Registered setup benchmarks</span><strong>{registeredPatternRows.length}</strong><ChevronDown size={14} /></summary>
+        <ChartMacroBiasSetupCatalog patterns={registeredPatternRows} />
+      </details>
 
       {registeredContextPatterns.length > 0 ? (
         <details className="chart-shadow-context-registry fms-research-only" open>

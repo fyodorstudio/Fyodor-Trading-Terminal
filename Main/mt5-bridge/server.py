@@ -3714,7 +3714,7 @@ def research_chart_signals(
         if normalized_mode == "current" else "immutable-replay"
       )
       response_cache_key = hashlib.sha256("|".join([
-        "chart-response-v9-lazy-target-path", normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
+        "chart-response-v10-offline-recovery", normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
         str(_research_store.get_metadata("fms_registered_reaction:reconciliation") or ""),
         str(_research_store.get_metadata("fms_live_execution_revision") or ""),
         calendar_revision,
@@ -3741,7 +3741,10 @@ def research_chart_signals(
       if cached_wrapper is not None:
         cached_response = cached_wrapper["response"]
         assessment_status = str((((cached_response.get("realtime") or {}).get("latestPatternAssessment") or {}).get("status") or ""))
-        has_pending_signal = any(signal.get("outcomeStatus") == "pending" for signal in cached_response.get("signals", []))
+        has_pending_signal = any(
+          signal.get("outcomeStatus") == "pending"
+          for signal in [*(cached_response.get("signals") or []), *(cached_response.get("recoveredSignals") or [])]
+        )
         needs_live_refresh = assessment_status == "awaiting_observation" or has_pending_signal
         if not refresh or normalized_mode == "research_replay" or not needs_live_refresh:
           return response_for_client(cached_response)
@@ -3913,6 +3916,7 @@ def research_chart_signals(
       m1_cache[key] = cached_minutes if cache_covers_interval else _fetch_research_candles(normalized_symbol, "M1", start, end, 1)
     return m1_cache[key]
   signals: List[Dict[str, Any]] = []
+  recovered_signals: List[Dict[str, Any]] = []
   signal_candidates_by_key: Dict[Tuple[str, int], Dict[str, Any]] = {}
   prospective_capture_by_key: Dict[Tuple[str, int], Dict[str, Any]] = {}
   for source_version, scoring_policy, candidate in window_candidates:
@@ -3973,12 +3977,10 @@ def research_chart_signals(
       first_seen_by_event,
     )
     prospective_capture_by_key[(str(pattern["id"]), event_time)] = prospective_capture
-    if normalized_mode == "current" and not prospective_capture["eligible"]:
-      continue
     def outcome_value(name: str) -> Any:
       return evaluated.get(name)
     signal_candidates_by_key[(str(pattern["id"]), event_time)] = signal_candidate
-    signals.append({
+    built_signal = {
       "id": f"{pattern['id']}:{event_time}",
       "demoTag": _forward_demo_tag(PRACTICAL_MODEL_ID, normalized_symbol, pattern["id"], event_time),
       "patternId": pattern["id"],
@@ -4023,15 +4025,25 @@ def research_chart_signals(
       "pendingLifecycle": evaluated.get("pendingLifecycle"),
       "historicalReplay": normalized_mode == "research_replay",
       "prospectiveCapture": prospective_capture if normalized_mode == "current" else None,
-    })
-  signal_activation_times = [int(signal["activationTime"]) for signal in signals if signal.get("activationTime") is not None]
+      "observationMode": (
+        "recovered_offline"
+        if normalized_mode == "current" and not prospective_capture["eligible"]
+        else "live_captured" if normalized_mode == "current" else "historical_replay"
+      ),
+    }
+    if normalized_mode == "current" and not prospective_capture["eligible"]:
+      recovered_signals.append(built_signal)
+    else:
+      signals.append(built_signal)
+  evaluated_signals = [*signals, *recovered_signals]
+  signal_activation_times = [int(signal["activationTime"]) for signal in evaluated_signals if signal.get("activationTime") is not None]
   if signal_activation_times:
     signal_candles = _research_store.query_candles(
       normalized_symbol, "H4", min(signal_activation_times) - 140 * H4_SECONDS,
       max(signal_activation_times) + 90 * 24 * 60 * 60,
     )
     signal_candle_times = [int(candle["time"]) for candle in signal_candles]
-    for signal in signals:
+    for signal in evaluated_signals:
       if signal.get("activationTime") is None or signal.get("entry") is None or signal.get("atr") is None:
         signal["expiryTime"] = None
         signal["maximumAdverseR"] = None
@@ -4168,13 +4180,13 @@ def research_chart_signals(
         "givebackR": maximum_favorable_r - float(signal.get("resultR")) if signal.get("resultR") is not None else None,
         "fixedHorizonResponses": fixed_horizon_responses,
       }
-  latest_matched_event_at = max((int(signal["eventTime"]) for signal in signals), default=None)
+  latest_matched_event_at = max((int(signal["eventTime"]) for signal in evaluated_signals), default=None)
   latest_arrow_at = max(
     (
       int(signal["activationTime"])
       if signal.get("activationTime") is not None
       else (int(signal["eventTime"]) // H4_SECONDS + 1) * H4_SECONDS
-      for signal in signals
+      for signal in evaluated_signals
     ),
     default=None,
   )
@@ -4204,7 +4216,7 @@ def research_chart_signals(
     realtime_assessments = realtime.get("latestPatternAssessments") or (
       [realtime["latestPatternAssessment"]] if realtime.get("latestPatternAssessment") else []
     )
-    signal_by_key = {(str(signal["patternId"]), int(signal["eventTime"])): signal for signal in signals}
+    signal_by_key = {(str(signal["patternId"]), int(signal["eventTime"])): signal for signal in evaluated_signals}
     existing_live_decisions = {
       (str(row["patternId"]), int(row["eventTime"])): row
       for row in _research_store.list_fms_live_decisions(normalized_symbol, 500)
@@ -4247,7 +4259,8 @@ def research_chart_signals(
         assessment["status"] = "late_for_contract"
         assessment["reason"] = (
           f"The package matched, but it was not processed before the frozen H4 entry "
-          f"({prospective_capture['reason']}). It is audit-only and cannot enter forward statistics."
+          f"({prospective_capture['reason']}). Its frozen paper trade is reconstructed from MT5 history, "
+          f"but remains separate from true first-seen forward statistics."
         )
       _research_store.record_fms_live_decision(
         PRACTICAL_MODEL_ID,
@@ -4320,7 +4333,7 @@ def research_chart_signals(
     "policyInflationContext": policy_inflation_context,
     "evaluationSummary": {
       "evaluatedPackageCount": len(window_candidates),
-      "matchingPackageCount": len(signals),
+      "matchingPackageCount": len(evaluated_signals),
       "latestEvaluatedAt": max((int(candidate["eventTime"]) for _, _, candidate in window_candidates), default=None),
       "latestMatchedEventAt": latest_matched_event_at,
       "latestArrowAt": latest_arrow_at,
@@ -4328,6 +4341,7 @@ def research_chart_signals(
     },
     "patterns": patterns,
     "signals": signals,
+    "recoveredSignals": recovered_signals,
     "currentPatternCount": sum(pattern["currentEligible"] for pattern in catalog),
     "researchPatternCount": len(catalog),
     "message": (

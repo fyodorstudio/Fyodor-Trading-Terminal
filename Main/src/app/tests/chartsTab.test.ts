@@ -4,6 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { ChartSettingsDrawer } from "@/app/components/ChartSettingsDrawer";
 import { ChartMacroBiasAudit } from "@/app/components/ChartMacroBiasAudit";
 import { ChartMacroBiasRealtimeCard, marketMatchesCurrencySelection } from "@/app/components/ChartMacroBiasRealtimeCard";
+import { ChartFmsActionCard } from "@/app/components/ChartFmsActionCard";
+import { ChartFmsKnowledgeCard } from "@/app/components/ChartFmsKnowledgeCard";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import { ChartPairMatrixContextMarkers, clusterPairMatrixMarkerViews } from "@/app/components/ChartPairMatrixContextMarkers";
 import { ChartPairMatrixRangeOverlay, clampFmsDockWidth, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
@@ -449,6 +451,21 @@ describe("getChartConnectionLabel", () => {
     expect(activeHtml).toContain("Reviewed context contract used");
     expect(activeHtml).toContain("Macro background = Aligned");
     expect(activeHtml).toContain("FMS-EURUSD-H4-CTX-C001");
+    const actionHtml = renderToStaticMarkup(createElement(ChartFmsActionCard, { data: {
+      response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
+    } }));
+    expect(actionHtml).toContain("FMS Trade");
+    expect(actionHtml).toContain("Do not enter late");
+    expect(actionHtml).toContain("Frozen entry");
+    expect(actionHtml).toContain("Risk amount");
+    expect(actionHtml).toContain("Decision integrity");
+    const knowledgeHtml = renderToStaticMarkup(createElement(ChartFmsKnowledgeCard, { data: {
+      response, activeSignal: null, activePattern: null, remainingModelCandles: null, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
+    } }));
+    expect(knowledgeHtml).toContain("FMS Knowledge");
+    expect(knowledgeHtml).toContain("Direction and execution are different");
+    expect(knowledgeHtml).toContain("Registered setup health");
+    expect(knowledgeHtml).toContain("Tested but not registered");
     const queuedSignal = {
       ...openSignal,
       id: "sentiment-queued", eventTime: 101, activationTime: null,
@@ -474,6 +491,34 @@ describe("getChartConnectionLabel", () => {
     expect(queuedHtml).toContain("Queued for the next H4 entry");
     expect(queuedHtml).toContain("Queued for H4 entry");
     expect(queuedHtml).toContain("01 Jan 1970");
+    const recoveredSignal = {
+      ...closedSignal,
+      id: "sentiment-recovered",
+      eventTime: 102,
+      outcomeStatus: "pending" as const,
+      resultR: null,
+      observationMode: "recovered_offline" as const,
+      prospectiveCapture: { eligible: false, reason: "observed_after_frozen_entry", firstSeenAt: 180, activationTime: 144 },
+    } satisfies MacroSignalChartSignal;
+    const recoveredAssessment = {
+      time: 102, patternId: "sentiment", label: pattern.label, condition: pattern.condition,
+      status: "late_for_contract" as const, direction: "long" as const,
+      reason: "Recovered after the original entry.", events: [], calculations: [],
+      prospectiveCapture: recoveredSignal.prospectiveCapture!,
+    };
+    const recoveredResponse = {
+      ...response,
+      signals: [],
+      recoveredSignals: [recoveredSignal],
+      realtime: { ...response.realtime, latestPatternAssessment: recoveredAssessment, latestPatternAssessments: [recoveredAssessment] },
+    } satisfies MacroSignalChartSignalResponse;
+    const recoveredHtml = renderToStaticMarkup(createElement(ChartMacroBiasRealtimeCard, { data: {
+      response: recoveredResponse, activeSignal: null, activePattern: null, remainingModelCandles: null, chartTimeframe: "H1", historicalSignals: [],
+      globalResponse: { ...globalResponse, markets: [recoveredResponse, gbpResponse] }, globalLoading: false, globalError: null,
+    } }));
+    expect(recoveredHtml).toContain("Reconstructed from MT5 history");
+    expect(recoveredHtml).toContain("Recovered paper trade · open");
+    expect(recoveredHtml).toContain("Recovered while Fyodor was offline");
     const pausedGlobal = {
       ...globalResponse,
       forwardValidation: {

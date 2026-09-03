@@ -12,6 +12,29 @@ This file is the current command board. Future AI sessions should read it before
 
 ## FMS Grand Plan — From Historical Research to Rule-Based Live Readiness
 
+### Active Operational Priorities — 2026-09-03
+
+This is the controlling ten-part roadmap for turning historical FMS research into a usable daily operating surface. The detailed phase history below remains an audit trail; it must not override these priorities.
+
+1. [x] **Truthful decision lifecycle.** Use `Waiting for entry`, `Trade running`, resolved TP/SL/expiry, precise unavailable reason codes, and a separate `Recovered after Fyodor was offline` state. A reconstructed decision may replay the frozen MT5 path but must never masquerade as a first-seen live decision or enter forward statistics.
+2. [ ] **Compare prospective entry timing.** Keep the first strictly later H4 open as the reproducible baseline. Continue collecting first-observed bid/ask plus next-M1/H1/H4 gaps, then compare entry contracts per exact setup. A different entry contract requires a separately frozen experiment and explicit review; no historical approximation may be called a real-time fill.
+3. [x] **Challenge execution per exact setup.** Preserve the active contract while testing the declared SL/TP/duration grid, break-even, trailing, and partial-exit families on cached paths. Development selects once; later chronology judges it. Reviewed overlays remain explicit and fingerprint-locked.
+4. [x] **Measure evidence magnitude within the same exact series.** Preserve raw Surprise/Momentum and add past-only percentile/category context (`ordinary`, `large`, `exceptional`). Never compare raw CPI, payroll, PMI, or country series magnitudes with one another.
+5. [x] **Maintain the Reaction Atlas.** Keep 1/3/6/12/30-H4 alignment, MFE, MAE, time-to-extreme, giveback, target ladder, and continuation/rejection/volatility/no-dependable-reaction classifications separate from final trade P/L.
+6. [x] **Expose setup health without rewriting history.** Present `Healthy`, `Weakening`, or `Suspended` from readiness, provenance, and later-evidence state. Weakening remains visible and reviewable; automatic suspension or registry replacement is deferred pending an explicit product decision.
+7. [x] **Keep regime/context recipes separate.** Reviewed trend, volatility, support/resistance, Before-evidence, and macro-background contexts use immutable child rules over unchanged parent setups. Policy/inflation and cross-market transfers remain research-only until reviewed.
+8. [x] **Fail the actionable surface closed on integrity problems.** Require registered readiness, verified provenance, a prospective first-seen decision, and the frozen price geometry before displaying an actionable entry. Preserve suspicious Forecasts visibly under Forecast Guard, missing package/candle reasons, and offline recovery as audit states.
+9. [x] **Make portfolio conflicts explicit.** The hypothetical replay keeps one position at a time, deterministic precedence, overlap/alternative/conflict counts, and same-pair opposing-direction blocks. Correlated cross-pair USD exposure remains a visible warning rather than a hidden fitted weight.
+10. [x] **Provide one actionable Trade dock.** The Charts FMS dock now starts with a dedicated `Trade` view containing explicit `Enter now`, `Wait`, `Do not enter late`, or `Do not enter now`; direction, frozen entry, SL, TP, risk, expiry, reason, lifecycle, and integrity are shown together. `Knowledge` is a separate durable findings view; Setups, Research, and Past Result remain audit surfaces.
+
+#### Decisions deliberately deferred
+
+- [ ] Decide whether a reviewed entry contract may replace the H4-open baseline after enough immutable prospective observations exist.
+- [ ] Decide the minimum later evidence that automatically changes a setup from `Weakening` to `Suspended`; no automatic registry mutation exists today.
+- [ ] Decide whether correlated USD exposure should block a second pair or merely reduce user-selected risk.
+- [ ] Decide whether reviewed policy/inflation context can alter an active setup or must remain a separate signal family.
+- [ ] Decide whether the manual `Enter now` grace window should remain 90 seconds after the exact H4 open; changing it requires an operational-contract revision, not an invisible UI tweak.
+
 This is the highest-priority product program. Its practical goal is a Shadow Trader that can monitor every frozen registered setup, state exactly what it would do, and show the evidence supporting that decision without requiring the user to manually interpret every calendar release.
 
 The program must remain honest about the word **proven**:
@@ -274,7 +297,7 @@ The user explicitly accepts the product claim: `This fixed setup showed positive
 
 - [ ] Rebuild all registered setups as one chronological gross portfolio with overlaps, conflicts, drawdown, losing streaks, and account replay.
 - [ ] Add configurable per-trade risk, total open risk, correlated-currency exposure, drawdown pause, and consecutive-loss pause.
-- [ ] Produce one immediate `Trade / No trade` card containing pair, direction, evidence, entry, SL, TP, position size, expiry, historical record, and every skip reason.
+- [x] Produce one immediate `Trade / No trade` card containing pair, direction, evidence, frozen entry, SL, TP, risk amount, expiry, lifecycle, integrity, and blocking reason. The dedicated Charts `Trade` dock is fail-closed, refuses late replacement entries, and never treats offline recovery as a live-captured decision.
 - [ ] Fail closed on stale/incomplete calendar packages, missing ATR/price data, late entry, conflicting signals, or breached portfolio limits.
 - [ ] Freeze one reproducible historical-repeatability release containing registry, formulas, contracts, dataset fingerprint, portfolio settings, and gross results. Later changes create a new version.
 - [ ] Add an immutable manual-trade journal recording FMS instruction, actual user execution, deviations, and result without enabling MT5 order transmission.
