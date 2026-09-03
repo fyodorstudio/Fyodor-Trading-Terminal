@@ -28,6 +28,68 @@ export type RegisteredSetupScheduleRow = {
   watch: MacroSignalUpcomingPatternWatch | null;
 };
 
+export type RecentFmsActivityRow = {
+  key: string;
+  market: string;
+  label: string;
+  time: number;
+  direction: "long" | "short" | null;
+  state: string;
+  source: "live" | "recovered" | "decision";
+};
+
+function signalActivityState(signal: MacroSignalChartSignal): string {
+  if (signal.entry == null && signal.prospectiveCapture?.eligible) return "Waiting for entry";
+  if (signal.outcomeStatus === "pending") return "Trade open";
+  if (signal.outcomeStatus === "target_hit") return `TP reached${signal.resultR == null ? "" : ` · ${signal.resultR >= 0 ? "+" : ""}${signal.resultR.toFixed(2)}R`}`;
+  if (signal.outcomeStatus === "stop_hit") return `SL reached${signal.resultR == null ? "" : ` · ${signal.resultR.toFixed(2)}R`}`;
+  if (signal.outcomeStatus === "expired") return `Expired${signal.resultR == null ? "" : ` · ${signal.resultR >= 0 ? "+" : ""}${signal.resultR.toFixed(2)}R`}`;
+  if (signal.outcomeStatus === "ambiguous") return "Ambiguous result";
+  return "Not evaluable";
+}
+
+export function buildRecentFmsActivity(markets: MacroSignalChartSignalResponse[]): RecentFmsActivityRow[] {
+  const rows = new Map<string, RecentFmsActivityRow>();
+  for (const market of markets) {
+    const patterns = new Map(market.patterns.filter((pattern) => pattern.currentEligible).map((pattern) => [pattern.id, pattern]));
+    const signals = [...market.signals, ...(market.recoveredSignals ?? [])];
+    const signalsByDecision = new Map(signals.map((signal) => [`${signal.patternId}:${signal.eventTime}`, signal]));
+    const assessments = market.realtime?.latestPatternAssessments
+      ?? (market.realtime?.latestPatternAssessment ? [market.realtime.latestPatternAssessment] : []);
+    for (const assessment of assessments) {
+      const pattern = patterns.get(assessment.patternId);
+      if (!pattern) continue;
+      const signal = signalsByDecision.get(`${assessment.patternId}:${assessment.time}`) ?? null;
+      const source = signal?.observationMode === "recovered_offline" ? "recovered" : signal ? "live" : "decision";
+      const state = signal
+        ? signalActivityState(signal)
+        : assessment.status === "no_trade" ? "No trade"
+        : assessment.status === "late_for_contract" ? "Audit only · late"
+        : assessment.status === "awaiting_observation" ? "Awaiting release data"
+        : assessment.status === "qualified" ? "Qualified"
+        : "Audit only";
+      const key = `${market.symbol}:${assessment.patternId}:${assessment.time}`;
+      rows.set(key, { key, market: market.symbol, label: pattern.label, time: assessment.time, direction: signal?.direction ?? assessment.direction, state, source });
+    }
+    for (const signal of signals) {
+      const pattern = patterns.get(signal.patternId);
+      if (!pattern) continue;
+      const key = `${market.symbol}:${signal.patternId}:${signal.eventTime}`;
+      if (rows.has(key)) continue;
+      rows.set(key, {
+        key,
+        market: market.symbol,
+        label: pattern.label,
+        time: signal.eventTime,
+        direction: signal.direction,
+        state: signalActivityState(signal),
+        source: signal.observationMode === "recovered_offline" ? "recovered" : "live",
+      });
+    }
+  }
+  return [...rows.values()].sort((left, right) => right.time - left.time || left.market.localeCompare(right.market) || left.label.localeCompare(right.label));
+}
+
 export function buildRegisteredSetupSchedule(
   markets: MacroSignalChartSignalResponse[],
   now: number,
@@ -139,6 +201,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   }, [now]);
   const registeredSchedule = useMemo(() => buildRegisteredSetupSchedule(markets, clock), [markets, clock]);
   const datedSetupCount = registeredSchedule.filter((row) => row.watch != null).length;
+  const recentActivity = useMemo(() => buildRecentFmsActivity(markets).slice(0, 10), [markets]);
   const open = candidates
     .filter(({ signal }) => signal.outcomeStatus === "pending" && signal.entry != null)
     .sort((left, right) => (right.signal.activationTime ?? 0) - (left.signal.activationTime ?? 0));
@@ -157,14 +220,6 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
     : data.globalError ? `Global registered-market scan unavailable: ${data.globalError}`
     : operationalPreflight?.signalMonitoringReadyNow === false ? operationalPreflight.blockingReasons.join("; ")
     : null;
-  const latestAssessment = markets.flatMap((market) => {
-    const rows = market.realtime?.latestPatternAssessments ?? (market.realtime?.latestPatternAssessment ? [market.realtime.latestPatternAssessment] : []);
-    return rows.map((assessment) => ({ market: market.symbol, assessment }));
-  }).sort((left, right) => right.assessment.time - left.assessment.time)[0] ?? null;
-  const latestRecovered = markets.flatMap((market) => {
-    const patterns = new Map(market.patterns.map((pattern) => [pattern.id, pattern]));
-    return (market.recoveredSignals ?? []).map((signal) => ({ market: market.symbol, signal, pattern: patterns.get(signal.patternId) ?? null }));
-  }).sort((left, right) => right.signal.eventTime - left.signal.eventTime)[0] ?? null;
   const integrityIssues = primary ? [
     globalBlock,
     primary.pattern.registrationProvenance && primary.pattern.registrationProvenance.status !== "verified" ? "Registered recipe provenance is not verified" : null,
@@ -190,7 +245,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
     : conflict
     ? { state: "BLOCKED", title: "Do not enter now", detail: "Opposing registered directions share this pair and entry time. Review the conflict instead of choosing one silently.", tone: "blocked" }
     : primary == null
-      ? { state: "SCANNING", title: "Do not enter now", detail: latestAssessment ? `${latestAssessment.market} · ${latestAssessment.assessment.label}: ${latestAssessment.assessment.reason}` : "No registered setup is currently ready or open. FMS is waiting for a matching release.", tone: "idle" }
+      ? null
       : primary.signal.entry == null
         ? { state: "WAITING", title: "Wait for the H4 entry", detail: `The frozen entry is ${formatJakartaDisplayDateTime(activation!)}. Do not enter before it.`, tone: "waiting" }
         : withinEntryGrace
@@ -227,11 +282,12 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
           )) : <p>No registered setup is loaded.</p>}
         </div>
       </section>
-      <div className={`fms-action-decision is-${action.tone}`}>
+      <div className="fms-action-section-title"><span>Current registered setup</span><small>Open or waiting for entry</small></div>
+      {action ? <div className={`fms-action-decision is-${action.tone}`}>
         <span>{action.state}</span>
         <strong>{action.title}</strong>
         <p>{action.detail}</p>
-      </div>
+      </div> : null}
       {primary ? (
         <>
           <div className="fms-action-setup">
@@ -261,11 +317,22 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
           </div>
         </>
       ) : (
-        <div className="fms-action-empty"><Clock3 size={18} /><p>Keep this panel open around registered release times. The next qualified package will appear here automatically.</p></div>
+        <div className="fms-action-empty"><Clock3 size={18} /><p>No registered trade is open or waiting for entry.</p></div>
       )}
       {conflict ? <div className="fms-action-warning"><AlertTriangle size={14} />{sameTime.length} simultaneous signals require review.</div> : null}
       {correlatedMarkets.length > 0 ? <div className="fms-action-warning"><AlertTriangle size={14} />Related currency exposure is already open in {Array.from(new Set(correlatedMarkets)).join(", ")}. FMS does not silently add another portfolio position.</div> : null}
-      {latestRecovered ? <section className="fms-action-recovered"><span>Latest offline reconstruction</span><strong>{latestRecovered.market} · {latestRecovered.pattern?.label ?? latestRecovered.signal.label}</strong><p>{latestRecovered.signal.direction === "long" ? "Long" : "Short"} · {latestRecovered.signal.outcomeStatus === "pending" ? "paper trade still running" : latestRecovered.signal.outcomeStatus?.replaceAll("_", " ") ?? "outcome unavailable"}{latestRecovered.signal.resultR == null ? "" : ` · ${latestRecovered.signal.resultR >= 0 ? "+" : ""}${latestRecovered.signal.resultR.toFixed(2)}R`}</p><small>Reconstructed from stored MT5 candles. It is not counted as a first-seen forward trade.</small></section> : null}
+      <section className="fms-action-activity" aria-label="Recent FMS activity">
+        <div className="fms-action-section-title"><span>Recent FMS activity</span><small>Newest first · latest {recentActivity.length}</small></div>
+        <div className="fms-action-activity-scroll">
+          {recentActivity.length > 0 ? recentActivity.map((row) => (
+            <article key={row.key}>
+              <div><PairFlags symbol={row.market} /><strong>{row.market}</strong><span>{row.label}</span></div>
+              <div><b>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} · ` : ""}{row.state}</b><time>{formatJakartaDisplayDateTime(row.time)}</time></div>
+              <em className={`is-${row.source}`}>{row.source === "recovered" ? "Recovered offline" : row.source === "live" ? "Live captured" : "Decision"}</em>
+            </article>
+          )) : <p>No registered decision has been recorded yet.</p>}
+        </div>
+      </section>
       <footer>The 90-second button window is an operational display rule around the exact frozen H4 open. Missing it does not create a new tested entry.</footer>
     </section>
   );

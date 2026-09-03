@@ -782,7 +782,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           </section>
         );
       })() : null}
-      <section className="chart-shadow-trade-monitor fms-setups-only" aria-label="Current and recent hypothetical FMS trades">
+      {view === "all" ? <section className="chart-shadow-trade-monitor fms-setups-only" aria-label="Current and recent hypothetical FMS trades">
         <div className="chart-shadow-section-heading">
           <div><span>Trade monitor</span><strong>What would FMS do now?</strong></div>
           <small>Setup-level simulations · click a row for its audit · the account replay separately skips portfolio overlaps</small>
@@ -833,7 +833,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
             ) : <p>No upcoming registered release is loaded.</p>}
           </div>
         </details>
-      </section>
+      </section> : null}
       {data.globalLoading ? <section className="chart-shadow-global-state fms-setups-only">Loading the global registry…</section> : null}
       {data.globalError ? <section className="chart-shadow-global-state is-error fms-setups-only">Global registry unavailable: {data.globalError}. Showing {response.symbol} only.</section> : null}
       <details className="chart-shadow-lower-disclosure fms-setups-only">

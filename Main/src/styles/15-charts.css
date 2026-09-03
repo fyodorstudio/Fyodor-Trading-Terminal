@@ -1760,6 +1760,22 @@
 .fms-action-schedule-row time { color: #334155; font-size: 8px; font-weight: 700; white-space: nowrap; }
 .fms-action-schedule-row b { color: #4f46e5; font-size: 9px; }
 .fms-action-schedule-row > small { font-size: 8px; white-space: nowrap; }
+.fms-action-section-title { display: flex; min-height: 34px; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d7dbe0; background: #f8fafc; padding: 7px 10px; }
+.fms-action-section-title > span { color: #312e81; font-size: 10px; font-weight: 850; text-transform: uppercase; }
+.fms-action-section-title > small { color: #64748b; font-size: 8px; font-weight: 700; }
+.fms-action-activity { border-top: 1px solid #d7dbe0; }
+.fms-action-activity-scroll { max-height: 270px; overflow-x: hidden; overflow-y: auto; }
+.fms-action-activity-scroll > p { margin: 0; padding: 14px 10px; color: #64748b; font-size: 10px; }
+.fms-action-activity article { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; border-bottom: 1px solid #eceff3; padding: 8px 10px; }
+.fms-action-activity article > div:first-child { display: flex; min-width: 0; align-items: center; gap: 5px; padding-right: 86px; }
+.fms-action-activity article > div:first-child strong { flex: 0 0 auto; font-size: 9px; }
+.fms-action-activity article > div:first-child > span { overflow: hidden; font-size: 10px; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.fms-action-activity article > div:nth-child(2) { display: grid; justify-items: end; gap: 2px; text-align: right; }
+.fms-action-activity article b { color: #111827; font-size: 9px; }
+.fms-action-activity article time { color: #64748b; font-size: 8px; white-space: nowrap; }
+.fms-action-activity article em { position: absolute; top: 8px; right: 10px; color: #64748b; font-size: 7px; font-style: normal; font-weight: 800; text-transform: uppercase; }
+.fms-action-activity article em.is-live { color: #15803d; }
+.fms-action-activity article em.is-recovered { color: #b45309; }
 .fms-action-decision { display: grid; gap: 3px; border-bottom: 1px solid #d7dbe0; border-left: 4px solid #64748b; padding: 14px 12px; }
 .fms-action-decision > span { color: #64748b; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
 .fms-action-decision > strong { font-size: 19px; line-height: 1.15; }
