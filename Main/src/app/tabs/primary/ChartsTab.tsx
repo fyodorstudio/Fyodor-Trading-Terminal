@@ -153,7 +153,18 @@ export function shouldApplyMacroBiasRefresh(
   next: MacroSignalChartSignalResponse | MacroSignalGlobalResponse,
 ): boolean {
   if (!current) return true;
-  return current.generatedAt !== next.generatedAt;
+  if (current.generatedAt !== next.generatedAt) return true;
+  if ("markets" in current && "markets" in next) {
+    const currentForward = current.forwardValidation;
+    const nextForward = next.forwardValidation;
+    return currentForward?.qualifiedDecisions !== nextForward?.qualifiedDecisions
+      || currentForward?.trackedCases !== nextForward?.trackedCases
+      || currentForward?.resolvedCases !== nextForward?.resolvedCases
+      || currentForward?.demoExecution?.captureStatus.checkedAt !== nextForward?.demoExecution?.captureStatus.checkedAt
+      || currentForward?.demoExecution?.taggedDeals !== nextForward?.demoExecution?.taggedDeals
+      || currentForward?.demoExecution?.totalNetAccountResult !== nextForward?.demoExecution?.totalNetAccountResult;
+  }
+  return false;
 }
 
 export function getMacroBiasReplayStatusLabel(

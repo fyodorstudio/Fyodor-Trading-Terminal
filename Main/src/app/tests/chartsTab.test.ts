@@ -25,6 +25,9 @@ describe("getChartConnectionLabel", () => {
     const current = { generatedAt: 100 } as MacroSignalGlobalResponse;
     expect(shouldApplyMacroBiasRefresh(current, { generatedAt: 100 } as MacroSignalGlobalResponse)).toBe(false);
     expect(shouldApplyMacroBiasRefresh(current, { generatedAt: 101 } as MacroSignalGlobalResponse)).toBe(true);
+    const journalBefore = { generatedAt: 100, markets: [], forwardValidation: { demoExecution: { captureStatus: { checkedAt: 100 } } } } as unknown as MacroSignalGlobalResponse;
+    const journalAfter = { generatedAt: 100, markets: [], forwardValidation: { demoExecution: { captureStatus: { checkedAt: 130 } } } } as unknown as MacroSignalGlobalResponse;
+    expect(shouldApplyMacroBiasRefresh(journalBefore, journalAfter)).toBe(true);
   });
   it("opens Charts on the H4 timeframe by default", () => {
     expect(DEFAULT_CHART_TIMEFRAME).toBe("H4");

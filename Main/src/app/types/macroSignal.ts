@@ -1612,7 +1612,15 @@ export interface MacroSignalGlobalResponse {
     realMoneyChecks: Record<string, boolean>;
     demoExecution?: {
       schema: "fms-demo-execution-v1";
-      captureStatus: { status: string; accountLogin?: number | null; orderTransmission?: boolean };
+      captureStatus: {
+        status: string;
+        accountLogin?: number | null;
+        accountBalance?: number | null;
+        accountEquity?: number | null;
+        accountCurrency?: string | null;
+        checkedAt?: number | null;
+        orderTransmission?: boolean;
+      };
       taggedDeals: number;
       matchedTrades: number;
       completedTrades: number;

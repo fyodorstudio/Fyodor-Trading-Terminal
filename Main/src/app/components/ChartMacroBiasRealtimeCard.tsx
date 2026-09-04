@@ -759,6 +759,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           : captureStatus === "mt5_unavailable" ? "MT5 unavailable"
           : captureStatus === "account_unavailable" ? "MT5 account unavailable"
           : captureStatus === "capture_failed" ? "Demo-history read failed"
+          : captureStatus === "waiting_for_qualified_signal" && validation.demoExecution?.captureStatus.accountLogin ? "Demo account verified · waiting for a qualified setup"
           : captureStatus === "waiting_for_qualified_signal" ? "Waiting for a qualified setup"
           : "Demo capture not checked yet";
         return (

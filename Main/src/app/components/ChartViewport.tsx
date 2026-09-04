@@ -7,6 +7,7 @@ import { ChartPairMatrixContextMarkers, type PairMatrixContextMarkerView } from 
 import { ChartMacroBiasAudit, type ChartMacroBiasAuditData } from "@/app/components/ChartMacroBiasAudit";
 import { ChartMacroBiasRealtimeCard, type ChartMacroBiasRealtimeCardData } from "@/app/components/ChartMacroBiasRealtimeCard";
 import { ChartFmsActionCard } from "@/app/components/ChartFmsActionCard";
+import { ChartFmsJournalCard } from "@/app/components/ChartFmsJournalCard";
 import { ChartFmsKnowledgeCard } from "@/app/components/ChartFmsKnowledgeCard";
 import { ChartPairMatrixTimeLens, type ChartPairMatrixTimeLensData } from "@/app/components/ChartPairMatrixTimeLens";
 import { usePairMatrixHoverAnchor } from "@/app/hooks/usePairMatrixHoverAnchor";
@@ -189,7 +190,7 @@ export function ChartViewport({
   overlayCopy,
   reachedBoundary,
 }: ChartViewportProps) {
-  const [fmsDockTab, setFmsDockTab] = useState<"trade" | "setups" | "research" | "knowledge" | "result">(macroBiasAudit ? "result" : "trade");
+  const [fmsDockTab, setFmsDockTab] = useState<"trade" | "journal" | "setups" | "research" | "knowledge" | "result">(macroBiasAudit ? "result" : "trade");
   const [fmsDockWidth, setFmsDockWidth] = useState(() => {
     try {
       const saved = Number(window.localStorage.getItem(FMS_DOCK_WIDTH_KEY));
@@ -278,6 +279,7 @@ export function ChartViewport({
             <aside ref={fmsDockRef} className="chart-fms-dock" style={{ width: fmsDockWidth }} aria-label="FMS chart workspace">
               <nav className="chart-fms-dock-tabs" aria-label="FMS windows">
                 <button type="button" className={fmsDockTab === "trade" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => setFmsDockTab("trade")} title="Current action">Trade</button>
+                <button type="button" className={fmsDockTab === "journal" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => setFmsDockTab("journal")} title="Daily model and demo results">Journal</button>
                 <button type="button" className={fmsDockTab === "setups" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => setFmsDockTab("setups")}>Setups</button>
                 <button type="button" className={fmsDockTab === "research" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => setFmsDockTab("research")}>Research</button>
                 <button type="button" className={fmsDockTab === "knowledge" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => setFmsDockTab("knowledge")} title="Durable findings">Knowledge</button>
@@ -293,6 +295,8 @@ export function ChartViewport({
                         historicalMatchesCount={macroBiasHistoricalMatchesCount}
                         onToggleHistoricalMatches={onToggleMacroBiasHistoricalMatches}
                       />
+                  : fmsDockTab === "journal" && macroBiasRealtime
+                    ? <ChartFmsJournalCard data={macroBiasRealtime} />
                   : fmsDockTab === "knowledge" && macroBiasRealtime
                     ? <ChartFmsKnowledgeCard data={macroBiasRealtime} />
                   : macroBiasRealtime

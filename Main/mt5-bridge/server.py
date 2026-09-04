@@ -2205,8 +2205,6 @@ def _capture_tagged_demo_deals(observed_at: int) -> Dict[str, Any]:
     for row in _research_store.list_fms_live_execution_cases(limit=2000)
     if row.get("modelId") == PRACTICAL_MODEL_ID
   }
-  if not tag_map:
-    return finish({"status": "waiting_for_qualified_signal", "captured": 0, "accountLogin": None})
   try:
     with _mt5_access():
       if not _ensure_mt5_initialized():
@@ -2217,10 +2215,24 @@ def _capture_tagged_demo_deals(observed_at: int) -> Dict[str, Any]:
       account_data = _namedtuple_to_dict(account)
       account_login = int(account_data.get("login") or getattr(account, "login", 0) or 0)
       account_balance = float(account_data.get("balance") or getattr(account, "balance", 0) or 0)
+      account_equity = float(account_data.get("equity") or getattr(account, "equity", 0) or 0)
+      account_currency = str(account_data.get("currency") or getattr(account, "currency", "") or "") or None
       trade_mode = int(account_data.get("trade_mode") if account_data.get("trade_mode") is not None else getattr(account, "trade_mode", -1))
       demo_mode = int(getattr(mt5, "ACCOUNT_TRADE_MODE_DEMO", 0))
       if trade_mode != demo_mode:
-        return finish({"status": "blocked_non_demo_account", "captured": 0, "accountLogin": account_login, "tradeMode": trade_mode})
+        return finish({
+          "status": "blocked_non_demo_account", "captured": 0,
+          "accountLogin": account_login, "accountBalance": account_balance,
+          "accountEquity": account_equity, "accountCurrency": account_currency,
+          "tradeMode": trade_mode,
+        })
+      if not tag_map:
+        return finish({
+          "status": "waiting_for_qualified_signal", "captured": 0,
+          "accountLogin": account_login, "accountBalance": account_balance,
+          "accountEquity": account_equity, "accountCurrency": account_currency,
+          "tradeMode": demo_mode, "recognizedTags": 0,
+        })
       deals = mt5.history_deals_get(
         datetime.fromtimestamp(FORWARD_LEDGER_ACTIVATED_AT, tz=timezone.utc),
         datetime.fromtimestamp(int(observed_at) + 1, tz=timezone.utc),
@@ -2313,7 +2325,9 @@ def _capture_tagged_demo_deals(observed_at: int) -> Dict[str, Any]:
       position_tags[position_id] = token
   return finish({
     "status": "capturing_demo_deals", "captured": captured, "accountLogin": account_login,
-    "tradeMode": demo_mode, "recognizedTags": len(tag_map),
+    "accountBalance": account_balance, "accountEquity": account_equity,
+    "accountCurrency": account_currency, "tradeMode": demo_mode,
+    "recognizedTags": len(tag_map),
   })
 
 
