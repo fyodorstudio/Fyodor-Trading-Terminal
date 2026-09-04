@@ -224,6 +224,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   const [expandedScheduleKey, setExpandedScheduleKey] = useState<string | null>(null);
   const [expandedCurrentKey, setExpandedCurrentKey] = useState<string | null>(null);
   const [expandedActivityKey, setExpandedActivityKey] = useState<string | null>(null);
+  const [activeView, setActiveView] = useState<"next" | "current" | "recent">("next");
   const open = candidates
     .filter(({ signal }) => signal.outcomeStatus === "pending" && signal.entry != null)
     .sort((left, right) => (right.signal.activationTime ?? 0) - (left.signal.activationTime ?? 0));
@@ -284,7 +285,18 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
         <div><ShieldCheck size={15} /><span>FMS Trade</span></div>
         <small>Registered rules only · no MT5 order</small>
       </header>
-      <section className="fms-action-schedule" aria-label="Next registered setups">
+      <nav className="fms-action-view-tabs" aria-label="Trade setup views">
+        <button type="button" className={activeView === "next" ? "is-active" : ""} aria-pressed={activeView === "next"} onClick={() => setActiveView("next")}>
+          <span>Next</span><small>{datedSetupCount}</small>
+        </button>
+        <button type="button" className={activeView === "current" ? "is-active" : ""} aria-pressed={activeView === "current"} onClick={() => setActiveView("current")}>
+          <span>Current</span><small>{currentCandidates.length}</small>
+        </button>
+        <button type="button" className={activeView === "recent" ? "is-active" : ""} aria-pressed={activeView === "recent"} onClick={() => setActiveView("recent")}>
+          <span>Recent</span><small>{recentActivity.length}</small>
+        </button>
+      </nav>
+      {activeView === "next" ? <section className="fms-action-schedule fms-action-view" aria-label="Next registered setups">
         <div className="fms-action-schedule-heading">
           <div><span>Next registered setups</span><strong>{datedSetupCount} scheduled · {registeredSchedule.length - datedSetupCount} awaiting date</strong></div>
           <small>Jakarta time</small>
@@ -316,7 +328,8 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
             })}</tbody>
           </table> : <p>No registered setup is loaded.</p>}
         </div>
-      </section>
+      </section> : null}
+      {activeView === "current" ? <section className="fms-action-view" aria-label="Current registered setups">
       <div className="fms-action-section-title"><span>Current registered setup</span><small>Open or waiting for entry</small></div>
       {currentCandidates.length > 0 ? <table className="fms-action-table fms-action-current-table">
         <thead><tr><th>Setup</th><th>Decision</th><th>State and contract</th></tr></thead>
@@ -356,7 +369,9 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
       )}
       {conflict ? <div className="fms-action-warning"><AlertTriangle size={14} />{sameTime.length} simultaneous signals require review.</div> : null}
       {correlatedMarkets.length > 0 ? <div className="fms-action-warning"><AlertTriangle size={14} />Related currency exposure is already open in {Array.from(new Set(correlatedMarkets)).join(", ")}. FMS does not silently add another portfolio position.</div> : null}
-      <section className="fms-action-activity" aria-label="Recent FMS activity">
+      <footer>The 90-second button window is an operational display rule around the exact frozen H4 open. Missing it does not create a new tested entry.</footer>
+      </section> : null}
+      {activeView === "recent" ? <section className="fms-action-activity fms-action-view" aria-label="Recent FMS activity">
         <div className="fms-action-section-title"><span>Recent FMS activity</span><small>Newest first · latest {recentActivity.length}</small></div>
         <div className="fms-action-activity-scroll">
           {recentActivity.length > 0 ? <table className="fms-action-table">
@@ -388,8 +403,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
             })}</tbody>
           </table> : <p>No registered decision has been recorded yet.</p>}
         </div>
-      </section>
-      <footer>The 90-second button window is an operational display rule around the exact frozen H4 open. Missing it does not create a new tested entry.</footer>
+      </section> : null}
     </section>
   );
 });

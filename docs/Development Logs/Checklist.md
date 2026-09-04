@@ -49,6 +49,7 @@ This is a later implementation pass. It must improve presentation and loading wi
   - retain honest loading, disconnected, stale, and unavailable states instead of freezing the interface.
   - implementation result (2026-09-04): pair/timeframe navigation now paints the durable candle cache first (measured about 0.06 seconds for 350 H4 candles), historical arrows use a durable visible-window marker index instead of rebuilding outcome paths (measured about 0.3 seconds warm versus roughly 5-30 seconds previously), and reusable global/current decisions suppress duplicate selected-market requests while the lifecycle poll retains pending-trade updates.
 - [x] Rebuild the Trade dock around three compact table sections in this order: `Next registered setups`, `Current registered setups`, and `Recent FMS activity`.
+  - presentation refinement (2026-09-04): replace the three simultaneous stacked sections with `Next`, `Current`, and `Recent` switcher buttons. Only the selected table occupies the remaining Trade-dock height; row expansion and bounded internal scrolling remain intact.
   - keep summary rows short and internally scroll bounded lists;
   - make every row expandable directly beneath itself;
   - show pair, setup, direction/state, Jakarta release/entry time, countdown where applicable, frozen SL in ATR and price/pips when known, frozen TP in R and price/pips when known, maximum duration/expiry, entry, lifecycle result, and evidence summary;

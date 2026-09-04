@@ -461,7 +461,9 @@ describe("getChartConnectionLabel", () => {
     expect(actionHtml).toContain("FMS Trade");
     expect(actionHtml).toContain("Past arrows");
     expect(actionHtml).toContain("Next registered setups");
-    expect(actionHtml).toContain("Do not enter late");
+    expect(actionHtml).toContain("<span>Next</span>");
+    expect(actionHtml).toContain("<span>Current</span>");
+    expect(actionHtml).toContain("<span>Recent</span>");
     expect(actionHtml).toContain("Frozen contract");
     expect(actionHtml).toContain("Show details");
     const schedule = buildRegisteredSetupSchedule([response, gbpResponse], 100);
