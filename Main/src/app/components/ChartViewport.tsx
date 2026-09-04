@@ -149,6 +149,8 @@ interface ChartViewportProps {
   pairMatrixContextMarkers: ChartPairMatrixContextMarkerData;
   macroBiasAudit: ChartMacroBiasAuditData | null;
   macroBiasRealtime: ChartMacroBiasRealtimeCardData | null;
+  macroBiasEnabled: boolean;
+  macroBiasLoading: boolean;
   macroBiasHistoricalMatchesVisible: boolean;
   macroBiasHistoricalMatchesCount: number;
   onToggleMacroBiasHistoricalMatches: () => void;
@@ -177,6 +179,8 @@ export function ChartViewport({
     pairMatrixContextMarkers,
     macroBiasAudit,
     macroBiasRealtime,
+    macroBiasEnabled,
+    macroBiasLoading,
     macroBiasHistoricalMatchesVisible,
     macroBiasHistoricalMatchesCount,
     onToggleMacroBiasHistoricalMatches,
@@ -196,7 +200,7 @@ export function ChartViewport({
   });
   const viewportRef = useRef<HTMLDivElement | null>(null);
   const fmsDockRef = useRef<HTMLElement | null>(null);
-  const fmsDockVisible = macroBiasRealtime != null || macroBiasAudit != null;
+  const fmsDockVisible = macroBiasEnabled || macroBiasRealtime != null || macroBiasAudit != null;
   const lensOpen = Boolean(eventLens?.expanded || eventLensDock.expanded);
   const bottomDockVisible = pairMatrixTimeLens.open || lensOpen;
   const [bottomDockTab, setBottomDockTab] = useState<"matrix" | "lens">(lensOpen ? "lens" : "matrix");
@@ -293,7 +297,10 @@ export function ChartViewport({
                     ? <ChartFmsKnowledgeCard data={macroBiasRealtime} />
                   : macroBiasRealtime
                     ? <ChartMacroBiasRealtimeCard data={macroBiasRealtime} view={fmsDockTab === "research" ? "research" : "setups"} />
-                    : null}
+                    : <section className="chart-fms-dock-loading" aria-live="polite">
+                        <strong>{macroBiasLoading ? "Loading FMS Trade…" : "FMS Trade unavailable"}</strong>
+                        <span>{macroBiasLoading ? "Cached decisions and the selected market are being restored." : "No registered FMS response is available for this market."}</span>
+                      </section>}
               </div>
               <div
                 className="chart-fms-dock-resize"

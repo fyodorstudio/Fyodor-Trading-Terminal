@@ -664,6 +664,8 @@ def aggregate_managed(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     year_results.setdefault(year, []).append(float(row["resultR"]))
   return {
     "evaluableN": len(values), "averageR": statistics.fmean(values) if values else None,
+    "medianR": statistics.median(values) if values else None,
+    "positiveRate": sum(value > 0 for value in values) / len(values) if values else None,
     "tpBeforeSl": sum(row["status"] == "target_hit" for row in rows) / len(values) if values else None,
     "maximumDrawdownR": drawdown, "longestLosingStreak": longest,
     "ambiguousN": sum(row["status"] == "ambiguous" for row in rows),
@@ -671,6 +673,327 @@ def aggregate_managed(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
     "evaluableYears": len(year_results),
     "expectancyCi95": _mean_ci95(values),
   }
+
+
+def aggregate_reversal(
+  rows: List[Dict[str, Any]], active_by_time: Dict[int, Dict[str, Any]],
+) -> Dict[str, Any]:
+  summary = aggregate_managed(rows)
+  evaluable = [row for row in rows if row.get("resultR") is not None]
+  reversal_exits = [row for row in evaluable if row.get("status") == "reversal_exit"]
+  capture = [
+    max(0.0, float(row["resultR"])) / float(row["maximumFavorableR"])
+    for row in reversal_exits
+    if float(row.get("maximumFavorableR") or 0) > 0
+  ]
+  giveback = [
+    float(row["maximumFavorableR"]) - float(row["resultR"])
+    for row in reversal_exits if row.get("maximumFavorableR") is not None
+  ]
+  comparisons = [
+    float(row["resultR"]) - float(active_by_time[int(row["eventTime"])]["resultR"])
+    for row in evaluable
+    if int(row["eventTime"]) in active_by_time
+    and active_by_time[int(row["eventTime"])].get("resultR") is not None
+  ]
+  return {
+    **summary,
+    "reversalExitN": len(reversal_exits),
+    "reversalExitRate": len(reversal_exits) / len(evaluable) if evaluable else None,
+    "mfeCaptureRatio": distribution(capture),
+    "givebackAfterExitSignalR": distribution(giveback),
+    "upliftVsActiveR": distribution(comparisons),
+    "improvedVsActiveRate": sum(value > 0 for value in comparisons) / len(comparisons) if comparisons else None,
+    "prematureExitCostRate": sum(value < 0 for value in comparisons) / len(comparisons) if comparisons else None,
+  }
+
+
+def reversal_regime_metrics(rows: List[Dict[str, Any]]) -> Dict[str, Dict[str, Dict[str, Any]]]:
+  result: Dict[str, Dict[str, Dict[str, Any]]] = {}
+  for dimension in ("priceRegime", "volatilityRegime"):
+    values: Dict[str, List[Dict[str, Any]]] = {}
+    for row in rows:
+      values.setdefault(str(row.get(dimension) or "unknown"), []).append(row)
+    result[dimension] = {
+      value: {
+        key: metric
+        for key, metric in aggregate_managed(group).items()
+        if key in {"evaluableN", "averageR", "medianR", "positiveRate", "maximumDrawdownR", "positiveYears", "evaluableYears"}
+      }
+      for value, group in sorted(values.items())
+    }
+  return result
+
+
+def simulate_reversal_exit(
+  profile: Dict[str, Any], family: str, stop_atr: float, target_r: float,
+  holding: int, activation_r: float, rejection_atr: float, m1_resolver=None,
+) -> Dict[str, Any]:
+  """Test a completed-H4 reversal exit without using a future wick as an exit.
+
+  The detector is deliberately small: the trade first has to travel a declared
+  favorable distance, then a completed H4 candle must close against the trade
+  with a declared rejection wick.  A zone variant additionally requires the
+  candle to touch an entry-known directional support/resistance zone.  The exit
+  is the next H4 open, so the reversal candle itself is never hindsight-filled.
+  """
+  candles = list(profile.get("candles") or [])[:holding]
+  if len(candles) < holding:
+    return {"status": "unevaluable", "resultR": None, "exitTime": None}
+  sign = float(profile["sign"])
+  entry = float(profile["entry"])
+  atr = float(profile["atr"])
+  risk = atr * stop_atr
+  stop = entry - sign * risk
+  target = entry + sign * risk * target_r
+  barrier = (
+    ((profile.get("marketContext") or {}).get("supportResistance") or {}).get("directionalBarrier")
+    if family == "zone_reversal_exit" else
+    profile.get("priorEventReactionZone") if family == "prior_event_zone_reversal_exit" else None
+  )
+  if family in {"zone_reversal_exit", "prior_event_zone_reversal_exit"} and not isinstance(barrier, dict):
+    return {"status": "not_applicable", "resultR": None, "exitTime": None}
+  barrier_level = float(barrier["level"]) if isinstance(barrier, dict) else None
+  # A directional barrier must lie in front of the entry; anything else cannot
+  # be an entry-known obstacle for this trade.
+  if barrier_level is not None and sign * (barrier_level - entry) <= 0:
+    return {"status": "not_applicable", "resultR": None, "exitTime": None}
+  pending_exit = False
+  maximum_favorable_r = 0.0
+  for candle in candles:
+    if pending_exit:
+      exit_price = float(candle["open"])
+      return {
+        "status": "reversal_exit", "resultR": sign * (exit_price - entry) / risk,
+        "exitTime": int(candle["time"]), "exitPrice": exit_price,
+      }
+    low, high = float(candle["low"]), float(candle["high"])
+    stop_hit = low <= stop if sign > 0 else high >= stop
+    target_hit = high >= target if sign > 0 else low <= target
+    if stop_hit and target_hit:
+      resolved = m1_resolver(candle, stop, target, sign) if m1_resolver else None
+      if resolved == "stop_hit":
+        return {"status": "stop_hit", "resultR": -1.0, "exitTime": int(candle["time"])}
+      if resolved == "target_hit":
+        return {"status": "target_hit", "resultR": target_r, "exitTime": int(candle["time"])}
+      return {"status": "ambiguous", "resultR": None, "exitTime": int(candle["time"])}
+    if stop_hit:
+      return {"status": "stop_hit", "resultR": -1.0, "exitTime": int(candle["time"])}
+    if target_hit:
+      return {"status": "target_hit", "resultR": target_r, "exitTime": int(candle["time"])}
+    favorable_r = ((high - entry) / risk) if sign > 0 else ((entry - low) / risk)
+    maximum_favorable_r = max(maximum_favorable_r, favorable_r)
+    if maximum_favorable_r < activation_r:
+      continue
+    candle_open, candle_close = float(candle["open"]), float(candle["close"])
+    rejection_wick = (
+      high - max(candle_open, candle_close)
+      if sign > 0 else min(candle_open, candle_close) - low
+    )
+    adverse_close = candle_close < candle_open if sign > 0 else candle_close > candle_open
+    zone_touched = True
+    if barrier_level is not None:
+      tolerance = rejection_atr * atr
+      zone_touched = high >= barrier_level - tolerance if sign > 0 else low <= barrier_level + tolerance
+    if adverse_close and rejection_wick >= rejection_atr * atr and zone_touched:
+      pending_exit = True
+  final_price = float(candles[-1]["close"])
+  return {
+    "status": "expired", "resultR": sign * (final_price - entry) / risk,
+    "exitTime": int(candles[-1]["time"]), "exitPrice": final_price,
+  }
+
+
+def reversal_exit_research(
+  profiles: List[Dict[str, Any]], split_time: int, active: Dict[str, Any], m1_resolver=None,
+) -> Dict[str, Any]:
+  """Run a separate, immutable challenger pass; never mutate a registered rule."""
+  stop_atr = float(active.get("stopAtr", 1))
+  holding = int(active.get("expiryCandles", 30))
+  active_target_r = float(active.get("targetR", 2))
+  active_family = str(active.get("managementFamily") or "fixed")
+  if active_family not in {"fixed", "break_even", "trailing", "partial"}:
+    active_family = "fixed"
+  active_trigger = float(active.get("managementTriggerR") or 1) if active_family == "break_even" else None
+  for profile in profiles:
+    profile["_researchCategories"] = context_categories(profile)
+  active_rows = [{
+    **simulate_managed(
+      profile, active_family, stop_atr, active_target_r, holding, active_trigger, m1_resolver,
+    ),
+    "eventTime": int(profile["eventTime"]),
+  } for profile in profiles]
+  active_by_time = {int(row["eventTime"]): row for row in active_rows}
+  active_later = aggregate_managed([
+    row for row in active_rows if row["eventTime"] >= split_time
+  ])
+  declared: List[Dict[str, Any]] = []
+  for family in ("h4_reversal_exit", "zone_reversal_exit", "prior_event_zone_reversal_exit"):
+    rejection_values = (.25, .5)
+    for target_r in (2.0, 3.0, 4.0):
+      for activation_r in (.5, 1.0, 1.5):
+        for rejection_atr in rejection_values:
+          simulations = []
+          for profile in profiles:
+            simulation = simulate_reversal_exit(
+              profile, family, stop_atr, target_r, holding,
+              activation_r, rejection_atr, m1_resolver,
+            )
+            zone_applicable = simulation.get("status") != "not_applicable"
+            if not zone_applicable:
+              simulation = simulate_managed(
+                profile, active_family, stop_atr, active_target_r, holding,
+                active_trigger, m1_resolver,
+              )
+            categories = profile["_researchCategories"]
+            simulations.append({
+              **simulation,
+              "eventTime": int(profile["eventTime"]),
+              "maximumFavorableR": max(profile["favorable"][:holding], default=0.0) / stop_atr,
+              "zoneApplicable": zone_applicable,
+              "priceRegime": categories["priceRegime"],
+              "volatilityRegime": categories["volatilityRegime"],
+            })
+          later_simulations = [row for row in simulations if row["eventTime"] >= split_time]
+          declared.append({
+            "family": family, "stopAtr": stop_atr, "targetR": target_r,
+            "holdingCandles": holding, "activationR": activation_r,
+            "rejectionWickAtr": rejection_atr,
+            "development": aggregate_reversal([row for row in simulations if row["eventTime"] < split_time], active_by_time),
+            "later": aggregate_reversal(later_simulations, active_by_time),
+            "laterRegimes": reversal_regime_metrics(later_simulations),
+            "notApplicableDevelopmentN": sum(not row["zoneApplicable"] and row["eventTime"] < split_time for row in simulations),
+            "notApplicableLaterN": sum(not row["zoneApplicable"] and row["eventTime"] >= split_time for row in simulations),
+          })
+  winners = []
+  for family in ("h4_reversal_exit", "zone_reversal_exit", "prior_event_zone_reversal_exit"):
+    eligible = [
+      row for row in declared
+      if row["family"] == family
+      and row["development"]["averageR"] is not None
+      and int(row["development"]["evaluableN"]) >= 20
+      and int(row["development"]["evaluableN"]) - int(row["notApplicableDevelopmentN"]) >= 20
+    ]
+    if eligible:
+      winners.append(max(eligible, key=lambda row: (
+        float(row["development"]["averageR"]),
+        -float(row["development"]["maximumDrawdownR"]),
+        -int(row["development"]["longestLosingStreak"]),
+        int(row["development"]["evaluableN"]),
+        -float(row["activationR"]), -float(row["rejectionWickAtr"]),
+      )))
+  review_worthy = [
+    row for row in winners
+    if (row.get("later") or {}).get("averageR") is not None
+    and active_later.get("averageR") is not None
+    and int(row["later"].get("evaluableN") or 0) >= 10
+    and int(row["later"].get("evaluableN") or 0) - int(row["notApplicableLaterN"]) >= 10
+    and float(row["later"]["averageR"]) > 0
+    and float(row["later"]["averageR"]) - float(active_later["averageR"]) >= .05
+    and int(row["later"].get("positiveYears") or 0) >= 3
+    and float(row["later"]["maximumDrawdownR"]) <= float(active_later["maximumDrawdownR"]) * 1.1
+    and int(row["later"]["longestLosingStreak"]) <= int(active_later["longestLosingStreak"]) + 2
+  ]
+  return {
+    "schema": "fms-entry-known-reversal-exit-v1",
+    "status": "research_only",
+    "definition": "Completed-H4 adverse close plus rejection wick; optional entry-known directional zone; exit at the next H4 open.",
+    "declaredConfigurationCount": len(declared),
+    "selection": "Development average R, drawdown, losing streak, coverage, then lower activation and rejection thresholds. Later data only audits the winner.",
+    "activeContract": {
+      "stopAtr": stop_atr, "targetR": active_target_r, "expiryCandles": holding,
+      "managementFamily": active_family, "managementTriggerR": active_trigger,
+    },
+    "activeLater": active_later,
+    "familyWinners": winners,
+    "reviewWorthy": review_worthy,
+    "activeContractPreserved": True,
+    "limitations": [
+      "The exact future reversal price is never predicted or used as an exit.",
+      "A reversal is known only after a completed H4 candle; the simulated exit is the next H4 open.",
+      "Support/resistance zones use completed pre-entry candles only; prior-event zones use only earlier exact-recipe reactions whose full observation window had closed.",
+      "This is reused-history research and cannot prove the next trade will repeat it.",
+    ],
+  }
+
+
+def attach_prior_event_reaction_zones(profiles: List[Dict[str, Any]]) -> None:
+  """Attach a zone made only from completed reactions of earlier same-recipe arrows."""
+  ordered = sorted(profiles, key=lambda row: int(row["entryTime"]))
+  completed_extremes: List[Dict[str, Any]] = []
+  for profile in ordered:
+    entry_time = int(profile["entryTime"])
+    direction = str(profile["direction"])
+    sign = float(profile["sign"])
+    entry = float(profile["entry"])
+    atr = float(profile["atr"])
+    wanted_kind = "resistance" if direction == "long" else "support"
+    candidates = [
+      row for row in completed_extremes
+      if row["kind"] == wanted_kind
+      and int(row["availableAt"]) <= entry_time
+      and (float(row["level"]) - entry) * sign > 0
+    ]
+    clusters: List[Dict[str, Any]] = []
+    for row in candidates:
+      match = next((cluster for cluster in clusters if abs(float(cluster["level"]) - float(row["level"])) <= .25 * atr), None)
+      if match is None:
+        clusters.append({"level": float(row["level"]), "levels": [float(row["level"])], "touches": 1, "times": [int(row["time"])]})
+      else:
+        touches = int(match["touches"]) + 1
+        match["level"] = (float(match["level"]) * int(match["touches"]) + float(row["level"])) / touches
+        match["touches"] = touches
+        match["levels"].append(float(row["level"]))
+        match["times"].append(int(row["time"]))
+    confirmed = [cluster for cluster in clusters if int(cluster["touches"]) >= 2]
+    selected = min(confirmed, key=lambda row: abs(float(row["level"]) - entry), default=None)
+    if selected is None:
+      profile["priorEventReactionZone"] = None
+    else:
+      level = float(selected["level"])
+      available_prior = [
+        prior for prior in ordered
+        if int(prior["entryTime"]) < entry_time
+        and prior.get("candles")
+        and int(prior["candles"][-1]["time"]) + 4 * 60 * 60 <= entry_time
+      ]
+      breaks = sum(any(
+        float(candle["close"]) > level + .25 * atr if sign > 0
+        else float(candle["close"]) < level - .25 * atr
+        for candle in prior["candles"][:WINDOW]
+      ) for prior in available_prior)
+      last_touched = max(selected["times"])
+      profile["priorEventReactionZone"] = {
+        "kind": wanted_kind, "level": level,
+        "touches": int(selected["touches"]),
+        "confirmedReversals": int(selected["touches"]),
+        "breaks": breaks,
+        "widthAtr": (max(selected["levels"]) - min(selected["levels"])) / atr,
+        "distanceAtr": abs(level - entry) / atr,
+        "lastTouchedAt": last_touched,
+        "recencyH4": max(0.0, (entry_time - last_touched) / (4 * 60 * 60)),
+        "method": "same exact recipe; prior completed 30-H4 reactions; .25 entry-ATR clusters; minimum two reversal extremes",
+        "knownAt": entry_time,
+      }
+    candles = list(profile.get("candles") or [])[:WINDOW]
+    if len(candles) < WINDOW:
+      continue
+    final_close = float(candles[-1]["close"])
+    if sign > 0:
+      extreme = max(float(candle["high"]) for candle in candles)
+      giveback = (extreme - final_close) / atr
+      kind = "resistance"
+    else:
+      extreme = min(float(candle["low"]) for candle in candles)
+      giveback = (final_close - extreme) / atr
+      kind = "support"
+    # Do not expose the extreme until its entire observation window had closed.
+    available_at = int(candles[-1]["time"]) + 4 * 60 * 60
+    if giveback >= .5:
+      completed_extremes.append({
+        "kind": kind, "level": extreme, "time": int(profile["eventTime"]),
+        "availableAt": available_at,
+      })
 
 
 def nearby_stability(
@@ -927,6 +1250,7 @@ def build_profile(pattern: Dict[str, Any]) -> Dict[str, Any] | None:
         "numericRobustness": dict(row.get("numericRobustness") or {}),
       })
       all_profiles.append(profile)
+  attach_prior_event_reaction_zones(all_profiles)
   profiles = [profile for profile in all_profiles if int(profile["eventTime"]) >= split_time]
   if not profiles:
     return None
@@ -987,6 +1311,9 @@ def build_profile(pattern: Dict[str, Any]) -> Dict[str, Any] | None:
       return None
     return _resolve_m1_order(m1_cache[start], "long" if sign > 0 else "short", stop, target)
   management_research = management_challengers(all_profiles, split_time, frozen_execution, resolve_with_m1)
+  reversal_research = reversal_exit_research(
+    all_profiles, split_time, pattern.get("execution") or frozen_execution, resolve_with_m1,
+  )
   candle_fingerprint = hashlib.sha256(json.dumps([
     [int(row["time"]), float(row["open"]), float(row["high"]), float(row["low"]), float(row["close"])]
     for row in candles
@@ -994,6 +1321,14 @@ def build_profile(pattern: Dict[str, Any]) -> Dict[str, Any] | None:
   configuration_hash = hashlib.sha256(json.dumps({
     "grid": [STRESS_STOP_ATR_VALUES, STRESS_TARGET_R_VALUES, STRESS_HOLDING_CANDLES],
     "management": ["fixed", "break_even_.5_1_1.5", "trailing_after_1R", "partial_50_at_1R"],
+  }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+  reversal_configuration_hash = hashlib.sha256(json.dumps({
+    "schema": "fms-entry-known-reversal-exit-v1",
+    "families": ["h4_reversal_exit", "zone_reversal_exit", "prior_event_zone_reversal_exit"],
+    "targetR": [2, 3, 4], "activationR": [.5, 1, 1.5],
+    "rejectionWickAtr": [.25, .5],
+    "entryKnownZone": "confirmed H4 pivots; 120 bars; 2 touches; .25 ATR clustering",
+    "decision": "completed H4", "exit": "next H4 open",
   }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
   context_configuration_hash = hashlib.sha256(json.dumps({
     "schema": "fms-context-conditioned-h4-v1",
@@ -1130,6 +1465,14 @@ def build_profile(pattern: Dict[str, Any]) -> Dict[str, Any] | None:
       "unresolvedByReason": unresolved_by_reason,
       "costsExcluded": ["spread", "commission", "slippage", "swap"],
     },
+    "reversalExitResearch": {
+      **reversal_research,
+      "recipe": f"{market}|{pattern['id']}",
+      "registryRevision": server.PRACTICAL_MODEL_HASH,
+      "configurationHash": reversal_configuration_hash,
+      "candleFingerprint": candle_fingerprint,
+      "datasetFingerprint": str(result.get("datasetFingerprint") or ""),
+    },
   }
 
 
@@ -1140,6 +1483,12 @@ def main() -> None:
     type=Path,
     default=None,
     help="Preserve an immutable prior reaction/execution profile and replace only contextResearch.",
+  )
+  parser.add_argument(
+    "--reversal-only-base",
+    type=Path,
+    default=None,
+    help="Preserve an immutable prior reaction/execution profile and add only reversalExitResearch.",
   )
   parser.add_argument(
     "--if-material-growth",
@@ -1179,8 +1528,9 @@ def main() -> None:
     except (OSError, TypeError, ValueError):
       pass
   base_profiles: Dict[str, Any] = {}
-  if args.context_only_base is not None:
-    base_payload = json.loads(args.context_only_base.read_text(encoding="utf-8-sig"))
+  base_path = args.context_only_base or args.reversal_only_base
+  if base_path is not None:
+    base_payload = json.loads(base_path.read_text(encoding="utf-8-sig"))
     base_profiles = dict(base_payload.get("profiles") or {})
   profiles = {}
   for pattern in server.PRACTICAL_PATTERN_DEFINITIONS:
@@ -1189,11 +1539,19 @@ def main() -> None:
       market = str(pattern["market"])
       pattern_id = str(pattern["id"])
       key = f"{market}|{pattern_id}"
-      profiles[(market, pattern_id)] = {
-        **(base_profiles.get(key) or profile),
-        "contextResearch": profile["contextResearch"],
-        "followupResearch": profile["followupResearch"],
-      }
+      if args.reversal_only_base is not None:
+        profiles[(market, pattern_id)] = {
+          **(base_profiles.get(key) or profile),
+          "reversalExitResearch": profile["reversalExitResearch"],
+          "contextResearch": profile["contextResearch"],
+          "followupResearch": profile["followupResearch"],
+        }
+      else:
+        profiles[(market, pattern_id)] = {
+          **(base_profiles.get(key) or profile),
+          "contextResearch": profile["contextResearch"],
+          "followupResearch": profile["followupResearch"],
+        }
   existing_context_profiles: Dict[str, Any] = {}
   try:
     existing_context_profiles = dict(json.loads(context_destination.read_text(encoding="utf-8-sig")).get("profiles") or {})
@@ -1226,7 +1584,8 @@ def main() -> None:
     "contextResearchSchema": "fms-context-conditioned-h4-v1",
     "profiles": {f"{market}|{pattern_id}": profile["contextResearch"] for (market, pattern_id), profile in sorted(profiles.items())},
   }
-  context_destination.write_text(json.dumps(context_payload, separators=(",", ":"), sort_keys=True) + "\n", encoding="utf-8")
+  if args.reversal_only_base is None:
+    context_destination.write_text(json.dumps(context_payload, separators=(",", ":"), sort_keys=True) + "\n", encoding="utf-8")
   pattern_by_key = {
     (str(pattern["market"]), str(pattern["id"])): pattern
     for pattern in server.PRACTICAL_PATTERN_DEFINITIONS
@@ -1297,7 +1656,8 @@ def main() -> None:
     "crossMarketTransfers": transfers,
     "activeRegistryPreserved": True,
   }
-  followup_destination.write_text(json.dumps(followup_payload, separators=(",", ":"), sort_keys=True) + "\n", encoding="utf-8")
+  if args.reversal_only_base is None:
+    followup_destination.write_text(json.dumps(followup_payload, separators=(",", ":"), sort_keys=True) + "\n", encoding="utf-8")
   if args.context_only_base is None:
     payload = {
       "schema": "registered-reaction-profile-v2",
@@ -1308,7 +1668,7 @@ def main() -> None:
       },
     }
     destination.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-  print(json.dumps({"destination": str(context_destination), "followupDestination": str(followup_destination), "profiles": len(profiles), "transfers": len(transfers), "reactionProfilesPreserved": args.context_only_base is not None}))
+  print(json.dumps({"destination": str(destination), "contextDestination": str(context_destination), "followupDestination": str(followup_destination), "profiles": len(profiles), "transfers": len(transfers), "reactionProfilesPreserved": base_path is not None, "reversalOnly": args.reversal_only_base is not None}))
 
 
 if __name__ == "__main__":

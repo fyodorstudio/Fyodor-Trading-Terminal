@@ -40,6 +40,7 @@ interface UseChartMarketDataResult {
 }
 
 const INITIAL_CHART_CANDLES = 1500;
+const QUICK_INITIAL_CHART_CANDLES = 350;
 const MIN_REFRESH_CANDLES = 12;
 const CHART_CACHE_WRITE_DELAY_MS = 1500;
 const TIMEFRAME_SECONDS: Record<Timeframe, number> = {
@@ -137,10 +138,12 @@ export function useChartMarketData({
         if (cachedBoundary !== undefined) setBoundaryTime(cachedBoundary);
 
         const cachedLatest = cached[cached.length - 1]?.time;
-        const refreshBars = getChartRefreshBars(cachedLatest ?? null, timeframe, Date.now() / 1000);
+        const refreshBars = cached.length > 0
+          ? getChartRefreshBars(cachedLatest ?? null, timeframe, Date.now() / 1000)
+          : QUICK_INITIAL_CHART_CANDLES;
         const refreshed = await fetchHistory(selectedSymbol, timeframe, refreshBars, controller.signal);
         if (cancelled || loadRequestIdRef.current !== requestId) return;
-        const candles = cached.length > 0 ? mergeChartCandles(cached, refreshed) : refreshed;
+        let candles = cached.length > 0 ? mergeChartCandles(cached, refreshed) : refreshed;
         if (candles.length === 0) {
           if (cached.length > 0) {
             addLog(`history refresh returned no candles for ${selectedSymbol} ${timeframe}; keeping cached history visible`);
@@ -157,8 +160,24 @@ export function useChartMarketData({
         setHistoryState("ready");
         setLastCandleTime(candles[candles.length - 1]?.time ?? null);
         setVisibleCandles(candles);
-        saveChartHistoryCache(selectedSymbol, timeframe, candles);
         addLog(`history loaded ${candles.length} candles for ${selectedSymbol} ${timeframe}`);
+        saveChartHistoryCache(selectedSymbol, timeframe, candles);
+
+        if (cached.length === 0 && candles.length < INITIAL_CHART_CANDLES) {
+          try {
+            const expanded = await fetchHistory(selectedSymbol, timeframe, INITIAL_CHART_CANDLES, controller.signal);
+            if (cancelled || loadRequestIdRef.current !== requestId) return;
+            if (expanded.length > 0) {
+              candles = mergeChartCandles(expanded, candles);
+              addLog(`history cache expanded to ${candles.length} candles for ${selectedSymbol} ${timeframe}`);
+            }
+          } catch (error) {
+            if (!(error instanceof DOMException && error.name === "AbortError")) {
+              addLog(`expanded history deferred for ${selectedSymbol} ${timeframe}: ${error instanceof Error ? error.message : String(error)}`);
+            }
+          }
+        }
+        saveChartHistoryCache(selectedSymbol, timeframe, candles);
 
         if (cachedBoundary === undefined) {
           try {

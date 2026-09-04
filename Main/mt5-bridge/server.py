@@ -3591,6 +3591,28 @@ def _interactive_reaction_audit(audit: Any) -> Any:
   }
   if "contextResearch" in profile:
     interactive_profile["contextResearch"] = _interactive_context_research(profile.get("contextResearch"))
+  execution = profile.get("executionChallenger")
+  if isinstance(execution, dict):
+    interactive_profile["executionChallenger"] = {
+      key: execution.get(key)
+      for key in (
+        "schema", "declaredConfigurationCount", "activeLater", "recipe",
+        "registryRevision", "configurationHash", "candleFingerprint",
+        "datasetFingerprint", "activeContractPreserved", "unresolvedByReason",
+        "costsExcluded",
+      )
+    }
+  reversal = profile.get("reversalExitResearch")
+  if isinstance(reversal, dict):
+    interactive_profile["reversalExitResearch"] = {
+      key: reversal.get(key)
+      for key in (
+        "schema", "status", "definition", "declaredConfigurationCount",
+        "selection", "activeContract", "activeLater", "familyWinners", "reviewWorthy", "recipe",
+        "registryRevision", "configurationHash", "candleFingerprint",
+        "datasetFingerprint", "activeContractPreserved", "limitations",
+      )
+    }
   return {**audit, "profile": interactive_profile}
 
 
@@ -5229,6 +5251,23 @@ def research_execution_challengers() -> Dict[str, Any]:
       rows.append({"market": pattern["market"], "patternId": pattern["id"], "label": pattern["label"], **artifact})
   return {
     "schema": "fms-execution-challenger-index-v1",
+    "registryRevision": PRACTICAL_MODEL_HASH,
+    "count": len(rows),
+    "rows": rows,
+    "promotionAvailable": False,
+  }
+
+
+@app.get("/research/reversal-exit-challengers")
+def research_reversal_exit_challengers() -> Dict[str, Any]:
+  """Expose the entry-known reversal pass without offering registry mutation."""
+  rows = []
+  for pattern in (_reconciled_pattern(row) for row in PRACTICAL_PATTERN_DEFINITIONS):
+    artifact = (((pattern.get("reactionAudit") or {}).get("profile") or {}).get("reversalExitResearch"))
+    if isinstance(artifact, dict):
+      rows.append({"market": pattern["market"], "patternId": pattern["id"], "label": pattern["label"], **artifact})
+  return {
+    "schema": "fms-entry-known-reversal-exit-index-v1",
     "registryRevision": PRACTICAL_MODEL_HASH,
     "count": len(rows),
     "rows": rows,

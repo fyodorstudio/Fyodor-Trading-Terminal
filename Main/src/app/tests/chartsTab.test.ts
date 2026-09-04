@@ -459,9 +459,8 @@ describe("getChartConnectionLabel", () => {
     expect(actionHtml).toContain("Past arrows");
     expect(actionHtml).toContain("Next registered setups");
     expect(actionHtml).toContain("Do not enter late");
-    expect(actionHtml).toContain("Frozen entry");
-    expect(actionHtml).toContain("Risk amount");
-    expect(actionHtml).toContain("Decision integrity");
+    expect(actionHtml).toContain("Frozen contract");
+    expect(actionHtml).toContain("Show details");
     const schedule = buildRegisteredSetupSchedule([response, gbpResponse], 100);
     expect(schedule.map((row) => [row.market, row.watch?.time ?? null])).toEqual([
       ["EURUSD", 300],
@@ -472,7 +471,8 @@ describe("getChartConnectionLabel", () => {
     } }));
     expect(knowledgeHtml).toContain("FMS Knowledge");
     expect(knowledgeHtml).toContain("Direction and execution are different");
-    expect(knowledgeHtml).toContain("Registered setup health");
+    expect(knowledgeHtml).toContain("Registered evidence grading");
+    expect(knowledgeHtml).toContain("Research ledger");
     expect(knowledgeHtml).toContain("Tested but not registered");
     const queuedSignal = {
       ...openSignal,

@@ -1,6 +1,6 @@
 # Fyodor Trading Terminal Checklist
 
-Last updated: 2026-09-03
+Last updated: 2026-09-04
 
 ## Active Planning Source
 
@@ -47,7 +47,7 @@ This is a later implementation pass. It must improve presentation and loading wi
   - deduplicate and cancel stale pair/timeframe requests so late responses cannot replace the active selection;
   - avoid rebuilding unchanged chart series, markers, and FMS global-registry projections;
   - retain honest loading, disconnected, stale, and unavailable states instead of freezing the interface.
-- [ ] Rebuild the Trade dock around three compact table sections in this order: `Next registered setups`, `Current registered setups`, and `Recent FMS activity`.
+- [x] Rebuild the Trade dock around three compact table sections in this order: `Next registered setups`, `Current registered setups`, and `Recent FMS activity`.
   - keep summary rows short and internally scroll bounded lists;
   - make every row expandable directly beneath itself;
   - show pair, setup, direction/state, Jakarta release/entry time, countdown where applicable, frozen SL in ATR and price/pips when known, frozen TP in R and price/pips when known, maximum duration/expiry, entry, lifecycle result, and evidence summary;
@@ -55,15 +55,55 @@ This is a later implementation pass. It must improve presentation and loading wi
   - current rows put actionable entry geometry and lifecycle first;
   - recent rows put the recorded decision and observed outcome first, with deeper evidence hidden until expanded;
   - do not return to stacked cards or repeat the same release in multiple sections.
-- [ ] Treat `Recent FMS activity` as the single post-registration journal rather than adding a redundant fourth Journal section:
+- [x] Treat `Recent FMS activity` as the single post-registration journal rather than adding a redundant fourth Journal section:
   - combine live-captured decisions, `No trade` decisions, pending/resolved journal trades, and recovered-offline decisions into one newest-first stream;
   - preserve explicit provenance labels: `Live captured`, `Recovered offline`, and `No trade`;
   - include recovered signals in the chart's journal-arrow source so qualified recovered Long/Short decisions are visible;
   - use green/red only for post-registration journal Long/Short arrows, including recovered-offline arrows, while retaining a visible `Recovered offline` audit label;
   - keep frozen historical/backtest Long/Short arrows blue/purple;
   - never count a reconstructed-offline observation as immutable first-seen forward evidence.
-- [ ] In each expanded journal row, present the frozen expected contract beside the post-registration observed path/result. Keep this trade-level journal distinct from `Hypothetical account and replay`, which is an aggregate portfolio simulation with overlap/conflict rules; audit that aggregate so it cannot silently mix historical replay, first-seen journal trades, and recovered-offline trades.
-- [ ] Remove or relocate any remaining `Scanning / Do not enter now`, `Trade monitor / What would FMS do now?`, latest-decision, or offline-summary block that duplicates these three tables. Integrity blocks and conflicts remain visible inside the affected current row rather than as a generic oversized banner.
+- [x] In each expanded journal row, present the frozen expected contract beside the post-registration observed path/result. Keep this trade-level journal distinct from `Hypothetical account and replay`, which is an aggregate portfolio simulation with overlap/conflict rules; audit that aggregate so it cannot silently mix historical replay, first-seen journal trades, and recovered-offline trades.
+- [x] Remove or relocate any remaining `Scanning / Do not enter now`, `Trade monitor / What would FMS do now?`, latest-decision, or offline-summary block that duplicates these three tables. Integrity blocks and conflicts remain visible inside the affected current row rather than as a generic oversized banner.
+
+#### Deferred Entry-Known Reversal, Exit, and Evidence-Grading Pass — 2026-09-03
+
+The motivating USDCHF case is the 04:30 PM · 13 Aug 2026 · Asia/Jakarta registered arrow: its frozen target was reached at 0.81146, while the later path extended toward roughly 0.80717 before reversing. That observation is a hypothesis seed, not permission to choose the visible wick afterward as an exit.
+
+- [x] Create a separate immutable `FMS entry-known exit context` research revision. Preserve every parent arrow and frozen outcome; test reversal-aware exits as child execution challengers rather than rewriting the registered backtest.
+- [x] Separate three claims in both artifacts and UI:
+  - an ex-post reversal occurred;
+  - an entry-known support/resistance or prior-event reaction zone existed;
+  - a deterministic confirmation available at the time could have captured more profit.
+- [x] Extend entry-known zones without future leakage:
+  - retain the existing past-only H4 pivot/touch support-resistance method;
+  - add a separate prior-event reaction-zone candidate built only from arrows and price reactions strictly earlier than the tested entry;
+  - cluster nearby prices in ATR-normalized bands and record touches, confirmed reversals, breaks, recency, width, and distance from entry;
+  - never let the current trade's later wick, later arrows, or full-sample zone boundaries define its own exit.
+- [x] Add deterministic reversal/exit challengers using cached H4/M1 paths:
+  - profit-threshold then completed-candle rejection/close-back-through confirmation;
+  - entry-known support/resistance-zone arrival then rejection confirmation;
+  - prior-event reaction-zone arrival then rejection confirmation;
+  - existing fixed target, break-even, ATR trailing, and partial-exit families as controls;
+  - next-candle execution after completed-H4 confirmation, with M1 used only to resolve legitimate same-candle ordering;
+  - no perfect wick-top/bottom exit and no assumed fill when ordering or price coverage is unavailable.
+- [x] Measure per exact setup: captured R, MFE capture ratio, giveback avoided, premature-exit cost, average/median result, `P(R > 0)`, target-first rate, drawdown, losing streak, year/regime stability, and later chronological performance versus the unchanged parent contract.
+- [x] Allow different setups to select different exit families only through the existing development-selects/later-chronology-judges protocol. A visually persuasive single arrow may nominate a hypothesis but cannot choose parameters or promote a contract.
+- [x] Expand every registered-setup disclosure into a compact table containing the exact scoring policy and event membership, direction mapping, entry rule, SL ATR/price/pips, TP R/price/pips, management family and trigger, expiry, later N, average R, `P(R > 0)`, TP-before-SL, alignment horizons, drawdown/streak, positive years, credibility, provenance, and excluded-cost boundary. Unknown future prices remain `Available at entry` rather than guessed.
+- [x] Keep the existing credibility language `Strong`, `Moderate`, `Fragile`, and `Unproven`; do not introduce Gold/Silver/Bronze marketing labels. Add two separately sortable historical measures instead of one opaque score:
+  - `Profit frequency`: the later chronological percentage with final realized `R > 0` under the active contract;
+  - `Expected payoff`: later chronological average R, shown with sample/year/stability diagnostics.
+- [ ] If a single evidence grade is retained, derive it from a frozen transparent rubric covering later expectancy, profit frequency, effective sample/year breadth, parameter-neighbour stability, drawdown/streak, data/provenance reliability, and post-registration observations. Never let a high hit rate hide negative expectancy or let high average R hide a very fragile hit rate.
+- [ ] Turn the Knowledge dock into a durable research ledger rather than prose memory. Each finding records hypothesis, exact experiment/artifact IDs and fingerprints, tested universe, result, failed variants, conclusion, applicability, activation status, and next permitted action. Before starting related research, future Codex sessions must search this ledger and extend or supersede an existing finding instead of unknowingly repeating it.
+- [x] Surface the already-completed execution research accurately: `fms-execution-challenger-v2` tested fixed, break-even, trailing, and partial families for all registered recipes; only three reviewed break-even overlays were activated in registry v5. Trailing remains a researched challenger, not a universal live-trading feature and not an automatic benefit to every current setup.
+
+##### Implementation result — 2026-09-04
+
+- [x] Materialized `fms-entry-known-reversal-exit-v1` for all 47 registered recipes: 2,538 predeclared configurations across completed-H4, entry-known H4-zone, and earlier-same-recipe reaction-zone families. Development selected each family once and untouched later chronology judged it.
+- [x] The practical comparison identified 14 review-worthy family winners across 11 recipes: 9 completed-H4, 4 H4-zone, and 1 prior-event-zone candidate. The comparison uses each recipe's actually active contract, including the three reviewed break-even overlays. The candidates remain research-only; no registered setup or frozen historical result changed.
+- [x] Preserve the prior reaction/execution artifact when refreshing reversal research. `--reversal-only-base` prevents newer candles from silently invalidating the three already reviewed execution overlays while still fingerprints the separate reversal revision.
+- [x] Record the central finding in Knowledge: an exact visible wick is hindsight, while a deterministic completed-H4 reversal can only act at the next H4 open; support/resistance may participate only when the zone was confirmed before entry.
+- [x] Make Charts restore useful content progressively: cached FMS responses first, 350 recent candles before background cache expansion, recent historical arrows before the complete archive, recovered journal arrows in their own red/green provenance colors, and stale request cancellation on pair/timeframe changes.
+- [x] Surface the results in the existing docks: expandable Trade tables disclose geometry and observed paths, Setup details disclose the complete frozen contract and historical diagnostics, and Knowledge provides sortable credibility/expectancy/profit-frequency/TP-first views plus a durable research ledger.
 
 This is the highest-priority product program. Its practical goal is a Shadow Trader that can monitor every frozen registered setup, state exactly what it would do, and show the evidence supporting that decision without requiring the user to manually interpret every calendar release.
 
@@ -449,7 +489,9 @@ These are research directions, not approved live-trading behavior. FMS seeks rep
 ### Demo-account automation — far future
 
 - [ ] Add an explicitly opt-in, demo-only MT5 execution mode after paper-readiness work is complete.
+- [ ] Permit automated demo submission only for a decision durably labelled `Live captured` before its frozen entry. `Recovered offline`, historical replay, audit-only, ambiguous, unavailable, stale, and no-trade records must be structurally ineligible for `OrderSend`/`order_send`, not merely hidden by the UI.
 - [x] Before any automated execution, provide a safer manual-demo evidence path: show the exact FMS comment tag on an open hypothetical trade and ingest matching demo-account history without sending or modifying orders.
+- [ ] Put a compact immutable FMS signal tag in the MT5 order `comment` and a stable FMS EA identifier in `magic`; keep the complete human-readable rationale in Fyodor's execution ledger, keyed to that tag. The phone-facing comment should identify the signal, while the Trade dock supplies the full setup, evidence, direction, entry, SL, TP, expiry, and integrity explanation.
 - [ ] Verify through MT5 account metadata that the connected account is a demo account before every order; fail closed when account type cannot be verified.
 - [ ] Make real-account order transmission unavailable in this phase.
 - [ ] Require frozen per-setup contracts, maximum risk per trade, maximum simultaneous exposure, duplicate-order protection, stale/incomplete-data blocks, connection-health checks, and an immediate kill switch.

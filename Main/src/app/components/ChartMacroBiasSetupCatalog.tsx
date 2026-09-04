@@ -21,6 +21,14 @@ function formatSigned(value: number | null | undefined, digits = 2, suffix = "")
   return value == null ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(digits)}${suffix}`;
 }
 
+function activeLaterMetric(pattern: MacroSignalChartPattern, key: string): number | null {
+  const reviewed = pattern.executionReview?.status === "reviewed_active" ? pattern.executionReview.later : null;
+  const reviewedValue = reviewed?.[key];
+  if (typeof reviewedValue === "number") return reviewedValue;
+  const activeValue = pattern.reactionAudit?.profile?.executionChallenger?.activeLater?.[key];
+  return typeof activeValue === "number" ? activeValue : null;
+}
+
 const REACTION_LABELS = {
   continuation: "Continuation",
   short_lived_impulse: "Short-lived impulse",
@@ -218,6 +226,19 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
           </summary>
           {setupOpen ? <>
           <p className="chart-shadow-catalog-rule"><b>Trade rule:</b> {pattern.condition}</p>
+          <table className="chart-shadow-setup-contract" aria-label={`${pattern.label} registered contract`}>
+            <tbody>
+              <tr><th>Entry</th><td>First strictly later H4 open</td><th>Expiry</th><td>{pattern.execution?.expiryCandles ?? 30} completed H4 candles</td></tr>
+              <tr><th>Stop loss</th><td>{pattern.execution?.stopAtr ?? 1} ATR from entry</td><th>Take profit</th><td>{pattern.execution?.targetR ?? 2}R from entry</td></tr>
+              <tr><th>Management</th><td>{pattern.execution?.managementFamily === "break_even" ? `Move SL to entry after +${pattern.execution.managementTriggerR ?? 1}R` : "Fixed SL and TP"}</td><th>ATR basis</th><td>ATR(14) from completed H4 candles at entry</td></tr>
+              <tr><th>Scoring</th><td>{pattern.scoringPolicy?.replaceAll("_", " ") ?? "baseline"}</td><th>Reaction mapping</th><td>{pattern.reaction ?? "continuation"}</td></tr>
+              <tr><th>Required evidence</th><td colSpan={3}>{pattern.groups.join(" · ") || pattern.requiredExactTitles?.join(" · ") || "Registered package definition"}</td></tr>
+              <tr><th>Price and pips</th><td colSpan={3}>Calculated from the captured H4 entry and its ATR; unavailable before a qualified release reaches entry.</td></tr>
+              <tr><th>Profit frequency</th><td>{formatPercent(activeLaterMetric(pattern, "positiveRate"))} finished above 0R</td><th>Expected payoff</th><td>{formatR(activeLaterMetric(pattern, "averageR") ?? pattern.historicalBenchmark?.walkForwardAverageR)}</td></tr>
+              <tr><th>Maximum drawdown</th><td>{formatR(activeLaterMetric(pattern, "maximumDrawdownR"))}</td><th>Longest losing streak</th><td>{activeLaterMetric(pattern, "longestLosingStreak") ?? "—"} trades</td></tr>
+              <tr><th>Evidence breadth</th><td>{pattern.historicalBenchmark?.walkForwardN ?? "—"} later cases · {pattern.yearStability.evaluableYears} years</td><th>Positive years</th><td>{pattern.yearStability.positiveYears} / {pattern.yearStability.evaluableYears}</td></tr>
+            </tbody>
+          </table>
           <section className={`chart-shadow-credibility is-${credibility.label.toLowerCase()}`} aria-label={`${pattern.label} historical credibility`}>
             <div><span>Historical credibility</span><strong>{credibility.label}</strong></div>
             <p>{credibility.detail} This is a historical evidence rating, not permission to follow the setup blindly.</p>
@@ -258,6 +279,19 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
                 ) : <p>The development-only selector did not produce a different contract with a better positive later historical average. Existing arrow outcomes remain unchanged.</p>}
                 <small>{pattern.reactionAudit.profile.contractResearch.selectionRule}</small>
               </div>
+              {pattern.reactionAudit.profile.reversalExitResearch ? <div className="chart-shadow-reversal-research">
+                <div><span>Entry-known reversal-exit research</span><strong>Research only · parent contract unchanged</strong></div>
+                <p>A completed H4 adverse close and rejection wick can trigger an exit at the next H4 open. Zone variants use only support/resistance or earlier same-recipe reaction zones known by entry.</p>
+                <table><thead><tr><th>Development-selected family</th><th>Frozen rule tested</th><th>Later average</th><th>Positive R</th><th>Versus active</th></tr></thead><tbody>{pattern.reactionAudit.profile.reversalExitResearch.familyWinners.map((winner) => {
+                  const laterAverage = typeof winner.later.averageR === "number" ? winner.later.averageR : null;
+                  const positiveRate = typeof winner.later.positiveRate === "number" ? winner.later.positiveRate : null;
+                  const uplift = winner.later.upliftVsActiveR;
+                  const averageUplift = typeof uplift === "object" && uplift && "mean" in uplift && typeof uplift.mean === "number" ? uplift.mean : null;
+                  return <tr key={winner.family}><td>{winner.family.replaceAll("_", " ")}</td><td>Activate +{winner.activationR}R · wick {winner.rejectionWickAtr} ATR · TP {winner.targetR}R · exit next H4 open</td><td>{formatR(laterAverage)}</td><td>{formatPercent(positiveRate)}</td><td>{formatR(averageUplift)}</td></tr>;
+                })}</tbody></table>
+                <small>{pattern.reactionAudit.profile.reversalExitResearch.selection}</small>
+                <small>Artifact {pattern.reactionAudit.profile.reversalExitResearch.schema} · config {pattern.reactionAudit.profile.reversalExitResearch.configurationHash.slice(0, 12)} · candles {pattern.reactionAudit.profile.reversalExitResearch.candleFingerprint.slice(0, 12)} · dataset {pattern.reactionAudit.profile.reversalExitResearch.datasetFingerprint.slice(0, 12)}</small>
+              </div> : null}
             </section>
           ) : null}
           <div className="chart-shadow-benchmark-grid">

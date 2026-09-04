@@ -40,7 +40,13 @@ def test_chart_projection_keeps_visible_context_audit_and_omits_heavy_research_g
   assert projected["overall"] == {"evaluableCount": 40, "targetHitRate": .5, "stopHitRate": .4, "averageR": .2}
   assert "targetRobustness" not in projected
   assert "byYear" not in projected["yearStability"]
-  assert "executionChallenger" not in projected["reactionAudit"]["profile"]
+  assert projected["reactionAudit"]["profile"]["executionChallenger"] == {
+    "schema": None, "declaredConfigurationCount": None, "activeLater": None,
+    "recipe": None, "registryRevision": None, "configurationHash": None,
+    "candleFingerprint": None, "datasetFingerprint": None,
+    "activeContractPreserved": None, "unresolvedByReason": None,
+    "costsExcluded": None,
+  }
   context = projected["reactionAudit"]["profile"]["contextResearch"]
   assert context["selectedCandidate"]["value"] == "aligned"
   assert context["dimensions"] == [{"dimension": "macroBackground", "value": "aligned", "historicalN": 20, "laterReaction": later_reaction, "status": "promising_context"}]
@@ -765,6 +771,36 @@ def test_execution_challengers_are_immutable_and_only_explicitly_reviewed_contra
     activation = int(row["executionReview"]["activatedAt"])
     assert server._execution_for_event(row, activation - 1) == row["baseExecution"]
     assert server._execution_for_event(row, activation) == row["execution"]
+
+  reversal = server.research_reversal_exit_challengers()
+  assert reversal["schema"] == "fms-entry-known-reversal-exit-index-v1"
+  assert reversal["count"] == len(server.PRACTICAL_PATTERN_DEFINITIONS)
+  assert reversal["promotionAvailable"] is False
+  assert all(row["schema"] == "fms-entry-known-reversal-exit-v1" for row in reversal["rows"])
+  assert all(row["declaredConfigurationCount"] == 54 for row in reversal["rows"])
+  assert all(row["configurationHash"] and row["candleFingerprint"] and row["datasetFingerprint"] for row in reversal["rows"])
+  assert all(row["activeContractPreserved"] is True for row in reversal["rows"])
+  assert all(row["activeContract"] for row in reversal["rows"])
+  declared_reversal_families = {"h4_reversal_exit", "zone_reversal_exit", "prior_event_zone_reversal_exit"}
+  assert {
+    winner["family"] for row in reversal["rows"] for winner in row["familyWinners"]
+  } == declared_reversal_families
+  assert all(
+    {"h4_reversal_exit", "zone_reversal_exit"}
+    <= {winner["family"] for winner in row["familyWinners"]}
+    <= declared_reversal_families
+    for row in reversal["rows"]
+  )
+  for row in reversal["rows"]:
+    active_later = row["activeLater"]
+    for winner in row["reviewWorthy"]:
+      later = winner["later"]
+      assert later["evaluableN"] >= 10
+      assert later["averageR"] > 0
+      assert later["averageR"] >= active_later["averageR"] + .05 - 1e-12
+      assert later["positiveYears"] >= 3
+      assert later["maximumDrawdownR"] <= active_later["maximumDrawdownR"] * 1.10 + 1e-12
+      assert later["longestLosingStreak"] <= active_later["longestLosingStreak"] + 2
 
 
 def test_target_path_ladder_keeps_frozen_result_separate_and_does_not_invent_intrabar_order(monkeypatch) -> None:

@@ -1095,6 +1095,44 @@ export interface MacroSignalChartPattern {
         unresolvedByReason: Record<string, number>;
         costsExcluded: string[];
       };
+      reversalExitResearch?: {
+        schema: "fms-entry-known-reversal-exit-v1";
+        status: "research_only";
+        definition: string;
+        declaredConfigurationCount: number;
+        selection: string;
+        activeContract: {
+          stopAtr: number;
+          targetR: number;
+          expiryCandles: number;
+          managementFamily: "fixed" | "break_even" | "trailing" | "partial";
+          managementTriggerR: number | null;
+        };
+        activeLater: Record<string, number | null>;
+        familyWinners: Array<{
+          family: "h4_reversal_exit" | "zone_reversal_exit" | "prior_event_zone_reversal_exit";
+          stopAtr: number;
+          targetR: number;
+          holdingCandles: number;
+          activationR: number;
+          rejectionWickAtr: number;
+          development: Record<string, number | null | MacroSignalDistribution>;
+          later: Record<string, number | null | MacroSignalDistribution>;
+          notApplicableDevelopmentN: number;
+          notApplicableLaterN: number;
+        }>;
+        reviewWorthy: Array<{
+          family: "h4_reversal_exit" | "zone_reversal_exit" | "prior_event_zone_reversal_exit";
+          later: Record<string, number | null | MacroSignalDistribution>;
+        }>;
+        recipe: string;
+        registryRevision: string;
+        configurationHash: string;
+        candleFingerprint: string;
+        datasetFingerprint: string;
+        activeContractPreserved: true;
+        limitations: string[];
+      };
     };
   };
   registrationProvenance?: {
