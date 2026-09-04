@@ -927,6 +927,8 @@ _forward_schedule_lock = Lock()
 _forward_reconcile_scheduled = False
 _chart_signal_catalog_lock = Lock()
 _chart_signal_catalog_cache: Dict[str, List[Dict[str, Any]]] = {}
+_chart_signal_marker_lock = Lock()
+_chart_signal_marker_cache: Dict[str, List[Dict[str, Any]]] = {}
 _chart_signal_response_lock = Lock()
 _chart_signal_response_cache: Dict[str, Dict[str, Any]] = {}
 _chart_signal_current_candidates_lock = Lock()
@@ -1549,11 +1551,19 @@ def market_status(symbol: str) -> Dict[str, Any]:
 
 
 @app.get("/history")
-def history(symbol: str, tf: str, bars: int = 500) -> List[Dict[str, Any]]:
+def history(symbol: str, tf: str, bars: int = 500, prefer_cache: bool = False) -> List[Dict[str, Any]]:
   if bars <= 0:
     raise HTTPException(status_code=400, detail="bars must be > 0")
   if bars > 5000:
     raise HTTPException(status_code=400, detail="bars must be <= 5000")
+
+  # Pair/timeframe navigation should not wait behind MT5 IPC when the durable
+  # candle store can paint the chart immediately. The normal request that
+  # follows still refreshes this snapshot from the terminal.
+  if prefer_cache:
+    cached = _cached_history(symbol, tf, bars=bars)
+    if cached:
+      return cached
 
   timeframe = mt5_timeframe(tf)
   try:
@@ -3678,6 +3688,7 @@ def research_chart_signals(
   to: Optional[int] = None,
   refresh: bool = False,
   compact: bool = False,
+  markers_only: bool = False,
 ) -> Dict[str, Any]:
   def response_for_client(payload: Dict[str, Any]) -> Dict[str, Any]:
     interactive_payload = {
@@ -3713,6 +3724,8 @@ def research_chart_signals(
   normalized_mode = mode.lower()
   if normalized_mode not in {"current", "research_replay"}:
     raise HTTPException(status_code=400, detail="Macro Bias mode must be current or research_replay")
+  if markers_only and normalized_mode != "research_replay":
+    raise HTTPException(status_code=400, detail="markers_only is available only for research_replay")
   market_patterns = [
     _reconciled_pattern(pattern)
     for pattern in PRACTICAL_PATTERN_DEFINITIONS
@@ -3804,29 +3817,83 @@ def research_chart_signals(
     ).encode("utf-8")
   ).hexdigest()
   catalog_key = f"{normalized_symbol}:{':'.join(str(source_runs[version].get('id', '')) for version in source_versions)}:{dataset_fingerprint}:{PRACTICAL_MODEL_HASH}"
+  durable_marker_key = f"fms_chart_markers_v1:{catalog_key}"
+  if markers_only:
+    raw_markers = _research_store.get_metadata(durable_marker_key)
+    if raw_markers:
+      try:
+        cached_markers = json.loads(raw_markers)
+        if isinstance(cached_markers, list):
+          marker_signals = [
+            marker for marker in cached_markers
+            if (from_ is None or int(marker["eventTime"]) >= from_)
+            and (to is None or int(marker["eventTime"]) <= to)
+          ]
+          return response_for_client({
+            "supported": True, "versionId": PRACTICAL_MODEL_ID, "versionHash": PRACTICAL_MODEL_HASH,
+            "modelId": PRACTICAL_MODEL_ID, "modelHash": PRACTICAL_MODEL_HASH,
+            "modelActivatedAt": PRACTICAL_MODEL_CREATED_AT, "datasetFingerprint": dataset_fingerprint,
+            "mode": normalized_mode, "symbol": normalized_symbol, "timeframe": normalized_tf,
+            "modelTimeframe": "H4", "targetR": 2.0, "generatedAt": int(_time.time()),
+            "patterns": [{"id": pattern["id"], "currentEligible": True} for pattern in market_patterns],
+            "signals": marker_signals, "recoveredSignals": [],
+            "currentPatternCount": len(market_patterns), "researchPatternCount": len(market_patterns),
+            "message": "Cached immutable historical-marker projection. Full outcome geometry loads only when an arrow is selected.",
+          })
+      except (TypeError, ValueError, KeyError):
+        logger.warning("Ignoring unreadable FMS marker cache for %s", normalized_symbol)
   with _chart_signal_catalog_lock:
     catalog = _chart_signal_catalog_cache.get(catalog_key)
   if catalog is None:
     catalog = []
+    marker_catalog: List[Dict[str, Any]] = []
     for source_version in source_versions:
       result = source_results[source_version]
       for scoring_policy in sorted({str(pattern.get("scoringPolicy", "forecast_quality")) for pattern in market_patterns if pattern["sourceVersion"] == source_version}):
         rescored, _audit = rescore_policy_outcomes(result["targets"]["2.0"]["outcomes"], scoring_policy)
+        annotated = _annotate_numeric_robustness(rescored)
         rescored_targets = {
           target_r: rescore_policy_outcomes(target_payload.get("outcomes", []), scoring_policy)[0]
           for target_r, target_payload in result.get("targets", {}).items()
           if isinstance(target_payload, dict)
         }
         catalog.extend(build_chart_signal_pattern_catalog(
-          rescored,
+          annotated,
           result["candidateSummary"]["developmentHoldoutBoundary"],
           rescored_targets,
           source_version,
           [pattern for pattern in market_patterns if pattern["sourceVersion"] == source_version and pattern.get("scoringPolicy", "forecast_quality") == scoring_policy],
         ))
+        policy_definitions = [
+          pattern for pattern in market_patterns
+          if pattern["sourceVersion"] == source_version
+          and pattern.get("scoringPolicy", "forecast_quality") == scoring_policy
+        ]
+        for candidate in annotated:
+          definition = next(
+            (pattern for pattern in policy_definitions if candidate_matches_chart_pattern(candidate, pattern)),
+            None,
+          )
+          if definition is None:
+            continue
+          projected = apply_chart_pattern_reaction(candidate, definition)
+          event_time = int(candidate["eventTime"])
+          marker_catalog.append({
+            "id": f"{definition['id']}:{event_time}",
+            "patternId": definition["id"],
+            "sourceVersionId": source_version,
+            "eventTime": event_time,
+            "activationTime": int(candidate.get("entryTime") or ((event_time // H4_SECONDS) + 1) * H4_SECONDS),
+            "direction": projected["direction"],
+            "label": definition["label"],
+            "historicalReplay": True,
+          })
     with _chart_signal_catalog_lock:
       _chart_signal_catalog_cache.clear()
       _chart_signal_catalog_cache[catalog_key] = catalog
+    with _chart_signal_marker_lock:
+      _chart_signal_marker_cache.clear()
+      _chart_signal_marker_cache[catalog_key] = marker_catalog
   definitions_by_id = {str(pattern["id"]): pattern for pattern in market_patterns}
   patterns = []
   for pattern in catalog:
@@ -3845,6 +3912,64 @@ def research_chart_signals(
       "reactionAudit": definition.get("reactionAudit"),
       "registrationProvenance": provenance,
       "readiness": _pattern_readiness(enriched_pattern, provenance),
+    })
+  if markers_only:
+    if normalized_mode != "research_replay":
+      raise HTTPException(status_code=400, detail="markers_only is available only for research_replay")
+    with _chart_signal_marker_lock:
+      cached_markers = _chart_signal_marker_cache.get(catalog_key)
+    # A normal current request can warm the pattern catalog before the marker
+    # index exists (for example during a rolling upgrade). Rebuild once, then
+    # every chart window is only an in-memory filter.
+    if cached_markers is None:
+      cached_markers = []
+      for source_version in source_versions:
+        result = source_results[source_version]
+        for scoring_policy in sorted({str(pattern.get("scoringPolicy", "forecast_quality")) for pattern in market_patterns if pattern["sourceVersion"] == source_version}):
+          rescored, _audit = rescore_policy_outcomes(result["targets"]["2.0"]["outcomes"], scoring_policy)
+          annotated = _annotate_numeric_robustness(rescored)
+          policy_definitions = [
+            pattern for pattern in market_patterns
+            if pattern["sourceVersion"] == source_version
+            and pattern.get("scoringPolicy", "forecast_quality") == scoring_policy
+          ]
+          for candidate in annotated:
+            definition = next((pattern for pattern in policy_definitions if candidate_matches_chart_pattern(candidate, pattern)), None)
+            if definition is None:
+              continue
+            projected = apply_chart_pattern_reaction(candidate, definition)
+            event_time = int(candidate["eventTime"])
+            cached_markers.append({
+              "id": f"{definition['id']}:{event_time}", "patternId": definition["id"],
+              "sourceVersionId": source_version, "eventTime": event_time,
+              "activationTime": int(candidate.get("entryTime") or ((event_time // H4_SECONDS) + 1) * H4_SECONDS),
+              "direction": projected["direction"], "label": definition["label"],
+              "historicalReplay": True,
+            })
+      with _chart_signal_marker_lock:
+        _chart_signal_marker_cache[catalog_key] = cached_markers
+    actionable_pattern_ids = {
+      str(pattern["id"]) for pattern in patterns
+      if (pattern.get("readiness") or {}).get("actionableInShadowTrader", False)
+    }
+    marker_signals = [
+      marker for marker in cached_markers
+      if str(marker["patternId"]) in actionable_pattern_ids
+      and (from_ is None or int(marker["eventTime"]) >= from_)
+      and (to is None or int(marker["eventTime"]) <= to)
+    ]
+    durable_markers = [marker for marker in cached_markers if str(marker["patternId"]) in actionable_pattern_ids]
+    _research_store.set_metadata(durable_marker_key, json.dumps(durable_markers, separators=(",", ":")))
+    return response_for_client({
+      "supported": True, "versionId": PRACTICAL_MODEL_ID, "versionHash": PRACTICAL_MODEL_HASH,
+      "modelId": PRACTICAL_MODEL_ID, "modelHash": PRACTICAL_MODEL_HASH,
+      "modelActivatedAt": PRACTICAL_MODEL_CREATED_AT, "datasetFingerprint": dataset_fingerprint,
+      "mode": normalized_mode, "symbol": normalized_symbol, "timeframe": normalized_tf,
+      "modelTimeframe": "H4", "targetR": 2.0, "generatedAt": int(_time.time()),
+      "patterns": patterns, "signals": marker_signals, "recoveredSignals": [],
+      "currentPatternCount": sum(pattern["currentEligible"] for pattern in patterns),
+      "researchPatternCount": len(patterns),
+      "message": "Fast immutable historical-marker projection. Full outcome geometry loads only when an arrow is selected.",
     })
   def matching_pattern(source_version: str, scoring_policy: str, candidate: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     return next(

@@ -141,7 +141,13 @@ export function useChartMarketData({
         const refreshBars = cached.length > 0
           ? getChartRefreshBars(cachedLatest ?? null, timeframe, Date.now() / 1000)
           : QUICK_INITIAL_CHART_CANDLES;
-        const refreshed = await fetchHistory(selectedSymbol, timeframe, refreshBars, controller.signal);
+        const refreshed = await fetchHistory(
+          selectedSymbol,
+          timeframe,
+          refreshBars,
+          controller.signal,
+          cached.length === 0,
+        );
         if (cancelled || loadRequestIdRef.current !== requestId) return;
         let candles = cached.length > 0 ? mergeChartCandles(cached, refreshed) : refreshed;
         if (candles.length === 0) {

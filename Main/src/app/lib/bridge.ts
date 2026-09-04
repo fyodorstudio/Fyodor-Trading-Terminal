@@ -91,10 +91,17 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function fetchHistory(symbol: string, tf: string, bars = 200, signal?: AbortSignal): Promise<BridgeCandle[]> {
+export async function fetchHistory(
+  symbol: string,
+  tf: string,
+  bars = 200,
+  signal?: AbortSignal,
+  preferCache = false,
+): Promise<BridgeCandle[]> {
   const url =
     `${BRIDGE_BASE}/history?symbol=${encodeURIComponent(symbol)}` +
-    `&tf=${encodeURIComponent(tf)}&bars=${encodeURIComponent(String(bars))}`;
+    `&tf=${encodeURIComponent(tf)}&bars=${encodeURIComponent(String(bars))}` +
+    (preferCache ? "&prefer_cache=true" : "");
   const payload = await fetchJson<unknown[]>(url, { signal });
   return payload
     .map((item) => {
@@ -364,12 +371,14 @@ export async function fetchMacroSignalChartSignals(params: {
   to?: number;
   refresh?: boolean;
   compact?: boolean;
+  markersOnly?: boolean;
 }): Promise<MacroSignalChartSignalResponse> {
   const search = new URLSearchParams({ symbol: params.symbol, tf: params.timeframe, mode: params.mode });
   if (params.from != null) search.set("from_", String(params.from));
   if (params.to != null) search.set("to", String(params.to));
   if (params.refresh) search.set("refresh", "true");
   if (params.compact) search.set("compact", "true");
+  if (params.markersOnly) search.set("markers_only", "true");
   return fetchJson<MacroSignalChartSignalResponse>(
     `${BRIDGE_BASE}/research/chart-signals?${search.toString()}`,
   );

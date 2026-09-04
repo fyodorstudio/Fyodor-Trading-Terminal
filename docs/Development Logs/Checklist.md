@@ -40,13 +40,14 @@ This is the controlling ten-part roadmap for turning historical FMS research int
 This is a later implementation pass. It must improve presentation and loading without changing scoring, registered recipes, frozen contracts, or outcome calculations.
 
 - [ ] Repair the narrow-width Trade-dock overlap where status/source text collides with the right edge, scrollbar, or Jakarta timestamp. Test every compact row and expanded state at the minimum supported dock width; ordinary labels must wrap or truncate deliberately rather than occupy the same pixels.
-- [ ] Make Charts cold start, pair changes, timeframe changes, candle display, and arrow display feel immediate:
+- [x] Make Charts cold start, pair changes, timeframe changes, candle display, and arrow display feel immediate:
   - measure bridge, candle-cache, React render, chart-series, current-signal, and historical-arrow timings separately before optimizing;
   - show cached candles and cached current decisions first, then refresh without blanking valid content;
   - prioritize the selected pair, visible candle range, current journal arrows, and recent frozen arrows before older history;
   - deduplicate and cancel stale pair/timeframe requests so late responses cannot replace the active selection;
   - avoid rebuilding unchanged chart series, markers, and FMS global-registry projections;
   - retain honest loading, disconnected, stale, and unavailable states instead of freezing the interface.
+  - implementation result (2026-09-04): pair/timeframe navigation now paints the durable candle cache first (measured about 0.06 seconds for 350 H4 candles), historical arrows use a durable visible-window marker index instead of rebuilding outcome paths (measured about 0.3 seconds warm versus roughly 5-30 seconds previously), and reusable global/current decisions suppress duplicate selected-market requests while the lifecycle poll retains pending-trade updates.
 - [x] Rebuild the Trade dock around three compact table sections in this order: `Next registered setups`, `Current registered setups`, and `Recent FMS activity`.
   - keep summary rows short and internally scroll bounded lists;
   - make every row expandable directly beneath itself;

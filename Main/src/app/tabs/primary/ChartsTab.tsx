@@ -1048,6 +1048,7 @@ export function ChartsTab({
     if (!reusableResponse) setMacroBiasCurrentResponse(null);
     setMacroBiasCurrentLoading(!reusableResponse);
     setMacroBiasCurrentError(null);
+    if (reusableResponse) return undefined;
     const request = selectedSymbol.toUpperCase() === "EURUSD" && !macroBiasCurrentResponse && !macroBiasCurrentCalendarRevision
       ? preloadMacroSignalCurrentModel()
       : fetchMacroSignalChartSignals({ symbol: selectedSymbol, timeframe: "H4", mode: "current" });
@@ -1100,6 +1101,7 @@ export function ChartsTab({
       refreshMacroSignalGlobalRegistry()
         .then((response) => {
           if (cancelled) return;
+          response.markets.forEach((market) => macroBiasMarketCacheRef.current.set(market.symbol.toUpperCase(), market));
           setMacroBiasGlobalResponse((current) => shouldApplyMacroBiasRefresh(current, response) ? response : current);
           setMacroBiasGlobalError(null);
         })
@@ -1115,44 +1117,45 @@ export function ChartsTab({
   }, [macroBiasVisible]);
 
   useEffect(() => {
+    const selectedMarket = macroBiasGlobalResponse?.markets.find(
+      (market) => market.symbol === selectedSymbol.toUpperCase(),
+    );
+    if (selectedMarket) {
+      macroBiasMarketCacheRef.current.set(selectedSymbol.toUpperCase(), selectedMarket);
+      setMacroBiasCurrentResponse(selectedMarket);
+    }
+  }, [macroBiasGlobalResponse, selectedSymbol]);
+
+  useEffect(() => {
     if (!macroBiasSupported || !macroBiasVisible || !macroBiasHistoricalMatchesVisible || historyState !== "ready" || visibleCandles.length === 0) {
       setMacroBiasShadowHistoryResponse(null);
       return;
     }
     let cancelled = false;
-    const historyCacheKey = selectedSymbol.toUpperCase();
+    const historyFrom = Math.max(0, (macroBiasFrom ?? 0) - 7 * 24 * 60 * 60);
+    const historyTo = (macroBiasTo ?? Math.floor(Date.now() / 1_000)) + 7 * 24 * 60 * 60;
+    const historyCacheKey = `${selectedSymbol.toUpperCase()}:${historyFrom}:${historyTo}`;
     const cachedHistory = macroBiasHistoryCacheRef.current.get(historyCacheKey);
     if (cachedHistory) {
       setMacroBiasShadowHistoryResponse(cachedHistory);
       return undefined;
     }
     setMacroBiasShadowHistoryResponse(null);
-    const latestLoadedTime = macroBiasTo ?? Math.floor(Date.now() / 1_000);
-    const recentFrom = Math.max(0, latestLoadedTime - 366 * 24 * 60 * 60);
-    const loadRecentThenComplete = async () => {
-      try {
-        const recent = await fetchMacroSignalChartSignals({
-          symbol: selectedSymbol,
-          timeframe: "H4",
-          mode: "research_replay",
-          from: recentFrom,
-          to: latestLoadedTime,
-          compact: true,
-        });
-        if (!cancelled) setMacroBiasShadowHistoryResponse(recent);
-      } catch { /* full history can still succeed */ }
+    fetchMacroSignalChartSignals({
+      symbol: selectedSymbol,
+      timeframe: "H4",
+      mode: "research_replay",
+      from: historyFrom,
+      to: historyTo,
+      compact: true,
+      markersOnly: true,
+    }).then((response) => {
       if (cancelled) return;
-      try {
-        const complete = await fetchMacroSignalChartSignals({ symbol: selectedSymbol, timeframe: "H4", mode: "research_replay", compact: true });
-        if (!cancelled) {
-          macroBiasHistoryCacheRef.current.set(historyCacheKey, complete);
-          setMacroBiasShadowHistoryResponse(complete);
-        }
-      } catch { /* retain a successful recent response */ }
-    };
-    void loadRecentThenComplete();
+      macroBiasHistoryCacheRef.current.set(historyCacheKey, response);
+      setMacroBiasShadowHistoryResponse(response);
+    }).catch(() => { /* retain journal arrows; selected-arrow audit remains available */ });
     return () => { cancelled = true; };
-  }, [macroBiasHistoricalMatchesVisible, macroBiasSupported, macroBiasVisible, selectedSymbol, historyState, macroBiasTo]);
+  }, [macroBiasHistoricalMatchesVisible, macroBiasSupported, macroBiasVisible, selectedSymbol, historyState, macroBiasFrom, macroBiasTo, visibleCandles.length]);
 
   const macroBiasResponse = macroBiasCurrentResponse;
   const macroBiasLoading = macroBiasCurrentLoading;

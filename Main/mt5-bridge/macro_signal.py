@@ -3780,7 +3780,8 @@ def build_chart_signal_pattern_catalog(
   pattern_definitions: Optional[Sequence[Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
   """Build replay/current patterns belonging to one frozen source version."""
-  outcomes = _annotate_numeric_robustness(outcomes)
+  if not all(isinstance(outcome.get("numericRobustness"), dict) for outcome in outcomes):
+    outcomes = _annotate_numeric_robustness(outcomes)
   definitions = [
     pattern for pattern in CHART_SIGNAL_PATTERN_DEFINITIONS
     if pattern["sourceVersion"] == source_version
