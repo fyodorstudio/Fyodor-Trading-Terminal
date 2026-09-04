@@ -11,6 +11,7 @@ const FAVORITES_KEY = "fyodor-main-chart-favorites";
 const CHART_HISTORY_CACHE_KEY = "fyodor-main-chart-history-cache-v1";
 const CHART_HISTORY_CONFIG_VERSION = 1;
 const MAX_CHART_HISTORY_CANDLES = 5000;
+const sessionHistoryCache = new Map<string, BridgeCandle[]>();
 
 function getStorage(): Storage | null {
   if (typeof window === "undefined") return null;
@@ -26,40 +27,49 @@ function getChartHistoryCacheKey(symbol: string, timeframe: Timeframe) {
 }
 
 export function readChartHistoryCache(symbol: string, timeframe: Timeframe): BridgeCandle[] {
+  const key = getChartHistoryCacheKey(symbol, timeframe);
+  const sessionCached = sessionHistoryCache.get(key);
+  if (sessionCached) return sessionCached;
   const storage = getStorage();
   if (!storage) return [];
 
   try {
-    const raw = storage.getItem(getChartHistoryCacheKey(symbol, timeframe));
+    const raw = storage.getItem(key);
     if (!raw) return [];
-    return normalizeHistoryCacheEntry(JSON.parse(raw) as unknown, MAX_CHART_HISTORY_CANDLES)?.candles ?? [];
+    const candles = normalizeHistoryCacheEntry(JSON.parse(raw) as unknown, MAX_CHART_HISTORY_CANDLES)?.candles ?? [];
+    if (candles.length > 0) sessionHistoryCache.set(key, candles);
+    return candles;
   } catch {
     return [];
   }
 }
 
 export function saveChartHistoryCache(symbol: string, timeframe: Timeframe, candles: BridgeCandle[]) {
+  const key = getChartHistoryCacheKey(symbol, timeframe);
+  const trimmed = mergeChartCandles([], candles, MAX_CHART_HISTORY_CANDLES);
+  sessionHistoryCache.set(key, trimmed);
   const storage = getStorage();
   if (!storage) return;
 
   try {
-    const trimmed = mergeChartCandles([], candles, MAX_CHART_HISTORY_CANDLES);
     const payload: HistoryCacheEntry = {
       version: CHART_HISTORY_CONFIG_VERSION,
       candles: trimmed,
     };
-    storage.setItem(getChartHistoryCacheKey(symbol, timeframe), JSON.stringify(payload));
+    storage.setItem(key, JSON.stringify(payload));
   } catch {
     // ignore storage failures
   }
 }
 
 export function clearChartHistoryCache(symbol: string, timeframe: Timeframe) {
+  const key = getChartHistoryCacheKey(symbol, timeframe);
+  sessionHistoryCache.delete(key);
   const storage = getStorage();
   if (!storage) return;
 
   try {
-    storage.removeItem(getChartHistoryCacheKey(symbol, timeframe));
+    storage.removeItem(key);
   } catch {
     // ignore storage failures
   }

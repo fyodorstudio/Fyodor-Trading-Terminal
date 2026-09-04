@@ -925,8 +925,11 @@ _mt5_lock = RLock()
 _MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS = 2.0
 _forward_schedule_lock = Lock()
 _forward_reconcile_scheduled = False
+_forward_last_scheduled_h4_bucket: Optional[int] = int(_time.time()) // H4_SECONDS
 _chart_signal_catalog_lock = Lock()
 _chart_signal_catalog_cache: Dict[str, List[Dict[str, Any]]] = {}
+_chart_signal_source_lock = Lock()
+_chart_signal_source_cache: Dict[str, Dict[str, Any]] = {}
 _chart_signal_marker_lock = Lock()
 _chart_signal_marker_cache: Dict[str, List[Dict[str, Any]]] = {}
 _chart_signal_response_lock = Lock()
@@ -983,6 +986,26 @@ def _cached_history(
     symbol.upper(), timeframe.upper(), from_time, to_time or int(_time.time()) + 24 * 60 * 60,
   )
   return rows[-bars:] if bars is not None else rows
+
+
+def _cached_chart_source_run(version_id: str) -> Optional[Dict[str, Any]]:
+  """Decode each immutable chart-source backtest at most once per bridge run."""
+  header = _research_store.latest_backtest_run_header(version_id)
+  if header is None:
+    return None
+  cache_key = f"{version_id}:{header['id']}"
+  with _chart_signal_source_lock:
+    cached = _chart_signal_source_cache.get(cache_key)
+  if cached is not None:
+    return cached
+  run = _research_store.latest_backtest_run(version_id)
+  if run is None:
+    return None
+  with _chart_signal_source_lock:
+    for stale_key in [key for key in _chart_signal_source_cache if key.startswith(f"{version_id}:")]:
+      _chart_signal_source_cache.pop(stale_key, None)
+    _chart_signal_source_cache[cache_key] = run
+  return run
 
 def _ensure_mt5_initialized() -> bool:
   """Return True when the Python MT5 API has an active terminal connection.
@@ -1758,7 +1781,23 @@ async def calendar_ingest_cycle(request: Request) -> Dict[str, Any]:
     released_through=completed_at,
     ea_completed_at=completed_at,
   )
-  scheduled = _schedule_forward_reconcile(observed_at)
+  global _forward_last_scheduled_h4_bucket
+  h4_bucket = observed_at // H4_SECONDS
+  live_cases = _research_store.list_fms_live_execution_cases(limit=2000)
+  has_unresolved_live_case = any(
+    str(case.get("state")) == "pending"
+    or (
+      ((case.get("signal") or {}).get("prospectiveCapture") or {}).get("eligible") is True
+      and (case.get("signal") or {}).get("entry") is None
+    )
+    for case in live_cases
+  )
+  should_reconcile = captured > 0 or (
+    has_unresolved_live_case and _forward_last_scheduled_h4_bucket != h4_bucket
+  )
+  scheduled = _schedule_forward_reconcile(observed_at) if should_reconcile else False
+  if scheduled:
+    _forward_last_scheduled_h4_bucket = h4_bucket
   return {
     "accepted": True,
     "captured": captured,
@@ -3800,7 +3839,7 @@ def research_chart_signals(
   source_runs: Dict[str, Dict[str, Any]] = {}
   source_results: Dict[str, Dict[str, Any]] = {}
   for source_version in source_versions:
-    run = _research_store.latest_backtest_run(source_version)
+    run = _cached_chart_source_run(source_version)
     result = run.get("result") if run and run.get("status") == "completed" else None
     if not isinstance(result, dict):
       raise HTTPException(status_code=409, detail=f"Run the {source_version} historical research baseline before loading chart signals")

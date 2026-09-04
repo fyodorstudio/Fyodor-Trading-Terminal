@@ -18,7 +18,7 @@ export function getChartConnectionLabel(params: {
   if (params.marketStatus?.session_state === "closed") return "Market Closed";
   if (params.historyState === "error") return "Bridge Unavailable";
   if (params.historyState === "no_data") return "Bridge Unavailable";
-  return params.streamConnected ? "Market Open" : "Bridge Unavailable";
+  return params.streamConnected ? "Market Open" : "Connecting";
 }
 
 export function getChartPriceFormat(symbol: string, assetClass: string | null) {

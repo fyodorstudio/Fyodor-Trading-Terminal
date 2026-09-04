@@ -426,7 +426,7 @@ export function preloadMacroSignalGlobalRegistry(): Promise<MacroSignalGlobalRes
 
 export async function refreshMacroSignalGlobalRegistry(): Promise<MacroSignalGlobalResponse> {
   if (preloadedMacroSignalGlobalPromise) return preloadedMacroSignalGlobalPromise;
-  preloadedMacroSignalGlobalPromise = fetchMacroSignalGlobalRegistry({ refresh: true }).then((response) => {
+  preloadedMacroSignalGlobalPromise = fetchMacroSignalGlobalRegistry().then((response) => {
     preloadedMacroSignalGlobalRegistry = response;
     return response;
   }).finally(() => {
