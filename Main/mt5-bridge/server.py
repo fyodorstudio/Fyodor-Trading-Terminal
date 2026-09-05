@@ -3829,12 +3829,17 @@ def research_chart_signals(
       if cached_wrapper is not None:
         cached_response = cached_wrapper["response"]
         assessment_status = str((((cached_response.get("realtime") or {}).get("latestPatternAssessment") or {}).get("status") or ""))
+        next_watch_time = ((cached_response.get("realtime") or {}).get("nextPatternWatch") or {}).get("time")
         has_pending_signal = any(
           signal.get("outcomeStatus") == "pending"
           for signal in [*(cached_response.get("signals") or []), *(cached_response.get("recoveredSignals") or [])]
         )
-        needs_live_refresh = assessment_status == "awaiting_observation" or has_pending_signal
-        if not refresh or normalized_mode == "research_replay" or not needs_live_refresh:
+        needs_live_refresh = (
+          assessment_status == "awaiting_observation"
+          or has_pending_signal
+          or (next_watch_time is not None and int(next_watch_time) <= int(_time.time()))
+        )
+        if normalized_mode == "research_replay" or (not refresh and not needs_live_refresh):
           return response_for_client(cached_response)
   source_runs: Dict[str, Dict[str, Any]] = {}
   source_results: Dict[str, Dict[str, Any]] = {}
