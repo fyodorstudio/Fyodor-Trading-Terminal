@@ -20,6 +20,7 @@ _PROFILE_PATH = Path(__file__).with_name("registered_reaction_profiles.json")
 _CONTEXT_PROFILE_PATH = Path(__file__).with_name("registered_market_context_profiles.json")
 _FOLLOWUP_PROFILE_PATH = Path(__file__).with_name("registered_context_followups.json")
 _CONTEXT_APPROVAL_PATH = Path(__file__).with_name("registered_context_approval_evidence.json")
+_MULTI_ZONE_RESEARCH_PATH = Path(__file__).with_name("multi_zone_execution_research.json")
 try:
   _CONTEXT_APPROVAL_ROWS = json.loads(_CONTEXT_APPROVAL_PATH.read_text(encoding="utf-8")).get("profiles", {})
 except (OSError, TypeError, ValueError):
@@ -44,6 +45,15 @@ try:
 except (OSError, TypeError, ValueError):
   _FOLLOWUP_PAYLOAD = {}
   _FOLLOWUP_PROFILE_ROWS = {}
+try:
+  _MULTI_ZONE_PAYLOAD = json.loads(_MULTI_ZONE_RESEARCH_PATH.read_text(encoding="utf-8"))
+  _MULTI_ZONE_ROWS = {
+    f"{row['market']}|{row['patternId']}": row
+    for row in (_MULTI_ZONE_PAYLOAD.get("rows") or [])
+  }
+except (OSError, TypeError, ValueError, KeyError):
+  _MULTI_ZONE_PAYLOAD = {}
+  _MULTI_ZONE_ROWS = {}
 
 
 REACTION_AUDIT_V1: Dict[Tuple[str, str], Tuple[int, int, int, int, int, float, float]] = {
@@ -122,10 +132,22 @@ def registered_reaction_audit(market: str, pattern_id: str) -> Optional[Dict[str
   if isinstance(profile, dict):
     context_research = _CONTEXT_PROFILE_ROWS.get(f"{market}|{pattern_id}")
     followup_research = _FOLLOWUP_PROFILE_ROWS.get(f"{market}|{pattern_id}")
+    structure_research = _MULTI_ZONE_ROWS.get(f"{market}|{pattern_id}")
     payload["profile"] = {
       **profile,
       **({"contextResearch": context_research} if isinstance(context_research, dict) else {}),
       **({"followupResearch": followup_research} if isinstance(followup_research, dict) else {}),
+      **({
+        "targetEvidence": structure_research.get("targetEvidence"),
+        "targetEvidenceContracts": structure_research.get("targetEvidenceContracts", []),
+        "priceStructureResearch": {
+          "schema": _MULTI_ZONE_PAYLOAD.get("schema"),
+          "configurationHash": _MULTI_ZONE_PAYLOAD.get("configurationHash"),
+          "status": structure_research.get("status"),
+          "selected": structure_research.get("selected"),
+          "activeRegistryPreserved": True,
+        },
+      } if isinstance(structure_research, dict) else {}),
     }
   return payload
 

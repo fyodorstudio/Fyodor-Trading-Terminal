@@ -134,6 +134,7 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
   const market = pattern.market ?? data.symbol ?? "EURUSD";
   const stopAtr = signal.stopAtr ?? pattern.execution?.stopAtr ?? 1;
   const targetR = signal.targetR ?? pattern.execution?.targetR ?? 2;
+  const managementFamily = signal.managementFamily ?? "fixed";
   const historicalReplay = data.mode === "research_replay" || signal.historicalReplay;
   const benchmark = pattern.historicalBenchmark;
   const provenance = pattern.registrationProvenance;
@@ -159,6 +160,32 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
   const resultPips = signal.resultR == null || riskPips == null ? null : signal.resultR * riskPips;
   const timelineEnd = signal.exitTime ?? signal.pendingLifecycle?.asOf ?? signal.expiryTime ?? null;
   const targetLadder = signal.pathAudit?.targetLadder ?? [];
+  const frozenTargetPath = targetLadder.find((row) => Math.abs(row.targetR - targetR) < .000001) ?? null;
+  const reactionProfile = pattern.reactionAudit?.profile;
+  const historicalContractEvidence = reactionProfile?.targetEvidenceContracts?.find(({ execution }) =>
+    Math.abs(execution.stopAtr - stopAtr) < .000001
+    && Math.abs(execution.targetR - targetR) < .000001
+    && execution.expiryCandles === signal.expiryCandles
+    && execution.managementFamily === managementFamily
+    && (execution.managementFamily !== "break_even" || Math.abs((execution.managementTriggerR ?? 1) - (signal.managementTriggerR ?? 1)) < .000001)
+  )?.evidence;
+  const registeredTargetEvidence = historicalContractEvidence ?? (
+    reactionProfile?.targetEvidence && Math.abs(reactionProfile.targetEvidence.targetR - targetR) < .000001
+      ? reactionProfile.targetEvidence : null
+  );
+  const targetEvidenceLabel = registeredTargetEvidence?.label === "rare_outsized_wins"
+    ? "Positive average depends on infrequent large wins"
+    : registeredTargetEvidence?.label === "not_supported"
+      ? "Large target not supported by later paths"
+      : registeredTargetEvidence?.label === "historically_supported"
+        ? "Historically reached often enough for positive gross expectancy"
+        : benchmarkAverage == null || benchmarkTargetRate == null
+    ? "Historical support unavailable"
+    : benchmarkAverage <= 0
+      ? "Large target not supported by later paths"
+      : targetR >= 3 && benchmarkTargetRate < simpleBreakEven
+        ? "Positive average depends on infrequent large wins"
+        : "Historically reached often enough for positive gross expectancy";
   const marketContext = signal.marketContext;
   const contextOverlay = signal.contextOverlay;
   const selectedContextCandidate = pattern.reactionAudit?.profile?.contextResearch?.selectedCandidate ?? null;
@@ -166,6 +193,9 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
     ? marketContextValue(signal, selectedContextCandidate.dimension) === selectedContextCandidate.value
     : false;
   const directionalBarrier = marketContext?.supportResistance.directionalBarrier;
+  const directionalZones = (signal.direction === "long"
+    ? marketContext?.supportResistance.resistances
+    : marketContext?.supportResistance.supports) ?? (directionalBarrier ? [directionalBarrier] : []);
   const directionalRoomDetail = marketContext?.supportResistance.directionalRoomAtr == null
     ? "No confirmed opposing H4 zone"
     : `${marketContext.supportResistance.directionalRoomAtr.toFixed(2)} ATR to ${directionalBarrier?.strength ?? "confirmed"} ${directionalBarrier?.kind ?? "zone"}${directionalBarrier ? ` at ${formatPrice(directionalBarrier.level, market)} · ${directionalBarrier.touches} touches` : ""}`;
@@ -181,31 +211,20 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
         <div>
           <span>{historicalReplay ? "Past FMS result" : "Current FMS signal"}</span>
           <strong>{pattern.label}</strong>
+          <small>{formatUtc(signal.eventTime)} · {signal.observationMode?.replaceAll("_", " ") ?? (historicalReplay ? "historical replay" : "current")}</small>
         </div>
         <button type="button" onClick={data.onClose} aria-label="Close macro bias audit"><X size={15} /></button>
       </header>
 
       <section className="chart-macro-bias-at-a-glance" aria-label="Signal and frozen trade at a glance">
-        <div><span>Signal</span><strong>{signal.direction === "long" ? "Long" : "Short"} {market}</strong></div>
-        <div className={initialReactionFollowed ? "is-followed" : "is-rejected"}><span>Initial move</span><strong>{initialReaction ? `${initialReactionFollowed ? "Followed" : "Opposed"} · ${formatR(initialReaction.responseR)}` : "Not available"}</strong></div>
-        <div><span>Frozen plan</span><strong>Risk −1R to seek +{targetR}R</strong><small>SL {stopAtr} ATR · TP {stopAtr * targetR} ATR · maximum {signal.expiryCandles} H4</small></div>
-        <div><span>Frozen trade</span><strong>{formatOutcome(signal)}</strong><small>{lifecycle.state}</small></div>
-      </section>
-
-      <section className={`chart-macro-bias-entry-timing ${signal.entryTimingAudit ? "is-available" : "is-unavailable"}`} aria-label="Prospective entry timing comparison">
-        <div><span>Entry timing research</span><strong>{signal.entryTimingAudit ? "Observed MT5 data" : "Not available for this arrow"}</strong></div>
-        {signal.entryTimingAudit ? (
-          <>
-            <table>
-              <thead><tr><th>Reference</th><th>Time</th><th>Price</th><th>Difference</th></tr></thead>
-              <tbody>
-                <tr><th>First observed quote</th><td>{formatUtc(signal.entryTimingAudit.quoteTime)}</td><td>{formatPrice(signal.entryTimingAudit.observedMid, market)}</td><td>{signal.entryTimingAudit.quoteDelaySeconds}s after release</td></tr>
-                {signal.entryTimingAudit.entries.map((row) => <tr key={row.timeframe}><th>First later {row.timeframe} open</th><td>{row.entryTime == null ? "Waiting" : formatUtc(row.entryTime)}</td><td>{formatPrice(row.entryOpen, market)}</td><td>{row.status === "quote_captured_after_entry" ? "Quote arrived too late to compare" : row.status === "waiting_for_candle" ? "Not formed yet" : `${formatPips(row.gapPips)} raw · ${formatPips(row.directionAdjustedGapPips)} with arrow`}</td></tr>)}
-              </tbody>
-            </table>
-            <small>{signal.entryTimingAudit.disclosure}</small>
-          </>
-        ) : <p>This arrow has no immutable first-seen MT5 quote. Older arrows remain honest H4 research; FMS will not invent a release-time price.</p>}
+        <div className="is-primary"><span>Direction and result</span><strong>{signal.direction === "long" ? "Long" : "Short"} {market}</strong><small>{formatOutcome(signal)}</small></div>
+        <div><span>Entry</span><strong>{formatPrice(signal.entry, market)}</strong><small>{signal.entryTimeframe ?? "H4"} · {formatUtc(signal.activationTime)}</small></div>
+        <div className="is-risk"><span>Stop loss</span><strong>{formatPrice(frozenStop, market)}</strong><small>{riskPips == null ? "—" : `${riskPips.toFixed(1)} pips`} · {formatAtr(riskAtr)} · −1R</small></div>
+        <div className="is-reward"><span>Take profit</span><strong>{formatPrice(signal.target, market)}</strong><small>{rewardPips == null ? "—" : `${rewardPips.toFixed(1)} pips`} · {formatAtr(rewardAtr)} · +{targetR}R</small></div>
+        <div><span>Risk : reward</span><strong>1 : {targetR}</strong><small>Frozen registered contract</small></div>
+        <div><span>ATR at entry</span><strong>{formatPrice(signal.atr, market)}</strong><small>Completed H4 ATR(14) · {atrPips == null ? "—" : `${atrPips.toFixed(1)} pips`}</small></div>
+        <div><span>Maximum duration</span><strong>{signal.expiryCandles} H4</strong><small>Expires {formatUtc(signal.expiryTime)}</small></div>
+        <div><span>Management</span><strong>{managementFamily === "break_even" ? "Break-even" : "Fixed"}</strong><small>{managementFamily === "break_even" ? `Move SL to entry after +${signal.managementTriggerR ?? 1}R` : "SL and TP stay fixed"}</small></div>
       </section>
 
       <section className="chart-macro-bias-trigger" aria-label="Economic releases that triggered this signal">
@@ -224,6 +243,59 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
           ))}
         </div>
       </section>
+
+      <section className="chart-macro-bias-target-evidence" aria-label="Historical evidence for the frozen target">
+        <div className="chart-macro-bias-section-title"><span>Why this target was plausible historically</span><strong>{targetEvidenceLabel}</strong></div>
+        <div className="chart-macro-bias-target-evidence-grid">
+          <div><span>Registered target</span><strong>+{targetR}R · {formatAtr(rewardAtr)}</strong></div>
+          <div><span>Later TP-before-SL</span><strong>{formatPercent(registeredTargetEvidence?.tpBeforeSl ?? benchmarkTargetRate)}</strong><small>{registeredTargetEvidence?.evaluableN ?? benchmarkSample ?? "—"} later cases</small></div>
+          <div><span>Later average</span><strong>{formatR(registeredTargetEvidence?.averageR ?? benchmarkAverage)}</strong><small>Gross per matching trade</small></div>
+          <div><span>TP rate needed</span><strong>{formatPercent(simpleBreakEven)}</strong><small>Simple fixed-boundary reference</small></div>
+          <div><span>Typical best move</span><strong>{formatR(registeredTargetEvidence?.mfeR.median ?? reactionProfile?.mfe.r.median)}</strong><small>Median MFE · hindsight, not captured profit</small></div>
+          <div><span>This arrow</span><strong>{frozenTargetPath ? targetPathStatus(frozenTargetPath) : formatOutcome(signal)}</strong><small>{frozenTargetPath?.timeToTargetCandles == null ? "Frozen path result" : `${frozenTargetPath.timeToTargetCandles} H4 to target`}</small></div>
+        </div>
+        {registeredTargetEvidence ? <small className="chart-macro-bias-target-dependence">Median {formatR(registeredTargetEvidence.medianR)} · SL first {formatPercent(registeredTargetEvidence.slBeforeTp)} · expired {formatPercent(registeredTargetEvidence.expiredRate)} · largest win share {formatPercent(registeredTargetEvidence.topOneWinShare)} · top three {formatPercent(registeredTargetEvidence.topThreeWinShare)} · typical target time {registeredTargetEvidence.timeToTargetH4.median == null ? "—" : `${registeredTargetEvidence.timeToTargetH4.median.toFixed(1)} H4`}</small> : null}
+        <p>A large configured target does not itself predict a large move. These figures show whether this exact recipe historically reached it often enough to retain positive gross expectancy.</p>
+      </section>
+
+      <details className={`chart-macro-bias-entry-timing ${signal.entryTimingAudit ? "is-available" : "is-unavailable"}`} aria-label="Prospective entry timing comparison">
+        <summary><span>Entry timing research</span><strong>{signal.entryTimingAudit ? "Observed MT5 data" : "Not available for this arrow"}</strong></summary>
+        {signal.entryTimingAudit ? (
+          <>
+            <table>
+              <thead><tr><th>Reference</th><th>Time</th><th>Price</th><th>Difference</th></tr></thead>
+              <tbody>
+                <tr><th>First observed quote</th><td>{formatUtc(signal.entryTimingAudit.quoteTime)}</td><td>{formatPrice(signal.entryTimingAudit.observedMid, market)}</td><td>{signal.entryTimingAudit.quoteDelaySeconds}s after release</td></tr>
+                {signal.entryTimingAudit.entries.map((row) => <tr key={row.timeframe}><th>First later {row.timeframe} open</th><td>{row.entryTime == null ? "Waiting" : formatUtc(row.entryTime)}</td><td>{formatPrice(row.entryOpen, market)}</td><td>{row.status === "quote_captured_after_entry" ? "Quote arrived too late to compare" : row.status === "waiting_for_candle" ? "Not formed yet" : `${formatPips(row.gapPips)} raw · ${formatPips(row.directionAdjustedGapPips)} with arrow`}</td></tr>)}
+              </tbody>
+            </table>
+            <small>{signal.entryTimingAudit.disclosure}</small>
+          </>
+        ) : <p>This arrow has no immutable first-seen MT5 quote. Older arrows remain honest H4 research; FMS will not invent a release-time price.</p>}
+      </details>
+
+      {directionalZones.length > 0 ? (
+        <section className="chart-macro-bias-structure-ladder" aria-label="Entry-known H4 price structure ladder">
+          <div className="chart-macro-bias-section-title"><span>H4 price structure toward target</span><strong>{directionalZones.length} entry-known zone{directionalZones.length === 1 ? "" : "s"}</strong></div>
+          <div className="chart-macro-bias-structure-list">
+            {directionalZones.map((zone, index) => {
+              const distanceR = riskAtr && riskAtr > 0 ? zone.distanceAtr / riskAtr : null;
+              const zonePips = signal.atr == null ? null : zone.distanceAtr * signal.atr / pipSize(market);
+              const beforeTarget = rewardAtr != null && zone.distanceAtr < rewardAtr;
+              return <article key={zone.id ?? `${zone.kind}:${zone.level}:${index}`}>
+                <div><span>{index === 0 ? "Nearest" : `Wider ${index + 1}`} · H4 {zone.kind === "support" ? "support" : "resistance"}</span><strong>{formatPrice(zone.level, market)}</strong><small>{zone.touches} touches · {readableContext(zone.strength)}{zone.role === "role_reversed" ? ` · former ${zone.originalKind}` : ""}</small></div>
+                <dl>
+                  <div><dt>From entry</dt><dd>{zonePips == null ? "—" : `${zonePips.toFixed(1)} pips`} · {zone.distanceAtr.toFixed(2)} ATR · {distanceR == null ? "—" : `${distanceR.toFixed(2)}R`}</dd></div>
+                  <div><dt>Versus TP</dt><dd>{beforeTarget ? "Before frozen TP" : "Beyond frozen TP"}</dd></div>
+                  <div><dt>Confirmed</dt><dd>{zone.confirmedAt == null ? "Legacy zone record" : formatUtc(zone.confirmedAt)}</dd></div>
+                  <div><dt>First touch / later outcome</dt><dd>{zone.firstTouchedAt ? formatUtc(zone.firstTouchedAt) : "—"} · {readableContext(zone.postEntryState)}{zone.postEntryStateAt ? ` · ${formatUtc(zone.postEntryStateAt)}` : ""}</dd></div>
+                </dl>
+              </article>;
+            })}
+          </div>
+          <p>Zone identity, role, and ranking use completed candles available by entry. “Later outcome” is labeled hindsight and never changes the frozen trade.</p>
+        </section>
+      ) : null}
 
       {marketContext ? (
         <section className="chart-macro-bias-market-context" aria-label="Market context known before entry">

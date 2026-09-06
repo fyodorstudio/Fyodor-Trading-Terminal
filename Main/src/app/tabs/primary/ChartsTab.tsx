@@ -297,17 +297,22 @@ export function buildMacroBiasSeriesMarkers(
 }
 
 export function buildMacroBiasPriceLineLevels(signal: MacroSignalChartSignal) {
-  const barrier = signal.marketContext?.supportResistance.directionalBarrier;
+  const structure = signal.marketContext?.supportResistance;
+  const barrier = structure?.directionalBarrier;
+  const ladder = (signal.direction === "long" ? structure?.resistances : structure?.supports)
+    ?.filter((zone) => zone.entryKnownState == null || zone.entryKnownState === "active")
+    .slice(0, 3) ?? (barrier ? [barrier] : []);
+  const structureLines = ladder.map((zone, index) => ({
+    value: zone.level,
+    title: `${index === 0 ? "H4" : `W${index + 1} H4`} ${zone.kind === "support" ? "SUP" : "RES"} ${zone.touches}x${zone.role === "role_reversed" ? " RR" : ""}`,
+    color: index === 0 ? "#d97706" : index === 1 ? "#b45309" : "#92400e",
+    lineStyle: LineStyle.Dotted,
+  }));
   return [
     { value: signal.entry, title: "ENTRY", color: "#64748b", lineStyle: LineStyle.Dashed },
     { value: signal.stop, title: "SL", color: "#dc2626", lineStyle: LineStyle.Solid },
     { value: signal.target, title: "TP", color: "#16a34a", lineStyle: LineStyle.Solid },
-    {
-      value: barrier?.level,
-      title: barrier ? `H4 ${barrier.kind === "support" ? "SUP" : "RES"} ${barrier.touches}x` : "CONTEXT",
-      color: "#d97706",
-      lineStyle: LineStyle.Dotted,
-    },
+    ...structureLines,
   ].filter((level): level is typeof level & { value: number } => level.value != null && Number.isFinite(level.value));
 }
 
@@ -1108,7 +1113,6 @@ export function ChartsTab({
         .catch(() => { /* retain the last honest lifecycle state */ })
         .finally(() => { requestRunning = false; });
     };
-    refreshLifecycle();
     const timer = window.setInterval(refreshLifecycle, MACRO_BIAS_LIVE_REFRESH_MS);
     return () => {
       cancelled = true;
@@ -1186,6 +1190,11 @@ export function ChartsTab({
     macroBiasJournalSignals.forEach((signal) => combined.set(signal.id, signal));
     return [...combined.values()].sort((left, right) => left.eventTime - right.eventTime || left.id.localeCompare(right.id));
   }, [macroBiasHistoricalMatchesVisible, macroBiasJournalSignals, macroBiasResponse, macroBiasShadowHistoricalSignals]);
+  const macroBiasVisibleChartSignals = useMemo(() => {
+    if (!selectedMacroBiasId) return macroBiasDisplaySignals;
+    const selected = macroBiasDisplaySignals.find((signal) => signal.id === selectedMacroBiasId);
+    return selected ? [selected] : macroBiasDisplaySignals;
+  }, [macroBiasDisplaySignals, selectedMacroBiasId]);
 
   useEffect(() => {
     const series = seriesRef.current;
@@ -1194,7 +1203,7 @@ export function ChartsTab({
     macroBiasSignalByMarkerIdRef.current.clear();
     if (!series || !macroBiasVisible || !macroBiasResponse?.supported) return;
     const built = buildMacroBiasSeriesMarkers(
-      macroBiasDisplaySignals,
+      macroBiasVisibleChartSignals,
       visibleCandles,
       timeframe,
       chartSourceTimeOffsetSeconds,
@@ -1206,7 +1215,7 @@ export function ChartsTab({
       macroBiasMarkersRef.current = null;
       macroBiasSignalByMarkerIdRef.current.clear();
     };
-  }, [macroBiasVisible, macroBiasResponse, macroBiasDisplaySignals, chartSourceTimeOffsetSeconds, macroBiasFrom, macroBiasTo, timeframe]);
+  }, [macroBiasVisible, macroBiasResponse, macroBiasVisibleChartSignals, chartSourceTimeOffsetSeconds, macroBiasFrom, macroBiasTo, timeframe]);
 
   const selectedMacroBias = macroBiasDisplaySignals.find((signal) => signal.id === selectedMacroBiasId) ?? null;
   const selectedMacroBiasPattern = selectedMacroBias

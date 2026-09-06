@@ -11,6 +11,28 @@ export interface MacroSignalDistribution {
   maximum: number | null;
 }
 
+export interface MacroSignalTargetEvidence {
+  label: "historically_supported" | "rare_outsized_wins" | "not_supported";
+  targetR: number;
+  evaluableN: number;
+  averageR: number | null;
+  medianR: number | null;
+  tpBeforeSl: number | null;
+  slBeforeTp: number | null;
+  expiredRate: number | null;
+  expiredN: number;
+  unevaluableN: number;
+  ambiguousN: number;
+  maximumDrawdownR: number;
+  longestLosingStreak: number;
+  breakEvenTargetRate: number;
+  topOneWinShare: number | null;
+  topThreeWinShare: number | null;
+  topFiveWinShare: number | null;
+  mfeR: MacroSignalDistribution;
+  timeToTargetH4: MacroSignalDistribution;
+}
+
 export interface MacroSignalMarketContext {
   schema: "fms-market-context-v1";
   knownAt: number;
@@ -29,11 +51,16 @@ export interface MacroSignalMarketContext {
     method: string;
   };
   supportResistance: {
+    schema?: "fms-price-structure-ladder-v1";
     method: string;
     lookbackCandles: number;
     confirmedZoneCount: number;
+    ladderZoneCount?: number;
     support: null | MacroSignalPriceZone;
     resistance: null | MacroSignalPriceZone;
+    supports?: MacroSignalPriceZone[];
+    resistances?: MacroSignalPriceZone[];
+    zones?: MacroSignalPriceZone[];
     directionalBarrier: null | MacroSignalPriceZone;
     directionalRoomAtr: number | null;
     roomState: "open" | "limited" | "blocked";
@@ -53,14 +80,27 @@ export interface MacroSignalMarketContext {
 }
 
 export interface MacroSignalPriceZone {
+  id?: string;
   kind?: "support" | "resistance";
+  originalKind?: "support" | "resistance";
+  role?: "native" | "role_reversed";
   level: number;
+  bandLow?: number;
+  bandHigh?: number;
   touches: number;
   distanceAtr: number;
   touchTimes?: number[];
   lastTouchedAt?: number | null;
+  firstTouchedAt?: number | null;
+  confirmedAt?: number | null;
+  brokenAt?: number | null;
+  invalidatedAt?: number | null;
   medianRejectionAtr?: number | null;
   strength?: "confirmed" | "strong";
+  entryKnownState?: "active" | "broken" | "superseded";
+  postEntryState?: "active" | "testing" | "broken";
+  postEntryStateAt?: number | null;
+  postEntryStateIsHindsight?: boolean;
 }
 
 export interface MacroSignalContextResearch {
@@ -1080,6 +1120,25 @@ export interface MacroSignalChartPattern {
       mfe: { atr: MacroSignalDistribution; r: MacroSignalDistribution; pips: MacroSignalDistribution; timeCandles: MacroSignalDistribution };
       mae: { atr: MacroSignalDistribution; r: MacroSignalDistribution; pips: MacroSignalDistribution; timeCandles: MacroSignalDistribution };
       givebackAtr: MacroSignalDistribution;
+      targetEvidence?: MacroSignalTargetEvidence;
+      targetEvidenceContracts?: Array<{
+        execution: {
+          stopAtr: number;
+          targetR: number;
+          expiryCandles: number;
+          managementFamily: "fixed" | "break_even";
+          managementTriggerR?: number | null;
+        };
+        allN: number;
+        evidence: MacroSignalTargetEvidence;
+      }>;
+      priceStructureResearch?: {
+        schema: "fms-sequential-price-structure-execution-v1";
+        configurationHash: string;
+        status: "later_supported" | "rejected_or_insufficient";
+        selected: null | Record<string, unknown>;
+        activeRegistryPreserved: true;
+      };
       contractResearch: {
         selectionRule: string;
         status: "historically_improved_candidate" | "keep_frozen_contract";

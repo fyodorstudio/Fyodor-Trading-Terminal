@@ -142,6 +142,74 @@ The four cross registrations were then replayed under their exact fixed contract
 - [ ] Make integrity, late-entry, missing-data, conflict, and unavailable reasons local to affected rows. Preserve last honest content during transient refresh failures.
 - [ ] Keep research diagnostics collapsed, cached, and unmounted until opened. Do not regress Charts/pair/timeframe loading while adding campaign results.
 
+## Next goal-mode mission — Multi-zone price structure and Past Result hierarchy
+
+The nearest-barrier target pass is already recorded in FMS Knowledge as an unsupported family: five of 51 recipes passed the older-development selection rule and zero preserved the required uplift in later chronology. For EURUSD US manufacturing employment, the development-selected 2:1 barrier variant improved by +0.079R before weakening to -0.068R versus the registered contract across 42 later cases. Preserve that negative result and the current registered TP/SL. It rejects that exact nearest-zone rule; it does not establish that every entry-known price-structure rule is useless.
+
+The next hypothesis is narrower and materially different. A nearest H4 zone can be an intermediate obstacle while a wider, already-confirmed zone remains relevant if the nearer zone breaks. The research must represent a ranked zone ladder and sequential barrier state rather than selecting whichever historical line makes an individual trade look successful. Overfitting remains possible because many zone definitions, buffers, break rules, and exits can be chosen after seeing outcomes; freeze the small family below before reading results.
+
+### Pass 1 — Audit and freeze price-structure semantics
+
+- [x] Reproduce the owner-reported EURUSD arrow and identify its setup, release time, frozen entry/ATR/SL/TP/expiry, nearest H4 support, wider pre-entry support candidates, and the earlier resistance mentioned in the screenshot. Record which levels were genuinely confirmed before entry.
+- [x] Audit the current `fms-market-context-v1` zone detector and its chart projection. Confirm how pivots cluster, how touch count and rejection strength are calculated, whether broken resistance can become support, and whether chain-merging or an averaged level can move a zone misleadingly.
+- [x] Freeze `fms-price-structure-ladder-v1` before testing: use completed pre-entry H4 candles only; retain multiple ordered supports below entry and resistances above entry; give every zone a stable identity, price band, touch count, rejection strength, first/last confirmation times, age, distance in ATR, and provenance.
+- [x] Define role reversal without hindsight. A former resistance may become support only after a completed H4 close breaks it and a later completed candle confirms the prescribed hold/retest before the signal entry. A post-entry break may update state only after its confirming candle closes and may affect no earlier decision or fill.
+- [x] Define deterministic zone invalidation and dominance. Distinguish `active`, `testing`, `broken`, `role_reversed`, and `superseded`; never remove the wider ladder merely because the nearest zone exists or later breaks.
+- [x] Reconcile the new ladder against the current nearest-zone output. Preserve existing registered context contracts and historical arrows unless a separately reviewed successor later passes exact artifact checks.
+
+### Pass 2 — Make Past Result answer the trade question first
+
+- [x] Redesign the top of Past Result as a compact decision header with this order: pair and setup; release date/time and provenance; Long/Short; outcome; Entry; ATR and ATR cutoff; SL with ATR/pips; TP with R/ATR/pips; risk:reward; entry timeframe; expiry duration and exact expiry time; management rule.
+- [x] Put the triggering releases and their Actual/Forecast/Previous scores immediately below the decision header. Show whether the package implies an ordinary or historically exceptional move only when that label follows a frozen past-only rule.
+- [x] Add a `Why this target was plausible historically` block. Show the registered setup's target-hit rate, average/median R, sample size, later-period result, typical MFE, probability of reaching the frozen target before SL, time-to-target distribution, and exceptional-trade dependence. Do not claim that a +4R contract predicts a huge move merely because its TP is +4R.
+- [x] Add a compact price-structure ladder: nearest and wider directional zones, distance from entry in price/pips/ATR/R, touches/strength/age, role and confirmation time, whether each zone lies before or beyond TP, and its eventual post-entry state clearly labeled as hindsight outcome.
+- [x] Keep the selected-arrow screenshot focus behavior. The Past Result close button restores all arrows; closing must also remove the selected trade and structure lines.
+- [x] Move long context diagnostics and target ladders below the decision evidence in collapsible sections. Keep ordinary text readable with internal scrolling at 1440x900 and 100% Chrome zoom.
+
+### Pass 3 — Explain large targets with existing historical evidence
+
+- [x] For each registered recipe, derive frozen-target reach diagnostics from its existing path profiles: TP-before-SL rate, SL-before-TP rate, ambiguous/unavailable count, expiry rate, median and upper-quartile MFE in R, time to each declared R rung, and the share of total expectancy contributed by the largest one, three, and five wins.
+- [x] Separate `large target historically reached often enough`, `large target depends on rare outsized wins`, and `large target not supported by later paths`. Base labels on declared numeric thresholds and later chronology, not prose judgment.
+- [x] For the selected arrow, compare its release package magnitude only with prior same-series/package observations available before that release. Show percentile and comparable-case path distribution without using the selected event's later price path to classify its expected size.
+- [x] Keep economic surprise magnitude, expected price excursion, MFE, target-hit probability, and realized trade result as different measurements. A large surprise must not automatically widen TP unless a frozen historical rule supports that mapping.
+
+### Pass 4 — Frozen sequential multi-zone challenger
+
+- [x] Reuse the 51 registered recipe cases and cached H4 paths. Do not create a new directional setup family in this pass; test price structure as an execution successor to each exact registered parent.
+- [x] Predeclare a small challenger family: `(a)` registered stop with TP at the nearest qualifying zone; `(b)` take a declared partial at the nearest zone and retain the remainder toward the registered TP or next wider zone; `(c)` after a completed-H4 break/hold confirmation, advance the remaining target to the next pre-entry zone; `(d)` fixed registered contract as control. Use one fixed buffer and minimum-distance rule selected before outcomes.
+- [x] Preserve risk accounting for partial exits and variable targets. Compute realized full-contract R from every tranche; do not use TP-hit formulas that ignore expiry, break-even, partials, ambiguous bars, or adverse gaps.
+- [x] Use M1 only for finalist same-candle ordering where cached coverage exists. Keep missing and ambiguous order explicit and report sensitivity rather than assuming the favorable order.
+- [x] Select a complete rule on older development history, freeze it, and judge it once on later chronology. Require sufficient development/later samples, positive averages in both, at least +0.05R later uplift versus the exact active parent, acceptable drawdown/streak behavior, multi-year breadth, and no dependence on one exceptional trade.
+- [x] Report matched-case parent/challenger comparisons and barrier-state counts: no zone, nearest held, nearest broke, role reversal confirmed, wider target attempted, partial captured, and unresolved. The same release across pairs remains shared evidence rather than independent confirmation.
+- [x] Retain every rejected rule and its fingerprint. Do not weaken thresholds, swap zone definitions, or select a different buffer after seeing later results.
+
+### Pass 5 — Promotion decision and daily handoff
+
+- [x] If no challenger survives, keep all registered contracts unchanged, publish the exhausted hypothesis in FMS Knowledge, and retain the wider zone ladder as descriptive decision support.
+- [x] If a challenger survives, materialize an immutable execution successor with parent ID, configuration/dataset/candle fingerprints, development/later evidence, activation timestamp, and exact zone-state/partial/expiry rules. Never rewrite pre-activation arrows or outcomes.
+- [x] Apply a supported successor consistently to current qualification, recovered replay, prospective capture, pending lifecycle, chart Entry/SL/TP/partial/zone geometry, Next/Current/Recent, Past Result, Knowledge, and target-ladder audits.
+- [x] Keep the primary daily workflow unchanged: open Charts, inspect Next/Current/Recent, and click an arrow for the ordered decision evidence. Research controls remain out of the required workflow.
+- [x] Run one targeted reconciliation of every promoted contract, Python compilation, and the repository TypeScript gate. Do not add tests or run browser automation without new owner authorization.
+
+### Acceptance and owner audit for this mission
+
+- [x] At 1440x900 and 100% Chrome zoom, the Past Result top viewport shows date, setup, direction/outcome, Entry/ATR, SL, TP, risk:reward, expiry, and management without needing to hunt through lower sections.
+- [x] The selected EURUSD example displays its nearest H4 support and every qualifying wider pre-entry support with stable labels; broken/role-reversed states and confirmation times are understandable and never presented as entry-known when they occurred later.
+- [x] A +4R setup shows quantitative historical support or fragility for that target. The UI never infers expected move size from the configured target alone.
+- [x] Selecting an arrow hides other FMS arrows; closing Past Result restores them and removes selected geometry.
+- [x] One ordinary target, one large target, one nearest-zone break, one missing-zone case, and one ambiguous path agree across artifact, API, Past Result, and chart geometry.
+- [x] The final handoff states whether any contract was promoted, lists exact evidence, and gives the owner a short manual visual checklist. No profit claim or invented execution cost is introduced.
+
+### Multi-zone price-structure result - 07 Sep 2026
+
+- [x] Materialized `fms-price-structure-ladder-v1` from completed pre-entry H4 candles. It preserves the legacy nearest-zone fields used by active context registrations while adding stable zone IDs, clustered bands, confirmation times, ordered wider zones, completed-break role reversals, entry-known invalidation, and separately labeled post-entry hindsight states.
+- [x] Rebuilt all 51 registered recipe profiles: 5,654 historical paths, 3,303 with multiple directional zones and 1,287 with no directional zone. All displayed ladder confirmations were at or before entry.
+- [x] Ran the frozen sequential challenger family. After pre-entry role-reversal invalidation was enforced, none of the 153 declared challengers across 51 recipes cleared the older-development screen; none advanced to later chronology. No registered contract or historical result changed.
+- [x] Added exact historical execution-contract target evidence rather than applying today's contract to old arrows. The retained EURUSD +4R contracts are visibly fragile: US CPI later average +0.113R across 73 evaluable cases but median -1R and 6.85% TP-first; euro-area retail sales later average +0.083R across 28 cases, median -1R, and 0% TP-first. Both are labeled as relying on infrequent outsized outcomes rather than as forecasts of a huge move.
+- [x] Kept release magnitude separate from target size. Existing past-only magnitude cohorts remain research diagnostics; no registered magnitude-to-TP mapping passed a frozen rule, so Past Result does not present a large surprise as proof that a large move is expected.
+- [x] Past Result now puts release time/provenance, direction/outcome, Entry, SL, TP, R:R, ATR, expiry, and management first; target support and the full structure ladder follow the trigger. Entry-timing detail is collapsed below the decision evidence. The chart shows the nearest plus two wider directional levels to retain legibility; the dock lists the complete ladder.
+- [x] Durable artifacts: `Main/mt5-bridge/multi_zone_execution_research.json` and `Main/mt5-bridge/support_resistance_execution_research.json`. FMS Knowledge records both exhausted families so they are not mined again unchanged.
+
 ## Deferred until research improvements warrant them
 
 - Account-aware position sizing, simultaneous/correlated exposure limits, drawdown and consecutive-loss pauses, and a reproducible combined portfolio replay. Extend existing replay instead of assuming it is absent.
@@ -151,6 +219,24 @@ The four cross registrations were then replayed under their exact fixed contract
 - Non-FMS UI cleanup only for a targeted owner request. External feeds, automatic orders, garbage-tool revival, and unrelated redesigns are outside this plan.
 
 ## Completion and manual handoff
+
+### Charts FMS loading pass — 07 Sep 2026
+
+- [x] Keep a durable last-known current response per registered market so calendar-ingest revisions no longer force a multi-second research rebuild during ordinary pair switches.
+- [x] Keep a durable last-known global registry response so opening FMS does not synchronously rebuild all ten registered markets.
+- [x] Delay the first lifecycle refresh until the existing refresh interval. Fresh computation now runs as an explicit background refresh and replaces the durable snapshots when complete.
+- [x] Bound a selected historical-arrow reconstruction to its one immutable event and cache the completed target ladder by model hash, market, recipe, and release time.
+- [x] Preserve current/recent/next semantics, immutable historical contracts, and live-refresh behavior. No scoring, registration, execution, or trade result changed.
+- [x] Targeted gates: Python compile and repo TypeScript typecheck passed. Local endpoint measurements reduced ordinary current-pair retrieval from 9–21 seconds to roughly 0.2–0.6 seconds and ordinary global retrieval from 32–50 seconds to roughly 1.2–1.9 seconds. A repeated historical-arrow audit now returns in roughly 0.13 seconds after its first immutable reconstruction; the first uncached reconstruction remains bounded but can still take several seconds.
+
+### Selected-arrow focus and support/resistance execution pass — 07 Sep 2026
+
+- [x] When a chart arrow is selected, render only that FMS arrow until the Past Result close button clears the selection. Preserve the complete signal collection, historical-match count, audit, and Entry/SL/TP/context geometry.
+- [x] Freeze an entry-known support/resistance execution family before inspecting results: nearest confirmed directional H4 pivot barrier, 120 completed H4 bars, two-bar pivot confirmation, 0.25 ATR clustering, at least two touches, target 0.10 ATR before the barrier, and a 0.50 ATR minimum target distance.
+- [x] Compare three bounded variants across all 51 registered recipes: retain the active stop, tighten to equal risk/reward, or tighten for 2:1 reward/risk. Preserve the active target when no qualifying nearer barrier exists and preserve each recipe's management and expiry.
+- [x] Select only on older development chronology with N >= 20, positive average R, and at least +0.05R uplift; judge the frozen selection on later chronology with N >= 10, positive average R, and at least +0.05R uplift.
+- [x] Retain the negative result. Five recipes qualified for later evaluation, but none preserved the required uplift. EURUSD US manufacturing employment selected the 2:1 variant on development (+0.079R uplift), then weakened across 42 later cases to +0.027R average and -0.068R versus its registered contract. No TP/SL contract or historical arrow was changed.
+- [x] Store the complete reproducible result in `Main/mt5-bridge/support_resistance_execution_research.json` and expose the exhausted family in FMS Knowledge so it is not repeated as if untested.
 
 A research pass is complete when its manifest and results are durable, all declared trials are accounted for, selection/evaluation provenance is honest, and supported findings have a concrete review or registration outcome. Discovering no upgrade is a valid result; do not force a winner to claim completion.
 

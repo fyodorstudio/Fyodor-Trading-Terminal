@@ -1247,31 +1247,117 @@ def _entry_known_support_resistance(
   for kind, level, touched_at, rejection_atr in sorted(pivots, key=lambda row: (row[0], row[1], row[2])):
     match = next((zone for zone in zones if zone["kind"] == kind and abs(float(zone["level"]) - level) <= tolerance), None)
     if match is None:
-      zones.append({"kind": kind, "level": level, "touches": 1, "touchTimes": [touched_at], "rejectionsAtr": [rejection_atr]})
+      zones.append({"kind": kind, "level": level, "touches": 1, "touchTimes": [touched_at], "rawLevels": [level], "rejectionsAtr": [rejection_atr]})
     else:
       touches = int(match["touches"]) + 1
       match["level"] = (float(match["level"]) * int(match["touches"]) + level) / touches
       match["touches"] = touches
       match["touchTimes"].append(touched_at)
+      match["rawLevels"].append(level)
       match["rejectionsAtr"].append(rejection_atr)
   confirmed = [zone for zone in zones if int(zone["touches"]) >= 2]
   for zone in confirmed:
     rejection_values = [float(value) for value in zone.pop("rejectionsAtr", [])]
     touch_times = [int(value) for value in zone.get("touchTimes", [])]
+    raw_levels = [float(value) for value in zone.pop("rawLevels", [])]
+    zone["id"] = hashlib.sha256(
+      f"{zone['kind']}|{min(touch_times, default=0)}|{statistics.median(raw_levels) if raw_levels else zone['level']:.10f}".encode()
+    ).hexdigest()[:12]
+    zone["bandLow"] = min(raw_levels) if raw_levels else float(zone["level"])
+    zone["bandHigh"] = max(raw_levels) if raw_levels else float(zone["level"])
+    zone["firstTouchedAt"] = min(touch_times) if touch_times else None
     zone["lastTouchedAt"] = max(touch_times) if touch_times else None
     zone.pop("touchTimes", None)
     zone["medianRejectionAtr"] = statistics.median(rejection_values) if rejection_values else None
     zone["strength"] = "strong" if int(zone["touches"]) >= 3 and (zone["medianRejectionAtr"] or 0) >= .5 else "confirmed"
-  supports = [zone for zone in confirmed if zone["kind"] == "support" and float(zone["level"]) < entry]
-  resistances = [zone for zone in confirmed if zone["kind"] == "resistance" and float(zone["level"]) > entry]
-  support = max(supports, key=lambda zone: float(zone["level"]), default=None)
-  resistance = min(resistances, key=lambda zone: float(zone["level"]), default=None)
+    zone["role"] = "native"
+    zone["originalKind"] = zone["kind"]
+    zone["confirmedAt"] = (
+      sorted(touch_times)[1] + pivot_span * H4_SECONDS if len(touch_times) >= 2 else None
+    )
+
+  # Preserve the legacy nearest-zone contract used by registered directional-
+  # room overlays.  The richer ladder below is descriptive/research state and
+  # must not silently alter an already registered context execution.
+  legacy_supports = [zone.copy() for zone in confirmed if zone["kind"] == "support" and float(zone["level"]) < entry]
+  legacy_resistances = [zone.copy() for zone in confirmed if zone["kind"] == "resistance" and float(zone["level"]) > entry]
+
+  # A completed pre-entry break plus a later completed hold/retest can reverse
+  # a zone's role.  Both confirmations must precede entry; future candles never
+  # create a historical level.
+  role_reversed: List[Dict[str, Any]] = []
+  for zone in confirmed:
+    zone["entryKnownState"] = "active"
+    original_kind = str(zone["kind"])
+    band_low, band_high = float(zone["bandLow"]), float(zone["bandHigh"])
+    confirmed_at = int(zone.get("confirmedAt") or 0)
+    after_confirmation = [row for row in prior if int(row["time"]) > confirmed_at]
+    break_index = next((
+      index for index, row in enumerate(after_confirmation)
+      if (original_kind == "resistance" and float(row["close"]) > band_high + tolerance)
+      or (original_kind == "support" and float(row["close"]) < band_low - tolerance)
+    ), None)
+    if break_index is None:
+      continue
+    break_row = after_confirmation[break_index]
+    zone["entryKnownState"] = "broken"
+    zone["brokenAt"] = int(break_row["time"])
+    retest = next((
+      row for row in after_confirmation[break_index + 1:]
+      if (
+        original_kind == "resistance"
+        and float(row["low"]) <= band_high + tolerance
+        and float(row["close"]) > band_low
+      ) or (
+        original_kind == "support"
+        and float(row["high"]) >= band_low - tolerance
+        and float(row["close"]) < band_high
+      )
+    ), None)
+    if retest is None:
+      continue
+    zone["entryKnownState"] = "superseded"
+    reversed_kind = "support" if original_kind == "resistance" else "resistance"
+    reversed_zone = {
+      **zone, "id": f"{zone['id']}-rr", "kind": reversed_kind,
+      "role": "role_reversed", "originalKind": original_kind,
+      "brokenAt": int(break_row["time"]), "confirmedAt": int(retest["time"]) + H4_SECONDS,
+      "lastTouchedAt": int(retest["time"]), "entryKnownState": "active",
+    }
+    invalidation = next((
+      row for row in after_confirmation[break_index + 1:]
+      if int(row["time"]) > int(retest["time"]) and (
+        (reversed_kind == "support" and float(row["close"]) < band_low - tolerance)
+        or (reversed_kind == "resistance" and float(row["close"]) > band_high + tolerance)
+      )
+    ), None)
+    if invalidation is not None:
+      reversed_zone["entryKnownState"] = "broken"
+      reversed_zone["invalidatedAt"] = int(invalidation["time"]) + H4_SECONDS
+    role_reversed.append(reversed_zone)
+  ladder_zones = [*confirmed, *role_reversed]
+  supports = [zone for zone in confirmed if zone["entryKnownState"] == "active" and zone["kind"] == "support" and float(zone["level"]) < entry]
+  resistances = [zone for zone in confirmed if zone["entryKnownState"] == "active" and zone["kind"] == "resistance" and float(zone["level"]) > entry]
+  reversed_supports = [zone for zone in role_reversed if zone["entryKnownState"] == "active" and zone["kind"] == "support" and float(zone["level"]) < entry]
+  reversed_resistances = [zone for zone in role_reversed if zone["entryKnownState"] == "active" and zone["kind"] == "resistance" and float(zone["level"]) > entry]
+  supports.extend(reversed_supports)
+  resistances.extend(reversed_resistances)
+  support = max(legacy_supports, key=lambda zone: float(zone["level"]), default=None)
+  resistance = min(legacy_resistances, key=lambda zone: float(zone["level"]), default=None)
+  def projected(zone: Dict[str, Any]) -> Dict[str, Any]:
+    distance = (entry - float(zone["level"])) / atr if zone["kind"] == "support" else (float(zone["level"]) - entry) / atr
+    return {**zone, "distanceAtr": distance}
   return {
-    "method": "confirmed H4 pivot zones; 120 completed bars; 2-bar confirmation; 0.25 ATR clustering; minimum 2 touches",
+    "schema": "fms-price-structure-ladder-v1",
+    "method": "confirmed H4 pivot zones; 120 completed bars; 2-bar confirmation; 0.25 ATR clustering; minimum 2 touches; completed-break plus later hold/retest for role reversal",
     "lookbackCandles": len(prior),
     "confirmedZoneCount": len(confirmed),
-    "support": None if support is None else {**support, "distanceAtr": (entry - float(support["level"])) / atr},
-    "resistance": None if resistance is None else {**resistance, "distanceAtr": (float(resistance["level"]) - entry) / atr},
+    "ladderZoneCount": len(ladder_zones),
+    "zones": [projected(zone) for zone in ladder_zones],
+    "support": None if support is None else projected(support),
+    "resistance": None if resistance is None else projected(resistance),
+    "supports": [projected(zone) for zone in sorted(supports, key=lambda row: float(row["level"]), reverse=True)],
+    "resistances": [projected(zone) for zone in sorted(resistances, key=lambda row: float(row["level"]))],
   }
 
 
@@ -1407,6 +1493,38 @@ def build_candidate_path_profile(
     if sign > 0 else max(0.0, (float(candle["high"]) - entry_value) / atr_value)
     for candle in window
   ]
+  market_context = build_entry_market_context(
+    candles, candle_times, int(entry_time), int(outcome["eventTime"]), entry_value,
+    atr_value, direction, outcome,
+  )
+  structure = market_context.get("supportResistance") or {}
+  tolerance = .25 * atr_value
+  projected_zones = [
+    zone for group in (structure.get("supports") or [], structure.get("resistances") or [])
+    for zone in group
+  ]
+  for direct_key in ("support", "resistance", "directionalBarrier"):
+    direct_zone = structure.get(direct_key)
+    if isinstance(direct_zone, dict):
+      projected_zones.append(direct_zone)
+  for zone in projected_zones:
+    kind = str(zone.get("kind") or "")
+    band_low = float(zone.get("bandLow") or zone["level"])
+    band_high = float(zone.get("bandHigh") or zone["level"])
+    state, state_at = "active", None
+    for candle in window:
+      if (kind == "support" and float(candle["close"]) < band_low - tolerance) or (
+        kind == "resistance" and float(candle["close"]) > band_high + tolerance
+      ):
+        state, state_at = "broken", int(candle["time"]) + H4_SECONDS
+        break
+      if (kind == "support" and float(candle["low"]) <= band_high + tolerance) or (
+        kind == "resistance" and float(candle["high"]) >= band_low - tolerance
+      ):
+        state, state_at = "testing", int(candle["time"])
+    zone["postEntryState"] = state
+    zone["postEntryStateAt"] = state_at
+    zone["postEntryStateIsHindsight"] = True
   return {
     "outcome": outcome,
     "eventTime": int(outcome["eventTime"]),
@@ -1418,13 +1536,8 @@ def build_candidate_path_profile(
     "candles": window,
     "favorable": favorable,
     "adverse": adverse,
-    "supportResistance": _entry_known_support_resistance(
-      candles, entry_index, entry_value, atr_value
-    ),
-    "marketContext": build_entry_market_context(
-      candles, candle_times, int(entry_time), int(outcome["eventTime"]), entry_value,
-      atr_value, direction, outcome,
-    ),
+    "supportResistance": structure,
+    "marketContext": market_context,
   }
 
 

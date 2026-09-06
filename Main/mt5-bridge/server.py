@@ -618,6 +618,18 @@ PRACTICAL_MODEL_HASH = hashlib.sha256(json.dumps(PRACTICAL_PATTERN_DEFINITIONS, 
 
 FMS_RESEARCH_INTELLIGENCE = (
   {
+    "id": "registered-sequential-price-structure-execution-v1", "status": "avoid", "market": "ALL",
+    "label": "Sequential H4 zone exits and wider targets",
+    "evidence": "A frozen 51-recipe pass tested full exits at the nearest zone, 50% nearest-zone partials with the registered target retained, and wider-zone continuation only after a completed H4 break. After pre-entry role-reversal invalidation was enforced, no rule cleared the declared older-development screen, so none advanced to later chronology.",
+    "conclusion": "Keep the complete entry-known zone ladder as descriptive trade context. Preserve every registered execution contract; do not promote this sequential exit family.",
+  },
+  {
+    "id": "registered-support-resistance-target-challenger-v1", "status": "avoid", "market": "ALL",
+    "label": "Adaptive H4 support/resistance targets",
+    "evidence": "A frozen 51-recipe pass tested nearest entry-known H4 barriers with retained stops, equal-risk stops, and 2:1 reward/risk. Five recipes improved by at least +0.05R in development; none retained a +0.05R uplift in later chronology.",
+    "conclusion": "Keep confirmed H4 zones as chart context. Do not replace registered TP/SL contracts with an adaptive barrier target from this rule family.",
+  },
+  {
     "id": "usdcad-us-pmi-orientation-rejected", "status": "avoid", "market": "USDCAD",
     "label": "US composite and services PMI",
     "evidence": "The corrected base/quote replay reversed the old registration and produced -0.22R across 47 later walk-forward cases.",
@@ -3949,6 +3961,24 @@ def research_chart_signals(
   source_versions = sorted({str(pattern["sourceVersion"]) for pattern in market_patterns})
   cacheable = from_ is None and to is None
   response_cache_key: Optional[str] = None
+  # The Charts surface needs an immediately usable last-known model while the
+  # bridge is ingesting calendar rows.  A calendar revision can otherwise make
+  # every pair switch rebuild years of research state before returning.  The
+  # lifecycle refresh explicitly opts out of this stale-while-refresh path and
+  # replaces the durable snapshot after the fresh calculation completes.
+  if cacheable and normalized_mode == "current" and not refresh:
+    raw_last_known = _research_store.get_metadata(f"fms_chart_response:current:{normalized_symbol}")
+    if raw_last_known:
+      try:
+        parsed_last_known = json.loads(raw_last_known)
+        last_known_response = parsed_last_known.get("response")
+        if (
+          isinstance(last_known_response, dict)
+          and last_known_response.get("modelHash") == PRACTICAL_MODEL_HASH
+        ):
+          return response_for_client(last_known_response)
+      except (TypeError, ValueError):
+        logger.warning("Ignoring unreadable last-known FMS response for %s", normalized_symbol)
   if cacheable:
     run_headers = [_research_store.latest_backtest_run_header(version) for version in source_versions]
     if all(run is not None and run.get("status") == "completed" for run in run_headers):
@@ -4777,7 +4807,26 @@ def research_chart_signal_target_ladder(
 ) -> Dict[str, Any]:
   """Build the expensive multi-target audit only for the arrow the user opened."""
   normalized_symbol = symbol.upper()
-  response = research_chart_signals(symbol=normalized_symbol, tf="H4", mode=mode)
+  normalized_mode = mode.lower()
+  ladder_cache_key = (
+    f"fms_target_ladder:v2:{PRACTICAL_MODEL_HASH}:{normalized_symbol}:{patternId}:{int(eventTime)}"
+  )
+  if normalized_mode == "research_replay":
+    raw_cached_ladder = _research_store.get_metadata(ladder_cache_key)
+    if raw_cached_ladder:
+      try:
+        cached_ladder = json.loads(raw_cached_ladder)
+        if isinstance(cached_ladder, dict):
+          return cached_ladder
+      except (TypeError, ValueError):
+        logger.warning("Ignoring unreadable FMS target-ladder cache for %s", patternId)
+  response = research_chart_signals(
+    symbol=normalized_symbol,
+    tf="H4",
+    mode=normalized_mode,
+    from_=eventTime if normalized_mode == "research_replay" else None,
+    to=eventTime if normalized_mode == "research_replay" else None,
+  )
   signal = next(
     (
       row for row in response.get("signals", [])
@@ -4827,12 +4876,15 @@ def research_chart_signal_target_ladder(
       signal.get("outcomeStatus") == "pending",
       m1_by_h4,
     )
-  return {
+  result = {
     "signal": {
       **signal,
       "pathAudit": {**(signal.get("pathAudit") or {}), "targetLadder": target_ladder},
     },
   }
+  if normalized_mode == "research_replay":
+    _research_store.set_metadata(ladder_cache_key, json.dumps(result, separators=(",", ":")))
+  return result
 
 
 def _demo_execution_payload(
@@ -5438,6 +5490,16 @@ def _prospective_context_ledger(
 @app.get("/research/chart-signals/global")
 def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict[str, Any]:
   """Return every practical current registry without changing the selected chart."""
+  durable_global_key = "fms_global_chart_response:v1"
+  if not refresh:
+    raw_last_known = _research_store.get_metadata(durable_global_key)
+    if raw_last_known:
+      try:
+        last_known = json.loads(raw_last_known)
+        if isinstance(last_known, dict) and last_known.get("modelHash") == PRACTICAL_MODEL_HASH:
+          return last_known
+      except (TypeError, ValueError):
+        logger.warning("Ignoring unreadable last-known global FMS response")
   effective_patterns = [_reconciled_pattern(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS]
   markets = [
     research_chart_signals(symbol=market, tf=tf, mode="current", refresh=refresh)
@@ -5600,7 +5662,7 @@ def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict
             })
     except (TypeError, ValueError):
       logger.warning("Ignoring unreadable FMS reaction-atlas intelligence")
-  return {
+  response = {
     "modelId": PRACTICAL_MODEL_ID,
     "modelHash": PRACTICAL_MODEL_HASH,
     "generatedAt": max((int(row.get("generatedAt") or 0) for row in markets), default=int(_time.time())),
@@ -5622,6 +5684,8 @@ def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict
     "researchIntelligence": [*registered, *atlas_intelligence, *FMS_RESEARCH_INTELLIGENCE],
     "explanation": "Registered means historically positive under its frozen no-lookahead recipe. Contender means potentially useful but unstable. Avoid means repeated tests did not support a standalone directional rule; it may still matter as context or volatility. Insufficient means the archive cannot support an honest conclusion yet.",
   }
+  _research_store.set_metadata(durable_global_key, json.dumps(response, separators=(",", ":")))
+  return response
 
 
 @app.get("/research/execution-challengers")

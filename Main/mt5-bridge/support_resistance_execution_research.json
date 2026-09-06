@@ -1,0 +1,2818 @@
+{
+  "activeRegistryPreserved": true,
+  "configuration": {
+    "laterGate": "N >= 10, positive average R, >= 0.05R uplift versus active, barrier applied in both partitions",
+    "schema": "fms-entry-known-support-resistance-execution-v1",
+    "selection": "highest development average-R uplift; minimum N 20, positive development average, and >= 0.05R development uplift",
+    "target": {
+      "fallback": "active target",
+      "level": "nearest directional barrier minus 0.10 ATR",
+      "minimumDistanceAtr": 0.5
+    },
+    "variants": [
+      {
+        "id": "barrier_cap_keep_stop",
+        "riskReward": null
+      },
+      {
+        "id": "barrier_equal_risk",
+        "riskReward": 1.0
+      },
+      {
+        "id": "barrier_two_to_one",
+        "riskReward": 2.0
+      }
+    ],
+    "zoneMethod": "confirmed H4 pivots; 120 completed bars; span 2; 0.25 ATR clustering; minimum 2 touches"
+  },
+  "configurationHash": "68c7d404634173a00b3bd32537a4ef0ce03bcc4dc28ab56b67a6bdbe447962a0",
+  "limitations": [
+    "This is reused historical research, not prospective validation or proof of executable fills.",
+    "H4 candles cannot order a stop and target touched inside the same candle; those cases remain ambiguous and are excluded from average R.",
+    "Confirmed pivot zones are deterministic approximations of support/resistance, not objective physical barriers or guaranteed reversal levels.",
+    "Spread, commission, slippage, swap, and gaps beyond recorded H4 prices are excluded."
+  ],
+  "recipes": 51,
+  "registryRevision": "6357eeb264fe97026dfcc884a405e744a3c14040db6c502af601929e575f6f41",
+  "rows": [
+    {
+      "activeExecution": {
+        "expiryCandles": 12,
+        "stopAtr": 1.5,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.1408513218605948,
+        "barrierAppliedN": 0,
+        "evaluableN": 72,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": -0.0026602501433321823,
+          "upper": 0.28436289386452174
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 3.7361090959550682,
+        "medianR": 0.5,
+        "positiveRate": 0.7361111111111112,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.7361111111111112
+      },
+      "baselineLater": {
+        "ambiguousN": 2,
+        "averageR": 0.1514009183040496,
+        "barrierAppliedN": 0,
+        "evaluableN": 31,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.07195166871171824,
+          "upper": 0.37475350531981744
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.0,
+        "medianR": 0.5,
+        "positiveRate": 0.7741935483870968,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.7419354838709677
+      },
+      "candleFingerprint": "11eab765c5a4c0c3700a29bbeea4e650927c92be941ae7a4dd75b2cd92a7b736",
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "label": "US industrial-production package",
+      "market": "EURUSD",
+      "patternId": "us-industrial-output-directional",
+      "selected": null,
+      "sourceExperimentId": "FMS-EURUSD-H4-E282",
+      "splitTime": 1684251000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 6,
+        "stopAtr": 1,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 3,
+        "averageR": 0.1611160410883137,
+        "barrierAppliedN": 0,
+        "evaluableN": 69,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.013523898899695741,
+          "upper": 0.30870818327693167
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 3.5,
+        "medianR": 0.5,
+        "positiveRate": 0.7681159420289855,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.7681159420289855
+      },
+      "baselineLater": {
+        "ambiguousN": 1,
+        "averageR": 0.125,
+        "barrierAppliedN": 0,
+        "evaluableN": 32,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.10364784868805871,
+          "upper": 0.3536478486880587
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.5,
+        "medianR": 0.5,
+        "positiveRate": 0.75,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.75
+      },
+      "candleFingerprint": "5b28c2b524c9f233eb02cc43aece3d01741d56822c6c81749565b38490c845f3",
+      "datasetFingerprint": "96f5d74cc57f106c9d241ab4cf9418ba9b199ac6d70948696bd6d8b54d2aeb1b",
+      "label": "US industrial-production package",
+      "market": "GBPUSD",
+      "patternId": "gbpusd-us-industrial-output",
+      "selected": null,
+      "sourceExperimentId": "FMS-GBPUSD-H4-E062",
+      "splitTime": 1682076600,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 60,
+        "stopAtr": 2,
+        "targetR": 1
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.07570740287009131,
+        "barrierAppliedN": 0,
+        "evaluableN": 240,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": -0.03884925440370787,
+          "upper": 0.1902640601438905
+        },
+        "longestLosingStreak": 5,
+        "maximumDrawdownR": 10.077533970070132,
+        "medianR": 0.23012998529131282,
+        "positiveRate": 0.5375,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.42916666666666664
+      },
+      "baselineLater": {
+        "ambiguousN": 2,
+        "averageR": 0.125,
+        "barrierAppliedN": 0,
+        "evaluableN": 112,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.05957584685771658,
+          "upper": 0.30957584685771655
+        },
+        "longestLosingStreak": 5,
+        "maximumDrawdownR": 8.0,
+        "medianR": 1.0,
+        "positiveRate": 0.5625,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.5625
+      },
+      "candleFingerprint": "c0a176e8eddf048b612bf66b0c57e889460b8e182eb64a83770e1dfd9ceb28c1",
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "label": "US consumer sentiment",
+      "market": "USDJPY",
+      "patternId": "usdjpy-us-consumer-sentiment",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDJPY-H4-E086",
+      "splitTime": 1685520000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "entryTimeframe": "H1",
+        "expiryCandles": 6,
+        "expiryTimeframe": "H4",
+        "stopAtr": 0.75,
+        "targetR": 4
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.24352837995937499,
+        "barrierAppliedN": 0,
+        "evaluableN": 72,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": -0.11004593649415084,
+          "upper": 0.5971026964129008
+        },
+        "longestLosingStreak": 6,
+        "maximumDrawdownR": 9.465389331848531,
+        "medianR": -0.20332015302386355,
+        "positiveRate": 0.4305555555555556,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.06944444444444445
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.5091380837405485,
+        "barrierAppliedN": 0,
+        "evaluableN": 25,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.21469464850362574,
+          "upper": 1.2329708159847228
+        },
+        "longestLosingStreak": 4,
+        "maximumDrawdownR": 4.0,
+        "medianR": -0.24066046418498543,
+        "positiveRate": 0.44,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.12
+      },
+      "candleFingerprint": "9e09d3a195c711486ecb053d97d5ceb716649771dbbad775e06af40e7e714369",
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "label": "Japan labor wages",
+      "market": "USDJPY",
+      "patternId": "usdjpy-jpy-labor-wages",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDJPY-H4-E087",
+      "splitTime": 1685719800,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 30,
+        "managementFamily": "break_even",
+        "managementTriggerR": 0.5,
+        "stopAtr": 0.5,
+        "targetR": 4.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.11098849340347215,
+        "barrierAppliedN": 0,
+        "evaluableN": 142,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": -0.136759255127421,
+          "upper": 0.35873624193436526
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 10.0,
+        "medianR": 0.0,
+        "positiveRate": 0.1267605633802817,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.11267605633802817
+      },
+      "baselineLater": {
+        "ambiguousN": 2,
+        "averageR": 0.515625,
+        "barrierAppliedN": 0,
+        "evaluableN": 64,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": 0.0683348858899791,
+          "upper": 0.962915114110021
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 5.0,
+        "medianR": 0.0,
+        "positiveRate": 0.203125,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.203125
+      },
+      "candleFingerprint": "6bf9e51254d8fe96805a1a620147c81f6416d0275f6e0dbb18f4327d4e6994fb",
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "label": "Japan headline and core inflation",
+      "market": "USDJPY",
+      "patternId": "usdjpy-jpy-inflation",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDJPY-H4-E088",
+      "splitTime": 1690558200,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "entryTimeframe": "H1",
+        "expiryCandles": 60,
+        "expiryTimeframe": "H4",
+        "managementFamily": "break_even",
+        "managementTriggerR": 1.5,
+        "stopAtr": 2.0,
+        "targetR": 2.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.4241190746500087,
+        "barrierAppliedN": 0,
+        "evaluableN": 62,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.019618027007042294,
+          "upper": 0.8286201222929751
+        },
+        "longestLosingStreak": 7,
+        "maximumDrawdownR": 7.5,
+        "medianR": -0.8002312183942899,
+        "positiveRate": 0.41935483870967744,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.3387096774193548
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.3853545337314172,
+        "barrierAppliedN": 0,
+        "evaluableN": 31,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.14392263407322387,
+          "upper": 0.9146317015360583
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 3.0759867206778573,
+        "medianR": 0.0,
+        "positiveRate": 0.3548387096774194,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.2903225806451613
+      },
+      "candleFingerprint": "73b091939216f1e2fad7735fa4d7d0376769149a95d35e781870c51098026c8d",
+      "datasetFingerprint": "3004f4677e656baa24faae6ac9eba9c0eacd53adca942836f077fb7b4c0c9abd",
+      "label": "US producer inflation",
+      "market": "AUDUSD",
+      "patternId": "audusd-us-producer-inflation",
+      "selected": null,
+      "sourceExperimentId": "FMS-AUDUSD-H4-E050",
+      "splitTime": 1688052600,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 30,
+        "stopAtr": 1.5,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.08947368421052632,
+        "barrierAppliedN": 0,
+        "evaluableN": 95,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": -0.04572454945325993,
+          "upper": 0.22467191787431257
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 4.0,
+        "medianR": 0.5,
+        "positiveRate": 0.7263157894736842,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.7263157894736842
+      },
+      "baselineLater": {
+        "ambiguousN": 1,
+        "averageR": 0.20967741935483872,
+        "barrierAppliedN": 0,
+        "evaluableN": 31,
+        "evaluableYears": 3,
+        "expectancyCi95": {
+          "lower": -0.0023883823822381522,
+          "upper": 0.4217432210919156
+        },
+        "longestLosingStreak": 1,
+        "maximumDrawdownR": 1.5,
+        "medianR": 0.5,
+        "positiveRate": 0.8064516129032258,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.8064516129032258
+      },
+      "candleFingerprint": "069a57fc6a9ff19955aea7f0a82770ccdbdc1ec7244f689b95aa495582da18a7",
+      "datasetFingerprint": "3004f4677e656baa24faae6ac9eba9c0eacd53adca942836f077fb7b4c0c9abd",
+      "label": "Australia business confidence rejection",
+      "market": "AUDUSD",
+      "patternId": "audusd-business-confidence-rejection",
+      "selected": null,
+      "sourceExperimentId": "FMS-AUDUSD-H4-E051",
+      "splitTime": 1676345400,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 60,
+        "stopAtr": 2,
+        "targetR": 4
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.2708913782722098,
+        "barrierAppliedN": 0,
+        "evaluableN": 224,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.02899164935512802,
+          "upper": 0.5127911071892917
+        },
+        "longestLosingStreak": 10,
+        "maximumDrawdownR": 11.885055591816094,
+        "medianR": -1.0,
+        "positiveRate": 0.35714285714285715,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.12053571428571429
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.21776239772790032,
+        "barrierAppliedN": 0,
+        "evaluableN": 132,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.10147602910241973,
+          "upper": 0.5370008245582204
+        },
+        "longestLosingStreak": 7,
+        "maximumDrawdownR": 12.502946437603068,
+        "medianR": -1.0,
+        "positiveRate": 0.3560606060606061,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.15151515151515152
+      },
+      "candleFingerprint": "2467a7515ed08bcea1405fff7095f173de724b604afc425ebcf93f4ac40ee303",
+      "datasetFingerprint": "96f5d74cc57f106c9d241ab4cf9418ba9b199ac6d70948696bd6d8b54d2aeb1b",
+      "label": "US labor claims \u00b7 ordinary magnitude",
+      "market": "GBPUSD",
+      "patternId": "gbpusd-us-labor-claims",
+      "selected": null,
+      "sourceExperimentId": "FMS-GBPUSD-H4-E061",
+      "splitTime": 1686843000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 30,
+        "managementFamily": "break_even",
+        "managementTriggerR": 1.0,
+        "stopAtr": 1.25,
+        "targetR": 2.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.3629032258064516,
+        "barrierAppliedN": 0,
+        "evaluableN": 62,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": -0.0314280018107459,
+          "upper": 0.7572344534236491
+        },
+        "longestLosingStreak": 5,
+        "maximumDrawdownR": 5.5,
+        "medianR": 0.0,
+        "positiveRate": 0.3387096774193548,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.3387096774193548
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.49033179494652546,
+        "barrierAppliedN": 0,
+        "evaluableN": 32,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.025331970041575724,
+          "upper": 1.0059955599346266
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.0,
+        "medianR": 0.0,
+        "positiveRate": 0.34375,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.3125
+      },
+      "candleFingerprint": "93dc9e641f9c7703270b5d82341a2942aea7019e55374d2ffbc1e69903525bb7",
+      "datasetFingerprint": "235163109f95be38c8436174658589d2f3394057585b3694b415a1df7927d2e1",
+      "label": "US producer inflation",
+      "market": "NZDUSD",
+      "patternId": "nzdusd-us-producer-inflation",
+      "selected": null,
+      "sourceExperimentId": "FMS-NZDUSD-H4-E044",
+      "splitTime": 1688139000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 30,
+        "stopAtr": 1.5,
+        "targetR": 4
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.4342374497901401,
+        "barrierAppliedN": 0,
+        "evaluableN": 136,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.11942312867497684,
+          "upper": 0.7490517709053034
+        },
+        "longestLosingStreak": 9,
+        "maximumDrawdownR": 10.449337909062109,
+        "medianR": -1.0,
+        "positiveRate": 0.40441176470588236,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.11029411764705882
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.15327223228561404,
+        "barrierAppliedN": 0,
+        "evaluableN": 62,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.29572553836758253,
+          "upper": 0.6022700029388106
+        },
+        "longestLosingStreak": 8,
+        "maximumDrawdownR": 12.529272890744881,
+        "medianR": -1.0,
+        "positiveRate": 0.3225806451612903,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.12903225806451613
+      },
+      "candleFingerprint": "54ac23a123b5f899b51f3a66e55f0dec03527971e75f7392d8bdcb43f9c4b2c6",
+      "datasetFingerprint": "235163109f95be38c8436174658589d2f3394057585b3694b415a1df7927d2e1",
+      "label": "US trade balance",
+      "market": "NZDUSD",
+      "patternId": "nzdusd-us-trade-balance",
+      "selected": null,
+      "sourceExperimentId": "FMS-NZDUSD-H4-E045",
+      "splitTime": 1682523000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "entryTimeframe": "H1",
+        "expiryCandles": 60,
+        "expiryTimeframe": "H4",
+        "stopAtr": 1.5,
+        "targetR": 4
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.3581596405028541,
+        "barrierAppliedN": 0,
+        "evaluableN": 184,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.0926867986569952,
+          "upper": 0.6236324823487129
+        },
+        "longestLosingStreak": 13,
+        "maximumDrawdownR": 13.0,
+        "medianR": -1.0,
+        "positiveRate": 0.40217391304347827,
+        "positiveYears": 8,
+        "tpBeforeSl": 0.15217391304347827
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.14668154087269314,
+        "barrierAppliedN": 0,
+        "evaluableN": 80,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.2820868279035513,
+          "upper": 0.5754499096489376
+        },
+        "longestLosingStreak": 9,
+        "maximumDrawdownR": 11.652397600798167,
+        "medianR": -1.0,
+        "positiveRate": 0.2875,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.1625
+      },
+      "candleFingerprint": "d51037c7819772f75dc932cbc961fdf814fda56f49ee4e52b88a7ebbcef7d3cc",
+      "datasetFingerprint": "38888aa4b8f32ee54db97ed2f5c58e779cbc8d4d150bd25b65121827cc139984",
+      "label": "US headline and core inflation",
+      "market": "USDCAD",
+      "patternId": "usdcad-us-consumer-inflation",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDCAD-H4-E054",
+      "splitTime": 1695051000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 30,
+        "stopAtr": 2,
+        "targetR": 1
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.1638968671709788,
+        "barrierAppliedN": 0,
+        "evaluableN": 61,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": -0.034659464152723224,
+          "upper": 0.36245319849468083
+        },
+        "longestLosingStreak": 4,
+        "maximumDrawdownR": 4.0,
+        "medianR": 0.32779497347968817,
+        "positiveRate": 0.6065573770491803,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.3442622950819672
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.2894114892977416,
+        "barrierAppliedN": 0,
+        "evaluableN": 30,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.049249878813094894,
+          "upper": 0.6280728574085781
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.0,
+        "medianR": 1.0,
+        "positiveRate": 0.6333333333333333,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.6
+      },
+      "candleFingerprint": "4d3ca79417e93aba29c4c40d13bb1478b02adf51348a4cdd6fa8609a64f6f325",
+      "datasetFingerprint": "38888aa4b8f32ee54db97ed2f5c58e779cbc8d4d150bd25b65121827cc139984",
+      "label": "US producer inflation",
+      "market": "USDCAD",
+      "patternId": "usdcad-us-producer-inflation",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDCAD-H4-E055",
+      "splitTime": 1695051000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 30,
+        "stopAtr": 1.5,
+        "targetR": 4
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.5093268275917053,
+        "barrierAppliedN": 0,
+        "evaluableN": 53,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.07137388216263701,
+          "upper": 0.9472797730207736
+        },
+        "longestLosingStreak": 5,
+        "maximumDrawdownR": 7.349465428421088,
+        "medianR": 0.06703887656700443,
+        "positiveRate": 0.5094339622641509,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.07547169811320754
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.27865844342096513,
+        "barrierAppliedN": 0,
+        "evaluableN": 31,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.4415853120831038,
+          "upper": 0.9989021989250341
+        },
+        "longestLosingStreak": 6,
+        "maximumDrawdownR": 7.0985652471131715,
+        "medianR": -1.0,
+        "positiveRate": 0.3225806451612903,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.1935483870967742
+      },
+      "candleFingerprint": "6460f603a215c654e64bbb62c1fd89fd7ada2cdfaa61f9cbe824d264b569929b",
+      "datasetFingerprint": "38888aa4b8f32ee54db97ed2f5c58e779cbc8d4d150bd25b65121827cc139984",
+      "label": "Canada retail sales",
+      "market": "USDCAD",
+      "patternId": "usdcad-canada-retail-sales",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDCAD-H4-E056",
+      "splitTime": 1682695800,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "entryTimeframe": "H1",
+        "expiryCandles": 6,
+        "expiryTimeframe": "H4",
+        "stopAtr": 1,
+        "targetR": 2
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.32116229093961196,
+        "barrierAppliedN": 0,
+        "evaluableN": 69,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": 0.08531824442139152,
+          "upper": 0.5570063374578325
+        },
+        "longestLosingStreak": 4,
+        "maximumDrawdownR": 4.009793529145565,
+        "medianR": 0.18111409680940094,
+        "positiveRate": 0.6086956521739131,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.15942028985507245
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.08198652913217455,
+        "barrierAppliedN": 0,
+        "evaluableN": 32,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.3839684120835253,
+          "upper": 0.5479414703478743
+        },
+        "longestLosingStreak": 7,
+        "maximumDrawdownR": 6.0888477939858205,
+        "medianR": -1.0,
+        "positiveRate": 0.375,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.28125
+      },
+      "candleFingerprint": "70acfffb2c374a75dccc5e7c108579378333c04e97b511184c488b1053e2ffee",
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "label": "US producer inflation rejection",
+      "market": "USDJPY",
+      "patternId": "usdjpy-us-producer-inflation-rejection",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDJPY-H4-E089",
+      "splitTime": 1690558200,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 60,
+        "stopAtr": 2,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.07229262935955041,
+        "barrierAppliedN": 0,
+        "evaluableN": 135,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": -0.036609064282501436,
+          "upper": 0.18119432300160226
+        },
+        "longestLosingStreak": 5,
+        "maximumDrawdownR": 6.5,
+        "medianR": 0.5,
+        "positiveRate": 0.6962962962962963,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.6592592592592592
+      },
+      "baselineLater": {
+        "ambiguousN": 1,
+        "averageR": 0.09821428571428571,
+        "barrierAppliedN": 0,
+        "evaluableN": 56,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.0773416494278688,
+          "upper": 0.2737702208564402
+        },
+        "longestLosingStreak": 5,
+        "maximumDrawdownR": 5.0,
+        "medianR": 0.5,
+        "positiveRate": 0.7321428571428571,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.7321428571428571
+      },
+      "candleFingerprint": "459218e89490d46778c74594e433b296cf33a426e3fb717b182b23393026f5d3",
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "label": "US manufacturing employment",
+      "market": "USDJPY",
+      "patternId": "usdjpy-us-manufacturing-employment",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDJPY-H4-E090",
+      "splitTime": 1680231000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 30,
+        "stopAtr": 2,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.05670472030024882,
+        "barrierAppliedN": 0,
+        "evaluableN": 71,
+        "evaluableYears": 6,
+        "expectancyCi95": {
+          "lower": -0.08801162824247485,
+          "upper": 0.20142106884297248
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 4.5,
+        "medianR": 0.5,
+        "positiveRate": 0.6619718309859155,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.6056338028169014
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.14473684210526316,
+        "barrierAppliedN": 0,
+        "evaluableN": 38,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.0607495776723814,
+          "upper": 0.35022326188290775
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 3.0,
+        "medianR": 0.5,
+        "positiveRate": 0.7631578947368421,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.7631578947368421
+      },
+      "candleFingerprint": "420890bca68235c076108b67631a8d39b692eca7fb904cc30b5daf129038da9d",
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "label": "US trade balance \u00b7 ordinary magnitude",
+      "market": "USDJPY",
+      "patternId": "usdjpy-us-trade-balance-ordinary",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDJPY-H4-E091",
+      "splitTime": 1680231000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 12,
+        "stopAtr": 0.75,
+        "targetR": 4.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.6163002887582241,
+        "barrierAppliedN": 0,
+        "evaluableN": 110,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": 0.2191192731459375,
+          "upper": 1.0134813043705106
+        },
+        "longestLosingStreak": 8,
+        "maximumDrawdownR": 13.692832546422656,
+        "medianR": -1.0,
+        "positiveRate": 0.4090909090909091,
+        "positiveYears": 7,
+        "tpBeforeSl": 0.24545454545454545
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.22551686377070446,
+        "barrierAppliedN": 0,
+        "evaluableN": 44,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.39329932879386076,
+          "upper": 0.8443330563352697
+        },
+        "longestLosingStreak": 9,
+        "maximumDrawdownR": 9.0,
+        "medianR": -1.0,
+        "positiveRate": 0.2727272727272727,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.20454545454545456
+      },
+      "candleFingerprint": "1f080e721feeeb83acdb2f2cc007bffce601dbe2865d1bf8172d966f57aeda81",
+      "datasetFingerprint": "3004f4677e656baa24faae6ac9eba9c0eacd53adca942836f077fb7b4c0c9abd",
+      "label": "ISM Manufacturing Employment",
+      "market": "AUDUSD",
+      "patternId": "audusd-ism-manufacturing-employment-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-AUDUSD-H4-E055",
+      "splitTime": 1682906400,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 6,
+        "stopAtr": 2.0,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.15439190993683807,
+        "barrierAppliedN": 0,
+        "evaluableN": 47,
+        "evaluableYears": 5,
+        "expectancyCi95": {
+          "lower": -0.001555161296570906,
+          "upper": 0.31033898117024705
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.027390191373514,
+        "medianR": 0.5,
+        "positiveRate": 0.723404255319149,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.6170212765957447
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.07076331267988023,
+        "barrierAppliedN": 0,
+        "evaluableN": 36,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.11518058000419151,
+          "upper": 0.256707205363952
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 2.416679319056077,
+        "medianR": 0.5,
+        "positiveRate": 0.6111111111111112,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.5555555555555556
+      },
+      "candleFingerprint": "6d4de81735011cf915b017e2a84b252f7273a06b1cf0aff1fba9f3554e174185",
+      "datasetFingerprint": "3004f4677e656baa24faae6ac9eba9c0eacd53adca942836f077fb7b4c0c9abd",
+      "label": "S&P Global Manufacturing PMI",
+      "market": "AUDUSD",
+      "patternId": "audusd-s-p-global-manufacturing-pmi",
+      "selected": null,
+      "sourceExperimentId": "FMS-AUDUSD-H4-E057",
+      "splitTime": 1682906400,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 30,
+        "stopAtr": 1.5,
+        "targetR": 1.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.34782608695652173,
+        "barrierAppliedN": 0,
+        "evaluableN": 46,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": 0.07389050012251897,
+          "upper": 0.6217616737905245
+        },
+        "longestLosingStreak": 4,
+        "maximumDrawdownR": 4.0,
+        "medianR": 1.0,
+        "positiveRate": 0.6739130434782609,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.6739130434782609
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.13722336877090646,
+        "barrierAppliedN": 0,
+        "evaluableN": 31,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.21174316985323355,
+          "upper": 0.4861899073950465
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 4.0,
+        "medianR": 1.0,
+        "positiveRate": 0.5806451612903226,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.5483870967741935
+      },
+      "candleFingerprint": "9523ac7a2df11ee102878170999ea5ca250d8488e92a3a3699303516d2ff7f0c",
+      "datasetFingerprint": "3004f4677e656baa24faae6ac9eba9c0eacd53adca942836f077fb7b4c0c9abd",
+      "label": "US payroll",
+      "market": "AUDUSD",
+      "patternId": "audusd-us-payroll-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-AUDUSD-H4-E058",
+      "splitTime": 1688656500,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 6,
+        "stopAtr": 1.0,
+        "targetR": 1.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 2,
+        "averageR": 0.35991021455399436,
+        "barrierAppliedN": 0,
+        "evaluableN": 39,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": 0.07886840781475424,
+          "upper": 0.6409520212932345
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 3.194177940965689,
+        "medianR": 1.0,
+        "positiveRate": 0.6666666666666666,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.6410256410256411
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.19298061203935757,
+        "barrierAppliedN": 0,
+        "evaluableN": 27,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.16394934400182232,
+          "upper": 0.5499105680805374
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 3.0,
+        "medianR": 1.0,
+        "positiveRate": 0.5555555555555556,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.5555555555555556
+      },
+      "candleFingerprint": "9c797910ffaf63e8da109c56cf134963e4143815e80bfbdc549bdc214e637f8e",
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "label": "Business Climate Indicator",
+      "market": "EURUSD",
+      "patternId": "eurusd-business-climate-indicator-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-EURUSD-H4-E283",
+      "splitTime": 1683545400,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 30,
+        "stopAtr": 2.0,
+        "targetR": 4.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.37252273831304195,
+        "barrierAppliedN": 0,
+        "evaluableN": 133,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": 0.10670590398737934,
+          "upper": 0.6383395726387046
+        },
+        "longestLosingStreak": 8,
+        "maximumDrawdownR": 6.2374688025985705,
+        "medianR": -0.15834133223499855,
+        "positiveRate": 0.45864661654135336,
+        "positiveYears": 7,
+        "tpBeforeSl": 0.03007518796992481
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.11320323867530994,
+        "barrierAppliedN": 0,
+        "evaluableN": 73,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.2488972987564535,
+          "upper": 0.4753037761070734
+        },
+        "longestLosingStreak": 10,
+        "maximumDrawdownR": 9.570400757923863,
+        "medianR": -1.0,
+        "positiveRate": 0.3972602739726027,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.0684931506849315
+      },
+      "candleFingerprint": "2f940f2d88dc83d1bea6961382d976d57b6237f5eba69ebdf78704090cefb407",
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "label": "US CPI \u00b7 ordinary magnitude",
+      "market": "EURUSD",
+      "patternId": "eurusd-cpi-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-EURUSD-H4-E284",
+      "splitTime": 1689768000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 6,
+        "stopAtr": 2.0,
+        "targetR": 1.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.14025406988247965,
+        "barrierAppliedN": 0,
+        "evaluableN": 112,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": 0.018625856080788483,
+          "upper": 0.2618822836841708
+        },
+        "longestLosingStreak": 6,
+        "maximumDrawdownR": 3.48713038991694,
+        "medianR": 0.18122556130826362,
+        "positiveRate": 0.5982142857142857,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.21428571428571427
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.0956832782833317,
+        "barrierAppliedN": 0,
+        "evaluableN": 42,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.1352961792605591,
+          "upper": 0.3266627358272225
+        },
+        "longestLosingStreak": 4,
+        "maximumDrawdownR": 3.256643748652837,
+        "medianR": 0.11812387777407542,
+        "positiveRate": 0.5714285714285714,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.2857142857142857
+      },
+      "candleFingerprint": "6296bddd6fb8f3c5d5a67daf2ed559ce5a7b9945485a10c4a539cf2f4edf2c1e",
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "label": "US manufacturing employment rejection",
+      "market": "EURUSD",
+      "patternId": "eurusd-ism-manufacturing-employment-package",
+      "selected": {
+        "development": {
+          "ambiguousN": 6,
+          "averageR": 0.2191751888254228,
+          "barrierAppliedN": 30,
+          "evaluableN": 106,
+          "evaluableYears": 7,
+          "expectancyCi95": {
+            "lower": 0.049274107460327565,
+            "upper": 0.38907627019051805
+          },
+          "longestLosingStreak": 6,
+          "maximumDrawdownR": 3.4871303899169384,
+          "medianR": 0.17347577414995613,
+          "positiveRate": 0.5849056603773585,
+          "positiveYears": 6,
+          "tpBeforeSl": 0.25471698113207547
+        },
+        "developmentUpliftR": 0.07892111894294315,
+        "later": {
+          "ambiguousN": 0,
+          "averageR": 0.027308097955480372,
+          "barrierAppliedN": 13,
+          "evaluableN": 42,
+          "evaluableYears": 4,
+          "expectancyCi95": {
+            "lower": -0.28097994629133677,
+            "upper": 0.33559614220229755
+          },
+          "longestLosingStreak": 6,
+          "maximumDrawdownR": 5.48603639135502,
+          "medianR": -0.1131267318487572,
+          "positiveRate": 0.47619047619047616,
+          "positiveYears": 1,
+          "tpBeforeSl": 0.2857142857142857
+        },
+        "laterUpliftR": -0.06837518032785134,
+        "variant": {
+          "id": "barrier_two_to_one",
+          "riskReward": 2.0
+        }
+      },
+      "sourceExperimentId": "FMS-EURUSD-H4-E286",
+      "splitTime": 1684251000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "entryTimeframe": "H1",
+        "expiryCandles": 30,
+        "expiryTimeframe": "H4",
+        "stopAtr": 2.0,
+        "targetR": 4.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.5894628998878729,
+        "barrierAppliedN": 0,
+        "evaluableN": 67,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.20205997040632012,
+          "upper": 0.9768658293694257
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 4.136435181515025,
+        "medianR": 0.322819572259017,
+        "positiveRate": 0.5373134328358209,
+        "positiveYears": 7,
+        "tpBeforeSl": 0.04477611940298507
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.08251022673870564,
+        "barrierAppliedN": 0,
+        "evaluableN": 28,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.4147662993633964,
+          "upper": 0.5797867528408076
+        },
+        "longestLosingStreak": 5,
+        "maximumDrawdownR": 5.0,
+        "medianR": -1.0,
+        "positiveRate": 0.42857142857142855,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.0
+      },
+      "candleFingerprint": "f40e024549ababb72a7ffecf6e1d4cb76967f6457cd2e28dd3864dccd4c1f541",
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "label": "Euro-area retail sales",
+      "market": "EURUSD",
+      "patternId": "eurusd-retail-sales-m-m-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-EURUSD-H4-E287",
+      "splitTime": 1684251000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 6,
+        "stopAtr": 2.0,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.06905155634380526,
+        "barrierAppliedN": 0,
+        "evaluableN": 29,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": -0.13434188468771463,
+          "upper": 0.2724449973753251
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.148501633570332,
+        "medianR": 0.5,
+        "positiveRate": 0.6206896551724138,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.5517241379310345
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.15918974160413368,
+        "barrierAppliedN": 0,
+        "evaluableN": 25,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.05371977487589025,
+          "upper": 0.3720992580841576
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.0706979012747313,
+        "medianR": 0.5,
+        "positiveRate": 0.72,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.64
+      },
+      "candleFingerprint": "6dc42a9b7ac9a102bec92a1cd2108c4745e9b3eca89c83cc4eb18d563b6071cf",
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "label": "Euro-area composite PMI",
+      "market": "EURUSD",
+      "patternId": "eurusd-s-p-global-composite-pmi-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-EURUSD-H4-E288",
+      "splitTime": 1684251000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 12,
+        "stopAtr": 2.0,
+        "targetR": 2.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.267924873181631,
+        "barrierAppliedN": 0,
+        "evaluableN": 41,
+        "evaluableYears": 5,
+        "expectancyCi95": {
+          "lower": -0.08029954205789414,
+          "upper": 0.6161492884211561
+        },
+        "longestLosingStreak": 5,
+        "maximumDrawdownR": 5.615170033057847,
+        "medianR": 0.4091190427553727,
+        "positiveRate": 0.5609756097560976,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.14634146341463414
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.4873562303347124,
+        "barrierAppliedN": 0,
+        "evaluableN": 16,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.0824976625508641,
+          "upper": 1.057210123220289
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.597055788051433,
+        "medianR": 0.5563474487239737,
+        "positiveRate": 0.6875,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.25
+      },
+      "candleFingerprint": "2f0de52adf70113dbf2308a4cc11c0ae4b8dffdbc29674958abc07f1d1ff4854",
+      "datasetFingerprint": "96f5d74cc57f106c9d241ab4cf9418ba9b199ac6d70948696bd6d8b54d2aeb1b",
+      "label": "UK labor package rejection",
+      "market": "GBPUSD",
+      "patternId": "gbpusd-average-weekly-earnings-regular-pay-y-y-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-GBPUSD-H4-E063",
+      "splitTime": 1686843000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 12,
+        "stopAtr": 2.0,
+        "targetR": 1.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.2970197415601455,
+        "barrierAppliedN": 0,
+        "evaluableN": 51,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.08335923484375457,
+          "upper": 0.5106802482765365
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.561421483324148,
+        "medianR": 0.5685284862409676,
+        "positiveRate": 0.6666666666666666,
+        "positiveYears": 8,
+        "tpBeforeSl": 0.43137254901960786
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.14205656005116368,
+        "barrierAppliedN": 0,
+        "evaluableN": 17,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.25285612413282627,
+          "upper": 0.5369692442351537
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 1.865877351425614,
+        "medianR": 0.07857965100460208,
+        "positiveRate": 0.5294117647058824,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.4117647058823529
+      },
+      "candleFingerprint": "1101935c0ee88ef402dc29d5f52975d301a1835c068ea109dc83de82be535f4b",
+      "datasetFingerprint": "96f5d74cc57f106c9d241ab4cf9418ba9b199ac6d70948696bd6d8b54d2aeb1b",
+      "label": "US GDP rejection",
+      "market": "GBPUSD",
+      "patternId": "gbpusd-gdp-sales-q-q-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-GBPUSD-H4-E065",
+      "splitTime": 1682076600,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "entryTimeframe": "H1",
+        "expiryCandles": 6,
+        "expiryTimeframe": "H4",
+        "stopAtr": 2.0,
+        "targetR": 1.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.05476191816990928,
+        "barrierAppliedN": 0,
+        "evaluableN": 55,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": -0.11763720265386429,
+          "upper": 0.22716103899368284
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 3.368230464339522,
+        "medianR": 0.10207026929801018,
+        "positiveRate": 0.5454545454545454,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.18181818181818182
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.09767505583506801,
+        "barrierAppliedN": 0,
+        "evaluableN": 30,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.143122845041039,
+          "upper": 0.33847295671117505
+        },
+        "longestLosingStreak": 4,
+        "maximumDrawdownR": 3.566055817332389,
+        "medianR": 0.10055193397836046,
+        "positiveRate": 0.5666666666666667,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.2
+      },
+      "candleFingerprint": "5a98f096b182ef146f4b4004d124eb9cd6278122fe027d1d88fcf5aa88e5f567",
+      "datasetFingerprint": "96f5d74cc57f106c9d241ab4cf9418ba9b199ac6d70948696bd6d8b54d2aeb1b",
+      "label": "US services activity",
+      "market": "GBPUSD",
+      "patternId": "gbpusd-ism-non-manufacturing-business-activity-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-GBPUSD-H4-E066",
+      "splitTime": 1682076600,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 12,
+        "stopAtr": 1.0,
+        "targetR": 4.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.8441511170449207,
+        "barrierAppliedN": 0,
+        "evaluableN": 37,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.1962405050921755,
+          "upper": 1.4920617289976659
+        },
+        "longestLosingStreak": 7,
+        "maximumDrawdownR": 7.0,
+        "medianR": 0.45470289619697934,
+        "positiveRate": 0.5135135135135135,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.10810810810810811
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.49088644063996734,
+        "barrierAppliedN": 0,
+        "evaluableN": 21,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.3534525577792388,
+          "upper": 1.3352254390591733
+        },
+        "longestLosingStreak": 6,
+        "maximumDrawdownR": 6.0,
+        "medianR": -1.0,
+        "positiveRate": 0.42857142857142855,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.14285714285714285
+      },
+      "candleFingerprint": "24a1d5d4246237c2c6727c3d3e684e2ea12e5f9a4b559332a7be0a1904b2cb19",
+      "datasetFingerprint": "235163109f95be38c8436174658589d2f3394057585b3694b415a1df7927d2e1",
+      "label": "New Zealand GDP rejection",
+      "market": "NZDUSD",
+      "patternId": "nzdusd-gdp-annual-change-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-NZDUSD-H4-E048",
+      "splitTime": 1682523000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 30,
+        "stopAtr": 1.0,
+        "targetR": 1.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 1,
+        "averageR": 0.28,
+        "barrierAppliedN": 0,
+        "evaluableN": 50,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.011200000000000043,
+          "upper": 0.5488
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.0,
+        "medianR": 1.0,
+        "positiveRate": 0.64,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.64
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.25,
+        "barrierAppliedN": 0,
+        "evaluableN": 16,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.24,
+          "upper": 0.74
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.0,
+        "medianR": 1.0,
+        "positiveRate": 0.625,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.625
+      },
+      "candleFingerprint": "e043f9dd9c73582f3bb4290e844a30c900aeefd3496ce24756255d2eabb2c87f",
+      "datasetFingerprint": "235163109f95be38c8436174658589d2f3394057585b3694b415a1df7927d2e1",
+      "label": "US GDP",
+      "market": "NZDUSD",
+      "patternId": "nzdusd-gdp-sales-q-q-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-NZDUSD-H4-E049",
+      "splitTime": 1682523000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 60,
+        "stopAtr": 2.0,
+        "targetR": 1.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 1,
+        "averageR": 0.4857142857142857,
+        "barrierAppliedN": 0,
+        "evaluableN": 35,
+        "evaluableYears": 6,
+        "expectancyCi95": {
+          "lower": 0.19189080929669644,
+          "upper": 0.779537762131875
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.0,
+        "medianR": 1.0,
+        "positiveRate": 0.7428571428571429,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.7428571428571429
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.23076923076923078,
+        "barrierAppliedN": 0,
+        "evaluableN": 26,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.1506501054726168,
+          "upper": 0.6121885670110784
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 3.0,
+        "medianR": 1.0,
+        "positiveRate": 0.6153846153846154,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.6153846153846154
+      },
+      "candleFingerprint": "2634d44e3e94e7860d8c268ab9c330701493c1f1c8389c10a0ba77c4fcacb17c",
+      "datasetFingerprint": "235163109f95be38c8436174658589d2f3394057585b3694b415a1df7927d2e1",
+      "label": "US payroll rejection",
+      "market": "NZDUSD",
+      "patternId": "nzdusd-us-payroll-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-NZDUSD-H4-E052",
+      "splitTime": 1686843000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 12,
+        "stopAtr": 1.5,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.04131054439706222,
+        "barrierAppliedN": 0,
+        "evaluableN": 42,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": -0.12690292381991292,
+          "upper": 0.20952401261403736
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 3.311517605233885,
+        "medianR": 0.31137324744655837,
+        "positiveRate": 0.6190476190476191,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.5
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.09615384615384616,
+        "barrierAppliedN": 0,
+        "evaluableN": 26,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.16465949252563183,
+          "upper": 0.3569671848333241
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.5,
+        "medianR": 0.5,
+        "positiveRate": 0.7307692307692307,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.7307692307692307
+      },
+      "candleFingerprint": "1656b8f8db783ab90c834215e4f7e0df3fdd0a27575592b234fc836f3d66009f",
+      "datasetFingerprint": "38888aa4b8f32ee54db97ed2f5c58e779cbc8d4d150bd25b65121827cc139984",
+      "label": "Canada GDP rejection",
+      "market": "USDCAD",
+      "patternId": "usdcad-gdp-annualized-q-q-package",
+      "selected": {
+        "development": {
+          "ambiguousN": 0,
+          "averageR": 0.12458372092298757,
+          "barrierAppliedN": 3,
+          "evaluableN": 42,
+          "evaluableYears": 7,
+          "expectancyCi95": {
+            "lower": -0.08587007117872923,
+            "upper": 0.33503751302470436
+          },
+          "longestLosingStreak": 3,
+          "maximumDrawdownR": 3.3115176052338846,
+          "medianR": 0.5,
+          "positiveRate": 0.6190476190476191,
+          "positiveYears": 4,
+          "tpBeforeSl": 0.5238095238095238
+        },
+        "developmentUpliftR": 0.08327317652592535,
+        "later": {
+          "ambiguousN": 1,
+          "averageR": 0.14,
+          "barrierAppliedN": 2,
+          "evaluableN": 25,
+          "evaluableYears": 4,
+          "expectancyCi95": {
+            "lower": -0.16741398797061918,
+            "upper": 0.4474139879706192
+          },
+          "longestLosingStreak": 2,
+          "maximumDrawdownR": 2.5,
+          "medianR": 0.5,
+          "positiveRate": 0.72,
+          "positiveYears": 4,
+          "tpBeforeSl": 0.72
+        },
+        "laterUpliftR": 0.043846153846153854,
+        "variant": {
+          "id": "barrier_two_to_one",
+          "riskReward": 2.0
+        }
+      },
+      "sourceExperimentId": "FMS-USDCAD-H4-E057",
+      "splitTime": 1682695800,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 60,
+        "stopAtr": 1.5,
+        "targetR": 4.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.7104302001009005,
+        "barrierAppliedN": 0,
+        "evaluableN": 38,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.1071149269023497,
+          "upper": 1.3137454732994513
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 3.0,
+        "medianR": 0.19302949411381107,
+        "positiveRate": 0.5263157894736842,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.18421052631578946
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.5,
+        "barrierAppliedN": 0,
+        "evaluableN": 10,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.9969747270189078,
+          "upper": 1.9969747270189078
+        },
+        "longestLosingStreak": 4,
+        "maximumDrawdownR": 4.0,
+        "medianR": -1.0,
+        "positiveRate": 0.3,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.3
+      },
+      "candleFingerprint": "43a08f71fe603220e42d469ec6aa52677e676fcc436cfa3cd1fe8a4317651043",
+      "datasetFingerprint": "38888aa4b8f32ee54db97ed2f5c58e779cbc8d4d150bd25b65121827cc139984",
+      "label": "US GDP rejection",
+      "market": "USDCAD",
+      "patternId": "usdcad-gdp-sales-q-q-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDCAD-H4-E058",
+      "splitTime": 1682695800,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 12,
+        "stopAtr": 1.0,
+        "targetR": 2.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.3389912904390113,
+        "barrierAppliedN": 0,
+        "evaluableN": 110,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": 0.11025872584241889,
+          "upper": 0.5677238550356036
+        },
+        "longestLosingStreak": 4,
+        "maximumDrawdownR": 4.0,
+        "medianR": 0.15721418079476535,
+        "positiveRate": 0.5545454545454546,
+        "positiveYears": 7,
+        "tpBeforeSl": 0.2636363636363636
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.19893772521444583,
+        "barrierAppliedN": 0,
+        "evaluableN": 44,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.23092544181297672,
+          "upper": 0.6288008922418684
+        },
+        "longestLosingStreak": 10,
+        "maximumDrawdownR": 9.221983251525451,
+        "medianR": -1.0,
+        "positiveRate": 0.38636363636363635,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.38636363636363635
+      },
+      "candleFingerprint": "a491641b78b5852d5b6aff04fa34db3ecf2aeba3a5e7a289cd220d2cc716710e",
+      "datasetFingerprint": "38888aa4b8f32ee54db97ed2f5c58e779cbc8d4d150bd25b65121827cc139984",
+      "label": "US manufacturing employment rejection",
+      "market": "USDCAD",
+      "patternId": "usdcad-ism-manufacturing-employment-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDCAD-H4-E059",
+      "splitTime": 1682695800,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 12,
+        "stopAtr": 2.0,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.19595580776447555,
+        "barrierAppliedN": 0,
+        "evaluableN": 63,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": 0.07527533605392046,
+          "upper": 0.31663627947503065
+        },
+        "longestLosingStreak": 5,
+        "maximumDrawdownR": 3.1515663261438878,
+        "medianR": 0.5,
+        "positiveRate": 0.7777777777777778,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.6031746031746031
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.1178400396168267,
+        "barrierAppliedN": 0,
+        "evaluableN": 27,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.1307737316770441,
+          "upper": 0.36645381091069745
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 3.3183189303456793,
+        "medianR": 0.5,
+        "positiveRate": 0.7407407407407407,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.7407407407407407
+      },
+      "candleFingerprint": "81a829197ef37732702850c89a8ecbd25e782a176752fe6151adb64fb6f7f2e8",
+      "datasetFingerprint": "38888aa4b8f32ee54db97ed2f5c58e779cbc8d4d150bd25b65121827cc139984",
+      "label": "US composite PMI rejection",
+      "market": "USDCAD",
+      "patternId": "usdcad-s-p-global-composite-pmi-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDCAD-H4-E060",
+      "splitTime": 1682695800,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 6,
+        "stopAtr": 2.0,
+        "targetR": 2.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.26847611772360747,
+        "barrierAppliedN": 0,
+        "evaluableN": 59,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.09132397665252681,
+          "upper": 0.44562825879468815
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 1.4268118834018857,
+        "medianR": 0.24252122541944493,
+        "positiveRate": 0.6440677966101694,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.03389830508474576
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.06730777802498182,
+        "barrierAppliedN": 0,
+        "evaluableN": 29,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.2175326245813215,
+          "upper": 0.35214818063128517
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 2.9262434899192185,
+        "medianR": 0.040375572272465604,
+        "positiveRate": 0.5517241379310345,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.034482758620689655
+      },
+      "candleFingerprint": "bf49f68dc917cb7136d2f7fb41b9e9efad4241d2ce963d93dd388b39059f6857",
+      "datasetFingerprint": "cee71569d24630e18ecad3b4b25b9eac198ebf2190052f67712bb5126c826b17",
+      "label": "US industrial-production rejection",
+      "market": "USDCHF",
+      "patternId": "usdchf-fed-industrial-production-m-m-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDCHF-H4-E055",
+      "splitTime": 1680708600,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "entryTimeframe": "H1",
+        "expiryCandles": 6,
+        "expiryTimeframe": "H4",
+        "stopAtr": 1.5,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 1,
+        "averageR": 0.19806631420048645,
+        "barrierAppliedN": 0,
+        "evaluableN": 35,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": 0.011724539947533946,
+          "upper": 0.384408088453439
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 2.4443981261955994,
+        "medianR": 0.5,
+        "positiveRate": 0.7714285714285715,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.7428571428571429
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.10182188574470191,
+        "barrierAppliedN": 0,
+        "evaluableN": 26,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.12569215034744627,
+          "upper": 0.3293359218368501
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.0,
+        "medianR": 0.5,
+        "positiveRate": 0.6923076923076923,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.6153846153846154
+      },
+      "candleFingerprint": "343976e1b94d1838bfacc85411278e7168a2e8414d233a55152e82b408665231",
+      "datasetFingerprint": "cee71569d24630e18ecad3b4b25b9eac198ebf2190052f67712bb5126c826b17",
+      "label": "Switzerland producer inflation",
+      "market": "USDCHF",
+      "patternId": "usdchf-ppi-m-m-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDCHF-H4-E056",
+      "splitTime": 1689262200,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "entryTimeframe": "H1",
+        "expiryCandles": 6,
+        "expiryTimeframe": "H4",
+        "stopAtr": 2.0,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 2,
+        "averageR": 0.17162273219608523,
+        "barrierAppliedN": 0,
+        "evaluableN": 79,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.050831961112650564,
+          "upper": 0.29241350327951987
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.5,
+        "medianR": 0.5,
+        "positiveRate": 0.7341772151898734,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.6962025316455697
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.07395481639201883,
+        "barrierAppliedN": 0,
+        "evaluableN": 37,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.10894332752047638,
+          "upper": 0.25685296030451404
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 2.6797196851550025,
+        "medianR": 0.5,
+        "positiveRate": 0.6486486486486487,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.5675675675675675
+      },
+      "candleFingerprint": "b26da43c291ebcc2610a1f88ddf1e3208d638f2f5339b22a3b30a2efa02292ce",
+      "datasetFingerprint": "cee71569d24630e18ecad3b4b25b9eac198ebf2190052f67712bb5126c826b17",
+      "label": "US employment rejection",
+      "market": "USDCHF",
+      "patternId": "usdchf-us-employment-release",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDCHF-H4-E057",
+      "splitTime": 1688743800,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 6,
+        "stopAtr": 1.0,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.11860164093799615,
+        "barrierAppliedN": 0,
+        "evaluableN": 31,
+        "evaluableYears": 6,
+        "expectancyCi95": {
+          "lower": -0.08291426470723111,
+          "upper": 0.3201175465832234
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 3.127992932600141,
+        "medianR": 0.5,
+        "positiveRate": 0.6774193548387096,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.6129032258064516
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.08330049106449577,
+        "barrierAppliedN": 0,
+        "evaluableN": 21,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.20627672228808763,
+          "upper": 0.3728777044170792
+        },
+        "longestLosingStreak": 4,
+        "maximumDrawdownR": 3.750689687645589,
+        "medianR": 0.5,
+        "positiveRate": 0.7142857142857143,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.7142857142857143
+      },
+      "candleFingerprint": "c0a5277b31d96ed37edf6c61eaebeb160d41e15dba1d8a60cfc94bd74912f560",
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "label": "Japan current-account rejection",
+      "market": "USDJPY",
+      "patternId": "usdjpy-adjusted-current-account-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDJPY-H4-E092",
+      "splitTime": 1680231000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 6,
+        "stopAtr": 1.0,
+        "targetR": 1.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.3135382252078528,
+        "barrierAppliedN": 0,
+        "evaluableN": 40,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": 0.07911516552158623,
+          "upper": 0.5479612848941193
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 2.0,
+        "medianR": 0.4037043138442203,
+        "positiveRate": 0.675,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.425
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.137655547625722,
+        "barrierAppliedN": 0,
+        "evaluableN": 24,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.2592622198654154,
+          "upper": 0.5345733151168595
+        },
+        "longestLosingStreak": 4,
+        "maximumDrawdownR": 5.0,
+        "medianR": 1.0,
+        "positiveRate": 0.5833333333333334,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.5416666666666666
+      },
+      "candleFingerprint": "5b1047b6a24797b3712a13ff7ef92a800157fe336fd20504593d7a5b0e7a8f76",
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "label": "Japan consumer-confidence rejection",
+      "market": "USDJPY",
+      "patternId": "usdjpy-consumer-confidence-index",
+      "selected": {
+        "development": {
+          "ambiguousN": 0,
+          "averageR": 0.40589021266007447,
+          "barrierAppliedN": 5,
+          "evaluableN": 40,
+          "evaluableYears": 7,
+          "expectancyCi95": {
+            "lower": 0.1362547132401536,
+            "upper": 0.6755257120799953
+          },
+          "longestLosingStreak": 3,
+          "maximumDrawdownR": 2.0,
+          "medianR": 0.5465738784066237,
+          "positiveRate": 0.675,
+          "positiveYears": 6,
+          "tpBeforeSl": 0.45
+        },
+        "developmentUpliftR": 0.09235198745222167,
+        "later": {
+          "ambiguousN": 0,
+          "averageR": 0.137655547625722,
+          "barrierAppliedN": 1,
+          "evaluableN": 24,
+          "evaluableYears": 4,
+          "expectancyCi95": {
+            "lower": -0.2592622198654154,
+            "upper": 0.5345733151168595
+          },
+          "longestLosingStreak": 4,
+          "maximumDrawdownR": 5.0,
+          "medianR": 1.0,
+          "positiveRate": 0.5833333333333334,
+          "positiveYears": 2,
+          "tpBeforeSl": 0.5416666666666666
+        },
+        "laterUpliftR": 0.0,
+        "variant": {
+          "id": "barrier_two_to_one",
+          "riskReward": 2.0
+        }
+      },
+      "sourceExperimentId": "FMS-USDJPY-H4-E093",
+      "splitTime": 1685520000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 30,
+        "stopAtr": 2.0,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.11439301621741721,
+        "barrierAppliedN": 0,
+        "evaluableN": 44,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": -0.04880570170371121,
+          "upper": 0.27759173413854565
+        },
+        "longestLosingStreak": 4,
+        "maximumDrawdownR": 3.0489431958952187,
+        "medianR": 0.5,
+        "positiveRate": 0.7045454545454546,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.5681818181818182
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.014705882352941176,
+        "barrierAppliedN": 0,
+        "evaluableN": 34,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.22472033487234447,
+          "upper": 0.2541320995782268
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.5,
+        "medianR": 0.5,
+        "positiveRate": 0.6764705882352942,
+        "positiveYears": 1,
+        "tpBeforeSl": 0.6764705882352942
+      },
+      "candleFingerprint": "6d236064eabfb2880f73c6694d692169622b593554d1ef0f8038291126e4b7e3",
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "label": "US industrial-production rejection",
+      "market": "USDJPY",
+      "patternId": "usdjpy-fed-industrial-production-m-m-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDJPY-H4-E094",
+      "splitTime": 1680231000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 60,
+        "stopAtr": 2.0,
+        "targetR": 4.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.2701557089644566,
+        "barrierAppliedN": 0,
+        "evaluableN": 34,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": -0.26186223765804284,
+          "upper": 0.8021736555869561
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 3.0,
+        "medianR": -0.4918326094568527,
+        "positiveRate": 0.4411764705882353,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.08823529411764706
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.0911862294002451,
+        "barrierAppliedN": 0,
+        "evaluableN": 29,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.5597221934955062,
+          "upper": 0.7420946522959965
+        },
+        "longestLosingStreak": 7,
+        "maximumDrawdownR": 7.0,
+        "medianR": -1.0,
+        "positiveRate": 0.3103448275862069,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.10344827586206896
+      },
+      "candleFingerprint": "d71a1e9168b21ecb21f6abd2a1fe504d5f673687327da61f6a18c57630037e72",
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "label": "US services activity",
+      "market": "USDJPY",
+      "patternId": "usdjpy-ism-non-manufacturing-business-activity-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDJPY-H4-E095",
+      "splitTime": 1680231000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 6,
+        "stopAtr": 2.0,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.185341436308971,
+        "barrierAppliedN": 0,
+        "evaluableN": 24,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.023357767821811204,
+          "upper": 0.3473251047961308
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 0.8127702891894714,
+        "medianR": 0.4811960997036067,
+        "positiveRate": 0.6666666666666666,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.5
+      },
+      "baselineLater": {
+        "ambiguousN": 1,
+        "averageR": 0.17839841066713732,
+        "barrierAppliedN": 0,
+        "evaluableN": 21,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.04324059121488316,
+          "upper": 0.4000374125491578
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.0,
+        "medianR": 0.5,
+        "positiveRate": 0.7142857142857143,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.6190476190476191
+      },
+      "candleFingerprint": "419a8cec2c4a73e8cade19a7dfeb115f225326219fd70461f9c093ca37c1c9da",
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "label": "Japan industrial output and retail rejection",
+      "market": "USDJPY",
+      "patternId": "usdjpy-industrial-production-forecast-1-month-ahead-m-m-package",
+      "selected": {
+        "development": {
+          "ambiguousN": 0,
+          "averageR": 0.247841436308971,
+          "barrierAppliedN": 3,
+          "evaluableN": 24,
+          "evaluableYears": 8,
+          "expectancyCi95": {
+            "lower": 0.0545143766423028,
+            "upper": 0.44116849597563923
+          },
+          "longestLosingStreak": 2,
+          "maximumDrawdownR": 0.8127702891894715,
+          "medianR": 0.4811960997036067,
+          "positiveRate": 0.6666666666666666,
+          "positiveYears": 5,
+          "tpBeforeSl": 0.5
+        },
+        "developmentUpliftR": 0.0625,
+        "later": {
+          "ambiguousN": 1,
+          "averageR": 0.10419043761340939,
+          "barrierAppliedN": 4,
+          "evaluableN": 21,
+          "evaluableYears": 4,
+          "expectancyCi95": {
+            "lower": -0.18364169634337785,
+            "upper": 0.39202257157019665
+          },
+          "longestLosingStreak": 3,
+          "maximumDrawdownR": 3.0,
+          "medianR": 0.5,
+          "positiveRate": 0.6190476190476191,
+          "positiveYears": 2,
+          "tpBeforeSl": 0.5714285714285714
+        },
+        "laterUpliftR": -0.07420797305372794,
+        "variant": {
+          "id": "barrier_equal_risk",
+          "riskReward": 1.0
+        }
+      },
+      "sourceExperimentId": "FMS-USDJPY-H4-E096",
+      "splitTime": 1680231000,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 6,
+        "stopAtr": 2.0,
+        "targetR": 2.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.08448046470912317,
+        "barrierAppliedN": 0,
+        "evaluableN": 71,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": -0.07537382910156672,
+          "upper": 0.24433475851981307
+        },
+        "longestLosingStreak": 6,
+        "maximumDrawdownR": 3.316159777346811,
+        "medianR": 0.007154595210893214,
+        "positiveRate": 0.5070422535211268,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.056338028169014086
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.08388025649999743,
+        "barrierAppliedN": 0,
+        "evaluableN": 36,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.22202441706434478,
+          "upper": 0.3897849300643396
+        },
+        "longestLosingStreak": 5,
+        "maximumDrawdownR": 3.473886005183472,
+        "medianR": -0.08092282335936248,
+        "positiveRate": 0.3888888888888889,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.08333333333333333
+      },
+      "candleFingerprint": "da291fd521ee788aa47195c47c9f1cae125e7cb4b15c4af9ff02a47100b5ef54",
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "label": "US employment rejection",
+      "market": "USDJPY",
+      "patternId": "usdjpy-us-employment-release",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDJPY-H4-E097",
+      "splitTime": 1685719800,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 30,
+        "stopAtr": 0.75,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 1,
+        "averageR": 0.056818181818181816,
+        "barrierAppliedN": 0,
+        "evaluableN": 44,
+        "evaluableYears": 7,
+        "expectancyCi95": {
+          "lower": -0.14773816038676557,
+          "upper": 0.2613745240231292
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 4.0,
+        "medianR": 0.5,
+        "positiveRate": 0.7045454545454546,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.7045454545454546
+      },
+      "baselineLater": {
+        "ambiguousN": 6,
+        "averageR": 0.09615384615384616,
+        "barrierAppliedN": 0,
+        "evaluableN": 26,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.16465949252563183,
+          "upper": 0.3569671848333241
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 3.0,
+        "medianR": 0.5,
+        "positiveRate": 0.7307692307692307,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.7307692307692307
+      },
+      "candleFingerprint": "02bc5b4faa5bd632a100bb9f2a2c1dbd9a1acce5516d5f94c6d9d3c90df8afef",
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "label": "US payroll rejection",
+      "market": "USDJPY",
+      "patternId": "usdjpy-us-payroll-package",
+      "selected": null,
+      "sourceExperimentId": "FMS-USDJPY-H4-E098",
+      "splitTime": 1685719800,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 42,
+        "stopAtr": 1.25,
+        "targetR": 3.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.2679067498201576,
+        "barrierAppliedN": 0,
+        "evaluableN": 87,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": -0.11057557541640012,
+          "upper": 0.6463890750567154
+        },
+        "longestLosingStreak": 8,
+        "maximumDrawdownR": 8.0,
+        "medianR": -1.0,
+        "positiveRate": 0.3448275862068966,
+        "positiveYears": 7,
+        "tpBeforeSl": 0.27586206896551724
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.4486338321611209,
+        "barrierAppliedN": 0,
+        "evaluableN": 37,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.15140387630055646,
+          "upper": 1.0486715406227982
+        },
+        "longestLosingStreak": 5,
+        "maximumDrawdownR": 5.0,
+        "medianR": -1.0,
+        "positiveRate": 0.40540540540540543,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.32432432432432434
+      },
+      "candleFingerprint": "5ce7349f787cdde202043b29fa215a75a1616e0b36b54700daf06653ab7e5931",
+      "datasetFingerprint": "13b6f789507b33f6309f14e7a5c567d22156da6f592d9d8818dc74e3010daae3",
+      "label": "Japan industrial output",
+      "market": "AUDJPY",
+      "patternId": "audjpy-jpy-industrial-output",
+      "selected": null,
+      "sourceExperimentId": "FMS-AUDJPY-H4-E013",
+      "splitTime": 1685930400,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 30,
+        "stopAtr": 0.5,
+        "targetR": 0.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 12,
+        "averageR": 0.08,
+        "barrierAppliedN": 0,
+        "evaluableN": 75,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": -0.07345347741165635,
+          "upper": 0.23345347741165634
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 5.5,
+        "medianR": 0.5,
+        "positiveRate": 0.72,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.72
+      },
+      "baselineLater": {
+        "ambiguousN": 5,
+        "averageR": 0.21153846153846154,
+        "barrierAppliedN": 0,
+        "evaluableN": 26,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.020200271168624773,
+          "upper": 0.44327719424554785
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 2.0,
+        "medianR": 0.5,
+        "positiveRate": 0.8076923076923077,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.8076923076923077
+      },
+      "candleFingerprint": "25ab53a788c66f3d9590d4bb7c159d07ff4b72881b184377c13f81d9b3693580",
+      "datasetFingerprint": "13b6f789507b33f6309f14e7a5c567d22156da6f592d9d8818dc74e3010daae3",
+      "label": "Japan headline and core inflation \u00b7 Short only",
+      "market": "AUDJPY",
+      "patternId": "audjpy-jpy-inflation-short",
+      "selected": null,
+      "sourceExperimentId": "FMS-AUDJPY-H4-E015",
+      "splitTime": 1695954600,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 12,
+        "stopAtr": 2.0,
+        "targetR": 3.0
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.21830294696143546,
+        "barrierAppliedN": 0,
+        "evaluableN": 78,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": -0.04334659539754962,
+          "upper": 0.47995248932042056
+        },
+        "longestLosingStreak": 4,
+        "maximumDrawdownR": 6.858925030460032,
+        "medianR": 0.06068191165069963,
+        "positiveRate": 0.5128205128205128,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.05128205128205128
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.16325367257934223,
+        "barrierAppliedN": 0,
+        "evaluableN": 39,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.14744410314096354,
+          "upper": 0.47395144829964797
+        },
+        "longestLosingStreak": 4,
+        "maximumDrawdownR": 3.9554921130637144,
+        "medianR": 0.18332350003335462,
+        "positiveRate": 0.5384615384615384,
+        "positiveYears": 3,
+        "tpBeforeSl": 0.0
+      },
+      "candleFingerprint": "a725c8cab8b04293436570505114465dab684a72b5b0805152cc0db3e19d5657",
+      "datasetFingerprint": "ffd2fc40c11ced2212c21b1330daf31ec5c25cdaa7cee6b6ac13e5485141f429",
+      "label": "Euro-area consumer sentiment",
+      "market": "EURCAD",
+      "patternId": "eurcad-eur-consumer-sentiment",
+      "selected": null,
+      "sourceExperimentId": "FMS-EURCAD-H4-E019",
+      "splitTime": 1682596800,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 30,
+        "stopAtr": 0.5,
+        "targetR": 1.5
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 3,
+        "averageR": 0.3333333333333333,
+        "barrierAppliedN": 0,
+        "evaluableN": 75,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.0491602270154512,
+          "upper": 0.6175064396512154
+        },
+        "longestLosingStreak": 5,
+        "maximumDrawdownR": 5.5,
+        "medianR": 1.5,
+        "positiveRate": 0.5333333333333333,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.5333333333333333
+      },
+      "baselineLater": {
+        "ambiguousN": 2,
+        "averageR": 0.2878787878787879,
+        "barrierAppliedN": 0,
+        "evaluableN": 33,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.14502521643548433,
+          "upper": 0.7207827921930601
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 4.0,
+        "medianR": 1.5,
+        "positiveRate": 0.5151515151515151,
+        "positiveYears": 2,
+        "tpBeforeSl": 0.5151515151515151
+      },
+      "candleFingerprint": "1e3aef6a631eef2eb89abb21129a82a5ec89316287c37ba8b828594e42cb8f0a",
+      "datasetFingerprint": "2dc764ae8c2faf06dcb8eab087978aac14823bbdf0d5a99bab11186b7c2ff1d5",
+      "label": "Euro-area composite and services PMI",
+      "market": "EURJPY",
+      "patternId": "eurjpy-eur-composite-services-pmi",
+      "selected": null,
+      "sourceExperimentId": "FMS-EURJPY-H4-E021",
+      "splitTime": 1687258800,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 6,
+        "stopAtr": 2,
+        "targetR": 1
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.15608651840293866,
+        "barrierAppliedN": 0,
+        "evaluableN": 41,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": -0.05072063405333016,
+          "upper": 0.3628936708592075
+        },
+        "longestLosingStreak": 5,
+        "maximumDrawdownR": 2.548703886391291,
+        "medianR": 0.2550514323178232,
+        "positiveRate": 0.5853658536585366,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.1951219512195122
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.3025883925781823,
+        "barrierAppliedN": 0,
+        "evaluableN": 14,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.041449072387320984,
+          "upper": 0.6466258575436856
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 1.0556801634709068,
+        "medianR": 0.26814079201233737,
+        "positiveRate": 0.5714285714285714,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.35714285714285715
+      },
+      "candleFingerprint": "e42b623368ed18de61b5f1960dd56ae5c4f50277296fc9e860d744caebdc7f09",
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "label": "US payroll",
+      "market": "EURUSD",
+      "patternId": "eurusd-us-payroll-short-restored",
+      "selected": {
+        "development": {
+          "ambiguousN": 3,
+          "averageR": 0.22721321646096657,
+          "barrierAppliedN": 9,
+          "evaluableN": 38,
+          "evaluableYears": 8,
+          "expectancyCi95": {
+            "lower": -0.030455864179323583,
+            "upper": 0.48488229710125674
+          },
+          "longestLosingStreak": 5,
+          "maximumDrawdownR": 3.3589321363352216,
+          "medianR": 0.2622326696842263,
+          "positiveRate": 0.6052631578947368,
+          "positiveYears": 5,
+          "tpBeforeSl": 0.23684210526315788
+        },
+        "developmentUpliftR": 0.0711266980580279,
+        "later": {
+          "ambiguousN": 1,
+          "averageR": 0.1692076174941466,
+          "barrierAppliedN": 6,
+          "evaluableN": 13,
+          "evaluableYears": 4,
+          "expectancyCi95": {
+            "lower": -0.37769315406744197,
+            "upper": 0.7161083890557352
+          },
+          "longestLosingStreak": 2,
+          "maximumDrawdownR": 2.0,
+          "medianR": 0.19868055034030677,
+          "positiveRate": 0.5384615384615384,
+          "positiveYears": 3,
+          "tpBeforeSl": 0.3076923076923077
+        },
+        "laterUpliftR": -0.13338077508403573,
+        "variant": {
+          "id": "barrier_two_to_one",
+          "riskReward": 2.0
+        }
+      },
+      "sourceExperimentId": "FMS-EURUSD-H4-E289",
+      "splitTime": 1686238200,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 30,
+        "stopAtr": 1,
+        "targetR": 2
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.16713939904886183,
+        "barrierAppliedN": 0,
+        "evaluableN": 74,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": -0.16400724230592995,
+          "upper": 0.4982860404036536
+        },
+        "longestLosingStreak": 7,
+        "maximumDrawdownR": 9.0,
+        "medianR": -1.0,
+        "positiveRate": 0.3918918918918919,
+        "positiveYears": 5,
+        "tpBeforeSl": 0.3783783783783784
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.5,
+        "barrierAppliedN": 0,
+        "evaluableN": 26,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": -0.08800000000000008,
+          "upper": 1.088
+        },
+        "longestLosingStreak": 3,
+        "maximumDrawdownR": 3.0,
+        "medianR": 0.5,
+        "positiveRate": 0.5,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.5
+      },
+      "candleFingerprint": "f9f694ac914a3246f226e460edd94b91d45550714f0960d4e24a34ab47a9e25a",
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "label": "Euro-area consumer sentiment",
+      "market": "EURUSD",
+      "patternId": "eurusd-consumer-sentiment-restored",
+      "selected": null,
+      "sourceExperimentId": "FMS-EURUSD-H4-E291",
+      "splitTime": 1683545400,
+      "status": "rejected_or_insufficient"
+    },
+    {
+      "activeExecution": {
+        "expiryCandles": 18,
+        "stopAtr": 2,
+        "targetR": 1.25
+      },
+      "baselineDevelopment": {
+        "ambiguousN": 0,
+        "averageR": 0.34797319810463295,
+        "barrierAppliedN": 0,
+        "evaluableN": 35,
+        "evaluableYears": 8,
+        "expectancyCi95": {
+          "lower": 0.018981976847782744,
+          "upper": 0.6769644193614832
+        },
+        "longestLosingStreak": 4,
+        "maximumDrawdownR": 3.3544823812954903,
+        "medianR": 0.7620546352063617,
+        "positiveRate": 0.6,
+        "positiveYears": 6,
+        "tpBeforeSl": 0.45714285714285713
+      },
+      "baselineLater": {
+        "ambiguousN": 0,
+        "averageR": 0.5813740630144829,
+        "barrierAppliedN": 0,
+        "evaluableN": 11,
+        "evaluableYears": 4,
+        "expectancyCi95": {
+          "lower": 0.014123435187966882,
+          "upper": 1.148624690840999
+        },
+        "longestLosingStreak": 2,
+        "maximumDrawdownR": 1.2304025093749198,
+        "medianR": 1.25,
+        "positiveRate": 0.6363636363636364,
+        "positiveYears": 4,
+        "tpBeforeSl": 0.5454545454545454
+      },
+      "candleFingerprint": "31950cdee1acab06c1c0c598deed1bbaa9e78c7b8e9b9568ff493802201965d1",
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "label": "US producer-inflation cooling package",
+      "market": "EURUSD",
+      "patternId": "eurusd-us-producer-inflation-cooling-restored",
+      "selected": null,
+      "sourceExperimentId": "FMS-EURUSD-H4-E293",
+      "splitTime": 1689768000,
+      "status": "rejected_or_insufficient"
+    }
+  ],
+  "schema": "fms-entry-known-support-resistance-execution-v1",
+  "supported": 0
+}
