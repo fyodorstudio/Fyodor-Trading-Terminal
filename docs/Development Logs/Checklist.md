@@ -214,11 +214,25 @@ The next hypothesis is narrower and materially different. A nearest H4 zone can 
 
 - Account-aware position sizing, simultaneous/correlated exposure limits, drawdown and consecutive-loss pauses, and a reproducible combined portfolio replay. Extend existing replay instead of assuming it is absent.
 - A separately authorized manual real-execution ledger. Existing tagged-demo reconciliation is not authorization to read a real account or send orders.
+- Frozen prospective proof stage: preserve the current registered contracts and activation boundaries; record every future qualifying and no-trade release from its first-seen complete package; retain the first genuinely available quote and eligible entry boundary; never tune a frozen recipe with the same observations later presented as unseen validation; and evaluate independent-release breadth, chronological halves, drawdown, losing streaks, regime stability, and dependence on exceptional wins before considering real-money use.
+- Keep FMS research and displayed expectancy gross. Do not subtract, estimate, model, or gate setups using spread, slippage, commission, swap, or other execution costs. Preserve explicit gross-result labeling and leave any later broker-specific cost assessment to the owner using MT5/account records.
+- If prospective evidence eventually justifies an owner-run real-money pilot, keep it manual and default to the broker's minimum 0.01-lot order size. Record the actual position, entry, exit, and broker costs separately without allowing live outcomes to rewrite old arrows. A fixed 0.01 lot has different monetary risk across pairs and SL distances, so the UI must show that exposure before any trade; FMS still must not send an order.
+- Predeclare the prospective graduation and stopping rules before inspecting results: minimum independent release count and time/regime coverage; positive gross expectancy overall and across chronological halves; tolerable drawdown and losing streak; bounded contribution from the largest wins; no silent exclusions; and an explicit decision to continue, pause, retire, or redesign each frozen recipe. Do not promise that continued mining must produce a winner.
 - New context families, under-sampled magnitude contenders, and unrelated calendar seasonality: revisit only with a declared hypothesis and sufficient coverage, not repeated unrestricted mining.
+- Multi-scale OHLC price structure: retain H4 execution zones while adding D1/weekly swing zones for the broader map; measure swing prominence, clean independent reactions, recency/age, penetration depth, consolidation-bound touches, nested-zone merging, freshness/exhaustion, and breakout/retest state. Show whether the registered TP lies before, inside, or beyond higher-timeframe structure. Freeze deterministic definitions first, compare chronologically against each unchanged registered parent, and keep the result descriptive unless a successor survives later data. This is a materially different hypothesis from the rejected nearest-zone and sequential-exit families.
 - Calendar metadata/backfill improvements only after confirming a real coverage gap and obtaining any needed bridge-work authorization; use the same MT5 source.
 - Non-FMS UI cleanup only for a targeted owner request. External feeds, automatic orders, garbage-tool revival, and unrelated redesigns are outside this plan.
 
 ## Completion and manual handoff
+
+### Charts pair-switch and arrow-selection repair - 07 Sep 2026
+
+- [x] Make arrow selection reversible from the chart: clicking the selected arrow again clears it, while the Past Result close control retains the same behavior.
+- [x] Clear selected-arrow state on every pair change and reject a stale previous-pair FMS response during the transition.
+- [x] Render immutable historical Entry/SL/TP geometry immediately from the cached marker projection; enrich Past Result with the full path/structure audit asynchronously instead of withholding the dock and price lines.
+- [x] Version and prewarm geometry-bearing historical marker caches for every registered market. Repeated marker reads measured about 0.25-0.30 seconds for the largest sampled caches.
+- [x] Restrict a selected-arrow reconstruction to its exact registered pattern and reuse its one annotated outcome stream. An uncached EURUSD arrow audit measured about 0.55 seconds instead of the prior 18-59 second full-market reconstruction; a cached repeat remains effectively immediate.
+- [x] Python compilation, repository TypeScript typecheck, and diff whitespace validation passed. Browser automation was not run; use the owner audit below.
 
 ### Charts FMS loading pass — 07 Sep 2026
 

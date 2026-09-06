@@ -55,6 +55,7 @@ Use this file for compact project vocabulary, architecture, ownership, and invar
 - A candle containing the scheduled release can open before Actual values exist; it is not a valid post-information entry.
 - A chart arrow drawn above/below a bar is a visual marker, not an entry-price marker.
 - Cache market H4 history before starting its four source backtests; otherwise MT5 calls contend and repeat large history reads.
+- Historical chart marker caches include immutable Entry/ATR/SL/TP geometry so selecting an arrow never waits for its full path audit. The selected-arrow endpoint must remain scoped to one pattern/event and reuse its annotated outcome stream; rebuilding every market pattern causes long blocking requests and disrupts pair changes.
 - Reuse completed fingerprints. Do not run M1 across the universe; acquire it only for finalist path ordering or a declared entry comparison.
 - The frozen `fms-entry-known-support-resistance-execution-v1` family found no later-supported adaptive TP/SL successor across 51 recipes. Confirmed H4 zones remain descriptive chart context; do not rerun nearest-barrier target capping without a materially different declared hypothesis or expanded history.
 - The frozen `fms-sequential-price-structure-execution-v1` family also found no later-supported successor across 51 recipes. Nearest full exits, 50% nearest-zone partials, and wider-zone continuation after a completed H4 break all remain rejected research; the full ladder is decision support only.

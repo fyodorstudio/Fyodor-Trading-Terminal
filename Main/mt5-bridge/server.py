@@ -3895,6 +3895,7 @@ def research_chart_signals(
   refresh: bool = False,
   compact: bool = False,
   markers_only: bool = False,
+  pattern_id: Optional[str] = None,
 ) -> Dict[str, Any]:
   def response_for_client(payload: Dict[str, Any]) -> Dict[str, Any]:
     interactive_payload = {
@@ -3909,6 +3910,8 @@ def research_chart_signals(
         key: row.get(key) for key in (
           "id", "patternId", "sourceVersionId", "eventTime", "activationTime",
           "direction", "label", "historicalReplay", "outcomeStatus", "expiryCandles",
+          "execution", "stopAtr", "targetR", "managementFamily", "managementTriggerR",
+          "entryTimeframe", "expiryTimeframe", "entry", "atr", "stop", "initialStop", "target",
         )
       }
       overlay = row.get("contextOverlay")
@@ -3936,6 +3939,7 @@ def research_chart_signals(
     _reconciled_pattern(pattern)
     for pattern in PRACTICAL_PATTERN_DEFINITIONS
     if pattern["market"] == normalized_symbol
+    and (pattern_id is None or str(pattern["id"]) == pattern_id)
   ]
   if not market_patterns:
     return {
@@ -4045,8 +4049,47 @@ def research_chart_signals(
       for version in source_versions
     ).encode("utf-8")
   ).hexdigest()
-  catalog_key = f"{normalized_symbol}:{':'.join(str(source_runs[version].get('id', '')) for version in source_versions)}:{dataset_fingerprint}:{PRACTICAL_MODEL_HASH}"
-  durable_marker_key = f"fms_chart_markers_v1:{catalog_key}"
+  catalog_scope = pattern_id or "all"
+  catalog_key = f"{normalized_symbol}:{catalog_scope}:{':'.join(str(source_runs[version].get('id', '')) for version in source_versions)}:{dataset_fingerprint}:{PRACTICAL_MODEL_HASH}"
+  durable_marker_key = f"fms_chart_markers_v2:{catalog_key}"
+  annotated_by_source_policy: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
+
+  def annotated_outcomes(source_version: str, scoring_policy: str) -> List[Dict[str, Any]]:
+    key = (source_version, scoring_policy)
+    cached = annotated_by_source_policy.get(key)
+    if cached is None:
+      rescored, _audit = rescore_policy_outcomes(
+        source_results[source_version]["targets"]["2.0"]["outcomes"], scoring_policy
+      )
+      cached = _annotate_numeric_robustness(rescored)
+      annotated_by_source_policy[key] = cached
+    return cached
+
+  def historical_marker(candidate: Dict[str, Any], definition: Dict[str, Any], source_version: str) -> Dict[str, Any]:
+    projected = apply_chart_pattern_reaction(candidate, definition)
+    event_time = int(candidate["eventTime"])
+    activation_time = int(candidate.get("entryTime") or ((event_time // H4_SECONDS) + 1) * H4_SECONDS)
+    execution = _execution_for_event(definition, event_time)
+    entry, atr = candidate.get("entry"), candidate.get("atr")
+    direction = str(projected["direction"])
+    sign = 1 if direction == "long" else -1
+    stop_atr = float(execution.get("stopAtr") or 1)
+    target_r = float(execution.get("targetR") or 2)
+    stop = float(entry) - sign * float(atr) * stop_atr if entry is not None and atr is not None else None
+    target = float(entry) + sign * float(atr) * stop_atr * target_r if entry is not None and atr is not None else None
+    return {
+      "id": f"{definition['id']}:{event_time}", "patternId": definition["id"],
+      "sourceVersionId": source_version, "eventTime": event_time,
+      "activationTime": activation_time, "direction": direction, "label": definition["label"],
+      "historicalReplay": True, "execution": execution,
+      "stopAtr": stop_atr, "targetR": target_r,
+      "expiryCandles": int(execution.get("expiryCandles") or 30),
+      "entryTimeframe": str(execution.get("entryTimeframe") or "H4"),
+      "expiryTimeframe": str(execution.get("expiryTimeframe") or "H4"),
+      "managementFamily": str(execution.get("managementFamily") or "fixed"),
+      "managementTriggerR": execution.get("managementTriggerR"),
+      "entry": entry, "atr": atr, "stop": stop, "initialStop": stop, "target": target,
+    }
   if markers_only:
     raw_markers = _research_store.get_metadata(durable_marker_key)
     if raw_markers:
@@ -4079,8 +4122,7 @@ def research_chart_signals(
     for source_version in source_versions:
       result = source_results[source_version]
       for scoring_policy in sorted({str(pattern.get("scoringPolicy", "forecast_quality")) for pattern in market_patterns if pattern["sourceVersion"] == source_version}):
-        rescored, _audit = rescore_policy_outcomes(result["targets"]["2.0"]["outcomes"], scoring_policy)
-        annotated = _annotate_numeric_robustness(rescored)
+        annotated = annotated_outcomes(source_version, scoring_policy)
         rescored_targets = {
           target_r: rescore_policy_outcomes(target_payload.get("outcomes", []), scoring_policy)[0]
           for target_r, target_payload in result.get("targets", {}).items()
@@ -4105,18 +4147,7 @@ def research_chart_signals(
           )
           if definition is None:
             continue
-          projected = apply_chart_pattern_reaction(candidate, definition)
-          event_time = int(candidate["eventTime"])
-          marker_catalog.append({
-            "id": f"{definition['id']}:{event_time}",
-            "patternId": definition["id"],
-            "sourceVersionId": source_version,
-            "eventTime": event_time,
-            "activationTime": int(candidate.get("entryTime") or ((event_time // H4_SECONDS) + 1) * H4_SECONDS),
-            "direction": projected["direction"],
-            "label": definition["label"],
-            "historicalReplay": True,
-          })
+          marker_catalog.append(historical_marker(candidate, definition, source_version))
     with _chart_signal_catalog_lock:
       _chart_signal_catalog_cache.clear()
       _chart_signal_catalog_cache[catalog_key] = catalog
@@ -4156,8 +4187,7 @@ def research_chart_signals(
       for source_version in source_versions:
         result = source_results[source_version]
         for scoring_policy in sorted({str(pattern.get("scoringPolicy", "forecast_quality")) for pattern in market_patterns if pattern["sourceVersion"] == source_version}):
-          rescored, _audit = rescore_policy_outcomes(result["targets"]["2.0"]["outcomes"], scoring_policy)
-          annotated = _annotate_numeric_robustness(rescored)
+          annotated = annotated_outcomes(source_version, scoring_policy)
           policy_definitions = [
             pattern for pattern in market_patterns
             if pattern["sourceVersion"] == source_version
@@ -4167,15 +4197,7 @@ def research_chart_signals(
             definition = next((pattern for pattern in policy_definitions if candidate_matches_chart_pattern(candidate, pattern)), None)
             if definition is None:
               continue
-            projected = apply_chart_pattern_reaction(candidate, definition)
-            event_time = int(candidate["eventTime"])
-            cached_markers.append({
-              "id": f"{definition['id']}:{event_time}", "patternId": definition["id"],
-              "sourceVersionId": source_version, "eventTime": event_time,
-              "activationTime": int(candidate.get("entryTime") or ((event_time // H4_SECONDS) + 1) * H4_SECONDS),
-              "direction": projected["direction"], "label": definition["label"],
-              "historicalReplay": True,
-            })
+            cached_markers.append(historical_marker(candidate, definition, source_version))
       with _chart_signal_marker_lock:
         _chart_signal_marker_cache[catalog_key] = cached_markers
     actionable_pattern_ids = {
@@ -4267,7 +4289,7 @@ def research_chart_signals(
     (source_version, scoring_policy, outcome)
     for source_version in source_versions
     for scoring_policy in {str(pattern.get("scoringPolicy", "forecast_quality")) for pattern in market_patterns if pattern["sourceVersion"] == source_version}
-    for outcome in _annotate_numeric_robustness(rescore_policy_outcomes(source_results[source_version]["targets"]["2.0"]["outcomes"], scoring_policy)[0])
+    for outcome in annotated_outcomes(source_version, scoring_policy)
   ]
   window_candidates = [
     (source_version, scoring_policy, candidate)
@@ -4826,6 +4848,7 @@ def research_chart_signal_target_ladder(
     mode=normalized_mode,
     from_=eventTime if normalized_mode == "research_replay" else None,
     to=eventTime if normalized_mode == "research_replay" else None,
+    pattern_id=patternId,
   )
   signal = next(
     (

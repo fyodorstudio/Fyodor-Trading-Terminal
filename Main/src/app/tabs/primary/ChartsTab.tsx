@@ -945,7 +945,7 @@ export function ChartsTab({
     const handleChartClick = (params: MouseEventParams<Time>) => {
       const markerId = typeof params.hoveredObjectId === "string" ? params.hoveredObjectId : null;
       const signal = markerId ? macroBiasSignalByMarkerIdRef.current.get(markerId) : null;
-      if (signal) setSelectedMacroBiasId(signal.id);
+      if (signal) setSelectedMacroBiasId((current) => current === signal.id ? null : signal.id);
     };
     chart.subscribeClick(handleChartClick);
 
@@ -1033,6 +1033,9 @@ export function ChartsTab({
     timeframe: "H4",
     calendarRevision: macroBiasCurrentCalendarRevision,
   });
+  useEffect(() => {
+    setSelectedMacroBiasId(null);
+  }, [selectedSymbol]);
   useEffect(() => {
     if (!macroBiasSupported) {
       setMacroBiasCurrentResponse(null);
@@ -1151,7 +1154,6 @@ export function ChartsTab({
       mode: "research_replay",
       from: historyFrom,
       to: historyTo,
-      compact: true,
       markersOnly: true,
     }).then((response) => {
       if (cancelled) return;
@@ -1161,7 +1163,9 @@ export function ChartsTab({
     return () => { cancelled = true; };
   }, [macroBiasHistoricalMatchesVisible, macroBiasSupported, macroBiasVisible, selectedSymbol, historyState, macroBiasFrom, macroBiasTo, visibleCandles.length]);
 
-  const macroBiasResponse = macroBiasCurrentResponse;
+  const macroBiasResponse = macroBiasCurrentResponse?.symbol.toUpperCase() === selectedSymbol.toUpperCase()
+    ? macroBiasCurrentResponse
+    : null;
   const macroBiasLoading = macroBiasCurrentLoading;
   const macroBiasError = macroBiasCurrentError;
   const macroBiasShadowHistoricalSignals = useMemo(() => {
@@ -1239,9 +1243,7 @@ export function ChartsTab({
     }).catch(() => { /* The frozen target remains available if path research cannot load. */ });
     return () => { cancelled = true; };
   }, [selectedMacroBias, selectedMacroBiasLadderKey, selectedMacroBiasAudit, selectedSymbol]);
-  const selectedMacroBiasWithTargetLadder = selectedMacroBias?.historicalReplay
-    ? selectedMacroBiasAudit ?? null
-    : selectedMacroBiasAudit ?? selectedMacroBias;
+  const selectedMacroBiasWithTargetLadder = selectedMacroBiasAudit ?? selectedMacroBias;
   useEffect(() => {
     const series = seriesRef.current;
     macroBiasTradeLinesRef.current.forEach((line) => series?.removePriceLine(line));
