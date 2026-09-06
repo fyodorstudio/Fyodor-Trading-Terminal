@@ -228,12 +228,13 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
           <p className="chart-shadow-catalog-rule"><b>Trade rule:</b> {pattern.condition}</p>
           <table className="chart-shadow-setup-contract" aria-label={`${pattern.label} registered contract`}>
             <tbody>
-              <tr><th>Entry</th><td>First strictly later H4 open</td><th>Expiry</th><td>{pattern.execution?.expiryCandles ?? 30} completed H4 candles</td></tr>
+              <tr><th>Entry</th><td>First eligible {pattern.execution?.entryTimeframe ?? "H4"} open</td><th>Expiry</th><td>{pattern.execution?.expiryCandles ?? 30} completed H4 candles</td></tr>
               <tr><th>Stop loss</th><td>{pattern.execution?.stopAtr ?? 1} ATR from entry</td><th>Take profit</th><td>{pattern.execution?.targetR ?? 2}R from entry</td></tr>
               <tr><th>Management</th><td>{pattern.execution?.managementFamily === "break_even" ? `Move SL to entry after +${pattern.execution.managementTriggerR ?? 1}R` : "Fixed SL and TP"}</td><th>ATR basis</th><td>ATR(14) from completed H4 candles at entry</td></tr>
               <tr><th>Scoring</th><td>{pattern.scoringPolicy?.replaceAll("_", " ") ?? "baseline"}</td><th>Reaction mapping</th><td>{pattern.reaction ?? "continuation"}</td></tr>
               <tr><th>Required evidence</th><td colSpan={3}>{pattern.groups.join(" · ") || pattern.requiredExactTitles?.join(" · ") || "Registered package definition"}</td></tr>
-              <tr><th>Price and pips</th><td colSpan={3}>Calculated from the captured H4 entry and its ATR; unavailable before a qualified release reaches entry.</td></tr>
+              <tr><th>Price and pips</th><td colSpan={3}>Calculated from the captured {pattern.execution?.entryTimeframe ?? "H4"} entry and completed-H4 ATR; unavailable before a qualified release reaches entry.</td></tr>
+              {pattern.entryReview?.status === "reviewed_active" ? <tr><th>Entry upgrade</th><td colSpan={3}>H1 successor active from {formatUtc(pattern.entryReview.activatedAt)} · later N {pattern.entryReview.later.laterN} · {formatR(pattern.entryReview.later.h1AverageR)} versus {formatR(pattern.entryReview.later.h4AverageR)} H4 · older occurrences retain H4</td></tr> : null}
               <tr><th>Profit frequency</th><td>{formatPercent(activeLaterMetric(pattern, "positiveRate"))} finished above 0R</td><th>Expected payoff</th><td>{formatR(activeLaterMetric(pattern, "averageR") ?? pattern.historicalBenchmark?.walkForwardAverageR)}</td></tr>
               <tr><th>Maximum drawdown</th><td>{formatR(activeLaterMetric(pattern, "maximumDrawdownR"))}</td><th>Longest losing streak</th><td>{activeLaterMetric(pattern, "longestLosingStreak") ?? "—"} trades</td></tr>
               <tr><th>Evidence breadth</th><td>{pattern.historicalBenchmark?.walkForwardN ?? "—"} later cases · {pattern.yearStability.evaluableYears} years</td><th>Positive years</th><td>{pattern.yearStability.positiveYears} / {pattern.yearStability.evaluableYears}</td></tr>

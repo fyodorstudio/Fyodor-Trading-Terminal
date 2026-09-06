@@ -40,7 +40,7 @@ export const FX_PAIRS: FxPairDefinition[] = [
   { base: "AUD", quote: "CAD", name: "AUDCAD" },
   { base: "AUD", quote: "NZD", name: "AUDNZD" },
   { base: "CAD", quote: "JPY", name: "CADJPY" },
-  { base: "CAD", quote: "NZD", name: "CADNZD" },
+  { base: "NZD", quote: "CAD", name: "NZDCAD" },
   { base: "NZD", quote: "JPY", name: "NZDJPY" },
 ];
 

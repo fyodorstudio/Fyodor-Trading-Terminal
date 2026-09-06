@@ -22,7 +22,13 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 MANIFEST_VERSION = "FMS-GUARDED-SWEEP-v1"
 QUALIFICATION_VERSION = "FMS-QUALIFICATION-v2"
-DEFAULT_MARKETS = ("EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "NZDUSD", "USDCHF")
+DEFAULT_MARKETS = (
+  "EURUSD", "USDJPY", "GBPUSD", "USDCHF", "AUDUSD", "USDCAD", "NZDUSD",
+  "EURGBP", "EURJPY", "EURCHF", "EURAUD", "EURCAD", "EURNZD",
+  "GBPJPY", "GBPCHF", "GBPAUD", "GBPCAD", "GBPNZD", "CHFJPY",
+  "AUDCHF", "CADCHF", "NZDCHF", "AUDJPY", "AUDCAD", "AUDNZD",
+  "CADJPY", "NZDCAD", "NZDJPY",
+)
 TERMINAL_STATES = {"completed", "rejected", "insufficient", "unsupported", "cancelled"}
 EXECUTION = {
   "mode": "matrix",
@@ -171,14 +177,16 @@ def build_entries(market: str, catalog_items: Iterable[Dict[str, Any]]) -> List[
   return [unique[key] for key in sorted(unique)]
 
 
-def build_manifest(client: BridgeClient, markets: Iterable[str]) -> Dict[str, Any]:
+def build_manifest(client: BridgeClient, markets: Iterable[str], stages: frozenset[str], catalog_ids: frozenset[str] = frozenset()) -> Dict[str, Any]:
   market_snapshots = []
+  unavailable_markets = []
   entries = []
   for market in markets:
     workbench = client.get(f"/research/workbench?market={urllib.parse.quote(market)}")
     availability = workbench.get("availability") or {"ready": True}
     if not availability.get("ready", True):
-      raise RuntimeError(f"{market} Workbench is unavailable: {availability.get('message')}")
+      unavailable_markets.append({"market": market, "message": availability.get("message")})
+      continue
     market_snapshots.append({
       "market": market,
       "datasetFingerprint": workbench["datasetFingerprint"],
@@ -186,13 +194,17 @@ def build_manifest(client: BridgeClient, markets: Iterable[str]) -> Dict[str, An
       "candleRevision": workbench.get("candleRevision"),
       "catalogGeneratedAt": (workbench.get("catalog") or {}).get("generatedAt"),
     })
-    entries.extend(build_entries(market, (workbench.get("catalog") or {}).get("items") or []))
+    entries.extend(
+      row for row in build_entries(market, (workbench.get("catalog") or {}).get("items") or [])
+      if row["stage"] in stages and (not catalog_ids or row["catalogId"] in catalog_ids)
+    )
   core = {
     "version": MANIFEST_VERSION,
     "qualificationVersion": QUALIFICATION_VERSION,
     "minimumCases": 80,
     "markets": market_snapshots,
-    "execution": EXECUTION,
+    "unavailableMarkets": unavailable_markets,
+    "execution": EXECUTION, "stages": sorted(stages),
     "entries": sorted(entries, key=lambda row: row["id"]),
   }
   return {**core, "manifestHash": digest(core), "createdAt": int(time.time())}
@@ -270,7 +282,11 @@ def summary_markdown(result: Dict[str, Any]) -> str:
     counts[state] = counts.get(state, 0) + 1
   candidates = [row for row in rows if row.get("finalTier") in {"Research candidate", "Statistically confirmed"}]
   strongest = sorted(
-    [row for row in rows if row.get("audit") and row.get("finalTier") == "Rejected"],
+    [
+      row for row in rows
+      if ((row.get("audit") or {}).get("walkForward") or {}).get("pooled")
+      and row.get("finalTier") == "Rejected"
+    ],
     key=lambda row: float((((row.get("audit") or {}).get("walkForward") or {}).get("pooled") or {}).get("averageR") or -999),
     reverse=True,
   )[:10]
@@ -295,9 +311,13 @@ def summary_markdown(result: Dict[str, Any]) -> str:
 def run(args: argparse.Namespace) -> int:
   client = BridgeClient(args.bridge_url)
   markets = tuple(value.strip().upper() for value in args.markets.split(",") if value.strip())
+  stages = frozenset(value.strip().upper() for value in args.stages.split(",") if value.strip())
+  catalog_ids = frozenset(value.strip() for value in args.catalog_ids.split(",") if value.strip())
+  if not stages or not stages.issubset({"A", "B"}):
+    raise ValueError("--stages must contain A, B, or A,B")
   artifacts = Path(args.artifacts_dir).resolve()
   artifacts.mkdir(parents=True, exist_ok=True)
-  manifest = build_manifest(client, markets)
+  manifest = build_manifest(client, markets, stages, catalog_ids)
   manifest_path = artifacts / f"guarded-sweep-{manifest['manifestHash']}.manifest.json"
   checkpoint_path = artifacts / f"guarded-sweep-{manifest['manifestHash']}.checkpoint.json"
   result_path = artifacts / f"guarded-sweep-{manifest['manifestHash']}.result.json"
@@ -418,6 +438,8 @@ def parse_args() -> argparse.Namespace:
   parser = argparse.ArgumentParser(description=__doc__)
   parser.add_argument("--bridge-url", default=os.environ.get("FMS_BRIDGE_URL", "http://127.0.0.1:8001"))
   parser.add_argument("--markets", default=",".join(DEFAULT_MARKETS))
+  parser.add_argument("--stages", default="A,B", help="Frozen campaign stages to include: A, B, or A,B")
+  parser.add_argument("--catalog-ids", default="", help="Optional comma-separated catalog IDs for bounded follow-up")
   parser.add_argument("--artifacts-dir", default=str(Path(__file__).resolve().parents[1] / "research-artifacts"))
   parser.add_argument("--poll-seconds", type=float, default=1.0)
   parser.add_argument("--manifest-only", action="store_true")

@@ -5,11 +5,13 @@ Use this file as the first stop for future AI sessions.
 ## Read First
 
 1. `README.md`
-2. `Main/README.md`
-3. `docs/Development Logs/Current App Map.md`
-4. `docs/Development Logs/UI Design.md`
-5. `Main/src/app/tabs/README.md`
-6. The smallest relevant source files for the requested task
+2. `CONTEXT.md`
+3. `docs/Development Logs/Checklist.md`
+4. `Main/README.md`
+5. `docs/Development Logs/Current App Map.md`
+6. `docs/Development Logs/UI Design.md`
+7. `Main/src/app/tabs/README.md`
+8. The smallest relevant source files for the requested task
 
 Ignore `docs/Private` unless the user explicitly asks for it.
 
@@ -76,6 +78,21 @@ Secondary surfaces:
 
 ## Token-Efficient Agent Protocol
 
+- Optimize for correct completed work per rate-limit consumption. Priority: correctness, completion, behavior/data integrity, necessary validation, token efficiency, then speed.
+- Never spawn or use subagents.
+- Read `CONTEXT.md`, the active Checklist, and existing FMS Knowledge before rediscovering established facts. Treat settled Checklist decisions as approved unless concrete evidence disproves them.
+- In goal mode, execute the accepted plan autonomously until complete. Stop early only for a genuine blocker requiring user input, credentials, authorization, or a destructive decision.
+- Inspect the smallest relevant code surface first. Prefer targeted searches and bounded reads; expand only when necessary.
+- Avoid duplicate searches, rereading unchanged files, broad output, repeated status/diff/API checks, speculative fixes, and rediscovering known facts.
+- Avoid unrelated refactors, cleanup, formatting, modernization, renaming, dependency upgrades, or architecture changes. Preserve unrelated user changes.
+- Batch related independent inspections when practical, but do dependent edits and validations sequentially.
+- Do not regenerate unchanged artifacts, builds, datasets, or backtests. Reuse completed fingerprints, checkpoints, and earlier valid command results.
+- Avoid repeated polling, sleeps, service restarts, and health checks. Poll a confirmed live handle or durable checkpoint only when the result changes the next action.
+- Never run a noisy development service in an attached tool session. Redirect logs, inspect only a bounded tail on failure, and stop agent-started services before handoff so port 8001 remains available to `pnpm run dev:all`.
+- Do not print large JSON, candle arrays, database rows, API payloads, diffs, or service logs into the conversation. Extract only decision-relevant fields, counts, and hashes.
+- Prefer implement, targeted validation, fix failures, then one final necessary gate. Do not run broad and narrow equivalent checks unless a failure requires investigation.
+- Validate proportionally to risk. Do not under-validate financial, trading, backtesting, statistical/research, data, database, security, or irreversible logic.
+- For bugs: reproduce, inspect evidence, form one hypothesis, fix, and verify. Avoid speculative repeated fixes.
 - Do not repeat an accepted plan or narrate routine file inspection, edits, and verification.
 - Combine related inspections and verification commands when practical.
 - During clear implementation work, stay silent except when blocked, when material risk is discovered, when user input is required, or when higher-level runtime rules require a brief progress update.

@@ -478,13 +478,25 @@ def _market_definition(
   )
 
 
+_MAJOR_CURRENCY_COUNTRY_SCOPE = {
+  "USD": frozenset({"US"}), "EUR": frozenset({"EU"}), "GBP": frozenset({"GB"}),
+  "JPY": frozenset({"JP"}), "AUD": frozenset({"AU"}), "CAD": frozenset({"CA"}),
+  "NZD": frozenset({"NZ"}), "CHF": frozenset({"CH"}),
+}
+_EXTENDED_MARKET_PAIRS = (
+  ("GBPUSD", "GBP", "USD"), ("USDJPY", "USD", "JPY"), ("AUDUSD", "AUD", "USD"),
+  ("USDCAD", "USD", "CAD"), ("NZDUSD", "NZD", "USD"), ("USDCHF", "USD", "CHF"),
+  ("EURGBP", "EUR", "GBP"), ("EURJPY", "EUR", "JPY"), ("EURCHF", "EUR", "CHF"),
+  ("EURAUD", "EUR", "AUD"), ("EURCAD", "EUR", "CAD"), ("EURNZD", "EUR", "NZD"),
+  ("GBPJPY", "GBP", "JPY"), ("GBPCHF", "GBP", "CHF"), ("GBPAUD", "GBP", "AUD"),
+  ("GBPCAD", "GBP", "CAD"), ("GBPNZD", "GBP", "NZD"), ("CHFJPY", "CHF", "JPY"),
+  ("AUDCHF", "AUD", "CHF"), ("CADCHF", "CAD", "CHF"), ("NZDCHF", "NZD", "CHF"),
+  ("AUDJPY", "AUD", "JPY"), ("AUDCAD", "AUD", "CAD"), ("AUDNZD", "AUD", "NZD"),
+  ("CADJPY", "CAD", "JPY"), ("NZDCAD", "NZD", "CAD"), ("NZDJPY", "NZD", "JPY"),
+)
 MARKET_RESEARCH_SPECS: Dict[str, Tuple[str, str, Dict[str, frozenset[str]]]] = {
-  "GBPUSD": ("GBP", "USD", {"GBP": frozenset({"GB"}), "USD": frozenset({"US"})}),
-  "USDJPY": ("USD", "JPY", {"USD": frozenset({"US"}), "JPY": frozenset({"JP"})}),
-  "AUDUSD": ("AUD", "USD", {"AUD": frozenset({"AU"}), "USD": frozenset({"US"})}),
-  "USDCAD": ("USD", "CAD", {"USD": frozenset({"US"}), "CAD": frozenset({"CA"})}),
-  "NZDUSD": ("NZD", "USD", {"NZD": frozenset({"NZ"}), "USD": frozenset({"US"})}),
-  "USDCHF": ("USD", "CHF", {"USD": frozenset({"US"}), "CHF": frozenset({"CH"})}),
+  symbol: (base, quote, {base: _MAJOR_CURRENCY_COUNTRY_SCOPE[base], quote: _MAJOR_CURRENCY_COUNTRY_SCOPE[quote]})
+  for symbol, base, quote in _EXTENDED_MARKET_PAIRS
 }
 
 MARKET_SOURCE_VERSION_IDS: Dict[str, Tuple[str, ...]] = {
@@ -984,6 +996,142 @@ def evaluate_candidate(
     "resultR": expiry_r,
     "exitTime": int(expiry_candle["time"]) + H4_SECONDS,
     "reason": f"Expired after {holding_candles} completed H4 candles",
+    "reasonCode": "resolved_expiry",
+  }
+
+
+def evaluate_candidate_h1_entry(
+  candidate: Dict[str, Any],
+  h1_candles: Sequence[Dict[str, Any]],
+  h4_candles: Sequence[Dict[str, Any]],
+  h4_atr_values: Sequence[Optional[float]],
+  target_r: float,
+  m1_provider: Optional[M1Provider] = None,
+  allow_pending: bool = False,
+  as_of: Optional[int] = None,
+  stop_atr: float = 1.0,
+  holding_candles: int = HOLDING_CANDLES,
+  management_family: str = "fixed",
+  management_trigger_r: Optional[float] = None,
+) -> Dict[str, Any]:
+  """Evaluate a first-later-H1 entry with completed-H4 ATR and H4 expiry.
+
+  The final expiry is identical to the parent H4 contract. H1 changes only the
+  entry and observable path granularity; it cannot extend the holding window.
+  """
+  if management_family not in {"fixed", "break_even"}:
+    raise ValueError(f"Unsupported active execution management: {management_family}")
+  event_time = int(candidate["eventTime"])
+  observation_time = as_of if as_of is not None else int(datetime.now(timezone.utc).timestamp())
+  planned_entry = (event_time // 3600 + 1) * 3600
+  h1_times = [int(row["time"]) for row in h1_candles]
+  h4_times = [int(row["time"]) for row in h4_candles]
+  base = {
+    "eventTime": event_time, "direction": candidate["direction"],
+    "agreement": candidate["agreement"], "pairVote": candidate["pairVote"],
+    "backgroundDirection": candidate["backgroundDirection"],
+    "backgroundPairVote": candidate["backgroundPairVote"],
+    "backgroundAlignment": candidate["backgroundAlignment"],
+    "highestImpact": candidate["highestImpact"], "targetR": target_r,
+    "stopAtr": stop_atr, "expiryCandles": holding_candles,
+    "entryTimeframe": "H1", "expiryTimeframe": "H4",
+    "managementFamily": management_family, "managementTriggerR": management_trigger_r,
+    "factorVotes": candidate["factorVotes"], "events": candidate["events"],
+  }
+  def unresolved(status: str, code: str, reason: str, required_to: Optional[int] = None) -> Dict[str, Any]:
+    return {
+      **base, "status": status, "resultR": None, "reason": reason, "reasonCode": code,
+      "coverage": {
+        "requiredFrom": event_time, "requiredTo": required_to,
+        "availableFrom": h1_times[0] if h1_times else None,
+        "availableTo": h1_times[-1] + 3600 if h1_times else None,
+        "requiredCandles": holding_candles, "availableCandles": len(h1_candles),
+      },
+    }
+  if candidate["direction"] == "none":
+    return unresolved("no_direction", "no_direction", "Exact factor-vote tie")
+  entry_index = bisect_left(h1_times, planned_entry)
+  if entry_index >= len(h1_times) or h1_times[entry_index] != planned_entry:
+    if allow_pending and planned_entry > observation_time:
+      pending = unresolved("pending", "waiting_for_entry_candle", "Waiting for first eligible H1 entry", planned_entry)
+      pending["pendingLifecycle"] = {"phase": "waiting_entry", "asOf": observation_time, "requiredUntil": planned_entry}
+      return pending
+    return unresolved("unevaluable", "missing_h1_entry_candle", "First eligible H1 entry candle is unavailable", planned_entry + 3600)
+  known_h4_index = bisect_right(h4_times, planned_entry - H4_SECONDS) - 1
+  if known_h4_index < 0 or known_h4_index >= len(h4_atr_values):
+    return unresolved("unevaluable", "missing_atr_history", "Completed-H4 ATR history is unavailable", planned_entry)
+  atr = h4_atr_values[known_h4_index]
+  if atr is None or not math.isfinite(atr) or atr <= 0:
+    return unresolved("unevaluable", "missing_atr_history", "Completed-H4 ATR history is unavailable", planned_entry)
+  baseline_h4_index = bisect_right(h4_times, event_time)
+  expiry_index = baseline_h4_index + holding_candles - 1
+  if baseline_h4_index >= len(h4_times) or expiry_index >= len(h4_times):
+    phase = h4_times[-1] % H4_SECONDS if h4_times else 0
+    first_later_h4 = phase + ((event_time - phase) // H4_SECONDS + 1) * H4_SECONDS
+    planned_expiry = first_later_h4 + holding_candles * H4_SECONDS
+    if allow_pending and planned_expiry > observation_time:
+      planned_expiry = h4_times[baseline_h4_index] + holding_candles * H4_SECONDS if baseline_h4_index < len(h4_times) else planned_expiry
+    else:
+      return unresolved("unevaluable", "missing_outcome_candles", "H4 expiry boundary is unavailable", planned_expiry)
+  else:
+    planned_expiry = h4_times[expiry_index] + H4_SECONDS
+  entry = float(h1_candles[entry_index]["open"])
+  sign = 1.0 if candidate["direction"] == "long" else -1.0
+  risk = float(atr) * stop_atr
+  initial_stop = entry - sign * risk
+  stop = initial_stop
+  target = entry + sign * risk * target_r
+  trigger = entry + sign * risk * float(management_trigger_r or 1.0)
+  detail = {
+    **base, "entryTime": planned_entry, "entry": entry, "atr": float(atr),
+    "atrKnownAt": h4_times[known_h4_index] + H4_SECONDS,
+    "initialStop": initial_stop, "stop": stop, "target": target,
+    "contractExpiryTime": planned_expiry,
+  }
+  armed = False
+  last_complete: Optional[Dict[str, Any]] = None
+  for candle in h1_candles[entry_index:]:
+    candle_time = int(candle["time"])
+    if candle_time >= planned_expiry or candle_time + 3600 > observation_time:
+      break
+    stop_hit, target_hit = _bar_touches(candle, candidate["direction"], stop, target)
+    trigger_hit = (
+      float(candle["high"]) >= trigger if sign > 0 else float(candle["low"]) <= trigger
+    )
+    if management_family == "break_even" and not armed and stop_hit and trigger_hit:
+      return {**detail, "stop": stop, "breakEvenArmed": armed, "status": "ambiguous", "resultR": None, "exitTime": candle_time, "reason": "Break-even trigger and initial stop touched inside one H1 candle", "reasonCode": "trigger_stop_order_unknown"}
+    if stop_hit and target_hit:
+      minutes = m1_provider(candle_time, candle_time + 3600) if m1_provider else []
+      resolved = _resolve_m1_order(minutes, candidate["direction"], stop, target)
+      if resolved == "target_hit":
+        return {**detail, "stop": stop, "breakEvenArmed": armed, "status": "target_hit", "resultR": target_r, "exitTime": candle_time, "reason": "M1 resolved target first", "reasonCode": "resolved_target"}
+      if resolved == "stop_hit":
+        result_r = 0.0 if armed else -1.0
+        return {**detail, "stop": stop, "breakEvenArmed": armed, "status": "stop_hit", "resultR": result_r, "exitTime": candle_time, "reason": "M1 resolved stop first", "reasonCode": "resolved_break_even" if armed else "resolved_stop"}
+      return {**detail, "stop": stop, "breakEvenArmed": armed, "status": "ambiguous", "resultR": None, "exitTime": candle_time, "reason": "Both touched; order unknown", "reasonCode": "both_touched_order_unknown"}
+    if stop_hit:
+      result_r = 0.0 if armed else -1.0
+      return {**detail, "stop": stop, "breakEvenArmed": armed, "status": "stop_hit", "resultR": result_r, "exitTime": candle_time + 3600, "reason": "H1 stop first", "reasonCode": "resolved_break_even" if armed else "resolved_stop"}
+    if target_hit:
+      return {**detail, "stop": stop, "breakEvenArmed": armed, "status": "target_hit", "resultR": target_r, "exitTime": candle_time + 3600, "reason": "H1 target first", "reasonCode": "resolved_target"}
+    if management_family == "break_even" and not armed and trigger_hit:
+      armed = True
+      stop = entry
+    last_complete = candle
+  if planned_expiry > observation_time:
+    pending = {
+      **detail, "stop": stop, "breakEvenArmed": armed, "status": "pending",
+      "resultR": None, "reason": "Trade still running", "reasonCode": "trade_still_running",
+      "pendingLifecycle": {"phase": "trade_running", "asOf": observation_time, "entryTime": planned_entry, "requiredUntil": planned_expiry},
+    }
+    return pending
+  if last_complete is None or int(last_complete["time"]) + 3600 != planned_expiry:
+    return unresolved("unevaluable", "missing_outcome_candles", "H1 path does not reach the fixed H4 expiry", planned_expiry)
+  result_r = sign * (float(last_complete["close"]) - entry) / risk
+  return {
+    **detail, "stop": stop, "breakEvenArmed": armed, "status": "expired",
+    "resultR": result_r, "exitTime": planned_expiry,
+    "reason": f"Expired at the parent {holding_candles}-H4 boundary",
     "reasonCode": "resolved_expiry",
   }
 

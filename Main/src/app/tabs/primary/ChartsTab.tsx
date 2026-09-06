@@ -287,7 +287,7 @@ export function buildMacroBiasSeriesMarkers(
       color: signal.historicalReplay
         ? signal.direction === "long" ? "#2563eb" : "#7c3aed"
         : signal.direction === "long" ? "#16a34a" : "#dc2626",
-      text: `${signal.direction === "long" ? "LONG BIAS" : "SHORT BIAS"}${signal.observationMode === "recovered_offline" ? " · RECOVERED" : signal.contextOverlay?.matched ? " · CONTEXT" : ""}`,
+      text: `${signal.entryTimeframe ?? "H4"} ENTRY · ${signal.direction === "long" ? "LONG" : "SHORT"}${signal.observationMode === "recovered_offline" ? " · RECOVERED" : signal.contextOverlay?.matched ? " · CONTEXT" : ""}`,
       size: 1.4,
     });
     return built;

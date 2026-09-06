@@ -19,6 +19,17 @@ from typing import Any, Dict, Optional, Tuple
 _PROFILE_PATH = Path(__file__).with_name("registered_reaction_profiles.json")
 _CONTEXT_PROFILE_PATH = Path(__file__).with_name("registered_market_context_profiles.json")
 _FOLLOWUP_PROFILE_PATH = Path(__file__).with_name("registered_context_followups.json")
+_CONTEXT_APPROVAL_PATH = Path(__file__).with_name("registered_context_approval_evidence.json")
+try:
+  _CONTEXT_APPROVAL_ROWS = json.loads(_CONTEXT_APPROVAL_PATH.read_text(encoding="utf-8")).get("profiles", {})
+except (OSError, TypeError, ValueError):
+  _CONTEXT_APPROVAL_ROWS = {}
+
+
+def registered_context_approval_evidence(market: str, pattern_id: str) -> Dict[str, Any]:
+  """Frozen evidence for code-owned approvals; refreshed research cannot replace it."""
+  return _CONTEXT_APPROVAL_ROWS.get(f"{market}|{pattern_id}") or {}
+
 try:
   _PROFILE_ROWS = json.loads(_PROFILE_PATH.read_text(encoding="utf-8")).get("profiles", {})
 except (OSError, TypeError, ValueError):
@@ -36,6 +47,8 @@ except (OSError, TypeError, ValueError):
 
 
 REACTION_AUDIT_V1: Dict[Tuple[str, str], Tuple[int, int, int, int, int, float, float]] = {
+  ("AUDJPY", "audjpy-jpy-industrial-output"): (37, 14, 7, 1, 15, .567568, .517725),
+  ("AUDJPY", "audjpy-jpy-inflation-short"): (26, 10, 3, 11, 2, .5, .013394),
   ("AUDUSD", "audusd-business-confidence-rejection"): (31, 17, 1, 8, 5, .580645, .262005),
   ("AUDUSD", "audusd-ism-manufacturing-employment-package"): (44, 12, 9, 0, 23, .477273, -.226502),
   ("AUDUSD", "audusd-s-p-global-manufacturing-pmi"): (36, 17, 1, 5, 13, .5, .050691),
@@ -50,6 +63,8 @@ REACTION_AUDIT_V1: Dict[Tuple[str, str], Tuple[int, int, int, int, int, float, f
   ("EURUSD", "eurusd-us-payroll-short-restored"): (14, 8, 0, 0, 6, .571429, .268141),
   ("EURUSD", "eurusd-us-producer-inflation-cooling-restored"): (11, 6, 1, 1, 3, .636364, .261048),
   ("EURUSD", "us-industrial-output-directional"): (31, 17, 1, 7, 6, .580645, .217257),
+  ("EURCAD", "eurcad-eur-consumer-sentiment"): (39, 17, 5, 4, 13, .564103, .191123),
+  ("EURJPY", "eurjpy-eur-composite-services-pmi"): (33, 15, 7, 2, 9, .666667, 1.204567),
   ("GBPUSD", "gbpusd-average-weekly-earnings-regular-pay-y-y-package"): (16, 8, 0, 3, 5, .5, .040965),
   ("GBPUSD", "gbpusd-gdp-sales-q-q-package"): (17, 7, 1, 2, 7, .470588, -.034481),
   ("GBPUSD", "gbpusd-ism-non-manufacturing-business-activity-package"): (30, 16, 0, 1, 13, .533333, .056616),

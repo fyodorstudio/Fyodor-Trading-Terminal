@@ -1,0 +1,1975 @@
+{
+  "schema": "fms-major-forex-extended-coverage-v1",
+  "universe": "28 combinations of USD, EUR, GBP, JPY, AUD, CAD, NZD, CHF",
+  "markets": [
+    {
+      "market": "EURUSD",
+      "currencies": [
+        "EUR",
+        "USD"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 99278,
+        "earliest": 1168126200,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "EUR",
+            "count": 45650,
+            "earliest": 1171360800,
+            "latest": 1796427000
+          },
+          {
+            "currency": "USD",
+            "count": 53628,
+            "earliest": 1168126200,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 30982,
+        "earliest": 31795200,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-EURUSD-LABOR-H4-v2",
+          "runId": "FMS-EURUSD-LABOR-H4-v2-1787052254-bea0752d",
+          "status": "completed",
+          "datasetFingerprint": "ff80aee0c33b1c1616837ee8ca6b1499c1c3a8a1f20f2d66cd16255b3a41fa4c",
+          "candidateCases": 1008,
+          "evaluableCases": 824,
+          "unevaluableCases": 2
+        },
+        {
+          "versionId": "FMS-EURUSD-SENTIMENT-H4-v3",
+          "runId": "FMS-EURUSD-SENTIMENT-H4-v3-1787232451-0c6a7653",
+          "status": "completed",
+          "datasetFingerprint": "99888f0cf4a0c8b5d1d405befe0d7f42c62ebcee596ac3227473645c031c0595",
+          "candidateCases": 841,
+          "evaluableCases": 716,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-EURUSD-POLICY-INFL-H4-v5",
+          "runId": "FMS-EURUSD-POLICY-INFL-H4-v5-1787234423-fe7003ad",
+          "status": "completed",
+          "datasetFingerprint": "dd97595c2255d94147f6f9d7dbe353a587169f98bb069465fe60236a5c302ecd",
+          "candidateCases": 1096,
+          "evaluableCases": 831,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-EURUSD-GROWTH-H4-v7",
+          "runId": "FMS-EURUSD-GROWTH-H4-v7-1787238093-06baed85",
+          "status": "completed",
+          "datasetFingerprint": "2e6c510fb23ce09272e398776c666120fc85ab908adf056fc2916575596b4d50",
+          "candidateCases": 2078,
+          "evaluableCases": 1697,
+          "unevaluableCases": 4
+        }
+      ]
+    },
+    {
+      "market": "GBPUSD",
+      "currencies": [
+        "GBP",
+        "USD"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 70871,
+        "earliest": 1168126200,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "GBP",
+            "count": 17243,
+            "earliest": 1168516800,
+            "latest": 1796427000
+          },
+          {
+            "currency": "USD",
+            "count": 53628,
+            "earliest": 1168126200,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 30941,
+        "earliest": 737164800,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-GBPUSD-LABOR-H4-v2",
+          "runId": "FMS-GBPUSD-LABOR-H4-v2-1787786501-a2e4025b",
+          "status": "completed",
+          "datasetFingerprint": "5f61ee56e35d872ce5c4e6058063fa112a032577070c72531c9b39697305b6ea",
+          "candidateCases": 903,
+          "evaluableCases": 744,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-GBPUSD-SENTIMENT-H4-v3",
+          "runId": "FMS-GBPUSD-SENTIMENT-H4-v3-1787786505-d2ec45d5",
+          "status": "completed",
+          "datasetFingerprint": "268839ea01fa5c05347ed0a3448f1695569f7a2a9ed9045197a1e2ed16e19982",
+          "candidateCases": 481,
+          "evaluableCases": 402,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-GBPUSD-POLICY-INFL-H4-v5",
+          "runId": "FMS-GBPUSD-POLICY-INFL-H4-v5-1787786508-7c0fcb09",
+          "status": "completed",
+          "datasetFingerprint": "81b4ff590e665b4076ad34a7130dc43e0f7167231e4ac77e8b3f6f0bb07ae60f",
+          "candidateCases": 792,
+          "evaluableCases": 621,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-GBPUSD-GROWTH-H4-v7",
+          "runId": "FMS-GBPUSD-GROWTH-H4-v7-1787786511-699d492b",
+          "status": "completed",
+          "datasetFingerprint": "e647801b37a4098937f02f856335feed05b8962cadde8d85ed86ae7b34543d14",
+          "candidateCases": 1990,
+          "evaluableCases": 1656,
+          "unevaluableCases": 1
+        }
+      ]
+    },
+    {
+      "market": "USDJPY",
+      "currencies": [
+        "USD",
+        "JPY"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 72493,
+        "earliest": 1168126200,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "JPY",
+            "count": 18865,
+            "earliest": 1171353600,
+            "latest": 1796427000
+          },
+          {
+            "currency": "USD",
+            "count": 53628,
+            "earliest": 1168126200,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 18420,
+        "earliest": 31795200,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-USDJPY-LABOR-H4-v2",
+          "runId": "FMS-USDJPY-LABOR-H4-v2-1787787961-0e8aa6d7",
+          "status": "completed",
+          "datasetFingerprint": "a365480ed3215483e18e5522458092e5d42224b01cc77c36fe35b05135a6ed12",
+          "candidateCases": 1017,
+          "evaluableCases": 831,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-USDJPY-SENTIMENT-H4-v3",
+          "runId": "FMS-USDJPY-SENTIMENT-H4-v3-1787787965-bb608b8a",
+          "status": "completed",
+          "datasetFingerprint": "d22d8e13bc5d71493335117fc9cd297a29122405bcd25d1518dace052641d4ba",
+          "candidateCases": 474,
+          "evaluableCases": 401,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-USDJPY-POLICY-INFL-H4-v5",
+          "runId": "FMS-USDJPY-POLICY-INFL-H4-v5-1787787969-74e430cb",
+          "status": "completed",
+          "datasetFingerprint": "b89ac556ab205b657b159b396e9bd0cda70dd8c35cd889d20579ad9625be2403",
+          "candidateCases": 1008,
+          "evaluableCases": 817,
+          "unevaluableCases": 3
+        },
+        {
+          "versionId": "FMS-USDJPY-GROWTH-H4-v7",
+          "runId": "FMS-USDJPY-GROWTH-H4-v7-1787787975-abb5e44f",
+          "status": "completed",
+          "datasetFingerprint": "6d2badf5ae1e60f006dc6ceb87f49d769244ce3120ac2f431fbc34eb9bb4b489",
+          "candidateCases": 2064,
+          "evaluableCases": 1690,
+          "unevaluableCases": 0
+        }
+      ]
+    },
+    {
+      "market": "AUDUSD",
+      "currencies": [
+        "AUD",
+        "USD"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 63238,
+        "earliest": 1168126200,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "AUD",
+            "count": 9610,
+            "earliest": 1169440200,
+            "latest": 1796427000
+          },
+          {
+            "currency": "USD",
+            "count": 53628,
+            "earliest": 1168126200,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 13550,
+        "earliest": 735868800,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-AUDUSD-LABOR-H4-v2",
+          "runId": "FMS-AUDUSD-LABOR-H4-v2-1787787978-e9142efd",
+          "status": "completed",
+          "datasetFingerprint": "d7481d55e771f14d74a761e2f3c7f13ada039637d41c20ac6eb2766cda55ee5d",
+          "candidateCases": 943,
+          "evaluableCases": 779,
+          "unevaluableCases": 2
+        },
+        {
+          "versionId": "FMS-AUDUSD-SENTIMENT-H4-v3",
+          "runId": "FMS-AUDUSD-SENTIMENT-H4-v3-1787787981-9c3a6519",
+          "status": "completed",
+          "datasetFingerprint": "a58d67d545098f5ce751f895b25ce03a99ccc3c6890a11fc92b09c6e1645cd79",
+          "candidateCases": 614,
+          "evaluableCases": 517,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-AUDUSD-POLICY-INFL-H4-v5",
+          "runId": "FMS-AUDUSD-POLICY-INFL-H4-v5-1787787984-6ddf3537",
+          "status": "completed",
+          "datasetFingerprint": "4f2f3350d40346e5ac5385e94be7697181fd56eafbcd550384c67a9de2306048",
+          "candidateCases": 746,
+          "evaluableCases": 581,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-AUDUSD-GROWTH-H4-v7",
+          "runId": "FMS-AUDUSD-GROWTH-H4-v7-1787787987-f3776224",
+          "status": "completed",
+          "datasetFingerprint": "607187dddcca8c913ee38ac03bbe44f13aa9b2a83a58620ab4221cdf6b211161",
+          "candidateCases": 1715,
+          "evaluableCases": 1431,
+          "unevaluableCases": 0
+        }
+      ]
+    },
+    {
+      "market": "USDCAD",
+      "currencies": [
+        "USD",
+        "CAD"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 63073,
+        "earliest": 1168126200,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "CAD",
+            "count": 9445,
+            "earliest": 1169137800,
+            "latest": 1796427000
+          },
+          {
+            "currency": "USD",
+            "count": 53628,
+            "earliest": 1168126200,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 18416,
+        "earliest": 1162944000,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-USDCAD-LABOR-H4-v2",
+          "runId": "FMS-USDCAD-LABOR-H4-v2-1787787990-7bbc1361",
+          "status": "completed",
+          "datasetFingerprint": "95089c1911789b1280a206992920074c9fe7d648b90ba0553f04d28148fa8ac4",
+          "candidateCases": 826,
+          "evaluableCases": 653,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-USDCAD-SENTIMENT-H4-v3",
+          "runId": "FMS-USDCAD-SENTIMENT-H4-v3-1787787992-c0e7a6e1",
+          "status": "completed",
+          "datasetFingerprint": "210af2825ae05916436b2d79bcf3a38ca90434428356e3262b36b562ff338f69",
+          "candidateCases": 361,
+          "evaluableCases": 302,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-USDCAD-POLICY-INFL-H4-v5",
+          "runId": "FMS-USDCAD-POLICY-INFL-H4-v5-1787787995-5a18441e",
+          "status": "completed",
+          "datasetFingerprint": "eaca4f640a1b9ac68b5a0b38d93744a7feba51c2e61c7fe1dea5d71a229d391c",
+          "candidateCases": 861,
+          "evaluableCases": 665,
+          "unevaluableCases": 2
+        },
+        {
+          "versionId": "FMS-USDCAD-GROWTH-H4-v7",
+          "runId": "FMS-USDCAD-GROWTH-H4-v7-1787787999-6b751c10",
+          "status": "completed",
+          "datasetFingerprint": "7c428b6a8de5c2abe2f55edd9aef2e2ca08d6fb0cdc93be6a50a7ce9153d735b",
+          "candidateCases": 1512,
+          "evaluableCases": 1227,
+          "unevaluableCases": 0
+        }
+      ]
+    },
+    {
+      "market": "NZDUSD",
+      "currencies": [
+        "NZD",
+        "USD"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 60691,
+        "earliest": 1168126200,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "NZD",
+            "count": 7063,
+            "earliest": 1175219100,
+            "latest": 1796427000
+          },
+          {
+            "currency": "USD",
+            "count": 53628,
+            "earliest": 1168126200,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 13507,
+        "earliest": 760060800,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-NZDUSD-LABOR-H4-v2",
+          "runId": "FMS-NZDUSD-LABOR-H4-v2-1787788002-1387b8fe",
+          "status": "completed",
+          "datasetFingerprint": "4643b5d14b4c8674fe96fe743c026911cc63c12ea3bc516a48a67f191793b3ac",
+          "candidateCases": 823,
+          "evaluableCases": 675,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-NZDUSD-SENTIMENT-H4-v3",
+          "runId": "FMS-NZDUSD-SENTIMENT-H4-v3-1787788007-f5525da4",
+          "status": "completed",
+          "datasetFingerprint": "04d1ee786f6a5e45067e7ee8d9379c331c0029d1befb586472363047a77379c4",
+          "candidateCases": 525,
+          "evaluableCases": 437,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-NZDUSD-POLICY-INFL-H4-v5",
+          "runId": "FMS-NZDUSD-POLICY-INFL-H4-v5-1787788011-f0261559",
+          "status": "completed",
+          "datasetFingerprint": "3feee134097a9454f82a38a786a173e81341a373ba72561490799a5f61bbedfb",
+          "candidateCases": 746,
+          "evaluableCases": 575,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-NZDUSD-GROWTH-H4-v7",
+          "runId": "FMS-NZDUSD-GROWTH-H4-v7-1787788014-4050fd0a",
+          "status": "completed",
+          "datasetFingerprint": "76f06b4ab77df9b53aee24ac08f710fddeddda81ca1389bf4ca0d24901bdf4ae",
+          "candidateCases": 1541,
+          "evaluableCases": 1269,
+          "unevaluableCases": 2
+        }
+      ]
+    },
+    {
+      "market": "USDCHF",
+      "currencies": [
+        "USD",
+        "CHF"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 58396,
+        "earliest": 1168126200,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "CHF",
+            "count": 4768,
+            "earliest": 1173954600,
+            "latest": 1796427000
+          },
+          {
+            "currency": "USD",
+            "count": 53628,
+            "earliest": 1168126200,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 13494,
+        "earliest": 31795200,
+        "latest": 1788494400
+      },
+      "sources": [
+        {
+          "versionId": "FMS-USDCHF-LABOR-H4-v2",
+          "runId": "FMS-USDCHF-LABOR-H4-v2-1787788018-290d09a0",
+          "status": "completed",
+          "datasetFingerprint": "ee83f531be60227b11f648fc579eda801e37f7a2f9fbc9f8c24766aa80b71863",
+          "candidateCases": 903,
+          "evaluableCases": 740,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-USDCHF-SENTIMENT-H4-v3",
+          "runId": "FMS-USDCHF-SENTIMENT-H4-v3-1787788020-856fe767",
+          "status": "completed",
+          "datasetFingerprint": "d6f55e09ea7b38f4314a22239ec672baeb2c98466c183d814c477337e224f60f",
+          "candidateCases": 361,
+          "evaluableCases": 302,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-USDCHF-POLICY-INFL-H4-v5",
+          "runId": "FMS-USDCHF-POLICY-INFL-H4-v5-1787788025-3145dd4f",
+          "status": "completed",
+          "datasetFingerprint": "6c1e6b69c8b5edb2d6f13fe3770b439be0de0cc380b16698663241c0ec2ada6a",
+          "candidateCases": 905,
+          "evaluableCases": 714,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-USDCHF-GROWTH-H4-v7",
+          "runId": "FMS-USDCHF-GROWTH-H4-v7-1787788029-387c6dbb",
+          "status": "completed",
+          "datasetFingerprint": "645ddd028a00c8abbe84e4499c7d6d4ab2e2c5bf9251f7cf4d09b0acef6f8071",
+          "candidateCases": 1603,
+          "evaluableCases": 1317,
+          "unevaluableCases": 0
+        }
+      ]
+    },
+    {
+      "market": "EURGBP",
+      "currencies": [
+        "EUR",
+        "GBP"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 62893,
+        "earliest": 1168516800,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "EUR",
+            "count": 45650,
+            "earliest": 1171360800,
+            "latest": 1796427000
+          },
+          {
+            "currency": "GBP",
+            "count": 17243,
+            "earliest": 1168516800,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 30802,
+        "earliest": 1163376000,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-EURGBP-LABOR-H4-v2",
+          "runId": "FMS-EURGBP-LABOR-H4-v2-1788680207-76bbcb69",
+          "status": "completed",
+          "datasetFingerprint": "11824a0a12cbc79cfc32829a406559e1eaf4e0643d80daf1f7344e20b2f02df1",
+          "candidateCases": 345,
+          "evaluableCases": 288,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-EURGBP-SENTIMENT-H4-v3",
+          "runId": "FMS-EURGBP-SENTIMENT-H4-v3-1788680211-ef90fff0",
+          "status": "completed",
+          "datasetFingerprint": "6a309f2cb8181e3e6d06e81618377bb3881bf08475be87fc44523d9da3738fa6",
+          "candidateCases": 608,
+          "evaluableCases": 527,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-EURGBP-POLICY-INFL-H4-v5",
+          "runId": "FMS-EURGBP-POLICY-INFL-H4-v5-1788680215-f8bc41e5",
+          "status": "completed",
+          "datasetFingerprint": "36725fb6dc1b81e5cbb2666330797a48ca42fd18861267e6df077858fc2ab787",
+          "candidateCases": 557,
+          "evaluableCases": 440,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-EURGBP-GROWTH-H4-v7",
+          "runId": "FMS-EURGBP-GROWTH-H4-v7-1788680238-95b8873d",
+          "status": "completed",
+          "datasetFingerprint": "dc89af68426ce8f112fef32d176b7411212294dd573b4c169beaad872f63ecff",
+          "candidateCases": 1742,
+          "evaluableCases": 1428,
+          "unevaluableCases": 5
+        }
+      ]
+    },
+    {
+      "market": "EURJPY",
+      "currencies": [
+        "EUR",
+        "JPY"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 64515,
+        "earliest": 1171353600,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "EUR",
+            "count": 45650,
+            "earliest": 1171360800,
+            "latest": 1796427000
+          },
+          {
+            "currency": "JPY",
+            "count": 18865,
+            "earliest": 1171353600,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 30691,
+        "earliest": 1166169600,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-EURJPY-LABOR-H4-v2",
+          "runId": "FMS-EURJPY-LABOR-H4-v2-1788680274-12e8fcce",
+          "status": "completed",
+          "datasetFingerprint": "3a217e0dbb03d01246a8b3c42fdeebdbb468f4b5278c53ecaffba69a79ce7122",
+          "candidateCases": 460,
+          "evaluableCases": 381,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-EURJPY-SENTIMENT-H4-v3",
+          "runId": "FMS-EURJPY-SENTIMENT-H4-v3-1788680290-42cfd22f",
+          "status": "completed",
+          "datasetFingerprint": "aaa503b6ecffe25f9a830f23a24c765fe54813d8552824921bf54d6380f6ab9d",
+          "candidateCases": 601,
+          "evaluableCases": 524,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-EURJPY-POLICY-INFL-H4-v5",
+          "runId": "FMS-EURJPY-POLICY-INFL-H4-v5-1788681105-cdbf74ec",
+          "status": "completed",
+          "datasetFingerprint": "32fe838dc3871bfaa006913092bf2caf600f95fd5031c142eef9560e4158b454",
+          "candidateCases": 773,
+          "evaluableCases": 641,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-EURJPY-GROWTH-H4-v7",
+          "runId": "FMS-EURJPY-GROWTH-H4-v7-1788681108-759d53eb",
+          "status": "completed",
+          "datasetFingerprint": "0c5d30b86e127016b463c0b54eb557d5cd3ba022108341e92e1573d114f44d1d",
+          "candidateCases": 1815,
+          "evaluableCases": 1473,
+          "unevaluableCases": 5
+        }
+      ]
+    },
+    {
+      "market": "EURCHF",
+      "currencies": [
+        "EUR",
+        "CHF"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 50418,
+        "earliest": 1171360800,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "CHF",
+            "count": 4768,
+            "earliest": 1173954600,
+            "latest": 1796427000
+          },
+          {
+            "currency": "EUR",
+            "count": 45650,
+            "earliest": 1171360800,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 30615,
+        "earliest": 1166184000,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-EURCHF-LABOR-H4-v2",
+          "runId": "FMS-EURCHF-LABOR-H4-v2-1788681113-48b4375d",
+          "status": "completed",
+          "datasetFingerprint": "27ebeff2ad47d682e2e448bc537a03174767c482ab5e2754cfedd144386fde02",
+          "candidateCases": 345,
+          "evaluableCases": 283,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-EURCHF-SENTIMENT-H4-v3",
+          "runId": "FMS-EURCHF-SENTIMENT-H4-v3-1788681116-59c1b20f",
+          "status": "completed",
+          "datasetFingerprint": "8c41202e075545963752ae62edf462d8f7d1849a33214bb51a2e5f80f35f3560",
+          "candidateCases": 488,
+          "evaluableCases": 427,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-EURCHF-POLICY-INFL-H4-v5",
+          "runId": "FMS-EURCHF-POLICY-INFL-H4-v5-1788681118-3a62e5c9",
+          "status": "completed",
+          "datasetFingerprint": "fc085a632dabba0ae4f87f50779c8261b07414a154c40da8d7675998c4410cfb",
+          "candidateCases": 671,
+          "evaluableCases": 537,
+          "unevaluableCases": 2
+        },
+        {
+          "versionId": "FMS-EURCHF-GROWTH-H4-v7",
+          "runId": "FMS-EURCHF-GROWTH-H4-v7-1788681120-a5906343",
+          "status": "completed",
+          "datasetFingerprint": "63fa429afe9f5119cdb0fb7d712a53804326bf856728221b2e46a9fe8282c4e7",
+          "candidateCases": 1355,
+          "evaluableCases": 1099,
+          "unevaluableCases": 6
+        }
+      ]
+    },
+    {
+      "market": "EURAUD",
+      "currencies": [
+        "EUR",
+        "AUD"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 55260,
+        "earliest": 1169440200,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "AUD",
+            "count": 9610,
+            "earliest": 1169440200,
+            "latest": 1796427000
+          },
+          {
+            "currency": "EUR",
+            "count": 45650,
+            "earliest": 1171360800,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 30755,
+        "earliest": 1164268800,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-EURAUD-LABOR-H4-v2",
+          "runId": "FMS-EURAUD-LABOR-H4-v2-1788681124-208b51fe",
+          "status": "completed",
+          "datasetFingerprint": "5f509c41e03d9d1966653c5f9c88313a800e6333cb9e9c59882ea2b92ef09632",
+          "candidateCases": 385,
+          "evaluableCases": 322,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-EURAUD-SENTIMENT-H4-v3",
+          "runId": "FMS-EURAUD-SENTIMENT-H4-v3-1788681128-5c895cd5",
+          "status": "completed",
+          "datasetFingerprint": "49cac5865584d401c7adaf5530e86b76bd4f46035141e72e48b31b5cd7336288",
+          "candidateCases": 741,
+          "evaluableCases": 640,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-EURAUD-POLICY-INFL-H4-v5",
+          "runId": "FMS-EURAUD-POLICY-INFL-H4-v5-1788681130-c64f1bde",
+          "status": "completed",
+          "datasetFingerprint": "7d141f4286236ce3e83cf6ee681c234017f7b5f84969516959c88fece8022e6d",
+          "candidateCases": 511,
+          "evaluableCases": 399,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-EURAUD-GROWTH-H4-v7",
+          "runId": "FMS-EURAUD-GROWTH-H4-v7-1788681134-c62d9b45",
+          "status": "completed",
+          "datasetFingerprint": "9e655b580ade033694b9bff9c33f84fe452e728bb4c6bd05898fb87e0adf74bb",
+          "candidateCases": 1472,
+          "evaluableCases": 1212,
+          "unevaluableCases": 6
+        }
+      ]
+    },
+    {
+      "market": "EURCAD",
+      "currencies": [
+        "EUR",
+        "CAD"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 55095,
+        "earliest": 1169137800,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "CAD",
+            "count": 9445,
+            "earliest": 1169137800,
+            "latest": 1796427000
+          },
+          {
+            "currency": "EUR",
+            "count": 45650,
+            "earliest": 1171360800,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 30099,
+        "earliest": 1163980800,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-EURCAD-LABOR-H4-v2",
+          "runId": "FMS-EURCAD-LABOR-H4-v2-1788681137-b32522cd",
+          "status": "completed",
+          "datasetFingerprint": "20262bb7e6ea54f3ce74ec2333393e836cb45a72f83d78a01e7eb4015eb6cf4a",
+          "candidateCases": 396,
+          "evaluableCases": 326,
+          "unevaluableCases": 2
+        },
+        {
+          "versionId": "FMS-EURCAD-SENTIMENT-H4-v3",
+          "runId": "FMS-EURCAD-SENTIMENT-H4-v3-1788681140-a436db17",
+          "status": "completed",
+          "datasetFingerprint": "c91f66bfa3694bdc38e9adb25973894817cbedd2ae821f5dd9ad7cbe7ac8380d",
+          "candidateCases": 488,
+          "evaluableCases": 427,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-EURCAD-POLICY-INFL-H4-v5",
+          "runId": "FMS-EURCAD-POLICY-INFL-H4-v5-1788681142-43dbd8b6",
+          "status": "completed",
+          "datasetFingerprint": "5f5c18fd9554af37474b16fc9da4ba2d4fff82cd82c9803fcfd538c4fde8ff3e",
+          "candidateCases": 667,
+          "evaluableCases": 537,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-EURCAD-GROWTH-H4-v7",
+          "runId": "FMS-EURCAD-GROWTH-H4-v7-1788681145-e0a24be4",
+          "status": "completed",
+          "datasetFingerprint": "1ecab857218eae05420a6b46df1bea0a4a86659bea8255fc4f329128a1bd2b49",
+          "candidateCases": 1433,
+          "evaluableCases": 1162,
+          "unevaluableCases": 4
+        }
+      ]
+    },
+    {
+      "market": "EURNZD",
+      "currencies": [
+        "EUR",
+        "NZD"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 52713,
+        "earliest": 1171360800,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "EUR",
+            "count": 45650,
+            "earliest": 1171360800,
+            "latest": 1796427000
+          },
+          {
+            "currency": "NZD",
+            "count": 7063,
+            "earliest": 1175219100,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 29548,
+        "earliest": 1166400000,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-EURNZD-LABOR-H4-v2",
+          "runId": "FMS-EURNZD-LABOR-H4-v2-1788681149-110c8a27",
+          "status": "completed",
+          "datasetFingerprint": "fcf30a3f8b7bf4b5acb24eebba9682e0438781e88ec259159530dc0f6c745940",
+          "candidateCases": 265,
+          "evaluableCases": 218,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-EURNZD-SENTIMENT-H4-v3",
+          "runId": "FMS-EURNZD-SENTIMENT-H4-v3-1788681152-2c2c3748",
+          "status": "completed",
+          "datasetFingerprint": "ec55bf0648c1c70fbad9d6a0849ee4e63a01291a403bf997d841410f6d177737",
+          "candidateCases": 652,
+          "evaluableCases": 560,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-EURNZD-POLICY-INFL-H4-v5",
+          "runId": "FMS-EURNZD-POLICY-INFL-H4-v5-1788681155-a0c406e9",
+          "status": "completed",
+          "datasetFingerprint": "c05013244184be8edbdf2f4bad6a518fd8640a547f7e91983e8c9f7bf55eece6",
+          "candidateCases": 511,
+          "evaluableCases": 397,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-EURNZD-GROWTH-H4-v7",
+          "runId": "FMS-EURNZD-GROWTH-H4-v7-1788681158-db758099",
+          "status": "completed",
+          "datasetFingerprint": "cea40044c719ee6ff4144d1889b145bd7b946da9950b45dbb643817995c74feb",
+          "candidateCases": 1292,
+          "evaluableCases": 1052,
+          "unevaluableCases": 3
+        }
+      ]
+    },
+    {
+      "market": "GBPJPY",
+      "currencies": [
+        "GBP",
+        "JPY"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 36108,
+        "earliest": 1168516800,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "GBP",
+            "count": 17243,
+            "earliest": 1168516800,
+            "latest": 1796427000
+          },
+          {
+            "currency": "JPY",
+            "count": 18865,
+            "earliest": 1171353600,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 1211,
+        "earliest": 1764086400,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-GBPJPY-LABOR-H4-v2",
+          "runId": "FMS-GBPJPY-LABOR-H4-v2-1788681172-b1cd928a",
+          "status": "completed",
+          "datasetFingerprint": "7d7e868a34783d05e23d4f73c59cf295362a020456390065eae04a5ef76749ff",
+          "candidateCases": 356,
+          "evaluableCases": 19,
+          "unevaluableCases": 278
+        },
+        {
+          "versionId": "FMS-GBPJPY-SENTIMENT-H4-v3",
+          "runId": "FMS-GBPJPY-SENTIMENT-H4-v3-1788681175-6935a955",
+          "status": "completed",
+          "datasetFingerprint": "b9315f65fe094b8c65a0c64149536f37986871afa82493b3d7e343dd53bb2c44",
+          "candidateCases": 233,
+          "evaluableCases": 10,
+          "unevaluableCases": 191
+        },
+        {
+          "versionId": "FMS-GBPJPY-POLICY-INFL-H4-v5",
+          "runId": "FMS-GBPJPY-POLICY-INFL-H4-v5-1788681177-e548b1c0",
+          "status": "completed",
+          "datasetFingerprint": "8c6f7f21fca6ecd7ce4e596554c484fbf411c29826ee9af3862a9806918e7039",
+          "candidateCases": 470,
+          "evaluableCases": 35,
+          "unevaluableCases": 394
+        },
+        {
+          "versionId": "FMS-GBPJPY-GROWTH-H4-v7",
+          "runId": "FMS-GBPJPY-GROWTH-H4-v7-1788681178-3e003b13",
+          "status": "completed",
+          "datasetFingerprint": "c454c09003695751e9de39d61004e51f8802aa4c9bae1a2f5c819a0dbe11d7e1",
+          "candidateCases": 1727,
+          "evaluableCases": 92,
+          "unevaluableCases": 1332
+        }
+      ]
+    },
+    {
+      "market": "GBPCHF",
+      "currencies": [
+        "GBP",
+        "CHF"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 22011,
+        "earliest": 1168516800,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "CHF",
+            "count": 4768,
+            "earliest": 1173954600,
+            "latest": 1796427000
+          },
+          {
+            "currency": "GBP",
+            "count": 17243,
+            "earliest": 1168516800,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 21066,
+        "earliest": 1361836800,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-GBPCHF-LABOR-H4-v2",
+          "runId": "FMS-GBPCHF-LABOR-H4-v2-1788681310-1247f8e7",
+          "status": "completed",
+          "datasetFingerprint": "656c64bedb212d42a820c18e066e77eb319eec4199e72a72e02e8618c0e0ee53",
+          "candidateCases": 242,
+          "evaluableCases": 199,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-GBPCHF-SENTIMENT-H4-v3",
+          "runId": "FMS-GBPCHF-SENTIMENT-H4-v3-1788681312-c30ca418",
+          "status": "completed",
+          "datasetFingerprint": "918863f6fa07a17b93372824f7b3f39d32e90215be0c41cdf102f1637b3472c2",
+          "candidateCases": 121,
+          "evaluableCases": 102,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-GBPCHF-POLICY-INFL-H4-v5",
+          "runId": "FMS-GBPCHF-POLICY-INFL-H4-v5-1788681314-2e6ca97e",
+          "status": "completed",
+          "datasetFingerprint": "c728cf8deef192459e2b1088646a8fb3bb34a47fd063f28b8c0274f62beb2ca3",
+          "candidateCases": 366,
+          "evaluableCases": 321,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-GBPCHF-GROWTH-H4-v7",
+          "runId": "FMS-GBPCHF-GROWTH-H4-v7-1788681317-c331489a",
+          "status": "completed",
+          "datasetFingerprint": "0f62002382449b33a11e5317bef10ce9ab6e8db25694ce043cd6ee9832e75179",
+          "candidateCases": 1267,
+          "evaluableCases": 1038,
+          "unevaluableCases": 5
+        }
+      ]
+    },
+    {
+      "market": "GBPAUD",
+      "currencies": [
+        "GBP",
+        "AUD"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 26853,
+        "earliest": 1168516800,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "AUD",
+            "count": 9610,
+            "earliest": 1169440200,
+            "latest": 1796427000
+          },
+          {
+            "currency": "GBP",
+            "count": 17243,
+            "earliest": 1168516800,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 1209,
+        "earliest": 1764115200,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-GBPAUD-LABOR-H4-v2",
+          "runId": "FMS-GBPAUD-LABOR-H4-v2-1788681327-72a09115",
+          "status": "completed",
+          "datasetFingerprint": "46a8cd73a05da0da1f4aa8208584fd31712d10241d37e1ced2c7125c48f4683e",
+          "candidateCases": 280,
+          "evaluableCases": 18,
+          "unevaluableCases": 219
+        },
+        {
+          "versionId": "FMS-GBPAUD-SENTIMENT-H4-v3",
+          "runId": "FMS-GBPAUD-SENTIMENT-H4-v3-1788681330-eabdeb29",
+          "status": "completed",
+          "datasetFingerprint": "0c0051a1fcbed0b0268f1a92d2993a079cb8a69ae13e261823c5b35dfcdbc154",
+          "candidateCases": 373,
+          "evaluableCases": 16,
+          "unevaluableCases": 300
+        },
+        {
+          "versionId": "FMS-GBPAUD-POLICY-INFL-H4-v5",
+          "runId": "FMS-GBPAUD-POLICY-INFL-H4-v5-1788681332-ed7fd0ac",
+          "status": "completed",
+          "datasetFingerprint": "e2dfcf8b05eba8556c6aecc5a5a0a0464de3586f51a125f7b195e0e758ebb4b5",
+          "candidateCases": 207,
+          "evaluableCases": 14,
+          "unevaluableCases": 170
+        },
+        {
+          "versionId": "FMS-GBPAUD-GROWTH-H4-v7",
+          "runId": "FMS-GBPAUD-GROWTH-H4-v7-1788681332-a7a65597",
+          "status": "completed",
+          "datasetFingerprint": "9833fbfab05436e60aa93ea10897b06486954eed71a90b99fd7f87131cc8fc63",
+          "candidateCases": 1384,
+          "evaluableCases": 73,
+          "unevaluableCases": 1094
+        }
+      ]
+    },
+    {
+      "market": "GBPCAD",
+      "currencies": [
+        "GBP",
+        "CAD"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 26688,
+        "earliest": 1168516800,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "CAD",
+            "count": 9445,
+            "earliest": 1169137800,
+            "latest": 1796427000
+          },
+          {
+            "currency": "GBP",
+            "count": 17243,
+            "earliest": 1168516800,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 1209,
+        "earliest": 1764115200,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-GBPCAD-LABOR-H4-v2",
+          "runId": "FMS-GBPCAD-LABOR-H4-v2-1788681342-99e75f92",
+          "status": "completed",
+          "datasetFingerprint": "54498d70be590ff165a12f796f8c585d43992a72e67c2dd20b160c8236f1078b",
+          "candidateCases": 291,
+          "evaluableCases": 14,
+          "unevaluableCases": 231
+        },
+        {
+          "versionId": "FMS-GBPCAD-SENTIMENT-H4-v3",
+          "runId": "FMS-GBPCAD-SENTIMENT-H4-v3-1788681345-fcd7ddc4",
+          "status": "completed",
+          "datasetFingerprint": "9bdf684d187c4e84f171b878875b54f69eb53c39c9663108611e865a35959ecd",
+          "candidateCases": 121,
+          "evaluableCases": 8,
+          "unevaluableCases": 94
+        },
+        {
+          "versionId": "FMS-GBPCAD-POLICY-INFL-H4-v5",
+          "runId": "FMS-GBPCAD-POLICY-INFL-H4-v5-1788681347-bf4db71e",
+          "status": "completed",
+          "datasetFingerprint": "df8a23362e35a9d95a2d3f9486688506dff9f74e39a065a0a0026361b93d8d7e",
+          "candidateCases": 363,
+          "evaluableCases": 28,
+          "unevaluableCases": 295
+        },
+        {
+          "versionId": "FMS-GBPCAD-GROWTH-H4-v7",
+          "runId": "FMS-GBPCAD-GROWTH-H4-v7-1788681349-ce5fd391",
+          "status": "completed",
+          "datasetFingerprint": "9f46ba565c735bdbd8aea871fcebe38051cb3430a8bb57dd0af1467d1ebbdbb4",
+          "candidateCases": 1345,
+          "evaluableCases": 78,
+          "unevaluableCases": 1040
+        }
+      ]
+    },
+    {
+      "market": "GBPNZD",
+      "currencies": [
+        "GBP",
+        "NZD"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 24306,
+        "earliest": 1168516800,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "GBP",
+            "count": 17243,
+            "earliest": 1168516800,
+            "latest": 1796427000
+          },
+          {
+            "currency": "NZD",
+            "count": 7063,
+            "earliest": 1175219100,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 1209,
+        "earliest": 1764115200,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-GBPNZD-LABOR-H4-v2",
+          "runId": "FMS-GBPNZD-LABOR-H4-v2-1788681359-a4f381d5",
+          "status": "completed",
+          "datasetFingerprint": "1df111c3489ce659f38fbf85db7578ca74bf3ef287983db438b0f3e4e9cd50ad",
+          "candidateCases": 162,
+          "evaluableCases": 7,
+          "unevaluableCases": 128
+        },
+        {
+          "versionId": "FMS-GBPNZD-SENTIMENT-H4-v3",
+          "runId": "FMS-GBPNZD-SENTIMENT-H4-v3-1788681362-0a975ce2",
+          "status": "completed",
+          "datasetFingerprint": "b975cc43e499b3b2dbc02a6357801a83853228bd64aa6ec2e2c122c6f9f1b524",
+          "candidateCases": 284,
+          "evaluableCases": 18,
+          "unevaluableCases": 217
+        },
+        {
+          "versionId": "FMS-GBPNZD-POLICY-INFL-H4-v5",
+          "runId": "FMS-GBPNZD-POLICY-INFL-H4-v5-1788681363-5bd5e567",
+          "status": "completed",
+          "datasetFingerprint": "dacb761302e2f951e12d05c5964d31b30398b4bcd1a702e3d2248691a9f14081",
+          "candidateCases": 206,
+          "evaluableCases": 15,
+          "unevaluableCases": 166
+        },
+        {
+          "versionId": "FMS-GBPNZD-GROWTH-H4-v7",
+          "runId": "FMS-GBPNZD-GROWTH-H4-v7-1788681365-57bd6a3a",
+          "status": "completed",
+          "datasetFingerprint": "c169d1cd0e152606e7aea14234abbfb116c31d7ddbb10496840ac25a4f890579",
+          "candidateCases": 1204,
+          "evaluableCases": 71,
+          "unevaluableCases": 931
+        }
+      ]
+    },
+    {
+      "market": "CHFJPY",
+      "currencies": [
+        "CHF",
+        "JPY"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 23633,
+        "earliest": 1171353600,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "CHF",
+            "count": 4768,
+            "earliest": 1173954600,
+            "latest": 1796427000
+          },
+          {
+            "currency": "JPY",
+            "count": 18865,
+            "earliest": 1171353600,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 30592,
+        "earliest": 1166169600,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-CHFJPY-LABOR-H4-v2",
+          "runId": "FMS-CHFJPY-LABOR-H4-v2-1788697769-a2479254",
+          "status": "completed",
+          "datasetFingerprint": "0f4736b3d7bf2967f049237496105caec62f0e5e9194f5a6c6f782755397935b",
+          "candidateCases": 356,
+          "evaluableCases": 291,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-CHFJPY-SENTIMENT-H4-v3",
+          "runId": "FMS-CHFJPY-SENTIMENT-H4-v3-1788697770-099c7faf",
+          "status": "completed",
+          "datasetFingerprint": "69490000ae4e7606e844323245d95e0b5848f4fd1198f87c729257c4636717e9",
+          "candidateCases": 114,
+          "evaluableCases": 99,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-CHFJPY-POLICY-INFL-H4-v5",
+          "runId": "FMS-CHFJPY-POLICY-INFL-H4-v5-1788697771-c7d79096",
+          "status": "completed",
+          "datasetFingerprint": "467faabdc5056d25d88ea63d278d89f231100099c4fdb8ee10f29a8eb026d3dd",
+          "candidateCases": 582,
+          "evaluableCases": 519,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-CHFJPY-GROWTH-H4-v7",
+          "runId": "FMS-CHFJPY-GROWTH-H4-v7-1788697772-3b2304b8",
+          "status": "completed",
+          "datasetFingerprint": "c6d410e5beadc048aab52e18333e0b6052c7b388b62c8ddf14371890e3678d3d",
+          "candidateCases": 1340,
+          "evaluableCases": 1080,
+          "unevaluableCases": 5
+        }
+      ]
+    },
+    {
+      "market": "AUDCHF",
+      "currencies": [
+        "AUD",
+        "CHF"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 14378,
+        "earliest": 1169440200,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "AUD",
+            "count": 9610,
+            "earliest": 1169440200,
+            "latest": 1796427000
+          },
+          {
+            "currency": "CHF",
+            "count": 4768,
+            "earliest": 1173954600,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 30053,
+        "earliest": 1164326400,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-AUDCHF-LABOR-H4-v2",
+          "runId": "FMS-AUDCHF-LABOR-H4-v2-1788697773-f4ef98c1",
+          "status": "completed",
+          "datasetFingerprint": "6b8b0d9a0997045e1edabdd14870619d8c47e584fba9da499ff28c8683456d3d",
+          "candidateCases": 280,
+          "evaluableCases": 231,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-AUDCHF-SENTIMENT-H4-v3",
+          "runId": "FMS-AUDCHF-SENTIMENT-H4-v3-1788697774-ff83491d",
+          "status": "completed",
+          "datasetFingerprint": "52b06a3808c35be6dce77f37b04bf66de2cfdaaaabe3b8c84fc80d1a5f653bd0",
+          "candidateCases": 253,
+          "evaluableCases": 215,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-AUDCHF-POLICY-INFL-H4-v5",
+          "runId": "FMS-AUDCHF-POLICY-INFL-H4-v5-1788697774-176319f8",
+          "status": "completed",
+          "datasetFingerprint": "b0fd42d17414181fb1ce44efcfac9480184ef348d690d7cb9b3cd5437f008f96",
+          "candidateCases": 320,
+          "evaluableCases": 277,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-AUDCHF-GROWTH-H4-v7",
+          "runId": "FMS-AUDCHF-GROWTH-H4-v7-1788697775-39806ca9",
+          "status": "completed",
+          "datasetFingerprint": "8b6db2a57333391a3e64067f1f9f76c2d7339f5a848b1546a01494d6767831a5",
+          "candidateCases": 997,
+          "evaluableCases": 821,
+          "unevaluableCases": 6
+        }
+      ]
+    },
+    {
+      "market": "CADCHF",
+      "currencies": [
+        "CAD",
+        "CHF"
+      ],
+      "status": "preparing",
+      "calendar": {
+        "count": 14213,
+        "earliest": 1169137800,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "CAD",
+            "count": 9445,
+            "earliest": 1169137800,
+            "latest": 1796427000
+          },
+          {
+            "currency": "CHF",
+            "count": 4768,
+            "earliest": 1173954600,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 1211,
+        "earliest": 1764086400,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-CADCHF-LABOR-H4-v2",
+          "runId": "FMS-CADCHF-LABOR-H4-v2-1788697776-746dd444",
+          "status": "completed",
+          "datasetFingerprint": "d80de465a2acadcd95459eaff473150c75b6c61ccdc42f0a5e82021334c23212",
+          "candidateCases": 291,
+          "evaluableCases": 14,
+          "unevaluableCases": 225
+        },
+        {
+          "versionId": "FMS-CADCHF-SENTIMENT-H4-v3",
+          "runId": "FMS-CADCHF-SENTIMENT-H4-v3-1788697777-87283164",
+          "status": "failed",
+          "datasetFingerprint": null,
+          "candidateCases": 0,
+          "evaluableCases": null,
+          "unevaluableCases": null
+        },
+        {
+          "versionId": "FMS-CADCHF-POLICY-INFL-H4-v5",
+          "runId": "FMS-CADCHF-POLICY-INFL-H4-v5-1788697777-4690e9e1",
+          "status": "completed",
+          "datasetFingerprint": "5772726bcd1e86928cf4cfd858f348e1985204086da2fbc2619837896bb3f1eb",
+          "candidateCases": 476,
+          "evaluableCases": 32,
+          "unevaluableCases": 385
+        },
+        {
+          "versionId": "FMS-CADCHF-GROWTH-H4-v7",
+          "runId": "FMS-CADCHF-GROWTH-H4-v7-1788697778-b2a2feca",
+          "status": "completed",
+          "datasetFingerprint": "f65d2d3701d95f5d7d117a46adee87fbeb74e84a4972f7d14355213232e88e80",
+          "candidateCases": 958,
+          "evaluableCases": 56,
+          "unevaluableCases": 722
+        }
+      ]
+    },
+    {
+      "market": "NZDCHF",
+      "currencies": [
+        "NZD",
+        "CHF"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 11831,
+        "earliest": 1173954600,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "CHF",
+            "count": 4768,
+            "earliest": 1173954600,
+            "latest": 1796427000
+          },
+          {
+            "currency": "NZD",
+            "count": 7063,
+            "earliest": 1175219100,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 1209,
+        "earliest": 1764115200,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-NZDCHF-LABOR-H4-v2",
+          "runId": "FMS-NZDCHF-LABOR-H4-v2-1788697779-e2694f5d",
+          "status": "completed",
+          "datasetFingerprint": "8477603673136cd103f81d826629448e36b81d9cb709fccaf8f2cd8d82b13e88",
+          "candidateCases": 162,
+          "evaluableCases": 7,
+          "unevaluableCases": 121
+        },
+        {
+          "versionId": "FMS-NZDCHF-SENTIMENT-H4-v3",
+          "runId": "FMS-NZDCHF-SENTIMENT-H4-v3-1788697780-a2b6f31d",
+          "status": "completed",
+          "datasetFingerprint": "4e3ec38d3e3d97d2b8073a618053d8f6cfb002c3ebf30a57bd808de9f2a2bc8b",
+          "candidateCases": 165,
+          "evaluableCases": 10,
+          "unevaluableCases": 125
+        },
+        {
+          "versionId": "FMS-NZDCHF-POLICY-INFL-H4-v5",
+          "runId": "FMS-NZDCHF-POLICY-INFL-H4-v5-1788697780-920729fc",
+          "status": "completed",
+          "datasetFingerprint": "46f5273e3729345886acdd0630369cf36e0be494eca7eae8c4d7f10023eb9eb4",
+          "candidateCases": 320,
+          "evaluableCases": 19,
+          "unevaluableCases": 257
+        },
+        {
+          "versionId": "FMS-NZDCHF-GROWTH-H4-v7",
+          "runId": "FMS-NZDCHF-GROWTH-H4-v7-1788697781-de163273",
+          "status": "completed",
+          "datasetFingerprint": "9a80a1692a76e601e919030a5448d82289d9081c8a81e69faafff2abe635123b",
+          "candidateCases": 817,
+          "evaluableCases": 49,
+          "unevaluableCases": 613
+        }
+      ]
+    },
+    {
+      "market": "AUDJPY",
+      "currencies": [
+        "AUD",
+        "JPY"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 28475,
+        "earliest": 1169440200,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "AUD",
+            "count": 9610,
+            "earliest": 1169440200,
+            "latest": 1796427000
+          },
+          {
+            "currency": "JPY",
+            "count": 18865,
+            "earliest": 1171353600,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 30653,
+        "earliest": 1164888000,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-AUDJPY-LABOR-H4-v2",
+          "runId": "FMS-AUDJPY-LABOR-H4-v2-1788697783-cc3ecd1c",
+          "status": "completed",
+          "datasetFingerprint": "7891862a6efd35468f8ac21b36bb8390b985bd04396ac4c289e8f7970ca85ba1",
+          "candidateCases": 396,
+          "evaluableCases": 330,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-AUDJPY-SENTIMENT-H4-v3",
+          "runId": "FMS-AUDJPY-SENTIMENT-H4-v3-1788697784-f5f25960",
+          "status": "completed",
+          "datasetFingerprint": "3535370c840c03d176896640f4b423545a2bfdb5cb85d5033e5979d5082c97da",
+          "candidateCases": 367,
+          "evaluableCases": 315,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-AUDJPY-POLICY-INFL-H4-v5",
+          "runId": "FMS-AUDJPY-POLICY-INFL-H4-v5-1788697785-fee5978c",
+          "status": "completed",
+          "datasetFingerprint": "b2dbdf1e7edc5d24a65a65d1de13ec3fdf5deccd6dea9a75fc7945f4cc4b3e98",
+          "candidateCases": 424,
+          "evaluableCases": 383,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-AUDJPY-GROWTH-H4-v7",
+          "runId": "FMS-AUDJPY-GROWTH-H4-v7-1788697786-b33f6675",
+          "status": "completed",
+          "datasetFingerprint": "ba4779000ad32ddcf67d044f4b47238c068d9aad5742398df11e0c167981fd05",
+          "candidateCases": 1417,
+          "evaluableCases": 1151,
+          "unevaluableCases": 5
+        }
+      ]
+    },
+    {
+      "market": "AUDCAD",
+      "currencies": [
+        "AUD",
+        "CAD"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 19055,
+        "earliest": 1169137800,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "AUD",
+            "count": 9610,
+            "earliest": 1169440200,
+            "latest": 1796427000
+          },
+          {
+            "currency": "CAD",
+            "count": 9445,
+            "earliest": 1169137800,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 30106,
+        "earliest": 1163980800,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-AUDCAD-LABOR-H4-v2",
+          "runId": "FMS-AUDCAD-LABOR-H4-v2-1788697787-ea2e715c",
+          "status": "completed",
+          "datasetFingerprint": "5c0b58317b321dba6692a7c9072b9541cf1c8a0926b15368a7f8235c5e30dc8f",
+          "candidateCases": 331,
+          "evaluableCases": 276,
+          "unevaluableCases": 1
+        },
+        {
+          "versionId": "FMS-AUDCAD-SENTIMENT-H4-v3",
+          "runId": "FMS-AUDCAD-SENTIMENT-H4-v3-1788697788-9ef8814f",
+          "status": "completed",
+          "datasetFingerprint": "d7944cd12961c598493e4663aa4a5bdd4faf8d3b5892821ac3afc0f688b721d0",
+          "candidateCases": 253,
+          "evaluableCases": 214,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-AUDCAD-POLICY-INFL-H4-v5",
+          "runId": "FMS-AUDCAD-POLICY-INFL-H4-v5-1788697789-79bd8adc",
+          "status": "completed",
+          "datasetFingerprint": "7784243e625a83923cfc8d75d936f64f0a77a063e3c16a4b1a6170dfb96e523d",
+          "candidateCases": 317,
+          "evaluableCases": 278,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-AUDCAD-GROWTH-H4-v7",
+          "runId": "FMS-AUDCAD-GROWTH-H4-v7-1788697789-47275c5a",
+          "status": "completed",
+          "datasetFingerprint": "26299fbcf606bb04e2f9e6530bc81d17438bda6334f2a12a3bce5ac0af24e708",
+          "candidateCases": 1073,
+          "evaluableCases": 885,
+          "unevaluableCases": 4
+        }
+      ]
+    },
+    {
+      "market": "AUDNZD",
+      "currencies": [
+        "AUD",
+        "NZD"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 16673,
+        "earliest": 1169440200,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "AUD",
+            "count": 9610,
+            "earliest": 1169440200,
+            "latest": 1796427000
+          },
+          {
+            "currency": "NZD",
+            "count": 7063,
+            "earliest": 1175219100,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 30056,
+        "earliest": 1164326400,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-AUDNZD-LABOR-H4-v2",
+          "runId": "FMS-AUDNZD-LABOR-H4-v2-1788697791-2e7e5965",
+          "status": "completed",
+          "datasetFingerprint": "2876074981a42343ec2d16505d5bc8b298c3ebd864769587904ac8000342b79e",
+          "candidateCases": 200,
+          "evaluableCases": 166,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-AUDNZD-SENTIMENT-H4-v3",
+          "runId": "FMS-AUDNZD-SENTIMENT-H4-v3-1788697791-1c53124f",
+          "status": "completed",
+          "datasetFingerprint": "468e1509ec05dd6fc13def971f227fc2bb890ac7a31f69990b09f5c4caf71d7a",
+          "candidateCases": 418,
+          "evaluableCases": 349,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-AUDNZD-POLICY-INFL-H4-v5",
+          "runId": "FMS-AUDNZD-POLICY-INFL-H4-v5-1788697792-820e4c80",
+          "status": "completed",
+          "datasetFingerprint": "3efb1bea97eb94d0d98201fee05888098ec963b3e680879f84cb7179ce914e89",
+          "candidateCases": 160,
+          "evaluableCases": 136,
+          "unevaluableCases": 0
+        },
+        {
+          "versionId": "FMS-AUDNZD-GROWTH-H4-v7",
+          "runId": "FMS-AUDNZD-GROWTH-H4-v7-1788697793-5c7dcd0d",
+          "status": "completed",
+          "datasetFingerprint": "0e1d95ecf9fa0c26ce41f1c8625539bfc3ee7fdfa64491e01e1436da73e0b49f",
+          "candidateCases": 933,
+          "evaluableCases": 772,
+          "unevaluableCases": 3
+        }
+      ]
+    },
+    {
+      "market": "CADJPY",
+      "currencies": [
+        "CAD",
+        "JPY"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 28310,
+        "earliest": 1169137800,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "CAD",
+            "count": 9445,
+            "earliest": 1169137800,
+            "latest": 1796427000
+          },
+          {
+            "currency": "JPY",
+            "count": 18865,
+            "earliest": 1171353600,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 1209,
+        "earliest": 1764115200,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-CADJPY-LABOR-H4-v2",
+          "runId": "FMS-CADJPY-LABOR-H4-v2-1788697794-84646e74",
+          "status": "completed",
+          "datasetFingerprint": "a4ffc6c080eeb5f388adaaed3d1a2afd63e8bfa423c2c358443d8cb8f605fa1d",
+          "candidateCases": 406,
+          "evaluableCases": 20,
+          "unevaluableCases": 317
+        },
+        {
+          "versionId": "FMS-CADJPY-SENTIMENT-H4-v3",
+          "runId": "FMS-CADJPY-SENTIMENT-H4-v3-1788697795-28057282",
+          "status": "completed",
+          "datasetFingerprint": "a3cefaf69dcfc56d7878a151321c33b12202d3fbb2b0e2e9dea163aa93d9e010",
+          "candidateCases": 114,
+          "evaluableCases": 2,
+          "unevaluableCases": 99
+        },
+        {
+          "versionId": "FMS-CADJPY-POLICY-INFL-H4-v5",
+          "runId": "FMS-CADJPY-POLICY-INFL-H4-v5-1788697797-abf5bf6f",
+          "status": "completed",
+          "datasetFingerprint": "5508076fb34ed1d01b6839baf984e7a11eeba780e0b1ee00e212a0816553ee19",
+          "candidateCases": 581,
+          "evaluableCases": 41,
+          "unevaluableCases": 483
+        },
+        {
+          "versionId": "FMS-CADJPY-GROWTH-H4-v7",
+          "runId": "FMS-CADJPY-GROWTH-H4-v7-1788697798-1b2c363d",
+          "status": "completed",
+          "datasetFingerprint": "5ec06ca1c0632b384329c43477615800ad1726a578de9e0ed3eda19db4d8b8e4",
+          "candidateCases": 1418,
+          "evaluableCases": 78,
+          "unevaluableCases": 1074
+        }
+      ]
+    },
+    {
+      "market": "NZDCAD",
+      "currencies": [
+        "NZD",
+        "CAD"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 16508,
+        "earliest": 1169137800,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "CAD",
+            "count": 9445,
+            "earliest": 1169137800,
+            "latest": 1796427000
+          },
+          {
+            "currency": "NZD",
+            "count": 7063,
+            "earliest": 1175219100,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 1209,
+        "earliest": 1764115200,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-NZDCAD-LABOR-H4-v2",
+          "runId": "FMS-NZDCAD-LABOR-H4-v2-1788697800-729b6931",
+          "status": "completed",
+          "datasetFingerprint": "51e73b7609f981d9a49f24666170542c85284b71df91a4cfdc7644a6db8ceffe",
+          "candidateCases": 211,
+          "evaluableCases": 9,
+          "unevaluableCases": 165
+        },
+        {
+          "versionId": "FMS-NZDCAD-SENTIMENT-H4-v3",
+          "runId": "FMS-NZDCAD-SENTIMENT-H4-v3-1788697801-cda26080",
+          "status": "completed",
+          "datasetFingerprint": "e9c9d1d86affb525e3b20a07d2179148754d0e136d62d2e3661ee89d39a855b9",
+          "candidateCases": 165,
+          "evaluableCases": 10,
+          "unevaluableCases": 125
+        },
+        {
+          "versionId": "FMS-NZDCAD-POLICY-INFL-H4-v5",
+          "runId": "FMS-NZDCAD-POLICY-INFL-H4-v5-1788697802-34db82cf",
+          "status": "completed",
+          "datasetFingerprint": "baae243174eee11892604c821bd5a35ea93b0b0f8d06a22a855a546777e7081e",
+          "candidateCases": 317,
+          "evaluableCases": 21,
+          "unevaluableCases": 255
+        },
+        {
+          "versionId": "FMS-NZDCAD-GROWTH-H4-v7",
+          "runId": "FMS-NZDCAD-GROWTH-H4-v7-1788697803-23b1158c",
+          "status": "completed",
+          "datasetFingerprint": "6023df11c9798a6f1e132e00957be3a3e696c12ed6a56800ae8cda1a8cbc34a1",
+          "candidateCases": 895,
+          "evaluableCases": 57,
+          "unevaluableCases": 673
+        }
+      ]
+    },
+    {
+      "market": "NZDJPY",
+      "currencies": [
+        "NZD",
+        "JPY"
+      ],
+      "status": "ready",
+      "calendar": {
+        "count": 25928,
+        "earliest": 1171353600,
+        "latest": 1796427000,
+        "currencies": [
+          {
+            "currency": "JPY",
+            "count": 18865,
+            "earliest": 1171353600,
+            "latest": 1796427000
+          },
+          {
+            "currency": "NZD",
+            "count": 7063,
+            "earliest": 1175219100,
+            "latest": 1796427000
+          }
+        ]
+      },
+      "h4": {
+        "count": 1209,
+        "earliest": 1764115200,
+        "latest": 1788552000
+      },
+      "sources": [
+        {
+          "versionId": "FMS-NZDJPY-LABOR-H4-v2",
+          "runId": "FMS-NZDJPY-LABOR-H4-v2-1788697805-a93a06bc",
+          "status": "completed",
+          "datasetFingerprint": "f710521d47ed82a2ce1739f8285e2ef5ff3f21b2d92fc0cc1666f4fac58185dc",
+          "candidateCases": 276,
+          "evaluableCases": 13,
+          "unevaluableCases": 213
+        },
+        {
+          "versionId": "FMS-NZDJPY-SENTIMENT-H4-v3",
+          "runId": "FMS-NZDJPY-SENTIMENT-H4-v3-1788697806-28e5ece4",
+          "status": "completed",
+          "datasetFingerprint": "e9c1243e8e8a1cdf381c85a8ea95f3f211e358c496d2aa94b0001fbf7112265d",
+          "candidateCases": 278,
+          "evaluableCases": 12,
+          "unevaluableCases": 223
+        },
+        {
+          "versionId": "FMS-NZDJPY-POLICY-INFL-H4-v5",
+          "runId": "FMS-NZDJPY-POLICY-INFL-H4-v5-1788697807-b6a83e65",
+          "status": "completed",
+          "datasetFingerprint": "6dc9930e16d53df236c1940428db315c9179d3b360c73e621d18c6f1e7a3f7ac",
+          "candidateCases": 424,
+          "evaluableCases": 28,
+          "unevaluableCases": 354
+        },
+        {
+          "versionId": "FMS-NZDJPY-GROWTH-H4-v7",
+          "runId": "FMS-NZDJPY-GROWTH-H4-v7-1788697808-c52d100c",
+          "status": "completed",
+          "datasetFingerprint": "5be30a121706974a4c9515e88b3297b9fde88b02faaedd8d0e45a1e136f26feb",
+          "candidateCases": 1277,
+          "evaluableCases": 72,
+          "unevaluableCases": 965
+        }
+      ]
+    }
+  ],
+  "generatedAt": 1788697865,
+  "coverageHash": "1698630b32a1b972e881619a8637043ea4bb610b386ec9801570a65b44458b34",
+  "summary": {
+    "markets": 28,
+    "ready": 27,
+    "withH4": 28,
+    "completedSources": 111,
+    "requiredSources": 112
+  }
+}

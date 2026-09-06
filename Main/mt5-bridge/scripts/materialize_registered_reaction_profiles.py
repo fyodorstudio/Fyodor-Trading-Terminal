@@ -1181,6 +1181,13 @@ def build_profile(pattern: Dict[str, Any]) -> Dict[str, Any] | None:
     return None
   raw = json.loads(raw_text)
   selected_contract_key = str(raw.get("selectedContractKey") or "")
+  # Raw cases retain the economic evidence direction. The selected contract's
+  # outcomes contain the actual direction after continuation/rejection mapping.
+  # Reusing the former inverted all contrarian path and challenger research.
+  execution_by_case = {
+    str(row["caseId"]): row
+    for row in (raw.get("contractResults") or {}).get(selected_contract_key, [])
+  }
   unresolved_by_reason: Dict[str, int] = {}
   for row in (raw.get("contractResults") or {}).get(selected_contract_key, []):
     status = str(row.get("status") or "")
@@ -1221,13 +1228,18 @@ def build_profile(pattern: Dict[str, Any]) -> Dict[str, Any] | None:
   candle_times = [int(candle["time"]) for candle in candles]
   all_profiles = []
   for row in all_cases:
+    execution = execution_by_case.get(str(row["caseId"]))
+    if execution is None or execution.get("direction") not in {"long", "short"}:
+      raise ValueError(f"{experiment_id}: missing frozen execution direction for {row['caseId']}")
+    trade_direction = str(execution["direction"])
     source_context = source_context_by_time.get(int(row["eventTime"])) or {}
     profile = build_candidate_path_profile({
       "eventTime": int(row["eventTime"]),
       "entryTime": int(row["entryTime"]),
       "entry": float(row["entry"]),
       "atr": float(row["atr"]),
-      "direction": str(row["direction"]),
+      "direction": trade_direction,
+      "evidenceDirection": str(row["direction"]),
       "backgroundDirection": row.get("backgroundDirection") or source_context.get("backgroundDirection"),
       "backgroundPairVote": row.get("backgroundPairVote") if row.get("backgroundPairVote") is not None else source_context.get("backgroundPairVote"),
       "backgroundAlignment": row.get("backgroundAlignment") or source_context.get("backgroundAlignment"),
@@ -1238,10 +1250,10 @@ def build_profile(pattern: Dict[str, Any]) -> Dict[str, Any] | None:
       slow_context = dict(policy_inflation_by_time.get(int(row["eventTime"])) or {})
       slow_context.update({
         "policyDifferential": directional_context_relation(
-          slow_context.get("basePolicy"), slow_context.get("quotePolicy"), str(row["direction"]),
+          slow_context.get("basePolicy"), slow_context.get("quotePolicy"), trade_direction,
         ),
         "inflationDifferential": directional_context_relation(
-          slow_context.get("baseInflation"), slow_context.get("quoteInflation"), str(row["direction"]),
+          slow_context.get("baseInflation"), slow_context.get("quoteInflation"), trade_direction,
         ),
       })
       profile["marketContext"]["policyInflation"] = slow_context
@@ -1319,10 +1331,12 @@ def build_profile(pattern: Dict[str, Any]) -> Dict[str, Any] | None:
     for row in candles
   ], separators=(",", ":")).encode("utf-8")).hexdigest()
   configuration_hash = hashlib.sha256(json.dumps({
+    "directionBasis": "frozen_selected_contract_outcome_v1",
     "grid": [STRESS_STOP_ATR_VALUES, STRESS_TARGET_R_VALUES, STRESS_HOLDING_CANDLES],
     "management": ["fixed", "break_even_.5_1_1.5", "trailing_after_1R", "partial_50_at_1R"],
   }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
   reversal_configuration_hash = hashlib.sha256(json.dumps({
+    "directionBasis": "frozen_selected_contract_outcome_v1",
     "schema": "fms-entry-known-reversal-exit-v1",
     "families": ["h4_reversal_exit", "zone_reversal_exit", "prior_event_zone_reversal_exit"],
     "targetR": [2, 3, 4], "activationR": [.5, 1, 1.5],
@@ -1331,6 +1345,7 @@ def build_profile(pattern: Dict[str, Any]) -> Dict[str, Any] | None:
     "decision": "completed H4", "exit": "next H4 open",
   }, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
   context_configuration_hash = hashlib.sha256(json.dumps({
+    "directionBasis": "frozen_selected_contract_outcome_v1",
     "schema": "fms-context-conditioned-h4-v1",
     "priceRegime": {"shortH4": 12, "mediumH4": 48, "shortThresholdAtr": .75, "mediumThresholdAtr": 1.5},
     "volatility": {"lookbackH4": 120, "compressedPercentile": .25, "expandedPercentile": .75, "extremePercentile": .90},
@@ -1478,6 +1493,8 @@ def build_profile(pattern: Dict[str, Any]) -> Dict[str, Any] | None:
 
 def main() -> None:
   parser = argparse.ArgumentParser()
+  parser.add_argument("--output-dir", type=Path, default=None,
+                      help="Write corrected research separately for review before replacing active artifacts.")
   parser.add_argument(
     "--context-only-base",
     type=Path,
@@ -1496,7 +1513,9 @@ def main() -> None:
     help="Skip regeneration unless a recipe gained 10 cases, 90 calendar days, or a changed immutable dataset fingerprint.",
   )
   args = parser.parse_args()
-  destination = Path(__file__).resolve().parents[1] / "registered_reaction_profiles.json"
+  output_dir = args.output_dir or Path(__file__).resolve().parents[1]
+  output_dir.mkdir(parents=True, exist_ok=True)
+  destination = output_dir / "registered_reaction_profiles.json"
   context_destination = destination.with_name("registered_market_context_profiles.json")
   followup_destination = destination.with_name("registered_context_followups.json")
   if args.if_material_growth and followup_destination.exists():

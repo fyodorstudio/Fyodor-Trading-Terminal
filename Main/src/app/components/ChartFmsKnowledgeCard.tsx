@@ -3,6 +3,8 @@ import { memo, useMemo, useState } from "react";
 import type { ChartMacroBiasRealtimeCardData } from "@/app/components/ChartMacroBiasRealtimeCard";
 import { macroSignalSetupCredibility } from "@/app/components/ChartMacroBiasSetupCatalog";
 import type { MacroSignalChartPattern } from "@/app/types";
+import entryResearch from "@/app/lib/fmsEntryResearchSummary.json";
+import coverageResearch from "@/app/lib/fmsCoverageSummary.json";
 
 function average(pattern: MacroSignalChartPattern): number | null {
   const reviewed = pattern.executionReview?.status === "reviewed_active" ? pattern.executionReview.later : null;
@@ -35,6 +37,7 @@ const FINDINGS = [
   ["Offline recovery is separate", "Recovered trades reconstruct the frozen result from MT5 history but never count as true first-seen forward observations."],
   ["A reversal price is hindsight", "FMS can detect a completed reversal pattern, but it cannot truthfully exit at the exact future wick. Reversal research exits at the next H4 open."],
   ["Support and resistance must be entry-known", "Only zones confirmed by completed candles before entry may inform research. Later arrow clustering is audit evidence, not a historical input."],
+  ["An arrow is not an entry-price marker", "Arrows sit above or below the activation candle. The Entry line shows the price. Moving an arrow to the release candle does not change the frozen trade."],
 ] as const;
 
 type KnowledgeSort = "credibility" | "expectancy" | "profit_frequency" | "tp_first";
@@ -71,6 +74,11 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data 
     const reversalArtifacts = patterns.map(({ pattern }) => pattern.reactionAudit?.profile?.reversalExitResearch).filter(Boolean);
     return [
       {
+        id: coverageResearch.coverageHash, status: coverageResearch.summary.ready === coverageResearch.summary.markets ? "Ready" : "Preparing", title: "Major Forex Extended coverage",
+        evidence: `${coverageResearch.summary.ready} of ${coverageResearch.summary.markets} markets have H4 coverage and all four frozen source baselines; ${coverageResearch.summary.completedSources} of ${coverageResearch.summary.requiredSources} source baselines are complete.`,
+        conclusion: "The original markets and crosses share one coverage ledger. AUDJPY, EURCAD, and EURJPY now have reviewed immutable setups; the remaining crosses stay research-only.",
+      },
+      {
         id: "reaction-path-v2", status: "Available", title: "Reaction and path atlas",
         evidence: `${patterns.length} registered recipes expose fixed-horizon direction, MFE, MAE, giveback, and target ladders.`,
         conclusion: "Directional reaction and frozen trade outcome remain separate measurements.",
@@ -83,7 +91,7 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data 
       {
         id: "entry-context-v1", status: "Completed", title: "Entry-known market context",
         evidence: `${patterns.length} recipes audited trend, volatility, directional room, macro background, and session using information available by entry.`,
-        conclusion: `${patterns.filter(({ pattern }) => pattern.contextRegistration?.status === "reviewed_active").length} exact context rules passed review; context is not a universal filter.`,
+        conclusion: `${patterns.filter(({ pattern }) => pattern.contextRegistration?.status === "reviewed_active" && !pattern.contextRegistration.retiredAt).length} context contracts remain active; ${patterns.filter(({ pattern }) => pattern.contextRegistration?.retiredAt).length} was archived after corrected direction research. Context is not a universal filter.`,
       },
       {
         id: "reversal-exit-v1", status: "Research only", title: "Completed-H4 reversal exits",
@@ -93,6 +101,31 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data 
         conclusion: reversalArtifacts.length
           ? `${reversalArtifacts.reduce((sum, row) => sum + Number(row?.reviewWorthy?.length ?? 0), 0)} development-selected family winners passed the practical later comparison. No active contract was changed.`
           : "The design remains research-only and cannot change a registered trade.",
+      },
+      {
+        id: entryResearch.hourly.manifestHash, status: "Research only", title: "Earlier H1 entry versus H4",
+        evidence: `${entryResearch.hourly.recipeCount} recipes; ${entryResearch.hourly.matched} of ${entryResearch.hourly.attempted} cases had matched evaluable paths.`,
+        conclusion: `${entryResearch.hourly.developmentSelectedH1} development selections favored H1; ${entryResearch.hourly.laterPositiveImprovements} retained positive later improvement. Full elapsed-path coverage excludes weekends and many longer trades. This selective reused-history sample does not justify a universal entry change.`,
+      },
+      {
+        id: entryResearch.sessionHourly.manifestHash, status: "Research only", title: "Trading-session H1 entry versus H4",
+        evidence: `${entryResearch.sessionHourly.recipeCount} recipes; ${entryResearch.sessionHourly.matched} of ${entryResearch.sessionHourly.attempted} cases had matched evaluable paths.`,
+        conclusion: `${entryResearch.sessionHourly.developmentSelectedH1} development selections favored H1; ${entryResearch.sessionHourly.laterPositiveImprovements} retained positive later improvement. These are candidates for active-contract review, not registrations.`,
+      },
+      {
+        id: entryResearch.activeEntryReview.manifestHash, status: "8 registered successors", title: "Exact active-contract H1 review",
+        evidence: `${entryResearch.activeEntryReview.reviewed} timing candidates were replayed with their exact registered fixed or break-even contract.`,
+        conclusion: `${entryResearch.activeEntryReview.supported} retained positive development and later H1 improvement and now use immutable H1 successor contracts. Future signals require the complete first-seen package before the H1 boundary; older occurrences retain H4.`,
+      },
+      {
+        id: entryResearch.preH4Reaction.manifestHash, status: "Completed", title: "Reaction before H4 entry",
+        evidence: `${entryResearch.preH4Reaction.evaluated.toLocaleString()} recipe cases measured the direction-adjusted move, favorable excursion and adverse excursion between the first H1 proxy and H4 entry.`,
+        conclusion: "Earlier-entry improvements did not universally come from capturing an immediate directional reaction; each recipe must be read separately.",
+      },
+      {
+        id: entryResearch.minute.manifestHash, status: "Limited evidence", title: "Near-release minute entry",
+        evidence: `${entryResearch.minute.matched} of ${entryResearch.minute.attempted} recent cases were comparable across M1, H1 and H4 entries.`,
+        conclusion: "Results were mixed and samples sparse. These scheduled-release candle proxies cannot prove when the complete release package was available or an actual fill. No faster contract was registered.",
       },
       {
         id: "offline-provenance-v1", status: "Operational", title: "Live versus recovered provenance",
@@ -111,6 +144,9 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data 
     "",
     "## Research ledger",
     ...ledger.map((row) => `- **${row.title} (${row.status}):** ${row.evidence} ${row.conclusion}`),
+    "",
+    `Entry research recorded ${entryResearch.recordedOn}. Session-hourly manifest: ${entryResearch.sessionHourly.manifestHash}; minute manifest: ${entryResearch.minute.manifestHash}.`,
+    `Saved artifacts: ${entryResearch.hourly.sourceDirectory}; ${entryResearch.minute.sourceDirectory}.`,
   ].join("\n");
   const copy = async () => {
     await navigator.clipboard?.writeText(markdown);
@@ -131,6 +167,13 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data 
         <table><thead><tr><th>Market and setup</th><th>Evidence / health</th><th>Expected payoff</th><th>Profit frequency</th><th>TP before SL</th><th>Observed mapping</th></tr></thead><tbody>{summary.map((row) => <tr key={`${row.market}:${row.label}`}><td><b>{row.market}</b><span>{row.label}</span></td><td title={row.credibility.detail}><strong className={`is-${row.credibility.label.toLowerCase()}`}>{row.credibility.label}</strong><span className={`is-${row.health.toLowerCase()}`}>{row.health}</span></td><td>{row.average == null ? "—" : `${row.average >= 0 ? "+" : ""}${row.average.toFixed(2)}R`}</td><td>{row.profitFrequency == null ? "—" : `${(row.profitFrequency * 100).toFixed(1)}%`}</td><td>{row.accuracy == null ? "—" : `${(row.accuracy * 100).toFixed(1)}%`}</td><td>{row.reaction}</td></tr>)}</tbody></table>
       </section>
       <section><h2>Research ledger</h2><p>Completed, failed, and research-only work is retained here so a later Codex pass can build on it instead of repeating it.</p><div className="fms-knowledge-research">{ledger.map((row) => <article key={row.id}><strong>{row.title} · {row.status}</strong><p>{row.evidence}</p><small>{row.conclusion}</small></article>)}</div></section>
+      <section>
+        <details>
+          <summary>View entry-research records · {entryResearch.recordedOn}</summary>
+          <p>Frozen campaign summaries include every recipe, exclusion counts, selection rules and source fingerprints. These historical fixed-contract comparisons do not simulate the active management overlays.</p>
+          <p><a download="fms-entry-research-summary.json" href={`data:application/json;charset=utf-8,${encodeURIComponent(JSON.stringify(entryResearch, null, 2))}`}>Download timing research JSON</a></p>
+        </details>
+      </section>
       {data.globalResponse?.researchIntelligence?.length ? <section><h2>Tested but not registered</h2><p>Failed and unresolved findings are retained so future research does not unknowingly repeat them.</p><div className="fms-knowledge-research">{data.globalResponse.researchIntelligence.map((row) => <article key={row.id}><strong>{row.market} · {row.label} · {row.status.replaceAll("_", " ")}</strong><p>{row.conclusion}</p><small>{row.evidence}</small></article>)}</div></section> : null}
       <footer>Source: immutable FMS experiment, reaction, context, execution, and forward-observation artifacts.</footer>
     </section>

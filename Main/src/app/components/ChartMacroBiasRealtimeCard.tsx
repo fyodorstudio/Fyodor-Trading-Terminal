@@ -42,7 +42,7 @@ function executionRule(execution: MacroSignalChartPattern["execution"] | MacroSi
   const stopAtr = execution?.stopAtr ?? 1;
   const targetR = execution?.targetR ?? 2;
   const expiry = execution?.expiryCandles ?? 30;
-  const base = `SL ${stopAtr} ATR · TP ${targetR}R · ${expiry} H4`;
+  const base = `${execution?.entryTimeframe ?? "H4"} entry · SL ${stopAtr} ATR · TP ${targetR}R · ${expiry} H4`;
   return execution?.managementFamily === "break_even"
     ? `${base} · move SL to entry after a completed H4 reaches +${execution.managementTriggerR ?? 1}R`
     : base;
@@ -196,7 +196,7 @@ function formatOutcome(signal: MacroSignalChartSignal): string {
   if (signal.outcomeStatus === "ambiguous") return "Both boundaries touched · order unknown";
   if (signal.outcomeStatus === "unevaluable") return signal.outcomeReason ?? "Historical price data unavailable";
   if (signal.outcomeStatus === "pending") return signal.outcomeReason ?? "Trade still running";
-  return "Qualified · waiting for the frozen H4 entry";
+  return `Qualified · waiting for the frozen ${signal.entryTimeframe ?? "H4"} entry`;
 }
 
 function formatPoint(value: number | null): string {
@@ -282,12 +282,13 @@ function DemoExecutionAudit({ execution, patterns, captureStatusText }: { execut
 }
 
 function packageDecisionCopy(assessment: MacroSignalPatternAssessment, pattern: MacroSignalChartPattern | null, symbol: string) {
+  const entryTimeframe = pattern?.execution?.entryTimeframe ?? "H4";
   if (assessment.status === "qualified") {
     const plannedEntry = assessment.prospectiveCapture?.activationTime;
     return {
       title: `${assessment.direction === "long" ? "Long" : "Short"} ${symbol} qualified`,
       detail: plannedEntry == null
-        ? "The complete release package matched the registered direction. The hypothetical trade waits for the first strictly later H4 open."
+        ? `The complete release package matched the registered direction. The hypothetical trade waits for the first eligible ${entryTimeframe} open.`
         : `The complete release package matched. The hypothetical trade is queued for ${formatUtc(plannedEntry)}.`,
     };
   }
@@ -300,7 +301,7 @@ function packageDecisionCopy(assessment: MacroSignalPatternAssessment, pattern: 
   if (assessment.status === "late_for_contract") {
     return {
       title: "Audit only · processed after entry",
-      detail: "The release package was not fully observed and decided before its frozen H4 entry. It cannot open a trade or enter forward-performance statistics.",
+      detail: `The release package was not fully observed and decided before its frozen ${entryTimeframe} entry. It cannot open a trade or enter forward-performance statistics.`,
     };
   }
   if (assessment.status === "awaiting_observation") {
@@ -368,11 +369,12 @@ function LatestDecisionSection({ assessment, pattern, symbol, signal, forwardSum
   const primaryCalculation = assessment.calculations?.[0] ?? null;
   const scoringPolicy = primaryCalculation?.scoringPolicy ?? pattern?.scoringPolicy;
   const recovered = signal?.observationMode === "recovered_offline";
+  const entryTimeframe = signal?.entryTimeframe ?? pattern?.execution?.entryTimeframe ?? "H4";
   const status = recovered
     ? signal?.outcomeStatus === "pending" ? "Recovered paper trade · open" : `Recovered · ${formatOutcome(signal!)}`
     : signal
     ? signal.outcomeStatus === "pending"
-      ? signal.activationTime == null ? "Waiting for H4 entry" : "Trade open"
+      ? signal.activationTime == null ? `Waiting for ${entryTimeframe} entry` : "Trade open"
       : formatOutcome(signal)
     : assessment.status === "pre_activation_audit"
     ? "Audit only"
@@ -381,7 +383,7 @@ function LatestDecisionSection({ assessment, pattern, symbol, signal, forwardSum
       : assessment.status === "late_for_contract"
         ? "Audit only · late"
       : assessment.status === "qualified"
-        ? "Queued for H4 entry"
+        ? `Queued for ${entryTimeframe} entry`
         : "Processing";
   const packageDecision = signal ? {
     title: `${signal.direction === "long" ? "Long" : "Short"} ${symbol}`,
@@ -391,7 +393,7 @@ function LatestDecisionSection({ assessment, pattern, symbol, signal, forwardSum
         : `Fyodor missed the original decision window and reconstructed the frozen trade from MT5 history. Result: ${formatOutcome(signal)}. This is offline-recovered evidence, not a live-captured trade.`
       : signal.outcomeStatus === "pending"
       ? signal.activationTime == null
-        ? "The registered package qualified. The hypothetical trade waits for the first strictly later H4 open."
+        ? `The registered package qualified. The hypothetical trade waits for the first eligible ${entryTimeframe} open.`
         : "The hypothetical trade is open and being monitored under this setup's frozen SL, TP, and maximum duration."
       : `This hypothetical trade is closed: ${formatOutcome(signal)}. Its historical result remains fixed.`,
   } : packageDecisionCopy(assessment, pattern, symbol);
@@ -421,7 +423,8 @@ function LatestDecisionSection({ assessment, pattern, symbol, signal, forwardSum
           </div>
           {pattern.contextRegistration?.status === "reviewed_active" ? (
             <div className="chart-shadow-context-rule">
-              <span>H4 entry context rule · {pattern.contextRegistration.id}</span>
+              <span>{pattern.contextRegistration.retiredAt ? "Archived H4 entry context rule" : "H4 entry context rule"} · {pattern.contextRegistration.id}</span>
+              {pattern.contextRegistration.researchReviewNote ? <small>{pattern.contextRegistration.researchReviewNote}</small> : null}
               <strong>IF {contextLabel(pattern.contextRegistration.condition?.dimension ?? "context")} = {contextLabel(pattern.contextRegistration.condition?.value ?? "unknown")}, use SL {pattern.contextRegistration.execution?.stopAtr} ATR · TP {pattern.contextRegistration.execution?.targetR}R · maximum {pattern.contextRegistration.execution?.expiryCandles} H4.</strong>
               <small>{signal?.contextOverlay ? `Observed at entry: ${contextLabel(signal.contextOverlay.observedValue ?? "unknown")} · ${signal.contextOverlay.executionApplied ? "context contract applied" : "parent contract retained"}.` : "This condition is checked only when the first strictly later H4 entry opens. If it does not match, the parent setup remains active under its parent contract."}</small>
             </div>
@@ -525,7 +528,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
     [selectedContextReviews],
   );
   const registeredContextPatterns = useMemo(
-    () => registeredPatternRows.filter((pattern) => pattern.contextRegistration?.status === "reviewed_active"),
+    () => registeredPatternRows.filter((pattern) => pattern.contextRegistration?.status === "reviewed_active" && !pattern.contextRegistration.retiredAt),
     [registeredPatternRows],
   );
   const unregisteredSupportedContextReviews = useMemo(
@@ -658,7 +661,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
     const state = recovered
       ? signal.outcomeStatus === "pending" ? "Recovered paper trade · open" : `Recovered · ${formatOutcome(signal)}`
       : signal.entry == null && signal.prospectiveCapture?.eligible === true
-      ? "Queued for H4 entry"
+      ? `Queued for ${signal.entryTimeframe ?? row.pattern?.execution?.entryTimeframe ?? "H4"} entry`
       : signal.outcomeStatus === "pending" ? "Open" : formatOutcome(signal);
     const forwardStatus = forwardSetupLabel(row.market, signal.patternId);
     return (
@@ -793,7 +796,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           <tbody>
             <tr className="chart-shadow-trade-group"><th colSpan={4}>Open now</th></tr>
             {currentTradeRows.length > 0 ? currentTradeRows.map((row) => <Fragment key={row.key}>{renderTradeRow(row)}{renderInlineDecisionAudit(row)}</Fragment>) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No hypothetical trade is currently open.</td></tr>}
-            <tr className="chart-shadow-trade-group"><th colSpan={4}>Queued for the next H4 entry</th></tr>
+            <tr className="chart-shadow-trade-group"><th colSpan={4}>Queued for the next eligible entry</th></tr>
             {queuedTradeRows.length > 0 ? queuedTradeRows.map((row) => <Fragment key={row.key}>{renderTradeRow(row)}{renderInlineDecisionAudit(row)}</Fragment>) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No qualified setup is waiting for entry.</td></tr>}
             <tr className="chart-shadow-trade-group"><th colSpan={4}>Recovered while Fyodor was offline</th></tr>
             {recoveredTradeRows.length > 0 ? recoveredTradeRows.map((row) => <Fragment key={row.key}>{renderTradeRow(row)}{renderInlineDecisionAudit(row)}</Fragment>) : <tr className="chart-shadow-trade-empty"><td colSpan={4}>No offline decision required historical reconstruction.</td></tr>}
@@ -1092,6 +1095,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
               const alignment = typeof registration.reaction?.alignmentRate === "number" ? registration.reaction.alignmentRate : null;
               return <article key={registration.id}>
                 <header><strong>{pattern.market} · {pattern.label}</strong><em>{registration.id}</em></header>
+                {registration.researchReviewNote ? <small>{registration.researchReviewNote}</small> : null}
                 <span>IF {contextLabel(registration.condition?.dimension ?? "context")} = {contextLabel(registration.condition?.value ?? "unknown")}</span>
                 <small>SL {registration.execution?.stopAtr} ATR · TP {registration.execution?.targetR}R · maximum {registration.execution?.expiryCandles} H4 · later N {laterN ?? "—"} · average {formatSignedR(laterAverage)} · parent on same cases {formatSignedR(parentAverage)} · followed after 6 H4 {alignment == null ? "—" : `${(alignment * 100).toFixed(1)}%`}</small>
               </article>;

@@ -945,6 +945,10 @@ class ResearchStore:
     normalized_market = market.upper()
     if normalized_market not in {
       "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "NZDUSD", "USDCHF",
+      "EURGBP", "EURJPY", "EURCHF", "EURAUD", "EURCAD", "EURNZD",
+      "GBPJPY", "GBPCHF", "GBPAUD", "GBPCAD", "GBPNZD", "CHFJPY",
+      "AUDCHF", "CADCHF", "NZDCHF", "AUDJPY", "AUDCAD", "AUDNZD",
+      "CADJPY", "NZDCAD", "NZDJPY",
     }:
       raise ValueError(f"Unsupported FMS market: {market}")
     # EURUSD retains its original sequence key and identifiers; new markets are isolated.

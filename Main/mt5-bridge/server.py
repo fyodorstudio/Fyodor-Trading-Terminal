@@ -23,7 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
-from registered_reaction_audits import registered_context_followup_index, registered_reaction_audit
+from registered_reaction_audits import registered_context_approval_evidence, registered_context_followup_index, registered_reaction_audit
 
 from macro_signal import (
   ACTIVE_VERSION_ID,
@@ -69,6 +69,7 @@ from macro_signal import (
   candidate_pattern_signature,
   dataset_fingerprint,
   evaluate_candidate,
+  evaluate_candidate_h1_entry,
   get_signal_definition,
   rescore_policy_outcomes,
   rescore_forecast_quality_outcomes,
@@ -88,8 +89,10 @@ WORKBENCH_MARKETS = {
 PRACTICAL_MODEL_ID = "FMS-REGISTERED-REACTION-H4-v5"
 PRACTICAL_MODEL_CREATED_AT = 1787970337
 REVIEWED_EXECUTION_ACTIVATED_AT = 1788134400
+REVIEWED_H1_ENTRY_ACTIVATED_AT = 1788680400
 CONTEXT_CONDITIONAL_MODEL_ID = "FMS-CONTEXT-CONDITIONAL-H4-v1"
 CONTEXT_CONDITIONAL_ACTIVATED_AT = 1788314400
+CONTEXT_DIRECTION_CORRECTION_RETIRED_AT = 1788652800
 FMS_MANUAL_DEMO_RISK_POLICY = {
   "id": "FMS-MANUAL-DEMO-RISK-v1",
   "maximumRiskPerTradePercent": .25,
@@ -281,6 +284,88 @@ PRACTICAL_PATTERN_DEFINITIONS += tuple(
   ) in _PRACTICAL_DISCOVERY_ROWS
 )
 
+# Frozen Major Forex Extended registrations selected by the 06 Sep 2026
+# Stage-A sweep and its bounded Stage-B scoring follow-up. The active contract
+# is the single configuration chosen on development history in the linked
+# immutable experiment; the recorded later figures are its untouched holdout,
+# rather than the adaptive walk-forward headline used to rank finalists.
+MAJOR_CROSS_MODEL_CREATED_AT = 1788700000
+MAJOR_CROSS_SWEEP_MANIFEST_HASH = "fe03d722f95d9bd168fdc07395e7746757abc16317d68488dc0b1c9e0070f423"
+PRACTICAL_PATTERN_DEFINITIONS += (
+  {
+    **_practical_pattern(
+      "AUDJPY", "audjpy-jpy-industrial-output", "Japan industrial output",
+      "FMS-AUDJPY-GROWTH-H4-v7", ["long|JPY:industrial_output", "short|JPY:industrial_output"],
+      "momentum_only", 1.25, 3.0, 42, "FMS-AUDJPY-H4-E013", 124, 37,
+      .44791493790330156, .32432432432432434, .5675675675675675,
+      "Use Actual versus Previous only; follow the scored AUDJPY direction.",
+      "continuation", {"dimension": "none", "value": "all"}, "chronological_holdout", "stronger_history",
+    ),
+    "activatedAt": MAJOR_CROSS_MODEL_CREATED_AT,
+    "registrationReview": {
+      "status": "reviewed_active", "manifestHash": MAJOR_CROSS_SWEEP_MANIFEST_HASH,
+      "catalogId": "e2f18fe437f9f2d3", "configurationHash": "2ea060c0e842670d624e8a9d433a7a2901be49cdc8ad3e499183fc15a89a64f6",
+      "datasetFingerprint": "13b6f789507b33f6309f14e7a5c567d22156da6f592d9d8818dc74e3010daae3",
+      "holdoutMaximumDrawdownR": 5.0, "holdoutLongestLosingStreak": 5,
+      "limitations": "Gross H4 candle simulation; spread, commission, slippage, swap, and live fills are not measured.",
+    },
+  },
+  {
+    **_practical_pattern(
+      "AUDJPY", "audjpy-jpy-inflation-short", "Japan headline and core inflation · Short only",
+      "FMS-AUDJPY-POLICY-INFL-H4-v5", ["short|JPY:core_consumer_inflation|JPY:headline_consumer_inflation"],
+      "forecast_quality", .5, .5, 30, "FMS-AUDJPY-H4-E015", 118, 26,
+      .20973762796377157, .8076923076923077, .19230769230769232,
+      "Use Forecast Guard; act only when the scored AUDJPY direction is Short.",
+      "continuation", {"dimension": "none", "value": "all"}, "chronological_holdout", "stronger_history",
+    ),
+    "activatedAt": MAJOR_CROSS_MODEL_CREATED_AT,
+    "registrationReview": {
+      "status": "reviewed_active", "manifestHash": "f82b6f4a835a72119937d4652d0b957a3703ad197299da608334c67303e44c17",
+      "catalogId": "c940cd72a1db5216", "configurationHash": "9113b3dc883b9f93fb533f49b35839f75ade2a5a7cfa16985e6d7ea93f1a8994",
+      "datasetFingerprint": "13b6f789507b33f6309f14e7a5c567d22156da6f592d9d8818dc74e3010daae3",
+      "holdoutMaximumDrawdownR": 2.0, "holdoutLongestLosingStreak": 2,
+      "limitations": "Gross H4 candle simulation; 5 of 31 holdout cases were same-candle ambiguous before M1 resolution and costs/live fills are not measured.",
+    },
+  },
+  {
+    **_practical_pattern(
+      "EURCAD", "eurcad-eur-consumer-sentiment", "Euro-area consumer sentiment",
+      "FMS-EURCAD-SENTIMENT-H4-v3", ["long|EUR:consumer_sentiment", "short|EUR:consumer_sentiment"],
+      "momentum_only", 2.0, 3.0, 12, "FMS-EURCAD-H4-E019", 117, 39,
+      .11187471609075146, 0.0, .2564102564102564,
+      "Use Actual versus Previous only; follow the scored EURCAD direction.",
+      "continuation", {"dimension": "none", "value": "all"}, "chronological_holdout", "stronger_history",
+    ),
+    "activatedAt": MAJOR_CROSS_MODEL_CREATED_AT,
+    "registrationReview": {
+      "status": "reviewed_active", "manifestHash": MAJOR_CROSS_SWEEP_MANIFEST_HASH,
+      "catalogId": "bfc6b4c357d8220d", "configurationHash": "40346c62561208d4ad15f2a16f6194d8b731f70fa725887dade7afbc742ea645",
+      "datasetFingerprint": "ffd2fc40c11ced2212c21b1330daf31ec5c25cdaa7cee6b6ac13e5485141f429",
+      "holdoutMaximumDrawdownR": 3.9554921130637144, "holdoutLongestLosingStreak": 4,
+      "limitations": "Gross H4 candle simulation with 74% holdout expiry; costs and live fills are not measured.",
+    },
+  },
+  {
+    **_practical_pattern(
+      "EURJPY", "eurjpy-eur-composite-services-pmi", "Euro-area composite and services PMI",
+      "FMS-EURJPY-GROWTH-H4-v7", ["long|EUR:pmi_composite|EUR:pmi_services", "short|EUR:pmi_composite|EUR:pmi_services"],
+      "momentum_only", .5, 1.5, 30, "FMS-EURJPY-H4-E021", 114, 33,
+      .28662779010819983, .5151515151515151, .48484848484848486,
+      "Use Actual versus Previous only; follow the scored EURJPY direction.",
+      "continuation", {"dimension": "none", "value": "all"}, "chronological_holdout", "stronger_history",
+    ),
+    "activatedAt": MAJOR_CROSS_MODEL_CREATED_AT,
+    "registrationReview": {
+      "status": "reviewed_active", "manifestHash": MAJOR_CROSS_SWEEP_MANIFEST_HASH,
+      "catalogId": "c812bd1841997f26", "configurationHash": "0e560f753559935d3e8f2d0cc401542cdd3c5902130be8c995bc8f74dc3e670b",
+      "datasetFingerprint": "2dc764ae8c2faf06dcb8eab087978aac14823bbdf0d5a99bab11186b7c2ff1d5",
+      "holdoutMaximumDrawdownR": 4.0, "holdoutLongestLosingStreak": 3,
+      "limitations": "Gross H4 candle simulation; 2 holdout cases were same-candle ambiguous and costs/live fills are not measured.",
+    },
+  },
+)
+
 _legacy_by_id = {pattern["id"]: pattern for pattern in _preserved_eurusd_patterns}
 PRACTICAL_PATTERN_DEFINITIONS += (
   _practical_pattern("EURUSD", "eurusd-us-payroll-short-restored", "US payroll", _legacy_by_id["us-payroll-short"]["sourceVersion"], list(_legacy_by_id["us-payroll-short"]["signatures"]), "forecast_quality", 2, 1, 6, "FMS-EURUSD-H4-E289", 55, 14, .2498051148, .3571428571, .0714285714, _legacy_by_id["us-payroll-short"]["condition"], "continuation", {"dimension": "none", "value": "all"}, "chronological_holdout", "stronger_history"),
@@ -315,7 +400,10 @@ _REVIEWED_EXECUTION_APPROVALS: Dict[Tuple[str, str], Dict[str, Any]] = {
   ("USDJPY", "usdjpy-jpy-inflation"): {
     "family": "break_even", "stopAtr": .5, "targetR": 4.0,
     "expiryCandles": 30, "triggerR": .5,
-    "candleFingerprint": "4cc95054fca2ac4bfe07b835ed59065357ddd7bb5fa56ceca654fea7e4e98f16",
+    # One formerly ambiguous later case is now resolved by the expanded M1
+    # archive. The same selected contract remains positive and passes every
+    # reviewed execution check (65 evaluable, +0.508R later average).
+    "candleFingerprint": "6bf9e51254d8fe96805a1a620147c81f6416d0275f6e0dbb18f4327d4e6994fb",
     "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
   },
 }
@@ -378,6 +466,45 @@ def _apply_reviewed_execution(pattern: Dict[str, Any]) -> Dict[str, Any]:
 
 PRACTICAL_PATTERN_DEFINITIONS = tuple(_apply_reviewed_execution(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS)
 
+# Frozen exact-contract H1 upgrades. Development selected H1 before the later
+# window was inspected; every listed recipe retained positive later H1
+# expectancy and positive paired uplift over its own active H4 contract.
+_REVIEWED_H1_ENTRY_APPROVALS: Dict[Tuple[str, str], Dict[str, Any]] = {
+  ("AUDUSD", "audusd-us-producer-inflation"): {"laterN": 32, "h1AverageR": .560836207391032, "h4AverageR": .451461207391032, "pairedUpliftR": .109375},
+  ("EURUSD", "eurusd-retail-sales-m-m-package"): {"laterN": 28, "h1AverageR": .16720160670921488, "h4AverageR": .08243801752735648, "pairedUpliftR": .08476358918185843},
+  ("GBPUSD", "gbpusd-ism-non-manufacturing-business-activity-package"): {"laterN": 29, "h1AverageR": .14209508947296542, "h4AverageR": .08355081818949578, "pairedUpliftR": .05854427128346964},
+  ("USDCAD", "usdcad-us-consumer-inflation"): {"laterN": 77, "h1AverageR": .17468936273118232, "h4AverageR": .17316340245421205, "pairedUpliftR": .001525960276970259},
+  ("USDCHF", "usdchf-ppi-m-m-package"): {"laterN": 26, "h1AverageR": .13687505010154458, "h4AverageR": .10139301346070025, "pairedUpliftR": .03548203664084434},
+  ("USDCHF", "usdchf-us-employment-release"): {"laterN": 37, "h1AverageR": .11104454707658107, "h4AverageR": .07412295526379817, "pairedUpliftR": .0369215918127829},
+  ("USDJPY", "usdjpy-jpy-labor-wages"): {"laterN": 23, "h1AverageR": .9401768899389813, "h4AverageR": .5107688950531266, "pairedUpliftR": .42940799488585457},
+  ("USDJPY", "usdjpy-us-producer-inflation-rejection"): {"laterN": 27, "h1AverageR": .13879717976496445, "h4AverageR": .09093913366869517, "pairedUpliftR": .04785804609626925},
+}
+H1_ENTRY_RESEARCH_MANIFEST_HASH = "4c43cc91604a72de1eceed3be3cbc4a255deae7b4721e2a3f3fe1fc8b67150d3"
+
+
+def _apply_reviewed_h1_entry(pattern: Dict[str, Any]) -> Dict[str, Any]:
+  approval = _REVIEWED_H1_ENTRY_APPROVALS.get((str(pattern["market"]), str(pattern["id"])))
+  if not approval:
+    return pattern
+  previous = {**dict(pattern["execution"]), "entryTimeframe": "H4", "expiryTimeframe": "H4"}
+  current = {**previous, "entryTimeframe": "H1"}
+  return {
+    **pattern, "execution": current,
+    "entryReview": {
+      "id": f"FMS-{pattern['market']}-{pattern['id']}-ENTRY-H1-v1",
+      "status": "reviewed_active", "activatedAt": REVIEWED_H1_ENTRY_ACTIVATED_AT,
+      "manifestHash": H1_ENTRY_RESEARCH_MANIFEST_HASH,
+      "previousExecution": previous, "currentExecution": current,
+      "entryRule": "first H1 open strictly after release and complete first-seen package",
+      "expiryRule": "same final H4 boundary as the parent contract",
+      "developmentSelected": True, "later": dict(approval),
+      "limitations": "Gross scheduled-release simulation; prospective signals additionally require the complete package before entry.",
+    },
+  }
+
+
+PRACTICAL_PATTERN_DEFINITIONS = tuple(_apply_reviewed_h1_entry(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS)
+
 # Exact context registrations are added only after the generated artifact has
 # been reviewed. The allowlist is intentionally code-owned: regenerating a
 # research file cannot silently alter a live Shadow Trader rule.
@@ -423,7 +550,13 @@ def _apply_reviewed_context(pattern: Dict[str, Any]) -> Dict[str, Any]:
   approval = _REVIEWED_CONTEXT_APPROVALS.get((str(pattern["market"]), str(pattern["id"])))
   if not approval:
     return pattern
-  research = (((pattern.get("reactionAudit") or {}).get("profile") or {}).get("contextResearch") or {})
+  research = registered_context_approval_evidence(str(pattern["market"]), str(pattern["id"]))
+  current_research = (((pattern.get("reactionAudit") or {}).get("profile") or {}).get("contextResearch") or {})
+  correction_note = (
+    "Needs research review: the original context approval used economic evidence direction instead of the reversed trade direction. "
+    "Its contract is preserved; original approval performance is withheld while corrected context evidence is reviewed."
+    if current_research.get("directionBasis") == "frozen_selected_contract_outcome_v1" else None
+  )
   conditioned = research.get("conditionedExecution") or {}
   condition = conditioned.get("condition") or {}
   execution = conditioned.get("selectedExecution") or {}
@@ -467,10 +600,12 @@ def _apply_reviewed_context(pattern: Dict[str, Any]) -> Dict[str, Any]:
       "researchExperimentId": research.get("researchExperimentId"),
       "candleFingerprint": research.get("candleFingerprint"),
       "datasetFingerprint": research.get("datasetFingerprint"),
-      "development": conditioned.get("selectedDevelopment"),
-      "later": conditioned.get("selectedLater"),
-      "parentOnSameContextLater": conditioned.get("activeContextLater"),
-      "reaction": (research.get("selectedCandidate") or {}).get("laterReaction"),
+      "researchReviewNote": correction_note,
+      "retiredAt": CONTEXT_DIRECTION_CORRECTION_RETIRED_AT if correction_note else None,
+      "development": None if correction_note else conditioned.get("selectedDevelopment"),
+      "later": None if correction_note else conditioned.get("selectedLater"),
+      "parentOnSameContextLater": None if correction_note else conditioned.get("activeContextLater"),
+      "reaction": None if correction_note else (research.get("selectedCandidate") or {}).get("laterReaction"),
       "relationship": (research.get("selectedCandidate") or {}).get("relationship"),
       "limitations": conditioned.get("limitations"),
     },
@@ -702,13 +837,20 @@ def _reconciled_pattern(pattern: Dict[str, Any]) -> Dict[str, Any]:
 
 def _execution_for_event(pattern: Dict[str, Any], event_time: int) -> Dict[str, Any]:
   """Preserve the contract that was active when a historical signal occurred."""
+  entry_review = pattern.get("entryReview") or {}
+  if (
+    entry_review.get("status") == "reviewed_active"
+    and event_time >= int(entry_review.get("activatedAt") or REVIEWED_H1_ENTRY_ACTIVATED_AT)
+  ):
+    return dict(entry_review.get("currentExecution") or pattern.get("execution") or {})
+  pre_entry_execution = dict(entry_review.get("previousExecution") or pattern.get("execution") or {})
   review = pattern.get("executionReview") or {}
   if (
     review.get("status") == "reviewed_active"
     and event_time < int(review.get("activatedAt") or REVIEWED_EXECUTION_ACTIVATED_AT)
   ):
     return dict(pattern.get("baseExecution") or pattern.get("execution") or {})
-  return dict(pattern.get("execution") or {})
+  return pre_entry_execution
 
 
 def _market_context_dimension_value(context: Optional[Dict[str, Any]], dimension: str) -> Optional[str]:
@@ -735,6 +877,8 @@ def _context_overlay_for_signal(pattern: Dict[str, Any], signal: Dict[str, Any])
   actual_value = _market_context_dimension_value(signal.get("marketContext"), str(condition.get("dimension") or ""))
   matched = actual_value == condition.get("value")
   active_for_event = int(signal["eventTime"]) >= int(registration.get("activatedAt") or CONTEXT_CONDITIONAL_ACTIVATED_AT)
+  retired_at = registration.get("retiredAt")
+  active_for_event = active_for_event and (retired_at is None or int(signal["eventTime"]) < int(retired_at))
   return {
     "registrationId": registration["id"], "modelId": registration["modelId"],
     "parentPatternId": registration["parentPatternId"],
@@ -925,7 +1069,7 @@ _mt5_lock = RLock()
 _MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS = 2.0
 _forward_schedule_lock = Lock()
 _forward_reconcile_scheduled = False
-_forward_last_scheduled_h4_bucket: Optional[int] = int(_time.time()) // H4_SECONDS
+_forward_last_scheduled_entry_bucket: Optional[int] = int(_time.time()) // 3600
 _chart_signal_catalog_lock = Lock()
 _chart_signal_catalog_cache: Dict[str, List[Dict[str, Any]]] = {}
 _chart_signal_source_lock = Lock()
@@ -1781,8 +1925,8 @@ async def calendar_ingest_cycle(request: Request) -> Dict[str, Any]:
     released_through=completed_at,
     ea_completed_at=completed_at,
   )
-  global _forward_last_scheduled_h4_bucket
-  h4_bucket = observed_at // H4_SECONDS
+  global _forward_last_scheduled_entry_bucket
+  entry_bucket = observed_at // 3600
   live_cases = _research_store.list_fms_live_execution_cases(limit=2000)
   has_unresolved_live_case = any(
     str(case.get("state")) == "pending"
@@ -1793,11 +1937,11 @@ async def calendar_ingest_cycle(request: Request) -> Dict[str, Any]:
     for case in live_cases
   )
   should_reconcile = captured > 0 or (
-    has_unresolved_live_case and _forward_last_scheduled_h4_bucket != h4_bucket
+    has_unresolved_live_case and _forward_last_scheduled_entry_bucket != entry_bucket
   )
   scheduled = _schedule_forward_reconcile(observed_at) if should_reconcile else False
   if scheduled:
-    _forward_last_scheduled_h4_bucket = h4_bucket
+    _forward_last_scheduled_entry_bucket = entry_bucket
   return {
     "accepted": True,
     "captured": captured,
@@ -2036,6 +2180,10 @@ def _run_scheduled_forward_reconcile(observed_at: int) -> None:
           _fetch_research_candles(
             market, "H4", observed_at - 60 * 24 * 60 * 60,
             observed_at + H4_SECONDS, 60,
+          )
+          _fetch_research_candles(
+            market, "H1", observed_at - H4_SECONDS,
+            observed_at + 3600, 1,
           )
           response = research_chart_signals(symbol=market, tf="H4", mode="current", refresh=True)
         _capture_forward_entry_quotes(response, observed_at)
@@ -2502,7 +2650,14 @@ def _execute_macro_backtest(run_id: str, event_fingerprint: str, version_id: str
       max(int(candidate["eventTime"]) for candidate in candidates),
     ) + 10 * 24 * 60 * 60
 
-    h4_candles = _fetch_research_candles(symbol, "H4", earliest, latest, 366)
+    h4_candles = _research_store.query_candles(symbol, "H4", earliest, latest)
+    cached_range_complete = bool(
+      h4_candles
+      and int(h4_candles[0]["time"]) <= earliest + H4_SECONDS
+      and int(h4_candles[-1]["time"]) >= latest - H4_SECONDS
+    )
+    if not cached_range_complete:
+      h4_candles = _fetch_research_candles(symbol, "H4", earliest, latest, 366)
     if not h4_candles:
       raise RuntimeError(f"No {symbol} H4 candles are available from MT5 or the research cache")
 
@@ -3691,7 +3846,7 @@ def _interactive_chart_pattern(pattern: Any) -> Any:
       "id", "market", "signature", "signatures", "sourceVersionId", "label",
       "condition", "scoringPolicy", "reaction", "cohort",
       "historicalBenchmark", "registrationProvenance", "readiness", "execution",
-      "baseExecution", "executionReview", "contextRegistration",
+      "baseExecution", "executionReview", "entryReview", "contextRegistration",
       "requiredExactTitles", "direction", "groups", "currentEligible",
       "uncertaintyIncludesNoEdge",
     )
@@ -3948,6 +4103,7 @@ def research_chart_signals(
       **pattern,
       "baseExecution": definition.get("baseExecution"),
       "executionReview": definition.get("executionReview"),
+      "entryReview": definition.get("entryReview"),
       "contextRegistration": definition.get("contextRegistration"),
     }
     provenance = _registration_provenance(enriched_pattern)
@@ -4098,6 +4254,7 @@ def research_chart_signals(
   custom_candles: List[Dict[str, Any]] = []
   custom_candle_times: List[int] = []
   custom_atr_values: List[Optional[float]] = []
+  custom_h1_candles: List[Dict[str, Any]] = []
   history_backfill_attempted = False
   if direct_evaluation_candidates:
     earliest_custom = min(int(candidate["eventTime"]) for _, _, candidate, _ in direct_evaluation_candidates)
@@ -4108,6 +4265,16 @@ def research_chart_signals(
     )
     custom_candle_times = [int(candle["time"]) for candle in custom_candles]
     custom_atr_values = calculate_atr_by_candle(custom_candles)
+    if any(str(_execution_for_event(pattern, int(candidate["eventTime"])).get("entryTimeframe") or "H4") == "H1" for _, _, candidate, pattern in direct_evaluation_candidates):
+      custom_h1_candles = _research_store.query_candles(
+        normalized_symbol, "H1", earliest_custom,
+        min(generated_at + 3600, latest_custom + 120 * 24 * 60 * 60),
+      )
+      if not custom_h1_candles:
+        custom_h1_candles = _fetch_research_candles(
+          normalized_symbol, "H1", earliest_custom,
+          min(generated_at + 3600, latest_custom + 120 * 24 * 60 * 60), 120,
+        )
   m1_cache: Dict[Tuple[int, int], List[Dict[str, Any]]] = {}
   def evaluation_m1_provider(start: int, end: int) -> List[Dict[str, Any]]:
     key = (start, end)
@@ -4133,20 +4300,24 @@ def research_chart_signals(
       continue
     execution = _execution_for_event(pattern, event_time)
     signal_candidate = apply_chart_pattern_reaction(candidate, pattern)
-    evaluated = evaluate_candidate(
-      signal_candidate,
-      custom_candles,
-      custom_candle_times,
-      custom_atr_values,
-      float(execution["targetR"]),
-      m1_provider=evaluation_m1_provider,
-      allow_pending=normalized_mode == "current",
-      as_of=generated_at,
-      stop_atr=float(execution["stopAtr"]),
-      holding_candles=int(execution["expiryCandles"]),
-      management_family=str(execution.get("managementFamily") or "fixed"),
-      management_trigger_r=execution.get("managementTriggerR"),
-    )
+    evaluation_options = {
+      "m1_provider": evaluation_m1_provider,
+      "allow_pending": normalized_mode == "current", "as_of": generated_at,
+      "stop_atr": float(execution["stopAtr"]),
+      "holding_candles": int(execution["expiryCandles"]),
+      "management_family": str(execution.get("managementFamily") or "fixed"),
+      "management_trigger_r": execution.get("managementTriggerR"),
+    }
+    if str(execution.get("entryTimeframe") or "H4") == "H1":
+      evaluated = evaluate_candidate_h1_entry(
+        signal_candidate, custom_h1_candles, custom_candles, custom_atr_values,
+        float(execution["targetR"]), **evaluation_options,
+      )
+    else:
+      evaluated = evaluate_candidate(
+        signal_candidate, custom_candles, custom_candle_times, custom_atr_values,
+        float(execution["targetR"]), **evaluation_options,
+      )
     if evaluated.get("status") == "unevaluable" and not history_backfill_attempted and direct_evaluation_candidates:
       history_backfill_attempted = True
       earliest_custom = min(int(row[2]["eventTime"]) for row in direct_evaluation_candidates)
@@ -4157,23 +4328,25 @@ def research_chart_signals(
       )
       custom_candle_times = [int(candle["time"]) for candle in custom_candles]
       custom_atr_values = calculate_atr_by_candle(custom_candles)
-      evaluated = evaluate_candidate(
-        signal_candidate,
-        custom_candles,
-        custom_candle_times,
-        custom_atr_values,
-        float(execution["targetR"]),
-        m1_provider=evaluation_m1_provider,
-        allow_pending=normalized_mode == "current",
-        as_of=generated_at,
-        stop_atr=float(execution["stopAtr"]),
-        holding_candles=int(execution["expiryCandles"]),
-        management_family=str(execution.get("managementFamily") or "fixed"),
-        management_trigger_r=execution.get("managementTriggerR"),
-      )
+      if str(execution.get("entryTimeframe") or "H4") == "H1":
+        custom_h1_candles = _fetch_research_candles(
+          normalized_symbol, "H1", earliest_custom,
+          min(generated_at + 3600, latest_custom + 120 * 24 * 60 * 60), 120,
+        )
+        evaluated = evaluate_candidate_h1_entry(
+          signal_candidate, custom_h1_candles, custom_candles, custom_atr_values,
+          float(execution["targetR"]), **evaluation_options,
+        )
+      else:
+        evaluated = evaluate_candidate(
+          signal_candidate, custom_candles, custom_candle_times, custom_atr_values,
+          float(execution["targetR"]), **evaluation_options,
+        )
     activation_time = evaluated.get("entryTime")
     prospective_activation_time = (
       int(activation_time) if activation_time is not None
+      else (event_time // 3600 + 1) * 3600
+      if str(execution.get("entryTimeframe") or "H4") == "H1"
       else _planned_strictly_later_h4_open(event_time, custom_candle_times)
     )
     prospective_capture = _prospective_capture_eligibility(
@@ -4215,6 +4388,8 @@ def research_chart_signals(
       "expiryCandles": int(execution["expiryCandles"]),
       "managementFamily": str(execution.get("managementFamily") or "fixed"),
       "managementTriggerR": execution.get("managementTriggerR"),
+      "entryTimeframe": str(execution.get("entryTimeframe") or "H4"),
+      "expiryTimeframe": str(execution.get("expiryTimeframe") or "H4"),
       "entry": outcome_value("entry"),
       "atr": outcome_value("atr"),
       "stop": outcome_value("stop"),
@@ -4228,6 +4403,7 @@ def research_chart_signals(
       "outcomeReason": evaluated.get("reason"),
       "outcomeCoverage": evaluated.get("coverage"),
       "pendingLifecycle": evaluated.get("pendingLifecycle"),
+      "contractExpiryTime": evaluated.get("contractExpiryTime"),
       "historicalReplay": normalized_mode == "research_replay",
       "prospectiveCapture": prospective_capture if normalized_mode == "current" else None,
       "observationMode": (
@@ -4248,12 +4424,24 @@ def research_chart_signals(
       max(signal_activation_times) + 90 * 24 * 60 * 60,
     )
     signal_candle_times = [int(candle["time"]) for candle in signal_candles]
+    h1_signals = [signal for signal in evaluated_signals if signal.get("entryTimeframe") == "H1"]
+    signal_h1_candles = (
+      _research_store.query_candles(
+        normalized_symbol, "H1", min(int(signal["activationTime"]) for signal in h1_signals),
+        max(int(signal.get("contractExpiryTime") or signal["activationTime"]) for signal in h1_signals),
+      ) if h1_signals else []
+    )
+    signal_h1_times = [int(candle["time"]) for candle in signal_h1_candles]
     for signal in evaluated_signals:
       if signal.get("activationTime") is None or signal.get("entry") is None or signal.get("atr") is None:
         signal["expiryTime"] = None
         signal["maximumAdverseR"] = None
         continue
-      path_horizon = max(30, int(signal["expiryCandles"]))
+      is_h1_entry = signal.get("entryTimeframe") == "H1"
+      path_candles = signal_h1_candles if is_h1_entry else signal_candles
+      path_times = signal_h1_times if is_h1_entry else signal_candle_times
+      path_multiplier = 4 if is_h1_entry else 1
+      path_horizon = max(30 * path_multiplier, int(signal["expiryCandles"]) * path_multiplier)
       profile = build_candidate_path_profile({
         "eventTime": int(signal["eventTime"]),
         "entryTime": int(signal["activationTime"]),
@@ -4265,7 +4453,7 @@ def research_chart_signals(
         "backgroundAlignment": signal.get("backgroundAlignment"),
         "highestImpact": signal.get("highestImpact"),
         "events": list(signal.get("events") or []),
-      }, signal_candles, signal_candle_times, path_horizon)
+      }, path_candles, path_times, path_horizon)
       if profile is None:
         signal["expiryTime"] = None
         signal["maximumAdverseR"] = None
@@ -4327,7 +4515,10 @@ def research_chart_signals(
             }, signal_candles, signal_candle_times, max(30, expiry_candles))
             if expanded_profile is not None:
               profile = expanded_profile
-      signal["expiryTime"] = int(profile["candles"][expiry_candles - 1]["time"]) if len(profile["candles"]) >= expiry_candles else None
+      signal["expiryTime"] = (
+        int(signal.get("contractExpiryTime")) if is_h1_entry and signal.get("contractExpiryTime") is not None
+        else int(profile["candles"][expiry_candles - 1]["time"]) if len(profile["candles"]) >= expiry_candles else None
+      )
       exit_time = signal.get("exitTime")
       adverse = [
         value for candle, value in zip(profile["candles"], profile["adverse"])
@@ -4350,12 +4541,12 @@ def research_chart_signals(
           "holdingCandles": horizon,
           "responseR": (
             float(profile["sign"])
-            * (float(profile["candles"][horizon - 1]["close"]) - float(profile["entry"]))
+            * (float(profile["candles"][horizon * path_multiplier - 1]["close"]) - float(profile["entry"]))
             / (atr * stop_atr)
           ),
         }
         for horizon in PATH_RESEARCH_HORIZONS
-        if len(profile["candles"]) >= horizon
+        if len(profile["candles"]) >= horizon * path_multiplier
       ]
       six_h4_response = next((row for row in fixed_horizon_responses if row["holdingCandles"] == 6), None)
       loss_observations: List[str] = []
@@ -4380,8 +4571,9 @@ def research_chart_signals(
         "maximumFavorablePips": maximum_favorable_atr * atr / pip_size,
         "maximumAdverseR": maximum_adverse_r,
         "maximumAdversePips": maximum_adverse_atr * atr / pip_size,
-        "timeToMfeCandles": favorable.index(maximum_favorable_atr) + 1 if favorable else None,
-        "timeToMaeCandles": adverse.index(maximum_adverse_atr) + 1 if adverse else None,
+        "timeToMfeCandles": math.ceil((favorable.index(maximum_favorable_atr) + 1) / path_multiplier) if favorable else None,
+        "timeToMaeCandles": math.ceil((adverse.index(maximum_adverse_atr) + 1) / path_multiplier) if adverse else None,
+        "pathSourceTimeframe": "H1" if is_h1_entry else "H4",
         "givebackR": maximum_favorable_r - float(signal.get("resultR")) if signal.get("resultR") is not None else None,
         "fixedHorizonResponses": fixed_horizon_responses,
       }
@@ -4437,11 +4629,18 @@ def research_chart_signals(
       if event_time < PRACTICAL_MODEL_CREATED_AT:
         continue
       assessment_key = (str(assessment["patternId"]), event_time)
+      assessment_pattern = definitions_by_id.get(str(assessment["patternId"])) or {}
+      assessment_execution = _execution_for_event(assessment_pattern, event_time)
       prospective_capture = prospective_capture_by_key.get(assessment_key)
       if prospective_capture is None:
+        planned_entry = (
+          (event_time // 3600 + 1) * 3600
+          if str(assessment_execution.get("entryTimeframe") or "H4") == "H1"
+          else _planned_strictly_later_h4_open(event_time, custom_candle_times)
+        )
         prospective_capture = _prospective_capture_eligibility(
           list(assessment.get("events") or []), event_time,
-          _planned_strictly_later_h4_open(event_time, custom_candle_times), generated_at,
+          planned_entry, generated_at,
           first_seen_by_event,
         )
       assessment["prospectiveCapture"] = prospective_capture
@@ -4462,8 +4661,9 @@ def research_chart_signals(
           matching_signal["entryTimingAudit"] = prior_timing
       if assessment.get("status") == "qualified" and not prospective_capture["eligible"]:
         assessment["status"] = "late_for_contract"
+        entry_label = str(assessment_execution.get("entryTimeframe") or "H4")
         assessment["reason"] = (
-          f"The package matched, but it was not processed before the frozen H4 entry "
+          f"The package matched, but it was not processed before the frozen {entry_label} entry "
           f"({prospective_capture['reason']}). Its frozen paper trade is reconstructed from MT5 history, "
           f"but remains separate from true first-seen forward statistics."
         )
@@ -5189,7 +5389,7 @@ def _prospective_context_ledger(
       signal = decision.get("signal") or {}
       overlay = signal.get("contextOverlay") or {}
       matched = bool(
-        overlay.get("matched")
+        overlay.get("matched") and overlay.get("executionApplied")
         and str((overlay.get("registration") or {}).get("id") or registration.get("id"))
         == str(registration.get("id"))
       )
@@ -5549,7 +5749,7 @@ def research_readiness_report() -> Dict[str, Any]:
     ],
     "unresolvedIntegrityRisks": [
       "Historical profitability does not prove future profitability.",
-      "The registered entry remains the first strictly later H4 open, not an executable release-time fill.",
+      "Registered entry timing is recipe-specific: approved successors use the first eligible H1 open; all others retain the first strictly later H4 open. Neither is an executable release-time fill.",
       "Execution costs are deliberately deferred during demo-only model validation.",
     ],
     "eligibleForDemoShadowUse": complete == len(registered_rows) and bool(registered_rows),

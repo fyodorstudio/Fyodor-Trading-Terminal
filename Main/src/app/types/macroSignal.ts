@@ -136,11 +136,15 @@ export interface MacroSignalExecutionContract {
   stopAtr: number;
   targetR: number;
   expiryCandles: number;
+  entryTimeframe?: "H1" | "H4";
+  expiryTimeframe?: "H4";
   managementFamily?: "fixed" | "break_even";
   managementTriggerR?: number | null;
 }
 
 export interface MacroSignalContextRegistration {
+  researchReviewNote?: string | null;
+  retiredAt?: number | null;
   id: string;
   modelId: "FMS-CONTEXT-CONDITIONAL-H4-v1";
   status: "reviewed_active" | "blocked_artifact_mismatch";
@@ -674,7 +678,12 @@ export interface MacroSignalExpansionReport {
 }
 
 export type FmsExperimentStatus = "queued" | "running" | "completed" | "failed";
-export type FmsResearchMarket = "EURUSD" | "GBPUSD" | "USDJPY" | "AUDUSD" | "USDCAD" | "NZDUSD" | "USDCHF";
+export type FmsResearchMarket =
+  | "EURUSD" | "USDJPY" | "GBPUSD" | "USDCHF" | "AUDUSD" | "USDCAD" | "NZDUSD"
+  | "EURGBP" | "EURJPY" | "EURCHF" | "EURAUD" | "EURCAD" | "EURNZD"
+  | "GBPJPY" | "GBPCHF" | "GBPAUD" | "GBPCAD" | "GBPNZD" | "CHFJPY"
+  | "AUDCHF" | "CADCHF" | "NZDCHF" | "AUDJPY" | "AUDCAD" | "AUDNZD"
+  | "CADJPY" | "NZDCAD" | "NZDJPY";
 
 export interface FmsCatalogTreatment {
   id: string;
@@ -1158,6 +1167,8 @@ export interface MacroSignalChartPattern {
     expiryCandles: number;
     managementFamily?: "fixed" | "break_even";
     managementTriggerR?: number | null;
+    entryTimeframe?: "H1" | "H4";
+    expiryTimeframe?: "H4";
   };
   baseExecution?: null | {
     stopAtr: number;
@@ -1177,6 +1188,19 @@ export interface MacroSignalChartPattern {
     currentExecution?: { stopAtr: number; targetR: number; expiryCandles: number; managementFamily: "fixed" | "break_even"; managementTriggerR: number | null };
     later?: Record<string, unknown>;
     nearbyStability?: Record<string, unknown>;
+  };
+  entryReview?: null | {
+    id: string;
+    status: "reviewed_active" | "blocked_artifact_mismatch";
+    activatedAt: number;
+    manifestHash: string;
+    entryRule: string;
+    expiryRule: string;
+    developmentSelected: boolean;
+    previousExecution: MacroSignalExecutionContract;
+    currentExecution: MacroSignalExecutionContract;
+    later: { laterN: number; h1AverageR: number; h4AverageR: number; pairedUpliftR: number };
+    limitations: string;
   };
   contextRegistration?: null | MacroSignalContextRegistration;
   requiredExactTitles?: string[];
@@ -1287,10 +1311,15 @@ export interface MacroSignalChartSignal {
     expiryCandles: number;
     managementFamily?: "fixed" | "break_even";
     managementTriggerR?: number | null;
+    entryTimeframe?: "H1" | "H4";
+    expiryTimeframe?: "H4";
   };
   stopAtr?: number;
   targetR?: number;
   expiryCandles: number;
+  entryTimeframe?: "H1" | "H4";
+  expiryTimeframe?: "H4";
+  contractExpiryTime?: number | null;
   entry?: number | null;
   atr?: number | null;
   stop?: number | null;

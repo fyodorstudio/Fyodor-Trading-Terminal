@@ -11,6 +11,7 @@ import {
   normalizeShadowStartingBalance,
 } from "@/app/lib/macroSignalShadow";
 import { formatJakartaDisplayDateTime } from "@/app/lib/format";
+import entryResearch from "@/app/lib/fmsEntryResearchSummary.json";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalPatternAssessment, MacroSignalUpcomingPatternWatch } from "@/app/types";
 
 const ENTRY_GRACE_SECONDS = 90;
@@ -167,7 +168,7 @@ function executionLabel(signal: MacroSignalChartSignal, pattern: MacroSignalChar
   const management = execution?.managementFamily === "break_even"
     ? ` · SL to entry after +${execution.managementTriggerR ?? 1}R`
     : "";
-  return `SL ${execution?.stopAtr ?? 1} ATR · TP ${execution?.targetR ?? 2}R · maximum ${execution?.expiryCandles ?? 30} H4${management}`;
+  return `${signal.entryTimeframe ?? execution?.entryTimeframe ?? "H4"} entry · SL ${execution?.stopAtr ?? 1} ATR · TP ${execution?.targetR ?? 2}R · maximum ${execution?.expiryCandles ?? 30} H4${management}`;
 }
 
 function patternExecutionLabel(pattern: MacroSignalChartPattern): string {
@@ -175,7 +176,7 @@ function patternExecutionLabel(pattern: MacroSignalChartPattern): string {
   const management = execution?.managementFamily === "break_even"
     ? ` · move SL to entry after +${execution.managementTriggerR ?? 1}R`
     : "";
-  return `SL ${execution?.stopAtr ?? 1} ATR · TP ${execution?.targetR ?? 2}R · ${execution?.expiryCandles ?? 30} H4${management}`;
+  return `${execution?.entryTimeframe ?? "H4"} entry · SL ${execution?.stopAtr ?? 1} ATR · TP ${execution?.targetR ?? 2}R · ${execution?.expiryCandles ?? 30} H4${management}`;
 }
 
 function historicalRecord(pattern: MacroSignalChartPattern): { averageR: number | null; tpRate: number | null; sample: number } {
@@ -184,6 +185,30 @@ function historicalRecord(pattern: MacroSignalChartPattern): { averageR: number 
   const tpRate = typeof reviewed?.tpBeforeSl === "number" ? reviewed.tpBeforeSl : pattern.historicalBenchmark?.targetFirstRate ?? pattern.overall.targetHitRate ?? null;
   const sample = typeof reviewed?.evaluableN === "number" ? reviewed.evaluableN : pattern.historicalBenchmark?.walkForwardN ?? pattern.overall.evaluableCount;
   return { averageR, tpRate, sample };
+}
+
+function entryResearchNote(market: string, pattern: MacroSignalChartPattern): string {
+  const recipe = `${market}|${pattern.id}`;
+  const hourly = entryResearch.sessionHourly.findings.find((row) => row.recipe === recipe);
+  const activeReview = entryResearch.activeEntryReview.findings.find((row) => row.recipe === recipe);
+  const preH4 = entryResearch.preH4Reaction.findings.find((row) => row.recipe === recipe)?.later;
+  const minute = entryResearch.minute.findings.find((row) => row.recipe === recipe);
+  const later = hourly?.later;
+  const hourlyConclusion = hourly?.developmentSelectedEntry === "H1" && later?.n
+    ? later.pairedUpliftR != null && later.pairedUpliftR > 0 && (later.h1AverageR ?? 0) > 0
+      ? `H1 remained positive on ${later.n} later matched cases (${later.pairedUpliftR >= 0 ? "+" : ""}${later.pairedUpliftR.toFixed(2)}R versus H4), but coverage is selective.`
+      : `H1 was favored during development but did not improve the ${later.n} later matched cases.`
+    : "The frozen H1 campaign did not support selecting an earlier entry for this recipe.";
+  const minuteCoverage = minute?.matched
+    ? ` Recent M1/H1/H4 comparison: ${minute.matched} matched case${minute.matched === 1 ? "" : "s"}; too limited to select a contract.`
+    : " No comparable recent M1 path was available.";
+  const activeContract = activeReview?.supportedForEntryCandidate
+    ? ` The exact active contract also retained positive H1 improvement, so this is a review candidate.${preH4?.entryToH4.mean == null ? "" : ` Before H4 entry, its later cases moved ${preH4.entryToH4.mean >= 0 ? "+" : ""}${preH4.entryToH4.mean.toFixed(2)} ATR on average in the trade direction.`}`
+    : "";
+  const activeEntry = pattern.entryReview?.status === "reviewed_active"
+    ? ` Active entry is now the first eligible H1 open from ${formatJakartaDisplayDateTime(pattern.entryReview.activatedAt)}; older occurrences retain H4.`
+    : " Active entry remains the first strictly later H4 open.";
+  return `${hourlyConclusion}${activeContract}${minuteCoverage}${activeEntry}`;
 }
 
 function candidateRows(data: ChartMacroBiasRealtimeCardData): ActionCandidate[] {
@@ -256,6 +281,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   const startingBalance = normalizeShadowStartingBalance(readStoredNumber("fyodor.charts.shadow-starting-balance", DEFAULT_SHADOW_STARTING_BALANCE));
   const riskPercent = normalizeShadowRiskPercent(readStoredNumber("fyodor.charts.shadow-risk-percent", DEFAULT_SHADOW_RISK_PERCENT));
   const activation = primary?.signal.activationTime ?? primary?.signal.prospectiveCapture?.activationTime ?? null;
+  const primaryEntryTimeframe = primary?.signal.entryTimeframe ?? primary?.pattern.execution?.entryTimeframe ?? "H4";
   const withinEntryGrace = activation != null && clock >= activation && clock <= activation + ENTRY_GRACE_SECONDS;
   const action = globalBlock
     ? { state: "BLOCKED", title: "Do not enter now", detail: globalBlock, tone: "blocked" }
@@ -266,10 +292,10 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
     : primary == null
       ? null
       : primary.signal.entry == null
-        ? { state: "WAITING", title: "Wait for the H4 entry", detail: `The frozen entry is ${formatJakartaDisplayDateTime(activation!)}. Do not enter before it.`, tone: "waiting" }
+        ? { state: "WAITING", title: `Wait for the ${primaryEntryTimeframe} entry`, detail: `The frozen entry is ${formatJakartaDisplayDateTime(activation!)}. Do not enter before it.`, tone: "waiting" }
         : withinEntryGrace
-          ? { state: "ENTRY WINDOW", title: `Enter ${primary.signal.direction === "long" ? "Long" : "Short"} ${primary.market} now`, detail: `The frozen H4 entry opened within the last ${ENTRY_GRACE_SECONDS} seconds.`, tone: "entry" }
-          : { state: "MONITORING", title: "Do not enter late", detail: "The model trade is already open from its frozen H4 entry. Monitor it; do not replace the tested entry with a later one.", tone: "open" };
+          ? { state: "ENTRY WINDOW", title: `Enter ${primary.signal.direction === "long" ? "Long" : "Short"} ${primary.market} now`, detail: `The frozen ${primaryEntryTimeframe} entry opened within the last ${ENTRY_GRACE_SECONDS} seconds.`, tone: "entry" }
+          : { state: "MONITORING", title: "Do not enter late", detail: `The model trade is already open from its frozen ${primaryEntryTimeframe} entry. Monitor it; do not replace the tested entry with a later one.`, tone: "open" };
 
   return (
     <section className="fms-action-card" aria-label="FMS actionable trade card">
@@ -319,7 +345,8 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                   <table><tbody>
                     <tr><th>Frozen decision rule</th><td>{row.pattern.condition}</td></tr>
                     <tr><th>Required package</th><td>{row.watch?.requiredGroups.join(" · ") || row.pattern.groups.join(" · ")}</td></tr>
-                    <tr><th>Entry and expiry</th><td>First strictly later H4 open · maximum {row.pattern.execution?.expiryCandles ?? 30} H4</td></tr>
+                    <tr><th>Entry and expiry</th><td>First eligible {row.pattern.execution?.entryTimeframe ?? "H4"} open · maximum {row.pattern.execution?.expiryCandles ?? 30} H4</td></tr>
+                    <tr><th>Earlier-entry research</th><td>{entryResearchNote(row.market, row.pattern)}</td></tr>
                     <tr><th>Historical contract</th><td>{record.averageR == null ? "Unavailable" : `${record.averageR >= 0 ? "+" : ""}${record.averageR.toFixed(2)}R average · ${(Number(record.tpRate ?? 0) * 100).toFixed(1)}% TP before SL · N ${record.sample}`}</td></tr>
                     <tr><th>Scoring</th><td>{row.pattern.scoringPolicy?.replaceAll("_", " ") ?? "baseline"} · {row.pattern.reaction ?? "continuation"}</td></tr>
                   </tbody></table>
@@ -342,7 +369,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
           const isPrimary = candidate === primary;
           const candidateState = isPrimary && action
             ? `${action.state} · ${action.title}`
-            : candidate.signal.entry == null ? "Waiting for H4 entry" : "Trade running";
+            : candidate.signal.entry == null ? `Waiting for ${candidate.signal.entryTimeframe ?? candidate.pattern.execution?.entryTimeframe ?? "H4"} entry` : "Trade running";
           return <Fragment key={key}>
             <tr role="button" tabIndex={0} aria-expanded={expanded} onClick={() => setExpandedCurrentKey(expanded ? null : key)} onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setExpandedCurrentKey(expanded ? null : key); }
@@ -357,6 +384,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                 <tr><th>Stop loss</th><td>{price(candidate.signal.stop)} · {pipDistance(candidate.market, candidate.signal.entry, candidate.signal.stop)} · {candidate.signal.stopAtr ?? candidate.pattern.execution?.stopAtr ?? 1} ATR</td><th>Take profit</th><td>{price(candidate.signal.target)} · {pipDistance(candidate.market, candidate.signal.entry, candidate.signal.target)} · {candidate.signal.targetR ?? candidate.pattern.execution?.targetR ?? 2}R</td></tr>
                 <tr><th>Expiry</th><td>{candidate.signal.expiryTime ? formatJakartaDisplayDateTime(candidate.signal.expiryTime) : `${candidate.signal.expiryCandles} H4`}</td><th>Risk amount</th><td>{candidatePosition ? `$${candidatePosition.riskDollars.toFixed(2)} · ${riskPercent}%` : `${riskPercent}% at entry`}</td></tr>
                 <tr><th>Historical contract</th><td colSpan={3}>{candidateRecord.averageR == null ? "Unavailable" : `${candidateRecord.averageR >= 0 ? "+" : ""}${candidateRecord.averageR.toFixed(2)}R average · ${(Number(candidateRecord.tpRate ?? 0) * 100).toFixed(1)}% TP before SL · N ${candidateRecord.sample}`}</td></tr>
+                <tr><th>Earlier-entry research</th><td colSpan={3}>{entryResearchNote(candidate.market, candidate.pattern)}</td></tr>
                 <tr><th>Evidence</th><td colSpan={3}>{candidate.signal.events.length > 0 ? candidate.signal.events.map((event) => `${event.currency} ${event.title}: score ${signed(event.score)}`).join(" · ") : "No event calculation rows loaded."}</td></tr>
                 <tr><th>Integrity</th><td colSpan={3}>{isPrimary && integrityBlocked ? integrityIssues.join(" · ") : candidate.signal.observationMode === "recovered_offline" ? "Recovered offline — never eligible for automated entry" : "Live captured · registered setup · frozen geometry checked"}</td></tr>
                 <tr><th>MT5 demo tag</th><td colSpan={3}>{candidate.signal.observationMode === "live_captured" && candidate.signal.demoTag ? <span className="fms-demo-tag"><code>{candidate.signal.demoTag}</code><button type="button" onClick={(event) => { event.stopPropagation(); void navigator.clipboard?.writeText(candidate.signal.demoTag!); }}>Copy tag</button><small>Use this exact Comment on a manually placed MT5 demo order so Journal can attach the actual fill and P/L.</small></span> : "Unavailable — only a prospectively live-captured signal receives an eligible demo tag."}</td></tr>
@@ -369,7 +397,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
       )}
       {conflict ? <div className="fms-action-warning"><AlertTriangle size={14} />{sameTime.length} simultaneous signals require review.</div> : null}
       {correlatedMarkets.length > 0 ? <div className="fms-action-warning"><AlertTriangle size={14} />Related currency exposure is already open in {Array.from(new Set(correlatedMarkets)).join(", ")}. FMS does not silently add another portfolio position.</div> : null}
-      <footer>The 90-second button window is an operational display rule around the exact frozen H4 open. Missing it does not create a new tested entry.</footer>
+      <footer>The 90-second button window is an operational display rule around the exact frozen entry open. Missing it does not create a new tested entry.</footer>
       </section> : null}
       {activeView === "recent" ? <section className="fms-action-activity fms-action-view" aria-label="Recent FMS activity">
         <div className="fms-action-section-title"><span>Recent FMS activity</span><small>Newest first · latest {recentActivity.length}</small></div>
@@ -391,6 +419,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                   <table><tbody>
                     <tr><th>Frozen decision rule</th><td colSpan={3}>{row.pattern.condition}</td></tr>
                     <tr><th>Frozen contract</th><td colSpan={3}>{row.signal ? executionLabel(row.signal, row.pattern) : patternExecutionLabel(row.pattern)}</td></tr>
+                    <tr><th>Earlier-entry research</th><td colSpan={3}>{entryResearchNote(row.market, row.pattern)}</td></tr>
                     <tr><th>Entry</th><td>{price(row.signal?.entry)}</td><th>ATR at entry</th><td>{row.signal?.atr == null ? "Unavailable" : `${row.signal.atr.toFixed(5)} · ${pipDistance(row.market, 0, row.signal.atr)}`}</td></tr>
                     <tr><th>Stop loss</th><td>{price(row.signal?.stop)} · {pipDistance(row.market, row.signal?.entry, row.signal?.stop)}</td><th>Take profit</th><td>{price(row.signal?.target)} · {pipDistance(row.market, row.signal?.entry, row.signal?.target)}</td></tr>
                     <tr><th>Observed result</th><td>{row.signal ? signalActivityState(row.signal) : row.state}</td><th>Exit / expiry</th><td>{row.signal?.exitTime ? formatJakartaDisplayDateTime(row.signal.exitTime) : row.signal?.expiryTime ? formatJakartaDisplayDateTime(row.signal.expiryTime) : "Unavailable"}</td></tr>
