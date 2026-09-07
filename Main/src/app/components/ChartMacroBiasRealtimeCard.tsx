@@ -349,7 +349,7 @@ function assessmentForSignal(
     direction: signal.direction,
     reason: "This package produced a registered hypothetical trade.",
     events: [],
-    calculations: signal.events.map((event) => ({
+    calculations: (signal.events ?? []).map((event) => ({
       title: event.title,
       actual: event.actual,
       forecast: event.forecast,

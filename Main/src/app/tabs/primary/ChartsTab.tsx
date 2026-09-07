@@ -23,7 +23,7 @@ import type { ChartPairMatrixTimeLensData, PairMatrixLoadState } from "@/app/com
 import type { ChartEventLensData, ChartEventReleaseRow } from "@/app/components/ChartEventLens";
 import { useChartEventOverlay } from "@/app/hooks/useChartEventOverlay";
 import { useChartMarketData } from "@/app/hooks/useChartMarketData";
-import { fetchCalendar, fetchMacroSignalChartSignals, fetchMacroSignalTargetLadder, getPreloadedMacroSignalCurrentModel, getPreloadedMacroSignalGlobalRegistry, preloadMacroSignalCurrentModel, preloadMacroSignalGlobalRegistry, refreshMacroSignalGlobalRegistry } from "@/app/lib/bridge";
+import { fetchCalendar, fetchMacroSignalChartSignals, fetchMacroSignalTargetLadder, getPreloadedMacroSignalCurrentModel, getPreloadedMacroSignalGlobalRegistry, preloadMacroSignalCurrentModel, preloadMacroSignalGlobalRegistry } from "@/app/lib/bridge";
 import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
 import { formatUtcDisplayDate } from "@/app/lib/format";
 import {
@@ -101,7 +101,6 @@ const PAIR_MATRIX_HISTORY_CACHE_LIMIT = 8;
 const MACRO_BIAS_VISIBILITY_KEY = "fyodor.charts.macro-bias-visible";
 const MACRO_BIAS_HISTORICAL_MATCHES_KEY = "fyodor.charts.macro-bias-historical-matches";
 const MACRO_BIAS_MARKETS = new Set(["AUDUSD", "EURUSD", "GBPUSD", "NZDUSD", "USDCAD", "USDCHF", "USDJPY"]);
-const MACRO_BIAS_LIVE_REFRESH_MS = 30_000;
 
 export function isMacroBiasMarketSupported(symbol: string): boolean {
   return MACRO_BIAS_MARKETS.has(symbol.toUpperCase());
@@ -502,6 +501,7 @@ export function ChartsTab({
   const timezoneMenuRef = useRef<HTMLDivElement | null>(null);
   const macroBiasMarketCacheRef = useRef(new Map<string, MacroSignalChartSignalResponse>());
   const macroBiasHistoryCacheRef = useRef(new Map<string, MacroSignalChartSignalResponse>());
+  const macroBiasCalendarRevisionRef = useRef(new Map<string, string>());
   const containerRef = useRef<HTMLDivElement | null>(null);
   const crosshairReadoutRef = useRef<ChartCrosshairReadoutHandle | null>(null);
   const hoveredCandleChartTimeRef = useRef<number | null>(null);
@@ -1109,28 +1109,27 @@ export function ChartsTab({
   }, [macroBiasVisible]);
 
   useEffect(() => {
-    if (!macroBiasVisible) return undefined;
+    if (!macroBiasVisible || !macroBiasCurrentCalendarRevision) return undefined;
+    const market = selectedSymbol.toUpperCase();
+    const previousRevision = macroBiasCalendarRevisionRef.current.get(market);
+    macroBiasCalendarRevisionRef.current.set(market, macroBiasCurrentCalendarRevision);
+    if (previousRevision == null || previousRevision === macroBiasCurrentCalendarRevision) return undefined;
     let cancelled = false;
-    let requestRunning = false;
-    const refreshLifecycle = () => {
-      if (requestRunning) return;
-      requestRunning = true;
-      refreshMacroSignalGlobalRegistry()
-        .then((response) => {
-          if (cancelled) return;
-          response.markets.forEach((market) => macroBiasMarketCacheRef.current.set(market.symbol.toUpperCase(), market));
-          setMacroBiasGlobalResponse((current) => shouldApplyMacroBiasRefresh(current, response) ? response : current);
-          setMacroBiasGlobalError(null);
-        })
-        .catch(() => { /* retain the last honest lifecycle state */ })
-        .finally(() => { requestRunning = false; });
-    };
-    const timer = window.setInterval(refreshLifecycle, MACRO_BIAS_LIVE_REFRESH_MS);
-    return () => {
-      cancelled = true;
-      window.clearInterval(timer);
-    };
-  }, [macroBiasVisible]);
+    fetchMacroSignalChartSignals({ symbol: selectedSymbol, timeframe: "H4", mode: "current", refresh: true })
+      .then((response) => {
+        if (cancelled) return;
+        macroBiasMarketCacheRef.current.set(response.symbol.toUpperCase(), response);
+        setMacroBiasCurrentResponse(response);
+        setMacroBiasGlobalResponse((current) => current ? {
+          ...current,
+          generatedAt: Math.max(current.generatedAt, response.generatedAt ?? 0),
+          markets: current.markets.map((row) => row.symbol === response.symbol ? response : row),
+        } : current);
+        setMacroBiasGlobalError(null);
+      })
+      .catch(() => { /* retain the last honest lifecycle state */ });
+    return () => { cancelled = true; };
+  }, [macroBiasCurrentCalendarRevision, macroBiasVisible, selectedSymbol]);
 
   useEffect(() => {
     const selectedMarket = macroBiasGlobalResponse?.markets.find(
@@ -1193,7 +1192,7 @@ export function ChartsTab({
     const counts = new Map<string, number>();
     macroBiasShadowHistoryResponse.signals.forEach((signal) => counts.set(signal.patternId, (counts.get(signal.patternId) ?? 0) + 1));
     return macroBiasShadowHistoryResponse.patterns.filter((pattern) => pattern.currentEligible).map((pattern) => ({
-      id: pattern.id, label: pattern.label, count: counts.get(pattern.id) ?? 0, checked: !hidden.has(pattern.id),
+      id: pattern.id, label: pattern.label ?? pattern.id, count: counts.get(pattern.id) ?? 0, checked: !hidden.has(pattern.id),
     })).sort((left, right) => left.label.localeCompare(right.label));
   }, [macroBiasHiddenHistoricalPatterns, macroBiasShadowHistoryResponse, selectedSymbol]);
   const toggleMacroBiasHistoricalPattern = (patternId: string) => {

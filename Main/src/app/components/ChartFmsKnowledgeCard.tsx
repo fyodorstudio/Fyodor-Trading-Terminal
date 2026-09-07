@@ -77,13 +77,14 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data 
     const matches = candidateSignals.filter((signal, index) => {
       if (signal.patternId !== patternId || signal.eventTime < (source?.modelActivatedAt ?? Infinity)) return false;
       const hour = new Date((signal.eventTime + 7 * 3_600) * 1_000).getUTCHours();
-      const surprise = signal.events.map((event) => event.surprisePoint).filter((value): value is number => value != null);
-      const momentum = signal.events.map((event) => event.momentumPoint).filter((value): value is number => value != null);
+      const signalEvents = signal.events ?? [];
+      const surprise = signalEvents.map((event) => event.surprisePoint).filter((value): value is number => value != null);
+      const momentum = signalEvents.map((event) => event.momentumPoint).filter((value): value is number => value != null);
       const shape = (values: number[]) => values.length === 0 || values.reduce((sum, value) => sum + value, 0) === 0 ? "flat_or_missing" : values.reduce((sum, value) => sum + value, 0) > 0 ? "positive" : "negative";
       const robustness = signal.numericRobustness;
-      const crossStates = [...new Set(signal.events.map((event) => event.currency))].flatMap((currency) => {
+      const crossStates = [...new Set(signalEvents.map((event) => event.currency))].flatMap((currency) => {
         const votes = new Map<string, number>();
-        markets.forEach((otherMarket) => [...otherMarket.signals, ...(otherMarket.recoveredSignals ?? [])].filter((other) => other.eventTime === signal.eventTime && other.events.some((event) => event.currency === currency)).forEach((other) => {
+        markets.forEach((otherMarket) => [...otherMarket.signals, ...(otherMarket.recoveredSignals ?? [])].filter((other) => other.eventTime === signal.eventTime && (other.events ?? []).some((event) => event.currency === currency)).forEach((other) => {
           if (currency !== otherMarket.symbol.slice(0, 3) && currency !== otherMarket.symbol.slice(3, 6)) return;
           const directionVote = other.direction === "long" ? 1 : -1;
           votes.set(otherMarket.symbol, currency === otherMarket.symbol.slice(0, 3) ? directionVote : -directionVote);
@@ -99,9 +100,9 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data 
         crossPairConfirmation: crossStates.includes("conflicted") ? "conflicted" : crossStates.length ? "confirmed" : "isolated",
         sessionJakarta: hour < 8 ? "asia" : hour < 15 ? "europe" : "us",
         releaseWindow: `${String(Math.floor(hour / 4) * 4).padStart(2, "0")}-${String(Math.floor(hour / 4) * 4 + 4).padStart(2, "0")}`,
-        forecastQuality: signal.events.some((event) => event.forecastSuspect) ? "suspect" : "ordinary",
+        forecastQuality: signalEvents.some((event) => event.forecastSuspect) ? "suspect" : "ordinary",
         surpriseShape: shape(surprise), momentumShape: shape(momentum),
-        packageDisagreement: new Set(signal.events.filter((event) => event.score !== 0).map((event) => event.score > 0)).size > 1 ? "disagrees" : "aligned_or_single",
+        packageDisagreement: new Set(signalEvents.filter((event) => event.score !== 0).map((event) => event.score > 0)).size > 1 ? "disagrees" : "aligned_or_single",
         priorRecipeDirectionShape: index === 0 ? "unknown" : candidateSignals[index - 1].direction === signal.direction ? "same" : "reversal",
       };
       return Object.entries(candidate.rule).every(([key, value]) => observed[key] === value);

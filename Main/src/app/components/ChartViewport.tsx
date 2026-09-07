@@ -1,4 +1,4 @@
-import { forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type Ref } from "react";
+import { Component, forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties, type ErrorInfo, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type Ref } from "react";
 import { AlertTriangle, CalendarDays, ChevronDown, Settings2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChartEventLens, type ChartEventLensData } from "@/app/components/ChartEventLens";
@@ -20,6 +20,23 @@ import type { BridgeStatus, CalendarEvent } from "@/app/types";
 
 const PAIR_MATRIX_PANEL_MIN_HEIGHT = 240;
 const PAIR_MATRIX_CHART_MIN_HEIGHT = 220;
+
+class FmsDockErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
+  state = { error: null as string | null };
+
+  static getDerivedStateFromError(error: unknown) {
+    return { error: error instanceof Error ? error.message : "Unknown FMS panel error" };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("FMS dock render failed", error, info);
+  }
+
+  render() {
+    if (this.state.error) return <section className="chart-fms-dock-loading is-error"><strong>FMS panel could not render</strong><span>{this.state.error}</span></section>;
+    return this.props.children;
+  }
+}
 const FMS_DOCK_MIN_WIDTH = 340;
 const FMS_DOCK_DEFAULT_WIDTH = 460;
 const FMS_DOCK_WIDTH_KEY = "fyodor.charts.fms-dock-width";
@@ -292,6 +309,7 @@ export function ChartViewport({
                 <button type="button" className={fmsDockTab === "result" ? "is-active" : ""} disabled={!macroBiasAudit} onClick={() => setFmsDockTab("result")}>Past Result</button>
               </nav>
               <div className="chart-fms-dock-content">
+                <FmsDockErrorBoundary key={`${fmsDockTab}:${macroBiasRealtime?.response.symbol ?? "loading"}`}>
                 {fmsDockTab === "result" && macroBiasAudit
                   ? <ChartMacroBiasAudit data={macroBiasAudit} />
                   : fmsDockTab === "trade" && macroBiasRealtime
@@ -314,6 +332,7 @@ export function ChartViewport({
                         <strong>{macroBiasLoading ? "Loading FMS Trade…" : "FMS Trade unavailable"}</strong>
                         <span>{macroBiasLoading ? "Cached decisions and the selected market are being restored." : "No registered FMS response is available for this market."}</span>
                       </section>}
+                </FmsDockErrorBoundary>
               </div>
               <div
                 className="chart-fms-dock-resize"
