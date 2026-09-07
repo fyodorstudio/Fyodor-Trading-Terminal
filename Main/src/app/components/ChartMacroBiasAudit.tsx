@@ -13,6 +13,8 @@ export interface ChartMacroBiasAuditData {
   mode: MacroSignalChartMode;
   targetR?: number;
   generatedAt?: number;
+  detailLoading?: boolean;
+  detailError?: string | null;
   onClose: () => void;
 }
 
@@ -131,6 +133,7 @@ function provenanceLabel(status: NonNullable<MacroSignalChartPattern["registrati
 
 export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData }) {
   const { signal, pattern } = data;
+  const signalEvents = signal.events ?? [];
   const market = pattern.market ?? data.symbol ?? "EURUSD";
   const stopAtr = signal.stopAtr ?? pattern.execution?.stopAtr ?? 1;
   const targetR = signal.targetR ?? pattern.execution?.targetR ?? 2;
@@ -193,9 +196,16 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
     ? marketContextValue(signal, selectedContextCandidate.dimension) === selectedContextCandidate.value
     : false;
   const directionalBarrier = marketContext?.supportResistance.directionalBarrier;
-  const directionalZones = (signal.direction === "long"
+  const h4DirectionalZones = (signal.direction === "long"
     ? marketContext?.supportResistance.resistances
     : marketContext?.supportResistance.supports) ?? (directionalBarrier ? [directionalBarrier] : []);
+  const higherStructure = marketContext?.supportResistance.higherTimeframes;
+  const directionalZones = [
+    ...h4DirectionalZones.map((zone) => ({ ...zone, timeframe: zone.timeframe ?? "H4" as const })),
+    ...(["D1", "W1"] as const).flatMap((timeframe) => (signal.direction === "long"
+      ? higherStructure?.[timeframe].resistances
+      : higherStructure?.[timeframe].supports) ?? []),
+  ].sort((left, right) => left.distanceAtr - right.distanceAtr);
   const directionalRoomDetail = marketContext?.supportResistance.directionalRoomAtr == null
     ? "No confirmed opposing H4 zone"
     : `${marketContext.supportResistance.directionalRoomAtr.toFixed(2)} ATR to ${directionalBarrier?.strength ?? "confirmed"} ${directionalBarrier?.kind ?? "zone"}${directionalBarrier ? ` at ${formatPrice(directionalBarrier.level, market)} · ${directionalBarrier.touches} touches` : ""}`;
@@ -230,10 +240,10 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
       <section className="chart-macro-bias-trigger" aria-label="Economic releases that triggered this signal">
         <div className="chart-macro-bias-trigger-heading">
           <span>Why the arrow appeared</span>
-          <strong>{signal.events.length > 0 ? `${signal.events.length} release${signal.events.length === 1 ? "" : "s"} matched this setup` : "Registered event package"}</strong>
+          <strong>{signalEvents.length > 0 ? `${signalEvents.length} release${signalEvents.length === 1 ? "" : "s"} matched this setup` : data.detailLoading ? "Loading the frozen release package…" : "Registered event package"}</strong>
         </div>
         <div className="chart-macro-bias-events">
-          {signal.events.map((event) => (
+          {signalEvents.map((event) => (
             <div key={`${event.id}:${event.time}`}>
               <strong>{event.title}</strong>
               <small>{event.currency}/{event.countryCode}</small>
@@ -242,6 +252,7 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
             </div>
           ))}
         </div>
+        {data.detailError ? <p className="chart-macro-bias-detail-error">Full frozen detail is unavailable: {data.detailError}. Provisional Entry/SL/TP geometry remains visible.</p> : null}
       </section>
 
       <section className="chart-macro-bias-target-evidence" aria-label="Historical evidence for the frozen target">
@@ -275,15 +286,15 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
       </details>
 
       {directionalZones.length > 0 ? (
-        <section className="chart-macro-bias-structure-ladder" aria-label="Entry-known H4 price structure ladder">
-          <div className="chart-macro-bias-section-title"><span>H4 price structure toward target</span><strong>{directionalZones.length} entry-known zone{directionalZones.length === 1 ? "" : "s"}</strong></div>
+        <section className="chart-macro-bias-structure-ladder" aria-label="Entry-known multi-scale price structure ladder">
+          <div className="chart-macro-bias-section-title"><span>Multi-scale price structure toward target</span><strong>{directionalZones.length} entry-known zone{directionalZones.length === 1 ? "" : "s"}</strong></div>
           <div className="chart-macro-bias-structure-list">
             {directionalZones.map((zone, index) => {
               const distanceR = riskAtr && riskAtr > 0 ? zone.distanceAtr / riskAtr : null;
               const zonePips = signal.atr == null ? null : zone.distanceAtr * signal.atr / pipSize(market);
               const beforeTarget = rewardAtr != null && zone.distanceAtr < rewardAtr;
               return <article key={zone.id ?? `${zone.kind}:${zone.level}:${index}`}>
-                <div><span>{index === 0 ? "Nearest" : `Wider ${index + 1}`} · H4 {zone.kind === "support" ? "support" : "resistance"}</span><strong>{formatPrice(zone.level, market)}</strong><small>{zone.touches} touches · {readableContext(zone.strength)}{zone.role === "role_reversed" ? ` · former ${zone.originalKind}` : ""}</small></div>
+                <div><span>{index === 0 ? "Nearest" : `Wider ${index + 1}`} · {zone.timeframe ?? "H4"} {zone.kind === "support" ? "support" : "resistance"}</span><strong>{formatPrice(zone.level, market)}</strong><small>{zone.touches} touches · {readableContext(zone.strength)}{zone.role === "role_reversed" ? ` · former ${zone.originalKind}` : ""}</small></div>
                 <dl>
                   <div><dt>From entry</dt><dd>{zonePips == null ? "—" : `${zonePips.toFixed(1)} pips`} · {zone.distanceAtr.toFixed(2)} ATR · {distanceR == null ? "—" : `${distanceR.toFixed(2)}R`}</dd></div>
                   <div><dt>Versus TP</dt><dd>{beforeTarget ? "Before frozen TP" : "Beyond frozen TP"}</dd></div>

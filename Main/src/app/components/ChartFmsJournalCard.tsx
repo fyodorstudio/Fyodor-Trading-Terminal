@@ -26,6 +26,29 @@ type JournalRow = {
   demoStatus: "completed" | "open_or_partial" | null;
 };
 
+type JournalScope = "this_week" | "previous_week" | "month" | "year" | "all" | "broker";
+const JAKARTA_OFFSET_SECONDS = 7 * 3_600;
+
+function jakartaDayStart(time: number): number {
+  return Math.floor((time + JAKARTA_OFFSET_SECONDS) / 86_400) * 86_400 - JAKARTA_OFFSET_SECONDS;
+}
+
+function jakartaWeekStart(time: number): number {
+  const start = jakartaDayStart(time);
+  const weekday = new Date((start + JAKARTA_OFFSET_SECONDS) * 1_000).getUTCDay();
+  return start - ((weekday + 6) % 7) * 86_400;
+}
+
+function rowResolvedTime(row: JournalRow): number {
+  return row.exitTime ?? row.eventTime;
+}
+
+function aggregate(rows: JournalRow[], source: JournalSource) {
+  const resolved = rows.filter((row) => row.source === source && row.resultR != null);
+  const total = resolved.reduce((sum, row) => sum + Number(row.resultR), 0);
+  return { count: resolved.length, total, average: resolved.length ? total / resolved.length : null };
+}
+
 const jakartaDateKey = new Intl.DateTimeFormat("en-CA", {
   timeZone: "Asia/Jakarta",
   year: "numeric",
@@ -78,7 +101,7 @@ export function buildFmsJournalRows(data: ChartMacroBiasRealtimeCardData): Journ
   for (const market of markets) {
     const patterns = new Map(market.patterns.map((pattern) => [pattern.id, pattern]));
     for (const signal of [...market.signals, ...(market.recoveredSignals ?? [])]) {
-      if (signal.eventTime < market.modelActivatedAt) continue;
+      if (signal.eventTime < market.modelActivatedAt || signal.outcomeStatus === "pending") continue;
       const key = `${market.symbol}:${signal.patternId}:${signal.eventTime}`;
       const demo = demoBySignal.get(key) ?? null;
       rows.set(key, {
@@ -126,26 +149,45 @@ export function buildFmsJournalRows(data: ChartMacroBiasRealtimeCardData): Journ
       demoStatus: null,
     });
   }
-  return [...rows.values()].sort((left, right) => right.eventTime - left.eventTime || left.key.localeCompare(right.key));
+  return [...rows.values()].sort((left, right) => rowResolvedTime(right) - rowResolvedTime(left) || left.key.localeCompare(right.key));
 }
 
 export const ChartFmsJournalCard = memo(function ChartFmsJournalCard({ data }: { data: ChartMacroBiasRealtimeCardData }) {
-  const [scope, setScope] = useState<"all" | "seven_days" | "broker">("all");
+  const [scope, setScope] = useState<JournalScope>("this_week");
   const allRows = useMemo(() => buildFmsJournalRows(data), [data]);
   const newestTime = Math.max(data.globalResponse?.generatedAt ?? 0, data.response.generatedAt ?? 0, Math.floor(Date.now() / 1_000));
+  const weekStart = jakartaWeekStart(newestTime);
+  const monthStart = Date.UTC(new Date((newestTime + JAKARTA_OFFSET_SECONDS) * 1_000).getUTCFullYear(), new Date((newestTime + JAKARTA_OFFSET_SECONDS) * 1_000).getUTCMonth(), 1) / 1_000 - JAKARTA_OFFSET_SECONDS;
+  const yearStart = Date.UTC(new Date((newestTime + JAKARTA_OFFSET_SECONDS) * 1_000).getUTCFullYear(), 0, 1) / 1_000 - JAKARTA_OFFSET_SECONDS;
   const rows = useMemo(() => allRows.filter((row) => (
     scope === "broker" ? row.demoStatus != null
-      : scope === "seven_days" ? row.eventTime >= newestTime - 7 * 86_400
+      : scope === "this_week" ? rowResolvedTime(row) >= weekStart
+        : scope === "previous_week" ? rowResolvedTime(row) >= weekStart - 7 * 86_400 && rowResolvedTime(row) < weekStart
+          : scope === "month" ? rowResolvedTime(row) >= monthStart
+            : scope === "year" ? rowResolvedTime(row) >= yearStart
         : true
-  )), [allRows, newestTime, scope]);
+  )), [allRows, monthStart, scope, weekStart, yearStart]);
   const days = useMemo(() => {
     const grouped = new Map<string, JournalRow[]>();
-    rows.forEach((row) => grouped.set(dayKey(row.eventTime), [...(grouped.get(dayKey(row.eventTime)) ?? []), row]));
+    rows.forEach((row) => grouped.set(dayKey(rowResolvedTime(row)), [...(grouped.get(dayKey(rowResolvedTime(row))) ?? []), row]));
     return [...grouped.entries()].map(([key, dayRows]) => ({ key, rows: dayRows }));
   }, [rows]);
-  const resolved = allRows.filter((row) => row.resultR != null);
-  const averageR = resolved.length ? resolved.reduce((sum, row) => sum + Number(row.resultR), 0) / resolved.length : null;
+  const scopeCounts = useMemo(() => ({
+    wins: rows.filter((row) => row.state === "TP reached").length,
+    losses: rows.filter((row) => row.state === "SL reached").length,
+    expired: rows.filter((row) => row.state === "Expired").length,
+    ambiguous: rows.filter((row) => row.state === "Ambiguous").length,
+    unavailable: rows.filter((row) => row.source !== "no_trade" && row.resultR == null).length,
+  }), [rows]);
+  const live = aggregate(allRows, "live");
+  const recovered = aggregate(allRows, "recovered");
+  const weekDays = Array.from({ length: 5 }, (_, index) => {
+    const start = weekStart + index * 86_400;
+    const dayRows = allRows.filter((row) => rowResolvedTime(row) >= start && rowResolvedTime(row) < start + 86_400);
+    return { start, rows: dayRows, live: aggregate(dayRows, "live"), recovered: aggregate(dayRows, "recovered") };
+  });
   const demo = data.globalResponse?.forwardValidation?.demoExecution ?? null;
+  const portfolio = data.globalResponse?.forwardValidation?.portfolioReplay ?? null;
   const capture = demo?.captureStatus;
 
   return (
@@ -155,18 +197,21 @@ export const ChartFmsJournalCard = memo(function ChartFmsJournalCard({ data }: {
         <small>Asia/Jakarta · immutable provenance</small>
       </header>
       <div className="fms-journal-summary">
-        <div><span>Post-registration cases</span><strong>{allRows.length}</strong><small>{resolved.length} resolved</small></div>
-        <div><span>Model result</span><strong>{signedR(averageR)}</strong><small>average resolved path</small></div>
-        <div><span>Captured demo P/L</span><strong>{money(demo?.totalNetAccountResult)}</strong><small>{demo?.completedTrades ?? 0} completed trades</small></div>
+        <div><span>Prospective gross</span><strong>{signedR(live.total)}</strong><small>{live.count} resolved · {signedR(live.average)} average</small></div>
+        <div><span>Recovered gross</span><strong>{signedR(recovered.total)}</strong><small>{recovered.count} counterfactual · {signedR(recovered.average)} average</small></div>
+        <div><span>Tagged manual P/L</span><strong>{money(demo?.totalNetAccountResult)}</strong><small>{demo?.completedTrades ?? 0} completed MT5 trades</small></div>
         <div><span>MT5 demo account</span><strong>{capture?.accountLogin ? `#${capture.accountLogin}` : "Not verified"}</strong><small>{capture?.accountBalance == null ? capture?.status.replaceAll("_", " ") ?? "not checked" : `${balance(capture.accountBalance, capture.accountCurrency)} balance`}</small></div>
       </div>
       <div className="fms-journal-boundary">
-        <strong>Two ledgers, never mixed</strong>
-        <span>Model R includes live-captured and explicitly labelled recovered MT5 paths. Dollar P/L appears only from a tagged trade actually found in the connected demo account.</span>
+        <strong>Separate ledgers</strong>
+        <span>Prospective, recovered counterfactual, and tagged manual results stay separate. Fresh portfolio replay keeps overlapping signals and reports their combined gross drawdown{portfolio ? `; peak concurrency ${portfolio.maximumConcurrentTrades}, concentrated starts ${portfolio.concentratedCurrencyStarts}` : ""}.</span>
+      </div>
+      <div className="fms-journal-week" aria-label="Current five market days">
+        {weekDays.map((day) => <div key={day.start}><span>{new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Jakarta", weekday: "short", day: "2-digit" }).format(new Date(day.start * 1_000))}</span><strong>{day.live.count ? signedR(day.live.total) : "—"}</strong><small>{day.live.count} live · {day.recovered.count ? `${signedR(day.recovered.total)} recovered` : "no recovered"}</small></div>)}
       </div>
       <div className="fms-journal-toolbar">
-        <label>Show<select value={scope} onChange={(event) => setScope(event.target.value as typeof scope)}><option value="all">All post-registration</option><option value="seven_days">Latest 7 days</option><option value="broker">Broker demo only</option></select></label>
-        <span>{rows.length} records · {days.length} Jakarta days</span>
+        <label>Show<select value={scope} onChange={(event) => setScope(event.target.value as JournalScope)}><option value="this_week">Current week</option><option value="previous_week">Previous week</option><option value="month">Current month</option><option value="year">Current year</option><option value="all">All post-registration</option><option value="broker">Tagged manual only</option></select></label>
+        <span>{rows.length} records · {scopeCounts.wins} wins · {scopeCounts.losses} losses · {scopeCounts.expired} expiry · {scopeCounts.ambiguous} ambiguous · {scopeCounts.unavailable} unavailable</span>
       </div>
       <div className="fms-journal-days">
         {days.length ? days.map((day, index) => {
@@ -175,7 +220,7 @@ export const ChartFmsJournalCard = memo(function ChartFmsJournalCard({ data }: {
           const dayDemo = day.rows.filter((row) => row.demoStatus != null);
           const dayMoney = dayDemo.reduce((sum, row) => sum + Number(row.demoNet ?? 0), 0);
           return <details key={day.key} open={index === 0}>
-            <summary><span><strong>{jakartaDayLabel.format(new Date(day.rows[0].eventTime * 1_000))}</strong><small>{day.rows.length} decisions · {dayResolved.length} resolved</small></span><span><b>{dayResolved.length ? signedR(dayR) : "Pending"}</b><em>{dayDemo.length ? money(dayMoney) : "No demo"}</em><ChevronDown size={13} /></span></summary>
+            <summary><span><strong>{jakartaDayLabel.format(new Date(rowResolvedTime(day.rows[0]) * 1_000))}</strong><small>{day.rows.length} decisions · {dayResolved.length} resolved</small></span><span><b>{dayResolved.length ? signedR(dayR) : "Pending"}</b><em>{dayDemo.length ? money(dayMoney) : "No demo"}</em><ChevronDown size={13} /></span></summary>
             <table><thead><tr><th>Time and setup</th><th>Decision</th><th>Model path</th><th>Demo account</th></tr></thead><tbody>{day.rows.map((row) => <tr key={row.key}>
               <td><strong>{formatJakartaDisplayDateTime(row.eventTime)}</strong><span>{row.market} · {row.label}</span><small className={`is-${row.source}`}>{row.source === "live" ? "Live captured" : row.source === "recovered" ? "Recovered path" : "No trade"}</small></td>
               <td><strong>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} ${row.market}` : "No position"}</strong><span>{row.state}</span>{row.signalTag ? <code>{row.signalTag}</code> : null}</td>
@@ -185,7 +230,7 @@ export const ChartFmsJournalCard = memo(function ChartFmsJournalCard({ data }: {
           </details>;
         }) : <div className="fms-journal-empty"><strong>No journal records in this view.</strong><span>Qualified releases will appear automatically; a broker result appears only after MT5 contains a matching tagged demo trade.</span></div>}
       </div>
-      <footer>Fyodor reads tagged demo history but cannot transmit or modify an MT5 order. Recovered paths remain useful audits, not broker fills.</footer>
+      <footer>All model performance is gross and excludes spread, slippage, commission, swap, and execution delay. Fyodor reads tagged demo history but cannot transmit or modify an MT5 order.</footer>
     </section>
   );
 });

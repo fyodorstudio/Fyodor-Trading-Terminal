@@ -1,0 +1,4273 @@
+{
+  "schema": "fms-controlled-mining-summary-v1",
+  "manifestHash": "8c9ff157d1419599845562d1304eff9ebf328f1683c049ffbd7c12a6022969d4",
+  "resultHash": "e13bc302383c23027ee800826f47c3f611322d5040d645399c5662ee0deb8dc0",
+  "summary": {
+    "recipes": 51,
+    "attempts": 15300,
+    "selectionSurvivors": 358,
+    "recipeFinalists": 34,
+    "registrations": 0
+  },
+  "disclosure": "Exploratory / high overfit risk. Reused historical archive; no registration or real-money eligibility.",
+  "finalists": [
+    {
+      "recipe": "AUDJPY|audjpy-jpy-inflation-short",
+      "rule": {
+        "backgroundAlignment": "neutral",
+        "packageDisagreement": "disagrees"
+      },
+      "development": {
+        "parent": {
+          "n": 52,
+          "averageR": 0.038461538461538464,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.6923076923076923,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 5.5,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.027777777777777776,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 14,
+          "averageR": 0.39285714285714285,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.9285714285714286,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.07692307692307693,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.35439560439560436
+      },
+      "selection": {
+        "parent": {
+          "n": 21,
+          "averageR": 0.21428571428571427,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.8095238095238095,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.058823529411764705,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 8,
+          "averageR": 0.3125,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.875,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.14285714285714285,
+          "years": [
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.09821428571428573
+      },
+      "final": {
+        "parent": {
+          "n": 24,
+          "averageR": 0.1875,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.7916666666666666,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.05263157894736842,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 5,
+          "averageR": 0.2,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.8,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.25,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.012500000000000011
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "AUDUSD|audusd-ism-manufacturing-employment-package",
+      "rule": {
+        "evidenceMode": "agreement",
+        "backgroundAlignment": "conflicted"
+      },
+      "development": {
+        "parent": {
+          "n": 76,
+          "averageR": 0.5540088861627864,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.2236842105263158,
+          "expiryRate": 0.21052631578947367,
+          "maxDrawdownR": 13.692832546422656,
+          "longestLosingStreak": 8,
+          "largestWinShare": 0.04652364222529617,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 16,
+          "averageR": 1.120585041809106,
+          "medianR": 0.8872173103579297,
+          "tpBeforeSl": 0.3125,
+          "expiryRate": 0.25,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.16045337275667756,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.5665761556463195
+      },
+      "selection": {
+        "parent": {
+          "n": 36,
+          "averageR": 0.7374244954766075,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.3055555555555556,
+          "expiryRate": 0.1388888888888889,
+          "maxDrawdownR": 8.707244630645718,
+          "longestLosingStreak": 8,
+          "largestWinShare": 0.08456178125440575,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 16,
+          "averageR": 1.5253879537051793,
+          "medianR": 1.0567259449642927,
+          "tpBeforeSl": 0.4375,
+          "expiryRate": 0.25,
+          "maxDrawdownR": 2.7554114205198843,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.13261887707235476,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.7879634582285718
+      },
+      "final": {
+        "parent": {
+          "n": 38,
+          "averageR": 0.2874405791029209,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.21052631578947367,
+          "expiryRate": 0.07894736842105263,
+          "maxDrawdownR": 8.0,
+          "longestLosingStreak": 8,
+          "largestWinShare": 0.10547760495210294,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 6,
+          "averageR": 0.5699265775139334,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.16666666666666666,
+          "expiryRate": 0.16666666666666666,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.5391155659340658,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.28248599841101246
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "AUDUSD|audusd-s-p-global-manufacturing-pmi",
+      "rule": {
+        "revisionReliability": "robust",
+        "backgroundAlignment": "conflicted"
+      },
+      "development": {
+        "parent": {
+          "n": 40,
+          "averageR": 0.18209524896012258,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.625,
+          "expiryRate": 0.275,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.03675609152251109,
+          "years": [
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "kept": {
+          "n": 21,
+          "averageR": 0.3420673263276043,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.7619047619047619,
+          "expiryRate": 0.23809523809523808,
+          "maxDrawdownR": 0.5566806149675063,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.06079251991866756,
+          "years": [
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "upliftAverageR": 0.1599720773674817
+      },
+      "selection": {
+        "parent": {
+          "n": 19,
+          "averageR": 0.0029437099773899564,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.5789473684210527,
+          "expiryRate": 0.21052631578947367,
+          "maxDrawdownR": 2.416679319056077,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.09090909090909091,
+          "years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "kept": {
+          "n": 11,
+          "averageR": 0.00577910234965261,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.6363636363636364,
+          "expiryRate": 0.09090909090909091,
+          "maxDrawdownR": 1.9364298741538213,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.14285714285714285,
+          "years": [
+            2023,
+            2024
+          ]
+        },
+        "upliftAverageR": 0.002835392372262654
+      },
+      "final": {
+        "parent": {
+          "n": 20,
+          "averageR": 0.11200524039102314,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.55,
+          "expiryRate": 0.35,
+          "maxDrawdownR": 1.3315196981679698,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.08811581261606692,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 3,
+          "averageR": 0.2651402681447691,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.6666666666666666,
+          "expiryRate": 0.3333333333333333,
+          "maxDrawdownR": 0.2045791955656927,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.5,
+          "years": [
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.15313502775374596
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "AUDUSD|audusd-us-producer-inflation",
+      "rule": {
+        "revisionReliability": "robust",
+        "momentumShape": "positive"
+      },
+      "development": {
+        "parent": {
+          "n": 46,
+          "averageR": 0.35796282166304677,
+          "medianR": 0.4883397715392802,
+          "tpBeforeSl": 0.13043478260869565,
+          "expiryRate": 0.6521739130434783,
+          "maxDrawdownR": 3.3709141280041806,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.069108950478632,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 24,
+          "averageR": 0.615254067215259,
+          "medianR": 0.670567264370513,
+          "tpBeforeSl": 0.16666666666666666,
+          "expiryRate": 0.75,
+          "maxDrawdownR": 1.6114128852072476,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.10664321569800735,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.2572912455522122
+      },
+      "selection": {
+        "parent": {
+          "n": 21,
+          "averageR": -0.05108752776544127,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.09523809523809523,
+          "expiryRate": 0.38095238095238093,
+          "maxDrawdownR": 6.834728058059282,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.1941694997223937,
+          "years": [
+            2021,
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "kept": {
+          "n": 9,
+          "averageR": 0.306876663887224,
+          "medianR": 0.6421358780317171,
+          "tpBeforeSl": 0.1111111111111111,
+          "expiryRate": 0.5555555555555556,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.32599800055244355,
+          "years": [
+            2021,
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "upliftAverageR": 0.3579641916526653
+      },
+      "final": {
+        "parent": {
+          "n": 23,
+          "averageR": 0.31078338814236894,
+          "medianR": 0.14357933338415493,
+          "tpBeforeSl": 0.17391304347826086,
+          "expiryRate": 0.6086956521739131,
+          "maxDrawdownR": 2.407982087329484,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.14312017239727395,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 12,
+          "averageR": 0.15774595664458,
+          "medianR": -0.031182450666042118,
+          "tpBeforeSl": 0.16666666666666666,
+          "expiryRate": 0.5833333333333334,
+          "maxDrawdownR": 3.927650705508363,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.33533519960007097,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": -0.15303743149778895
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "EURCAD|eurcad-eur-consumer-sentiment",
+      "rule": {
+        "relativeMagnitude": "large"
+      },
+      "development": {
+        "parent": {
+          "n": 57,
+          "averageR": 0.06638220117002101,
+          "medianR": -0.30701557688038567,
+          "tpBeforeSl": 0.03508771929824561,
+          "expiryRate": 0.6140350877192983,
+          "maxDrawdownR": 6.307285554551407,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.1083597462637505,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 18,
+          "averageR": 0.36416855503956985,
+          "medianR": 0.38480444706776445,
+          "tpBeforeSl": 0.05555555555555555,
+          "expiryRate": 0.6111111111111112,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.22112598978265988,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.2977863538695488
+      },
+      "selection": {
+        "parent": {
+          "n": 27,
+          "averageR": 0.45408023958380395,
+          "medianR": 0.1052233235723046,
+          "tpBeforeSl": 0.07407407407407407,
+          "expiryRate": 0.7037037037037037,
+          "maxDrawdownR": 3.077389055260481,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.1560096604320808,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 13,
+          "averageR": 0.6628622168859308,
+          "medianR": 0.6246380954738937,
+          "tpBeforeSl": 0.07692307692307693,
+          "expiryRate": 0.7692307692307693,
+          "maxDrawdownR": 1.4099591697921703,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.27205534575227924,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.2087819773021269
+      },
+      "final": {
+        "parent": {
+          "n": 29,
+          "averageR": 0.3062201298225145,
+          "medianR": 0.33279493887735534,
+          "tpBeforeSl": 0.0,
+          "expiryRate": 0.7931034482758621,
+          "maxDrawdownR": 1.8044552683476147,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.10081137286598461,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 5,
+          "averageR": 0.17100020448216352,
+          "medianR": -0.04388488237243362,
+          "tpBeforeSl": 0.0,
+          "expiryRate": 0.8,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.632934319902136,
+          "years": [
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": -0.135219925340351
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "EURUSD|eurusd-business-climate-indicator-package",
+      "rule": {
+        "releaseWindow": "16-20"
+      },
+      "development": {
+        "parent": {
+          "n": 32,
+          "averageR": 0.3111760629225621,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.625,
+          "expiryRate": 0.09375,
+          "maxDrawdownR": 3.194177940965689,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.05,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "kept": {
+          "n": 18,
+          "averageR": 0.5076769473687485,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.7222222222222222,
+          "expiryRate": 0.1111111111111111,
+          "maxDrawdownR": 1.1941779409656892,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.07692307692307693,
+          "years": [
+            2018,
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "upliftAverageR": 0.19650088444618635
+      },
+      "selection": {
+        "parent": {
+          "n": 14,
+          "averageR": 0.5244685621571632,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.7142857142857143,
+          "expiryRate": 0.14285714285714285,
+          "maxDrawdownR": 1.166872140985376,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.1,
+          "years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "kept": {
+          "n": 8,
+          "averageR": 0.5636790013982076,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.75,
+          "expiryRate": 0.125,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.16666666666666666,
+          "years": [
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.03921043924104439
+      },
+      "final": {
+        "parent": {
+          "n": 16,
+          "averageR": 0.3042447909288981,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.625,
+          "expiryRate": 0.0625,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.1,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 9,
+          "averageR": 1.0,
+          "medianR": 1.0,
+          "tpBeforeSl": 1.0,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 0.0,
+          "longestLosingStreak": 0,
+          "largestWinShare": 0.1111111111111111,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.6957552090711019
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "EURUSD|eurusd-cpi-package",
+      "rule": {
+        "evidenceMode": "conflict",
+        "momentumShape": "positive"
+      },
+      "development": {
+        "parent": {
+          "n": 102,
+          "averageR": 0.39823619993633297,
+          "medianR": -0.09028652867235344,
+          "tpBeforeSl": 0.0196078431372549,
+          "expiryRate": 0.5196078431372549,
+          "maxDrawdownR": 5.17733706293761,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.044882226826613254,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "kept": {
+          "n": 30,
+          "averageR": 0.7880852721263156,
+          "medianR": 1.054127665142695,
+          "tpBeforeSl": 0.03333333333333333,
+          "expiryRate": 0.6666666666666666,
+          "maxDrawdownR": 3.965452016311115,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.12167486533772319,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "upliftAverageR": 0.38984907218998266
+      },
+      "selection": {
+        "parent": {
+          "n": 49,
+          "averageR": 0.31840556698504324,
+          "medianR": -0.4818269595626685,
+          "tpBeforeSl": 0.08163265306122448,
+          "expiryRate": 0.42857142857142855,
+          "maxDrawdownR": 6.2374688025985705,
+          "longestLosingStreak": 8,
+          "largestWinShare": 0.09823989650764992,
+          "years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "kept": {
+          "n": 15,
+          "averageR": 1.3092988049770966,
+          "medianR": 1.7073086310658392,
+          "tpBeforeSl": 0.2,
+          "expiryRate": 0.5333333333333333,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.16503323739700848,
+          "years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "upliftAverageR": 0.9908932379920534
+      },
+      "final": {
+        "parent": {
+          "n": 51,
+          "averageR": -0.09166011348075487,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.058823529411764705,
+          "expiryRate": 0.3333333333333333,
+          "maxDrawdownR": 9.571645873504337,
+          "longestLosingStreak": 10,
+          "largestWinShare": 0.14730507586924477,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 13,
+          "averageR": -0.45028726046271006,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.0,
+          "expiryRate": 0.23076923076923078,
+          "maxDrawdownR": 7.245296798398357,
+          "longestLosingStreak": 8,
+          "largestWinShare": 0.5887416532137876,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": -0.3586271469819552
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "EURUSD|eurusd-ism-manufacturing-employment-package",
+      "rule": {
+        "evidenceMode": "agreement",
+        "priorRecipeDirectionShape": "reversal"
+      },
+      "development": {
+        "parent": {
+          "n": 76,
+          "averageR": 0.19516546252342465,
+          "medianR": 0.1884287070431757,
+          "tpBeforeSl": 0.21052631578947367,
+          "expiryRate": 0.6973684210526315,
+          "maxDrawdownR": 1.6751897357724101,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.03491981608729586,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 27,
+          "averageR": 0.2833435650688874,
+          "medianR": 0.2794115616663763,
+          "tpBeforeSl": 0.2962962962962963,
+          "expiryRate": 0.6296296296296297,
+          "maxDrawdownR": 1.0280275781156112,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.08288594947658232,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.08817810254546277
+      },
+      "selection": {
+        "parent": {
+          "n": 36,
+          "averageR": 0.06777122202001297,
+          "medianR": 0.05117810262521165,
+          "tpBeforeSl": 0.2222222222222222,
+          "expiryRate": 0.6111111111111112,
+          "maxDrawdownR": 3.48713038991694,
+          "longestLosingStreak": 6,
+          "largestWinShare": 0.08426081098129046,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 16,
+          "averageR": 0.2689596328233181,
+          "medianR": 0.18589045417865496,
+          "tpBeforeSl": 0.25,
+          "expiryRate": 0.6875,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.1657977511151077,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.20118841080330513
+      },
+      "final": {
+        "parent": {
+          "n": 38,
+          "averageR": 0.06243808633413763,
+          "medianR": 0.11494003667472351,
+          "tpBeforeSl": 0.3157894736842105,
+          "expiryRate": 0.4473684210526316,
+          "maxDrawdownR": 3.2566437486528366,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.07265009768759868,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 9,
+          "averageR": -0.0017291172526432148,
+          "medianR": 0.010609734719514438,
+          "tpBeforeSl": 0.2222222222222222,
+          "expiryRate": 0.5555555555555556,
+          "maxDrawdownR": 1.3631523778910468,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.3467783658687159,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": -0.06416720358678085
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "EURUSD|eurusd-retail-sales-m-m-package",
+      "rule": {
+        "releaseWindow": "20-24"
+      },
+      "development": {
+        "parent": {
+          "n": 46,
+          "averageR": 0.40692437772723666,
+          "medianR": 0.021673982356062545,
+          "tpBeforeSl": 0.043478260869565216,
+          "expiryRate": 0.5217391304347826,
+          "maxDrawdownR": 4.136435181515025,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.10200747989186242,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 19,
+          "averageR": 0.9830202343948126,
+          "medianR": 1.1776678525307136,
+          "tpBeforeSl": 0.10526315789473684,
+          "expiryRate": 0.5789473684210527,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.16207038754180333,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.5760958566675759
+      },
+      "selection": {
+        "parent": {
+          "n": 22,
+          "averageR": 0.6574922319941819,
+          "medianR": 0.36650784869080294,
+          "tpBeforeSl": 0.045454545454545456,
+          "expiryRate": 0.5454545454545454,
+          "maxDrawdownR": 4.788580969174927,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.17006738901436272,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 7,
+          "averageR": 0.946781798245403,
+          "medianR": 0.6876093590582193,
+          "tpBeforeSl": 0.14285714285714285,
+          "expiryRate": 0.5714285714285714,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.4606845077529998,
+          "years": [
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.28928956625122104
+      },
+      "final": {
+        "parent": {
+          "n": 23,
+          "averageR": 0.26535902094942837,
+          "medianR": -0.5820663300127696,
+          "tpBeforeSl": 0.0,
+          "expiryRate": 0.5217391304347826,
+          "maxDrawdownR": 5.0,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.15177955717428188,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 7,
+          "averageR": -0.676455687041192,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.0,
+          "expiryRate": 0.14285714285714285,
+          "maxDrawdownR": 5.0,
+          "longestLosingStreak": 5,
+          "largestWinShare": 1.0,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": -0.9418147079906203
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "EURUSD|us-industrial-output-directional",
+      "rule": {
+        "backgroundAlignment": "aligned",
+        "scoreStrength": "strong"
+      },
+      "development": {
+        "parent": {
+          "n": 51,
+          "averageR": 0.043742538481154655,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.6666666666666666,
+          "expiryRate": 0.058823529411764705,
+          "maxDrawdownR": 3.7361090959550682,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.029411764705882353,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 13,
+          "averageR": 0.38461538461538464,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.9230769230769231,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.08333333333333333,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.34087284613422997
+      },
+      "selection": {
+        "parent": {
+          "n": 24,
+          "averageR": 0.39210107130933075,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.9166666666666666,
+          "expiryRate": 0.041666666666666664,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.045454545454545456,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 16,
+          "averageR": 0.43190160696399615,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.9375,
+          "expiryRate": 0.0625,
+          "maxDrawdownR": 0.5895742885760611,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.06666666666666667,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.0398005356546654
+      },
+      "final": {
+        "parent": {
+          "n": 24,
+          "averageR": 0.17477121139120066,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.75,
+          "expiryRate": 0.041666666666666664,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.05438028240649887,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 5,
+          "averageR": 0.2,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.8,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.25,
+          "years": [
+            2024,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.025228788608799346
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "GBPUSD|gbpusd-average-weekly-earnings-regular-pay-y-y-package",
+      "rule": {
+        "surpriseShape": "positive"
+      },
+      "development": {
+        "parent": {
+          "n": 27,
+          "averageR": 0.3183227406488347,
+          "medianR": 0.587060085078483,
+          "tpBeforeSl": 0.1111111111111111,
+          "expiryRate": 0.5925925925925926,
+          "maxDrawdownR": 5.619118418336107,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.11228125338977206,
+          "years": [
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "kept": {
+          "n": 14,
+          "averageR": 0.5911102800182935,
+          "medianR": 0.8198313273955278,
+          "tpBeforeSl": 0.21428571428571427,
+          "expiryRate": 0.5,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.15779012794059216,
+          "years": [
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.27278753936945876
+      },
+      "selection": {
+        "parent": {
+          "n": 12,
+          "averageR": 0.21699966174588348,
+          "medianR": 0.16489470275809412,
+          "tpBeforeSl": 0.25,
+          "expiryRate": 0.3333333333333333,
+          "maxDrawdownR": 3.0662433378917964,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.26074805847541205,
+          "years": [
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 7,
+          "averageR": 0.2505092496782568,
+          "medianR": -0.06624333789179654,
+          "tpBeforeSl": 0.2857142857142857,
+          "expiryRate": 0.2857142857142857,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.414954281262549,
+          "years": [
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.0335095879323733
+      },
+      "final": {
+        "parent": {
+          "n": 14,
+          "averageR": 0.41362043689896877,
+          "medianR": 0.5547780973695956,
+          "tpBeforeSl": 0.21428571428571427,
+          "expiryRate": 0.5,
+          "maxDrawdownR": 2.597055788051433,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.1925511889013068,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 4,
+          "averageR": -0.004453426335914945,
+          "medianR": -0.09660901403056021,
+          "tpBeforeSl": 0.0,
+          "expiryRate": 0.75,
+          "maxDrawdownR": 1.1932180280611204,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.7447051756323084,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": -0.4180738632348837
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "GBPUSD|gbpusd-gdp-sales-q-q-package",
+      "rule": {
+        "surpriseShape": "positive"
+      },
+      "development": {
+        "parent": {
+          "n": 33,
+          "averageR": 0.27834172158922793,
+          "medianR": 0.6798923663548462,
+          "tpBeforeSl": 0.45454545454545453,
+          "expiryRate": 0.3333333333333333,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.05852128817582507,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 15,
+          "averageR": 0.5163327149361865,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.5333333333333333,
+          "expiryRate": 0.4,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.10866018590864449,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.23799099334695856
+      },
+      "selection": {
+        "parent": {
+          "n": 15,
+          "averageR": 0.29804181089516407,
+          "medianR": 0.5685284862409676,
+          "tpBeforeSl": 0.4666666666666667,
+          "expiryRate": 0.4,
+          "maxDrawdownR": 1.4398619512004318,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.12275428091494636,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 10,
+          "averageR": 0.35516446703511806,
+          "medianR": 0.658229607490531,
+          "tpBeforeSl": 0.5,
+          "expiryRate": 0.4,
+          "maxDrawdownR": 1.106775173016807,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.17928128898578327,
+          "years": [
+            2021,
+            2022
+          ]
+        },
+        "upliftAverageR": 0.05712265613995399
+      },
+      "final": {
+        "parent": {
+          "n": 16,
+          "averageR": 0.1460238668665738,
+          "medianR": 0.14937949612886076,
+          "tpBeforeSl": 0.4375,
+          "expiryRate": 0.375,
+          "maxDrawdownR": 1.865877351425614,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.13319869360553163,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 7,
+          "averageR": 0.40721799093342376,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.5714285714285714,
+          "expiryRate": 0.2857142857142857,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.22184847458472948,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.26119412406684994
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "GBPUSD|gbpusd-ism-non-manufacturing-business-activity-package",
+      "rule": {
+        "priorRecipeDirectionShape": "reversal"
+      },
+      "development": {
+        "parent": {
+          "n": 41,
+          "averageR": 0.01521472122248337,
+          "medianR": 0.062318452578260145,
+          "tpBeforeSl": 0.17073170731707318,
+          "expiryRate": 0.7073170731707317,
+          "maxDrawdownR": 2.644620254352297,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.09258744900551329,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 25,
+          "averageR": 0.14030770695092168,
+          "medianR": 0.2025205868154094,
+          "tpBeforeSl": 0.2,
+          "expiryRate": 0.76,
+          "maxDrawdownR": 1.8418575578877272,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.12318792847327094,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.1250929857284383
+      },
+      "selection": {
+        "parent": {
+          "n": 19,
+          "averageR": 0.11863276162864898,
+          "medianR": 0.13550148959860922,
+          "tpBeforeSl": 0.10526315789473684,
+          "expiryRate": 0.7894736842105263,
+          "maxDrawdownR": 1.112699390747077,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.16565079051511633,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 7,
+          "averageR": 0.1740013516481423,
+          "medianR": 0.2907271944372661,
+          "tpBeforeSl": 0.0,
+          "expiryRate": 0.8571428571428571,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.3396958875436083,
+          "years": [
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.055368590019493305
+      },
+      "final": {
+        "parent": {
+          "n": 21,
+          "averageR": 0.1639446450229849,
+          "medianR": 0.12349416816727907,
+          "tpBeforeSl": 0.2857142857142857,
+          "expiryRate": 0.5238095238095238,
+          "maxDrawdownR": 3.56494262973363,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.1263591220635113,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 16,
+          "averageR": -0.014390489838852915,
+          "medianR": 0.032193125852095474,
+          "tpBeforeSl": 0.1875,
+          "expiryRate": 0.5625,
+          "maxDrawdownR": 3.600564632893695,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.23580087285224646,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": -0.1783351348618378
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "GBPUSD|gbpusd-us-labor-claims",
+      "rule": {
+        "evidenceMode": "agreement",
+        "crossPairConfirmation": "conflicted"
+      },
+      "development": {
+        "parent": {
+          "n": 177,
+          "averageR": 0.25311163490499516,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.10734463276836158,
+          "expiryRate": 0.2937853107344633,
+          "maxDrawdownR": 11.878046356255219,
+          "longestLosingStreak": 8,
+          "largestWinShare": 0.02602956493796853,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "kept": {
+          "n": 11,
+          "averageR": 1.0639442726300379,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.2727272727272727,
+          "expiryRate": 0.18181818181818182,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.2259454645736247,
+          "years": [
+            2019,
+            2021,
+            2022
+          ]
+        },
+        "upliftAverageR": 0.8108326377250428
+      },
+      "selection": {
+        "parent": {
+          "n": 87,
+          "averageR": 0.3263163699497787,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.16091954022988506,
+          "expiryRate": 0.21839080459770116,
+          "maxDrawdownR": 10.141953639143104,
+          "longestLosingStreak": 10,
+          "largestWinShare": 0.047573779481043556,
+          "years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "kept": {
+          "n": 9,
+          "averageR": 0.7196218441182142,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.2222222222222222,
+          "expiryRate": 0.2222222222222222,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.3485353838282793,
+          "years": [
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.3933054741684355
+      },
+      "final": {
+        "parent": {
+          "n": 87,
+          "averageR": 0.20215008867685916,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.14942528735632185,
+          "expiryRate": 0.20689655172413793,
+          "maxDrawdownR": 12.501767491865147,
+          "longestLosingStreak": 7,
+          "largestWinShare": 0.05435738463002572,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 14,
+          "averageR": 0.20576983077414002,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.21428571428571427,
+          "expiryRate": 0.07142857142857142,
+          "maxDrawdownR": 5.0,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.3105402573229408,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.003619742097280859
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "NZDUSD|nzdusd-gdp-sales-q-q-package",
+      "rule": {
+        "crossPairConfirmation": "conflicted"
+      },
+      "development": {
+        "parent": {
+          "n": 31,
+          "averageR": 0.3548387096774194,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.6774193548387096,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.047619047619047616,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020
+          ]
+        },
+        "kept": {
+          "n": 26,
+          "averageR": 0.46153846153846156,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.7307692307692307,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.05263157894736842,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020
+          ]
+        },
+        "upliftAverageR": 0.10669975186104219
+      },
+      "selection": {
+        "parent": {
+          "n": 15,
+          "averageR": 0.06666666666666667,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.5333333333333333,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.125,
+          "years": [
+            2021,
+            2022
+          ]
+        },
+        "kept": {
+          "n": 13,
+          "averageR": 0.07692307692307693,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.5384615384615384,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.14285714285714285,
+          "years": [
+            2021,
+            2022
+          ]
+        },
+        "upliftAverageR": 0.010256410256410262
+      },
+      "final": {
+        "parent": {
+          "n": 16,
+          "averageR": 0.25,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.625,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.1,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 14,
+          "averageR": 0.2857142857142857,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.6428571428571429,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.1111111111111111,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.0357142857142857
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "NZDUSD|nzdusd-us-producer-inflation",
+      "rule": {
+        "revisionReliability": "robust",
+        "momentumShape": "positive"
+      },
+      "development": {
+        "parent": {
+          "n": 46,
+          "averageR": 0.3749686762604237,
+          "medianR": 0.5088170989700761,
+          "tpBeforeSl": 0.13043478260869565,
+          "expiryRate": 0.6086956521739131,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.06504061118650928,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 24,
+          "averageR": 0.49992238624986296,
+          "medianR": 0.5321907192209686,
+          "tpBeforeSl": 0.20833333333333334,
+          "expiryRate": 0.5416666666666666,
+          "maxDrawdownR": 2.28950927452804,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.10800072945110963,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.12495370998943928
+      },
+      "selection": {
+        "parent": {
+          "n": 21,
+          "averageR": -0.0006815925560421825,
+          "medianR": -0.17021213656494347,
+          "tpBeforeSl": 0.14285714285714285,
+          "expiryRate": 0.42857142857142855,
+          "maxDrawdownR": 3.763040916896164,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.20517243628233878,
+          "years": [
+            2021,
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "kept": {
+          "n": 9,
+          "averageR": 0.07139451750502507,
+          "medianR": -0.17021213656494347,
+          "tpBeforeSl": 0.2222222222222222,
+          "expiryRate": 0.3333333333333333,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.4155617231847762,
+          "years": [
+            2021,
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "upliftAverageR": 0.07207611006106725
+      },
+      "final": {
+        "parent": {
+          "n": 23,
+          "averageR": 0.32457519753437014,
+          "medianR": 0.04901632681157485,
+          "tpBeforeSl": 0.21739130434782608,
+          "expiryRate": 0.5217391304347826,
+          "maxDrawdownR": 3.1721600779545596,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.13848890927208493,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 12,
+          "averageR": 0.11941916846252054,
+          "medianR": -0.09361979955614254,
+          "tpBeforeSl": 0.16666666666666666,
+          "expiryRate": 0.5,
+          "maxDrawdownR": 3.2605270302705835,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.3412811467598596,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": -0.2051560290718496
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "NZDUSD|nzdusd-us-trade-balance",
+      "rule": {
+        "backgroundAlignment": "conflicted",
+        "priorRecipeDirectionShape": "same"
+      },
+      "development": {
+        "parent": {
+          "n": 98,
+          "averageR": 0.579976902416055,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.1326530612244898,
+          "expiryRate": 0.336734693877551,
+          "maxDrawdownR": 10.449337909062109,
+          "longestLosingStreak": 8,
+          "largestWinShare": 0.036666244955457894,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 21,
+          "averageR": 1.037729159917942,
+          "medianR": 1.194897235598548,
+          "tpBeforeSl": 0.14285714285714285,
+          "expiryRate": 0.42857142857142855,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.1299025533860183,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.45775225750188686
+      },
+      "selection": {
+        "parent": {
+          "n": 47,
+          "averageR": -0.037903048198177296,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.06382978723404255,
+          "expiryRate": 0.2127659574468085,
+          "maxDrawdownR": 9.0,
+          "longestLosingStreak": 9,
+          "largestWinShare": 0.12397338522971807,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 15,
+          "averageR": 0.3813405449929713,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.06666666666666667,
+          "expiryRate": 0.3333333333333333,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.2717371334826246,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.4192435931911486
+      },
+      "final": {
+        "parent": {
+          "n": 49,
+          "averageR": 0.3572226439182313,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.14285714285714285,
+          "expiryRate": 0.30612244897959184,
+          "maxDrawdownR": 4.529272890744881,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.08879705798625796,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 8,
+          "averageR": 0.042508400296749856,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.125,
+          "expiryRate": 0.25,
+          "maxDrawdownR": 2.270296816828372,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.712966215081474,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": -0.3147142436214814
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "USDCAD|usdcad-canada-retail-sales",
+      "rule": {
+        "momentumShape": "negative"
+      },
+      "development": {
+        "parent": {
+          "n": 41,
+          "averageR": 0.5000682314156537,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.0975609756097561,
+          "expiryRate": 0.3902439024390244,
+          "maxDrawdownR": 5.720869864131178,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.09603136786661108,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "kept": {
+          "n": 19,
+          "averageR": 0.554610007385342,
+          "medianR": 0.3422995577483827,
+          "tpBeforeSl": 0.05263157894736842,
+          "expiryRate": 0.47368421052631576,
+          "maxDrawdownR": 2.5855744844697814,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.20473354038402292,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "upliftAverageR": 0.054541775969688344
+      },
+      "selection": {
+        "parent": {
+          "n": 19,
+          "averageR": 0.24614882002027863,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.10526315789473684,
+          "expiryRate": 0.21052631578947367,
+          "maxDrawdownR": 5.0985652471131715,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.22628494744376604,
+          "years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "kept": {
+          "n": 10,
+          "averageR": 0.2772310365509262,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.1,
+          "expiryRate": 0.2,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.40931978727545754,
+          "years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "upliftAverageR": 0.03108221653064755
+      },
+      "final": {
+        "parent": {
+          "n": 19,
+          "averageR": 0.6178851789550331,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.2631578947368421,
+          "expiryRate": 0.15789473684210525,
+          "maxDrawdownR": 3.3010138822995216,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.175902899909455,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 8,
+          "averageR": 0.7208049896549906,
+          "medianR": -0.15050694114976126,
+          "tpBeforeSl": 0.25,
+          "expiryRate": 0.25,
+          "maxDrawdownR": 4.0,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.4095658227456164,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.10291981069995748
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "USDCAD|usdcad-ism-manufacturing-employment-package",
+      "rule": {
+        "momentumShape": "positive"
+      },
+      "development": {
+        "parent": {
+          "n": 76,
+          "averageR": 0.4881200340774871,
+          "medianR": 0.5666508098681199,
+          "tpBeforeSl": 0.39473684210526316,
+          "expiryRate": 0.17105263157894737,
+          "maxDrawdownR": 4.0,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.028531841623531708,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 34,
+          "averageR": 0.6434282267561577,
+          "medianR": 1.0287505076302876,
+          "tpBeforeSl": 0.38235294117647056,
+          "expiryRate": 0.2647058823529412,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.05903787211978258,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.15530819267867063
+      },
+      "selection": {
+        "parent": {
+          "n": 36,
+          "averageR": 0.465882113327474,
+          "medianR": -0.08734848388939387,
+          "tpBeforeSl": 0.4166666666666667,
+          "expiryRate": 0.16666666666666666,
+          "maxDrawdownR": 4.0,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.05955334072083552,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 12,
+          "averageR": 0.6521085860184344,
+          "medianR": 1.2074510984916356,
+          "tpBeforeSl": 0.5,
+          "expiryRate": 0.16666666666666666,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.16109671814297377,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.18622647269096038
+      },
+      "final": {
+        "parent": {
+          "n": 38,
+          "averageR": 0.28869188929350975,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.42105263157894735,
+          "expiryRate": 0.02631578947368421,
+          "maxDrawdownR": 7.0,
+          "longestLosingStreak": 6,
+          "largestWinShare": 0.0625,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 20,
+          "averageR": 0.2,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.4,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 5.0,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.125,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": -0.08869188929350974
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "USDCAD|usdcad-s-p-global-composite-pmi-package",
+      "rule": {
+        "priorRecipeDirectionShape": "reversal"
+      },
+      "development": {
+        "parent": {
+          "n": 44,
+          "averageR": 0.2303195877077522,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.75,
+          "expiryRate": 0.11363636363636363,
+          "maxDrawdownR": 1.0062120105588948,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.02995364030558123,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 22,
+          "averageR": 0.37538803517354147,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.8636363636363636,
+          "expiryRate": 0.09090909090909091,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.0521909360338169,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.14506844746578926
+      },
+      "selection": {
+        "parent": {
+          "n": 20,
+          "averageR": 0.2525079999966386,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.8,
+          "expiryRate": 0.05,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.06211056674701814,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 9,
+          "averageR": 0.5,
+          "medianR": 0.5,
+          "tpBeforeSl": 1.0,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 0.0,
+          "longestLosingStreak": 0,
+          "largestWinShare": 0.1111111111111111,
+          "years": [
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.2474920000033614
+      },
+      "final": {
+        "parent": {
+          "n": 22,
+          "averageR": 0.030985503166105478,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.6818181818181818,
+          "expiryRate": 0.045454545454545456,
+          "maxDrawdownR": 3.3183189303456793,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.06666666666666667,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 11,
+          "averageR": 0.1074255517867564,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.7272727272727273,
+          "expiryRate": 0.09090909090909091,
+          "maxDrawdownR": 1.3183189303456795,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.125,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.07644004862065093
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "USDCAD|usdcad-us-consumer-inflation",
+      "rule": {
+        "evidenceMode": "conflict",
+        "packageDisagreement": "disagrees"
+      },
+      "development": {
+        "parent": {
+          "n": 131,
+          "averageR": 0.3800277018625649,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.1984732824427481,
+          "expiryRate": 0.17557251908396945,
+          "maxDrawdownR": 10.0,
+          "longestLosingStreak": 8,
+          "largestWinShare": 0.030232524738597683,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "kept": {
+          "n": 33,
+          "averageR": 1.1050731118585921,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.3333333333333333,
+          "expiryRate": 0.15151515151515152,
+          "maxDrawdownR": 8.0,
+          "longestLosingStreak": 8,
+          "largestWinShare": 0.07470297313417316,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "upliftAverageR": 0.7250454099960273
+      },
+      "selection": {
+        "parent": {
+          "n": 64,
+          "averageR": 0.2928483468851594,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.234375,
+          "expiryRate": 0.0625,
+          "maxDrawdownR": 13.0,
+          "longestLosingStreak": 13,
+          "largestWinShare": 0.06252882988852813,
+          "years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "kept": {
+          "n": 23,
+          "averageR": 0.3962087962499107,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.2608695652173913,
+          "expiryRate": 0.08695652173913043,
+          "maxDrawdownR": 5.659000081267804,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.16433178642434096,
+          "years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "upliftAverageR": 0.10336044936475125
+      },
+      "final": {
+        "parent": {
+          "n": 65,
+          "averageR": 0.1709015664771672,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.16923076923076924,
+          "expiryRate": 0.12307692307692308,
+          "maxDrawdownR": 11.652397600798167,
+          "longestLosingStreak": 9,
+          "largestWinShare": 0.07004198793968734,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 17,
+          "averageR": 0.4274509110810685,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.11764705882352941,
+          "expiryRate": 0.29411764705882354,
+          "maxDrawdownR": 4.0,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.2316602474688768,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.2565493446039013
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "USDCAD|usdcad-us-producer-inflation",
+      "rule": {
+        "momentumShape": "positive"
+      },
+      "development": {
+        "parent": {
+          "n": 44,
+          "averageR": 0.3891692900637539,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.6818181818181818,
+          "expiryRate": 0.022727272727272728,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.033196730157761575,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 23,
+          "averageR": 0.6140629896871814,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.782608695652174,
+          "expiryRate": 0.043478260869565216,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.05517713615591223,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.22489369962342753
+      },
+      "selection": {
+        "parent": {
+          "n": 21,
+          "averageR": 0.23809523809523808,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.6190476190476191,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 4.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.07692307692307693,
+          "years": [
+            2021,
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "kept": {
+          "n": 10,
+          "averageR": 0.4,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.7,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.14285714285714285,
+          "years": [
+            2021,
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "upliftAverageR": 0.16190476190476194
+      },
+      "final": {
+        "parent": {
+          "n": 22,
+          "averageR": 0.317527084219271,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.6363636363636364,
+          "expiryRate": 0.045454545454545456,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.07142857142857142,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 12,
+          "averageR": 0.3333333333333333,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.6666666666666666,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.125,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.01580624911406231
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "USDCHF|usdchf-fed-industrial-production-m-m-package",
+      "rule": {
+        "sessionJakarta": "asia"
+      },
+      "development": {
+        "parent": {
+          "n": 43,
+          "averageR": 0.28400422450881063,
+          "medianR": 0.24611887341638333,
+          "tpBeforeSl": 0.046511627906976744,
+          "expiryRate": 0.8837209302325582,
+          "maxDrawdownR": 1.4268118834018857,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.1044128909263325,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 17,
+          "averageR": 0.3812977588443665,
+          "medianR": 0.2562023495751668,
+          "tpBeforeSl": 0.058823529411764705,
+          "expiryRate": 0.9411764705882353,
+          "maxDrawdownR": 0.5191054124896661,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.27144328362548337,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.09729353433555588
+      },
+      "selection": {
+        "parent": {
+          "n": 20,
+          "averageR": 0.07150793509315616,
+          "medianR": 0.03607698102353827,
+          "tpBeforeSl": 0.0,
+          "expiryRate": 0.9,
+          "maxDrawdownR": 1.950278864714432,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.2605891609620976,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 7,
+          "averageR": 0.22647076213149403,
+          "medianR": 0.1552590483858849,
+          "tpBeforeSl": 0.0,
+          "expiryRate": 1.0,
+          "maxDrawdownR": 0.3154275375446389,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.4512805485723387,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.15496282703833786
+      },
+      "final": {
+        "parent": {
+          "n": 21,
+          "averageR": 0.15900414209812008,
+          "medianR": 0.2225328296335003,
+          "tpBeforeSl": 0.047619047619047616,
+          "expiryRate": 0.8571428571428571,
+          "maxDrawdownR": 2.9262434899192185,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.21767755328986624,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 5,
+          "averageR": 0.5072021259063938,
+          "medianR": 0.5358856003258866,
+          "tpBeforeSl": 0.0,
+          "expiryRate": 1.0,
+          "maxDrawdownR": 0.7821859552789578,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.47157938057136173,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.3481979838082737
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "USDCHF|usdchf-us-employment-release",
+      "rule": {
+        "priorRecipeDirectionShape": "same"
+      },
+      "development": {
+        "parent": {
+          "n": 57,
+          "averageR": 0.17638131470333063,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.6842105263157895,
+          "expiryRate": 0.21052631578947367,
+          "maxDrawdownR": 2.5,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.025397137985643414,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 23,
+          "averageR": 0.2609996967748572,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.782608695652174,
+          "expiryRate": 0.17391304347826086,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.05555555555555555,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.08461838207152655
+      },
+      "selection": {
+        "parent": {
+          "n": 26,
+          "averageR": 0.1673918360139434,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.7307692307692307,
+          "expiryRate": 0.11538461538461539,
+          "maxDrawdownR": 1.5,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.05263157894736842,
+          "years": [
+            2021,
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "kept": {
+          "n": 7,
+          "averageR": 0.5,
+          "medianR": 0.5,
+          "tpBeforeSl": 1.0,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 0.0,
+          "longestLosingStreak": 0,
+          "largestWinShare": 0.14285714285714285,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.33260816398605664
+      },
+      "final": {
+        "parent": {
+          "n": 29,
+          "averageR": -0.0038933971052397117,
+          "medianR": 0.24466834681900154,
+          "tpBeforeSl": 0.4827586206896552,
+          "expiryRate": 0.3793103448275862,
+          "maxDrawdownR": 2.6797196851550025,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.06795560855387835,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 12,
+          "averageR": 0.20930465474010107,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.5833333333333334,
+          "expiryRate": 0.3333333333333333,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.13022989260370757,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.21319805184534077
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "USDJPY|usdjpy-consumer-confidence-index",
+      "rule": {
+        "backgroundAlignment": "aligned"
+      },
+      "development": {
+        "parent": {
+          "n": 31,
+          "averageR": 0.41855225044386357,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.6129032258064516,
+          "expiryRate": 0.1935483870967742,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.04952716919837991,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "kept": {
+          "n": 12,
+          "averageR": 0.7862450314960835,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.8333333333333334,
+          "expiryRate": 0.08333333333333333,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.09583188439799861,
+          "years": [
+            2018,
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "upliftAverageR": 0.3676927810522199
+      },
+      "selection": {
+        "parent": {
+          "n": 14,
+          "averageR": 0.3790809386347815,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.6428571428571429,
+          "expiryRate": 0.07142857142857142,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.10744447133853972,
+          "years": [
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 6,
+          "averageR": 0.8845221901478234,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.8333333333333334,
+          "expiryRate": 0.16666666666666666,
+          "maxDrawdownR": 0.0,
+          "longestLosingStreak": 0,
+          "largestWinShare": 0.18842564779388174,
+          "years": [
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.505441251513042
+      },
+      "final": {
+        "parent": {
+          "n": 15,
+          "averageR": 0.06666666666666667,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.5333333333333333,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 4.0,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.125,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 5,
+          "averageR": -0.2,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.4,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.5,
+          "years": [
+            2024,
+            2025
+          ]
+        },
+        "upliftAverageR": -0.26666666666666666
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "USDJPY|usdjpy-fed-industrial-production-m-m-package",
+      "rule": {
+        "backgroundAlignment": "aligned",
+        "scoreStrength": "strong"
+      },
+      "development": {
+        "parent": {
+          "n": 38,
+          "averageR": 0.2236842105263158,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.8157894736842105,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.03225806451612903,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "kept": {
+          "n": 13,
+          "averageR": 0.38461538461538464,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.9230769230769231,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.08333333333333333,
+          "years": [
+            2018,
+            2019,
+            2021,
+            2022
+          ]
+        },
+        "upliftAverageR": 0.16093117408906885
+      },
+      "selection": {
+        "parent": {
+          "n": 17,
+          "averageR": -0.029411764705882353,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.6470588235294118,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.09090909090909091,
+          "years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "kept": {
+          "n": 6,
+          "averageR": 0.0,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.6666666666666666,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.25,
+          "years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "upliftAverageR": 0.029411764705882353
+      },
+      "final": {
+        "parent": {
+          "n": 19,
+          "averageR": 0.10526315789473684,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.7368421052631579,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.07142857142857142,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 4,
+          "averageR": 0.125,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.75,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.3333333333333333,
+          "years": [
+            2026
+          ]
+        },
+        "upliftAverageR": 0.019736842105263164
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "USDJPY|usdjpy-ism-non-manufacturing-business-activity-package",
+      "rule": {
+        "priorRecipeDirectionShape": "reversal"
+      },
+      "development": {
+        "parent": {
+          "n": 31,
+          "averageR": 0.60685091564292,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.22580645161290322,
+          "expiryRate": 0.1935483870967742,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.108659102603309,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "kept": {
+          "n": 15,
+          "averageR": 1.2930885193565231,
+          "medianR": 0.9756319566440896,
+          "tpBeforeSl": 0.3333333333333333,
+          "expiryRate": 0.26666666666666666,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.15750308599813567,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021,
+            2022
+          ]
+        },
+        "upliftAverageR": 0.6862376037136031
+      },
+      "selection": {
+        "parent": {
+          "n": 14,
+          "averageR": -0.13830350379511022,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.07142857142857142,
+          "expiryRate": 0.21428571428571427,
+          "maxDrawdownR": 8.0,
+          "longestLosingStreak": 8,
+          "largestWinShare": 0.4960470662295681,
+          "years": [
+            2023,
+            2024
+          ]
+        },
+        "kept": {
+          "n": 6,
+          "averageR": -0.12435044925064813,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.0,
+          "expiryRate": 0.3333333333333333,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.5403332571889804,
+          "years": [
+            2023,
+            2024
+          ]
+        },
+        "upliftAverageR": 0.013953054544462093
+      },
+      "final": {
+        "parent": {
+          "n": 15,
+          "averageR": 0.09294756664073649,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.13333333333333333,
+          "expiryRate": 0.2,
+          "maxDrawdownR": 5.0,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.33928533789673204,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 10,
+          "averageR": -0.7936456946351529,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.0,
+          "expiryRate": 0.2,
+          "maxDrawdownR": 8.39527326334915,
+          "longestLosingStreak": 9,
+          "largestWinShare": 1.0,
+          "years": [
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": -0.8865932612758893
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "USDJPY|usdjpy-jpy-inflation",
+      "rule": {
+        "evidenceMode": "conflict"
+      },
+      "development": {
+        "parent": {
+          "n": 103,
+          "averageR": 0.12727049595552725,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.5339805825242718,
+          "expiryRate": 0.06796116504854369,
+          "maxDrawdownR": 9.100614778787982,
+          "longestLosingStreak": 6,
+          "largestWinShare": 0.017865923467586364,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 17,
+          "averageR": 0.29411764705882354,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.6470588235294118,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.09090909090909091,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.1668471511032963
+      },
+      "selection": {
+        "parent": {
+          "n": 50,
+          "averageR": 0.04,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.52,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 4.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.038461538461538464,
+          "years": [
+            2021,
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "kept": {
+          "n": 21,
+          "averageR": 0.14285714285714285,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.5714285714285714,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.08333333333333333,
+          "years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "upliftAverageR": 0.10285714285714284
+      },
+      "final": {
+        "parent": {
+          "n": 50,
+          "averageR": 0.14276088168330572,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.54,
+          "expiryRate": 0.06,
+          "maxDrawdownR": 5.531179497643895,
+          "longestLosingStreak": 7,
+          "largestWinShare": 0.03614123818990854,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 18,
+          "averageR": 0.27336505974980685,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.6111111111111112,
+          "expiryRate": 0.05555555555555555,
+          "maxDrawdownR": 3.079428924503476,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.09090909090909091,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.13060417806650113
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "USDJPY|usdjpy-jpy-labor-wages",
+      "rule": {
+        "surpriseShape": "positive"
+      },
+      "development": {
+        "parent": {
+          "n": 47,
+          "averageR": 0.4783365739475676,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.0425531914893617,
+          "expiryRate": 0.44680851063829785,
+          "maxDrawdownR": 10.470313082579908,
+          "longestLosingStreak": 6,
+          "largestWinShare": 0.08572667068864467,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020
+          ]
+        },
+        "kept": {
+          "n": 23,
+          "averageR": 0.5345954609837719,
+          "medianR": 0.609951693158419,
+          "tpBeforeSl": 0.08695652173913043,
+          "expiryRate": 0.43478260869565216,
+          "maxDrawdownR": 6.013908119362157,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.17170554029513382,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020
+          ]
+        },
+        "upliftAverageR": 0.05625888703620424
+      },
+      "selection": {
+        "parent": {
+          "n": 22,
+          "averageR": 0.4693142322855344,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.13636363636363635,
+          "expiryRate": 0.3181818181818182,
+          "maxDrawdownR": 7.465389331848532,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.17690283535769416,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 8,
+          "averageR": 0.6634161311999673,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.25,
+          "expiryRate": 0.125,
+          "maxDrawdownR": 5.0,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.3880733777636924,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.1941018989144329
+      },
+      "final": {
+        "parent": {
+          "n": 24,
+          "averageR": 0.36350429227930187,
+          "medianR": -0.6203302320924927,
+          "tpBeforeSl": 0.08333333333333333,
+          "expiryRate": 0.4166666666666667,
+          "maxDrawdownR": 4.0,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.19079633328694828,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 9,
+          "averageR": 0.8745239043848433,
+          "medianR": -0.0,
+          "tpBeforeSl": 0.1111111111111111,
+          "expiryRate": 0.4444444444444444,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.3369636919937707,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.5110196121055415
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "USDJPY|usdjpy-us-consumer-sentiment",
+      "rule": {
+        "backgroundAlignment": "aligned",
+        "priorRecipeDirectionShape": "same"
+      },
+      "development": {
+        "parent": {
+          "n": 176,
+          "averageR": 0.17163875234845494,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.5681818181818182,
+          "expiryRate": 0.028409090909090908,
+          "maxDrawdownR": 6.0,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.009847070841877017,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 42,
+          "averageR": 0.23809523809523808,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.6190476190476191,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 4.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.038461538461538464,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.06645648574678314
+      },
+      "selection": {
+        "parent": {
+          "n": 86,
+          "averageR": -0.04685308257365442,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.46511627906976744,
+          "expiryRate": 0.023255813953488372,
+          "maxDrawdownR": 9.0,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.02466684157800591,
+          "years": [
+            2021,
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "kept": {
+          "n": 14,
+          "averageR": 0.2857142857142857,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.6428571428571429,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 4.0,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.1111111111111111,
+          "years": [
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.3325673682879401
+      },
+      "final": {
+        "parent": {
+          "n": 85,
+          "averageR": 0.2,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.6,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 5.0,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.0196078431372549,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 20,
+          "averageR": 0.5,
+          "medianR": 1.0,
+          "tpBeforeSl": 0.75,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.06666666666666667,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.3
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "USDJPY|usdjpy-us-employment-release",
+      "rule": {
+        "crossPairConfirmation": "confirmed"
+      },
+      "development": {
+        "parent": {
+          "n": 52,
+          "averageR": 0.2845739454006493,
+          "medianR": 0.22894594820241948,
+          "tpBeforeSl": 0.1346153846153846,
+          "expiryRate": 0.75,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.0765912776296135,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 40,
+          "averageR": 0.3585442765880439,
+          "medianR": 0.40019741299919953,
+          "tpBeforeSl": 0.125,
+          "expiryRate": 0.8,
+          "maxDrawdownR": 2.549668684443967,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.09624660659793115,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.0739703311873946
+      },
+      "selection": {
+        "parent": {
+          "n": 25,
+          "averageR": 0.27063908203421677,
+          "medianR": 0.06640593158304751,
+          "tpBeforeSl": 0.12,
+          "expiryRate": 0.72,
+          "maxDrawdownR": 3.3100780377117633,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.1642296547574932,
+          "years": [
+            2021,
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "kept": {
+          "n": 13,
+          "averageR": 0.27972108012550234,
+          "medianR": 0.33983965820046574,
+          "tpBeforeSl": 0.07692307692307693,
+          "expiryRate": 0.6923076923076923,
+          "maxDrawdownR": 2.2857510791715674,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.28892861153136196,
+          "years": [
+            2022,
+            2023,
+            2024
+          ]
+        },
+        "upliftAverageR": 0.00908199809128557
+      },
+      "final": {
+        "parent": {
+          "n": 26,
+          "averageR": -0.1110288191482972,
+          "medianR": -0.1775926180594698,
+          "tpBeforeSl": 0.0,
+          "expiryRate": 0.7307692307692307,
+          "maxDrawdownR": 2.886749297855727,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.2891511782440732,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 18,
+          "averageR": -0.08640692097683152,
+          "medianR": -0.13131034875174022,
+          "tpBeforeSl": 0.0,
+          "expiryRate": 0.7222222222222222,
+          "maxDrawdownR": 2.821508964787675,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.3717348871235555,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.024621898171465678
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    },
+    {
+      "recipe": "USDJPY|usdjpy-us-manufacturing-employment",
+      "rule": {
+        "evidenceMode": "agreement",
+        "backgroundAlignment": "aligned"
+      },
+      "development": {
+        "parent": {
+          "n": 96,
+          "averageR": 0.10354716592050806,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.71875,
+          "expiryRate": 0.020833333333333332,
+          "maxDrawdownR": 6.0,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.014310029917837676,
+          "years": [
+            2016,
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 26,
+          "averageR": 0.3269230769230769,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.8846153846153846,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.043478260869565216,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.22337591100256887
+      },
+      "selection": {
+        "parent": {
+          "n": 46,
+          "averageR": 0.010869565217391304,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.6739130434782609,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 4.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.03225806451612903,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 12,
+          "averageR": 0.375,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.9166666666666666,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.09090909090909091,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.3641304347826087
+      },
+      "final": {
+        "parent": {
+          "n": 48,
+          "averageR": 0.125,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.75,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 5.0,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.027777777777777776,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 12,
+          "averageR": 0.0,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.6666666666666666,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.125,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": -0.125
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "USDJPY|usdjpy-us-producer-inflation-rejection",
+      "rule": {
+        "scoreStrength": "strong",
+        "crossPairConfirmation": "conflicted"
+      },
+      "development": {
+        "parent": {
+          "n": 49,
+          "averageR": 0.5032776696576602,
+          "medianR": 0.5087830439570952,
+          "tpBeforeSl": 0.2857142857142857,
+          "expiryRate": 0.40816326530612246,
+          "maxDrawdownR": 3.5060859049819317,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.04945533333998458,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 19,
+          "averageR": 0.6691969792756749,
+          "medianR": 0.5955391217214617,
+          "tpBeforeSl": 0.3684210526315789,
+          "expiryRate": 0.3684210526315789,
+          "maxDrawdownR": 4.006348738198737,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.11285986630997695,
+          "years": [
+            2017,
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.1659193096180147
+      },
+      "selection": {
+        "parent": {
+          "n": 23,
+          "averageR": -0.19275712488877475,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.13043478260869565,
+          "expiryRate": 0.2608695652173913,
+          "maxDrawdownR": 8.007813116203845,
+          "longestLosingStreak": 6,
+          "largestWinShare": 0.209060993475892,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 13,
+          "averageR": -0.13920336949399628,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.15384615384615385,
+          "expiryRate": 0.23076923076923078,
+          "maxDrawdownR": 6.007813116203845,
+          "longestLosingStreak": 5,
+          "largestWinShare": 0.32308318560175503,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.05355375539477847
+      },
+      "final": {
+        "parent": {
+          "n": 25,
+          "averageR": 0.2434888190642913,
+          "medianR": -0.42902291832807954,
+          "tpBeforeSl": 0.36,
+          "expiryRate": 0.16,
+          "maxDrawdownR": 6.085883703226044,
+          "longestLosingStreak": 7,
+          "largestWinShare": 0.1057169372710485,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 10,
+          "averageR": -0.3483756605064638,
+          "medianR": -1.0,
+          "tpBeforeSl": 0.1,
+          "expiryRate": 0.3,
+          "maxDrawdownR": 5.483756605064638,
+          "longestLosingStreak": 7,
+          "largestWinShare": 0.6852965913470113,
+          "years": [
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "upliftAverageR": -0.591864479570755
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": false
+    },
+    {
+      "recipe": "USDJPY|usdjpy-us-trade-balance-ordinary",
+      "rule": {
+        "crossPairConfirmation": "confirmed"
+      },
+      "development": {
+        "parent": {
+          "n": 53,
+          "averageR": 0.009998983595763337,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.660377358490566,
+          "expiryRate": 0.018867924528301886,
+          "maxDrawdownR": 4.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.028522620450493447,
+          "years": [
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "kept": {
+          "n": 37,
+          "averageR": 0.08189043596149884,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.7027027027027027,
+          "expiryRate": 0.02702702702702703,
+          "maxDrawdownR": 4.0,
+          "longestLosingStreak": 4,
+          "largestWinShare": 0.03837314406286942,
+          "years": [
+            2018,
+            2019,
+            2020,
+            2021
+          ]
+        },
+        "upliftAverageR": 0.07189145236573549
+      },
+      "selection": {
+        "parent": {
+          "n": 25,
+          "averageR": 0.2,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.8,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.5,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.05,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "kept": {
+          "n": 19,
+          "averageR": 0.2631578947368421,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.8421052631578947,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 2.0,
+          "longestLosingStreak": 2,
+          "largestWinShare": 0.0625,
+          "years": [
+            2021,
+            2022,
+            2023
+          ]
+        },
+        "upliftAverageR": 0.06315789473684208
+      },
+      "final": {
+        "parent": {
+          "n": 27,
+          "averageR": 0.1111111111111111,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.7407407407407407,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 3.0,
+          "longestLosingStreak": 3,
+          "largestWinShare": 0.05,
+          "years": [
+            2023,
+            2024,
+            2025,
+            2026
+          ]
+        },
+        "kept": {
+          "n": 16,
+          "averageR": 0.21875,
+          "medianR": 0.5,
+          "tpBeforeSl": 0.8125,
+          "expiryRate": 0.0,
+          "maxDrawdownR": 1.0,
+          "longestLosingStreak": 1,
+          "largestWinShare": 0.07692307692307693,
+          "years": [
+            2023,
+            2024,
+            2026
+          ]
+        },
+        "upliftAverageR": 0.1076388888888889
+      },
+      "controlMetrics": {
+        "alwaysLong": {
+          "n": 0
+        },
+        "alwaysShort": {
+          "n": 0
+        },
+        "oppositeDirection": {
+          "n": 0
+        },
+        "nonEventSevenDaysEarlier": {
+          "n": 0
+        }
+      },
+      "finalAuditPositive": true
+    }
+  ]
+}

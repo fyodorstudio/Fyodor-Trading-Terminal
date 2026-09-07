@@ -53,6 +53,7 @@ from macro_signal import (
   WORKBENCH_SCORING_ENGINE_VERSION,
   WORKBENCH_RESEARCH_DIAGNOSTICS_VERSION,
   _annotate_numeric_robustness,
+  _package_completeness,
   V2_VERSION_ID,
   aggregate_outcomes,
   apply_chart_pattern_reaction,
@@ -88,6 +89,7 @@ WORKBENCH_MARKETS = {
 
 PRACTICAL_MODEL_ID = "FMS-REGISTERED-REACTION-H4-v5"
 PRACTICAL_MODEL_CREATED_AT = 1787970337
+FMS_CHART_RESPONSE_SCHEMA = 12
 REVIEWED_EXECUTION_ACTIVATED_AT = 1788134400
 REVIEWED_H1_ENTRY_ACTIVATED_AT = 1788680400
 CONTEXT_CONDITIONAL_MODEL_ID = "FMS-CONTEXT-CONDITIONAL-H4-v1"
@@ -3979,6 +3981,7 @@ def research_chart_signals(
         if (
           isinstance(last_known_response, dict)
           and last_known_response.get("modelHash") == PRACTICAL_MODEL_HASH
+          and last_known_response.get("responseSchema") == FMS_CHART_RESPONSE_SCHEMA
         ):
           return response_for_client(last_known_response)
       except (TypeError, ValueError):
@@ -3991,7 +3994,7 @@ def research_chart_signals(
         if normalized_mode == "current" else "immutable-replay"
       )
       response_cache_key = hashlib.sha256("|".join([
-        "chart-response-v10-offline-recovery", normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
+        f"chart-response-v{FMS_CHART_RESPONSE_SCHEMA}", normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
         str(_research_store.get_metadata("fms_registered_reaction:reconciliation") or ""),
         str(_research_store.get_metadata("fms_live_execution_revision") or ""),
         calendar_revision,
@@ -4432,6 +4435,10 @@ def research_chart_signals(
         )
       ),
       "highestImpact": candidate["highestImpact"],
+      "numericRobustness": {
+        **dict(candidate.get("numericRobustness") or {}),
+        "packageCompleteness": _package_completeness(candidate, pattern),
+      },
       "events": candidate["events"],
       "activationTime": int(activation_time) if activation_time is not None else None,
       "execution": execution,
@@ -4662,6 +4669,9 @@ def research_chart_signals(
     normalized_symbol,
   )
   if normalized_mode == "current":
+    for signal in signals:
+      if signal.get("outcomeStatus") == "pending" and signal.get("entry") is not None:
+        signal["minimumLotExposure"] = _minimum_lot_exposure(normalized_symbol, signal)
     realtime_assessments = realtime.get("latestPatternAssessments") or (
       [realtime["latestPatternAssessment"]] if realtime.get("latestPatternAssessment") else []
     )
@@ -4769,6 +4779,7 @@ def research_chart_signals(
         _chart_signal_context_cache[context_key] = cached_context
     policy_inflation_context = {**cached_context, "asOf": generated_at}
   response = {
+    "responseSchema": FMS_CHART_RESPONSE_SCHEMA,
     "supported": True,
     "versionId": PRACTICAL_MODEL_ID,
     "versionHash": PRACTICAL_MODEL_HASH,
@@ -5243,6 +5254,79 @@ def _fms_operational_preflight(now: Optional[int] = None) -> Dict[str, Any]:
   }
 
 
+def _minimum_lot_exposure(symbol: str, signal: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+  entry = signal.get("entry")
+  stop = signal.get("initialStop") or signal.get("stop")
+  direction = str(signal.get("direction") or "")
+  if entry is None or stop is None or direction not in {"long", "short"}:
+    return None
+  try:
+    with _mt5_access():
+      if not _ensure_mt5_initialized():
+        return None
+      order_type = getattr(mt5, "ORDER_TYPE_BUY", 0) if direction == "long" else getattr(mt5, "ORDER_TYPE_SELL", 1)
+      risk = mt5.order_calc_profit(order_type, symbol, .01, float(entry), float(stop))
+      account = mt5.account_info()
+    if risk is None:
+      return None
+    return {"lots": .01, "accountRisk": abs(float(risk)), "accountCurrency": str(getattr(account, "currency", "") or ""), "source": "MT5 order_calc_profit"}
+  except Exception:
+    logger.exception("fms_minimum_lot_exposure_failed symbol=%s signal=%s", symbol, signal.get("id"))
+    return None
+
+
+def _forward_portfolio_replay(cases: List[Dict[str, Any]]) -> Dict[str, Any]:
+  """Replay true first-seen cases together without inventing fills or suppressing overlaps."""
+  rows = sorted([
+    row for row in cases
+    if row.get("resultR") is not None and row.get("state") in {"target_hit", "stop_hit", "expired"}
+  ], key=lambda row: (
+    int((row.get("signal") or {}).get("activationTime") or row.get("eventTime") or 0),
+    str(row.get("market") or ""), str(row.get("patternId") or ""),
+  ))
+  cumulative_r = 0.0
+  peak_r = 0.0
+  maximum_drawdown_r = 0.0
+  losing_streak = 0
+  longest_losing_streak = 0
+  maximum_concurrent = 0
+  concentrated_starts = 0
+  active: List[Dict[str, Any]] = []
+
+  def exposure(row: Dict[str, Any]) -> Dict[str, int]:
+    market = str(row.get("market") or "")
+    direction = str((row.get("signal") or {}).get("direction") or row.get("direction") or "")
+    sign = 1 if direction == "long" else -1
+    return {market[:3]: sign, market[3:6]: -sign} if len(market) >= 6 else {}
+
+  for row in rows:
+    signal = row.get("signal") or {}
+    activation = int(signal.get("activationTime") or row.get("eventTime") or 0)
+    active = [item for item in active if int(item.get("exitTime") or activation) > activation]
+    row_exposure = exposure(row)
+    if any(any(exposure(item).get(currency) == sign for currency, sign in row_exposure.items()) for item in active):
+      concentrated_starts += 1
+    active.append(row)
+    maximum_concurrent = max(maximum_concurrent, len(active))
+    result_r = float(row["resultR"])
+    cumulative_r += result_r
+    peak_r = max(peak_r, cumulative_r)
+    maximum_drawdown_r = max(maximum_drawdown_r, peak_r - cumulative_r)
+    losing_streak = losing_streak + 1 if result_r < 0 else 0
+    longest_losing_streak = max(longest_losing_streak, losing_streak)
+  return {
+    "schema": "fms-forward-portfolio-replay-v1",
+    "resolvedCases": len(rows),
+    "cumulativeGrossR": cumulative_r,
+    "averageGrossR": statistics.mean(float(row["resultR"]) for row in rows) if rows else None,
+    "maximumDrawdownR": maximum_drawdown_r if rows else None,
+    "longestLosingStreak": longest_losing_streak,
+    "maximumConcurrentTrades": maximum_concurrent,
+    "concentratedCurrencyStarts": concentrated_starts,
+    "execution": "Every immutable first-seen case is retained; overlapping positions are measured rather than silently removed.",
+  }
+
+
 def _forward_validation_payload(
   decisions: List[Dict[str, Any]],
   cases: List[Dict[str, Any]],
@@ -5284,6 +5368,30 @@ def _forward_validation_payload(
       statistics.mean(float(row["resultR"]) for row in setup_resolved)
       if setup_resolved else None
     )
+    chronological_results = [
+      float(row["resultR"])
+      for row in sorted(setup_resolved, key=lambda item: int(item.get("exitTime") or item.get("eventTime") or 0))
+    ]
+    setup_median = statistics.median(chronological_results) if chronological_results else None
+    target_before_stop = sum(row.get("state") == "target_hit" for row in setup_resolved)
+    setup_target_rate = target_before_stop / len(setup_resolved) if setup_resolved else None
+    cumulative_r = 0.0
+    peak_r = 0.0
+    maximum_drawdown_r = 0.0
+    current_losing_streak = 0
+    longest_losing_streak = 0
+    for result_r in chronological_results:
+      cumulative_r += result_r
+      peak_r = max(peak_r, cumulative_r)
+      maximum_drawdown_r = max(maximum_drawdown_r, peak_r - cumulative_r)
+      current_losing_streak = current_losing_streak + 1 if result_r < 0 else 0
+      longest_losing_streak = max(longest_losing_streak, current_losing_streak)
+    positive_results = [result_r for result_r in chronological_results if result_r > 0]
+    positive_total = sum(positive_results)
+    largest_win_share = max(positive_results) / positive_total if positive_total > 0 else None
+    midpoint = len(chronological_results) // 2
+    first_half = chronological_results[:midpoint]
+    second_half = chronological_results[midpoint:]
     setup_quote_coverage = setup_near_quotes / setup_quote_eligible if setup_quote_eligible else None
     observed_times = [
       int(row.get("observedAt") or row.get("eventTime") or 0)
@@ -5307,28 +5415,40 @@ def _forward_validation_payload(
       and quote_coverage_ready
     )
     if enough_cases and setup_average is not None and setup_average <= 0:
-      forward_status = "degraded"
-      status_reason = "Forward resolved cases currently have a non-positive average R. The registered historical rule remains unchanged but needs review."
+      forward_status = "pause_candidate"
+      status_reason = "Pause candidate: at least 10 fresh resolved cases now have non-positive average R. The frozen registration remains preserved for review."
     elif enough_cases and enough_time and not quote_coverage_ready:
       forward_status = "coverage_incomplete"
       status_reason = "The setup has enough elapsed time and resolved cases, but near-entry quote coverage remains below 80%."
     elif setup_ready:
-      forward_status = "supportive"
+      forward_status = "prospectively_supported"
       status_reason = "The setup has positive forward average R with at least 10 resolved cases, 90 elapsed days, and 80% near-entry quote coverage."
+    elif len(setup_resolved) >= 5 and setup_average is not None and setup_average <= 0:
+      forward_status = "weakening"
+      status_reason = "Weakening: the early fresh record is non-positive. Continue immutable observation until the predeclared 10-case review boundary."
+    elif len(setup_resolved) >= 5 and setup_average is not None and setup_average > 0:
+      forward_status = "promising_unproven"
+      status_reason = "Promising, unproven: the early fresh record is positive but has not reached the 10-case and 90-day support boundary."
     else:
-      forward_status = "collecting"
-      status_reason = "Forward evidence is still collecting until the setup reaches 10 resolved cases and 90 elapsed days."
+      forward_status = "early_observation"
+      status_reason = "Early observation: fewer than 5 fresh resolved cases are available."
     setup_summaries.append({
       "market": market, "patternId": pattern_id, "resolvedCases": len(setup_resolved),
-      "averageR": setup_average, "nearEntryQuoteCoverage": setup_quote_coverage,
+      "averageR": setup_average, "medianR": setup_median, "targetBeforeStopRate": setup_target_rate,
+      "maximumDrawdownR": maximum_drawdown_r if chronological_results else None,
+      "longestLosingStreak": longest_losing_streak,
+      "largestWinShare": largest_win_share,
+      "firstHalfAverageR": statistics.mean(first_half) if first_half else None,
+      "secondHalfAverageR": statistics.mean(second_half) if second_half else None,
+      "nearEntryQuoteCoverage": setup_quote_coverage,
       "firstObservedAt": first_observed_at, "lastObservedAt": last_observed_at,
       "elapsedDays": elapsed_days, "status": forward_status, "statusReason": status_reason,
       "eligibleForPaperReliance": setup_ready,
     })
   represented_setups = sum(bool(row["resolvedCases"]) for row in setup_summaries)
   paper_ready_setups = sum(bool(row["eligibleForPaperReliance"]) for row in setup_summaries)
-  degraded_setups = sum(row["status"] == "degraded" for row in setup_summaries)
-  collecting_setups = sum(row["status"] == "collecting" for row in setup_summaries)
+  degraded_setups = sum(row["status"] in {"weakening", "pause_candidate"} for row in setup_summaries)
+  collecting_setups = sum(row["status"] in {"early_observation", "promising_unproven", "coverage_incomplete"} for row in setup_summaries)
   demo_setup_by_key = {
     (str(row.get("market")), str(row.get("patternId"))): row
     for row in (demo_execution or {}).get("setupSummaries", [])
@@ -5394,6 +5514,7 @@ def _forward_validation_payload(
     "manualLimitedLiveReviewCandidates": manual_limited_live_candidates,
     "setupForwardGate": setup_gate,
     "setupSummaries": setup_summaries,
+    "portfolioReplay": _forward_portfolio_replay(forward_cases),
     "averageR": forward_average_r,
     "nearEntryQuoteCount": near_entry_quotes,
     "quoteEligibleCount": quote_eligible,

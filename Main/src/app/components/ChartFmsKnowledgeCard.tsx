@@ -5,6 +5,10 @@ import { macroSignalSetupCredibility } from "@/app/components/ChartMacroBiasSetu
 import type { MacroSignalChartPattern } from "@/app/types";
 import entryResearch from "@/app/lib/fmsEntryResearchSummary.json";
 import coverageResearch from "@/app/lib/fmsCoverageSummary.json";
+import exhaustionResearch from "@/app/lib/fmsExhaustionSummary.json";
+import controlledMining from "@/app/lib/fmsControlledMiningSummary.json";
+import multiscaleStructure from "@/app/lib/fmsMultiscaleStructureSummary.json";
+import extendedCorelease from "@/app/lib/fmsExtendedCoreleaseSummary.json";
 
 function average(pattern: MacroSignalChartPattern): number | null {
   const reviewed = pattern.executionReview?.status === "reviewed_active" ? pattern.executionReview.later : null;
@@ -37,18 +41,79 @@ const FINDINGS = [
   ["Offline recovery is separate", "Recovered trades reconstruct the frozen result from MT5 history but never count as true first-seen forward observations."],
   ["A reversal price is hindsight", "FMS can detect a completed reversal pattern, but it cannot truthfully exit at the exact future wick. Reversal research exits at the next H4 open."],
   ["Support and resistance must be entry-known", "Only zones confirmed by completed candles before entry may inform research. Later arrow clustering is audit evidence, not a historical input."],
+  ["Controlled overfitting stays exploratory", "A finite filter search may reveal candidates worth watching, but reused-history winners remain visibly high risk and cannot become registered or actionable without fresh forward evidence."],
+  ["Avoiding a setup is measurable", "A no-trade filter earns credit only when it improves the exact parent chronology after counting both avoided losses and removed winners."],
   ["An arrow is not an entry-price marker", "Arrows sit above or below the activation candle. The Entry line shows the price. Moving an arrow to the release candle does not change the frozen trade."],
 ] as const;
 
 type KnowledgeSort = "credibility" | "expectancy" | "profit_frequency" | "tp_first";
 const CREDIBILITY_ORDER = { Strong: 4, Moderate: 3, Fragile: 2, Unproven: 1 } as const;
 
+function unresolvedTriage(reason: string): { bucket: string; action: string } {
+  if (reason.includes("ambiguous") || reason.includes("both_touched")) return { bucket: "Ambiguous ordering", action: "Retain as unevaluable; acquire M1 history only if the broker can provide the exact interval." };
+  if (reason.includes("candle") || reason.includes("price") || reason.includes("history")) return { bucket: "Missing candle coverage", action: "Run the named symbol/time-range MT5 history backfill, then retry once." };
+  if (reason.includes("calendar") || reason.includes("series") || reason.includes("event")) return { bucket: "Missing calendar series", action: "Keep EA calendar capture running; backfill the named broker window if available." };
+  if (reason.includes("artifact") || reason.includes("fingerprint") || reason.includes("configuration")) return { bucket: "Artifact mismatch", action: "Reconcile the named immutable fingerprint before interpreting the result." };
+  return { bucket: "Review worthy", action: "Inspect the exact recorded reason; do not infer or hand-label an outcome." };
+}
+
+function controlAverage(metric: { n: number; averageR?: number | null }): string {
+  return metric.averageR == null ? "—" : `${metric.averageR.toFixed(2)}R`;
+}
+
 export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data }: { data: ChartMacroBiasRealtimeCardData }) {
   const [copied, setCopied] = useState(false);
   const [sort, setSort] = useState<KnowledgeSort>("credibility");
   const markets = data.globalResponse?.markets.filter((market) => market.supported) ?? [data.response];
   const weakened = useMemo(() => new Set((data.globalResponse?.outcomeReview?.executionReviews ?? []).filter((row) => row.status === "active_evidence_weakened").map((row) => `${row.market}:${row.patternId}`)), [data.globalResponse?.outcomeReview]);
+  const triage = useMemo(() => Object.entries(data.globalResponse?.outcomeReview?.unresolvedByReason ?? {}).map(([reason, count]) => ({ reason, count, ...unresolvedTriage(reason) })), [data.globalResponse?.outcomeReview]);
   const patterns = useMemo(() => markets.flatMap((market) => market.patterns.filter((pattern) => pattern.currentEligible).map((pattern) => ({ market: market.symbol, pattern }))), [markets]);
+  const minedShadow = useMemo(() => controlledMining.finalists.filter((row) => row.finalAuditPositive).map((candidate) => {
+    const [market, patternId] = candidate.recipe.split("|", 2);
+    const source = markets.find((row) => row.symbol === market);
+    const candidateSignals = [...(source?.signals ?? []), ...(source?.recoveredSignals ?? [])]
+      .filter((signal) => signal.patternId === patternId)
+      .sort((left, right) => left.eventTime - right.eventTime);
+    const matches = candidateSignals.filter((signal, index) => {
+      if (signal.patternId !== patternId || signal.eventTime < (source?.modelActivatedAt ?? Infinity)) return false;
+      const hour = new Date((signal.eventTime + 7 * 3_600) * 1_000).getUTCHours();
+      const surprise = signal.events.map((event) => event.surprisePoint).filter((value): value is number => value != null);
+      const momentum = signal.events.map((event) => event.momentumPoint).filter((value): value is number => value != null);
+      const shape = (values: number[]) => values.length === 0 || values.reduce((sum, value) => sum + value, 0) === 0 ? "flat_or_missing" : values.reduce((sum, value) => sum + value, 0) > 0 ? "positive" : "negative";
+      const robustness = signal.numericRobustness;
+      const crossStates = [...new Set(signal.events.map((event) => event.currency))].flatMap((currency) => {
+        const votes = new Map<string, number>();
+        markets.forEach((otherMarket) => [...otherMarket.signals, ...(otherMarket.recoveredSignals ?? [])].filter((other) => other.eventTime === signal.eventTime && other.events.some((event) => event.currency === currency)).forEach((other) => {
+          if (currency !== otherMarket.symbol.slice(0, 3) && currency !== otherMarket.symbol.slice(3, 6)) return;
+          const directionVote = other.direction === "long" ? 1 : -1;
+          votes.set(otherMarket.symbol, currency === otherMarket.symbol.slice(0, 3) ? directionVote : -directionVote);
+        }));
+        return votes.size < 2 ? [] : [new Set(votes.values()).size === 1 ? "confirmed" : "conflicted"];
+      });
+      const observed: Record<string, string | undefined> = {
+        evidenceMode: robustness?.evidenceMode, revisionReliability: robustness?.revisionReliability,
+        backgroundAlignment: robustness?.backgroundAlignment ?? signal.backgroundAlignment,
+        scoreStrength: robustness?.scoreStrength, packageCompleteness: robustness?.packageCompleteness,
+        relativeMagnitude: robustness?.relativeMagnitude,
+        priorSeriesSurpriseShape: robustness?.priorSeriesSurpriseShape,
+        crossPairConfirmation: crossStates.includes("conflicted") ? "conflicted" : crossStates.length ? "confirmed" : "isolated",
+        sessionJakarta: hour < 8 ? "asia" : hour < 15 ? "europe" : "us",
+        releaseWindow: `${String(Math.floor(hour / 4) * 4).padStart(2, "0")}-${String(Math.floor(hour / 4) * 4 + 4).padStart(2, "0")}`,
+        forecastQuality: signal.events.some((event) => event.forecastSuspect) ? "suspect" : "ordinary",
+        surpriseShape: shape(surprise), momentumShape: shape(momentum),
+        packageDisagreement: new Set(signal.events.filter((event) => event.score !== 0).map((event) => event.score > 0)).size > 1 ? "disagrees" : "aligned_or_single",
+        priorRecipeDirectionShape: index === 0 ? "unknown" : candidateSignals[index - 1].direction === signal.direction ? "same" : "reversal",
+      };
+      return Object.entries(candidate.rule).every(([key, value]) => observed[key] === value);
+    });
+    const live = matches.filter((signal) => signal.observationMode === "live_captured");
+    const recovered = matches.filter((signal) => signal.observationMode === "recovered_offline");
+    const resolvedLive = live.filter((signal) => signal.resultR != null);
+    const resolvedRecovered = recovered.filter((signal) => signal.resultR != null);
+    return { ...candidate, liveN: live.length, recoveredN: recovered.length,
+      liveR: resolvedLive.reduce((sum, signal) => sum + Number(signal.resultR), 0),
+      recoveredR: resolvedRecovered.reduce((sum, signal) => sum + Number(signal.resultR), 0) };
+  }), [markets]);
   const summary = useMemo(() => patterns.map(({ market, pattern }) => ({
     market,
     label: pattern.label,
@@ -132,6 +197,16 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data 
         evidence: "Recent activity, arrows, and trade details preserve whether a decision was captured live or reconstructed from MT5 history.",
         conclusion: "Only live-captured decisions may ever become eligible for later demo-order automation.",
       },
+      {
+        id: exhaustionResearch.ledgerHash, status: "Completed", title: "Search exhaustion ledger",
+        evidence: `${exhaustionResearch.registeredRecipeCount} registered recipes cover ${exhaustionResearch.registeredMarkets.length} of ${exhaustionResearch.universe.length} markets; ${exhaustionResearch.marketsWithoutRegisteredRecipe.length} markets have no registered recipe. Calendar-family inventory: ${exhaustionResearch.calendarFamilyInventory.filter((row) => row.status === "available_not_registered").length} currency/family cells available but unregistered and ${exhaustionResearch.calendarFamilyInventory.filter((row) => row.status === "broker_series_absent").length} absent from the broker archive. The controlled filter lane recorded ${exhaustionResearch.hypothesisLanes.find((row) => row.family.includes("categorical"))?.attempts?.toLocaleString() ?? 0} attempts.`,
+        conclusion: exhaustionResearch.conclusion,
+      },
+      {
+        id: multiscaleStructure.resultHash, status: "Completed · no promotion", title: "D1/weekly target-barrier filters",
+        evidence: `${multiscaleStructure.summary.declaredConfigurations} frozen D1, weekly, and combined no-trade filters across ${multiscaleStructure.summary.recipes} registered recipes; ${multiscaleStructure.summary.developmentSelected} cleared the older-development gate and ${multiscaleStructure.summary.laterSupported} cleared later chronology.`,
+        conclusion: "Keep wider structure as descriptive chart context. This exact multi-scale filter family did not justify withholding or changing a registered trade.",
+      },
     ];
   }, [patterns]);
   const markdown = [
@@ -167,6 +242,14 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data 
         <table><thead><tr><th>Market and setup</th><th>Evidence / health</th><th>Expected payoff</th><th>Profit frequency</th><th>TP before SL</th><th>Observed mapping</th></tr></thead><tbody>{summary.map((row) => <tr key={`${row.market}:${row.label}`}><td><b>{row.market}</b><span>{row.label}</span></td><td title={row.credibility.detail}><strong className={`is-${row.credibility.label.toLowerCase()}`}>{row.credibility.label}</strong><span className={`is-${row.health.toLowerCase()}`}>{row.health}</span></td><td>{row.average == null ? "—" : `${row.average >= 0 ? "+" : ""}${row.average.toFixed(2)}R`}</td><td>{row.profitFrequency == null ? "—" : `${(row.profitFrequency * 100).toFixed(1)}%`}</td><td>{row.accuracy == null ? "—" : `${(row.accuracy * 100).toFixed(1)}%`}</td><td>{row.reaction}</td></tr>)}</tbody></table>
       </section>
       <section><h2>Research ledger</h2><p>Completed, failed, and research-only work is retained here so a later Codex pass can build on it instead of repeating it.</p><div className="fms-knowledge-research">{ledger.map((row) => <article key={row.id}><strong>{row.title} · {row.status}</strong><p>{row.evidence}</p><small>{row.conclusion}</small></article>)}</div></section>
+      <section><h2>Next-search map</h2><p>The current campaigns are bounded and complete; the available calendar/OHLC hypothesis space is still open.</p><div className="fms-knowledge-research">{exhaustionResearch.rankedNextSearch.map((row) => <article key={row.rank}><strong>{row.rank}. {row.family}</strong><p>{row.why}</p></article>)}</div></section>
+      <section><h2>Extended-pair co-release campaign</h2><p>An exact new-package hypothesis searched the 18 markets without registrations after excluding every Stage-A package identity.</p><div className="fms-knowledge-research"><article><strong>Completed · no promotion</strong><p>{extendedCorelease.configurationsTested.toLocaleString()} frozen configurations across {extendedCorelease.packagesTested} qualifying multi-factor packages and {extendedCorelease.marketsCompleted} markets produced {extendedCorelease.exploratoryFinalists} final-positive candidates.</p><small>{extendedCorelease.disclosure}</small></article></div></section>
+      <section><h2>Exploratory mined candidates</h2><p>{controlledMining.disclosure} {controlledMining.summary.recipeFinalists} recipe-level selections survived nested development and selection; {minedShadow.length} also stayed positive in the final reused-history audit and are monitored against post-registration observations.</p><div className="fms-knowledge-research">{minedShadow.sort((left, right) => (right.final.upliftAverageR ?? -Infinity) - (left.final.upliftAverageR ?? -Infinity)).slice(0, 8).map((row) => <article key={row.recipe}><strong>{row.recipe.replace("|", " · ")} · Exploratory / high overfit risk</strong><p>Keep only {Object.entries(row.rule).map(([key, value]) => `${key.replaceAll(/([A-Z])/g, " $1").toLowerCase()} = ${value}`).join(" and ")}.</p><small>Reused-history final N {row.final.kept.n} · uplift {row.final.upliftAverageR == null ? "—" : `${row.final.upliftAverageR >= 0 ? "+" : ""}${row.final.upliftAverageR.toFixed(2)}R`}. Controls: always-long {controlAverage(row.controlMetrics.alwaysLong)}; always-short {controlAverage(row.controlMetrics.alwaysShort)}; opposite {controlAverage(row.controlMetrics.oppositeDirection)}; shifted non-event {controlAverage(row.controlMetrics.nonEventSevenDaysEarlier)}. Shadow: {row.liveN} first-seen / {row.liveR >= 0 ? "+" : ""}{row.liveR.toFixed(2)}R gross; {row.recoveredN} recovered / {row.recoveredR >= 0 ? "+" : ""}{row.recoveredR.toFixed(2)}R gross. Never actionable.</small></article>)}</div></section>
+      <section><h2>Owner action needed</h2><p>Codex can continue research without case-picking. Owner action is limited to source capture and execution records.</p><div className="fms-knowledge-research">
+        <article><strong>Keep MT5 calendar capture running</strong><p>This preserves future first-seen Actual/Forecast/Previous packages and creates the chronology needed to judge exploratory candidates honestly.</p></article>
+        <article><strong>Resolve missing source only when named</strong><p>If FMS reports a missing broker series, candle window, or symbol, run the stated backfill or confirm that the broker does not supply it. Do not choose winners or favorable cases.</p></article>
+        <article><strong>Optional manual record</strong><p>Use the exact FMS tag when manually placing a 0.01-lot demo or live observation so Journal can attach the broker result. Fyodor still sends no order.</p></article>
+      </div></section>
       <section>
         <details>
           <summary>View entry-research records · {entryResearch.recordedOn}</summary>
@@ -175,6 +258,7 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data 
         </details>
       </section>
       {data.globalResponse?.researchIntelligence?.length ? <section><h2>Tested but not registered</h2><p>Failed and unresolved findings are retained so future research does not unknowingly repeat them.</p><div className="fms-knowledge-research">{data.globalResponse.researchIntelligence.map((row) => <article key={row.id}><strong>{row.market} · {row.label} · {row.status.replaceAll("_", " ")}</strong><p>{row.conclusion}</p><small>{row.evidence}</small></article>)}</div></section> : null}
+      <section><h2>Automatic review queue</h2><p>Each unresolved result is assigned a reason and next action; favorable cases never require owner labelling.</p><div className="fms-knowledge-research">{triage.length ? triage.map((row) => <article key={row.reason}><strong>{row.bucket} · {row.count}</strong><p>{row.reason.replaceAll("_", " ")}</p><small>{row.action}</small></article>) : <article><strong>No unresolved result is currently queued</strong><p>New missing-data or ordering cases will be classified here when observed.</p></article>}</div></section>
       <footer>Source: immutable FMS experiment, reaction, context, execution, and forward-observation artifacts.</footer>
     </section>
   );

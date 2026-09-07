@@ -544,8 +544,10 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
     if (!summary) return null;
     const title = (summary.manualLimitedLiveReviewBlockers ?? []).join(" ");
     if (summary.eligibleForManualLimitedLiveReview) return { className: "is-supportive", text: `Eligible for manual limited-live review · ${summary.demoCompletedTrades ?? 0} demo trades`, title };
-    if (summary.status === "supportive" || summary.eligibleForPaperReliance) return { className: "is-supportive", text: `Forward supportive · demo execution ${summary.demoCompletedTrades ?? 0}/5`, title };
-    if (summary.status === "degraded") return { className: "is-degraded", text: `Needs review · forward average ${formatSignedR(summary.averageR)}`, title };
+    if (summary.status === "prospectively_supported" || summary.status === "supportive" || summary.eligibleForPaperReliance) return { className: "is-supportive", text: `Prospectively supported · demo execution ${summary.demoCompletedTrades ?? 0}/5`, title };
+    if (summary.status === "pause_candidate") return { className: "is-degraded", text: `Pause candidate · forward average ${formatSignedR(summary.averageR)}`, title };
+    if (summary.status === "weakening" || summary.status === "degraded") return { className: "is-degraded", text: `Weakening · forward average ${formatSignedR(summary.averageR)}`, title };
+    if (summary.status === "promising_unproven") return { className: "is-supportive", text: `Promising, unproven · ${summary.resolvedCases}/10 cases`, title };
     if (summary.status === "coverage_incomplete") return { className: "is-incomplete", text: `Forward quote coverage incomplete · ${Math.round((summary.nearEntryQuoteCoverage ?? 0) * 100)}%`, title };
     return { className: "is-collecting", text: `Forward evidence collecting · ${summary.resolvedCases}/10 cases · ${summary.elapsedDays ?? 0}/90 days`, title };
   };

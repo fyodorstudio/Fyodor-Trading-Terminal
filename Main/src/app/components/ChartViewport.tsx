@@ -154,7 +154,10 @@ interface ChartViewportProps {
   macroBiasLoading: boolean;
   macroBiasHistoricalMatchesVisible: boolean;
   macroBiasHistoricalMatchesCount: number;
+  macroBiasHistoricalPatternFilters: Array<{ id: string; label: string; count: number; checked: boolean }>;
   onToggleMacroBiasHistoricalMatches: () => void;
+  onToggleMacroBiasHistoricalPattern: (patternId: string) => void;
+  onSetAllMacroBiasHistoricalPatterns: (visible: boolean) => void;
   crosshairReadoutRef: Ref<ChartCrosshairReadoutHandle>;
   status: BridgeStatus;
   overlayCopy: {
@@ -184,7 +187,10 @@ export function ChartViewport({
     macroBiasLoading,
     macroBiasHistoricalMatchesVisible,
     macroBiasHistoricalMatchesCount,
+    macroBiasHistoricalPatternFilters,
     onToggleMacroBiasHistoricalMatches,
+    onToggleMacroBiasHistoricalPattern,
+    onSetAllMacroBiasHistoricalPatterns,
     crosshairReadoutRef,
   status,
   overlayCopy,
@@ -293,7 +299,10 @@ export function ChartViewport({
                         data={macroBiasRealtime}
                         historicalMatchesVisible={macroBiasHistoricalMatchesVisible}
                         historicalMatchesCount={macroBiasHistoricalMatchesCount}
+                        historicalPatternFilters={macroBiasHistoricalPatternFilters}
                         onToggleHistoricalMatches={onToggleMacroBiasHistoricalMatches}
+                        onToggleHistoricalPattern={onToggleMacroBiasHistoricalPattern}
+                        onSetAllHistoricalPatterns={onSetAllMacroBiasHistoricalPatterns}
                       />
                   : fmsDockTab === "journal" && macroBiasRealtime
                     ? <ChartFmsJournalCard data={macroBiasRealtime} />

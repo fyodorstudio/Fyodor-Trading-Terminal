@@ -1,0 +1,3578 @@
+{
+  "schema": "fms-exhaustion-ledger-v1",
+  "universe": [
+    "EURUSD",
+    "GBPUSD",
+    "USDJPY",
+    "AUDUSD",
+    "USDCAD",
+    "NZDUSD",
+    "USDCHF",
+    "EURGBP",
+    "EURJPY",
+    "EURCHF",
+    "EURAUD",
+    "EURCAD",
+    "EURNZD",
+    "GBPJPY",
+    "GBPCHF",
+    "GBPAUD",
+    "GBPCAD",
+    "GBPNZD",
+    "CHFJPY",
+    "AUDCHF",
+    "CADCHF",
+    "NZDCHF",
+    "AUDJPY",
+    "AUDCAD",
+    "AUDNZD",
+    "CADJPY",
+    "NZDCAD",
+    "NZDJPY"
+  ],
+  "coverageHash": "1698630b32a1b972e881619a8637043ea4bb610b386ec9801570a65b44458b34",
+  "registeredRecipeCount": 51,
+  "registeredMarkets": [
+    "AUDJPY",
+    "AUDUSD",
+    "EURCAD",
+    "EURJPY",
+    "EURUSD",
+    "GBPUSD",
+    "NZDUSD",
+    "USDCAD",
+    "USDCHF",
+    "USDJPY"
+  ],
+  "marketsWithoutRegisteredRecipe": [
+    "AUDCAD",
+    "AUDCHF",
+    "AUDNZD",
+    "CADCHF",
+    "CADJPY",
+    "CHFJPY",
+    "EURAUD",
+    "EURCHF",
+    "EURGBP",
+    "EURNZD",
+    "GBPAUD",
+    "GBPCAD",
+    "GBPCHF",
+    "GBPJPY",
+    "GBPNZD",
+    "NZDCAD",
+    "NZDCHF",
+    "NZDJPY"
+  ],
+  "registeredRecipeAudit": [
+    {
+      "recipe": "AUDJPY|audjpy-jpy-industrial-output",
+      "economicIdentity": "JPY:industrial_output",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.25,
+        "targetR": 3.0,
+        "holdingCandles": 42
+      },
+      "caseCount": 124,
+      "firstRelease": 1473838200,
+      "lastRelease": 1786951800,
+      "datasetFingerprint": "13b6f789507b33f6309f14e7a5c567d22156da6f592d9d8818dc74e3010daae3",
+      "experimentId": "FMS-AUDJPY-H4-E013"
+    },
+    {
+      "recipe": "AUDJPY|audjpy-jpy-inflation-short",
+      "economicIdentity": "JPY:core_consumer_inflation|JPY:headline_consumer_inflation",
+      "directionTreatment": "short",
+      "reaction": "continuation",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 0.5,
+        "targetR": 0.5,
+        "holdingCandles": 30
+      },
+      "caseCount": 118,
+      "firstRelease": 1477621800,
+      "lastRelease": 1787279400,
+      "datasetFingerprint": "13b6f789507b33f6309f14e7a5c567d22156da6f592d9d8818dc74e3010daae3",
+      "experimentId": "FMS-AUDJPY-H4-E015"
+    },
+    {
+      "recipe": "AUDUSD|audusd-business-confidence-rejection",
+      "economicIdentity": "AUD:business_sentiment",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.5,
+        "targetR": 0.5,
+        "holdingCandles": 30
+      },
+      "caseCount": 127,
+      "firstRelease": 1473741000,
+      "lastRelease": 1761190200,
+      "datasetFingerprint": "3004f4677e656baa24faae6ac9eba9c0eacd53adca942836f077fb7b4c0c9abd",
+      "experimentId": "FMS-AUDUSD-H4-E051"
+    },
+    {
+      "recipe": "AUDUSD|audusd-ism-manufacturing-employment-package",
+      "economicIdentity": "USD:pmi_manufacturing",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 0.75,
+        "targetR": 4.0,
+        "holdingCandles": 12
+      },
+      "caseCount": 154,
+      "firstRelease": 1488390300,
+      "lastRelease": 1785776400,
+      "datasetFingerprint": "3004f4677e656baa24faae6ac9eba9c0eacd53adca942836f077fb7b4c0c9abd",
+      "experimentId": "FMS-AUDUSD-H4-E055"
+    },
+    {
+      "recipe": "AUDUSD|audusd-s-p-global-manufacturing-pmi",
+      "economicIdentity": "AUD:pmi_manufacturing",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 0.5,
+        "holdingCandles": 6
+      },
+      "caseCount": 83,
+      "firstRelease": 1546398000,
+      "lastRelease": 1785722400,
+      "datasetFingerprint": "3004f4677e656baa24faae6ac9eba9c0eacd53adca942836f077fb7b4c0c9abd",
+      "experimentId": "FMS-AUDUSD-H4-E057"
+    },
+    {
+      "recipe": "AUDUSD|audusd-us-payroll-package",
+      "economicIdentity": "USD:employment|USD:labor_wages|USD:unemployment",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "agreement_no_bonus",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.5,
+        "targetR": 1.0,
+        "holdingCandles": 30
+      },
+      "caseCount": 77,
+      "firstRelease": 1504279800,
+      "lastRelease": 1786116600,
+      "datasetFingerprint": "3004f4677e656baa24faae6ac9eba9c0eacd53adca942836f077fb7b4c0c9abd",
+      "experimentId": "FMS-AUDUSD-H4-E058"
+    },
+    {
+      "recipe": "AUDUSD|audusd-us-producer-inflation",
+      "economicIdentity": "USD:producer_inflation",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 2.0,
+        "holdingCandles": 12
+      },
+      "caseCount": 94,
+      "firstRelease": 1473953400,
+      "lastRelease": 1786635000,
+      "datasetFingerprint": "3004f4677e656baa24faae6ac9eba9c0eacd53adca942836f077fb7b4c0c9abd",
+      "experimentId": "FMS-AUDUSD-H4-E050"
+    },
+    {
+      "recipe": "EURCAD|eurcad-eur-consumer-sentiment",
+      "economicIdentity": "EUR:consumer_sentiment",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 3.0,
+        "holdingCandles": 12
+      },
+      "caseCount": 117,
+      "firstRelease": 1474563600,
+      "lastRelease": 1787331600,
+      "datasetFingerprint": "ffd2fc40c11ced2212c21b1330daf31ec5c25cdaa7cee6b6ac13e5485141f429",
+      "experimentId": "FMS-EURCAD-H4-E019"
+    },
+    {
+      "recipe": "EURJPY|eurjpy-eur-composite-services-pmi",
+      "economicIdentity": "EUR:pmi_composite|EUR:pmi_services",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 0.5,
+        "targetR": 1.5,
+        "holdingCandles": 30
+      },
+      "caseCount": 114,
+      "firstRelease": 1473073200,
+      "lastRelease": 1788433200,
+      "datasetFingerprint": "2dc764ae8c2faf06dcb8eab087978aac14823bbdf0d5a99bab11186b7c2ff1d5",
+      "experimentId": "FMS-EURJPY-H4-E021"
+    },
+    {
+      "recipe": "EURUSD|eurusd-business-climate-indicator-package",
+      "economicIdentity": "EUR:business_sentiment|EUR:consumer_sentiment",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "surprise_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.0,
+        "targetR": 1.0,
+        "holdingCandles": 6
+      },
+      "caseCount": 68,
+      "firstRelease": 1511960400,
+      "lastRelease": 1774872000,
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "experimentId": "FMS-EURUSD-H4-E283"
+    },
+    {
+      "recipe": "EURUSD|eurusd-consumer-sentiment-restored",
+      "economicIdentity": "EUR:consumer_sentiment",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.0,
+        "targetR": 2.0,
+        "holdingCandles": 30
+      },
+      "caseCount": 100,
+      "firstRelease": 1471971600,
+      "lastRelease": 1784826000,
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "experimentId": "FMS-EURUSD-H4-E291"
+    },
+    {
+      "recipe": "EURUSD|eurusd-cpi-package",
+      "economicIdentity": "USD:core_consumer_inflation|USD:headline_consumer_inflation",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "agreement_no_bonus",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 4.0,
+        "holdingCandles": 30
+      },
+      "caseCount": 206,
+      "firstRelease": 1504193400,
+      "lastRelease": 1786548600,
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "experimentId": "FMS-EURUSD-H4-E284"
+    },
+    {
+      "recipe": "EURUSD|eurusd-ism-manufacturing-employment-package",
+      "economicIdentity": "USD:pmi_manufacturing",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 1.0,
+        "holdingCandles": 6
+      },
+      "caseCount": 154,
+      "firstRelease": 1488390300,
+      "lastRelease": 1785776400,
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "experimentId": "FMS-EURUSD-H4-E286"
+    },
+    {
+      "recipe": "EURUSD|eurusd-retail-sales-m-m-package",
+      "economicIdentity": "EUR:retail_headline",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "baseline",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 4.0,
+        "holdingCandles": 30
+      },
+      "caseCount": 95,
+      "firstRelease": 1473076800,
+      "lastRelease": 1786017600,
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "experimentId": "FMS-EURUSD-H4-E287"
+    },
+    {
+      "recipe": "EURUSD|eurusd-s-p-global-composite-pmi-package",
+      "economicIdentity": "EUR:pmi_composite|EUR:pmi_manufacturing|EUR:pmi_services",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "surprise_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 0.5,
+        "holdingCandles": 6
+      },
+      "caseCount": 54,
+      "firstRelease": 1513252800,
+      "lastRelease": 1784890800,
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "experimentId": "FMS-EURUSD-H4-E288"
+    },
+    {
+      "recipe": "EURUSD|eurusd-us-payroll-short-restored",
+      "economicIdentity": "USD:employment|USD:labor_wages|USD:unemployment",
+      "directionTreatment": "short",
+      "reaction": "continuation",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 1.0,
+        "holdingCandles": 6
+      },
+      "caseCount": 55,
+      "firstRelease": 1475854200,
+      "lastRelease": 1780673400,
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "experimentId": "FMS-EURUSD-H4-E289"
+    },
+    {
+      "recipe": "EURUSD|eurusd-us-producer-inflation-cooling-restored",
+      "economicIdentity": "USD:producer_inflation",
+      "directionTreatment": "long",
+      "reaction": "continuation",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 1.25,
+        "holdingCandles": 18
+      },
+      "caseCount": 46,
+      "firstRelease": 1479313800,
+      "lastRelease": 1786635000,
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "experimentId": "FMS-EURUSD-H4-E293"
+    },
+    {
+      "recipe": "EURUSD|us-industrial-output-directional",
+      "economicIdentity": "USD:industrial_output",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.5,
+        "targetR": 0.5,
+        "holdingCandles": 12
+      },
+      "caseCount": 105,
+      "firstRelease": 1473956100,
+      "lastRelease": 1787069700,
+      "datasetFingerprint": "7a7a9e927804d75abe9c3882f68ecdcf3e6e0e8b0f854705c66d614141b93440",
+      "experimentId": "FMS-EURUSD-H4-E282"
+    },
+    {
+      "recipe": "GBPUSD|gbpusd-average-weekly-earnings-regular-pay-y-y-package",
+      "economicIdentity": "GBP:employment|GBP:labor_claims|GBP:labor_wages|GBP:unemployment",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "surprise_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 2.0,
+        "holdingCandles": 12
+      },
+      "caseCount": 57,
+      "firstRelease": 1571139000,
+      "lastRelease": 1784624400,
+      "datasetFingerprint": "96f5d74cc57f106c9d241ab4cf9418ba9b199ac6d70948696bd6d8b54d2aeb1b",
+      "experimentId": "FMS-GBPUSD-H4-E063"
+    },
+    {
+      "recipe": "GBPUSD|gbpusd-gdp-sales-q-q-package",
+      "economicIdentity": "USD:gdp",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 1.0,
+        "holdingCandles": 12
+      },
+      "caseCount": 68,
+      "firstRelease": 1477668600,
+      "lastRelease": 1782401400,
+      "datasetFingerprint": "96f5d74cc57f106c9d241ab4cf9418ba9b199ac6d70948696bd6d8b54d2aeb1b",
+      "experimentId": "FMS-GBPUSD-H4-E065"
+    },
+    {
+      "recipe": "GBPUSD|gbpusd-ism-non-manufacturing-business-activity-package",
+      "economicIdentity": "USD:pmi_services",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 1.0,
+        "holdingCandles": 6
+      },
+      "caseCount": 85,
+      "firstRelease": 1473181200,
+      "lastRelease": 1785949200,
+      "datasetFingerprint": "96f5d74cc57f106c9d241ab4cf9418ba9b199ac6d70948696bd6d8b54d2aeb1b",
+      "experimentId": "FMS-GBPUSD-H4-E066"
+    },
+    {
+      "recipe": "GBPUSD|gbpusd-us-industrial-output",
+      "economicIdentity": "USD:industrial_output",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.0,
+        "targetR": 0.5,
+        "holdingCandles": 6
+      },
+      "caseCount": 105,
+      "firstRelease": 1473956100,
+      "lastRelease": 1787069700,
+      "datasetFingerprint": "96f5d74cc57f106c9d241ab4cf9418ba9b199ac6d70948696bd6d8b54d2aeb1b",
+      "experimentId": "FMS-GBPUSD-H4-E062"
+    },
+    {
+      "recipe": "GBPUSD|gbpusd-us-labor-claims",
+      "economicIdentity": "USD:labor_claims",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "agreement_no_bonus",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 4.0,
+        "holdingCandles": 60
+      },
+      "caseCount": 357,
+      "firstRelease": 1480609800,
+      "lastRelease": 1787239800,
+      "datasetFingerprint": "96f5d74cc57f106c9d241ab4cf9418ba9b199ac6d70948696bd6d8b54d2aeb1b",
+      "experimentId": "FMS-GBPUSD-H4-E061"
+    },
+    {
+      "recipe": "NZDUSD|nzdusd-gdp-annual-change-package",
+      "economicIdentity": "NZD:gdp",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.0,
+        "targetR": 4.0,
+        "holdingCandles": 12
+      },
+      "caseCount": 58,
+      "firstRelease": 1473903900,
+      "lastRelease": 1781747100,
+      "datasetFingerprint": "235163109f95be38c8436174658589d2f3394057585b3694b415a1df7927d2e1",
+      "experimentId": "FMS-NZDUSD-H4-E048"
+    },
+    {
+      "recipe": "NZDUSD|nzdusd-gdp-sales-q-q-package",
+      "economicIdentity": "USD:gdp",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.0,
+        "targetR": 1.0,
+        "holdingCandles": 30
+      },
+      "caseCount": 67,
+      "firstRelease": 1477668600,
+      "lastRelease": 1782401400,
+      "datasetFingerprint": "235163109f95be38c8436174658589d2f3394057585b3694b415a1df7927d2e1",
+      "experimentId": "FMS-NZDUSD-H4-E049"
+    },
+    {
+      "recipe": "NZDUSD|nzdusd-us-payroll-package",
+      "economicIdentity": "USD:employment|USD:labor_wages|USD:unemployment",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "surprise_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 1.0,
+        "holdingCandles": 60
+      },
+      "caseCount": 63,
+      "firstRelease": 1525447800,
+      "lastRelease": 1786116600,
+      "datasetFingerprint": "235163109f95be38c8436174658589d2f3394057585b3694b415a1df7927d2e1",
+      "experimentId": "FMS-NZDUSD-H4-E052"
+    },
+    {
+      "recipe": "NZDUSD|nzdusd-us-producer-inflation",
+      "economicIdentity": "USD:producer_inflation",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 2.0,
+        "holdingCandles": 12
+      },
+      "caseCount": 94,
+      "firstRelease": 1473953400,
+      "lastRelease": 1786635000,
+      "datasetFingerprint": "235163109f95be38c8436174658589d2f3394057585b3694b415a1df7927d2e1",
+      "experimentId": "FMS-NZDUSD-H4-E044"
+    },
+    {
+      "recipe": "NZDUSD|nzdusd-us-trade-balance",
+      "economicIdentity": "USD:trade_balance",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.5,
+        "targetR": 4.0,
+        "holdingCandles": 30
+      },
+      "caseCount": 198,
+      "firstRelease": 1472830200,
+      "lastRelease": 1785857400,
+      "datasetFingerprint": "235163109f95be38c8436174658589d2f3394057585b3694b415a1df7927d2e1",
+      "experimentId": "FMS-NZDUSD-H4-E045"
+    },
+    {
+      "recipe": "USDCAD|usdcad-canada-retail-sales",
+      "economicIdentity": "CAD:retail_headline",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.5,
+        "targetR": 4.0,
+        "holdingCandles": 30
+      },
+      "caseCount": 84,
+      "firstRelease": 1474644600,
+      "lastRelease": 1787326200,
+      "datasetFingerprint": "38888aa4b8f32ee54db97ed2f5c58e779cbc8d4d150bd25b65121827cc139984",
+      "experimentId": "FMS-USDCAD-H4-E045"
+    },
+    {
+      "recipe": "USDCAD|usdcad-gdp-annualized-q-q-package",
+      "economicIdentity": "CAD:gdp",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "agreement_no_bonus",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.5,
+        "targetR": 0.5,
+        "holdingCandles": 12
+      },
+      "caseCount": 68,
+      "firstRelease": 1506699000,
+      "lastRelease": 1785511800,
+      "datasetFingerprint": "38888aa4b8f32ee54db97ed2f5c58e779cbc8d4d150bd25b65121827cc139984",
+      "experimentId": "FMS-USDCAD-H4-E049"
+    },
+    {
+      "recipe": "USDCAD|usdcad-gdp-sales-q-q-package",
+      "economicIdentity": "USD:gdp",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.5,
+        "targetR": 4.0,
+        "holdingCandles": 60
+      },
+      "caseCount": 49,
+      "firstRelease": 1477668600,
+      "lastRelease": 1782401400,
+      "datasetFingerprint": "38888aa4b8f32ee54db97ed2f5c58e779cbc8d4d150bd25b65121827cc139984",
+      "experimentId": "FMS-USDCAD-H4-E050"
+    },
+    {
+      "recipe": "USDCAD|usdcad-ism-manufacturing-employment-package",
+      "economicIdentity": "USD:pmi_manufacturing",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.0,
+        "targetR": 2.0,
+        "holdingCandles": 12
+      },
+      "caseCount": 154,
+      "firstRelease": 1488390300,
+      "lastRelease": 1785776400,
+      "datasetFingerprint": "38888aa4b8f32ee54db97ed2f5c58e779cbc8d4d150bd25b65121827cc139984",
+      "experimentId": "FMS-USDCAD-H4-E051"
+    },
+    {
+      "recipe": "USDCAD|usdcad-s-p-global-composite-pmi-package",
+      "economicIdentity": "USD:pmi_composite|USD:pmi_services",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "surprise_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 0.5,
+        "holdingCandles": 12
+      },
+      "caseCount": 90,
+      "firstRelease": 1493829900,
+      "lastRelease": 1785948300,
+      "datasetFingerprint": "38888aa4b8f32ee54db97ed2f5c58e779cbc8d4d150bd25b65121827cc139984",
+      "experimentId": "FMS-USDCAD-H4-E052"
+    },
+    {
+      "recipe": "USDCAD|usdcad-us-consumer-inflation",
+      "economicIdentity": "USD:core_consumer_inflation|USD:headline_consumer_inflation",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "agreement_no_bonus",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.5,
+        "targetR": 4.0,
+        "holdingCandles": 60
+      },
+      "caseCount": 265,
+      "firstRelease": 1472225400,
+      "lastRelease": 1787758200,
+      "datasetFingerprint": "38888aa4b8f32ee54db97ed2f5c58e779cbc8d4d150bd25b65121827cc139984",
+      "experimentId": "FMS-USDCAD-H4-E043"
+    },
+    {
+      "recipe": "USDCAD|usdcad-us-producer-inflation",
+      "economicIdentity": "USD:producer_inflation",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 1.0,
+        "holdingCandles": 30
+      },
+      "caseCount": 91,
+      "firstRelease": 1473953400,
+      "lastRelease": 1786635000,
+      "datasetFingerprint": "38888aa4b8f32ee54db97ed2f5c58e779cbc8d4d150bd25b65121827cc139984",
+      "experimentId": "FMS-USDCAD-H4-E044"
+    },
+    {
+      "recipe": "USDCHF|usdchf-fed-industrial-production-m-m-package",
+      "economicIdentity": "USD:industrial_output",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 2.0,
+        "holdingCandles": 6
+      },
+      "caseCount": 88,
+      "firstRelease": 1473956100,
+      "lastRelease": 1787069700,
+      "datasetFingerprint": "cee71569d24630e18ecad3b4b25b9eac198ebf2190052f67712bb5126c826b17",
+      "experimentId": "FMS-USDCHF-H4-E052"
+    },
+    {
+      "recipe": "USDCHF|usdchf-ppi-m-m-package",
+      "economicIdentity": "CHF:producer_inflation",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.5,
+        "targetR": 0.5,
+        "holdingCandles": 6
+      },
+      "caseCount": 62,
+      "firstRelease": 1505297700,
+      "lastRelease": 1786613400,
+      "datasetFingerprint": "cee71569d24630e18ecad3b4b25b9eac198ebf2190052f67712bb5126c826b17",
+      "experimentId": "FMS-USDCHF-H4-E053"
+    },
+    {
+      "recipe": "USDCHF|usdchf-us-employment-release",
+      "economicIdentity": "USD:employment",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 0.5,
+        "holdingCandles": 6
+      },
+      "caseCount": 118,
+      "firstRelease": 1472656500,
+      "lastRelease": 1785942900,
+      "datasetFingerprint": "cee71569d24630e18ecad3b4b25b9eac198ebf2190052f67712bb5126c826b17",
+      "experimentId": "FMS-USDCHF-H4-E054"
+    },
+    {
+      "recipe": "USDJPY|usdjpy-adjusted-current-account-package",
+      "economicIdentity": "JPY:current_account|JPY:trade_balance",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "surprise_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.0,
+        "targetR": 0.5,
+        "holdingCandles": 6
+      },
+      "caseCount": 52,
+      "firstRelease": 1525920600,
+      "lastRelease": 1783479000,
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "experimentId": "FMS-USDJPY-H4-E076"
+    },
+    {
+      "recipe": "USDJPY|usdjpy-consumer-confidence-index",
+      "economicIdentity": "JPY:consumer_sentiment",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.0,
+        "targetR": 1.0,
+        "holdingCandles": 6
+      },
+      "caseCount": 64,
+      "firstRelease": 1504252800,
+      "lastRelease": 1767859200,
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "experimentId": "FMS-USDJPY-H4-E077"
+    },
+    {
+      "recipe": "USDJPY|usdjpy-fed-industrial-production-m-m-package",
+      "economicIdentity": "USD:industrial_output",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 0.5,
+        "holdingCandles": 30
+      },
+      "caseCount": 78,
+      "firstRelease": 1510852500,
+      "lastRelease": 1787069700,
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "experimentId": "FMS-USDJPY-H4-E078"
+    },
+    {
+      "recipe": "USDJPY|usdjpy-industrial-production-forecast-1-month-ahead-m-m-package",
+      "economicIdentity": "JPY:industrial_output|JPY:retail_headline",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "baseline",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 0.5,
+        "holdingCandles": 6
+      },
+      "caseCount": 46,
+      "firstRelease": 1482893400,
+      "lastRelease": 1780023000,
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "experimentId": "FMS-USDJPY-H4-E082"
+    },
+    {
+      "recipe": "USDJPY|usdjpy-ism-non-manufacturing-business-activity-package",
+      "economicIdentity": "USD:pmi_services",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 4.0,
+        "holdingCandles": 60
+      },
+      "caseCount": 64,
+      "firstRelease": 1504717200,
+      "lastRelease": 1785949200,
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "experimentId": "FMS-USDJPY-H4-E081"
+    },
+    {
+      "recipe": "USDJPY|usdjpy-jpy-inflation",
+      "economicIdentity": "JPY:core_consumer_inflation|JPY:headline_consumer_inflation",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 1.0,
+        "holdingCandles": 30
+      },
+      "caseCount": 208,
+      "firstRelease": 1475202600,
+      "lastRelease": 1787279400,
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "experimentId": "FMS-USDJPY-H4-E075"
+    },
+    {
+      "recipe": "USDJPY|usdjpy-jpy-labor-wages",
+      "economicIdentity": "JPY:labor_wages",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 0.75,
+        "targetR": 4.0,
+        "holdingCandles": 6
+      },
+      "caseCount": 97,
+      "firstRelease": 1473044400,
+      "lastRelease": 1770604200,
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "experimentId": "FMS-USDJPY-H4-E074"
+    },
+    {
+      "recipe": "USDJPY|usdjpy-us-consumer-sentiment",
+      "economicIdentity": "USD:consumer_sentiment",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "momentum_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 1.0,
+        "holdingCandles": 60
+      },
+      "caseCount": 355,
+      "firstRelease": 1472230800,
+      "lastRelease": 1787677200,
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "experimentId": "FMS-USDJPY-H4-E073"
+    },
+    {
+      "recipe": "USDJPY|usdjpy-us-employment-release",
+      "economicIdentity": "USD:employment",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "surprise_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 2.0,
+        "holdingCandles": 6
+      },
+      "caseCount": 107,
+      "firstRelease": 1493824500,
+      "lastRelease": 1785942900,
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "experimentId": "FMS-USDJPY-H4-E083"
+    },
+    {
+      "recipe": "USDJPY|usdjpy-us-manufacturing-employment",
+      "economicIdentity": "USD:pmi_manufacturing",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "forecast_quality",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 0.5,
+        "holdingCandles": 60
+      },
+      "caseCount": 194,
+      "firstRelease": 1472748300,
+      "lastRelease": 1785776400,
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "experimentId": "FMS-USDJPY-H4-E068"
+    },
+    {
+      "recipe": "USDJPY|usdjpy-us-payroll-package",
+      "economicIdentity": "USD:employment|USD:labor_wages|USD:unemployment",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "baseline",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 0.75,
+        "targetR": 0.5,
+        "holdingCandles": 30
+      },
+      "caseCount": 77,
+      "firstRelease": 1504279800,
+      "lastRelease": 1786116600,
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "experimentId": "FMS-USDJPY-H4-E084"
+    },
+    {
+      "recipe": "USDJPY|usdjpy-us-producer-inflation-rejection",
+      "economicIdentity": "USD:producer_inflation",
+      "directionTreatment": "both",
+      "reaction": "contrarian",
+      "scoringPolicy": "surprise_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 1.0,
+        "targetR": 2.0,
+        "holdingCandles": 6
+      },
+      "caseCount": 101,
+      "firstRelease": 1494516600,
+      "lastRelease": 1786635000,
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "experimentId": "FMS-USDJPY-H4-E067"
+    },
+    {
+      "recipe": "USDJPY|usdjpy-us-trade-balance-ordinary",
+      "economicIdentity": "USD:trade_balance",
+      "directionTreatment": "both",
+      "reaction": "continuation",
+      "scoringPolicy": "surprise_only",
+      "entry": "first_h4_open_strictly_after_release",
+      "selectedExecution": {
+        "stopAtr": 2.0,
+        "targetR": 0.5,
+        "holdingCandles": 30
+      },
+      "caseCount": 109,
+      "firstRelease": 1525361400,
+      "lastRelease": 1785857400,
+      "datasetFingerprint": "2ab9138755448726a788dabb18ae00d61a65f491ae416d4b4d892713a32f1106",
+      "experimentId": "FMS-USDJPY-H4-E070"
+    }
+  ],
+  "deduplicatedEconomicIdentities": [
+    {
+      "identity": "AUD:business_sentiment",
+      "markets": [
+        "AUDUSD"
+      ]
+    },
+    {
+      "identity": "AUD:pmi_manufacturing",
+      "markets": [
+        "AUDUSD"
+      ]
+    },
+    {
+      "identity": "CAD:gdp",
+      "markets": [
+        "USDCAD"
+      ]
+    },
+    {
+      "identity": "CAD:retail_headline",
+      "markets": [
+        "USDCAD"
+      ]
+    },
+    {
+      "identity": "CHF:producer_inflation",
+      "markets": [
+        "USDCHF"
+      ]
+    },
+    {
+      "identity": "EUR:business_sentiment|EUR:consumer_sentiment",
+      "markets": [
+        "EURUSD"
+      ]
+    },
+    {
+      "identity": "EUR:consumer_sentiment",
+      "markets": [
+        "EURCAD",
+        "EURUSD"
+      ]
+    },
+    {
+      "identity": "EUR:pmi_composite|EUR:pmi_manufacturing|EUR:pmi_services",
+      "markets": [
+        "EURUSD"
+      ]
+    },
+    {
+      "identity": "EUR:pmi_composite|EUR:pmi_services",
+      "markets": [
+        "EURJPY"
+      ]
+    },
+    {
+      "identity": "EUR:retail_headline",
+      "markets": [
+        "EURUSD"
+      ]
+    },
+    {
+      "identity": "GBP:employment|GBP:labor_claims|GBP:labor_wages|GBP:unemployment",
+      "markets": [
+        "GBPUSD"
+      ]
+    },
+    {
+      "identity": "JPY:consumer_sentiment",
+      "markets": [
+        "USDJPY"
+      ]
+    },
+    {
+      "identity": "JPY:core_consumer_inflation|JPY:headline_consumer_inflation",
+      "markets": [
+        "AUDJPY",
+        "USDJPY"
+      ]
+    },
+    {
+      "identity": "JPY:current_account|JPY:trade_balance",
+      "markets": [
+        "USDJPY"
+      ]
+    },
+    {
+      "identity": "JPY:industrial_output",
+      "markets": [
+        "AUDJPY"
+      ]
+    },
+    {
+      "identity": "JPY:industrial_output|JPY:retail_headline",
+      "markets": [
+        "USDJPY"
+      ]
+    },
+    {
+      "identity": "JPY:labor_wages",
+      "markets": [
+        "USDJPY"
+      ]
+    },
+    {
+      "identity": "NZD:gdp",
+      "markets": [
+        "NZDUSD"
+      ]
+    },
+    {
+      "identity": "USD:consumer_sentiment",
+      "markets": [
+        "USDJPY"
+      ]
+    },
+    {
+      "identity": "USD:core_consumer_inflation|USD:headline_consumer_inflation",
+      "markets": [
+        "EURUSD",
+        "USDCAD"
+      ]
+    },
+    {
+      "identity": "USD:employment",
+      "markets": [
+        "USDCHF",
+        "USDJPY"
+      ]
+    },
+    {
+      "identity": "USD:employment|USD:labor_wages|USD:unemployment",
+      "markets": [
+        "AUDUSD",
+        "EURUSD",
+        "NZDUSD",
+        "USDJPY"
+      ]
+    },
+    {
+      "identity": "USD:gdp",
+      "markets": [
+        "GBPUSD",
+        "NZDUSD",
+        "USDCAD"
+      ]
+    },
+    {
+      "identity": "USD:industrial_output",
+      "markets": [
+        "EURUSD",
+        "GBPUSD",
+        "USDCHF",
+        "USDJPY"
+      ]
+    },
+    {
+      "identity": "USD:labor_claims",
+      "markets": [
+        "GBPUSD"
+      ]
+    },
+    {
+      "identity": "USD:pmi_composite|USD:pmi_services",
+      "markets": [
+        "USDCAD"
+      ]
+    },
+    {
+      "identity": "USD:pmi_manufacturing",
+      "markets": [
+        "AUDUSD",
+        "EURUSD",
+        "USDCAD",
+        "USDJPY"
+      ]
+    },
+    {
+      "identity": "USD:pmi_services",
+      "markets": [
+        "GBPUSD",
+        "USDJPY"
+      ]
+    },
+    {
+      "identity": "USD:producer_inflation",
+      "markets": [
+        "AUDUSD",
+        "EURUSD",
+        "NZDUSD",
+        "USDCAD",
+        "USDJPY"
+      ]
+    },
+    {
+      "identity": "USD:trade_balance",
+      "markets": [
+        "NZDUSD",
+        "USDJPY"
+      ]
+    }
+  ],
+  "calendarFamilyInventory": [
+    {
+      "currency": "USD",
+      "family": "unemployment",
+      "brokerRows": 456,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "U6 Unemployment Rate",
+        "Unemployment Rate"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "USD",
+      "family": "labor_claims",
+      "brokerRows": 2669,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "Continuing Jobless Claims",
+        "Initial Jobless Claims",
+        "Initial Jobless Claims 4-Week Average"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "labor_wages",
+      "brokerRows": 515,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "Average Hourly Earnings m/m",
+        "Average Hourly Earnings y/y",
+        "Employment Wages q/q"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "employment",
+      "brokerRows": 692,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "ADP Nonfarm Employment Change",
+        "Nonfarm Payrolls",
+        "Private Nonfarm Payrolls"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "gdp",
+      "brokerRows": 340,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "GDP Sales q/q",
+        "GDP q/q"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "pmi_composite",
+      "brokerRows": 263,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Composite PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "USD",
+      "family": "pmi_services",
+      "brokerRows": 1144,
+      "distinctTitles": 6,
+      "sampleTitles": [
+        "ISM Non-Manufacturing Business Activity",
+        "ISM Non-Manufacturing Employment",
+        "ISM Non-Manufacturing New Orders",
+        "ISM Non-Manufacturing PMI",
+        "ISM Non-Manufacturing Prices Paid"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "pmi_manufacturing",
+      "brokerRows": 1307,
+      "distinctTitles": 6,
+      "sampleTitles": [
+        "ISM Manufacturing Employment",
+        "ISM Manufacturing New Orders",
+        "ISM Manufacturing PMI",
+        "ISM Manufacturing Prices Paid",
+        "ISM Non-Manufacturing PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "pmi_other",
+      "brokerRows": 1326,
+      "distinctTitles": 5,
+      "sampleTitles": [
+        "ISM Manufacturing PMI",
+        "ISM Non-Manufacturing PMI",
+        "S&P Global Composite PMI",
+        "S&P Global Manufacturing PMI",
+        "S&P Global Services PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "USD",
+      "family": "retail_core",
+      "brokerRows": 289,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Retail Control m/m",
+        "Retail Sales excl. Autos and Gas m/m"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "USD",
+      "family": "retail_headline",
+      "brokerRows": 711,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "Core Retail Sales m/m",
+        "Retail Sales m/m",
+        "Retail Sales y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "consumer_sentiment",
+      "brokerRows": 687,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "CB Consumer Confidence Index",
+        "Michigan Consumer Sentiment"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "business_sentiment",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "USD",
+      "family": "trade_balance",
+      "brokerRows": 367,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Goods Trade Balance",
+        "Trade Balance"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "current_account",
+      "brokerRows": 76,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Current Account"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "USD",
+      "family": "core_consumer_inflation",
+      "brokerRows": 1865,
+      "distinctTitles": 10,
+      "sampleTitles": [
+        "Cleveland Fed Median CPI m/m",
+        "Core CPI",
+        "Core CPI m/m",
+        "Core CPI n.s.a.",
+        "Core CPI n.s.a. m/m"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "USD",
+      "family": "producer_inflation",
+      "brokerRows": 943,
+      "distinctTitles": 4,
+      "sampleTitles": [
+        "Core PPI m/m",
+        "Core PPI y/y",
+        "PPI m/m",
+        "PPI y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "headline_consumer_inflation",
+      "brokerRows": 1628,
+      "distinctTitles": 9,
+      "sampleTitles": [
+        "CPI",
+        "CPI m/m",
+        "CPI n.s.a.",
+        "CPI n.s.a. m/m",
+        "CPI y/y"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "USD",
+      "family": "primary_policy_rate",
+      "brokerRows": 160,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Fed Interest Rate Decision"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "USD",
+      "family": "gdp",
+      "brokerRows": 340,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "GDP Sales q/q",
+        "GDP q/q"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "pmi_composite",
+      "brokerRows": 263,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Composite PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "USD",
+      "family": "pmi_services",
+      "brokerRows": 1144,
+      "distinctTitles": 6,
+      "sampleTitles": [
+        "ISM Non-Manufacturing Business Activity",
+        "ISM Non-Manufacturing Employment",
+        "ISM Non-Manufacturing New Orders",
+        "ISM Non-Manufacturing PMI",
+        "ISM Non-Manufacturing Prices Paid"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "pmi_manufacturing",
+      "brokerRows": 1307,
+      "distinctTitles": 6,
+      "sampleTitles": [
+        "ISM Manufacturing Employment",
+        "ISM Manufacturing New Orders",
+        "ISM Manufacturing PMI",
+        "ISM Manufacturing Prices Paid",
+        "ISM Non-Manufacturing PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "industrial_output",
+      "brokerRows": 341,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Fed Industrial Production m/m",
+        "Fed Industrial Production y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "retail_core",
+      "brokerRows": 289,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Retail Control m/m",
+        "Retail Sales excl. Autos and Gas m/m"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "USD",
+      "family": "retail_headline",
+      "brokerRows": 711,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "Core Retail Sales m/m",
+        "Retail Sales m/m",
+        "Retail Sales y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "trade_balance",
+      "brokerRows": 367,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Goods Trade Balance",
+        "Trade Balance"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "USD",
+      "family": "current_account",
+      "brokerRows": 76,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Current Account"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "EUR",
+      "family": "unemployment",
+      "brokerRows": 838,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Quarterly Unemployment Rate",
+        "Unemployment Rate"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "EUR",
+      "family": "labor_claims",
+      "brokerRows": 157,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Jobseekers Total"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "labor_wages",
+      "brokerRows": 49,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Wage Costs y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "employment",
+      "brokerRows": 329,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "Employment Change q/q",
+        "Employment Change y/y",
+        "Nonfarm Payrolls q/q"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "gdp",
+      "brokerRows": 1506,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "GDP q/q",
+        "GDP y/y",
+        "Government Deficit \u2013 GDP Ratio"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "pmi_composite",
+      "brokerRows": 1092,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Composite PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "EUR",
+      "family": "pmi_services",
+      "brokerRows": 1654,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Services PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "pmi_manufacturing",
+      "brokerRows": 1657,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Manufacturing PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "pmi_other",
+      "brokerRows": 4699,
+      "distinctTitles": 4,
+      "sampleTitles": [
+        "S&P Global Composite PMI",
+        "S&P Global Construction PMI",
+        "S&P Global Manufacturing PMI",
+        "S&P Global Services PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "EUR",
+      "family": "retail_core",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "EUR",
+      "family": "retail_headline",
+      "brokerRows": 1690,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "Consumer Spending m/m",
+        "Retail Sales m/m",
+        "Retail Sales y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "consumer_sentiment",
+      "brokerRows": 911,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Consumer Confidence",
+        "Consumer Confidence Index"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "business_sentiment",
+      "brokerRows": 1799,
+      "distinctTitles": 7,
+      "sampleTitles": [
+        "Business Climate",
+        "Business Climate Indicator",
+        "Business Confidence",
+        "Economic Sentiment Indicator",
+        "Ifo Business Climate"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "trade_balance",
+      "brokerRows": 1746,
+      "distinctTitles": 4,
+      "sampleTitles": [
+        "Trade Balance",
+        "Trade Balance EU",
+        "Trade Balance Non-EU",
+        "Trade Balance n.s.a."
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "current_account",
+      "brokerRows": 946,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Current Account",
+        "Current Account n.s.a."
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "EUR",
+      "family": "core_consumer_inflation",
+      "brokerRows": 771,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "Core CPI",
+        "Core CPI m/m",
+        "Core CPI y/y"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "EUR",
+      "family": "producer_inflation",
+      "brokerRows": 1686,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "PPI m/m",
+        "PPI y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "headline_consumer_inflation",
+      "brokerRows": 7335,
+      "distinctTitles": 11,
+      "sampleTitles": [
+        "CPI",
+        "CPI FOI excl. Tobacco m/m",
+        "CPI FOI excl. Tobacco y/y",
+        "CPI excl. Energy and Unprocessed Food m/m",
+        "CPI excl. Energy and Unprocessed Food y/y"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "EUR",
+      "family": "primary_policy_rate",
+      "brokerRows": 111,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "ECB Deposit Facility Rate Decision"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "EUR",
+      "family": "gdp",
+      "brokerRows": 1506,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "GDP q/q",
+        "GDP y/y",
+        "Government Deficit \u2013 GDP Ratio"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "pmi_composite",
+      "brokerRows": 1092,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Composite PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "EUR",
+      "family": "pmi_services",
+      "brokerRows": 1654,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Services PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "pmi_manufacturing",
+      "brokerRows": 1657,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Manufacturing PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "industrial_output",
+      "brokerRows": 1682,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Industrial Production m/m",
+        "Industrial Production y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "retail_core",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "EUR",
+      "family": "retail_headline",
+      "brokerRows": 1690,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "Consumer Spending m/m",
+        "Retail Sales m/m",
+        "Retail Sales y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "trade_balance",
+      "brokerRows": 1746,
+      "distinctTitles": 4,
+      "sampleTitles": [
+        "Trade Balance",
+        "Trade Balance EU",
+        "Trade Balance Non-EU",
+        "Trade Balance n.s.a."
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "EUR",
+      "family": "current_account",
+      "brokerRows": 946,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Current Account",
+        "Current Account n.s.a."
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "GBP",
+      "family": "unemployment",
+      "brokerRows": 230,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Unemployment Rate"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "GBP",
+      "family": "labor_claims",
+      "brokerRows": 231,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Claimant Count Change"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "labor_wages",
+      "brokerRows": 470,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Average Weekly Earnings, Regular Pay y/y",
+        "Average Weekly Earnings, Total Pay y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "employment",
+      "brokerRows": 106,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Employment Change 3-months"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "gdp",
+      "brokerRows": 837,
+      "distinctTitles": 5,
+      "sampleTitles": [
+        "GDP 3m/3m",
+        "GDP m/m",
+        "GDP q/q",
+        "GDP y/y",
+        "NIESR GDP Estimate"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "pmi_composite",
+      "brokerRows": 168,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global/CIPS Composite PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "GBP",
+      "family": "pmi_services",
+      "brokerRows": 317,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global/CIPS Services PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "pmi_manufacturing",
+      "brokerRows": 317,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global/CIPS Manufacturing PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "pmi_other",
+      "brokerRows": 1041,
+      "distinctTitles": 5,
+      "sampleTitles": [
+        "S&P Global/CIPS All Sector PMI",
+        "S&P Global/CIPS Composite PMI",
+        "S&P Global/CIPS Construction PMI",
+        "S&P Global/CIPS Manufacturing PMI",
+        "S&P Global/CIPS Services PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "GBP",
+      "family": "retail_core",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "GBP",
+      "family": "retail_headline",
+      "brokerRows": 1030,
+      "distinctTitles": 5,
+      "sampleTitles": [
+        "BRC Retail Sales y/y",
+        "Core Retail Sales m/m",
+        "Core Retail Sales y/y",
+        "Retail Sales m/m",
+        "Retail Sales y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "consumer_sentiment",
+      "brokerRows": 228,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "GfK Consumer Confidence"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "business_sentiment",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "GBP",
+      "family": "trade_balance",
+      "brokerRows": 464,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Trade Balance",
+        "Trade Balance Non-EU"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "current_account",
+      "brokerRows": 77,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Current Account"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "GBP",
+      "family": "core_consumer_inflation",
+      "brokerRows": 470,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Core CPI m/m",
+        "Core CPI y/y"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "GBP",
+      "family": "producer_inflation",
+      "brokerRows": 1255,
+      "distinctTitles": 6,
+      "sampleTitles": [
+        "Core PPI Output m/m",
+        "Core PPI Output y/y",
+        "PPI Input m/m",
+        "PPI Input y/y",
+        "PPI Output m/m"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "headline_consumer_inflation",
+      "brokerRows": 1005,
+      "distinctTitles": 6,
+      "sampleTitles": [
+        "CPI",
+        "CPI m/m",
+        "CPI y/y",
+        "CPIH",
+        "CPIH m/m"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "GBP",
+      "family": "gdp",
+      "brokerRows": 837,
+      "distinctTitles": 5,
+      "sampleTitles": [
+        "GDP 3m/3m",
+        "GDP m/m",
+        "GDP q/q",
+        "GDP y/y",
+        "NIESR GDP Estimate"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "pmi_composite",
+      "brokerRows": 168,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global/CIPS Composite PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "GBP",
+      "family": "pmi_services",
+      "brokerRows": 317,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global/CIPS Services PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "pmi_manufacturing",
+      "brokerRows": 317,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global/CIPS Manufacturing PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "industrial_output",
+      "brokerRows": 472,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Industrial Production m/m",
+        "Industrial Production y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "retail_core",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "GBP",
+      "family": "retail_headline",
+      "brokerRows": 1030,
+      "distinctTitles": 5,
+      "sampleTitles": [
+        "BRC Retail Sales y/y",
+        "Core Retail Sales m/m",
+        "Core Retail Sales y/y",
+        "Retail Sales m/m",
+        "Retail Sales y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "trade_balance",
+      "brokerRows": 464,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Trade Balance",
+        "Trade Balance Non-EU"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "GBP",
+      "family": "current_account",
+      "brokerRows": 77,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Current Account"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "JPY",
+      "family": "unemployment",
+      "brokerRows": 237,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Unemployment Rate"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "JPY",
+      "family": "labor_claims",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "JPY",
+      "family": "labor_wages",
+      "brokerRows": 360,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Labor Cash Earnings y/y",
+        "Real Wage y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "JPY",
+      "family": "employment",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "JPY",
+      "family": "gdp",
+      "brokerRows": 414,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "GDP q/q",
+        "GDP y/y",
+        "Net Exports Contribution to GDP q/q"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "JPY",
+      "family": "pmi_composite",
+      "brokerRows": 136,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "au Jibun Bank Composite PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "JPY",
+      "family": "pmi_services",
+      "brokerRows": 206,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "au Jibun Bank Services PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "JPY",
+      "family": "pmi_manufacturing",
+      "brokerRows": 343,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "au Jibun Bank Manufacturing PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "JPY",
+      "family": "pmi_other",
+      "brokerRows": 685,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "au Jibun Bank Composite PMI",
+        "au Jibun Bank Manufacturing PMI",
+        "au Jibun Bank Services PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "JPY",
+      "family": "retail_core",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "JPY",
+      "family": "retail_headline",
+      "brokerRows": 469,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Retail Sales m/m",
+        "Retail Sales y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "JPY",
+      "family": "consumer_sentiment",
+      "brokerRows": 228,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Consumer Confidence Index"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "JPY",
+      "family": "business_sentiment",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "JPY",
+      "family": "trade_balance",
+      "brokerRows": 694,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "Adjusted Trade Balance",
+        "Goods Trade Balance",
+        "Trade Balance"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "JPY",
+      "family": "current_account",
+      "brokerRows": 455,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Adjusted Current Account",
+        "Current Account n.s.a."
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "JPY",
+      "family": "core_consumer_inflation",
+      "brokerRows": 730,
+      "distinctTitles": 4,
+      "sampleTitles": [
+        "BoJ Trimmed Mean Core CPI y/y",
+        "BoJ Weighted Median Core CPI y/y",
+        "Core CPI y/y",
+        "Tokyo Core CPI y/y"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "JPY",
+      "family": "producer_inflation",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "JPY",
+      "family": "headline_consumer_inflation",
+      "brokerRows": 1188,
+      "distinctTitles": 6,
+      "sampleTitles": [
+        "CPI excl. Food and Energy y/y",
+        "CPI s.a. m/m",
+        "CPI y/y",
+        "Tokyo CPI excl. Food and Energy y/y",
+        "Tokyo CPI s.a. m/m"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "JPY",
+      "family": "gdp",
+      "brokerRows": 414,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "GDP q/q",
+        "GDP y/y",
+        "Net Exports Contribution to GDP q/q"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "JPY",
+      "family": "pmi_composite",
+      "brokerRows": 136,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "au Jibun Bank Composite PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "JPY",
+      "family": "pmi_services",
+      "brokerRows": 206,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "au Jibun Bank Services PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "JPY",
+      "family": "pmi_manufacturing",
+      "brokerRows": 343,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "au Jibun Bank Manufacturing PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "JPY",
+      "family": "industrial_output",
+      "brokerRows": 1259,
+      "distinctTitles": 4,
+      "sampleTitles": [
+        "Industrial Production Forecast 1-month Ahead m/m",
+        "Industrial Production Forecast 2-month Ahead m/m",
+        "Industrial Production m/m",
+        "Industrial Production y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "JPY",
+      "family": "retail_core",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "JPY",
+      "family": "retail_headline",
+      "brokerRows": 469,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Retail Sales m/m",
+        "Retail Sales y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "JPY",
+      "family": "trade_balance",
+      "brokerRows": 694,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "Adjusted Trade Balance",
+        "Goods Trade Balance",
+        "Trade Balance"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "JPY",
+      "family": "current_account",
+      "brokerRows": 455,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Adjusted Current Account",
+        "Current Account n.s.a."
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "AUD",
+      "family": "unemployment",
+      "brokerRows": 237,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Unemployment Rate"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "AUD",
+      "family": "labor_claims",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "AUD",
+      "family": "labor_wages",
+      "brokerRows": 152,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Wage Price Index q/q",
+        "Wage Price Index y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "AUD",
+      "family": "employment",
+      "brokerRows": 450,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Employment Change",
+        "Full-Time Employment Change"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "AUD",
+      "family": "gdp",
+      "brokerRows": 158,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "GDP q/q",
+        "GDP y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "AUD",
+      "family": "pmi_composite",
+      "brokerRows": 142,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Composite PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "AUD",
+      "family": "pmi_services",
+      "brokerRows": 155,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Services PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "AUD",
+      "family": "pmi_manufacturing",
+      "brokerRows": 155,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Manufacturing PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "AUD",
+      "family": "pmi_other",
+      "brokerRows": 452,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "S&P Global Composite PMI",
+        "S&P Global Manufacturing PMI",
+        "S&P Global Services PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "AUD",
+      "family": "retail_core",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "AUD",
+      "family": "retail_headline",
+      "brokerRows": 270,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Retail Sales m/m",
+        "Retail Sales q/q"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "AUD",
+      "family": "consumer_sentiment",
+      "brokerRows": 218,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Westpac-MI Consumer Sentiment m/m"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "AUD",
+      "family": "business_sentiment",
+      "brokerRows": 265,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "NAB Business Confidence",
+        "NAB Quarterly Business Confidence"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "AUD",
+      "family": "trade_balance",
+      "brokerRows": 226,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Trade Balance"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "AUD",
+      "family": "current_account",
+      "brokerRows": 78,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Current Account"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "AUD",
+      "family": "core_consumer_inflation",
+      "brokerRows": 233,
+      "distinctTitles": 4,
+      "sampleTitles": [
+        "RBA Trimmed Mean CPI q/q",
+        "RBA Trimmed Mean CPI y/y",
+        "RBA Weighted Median CPI q/q",
+        "RBA Weighted Median CPI y/y"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "AUD",
+      "family": "producer_inflation",
+      "brokerRows": 158,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "PPI q/q",
+        "PPI y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "AUD",
+      "family": "headline_consumer_inflation",
+      "brokerRows": 212,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "CPI",
+        "CPI q/q",
+        "CPI y/y"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "AUD",
+      "family": "gdp",
+      "brokerRows": 158,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "GDP q/q",
+        "GDP y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "AUD",
+      "family": "pmi_composite",
+      "brokerRows": 142,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Composite PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "AUD",
+      "family": "pmi_services",
+      "brokerRows": 155,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Services PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "AUD",
+      "family": "pmi_manufacturing",
+      "brokerRows": 155,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Manufacturing PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "AUD",
+      "family": "industrial_output",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "AUD",
+      "family": "retail_core",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "AUD",
+      "family": "retail_headline",
+      "brokerRows": 270,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Retail Sales m/m",
+        "Retail Sales q/q"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "AUD",
+      "family": "trade_balance",
+      "brokerRows": 226,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Trade Balance"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "AUD",
+      "family": "current_account",
+      "brokerRows": 78,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Current Account"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "CAD",
+      "family": "unemployment",
+      "brokerRows": 232,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Unemployment Rate"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "CAD",
+      "family": "labor_claims",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CAD",
+      "family": "labor_wages",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CAD",
+      "family": "employment",
+      "brokerRows": 732,
+      "distinctTitles": 4,
+      "sampleTitles": [
+        "ADP Nonfarm Employment Change",
+        "Employment Change",
+        "Full-Time Employment Change",
+        "Part-Time Employment Change"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CAD",
+      "family": "gdp",
+      "brokerRows": 458,
+      "distinctTitles": 4,
+      "sampleTitles": [
+        "GDP Annualized q/q",
+        "GDP m/m",
+        "GDP q/q",
+        "GDP y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CAD",
+      "family": "pmi_composite",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CAD",
+      "family": "pmi_services",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CAD",
+      "family": "pmi_manufacturing",
+      "brokerRows": 158,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Manufacturing PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CAD",
+      "family": "pmi_other",
+      "brokerRows": 565,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "Ivey PMI",
+        "Ivey PMI n.s.a.",
+        "S&P Global Manufacturing PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "CAD",
+      "family": "retail_core",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CAD",
+      "family": "retail_headline",
+      "brokerRows": 475,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Core Retail Sales m/m",
+        "Retail Sales m/m"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CAD",
+      "family": "consumer_sentiment",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CAD",
+      "family": "business_sentiment",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CAD",
+      "family": "trade_balance",
+      "brokerRows": 235,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Trade Balance"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CAD",
+      "family": "current_account",
+      "brokerRows": 74,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Current Account"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "CAD",
+      "family": "core_consumer_inflation",
+      "brokerRows": 595,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "Core CPI m/m",
+        "Core CPI y/y",
+        "Median CPI y/y"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "CAD",
+      "family": "producer_inflation",
+      "brokerRows": 401,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "IPPI m/m",
+        "IPPI y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CAD",
+      "family": "headline_consumer_inflation",
+      "brokerRows": 595,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "CPI m/m",
+        "CPI y/y",
+        "Common CPI y/y"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "CAD",
+      "family": "gdp",
+      "brokerRows": 458,
+      "distinctTitles": 4,
+      "sampleTitles": [
+        "GDP Annualized q/q",
+        "GDP m/m",
+        "GDP q/q",
+        "GDP y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CAD",
+      "family": "pmi_composite",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CAD",
+      "family": "pmi_services",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CAD",
+      "family": "pmi_manufacturing",
+      "brokerRows": 158,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "S&P Global Manufacturing PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CAD",
+      "family": "industrial_output",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CAD",
+      "family": "retail_core",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CAD",
+      "family": "retail_headline",
+      "brokerRows": 475,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Core Retail Sales m/m",
+        "Retail Sales m/m"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CAD",
+      "family": "trade_balance",
+      "brokerRows": 235,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Trade Balance"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CAD",
+      "family": "current_account",
+      "brokerRows": 74,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Current Account"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "NZD",
+      "family": "unemployment",
+      "brokerRows": 77,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Unemployment Rate"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "NZD",
+      "family": "labor_claims",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "NZD",
+      "family": "labor_wages",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "NZD",
+      "family": "employment",
+      "brokerRows": 62,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Employment Change q/q"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "NZD",
+      "family": "gdp",
+      "brokerRows": 333,
+      "distinctTitles": 6,
+      "sampleTitles": [
+        "Current Account - GDP Ratio",
+        "GDP Annual Change",
+        "GDP Expenditures q/q",
+        "GDP q/q",
+        "GDP y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "NZD",
+      "family": "pmi_composite",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "NZD",
+      "family": "pmi_services",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "NZD",
+      "family": "pmi_manufacturing",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "NZD",
+      "family": "pmi_other",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "NZD",
+      "family": "retail_core",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "NZD",
+      "family": "retail_headline",
+      "brokerRows": 756,
+      "distinctTitles": 6,
+      "sampleTitles": [
+        "Core Retail Sales q/q",
+        "Electronic Card Retail Sales m/m",
+        "Electronic Card Retail Sales y/y",
+        "RBNZ Credit Card Spending y/y",
+        "Retail Sales q/q"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "NZD",
+      "family": "consumer_sentiment",
+      "brokerRows": 73,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Westpac McDermott Miller Consumer Confidence"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "NZD",
+      "family": "business_sentiment",
+      "brokerRows": 220,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "ANZ Business Confidence"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "NZD",
+      "family": "trade_balance",
+      "brokerRows": 485,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "Terms of Trade Index q/q",
+        "Trade Balance",
+        "Trade Balance 12-Months"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "NZD",
+      "family": "current_account",
+      "brokerRows": 185,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "Current Account",
+        "Current Account - GDP Ratio",
+        "Current Account 12-Months"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "NZD",
+      "family": "core_consumer_inflation",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "NZD",
+      "family": "producer_inflation",
+      "brokerRows": 156,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "PPI Input q/q",
+        "PPI Output q/q"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "NZD",
+      "family": "headline_consumer_inflation",
+      "brokerRows": 135,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "CPI q/q",
+        "CPI y/y"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "NZD",
+      "family": "gdp",
+      "brokerRows": 333,
+      "distinctTitles": 6,
+      "sampleTitles": [
+        "Current Account - GDP Ratio",
+        "GDP Annual Change",
+        "GDP Expenditures q/q",
+        "GDP q/q",
+        "GDP y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "NZD",
+      "family": "pmi_composite",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "NZD",
+      "family": "pmi_services",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "NZD",
+      "family": "pmi_manufacturing",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "NZD",
+      "family": "industrial_output",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "NZD",
+      "family": "retail_core",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "NZD",
+      "family": "retail_headline",
+      "brokerRows": 536,
+      "distinctTitles": 5,
+      "sampleTitles": [
+        "Core Retail Sales q/q",
+        "Electronic Card Retail Sales m/m",
+        "Electronic Card Retail Sales y/y",
+        "Retail Sales q/q",
+        "Retail Sales y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "NZD",
+      "family": "trade_balance",
+      "brokerRows": 409,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Trade Balance",
+        "Trade Balance 12-Months"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "NZD",
+      "family": "current_account",
+      "brokerRows": 185,
+      "distinctTitles": 3,
+      "sampleTitles": [
+        "Current Account",
+        "Current Account - GDP Ratio",
+        "Current Account 12-Months"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "CHF",
+      "family": "unemployment",
+      "brokerRows": 396,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "Unemployment Rate",
+        "Unemployment Rate n.s.a."
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "CHF",
+      "family": "labor_claims",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CHF",
+      "family": "labor_wages",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CHF",
+      "family": "employment",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CHF",
+      "family": "gdp",
+      "brokerRows": 152,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "GDP q/q",
+        "GDP y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CHF",
+      "family": "pmi_composite",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CHF",
+      "family": "pmi_services",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CHF",
+      "family": "pmi_manufacturing",
+      "brokerRows": 224,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "procure.ch Manufacturing PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CHF",
+      "family": "pmi_other",
+      "brokerRows": 224,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "procure.ch Manufacturing PMI"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "CHF",
+      "family": "retail_core",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CHF",
+      "family": "retail_headline",
+      "brokerRows": 232,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Retail Sales y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CHF",
+      "family": "consumer_sentiment",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CHF",
+      "family": "business_sentiment",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CHF",
+      "family": "trade_balance",
+      "brokerRows": 237,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Trade Balance"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CHF",
+      "family": "current_account",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CHF",
+      "family": "core_consumer_inflation",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CHF",
+      "family": "producer_inflation",
+      "brokerRows": 467,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "PPI m/m",
+        "PPI y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CHF",
+      "family": "headline_consumer_inflation",
+      "brokerRows": 455,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "CPI m/m",
+        "CPI y/y"
+      ],
+      "status": "available_not_registered"
+    },
+    {
+      "currency": "CHF",
+      "family": "gdp",
+      "brokerRows": 152,
+      "distinctTitles": 2,
+      "sampleTitles": [
+        "GDP q/q",
+        "GDP y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CHF",
+      "family": "pmi_composite",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CHF",
+      "family": "pmi_services",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CHF",
+      "family": "pmi_manufacturing",
+      "brokerRows": 224,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "procure.ch Manufacturing PMI"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CHF",
+      "family": "industrial_output",
+      "brokerRows": 73,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Industrial Production y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CHF",
+      "family": "retail_core",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    },
+    {
+      "currency": "CHF",
+      "family": "retail_headline",
+      "brokerRows": 232,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Retail Sales y/y"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CHF",
+      "family": "trade_balance",
+      "brokerRows": 237,
+      "distinctTitles": 1,
+      "sampleTitles": [
+        "Trade Balance"
+      ],
+      "status": "represented_in_registration"
+    },
+    {
+      "currency": "CHF",
+      "family": "current_account",
+      "brokerRows": 0,
+      "distinctTitles": 0,
+      "sampleTitles": [],
+      "status": "broker_series_absent"
+    }
+  ],
+  "sourceBaselines": {
+    "markets": 28,
+    "ready": 27,
+    "withH4": 28,
+    "completedSources": 111,
+    "requiredSources": 112
+  },
+  "guardedCampaigns": [
+    {
+      "artifact": "docs/Development Logs/artifacts/fms-extended-stage-a-2026-09-06/guarded-sweep-ee18e70f64f9ecbd7a3a5c74a70beccb1c17c305e00dccf479d1787633cda058.manifest.json",
+      "sha256": "e70f342c100af4b2c33970b90f58262cb32e4be13140af646374e05bc1980a1f",
+      "marketCount": 20,
+      "declaredConfigurationCount": null
+    },
+    {
+      "artifact": "docs/Development Logs/artifacts/fms-extended-stage-b-2026-09-06/guarded-sweep-fe03d722f95d9bd168fdc07395e7746757abc16317d68488dc0b1c9e0070f423.manifest.json",
+      "sha256": "be642dd5352b8f08a9e5d997afe9f518bcacdf2bacdfd7bdae1b1d8d251e3a13",
+      "marketCount": 4,
+      "declaredConfigurationCount": null
+    },
+    {
+      "artifact": "docs/Development Logs/artifacts/fms-extended-stage-b-fragility-2026-09-06/guarded-sweep-f82b6f4a835a72119937d4652d0b957a3703ad197299da608334c67303e44c17.manifest.json",
+      "sha256": "e8e050b1a7ace957f488b49ca1ddcd6ec077b1f25833b7183076d290d7d4de35",
+      "marketCount": 3,
+      "declaredConfigurationCount": null
+    },
+    {
+      "artifact": "docs/Development Logs/artifacts/fms-extended-stage-b-secondary-2026-09-06/guarded-sweep-57f86284badaa16284f29d545e76eeb2f09dddd819368ffa6cebc30702f2787d.manifest.json",
+      "sha256": "6eb6f5e3075cc14f64b4329c304b53cda19bfce0026462f2c6a3f5e560198d07",
+      "marketCount": 3,
+      "declaredConfigurationCount": null
+    }
+  ],
+  "hypothesisLanes": [
+    {
+      "family": "registered exact recipes and frozen executions",
+      "status": "exhausted exact hypothesis",
+      "attempts": 51,
+      "reason": "Every current recipe has one immutable selected scoring and execution contract."
+    },
+    {
+      "family": "H1/H4 and limited M1 entry timing",
+      "status": "partially searched",
+      "reason": "Registered parents were compared; minute coverage remains sparse."
+    },
+    {
+      "family": "H4 support/resistance target and sequential-zone exits",
+      "status": "exhausted exact hypothesis",
+      "attempts": 102,
+      "reason": "Two frozen 51-recipe families produced no later-chronology promotion."
+    },
+    {
+      "family": "entry-known context and execution management",
+      "status": "review pending",
+      "reason": "Bounded recipe-specific challengers exist; most were rejected or retained unchanged."
+    },
+    {
+      "family": "categorical no-trade filters on registered cases",
+      "status": "partially searched",
+      "attempts": 15300,
+      "reason": "Controlled reused-history lane; survivors remain exploratory and unregistered."
+    },
+    {
+      "family": "multi-scale D1/weekly price structure",
+      "status": "exhausted exact hypothesis",
+      "attempts": 153,
+      "reason": "The frozen D1/weekly no-trade challenger produced no promotion; higher-timeframe zones remain descriptive."
+    },
+    {
+      "family": "unregistered event packages across all pair mappings",
+      "status": "partially searched",
+      "attempts": 9878,
+      "reason": "Stage A/B covered declared source packages and direction variants; the exact multi-factor co-release followup also produced no development-qualified contract."
+    }
+  ],
+  "rankedNextSearch": [
+    {
+      "rank": 1,
+      "family": "prospective first-seen evidence",
+      "why": "Adds genuinely new chronology for registered and exploratory rules without reusing the selection archive."
+    },
+    {
+      "rank": 2,
+      "family": "entry-known OHLC state on high-sample unregistered packages",
+      "why": "A new bounded interaction may separate regimes on packages that failed as unconditional Stage-A baselines."
+    },
+    {
+      "rank": 3,
+      "family": "minute-entry coverage expansion",
+      "why": "Existing M1 comparisons are too sparse; revisit only after materially more broker candle coverage exists."
+    }
+  ],
+  "campaignFacts": {
+    "sourceBaselinesCompleted": 111,
+    "sourceBaselinesRequired": 112,
+    "crossBaselinesCompleted": 278,
+    "note": "Counts retained from the immutable extended-market campaign handoff; they describe completed bounded baselines, not all possible hypotheses."
+  },
+  "statusDefinitions": [
+    "exhausted exact hypothesis",
+    "partially searched",
+    "coverage blocked",
+    "under-sampled",
+    "review pending",
+    "unsearched"
+  ],
+  "conclusion": "The existing bounded campaigns are complete, but the economic-event/OHLC hypothesis space is not exhausted.",
+  "ledgerHash": "ffad8d8bdd166b3aab7c4b83b226014dd788d9ba932921d73f76e602152906a7"
+}

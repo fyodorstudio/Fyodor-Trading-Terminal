@@ -299,13 +299,20 @@ export function buildMacroBiasSeriesMarkers(
 export function buildMacroBiasPriceLineLevels(signal: MacroSignalChartSignal) {
   const structure = signal.marketContext?.supportResistance;
   const barrier = structure?.directionalBarrier;
-  const ladder = (signal.direction === "long" ? structure?.resistances : structure?.supports)
+  const h4Ladder = (signal.direction === "long" ? structure?.resistances : structure?.supports)
     ?.filter((zone) => zone.entryKnownState == null || zone.entryKnownState === "active")
     .slice(0, 3) ?? (barrier ? [barrier] : []);
+  const higher = structure?.higherTimeframes;
+  const higherLadder = (["D1", "W1"] as const).flatMap((timeframe) => ((signal.direction === "long"
+    ? higher?.[timeframe].resistances
+    : higher?.[timeframe].supports) ?? []).slice(0, 2).map((zone) => ({ ...zone, timeframe })));
+  const ladder = [...h4Ladder.map((zone) => ({ ...zone, timeframe: zone.timeframe ?? "H4" as const })), ...higherLadder]
+    .sort((left, right) => left.distanceAtr - right.distanceAtr)
+    .slice(0, 6);
   const structureLines = ladder.map((zone, index) => ({
     value: zone.level,
-    title: `${index === 0 ? "H4" : `W${index + 1} H4`} ${zone.kind === "support" ? "SUP" : "RES"} ${zone.touches}x${zone.role === "role_reversed" ? " RR" : ""}`,
-    color: index === 0 ? "#d97706" : index === 1 ? "#b45309" : "#92400e",
+    title: `${zone.timeframe} ${zone.kind === "support" ? "SUP" : "RES"} ${zone.touches}x${zone.role === "role_reversed" ? " RR" : ""}`,
+    color: zone.timeframe === "W1" ? "#7c3aed" : zone.timeframe === "D1" ? "#2563eb" : index === 0 ? "#d97706" : "#92400e",
     lineStyle: LineStyle.Dotted,
   }));
   return [
@@ -455,6 +462,7 @@ export function ChartsTab({
     try { return window.localStorage.getItem(MACRO_BIAS_HISTORICAL_MATCHES_KEY) !== "false"; }
     catch { return true; }
   });
+  const [macroBiasHiddenHistoricalPatterns, setMacroBiasHiddenHistoricalPatterns] = useState<Record<string, string[]>>({});
   const [macroBiasCurrentResponse, setMacroBiasCurrentResponse] = useState<MacroSignalChartSignalResponse | null>(getPreloadedMacroSignalCurrentModel);
   const [macroBiasShadowHistoryResponse, setMacroBiasShadowHistoryResponse] = useState<MacroSignalChartSignalResponse | null>(null);
   const [macroBiasGlobalResponse, setMacroBiasGlobalResponse] = useState<MacroSignalGlobalResponse | null>(getPreloadedMacroSignalGlobalRegistry);
@@ -464,6 +472,7 @@ export function ChartsTab({
   const [macroBiasCurrentError, setMacroBiasCurrentError] = useState<string | null>(null);
   const [selectedMacroBiasId, setSelectedMacroBiasId] = useState<string | null>(null);
   const [macroBiasSignalAudits, setMacroBiasSignalAudits] = useState<Record<string, MacroSignalChartSignal>>({});
+  const [macroBiasSignalAuditErrors, setMacroBiasSignalAuditErrors] = useState<Record<string, string>>({});
   const [pairMatrixBeforeDays, setPairMatrixBeforeDays] = useState(loadPairMatrixBeforeDays);
   const [pairMatrixCoverageAnchor, setPairMatrixCoverageAnchor] = useState<number | null>(null);
   const [pairMatrixRangeArmed, setPairMatrixRangeArmed] = useState(false);
@@ -1175,15 +1184,41 @@ export function ChartsTab({
         .filter((pattern) => pattern.currentEligible)
         .map((pattern) => pattern.id),
     );
-    return macroBiasShadowHistoryResponse.signals.filter((signal) => eligiblePatternIds.has(signal.patternId));
-  }, [macroBiasShadowHistoryResponse]);
+    const hidden = new Set(macroBiasHiddenHistoricalPatterns[selectedSymbol.toUpperCase()] ?? []);
+    return macroBiasShadowHistoryResponse.signals.filter((signal) => eligiblePatternIds.has(signal.patternId) && !hidden.has(signal.patternId));
+  }, [macroBiasHiddenHistoricalPatterns, macroBiasShadowHistoryResponse, selectedSymbol]);
+  const macroBiasHistoricalPatternFilters = useMemo(() => {
+    if (!macroBiasShadowHistoryResponse?.supported) return [];
+    const hidden = new Set(macroBiasHiddenHistoricalPatterns[selectedSymbol.toUpperCase()] ?? []);
+    const counts = new Map<string, number>();
+    macroBiasShadowHistoryResponse.signals.forEach((signal) => counts.set(signal.patternId, (counts.get(signal.patternId) ?? 0) + 1));
+    return macroBiasShadowHistoryResponse.patterns.filter((pattern) => pattern.currentEligible).map((pattern) => ({
+      id: pattern.id, label: pattern.label, count: counts.get(pattern.id) ?? 0, checked: !hidden.has(pattern.id),
+    })).sort((left, right) => left.label.localeCompare(right.label));
+  }, [macroBiasHiddenHistoricalPatterns, macroBiasShadowHistoryResponse, selectedSymbol]);
+  const toggleMacroBiasHistoricalPattern = (patternId: string) => {
+    const market = selectedSymbol.toUpperCase();
+    setMacroBiasHiddenHistoricalPatterns((current) => {
+      const hidden = new Set(current[market] ?? []);
+      if (hidden.has(patternId)) hidden.delete(patternId); else hidden.add(patternId);
+      return { ...current, [market]: [...hidden] };
+    });
+    if (selectedMacroBias?.patternId === patternId) setSelectedMacroBiasId(null);
+  };
+  const setAllMacroBiasHistoricalPatterns = (visible: boolean) => {
+    const market = selectedSymbol.toUpperCase();
+    const hidden = visible ? [] : macroBiasHistoricalPatternFilters.map((option) => option.id);
+    setMacroBiasHiddenHistoricalPatterns((current) => ({ ...current, [market]: hidden }));
+    if (!visible) setSelectedMacroBiasId(null);
+  };
   const macroBiasJournalSignals = useMemo(() => {
     if (!macroBiasResponse?.supported) return [];
+    const hidden = new Set(macroBiasHiddenHistoricalPatterns[selectedSymbol.toUpperCase()] ?? []);
     const combined = new Map<string, MacroSignalChartSignal>();
-    macroBiasResponse.signals.forEach((signal) => combined.set(signal.id, signal));
-    macroBiasResponse.recoveredSignals?.forEach((signal) => combined.set(signal.id, signal));
+    macroBiasResponse.signals.filter((signal) => !hidden.has(signal.patternId)).forEach((signal) => combined.set(signal.id, signal));
+    macroBiasResponse.recoveredSignals?.filter((signal) => !hidden.has(signal.patternId)).forEach((signal) => combined.set(signal.id, signal));
     return [...combined.values()].sort((left, right) => left.eventTime - right.eventTime || left.id.localeCompare(right.id));
-  }, [macroBiasResponse]);
+  }, [macroBiasHiddenHistoricalPatterns, macroBiasResponse, selectedSymbol]);
   const macroBiasDisplaySignals = useMemo(() => {
     if (!macroBiasResponse?.supported) return [];
     if (!macroBiasHistoricalMatchesVisible || !macroBiasShadowHistoricalSignals) {
@@ -1233,6 +1268,12 @@ export function ChartsTab({
   useEffect(() => {
     if (!selectedMacroBias || !selectedMacroBiasLadderKey || selectedMacroBiasAudit) return;
     let cancelled = false;
+    setMacroBiasSignalAuditErrors((current) => {
+      if (!(selectedMacroBiasLadderKey in current)) return current;
+      const next = { ...current };
+      delete next[selectedMacroBiasLadderKey];
+      return next;
+    });
     fetchMacroSignalTargetLadder({
       symbol: selectedSymbol,
       patternId: selectedMacroBias.patternId,
@@ -1240,7 +1281,12 @@ export function ChartsTab({
       mode: selectedMacroBias.historicalReplay ? "research_replay" : "current",
     }).then(({ signal }) => {
       if (!cancelled) setMacroBiasSignalAudits((current) => ({ ...current, [selectedMacroBiasLadderKey]: signal }));
-    }).catch(() => { /* The frozen target remains available if path research cannot load. */ });
+    }).catch((error: unknown) => {
+      if (!cancelled) setMacroBiasSignalAuditErrors((current) => ({
+        ...current,
+        [selectedMacroBiasLadderKey]: error instanceof Error ? error.message : "Frozen detail request failed",
+      }));
+    });
     return () => { cancelled = true; };
   }, [selectedMacroBias, selectedMacroBiasLadderKey, selectedMacroBiasAudit, selectedSymbol]);
   const selectedMacroBiasWithTargetLadder = selectedMacroBiasAudit ?? selectedMacroBias;
@@ -1274,6 +1320,8 @@ export function ChartsTab({
     datasetFingerprint: macroBiasResponse.datasetFingerprint,
     mode: (selectedMacroBiasWithTargetLadder.historicalReplay ? "research_replay" : "current") as MacroSignalChartMode,
     generatedAt: macroBiasResponse.generatedAt,
+    detailLoading: selectedMacroBiasAudit == null && macroBiasSignalAuditErrors[selectedMacroBiasLadderKey ?? ""] == null,
+    detailError: macroBiasSignalAuditErrors[selectedMacroBiasLadderKey ?? ""] ?? null,
     onClose: () => setSelectedMacroBiasId(null),
   } : null;
 
@@ -2541,7 +2589,10 @@ export function ChartsTab({
         macroBiasLoading={macroBiasLoading}
         macroBiasHistoricalMatchesVisible={macroBiasHistoricalMatchesVisible}
         macroBiasHistoricalMatchesCount={macroBiasShadowHistoricalSignals?.length ?? 0}
+        macroBiasHistoricalPatternFilters={macroBiasHistoricalPatternFilters}
         onToggleMacroBiasHistoricalMatches={toggleMacroBiasHistoricalMatches}
+        onToggleMacroBiasHistoricalPattern={toggleMacroBiasHistoricalPattern}
+        onSetAllMacroBiasHistoricalPatterns={setAllMacroBiasHistoricalPatterns}
         crosshairReadoutRef={crosshairReadoutRef}
         status={status}
         overlayCopy={overlayCopy}

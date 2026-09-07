@@ -1370,6 +1370,47 @@ def _past_only_percentile_rank(values: Sequence[float], current: float) -> Optio
   return (below + .5 * equal) / len(usable)
 
 
+def _entry_known_higher_timeframe_zones(
+  candles: Sequence[Dict[str, Any]], entry_time: int, entry: float, atr: float,
+) -> Dict[str, Any]:
+  """Build descriptive D1/W1 pivot zones from fully closed aggregate buckets."""
+  rows: Dict[str, Any] = {}
+  for timeframe, seconds, lookback, offset in (("D1", 86400, 260, 0), ("W1", 604800, 156, 4 * 86400)):
+    grouped: Dict[int, List[Dict[str, Any]]] = {}
+    for candle in candles:
+      bucket = ((int(candle["time"]) - offset) // seconds) * seconds + offset
+      if bucket + seconds <= entry_time:
+        grouped.setdefault(bucket, []).append(candle)
+    bars = [{"time": bucket, "high": max(float(row["high"]) for row in group), "low": min(float(row["low"]) for row in group)} for bucket, group in sorted(grouped.items())][-lookback:]
+    pivots: List[Tuple[str, float, int]] = []
+    for index in range(2, len(bars) - 2):
+      bar = bars[index]
+      neighbours = bars[index - 2:index] + bars[index + 1:index + 3]
+      if bar["high"] >= max(row["high"] for row in neighbours): pivots.append(("resistance", bar["high"], int(bar["time"])))
+      if bar["low"] <= min(row["low"] for row in neighbours): pivots.append(("support", bar["low"], int(bar["time"])))
+    zones: List[Dict[str, Any]] = []
+    tolerance = max(atr * .75, 1e-12)
+    for kind, level, touched_at in pivots:
+      match = next((zone for zone in zones if zone["kind"] == kind and abs(float(zone["level"]) - level) <= tolerance), None)
+      if match is None:
+        zones.append({"kind": kind, "levels": [level], "touchTimes": [touched_at], "level": level})
+      else:
+        match["levels"].append(level); match["touchTimes"].append(touched_at); match["level"] = statistics.median(match["levels"])
+    projected = []
+    for zone in zones:
+      if len(zone["touchTimes"]) < 2: continue
+      level = float(zone["level"])
+      if (zone["kind"] == "support" and level >= entry) or (zone["kind"] == "resistance" and level <= entry): continue
+      projected.append({"id": hashlib.sha256(f"{timeframe}|{zone['kind']}|{zone['touchTimes'][0]}|{level:.10f}".encode()).hexdigest()[:12],
+        "timeframe": timeframe, "kind": zone["kind"], "level": level, "touches": len(zone["touchTimes"]),
+        "firstTouchedAt": min(zone["touchTimes"]), "lastTouchedAt": max(zone["touchTimes"]),
+        "confirmedAt": max(zone["touchTimes"]) + 2 * seconds,
+        "distanceAtr": abs(level - entry) / atr, "strength": "strong" if len(zone["touchTimes"]) >= 3 else "confirmed"})
+    rows[timeframe] = {"lookbackBars": len(bars), "supports": sorted((zone for zone in projected if zone["kind"] == "support"), key=lambda zone: zone["level"], reverse=True),
+      "resistances": sorted((zone for zone in projected if zone["kind"] == "resistance"), key=lambda zone: zone["level"])}
+  return {"schema": "fms-higher-timeframe-structure-v1", "method": "fully closed UTC D1 and Monday-anchored W1 buckets; two-bar pivot confirmation; 0.75 H4-entry-ATR clustering; minimum two touches", **rows}
+
+
 def build_entry_market_context(
   candles: Sequence[Dict[str, Any]],
   candle_times: Sequence[int],
@@ -1384,6 +1425,7 @@ def build_entry_market_context(
   entry_index = bisect_left(candle_times, int(entry_time))
   prior = list(candles[max(0, entry_index - 140):entry_index])
   support_resistance = _entry_known_support_resistance(candles, entry_index, entry, atr)
+  higher_timeframes = _entry_known_higher_timeframe_zones(candles[:entry_index], entry_time, entry, atr)
   sign = 1.0 if direction == "long" else -1.0
   short_change = None
   medium_change = None
@@ -1440,6 +1482,7 @@ def build_entry_market_context(
       "directionalBarrier": barrier,
       "directionalRoomAtr": room_atr,
       "roomState": room_state,
+      "higherTimeframes": higher_timeframes,
     },
     "macroBackground": {
       "direction": str(source.get("backgroundDirection") or "unknown"),
@@ -1898,6 +1941,7 @@ def _annotate_numeric_robustness(outcomes: Sequence[Dict[str, Any]]) -> List[Dic
   latest_actual: Dict[Tuple[str, str, str], Any] = {}
   surprise_history: Dict[Tuple[str, str, str], List[float]] = {}
   momentum_history: Dict[Tuple[str, str, str], List[float]] = {}
+  latest_surprise_point: Dict[Tuple[str, str, str], int] = {}
   annotated: List[Dict[str, Any]] = []
   for outcome in sorted(outcomes, key=lambda row: int(row["eventTime"])):
     events: List[Dict[str, Any]] = []
@@ -1905,6 +1949,8 @@ def _annotate_numeric_robustness(outcomes: Sequence[Dict[str, Any]]) -> List[Dic
     revision_states: List[str] = []
     pending_actuals: List[Tuple[Tuple[str, str, str], Any]] = []
     pending_deltas: List[Tuple[Tuple[str, str, str], Optional[float], Optional[float]]] = []
+    prior_surprise_shapes: List[str] = []
+    pending_surprise_points: List[Tuple[Tuple[str, str, str], int]] = []
     for source_event in outcome.get("events", []):
       event = dict(source_event)
       surprise = event.get("surprisePoint")
@@ -1937,6 +1983,11 @@ def _annotate_numeric_robustness(outcomes: Sequence[Dict[str, Any]]) -> List[Dic
       else:
         revision_state = "sensitive"
       revision_states.append(revision_state)
+      prior_surprise = latest_surprise_point.get(identity)
+      if surprise not in (None, 0) and prior_surprise not in (None, 0):
+        prior_surprise_shapes.append("same" if (int(surprise) > 0) == (int(prior_surprise) > 0) else "reversal")
+      if surprise not in (None, 0):
+        pending_surprise_points.append((identity, int(surprise)))
       surprise_delta = _signed_source_delta(event.get("actual"), event.get("forecast"))
       momentum_delta = _signed_source_delta(event.get("actual"), event.get("previous"))
       event["surpriseMagnitude"] = _relative_magnitude(
@@ -1960,6 +2011,8 @@ def _annotate_numeric_robustness(outcomes: Sequence[Dict[str, Any]]) -> List[Dic
         surprise_history.setdefault(identity, []).append(surprise_delta)
       if momentum_delta is not None:
         momentum_history.setdefault(identity, []).append(momentum_delta)
+    for identity, surprise_point in pending_surprise_points:
+      latest_surprise_point[identity] = surprise_point
 
     if evidence_modes and all(mode == "agreement" for mode in evidence_modes):
       evidence_mode = "agreement"
@@ -2006,6 +2059,10 @@ def _annotate_numeric_robustness(outcomes: Sequence[Dict[str, Any]]) -> List[Dic
         "scoreStrength": score_strength,
         "relativeMagnitude": relative_magnitude,
         "relativeMagnitudePercentile": package_percentile,
+        "priorSeriesSurpriseShape": (
+          prior_surprise_shapes[0] if prior_surprise_shapes and len(set(prior_surprise_shapes)) == 1
+          else "mixed" if prior_surprise_shapes else "unknown"
+        ),
       },
     })
   return annotated

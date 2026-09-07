@@ -1,0 +1,14 @@
+{
+  "schema": "fms-multiscale-structure-summary-v1",
+  "manifestHash": "2164c3b78432c1e3f93deb1af145e8bec0efc52c432992d8d247699db3c3c932",
+  "resultHash": "42c89efe972df807a008d8861bf036b284cc8ec240b197ce39b83cb88e36d07c",
+  "summary": {
+    "recipes": 51,
+    "declaredConfigurations": 153,
+    "developmentSelected": 0,
+    "laterSupported": 0,
+    "registrations": 0
+  },
+  "supported": [],
+  "disclosure": "Entry-known D1/weekly barrier no-trade research; gross reused history; no registered contract changed."
+}

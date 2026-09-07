@@ -64,6 +64,12 @@ export interface MacroSignalMarketContext {
     directionalBarrier: null | MacroSignalPriceZone;
     directionalRoomAtr: number | null;
     roomState: "open" | "limited" | "blocked";
+    higherTimeframes?: {
+      schema: "fms-higher-timeframe-structure-v1";
+      method: string;
+      D1: { lookbackBars: number; supports: MacroSignalPriceZone[]; resistances: MacroSignalPriceZone[] };
+      W1: { lookbackBars: number; supports: MacroSignalPriceZone[]; resistances: MacroSignalPriceZone[] };
+    };
   };
   macroBackground: {
     direction: "long" | "short" | "none" | "unknown";
@@ -82,6 +88,7 @@ export interface MacroSignalMarketContext {
 export interface MacroSignalPriceZone {
   id?: string;
   kind?: "support" | "resistance";
+  timeframe?: "H4" | "D1" | "W1";
   originalKind?: "support" | "resistance";
   role?: "native" | "role_reversed";
   level: number;
@@ -294,6 +301,9 @@ export interface MacroSignalScoredEvent {
   momentumPoint: number | null;
   agreementBonus: number;
   score: number;
+  forecastSuspect?: boolean;
+  forecastGap?: number | null;
+  forecastAnomalyThreshold?: number | null;
 }
 
 export interface MacroSignalOutcome {
@@ -1310,6 +1320,12 @@ export interface MacroSignalChartSignal {
   id: string;
   observationMode?: "live_captured" | "recovered_offline" | "historical_replay";
   demoTag?: string;
+  minimumLotExposure?: {
+    lots: 0.01;
+    accountRisk: number;
+    accountCurrency: string;
+    source: "MT5 order_calc_profit";
+  } | null;
   prospectiveCapture?: {
     eligible: boolean;
     reason: string;
@@ -1362,6 +1378,16 @@ export interface MacroSignalChartSignal {
   backgroundAlignment: "aligned" | "conflicted" | "neutral";
   backgroundCoverageComplete: boolean;
   highestImpact: "high" | "medium" | "low";
+  numericRobustness?: {
+    evidenceMode?: string;
+    revisionReliability?: string;
+    backgroundAlignment?: string;
+    scoreStrength?: string;
+    packageCompleteness?: string;
+    relativeMagnitude?: string;
+    relativeMagnitudePercentile?: number | null;
+    priorSeriesSurpriseShape?: string;
+  };
   events: MacroSignalScoredEvent[];
   activationTime: number | null;
   execution?: {
@@ -1677,11 +1703,18 @@ export interface MacroSignalGlobalResponse {
       patternId: string;
       resolvedCases: number;
       averageR: number | null;
+      medianR?: number | null;
+      targetBeforeStopRate?: number | null;
+      maximumDrawdownR?: number | null;
+      longestLosingStreak?: number;
+      largestWinShare?: number | null;
+      firstHalfAverageR?: number | null;
+      secondHalfAverageR?: number | null;
       nearEntryQuoteCoverage: number | null;
       firstObservedAt?: number | null;
       lastObservedAt?: number | null;
       elapsedDays?: number;
-      status?: "collecting" | "supportive" | "coverage_incomplete" | "degraded";
+      status?: "early_observation" | "promising_unproven" | "coverage_incomplete" | "weakening" | "pause_candidate" | "prospectively_supported" | "collecting" | "supportive" | "degraded";
       statusReason?: string;
       eligibleForPaperReliance: boolean;
       demoCompletedTrades?: number;
@@ -1690,6 +1723,17 @@ export interface MacroSignalGlobalResponse {
       eligibleForManualLimitedLiveReview?: boolean;
       manualLimitedLiveReviewBlockers?: string[];
     }>;
+    portfolioReplay?: {
+      schema: "fms-forward-portfolio-replay-v1";
+      resolvedCases: number;
+      cumulativeGrossR: number;
+      averageGrossR: number | null;
+      maximumDrawdownR: number | null;
+      longestLosingStreak: number;
+      maximumConcurrentTrades: number;
+      concentratedCurrencyStarts: number;
+      execution: string;
+    };
     averageR: number | null;
     nearEntryQuoteCount: number;
     quoteEligibleCount: number;

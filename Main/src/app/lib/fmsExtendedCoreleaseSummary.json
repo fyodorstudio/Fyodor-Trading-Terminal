@@ -1,0 +1,12 @@
+{
+  "schema": "fms-extended-corelease-result-v1",
+  "configurationsTested": 9600,
+  "marketsCompleted": 18,
+  "packagesTested": 20,
+  "exploratoryFinalists": 0,
+  "registrations": 0,
+  "resultHash": "366ba8033a1680ce9ff18cb38db569bedf0a42604260d6d358d7198fd7e841e2",
+  "manifestHash": "a112db05acf8ba0f4a9936927f914f50b6d5d44036202a5484fc3021b47d2091",
+  "disclosure": "Exploratory shadow only. The final block is untouched within this campaign but the OHLC/calendar archive was used by earlier FMS research.",
+  "finalists": []
+}
