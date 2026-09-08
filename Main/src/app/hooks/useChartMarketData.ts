@@ -75,6 +75,8 @@ export function useChartMarketData({
   const loadRequestIdRef = useRef(0);
   const boundaryCacheRef = useRef(new Map<string, number | null>());
   const initialSymbolRef = useRef(selectedSymbol);
+  const selectedSymbolRef = useRef(selectedSymbol);
+  selectedSymbolRef.current = selectedSymbol;
   const pendingCacheWriteRef = useRef<{ symbol: string; timeframe: Timeframe; candles: BridgeCandle[] } | null>(null);
   const cacheWriteTimerRef = useRef<number | null>(null);
 
@@ -105,16 +107,18 @@ export function useChartMarketData({
     void fetchSymbols().then((items) => {
       if (cancelled) return;
       setSymbols(items);
-      if (items.length > 0) {
+      if (items.length > 0 && selectedSymbolRef.current === initialSymbolRef.current) {
         onSelectedSymbolChange(
           initialSymbolRef.current === DEFAULT_CHART_SYMBOL ? pickInitialChartSymbol(items) : initialSymbolRef.current,
         );
       }
+    }).catch((error: unknown) => {
+      if (!cancelled) addLog(`symbol list unavailable: ${error instanceof Error ? error.message : String(error)}`);
     });
     return () => {
       cancelled = true;
     };
-  }, [onSelectedSymbolChange]);
+  }, [onSelectedSymbolChange, addLog]);
 
   useEffect(() => {
     let cancelled = false;
@@ -227,6 +231,7 @@ export function useChartMarketData({
     void load();
     return () => {
       cancelled = true;
+      loadRequestIdRef.current += 1;
       controller.abort();
       loadingOlderRef.current = false;
       flushPendingCacheWrite();
@@ -236,6 +241,7 @@ export function useChartMarketData({
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
+    const requestId = loadRequestIdRef.current;
 
     const onRangeChange = async (range: { from?: number; to?: number } | null) => {
       visibleRangeRef.current = range;
@@ -258,6 +264,7 @@ export function useChartMarketData({
 
           const start = Math.max(0, end - CHART_HISTORY_RANGE_MAX_SECONDS);
           const older = await fetchHistoryRange({ symbol: selectedSymbol, tf: timeframe, from: start, to: end });
+          if (loadRequestIdRef.current !== requestId) return;
           if (older.length === 0) break;
 
           const merged = mergeChartCandles(older, currentCandles);
@@ -274,11 +281,12 @@ export function useChartMarketData({
           if (visibleRangeRef.current?.from != null && visibleRangeRef.current.from >= 20) break;
         }
       } catch (error) {
+        if (loadRequestIdRef.current !== requestId) return;
         addLog(
           `older history load failed for ${selectedSymbol} ${timeframe}: ${error instanceof Error ? error.message : String(error)}`,
         );
       } finally {
-        loadingOlderRef.current = false;
+        if (loadRequestIdRef.current === requestId) loadingOlderRef.current = false;
       }
     };
 
@@ -304,8 +312,10 @@ export function useChartMarketData({
       return;
     }
 
+    let cancelled = false;
     const socket = openChartStream(selectedSymbol, timeframe, {
       onOpen: () => {
+        if (cancelled) return;
         setStreamConnected(true);
         addLog("WebSocket connected");
         if (activeMarketStatus?.session_state !== "closed" || activeMarketStatus.asset_class === "crypto") {
@@ -313,14 +323,17 @@ export function useChartMarketData({
         }
       },
       onClose: () => {
+        if (cancelled) return;
         setStreamConnected(false);
         addLog("WebSocket closed");
       },
       onError: () => {
+        if (cancelled) return;
         setStreamConnected(false);
         addLog("WebSocket error");
       },
       onMessage: (payload) => {
+        if (cancelled) return;
         if (!payload || typeof payload !== "object") return;
         const message = payload as {
           type?: string;
@@ -359,7 +372,7 @@ export function useChartMarketData({
       },
     });
 
-    return () => socket.close();
+    return () => { cancelled = true; socket.close(); };
   }, [
     selectedSymbol,
     timeframe,

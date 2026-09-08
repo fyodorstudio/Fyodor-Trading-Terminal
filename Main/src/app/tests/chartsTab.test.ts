@@ -17,6 +17,22 @@ import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartS
 import { DEFAULT_CHART_TIMEFRAME, getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
 import { getChartRefreshBars } from "@/app/hooks/useChartMarketData";
+import { getMacroBiasInitialLoadPlan } from "@/app/tabs/primary/ChartsTab";
+
+describe("pair-switch FMS loading", () => {
+  it("restores a cold pair without waiting for forced evaluation", () => {
+    expect(getMacroBiasInitialLoadPlan(null, true, false, 1000)).toEqual({ readLastKnown: true, refreshDelay: null });
+  });
+  it("reuses warm data and lets rapid navigation settle before evaluation", () => {
+    expect(getMacroBiasInitialLoadPlan({ generatedAt: 900 }, true, true, 1000)).toEqual({ readLastKnown: false, refreshDelay: 300 });
+    expect(getMacroBiasInitialLoadPlan({ generatedAt: 990 }, true, true, 1000)).toEqual({ readLastKnown: false, refreshDelay: 50_000 });
+    expect(getMacroBiasInitialLoadPlan({ generatedAt: 990 }, true, false, 1000).refreshDelay).toBe(300);
+  });
+  it("does not evaluate hidden FMS or trust future timestamps as fresh", () => {
+    expect(getMacroBiasInitialLoadPlan({ generatedAt: 990 }, false, false, 1000).refreshDelay).toBeNull();
+    expect(getMacroBiasInitialLoadPlan({ generatedAt: 1100 }, true, true, 1000).refreshDelay).toBe(300);
+  });
+});
 
 describe("getChartConnectionLabel", () => {
   it("keeps live FMS discovery enabled for every registered market without redundant rerenders", () => {

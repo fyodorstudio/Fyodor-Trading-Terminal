@@ -4,7 +4,7 @@ Updated 2026-09-08. This is working memory, not a chronological log. Replace sta
 
 ## Current scope
 
-The user requested documentation/navigation efficiency after a Charts/FMS robustness pass. This pass changes Markdown only. No new research campaign, trading behavior, deletion of old tools, or account access is authorized by this documentation request. Continue implementation only when requested; existing settled product decisions stand.
+Current request: improve Charts pair switching and audit the left panel. Frontend changes are implemented; owner browser acceptance remains pending below. No bridge edits, research campaign, account access, or unrelated redesign belongs to this pass.
 
 ## Accepted product decisions
 
@@ -38,6 +38,27 @@ Reusable validation from that pass:
 - [ ] Observe a real upcoming release: Next hands off to Current without disappearing; actual values/decision update across pairs; failures remain explicit. Synthetic/static checks do not establish real-time capture reliability.
 - [ ] Confirm Current still exposes needed exposure/concentration/pause/fresh evidence after consolidation. Earlier passes recorded these features; removing duplicate layouts is not proof they remain accessible.
 - [ ] Resolve any reported failure from actual request/state evidence; distinguish stale data, missing observation, rejected recipe, and missing entry geometry. Do not promise an unseen browser fix.
+
+## Latest implementation handoff: Charts performance and refresh
+
+Updated 2026-09-08 for the pair-switching and left-panel audit:
+- Selected-market navigation now restores the session/global snapshot immediately, or requests last-known data with `refresh=false` when absent. Forced evaluation waits 300 ms for selection to settle; freshly evaluated matching calendar revisions retain the 60-second cadence. A last-known read is not recorded as a fresh evaluation. Hidden FMS restores chart data without forced evaluation.
+- This supersedes the previous cold-pair single forced-request approach: a cold frontend may make a fast last-known read followed by background evaluation. Already-running shared requests can finish and populate the correct market cache after switching; their UI updates remain cancelled. Backend work already started is not aborted. Global release monitoring stays independent and market-cache writes are monotonic.
+- Fixed missing memo dependencies for left-panel loading/error/timestamp updates, reset timestamps on pair restoration, and stopped selected-market failures from contaminating the global error. Trade says "Last successful data" rather than implying freshness after a failed refresh. Memoized its filtered market list.
+- Guarded historical FMS overlays against a response for another symbol. Older-candle requests and closed sockets cannot apply late responses after switching/unmounting. A late symbol-list load cannot reset a different selected pair; symbol-list failure is caught and logged.
+- Audit: dock selection/error boundary and on-demand arrow detail remain intact. Fresh-evidence/pause indicators exist in Trade Next and Setups; dedicated exposure/concentration information was not found in the active dock components. This remains a product gap, not a verified feature. No financial contracts, lifecycle partitions, or bridge code changed.
+
+Reusable verification:
+- Cached EURUSD HTTP read: 200, 0.165 seconds, 402,572 uncompressed bytes. Prior forced EURUSD evaluation measured 9.624 seconds for the same payload size. These are separate samples, not a browser speed benchmark; no-snapshot backend evaluation and rendering can still take time.
+- Targeted Charts/storage/view tests: 44 passed, 4 failed. Three are the recorded old arrow/Initial move/Frozen contract text expectations. The fourth is in unchanged `chartStorage.test.ts`: it mutates localStorage after saving an in-memory entry and expects the session cache to be bypassed. Neither cache implementation nor that assertion was changed. Three new checks in the existing Charts test cover cold restoration, navigation delay/fresh cadence, hidden FMS and future timestamps.
+- `pnpm run typecheck` and `git diff --check` passed. Prior lifecycle evidence remains reusable because lifecycle/provenance implementations are unchanged. Late-response guards have code/type verification; actual asynchronous browser interaction remains unverified.
+
+Pending acceptance:
+- [ ] Owner at 1440x900/100% Chrome: switch EURUSD -> GBPUSD -> USDJPY -> EURUSD rapidly, including while scrolling older candles; confirm candles/arrows match the selected pair and cached returns appear promptly.
+- [ ] Leave Trade Current open, switch pairs, verify refresh/timestamp/error recovery and retained expanded rows/scroll; visit Journal, Setups, Research, Knowledge and Past Result. Check H1/H4/recovered/ambiguous arrows and Entry/SL/TP, readable controls and internal scrolling.
+- [ ] Observe a real release through upcoming -> awaiting values -> evaluated -> pending/open/no-trade -> closed; confirm no disappearing row and explicit failure/recovery.
+- [ ] Decide whether to restore dedicated exposure/concentration information in a later product pass.
+- [ ] If switching remains slow, measure browser parsing/rendering with owner-authorized tooling before a dock-aware data split.
 
 ## Deferred research and product work
 

@@ -115,6 +115,8 @@ export interface ChartMacroBiasRealtimeCardData {
   globalResponse?: MacroSignalGlobalResponse | null;
   globalLoading?: boolean;
   globalError?: string | null;
+  refreshing?: boolean;
+  refreshedAt?: number | null;
 }
 
 function readStoredNumber(key: string, fallback: number): number {

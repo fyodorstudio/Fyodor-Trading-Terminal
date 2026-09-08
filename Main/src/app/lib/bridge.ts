@@ -405,10 +405,18 @@ export async function fetchMacroSignalTargetLadder(params: {
   return fetchJson(`${BRIDGE_BASE}/research/chart-signal-target-ladder?${search.toString()}`);
 }
 
+const globalRegistryRequests = new Map<string, Promise<MacroSignalGlobalResponse>>();
+
 export async function fetchMacroSignalGlobalRegistry(options: { refresh?: boolean } = {}): Promise<MacroSignalGlobalResponse> {
   const search = new URLSearchParams({ tf: "H4" });
   if (options.refresh) search.set("refresh", "true");
-  return fetchJson<MacroSignalGlobalResponse>(`${BRIDGE_BASE}/research/chart-signals/global?${search.toString()}`, { signal: AbortSignal.timeout(90_000) });
+  const url = `${BRIDGE_BASE}/research/chart-signals/global?${search.toString()}`;
+  const pending = globalRegistryRequests.get(url);
+  if (pending) return pending;
+  const request = fetchJson<MacroSignalGlobalResponse>(url, { signal: AbortSignal.timeout(90_000) })
+    .finally(() => { globalRegistryRequests.delete(url); });
+  globalRegistryRequests.set(url, request);
+  return request;
 }
 
 let preloadedMacroSignalGlobalRegistry: MacroSignalGlobalResponse | null = null;

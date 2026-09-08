@@ -297,7 +297,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   onToggleHistoricalPattern?: (patternId: string) => void;
   onSetAllHistoricalPatterns?: (visible: boolean) => void;
 }) {
-  const markets = data.globalResponse?.markets.filter((market) => market.supported) ?? [data.response];
+  const markets = useMemo(() => data.globalResponse?.markets.filter((market) => market.supported) ?? [data.response], [data.globalResponse?.markets, data.response]);
   const responseNow = data.response.generatedAt ?? Math.floor(Date.now() / 1_000);
   const [clock, setClock] = useState(responseNow);
   useEffect(() => {
@@ -401,6 +401,10 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
       </section> : null}
       {(activeView === "recent" || activeView === "current") ? <section className="fms-action-activity fms-action-view" aria-label="Recent FMS activity">
         <div className="fms-action-section-title"><span>Recent FMS activity</span><small>Newest first · latest {recentActivity.length}</small></div>
+        {(data.refreshing || data.refreshedAt) ? <p className="fms-action-refresh-state" role="status">
+          {data.refreshing ? "Refreshing; retaining the last successful data" : "Last successful data"}
+          {data.refreshedAt ? ` · updated ${formatJakartaDisplayDateTime(data.refreshedAt)}` : ""}
+        </p> : null}
         {data.globalError ? <p role="alert" className="fms-action-warning">{data.globalError}</p> : null}
         <div className="fms-action-activity-scroll">
           {displayedActivity.length > 0 ? <table className="fms-action-table">
