@@ -485,11 +485,13 @@ def test_directional_sentiment_is_one_pattern_and_future_watch_never_predicts_di
   watch = build_chart_signal_realtime_watch([
     calendar_event(1, 110, "USD", "CB Leading Economic Index m/m", "", "1", "0"),
     calendar_event(2, 120, "EUR", "Consumer Confidence Index", "", "1", "0", "medium"),
+    calendar_event(4, 220, "EUR", "Consumer Confidence Index", "", "1", "0", "medium"),
     calendar_event(3, 105, "GBP", "Consumer Confidence Index", "", "1", "0"),
   ], as_of=100)
   assert watch["nextPairEvent"]["title"] == "CB Leading Economic Index m/m"
   assert watch["nextPatternWatch"]["patternId"] == "euro-consumer-sentiment-directional"
   assert "direction" not in watch["nextPatternWatch"]
+  assert [row["time"] for row in watch["upcomingPatternWatches"] if row["patternId"] == "euro-consumer-sentiment-directional"] == [120, 220]
   filtered_watch = build_chart_signal_realtime_watch(
     [calendar_event(2, 120, "EUR", "Consumer Confidence Index", "", "1", "0", "medium")],
     as_of=100,

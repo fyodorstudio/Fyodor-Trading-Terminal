@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { ChartSettingsDrawer } from "@/app/components/ChartSettingsDrawer";
 import { ChartMacroBiasAudit } from "@/app/components/ChartMacroBiasAudit";
 import { ChartMacroBiasRealtimeCard, marketMatchesCurrencySelection } from "@/app/components/ChartMacroBiasRealtimeCard";
-import { buildRegisteredSetupSchedule, ChartFmsActionCard } from "@/app/components/ChartFmsActionCard";
+import { buildRegisteredSetupSchedule, buildRecentFmsActivity, partitionFmsActivity, getTradeMarkets, ChartFmsActionCard } from "@/app/components/ChartFmsActionCard";
 import { ChartFmsKnowledgeCard } from "@/app/components/ChartFmsKnowledgeCard";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import { ChartPairMatrixContextMarkers, clusterPairMatrixMarkerViews } from "@/app/components/ChartPairMatrixContextMarkers";
@@ -20,6 +20,36 @@ import { getChartRefreshBars } from "@/app/hooks/useChartMarketData";
 import { getMacroBiasInitialLoadPlan } from "@/app/tabs/primary/ChartsTab";
 
 describe("pair-switch FMS loading", () => {
+  it("keeps the recovered AUDUSD payroll TP in Recent even with an older global snapshot", () => {
+    const pattern = { id: "audusd-us-payroll-package", label: "US payroll", currentEligible: true } as MacroSignalChartPattern;
+    const signal = { id: "audusd-us-payroll-package:1788535800", patternId: pattern.id, eventTime: 1788535800, entry: .71926, target: .7218418039985335, outcomeStatus: "target_hit", resultR: 1, observationMode: "recovered_offline" } as MacroSignalChartSignal;
+    const response = { symbol: "AUDUSD", supported: true, generatedAt: 200, patterns: [pattern], signals: [], recoveredSignals: [signal] } as unknown as MacroSignalChartSignalResponse;
+    const stale = { ...response, generatedAt: 100, recoveredSignals: [] };
+    const markets = getTradeMarkets({ response, globalResponse: { markets: [stale] } } as Parameters<typeof getTradeMarkets>[0]);
+    const activity = partitionFmsActivity(buildRecentFmsActivity(markets), 1788850566);
+    expect(activity.current).toHaveLength(0);
+    expect(activity.recent[0]).toMatchObject({ market: "AUDUSD", source: "recovered", signal: { entry: .71926, outcomeStatus: "target_hit", resultR: 1 } });
+    expect(getTradeMarkets({ response: stale, globalResponse: { markets: [response] } } as Parameters<typeof getTradeMarkets>[0])[0]).toBe(response);
+  });
+  it("keeps every pending and completed row, including inactive setup history and overnight waiting releases", () => {
+    const pattern = { id: "registered", currentEligible: false } as MacroSignalChartPattern;
+    const signals = Array.from({ length: 600 }, (_, i) => ({ id: String(i), patternId: pattern.id, eventTime: i + 1, entry: 1, outcomeStatus: i % 2 ? "pending" : "target_hit" } as MacroSignalChartSignal));
+    const response = { symbol: "AUDUSD", supported: true, patterns: [pattern], signals, realtime: { latestPatternAssessments: [
+      { patternId: pattern.id, time: 700, status: "no_trade" },
+      { patternId: pattern.id, time: 701, status: "awaiting_observation" },
+    ] } } as unknown as MacroSignalChartSignalResponse;
+    const activity = partitionFmsActivity(buildRecentFmsActivity([response], 200000), 200000);
+    expect(activity.current).toHaveLength(301);
+    expect(activity.recent).toHaveLength(301);
+    expect(activity.recent.some((row) => row.assessment?.status === "no_trade")).toBe(true);
+  });
+  it("shows every upcoming occurrence rather than only the first per setup", () => {
+    const pattern = { id: "registered", currentEligible: true } as MacroSignalChartPattern;
+    const response = { symbol: "AUDUSD", patterns: [pattern], realtime: { upcomingPatternWatches: Array.from({ length: 40 }, (_, i) => ({ patternId: pattern.id, time: 100 + i })) } } as unknown as MacroSignalChartSignalResponse;
+    const schedule = buildRegisteredSetupSchedule([response], 100);
+    expect(schedule).toHaveLength(40);
+    expect(new Set(schedule.map((row) => row.key)).size).toBe(40);
+  });
   it("restores a cold pair without waiting for forced evaluation", () => {
     expect(getMacroBiasInitialLoadPlan(null, true, false, 1000)).toEqual({ readLastKnown: true, refreshDelay: null });
   });

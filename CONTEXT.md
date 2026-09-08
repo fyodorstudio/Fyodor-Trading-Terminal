@@ -18,7 +18,7 @@ Local React/Vite manual-trading terminal with a FastAPI/MT5 bridge. FMS is the m
 
 Charts left panel: **Trade** owns Next/Current/Recent; **Setups** owns registered contracts; **Journal** owns longer performance records; **Research** owns experiments/reviews; **Knowledge** owns durable findings; **Past Result** owns the selected arrow audit.
 
-Current includes pending cases even without entry geometry and today's no-trade decisions (Asia/Jakarta day). Recent holds completed trades and older decisions. A scheduled release awaiting assessment must remain visible. Simulated open status is not a broker position. Entry markers are candle annotations, not entry-price coordinates.
+Current includes open/pending trades, eligible cases awaiting entry geometry, and releases awaiting evaluation across midnight. Recent holds closed trades and completed no-trade/audit decisions immediately. Trade Next/Current/Recent show all available rows without a row cap; Next includes all loaded future occurrences per setup. A scheduled release awaiting assessment must remain visible. Simulated open status is not a broker position. Entry markers are candle annotations, not entry-price coordinates.
 
 - `Main/src/app/tabs/primary/ChartsTab.tsx`: chart state, selected-pair requests, global FMS monitoring.
 - `Main/src/app/components/ChartViewport.tsx`: dock selection, layout, error boundary.

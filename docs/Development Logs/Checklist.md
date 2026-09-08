@@ -4,13 +4,13 @@ Updated 2026-09-08. This is working memory, not a chronological log. Replace sta
 
 ## Current scope
 
-Current request: improve Charts pair switching and audit the left panel. Frontend changes are implemented; owner browser acceptance remains pending below. No bridge edits, research campaign, account access, or unrelated redesign belongs to this pass.
+Current request: improve Charts pair switching, optimize the authorized bridge candle-cache query, and show all available setups/results across Trade Next/Current/Recent. Implementation and targeted checks are complete; owner browser acceptance remains pending. No research campaign, account access, or unrelated redesign belongs to this pass.
 
 ## Accepted product decisions
 
 - Research all 28 configured Major Forex Extended pairs using MT5 calendar and OHLC only. Seek more positive historical recipes and supported immutable improvements; no promised future edge. All FMS expectancy remains gross.
 - Daily flow: Charts ? Trade ? Next/Current/Recent. Clear date, status, direction, entry, ATR, SL/TP, expiry, historical N and TP-before-SL; brief reason plus release cards. Deep research stays in its dock.
-- Current keeps pending/missing-entry cases and today's no-trade decisions. Scheduled releases waiting for evaluation stay visible. Closed results/older decisions go to Recent; longer performance belongs in Journal. Recovered is visibly distinct from live captured.
+- Current keeps open/pending trades, eligible missing-entry cases and releases awaiting evaluation, including across midnight. Closed results and completed no-trade/audit decisions go to Recent immediately. Next shows every available future occurrence; the three views have no row cap. Longer performance aggregation belongs in Journal. Recovered is visibly distinct from live captured.
 - New H1 entries require exact-contract, no-lookahead evidence and explicit successor activation. Earlier H4 history is immutable. Avoid repeated backtests of unchanged candidates.
 - The owner prefers autonomous implementation after planning, no subagents, minimal commentary, bounded output, necessary verification, and a short manual audit. No browser automation or new test files without explicit agreement.
 
@@ -55,10 +55,25 @@ Reusable verification:
 
 Pending acceptance:
 - [ ] Owner at 1440x900/100% Chrome: switch EURUSD -> GBPUSD -> USDJPY -> EURUSD rapidly, including while scrolling older candles; confirm candles/arrows match the selected pair and cached returns appear promptly.
+
 - [ ] Leave Trade Current open, switch pairs, verify refresh/timestamp/error recovery and retained expanded rows/scroll; visit Journal, Setups, Research, Knowledge and Past Result. Check H1/H4/recovered/ambiguous arrows and Entry/SL/TP, readable controls and internal scrolling.
 - [ ] Observe a real release through upcoming -> awaiting values -> evaluated -> pending/open/no-trade -> closed; confirm no disappearing row and explicit failure/recovery.
 - [ ] Decide whether to restore dedicated exposure/concentration information in a later product pass.
 - [ ] If switching remains slow, measure browser parsing/rendering with owner-authorized tooling before a dock-aware data split.
+
+## Latest handoff: uncapped Trade views and bridge cache
+
+2026-09-08; bridge edits explicitly authorized by the owner.
+- `_cached_history` now asks SQLite for the latest N candles, then reverses to ascending time. Range queries and candle values are unchanged. No MT5/order/account behavior changed.
+- The exact reported AUDUSD payroll result (event 1788535800, entry 0.71926, TP hit, +1R, recovered offline) was present in BOTH running pair/global responses before this pass. Its observed browser absence was not reproduced. Confirmed frontend vulnerability: Trade preferred the global market list even when the selected-pair response was newer or its market was absent there. Trade now merges that response monotonically; the exact payroll fixture remains in Recent under a stale global snapshot.
+- Current = open/pending, eligible waiting-entry cases, or awaiting/qualified decisions. Closed trades and completed no-trade/audit decisions enter Recent immediately. Waiting releases have no one-day cutoff. Historical results are not dropped merely because their included setup is no longer current-eligible.
+- Next renders all scheduled occurrences per setup. The bridge watch builder no longer reduces them to one per pattern. Cached current/global projections refresh future schedules from the available broker calendar without forced signal evaluation.
+- Trade projections attach all persisted model decisions as `patternAssessments`, with latest assessments winning by exact pattern/time. Unbounded reads are explicit (`limit=None`); other API limits retain their defaults. This reads frozen evidence without rewriting it. All available live/recovered signals remain included; no archived research replay is relabelled as a live decision and unavailable records are not invented.
+- Relevant new checks: latest-N vs full query equality/range isolation; all saved decision projection without mutation; two future occurrences per setup; exact AUDUSD recovered TP under stale global data; 600 uncapped active/closed rows; 40 upcoming occurrences; overnight waiting and immediate no-trade partition.
+- Validation: 12 affected Python tests passed. Charts suite: 26 passed, the same 3 pre-existing UI-text failures (arrow wording, Initial move, Frozen contract) remain. In-process HTTP against the actual saved database: cached USDJPY H4 returned 350 candles in 13.5 ms; global returned 10 markets and 27 saved decision assessments in 1.178 s, retaining the exact AUDUSD result. This is not browser/network latency or a controlled before/after benchmark. `pnpm run typecheck` and `git diff --check` passed.
+- Running bridge was not restarted or replaced; reload/restart it through the owner's normal launcher to apply Python changes if it does not auto-reload. No agent service was left on port 8001.
+
+Owner acceptance at 1440x900/100%: reload bridge/app; Trade Recent -> AUDUSD US payroll (4 September release, TP +1R, recovered offline; rows sort by exit time). Check Current excludes that closed trade and today's no-trade decisions; waiting/open cases remain. Scroll all three lists, verify multiple future dates for one setup, and test fast pair switching. Actual browser disappearance and real-release handoff remain unverified.
 
 ## Deferred research and product work
 

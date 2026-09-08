@@ -15,6 +15,31 @@ from research_store import ResearchStore
 client = TestClient(server.app)
 
 
+def test_trade_snapshot_restores_all_saved_decisions_without_changing_evidence(tmp_path: Path, monkeypatch) -> None:
+  store = ResearchStore(tmp_path / "trade.sqlite3")
+  monkeypatch.setattr(server, "_research_store", store)
+  for timestamp in (100, 200, 300):
+    assessment = {"patternId": "audusd-us-payroll-package", "time": timestamp, "status": "no_trade", "reason": "Frozen reason", "events": []}
+    store.record_fms_live_decision("model", "AUDUSD", assessment["patternId"], timestamp, timestamp + 1, "no_trade", None, assessment, None, False, "not_qualified")
+  before = store.list_fms_live_decisions("AUDUSD", limit=None)
+  assert len(store.list_fms_live_decisions("AUDUSD", limit=1)) == 1
+  latest = {"patternId": "audusd-us-payroll-package", "time": 300, "status": "late_for_contract"}
+  payload = {"supported": True, "mode": "current", "symbol": "AUDUSD", "modelId": "model", "patterns": [], "realtime": {"latestPatternAssessments": [latest]}}
+  projected = server._trade_current_snapshot(payload)
+  assert [row["time"] for row in projected["realtime"]["patternAssessments"]] == [300, 200, 100]
+  assert projected["realtime"]["patternAssessments"][0]["status"] == "late_for_contract"
+  assert "patternAssessments" not in payload["realtime"]
+  assert store.list_fms_live_decisions("AUDUSD", limit=None) == before
+
+
+def test_cached_history_uses_bounded_query_and_keeps_ascending_candles(tmp_path: Path, monkeypatch) -> None:
+  store = ResearchStore(tmp_path / "history.sqlite3")
+  monkeypatch.setattr(server, "_research_store", store)
+  store.upsert_candles("USDJPY", "H4", [{"time": i, "open": 1, "high": 2, "low": .5, "close": 1.5, "volume": i} for i in range(1, 501)])
+  assert [row["time"] for row in server._cached_history("USDJPY", "H4", bars=350, to_time=450)] == list(range(101, 451))
+  assert [row["time"] for row in server._cached_history("USDJPY", "H4", from_time=400, to_time=450)] == list(range(400, 451))
+
+
 def test_chart_projection_keeps_visible_context_audit_and_omits_heavy_research_grids() -> None:
   later_reaction = {"evaluableN": 18, "alignmentRate": .61}
   projected = server._interactive_chart_pattern({

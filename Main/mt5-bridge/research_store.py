@@ -291,18 +291,20 @@ class ResearchStore:
       )
       return cursor.rowcount > 0
 
-  def list_fms_live_decisions(self, market: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
-    bounded_limit = max(1, min(int(limit), 500))
+  def list_fms_live_decisions(self, market: Optional[str] = None, limit: Optional[int] = 100) -> List[Dict[str, Any]]:
+    bounded_limit = max(1, min(int(limit), 500)) if limit is not None else None
+    suffix = " LIMIT ?" if bounded_limit is not None else ""
+    limit_params = (bounded_limit,) if bounded_limit is not None else ()
     with self._connect() as connection:
       if market:
         rows = connection.execute(
-          "SELECT * FROM fms_live_decisions WHERE market = ? ORDER BY first_decided_at DESC, event_time DESC LIMIT ?",
-          (market.upper(), bounded_limit),
+          "SELECT * FROM fms_live_decisions WHERE market = ? ORDER BY first_decided_at DESC, event_time DESC" + suffix,
+          (market.upper(), *limit_params),
         ).fetchall()
       else:
         rows = connection.execute(
-          "SELECT * FROM fms_live_decisions ORDER BY first_decided_at DESC, event_time DESC LIMIT ?",
-          (bounded_limit,),
+          "SELECT * FROM fms_live_decisions ORDER BY first_decided_at DESC, event_time DESC" + suffix,
+          limit_params,
         ).fetchall()
     return [{
       "modelId": str(row["model_id"]),
@@ -842,13 +844,19 @@ class ResearchStore:
       "latest": None if row["latest"] is None else int(row["latest"]),
     }
 
-  def query_candles(self, symbol: str, timeframe: str, from_time: int, to_time: int) -> List[Dict[str, Any]]:
+  def query_candles(self, symbol: str, timeframe: str, from_time: int, to_time: int, *, latest: Optional[int] = None) -> List[Dict[str, Any]]:
+    if latest is not None and latest <= 0:
+      raise ValueError("latest must be positive")
+    order = " DESC LIMIT ?" if latest is not None else ""
+    params = (symbol.upper(), timeframe.upper(), from_time, to_time)
     with self._connect() as connection:
       rows = connection.execute(
         "SELECT time, open, high, low, close, volume FROM candle_cache "
-        "WHERE symbol = ? AND timeframe = ? AND time >= ? AND time <= ? ORDER BY time",
-        (symbol.upper(), timeframe.upper(), from_time, to_time),
+        "WHERE symbol = ? AND timeframe = ? AND time >= ? AND time <= ? ORDER BY time" + order,
+        (*params, latest) if latest is not None else params,
       ).fetchall()
+    if latest is not None:
+      rows.reverse()
     return [dict(row) for row in rows]
 
   def ensure_signal_version(

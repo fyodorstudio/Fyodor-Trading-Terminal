@@ -1144,8 +1144,9 @@ def _cached_history(
 ) -> List[Dict[str, Any]]:
   rows = _research_store.query_candles(
     symbol.upper(), timeframe.upper(), from_time, to_time or int(_time.time()) + 24 * 60 * 60,
+    **({"latest": bars} if bars is not None else {}),
   )
-  return rows[-bars:] if bars is not None else rows
+  return rows
 
 
 def _cached_chart_source_run(version_id: str) -> Optional[Dict[str, Any]]:
@@ -3889,6 +3890,36 @@ def _interactive_chart_pattern(pattern: Any) -> Any:
   return projected
 
 
+def _trade_current_snapshot(payload: Dict[str, Any]) -> Dict[str, Any]:
+  """Attach all recorded decisions without rebuilding or rewriting their evidence."""
+  if not payload.get("supported") or payload.get("mode") != "current":
+    return payload
+  market = str(payload["symbol"])
+  realtime = dict(payload.get("realtime") or {})
+  assessments = {
+    (str(row["patternId"]), int(row["eventTime"])): row["assessment"]
+    for row in _research_store.list_fms_live_decisions(market, limit=None)
+    if row.get("modelId") == payload.get("modelId") and row.get("assessment")
+  }
+  for row in realtime.get("latestPatternAssessments") or []:
+    assessments[(str(row["patternId"]), int(row["time"]))] = row
+  realtime["patternAssessments"] = sorted(assessments.values(), key=lambda row: -int(row["time"]))
+  # Saved snapshots may contain only one future occurrence per setup. Rebuild
+  # scheduling from the available broker calendar, without evaluating releases.
+  now = int(_time.time())
+  patterns = [_reconciled_pattern(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS if pattern["market"] == market]
+  currencies = list(WORKBENCH_MARKETS[market]["currencies"])
+  future = build_chart_signal_realtime_watch(
+    _research_store.query_calendar(from_time=now, currencies=currencies), now,
+    frozenset(str(row["id"]) for row in payload.get("patterns", []) if row.get("currentEligible")),
+    pattern_definitions=patterns, market_currencies=currencies, symbol=market,
+  )
+  passed = [row for row in realtime.get("upcomingPatternWatches") or [] if int(row["time"]) <= now]
+  realtime["upcomingPatternWatches"] = [*passed, *future["upcomingPatternWatches"]]
+  realtime["nextPatternWatch"] = future["nextPatternWatch"]
+  return {**payload, "realtime": realtime}
+
+
 @app.get("/research/chart-signals")
 def research_chart_signals(
   symbol: str = "EURUSD",
@@ -3902,6 +3933,7 @@ def research_chart_signals(
   pattern_id: Optional[str] = None,
 ) -> Dict[str, Any]:
   def response_for_client(payload: Dict[str, Any]) -> Dict[str, Any]:
+    payload = _trade_current_snapshot(payload)
     interactive_payload = {
       **payload,
       "patterns": [_interactive_chart_pattern(row) for row in payload.get("patterns", [])],
@@ -5658,7 +5690,7 @@ def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict
                   market = {**newer, "patterns": [_interactive_chart_pattern(row) for row in newer.get("patterns", [])]}
               except (TypeError, ValueError):
                 logger.warning("Ignoring unreadable current market snapshot")
-            merged_markets.append(market)
+            merged_markets.append(_trade_current_snapshot(market))
           last_known["markets"] = merged_markets
           return last_known
       except (TypeError, ValueError):

@@ -19,6 +19,16 @@ def event(event_id: int, timestamp: int, actual: str = "1.0") -> dict:
   }
 
 
+def test_latest_candle_query_preserves_values_order_and_range(tmp_path: Path) -> None:
+  store = ResearchStore(tmp_path / "latest.sqlite3")
+  candles = [{"time": i, "open": i, "high": i + 1, "low": i - 1, "close": i + .5, "volume": i * 10} for i in range(1, 501)]
+  store.upsert_candles("USDJPY", "H4", candles)
+  full = store.query_candles("usdjpy", "h4", 30, 450)
+  assert store.query_candles("usdjpy", "h4", 30, 450, latest=350) == full[-350:]
+  assert store.query_candles("USDJPY", "H4", 30, 450, latest=1000) == full
+  assert store.query_candles("USDJPY", "H1", 30, 450, latest=350) == []
+
+
 def test_calendar_history_survives_store_reopen_and_is_not_pruned(tmp_path: Path) -> None:
   path = tmp_path / "research.sqlite3"
   first = ResearchStore(path)

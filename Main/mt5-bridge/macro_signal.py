@@ -3765,7 +3765,7 @@ def build_chart_signal_realtime_watch(
     for pattern, required_group_sets in structural_patterns(package):
       pattern_id = str(pattern["id"])
       payload = watch_payload(event_time, package, pattern, required_group_sets)
-      upcoming_by_pattern.setdefault(pattern_id, payload)
+      upcoming_by_pattern[f"{pattern_id}:{event_time}"] = payload
       if next_pattern is None:
         next_pattern = payload
 

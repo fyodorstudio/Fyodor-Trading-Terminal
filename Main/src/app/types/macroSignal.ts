@@ -1543,6 +1543,7 @@ export interface MacroSignalRealtimeWatch {
   latestPatternAssessment?: MacroSignalPatternAssessment | null;
   upcomingPatternWatches?: MacroSignalUpcomingPatternWatch[];
   latestPatternAssessments?: MacroSignalPatternAssessment[];
+  patternAssessments?: MacroSignalPatternAssessment[];
 }
 
 export interface MacroSignalPolicyInflationContext {

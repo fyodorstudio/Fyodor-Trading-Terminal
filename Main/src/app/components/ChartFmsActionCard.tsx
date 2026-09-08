@@ -47,10 +47,10 @@ function signalActivityState(signal: MacroSignalChartSignal): string {
 export function buildRecentFmsActivity(markets: MacroSignalChartSignalResponse[], now = Math.floor(Date.now() / 1000)): RecentFmsActivityRow[] {
   const rows = new Map<string, RecentFmsActivityRow>();
   for (const market of markets) {
-    const patterns = new Map(market.patterns.filter((pattern) => pattern.currentEligible).map((pattern) => [pattern.id, pattern]));
+    const patterns = new Map(market.patterns.map((pattern) => [pattern.id, pattern]));
     const signals = [...market.signals, ...(market.recoveredSignals ?? [])];
     const signalsByDecision = new Map(signals.map((signal) => [`${signal.patternId}:${signal.eventTime}`, signal]));
-    const assessments = market.realtime?.latestPatternAssessments
+    const assessments = market.realtime?.patternAssessments ?? market.realtime?.latestPatternAssessments
       ?? (market.realtime?.latestPatternAssessment ? [market.realtime.latestPatternAssessment] : []);
     for (const assessment of assessments) {
       const pattern = patterns.get(assessment.patternId);
@@ -69,7 +69,7 @@ export function buildRecentFmsActivity(markets: MacroSignalChartSignalResponse[]
     }
     // A scheduled release must survive the gap before its first assessment.
     for (const watch of market.realtime?.upcomingPatternWatches ?? []) {
-      if (watch.time > now || now - watch.time > 86400) continue;
+      if (watch.time > now) continue;
       const pattern = patterns.get(watch.patternId);
       const key = `${market.symbol}:${watch.patternId}:${watch.time}`;
       if (!pattern || rows.has(key) || signalsByDecision.has(`${watch.patternId}:${watch.time}`)) continue;
@@ -104,14 +104,14 @@ export function buildRecentFmsActivity(markets: MacroSignalChartSignalResponse[]
   return [...rows.values()].sort((left, right) => right.time - left.time || left.market.localeCompare(right.market) || left.label.localeCompare(right.label));
 }
 
-export function partitionFmsActivity(activity: RecentFmsActivityRow[], now: number) {
-  const today = Math.floor((now + 7 * 3600) / 86400);
+export function partitionFmsActivity(activity: RecentFmsActivityRow[], _now: number) {
   const current: RecentFmsActivityRow[] = [];
   const recent: RecentFmsActivityRow[] = [];
   for (const row of activity) {
-    const releasedToday = Math.floor(((row.assessment?.time ?? row.signal?.eventTime ?? row.time) + 7 * 3600) / 86400) === today;
     const pending = row.signal?.outcomeStatus === "pending";
-    ((pending || (!row.signal && releasedToday)) ? current : recent).push(row);
+    const waitingForEntry = row.signal?.entry == null && row.signal?.prospectiveCapture?.eligible === true && row.signal.outcomeStatus === "unevaluable";
+    const awaiting = !row.signal && (row.assessment?.status === "awaiting_observation" || row.assessment?.status === "qualified");
+    ((pending || waitingForEntry || awaiting) ? current : recent).push(row);
   }
   return { current, recent };
 }
@@ -127,18 +127,29 @@ export function buildRegisteredSetupSchedule(
       .sort((left, right) => left.time - right.time);
     return market.patterns
       .filter((pattern) => pattern.currentEligible)
-      .map((pattern) => ({
-        key: `${market.symbol}:${pattern.id}`,
-        market: market.symbol,
-        pattern,
-        watch: futureWatches.find((watch) => watch.patternId === pattern.id) ?? null,
-      }));
+      .flatMap((pattern) => {
+        const watches = futureWatches.filter((watch) => watch.patternId === pattern.id);
+        return (watches.length ? watches : [null]).map((watch) => ({
+          key: `${market.symbol}:${pattern.id}:${watch?.time ?? "undated"}`,
+          market: market.symbol,
+          pattern,
+          watch,
+        }));
+      });
   }).sort((left, right) => {
     if (left.watch && right.watch) return left.watch.time - right.watch.time || left.market.localeCompare(right.market) || (left.pattern.label ?? left.pattern.id).localeCompare(right.pattern.label ?? right.pattern.id);
     if (left.watch) return -1;
     if (right.watch) return 1;
     return left.market.localeCompare(right.market) || (left.pattern.label ?? left.pattern.id).localeCompare(right.pattern.label ?? right.pattern.id);
   });
+}
+
+export function getTradeMarkets(data: { response: MacroSignalChartSignalResponse; globalResponse?: { markets: MacroSignalChartSignalResponse[] } | null }): MacroSignalChartSignalResponse[] {
+  const markets = new Map((data.globalResponse?.markets ?? []).map((market) => [market.symbol, market]));
+  const selected = data.response;
+  const previous = markets.get(selected.symbol);
+  if (!previous || (selected.generatedAt ?? 0) >= (previous.generatedAt ?? 0)) markets.set(selected.symbol, selected);
+  return [...markets.values()].filter((market) => market.supported);
 }
 
 function countdownLabel(targetTime: number, now: number): string {
@@ -297,7 +308,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   onToggleHistoricalPattern?: (patternId: string) => void;
   onSetAllHistoricalPatterns?: (visible: boolean) => void;
 }) {
-  const markets = useMemo(() => data.globalResponse?.markets.filter((market) => market.supported) ?? [data.response], [data.globalResponse?.markets, data.response]);
+  const markets = useMemo(() => getTradeMarkets(data), [data.globalResponse?.markets, data.response]);
   const responseNow = data.response.generatedAt ?? Math.floor(Date.now() / 1_000);
   const [clock, setClock] = useState(responseNow);
   useEffect(() => {
@@ -400,7 +411,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
         </div>
       </section> : null}
       {(activeView === "recent" || activeView === "current") ? <section className="fms-action-activity fms-action-view" aria-label="Recent FMS activity">
-        <div className="fms-action-section-title"><span>Recent FMS activity</span><small>Newest first · latest {recentActivity.length}</small></div>
+        <div className="fms-action-section-title"><span>{activeView === "current" ? "Open trades and awaiting decisions" : "Closed trades and completed decisions"}</span><small>Newest first · all {displayedActivity.length}</small></div>
         {(data.refreshing || data.refreshedAt) ? <p className="fms-action-refresh-state" role="status">
           {data.refreshing ? "Refreshing; retaining the last successful data" : "Last successful data"}
           {data.refreshedAt ? ` · updated ${formatJakartaDisplayDateTime(data.refreshedAt)}` : ""}
