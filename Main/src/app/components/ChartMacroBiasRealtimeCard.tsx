@@ -513,7 +513,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       const watches = market.realtime?.upcomingPatternWatches ?? (market.realtime?.nextPatternWatch ? [market.realtime.nextPatternWatch] : []);
       for (const watch of watches) unique.set(`${market.symbol}:${watch.patternId}:${watch.time}`, { market, watch });
     }
-    return [...unique.values()].sort((left, right) => left.watch.time - right.watch.time || left.market.symbol.localeCompare(right.market.symbol) || left.watch.label.localeCompare(right.watch.label));
+    return [...unique.values()].sort((left, right) => left.watch.time - right.watch.time || left.market.symbol.localeCompare(right.market.symbol) || (left.watch.label ?? left.watch.patternId).localeCompare(right.watch.label ?? right.watch.patternId));
   }, [registryResponses]);
   const registeredPatternRows = useMemo(
     () => registryResponses.flatMap((market) => market.patterns.filter((pattern) => pattern.currentEligible)),
@@ -588,7 +588,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
         assessment,
       }];
     });
-  }).sort((left, right) => right.assessment.time - left.assessment.time || left.market.localeCompare(right.market) || left.assessment.label.localeCompare(right.assessment.label)), [registryResponses]);
+  }).sort((left, right) => right.assessment.time - left.assessment.time || left.market.localeCompare(right.market) || (left.assessment.label ?? left.assessment.patternId).localeCompare(right.assessment.label ?? right.assessment.patternId)), [registryResponses]);
   const currentTradeRows = useMemo(
     () => tradeRows.filter((row) => row.signal.observationMode !== "recovered_offline" && row.signal.outcomeStatus === "pending" && row.signal.entry != null),
     [tradeRows],
@@ -744,7 +744,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
         <div><ShieldCheck size={14} /><span>{view === "research" ? "FMS Research" : view === "setups" ? "Registered Setups" : "FMS Shadow Trader"}</span></div>
         <small>{view === "research" ? "Diagnostics and review" : data.globalResponse ? `${registryResponses.length} markets live` : timeframeLabel}</small>
       </header>
-      {registeredContextPatterns.length > 0 ? (
+      {view !== "setups" && registeredContextPatterns.length > 0 ? (
         <section className="chart-shadow-context-summary fms-research-only" aria-label="Reviewed context rule availability">
           <div><span>Reviewed H4 context rules</span><strong>{registeredContextPatterns.length} exact setup rules</strong></div>
           <p>{[...new Set(registeredContextPatterns.map((pattern) => pattern.market ?? response.symbol))].map((market) => {
@@ -754,7 +754,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           <small>Only matching arrows on these exact setups show <b>CONTEXT</b>. Click a past arrow to load its audit; when that entry had a confirmed opposing H4 zone, the chart shows it as an amber H4 support/resistance line.</small>
         </section>
       ) : null}
-      {data.globalResponse?.forwardValidation ? (() => {
+      {view !== "setups" && data.globalResponse?.forwardValidation ? (() => {
         const validation = data.globalResponse.forwardValidation;
         const operationalReady = validation.operationalPreflight?.signalMonitoringReadyNow ?? true;
         const demoEngineReady = validation.eligibleForDemoTrading && operationalReady;
@@ -840,8 +840,9 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           </div>
         </details>
       </section> : null}
+      {view !== "research" ? <>
       {data.globalLoading ? <section className="chart-shadow-global-state fms-setups-only">Loading the global registry…</section> : null}
-      {data.globalError ? <section className="chart-shadow-global-state is-error fms-setups-only">Global registry unavailable: {data.globalError}. Showing {response.symbol} only.</section> : null}
+      {data.globalError ? <section className="chart-shadow-global-state is-error fms-setups-only">Refresh delayed: {data.globalError}. Retaining the last loaded registry.</section> : null}
       <details className="chart-shadow-lower-disclosure fms-setups-only">
         <summary><span>Every registered setup</span><strong>{registeredPatterns.length}</strong><ChevronDown size={14} /></summary>
       <section className="chart-shadow-priority" aria-label="All registered FMS setups">
@@ -980,6 +981,8 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       </section>
       </details>
 
+      </> : null}
+      {view === "all" ? <>
       <details className="chart-shadow-lower-disclosure fms-setups-only">
         <summary><span>Hypothetical account and replay</span><strong>{formatMoney(liveAccount.balance)}</strong><ChevronDown size={14} /></summary>
       <section className="chart-shadow-account" aria-label="Gross hypothetical account and performance replay">
@@ -1079,11 +1082,15 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
         </details>
       ) : null}
 
+      </> : null}
+      {view !== "research" ? <>
       <details className="chart-shadow-lower-disclosure fms-setups-only">
         <summary><span>Registered setup benchmarks</span><strong>{registeredPatternRows.length}</strong><ChevronDown size={14} /></summary>
         <ChartMacroBiasSetupCatalog patterns={registeredPatternRows} />
       </details>
 
+      </> : null}
+      {view !== "setups" ? <>
       {registeredContextPatterns.length > 0 ? (
         <details className="chart-shadow-context-registry fms-research-only" open>
           <summary><span>Context-conditioned setups</span><strong>{registeredContextPatterns.length} reviewed rules</strong><ChevronDown size={14} /></summary>
@@ -1277,6 +1284,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           <small className="chart-shadow-source-note">“Avoid” does not mean the release is irrelevant. It means its economic direction did not produce a dependable standalone price-direction rule in the recorded tests.</small>
         </section>
       ) : null}
+      </> : null}
       <footer>{view === "research" ? "Research findings do not change active registered setups automatically." : "Hypothetical results only: spread, commission, slippage, and swap are excluded. No order is sent to MT5. Past results do not guarantee the next trade."}</footer>
     </aside>
   );

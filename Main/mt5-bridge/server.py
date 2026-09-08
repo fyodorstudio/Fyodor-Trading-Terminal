@@ -20,6 +20,7 @@ import MetaTrader5 as mt5
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
@@ -910,6 +911,7 @@ def _context_overlay_for_signal(pattern: Dict[str, Any], signal: Dict[str, Any])
   }
 
 app = FastAPI(title="MT5 Bridge", version="0.1.0")
+app.add_middleware(GZipMiddleware, minimum_size=4096, compresslevel=1)
 
 
 def _json_sanitize(obj: Any) -> Any:
@@ -4483,7 +4485,7 @@ def research_chart_signals(
       max(signal_activation_times) + 90 * 24 * 60 * 60,
     )
     signal_candle_times = [int(candle["time"]) for candle in signal_candles]
-    h1_signals = [signal for signal in evaluated_signals if signal.get("entryTimeframe") == "H1"]
+    h1_signals = [signal for signal in evaluated_signals if signal.get("entryTimeframe") == "H1" and signal.get("activationTime") is not None]
     signal_h1_candles = (
       _research_store.query_candles(
         normalized_symbol, "H1", min(int(signal["activationTime"]) for signal in h1_signals),
@@ -5641,6 +5643,23 @@ def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict
       try:
         last_known = json.loads(raw_last_known)
         if isinstance(last_known, dict) and last_known.get("modelHash") == PRACTICAL_MODEL_HASH:
+          # Pair refreshes persist independently. Never resurrect an older
+          # lifecycle from the global snapshot after a browser reload.
+          merged_markets = []
+          for market in last_known.get("markets", []):
+            raw_market = _research_store.get_metadata(f"fms_chart_response:current:{market['symbol']}")
+            if raw_market:
+              try:
+                newer = json.loads(raw_market).get("response")
+                if (isinstance(newer, dict)
+                    and newer.get("modelHash") == PRACTICAL_MODEL_HASH
+                    and newer.get("responseSchema") == FMS_CHART_RESPONSE_SCHEMA
+                    and int(newer.get("generatedAt") or 0) > int(market.get("generatedAt") or 0)):
+                  market = {**newer, "patterns": [_interactive_chart_pattern(row) for row in newer.get("patterns", [])]}
+              except (TypeError, ValueError):
+                logger.warning("Ignoring unreadable current market snapshot")
+            merged_markets.append(market)
+          last_known["markets"] = merged_markets
           return last_known
       except (TypeError, ValueError):
         logger.warning("Ignoring unreadable last-known global FMS response")

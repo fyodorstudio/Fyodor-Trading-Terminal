@@ -63,6 +63,7 @@ function controlAverage(metric: { n: number; averageR?: number | null }): string
 
 export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data }: { data: ChartMacroBiasRealtimeCardData }) {
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
   const [sort, setSort] = useState<KnowledgeSort>("credibility");
   const markets = data.globalResponse?.markets.filter((market) => market.supported) ?? [data.response];
   const weakened = useMemo(() => new Set((data.globalResponse?.outcomeReview?.executionReviews ?? []).filter((row) => row.status === "active_evidence_weakened").map((row) => `${row.market}:${row.patternId}`)), [data.globalResponse?.outcomeReview]);
@@ -133,7 +134,7 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data 
         ? (right.accuracy ?? -Infinity) - (left.accuracy ?? -Infinity)
         : CREDIBILITY_ORDER[right.credibility.label] - CREDIBILITY_ORDER[left.credibility.label]
           || (right.average ?? -Infinity) - (left.average ?? -Infinity);
-    return difference || left.market.localeCompare(right.market) || left.label.localeCompare(right.label);
+    return difference || left.market.localeCompare(right.market) || (left.label ?? left.market).localeCompare(right.label ?? right.market);
   }), [patterns, sort, weakened]);
   const ledger = useMemo(() => {
     const executionArtifacts = patterns.map(({ pattern }) => pattern.reactionAudit?.profile?.executionChallenger).filter(Boolean);
@@ -225,27 +226,33 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data 
     `Saved artifacts: ${entryResearch.hourly.sourceDirectory}; ${entryResearch.minute.sourceDirectory}.`,
   ].join("\n");
   const copy = async () => {
-    await navigator.clipboard?.writeText(markdown);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1_500);
+    try {
+      if (!navigator.clipboard) throw new Error("Clipboard unavailable in this browser.");
+      await navigator.clipboard.writeText(markdown);
+      setCopyError(null);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1_500);
+    } catch (error) { setCopyError(error instanceof Error ? error.message : "Copy failed"); }
   };
 
   return (
     <section className="fms-knowledge-card" aria-label="FMS durable knowledge">
       <header><div><BookOpen size={15} /><span>FMS Knowledge</span></div><button type="button" onClick={() => void copy()}><ClipboardCopy size={13} />{copied ? "Copied" : "Copy snapshot"}</button></header>
+      {copyError ? <p role="alert">{copyError}</p> : null}
       <section>
         <h2>What the research has taught us</h2>
         <p>This is the compact operational memory. Detailed immutable experiments remain in the Workbench and research archive.</p>
         <div className="fms-knowledge-findings">{FINDINGS.map(([title, detail]) => <article key={title}><strong>{title}</strong><p>{detail}</p></article>)}</div>
       </section>
-      <section>
+      <section><details><summary>Compare registered evidence grades</summary>
         <div className="fms-knowledge-section-heading"><div><h2>Registered evidence grading</h2><p>Evidence grades compare reproducibility, not the probability that the next trade wins.</p></div><label>Sort<select value={sort} onChange={(event) => setSort(event.target.value as KnowledgeSort)}><option value="credibility">Evidence grade</option><option value="expectancy">Expected payoff</option><option value="profit_frequency">Profit frequency</option><option value="tp_first">TP before SL</option></select></label></div>
         <table><thead><tr><th>Market and setup</th><th>Evidence / health</th><th>Expected payoff</th><th>Profit frequency</th><th>TP before SL</th><th>Observed mapping</th></tr></thead><tbody>{summary.map((row) => <tr key={`${row.market}:${row.label}`}><td><b>{row.market}</b><span>{row.label}</span></td><td title={row.credibility.detail}><strong className={`is-${row.credibility.label.toLowerCase()}`}>{row.credibility.label}</strong><span className={`is-${row.health.toLowerCase()}`}>{row.health}</span></td><td>{row.average == null ? "—" : `${row.average >= 0 ? "+" : ""}${row.average.toFixed(2)}R`}</td><td>{row.profitFrequency == null ? "—" : `${(row.profitFrequency * 100).toFixed(1)}%`}</td><td>{row.accuracy == null ? "—" : `${(row.accuracy * 100).toFixed(1)}%`}</td><td>{row.reaction}</td></tr>)}</tbody></table>
+        </details>
       </section>
       <section><h2>Research ledger</h2><p>Completed, failed, and research-only work is retained here so a later Codex pass can build on it instead of repeating it.</p><div className="fms-knowledge-research">{ledger.map((row) => <article key={row.id}><strong>{row.title} · {row.status}</strong><p>{row.evidence}</p><small>{row.conclusion}</small></article>)}</div></section>
       <section><h2>Next-search map</h2><p>The current campaigns are bounded and complete; the available calendar/OHLC hypothesis space is still open.</p><div className="fms-knowledge-research">{exhaustionResearch.rankedNextSearch.map((row) => <article key={row.rank}><strong>{row.rank}. {row.family}</strong><p>{row.why}</p></article>)}</div></section>
       <section><h2>Extended-pair co-release campaign</h2><p>An exact new-package hypothesis searched the 18 markets without registrations after excluding every Stage-A package identity.</p><div className="fms-knowledge-research"><article><strong>Completed · no promotion</strong><p>{extendedCorelease.configurationsTested.toLocaleString()} frozen configurations across {extendedCorelease.packagesTested} qualifying multi-factor packages and {extendedCorelease.marketsCompleted} markets produced {extendedCorelease.exploratoryFinalists} final-positive candidates.</p><small>{extendedCorelease.disclosure}</small></article></div></section>
-      <section><h2>Exploratory mined candidates</h2><p>{controlledMining.disclosure} {controlledMining.summary.recipeFinalists} recipe-level selections survived nested development and selection; {minedShadow.length} also stayed positive in the final reused-history audit and are monitored against post-registration observations.</p><div className="fms-knowledge-research">{minedShadow.sort((left, right) => (right.final.upliftAverageR ?? -Infinity) - (left.final.upliftAverageR ?? -Infinity)).slice(0, 8).map((row) => <article key={row.recipe}><strong>{row.recipe.replace("|", " · ")} · Exploratory / high overfit risk</strong><p>Keep only {Object.entries(row.rule).map(([key, value]) => `${key.replaceAll(/([A-Z])/g, " $1").toLowerCase()} = ${value}`).join(" and ")}.</p><small>Reused-history final N {row.final.kept.n} · uplift {row.final.upliftAverageR == null ? "—" : `${row.final.upliftAverageR >= 0 ? "+" : ""}${row.final.upliftAverageR.toFixed(2)}R`}. Controls: always-long {controlAverage(row.controlMetrics.alwaysLong)}; always-short {controlAverage(row.controlMetrics.alwaysShort)}; opposite {controlAverage(row.controlMetrics.oppositeDirection)}; shifted non-event {controlAverage(row.controlMetrics.nonEventSevenDaysEarlier)}. Shadow: {row.liveN} first-seen / {row.liveR >= 0 ? "+" : ""}{row.liveR.toFixed(2)}R gross; {row.recoveredN} recovered / {row.recoveredR >= 0 ? "+" : ""}{row.recoveredR.toFixed(2)}R gross. Never actionable.</small></article>)}</div></section>
+      <section><h2>Exploratory mined candidates</h2><p>{controlledMining.disclosure} {controlledMining.summary.recipeFinalists} recipe-level selections survived nested development and selection; {minedShadow.length} also stayed positive in the final reused-history audit and are monitored against post-registration observations.</p><div className="fms-knowledge-research">{[...minedShadow].sort((left, right) => (right.final.upliftAverageR ?? -Infinity) - (left.final.upliftAverageR ?? -Infinity)).slice(0, 8).map((row) => <article key={row.recipe}><strong>{row.recipe.replace("|", " · ")} · Exploratory / high overfit risk</strong><p>Keep only {Object.entries(row.rule).map(([key, value]) => `${key.replaceAll(/([A-Z])/g, " $1").toLowerCase()} = ${value}`).join(" and ")}.</p><small>Reused-history final N {row.final.kept.n} · uplift {row.final.upliftAverageR == null ? "—" : `${row.final.upliftAverageR >= 0 ? "+" : ""}${row.final.upliftAverageR.toFixed(2)}R`}. Controls: always-long {controlAverage(row.controlMetrics.alwaysLong)}; always-short {controlAverage(row.controlMetrics.alwaysShort)}; opposite {controlAverage(row.controlMetrics.oppositeDirection)}; shifted non-event {controlAverage(row.controlMetrics.nonEventSevenDaysEarlier)}. Shadow: {row.liveN} first-seen / {row.liveR >= 0 ? "+" : ""}{row.liveR.toFixed(2)}R gross; {row.recoveredN} recovered / {row.recoveredR >= 0 ? "+" : ""}{row.recoveredR.toFixed(2)}R gross. Never actionable.</small></article>)}</div></section>
       <section><h2>Owner action needed</h2><p>Codex can continue research without case-picking. Owner action is limited to source capture and execution records.</p><div className="fms-knowledge-research">
         <article><strong>Keep MT5 calendar capture running</strong><p>This preserves future first-seen Actual/Forecast/Previous packages and creates the chronology needed to judge exploratory candidates honestly.</p></article>
         <article><strong>Resolve missing source only when named</strong><p>If FMS reports a missing broker series, candle window, or symbol, run the stated backfill or confirm that the broker does not supply it. Do not choose winners or favorable cases.</p></article>

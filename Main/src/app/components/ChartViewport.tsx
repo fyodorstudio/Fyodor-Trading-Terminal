@@ -33,7 +33,7 @@ class FmsDockErrorBoundary extends Component<{ children: ReactNode }, { error: s
   }
 
   render() {
-    if (this.state.error) return <section className="chart-fms-dock-loading is-error"><strong>FMS panel could not render</strong><span>{this.state.error}</span></section>;
+    if (this.state.error) return <section className="chart-fms-dock-loading is-error"><strong>FMS panel could not render</strong><span>{this.state.error}</span><button type="button" onClick={() => this.setState({ error: null })}>Retry panel</button></section>;
     return this.props.children;
   }
 }
@@ -233,7 +233,7 @@ export function ChartViewport({
 
   useEffect(() => {
     if (macroBiasAudit) setFmsDockTab("result");
-    else if (macroBiasRealtime) setFmsDockTab("trade");
+    else setFmsDockTab((current) => current === "result" ? "trade" : current);
   }, [macroBiasAudit?.signal.id, Boolean(macroBiasRealtime)]);
 
   useEffect(() => {
@@ -309,7 +309,7 @@ export function ChartViewport({
                 <button type="button" className={fmsDockTab === "result" ? "is-active" : ""} disabled={!macroBiasAudit} onClick={() => setFmsDockTab("result")}>Past Result</button>
               </nav>
               <div className="chart-fms-dock-content">
-                <FmsDockErrorBoundary key={`${fmsDockTab}:${macroBiasRealtime?.response.symbol ?? "loading"}`}>
+                <FmsDockErrorBoundary key={fmsDockTab}>
                 {fmsDockTab === "result" && macroBiasAudit
                   ? <ChartMacroBiasAudit data={macroBiasAudit} />
                   : fmsDockTab === "trade" && macroBiasRealtime

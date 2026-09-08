@@ -1843,6 +1843,7 @@
 .fms-action-detail-row th, .fms-action-detail-row td { border-bottom: 1px solid #eceff3; padding: 6px 8px; overflow-wrap: anywhere; font-size: 8px; line-height: 1.4; text-align: left; vertical-align: top; }
 .fms-action-detail-row th { width: 18%; background: #f8fafc; color: #64748b; font-weight: 800; text-transform: uppercase; }
 .fms-action-detail-row td { color: #1f2937; }
+.fms-action-detail-row td > small { display: block; margin-top: 2px; color: #64748b; }
 .fms-demo-tag { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 7px; align-items: center; }
 .fms-demo-tag code { overflow-wrap: anywhere; color: #4338ca; font-size: 8px; font-weight: 800; }
 .fms-demo-tag button { min-height: 24px; border: 1px solid #cbd5e1; background: #fff; padding: 2px 7px; color: #312e81; font-size: 8px; font-weight: 800; cursor: pointer; }
@@ -1997,3 +1998,13 @@
   .charts-tab-page .chart-viewport-surface.has-fms-dock > .chart-fms-dock { top: 124px; }
 }
 
+
+/* FMS decision details share the same release cards as Past Result. */
+.fms-action-detail-row .chart-macro-bias-trigger { padding: 0; border: 0; background: transparent; }
+.fms-action-detail-row .chart-macro-bias-events { max-height: 260px; }
+.fms-action-detail-row details > summary { cursor: pointer; color: #4338ca; }
+.fms-action-detail-row details > p { max-height: 180px; overflow: auto; white-space: normal; }
+.fms-action-activity .fms-action-detail-row th,
+.fms-action-activity .fms-action-detail-row td { font-size: 10px; line-height: 1.5; }
+.chart-fms-dock-tabs button { overflow-wrap: anywhere; }
+.fms-knowledge-card details > summary { cursor: pointer; font-weight: 700; padding: 6px 0; }

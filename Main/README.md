@@ -1,5 +1,7 @@
 # Fyodor Trading Terminal - Main
 
+Frontend reference only; not required startup reading. Start with [task navigation](../docs/NAVIGATION.md). Root AGENTS and the active Checklist supersede historical instructions below.
+
 This is the active frontend app built in `C:\dev\Fyodor Trading Terminal\Main`.
 
 The app is a local manual-trading support terminal built around MT5 candles, broker economic-calendar rows, central-bank derivations, and event-replay study. The user still performs independent technical analysis outside Fyodor; this app explains the macro/event context behind the pair being inspected.

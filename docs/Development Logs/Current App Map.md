@@ -2,7 +2,7 @@
 
 Last updated: 2026-09-01
 
-This is the short orientation doc for future AI and human sessions. Read it with `Checklist.md` before using older roadmap, audit, or patch notes.
+Detailed route reference, not required startup reading. Use [navigation](../NAVIGATION.md) to find one owner; current Checklist and user decisions supersede older product descriptions below.
 
 ## Active Planning Rule
 
@@ -121,12 +121,6 @@ Do not read, delete, or promote these unless the user explicitly asks for garbag
 
 Older docs may be historically useful, but they are not current truth unless the user says so.
 
-Default read order:
-
-1. `docs/Development Logs/Checklist.md`
-2. this file
-3. root `README.md`
-4. `Main/README.md`
-5. relevant source files
+No additional mandatory reading chain. Follow root AGENTS and consult only task-relevant sections.
 
 Avoid reading `docs/Private` by default.

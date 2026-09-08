@@ -88,7 +88,7 @@ function stateLabel(signal: MacroSignalChartSignal): string {
   if (signal.outcomeStatus === "target_hit") return "TP reached";
   if (signal.outcomeStatus === "stop_hit") return "SL reached";
   if (signal.outcomeStatus === "expired") return "Expired";
-  if (signal.outcomeStatus === "pending") return signal.entry == null ? "Waiting for entry" : "Running";
+  if (signal.outcomeStatus === "pending") return signal.entry == null ? signal.prospectiveCapture?.eligible ? "Waiting for entry" : "Entry unavailable" : "Running";
   if (signal.outcomeStatus === "ambiguous") return "Ambiguous";
   return signal.outcomeReason ?? "Unavailable";
 }
@@ -179,10 +179,10 @@ export const ChartFmsJournalCard = memo(function ChartFmsJournalCard({ data }: {
     ambiguous: rows.filter((row) => row.state === "Ambiguous").length,
     unavailable: rows.filter((row) => row.source !== "no_trade" && row.resultR == null).length,
   }), [rows]);
-  const live = aggregate(allRows, "live");
-  const recovered = aggregate(allRows, "recovered");
+  const live = aggregate(rows, "live");
+  const recovered = aggregate(rows, "recovered");
   const weekDays = Array.from({ length: 5 }, (_, index) => {
-    const start = weekStart + index * 86_400;
+    const start = weekStart - (scope === "previous_week" ? 7 * 86400 : 0) + index * 86_400;
     const dayRows = allRows.filter((row) => rowResolvedTime(row) >= start && rowResolvedTime(row) < start + 86_400);
     return { start, rows: dayRows, live: aggregate(dayRows, "live"), recovered: aggregate(dayRows, "recovered") };
   });

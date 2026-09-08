@@ -1,100 +1,36 @@
-# Fyodor Trading Terminal Agent Guide
+# Fyodor agent rules
 
-Use this file as the first stop for future AI sessions.
+## Start small
 
-## Read First
+- Read `CONTEXT.md` once per session. Read `docs/Development Logs/Checklist.md` for ongoing work, decisions, and pending verification. For a narrow fix, start with its relevant handoff section.
+- Use `docs/NAVIGATION.md` only if the owning file is unknown. Read relevant source and local instructions next. Do not read every README, map, or research document for orientation.
+- Search FMS Knowledge or the research ledger for the particular hypothesis before rerunning research. They are references, not mandatory cover-to-cover reading.
+- Current user instructions take precedence over repository guidance. Historical docs describe past states; they do not authorize new work.
 
-1. `README.md`
-2. `CONTEXT.md`
-3. `docs/Development Logs/Checklist.md`
-4. `Main/README.md`
-5. `docs/Development Logs/Current App Map.md`
-6. `docs/Development Logs/UI Design.md`
-7. `Main/src/app/tabs/README.md`
-8. The smallest relevant source files for the requested task
+## Work economically
 
-Ignore `docs/Private` unless the user explicitly asks for it.
+- Optimize correctness and completed work per usage consumed. Work alone; no subagents.
+- Establish evidence before fixing a bug. Distinguish a confirmed cause from a hypothesis; verify the originally failing behavior before calling it fixed.
+- Complete the authorized scope autonomously. Do not expand into optional cleanup, unrelated refactors, upgrades, or new systems.
+- Use targeted `rg` searches and bounded reads. Batch related independent inspections; avoid repeated reads, large payloads, and redundant status/diff checks.
+- Reuse valid checks, cached datasets, fingerprints, and checkpoints. Regenerate only when relevant inputs changed. Do not repeatedly poll unchanged state or restart services without a reason.
+- Implement a coherent batch, validate the affected behavior, fix failures, then run one necessary final gate. Do not skip financial/data/lifecycle verification to save tokens.
+- Use existing targeted checks. New test files require explicit user agreement; explain the protected behavior first. No broad suite unless justified. `pnpm run typecheck` is the TypeScript gate; docs-only edits need link/content checks, not builds.
+- Stay quiet during implementation except for blockers, material findings, or required progress updates. Final: outcome, material caveats, exact manual checks. Never claim browser validation from typecheck or static rendering.
+- At milestones, replace stale handoff text with current facts, unresolved issues, and reusable validation. Keep completed history out of the active Checklist. Update CONTEXT only for durable knowledge.
 
-## Product Boundary
+## Boundaries
 
-Fyodor is a local manual-trading support terminal. It helps inspect MT5 candles, broker economic-calendar rows, central-bank context, and event replay. It must not pretend to generate guaranteed trades or buy/sell calls.
+- Local manual-trading support only; never send MT5 orders or promise profitability. Trusted inputs: MT5 OHLCV and broker economic calendar. FMS results stay gross; no new cost model or external feed.
+- Preserve immutable contracts, first-seen provenance, no-lookahead semantics, and unrelated user changes. Statistical uncertainty is visible evidence, not an automatic veto of a positive historical recipe.
+- Bridge edits require user authorization covering bridge work; honor existing authorization without asking twice. Leave real-account access outside scope unless explicitly authorized.
+- Ignore `docs/Private`, `docs/IGNORE`, archives, generated artifacts, and `garbage` directories unless specifically needed/requested. Never delete them merely to simplify navigation.
+- Use `pnpm`; retain route IDs and lockfile ownership. Keep active and garbage routes/styles separate. `react-world-flags` is known working; do not refactor it because of chunk size or a standalone SSR harness problem.
+- Do not leave agent-started services occupying port 8001. Use hidden background processes with redirected logs; avoid attached noisy dev sessions.
 
-FMS is the primary product objective. Its practical research loop is: discover immutable, no-lookahead economic-event recipes with positive historical walk-forward expectancy; register the non-duplicated recipes with their fixed scoring and execution contracts; display their historical arrows; then monitor future releases in Shadow Trader. Statistical confidence, stability, sample size, and trading-cost omissions must remain visible diagnostics, but an academic confidence threshold must not automatically veto an otherwise positive historical recipe. Never relabel this as guaranteed profitability or send an MT5 order.
+## UI work
 
-Trusted live data is intentionally limited to MT5 OHLCV plus broker/MT5 economic-calendar rows unless the user explicitly changes that boundary.
-
-## UI / Viewport Rule
-
-- Active tabs should target normal desktop use at 100% Chrome zoom without whole-page vertical scrolling.
-- Use bounded panels, popovers, modals, collapsible sections, and internal scroll regions when a surface needs more detail.
-- If an active tab intentionally requires whole-page scrolling, document why in `docs/Development Logs/Checklist.md` before treating it as acceptable.
-- UI changes are not complete just because tests, typecheck, or build pass. For visible Charts, Pair Matrix, Event Lens, table, popover, dock, or toolbar changes, do not run Playwright/CDP/smoke automation by default unless the user explicitly asks for it; it is too token-expensive for the preferred workflow. Instead, finish with a concise manual audit checklist for 1440x900 at 100% Chrome zoom, and state plainly that the user should perform that audit.
-- Do not ship visible overlap, clipped ordinary text, accidental horizontal scroll, hidden controls, blank wasted panel space, or tiny unreadable labels. If a dense surface cannot fit all details, redesign the information hierarchy instead of squeezing smaller text into the same box.
-- For fixed grid/table UIs such as Pair Matrix, every row must have a stable column contract. Do not add extra visible children, badges, chips, labels, or wrappers inside a fixed grid lane unless the grid template is updated and visually verified. Metadata belongs in an existing slot, title/details text, or a deliberate expanded detail area.
-- Pair Matrix-specific warning: the Evidence rows must keep `Latest | Next` aligned across all factors, must not repeat bulky per-cell labels, and must never let bundle/reason/status text bleed into Compare or Driver columns.
-
-## CSS Ownership Rule
-
-- Do not casually add feature CSS to `Main/src/styles.css`.
-- New styling must be owned by a specific active surface or by an explicitly shared primitive.
-- `Main/src/styles.css` is the active import aggregator. Keep feature CSS in owned files under `Main/src/styles/`.
-- `Main/src/styles/garbage.css` is the garbage-only import aggregator and should only be loaded by garbage routes.
-- First CSS split pass is extraction-only: preserve selector names, selector order, and visual behavior.
-- Do not rename selectors, delete dead CSS, or refactor global cascade during the first split.
-- Garbage/prototype CSS must not steer active product design. Keep it isolated and ignored unless the user explicitly asks for garbage-drawer styling work.
-- Do not add garbage/prototype CSS imports back into `Main/src/styles.css`.
-- If a new selector is genuinely shared, document why it is shared instead of putting surface-specific styling into a global bucket.
-
-## Active Surfaces
-
-Primary top-nav surfaces:
-
-- `Overview` - fresh pair-brief surface built from the selected pair, MT5 calendar rows, central-bank snapshots, and market status.
-- `Central Banks Data` - current reference surface; avoid touching without a targeted reason.
-- `Charts` - primary chart inspection surface.
-- `Economic Calendar` - primary calendar and event inspector.
-- `Specialist Tools` - drawer for active secondary tools plus Prototyping.
-
-Secondary surfaces:
-
-- `FMS Experiment Workbench` is the active Specialist Tool using the stable route id `macro-signal-lab`.
-- `Differential Calculator` is an active experiment using route id `dashboard`.
-- `Event Replay`, `Macro Drivers`, and `Prototyping` are grouped under `Garbage / Ignore`; their stable routes remain available but they must not steer active product design.
-- `Main/src/app/tabs/secondary` should contain only active secondary shells/surfaces.
-- Ignore `Main/src/app/tabs/garbage` unless the user explicitly asks for a file or route inside it. Do not read garbage files for general orientation.
-- Ignore `Main/src/app/lib/garbage` unless the user explicitly asks for garbage-drawer supporting logic. Active Differential Calculator and FMS helpers remain in `Main/src/app/lib`; retained Event Replay and Macro Drivers helpers must not steer active product work.
-
-## Repo Hygiene
-
-- Use `pnpm`; do not introduce npm/yarn lockfiles.
-- Leave `Main/mt5-bridge` alone unless the user explicitly asks for bridge work.
-- Keep route ids stable unless the user approves a routing migration.
-- Prefer helper extraction and docs maps over deleting old tools.
-- Do not create new tests unless the user explicitly agrees. Before creating a test, explain in plain English what behavior it protects.
-- Prefer targeted verification. Do not run broad/full test suites after every small pass; explain why before running full tests.
-- `pnpm run typecheck` is the repo-level TypeScript gate. Garbage files that are intentionally quarantined may use `@ts-nocheck` so archived code does not pollute active-surface checks.
-- `react-world-flags` currently works and has a local declaration at `Main/src/types/react-world-flags.d.ts`. Its large `FlagIcon` build chunk is known non-blocking noise; do not replace or refactor flags unless the user explicitly asks.
-- Garbage tests live under `Main/src/app/tests/garbage`. Ignore them unless the user explicitly asks for garbage-drawer work.
-
-## Token-Efficient Agent Protocol
-
-- Optimize for correct completed work per rate-limit consumption. Priority: correctness, completion, behavior/data integrity, necessary validation, token efficiency, then speed.
-- Never spawn or use subagents.
-- Read `CONTEXT.md`, the active Checklist, and existing FMS Knowledge before rediscovering established facts. Treat settled Checklist decisions as approved unless concrete evidence disproves them.
-- In goal mode, execute the accepted plan autonomously until complete. Stop early only for a genuine blocker requiring user input, credentials, authorization, or a destructive decision.
-- Inspect the smallest relevant code surface first. Prefer targeted searches and bounded reads; expand only when necessary.
-- Avoid duplicate searches, rereading unchanged files, broad output, repeated status/diff/API checks, speculative fixes, and rediscovering known facts.
-- Avoid unrelated refactors, cleanup, formatting, modernization, renaming, dependency upgrades, or architecture changes. Preserve unrelated user changes.
-- Batch related independent inspections when practical, but do dependent edits and validations sequentially.
-- Do not regenerate unchanged artifacts, builds, datasets, or backtests. Reuse completed fingerprints, checkpoints, and earlier valid command results.
-- Avoid repeated polling, sleeps, service restarts, and health checks. Poll a confirmed live handle or durable checkpoint only when the result changes the next action.
-- Never run a noisy development service in an attached tool session. Redirect logs, inspect only a bounded tail on failure, and stop agent-started services before handoff so port 8001 remains available to `pnpm run dev:all`.
-- Do not print large JSON, candle arrays, database rows, API payloads, diffs, or service logs into the conversation. Extract only decision-relevant fields, counts, and hashes.
-- Prefer implement, targeted validation, fix failures, then one final necessary gate. Do not run broad and narrow equivalent checks unless a failure requires investigation.
-- Validate proportionally to risk. Do not under-validate financial, trading, backtesting, statistical/research, data, database, security, or irreversible logic.
-- For bugs: reproduce, inspect evidence, form one hypothesis, fix, and verify. Avoid speculative repeated fixes.
-- Do not repeat an accepted plan or narrate routine file inspection, edits, and verification.
-- Combine related inspections and verification commands when practical.
-- During clear implementation work, stay silent except when blocked, when material risk is discovered, when user input is required, or when higher-level runtime rules require a brief progress update.
-- Finish with only a minimal completion statement, material caveats, and the exact manual audit checklist.
-- This protocol never overrides safety requirements, approval boundaries, or higher-priority system/developer instructions.
+- Target 1440x900 at 100% Chrome zoom, bounded panels and internal scrolling. No overlap, clipped controls, tiny labels, or accidental horizontal/whole-page overflow. Document intentional exceptions in Checklist.
+- No Playwright/CDP/browser automation unless requested. Give the owner a concise visual checklist and state that visual verification remains theirs.
+- Feature CSS belongs in its owning `Main/src/styles/` file; `Main/src/styles.css` is the import aggregator. Preserve cascade/order when extracting CSS. Shared selectors require a real shared owner.
+- Fixed grids must keep a stable column contract. Pair Matrix Evidence must align Latest/Next and keep metadata out of Compare/Driver lanes.

@@ -363,6 +363,8 @@ export async function fetchMacroSignalForwardPaper(versionId = "FMS-EURUSD-LABOR
   );
 }
 
+const chartSignalRequests = new Map<string, Promise<MacroSignalChartSignalResponse>>();
+
 export async function fetchMacroSignalChartSignals(params: {
   symbol: string;
   timeframe: string;
@@ -379,9 +381,13 @@ export async function fetchMacroSignalChartSignals(params: {
   if (params.refresh) search.set("refresh", "true");
   if (params.compact) search.set("compact", "true");
   if (params.markersOnly) search.set("markers_only", "true");
-  return fetchJson<MacroSignalChartSignalResponse>(
-    `${BRIDGE_BASE}/research/chart-signals?${search.toString()}`,
-  );
+  const url = `${BRIDGE_BASE}/research/chart-signals?${search.toString()}`;
+  const pending = chartSignalRequests.get(url);
+  if (pending) return pending;
+  const request = fetchJson<MacroSignalChartSignalResponse>(url, { signal: AbortSignal.timeout(90_000) })
+    .finally(() => { chartSignalRequests.delete(url); });
+  chartSignalRequests.set(url, request);
+  return request;
 }
 
 export async function fetchMacroSignalTargetLadder(params: {
@@ -402,7 +408,7 @@ export async function fetchMacroSignalTargetLadder(params: {
 export async function fetchMacroSignalGlobalRegistry(options: { refresh?: boolean } = {}): Promise<MacroSignalGlobalResponse> {
   const search = new URLSearchParams({ tf: "H4" });
   if (options.refresh) search.set("refresh", "true");
-  return fetchJson<MacroSignalGlobalResponse>(`${BRIDGE_BASE}/research/chart-signals/global?${search.toString()}`);
+  return fetchJson<MacroSignalGlobalResponse>(`${BRIDGE_BASE}/research/chart-signals/global?${search.toString()}`, { signal: AbortSignal.timeout(90_000) });
 }
 
 let preloadedMacroSignalGlobalRegistry: MacroSignalGlobalResponse | null = null;

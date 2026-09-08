@@ -1,5 +1,6 @@
+import { FmsReleaseCards } from "@/app/components/FmsReleaseCards";
 import { X } from "lucide-react";
-import { formatJakartaDisplayDateTime, parseNumericValue } from "@/app/lib/format";
+import { formatJakartaDisplayDateTime } from "@/app/lib/format";
 import type { MacroSignalChartMode, MacroSignalChartPattern, MacroSignalChartSignal } from "@/app/types";
 
 export interface ChartMacroBiasAuditData {
@@ -26,13 +27,6 @@ function formatR(value: number | null | undefined): string {
   return value == null ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(2)}R`;
 }
 
-function formatReleaseDifference(actual: string | null, comparison: string | null): string {
-  const actualValue = parseNumericValue(actual ?? "");
-  const comparisonValue = parseNumericValue(comparison ?? "");
-  if (actualValue == null || comparisonValue == null) return "—";
-  const difference = Number((actualValue - comparisonValue).toPrecision(8));
-  return `${difference > 0 ? "+" : ""}${difference}`;
-}
 
 function formatPips(value: number | null | undefined): string {
   return value == null ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(1)} pips`;
@@ -250,16 +244,7 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
           <span>Why the arrow appeared</span>
           <strong>{signalEvents.length > 0 ? `${signalEvents.length} release${signalEvents.length === 1 ? "" : "s"} matched this setup` : data.detailLoading ? "Loading the frozen release package…" : "Registered event package"}</strong>
         </div>
-        <div className="chart-macro-bias-events">
-          {signalEvents.map((event) => (
-            <div key={`${event.id}:${event.time}`}>
-              <strong>{event.title}</strong>
-              <small>{event.currency}/{event.countryCode}</small>
-              <span>A {event.actual || "—"} · F {event.forecast || "—"} · P {event.previous || "—"} · Surprise {formatReleaseDifference(event.actual, event.forecast)} ({event.surprisePoint == null ? "—" : `${event.surprisePoint > 0 ? "+" : ""}${event.surprisePoint}`}) · Momentum {formatReleaseDifference(event.actual, event.previous)} ({event.momentumPoint == null ? "—" : `${event.momentumPoint > 0 ? "+" : ""}${event.momentumPoint}`})</span>
-              <b>Score {event.score > 0 ? "+" : ""}{event.score}</b>
-            </div>
-          ))}
-        </div>
+        <FmsReleaseCards releases={signalEvents} />
         {data.detailError ? <p className="chart-macro-bias-detail-error">Full frozen detail is unavailable: {data.detailError}. Provisional Entry/SL/TP geometry remains visible.</p> : null}
       </section>
 

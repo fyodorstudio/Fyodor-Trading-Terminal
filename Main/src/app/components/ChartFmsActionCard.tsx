@@ -1,3 +1,4 @@
+import { FmsReleaseCards } from "@/app/components/FmsReleaseCards";
 import { AlertTriangle, Clock3, ShieldCheck } from "lucide-react";
 import { Fragment, memo, useEffect, useMemo, useState } from "react";
 import { FlagIcon } from "@/app/components/FlagIcon";
@@ -7,17 +8,10 @@ import { formatJakartaDisplayDateTime } from "@/app/lib/format";
 import entryResearch from "@/app/lib/fmsEntryResearchSummary.json";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalPatternAssessment, MacroSignalUpcomingPatternWatch } from "@/app/types";
 
-const ENTRY_GRACE_SECONDS = 90;
 
 type ForwardSetupSummary = NonNullable<ChartMacroBiasRealtimeCardData["globalResponse"]>["forwardValidation"] extends infer T
   ? T extends { setupSummaries: Array<infer R> } ? R : never
   : never;
-
-type ActionCandidate = {
-  market: string;
-  pattern: MacroSignalChartPattern;
-  signal: MacroSignalChartSignal;
-};
 
 export type RegisteredSetupScheduleRow = {
   key: string;
@@ -41,6 +35,7 @@ export type RecentFmsActivityRow = {
 
 function signalActivityState(signal: MacroSignalChartSignal): string {
   if (signal.entry == null && signal.prospectiveCapture?.eligible) return "Waiting for entry";
+  if (signal.entry == null) return "No trade open · entry unavailable";
   if (signal.outcomeStatus === "pending") return "Trade open";
   if (signal.outcomeStatus === "target_hit") return `TP reached${signal.resultR == null ? "" : ` · ${signal.resultR >= 0 ? "+" : ""}${signal.resultR.toFixed(2)}R`}`;
   if (signal.outcomeStatus === "stop_hit") return `SL reached${signal.resultR == null ? "" : ` · ${signal.resultR.toFixed(2)}R`}`;
@@ -49,7 +44,7 @@ function signalActivityState(signal: MacroSignalChartSignal): string {
   return "Not evaluable";
 }
 
-export function buildRecentFmsActivity(markets: MacroSignalChartSignalResponse[]): RecentFmsActivityRow[] {
+export function buildRecentFmsActivity(markets: MacroSignalChartSignalResponse[], now = Math.floor(Date.now() / 1000)): RecentFmsActivityRow[] {
   const rows = new Map<string, RecentFmsActivityRow>();
   for (const market of markets) {
     const patterns = new Map(market.patterns.filter((pattern) => pattern.currentEligible).map((pattern) => [pattern.id, pattern]));
@@ -70,7 +65,22 @@ export function buildRecentFmsActivity(markets: MacroSignalChartSignalResponse[]
         : assessment.status === "qualified" ? "Qualified"
         : "Audit only";
       const key = `${market.symbol}:${assessment.patternId}:${assessment.time}`;
-      rows.set(key, { key, market: market.symbol, label: pattern.label, time: signal?.exitTime ?? assessment.time, direction: signal?.direction ?? assessment.direction, state, source, pattern, signal, assessment });
+      rows.set(key, { key, market: market.symbol, label: pattern.label ?? pattern.id, time: signal?.exitTime ?? assessment.time, direction: signal?.direction ?? assessment.direction, state, source, pattern, signal, assessment });
+    }
+    // A scheduled release must survive the gap before its first assessment.
+    for (const watch of market.realtime?.upcomingPatternWatches ?? []) {
+      if (watch.time > now || now - watch.time > 86400) continue;
+      const pattern = patterns.get(watch.patternId);
+      const key = `${market.symbol}:${watch.patternId}:${watch.time}`;
+      if (!pattern || rows.has(key) || signalsByDecision.has(`${watch.patternId}:${watch.time}`)) continue;
+      const assessment: MacroSignalPatternAssessment = {
+        time: watch.time, patternId: watch.patternId, label: watch.label,
+        condition: watch.condition, status: "awaiting_observation", direction: null,
+        reason: "Scheduled release time reached. Waiting for the bridge to record and evaluate the released values.",
+        events: watch.events,
+      };
+      rows.set(key, { key, market: market.symbol, label: pattern.label ?? pattern.id,
+        time: watch.time, direction: null, state: "Awaiting release data", source: "decision", pattern, signal: null, assessment });
     }
     for (const signal of signals) {
       const pattern = patterns.get(signal.patternId);
@@ -80,7 +90,7 @@ export function buildRecentFmsActivity(markets: MacroSignalChartSignalResponse[]
       rows.set(key, {
         key,
         market: market.symbol,
-        label: pattern.label,
+        label: pattern.label ?? pattern.id,
         time: signal.exitTime ?? signal.eventTime,
         direction: signal.direction,
         state: signalActivityState(signal),
@@ -92,6 +102,18 @@ export function buildRecentFmsActivity(markets: MacroSignalChartSignalResponse[]
     }
   }
   return [...rows.values()].sort((left, right) => right.time - left.time || left.market.localeCompare(right.market) || left.label.localeCompare(right.label));
+}
+
+export function partitionFmsActivity(activity: RecentFmsActivityRow[], now: number) {
+  const today = Math.floor((now + 7 * 3600) / 86400);
+  const current: RecentFmsActivityRow[] = [];
+  const recent: RecentFmsActivityRow[] = [];
+  for (const row of activity) {
+    const releasedToday = Math.floor(((row.assessment?.time ?? row.signal?.eventTime ?? row.time) + 7 * 3600) / 86400) === today;
+    const pending = row.signal?.outcomeStatus === "pending";
+    ((pending || (!row.signal && releasedToday)) ? current : recent).push(row);
+  }
+  return { current, recent };
 }
 
 export function buildRegisteredSetupSchedule(
@@ -112,10 +134,10 @@ export function buildRegisteredSetupSchedule(
         watch: futureWatches.find((watch) => watch.patternId === pattern.id) ?? null,
       }));
   }).sort((left, right) => {
-    if (left.watch && right.watch) return left.watch.time - right.watch.time || left.market.localeCompare(right.market) || left.pattern.label.localeCompare(right.pattern.label);
+    if (left.watch && right.watch) return left.watch.time - right.watch.time || left.market.localeCompare(right.market) || (left.pattern.label ?? left.pattern.id).localeCompare(right.pattern.label ?? right.pattern.id);
     if (left.watch) return -1;
     if (right.watch) return 1;
-    return left.market.localeCompare(right.market) || left.pattern.label.localeCompare(right.pattern.label);
+    return left.market.localeCompare(right.market) || (left.pattern.label ?? left.pattern.id).localeCompare(right.pattern.label ?? right.pattern.id);
   });
 }
 
@@ -142,12 +164,34 @@ function signed(value: number): string {
   return `${value > 0 ? "+" : ""}${value}`;
 }
 
+function decisionSummary(assessment: MacroSignalPatternAssessment | null): string {
+  if (!assessment) return "No separate release decision loaded.";
+  const reason = assessment.reason;
+  const ruleEnd = reason.indexOf("Frozen rule:");
+  if (ruleEnd >= 0) {
+    const result = reason.slice(ruleEnd).match(/(?:This package|No complete|The package)[\s\S]*/);
+    if (result) return result[0];
+  }
+  return reason;
+}
+
+function assessmentReading(market: string, assessment: MacroSignalPatternAssessment): string {
+  const currencies = new Set(assessment.events.map((event) => event.currency));
+  if (currencies.size !== 1) return "Multiple currencies: inspect each release below";
+  const currency = assessment.events[0]?.currency;
+  const total = assessment.calculations?.reduce((sum, row) => sum + row.score, 0) ?? 0;
+  if (!currency || total === 0) return "Mixed or neutral economic reading";
+  const positive = total > 0;
+  const pairDirection = market.startsWith(currency) ? positive ? "higher" : "lower" : positive ? "lower" : "higher";
+  return `${currency}-${positive ? "positive" : "negative"} · economic pressure favors ${market} ${pairDirection}`;
+}
+
 function price(value: number | null | undefined): string {
-  return value == null ? "Available at entry" : value.toFixed(5);
+  return value == null || !Number.isFinite(value) ? "Unavailable" : value.toFixed(5);
 }
 
 function pipDistance(market: string, from: number | null | undefined, to: number | null | undefined): string {
-  if (from == null || to == null) return "Available at entry";
+  if (from == null || to == null) return "Unavailable";
   return `${(Math.abs(to - from) / (market.endsWith("JPY") ? .01 : .0001)).toFixed(1)} pips`;
 }
 
@@ -236,19 +280,6 @@ function entryResearchNote(market: string, pattern: MacroSignalChartPattern): st
   return `${hourlyConclusion}${activeContract}${minuteCoverage}${activeEntry}`;
 }
 
-function candidateRows(data: ChartMacroBiasRealtimeCardData): ActionCandidate[] {
-  const markets = data.globalResponse?.markets.filter((market) => market.supported) ?? [data.response];
-  const rows = markets.flatMap((market) => {
-    const patterns = new Map(market.patterns.filter((pattern) => pattern.currentEligible).map((pattern) => [pattern.id, pattern]));
-    return [...market.signals, ...(market.recoveredSignals ?? [])].flatMap((signal): ActionCandidate[] => {
-      const pattern = patterns.get(signal.patternId);
-      if (!pattern || pattern.readiness?.actionableInShadowTrader === false) return [];
-      return [{ market: market.symbol, pattern, signal }];
-    });
-  });
-  return [...new Map(rows.map((row) => [`${row.market}:${row.signal.id}`, row])).values()];
-}
-
 export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   data,
   historicalMatchesVisible = false,
@@ -267,12 +298,11 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   onSetAllHistoricalPatterns?: (visible: boolean) => void;
 }) {
   const markets = data.globalResponse?.markets.filter((market) => market.supported) ?? [data.response];
-  const candidates = useMemo(() => candidateRows(data), [data]);
   const responseNow = data.response.generatedAt ?? Math.floor(Date.now() / 1_000);
   const [clock, setClock] = useState(responseNow);
   useEffect(() => {
     setClock(Math.max(responseNow, Math.floor(Date.now() / 1_000)));
-    const timer = window.setInterval(() => setClock(Math.floor(Date.now() / 1_000)), 30_000);
+    const timer = window.setInterval(() => setClock(Math.floor(Date.now() / 1_000)), 5_000);
     return () => window.clearInterval(timer);
   }, [responseNow]);
   const registeredSchedule = useMemo(() => buildRegisteredSetupSchedule(markets, clock), [markets, clock]);
@@ -280,62 +310,15 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
     (data.globalResponse?.forwardValidation?.setupSummaries ?? []).map((summary) => [`${summary.market}:${summary.patternId}`, summary]),
   ), [data.globalResponse?.forwardValidation?.setupSummaries]);
   const datedSetupCount = registeredSchedule.filter((row) => row.watch != null).length;
-  const recentActivity = useMemo(() => buildRecentFmsActivity(markets)
-    .filter((row) => row.signal == null || (row.signal.outcomeStatus !== "pending" && !(row.signal.entry == null && row.signal.prospectiveCapture?.eligible)))
-    .slice(0, 10), [markets]);
+  const activity = useMemo(() => buildRecentFmsActivity(markets, clock), [markets, clock]);
   const [expandedScheduleKey, setExpandedScheduleKey] = useState<string | null>(null);
-  const [expandedCurrentKey, setExpandedCurrentKey] = useState<string | null>(null);
   const [expandedActivityKey, setExpandedActivityKey] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<"next" | "current" | "recent">("next");
-  const open = candidates
-    .filter(({ signal }) => signal.outcomeStatus === "pending" && signal.entry != null)
-    .sort((left, right) => (right.signal.activationTime ?? 0) - (left.signal.activationTime ?? 0));
-  const queued = candidates
-    .filter(({ signal }) => signal.entry == null && signal.prospectiveCapture?.eligible === true)
-    .sort((left, right) => (left.signal.prospectiveCapture?.activationTime ?? Number.POSITIVE_INFINITY) - (right.signal.prospectiveCapture?.activationTime ?? Number.POSITIVE_INFINITY));
-  const actionableOpen = open.filter(({ signal }) => signal.observationMode !== "recovered_offline");
-  const primary = actionableOpen[0] ?? queued[0] ?? null;
-  const currentCandidates = [...open, ...queued];
-  const sameTime = primary ? [...open, ...queued].filter((candidate) =>
-    candidate.market === primary.market
-    && (candidate.signal.activationTime ?? candidate.signal.prospectiveCapture?.activationTime) === (primary.signal.activationTime ?? primary.signal.prospectiveCapture?.activationTime),
-  ) : [];
-  const conflict = new Set(sameTime.map((candidate) => candidate.signal.direction)).size > 1;
-  const operationalPreflight = data.globalResponse?.forwardValidation?.operationalPreflight;
-  const globalBlock = data.globalLoading ? "Global registered-market scan is still loading"
-    : data.globalError ? `Global registered-market scan unavailable: ${data.globalError}`
-    : operationalPreflight?.signalMonitoringReadyNow === false ? operationalPreflight.blockingReasons.join("; ")
-    : null;
-  const integrityIssues = primary ? [
-    globalBlock,
-    primary.pattern.registrationProvenance && primary.pattern.registrationProvenance.status !== "verified" ? "Registered recipe provenance is not verified" : null,
-    primary.pattern.readiness?.auditStatus !== "complete" ? "Setup audit is incomplete" : null,
-    primary.signal.entry != null && (primary.signal.atr == null || primary.signal.stop == null || primary.signal.target == null) ? "Frozen entry geometry is incomplete" : null,
-  ].filter((issue): issue is string => Boolean(issue)) : [];
-  const integrityBlocked = integrityIssues.length > 0;
-  const correlatedExposure = primary ? open.flatMap((candidate) => {
-    if (candidate.signal.id === primary.signal.id && candidate.market === primary.market) return [];
-    const primaryExposure = positionCurrencyExposure(primary.market, primary.signal.direction);
-    const otherExposure = positionCurrencyExposure(candidate.market, candidate.signal.direction);
-    const concentrated = Object.keys(primaryExposure).filter((currency) => otherExposure[currency] === primaryExposure[currency]);
-    return concentrated.length ? [{ market: candidate.market, currencies: concentrated }] : [];
-  }) : [];
-  const activation = primary?.signal.activationTime ?? primary?.signal.prospectiveCapture?.activationTime ?? null;
-  const primaryEntryTimeframe = primary?.signal.entryTimeframe ?? primary?.pattern.execution?.entryTimeframe ?? "H4";
-  const withinEntryGrace = activation != null && clock >= activation && clock <= activation + ENTRY_GRACE_SECONDS;
-  const action = globalBlock
-    ? { state: "BLOCKED", title: "Do not enter now", detail: globalBlock, tone: "blocked" }
-    : integrityBlocked
-    ? { state: "BLOCKED", title: "Do not enter now", detail: integrityIssues[0], tone: "blocked" }
-    : conflict
-    ? { state: "BLOCKED", title: "Do not enter now", detail: "Opposing registered directions share this pair and entry time. Review the conflict instead of choosing one silently.", tone: "blocked" }
-    : primary == null
-      ? null
-      : primary.signal.entry == null
-        ? { state: "WAITING", title: `Wait for the ${primaryEntryTimeframe} entry`, detail: `The frozen entry is ${formatJakartaDisplayDateTime(activation!)}. Do not enter before it.`, tone: "waiting" }
-        : withinEntryGrace
-          ? { state: "ENTRY WINDOW", title: `Enter ${primary.signal.direction === "long" ? "Long" : "Short"} ${primary.market} now`, detail: `The frozen ${primaryEntryTimeframe} entry opened within the last ${ENTRY_GRACE_SECONDS} seconds.`, tone: "entry" }
-          : { state: "MONITORING", title: "Do not enter late", detail: `The model trade is already open from its frozen ${primaryEntryTimeframe} entry. Monitor it; do not replace the tested entry with a later one.`, tone: "open" };
+  const [activeView, setActiveView] = useState<"next" | "current" | "recent">(() => {
+    try { const value = sessionStorage.getItem("fms.trade.view"); return value === "current" || value === "recent" ? value : "next"; } catch { return "next"; }
+  });
+  useEffect(() => { try { sessionStorage.setItem("fms.trade.view", activeView); } catch { /* optional preference */ } }, [activeView]);
+  const { current: currentActivity, recent: recentActivity } = partitionFmsActivity(activity, clock);
+  const displayedActivity = activeView === "current" ? currentActivity : recentActivity;
 
   return (
     <section className="fms-action-card" aria-label="FMS actionable trade card">
@@ -367,7 +350,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
           <span>Next</span><small>{datedSetupCount}</small>
         </button>
         <button type="button" className={activeView === "current" ? "is-active" : ""} aria-pressed={activeView === "current"} onClick={() => setActiveView("current")}>
-          <span>Current</span><small>{currentCandidates.length}</small>
+          <span>Current</span><small>{currentActivity.length}</small>
         </button>
         <button type="button" className={activeView === "recent" ? "is-active" : ""} aria-pressed={activeView === "recent"} onClick={() => setActiveView("recent")}>
           <span>Recent</span><small>{recentActivity.length}</small>
@@ -416,60 +399,13 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
           </table> : <p>No registered setup is loaded.</p>}
         </div>
       </section> : null}
-      {activeView === "current" ? <section className="fms-action-view" aria-label="Current registered setups">
-      <div className="fms-action-section-title"><span>Current registered setup</span><small>Open or waiting for entry</small></div>
-      {currentCandidates.length > 0 ? <table className="fms-action-table fms-action-current-table">
-        <thead><tr><th>Setup</th><th>Decision</th><th>State and contract</th></tr></thead>
-        <tbody>{currentCandidates.map((candidate) => {
-          const key = `${candidate.market}:${candidate.signal.id}`;
-          const expanded = expandedCurrentKey === key;
-          const candidateActivation = candidate.signal.activationTime ?? candidate.signal.prospectiveCapture?.activationTime ?? null;
-          const candidateRecord = historicalRecord(candidate.pattern);
-          const candidateForward = forwardSetupByKey.get(`${candidate.market}:${candidate.pattern.id}`);
-          const fresh = forwardEvidenceLabel(candidateForward);
-          const isPrimary = candidate === primary;
-          const candidateState = candidate.signal.observationMode === "recovered_offline"
-            ? "Recovered offline · trade open"
-            : isPrimary && action
-            ? `${action.state} · ${action.title}`
-            : candidate.signal.entry == null ? `Waiting for ${candidate.signal.entryTimeframe ?? candidate.pattern.execution?.entryTimeframe ?? "H4"} entry` : "Trade running";
-          return <Fragment key={key}>
-            <tr role="button" tabIndex={0} aria-expanded={expanded} onClick={() => setExpandedCurrentKey(expanded ? null : key)} onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setExpandedCurrentKey(expanded ? null : key); }
-            }}>
-              <td><strong><PairFlags symbol={candidate.market} />{candidate.market}</strong><small>{candidate.pattern.label}</small></td>
-              <td><strong>{candidate.signal.direction === "long" ? "Long" : "Short"}</strong><small>{candidateActivation == null ? "Entry unavailable" : formatJakartaDisplayDateTime(candidateActivation)}</small></td>
-              <td><strong>{candidateState}</strong><small>{executionLabel(candidate.signal, candidate.pattern)}</small></td>
-            </tr>
-            {expanded ? <tr className="fms-action-detail-row"><td colSpan={3}>
-              <table><tbody>
-                <tr><th>Release</th><td>{formatJakartaDisplayDateTime(candidate.signal.eventTime)}</td><th>Entry / ATR</th><td>{price(candidate.signal.entry)} · ATR {price(candidate.signal.atr)}</td></tr>
-                <tr><th>Stop loss</th><td>{price(candidate.signal.stop)} · {pipDistance(candidate.market, candidate.signal.entry, candidate.signal.stop)} · {candidate.signal.stopAtr ?? candidate.pattern.execution?.stopAtr ?? 1} ATR</td><th>Take profit</th><td>{price(candidate.signal.target)} · {pipDistance(candidate.market, candidate.signal.entry, candidate.signal.target)} · {candidate.signal.targetR ?? candidate.pattern.execution?.targetR ?? 2}R</td></tr>
-                <tr><th>Expiry</th><td>{candidate.signal.expiryTime ? formatJakartaDisplayDateTime(candidate.signal.expiryTime) : `${candidate.signal.expiryCandles} H4`}</td><th>0.01-lot SL exposure</th><td>{candidate.signal.minimumLotExposure ? `${candidate.signal.minimumLotExposure.accountCurrency || "Account currency"} ${candidate.signal.minimumLotExposure.accountRisk.toFixed(2)} · broker-calculated` : `0.01 lot · ${pipDistance(candidate.market, candidate.signal.entry, candidate.signal.stop)} stop · amount available while MT5 is connected`}</td></tr>
-                <tr><th>Historical contract</th><td colSpan={3}>{candidateRecord.averageR == null ? "Unavailable" : `${candidateRecord.averageR >= 0 ? "+" : ""}${candidateRecord.averageR.toFixed(2)}R average · ${(Number(candidateRecord.tpRate ?? 0) * 100).toFixed(1)}% TP before SL · N ${candidateRecord.sample}`}</td></tr>
-                <tr><th>Fresh record</th><td colSpan={3}>{fresh.label} · {fresh.detail}{candidateForward?.medianR == null ? "" : ` · median ${candidateForward.medianR >= 0 ? "+" : ""}${candidateForward.medianR.toFixed(2)}R`}{candidateForward?.maximumDrawdownR == null ? "" : ` · drawdown ${candidateForward.maximumDrawdownR.toFixed(2)}R`}{candidateForward?.longestLosingStreak == null ? "" : ` · longest losing streak ${candidateForward.longestLosingStreak}`}</td></tr>
-                <tr><th>Earlier-entry research</th><td colSpan={3}>{entryResearchNote(candidate.market, candidate.pattern)}</td></tr>
-                <tr><th>Evidence</th><td colSpan={3}>{(candidate.signal.events?.length ?? 0) > 0 ? candidate.signal.events.map((event) => `${event.currency} ${event.title}: score ${signed(event.score)}`).join(" · ") : "No event calculation rows loaded."}</td></tr>
-                <tr><th>Integrity</th><td colSpan={3}>{isPrimary && integrityBlocked ? integrityIssues.join(" · ") : candidate.signal.observationMode === "recovered_offline" ? "Recovered offline — never eligible for automated entry" : "Live captured · registered setup · frozen geometry checked"}</td></tr>
-                <tr><th>MT5 demo tag</th><td colSpan={3}>{candidate.signal.observationMode === "live_captured" && candidate.signal.demoTag ? <span className="fms-demo-tag"><code>{candidate.signal.demoTag}</code><button type="button" onClick={(event) => { event.stopPropagation(); void navigator.clipboard?.writeText(candidate.signal.demoTag!); }}>Copy tag</button><small>Use this exact Comment on a manually placed MT5 demo order so Journal can attach the actual fill and P/L.</small></span> : "Unavailable — only a prospectively live-captured signal receives an eligible demo tag."}</td></tr>
-              </tbody></table>
-            </td></tr> : null}
-          </Fragment>;
-        })}</tbody>
-      </table> : (
-        <div className="fms-action-empty"><Clock3 size={18} /><p>No registered trade is open or waiting for entry.</p></div>
-      )}
-      {conflict ? <div className="fms-action-warning"><AlertTriangle size={14} />{sameTime.length} simultaneous signals require review.</div> : null}
-      {correlatedExposure.length > 0 ? <div className="fms-action-warning"><AlertTriangle size={14} />Concentrated currency exposure: {correlatedExposure.map((row) => `${row.market} (${row.currencies.join("/")})`).join(", ")} already leans the same way.</div> : null}
-      {primary && forwardSetupByKey.get(`${primary.market}:${primary.pattern.id}`)?.status === "pause_candidate" ? <div className="fms-action-warning"><AlertTriangle size={14} />Fresh evidence marks this setup as a pause candidate. Its historical registration is preserved; review before manually following it.</div> : null}
-      <footer>The 90-second button window is an operational display rule around the exact frozen entry open. Missing it does not create a new tested entry.</footer>
-      </section> : null}
-      {activeView === "recent" ? <section className="fms-action-activity fms-action-view" aria-label="Recent FMS activity">
+      {(activeView === "recent" || activeView === "current") ? <section className="fms-action-activity fms-action-view" aria-label="Recent FMS activity">
         <div className="fms-action-section-title"><span>Recent FMS activity</span><small>Newest first · latest {recentActivity.length}</small></div>
+        {data.globalError ? <p role="alert" className="fms-action-warning">{data.globalError}</p> : null}
         <div className="fms-action-activity-scroll">
-          {recentActivity.length > 0 ? <table className="fms-action-table">
+          {displayedActivity.length > 0 ? <table className="fms-action-table">
             <thead><tr><th>Setup</th><th>Decision and result</th><th>Source and time</th></tr></thead>
-            <tbody>{recentActivity.map((row) => {
+            <tbody>{displayedActivity.map((row) => {
               const expanded = expandedActivityKey === row.key;
               const sourceLabel = row.source === "recovered" ? "Recovered offline" : row.source === "live" ? "Live captured" : row.state === "No trade" ? "No trade" : "Decision";
               return <Fragment key={row.key}>
@@ -482,20 +418,27 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                 </tr>
                 {expanded ? <tr className="fms-action-detail-row"><td colSpan={3}>
                   <table><tbody>
+                    <tr><th>{row.state === "No trade" ? "Why no trade" : "Decision reason"}</th><td colSpan={3}><strong>{decisionSummary(row.assessment)}</strong><details><summary>Full recorded explanation</summary><p>{row.assessment?.reason ?? "Unavailable"}</p></details></td></tr>
+                    <tr><th>Historical evidence</th><td colSpan={3}>{(() => { const record = historicalRecord(row.pattern); return `${record.sample} events ? ${record.tpRate == null ? "TP-before-SL unavailable" : `${(record.tpRate * 100).toFixed(1)}% TP before SL`} ? ${record.averageR == null ? "Average unavailable" : `${signed(Number(record.averageR.toFixed(2)))}R gross average`}`; })()}</td></tr>
+                    <tr><th>Capture status</th><td colSpan={3}>{row.signal?.prospectiveCapture?.reason ?? row.assessment?.prospectiveCapture?.reason ?? (row.source === "recovered" ? "Recovered history; not a live-captured entry." : row.source === "decision" ? "No open simulated trade." : "Live-captured simulation.")}</td></tr>
                     <tr><th>Frozen decision rule</th><td colSpan={3}>{row.pattern.condition}</td></tr>
                     <tr><th>Frozen contract</th><td colSpan={3}>{row.signal ? executionLabel(row.signal, row.pattern) : patternExecutionLabel(row.pattern)}</td></tr>
-                    <tr><th>Earlier-entry research</th><td colSpan={3}>{entryResearchNote(row.market, row.pattern)}</td></tr>
+                    <tr><th>Timing research</th><td colSpan={3}><details><summary>Why this entry timeframe?</summary>{entryResearchNote(row.market, row.pattern)}</details></td></tr>
                     <tr><th>Entry</th><td>{price(row.signal?.entry)}</td><th>ATR at entry</th><td>{row.signal?.atr == null ? "Unavailable" : `${row.signal.atr.toFixed(5)} · ${pipDistance(row.market, 0, row.signal.atr)}`}</td></tr>
                     <tr><th>Stop loss</th><td>{price(row.signal?.stop)} · {pipDistance(row.market, row.signal?.entry, row.signal?.stop)}</td><th>Take profit</th><td>{price(row.signal?.target)} · {pipDistance(row.market, row.signal?.entry, row.signal?.target)}</td></tr>
                     <tr><th>Observed result</th><td>{row.signal ? signalActivityState(row.signal) : row.state}</td><th>Exit / expiry</th><td>{row.signal?.exitTime ? formatJakartaDisplayDateTime(row.signal.exitTime) : row.signal?.expiryTime ? formatJakartaDisplayDateTime(row.signal.expiryTime) : "Unavailable"}</td></tr>
                     <tr><th>Best favorable move</th><td>{row.signal?.pathAudit ? `+${row.signal.pathAudit.maximumFavorableR.toFixed(2)}R · ${row.signal.pathAudit.maximumFavorablePips.toFixed(1)} pips` : "Unavailable"}</td><th>Worst adverse move</th><td>{row.signal?.pathAudit ? `-${row.signal.pathAudit.maximumAdverseR.toFixed(2)}R · -${row.signal.pathAudit.maximumAdversePips.toFixed(1)} pips` : "Unavailable"}</td></tr>
-                    <tr><th>Decision evidence</th><td colSpan={3}>{row.assessment?.reason ?? (row.signal?.events?.length ? row.signal.events.map((event) => `${event.currency} ${event.title}: score ${signed(event.score)}`).join(" · ") : "No calculation explanation loaded.")}</td></tr>
+                    {row.assessment?.calculations?.length ? <>
+                      <tr><th>News reading</th><td colSpan={3}><strong>{assessmentReading(row.market, row.assessment)}</strong><small>This describes the economic release only; the frozen setup decision remains {row.state.toLowerCase()}.</small></td></tr>
+                      <tr><th>Release calculations</th><td colSpan={3}><div className="chart-macro-bias-trigger"><FmsReleaseCards releases={row.assessment.calculations.map((calculation) => ({ ...row.assessment?.events.find((event) => event.title === calculation.title), ...calculation }))} /></div></td></tr>
+                    </> : (row.signal?.events?.length || row.assessment?.events?.length) ? <tr><th>Release values</th><td colSpan={3}><div className="chart-macro-bias-trigger"><FmsReleaseCards releases={row.signal?.events?.length ? row.signal.events : row.assessment?.events ?? []} /></div></td></tr> : null}
+
                     <tr><th>MT5 eligibility</th><td colSpan={3}>{row.source === "live" ? "Live-captured provenance. Automated demo transmission is not implemented and remains disabled." : "Ineligible. Historical, recovered, audit-only, and no-trade records can never be transmitted."}</td></tr>
                   </tbody></table>
                 </td></tr> : null}
               </Fragment>;
             })}</tbody>
-          </table> : <p>No registered decision has been recorded yet.</p>}
+          </table> : <p>{data.globalLoading ? "Loading registered release decisions?" : activeView === "current" ? "No release is awaiting evaluation and no simulated trade is pending. Upcoming releases are in Next." : "No completed or earlier release decisions loaded."}</p>}
         </div>
       </section> : null}
     </section>
