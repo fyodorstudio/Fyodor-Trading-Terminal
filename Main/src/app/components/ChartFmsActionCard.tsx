@@ -152,6 +152,17 @@ export function getTradeMarkets(data: { response: MacroSignalChartSignalResponse
   return [...markets.values()].filter((market) => market.supported);
 }
 
+const tradeDateFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Jakarta", day: "2-digit", month: "short", year: "numeric",
+  hour: "2-digit", minute: "2-digit", hour12: false,
+});
+
+function TradeDate({ label, time, fallback = "Not recorded" }: { label: string; time?: number | null; fallback?: string }) {
+  return <div className="fms-trade-date"><span>{label}</span>{time != null
+    ? <time dateTime={new Date(time * 1000).toISOString()}>{tradeDateFormatter.format(new Date(time * 1000))}</time>
+    : <span className="fms-trade-date-empty">{fallback}</span>}</div>;
+}
+
 function countdownLabel(targetTime: number, now: number): string {
   const remaining = Math.max(0, targetTime - now);
   const days = Math.floor(remaining / 86_400);
@@ -367,14 +378,18 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
           <span>Recent</span><small>{recentActivity.length}</small>
         </button>
       </nav>
+      {(data.refreshing || data.refreshedAt) ? <div className="fms-action-refresh-state" role="status">
+        <span>{data.refreshing ? "Refreshing saved data…" : "Last successful update"}</span>
+        {data.refreshedAt ? <time dateTime={new Date(data.refreshedAt * 1000).toISOString()}>{tradeDateFormatter.format(new Date(data.refreshedAt * 1000))} · Jakarta</time> : null}
+      </div> : null}
+      {data.globalError ? <p role="alert" className="fms-action-warning">{data.globalError}</p> : null}
       {activeView === "next" ? <section className="fms-action-schedule fms-action-view" aria-label="Next registered setups">
-        <div className="fms-action-schedule-heading">
-          <div><span>Next registered setups</span><strong>{datedSetupCount} scheduled · {registeredSchedule.length - datedSetupCount} awaiting date</strong></div>
-          <small>Jakarta time</small>
+        <div className="fms-action-section-title">
+          <span>Upcoming setups</span><small>{datedSetupCount} scheduled · {registeredSchedule.length - datedSetupCount} awaiting date</small>
         </div>
         <div className="fms-action-schedule-scroll">
           {registeredSchedule.length > 0 ? <table className="fms-action-table">
-            <thead><tr><th>Setup</th><th>Next release</th><th>Historical evidence</th><th>Trade plan</th></tr></thead>
+            <thead><tr><th>Setup</th><th>Plan and evidence</th><th>Dates · Jakarta</th></tr></thead>
             <tbody>{registeredSchedule.map((row) => {
               const expanded = expandedScheduleKey === row.key;
               const record = historicalRecord(row.pattern);
@@ -385,12 +400,12 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                   if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setExpandedScheduleKey(expanded ? null : row.key); }
                 }}>
                   <td><strong><PairFlags symbol={row.market} />{row.market}</strong><small>{row.pattern.label}</small></td>
-                  <td>{row.watch ? <><strong>{formatJakartaDisplayDateTime(row.watch.time)}</strong><small>{countdownLabel(row.watch.time, clock)}</small></> : <small>No upcoming date loaded</small>}</td>
-                  <td className="fms-action-evidence"><strong>{record.tpRate == null ? "TP rate unavailable" : `${(record.tpRate * 100).toFixed(1)}% TP before SL`}</strong><small>{record.averageR == null ? "Gross average unavailable" : `${record.averageR >= 0 ? "+" : ""}${record.averageR.toFixed(2)}R gross avg`} · Later N {record.sample}</small><em title={evidence.quirks.join(" · ")}>{evidence.primary}{evidence.quirks.length ? ` · ${evidence.quirks.slice(0, 2).join(" · ")}` : ""}</em><small className={`fms-action-forward ${fresh.tone}`} title={fresh.detail}>Fresh: {fresh.label}</small></td>
-                  <td><strong>{patternExecutionLabel(row.pattern)}</strong><small>{expanded ? "Hide details" : "Show details"}</small></td>
+                  <td className="fms-action-evidence"><strong>{record.tpRate == null ? "TP rate unavailable" : `${(record.tpRate * 100).toFixed(1)}% TP before SL`}</strong><small>{record.averageR == null ? "Gross average unavailable" : `${record.averageR >= 0 ? "+" : ""}${record.averageR.toFixed(2)}R gross avg`} · N {record.sample}</small><small>{patternExecutionLabel(row.pattern)}</small><small className={`fms-action-forward ${fresh.tone}`} title={fresh.detail}>Fresh: {fresh.label}</small><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small></td>
+                  <td><TradeDate label="Release" time={row.watch?.time} fallback="Awaiting date" />{row.watch ? <small className="fms-release-countdown">In {countdownLabel(row.watch.time, clock)}</small> : null}</td>
                 </tr>
-                {expanded ? <tr className="fms-action-detail-row"><td colSpan={4}>
+                {expanded ? <tr className="fms-action-detail-row"><td colSpan={3}>
                   <table><tbody>
+                    <tr><th>Frozen contract</th><td>{patternExecutionLabel(row.pattern)}</td></tr>
                     <tr><th>Historical evidence</th><td>{record.averageR == null ? "Unavailable" : `${(Number(record.tpRate ?? 0) * 100).toFixed(1)}% TP before SL · ${record.averageR >= 0 ? "+" : ""}${record.averageR.toFixed(2)}R gross average · Later N ${record.sample}`}</td></tr>
                     <tr><th>Evidence profile</th><td>{evidence.primary}</td></tr>
                     <tr><th>Quirks</th><td>{evidence.quirks.length ? evidence.quirks.join(" · ") : "No headline quirk under the current frozen thresholds."}</td></tr>
@@ -412,14 +427,9 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
       </section> : null}
       {(activeView === "recent" || activeView === "current") ? <section className="fms-action-activity fms-action-view" aria-label="Recent FMS activity">
         <div className="fms-action-section-title"><span>{activeView === "current" ? "Open trades and awaiting decisions" : "Closed trades and completed decisions"}</span><small>Newest first · all {displayedActivity.length}</small></div>
-        {(data.refreshing || data.refreshedAt) ? <p className="fms-action-refresh-state" role="status">
-          {data.refreshing ? "Refreshing; retaining the last successful data" : "Last successful data"}
-          {data.refreshedAt ? ` · updated ${formatJakartaDisplayDateTime(data.refreshedAt)}` : ""}
-        </p> : null}
-        {data.globalError ? <p role="alert" className="fms-action-warning">{data.globalError}</p> : null}
         <div className="fms-action-activity-scroll">
           {displayedActivity.length > 0 ? <table className="fms-action-table">
-            <thead><tr><th>Setup</th><th>Decision and result</th><th>Source and time</th></tr></thead>
+            <thead><tr><th>Setup</th><th>Decision and result</th><th>Dates · Jakarta</th></tr></thead>
             <tbody>{displayedActivity.map((row) => {
               const expanded = expandedActivityKey === row.key;
               const sourceLabel = row.source === "recovered" ? "Recovered offline" : row.source === "live" ? "Live captured" : row.state === "No trade" ? "No trade" : "Decision";
@@ -428,8 +438,14 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                   if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setExpandedActivityKey(expanded ? null : row.key); }
                 }}>
                   <td><strong><PairFlags symbol={row.market} />{row.market}</strong><small>{row.label}</small></td>
-                  <td><strong>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} · ` : ""}{row.state}</strong><small>{expanded ? "Hide details" : "Show details"}</small></td>
-                  <td><strong className={`fms-activity-source is-${row.source}`}>{sourceLabel}</strong><small>{formatJakartaDisplayDateTime(row.time)}</small></td>
+                  <td><strong>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} · ` : ""}{row.state}</strong><small className={`fms-activity-source is-${row.source}`}>{sourceLabel}</small><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small></td>
+                  <td className="fms-activity-dates">
+                    <TradeDate label="Released" time={row.signal?.eventTime ?? row.assessment?.time ?? row.time} />
+                    {row.signal ? <>
+                      <TradeDate label="Opened" time={row.signal.entry != null ? row.signal.activationTime : null} fallback="Entry not recorded" />
+                      <TradeDate label="Closed" time={row.signal.exitTime} fallback={row.signal.outcomeStatus === "pending" ? "Pending" : "Exit not recorded"} />
+                    </> : null}
+                  </td>
                 </tr>
                 {expanded ? <tr className="fms-action-detail-row"><td colSpan={3}>
                   <table><tbody>
