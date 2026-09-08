@@ -1,6 +1,5 @@
 import { FmsReleaseCards } from "@/app/components/FmsReleaseCards";
-import { AlertTriangle, Clock3, ShieldCheck } from "lucide-react";
-import { Fragment, memo, useEffect, useMemo, useState } from "react";
+import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useRef, useState, type UIEvent } from "react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import type { ChartMacroBiasRealtimeCardData } from "@/app/components/ChartMacroBiasRealtimeCard";
 import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
@@ -8,6 +7,7 @@ import { formatJakartaDisplayDateTime } from "@/app/lib/format";
 import entryResearch from "@/app/lib/fmsEntryResearchSummary.json";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalPatternAssessment, MacroSignalUpcomingPatternWatch } from "@/app/types";
 
+const useClientLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 type ForwardSetupSummary = NonNullable<ChartMacroBiasRealtimeCardData["globalResponse"]>["forwardValidation"] extends infer T
   ? T extends { setupSummaries: Array<infer R> } ? R : never
@@ -31,6 +31,36 @@ export type RecentFmsActivityRow = {
   pattern: MacroSignalChartPattern;
   signal: MacroSignalChartSignal | null;
   assessment: MacroSignalPatternAssessment | null;
+};
+
+export type FmsTradeView = "next" | "current" | "recent";
+
+export type FmsTradeScrollAnchor = {
+  key: string | null;
+  offset: number;
+  scrollTop: number;
+};
+
+export type FmsTradeViewState = {
+  activeView: FmsTradeView;
+  expandedScheduleKey: string | null;
+  expandedActivityKey: string | null;
+  setupSearch: string;
+  hideNoTrade: boolean;
+  scroll: Record<FmsTradeView, FmsTradeScrollAnchor>;
+};
+
+export const DEFAULT_FMS_TRADE_VIEW_STATE: FmsTradeViewState = {
+  activeView: "next",
+  expandedScheduleKey: null,
+  expandedActivityKey: null,
+  setupSearch: "",
+  hideNoTrade: false,
+  scroll: {
+    next: { key: null, offset: 0, scrollTop: 0 },
+    current: { key: null, offset: 0, scrollTop: 0 },
+    recent: { key: null, offset: 0, scrollTop: 0 },
+  },
 };
 
 function signalActivityState(signal: MacroSignalChartSignal): string {
@@ -163,6 +193,14 @@ function TradeDate({ label, time, fallback = "Not recorded" }: { label: string; 
     : <span className="fms-trade-date-empty">{fallback}</span>}</div>;
 }
 
+function humanizeSetupId(value: string): string {
+  return value.replace(/[_-]+/g, " ").replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
+function setupOptionLabel(option: { id: string; label: string }): string {
+  return option.label && option.label !== option.id ? option.label : humanizeSetupId(option.id);
+}
+
 function countdownLabel(targetTime: number, now: number): string {
   const remaining = Math.max(0, targetTime - now);
   const days = Math.floor(remaining / 86_400);
@@ -233,12 +271,92 @@ function patternExecutionLabel(pattern: MacroSignalChartPattern): string {
   return `${execution?.entryTimeframe ?? "H4"} · SL ${execution?.stopAtr ?? 1} ATR · TP ${execution?.targetR ?? 2}R · max ${execution?.expiryCandles ?? 30} H4${management}`;
 }
 
-function historicalRecord(pattern: MacroSignalChartPattern): { averageR: number | null; tpRate: number | null; sample: number } {
-  const reviewed = pattern.executionReview?.status === "reviewed_active" ? pattern.executionReview.later : null;
-  const averageR = typeof reviewed?.averageR === "number" ? reviewed.averageR : pattern.historicalBenchmark?.walkForwardAverageR ?? pattern.executionStress.overall.averageR ?? null;
-  const tpRate = typeof reviewed?.tpBeforeSl === "number" ? reviewed.tpBeforeSl : pattern.historicalBenchmark?.targetFirstRate ?? pattern.overall.targetHitRate ?? null;
-  const sample = typeof reviewed?.evaluableN === "number" ? reviewed.evaluableN : pattern.historicalBenchmark?.walkForwardN ?? pattern.overall.evaluableCount;
-  return { averageR, tpRate, sample };
+type HistoricalRecord = {
+  scope: string;
+  cohort: { dimension: string; value: string };
+  sourceId: string | null;
+  sample: number;
+  targetHitCount: number | null;
+  tpRate: number | null;
+  stopHitCount: number | null;
+  stopRate: number | null;
+  expiredCount: number | null;
+  breakEvenCount: number | null;
+  ambiguousCount: number | null;
+  unevaluableCount: number | null;
+  averageR: number | null;
+  totalR: number | null;
+  totalComputed: boolean;
+};
+
+function historicalRecord(pattern: MacroSignalChartPattern): HistoricalRecord {
+  const evidence = pattern.historicalEvidence;
+  if (evidence) return {
+    scope: evidence.scope,
+    cohort: evidence.cohort,
+    sourceId: evidence.sourceId,
+    sample: evidence.evaluableCount,
+    targetHitCount: evidence.targetHitCount,
+    tpRate: evidence.targetHitRate,
+    stopHitCount: evidence.stopHitCount,
+    stopRate: evidence.stopHitRate,
+    expiredCount: evidence.expiredCount,
+    breakEvenCount: evidence.breakEvenCount,
+    ambiguousCount: evidence.ambiguousCount,
+    unevaluableCount: evidence.unevaluableCount,
+    averageR: evidence.averageGrossR,
+    totalR: evidence.totalGrossR,
+    totalComputed: evidence.totalGrossRDerivation === "exact_mean_times_evaluable_n",
+  };
+  const metrics = pattern.overall;
+  return {
+    scope: "Overall registered-contract history",
+    cohort: pattern.cohort ?? { dimension: "none", value: "all" },
+    sourceId: pattern.historicalBenchmark?.experimentId ?? null,
+    sample: metrics.evaluableCount,
+    targetHitCount: metrics.targetHitCount,
+    tpRate: metrics.targetHitRate,
+    stopHitCount: metrics.stopHitCount,
+    stopRate: metrics.stopHitRate,
+    expiredCount: metrics.expiredCount,
+    breakEvenCount: null,
+    ambiguousCount: metrics.ambiguousCount,
+    unevaluableCount: metrics.unevaluableCount,
+    averageR: metrics.averageR,
+    totalR: metrics.averageR == null ? null : metrics.averageR * metrics.evaluableCount,
+    totalComputed: metrics.averageR != null,
+  };
+}
+
+function countAndRate(count: number | null, rate: number | null): string {
+  if (count == null && rate == null) return "Unavailable";
+  if (count == null) return `Count unavailable · ${(Number(rate) * 100).toFixed(1)}%`;
+  return `${count}${rate == null ? "" : ` · ${(rate * 100).toFixed(1)}%`}`;
+}
+
+function cohortLabel(cohort: { dimension: string; value: string }): string {
+  return cohort.dimension === "none" ? "All matching cases" : `${humanizeSetupId(cohort.dimension)}: ${humanizeSetupId(cohort.value)}`;
+}
+
+function HistoricalBenchmark({ pattern }: { pattern: MacroSignalChartPattern }) {
+  const record = historicalRecord(pattern);
+  const other = [
+    `Expired ${record.expiredCount ?? "unavailable"}`,
+    record.breakEvenCount == null ? null : `Break-even ${record.breakEvenCount}`,
+    `Ambiguous ${record.ambiguousCount ?? "unavailable"}`,
+    `Unevaluable ${record.unevaluableCount ?? "unavailable"}`,
+  ].filter(Boolean).join(" · ");
+  return <div className="fms-history-benchmark">
+    <p><strong>{record.scope}</strong><span>{cohortLabel(record.cohort)}{record.sourceId ? ` · ${record.sourceId}` : ""}</span></p>
+    <dl>
+      <div><dt>Evaluable N</dt><dd>{record.sample}</dd></div>
+      <div><dt>TP hits</dt><dd>{countAndRate(record.targetHitCount, record.tpRate)}</dd></div>
+      <div><dt>SL hits</dt><dd>{countAndRate(record.stopHitCount, record.stopRate)}</dd></div>
+      <div><dt>Other</dt><dd>{other}</dd></div>
+      <div><dt>Total gross R</dt><dd>{record.totalR == null ? "Unavailable" : `${signed(Number(record.totalR.toFixed(2)))}R${record.totalComputed ? " · computed from exact mean × N" : ""}`}</dd></div>
+      <div><dt>Average gross R</dt><dd>{record.averageR == null ? "Unavailable" : `${signed(Number(record.averageR.toFixed(3)))}R`}</dd></div>
+    </dl>
+  </div>;
 }
 
 function setupEvidenceLabel(pattern: MacroSignalChartPattern): { primary: string; quirks: string[] } {
@@ -310,6 +428,8 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   onToggleHistoricalMatches,
   onToggleHistoricalPattern,
   onSetAllHistoricalPatterns,
+  viewState,
+  onViewStateChange,
 }: {
   data: ChartMacroBiasRealtimeCardData;
   historicalMatchesVisible?: boolean;
@@ -318,6 +438,8 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   onToggleHistoricalMatches?: () => void;
   onToggleHistoricalPattern?: (patternId: string) => void;
   onSetAllHistoricalPatterns?: (visible: boolean) => void;
+  viewState?: FmsTradeViewState;
+  onViewStateChange?: (state: FmsTradeViewState) => void;
 }) {
   const markets = useMemo(() => getTradeMarkets(data), [data.globalResponse?.markets, data.response]);
   const responseNow = data.response.generatedAt ?? Math.floor(Date.now() / 1_000);
@@ -333,14 +455,63 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   ), [data.globalResponse?.forwardValidation?.setupSummaries]);
   const datedSetupCount = registeredSchedule.filter((row) => row.watch != null).length;
   const activity = useMemo(() => buildRecentFmsActivity(markets, clock), [markets, clock]);
-  const [expandedScheduleKey, setExpandedScheduleKey] = useState<string | null>(null);
-  const [expandedActivityKey, setExpandedActivityKey] = useState<string | null>(null);
-  const [activeView, setActiveView] = useState<"next" | "current" | "recent">(() => {
-    try { const value = sessionStorage.getItem("fms.trade.view"); return value === "current" || value === "recent" ? value : "next"; } catch { return "next"; }
-  });
-  useEffect(() => { try { sessionStorage.setItem("fms.trade.view", activeView); } catch { /* optional preference */ } }, [activeView]);
+  const [localViewState, setLocalViewState] = useState<FmsTradeViewState>(DEFAULT_FMS_TRADE_VIEW_STATE);
+  const currentViewState = viewState ?? localViewState;
+  const updateViewState = (patch: Partial<FmsTradeViewState>) => {
+    const next = { ...currentViewState, ...patch };
+    if (!viewState) setLocalViewState(next);
+    onViewStateChange?.(next);
+  };
+  const { activeView, expandedScheduleKey, expandedActivityKey, setupSearch, hideNoTrade } = currentViewState;
   const { current: currentActivity, recent: recentActivity } = partitionFmsActivity(activity, clock);
-  const displayedActivity = activeView === "current" ? currentActivity : recentActivity;
+  const displayedActivity = activeView === "current"
+    ? currentActivity
+    : hideNoTrade ? recentActivity.filter((row) => row.assessment?.status !== "no_trade") : recentActivity;
+  const normalizedSetupSearch = setupSearch.trim().toLocaleLowerCase();
+  const filteredPatternOptions = historicalPatternFilters.filter((option) => {
+    if (!normalizedSetupSearch) return true;
+    return [setupOptionLabel(option), option.label, option.id, data.response.symbol]
+      .some((value) => value.toLocaleLowerCase().includes(normalizedSetupSearch));
+  });
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+  const stateRef = useRef(currentViewState);
+  stateRef.current = currentViewState;
+
+  const captureScroll = (container: HTMLDivElement | null) => {
+    if (!container) return;
+    const bounds = container.getBoundingClientRect();
+    const rows = Array.from(container.querySelectorAll<HTMLElement>("tr[data-row-key]"));
+    const anchor = rows.find((row) => row.getBoundingClientRect().bottom > bounds.top) ?? null;
+    const saved: FmsTradeScrollAnchor = {
+      key: anchor?.dataset.rowKey ?? null,
+      offset: anchor ? anchor.getBoundingClientRect().top - bounds.top : 0,
+      scrollTop: container.scrollTop,
+    };
+    const latest = stateRef.current;
+    const previous = latest.scroll[latest.activeView];
+    if (previous.key === saved.key && Math.abs(previous.offset - saved.offset) < 1 && Math.abs(previous.scrollTop - saved.scrollTop) < 1) return;
+    const next = { ...latest, scroll: { ...latest.scroll, [latest.activeView]: saved } };
+    stateRef.current = next;
+    if (!viewState) setLocalViewState(next);
+    onViewStateChange?.(next);
+  };
+
+  const rowSignature = activeView === "next"
+    ? `${registeredSchedule.length}:${registeredSchedule[0]?.key ?? ""}:${registeredSchedule[registeredSchedule.length - 1]?.key ?? ""}`
+    : `${displayedActivity.length}:${displayedActivity[0]?.key ?? ""}:${displayedActivity[displayedActivity.length - 1]?.key ?? ""}`;
+  useClientLayoutEffect(() => {
+    const container = scrollRef.current;
+    if (!container) return;
+    const saved = stateRef.current.scroll[activeView];
+    const anchor = saved.key
+      ? Array.from(container.querySelectorAll<HTMLElement>("tr[data-row-key]")).find((row) => row.dataset.rowKey === saved.key)
+      : null;
+    container.scrollTop = anchor
+      ? container.scrollTop + anchor.getBoundingClientRect().top - container.getBoundingClientRect().top - saved.offset
+      : saved.scrollTop;
+  }, [activeView, rowSignature]);
+  useEffect(() => () => captureScroll(scrollRef.current), []);
+  const onScroll = (event: UIEvent<HTMLDivElement>) => captureScroll(event.currentTarget);
 
   return (
     <section className="fms-action-card" aria-label="FMS actionable trade card">
@@ -353,28 +524,25 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
         <details className="fms-arrow-filter">
           <summary>Choose setups</summary>
           <div>
-            <header><strong>Setups shown on this pair</strong><span><button type="button" onClick={() => onSetAllHistoricalPatterns?.(true)}>All</button><button type="button" onClick={() => onSetAllHistoricalPatterns?.(false)}>None</button></span></header>
-            {historicalPatternFilters.map((option) => <label key={option.id}>
+            <header><strong>Setups shown on this pair</strong><span><button type="button" onClick={() => filteredPatternOptions.forEach((option) => { if (!option.checked) onToggleHistoricalPattern?.(option.id); })}>Select shown</button><button type="button" onClick={() => filteredPatternOptions.forEach((option) => { if (option.checked) onToggleHistoricalPattern?.(option.id); })}>Clear shown</button></span></header>
+            <input className="fms-setup-search" type="search" value={setupSearch} onChange={(event) => updateViewState({ setupSearch: event.target.value })} placeholder="Search label, pair or ID" aria-label="Search setups" />
+            {filteredPatternOptions.map((option) => <label key={option.id}>
               <input type="checkbox" checked={option.checked} onChange={() => onToggleHistoricalPattern?.(option.id)} />
-              <span>{option.label}</span><small>{option.count}</small>
+              <span>{setupOptionLabel(option)}</span><small>{option.count}</small>
             </label>)}
-            {historicalPatternFilters.length === 0 ? <p>No historical setup is loaded for this pair.</p> : null}
+            {historicalPatternFilters.length === 0 ? <p>No historical setup is loaded for this pair.</p> : filteredPatternOptions.length === 0 ? <p>No setup matches this search.</p> : null}
           </div>
         </details>
         <span className="fms-arrow-color-key"><i className="is-history" /> frozen history <i className="is-journal" /> journal</span>
       </div>
-      <header>
-        <div><ShieldCheck size={15} /><span>FMS Trade</span></div>
-        <small>Registered rules only · no MT5 order</small>
-      </header>
       <nav className="fms-action-view-tabs" aria-label="Trade setup views">
-        <button type="button" className={activeView === "next" ? "is-active" : ""} aria-pressed={activeView === "next"} onClick={() => setActiveView("next")}>
+        <button type="button" className={activeView === "next" ? "is-active" : ""} aria-pressed={activeView === "next"} onClick={() => updateViewState({ activeView: "next" })}>
           <span>Next</span><small>{datedSetupCount}</small>
         </button>
-        <button type="button" className={activeView === "current" ? "is-active" : ""} aria-pressed={activeView === "current"} onClick={() => setActiveView("current")}>
+        <button type="button" className={activeView === "current" ? "is-active" : ""} aria-pressed={activeView === "current"} onClick={() => updateViewState({ activeView: "current" })}>
           <span>Current</span><small>{currentActivity.length}</small>
         </button>
-        <button type="button" className={activeView === "recent" ? "is-active" : ""} aria-pressed={activeView === "recent"} onClick={() => setActiveView("recent")}>
+        <button type="button" className={activeView === "recent" ? "is-active" : ""} aria-pressed={activeView === "recent"} onClick={() => updateViewState({ activeView: "recent" })}>
           <span>Recent</span><small>{recentActivity.length}</small>
         </button>
       </nav>
@@ -387,7 +555,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
         <div className="fms-action-section-title">
           <span>Upcoming setups</span><small>{datedSetupCount} scheduled · {registeredSchedule.length - datedSetupCount} awaiting date</small>
         </div>
-        <div className="fms-action-schedule-scroll">
+        <div ref={activeView === "next" ? scrollRef : undefined} className="fms-action-schedule-scroll" onScroll={onScroll}>
           {registeredSchedule.length > 0 ? <table className="fms-action-table">
             <thead><tr><th>Setup</th><th>Plan and evidence</th><th>Dates · Jakarta</th></tr></thead>
             <tbody>{registeredSchedule.map((row) => {
@@ -396,20 +564,20 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
               const evidence = setupEvidenceLabel(row.pattern);
               const fresh = forwardEvidenceLabel(forwardSetupByKey.get(`${row.market}:${row.pattern.id}`));
               return <Fragment key={row.key}>
-                <tr className={row.watch ? "is-scheduled" : ""} role="button" tabIndex={0} aria-expanded={expanded} onClick={() => setExpandedScheduleKey(expanded ? null : row.key)} onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setExpandedScheduleKey(expanded ? null : row.key); }
+                <tr data-row-key={row.key} className={row.watch ? "is-scheduled" : ""} role="button" tabIndex={0} aria-expanded={expanded} onClick={() => updateViewState({ expandedScheduleKey: expanded ? null : row.key })} onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") { event.preventDefault(); updateViewState({ expandedScheduleKey: expanded ? null : row.key }); }
                 }}>
                   <td><strong><PairFlags symbol={row.market} />{row.market}</strong><small>{row.pattern.label}</small></td>
-                  <td className="fms-action-evidence"><strong>{record.tpRate == null ? "TP rate unavailable" : `${(record.tpRate * 100).toFixed(1)}% TP before SL`}</strong><small>{record.averageR == null ? "Gross average unavailable" : `${record.averageR >= 0 ? "+" : ""}${record.averageR.toFixed(2)}R gross avg`} · N {record.sample}</small><small>{patternExecutionLabel(row.pattern)}</small><small className={`fms-action-forward ${fresh.tone}`} title={fresh.detail}>Fresh: {fresh.label}</small><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small></td>
+                  <td className="fms-action-evidence"><strong>{record.tpRate == null ? "TP rate unavailable" : `${(record.tpRate * 100).toFixed(1)}% TP before SL`}</strong><small>{record.averageR == null ? "Gross average unavailable" : `${record.averageR >= 0 ? "+" : ""}${record.averageR.toFixed(2)}R gross avg`} · N {record.sample}</small><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small></td>
                   <td><TradeDate label="Release" time={row.watch?.time} fallback="Awaiting date" />{row.watch ? <small className="fms-release-countdown">In {countdownLabel(row.watch.time, clock)}</small> : null}</td>
                 </tr>
                 {expanded ? <tr className="fms-action-detail-row"><td colSpan={3}>
                   <table><tbody>
                     <tr><th>Frozen contract</th><td>{patternExecutionLabel(row.pattern)}</td></tr>
-                    <tr><th>Historical evidence</th><td>{record.averageR == null ? "Unavailable" : `${(Number(record.tpRate ?? 0) * 100).toFixed(1)}% TP before SL · ${record.averageR >= 0 ? "+" : ""}${record.averageR.toFixed(2)}R gross average · Later N ${record.sample}`}</td></tr>
+                    <tr><th>Historical benchmark</th><td><HistoricalBenchmark pattern={row.pattern} /></td></tr>
                     <tr><th>Evidence profile</th><td>{evidence.primary}</td></tr>
                     <tr><th>Quirks</th><td>{evidence.quirks.length ? evidence.quirks.join(" · ") : "No headline quirk under the current frozen thresholds."}</td></tr>
-                    <tr><th>Fresh record</th><td>{fresh.label} · {fresh.detail}</td></tr>
+                    <tr><th>Forward record</th><td>{fresh.label} · {fresh.detail}</td></tr>
                     <tr><th>Payoff shape</th><td>{row.pattern.reactionAudit?.profile?.targetEvidence ? `Median ${row.pattern.reactionAudit.profile.targetEvidence.medianR == null ? "unavailable" : `${signed(row.pattern.reactionAudit.profile.targetEvidence.medianR)}R`} · expired ${row.pattern.reactionAudit.profile.targetEvidence.expiredRate == null ? "unavailable" : `${(row.pattern.reactionAudit.profile.targetEvidence.expiredRate * 100).toFixed(1)}%`} · largest win share ${row.pattern.reactionAudit.profile.targetEvidence.topOneWinShare == null ? "unavailable" : `${(row.pattern.reactionAudit.profile.targetEvidence.topOneWinShare * 100).toFixed(1)}%`} · drawdown ${row.pattern.reactionAudit.profile.targetEvidence.maximumDrawdownR.toFixed(2)}R · losing streak ${row.pattern.reactionAudit.profile.targetEvidence.longestLosingStreak}` : "Detailed target evidence unavailable"}</td></tr>
                     <tr><th>Period breadth</th><td>{row.pattern.yearStability.evaluableYears} represented years · {row.pattern.yearStability.positiveYears} positive · break-even TP reference {row.pattern.reactionAudit?.profile?.targetEvidence ? `${(row.pattern.reactionAudit.profile.targetEvidence.breakEvenTargetRate * 100).toFixed(1)}%` : "unavailable"}</td></tr>
                     <tr><th>Frozen decision rule</th><td>{row.pattern.condition}</td></tr>
@@ -426,19 +594,19 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
         </div>
       </section> : null}
       {(activeView === "recent" || activeView === "current") ? <section className="fms-action-activity fms-action-view" aria-label="Recent FMS activity">
-        <div className="fms-action-section-title"><span>{activeView === "current" ? "Open trades and awaiting decisions" : "Closed trades and completed decisions"}</span><small>Newest first · all {displayedActivity.length}</small></div>
-        <div className="fms-action-activity-scroll">
+        <div className="fms-action-section-title"><span>{activeView === "current" ? "Open trades and awaiting decisions" : "Closed trades and completed decisions"}</span>{activeView === "recent" ? <label className="fms-hide-no-trade"><input type="checkbox" checked={hideNoTrade} onChange={(event) => updateViewState({ hideNoTrade: event.target.checked })} /> Hide no trade</label> : null}<small>Newest first · {activeView === "recent" && hideNoTrade ? `${displayedActivity.length} displayed / ${recentActivity.length} total` : `all ${displayedActivity.length}`}</small></div>
+        <div ref={scrollRef} className="fms-action-activity-scroll" onScroll={onScroll}>
           {displayedActivity.length > 0 ? <table className="fms-action-table">
             <thead><tr><th>Setup</th><th>Decision and result</th><th>Dates · Jakarta</th></tr></thead>
             <tbody>{displayedActivity.map((row) => {
               const expanded = expandedActivityKey === row.key;
               const sourceLabel = row.source === "recovered" ? "Recovered offline" : row.source === "live" ? "Live captured" : row.state === "No trade" ? "No trade" : "Decision";
               return <Fragment key={row.key}>
-                <tr role="button" tabIndex={0} aria-expanded={expanded} onClick={() => setExpandedActivityKey(expanded ? null : row.key)} onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setExpandedActivityKey(expanded ? null : row.key); }
+                <tr data-row-key={row.key} role="button" tabIndex={0} aria-expanded={expanded} onClick={() => updateViewState({ expandedActivityKey: expanded ? null : row.key })} onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") { event.preventDefault(); updateViewState({ expandedActivityKey: expanded ? null : row.key }); }
                 }}>
                   <td><strong><PairFlags symbol={row.market} />{row.market}</strong><small>{row.label}</small></td>
-                  <td><strong>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} · ` : ""}{row.state}</strong><small className={`fms-activity-source is-${row.source}`}>{sourceLabel}</small><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small></td>
+                  <td><strong>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} · ` : ""}{row.state}</strong><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small></td>
                   <td className="fms-activity-dates">
                     <TradeDate label="Released" time={row.signal?.eventTime ?? row.assessment?.time ?? row.time} />
                     {row.signal ? <>
@@ -450,8 +618,8 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                 {expanded ? <tr className="fms-action-detail-row"><td colSpan={3}>
                   <table><tbody>
                     <tr><th>{row.state === "No trade" ? "Why no trade" : "Decision reason"}</th><td colSpan={3}><strong>{decisionSummary(row.assessment)}</strong><details><summary>Full recorded explanation</summary><p>{row.assessment?.reason ?? "Unavailable"}</p></details></td></tr>
-                    <tr><th>Historical evidence</th><td colSpan={3}>{(() => { const record = historicalRecord(row.pattern); return `${record.sample} events ? ${record.tpRate == null ? "TP-before-SL unavailable" : `${(record.tpRate * 100).toFixed(1)}% TP before SL`} ? ${record.averageR == null ? "Average unavailable" : `${signed(Number(record.averageR.toFixed(2)))}R gross average`}`; })()}</td></tr>
-                    <tr><th>Capture status</th><td colSpan={3}>{row.signal?.prospectiveCapture?.reason ?? row.assessment?.prospectiveCapture?.reason ?? (row.source === "recovered" ? "Recovered history; not a live-captured entry." : row.source === "decision" ? "No open simulated trade." : "Live-captured simulation.")}</td></tr>
+                    <tr><th>Historical benchmark</th><td colSpan={3}><HistoricalBenchmark pattern={row.pattern} /></td></tr>
+                    <tr><th>Capture status</th><td colSpan={3}><strong>{sourceLabel}.</strong> {row.signal?.prospectiveCapture?.reason ?? row.assessment?.prospectiveCapture?.reason ?? (row.source === "recovered" ? "Recovered history; not a live-captured entry." : row.source === "decision" ? "No open simulated trade." : "Live-captured simulation.")}</td></tr>
                     <tr><th>Frozen decision rule</th><td colSpan={3}>{row.pattern.condition}</td></tr>
                     <tr><th>Frozen contract</th><td colSpan={3}>{row.signal ? executionLabel(row.signal, row.pattern) : patternExecutionLabel(row.pattern)}</td></tr>
                     <tr><th>Timing research</th><td colSpan={3}><details><summary>Why this entry timeframe?</summary>{entryResearchNote(row.market, row.pattern)}</details></td></tr>
@@ -469,7 +637,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                 </td></tr> : null}
               </Fragment>;
             })}</tbody>
-          </table> : <p>{data.globalLoading ? "Loading registered release decisions?" : activeView === "current" ? "No release is awaiting evaluation and no simulated trade is pending. Upcoming releases are in Next." : "No completed or earlier release decisions loaded."}</p>}
+          </table> : <p>{data.globalLoading ? "Loading registered release decisions…" : activeView === "current" ? "No release is awaiting evaluation and no simulated trade is pending. Upcoming releases are in Next." : hideNoTrade && recentActivity.length > 0 ? "No completed trades match this filter. Clear Hide no trade to show recorded no-trade decisions." : "No completed or earlier release decisions loaded."}</p>}
         </div>
       </section> : null}
     </section>

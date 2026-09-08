@@ -1,0 +1,36 @@
+{
+  "schema": "fms-entry-state-campaign-summary-v1",
+  "manifestHash": "5b984c6dbbe9615c4292dd5072a8c52721048f97bb0abe80e6dd77c8e3f9052b",
+  "resultHash": "febc32bfb8cc3700d48960401791a6fafe752554fd6aeb015c872423d774fb94",
+  "family": "entry-known H4 state on high-sample unregistered packages",
+  "hypothesis": "A predeclared H4 range or directional-trend state can isolate a more stable subset of an unconditional Stage-A package that was not registered.",
+  "declaredCellCount": 3,
+  "declaredVariants": 12,
+  "completedVariants": 12,
+  "status": "no_later_survivor",
+  "survivorCount": 0,
+  "registrations": 0,
+  "sourceFingerprints": [
+    {
+      "market": "EURCAD",
+      "auditSha256": "827da9b5cfbbfe1582200811593212884a47cef04e64041e763c2dd37f6d73ad",
+      "candleSha256": "c9851da10fd543e1611c27eadf3ebda4ae02838963bc903949010685fe007093"
+    },
+    {
+      "market": "AUDJPY",
+      "auditSha256": "076a5ceb2437f47831a85b80ff63616873d44d95922f7c3ae7a9975d967822c6",
+      "candleSha256": "e887d561d4e94d046c34472d2bc1c5f9b0a51f7e11fb53b603b95f00a03f0b51"
+    },
+    {
+      "market": "GBPCHF",
+      "auditSha256": "f3641309f3e8391e5c17f420781cd18790a3bd4dc1d0547133f33f7ac03d8eb7",
+      "candleSha256": "eadce7b2feafd4612a68fd4a77a328c889d07e927b071206d979b463d4df060a"
+    }
+  ],
+  "survivors": [],
+  "disclosure": "No registration or automatic setup promotion. Any survivor remains reused-history research.",
+  "limitations": [
+    "The archive was used by prior FMS research, so no partition is globally fresh.",
+    "The four variants are correlated and the three cells are a deliberately small coverage probe, not an exhaustive search."
+  ]
+}

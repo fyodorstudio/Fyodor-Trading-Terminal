@@ -19,6 +19,8 @@ def main():
   multiscale = load(multiscale_path) if multiscale_path.exists() else None
   corelease_path = ARTIFACTS / "fms-extended-corelease-2026-09-07/result.json"
   corelease = load(corelease_path) if corelease_path.exists() else None
+  entry_state_path = ARTIFACTS / "fms-entry-state-2026-09-08/result.json"
+  entry_state = load(entry_state_path) if entry_state_path.exists() else None
   manifests = sorted(ARTIFACTS.glob("fms-extended-stage*/**/*.manifest.json"))
   guarded = []
   for path in manifests:
@@ -68,11 +70,12 @@ def main():
     {"family": "categorical no-trade filters on registered cases", "status": "partially searched" if mining else "unsearched", "attempts": (mining or {}).get("summary", {}).get("attempts", 0), "reason": "Controlled reused-history lane; survivors remain exploratory and unregistered."},
     {"family": "multi-scale D1/weekly price structure", "status": "exhausted exact hypothesis" if multiscale else "unsearched", "attempts": (multiscale or {}).get("summary", {}).get("declaredConfigurations", 0), "reason": "The frozen D1/weekly no-trade challenger produced no promotion; higher-timeframe zones remain descriptive."},
     {"family": "unregistered event packages across all pair mappings", "status": "partially searched", "attempts": 278 + int((corelease or {}).get("configurationsTested", 0)), "reason": "Stage A/B covered declared source packages and direction variants; the exact multi-factor co-release followup also produced no development-qualified contract."},
+    {"family": "entry-known H4 state on high-sample unregistered packages", "status": "partially searched" if entry_state else "unsearched", "attempts": int((entry_state or {}).get("completedVariants", 0)), "reason": "One frozen three-cell range/trend campaign produced no later survivor; those 12 exact variants are complete, while orthogonal interactions remain unsearched."},
   ]
   priority = [
     {"rank": 1, "family": "prospective first-seen evidence", "why": "Adds genuinely new chronology for registered and exploratory rules without reusing the selection archive."},
-    {"rank": 2, "family": "entry-known OHLC state on high-sample unregistered packages", "why": "A new bounded interaction may separate regimes on packages that failed as unconditional Stage-A baselines."},
-    {"rank": 3, "family": "minute-entry coverage expansion", "why": "Existing M1 comparisons are too sparse; revisit only after materially more broker candle coverage exists."},
+    {"rank": 2, "family": "minute-entry coverage expansion", "why": "Existing M1 comparisons are too sparse; revisit only after materially more broker candle coverage exists."},
+    {"rank": 3, "family": "orthogonal entry-known interactions on unregistered packages", "why": "Only after a new protocol: exclude the completed prior-range and prior-trend variants and use different cells or state dimensions."},
   ]
   core = {"schema": "fms-exhaustion-ledger-v1", "universe": all_markets, "coverageHash": coverage["coverageHash"],
     "registeredRecipeCount": len(profiles), "registeredMarkets": profile_markets, "marketsWithoutRegisteredRecipe": sorted(set(all_markets)-set(profile_markets)),
@@ -80,6 +83,7 @@ def main():
     "calendarFamilyInventory": calendar_families,
     "sourceBaselines": coverage["summary"], "guardedCampaigns": guarded, "hypothesisLanes": lanes, "rankedNextSearch": priority,
     "campaignFacts": {"sourceBaselinesCompleted": 111, "sourceBaselinesRequired": 112, "crossBaselinesCompleted": 278,
+      "entryStateVariantsCompleted": int((entry_state or {}).get("completedVariants", 0)), "entryStateSurvivors": int((entry_state or {}).get("survivorCount", 0)),
       "note": "Counts retained from the immutable extended-market campaign handoff; they describe completed bounded baselines, not all possible hypotheses."},
     "statusDefinitions": ["exhausted exact hypothesis", "partially searched", "coverage blocked", "under-sampled", "review pending", "unsearched"],
     "conclusion": "The existing bounded campaigns are complete, but the economic-event/OHLC hypothesis space is not exhausted."}

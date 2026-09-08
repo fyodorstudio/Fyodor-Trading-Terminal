@@ -6,7 +6,7 @@ import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
 import { ChartPairMatrixContextMarkers, type PairMatrixContextMarkerView } from "@/app/components/ChartPairMatrixContextMarkers";
 import { ChartMacroBiasAudit, type ChartMacroBiasAuditData } from "@/app/components/ChartMacroBiasAudit";
 import { ChartMacroBiasRealtimeCard, type ChartMacroBiasRealtimeCardData } from "@/app/components/ChartMacroBiasRealtimeCard";
-import { ChartFmsActionCard } from "@/app/components/ChartFmsActionCard";
+import { ChartFmsActionCard, DEFAULT_FMS_TRADE_VIEW_STATE, type FmsTradeViewState } from "@/app/components/ChartFmsActionCard";
 import { ChartFmsJournalCard } from "@/app/components/ChartFmsJournalCard";
 import { ChartFmsKnowledgeCard } from "@/app/components/ChartFmsKnowledgeCard";
 import { ChartPairMatrixTimeLens, type ChartPairMatrixTimeLensData } from "@/app/components/ChartPairMatrixTimeLens";
@@ -40,6 +40,74 @@ class FmsDockErrorBoundary extends Component<{ children: ReactNode }, { error: s
 const FMS_DOCK_MIN_WIDTH = 340;
 const FMS_DOCK_DEFAULT_WIDTH = 460;
 const FMS_DOCK_WIDTH_KEY = "fyodor.charts.fms-dock-width";
+const FMS_TRADE_STATE_KEY = "fyodor.charts.fms-trade-state";
+const FMS_SETUPS_STATE_KEY = "fyodor.charts.fms-setups-state";
+
+type FmsSetupSection = "benchmarks" | "research" | "knowledge";
+
+function loadFmsSetupSections(): { workspaceOpen: boolean; open: FmsSetupSection[]; visited: FmsSetupSection[] } {
+  try {
+    const parsed = JSON.parse(window.sessionStorage.getItem(FMS_SETUPS_STATE_KEY) ?? "null");
+    const valid = (value: unknown): value is FmsSetupSection => value === "benchmarks" || value === "research" || value === "knowledge";
+    return {
+      workspaceOpen: Boolean(parsed?.workspaceOpen),
+      open: Array.isArray(parsed?.open) ? parsed.open.filter(valid) : [],
+      visited: Array.isArray(parsed?.visited) ? parsed.visited.filter(valid) : [],
+    };
+  } catch {
+    return { workspaceOpen: false, open: [], visited: [] };
+  }
+}
+
+function FmsSetupsWorkspace({ data }: { data: ChartMacroBiasRealtimeCardData }) {
+  const [sections, setSections] = useState(loadFmsSetupSections);
+  useEffect(() => {
+    try { window.sessionStorage.setItem(FMS_SETUPS_STATE_KEY, JSON.stringify(sections)); } catch { /* optional session continuity */ }
+  }, [sections]);
+  const toggleSection = (section: FmsSetupSection, open: boolean) => setSections((current) => ({
+    ...current,
+    open: open ? [...new Set([...current.open, section])] : current.open.filter((value) => value !== section),
+    visited: open ? [...new Set([...current.visited, section])] : current.visited,
+  }));
+  const registeredCount = (data.globalResponse?.markets ?? [data.response])
+    .reduce((sum, market) => sum + market.patterns.filter((pattern) => pattern.currentEligible).length, 0);
+  return <section className="fms-setups-workspace" aria-label="Registered setups, research, and knowledge">
+    <header><div><span>Registered Setups</span></div><small>{registeredCount} frozen contracts</small></header>
+    <details className="fms-setups-workspace-root" open={sections.workspaceOpen} onToggle={(event) => setSections((current) => ({ ...current, workspaceOpen: event.currentTarget.open }))}>
+      <summary><span>Registered setup benchmarks</span><strong>{registeredCount}</strong><ChevronDown size={14} /></summary>
+      <div className="fms-setups-workspace-sections">
+        <details open={sections.open.includes("benchmarks")} onToggle={(event) => toggleSection("benchmarks", event.currentTarget.open)}>
+          <summary><span>Benchmarks</span><small>Frozen contracts and historical evidence</small><ChevronDown size={13} /></summary>
+          {sections.visited.includes("benchmarks") ? <ChartMacroBiasRealtimeCard data={data} view="setups" embedded /> : null}
+        </details>
+        <details open={sections.open.includes("research")} onToggle={(event) => toggleSection("research", event.currentTarget.open)}>
+          <summary><span>Research / reviews</span><small>Diagnostics, queues, and candidates</small><ChevronDown size={13} /></summary>
+          {sections.visited.includes("research") ? <ChartMacroBiasRealtimeCard data={data} view="research" embedded /> : null}
+        </details>
+        <details open={sections.open.includes("knowledge")} onToggle={(event) => toggleSection("knowledge", event.currentTarget.open)}>
+          <summary><span>Knowledge</span><small>Durable findings and research ledger</small><ChevronDown size={13} /></summary>
+          {sections.visited.includes("knowledge") ? <ChartFmsKnowledgeCard data={data} embedded /> : null}
+        </details>
+      </div>
+    </details>
+  </section>;
+}
+
+function loadFmsTradeViewState(): FmsTradeViewState {
+  try {
+    const parsed = JSON.parse(window.sessionStorage.getItem(FMS_TRADE_STATE_KEY) ?? "null") as Partial<FmsTradeViewState> | null;
+    const activeView = parsed?.activeView;
+    if (!parsed || (activeView !== "next" && activeView !== "current" && activeView !== "recent")) return DEFAULT_FMS_TRADE_VIEW_STATE;
+    return {
+      ...DEFAULT_FMS_TRADE_VIEW_STATE,
+      ...parsed,
+      activeView,
+      scroll: { ...DEFAULT_FMS_TRADE_VIEW_STATE.scroll, ...parsed.scroll },
+    };
+  } catch {
+    return DEFAULT_FMS_TRADE_VIEW_STATE;
+  }
+}
 
 export function clampFmsDockWidth(requestedWidth: number, workspaceWidth: number): number {
   const maximum = Math.max(FMS_DOCK_MIN_WIDTH, Math.min(720, workspaceWidth * .62));
@@ -213,7 +281,9 @@ export function ChartViewport({
   overlayCopy,
   reachedBoundary,
 }: ChartViewportProps) {
-  const [fmsDockTab, setFmsDockTab] = useState<"trade" | "journal" | "setups" | "research" | "knowledge" | "result">(macroBiasAudit ? "result" : "trade");
+  const [fmsDockTab, setFmsDockTab] = useState<"trade" | "journal" | "setups" | "result">(macroBiasAudit ? "result" : "trade");
+  const fmsDockReturnTabRef = useRef<"trade" | "journal" | "setups">("trade");
+  const [fmsTradeViewState, setFmsTradeViewState] = useState(loadFmsTradeViewState);
   const [fmsDockWidth, setFmsDockWidth] = useState(() => {
     try {
       const saved = Number(window.localStorage.getItem(FMS_DOCK_WIDTH_KEY));
@@ -232,9 +302,21 @@ export function ChartViewport({
   const previousLensOpenRef = useRef(lensOpen);
 
   useEffect(() => {
-    if (macroBiasAudit) setFmsDockTab("result");
-    else setFmsDockTab((current) => current === "result" ? "trade" : current);
+    if (macroBiasAudit) setFmsDockTab((current) => {
+      if (current !== "result") fmsDockReturnTabRef.current = current;
+      return "result";
+    });
+    else setFmsDockTab((current) => current === "result" ? fmsDockReturnTabRef.current : current);
   }, [macroBiasAudit?.signal.id, Boolean(macroBiasRealtime)]);
+
+  const selectFmsDockTab = (tab: "trade" | "journal" | "setups") => {
+    fmsDockReturnTabRef.current = tab;
+    setFmsDockTab(tab);
+  };
+
+  useEffect(() => {
+    try { window.sessionStorage.setItem(FMS_TRADE_STATE_KEY, JSON.stringify(fmsTradeViewState)); } catch { /* optional session continuity */ }
+  }, [fmsTradeViewState]);
 
   useEffect(() => {
     if (pairMatrixTimeLens.open && !previousMatrixOpenRef.current) setBottomDockTab("matrix");
@@ -301,11 +383,9 @@ export function ChartViewport({
           {fmsDockVisible ? (
             <aside ref={fmsDockRef} className="chart-fms-dock" style={{ width: fmsDockWidth }} aria-label="FMS chart workspace">
               <nav className="chart-fms-dock-tabs" aria-label="FMS windows">
-                <button type="button" className={fmsDockTab === "trade" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => setFmsDockTab("trade")} title="Current action">Trade</button>
-                <button type="button" className={fmsDockTab === "journal" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => setFmsDockTab("journal")} title="Daily model and demo results">Journal</button>
-                <button type="button" className={fmsDockTab === "setups" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => setFmsDockTab("setups")}>Setups</button>
-                <button type="button" className={fmsDockTab === "research" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => setFmsDockTab("research")}>Research</button>
-                <button type="button" className={fmsDockTab === "knowledge" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => setFmsDockTab("knowledge")} title="Durable findings">Knowledge</button>
+                <button type="button" className={fmsDockTab === "trade" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => selectFmsDockTab("trade")} title="Current action">Trade</button>
+                <button type="button" className={fmsDockTab === "journal" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => selectFmsDockTab("journal")} title="Daily model and demo results">Journal</button>
+                <button type="button" className={fmsDockTab === "setups" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => selectFmsDockTab("setups")}>Setups</button>
                 <button type="button" className={fmsDockTab === "result" ? "is-active" : ""} disabled={!macroBiasAudit} onClick={() => setFmsDockTab("result")}>Past Result</button>
               </nav>
               <div className="chart-fms-dock-content">
@@ -321,13 +401,13 @@ export function ChartViewport({
                         onToggleHistoricalMatches={onToggleMacroBiasHistoricalMatches}
                         onToggleHistoricalPattern={onToggleMacroBiasHistoricalPattern}
                         onSetAllHistoricalPatterns={onSetAllMacroBiasHistoricalPatterns}
+                        viewState={fmsTradeViewState}
+                        onViewStateChange={setFmsTradeViewState}
                       />
                   : fmsDockTab === "journal" && macroBiasRealtime
                     ? <ChartFmsJournalCard data={macroBiasRealtime} />
-                  : fmsDockTab === "knowledge" && macroBiasRealtime
-                    ? <ChartFmsKnowledgeCard data={macroBiasRealtime} />
-                  : macroBiasRealtime
-                    ? <ChartMacroBiasRealtimeCard data={macroBiasRealtime} view={fmsDockTab === "research" ? "research" : "setups"} />
+                  : fmsDockTab === "setups" && macroBiasRealtime
+                    ? <FmsSetupsWorkspace data={macroBiasRealtime} />
                     : <section className="chart-fms-dock-loading" aria-live="polite">
                         <strong>{macroBiasLoading ? "Loading FMS Trade…" : "FMS Trade unavailable"}</strong>
                         <span>{macroBiasLoading ? "Cached decisions and the selected market are being restored." : "No registered FMS response is available for this market."}</span>

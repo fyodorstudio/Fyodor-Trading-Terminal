@@ -1637,7 +1637,7 @@
     {
       "currency": "EUR",
       "family": "consumer_sentiment",
-      "brokerRows": 911,
+      "brokerRows": 912,
       "distinctTitles": 2,
       "sampleTitles": [
         "Consumer Confidence",
@@ -3222,7 +3222,7 @@
     {
       "currency": "CHF",
       "family": "unemployment",
-      "brokerRows": 396,
+      "brokerRows": 398,
       "distinctTitles": 2,
       "sampleTitles": [
         "Unemployment Rate",
@@ -3540,6 +3540,12 @@
       "status": "partially searched",
       "attempts": 9878,
       "reason": "Stage A/B covered declared source packages and direction variants; the exact multi-factor co-release followup also produced no development-qualified contract."
+    },
+    {
+      "family": "entry-known H4 state on high-sample unregistered packages",
+      "status": "partially searched",
+      "attempts": 12,
+      "reason": "One frozen three-cell range/trend campaign produced no later survivor; those 12 exact variants are complete, while orthogonal interactions remain unsearched."
     }
   ],
   "rankedNextSearch": [
@@ -3550,19 +3556,21 @@
     },
     {
       "rank": 2,
-      "family": "entry-known OHLC state on high-sample unregistered packages",
-      "why": "A new bounded interaction may separate regimes on packages that failed as unconditional Stage-A baselines."
+      "family": "minute-entry coverage expansion",
+      "why": "Existing M1 comparisons are too sparse; revisit only after materially more broker candle coverage exists."
     },
     {
       "rank": 3,
-      "family": "minute-entry coverage expansion",
-      "why": "Existing M1 comparisons are too sparse; revisit only after materially more broker candle coverage exists."
+      "family": "orthogonal entry-known interactions on unregistered packages",
+      "why": "Only after a new protocol: exclude the completed prior-range and prior-trend variants and use different cells or state dimensions."
     }
   ],
   "campaignFacts": {
     "sourceBaselinesCompleted": 111,
     "sourceBaselinesRequired": 112,
     "crossBaselinesCompleted": 278,
+    "entryStateVariantsCompleted": 12,
+    "entryStateSurvivors": 0,
     "note": "Counts retained from the immutable extended-market campaign handoff; they describe completed bounded baselines, not all possible hypotheses."
   },
   "statusDefinitions": [
@@ -3574,5 +3582,5 @@
     "unsearched"
   ],
   "conclusion": "The existing bounded campaigns are complete, but the economic-event/OHLC hypothesis space is not exhausted.",
-  "ledgerHash": "ffad8d8bdd166b3aab7c4b83b226014dd788d9ba932921d73f76e602152906a7"
+  "ledgerHash": "641b015b66d103e5d1df19dfa19215aa3bf8f5fbfad3c3bbb218a4392378caa5"
 }

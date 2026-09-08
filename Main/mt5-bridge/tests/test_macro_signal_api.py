@@ -77,6 +77,73 @@ def test_chart_projection_keeps_visible_context_audit_and_omits_heavy_research_g
   assert context["dimensions"] == [{"dimension": "macroBackground", "value": "aligned", "historicalN": 20, "laterReaction": later_reaction, "status": "promising_context"}]
 
 
+def test_historical_evidence_uses_one_contract_cohort_and_keeps_unknown_counts_unknown() -> None:
+  ordinary = server._historical_evidence_summary({
+    "cohort": {"dimension": "relativeMagnitude", "value": "ordinary"},
+    "historicalBenchmark": {"basis": "chronological_holdout", "experimentId": "E-ordinary"},
+    "holdout": {
+      "evaluableCount": 20, "targetHitCount": 6, "targetHitRate": .3,
+      "stopHitCount": 8, "stopHitRate": .4, "expiredCount": 6,
+      "ambiguousCount": 2, "unevaluableCount": 1, "averageR": .125,
+    },
+  })
+  assert ordinary["scope"] == "Chronological holdout · registered contract"
+  assert ordinary["evaluableCount"] == 20
+  assert (ordinary["targetHitCount"], ordinary["stopHitCount"], ordinary["expiredCount"]) == (6, 8, 6)
+  assert ordinary["totalGrossR"] == 2.5
+
+  successor = server._historical_evidence_summary({
+    "historicalBenchmark": {"experimentId": "E-parent"},
+    "entryReview": {
+      "id": "H1-successor", "status": "reviewed_active",
+      "later": {"laterN": 32, "h1AverageR": .25, "h4AverageR": .1},
+    },
+    "holdout": {"evaluableCount": 99, "targetHitCount": 70, "averageR": 9},
+  })
+  assert successor["scope"] == "Chronological later matched cases · reviewed H1 entry"
+  assert successor["evaluableCount"] == 32
+  assert successor["averageGrossR"] == .25
+  assert successor["totalGrossR"] == 8
+  assert successor["targetHitCount"] is None
+
+
+def test_selected_arrow_detail_finds_recovered_signal_and_reuses_terminal_cache(monkeypatch) -> None:
+  signal = {
+    "id": "setup:100", "patternId": "setup", "eventTime": 100,
+    "direction": "long", "activationTime": 200, "entry": 1.0, "atr": .1,
+    "stopAtr": 1.0, "targetR": 1.0, "expiryCandles": 1,
+    "outcomeStatus": "target_hit", "resultR": 1.0,
+  }
+  calls = []
+
+  class MemoryStore:
+    def __init__(self):
+      self.metadata = {}
+
+    def get_metadata(self, key):
+      return self.metadata.get(key)
+
+    def set_metadata(self, key, value):
+      self.metadata[key] = value
+
+    def query_candles(self, _market, timeframe, _start, _end):
+      if timeframe == "M1":
+        return []
+      return [{"time": 200, "open": 1.0, "high": 1.11, "low": .99, "close": 1.1, "volume": 1}]
+
+  def response(**kwargs):
+    calls.append(kwargs)
+    return {"signals": [], "recoveredSignals": [signal]}
+
+  monkeypatch.setattr(server, "_research_store", MemoryStore())
+  monkeypatch.setattr(server, "research_chart_signals", response)
+  first = server.research_chart_signal_target_ladder("EURUSD", "setup", 100, "current")
+  second = server.research_chart_signal_target_ladder("EURUSD", "setup", 100, "current")
+  assert first == second
+  assert first["signal"]["resultR"] == 1.0
+  assert len(calls) == 1
+
+
 def test_global_chart_refresh_reaches_each_current_market_request(monkeypatch) -> None:
   calls = []
 

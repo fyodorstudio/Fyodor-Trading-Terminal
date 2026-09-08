@@ -104,8 +104,8 @@ describe("getChartConnectionLabel", () => {
     const built = buildMacroBiasSeriesMarkers(signals, candles, "H4", 0);
 
     expect(built.markers.map((marker) => ({ time: marker.time, shape: marker.shape, text: marker.text, color: marker.color }))).toEqual([
-      { time: 14_400, shape: "arrowUp", text: "LONG BIAS · CONTEXT", color: "#2563eb" },
-      { time: 28_800, shape: "arrowDown", text: "SHORT BIAS", color: "#7c3aed" },
+      { time: 14_400, shape: "arrowUp", text: "H4 ENTRY · LONG · CONTEXT", color: "#2563eb" },
+      { time: 28_800, shape: "arrowDown", text: "H4 ENTRY · SHORT", color: "#7c3aed" },
     ]);
     const journaled = buildMacroBiasSeriesMarkers([
       { ...makeSignal("journal-long", 1_000, "long"), historicalReplay: false },
@@ -274,8 +274,8 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Uptrend");
     expect(html).toContain("82nd past-only percentile");
     expect(html).toContain("2.00 ATR to confirmed resistance at 1.36000 · 3 touches");
-    expect(html).toContain("Initial move");
-    expect(html).toContain("Followed · +0.67R");
+    expect(html).toContain("Initial price reaction");
+    expect(html).toContain("+0.67R");
     expect(html).toContain("Price followed the arrow");
     expect(html).toContain("after 1 H4");
     expect(html).toContain("Frozen trade result");
@@ -292,10 +292,10 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Direction worked after 6 H4");
     expect(html).toContain("Worked, but trade lost");
     expect(html).toContain("Different measurements:");
-    expect(html.indexOf("Initial move")).toBeLessThan(html.indexOf("Why the arrow appeared"));
-    expect(html.indexOf("Frozen plan")).toBeLessThan(html.indexOf("Why the arrow appeared"));
-    expect(html.indexOf("Frozen trade")).toBeLessThan(html.indexOf("Why the arrow appeared"));
-    expect(html).toContain("Risk −1R to seek +0.5R");
+    expect(html.indexOf("Direction and result")).toBeLessThan(html.indexOf("Why the arrow appeared"));
+    expect(html.indexOf("exact frozen entry")).toBeLessThan(html.indexOf("Why the arrow appeared"));
+    expect(html).toContain("Risk : reward");
+    expect(html).toContain("1 : 0.5");
     expect(html).toContain("Closed — target reached");
     expect(html).toContain("Later price movement does not change this result");
     expect(html).toContain("TP reached · +0.50R");
@@ -504,13 +504,14 @@ describe("getChartConnectionLabel", () => {
     const actionHtml = renderToStaticMarkup(createElement(ChartFmsActionCard, { data: {
       response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
     }, historicalMatchesVisible: true, historicalMatchesCount: 42, onToggleHistoricalMatches: () => {} }));
-    expect(actionHtml).toContain("FMS Trade");
+    expect(actionHtml).not.toContain("Registered rules only");
     expect(actionHtml).toContain("Past arrows");
+    expect(actionHtml).toContain("Search setups");
+    expect(actionHtml).not.toContain("Fresh:");
     expect(actionHtml).toContain("Next registered setups");
     expect(actionHtml).toContain("<span>Next</span>");
     expect(actionHtml).toContain("<span>Current</span>");
     expect(actionHtml).toContain("<span>Recent</span>");
-    expect(actionHtml).toContain("Frozen contract");
     expect(actionHtml).toContain("Show details");
     const schedule = buildRegisteredSetupSchedule([response, gbpResponse], 100);
     expect(schedule.map((row) => [row.market, row.watch?.time ?? null])).toEqual([
@@ -547,7 +548,7 @@ describe("getChartConnectionLabel", () => {
     const queuedHtml = renderToStaticMarkup(createElement(ChartMacroBiasRealtimeCard, { data: {
       response: queuedResponse, activeSignal: null, activePattern: null, remainingModelCandles: null, chartTimeframe: "H1", historicalSignals: [], globalResponse: { ...globalResponse, markets: [queuedResponse, gbpResponse] }, globalLoading: false, globalError: null,
     } }));
-    expect(queuedHtml).toContain("Queued for the next H4 entry");
+    expect(queuedHtml).toContain("Queued for the next eligible entry");
     expect(queuedHtml).toContain("Queued for H4 entry");
     expect(queuedHtml).toContain("01 Jan 1970");
     const recoveredSignal = {

@@ -1101,6 +1101,23 @@ export interface MacroSignalChartPattern {
     basis?: "qualification_pooled" | "chronological_holdout";
     strength?: "stronger_history" | "positive_but_fragile";
   };
+  historicalEvidence?: null | {
+    scope: string;
+    cohort: { dimension: string; value: string };
+    sourceId: string | null;
+    evaluableCount: number;
+    targetHitCount: number | null;
+    targetHitRate: number | null;
+    stopHitCount: number | null;
+    stopHitRate: number | null;
+    expiredCount: number | null;
+    breakEvenCount: number | null;
+    ambiguousCount: number | null;
+    unevaluableCount: number | null;
+    averageGrossR: number | null;
+    totalGrossR: number | null;
+    totalGrossRDerivation: "exact_mean_times_evaluable_n" | null;
+  };
   reactionAudit?: null | {
     schema: "registered-reaction-audit-v1";
     scope: "chronological later-test cases";

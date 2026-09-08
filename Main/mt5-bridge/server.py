@@ -3851,6 +3851,73 @@ def _interactive_reaction_audit(audit: Any) -> Any:
   return {**audit, "profile": interactive_profile}
 
 
+def _historical_evidence_summary(pattern: Dict[str, Any]) -> Dict[str, Any]:
+  """Return one internally consistent frozen-contract benchmark for Charts."""
+  benchmark = pattern.get("historicalBenchmark") or {}
+  cohort = pattern.get("cohort") or {"dimension": "none", "value": "all"}
+
+  def summary(scope: str, source_id: Optional[str], metrics: Dict[str, Any], average_key: str, sample_key: str) -> Dict[str, Any]:
+    sample_value = metrics.get(sample_key)
+    average_value = metrics.get(average_key)
+    sample = int(sample_value) if sample_value is not None else 0
+    average = float(average_value) if average_value is not None else None
+    return {
+      "scope": scope,
+      "cohort": dict(cohort),
+      "sourceId": source_id,
+      "evaluableCount": sample,
+      "targetHitCount": metrics.get("targetHitCount"),
+      "targetHitRate": metrics.get("targetHitRate", metrics.get("tpBeforeSl")),
+      "stopHitCount": metrics.get("stopHitCount"),
+      "stopHitRate": metrics.get("stopHitRate", metrics.get("slBeforeTp")),
+      "expiredCount": metrics.get("expiredCount"),
+      "breakEvenCount": metrics.get("breakEvenCount"),
+      "ambiguousCount": metrics.get("ambiguousCount", metrics.get("ambiguousN")),
+      "unevaluableCount": metrics.get("unevaluableCount", metrics.get("unevaluableN")),
+      "averageGrossR": average,
+      "totalGrossR": average * sample if average is not None and sample else None,
+      "totalGrossRDerivation": "exact_mean_times_evaluable_n" if average is not None and sample else None,
+    }
+
+  entry_review = pattern.get("entryReview") or {}
+  if entry_review.get("status") == "reviewed_active":
+    later = entry_review.get("later") or {}
+    return summary(
+      "Chronological later matched cases · reviewed H1 entry",
+      str(entry_review.get("id") or benchmark.get("experimentId") or "") or None,
+      {"evaluableN": later.get("laterN"), "averageR": later.get("h1AverageR")},
+      "averageR", "evaluableN",
+    )
+
+  execution_review = pattern.get("executionReview") or {}
+  if execution_review.get("status") == "reviewed_active":
+    later = execution_review.get("later") or {}
+    return summary(
+      "Chronological later cases · reviewed execution successor",
+      str(execution_review.get("configurationHash") or benchmark.get("experimentId") or "") or None,
+      later, "averageR", "evaluableN",
+    )
+
+  if benchmark.get("basis") == "chronological_holdout":
+    return summary(
+      "Chronological holdout · registered contract",
+      str(benchmark.get("experimentId") or "") or None,
+      pattern.get("holdout") or {}, "averageR", "evaluableCount",
+    )
+
+  return summary(
+    "Walk-forward pooled benchmark · registered contract",
+    str(benchmark.get("experimentId") or "") or None,
+    {
+      "evaluableCount": benchmark.get("walkForwardN"),
+      "averageR": benchmark.get("walkForwardAverageR"),
+      "targetHitRate": benchmark.get("targetFirstRate"),
+      "stopHitRate": benchmark.get("stopFirstRate"),
+    },
+    "averageR", "evaluableCount",
+  )
+
+
 def _interactive_chart_pattern(pattern: Any) -> Any:
   if not isinstance(pattern, dict):
     return pattern
@@ -3864,6 +3931,7 @@ def _interactive_chart_pattern(pattern: Any) -> Any:
       "condition", "scoringPolicy", "reaction", "cohort",
       "historicalBenchmark", "registrationProvenance", "readiness", "execution",
       "baseExecution", "executionReview", "entryReview", "contextRegistration",
+      "historicalEvidence",
       "requiredExactTitles", "direction", "groups", "currentEligible",
       "uncertaintyIncludesNoEdge",
     )
@@ -4207,6 +4275,7 @@ def research_chart_signals(
     provenance = _registration_provenance(enriched_pattern)
     patterns.append({
       **enriched_pattern,
+      "historicalEvidence": _historical_evidence_summary(enriched_pattern),
       "reactionAudit": definition.get("reactionAudit"),
       "registrationProvenance": provenance,
       "readiness": _pattern_readiness(enriched_pattern, provenance),
@@ -4876,17 +4945,16 @@ def research_chart_signal_target_ladder(
   normalized_symbol = symbol.upper()
   normalized_mode = mode.lower()
   ladder_cache_key = (
-    f"fms_target_ladder:v2:{PRACTICAL_MODEL_HASH}:{normalized_symbol}:{patternId}:{int(eventTime)}"
+    f"fms_target_ladder:v3:{PRACTICAL_MODEL_HASH}:{normalized_mode}:{normalized_symbol}:{patternId}:{int(eventTime)}"
   )
-  if normalized_mode == "research_replay":
-    raw_cached_ladder = _research_store.get_metadata(ladder_cache_key)
-    if raw_cached_ladder:
-      try:
-        cached_ladder = json.loads(raw_cached_ladder)
-        if isinstance(cached_ladder, dict):
-          return cached_ladder
-      except (TypeError, ValueError):
-        logger.warning("Ignoring unreadable FMS target-ladder cache for %s", patternId)
+  raw_cached_ladder = _research_store.get_metadata(ladder_cache_key)
+  if raw_cached_ladder:
+    try:
+      cached_ladder = json.loads(raw_cached_ladder)
+      if isinstance(cached_ladder, dict):
+        return cached_ladder
+    except (TypeError, ValueError):
+      logger.warning("Ignoring unreadable FMS target-ladder cache for %s", patternId)
   response = research_chart_signals(
     symbol=normalized_symbol,
     tf="H4",
@@ -4897,7 +4965,7 @@ def research_chart_signal_target_ladder(
   )
   signal = next(
     (
-      row for row in response.get("signals", [])
+      row for row in [*(response.get("signals") or []), *(response.get("recoveredSignals") or [])]
       if str(row.get("patternId")) == patternId and int(row.get("eventTime") or 0) == int(eventTime)
     ),
     None,
@@ -4950,7 +5018,7 @@ def research_chart_signal_target_ladder(
       "pathAudit": {**(signal.get("pathAudit") or {}), "targetLadder": target_ladder},
     },
   }
-  if normalized_mode == "research_replay":
+  if normalized_mode == "research_replay" or signal.get("outcomeStatus") in {"target_hit", "stop_hit", "expired", "ambiguous", "unevaluable"}:
     _research_store.set_metadata(ladder_cache_key, json.dumps(result, separators=(",", ":")))
   return result
 

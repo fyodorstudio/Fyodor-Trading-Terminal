@@ -488,7 +488,7 @@ function CurrencyFlag({ currency }: { currency: string }) {
 
 export type ChartMacroBiasRealtimeView = "all" | "setups" | "research";
 
-export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCard({ data, view = "all" }: { data: ChartMacroBiasRealtimeCardData; view?: ChartMacroBiasRealtimeView }) {
+export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCard({ data, view = "all", embedded = false }: { data: ChartMacroBiasRealtimeCardData; view?: ChartMacroBiasRealtimeView; embedded?: boolean }) {
   const { response, activeSignal, activePattern } = data;
   const activeContextCandidate = activePattern?.reactionAudit?.profile?.contextResearch?.selectedCandidate ?? null;
   const activeContextMatches = Boolean(activeSignal && activeContextCandidate && signalContextValue(activeSignal, activeContextCandidate.dimension) === activeContextCandidate.value);
@@ -742,10 +742,10 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
 
   return (
     <aside className="chart-macro-bias-realtime" aria-label={view === "research" ? "FMS Research" : view === "setups" ? "Registered FMS Setups" : "FMS Shadow Trader"} data-fms-view={view}>
-      <header>
+      {!embedded ? <header>
         <div><ShieldCheck size={14} /><span>{view === "research" ? "FMS Research" : view === "setups" ? "Registered Setups" : "FMS Shadow Trader"}</span></div>
         <small>{view === "research" ? "Diagnostics and review" : data.globalResponse ? `${registryResponses.length} markets live` : timeframeLabel}</small>
-      </header>
+      </header> : null}
       {view !== "setups" && registeredContextPatterns.length > 0 ? (
         <section className="chart-shadow-context-summary fms-research-only" aria-label="Reviewed context rule availability">
           <div><span>Reviewed H4 context rules</span><strong>{registeredContextPatterns.length} exact setup rules</strong></div>
@@ -1086,10 +1086,12 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
 
       </> : null}
       {view !== "research" ? <>
-      <details className="chart-shadow-lower-disclosure fms-setups-only">
+      {embedded ? <div className="fms-embedded-benchmarks fms-setups-only">
+        <ChartMacroBiasSetupCatalog patterns={registeredPatternRows} />
+      </div> : <details className="chart-shadow-lower-disclosure fms-setups-only">
         <summary><span>Registered setup benchmarks</span><strong>{registeredPatternRows.length}</strong><ChevronDown size={14} /></summary>
         <ChartMacroBiasSetupCatalog patterns={registeredPatternRows} />
-      </details>
+      </details>}
 
       </> : null}
       {view !== "setups" ? <>
@@ -1287,7 +1289,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
         </section>
       ) : null}
       </> : null}
-      <footer>{view === "research" ? "Research findings do not change active registered setups automatically." : "Hypothetical results only: spread, commission, slippage, and swap are excluded. No order is sent to MT5. Past results do not guarantee the next trade."}</footer>
+      {!embedded ? <footer>{view === "research" ? "Research findings do not change active registered setups automatically." : "Hypothetical results only: spread, commission, slippage, and swap are excluded. No order is sent to MT5. Past results do not guarantee the next trade."}</footer> : null}
     </aside>
   );
 });

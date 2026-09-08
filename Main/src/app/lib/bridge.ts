@@ -395,6 +395,7 @@ export async function fetchMacroSignalTargetLadder(params: {
   patternId: string;
   eventTime: number;
   mode: MacroSignalChartMode;
+  identityScope?: string;
 }): Promise<{ signal: MacroSignalChartSignal }> {
   const search = new URLSearchParams({
     symbol: params.symbol,
@@ -402,8 +403,17 @@ export async function fetchMacroSignalTargetLadder(params: {
     eventTime: String(params.eventTime),
     mode: params.mode,
   });
-  return fetchJson(`${BRIDGE_BASE}/research/chart-signal-target-ladder?${search.toString()}`);
+  const url = `${BRIDGE_BASE}/research/chart-signal-target-ladder?${search.toString()}`;
+  const requestKey = `${url}|${params.identityScope ?? ""}`;
+  const pending = targetLadderRequests.get(requestKey);
+  if (pending) return pending;
+  const request = fetchJson<{ signal: MacroSignalChartSignal }>(url, { signal: AbortSignal.timeout(90_000) })
+    .finally(() => { targetLadderRequests.delete(requestKey); });
+  targetLadderRequests.set(requestKey, request);
+  return request;
 }
+
+const targetLadderRequests = new Map<string, Promise<{ signal: MacroSignalChartSignal }>>();
 
 const globalRegistryRequests = new Map<string, Promise<MacroSignalGlobalResponse>>();
 

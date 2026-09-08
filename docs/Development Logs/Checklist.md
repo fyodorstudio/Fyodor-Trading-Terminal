@@ -1,98 +1,90 @@
 # Current mission and handoff
 
-Updated 2026-09-08. This is working memory, not a chronological log. Replace stale sections instead of appending repeated reports. Permanent rules: [AGENTS](../../AGENTS.md). Architecture: [CONTEXT](../../CONTEXT.md). Unknown owner: [navigation](../NAVIGATION.md).
+Updated 2026-09-08. P0–P7 implementation is complete; owner visual verification remains. Rules: [AGENTS](../../AGENTS.md). Durable context: [CONTEXT](../../CONTEXT.md). Unknown owner: [navigation](../NAVIGATION.md).
 
-## Current scope
+## Non-negotiable product behavior
 
-Current request: improve Charts pair switching, optimize the authorized bridge candle-cache query, and show all available setups/results across Trade Next/Current/Recent. Implementation and targeted checks are complete; owner browser acceptance remains pending. No research campaign, account access, or unrelated redesign belongs to this pass.
+- Local manual-trading support only. Fyodor sends no orders and makes no profitability promise.
+- Trusted inputs remain MT5 OHLCV and the broker economic calendar. Research stays gross; there is no new cost model or external feed.
+- Immutable first-seen provenance, frozen contracts, no-lookahead semantics, unresolved outcomes, release monitoring, and all saved records remain intact.
+- No setup was promoted automatically. Real-account access remains outside scope.
+- Target layout is 1440x900 at 100% Chrome zoom. Browser automation was not used; the owner must perform the visual checks below.
 
-## Accepted product decisions
+## Implemented P0–P7
 
-- Research all 28 configured Major Forex Extended pairs using MT5 calendar and OHLC only. Seek more positive historical recipes and supported immutable improvements; no promised future edge. All FMS expectancy remains gross.
-- Daily flow: Charts ? Trade ? Next/Current/Recent. Clear date, status, direction, entry, ATR, SL/TP, expiry, historical N and TP-before-SL; brief reason plus release cards. Deep research stays in its dock.
-- Current keeps open/pending trades, eligible missing-entry cases and releases awaiting evaluation, including across midnight. Closed results and completed no-trade/audit decisions go to Recent immediately. Next shows every available future occurrence; the three views have no row cap. Longer performance aggregation belongs in Journal. Recovered is visibly distinct from live captured.
-- New H1 entries require exact-contract, no-lookahead evidence and explicit successor activation. Earlier H4 history is immutable. Avoid repeated backtests of unchanged candidates.
-- The owner prefers autonomous implementation after planning, no subagents, minimal commentary, bounded output, necessary verification, and a short manual audit. No browser automation or new test files without explicit agreement.
+### P0 — Trade continuity
 
-## Latest implementation handoff: Charts/FMS
+- Trade view state is lifted into `ChartViewport` and session-persisted: Next/Current/Recent subtab, expanded schedule/activity row, setup search, no-trade filter, and per-view scroll anchor/offset.
+- Opening Past Result remembers the prior dock destination. Closing it returns to that destination; Trade restores its saved disclosure and scroll state.
+- Stable row keys anchor restoration without permanently mounting the Trade body.
 
-Recorded changes (do not infer that every browser edge case is verified):
-- Fixed null H1 activation crash and global snapshot replacement of newer market records.
-- Added independent registered-market release monitoring, visible refresh failures, request deduplication/timeouts, and a release-time waiting row.
-- Unified Current/Recent partition; pending persists across midnight, no-trade rolls to Recent next Jakarta day; removed ten-row Recent cap.
-- Decoupled global dock availability from selected pair loading; preserved tab choice and added panel Retry.
-- Shared A/F/P/Surprise/Momentum cards; short reason first, full audit/timing collapsed; removed duplicate Setups account/history content.
-- Journal gross totals/previous-week strip follow selected period; Knowledge comparison collapses and clipboard failures are explicit.
-- Gzip reduces the measured cached global sample from 3.15 MB to 0.71 MB; cached assembly measured 0.22 seconds. Browser latency is not measured.
+### P1 — Compact Trade UI
 
-Reusable validation from that pass:
-- TypeScript and whitespace check passed.
-- Direct lifecycle checks passed: scheduled handoff, null label, recovered missing entry, midnight, closed/no-trade decisions, deduplication.
-- Two in-process HTTP global reloads retained Japan labor wages and decoded gzip.
-- 50 static dock renders across 10 registered markets passed; flag rendering was stubbed due standalone SSR module compatibility. This is not visual/browser validation.
-- Existing Charts suite: 20 passed; 3 failed at older UI-text expectations (arrow text, Initial move, Frozen contract heading). Do not silently claim a fully passing suite or rewrite assertions without checking intended behavior.
+- Removed the redundant Trade header and compacted tabs, table headers, dates, and collapsed rows without reducing primary body copy below the existing readable range.
+- Collapsed rows no longer repeat execution, freshness, or source prose; those facts remain in expanded detail.
+- Recent includes a default-off `Hide no trade` filter with displayed/total counts.
+- Choose setups has case-insensitive search across friendly label, raw label, setup ID, and pair, plus filtered select/clear behavior.
+- Placeholder separators were replaced with labeled separators; loading ellipses use the intended character.
 
-## Pending acceptance / next implementation starting point
+### P2 — Coherent historical evidence
 
-- [ ] Owner/browser audit at 1440x900, Chrome 100%: reload Current, switch pairs rapidly, verify labor-wage visibility, click/deselect H1/H4/recovered/ambiguous arrows, inspect Entry/SL/TP and all docks. Check readable layout and internal scrolling.
-- [ ] Observe a real upcoming release: Next hands off to Current without disappearing; actual values/decision update across pairs; failures remain explicit. Synthetic/static checks do not establish real-time capture reliability.
-- [ ] Confirm Current still exposes needed exposure/concentration/pause/fresh evidence after consolidation. Earlier passes recorded these features; removing duplicate layouts is not proof they remain accessible.
-- [ ] Resolve any reported failure from actual request/state evidence; distinguish stale data, missing observation, rejected recipe, and missing entry geometry. Do not promise an unseen browser fix.
+- The bridge emits one `historicalEvidence` source per setup by explicit priority: reviewed H1 entry, reviewed execution, chronological holdout, then pooled benchmark.
+- Expanded Trade rows show the cohort/scope/source ID, evaluable N, exact TP/SL/expiry/break-even/ambiguous/unevaluable counts when actually recorded, average gross R, and total gross R.
+- Unknown counts stay unknown. Total gross R is labeled as the exact mean multiplied by exact evaluable N; rounded rates are never reverse-engineered into counts.
 
-## Latest implementation handoff: Charts performance and refresh
+### P3 — Selected-arrow detail
 
-Updated 2026-09-08 for the pair-switching and left-panel audit:
-- Selected-market navigation now restores the session/global snapshot immediately, or requests last-known data with `refresh=false` when absent. Forced evaluation waits 300 ms for selection to settle; freshly evaluated matching calendar revisions retain the 60-second cadence. A last-known read is not recorded as a fresh evaluation. Hidden FMS restores chart data without forced evaluation.
-- This supersedes the previous cold-pair single forced-request approach: a cold frontend may make a fast last-known read followed by background evaluation. Already-running shared requests can finish and populate the correct market cache after switching; their UI updates remain cancelled. Backend work already started is not aborted. Global release monitoring stays independent and market-cache writes are monotonic.
-- Fixed missing memo dependencies for left-panel loading/error/timestamp updates, reset timestamps on pair restoration, and stopped selected-market failures from contaminating the global error. Trade says "Last successful data" rather than implying freshness after a failed refresh. Memoized its filtered market list.
-- Guarded historical FMS overlays against a response for another symbol. Older-candle requests and closed sockets cannot apply late responses after switching/unmounting. A late symbol-list load cannot reset a different selected pair; symbol-list failure is caught and logged.
-- Audit: dock selection/error boundary and on-demand arrow detail remain intact. Fresh-evidence/pause indicators exist in Trade Next and Setups; dedicated exposure/concentration information was not found in the active dock components. This remains a product gap, not a verified feature. No financial contracts, lifecycle partitions, or bridge code changed.
+- Detail lookup now includes `recoveredSignals`, fixing the confirmed 404 for `AUDUSD|audusd-us-payroll-package|1788535800`.
+- Cache identity includes model hash, mode, symbol, source version, pattern, event, entry timeframe, execution, status, and an evolving timestamp only for unresolved signals. Terminal detail is cached; current/replay results cannot collide.
+- Concurrent identical frontend requests are deduplicated, stale selection responses remain canceled/key-scoped, requests have a 90-second timeout, and errors expose `Retry detail`.
+- The exact saved AUDUSD recovered result returned entry `0.71926`, target `0.7218418039985335`, `target_hit`, `+1R`, and eight ladder rows. Measured local calls were 0.1236s cold and 0.0010s cached.
+- The saved USDJPY replay case with incomplete historical coverage remains unresolved. It was not backfilled because this session prohibited MT5/account access; no outcome was inferred or rewritten.
 
-Reusable verification:
-- Cached EURUSD HTTP read: 200, 0.165 seconds, 402,572 uncompressed bytes. Prior forced EURUSD evaluation measured 9.624 seconds for the same payload size. These are separate samples, not a browser speed benchmark; no-snapshot backend evaluation and rendering can still take time.
-- Targeted Charts/storage/view tests: 44 passed, 4 failed. Three are the recorded old arrow/Initial move/Frozen contract text expectations. The fourth is in unchanged `chartStorage.test.ts`: it mutates localStorage after saving an in-memory entry and expects the session cache to be bypassed. Neither cache implementation nor that assertion was changed. Three new checks in the existing Charts test cover cold restoration, navigation delay/fresh cadence, hidden FMS and future timestamps.
-- `pnpm run typecheck` and `git diff --check` passed. Prior lifecycle evidence remains reusable because lifecycle/provenance implementations are unchanged. Late-response guards have code/type verification; actual asynchronous browser interaction remains unverified.
+### P4 — Four-window dock and lazy Setups workspace
 
-Pending acceptance:
-- [ ] Owner at 1440x900/100% Chrome: switch EURUSD -> GBPUSD -> USDJPY -> EURUSD rapidly, including while scrolling older candles; confirm candles/arrows match the selected pair and cached returns appear promptly.
+- Dock buttons are now exactly `Trade`, `Journal`, `Setups`, and `Past Result`.
+- Setups owns one collapsed `Registered setup benchmarks` workspace with collapsed `Benchmarks`, `Research / reviews`, and `Knowledge` subsections.
+- Heavy subsection bodies mount only after first opening. Disclosure/visited state is session-persisted; embedded children suppress duplicate headers and footers.
 
-- [ ] Leave Trade Current open, switch pairs, verify refresh/timestamp/error recovery and retained expanded rows/scroll; visit Journal, Setups, Research, Knowledge and Past Result. Check H1/H4/recovered/ambiguous arrows and Entry/SL/TP, readable controls and internal scrolling.
-- [ ] Observe a real release through upcoming -> awaiting values -> evaluated -> pending/open/no-trade -> closed; confirm no disappearing row and explicit failure/recovery.
-- [ ] Decide whether to restore dedicated exposure/concentration information in a later product pass.
-- [ ] If switching remains slow, measure browser parsing/rendering with owner-authorized tooling before a dock-aware data split.
+### P5 — Arrow versus entry semantics
 
-## Latest handoff: uncapped Trade views and bridge cache
+- Existing activation mapping was retained after its H4/H1/M15/D1 focused check passed.
+- Marker labels identify the entry timeframe and direction. Past Result now states that the arrow is anchored to the activation candle, its vertical placement is visual, and the displayed Entry value is the exact frozen price.
 
-2026-09-08; bridge edits explicitly authorized by the owner.
-- `_cached_history` now asks SQLite for the latest N candles, then reverses to ascending time. Range queries and candle values are unchanged. No MT5/order/account behavior changed.
-- The exact reported AUDUSD payroll result (event 1788535800, entry 0.71926, TP hit, +1R, recovered offline) was present in BOTH running pair/global responses before this pass. The subsequent owner screenshot confirmed that result WAS visible in Recent; its 7 September exit timestamp was mistaken for the 4 September release timestamp. Confirmed frontend vulnerability: Trade preferred the global market list even when the selected-pair response was newer or its market was absent there. Trade now merges that response monotonically; the exact payroll fixture remains in Recent under a stale global snapshot.
-- Current = open/pending, eligible waiting-entry cases, or awaiting/qualified decisions. Closed trades and completed no-trade/audit decisions enter Recent immediately. Waiting releases have no one-day cutoff. Historical results are not dropped merely because their included setup is no longer current-eligible.
-- Next renders all scheduled occurrences per setup. The bridge watch builder no longer reduces them to one per pattern. Cached current/global projections refresh future schedules from the available broker calendar without forced signal evaluation.
-- Trade projections attach all persisted model decisions as `patternAssessments`, with latest assessments winning by exact pattern/time. Unbounded reads are explicit (`limit=None`); other API limits retain their defaults. This reads frozen evidence without rewriting it. All available live/recovered signals remain included; no archived research replay is relabelled as a live decision and unavailable records are not invented.
-- Relevant new checks: latest-N vs full query equality/range isolation; all saved decision projection without mutation; two future occurrences per setup; exact AUDUSD recovered TP under stale global data; 600 uncapped active/closed rows; 40 upcoming occurrences; overnight waiting and immediate no-trade partition.
-- Validation: 12 affected Python tests passed. Charts suite: 26 passed, the same 3 pre-existing UI-text failures (arrow wording, Initial move, Frozen contract) remain. In-process HTTP against the actual saved database: cached USDJPY H4 returned 350 candles in 13.5 ms; global returned 10 markets and 27 saved decision assessments in 1.178 s, retaining the exact AUDUSD result. This is not browser/network latency or a controlled before/after benchmark. `pnpm run typecheck` and `git diff --check` passed.
-- Running bridge was not restarted or replaced; reload/restart it through the owner's normal launcher to apply Python changes if it does not auto-reload. No agent service was left on port 8001.
+### P6 — One bounded research campaign
 
-Owner acceptance at 1440x900/100%: reload bridge/app; Trade Recent -> AUDUSD US payroll (4 September release, TP +1R, recovered offline; rows sort by exit time). Check Current excludes that closed trade and today's no-trade decisions; waiting/open cases remain. Scroll all three lists, verify multiple future dates for one setup, and test fast pair switching. The reported AUDUSD absence is explained by the ambiguous exit timestamp; real-release handoff still requires observation.
+- Consulted the exhaustion ledger first. D1/weekly structure was already complete, prospective first-seen evidence requires future chronology, and M1 remains coverage-limited.
+- Ran one non-duplicative family: entry-known H4 state on high-sample unregistered packages.
+- Frozen scope: three cells (`EURCAD` business sentiment, `AUDJPY` JPY CPI package, `GBPCHF` retail headline) and four variants per cell (compressed range, expanded range, direction-aligned trend, direction-opposed trend), for exactly 12 declared/completed variants.
+- The protocol reused immutable Stage-A gross executions, used past-only completed H4 state, applied chronological development/validation/final partitions with boundary embargoes, and allowed no registration.
+- Result: `no_later_survivor`; 0 survivors and 0 registrations. Manifest `5b984c6dbbe9615c4292dd5072a8c52721048f97bb0abe80e6dd77c8e3f9052b`; result `febc32bfb8cc3700d48960401791a6fafe752554fd6aeb015c872423d774fb94`.
+- Durable outputs: `docs/Development Logs/artifacts/fms-entry-state-2026-09-08/{manifest,result}.json`, `Main/src/app/lib/fmsEntryStateSummary.json`, and exhaustion ledger `641b015b66d103e5d1df19dfa19215aa3bf8f5fbfad3c3bbb218a4392378caa5`.
+- Knowledge now records the negative result and the next-search map excludes repeating these exact 12 variants.
 
-## Latest handoff: Trade table layout and explicit dates
+## P7 validation
 
-Next/Current/Recent now share a fixed three-column contract (28% setup, 32% plan/result, 40% dates), common heading/status treatment, sticky table headers, internal list scrolling, 11?12px body text and consistent row spacing. Next retains visible TP/expectancy, contract and fresh-evidence status; full evidence remains expandable. Expanded rows span all three columns and receive a selection highlight. All available rows remain rendered; lifecycle/data rules are unchanged.
+- `pnpm run typecheck` — passed.
+- `pnpm exec vitest run src/app/tests/chartsTab.test.ts` — 29 passed.
+- Scoped bridge regression set — 7 passed, covering snapshot preservation, chart projection, coherent evidence, recovered-signal detail/cache reuse, deterministic management ambiguity, target-path separation, and observed-quote provenance.
+- Full `tests/test_macro_signal_api.py` diagnostic — 22 passed, 5 failed. The failures are unrelated existing expectation drift in prospective context ID matching, context candidate count, context artifact-drift behavior, forward supportive status, and H1 successor activation. They were not changed as part of P0–P7.
+- Campaign script compiled, frozen manifest validated before execution, and all 12 declared variants completed.
 
-Current/Recent show Released, Opened and Closed as separate labelled dates; Next uses the same date presentation for its release/countdown. Dates use compact 24-hour Jakarta formatting with timezone in the column heading. Opened requires recorded entry geometry and activation time; Closed uses exit time, with missing/pending values explicit. Refresh/failure status is shared across all three tabs and bounded so it does not dominate the list.
+## Owner manual visual checklist
 
-Checks: Charts tests 26 passed / same 3 known old UI-text failures; no assertions rewritten. `pnpm run typecheck` and `git diff --check` passed. Owner visual check at 1440x900/100%: compare column alignment across all three tabs, expand a row in each, resize the dock, check full date/contract wrapping and internal scrolling with no clipped controls. Confirm AUDUSD payroll dates are 4 September release/open and 7 September close. Browser layout remains unverified.
+At 1440x900 and 100% Chrome zoom:
 
-## Deferred research and product work
+- In Trade, open a row, set search/filter, scroll partway, click a chart arrow, then close Past Result. Confirm the same Trade subtab, row, filter/search, and scroll position return.
+- Confirm Trade rows and inline dates are compact, readable, and free of overlapping/clipped controls or whole-page horizontal scroll.
+- Confirm `Hide no trade` is initially unchecked and filters only no-trade rows; Choose setups search and filtered select/clear work.
+- Expand a Next or Recent row and verify the historical benchmark uses one named cohort with counts, average gross R, and total gross R; unavailable counts show as unavailable rather than inferred.
+- Select the saved AUDUSD recovered payroll arrow twice. Confirm detail loads, shows +1R and eight target rows, and retry is available if the request is forced to fail.
+- Confirm the only dock buttons are Trade, Journal, Setups, and Past Result. In Setups, verify the outer workspace and all three inner disclosures begin collapsed and remain usable without page overflow.
+- On H4 and H1, click an arrow and compare its candle/time with Past Result. Confirm the exact Entry price is readable and the arrow-position explanation is visible.
+- In Setups → Knowledge, confirm `Unregistered-package entry-state probe · Completed · no promotion` reports 12 variants and zero survivors.
 
-Do not launch these during narrow fixes. On a later research/goal request, search the progress ledger and saved fingerprints first.
+## Remaining limitations
 
-- Continue coverage-ledger-driven discovery across unregistered pair/family cells, bounded OHLC hypotheses, and controlled exploratory mining. Freeze selection/trials and retain negative outcomes; reused history is not fresh proof.
-- D1/weekly multi-scale structure: swing prominence, independent reactions, recency, penetration, nesting, freshness, break/retest. Descriptive until a frozen successor passes later comparison. Nearest-zone and sequential-exit campaigns already failed; do not repeat unchanged.
-- Prospective maturity/degradation evidence, independent release breadth, drawdown/streak/concentration and portfolio overlap. Much is implemented: inspect existing ledger and UI before proposing another tracker.
-- Missing-series/calendar backfill only for a demonstrated gap. Owner may need to keep MT5/EA capture running or confirm broker availability; never ask them to select favorable cases.
-- Account-aware exposure/manual real-execution ledger remains separately scoped. No automatic orders, added feeds, cost modeling, or garbage revival.
-
-Research already recorded: 28/28 H4 coverage, 111/112 source baselines (CADCHF sentiment unavailable), eight H1 successors, four cross registrations. Later 21-variant followup and 9,600-configuration co-release campaign produced no new promotion. Counts are dated evidence, not runtime constants.
-
-Full prior decisions, campaign IDs, and completed plans remain intact in [the archived Checklist](archive/Checklist%20through%202026-09-08.md). Consult only a relevant section; do not reload it for orientation.
+- Visual layout and interaction continuity have static/type validation only until the owner completes the checklist above.
+- The one USDJPY historical replay remains honestly unevaluable until its named source interval can be resolved without violating the account-access boundary.
+- P6 is reused-history research and a deliberately small coverage probe. It is not fresh forward evidence and does not exhaust orthogonal entry-known interactions.
+- The five broad bridge expectation drifts need a separate contract-fixture reconciliation; they are not evidence that the scoped P2/P3 behavior failed.

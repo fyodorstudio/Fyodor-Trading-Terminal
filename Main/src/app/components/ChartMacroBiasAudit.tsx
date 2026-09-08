@@ -16,6 +16,7 @@ export interface ChartMacroBiasAuditData {
   generatedAt?: number;
   detailLoading?: boolean;
   detailError?: string | null;
+  onRetryDetail?: () => void;
   onClose: () => void;
 }
 
@@ -99,7 +100,10 @@ function formatOutcome(signal: MacroSignalChartSignal): string {
   if (signal.outcomeStatus === "ambiguous") return "Both touched · order unknown";
   if (signal.outcomeStatus === "unevaluable") return signal.outcomeReason ?? "Historical price data unavailable";
   if (signal.outcomeStatus === "pending") return signal.outcomeReason ?? "Trade still running";
-  return signal.activationTime == null ? "Waiting for the next H4 open" : "Awaiting paper-ledger reconciliation";
+  if (signal.activationTime == null) return "Waiting for the next H4 open";
+  if (signal.entry == null) return "Entry geometry is not recorded";
+  if (signal.resultR != null) return `Recorded result ${formatR(signal.resultR)} · outcome status unavailable`;
+  return "Outcome status unavailable";
 }
 
 function targetPathStatus(row: NonNullable<NonNullable<MacroSignalChartSignal["pathAudit"]>["targetLadder"]>[number]): string {
@@ -237,6 +241,7 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
         <div><span>ATR at entry</span><strong>{formatPrice(signal.atr, market)}</strong><small>Completed H4 ATR(14) · {atrPips == null ? "—" : `${atrPips.toFixed(1)} pips`}</small></div>
         <div><span>Maximum duration</span><strong>{signal.expiryCandles} H4</strong><small>Expires {formatUtc(signal.expiryTime)}</small></div>
         <div><span>Management</span><strong>{managementFamily === "break_even" ? "Break-even" : "Fixed"}</strong><small>{managementFamily === "break_even" ? `Move SL to entry after +${signal.managementTriggerR ?? 1}R` : "SL and TP stay fixed"}</small></div>
+        <p className="chart-macro-bias-entry-note">The chart arrow marks the {signal.entryTimeframe ?? "H4"} activation candle. Its vertical placement is visual only; the exact frozen entry is {formatPrice(signal.entry, market)}.</p>
       </section>
 
       <section className="chart-macro-bias-trigger" aria-label="Economic releases that triggered this signal">
@@ -245,7 +250,7 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
           <strong>{signalEvents.length > 0 ? `${signalEvents.length} release${signalEvents.length === 1 ? "" : "s"} matched this setup` : data.detailLoading ? "Loading the frozen release package…" : "Registered event package"}</strong>
         </div>
         <FmsReleaseCards releases={signalEvents} />
-        {data.detailError ? <p className="chart-macro-bias-detail-error">Full frozen detail is unavailable: {data.detailError}. Provisional Entry/SL/TP geometry remains visible.</p> : null}
+        {data.detailError ? <p className="chart-macro-bias-detail-error">Full frozen detail is unavailable: {data.detailError}. Provisional Entry/SL/TP geometry remains visible. {data.onRetryDetail ? <button type="button" onClick={data.onRetryDetail}>Retry detail</button> : null}</p> : null}
       </section>
 
       <section className="chart-macro-bias-target-evidence" aria-label="Historical evidence for the frozen target">

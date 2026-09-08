@@ -482,6 +482,7 @@ export function ChartsTab({
   const [selectedMacroBiasId, setSelectedMacroBiasId] = useState<string | null>(null);
   const [macroBiasSignalAudits, setMacroBiasSignalAudits] = useState<Record<string, MacroSignalChartSignal>>({});
   const [macroBiasSignalAuditErrors, setMacroBiasSignalAuditErrors] = useState<Record<string, string>>({});
+  const [macroBiasSignalAuditRetryRevision, setMacroBiasSignalAuditRetryRevision] = useState(0);
   const [pairMatrixBeforeDays, setPairMatrixBeforeDays] = useState(loadPairMatrixBeforeDays);
   const [pairMatrixCoverageAnchor, setPairMatrixCoverageAnchor] = useState<number | null>(null);
   const [pairMatrixRangeArmed, setPairMatrixRangeArmed] = useState(false);
@@ -1338,7 +1339,22 @@ export function ChartsTab({
   const selectedMacroBiasActivationOpen = selectedMacroBias
     ? getMacroBiasActivationCandleOpen(selectedMacroBias, visibleCandles, chartSourceTimeOffsetSeconds, timeframe)
     : null;
-  const selectedMacroBiasLadderKey = selectedMacroBias ? `${selectedSymbol}:${selectedMacroBias.id}` : null;
+  const selectedMacroBiasLadderKey = selectedMacroBias && macroBiasResponse ? [
+    macroBiasResponse.modelHash,
+    selectedMacroBias.historicalReplay ? "research_replay" : "current",
+    selectedSymbol.toUpperCase(),
+    selectedMacroBias.sourceVersionId,
+    selectedMacroBias.patternId,
+    selectedMacroBias.eventTime,
+    selectedMacroBias.entryTimeframe ?? "H4",
+    selectedMacroBias.stopAtr ?? selectedMacroBias.execution?.stopAtr ?? "",
+    selectedMacroBias.targetR ?? selectedMacroBias.execution?.targetR ?? "",
+    selectedMacroBias.expiryCandles,
+    selectedMacroBias.managementFamily ?? selectedMacroBias.execution?.managementFamily ?? "fixed",
+    selectedMacroBias.managementTriggerR ?? selectedMacroBias.execution?.managementTriggerR ?? "",
+    selectedMacroBias.outcomeStatus ?? "status_absent",
+    selectedMacroBias.outcomeStatus == null || selectedMacroBias.outcomeStatus === "pending" ? macroBiasResponse.generatedAt : "terminal",
+  ].join(":") : null;
   const selectedMacroBiasAudit = selectedMacroBiasLadderKey ? macroBiasSignalAudits[selectedMacroBiasLadderKey] : undefined;
   useEffect(() => {
     if (!selectedMacroBias || !selectedMacroBiasLadderKey || selectedMacroBiasAudit) return;
@@ -1354,6 +1370,7 @@ export function ChartsTab({
       patternId: selectedMacroBias.patternId,
       eventTime: selectedMacroBias.eventTime,
       mode: selectedMacroBias.historicalReplay ? "research_replay" : "current",
+      identityScope: selectedMacroBiasLadderKey,
     }).then(({ signal }) => {
       if (!cancelled) setMacroBiasSignalAudits((current) => ({ ...current, [selectedMacroBiasLadderKey]: signal }));
     }).catch((error: unknown) => {
@@ -1363,7 +1380,7 @@ export function ChartsTab({
       }));
     });
     return () => { cancelled = true; };
-  }, [selectedMacroBias, selectedMacroBiasLadderKey, selectedMacroBiasAudit, selectedSymbol]);
+  }, [macroBiasSignalAuditRetryRevision, selectedMacroBias, selectedMacroBiasLadderKey, selectedMacroBiasAudit, selectedSymbol]);
   const selectedMacroBiasWithTargetLadder = selectedMacroBiasAudit ?? selectedMacroBias;
   useEffect(() => {
     const series = seriesRef.current;
@@ -1397,6 +1414,20 @@ export function ChartsTab({
     generatedAt: macroBiasResponse.generatedAt,
     detailLoading: selectedMacroBiasAudit == null && macroBiasSignalAuditErrors[selectedMacroBiasLadderKey ?? ""] == null,
     detailError: macroBiasSignalAuditErrors[selectedMacroBiasLadderKey ?? ""] ?? null,
+    onRetryDetail: () => {
+      if (!selectedMacroBiasLadderKey) return;
+      setMacroBiasSignalAuditErrors((current) => {
+        const next = { ...current };
+        delete next[selectedMacroBiasLadderKey];
+        return next;
+      });
+      setMacroBiasSignalAudits((current) => {
+        const next = { ...current };
+        delete next[selectedMacroBiasLadderKey];
+        return next;
+      });
+      setMacroBiasSignalAuditRetryRevision((current) => current + 1);
+    },
     onClose: () => setSelectedMacroBiasId(null),
   } : null;
 

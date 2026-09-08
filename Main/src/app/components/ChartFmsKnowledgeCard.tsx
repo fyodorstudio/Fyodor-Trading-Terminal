@@ -9,6 +9,7 @@ import exhaustionResearch from "@/app/lib/fmsExhaustionSummary.json";
 import controlledMining from "@/app/lib/fmsControlledMiningSummary.json";
 import multiscaleStructure from "@/app/lib/fmsMultiscaleStructureSummary.json";
 import extendedCorelease from "@/app/lib/fmsExtendedCoreleaseSummary.json";
+import entryStateResearch from "@/app/lib/fmsEntryStateSummary.json";
 
 function average(pattern: MacroSignalChartPattern): number | null {
   const reviewed = pattern.executionReview?.status === "reviewed_active" ? pattern.executionReview.later : null;
@@ -61,7 +62,7 @@ function controlAverage(metric: { n: number; averageR?: number | null }): string
   return metric.averageR == null ? "—" : `${metric.averageR.toFixed(2)}R`;
 }
 
-export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data }: { data: ChartMacroBiasRealtimeCardData }) {
+export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data, embedded = false }: { data: ChartMacroBiasRealtimeCardData; embedded?: boolean }) {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
   const [sort, setSort] = useState<KnowledgeSort>("credibility");
@@ -209,6 +210,11 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data 
         evidence: `${multiscaleStructure.summary.declaredConfigurations} frozen D1, weekly, and combined no-trade filters across ${multiscaleStructure.summary.recipes} registered recipes; ${multiscaleStructure.summary.developmentSelected} cleared the older-development gate and ${multiscaleStructure.summary.laterSupported} cleared later chronology.`,
         conclusion: "Keep wider structure as descriptive chart context. This exact multi-scale filter family did not justify withholding or changing a registered trade.",
       },
+      {
+        id: entryStateResearch.resultHash, status: "Completed · no promotion", title: "Unregistered-package entry-state probe",
+        evidence: `${entryStateResearch.completedVariants} predeclared prior-range and directional-trend variants across ${entryStateResearch.declaredCellCount} high-sample unregistered cells; ${entryStateResearch.survivorCount} survived both later partitions.`,
+        conclusion: `The exact 12-variant family produced ${entryStateResearch.status.replaceAll("_", " ")}. ${entryStateResearch.disclosure}`,
+      },
     ];
   }, [patterns]);
   const markdown = [
@@ -237,7 +243,7 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data 
 
   return (
     <section className="fms-knowledge-card" aria-label="FMS durable knowledge">
-      <header><div><BookOpen size={15} /><span>FMS Knowledge</span></div><button type="button" onClick={() => void copy()}><ClipboardCopy size={13} />{copied ? "Copied" : "Copy snapshot"}</button></header>
+      {!embedded ? <header><div><BookOpen size={15} /><span>FMS Knowledge</span></div><button type="button" onClick={() => void copy()}><ClipboardCopy size={13} />{copied ? "Copied" : "Copy snapshot"}</button></header> : <div className="fms-knowledge-embedded-tools"><button type="button" onClick={() => void copy()}><ClipboardCopy size={13} />{copied ? "Copied" : "Copy knowledge snapshot"}</button></div>}
       {copyError ? <p role="alert">{copyError}</p> : null}
       <section>
         <h2>What the research has taught us</h2>
@@ -267,7 +273,7 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data 
       </section>
       {data.globalResponse?.researchIntelligence?.length ? <section><h2>Tested but not registered</h2><p>Failed and unresolved findings are retained so future research does not unknowingly repeat them.</p><div className="fms-knowledge-research">{data.globalResponse.researchIntelligence.map((row) => <article key={row.id}><strong>{row.market} · {row.label} · {row.status.replaceAll("_", " ")}</strong><p>{row.conclusion}</p><small>{row.evidence}</small></article>)}</div></section> : null}
       <section><h2>Automatic review queue</h2><p>Each unresolved result is assigned a reason and next action; favorable cases never require owner labelling.</p><div className="fms-knowledge-research">{triage.length ? triage.map((row) => <article key={row.reason}><strong>{row.bucket} · {row.count}</strong><p>{row.reason.replaceAll("_", " ")}</p><small>{row.action}</small></article>) : <article><strong>No unresolved result is currently queued</strong><p>New missing-data or ordering cases will be classified here when observed.</p></article>}</div></section>
-      <footer>Source: immutable FMS experiment, reaction, context, execution, and forward-observation artifacts.</footer>
+      {!embedded ? <footer>Source: immutable FMS experiment, reaction, context, execution, and forward-observation artifacts.</footer> : null}
     </section>
   );
 });
