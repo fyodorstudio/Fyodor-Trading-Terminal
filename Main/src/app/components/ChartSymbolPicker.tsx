@@ -17,6 +17,7 @@ interface ChartSymbolPickerProps {
   onSelectedSymbolChange: (symbol: string) => void;
   onTimeframeChange: (timeframe: Timeframe) => void;
   onRefreshSymbols?: (background?: boolean) => Promise<void>;
+  onMarketWatchActiveChange?: (active: boolean) => void;
 }
 
 type SymbolPickerMode = "browse" | "market_watch";
@@ -44,6 +45,7 @@ export function ChartSymbolPicker({
   onSelectedSymbolChange,
   onTimeframeChange,
   onRefreshSymbols,
+  onMarketWatchActiveChange,
 }: ChartSymbolPickerProps) {
   const [favorites, setFavorites] = useState<string[]>(() => loadChartFavorites());
   const [search, setSearch] = useState("");
@@ -72,6 +74,14 @@ export function ChartSymbolPicker({
     const timer = window.setInterval(() => void onRefreshSymbols(true), 1_000);
     return () => window.clearInterval(timer);
   }, [onRefreshSymbols, pickerMode, pickerOpen]);
+
+  useEffect(() => {
+    const active = pickerOpen && pickerMode === "market_watch";
+    onMarketWatchActiveChange?.(active);
+    return () => {
+      if (active) onMarketWatchActiveChange?.(false);
+    };
+  }, [onMarketWatchActiveChange, pickerMode, pickerOpen]);
 
   useEffect(() => {
     const groups = Array.from(

@@ -665,6 +665,7 @@ export function ChartsTab({
   const {
     symbols,
     refreshSymbols,
+    setBackgroundHistoryPaused,
     historyState,
     visibleCandles,
     lastCandleTime,
@@ -2677,6 +2678,7 @@ export function ChartsTab({
             selectedSymbol={selectedSymbol}
             symbols={symbols}
             onRefreshSymbols={refreshSymbols}
+            onMarketWatchActiveChange={setBackgroundHistoryPaused}
             timeframe={timeframe}
             onSelectedSymbolChange={onSelectedSymbolChange}
             onTimeframeChange={setTimeframe}

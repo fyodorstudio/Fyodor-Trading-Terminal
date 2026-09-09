@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from "react";
 import type { CandlestickData, IChartApi } from "lightweight-charts";
-import { fetchHistory, fetchHistoryBoundary, fetchHistoryRange, fetchSymbols, openChartStream } from "@/app/lib/bridge";
+import { fetchHistory, fetchHistoryRange, fetchSymbols, openChartStream } from "@/app/lib/bridge";
 import {
   CHART_TIMEFRAMES,
   CHART_HISTORY_RANGE_MAX_SECONDS,
@@ -29,6 +29,7 @@ interface UseChartMarketDataArgs {
 interface UseChartMarketDataResult {
   symbols: BridgeSymbol[];
   refreshSymbols: (background?: boolean) => Promise<void>;
+  setBackgroundHistoryPaused: (paused: boolean) => void;
   historyState: "loading" | "ready" | "no_data" | "error";
   visibleCandles: BridgeCandle[];
   lastCandleTime: number | null;
@@ -64,6 +65,7 @@ const warmHistoryQueue: ResidentHistoryRequest[] = [];
 const deepHistoryQueue: ResidentHistoryRequest[] = [];
 const residentHistoryPending = new Map<string, { request: ResidentHistoryRequest; promise: Promise<BridgeCandle[]> }>();
 let residentHistoryWorkerRunning = false;
+let residentHistoryBackgroundPaused = false;
 
 function residentHistoryRequestKey(symbol: string, timeframe: Timeframe, bars: number): string {
   return `${symbol.toUpperCase()}:${timeframe}:${bars}`;
@@ -73,8 +75,9 @@ async function drainResidentHistoryQueue() {
   if (residentHistoryWorkerRunning) return;
   residentHistoryWorkerRunning = true;
   try {
-    while (selectedHistoryQueue.length > 0 || warmHistoryQueue.length > 0 || deepHistoryQueue.length > 0) {
-      const request = selectedHistoryQueue.shift() ?? warmHistoryQueue.shift() ?? deepHistoryQueue.shift();
+    while (selectedHistoryQueue.length > 0 || (!residentHistoryBackgroundPaused && (warmHistoryQueue.length > 0 || deepHistoryQueue.length > 0))) {
+      const request = selectedHistoryQueue.shift()
+        ?? (residentHistoryBackgroundPaused ? undefined : warmHistoryQueue.shift() ?? deepHistoryQueue.shift());
       if (!request) break;
       try {
         const refreshed = await fetchHistory(
@@ -96,8 +99,35 @@ async function drainResidentHistoryQueue() {
     }
   } finally {
     residentHistoryWorkerRunning = false;
-    if (selectedHistoryQueue.length > 0 || warmHistoryQueue.length > 0 || deepHistoryQueue.length > 0) void drainResidentHistoryQueue();
+    if (selectedHistoryQueue.length > 0
+      || (!residentHistoryBackgroundPaused && (warmHistoryQueue.length > 0 || deepHistoryQueue.length > 0))) {
+      void drainResidentHistoryQueue();
+    }
   }
+}
+
+export function setResidentHistoryBackgroundPaused(paused: boolean) {
+  residentHistoryBackgroundPaused = paused;
+  if (!paused) void drainResidentHistoryQueue();
+}
+
+export function areBridgeSymbolSnapshotsEqual(
+  current: readonly BridgeSymbol[],
+  next: readonly BridgeSymbol[],
+): boolean {
+  return current.length === next.length && current.every((item, index) => {
+    const candidate = next[index];
+    return candidate != null
+      && item.name === candidate.name
+      && item.path === candidate.path
+      && item.bid === candidate.bid
+      && item.ask === candidate.ask
+      && item.priceChange === candidate.priceChange
+      && item.digits === candidate.digits
+      && item.quoteTime === candidate.quoteTime
+      && item.visible === candidate.visible
+      && item.selected === candidate.selected;
+  });
 }
 
 export function loadResidentChartHistory(
@@ -223,7 +253,9 @@ export function useChartMarketData({
 
   const refreshSymbols = useCallback(async (background = false) => {
     const items = await fetchSymbols(background);
-    if (items.length > 0) setSymbols(items);
+    if (items.length > 0) {
+      setSymbols((current) => areBridgeSymbolSnapshotsEqual(current, items) ? current : items);
+    }
   }, []);
 
   const flushPendingCacheWrite = useCallback(() => {
@@ -312,16 +344,6 @@ export function useChartMarketData({
         addLog(`history loaded ${candles.length} candles for ${selectedSymbol} ${timeframe}`);
         saveChartHistoryCache(selectedSymbol, timeframe, candles);
 
-        if (cachedBoundary === undefined) {
-          try {
-            const boundary = await fetchHistoryBoundary({ symbol: selectedSymbol, tf: timeframe });
-            if (cancelled || loadRequestIdRef.current !== requestId) return;
-            boundaryCacheRef.current.set(boundaryCacheKey, boundary.oldest_time);
-            setBoundaryTime(boundary.oldest_time);
-          } catch {
-            boundaryCacheRef.current.delete(boundaryCacheKey);
-          }
-        }
       } catch (error) {
         if (cancelled || loadRequestIdRef.current !== requestId) return;
         if (error instanceof DOMException && error.name === "AbortError") return;
@@ -406,7 +428,12 @@ export function useChartMarketData({
           const start = Math.max(0, end - CHART_HISTORY_RANGE_MAX_SECONDS);
           const older = await fetchHistoryRange({ symbol: selectedSymbol, tf: timeframe, from: start, to: end });
           if (loadRequestIdRef.current !== requestId) return;
-          if (older.length === 0) break;
+          if (older.length === 0) {
+            const boundaryCacheKey = `${selectedSymbol.toUpperCase()}|${timeframe}`;
+            boundaryCacheRef.current.set(boundaryCacheKey, currentOldest);
+            setBoundaryTime(currentOldest);
+            break;
+          }
 
           const merged = mergeChartCandles(older, currentCandles);
           if (merged.length > currentCandles.length) {
@@ -418,7 +445,12 @@ export function useChartMarketData({
             break;
           }
 
-          if (older.length < 2 || start === 0) break;
+          if (older.length < 2 || start === 0) {
+            const boundaryCacheKey = `${selectedSymbol.toUpperCase()}|${timeframe}`;
+            boundaryCacheRef.current.set(boundaryCacheKey, currentOldest);
+            setBoundaryTime(currentOldest);
+            break;
+          }
           if (visibleRangeRef.current?.from != null && visibleRangeRef.current.from >= 20) break;
         }
       } catch (error) {
@@ -454,9 +486,15 @@ export function useChartMarketData({
     }
 
     let cancelled = false;
-    const socket = openChartStream(selectedSymbol, timeframe, {
+    let socket: WebSocket | null = null;
+    const connectTimer = window.setTimeout(() => {
+      if (cancelled) return;
+      socket = openChartStream(selectedSymbol, timeframe, {
       onOpen: () => {
-        if (cancelled) return;
+        if (cancelled) {
+          socket?.close();
+          return;
+        }
         setStreamConnected(true);
         addLog("WebSocket connected");
         if (activeMarketStatus?.session_state !== "closed" || activeMarketStatus.asset_class === "crypto") {
@@ -511,9 +549,14 @@ export function useChartMarketData({
           addLog("bridge stream reported no live update; chart remains on last known candles");
         }
       },
-    });
+      });
+    }, 150);
 
-    return () => { cancelled = true; socket.close(); };
+    return () => {
+      cancelled = true;
+      window.clearTimeout(connectTimer);
+      if (socket?.readyState === WebSocket.OPEN) socket.close();
+    };
   }, [
     selectedSymbol,
     timeframe,
@@ -545,6 +588,7 @@ export function useChartMarketData({
   return {
     symbols,
     refreshSymbols,
+    setBackgroundHistoryPaused: setResidentHistoryBackgroundPaused,
     historyState,
     visibleCandles,
     lastCandleTime,

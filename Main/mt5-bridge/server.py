@@ -1086,6 +1086,8 @@ FORWARD_LEDGER_ACTIVATED_AT = 1787047068  # 2026-08-18 09:57:48 UTC
 # Last symbol used successfully in GET /history; used by GET /server_time when no symbol param.
 _last_history_symbol: Optional[str] = None
 _last_symbols_payload: List[Dict[str, Any]] = []
+_last_market_watch_poll_monotonic = 0.0
+_MARKET_WATCH_ACTIVITY_GRACE_SECONDS = 2.5
 
 
 class Mt5BusyError(RuntimeError):
@@ -1668,7 +1670,9 @@ def server_time(symbol: Optional[str] = None) -> Dict[str, Any]:
 @app.get("/symbols")
 def symbols(background: bool = False) -> List[Dict[str, Any]]:
   """Return every broker symbol and its current MT5 Market Watch fields."""
-  global _last_symbols_payload
+  global _last_market_watch_poll_monotonic, _last_symbols_payload
+  if background:
+    _last_market_watch_poll_monotonic = _time.monotonic()
   try:
     with _mt5_access(.05 if background else _MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
       if not _ensure_mt5_initialized():
@@ -1734,6 +1738,15 @@ def history(symbol: str, tf: str, bars: int = 500, prefer_cache: bool = False, b
     cached = _cached_history(symbol, tf, bars=bars)
     if cached:
       return cached
+
+  # Market Watch is the interactive quote surface. Opportunistic history work
+  # must not take the process-global MT5 IPC lock while its one-second polling
+  # loop is active. Foreground chart loads are intentionally unaffected.
+  if background and _time.monotonic() - _last_market_watch_poll_monotonic <= _MARKET_WATCH_ACTIVITY_GRACE_SECONDS:
+    cached = _cached_history(symbol, tf, bars=bars)
+    if cached:
+      return cached
+    raise HTTPException(status_code=503, detail="Background history deferred while Market Watch is active")
 
   timeframe = mt5_timeframe(tf)
   try:

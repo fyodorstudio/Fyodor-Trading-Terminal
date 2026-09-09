@@ -7,8 +7,13 @@ import {
   saveChartHistoryCache,
   summarizeStoredChartHistory,
 } from "@/app/lib/chartStorage";
-import { buildResidentChartWarmPlan, loadResidentChartHistory } from "@/app/hooks/useChartMarketData";
-import type { BridgeCandle, Timeframe } from "@/app/types";
+import {
+  areBridgeSymbolSnapshotsEqual,
+  buildResidentChartWarmPlan,
+  loadResidentChartHistory,
+  setResidentHistoryBackgroundPaused,
+} from "@/app/hooks/useChartMarketData";
+import type { BridgeCandle, BridgeSymbol, Timeframe } from "@/app/types";
 
 const SAMPLE_CANDLE: BridgeCandle = {
   time: Date.UTC(2026, 4, 21, 8, 0, 0) / 1000,
@@ -47,6 +52,7 @@ function storedKeys(storage: Storage): string[] {
 }
 
 afterEach(() => {
+  setResidentHistoryBackgroundPaused(false);
   vi.unstubAllGlobals();
 });
 
@@ -123,6 +129,33 @@ describe("chartStorage helpers", () => {
     expect(plan).toContainEqual({ symbol: "EURUSD", timeframe: "MN1" });
     expect(plan.filter((request) => request.symbol === "EURUSD" && request.timeframe === "H4")).toHaveLength(1);
     expect(plan).toHaveLength(10);
+  });
+
+  it("distinguishes a changed quote snapshot from an identical cached Market Watch response", () => {
+    const snapshot: BridgeSymbol[] = [
+      { name: "EURUSD", path: "Forex\\Majors", bid: 1.16, ask: 1.1602, priceChange: .2, digits: 5, quoteTime: 1_788_900_000, visible: true, selected: true },
+    ];
+
+    expect(areBridgeSymbolSnapshotsEqual(snapshot, snapshot.map((item) => ({ ...item })))).toBe(true);
+    expect(areBridgeSymbolSnapshotsEqual(snapshot, [{ ...snapshot[0], bid: 1.1601 }])).toBe(false);
+  });
+
+  it("keeps opportunistic history queued while Market Watch owns background priority", async () => {
+    installLocalStorage();
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([SAMPLE_CANDLE]), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    setResidentHistoryBackgroundPaused(true);
+
+    const pending = loadResidentChartHistory("MARKETWATCHPAUSE", "H4", 350, "warm");
+    await Promise.resolve();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    setResidentHistoryBackgroundPaused(false);
+    await expect(pending).resolves.toEqual([SAMPLE_CANDLE]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("clears only the current symbol and timeframe cache", () => {

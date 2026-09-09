@@ -406,6 +406,27 @@ def test_chart_history_and_health_remain_available_while_mt5_is_busy(monkeypatch
   assert health_response.json()["mt5_busy"] is True
 
 
+def test_market_watch_poll_defers_uncached_background_history_without_taking_mt5_lock(monkeypatch):
+  lock_attempts = []
+
+  @contextmanager
+  def unexpected_access(_timeout=None):
+    lock_attempts.append(_timeout)
+    yield
+
+  monkeypatch.setattr(server, "_mt5_access", unexpected_access)
+  monkeypatch.setattr(server, "_last_market_watch_poll_monotonic", time.monotonic())
+  monkeypatch.setattr(server, "_cached_history", lambda *_args, **_kwargs: [])
+
+  response = client.get("/history", params={
+    "symbol": "UNCACHED.ADAPTIVE", "tf": "H4", "bars": 350, "background": True,
+  })
+
+  assert response.status_code == 503
+  assert response.json()["detail"] == "Background history deferred while Market Watch is active"
+  assert lock_attempts == []
+
+
 def test_startup_does_not_eagerly_schedule_full_market_reconciliation(monkeypatch):
   scheduled = []
   monkeypatch.setattr(server, "_schedule_forward_reconcile", lambda timestamp: scheduled.append(timestamp) or True)
