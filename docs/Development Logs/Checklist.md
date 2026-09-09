@@ -19,6 +19,13 @@ Updated 2026-09-09. P0–P7, owner follow-up fixes, and the Past Result overhaul
 - Release, target, structure, context, timeline, path, historical outcome, and provenance records remain in the same table without changing frozen data or interpretation.
 - Validation: `pnpm run typecheck` passed; the existing chart test file remains 29/29 and asserts one table, no Past Result cards/details, Initial price reaction before Why the arrow appeared, and no unavailable entry-timing section.
 
+## 2026-09-09 Past Result runtime recovery
+
+- Reproduced the owner's console failure in the existing chart regression: an older immutable selected-arrow/detail record omitted `events`, while the new table view model called `signal.events.length`. The check failed with the same `Cannot read properties of undefined (reading 'length')` error before the fix.
+- Selected target-ladder detail now enriches the base arrow instead of replacing it. Missing detail fields therefore cannot erase the base release package or path-audit record.
+- The Past Result view boundary now normalizes legacy missing event, fixed-horizon, target-ladder, loss-review, and entry-timing arrays. Partial old market-context records are omitted rather than dereferenced or inferred; non-finite historical numbers render as unavailable rather than `NaN`.
+- Extended the existing chart test (no new test file) with omitted-event, sparse-path, partial-context, and detail-merge cases. It now passes 29/29; `pnpm run typecheck` and `pnpm run build` pass. The build retains the existing non-blocking large-chunk warning.
+
 ## 2026-09-09 FMS ownership and repository hygiene
 
 - Extracted historical-evidence normalization/source priority from the live server into pure `Main/mt5-bridge/fms_historical_evidence.py`. The bridge now only injects immutable-store readers; every chart projection carries schema `fms-chart-historical-evidence-v1`.
@@ -117,11 +124,12 @@ At 1440x900 and 100% Chrome zoom:
 - Confirm the only dock buttons are Trade, Journal, Setups, and Past Result. In Setups, verify the outer workspace and all three inner disclosures begin collapsed and remain usable without page overflow.
 - On H4 and H1, click an arrow and compare its candle/time with Past Result. Confirm the exact Entry price is readable and the arrow-position explanation is visible.
 - In Past Result, confirm there is one plain `Field / Value / Details` table with no cards or expandable rows. Its first sections should be Result, Initial price reaction, then Why the arrow appeared. For the 02 Sep EURUSD manufacturing-employment arrow, confirm the initial reaction is about `-0.20R` and says price opposed the arrow.
+- Reload the app, open several old and recovered arrows (including one that previously crashed), and confirm Past Result opens as the table, the Trade tab remains clickable, closing Past Result returns to Trade, and the console gains no FMS dock render error.
 - Confirm old recovered arrows without first-seen quote data have no Entry timing rows or unavailable dropdown. Confirm a prospectively captured arrow with timing data shows Entry timing as ordinary table rows after What happened.
 - In Setups → Knowledge, confirm `Unregistered-package entry-state probe · Completed · no promotion` reports 12 variants and zero survivors.
 
 ## Remaining limitations
 
-- Visual layout and interaction continuity have static/type validation only until the owner completes the checklist above.
+- Visual layout, browser-console cleanliness, and interaction continuity have static/type/build validation only until the owner completes the checklist above.
 - The one USDJPY historical replay remains honestly unevaluable until its named source interval can be resolved without violating the account-access boundary.
 - P6 is reused-history research and a deliberately small coverage probe. It is not fresh forward evidence and does not exhaust orthogonal entry-known interactions.

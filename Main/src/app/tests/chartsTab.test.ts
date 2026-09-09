@@ -13,7 +13,7 @@ import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
 import { buildChartMacroBiasAuditViewModel } from "@/app/lib/chartMacroBiasAuditViewModel";
 import { buildMacroSignalShadowAccount, buildMacroSignalShadowPosition, normalizeShadowRiskPercent, normalizeShadowStartingBalance } from "@/app/lib/macroSignalShadow";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
-import { buildMacroBiasPriceLineLevels, buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasArrowFocusRange, getMacroBiasReplayStatusLabel, getMacroBiasRequestScope, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, isMacroBiasMarketSupported, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange, shouldApplyMacroBiasRefresh } from "@/app/tabs/primary/ChartsTab";
+import { buildMacroBiasPriceLineLevels, buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasArrowFocusRange, getMacroBiasReplayStatusLabel, getMacroBiasRequestScope, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, isMacroBiasMarketSupported, mergeMacroBiasSignalDetail, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange, shouldApplyMacroBiasRefresh } from "@/app/tabs/primary/ChartsTab";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalContextResearch, MacroSignalGlobalResponse, MacroSignalMetrics } from "@/app/types";
 import { DEFAULT_CHART_TIMEFRAME, getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
@@ -306,6 +306,37 @@ describe("getChartConnectionLabel", () => {
     expect(unavailableTimingView.rows).not.toContainEqual(expect.objectContaining({ kind: "section", label: expect.stringContaining("Entry timing research") }));
     expect(unavailableTimingHtml).not.toContain("Entry timing research");
     expect(unavailableTimingHtml).not.toContain("Not available for this arrow");
+
+    const legacySignalData = {
+      ...unavailableTimingData,
+      signal: { ...signal, events: undefined } as unknown as MacroSignalChartSignal,
+    };
+    expect(() => buildChartMacroBiasAuditViewModel(legacySignalData)).not.toThrow();
+    expect(buildChartMacroBiasAuditViewModel(legacySignalData).rows).toContainEqual(expect.objectContaining({
+      kind: "data",
+      field: "Release package",
+      value: "Registered event package",
+    }));
+
+    const mergedLegacyDetail = mergeMacroBiasSignalDetail(signal, {
+      ...signal,
+      events: undefined,
+      pathAudit: { targetLadder: signal.pathAudit?.targetLadder } as MacroSignalChartSignal["pathAudit"],
+    } as unknown as MacroSignalChartSignal);
+    expect(mergedLegacyDetail.events).toEqual(signal.events);
+    expect(mergedLegacyDetail.pathAudit?.fixedHorizonResponses).toEqual(signal.pathAudit?.fixedHorizonResponses);
+    expect(() => buildChartMacroBiasAuditViewModel({ ...auditData, signal: mergedLegacyDetail })).not.toThrow();
+
+    const sparseLegacySignal = {
+      ...signal,
+      events: undefined,
+      resultR: Number.NaN,
+      pathAudit: { targetLadder: [] },
+      entryTimingAudit: { quoteTime: undefined, observedMid: undefined, entries: undefined },
+      marketContext: { supportResistance: { higherTimeframes: {} } },
+    } as unknown as MacroSignalChartSignal;
+    expect(() => buildChartMacroBiasAuditViewModel({ ...auditData, signal: sparseLegacySignal })).not.toThrow();
+    expect(JSON.stringify(buildChartMacroBiasAuditViewModel({ ...auditData, signal: sparseLegacySignal }))).not.toContain("NaN");
   });
   it("shows the current bias, historical wins and failures, next event, and next frozen condition", () => {
     const metrics: MacroSignalMetrics = {

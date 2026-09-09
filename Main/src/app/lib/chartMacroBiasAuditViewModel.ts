@@ -31,11 +31,11 @@ export interface ChartMacroBiasAuditViewModel {
 }
 
 function formatPercent(value: number | null | undefined): string {
-  return value == null ? "—" : `${(value * 100).toFixed(1)}%`;
+  return value == null || !Number.isFinite(value) ? "—" : `${(value * 100).toFixed(1)}%`;
 }
 
 function formatR(value: number | null | undefined): string {
-  return value == null ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(2)}R`;
+  return value == null || !Number.isFinite(value) ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(2)}R`;
 }
 
 function formatSignedNumber(value: number | null | undefined): string {
@@ -43,7 +43,7 @@ function formatSignedNumber(value: number | null | undefined): string {
 }
 
 function formatPips(value: number | null | undefined): string {
-  return value == null ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(1)} pips`;
+  return value == null || !Number.isFinite(value) ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(1)} pips`;
 }
 
 function formatPrice(value: number | null | undefined, market: string): string {
@@ -56,7 +56,7 @@ function pipSize(market: string): number {
 }
 
 function distancePips(from: number | null | undefined, to: number | null | undefined, market: string): number | null {
-  return from == null || to == null ? null : Math.abs(to - from) / pipSize(market);
+  return from == null || to == null || !Number.isFinite(from) || !Number.isFinite(to) ? null : Math.abs(to - from) / pipSize(market);
 }
 
 function formatAtr(value: number | null | undefined): string {
@@ -79,7 +79,7 @@ function contextHistory(
   dimension: "priceRegime" | "trendRelation" | "volatilityRegime" | "directionalRoom" | "macroBackground" | "releaseSession",
   value: string,
 ) {
-  return pattern.reactionAudit?.profile?.contextResearch?.dimensions.find((row) => row.dimension === dimension && row.value === value) ?? null;
+  return pattern.reactionAudit?.profile?.contextResearch?.dimensions?.find((row) => row.dimension === dimension && row.value === value) ?? null;
 }
 
 function marketContextValue(
@@ -88,12 +88,12 @@ function marketContextValue(
 ): string | null {
   const context = signal.marketContext;
   if (!context) return null;
-  if (dimension === "priceRegime") return context.price.regime;
-  if (dimension === "trendRelation") return context.price.relationToSignal;
-  if (dimension === "volatilityRegime") return context.volatility.regime;
-  if (dimension === "directionalRoom") return context.supportResistance.roomState;
-  if (dimension === "macroBackground") return context.macroBackground.relationToSignal;
-  return context.releaseEnvironment.session;
+  if (dimension === "priceRegime") return context.price?.regime ?? null;
+  if (dimension === "trendRelation") return context.price?.relationToSignal ?? null;
+  if (dimension === "volatilityRegime") return context.volatility?.regime ?? null;
+  if (dimension === "directionalRoom") return context.supportResistance?.roomState ?? null;
+  if (dimension === "macroBackground") return context.macroBackground?.relationToSignal ?? null;
+  return context.releaseEnvironment?.session ?? null;
 }
 
 function formatHoldingCandles(from: number | null | undefined, to: number | null | undefined): string {
@@ -103,7 +103,7 @@ function formatHoldingCandles(from: number | null | undefined, to: number | null
 }
 
 function formatUtc(value: number | null | undefined): string {
-  return value == null ? "Waiting for next H4 open" : formatJakartaDisplayDateTime(value);
+  return value == null || !Number.isFinite(value) ? "Waiting for next H4 open" : formatJakartaDisplayDateTime(value);
 }
 
 function formatOutcome(signal: MacroSignalChartSignal): string {
@@ -152,6 +152,14 @@ function provenanceLabel(status: NonNullable<MacroSignalChartPattern["registrati
 
 export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData): ChartMacroBiasAuditViewModel {
   const { signal, pattern } = data;
+  // Durable chart/detail caches predate some arrays that are required by the
+  // current TypeScript contract. Normalize them at this view boundary so an
+  // older immutable arrow stays reviewable instead of taking down the dock.
+  const signalEvents = Array.isArray(signal.events) ? signal.events : [];
+  const fixedHorizonResponses = Array.isArray(signal.pathAudit?.fixedHorizonResponses) ? signal.pathAudit.fixedHorizonResponses : [];
+  const targetLadder = Array.isArray(signal.pathAudit?.targetLadder) ? signal.pathAudit.targetLadder : [];
+  const lossReview = Array.isArray(signal.pathAudit?.lossReview) ? signal.pathAudit.lossReview : [];
+  const entryTimingRows = Array.isArray(signal.entryTimingAudit?.entries) ? signal.entryTimingAudit.entries : [];
   const rows: ChartMacroBiasAuditRow[] = [];
   const section = (label: string) => rows.push({ kind: "section", label });
   const row = (field: string, value: string, details: string, options?: Pick<Extract<ChartMacroBiasAuditRow, { kind: "data" }>, "tone" | "action">) => rows.push({ kind: "data", field, value, details, ...options });
@@ -171,7 +179,7 @@ export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData)
   const benchmarkSample = historicalEvidence?.evaluableCount ?? (typeof reviewedLater?.evaluableN === "number" ? reviewedLater.evaluableN : benchmark?.walkForwardN);
   const lifecycle = lifecycleCopy(signal);
   const simpleBreakEven = 1 / (1 + targetR);
-  const initialReaction = signal.pathAudit?.fixedHorizonResponses.find((item) => item.holdingCandles === 1) ?? null;
+  const initialReaction = fixedHorizonResponses.find((item) => item.holdingCandles === 1) ?? null;
   const initialReactionPips = initialReaction && signal.atr != null ? initialReaction.responseR * stopAtr * signal.atr / pipSize(market) : null;
   const initialReactionFollowed = initialReaction == null ? null : initialReaction.responseR > 0;
   const frozenStop = signal.initialStop ?? signal.stop;
@@ -182,7 +190,6 @@ export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData)
   const rewardAtr = signal.entry == null || signal.target == null || signal.atr == null || signal.atr === 0 ? null : Math.abs(signal.target - signal.entry) / signal.atr;
   const resultPips = signal.resultR == null || riskPips == null ? null : signal.resultR * riskPips;
   const timelineEnd = signal.exitTime ?? signal.pendingLifecycle?.asOf ?? signal.expiryTime ?? null;
-  const targetLadder = signal.pathAudit?.targetLadder ?? [];
   const frozenTargetPath = targetLadder.find((item) => Math.abs(item.targetR - targetR) < .000001) ?? null;
   const reactionProfile = pattern.reactionAudit?.profile;
   const historicalContractEvidence = reactionProfile?.targetEvidenceContracts?.find(({ execution }) =>
@@ -200,7 +207,14 @@ export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData)
           : benchmarkAverage <= 0 ? "Large target not supported by later paths"
             : targetR >= 3 && benchmarkTargetRate < simpleBreakEven ? "Positive average depends on infrequent large wins"
               : "Historically reached often enough for positive gross expectancy";
-  const marketContext = signal.marketContext;
+  const rawMarketContext = signal.marketContext;
+  const marketContext = rawMarketContext?.price
+    && rawMarketContext.volatility
+    && rawMarketContext.supportResistance
+    && rawMarketContext.macroBackground
+    && rawMarketContext.releaseEnvironment
+    ? rawMarketContext
+    : null;
   const contextOverlay = signal.contextOverlay;
   const selectedContextCandidate = pattern.reactionAudit?.profile?.contextResearch?.selectedCandidate ?? null;
   const selectedContextMatches = selectedContextCandidate ? marketContextValue(signal, selectedContextCandidate.dimension) === selectedContextCandidate.value : false;
@@ -209,7 +223,7 @@ export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData)
   const higherStructure = marketContext?.supportResistance.higherTimeframes;
   const directionalZones = [
     ...h4DirectionalZones.map((zone) => ({ ...zone, timeframe: zone.timeframe ?? "H4" as const })),
-    ...(["D1", "W1"] as const).flatMap((timeframe) => (signal.direction === "long" ? higherStructure?.[timeframe].resistances : higherStructure?.[timeframe].supports) ?? []),
+    ...(["D1", "W1"] as const).flatMap((timeframe) => (signal.direction === "long" ? higherStructure?.[timeframe]?.resistances : higherStructure?.[timeframe]?.supports) ?? []),
   ].sort((left, right) => left.distanceAtr - right.distanceAtr);
   const directionalRoomDetail = marketContext?.supportResistance.directionalRoomAtr == null ? "No confirmed opposing H4 zone"
     : `${marketContext.supportResistance.directionalRoomAtr.toFixed(2)} ATR to ${directionalBarrier?.strength ?? "confirmed"} ${directionalBarrier?.kind ?? "zone"}${directionalBarrier ? ` at ${formatPrice(directionalBarrier.level, market)} · ${directionalBarrier.touches} touches` : ""}`;
@@ -239,8 +253,8 @@ export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData)
   row("Frozen trade result", formatOutcome(signal), `Reaction versus trade result${signal.pathAudit?.givebackR == null ? "" : ` · ${formatR(signal.pathAudit.givebackR)} given back from the best open point`}`);
 
   section("Why the arrow appeared");
-  row("Release package", signal.events.length > 0 ? `${signal.events.length} release${signal.events.length === 1 ? "" : "s"} matched this setup` : data.detailLoading ? "Loading…" : "Registered event package", pattern.condition ?? "Registered setup condition");
-  signal.events.forEach((event) => row(event.title, `A ${event.actual || "?"} · F ${event.forecast || "?"} · P ${event.previous || "?"}`, `${event.currency ?? "?"}/${event.countryCode ?? "?"} · Surprise score ${formatSignedNumber(event.surprisePoint)} · Momentum score ${formatSignedNumber(event.momentumPoint)} · Score ${formatSignedNumber(event.score)}${event.forecastSuspect ? " · forecast excluded by guard" : ""}`));
+  row("Release package", signalEvents.length > 0 ? `${signalEvents.length} release${signalEvents.length === 1 ? "" : "s"} matched this setup` : data.detailLoading ? "Loading…" : "Registered event package", pattern.condition ?? "Registered setup condition");
+  signalEvents.forEach((event) => row(event.title, `A ${event.actual || "?"} · F ${event.forecast || "?"} · P ${event.previous || "?"}`, `${event.currency ?? "?"}/${event.countryCode ?? "?"} · Surprise score ${formatSignedNumber(event.surprisePoint)} · Momentum score ${formatSignedNumber(event.momentumPoint)} · Score ${formatSignedNumber(event.score)}${event.forecastSuspect ? " · forecast excluded by guard" : ""}`));
   if (data.detailError) row("Frozen detail", "Unavailable", `Full frozen detail is unavailable: ${data.detailError}. Provisional Entry/SL/TP geometry remains visible.`, { tone: "error", action: data.onRetryDetail ? "retry-detail" : undefined });
 
   section("Why this target was plausible historically");
@@ -249,9 +263,9 @@ export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData)
   row("Later TP-before-SL", formatPercent(registeredTargetEvidence?.tpBeforeSl ?? benchmarkTargetRate), `${registeredTargetEvidence?.evaluableN ?? benchmarkSample ?? "—"} later cases`);
   row("Later average", formatR(registeredTargetEvidence?.averageR ?? benchmarkAverage), "Gross per matching trade");
   row("TP rate needed", formatPercent(simpleBreakEven), "Simple fixed-boundary reference");
-  row("Typical best move", formatR(registeredTargetEvidence?.mfeR.median ?? reactionProfile?.mfe.r.median), "Median MFE · hindsight, not captured profit");
+  row("Typical best move", formatR(registeredTargetEvidence?.mfeR?.median ?? reactionProfile?.mfe?.r?.median), "Median MFE · hindsight, not captured profit");
   row("This arrow", frozenTargetPath ? targetPathStatus(frozenTargetPath) : formatOutcome(signal), frozenTargetPath?.timeToTargetCandles == null ? "Frozen path result" : `${frozenTargetPath.timeToTargetCandles} H4 to target`);
-  if (registeredTargetEvidence) row("Payoff dependence", `Median ${formatR(registeredTargetEvidence.medianR)}`, `SL first ${formatPercent(registeredTargetEvidence.slBeforeTp)} · expired ${formatPercent(registeredTargetEvidence.expiredRate)} · largest win share ${formatPercent(registeredTargetEvidence.topOneWinShare)} · top three ${formatPercent(registeredTargetEvidence.topThreeWinShare)} · typical target time ${registeredTargetEvidence.timeToTargetH4.median == null ? "—" : `${registeredTargetEvidence.timeToTargetH4.median.toFixed(1)} H4`}`);
+  if (registeredTargetEvidence) row("Payoff dependence", `Median ${formatR(registeredTargetEvidence.medianR)}`, `SL first ${formatPercent(registeredTargetEvidence.slBeforeTp)} · expired ${formatPercent(registeredTargetEvidence.expiredRate)} · largest win share ${formatPercent(registeredTargetEvidence.topOneWinShare)} · top three ${formatPercent(registeredTargetEvidence.topThreeWinShare)} · typical target time ${registeredTargetEvidence.timeToTargetH4?.median == null ? "—" : `${registeredTargetEvidence.timeToTargetH4.median.toFixed(1)} H4`}`);
 
   if (directionalZones.length) section("Multi-scale price structure toward target");
   directionalZones.forEach((zone, index) => {
@@ -294,10 +308,10 @@ export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData)
   row(lifecycle.resolved ? "Frozen trade closed" : "Current lifecycle", formatOutcome(signal), `${resultPips == null ? "" : `${formatPips(resultPips)} · `}held ${formatHoldingCandles(signal.activationTime, timelineEnd)} · ${signal.exitTime == null ? lifecycle.state : formatUtc(signal.exitTime)}`);
   row("Release-time limitation", "Prospective research only", "Historical rows without a first-seen quote cannot prove an executable release price; the frozen result uses the first strictly later H4 open.");
 
-  if (signal.entryTimingAudit) {
+  if (signal.entryTimingAudit && Number.isFinite(signal.entryTimingAudit.quoteTime) && Number.isFinite(signal.entryTimingAudit.observedMid)) {
     section("Entry timing research · Observed MT5 data");
     row("First observed quote", `${formatUtc(signal.entryTimingAudit.quoteTime)} · ${formatPrice(signal.entryTimingAudit.observedMid, market)}`, `${signal.entryTimingAudit.quoteDelaySeconds}s after release`);
-    signal.entryTimingAudit.entries.forEach((entry) => row(`First later ${entry.timeframe} open`, entry.entryTime == null ? "Waiting" : `${formatUtc(entry.entryTime)} · ${formatPrice(entry.entryOpen, market)}`, entry.status === "quote_captured_after_entry" ? "Quote arrived too late to compare" : entry.status === "waiting_for_candle" ? "Not formed yet" : `${formatPips(entry.gapPips)} raw · ${formatPips(entry.directionAdjustedGapPips)} with arrow`));
+    entryTimingRows.forEach((entry) => row(`First later ${entry.timeframe} open`, entry.entryTime == null ? "Waiting" : `${formatUtc(entry.entryTime)} · ${formatPrice(entry.entryOpen, market)}`, entry.status === "quote_captured_after_entry" ? "Quote arrived too late to compare" : entry.status === "waiting_for_candle" ? "Not formed yet" : `${formatPips(entry.gapPips)} raw · ${formatPips(entry.directionAdjustedGapPips)} with arrow`));
     row("Entry timing disclosure", "Research only", signal.entryTimingAudit.disclosure);
   }
 
@@ -309,8 +323,8 @@ export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData)
     row("Worst open pressure", formatR(-signal.pathAudit.maximumAdverseR), `${formatPips(-signal.pathAudit.maximumAdversePips)} · after ${signal.pathAudit.timeToMaeCandles ?? "—"} H4`);
     row("Final frozen trade", formatOutcome(signal), signal.pathAudit.givebackR == null ? "Frozen contract result" : `${formatR(signal.pathAudit.givebackR)} given back from the best open point`);
     if (signal.pathAudit.maximumFavorableR >= .5 && (signal.resultR ?? 0) < 0) row("Why reaction and result differ", "Price initially followed", "It did not reach this setup's TP before reversing into its SL. Best favorable move is hindsight path evidence, not captured profit.");
-    (signal.pathAudit.lossReview ?? []).forEach((reason) => row("Loss-path observations", reason === "favourable_then_giveback" ? "Favourable move, then giveback" : reason === "target_not_reached_before_close" ? "Target was not reached before close" : reason === "adverse_before_best_favourable_move" ? "Adverse move came before the best favourable point" : reason === "direction_not_working_at_six_h4" ? "Direction was not working at six H4" : "Maximum duration ended negative", "Recorded path classification"));
-    signal.pathAudit.fixedHorizonResponses.forEach((response) => row(`Fixed horizon · ${response.holdingCandles} H4`, formatR(response.responseR), "Direction-adjusted response"));
+    lossReview.forEach((reason) => row("Loss-path observations", reason === "favourable_then_giveback" ? "Favourable move, then giveback" : reason === "target_not_reached_before_close" ? "Target was not reached before close" : reason === "adverse_before_best_favourable_move" ? "Adverse move came before the best favourable point" : reason === "direction_not_working_at_six_h4" ? "Direction was not working at six H4" : "Maximum duration ended negative", "Recorded path classification"));
+    fixedHorizonResponses.forEach((response) => row(`Fixed horizon · ${response.holdingCandles} H4`, formatR(response.responseR), "Direction-adjusted response"));
   }
 
   if (benchmark || historicalEvidence) {
@@ -332,7 +346,7 @@ export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData)
 
   section("Important");
   row("Result scope", "Gross, local, hypothetical", `Gross results exclude spread, slippage, swap, and commission. ${historicalReplay ? "This past arrow is hindsight and was not available in real time." : "This release matched a registered FMS setup."} No order is sent to MT5.`);
-  row("Recorded source", `${data.modelId} · ${data.modelHash.slice(0, 10)}`, data.datasetFingerprint ? `Data ${data.datasetFingerprint.slice(0, 10)}` : "No dataset fingerprint recorded");
+  row("Recorded source", `${data.modelId || "Unknown model"} · ${(data.modelHash || "hash unavailable").slice(0, 10)}`, data.datasetFingerprint ? `Data ${data.datasetFingerprint.slice(0, 10)}` : "No dataset fingerprint recorded");
 
   return {
     ariaLabel: `${signal.direction} ${market} macro bias audit`,

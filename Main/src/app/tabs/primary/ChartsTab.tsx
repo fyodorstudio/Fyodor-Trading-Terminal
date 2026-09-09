@@ -214,6 +214,23 @@ export function restoreChartZoomRange(snapshot: ChartZoomSnapshot, lastCandleInd
   return { from: to - snapshot.span, to };
 }
 
+export function mergeMacroBiasSignalDetail(
+  signal: MacroSignalChartSignal,
+  detail: MacroSignalChartSignal | null | undefined,
+): MacroSignalChartSignal {
+  if (!detail) return signal;
+  return {
+    ...signal,
+    ...detail,
+    // Old durable target-ladder payloads can omit release events. The detail
+    // endpoint enriches the selected arrow; it must not erase base records.
+    events: Array.isArray(detail.events) ? detail.events : Array.isArray(signal.events) ? signal.events : [],
+    pathAudit: detail.pathAudit == null
+      ? signal.pathAudit
+      : { ...signal.pathAudit, ...detail.pathAudit },
+  } as MacroSignalChartSignal;
+}
+
 export function getMacroBiasActivationCandleOpen(
   signal: MacroSignalChartSignal,
   candles: BridgeCandle[],
@@ -1421,7 +1438,9 @@ export function ChartsTab({
     });
     return () => { cancelled = true; };
   }, [macroBiasSignalAuditRetryRevision, selectedMacroBias, selectedMacroBiasLadderKey, selectedMacroBiasAudit, selectedSymbol]);
-  const selectedMacroBiasWithTargetLadder = selectedMacroBiasAudit ?? selectedMacroBias;
+  const selectedMacroBiasWithTargetLadder = selectedMacroBias
+    ? mergeMacroBiasSignalDetail(selectedMacroBias, selectedMacroBiasAudit)
+    : null;
   useEffect(() => {
     const series = seriesRef.current;
     macroBiasTradeLinesRef.current.forEach((line) => series?.removePriceLine(line));
