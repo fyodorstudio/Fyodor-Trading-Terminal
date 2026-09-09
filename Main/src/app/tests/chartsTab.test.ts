@@ -266,6 +266,9 @@ describe("getChartConnectionLabel", () => {
     } }));
 
     expect(html).toContain("Past FMS result");
+    expect(html).toContain('<table class="chart-macro-bias-audit-table"');
+    expect(html).not.toContain("chart-macro-bias-result-hero");
+    expect(html).not.toContain("<details");
     expect(html).toContain("Long USDCAD");
     expect(html).not.toContain("Long EURUSD");
     expect(html).toContain("Why the arrow appeared");
@@ -323,7 +326,8 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Quote arrived too late to compare");
     expect(html).toContain("Not formed yet");
     expect(html).toContain("Frozen trade closed");
-    expect(html).toContain("SL 2 ATR · TP 0.5R = 1 ATR · maximum 42 H4 candles");
+    expect(html).toContain("SL 2 ATR · TP 0.5R = 1 ATR");
+    expect(html).toContain("maximum 42 H4 candles");
     expect(html).toContain("Historical performance of this exact setup");
     expect(html).toContain("FMS-USDCAD-H4-E030");
     expect(html).toContain("+0.14R");

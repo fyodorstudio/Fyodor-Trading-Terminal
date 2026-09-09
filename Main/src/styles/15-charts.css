@@ -716,7 +716,7 @@
   .chart-shadow-scanner { grid-template-columns: 1fr; }
 }
 
-/* FMS reading order: cause, decision, timing, evidence, disclaimer. */
+/* Past Result is one plain audit table in result-first reading order. */
 .chart-macro-bias-audit { width: min(500px, calc(100% - 20px)); border-color: #cbd5e1; background: #fff; }
 .chart-macro-bias-audit header { z-index: 3; align-items: flex-start; border-top: 4px solid #4f46e5; background: #fff; padding: 13px 14px 12px; }
 .chart-macro-bias-audit header span { color: #4f46e5; font-size: 9px; letter-spacing: .1em; }
@@ -725,49 +725,21 @@
 .chart-macro-bias-audit header button { width: 32px; height: 32px; border-color: #94a3b8; background: #f8fafc; color: #0f172a; cursor: pointer; }
 .chart-macro-bias-audit header button:hover { background: #e2e8f0; }
 .chart-macro-bias-audit header button:focus-visible { outline: 3px solid #a5b4fc; outline-offset: 2px; }
-.chart-macro-bias-result-hero { border-bottom: 1px solid #cbd5e1; background: #fff; }
-.chart-macro-bias-result-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 13px 14px 10px; }
-.chart-macro-bias-result-heading > div { display: grid; min-width: 0; gap: 2px; }
-.chart-macro-bias-result-heading span { color: #64748b; font-size: 9px; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; }
-.chart-macro-bias-result-heading strong { color: #0f172a; font-size: 19px; line-height: 1.2; }
-.chart-macro-bias-result-heading small { color: #475569; font-size: 10px; line-height: 1.35; }
-.chart-macro-bias-result-heading > b { min-width: 78px; border: 1px solid #cbd5e1; border-radius: 4px; background: #f8fafc; padding: 9px 10px; color: #334155; font-size: 18px; font-variant-numeric: tabular-nums; text-align: center; }
-.chart-macro-bias-result-heading > b.is-positive { border-color: #86efac; background: #f0fdf4; color: #15803d; }
-.chart-macro-bias-result-heading > b.is-negative { border-color: #fca5a5; background: #fef2f2; color: #b91c1c; }
-.chart-macro-bias-result-copy { display: grid; grid-template-columns: minmax(120px, auto) minmax(0, 1fr); gap: 10px; margin: 0; border-top: 1px solid #e2e8f0; background: #f8fafc; padding: 8px 14px; color: #475569; font-size: 10px; line-height: 1.4; }
-.chart-macro-bias-result-copy strong { color: #0f172a; }
-.chart-macro-bias-levels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
-.chart-macro-bias-levels > div { display: grid; min-width: 0; gap: 3px; padding: 9px 12px; }
-.chart-macro-bias-levels > div + div { border-left: 1px solid #e2e8f0; }
-.chart-macro-bias-levels span { color: #64748b; font-size: 9px; font-weight: 800; }
-.chart-macro-bias-levels strong { color: #172554; font-size: 13px; font-variant-numeric: tabular-nums; }
-.chart-macro-bias-levels small { color: #64748b; font-size: 9px; line-height: 1.35; overflow-wrap: anywhere; }
-.chart-macro-bias-levels .is-risk strong { color: #b91c1c; }
-.chart-macro-bias-levels .is-reward strong { color: #15803d; }
-.chart-macro-bias-contract-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); margin: 0; background: #f8fafc; }
-.chart-macro-bias-contract-strip > div { min-width: 0; border-right: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; padding: 8px 12px; }
-.chart-macro-bias-contract-strip dt { color: #64748b; font-size: 9px; }
-.chart-macro-bias-contract-strip dd { display: grid; gap: 2px; margin: 2px 0 0; color: #0f172a; font-size: 12px; font-weight: 750; font-variant-numeric: tabular-nums; }
-.chart-macro-bias-contract-strip dd small { color: #64748b; font-size: 9px; line-height: 1.3; }
-.chart-macro-bias-result-hero > .chart-macro-bias-entry-note { margin: 0; background: #eef2ff; padding: 7px 14px; color: #4338ca; font-size: 9px; line-height: 1.4; }
-.chart-macro-bias-reaction-summary { display: grid; gap: 9px; border-bottom: 1px solid #cbd5e1; border-left: 4px solid #6366f1; background: #f8faff; padding: 12px 0; }
-.chart-macro-bias-reaction-summary.is-rejected, .chart-macro-bias-reaction-summary.is-unavailable { border-left-color: #94a3b8; background: #f8fafc; }
-.chart-macro-bias-reaction-layout { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; padding: 0 14px; }
-.chart-macro-bias-reaction-primary { display: grid; align-content: center; gap: 3px; min-height: 108px; border: 1px solid #a5b4fc; background: #eef2ff; padding: 11px 12px; }
-.chart-macro-bias-reaction-summary.is-rejected .chart-macro-bias-reaction-primary, .chart-macro-bias-reaction-summary.is-unavailable .chart-macro-bias-reaction-primary { border-color: #cbd5e1; background: #fff; }
-.chart-macro-bias-reaction-primary span { color: #6366f1; font-size: 9px; font-weight: 800; }
-.chart-macro-bias-reaction-primary strong { color: #1e1b4b; font-size: 14px; line-height: 1.25; }
-.chart-macro-bias-reaction-primary b { color: #312e81; font-size: 18px; font-variant-numeric: tabular-nums; }
-.chart-macro-bias-reaction-primary small { color: #64748b; font-size: 9px; }
-.chart-macro-bias-reaction-summary.is-rejected .chart-macro-bias-reaction-primary :is(span, strong, b), .chart-macro-bias-reaction-summary.is-unavailable .chart-macro-bias-reaction-primary :is(span, strong, b) { color: #475569; }
-.chart-macro-bias-reaction-layout > dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; border: 1px solid #dbe3ef; background: #fff; }
-.chart-macro-bias-reaction-layout > dl > div { min-width: 0; padding: 8px 9px; }
-.chart-macro-bias-reaction-layout > dl > div:nth-child(even) { border-left: 1px solid #e2e8f0; }
-.chart-macro-bias-reaction-layout > dl > div:nth-child(n+3) { border-top: 1px solid #e2e8f0; }
-.chart-macro-bias-reaction-layout dt { color: #64748b; font-size: 9px; }
-.chart-macro-bias-reaction-layout dd { display: grid; gap: 2px; margin: 2px 0 0; color: #172554; font-size: 12px; font-weight: 750; font-variant-numeric: tabular-nums; }
-.chart-macro-bias-reaction-layout dd small { color: #64748b; font-size: 9px; font-weight: 500; line-height: 1.35; }
-.chart-macro-bias-reaction-summary > p { margin: 0 14px; color: #475569; font-size: 9px; line-height: 1.4; }
+.chart-macro-bias-audit-table { width: 100%; border-collapse: collapse; table-layout: fixed; background: #fff; color: #334155; }
+.chart-macro-bias-audit-table col.is-field { width: 25%; }
+.chart-macro-bias-audit-table col.is-value { width: 27%; }
+.chart-macro-bias-audit-table col.is-detail { width: 48%; }
+.chart-macro-bias-audit-table th, .chart-macro-bias-audit-table td { min-width: 0; border-right: 1px solid #dbe3ef; border-bottom: 1px solid #dbe3ef; padding: 7px 9px; font-size: 10px; line-height: 1.4; overflow-wrap: anywhere; text-align: left; vertical-align: top; }
+.chart-macro-bias-audit-table tr > :last-child { border-right: 0; }
+.chart-macro-bias-audit-table thead th { background: #e9edf5; color: #334155; font-size: 9px; font-weight: 900; letter-spacing: .04em; text-transform: uppercase; }
+.chart-macro-bias-audit-table tbody th { color: #475569; font-weight: 800; }
+.chart-macro-bias-audit-table tbody td:nth-child(2) { color: #0f172a; font-variant-numeric: tabular-nums; font-weight: 750; }
+.chart-macro-bias-audit-table .is-section th { background: #f1f5f9; color: #1e3a8a; font-size: 9px; font-weight: 950; letter-spacing: .055em; text-transform: uppercase; }
+.chart-macro-bias-audit-table .is-entry td:nth-child(2) { color: #475569; }
+.chart-macro-bias-audit-table .is-risk td:nth-child(2) { color: #b91c1c; }
+.chart-macro-bias-audit-table .is-reward td:nth-child(2) { color: #15803d; }
+.chart-macro-bias-audit-table .is-error td, .chart-macro-bias-audit-table .is-warning td { color: #92400e; }
+.chart-macro-bias-audit-table button { margin-left: 6px; border: 1px solid #94a3b8; border-radius: 3px; background: #fff; padding: 2px 6px; color: #1e3a8a; font: inherit; font-weight: 800; cursor: pointer; }
 .chart-macro-bias-at-a-glance { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); border-bottom: 1px solid #cbd5e1; background: #f8fafc; }
 .chart-macro-bias-at-a-glance > div { display: grid; min-width: 0; gap: 3px; border-right: 1px solid #dbe3ef; border-bottom: 1px solid #dbe3ef; padding: 9px 12px; }
 .chart-macro-bias-at-a-glance > div:nth-child(4n) { border-right: 0; }
@@ -2103,3 +2075,7 @@
 .fms-action-activity .fms-action-detail-row td { font-size: 10px; line-height: 1.5; }
 .chart-fms-dock-tabs button { overflow-wrap: anywhere; }
 .fms-knowledge-card details > summary { cursor: pointer; font-weight: 700; padding: 6px 0; }
+
+.chart-fms-dock .chart-macro-bias-audit-table thead th,
+.chart-fms-dock .chart-macro-bias-audit-table .is-section th { font-weight: 700 !important; }
+.chart-fms-dock .chart-macro-bias-audit-table tbody > tr:not(.is-section) > th { font-weight: 600 !important; }

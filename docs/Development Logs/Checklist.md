@@ -12,12 +12,12 @@ Updated 2026-09-09. P0–P7, owner follow-up fixes, and the Past Result overhaul
 
 ## 2026-09-09 Past Result overhaul
 
-- Replaced the dense eight-cell opening grid with a result-led hierarchy: direction/outcome and gross R, lifecycle explanation, exact Entry/SL/TP, compact frozen-contract facts, then the arrow-position disclosure.
-- Moved `Initial price reaction` directly below the result summary and made it always visible. It now shows one-H4 reaction, six-H4 direction, MFE, MAE, and the final frozen result together; missing one-H4 data is an explicit non-inferred status rather than an absent section.
+- Replaced every Past Result card, grid, list, nested table, and disclosure with one plain three-column audit table (`Field`, `Value`, `Details`). Section rows preserve the result-first reading order without decorative card placement.
+- `Initial price reaction` is the second table section, directly after the frozen result and contract rows. It shows one-H4 reaction, six-H4 direction, MFE, MAE, and final frozen result; missing one-H4 data is explicit rather than inferred.
 - The screenshot case `eurusd-ism-manufacturing-employment-package:1788282000` does have immutable reaction data. Its first-H4 response is -0.201R (price opposed the short arrow), six-H4/final response is -0.043R, MFE is +0.594R, and MAE is -0.713R. The old UI had buried this below target/context content.
-- Removed the standalone unavailable Entry timing disclosure. Entry timing is now a normal, always-expanded chronology section only for arrows with an immutable first-seen MT5 quote; historical arrows without one show no stray dropdown and still retain the honest H4 contract.
-- Supporting release, target, structure, context, timeline, path, and provenance evidence remains available below the decision-first summary without changing any frozen data or interpretation.
-- Validation: `pnpm run typecheck` passed; the existing chart test file remains 29/29 and now checks that Initial price reaction precedes Why the arrow appeared and that unavailable entry timing renders no disclosure.
+- Entry timing is table rows only when an immutable first-seen MT5 quote exists. Historical arrows without one show no empty label, stray dropdown, or unavailable placeholder.
+- Release, target, structure, context, timeline, path, historical outcome, and provenance records remain in the same table without changing frozen data or interpretation.
+- Validation: `pnpm run typecheck` passed; the existing chart test file remains 29/29 and asserts one table, no Past Result cards/details, Initial price reaction before Why the arrow appeared, and no unavailable entry-timing section.
 
 ## 2026-09-09 owner follow-up fixes
 
@@ -26,6 +26,7 @@ Updated 2026-09-09. P0–P7, owner follow-up fixes, and the Past Result overhaul
 - Fixed the narrow clickable rectangle below Choose setups. A broad input selector was forcing the search field to checkbox dimensions; sizing now applies only to checkboxes.
 - Anchored `Hide no trade` in a two-column grid with tabular count numerals, so changes in `x displayed / x total` no longer shift the control.
 - Corrected chronological-holdout evidence projection to read the linked immutable selected contract even when serving an older durable chart-response cache. `FMS-EURUSD-H4-E293` now reports the actual holdout: evaluable 11, TP 6 (54.5%), SL 2 (18.2%), expired 3, ambiguous 0, unevaluable 0, average +0.581R, total +6.40R gross.
+- Fixed reviewed-H1 outcome projection, which previously retained only N and average R even though the frozen cached campaign contained exact statuses. AUDUSD producer inflation now reports N 32, TP 11 (34.4%), SL 12 (37.5%), expired 2, break-even 7, ambiguous 0, unevaluable 0, average +0.561R, and total +17.95R; all eight reviewed-H1 approvals now carry their exact cached later-cohort counts.
 - Rate-only reviewed cohorts now say `exact count not stored` instead of implying a failed count lookup. Expanded evidence includes definitions for expired, ambiguous, and unevaluable, and lists stored ambiguous case IDs/times when available.
 
 ## Implemented P0–P7
@@ -87,6 +88,7 @@ Updated 2026-09-09. P0–P7, owner follow-up fixes, and the Past Result overhaul
 - Full `tests/test_macro_signal_api.py` diagnostic — 22 passed, 5 failed. The failures are unrelated existing expectation drift in prospective context ID matching, context candidate count, context artifact-drift behavior, forward supportive status, and H1 successor activation. They were not changed as part of P0–P7.
 - Campaign script compiled, frozen manifest validated before execution, and all 12 declared variants completed.
 - Follow-up validation: `pnpm run typecheck` passed; the existing chart test file remained 29/29; the focused immutable-evidence bridge regression passed; and the saved EURUSD chart-response path returned the corrected E293 values above without a research rerun.
+- Latest table/unavailable fix validation: `pnpm run typecheck` passed; the existing chart test file remained 29/29; the focused bridge evidence regression passed and checks the exact AUDUSD 11/12/2/7 outcome partition and derived 34.375%/37.5% rates.
 
 ## Owner manual visual checklist
 
@@ -97,13 +99,14 @@ At 1440x900 and 100% Chrome zoom:
 - Confirm `Hide no trade` is initially unchecked and filters only no-trade rows; Choose setups search and filtered select/clear work.
 - Toggle `Hide no trade` several times and confirm the checkbox stays fixed while the displayed/total text changes. Open Choose setups and confirm the search input is full-width rather than a narrow vertical rectangle.
 - From a Current/Recent signal, click `Go to arrow`; from Next, click `Go to latest arrow` where offered. Confirm the pair/timeframe changes if needed, the activation candle is centered, only the selected arrow is emphasized, and Past Result opens.
-- Expand a Next or Recent row and verify the historical benchmark uses one named cohort with counts, average gross R, and total gross R; unavailable counts show as unavailable rather than inferred.
+- Expand a Next or Recent row and verify the historical benchmark uses one named cohort with counts, average gross R, and total gross R; genuinely unrecorded counts show as unavailable rather than inferred.
+- On AUDUSD US producer inflation, confirm the collapsed row says `34.4% TP before SL`; expanded evidence should show TP `11 · 34.4%`, SL `12 · 37.5%`, and Other `Expired 2 · Break-even 7 · Ambiguous 0 · Unevaluable 0`.
 - On EURUSD producer-inflation cooling (`FMS-EURUSD-H4-E293`), confirm SL is `2 · 18.2%` and Other is `Expired 3 · Ambiguous 0 · Unevaluable 0`. Expand Outcome definitions and confirm the terms are readable.
 - Select the saved AUDUSD recovered payroll arrow twice. Confirm detail loads, shows +1R and eight target rows, and retry is available if the request is forced to fail.
 - Confirm the only dock buttons are Trade, Journal, Setups, and Past Result. In Setups, verify the outer workspace and all three inner disclosures begin collapsed and remain usable without page overflow.
 - On H4 and H1, click an arrow and compare its candle/time with Past Result. Confirm the exact Entry price is readable and the arrow-position explanation is visible.
-- In Past Result, confirm the first screen reads in this order: frozen result, exact Entry/SL/TP and contract, Initial price reaction, then Why the arrow appeared. For the 02 Sep EURUSD manufacturing-employment arrow, confirm the initial reaction is about `-0.20R` and says price opposed the arrow.
-- Confirm old recovered arrows without first-seen quote data have no `Entry timing research · Not available for this arrow` dropdown. Confirm a prospectively captured arrow with timing data shows the comparison as a normal section after What happened.
+- In Past Result, confirm there is one plain `Field / Value / Details` table with no cards or expandable rows. Its first sections should be Result, Initial price reaction, then Why the arrow appeared. For the 02 Sep EURUSD manufacturing-employment arrow, confirm the initial reaction is about `-0.20R` and says price opposed the arrow.
+- Confirm old recovered arrows without first-seen quote data have no Entry timing rows or unavailable dropdown. Confirm a prospectively captured arrow with timing data shows Entry timing as ordinary table rows after What happened.
 - In Setups → Knowledge, confirm `Unregistered-package entry-state probe · Completed · no promotion` reports 12 variants and zero survivors.
 
 ## Remaining limitations

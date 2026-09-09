@@ -473,14 +473,14 @@ PRACTICAL_PATTERN_DEFINITIONS = tuple(_apply_reviewed_execution(pattern) for pat
 # window was inspected; every listed recipe retained positive later H1
 # expectancy and positive paired uplift over its own active H4 contract.
 _REVIEWED_H1_ENTRY_APPROVALS: Dict[Tuple[str, str], Dict[str, Any]] = {
-  ("AUDUSD", "audusd-us-producer-inflation"): {"laterN": 32, "h1AverageR": .560836207391032, "h4AverageR": .451461207391032, "pairedUpliftR": .109375},
-  ("EURUSD", "eurusd-retail-sales-m-m-package"): {"laterN": 28, "h1AverageR": .16720160670921488, "h4AverageR": .08243801752735648, "pairedUpliftR": .08476358918185843},
-  ("GBPUSD", "gbpusd-ism-non-manufacturing-business-activity-package"): {"laterN": 29, "h1AverageR": .14209508947296542, "h4AverageR": .08355081818949578, "pairedUpliftR": .05854427128346964},
-  ("USDCAD", "usdcad-us-consumer-inflation"): {"laterN": 77, "h1AverageR": .17468936273118232, "h4AverageR": .17316340245421205, "pairedUpliftR": .001525960276970259},
-  ("USDCHF", "usdchf-ppi-m-m-package"): {"laterN": 26, "h1AverageR": .13687505010154458, "h4AverageR": .10139301346070025, "pairedUpliftR": .03548203664084434},
-  ("USDCHF", "usdchf-us-employment-release"): {"laterN": 37, "h1AverageR": .11104454707658107, "h4AverageR": .07412295526379817, "pairedUpliftR": .0369215918127829},
-  ("USDJPY", "usdjpy-jpy-labor-wages"): {"laterN": 23, "h1AverageR": .9401768899389813, "h4AverageR": .5107688950531266, "pairedUpliftR": .42940799488585457},
-  ("USDJPY", "usdjpy-us-producer-inflation-rejection"): {"laterN": 27, "h1AverageR": .13879717976496445, "h4AverageR": .09093913366869517, "pairedUpliftR": .04785804609626925},
+  ("AUDUSD", "audusd-us-producer-inflation"): {"laterN": 32, "h1AverageR": .560836207391032, "h4AverageR": .451461207391032, "pairedUpliftR": .109375, "targetHitCount": 11, "stopHitCount": 12, "expiredCount": 2, "breakEvenCount": 7},
+  ("EURUSD", "eurusd-retail-sales-m-m-package"): {"laterN": 28, "h1AverageR": .16720160670921488, "h4AverageR": .08243801752735648, "pairedUpliftR": .08476358918185843, "targetHitCount": 1, "stopHitCount": 15, "expiredCount": 12, "breakEvenCount": 0},
+  ("GBPUSD", "gbpusd-ism-non-manufacturing-business-activity-package"): {"laterN": 29, "h1AverageR": .14209508947296542, "h4AverageR": .08355081818949578, "pairedUpliftR": .05854427128346964, "targetHitCount": 7, "stopHitCount": 5, "expiredCount": 17, "breakEvenCount": 0},
+  ("USDCAD", "usdcad-us-consumer-inflation"): {"laterN": 77, "h1AverageR": .17468936273118232, "h4AverageR": .17316340245421205, "pairedUpliftR": .001525960276970259, "targetHitCount": 14, "stopHitCount": 55, "expiredCount": 8, "breakEvenCount": 0},
+  ("USDCHF", "usdchf-ppi-m-m-package"): {"laterN": 26, "h1AverageR": .13687505010154458, "h4AverageR": .10139301346070025, "pairedUpliftR": .03548203664084434, "targetHitCount": 18, "stopHitCount": 5, "expiredCount": 3, "breakEvenCount": 0},
+  ("USDCHF", "usdchf-us-employment-release"): {"laterN": 37, "h1AverageR": .11104454707658107, "h4AverageR": .07412295526379817, "pairedUpliftR": .0369215918127829, "targetHitCount": 22, "stopHitCount": 5, "expiredCount": 10, "breakEvenCount": 0},
+  ("USDJPY", "usdjpy-jpy-labor-wages"): {"laterN": 23, "h1AverageR": .9401768899389813, "h4AverageR": .5107688950531266, "pairedUpliftR": .42940799488585457, "targetHitCount": 6, "stopHitCount": 11, "expiredCount": 6, "breakEvenCount": 0},
+  ("USDJPY", "usdjpy-us-producer-inflation-rejection"): {"laterN": 27, "h1AverageR": .13879717976496445, "h4AverageR": .09093913366869517, "pairedUpliftR": .04785804609626925, "targetHitCount": 9, "stopHitCount": 16, "expiredCount": 2, "breakEvenCount": 0},
 }
 H1_ENTRY_RESEARCH_MANIFEST_HASH = "4c43cc91604a72de1eceed3be3cbc4a255deae7b4721e2a3f3fe1fc8b67150d3"
 
@@ -500,7 +500,8 @@ def _apply_reviewed_h1_entry(pattern: Dict[str, Any]) -> Dict[str, Any]:
       "previousExecution": previous, "currentExecution": current,
       "entryRule": "first H1 open strictly after release and complete first-seen package",
       "expiryRule": "same final H4 boundary as the parent contract",
-      "developmentSelected": True, "later": dict(approval),
+      "developmentSelected": True,
+      "later": {"ambiguousCount": 0, "unevaluableCount": 0, **dict(approval)},
       "limitations": "Gross scheduled-release simulation; prospective signals additionally require the complete package before entry.",
     },
   }
@@ -3861,15 +3862,23 @@ def _historical_evidence_summary(pattern: Dict[str, Any]) -> Dict[str, Any]:
     average_value = metrics.get(average_key)
     sample = int(sample_value) if sample_value is not None else 0
     average = float(average_value) if average_value is not None else None
+    target_hit_count = metrics.get("targetHitCount")
+    stop_hit_count = metrics.get("stopHitCount")
+    target_hit_rate = metrics.get("targetHitRate", metrics.get("tpBeforeSl"))
+    stop_hit_rate = metrics.get("stopHitRate", metrics.get("slBeforeTp"))
+    if target_hit_rate is None and target_hit_count is not None and sample:
+      target_hit_rate = int(target_hit_count) / sample
+    if stop_hit_rate is None and stop_hit_count is not None and sample:
+      stop_hit_rate = int(stop_hit_count) / sample
     return {
       "scope": scope,
       "cohort": dict(cohort),
       "sourceId": source_id,
       "evaluableCount": sample,
-      "targetHitCount": metrics.get("targetHitCount"),
-      "targetHitRate": metrics.get("targetHitRate", metrics.get("tpBeforeSl")),
-      "stopHitCount": metrics.get("stopHitCount"),
-      "stopHitRate": metrics.get("stopHitRate", metrics.get("slBeforeTp")),
+      "targetHitCount": target_hit_count,
+      "targetHitRate": target_hit_rate,
+      "stopHitCount": stop_hit_count,
+      "stopHitRate": stop_hit_rate,
       "expiredCount": metrics.get("expiredCount"),
       "breakEvenCount": metrics.get("breakEvenCount"),
       "ambiguousCount": metrics.get("ambiguousCount", metrics.get("ambiguousN")),
@@ -3886,7 +3895,7 @@ def _historical_evidence_summary(pattern: Dict[str, Any]) -> Dict[str, Any]:
     return summary(
       "Chronological later matched cases · reviewed H1 entry",
       str(entry_review.get("id") or benchmark.get("experimentId") or "") or None,
-      {"evaluableN": later.get("laterN"), "averageR": later.get("h1AverageR")},
+      {**later, "evaluableN": later.get("laterN"), "averageR": later.get("h1AverageR")},
       "averageR", "evaluableN",
     )
 

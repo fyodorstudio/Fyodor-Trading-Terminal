@@ -133,15 +133,34 @@ def test_historical_evidence_uses_one_contract_cohort_and_keeps_unknown_counts_u
     "historicalBenchmark": {"experimentId": "E-parent"},
     "entryReview": {
       "id": "H1-successor", "status": "reviewed_active",
-      "later": {"laterN": 32, "h1AverageR": .25, "h4AverageR": .1},
+      "later": {
+        "laterN": 32, "h1AverageR": .25, "h4AverageR": .1,
+        "targetHitCount": 11, "stopHitCount": 12, "expiredCount": 2, "breakEvenCount": 7,
+      },
     },
     "holdout": {"evaluableCount": 99, "targetHitCount": 70, "averageR": 9},
   })
   assert successor["scope"] == "Chronological later matched cases · reviewed H1 entry"
   assert successor["evaluableCount"] == 32
   assert successor["averageGrossR"] == .25
+  assert successor["targetHitCount"] == 11
+  assert successor["targetHitRate"] == 11 / 32
+  assert successor["stopHitCount"] == 12
+  assert successor["stopHitRate"] == 12 / 32
+  assert (successor["expiredCount"], successor["breakEvenCount"]) == (2, 7)
   assert successor["totalGrossR"] == 8
-  assert successor["targetHitCount"] is None
+
+  audusd = next(
+    pattern for pattern in server.PRACTICAL_PATTERN_DEFINITIONS
+    if pattern["market"] == "AUDUSD" and pattern["id"] == "audusd-us-producer-inflation"
+  )
+  audusd_evidence = server._historical_evidence_summary(audusd)
+  assert audusd_evidence["evaluableCount"] == 32
+  assert (audusd_evidence["targetHitCount"], audusd_evidence["stopHitCount"]) == (11, 12)
+  assert (audusd_evidence["expiredCount"], audusd_evidence["breakEvenCount"]) == (2, 7)
+  assert (audusd_evidence["ambiguousCount"], audusd_evidence["unevaluableCount"]) == (0, 0)
+  assert audusd_evidence["targetHitRate"] == 11 / 32
+  assert audusd_evidence["stopHitRate"] == 12 / 32
 
 
 def test_selected_arrow_detail_finds_recovered_signal_and_reuses_terminal_cache(monkeypatch) -> None:
