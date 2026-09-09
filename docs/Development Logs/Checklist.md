@@ -19,6 +19,17 @@ Updated 2026-09-09. P0–P7, owner follow-up fixes, and the Past Result overhaul
 - Release, target, structure, context, timeline, path, historical outcome, and provenance records remain in the same table without changing frozen data or interpretation.
 - Validation: `pnpm run typecheck` passed; the existing chart test file remains 29/29 and asserts one table, no Past Result cards/details, Initial price reaction before Why the arrow appeared, and no unavailable entry-timing section.
 
+## 2026-09-09 FMS ownership and repository hygiene
+
+- Extracted historical-evidence normalization/source priority from the live server into pure `Main/mt5-bridge/fms_historical_evidence.py`. The bridge now only injects immutable-store readers; every chart projection carries schema `fms-chart-historical-evidence-v1`.
+- Removed the offline reviewed-H1 campaign's import of `server.py`, FastAPI, and MetaTrader5. It now reads the frozen active contracts directly from its hashed manifest and runs under ordinary repository Python.
+- Extended the existing derived active-entry review with exact later-cohort status counts. No candle, manifest, split, selection rule, contract, activation, or approval membership changed.
+- Added reproducible publisher `scripts/fms_publish_entry_registrations.py`. Its fixed eight-recipe allowlist publishes `Main/mt5-bridge/registered_entry_review_evidence.json`; it refuses changed membership, unsupported approvals, manifest/contract drift, and therefore cannot auto-promote a setup.
+- Added pure loader/applicator `registered_entry_reviews.py`. It validates registry hash `21b7c257cc420c93ca1881eb51ad50a47315109308714eec3ec133a1c78734e2`, verifies every exact outcome partition sums to N, and retains H4 with `blocked_artifact_mismatch` if the active execution contract drifts.
+- Moved all Past Result interpretation, formatting, fallback selection, and row ordering into `chartMacroBiasAuditViewModel.ts`. `ChartMacroBiasAudit.tsx` is now a small table-only renderer; its existing test now asserts the view-model contract rather than depending on adjacent card HTML.
+- Updated `AGENTS.md`, `docs/NAVIGATION.md`, bridge README, and durable context with the new ownership boundaries and reproduction commands.
+- Validation: ordinary Python imported the evidence/registration modules without MT5 and loaded all eight hashed profiles; the full bridge suite passed 81/81, `pnpm run typecheck` passed, and the existing chart regression file passed 29/29.
+
 ## 2026-09-09 owner follow-up fixes
 
 - Fixed the confirmed lazy-Setups crash: each disclosure now snapshots `event.currentTarget.open` synchronously before a React state updater can outlive the synthetic event.
@@ -85,7 +96,7 @@ Updated 2026-09-09. P0–P7, owner follow-up fixes, and the Past Result overhaul
 - `pnpm run typecheck` — passed.
 - `pnpm exec vitest run src/app/tests/chartsTab.test.ts` — 29 passed.
 - Scoped bridge regression set — 7 passed, covering snapshot preservation, chart projection, coherent evidence, recovered-signal detail/cache reuse, deterministic management ambiguity, target-path separation, and observed-quote provenance.
-- Full `tests/test_macro_signal_api.py` diagnostic — 22 passed, 5 failed. The failures are unrelated existing expectation drift in prospective context ID matching, context candidate count, context artifact-drift behavior, forward supportive status, and H1 successor activation. They were not changed as part of P0–P7.
+- Full `tests/test_macro_signal_api.py` — 27 passed. Five stale expectations were reconciled with current contracts: prospective context requires `executionApplied`, changing context display research does not corrupt immutable approval evidence, dynamic candidate breadth is not a fixed count, forward statuses use `prospectively_supported` / `pause_candidate`, and each reversal recipe may omit a family with no evaluable winner.
 - Campaign script compiled, frozen manifest validated before execution, and all 12 declared variants completed.
 - Follow-up validation: `pnpm run typecheck` passed; the existing chart test file remained 29/29; the focused immutable-evidence bridge regression passed; and the saved EURUSD chart-response path returned the corrected E293 values above without a research rerun.
 - Latest table/unavailable fix validation: `pnpm run typecheck` passed; the existing chart test file remained 29/29; the focused bridge evidence regression passed and checks the exact AUDUSD 11/12/2/7 outcome partition and derived 34.375%/37.5% rates.
@@ -114,4 +125,3 @@ At 1440x900 and 100% Chrome zoom:
 - Visual layout and interaction continuity have static/type validation only until the owner completes the checklist above.
 - The one USDJPY historical replay remains honestly unevaluable until its named source interval can be resolved without violating the account-access boundary.
 - P6 is reused-history research and a deliberately small coverage probe. It is not fresh forward evidence and does not exhaust orthogonal entry-known interactions.
-- The five broad bridge expectation drifts need a separate contract-fixture reconciliation; they are not evidence that the scoped P2/P3 behavior failed.

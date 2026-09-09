@@ -10,6 +10,7 @@ import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import { ChartPairMatrixContextMarkers, clusterPairMatrixMarkerViews } from "@/app/components/ChartPairMatrixContextMarkers";
 import { ChartPairMatrixRangeOverlay, clampFmsDockWidth, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
 import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
+import { buildChartMacroBiasAuditViewModel } from "@/app/lib/chartMacroBiasAuditViewModel";
 import { buildMacroSignalShadowAccount, buildMacroSignalShadowPosition, normalizeShadowRiskPercent, normalizeShadowStartingBalance } from "@/app/lib/macroSignalShadow";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
 import { buildMacroBiasPriceLineLevels, buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasArrowFocusRange, getMacroBiasReplayStatusLabel, getMacroBiasRequestScope, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, isMacroBiasMarketSupported, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange, shouldApplyMacroBiasRefresh } from "@/app/tabs/primary/ChartsTab";
@@ -244,9 +245,7 @@ describe("getChartConnectionLabel", () => {
         limitations: ["Research only."],
       },
     };
-    const html = renderToStaticMarkup(createElement(ChartMacroBiasAudit, { data: {
-      signal,
-      pattern: {
+    const pattern: MacroSignalChartPattern = {
         id: "pattern", market: "USDCAD", signature: "long|USD:labor_claims", signatures: ["long|USD:labor_claims"], sourceVersionId: "v2", label: "US labor claims improvement", condition: "Long USDCAD when claims evidence improves.", execution: { stopAtr: 2, targetR: .5, expiryCandles: 42 }, direction: "long", groups: ["USD:labor_claims"],
         historicalBenchmark: { experimentId: "FMS-USDCAD-H4-E030", historicalN: 178, walkForwardN: 67, walkForwardAverageR: .143, targetFirstRate: .776, stopFirstRate: .224, status: "historically_profitable" },
         reactionAudit: { schema: "registered-reaction-audit-v1", scope: "chronological later-test cases", horizonCandles: 6, evaluableN: 67, directionWorkedTradeProfited: 30, directionWorkedTradeLost: 7, directionFailedTradeProfited: 8, directionFailedTradeLost: 22, positiveResponseRate: .552, medianResponseR: .18 },
@@ -261,84 +260,50 @@ describe("getChartConnectionLabel", () => {
           { targetR: 2, gross: metrics, executionStress: { ...metrics, averageR: 0.087 } },
         ],
         estimatedBreakEvenStressPips: 5.67, uncertaintyIncludesNoEdge: true, selectionNote: "Frozen research pattern.",
-      },
+    };
+    const auditData = {
+      signal, pattern,
       versionId: "v2", modelId: "v3", modelHash: "abcdef123456", datasetFingerprint: "123456abcdef", mode: "research_replay", targetR: 2, onClose: () => {},
-    } }));
+    } as const;
+    const view = buildChartMacroBiasAuditViewModel(auditData);
+    const html = renderToStaticMarkup(createElement(ChartMacroBiasAudit, { data: auditData }));
 
-    expect(html).toContain("Past FMS result");
+    const sections = view.rows.filter((row) => row.kind === "section").map((row) => row.label);
+    const dataRows = view.rows.filter((row) => row.kind === "data");
+    expect(view.kicker).toBe("Past FMS result");
+    expect(sections.slice(0, 3)).toEqual(["Result", "Initial price reaction", "Why the arrow appeared"]);
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "Direction and result", value: "Long USDCAD", details: "TP reached · +0.50R" }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "Lifecycle", value: "Closed — target reached", details: expect.stringContaining("Later price movement does not change this result") }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "Entry", value: "1.35000", details: expect.stringContaining("exact frozen entry is 1.35000") }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "After the first completed H4", value: "Price followed the arrow", details: "+0.67R · +67.0 pips · measured after 1 H4" }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "Context decision", value: "Research comparison" }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "Volatility", value: "Expanded", details: expect.stringContaining("82nd past-only percentile") }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "Room toward target", details: expect.stringContaining("2.00 ATR to confirmed resistance at 1.36000 · 3 touches") }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "ATR(14) at entry", value: "0.00500 · 50.0 pips" }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "Frozen TP · 0.5R", value: "1.35500", details: expect.stringContaining("Reached before original SL · after 2 H4") }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "First later M1 open", details: "+5.0 pips raw · +5.0 pips with arrow" }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "First later H1 open", details: "Quote arrived too late to compare" }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "First later H4 open", value: "Waiting", details: "Not formed yet" }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "Evidence source", value: "FMS-USDCAD-H4-E030" }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "Average per trade", value: "+0.14R" }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "TP before SL", value: "77.6%" }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "Backtest record verified", value: "verified" }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "Loss-path observations", value: "Favourable move, then giveback" }));
+    expect(dataRows).toContainEqual(expect.objectContaining({ field: "Trade rules used in this test", value: "SL 2 ATR · TP 0.5R = 1 ATR", details: "maximum 42 H4 candles" }));
+
     expect(html).toContain('<table class="chart-macro-bias-audit-table"');
     expect(html).not.toContain("chart-macro-bias-result-hero");
     expect(html).not.toContain("<details");
-    expect(html).toContain("Long USDCAD");
-    expect(html).not.toContain("Long EURUSD");
-    expect(html).toContain("Why the arrow appeared");
-    expect(html).toContain("Context known before entry");
-    expect(html).toContain("Research comparison");
-    expect(html).toContain("A reviewed match can change only this exact setup&#x27;s contract");
-    expect(html).toContain("Price regime");
-    expect(html).toContain("Uptrend");
-    expect(html).toContain("82nd past-only percentile");
-    expect(html).toContain("2.00 ATR to confirmed resistance at 1.36000 · 3 touches");
-    expect(html).toContain("Initial price reaction");
-    expect(html).toContain("+0.67R");
-    expect(html).toContain("Price followed the arrow");
-    expect(html).toContain("after 1 H4");
-    expect(html.indexOf("Initial price reaction")).toBeLessThan(html.indexOf("Why the arrow appeared"));
-    expect(html).not.toContain('<details class="chart-macro-bias-entry-timing');
-    expect(html).toContain("Frozen trade result");
-    expect(html).toContain("Reaction versus trade result");
-    expect(html).toContain("Follows evidence");
-    expect(html).toContain("Direction after 6 H4");
-    expect(html).toContain("Worked");
-    expect(html).toContain("Loss-path observations");
-    expect(html).toContain("Favourable move, then giveback");
-    expect(html).toContain("Best favorable move");
-    expect(html).toContain("not realized profit");
-    expect(html).toContain("+1.39R");
-    expect(html).toContain("+69.0 pips");
-    expect(html).toContain("Direction worked after 6 H4");
-    expect(html).toContain("Worked, but trade lost");
-    expect(html).toContain("Different measurements:");
-    expect(html.indexOf("Direction and result")).toBeLessThan(html.indexOf("Why the arrow appeared"));
-    expect(html.indexOf("exact frozen entry")).toBeLessThan(html.indexOf("Why the arrow appeared"));
-    expect(html).toContain("Risk : reward");
-    expect(html).toContain("1 : 0.5");
-    expect(html).toContain("Closed — target reached");
-    expect(html).toContain("Later price movement does not change this result");
-    expect(html).toContain("TP reached · +0.50R");
-    expect(html).toContain("Trade geometry");
-    expect(html).toContain("ATR(14) at entry");
-    expect(html).toContain("0.00500 · 50.0 pips");
-    expect(html).toContain("100.0 pips · 2.00 ATR · −1R");
-    expect(html).toContain("50.0 pips · 1.00 ATR · +0.5R");
-    expect(html).toContain("Frozen TP · 0.5R");
-    expect(html).toContain("TP option · 0.25R");
-    expect(html).toContain("Reached before original SL · after 1 H4");
-    expect(html).toContain("Original SL came first");
-    expect(html).toContain("hindsight path research, not partial exits or captured profit");
-    expect(html).toContain("What happened");
-    expect(html).toContain("Release to frozen result");
-    expect(html).toContain("First FMS-observed post-release quote");
-    expect(html).toContain("20s after scheduled release · observed quote, not a fill");
-    expect(html).toContain("Entry timing research");
-    expect(html).toContain("First later M1 open");
-    expect(html).toContain("+5.0 pips raw · +5.0 pips with arrow");
-    expect(html).toContain("Quote arrived too late to compare");
-    expect(html).toContain("Not formed yet");
-    expect(html).toContain("Frozen trade closed");
-    expect(html).toContain("SL 2 ATR · TP 0.5R = 1 ATR");
-    expect(html).toContain("maximum 42 H4 candles");
-    expect(html).toContain("Historical performance of this exact setup");
-    expect(html).toContain("FMS-USDCAD-H4-E030");
-    expect(html).toContain("+0.14R");
-    expect(html).toContain("77.6%");
-    expect(html).toContain("Backtest record verified");
     expect(html).not.toContain("Source research diagnostics");
-    const unavailableTimingHtml = renderToStaticMarkup(createElement(ChartMacroBiasAudit, { data: {
+
+    const unavailableTimingData = {
       signal: { ...signal, entryTimingAudit: undefined },
       pattern: { id: "pattern", market: "USDCAD", label: "US labor claims improvement", execution: { stopAtr: 2, targetR: .5, expiryCandles: 42 } } as MacroSignalChartPattern,
       versionId: "v2", modelId: "v3", modelHash: "abcdef123456", mode: "research_replay", onClose: () => {},
-    } }));
+    } as const;
+    const unavailableTimingView = buildChartMacroBiasAuditViewModel(unavailableTimingData);
+    const unavailableTimingHtml = renderToStaticMarkup(createElement(ChartMacroBiasAudit, { data: unavailableTimingData }));
+    expect(unavailableTimingView.rows).not.toContainEqual(expect.objectContaining({ kind: "section", label: expect.stringContaining("Entry timing research") }));
     expect(unavailableTimingHtml).not.toContain("Entry timing research");
     expect(unavailableTimingHtml).not.toContain("Not available for this arrow");
   });

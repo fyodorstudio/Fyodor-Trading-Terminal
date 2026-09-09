@@ -8575,7 +8575,7 @@
   },
   "activeEntryReview": {
     "manifestHash": "4c43cc91604a72de1eceed3be3cbc4a255deae7b4721e2a3f3fe1fc8b67150d3",
-    "resultSha256": "df5d095170c209f21bb76fad5f9e999553104a512a62ecbadf789de20d03aba7",
+    "resultSha256": "19e39ca89709e2c1f99fbe2b7bf6eacea8865646c7d5829243b4e9a12f5a4a11",
     "reviewed": 8,
     "supported": 8,
     "limitations": [
@@ -8598,7 +8598,13 @@
           "h4AverageR": 0.36743313028999663,
           "pairedUpliftR": 0.011630092591030365,
           "h1ProfitFrequency": 0.44,
-          "h4ProfitFrequency": 0.44
+          "h4ProfitFrequency": 0.44,
+          "targetHitCount": 9,
+          "stopHitCount": 14,
+          "expiredCount": 2,
+          "breakEvenCount": 0,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "later": {
           "n": 32,
@@ -8606,7 +8612,13 @@
           "h4AverageR": 0.451461207391032,
           "pairedUpliftR": 0.109375,
           "h1ProfitFrequency": 0.40625,
-          "h4ProfitFrequency": 0.375
+          "h4ProfitFrequency": 0.375,
+          "targetHitCount": 11,
+          "stopHitCount": 12,
+          "expiredCount": 2,
+          "breakEvenCount": 7,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "supportedForEntryCandidate": true,
         "statusCounts": {
@@ -8639,7 +8651,13 @@
           "h4AverageR": 0.5038149820582825,
           "pairedUpliftR": 0.025630409545759233,
           "h1ProfitFrequency": 0.5373134328358209,
-          "h4ProfitFrequency": 0.5223880597014925
+          "h4ProfitFrequency": 0.5223880597014925,
+          "targetHitCount": 1,
+          "stopHitCount": 30,
+          "expiredCount": 36,
+          "breakEvenCount": 0,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "later": {
           "n": 28,
@@ -8647,7 +8665,13 @@
           "h4AverageR": 0.08243801752735648,
           "pairedUpliftR": 0.08476358918185843,
           "h1ProfitFrequency": 0.42857142857142855,
-          "h4ProfitFrequency": 0.42857142857142855
+          "h4ProfitFrequency": 0.42857142857142855,
+          "targetHitCount": 1,
+          "stopHitCount": 15,
+          "expiredCount": 12,
+          "breakEvenCount": 0,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "supportedForEntryCandidate": true,
         "statusCounts": {
@@ -8676,7 +8700,13 @@
           "h4AverageR": 0.005916501490685043,
           "pairedUpliftR": 0.07916338482703249,
           "h1ProfitFrequency": 0.5454545454545454,
-          "h4ProfitFrequency": 0.5272727272727272
+          "h4ProfitFrequency": 0.5272727272727272,
+          "targetHitCount": 14,
+          "stopHitCount": 9,
+          "expiredCount": 32,
+          "breakEvenCount": 0,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "later": {
           "n": 29,
@@ -8684,7 +8714,13 @@
           "h4AverageR": 0.08355081818949578,
           "pairedUpliftR": 0.05854427128346964,
           "h1ProfitFrequency": 0.5517241379310345,
-          "h4ProfitFrequency": 0.5517241379310345
+          "h4ProfitFrequency": 0.5517241379310345,
+          "targetHitCount": 7,
+          "stopHitCount": 5,
+          "expiredCount": 17,
+          "breakEvenCount": 0,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "supportedForEntryCandidate": true,
         "statusCounts": {
@@ -8715,7 +8751,13 @@
           "h4AverageR": 0.17782481293004768,
           "pairedUpliftR": 0.02654425734789698,
           "h1ProfitFrequency": 0.26704545454545453,
-          "h4ProfitFrequency": 0.2727272727272727
+          "h4ProfitFrequency": 0.2727272727272727,
+          "targetHitCount": 37,
+          "stopHitCount": 127,
+          "expiredCount": 12,
+          "breakEvenCount": 0,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "later": {
           "n": 77,
@@ -8723,7 +8765,13 @@
           "h4AverageR": 0.17316340245421205,
           "pairedUpliftR": 0.001525960276970259,
           "h1ProfitFrequency": 0.2857142857142857,
-          "h4ProfitFrequency": 0.2857142857142857
+          "h4ProfitFrequency": 0.2857142857142857,
+          "targetHitCount": 14,
+          "stopHitCount": 55,
+          "expiredCount": 8,
+          "breakEvenCount": 0,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "supportedForEntryCandidate": true,
         "statusCounts": {
@@ -8756,7 +8804,13 @@
           "h4AverageR": 0.19132363074557304,
           "pairedUpliftR": 0.008542953833518989,
           "h1ProfitFrequency": 0.75,
-          "h4ProfitFrequency": 0.75
+          "h4ProfitFrequency": 0.75,
+          "targetHitCount": 12,
+          "stopHitCount": 2,
+          "expiredCount": 2,
+          "breakEvenCount": 0,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "later": {
           "n": 26,
@@ -8764,7 +8818,13 @@
           "h4AverageR": 0.10139301346070025,
           "pairedUpliftR": 0.03548203664084434,
           "h1ProfitFrequency": 0.7307692307692307,
-          "h4ProfitFrequency": 0.6923076923076923
+          "h4ProfitFrequency": 0.6923076923076923,
+          "targetHitCount": 18,
+          "stopHitCount": 5,
+          "expiredCount": 3,
+          "breakEvenCount": 0,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "supportedForEntryCandidate": true,
         "statusCounts": {
@@ -8797,7 +8857,13 @@
           "h4AverageR": 0.14758545369606507,
           "pairedUpliftR": 0.049293718792547056,
           "h1ProfitFrequency": 0.7777777777777778,
-          "h4ProfitFrequency": 0.75
+          "h4ProfitFrequency": 0.75,
+          "targetHitCount": 27,
+          "stopHitCount": 6,
+          "expiredCount": 3,
+          "breakEvenCount": 0,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "later": {
           "n": 37,
@@ -8805,7 +8871,13 @@
           "h4AverageR": 0.07412295526379817,
           "pairedUpliftR": 0.0369215918127829,
           "h1ProfitFrequency": 0.6756756756756757,
-          "h4ProfitFrequency": 0.6486486486486487
+          "h4ProfitFrequency": 0.6486486486486487,
+          "targetHitCount": 22,
+          "stopHitCount": 5,
+          "expiredCount": 10,
+          "breakEvenCount": 0,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "supportedForEntryCandidate": true,
         "statusCounts": {
@@ -8836,7 +8908,13 @@
           "h4AverageR": 0.27827363936908456,
           "pairedUpliftR": 0.024279497815824044,
           "h1ProfitFrequency": 0.38028169014084506,
-          "h4ProfitFrequency": 0.36619718309859156
+          "h4ProfitFrequency": 0.36619718309859156,
+          "targetHitCount": 7,
+          "stopHitCount": 41,
+          "expiredCount": 23,
+          "breakEvenCount": 0,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "later": {
           "n": 23,
@@ -8844,7 +8922,13 @@
           "h4AverageR": 0.5107688950531266,
           "pairedUpliftR": 0.42940799488585457,
           "h1ProfitFrequency": 0.5217391304347826,
-          "h4ProfitFrequency": 0.43478260869565216
+          "h4ProfitFrequency": 0.43478260869565216,
+          "targetHitCount": 6,
+          "stopHitCount": 11,
+          "expiredCount": 6,
+          "breakEvenCount": 0,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "supportedForEntryCandidate": true,
         "statusCounts": {
@@ -8876,7 +8960,13 @@
           "h4AverageR": 0.37044087874170767,
           "pairedUpliftR": 0.03001519315461055,
           "h1ProfitFrequency": 0.5652173913043478,
-          "h4ProfitFrequency": 0.5507246376811594
+          "h4ProfitFrequency": 0.5507246376811594,
+          "targetHitCount": 21,
+          "stopHitCount": 29,
+          "expiredCount": 19,
+          "breakEvenCount": 0,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "later": {
           "n": 27,
@@ -8884,7 +8974,13 @@
           "h4AverageR": 0.09093913366869517,
           "pairedUpliftR": 0.04785804609626925,
           "h1ProfitFrequency": 0.4074074074074074,
-          "h4ProfitFrequency": 0.4074074074074074
+          "h4ProfitFrequency": 0.4074074074074074,
+          "targetHitCount": 9,
+          "stopHitCount": 16,
+          "expiredCount": 2,
+          "breakEvenCount": 0,
+          "ambiguousCount": 0,
+          "unevaluableCount": 0
         },
         "supportedForEntryCandidate": true,
         "statusCounts": {

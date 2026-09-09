@@ -1102,6 +1102,7 @@ export interface MacroSignalChartPattern {
     strength?: "stronger_history" | "positive_but_fragile";
   };
   historicalEvidence?: null | {
+    schema: "fms-chart-historical-evidence-v1";
     scope: string;
     cohort: { dimension: string; value: string };
     sourceId: string | null;
@@ -1281,12 +1282,25 @@ export interface MacroSignalChartPattern {
     status: "reviewed_active" | "blocked_artifact_mismatch";
     activatedAt: number;
     manifestHash: string;
+    sourceResultSha256?: string;
+    registryHash?: string;
     entryRule: string;
     expiryRule: string;
     developmentSelected: boolean;
     previousExecution: MacroSignalExecutionContract;
     currentExecution: MacroSignalExecutionContract;
-    later: { laterN: number; h1AverageR: number; h4AverageR: number; pairedUpliftR: number };
+    later: {
+      laterN: number;
+      h1AverageR: number;
+      h4AverageR: number;
+      pairedUpliftR: number;
+      targetHitCount?: number;
+      stopHitCount?: number;
+      expiredCount?: number;
+      breakEvenCount?: number;
+      ambiguousCount?: number;
+      unevaluableCount?: number;
+    };
     limitations: string;
   };
   contextRegistration?: null | MacroSignalContextRegistration;

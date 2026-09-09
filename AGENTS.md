@@ -28,6 +28,13 @@
 - Use `pnpm`; retain route IDs and lockfile ownership. Keep active and garbage routes/styles separate. `react-world-flags` is known working; do not refactor it because of chunk size or a standalone SSR harness problem.
 - Do not leave agent-started services occupying port 8001. Use hidden background processes with redirected logs; avoid attached noisy dev sessions.
 
+## FMS evidence ownership
+
+- Offline research scripts must not import `Main/mt5-bridge/server.py`, FastAPI, or MetaTrader5. Reuse pure research/domain modules and frozen manifests instead.
+- `Main/mt5-bridge/fms_historical_evidence.py` owns the canonical chart evidence projection. Keep source-priority and unknown-count behavior there; `server.py` is only its storage adapter.
+- Reviewed H1 runtime evidence is generated into `registered_entry_review_evidence.json` and loaded by `registered_entry_reviews.py`. Do not duplicate those metrics in `server.py` or hand-add supported research rows. The publisher has an explicit approval allowlist and must remain non-promoting.
+- `chartMacroBiasAuditViewModel.ts` owns Past Result interpretation and row ordering. `ChartMacroBiasAudit.tsx` should remain a table renderer rather than reacquiring financial fallback logic.
+
 ## UI work
 
 - Target 1440x900 at 100% Chrome zoom, bounded panels and internal scrolling. No overlap, clipped controls, tiny labels, or accidental horizontal/whole-page overflow. Document intentional exceptions in Checklist.

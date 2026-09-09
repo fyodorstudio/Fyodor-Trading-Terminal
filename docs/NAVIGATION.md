@@ -8,14 +8,18 @@ Use the relevant row only. Paths below are relative to repository root. Start wi
 | Left dock tabs, resizing, panel recovery | `Main/src/app/components/ChartViewport.tsx` |
 | Next/Current/Recent, no-trade visibility | `Main/src/app/components/ChartFmsActionCard.tsx` |
 | A/F/P, Surprise/Momentum cards | `Main/src/app/components/FmsReleaseCards.tsx` |
-| Past arrow audit | `Main/src/app/components/ChartMacroBiasAudit.tsx` |
+| Past arrow audit rows/interpretation | `Main/src/app/lib/chartMacroBiasAuditViewModel.ts` |
+| Past arrow table renderer | `Main/src/app/components/ChartMacroBiasAudit.tsx` |
 | Registered Setups and Research docks | `Main/src/app/components/ChartMacroBiasRealtimeCard.tsx` |
 | Journal, performance periods | `Main/src/app/components/ChartFmsJournalCard.tsx` |
 | Knowledge UI and evidence summaries | `Main/src/app/components/ChartFmsKnowledgeCard.tsx` |
 | HTTP requests, preload/in-flight caching | `Main/src/app/lib/bridge.ts` |
 | FMS payload types | `Main/src/app/types/macroSignal.ts` |
 | Charts/dock CSS | `Main/src/styles/15-charts.css`; consult `Main/src/styles/README.md` only for other ownership |
-| FMS lifecycle, endpoint caches, registration | `Main/mt5-bridge/server.py` (authorization boundary in AGENTS) |
+| FMS lifecycle and endpoint caches | `Main/mt5-bridge/server.py` (authorization boundary in AGENTS) |
+| Canonical historical-evidence projection | `Main/mt5-bridge/fms_historical_evidence.py` |
+| Reviewed H1 registration loader/record | `Main/mt5-bridge/registered_entry_reviews.py`; `registered_entry_review_evidence.json` |
+| Reviewed H1 frozen recompute/publisher | `scripts/fms_review_active_entry_candidates.py`; `scripts/fms_publish_entry_registrations.py` |
 | Economic scoring and execution semantics | `Main/mt5-bridge/macro_signal.py` |
 | Persisted observations/candles/research | `Main/mt5-bridge/research_store.py` |
 | Workbench | `Main/src/app/tabs/secondary/MacroSignalLabTab.tsx` |

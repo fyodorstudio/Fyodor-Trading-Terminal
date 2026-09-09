@@ -1,16 +1,15 @@
-"""Review session-H1 candidates under their exact currently active contracts.
+"""Review session-H1 candidates under their frozen manifest contracts.
 
 This is a frozen follow-up to the session comparison. It does not register or
-alter an entry rule. Contradictory/missing intrabar order stays ambiguous.
+alter an entry rule. It intentionally does not import the live bridge.
+Contradictory/missing intrabar order stays ambiguous.
 """
 from __future__ import annotations
 
 import bisect
 from collections import Counter
 import json
-from pathlib import Path
 import statistics
-import sys
 
 from fms_entry_campaign import ROOT, digest, save
 from fms_compare_entries import atr_values
@@ -69,10 +68,14 @@ def summary(rows):
         return {"n": 0, "h1AverageR": None, "h4AverageR": None, "pairedUpliftR": None}
     h1 = [row["H1"]["resultR"] for row in rows]
     h4 = [row["H4"]["resultR"] for row in rows]
+    h1_statuses = Counter(row["H1"]["status"] for row in rows)
     return {"n": len(rows), "h1AverageR": statistics.fmean(h1), "h4AverageR": statistics.fmean(h4),
             "pairedUpliftR": statistics.fmean(a - b for a, b in zip(h1, h4)),
             "h1ProfitFrequency": sum(x > 0 for x in h1) / len(h1),
-            "h4ProfitFrequency": sum(x > 0 for x in h4) / len(h4)}
+            "h4ProfitFrequency": sum(x > 0 for x in h4) / len(h4),
+            "targetHitCount": h1_statuses["target_hit"], "stopHitCount": h1_statuses["stop_hit"],
+            "expiredCount": h1_statuses["expired"], "breakEvenCount": h1_statuses["break_even"],
+            "ambiguousCount": 0, "unevaluableCount": 0}
 
 
 def main():
@@ -81,10 +84,13 @@ def main():
     candidates = [row["recipe"] for row in session["findings"]
                   if row["developmentSelectedEntry"] == "H1" and row["later"]["n"]
                   and row["later"]["pairedUpliftR"] > 0 and row["later"]["h1AverageR"] > 0]
-    sys.dont_write_bytecode = True
-    sys.path.insert(0, str((ROOT / "Main/mt5-bridge").resolve()))
-    import server
-    active = {f"{p['market']}|{p['id']}": p["execution"] for p in server.PRACTICAL_PATTERN_DEFINITIONS if f"{p['market']}|{p['id']}" in candidates}
+    manifest_path = SOURCE / "active-entry-review-manifest.json"
+    if not manifest_path.exists():
+        raise ValueError("Frozen active-entry review manifest is missing")
+    registered_manifest = json.loads(manifest_path.read_text())
+    active = registered_manifest.get("activeContracts") or {}
+    if set(active) != set(candidates):
+        raise ValueError("Frozen active-contract keys do not match the selected candidate keys")
     manifest_data = {"schema": "fms-active-entry-candidate-review-v1", "sourceManifestHash": session["manifestHash"],
         "sourceResultHash": digest(session), "candidates": candidates, "activeContracts": active,
         "entryAlternatives": ["first_H1_open_strictly_after_scheduled_release", "first_H4_open_strictly_after_scheduled_release"],
@@ -93,10 +99,7 @@ def main():
         "selection": "Candidate must retain positive paired development and later uplift, positive later H1 average R and >=10 later matched cases",
         "limitations": ["Scheduled-release proxy, reused history, gross costs excluded, no proof of package-time fill.",
                         "Context-conditioned contracts are excluded unless their condition can be reconstructed identically."]}
-    manifest_path = SOURCE / "active-entry-review-manifest.json"
-    if not manifest_path.exists():
-        save(manifest_path, {**manifest_data, "manifestHash": digest(manifest_data)})
-    frozen = json.loads(manifest_path.read_text()); manifest_hash = frozen.pop("manifestHash")
+    frozen = dict(registered_manifest); manifest_hash = frozen.pop("manifestHash")
     if frozen != manifest_data or digest(frozen) != manifest_hash:
         raise ValueError("Frozen active-entry review changed")
     checkpoint = json.loads((SOURCE / "fetch-checkpoint.json").read_text())

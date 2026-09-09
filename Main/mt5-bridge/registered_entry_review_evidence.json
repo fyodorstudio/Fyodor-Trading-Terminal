@@ -1,0 +1,212 @@
+{
+  "schema": "fms-reviewed-h1-entry-registration-v1",
+  "purpose": "Existing explicitly reviewed H1 registrations; this file cannot promote new recipes.",
+  "activatedAt": 1788680400,
+  "sourceManifestHash": "4c43cc91604a72de1eceed3be3cbc4a255deae7b4721e2a3f3fe1fc8b67150d3",
+  "sourceResultSha256": "19e39ca89709e2c1f99fbe2b7bf6eacea8865646c7d5829243b4e9a12f5a4a11",
+  "profiles": {
+    "AUDUSD|audusd-us-producer-inflation": {
+      "market": "AUDUSD",
+      "patternId": "audusd-us-producer-inflation",
+      "reviewId": "FMS-AUDUSD-audusd-us-producer-inflation-ENTRY-H1-v1",
+      "contract": {
+        "stopAtr": 2.0,
+        "targetR": 2.5,
+        "expiryCandles": 60,
+        "managementFamily": "break_even",
+        "managementTriggerR": 1.5
+      },
+      "entryRule": "first H1 open strictly after release and complete first-seen package",
+      "expiryRule": "same final H4 boundary as the parent contract",
+      "developmentSelected": true,
+      "later": {
+        "laterN": 32,
+        "h1AverageR": 0.560836207391032,
+        "h4AverageR": 0.451461207391032,
+        "pairedUpliftR": 0.109375,
+        "targetHitCount": 11,
+        "stopHitCount": 12,
+        "expiredCount": 2,
+        "breakEvenCount": 7,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0
+      }
+    },
+    "EURUSD|eurusd-retail-sales-m-m-package": {
+      "market": "EURUSD",
+      "patternId": "eurusd-retail-sales-m-m-package",
+      "reviewId": "FMS-EURUSD-eurusd-retail-sales-m-m-package-ENTRY-H1-v1",
+      "contract": {
+        "stopAtr": 2.0,
+        "targetR": 4.0,
+        "expiryCandles": 30
+      },
+      "entryRule": "first H1 open strictly after release and complete first-seen package",
+      "expiryRule": "same final H4 boundary as the parent contract",
+      "developmentSelected": true,
+      "later": {
+        "laterN": 28,
+        "h1AverageR": 0.16720160670921488,
+        "h4AverageR": 0.08243801752735648,
+        "pairedUpliftR": 0.08476358918185843,
+        "targetHitCount": 1,
+        "stopHitCount": 15,
+        "expiredCount": 12,
+        "breakEvenCount": 0,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0
+      }
+    },
+    "GBPUSD|gbpusd-ism-non-manufacturing-business-activity-package": {
+      "market": "GBPUSD",
+      "patternId": "gbpusd-ism-non-manufacturing-business-activity-package",
+      "reviewId": "FMS-GBPUSD-gbpusd-ism-non-manufacturing-business-activity-package-ENTRY-H1-v1",
+      "contract": {
+        "stopAtr": 2.0,
+        "targetR": 1.0,
+        "expiryCandles": 6
+      },
+      "entryRule": "first H1 open strictly after release and complete first-seen package",
+      "expiryRule": "same final H4 boundary as the parent contract",
+      "developmentSelected": true,
+      "later": {
+        "laterN": 29,
+        "h1AverageR": 0.14209508947296542,
+        "h4AverageR": 0.08355081818949578,
+        "pairedUpliftR": 0.05854427128346964,
+        "targetHitCount": 7,
+        "stopHitCount": 5,
+        "expiredCount": 17,
+        "breakEvenCount": 0,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0
+      }
+    },
+    "USDCAD|usdcad-us-consumer-inflation": {
+      "market": "USDCAD",
+      "patternId": "usdcad-us-consumer-inflation",
+      "reviewId": "FMS-USDCAD-usdcad-us-consumer-inflation-ENTRY-H1-v1",
+      "contract": {
+        "stopAtr": 1.5,
+        "targetR": 4,
+        "expiryCandles": 60
+      },
+      "entryRule": "first H1 open strictly after release and complete first-seen package",
+      "expiryRule": "same final H4 boundary as the parent contract",
+      "developmentSelected": true,
+      "later": {
+        "laterN": 77,
+        "h1AverageR": 0.17468936273118232,
+        "h4AverageR": 0.17316340245421205,
+        "pairedUpliftR": 0.001525960276970259,
+        "targetHitCount": 14,
+        "stopHitCount": 55,
+        "expiredCount": 8,
+        "breakEvenCount": 0,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0
+      }
+    },
+    "USDCHF|usdchf-ppi-m-m-package": {
+      "market": "USDCHF",
+      "patternId": "usdchf-ppi-m-m-package",
+      "reviewId": "FMS-USDCHF-usdchf-ppi-m-m-package-ENTRY-H1-v1",
+      "contract": {
+        "stopAtr": 1.5,
+        "targetR": 0.5,
+        "expiryCandles": 6
+      },
+      "entryRule": "first H1 open strictly after release and complete first-seen package",
+      "expiryRule": "same final H4 boundary as the parent contract",
+      "developmentSelected": true,
+      "later": {
+        "laterN": 26,
+        "h1AverageR": 0.13687505010154458,
+        "h4AverageR": 0.10139301346070025,
+        "pairedUpliftR": 0.03548203664084434,
+        "targetHitCount": 18,
+        "stopHitCount": 5,
+        "expiredCount": 3,
+        "breakEvenCount": 0,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0
+      }
+    },
+    "USDCHF|usdchf-us-employment-release": {
+      "market": "USDCHF",
+      "patternId": "usdchf-us-employment-release",
+      "reviewId": "FMS-USDCHF-usdchf-us-employment-release-ENTRY-H1-v1",
+      "contract": {
+        "stopAtr": 2.0,
+        "targetR": 0.5,
+        "expiryCandles": 6
+      },
+      "entryRule": "first H1 open strictly after release and complete first-seen package",
+      "expiryRule": "same final H4 boundary as the parent contract",
+      "developmentSelected": true,
+      "later": {
+        "laterN": 37,
+        "h1AverageR": 0.11104454707658107,
+        "h4AverageR": 0.07412295526379817,
+        "pairedUpliftR": 0.0369215918127829,
+        "targetHitCount": 22,
+        "stopHitCount": 5,
+        "expiredCount": 10,
+        "breakEvenCount": 0,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0
+      }
+    },
+    "USDJPY|usdjpy-jpy-labor-wages": {
+      "market": "USDJPY",
+      "patternId": "usdjpy-jpy-labor-wages",
+      "reviewId": "FMS-USDJPY-usdjpy-jpy-labor-wages-ENTRY-H1-v1",
+      "contract": {
+        "stopAtr": 0.75,
+        "targetR": 4,
+        "expiryCandles": 6
+      },
+      "entryRule": "first H1 open strictly after release and complete first-seen package",
+      "expiryRule": "same final H4 boundary as the parent contract",
+      "developmentSelected": true,
+      "later": {
+        "laterN": 23,
+        "h1AverageR": 0.9401768899389813,
+        "h4AverageR": 0.5107688950531266,
+        "pairedUpliftR": 0.42940799488585457,
+        "targetHitCount": 6,
+        "stopHitCount": 11,
+        "expiredCount": 6,
+        "breakEvenCount": 0,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0
+      }
+    },
+    "USDJPY|usdjpy-us-producer-inflation-rejection": {
+      "market": "USDJPY",
+      "patternId": "usdjpy-us-producer-inflation-rejection",
+      "reviewId": "FMS-USDJPY-usdjpy-us-producer-inflation-rejection-ENTRY-H1-v1",
+      "contract": {
+        "stopAtr": 1,
+        "targetR": 2,
+        "expiryCandles": 6
+      },
+      "entryRule": "first H1 open strictly after release and complete first-seen package",
+      "expiryRule": "same final H4 boundary as the parent contract",
+      "developmentSelected": true,
+      "later": {
+        "laterN": 27,
+        "h1AverageR": 0.13879717976496445,
+        "h4AverageR": 0.09093913366869517,
+        "pairedUpliftR": 0.04785804609626925,
+        "targetHitCount": 9,
+        "stopHitCount": 16,
+        "expiredCount": 2,
+        "breakEvenCount": 0,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0
+      }
+    }
+  },
+  "registryHash": "21b7c257cc420c93ca1881eb51ad50a47315109308714eec3ec133a1c78734e2"
+}

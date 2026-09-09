@@ -57,6 +57,28 @@ The EA posts `/calendar_ingest_cycle` only after all batches in a timer pass hav
 
 `/research/workbench` is the bounded FMS experiment contract. It serves the current Forecast Guard summary, a durable exact-signature catalog, immutable recorded E experiments, frozen C review candidates, and legacy archive summaries. Official runs are asynchronous and recorded even when they fail. Matrix selection uses development data only; freezing never changes Charts, and no M-model promotion endpoint exists.
 
+## FMS evidence and registration boundaries
+
+The reviewed-H1 path has explicit ownership so offline work does not need the live bridge:
+
+`frozen manifest/candles` → `active-entry-review.json` → `registered_entry_review_evidence.json` → `registered_entry_reviews.py` → `fms_historical_evidence.py` → chart API
+
+- `scripts/fms_review_active_entry_candidates.py` uses only its frozen manifest and cached candles. It must remain importable with ordinary Python and must not import `server.py` or MetaTrader5.
+- `scripts/fms_publish_entry_registrations.py` publishes the eight already-approved H1 records. Its fixed allowlist is the human/AI review boundary; newly supported findings fail validation and are never promoted automatically.
+- `registered_entry_review_evidence.json` is the single runtime record for those contracts, outcome counts, source hashes, and activation time. `registered_entry_reviews.py` validates its registry hash and exact outcome partition, then fails closed to H4 if the active execution contract differs.
+- `fms_historical_evidence.py` is the pure canonical source-priority/normalization layer. `server.py` supplies storage callbacks but does not reinterpret the evidence.
+- The API emits schema `fms-chart-historical-evidence-v1`. Unknown counts stay unknown; rates may be derived only from an exact stored count and exact evaluable N.
+
+To reproduce the registered record from unchanged cached inputs, run these from the repository root:
+
+```powershell
+python scripts/fms_review_active_entry_candidates.py
+python scripts/fms_publish_entry_summary.py
+python scripts/fms_publish_entry_registrations.py
+```
+
+The first command validates the frozen manifest before replacing its derived result. The last command refuses changed recipe membership, unsupported approved rows, or contract drift.
+
 ## Normal Usage
 
 You usually do not need to start this manually.

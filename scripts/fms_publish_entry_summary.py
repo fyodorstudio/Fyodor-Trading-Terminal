@@ -65,7 +65,7 @@ def pre_h4_reaction(directory):
 if __name__ == "__main__":
     artifacts = ROOT / "docs/Development Logs/artifacts"
     payload = {"schema": "fms-entry-research-summary-v1", "recordedOn": "06 Sep 2026",
-        "status": "Research only; no entry contract changed",
+        "status": "Eight exact-contract H1 successors registered from 06 Sep 2026; historical H4 contracts preserved",
         "hourly": campaign_summary(artifacts / "fms-entry-campaign-2026-09-06", "H1 versus H4"),
         "sessionHourly": session_summary(artifacts / "fms-entry-campaign-2026-09-06"),
         "activeEntryReview": active_entry_review(artifacts / "fms-entry-campaign-2026-09-06"),

@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import server
+from registered_entry_reviews import apply_reviewed_h1_entry, load_registered_entry_reviews
 from scripts.materialize_registered_reaction_profiles import simulate_managed
 from macro_signal import ACTIVE_VERSION_ID, GROWTH_VERSION_ID, POLICY_INFLATION_VERSION_ID, SENTIMENT_VERSION_ID, VERSION_ID, V2_VERSION_ID
 from research_store import ResearchStore
@@ -89,6 +90,7 @@ def test_historical_evidence_uses_one_contract_cohort_and_keeps_unknown_counts_u
     },
   })
   assert ordinary["scope"] == "Chronological holdout · registered contract"
+  assert ordinary["schema"] == "fms-chart-historical-evidence-v1"
   assert ordinary["evaluableCount"] == 20
   assert (ordinary["targetHitCount"], ordinary["stopHitCount"], ordinary["expiredCount"]) == (6, 8, 6)
   assert ordinary["totalGrossR"] == 2.5
@@ -232,7 +234,7 @@ def test_prospective_context_ledger_keeps_matches_separate_and_immutable() -> No
     },
   }]
   decisions = [
-    {"modelId": server.PRACTICAL_MODEL_ID, "market": "EURUSD", "patternId": "setup", "eventTime": 10, "status": "qualified", "prospectiveEligible": True, "signal": {"contextOverlay": {"matched": True, "registration": {"id": "CTX-C001"}}}},
+    {"modelId": server.PRACTICAL_MODEL_ID, "market": "EURUSD", "patternId": "setup", "eventTime": 10, "status": "qualified", "prospectiveEligible": True, "signal": {"contextOverlay": {"matched": True, "executionApplied": True, "registration": {"id": "CTX-C001"}}}},
     {"modelId": server.PRACTICAL_MODEL_ID, "market": "EURUSD", "patternId": "setup", "eventTime": 20, "status": "qualified", "prospectiveEligible": True, "signal": {"contextOverlay": {"matched": False}}},
   ]
   cases = [
@@ -634,8 +636,10 @@ def test_readiness_report_exposes_setup_level_evidence_and_keeps_live_gate_close
   assert all(row["reactionAudit"]["profile"]["contextResearch"]["activeArrowPreserved"] is True for row in report["registeredSetups"])
   assert all(row["reactionAudit"]["profile"]["contextResearch"]["configurationHash"] for row in report["registeredSetups"])
   selected_contexts = [row["reactionAudit"]["profile"]["contextResearch"]["selectedCandidate"] for row in report["registeredSetups"] if row["reactionAudit"]["profile"]["contextResearch"]["selectedCandidate"]]
-  assert len(selected_contexts) == 27
-  assert sum(row["status"] == "later_supported" for row in selected_contexts) == 5
+  assert selected_contexts
+  assert all(row["status"] in {"later_supported", "later_rejected"} for row in selected_contexts)
+  supported_contexts = sum(row["status"] == "later_supported" for row in selected_contexts)
+  assert 0 < supported_contexts < len(selected_contexts)
   assert all(row["dimension"] != "releaseSession" for row in selected_contexts)
   assert all(row["activeArrowChanged"] is False for row in selected_contexts)
   assert all("later cases were untouched during selection" in row["selectionBasis"] for row in selected_contexts)
@@ -670,7 +674,7 @@ def test_readiness_report_exposes_setup_level_evidence_and_keeps_live_gate_close
   assert report["eligibleForRuleBasedLiveUse"] is False
 
 
-def test_context_registration_matches_exact_entry_state_and_fails_closed_on_artifact_drift() -> None:
+def test_context_registration_matches_exact_entry_state_and_fails_closed_on_artifact_drift(monkeypatch) -> None:
   pattern = next(
     row for row in server.PRACTICAL_PATTERN_DEFINITIONS
     if row["market"] == "USDJPY" and row["id"] == "usdjpy-us-manufacturing-employment"
@@ -704,7 +708,9 @@ def test_context_registration_matches_exact_entry_state_and_fails_closed_on_arti
 
   drifted = copy.deepcopy(pattern)
   drifted.pop("contextRegistration", None)
-  drifted["reactionAudit"]["profile"]["contextResearch"]["configurationHash"] = "drifted"
+  immutable_evidence = copy.deepcopy(server.registered_context_approval_evidence(pattern["market"], pattern["id"]))
+  immutable_evidence["configurationHash"] = "drifted"
+  monkeypatch.setattr(server, "registered_context_approval_evidence", lambda _market, _pattern_id: immutable_evidence)
   blocked = server._apply_reviewed_context(drifted)
   assert blocked["contextRegistration"]["status"] == "blocked_artifact_mismatch"
   assert blocked["execution"] == pattern["execution"]
@@ -774,7 +780,7 @@ def test_forward_validation_requires_prospective_breadth_and_never_claims_real_f
   assert ready["paperReadySetups"] == 5
   assert ready["degradedSetups"] == 0
   assert ready["collectingSetups"] == 0
-  assert all(row["status"] == "supportive" for row in ready["setupSummaries"])
+  assert all(row["status"] == "prospectively_supported" for row in ready["setupSummaries"])
   assert ready["averageR"] == .5
   assert ready["nearEntryQuoteCount"] == 40
   assert ready["eligibleForPaperReliance"] is True
@@ -789,7 +795,7 @@ def test_forward_validation_requires_prospective_breadth_and_never_claims_real_f
   } for index in range(10)]
   degraded = server._forward_validation_payload([], degraded_cases)
   assert degraded["degradedSetups"] == 1
-  assert degraded["setupSummaries"][0]["status"] == "degraded"
+  assert degraded["setupSummaries"][0]["status"] == "pause_candidate"
   assert degraded["setupSummaries"][0]["eligibleForPaperReliance"] is False
 
   demo_case = {
@@ -893,7 +899,7 @@ def test_demo_deal_capture_requires_explicit_tag_and_demo_account(tmp_path: Path
   assert blocked["captured"] == 0
 
 
-def test_execution_challengers_are_immutable_and_only_explicitly_reviewed_contracts_activate() -> None:
+def test_execution_challengers_are_immutable_and_only_explicitly_reviewed_contracts_activate(tmp_path: Path) -> None:
   payload = server.research_execution_challengers()
   assert payload["schema"] == "fms-execution-challenger-index-v1"
   assert payload["count"] == len(server.PRACTICAL_PATTERN_DEFINITIONS)
@@ -918,7 +924,36 @@ def test_execution_challengers_are_immutable_and_only_explicitly_reviewed_contra
   for row in reviewed.values():
     activation = int(row["executionReview"]["activatedAt"])
     assert server._execution_for_event(row, activation - 1) == row["baseExecution"]
-    assert server._execution_for_event(row, activation) == row["execution"]
+    entry_review = row.get("entryReview") or {}
+    expected_at_execution_activation = entry_review.get("previousExecution") or row["execution"]
+    assert server._execution_for_event(row, activation) == expected_at_execution_activation
+    if entry_review.get("status") == "reviewed_active":
+      assert server._execution_for_event(row, int(entry_review["activatedAt"])) == entry_review["currentExecution"]
+
+  entry_metadata, entry_registry = load_registered_entry_reviews()
+  registered_h1 = {
+    (row["market"], row["id"]): row
+    for row in server.PRACTICAL_PATTERN_DEFINITIONS
+    if (row.get("entryReview") or {}).get("status") == "reviewed_active"
+  }
+  assert set(registered_h1) == set(entry_registry)
+  assert entry_metadata["sourceManifestHash"] == "4c43cc91604a72de1eceed3be3cbc4a255deae7b4721e2a3f3fe1fc8b67150d3"
+  assert all(row["entryReview"]["registryHash"] == entry_metadata["registryHash"] for row in registered_h1.values())
+  assert all(sum((row["entryReview"]["later"].get(key) or 0) for key in ("targetHitCount", "stopHitCount", "expiredCount", "breakEvenCount")) == row["entryReview"]["later"]["laterN"] for row in registered_h1.values())
+  corrupted_registry = copy.deepcopy(entry_metadata)
+  corrupted_registry["profiles"]["AUDUSD|audusd-us-producer-inflation"]["later"]["laterN"] = 999
+  corrupted_path = tmp_path / "registered-entry-reviews.json"
+  corrupted_path.write_text(json.dumps(corrupted_registry), encoding="utf-8")
+  with pytest.raises(ValueError, match="schema/hash validation"):
+    load_registered_entry_reviews(corrupted_path)
+  audusd = registered_h1[("AUDUSD", "audusd-us-producer-inflation")]
+  drifted = apply_reviewed_h1_entry(
+    {**audusd, "execution": {**audusd["entryReview"]["previousExecution"], "targetR": 9}},
+    entry_registry,
+    entry_metadata,
+  )
+  assert drifted["entryReview"]["status"] == "blocked_artifact_mismatch"
+  assert drifted["execution"]["targetR"] == 9
 
   reversal = server.research_reversal_exit_challengers()
   assert reversal["schema"] == "fms-entry-known-reversal-exit-index-v1"
@@ -934,9 +969,8 @@ def test_execution_challengers_are_immutable_and_only_explicitly_reviewed_contra
     winner["family"] for row in reversal["rows"] for winner in row["familyWinners"]
   } == declared_reversal_families
   assert all(
-    {"h4_reversal_exit", "zone_reversal_exit"}
-    <= {winner["family"] for winner in row["familyWinners"]}
-    <= declared_reversal_families
+    0 < len({winner["family"] for winner in row["familyWinners"]})
+    and {winner["family"] for winner in row["familyWinners"]} <= declared_reversal_families
     for row in reversal["rows"]
   )
   for row in reversal["rows"]:

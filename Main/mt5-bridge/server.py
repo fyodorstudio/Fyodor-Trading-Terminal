@@ -25,6 +25,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from registered_reaction_audits import registered_context_approval_evidence, registered_context_followup_index, registered_reaction_audit
+from fms_historical_evidence import resolve_historical_evidence
+from registered_entry_reviews import apply_reviewed_h1_entry, load_registered_entry_reviews
 
 from macro_signal import (
   ACTIVE_VERSION_ID,
@@ -469,45 +471,16 @@ def _apply_reviewed_execution(pattern: Dict[str, Any]) -> Dict[str, Any]:
 
 PRACTICAL_PATTERN_DEFINITIONS = tuple(_apply_reviewed_execution(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS)
 
-# Frozen exact-contract H1 upgrades. Development selected H1 before the later
-# window was inspected; every listed recipe retained positive later H1
-# expectancy and positive paired uplift over its own active H4 contract.
-_REVIEWED_H1_ENTRY_APPROVALS: Dict[Tuple[str, str], Dict[str, Any]] = {
-  ("AUDUSD", "audusd-us-producer-inflation"): {"laterN": 32, "h1AverageR": .560836207391032, "h4AverageR": .451461207391032, "pairedUpliftR": .109375, "targetHitCount": 11, "stopHitCount": 12, "expiredCount": 2, "breakEvenCount": 7},
-  ("EURUSD", "eurusd-retail-sales-m-m-package"): {"laterN": 28, "h1AverageR": .16720160670921488, "h4AverageR": .08243801752735648, "pairedUpliftR": .08476358918185843, "targetHitCount": 1, "stopHitCount": 15, "expiredCount": 12, "breakEvenCount": 0},
-  ("GBPUSD", "gbpusd-ism-non-manufacturing-business-activity-package"): {"laterN": 29, "h1AverageR": .14209508947296542, "h4AverageR": .08355081818949578, "pairedUpliftR": .05854427128346964, "targetHitCount": 7, "stopHitCount": 5, "expiredCount": 17, "breakEvenCount": 0},
-  ("USDCAD", "usdcad-us-consumer-inflation"): {"laterN": 77, "h1AverageR": .17468936273118232, "h4AverageR": .17316340245421205, "pairedUpliftR": .001525960276970259, "targetHitCount": 14, "stopHitCount": 55, "expiredCount": 8, "breakEvenCount": 0},
-  ("USDCHF", "usdchf-ppi-m-m-package"): {"laterN": 26, "h1AverageR": .13687505010154458, "h4AverageR": .10139301346070025, "pairedUpliftR": .03548203664084434, "targetHitCount": 18, "stopHitCount": 5, "expiredCount": 3, "breakEvenCount": 0},
-  ("USDCHF", "usdchf-us-employment-release"): {"laterN": 37, "h1AverageR": .11104454707658107, "h4AverageR": .07412295526379817, "pairedUpliftR": .0369215918127829, "targetHitCount": 22, "stopHitCount": 5, "expiredCount": 10, "breakEvenCount": 0},
-  ("USDJPY", "usdjpy-jpy-labor-wages"): {"laterN": 23, "h1AverageR": .9401768899389813, "h4AverageR": .5107688950531266, "pairedUpliftR": .42940799488585457, "targetHitCount": 6, "stopHitCount": 11, "expiredCount": 6, "breakEvenCount": 0},
-  ("USDJPY", "usdjpy-us-producer-inflation-rejection"): {"laterN": 27, "h1AverageR": .13879717976496445, "h4AverageR": .09093913366869517, "pairedUpliftR": .04785804609626925, "targetHitCount": 9, "stopHitCount": 16, "expiredCount": 2, "breakEvenCount": 0},
-}
-H1_ENTRY_RESEARCH_MANIFEST_HASH = "4c43cc91604a72de1eceed3be3cbc4a255deae7b4721e2a3f3fe1fc8b67150d3"
-
-
-def _apply_reviewed_h1_entry(pattern: Dict[str, Any]) -> Dict[str, Any]:
-  approval = _REVIEWED_H1_ENTRY_APPROVALS.get((str(pattern["market"]), str(pattern["id"])))
-  if not approval:
-    return pattern
-  previous = {**dict(pattern["execution"]), "entryTimeframe": "H4", "expiryTimeframe": "H4"}
-  current = {**previous, "entryTimeframe": "H1"}
-  return {
-    **pattern, "execution": current,
-    "entryReview": {
-      "id": f"FMS-{pattern['market']}-{pattern['id']}-ENTRY-H1-v1",
-      "status": "reviewed_active", "activatedAt": REVIEWED_H1_ENTRY_ACTIVATED_AT,
-      "manifestHash": H1_ENTRY_RESEARCH_MANIFEST_HASH,
-      "previousExecution": previous, "currentExecution": current,
-      "entryRule": "first H1 open strictly after release and complete first-seen package",
-      "expiryRule": "same final H4 boundary as the parent contract",
-      "developmentSelected": True,
-      "later": {"ambiguousCount": 0, "unevaluableCount": 0, **dict(approval)},
-      "limitations": "Gross scheduled-release simulation; prospective signals additionally require the complete package before entry.",
-    },
-  }
-
-
-PRACTICAL_PATTERN_DEFINITIONS = tuple(_apply_reviewed_h1_entry(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS)
+# Existing H1 promotions are loaded from one hash-validated bridge record.
+# New research cannot add a recipe because the publisher has an explicit,
+# fixed allowlist and runtime application fails closed on contract mismatch.
+_REVIEWED_H1_ENTRY_METADATA, _REVIEWED_H1_ENTRY_APPROVALS = load_registered_entry_reviews()
+if int(_REVIEWED_H1_ENTRY_METADATA["activatedAt"]) != REVIEWED_H1_ENTRY_ACTIVATED_AT:
+  raise ValueError("Reviewed-H1 activation timestamp does not match the registered lifecycle boundary")
+PRACTICAL_PATTERN_DEFINITIONS = tuple(
+  apply_reviewed_h1_entry(pattern, _REVIEWED_H1_ENTRY_APPROVALS, _REVIEWED_H1_ENTRY_METADATA)
+  for pattern in PRACTICAL_PATTERN_DEFINITIONS
+)
 
 # Exact context registrations are added only after the generated artifact has
 # been reviewed. The allowlist is intentionally code-owned: regenerating a
@@ -3853,108 +3826,12 @@ def _interactive_reaction_audit(audit: Any) -> Any:
 
 
 def _historical_evidence_summary(pattern: Dict[str, Any]) -> Dict[str, Any]:
-  """Return one internally consistent frozen-contract benchmark for Charts."""
-  benchmark = pattern.get("historicalBenchmark") or {}
-  cohort = pattern.get("cohort") or {"dimension": "none", "value": "all"}
-
-  def summary(scope: str, source_id: Optional[str], metrics: Dict[str, Any], average_key: str, sample_key: str) -> Dict[str, Any]:
-    sample_value = metrics.get(sample_key)
-    average_value = metrics.get(average_key)
-    sample = int(sample_value) if sample_value is not None else 0
-    average = float(average_value) if average_value is not None else None
-    target_hit_count = metrics.get("targetHitCount")
-    stop_hit_count = metrics.get("stopHitCount")
-    target_hit_rate = metrics.get("targetHitRate", metrics.get("tpBeforeSl"))
-    stop_hit_rate = metrics.get("stopHitRate", metrics.get("slBeforeTp"))
-    if target_hit_rate is None and target_hit_count is not None and sample:
-      target_hit_rate = int(target_hit_count) / sample
-    if stop_hit_rate is None and stop_hit_count is not None and sample:
-      stop_hit_rate = int(stop_hit_count) / sample
-    return {
-      "scope": scope,
-      "cohort": dict(cohort),
-      "sourceId": source_id,
-      "evaluableCount": sample,
-      "targetHitCount": target_hit_count,
-      "targetHitRate": target_hit_rate,
-      "stopHitCount": stop_hit_count,
-      "stopHitRate": stop_hit_rate,
-      "expiredCount": metrics.get("expiredCount"),
-      "breakEvenCount": metrics.get("breakEvenCount"),
-      "ambiguousCount": metrics.get("ambiguousCount", metrics.get("ambiguousN")),
-      "ambiguousCases": list(metrics.get("ambiguousCases") or []),
-      "unevaluableCount": metrics.get("unevaluableCount", metrics.get("unevaluableN")),
-      "averageGrossR": average,
-      "totalGrossR": average * sample if average is not None and sample else None,
-      "totalGrossRDerivation": "exact_mean_times_evaluable_n" if average is not None and sample else None,
-    }
-
-  entry_review = pattern.get("entryReview") or {}
-  if entry_review.get("status") == "reviewed_active":
-    later = entry_review.get("later") or {}
-    return summary(
-      "Chronological later matched cases · reviewed H1 entry",
-      str(entry_review.get("id") or benchmark.get("experimentId") or "") or None,
-      {**later, "evaluableN": later.get("laterN"), "averageR": later.get("h1AverageR")},
-      "averageR", "evaluableN",
-    )
-
-  execution_review = pattern.get("executionReview") or {}
-  if execution_review.get("status") == "reviewed_active":
-    later = execution_review.get("later") or {}
-    return summary(
-      "Chronological later cases · reviewed execution successor",
-      str(execution_review.get("configurationHash") or benchmark.get("experimentId") or "") or None,
-      later, "averageR", "evaluableN",
-    )
-
-  if benchmark.get("basis") == "chronological_holdout":
-    experiment_id = str(benchmark.get("experimentId") or "")
-    try:
-      encoded_audit = _research_store.get_metadata(f"fms_raw_audit:{experiment_id}") if experiment_id else None
-      experiment = _research_store.get_fms_experiment(experiment_id) if experiment_id else None
-      audit = json.loads(encoded_audit) if encoded_audit else None
-      if isinstance(audit, dict):
-        selected_key = str(audit.get("selectedContractKey") or "")
-        contract = next((row for row in audit.get("contracts", []) if str(row.get("key")) == selected_key), None)
-        stored_holdout = dict((contract or {}).get("holdout") or {})
-        if stored_holdout:
-          split_time = (((experiment or {}).get("result") or {}).get("splitTime"))
-          ambiguous_cases = [
-            {
-              "caseId": row.get("caseId"),
-              "eventTime": row.get("eventTime"),
-              "reason": row.get("outcomeReason") or row.get("reason") or "SL and TP ordering was unresolved",
-            }
-            for row in (audit.get("contractResults") or {}).get(selected_key, [])
-            if row.get("status") == "ambiguous"
-            and (split_time is None or int(row.get("eventTime") or 0) >= int(split_time))
-          ]
-          stored_holdout["ambiguousCases"] = ambiguous_cases
-          return summary(
-            "Chronological holdout · immutable registered contract",
-            experiment_id or None,
-            stored_holdout,
-            "grossAverageR", "evaluableCount",
-          )
-    except (AttributeError, TypeError, ValueError, json.JSONDecodeError):
-      logger.warning("Falling back from immutable historical evidence for %s", experiment_id)
-    return summary(
-      "Chronological holdout · registered contract",
-      str(benchmark.get("experimentId") or "") or None,
-      pattern.get("holdout") or {}, "averageR", "evaluableCount",
-    )
-
-  return summary(
-    "Walk-forward pooled benchmark · registered contract",
-    str(benchmark.get("experimentId") or "") or None,
-    {
-      "evaluableCount": benchmark.get("walkForwardN"),
-      "averageR": benchmark.get("walkForwardAverageR"),
-      "targetHitRate": benchmark.get("targetFirstRate"),
-      "stopHitRate": benchmark.get("stopFirstRate"),
-    },
-    "averageR", "evaluableCount",
+  """Bridge adapter for the pure canonical evidence resolver."""
+  return resolve_historical_evidence(
+    pattern,
+    load_raw_audit=lambda experiment_id: _research_store.get_metadata(f"fms_raw_audit:{experiment_id}"),
+    load_experiment=_research_store.get_fms_experiment,
+    warn=logger.warning,
   )
 
 
