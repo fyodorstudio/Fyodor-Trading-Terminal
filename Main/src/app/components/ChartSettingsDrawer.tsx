@@ -30,6 +30,7 @@ interface ChartSettingsDrawerProps {
   preferences: ChartPreferences;
   onCursorModeChange: (mode: ChartCursorReadoutMode) => void;
   onPreserveZoomChange: (preserve: boolean) => void;
+  onDefaultFocusBarsChange: (bars: number) => void;
   onAppearanceChange: <K extends keyof ChartAppearancePreferences>(key: K, value: ChartAppearancePreferences[K]) => void;
   onEventOverlayChange?: <K extends keyof ChartEventOverlayPreferences>(
     key: K,
@@ -52,6 +53,7 @@ export function ChartSettingsDrawer({
   preferences,
   onCursorModeChange,
   onPreserveZoomChange,
+  onDefaultFocusBarsChange,
   onAppearanceChange,
   onEventOverlayChange,
   onResetAppearance,
@@ -147,8 +149,10 @@ export function ChartSettingsDrawer({
                 <ChartAppearanceSettings
                   appearance={appearance}
                   preserveZoomOnMarketChange={preferences.preserveZoomOnMarketChange}
+                  defaultFocusBars={preferences.defaultFocusBars}
                   onAppearanceChange={onAppearanceChange}
                   onPreserveZoomChange={onPreserveZoomChange}
+                  onDefaultFocusBarsChange={onDefaultFocusBarsChange}
                   onResetAppearance={onResetAppearance}
                 />
               ) : null}

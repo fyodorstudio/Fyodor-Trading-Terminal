@@ -434,6 +434,7 @@ export function EventReplayTab({
         preferences={chartPreferences}
         onCursorModeChange={handleCursorModeChange}
         onPreserveZoomChange={(preserve) => updateChartPreferences((current) => ({ ...current, preserveZoomOnMarketChange: preserve }))}
+        onDefaultFocusBarsChange={(defaultFocusBars) => updateChartPreferences((current) => ({ ...current, defaultFocusBars }))}
         onAppearanceChange={updateAppearance}
         onResetAppearance={resetChartPreferences}
         title="Replay Chart Settings"

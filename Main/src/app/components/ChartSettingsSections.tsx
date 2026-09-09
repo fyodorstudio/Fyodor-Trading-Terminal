@@ -5,6 +5,7 @@ import type {
   ChartEventOverlayImpactFilter,
   ChartEventOverlayPreferences,
 } from "@/app/lib/chartView";
+import { CHART_DEFAULT_FOCUS_BAR_OPTIONS } from "@/app/lib/chartView";
 
 export const CHART_CURSOR_MODE_OPTIONS: Array<{ id: ChartCursorReadoutMode; label: string; description: string }> = [
   { id: "both", label: "Crosshair", description: "Free crosshair movement with both pointer and candle readouts." },
@@ -94,14 +95,18 @@ function ChartDrawerMetric({ label, value }: { label: string; value: string | nu
 export function ChartAppearanceSettings({
   appearance,
   preserveZoomOnMarketChange,
+  defaultFocusBars,
   onAppearanceChange,
   onPreserveZoomChange,
+  onDefaultFocusBarsChange,
   onResetAppearance,
 }: {
   appearance: ChartAppearancePreferences;
   preserveZoomOnMarketChange: boolean;
+  defaultFocusBars: number;
   onAppearanceChange: <K extends keyof ChartAppearancePreferences>(key: K, value: ChartAppearancePreferences[K]) => void;
   onPreserveZoomChange: (preserve: boolean) => void;
+  onDefaultFocusBarsChange: (bars: number) => void;
   onResetAppearance: () => void;
 }) {
   return (
@@ -150,6 +155,17 @@ export function ChartAppearanceSettings({
             onChange={(event) => onPreserveZoomChange(event.target.checked)}
           />
           <span>Keep horizontal zoom when changing symbol or timeframe</span>
+        </label>
+        <label className="chart-settings-row">
+          <span>Default refocus width</span>
+          <select
+            value={defaultFocusBars}
+            onChange={(event) => onDefaultFocusBarsChange(Number(event.target.value))}
+          >
+            {CHART_DEFAULT_FOCUS_BAR_OPTIONS.map((bars) => (
+              <option key={bars} value={bars}>{bars} candles</option>
+            ))}
+          </select>
         </label>
         <p>Preserves candle width and right-side spacing. The price axis still auto-fits the newly loaded market.</p>
       </section>

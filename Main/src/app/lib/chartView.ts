@@ -26,6 +26,7 @@ export type ChartCursorReadoutMode = "both" | "true_cursor" | "nearest_candle";
 export type ChartWickMode = "match" | "neutral";
 export type ChartEventOverlayScope = "relevant" | "all";
 export type ChartEventOverlayImpactFilter = "high" | "high_medium" | "all";
+export const CHART_DEFAULT_FOCUS_BAR_OPTIONS = [40, 60, 90, 120, 180, 240, 400] as const;
 
 export interface ChartAppearancePreferences {
   backgroundColor: string;
@@ -54,6 +55,7 @@ export interface ChartPreferences {
   version: number;
   cursorReadoutMode: ChartCursorReadoutMode;
   preserveZoomOnMarketChange: boolean;
+  defaultFocusBars: number;
   appearance: ChartAppearancePreferences;
   eventOverlay: ChartEventOverlayPreferences;
 }
@@ -96,6 +98,7 @@ export const DEFAULT_CHART_PREFERENCES: ChartPreferences = {
   version: CHART_PREFERENCES_VERSION,
   cursorReadoutMode: "both",
   preserveZoomOnMarketChange: true,
+  defaultFocusBars: 120,
   appearance: {
     backgroundColor: "#ffffff",
     gridColor: "#e2e8f0",
@@ -191,6 +194,11 @@ export function normalizeChartPreferences(raw: unknown): ChartPreferences {
   if (!raw || typeof raw !== "object") return DEFAULT_CHART_PREFERENCES;
   const row = raw as Record<string, unknown>;
   const mode = row.cursorReadoutMode;
+  const defaultFocusBars = Number(row.defaultFocusBars);
+  const normalizedDefaultFocusBars = Number.isFinite(defaultFocusBars)
+    ? CHART_DEFAULT_FOCUS_BAR_OPTIONS.reduce((nearest, candidate) =>
+        Math.abs(candidate - defaultFocusBars) < Math.abs(nearest - defaultFocusBars) ? candidate : nearest)
+    : DEFAULT_CHART_PREFERENCES.defaultFocusBars;
 
   return {
     version: CHART_PREFERENCES_VERSION,
@@ -203,6 +211,7 @@ export function normalizeChartPreferences(raw: unknown): ChartPreferences {
     preserveZoomOnMarketChange: typeof row.preserveZoomOnMarketChange === "boolean"
       ? row.preserveZoomOnMarketChange
       : DEFAULT_CHART_PREFERENCES.preserveZoomOnMarketChange,
+    defaultFocusBars: normalizedDefaultFocusBars,
     appearance: normalizeChartAppearance(row.appearance),
     eventOverlay: normalizeChartEventOverlay(row.eventOverlay),
   };

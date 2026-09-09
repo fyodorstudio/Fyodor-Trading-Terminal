@@ -251,6 +251,10 @@ describe("chartView helpers", () => {
     expect(DEFAULT_CHART_PREFERENCES.eventOverlay.pairMatrixContextMarkersPerSide).toBe(8);
     expect(DEFAULT_CHART_PREFERENCES.preserveZoomOnMarketChange).toBe(true);
     expect(normalizeChartPreferences({ preserveZoomOnMarketChange: false }).preserveZoomOnMarketChange).toBe(false);
+    expect(DEFAULT_CHART_PREFERENCES.defaultFocusBars).toBe(120);
+    expect(normalizeChartPreferences({ defaultFocusBars: 180 }).defaultFocusBars).toBe(180);
+    expect(normalizeChartPreferences({ defaultFocusBars: 12 }).defaultFocusBars).toBe(40);
+    expect(normalizeChartPreferences({ defaultFocusBars: 999 }).defaultFocusBars).toBe(400);
     expect(normalizeChartPreferences({ eventOverlay: { futureMarkerLimit: 900 } }).eventOverlay.futureMarkerLimit).toBe(40);
     expect(normalizeChartPreferences({ eventOverlay: { futureMarkerLimit: -1 } }).eventOverlay.futureMarkerLimit).toBe(0);
     [0, 4, 8, 12, 16].forEach((value) => {

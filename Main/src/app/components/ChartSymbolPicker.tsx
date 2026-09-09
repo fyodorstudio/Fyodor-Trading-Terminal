@@ -117,7 +117,6 @@ export function ChartSymbolPicker({
 
   const selectSymbol = (symbol: string) => {
     onSelectedSymbolChange(symbol);
-    setPickerOpen(false);
   };
 
   const toggleFavorite = (name: string) => {

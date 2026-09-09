@@ -1054,6 +1054,7 @@ describe("getChartConnectionLabel", () => {
         preferences: DEFAULT_CHART_PREFERENCES,
         onCursorModeChange: () => {},
         onPreserveZoomChange: () => {},
+        onDefaultFocusBarsChange: () => {},
         onAppearanceChange: () => {},
         onEventOverlayChange: () => {},
         onResetAppearance: () => {},
@@ -1094,6 +1095,7 @@ describe("getChartConnectionLabel", () => {
         preferences: DEFAULT_CHART_PREFERENCES,
         onCursorModeChange: () => {},
         onPreserveZoomChange: () => {},
+        onDefaultFocusBarsChange: () => {},
         onAppearanceChange: () => {},
         onEventOverlayChange: () => {},
         onResetAppearance: () => {},
@@ -1118,6 +1120,7 @@ describe("getChartConnectionLabel", () => {
         preferences: DEFAULT_CHART_PREFERENCES,
         onCursorModeChange: () => {},
         onPreserveZoomChange: () => {},
+        onDefaultFocusBarsChange: () => {},
         onAppearanceChange: () => {},
         onEventOverlayChange: () => {},
         onResetAppearance: () => {},
@@ -1127,6 +1130,8 @@ describe("getChartConnectionLabel", () => {
     expect(replayHtml).toContain("Future candle opacity");
     expect(appearanceHtml).not.toContain("Experimental");
     expect(appearanceHtml).toContain("Keep horizontal zoom when changing symbol or timeframe");
+    expect(appearanceHtml).toContain("Default refocus width");
+    expect(appearanceHtml).toContain("120 candles");
     expect(appearanceHtml).not.toContain("Pair compare");
     expect(appearanceHtml).not.toContain("Macro surprise");
   });

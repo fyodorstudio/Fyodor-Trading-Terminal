@@ -43,6 +43,14 @@ Updated 2026-09-09. P0–P7, owner follow-up fixes, and the Past Result overhaul
 - Daily Change uses MT5's own `SYMBOL_PRICE_CHANGE` value (current price versus the prior trading-day close, percent). Missing broker quote fields remain visible as an em dash; they are not inferred or used to remove the symbol.
 - Existing tests were extended rather than adding files. Validation: TypeScript passed; chart/storage regressions passed 38/38; the bridge contract passed 13/13 and verifies complete ordered rows, quote projection, one bulk call, and cached non-blocking background refresh; production build passed with the pre-existing large-chunk warning.
 
+## 2026-09-09 rapid switching and stable refocus
+
+- Selecting a symbol in either `Browse` or `Market Watch` now leaves the selector open. Search text, scroll position, and mode stay available for consecutive pair changes; outside click remains the deliberate close action.
+- Confirmed the visible switch jitter came from a two-frame viewport sequence: candle data and horizontal focus were applied after paint, then refocus performed an additional request-animation-frame vertical recenter. Candle replacement, price precision, time-axis formatting, and horizontal focus now commit before paint, while one stable price auto-fit replaces the delayed recenter.
+- `Keep horizontal zoom when changing symbol or timeframe` is now honored. It had been displayed in settings but the market-identity transition always forced preservation regardless of the saved value.
+- Appearance > Viewport now exposes `Default refocus width` with 40, 60, 90, 120, 180, 240, and 400-candle choices. The saved default remains 120; old preferences safely normalize to it. This setting controls both first-open framing and the toolbar Refocus action.
+- Existing tests were extended rather than adding files. Validation: TypeScript passed and the focused chart preference/render regressions passed 46/46 without the former server-render layout-effect warning.
+
 ## 2026-09-09 FMS ownership and repository hygiene
 
 - Extracted historical-evidence normalization/source priority from the live server into pure `Main/mt5-bridge/fms_historical_evidence.py`. The bridge now only injects immutable-store readers; every chart projection carries schema `fms-chart-historical-evidence-v1`.
@@ -146,6 +154,8 @@ At 1440x900 and 100% Chrome zoom:
 - On one symbol, cycle H4 → H1 → M15 → H4 twice. Confirm the second cycle is immediate and each symbol/timeframe restores its own zoom rather than inheriting the chart you just left.
 - Select an uncommon non-FMS broker symbol from the full symbol picker. Confirm it remains accessible; its first-ever open may need foreground MT5 history if neither the durable store nor background warming had reached it yet, but revisiting it in the session must be resident.
 - Open the symbol selector and confirm `Browse` still contains the existing favorites and grouped list. Switch to `Market Watch`; compare its total row count/order and several Bid, Ask, and Daily Change values with MT5, search an uncommon symbol, then click anywhere on its row and confirm that chart opens.
+- Keep the selector open and click through several rows in quick succession, then change timeframes. Confirm the popover stays put and neither candles nor axes visibly jump through an intermediate framing. Outside-click once and confirm it closes.
+- Open chart Settings > Appearance > Viewport, change `Default refocus width`, then use the toolbar Refocus control. Confirm smaller values show fewer/wider candles and larger values show more/narrower candles. Toggle `Keep horizontal zoom` off and verify a newly selected pair uses the configured default framing.
 - Confirm old recovered arrows without first-seen quote data have no Entry timing rows or unavailable dropdown. Confirm a prospectively captured arrow with timing data shows Entry timing as ordinary table rows after What happened.
 - In Setups → Knowledge, confirm `Unregistered-package entry-state probe · Completed · no promotion` reports 12 variants and zero survivors.
 

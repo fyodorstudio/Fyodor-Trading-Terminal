@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   CandlestickSeries,
   createChart,
@@ -92,6 +92,7 @@ import {
 import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
 import type { BridgeCandle, CalendarEvent, MacroSignalChartMode, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MarketStatusResponse, Timeframe } from "@/app/types";
 
+const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 const DEBUG_MAX = 60;
 const REPLAY_SPEED_OPTIONS = [0.5, 1, 2, 4];
 const REPLAY_STEP_OPTIONS = [1, 2, 4, 8];
@@ -685,12 +686,15 @@ export function ChartsTab({
   visibleCandleCountRef.current = visibleCandles.length;
   const chartMarketIdentity = `${selectedSymbol}:${timeframe}`;
   if (chartMarketIdentityRef.current !== chartMarketIdentity) {
-    const residentZoom = residentChartZoomSnapshots.get(chartMarketIdentity) ?? null;
+    const residentZoom = chartPreferences.preserveZoomOnMarketChange
+      ? residentChartZoomSnapshots.get(chartMarketIdentity) ?? null
+      : null;
     chartZoomSnapshotRef.current = residentZoom;
     // Suppress range events from the previous chart while the new resident
     // candle buffer is being attached. The ready effect restores this chart's
     // own viewport, or applies the normal first-open focus when none exists.
-    preserveZoomNextLoadRef.current = true;
+    preserveZoomNextLoadRef.current = chartPreferences.preserveZoomOnMarketChange;
+    shouldRefocusRef.current = true;
     chartMarketIdentityRef.current = chartMarketIdentity;
   }
 
@@ -768,7 +772,7 @@ export function ChartsTab({
     if (!chart || !series || visibleCandles.length === 0) return;
 
     const lastIndex = visibleCandles.length - 1;
-    const windowBars = Math.min(Math.max(visibleCandles.length, 60), 120);
+    const windowBars = chartPreferences.defaultFocusBars;
     const halfWindow = windowBars / 2;
     const futureSlots = futureChartEventTimes.length;
     const rightWindow = futureSlots > 0 ? Math.max(18, futureSlots + 8) : halfWindow;
@@ -780,18 +784,7 @@ export function ChartsTab({
     });
 
     series.priceScale().setAutoScale(true);
-    window.requestAnimationFrame(() => {
-      const latestClose = visibleCandles[lastIndex]?.close;
-      const autoRange = series.priceScale().getVisibleRange();
-      if (latestClose == null || !autoRange) return;
-      const span = Math.max(autoRange.to - autoRange.from, Math.abs(latestClose) * 0.01, 1e-6);
-      series.priceScale().setAutoScale(false);
-      series.priceScale().setVisibleRange({
-        from: latestClose - span / 2,
-        to: latestClose + span / 2,
-      });
-    });
-  }, [visibleCandles, futureChartEventTimes]);
+  }, [visibleCandles, futureChartEventTimes, chartPreferences.defaultFocusBars]);
 
   const focusChartAroundEvent = useCallback(
     (event: CalendarEvent): boolean => {
@@ -866,6 +859,9 @@ export function ChartsTab({
   const handlePreserveZoomChange = useCallback((preserve: boolean) => {
     if (!preserve) preserveZoomNextLoadRef.current = false;
     updateChartPreferences((current) => ({ ...current, preserveZoomOnMarketChange: preserve }));
+  }, [updateChartPreferences]);
+  const handleDefaultFocusBarsChange = useCallback((defaultFocusBars: number) => {
+    updateChartPreferences((current) => ({ ...current, defaultFocusBars }));
   }, [updateChartPreferences]);
 
   const selectedChartEventKey = selectedChartEvent ? getChartEventKey(selectedChartEvent) : null;
@@ -1588,7 +1584,7 @@ export function ChartsTab({
     setMacroBiasArrowFocusRevision((current) => current + 1);
   }, [onSelectedSymbolChange, selectedSymbol, timeframe]);
 
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
     const timeFormatters = getChartTimeFormatters(timeframe, displayTimeMode, chartSourceTimeOffsetSeconds);
@@ -1628,7 +1624,7 @@ export function ChartsTab({
     series.applyOptions(getChartSeriesAppearanceOptions(appearance));
   }, [chartPreferences]);
 
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     const series = seriesRef.current;
     if (!series) return;
 
@@ -1750,14 +1746,13 @@ export function ChartsTab({
     chart.applyOptions({ handleScroll: !selecting, handleScale: !selecting });
   }, [pairMatrixRangeArmed, pairMatrixRangeEditing]);
 
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     const series = seriesRef.current;
     if (!series) return;
 
     series.applyOptions({
       priceFormat,
     });
-    shouldRefocusRef.current = true;
   }, [priceFormat, selectedSymbol, timeframe]);
 
   useEffect(() => {
@@ -1818,16 +1813,13 @@ export function ChartsTab({
     return true;
   }, [visibleCandles.length]);
 
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     if (historyState !== "ready" || displayCandles.length === 0 || !shouldRefocusRef.current) return;
-    const id = window.setTimeout(() => {
-      const preserved = preserveZoomNextLoadRef.current && applyPreservedChartZoom();
-      if (!preserved) refocusChart();
-      skipNextFutureRefocusRef.current = preserved;
-      preserveZoomNextLoadRef.current = false;
-      shouldRefocusRef.current = false;
-    }, 0);
-    return () => window.clearTimeout(id);
+    const preserved = preserveZoomNextLoadRef.current && applyPreservedChartZoom();
+    if (!preserved) refocusChart();
+    skipNextFutureRefocusRef.current = preserved;
+    preserveZoomNextLoadRef.current = false;
+    shouldRefocusRef.current = false;
   }, [historyState, displayCandles, applyPreservedChartZoom, refocusChart]);
 
   useEffect(() => {
@@ -2744,6 +2736,7 @@ export function ChartsTab({
         preferences={chartPreferences}
         onCursorModeChange={handleCursorModeChange}
         onPreserveZoomChange={handlePreserveZoomChange}
+        onDefaultFocusBarsChange={handleDefaultFocusBarsChange}
         onAppearanceChange={updateAppearance}
         onEventOverlayChange={updateEventOverlay}
         onResetAppearance={resetChartPreferences}
