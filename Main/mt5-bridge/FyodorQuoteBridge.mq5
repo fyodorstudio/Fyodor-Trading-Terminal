@@ -112,29 +112,38 @@ string BuildQuoteRow(
    return row;
 }
 
-bool PostQuotes(string payload, int &status)
+bool PostQuotes(string payload, int &status, int &requestError, string &response)
 {
    uchar data[];
-   int written = StringToCharArray(payload, data, 0, StringLen(payload), CP_UTF8);
+   // WHOLE_ARRAY is required here: StringLen() counts MQL string characters,
+   // not the encoded UTF-8 bytes needed by WebRequest. A broker catalog may
+   // contain non-ASCII symbol paths, which made the previous request body end
+   // early and FastAPI correctly rejected the truncated JSON with HTTP 422.
+   int written = StringToCharArray(payload, data, 0, WHOLE_ARRAY, CP_UTF8);
    int dataSize = written;
    if(dataSize > 0 && data[dataSize - 1] == 0)
       dataSize--;
+   ArrayResize(data, dataSize);
 
    uchar result[];
    string resultHeaders;
    string headers = "Content-Type: application/json\r\n";
    ResetLastError();
+   // Use MT5's explicit-headers overload. The nine-argument overload treats
+   // its third string as a cookie and its fourth as a referrer; passing our
+   // header through that overload made FastAPI receive the body as plain text.
    status = WebRequest(
       "POST",
       QuoteBridgeUrl,
       headers,
-      "",
       MathMax(100, RequestTimeoutMs),
       data,
-      dataSize,
       result,
       resultHeaders
    );
+   requestError = GetLastError();
+   response = CharArrayToString(result, 0, -1, CP_UTF8);
+   ResetLastError();
    return status >= 200 && status < 300;
 }
 
@@ -285,13 +294,18 @@ void OnTimer()
    payload += ",\"rows\":[" + rowsJson + "]}";
 
    int status = 0;
-   bool ok = PostQuotes(payload, status);
+   int requestError = 0;
+   string response = "";
+   bool ok = PostQuotes(payload, status, requestError, response);
    if(!ok)
    {
       ForceFullSnapshot = true;
       if(status != LastHttpStatus)
-         PrintFormat("FyodorQuoteBridge: publish failed status=%d error=%d; next payload will be complete",
-                     status, GetLastError());
+      {
+         string responseSummary = StringSubstr(response, 0, 1000);
+         PrintFormat("FyodorQuoteBridge: publish failed status=%d error=%d response=%s; next payload will be complete",
+                     status, requestError, responseSummary);
+      }
       LastHttpStatus = status;
       return;
    }
