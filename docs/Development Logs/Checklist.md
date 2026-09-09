@@ -1,6 +1,6 @@
 # Current mission and handoff
 
-Updated 2026-09-09. P0–P7 and the immediate owner follow-up fixes are complete; owner visual verification remains. Rules: [AGENTS](../../AGENTS.md). Durable context: [CONTEXT](../../CONTEXT.md). Unknown owner: [navigation](../NAVIGATION.md).
+Updated 2026-09-09. P0–P7, owner follow-up fixes, and the Past Result overhaul are complete; owner visual verification remains. Rules: [AGENTS](../../AGENTS.md). Durable context: [CONTEXT](../../CONTEXT.md). Unknown owner: [navigation](../NAVIGATION.md).
 
 ## Non-negotiable product behavior
 
@@ -9,6 +9,15 @@ Updated 2026-09-09. P0–P7 and the immediate owner follow-up fixes are complete
 - Immutable first-seen provenance, frozen contracts, no-lookahead semantics, unresolved outcomes, release monitoring, and all saved records remain intact.
 - No setup was promoted automatically. Real-account access remains outside scope.
 - Target layout is 1440x900 at 100% Chrome zoom. Browser automation was not used; the owner must perform the visual checks below.
+
+## 2026-09-09 Past Result overhaul
+
+- Replaced the dense eight-cell opening grid with a result-led hierarchy: direction/outcome and gross R, lifecycle explanation, exact Entry/SL/TP, compact frozen-contract facts, then the arrow-position disclosure.
+- Moved `Initial price reaction` directly below the result summary and made it always visible. It now shows one-H4 reaction, six-H4 direction, MFE, MAE, and the final frozen result together; missing one-H4 data is an explicit non-inferred status rather than an absent section.
+- The screenshot case `eurusd-ism-manufacturing-employment-package:1788282000` does have immutable reaction data. Its first-H4 response is -0.201R (price opposed the short arrow), six-H4/final response is -0.043R, MFE is +0.594R, and MAE is -0.713R. The old UI had buried this below target/context content.
+- Removed the standalone unavailable Entry timing disclosure. Entry timing is now a normal, always-expanded chronology section only for arrows with an immutable first-seen MT5 quote; historical arrows without one show no stray dropdown and still retain the honest H4 contract.
+- Supporting release, target, structure, context, timeline, path, and provenance evidence remains available below the decision-first summary without changing any frozen data or interpretation.
+- Validation: `pnpm run typecheck` passed; the existing chart test file remains 29/29 and now checks that Initial price reaction precedes Why the arrow appeared and that unavailable entry timing renders no disclosure.
 
 ## 2026-09-09 owner follow-up fixes
 
@@ -93,6 +102,8 @@ At 1440x900 and 100% Chrome zoom:
 - Select the saved AUDUSD recovered payroll arrow twice. Confirm detail loads, shows +1R and eight target rows, and retry is available if the request is forced to fail.
 - Confirm the only dock buttons are Trade, Journal, Setups, and Past Result. In Setups, verify the outer workspace and all three inner disclosures begin collapsed and remain usable without page overflow.
 - On H4 and H1, click an arrow and compare its candle/time with Past Result. Confirm the exact Entry price is readable and the arrow-position explanation is visible.
+- In Past Result, confirm the first screen reads in this order: frozen result, exact Entry/SL/TP and contract, Initial price reaction, then Why the arrow appeared. For the 02 Sep EURUSD manufacturing-employment arrow, confirm the initial reaction is about `-0.20R` and says price opposed the arrow.
+- Confirm old recovered arrows without first-seen quote data have no `Entry timing research · Not available for this arrow` dropdown. Confirm a prospectively captured arrow with timing data shows the comparison as a normal section after What happened.
 - In Setups → Knowledge, confirm `Unregistered-package entry-state probe · Completed · no promotion` reports 12 variants and zero survivors.
 
 ## Remaining limitations

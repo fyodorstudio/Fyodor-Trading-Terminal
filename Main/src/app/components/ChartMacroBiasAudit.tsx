@@ -232,16 +232,43 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
         <button type="button" onClick={data.onClose} aria-label="Close macro bias audit"><X size={15} /></button>
       </header>
 
-      <section className="chart-macro-bias-at-a-glance" aria-label="Signal and frozen trade at a glance">
-        <div className="is-primary"><span>Direction and result</span><strong>{signal.direction === "long" ? "Long" : "Short"} {market}</strong><small>{formatOutcome(signal)}</small></div>
-        <div><span>Entry</span><strong>{formatPrice(signal.entry, market)}</strong><small>{signal.entryTimeframe ?? "H4"} · {formatUtc(signal.activationTime)}</small></div>
-        <div className="is-risk"><span>Stop loss</span><strong>{formatPrice(frozenStop, market)}</strong><small>{riskPips == null ? "—" : `${riskPips.toFixed(1)} pips`} · {formatAtr(riskAtr)} · −1R</small></div>
-        <div className="is-reward"><span>Take profit</span><strong>{formatPrice(signal.target, market)}</strong><small>{rewardPips == null ? "—" : `${rewardPips.toFixed(1)} pips`} · {formatAtr(rewardAtr)} · +{targetR}R</small></div>
-        <div><span>Risk : reward</span><strong>1 : {targetR}</strong><small>Frozen registered contract</small></div>
-        <div><span>ATR at entry</span><strong>{formatPrice(signal.atr, market)}</strong><small>Completed H4 ATR(14) · {atrPips == null ? "—" : `${atrPips.toFixed(1)} pips`}</small></div>
-        <div><span>Maximum duration</span><strong>{signal.expiryCandles} H4</strong><small>Expires {formatUtc(signal.expiryTime)}</small></div>
-        <div><span>Management</span><strong>{managementFamily === "break_even" ? "Break-even" : "Fixed"}</strong><small>{managementFamily === "break_even" ? `Move SL to entry after +${signal.managementTriggerR ?? 1}R` : "SL and TP stay fixed"}</small></div>
+      <section className="chart-macro-bias-result-hero" aria-label="Signal result and frozen trade plan">
+        <div className="chart-macro-bias-result-heading">
+          <div><span>Direction and result</span><strong>{signal.direction === "long" ? "Long" : "Short"} {market}</strong><small>{lifecycle.state}</small></div>
+          <b className={signal.resultR == null ? "is-neutral" : signal.resultR > 0 ? "is-positive" : signal.resultR < 0 ? "is-negative" : "is-neutral"}>{formatR(signal.resultR)}</b>
+        </div>
+        <p className="chart-macro-bias-result-copy"><strong>{formatOutcome(signal)}</strong><span>{lifecycle.detail}</span></p>
+        <div className="chart-macro-bias-levels" aria-label="Frozen entry, stop, and target">
+          <div className="is-entry"><span>Entry</span><strong>{formatPrice(signal.entry, market)}</strong><small>{signal.entryTimeframe ?? "H4"} · {formatUtc(signal.activationTime)}</small></div>
+          <div className="is-risk"><span>Stop loss</span><strong>{formatPrice(frozenStop, market)}</strong><small>{riskPips == null ? "—" : `${riskPips.toFixed(1)} pips`} · {formatAtr(riskAtr)} · −1R</small></div>
+          <div className="is-reward"><span>Take profit</span><strong>{formatPrice(signal.target, market)}</strong><small>{rewardPips == null ? "—" : `${rewardPips.toFixed(1)} pips`} · {formatAtr(rewardAtr)} · +{targetR}R</small></div>
+        </div>
+        <dl className="chart-macro-bias-contract-strip">
+          <div><dt>Risk : reward</dt><dd>1 : {targetR}</dd></div>
+          <div><dt>ATR at entry</dt><dd>{formatPrice(signal.atr, market)}<small>{atrPips == null ? "" : ` · ${atrPips.toFixed(1)} pips`}</small></dd></div>
+          <div><dt>Maximum duration</dt><dd>{signal.expiryCandles} H4<small>Expires {formatUtc(signal.expiryTime)}</small></dd></div>
+          <div><dt>Management</dt><dd>{managementFamily === "break_even" ? "Break-even" : "Fixed"}<small>{managementFamily === "break_even" ? `After +${signal.managementTriggerR ?? 1}R` : "SL and TP stay fixed"}</small></dd></div>
+        </dl>
         <p className="chart-macro-bias-entry-note">The chart arrow marks the {signal.entryTimeframe ?? "H4"} activation candle. Its vertical placement is visual only; the exact frozen entry is {formatPrice(signal.entry, market)}.</p>
+      </section>
+
+      <section className={`chart-macro-bias-reaction-summary ${initialReactionFollowed == null ? "is-unavailable" : initialReactionFollowed ? "is-followed" : "is-rejected"}`} aria-label="Initial price reaction">
+        <div className="chart-macro-bias-section-title"><span>Initial price reaction</span><strong>Reaction versus trade result</strong></div>
+        <div className="chart-macro-bias-reaction-layout">
+          <div className="chart-macro-bias-reaction-primary">
+            <span>After the first completed H4</span>
+            <strong>{initialReaction == null ? data.detailLoading ? "Loading path audit…" : "Not recorded for this arrow" : initialReactionFollowed ? "Price followed the arrow" : "Price opposed the arrow"}</strong>
+            <b>{initialReaction == null ? "—" : `${formatR(initialReaction.responseR)}${initialReactionPips == null ? "" : ` · ${formatPips(initialReactionPips)}`}`}</b>
+            <small>Measured after 1 H4</small>
+          </div>
+          <dl>
+            <div><dt>After {signal.pathAudit?.reactionHorizonCandles ?? 6} H4</dt><dd>{formatR(signal.pathAudit?.reactionResponseR)}<small>{signal.pathAudit?.directionWorked == null ? "Direction unavailable" : signal.pathAudit.directionWorked ? "Direction worked" : "Direction did not work"}</small></dd></div>
+            <div><dt>Best favorable move</dt><dd>{formatR(signal.pathAudit?.maximumFavorableR)}<small>{formatPips(signal.pathAudit?.maximumFavorablePips)} · after {signal.pathAudit?.timeToMfeCandles ?? "—"} H4 · not realized profit</small></dd></div>
+            <div><dt>Worst open pressure</dt><dd>{signal.pathAudit ? formatR(-signal.pathAudit.maximumAdverseR) : "—"}<small>{signal.pathAudit ? formatPips(-signal.pathAudit.maximumAdversePips) : "—"} · after {signal.pathAudit?.timeToMaeCandles ?? "—"} H4</small></dd></div>
+            <div><dt>Frozen trade result</dt><dd>{formatOutcome(signal)}{signal.pathAudit?.givebackR == null ? null : <small>{formatR(signal.pathAudit.givebackR)} given back from the best open point</small>}</dd></div>
+          </dl>
+        </div>
+        <p>{initialReaction == null ? "This saved arrow has no one-H4 path measurement. No reaction value is inferred." : "Initial reaction measures direction after one completed H4 candle. It is separate from whether the frozen TP or SL was reached later."}</p>
       </section>
 
       <section className="chart-macro-bias-trigger" aria-label="Economic releases that triggered this signal">
@@ -266,22 +293,6 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
         {registeredTargetEvidence ? <small className="chart-macro-bias-target-dependence">Median {formatR(registeredTargetEvidence.medianR)} · SL first {formatPercent(registeredTargetEvidence.slBeforeTp)} · expired {formatPercent(registeredTargetEvidence.expiredRate)} · largest win share {formatPercent(registeredTargetEvidence.topOneWinShare)} · top three {formatPercent(registeredTargetEvidence.topThreeWinShare)} · typical target time {registeredTargetEvidence.timeToTargetH4.median == null ? "—" : `${registeredTargetEvidence.timeToTargetH4.median.toFixed(1)} H4`}</small> : null}
         <p>A large configured target does not itself predict a large move. These figures show whether this exact recipe historically reached it often enough to retain positive gross expectancy.</p>
       </section>
-
-      <details className={`chart-macro-bias-entry-timing ${signal.entryTimingAudit ? "is-available" : "is-unavailable"}`} aria-label="Prospective entry timing comparison">
-        <summary><span>Entry timing research</span><strong>{signal.entryTimingAudit ? "Observed MT5 data" : "Not available for this arrow"}</strong></summary>
-        {signal.entryTimingAudit ? (
-          <>
-            <table>
-              <thead><tr><th>Reference</th><th>Time</th><th>Price</th><th>Difference</th></tr></thead>
-              <tbody>
-                <tr><th>First observed quote</th><td>{formatUtc(signal.entryTimingAudit.quoteTime)}</td><td>{formatPrice(signal.entryTimingAudit.observedMid, market)}</td><td>{signal.entryTimingAudit.quoteDelaySeconds}s after release</td></tr>
-                {signal.entryTimingAudit.entries.map((row) => <tr key={row.timeframe}><th>First later {row.timeframe} open</th><td>{row.entryTime == null ? "Waiting" : formatUtc(row.entryTime)}</td><td>{formatPrice(row.entryOpen, market)}</td><td>{row.status === "quote_captured_after_entry" ? "Quote arrived too late to compare" : row.status === "waiting_for_candle" ? "Not formed yet" : `${formatPips(row.gapPips)} raw · ${formatPips(row.directionAdjustedGapPips)} with arrow`}</td></tr>)}
-              </tbody>
-            </table>
-            <small>{signal.entryTimingAudit.disclosure}</small>
-          </>
-        ) : <p>This arrow has no immutable first-seen MT5 quote. Older arrows remain honest H4 research; FMS will not invent a release-time price.</p>}
-      </details>
 
       {directionalZones.length > 0 ? (
         <section className="chart-macro-bias-structure-ladder" aria-label="Entry-known multi-scale price structure ladder">
@@ -353,18 +364,6 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
         </section>
       ) : null}
 
-      {initialReaction ? (
-        <section className={`chart-macro-bias-reaction-verdict ${initialReactionFollowed ? "is-followed" : "is-rejected"}`} aria-label="Initial price reaction">
-          <div><span>Initial price reaction</span><strong>{initialReactionFollowed ? "Price followed the arrow" : "Price opposed the arrow"}</strong></div>
-          <b>{formatR(initialReaction.responseR)}{initialReactionPips == null ? "" : ` · ${formatPips(initialReactionPips)}`} after 1 H4</b>
-          <p>This measures direction after the first completed H4 candle. It is separate from whether the frozen TP or SL was reached later.</p>
-        </section>
-      ) : null}
-
-      <div className={`chart-macro-bias-lifecycle ${lifecycle.resolved ? "is-resolved" : "is-active"}`}>
-        <div><span>{historicalReplay ? "Frozen trade result" : "Trade monitor"}</span><strong>{lifecycle.state}</strong></div>
-        <p>{lifecycle.detail}</p>
-      </div>
       {signal.entry != null || signal.stop != null || signal.target != null ? (
         <section className="chart-macro-bias-geometry" aria-label="Frozen trade geometry">
           <div className="chart-macro-bias-section-title"><span>Trade geometry</span><strong>Prices, ATR, pips, and R</strong></div>
@@ -396,9 +395,22 @@ export function ChartMacroBiasAudit({ data }: { data: ChartMacroBiasAuditData })
         </ol>
         <p>Release-time entry remains prospective research. Historical rows without a first-seen quote cannot prove an executable release price; the frozen result still uses the first strictly later H4 open.</p>
       </section>
+      {signal.entryTimingAudit ? (
+        <section className="chart-macro-bias-entry-timing is-available" aria-label="Prospective entry timing comparison">
+          <div className="chart-macro-bias-section-title"><span>Entry timing research</span><strong>Observed MT5 data</strong></div>
+          <table>
+            <thead><tr><th>Reference</th><th>Time</th><th>Price</th><th>Difference</th></tr></thead>
+            <tbody>
+              <tr><th>First observed quote</th><td>{formatUtc(signal.entryTimingAudit.quoteTime)}</td><td>{formatPrice(signal.entryTimingAudit.observedMid, market)}</td><td>{signal.entryTimingAudit.quoteDelaySeconds}s after release</td></tr>
+              {signal.entryTimingAudit.entries.map((row) => <tr key={row.timeframe}><th>First later {row.timeframe} open</th><td>{row.entryTime == null ? "Waiting" : formatUtc(row.entryTime)}</td><td>{formatPrice(row.entryOpen, market)}</td><td>{row.status === "quote_captured_after_entry" ? "Quote arrived too late to compare" : row.status === "waiting_for_candle" ? "Not formed yet" : `${formatPips(row.gapPips)} raw · ${formatPips(row.directionAdjustedGapPips)} with arrow`}</td></tr>)}
+            </tbody>
+          </table>
+          <small>{signal.entryTimingAudit.disclosure}</small>
+        </section>
+      ) : null}
       {signal.pathAudit ? (
         <section className="chart-macro-bias-path-audit" aria-label="Evidence reaction and trade execution">
-          <div className="chart-macro-bias-section-title"><span>Reaction versus trade result</span><strong>Two separate questions</strong></div>
+          <div className="chart-macro-bias-section-title"><span>Detailed reaction path</span><strong>Reaction versus trade result</strong></div>
           <div className="chart-macro-bias-path-grid">
             <div><span>Registered mapping</span><strong>{signal.pathAudit.evidenceReaction === "rejected" ? "Rejects evidence" : "Follows evidence"}</strong></div>
             <div><span>Direction after {signal.pathAudit.reactionHorizonCandles} H4</span><strong>{signal.pathAudit.directionWorked == null ? "Unavailable" : signal.pathAudit.directionWorked ? "Worked" : "Did not work"}</strong><small>{formatR(signal.pathAudit.reactionResponseR)}</small></div>

@@ -280,6 +280,8 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("+0.67R");
     expect(html).toContain("Price followed the arrow");
     expect(html).toContain("after 1 H4");
+    expect(html.indexOf("Initial price reaction")).toBeLessThan(html.indexOf("Why the arrow appeared"));
+    expect(html).not.toContain('<details class="chart-macro-bias-entry-timing');
     expect(html).toContain("Frozen trade result");
     expect(html).toContain("Reaction versus trade result");
     expect(html).toContain("Follows evidence");
@@ -328,6 +330,13 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("77.6%");
     expect(html).toContain("Backtest record verified");
     expect(html).not.toContain("Source research diagnostics");
+    const unavailableTimingHtml = renderToStaticMarkup(createElement(ChartMacroBiasAudit, { data: {
+      signal: { ...signal, entryTimingAudit: undefined },
+      pattern: { id: "pattern", market: "USDCAD", label: "US labor claims improvement", execution: { stopAtr: 2, targetR: .5, expiryCandles: 42 } } as MacroSignalChartPattern,
+      versionId: "v2", modelId: "v3", modelHash: "abcdef123456", mode: "research_replay", onClose: () => {},
+    } }));
+    expect(unavailableTimingHtml).not.toContain("Entry timing research");
+    expect(unavailableTimingHtml).not.toContain("Not available for this arrow");
   });
   it("shows the current bias, historical wins and failures, next event, and next frozen condition", () => {
     const metrics: MacroSignalMetrics = {
