@@ -199,6 +199,8 @@ export interface ChartZoomSnapshot {
   rightOffset: number;
 }
 
+const residentChartZoomSnapshots = new Map<string, ChartZoomSnapshot>();
+
 export function captureChartZoomSnapshot(range: { from: number; to: number } | null, lastCandleIndex: number): ChartZoomSnapshot | null {
   if (!range) return null;
   const span = range.to - range.from;
@@ -682,7 +684,12 @@ export function ChartsTab({
   visibleCandleCountRef.current = visibleCandles.length;
   const chartMarketIdentity = `${selectedSymbol}:${timeframe}`;
   if (chartMarketIdentityRef.current !== chartMarketIdentity) {
-    preserveZoomNextLoadRef.current = chartPreferences.preserveZoomOnMarketChange && chartZoomSnapshotRef.current != null;
+    const residentZoom = residentChartZoomSnapshots.get(chartMarketIdentity) ?? null;
+    chartZoomSnapshotRef.current = residentZoom;
+    // Suppress range events from the previous chart while the new resident
+    // candle buffer is being attached. The ready effect restores this chart's
+    // own viewport, or applies the normal first-open focus when none exists.
+    preserveZoomNextLoadRef.current = true;
     chartMarketIdentityRef.current = chartMarketIdentity;
   }
 
@@ -1759,10 +1766,12 @@ export function ChartsTab({
     const onRangeChange = () => {
       schedulePairMatrixGeometryUpdate();
       if (!preserveZoomNextLoadRef.current) {
-        chartZoomSnapshotRef.current = captureChartZoomSnapshot(
+        const snapshot = captureChartZoomSnapshot(
           chart.timeScale().getVisibleLogicalRange(),
           visibleCandleCountRef.current - 1,
         );
+        chartZoomSnapshotRef.current = snapshot;
+        if (snapshot) residentChartZoomSnapshots.set(chartMarketIdentityRef.current, snapshot);
       }
       const pairMatrixActive = pairMatrixOpenRef.current;
       const updateCadence = getChartRangeUpdateCadence(pairMatrixActive);

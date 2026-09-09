@@ -257,8 +257,11 @@ def test_chart_history_and_health_remain_available_while_mt5_is_busy(monkeypatch
     "volume": 100,
   }])
 
+  lock_timeouts = []
+
   @contextmanager
   def busy_access(_timeout=None):
+    lock_timeouts.append(_timeout)
     raise server.Mt5BusyError("busy")
     yield
 
@@ -267,6 +270,14 @@ def test_chart_history_and_health_remain_available_while_mt5_is_busy(monkeypatch
   history_response = client.get("/history", params={"symbol": "USDJPY", "tf": "H4", "bars": 200})
   assert history_response.status_code == 200
   assert history_response.json()[-1]["time"] == candle_time
+  assert lock_timeouts[-1] == server._MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS
+
+  background_response = client.get("/history", params={
+    "symbol": "USDJPY", "tf": "H4", "bars": 200, "background": True,
+  })
+  assert background_response.status_code == 200
+  assert background_response.json()[-1]["time"] == candle_time
+  assert lock_timeouts[-1] == .05
 
   boundary_response = client.get("/history_boundary", params={"symbol": "USDJPY", "tf": "H4"})
   assert boundary_response.status_code == 200

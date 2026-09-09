@@ -864,6 +864,27 @@ describe("getChartConnectionLabel", () => {
         marketStatus: {
           symbol: "EURUSD",
           symbol_path: null,
+          asset_class: "forex",
+          session_state: "open",
+          is_open: true,
+          terminal_connected: true,
+          checked_at: 0,
+          server_time: null,
+          last_tick_time: null,
+          next_open_time: null,
+          next_close_time: null,
+          reason: null,
+        },
+        streamConnected: false,
+      }),
+    ).toBe("Chart Ready");
+
+    expect(
+      getChartConnectionLabel({
+        historyState: "ready",
+        marketStatus: {
+          symbol: "EURUSD",
+          symbol_path: null,
           asset_class: null,
           session_state: "closed",
           is_open: false,

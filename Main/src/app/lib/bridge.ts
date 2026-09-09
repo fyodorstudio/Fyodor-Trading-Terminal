@@ -97,11 +97,13 @@ export async function fetchHistory(
   bars = 200,
   signal?: AbortSignal,
   preferCache = false,
+  background = false,
 ): Promise<BridgeCandle[]> {
   const url =
     `${BRIDGE_BASE}/history?symbol=${encodeURIComponent(symbol)}` +
     `&tf=${encodeURIComponent(tf)}&bars=${encodeURIComponent(String(bars))}` +
-    (preferCache ? "&prefer_cache=true" : "");
+    (preferCache ? "&prefer_cache=true" : "") +
+    (background ? "&background=true" : "");
   const payload = await fetchJson<unknown[]>(url, { signal });
   return payload
     .map((item) => {

@@ -23,6 +23,7 @@ FMS evidence ownership is intentionally layered. Offline entry research reads fr
 Current includes open/pending trades, eligible cases awaiting entry geometry, and releases awaiting evaluation across midnight. Recent holds closed trades and completed no-trade/audit decisions immediately. Trade Next/Current/Recent show all available rows without a row cap; Next includes all loaded future occurrences per setup. A scheduled release awaiting assessment must remain visible. Simulated open status is not a broker position. Entry markers are candle annotations, not entry-price coordinates.
 
 - `Main/src/app/tabs/primary/ChartsTab.tsx`: chart state, selected-pair requests, global FMS monitoring.
+- Chart candles are resident per broker symbol and timeframe for the browser session. Opened loads finish and populate the shared store even after navigation; duplicate loads are shared, selected loads outrank warming, all broker symbols warm on the active timeframe, and all timeframes warm for the selected symbol. The one chart renderer is reused and restores a per-symbol/timeframe zoom snapshot. Background history calls use opportunistic bridge locking so they cannot wait ahead of foreground MT5 work.
 - `Main/src/app/components/ChartViewport.tsx`: dock selection, layout, error boundary.
 - `Main/src/app/lib/bridge.ts`: HTTP client and preload/in-flight caches.
 - `Main/mt5-bridge/server.py`: endpoints, registrations, lifecycle and MT5 orchestration.

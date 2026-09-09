@@ -26,6 +26,14 @@ Updated 2026-09-09. P0–P7, owner follow-up fixes, and the Past Result overhaul
 - The Past Result view boundary now normalizes legacy missing event, fixed-horizon, target-ladder, loss-review, and entry-timing arrays. Partial old market-context records are omitted rather than dereferenced or inferred; non-finite historical numbers render as unavailable rather than `NaN`.
 - Extended the existing chart test (no new test file) with omitted-event, sparse-path, partial-context, and detail-merge cases. It now passes 29/29; `pnpm run typecheck` and `pnpm run build` pass. The build retains the existing non-blocking large-chunk warning.
 
+## 2026-09-09 resident broker charts
+
+- Replaced cancellable one-chart history loading with a session-resident `symbol × timeframe` store. A load now completes and populates the store even when the owner switches away; an identical later request shares the in-flight operation instead of restarting it.
+- The full broker symbol list remains accessible. After the selected chart is ready, every available broker symbol warms 350 candles for the active timeframe, while all nine timeframes warm for the selected symbol. Explicit selections are LIFO foreground work; shallow warming precedes 1,500-candle deepening.
+- Background history calls use a new backward-compatible `background=true` hint. The bridge tries its durable candle store first and waits only 50 ms for MT5, so warming cannot queue ahead of selected-chart, release-monitoring, or other foreground work. No order/account operation was added.
+- The Lightweight Charts renderer remains mounted. Candle buffers swap from resident memory, chart zoom snapshots are retained per `symbol:timeframe`, and ready candles now say `Chart Ready` while the live socket catches up instead of implying that the chart is blocked on `Connecting`.
+- Existing tests were extended rather than adding files. Validation: chart/storage regressions 37/37, TypeScript passed, production build passed with the pre-existing large-chunk warning, and the focused bridge busy/cache/background-lock contract passed.
+
 ## 2026-09-09 FMS ownership and repository hygiene
 
 - Extracted historical-evidence normalization/source priority from the live server into pure `Main/mt5-bridge/fms_historical_evidence.py`. The bridge now only injects immutable-store readers; every chart projection carries schema `fms-chart-historical-evidence-v1`.
@@ -125,11 +133,15 @@ At 1440x900 and 100% Chrome zoom:
 - On H4 and H1, click an arrow and compare its candle/time with Past Result. Confirm the exact Entry price is readable and the arrow-position explanation is visible.
 - In Past Result, confirm there is one plain `Field / Value / Details` table with no cards or expandable rows. Its first sections should be Result, Initial price reaction, then Why the arrow appeared. For the 02 Sep EURUSD manufacturing-employment arrow, confirm the initial reaction is about `-0.20R` and says price opposed the arrow.
 - Reload the app, open several old and recovered arrows (including one that previously crashed), and confirm Past Result opens as the table, the Trade tab remains clickable, closing Past Result returns to Trade, and the console gains no FMS dock render error.
+- After the initial chart appears, wait for background warming, then switch rapidly across at least five broker symbols on the same timeframe and back. Confirm warmed charts paint without a blank/loading phase; `Chart Ready` may appear briefly while live synchronization catches up.
+- On one symbol, cycle H4 → H1 → M15 → H4 twice. Confirm the second cycle is immediate and each symbol/timeframe restores its own zoom rather than inheriting the chart you just left.
+- Select an uncommon non-FMS broker symbol from the full symbol picker. Confirm it remains accessible; its first-ever open may need foreground MT5 history if neither the durable store nor background warming had reached it yet, but revisiting it in the session must be resident.
 - Confirm old recovered arrows without first-seen quote data have no Entry timing rows or unavailable dropdown. Confirm a prospectively captured arrow with timing data shows Entry timing as ordinary table rows after What happened.
 - In Setups → Knowledge, confirm `Unregistered-package entry-state probe · Completed · no promotion` reports 12 variants and zero survivors.
 
 ## Remaining limitations
 
 - Visual layout, browser-console cleanliness, and interaction continuity have static/type/build validation only until the owner completes the checklist above.
+- Background warm-up duration depends on the broker's total symbol count and existing MT5/durable history. First-ever uncached symbols can still wait for MT5; the resident guarantee applies after a chart has loaded or its warm request has completed.
 - The one USDJPY historical replay remains honestly unevaluable until its named source interval can be resolved without violating the account-access boundary.
 - P6 is reused-history research and a deliberately small coverage probe. It is not fresh forward evidence and does not exhaust orthogonal entry-known interactions.

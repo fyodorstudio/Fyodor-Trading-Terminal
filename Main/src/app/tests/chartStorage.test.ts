@@ -7,6 +7,7 @@ import {
   saveChartHistoryCache,
   summarizeStoredChartHistory,
 } from "@/app/lib/chartStorage";
+import { buildResidentChartWarmPlan, loadResidentChartHistory } from "@/app/hooks/useChartMarketData";
 import type { BridgeCandle, Timeframe } from "@/app/types";
 
 const SAMPLE_CANDLE: BridgeCandle = {
@@ -73,24 +74,55 @@ describe("chartStorage helpers", () => {
   });
 
   it("rejects malformed cache rows and summarizes valid stored candles", () => {
-    const { storage, store } = installLocalStorage();
-    saveChartHistoryCache("EURUSD", "H1", [SAMPLE_CANDLE]);
-    const [cacheKey] = storedKeys(storage);
-    expect(cacheKey).toBeTruthy();
-
-    if (cacheKey) {
-      store.set(cacheKey, JSON.stringify({ version: 1, candles: [{ ...SAMPLE_CANDLE, time: "bad" }] }));
-    }
-    expect(readChartHistoryCache("EURUSD", "H1")).toEqual([]);
+    const { store } = installLocalStorage();
+    store.set("fyodor-main-chart-history-cache-v1:1:NZDUSD:H1", JSON.stringify({
+      version: 1,
+      candles: [{ ...SAMPLE_CANDLE, time: "bad" }],
+    }));
+    expect(readChartHistoryCache("NZDUSD", "H1")).toEqual([]);
 
     const later = { ...SAMPLE_CANDLE, time: SAMPLE_CANDLE.time + 60, close: 1.167 };
-    saveChartHistoryCache("EURUSD", "H1", [SAMPLE_CANDLE, later]);
+    saveChartHistoryCache("NZDUSD", "H1", [SAMPLE_CANDLE, later]);
 
-    expect(summarizeStoredChartHistory("EURUSD", "H1")).toEqual({
+    expect(summarizeStoredChartHistory("NZDUSD", "H1")).toEqual({
       count: 2,
       oldestTime: SAMPLE_CANDLE.time,
       latestTime: later.time,
     });
+  });
+
+  it("keeps an opened chart load resident and shares an identical in-flight request", async () => {
+    installLocalStorage();
+    let releaseResponse: () => void = () => { throw new Error("History response was not initialized"); };
+    const fetchMock = vi.fn(() => new Promise<Response>((resolve) => {
+      releaseResponse = () => resolve(new Response(JSON.stringify([SAMPLE_CANDLE]), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }));
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = loadResidentChartHistory("RESIDENTTEST", "H4", 350, "warm");
+    const second = loadResidentChartHistory("residenttest", "H4", 350, "selected");
+    expect(first).toBe(second);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    releaseResponse();
+    await expect(first).resolves.toEqual([SAMPLE_CANDLE]);
+    expect(readChartHistoryCache("RESIDENTTEST", "H4")).toEqual([SAMPLE_CANDLE]);
+  });
+
+  it("warms every broker symbol on the active timeframe and every timeframe for the selected symbol", () => {
+    const plan = buildResidentChartWarmPlan([
+      { name: "EURUSD", path: "Forex\\Majors" },
+      { name: "XAUUSD", path: "Metals" },
+    ], "EURUSD", "H4");
+
+    expect(plan).toContainEqual({ symbol: "XAUUSD", timeframe: "H4" });
+    expect(plan).toContainEqual({ symbol: "EURUSD", timeframe: "M1" });
+    expect(plan).toContainEqual({ symbol: "EURUSD", timeframe: "MN1" });
+    expect(plan.filter((request) => request.symbol === "EURUSD" && request.timeframe === "H4")).toHaveLength(1);
+    expect(plan).toHaveLength(10);
   });
 
   it("clears only the current symbol and timeframe cache", () => {

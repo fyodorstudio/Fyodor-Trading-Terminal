@@ -1709,7 +1709,7 @@ def market_status(symbol: str) -> Dict[str, Any]:
 
 
 @app.get("/history")
-def history(symbol: str, tf: str, bars: int = 500, prefer_cache: bool = False) -> List[Dict[str, Any]]:
+def history(symbol: str, tf: str, bars: int = 500, prefer_cache: bool = False, background: bool = False) -> List[Dict[str, Any]]:
   if bars <= 0:
     raise HTTPException(status_code=400, detail="bars must be > 0")
   if bars > 5000:
@@ -1725,7 +1725,10 @@ def history(symbol: str, tf: str, bars: int = 500, prefer_cache: bool = False) -
 
   timeframe = mt5_timeframe(tf)
   try:
-    with _mt5_access(_MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
+    # Resident-chart warming is opportunistic. It may use the terminal while
+    # idle, but it must never wait ahead of an owner-selected chart or other
+    # foreground bridge work.
+    with _mt5_access(.05 if background else _MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
       if not _ensure_mt5_initialized():
         raise HTTPException(status_code=503, detail="MT5 terminal not connected")
       ensure_symbol_selected(symbol)

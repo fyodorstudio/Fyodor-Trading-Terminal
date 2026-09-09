@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } fro
 import type { CandlestickData, IChartApi } from "lightweight-charts";
 import { fetchHistory, fetchHistoryBoundary, fetchHistoryRange, fetchSymbols, openChartStream } from "@/app/lib/bridge";
 import {
+  CHART_TIMEFRAMES,
   CHART_HISTORY_RANGE_MAX_SECONDS,
   DEFAULT_CHART_SYMBOL,
   pickInitialChartSymbol,
@@ -43,6 +44,142 @@ const INITIAL_CHART_CANDLES = 1500;
 const QUICK_INITIAL_CHART_CANDLES = 350;
 const MIN_REFRESH_CANDLES = 12;
 const CHART_CACHE_WRITE_DELAY_MS = 1500;
+const RESIDENT_QUICK_CANDLES = 350;
+type ResidentLoadPriority = "selected" | "warm" | "deep";
+
+interface ResidentHistoryRequest {
+  key: string;
+  symbol: string;
+  timeframe: Timeframe;
+  bars: number;
+  preferCache: boolean;
+  priority: ResidentLoadPriority;
+  resolve: (candles: BridgeCandle[]) => void;
+  reject: (error: unknown) => void;
+}
+
+const selectedHistoryQueue: ResidentHistoryRequest[] = [];
+const warmHistoryQueue: ResidentHistoryRequest[] = [];
+const deepHistoryQueue: ResidentHistoryRequest[] = [];
+const residentHistoryPending = new Map<string, { request: ResidentHistoryRequest; promise: Promise<BridgeCandle[]> }>();
+let residentHistoryWorkerRunning = false;
+
+function residentHistoryRequestKey(symbol: string, timeframe: Timeframe, bars: number): string {
+  return `${symbol.toUpperCase()}:${timeframe}:${bars}`;
+}
+
+async function drainResidentHistoryQueue() {
+  if (residentHistoryWorkerRunning) return;
+  residentHistoryWorkerRunning = true;
+  try {
+    while (selectedHistoryQueue.length > 0 || warmHistoryQueue.length > 0 || deepHistoryQueue.length > 0) {
+      const request = selectedHistoryQueue.shift() ?? warmHistoryQueue.shift() ?? deepHistoryQueue.shift();
+      if (!request) break;
+      try {
+        const refreshed = await fetchHistory(
+          request.symbol,
+          request.timeframe,
+          request.bars,
+          AbortSignal.timeout(request.priority === "selected" ? 30_000 : 4_000),
+          request.preferCache,
+          request.priority !== "selected",
+        );
+        const resident = mergeChartCandles(readChartHistoryCache(request.symbol, request.timeframe), refreshed);
+        if (resident.length > 0) saveChartHistoryCache(request.symbol, request.timeframe, resident);
+        request.resolve(resident);
+      } catch (error) {
+        request.reject(error);
+      } finally {
+        residentHistoryPending.delete(request.key);
+      }
+    }
+  } finally {
+    residentHistoryWorkerRunning = false;
+    if (selectedHistoryQueue.length > 0 || warmHistoryQueue.length > 0 || deepHistoryQueue.length > 0) void drainResidentHistoryQueue();
+  }
+}
+
+export function loadResidentChartHistory(
+  symbol: string,
+  timeframe: Timeframe,
+  bars: number,
+  priority: ResidentLoadPriority,
+  preferCache = true,
+): Promise<BridgeCandle[]> {
+  const key = `${residentHistoryRequestKey(symbol, timeframe, bars)}:${preferCache ? "cache" : "terminal"}`;
+  const existing = residentHistoryPending.get(key);
+  if (existing) {
+    if (priority === "selected" && existing.request.priority === "warm") {
+      existing.request.priority = "selected";
+      const queuedIndex = warmHistoryQueue.indexOf(existing.request);
+      if (queuedIndex >= 0) {
+        warmHistoryQueue.splice(queuedIndex, 1);
+        selectedHistoryQueue.unshift(existing.request);
+      }
+    } else if (priority === "selected" && existing.request.priority === "deep") {
+      existing.request.priority = "selected";
+      const queuedIndex = deepHistoryQueue.indexOf(existing.request);
+      if (queuedIndex >= 0) {
+        deepHistoryQueue.splice(queuedIndex, 1);
+        selectedHistoryQueue.unshift(existing.request);
+      }
+    }
+    return existing.promise;
+  }
+
+  let resolveRequest!: (candles: BridgeCandle[]) => void;
+  let rejectRequest!: (error: unknown) => void;
+  const promise = new Promise<BridgeCandle[]>((resolve, reject) => {
+    resolveRequest = resolve;
+    rejectRequest = reject;
+  });
+  const request: ResidentHistoryRequest = {
+    key,
+    symbol,
+    timeframe,
+    bars,
+    preferCache,
+    priority,
+    resolve: resolveRequest,
+    reject: rejectRequest,
+  };
+  residentHistoryPending.set(key, { request, promise });
+  if (priority === "selected") selectedHistoryQueue.unshift(request);
+  else if (priority === "warm") warmHistoryQueue.push(request);
+  else deepHistoryQueue.push(request);
+  void drainResidentHistoryQueue();
+  return promise;
+}
+
+export function buildResidentChartWarmPlan(
+  symbols: readonly BridgeSymbol[],
+  selectedSymbol: string,
+  timeframe: Timeframe,
+): Array<{ symbol: string; timeframe: Timeframe }> {
+  const selected = selectedSymbol.toUpperCase();
+  const requests = [
+    ...symbols.map((symbol) => ({ symbol: symbol.name, timeframe })),
+    ...CHART_TIMEFRAMES.map((candidate) => ({ symbol: selected, timeframe: candidate })),
+  ];
+  const seen = new Set<string>();
+  return requests.filter((request) => {
+    const key = `${request.symbol.toUpperCase()}:${request.timeframe}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function warmResidentCharts(symbols: readonly BridgeSymbol[], selectedSymbol: string, timeframe: Timeframe) {
+  buildResidentChartWarmPlan(symbols, selectedSymbol, timeframe).forEach((request) => {
+    if (readChartHistoryCache(request.symbol, request.timeframe).length > 0) return;
+    void loadResidentChartHistory(request.symbol, request.timeframe, RESIDENT_QUICK_CANDLES, "warm").catch(() => {
+      // Some broker symbols do not expose every timeframe. They remain
+      // available for an explicit foreground attempt when selected.
+    });
+  });
+}
+
 const TIMEFRAME_SECONDS: Record<Timeframe, number> = {
   M1: 60, M5: 300, M15: 900, M30: 1800,
   H1: 3600, H4: 14_400, D1: 86_400, W1: 604_800, MN1: 2_592_000,
@@ -76,7 +213,9 @@ export function useChartMarketData({
   const boundaryCacheRef = useRef(new Map<string, number | null>());
   const initialSymbolRef = useRef(selectedSymbol);
   const selectedSymbolRef = useRef(selectedSymbol);
+  const selectedTimeframeRef = useRef(timeframe);
   selectedSymbolRef.current = selectedSymbol;
+  selectedTimeframeRef.current = timeframe;
   const pendingCacheWriteRef = useRef<{ symbol: string; timeframe: Timeframe; candles: BridgeCandle[] } | null>(null);
   const cacheWriteTimerRef = useRef<number | null>(null);
 
@@ -122,7 +261,6 @@ export function useChartMarketData({
 
   useEffect(() => {
     let cancelled = false;
-    const controller = new AbortController();
     const requestId = loadRequestIdRef.current + 1;
     loadRequestIdRef.current = requestId;
     const cached = readChartHistoryCache(selectedSymbol, timeframe);
@@ -145,15 +283,9 @@ export function useChartMarketData({
         const refreshBars = cached.length > 0
           ? getChartRefreshBars(cachedLatest ?? null, timeframe, Date.now() / 1000)
           : QUICK_INITIAL_CHART_CANDLES;
-        const refreshed = await fetchHistory(
-          selectedSymbol,
-          timeframe,
-          refreshBars,
-          controller.signal,
-          cached.length === 0,
-        );
+        const refreshed = await loadResidentChartHistory(selectedSymbol, timeframe, refreshBars, "selected", cached.length === 0);
         if (cancelled || loadRequestIdRef.current !== requestId) return;
-        let candles = cached.length > 0 ? mergeChartCandles(cached, refreshed) : refreshed;
+        let candles = mergeChartCandles(cached, refreshed);
         if (candles.length === 0) {
           if (cached.length > 0) {
             addLog(`history refresh returned no candles for ${selectedSymbol} ${timeframe}; keeping cached history visible`);
@@ -171,22 +303,6 @@ export function useChartMarketData({
         setLastCandleTime(candles[candles.length - 1]?.time ?? null);
         setVisibleCandles(candles);
         addLog(`history loaded ${candles.length} candles for ${selectedSymbol} ${timeframe}`);
-        saveChartHistoryCache(selectedSymbol, timeframe, candles);
-
-        if (cached.length === 0 && candles.length < INITIAL_CHART_CANDLES) {
-          try {
-            const expanded = await fetchHistory(selectedSymbol, timeframe, INITIAL_CHART_CANDLES, controller.signal);
-            if (cancelled || loadRequestIdRef.current !== requestId) return;
-            if (expanded.length > 0) {
-              candles = mergeChartCandles(expanded, candles);
-              addLog(`history cache expanded to ${candles.length} candles for ${selectedSymbol} ${timeframe}`);
-            }
-          } catch (error) {
-            if (!(error instanceof DOMException && error.name === "AbortError")) {
-              addLog(`expanded history deferred for ${selectedSymbol} ${timeframe}: ${error instanceof Error ? error.message : String(error)}`);
-            }
-          }
-        }
         saveChartHistoryCache(selectedSymbol, timeframe, candles);
 
         if (cachedBoundary === undefined) {
@@ -232,11 +348,29 @@ export function useChartMarketData({
     return () => {
       cancelled = true;
       loadRequestIdRef.current += 1;
-      controller.abort();
       loadingOlderRef.current = false;
       flushPendingCacheWrite();
     };
   }, [selectedSymbol, timeframe, addLog, flushPendingCacheWrite]);
+
+  useEffect(() => {
+    if (historyState !== "ready" || symbols.length === 0) return;
+    warmResidentCharts(symbols, selectedSymbol, timeframe);
+    if (readChartHistoryCache(selectedSymbol, timeframe).length >= INITIAL_CHART_CANDLES) return;
+    let cancelled = false;
+    void loadResidentChartHistory(selectedSymbol, timeframe, INITIAL_CHART_CANDLES, "deep", false)
+      .then((expanded) => {
+        if (cancelled
+          || selectedSymbolRef.current.toUpperCase() !== selectedSymbol.toUpperCase()
+          || selectedTimeframeRef.current !== timeframe) return;
+        setVisibleCandles((current) => mergeChartCandles(current, expanded));
+        addLog(`resident history expanded to ${expanded.length} candles for ${selectedSymbol} ${timeframe}`);
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) addLog(`resident history expansion deferred for ${selectedSymbol} ${timeframe}: ${error instanceof Error ? error.message : String(error)}`);
+      });
+    return () => { cancelled = true; };
+  }, [historyState, symbols, selectedSymbol, timeframe]);
 
   useEffect(() => {
     const chart = chartRef.current;
