@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from pathlib import Path
 
 import pytest
@@ -77,7 +78,7 @@ def test_chart_projection_keeps_visible_context_audit_and_omits_heavy_research_g
   assert context["dimensions"] == [{"dimension": "macroBackground", "value": "aligned", "historicalN": 20, "laterReaction": later_reaction, "status": "promising_context"}]
 
 
-def test_historical_evidence_uses_one_contract_cohort_and_keeps_unknown_counts_unknown() -> None:
+def test_historical_evidence_uses_one_contract_cohort_and_keeps_unknown_counts_unknown(monkeypatch) -> None:
   ordinary = server._historical_evidence_summary({
     "cohort": {"dimension": "relativeMagnitude", "value": "ordinary"},
     "historicalBenchmark": {"basis": "chronological_holdout", "experimentId": "E-ordinary"},
@@ -91,6 +92,42 @@ def test_historical_evidence_uses_one_contract_cohort_and_keeps_unknown_counts_u
   assert ordinary["evaluableCount"] == 20
   assert (ordinary["targetHitCount"], ordinary["stopHitCount"], ordinary["expiredCount"]) == (6, 8, 6)
   assert ordinary["totalGrossR"] == 2.5
+
+  class ImmutableEvidenceStore:
+    def get_metadata(self, key):
+      assert key == "fms_raw_audit:E-exact"
+      return json.dumps({
+        "selectedContractKey": "2|1.25|18",
+        "contracts": [{
+          "key": "2|1.25|18",
+          "holdout": {
+            "evaluableCount": 11, "targetHitCount": 6, "targetHitRate": 6 / 11,
+            "stopHitCount": 2, "stopHitRate": 2 / 11, "expiredCount": 3,
+            "ambiguousCount": 0, "unevaluableCount": 0, "grossAverageR": .5814216668,
+          },
+        }],
+        "contractResults": {"2|1.25|18": []},
+      })
+
+    def get_fms_experiment(self, experiment_id):
+      assert experiment_id == "E-exact"
+      return {"result": {"splitTime": 100}}
+
+  monkeypatch.setattr(server, "_research_store", ImmutableEvidenceStore())
+  exact = server._historical_evidence_summary({
+    "historicalBenchmark": {"basis": "chronological_holdout", "experimentId": "E-exact"},
+    "holdout": {"evaluableCount": 10, "targetHitCount": 5, "stopHitCount": 5, "ambiguousCount": 1, "averageR": .5},
+  })
+  assert exact["scope"] == "Chronological holdout · immutable registered contract"
+  assert (exact["evaluableCount"], exact["targetHitCount"], exact["stopHitCount"], exact["expiredCount"]) == (11, 6, 2, 3)
+  assert exact["ambiguousCount"] == 0
+  assert exact["averageGrossR"] == .5814216668
+  projected_exact = server._interactive_chart_pattern({
+    "id": "exact", "historicalBenchmark": {"basis": "chronological_holdout", "experimentId": "E-exact"},
+    "historicalEvidence": {"evaluableCount": 10, "ambiguousCount": 1},
+  })
+  assert projected_exact["historicalEvidence"]["evaluableCount"] == 11
+  assert projected_exact["historicalEvidence"]["ambiguousCount"] == 0
 
   successor = server._historical_evidence_summary({
     "historicalBenchmark": {"experimentId": "E-parent"},

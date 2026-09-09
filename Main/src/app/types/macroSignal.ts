@@ -1113,6 +1113,7 @@ export interface MacroSignalChartPattern {
     expiredCount: number | null;
     breakEvenCount: number | null;
     ambiguousCount: number | null;
+    ambiguousCases?: Array<{ caseId?: string | null; eventTime?: number | null; reason?: string | null }>;
     unevaluableCount: number | null;
     averageGrossR: number | null;
     totalGrossR: number | null;

@@ -3873,6 +3873,7 @@ def _historical_evidence_summary(pattern: Dict[str, Any]) -> Dict[str, Any]:
       "expiredCount": metrics.get("expiredCount"),
       "breakEvenCount": metrics.get("breakEvenCount"),
       "ambiguousCount": metrics.get("ambiguousCount", metrics.get("ambiguousN")),
+      "ambiguousCases": list(metrics.get("ambiguousCases") or []),
       "unevaluableCount": metrics.get("unevaluableCount", metrics.get("unevaluableN")),
       "averageGrossR": average,
       "totalGrossR": average * sample if average is not None and sample else None,
@@ -3899,6 +3900,36 @@ def _historical_evidence_summary(pattern: Dict[str, Any]) -> Dict[str, Any]:
     )
 
   if benchmark.get("basis") == "chronological_holdout":
+    experiment_id = str(benchmark.get("experimentId") or "")
+    try:
+      encoded_audit = _research_store.get_metadata(f"fms_raw_audit:{experiment_id}") if experiment_id else None
+      experiment = _research_store.get_fms_experiment(experiment_id) if experiment_id else None
+      audit = json.loads(encoded_audit) if encoded_audit else None
+      if isinstance(audit, dict):
+        selected_key = str(audit.get("selectedContractKey") or "")
+        contract = next((row for row in audit.get("contracts", []) if str(row.get("key")) == selected_key), None)
+        stored_holdout = dict((contract or {}).get("holdout") or {})
+        if stored_holdout:
+          split_time = (((experiment or {}).get("result") or {}).get("splitTime"))
+          ambiguous_cases = [
+            {
+              "caseId": row.get("caseId"),
+              "eventTime": row.get("eventTime"),
+              "reason": row.get("outcomeReason") or row.get("reason") or "SL and TP ordering was unresolved",
+            }
+            for row in (audit.get("contractResults") or {}).get(selected_key, [])
+            if row.get("status") == "ambiguous"
+            and (split_time is None or int(row.get("eventTime") or 0) >= int(split_time))
+          ]
+          stored_holdout["ambiguousCases"] = ambiguous_cases
+          return summary(
+            "Chronological holdout · immutable registered contract",
+            experiment_id or None,
+            stored_holdout,
+            "grossAverageR", "evaluableCount",
+          )
+    except (AttributeError, TypeError, ValueError, json.JSONDecodeError):
+      logger.warning("Falling back from immutable historical evidence for %s", experiment_id)
     return summary(
       "Chronological holdout · registered contract",
       str(benchmark.get("experimentId") or "") or None,
@@ -3931,7 +3962,6 @@ def _interactive_chart_pattern(pattern: Any) -> Any:
       "condition", "scoringPolicy", "reaction", "cohort",
       "historicalBenchmark", "registrationProvenance", "readiness", "execution",
       "baseExecution", "executionReview", "entryReview", "contextRegistration",
-      "historicalEvidence",
       "requiredExactTitles", "direction", "groups", "currentEligible",
       "uncertaintyIncludesNoEdge",
     )
@@ -3955,6 +3985,9 @@ def _interactive_chart_pattern(pattern: Any) -> Any:
     for key in ("evaluableYears", "positiveYears", "positiveYearShare")
   }
   projected["reactionAudit"] = _interactive_reaction_audit(pattern.get("reactionAudit"))
+  # Re-project from the linked immutable source so durable chart-response
+  # caches cannot preserve an older generic-contract evidence summary.
+  projected["historicalEvidence"] = _historical_evidence_summary(pattern)
   return projected
 
 

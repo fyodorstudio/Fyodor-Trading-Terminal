@@ -16,7 +16,7 @@ Local React/Vite manual-trading terminal with a FastAPI/MT5 bridge. FMS is the m
 
 ## Daily workflow and ownership
 
-Charts left panel has four windows: **Trade** owns Next/Current/Recent; **Journal** owns longer performance records; **Setups** owns registered benchmarks plus lazy Research/Knowledge disclosures; **Past Result** owns the selected arrow audit. Trade view/disclosure/filter/search/scroll state and Setups disclosure state are session-persisted.
+Charts left panel has four windows: **Trade** owns Next/Current/Recent; **Journal** owns longer performance records; **Setups** owns registered benchmarks plus lazy Research/Knowledge disclosures; **Past Result** owns the selected arrow audit. Trade view/disclosure/filter/search/scroll state and Setups disclosure state are session-persisted. Trade rows with a recorded signal can switch to the owning pair/entry timeframe, reveal that setup, focus its activation arrow, and open Past Result.
 
 Current includes open/pending trades, eligible cases awaiting entry geometry, and releases awaiting evaluation across midnight. Recent holds closed trades and completed no-trade/audit decisions immediately. Trade Next/Current/Recent show all available rows without a row cap; Next includes all loaded future occurrences per setup. A scheduled release awaiting assessment must remain visible. Simulated open status is not a broker position. Entry markers are candle annotations, not entry-price coordinates.
 
@@ -28,7 +28,7 @@ Current includes open/pending trades, eligible cases awaiting entry geometry, an
 - `Main/mt5-bridge/research_store.py`: SQLite, calendar/candles, first-seen ledger, runs and metadata. Default DB: `%LOCALAPPDATA%/Fyodor Trading Terminal/fyodor-research.sqlite3`.
 - `Main/src/app/config/fxPairs.ts`: canonical 28-pair universe. Registry count is dynamic; inspect code/data rather than old README counts.
 - Registered research JSON and immutable experiment IDs/fingerprints are evidence sources. Code-owned approval maps decide activation. FMS Knowledge is a richer reference, not another source of runtime contracts.
-- Setup projections expose one coherent `historicalEvidence` cohort. Exact counts may be shown only when that source records them; total gross R is exact mean times exact evaluable N, never a reconstruction from rounded rates.
+- Setup projections expose one coherent `historicalEvidence` cohort. Chronological-holdout setups are re-projected from the linked immutable selected-contract audit even when a durable chart-response cache is reused. Exact counts may be shown only when that source records them; total gross R is exact mean times exact evaluable N, never a reconstruction from rounded rates.
 
 Flow: MT5 EA uploads calendar/cycle records ? immutable observations ? exact package scoring ? oriented trade direction ? fixed entry/SL/TP/expiry evaluation ? persisted market snapshots ? merged global registry ? docks.
 

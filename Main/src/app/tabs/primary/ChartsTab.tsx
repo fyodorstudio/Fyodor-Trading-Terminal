@@ -249,6 +249,24 @@ export function getMacroBiasActivationCandleOpen(
   return nextIndex >= 0 ? candles[nextIndex].time : null;
 }
 
+export function getMacroBiasArrowFocusRange(
+  signal: MacroSignalChartSignal,
+  candles: BridgeCandle[],
+  sourceTimeOffsetSeconds: number,
+  chartTimeframe: Timeframe = "H4",
+): { from: number; to: number } | null {
+  const activationOpen = getMacroBiasActivationCandleOpen(signal, candles, sourceTimeOffsetSeconds, chartTimeframe);
+  if (activationOpen == null) return null;
+  const activationIndex = candles.findIndex((candle) => candle.time === activationOpen);
+  if (activationIndex < 0) return null;
+  const windowBars = Math.min(Math.max(Math.round(candles.length * 0.12), 56), 88);
+  const leadBars = Math.max(18, Math.round(windowBars * 0.34));
+  return {
+    from: Math.max(-0.5, activationIndex - (windowBars - leadBars)),
+    to: Math.min(candles.length - 0.5, activationIndex + leadBars),
+  };
+}
+
 export function buildMacroBiasSeriesMarkers(
   signals: MacroSignalChartSignal[],
   candles: BridgeCandle[],
@@ -483,6 +501,12 @@ export function ChartsTab({
   const [macroBiasSignalAudits, setMacroBiasSignalAudits] = useState<Record<string, MacroSignalChartSignal>>({});
   const [macroBiasSignalAuditErrors, setMacroBiasSignalAuditErrors] = useState<Record<string, string>>({});
   const [macroBiasSignalAuditRetryRevision, setMacroBiasSignalAuditRetryRevision] = useState(0);
+  const pendingMacroBiasArrowFocusRef = useRef<{
+    market: string;
+    signal: MacroSignalChartSignal;
+    timeframe: "H1" | "H4";
+  } | null>(null);
+  const [macroBiasArrowFocusRevision, setMacroBiasArrowFocusRevision] = useState(0);
   const [pairMatrixBeforeDays, setPairMatrixBeforeDays] = useState(loadPairMatrixBeforeDays);
   const [pairMatrixCoverageAnchor, setPairMatrixCoverageAnchor] = useState<number | null>(null);
   const [pairMatrixRangeArmed, setPairMatrixRangeArmed] = useState(false);
@@ -1312,6 +1336,22 @@ export function ChartsTab({
   }, [macroBiasDisplaySignals, selectedMacroBiasId]);
 
   useEffect(() => {
+    const pending = pendingMacroBiasArrowFocusRef.current;
+    if (!pending || selectedSymbol.toUpperCase() !== pending.market || timeframe !== pending.timeframe) return;
+    const signal = macroBiasDisplaySignals.find((candidate) => candidate.id === pending.signal.id)
+      ?? macroBiasDisplaySignals.find((candidate) => candidate.patternId === pending.signal.patternId && candidate.eventTime === pending.signal.eventTime);
+    const chart = chartRef.current;
+    const series = seriesRef.current;
+    if (!signal || !chart || !series || historyState !== "ready") return;
+    const range = getMacroBiasArrowFocusRange(signal, visibleCandles, chartSourceTimeOffsetSeconds, timeframe);
+    if (!range) return;
+    pendingMacroBiasArrowFocusRef.current = null;
+    setSelectedMacroBiasId(signal.id);
+    chart.timeScale().setVisibleLogicalRange(range);
+    series.priceScale().setAutoScale(true);
+  }, [macroBiasArrowFocusRevision, macroBiasDisplaySignals, selectedSymbol, timeframe, historyState, visibleCandles, chartSourceTimeOffsetSeconds]);
+
+  useEffect(() => {
     const series = seriesRef.current;
     macroBiasMarkersRef.current?.detach();
     macroBiasMarkersRef.current = null;
@@ -1499,6 +1539,27 @@ export function ChartsTab({
       return next;
     });
   }, []);
+
+  const goToMacroBiasArrow = useCallback((market: string, signal: MacroSignalChartSignal) => {
+    const normalizedMarket = market.toUpperCase();
+    const targetTimeframe = signal.activationTime == null ? "H4" : signal.entryTimeframe ?? "H4";
+    pendingMacroBiasArrowFocusRef.current = { market: normalizedMarket, signal, timeframe: targetTimeframe };
+    setMacroBiasVisible(true);
+    setMacroBiasHistoricalMatchesVisible(true);
+    setMacroBiasHiddenHistoricalPatterns((current) => {
+      const hidden = current[normalizedMarket] ?? [];
+      return hidden.includes(signal.patternId)
+        ? { ...current, [normalizedMarket]: hidden.filter((patternId) => patternId !== signal.patternId) }
+        : current;
+    });
+    try {
+      window.localStorage.setItem(MACRO_BIAS_VISIBILITY_KEY, "true");
+      window.localStorage.setItem(MACRO_BIAS_HISTORICAL_MATCHES_KEY, "true");
+    } catch { /* optional preference */ }
+    if (selectedSymbol.toUpperCase() !== normalizedMarket) onSelectedSymbolChange(normalizedMarket);
+    if (timeframe !== targetTimeframe) setTimeframe(targetTimeframe);
+    setMacroBiasArrowFocusRevision((current) => current + 1);
+  }, [onSelectedSymbolChange, selectedSymbol, timeframe]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -2707,6 +2768,7 @@ export function ChartsTab({
         onToggleMacroBiasHistoricalMatches={toggleMacroBiasHistoricalMatches}
         onToggleMacroBiasHistoricalPattern={toggleMacroBiasHistoricalPattern}
         onSetAllMacroBiasHistoricalPatterns={setAllMacroBiasHistoricalPatterns}
+        onGoToMacroBiasArrow={goToMacroBiasArrow}
         crosshairReadoutRef={crosshairReadoutRef}
         status={status}
         overlayCopy={overlayCopy}

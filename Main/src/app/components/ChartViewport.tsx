@@ -16,7 +16,7 @@ import type { ChartDisplayTimeMode } from "@/app/lib/chartView";
 import type { PairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
 import type { PairMatrixChartGeometryRuntime } from "@/app/lib/pairMatrixChartGeometry";
 import type { PairMatrixCandleRange, PairMatrixRangePixelBounds } from "@/app/lib/pairMatrixSnapshot";
-import type { BridgeStatus, CalendarEvent } from "@/app/types";
+import type { BridgeStatus, CalendarEvent, MacroSignalChartSignal } from "@/app/types";
 
 const PAIR_MATRIX_PANEL_MIN_HEIGHT = 240;
 const PAIR_MATRIX_CHART_MIN_HEIGHT = 220;
@@ -73,18 +73,30 @@ function FmsSetupsWorkspace({ data }: { data: ChartMacroBiasRealtimeCardData }) 
     .reduce((sum, market) => sum + market.patterns.filter((pattern) => pattern.currentEligible).length, 0);
   return <section className="fms-setups-workspace" aria-label="Registered setups, research, and knowledge">
     <header><div><span>Registered Setups</span></div><small>{registeredCount} frozen contracts</small></header>
-    <details className="fms-setups-workspace-root" open={sections.workspaceOpen} onToggle={(event) => setSections((current) => ({ ...current, workspaceOpen: event.currentTarget.open }))}>
+    <details className="fms-setups-workspace-root" open={sections.workspaceOpen} onToggle={(event) => {
+      const open = event.currentTarget.open;
+      setSections((current) => ({ ...current, workspaceOpen: open }));
+    }}>
       <summary><span>Registered setup benchmarks</span><strong>{registeredCount}</strong><ChevronDown size={14} /></summary>
       <div className="fms-setups-workspace-sections">
-        <details open={sections.open.includes("benchmarks")} onToggle={(event) => toggleSection("benchmarks", event.currentTarget.open)}>
+        <details open={sections.open.includes("benchmarks")} onToggle={(event) => {
+          const open = event.currentTarget.open;
+          toggleSection("benchmarks", open);
+        }}>
           <summary><span>Benchmarks</span><small>Frozen contracts and historical evidence</small><ChevronDown size={13} /></summary>
           {sections.visited.includes("benchmarks") ? <ChartMacroBiasRealtimeCard data={data} view="setups" embedded /> : null}
         </details>
-        <details open={sections.open.includes("research")} onToggle={(event) => toggleSection("research", event.currentTarget.open)}>
+        <details open={sections.open.includes("research")} onToggle={(event) => {
+          const open = event.currentTarget.open;
+          toggleSection("research", open);
+        }}>
           <summary><span>Research / reviews</span><small>Diagnostics, queues, and candidates</small><ChevronDown size={13} /></summary>
           {sections.visited.includes("research") ? <ChartMacroBiasRealtimeCard data={data} view="research" embedded /> : null}
         </details>
-        <details open={sections.open.includes("knowledge")} onToggle={(event) => toggleSection("knowledge", event.currentTarget.open)}>
+        <details open={sections.open.includes("knowledge")} onToggle={(event) => {
+          const open = event.currentTarget.open;
+          toggleSection("knowledge", open);
+        }}>
           <summary><span>Knowledge</span><small>Durable findings and research ledger</small><ChevronDown size={13} /></summary>
           {sections.visited.includes("knowledge") ? <ChartFmsKnowledgeCard data={data} embedded /> : null}
         </details>
@@ -243,6 +255,7 @@ interface ChartViewportProps {
   onToggleMacroBiasHistoricalMatches: () => void;
   onToggleMacroBiasHistoricalPattern: (patternId: string) => void;
   onSetAllMacroBiasHistoricalPatterns: (visible: boolean) => void;
+  onGoToMacroBiasArrow: (market: string, signal: MacroSignalChartSignal) => void;
   crosshairReadoutRef: Ref<ChartCrosshairReadoutHandle>;
   status: BridgeStatus;
   overlayCopy: {
@@ -276,6 +289,7 @@ export function ChartViewport({
     onToggleMacroBiasHistoricalMatches,
     onToggleMacroBiasHistoricalPattern,
     onSetAllMacroBiasHistoricalPatterns,
+    onGoToMacroBiasArrow,
     crosshairReadoutRef,
   status,
   overlayCopy,
@@ -401,6 +415,7 @@ export function ChartViewport({
                         onToggleHistoricalMatches={onToggleMacroBiasHistoricalMatches}
                         onToggleHistoricalPattern={onToggleMacroBiasHistoricalPattern}
                         onSetAllHistoricalPatterns={onSetAllMacroBiasHistoricalPatterns}
+                        onGoToArrow={onGoToMacroBiasArrow}
                         viewState={fmsTradeViewState}
                         onViewStateChange={setFmsTradeViewState}
                       />

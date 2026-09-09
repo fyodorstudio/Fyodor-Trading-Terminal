@@ -283,6 +283,7 @@ type HistoricalRecord = {
   expiredCount: number | null;
   breakEvenCount: number | null;
   ambiguousCount: number | null;
+  ambiguousCases: Array<{ caseId?: string | null; eventTime?: number | null; reason?: string | null }>;
   unevaluableCount: number | null;
   averageR: number | null;
   totalR: number | null;
@@ -303,6 +304,7 @@ function historicalRecord(pattern: MacroSignalChartPattern): HistoricalRecord {
     expiredCount: evidence.expiredCount,
     breakEvenCount: evidence.breakEvenCount,
     ambiguousCount: evidence.ambiguousCount,
+    ambiguousCases: evidence.ambiguousCases ?? [],
     unevaluableCount: evidence.unevaluableCount,
     averageR: evidence.averageGrossR,
     totalR: evidence.totalGrossR,
@@ -321,6 +323,7 @@ function historicalRecord(pattern: MacroSignalChartPattern): HistoricalRecord {
     expiredCount: metrics.expiredCount,
     breakEvenCount: null,
     ambiguousCount: metrics.ambiguousCount,
+    ambiguousCases: [],
     unevaluableCount: metrics.unevaluableCount,
     averageR: metrics.averageR,
     totalR: metrics.averageR == null ? null : metrics.averageR * metrics.evaluableCount,
@@ -329,8 +332,8 @@ function historicalRecord(pattern: MacroSignalChartPattern): HistoricalRecord {
 }
 
 function countAndRate(count: number | null, rate: number | null): string {
-  if (count == null && rate == null) return "Unavailable";
-  if (count == null) return `Count unavailable · ${(Number(rate) * 100).toFixed(1)}%`;
+  if (count == null && rate == null) return "Not recorded for this cohort";
+  if (count == null) return `${(Number(rate) * 100).toFixed(1)}% · exact count not stored`;
   return `${count}${rate == null ? "" : ` · ${(rate * 100).toFixed(1)}%`}`;
 }
 
@@ -356,6 +359,11 @@ function HistoricalBenchmark({ pattern }: { pattern: MacroSignalChartPattern }) 
       <div><dt>Total gross R</dt><dd>{record.totalR == null ? "Unavailable" : `${signed(Number(record.totalR.toFixed(2)))}R${record.totalComputed ? " · computed from exact mean × N" : ""}`}</dd></div>
       <div><dt>Average gross R</dt><dd>{record.averageR == null ? "Unavailable" : `${signed(Number(record.averageR.toFixed(3)))}R`}</dd></div>
     </dl>
+    <details className="fms-history-definitions">
+      <summary>Outcome definitions{record.ambiguousCount ? ` · inspect ${record.ambiguousCount} ambiguous` : ""}</summary>
+      <p><b>Expired:</b> neither SL nor TP was reached before the frozen maximum duration; the final candle determines gross R. <b>Ambiguous:</b> SL and TP were both touched inside one H4 candle and available finer data could not prove which came first. <b>Unevaluable:</b> required entry, ATR, or outcome candles were missing, so no result was invented.</p>
+      {record.ambiguousCases.length ? <ul>{record.ambiguousCases.map((row, index) => <li key={row.caseId ?? `${row.eventTime}:${index}`}><strong>{row.eventTime == null ? "Time unavailable" : formatJakartaDisplayDateTime(row.eventTime)}</strong><span>{row.caseId ?? "Case ID unavailable"} · {row.reason ?? "SL/TP order unresolved"}</span></li>)}</ul> : record.ambiguousCount ? <small>The source records the ambiguous count but not case-level identifiers. Use source {record.sourceId ?? "ID unavailable"} for a raw-case audit.</small> : <small>No ambiguous case is recorded in this cohort.</small>}
+    </details>
   </div>;
 }
 
@@ -428,6 +436,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   onToggleHistoricalMatches,
   onToggleHistoricalPattern,
   onSetAllHistoricalPatterns,
+  onGoToArrow,
   viewState,
   onViewStateChange,
 }: {
@@ -438,6 +447,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   onToggleHistoricalMatches?: () => void;
   onToggleHistoricalPattern?: (patternId: string) => void;
   onSetAllHistoricalPatterns?: (visible: boolean) => void;
+  onGoToArrow?: (market: string, signal: MacroSignalChartSignal) => void;
   viewState?: FmsTradeViewState;
   onViewStateChange?: (state: FmsTradeViewState) => void;
 }) {
@@ -455,6 +465,13 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   ), [data.globalResponse?.forwardValidation?.setupSummaries]);
   const datedSetupCount = registeredSchedule.filter((row) => row.watch != null).length;
   const activity = useMemo(() => buildRecentFmsActivity(markets, clock), [markets, clock]);
+  const latestArrowBySetup = useMemo(() => {
+    const latest = new Map<string, MacroSignalChartSignal>();
+    activity.forEach((row) => {
+      if (row.signal && !latest.has(`${row.market}:${row.pattern.id}`)) latest.set(`${row.market}:${row.pattern.id}`, row.signal);
+    });
+    return latest;
+  }, [activity]);
   const [localViewState, setLocalViewState] = useState<FmsTradeViewState>(DEFAULT_FMS_TRADE_VIEW_STATE);
   const currentViewState = viewState ?? localViewState;
   const updateViewState = (patch: Partial<FmsTradeViewState>) => {
@@ -563,12 +580,13 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
               const record = historicalRecord(row.pattern);
               const evidence = setupEvidenceLabel(row.pattern);
               const fresh = forwardEvidenceLabel(forwardSetupByKey.get(`${row.market}:${row.pattern.id}`));
+              const latestArrow = latestArrowBySetup.get(`${row.market}:${row.pattern.id}`) ?? null;
               return <Fragment key={row.key}>
                 <tr data-row-key={row.key} className={row.watch ? "is-scheduled" : ""} role="button" tabIndex={0} aria-expanded={expanded} onClick={() => updateViewState({ expandedScheduleKey: expanded ? null : row.key })} onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") { event.preventDefault(); updateViewState({ expandedScheduleKey: expanded ? null : row.key }); }
                 }}>
                   <td><strong><PairFlags symbol={row.market} />{row.market}</strong><small>{row.pattern.label}</small></td>
-                  <td className="fms-action-evidence"><strong>{record.tpRate == null ? "TP rate unavailable" : `${(record.tpRate * 100).toFixed(1)}% TP before SL`}</strong><small>{record.averageR == null ? "Gross average unavailable" : `${record.averageR >= 0 ? "+" : ""}${record.averageR.toFixed(2)}R gross avg`} · N {record.sample}</small><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small></td>
+                  <td className="fms-action-evidence"><strong>{record.tpRate == null ? "TP rate unavailable" : `${(record.tpRate * 100).toFixed(1)}% TP before SL`}</strong><small>{record.averageR == null ? "Gross average unavailable" : `${record.averageR >= 0 ? "+" : ""}${record.averageR.toFixed(2)}R gross avg`} · N {record.sample}</small><span className="fms-row-actions"><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small>{latestArrow && onGoToArrow ? <button type="button" className="fms-go-to-arrow" onClick={(event) => { event.stopPropagation(); onGoToArrow(row.market, latestArrow); }} onKeyDown={(event) => event.stopPropagation()}>Go to latest arrow</button> : null}</span></td>
                   <td><TradeDate label="Release" time={row.watch?.time} fallback="Awaiting date" />{row.watch ? <small className="fms-release-countdown">In {countdownLabel(row.watch.time, clock)}</small> : null}</td>
                 </tr>
                 {expanded ? <tr className="fms-action-detail-row"><td colSpan={3}>
@@ -601,12 +619,13 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
             <tbody>{displayedActivity.map((row) => {
               const expanded = expandedActivityKey === row.key;
               const sourceLabel = row.source === "recovered" ? "Recovered offline" : row.source === "live" ? "Live captured" : row.state === "No trade" ? "No trade" : "Decision";
+              const arrowSignal = row.signal;
               return <Fragment key={row.key}>
                 <tr data-row-key={row.key} role="button" tabIndex={0} aria-expanded={expanded} onClick={() => updateViewState({ expandedActivityKey: expanded ? null : row.key })} onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") { event.preventDefault(); updateViewState({ expandedActivityKey: expanded ? null : row.key }); }
                 }}>
                   <td><strong><PairFlags symbol={row.market} />{row.market}</strong><small>{row.label}</small></td>
-                  <td><strong>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} · ` : ""}{row.state}</strong><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small></td>
+                  <td><strong>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} · ` : ""}{row.state}</strong><span className="fms-row-actions"><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small>{arrowSignal && onGoToArrow ? <button type="button" className="fms-go-to-arrow" onClick={(event) => { event.stopPropagation(); onGoToArrow(row.market, arrowSignal); }} onKeyDown={(event) => event.stopPropagation()}>Go to arrow</button> : null}</span></td>
                   <td className="fms-activity-dates">
                     <TradeDate label="Released" time={row.signal?.eventTime ?? row.assessment?.time ?? row.time} />
                     {row.signal ? <>
