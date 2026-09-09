@@ -23,6 +23,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, ValidationError, field_validator
+from starlette.websockets import WebSocketState
 
 from registered_reaction_audits import registered_context_approval_evidence, registered_context_followup_index, registered_reaction_audit
 from fms_historical_evidence import resolve_historical_evidence
@@ -6085,37 +6086,90 @@ def research_backtest(run_id: str) -> Dict[str, Any]:
   return run
 
 
-@app.websocket("/stream")
-async def stream(websocket: WebSocket, symbol: str, tf: str) -> None:
-  await websocket.accept()
-
-  await websocket.send_json(
-    {
-      "type": "status",
-      "message": "connected",
-      "symbol": symbol,
-      "tf": tf,
-      "timestamp": datetime.utcnow().isoformat() + "Z",
-    }
-  )
-
+async def _try_websocket_send_json(websocket: WebSocket, payload: Dict[str, Any]) -> bool:
+  """Send only while the ASGI socket is live; client churn is not a bridge error."""
+  if websocket.application_state != WebSocketState.CONNECTED:
+    return False
   try:
-    timeframe = mt5_timeframe(tf)
-  except HTTPException as exc:
-    await websocket.send_json(
-      {
-        "type": "status",
-        "message": "bad_timeframe",
-        "error": exc.detail,
-      }
-    )
+    await websocket.send_json(payload)
+    return True
+  except (WebSocketDisconnect, RuntimeError, ConnectionError, OSError):
+    return False
+
+
+async def _try_websocket_close(websocket: WebSocket) -> None:
+  if websocket.application_state != WebSocketState.CONNECTED:
+    return
+  try:
     await websocket.close()
+  except (WebSocketDisconnect, RuntimeError, ConnectionError, OSError):
     return
 
-  last_bar_time: Optional[int] = None
 
+async def _watch_websocket_disconnect(websocket: WebSocket, disconnected: asyncio.Event) -> None:
+  """Consume the ASGI disconnect event so closed chart streams stop promptly."""
   try:
     while True:
+      message = await websocket.receive()
+      if message.get("type") == "websocket.disconnect":
+        return
+  except (WebSocketDisconnect, RuntimeError, ConnectionError, OSError):
+    return
+  finally:
+    disconnected.set()
+
+
+async def _wait_for_stream_tick(disconnected: asyncio.Event, seconds: float = 1.0) -> bool:
+  """Return True when the client disconnects before the next quote tick."""
+  try:
+    await asyncio.wait_for(disconnected.wait(), timeout=seconds)
+    return True
+  except TimeoutError:
+    return False
+
+
+@app.websocket("/stream")
+async def stream(websocket: WebSocket, symbol: str, tf: str) -> None:
+  disconnected = asyncio.Event()
+  disconnect_task: Optional[asyncio.Task[None]] = None
+  try:
+    await websocket.accept()
+  except (WebSocketDisconnect, RuntimeError, ConnectionError, OSError):
+    return
+
+  try:
+    connected = await _try_websocket_send_json(
+      websocket,
+      {
+        "type": "status",
+        "message": "connected",
+        "symbol": symbol,
+        "tf": tf,
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+      },
+    )
+    if not connected:
+      return
+
+    try:
+      timeframe = mt5_timeframe(tf)
+    except HTTPException as exc:
+      await _try_websocket_send_json(
+        websocket,
+        {
+          "type": "status",
+          "message": "bad_timeframe",
+          "error": exc.detail,
+        },
+      )
+      return
+
+    disconnect_task = asyncio.create_task(_watch_websocket_disconnect(websocket, disconnected))
+    last_bar_time: Optional[int] = None
+
+    while True:
+      if disconnected.is_set():
+        return
       try:
         with _mt5_access(.5):
           if not _ensure_mt5_initialized():
@@ -6126,31 +6180,39 @@ async def stream(websocket: WebSocket, symbol: str, tf: str) -> None:
             rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, 2)
             error = _get_last_error() if rates is None or len(rates) == 0 else None
       except Mt5BusyError:
-        await websocket.send_json(
+        sent = await _try_websocket_send_json(
+          websocket,
           {
             "type": "status",
             "message": "mt5_busy",
             "error": "Another bridge operation is using MT5; cached candles remain available.",
-          }
+          },
         )
-        await asyncio.sleep(1.0)
+        if not sent:
+          return
+        if await _wait_for_stream_tick(disconnected):
+          return
         continue
       except HTTPException as exc:
-        await websocket.send_json(
-          {"type": "status", "message": "symbol_error", "error": exc.detail}
+        await _try_websocket_send_json(
+          websocket,
+          {"type": "status", "message": "symbol_error", "error": exc.detail},
         )
-        await websocket.close()
         return
 
       if rates is None or len(rates) == 0:
-        await websocket.send_json(
+        sent = await _try_websocket_send_json(
+          websocket,
           {
             "type": "status",
             "message": "mt5_not_connected" if not terminal_connected else "no_data",
             "error": error,
-          }
+          },
         )
-        await asyncio.sleep(1.0)
+        if not sent:
+          return
+        if await _wait_for_stream_tick(disconnected):
+          return
         continue
 
       row = rates[-1]
@@ -6158,31 +6220,39 @@ async def stream(websocket: WebSocket, symbol: str, tf: str) -> None:
 
       if last_bar_time is None:
         last_bar_time = candle["time"]
-        await websocket.send_json({"type": "candle_update", "candle": candle})
+        sent = await _try_websocket_send_json(websocket, {"type": "candle_update", "candle": candle})
       else:
         if candle["time"] != last_bar_time:
           last_bar_time = candle["time"]
-          await websocket.send_json({"type": "candle_new", "candle": candle})
+          sent = await _try_websocket_send_json(websocket, {"type": "candle_new", "candle": candle})
         else:
-          await websocket.send_json({"type": "candle_update", "candle": candle})
+          sent = await _try_websocket_send_json(websocket, {"type": "candle_update", "candle": candle})
 
-      await asyncio.sleep(1.0)
+      if not sent:
+        return
+
+      if await _wait_for_stream_tick(disconnected):
+        return
   except WebSocketDisconnect:
-    # Client disconnected; just exit the handler
     return
   except Exception as exc:  # pragma: no cover - defensive logging path
     _update_last_error()
-    await websocket.send_json(
+    logger.exception("Chart stream failed for %s %s", symbol, tf)
+    await _try_websocket_send_json(
+      websocket,
       {
         "type": "status",
         "message": "mt5_error",
         "error": _get_last_error(),
         "details": str(exc),
-      }
+      },
     )
-    # Back off a bit before terminating
-    await asyncio.sleep(2.0)
-    await websocket.close()
+  finally:
+    disconnected.set()
+    if disconnect_task is not None:
+      disconnect_task.cancel()
+      await asyncio.gather(disconnect_task, return_exceptions=True)
+    await _try_websocket_close(websocket)
 
 
 if __name__ == "__main__":

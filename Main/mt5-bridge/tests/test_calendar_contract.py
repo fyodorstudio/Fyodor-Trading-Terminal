@@ -4,6 +4,7 @@ Uses FastAPI TestClient; no running server required.
 """
 from __future__ import annotations
 
+import asyncio
 import json
 import time
 from contextlib import contextmanager
@@ -32,6 +33,60 @@ MINIMAL_EVENT = {
   "previous": "",
 }
 MINIMAL_BODY = {"events": [MINIMAL_EVENT]}
+
+
+def test_chart_stream_treats_rapid_client_disconnect_as_normal_lifecycle():
+  class ClosedDuringSend:
+    application_state = server.WebSocketState.CONNECTED
+
+    @staticmethod
+    async def send_json(_payload):
+      raise RuntimeError('Cannot call "send" once a close message has been sent.')
+
+    @staticmethod
+    async def close():
+      raise RuntimeError('Cannot call "send" once a close message has been sent.')
+
+  class ClientDisconnect:
+    @staticmethod
+    async def receive():
+      return {"type": "websocket.disconnect", "code": 1000}
+
+  async def exercise_disconnect_paths():
+    assert await server._try_websocket_send_json(ClosedDuringSend(), {"type": "status"}) is False
+    await server._try_websocket_close(ClosedDuringSend())
+    disconnected = asyncio.Event()
+    await server._watch_websocket_disconnect(ClientDisconnect(), disconnected)
+    assert disconnected.is_set()
+    assert await server._wait_for_stream_tick(disconnected) is True
+
+  asyncio.run(exercise_disconnect_paths())
+
+
+def test_chart_stream_handler_exits_cleanly_when_pair_switch_closes_socket(monkeypatch):
+  class DummyMT5:
+    @staticmethod
+    def copy_rates_from_pos(_symbol, _timeframe, _start, _count):
+      return [{
+        "time": _EVENT_TIME,
+        "open": 1.1,
+        "high": 1.2,
+        "low": 1.0,
+        "close": 1.15,
+        "tick_volume": 100,
+        "real_volume": 0,
+      }]
+
+  monkeypatch.setattr(server, "mt5", DummyMT5)
+  monkeypatch.setattr(server, "mt5_timeframe", lambda _tf: 240)
+  monkeypatch.setattr(server, "_ensure_mt5_initialized", lambda: True)
+  monkeypatch.setattr(server, "ensure_symbol_selected", lambda _symbol: None)
+
+  with client.websocket_connect("/stream?symbol=EURUSD&tf=H4") as websocket:
+    assert websocket.receive_json()["message"] == "connected"
+    candle_message = websocket.receive_json()
+    assert candle_message["type"] == "candle_update"
+    assert candle_message["candle"]["time"] == _EVENT_TIME
 
 
 def test_calendar_ingest_then_get():

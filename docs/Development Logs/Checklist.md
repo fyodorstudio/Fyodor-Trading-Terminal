@@ -1,168 +1,136 @@
 # Current mission and handoff
 
-Updated 2026-09-09. P0–P7, owner follow-up fixes, and the Past Result overhaul are complete; owner visual verification remains. Rules: [AGENTS](../../AGENTS.md). Durable context: [CONTEXT](../../CONTEXT.md). Unknown owner: [navigation](../NAVIGATION.md).
+Updated 2026-09-09. There is no authorized implementation task in progress. The owner is investigating frozen FMS records and will return with specific cases before discussing any explicit correction. Rules: [AGENTS](../../AGENTS.md). Durable context: [CONTEXT](../../CONTEXT.md). Unknown owner: [navigation](../NAVIGATION.md).
 
 ## Non-negotiable product behavior
 
 - Local manual-trading support only. Fyodor sends no orders and makes no profitability promise.
 - Trusted inputs remain MT5 OHLCV and the broker economic calendar. Research stays gross; there is no new cost model or external feed.
-- Immutable first-seen provenance, frozen contracts, no-lookahead semantics, unresolved outcomes, release monitoring, and all saved records remain intact.
-- No setup was promoted automatically. Real-account access remains outside scope.
-- Target layout is 1440x900 at 100% Chrome zoom. Browser automation was not used; the owner must perform the visual checks below.
+- Preserve immutable first-seen provenance, frozen contracts, no-lookahead semantics, unresolved outcomes, release monitoring, and all saved records.
+- Never silently rewrite a frozen result. A confirmed defect requires an explicit, versioned correction with the original record and provenance retained.
+- No setup is promoted automatically. Real-account access remains outside scope.
+- Target layout remains 1440x900 at 100% Chrome zoom. Browser automation has not been authorized; visual verification belongs to the owner.
 
-## 2026-09-09 Past Result overhaul
+## Current owner investigation — frozen records
 
-- Replaced every Past Result card, grid, list, nested table, and disclosure with one plain three-column audit table (`Field`, `Value`, `Details`). Section rows preserve the result-first reading order without decorative card placement.
-- `Initial price reaction` is the second table section, directly after the frozen result and contract rows. It shows one-H4 reaction, six-H4 direction, MFE, MAE, and final frozen result; missing one-H4 data is explicit rather than inferred.
-- The screenshot case `eurusd-ism-manufacturing-employment-package:1788282000` does have immutable reaction data. Its first-H4 response is -0.201R (price opposed the short arrow), six-H4/final response is -0.043R, MFE is +0.594R, and MAE is -0.713R. The old UI had buried this below target/context content.
-- Entry timing is table rows only when an immutable first-seen MT5 quote exists. Historical arrows without one show no empty label, stray dropdown, or unavailable placeholder.
-- Release, target, structure, context, timeline, path, historical outcome, and provenance records remain in the same table without changing frozen data or interpretation.
-- Validation: `pnpm run typecheck` passed; the existing chart test file remains 29/29 and asserts one table, no Past Result cards/details, Initial price reaction before Why the arrow appeared, and no unavailable entry-timing section.
+The owner is reviewing registered arrows and will provide suspicious cases. No model, recipe, result, or historical record should change until the evidence is reviewed together and the owner explicitly authorizes a correction.
 
-## 2026-09-09 Past Result runtime recovery
+For each case, retain or request:
 
-- Reproduced the owner's console failure in the existing chart regression: an older immutable selected-arrow/detail record omitted `events`, while the new table view model called `signal.events.length`. The check failed with the same `Cannot read properties of undefined (reading 'length')` error before the fix.
-- Selected target-ladder detail now enriches the base arrow instead of replacing it. Missing detail fields therefore cannot erase the base release package or path-audit record.
-- The Past Result view boundary now normalizes legacy missing event, fixed-horizon, target-ladder, loss-review, and entry-timing arrays. Partial old market-context records are omitted rather than dereferenced or inferred; non-finite historical numbers render as unavailable rather than `NaN`.
-- Extended the existing chart test (no new test file) with omitted-event, sparse-path, partial-context, and detail-merge cases. It now passes 29/29; `pnpm run typecheck` and `pnpm run build` pass. The build retains the existing non-blocking large-chunk warning.
+- Pair, setup/registration ID, source version, release date/time, and screenshot when useful.
+- The immutable release package and which values were known at decision time.
+- Direction vote and the exact reason the registered rule selected it.
+- Release-to-activation-candle mapping, entry timeframe, and timezone conversion.
+- Frozen entry, ATR, SL, TP, risk/reward, management, and maximum-duration formulas.
+- Candle path through resolution: TP first, SL first, expiry, same-candle ambiguity, or unavailable coverage.
+- First-seen provenance and whether the displayed record came from prospective, recovered, reviewed-entry, reviewed-execution, chronological-holdout, or pooled evidence.
+- Any disagreement between stored evidence, bridge projection, Past Result, chart placement, and Trade-row summaries.
 
-## 2026-09-09 resident broker charts
+Classify each investigated case before proposing a change:
 
-- Replaced cancellable one-chart history loading with a session-resident `symbol × timeframe` store. A load now completes and populates the store even when the owner switches away; an identical later request shares the in-flight operation instead of restarting it.
-- The full broker symbol list remains accessible. After the selected chart is ready, every available broker symbol warms 350 candles for the active timeframe, while all nine timeframes warm for the selected symbol. Explicit selections are LIFO foreground work; shallow warming precedes 1,500-candle deepening.
-- Background history calls use a new backward-compatible `background=true` hint. The bridge tries its durable candle store first and waits only 50 ms for MT5, so warming cannot queue ahead of selected-chart, release-monitoring, or other foreground work. No order/account operation was added.
-- The Lightweight Charts renderer remains mounted. Candle buffers swap from resident memory, chart zoom snapshots are retained per `symbol:timeframe`, and ready candles now say `Chart Ready` while the live socket catches up instead of implying that the chart is blocked on `Connecting`.
-- Existing tests were extended rather than adding files. Validation: chart/storage regressions 37/37, TypeScript passed, production build passed with the pre-existing large-chunk warning, and the focused bridge busy/cache/background-lock contract passed.
+- Correct but unintuitive registered behavior.
+- Chart placement or presentation defect.
+- Historical-evidence projection defect.
+- Stale or incomplete cached detail.
+- Outcome/path evaluation defect.
+- Genuine contract/model weakness.
+- Insufficient evidence; retain unresolved status.
 
-## 2026-09-09 all-symbol Market Watch
+If a correction is warranted, document the confirmed cause, affected record set, immutable original, replacement/version identity, migration or projection behavior, regression evidence, and any remaining uncertainty before implementation.
 
-- The chart symbol selector now has two explicit modes. `Browse` is still the default and retains the existing favorites, search, and broker-path groups. `Market Watch` is a dense four-column table: Symbol, Bid, Ask, and Daily Change.
-- Market Watch preserves every row and the original order returned by the broker's unfiltered MT5 `symbols_get()` call, including symbols that are not currently visible/selected in MT5. Search only filters the displayed audit rows and does not alter the broker universe.
-- The bridge now projects Bid, Ask, broker precision, and MT5 `price_change` directly from the bulk `symbols_get()` result. It removed the former per-symbol `symbol_info()` loop, so a refresh remains one MT5 bulk IPC call rather than scaling to one call per broker instrument.
-- While Market Watch is open, snapshots refresh once per second through the background-priority lock. If chart, calendar, or other foreground MT5 work owns the lock, the table immediately retains its last complete snapshot instead of blocking that work or dropping rows.
-- Daily Change uses MT5's own `SYMBOL_PRICE_CHANGE` value (current price versus the prior trading-day close, percent). Missing broker quote fields remain visible as an em dash; they are not inferred or used to remove the symbol.
-- Existing tests were extended rather than adding files. Validation: TypeScript passed; chart/storage regressions passed 38/38; the bridge contract passed 13/13 and verifies complete ordered rows, quote projection, one bulk call, and cached non-blocking background refresh; production build passed with the pre-existing large-chunk warning.
+## Current implemented baseline
 
-## 2026-09-09 rapid switching and stable refocus
+- Rapid pair/timeframe switching no longer turns an expected chart WebSocket disconnect into a bridge traceback. Every stream send and close is lifecycle-safe, client disconnect frames are consumed promptly, obsolete streams stop polling MT5 immediately, and the error path never attempts a second send over an already-closed socket.
+- The focused bridge contract now passes 15/15. It reproduces the exact `Cannot call send once a close message has been sent` failure and exercises a complete connect/candle/pair-switch disconnect route without an unhandled exception. Existing FastAPI lifespan and `datetime.utcnow` deprecation warnings remain unrelated.
+- Charts is usable as the working surface with Trade, Journal, Setups, and table-only Past Result docks.
+- Trade continuity, compact disclosures, setup filtering, Go to arrow, selected-arrow detail recovery, explicit outcome definitions, and coherent historical-evidence priority are implemented.
+- The full broker symbol universe remains available. The selector has the existing Browse mode and a dense Market Watch mode with Symbol, Bid, Ask, and MT5 Daily Change.
+- The selector stays open during repeated symbol choices. Session-resident candle loading, background warming, per-symbol/timeframe zoom memory, pre-paint viewport replacement, and configurable 40–400-candle refocus width support rapid review.
+- The latest focused frontend checks passed: TypeScript, 46/46 chart preference/render regressions, and production build. The build retains the known non-blocking large-chunk warning.
+- The symbol portion of that bridge contract continues to cover complete ordered broker rows, one bulk MT5 symbol call, quote projection, and non-blocking cached background refresh.
+- The bounded entry-known H4 research campaign completed with 12 declared variants, zero survivors, and no promotion. Its immutable artifacts and exhaustion-ledger records remain preserved outside this active handoff.
 
-- Selecting a symbol in either `Browse` or `Market Watch` now leaves the selector open. Search text, scroll position, and mode stay available for consecutive pair changes; outside click remains the deliberate close action.
-- Confirmed the visible switch jitter came from a two-frame viewport sequence: candle data and horizontal focus were applied after paint, then refocus performed an additional request-animation-frame vertical recenter. Candle replacement, price precision, time-axis formatting, and horizontal focus now commit before paint, while one stable price auto-fit replaces the delayed recenter.
-- `Keep horizontal zoom when changing symbol or timeframe` is now honored. It had been displayed in settings but the market-identity transition always forced preservation regardless of the saved value.
-- Appearance > Viewport now exposes `Default refocus width` with 40, 60, 90, 120, 180, 240, and 400-candle choices. The saved default remains 120; old preferences safely normalize to it. This setting controls both first-open framing and the toolbar Refocus action.
-- Existing tests were extended rather than adding files. Validation: TypeScript passed and the focused chart preference/render regressions passed 46/46 without the former server-render layout-effect warning.
+## Deferred until the owner explicitly brings it up
 
-## 2026-09-09 FMS ownership and repository hygiene
+These are product-direction notes, not authorization to implement, delete application code, move files, or redesign routes.
 
-- Extracted historical-evidence normalization/source priority from the live server into pure `Main/mt5-bridge/fms_historical_evidence.py`. The bridge now only injects immutable-store readers; every chart projection carries schema `fms-chart-historical-evidence-v1`.
-- Removed the offline reviewed-H1 campaign's import of `server.py`, FastAPI, and MetaTrader5. It now reads the frozen active contracts directly from its hashed manifest and runs under ordinary repository Python.
-- Extended the existing derived active-entry review with exact later-cohort status counts. No candle, manifest, split, selection rule, contract, activation, or approval membership changed.
-- Added reproducible publisher `scripts/fms_publish_entry_registrations.py`. Its fixed eight-recipe allowlist publishes `Main/mt5-bridge/registered_entry_review_evidence.json`; it refuses changed membership, unsupported approvals, manifest/contract drift, and therefore cannot auto-promote a setup.
-- Added pure loader/applicator `registered_entry_reviews.py`. It validates registry hash `21b7c257cc420c93ca1881eb51ad50a47315109308714eec3ec133a1c78734e2`, verifies every exact outcome partition sums to N, and retains H4 with `blocked_artifact_mismatch` if the active execution contract drifts.
-- Moved all Past Result interpretation, formatting, fallback selection, and row ordering into `chartMacroBiasAuditViewModel.ts`. `ChartMacroBiasAudit.tsx` is now a small table-only renderer; its existing test now asserts the view-model contract rather than depending on adjacent card HTML.
-- Updated `AGENTS.md`, `docs/NAVIGATION.md`, bridge README, and durable context with the new ownership boundaries and reproduction commands.
-- Validation: ordinary Python imported the evidence/registration modules without MT5 and loaded all eight hashed profiles; the full bridge suite passed 81/81, `pnpm run typecheck` passed, and the existing chart regression file passed 29/29.
+### Chart-first application shell
 
-## 2026-09-09 owner follow-up fixes
+Product direction: a chart-first manual research terminal rather than several equal-weight prototype destinations.
 
-- Fixed the confirmed lazy-Setups crash: each disclosure now snapshots `event.currentTarget.open` synchronously before a React state updater can outlive the synthetic event.
-- Added `Go to arrow` on Current/Recent signal rows and `Go to latest arrow` on Next setup rows when a recorded signal exists. It enables the FMS/history layers, unhides that setup, switches to the exact pair and H1/H4 entry timeframe, focuses the activation candle, selects that signal, and opens Past Result.
-- Fixed the narrow clickable rectangle below Choose setups. A broad input selector was forcing the search field to checkbox dimensions; sizing now applies only to checkboxes.
-- Anchored `Hide no trade` in a two-column grid with tabular count numerals, so changes in `x displayed / x total` no longer shift the control.
-- Corrected chronological-holdout evidence projection to read the linked immutable selected contract even when serving an older durable chart-response cache. `FMS-EURUSD-H4-E293` now reports the actual holdout: evaluable 11, TP 6 (54.5%), SL 2 (18.2%), expired 3, ambiguous 0, unevaluable 0, average +0.581R, total +6.40R gross.
-- Fixed reviewed-H1 outcome projection, which previously retained only N and average R even though the frozen cached campaign contained exact statuses. AUDUSD producer inflation now reports N 32, TP 11 (34.4%), SL 12 (37.5%), expired 2, break-even 7, ambiguous 0, unevaluable 0, average +0.561R, and total +17.95R; all eight reviewed-H1 approvals now carry their exact cached later-cohort counts.
-- Rate-only reviewed cohorts now say `exact count not stored` instead of implying a failed count lookup. Expanded evidence includes definitions for expired, ambiguous, and unevaluable, and lists stored ambiguous case IDs/times when available.
+Proposed shell:
 
-## Implemented P0–P7
+```text
+Compact chart workbar
+  Symbol · Timeframe · Trust state · Chart controls
 
-### P0 — Trade continuity
+Main chart
+  Left dock:  Trade · Journal · Setups · Past Result
+  Right dock: Inspector / Settings
 
-- Trade view state is lifted into `ChartViewport` and session-persisted: Next/Current/Recent subtab, expanded schedule/activity row, setup search, no-trade filter, and per-view scroll anchor/offset.
-- Opening Past Result remembers the prior dock destination. Closing it returns to that destination; Trade restores its saved disclosure and scroll state.
-- Stable row keys anchor restoration without permanently mounting the Trade body.
+Bottom dock
+  Matrix · Lens · Calendar
+```
 
-### P1 — Compact Trade UI
+- Move Trust State into the compact chart workbar before removing the universal header.
+- Treat Charts as the sole primary route.
+- Move the Economic Calendar into the bottom panel beside Matrix and Lens. The intended grouping is comparative context, focused event inspection, and release timeline.
+- Remove Overview and Specialist Tools from normal navigation first; quarantine their routes and styles behind the existing garbage boundary while confirming Charts has no remaining dependency on their state or layout assumptions.
+- Do not delete archived/prototype application records merely to simplify navigation. Physical deletion remains a separate owner decision after quarantine proves safe.
 
-- Removed the redundant Trade header and compacted tabs, table headers, dates, and collapsed rows without reducing primary body copy below the existing readable range.
-- Collapsed rows no longer repeat execution, freshness, or source prose; those facts remain in expanded detail.
-- Recent includes a default-off `Hide no trade` filter with displayed/total counts.
-- Choose setups has case-insensitive search across friendly label, raw label, setup ID, and pair, plus filtered select/clear behavior.
-- Placeholder separators were replaced with labeled separators; loading ellipses use the intended character.
+### Right inspector and Lens redesign
 
-### P2 — Coherent historical evidence
+Treat the current right settings drawer as a deprecated information architecture rather than incrementally decorating it.
 
-- The bridge emits one `historicalEvidence` source per setup by explicit priority: reviewed H1 entry, reviewed execution, chronological holdout, then pooled benchmark.
-- Expanded Trade rows show the cohort/scope/source ID, evaluable N, exact TP/SL/expiry/break-even/ambiguous/unevaluable counts when actually recorded, average gross R, and total gross R.
-- Unknown counts stay unknown. Total gross R is labeled as the exact mean multiplied by exact evaluable N; rounded rates are never reverse-engineered into counts.
+Candidate right-inspector structure:
 
-### P3 — Selected-arrow detail
+- `Chart`: appearance, candle behavior, default focus, and timezone.
+- `Layers`: FMS arrows, events, price lines, and Pair Matrix context.
+- `Selected`: the current candle, arrow, event, or price-level inspection.
+- `Data`: symbol/timeframe history, bridge state, and cached coverage.
+- `Diagnostics`: technical information kept out of ordinary review.
 
-- Detail lookup now includes `recoveredSignals`, fixing the confirmed 404 for `AUDUSD|audusd-us-payroll-package|1788535800`.
-- Cache identity includes model hash, mode, symbol, source version, pattern, event, entry timeframe, execution, status, and an evolving timestamp only for unresolved signals. Terminal detail is cached; current/replay results cannot collide.
-- Concurrent identical frontend requests are deduplicated, stale selection responses remain canceled/key-scoped, requests have a 90-second timeout, and errors expose `Retry detail`.
-- The exact saved AUDUSD recovered result returned entry `0.71926`, target `0.7218418039985335`, `target_hit`, `+1R`, and eight ladder rows. Measured local calls were 0.1236s cold and 0.0010s cached.
-- The saved USDJPY replay case with incomplete historical coverage remains unresolved. It was not backfilled because this session prohibited MT5/account access; no outcome was inferred or rewritten.
+Lens should remain a focused inspection tool. It should not become a miscellaneous settings or diagnostics container. Its final fields should be informed by actual frozen-record audits rather than guessed in advance.
 
-### P4 — Four-window dock and lazy Setups workspace
+### Repository foundation and ownership pass
 
-- Dock buttons are now exactly `Trade`, `Journal`, `Setups`, and `Past Result`.
-- Setups owns one collapsed `Registered setup benchmarks` workspace with collapsed `Benchmarks`, `Research / reviews`, and `Knowledge` subsections.
-- Heavy subsection bodies mount only after first opening. Disclosure/visited state is session-persisted; embedded children suppress duplicate headers and footers.
+The desired isolation is ownership, not indiscriminately moving files into more folders.
 
-### P5 — Arrow versus entry semantics
+- Give each chart feature a clear vertical owner: component, local state/view model, feature CSS, bridge client/adapter, and focused existing checks.
+- Keep financial calculations and immutable interpretation in pure domain modules, separate from React renderers and bridge storage adapters.
+- Keep `server.py` as an adapter/orchestrator where an existing pure owner already exists; do not duplicate research or projection logic there.
+- Keep shared modules limited to genuinely shared contracts. Avoid broad utility files that quietly couple unrelated panels.
+- Define a small route/dock registry before changing navigation so active and quarantined surfaces are explicit.
+- Preserve generated evidence, research manifests, ledgers, first-seen data, and release-monitoring records throughout any source-layout cleanup.
+- Perform cleanup in coherent, behavior-preserving slices with targeted validation; do not combine it with model changes or financial corrections.
 
-- Existing activation mapping was retained after its H4/H1/M15/D1 focused check passed.
-- Marker labels identify the entry timeframe and direction. Past Result now states that the arrow is anchored to the activation candle, its vertical placement is visual, and the displayed Entry value is the exact frozen price.
+Suggested sequence when this work is reopened:
 
-### P6 — One bounded research campaign
+1. Settle the shell and named dock regions.
+2. Rebuild the right inspector and Lens around evidence learned from arrow audits.
+3. Quarantine obsolete routes and verify no active imports remain.
+4. Strengthen feature/domain/adapter ownership one vertical slice at a time.
+5. Consider physical deletion only after an explicit owner review.
 
-- Consulted the exhaustion ledger first. D1/weekly structure was already complete, prospective first-seen evidence requires future chronology, and M1 remains coverage-limited.
-- Ran one non-duplicative family: entry-known H4 state on high-sample unregistered packages.
-- Frozen scope: three cells (`EURCAD` business sentiment, `AUDJPY` JPY CPI package, `GBPCHF` retail headline) and four variants per cell (compressed range, expanded range, direction-aligned trend, direction-opposed trend), for exactly 12 declared/completed variants.
-- The protocol reused immutable Stage-A gross executions, used past-only completed H4 state, applied chronological development/validation/final partitions with boundary embargoes, and allowed no registration.
-- Result: `no_later_survivor`; 0 survivors and 0 registrations. Manifest `5b984c6dbbe9615c4292dd5072a8c52721048f97bb0abe80e6dd77c8e3f9052b`; result `febc32bfb8cc3700d48960401791a6fafe752554fd6aeb015c872423d774fb94`.
-- Durable outputs: `docs/Development Logs/artifacts/fms-entry-state-2026-09-08/{manifest,result}.json`, `Main/src/app/lib/fmsEntryStateSummary.json`, and exhaustion ledger `641b015b66d103e5d1df19dfa19215aa3bf8f5fbfad3c3bbb218a4392378caa5`.
-- Knowledge now records the negative result and the next-search map excludes repeating these exact 12 variants.
+### Configurable panel placement — low priority
 
-## P7 validation
+- First establish three stable regions with centralized open/closed and size state: left dock, right inspector, and bottom dock.
+- Keep content ownership independent of placement so a panel is not coupled to left/right-specific CSS or lifecycle assumptions.
+- Only after those boundaries are reliable should preferences allow right-to-left placement, docking changes, or user layouts.
+- Avoid a general drag-and-drop desktop framework until ordinary chart review proves it necessary.
 
-- `pnpm run typecheck` — passed.
-- `pnpm exec vitest run src/app/tests/chartsTab.test.ts` — 29 passed.
-- Scoped bridge regression set — 7 passed, covering snapshot preservation, chart projection, coherent evidence, recovered-signal detail/cache reuse, deterministic management ambiguity, target-path separation, and observed-quote provenance.
-- Full `tests/test_macro_signal_api.py` — 27 passed. Five stale expectations were reconciled with current contracts: prospective context requires `executionApplied`, changing context display research does not corrupt immutable approval evidence, dynamic candidate breadth is not a fixed count, forward statuses use `prospectively_supported` / `pause_candidate`, and each reversal recipe may omit a family with no evaluable winner.
-- Campaign script compiled, frozen manifest validated before execution, and all 12 declared variants completed.
-- Follow-up validation: `pnpm run typecheck` passed; the existing chart test file remained 29/29; the focused immutable-evidence bridge regression passed; and the saved EURUSD chart-response path returned the corrected E293 values above without a research rerun.
-- Latest table/unavailable fix validation: `pnpm run typecheck` passed; the existing chart test file remained 29/29; the focused bridge evidence regression passed and checks the exact AUDUSD 11/12/2/7 outcome partition and derived 34.375%/37.5% rates.
+## Concise owner visual checks still outstanding
 
-## Owner manual visual checklist
-
-At 1440x900 and 100% Chrome zoom:
-
-- In Trade, open a row, set search/filter, scroll partway, click a chart arrow, then close Past Result. Confirm the same Trade subtab, row, filter/search, and scroll position return.
-- Confirm Trade rows and inline dates are compact, readable, and free of overlapping/clipped controls or whole-page horizontal scroll.
-- Confirm `Hide no trade` is initially unchecked and filters only no-trade rows; Choose setups search and filtered select/clear work.
-- Toggle `Hide no trade` several times and confirm the checkbox stays fixed while the displayed/total text changes. Open Choose setups and confirm the search input is full-width rather than a narrow vertical rectangle.
-- From a Current/Recent signal, click `Go to arrow`; from Next, click `Go to latest arrow` where offered. Confirm the pair/timeframe changes if needed, the activation candle is centered, only the selected arrow is emphasized, and Past Result opens.
-- Expand a Next or Recent row and verify the historical benchmark uses one named cohort with counts, average gross R, and total gross R; genuinely unrecorded counts show as unavailable rather than inferred.
-- On AUDUSD US producer inflation, confirm the collapsed row says `34.4% TP before SL`; expanded evidence should show TP `11 · 34.4%`, SL `12 · 37.5%`, and Other `Expired 2 · Break-even 7 · Ambiguous 0 · Unevaluable 0`.
-- On EURUSD producer-inflation cooling (`FMS-EURUSD-H4-E293`), confirm SL is `2 · 18.2%` and Other is `Expired 3 · Ambiguous 0 · Unevaluable 0`. Expand Outcome definitions and confirm the terms are readable.
-- Select the saved AUDUSD recovered payroll arrow twice. Confirm detail loads, shows +1R and eight target rows, and retry is available if the request is forced to fail.
-- Confirm the only dock buttons are Trade, Journal, Setups, and Past Result. In Setups, verify the outer workspace and all three inner disclosures begin collapsed and remain usable without page overflow.
-- On H4 and H1, click an arrow and compare its candle/time with Past Result. Confirm the exact Entry price is readable and the arrow-position explanation is visible.
-- In Past Result, confirm there is one plain `Field / Value / Details` table with no cards or expandable rows. Its first sections should be Result, Initial price reaction, then Why the arrow appeared. For the 02 Sep EURUSD manufacturing-employment arrow, confirm the initial reaction is about `-0.20R` and says price opposed the arrow.
-- Reload the app, open several old and recovered arrows (including one that previously crashed), and confirm Past Result opens as the table, the Trade tab remains clickable, closing Past Result returns to Trade, and the console gains no FMS dock render error.
-- After the initial chart appears, wait for background warming, then switch rapidly across at least five broker symbols on the same timeframe and back. Confirm warmed charts paint without a blank/loading phase; `Chart Ready` may appear briefly while live synchronization catches up.
-- On one symbol, cycle H4 → H1 → M15 → H4 twice. Confirm the second cycle is immediate and each symbol/timeframe restores its own zoom rather than inheriting the chart you just left.
-- Select an uncommon non-FMS broker symbol from the full symbol picker. Confirm it remains accessible; its first-ever open may need foreground MT5 history if neither the durable store nor background warming had reached it yet, but revisiting it in the session must be resident.
-- Open the symbol selector and confirm `Browse` still contains the existing favorites and grouped list. Switch to `Market Watch`; compare its total row count/order and several Bid, Ask, and Daily Change values with MT5, search an uncommon symbol, then click anywhere on its row and confirm that chart opens.
-- Keep the selector open and click through several rows in quick succession, then change timeframes. Confirm the popover stays put and neither candles nor axes visibly jump through an intermediate framing. Outside-click once and confirm it closes.
-- Open chart Settings > Appearance > Viewport, change `Default refocus width`, then use the toolbar Refocus control. Confirm smaller values show fewer/wider candles and larger values show more/narrower candles. Toggle `Keep horizontal zoom` off and verify a newly selected pair uses the configured default framing.
-- Confirm old recovered arrows without first-seen quote data have no Entry timing rows or unavailable dropdown. Confirm a prospectively captured arrow with timing data shows Entry timing as ordinary table rows after What happened.
-- In Setups → Knowledge, confirm `Unregistered-package entry-state probe · Completed · no promotion` reports 12 variants and zero survivors.
+- Restart the bridge, keep its console visible, then switch pairs rapidly and use Go to arrow several times. Trust State may transition during normal reconnection but must recover, the bridge process must remain available, and no WebSocket traceback should print.
+- Keep Browse or Market Watch open and rapidly select several symbols and timeframes. Confirm the popover stays open and the chart does not show an intermediate zoom/axis jump.
+- In Settings > Appearance > Viewport, change Default refocus width and use Refocus. Confirm smaller values show fewer/wider candles and larger values show more/narrower candles.
+- Compare Market Watch count/order and several Bid, Ask, and Daily Change values with MT5 after using MT5 Show All. Missing broker quotes may show an em dash, but the symbol row must remain.
+- During frozen-record review, compare the selected chart arrow, Past Result table, Trade evidence, and immutable source data. Record exact IDs for every disagreement rather than correcting records manually.
 
 ## Remaining limitations
 
-- Visual layout, browser-console cleanliness, and interaction continuity have static/type/build validation only until the owner completes the checklist above.
-- Background warm-up duration depends on the broker's total symbol count and existing MT5/durable history. First-ever uncached symbols can still wait for MT5; the resident guarantee applies after a chart has loaded or its warm request has completed.
-- MT5 can return a broker symbol without a current Bid, Ask, or Daily Change snapshot, especially when that instrument is not selected in the terminal or its market is inactive. Market Watch keeps the row and shows an em dash; it does not silently manufacture a quote or mutate the terminal's Market Watch selection.
-- The one USDJPY historical replay remains honestly unevaluable until its named source interval can be resolved without violating the account-access boundary.
-- P6 is reused-history research and a deliberately small coverage probe. It is not fresh forward evidence and does not exhaust orthogonal entry-known interactions.
+- Visual smoothness, layout, and browser-console cleanliness remain owner-verified; automated checks do not constitute browser validation.
+- First-ever uncached symbols can still wait for MT5 until durable or background history exists. A loaded or warmed symbol/timeframe remains resident for rapid revisits.
+- MT5 may expose a broker symbol without a current quote, especially when hidden or inactive. The audit table preserves the row and does not fabricate data or mutate MT5 Market Watch selection.
+- One named USDJPY historical replay remains honestly unevaluable until its source interval can be resolved without violating the account-access boundary.
+- The completed 12-variant research campaign is reused-history evidence, not fresh forward evidence, and does not exhaust orthogonal entry-known interactions.
