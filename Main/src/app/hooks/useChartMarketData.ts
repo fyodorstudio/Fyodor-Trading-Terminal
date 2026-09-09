@@ -28,6 +28,7 @@ interface UseChartMarketDataArgs {
 
 interface UseChartMarketDataResult {
   symbols: BridgeSymbol[];
+  refreshSymbols: (background?: boolean) => Promise<void>;
   historyState: "loading" | "ready" | "no_data" | "error";
   visibleCandles: BridgeCandle[];
   lastCandleTime: number | null;
@@ -218,6 +219,12 @@ export function useChartMarketData({
   selectedTimeframeRef.current = timeframe;
   const pendingCacheWriteRef = useRef<{ symbol: string; timeframe: Timeframe; candles: BridgeCandle[] } | null>(null);
   const cacheWriteTimerRef = useRef<number | null>(null);
+  const symbolUniverseKey = useMemo(() => symbols.map((item) => item.name).join("|"), [symbols]);
+
+  const refreshSymbols = useCallback(async (background = false) => {
+    const items = await fetchSymbols(background);
+    if (items.length > 0) setSymbols(items);
+  }, []);
 
   const flushPendingCacheWrite = useCallback(() => {
     if (cacheWriteTimerRef.current != null) window.clearTimeout(cacheWriteTimerRef.current);
@@ -370,7 +377,7 @@ export function useChartMarketData({
         if (!cancelled) addLog(`resident history expansion deferred for ${selectedSymbol} ${timeframe}: ${error instanceof Error ? error.message : String(error)}`);
       });
     return () => { cancelled = true; };
-  }, [historyState, symbols, selectedSymbol, timeframe]);
+  }, [historyState, symbolUniverseKey, selectedSymbol, timeframe]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -537,6 +544,7 @@ export function useChartMarketData({
 
   return {
     symbols,
+    refreshSymbols,
     historyState,
     visibleCandles,
     lastCandleTime,

@@ -34,6 +34,15 @@ Updated 2026-09-09. P0–P7, owner follow-up fixes, and the Past Result overhaul
 - The Lightweight Charts renderer remains mounted. Candle buffers swap from resident memory, chart zoom snapshots are retained per `symbol:timeframe`, and ready candles now say `Chart Ready` while the live socket catches up instead of implying that the chart is blocked on `Connecting`.
 - Existing tests were extended rather than adding files. Validation: chart/storage regressions 37/37, TypeScript passed, production build passed with the pre-existing large-chunk warning, and the focused bridge busy/cache/background-lock contract passed.
 
+## 2026-09-09 all-symbol Market Watch
+
+- The chart symbol selector now has two explicit modes. `Browse` is still the default and retains the existing favorites, search, and broker-path groups. `Market Watch` is a dense four-column table: Symbol, Bid, Ask, and Daily Change.
+- Market Watch preserves every row and the original order returned by the broker's unfiltered MT5 `symbols_get()` call, including symbols that are not currently visible/selected in MT5. Search only filters the displayed audit rows and does not alter the broker universe.
+- The bridge now projects Bid, Ask, broker precision, and MT5 `price_change` directly from the bulk `symbols_get()` result. It removed the former per-symbol `symbol_info()` loop, so a refresh remains one MT5 bulk IPC call rather than scaling to one call per broker instrument.
+- While Market Watch is open, snapshots refresh once per second through the background-priority lock. If chart, calendar, or other foreground MT5 work owns the lock, the table immediately retains its last complete snapshot instead of blocking that work or dropping rows.
+- Daily Change uses MT5's own `SYMBOL_PRICE_CHANGE` value (current price versus the prior trading-day close, percent). Missing broker quote fields remain visible as an em dash; they are not inferred or used to remove the symbol.
+- Existing tests were extended rather than adding files. Validation: TypeScript passed; chart/storage regressions passed 38/38; the bridge contract passed 13/13 and verifies complete ordered rows, quote projection, one bulk call, and cached non-blocking background refresh; production build passed with the pre-existing large-chunk warning.
+
 ## 2026-09-09 FMS ownership and repository hygiene
 
 - Extracted historical-evidence normalization/source priority from the live server into pure `Main/mt5-bridge/fms_historical_evidence.py`. The bridge now only injects immutable-store readers; every chart projection carries schema `fms-chart-historical-evidence-v1`.
@@ -136,6 +145,7 @@ At 1440x900 and 100% Chrome zoom:
 - After the initial chart appears, wait for background warming, then switch rapidly across at least five broker symbols on the same timeframe and back. Confirm warmed charts paint without a blank/loading phase; `Chart Ready` may appear briefly while live synchronization catches up.
 - On one symbol, cycle H4 → H1 → M15 → H4 twice. Confirm the second cycle is immediate and each symbol/timeframe restores its own zoom rather than inheriting the chart you just left.
 - Select an uncommon non-FMS broker symbol from the full symbol picker. Confirm it remains accessible; its first-ever open may need foreground MT5 history if neither the durable store nor background warming had reached it yet, but revisiting it in the session must be resident.
+- Open the symbol selector and confirm `Browse` still contains the existing favorites and grouped list. Switch to `Market Watch`; compare its total row count/order and several Bid, Ask, and Daily Change values with MT5, search an uncommon symbol, then click anywhere on its row and confirm that chart opens.
 - Confirm old recovered arrows without first-seen quote data have no Entry timing rows or unavailable dropdown. Confirm a prospectively captured arrow with timing data shows Entry timing as ordinary table rows after What happened.
 - In Setups → Knowledge, confirm `Unregistered-package entry-state probe · Completed · no promotion` reports 12 variants and zero survivors.
 
@@ -143,5 +153,6 @@ At 1440x900 and 100% Chrome zoom:
 
 - Visual layout, browser-console cleanliness, and interaction continuity have static/type/build validation only until the owner completes the checklist above.
 - Background warm-up duration depends on the broker's total symbol count and existing MT5/durable history. First-ever uncached symbols can still wait for MT5; the resident guarantee applies after a chart has loaded or its warm request has completed.
+- MT5 can return a broker symbol without a current Bid, Ask, or Daily Change snapshot, especially when that instrument is not selected in the terminal or its market is inactive. Market Watch keeps the row and shows an em dash; it does not silently manufacture a quote or mutate the terminal's Market Watch selection.
 - The one USDJPY historical replay remains honestly unevaluable until its named source interval can be resolved without violating the account-access boundary.
 - P6 is reused-history research and a deliberately small coverage probe. It is not fresh forward evidence and does not exhaust orthogonal entry-known interactions.

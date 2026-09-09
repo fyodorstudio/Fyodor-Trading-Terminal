@@ -663,6 +663,7 @@ export function ChartsTab({
 
   const {
     symbols,
+    refreshSymbols,
     historyState,
     visibleCandles,
     lastCandleTime,
@@ -2683,6 +2684,7 @@ export function ChartsTab({
           <ChartSymbolPicker
             selectedSymbol={selectedSymbol}
             symbols={symbols}
+            onRefreshSymbols={refreshSymbols}
             timeframe={timeframe}
             onSelectedSymbolChange={onSelectedSymbolChange}
             onTimeframeChange={setTimeframe}

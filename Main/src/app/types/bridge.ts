@@ -16,6 +16,13 @@ export interface BridgeCandle {
 export interface BridgeSymbol {
   name: string;
   path: string | null;
+  bid: number | null;
+  ask: number | null;
+  priceChange: number | null;
+  digits: number | null;
+  quoteTime: number | null;
+  visible: boolean;
+  selected: boolean;
 }
 
 export interface BridgeHealth {

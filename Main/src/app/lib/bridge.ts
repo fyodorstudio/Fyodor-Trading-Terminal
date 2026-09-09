@@ -189,9 +189,9 @@ export async function fetchHistoryBoundary(params: {
   };
 }
 
-export async function fetchSymbols(): Promise<BridgeSymbol[]> {
+export async function fetchSymbols(background = false): Promise<BridgeSymbol[]> {
   try {
-    const payload = await fetchJson<unknown[]>(`${BRIDGE_BASE}/symbols`);
+    const payload = await fetchJson<unknown[]>(`${BRIDGE_BASE}/symbols${background ? "?background=true" : ""}`);
     return payload
       .map((item) => {
         if (!item || typeof item !== "object") return null;
@@ -199,7 +199,17 @@ export async function fetchSymbols(): Promise<BridgeSymbol[]> {
         const name = asString(row.name);
         if (!name) return null;
         const path = asString(row.path) || null;
-        return { name, path };
+        return {
+          name,
+          path,
+          bid: asNumber(row.bid),
+          ask: asNumber(row.ask),
+          priceChange: asNumber(row.price_change),
+          digits: asNumber(row.digits),
+          quoteTime: asNumber(row.quote_time),
+          visible: Boolean(row.visible),
+          selected: Boolean(row.selected),
+        };
       })
       .filter((item): item is BridgeSymbol => item !== null);
   } catch {

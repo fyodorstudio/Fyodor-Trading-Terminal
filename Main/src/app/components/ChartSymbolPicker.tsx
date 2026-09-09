@@ -16,6 +16,25 @@ interface ChartSymbolPickerProps {
   timeframe: Timeframe;
   onSelectedSymbolChange: (symbol: string) => void;
   onTimeframeChange: (timeframe: Timeframe) => void;
+  onRefreshSymbols?: (background?: boolean) => Promise<void>;
+}
+
+type SymbolPickerMode = "browse" | "market_watch";
+
+export function filterMarketWatchSymbols(symbols: readonly BridgeSymbol[], search: string): BridgeSymbol[] {
+  const query = search.trim().toLowerCase();
+  return query ? symbols.filter((item) => item.name.toLowerCase().includes(query)) : [...symbols];
+}
+
+export function formatMarketWatchPrice(value: number | null, digits: number | null): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  const precision = digits == null || !Number.isFinite(digits) ? 5 : Math.max(0, Math.min(10, Math.trunc(digits)));
+  return value.toFixed(precision);
+}
+
+export function formatMarketWatchChange(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) return "—";
+  return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
 }
 
 export function ChartSymbolPicker({
@@ -24,12 +43,18 @@ export function ChartSymbolPicker({
   timeframe,
   onSelectedSymbolChange,
   onTimeframeChange,
+  onRefreshSymbols,
 }: ChartSymbolPickerProps) {
   const [favorites, setFavorites] = useState<string[]>(() => loadChartFavorites());
   const [search, setSearch] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerMode, setPickerMode] = useState<SymbolPickerMode>("browse");
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const pickerRef = useRef<HTMLDivElement | null>(null);
+  const symbolGroupKey = useMemo(
+    () => symbols.map((item) => `${item.name}:${item.path ?? ""}`).join("|"),
+    [symbols],
+  );
 
   useEffect(() => {
     const handleOutside = (event: MouseEvent) => {
@@ -42,6 +67,13 @@ export function ChartSymbolPicker({
   }, []);
 
   useEffect(() => {
+    if (!pickerOpen || pickerMode !== "market_watch" || !onRefreshSymbols) return;
+    void onRefreshSymbols(true);
+    const timer = window.setInterval(() => void onRefreshSymbols(true), 1_000);
+    return () => window.clearInterval(timer);
+  }, [onRefreshSymbols, pickerMode, pickerOpen]);
+
+  useEffect(() => {
     const groups = Array.from(
       new Set(
         symbols.map((item) => {
@@ -51,7 +83,7 @@ export function ChartSymbolPicker({
       ),
     ).sort();
     setExpandedGroups(groups.length > 0 ? [groups[0]] : []);
-  }, [symbols]);
+  }, [symbolGroupKey]);
 
   const groupedSymbols = useMemo<GroupedSymbols[]>(() => {
     const query = search.trim().toLowerCase();
@@ -76,6 +108,11 @@ export function ChartSymbolPicker({
         .map((name) => symbols.find((item) => item.name === name))
         .filter((item): item is BridgeSymbol => item != null),
     [favorites, symbols],
+  );
+
+  const marketWatchItems = useMemo(
+    () => filterMarketWatchSymbols(symbols, search),
+    [search, symbols],
   );
 
   const selectSymbol = (symbol: string) => {
@@ -115,20 +152,43 @@ export function ChartSymbolPicker({
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              className="absolute top-full left-0 mt-2 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl z-[100] overflow-hidden"
+              className={pickerMode === "market_watch"
+                ? "chart-symbol-picker-panel is-market-watch absolute top-full left-0 mt-2 bg-white border border-gray-200 rounded-2xl shadow-2xl z-[100] overflow-hidden"
+                : "chart-symbol-picker-panel absolute top-full left-0 mt-2 w-72 bg-white border border-gray-200 rounded-2xl shadow-2xl z-[100] overflow-hidden"}
             >
+              <div className="chart-symbol-picker-modes" role="tablist" aria-label="Symbol selector mode">
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={pickerMode === "browse"}
+                  className={pickerMode === "browse" ? "is-active" : ""}
+                  onClick={() => setPickerMode("browse")}
+                >
+                  Browse
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={pickerMode === "market_watch"}
+                  className={pickerMode === "market_watch" ? "is-active" : ""}
+                  onClick={() => setPickerMode("market_watch")}
+                >
+                  Market Watch
+                </button>
+              </div>
               <div className="p-3 border-b border-gray-100">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <input
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search symbols..."
+                    placeholder={pickerMode === "market_watch" ? "Search all broker symbols..." : "Search symbols..."}
                     className="w-full pl-9 pr-4 py-2 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-gray-200"
                   />
                 </div>
               </div>
 
+              {pickerMode === "browse" ? (
               <div className="max-h-[400px] overflow-auto p-2 space-y-1">
                 {favoriteItems.length > 0 && !search && (
                   <div className="mb-4">
@@ -191,6 +251,56 @@ export function ChartSymbolPicker({
                   </div>
                 )}
               </div>
+              ) : (
+                <div className="chart-market-watch" role="tabpanel">
+                  <div className="chart-market-watch-count">
+                    {search ? `${marketWatchItems.length} matching` : `${symbols.length} broker symbols`}
+                  </div>
+                  <div className="chart-market-watch-scroll">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Symbol</th>
+                          <th>Bid</th>
+                          <th>Ask</th>
+                          <th>Daily Change</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {marketWatchItems.map((item) => {
+                          const changeClass = item.priceChange == null
+                            ? "is-unavailable"
+                            : item.priceChange > 0
+                              ? "is-positive"
+                              : item.priceChange < 0
+                                ? "is-negative"
+                                : "is-flat";
+                          return (
+                            <tr
+                              key={item.name}
+                              className={item.name === selectedSymbol ? "is-selected" : ""}
+                              onClick={() => selectSymbol(item.name)}
+                            >
+                              <td>
+                                <button type="button">
+                                  <span aria-hidden="true" className={changeClass}>{item.priceChange != null && item.priceChange < 0 ? "↓" : "↑"}</span>
+                                  {item.name}
+                                </button>
+                              </td>
+                              <td className="chart-market-watch-bid">{formatMarketWatchPrice(item.bid, item.digits)}</td>
+                              <td className="chart-market-watch-ask">{formatMarketWatchPrice(item.ask, item.digits)}</td>
+                              <td className={changeClass}>{formatMarketWatchChange(item.priceChange)}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    {marketWatchItems.length === 0 && (
+                      <div className="chart-market-watch-empty">No symbols match your search.</div>
+                    )}
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

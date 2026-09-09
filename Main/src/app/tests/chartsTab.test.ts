@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ChartSettingsDrawer } from "@/app/components/ChartSettingsDrawer";
+import { filterMarketWatchSymbols, formatMarketWatchChange, formatMarketWatchPrice } from "@/app/components/ChartSymbolPicker";
 import { ChartMacroBiasAudit } from "@/app/components/ChartMacroBiasAudit";
 import { ChartMacroBiasRealtimeCard, marketMatchesCurrencySelection } from "@/app/components/ChartMacroBiasRealtimeCard";
 import { buildRegisteredSetupSchedule, buildRecentFmsActivity, partitionFmsActivity, getTradeMarkets, ChartFmsActionCard } from "@/app/components/ChartFmsActionCard";
@@ -21,6 +22,19 @@ import { getChartRefreshBars } from "@/app/hooks/useChartMarketData";
 import { getMacroBiasInitialLoadPlan } from "@/app/tabs/primary/ChartsTab";
 
 describe("pair-switch FMS loading", () => {
+  it("keeps the complete broker order in Market Watch and formats MT5 quote fields", () => {
+    const symbols = [
+      { name: "USDSEK", path: "Forex", bid: 9.57453, ask: 9.57596, priceChange: .09, digits: 5, quoteTime: 1, visible: false, selected: false },
+      { name: "USDJPY", path: "Forex", bid: 153.307, ask: 153.328, priceChange: -.43, digits: 3, quoteTime: 1, visible: true, selected: true },
+      { name: "BTCUSD", path: "Crypto", bid: null, ask: null, priceChange: null, digits: 2, quoteTime: null, visible: false, selected: false },
+    ];
+    expect(filterMarketWatchSymbols(symbols, "").map((item) => item.name)).toEqual(["USDSEK", "USDJPY", "BTCUSD"]);
+    expect(filterMarketWatchSymbols(symbols, "jpy").map((item) => item.name)).toEqual(["USDJPY"]);
+    expect(formatMarketWatchPrice(symbols[1].bid, symbols[1].digits)).toBe("153.307");
+    expect(formatMarketWatchChange(symbols[0].priceChange)).toBe("+0.09%");
+    expect(formatMarketWatchChange(symbols[1].priceChange)).toBe("-0.43%");
+    expect(formatMarketWatchPrice(symbols[2].bid, symbols[2].digits)).toBe("—");
+  });
   it("keeps the recovered AUDUSD payroll TP in Recent even with an older global snapshot", () => {
     const pattern = { id: "audusd-us-payroll-package", label: "US payroll", currentEligible: true } as MacroSignalChartPattern;
     const signal = { id: "audusd-us-payroll-package:1788535800", patternId: pattern.id, eventTime: 1788535800, entry: .71926, target: .7218418039985335, outcomeStatus: "target_hit", resultR: 1, observationMode: "recovered_offline" } as MacroSignalChartSignal;

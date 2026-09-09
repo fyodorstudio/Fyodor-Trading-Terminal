@@ -1296,6 +1296,31 @@
   background: #f4f7fb;
 }
 .charts-tab-page .chart-symbol-button { min-height: 34px; padding: 0 10px; }
+.chart-symbol-picker-panel { width: 18rem; }
+.chart-symbol-picker-panel.is-market-watch { width: min(480px, calc(100vw - 20px)); border-radius: 7px; }
+.chart-symbol-picker-modes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; padding: 5px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+.chart-symbol-picker-modes button { min-height: 28px; border: 1px solid transparent; border-radius: 5px; background: transparent; color: #64748b; font-size: 10px; font-weight: 900; }
+.chart-symbol-picker-modes button:hover { background: #eef2f7; color: #334155; }
+.chart-symbol-picker-modes button.is-active { border-color: #c7d2fe; background: #fff; color: #3730a3; }
+.chart-market-watch-count { padding: 5px 8px; border-bottom: 1px solid #e2e8f0; color: #64748b; font-size: 9px; font-weight: 800; text-transform: uppercase; }
+.chart-market-watch-scroll { max-height: 430px; overflow: auto; }
+.chart-market-watch table { width: 100%; border-collapse: collapse; table-layout: fixed; font-variant-numeric: tabular-nums; }
+.chart-market-watch th { position: sticky; top: 0; z-index: 1; padding: 5px 7px; border-bottom: 1px solid #94a3b8; background: #e2e8f0; color: #334155; font-size: 9px; font-weight: 900; text-align: right; white-space: nowrap; }
+.chart-market-watch th:first-child { width: 34%; text-align: left; }
+.chart-market-watch th:last-child { width: 24%; }
+.chart-market-watch td { height: 23px; padding: 2px 7px; border-right: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; background: #fff; color: #111827; font-size: 10px; text-align: right; white-space: nowrap; }
+.chart-market-watch td:last-child { border-right: 0; }
+.chart-market-watch tbody tr:nth-child(even) td { background: #f1f1f1; }
+.chart-market-watch tbody tr { cursor: pointer; }
+.chart-market-watch tbody tr:hover td, .chart-market-watch tbody tr.is-selected td { background: #dbeafe; }
+.chart-market-watch td:first-child { padding: 0; text-align: left; }
+.chart-market-watch td button { display: flex; width: 100%; height: 22px; align-items: center; gap: 4px; border: 0; background: transparent; padding: 0 7px; color: #111827; font-size: 10px; font-weight: 700; text-align: left; }
+.chart-market-watch td button span { width: 7px; font-size: 9px; }
+.chart-market-watch-bid, .chart-market-watch .is-positive { color: #0000ff !important; }
+.chart-market-watch-ask, .chart-market-watch .is-negative { color: #ef0000 !important; }
+.chart-market-watch .is-flat { color: #475569 !important; }
+.chart-market-watch .is-unavailable { color: #94a3b8 !important; }
+.chart-market-watch-empty { padding: 28px 8px; color: #94a3b8; font-size: 11px; text-align: center; }
 .charts-tab-page .chart-timeframe-strip { padding: 2px; }
 .charts-tab-page .chart-timeframe-button { min-width: 29px; height: 30px; padding: 0 6px; }
 .charts-tab-page .chart-status-rail { gap: 0; padding: 2px; overflow: visible; }

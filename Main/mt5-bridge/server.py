@@ -1665,11 +1665,11 @@ def server_time(symbol: Optional[str] = None) -> Dict[str, Any]:
 
 
 @app.get("/symbols")
-def symbols() -> List[Dict[str, Any]]:
-  """Return all symbols from MT5 with optional path for grouping."""
+def symbols(background: bool = False) -> List[Dict[str, Any]]:
+  """Return every broker symbol and its current MT5 Market Watch fields."""
   global _last_symbols_payload
   try:
-    with _mt5_access(_MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
+    with _mt5_access(.05 if background else _MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
       if not _ensure_mt5_initialized():
         raise HTTPException(status_code=503, detail="MT5 terminal not connected")
 
@@ -1682,19 +1682,30 @@ def symbols() -> List[Dict[str, Any]]:
           detail={"message": "symbols_get failed", "mt5_error": err},
         )
 
+      def finite_float(symbol_info: Any, field: str) -> Optional[float]:
+        try:
+          value = float(getattr(symbol_info, field))
+          return value if math.isfinite(value) else None
+        except (AttributeError, TypeError, ValueError):
+          return None
+
       result: List[Dict[str, Any]] = []
       for s in syms:
         name = getattr(s, "name", None)
         if name is None:
           continue
-        path: Optional[str] = None
-        try:
-          info = mt5.symbol_info(name)
-          if info is not None:
-            path = getattr(info, "path", None) or None
-        except Exception:
-          pass
-        result.append({"name": name, "path": path})
+
+        result.append({
+          "name": name,
+          "path": getattr(s, "path", None) or None,
+          "bid": finite_float(s, "bid"),
+          "ask": finite_float(s, "ask"),
+          "price_change": finite_float(s, "price_change"),
+          "digits": getattr(s, "digits", None),
+          "quote_time": getattr(s, "time", None),
+          "visible": bool(getattr(s, "visible", False)),
+          "selected": bool(getattr(s, "select", False)),
+        })
       _last_symbols_payload = result
       return result
   except Mt5BusyError:

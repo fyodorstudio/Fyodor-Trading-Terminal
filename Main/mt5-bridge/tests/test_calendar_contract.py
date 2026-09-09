@@ -190,6 +190,61 @@ def test_history_range_validates_range_size():
   assert r.status_code == 400
 
 
+def test_symbols_returns_all_mt5_rows_with_market_watch_fields_in_one_call(monkeypatch):
+  class Symbol:
+    def __init__(self, name, bid, ask, price_change, digits, visible, selected):
+      self.name = name
+      self.path = f"Broker\\{name}"
+      self.bid = bid
+      self.ask = ask
+      self.price_change = price_change
+      self.digits = digits
+      self.time = 1_788_900_000
+      self.visible = visible
+      self.select = selected
+
+  class DummyMT5:
+    symbols_get_calls = 0
+
+    @staticmethod
+    def terminal_info():
+      return object()
+
+    @classmethod
+    def symbols_get(cls):
+      cls.symbols_get_calls += 1
+      return (
+        Symbol("USDSEK", 9.57453, 9.57596, .09, 5, False, False),
+        Symbol("USDJPY", 153.307, 153.328, -.43, 3, True, True),
+      )
+
+    @staticmethod
+    def symbol_info(_symbol):
+      raise AssertionError("/symbols must use the complete symbols_get payload, not one MT5 call per row")
+
+    @staticmethod
+    def last_error():
+      return (1, "Success")
+
+  monkeypatch.setattr(server, "mt5", DummyMT5)
+  server._last_symbols_payload = []
+
+  response = client.get("/symbols")
+
+  assert response.status_code == 200, response.text
+  assert DummyMT5.symbols_get_calls == 1
+  assert response.json() == [
+    {
+      "name": "USDSEK", "path": "Broker\\USDSEK", "bid": 9.57453, "ask": 9.57596,
+      "price_change": .09, "digits": 5, "quote_time": 1_788_900_000, "visible": False, "selected": False,
+    },
+    {
+      "name": "USDJPY", "path": "Broker\\USDJPY", "bid": 153.307, "ask": 153.328,
+      "price_change": -.43, "digits": 3, "quote_time": 1_788_900_000, "visible": True, "selected": True,
+    },
+  ]
+
+
 def test_history_range_returns_candles_with_mocked_mt5(monkeypatch):
   class DummyMT5:
     TIMEFRAME_M1 = 1
@@ -277,6 +332,12 @@ def test_chart_history_and_health_remain_available_while_mt5_is_busy(monkeypatch
   })
   assert background_response.status_code == 200
   assert background_response.json()[-1]["time"] == candle_time
+  assert lock_timeouts[-1] == .05
+
+  server._last_symbols_payload = [{"name": "USDJPY", "path": "Forex", "bid": 149.2}]
+  symbols_response = client.get("/symbols", params={"background": True})
+  assert symbols_response.status_code == 200
+  assert symbols_response.json() == server._last_symbols_payload
   assert lock_timeouts[-1] == .05
 
   boundary_response = client.get("/history_boundary", params={"symbol": "USDJPY", "tf": "H4"})

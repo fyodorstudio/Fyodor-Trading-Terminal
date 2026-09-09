@@ -114,8 +114,8 @@ describe("chartStorage helpers", () => {
 
   it("warms every broker symbol on the active timeframe and every timeframe for the selected symbol", () => {
     const plan = buildResidentChartWarmPlan([
-      { name: "EURUSD", path: "Forex\\Majors" },
-      { name: "XAUUSD", path: "Metals" },
+      { name: "EURUSD", path: "Forex\\Majors", bid: null, ask: null, priceChange: null, digits: 5, quoteTime: null, visible: true, selected: true },
+      { name: "XAUUSD", path: "Metals", bid: null, ask: null, priceChange: null, digits: 2, quoteTime: null, visible: true, selected: true },
     ], "EURUSD", "H4");
 
     expect(plan).toContainEqual({ symbol: "XAUUSD", timeframe: "H4" });
