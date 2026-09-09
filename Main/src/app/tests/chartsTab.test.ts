@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ChartSettingsDrawer } from "@/app/components/ChartSettingsDrawer";
-import { filterMarketWatchSymbols, formatMarketWatchChange, formatMarketWatchPrice } from "@/app/components/ChartSymbolPicker";
+import {
+  filterMarketWatchSymbols,
+  formatMarketWatchChange,
+  formatMarketWatchPrice,
+  getVirtualMarketWatchWindow,
+} from "@/app/features/chart-market-data/symbolCatalog";
 import { ChartMacroBiasAudit } from "@/app/components/ChartMacroBiasAudit";
 import { ChartMacroBiasRealtimeCard, marketMatchesCurrencySelection } from "@/app/components/ChartMacroBiasRealtimeCard";
 import { buildRegisteredSetupSchedule, buildRecentFmsActivity, partitionFmsActivity, getTradeMarkets, ChartFmsActionCard } from "@/app/components/ChartFmsActionCard";
@@ -18,10 +23,29 @@ import { buildMacroBiasPriceLineLevels, buildMacroBiasSeriesMarkers, captureChar
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalContextResearch, MacroSignalGlobalResponse, MacroSignalMetrics } from "@/app/types";
 import { DEFAULT_CHART_TIMEFRAME, getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
-import { getChartRefreshBars } from "@/app/hooks/useChartMarketData";
+import { getChartRefreshBars } from "@/app/features/chart-market-data/historyPolicy";
+import {
+  createFmsArrowNavigationRequest,
+  resolveFmsArrowNavigationStage,
+} from "@/app/features/fms-arrow-navigation/arrowNavigation";
 import { getMacroBiasInitialLoadPlan } from "@/app/tabs/primary/ChartsTab";
 
 describe("pair-switch FMS loading", () => {
+  it("renders only a bounded Market Watch window while retaining full scroll height", () => {
+    expect(getVirtualMarketWatchWindow(1000, 0, 430)).toEqual({
+      start: 0,
+      end: 27,
+      topSpacerHeight: 0,
+      bottomSpacerHeight: 22379,
+    });
+    expect(getVirtualMarketWatchWindow(1000, 11_500, 430)).toEqual({
+      start: 492,
+      end: 527,
+      topSpacerHeight: 11316,
+      bottomSpacerHeight: 10879,
+    });
+  });
+
   it("keeps the complete broker order in Market Watch and formats MT5 quote fields", () => {
     const symbols = [
       { name: "USDSEK", path: "Forex", bid: 9.57453, ask: 9.57596, priceChange: .09, digits: 5, quoteTime: 1, visible: false, selected: false },
@@ -154,6 +178,28 @@ describe("getChartConnectionLabel", () => {
     expect([...d1Built.signalByMarkerId.keys()]).toEqual(["macro-bias-activation:d1"]);
     expect(getMacroBiasActiveState([makeSignal("d1-active", 1_000, "long")], [d1Candles[0]], 0, "D1"))
       .toMatchObject({ activationCandleOpen: 0, remainingCandles: null, expiryCandleOpen: null });
+  });
+  it("reports each Go to arrow wait or terminal failure instead of waiting silently", () => {
+    const signal = {
+      id: "arrow", patternId: "pattern", sourceVersionId: "v1", eventTime: 1_000, activationTime: 14_400,
+      entryTimeframe: "H4", historicalReplay: true, direction: "long", label: "Arrow", agreement: "consensus",
+      pairVote: 1, expiryCandles: 30, backgroundDirection: "none", backgroundPairVote: 0,
+      backgroundAlignment: "neutral", backgroundCoverageComplete: true, highestImpact: "high", events: [],
+    } as MacroSignalChartSignal;
+    const request = createFmsArrowNavigationRequest("eurusd", signal);
+    const base = {
+      request, selectedMarket: "EURUSD", selectedTimeframe: "H4" as const, historyState: "ready" as const,
+      signalState: "ready" as const, signals: [signal],
+      candles: [0, 14_400, 28_800].map((time) => ({ time, open: 1, high: 2, low: .5, close: 1.5, volume: 1 })),
+      sourceTimeOffsetSeconds: 0, chartMounted: true,
+    };
+
+    expect(resolveFmsArrowNavigationStage({ ...base, selectedMarket: "GBPUSD" }).stage).toBe("selecting_market");
+    expect(resolveFmsArrowNavigationStage({ ...base, historyState: "loading" }).stage).toBe("loading_history");
+    expect(resolveFmsArrowNavigationStage({ ...base, signals: [], signalState: "loading" }).stage).toBe("loading_signal");
+    expect(resolveFmsArrowNavigationStage({ ...base, signals: [] }).stage).toBe("signal_unavailable");
+    expect(resolveFmsArrowNavigationStage({ ...base, candles: [] }).stage).toBe("coverage_unavailable");
+    expect(resolveFmsArrowNavigationStage(base)).toMatchObject({ stage: "ready", signal });
   });
   it("adds the entry-known support or resistance barrier beside selected-arrow trade levels", () => {
     const signal = {

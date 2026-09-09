@@ -1310,9 +1310,11 @@
 .chart-market-watch th:last-child { width: 24%; }
 .chart-market-watch td { height: 23px; padding: 2px 7px; border-right: 1px solid #cbd5e1; border-bottom: 1px solid #cbd5e1; background: #fff; color: #111827; font-size: 10px; text-align: right; white-space: nowrap; }
 .chart-market-watch td:last-child { border-right: 0; }
-.chart-market-watch tbody tr:nth-child(even) td { background: #f1f1f1; }
+.chart-market-watch tbody tr.is-even td { background: #f1f1f1; }
 .chart-market-watch tbody tr { cursor: pointer; }
 .chart-market-watch tbody tr:hover td, .chart-market-watch tbody tr.is-selected td { background: #dbeafe; }
+.chart-market-watch tbody tr.chart-market-watch-spacer { cursor: default; }
+.chart-market-watch tbody tr.chart-market-watch-spacer td { height: 0; padding: 0; border: 0; background: transparent; }
 .chart-market-watch td:first-child { padding: 0; text-align: left; }
 .chart-market-watch td button { display: flex; width: 100%; height: 22px; align-items: center; gap: 4px; border: 0; background: transparent; padding: 0 7px; color: #111827; font-size: 10px; font-weight: 700; text-align: left; }
 .chart-market-watch td button span { width: 7px; font-size: 9px; }

@@ -80,6 +80,7 @@ from macro_signal import (
   rescore_forecast_quality_outcomes,
 )
 from research_store import ResearchStore
+from quote_snapshot import QuoteSnapshotConflict, QuoteSnapshotStore
 
 logger = logging.getLogger("mt5_bridge")
 
@@ -1046,6 +1047,52 @@ class CalendarIngestCycleRequest(BaseModel):
     return _coerce_int(v)
 
 
+class QuoteIngestRow(BaseModel):
+  name: str = Field(min_length=1, max_length=128)
+  path: Optional[str] = Field(default=None, max_length=512)
+  bid: Optional[float] = None
+  ask: Optional[float] = None
+  price_change: Optional[float] = None
+  digits: Optional[int] = None
+  quote_time: Optional[int] = None
+  visible: bool = False
+  selected: bool = False
+  synchronized: bool = False
+
+  @field_validator("name")
+  @classmethod
+  def normalize_quote_symbol(cls, value: str) -> str:
+    normalized = value.strip()
+    if not normalized:
+      raise ValueError("Quote symbol cannot be blank")
+    return normalized
+
+  @field_validator("bid", "ask", "price_change")
+  @classmethod
+  def validate_finite_quote_value(cls, value: Optional[float]) -> Optional[float]:
+    if value is not None and not math.isfinite(value):
+      raise ValueError("Quote values must be finite")
+    return value
+
+
+class QuoteIngestRequest(BaseModel):
+  publisher_id: str = Field(min_length=1, max_length=256)
+  broker_identity: str = Field(min_length=1, max_length=256)
+  catalog_revision: str = Field(min_length=1, max_length=256)
+  sequence: int = Field(ge=0)
+  complete: bool
+  sent_at: Optional[int] = None
+  rows: List[QuoteIngestRow] = Field(max_length=10000)
+
+  @field_validator("publisher_id", "broker_identity", "catalog_revision")
+  @classmethod
+  def normalize_quote_identity(cls, value: str) -> str:
+    normalized = value.strip()
+    if not normalized:
+      raise ValueError("Quote identity cannot be blank")
+    return normalized
+
+
 _research_store = ResearchStore()
 _chart_model_metadata_key = f"chart_signal_model_hash:{CHART_SIGNAL_MODEL_ID}"
 _stored_chart_model_hash = _research_store.get_metadata(_chart_model_metadata_key)
@@ -1086,12 +1133,70 @@ FORWARD_LEDGER_ACTIVATED_AT = 1787047068  # 2026-08-18 09:57:48 UTC
 # Last symbol used successfully in GET /history; used by GET /server_time when no symbol param.
 _last_history_symbol: Optional[str] = None
 _last_symbols_payload: List[Dict[str, Any]] = []
+_last_symbols_broker_identity = "unknown-terminal"
+_last_symbols_catalog_revision = "unavailable"
+_last_symbols_source = "unavailable"
+_last_symbols_updated_monotonic = 0.0
 _last_market_watch_poll_monotonic = 0.0
 _MARKET_WATCH_ACTIVITY_GRACE_SECONDS = 2.5
+_QUOTE_SNAPSHOT_FRESH_SECONDS = 3.0
+_quote_snapshot_store = QuoteSnapshotStore()
 
 
 class Mt5BusyError(RuntimeError):
   pass
+
+
+def _catalog_revision(broker_identity: str, rows: List[Dict[str, Any]]) -> str:
+  identity_rows = [
+    [row.get("name"), row.get("path"), row.get("digits")]
+    for row in rows
+  ]
+  payload = json.dumps(
+    {"broker": broker_identity, "symbols": identity_rows},
+    separators=(",", ":"),
+    ensure_ascii=False,
+  )
+  return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def _record_symbol_snapshot(
+  rows: List[Dict[str, Any]],
+  *,
+  broker_identity: str,
+  catalog_revision: Optional[str] = None,
+  source: str,
+) -> None:
+  global _last_symbols_broker_identity, _last_symbols_catalog_revision
+  global _last_symbols_payload, _last_symbols_source, _last_symbols_updated_monotonic
+  _last_symbols_payload = rows
+  _last_symbols_broker_identity = broker_identity
+  _last_symbols_catalog_revision = catalog_revision or _catalog_revision(broker_identity, rows)
+  _last_symbols_source = source
+  _last_symbols_updated_monotonic = _time.monotonic()
+
+
+def _symbol_snapshot_metadata() -> Dict[str, Any]:
+  age = None
+  if _last_symbols_updated_monotonic > 0:
+    age = max(0.0, _time.monotonic() - _last_symbols_updated_monotonic)
+  identity_payload = f"{_last_symbols_broker_identity}|{_last_symbols_catalog_revision}"
+  return {
+    "broker_identity": _last_symbols_broker_identity,
+    "catalog_revision": _last_symbols_catalog_revision,
+    "catalog_identity": hashlib.sha256(identity_payload.encode("utf-8")).hexdigest(),
+    "source": _last_symbols_source,
+    "age_seconds": round(age, 3) if age is not None else None,
+  }
+
+
+def _validate_catalog_identity(catalog_identity: Optional[str]) -> None:
+  """Reject chart work selected against a broker catalog that has since changed."""
+  if catalog_identity is None:
+    return
+  expected = _symbol_snapshot_metadata()["catalog_identity"]
+  if catalog_identity != expected:
+    raise HTTPException(status_code=409, detail="Broker symbol catalog changed; refresh the symbol snapshot")
 
 
 @contextmanager
@@ -1600,6 +1705,7 @@ def health() -> Dict[str, Any]:
     "last_error": last_error_info,
     "calendar_events_count": _research_store.calendar_count(),
     "last_calendar_ingest_at": _metadata_float("last_calendar_ingest_at"),
+    "quote_publisher": _quote_snapshot_store.status(_QUOTE_SNAPSHOT_FRESH_SECONDS),
   }
   return payload
 
@@ -1673,6 +1779,16 @@ def symbols(background: bool = False) -> List[Dict[str, Any]]:
   global _last_market_watch_poll_monotonic, _last_symbols_payload
   if background:
     _last_market_watch_poll_monotonic = _time.monotonic()
+  published = _quote_snapshot_store.read_fresh(_QUOTE_SNAPSHOT_FRESH_SECONDS)
+  if published is not None:
+    publisher_status = _quote_snapshot_store.status(_QUOTE_SNAPSHOT_FRESH_SECONDS)
+    _record_symbol_snapshot(
+      published,
+      broker_identity=str(publisher_status.get("broker_identity") or "unknown-terminal"),
+      catalog_revision=str(publisher_status.get("catalog_revision") or "unavailable"),
+      source="ea_publisher",
+    )
+    return published
   try:
     with _mt5_access(.05 if background else _MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
       if not _ensure_mt5_initialized():
@@ -1710,13 +1826,47 @@ def symbols(background: bool = False) -> List[Dict[str, Any]]:
           "quote_time": getattr(s, "time", None),
           "visible": bool(getattr(s, "visible", False)),
           "selected": bool(getattr(s, "select", False)),
+          "synchronized": None,
         })
-      _last_symbols_payload = result
+      terminal = mt5.terminal_info()
+      company = str(getattr(terminal, "company", "") or "").strip()
+      terminal_name = str(getattr(terminal, "name", "") or "").strip()
+      broker_identity = "|".join(part for part in (company, terminal_name) if part) or "unknown-terminal"
+      _record_symbol_snapshot(result, broker_identity=broker_identity, source="python_mt5")
       return result
   except Mt5BusyError:
     if _last_symbols_payload:
+      global _last_symbols_source
+      _last_symbols_source = "cached"
       return _last_symbols_payload
     return [{"name": market, "path": None} for market in WORKBENCH_MARKETS]
+
+
+@app.get("/symbol_snapshot")
+def symbol_snapshot(background: bool = False) -> Dict[str, Any]:
+  rows = symbols(background=background)
+  metadata = _symbol_snapshot_metadata()
+  return {
+    **metadata,
+    "symbols": rows,
+  }
+
+
+@app.post("/quotes_ingest")
+def quotes_ingest(payload: QuoteIngestRequest) -> Dict[str, Any]:
+  """Accept a complete or delta broker quote snapshot from the optional MT5 EA."""
+  try:
+    return _quote_snapshot_store.ingest(
+      publisher_id=payload.publisher_id,
+      broker_identity=payload.broker_identity,
+      catalog_revision=payload.catalog_revision,
+      sequence=payload.sequence,
+      complete=payload.complete,
+      sent_at=payload.sent_at,
+      rows=[row.model_dump() for row in payload.rows],
+    )
+  except QuoteSnapshotConflict as error:
+    raise HTTPException(status_code=409, detail=str(error)) from error
 
 
 @app.get("/market_status")
@@ -1725,16 +1875,24 @@ def market_status(symbol: str) -> Dict[str, Any]:
 
 
 @app.get("/history")
-def history(symbol: str, tf: str, bars: int = 500, prefer_cache: bool = False, background: bool = False) -> List[Dict[str, Any]]:
+def history(
+  symbol: str,
+  tf: str,
+  bars: int = 500,
+  prefer_cache: bool = False,
+  background: bool = False,
+  catalog_identity: Optional[str] = None,
+) -> List[Dict[str, Any]]:
   if bars <= 0:
     raise HTTPException(status_code=400, detail="bars must be > 0")
   if bars > 5000:
     raise HTTPException(status_code=400, detail="bars must be <= 5000")
+  _validate_catalog_identity(catalog_identity)
 
   # Pair/timeframe navigation should not wait behind MT5 IPC when the durable
   # candle store can paint the chart immediately. The normal request that
   # follows still refreshes this snapshot from the terminal.
-  if prefer_cache:
+  if prefer_cache and catalog_identity is None:
     cached = _cached_history(symbol, tf, bars=bars)
     if cached:
       return cached
@@ -1743,7 +1901,7 @@ def history(symbol: str, tf: str, bars: int = 500, prefer_cache: bool = False, b
   # must not take the process-global MT5 IPC lock while its one-second polling
   # loop is active. Foreground chart loads are intentionally unaffected.
   if background and _time.monotonic() - _last_market_watch_poll_monotonic <= _MARKET_WATCH_ACTIVITY_GRACE_SECONDS:
-    cached = _cached_history(symbol, tf, bars=bars)
+    cached = _cached_history(symbol, tf, bars=bars) if catalog_identity is None else []
     if cached:
       return cached
     raise HTTPException(status_code=503, detail="Background history deferred while Market Watch is active")
@@ -1772,21 +1930,28 @@ def history(symbol: str, tf: str, bars: int = 500, prefer_cache: bool = False, b
       _last_history_symbol = symbol
       return candles
   except Mt5BusyError:
-    cached = _cached_history(symbol, tf, bars=bars)
+    cached = _cached_history(symbol, tf, bars=bars) if catalog_identity is None else []
     if cached:
       return cached
     raise HTTPException(status_code=503, detail="MT5 is busy and no cached chart history is available")
   except HTTPException as error:
-    cached = _cached_history(symbol, tf, bars=bars)
+    cached = _cached_history(symbol, tf, bars=bars) if catalog_identity is None else []
     if cached and error.status_code in {502, 503}:
       return cached
     raise
 
 
 @app.get("/history_range")
-def history_range(symbol: str, tf: str, from_: int, to: int) -> List[Dict[str, Any]]:
+def history_range(
+  symbol: str,
+  tf: str,
+  from_: int,
+  to: int,
+  catalog_identity: Optional[str] = None,
+) -> List[Dict[str, Any]]:
   if from_ >= to:
     raise HTTPException(status_code=400, detail="from_ must be < to")
+  _validate_catalog_identity(catalog_identity)
 
   max_range_seconds = 40 * 24 * 60 * 60
   if to - from_ > max_range_seconds:
@@ -1815,19 +1980,20 @@ def history_range(symbol: str, tf: str, from_: int, to: int) -> List[Dict[str, A
       _last_history_symbol = symbol
       return candles
   except Mt5BusyError:
-    cached = _cached_history(symbol, tf, from_time=from_, to_time=to)
+    cached = _cached_history(symbol, tf, from_time=from_, to_time=to) if catalog_identity is None else []
     if cached:
       return cached
     raise HTTPException(status_code=503, detail="MT5 is busy and no cached chart range is available")
   except HTTPException as error:
-    cached = _cached_history(symbol, tf, from_time=from_, to_time=to)
+    cached = _cached_history(symbol, tf, from_time=from_, to_time=to) if catalog_identity is None else []
     if cached and error.status_code in {502, 503}:
       return cached
     raise
 
 
 @app.get("/history_boundary")
-def history_boundary(symbol: str, tf: str) -> Dict[str, Any]:
+def history_boundary(symbol: str, tf: str, catalog_identity: Optional[str] = None) -> Dict[str, Any]:
+  _validate_catalog_identity(catalog_identity)
   timeframe = mt5_timeframe(tf)
   try:
     with _mt5_access(_MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
@@ -1849,12 +2015,12 @@ def history_boundary(symbol: str, tf: str) -> Dict[str, Any]:
       _last_history_symbol = symbol
       return {"oldest_time": candle["time"], "approximate": True}
   except Mt5BusyError:
-    coverage = _research_store.candle_coverage(symbol, tf)
+    coverage = _research_store.candle_coverage(symbol, tf) if catalog_identity is None else {"earliest": None}
     if coverage["earliest"] is not None:
       return {"oldest_time": coverage["earliest"], "approximate": True, "source": "durable_cache"}
     raise HTTPException(status_code=503, detail="MT5 is busy and no cached history boundary is available")
   except HTTPException as error:
-    coverage = _research_store.candle_coverage(symbol, tf)
+    coverage = _research_store.candle_coverage(symbol, tf) if catalog_identity is None else {"earliest": None}
     if coverage["earliest"] is not None and error.status_code in {502, 503}:
       return {"oldest_time": coverage["earliest"], "approximate": True, "source": "durable_cache"}
     raise

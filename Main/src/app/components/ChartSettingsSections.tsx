@@ -44,6 +44,14 @@ export interface ChartCacheDrawerData {
   historyState: string;
   streamLabel: string;
   boundaryLabel: string;
+  brokerLabel?: string;
+  catalogSourceLabel?: string;
+  catalogAgeLabel?: string;
+  quoteAgeLabel?: string;
+  synchronizationLabel?: string;
+  historyQueueLabel?: string;
+  activeHistoryRequestLabel?: string;
+  lastHistoryFailureLabel?: string;
   onClearCache: () => void;
 }
 
@@ -445,6 +453,14 @@ export function ChartDiagnosticsSettings({
             <ChartDrawerMetric label="Boundary" value={cacheData.boundaryLabel} />
             <ChartDrawerMetric label="History state" value={cacheData.historyState} />
             <ChartDrawerMetric label="Stream" value={cacheData.streamLabel} />
+            {cacheData.brokerLabel ? <ChartDrawerMetric label="Broker / terminal" value={cacheData.brokerLabel} /> : null}
+            {cacheData.catalogSourceLabel ? <ChartDrawerMetric label="Quote source" value={cacheData.catalogSourceLabel} /> : null}
+            {cacheData.catalogAgeLabel ? <ChartDrawerMetric label="Catalog snapshot age" value={cacheData.catalogAgeLabel} /> : null}
+            {cacheData.quoteAgeLabel ? <ChartDrawerMetric label="Selected quote age" value={cacheData.quoteAgeLabel} /> : null}
+            {cacheData.synchronizationLabel ? <ChartDrawerMetric label="MT5 synchronized" value={cacheData.synchronizationLabel} /> : null}
+            {cacheData.historyQueueLabel ? <ChartDrawerMetric label="History queue" value={cacheData.historyQueueLabel} /> : null}
+            {cacheData.activeHistoryRequestLabel ? <ChartDrawerMetric label="Active history request" value={cacheData.activeHistoryRequestLabel} /> : null}
+            {cacheData.lastHistoryFailureLabel ? <ChartDrawerMetric label="Last history failure" value={cacheData.lastHistoryFailureLabel} /> : null}
           </div>
           <button type="button" className="chart-danger-button" onClick={cacheData.onClearCache}>
             <Trash2 size={14} />

@@ -2,6 +2,7 @@ import type {
   BridgeCandle,
   BridgeHealth,
   BridgeSymbol,
+  BridgeSymbolSnapshot,
   CalendarEvent,
   ImpactLevel,
   MacroSignalBacktestRun,
@@ -98,12 +99,14 @@ export async function fetchHistory(
   signal?: AbortSignal,
   preferCache = false,
   background = false,
+  catalogIdentity?: string,
 ): Promise<BridgeCandle[]> {
   const url =
     `${BRIDGE_BASE}/history?symbol=${encodeURIComponent(symbol)}` +
     `&tf=${encodeURIComponent(tf)}&bars=${encodeURIComponent(String(bars))}` +
     (preferCache ? "&prefer_cache=true" : "") +
-    (background ? "&background=true" : "");
+    (background ? "&background=true" : "") +
+    (catalogIdentity ? `&catalog_identity=${encodeURIComponent(catalogIdentity)}` : "");
   const payload = await fetchJson<unknown[]>(url, { signal });
   return payload
     .map((item) => {
@@ -134,6 +137,7 @@ export async function fetchHistoryRange(params: {
   tf: string;
   from: number;
   to: number;
+  catalogIdentity?: string;
 }): Promise<BridgeCandle[]> {
   const search = new URLSearchParams({
     symbol: params.symbol,
@@ -141,6 +145,7 @@ export async function fetchHistoryRange(params: {
     from_: String(params.from),
     to: String(params.to),
   });
+  if (params.catalogIdentity) search.set("catalog_identity", params.catalogIdentity);
   const payload = await fetchJson<unknown[]>(`${BRIDGE_BASE}/history_range?${search.toString()}`);
   return payload
     .map((item) => {
@@ -169,11 +174,13 @@ export async function fetchHistoryRange(params: {
 export async function fetchHistoryBoundary(params: {
   symbol: string;
   tf: string;
+  catalogIdentity?: string;
 }): Promise<{ oldest_time: number; approximate: boolean }> {
   const search = new URLSearchParams({
     symbol: params.symbol,
     tf: params.tf,
   });
+  if (params.catalogIdentity) search.set("catalog_identity", params.catalogIdentity);
   const payload = await fetchJson<unknown>(`${BRIDGE_BASE}/history_boundary?${search.toString()}`);
   if (!payload || typeof payload !== "object") {
     throw new Error("Invalid history boundary payload");
@@ -189,29 +196,57 @@ export async function fetchHistoryBoundary(params: {
   };
 }
 
+function normalizeBridgeSymbols(payload: unknown): BridgeSymbol[] {
+  if (!Array.isArray(payload)) return [];
+  return payload
+    .map((item): BridgeSymbol | null => {
+      if (!item || typeof item !== "object") return null;
+      const row = item as Record<string, unknown>;
+      const name = asString(row.name);
+      if (!name) return null;
+      const path = asString(row.path) || null;
+      return {
+        name,
+        path,
+        bid: asNumber(row.bid),
+        ask: asNumber(row.ask),
+        priceChange: asNumber(row.price_change),
+        digits: asNumber(row.digits),
+        quoteTime: asNumber(row.quote_time),
+        visible: Boolean(row.visible),
+        selected: Boolean(row.selected),
+        synchronized: typeof row.synchronized === "boolean" ? row.synchronized : null,
+      };
+    })
+    .filter((item): item is BridgeSymbol => item !== null);
+}
+
+export async function fetchSymbolSnapshot(background = false): Promise<BridgeSymbolSnapshot | null> {
+  try {
+    const payload = await fetchJson<unknown>(`${BRIDGE_BASE}/symbol_snapshot${background ? "?background=true" : ""}`);
+    if (!payload || typeof payload !== "object") return null;
+    const row = payload as Record<string, unknown>;
+    const brokerIdentity = asString(row.broker_identity).trim();
+    const catalogRevision = asString(row.catalog_revision).trim();
+    const catalogIdentity = asString(row.catalog_identity).trim();
+    if (!brokerIdentity || !catalogRevision || !catalogIdentity) return null;
+    return {
+      brokerIdentity,
+      catalogRevision,
+      catalogIdentity,
+      source: asString(row.source).trim() || "unknown",
+      ageSeconds: asNumber(row.age_seconds),
+      symbols: normalizeBridgeSymbols(row.symbols),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchSymbols(background = false): Promise<BridgeSymbol[]> {
   try {
-    const payload = await fetchJson<unknown[]>(`${BRIDGE_BASE}/symbols${background ? "?background=true" : ""}`);
-    return payload
-      .map((item) => {
-        if (!item || typeof item !== "object") return null;
-        const row = item as Record<string, unknown>;
-        const name = asString(row.name);
-        if (!name) return null;
-        const path = asString(row.path) || null;
-        return {
-          name,
-          path,
-          bid: asNumber(row.bid),
-          ask: asNumber(row.ask),
-          priceChange: asNumber(row.price_change),
-          digits: asNumber(row.digits),
-          quoteTime: asNumber(row.quote_time),
-          visible: Boolean(row.visible),
-          selected: Boolean(row.selected),
-        };
-      })
-      .filter((item): item is BridgeSymbol => item !== null);
+    const payload = await fetchJson<unknown>(`${BRIDGE_BASE}/symbols${background ? "?background=true" : ""}`);
+    return normalizeBridgeSymbols(payload);
   } catch {
     return [];
   }

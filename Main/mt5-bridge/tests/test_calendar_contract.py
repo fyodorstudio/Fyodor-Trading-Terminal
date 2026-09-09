@@ -14,6 +14,7 @@ from fastapi.testclient import TestClient
 # Import app after potential env/mocks so MT5 is not required for calendar-only tests
 import server
 from server import app
+from quote_snapshot import QuoteSnapshotStore
 
 client = TestClient(app)
 
@@ -292,12 +293,177 @@ def test_symbols_returns_all_mt5_rows_with_market_watch_fields_in_one_call(monke
     {
       "name": "USDSEK", "path": "Broker\\USDSEK", "bid": 9.57453, "ask": 9.57596,
       "price_change": .09, "digits": 5, "quote_time": 1_788_900_000, "visible": False, "selected": False,
+      "synchronized": None,
     },
     {
       "name": "USDJPY", "path": "Broker\\USDJPY", "bid": 153.307, "ask": 153.328,
       "price_change": -.43, "digits": 3, "quote_time": 1_788_900_000, "visible": True, "selected": True,
+      "synchronized": None,
     },
   ]
+
+
+def test_fresh_ea_quote_snapshot_serves_symbols_without_python_mt5_access(monkeypatch):
+  clock = [100.0]
+  quote_store = QuoteSnapshotStore(monotonic=lambda: clock[0])
+  monkeypatch.setattr(server, "_quote_snapshot_store", quote_store)
+  monkeypatch.setattr(server, "_last_market_watch_poll_monotonic", 0.0)
+
+  complete = client.post("/quotes_ingest", json={
+    "publisher_id": "ea-session-1",
+    "broker_identity": "Broker A|MetaTrader 5",
+    "catalog_revision": "broker-catalog-a",
+    "sequence": 1,
+    "complete": True,
+    "sent_at": 1_788_900_000,
+    "rows": [
+      {
+        "name": "EURUSD", "path": "Forex\\Majors", "bid": 1.16, "ask": 1.1602,
+        "price_change": 0.2, "digits": 5, "quote_time": 1_788_900_000,
+        "visible": True, "selected": True, "synchronized": True,
+      },
+      {
+        "name": "INDEX.WEIRD", "path": "Indices", "bid": None, "ask": None,
+        "price_change": None, "digits": 2, "quote_time": None,
+        "visible": False, "selected": False, "synchronized": False,
+      },
+    ],
+  })
+  assert complete.status_code == 200, complete.text
+  assert complete.json()["symbol_count"] == 2
+
+  @contextmanager
+  def forbidden_mt5_access(_timeout=None):
+    raise AssertionError("fresh EA quotes must not enter Python MT5 IPC")
+    yield
+
+  monkeypatch.setattr(server, "_mt5_access", forbidden_mt5_access)
+  response = client.get("/symbols", params={"background": True})
+
+  assert response.status_code == 200, response.text
+  assert [row["name"] for row in response.json()] == ["EURUSD", "INDEX.WEIRD"]
+  assert response.json()[0]["bid"] == 1.16
+  assert response.json()[0]["synchronized"] is True
+  snapshot = client.get("/symbol_snapshot", params={"background": True})
+  assert snapshot.status_code == 200, snapshot.text
+  assert snapshot.json()["source"] == "ea_publisher"
+  assert snapshot.json()["broker_identity"] == "Broker A|MetaTrader 5"
+  assert snapshot.json()["catalog_revision"] == "broker-catalog-a"
+  assert len(snapshot.json()["catalog_identity"]) == 64
+  assert [row["name"] for row in snapshot.json()["symbols"]] == ["EURUSD", "INDEX.WEIRD"]
+
+  delta = client.post("/quotes_ingest", json={
+    "publisher_id": "ea-session-1",
+    "broker_identity": "Broker A|MetaTrader 5",
+    "catalog_revision": "broker-catalog-a",
+    "sequence": 2,
+    "complete": False,
+    "sent_at": 1_788_900_001,
+    "rows": [{
+      "name": "EURUSD", "path": "Forex\\Majors", "bid": 1.1601, "ask": 1.1603,
+      "price_change": 0.21, "digits": 5, "quote_time": 1_788_900_001,
+      "visible": True, "selected": True, "synchronized": True,
+    }],
+  })
+  assert delta.status_code == 200, delta.text
+  assert client.get("/symbols").json()[0]["bid"] == 1.1601
+
+
+def test_quote_ingest_requires_complete_snapshot_for_new_catalog(monkeypatch):
+  quote_store = QuoteSnapshotStore(monotonic=lambda: 100.0)
+  monkeypatch.setattr(server, "_quote_snapshot_store", quote_store)
+
+  response = client.post("/quotes_ingest", json={
+    "publisher_id": "ea-session-2",
+    "broker_identity": "Broker B|MetaTrader 5",
+    "catalog_revision": "new-broker",
+    "sequence": 1,
+    "complete": False,
+    "rows": [],
+  })
+
+  assert response.status_code == 409
+  assert "complete snapshot" in response.json()["detail"]
+
+
+def test_stale_ea_quotes_fall_back_to_complete_python_catalog(monkeypatch):
+  clock = [100.0]
+  quote_store = QuoteSnapshotStore(monotonic=lambda: clock[0])
+  quote_store.ingest(
+    publisher_id="ea-session-stale",
+    broker_identity="Broker Old|MetaTrader 5",
+    catalog_revision="old-catalog",
+    sequence=1,
+    complete=True,
+    sent_at=1_788_900_000,
+    rows=[{
+      "name": "OLD", "path": "Old", "bid": 1.0, "ask": 1.1,
+      "price_change": 0.0, "digits": 2, "quote_time": 1_788_900_000,
+      "visible": True, "selected": True,
+    }],
+  )
+  clock[0] += server._QUOTE_SNAPSHOT_FRESH_SECONDS + 0.1
+  monkeypatch.setattr(server, "_quote_snapshot_store", quote_store)
+
+  class DummyMT5:
+    @staticmethod
+    def terminal_info():
+      return type("Terminal", (), {"company": "Broker New", "name": "MetaTrader 5"})()
+
+    @staticmethod
+    def symbols_get():
+      return (type("Symbol", (), {
+        "name": "NEW", "path": "Broker\\NEW", "bid": 2.0, "ask": 2.1,
+        "price_change": 1.0, "digits": 2, "time": 1_788_900_010,
+        "visible": True, "select": True,
+      })(),)
+
+    @staticmethod
+    def last_error():
+      return (1, "Success")
+
+  monkeypatch.setattr(server, "mt5", DummyMT5)
+  response = client.get("/symbol_snapshot")
+
+  assert response.status_code == 200, response.text
+  assert response.json()["source"] == "python_mt5"
+  assert response.json()["broker_identity"] == "Broker New|MetaTrader 5"
+  assert [row["name"] for row in response.json()["symbols"]] == ["NEW"]
+
+
+def test_catalog_scoped_history_rejects_stale_identity_before_mt5_access(monkeypatch):
+  monkeypatch.setattr(server, "_last_symbols_broker_identity", "Broker Current|MetaTrader 5")
+  monkeypatch.setattr(server, "_last_symbols_catalog_revision", "current-catalog")
+
+  @contextmanager
+  def forbidden_mt5_access(_timeout=None):
+    raise AssertionError("stale catalog work must stop before entering MT5 IPC")
+    yield
+
+  monkeypatch.setattr(server, "_mt5_access", forbidden_mt5_access)
+  response = client.get("/history", params={
+    "symbol": "EURUSD", "tf": "H4", "bars": 100, "catalog_identity": "stale-catalog",
+  })
+
+  assert response.status_code == 409
+  assert "catalog changed" in response.json()["detail"]
+
+
+def test_catalog_scoped_history_never_falls_back_to_unscoped_durable_candles(monkeypatch):
+  monkeypatch.setattr(server, "_last_symbols_broker_identity", "Broker Current|MetaTrader 5")
+  monkeypatch.setattr(server, "_last_symbols_catalog_revision", "current-catalog")
+  catalog_identity = server._symbol_snapshot_metadata()["catalog_identity"]
+  monkeypatch.setattr(server, "_ensure_mt5_initialized", lambda: False)
+  monkeypatch.setattr(server, "_cached_history", lambda *_args, **_kwargs: [{
+    "time": 1, "open": 1.0, "high": 1.0, "low": 1.0, "close": 1.0, "volume": 1,
+  }])
+
+  response = client.get("/history", params={
+    "symbol": "EURUSD", "tf": "H4", "bars": 100, "catalog_identity": catalog_identity,
+  })
+
+  assert response.status_code == 503
+  assert response.json()["detail"] == "MT5 terminal not connected"
 
 
 def test_history_range_returns_candles_with_mocked_mt5(monkeypatch):

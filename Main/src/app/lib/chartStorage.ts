@@ -9,7 +9,9 @@ import type { BridgeCandle, Timeframe } from "@/app/types";
 
 const FAVORITES_KEY = "fyodor-main-chart-favorites";
 const CHART_HISTORY_CACHE_KEY = "fyodor-main-chart-history-cache-v1";
+const SCOPED_CHART_HISTORY_CACHE_KEY = "fyodor-main-chart-history-cache-v2";
 const CHART_HISTORY_CONFIG_VERSION = 1;
+const SCOPED_CHART_HISTORY_KEY_VERSION = 2;
 const MAX_CHART_HISTORY_CANDLES = 5000;
 const sessionHistoryCache = new Map<string, BridgeCandle[]>();
 
@@ -22,12 +24,19 @@ function getStorage(): Storage | null {
   }
 }
 
-function getChartHistoryCacheKey(symbol: string, timeframe: Timeframe) {
+function getChartHistoryCacheKey(symbol: string, timeframe: Timeframe, catalogIdentity?: string) {
+  if (catalogIdentity) {
+    return `${SCOPED_CHART_HISTORY_CACHE_KEY}:${SCOPED_CHART_HISTORY_KEY_VERSION}:${encodeURIComponent(catalogIdentity)}:${symbol.toUpperCase()}:${timeframe}`;
+  }
   return `${CHART_HISTORY_CACHE_KEY}:${CHART_HISTORY_CONFIG_VERSION}:${symbol.toUpperCase()}:${timeframe}`;
 }
 
-export function readChartHistoryCache(symbol: string, timeframe: Timeframe): BridgeCandle[] {
-  const key = getChartHistoryCacheKey(symbol, timeframe);
+export function readChartHistoryCache(
+  symbol: string,
+  timeframe: Timeframe,
+  catalogIdentity?: string,
+): BridgeCandle[] {
+  const key = getChartHistoryCacheKey(symbol, timeframe, catalogIdentity);
   const sessionCached = sessionHistoryCache.get(key);
   if (sessionCached) return sessionCached;
   const storage = getStorage();
@@ -44,8 +53,13 @@ export function readChartHistoryCache(symbol: string, timeframe: Timeframe): Bri
   }
 }
 
-export function saveChartHistoryCache(symbol: string, timeframe: Timeframe, candles: BridgeCandle[]) {
-  const key = getChartHistoryCacheKey(symbol, timeframe);
+export function saveChartHistoryCache(
+  symbol: string,
+  timeframe: Timeframe,
+  candles: BridgeCandle[],
+  catalogIdentity?: string,
+) {
+  const key = getChartHistoryCacheKey(symbol, timeframe, catalogIdentity);
   const trimmed = mergeChartCandles([], candles, MAX_CHART_HISTORY_CANDLES);
   sessionHistoryCache.set(key, trimmed);
   const storage = getStorage();
@@ -62,8 +76,12 @@ export function saveChartHistoryCache(symbol: string, timeframe: Timeframe, cand
   }
 }
 
-export function clearChartHistoryCache(symbol: string, timeframe: Timeframe) {
-  const key = getChartHistoryCacheKey(symbol, timeframe);
+export function clearChartHistoryCache(
+  symbol: string,
+  timeframe: Timeframe,
+  catalogIdentity?: string,
+) {
+  const key = getChartHistoryCacheKey(symbol, timeframe, catalogIdentity);
   sessionHistoryCache.delete(key);
   const storage = getStorage();
   if (!storage) return;
@@ -75,8 +93,12 @@ export function clearChartHistoryCache(symbol: string, timeframe: Timeframe) {
   }
 }
 
-export function summarizeStoredChartHistory(symbol: string, timeframe: Timeframe): ChartCacheSummary {
-  return summarizeChartCache(readChartHistoryCache(symbol, timeframe));
+export function summarizeStoredChartHistory(
+  symbol: string,
+  timeframe: Timeframe,
+  catalogIdentity?: string,
+): ChartCacheSummary {
+  return summarizeChartCache(readChartHistoryCache(symbol, timeframe, catalogIdentity));
 }
 
 export function loadChartFavorites(): string[] {

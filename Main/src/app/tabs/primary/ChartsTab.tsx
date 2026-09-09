@@ -1,5 +1,25 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
+  getResidentHistoryDiagnostics,
+} from "@/app/features/chart-market-data/residentHistory";
+import {
+  createFmsArrowNavigationRequest,
+  describeFmsArrowNavigationStage,
+  getMacroBiasActivationCandleOpen,
+  getMacroBiasArrowFocusRange,
+  resolveFmsArrowNavigationStage,
+  type FmsArrowNavigationRequest,
+} from "@/app/features/fms-arrow-navigation/arrowNavigation";
+export { getMacroBiasActivationCandleOpen, getMacroBiasArrowFocusRange } from "@/app/features/fms-arrow-navigation/arrowNavigation";
+import {
+  captureChartZoomSnapshot,
+  getResidentChartZoomSnapshot,
+  restoreChartZoomRange,
+  setResidentChartZoomSnapshot,
+  type ChartZoomSnapshot,
+} from "@/app/features/chart-viewport/viewportState";
+export { captureChartZoomSnapshot, restoreChartZoomRange } from "@/app/features/chart-viewport/viewportState";
+import {
   CandlestickSeries,
   createChart,
   createSeriesMarkers,
@@ -195,28 +215,6 @@ export function getPairMatrixAnalyzeCandleRange(candleTimes: number[], candleOpe
   return normalizePairMatrixCandleRange(candleTimes, candleOpen, candleOpen, timeframe);
 }
 
-export interface ChartZoomSnapshot {
-  span: number;
-  rightOffset: number;
-}
-
-const residentChartZoomSnapshots = new Map<string, ChartZoomSnapshot>();
-
-export function captureChartZoomSnapshot(range: { from: number; to: number } | null, lastCandleIndex: number): ChartZoomSnapshot | null {
-  if (!range) return null;
-  const span = range.to - range.from;
-  if (!Number.isFinite(span) || span <= 1) return null;
-  return {
-    span,
-    rightOffset: Math.min(span * 0.8, Math.max(0, range.to - lastCandleIndex)),
-  };
-}
-
-export function restoreChartZoomRange(snapshot: ChartZoomSnapshot, lastCandleIndex: number): { from: number; to: number } {
-  const to = lastCandleIndex + snapshot.rightOffset;
-  return { from: to - snapshot.span, to };
-}
-
 export function mergeMacroBiasSignalDetail(
   signal: MacroSignalChartSignal,
   detail: MacroSignalChartSignal | null | undefined,
@@ -232,59 +230,6 @@ export function mergeMacroBiasSignalDetail(
       ? signal.pathAudit
       : { ...signal.pathAudit, ...detail.pathAudit },
   } as MacroSignalChartSignal;
-}
-
-export function getMacroBiasActivationCandleOpen(
-  signal: MacroSignalChartSignal,
-  candles: BridgeCandle[],
-  sourceTimeOffsetSeconds: number,
-  chartTimeframe: Timeframe = "H4",
-): number | null {
-  const activationTime = signal.activationTime == null
-    ? null
-    : getChartEventCoordinateTime(signal.activationTime, sourceTimeOffsetSeconds);
-  const releaseTime = getChartEventCoordinateTime(signal.eventTime, sourceTimeOffsetSeconds);
-  if (activationTime == null && chartTimeframe !== "H4") return null;
-  const target = activationTime ?? releaseTime;
-  if (activationTime != null) {
-    let low = 0;
-    let high = candles.length - 1;
-    let containingIndex = -1;
-    while (low <= high) {
-      const middle = Math.floor((low + high) / 2);
-      if (candles[middle].time <= target) {
-        containingIndex = middle;
-        low = middle + 1;
-      } else high = middle - 1;
-    }
-    if (containingIndex >= 0) {
-      const candleOpen = candles[containingIndex].time;
-      const nextOpen = candles[containingIndex + 1]?.time;
-      const nominalClose = getPairMatrixCandleClose(candleOpen, chartTimeframe);
-      const containingClose = nextOpen == null ? nominalClose : Math.min(nextOpen, nominalClose);
-      if (target < containingClose) return candleOpen;
-    }
-  }
-  const nextIndex = candles.findIndex((candle) => activationTime == null ? candle.time > target : candle.time >= target);
-  return nextIndex >= 0 ? candles[nextIndex].time : null;
-}
-
-export function getMacroBiasArrowFocusRange(
-  signal: MacroSignalChartSignal,
-  candles: BridgeCandle[],
-  sourceTimeOffsetSeconds: number,
-  chartTimeframe: Timeframe = "H4",
-): { from: number; to: number } | null {
-  const activationOpen = getMacroBiasActivationCandleOpen(signal, candles, sourceTimeOffsetSeconds, chartTimeframe);
-  if (activationOpen == null) return null;
-  const activationIndex = candles.findIndex((candle) => candle.time === activationOpen);
-  if (activationIndex < 0) return null;
-  const windowBars = Math.min(Math.max(Math.round(candles.length * 0.12), 56), 88);
-  const leadBars = Math.max(18, Math.round(windowBars * 0.34));
-  return {
-    from: Math.max(-0.5, activationIndex - (windowBars - leadBars)),
-    to: Math.min(candles.length - 0.5, activationIndex + leadBars),
-  };
 }
 
 export function buildMacroBiasSeriesMarkers(
@@ -508,6 +453,7 @@ export function ChartsTab({
   const [macroBiasHiddenHistoricalPatterns, setMacroBiasHiddenHistoricalPatterns] = useState<Record<string, string[]>>({});
   const [macroBiasCurrentResponse, setMacroBiasCurrentResponse] = useState<MacroSignalChartSignalResponse | null>(getPreloadedMacroSignalCurrentModel);
   const [macroBiasShadowHistoryResponse, setMacroBiasShadowHistoryResponse] = useState<MacroSignalChartSignalResponse | null>(null);
+  const [macroBiasShadowHistoryError, setMacroBiasShadowHistoryError] = useState<string | null>(null);
   const [macroBiasGlobalResponse, setMacroBiasGlobalResponse] = useState<MacroSignalGlobalResponse | null>(getPreloadedMacroSignalGlobalRegistry);
   const [macroBiasGlobalLoading, setMacroBiasGlobalLoading] = useState(false);
   const globalRegistryRef = useRef(macroBiasGlobalResponse);
@@ -521,11 +467,9 @@ export function ChartsTab({
   const [macroBiasSignalAudits, setMacroBiasSignalAudits] = useState<Record<string, MacroSignalChartSignal>>({});
   const [macroBiasSignalAuditErrors, setMacroBiasSignalAuditErrors] = useState<Record<string, string>>({});
   const [macroBiasSignalAuditRetryRevision, setMacroBiasSignalAuditRetryRevision] = useState(0);
-  const pendingMacroBiasArrowFocusRef = useRef<{
-    market: string;
-    signal: MacroSignalChartSignal;
-    timeframe: "H1" | "H4";
-  } | null>(null);
+  const pendingMacroBiasArrowFocusRef = useRef<FmsArrowNavigationRequest | null>(null);
+  const macroBiasArrowNavigationStageRef = useRef<string | null>(null);
+  const macroBiasArrowCoverageAttemptRef = useRef<string | null>(null);
   const [macroBiasArrowFocusRevision, setMacroBiasArrowFocusRevision] = useState(0);
   const [pairMatrixBeforeDays, setPairMatrixBeforeDays] = useState(loadPairMatrixBeforeDays);
   const [pairMatrixCoverageAnchor, setPairMatrixCoverageAnchor] = useState<number | null>(null);
@@ -664,6 +608,7 @@ export function ChartsTab({
 
   const {
     symbols,
+    symbolSnapshot,
     refreshSymbols,
     setBackgroundHistoryPaused,
     historyState,
@@ -676,6 +621,7 @@ export function ChartsTab({
     status,
     reachedBoundary,
     clearCurrentCache,
+    ensureHistoryCoverage,
   } = useChartMarketData({
     selectedSymbol,
     onSelectedSymbolChange,
@@ -684,11 +630,18 @@ export function ChartsTab({
     chartRef,
     addLog,
   });
+  const selectedBrokerSymbol = symbols.find(
+    (item) => item.name.toUpperCase() === selectedSymbol.toUpperCase(),
+  ) ?? null;
+  const residentHistoryDiagnostics = getResidentHistoryDiagnostics();
+  const selectedQuoteAgeSeconds = selectedBrokerSymbol?.quoteTime == null
+    ? null
+    : Math.max(0, Date.now() / 1000 - selectedBrokerSymbol.quoteTime);
   visibleCandleCountRef.current = visibleCandles.length;
   const chartMarketIdentity = `${selectedSymbol}:${timeframe}`;
   if (chartMarketIdentityRef.current !== chartMarketIdentity) {
     const residentZoom = chartPreferences.preserveZoomOnMarketChange
-      ? residentChartZoomSnapshots.get(chartMarketIdentity) ?? null
+      ? getResidentChartZoomSnapshot(chartMarketIdentity)
       : null;
     chartZoomSnapshotRef.current = residentZoom;
     // Suppress range events from the previous chart while the new resident
@@ -1267,6 +1220,7 @@ export function ChartsTab({
   useEffect(() => {
     if (!macroBiasSupported || !macroBiasVisible || !macroBiasHistoricalMatchesVisible || historyState !== "ready" || visibleCandles.length === 0) {
       setMacroBiasShadowHistoryResponse(null);
+      setMacroBiasShadowHistoryError(null);
       return;
     }
     let cancelled = false;
@@ -1275,9 +1229,11 @@ export function ChartsTab({
     const historyCacheKey = `${selectedSymbol.toUpperCase()}:${historyFrom}:${historyTo}`;
     const cachedHistory = macroBiasHistoryCacheRef.current.get(historyCacheKey);
     if (cachedHistory) {
+      setMacroBiasShadowHistoryError(null);
       setMacroBiasShadowHistoryResponse(cachedHistory);
       return undefined;
     }
+    setMacroBiasShadowHistoryError(null);
     setMacroBiasShadowHistoryResponse(null);
     fetchMacroSignalChartSignals({
       symbol: selectedSymbol,
@@ -1290,7 +1246,9 @@ export function ChartsTab({
       if (cancelled) return;
       macroBiasHistoryCacheRef.current.set(historyCacheKey, response);
       setMacroBiasShadowHistoryResponse(response);
-    }).catch(() => { /* retain journal arrows; selected-arrow audit remains available */ });
+    }).catch((error: unknown) => {
+      if (!cancelled) setMacroBiasShadowHistoryError(error instanceof Error ? error.message : "Historical arrow response unavailable");
+    });
     return () => { cancelled = true; };
   }, [macroBiasHistoricalMatchesVisible, macroBiasSupported, macroBiasVisible, selectedSymbol, historyState, macroBiasFrom, macroBiasTo, visibleCandles.length]);
 
@@ -1359,19 +1317,65 @@ export function ChartsTab({
 
   useEffect(() => {
     const pending = pendingMacroBiasArrowFocusRef.current;
-    if (!pending || selectedSymbol.toUpperCase() !== pending.market || timeframe !== pending.timeframe) return;
-    const signal = macroBiasDisplaySignals.find((candidate) => candidate.id === pending.signal.id)
-      ?? macroBiasDisplaySignals.find((candidate) => candidate.patternId === pending.signal.patternId && candidate.eventTime === pending.signal.eventTime);
+    if (!pending) return;
     const chart = chartRef.current;
     const series = seriesRef.current;
-    if (!signal || !chart || !series || historyState !== "ready") return;
-    const range = getMacroBiasArrowFocusRange(signal, visibleCandles, chartSourceTimeOffsetSeconds, timeframe);
-    if (!range) return;
+    const resolution = resolveFmsArrowNavigationStage({
+      request: pending,
+      selectedMarket: selectedSymbol,
+      selectedTimeframe: timeframe,
+      historyState,
+      signalState: pending.signal.historicalReplay
+        ? macroBiasShadowHistoryError
+          ? "error"
+          : macroBiasShadowHistoryResponse?.symbol.toUpperCase() === selectedSymbol.toUpperCase()
+            ? "ready"
+            : "loading"
+        : macroBiasError
+          ? "error"
+          : macroBiasResponse
+            ? "ready"
+            : "loading",
+      signals: macroBiasDisplaySignals,
+      candles: visibleCandles,
+      sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
+      chartMounted: Boolean(chart && series),
+    });
+    if (macroBiasArrowNavigationStageRef.current !== resolution.stage) {
+      macroBiasArrowNavigationStageRef.current = resolution.stage;
+      addLog(`Go to arrow: ${describeFmsArrowNavigationStage(resolution.stage)}`);
+    }
+    if (resolution.stage === "coverage_unavailable") {
+      const attemptKey = `${pending.market}:${pending.signal.id}:${pending.signal.activationTime ?? pending.signal.eventTime}`;
+      if (macroBiasArrowCoverageAttemptRef.current !== attemptKey) {
+        macroBiasArrowCoverageAttemptRef.current = attemptKey;
+        addLog("Go to arrow: requesting the missing activation-candle window");
+        const targetChartTime = (pending.signal.activationTime ?? pending.signal.eventTime) + chartSourceTimeOffsetSeconds;
+        void ensureHistoryCoverage(targetChartTime).then((loaded) => {
+          if (pendingMacroBiasArrowFocusRef.current !== pending) return;
+          if (!loaded) {
+            pendingMacroBiasArrowFocusRef.current = null;
+            addLog("Go to arrow: the broker did not return the required activation-candle window");
+            return;
+          }
+          setMacroBiasArrowFocusRevision((current) => current + 1);
+        });
+        return;
+      }
+      pendingMacroBiasArrowFocusRef.current = null;
+      addLog("Go to arrow: returned history still does not contain the activation candle");
+      return;
+    }
+    if (resolution.stage === "history_unavailable" || resolution.stage === "signal_unavailable") {
+      pendingMacroBiasArrowFocusRef.current = null;
+      return;
+    }
+    if (resolution.stage !== "ready" || !resolution.signal || !resolution.range || !chart || !series) return;
     pendingMacroBiasArrowFocusRef.current = null;
-    setSelectedMacroBiasId(signal.id);
-    chart.timeScale().setVisibleLogicalRange(range);
+    setSelectedMacroBiasId(resolution.signal.id);
+    chart.timeScale().setVisibleLogicalRange(resolution.range);
     series.priceScale().setAutoScale(true);
-  }, [macroBiasArrowFocusRevision, macroBiasDisplaySignals, selectedSymbol, timeframe, historyState, visibleCandles, chartSourceTimeOffsetSeconds]);
+  }, [macroBiasArrowFocusRevision, macroBiasDisplaySignals, macroBiasResponse, macroBiasError, macroBiasShadowHistoryResponse, macroBiasShadowHistoryError, selectedSymbol, timeframe, historyState, visibleCandles, chartSourceTimeOffsetSeconds, addLog, ensureHistoryCoverage]);
 
   useEffect(() => {
     const series = seriesRef.current;
@@ -1565,23 +1569,24 @@ export function ChartsTab({
   }, []);
 
   const goToMacroBiasArrow = useCallback((market: string, signal: MacroSignalChartSignal) => {
-    const normalizedMarket = market.toUpperCase();
-    const targetTimeframe = signal.activationTime == null ? "H4" : signal.entryTimeframe ?? "H4";
-    pendingMacroBiasArrowFocusRef.current = { market: normalizedMarket, signal, timeframe: targetTimeframe };
+    const request = createFmsArrowNavigationRequest(market, signal);
+    pendingMacroBiasArrowFocusRef.current = request;
+    macroBiasArrowNavigationStageRef.current = null;
+    macroBiasArrowCoverageAttemptRef.current = null;
     setMacroBiasVisible(true);
     setMacroBiasHistoricalMatchesVisible(true);
     setMacroBiasHiddenHistoricalPatterns((current) => {
-      const hidden = current[normalizedMarket] ?? [];
+      const hidden = current[request.market] ?? [];
       return hidden.includes(signal.patternId)
-        ? { ...current, [normalizedMarket]: hidden.filter((patternId) => patternId !== signal.patternId) }
+        ? { ...current, [request.market]: hidden.filter((patternId) => patternId !== signal.patternId) }
         : current;
     });
     try {
       window.localStorage.setItem(MACRO_BIAS_VISIBILITY_KEY, "true");
       window.localStorage.setItem(MACRO_BIAS_HISTORICAL_MATCHES_KEY, "true");
     } catch { /* optional preference */ }
-    if (selectedSymbol.toUpperCase() !== normalizedMarket) onSelectedSymbolChange(normalizedMarket);
-    if (timeframe !== targetTimeframe) setTimeframe(targetTimeframe);
+    if (selectedSymbol.toUpperCase() !== request.market) onSelectedSymbolChange(request.market);
+    if (timeframe !== request.timeframe) setTimeframe(request.timeframe);
     setMacroBiasArrowFocusRevision((current) => current + 1);
   }, [onSelectedSymbolChange, selectedSymbol, timeframe]);
 
@@ -1768,7 +1773,7 @@ export function ChartsTab({
           visibleCandleCountRef.current - 1,
         );
         chartZoomSnapshotRef.current = snapshot;
-        if (snapshot) residentChartZoomSnapshots.set(chartMarketIdentityRef.current, snapshot);
+        if (snapshot) setResidentChartZoomSnapshot(chartMarketIdentityRef.current, snapshot);
       }
       const pairMatrixActive = pairMatrixOpenRef.current;
       const updateCadence = getChartRangeUpdateCadence(pairMatrixActive);
@@ -2760,6 +2765,28 @@ export function ChartsTab({
           latestLabel: cacheLatestLabel,
           historyState,
           streamLabel: streamConnected ? "connected" : "not streaming",
+          brokerLabel: symbolSnapshot?.brokerIdentity ?? "unverified",
+          catalogSourceLabel: symbolSnapshot
+            ? `${symbolSnapshot.source} · ${symbolSnapshot.catalogRevision.slice(0, 12)}`
+            : "unavailable",
+          catalogAgeLabel: symbolSnapshot?.ageSeconds == null
+            ? "unavailable"
+            : `${symbolSnapshot.ageSeconds.toFixed(1)}s at last refresh`,
+          quoteAgeLabel: selectedQuoteAgeSeconds == null
+            ? "unavailable"
+            : `${selectedQuoteAgeSeconds.toFixed(1)}s`,
+          synchronizationLabel: selectedBrokerSymbol?.synchronized == null
+            ? "not reported by source"
+            : selectedBrokerSymbol.synchronized ? "yes" : "no",
+          historyQueueLabel: `${residentHistoryDiagnostics.pendingCount} pending · ${residentHistoryDiagnostics.selectedQueueDepth} selected · ${residentHistoryDiagnostics.warmQueueDepth} warm · ${residentHistoryDiagnostics.deepQueueDepth} deep · ${residentHistoryDiagnostics.cooldownCount} cooling${residentHistoryDiagnostics.backgroundPaused ? " · paused for Market Watch" : ""}`,
+          activeHistoryRequestLabel: residentHistoryDiagnostics.activeRequest
+            ? `${residentHistoryDiagnostics.activeRequest.symbol} ${residentHistoryDiagnostics.activeRequest.timeframe} · ${residentHistoryDiagnostics.activeRequest.priority}`
+            : "idle",
+          lastHistoryFailureLabel: residentHistoryDiagnostics.lastFailure
+            ? `${residentHistoryDiagnostics.lastFailure.key} · ${residentHistoryDiagnostics.lastFailure.message}`
+            : residentHistoryDiagnostics.lastDurationMs == null
+              ? "none this session"
+              : `none · last request ${residentHistoryDiagnostics.lastDurationMs}ms`,
           boundaryLabel: boundaryTime
             ? formatChartFeedTime(boundaryTime, displayTimeMode, chartSourceTimeOffsetSeconds)
             : "unconfirmed",

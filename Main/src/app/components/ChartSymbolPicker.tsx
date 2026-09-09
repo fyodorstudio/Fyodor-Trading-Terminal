@@ -3,6 +3,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ChevronRight, Search, Star } from "lucide-react";
 import { CHART_TIMEFRAMES } from "@/app/lib/chartDisplay";
 import { loadChartFavorites, saveChartFavorites } from "@/app/lib/chartStorage";
+import {
+  filterMarketWatchSymbols,
+  formatMarketWatchChange,
+  formatMarketWatchPrice,
+  getVirtualMarketWatchWindow,
+} from "@/app/features/chart-market-data/symbolCatalog";
 import type { BridgeSymbol, Timeframe } from "@/app/types";
 
 interface GroupedSymbols {
@@ -22,22 +28,6 @@ interface ChartSymbolPickerProps {
 
 type SymbolPickerMode = "browse" | "market_watch";
 
-export function filterMarketWatchSymbols(symbols: readonly BridgeSymbol[], search: string): BridgeSymbol[] {
-  const query = search.trim().toLowerCase();
-  return query ? symbols.filter((item) => item.name.toLowerCase().includes(query)) : [...symbols];
-}
-
-export function formatMarketWatchPrice(value: number | null, digits: number | null): string {
-  if (value == null || !Number.isFinite(value)) return "—";
-  const precision = digits == null || !Number.isFinite(digits) ? 5 : Math.max(0, Math.min(10, Math.trunc(digits)));
-  return value.toFixed(precision);
-}
-
-export function formatMarketWatchChange(value: number | null): string {
-  if (value == null || !Number.isFinite(value)) return "—";
-  return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
-}
-
 export function ChartSymbolPicker({
   selectedSymbol,
   symbols,
@@ -52,7 +42,9 @@ export function ChartSymbolPicker({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerMode, setPickerMode] = useState<SymbolPickerMode>("browse");
   const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
+  const [marketWatchScrollTop, setMarketWatchScrollTop] = useState(0);
   const pickerRef = useRef<HTMLDivElement | null>(null);
+  const marketWatchScrollRef = useRef<HTMLDivElement | null>(null);
   const symbolGroupKey = useMemo(
     () => symbols.map((item) => `${item.name}:${item.path ?? ""}`).join("|"),
     [symbols],
@@ -124,6 +116,17 @@ export function ChartSymbolPicker({
     () => filterMarketWatchSymbols(symbols, search),
     [search, symbols],
   );
+  const marketWatchWindow = useMemo(
+    () => getVirtualMarketWatchWindow(marketWatchItems.length, marketWatchScrollTop, 430),
+    [marketWatchItems.length, marketWatchScrollTop],
+  );
+  const visibleMarketWatchItems = marketWatchItems.slice(marketWatchWindow.start, marketWatchWindow.end);
+
+  useEffect(() => {
+    if (pickerMode !== "market_watch") return;
+    if (marketWatchScrollRef.current) marketWatchScrollRef.current.scrollTop = 0;
+    setMarketWatchScrollTop(0);
+  }, [pickerMode, search]);
 
   const selectSymbol = (symbol: string) => {
     onSelectedSymbolChange(symbol);
@@ -265,7 +268,11 @@ export function ChartSymbolPicker({
                   <div className="chart-market-watch-count">
                     {search ? `${marketWatchItems.length} matching` : `${symbols.length} broker symbols`}
                   </div>
-                  <div className="chart-market-watch-scroll">
+                  <div
+                    ref={marketWatchScrollRef}
+                    className="chart-market-watch-scroll"
+                    onScroll={(event) => setMarketWatchScrollTop(event.currentTarget.scrollTop)}
+                  >
                     <table>
                       <thead>
                         <tr>
@@ -276,7 +283,13 @@ export function ChartSymbolPicker({
                         </tr>
                       </thead>
                       <tbody>
-                        {marketWatchItems.map((item) => {
+                        {marketWatchWindow.topSpacerHeight > 0 ? (
+                          <tr className="chart-market-watch-spacer" aria-hidden="true">
+                            <td colSpan={4} style={{ height: marketWatchWindow.topSpacerHeight }} />
+                          </tr>
+                        ) : null}
+                        {visibleMarketWatchItems.map((item, visibleIndex) => {
+                          const itemIndex = marketWatchWindow.start + visibleIndex;
                           const changeClass = item.priceChange == null
                             ? "is-unavailable"
                             : item.priceChange > 0
@@ -287,7 +300,7 @@ export function ChartSymbolPicker({
                           return (
                             <tr
                               key={item.name}
-                              className={item.name === selectedSymbol ? "is-selected" : ""}
+                              className={`${item.name === selectedSymbol ? "is-selected " : ""}${itemIndex % 2 === 1 ? "is-even" : ""}`}
                               onClick={() => selectSymbol(item.name)}
                             >
                               <td>
@@ -302,6 +315,11 @@ export function ChartSymbolPicker({
                             </tr>
                           );
                         })}
+                        {marketWatchWindow.bottomSpacerHeight > 0 ? (
+                          <tr className="chart-market-watch-spacer" aria-hidden="true">
+                            <td colSpan={4} style={{ height: marketWatchWindow.bottomSpacerHeight }} />
+                          </tr>
+                        ) : null}
                       </tbody>
                     </table>
                     {marketWatchItems.length === 0 && (

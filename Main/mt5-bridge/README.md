@@ -7,6 +7,7 @@ It exposes the MT5-backed endpoints the frontend needs:
 - `GET /health`
 - `GET /server_time`
 - `GET /symbols`
+- `GET /symbol_snapshot`
 - `GET /history`
 - `GET /history_range`
 - `GET /calendar`
@@ -29,11 +30,13 @@ It exposes the MT5-backed endpoints the frontend needs:
 - `POST /research/backtests`
 - `POST /calendar_ingest`
 - `POST /calendar_ingest_cycle`
+- `POST /quotes_ingest`
 - `WS /stream`
 
-The bridge folder also now includes the MT5 companion EA script:
+The bridge folder includes two MT5 companion EA scripts:
 
 - `FyodorCalendarBridge.mq5`
+- `FyodorQuoteBridge.mq5`
 
 Use that EA version if you want the bridge/app to preserve:
 
@@ -41,13 +44,40 @@ Use that EA version if you want the bridge/app to preserve:
 - all `(event id, event time)` rows
 - future blank schedule rows needed for next-event dates
 
+`FyodorQuoteBridge.mq5` is the optional low-latency quote plane. It reads the
+complete broker symbol catalog with `SymbolsTotal(false)`, publishes an initial
+complete snapshot, then sends changed quote rows and periodic repair snapshots.
+It never selects symbols, reads account properties, or sends orders. A fresh
+publisher lets `GET /symbols` and `GET /symbol_snapshot` serve Bid/Ask data from
+the bridge's in-memory quote store without entering Python MetaTrader5 IPC;
+when the publisher is absent or stale, the existing Python path remains the
+fallback.
+
+`GET /symbol_snapshot` also returns a hashed `catalog_identity`. Charts sends
+that identity with its history requests and keys browser-resident candles by
+it. If the broker catalog changes between selection and history loading, the
+request returns `409` for a fresh snapshot instead of painting stale data.
+Catalog-scoped requests never fall back to the legacy broker-unscoped durable
+candle table; an already scoped browser cache may remain visible during a live
+MT5 failure, with the failure reported in Diagnostics.
+
+To enable it manually:
+
+1. In MT5, add `http://127.0.0.1:8001` to **Tools > Options > Expert Advisors > Allow WebRequest for listed URL**. The Calendar EA uses the same permission.
+2. Compile `FyodorQuoteBridge.mq5` in MetaEditor and attach it to one chart. It is independent of the chart symbol and enumerates the live broker catalog.
+3. Keep Algo Trading/EA execution enabled. The default publisher interval is 500 ms and the complete repair interval is 30 seconds.
+4. Open `http://127.0.0.1:8001/health` and confirm `quote_publisher.fresh` is `true`, then compare symbol count/order and several quote values against MT5 Market Watch.
+
+This setup is intentionally manual. Fyodor does not copy the EA into the
+terminal, modify MT5 options, or mutate the broker's Market Watch selection.
+
 The bridge also exposes health metadata the frontend relies on, including `last_calendar_ingest_at`, and it is now part of the app's trust-state story rather than just a passive candle proxy.
 
 Calendar rows are stored durably in a local SQLite database rather than a 400-day in-memory list. Set `FYODOR_RESEARCH_DB` to override its location; the Windows default is `%LOCALAPPDATA%\Fyodor Trading Terminal\fyodor-research.sqlite3`.
 
 The research endpoints own immutable FMS definitions used by FMS Experiment Workbench and Charts. The current registered registry spans the supported major-pair markets; older versions remain immutable research history. Backtests run on a single background worker, reuse cached H4 candles, fetch M1 only when an H4 bar touches both stop and target, and never execute an order.
 
-MetaTrader5's Python IPC is process-global, so all MT5 calls are serialized. Foreground chart routes use a bounded wait and fall back to the durable candle cache when MT5 is temporarily busy; this prevents one research or reconciliation operation from freezing every chart. Successful live history reads continuously refresh that cache. Startup does not launch an eager all-market reconciliation; completed EA cycles schedule it after the bridge is available.
+MetaTrader5's Python IPC is process-global, so all Python MT5 calls are serialized. Foreground chart routes use a bounded wait and fall back to the durable candle cache when MT5 is temporarily busy; this prevents one research or reconciliation operation from freezing every chart. Successful live history reads continuously refresh that cache. Startup does not launch an eager all-market reconciliation; completed Calendar EA cycles schedule it after the bridge is available. When the optional Quote EA is fresh, quote reads bypass this Python history lane entirely.
 
 The EA posts `/calendar_ingest_cycle` only after all batches in a timer pass have been attempted. A successful zero-failure cycle lets the bridge freeze first-seen released values for the v2 forward-paper ledger; failed cycles never create paper candidates. The ledger advances outcomes in a separate background worker and is exposed by `/research/forward`.
 

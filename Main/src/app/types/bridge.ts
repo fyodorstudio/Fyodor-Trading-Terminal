@@ -23,6 +23,16 @@ export interface BridgeSymbol {
   quoteTime: number | null;
   visible: boolean;
   selected: boolean;
+  synchronized?: boolean | null;
+}
+
+export interface BridgeSymbolSnapshot {
+  brokerIdentity: string;
+  catalogRevision: string;
+  catalogIdentity: string;
+  source: string;
+  ageSeconds: number | null;
+  symbols: BridgeSymbol[];
 }
 
 export interface BridgeHealth {

@@ -1,6 +1,14 @@
 # Current mission and handoff
 
-Updated 2026-09-09. The minimal Market Watch contention repair is complete. Broader broker-adaptive quote/history architecture is deferred until the owner brings it up. The owner is also investigating frozen FMS records and will return with specific cases before discussing any explicit correction. Rules: [AGENTS](../../AGENTS.md). Durable context: [CONTEXT](../../CONTEXT.md). Unknown owner: [navigation](../NAVIGATION.md).
+Updated 2026-09-09. The owner requested a safe early finish before rate limits. P0 and the high-value P1/P2 market-data slice are implemented. A bounded P3 slice landed for staged Go-to-arrow navigation and resident viewport state, but the remaining P3 decomposition and P4–P7 are deferred. P2 still awaits the owner’s live MT5/browser exit audit. The event-respect/high-TP campaign remains deferred and must not start as a side effect of UI or repository work. Rules: [AGENTS](../../AGENTS.md). Durable context: [CONTEXT](../../CONTEXT.md). Unknown owner: [navigation](../NAVIGATION.md).
+
+## Early-finish checkpoint
+
+- Completed: P0 architecture baseline; P1 market-data feature seams; P2 optional independent quote publisher, broker-adaptive catalog/cache safeguards, virtualized Market Watch, bounded warmer, and diagnostics.
+- Completed bounded P3 behavior: Go to arrow now stages market/timeframe selection, scoped history coverage, immutable signal lookup, exact arrow selection, and focus with distinct failure reasons. Viewport capture/restore has a feature owner while compatibility exports remain intact.
+- Deferred intact: remaining P3 route/panel decomposition; P4 shell and prototype quarantine; P5 literal-table FMS Workbench/right-inspector/Lens rebuild; P6 deletion-ledger cleanup; P7 controlled panel placement.
+- Research remains deferred: do not run, freeze, promote, or reinterpret an event-respect/high-TP campaign until the owner explicitly reopens it. The intended question is which event/currency/pair/direction packages most consistently produce aligned post-release price movement, followed separately by execution-contract testing.
+- No frozen record, model, setup recipe, release monitor, provenance field, or historical evidence artifact was rewritten during this pass.
 
 ## Non-negotiable product behavior
 
@@ -41,21 +49,23 @@ If a correction is warranted, document the confirmed cause, affected record set,
 ## Current implemented baseline
 
 - Rapid pair/timeframe switching no longer turns an expected chart WebSocket disconnect into a bridge traceback. Every stream send and close is lifecycle-safe, client disconnect frames are consumed promptly, obsolete streams stop polling MT5 immediately, and the error path never attempts a second send over an already-closed socket.
-- The focused bridge contract now passes 16/16. It reproduces the exact `Cannot call send once a close message has been sent` failure, exercises a complete connect/candle/pair-switch disconnect route without an unhandled exception, and proves active Market Watch polling defers uncached background history before any MT5 lock attempt. Existing FastAPI lifespan and `datetime.utcnow` deprecation warnings remain unrelated.
+- The bridge now has an optional no-trading `FyodorQuoteBridge.mq5` lane. It publishes complete/delta broker quote snapshots with publisher, broker/catalog, sequence, timestamp, and synchronization facts into a process-local store, allowing fresh `/symbols` reads to bypass Python MT5 history IPC. The original Python catalog path remains the automatic fallback.
 - Charts is usable as the working surface with Trade, Journal, Setups, and table-only Past Result docks.
 - Trade continuity, compact disclosures, setup filtering, Go to arrow, selected-arrow detail recovery, explicit outcome definitions, and coherent historical-evidence priority are implemented.
-- The full broker symbol universe remains available. The selector has the existing Browse mode and a dense Market Watch mode with Symbol, Bid, Ask, and MT5 Daily Change.
+- The full broker symbol universe remains available. The selector has the existing Browse mode and a dense, fixed-row virtualized Market Watch table with Symbol, Bid, Ask, and MT5 Daily Change; broker order and unavailable rows are retained while large catalogs render only the visible window.
 - The selector stays open during repeated symbol choices. Session-resident candle loading, background warming, per-symbol/timeframe zoom memory, pre-paint viewport replacement, and configurable 40–400-candle refocus width support rapid review.
-- While Market Watch is open, its one-second quote audit now preempts opportunistic warm/deep candle requests in the browser. A bridge-side activity guard closes the race before background history can acquire MT5's process-global IPC lock. Owner-selected chart history retains foreground priority.
+- While Market Watch is open, its one-second quote audit preempts opportunistic warm/deep candle requests. Outside that interaction, the bounded scheduler warms the selected symbol across timeframes first, then favorites, visible/selected rows, recently used symbols, and the remaining live broker catalog. Failed background rows receive exponential cooldown rather than blocking the queue or creating retry storms; owner-selected history retains foreground priority.
 - Chart selection no longer performs an automatic 1971-era oldest-candle probe. The boundary is recorded only when leftward history loading actually exhausts available data.
-- An unchanged cached `/symbols` response preserves the existing React symbol array instead of rerendering the full chart workspace. Rapid pair/timeframe changes debounce the live WebSocket handshake for 150 ms and do not close a socket that is still connecting.
-- The latest focused checks passed: TypeScript, 40/40 chart/Market Watch regressions, 16/16 bridge contracts, and production build. The build retains the known non-blocking large-chunk warning and the bridge checks retain existing framework/time deprecation warnings.
+- An unchanged quote snapshot preserves the existing React symbol and metadata state instead of rerendering the full chart workspace. Rapid pair/timeframe changes debounce the live WebSocket handshake for 150 ms and do not close a socket that is still connecting.
+- Browser candle residency is keyed by verified broker/catalog identity. Catalog-scoped history calls reject stale identities and never fall back to the legacy unscoped durable candle table, so a broker switch cannot paint old coverage as current. When identity cannot be verified, history is fetched live without browser-cache reuse.
+- Diagnostics now expose broker/catalog identity and source, catalog/quote age, selected-symbol synchronization, scoped cache coverage, queue lanes, active request, cooldown count, and the most recent history failure. They remain behind the existing Diagnostics drawer.
+- Latest reusable checks: TypeScript passed after the bounded P3 slice; 43/43 focused chart/storage regressions passed; the complete bridge suite passed 90/90; the P2 production build passed; and `FyodorQuoteBridge.mq5` compiled with zero errors/warnings. The build retains the known non-blocking large-chunk warning and the bridge checks retain five existing framework/time deprecation warnings.
 - The symbol portion of that bridge contract continues to cover complete ordered broker rows, one bulk MT5 symbol call, quote projection, and non-blocking cached background refresh.
 - The bounded entry-known H4 research campaign completed with 12 declared variants, zero survivors, and no promotion. Its immutable artifacts and exhaustion-ledger records remain preserved outside this active handoff.
 
-## Deferred grand plan — activate only when the owner explicitly reopens a phase
+## Deferred grand plan — safely paused until the owner explicitly reopens a phase
 
-This is the exhaustive direction discussed with the owner. It preserves the reasoning and order, but it is not authorization to implement, delete application code, move records, redesign routes, access an account, add an external feed, or change any FMS model. Each phase must be reopened explicitly and completed as one coherent behavior-preserving slice. Do not combine repository restructuring with financial/model corrections.
+This preserves the exhaustive direction and documented order after the early finish. It is not authorization to continue implementation, delete application code, move records, redesign routes, access an account, add an external feed, or change any FMS model. Each remaining phase must be reopened explicitly and completed as one coherent behavior-preserving slice. Do not combine repository restructuring with financial/model corrections.
 
 ### Intended end state
 
@@ -125,6 +135,8 @@ The FMS Experiment Workbench is the likely control and audit surface for this ca
 
 ### P0 — Baseline and dependency map
 
+Milestone: complete 2026-09-09. The authoritative owner/dependency, immutable-flow, persistence, endpoint, validation, manual-gap, priority, and rollback record is [Architecture Baseline](Architecture%20Baseline.md). The captured baseline is 253/253 frontend tests and 85/85 bridge tests; existing framework/time deprecation and production chunk-size warnings remain non-blocking. P1 may proceed through typed compatibility seams without changing behavior.
+
 Purpose: establish evidence before moving code so cleanup does not merely relocate hidden coupling.
 
 - Record the active Charts route, workbar, left/right/bottom dock composition, data hooks, bridge endpoints, storage keys, stylesheets, and existing checks that protect each behavior.
@@ -135,6 +147,8 @@ Purpose: establish evidence before moving code so cleanup does not merely reloca
 - Exit gate: every active surface and immutable data path has a named owner, existing validation route, and rollback point; unknown ownership remains documented rather than guessed.
 
 ### P1 — Establish feature seams without redesign
+
+Milestone: high-value market-data seam complete 2026-09-09. Typed contracts, history policy, resident scheduler, and symbol-catalog normalization now live under `features/chart-market-data`; `useChartMarketData.ts` is reduced to React orchestration and the existing component/bridge compatibility surfaces remain intact. Focused tests and TypeScript pass. Further vertical slices proceed only with the phase that needs them.
 
 Purpose: make future edits local before changing visible product structure.
 
@@ -147,6 +161,8 @@ Purpose: make future edits local before changing visible product structure.
 - Exit gate: a change inside one named feature normally touches that feature plus an intentional shared contract or adapter—not the route, unrelated docks, and bridge by default.
 
 ### P2 — Broker-adaptive market-data runtime
+
+Milestone: implementation complete 2026-09-09; live MT5/visual exit audit outstanding. The independent optional quote publisher, process-local delta store, broker/catalog snapshot endpoint, scoped browser history, catalog-guarded history requests, adaptive backpressured warmer with failure cooldown, virtualized Market Watch, and hidden diagnostics are implemented. Automated evidence is 42/42 focused frontend checks, 90/90 complete bridge checks, TypeScript, production build, and a MetaEditor compile of `FyodorQuoteBridge.mq5` with zero errors/warnings. The owner must still enable local WebRequest, attach the EA to one chart, and verify quote continuity and broker switching against a live terminal; absence of the EA deliberately retains the slower Python fallback.
 
 Purpose: eliminate the current shared-lane architecture rather than accumulating more timeout patches.
 
@@ -164,6 +180,8 @@ Purpose: eliminate the current shared-lane architecture rather than accumulating
 - Exit gate: active quotes remain responsive during slow/failed history synchronization; first selection and revisits are measured; broker switching cannot reuse false coverage; workload scales from a small catalog to a much larger one without fixed assumptions.
 
 ### P3 — Decompose the Charts workspace
+
+Milestone: bounded checkpoint complete and remainder deferred 2026-09-09. The first interaction owner now lives under `features/fms-arrow-navigation`. “Go to arrow” is a staged command that selects broker symbol and registered timeframe, waits for scoped history and the immutable signal response, requests a bounded missing activation window when needed, selects the exact signal, and then focuses/autoscales the chart. Terminal failures are distinguished in Diagnostics as history unavailable, immutable signal absent, or activation coverage absent instead of waiting silently. Viewport capture/restore now lives under `features/chart-viewport`; existing `ChartsTab` exports remain compatibility shims. The bounded slice passed 43/43 focused chart/storage checks and TypeScript. Route decomposition and central panel-state ownership remain incomplete and deferred; no shell migration starts until that seam is stable.
 
 Purpose: turn `ChartsTab` into composition instead of a cross-feature implementation owner.
 
@@ -249,10 +267,10 @@ Purpose: support owner layout preferences after the panel boundaries are stable.
 
 ### Milestone discipline and recommended order
 
-1. Reopen and complete P0 first.
-2. Use P1 to create ownership seams around one high-change vertical slice; the Market Watch/market-data boundary is the leading candidate because it already crosses UI, hook, bridge, and tests.
-3. Complete P2 before promising MT5-like responsiveness across arbitrary brokers.
-4. Decompose Charts in P3 using the proven seams.
+1. Preserve the completed P0 architecture baseline as the map and rollback reference.
+2. Preserve the completed P1 market-data seams; add another seam only when a reopened phase requires it.
+3. Complete the outstanding live P2 audit before promising MT5-like responsiveness across arbitrary brokers.
+4. Resume Charts decomposition in P3 using the proven seams.
 5. Change the visible shell in P4 only after Charts owns everything it needs.
 6. Use real arrow audits and the deferred research contract above to inform P5, but do not run the campaign merely because its workbench exists.
 7. Run P6 quarantine and deletion review after the replacement surfaces have survived owner use.
@@ -262,9 +280,10 @@ At every milestone: establish the failing/current behavior, make one coherent ba
 
 ## Concise owner visual checks still outstanding
 
-- Restart the bridge, keep its console visible, then switch pairs rapidly and use Go to arrow several times. Trust State may transition during normal reconnection but must recover, the bridge process must remain available, and no WebSocket traceback should print.
+- Restart the bridge, keep its console visible, then switch pairs rapidly and use Go to arrow several times. Confirm it selects the registered timeframe and precise arrow. Trust State may transition during normal reconnection but must recover, the bridge process must remain available, and no WebSocket traceback should print.
+- Try one arrow whose candle is not initially resident and one genuinely unavailable case. The first should fetch its bounded activation window and focus; the second should end with a specific history/signal/coverage reason rather than loading forever.
 - Keep Browse or Market Watch open and rapidly select several symbols and timeframes. Confirm the popover stays open and the chart does not show an intermediate zoom/axis jump.
-- With Market Watch open for at least ten seconds, watch several actively ticking Bid/Ask rows while background history would normally warm. They should continue changing; unchanged bridge snapshots should not make the chart workspace visibly pulse. Then close Market Watch and confirm queued warming can resume.
+- After the optional quote EA is installed as documented in `Main/mt5-bridge/README.md`, confirm `/health` reports a fresh quote publisher. With Market Watch open, watch several actively ticking Bid/Ask rows while history would normally warm. They should continue changing; unchanged snapshots should not make the chart workspace visibly pulse. Then close Market Watch and confirm queued warming can resume.
 - Rapidly click several symbols faster than 150 ms. The browser console should no longer fill with `WebSocket is closed before the connection is established`; the final selected chart should connect normally.
 - In Settings > Appearance > Viewport, change Default refocus width and use Refocus. Confirm smaller values show fewer/wider candles and larger values show more/narrower candles.
 - Compare Market Watch count/order and several Bid, Ask, and Daily Change values with MT5 after using MT5 Show All. Missing broker quotes may show an em dash, but the symbol row must remain.
@@ -273,7 +292,9 @@ At every milestone: establish the failing/current behavior, make one coherent ba
 ## Remaining limitations
 
 - Visual smoothness, layout, and browser-console cleanliness remain owner-verified; automated checks do not constitute browser validation.
-- First-ever uncached symbols can still wait for one foreground MT5 history call until durable or background history exists. Because selected history and quotes still share MT5's single Python IPC lane, that explicit uncached selection can briefly delay fresh Market Watch quotes; the broader independent quote/history architecture above is the deferred fix. A loaded or warmed symbol/timeframe remains resident for rapid revisits.
+- First-ever uncached symbols can still wait for one foreground MT5 history call until durable or background history exists. The optional quote EA removes quote refresh from that history lane; without the EA, the automatic Python fallback still shares MT5 IPC and can briefly delay Market Watch quotes. A loaded or warmed symbol/timeframe remains resident for rapid revisits.
+- Live broker switching, quote continuity under slow/failed history, catalog invalidation, staged Go-to-arrow focus, and 1440x900 layout smoothness have not been manually verified in MT5/Chrome during this implementation session.
+- P3 route decomposition, the P4 chart-first shell, the literal-table P5 Workbench/right-inspector/Lens rebuild, P6 cleanup/deletion review, and P7 panel placement remain unimplemented by design after the early finish.
 - MT5 may expose a broker symbol without a current quote, especially when hidden or inactive. The audit table preserves the row and does not fabricate data or mutate MT5 Market Watch selection.
 - One named USDJPY historical replay remains honestly unevaluable until its source interval can be resolved without violating the account-access boundary.
 - The completed 12-variant research campaign is reused-history evidence, not fresh forward evidence, and does not exhaust orthogonal entry-known interactions.

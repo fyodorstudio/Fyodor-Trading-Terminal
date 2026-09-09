@@ -8,11 +8,11 @@ import {
   summarizeStoredChartHistory,
 } from "@/app/lib/chartStorage";
 import {
-  areBridgeSymbolSnapshotsEqual,
   buildResidentChartWarmPlan,
   loadResidentChartHistory,
   setResidentHistoryBackgroundPaused,
-} from "@/app/hooks/useChartMarketData";
+} from "@/app/features/chart-market-data/residentHistory";
+import { areBridgeSymbolSnapshotsEqual } from "@/app/features/chart-market-data/symbolCatalog";
 import type { BridgeCandle, BridgeSymbol, Timeframe } from "@/app/types";
 
 const SAMPLE_CANDLE: BridgeCandle = {
@@ -79,6 +79,21 @@ describe("chartStorage helpers", () => {
     expect(readChartHistoryCache("EURUSD", "M5")[0]?.close).toBe(1.2);
   });
 
+  it("keeps identical symbols isolated across broker catalog identities", () => {
+    const { storage, store } = installLocalStorage();
+    saveChartHistoryCache("SCOPEPAIR", "H1", [SAMPLE_CANDLE], "broker-a");
+    saveChartHistoryCache("SCOPEPAIR", "H1", [{ ...SAMPLE_CANDLE, close: 1.25 }], "broker-b");
+
+    expect(readChartHistoryCache("SCOPEPAIR", "H1", "broker-a")[0]?.close).toBe(SAMPLE_CANDLE.close);
+    expect(readChartHistoryCache("SCOPEPAIR", "H1", "broker-b")[0]?.close).toBe(1.25);
+    expect(readChartHistoryCache("SCOPEPAIR", "H1")).toEqual([]);
+    const scopedPayloads = storedKeys(storage)
+      .filter((key) => key.includes("chart-history-cache-v2"))
+      .map((key) => JSON.parse(store.get(key) ?? "null"));
+    expect(scopedPayloads).toHaveLength(2);
+    expect(scopedPayloads.every((payload) => payload?.version === 1)).toBe(true);
+  });
+
   it("rejects malformed cache rows and summarizes valid stored candles", () => {
     const { store } = installLocalStorage();
     store.set("fyodor-main-chart-history-cache-v1:1:NZDUSD:H1", JSON.stringify({
@@ -118,17 +133,20 @@ describe("chartStorage helpers", () => {
     expect(readChartHistoryCache("RESIDENTTEST", "H4")).toEqual([SAMPLE_CANDLE]);
   });
 
-  it("warms every broker symbol on the active timeframe and every timeframe for the selected symbol", () => {
+  it("warms every broker symbol while prioritizing selected timeframes, favorites, and visible rows", () => {
     const plan = buildResidentChartWarmPlan([
       { name: "EURUSD", path: "Forex\\Majors", bid: null, ask: null, priceChange: null, digits: 5, quoteTime: null, visible: true, selected: true },
-      { name: "XAUUSD", path: "Metals", bid: null, ask: null, priceChange: null, digits: 2, quoteTime: null, visible: true, selected: true },
-    ], "EURUSD", "H4");
+      { name: "XAUUSD", path: "Metals", bid: null, ask: null, priceChange: null, digits: 2, quoteTime: null, visible: false, selected: false },
+      { name: "JP225", path: "Indices", bid: null, ask: null, priceChange: null, digits: 1, quoteTime: null, visible: true, selected: true },
+    ], "EURUSD", "H4", ["XAUUSD"]);
 
     expect(plan).toContainEqual({ symbol: "XAUUSD", timeframe: "H4" });
     expect(plan).toContainEqual({ symbol: "EURUSD", timeframe: "M1" });
     expect(plan).toContainEqual({ symbol: "EURUSD", timeframe: "MN1" });
     expect(plan.filter((request) => request.symbol === "EURUSD" && request.timeframe === "H4")).toHaveLength(1);
-    expect(plan).toHaveLength(10);
+    expect(plan.findIndex((request) => request.symbol === "XAUUSD" && request.timeframe === "H4"))
+      .toBeLessThan(plan.findIndex((request) => request.symbol === "JP225" && request.timeframe === "H4"));
+    expect(plan).toHaveLength(11);
   });
 
   it("distinguishes a changed quote snapshot from an identical cached Market Watch response", () => {
