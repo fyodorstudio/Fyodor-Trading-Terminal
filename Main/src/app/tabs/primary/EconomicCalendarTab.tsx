@@ -44,6 +44,7 @@ const CALENDAR_TIMEZONE_KEY = "fyodor-calendar-display-timezone";
 
 interface EconomicCalendarTabProps {
   health: BridgeHealth;
+  embedded?: boolean;
   persistedLastSyncedAt?: number | null;
   onSyncSuccess?: (timestampSeconds: number) => void;
   navigationIntent?: CalendarNavigationIntent | null;
@@ -52,6 +53,7 @@ interface EconomicCalendarTabProps {
 
 export function EconomicCalendarTab({
   health,
+  embedded = false,
   persistedLastSyncedAt = null,
   onSyncSuccess,
   navigationIntent = null,
@@ -382,7 +384,7 @@ export function EconomicCalendarTab({
   }, [selectedEvent]);
 
   return (
-    <section className="tab-panel workspace-page workspace-page-compact calendar-page flex flex-col gap-4">
+    <section className={`tab-panel workspace-page workspace-page-compact calendar-page flex flex-col gap-4 ${embedded ? "is-chart-dock" : ""}`}>
       <EconomicCalendarToolbar
         preset={preset}
         rangeLabel={rangeLabel}

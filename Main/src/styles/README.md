@@ -31,15 +31,15 @@ The goal of pass 1 was safer ownership, not prettier CSS. Some files are still c
 These active files are imported by `Main/src/styles.css` in this exact order:
 
 - `01-base.css` - root variables, reset, app shell, header, tab navigation, workspace wrappers, and first shared panels.
-- `03b-overview.css` - active Overview release popover, pair-detail modal, factor chips, and pair macro detail styles.
-- `03d-overview-responsive.css` - active Overview responsive rules.
 - `04-macro-differential-primitives.css` - active macro cards, Differential Calculator layout, and related shared macro primitives.
 - `06-economic-calendar.css` - Economic Calendar toolbar, operational rail, table, event drawer, and help popovers.
 - `07-economic-calendar-polish.css` - active Economic Calendar clock cards, filter popovers, event drawer additions, and calendar polish.
-- `11-event-replay.css` - active Event Replay modal, release calendar, and responsive modal polish.
 - `12a-active-responsive.css` - active/shared shell, chart, tab, time-pill, and macro responsive rules.
 - `12d-active-mobile-responsive.css` - active/shared mobile shell, nav, chart, and macro responsive rules.
 - `15-charts.css` - active Charts toolbar, drawer, event rail, and chart UI styles.
+- `15a-chart-shell.css` - chart-first Trust State, embedded Calendar, full-height chart shell, and retained secondary-workspace return bar.
+
+`03b-overview.css`, `03d-overview-responsive.css`, `11-event-replay.css`, and `16-macro-signal-lab.css` are route-owned lazy CSS chunks. They are not part of normal Charts startup styling.
 
 These garbage files are imported by `Main/src/styles/garbage.css` and loaded only when a garbage route is lazy-loaded:
 
@@ -59,6 +59,10 @@ These garbage files are imported by `Main/src/styles/garbage.css` and loaded onl
 - `14a-garbage-deprecated-command-hub.css` - deprecated command-hub styles.
 - `14b-garbage-strength-v4-legacy.css` - garbage strength-meter v4 legacy styles.
 - `16-garbage-strength-meter.css` - garbage strength-meter v5 styles.
+
+## P6 Cleanup Status
+
+The P5 replacement survived the full static/render gate, so P6 removed only the superseded Workbench card/list/disclosure selectors proven to have no TS/TSX owner. Raw-audit and tutorial selectors remain, and no active chart, calendar, route, or garbage styles were deleted. Further visual stylesheet extraction remains gated on owner browser review.
 
 ## Next Cleanup Pass
 
@@ -82,4 +86,4 @@ Pass 2 should improve ownership without changing selectors:
 5. Run `pnpm --dir Main build` after each extraction pass.
 6. Use browser smoke checks for active tabs before deleting or renaming any CSS.
 
-Do not start dead-code deletion until the split is stable and visually verified.
+Do not expand dead-code deletion beyond the recorded P6 ledger until the split is stable in owner visual use.

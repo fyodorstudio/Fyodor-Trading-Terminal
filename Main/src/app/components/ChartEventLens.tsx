@@ -71,13 +71,6 @@ export function ChartEventLens({ data }: { data: ChartEventLensData }) {
               <small>{data.timeLabel}</small>
               <small>{data.coverageLabel}</small>
             </div>
-            <div className="chart-event-lens-metrics" aria-label="Selected event snapshot">
-              <span><b>Actual</b>{data.actualLabel}</span>
-              <span><b>Forecast</b>{data.forecastLabel}</span>
-              <span><b>Previous</b>{data.previousLabel}</span>
-              <span><b>Surprise</b>{data.surpriseLabel}</span>
-              <span><b>Move</b>{data.observedMoveLabel}</span>
-            </div>
             <div className="chart-event-lens-actions">
               <button
                 type="button"
@@ -103,100 +96,35 @@ export function ChartEventLens({ data }: { data: ChartEventLensData }) {
             </div>
           </div>
 
-          <div className="chart-event-lens-body">
-              <div className="chart-event-lens-left">
-                <div className="chart-event-lens-section chart-event-lens-release-section">
-                  <div className="chart-event-lens-section-head">
-                    <span>Release navigator</span>
-                    <strong>{data.releaseRows.length} loaded</strong>
-                  </div>
-                  <div className="chart-event-lens-release-list">
-                    {data.releaseRows.map((row) => {
-                      return (
-                        <button
-                          key={row.key}
-                          type="button"
-                          className={row.key === data.selectedEventKey ? "is-active" : ""}
-                          onClick={() => data.onSelectRelease(row.event)}
-                        >
-                          <span>
-                            <b>{row.timeLabel}</b>
-                            <small>{row.isFuture ? "Scheduled" : row.replayAvailable ? "Replay ready" : "No candles"}</small>
-                          </span>
-                          <strong>{row.event.title}</strong>
-                          <em>
-                            Actual {row.actualLabel} / Forecast {row.forecastLabel} / Previous {row.previousLabel}
-                          </em>
-                        </button>
-                      );
-                    })}
-                    {data.releaseRows.length === 0 ? (
-                      <p>No loaded releases match this event name and currency yet.</p>
-                    ) : null}
-                  </div>
-                </div>
+          <div className="chart-event-lens-body chart-event-lens-table-body">
+            <section className="chart-lens-table-section">
+              <div className="chart-event-lens-section-head"><span>Selected release</span><button type="button" onClick={() => data.onOpenCalendar(data.selectedEvent)}><ExternalLink size={13} />Open in Calendar</button></div>
+              <table className="chart-lens-table" aria-label="Selected event snapshot"><thead><tr><th>Actual</th><th>Forecast</th><th>Previous</th><th>Surprise</th><th>Observed move</th></tr></thead><tbody><tr><td>{data.actualLabel}</td><td>{data.forecastLabel}</td><td>{data.previousLabel}</td><td>{data.surpriseLabel}</td><td>{data.observedMoveLabel}<small>{data.observedMoveDetail}</small></td></tr></tbody></table>
+            </section>
 
-                <div className="chart-event-lens-section chart-event-lens-replay-section">
-                  <div className="chart-event-lens-section-head">
-                    <span>{data.selectedEventIsFuture ? "Replay unavailable" : "Replay"}</span>
-                    <strong>{data.replayProgressLabel}</strong>
-                  </div>
-                  <div className="chart-event-lens-replay-grid">
-                    <button type="button" onClick={data.onTogglePlayback} disabled={!data.replayAvailable}>
-                      {data.replayPlaying ? <Pause size={14} /> : <Play size={14} />}
-                      {data.replayPlaying ? "Pause" : "Play"}
-                    </button>
-                    <button type="button" onClick={data.onResetReplay} disabled={!data.replayAvailable}>
-                      <RotateCcw size={14} />
-                      Reset
-                    </button>
-                    <button type="button" onClick={data.onStepReplay} disabled={!data.replayAvailable}>
-                      <StepForward size={14} />
-                      Step
-                    </button>
-                    <label>
-                      <span>Speed</span>
-                      <select value={data.replaySpeed} onChange={(event) => data.onReplaySpeedChange(Number(event.target.value))}>
-                        {data.replaySpeedOptions.map((speed) => (
-                          <option key={speed} value={speed}>{speed}x</option>
-                        ))}
-                      </select>
-                    </label>
-                  </div>
-                  <p>
-                    {data.selectedEventIsFuture
-                      ? "This is a future scheduled calendar row. Replay becomes available after matching candles are loaded."
-                      : data.observedMoveDetail}
-                  </p>
-                </div>
-              </div>
+            <section className="chart-lens-table-section chart-lens-release-section">
+              <div className="chart-event-lens-section-head"><span>Release navigator</span><strong>{data.releaseRows.length} loaded</strong></div>
+              <div className="chart-lens-table-scroll"><table className="chart-lens-table chart-lens-selectable-table"><thead><tr><th>Release time</th><th>Status</th><th>Event</th><th>Actual</th><th>Forecast</th><th>Previous</th></tr></thead><tbody>
+                {data.releaseRows.map((row) => <tr key={row.key} className={row.key === data.selectedEventKey ? "is-active" : ""} onClick={() => data.onSelectRelease(row.event)}><td><button type="button" onClick={() => data.onSelectRelease(row.event)}>{row.timeLabel}</button></td><td>{row.isFuture ? "Scheduled" : row.replayAvailable ? "Replay ready" : "Candles unavailable"}</td><td>{row.event.currency} · {row.event.title}</td><td>{row.actualLabel}</td><td>{row.forecastLabel}</td><td>{row.previousLabel}</td></tr>)}
+                {!data.releaseRows.length ? <tr><td colSpan={6}>No loaded releases match this event name and currency.</td></tr> : null}
+              </tbody></table></div>
+            </section>
 
-              <div className="chart-event-lens-right chart-event-lens-evidence-panel">
-                <div className="chart-event-lens-section-head">
-                  <span>Base / quote evidence</span>
-                  <button type="button" onClick={() => data.onOpenCalendar(data.selectedEvent)}>
-                    <ExternalLink size={13} />
-                    Open in Calendar
-                  </button>
-                </div>
-                <div className="chart-event-lens-factor-table">
-                  <div className="chart-event-lens-factor-head">
-                    <span>Factor</span>
-                    <span>Latest loaded release</span>
-                    <span>Next loaded event</span>
-                  </div>
-                  {data.factorRows.map((row) => (
-                    <div key={`${row.currency}:${row.factor.id}`} className="chart-event-lens-factor-row">
-                      <strong>
-                        <small>{row.currency}</small>
-                        {row.factor.label}
-                      </strong>
-                      <span>{formatFactorEvidence(row)}</span>
-                      <em>{formatNextEvent(row)}</em>
-                    </div>
-                  ))}
-                </div>
+            <section className="chart-lens-table-section">
+              <div className="chart-event-lens-section-head"><span>{data.selectedEventIsFuture ? "Replay unavailable" : "Replay controls"}</span><strong>{data.replayProgressLabel}</strong></div>
+              <div className="chart-event-lens-replay-grid">
+                <button type="button" onClick={data.onTogglePlayback} disabled={!data.replayAvailable}>{data.replayPlaying ? <Pause size={14} /> : <Play size={14} />}{data.replayPlaying ? "Pause" : "Play"}</button>
+                <button type="button" onClick={data.onResetReplay} disabled={!data.replayAvailable}><RotateCcw size={14} />Reset</button>
+                <button type="button" onClick={data.onStepReplay} disabled={!data.replayAvailable}><StepForward size={14} />Step</button>
+                <label><span>Speed</span><select value={data.replaySpeed} onChange={(event) => data.onReplaySpeedChange(Number(event.target.value))}>{data.replaySpeedOptions.map((speed) => <option key={speed} value={speed}>{speed}x</option>)}</select></label>
               </div>
+              {data.selectedEventIsFuture ? <p>This scheduled row cannot replay until matching candles are loaded.</p> : null}
+            </section>
+
+            <section className="chart-lens-table-section chart-lens-factor-section">
+              <div className="chart-event-lens-section-head"><span>Base / quote evidence</span><strong>Loaded calendar evidence only</strong></div>
+              <div className="chart-lens-table-scroll"><table className="chart-lens-table"><thead><tr><th>Currency</th><th>Factor</th><th>Latest loaded release</th><th>Next loaded event</th></tr></thead><tbody>{data.factorRows.map((row) => <tr key={`${row.currency}:${row.factor.id}`}><td>{row.currency}</td><td>{row.factor.label}</td><td>{formatFactorEvidence(row)}</td><td>{formatNextEvent(row)}</td></tr>)}{!data.factorRows.length ? <tr><td colSpan={4}>No base/quote evidence rows are loaded.</td></tr> : null}</tbody></table></div>
+            </section>
           </div>
         </>
       )}

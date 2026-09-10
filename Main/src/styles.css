@@ -1,13 +1,10 @@
 @import "tailwindcss";
 
 @import "./styles/01-base.css";
-@import "./styles/03b-overview.css";
-@import "./styles/03d-overview-responsive.css";
 @import "./styles/04-macro-differential-primitives.css";
 @import "./styles/06-economic-calendar.css";
 @import "./styles/07-economic-calendar-polish.css";
-@import "./styles/11-event-replay.css";
 @import "./styles/12a-active-responsive.css";
 @import "./styles/12d-active-mobile-responsive.css";
 @import "./styles/15-charts.css";
-@import "./styles/16-macro-signal-lab.css";
+@import "./styles/15a-chart-shell.css";

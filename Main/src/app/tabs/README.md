@@ -4,20 +4,20 @@ This folder is split so future AI sessions can avoid spending context on stale s
 
 ## `primary/`
 
-Primary tabs are always visible in the top navigation and represent the normal app workflow:
+This directory retains stable route owners, but Charts is now the sole normal startup workspace:
 
 - `OverviewPlaceholderTab.tsx`
 - `CentralBanksTab.tsx`
 - `ChartsTab.tsx`
 - `EconomicCalendarTab.tsx`
 
-Treat these as active product surfaces.
+`EconomicCalendarTab.tsx` is active inside the Charts bottom dock. Overview and Central Banks keep their route IDs and lazy rendering for compatibility but are absent from normal navigation pending the P6 deletion audit.
 
 `OverviewPlaceholderTab.tsx` keeps its old filename for route stability, but it now owns the fresh pair-brief Overview. Do not use Deprecated Overview or garbage overview logic as its source.
 
 ## `secondary/`
 
-Secondary routes live under Specialist Tools. `MacroSignalLabTab.tsx` renders the active **FMS Experiment Workbench** and `DifferentialCalculatorTab.tsx` remains an active experiment. Event Replay, Macro Drivers, and Prototyping retain stable routes but are presented under `Garbage / Ignore` and must not steer active product design.
+`MacroSignalLabTab.tsx` renders the retained table-first **FMS Experiment Workbench** with separate Declare, Run status, Results, and Archive jobs, and is opened directly from the chart workbar. `DifferentialCalculatorTab.tsx` remains a hidden retained experiment. The general Specialist Tools navigation container is no longer mounted. Event Replay, Macro Drivers, and Prototyping retain stable lazy routes under `Garbage / Ignore` and must not steer active product design.
 
 Keep this folder limited to active secondary surfaces and shells.
 

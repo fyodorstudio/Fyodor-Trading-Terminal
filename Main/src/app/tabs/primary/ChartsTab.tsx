@@ -1,16 +1,33 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   getResidentHistoryDiagnostics,
 } from "@/app/features/chart-market-data/residentHistory";
-import {
-  createFmsArrowNavigationRequest,
-  describeFmsArrowNavigationStage,
-  getMacroBiasActivationCandleOpen,
-  getMacroBiasArrowFocusRange,
-  resolveFmsArrowNavigationStage,
-  type FmsArrowNavigationRequest,
-} from "@/app/features/fms-arrow-navigation/arrowNavigation";
+import { getMacroBiasActivationCandleOpen, getMacroBiasArrowFocusRange } from "@/app/features/fms-arrow-navigation/arrowNavigation";
 export { getMacroBiasActivationCandleOpen, getMacroBiasArrowFocusRange } from "@/app/features/fms-arrow-navigation/arrowNavigation";
+import {
+  buildMacroBiasPriceLineLevels,
+  buildMacroBiasSeriesMarkers,
+  getMacroBiasActiveState,
+  getMacroBiasInitialLoadPlan,
+  getMacroBiasReplayStatusLabel,
+  getMacroBiasRequestScope,
+  isMacroBiasMarketSupported,
+  mergeMacroBiasSignalDetail,
+  shouldApplyMacroBiasRefresh,
+} from "@/app/features/fms-arrow-navigation/chartSignalPresentation";
+export {
+  buildMacroBiasPriceLineLevels,
+  buildMacroBiasSeriesMarkers,
+  getMacroBiasActiveState,
+  getMacroBiasInitialLoadPlan,
+  getMacroBiasReplayStatusLabel,
+  getMacroBiasRequestScope,
+  isMacroBiasMarketSupported,
+  mergeMacroBiasSignalDetail,
+  shouldApplyMacroBiasRefresh,
+} from "@/app/features/fms-arrow-navigation/chartSignalPresentation";
+import { useFmsArrowNavigation } from "@/app/features/fms-arrow-navigation/useFmsArrowNavigation";
+import { useChartMacroBiasData } from "@/app/features/fms-arrow-navigation/useChartMacroBiasData";
 import {
   captureChartZoomSnapshot,
   getResidentChartZoomSnapshot,
@@ -19,33 +36,46 @@ import {
   type ChartZoomSnapshot,
 } from "@/app/features/chart-viewport/viewportState";
 export { captureChartZoomSnapshot, restoreChartZoomRange } from "@/app/features/chart-viewport/viewportState";
+import { useChartPreferencesController } from "@/app/features/chart-viewport/useChartPreferencesController";
+import { useChartDockLayout } from "@/app/features/chart-viewport/useChartDockLayout";
+import { getDefaultClusterEvent, getNearestCandleIndex, useChartEventReplay } from "@/app/features/chart-events/useChartEventReplay";
+import { useChartEventLensPresentation } from "@/app/features/chart-events/useChartEventLensPresentation";
+import { ChartTrustStateControl } from "@/app/features/chart-shell/ChartTrustStateControl";
+import {
+  getChartRangeUpdateCadence,
+  getPairMatrixAnalyzeCandleRange,
+  getPairMatrixHoverSettleDelay,
+  resolvePairMatrixHoveredCandleUpdate,
+  useChartPairMatrixController,
+} from "@/app/features/pair-matrix/useChartPairMatrixController";
+export {
+  getChartRangeUpdateCadence,
+  getPairMatrixAnalyzeCandleRange,
+  getPairMatrixHoverSettleDelay,
+  resolvePairMatrixHoveredCandleUpdate,
+} from "@/app/features/pair-matrix/useChartPairMatrixController";
 import {
   CandlestickSeries,
   createChart,
   createSeriesMarkers,
-  LineStyle,
   type CandlestickData,
   type IChartApi,
   type IPriceLine,
   type ISeriesApi,
   type ISeriesMarkersPluginApi,
   type MouseEventParams,
-  type SeriesMarker,
   type Time,
 } from "lightweight-charts";
-import { ChartSettingsDrawer, type ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
+import { ChartSettingsDrawer } from "@/app/components/ChartSettingsDrawer";
 import { ChartStatusRail } from "@/app/components/ChartStatusRail";
 import { ChartSymbolPicker } from "@/app/components/ChartSymbolPicker";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import type { ChartMacroBiasRealtimeCardData } from "@/app/components/ChartMacroBiasRealtimeCard";
-import { ChartViewport, type ChartCrosshairReadoutHandle, type ChartEventLensDockData, type ChartPairMatrixContextMarkerData, type ChartPairMatrixRangeOverlayData, type PairMatrixRangePreview } from "@/app/components/ChartViewport";
-import type { ChartPairMatrixTimeLensData, PairMatrixLoadState } from "@/app/components/ChartPairMatrixTimeLens";
-import type { ChartEventLensData, ChartEventReleaseRow } from "@/app/components/ChartEventLens";
+import { ChartViewport, type ChartCrosshairReadoutHandle } from "@/app/components/ChartViewport";
+import type { ChartEventLensDockData } from "@/app/features/chart-events/chartEventLensContracts";
 import { useChartEventOverlay } from "@/app/hooks/useChartEventOverlay";
 import { useChartMarketData } from "@/app/hooks/useChartMarketData";
-import { fetchCalendar, fetchMacroSignalGlobalRegistry, fetchMacroSignalChartSignals, fetchMacroSignalTargetLadder, getPreloadedMacroSignalCurrentModel, getPreloadedMacroSignalGlobalRegistry, preloadMacroSignalGlobalRegistry } from "@/app/lib/bridge";
-import { getEventValueDisplay } from "@/app/lib/calendarDisplay";
-import { formatUtcDisplayDate } from "@/app/lib/format";
+import { fetchMacroSignalTargetLadder } from "@/app/lib/bridge";
 import {
   DEFAULT_CHART_TIMEFRAME,
   getChartConnectionLabel,
@@ -53,7 +83,6 @@ import {
   getCrosshairMode,
 } from "@/app/lib/chartDisplay";
 import {
-  formatChartEventDisplayTime,
   filterChartEventsForOverlay,
   getFutureChartEventTimes,
   getChartEventAnchorTime,
@@ -62,7 +91,6 @@ import {
   getChartEventRelevantCurrencies,
 } from "@/app/lib/chartEvents";
 import {
-  DEFAULT_CHART_PREFERENCES,
   formatChartFeedTime,
   formatChartHeaderFeedTime,
   formatCursorReadout,
@@ -72,376 +100,57 @@ import {
   getChartSeriesAppearanceOptions,
   getChartSourceTimeOffsetSeconds,
   getChartTimeFormatters,
-  loadChartPreferences,
-  loadChartDisplayTimeMode,
   normalizeChartTimestampSeconds,
-  saveChartPreferences,
-  saveChartDisplayTimeMode,
-  type ChartAppearancePreferences,
-  type ChartCursorReadoutMode,
   type ChartDisplayTimeMode,
-  type ChartEventOverlayPreferences,
-  type ChartPreferences,
 } from "@/app/lib/chartView";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
-import { getEventComparison } from "@/app/lib/eventReaction";
 import { buildMacroFactorRows } from "@/app/lib/macroDrivers";
-import { buildPairMatrixMomentumSnapshot, type PairMatrixMomentumSnapshot } from "@/app/lib/pairMatrixMomentum";
-import { indexPairMatrixContextMarkers, selectPairMatrixContextMarkerGroups } from "@/app/lib/pairMatrixContextMarkers";
-import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
-import type { PairMatrixChartGeometryRuntime } from "@/app/lib/pairMatrixChartGeometry";
-import {
-  buildPairMatrixTimelineFromIndex,
-  calendarEventsCoverWindow,
-  getPairMatrixCandleClose,
-  getPairMatrixForexCurrencies,
-  getPairMatrixRangePipMoveLabel,
-  getPairMatrixRangePixelBounds,
-  getPairMatrixTimelineWindow,
-  loadPairMatrixBeforeDays,
-  mergePairMatrixCalendarEvents,
-  indexPairMatrixCalendar,
-  normalizePairMatrixCandleRange,
-  remapPairMatrixTimeInterval,
-  savePairMatrixBeforeDays,
-  type PairMatrixCalendarIndex,
-  type PairMatrixCandleRange,
-  type PairMatrixTimelineSnapshot,
-  type PairMatrixTimeInterval,
-} from "@/app/lib/pairMatrixSnapshot";
-import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
-import type { BridgeCandle, CalendarEvent, MacroSignalChartMode, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MarketStatusResponse, Timeframe } from "@/app/types";
+import type { BridgeCandle, BridgeHealth, BridgeStatus, CalendarEvent, MacroSignalChartMode, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MarketStatusResponse, Timeframe } from "@/app/types";
 
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 const DEBUG_MAX = 60;
 const REPLAY_SPEED_OPTIONS = [0.5, 1, 2, 4];
 const REPLAY_STEP_OPTIONS = [1, 2, 4, 8];
-const PAIR_MATRIX_HISTORY_DEBOUNCE_MS = 180;
-const PAIR_MATRIX_HOVER_SETTLE_MS = 120;
-const PAIR_MATRIX_HISTORY_CACHE_LIMIT = 8;
 const MACRO_BIAS_VISIBILITY_KEY = "fyodor.charts.macro-bias-visible";
 const MACRO_BIAS_HISTORICAL_MATCHES_KEY = "fyodor.charts.macro-bias-historical-matches";
-const MACRO_BIAS_MARKETS = new Set(["AUDUSD", "EURUSD", "GBPUSD", "NZDUSD", "USDCAD", "USDCHF", "USDJPY"]);
-
-export function isMacroBiasMarketSupported(symbol: string): boolean {
-  return MACRO_BIAS_MARKETS.has(symbol.toUpperCase());
-}
-
-interface PairMatrixCalendarCacheEntry {
-  currencyKey: string;
-  from: number;
-  to: number;
-  events: CalendarEvent[];
-}
-
-interface PairMatrixDerivedSnapshot {
-  timeline: PairMatrixTimelineSnapshot;
-  momentum: PairMatrixMomentumSnapshot;
-}
 
 interface ChartsTabProps {
+  currentTime: Date;
+  health: BridgeHealth;
+  feedStatus: BridgeStatus;
   marketStatus: MarketStatusResponse | null;
   selectedSymbol: string;
   onSelectedSymbolChange: (symbol: string) => void;
   events: CalendarEvent[];
   onOpenCalendarEvent: (event: CalendarEvent) => void;
-}
-
-export function resolvePairMatrixHoveredCandleUpdate(current: number | null, next: number | null, enabled: boolean): { shouldUpdate: boolean; value: number | null } {
-  return { shouldUpdate: enabled && current !== next, value: next };
-}
-
-export function getChartRangeUpdateCadence(pairMatrixOpen: boolean): "animation_frame" | "settled" {
-  return pairMatrixOpen ? "settled" : "animation_frame";
-}
-
-export function getMacroBiasRequestScope(args: {
-  mode: MacroSignalChartMode;
-  symbol: string;
-  timeframe: string;
-  from?: number;
-  to?: number;
-  calendarRevision: string;
-}): string {
-  return args.mode === "current"
-    ? `${args.symbol}:H4:current:${args.calendarRevision}`
-    : `${args.symbol}:${args.timeframe}:research_replay:${args.from ?? ""}:${args.to ?? ""}:${args.calendarRevision}`;
-}
-
-export function getMacroBiasInitialLoadPlan(cached: { generatedAt?: number } | null | undefined, visible: boolean, sameRevision: boolean, now: number) {
-  if (!cached) return { readLastKnown: true, refreshDelay: null };
-  const age = now - (cached.generatedAt ?? 0);
-  return { readLastKnown: false, refreshDelay: visible ? (sameRevision && age >= 0 && age < 60 ? (60 - age) * 1000 : 300) : null };
-}
-
-export function shouldApplyMacroBiasRefresh(
-  current: MacroSignalChartSignalResponse | MacroSignalGlobalResponse | null,
-  next: MacroSignalChartSignalResponse | MacroSignalGlobalResponse,
-): boolean {
-  if (!current) return true;
-  if (current.generatedAt !== next.generatedAt) return true;
-  if ("markets" in current && "markets" in next) {
-    const currentForward = current.forwardValidation;
-    const nextForward = next.forwardValidation;
-    return currentForward?.qualifiedDecisions !== nextForward?.qualifiedDecisions
-      || currentForward?.trackedCases !== nextForward?.trackedCases
-      || currentForward?.resolvedCases !== nextForward?.resolvedCases
-      || currentForward?.demoExecution?.captureStatus.checkedAt !== nextForward?.demoExecution?.captureStatus.checkedAt
-      || currentForward?.demoExecution?.taggedDeals !== nextForward?.demoExecution?.taggedDeals
-      || currentForward?.demoExecution?.totalNetAccountResult !== nextForward?.demoExecution?.totalNetAccountResult;
-  }
-  return false;
-}
-
-export function getMacroBiasReplayStatusLabel(
-  summary: MacroSignalChartSignalResponse["evaluationSummary"],
-): string {
-  if (summary?.latestArrowAt) {
-    const date = formatUtcDisplayDate(summary.latestArrowAt);
-    return `Hindsight replay · last arrow ${date} · ${summary.laterUnmatchedPackageCount} later scored package${summary.laterUnmatchedPackageCount === 1 ? "" : "s"} did not match`;
-  }
-  if (summary && summary.evaluatedPackageCount > 0) {
-    return `Hindsight replay · ${summary.evaluatedPackageCount} scored packages · none matched a frozen replay pattern`;
-  }
-  return "Historical replay · hindsight research";
-}
-
-export function getPairMatrixHoverSettleDelay(lastMotionMs: number, nowMs: number, settleMs = PAIR_MATRIX_HOVER_SETTLE_MS): number {
-  return Math.max(0, settleMs - Math.max(0, nowMs - lastMotionMs));
-}
-
-export function getPairMatrixAnalyzeCandleRange(candleTimes: number[], candleOpen: number, timeframe: Timeframe): PairMatrixCandleRange | null {
-  if (!candleTimes.includes(candleOpen)) return null;
-  return normalizePairMatrixCandleRange(candleTimes, candleOpen, candleOpen, timeframe);
-}
-
-export function mergeMacroBiasSignalDetail(
-  signal: MacroSignalChartSignal,
-  detail: MacroSignalChartSignal | null | undefined,
-): MacroSignalChartSignal {
-  if (!detail) return signal;
-  return {
-    ...signal,
-    ...detail,
-    // Old durable target-ladder payloads can omit release events. The detail
-    // endpoint enriches the selected arrow; it must not erase base records.
-    events: Array.isArray(detail.events) ? detail.events : Array.isArray(signal.events) ? signal.events : [],
-    pathAudit: detail.pathAudit == null
-      ? signal.pathAudit
-      : { ...signal.pathAudit, ...detail.pathAudit },
-  } as MacroSignalChartSignal;
-}
-
-export function buildMacroBiasSeriesMarkers(
-  signals: MacroSignalChartSignal[],
-  candles: BridgeCandle[],
-  timeframe: Timeframe,
-  sourceTimeOffsetSeconds: number,
-): { markers: SeriesMarker<Time>[]; signalByMarkerId: Map<string, MacroSignalChartSignal> } {
-  const signalByMarkerId = new Map<string, MacroSignalChartSignal>();
-  const candleByTime = new Map(candles.map((candle) => [candle.time, candle] as const));
-  const markers = signals.flatMap((signal): SeriesMarker<Time>[] => {
-    const chartReleaseTime = getChartEventCoordinateTime(signal.eventTime, sourceTimeOffsetSeconds);
-    let low = 0;
-    let high = candles.length - 1;
-    let releaseIndex = -1;
-    while (low <= high) {
-      const middle = Math.floor((low + high) / 2);
-      if (candles[middle].time <= chartReleaseTime) {
-        releaseIndex = middle;
-        low = middle + 1;
-      } else {
-        high = middle - 1;
-      }
-    }
-    const releaseCandleOpen = releaseIndex >= 0 ? candles[releaseIndex].time : null;
-    const nextOpen = releaseIndex >= 0 ? candles[releaseIndex + 1]?.time : null;
-    const nominalClose = releaseCandleOpen == null ? null : getPairMatrixCandleClose(releaseCandleOpen, timeframe);
-    const containingClose = nominalClose == null ? null : nextOpen == null ? nominalClose : Math.min(nextOpen, nominalClose);
-    if (containingClose == null || chartReleaseTime >= containingClose || releaseCandleOpen == null) return [];
-
-    const activationCandleOpen = getMacroBiasActivationCandleOpen(signal, candles, sourceTimeOffsetSeconds, timeframe);
-
-    const built: SeriesMarker<Time>[] = [];
-    if (activationCandleOpen == null || activationCandleOpen < releaseCandleOpen) return built;
-    if (!candleByTime.has(activationCandleOpen)) return built;
-    const activationMarkerId = `macro-bias-activation:${signal.id}`;
-    signalByMarkerId.set(activationMarkerId, signal);
-    built.push({
-      id: activationMarkerId,
-      time: activationCandleOpen as Time,
-      position: signal.direction === "long" ? "belowBar" : "aboveBar",
-      shape: signal.direction === "long" ? "arrowUp" : "arrowDown",
-      color: signal.historicalReplay
-        ? signal.direction === "long" ? "#2563eb" : "#7c3aed"
-        : signal.direction === "long" ? "#16a34a" : "#dc2626",
-      text: `${signal.entryTimeframe ?? "H4"} ENTRY · ${signal.direction === "long" ? "LONG" : "SHORT"}${signal.observationMode === "recovered_offline" ? " · RECOVERED" : signal.contextOverlay?.matched ? " · CONTEXT" : ""}`,
-      size: 1.4,
-    });
-    return built;
-  });
-  markers.sort((left, right) => Number(left.time) - Number(right.time));
-  return { markers, signalByMarkerId };
-}
-
-export function buildMacroBiasPriceLineLevels(signal: MacroSignalChartSignal) {
-  const structure = signal.marketContext?.supportResistance;
-  const barrier = structure?.directionalBarrier;
-  const h4Ladder = (signal.direction === "long" ? structure?.resistances : structure?.supports)
-    ?.filter((zone) => zone.entryKnownState == null || zone.entryKnownState === "active")
-    .slice(0, 3) ?? (barrier ? [barrier] : []);
-  const higher = structure?.higherTimeframes;
-  const higherLadder = (["D1", "W1"] as const).flatMap((timeframe) => ((signal.direction === "long"
-    ? higher?.[timeframe].resistances
-    : higher?.[timeframe].supports) ?? []).slice(0, 2).map((zone) => ({ ...zone, timeframe })));
-  const ladder = [...h4Ladder.map((zone) => ({ ...zone, timeframe: zone.timeframe ?? "H4" as const })), ...higherLadder]
-    .sort((left, right) => left.distanceAtr - right.distanceAtr)
-    .slice(0, 6);
-  const structureLines = ladder.map((zone, index) => ({
-    value: zone.level,
-    title: `${zone.timeframe} ${zone.kind === "support" ? "SUP" : "RES"} ${zone.touches}x${zone.role === "role_reversed" ? " RR" : ""}`,
-    color: zone.timeframe === "W1" ? "#7c3aed" : zone.timeframe === "D1" ? "#2563eb" : index === 0 ? "#d97706" : "#92400e",
-    lineStyle: LineStyle.Dotted,
-  }));
-  return [
-    { value: signal.entry, title: "ENTRY", color: "#64748b", lineStyle: LineStyle.Dashed },
-    { value: signal.stop, title: "SL", color: "#dc2626", lineStyle: LineStyle.Solid },
-    { value: signal.target, title: "TP", color: "#16a34a", lineStyle: LineStyle.Solid },
-    ...structureLines,
-  ].filter((level): level is typeof level & { value: number } => level.value != null && Number.isFinite(level.value));
-}
-
-export interface MacroBiasActiveState {
-  signal: MacroSignalChartSignal;
-  remainingCandles: number | null;
-  activationCandleOpen: number;
-  expiryCandleOpen: number | null;
-}
-
-export function getMacroBiasActiveState(
-  signals: MacroSignalChartSignal[],
-  candles: BridgeCandle[],
-  sourceTimeOffsetSeconds: number,
-  chartTimeframe: Timeframe = "H4",
-): MacroBiasActiveState | null {
-  if (candles.length === 0) return null;
-  const latestIndex = candles.length - 1;
-  const active = signals.flatMap((signal): Array<MacroBiasActiveState & { activationIndex: number }> => {
-    if (signal.outcomeStatus && signal.outcomeStatus !== "pending") return [];
-    const activationCandleOpen = getMacroBiasActivationCandleOpen(signal, candles, sourceTimeOffsetSeconds, chartTimeframe);
-    const activationIndex = activationCandleOpen == null ? -1 : candles.findIndex((candle) => candle.time === activationCandleOpen);
-    if (activationCandleOpen == null || activationIndex < 0) return [];
-    const chartCandlesPerModelCandle = ({ M1: 240, M5: 48, M15: 16, M30: 8, H1: 4, H4: 1 } as Partial<Record<Timeframe, number>>)[chartTimeframe];
-    if (chartCandlesPerModelCandle == null) {
-      if (latestIndex < activationIndex) return [];
-      return [{ signal, activationIndex, activationCandleOpen, expiryCandleOpen: null, remainingCandles: null }];
-    }
-    const expiryIndex = activationIndex + signal.expiryCandles * chartCandlesPerModelCandle;
-    if (latestIndex < activationIndex || latestIndex >= expiryIndex) return [];
-    return [{
-      signal,
-      activationIndex,
-      activationCandleOpen,
-      expiryCandleOpen: candles[expiryIndex]?.time ?? null,
-      remainingCandles: Math.ceil((expiryIndex - latestIndex) / chartCandlesPerModelCandle),
-    }];
-  });
-  if (active.length === 0) return null;
-  active.sort((left, right) => right.activationIndex - left.activationIndex || right.signal.eventTime - left.signal.eventTime);
-  const { activationIndex: _activationIndex, ...state } = active[0];
-  return state;
-}
-
-function getDefaultClusterEvent(cluster: { events: Array<{ event: CalendarEvent }> }): CalendarEvent | null {
-  const impactRank: Record<CalendarEvent["impact"], number> = { high: 0, medium: 1, low: 2 };
-  return [...cluster.events]
-    .sort((left, right) => {
-      const impactDelta = impactRank[left.event.impact] - impactRank[right.event.impact];
-      if (impactDelta !== 0) return impactDelta;
-      return left.event.time - right.event.time;
-    })[0]?.event ?? null;
-}
-
-function getNearestCandleIndex(
-  candles: BridgeCandle[],
-  event: CalendarEvent | null,
-  timeframe: Timeframe,
-  sourceTimeOffsetSeconds: number,
-): number | null {
-  if (!event || candles.length === 0) return null;
-  const chartTime = getChartEventCoordinateTime(event.time, sourceTimeOffsetSeconds);
-  const lastCandle = candles[candles.length - 1];
-  if (lastCandle && chartTime > lastCandle.time) return null;
-  const anchorTime = getChartEventAnchorTime(chartTime, candles, timeframe) ?? chartTime;
-
-  let bestIndex = 0;
-  let bestDistance = Number.POSITIVE_INFINITY;
-  candles.forEach((candle, index) => {
-    const distance = Math.abs(candle.time - anchorTime);
-    if (distance < bestDistance) {
-      bestDistance = distance;
-      bestIndex = index;
-    }
-  });
-
-  return bestIndex;
-}
-
-function formatSignedPriceDelta(value: number, precision: number): string {
-  return `${value >= 0 ? "+" : ""}${value.toFixed(precision)}`;
-}
-
-function formatObservedMove(
-  anchor: BridgeCandle | null,
-  current: BridgeCandle | null,
-  precision: number,
-): { label: string; detail: string } {
-  if (!anchor || !current) {
-    return {
-      label: "N/A",
-      detail: "Replay move is unavailable because the selected event is outside the loaded candle window.",
-    };
-  }
-
-  const delta = current.close - anchor.close;
-  const percent = anchor.close === 0 ? null : (delta / anchor.close) * 100;
-  const percentLabel = percent == null ? "N/A" : `${percent >= 0 ? "+" : ""}${percent.toFixed(2)}%`;
-
-  return {
-    label: `${formatSignedPriceDelta(delta, precision)} / ${percentLabel}`,
-    detail: `Observed move compares the selected event candle close (${anchor.close.toFixed(precision)}) with the current replay cursor close (${current.close.toFixed(precision)}).`,
-  };
-}
-
-function formatEventField(value: string, title: string): string {
-  return getEventValueDisplay(value, title).display;
-}
-
-function getChartEventCurrencyLabel(symbol: string): string {
-  const currencies = getChartEventRelevantCurrencies(symbol);
-  if (currencies.length === 0) return symbol.toUpperCase();
-  return currencies.join("/");
-}
-
-function isSameChartEventTemplate(left: CalendarEvent, right: CalendarEvent): boolean {
-  return left.currency === right.currency && left.title === right.title;
+  calendarOpen: boolean;
+  calendarPanel: ReactNode;
+  onCalendarOpenChange: (open: boolean) => void;
+  resolvedBanks: number;
+  nextHighImpact?: { title: string; currency: string; countryCode: string; time: number } | null;
+  onOpenResearch: () => void;
+  onOpenAppSettings: () => void;
 }
 
 export function ChartsTab({
+  currentTime,
+  health,
+  feedStatus,
   marketStatus,
   selectedSymbol,
   onSelectedSymbolChange,
   events,
   onOpenCalendarEvent,
+  calendarOpen,
+  calendarPanel,
+  onCalendarOpenChange,
+  resolvedBanks,
+  nextHighImpact,
+  onOpenResearch,
+  onOpenAppSettings,
 }: ChartsTabProps) {
   const [timeframe, setTimeframe] = useState<Timeframe>(DEFAULT_CHART_TIMEFRAME);
-  const [displayTimeMode, setDisplayTimeMode] = useState<ChartDisplayTimeMode>(() => loadChartDisplayTimeMode());
-  const [chartPreferences, setChartPreferences] = useState<ChartPreferences>(() => loadChartPreferences());
-  const [timezoneMenuOpen, setTimezoneMenuOpen] = useState(false);
-  const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
-  const [chartDrawerMode, setChartDrawerMode] = useState<ChartDrawerMode>("appearance");
   const [debugLines, setDebugLines] = useState<string[]>([]);
-  const [pairMatrixOpen, setPairMatrixOpen] = useState(false);
   const [macroBiasVisible, setMacroBiasVisible] = useState(() => {
     try { return typeof window !== "undefined" && window.localStorage.getItem(MACRO_BIAS_VISIBILITY_KEY) === "true"; }
     catch { return false; }
@@ -451,66 +160,14 @@ export function ChartsTab({
     catch { return true; }
   });
   const [macroBiasHiddenHistoricalPatterns, setMacroBiasHiddenHistoricalPatterns] = useState<Record<string, string[]>>({});
-  const [macroBiasCurrentResponse, setMacroBiasCurrentResponse] = useState<MacroSignalChartSignalResponse | null>(getPreloadedMacroSignalCurrentModel);
-  const [macroBiasShadowHistoryResponse, setMacroBiasShadowHistoryResponse] = useState<MacroSignalChartSignalResponse | null>(null);
-  const [macroBiasShadowHistoryError, setMacroBiasShadowHistoryError] = useState<string | null>(null);
-  const [macroBiasGlobalResponse, setMacroBiasGlobalResponse] = useState<MacroSignalGlobalResponse | null>(getPreloadedMacroSignalGlobalRegistry);
-  const [macroBiasGlobalLoading, setMacroBiasGlobalLoading] = useState(false);
-  const globalRegistryRef = useRef(macroBiasGlobalResponse);
-  globalRegistryRef.current = macroBiasGlobalResponse;
-  const [macroBiasGlobalError, setMacroBiasGlobalError] = useState<string | null>(null);
-  const [macroBiasMonitoringError, setMacroBiasMonitoringError] = useState<string | null>(null);
-  const [macroBiasCurrentLoading, setMacroBiasCurrentLoading] = useState(false);
-  const [macroBiasCurrentError, setMacroBiasCurrentError] = useState<string | null>(null);
-  const [macroBiasRefreshedAt, setMacroBiasRefreshedAt] = useState<number | null>(null);
   const [selectedMacroBiasId, setSelectedMacroBiasId] = useState<string | null>(null);
   const [macroBiasSignalAudits, setMacroBiasSignalAudits] = useState<Record<string, MacroSignalChartSignal>>({});
   const [macroBiasSignalAuditErrors, setMacroBiasSignalAuditErrors] = useState<Record<string, string>>({});
   const [macroBiasSignalAuditRetryRevision, setMacroBiasSignalAuditRetryRevision] = useState(0);
-  const pendingMacroBiasArrowFocusRef = useRef<FmsArrowNavigationRequest | null>(null);
-  const macroBiasArrowNavigationStageRef = useRef<string | null>(null);
-  const macroBiasArrowCoverageAttemptRef = useRef<string | null>(null);
-  const [macroBiasArrowFocusRevision, setMacroBiasArrowFocusRevision] = useState(0);
-  const [pairMatrixBeforeDays, setPairMatrixBeforeDays] = useState(loadPairMatrixBeforeDays);
-  const [pairMatrixCoverageAnchor, setPairMatrixCoverageAnchor] = useState<number | null>(null);
-  const [pairMatrixRangeArmed, setPairMatrixRangeArmed] = useState(false);
-  const [pairMatrixRangeEditing, setPairMatrixRangeEditing] = useState(false);
-  const [pairMatrixRangeCancelRevision, setPairMatrixRangeCancelRevision] = useState(0);
-  const [pairMatrixLockedRange, setPairMatrixLockedRange] = useState<PairMatrixCandleRange | null>(null);
-  const [pairMatrixLockedInterval, setPairMatrixLockedInterval] = useState<PairMatrixTimeInterval | null>(null);
-  const [pairMatrixCalendarResult, setPairMatrixCalendarResult] = useState<{
-    key: string | null;
-    state: PairMatrixLoadState;
-    events: CalendarEvent[];
-  }>({ key: null, state: "idle", events: [] });
-  const [pairMatrixMarkerCalendarEvents, setPairMatrixMarkerCalendarEvents] = useState<CalendarEvent[]>([]);
-  const [pairMatrixMarkerCalendarState, setPairMatrixMarkerCalendarState] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [chartRangeRevision, setChartRangeRevision] = useState(0);
-  const [chartLayoutRevision, setChartLayoutRevision] = useState(0);
-  const [chartInteracting, setChartInteracting] = useState(false);
-  const [hoveredChartEventClusterKey, setHoveredChartEventClusterKey] = useState<string | null>(null);
-  const [activeChartEventClusterKey, setActiveChartEventClusterKey] = useState<string | null>(null);
-  const [selectedChartEventCluster, setSelectedChartEventCluster] = useState<ChartEventOverlayCluster | null>(null);
-  const [selectedChartEvent, setSelectedChartEvent] = useState<CalendarEvent | null>(null);
-  const [eventLensExpanded, setEventLensExpanded] = useState(false);
-  const [replayPlaying, setReplayPlaying] = useState(false);
-  const [replayCursorIndex, setReplayCursorIndex] = useState<number | null>(null);
-  const [replaySpeed, setReplaySpeed] = useState(1);
-  const [replayStepCandles, setReplayStepCandles] = useState(1);
   const timezoneMenuRef = useRef<HTMLDivElement | null>(null);
-  const macroBiasMarketCacheRef = useRef(new Map<string, MacroSignalChartSignalResponse>());
-  const macroBiasHistoryCacheRef = useRef(new Map<string, MacroSignalChartSignalResponse>());
-  const macroBiasCalendarRevisionRef = useRef(new Map<string, string>());
   const containerRef = useRef<HTMLDivElement | null>(null);
   const crosshairReadoutRef = useRef<ChartCrosshairReadoutHandle | null>(null);
-  const hoveredCandleChartTimeRef = useRef<number | null>(null);
-  const pairMatrixHoverRuntimeRef = useRef(createPairMatrixHoverRuntime());
-  const pendingPairMatrixHoverRef = useRef<number | null>(null);
-  const pairMatrixHoverTimeoutRef = useRef<number | null>(null);
-  const pairMatrixHoverLastMotionRef = useRef(0);
-  const pairMatrixHoverEnabledRef = useRef(false);
-  const pairMatrixOpenRef = useRef(false);
-  const pairMatrixCoverageWindowKeyRef = useRef("");
+  const pairMatrixSelectEventRef = useRef<(event: CalendarEvent) => void>(() => undefined);
   const chartZoomSnapshotRef = useRef<ChartZoomSnapshot | null>(null);
   const preserveZoomNextLoadRef = useRef(false);
   const skipNextFutureRefocusRef = useRef(false);
@@ -525,65 +182,29 @@ export function ChartsTab({
   const futureRefocusSignatureRef = useRef("");
   const rangeAnimationFrameRef = useRef<number | null>(null);
   const rangeSettleTimeoutRef = useRef<number | null>(null);
-  const pairMatrixCalendarCacheRef = useRef(new Map<string, PairMatrixCalendarCacheEntry>());
-  const pairMatrixCalendarPendingRef = useRef(new Map<string, Promise<CalendarEvent[]>>());
-  const pairMatrixCalendarRequestRef = useRef(0);
-  const pairMatrixMarkerCalendarRequestRef = useRef(0);
-  const pairMatrixGeometryListenersRef = useRef(new Set<() => void>());
-  const pairMatrixGeometryFrameRef = useRef<number | null>(null);
-  const pairMatrixDerivedCacheRef = useRef<{
-    index: PairMatrixCalendarIndex | null;
-    values: Map<string, PairMatrixDerivedSnapshot>;
-  }>({ index: null, values: new Map() });
-  pairMatrixHoverEnabledRef.current = pairMatrixOpen && pairMatrixLockedRange == null;
-  pairMatrixOpenRef.current = pairMatrixOpen;
 
-  const pairMatrixGeometryRuntime = useMemo<PairMatrixChartGeometryRuntime>(() => ({
-    subscribe: (listener) => {
-      pairMatrixGeometryListenersRef.current.add(listener);
-      return () => pairMatrixGeometryListenersRef.current.delete(listener);
-    },
-    resolveRange: (range) => {
-      const chart = chartRef.current;
-      const container = containerRef.current;
-      if (!chart || !container) return null;
-      return getPairMatrixRangePixelBounds(
-        chart.timeScale().timeToCoordinate(range.firstOpen as Time),
-        chart.timeScale().timeToCoordinate(range.lastOpen as Time),
-        chart.timeScale().options().barSpacing,
-        container.clientWidth,
-      );
-    },
-    resolveMarker: (candleOpens) => {
-      const chart = chartRef.current;
-      const width = containerRef.current?.clientWidth ?? 0;
-      if (!chart || width <= 0 || candleOpens.length === 0) return null;
-      const coordinates = candleOpens.flatMap((open) => {
-        const coordinate = chart.timeScale().timeToCoordinate(open as Time);
-        return coordinate == null || !Number.isFinite(Number(coordinate)) ? [] : [Number(coordinate)];
-      });
-      if (coordinates.length === 0) return null;
-      const x = coordinates.reduce((sum, coordinate) => sum + coordinate, 0) / coordinates.length;
-      return {
-        x,
-        visible: x >= -18 && x <= width + 18,
-        placement: x < 220 ? "right" : x > width - 220 ? "left" : "center",
-      };
-    },
-  }), []);
-
-  const schedulePairMatrixGeometryUpdate = useCallback(() => {
-    if (!pairMatrixOpenRef.current || pairMatrixGeometryFrameRef.current != null) return;
-    pairMatrixGeometryFrameRef.current = window.requestAnimationFrame(() => {
-      pairMatrixGeometryFrameRef.current = null;
-      pairMatrixGeometryListenersRef.current.forEach((listener) => listener());
-    });
+  const clearPendingZoomPreservation = useCallback(() => {
+    preserveZoomNextLoadRef.current = false;
   }, []);
-
-  useEffect(() => () => {
-    if (pairMatrixGeometryFrameRef.current != null) window.cancelAnimationFrame(pairMatrixGeometryFrameRef.current);
-    pairMatrixGeometryListenersRef.current.clear();
-  }, []);
+  const {
+    changeCursorMode: handleCursorModeChange,
+    changeDefaultFocusBars: handleDefaultFocusBarsChange,
+    changeDisplayTimeMode: handleDisplayTimeModeChange,
+    changePreserveZoom: handlePreserveZoomChange,
+    chartPreferences,
+    displayTimeMode,
+    drawerMode: chartDrawerMode,
+    drawerOpen: historyPanelOpen,
+    openDrawer: openChartDrawer,
+    resetPreferences: resetChartPreferences,
+    setDrawerMode: setChartDrawerMode,
+    setDrawerOpen: setHistoryPanelOpen,
+    setTimezoneMenuOpen,
+    timezoneMenuOpen,
+    updateAppearance,
+    updateEventOverlay,
+  } = useChartPreferencesController(clearPendingZoomPreservation);
+  const { layout: chartDockLayout, resetLayout: resetChartDockLayout, setPanelRegion: setChartPanelRegion } = useChartDockLayout();
 
   const addLog = useCallback((line: string) => {
     setDebugLines((current) => {
@@ -638,6 +259,39 @@ export function ChartsTab({
     ? null
     : Math.max(0, Date.now() / 1000 - selectedBrokerSymbol.quoteTime);
   visibleCandleCountRef.current = visibleCandles.length;
+  const handlePairMatrixSelectEvent = useCallback((event: CalendarEvent) => {
+    pairMatrixSelectEventRef.current(event);
+  }, []);
+  const {
+    open: pairMatrixOpen,
+    openRef: pairMatrixOpenRef,
+    chartInteracting,
+    chartLayoutRevision,
+    chartRangeRevision,
+    contextMarkerData: pairMatrixContextMarkerData,
+    rangeOverlay: pairMatrixRangeOverlay,
+    timeLensData: pairMatrixTimeLensData,
+    cancelPendingHover: cancelPendingPairMatrixHover,
+    resetHover: resetPairMatrixHover,
+    scheduleHover: schedulePairMatrixHover,
+    scheduleGeometryUpdate: schedulePairMatrixGeometryUpdate,
+    notifyChartLayoutChange: notifyPairMatrixChartLayoutChange,
+    notifyChartRangeChange: notifyPairMatrixChartRangeChange,
+    setChartInteracting,
+  } = useChartPairMatrixController({
+    selectedSymbol,
+    timeframe,
+    events,
+    visibleCandles,
+    lastCandleTime,
+    displayTimeMode,
+    sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
+    marketCheckedAt: activeMarketStatus?.checked_at ?? null,
+    contextMarkersPerSide: chartPreferences.eventOverlay.pairMatrixContextMarkersPerSide,
+    chartRef,
+    containerRef,
+    onSelectEvent: handlePairMatrixSelectEvent,
+  });
   const chartMarketIdentity = `${selectedSymbol}:${timeframe}`;
   if (chartMarketIdentityRef.current !== chartMarketIdentity) {
     const residentZoom = chartPreferences.preserveZoomOnMarketChange
@@ -699,10 +353,31 @@ export function ChartsTab({
     ],
   );
 
-  const selectedReplayAnchorIndex = useMemo(
-    () => getNearestCandleIndex(visibleCandles, selectedChartEvent, timeframe, chartSourceTimeOffsetSeconds),
-    [visibleCandles, selectedChartEvent, timeframe, chartSourceTimeOffsetSeconds],
-  );
+  const {
+    activeClusterKey: activeChartEventClusterKey,
+    anchorIndex: selectedReplayAnchorIndex,
+    close: closeEventLens,
+    cursorIndex: replayCursorIndex,
+    expanded: eventLensExpanded,
+    hoveredClusterKey: hoveredChartEventClusterKey,
+    playing: replayPlaying,
+    reset: resetReplay,
+    selectEvent: setSelectedChartEventState,
+    selectedCluster: selectedChartEventCluster,
+    selectedEvent: selectedChartEvent,
+    setExpanded: setEventLensExpanded,
+    setHoveredClusterKey: setHoveredChartEventClusterKey,
+    setSpeed: setReplaySpeed,
+    setStepCandles: setReplayStepCandles,
+    speed: replaySpeed,
+    step: stepReplay,
+    stepCandles: replayStepCandles,
+    togglePlayback: toggleReplayPlayback,
+  } = useChartEventReplay({
+    candles: visibleCandles,
+    timeframe,
+    sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
+  });
 
   const displayCandles = useMemo(
     () =>
@@ -764,164 +439,6 @@ export function ChartsTab({
     [visibleCandles, timeframe, chartSourceTimeOffsetSeconds, futureChartEventTimes],
   );
 
-  const handleDisplayTimeModeChange = useCallback((next: ChartDisplayTimeMode) => {
-    setDisplayTimeMode(next);
-    saveChartDisplayTimeMode(next);
-    setTimezoneMenuOpen(false);
-  }, []);
-
-  const updateChartPreferences = useCallback((updater: (current: ChartPreferences) => ChartPreferences) => {
-    setChartPreferences((current) => {
-      const next = updater(current);
-      saveChartPreferences(next);
-      return next;
-    });
-  }, []);
-
-  const updateAppearance = useCallback(
-    <K extends keyof ChartAppearancePreferences,>(key: K, value: ChartAppearancePreferences[K]) => {
-      updateChartPreferences((current) => ({
-        ...current,
-        appearance: {
-          ...current.appearance,
-          [key]: value,
-        },
-      }));
-    },
-    [updateChartPreferences],
-  );
-
-  const handleCursorModeChange = useCallback(
-    (mode: ChartCursorReadoutMode) => {
-      updateChartPreferences((current) => ({ ...current, cursorReadoutMode: mode }));
-    },
-    [updateChartPreferences],
-  );
-
-  const updateEventOverlay = useCallback(
-    <K extends keyof ChartEventOverlayPreferences,>(key: K, value: ChartEventOverlayPreferences[K]) => {
-      updateChartPreferences((current) => ({
-        ...current,
-        eventOverlay: {
-          ...current.eventOverlay,
-          [key]: value,
-        },
-      }));
-    },
-    [updateChartPreferences],
-  );
-  const handlePreserveZoomChange = useCallback((preserve: boolean) => {
-    if (!preserve) preserveZoomNextLoadRef.current = false;
-    updateChartPreferences((current) => ({ ...current, preserveZoomOnMarketChange: preserve }));
-  }, [updateChartPreferences]);
-  const handleDefaultFocusBarsChange = useCallback((defaultFocusBars: number) => {
-    updateChartPreferences((current) => ({ ...current, defaultFocusBars }));
-  }, [updateChartPreferences]);
-
-  const selectedChartEventKey = selectedChartEvent ? getChartEventKey(selectedChartEvent) : null;
-
-  useEffect(() => {
-    if (!selectedChartEvent || selectedReplayAnchorIndex == null) {
-      setReplayCursorIndex(null);
-      setReplayPlaying(false);
-      return;
-    }
-
-    setReplayCursorIndex(selectedReplayAnchorIndex);
-    setReplayPlaying(false);
-  }, [selectedChartEventKey, selectedReplayAnchorIndex, selectedChartEvent]);
-
-  useEffect(() => {
-    if (!replayPlaying || replayCursorIndex == null) return;
-    if (replayCursorIndex >= visibleCandles.length - 1) {
-      setReplayPlaying(false);
-      return;
-    }
-
-    const delayMs = Math.max(120, Math.round(850 / replaySpeed));
-    const id = window.setInterval(() => {
-      setReplayCursorIndex((current) => {
-        if (current == null) return current;
-        const next = Math.min(visibleCandles.length - 1, current + 1);
-        if (next >= visibleCandles.length - 1) setReplayPlaying(false);
-        return next;
-      });
-    }, delayMs);
-
-    return () => window.clearInterval(id);
-  }, [replayPlaying, replayCursorIndex, replaySpeed, visibleCandles.length]);
-
-  const openChartDrawer = useCallback((mode: ChartDrawerMode) => {
-    setChartDrawerMode(mode);
-    setHistoryPanelOpen(true);
-  }, []);
-
-  const cancelPendingPairMatrixHover = useCallback(() => {
-    if (pairMatrixHoverTimeoutRef.current != null) window.clearTimeout(pairMatrixHoverTimeoutRef.current);
-    pairMatrixHoverTimeoutRef.current = null;
-    pendingPairMatrixHoverRef.current = null;
-  }, []);
-
-  const schedulePairMatrixHover = useCallback((next: number | null) => {
-    const hoverUpdate = resolvePairMatrixHoveredCandleUpdate(hoveredCandleChartTimeRef.current, next, pairMatrixHoverEnabledRef.current);
-    if (!hoverUpdate.shouldUpdate && pairMatrixHoverTimeoutRef.current == null) return;
-    pendingPairMatrixHoverRef.current = next;
-    pairMatrixHoverLastMotionRef.current = performance.now();
-    if (pairMatrixHoverTimeoutRef.current != null) return;
-
-    const commitWhenSettled = () => {
-      const remaining = getPairMatrixHoverSettleDelay(pairMatrixHoverLastMotionRef.current, performance.now());
-      if (remaining > 0) {
-        pairMatrixHoverTimeoutRef.current = window.setTimeout(commitWhenSettled, remaining);
-        return;
-      }
-      pairMatrixHoverTimeoutRef.current = null;
-      const settled = pendingPairMatrixHoverRef.current;
-      pendingPairMatrixHoverRef.current = null;
-      if (!pairMatrixHoverEnabledRef.current || hoveredCandleChartTimeRef.current === settled) return;
-      hoveredCandleChartTimeRef.current = settled;
-      pairMatrixHoverRuntimeRef.current.publishAnchor(settled);
-    };
-    pairMatrixHoverTimeoutRef.current = window.setTimeout(commitWhenSettled, PAIR_MATRIX_HOVER_SETTLE_MS);
-  }, []);
-
-  const closeEventLens = useCallback(() => {
-    setActiveChartEventClusterKey(null);
-    setHoveredChartEventClusterKey(null);
-    setSelectedChartEventCluster(null);
-    setSelectedChartEvent(null);
-    setEventLensExpanded(false);
-    setReplayPlaying(false);
-    setReplayCursorIndex(null);
-  }, []);
-
-  const resetReplay = useCallback(() => {
-    if (selectedReplayAnchorIndex == null) return;
-    setReplayCursorIndex(selectedReplayAnchorIndex);
-    setReplayPlaying(false);
-  }, [selectedReplayAnchorIndex]);
-
-  const stepReplay = useCallback(() => {
-    if (replayCursorIndex == null) return;
-    setReplayPlaying(false);
-    setReplayCursorIndex((current) =>
-      current == null ? current : Math.min(visibleCandles.length - 1, current + replayStepCandles),
-    );
-  }, [replayCursorIndex, replayStepCandles, visibleCandles.length]);
-
-  const toggleReplayPlayback = useCallback(() => {
-    if (selectedReplayAnchorIndex == null) return;
-    setReplayCursorIndex((current) =>
-      current == null || current >= visibleCandles.length - 1 ? selectedReplayAnchorIndex : current,
-    );
-    setReplayPlaying((current) => !current);
-  }, [selectedReplayAnchorIndex, visibleCandles.length]);
-
-  const resetChartPreferences = useCallback(() => {
-    setChartPreferences(DEFAULT_CHART_PREFERENCES);
-    saveChartPreferences(DEFAULT_CHART_PREFERENCES);
-  }, []);
-
   useEffect(() => {
     const container = containerRef.current;
     if (!container || chartRef.current) return;
@@ -973,7 +490,7 @@ export function ChartsTab({
       if (rect.width > 0 && rect.height > 0) {
         chart.applyOptions({ width: rect.width, height: rect.height });
         schedulePairMatrixGeometryUpdate();
-        setChartLayoutRevision((current) => current + 1);
+        notifyPairMatrixChartLayoutChange();
       }
     };
 
@@ -1028,254 +545,42 @@ export function ChartsTab({
       chartRef.current = null;
       seriesRef.current = null;
     };
-  }, [schedulePairMatrixGeometryUpdate]);
+  }, [notifyPairMatrixChartLayoutChange, schedulePairMatrixGeometryUpdate]);
 
-  const macroBiasSupported = isMacroBiasMarketSupported(selectedSymbol);
-  const macroBiasCurrencies = useMemo(() => {
-    const symbol = selectedSymbol.toUpperCase();
-    return symbol.length === 6 ? new Set([symbol.slice(0, 3), symbol.slice(3)]) : new Set<string>();
-  }, [selectedSymbol]);
   const macroBiasFrom = visibleCandles[0]?.time;
   const macroBiasTo = visibleCandles[visibleCandles.length - 1]?.time;
-  const macroBiasCurrentCalendarRevision = useMemo(() => {
-    if (!macroBiasSupported) return "";
-    return events
-      .filter((event) => macroBiasCurrencies.has(event.currency))
-      .sort((left, right) => right.time - left.time || right.id - left.id)
-      .slice(0, 64)
-      .map((event) => `${event.id}:${event.time}:${event.actual}:${event.forecast}:${event.previous}`)
-      .join("|");
-  }, [events, macroBiasCurrencies, macroBiasSupported]);
-  const macroBiasCurrentRequestKey = getMacroBiasRequestScope({
-    mode: "current",
-    symbol: selectedSymbol,
-    timeframe: "H4",
-    calendarRevision: macroBiasCurrentCalendarRevision,
+  const {
+    currentError: macroBiasCurrentError,
+    currentLoading: macroBiasCurrentLoading,
+    displaySignals: macroBiasDisplaySignals,
+    globalError: macroBiasGlobalError,
+    globalLoading: macroBiasGlobalLoading,
+    globalResponse: macroBiasGlobalResponse,
+    historicalError: macroBiasShadowHistoryError,
+    historicalPatternFilters: macroBiasHistoricalPatternFilters,
+    historicalResponse: macroBiasShadowHistoryResponse,
+    historicalSignals: macroBiasShadowHistoricalSignals,
+    monitoringError: macroBiasMonitoringError,
+    refreshedAt: macroBiasRefreshedAt,
+    response: macroBiasResponse,
+    supported: macroBiasSupported,
+  } = useChartMacroBiasData({
+    selectedSymbol,
+    events,
+    visible: macroBiasVisible,
+    historicalMatchesVisible: macroBiasHistoricalMatchesVisible,
+    hiddenHistoricalPatterns: macroBiasHiddenHistoricalPatterns,
+    historyState,
+    historyFrom: macroBiasFrom,
+    historyTo: macroBiasTo,
+    visibleCandleCount: visibleCandles.length,
   });
+  const macroBiasLoading = macroBiasCurrentLoading;
+  const macroBiasError = macroBiasCurrentError;
+
   useEffect(() => {
     setSelectedMacroBiasId(null);
   }, [selectedSymbol]);
-  useEffect(() => {
-    if (!macroBiasSupported) {
-      setMacroBiasCurrentResponse(null);
-      setMacroBiasCurrentLoading(false);
-      setMacroBiasCurrentError(null);
-      return;
-    }
-    const globalMarket = getPreloadedMacroSignalGlobalRegistry()?.markets.find(
-      (market) => market.symbol === selectedSymbol.toUpperCase(),
-    ) ?? null;
-    const cachedMarket = macroBiasMarketCacheRef.current.get(selectedSymbol.toUpperCase()) ?? null;
-    const reusableResponse = (macroBiasCurrentResponse?.supported
-      && macroBiasCurrentResponse.symbol === selectedSymbol)
-      ? macroBiasCurrentResponse
-      : cachedMarket ?? globalMarket;
-    if (reusableResponse && reusableResponse !== macroBiasCurrentResponse) setMacroBiasCurrentResponse(reusableResponse);
-    if (!reusableResponse) setMacroBiasCurrentResponse(null);
-    setMacroBiasCurrentLoading(false);
-    setMacroBiasCurrentError(null);
-    setMacroBiasRefreshedAt(reusableResponse?.generatedAt ?? null);
-  }, [macroBiasSupported, macroBiasCurrentRequestKey]);
-
-  useEffect(() => {
-    if (!macroBiasVisible) return;
-    let cancelled = false;
-    const cached = getPreloadedMacroSignalGlobalRegistry();
-    if (cached) setMacroBiasGlobalResponse((current) => current ?? cached);
-    setMacroBiasGlobalLoading(!cached);
-    setMacroBiasGlobalError(null);
-    preloadMacroSignalGlobalRegistry()
-      .then((response) => {
-        if (cancelled) return;
-        response.markets.forEach((market) => {
-          const key = market.symbol.toUpperCase();
-          const cachedMarket = macroBiasMarketCacheRef.current.get(key);
-          if (!cachedMarket || (market.generatedAt ?? 0) >= (cachedMarket.generatedAt ?? 0)) macroBiasMarketCacheRef.current.set(key, market);
-        });
-        setMacroBiasGlobalResponse((current) => current ? {
-          ...response,
-          generatedAt: Math.max(response.generatedAt, current.generatedAt),
-          markets: response.markets.map((market) => {
-            const currentMarket = current.markets.find((candidate) => candidate.symbol === market.symbol);
-            const cachedMarket = macroBiasMarketCacheRef.current.get(market.symbol.toUpperCase());
-            const newest = cachedMarket && (cachedMarket.generatedAt ?? 0) > (currentMarket?.generatedAt ?? 0) ? cachedMarket : currentMarket;
-            return newest && (newest.generatedAt ?? 0) > (market.generatedAt ?? 0) ? newest : market;
-          }),
-        } : { ...response, markets: response.markets.map((market) => macroBiasMarketCacheRef.current.get(market.symbol.toUpperCase()) ?? market) });
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) setMacroBiasGlobalError(error instanceof Error ? error.message : "Global FMS registry could not be loaded");
-      })
-      .finally(() => { if (!cancelled) setMacroBiasGlobalLoading(false); });
-    return () => { cancelled = true; };
-  }, [macroBiasVisible]);
-
-  // Monitor registered releases across every pair, independently of chart selection.
-  useEffect(() => {
-    if (!macroBiasVisible) return;
-    let cancelled = false;
-    let timer: number | undefined;
-    let lastSnapshotRead = 0;
-    const attempts = new Map<string, number>();
-    const monitor = async () => {
-      try {
-        const now = Math.floor(Date.now() / 1000);
-        if (now - lastSnapshotRead >= 60) {
-          lastSnapshotRead = now;
-          const snapshot = await fetchMacroSignalGlobalRegistry();
-          if (cancelled) return;
-          setMacroBiasGlobalResponse((current) => ({ ...snapshot, markets: snapshot.markets.map((market) => {
-            const previous = current?.markets.find((row) => row.symbol === market.symbol);
-            return previous && (previous.generatedAt ?? 0) > (market.generatedAt ?? 0) ? previous : market;
-          }) }));
-        }
-        const due = globalRegistryRef.current?.markets.filter((market) => {
-          if (!market.supported || now - (attempts.get(market.symbol) ?? 0) < 60 || now - (market.generatedAt ?? 0) < 30) return false;
-          return (market.realtime?.upcomingPatternWatches ?? []).some((watch) => watch.time <= now)
-            || [...market.signals, ...(market.recoveredSignals ?? [])].some((signal) => signal.outcomeStatus === "pending")
-            || (market.realtime?.latestPatternAssessments ?? []).some((row) => row.status === "awaiting_observation");
-        }).sort((a, b) => (attempts.get(a.symbol) ?? 0) - (attempts.get(b.symbol) ?? 0));
-        const market = due?.[0];
-        if (market) {
-          attempts.set(market.symbol, now);
-          const fresh = await fetchMacroSignalChartSignals({ symbol: market.symbol, timeframe: "H4", mode: "current", refresh: true });
-          if (cancelled) return;
-          const cached = macroBiasMarketCacheRef.current.get(fresh.symbol.toUpperCase());
-          if ((fresh.generatedAt ?? 0) >= (cached?.generatedAt ?? 0)) macroBiasMarketCacheRef.current.set(fresh.symbol.toUpperCase(), fresh);
-          setMacroBiasGlobalResponse((current) => current ? { ...current, markets: current.markets.map((row) => row.symbol === fresh.symbol && (fresh.generatedAt ?? 0) >= (row.generatedAt ?? 0) ? fresh : row) } : current);
-        }
-        if (!cancelled) setMacroBiasMonitoringError(null);
-      } catch (error) {
-        if (!cancelled) setMacroBiasMonitoringError(`Release monitoring delayed: ${error instanceof Error ? error.message : "Bridge unavailable"}`);
-      } finally {
-        if (!cancelled) timer = window.setTimeout(monitor, 5_000);
-      }
-    };
-    timer = window.setTimeout(monitor, 5_000);
-    return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [macroBiasVisible]);
-
-  useEffect(() => {
-    if (!macroBiasSupported) return undefined;
-    const market = selectedSymbol.toUpperCase();
-
-    let cancelled = false;
-    let retryTimer: number | undefined;
-    const refresh = (evaluate = macroBiasVisible) => {
-      setMacroBiasCurrentLoading(true);
-      return fetchMacroSignalChartSignals({ symbol: selectedSymbol, timeframe: "H4", mode: "current", refresh: evaluate })
-      .then((response) => {
-        if (response.symbol.toUpperCase() !== market) return;
-        const cachedResponse = macroBiasMarketCacheRef.current.get(market);
-        if ((cachedResponse?.generatedAt ?? 0) > (response.generatedAt ?? 0)) return;
-        macroBiasMarketCacheRef.current.set(response.symbol.toUpperCase(), response);
-        if (evaluate) macroBiasCalendarRevisionRef.current.set(market, macroBiasCurrentCalendarRevision);
-        if (cancelled) return;
-        setMacroBiasCurrentResponse(response);
-        setMacroBiasGlobalResponse((current) => current ? {
-          ...current,
-          generatedAt: Math.max(current.generatedAt, response.generatedAt ?? 0),
-          markets: current.markets.map((row) => row.symbol === response.symbol && (response.generatedAt ?? 0) >= (row.generatedAt ?? 0) ? response : row),
-        } : current);
-        setMacroBiasCurrentError(null);
-        setMacroBiasRefreshedAt(response.generatedAt ?? Math.floor(Date.now() / 1000));
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          const message = error instanceof Error ? error.message : "Bridge unavailable";
-          setMacroBiasCurrentError(message);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setMacroBiasCurrentLoading(false);
-          if (macroBiasVisible) retryTimer = window.setTimeout(() => void refresh(), evaluate ? 60_000 : 300);
-        }
-      });
-    };
-    const cachedMarket = macroBiasMarketCacheRef.current.get(market)
-      ?? globalRegistryRef.current?.markets.find((row) => row.symbol.toUpperCase() === market)
-      ?? getPreloadedMacroSignalGlobalRegistry()?.markets.find((row) => row.symbol.toUpperCase() === market);
-    const sameRevision = macroBiasCalendarRevisionRef.current.get(market) === macroBiasCurrentCalendarRevision;
-    const plan = getMacroBiasInitialLoadPlan(cachedMarket, macroBiasVisible, sameRevision, Date.now() / 1000);
-    // Navigation restores last-known data first; evaluation runs after selection settles.
-    if (plan.readLastKnown) void refresh(false);
-    else if (plan.refreshDelay != null) retryTimer = window.setTimeout(() => void refresh(), plan.refreshDelay);
-    return () => { cancelled = true; window.clearTimeout(retryTimer); };
-  }, [macroBiasCurrentCalendarRevision, macroBiasVisible, macroBiasSupported, selectedSymbol]);
-
-  useEffect(() => {
-    const selectedMarket = macroBiasGlobalResponse?.markets.find(
-      (market) => market.symbol === selectedSymbol.toUpperCase(),
-    );
-    if (selectedMarket) {
-      const cached = macroBiasMarketCacheRef.current.get(selectedSymbol.toUpperCase());
-      const newest = cached && (cached.generatedAt ?? 0) > (selectedMarket.generatedAt ?? 0) ? cached : selectedMarket;
-      macroBiasMarketCacheRef.current.set(selectedSymbol.toUpperCase(), newest);
-      setMacroBiasCurrentResponse(newest);
-      setMacroBiasRefreshedAt(newest.generatedAt ?? null);
-    }
-  }, [macroBiasGlobalResponse, selectedSymbol]);
-
-  useEffect(() => {
-    if (!macroBiasSupported || !macroBiasVisible || !macroBiasHistoricalMatchesVisible || historyState !== "ready" || visibleCandles.length === 0) {
-      setMacroBiasShadowHistoryResponse(null);
-      setMacroBiasShadowHistoryError(null);
-      return;
-    }
-    let cancelled = false;
-    const historyFrom = Math.max(0, (macroBiasFrom ?? 0) - 7 * 24 * 60 * 60);
-    const historyTo = (macroBiasTo ?? Math.floor(Date.now() / 1_000)) + 7 * 24 * 60 * 60;
-    const historyCacheKey = `${selectedSymbol.toUpperCase()}:${historyFrom}:${historyTo}`;
-    const cachedHistory = macroBiasHistoryCacheRef.current.get(historyCacheKey);
-    if (cachedHistory) {
-      setMacroBiasShadowHistoryError(null);
-      setMacroBiasShadowHistoryResponse(cachedHistory);
-      return undefined;
-    }
-    setMacroBiasShadowHistoryError(null);
-    setMacroBiasShadowHistoryResponse(null);
-    fetchMacroSignalChartSignals({
-      symbol: selectedSymbol,
-      timeframe: "H4",
-      mode: "research_replay",
-      from: historyFrom,
-      to: historyTo,
-      markersOnly: true,
-    }).then((response) => {
-      if (cancelled) return;
-      macroBiasHistoryCacheRef.current.set(historyCacheKey, response);
-      setMacroBiasShadowHistoryResponse(response);
-    }).catch((error: unknown) => {
-      if (!cancelled) setMacroBiasShadowHistoryError(error instanceof Error ? error.message : "Historical arrow response unavailable");
-    });
-    return () => { cancelled = true; };
-  }, [macroBiasHistoricalMatchesVisible, macroBiasSupported, macroBiasVisible, selectedSymbol, historyState, macroBiasFrom, macroBiasTo, visibleCandles.length]);
-
-  const macroBiasResponse = macroBiasCurrentResponse?.symbol.toUpperCase() === selectedSymbol.toUpperCase()
-    ? macroBiasCurrentResponse
-    : null;
-  const macroBiasLoading = macroBiasCurrentLoading;
-  const macroBiasError = macroBiasCurrentError;
-  const macroBiasShadowHistoricalSignals = useMemo(() => {
-    if (!macroBiasShadowHistoryResponse?.supported || macroBiasShadowHistoryResponse.symbol.toUpperCase() !== selectedSymbol.toUpperCase()) return null;
-    const eligiblePatternIds = new Set(
-      macroBiasShadowHistoryResponse.patterns
-        .filter((pattern) => pattern.currentEligible)
-        .map((pattern) => pattern.id),
-    );
-    const hidden = new Set(macroBiasHiddenHistoricalPatterns[selectedSymbol.toUpperCase()] ?? []);
-    return macroBiasShadowHistoryResponse.signals.filter((signal) => eligiblePatternIds.has(signal.patternId) && !hidden.has(signal.patternId));
-  }, [macroBiasHiddenHistoricalPatterns, macroBiasShadowHistoryResponse, selectedSymbol]);
-  const macroBiasHistoricalPatternFilters = useMemo(() => {
-    if (!macroBiasShadowHistoryResponse?.supported || macroBiasShadowHistoryResponse.symbol.toUpperCase() !== selectedSymbol.toUpperCase()) return [];
-    const hidden = new Set(macroBiasHiddenHistoricalPatterns[selectedSymbol.toUpperCase()] ?? []);
-    const counts = new Map<string, number>();
-    macroBiasShadowHistoryResponse.signals.forEach((signal) => counts.set(signal.patternId, (counts.get(signal.patternId) ?? 0) + 1));
-    return macroBiasShadowHistoryResponse.patterns.filter((pattern) => pattern.currentEligible).map((pattern) => ({
-      id: pattern.id, label: pattern.label ?? pattern.id, count: counts.get(pattern.id) ?? 0, checked: !hidden.has(pattern.id),
-    })).sort((left, right) => left.label.localeCompare(right.label));
-  }, [macroBiasHiddenHistoricalPatterns, macroBiasShadowHistoryResponse, selectedSymbol]);
   const toggleMacroBiasHistoricalPattern = (patternId: string) => {
     const market = selectedSymbol.toUpperCase();
     setMacroBiasHiddenHistoricalPatterns((current) => {
@@ -1291,91 +596,11 @@ export function ChartsTab({
     setMacroBiasHiddenHistoricalPatterns((current) => ({ ...current, [market]: hidden }));
     if (!visible) setSelectedMacroBiasId(null);
   };
-  const macroBiasJournalSignals = useMemo(() => {
-    if (!macroBiasResponse?.supported) return [];
-    const hidden = new Set(macroBiasHiddenHistoricalPatterns[selectedSymbol.toUpperCase()] ?? []);
-    const combined = new Map<string, MacroSignalChartSignal>();
-    macroBiasResponse.signals.filter((signal) => !hidden.has(signal.patternId)).forEach((signal) => combined.set(signal.id, signal));
-    macroBiasResponse.recoveredSignals?.filter((signal) => !hidden.has(signal.patternId)).forEach((signal) => combined.set(signal.id, signal));
-    return [...combined.values()].sort((left, right) => left.eventTime - right.eventTime || left.id.localeCompare(right.id));
-  }, [macroBiasHiddenHistoricalPatterns, macroBiasResponse, selectedSymbol]);
-  const macroBiasDisplaySignals = useMemo(() => {
-    if (!macroBiasResponse?.supported) return [];
-    if (!macroBiasHistoricalMatchesVisible || !macroBiasShadowHistoricalSignals) {
-      return macroBiasJournalSignals;
-    }
-    const combined = new Map<string, MacroSignalChartSignal>();
-    macroBiasShadowHistoricalSignals.forEach((signal) => combined.set(signal.id, signal));
-    macroBiasJournalSignals.forEach((signal) => combined.set(signal.id, signal));
-    return [...combined.values()].sort((left, right) => left.eventTime - right.eventTime || left.id.localeCompare(right.id));
-  }, [macroBiasHistoricalMatchesVisible, macroBiasJournalSignals, macroBiasResponse, macroBiasShadowHistoricalSignals]);
   const macroBiasVisibleChartSignals = useMemo(() => {
     if (!selectedMacroBiasId) return macroBiasDisplaySignals;
     const selected = macroBiasDisplaySignals.find((signal) => signal.id === selectedMacroBiasId);
     return selected ? [selected] : macroBiasDisplaySignals;
   }, [macroBiasDisplaySignals, selectedMacroBiasId]);
-
-  useEffect(() => {
-    const pending = pendingMacroBiasArrowFocusRef.current;
-    if (!pending) return;
-    const chart = chartRef.current;
-    const series = seriesRef.current;
-    const resolution = resolveFmsArrowNavigationStage({
-      request: pending,
-      selectedMarket: selectedSymbol,
-      selectedTimeframe: timeframe,
-      historyState,
-      signalState: pending.signal.historicalReplay
-        ? macroBiasShadowHistoryError
-          ? "error"
-          : macroBiasShadowHistoryResponse?.symbol.toUpperCase() === selectedSymbol.toUpperCase()
-            ? "ready"
-            : "loading"
-        : macroBiasError
-          ? "error"
-          : macroBiasResponse
-            ? "ready"
-            : "loading",
-      signals: macroBiasDisplaySignals,
-      candles: visibleCandles,
-      sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
-      chartMounted: Boolean(chart && series),
-    });
-    if (macroBiasArrowNavigationStageRef.current !== resolution.stage) {
-      macroBiasArrowNavigationStageRef.current = resolution.stage;
-      addLog(`Go to arrow: ${describeFmsArrowNavigationStage(resolution.stage)}`);
-    }
-    if (resolution.stage === "coverage_unavailable") {
-      const attemptKey = `${pending.market}:${pending.signal.id}:${pending.signal.activationTime ?? pending.signal.eventTime}`;
-      if (macroBiasArrowCoverageAttemptRef.current !== attemptKey) {
-        macroBiasArrowCoverageAttemptRef.current = attemptKey;
-        addLog("Go to arrow: requesting the missing activation-candle window");
-        const targetChartTime = (pending.signal.activationTime ?? pending.signal.eventTime) + chartSourceTimeOffsetSeconds;
-        void ensureHistoryCoverage(targetChartTime).then((loaded) => {
-          if (pendingMacroBiasArrowFocusRef.current !== pending) return;
-          if (!loaded) {
-            pendingMacroBiasArrowFocusRef.current = null;
-            addLog("Go to arrow: the broker did not return the required activation-candle window");
-            return;
-          }
-          setMacroBiasArrowFocusRevision((current) => current + 1);
-        });
-        return;
-      }
-      pendingMacroBiasArrowFocusRef.current = null;
-      addLog("Go to arrow: returned history still does not contain the activation candle");
-      return;
-    }
-    if (resolution.stage === "history_unavailable" || resolution.stage === "signal_unavailable") {
-      pendingMacroBiasArrowFocusRef.current = null;
-      return;
-    }
-    if (resolution.stage !== "ready" || !resolution.signal || !resolution.range || !chart || !series) return;
-    pendingMacroBiasArrowFocusRef.current = null;
-    setSelectedMacroBiasId(resolution.signal.id);
-    chart.timeScale().setVisibleLogicalRange(resolution.range);
-    series.priceScale().setAutoScale(true);
-  }, [macroBiasArrowFocusRevision, macroBiasDisplaySignals, macroBiasResponse, macroBiasError, macroBiasShadowHistoryResponse, macroBiasShadowHistoryError, selectedSymbol, timeframe, historyState, visibleCandles, chartSourceTimeOffsetSeconds, addLog, ensureHistoryCoverage]);
 
   useEffect(() => {
     const series = seriesRef.current;
@@ -1568,27 +793,28 @@ export function ChartsTab({
     });
   }, []);
 
-  const goToMacroBiasArrow = useCallback((market: string, signal: MacroSignalChartSignal) => {
-    const request = createFmsArrowNavigationRequest(market, signal);
-    pendingMacroBiasArrowFocusRef.current = request;
-    macroBiasArrowNavigationStageRef.current = null;
-    macroBiasArrowCoverageAttemptRef.current = null;
-    setMacroBiasVisible(true);
-    setMacroBiasHistoricalMatchesVisible(true);
-    setMacroBiasHiddenHistoricalPatterns((current) => {
-      const hidden = current[request.market] ?? [];
-      return hidden.includes(signal.patternId)
-        ? { ...current, [request.market]: hidden.filter((patternId) => patternId !== signal.patternId) }
-        : current;
-    });
-    try {
-      window.localStorage.setItem(MACRO_BIAS_VISIBILITY_KEY, "true");
-      window.localStorage.setItem(MACRO_BIAS_HISTORICAL_MATCHES_KEY, "true");
-    } catch { /* optional preference */ }
-    if (selectedSymbol.toUpperCase() !== request.market) onSelectedSymbolChange(request.market);
-    if (timeframe !== request.timeframe) setTimeframe(request.timeframe);
-    setMacroBiasArrowFocusRevision((current) => current + 1);
-  }, [onSelectedSymbolChange, selectedSymbol, timeframe]);
+  const goToMacroBiasArrow = useFmsArrowNavigation({
+    selectedSymbol,
+    timeframe,
+    onSelectedSymbolChange,
+    setTimeframe,
+    historyState,
+    currentResponse: macroBiasResponse,
+    currentError: macroBiasError,
+    historicalResponse: macroBiasShadowHistoryResponse,
+    historicalError: macroBiasShadowHistoryError,
+    displayedSignals: macroBiasDisplaySignals,
+    visibleCandles,
+    sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
+    chartRef,
+    seriesRef,
+    ensureHistoryCoverage,
+    addLog,
+    setMacroBiasVisible,
+    setHistoricalMatchesVisible: setMacroBiasHistoricalMatchesVisible,
+    setHiddenHistoricalPatterns: setMacroBiasHiddenHistoricalPatterns,
+    setSelectedSignalId: setSelectedMacroBiasId,
+  });
 
   useBrowserLayoutEffect(() => {
     const chart = chartRef.current;
@@ -1647,7 +873,7 @@ export function ChartsTab({
       const point = param.point;
       if (!point || point.x < 0 || point.y < 0 || point.x > container.clientWidth || point.y > container.clientHeight) {
         crosshairReadoutRef.current?.update(null);
-        if (pairMatrixHoverEnabledRef.current) schedulePairMatrixHover(null);
+        schedulePairMatrixHover(null);
         return;
       }
 
@@ -1655,7 +881,7 @@ export function ChartsTab({
       const candle = param.seriesData?.get(series) as CandlestickData<Time> | undefined;
       const candlePrice = candle && typeof candle.close === "number" ? candle.close : null;
       const candleTime = candle ? normalizeChartTimestampSeconds(candle.time) : null;
-      if (pairMatrixHoverEnabledRef.current) schedulePairMatrixHover(candleTime);
+      schedulePairMatrixHover(candleTime);
       const lines = formatCursorReadout({
         mode: chartPreferences.cursorReadoutMode,
         truePrice,
@@ -1684,73 +910,9 @@ export function ChartsTab({
     return () => {
       chart.unsubscribeCrosshairMove(handleCrosshairMove);
       crosshairReadoutRef.current?.update(null);
-      cancelPendingPairMatrixHover();
-      hoveredCandleChartTimeRef.current = null;
-      pairMatrixHoverRuntimeRef.current.publishAnchor(null);
+      resetPairMatrixHover();
     };
-  }, [cancelPendingPairMatrixHover, chartPreferences.cursorReadoutMode, priceFormat.precision, schedulePairMatrixHover]);
-
-  useEffect(() => cancelPendingPairMatrixHover, [cancelPendingPairMatrixHover]);
-
-  useEffect(() => {
-    if (pairMatrixOpen) return;
-    cancelPendingPairMatrixHover();
-    hoveredCandleChartTimeRef.current = null;
-    pairMatrixHoverRuntimeRef.current.publishAnchor(null);
-    pairMatrixCoverageWindowKeyRef.current = "";
-    setPairMatrixCoverageAnchor(null);
-  }, [cancelPendingPairMatrixHover, pairMatrixOpen]);
-
-  useEffect(() => {
-    if (!pairMatrixLockedRange) return;
-    cancelPendingPairMatrixHover();
-    hoveredCandleChartTimeRef.current = null;
-    pairMatrixHoverRuntimeRef.current.publishAnchor(null);
-  }, [cancelPendingPairMatrixHover, pairMatrixLockedRange]);
-
-  useEffect(() => {
-    cancelPendingPairMatrixHover();
-    hoveredCandleChartTimeRef.current = null;
-    pairMatrixHoverRuntimeRef.current.publishAnchor(null);
-    pairMatrixCoverageWindowKeyRef.current = "";
-    setPairMatrixCoverageAnchor(null);
-    setPairMatrixLockedRange(null);
-    setPairMatrixLockedInterval(null);
-    setPairMatrixRangeArmed(false);
-    setPairMatrixRangeEditing(false);
-    setPairMatrixRangeCancelRevision((current) => current + 1);
-  }, [cancelPendingPairMatrixHover, selectedSymbol]);
-
-  useEffect(() => {
-    cancelPendingPairMatrixHover();
-    hoveredCandleChartTimeRef.current = null;
-    pairMatrixHoverRuntimeRef.current.publishAnchor(null);
-    pairMatrixCoverageWindowKeyRef.current = "";
-    setPairMatrixCoverageAnchor(null);
-    setPairMatrixRangeArmed(false);
-    setPairMatrixRangeEditing(false);
-    setPairMatrixRangeCancelRevision((current) => current + 1);
-  }, [cancelPendingPairMatrixHover, timeframe]);
-
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape" || (!pairMatrixRangeArmed && !pairMatrixLockedRange)) return;
-      setPairMatrixLockedRange(null);
-      setPairMatrixLockedInterval(null);
-      setPairMatrixRangeArmed(false);
-      setPairMatrixRangeEditing(false);
-      setPairMatrixRangeCancelRevision((current) => current + 1);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [pairMatrixRangeArmed, pairMatrixLockedRange]);
-
-  useEffect(() => {
-    const chart = chartRef.current;
-    if (!chart) return;
-    const selecting = pairMatrixRangeArmed || pairMatrixRangeEditing;
-    chart.applyOptions({ handleScroll: !selecting, handleScale: !selecting });
-  }, [pairMatrixRangeArmed, pairMatrixRangeEditing]);
+  }, [chartPreferences.cursorReadoutMode, priceFormat.precision, resetPairMatrixHover, schedulePairMatrixHover]);
 
   useBrowserLayoutEffect(() => {
     const series = seriesRef.current;
@@ -1781,7 +943,7 @@ export function ChartsTab({
       if (updateCadence === "animation_frame" && rangeAnimationFrameRef.current == null) {
         rangeAnimationFrameRef.current = window.requestAnimationFrame(() => {
           rangeAnimationFrameRef.current = null;
-          setChartRangeRevision((current) => current + 1);
+          notifyPairMatrixChartRangeChange();
         });
       }
 
@@ -1791,7 +953,7 @@ export function ChartsTab({
       rangeSettleTimeoutRef.current = window.setTimeout(() => {
         rangeSettleTimeoutRef.current = null;
         if (!pairMatrixOpenRef.current) setChartInteracting(false);
-        setChartRangeRevision((current) => current + 1);
+        notifyPairMatrixChartRangeChange();
       }, 120);
     };
 
@@ -1807,7 +969,7 @@ export function ChartsTab({
         rangeSettleTimeoutRef.current = null;
       }
     };
-  }, [schedulePairMatrixGeometryUpdate]);
+  }, [notifyPairMatrixChartRangeChange, schedulePairMatrixGeometryUpdate, setChartInteracting]);
 
   const applyPreservedChartZoom = useCallback((): boolean => {
     const chart = chartRef.current;
@@ -1887,560 +1049,6 @@ export function ChartsTab({
     });
   }, [events, selectedSymbol]);
 
-  const pairMatrixCurrencies = useMemo(() => getPairMatrixForexCurrencies(selectedSymbol), [selectedSymbol]);
-  const pairMatrixCandleTimes = useMemo(
-    () => pairMatrixOpen ? visibleCandles.map((candle) => candle.time) : [],
-    [pairMatrixOpen, visibleCandles],
-  );
-  const pairMatrixCandleIndexByTime = useMemo(
-    () => new Map(pairMatrixCandleTimes.map((time, index) => [time, index])),
-    [pairMatrixCandleTimes],
-  );
-  useEffect(() => {
-    if (!pairMatrixLockedInterval || pairMatrixCandleTimes.length === 0) return;
-    const remapped = remapPairMatrixTimeInterval(pairMatrixCandleTimes, pairMatrixLockedInterval, timeframe);
-    if (!remapped) return;
-    setPairMatrixLockedRange((current) => (
-      current
-      && current.firstOpen === remapped.firstOpen
-      && current.lastOpen === remapped.lastOpen
-      && current.close === remapped.close
-      && current.candleCount === remapped.candleCount
-        ? current
-        : remapped
-    ));
-  }, [pairMatrixCandleTimes, pairMatrixLockedInterval, timeframe]);
-  const pairMatrixFallbackOpen = pairMatrixOpen ? lastCandleTime ?? null : null;
-  const pairMatrixFallbackRange = useMemo(
-    () => pairMatrixFallbackOpen == null
-      ? null
-      : normalizePairMatrixCandleRange(pairMatrixCandleTimes, pairMatrixFallbackOpen, pairMatrixFallbackOpen, timeframe),
-    [pairMatrixCandleTimes, pairMatrixFallbackOpen, timeframe],
-  );
-  const pairMatrixRange = pairMatrixOpen ? pairMatrixLockedRange ?? pairMatrixFallbackRange : null;
-  const pairMatrixCoverageRange = useMemo(() => {
-    if (!pairMatrixOpen) return null;
-    if (pairMatrixLockedRange) return pairMatrixLockedRange;
-    const anchor = pairMatrixCoverageAnchor ?? pairMatrixFallbackOpen;
-    return anchor == null ? null : normalizePairMatrixCandleRange(pairMatrixCandleTimes, anchor, anchor, timeframe);
-  }, [pairMatrixOpen, pairMatrixLockedRange, pairMatrixCoverageAnchor, pairMatrixFallbackOpen, pairMatrixCandleTimes, timeframe]);
-  const pairMatrixRangeOpenCalendarTime = pairMatrixRange == null
-    ? null
-    : pairMatrixRange.firstOpen - chartSourceTimeOffsetSeconds;
-  const pairMatrixRangeCloseCalendarTime = pairMatrixRange == null
-    ? null
-    : pairMatrixRange.close - chartSourceTimeOffsetSeconds;
-  const pairMatrixDuringThrough = pairMatrixRangeOpenCalendarTime == null || pairMatrixRangeCloseCalendarTime == null
-    ? null
-    : Math.min(
-        pairMatrixRangeCloseCalendarTime - 1,
-        Math.max(pairMatrixRangeOpenCalendarTime, activeMarketStatus?.checked_at ?? Math.floor(Date.now() / 1000)),
-      );
-  const pairMatrixCoverageOpenCalendarTime = pairMatrixCoverageRange == null
-    ? null
-    : pairMatrixCoverageRange.firstOpen - chartSourceTimeOffsetSeconds;
-  const pairMatrixCoverageCloseCalendarTime = pairMatrixCoverageRange == null
-    ? null
-    : pairMatrixCoverageRange.close - chartSourceTimeOffsetSeconds;
-  const pairMatrixWindow = useMemo(
-    () => pairMatrixCoverageOpenCalendarTime == null || pairMatrixCoverageCloseCalendarTime == null
-      ? null
-      : getPairMatrixTimelineWindow(pairMatrixCoverageOpenCalendarTime, pairMatrixCoverageCloseCalendarTime, pairMatrixBeforeDays),
-    [pairMatrixCoverageOpenCalendarTime, pairMatrixCoverageCloseCalendarTime, pairMatrixBeforeDays],
-  );
-  const pairMatrixMarkerWindow = useMemo(() => {
-    if (!pairMatrixOpen || pairMatrixCandleTimes.length === 0) return null;
-    const chart = chartRef.current;
-    const visibleRange = chart?.timeScale().getVisibleRange();
-    const firstCandle = pairMatrixCandleTimes[0];
-    const lastCandle = pairMatrixCandleTimes[pairMatrixCandleTimes.length - 1];
-    const visibleFrom = typeof visibleRange?.from === "number" ? visibleRange.from : pairMatrixRange?.firstOpen ?? firstCandle;
-    const visibleTo = typeof visibleRange?.to === "number" ? visibleRange.to : pairMatrixRange?.close ?? getPairMatrixCandleClose(lastCandle, timeframe);
-    const fromChart = Math.max(firstCandle, visibleFrom);
-    const toChart = Math.min(getPairMatrixCandleClose(lastCandle, timeframe), visibleTo);
-    if (toChart < fromChart) return null;
-    const day = 24 * 60 * 60;
-    return {
-      from: Math.floor((fromChart - chartSourceTimeOffsetSeconds) / day) * day,
-      to: Math.ceil((toChart - chartSourceTimeOffsetSeconds) / day) * day,
-    };
-  }, [pairMatrixOpen, pairMatrixCandleTimes, pairMatrixRange, timeframe, chartSourceTimeOffsetSeconds, chartRangeRevision, chartLayoutRevision]);
-  const pairMatrixCurrencyKey = pairMatrixCurrencies?.join("|") ?? "unsupported";
-  const pairMatrixCalendarKey = pairMatrixWindow
-    ? `${pairMatrixCurrencyKey}:${pairMatrixWindow.from}:${pairMatrixWindow.to}`
-    : null;
-  const pairMatrixMarkerCalendarKey = pairMatrixMarkerWindow
-    ? `markers:${pairMatrixCurrencyKey}:${pairMatrixMarkerWindow.from}:${pairMatrixMarkerWindow.to}`
-    : null;
-
-  useEffect(() => {
-    if (!pairMatrixOpen || pairMatrixLockedRange || !pairMatrixCurrencies || pairMatrixCandleTimes.length === 0) return;
-    const considerAnchor = (publishedAnchor: number | null) => {
-      const anchor = publishedAnchor ?? pairMatrixFallbackOpen;
-      if (anchor == null) return;
-      const range = normalizePairMatrixCandleRange(pairMatrixCandleTimes, anchor, anchor, timeframe);
-      if (!range) return;
-      const window = getPairMatrixTimelineWindow(
-        range.firstOpen - chartSourceTimeOffsetSeconds,
-        range.close - chartSourceTimeOffsetSeconds,
-        pairMatrixBeforeDays,
-      );
-      const key = `${pairMatrixCurrencyKey}:${window.from}:${window.to}`;
-      if (key === pairMatrixCoverageWindowKeyRef.current) return;
-      pairMatrixCoverageWindowKeyRef.current = key;
-      setPairMatrixCoverageAnchor(anchor);
-    };
-    pairMatrixCoverageWindowKeyRef.current = pairMatrixCalendarKey ?? "";
-    considerAnchor(pairMatrixHoverRuntimeRef.current.getAnchor());
-    return pairMatrixHoverRuntimeRef.current.subscribe(considerAnchor);
-  }, [pairMatrixOpen, pairMatrixLockedRange, pairMatrixCurrencies, pairMatrixCandleTimes, pairMatrixFallbackOpen, timeframe, chartSourceTimeOffsetSeconds, pairMatrixBeforeDays, pairMatrixCurrencyKey, pairMatrixCalendarKey]);
-
-  useEffect(() => {
-    const requestId = ++pairMatrixCalendarRequestRef.current;
-    if (!pairMatrixOpen || !pairMatrixCurrencies || !pairMatrixWindow || !pairMatrixCalendarKey) {
-      setPairMatrixCalendarResult({ key: pairMatrixCalendarKey, state: "idle", events: [] });
-      return;
-    }
-
-    const relevantCurrentEvents = events.filter((event) => pairMatrixCurrencies.includes(event.currency));
-    if (calendarEventsCoverWindow(events, pairMatrixWindow.from, pairMatrixWindow.to)) {
-      setPairMatrixCalendarResult({ key: pairMatrixCalendarKey, state: "ready", events: relevantCurrentEvents });
-      return;
-    }
-
-    const exactCached = pairMatrixCalendarCacheRef.current.get(pairMatrixCalendarKey);
-    const coveringCachedMatch = exactCached
-      ? [pairMatrixCalendarKey, exactCached] as const
-      : [...pairMatrixCalendarCacheRef.current.entries()].find(
-          ([, entry]) =>
-            entry.currencyKey === pairMatrixCurrencyKey
-            && entry.from <= pairMatrixWindow.from
-            && entry.to >= pairMatrixWindow.to,
-        );
-    if (coveringCachedMatch) {
-      const [coveringKey, coveringCached] = coveringCachedMatch;
-      pairMatrixCalendarCacheRef.current.delete(coveringKey);
-      pairMatrixCalendarCacheRef.current.set(pairMatrixCalendarKey, coveringCached);
-      setPairMatrixCalendarResult({ key: pairMatrixCalendarKey, state: "ready", events: coveringCached.events });
-      return;
-    }
-
-    setPairMatrixCalendarResult({ key: pairMatrixCalendarKey, state: "loading", events: [] });
-    const timeoutId = window.setTimeout(() => {
-      const countries = pairMatrixCurrencies
-        .map((currency) => CURRENCY_TO_COUNTRY_CODE[currency as keyof typeof CURRENCY_TO_COUNTRY_CODE])
-        .filter((country): country is string => Boolean(country));
-      let pendingRequest = pairMatrixCalendarPendingRef.current.get(pairMatrixCalendarKey);
-      if (!pendingRequest) {
-        pendingRequest = fetchCalendar({
-          from: pairMatrixWindow.from,
-          to: pairMatrixWindow.to,
-          impacts: ["low", "medium", "high"],
-          countries,
-        });
-        pairMatrixCalendarPendingRef.current.set(pairMatrixCalendarKey, pendingRequest);
-        void pendingRequest.finally(() => {
-          if (pairMatrixCalendarPendingRef.current.get(pairMatrixCalendarKey) === pendingRequest) {
-            pairMatrixCalendarPendingRef.current.delete(pairMatrixCalendarKey);
-          }
-        }).catch(() => undefined);
-      }
-      void pendingRequest
-        .then((loadedEvents) => {
-          const relevantLoadedEvents = loadedEvents.filter((event) => pairMatrixCurrencies.includes(event.currency));
-          const overlappingEvents = [...pairMatrixCalendarCacheRef.current.values()]
-            .filter(
-              (entry) =>
-                entry.currencyKey === pairMatrixCurrencyKey
-                && entry.from <= pairMatrixWindow.to
-                && entry.to >= pairMatrixWindow.from,
-            )
-            .flatMap((entry) => entry.events);
-          const mergedEvents = mergePairMatrixCalendarEvents(relevantCurrentEvents, overlappingEvents, relevantLoadedEvents);
-          pairMatrixCalendarCacheRef.current.set(pairMatrixCalendarKey, {
-            currencyKey: pairMatrixCurrencyKey,
-            from: pairMatrixWindow.from,
-            to: pairMatrixWindow.to,
-            events: mergedEvents,
-          });
-          while (pairMatrixCalendarCacheRef.current.size > PAIR_MATRIX_HISTORY_CACHE_LIMIT) {
-            const oldestKey = pairMatrixCalendarCacheRef.current.keys().next().value as string | undefined;
-            if (!oldestKey) break;
-            pairMatrixCalendarCacheRef.current.delete(oldestKey);
-          }
-          if (pairMatrixCalendarRequestRef.current !== requestId) return;
-          setPairMatrixCalendarResult({ key: pairMatrixCalendarKey, state: "ready", events: mergedEvents });
-        })
-        .catch(() => {
-          if (pairMatrixCalendarRequestRef.current !== requestId) return;
-          setPairMatrixCalendarResult({ key: pairMatrixCalendarKey, state: "error", events: [] });
-        });
-    }, PAIR_MATRIX_HISTORY_DEBOUNCE_MS);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [
-    pairMatrixOpen,
-    pairMatrixCurrencies,
-    pairMatrixCurrencyKey,
-    pairMatrixWindow?.from,
-    pairMatrixWindow?.to,
-    pairMatrixCalendarKey,
-    events,
-  ]);
-
-  useEffect(() => {
-    const requestId = ++pairMatrixMarkerCalendarRequestRef.current;
-    if (!pairMatrixOpen || !pairMatrixCurrencies || !pairMatrixMarkerWindow || !pairMatrixMarkerCalendarKey) {
-      setPairMatrixMarkerCalendarEvents([]);
-      setPairMatrixMarkerCalendarState("idle");
-      return;
-    }
-    const relevantCurrentEvents = events.filter((event) => pairMatrixCurrencies.includes(event.currency));
-    const overlappingEntries = [...pairMatrixCalendarCacheRef.current.values()].filter(
-      (entry) => entry.currencyKey === pairMatrixCurrencyKey && entry.from <= pairMatrixMarkerWindow.to && entry.to >= pairMatrixMarkerWindow.from,
-    );
-    const baseline = mergePairMatrixCalendarEvents(relevantCurrentEvents, ...overlappingEntries.map((entry) => entry.events));
-    const coveringCached = overlappingEntries.find((entry) => entry.from <= pairMatrixMarkerWindow.from && entry.to >= pairMatrixMarkerWindow.to);
-    if (calendarEventsCoverWindow(events, pairMatrixMarkerWindow.from, pairMatrixMarkerWindow.to) || coveringCached) {
-      setPairMatrixMarkerCalendarEvents(coveringCached ? mergePairMatrixCalendarEvents(baseline, coveringCached.events) : baseline);
-      setPairMatrixMarkerCalendarState("ready");
-      return;
-    }
-
-    setPairMatrixMarkerCalendarEvents(baseline);
-    setPairMatrixMarkerCalendarState("loading");
-    const timeoutId = window.setTimeout(() => {
-      const countries = pairMatrixCurrencies
-        .map((currency) => CURRENCY_TO_COUNTRY_CODE[currency as keyof typeof CURRENCY_TO_COUNTRY_CODE])
-        .filter((country): country is string => Boolean(country));
-      let pendingRequest = pairMatrixCalendarPendingRef.current.get(pairMatrixMarkerCalendarKey);
-      if (!pendingRequest) {
-        pendingRequest = fetchCalendar({ from: pairMatrixMarkerWindow.from, to: pairMatrixMarkerWindow.to, impacts: ["low", "medium", "high"], countries });
-        pairMatrixCalendarPendingRef.current.set(pairMatrixMarkerCalendarKey, pendingRequest);
-        void pendingRequest.finally(() => {
-          if (pairMatrixCalendarPendingRef.current.get(pairMatrixMarkerCalendarKey) === pendingRequest) pairMatrixCalendarPendingRef.current.delete(pairMatrixMarkerCalendarKey);
-        }).catch(() => undefined);
-      }
-      void pendingRequest.then((loadedEvents) => {
-        if (pairMatrixMarkerCalendarRequestRef.current !== requestId) return;
-        const relevantLoaded = loadedEvents.filter((event) => pairMatrixCurrencies.includes(event.currency));
-        const merged = mergePairMatrixCalendarEvents(baseline, relevantLoaded);
-        pairMatrixCalendarCacheRef.current.set(pairMatrixMarkerCalendarKey, {
-          currencyKey: pairMatrixCurrencyKey,
-          from: pairMatrixMarkerWindow.from,
-          to: pairMatrixMarkerWindow.to,
-          events: merged,
-        });
-        while (pairMatrixCalendarCacheRef.current.size > PAIR_MATRIX_HISTORY_CACHE_LIMIT) {
-          const oldestKey = pairMatrixCalendarCacheRef.current.keys().next().value as string | undefined;
-          if (!oldestKey) break;
-          pairMatrixCalendarCacheRef.current.delete(oldestKey);
-        }
-        setPairMatrixMarkerCalendarEvents(merged);
-        setPairMatrixMarkerCalendarState("ready");
-      }).catch(() => {
-        if (pairMatrixMarkerCalendarRequestRef.current === requestId) {
-          setPairMatrixMarkerCalendarEvents(baseline);
-          setPairMatrixMarkerCalendarState("error");
-        }
-      });
-    }, PAIR_MATRIX_HISTORY_DEBOUNCE_MS);
-    return () => window.clearTimeout(timeoutId);
-  }, [pairMatrixOpen, pairMatrixCurrencies, pairMatrixCurrencyKey, pairMatrixMarkerWindow?.from, pairMatrixMarkerWindow?.to, pairMatrixMarkerCalendarKey, events]);
-
-  const pairMatrixLoadState: PairMatrixLoadState =
-    !pairMatrixCurrencies || pairMatrixRangeOpenCalendarTime == null
-      ? "idle"
-      : pairMatrixCalendarResult.key === pairMatrixCalendarKey
-        ? pairMatrixCalendarResult.state
-        : "loading";
-  const pairMatrixCalendarIndex = useMemo(
-    () => pairMatrixOpen && pairMatrixCurrencies && pairMatrixLoadState === "ready"
-      ? indexPairMatrixCalendar(pairMatrixCalendarResult.events, pairMatrixCurrencies)
-      : indexPairMatrixCalendar([], []),
-    [pairMatrixOpen, pairMatrixCurrencies, pairMatrixLoadState, pairMatrixCalendarResult.events],
-  );
-  const resolvePairMatrixDerived = useCallback((rangeOpen: number | null, rangeClose: number | null, duringThrough: number | null): PairMatrixDerivedSnapshot => {
-    if (
-      !pairMatrixCurrencies
-      || rangeOpen == null
-      || rangeClose == null
-      || duringThrough == null
-      || pairMatrixLoadState !== "ready"
-    ) {
-      const timeline = { during: [], before: [] } satisfies PairMatrixTimelineSnapshot;
-      return { timeline, momentum: buildPairMatrixMomentumSnapshot(timeline, pairMatrixCurrencies ?? []) };
-    }
-
-    const cache = pairMatrixDerivedCacheRef.current;
-    if (cache.index !== pairMatrixCalendarIndex) {
-      cache.index = pairMatrixCalendarIndex;
-      cache.values.clear();
-    }
-    const cacheKey = `${pairMatrixCurrencies.join("|")}:${rangeOpen}:${rangeClose}:${duringThrough}:${pairMatrixBeforeDays}`;
-    const cached = cache.values.get(cacheKey);
-    if (cached) return cached;
-
-    const timeline = buildPairMatrixTimelineFromIndex({
-      index: pairMatrixCalendarIndex,
-      currencies: pairMatrixCurrencies,
-      rangeOpen,
-      rangeClose,
-      duringThrough,
-      beforeDays: pairMatrixBeforeDays,
-    });
-    const derived = { timeline, momentum: buildPairMatrixMomentumSnapshot(timeline, pairMatrixCurrencies) };
-    cache.values.set(cacheKey, derived);
-    while (cache.values.size > 128) cache.values.delete(cache.values.keys().next().value as string);
-    return derived;
-  }, [pairMatrixCurrencies, pairMatrixCalendarIndex, pairMatrixBeforeDays, pairMatrixLoadState]);
-  const pairMatrixDerived = useMemo(
-    () => resolvePairMatrixDerived(pairMatrixRangeOpenCalendarTime, pairMatrixRangeCloseCalendarTime, pairMatrixDuringThrough),
-    [resolvePairMatrixDerived, pairMatrixRangeOpenCalendarTime, pairMatrixRangeCloseCalendarTime, pairMatrixDuringThrough],
-  );
-  const pairMatrixTimeline = pairMatrixDerived.timeline;
-  const pairMatrixMomentum = pairMatrixDerived.momentum;
-  const updatePairMatrixBeforeDays = useCallback((days: number) => {
-    setPairMatrixBeforeDays(days);
-    savePairMatrixBeforeDays(days);
-  }, []);
-  const pairMatrixRangeLabel = pairMatrixRange == null
-    ? "Waiting for candle"
-    : `${formatChartFeedTime(pairMatrixRange.firstOpen, displayTimeMode, chartSourceTimeOffsetSeconds)} → ${formatChartFeedTime(pairMatrixRange.close, displayTimeMode, chartSourceTimeOffsetSeconds)} · ${pairMatrixRange.candleCount} ${timeframe} ${pairMatrixRange.candleCount === 1 ? "candle" : "candles"}`;
-  const pairMatrixRangeMoveLabel = getPairMatrixRangePipMoveLabel(
-    visibleCandles,
-    pairMatrixRange,
-    pairMatrixCurrencies?.[1] ?? null,
-  );
-  const pairMatrixRangeBasisLabel: ChartPairMatrixTimeLensData["rangeBasisLabel"] = pairMatrixLockedRange
-    ? "Locked range"
-    : "Latest candle";
-  const pairMatrixTimeLensBaseData = useMemo<ChartPairMatrixTimeLensData>(
-    () => ({
-      open: pairMatrixOpen,
-      supported: pairMatrixCurrencies != null,
-      pairLabel: selectedSymbol,
-      currencies: pairMatrixCurrencies ?? [],
-      timeline: pairMatrixTimeline,
-      momentum: pairMatrixMomentum,
-      rangeLabel: pairMatrixRangeLabel,
-      rangeMoveLabel: pairMatrixRangeMoveLabel,
-      rangeOpenTimeSeconds: pairMatrixRangeOpenCalendarTime,
-      rangeBasisLabel: pairMatrixRangeBasisLabel,
-      loadState: pairMatrixLoadState,
-      displayTimeMode,
-      sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
-      beforeDays: pairMatrixBeforeDays,
-      rangeSelectionArmed: pairMatrixRangeArmed,
-      hasLockedRange: pairMatrixLockedRange != null,
-      onBeforeDaysChange: updatePairMatrixBeforeDays,
-      onStartRangeSelection: () => setPairMatrixRangeArmed(true),
-      onReturnToCursor: () => {
-        setPairMatrixLockedRange(null);
-        setPairMatrixLockedInterval(null);
-        setPairMatrixRangeArmed(false);
-        setPairMatrixRangeEditing(false);
-        setPairMatrixRangeCancelRevision((current) => current + 1);
-      },
-      onToggleOpen: () => {
-        if (pairMatrixOpen) {
-          setPairMatrixRangeArmed(false);
-          setPairMatrixRangeEditing(false);
-          setPairMatrixRangeCancelRevision((current) => current + 1);
-        }
-        setPairMatrixOpen(!pairMatrixOpen);
-      },
-      onClose: () => {
-        setPairMatrixOpen(false);
-        setPairMatrixRangeArmed(false);
-        setPairMatrixRangeEditing(false);
-        setPairMatrixRangeCancelRevision((current) => current + 1);
-      },
-    }),
-    [
-      pairMatrixOpen,
-      selectedSymbol,
-      pairMatrixCurrencies,
-      pairMatrixTimeline,
-      pairMatrixMomentum,
-      pairMatrixRangeLabel,
-      pairMatrixRangeMoveLabel,
-      pairMatrixRangeOpenCalendarTime,
-      displayTimeMode,
-      chartSourceTimeOffsetSeconds,
-      pairMatrixRangeBasisLabel,
-      pairMatrixLoadState,
-      pairMatrixBeforeDays,
-      pairMatrixRangeArmed,
-      pairMatrixLockedRange,
-      updatePairMatrixBeforeDays,
-    ],
-  );
-  const resolvePairMatrixCursorData = useCallback((anchor: number | null): ChartPairMatrixTimeLensData => {
-    if (pairMatrixLockedRange || anchor == null) return pairMatrixTimeLensBaseData;
-    const range = normalizePairMatrixCandleRange(pairMatrixCandleTimes, anchor, anchor, timeframe);
-    if (!range) return pairMatrixTimeLensBaseData;
-    const rangeOpen = range.firstOpen - chartSourceTimeOffsetSeconds;
-    const rangeClose = range.close - chartSourceTimeOffsetSeconds;
-    const duringThrough = Math.min(
-      rangeClose - 1,
-      Math.max(rangeOpen, activeMarketStatus?.checked_at ?? Math.floor(Date.now() / 1000)),
-    );
-    const requiredWindow = getPairMatrixTimelineWindow(rangeOpen, rangeClose, pairMatrixBeforeDays);
-    const requiredKey = `${pairMatrixCurrencyKey}:${requiredWindow.from}:${requiredWindow.to}`;
-    const anchorLoadState: PairMatrixLoadState = pairMatrixCalendarKey === requiredKey && pairMatrixCalendarResult.key === requiredKey
-      ? pairMatrixCalendarResult.state
-      : "loading";
-    const derived = anchorLoadState === "ready"
-      ? resolvePairMatrixDerived(rangeOpen, rangeClose, duringThrough)
-      : (() => {
-          const timeline = { during: [], before: [] } satisfies PairMatrixTimelineSnapshot;
-          return { timeline, momentum: buildPairMatrixMomentumSnapshot(timeline, pairMatrixCurrencies ?? []) };
-        })();
-    return {
-      ...pairMatrixTimeLensBaseData,
-      timeline: derived.timeline,
-      momentum: derived.momentum,
-      rangeLabel: `${formatChartFeedTime(range.firstOpen, displayTimeMode, chartSourceTimeOffsetSeconds)} → ${formatChartFeedTime(range.close, displayTimeMode, chartSourceTimeOffsetSeconds)} · ${range.candleCount} ${timeframe} ${range.candleCount === 1 ? "candle" : "candles"}`,
-      rangeMoveLabel: getPairMatrixRangePipMoveLabel(visibleCandles, range, pairMatrixCurrencies?.[1] ?? null),
-      rangeOpenTimeSeconds: rangeOpen,
-      rangeBasisLabel: "Hovered candle",
-      loadState: anchorLoadState,
-    };
-  }, [pairMatrixLockedRange, pairMatrixTimeLensBaseData, pairMatrixCandleTimes, timeframe, chartSourceTimeOffsetSeconds, activeMarketStatus?.checked_at, pairMatrixBeforeDays, pairMatrixCurrencyKey, pairMatrixCalendarKey, pairMatrixCalendarResult.key, pairMatrixCalendarResult.state, resolvePairMatrixDerived, pairMatrixCurrencies, displayTimeMode, visibleCandles]);
-  const pairMatrixTimeLensData = useMemo<ChartPairMatrixTimeLensData>(() => ({
-    ...pairMatrixTimeLensBaseData,
-    cursorRuntime: {
-      hover: pairMatrixHoverRuntimeRef.current,
-      resolve: resolvePairMatrixCursorData,
-    },
-  }), [pairMatrixTimeLensBaseData, resolvePairMatrixCursorData]);
-
-  const resolvePairMatrixCandleAtX = useCallback((x: number): { index: number; time: number } | null => {
-    const chart = chartRef.current;
-    if (!chart || pairMatrixCandleTimes.length === 0) return null;
-    const logical = chart.timeScale().coordinateToLogical(x);
-    if (logical == null) return null;
-    const index = Math.min(pairMatrixCandleTimes.length - 1, Math.max(0, Math.round(Number(logical))));
-    return { index, time: pairMatrixCandleTimes[index] };
-  }, [pairMatrixCandleTimes]);
-
-  const buildPairMatrixRangePreview = useCallback((range: PairMatrixCandleRange, originTime: number): PairMatrixRangePreview | null => {
-    const chart = chartRef.current;
-    const container = containerRef.current;
-    if (!chart || !container) return null;
-    const firstCenter = chart.timeScale().timeToCoordinate(range.firstOpen as Time);
-    const lastCenter = chart.timeScale().timeToCoordinate(range.lastOpen as Time);
-    const bounds = getPairMatrixRangePixelBounds(
-      firstCenter,
-      lastCenter,
-      chart.timeScale().options().barSpacing,
-      container.clientWidth,
-    );
-    if (!bounds) return null;
-    return {
-      key: `${range.firstOpen}:${range.lastOpen}`,
-      originTime,
-      range,
-      bounds,
-    };
-  }, []);
-
-  const resolvePairMatrixPreviewAtX = useCallback((x: number, originTime: number): PairMatrixRangePreview | null => {
-    const target = resolvePairMatrixCandleAtX(x);
-    const originIndex = pairMatrixCandleIndexByTime.get(originTime);
-    if (!target || originIndex == null) return null;
-    const fromIndex = Math.min(originIndex, target.index);
-    const throughIndex = Math.max(originIndex, target.index);
-    const range: PairMatrixCandleRange = {
-      firstOpen: pairMatrixCandleTimes[fromIndex],
-      lastOpen: pairMatrixCandleTimes[throughIndex],
-      close: getPairMatrixCandleClose(pairMatrixCandleTimes[throughIndex], timeframe),
-      candleCount: throughIndex - fromIndex + 1,
-    };
-    return buildPairMatrixRangePreview(range, originTime);
-  }, [buildPairMatrixRangePreview, pairMatrixCandleIndexByTime, pairMatrixCandleTimes, resolvePairMatrixCandleAtX, timeframe]);
-
-  const pairMatrixLockedBounds = useMemo(
-    () => pairMatrixLockedRange ? buildPairMatrixRangePreview(pairMatrixLockedRange, pairMatrixLockedRange.firstOpen)?.bounds ?? null : null,
-    [pairMatrixLockedRange, buildPairMatrixRangePreview, chartRangeRevision, chartLayoutRevision, pairMatrixCandleTimes],
-  );
-  const pairMatrixContextMarkerEvents = useMemo(
-    () => pairMatrixOpen ? mergePairMatrixCalendarEvents(events, pairMatrixCalendarResult.events, pairMatrixMarkerCalendarEvents) : [],
-    [pairMatrixOpen, events, pairMatrixCalendarResult.events, pairMatrixMarkerCalendarEvents],
-  );
-  const pairMatrixContextMarkerIndex = useMemo(() => pairMatrixOpen ? indexPairMatrixContextMarkers({
-    events: pairMatrixContextMarkerEvents,
-    currencies: pairMatrixCurrencies ?? [],
-    candleTimes: pairMatrixCandleTimes,
-    timeframe,
-    sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
-  }) : [], [pairMatrixOpen, pairMatrixContextMarkerEvents, pairMatrixCurrencies, pairMatrixCandleTimes, timeframe, chartSourceTimeOffsetSeconds]);
-  const pairMatrixContextMarkerGroups = useMemo(() => pairMatrixOpen ? selectPairMatrixContextMarkerGroups({
-    groups: pairMatrixContextMarkerIndex,
-    range: pairMatrixRange,
-    contextPerSide: chartPreferences.eventOverlay.pairMatrixContextMarkersPerSide,
-  }) : [], [pairMatrixOpen, pairMatrixContextMarkerIndex, pairMatrixRange, chartPreferences.eventOverlay.pairMatrixContextMarkersPerSide]);
-  const mapPairMatrixMarkerViews = useCallback((groups: ReturnType<typeof selectPairMatrixContextMarkerGroups>) => {
-    const chart = chartRef.current;
-    const width = containerRef.current?.clientWidth ?? 0;
-    if (!pairMatrixOpen || !chart || width <= 0) return [];
-    return groups.flatMap((group) => {
-      const x = chart.timeScale().timeToCoordinate(group.candleOpen as Time);
-      if (x == null) return [];
-      return [{ ...group, x, placement: x < 220 ? "right" as const : x > width - 220 ? "left" as const : "center" as const }];
-    });
-  }, [pairMatrixOpen, chartRangeRevision, chartLayoutRevision]);
-  const pairMatrixContextMarkerViews = useMemo(
-    () => mapPairMatrixMarkerViews(pairMatrixContextMarkerGroups),
-    [mapPairMatrixMarkerViews, pairMatrixContextMarkerGroups],
-  );
-  const resolvePairMatrixCursorMarkerViews = useCallback((anchor: number | null) => {
-    if (pairMatrixLockedRange || anchor == null) return pairMatrixContextMarkerViews;
-    const range = normalizePairMatrixCandleRange(pairMatrixCandleTimes, anchor, anchor, timeframe);
-    if (!range) return pairMatrixContextMarkerViews;
-    const groups = selectPairMatrixContextMarkerGroups({
-      groups: pairMatrixContextMarkerIndex,
-      range,
-      contextPerSide: chartPreferences.eventOverlay.pairMatrixContextMarkersPerSide,
-    });
-    return mapPairMatrixMarkerViews(groups);
-  }, [pairMatrixLockedRange, pairMatrixContextMarkerViews, pairMatrixCandleTimes, timeframe, pairMatrixContextMarkerIndex, chartPreferences.eventOverlay.pairMatrixContextMarkersPerSide, mapPairMatrixMarkerViews]);
-  const pairMatrixSelectionOriginRange = pairMatrixLockedRange ?? pairMatrixFallbackRange;
-
-  const pairMatrixRangeOverlay = useMemo<ChartPairMatrixRangeOverlayData>(() => {
-    return {
-      armed: pairMatrixOpen && pairMatrixRangeArmed,
-      cancelRevision: pairMatrixRangeCancelRevision,
-      lockedBounds: pairMatrixOpen ? pairMatrixLockedBounds : null,
-      lockedRange: pairMatrixOpen ? pairMatrixLockedRange : null,
-      geometryRuntime: pairMatrixGeometryRuntime,
-      startPreview: (x, edge) => {
-        const target = resolvePairMatrixCandleAtX(x);
-        if (!target) return null;
-        const current = pairMatrixSelectionOriginRange;
-        const originTime = edge === "start" && current
-          ? current.lastOpen
-          : edge === "end" && current
-            ? current.firstOpen
-            : target.time;
-        return resolvePairMatrixPreviewAtX(x, originTime);
-      },
-      updatePreview: resolvePairMatrixPreviewAtX,
-      onCommit: (range) => {
-        setPairMatrixLockedRange(range);
-        setPairMatrixLockedInterval({ from: range.firstOpen, toExclusive: range.close });
-        setPairMatrixRangeArmed(false);
-        setPairMatrixRangeEditing(false);
-      },
-      onCancel: () => {
-        setPairMatrixRangeArmed(false);
-        setPairMatrixRangeEditing(false);
-      },
-      onInteractionChange: setPairMatrixRangeEditing,
-    };
-  }, [pairMatrixOpen, pairMatrixRangeArmed, pairMatrixRangeCancelRevision, pairMatrixLockedBounds, pairMatrixLockedRange, pairMatrixSelectionOriginRange, resolvePairMatrixCandleAtX, resolvePairMatrixPreviewAtX, pairMatrixGeometryRuntime]);
-
   const selectChartEvent = useCallback(
     (event: CalendarEvent, cluster: ChartEventOverlayCluster | null = null) => {
       const visibleCluster =
@@ -2450,15 +1058,15 @@ export function ChartsTab({
         ) ??
         null;
 
-      setActiveChartEventClusterKey(visibleCluster?.key ?? null);
-      setSelectedChartEventCluster(visibleCluster);
-      setSelectedChartEvent(event);
-      setEventLensExpanded(true);
-      setReplayPlaying(false);
+      setSelectedChartEventState(event, visibleCluster);
       focusChartAroundEvent(event);
     },
-    [chartEventOverlay.clusters, focusChartAroundEvent],
+    [chartEventOverlay.clusters, focusChartAroundEvent, setSelectedChartEventState],
   );
+
+  useEffect(() => {
+    pairMatrixSelectEventRef.current = (event) => selectChartEvent(event, null);
+  }, [selectChartEvent]);
 
   const handleSelectChartEventCluster = useCallback(
     (key: string) => {
@@ -2478,187 +1086,47 @@ export function ChartsTab({
     [chartEventOverlay.clusters, selectChartEvent],
   );
 
-  const analyzePairMatrixCandle = useCallback((candleOpen: number) => {
-    const range = getPairMatrixAnalyzeCandleRange(pairMatrixCandleTimes, candleOpen, timeframe);
-    if (!range) return;
-    cancelPendingPairMatrixHover();
-    setPairMatrixLockedRange(range);
-    setPairMatrixLockedInterval({ from: range.firstOpen, toExclusive: range.close });
-    setPairMatrixRangeArmed(false);
-    setPairMatrixRangeEditing(false);
-    setPairMatrixRangeCancelRevision((current) => current + 1);
-  }, [cancelPendingPairMatrixHover, pairMatrixCandleTimes, timeframe]);
-
-  const pairMatrixContextMarkerData = useMemo<ChartPairMatrixContextMarkerData>(() => ({
-    markers: pairMatrixContextMarkerViews,
-    passive: pairMatrixRangeArmed || pairMatrixRangeEditing,
-    displayTimeMode,
-    sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
-    loadState: pairMatrixMarkerCalendarState,
-    onSelectEvent: (event) => selectChartEvent(event, null),
-    onAnalyzeCandle: analyzePairMatrixCandle,
-    geometryRuntime: pairMatrixGeometryRuntime,
-    cursorRuntime: {
-      hover: pairMatrixHoverRuntimeRef.current,
-      resolve: resolvePairMatrixCursorMarkerViews,
-    },
-  }), [pairMatrixContextMarkerViews, pairMatrixRangeArmed, pairMatrixRangeEditing, displayTimeMode, chartSourceTimeOffsetSeconds, pairMatrixMarkerCalendarState, selectChartEvent, analyzePairMatrixCandle, resolvePairMatrixCursorMarkerViews, pairMatrixGeometryRuntime]);
-
   useEffect(() => {
     closeEventLens();
   }, [selectedSymbol, timeframe, chartPreferences.eventOverlay.scope, chartPreferences.eventOverlay.visible, closeEventLens]);
 
-  const eventLensDockData = useMemo<ChartEventLensDockData>(() => {
-    const overlayVisible = chartPreferences.eventOverlay.visible;
-    const visibleClusterCount = chartEventOverlay.clusters.length;
-    const visibleEventCount = chartEventOverlay.overlayData.visibleEventCount;
-    const candidateCount = chartEventOverlay.candidatesCount;
-    const currencyLabel = getChartEventCurrencyLabel(selectedSymbol);
-    const impactLabel =
-      chartPreferences.eventOverlay.impactFilter === "high"
-        ? "high-impact"
-        : chartPreferences.eventOverlay.impactFilter === "high_medium"
-          ? "high/medium-impact"
-          : "loaded";
-    const hasVisibleEvents = visibleClusterCount > 0;
-    const countLabel = `Loaded events: ${candidateCount} / Visible: ${visibleEventCount}`;
-
-    return {
-      visible: true,
-      title: !overlayVisible
-        ? "Event rail hidden"
-        : hasVisibleEvents
-        ? "Select an event marker to replay"
-        : `No loaded ${impactLabel} ${currencyLabel} events in this visible range`,
-      description: !overlayVisible
-        ? "Turn the event rail back on to inspect loaded calendar events against price."
-        : hasVisibleEvents
-        ? "Use the bottom event rail dots or badges to open replay for a loaded calendar event."
-        : "The chart can only show calendar rows already loaded by the local bridge. Scroll, refocus, or broaden the impact filter if you expect more markers.",
-      countLabel,
-      expanded: eventLensExpanded,
-      canEnableEvents: !overlayVisible,
-      canBroadenImpact: overlayVisible && chartPreferences.eventOverlay.impactFilter === "high",
-      onToggleExpanded: () => setEventLensExpanded((current) => !current),
-      onShowEvents: () => updateEventOverlay("visible", true),
-      onOpenSettings: () => openChartDrawer("events"),
-      onShowHighMedium: () => updateEventOverlay("impactFilter", "high_medium"),
-    };
-  }, [
-    chartPreferences.eventOverlay.visible,
-    chartPreferences.eventOverlay.impactFilter,
-    chartEventOverlay.clusters.length,
-    chartEventOverlay.overlayData.visibleEventCount,
-    chartEventOverlay.candidatesCount,
+  const toggleEventLensExpanded = useCallback(() => setEventLensExpanded((current) => !current), [setEventLensExpanded]);
+  const selectEventLensRelease = useCallback((event: CalendarEvent) => selectChartEvent(event), [selectChartEvent]);
+  const showChartEvents = useCallback(() => updateEventOverlay("visible", true), [updateEventOverlay]);
+  const showHighMediumEvents = useCallback(() => updateEventOverlay("impactFilter", "high_medium"), [updateEventOverlay]);
+  const openEventSettings = useCallback(() => openChartDrawer("layers"), [openChartDrawer]);
+  const { dockData: eventLensDockData, lensData: eventLensData } = useChartEventLensPresentation({
     selectedSymbol,
-    eventLensExpanded,
-    openChartDrawer,
-    updateEventOverlay,
-  ]);
-
-  const eventLensCoverageLabel = `Loaded events: ${chartEventOverlay.candidatesCount} / Visible: ${chartEventOverlay.overlayData.visibleEventCount}`;
-
-  const releaseRows = useMemo<ChartEventReleaseRow[]>(() => {
-    if (!selectedChartEvent) return [];
-
-    return events
-      .filter((event) => isSameChartEventTemplate(event, selectedChartEvent))
-      .sort((left, right) => right.time - left.time)
-      .map((event) => ({
-        key: getChartEventKey(event),
-        event,
-        timeLabel: formatChartEventDisplayTime(event.time, displayTimeMode, chartSourceTimeOffsetSeconds),
-        actualLabel: formatEventField(event.actual, event.title),
-        forecastLabel: formatEventField(event.forecast, event.title),
-        previousLabel: formatEventField(event.previous, event.title),
-        isFuture: event.time > (lastCandleTime ?? Number.POSITIVE_INFINITY),
-        replayAvailable: getNearestCandleIndex(visibleCandles, event, timeframe, chartSourceTimeOffsetSeconds) != null,
-      }));
-  }, [
-    selectedChartEvent,
+    eventOverlayPreferences: chartPreferences.eventOverlay,
+    visibleClusterCount: chartEventOverlay.clusters.length,
+    visibleEventCount: chartEventOverlay.overlayData.visibleEventCount,
+    candidateCount: chartEventOverlay.candidatesCount,
+    expanded: eventLensExpanded,
+    onToggleExpanded: toggleEventLensExpanded,
+    onShowEvents: showChartEvents,
+    onOpenSettings: openEventSettings,
+    onShowHighMedium: showHighMediumEvents,
+    selectedEvent: selectedChartEvent,
     events,
     displayTimeMode,
-    chartSourceTimeOffsetSeconds,
+    sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
     lastCandleTime,
-    visibleCandles,
+    candles: visibleCandles,
     timeframe,
-  ]);
-
-  const eventLensData = useMemo<ChartEventLensData | null>(() => {
-    if (!selectedChartEvent) return null;
-
-    const actualLabel = formatEventField(selectedChartEvent.actual, selectedChartEvent.title);
-    const forecastLabel = formatEventField(selectedChartEvent.forecast, selectedChartEvent.title);
-    const previousLabel = formatEventField(selectedChartEvent.previous, selectedChartEvent.title);
-    const comparison = getEventComparison(selectedChartEvent);
-    const surpriseLabel = comparison ? `${comparison.surprise >= 0 ? "+" : ""}${comparison.surprise.toFixed(4)}` : "N/A";
-    const selectedEventIsFuture = selectedChartEvent.time > (lastCandleTime ?? Number.POSITIVE_INFINITY);
-    const anchorCandle = selectedReplayAnchorIndex == null ? null : visibleCandles[selectedReplayAnchorIndex] ?? null;
-    const cursorCandle = replayCursorIndex == null ? anchorCandle : visibleCandles[replayCursorIndex] ?? anchorCandle;
-    const observedMove = formatObservedMove(anchorCandle, cursorCandle, priceFormat.precision);
-    const replayAvailable = selectedReplayAnchorIndex != null && replayCursorIndex != null;
-    const progressCurrent =
-      selectedReplayAnchorIndex == null || replayCursorIndex == null
-        ? 0
-        : Math.max(0, replayCursorIndex - selectedReplayAnchorIndex);
-    const progressTotal =
-      selectedReplayAnchorIndex == null ? 0 : Math.max(0, visibleCandles.length - 1 - selectedReplayAnchorIndex);
-
-    return {
-      releaseRows,
-      selectedEvent: selectedChartEvent,
-      selectedEventKey: getChartEventKey(selectedChartEvent),
-      selectedEventIsFuture,
-      timeLabel: formatChartEventDisplayTime(selectedChartEvent.time, displayTimeMode, chartSourceTimeOffsetSeconds),
-      actualLabel,
-      forecastLabel,
-      previousLabel,
-      surpriseLabel,
-      observedMoveLabel: observedMove.label,
-      observedMoveDetail: observedMove.detail,
-      replayAvailable,
-      replayPlaying,
-      replayProgressLabel: replayAvailable
-        ? `${progressCurrent} / ${progressTotal} candles revealed`
-        : selectedEventIsFuture
-          ? "Scheduled event"
-          : "Event outside loaded candles",
-      replaySpeed,
-      replaySpeedOptions: REPLAY_SPEED_OPTIONS,
-      factorRows: macroFactorRows,
-      coverageLabel: eventLensCoverageLabel,
-      expanded: eventLensExpanded,
-      onSelectRelease: selectChartEvent,
-      onToggleExpanded: () => setEventLensExpanded((current) => !current),
-      onClose: closeEventLens,
-      onTogglePlayback: toggleReplayPlayback,
-      onResetReplay: resetReplay,
-      onStepReplay: stepReplay,
-      onReplaySpeedChange: setReplaySpeed,
-      onOpenCalendar: onOpenCalendarEvent,
-    };
-  }, [
-    selectedChartEvent,
-    releaseRows,
-    selectedReplayAnchorIndex,
-    replayCursorIndex,
-    visibleCandles,
-    lastCandleTime,
-    priceFormat.precision,
-    displayTimeMode,
-    chartSourceTimeOffsetSeconds,
-    replayPlaying,
-    replaySpeed,
-    macroFactorRows,
-    eventLensCoverageLabel,
-    eventLensExpanded,
-    selectChartEvent,
-    closeEventLens,
-    toggleReplayPlayback,
-    resetReplay,
-    stepReplay,
-    onOpenCalendarEvent,
-  ]);
+    anchorIndex: selectedReplayAnchorIndex,
+    cursorIndex: replayCursorIndex,
+    pricePrecision: priceFormat.precision,
+    playing: replayPlaying,
+    speed: replaySpeed,
+    factorRows: macroFactorRows,
+    onSelectRelease: selectEventLensRelease,
+    onClose: closeEventLens,
+    onTogglePlayback: toggleReplayPlayback,
+    onResetReplay: resetReplay,
+    onStepReplay: stepReplay,
+    onReplaySpeedChange: setReplaySpeed,
+    onOpenCalendar: onOpenCalendarEvent,
+  });
 
   const overlayCopy =
     status === "no_data"
@@ -2701,6 +1169,16 @@ export function ChartsTab({
             onToggleTimezoneMenu={() => setTimezoneMenuOpen((current) => !current)}
             onDisplayTimeModeChange={handleDisplayTimeModeChange}
           />
+
+          <ChartTrustStateControl
+            currentTime={currentTime}
+            health={health}
+            feedStatus={feedStatus}
+            marketStatus={activeMarketStatus}
+            selectedSymbol={selectedSymbol}
+            resolvedBanks={resolvedBanks}
+            nextHighImpact={nextHighImpact}
+          />
         </div>
 
         <ChartToolStrip
@@ -2718,20 +1196,25 @@ export function ChartsTab({
           macroBiasActiveLabel={macroBiasActiveLabel}
           eventLensExpanded={eventLensExpanded}
           pairMatrixOpen={pairMatrixOpen}
+          calendarOpen={calendarOpen}
           rightPanelOpen={historyPanelOpen}
           onCursorModeChange={handleCursorModeChange}
           onRefocusChart={refocusChart}
           onOpenDrawer={openChartDrawer}
           onToggleMacroBias={toggleMacroBias}
           onToggleBottomPanel={() => {
-            if (pairMatrixOpen || eventLensExpanded) {
+            if (pairMatrixOpen || eventLensExpanded || calendarOpen) {
               if (pairMatrixOpen) pairMatrixTimeLensData.onClose();
               if (eventLensExpanded) closeEventLens();
+              if (calendarOpen) onCalendarOpenChange(false);
               return;
             }
             pairMatrixTimeLensData.onToggleOpen();
           }}
           onToggleRightPanel={() => setHistoryPanelOpen((current) => !current)}
+          onOpenCalendar={() => onCalendarOpenChange(true)}
+          onOpenResearch={onOpenResearch}
+          onOpenAppSettings={onOpenAppSettings}
         />
       </div>
 
@@ -2747,6 +1230,11 @@ export function ChartsTab({
         onAppearanceChange={updateAppearance}
         onEventOverlayChange={updateEventOverlay}
         onResetAppearance={resetChartPreferences}
+        displayTimeMode={displayTimeMode}
+        onDisplayTimeModeChange={handleDisplayTimeModeChange}
+        placement={chartDockLayout.regions.inspector === "left" ? "left" : "right"}
+        onPlacementChange={(placement) => setChartPanelRegion("inspector", placement)}
+        onResetPanelLayout={resetChartDockLayout}
         replayData={{
           defaultSpeed: replaySpeed,
           stepCandles: replayStepCandles,
@@ -2757,6 +1245,38 @@ export function ChartsTab({
           futureCandleOpacity: chartPreferences.appearance.futureCandleOpacity,
           onFutureCandleOpacityChange: (value) => updateAppearance("futureCandleOpacity", value),
         }}
+        selectedData={selectedMacroBiasWithTargetLadder ? {
+          kind: "FMS arrow",
+          title: selectedMacroBiasWithTargetLadder.label,
+          rows: [
+            { field: "Arrow ID", value: selectedMacroBiasWithTargetLadder.id },
+            { field: "Source version", value: selectedMacroBiasWithTargetLadder.sourceVersionId },
+            { field: "Direction", value: selectedMacroBiasWithTargetLadder.direction },
+            { field: "Release", value: formatChartFeedTime(selectedMacroBiasWithTargetLadder.eventTime, displayTimeMode, chartSourceTimeOffsetSeconds) },
+            { field: "Activation", value: selectedMacroBiasWithTargetLadder.activationTime == null ? "Unavailable" : formatChartFeedTime(selectedMacroBiasWithTargetLadder.activationTime, displayTimeMode, chartSourceTimeOffsetSeconds) },
+            { field: "Entry", value: selectedMacroBiasWithTargetLadder.entry == null ? "Unavailable" : String(selectedMacroBiasWithTargetLadder.entry) },
+            { field: "Stop", value: selectedMacroBiasWithTargetLadder.stop == null ? "Unavailable" : String(selectedMacroBiasWithTargetLadder.stop) },
+            { field: "Target", value: selectedMacroBiasWithTargetLadder.target == null ? "Unavailable" : String(selectedMacroBiasWithTargetLadder.target) },
+            { field: "Outcome", value: selectedMacroBiasWithTargetLadder.outcomeStatus ?? "Unavailable", details: selectedMacroBiasWithTargetLadder.outcomeReason ?? "Stored arrow outcome status" },
+          ],
+        } : selectedChartEvent ? {
+          kind: "Economic release",
+          title: selectedChartEvent.title,
+          rows: [
+            { field: "Currency", value: selectedChartEvent.currency },
+            { field: "Release", value: formatChartFeedTime(selectedChartEvent.time, displayTimeMode, chartSourceTimeOffsetSeconds) },
+            { field: "Impact", value: selectedChartEvent.impact },
+            { field: "Actual", value: selectedChartEvent.actual ?? "Unavailable" },
+            { field: "Forecast", value: selectedChartEvent.forecast ?? "Unavailable" },
+            { field: "Previous", value: selectedChartEvent.previous ?? "Unavailable" },
+          ],
+        } : undefined}
+        layerData={{ rows: [
+          { id: "fms", label: "FMS arrows", visible: macroBiasVisible, details: macroBiasSupported ? `${macroBiasDisplaySignals.length} loaded for ${selectedSymbol}` : `Unavailable for ${selectedSymbol}`, onToggle: toggleMacroBias },
+          { id: "releases", label: "Economic releases", visible: chartPreferences.eventOverlay.visible, details: `${chartEventOverlay.overlayData.visibleEventCount} visible · ${chartEventOverlay.candidatesCount} loaded matches`, onToggle: () => updateEventOverlay("visible", !chartPreferences.eventOverlay.visible) },
+          { id: "price-lines", label: "Selected-arrow price lines", visible: selectedMacroBiasWithTargetLadder != null, details: selectedMacroBiasWithTargetLadder ? "Entry, stop, target, and stored target ladder" : "Select an FMS arrow to show its stored levels" },
+          { id: "matrix", label: "Pair Matrix context", visible: pairMatrixOpen, details: pairMatrixOpen ? "Bottom dock range and marker context shown" : "Hidden", onToggle: pairMatrixTimeLensData.onToggleOpen },
+        ] }}
         cacheData={{
           selectedSymbol,
           timeframe,
@@ -2807,6 +1327,9 @@ export function ChartsTab({
         onSelectEvent={handleSelectChartEventFromTooltip}
         eventLens={eventLensData}
         eventLensDock={eventLensDockData}
+        calendarOpen={calendarOpen}
+        calendarPanel={calendarPanel}
+        onOpenCalendar={() => onCalendarOpenChange(true)}
         pairMatrixTimeLens={pairMatrixTimeLensData}
         pairMatrixRangeOverlay={pairMatrixRangeOverlay}
         pairMatrixContextMarkers={pairMatrixContextMarkerData}

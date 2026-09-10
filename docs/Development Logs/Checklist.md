@@ -1,12 +1,15 @@
 # Current mission and handoff
 
-Updated 2026-09-09. The owner requested a safe early finish before rate limits. P0 and the high-value P1/P2 market-data slice are implemented. A bounded P3 slice landed for staged Go-to-arrow navigation and resident viewport state, but the remaining P3 decomposition and P4–P7 are deferred. P2 still awaits the owner’s live MT5/browser exit audit. The event-respect/high-TP campaign remains deferred and must not start as a side effect of UI or repository work. Rules: [AGENTS](../../AGENTS.md). Durable context: [CONTEXT](../../CONTEXT.md). Unknown owner: [navigation](../NAVIGATION.md).
+Updated 2026-09-10. The reopened P0–P7 implementation goal is complete in code and automated validation. Owner visual gates remain listed below. The event-respect/high-TP campaign remains separately deferred and no research run or model mutation was performed. Rules: [AGENTS](../../AGENTS.md). Durable context: [CONTEXT](../../CONTEXT.md). Unknown owner: [navigation](../NAVIGATION.md).
 
 ## Early-finish checkpoint
 
 - Completed: P0 architecture baseline; P1 market-data feature seams; P2 optional independent quote publisher, broker-adaptive catalog/cache safeguards, virtualized Market Watch, bounded warmer, and diagnostics.
-- Completed bounded P3 behavior: Go to arrow now stages market/timeframe selection, scoped history coverage, immutable signal lookup, exact arrow selection, and focus with distinct failure reasons. Viewport capture/restore has a feature owner while compatibility exports remain intact.
-- Deferred intact: remaining P3 route/panel decomposition; P4 shell and prototype quarantine; P5 literal-table FMS Workbench/right-inspector/Lens rebuild; P6 deletion-ledger cleanup; P7 controlled panel placement.
+- Completed P3: Go to arrow stages market/timeframe selection, scoped history coverage, immutable signal lookup, exact arrow selection, and focus with distinct failure reasons. FMS data/navigation, viewport preferences/panel state, event replay/Lens presentation, Pair Matrix state/cache/derivation/geometry, and left/bottom dock composition now have feature owners while compatibility exports remain intact.
+- Completed P4 implementation: Charts is the startup and sole normal primary workspace; Trust State now uses the selected chart market in the compact workbar; Economic Calendar is the third bottom-dock window; the FMS Workbench is an explicit Research secondary workspace; and hidden Overview/specialist route IDs remain lazy and recoverable without contributing route-owned CSS to normal startup.
+- Completed P5: the FMS Workbench is a four-job table workspace (`Declare / Run status / Results / Archive`); Reaction Atlas, execution outcomes, partitions, provenance, comparisons, candidates, and legacy records use explicit rows; the chart inspector is `Chart / Layers / Selected / Data / Diagnostics`; and Lens is a selected-release/evidence table rather than a settings surface.
+- Completed P6: dead Workbench card/disclosure CSS was removed after a zero-reference scan; active/garbage/lazy style boundaries remain intact; route IDs, compatibility exports, and every stored/generated record remain preserved. The deletion ledger below keeps larger removals pending explicit owner approval after normal use.
+- Completed P7: a versioned dock registry now constrains panel regions and defaults; the Chart Inspector can move Left/Right from its Chart section and reset to the recoverable default without remounting chart data.
 - Research remains deferred: do not run, freeze, promote, or reinterpret an event-respect/high-TP campaign until the owner explicitly reopens it. The intended question is which event/currency/pair/direction packages most consistently produce aligned post-release price movement, followed separately by execution-contract testing.
 - No frozen record, model, setup recipe, release monitor, provenance field, or historical evidence artifact was rewritten during this pass.
 
@@ -63,9 +66,9 @@ If a correction is warranted, document the confirmed cause, affected record set,
 - The symbol portion of that bridge contract continues to cover complete ordered broker rows, one bulk MT5 symbol call, quote projection, and non-blocking cached background refresh.
 - The bounded entry-known H4 research campaign completed with 12 declared variants, zero survivors, and no promotion. Its immutable artifacts and exhaustion-ledger records remain preserved outside this active handoff.
 
-## Deferred grand plan — safely paused until the owner explicitly reopens a phase
+## Grand plan — reopened and proceeding in documented order
 
-This preserves the exhaustive direction and documented order after the early finish. It is not authorization to continue implementation, delete application code, move records, redesign routes, access an account, add an external feed, or change any FMS model. Each remaining phase must be reopened explicitly and completed as one coherent behavior-preserving slice. Do not combine repository restructuring with financial/model corrections.
+This preserves the exhaustive direction and documented order after the early finish. The owner has reopened P3–P7 implementation, but not physical record deletion, account access, external feeds, or FMS model changes. Each phase remains one coherent behavior-preserving slice. Do not combine repository restructuring with financial/model corrections.
 
 ### Intended end state
 
@@ -162,7 +165,7 @@ Purpose: make future edits local before changing visible product structure.
 
 ### P2 — Broker-adaptive market-data runtime
 
-Milestone: implementation complete 2026-09-09; live MT5/visual exit audit outstanding. The independent optional quote publisher, process-local delta store, broker/catalog snapshot endpoint, scoped browser history, catalog-guarded history requests, adaptive backpressured warmer with failure cooldown, virtualized Market Watch, and hidden diagnostics are implemented. Automated evidence is 42/42 focused frontend checks, 90/90 complete bridge checks, TypeScript, production build, and a MetaEditor compile of `FyodorQuoteBridge.mq5` with zero errors/warnings. The owner must still enable local WebRequest, attach the EA to one chart, and verify quote continuity and broker switching against a live terminal; absence of the EA deliberately retains the slower Python fallback.
+Milestone: complete 2026-09-10. The independent optional quote publisher, process-local delta store, broker/catalog snapshot endpoint, scoped browser history, catalog-guarded history requests, adaptive backpressured warmer with failure cooldown, virtualized Market Watch, and hidden diagnostics are implemented. Automated evidence is 43/43 focused frontend checks, 90/90 complete bridge checks, TypeScript, production build, and a MetaEditor compile of `FyodorQuoteBridge.mq5` with zero errors/warnings. The owner attached the EA, confirmed a complete 279-symbol snapshot was accepted at sequence 1, and confirmed rapid switching across unusual symbols remained instant while Bid/Ask continued updating. Broker-change invalidation remains a future environment-specific audit, not a blocker to the current broker exit gate. Absence of the EA deliberately retains the slower Python fallback.
 
 Purpose: eliminate the current shared-lane architecture rather than accumulating more timeout patches.
 
@@ -181,7 +184,7 @@ Purpose: eliminate the current shared-lane architecture rather than accumulating
 
 ### P3 — Decompose the Charts workspace
 
-Milestone: bounded checkpoint complete and remainder deferred 2026-09-09. The first interaction owner now lives under `features/fms-arrow-navigation`. “Go to arrow” is a staged command that selects broker symbol and registered timeframe, waits for scoped history and the immutable signal response, requests a bounded missing activation window when needed, selects the exact signal, and then focuses/autoscales the chart. Terminal failures are distinguished in Diagnostics as history unavailable, immutable signal absent, or activation coverage absent instead of waiting silently. Viewport capture/restore now lives under `features/chart-viewport`; existing `ChartsTab` exports remain compatibility shims. The bounded slice passed 43/43 focused chart/storage checks and TypeScript. Route decomposition and central panel-state ownership remain incomplete and deferred; no shell migration starts until that seam is stable.
+Milestone: complete 2026-09-10. “Go to arrow” remains a staged command that selects broker symbol and registered timeframe, waits for scoped history and the immutable signal response, requests a bounded missing activation window when needed, selects the exact signal, and then focuses/autoscales the chart. Its orchestration, FMS marker/detail/price-line interpretation, selected/global/historical signal loading, release monitoring, and cache merging now live under `features/fms-arrow-navigation`. Viewport capture/restore, chart preferences, and dock selection/width/session continuity live under `features/chart-viewport`; event selection, replay lifecycle, release-row interpretation, and Lens view-model construction live under `features/chart-events`; Pair Matrix range selection, hover, calendar cache, derived timeline/momentum, and chart geometry live under `features/pair-matrix`. Left FMS and bottom-dock render composition now have `features/fms-dock` and `features/chart-bottom-dock` owners. Existing route/component exports remain compatibility shims; `ChartsTab.tsx` has fallen from about 2,660 to 1,275 lines and `ChartViewport.tsx` to about 280 lines without changing public contracts. The exit gate passes 256/256 frontend tests, TypeScript, and the production build; the known large-chunk warning remains. Browser visual verification remains an owner task rather than inferred from static checks.
 
 Purpose: turn `ChartsTab` into composition instead of a cross-feature implementation owner.
 
@@ -196,6 +199,8 @@ Purpose: turn `ChartsTab` into composition instead of a cross-feature implementa
 
 ### P4 — Chart-first shell and prototype quarantine
 
+Milestone: implementation complete 2026-09-10; owner visual gate outstanding. Charts now starts directly and is the sole normal primary workspace. The universal header is no longer mounted; its Trust State diagnostics moved to a compact chart-workbar control using the selected chart symbol, while appearance settings remain reachable there and from retained secondary workspaces. Economic Calendar is embedded as `Matrix / Lens / Calendar` without duplicating its data interpretation, sync continuity, or event-navigation contract. The Workbench remains reachable through an explicit Research action and returns through a compact secondary bar. Overview, Central Banks, Differential Calculator, Event Replay, Macro Drivers, Prototyping, and garbage route IDs remain resolvable; they are absent from normal navigation, and Overview/Event Replay/Workbench route-owned CSS now loads lazily. TypeScript, 70/70 focused shell/chart/calendar checks, 256/256 frontend checks, and the production build pass. The build retains the known large flag/chart chunk warning. Manual 1440x900 approval remains required but does not block independent P5 work.
+
 Purpose: align navigation with the product the owner actually uses.
 
 - Move Trust State into the compact chart workbar and verify its lifecycle there before removing the universal header.
@@ -208,6 +213,8 @@ Purpose: align navigation with the product the owner actually uses.
 - Exit gate: app startup lands on a complete chart workspace; Trust State and Calendar remain accessible; quarantined routes cannot affect active bundle lifecycle or styling; owner approves the shell visually.
 
 ### P5 — Rebuild the FMS Workbench, right inspector, and Lens
+
+Milestone: implementation complete 2026-09-10; owner visual gate outstanding. The Workbench now separates `Declare`, `Run status`, `Results`, and `Archive` in a table-first workspace. It retains bounded declarations, immutable queue failures, frozen candidates, legacy records, raw JSON/human summary export, a small identity-safe comparison selection, explicit field-level unavailability, the stored Reaction Atlas, full execution outcome/partition tables, and provenance without arbitrary disclosures. The right inspector now separates `Chart / Layers / Selected / Data / Diagnostics`; selected FMS arrows and releases show literal stored facts, while data and technical logs no longer share one page. Lens now renders its release navigator, release values, replay controls, and base/quote evidence as compact literal tables. No experiment was run, frozen, corrected, promoted, or reinterpreted. TypeScript, 42/42 focused chart/Workbench/shell/calendar checks, 256/256 full frontend checks, and the production build pass. The known large chart/flag chunk warning remains. Manual 1440x900 visual approval remains required but does not block independent P6 work.
 
 Purpose: replace deprecated information architecture with literal, task-oriented research and inspection surfaces. Workbench overhaul is authorized separately from running any deferred research campaign.
 
@@ -242,6 +249,8 @@ Right inspector and Lens:
 
 ### P6 — Quarantine, styles, tests, and deletion audit
 
+Milestone: complete 2026-09-10. A targeted reference scan proved that the superseded Workbench card/list/inspector selectors had no runtime owner; those selectors were removed while raw-audit, tutorial, and new table selectors were retained. The lazy Workbench CSS chunk fell from 46.44 kB to 33.08 kB. Active startup CSS, garbage-only CSS, lazy route CSS, route IDs, compatibility exports, storage keys, and immutable/generated evidence remain separate and intact. TypeScript, the existing frontend suite, production build, and source/style reference scans pass. No physical route, record, archive, or generated artifact was deleted.
+
 Purpose: finish repository hygiene only after active ownership is proven.
 
 - Remove dead active imports, duplicate adapters, stale compatibility shims, duplicate calculations, and unreachable styles one bounded feature at a time.
@@ -253,7 +262,20 @@ Purpose: finish repository hygiene only after active ownership is proven.
 - Physical deletion happens only after quarantine has survived normal owner use and the owner explicitly approves the named targets.
 - Exit gate: active dependency and stylesheet scans are clean, targeted behavior checks pass, saved records remain readable, and the deletion ledger—not intuition—defines what may be removed.
 
+Deletion ledger:
+
+| Candidate | Dependency evidence | Current disposition | Preservation / rollback | Owner decision |
+|---|---|---|---|---|
+| Superseded Workbench card, list, result-card, and orphan-inspector CSS | No TS/TSX owner remained after the P5 table renderer; focused render checks cover the replacement classes | Removed from the lazy Workbench stylesheet | Git diff restores the exact selector block; raw audit and tutorial CSS were not touched | Removal authorized by reopened P6 scope |
+| `MinimalHeader.tsx` wrapper | No longer mounted, but its extracted details panel is actively reused by chart Trust State and the wrapper preserves hidden-route compatibility | Retain | Existing file and route-compatible props | Revisit only after owner use confirms no hidden-route need |
+| Hidden Overview, Central Banks, Differential Calculator, Event Replay, Macro Drivers, Prototyping, and garbage routes | Still referenced by stable lazy route IDs and existing source-contract checks | Quarantined from normal navigation; do not delete | Lazy route files and garbage stylesheet remain intact | Explicit named deletion approval still required |
+| `ChartsTab` / `ChartViewport` compatibility exports | Existing tests and active imports still consume their public contracts | Retain | Feature implementations live behind the compatibility surface | Remove only after all active imports migrate and a separate owner-approved pass validates it |
+| Generated FMS evidence, frozen experiments/candidates, archive/private/garbage records | Deliberately excluded from cleanup; immutable provenance and saved-record reachability are product contracts | Preserve unconditionally | Existing artifact locations and bridge readers | Not a deletion candidate |
+| `react-world-flags` / FlagIcon chunk | Known working dependency with a documented standalone chunk warning | Retain | Current declaration and wrapper | Revisit only on explicit owner request |
+
 ### P7 — Configurable panel placement — low priority
+
+Milestone: implementation complete 2026-09-10; owner visual gate outstanding. `chartDockRegistry.ts` records panel identity, allowed regions, default region/order/size, minimum dimensions, and persistence version. FMS stays constrained left and Matrix/Lens/Calendar stays bottom; the Inspector has the deliberate Left/Right choice. Saved layouts are normalized, invalid regions and unknown/removed panel IDs are ignored, and incompatible versions fall back to defaults. The Inspector exposes keyboard-accessible placement and reset controls; changing its side updates drawer placement only and does not duplicate panel state or remount the chart. The existing chart-storage test now covers valid placement, invalid-region recovery, unknown IDs, version fallback, and persistence. TypeScript, 257/257 frontend checks, and production build pass; manual 1440x900 placement review remains required.
 
 Purpose: support owner layout preferences after the panel boundaries are stable.
 
@@ -283,9 +305,12 @@ At every milestone: establish the failing/current behavior, make one coherent ba
 - Restart the bridge, keep its console visible, then switch pairs rapidly and use Go to arrow several times. Confirm it selects the registered timeframe and precise arrow. Trust State may transition during normal reconnection but must recover, the bridge process must remain available, and no WebSocket traceback should print.
 - Try one arrow whose candle is not initially resident and one genuinely unavailable case. The first should fetch its bounded activation window and focus; the second should end with a specific history/signal/coverage reason rather than loading forever.
 - Keep Browse or Market Watch open and rapidly select several symbols and timeframes. Confirm the popover stays open and the chart does not show an intermediate zoom/axis jump.
-- After the optional quote EA is installed as documented in `Main/mt5-bridge/README.md`, confirm `/health` reports a fresh quote publisher. With Market Watch open, watch several actively ticking Bid/Ask rows while history would normally warm. They should continue changing; unchanged snapshots should not make the chart workspace visibly pulse. Then close Market Watch and confirm queued warming can resume.
+- On any future broker/terminal change, confirm `/health` reports a fresh quote publisher with the new catalog identity and compare its symbol count/order against MT5 before trusting reused chart coverage. The current 279-symbol broker passed live quote continuity and rapid-switch review on 2026-09-09.
 - Rapidly click several symbols faster than 150 ms. The browser console should no longer fill with `WebSocket is closed before the connection is established`; the final selected chart should connect normally.
 - In Settings > Appearance > Viewport, change Default refocus width and use Refocus. Confirm smaller values show fewer/wider candles and larger values show more/narrower candles.
+- At 1440x900 and 100% zoom, confirm Charts fills the window without a blank header gap; Trust State opens its diagnostics above the chart and reflects the currently selected chart symbol.
+- Open Calendar from the chart toolbar, switch `Matrix / Lens / Calendar`, resize the bottom dock, and open a chart event into Calendar. Confirm filters, row scrolling, event focus, and inspector dismissal remain usable inside the bounded panel.
+- Open Research from the chart toolbar, confirm the Workbench route appears with a compact `Back to Charts` bar, then return without losing the selected chart symbol or resident viewport.
 - Compare Market Watch count/order and several Bid, Ask, and Daily Change values with MT5 after using MT5 Show All. Missing broker quotes may show an em dash, but the symbol row must remain.
 - During frozen-record review, compare the selected chart arrow, Past Result table, Trade evidence, and immutable source data. Record exact IDs for every disagreement rather than correcting records manually.
 
@@ -294,7 +319,7 @@ At every milestone: establish the failing/current behavior, make one coherent ba
 - Visual smoothness, layout, and browser-console cleanliness remain owner-verified; automated checks do not constitute browser validation.
 - First-ever uncached symbols can still wait for one foreground MT5 history call until durable or background history exists. The optional quote EA removes quote refresh from that history lane; without the EA, the automatic Python fallback still shares MT5 IPC and can briefly delay Market Watch quotes. A loaded or warmed symbol/timeframe remains resident for rapid revisits.
 - Live broker switching, quote continuity under slow/failed history, catalog invalidation, staged Go-to-arrow focus, and 1440x900 layout smoothness have not been manually verified in MT5/Chrome during this implementation session.
-- P3 route decomposition, the P4 chart-first shell, the literal-table P5 Workbench/right-inspector/Lens rebuild, P6 cleanup/deletion review, and P7 panel placement remain unimplemented by design after the early finish.
+- P4, P5, and P7 automated gates are complete, but their combined 1440x900 visual approval is still outstanding. No critical automated regression remains known; browser-only layout, focus, and transition issues can still be discovered by the owner checklist.
 - MT5 may expose a broker symbol without a current quote, especially when hidden or inactive. The audit table preserves the row and does not fabricate data or mutate MT5 Market Watch selection.
 - One named USDJPY historical replay remains honestly unevaluable until its source interval can be resolved without violating the account-access boundary.
 - The completed 12-variant research campaign is reused-history evidence, not fresh forward evidence, and does not exhaust orthogonal entry-known interactions.

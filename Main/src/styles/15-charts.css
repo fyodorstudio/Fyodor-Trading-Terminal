@@ -91,7 +91,9 @@
 .chart-timezone-popover .tv-option-label { display: block; min-width: 0; color: #0f172a; font-size: 12px; line-height: 1.35; white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; }
 .chart-timezone-popover .tv-option-badge { margin-left: 6px; vertical-align: text-bottom; }
 .charts-history-overlay { position: fixed; inset: 0; z-index: 1000; background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(4px); display: flex; justify-content: flex-end; }
+.charts-history-overlay.is-left { justify-content: flex-start; }
 .charts-history-drawer { width: min(500px, 100%); height: 100%; background: #f8fafc; box-shadow: -10px 0 40px rgba(0, 0, 0, 0.1); display: flex; flex-direction: column; animation: charts-history-slide-in 0.22s ease-out; }
+.charts-history-drawer.is-left { box-shadow: 10px 0 40px rgba(0, 0, 0, 0.1); }
 .chart-settings-wide-drawer { width: min(760px, 100%); }
 .chart-settings-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 12px; padding: 10px; border: 1px solid #dbeafe; border-radius: 10px; background: linear-gradient(180deg, #eff6ff, #f8fafc); }
 .chart-settings-summary div { min-width: 0; padding: 8px 9px; border: 1px solid rgba(191, 219, 254, 0.72); border-radius: 8px; background: rgba(255, 255, 255, 0.72); }
@@ -1803,6 +1805,37 @@
 .chart-bottom-dock-content > section { height: 100%; min-height: 0; }
 .chart-bottom-dock-content .chart-event-lens.is-expanded,
 .chart-bottom-dock-content .chart-event-lens-dock.is-expanded { position: relative; inset: auto; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; border: 0; border-radius: 0; box-shadow: none; transform: none; }
+
+/* P5 Lens: compact, literal release/evidence tables inside the bottom dock. */
+.chart-event-lens.is-expanded { border-radius: 0; }
+.chart-event-lens.is-expanded .chart-event-lens-strip { grid-template-columns: minmax(0, 1fr) auto; background: #fff; }
+.chart-event-lens-table-body { display: flex; min-height: 0; flex-direction: column; gap: 8px; overflow: auto; padding: 8px; background: #f8fafc; }
+.chart-lens-table-section { min-width: 0; border: 1px solid #cbd5e1; background: #fff; }
+.chart-lens-table-section > .chart-event-lens-section-head { min-height: 31px; border-bottom: 1px solid #cbd5e1; background: #f1f5f9; padding: 0 8px; }
+.chart-lens-table-scroll { min-width: 0; max-height: 220px; overflow: auto; }
+.chart-lens-table { width: 100%; border-collapse: collapse; color: #0f172a; font-size: 10px; }
+.chart-lens-table th,
+.chart-lens-table td { border-right: 1px solid #dbe3ef; border-bottom: 1px solid #dbe3ef; padding: 6px 7px; vertical-align: top; text-align: left; }
+.chart-lens-table th:last-child,
+.chart-lens-table td:last-child { border-right: 0; }
+.chart-lens-table tbody tr:last-child td { border-bottom: 0; }
+.chart-lens-table thead th { position: sticky; z-index: 1; top: 0; background: #e8eef6; color: #475569; font-size: 8px; font-weight: 900; text-transform: uppercase; white-space: nowrap; }
+.chart-lens-table td small { display: block; margin-top: 2px; color: #64748b; font-size: 8px; }
+.chart-lens-selectable-table tbody tr { cursor: pointer; }
+.chart-lens-selectable-table tbody tr:hover td,
+.chart-lens-selectable-table tbody tr.is-active td { background: #eef2ff; }
+.chart-lens-selectable-table td button { border: 0; background: transparent; padding: 0; color: #1d4ed8; font: inherit; font-weight: 900; text-align: left; }
+.chart-lens-release-section { min-height: 150px; }
+.chart-lens-factor-section { min-height: 140px; }
+.chart-lens-table-section .chart-event-lens-replay-grid { padding: 7px 8px; }
+.chart-lens-table-section > p { margin: 0; border-top: 1px solid #dbe3ef; padding: 6px 8px; color: #475569; font-size: 9px; }
+.chart-selected-record { overflow: auto; }
+.chart-selected-record table { width: 100%; border-collapse: collapse; font-size: 10px; }
+.chart-selected-record th,
+.chart-selected-record td { border-right: 1px solid #dbe3ef; border-bottom: 1px solid #dbe3ef; padding: 6px 7px; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+.chart-selected-record thead th { background: #e8eef6; color: #475569; font-size: 8px; text-transform: uppercase; }
+.chart-selected-record tbody th { width: 105px; background: #f8fafc; color: #475569; font-size: 8px; text-transform: uppercase; }
+.chart-selected-record tr > *:last-child { border-right: 0; }
 
 /* Compact editor-style scrollbars for both FMS and Pair Matrix inspectors. */
 .chart-fms-dock,

@@ -2,12 +2,14 @@
 
 `App.tsx` should stay focused on app-shell state and layout:
 
-- global tab selection;
+- chart-first route selection and retained secondary-route return state;
 - bridge feed and market-status hooks;
 - theme preference hook;
-- header, top navigation, and shell layout.
+- Calendar bottom-dock state, appearance settings, and shell layout.
 
-`AppRoutes.tsx` owns route rendering and lazy tab imports. Keep route ids stable unless the user explicitly approves a routing migration.
+Chart panel placement is constrained and persisted by `features/chart-viewport/chartDockRegistry.ts`; it is not free-form docking.
+
+`AppRoutes.tsx` owns route rendering and lazy tab imports. Charts is the startup workspace; Calendar is embedded in its bottom dock. Retained route ids remain renderable even when they are absent from normal navigation.
 
 Use narrower maps for deeper work:
 

@@ -1,5 +1,4 @@
 import { Suspense, lazy } from "react";
-import { OverviewPlaceholderTab } from "@/app/tabs/primary/OverviewPlaceholderTab";
 import type {
   BridgeHealth,
   BridgeStatus,
@@ -15,6 +14,13 @@ const DeprecatedOverviewTab = lazy(() =>
     import("@/app/tabs/garbage/DeprecatedOverviewTab").then((module) => ({ default: module.DeprecatedOverviewTab })),
   ),
 );
+const OverviewPlaceholderTab = lazy(() =>
+  Promise.all([
+    import("@/styles/03b-overview.css"),
+    import("@/styles/03d-overview-responsive.css"),
+    import("@/app/tabs/primary/OverviewPlaceholderTab"),
+  ]).then(([, , module]) => ({ default: module.OverviewPlaceholderTab })),
+);
 const DifferentialCalculatorTab = lazy(() =>
   import("@/app/tabs/secondary/DifferentialCalculatorTab").then((module) => ({ default: module.DifferentialCalculatorTab })),
 );
@@ -22,14 +28,20 @@ const MacroDriversTab = lazy(() =>
   import("@/app/tabs/secondary/MacroDriversTab").then((module) => ({ default: module.MacroDriversTab })),
 );
 const MacroSignalLabTab = lazy(() =>
-  import("@/app/tabs/secondary/MacroSignalLabTab").then((module) => ({ default: module.MacroSignalLabTab })),
+  import("@/styles/16-macro-signal-lab.css").then(() =>
+    import("@/app/tabs/secondary/MacroSignalLabTab").then((module) => ({ default: module.MacroSignalLabTab })),
+  ),
 );
 const StrengthMeterTab = lazy(() =>
   import("@/styles/garbage.css").then(() =>
     import("@/app/tabs/garbage/StrengthMeterTab").then((module) => ({ default: module.StrengthMeterTab })),
   ),
 );
-const EventReplayTab = lazy(() => import("@/app/tabs/secondary/EventReplayTab").then((module) => ({ default: module.EventReplayTab })));
+const EventReplayTab = lazy(() =>
+  import("@/styles/11-event-replay.css").then(() =>
+    import("@/app/tabs/secondary/EventReplayTab").then((module) => ({ default: module.EventReplayTab })),
+  ),
+);
 const CentralBanksTab = lazy(() => import("@/app/tabs/primary/CentralBanksTab").then((module) => ({ default: module.CentralBanksTab })));
 const ChartsTab = lazy(() => import("@/app/tabs/primary/ChartsTab").then((module) => ({ default: module.ChartsTab })));
 const EconomicCalendarTab = lazy(() => import("@/app/tabs/primary/EconomicCalendarTab").then((module) => ({ default: module.EconomicCalendarTab })));
@@ -79,6 +91,11 @@ interface AppRoutesProps {
   onCalendarSyncSuccess: (syncedAt: number | null) => void;
   calendarNavigationIntent: CalendarNavigationIntent | null;
   onConsumeCalendarNavigationIntent: () => void;
+  calendarDockOpen: boolean;
+  onCalendarDockOpenChange: (open: boolean) => void;
+  resolvedBanks: number;
+  nextHighImpact?: { title: string; currency: string; countryCode: string; time: number } | null;
+  onOpenAppSettings: () => void;
   onNavigate: (tab: TabId) => void;
   onOpenCalendarEvent: (event: CalendarEvent, source: CalendarNavigationIntent["source"]) => void;
 }
@@ -110,6 +127,11 @@ export function AppRoutes({
   onCalendarSyncSuccess,
   calendarNavigationIntent,
   onConsumeCalendarNavigationIntent,
+  calendarDockOpen,
+  onCalendarDockOpenChange,
+  resolvedBanks,
+  nextHighImpact,
+  onOpenAppSettings,
   onNavigate,
   onOpenCalendarEvent,
 }: AppRoutesProps) {
@@ -195,11 +217,30 @@ export function AppRoutes({
       )}
       {activeTab === "charts" && (
         <ChartsTab
+          currentTime={currentTime}
+          health={health}
+          feedStatus={feedStatus}
           marketStatus={chartMarketStatus}
           selectedSymbol={chartSymbol}
           onSelectedSymbolChange={onChartSymbolChange}
           events={feedEvents}
           onOpenCalendarEvent={(event) => onOpenCalendarEvent(event, "charts")}
+          calendarOpen={calendarDockOpen}
+          calendarPanel={(
+            <EconomicCalendarTab
+              embedded
+              health={health}
+              persistedLastSyncedAt={calendarTabLastSyncedAt}
+              onSyncSuccess={onCalendarSyncSuccess}
+              navigationIntent={calendarNavigationIntent}
+              onConsumeNavigationIntent={onConsumeCalendarNavigationIntent}
+            />
+          )}
+          onCalendarOpenChange={onCalendarDockOpenChange}
+          resolvedBanks={resolvedBanks}
+          nextHighImpact={nextHighImpact}
+          onOpenResearch={() => onNavigate("macro-signal-lab")}
+          onOpenAppSettings={onOpenAppSettings}
         />
       )}
       {activeTab === "calendar" && (

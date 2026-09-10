@@ -197,10 +197,12 @@ describe("FMS Experiment Workbench", () => {
     expect(html).toContain("Maximum trade duration (H4 candles)");
     expect(html).toContain("Run recorded experiment");
     expect(html).toContain("How to use the Workbench");
-    expect(html).toContain("Research Archive");
-    expect(html).toContain("Current registered setups");
-    expect(html).toContain("Reaction Atlas");
-    expect(html).toContain("fms-inspector");
+    expect(html).toContain("Run status");
+    expect(html).toContain(">Results<");
+    expect(html).toContain(">Archive<");
+    expect(html).toContain("fms-literal-table");
+    expect(html).not.toContain("fms-inspector");
+    expect(html).not.toContain("<details");
     expect(html).not.toContain("Historically profitable candidate");
     expect(html).toContain("How each release is scored");
     expect(html).toContain("Cases included");

@@ -4,15 +4,14 @@ This folder contains shared app-shell and feature support components. Keep featu
 
 ## App Shell
 
-- `MinimalHeader.tsx` - global trust/status header. Active and important; avoid broad visual edits without checking Charts, Calendar, Central Banks, and Event Replay.
-- `MinimalHeaderDetailsPanel.tsx` - expanded header diagnostics panel for system health, clocks, event horizon, and feed diagnostics.
-- `TabNavigation.tsx` - top navigation and Specialist Tools dropdown.
-- `UiCommandPanel.tsx` - Aesthetic Forge side panel mounted behind the header gear. It stays closed by default and must not drive broad visual redesign without a specific plan.
+- `MinimalHeader.tsx` and `TabNavigation.tsx` - retained compatibility components for hidden routes; they are no longer mounted by the chart-first shell.
+- `MinimalHeaderDetailsPanel.tsx` - shared expanded Trust State diagnostics used by the compact chart-workbar control.
+- `UiCommandPanel.tsx` - Aesthetic Forge side panel opened from the chart workbar or a retained secondary workspace bar.
 
 ## Shared Small Components
 
 - `ChartEventOverlay.tsx` - DOM event marker rail used by the Charts surface. Keep event clustering and coordinate math in `lib/chartEventOverlay.ts`.
-- `ChartSettingsSections.tsx` - Chart settings drawer tab bodies for appearance, cursor, event overlay, and cache diagnostics.
+- `ChartSettingsSections.tsx` - Chart Inspector bodies for Chart, Layers, Selected, Data, and Diagnostics; source/cache facts and technical logs remain separated.
 - `ChartStatusRail.tsx` - Charts connection/session/latest-candle status rail and timezone dropdown.
 - `ChartSymbolPicker.tsx` - Charts symbol search, favorites, group expansion, and timeframe strip.
 - `ChartToolStrip.tsx` - Charts cursor mode, refocus, events, appearance, and cache tool buttons.
@@ -22,7 +21,7 @@ This folder contains shared app-shell and feature support components. Keep featu
 - `MacroSignalExpansionResearch.tsx` - Macro Signal Lab's background-loaded MFE/MAE, flexible-exit stress matrix, current-setup diagnostics, and explicitly unregistered next-candidate table.
 - `../lib/macroSignalShadow.ts` - pure gross shadow-account replay and hypothetical EURUSD position sizing. Costs are deliberately excluded rather than estimated.
 - FMS signals use one clickable Lightweight Charts arrow at the frozen trade-activation candle; release timing remains available inside the arrow audit instead of a second chart dot.
-- `ChartMacroBiasAudit.tsx` - clicked-arrow source, outcome, robustness, cost-stress, and model-provenance audit.
+- `ChartMacroBiasAudit.tsx` - table-only clicked-arrow source, initial reaction, outcome, robustness, gross evidence, and model-provenance audit.
 - `CentralBanksViews.tsx` - Central Banks command/focus view rendering; `CentralBanksTab.tsx` owns only mode state and shell controls.
 - `EconomicCalendarControls.tsx` - Economic Calendar help tooltip, freshness chip, impact summary, and clock cards.
 - `EconomicCalendarEventsTable.tsx` - Economic Calendar grouped event table and row selection rendering.

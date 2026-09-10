@@ -95,7 +95,7 @@ export function EventReplayTab({
   const [countdownNowMs, setCountdownNowMs] = useState(() => Date.now());
   const [chartPreferences, setChartPreferences] = useState<ChartPreferences>(() => loadChartPreferences());
   const [chartDrawerOpen, setChartDrawerOpen] = useState(false);
-  const [chartDrawerMode, setChartDrawerMode] = useState<ChartDrawerMode>("appearance");
+  const [chartDrawerMode, setChartDrawerMode] = useState<ChartDrawerMode>("chart");
 
   const groups = useMemo(
     () => getPairFirstReplayGroups({ events, pair: selectedPair, includeWeak: true }),
@@ -382,7 +382,7 @@ export function EventReplayTab({
               <button
                 type="button"
                 onClick={() => {
-                  setChartDrawerMode("appearance");
+                  setChartDrawerMode("chart");
                   setChartDrawerOpen(true);
                 }}
                 className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-xs font-black text-slate-700"

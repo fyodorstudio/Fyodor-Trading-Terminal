@@ -13,6 +13,13 @@ import {
   setResidentHistoryBackgroundPaused,
 } from "@/app/features/chart-market-data/residentHistory";
 import { areBridgeSymbolSnapshotsEqual } from "@/app/features/chart-market-data/symbolCatalog";
+import {
+  CHART_DOCK_LAYOUT_KEY,
+  DEFAULT_CHART_DOCK_LAYOUT,
+  loadChartDockLayout,
+  normalizeChartDockLayout,
+  saveChartDockLayout,
+} from "@/app/features/chart-viewport/chartDockRegistry";
 import type { BridgeCandle, BridgeSymbol, Timeframe } from "@/app/types";
 
 const SAMPLE_CANDLE: BridgeCandle = {
@@ -57,6 +64,23 @@ afterEach(() => {
 });
 
 describe("chartStorage helpers", () => {
+  it("normalizes controlled dock placement and ignores unknown or invalid saved regions", () => {
+    const { store } = installLocalStorage();
+    store.set(CHART_DOCK_LAYOUT_KEY, JSON.stringify({
+      version: 1,
+      regions: { inspector: "left", fms: "right", context: "floating", removedPanel: "right" },
+    }));
+
+    expect(loadChartDockLayout()).toEqual({
+      version: 1,
+      regions: { fms: "left", inspector: "left", context: "bottom" },
+    });
+    expect(normalizeChartDockLayout({ version: 99, regions: { inspector: "left" } })).toEqual(DEFAULT_CHART_DOCK_LAYOUT);
+
+    saveChartDockLayout({ version: 1, regions: { ...DEFAULT_CHART_DOCK_LAYOUT.regions, inspector: "left" } });
+    expect(JSON.parse(store.get(CHART_DOCK_LAYOUT_KEY) ?? "null").regions.inspector).toBe("left");
+  });
+
   it("falls back safely when browser storage is unavailable", () => {
     expect(readChartHistoryCache("EURUSD", "H1")).toEqual([]);
     expect(loadChartFavorites()).toEqual([]);

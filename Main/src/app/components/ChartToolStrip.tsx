@@ -1,4 +1,4 @@
-import { CalendarDays, Focus, MousePointer2, PanelBottom, PanelLeft, PanelRight } from "lucide-react";
+import { CalendarDays, CalendarRange, FlaskConical, Focus, MousePointer2, PanelBottom, PanelLeft, PanelRight, Palette } from "lucide-react";
 import type { ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
 import type { ChartCursorReadoutMode } from "@/app/lib/chartView";
 
@@ -19,6 +19,7 @@ interface ChartToolStripProps {
   macroBiasActiveLabel: string;
   eventLensExpanded: boolean;
   pairMatrixOpen: boolean;
+  calendarOpen: boolean;
   rightPanelOpen: boolean;
   onCursorModeChange: (mode: ChartCursorReadoutMode) => void;
   onRefocusChart: () => void;
@@ -26,6 +27,9 @@ interface ChartToolStripProps {
   onToggleMacroBias: () => void;
   onToggleBottomPanel: () => void;
   onToggleRightPanel: () => void;
+  onOpenCalendar: () => void;
+  onOpenResearch: () => void;
+  onOpenAppSettings: () => void;
 }
 
 export function ChartToolStrip({
@@ -40,6 +44,7 @@ export function ChartToolStrip({
   macroBiasActiveLabel,
   eventLensExpanded,
   pairMatrixOpen,
+  calendarOpen,
   rightPanelOpen,
   onCursorModeChange,
   onRefocusChart,
@@ -47,6 +52,9 @@ export function ChartToolStrip({
   onToggleMacroBias,
   onToggleBottomPanel,
   onToggleRightPanel,
+  onOpenCalendar,
+  onOpenResearch,
+  onOpenAppSettings,
 }: ChartToolStripProps) {
   const eventButtonLabel = !eventOverlayVisible
     ? "Chart events hidden"
@@ -83,10 +91,10 @@ export function ChartToolStrip({
         </button>
         <button
           type="button"
-          className={eventLensExpanded || pairMatrixOpen ? "is-active" : ""}
+          className={eventLensExpanded || pairMatrixOpen || calendarOpen ? "is-active" : ""}
           title="Toggle bottom panel"
           aria-label="Toggle bottom panel"
-          aria-pressed={eventLensExpanded || pairMatrixOpen}
+          aria-pressed={eventLensExpanded || pairMatrixOpen || calendarOpen}
           onClick={onToggleBottomPanel}
         >
           <PanelBottom className="h-4 w-4" />
@@ -116,9 +124,24 @@ export function ChartToolStrip({
         className={eventOverlayVisible ? "chart-icon-button is-active" : "chart-icon-button"}
         title={eventButtonLabel}
         aria-label={`${eventButtonLabel}. Open chart events settings`}
-        onClick={() => onOpenDrawer("events")}
+        onClick={() => onOpenDrawer("layers")}
       >
         <CalendarDays className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        className={calendarOpen ? "chart-icon-button is-active" : "chart-icon-button"}
+        title="Open Economic Calendar in the bottom panel"
+        aria-label="Open Economic Calendar in the bottom panel"
+        onClick={onOpenCalendar}
+      >
+        <CalendarRange className="h-4 w-4" />
+      </button>
+      <button type="button" className="chart-icon-button" title="Open Research workspace" aria-label="Open Research workspace" onClick={onOpenResearch}>
+        <FlaskConical className="h-4 w-4" />
+      </button>
+      <button type="button" className="chart-icon-button" title="Open appearance settings" aria-label="Open appearance settings" onClick={onOpenAppSettings}>
+        <Palette className="h-4 w-4" />
       </button>
     </div>
   );

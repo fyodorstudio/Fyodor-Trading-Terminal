@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { AlertTriangle, Archive, Beaker, BookOpen, Check, Copy, Database, Download, FlaskConical, Play, RefreshCw, Snowflake } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, BookOpen, Copy, Database, Download, Play, RefreshCw, Snowflake } from "lucide-react";
 import { createFmsExperiment, fetchFmsExperiment, fetchFmsWorkbench, freezeFmsExperiment } from "@/app/lib/bridge";
 import { FmsWorkbenchTutorial } from "@/app/components/FmsWorkbenchTutorial";
 import { FmsRawDataAudit } from "@/app/components/FmsRawDataAudit";
@@ -13,20 +13,20 @@ const DEFAULT_HOLDING = [18, 30, 42];
 const workbenchMarketCache = new Map<FmsResearchMarket, FmsWorkbench>();
 
 function formatR(value: number | null | undefined): string {
-  if (value == null) return "—";
+  if (value == null) return "Unavailable";
   return `${value > 0 ? "+" : ""}${value.toFixed(2)}R`;
 }
 
 function formatPercent(value: number | null | undefined): string {
-  return value == null ? "—" : `${(value * 100).toFixed(1)}%`;
+  return value == null ? "Unavailable" : `${(value * 100).toFixed(1)}%`;
 }
 
 function formatAtr(value: number | null | undefined): string {
-  return value == null ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(2)} ATR`;
+  return value == null ? "Unavailable" : `${value >= 0 ? "+" : ""}${value.toFixed(2)} ATR`;
 }
 
 function formatTime(value: number | null | undefined): string {
-  return value == null ? "—" : formatUtcDisplayDateTime(value);
+  return value == null ? "Unavailable" : formatUtcDisplayDateTime(value);
 }
 
 function readable(value: string): string {
@@ -108,33 +108,34 @@ function buildAiSummary(experiment: FmsExperiment): string {
   ].join("\n");
 }
 
-function Metric({ label, value, detail }: { label: string; value: string; detail?: string }) {
-  return <div className="fms-workbench-metric"><span>{label}</span><strong>{value}</strong>{detail ? <small>{detail}</small> : null}</div>;
-}
-
-function PartitionMetrics({ label, metrics }: { label: string; metrics: MacroSignalStressMetrics }) {
-  return <article className="fms-result-partition"><h4>{label}</h4><div><Metric label="Average" value={formatR(metrics.stressedAverageR)} /><Metric label="N" value={String(metrics.evaluableCount)} /><Metric label="Target first" value={formatPercent(metrics.targetHitRate)} /><Metric label="Stop first" value={formatPercent(metrics.stopHitRate)} /><Metric label="Lower 95%" value={formatR(metrics.stressedExpectancyCi95?.lower)} /></div></article>;
-}
-
 function ResultPanel({ experiment, onFreeze, busy }: { experiment: FmsExperiment | null; onFreeze: (name: string, acknowledge: boolean) => void; busy: boolean }) {
   const [candidateName, setCandidateName] = useState("");
   const [acknowledge, setAcknowledge] = useState(false);
   const [startingBalance, setStartingBalance] = useState(1000);
   const [riskPercent, setRiskPercent] = useState(1);
   const [rawOpen, setRawOpen] = useState(false);
-  useEffect(() => { setCandidateName(experiment?.friendlyName ?? ""); setAcknowledge(false); }, [experiment?.id]);
-  if (!experiment) return <div className="fms-workbench-empty"><Beaker size={24} /><strong>No recorded experiment selected</strong><span>Choose a signature and run a declared contract or controlled matrix.</span></div>;
-  if (experiment.status === "queued" || experiment.status === "running") return <div className="fms-workbench-empty"><RefreshCw className="animate-spin" /><strong>{experiment.id} is running</strong><span>The recorded job continues in the bridge without blocking this tab.</span></div>;
-  if (experiment.status === "failed") return <div className="fms-workbench-empty is-error"><AlertTriangle /><strong>{experiment.id} failed</strong><span>{experiment.error}</span></div>;
+  useEffect(() => {
+    setCandidateName(experiment?.friendlyName ?? "");
+    setAcknowledge(false);
+  }, [experiment?.id]);
+
+  if (!experiment) {
+    return <div className="fms-table-empty"><strong>No recorded experiment selected</strong><span>Select a row in Run status or Archive, or declare a new bounded experiment.</span></div>;
+  }
+  if (experiment.status === "queued" || experiment.status === "running") {
+    return <div className="fms-table-empty"><RefreshCw className="animate-spin" /><strong>{experiment.id} is {experiment.status}</strong><span>The recorded bridge job continues without blocking navigation.</span></div>;
+  }
+  if (experiment.status === "failed") {
+    return <div className="fms-table-empty is-error"><AlertTriangle /><strong>{experiment.id} failed</strong><span>{experiment.error ?? "Failure reason unavailable in the stored record."}</span></div>;
+  }
   const result = experiment.result;
-  if (!result) return null;
+  if (!result) return <div className="fms-table-empty is-error"><strong>Result unavailable</strong><span>The stored experiment has no completed result payload.</span></div>;
+
   const selected = result.selectedConfiguration;
-  const configuredContracts = experiment.configuration.execution.stopAtrValues.length
-    * experiment.configuration.execution.targetRValues.length
-    * experiment.configuration.execution.holdingCandles.length;
+  const configurations = result.configurations?.length ? result.configurations : [selected];
   const failed = Object.entries(result.checks).filter(([, passed]) => !passed).map(([name]) => name);
   const account = compoundAccount(result.sequentialAccount.grossResultsR ?? [], startingBalance, riskPercent);
-  const copySummary = async () => { await navigator.clipboard.writeText(buildAiSummary(experiment)); };
+  const copySummary = async () => navigator.clipboard.writeText(buildAiSummary(experiment));
   const downloadJson = () => {
     const blob = new Blob([JSON.stringify(experiment, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -144,18 +145,102 @@ function ResultPanel({ experiment, onFreeze, busy }: { experiment: FmsExperiment
     anchor.click();
     URL.revokeObjectURL(url);
   };
-  return <div className="fms-result-stack">
-    <section className="fms-workbench-card fms-result-heading"><div><span>Recorded experiment</span><h3>{experiment.friendlyName}</h3><p>{experiment.id} · {(result.directionSelection ?? experiment.catalogSnapshot.direction).toUpperCase()} {result.market ?? experiment.configuration.market ?? experiment.catalogSnapshot.market ?? "EURUSD"} · {result.historicalN} historical cases</p></div><div className="fms-result-actions"><button type="button" onClick={() => setRawOpen(true)}><Database size={13} />View raw data</button><button type="button" onClick={copySummary}><Copy size={13} />Copy AI summary</button><button type="button" onClick={downloadJson}><Download size={13} />Download JSON</button></div></section>
-    <section className="fms-workbench-card fms-recorded-recipe"><div className="fms-section-title"><h3>Recorded recipe</h3><span>Immutable configuration</span></div><div className="fms-recorded-recipe-grid"><Metric label="Economic setup" value={experiment.catalogSnapshot.label} detail={(result.signatures ?? experiment.configuration.signatures ?? [experiment.configuration.signature]).join(" | ")} /><Metric label="Direction" value={readable(result.directionSelection ?? experiment.configuration.directionSelection ?? experiment.catalogSnapshot.direction)} /><Metric label="Scoring" value={scoringPolicyLabel(result.scoringPolicy)} /><Metric label="Cases included" value={result.cohort.dimension === "none" ? "All matching releases" : `${readable(result.cohort.dimension)} · ${readable(result.cohort.value)}`} /><Metric label="Price reaction" value={reactionLabel(result.reaction)} /><Metric label="Entry" value="First strictly later H4 open" /><Metric label="Configured contracts" value={`${experiment.configuration.execution.mode === "single" ? "Single Contract" : "Combined Contracts"} · ${configuredContracts}`} /><Metric label="Highlighted contract" value={`SL ${selected.stopAtr} ATR · TP ${selected.targetR}R = ${selected.stopAtr * selected.targetR} ATR · ${selected.holdingCandles} H4`} detail={selectionLabel(result.selection)} /></div>{result.scoringPolicy === "forecast_quality" ? <p className="fms-forecast-result"><strong>{result.forecastQualityAudit.excludedForecastCount} Forecast{result.forecastQualityAudit.excludedForecastCount === 1 ? "" : "s"} flagged unreliable by Forecast Guard.</strong> Their raw values remain auditable; Surprise was excluded while Momentum remained eligible.</p> : null}</section>
-    <section className="fms-workbench-card fms-evidence-answer"><div className="fms-section-title"><h3>How strong, stable, repeatable, and usable is this evidence?</h3><span>Factual research summary</span></div><div><Metric label="Strength" value={formatR(selected.overall.stressedAverageR)} detail={`${selected.overall.evaluableCount} evaluable cases`} /><Metric label="Stability" value={`${selected.yearStability.positiveYears}/${selected.yearStability.evaluableYears} positive years`} detail={`Nearby holdout positive ${formatPercent(result.configurationStability.holdout.positiveShare)}`} /><Metric label="Repeatability" value={`Holdout ${formatR(selected.holdout.stressedAverageR)}`} detail={`Recent ${formatR(selected.recent.stressedAverageR)} · holdout N ${selected.holdout.evaluableCount}`} /><Metric label="Economic usability" value={selected.development.stressedAverageR != null && selected.holdout.stressedAverageR != null && selected.development.stressedAverageR > 0 && selected.holdout.stressedAverageR > 0 ? "Positive in older and later data" : "Not consistently positive"} detail="Costs excluded · not a guarantee or order" /></div></section>
-    {result.configurations && result.configurations.length > 1 ? <section className="fms-workbench-card"><div className="fms-section-title"><h3>Combined Contracts</h3><span>Independent simulations · no partial exits</span></div><div className="fms-contract-comparison"><div><span>Contract</span><span>Development</span><span>Holdout</span><span>Recent</span><span>Overall</span></div>{result.configurations.map((item) => { const highlighted = item.stopAtr === selected.stopAtr && item.targetR === selected.targetR && item.holdingCandles === selected.holdingCandles; return <div key={`${item.stopAtr}-${item.targetR}-${item.holdingCandles}`} className={highlighted ? "is-highlighted" : ""}><span>SL {item.stopAtr} ATR · TP {item.targetR}R = {item.stopAtr * item.targetR} ATR · {item.holdingCandles} H4{highlighted ? " · Highlighted" : ""}</span><span>{formatR(item.development.stressedAverageR)} · N {item.development.evaluableCount}</span><span>{formatR(item.holdout.stressedAverageR)} · N {item.holdout.evaluableCount}</span><span>{formatR(item.recent.stressedAverageR)} · N {item.recent.evaluableCount}</span><span>{formatR(item.overall.stressedAverageR)} · N {item.overall.evaluableCount}</span></div>; })}</div></section> : null}
-    <section className="fms-result-partitions"><PartitionMetrics label="Overall" metrics={selected.overall} /><PartitionMetrics label="Development" metrics={selected.development} /><PartitionMetrics label="Holdout" metrics={selected.holdout} /><PartitionMetrics label="Recent" metrics={selected.recent} /></section>
-    <section className="fms-workbench-card"><div className="fms-section-title"><h3>Stability and path audit</h3><span>Known only after historical simulation</span></div><div className="fms-contract-strip"><Metric label="Positive years" value={`${selected.yearStability.positiveYears}/${selected.yearStability.evaluableYears}`} /><Metric label="Nearby holdout positive" value={formatPercent(result.configurationStability.holdout.positiveShare)} detail={`${result.configurationStability.holdout.positiveCount}/${result.configurationStability.holdout.count}`} /><Metric label="Median favorable move" value={formatAtr(result.path.mfeR.median)} /><Metric label="Median adverse move" value={formatAtr(result.path.maeR.median)} /><Metric label={`Unmanaged close · ${selected.holdingCandles} H4`} value={formatAtr(result.path.unmanagedCloseR?.mean)} detail="Final close with no TP/SL · hindsight research" /><Metric label="Unmanaged positive" value={formatPercent(result.path.unmanagedPositiveRate)} /><Metric label="Room to prior barrier" value={formatAtr(result.path.directionalRoomAtr?.median)} detail="Entry-known H4 zones" /><Metric label="S/R coverage" value={formatPercent(result.path.supportResistanceCoverageRate)} /><Metric label="Adverse first" value={formatPercent(result.path.adverseBeforeFavorableRate)} /></div><p className="fms-control-explanation">Maximum favorable movement is known only afterward. Support/resistance uses confirmed zones from the 120 completed H4 candles before entry; neither diagnostic changes this recorded recipe.</p></section>
-    <section className="fms-workbench-card"><div className="fms-section-title"><h3>Gross sequential account replay</h3><span>One position at a time · costs excluded</span></div><div className="fms-account-controls"><label>Starting balance<input type="number" min="1" value={startingBalance} onChange={(event) => setStartingBalance(Math.max(1, Number(event.target.value) || 1))} /></label><label>Risk per trade %<input type="number" min="0.01" max="100" step="0.01" value={riskPercent} onChange={(event) => setRiskPercent(Math.min(100, Math.max(.01, Number(event.target.value) || .01)))} /></label><Metric label="Taken trades" value={String(result.sequentialAccount.takenTrades)} /><Metric label="Ending balance" value={`$${account.balance.toFixed(2)}`} /><Metric label="Max closed-trade DD" value={formatPercent(account.maximumDrawdown)} /></div></section>
-    <section className="fms-workbench-card"><div className="fms-section-title"><h3>Qualification checks</h3><span>{failed.length ? `${failed.length} not met` : "All checks passed"}</span></div><div className="fms-check-grid">{Object.entries(result.checks).map(([name, passed]) => <div key={name} className={passed ? "is-pass" : "is-fail"}><span>{passed ? "Pass" : "Not met"}</span><strong>{readable(name)}</strong></div>)}</div></section>
-    <section className="fms-workbench-card fms-freeze-card"><div><Snowflake size={16} /><div><h3>Freeze for review</h3><p>Creates an immutable C record. It cannot change Charts or execute an order.</p></div></div><div className="fms-freeze-controls"><input aria-label="Frozen candidate friendly name" value={candidateName} onChange={(event) => setCandidateName(event.target.value)} />{failed.length ? <label><input type="checkbox" checked={acknowledge} onChange={(event) => setAcknowledge(event.target.checked)} />I acknowledge the failed checks remain part of this candidate.</label> : null}<button type="button" disabled={busy || !candidateName.trim() || (failed.length > 0 && !acknowledge)} onClick={() => onFreeze(candidateName.trim(), acknowledge)}><Snowflake size={13} />Freeze candidate</button></div></section>
-    <FmsRawDataAudit experiment={experiment} open={rawOpen} onClose={() => setRawOpen(false)} />
-  </div>;
+  const partitionRows: Array<[string, MacroSignalStressMetrics]> = [
+    ["Overall", selected.overall],
+    ["Development", selected.development],
+    ["Holdout", selected.holdout],
+    ["Recent", selected.recent],
+  ];
+
+  return (
+    <div className="fms-result-tables">
+      <header className="fms-table-toolbar">
+        <div><strong>{experiment.friendlyName}</strong><span>{experiment.id} · immutable completed experiment</span></div>
+        <div>
+          <button type="button" onClick={() => setRawOpen(true)}><Database size={13} />View raw data</button>
+          <button type="button" onClick={copySummary}><Copy size={13} />Copy AI summary</button>
+          <button type="button" onClick={downloadJson}><Download size={13} />Download JSON</button>
+        </div>
+      </header>
+
+      <section className="fms-table-section">
+        <h3>Recorded recipe <span>Immutable configuration</span></h3>
+        <table className="fms-literal-table fms-key-value-table"><tbody>
+          <tr><th>Economic setup</th><td>{experiment.catalogSnapshot.label}</td><th>Market</th><td>{result.market ?? experiment.configuration.market ?? experiment.catalogSnapshot.market ?? "EURUSD"}</td></tr>
+          <tr><th>Signatures</th><td>{(result.signatures ?? experiment.configuration.signatures ?? [experiment.configuration.signature]).join(" | ")}</td><th>Direction rule</th><td>{readable(result.directionSelection ?? experiment.configuration.directionSelection ?? experiment.catalogSnapshot.direction)}</td></tr>
+          <tr><th>Scoring policy</th><td>{scoringPolicyLabel(result.scoringPolicy)}</td><th>Cases included</th><td>{result.cohort.dimension === "none" ? "All matching releases" : `${readable(result.cohort.dimension)} · ${readable(result.cohort.value)}`}</td></tr>
+          <tr><th>Price reaction</th><td>{reactionLabel(result.reaction)}</td><th>Entry rule</th><td>First strictly later H4 open</td></tr>
+          <tr><th>Selection rule</th><td>{selectionLabel(result.selection)}</td><th>Configurations tested</th><td>{result.configurationsTested}</td></tr>
+        </tbody></table>
+        {result.scoringPolicy === "forecast_quality" ? <p className="fms-table-note"><strong>{result.forecastQualityAudit.excludedForecastCount} Forecast{result.forecastQualityAudit.excludedForecastCount === 1 ? "" : "s"} flagged unreliable.</strong> Raw values remain stored; Surprise was excluded while Momentum remained eligible.</p> : null}
+      </section>
+
+      <section className="fms-table-section">
+        <h3>Execution-contract results <span>Selected: SL {selected.stopAtr} ATR · TP {selected.targetR}R = {selected.stopAtr * selected.targetR} ATR · {selected.holdingCandles} H4</span></h3>
+        <p className="fms-table-note">Independent simulations · no partial exits. Gross outcomes exclude spread, commission, slippage, and swap.</p>
+        <div className="fms-table-scroll"><table className="fms-literal-table">
+          <thead><tr><th>Entry rule</th><th>SL ATR</th><th>TP R</th><th>TP ATR</th><th>Duration</th><th>TP</th><th>SL</th><th>Expired</th><th>Ambiguous</th><th>Unavailable</th><th>Average gross R</th><th>Stressed R</th><th>Qualification</th></tr></thead>
+          <tbody>{configurations.map((item) => {
+            const highlighted = item.stopAtr === selected.stopAtr && item.targetR === selected.targetR && item.holdingCandles === selected.holdingCandles;
+            const localPassed = item.overall.stressedAverageR != null && item.overall.stressedAverageR > 0;
+            return <tr key={`${item.stopAtr}-${item.targetR}-${item.holdingCandles}`} className={highlighted ? "is-selected" : ""}>
+              <td>First later H4 open</td><td>{item.stopAtr}</td><td>{item.targetR}R</td><td>{item.stopAtr * item.targetR} ATR</td><td>{item.holdingCandles} H4</td>
+              <td>{item.overall.targetHitCount}</td><td>{item.overall.stopHitCount}</td><td>{item.overall.expiredCount}</td><td>{item.overall.ambiguousCount}</td><td>{item.overall.unevaluableCount}</td>
+              <td>{formatR(item.overall.grossAverageR)}</td><td>{formatR(item.overall.stressedAverageR)}</td><td>{highlighted ? "Selected" : localPassed ? "Positive gross row" : "Not positive"}</td>
+            </tr>;
+          })}</tbody>
+        </table></div>
+      </section>
+
+      <section className="fms-table-section">
+        <h3>Evidence partitions <span>Identical selected contract</span></h3>
+        <table className="fms-literal-table"><thead><tr><th>Partition</th><th>Attempted</th><th>Evaluable</th><th>TP</th><th>SL</th><th>Expired</th><th>Ambiguous</th><th>Unavailable</th><th>TP rate</th><th>Average gross R</th><th>Stressed R</th><th>Lower 95%</th></tr></thead>
+          <tbody>{partitionRows.map(([label, metrics]) => <tr key={label}><th>{label}</th><td>{metrics.attemptedCount}</td><td>{metrics.evaluableCount}</td><td>{metrics.targetHitCount}</td><td>{metrics.stopHitCount}</td><td>{metrics.expiredCount}</td><td>{metrics.ambiguousCount}</td><td>{metrics.unevaluableCount}</td><td>{formatPercent(metrics.targetHitRate)}</td><td>{formatR(metrics.grossAverageR)}</td><td>{formatR(metrics.stressedAverageR)}</td><td>{formatR(metrics.stressedExpectancyCi95?.lower)}</td></tr>)}</tbody>
+        </table>
+      </section>
+
+      <section className="fms-table-section fms-two-table-grid">
+        <div><h3>Path audit <span>Hindsight diagnostics</span></h3><table className="fms-literal-table fms-key-value-table"><tbody>
+          <tr><th>Positive years</th><td>{selected.yearStability.positiveYears}/{selected.yearStability.evaluableYears}</td></tr>
+          <tr><th>Median MFE</th><td>{formatR(result.path.mfeR.median)}</td></tr>
+          <tr><th>Median MAE magnitude</th><td>{formatR(result.path.maeR.median)}</td></tr>
+          <tr><th>Unmanaged close</th><td>{formatR(result.path.unmanagedCloseR?.mean)}</td></tr>
+          <tr><th>Directional room</th><td>{formatAtr(result.path.directionalRoomAtr?.median)}</td></tr>
+          <tr><th>Adverse before favorable</th><td>{formatPercent(result.path.adverseBeforeFavorableRate)}</td></tr>
+        </tbody></table></div>
+        <div><h3>Qualification checks <span>{failed.length ? `${failed.length} not met` : "All passed"}</span></h3><table className="fms-literal-table"><thead><tr><th>Check</th><th>Recorded result</th></tr></thead><tbody>{Object.entries(result.checks).map(([name, passed]) => <tr key={name}><td>{readable(name)}</td><td className={passed ? "is-pass" : "is-fail"}>{passed ? "Pass" : "Not met"}</td></tr>)}</tbody></table></div>
+      </section>
+
+      <section className="fms-table-section">
+        <h3>Provenance <span>Stored record is authoritative</span></h3>
+        <table className="fms-literal-table fms-key-value-table"><tbody>
+          <tr><th>Experiment ID</th><td>{experiment.id}</td><th>Configuration hash</th><td>{experiment.configurationHash}</td></tr>
+          <tr><th>Dataset fingerprint</th><td>{experiment.datasetFingerprint}</td><th>Catalog snapshot</th><td>{experiment.catalogSnapshot.sourceVersionId}</td></tr>
+          <tr><th>Data cutoff</th><td>{formatTime(experiment.configuration.researchPriceCutoff)}</td><th>First-seen policy</th><td>{experiment.configuration.entry}</td></tr>
+          <tr><th>Scoring policy</th><td>{result.scoringPolicy}</td><th>Code/model version</th><td>{result.sourceVersionId}</td></tr>
+          <tr><th>Created</th><td>{formatTime(experiment.createdAt)}</td><th>Completed</th><td>{formatTime(result.generatedAt)}</td></tr>
+          <tr><th>Source classification</th><td>Stored immutable experiment</td><th>Costs</th><td>Unavailable · deliberately excluded</td></tr>
+        </tbody></table>
+      </section>
+
+      <section className="fms-table-section">
+        <h3>Gross sequential account replay <span>Calculator only · no order transmission</span></h3>
+        <table className="fms-literal-table fms-key-value-table"><tbody>
+          <tr><th>Starting balance</th><td><input type="number" min="1" value={startingBalance} onChange={(event) => setStartingBalance(Math.max(1, Number(event.target.value) || 1))} /></td><th>Risk per trade %</th><td><input type="number" min="0.01" max="100" step="0.01" value={riskPercent} onChange={(event) => setRiskPercent(Math.min(100, Math.max(.01, Number(event.target.value) || .01)))} /></td></tr>
+          <tr><th>Taken trades</th><td>{result.sequentialAccount.takenTrades}</td><th>Ending balance</th><td>${account.balance.toFixed(2)}</td></tr>
+          <tr><th>Max closed-trade drawdown</th><td>{formatPercent(account.maximumDrawdown)}</td><th>Gross cumulative R</th><td>{formatR(result.sequentialAccount.cumulativeStressedR)}</td></tr>
+        </tbody></table>
+      </section>
+
+      <section className="fms-table-section fms-freeze-row">
+        <h3>Freeze for review <span>Separate, immutable C record · never automatic promotion</span></h3>
+        <label>Name<input aria-label="Frozen candidate friendly name" value={candidateName} onChange={(event) => setCandidateName(event.target.value)} /></label>
+        {failed.length ? <label><input type="checkbox" checked={acknowledge} onChange={(event) => setAcknowledge(event.target.checked)} />I acknowledge the failed checks remain part of this candidate.</label> : null}
+        <button type="button" disabled={busy || !candidateName.trim() || (failed.length > 0 && !acknowledge)} onClick={() => onFreeze(candidateName.trim(), acknowledge)}><Snowflake size={13} />Freeze candidate</button>
+      </section>
+      <FmsRawDataAudit experiment={experiment} open={rawOpen} onClose={() => setRawOpen(false)} />
+    </div>
+  );
 }
 
 function ValuePicker({ label, values, selected, multiple, onChange, formatValue }: { label: string; values: number[]; selected: number[]; multiple: boolean; onChange: (values: number[]) => void; formatValue?: (value: number) => string }) {
@@ -176,26 +261,9 @@ interface MacroSignalLabViewProps {
   onMarketChange?: (market: FmsResearchMarket) => void;
 }
 
-function InspectorDisclosure({
-  title,
-  count,
-  icon,
-  children,
-}: {
-  title: string;
-  count: number;
-  icon: ReactNode;
-  children: (close: () => void) => ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-  const close = () => setOpen(false);
-  return <details className="fms-workbench-card fms-archive fms-inspector" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
-    <summary>{icon}{title}<span>{count}</span></summary>
-    {open ? <div>{children(close)}</div> : null}
-  </details>;
-}
-
 export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExperiment, loading, running, error, onRun, onSelectExperiment, onFreeze, onRefresh, onMarketChange = () => {} }: MacroSignalLabViewProps) {
+  const [workspaceMode, setWorkspaceMode] = useState<"declare" | "run" | "results" | "archive">(selectedExperiment ? "results" : "declare");
+  const [comparisonIds, setComparisonIds] = useState<string[]>([]);
   const [guideOpen, setGuideOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [catalogId, setCatalogId] = useState("");
@@ -218,6 +286,7 @@ export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExper
   const calendarPeriod = workbench?.dataPeriods ? formatPeriod(workbench.dataPeriods.durableCalendar) : null;
   const researchPeriod = workbench?.dataPeriods ? formatPeriod(workbench.dataPeriods.workbenchResearch) : null;
   const pricePeriod = workbench?.dataPeriods ? formatPeriod(workbench.dataPeriods.h4Prices) : null;
+  const comparisonRows = useMemo(() => (workbench?.experiments ?? []).filter((item) => comparisonIds.includes(item.id)), [comparisonIds, workbench?.experiments]);
   useEffect(() => { if (!catalogId && catalog[0]) { setCatalogId(catalog[0].id); setFriendlyName(`${catalog[0].label} experiment`); } }, [catalogId, catalog]);
   useEffect(() => {
     if (!selectedItem) return;
@@ -225,6 +294,12 @@ export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExper
     setTreatmentId("base");
   }, [selectedItem?.id]);
   useEffect(() => { if (availableTreatments.length && !availableTreatments.some((item) => item.id === treatmentId)) setTreatmentId(availableTreatments[0]?.id ?? "base"); }, [availableTreatments, treatmentId]);
+  useEffect(() => {
+    if (selectedExperiment) setWorkspaceMode("results");
+  }, [selectedExperiment?.id]);
+  useEffect(() => {
+    setComparisonIds([]);
+  }, [market]);
   useEffect(() => {
     if (!registeredSetup) return;
     setPolicy(registeredSetup.scoringPolicy);
@@ -237,59 +312,108 @@ export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExper
   }, [registeredSetup?.id, selectedItem?.signature, availableTreatments]);
   const switchMode = (next: "single" | "matrix") => { setMode(next); if (next === "single") { setStops([1]); setTargets([2]); setHolding([30]); } else { setStops(DEFAULT_STOPS); setTargets(DEFAULT_TARGETS); setHolding(DEFAULT_HOLDING); } };
   const submit = () => { if (!selectedItem || !selectedTreatment || !friendlyName.trim()) return; onRun({ market, friendlyName: friendlyName.trim(), catalogId: selectedItem.id, directionSelection, scoringPolicy: policy, cohort: { dimension: selectedTreatment.dimension, value: selectedTreatment.value }, reaction: selectedTreatment.reaction, execution: { mode, stopAtrValues: stops, targetRValues: targets, holdingCandles: holding } }); };
-  if (!workbench && loading) return <section className="macro-signal-page"><div className="fms-workbench-empty"><RefreshCw className="animate-spin" /><strong>Loading FMS workbench</strong></div></section>;
-  return <section className="macro-signal-page fms-workbench" data-macro-signal-lab="">
-    <header className="fms-workbench-header"><div><div className="macro-signal-kicker"><FlaskConical size={14} />Active FMS research tool</div><h2>FMS Experiment Workbench</h2><p>Recorded {market}/H4 research—not an order, guarantee, or automatic optimizer.</p></div><div><button type="button" onClick={() => setGuideOpen(true)}><BookOpen size={15} />How to use the Workbench</button><button type="button" onClick={onRefresh} disabled={loading}><RefreshCw size={14} className={loading ? "animate-spin" : ""} />Refresh</button></div></header>
-    <div className="fms-market-picker"><label className="fms-field">Research market<select value={market} onChange={(event) => onMarketChange(event.target.value as FmsResearchMarket)}>{FX_PAIRS.map((pair) => <option key={pair.name} value={pair.name}>{pair.name}</option>)}</select></label><small>{workbench?.currentModel.registeredSetups.length ? `${market} has ${workbench.currentModel.registeredSetups.length} active registered setup${workbench.currentModel.registeredSetups.length === 1 ? "" : "s"}.` : `${market} is research-only; no arrows are registered.`}</small></div>
-    {error ? <div className="macro-signal-error"><AlertTriangle size={16} />{error}</div> : null}
-    {workbench?.availability && !workbench.availability.ready ? <div className="macro-signal-error"><AlertTriangle size={16} />{workbench.availability.message}</div> : null}
-    {workbench ? <section className="fms-current-strip"><div><span>Current Charts model</span><strong>{workbench.currentModel.friendlyName} · {workbench.currentModel.displayId}</strong><small>{workbench.currentModel.id}{workbench.currentModel.researchEngineId ? ` · ${workbench.currentModel.researchEngineId}` : ""}</small></div><div><Metric label="Market" value={market} /><Metric label="Backtest timeframe" value="H4" /><Metric label="Registered setups" value={String(workbench.currentModel.registeredSetups.length)} /><Metric label="Promotion" value="Reviewed only" /></div></section> : null}
-    {workbench && calendarPeriod && researchPeriod && pricePeriod ? <section className="fms-data-periods" aria-label="FMS data periods"><div><span>Data periods</span><small>Fixed and reported—not user-selected</small></div><Metric label="Durable EUR/USD calendar" value={calendarPeriod.years} detail={calendarPeriod.dates} /><Metric label="Workbench research cases" value={researchPeriod.years} detail={researchPeriod.dates} /><Metric label="Stored H4 prices" value={pricePeriod.years} detail={pricePeriod.dates} /></section> : null}
-    <div className="fms-workbench-body">
-      <aside className="fms-builder">
-        <section className="fms-workbench-card"><div className="fms-section-title"><h3>1 · Choose economic setup</h3><span>{catalog.length} detected</span></div><input className="fms-search" placeholder="Search family, title, or setup" value={search} onChange={(event) => setSearch(event.target.value)} /><div className="fms-catalog-list">{filtered.map((item) => <button key={item.id} type="button" className={item.id === selectedItem?.id ? "is-active" : ""} onClick={() => { setCatalogId(item.id); setTreatmentId("base"); setFriendlyName(`${item.label} experiment`); }}><span>{item.registered ? "Registered" : "Research"} · N {item.historicalN}</span><strong>{item.label}</strong><small>{item.exactTitles.join(" · ") || item.family}</small></button>)}</div>{selectedItem ? <div className="fms-direction-picker" role="group" aria-label="Direction to test">{selectedItem.directionVariants.map((variant) => <button key={variant.direction} type="button" className={directionSelection === variant.direction ? "is-active" : ""} onClick={() => { setDirectionSelection(variant.direction); setTreatmentId("base"); }}>{variant.direction === "long" ? "Long" : "Short"} · N {variant.historicalN}</button>)}{selectedItem.directionVariants.length > 1 ? <button type="button" className={directionSelection === "both" ? "is-active" : ""} onClick={() => { setDirectionSelection("both"); setTreatmentId("base"); }}>Both directions · N {selectedItem.historicalN}</button> : null}</div> : null}<p className="fms-control-explanation">{directionSelection === "both" ? "Both directions follows the evidence each time: improving evidence uses Long and weakening evidence uses Short. It never opens both at once." : `${readable(directionSelection)} tests only that historical direction.`}</p></section>
-        {registeredSetup ? <section className="fms-workbench-card fms-registered-recipe">
-          <div className="fms-section-title"><h3>Registered recipe</h3><span>Loaded below</span></div>
-          <strong>{registeredSetup.label}</strong>
-          <p>{registeredSetup.condition}</p>
-          {registeredSetup.registrationEvidence ? <>
-            <div className="fms-recipe-grid"><span><small>Frozen scoring</small>{scoringPolicyLabel(registeredSetup.scoringPolicy)}</span><span><small>Cases included</small>{registeredSetup.cohort.dimension === "none" ? "All matching releases" : `${readable(registeredSetup.cohort.dimension)} · ${readable(registeredSetup.cohort.value)}`}</span><span><small>Price reaction</small>{reactionLabel(registeredSetup.reaction)}</span><span><small>Execution</small>{registeredSetup.execution.stopAtr} ATR / {registeredSetup.execution.targetR}R / {registeredSetup.execution.expiryCandles} H4</span></div>
-            <div className="fms-recipe-result"><strong>Why it was registered</strong><span>{registeredSetup.registrationEvidence.evaluable} cases · {registeredSetup.registrationEvidence.targetFirst} target first · {registeredSetup.registrationEvidence.stopFirst} stop first · {registeredSetup.registrationEvidence.expired} expired</span><span>{formatR(registeredSetup.registrationEvidence.stressedAverageR)} average after its historical {registeredSetup.registrationEvidence.stressPips}-pip stress · {registeredSetup.registrationEvidence.positiveYears}/{registeredSetup.registrationEvidence.evaluatedYears} positive years</span><small>Development {formatR(registeredSetup.registrationEvidence.developmentAverageR)} · Holdout {formatR(registeredSetup.registrationEvidence.holdoutAverageR)} · Recent {formatR(registeredSetup.registrationEvidence.recentAverageR)}</small></div>
-          </> : <p className="fms-inline-note">This signature is registered, but its original qualification snapshot is available in the Research Archive.</p>}
-          <small className="fms-current-guard-note">Charts and Shadow Trader use this exact frozen scoring, reaction, and execution recipe.</small>
-        </section> : null}
-        <section className="fms-workbench-card"><div className="fms-section-title"><h3>2 · How to score and filter</h3><span>{registeredSetup ? "Current model values loaded" : "One filter maximum"}</span></div><label className="fms-field">How each release is scored<select value={policy} onChange={(event) => setPolicy(event.target.value as typeof policy)}><option value="forecast_quality">Forecast Guard</option><option value="baseline">Surprise + Momentum</option><option value="agreement_no_bonus">Surprise + Momentum (no bonus)</option><option value="surprise_only">Surprise only</option><option value="momentum_only">Momentum only</option></select></label><p className="fms-control-explanation">{scoringPolicyExplanation(policy)}</p>{policy === "forecast_quality" ? <div className="fms-forecast-guard"><strong>How Forecast Guard works</strong><span>It uses only earlier releases of the same exact series. After at least 12 observations, an unusually large Forecast-versus-Previous gap is checked against its historical median/MAD and scale.</span><span><b>Forecast unreliable:</b> the raw Forecast stays visible, but Surprise contributes nothing. Actual-versus-Previous Momentum remains eligible and no Surprise agreement bonus is added.</span></div> : null}<label className="fms-field">Cases included<select value={selectedTreatment?.id ?? "base"} onChange={(event) => setTreatmentId(event.target.value)}>{availableTreatments.map((item) => <option key={item.id} value={item.id}>{item.label} · {reactionLabel(item.reaction)} · N {item.historicalN}</option>)}</select></label><p className="fms-control-explanation">{cohortExplanation(selectedTreatment)} {selectedTreatment?.dimension === "relativeMagnitude" ? "Magnitude compares this exact series only with its own earlier releases." : ""} {selectedTreatment?.reaction === "contrarian" ? "Rejection tests price moving against the evidence direction." : "Continuation tests price moving in the evidence direction."}</p>{!workbench?.catalog.advancedTreatmentsReady ? <p className="fms-inline-note">Advanced case filters are unavailable until the durable stress catalog has been generated. All matching cases remain usable.</p> : null}</section>
-        <section className="fms-workbench-card"><div className="fms-section-title"><h3>3 · Trade simulation rules</h3><span>{registeredSetup ? `Registered: SL ${registeredSetup.execution.stopAtr} ATR · TP ${registeredSetup.execution.targetR}R = ${registeredSetup.execution.stopAtr * registeredSetup.execution.targetR} ATR · ${registeredSetup.execution.expiryCandles} H4` : "Entry: first later H4 open"}</span></div><div className="fms-mode-toggle"><button type="button" className={mode === "single" ? "is-active" : ""} onClick={() => switchMode("single")}>Single Contract</button><button type="button" className={mode === "matrix" ? "is-active" : ""} onClick={() => switchMode("matrix")}>Combined Contracts</button></div>{workbench ? <><ValuePicker label="SL (ATR)" values={workbench.protocol.stopAtrValues} selected={stops} multiple={mode === "matrix"} onChange={setStops} formatValue={(value) => `${value}`} /><ValuePicker label="TP (R + ATR)" values={workbench.protocol.targetRValues} selected={targets} multiple={mode === "matrix"} onChange={setTargets} formatValue={(value) => stops.length === 1 ? `${value}R = ${value * stops[0]} ATR` : `${value}R`} /><ValuePicker label="Maximum trade duration (H4 candles)" values={workbench.protocol.holdingCandles} selected={holding} multiple={mode === "matrix"} onChange={setHolding} /></> : null}<p className="fms-control-explanation">TP distance in ATR = SL in ATR × TP in R. Combined Contracts tests every selected combination independently; it does not split one trade into several take-profits.</p><div className="fms-run-preview"><span>{stops.length * targets.length * holding.length} contract{stops.length * targets.length * holding.length === 1 ? "" : "s"}</span><span>{selectedTreatment?.historicalN ?? directionCount} catalog cases before rescoring</span></div></section>
-        <section className="fms-workbench-card"><label className="fms-field">Experiment name<input value={friendlyName} maxLength={80} onChange={(event) => setFriendlyName(event.target.value)} /></label><button type="button" className="fms-run-button" disabled={running || !selectedItem || !friendlyName.trim()} onClick={submit}>{running ? <RefreshCw className="animate-spin" size={15} /> : <Play size={15} />}{running ? "Running recorded experiment" : "Run recorded experiment"}</button><p className="fms-inline-note">Every run receives an immutable E identifier, including failures.</p></section>
-      </aside>
-      <main className="fms-workbench-results"><ResultPanel experiment={selectedExperiment} onFreeze={onFreeze} busy={loading} /></main>
-      <aside className="fms-history-rail">
-        <InspectorDisclosure title="Current registered setups" count={workbench?.currentModel.registeredSetups.length ?? 0} icon={<Check size={14} />}>
-          {() => workbench?.currentModel.registeredSetups.length ? workbench.currentModel.registeredSetups.map((setup) => <article key={setup.id}><strong>{setup.label}</strong><span>{setup.execution.stopAtr} ATR / {setup.execution.targetR}R / {setup.execution.expiryCandles} H4</span><small>{setup.condition}</small></article>) : <p>No setup is registered for this market.</p>}
-        </InspectorDisclosure>
-        <InspectorDisclosure title="Reaction Atlas" count={workbench?.reactionAtlas?.rows.length ?? 0} icon={<FlaskConical size={14} />}>
-          {() => workbench?.reactionAtlas ? <><article className="fms-atlas-summary"><strong>What the archive says</strong><span>{workbench.reactionAtlas.counts.historically_profitable_candidate ?? 0} candidates · {workbench.reactionAtlas.counts.directional_contender ?? 0} contenders</span><small>{workbench.reactionAtlas.counts.avoid_standalone_direction ?? 0} avoid as standalone direction · {workbench.reactionAtlas.counts.insufficient_evidence ?? 0} insufficient</small></article>{workbench.reactionAtlas.rows.map((row) => <article key={row.id}><strong>{row.label}</strong><span>{row.classificationLabel}</span><small>{scoringPolicyLabel(row.policy)} · {readable(row.reaction)} · N {row.historicalN} · {row.horizonH4} H4 · later {formatR(row.holdoutAverageR)}</small></article>)}</> : <p>No durable atlas is available.</p>}
-        </InspectorDisclosure>
-        <InspectorDisclosure title="Recorded experiments" count={workbench?.experiments.length ?? 0} icon={<Beaker size={14} />}>
-          {(close) => <div className="fms-record-list">{workbench?.experiments.map((experiment) => <button key={experiment.id} type="button" className={experiment.id === selectedExperiment?.id ? "is-active" : ""} onClick={() => { onSelectExperiment(experiment.id); close(); }}><span>{experiment.id} · {readable(experiment.status)}</span><strong>{experiment.friendlyName}</strong><small>{experiment.catalogSnapshot?.label}</small></button>)}{!workbench?.experiments.length ? <p>No recorded experiments yet.</p> : null}</div>}
-        </InspectorDisclosure>
-        <InspectorDisclosure title="Frozen candidates" count={workbench?.candidates.length ?? 0} icon={<Snowflake size={14} />}>
-          {() => <div className="fms-candidate-list">{workbench?.candidates.map((candidate: FmsFrozenCandidate) => { const passed = Object.values(candidate.checks).filter(Boolean).length; const failed = Object.keys(candidate.checks).length - passed; return <article key={candidate.id} className={failed ? "has-failed-gates" : ""}><span>{candidate.id} · Review required</span><strong>{candidate.friendlyName}</strong><small>{candidate.catalogSnapshot.label} · {passed}/{Object.keys(candidate.checks).length} checks</small><small>{failed ? `${failed} failed gate${failed === 1 ? "" : "s"} · acknowledged` : "All recorded checks passed"}</small></article>; })}{!workbench?.candidates.length ? <p>No candidate frozen for review.</p> : null}</div>}
-        </InspectorDisclosure>
-        <InspectorDisclosure title="Context follow-up" count={(workbench?.contextFollowup?.policyInflationSupported ?? 0) + (workbench?.contextFollowup?.boundedInteractionsSupported ?? 0) + (workbench?.contextFollowup?.transferCandidates.length ?? 0)} icon={<FlaskConical size={14} />}>
-          {() => workbench?.contextFollowup ? <>
-            <article className="fms-atlas-summary"><strong>{workbench.contextFollowup.recipesAudited} recipes audited</strong><span>{workbench.contextFollowup.policyInflationSupported} Policy/Inflation · {workbench.contextFollowup.boundedInteractionsSupported} combined</span><small>{workbench.contextFollowup.transferCandidates.length} cross-market transfer candidates · review only</small></article>
-            {workbench.contextFollowup.transferCandidates.map((row) => <article key={row.id}><strong>{row.targetLabel}</strong><span>{row.sourceRegistrationId} → {row.targetMarket}</span><small>{readable(row.condition.dimension ?? "context")} = {readable(row.condition.value ?? "unknown")} · later N {row.laterExecution.evaluableN} · {formatR(row.laterExecution.averageR)}</small></article>)}
-            <p>{workbench.contextFollowup.refreshPolicy}</p>
-          </> : <p>No context follow-up artifact is available.</p>}
-        </InspectorDisclosure>
-        <InspectorDisclosure title="Research Archive" count={workbench?.archive.length ?? 0} icon={<Archive size={14} />}>
-          {() => workbench?.archive.map((item) => <article key={item.id}><strong>{item.id}</strong><span>{item.latestRun?.status ?? "No run"}</span><small>{item.configurationHash.slice(0, 12)} · {formatTime(item.createdAt)}</small></article>)}
-        </InspectorDisclosure>
-      </aside>
-    </div>
-    <FmsWorkbenchTutorial open={guideOpen} onClose={() => setGuideOpen(false)} />
-  </section>;
+
+  if (!workbench && loading) return <div className="fms-table-empty"><RefreshCw className="animate-spin" /><strong>Loading FMS Workbench</strong></div>;
+  if (!workbench) return <div className="fms-table-empty is-error"><AlertTriangle /><strong>FMS Workbench unavailable</strong><span>{error ?? "The bridge returned no workbench record."}</span><button type="button" onClick={onRefresh}>Retry</button></div>;
+
+  const registrationEvidence = registeredSetup?.registrationEvidence ?? null;
+  const periods = [
+    ["Durable EUR/USD calendar", calendarPeriod],
+    ["Workbench research cases", researchPeriod],
+    ["Stored H4 prices", pricePeriod],
+  ] as const;
+
+  return (
+    <main className="fms-workbench fms-workbench-table-ui">
+      <header className="fms-workbench-header">
+        <div><span className="fms-eyebrow">Retained research workspace</span><h2>FMS Experiment Workbench</h2><p>Declare bounded experiments, inspect immutable results, and freeze review candidates. No automatic setup promotion.</p></div>
+        <div><button type="button" onClick={() => setGuideOpen(true)}><BookOpen size={14} />How to use the Workbench</button><button type="button" onClick={onRefresh} disabled={loading}><RefreshCw size={14} className={loading ? "animate-spin" : ""} />Refresh</button></div>
+      </header>
+
+      <nav className="fms-workbench-mode-tabs" aria-label="Workbench jobs">
+        {(["declare", "run", "results", "archive"] as const).map((item) => <button key={item} type="button" className={workspaceMode === item ? "is-active" : ""} onClick={() => setWorkspaceMode(item)}>{item === "run" ? "Run status" : readable(item)}</button>)}
+      </nav>
+
+      {error ? <div className="fms-workbench-error"><AlertTriangle size={14} />{error}</div> : null}
+
+      <section className="fms-table-section fms-workbench-context">
+        <h3>Research context <span>Current model and stored-source coverage</span></h3>
+        <table className="fms-literal-table fms-key-value-table"><tbody>
+          <tr><th>Market</th><td><select aria-label="Research market" value={market} onChange={(event) => onMarketChange(event.target.value as FmsResearchMarket)}>{FX_PAIRS.map((pair) => <option key={pair.name} value={pair.name}>{pair.name}</option>)}</select></td><th>Reviewed Charts model</th><td>{workbench.currentModel.friendlyName} · {workbench.currentModel.displayId}</td></tr>
+          <tr><th>Model ID</th><td>{workbench.currentModel.id}</td><th>Dataset fingerprint</th><td>{workbench.datasetFingerprint}</td></tr>
+          <tr><th>Timeframe</th><td>{workbench.currentModel.timeframe}</td><th>Registered setups</th><td>{workbench.currentModel.registeredSetups.length} · promotion remains reviewed-only</td></tr>
+        </tbody></table>
+        <div className="fms-table-scroll"><table className="fms-literal-table"><thead><tr><th>Stored source</th><th>Years</th><th>Exact UTC range</th></tr></thead><tbody>{periods.map(([label, period]) => <tr key={label}><th>{label}</th><td>{period?.years ?? "Unavailable"}</td><td>{period?.dates ?? "Unavailable"}</td></tr>)}</tbody></table></div>
+      </section>
+
+      {workspaceMode === "declare" ? <div className="fms-workbench-declare-grid">
+        <section className="fms-table-section">
+          <h3>Choose economic setup <span>{filtered.length} catalog rows</span></h3>
+          <label className="fms-inline-field">Search catalog<input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Event family, title, or signature" /></label>
+          <div className="fms-table-scroll fms-catalog-table-scroll"><table className="fms-literal-table fms-selectable-table"><thead><tr><th>Setup</th><th>Scope</th><th>N</th><th>Source</th></tr></thead><tbody>
+            {filtered.map((item) => <tr key={item.id} className={selectedItem?.id === item.id ? "is-selected" : ""} onClick={() => { setCatalogId(item.id); setFriendlyName(`${item.label} experiment`); }}><td><button type="button" onClick={() => { setCatalogId(item.id); setFriendlyName(`${item.label} experiment`); }}>{item.label}</button><small>{item.family}</small></td><td>{item.direction === "both" ? "Both directions" : readable(item.direction)}</td><td>{item.historicalN}</td><td>{item.registered ? "Registered model" : item.sourceVersionId}</td></tr>)}
+            {!filtered.length ? <tr><td colSpan={4}>No catalog rows match this search.</td></tr> : null}
+          </tbody></table></div>
+        </section>
+
+        <section className="fms-table-section fms-declaration-form">
+          <h3>Declare experiment <span>Nothing changes the reviewed Charts model</span></h3>
+          {selectedItem ? <>
+            <table className="fms-literal-table fms-key-value-table"><tbody>
+              <tr><th>Selected setup</th><td>{selectedItem.label}</td><th>Catalog N</th><td>{selectedItem.historicalN}</td></tr>
+              <tr><th>Signature</th><td>{selectedItem.signature}</td><th>Source version</th><td>{selectedItem.sourceVersionId}</td></tr>
+            </tbody></table>
+
+            <fieldset className="fms-button-field"><legend>Direction selection</legend>
+              {selectedItem.directionVariants.map((variant) => <button key={variant.direction} type="button" className={directionSelection === variant.direction ? "is-active" : ""} onClick={() => setDirectionSelection(variant.direction)}>{readable(variant.direction)} · N {variant.historicalN}</button>)}
+              {selectedItem.direction === "both" ? <button type="button" className={directionSelection === "both" ? "is-active" : ""} onClick={() => setDirectionSelection("both")}>Both directions · N {selectedItem.historicalN}</button> : null}
+            </fieldset>
+
+            {registeredSetup ? <div className="fms-registration-record"><h4>Registered recipe</h4><table className="fms-literal-table"><thead><tr><th>Why it was registered</th><th>Scoring</th><th>Reaction</th><th>Execution</th><th>Original outcomes</th><th>Gross evidence</th></tr></thead><tbody><tr><td>{registeredSetup.condition}</td><td>{scoringPolicyLabel(registeredSetup.scoringPolicy)}</td><td>{reactionLabel(registeredSetup.reaction)}</td><td>SL {registeredSetup.execution.stopAtr} ATR · TP {registeredSetup.execution.targetR}R · {registeredSetup.execution.expiryCandles} H4</td><td>{registrationEvidence ? `${registrationEvidence.evaluable} cases · ${registrationEvidence.targetFirst} target first · ${registrationEvidence.stopFirst} stop first · ${registrationEvidence.expired} expired` : "Unavailable in stored registration"}</td><td>{registrationEvidence ? `${formatR(registrationEvidence.stressedAverageR)} · ${registrationEvidence.positiveYears}/${registrationEvidence.evaluatedYears} positive years` : "Unavailable in stored registration"}</td></tr></tbody></table><p>Charts and Shadow Trader use this exact frozen scoring, reaction, and execution recipe.</p></div> : null}
+
+            <div className="fms-declaration-fields">
+              <label>How each release is scored<select value={policy} onChange={(event) => setPolicy(event.target.value as typeof policy)}>{workbench.protocol.scoringPolicies.map((item) => <option key={item} value={item}>{scoringPolicyLabel(item)}</option>)}</select><small>{scoringPolicyExplanation(policy)}</small></label>
+              <label>Cases included<select value={selectedTreatment?.id ?? "base"} onChange={(event) => setTreatmentId(event.target.value)}>{availableTreatments.map((item) => <option key={item.id} value={item.id}>{item.label} · N {item.historicalN}</option>)}</select><small>{cohortExplanation(selectedTreatment)}</small></label>
+            </div>
+            {policy === "forecast_quality" ? <p className="fms-table-note"><strong>How Forecast Guard works:</strong> historically unreliable broker forecasts lose only the Surprise vote; Momentum and the original raw values remain available for audit.</p> : null}
+
+            <fieldset className="fms-button-field"><legend>Execution search</legend><button type="button" className={mode === "single" ? "is-active" : ""} onClick={() => switchMode("single")}>Single Contract</button><button type="button" className={mode === "matrix" ? "is-active" : ""} onClick={() => switchMode("matrix")}>Combined Contracts</button></fieldset>
+            <div className="fms-picker-grid"><ValuePicker label="SL (ATR)" values={workbench.protocol.stopAtrValues} selected={stops} multiple={mode === "matrix"} onChange={setStops} /><ValuePicker label="TP (R + ATR)" values={workbench.protocol.targetRValues} selected={targets} multiple={mode === "matrix"} onChange={setTargets} formatValue={(value) => `${value}R (${value * (stops[0] ?? 1)} ATR)`} /><ValuePicker label="Maximum trade duration (H4 candles)" values={workbench.protocol.holdingCandles} selected={holding} multiple={mode === "matrix"} onChange={setHolding} /></div>
+            <label className="fms-inline-field">Experiment name<input value={friendlyName} onChange={(event) => setFriendlyName(event.target.value)} /></label>
+            <button className="fms-primary-action" type="button" disabled={running || !friendlyName.trim() || !selectedTreatment} onClick={submit}><Play size={14} />Run recorded experiment</button>
+            <p className="fms-table-note">Declared N {directionCount}. Entry is the first strictly later H4 open. Results are gross; spread, commission, slippage, and swap are excluded.</p>
+          </> : <div className="fms-table-empty"><strong>No setup selected</strong></div>}
+        </section>
+      </div> : null}
+
+      {workspaceMode === "run" ? <section className="fms-table-section">
+        <h3>Run status <span>Recorded bridge jobs · select up to 4 rows for comparison</span></h3>
+        <div className="fms-table-toolbar"><span>{comparisonIds.length} selected</span><button type="button" disabled={!comparisonIds.length} onClick={() => setWorkspaceMode("results")}>Compare selected</button></div>
+        <table className="fms-literal-table fms-selectable-table"><thead><tr><th>Compare</th><th>Experiment</th><th>Setup</th><th>Status</th><th>Created</th><th>Configuration hash</th><th>Dataset fingerprint</th><th>Error</th></tr></thead><tbody>
+          {workbench.experiments.map((item) => <tr key={item.id} className={selectedExperiment?.id === item.id ? "is-selected" : ""} onClick={() => { onSelectExperiment(item.id); setWorkspaceMode("results"); }}><td onClick={(event) => event.stopPropagation()}><input aria-label={`Compare ${item.friendlyName}`} type="checkbox" checked={comparisonIds.includes(item.id)} disabled={!comparisonIds.includes(item.id) && comparisonIds.length >= 4} onChange={(event) => setComparisonIds((current) => event.target.checked ? [...current, item.id] : current.filter((id) => id !== item.id))} /></td><td><button type="button" onClick={(event) => { event.stopPropagation(); onSelectExperiment(item.id); setWorkspaceMode("results"); }}>{item.friendlyName}</button><small>{item.id}</small></td><td>{item.catalogSnapshot.label}</td><td>{readable(item.status)}</td><td>{formatTime(item.createdAt)}</td><td>{item.configurationHash}</td><td>{item.datasetFingerprint}</td><td>{item.error ?? "None recorded"}</td></tr>)}
+          {!workbench.experiments.length ? <tr><td colSpan={8}>No recorded experiments for {market}.</td></tr> : null}
+        </tbody></table>
+      </section> : null}
+
+      {workspaceMode === "results" ? <div className="fms-workbench-results-layout">
+        {comparisonRows.length ? <section className="fms-table-section"><h3>Selected experiment comparison <span>{comparisonRows.length} immutable records</span></h3>{comparisonRows.length > 1 ? <p className="fms-table-note"><strong>Compatibility warning:</strong> the queue contract exposes identity and status only, not full scoring-policy, cohort, execution, or partition facts. Open each stored result before making cross-row performance inferences.</p> : null}<div className="fms-table-scroll"><table className="fms-literal-table"><thead><tr><th>Experiment</th><th>Setup</th><th>Status</th><th>Created</th><th>Configuration hash</th><th>Dataset fingerprint</th><th>Error</th></tr></thead><tbody>{comparisonRows.map((item) => <tr key={item.id}><td><button type="button" onClick={() => onSelectExperiment(item.id)}>{item.friendlyName}</button><small>{item.id}</small></td><td>{item.catalogSnapshot.label}</td><td>{readable(item.status)}</td><td>{formatTime(item.createdAt)}</td><td>{item.configurationHash}</td><td>{item.datasetFingerprint}</td><td>{item.error ?? "None recorded"}</td></tr>)}</tbody></table></div></section> : null}
+        <section className="fms-table-section">
+          <h3>Reaction Atlas <span>Stored cross-event reference · unavailable fields are not inferred</span></h3>
+          {workbench.reactionAtlas ? <><div className="fms-table-scroll"><table className="fms-literal-table"><thead><tr><th>Event family</th><th>Currency</th><th>Pair</th><th>Direction rule</th><th>N</th><th>Respect rate</th><th>Signed MFE</th><th>Signed MAE</th><th>Horizon</th><th>Development</th><th>Holdout</th><th>Recent</th><th>Coverage</th><th>Classification</th></tr></thead><tbody>{workbench.reactionAtlas.rows.map((row) => <tr key={row.id}><td>{row.label}</td><td>Unavailable in stored atlas</td><td>{market}</td><td>Unavailable in stored atlas</td><td>{row.historicalN}</td><td>Unavailable in stored atlas</td><td>Unavailable in stored atlas</td><td>Unavailable in stored atlas</td><td>{row.horizonH4} H4</td><td>Unavailable in stored atlas</td><td>{formatR(row.holdoutAverageR)}</td><td>{formatR(row.recentAverageR)}</td><td>Unavailable in stored atlas</td><td>{row.classificationLabel}</td></tr>)}</tbody></table></div><table className="fms-literal-table fms-key-value-table"><tbody><tr><th>Atlas version</th><td>{workbench.reactionAtlas.version}</td><th>Artifact hash</th><td>{workbench.reactionAtlas.artifactHash}</td></tr><tr><th>Generated</th><td>{formatTime(workbench.reactionAtlas.generatedAt)}</td><th>Rows</th><td>{workbench.reactionAtlas.rows.length}</td></tr></tbody></table></> : <div className="fms-table-empty"><strong>Reaction Atlas unavailable</strong><span>No stored atlas artifact was returned for this market.</span></div>}
+        </section>
+        <ResultPanel experiment={selectedExperiment} onFreeze={onFreeze} busy={loading} />
+      </div> : null}
+
+      {workspaceMode === "archive" ? <div className="fms-workbench-archive">
+        <section className="fms-table-section"><h3>Current registered setups <span>Reviewed Charts model</span></h3><table className="fms-literal-table"><thead><tr><th>ID</th><th>Setup</th><th>Condition</th><th>Scoring</th><th>Reaction</th><th>Execution</th><th>Registration evidence</th></tr></thead><tbody>{workbench.currentModel.registeredSetups.map((item) => <tr key={item.id}><td>{item.id}</td><td>{item.label}</td><td>{item.condition}</td><td>{scoringPolicyLabel(item.scoringPolicy)}</td><td>{reactionLabel(item.reaction)}</td><td>SL {item.execution.stopAtr} ATR · TP {item.execution.targetR}R · {item.execution.expiryCandles} H4</td><td>{item.registrationEvidence ? `N ${item.registrationEvidence.evaluable} · ${formatR(item.registrationEvidence.stressedAverageR)}` : "Unavailable in stored registration"}</td></tr>)}</tbody></table></section>
+        <section className="fms-table-section"><h3>Frozen review candidates <span>Never promoted automatically</span></h3><table className="fms-literal-table fms-selectable-table"><thead><tr><th>Candidate</th><th>Experiment</th><th>Setup</th><th>Created</th><th>Failed gates acknowledged</th><th>Checks</th></tr></thead><tbody>{workbench.candidates.map((item) => <tr key={item.id} onClick={() => { onSelectExperiment(item.experimentId); setWorkspaceMode("results"); }}><td><button type="button" onClick={(event) => { event.stopPropagation(); onSelectExperiment(item.experimentId); setWorkspaceMode("results"); }}>{item.friendlyName}</button><small>{item.id}</small></td><td>{item.experimentId}</td><td>{item.catalogSnapshot.label}</td><td>{formatTime(item.createdAt)}</td><td>{item.failedGateAcknowledged ? "Yes" : "No"}</td><td>{Object.values(item.checks).filter(Boolean).length}/{Object.keys(item.checks).length} passed</td></tr>)}{!workbench.candidates.length ? <tr><td colSpan={6}>No frozen review candidates.</td></tr> : null}</tbody></table></section>
+        <section className="fms-table-section"><h3>Research Archive <span>Legacy records remain available</span></h3><table className="fms-literal-table"><thead><tr><th>Record</th><th>Created</th><th>Latest run</th><th>Run status</th><th>Configuration hash</th><th>Dataset fingerprint</th><th>Error</th></tr></thead><tbody>{workbench.archive.map((item) => <tr key={item.id}><td>{item.id}</td><td>{formatTime(item.createdAt)}</td><td>{item.latestRun?.id ?? "Unavailable"}</td><td>{item.latestRun?.status ?? "Unavailable"}</td><td>{item.configurationHash}</td><td>{item.latestRun?.datasetFingerprint ?? "Unavailable"}</td><td>{item.latestRun?.error ?? "None recorded"}</td></tr>)}{!workbench.archive.length ? <tr><td colSpan={7}>No legacy research records.</td></tr> : null}</tbody></table></section>
+        {workbench.contextFollowup ? <section className="fms-table-section"><h3>Context follow-up index <span>{workbench.contextFollowup.refreshPolicy ?? "Stored refresh policy unavailable"}</span></h3><table className="fms-literal-table"><thead><tr><th>Target</th><th>Source registration</th><th>Condition</th><th>Execution N</th><th>Average gross R</th><th>Reaction alignment</th></tr></thead><tbody>{workbench.contextFollowup.transferCandidates.map((item) => <tr key={item.id}><td>{item.targetMarket} · {item.targetLabel}</td><td>{item.sourceRegistrationId}</td><td>{item.condition.dimension ? `${readable(item.condition.dimension)} · ${readable(item.condition.value ?? "")}` : "All matching cases"}</td><td>{item.laterExecution.evaluableN}</td><td>{formatR(item.laterExecution.averageR)}</td><td>{formatPercent(item.laterReaction.alignmentRate)}</td></tr>)}{!workbench.contextFollowup.transferCandidates.length ? <tr><td colSpan={6}>No stored transfer candidates.</td></tr> : null}</tbody></table></section> : null}
+      </div> : null}
+
+      <FmsWorkbenchTutorial open={guideOpen} onClose={() => setGuideOpen(false)} />
+    </main>
+  );
 }
 
 export function MacroSignalLabTab() {

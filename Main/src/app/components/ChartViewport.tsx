@@ -1,137 +1,30 @@
-import { Component, forwardRef, memo, useEffect, useImperativeHandle, useMemo, useRef, useState, type CSSProperties, type ErrorInfo, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode, type Ref } from "react";
-import { AlertTriangle, CalendarDays, ChevronDown, Settings2 } from "lucide-react";
+import { forwardRef, memo, useImperativeHandle, useRef, type ReactNode, type Ref } from "react";
+import { AlertTriangle } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChartEventLens, type ChartEventLensData } from "@/app/components/ChartEventLens";
+import type { ChartEventLensData } from "@/app/components/ChartEventLens";
 import { ChartEventOverlay } from "@/app/components/ChartEventOverlay";
-import { ChartPairMatrixContextMarkers, type PairMatrixContextMarkerView } from "@/app/components/ChartPairMatrixContextMarkers";
-import { ChartMacroBiasAudit, type ChartMacroBiasAuditData } from "@/app/components/ChartMacroBiasAudit";
-import { ChartMacroBiasRealtimeCard, type ChartMacroBiasRealtimeCardData } from "@/app/components/ChartMacroBiasRealtimeCard";
-import { ChartFmsActionCard, DEFAULT_FMS_TRADE_VIEW_STATE, type FmsTradeViewState } from "@/app/components/ChartFmsActionCard";
-import { ChartFmsJournalCard } from "@/app/components/ChartFmsJournalCard";
-import { ChartFmsKnowledgeCard } from "@/app/components/ChartFmsKnowledgeCard";
-import { ChartPairMatrixTimeLens, type ChartPairMatrixTimeLensData } from "@/app/components/ChartPairMatrixTimeLens";
-import { usePairMatrixHoverAnchor } from "@/app/hooks/usePairMatrixHoverAnchor";
+import { ChartPairMatrixContextMarkers } from "@/app/components/ChartPairMatrixContextMarkers";
+import type { ChartMacroBiasAuditData } from "@/app/components/ChartMacroBiasAudit";
+import type { ChartMacroBiasRealtimeCardData } from "@/app/components/ChartMacroBiasRealtimeCard";
+import type { ChartPairMatrixTimeLensData } from "@/app/components/ChartPairMatrixTimeLens";
+import { ChartBottomDock } from "@/app/features/chart-bottom-dock/ChartBottomDock";
+import type { ChartEventLensDockData } from "@/app/features/chart-events/chartEventLensContracts";
+import { ChartFmsDock } from "@/app/features/fms-dock/ChartFmsDock";
+import { ChartPairMatrixRangeOverlay } from "@/app/features/pair-matrix/ChartPairMatrixRangeOverlay";
+import type { ChartPairMatrixContextMarkerData, ChartPairMatrixRangeOverlayData } from "@/app/features/pair-matrix/chartPairMatrixContracts";
+import { useChartPanelState } from "@/app/features/chart-viewport/useChartPanelState";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
-import type { ChartDisplayTimeMode } from "@/app/lib/chartView";
-import type { PairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
-import type { PairMatrixChartGeometryRuntime } from "@/app/lib/pairMatrixChartGeometry";
-import type { PairMatrixCandleRange, PairMatrixRangePixelBounds } from "@/app/lib/pairMatrixSnapshot";
 import type { BridgeStatus, CalendarEvent, MacroSignalChartSignal } from "@/app/types";
 
-const PAIR_MATRIX_PANEL_MIN_HEIGHT = 240;
-const PAIR_MATRIX_CHART_MIN_HEIGHT = 220;
-
-class FmsDockErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
-  state = { error: null as string | null };
-
-  static getDerivedStateFromError(error: unknown) {
-    return { error: error instanceof Error ? error.message : "Unknown FMS panel error" };
-  }
-
-  componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("FMS dock render failed", error, info);
-  }
-
-  render() {
-    if (this.state.error) return <section className="chart-fms-dock-loading is-error"><strong>FMS panel could not render</strong><span>{this.state.error}</span><button type="button" onClick={() => this.setState({ error: null })}>Retry panel</button></section>;
-    return this.props.children;
-  }
-}
-const FMS_DOCK_MIN_WIDTH = 340;
-const FMS_DOCK_DEFAULT_WIDTH = 460;
-const FMS_DOCK_WIDTH_KEY = "fyodor.charts.fms-dock-width";
-const FMS_TRADE_STATE_KEY = "fyodor.charts.fms-trade-state";
-const FMS_SETUPS_STATE_KEY = "fyodor.charts.fms-setups-state";
-
-type FmsSetupSection = "benchmarks" | "research" | "knowledge";
-
-function loadFmsSetupSections(): { workspaceOpen: boolean; open: FmsSetupSection[]; visited: FmsSetupSection[] } {
-  try {
-    const parsed = JSON.parse(window.sessionStorage.getItem(FMS_SETUPS_STATE_KEY) ?? "null");
-    const valid = (value: unknown): value is FmsSetupSection => value === "benchmarks" || value === "research" || value === "knowledge";
-    return {
-      workspaceOpen: Boolean(parsed?.workspaceOpen),
-      open: Array.isArray(parsed?.open) ? parsed.open.filter(valid) : [],
-      visited: Array.isArray(parsed?.visited) ? parsed.visited.filter(valid) : [],
-    };
-  } catch {
-    return { workspaceOpen: false, open: [], visited: [] };
-  }
-}
-
-function FmsSetupsWorkspace({ data }: { data: ChartMacroBiasRealtimeCardData }) {
-  const [sections, setSections] = useState(loadFmsSetupSections);
-  useEffect(() => {
-    try { window.sessionStorage.setItem(FMS_SETUPS_STATE_KEY, JSON.stringify(sections)); } catch { /* optional session continuity */ }
-  }, [sections]);
-  const toggleSection = (section: FmsSetupSection, open: boolean) => setSections((current) => ({
-    ...current,
-    open: open ? [...new Set([...current.open, section])] : current.open.filter((value) => value !== section),
-    visited: open ? [...new Set([...current.visited, section])] : current.visited,
-  }));
-  const registeredCount = (data.globalResponse?.markets ?? [data.response])
-    .reduce((sum, market) => sum + market.patterns.filter((pattern) => pattern.currentEligible).length, 0);
-  return <section className="fms-setups-workspace" aria-label="Registered setups, research, and knowledge">
-    <header><div><span>Registered Setups</span></div><small>{registeredCount} frozen contracts</small></header>
-    <details className="fms-setups-workspace-root" open={sections.workspaceOpen} onToggle={(event) => {
-      const open = event.currentTarget.open;
-      setSections((current) => ({ ...current, workspaceOpen: open }));
-    }}>
-      <summary><span>Registered setup benchmarks</span><strong>{registeredCount}</strong><ChevronDown size={14} /></summary>
-      <div className="fms-setups-workspace-sections">
-        <details open={sections.open.includes("benchmarks")} onToggle={(event) => {
-          const open = event.currentTarget.open;
-          toggleSection("benchmarks", open);
-        }}>
-          <summary><span>Benchmarks</span><small>Frozen contracts and historical evidence</small><ChevronDown size={13} /></summary>
-          {sections.visited.includes("benchmarks") ? <ChartMacroBiasRealtimeCard data={data} view="setups" embedded /> : null}
-        </details>
-        <details open={sections.open.includes("research")} onToggle={(event) => {
-          const open = event.currentTarget.open;
-          toggleSection("research", open);
-        }}>
-          <summary><span>Research / reviews</span><small>Diagnostics, queues, and candidates</small><ChevronDown size={13} /></summary>
-          {sections.visited.includes("research") ? <ChartMacroBiasRealtimeCard data={data} view="research" embedded /> : null}
-        </details>
-        <details open={sections.open.includes("knowledge")} onToggle={(event) => {
-          const open = event.currentTarget.open;
-          toggleSection("knowledge", open);
-        }}>
-          <summary><span>Knowledge</span><small>Durable findings and research ledger</small><ChevronDown size={13} /></summary>
-          {sections.visited.includes("knowledge") ? <ChartFmsKnowledgeCard data={data} embedded /> : null}
-        </details>
-      </div>
-    </details>
-  </section>;
-}
-
-function loadFmsTradeViewState(): FmsTradeViewState {
-  try {
-    const parsed = JSON.parse(window.sessionStorage.getItem(FMS_TRADE_STATE_KEY) ?? "null") as Partial<FmsTradeViewState> | null;
-    const activeView = parsed?.activeView;
-    if (!parsed || (activeView !== "next" && activeView !== "current" && activeView !== "recent")) return DEFAULT_FMS_TRADE_VIEW_STATE;
-    return {
-      ...DEFAULT_FMS_TRADE_VIEW_STATE,
-      ...parsed,
-      activeView,
-      scroll: { ...DEFAULT_FMS_TRADE_VIEW_STATE.scroll, ...parsed.scroll },
-    };
-  } catch {
-    return DEFAULT_FMS_TRADE_VIEW_STATE;
-  }
-}
-
-export function clampFmsDockWidth(requestedWidth: number, workspaceWidth: number): number {
-  const maximum = Math.max(FMS_DOCK_MIN_WIDTH, Math.min(720, workspaceWidth * .62));
-  return Math.round(Math.min(maximum, Math.max(FMS_DOCK_MIN_WIDTH, requestedWidth)));
-}
-
-export function clampPairMatrixPanelHeight(requestedHeight: number, workspaceHeight: number): number {
-  return Math.round(Math.min(
-    Math.max(PAIR_MATRIX_PANEL_MIN_HEIGHT, workspaceHeight - PAIR_MATRIX_CHART_MIN_HEIGHT),
-    Math.max(PAIR_MATRIX_PANEL_MIN_HEIGHT, requestedHeight),
-  ));
-}
+export { clampFmsDockWidth } from "@/app/features/chart-viewport/chartPanelState";
+export { clampPairMatrixPanelHeight } from "@/app/features/chart-bottom-dock/ChartBottomDock";
+export { ChartPairMatrixRangeOverlay } from "@/app/features/pair-matrix/ChartPairMatrixRangeOverlay";
+export type { ChartEventLensDockData } from "@/app/features/chart-events/chartEventLensContracts";
+export type {
+  ChartPairMatrixContextMarkerData,
+  ChartPairMatrixRangeOverlayData,
+  PairMatrixRangePreview,
+} from "@/app/features/pair-matrix/chartPairMatrixContracts";
 
 export type ChartCrosshairReadout = {
   top: number;
@@ -177,55 +70,6 @@ export const ChartCrosshairReadoutOverlay = memo(forwardRef<ChartCrosshairReadou
   );
 }));
 
-export type ChartEventLensDockData = {
-  visible: boolean;
-  title: string;
-  description: string;
-  countLabel: string;
-  expanded: boolean;
-  canEnableEvents: boolean;
-  canBroadenImpact: boolean;
-  onToggleExpanded: () => void;
-  onShowEvents: () => void;
-  onOpenSettings: () => void;
-  onShowHighMedium: () => void;
-};
-
-export type ChartPairMatrixRangeOverlayData = {
-  armed: boolean;
-  cancelRevision: number;
-  lockedBounds: PairMatrixRangePixelBounds | null;
-  lockedRange?: PairMatrixCandleRange | null;
-  geometryRuntime?: PairMatrixChartGeometryRuntime;
-  startPreview: (x: number, edge: "new" | "start" | "end") => PairMatrixRangePreview | null;
-  updatePreview: (x: number, originTime: number) => PairMatrixRangePreview | null;
-  onCommit: (range: PairMatrixCandleRange) => void;
-  onCancel: () => void;
-  onInteractionChange: (active: boolean) => void;
-};
-
-export type ChartPairMatrixContextMarkerData = {
-  markers: PairMatrixContextMarkerView[];
-  passive: boolean;
-  displayTimeMode: ChartDisplayTimeMode;
-  sourceTimeOffsetSeconds: number;
-  loadState: "idle" | "loading" | "ready" | "error";
-  onSelectEvent: (event: CalendarEvent) => void;
-  onAnalyzeCandle: (candleOpen: number) => void;
-  geometryRuntime?: PairMatrixChartGeometryRuntime;
-  cursorRuntime?: {
-    hover: PairMatrixHoverRuntime;
-    resolve: (anchor: number | null) => PairMatrixContextMarkerView[];
-  };
-};
-
-export type PairMatrixRangePreview = {
-  key: string;
-  originTime: number;
-  range: PairMatrixCandleRange;
-  bounds: PairMatrixRangePixelBounds;
-};
-
 interface ChartViewportProps {
   containerRef: Ref<HTMLDivElement>;
   clusters: ChartEventOverlayCluster[];
@@ -242,6 +86,9 @@ interface ChartViewportProps {
   onSelectEvent: (clusterKey: string, event: CalendarEvent) => void;
   eventLens: ChartEventLensData | null;
   eventLensDock: ChartEventLensDockData;
+  calendarOpen: boolean;
+  calendarPanel: ReactNode;
+  onOpenCalendar: () => void;
   pairMatrixTimeLens: ChartPairMatrixTimeLensData;
   pairMatrixRangeOverlay: ChartPairMatrixRangeOverlayData;
   pairMatrixContextMarkers: ChartPairMatrixContextMarkerData;
@@ -276,6 +123,9 @@ export function ChartViewport({
   onSelectEvent,
   eventLens,
   eventLensDock,
+  calendarOpen,
+  calendarPanel,
+  onOpenCalendar,
   pairMatrixTimeLens,
   pairMatrixRangeOverlay,
     pairMatrixContextMarkers,
@@ -295,153 +145,56 @@ export function ChartViewport({
   overlayCopy,
   reachedBoundary,
 }: ChartViewportProps) {
-  const [fmsDockTab, setFmsDockTab] = useState<"trade" | "journal" | "setups" | "result">(macroBiasAudit ? "result" : "trade");
-  const fmsDockReturnTabRef = useRef<"trade" | "journal" | "setups">("trade");
-  const [fmsTradeViewState, setFmsTradeViewState] = useState(loadFmsTradeViewState);
-  const [fmsDockWidth, setFmsDockWidth] = useState(() => {
-    try {
-      const saved = Number(window.localStorage.getItem(FMS_DOCK_WIDTH_KEY));
-      return Number.isFinite(saved) ? Math.max(FMS_DOCK_MIN_WIDTH, saved) : FMS_DOCK_DEFAULT_WIDTH;
-    } catch {
-      return FMS_DOCK_DEFAULT_WIDTH;
-    }
-  });
-  const viewportRef = useRef<HTMLDivElement | null>(null);
-  const fmsDockRef = useRef<HTMLElement | null>(null);
   const fmsDockVisible = macroBiasEnabled || macroBiasRealtime != null || macroBiasAudit != null;
   const lensOpen = Boolean(eventLens?.expanded || eventLensDock.expanded);
-  const bottomDockVisible = pairMatrixTimeLens.open || lensOpen;
-  const [bottomDockTab, setBottomDockTab] = useState<"matrix" | "lens">(lensOpen ? "lens" : "matrix");
-  const previousMatrixOpenRef = useRef(pairMatrixTimeLens.open);
-  const previousLensOpenRef = useRef(lensOpen);
-
-  useEffect(() => {
-    if (macroBiasAudit) setFmsDockTab((current) => {
-      if (current !== "result") fmsDockReturnTabRef.current = current;
-      return "result";
-    });
-    else setFmsDockTab((current) => current === "result" ? fmsDockReturnTabRef.current : current);
-  }, [macroBiasAudit?.signal.id, Boolean(macroBiasRealtime)]);
-
-  const selectFmsDockTab = (tab: "trade" | "journal" | "setups") => {
-    fmsDockReturnTabRef.current = tab;
-    setFmsDockTab(tab);
-  };
-
-  useEffect(() => {
-    try { window.sessionStorage.setItem(FMS_TRADE_STATE_KEY, JSON.stringify(fmsTradeViewState)); } catch { /* optional session continuity */ }
-  }, [fmsTradeViewState]);
-
-  useEffect(() => {
-    if (pairMatrixTimeLens.open && !previousMatrixOpenRef.current) setBottomDockTab("matrix");
-    previousMatrixOpenRef.current = pairMatrixTimeLens.open;
-  }, [pairMatrixTimeLens.open]);
-
-  useEffect(() => {
-    if (lensOpen && !previousLensOpenRef.current) setBottomDockTab("lens");
-    previousLensOpenRef.current = lensOpen;
-  }, [lensOpen]);
-
-  useEffect(() => {
-    if (bottomDockTab === "matrix" && !pairMatrixTimeLens.open && lensOpen) setBottomDockTab("lens");
-    if (bottomDockTab === "lens" && !lensOpen && pairMatrixTimeLens.open) setBottomDockTab("matrix");
-  }, [bottomDockTab, lensOpen, pairMatrixTimeLens.open]);
-
-  const startFmsDockResize = (event: ReactPointerEvent<HTMLDivElement>) => {
-    event.preventDefault();
-    const pointerId = event.pointerId;
-    const handle = event.currentTarget;
-    handle.setPointerCapture(pointerId);
-    const bounds = viewportRef.current?.getBoundingClientRect();
-    if (!bounds) return;
-    let previewWidth = fmsDockWidth;
-    const update = (clientX: number) => {
-      previewWidth = clampFmsDockWidth(clientX - bounds.left, bounds.width);
-      if (fmsDockRef.current) fmsDockRef.current.style.width = `${previewWidth}px`;
-    };
-    const onMove = (moveEvent: PointerEvent) => update(moveEvent.clientX);
-    const finish = (finishEvent: PointerEvent) => {
-      update(finishEvent.clientX);
-      setFmsDockWidth(previewWidth);
-      try {
-        if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
-      } catch {
-        // The browser may already have released capture during cancellation.
-      }
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", finish);
-      window.removeEventListener("pointercancel", finish);
-      try { window.localStorage.setItem(FMS_DOCK_WIDTH_KEY, String(previewWidth)); } catch { /* optional preference */ }
-    };
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", finish);
-    window.addEventListener("pointercancel", finish);
-  };
-
-  const resizeFmsDockFromKeyboard = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight" && event.key !== "Home") return;
-    event.preventDefault();
-    const workspaceWidth = viewportRef.current?.getBoundingClientRect().width ?? window.innerWidth;
-    const requested = event.key === "Home"
-      ? FMS_DOCK_DEFAULT_WIDTH
-      : fmsDockWidth + (event.key === "ArrowLeft" ? -24 : 24);
-    const nextWidth = clampFmsDockWidth(requested, workspaceWidth);
-    setFmsDockWidth(nextWidth);
-    try { window.localStorage.setItem(FMS_DOCK_WIDTH_KEY, String(nextWidth)); } catch { /* optional preference */ }
-  };
+  const bottomDockVisible = pairMatrixTimeLens.open || lensOpen || calendarOpen;
+  const {
+    bottomDockTab,
+    fmsDockRef,
+    fmsDockTab,
+    fmsDockWidth,
+    fmsTradeViewState,
+    resizeFmsDockFromKeyboard,
+    selectFmsAuditTab,
+    selectFmsDockTab,
+    setBottomDockTab,
+    setFmsTradeViewState,
+    startFmsDockResize,
+    viewportRef,
+  } = useChartPanelState({
+    auditSignalId: macroBiasAudit?.signal.id ?? null,
+    realtimeAvailable: macroBiasRealtime != null,
+    pairMatrixOpen: pairMatrixTimeLens.open,
+    lensOpen,
+    calendarOpen,
+  });
 
   return (
     <>
       <div ref={viewportRef} className="chart-viewport-shell relative group min-h-0 flex-1 overflow-hidden">
         <div className={`chart-viewport-surface h-full overflow-hidden ${fmsDockVisible ? "has-fms-dock" : ""}`}>
           {fmsDockVisible ? (
-            <aside ref={fmsDockRef} className="chart-fms-dock" style={{ width: fmsDockWidth }} aria-label="FMS chart workspace">
-              <nav className="chart-fms-dock-tabs" aria-label="FMS windows">
-                <button type="button" className={fmsDockTab === "trade" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => selectFmsDockTab("trade")} title="Current action">Trade</button>
-                <button type="button" className={fmsDockTab === "journal" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => selectFmsDockTab("journal")} title="Daily model and demo results">Journal</button>
-                <button type="button" className={fmsDockTab === "setups" ? "is-active" : ""} disabled={!macroBiasRealtime} onClick={() => selectFmsDockTab("setups")}>Setups</button>
-                <button type="button" className={fmsDockTab === "result" ? "is-active" : ""} disabled={!macroBiasAudit} onClick={() => setFmsDockTab("result")}>Past Result</button>
-              </nav>
-              <div className="chart-fms-dock-content">
-                <FmsDockErrorBoundary key={fmsDockTab}>
-                {fmsDockTab === "result" && macroBiasAudit
-                  ? <ChartMacroBiasAudit data={macroBiasAudit} />
-                  : fmsDockTab === "trade" && macroBiasRealtime
-                    ? <ChartFmsActionCard
-                        data={macroBiasRealtime}
-                        historicalMatchesVisible={macroBiasHistoricalMatchesVisible}
-                        historicalMatchesCount={macroBiasHistoricalMatchesCount}
-                        historicalPatternFilters={macroBiasHistoricalPatternFilters}
-                        onToggleHistoricalMatches={onToggleMacroBiasHistoricalMatches}
-                        onToggleHistoricalPattern={onToggleMacroBiasHistoricalPattern}
-                        onSetAllHistoricalPatterns={onSetAllMacroBiasHistoricalPatterns}
-                        onGoToArrow={onGoToMacroBiasArrow}
-                        viewState={fmsTradeViewState}
-                        onViewStateChange={setFmsTradeViewState}
-                      />
-                  : fmsDockTab === "journal" && macroBiasRealtime
-                    ? <ChartFmsJournalCard data={macroBiasRealtime} />
-                  : fmsDockTab === "setups" && macroBiasRealtime
-                    ? <FmsSetupsWorkspace data={macroBiasRealtime} />
-                    : <section className="chart-fms-dock-loading" aria-live="polite">
-                        <strong>{macroBiasLoading ? "Loading FMS Trade…" : "FMS Trade unavailable"}</strong>
-                        <span>{macroBiasLoading ? "Cached decisions and the selected market are being restored." : "No registered FMS response is available for this market."}</span>
-                      </section>}
-                </FmsDockErrorBoundary>
-              </div>
-              <div
-                className="chart-fms-dock-resize"
-                role="separator"
-                tabIndex={0}
-                aria-label="Resize FMS panel"
-                aria-orientation="vertical"
-                aria-valuemin={FMS_DOCK_MIN_WIDTH}
-                aria-valuemax={720}
-                aria-valuenow={fmsDockWidth}
-                onPointerDown={startFmsDockResize}
-                onKeyDown={resizeFmsDockFromKeyboard}
-              />
-            </aside>
+            <ChartFmsDock
+              dockRef={fmsDockRef}
+              width={fmsDockWidth}
+              tab={fmsDockTab}
+              audit={macroBiasAudit}
+              realtime={macroBiasRealtime}
+              loading={macroBiasLoading}
+              historicalMatchesVisible={macroBiasHistoricalMatchesVisible}
+              historicalMatchesCount={macroBiasHistoricalMatchesCount}
+              historicalPatternFilters={macroBiasHistoricalPatternFilters}
+              tradeViewState={fmsTradeViewState}
+              onTradeViewStateChange={setFmsTradeViewState}
+              onSelectTab={selectFmsDockTab}
+              onSelectAuditTab={selectFmsAuditTab}
+              onToggleHistoricalMatches={onToggleMacroBiasHistoricalMatches}
+              onToggleHistoricalPattern={onToggleMacroBiasHistoricalPattern}
+              onSetAllHistoricalPatterns={onSetAllMacroBiasHistoricalPatterns}
+              onGoToArrow={onGoToMacroBiasArrow}
+              onResizePointerDown={startFmsDockResize}
+              onResizeKeyDown={resizeFmsDockFromKeyboard}
+            />
           ) : null}
           <div className={`chart-canvas-frame ${bottomDockVisible ? "has-pair-matrix-bottom" : ""}`}>
             <div className="chart-plot-region">
@@ -462,12 +215,15 @@ export function ChartViewport({
                 {pairMatrixTimeLens.open ? <ChartPairMatrixContextMarkers {...pairMatrixContextMarkers} /> : null}
             </div>
             {bottomDockVisible ? (
-              <ResizableChartBottomPanel
+              <ChartBottomDock
                 pairMatrixData={pairMatrixTimeLens}
                 eventLens={eventLens}
                 eventLensDock={eventLensDock}
+                calendarOpen={calendarOpen}
+                calendarPanel={calendarPanel}
                 activeTab={bottomDockTab}
                 onActiveTabChange={setBottomDockTab}
+                onOpenCalendar={onOpenCalendar}
               />
             ) : null}
           </div>
@@ -499,344 +255,5 @@ export function ChartViewport({
         </AnimatePresence>
       </div>
     </>
-  );
-}
-
-function ResizableChartBottomPanel({
-  pairMatrixData,
-  eventLens,
-  eventLensDock,
-  activeTab,
-  onActiveTabChange,
-}: {
-  pairMatrixData: ChartPairMatrixTimeLensData;
-  eventLens: ChartEventLensData | null;
-  eventLensDock: ChartEventLensDockData;
-  activeTab: "matrix" | "lens";
-  onActiveTabChange: (tab: "matrix" | "lens") => void;
-}) {
-  const shellRef = useRef<HTMLElement | null>(null);
-  const dragRef = useRef<{ pointerId: number; startY: number; startHeight: number } | null>(null);
-  const frameRef = useRef<number | null>(null);
-  const pendingHeightRef = useRef<number | null>(null);
-  const [height, setHeight] = useState<number | null>(null);
-  const hoverAnchor = usePairMatrixHoverAnchor(pairMatrixData.hasLockedRange ? null : pairMatrixData.cursorRuntime?.hover ?? null);
-  const resolvedData = useMemo(
-    () => pairMatrixData.hasLockedRange || !pairMatrixData.cursorRuntime ? pairMatrixData : pairMatrixData.cursorRuntime.resolve(hoverAnchor),
-    [pairMatrixData, hoverAnchor],
-  );
-
-  useEffect(() => () => {
-    if (frameRef.current != null) cancelAnimationFrame(frameRef.current);
-  }, []);
-
-  const resolveHeight = (requestedHeight: number) => {
-    const workspaceHeight = shellRef.current?.parentElement?.clientHeight ?? 0;
-    return clampPairMatrixPanelHeight(requestedHeight, workspaceHeight);
-  };
-  const scheduleHeight = (nextHeight: number) => {
-    pendingHeightRef.current = nextHeight;
-    if (frameRef.current != null) return;
-    frameRef.current = requestAnimationFrame(() => {
-      frameRef.current = null;
-      if (pendingHeightRef.current != null && shellRef.current) shellRef.current.style.height = `${pendingHeightRef.current}px`;
-    });
-  };
-  const finishResize = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (dragRef.current?.pointerId !== event.pointerId) return;
-    dragRef.current = null;
-    const committedHeight = pendingHeightRef.current ?? shellRef.current?.offsetHeight ?? null;
-    pendingHeightRef.current = null;
-    if (committedHeight != null) setHeight(committedHeight);
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
-  };
-
-  return (
-    <section
-      ref={shellRef}
-      className="chart-pair-matrix-bottom-shell"
-      style={height == null ? undefined : { height: `${height}px` }}
-      aria-label="Chart bottom panel"
-    >
-      <div
-        className="chart-pair-matrix-resize-handle"
-        role="separator"
-        aria-label="Resize chart bottom panel vertically"
-        aria-orientation="horizontal"
-        aria-valuemin={PAIR_MATRIX_PANEL_MIN_HEIGHT}
-        aria-valuenow={height ?? undefined}
-        tabIndex={0}
-        title="Drag to resize the bottom panel. Double-click to restore the default height."
-        onDoubleClick={() => {
-          pendingHeightRef.current = null;
-          if (shellRef.current) shellRef.current.style.removeProperty("height");
-          setHeight(null);
-        }}
-        onKeyDown={(event) => {
-          if (event.key === "Home") {
-            event.preventDefault();
-            setHeight(null);
-            return;
-          }
-          if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
-          event.preventDefault();
-          const currentHeight = height ?? shellRef.current?.offsetHeight ?? PAIR_MATRIX_PANEL_MIN_HEIGHT;
-          setHeight(resolveHeight(currentHeight + (event.key === "ArrowUp" ? 24 : -24)));
-        }}
-        onPointerDown={(event) => {
-          if (event.button !== 0) return;
-          event.preventDefault();
-          dragRef.current = { pointerId: event.pointerId, startY: event.clientY, startHeight: shellRef.current?.offsetHeight ?? PAIR_MATRIX_PANEL_MIN_HEIGHT };
-          event.currentTarget.setPointerCapture(event.pointerId);
-        }}
-        onPointerMove={(event) => {
-          const drag = dragRef.current;
-          if (!drag || drag.pointerId !== event.pointerId) return;
-          event.preventDefault();
-          scheduleHeight(resolveHeight(drag.startHeight + drag.startY - event.clientY));
-        }}
-        onPointerUp={finishResize}
-        onPointerCancel={finishResize}
-      >
-        <span aria-hidden="true" />
-      </div>
-      <nav className="chart-bottom-dock-tabs" aria-label="Bottom panel windows">
-        <button
-          type="button"
-          className={activeTab === "matrix" ? "is-active" : ""}
-          aria-selected={activeTab === "matrix"}
-          onClick={() => {
-            onActiveTabChange("matrix");
-            if (!pairMatrixData.open) pairMatrixData.onToggleOpen();
-          }}
-        >Matrix</button>
-        <button
-          type="button"
-          className={activeTab === "lens" ? "is-active" : ""}
-          aria-selected={activeTab === "lens"}
-          onClick={() => {
-            onActiveTabChange("lens");
-            if (!eventLens?.expanded && !eventLensDock.expanded) {
-              (eventLens?.onToggleExpanded ?? eventLensDock.onToggleExpanded)();
-            }
-          }}
-        >Lens</button>
-      </nav>
-      <div className="chart-bottom-dock-content">
-        {activeTab === "matrix" && pairMatrixData.open ? <ChartPairMatrixTimeLens data={resolvedData} /> : null}
-        {activeTab === "lens" && eventLens?.expanded ? <ChartEventLens data={eventLens} /> : null}
-        {activeTab === "lens" && !eventLens && eventLensDock.expanded ? <ChartEventLensDock data={eventLensDock} /> : null}
-      </div>
-    </section>
-  );
-}
-
-export const ChartPairMatrixRangeOverlay = memo(function ChartPairMatrixRangeOverlay({ data }: { data: ChartPairMatrixRangeOverlayData }) {
-  const [dragging, setDragging] = useState(false);
-  const [preview, setPreview] = useState<PairMatrixRangePreview | null>(null);
-  const draggingRef = useRef(false);
-  const previewRef = useRef<PairMatrixRangePreview | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const pendingXRef = useRef<number | null>(null);
-  const bandRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => () => {
-    if (animationFrameRef.current != null) window.cancelAnimationFrame(animationFrameRef.current);
-  }, []);
-
-  useEffect(() => {
-    if (animationFrameRef.current != null) window.cancelAnimationFrame(animationFrameRef.current);
-    animationFrameRef.current = null;
-    pendingXRef.current = null;
-    previewRef.current = null;
-    draggingRef.current = false;
-    setPreview(null);
-    setDragging(false);
-  }, [data.cancelRevision]);
-
-  useEffect(() => {
-    const runtime = data.geometryRuntime;
-    if (!runtime || !data.lockedRange) return;
-    const update = () => {
-      if (draggingRef.current || previewRef.current) return;
-      const band = bandRef.current;
-      if (!band) return;
-      const next = runtime.resolveRange(data.lockedRange!);
-      if (!next) {
-        band.style.visibility = "hidden";
-        return;
-      }
-      band.style.visibility = "visible";
-      band.style.left = "0px";
-      band.style.transform = `translate3d(${next.left}px, 0, 0)`;
-      const width = `${Math.max(2, next.right - next.left)}px`;
-      if (band.style.width !== width) band.style.width = width;
-    };
-    update();
-    return runtime.subscribe(update);
-  }, [data.geometryRuntime, data.lockedRange]);
-
-  const localX = (event: ReactPointerEvent<HTMLElement>) => {
-    const bounds = event.currentTarget.closest(".chart-plot-region")?.getBoundingClientRect();
-    return bounds ? event.clientX - bounds.left : 0;
-  };
-  const applyPreview = (next: PairMatrixRangePreview | null) => {
-    if (!next || previewRef.current?.key === next.key) return;
-    previewRef.current = next;
-    setPreview(next);
-  };
-  const begin = (event: ReactPointerEvent<HTMLElement>, edge: "new" | "start" | "end") => {
-    const next = data.startPreview(localX(event), edge);
-    if (!next) return;
-    event.currentTarget.setPointerCapture(event.pointerId);
-    draggingRef.current = true;
-    setDragging(true);
-    previewRef.current = next;
-    setPreview(next);
-    data.onInteractionChange(true);
-    event.preventDefault();
-    event.stopPropagation();
-  };
-  const move = (event: ReactPointerEvent<HTMLElement>) => {
-    if (!draggingRef.current || !previewRef.current) return;
-    pendingXRef.current = localX(event);
-    if (animationFrameRef.current == null) {
-      animationFrameRef.current = window.requestAnimationFrame(() => {
-        animationFrameRef.current = null;
-        const x = pendingXRef.current;
-        const current = previewRef.current;
-        if (x == null || !current) return;
-        applyPreview(data.updatePreview(x, current.originTime));
-      });
-    }
-    event.preventDefault();
-  };
-  const end = (event: ReactPointerEvent<HTMLElement>) => {
-    if (!draggingRef.current || !previewRef.current) return;
-    if (animationFrameRef.current != null) {
-      window.cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-    const finalPreview = data.updatePreview(localX(event), previewRef.current.originTime) ?? previewRef.current;
-    draggingRef.current = false;
-    setDragging(false);
-    setPreview(null);
-    previewRef.current = null;
-    pendingXRef.current = null;
-    data.onInteractionChange(false);
-    data.onCommit(finalPreview.range);
-    event.preventDefault();
-    event.stopPropagation();
-  };
-  const cancel = (event: ReactPointerEvent<HTMLElement>) => {
-    if (!draggingRef.current) return;
-    if (animationFrameRef.current != null) window.cancelAnimationFrame(animationFrameRef.current);
-    animationFrameRef.current = null;
-    draggingRef.current = false;
-    previewRef.current = null;
-    pendingXRef.current = null;
-    setDragging(false);
-    setPreview(null);
-    data.onInteractionChange(false);
-    data.onCancel();
-    event.preventDefault();
-    event.stopPropagation();
-  };
-  const bounds = preview?.bounds
-    ?? data.lockedBounds
-    ?? (data.lockedRange && data.geometryRuntime ? data.geometryRuntime.resolveRange(data.lockedRange) : null);
-  if (!bounds && !data.lockedRange && !data.armed && !dragging) return null;
-  const left = bounds?.left ?? 0;
-  const width = bounds ? Math.max(2, bounds.right - bounds.left) : 0;
-  const bandStyle = {
-    left: "0px",
-    width: `${width}px`,
-    visibility: bounds ? "visible" : "hidden",
-    transform: `translate3d(${left}px, 0, 0)`,
-  } as CSSProperties;
-
-  return (
-    <div
-      className={`absolute inset-0 z-[35] ${data.armed ? "pointer-events-auto cursor-crosshair" : "pointer-events-none"}`}
-      aria-label={data.armed ? "Drag to select a Pair Matrix candle range" : "Locked Pair Matrix candle range"}
-      onPointerDown={data.armed ? (event) => begin(event, "new") : undefined}
-      onPointerMove={data.armed ? move : undefined}
-      onPointerUp={data.armed ? end : undefined}
-      onPointerCancel={data.armed ? cancel : undefined}
-    >
-      {bounds || data.lockedRange ? (
-        <div ref={bandRef} className="pointer-events-none absolute inset-y-0 will-change-transform border-x-[3px] border-blue-600 bg-blue-400/25 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.28)]" style={bandStyle} data-pair-matrix-range-band="">
-          <button
-            type="button"
-            className="pointer-events-auto absolute inset-y-0 -left-2 w-4 cursor-ew-resize bg-transparent"
-            aria-label="Adjust Pair Matrix range start"
-            onPointerDown={(event) => begin(event, "start")}
-            onPointerMove={move}
-            onPointerUp={end}
-            onPointerCancel={cancel}
-          ><span className="pointer-events-none absolute left-1/2 top-1/2 h-10 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-600" /></button>
-          <button
-            type="button"
-            className="pointer-events-auto absolute inset-y-0 -right-2 w-4 cursor-ew-resize bg-transparent"
-            aria-label="Adjust Pair Matrix range end"
-            onPointerDown={(event) => begin(event, "end")}
-            onPointerMove={move}
-            onPointerUp={end}
-            onPointerCancel={cancel}
-          ><span className="pointer-events-none absolute left-1/2 top-1/2 h-10 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-blue-600" /></button>
-        </div>
-      ) : null}
-      {data.armed && !dragging ? <span className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded bg-slate-900/85 px-2 py-1 text-[10px] font-black text-white">Drag across complete candles</span> : null}
-    </div>
-  );
-});
-
-function ChartEventLensDock({ data }: { data: ChartEventLensDockData }) {
-  if (!data.visible) return null;
-
-  if (!data.expanded) {
-    return null;
-  }
-
-  return (
-    <section className="chart-event-lens-dock is-expanded" aria-label="Lens">
-      <div className="chart-event-lens-dock-title">
-        <span>Lens</span>
-        <strong>{data.title}</strong>
-      </div>
-      <p>{data.description}</p>
-      <div className="chart-event-lens-dock-actions">
-        <button type="button" onClick={data.onToggleExpanded} aria-expanded={data.expanded}>
-          <ChevronDown size={13} />
-          Collapse
-        </button>
-        {data.canEnableEvents ? (
-          <button type="button" onClick={data.onShowEvents}>
-            <CalendarDays size={13} />
-            Show event rail
-          </button>
-        ) : null}
-        <button type="button" onClick={data.onOpenSettings}>
-          <Settings2 size={13} />
-          Events settings
-        </button>
-        {data.canBroadenImpact ? (
-          <button type="button" onClick={data.onShowHighMedium}>
-            <CalendarDays size={13} />
-            Show high + medium
-          </button>
-        ) : null}
-      </div>
-      <div className="chart-event-lens-dock-body">
-        <div>
-          <span>How to use</span>
-          <strong>Click an event dot or badge on the bottom rail to load replay details.</strong>
-        </div>
-        <div>
-          <span>Coverage</span>
-          <strong>{data.countLabel}</strong>
-        </div>
-      </div>
-    </section>
   );
 }

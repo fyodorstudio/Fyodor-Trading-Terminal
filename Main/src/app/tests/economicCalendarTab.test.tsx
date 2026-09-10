@@ -66,6 +66,7 @@ describe("EconomicCalendarTab redesign", () => {
     try {
       html = renderToStaticMarkup(
         <EconomicCalendarTab
+          embedded
           health={health}
           persistedLastSyncedAt={Math.floor(nowMs / 1000) - 44}
         />,
@@ -75,6 +76,7 @@ describe("EconomicCalendarTab redesign", () => {
     }
 
     expect(html).toContain("Economic Calendar");
+    expect(html).toContain("is-chart-dock");
     expect(html).toContain("This Week");
     expect(html).toContain("Next Week");
     expect(html).toContain("High");

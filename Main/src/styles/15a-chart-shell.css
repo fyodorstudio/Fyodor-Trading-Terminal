@@ -1,0 +1,111 @@
+.main-area-charts {
+  margin-top: 0 !important;
+}
+
+.main-area-charts .charts-tab-page {
+  height: 100vh !important;
+}
+
+.chart-trust-state-anchor {
+  position: relative;
+  min-width: 0;
+  z-index: 130;
+}
+
+.chart-trust-state-button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  padding: 0 9px;
+  background: #f4f7fb;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.chart-trust-state-button.is-yes { background: #ecfdf5; color: #047857; }
+.chart-trust-state-button.is-limited { background: #fffbeb; color: #b45309; }
+.chart-trust-state-button.is-no { background: #fff1f2; color: #be123c; }
+.chart-trust-state-button:hover { border-color: #cbd5e1; }
+.chart-trust-state-button:focus-visible { outline: 2px solid #6366f1; outline-offset: 1px; }
+
+.chart-trust-state-popover {
+  position: fixed;
+  z-index: 980;
+  top: 48px;
+  right: 8px;
+  left: 8px;
+  max-height: calc(100vh - 56px);
+  overflow: auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .99);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, .18);
+}
+
+.secondary-workspace-bar {
+  display: grid;
+  min-height: 48px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin: 0 -16px;
+  border-bottom: 1px solid #cbd5e1;
+  background: rgba(255, 255, 255, .96);
+  padding: 6px 12px;
+}
+
+.secondary-workspace-bar strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 13px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.secondary-workspace-bar button {
+  display: inline-flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid #dbe3ef;
+  border-radius: 7px;
+  background: #fff;
+  padding: 0 10px;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.secondary-workspace-bar button:hover { background: #f8fafc; color: #0f172a; }
+
+.chart-bottom-dock-content > .calendar-page.is-chart-dock {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  gap: 7px;
+  overflow: hidden;
+  padding: 7px 8px 8px;
+  background: #fff;
+}
+
+.calendar-page.is-chart-dock .calendar-table-shell {
+  min-height: 0;
+}
+
+@media (min-width: 1501px) {
+  .charts-tab-page .chart-workbar-main {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+}
+
+@media (max-width: 1120px) {
+  .chart-trust-state-button span { display: none; }
+  .chart-trust-state-button { width: 34px; justify-content: center; padding: 0; }
+}

@@ -240,6 +240,7 @@ describe("getChartConnectionLabel", () => {
       macroBiasActiveLabel: "No active bias",
       eventLensExpanded: false,
       pairMatrixOpen: false,
+      calendarOpen: false,
       rightPanelOpen: false,
       onCursorModeChange: () => {},
       onRefocusChart: () => {},
@@ -247,6 +248,9 @@ describe("getChartConnectionLabel", () => {
       onToggleMacroBias: () => {},
       onToggleBottomPanel: () => {},
       onToggleRightPanel: () => {},
+      onOpenCalendar: () => {},
+      onOpenResearch: () => {},
+      onOpenAppSettings: () => {},
     }));
 
     expect(html).not.toContain("Current model");
@@ -257,6 +261,9 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain('aria-label="Toggle left panel"');
     expect(html).toContain('aria-label="Toggle bottom panel"');
     expect(html).toContain('aria-label="Toggle right panel"');
+    expect(html).toContain('aria-label="Open Economic Calendar in the bottom panel"');
+    expect(html).toContain('aria-label="Open Research workspace"');
+    expect(html).toContain('aria-label="Open appearance settings"');
   });
   it("makes target sensitivity, resolved outcomes, costs, and uncertainty explicit in the bias audit", () => {
     const metrics: MacroSignalMetrics = {
@@ -993,10 +1000,20 @@ describe("getChartConnectionLabel", () => {
   it("renders chart toolbar and settings drawer controls", () => {
     const html = renderToStaticMarkup(
       createElement(ChartsTab, {
+        currentTime: new Date("2026-09-09T00:00:00Z"),
+        health: { ok: true, bridge_connected: true, terminal_connected: true },
+        feedStatus: "live",
         selectedSymbol: "EURUSD",
         onSelectedSymbolChange: () => {},
         events: [],
         onOpenCalendarEvent: () => {},
+        calendarOpen: false,
+        calendarPanel: null,
+        onCalendarOpenChange: () => {},
+        resolvedBanks: 8,
+        nextHighImpact: null,
+        onOpenResearch: () => {},
+        onOpenAppSettings: () => {},
         marketStatus: {
           symbol: "EURUSD",
           symbol_path: "Forex Majors\\EURUSD",
@@ -1021,6 +1038,9 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Toggle left panel");
     expect(html).toContain("Toggle bottom panel");
     expect(html).toContain("Toggle right panel");
+    expect(html).toContain("Trust State: Yes");
+    expect(html).toContain("Open Economic Calendar in the bottom panel");
+    expect(html).toContain("Open Research workspace");
     expect(html).not.toContain(">Details<");
     expect(html).not.toContain("Loaded broker/MT5 rows only");
     expect(html).not.toContain("No loaded high-impact EUR/USD events in this visible range");
@@ -1090,11 +1110,11 @@ describe("getChartConnectionLabel", () => {
     expect(clustered[0].eventCandleOpenByKey.get("USD:2:210:Core CPI y/y")).toBe(200);
   });
 
-  it("renders event overlay controls inside the chart settings drawer", () => {
+  it("organizes the chart inspector around chart, layers, selected, data, and diagnostics", () => {
     const html = renderToStaticMarkup(
       createElement(ChartSettingsDrawer, {
         open: true,
-        mode: "events",
+        mode: "layers",
         onModeChange: () => {},
         onClose: () => {},
         preferences: DEFAULT_CHART_PREFERENCES,
@@ -1114,14 +1134,28 @@ describe("getChartConnectionLabel", () => {
           onStepCandlesChange: () => {},
           onFutureCandleOpacityChange: () => {},
         },
+        selectedData: { kind: "FMS arrow", title: "Registered arrow", rows: [{ field: "Entry", value: "1.16000", details: "Stored value" }] },
+        layerData: { rows: [{ id: "fms", label: "FMS arrows", visible: true, details: "1 loaded", onToggle: () => {} }] },
+        cacheData: { selectedSymbol: "EURUSD", timeframe: "H4", candleCount: 350, oldestLabel: "oldest", latestLabel: "latest", historyState: "ready", streamLabel: "connected", boundaryLabel: "known", onClearCache: () => {} },
+        debugData: { debugLines: ["connected"] },
+        placement: "left",
+        onPlacementChange: () => {},
+        onResetPanelLayout: () => {},
       }),
     );
 
+    expect(html).toContain("Chart Inspector");
+    expect(html).toContain(">Chart<");
+    expect(html).toContain(">Layers<");
+    expect(html).toContain(">Selected<");
+    expect(html).toContain(">Data<");
+    expect(html).toContain("Diagnostics");
+    expect(html).toContain("charts-history-overlay is-left");
     expect(html).toContain("Events");
     expect(html).toContain("Show event rail");
     expect(html).toContain("Current chart settings summary");
     expect(html).toContain("Surface");
-    expect(html).toContain("Replay");
+    expect(html).toContain("Selected");
     expect(html).toContain("Impact");
     expect(html).toContain("High only");
     expect(html).toContain("High + medium");
@@ -1135,7 +1169,7 @@ describe("getChartConnectionLabel", () => {
     const replayHtml = renderToStaticMarkup(
       createElement(ChartSettingsDrawer, {
         open: true,
-        mode: "replay",
+        mode: "selected",
         onModeChange: () => {},
         onClose: () => {},
         preferences: DEFAULT_CHART_PREFERENCES,
@@ -1160,7 +1194,7 @@ describe("getChartConnectionLabel", () => {
     const appearanceHtml = renderToStaticMarkup(
       createElement(ChartSettingsDrawer, {
         open: true,
-        mode: "appearance",
+        mode: "chart",
         onModeChange: () => {},
         onClose: () => {},
         preferences: DEFAULT_CHART_PREFERENCES,

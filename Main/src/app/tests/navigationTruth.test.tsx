@@ -4,10 +4,10 @@ import { ANALYSIS_TAB_ORDER, TAB_ORDER } from "@/app/config/navigation";
 import { PrototypingTab } from "@/app/tabs/secondary/PrototypingTab";
 
 describe("navigation truth", () => {
-  it("promotes active Specialist Tools children before the garbage drawer", () => {
+  it("keeps Charts as the sole primary route while classifying retained and garbage workspaces", () => {
     expect(ANALYSIS_TAB_ORDER).toEqual([
-      { id: "macro-signal-lab", label: "FMS EXPERIMENT WORKBENCH", groupLabel: "Active Tool" },
-      { id: "dashboard", label: "DIFFERENTIAL CALCULATOR", groupLabel: "Active Experiment" },
+      { id: "macro-signal-lab", label: "FMS EXPERIMENT WORKBENCH", groupLabel: "Retained Research Workspace" },
+      { id: "dashboard", label: "DIFFERENTIAL CALCULATOR", groupLabel: "Retained Experiment / Hidden" },
       { id: "event-tools", label: "EVENT REPLAY", groupLabel: "Garbage / Ignore" },
       { id: "macro-drivers", label: "MACRO DRIVERS", groupLabel: "Garbage / Ignore" },
       { id: "prototyping", label: "PROTOTYPING", groupLabel: "Garbage / Ignore" },
@@ -15,12 +15,8 @@ describe("navigation truth", () => {
     expect(ANALYSIS_TAB_ORDER).not.toContainEqual({ id: "terminal-questions", label: "SIX QUESTIONS DRAFT" });
     expect(ANALYSIS_TAB_ORDER).not.toContainEqual({ id: "work-in-progress", label: "WIP MAP ARCHIVE" });
 
-    const specialist = TAB_ORDER.find((tab) => tab.id === "dashboard");
-    expect(specialist?.children).toContainEqual({ id: "macro-signal-lab", label: "FMS EXPERIMENT WORKBENCH", groupLabel: "Active Tool" });
-    expect(specialist?.children).toContainEqual({ id: "dashboard", label: "DIFFERENTIAL CALCULATOR", groupLabel: "Active Experiment" });
-    expect(specialist?.children).toContainEqual({ id: "event-tools", label: "EVENT REPLAY", groupLabel: "Garbage / Ignore" });
-    expect(specialist?.children).toContainEqual({ id: "macro-drivers", label: "MACRO DRIVERS", groupLabel: "Garbage / Ignore" });
-    expect(specialist?.children).toContainEqual({ id: "prototyping", label: "PROTOTYPING", groupLabel: "Garbage / Ignore" });
+    expect(TAB_ORDER).toEqual([{ id: "charts", label: "Charts" }]);
+    expect(TAB_ORDER.some((tab) => tab.id === "overview" || tab.id === "calendar" || tab.id === "dashboard")).toBe(false);
   });
 
   it("moves old planning drafts into the garbage drawer", () => {

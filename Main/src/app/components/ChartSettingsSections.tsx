@@ -429,12 +429,10 @@ export function ChartReplaySettings({ replayData }: { replayData: ChartReplayDra
   );
 }
 
-export function ChartDiagnosticsSettings({
+export function ChartDataSettings({
   cacheData,
-  debugData,
 }: {
   cacheData?: ChartCacheDrawerData;
-  debugData?: ChartDebugDrawerData;
 }) {
   return (
     <div className="chart-settings-grid">
@@ -469,6 +467,17 @@ export function ChartDiagnosticsSettings({
         </section>
       ) : null}
 
+    </div>
+  );
+}
+
+export function ChartDiagnosticsSettings({
+  debugData,
+}: {
+  debugData?: ChartDebugDrawerData;
+}) {
+  return (
+    <div className="chart-settings-grid">
       {debugData ? (
         <section className="charts-history-section chart-drawer-card">
           <h3>
@@ -491,6 +500,7 @@ export function ChartDiagnosticsSettings({
           </button>
         </section>
       ) : null}
+      {!debugData ? <div className="chart-console-empty">Diagnostics unavailable for this chart.</div> : null}
     </div>
   );
 }
