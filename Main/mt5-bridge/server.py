@@ -922,7 +922,7 @@ app.add_middleware(
 
 terminal_connected: bool = False
 last_error: Optional[Dict[str, Any]] = None
-BRIDGE_API_REVISION = "2026-08-26-fms-workbench-v1"
+BRIDGE_API_REVISION = "2026-09-13-fms-review-notes-v1"
 
 
 def _coerce_int(v: Any) -> int:
@@ -1035,6 +1035,36 @@ class FmsCandidateFreezeRequest(BaseModel):
     if not value.strip():
       raise ValueError("Candidate name cannot be blank")
     return value.strip()
+
+
+class FmsReviewNoteRequest(BaseModel):
+  recordKey: str = Field(min_length=1, max_length=512)
+  context: str = Field(min_length=1, max_length=32)
+  market: str = Field(min_length=1, max_length=128)
+  patternId: str = Field(min_length=1, max_length=256)
+  eventTime: Optional[int] = None
+  signalId: Optional[str] = Field(default=None, max_length=512)
+  note: str = Field(min_length=1, max_length=4000)
+
+  @field_validator("recordKey", "market", "patternId", "note")
+  @classmethod
+  def normalize_review_note_text(cls, value: str) -> str:
+    normalized = value.strip()
+    if not normalized:
+      raise ValueError("Review note fields cannot be blank")
+    return normalized
+
+  @field_validator("market")
+  @classmethod
+  def normalize_review_note_market(cls, value: str) -> str:
+    return value.upper()
+
+  @field_validator("context")
+  @classmethod
+  def validate_review_note_context(cls, value: str) -> str:
+    if value not in {"scheduled", "activity"}:
+      raise ValueError("Review note context must be scheduled or activity")
+    return value
 
 
 class CalendarIngestCycleRequest(BaseModel):
@@ -1534,11 +1564,77 @@ def _session_snapshot_unlocked(symbol: str) -> Dict[str, Any]:
   }
 
 
+def _session_snapshot_from_published_quote(symbol: str) -> Optional[Dict[str, Any]]:
+  """Project symbol context from a fresh MT5 EA quote when Python IPC is busy."""
+  published = _quote_snapshot_store.read_fresh(_QUOTE_SNAPSHOT_FRESH_SECONDS)
+  if published is None:
+    return None
+  normalized_symbol = symbol.upper()
+  row = next((item for item in published if str(item.get("name") or "").upper() == normalized_symbol), None)
+  if row is None:
+    return None
+
+  checked_at = int(_time.time())
+  path = str(row.get("path") or "") or None
+  asset_class = _infer_asset_class(symbol, path)
+  try:
+    last_tick_time = int(row["quote_time"]) if row.get("quote_time") is not None else None
+  except (TypeError, ValueError):
+    last_tick_time = None
+  now_utc = datetime.fromtimestamp(checked_at, tz=timezone.utc)
+
+  if asset_class == "crypto":
+    return {
+      "symbol": symbol, "symbol_path": path, "asset_class": asset_class,
+      "session_state": "open", "is_open": True, "terminal_connected": True,
+      "checked_at": checked_at, "server_time": None, "last_tick_time": last_tick_time,
+      "next_open_time": checked_at, "next_close_time": _next_daily_boundary(now_utc, 0),
+      "reason": "ea_quote_always_on",
+    }
+
+  if asset_class in {"forex", "metals"}:
+    is_open, next_open_time, next_close_time, reason = _forex_session_window(now_utc)
+    return {
+      "symbol": symbol, "symbol_path": path, "asset_class": asset_class,
+      "session_state": "open" if is_open else "closed", "is_open": is_open,
+      "terminal_connected": True, "checked_at": checked_at, "server_time": None,
+      "last_tick_time": last_tick_time, "next_open_time": next_open_time,
+      "next_close_time": next_close_time, "reason": f"ea_quote_{reason}",
+    }
+
+  if last_tick_time is None:
+    return {
+      "symbol": symbol, "symbol_path": path, "asset_class": asset_class,
+      "session_state": "unavailable", "is_open": None, "terminal_connected": True,
+      "checked_at": checked_at, "server_time": None, "last_tick_time": None,
+      "next_open_time": None, "next_close_time": None, "reason": "ea_quote_session_unknown",
+    }
+
+  is_open = max(0, checked_at - last_tick_time) <= 900
+  return {
+    "symbol": symbol, "symbol_path": path, "asset_class": asset_class,
+    "session_state": "open" if is_open else "closed", "is_open": is_open,
+    "terminal_connected": True, "checked_at": checked_at, "server_time": None,
+    "last_tick_time": last_tick_time,
+    "next_open_time": None if is_open else checked_at + 900,
+    "next_close_time": checked_at + 900 if is_open else None,
+    "reason": "ea_quote_tick_fresh" if is_open else "ea_quote_tick_stale",
+  }
+
+
 def _session_snapshot(symbol: str) -> Dict[str, Any]:
   try:
-    with _mt5_access(_MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
+    with _mt5_access(.05):
       return _session_snapshot_unlocked(symbol)
   except Mt5BusyError:
+    published = _session_snapshot_from_published_quote(symbol)
+    if published is not None:
+      return published
+    try:
+      with _mt5_access(_MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
+        return _session_snapshot_unlocked(symbol)
+    except Mt5BusyError:
+      pass
     checked_at = int(_time.time())
     asset_class = _infer_asset_class(symbol, None)
     session_state = "unavailable"
@@ -6109,6 +6205,46 @@ def research_live_decisions(market: Optional[str] = None, limit: int = 100) -> D
     "immutableFirstSeen": True,
     "count": len(rows),
     "rows": rows,
+  }
+
+
+@app.get("/research/review-notes")
+def research_review_notes(limit: int = 2000) -> Dict[str, Any]:
+  rows = _research_store.list_fms_review_notes(limit)
+  return {
+    "schema": "fms-review-notes-v1",
+    "separateFromFrozenRecords": True,
+    "count": len(rows),
+    "rows": rows,
+  }
+
+
+@app.post("/research/review-notes")
+def save_research_review_note(request: FmsReviewNoteRequest) -> Dict[str, Any]:
+  row = _research_store.upsert_fms_review_note(
+    record_key=request.recordKey,
+    context=request.context,
+    market=request.market,
+    pattern_id=request.patternId,
+    event_time=request.eventTime,
+    signal_id=request.signalId,
+    note=request.note,
+    updated_at=int(_time.time()),
+  )
+  return {
+    "schema": "fms-review-note-v1",
+    "separateFromFrozenRecords": True,
+    "row": row,
+  }
+
+
+@app.delete("/research/review-notes")
+def delete_research_review_note(record_key: str) -> Dict[str, Any]:
+  return {
+    "schema": "fms-review-note-v1",
+    "separateFromFrozenRecords": True,
+    "recordKey": record_key,
+    "deleted": _research_store.delete_fms_review_note(record_key),
   }
 
 

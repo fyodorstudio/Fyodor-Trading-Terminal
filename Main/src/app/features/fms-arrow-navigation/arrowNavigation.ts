@@ -70,17 +70,27 @@ export function getMacroBiasArrowFocusRange(
   candles: BridgeCandle[],
   sourceTimeOffsetSeconds: number,
   chartTimeframe: Timeframe = "H4",
+  focusBars?: number,
 ): { from: number; to: number } | null {
   const activationOpen = getMacroBiasActivationCandleOpen(signal, candles, sourceTimeOffsetSeconds, chartTimeframe);
   if (activationOpen == null) return null;
   const activationIndex = candles.findIndex((candle) => candle.time === activationOpen);
   if (activationIndex < 0) return null;
-  const windowBars = Math.min(Math.max(Math.round(candles.length * 0.12), 56), 88);
+  const windowBars = focusBars == null
+    ? Math.min(Math.max(Math.round(candles.length * 0.12), 56), 88)
+    : Math.max(24, Math.round(focusBars));
   const leadBars = Math.max(18, Math.round(windowBars * 0.34));
-  return {
-    from: Math.max(-0.5, activationIndex - (windowBars - leadBars)),
-    to: Math.min(candles.length - 0.5, activationIndex + leadBars),
-  };
+  let from = activationIndex - (windowBars - leadBars);
+  let to = activationIndex + leadBars;
+  if (focusBars != null && candles.length >= windowBars) {
+    if (from < -0.5) { to += -0.5 - from; from = -0.5; }
+    const lastLogical = candles.length - 0.5;
+    if (to > lastLogical) { from -= to - lastLogical; to = lastLogical; }
+  } else {
+    from = Math.max(-0.5, from);
+    to = Math.min(candles.length - 0.5, to);
+  }
+  return { from, to };
 }
 
 export function resolveFmsArrowNavigationStage(params: {
@@ -92,6 +102,7 @@ export function resolveFmsArrowNavigationStage(params: {
   signals: MacroSignalChartSignal[];
   candles: BridgeCandle[];
   sourceTimeOffsetSeconds: number;
+  focusBars?: number;
   chartMounted: boolean;
 }): {
   stage: FmsArrowNavigationStage;
@@ -122,6 +133,7 @@ export function resolveFmsArrowNavigationStage(params: {
     params.candles,
     params.sourceTimeOffsetSeconds,
     params.selectedTimeframe,
+    params.focusBars,
   );
   if (!range) return { stage: "coverage_unavailable", signal, range: null };
   if (!params.chartMounted) return { stage: "mounting_chart", signal, range };

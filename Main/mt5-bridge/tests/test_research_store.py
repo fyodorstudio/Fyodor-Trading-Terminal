@@ -45,6 +45,27 @@ def test_calendar_history_survives_store_reopen_and_is_not_pruned(tmp_path: Path
   }
 
 
+def test_fms_review_notes_are_durable_and_separate_from_frozen_records(tmp_path: Path) -> None:
+  path = tmp_path / "research.sqlite3"
+  store = ResearchStore(path)
+  saved = store.upsert_fms_review_note(
+    "EURUSD:pattern-a:100", "activity", "eurusd", "pattern-a", 100, "signal-a", "SL looks early", 200,
+  )
+  assert saved["note"] == "SL looks early"
+  assert saved["market"] == "EURUSD"
+
+  reopened = ResearchStore(path)
+  assert reopened.list_fms_review_notes() == [saved]
+  revised = reopened.upsert_fms_review_note(
+    saved["recordKey"], "activity", "EURUSD", "pattern-a", 100, "signal-a", "Price respected release after SL", 300,
+  )
+  assert revised["createdAt"] == 200
+  assert revised["updatedAt"] == 300
+  assert revised["note"] == "Price respected release after SL"
+  assert reopened.delete_fms_review_note(saved["recordKey"]) is True
+  assert reopened.list_fms_review_notes() == []
+
+
 def test_calendar_ingest_updates_a_scheduled_row_when_actual_arrives(tmp_path: Path) -> None:
   store = ResearchStore(tmp_path / "research.sqlite3")
   scheduled = event(2, 400, actual="")

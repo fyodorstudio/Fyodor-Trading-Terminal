@@ -464,6 +464,46 @@ const targetLadderRequests = new Map<string, Promise<{ signal: MacroSignalChartS
 
 const globalRegistryRequests = new Map<string, Promise<MacroSignalGlobalResponse>>();
 
+export interface FmsReviewNote {
+  recordKey: string;
+  context: "scheduled" | "activity";
+  market: string;
+  patternId: string;
+  eventTime: number | null;
+  signalId: string | null;
+  note: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export type FmsReviewNoteInput = Pick<FmsReviewNote, "recordKey" | "context" | "market" | "patternId" | "eventTime" | "signalId" | "note">;
+
+export async function fetchFmsReviewNotes(): Promise<FmsReviewNote[]> {
+  const response = await fetchJson<{ rows: FmsReviewNote[] }>(`${BRIDGE_BASE}/research/review-notes`, {
+    signal: AbortSignal.timeout(15_000),
+  });
+  return Array.isArray(response.rows) ? response.rows : [];
+}
+
+export async function saveFmsReviewNote(input: FmsReviewNoteInput): Promise<FmsReviewNote> {
+  const response = await fetchJson<{ row: FmsReviewNote }>(`${BRIDGE_BASE}/research/review-notes`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+    signal: AbortSignal.timeout(15_000),
+  });
+  return response.row;
+}
+
+export async function deleteFmsReviewNote(recordKey: string): Promise<boolean> {
+  const search = new URLSearchParams({ record_key: recordKey });
+  const response = await fetchJson<{ deleted: boolean }>(`${BRIDGE_BASE}/research/review-notes?${search.toString()}`, {
+    method: "DELETE",
+    signal: AbortSignal.timeout(15_000),
+  });
+  return response.deleted;
+}
+
 export async function fetchMacroSignalGlobalRegistry(options: { refresh?: boolean } = {}): Promise<MacroSignalGlobalResponse> {
   const search = new URLSearchParams({ tf: "H4" });
   if (options.refresh) search.set("refresh", "true");
@@ -478,18 +518,76 @@ export async function fetchMacroSignalGlobalRegistry(options: { refresh?: boolea
 
 let preloadedMacroSignalGlobalRegistry: MacroSignalGlobalResponse | null = null;
 let preloadedMacroSignalGlobalPromise: Promise<MacroSignalGlobalResponse> | null = null;
+let preloadedMacroSignalGlobalFetched = false;
+let preloadedMacroSignalGlobalHydrated = false;
+const GLOBAL_REGISTRY_STORAGE_KEY = "fyodor.fms.global-registry.v1";
+
+function isMacroSignalGlobalResponse(value: unknown): value is MacroSignalGlobalResponse {
+  if (!value || typeof value !== "object") return false;
+  const candidate = value as Partial<MacroSignalGlobalResponse>;
+  return typeof candidate.modelId === "string"
+    && typeof candidate.modelHash === "string"
+    && typeof candidate.generatedAt === "number"
+    && Array.isArray(candidate.markets)
+    && candidate.markets.every((market) => Boolean(
+      market && typeof market === "object" && typeof market.symbol === "string"
+      && Array.isArray(market.patterns) && Array.isArray(market.signals),
+    ));
+}
+
+function hydrateMacroSignalGlobalRegistry(): void {
+  if (preloadedMacroSignalGlobalHydrated) return;
+  preloadedMacroSignalGlobalHydrated = true;
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.localStorage.getItem(GLOBAL_REGISTRY_STORAGE_KEY);
+    if (!raw) return;
+    const parsed: unknown = JSON.parse(raw);
+    if (isMacroSignalGlobalResponse(parsed)) preloadedMacroSignalGlobalRegistry = parsed;
+  } catch {
+    // A corrupt or over-quota acceleration snapshot must never block the live registry.
+  }
+}
+
+function rememberMacroSignalGlobalRegistry(response: MacroSignalGlobalResponse): MacroSignalGlobalResponse {
+  preloadedMacroSignalGlobalRegistry = response;
+  preloadedMacroSignalGlobalFetched = true;
+  if (typeof window !== "undefined") {
+    try {
+      window.localStorage.setItem(GLOBAL_REGISTRY_STORAGE_KEY, JSON.stringify(response));
+    } catch {
+      // Large optional research ledgers can exceed browser quota; the Trade dock only needs markets to start instantly.
+      try {
+        window.localStorage.setItem(GLOBAL_REGISTRY_STORAGE_KEY, JSON.stringify({
+          modelId: response.modelId,
+          modelHash: response.modelHash,
+          generatedAt: response.generatedAt,
+          markets: response.markets,
+          researchIntelligence: response.researchIntelligence,
+          explanation: response.explanation,
+        } satisfies MacroSignalGlobalResponse));
+      } catch { /* startup acceleration remains optional */ }
+    }
+  }
+  return response;
+}
 
 export function getPreloadedMacroSignalGlobalRegistry(): MacroSignalGlobalResponse | null {
+  hydrateMacroSignalGlobalRegistry();
   return preloadedMacroSignalGlobalRegistry;
 }
 
 export function preloadMacroSignalGlobalRegistry(): Promise<MacroSignalGlobalResponse> {
-  if (preloadedMacroSignalGlobalRegistry) return Promise.resolve(preloadedMacroSignalGlobalRegistry);
+  hydrateMacroSignalGlobalRegistry();
   if (preloadedMacroSignalGlobalPromise) return preloadedMacroSignalGlobalPromise;
-  preloadedMacroSignalGlobalPromise = fetchMacroSignalGlobalRegistry().then((response) => {
-    preloadedMacroSignalGlobalRegistry = response;
-    return response;
-  }).finally(() => {
+  if (preloadedMacroSignalGlobalFetched && preloadedMacroSignalGlobalRegistry) return Promise.resolve(preloadedMacroSignalGlobalRegistry);
+  const fallback = preloadedMacroSignalGlobalRegistry;
+  preloadedMacroSignalGlobalPromise = fetchMacroSignalGlobalRegistry()
+    .then(rememberMacroSignalGlobalRegistry)
+    .catch((error: unknown) => {
+      if (fallback) return fallback;
+      throw error;
+    }).finally(() => {
     preloadedMacroSignalGlobalPromise = null;
   });
   return preloadedMacroSignalGlobalPromise;
@@ -497,10 +595,7 @@ export function preloadMacroSignalGlobalRegistry(): Promise<MacroSignalGlobalRes
 
 export async function refreshMacroSignalGlobalRegistry(): Promise<MacroSignalGlobalResponse> {
   if (preloadedMacroSignalGlobalPromise) return preloadedMacroSignalGlobalPromise;
-  preloadedMacroSignalGlobalPromise = fetchMacroSignalGlobalRegistry({ refresh: true }).then((response) => {
-    preloadedMacroSignalGlobalRegistry = response;
-    return response;
-  }).finally(() => {
+  preloadedMacroSignalGlobalPromise = fetchMacroSignalGlobalRegistry({ refresh: true }).then(rememberMacroSignalGlobalRegistry).finally(() => {
     preloadedMacroSignalGlobalPromise = null;
   });
   return preloadedMacroSignalGlobalPromise;

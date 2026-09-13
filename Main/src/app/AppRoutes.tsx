@@ -240,6 +240,7 @@ export function AppRoutes({
           resolvedBanks={resolvedBanks}
           nextHighImpact={nextHighImpact}
           onOpenResearch={() => onNavigate("macro-signal-lab")}
+          onOpenPrototypes={() => onNavigate("prototyping")}
           onOpenAppSettings={onOpenAppSettings}
         />
       )}

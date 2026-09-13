@@ -21,6 +21,7 @@ interface FmsArrowNavigationOptions {
   displayedSignals: MacroSignalChartSignal[];
   visibleCandles: BridgeCandle[];
   sourceTimeOffsetSeconds: number;
+  focusBars: number;
   chartRef: MutableRefObject<IChartApi | null>;
   seriesRef: MutableRefObject<ISeriesApi<"Candlestick"> | null>;
   ensureHistoryCoverage: (targetChartTime: number) => Promise<boolean>;
@@ -47,6 +48,7 @@ export function useFmsArrowNavigation({
   displayedSignals,
   visibleCandles,
   sourceTimeOffsetSeconds,
+  focusBars,
   chartRef,
   seriesRef,
   ensureHistoryCoverage,
@@ -85,6 +87,7 @@ export function useFmsArrowNavigation({
       signals: displayedSignals,
       candles: visibleCandles,
       sourceTimeOffsetSeconds,
+      focusBars,
       chartMounted: Boolean(chart && series),
     });
     if (reportedStageRef.current !== resolution.stage) {
@@ -128,6 +131,7 @@ export function useFmsArrowNavigation({
     displayedSignals,
     ensureHistoryCoverage,
     focusRevision,
+    focusBars,
     historicalError,
     historicalResponse,
     historyState,
@@ -172,4 +176,3 @@ export function useFmsArrowNavigation({
     timeframe,
   ]);
 }
-

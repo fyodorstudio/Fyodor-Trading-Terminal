@@ -9,6 +9,7 @@ import {
 } from "@/app/lib/chartStorage";
 import {
   buildResidentChartWarmPlan,
+  shouldStopResidentHistoryBatch,
   loadResidentChartHistory,
   setResidentHistoryBackgroundPaused,
 } from "@/app/features/chart-market-data/residentHistory";
@@ -197,6 +198,28 @@ describe("chartStorage helpers", () => {
 
     setResidentHistoryBackgroundPaused(false);
     await expect(pending).resolves.toEqual([SAMPLE_CANDLE]);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops a background batch after bridge-wide MT5 backpressure", async () => {
+    installLocalStorage();
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ detail: "MT5 is busy" }), {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    setResidentHistoryBackgroundPaused(true);
+
+    const first = loadResidentChartHistory("BUSY-FIRST", "M1", 350, "warm");
+    const second = loadResidentChartHistory("BUSY-SECOND", "M1", 350, "warm");
+    setResidentHistoryBackgroundPaused(false);
+
+    const results = await Promise.allSettled([first, second]);
+    expect(results).toHaveLength(2);
+    results.forEach((result) => {
+      expect(result.status).toBe("rejected");
+      if (result.status === "rejected") expect(shouldStopResidentHistoryBatch(result.reason)).toBe(true);
+    });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 

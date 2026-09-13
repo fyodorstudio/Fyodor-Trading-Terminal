@@ -369,6 +369,37 @@ def test_fresh_ea_quote_snapshot_serves_symbols_without_python_mt5_access(monkey
   assert client.get("/symbols").json()[0]["bid"] == 1.1601
 
 
+def test_market_status_uses_fresh_quote_snapshot_while_python_mt5_is_busy(monkeypatch):
+  quote_store = QuoteSnapshotStore(monotonic=lambda: 100.0)
+  quote_store.ingest(
+    publisher_id="ea-session-status",
+    broker_identity="Broker A|MetaTrader 5",
+    catalog_revision="broker-catalog-a",
+    sequence=1,
+    complete=True,
+    sent_at=int(time.time()),
+    rows=[{
+      "name": "INDEX.WEIRD", "path": "Indices\\INDEX.WEIRD", "bid": 180.0, "ask": 180.1,
+      "price_change": 0.2, "digits": 1, "quote_time": int(time.time()),
+      "visible": True, "selected": True, "synchronized": True,
+    }],
+  )
+  monkeypatch.setattr(server, "_quote_snapshot_store", quote_store)
+
+  @contextmanager
+  def busy_mt5_access(_timeout=None):
+    raise server.Mt5BusyError("busy")
+    yield
+
+  monkeypatch.setattr(server, "_mt5_access", busy_mt5_access)
+  snapshot = server._session_snapshot("INDEX.WEIRD")
+
+  assert snapshot["terminal_connected"] is True
+  assert snapshot["symbol_path"] == "Indices\\INDEX.WEIRD"
+  assert snapshot["session_state"] == "open"
+  assert snapshot["reason"] == "ea_quote_tick_fresh"
+
+
 def test_quote_ingest_requires_complete_snapshot_for_new_catalog(monkeypatch):
   quote_store = QuoteSnapshotStore(monotonic=lambda: 100.0)
   monkeypatch.setattr(server, "_quote_snapshot_store", quote_store)

@@ -19,7 +19,7 @@ describe("navigation truth", () => {
     expect(TAB_ORDER.some((tab) => tab.id === "overview" || tab.id === "calendar" || tab.id === "dashboard")).toBe(false);
   });
 
-  it("moves old planning drafts into the garbage drawer", () => {
+  it("keeps every retained page reachable from the prototype drawer", () => {
     const html = renderToStaticMarkup(<PrototypingTab onNavigate={() => {}} />);
 
     expect(html).toContain("Garbage Drawer");
@@ -28,7 +28,11 @@ describe("navigation truth", () => {
     expect(html).toContain("WIP Map Archive");
     expect(html).toContain("Strength Meter");
     expect(html).toContain("Deprecated Overview");
-    expect(html).not.toContain("Differential Calculator");
+    expect(html).toContain("Differential Calculator");
+    expect(html).toContain("Overview Prototype");
+    expect(html).toContain("Macro Drivers");
+    expect(html).toContain("Event Replay");
+    expect(html).toContain("Central Banks");
     expect(html).not.toContain("Legacy Overview");
     expect(html).not.toContain("Event replay, reaction studies, and calendar prep tools.");
     expect(html).not.toContain(">Event Tools<");

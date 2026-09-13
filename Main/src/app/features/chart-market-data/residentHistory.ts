@@ -99,6 +99,23 @@ function residentHistoryRequestKey(
   return `${catalogIdentity ?? "legacy"}:${symbol.toUpperCase()}:${timeframe}:${bars}`;
 }
 
+export function shouldStopResidentHistoryBatch(error: unknown): boolean {
+  if (error instanceof DOMException && (error.name === "AbortError" || error.name === "TimeoutError")) return true;
+  if (error instanceof TypeError) return true;
+  return error instanceof Error && /^Bridge returned (?:409|503)(?:\b|:)/.test(error.message);
+}
+
+function rejectQueuedBackgroundHistory(error: unknown) {
+  for (const queue of [warmHistoryQueue, deepHistoryQueue]) {
+    let request = queue.shift();
+    while (request) {
+      residentHistoryPending.delete(request.key);
+      request.reject(error);
+      request = queue.shift();
+    }
+  }
+}
+
 function hasRunnableResidentHistoryRequest(): boolean {
   return selectedHistoryQueue.length > 0
     || (!residentHistoryBackgroundPaused && (warmHistoryQueue.length > 0 || deepHistoryQueue.length > 0));
@@ -150,6 +167,13 @@ async function drainResidentHistoryQueue() {
             failures,
             retryAfter: Date.now() + Math.min(300_000, 5_000 * (2 ** Math.min(6, failures - 1))),
           });
+        }
+        if (shouldStopResidentHistoryBatch(error)) {
+          // Bridge-wide backpressure, an obsolete catalog, or transport loss
+          // is not evidence that hundreds of individual symbols are bad. Drop
+          // this obsolete background batch; the next owner selection builds a
+          // fresh plan while foreground chart work remains immediately usable.
+          rejectQueuedBackgroundHistory(error);
         }
         request.reject(error);
       } finally {
@@ -289,9 +313,10 @@ export function warmResidentCharts(
           true,
           catalogIdentity,
         );
-      } catch {
+      } catch (error) {
         // Some broker symbols do not expose every timeframe. They remain
         // available for an explicit foreground attempt when selected.
+        if (shouldStopResidentHistoryBatch(error)) return;
       }
     }
   })();

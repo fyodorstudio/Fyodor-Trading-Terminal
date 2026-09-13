@@ -1,4 +1,4 @@
-import { CalendarDays, CalendarRange, FlaskConical, Focus, MousePointer2, PanelBottom, PanelLeft, PanelRight, Palette } from "lucide-react";
+import { Archive, CalendarDays, CalendarRange, FlaskConical, Focus, MousePointer2, PanelBottom, PanelLeft, PanelRight, Palette } from "lucide-react";
 import type { ChartDrawerMode } from "@/app/components/ChartSettingsDrawer";
 import type { ChartCursorReadoutMode } from "@/app/lib/chartView";
 
@@ -29,6 +29,7 @@ interface ChartToolStripProps {
   onToggleRightPanel: () => void;
   onOpenCalendar: () => void;
   onOpenResearch: () => void;
+  onOpenPrototypes: () => void;
   onOpenAppSettings: () => void;
 }
 
@@ -54,6 +55,7 @@ export function ChartToolStrip({
   onToggleRightPanel,
   onOpenCalendar,
   onOpenResearch,
+  onOpenPrototypes,
   onOpenAppSettings,
 }: ChartToolStripProps) {
   const eventButtonLabel = !eventOverlayVisible
@@ -139,6 +141,9 @@ export function ChartToolStrip({
       </button>
       <button type="button" className="chart-icon-button" title="Open Research workspace" aria-label="Open Research workspace" onClick={onOpenResearch}>
         <FlaskConical className="h-4 w-4" />
+      </button>
+      <button type="button" className="chart-icon-button" title="Open retained prototypes" aria-label="Open retained prototypes" onClick={onOpenPrototypes}>
+        <Archive className="h-4 w-4" />
       </button>
       <button type="button" className="chart-icon-button" title="Open appearance settings" aria-label="Open appearance settings" onClick={onOpenAppSettings}>
         <Palette className="h-4 w-4" />

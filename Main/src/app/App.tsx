@@ -11,6 +11,38 @@ import { useMarketStatus } from "@/app/hooks/useMarketStatus";
 import { useTerminalTheme } from "@/app/hooks/useTerminalTheme";
 import type { CalendarEvent, CalendarNavigationIntent, TabId } from "@/app/types";
 
+const PROTOTYPE_CHILD_TABS = new Set<TabId>([
+  "overview",
+  "legacy-overview",
+  "currency-candle-strength",
+  "watchlist-engine-prototype",
+  "dashboard",
+  "macro-drivers",
+  "strength-meter",
+  "event-tools",
+  "terminal-questions",
+  "work-in-progress",
+  "macro-state-prototype",
+  "central-banks",
+]);
+
+const SECONDARY_TITLES: Partial<Record<TabId, string>> = {
+  overview: "Overview Prototype",
+  "legacy-overview": "Deprecated Overview",
+  "currency-candle-strength": "Currency Strength From Candles",
+  "watchlist-engine-prototype": "Watchlist Engine Prototype",
+  dashboard: "Differential Calculator",
+  "macro-drivers": "Macro Drivers Prototype",
+  "macro-signal-lab": "FMS Experiment Workbench",
+  "strength-meter": "Strength Meter Prototype",
+  "event-tools": "Event Replay Prototype",
+  "terminal-questions": "Six Questions Draft",
+  "work-in-progress": "WIP Map Archive",
+  prototyping: "Retained Prototypes",
+  "macro-state-prototype": "Macro State Prototype",
+  "central-banks": "Central Banks Prototype",
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabId>("charts");
   const [chartSymbol, setChartSymbol] = useState("EURUSD");
@@ -45,11 +77,7 @@ export default function App() {
     setActiveTab(tab);
   };
 
-  const secondaryTitle = activeTab === "macro-signal-lab"
-    ? "FMS Experiment Workbench"
-    : activeTab === "dashboard"
-      ? "Differential Calculator"
-      : "Retained workspace";
+  const secondaryTitle = SECONDARY_TITLES[activeTab] ?? "Retained workspace";
 
   return (
     <div className="flex min-h-screen bg-[var(--bg)] transition-colors duration-300 overflow-hidden">
@@ -59,6 +87,7 @@ export default function App() {
             <SecondaryWorkspaceBar
               title={secondaryTitle}
               onBackToCharts={() => setActiveTab("charts")}
+              onBackToPrototypes={PROTOTYPE_CHILD_TABS.has(activeTab) ? () => setActiveTab("prototyping") : undefined}
               onOpenAppSettings={() => setSettingsOpen(true)}
             />
           ) : null}

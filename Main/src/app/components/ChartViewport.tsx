@@ -103,6 +103,7 @@ interface ChartViewportProps {
   onToggleMacroBiasHistoricalPattern: (patternId: string) => void;
   onSetAllMacroBiasHistoricalPatterns: (visible: boolean) => void;
   onGoToMacroBiasArrow: (market: string, signal: MacroSignalChartSignal) => void;
+  onReviewMacroBiasSetup: (market: string, patternId: string) => void;
   crosshairReadoutRef: Ref<ChartCrosshairReadoutHandle>;
   status: BridgeStatus;
   overlayCopy: {
@@ -140,6 +141,7 @@ export function ChartViewport({
     onToggleMacroBiasHistoricalPattern,
     onSetAllMacroBiasHistoricalPatterns,
     onGoToMacroBiasArrow,
+    onReviewMacroBiasSetup,
     crosshairReadoutRef,
   status,
   overlayCopy,
@@ -192,6 +194,7 @@ export function ChartViewport({
               onToggleHistoricalPattern={onToggleMacroBiasHistoricalPattern}
               onSetAllHistoricalPatterns={onSetAllMacroBiasHistoricalPatterns}
               onGoToArrow={onGoToMacroBiasArrow}
+              onReviewSetup={onReviewMacroBiasSetup}
               onResizePointerDown={startFmsDockResize}
               onResizeKeyDown={resizeFmsDockFromKeyboard}
             />

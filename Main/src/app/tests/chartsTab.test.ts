@@ -10,7 +10,7 @@ import {
 } from "@/app/features/chart-market-data/symbolCatalog";
 import { ChartMacroBiasAudit } from "@/app/components/ChartMacroBiasAudit";
 import { ChartMacroBiasRealtimeCard, marketMatchesCurrencySelection } from "@/app/components/ChartMacroBiasRealtimeCard";
-import { buildRegisteredSetupSchedule, buildRecentFmsActivity, partitionFmsActivity, getTradeMarkets, ChartFmsActionCard } from "@/app/components/ChartFmsActionCard";
+import { buildRegisteredSetupSchedule, buildRecentFmsActivity, partitionFmsActivity, getTradeMarkets, ChartFmsActionCard, DEFAULT_FMS_TRADE_VIEW_STATE } from "@/app/components/ChartFmsActionCard";
 import { ChartFmsKnowledgeCard } from "@/app/components/ChartFmsKnowledgeCard";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
 import { ChartPairMatrixContextMarkers, clusterPairMatrixMarkerViews } from "@/app/components/ChartPairMatrixContextMarkers";
@@ -19,7 +19,7 @@ import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
 import { buildChartMacroBiasAuditViewModel } from "@/app/lib/chartMacroBiasAuditViewModel";
 import { buildMacroSignalShadowAccount, buildMacroSignalShadowPosition, normalizeShadowRiskPercent, normalizeShadowStartingBalance } from "@/app/lib/macroSignalShadow";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
-import { buildMacroBiasPriceLineLevels, buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasArrowFocusRange, getMacroBiasReplayStatusLabel, getMacroBiasRequestScope, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, isMacroBiasMarketSupported, mergeMacroBiasSignalDetail, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange, shouldApplyMacroBiasRefresh } from "@/app/tabs/primary/ChartsTab";
+import { buildMacroBiasPriceLineLevels, buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasArrowFocusRange, getMacroBiasReplayStatusLabel, getMacroBiasRequestScope, getMacroBiasReviewHiddenPatterns, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, isMacroBiasMarketSupported, mergeMacroBiasSignalDetail, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange, shouldApplyMacroBiasRefresh } from "@/app/tabs/primary/ChartsTab";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalContextResearch, MacroSignalGlobalResponse, MacroSignalMetrics } from "@/app/types";
 import { DEFAULT_CHART_TIMEFRAME, getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
@@ -162,6 +162,9 @@ describe("getChartConnectionLabel", () => {
     expect(getMacroBiasActiveState([{ ...makeSignal("resolved", 1_000, "long"), outcomeStatus: "target_hit" }], candles, 0)).toBeNull();
     expect(getMacroBiasArrowFocusRange(signals[0], candles, 0, "H4")).toEqual({ from: -0.5, to: 2.5 });
     expect(getMacroBiasArrowFocusRange({ ...signals[0], activationTime: 999_999 }, candles, 0, "H4")).toBeNull();
+    const focusCandles = Array.from({ length: 240 }, (_, index) => ({ time: index * 14_400, open: 1.1, high: 1.2, low: 1, close: 1.15, volume: 1 }));
+    const configuredFocus = getMacroBiasArrowFocusRange({ ...signals[0], activationTime: 120 * 14_400 }, focusCandles, 0, "H4", 120);
+    expect(configuredFocus && configuredFocus.to - configuredFocus.from).toBe(120);
 
     const h1Candles = Array.from({ length: 120 }, (_, index) => ({ time: index * 3_600, open: 1.1, high: 1.2, low: 1, close: 1.15, volume: 1 }));
     const h1Signal = { ...makeSignal("h1", 1_000, "long"), activationTime: 3_600 };
@@ -250,6 +253,7 @@ describe("getChartConnectionLabel", () => {
       onToggleRightPanel: () => {},
       onOpenCalendar: () => {},
       onOpenResearch: () => {},
+      onOpenPrototypes: () => {},
       onOpenAppSettings: () => {},
     }));
 
@@ -592,6 +596,21 @@ describe("getChartConnectionLabel", () => {
     expect(actionHtml).toContain("<span>Recent</span>");
     expect(actionHtml).toContain("Show details");
     expect(actionHtml).toContain("Go to latest arrow");
+    const futureTime = Math.floor(Date.now() / 1000) + 3_600;
+    const scheduledActionHtml = renderToStaticMarkup(createElement(ChartFmsActionCard, { data: {
+      response: { ...response, generatedAt: futureTime - 3_600, realtime: { ...response.realtime, nextPatternWatch: { ...response.realtime!.nextPatternWatch!, time: futureTime } } },
+      activeSignal: null, activePattern: null, remainingModelCandles: null, chartTimeframe: "H4", historicalSignals: [], globalResponse: null, globalLoading: false, globalError: null,
+    } }));
+    expect(scheduledActionHtml).toContain("Review");
+    const recentActionHtml = renderToStaticMarkup(createElement(ChartFmsActionCard, { data: {
+      response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
+    }, viewState: { ...DEFAULT_FMS_TRADE_VIEW_STATE, activeView: "recent" } }));
+    expect(recentActionHtml).toContain("Add note");
+    expect(getMacroBiasReviewHiddenPatterns([
+      { id: "keep", currentEligible: true },
+      { id: "hide", currentEligible: true },
+      { id: "legacy", currentEligible: false },
+    ], "keep")).toEqual(["hide"]);
     const schedule = buildRegisteredSetupSchedule([response, gbpResponse], 100);
     expect(schedule.map((row) => [row.market, row.watch?.time ?? null])).toEqual([
       ["EURUSD", 300],
@@ -1013,6 +1032,7 @@ describe("getChartConnectionLabel", () => {
         resolvedBanks: 8,
         nextHighImpact: null,
         onOpenResearch: () => {},
+        onOpenPrototypes: () => {},
         onOpenAppSettings: () => {},
         marketStatus: {
           symbol: "EURUSD",

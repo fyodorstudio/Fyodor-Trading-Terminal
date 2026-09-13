@@ -124,6 +124,7 @@ interface ChartFmsDockProps {
   onToggleHistoricalPattern: (patternId: string) => void;
   onSetAllHistoricalPatterns: (visible: boolean) => void;
   onGoToArrow: (market: string, signal: MacroSignalChartSignal) => void;
+  onReviewSetup: (market: string, patternId: string) => void;
   onResizePointerDown: PointerEventHandler<HTMLDivElement>;
   onResizeKeyDown: KeyboardEventHandler<HTMLDivElement>;
 }
@@ -146,6 +147,7 @@ export function ChartFmsDock({
   onToggleHistoricalPattern,
   onSetAllHistoricalPatterns,
   onGoToArrow,
+  onReviewSetup,
   onResizePointerDown,
   onResizeKeyDown,
 }: ChartFmsDockProps) {
@@ -171,6 +173,7 @@ export function ChartFmsDock({
                   onToggleHistoricalPattern={onToggleHistoricalPattern}
                   onSetAllHistoricalPatterns={onSetAllHistoricalPatterns}
                   onGoToArrow={onGoToArrow}
+                  onReviewSetup={onReviewSetup}
                   viewState={tradeViewState}
                   onViewStateChange={onTradeViewStateChange}
                 />

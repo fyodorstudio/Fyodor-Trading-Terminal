@@ -9,6 +9,31 @@ interface PrototypeLink {
 
 const IGNORE_LINKS: PrototypeLink[] = [
   {
+    id: "overview",
+    label: "Overview Prototype",
+    description: "Retained overview placeholder and pair brief.",
+  },
+  {
+    id: "dashboard",
+    label: "Differential Calculator",
+    description: "Retained differential experiment, outside the active Charts workflow.",
+  },
+  {
+    id: "macro-drivers",
+    label: "Macro Drivers",
+    description: "Retained macro-driver experiment for reference.",
+  },
+  {
+    id: "event-tools",
+    label: "Event Replay",
+    description: "Deprecated standalone event replay retained alongside the chart Lens.",
+  },
+  {
+    id: "central-banks",
+    label: "Central Banks",
+    description: "Retained policy snapshot page.",
+  },
+  {
     id: "currency-candle-strength",
     label: "Currency Strength From Candles",
     description: "Candle-only currency strength board based on base/quote pair returns.",

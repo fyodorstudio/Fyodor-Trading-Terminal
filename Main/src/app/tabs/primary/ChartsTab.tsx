@@ -107,6 +107,15 @@ import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
 import { buildMacroFactorRows } from "@/app/lib/macroDrivers";
 import type { BridgeCandle, BridgeHealth, BridgeStatus, CalendarEvent, MacroSignalChartMode, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MarketStatusResponse, Timeframe } from "@/app/types";
 
+export function getMacroBiasReviewHiddenPatterns(
+  patterns: Array<{ id: string; currentEligible: boolean }>,
+  selectedPatternId: string,
+): string[] {
+  return patterns
+    .filter((pattern) => pattern.currentEligible && pattern.id !== selectedPatternId)
+    .map((pattern) => pattern.id);
+}
+
 const useBrowserLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 const DEBUG_MAX = 60;
 const REPLAY_SPEED_OPTIONS = [0.5, 1, 2, 4];
@@ -129,6 +138,7 @@ interface ChartsTabProps {
   resolvedBanks: number;
   nextHighImpact?: { title: string; currency: string; countryCode: string; time: number } | null;
   onOpenResearch: () => void;
+  onOpenPrototypes: () => void;
   onOpenAppSettings: () => void;
 }
 
@@ -147,6 +157,7 @@ export function ChartsTab({
   resolvedBanks,
   nextHighImpact,
   onOpenResearch,
+  onOpenPrototypes,
   onOpenAppSettings,
 }: ChartsTabProps) {
   const [timeframe, setTimeframe] = useState<Timeframe>(DEFAULT_CHART_TIMEFRAME);
@@ -578,9 +589,15 @@ export function ChartsTab({
   const macroBiasLoading = macroBiasCurrentLoading;
   const macroBiasError = macroBiasCurrentError;
 
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     setSelectedMacroBiasId(null);
-  }, [selectedSymbol]);
+    const series = seriesRef.current;
+    macroBiasMarkersRef.current?.detach();
+    macroBiasMarkersRef.current = null;
+    macroBiasSignalByMarkerIdRef.current.clear();
+    macroBiasTradeLinesRef.current.forEach((line) => series?.removePriceLine(line));
+    macroBiasTradeLinesRef.current = [];
+  }, [selectedSymbol, timeframe]);
   const toggleMacroBiasHistoricalPattern = (patternId: string) => {
     const market = selectedSymbol.toUpperCase();
     setMacroBiasHiddenHistoricalPatterns((current) => {
@@ -596,13 +613,29 @@ export function ChartsTab({
     setMacroBiasHiddenHistoricalPatterns((current) => ({ ...current, [market]: hidden }));
     if (!visible) setSelectedMacroBiasId(null);
   };
+  const reviewMacroBiasSetup = useCallback((market: string, patternId: string) => {
+    const normalizedMarket = market.toUpperCase();
+    const targetMarket = macroBiasGlobalResponse?.markets.find((candidate) => candidate.symbol.toUpperCase() === normalizedMarket);
+    const hidden = getMacroBiasReviewHiddenPatterns(targetMarket?.patterns ?? [], patternId);
+    setMacroBiasVisible(true);
+    setMacroBiasHistoricalMatchesVisible(true);
+    setMacroBiasHiddenHistoricalPatterns((current) => ({ ...current, [normalizedMarket]: hidden }));
+    setSelectedMacroBiasId(null);
+    try {
+      window.localStorage.setItem(MACRO_BIAS_VISIBILITY_KEY, "true");
+      window.localStorage.setItem(MACRO_BIAS_HISTORICAL_MATCHES_KEY, "true");
+    } catch {
+      // Selection still applies for this session when preference storage is unavailable.
+    }
+    if (selectedSymbol.toUpperCase() !== normalizedMarket) onSelectedSymbolChange(normalizedMarket);
+  }, [macroBiasGlobalResponse?.markets, onSelectedSymbolChange, selectedSymbol]);
   const macroBiasVisibleChartSignals = useMemo(() => {
     if (!selectedMacroBiasId) return macroBiasDisplaySignals;
     const selected = macroBiasDisplaySignals.find((signal) => signal.id === selectedMacroBiasId);
     return selected ? [selected] : macroBiasDisplaySignals;
   }, [macroBiasDisplaySignals, selectedMacroBiasId]);
 
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     const series = seriesRef.current;
     macroBiasMarkersRef.current?.detach();
     macroBiasMarkersRef.current = null;
@@ -675,7 +708,7 @@ export function ChartsTab({
   const selectedMacroBiasWithTargetLadder = selectedMacroBias
     ? mergeMacroBiasSignalDetail(selectedMacroBias, selectedMacroBiasAudit)
     : null;
-  useEffect(() => {
+  useBrowserLayoutEffect(() => {
     const series = seriesRef.current;
     macroBiasTradeLinesRef.current.forEach((line) => series?.removePriceLine(line));
     macroBiasTradeLinesRef.current = [];
@@ -806,6 +839,7 @@ export function ChartsTab({
     displayedSignals: macroBiasDisplaySignals,
     visibleCandles,
     sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
+    focusBars: chartPreferences.defaultFocusBars,
     chartRef,
     seriesRef,
     ensureHistoryCoverage,
@@ -1214,6 +1248,7 @@ export function ChartsTab({
           onToggleRightPanel={() => setHistoryPanelOpen((current) => !current)}
           onOpenCalendar={() => onCalendarOpenChange(true)}
           onOpenResearch={onOpenResearch}
+          onOpenPrototypes={onOpenPrototypes}
           onOpenAppSettings={onOpenAppSettings}
         />
       </div>
@@ -1344,6 +1379,7 @@ export function ChartsTab({
         onToggleMacroBiasHistoricalPattern={toggleMacroBiasHistoricalPattern}
         onSetAllMacroBiasHistoricalPatterns={setAllMacroBiasHistoricalPatterns}
         onGoToMacroBiasArrow={goToMacroBiasArrow}
+        onReviewMacroBiasSetup={reviewMacroBiasSetup}
         crosshairReadoutRef={crosshairReadoutRef}
         status={status}
         overlayCopy={overlayCopy}

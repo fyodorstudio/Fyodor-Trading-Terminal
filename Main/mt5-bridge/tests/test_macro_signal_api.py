@@ -17,6 +17,28 @@ from research_store import ResearchStore
 client = TestClient(server.app)
 
 
+def test_review_note_api_keeps_annotations_in_a_separate_ledger(tmp_path: Path, monkeypatch) -> None:
+  monkeypatch.setattr(server, "_research_store", ResearchStore(tmp_path / "review.sqlite3"))
+  payload = {
+    "recordKey": "EURUSD:pattern-a:100",
+    "context": "activity",
+    "market": "EURUSD",
+    "patternId": "pattern-a",
+    "eventTime": 100,
+    "signalId": "signal-a",
+    "note": "TP placement needs review",
+  }
+  saved = client.post("/research/review-notes", json=payload)
+  assert saved.status_code == 200
+  assert saved.json()["separateFromFrozenRecords"] is True
+  assert saved.json()["row"]["note"] == payload["note"]
+  listed = client.get("/research/review-notes").json()
+  assert listed["schema"] == "fms-review-notes-v1"
+  assert listed["rows"][0]["recordKey"] == payload["recordKey"]
+  deleted = client.delete("/research/review-notes", params={"record_key": payload["recordKey"]}).json()
+  assert deleted["deleted"] is True
+
+
 def test_trade_snapshot_restores_all_saved_decisions_without_changing_evidence(tmp_path: Path, monkeypatch) -> None:
   store = ResearchStore(tmp_path / "trade.sqlite3")
   monkeypatch.setattr(server, "_research_store", store)

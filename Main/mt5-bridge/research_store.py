@@ -235,6 +235,19 @@ class ResearchStore:
         );
         CREATE INDEX IF NOT EXISTS idx_fms_demo_deals_signal
           ON fms_demo_deals (signal_tag, deal_time, deal_ticket);
+        CREATE TABLE IF NOT EXISTS fms_review_notes (
+          record_key TEXT PRIMARY KEY,
+          context TEXT NOT NULL,
+          market TEXT NOT NULL,
+          pattern_id TEXT NOT NULL,
+          event_time INTEGER,
+          signal_id TEXT,
+          note TEXT NOT NULL,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_fms_review_notes_updated
+          ON fms_review_notes (updated_at DESC, record_key);
         """
       )
       decision_columns = {
@@ -263,6 +276,77 @@ class ResearchStore:
         "ON CONFLICT(key) DO UPDATE SET value = excluded.value",
         (key, value),
       )
+
+  def upsert_fms_review_note(
+    self,
+    record_key: str,
+    context: str,
+    market: str,
+    pattern_id: str,
+    event_time: Optional[int],
+    signal_id: Optional[str],
+    note: str,
+    updated_at: int,
+  ) -> Dict[str, Any]:
+    with self._write_lock, self._connect() as connection:
+      connection.execute(
+        "INSERT INTO fms_review_notes(record_key, context, market, pattern_id, event_time, signal_id, note, created_at, updated_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
+        "ON CONFLICT(record_key) DO UPDATE SET context = excluded.context, market = excluded.market, "
+        "pattern_id = excluded.pattern_id, event_time = excluded.event_time, signal_id = excluded.signal_id, "
+        "note = excluded.note, updated_at = excluded.updated_at",
+        (
+          record_key,
+          context,
+          market.upper(),
+          pattern_id,
+          None if event_time is None else int(event_time),
+          signal_id,
+          note,
+          int(updated_at),
+          int(updated_at),
+        ),
+      )
+    return self.get_fms_review_note(record_key) or {}
+
+  def get_fms_review_note(self, record_key: str) -> Optional[Dict[str, Any]]:
+    with self._connect() as connection:
+      row = connection.execute(
+        "SELECT * FROM fms_review_notes WHERE record_key = ?",
+        (record_key,),
+      ).fetchone()
+    return self._fms_review_note_row(row) if row else None
+
+  def list_fms_review_notes(self, limit: int = 2000) -> List[Dict[str, Any]]:
+    bounded_limit = max(1, min(int(limit), 10000))
+    with self._connect() as connection:
+      rows = connection.execute(
+        "SELECT * FROM fms_review_notes ORDER BY updated_at DESC, record_key LIMIT ?",
+        (bounded_limit,),
+      ).fetchall()
+    return [self._fms_review_note_row(row) for row in rows]
+
+  def delete_fms_review_note(self, record_key: str) -> bool:
+    with self._write_lock, self._connect() as connection:
+      cursor = connection.execute(
+        "DELETE FROM fms_review_notes WHERE record_key = ?",
+        (record_key,),
+      )
+      return cursor.rowcount > 0
+
+  @staticmethod
+  def _fms_review_note_row(row: sqlite3.Row) -> Dict[str, Any]:
+    return {
+      "recordKey": str(row["record_key"]),
+      "context": str(row["context"]),
+      "market": str(row["market"]),
+      "patternId": str(row["pattern_id"]),
+      "eventTime": None if row["event_time"] is None else int(row["event_time"]),
+      "signalId": None if row["signal_id"] is None else str(row["signal_id"]),
+      "note": str(row["note"]),
+      "createdAt": int(row["created_at"]),
+      "updatedAt": int(row["updated_at"]),
+    }
 
   def record_fms_live_decision(
     self,

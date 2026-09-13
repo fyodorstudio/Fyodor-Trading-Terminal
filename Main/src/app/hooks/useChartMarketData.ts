@@ -33,6 +33,13 @@ import {
 } from "@/app/features/chart-market-data/residentHistory";
 import { areBridgeSymbolSnapshotsEqual } from "@/app/features/chart-market-data/symbolCatalog";
 
+const EMPTY_CHART_CANDLES: BridgeCandle[] = [];
+
+interface VisibleHistoryBuffer {
+  identity: string | null;
+  candles: BridgeCandle[];
+}
+
 export function useChartMarketData({
   selectedSymbol,
   onSelectedSymbolChange,
@@ -46,8 +53,10 @@ export function useChartMarketData({
   const [catalogIdentity, setCatalogIdentity] = useState<string | null>(null);
   const [catalogResolved, setCatalogResolved] = useState(false);
   const [historyState, setHistoryState] = useState<"loading" | "ready" | "no_data" | "error">("loading");
-  const [visibleCandles, setVisibleCandles] = useState<BridgeCandle[]>([]);
-  const [lastCandleTime, setLastCandleTime] = useState<number | null>(null);
+  const [visibleHistory, setVisibleHistory] = useState<VisibleHistoryBuffer>({
+    identity: null,
+    candles: EMPTY_CHART_CANDLES,
+  });
   const [streamConnected, setStreamConnected] = useState(false);
   const [boundaryTime, setBoundaryTime] = useState<number | null>(null);
   const [chartLoadError, setChartLoadError] = useState<string | null>(null);
@@ -69,6 +78,16 @@ export function useChartMarketData({
   } | null>(null);
   const cacheWriteTimerRef = useRef<number | null>(null);
   const symbolUniverseKey = useMemo(() => symbols.map((item) => item.name).join("|"), [symbols]);
+  const requestedHistoryIdentity = `${catalogIdentity ?? "unverified"}|${selectedSymbol.toUpperCase()}|${timeframe}`;
+  const visibleHistoryMatchesSelection = visibleHistory.identity === requestedHistoryIdentity;
+  const visibleCandles = visibleHistoryMatchesSelection
+    ? visibleHistory.candles
+    : EMPTY_CHART_CANDLES;
+  const lastCandleTime = visibleCandles[visibleCandles.length - 1]?.time ?? null;
+  const selectedHistoryState = visibleHistoryMatchesSelection ? historyState : "loading";
+  const selectedStreamConnected = visibleHistoryMatchesSelection && streamConnected;
+  const selectedBoundaryTime = visibleHistoryMatchesSelection ? boundaryTime : null;
+  const selectedChartLoadError = visibleHistoryMatchesSelection ? chartLoadError : null;
 
   useEffect(() => recordResidentChartSelection(selectedSymbol), [selectedSymbol]);
 
@@ -145,19 +164,19 @@ export function useChartMarketData({
         || selectedSymbolRef.current.toUpperCase() !== selectedSymbol.toUpperCase()
         || selectedTimeframeRef.current !== timeframe
       ) return false;
-      setVisibleCandles((current) => {
-        const merged = mergeChartCandles(current, coverage, 10_000);
+      setVisibleHistory((current) => {
+        const resident = current.identity === requestedHistoryIdentity ? current.candles : EMPTY_CHART_CANDLES;
+        const merged = mergeChartCandles(resident, coverage, 10_000);
         saveChartHistoryCache(selectedSymbol, timeframe, merged, catalogIdentity);
-        return merged;
+        return { identity: requestedHistoryIdentity, candles: merged };
       });
       setHistoryState("ready");
-      setLastCandleTime((current) => Math.max(current ?? 0, coverage[coverage.length - 1]?.time ?? 0) || null);
       return true;
     } catch (error) {
       addLog(`targeted history coverage failed for ${selectedSymbol} ${timeframe}: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     }
-  }, [addLog, catalogIdentity, selectedSymbol, timeframe]);
+  }, [addLog, catalogIdentity, requestedHistoryIdentity, selectedSymbol, timeframe]);
 
   useEffect(() => {
     let cancelled = false;
@@ -205,8 +224,7 @@ export function useChartMarketData({
       : [];
     setHistoryState(cached.length > 0 ? "ready" : "loading");
     setChartLoadError(null);
-    setVisibleCandles(cached);
-    setLastCandleTime(cached[cached.length - 1]?.time ?? null);
+    setVisibleHistory({ identity: requestedHistoryIdentity, candles: cached });
     setBoundaryTime(null);
     if (cached.length > 0) {
       addLog(`loaded ${cached.length} cached candles for ${selectedSymbol} ${timeframe} while refreshing`);
@@ -237,17 +255,15 @@ export function useChartMarketData({
             addLog(`history refresh returned no candles for ${selectedSymbol} ${timeframe}; keeping cached history visible`);
             return;
           }
-          setVisibleCandles([]);
+          setVisibleHistory({ identity: requestedHistoryIdentity, candles: EMPTY_CHART_CANDLES });
           setHistoryState("no_data");
-          setLastCandleTime(null);
           setChartLoadError(`No candle history returned for ${selectedSymbol} ${timeframe}. The broker may not expose this symbol or timeframe, or MT5 has no history downloaded yet.`);
           addLog(`history returned no candles for ${selectedSymbol} ${timeframe}`);
           return;
         }
 
         setHistoryState("ready");
-        setLastCandleTime(candles[candles.length - 1]?.time ?? null);
-        setVisibleCandles(candles);
+        setVisibleHistory({ identity: requestedHistoryIdentity, candles });
         addLog(`history loaded ${candles.length} candles for ${selectedSymbol} ${timeframe}`);
         if (catalogIdentity) saveChartHistoryCache(selectedSymbol, timeframe, candles, catalogIdentity);
 
@@ -257,16 +273,14 @@ export function useChartMarketData({
         const message = error instanceof Error ? error.message : String(error);
         if (cached.length > 0) {
           setHistoryState("ready");
-          setVisibleCandles(cached);
-          setLastCandleTime(cached[cached.length - 1]?.time ?? null);
+          setVisibleHistory({ identity: requestedHistoryIdentity, candles: cached });
           setChartLoadError(`Live history refresh failed; showing ${cached.length} cached ${selectedSymbol} ${timeframe} candles.`);
           addLog(`history refresh failed for ${selectedSymbol} ${timeframe}; retained cached candles: ${message}`);
           return;
         }
-        setVisibleCandles([]);
+        setVisibleHistory({ identity: requestedHistoryIdentity, candles: EMPTY_CHART_CANDLES });
         setBoundaryTime(null);
         setHistoryState("error");
-        setLastCandleTime(null);
         setChartLoadError(
           message.includes("symbol_select failed")
             ? `MT5 could not select ${selectedSymbol}. This usually means the broker does not offer this symbol under that exact name.`
@@ -287,10 +301,10 @@ export function useChartMarketData({
       loadingOlderRef.current = false;
       flushPendingCacheWrite();
     };
-  }, [selectedSymbol, timeframe, catalogIdentity, catalogResolved, addLog, flushPendingCacheWrite]);
+  }, [selectedSymbol, timeframe, catalogIdentity, catalogResolved, requestedHistoryIdentity, addLog, flushPendingCacheWrite]);
 
   useEffect(() => {
-    if (historyState !== "ready" || symbols.length === 0) return;
+    if (selectedHistoryState !== "ready" || symbols.length === 0) return;
     if (!catalogIdentity) return;
     warmResidentCharts(symbols, selectedSymbol, timeframe, catalogIdentity);
     if (readChartHistoryCache(selectedSymbol, timeframe, catalogIdentity).length >= INITIAL_CHART_CANDLES) return;
@@ -307,14 +321,16 @@ export function useChartMarketData({
         if (cancelled
           || selectedSymbolRef.current.toUpperCase() !== selectedSymbol.toUpperCase()
           || selectedTimeframeRef.current !== timeframe) return;
-        setVisibleCandles((current) => mergeChartCandles(current, expanded));
+        setVisibleHistory((current) => current.identity === requestedHistoryIdentity
+          ? { ...current, candles: mergeChartCandles(current.candles, expanded) }
+          : current);
         addLog(`resident history expanded to ${expanded.length} candles for ${selectedSymbol} ${timeframe}`);
       })
       .catch((error: unknown) => {
         if (!cancelled) addLog(`resident history expansion deferred for ${selectedSymbol} ${timeframe}: ${error instanceof Error ? error.message : String(error)}`);
       });
     return () => { cancelled = true; };
-  }, [historyState, symbolUniverseKey, catalogIdentity, selectedSymbol, timeframe, addLog]);
+  }, [selectedHistoryState, symbolUniverseKey, catalogIdentity, requestedHistoryIdentity, selectedSymbol, timeframe, addLog]);
 
   useEffect(() => {
     const chart = chartRef.current;
@@ -323,7 +339,7 @@ export function useChartMarketData({
 
     const onRangeChange = async (range: { from?: number; to?: number } | null) => {
       visibleRangeRef.current = range;
-      if (!range || historyState !== "ready" || loadingOlderRef.current) return;
+      if (!range || selectedHistoryState !== "ready" || loadingOlderRef.current) return;
       const oldestTime = visibleCandles[0]?.time;
       if (!oldestTime || range.from == null) return;
 
@@ -360,7 +376,9 @@ export function useChartMarketData({
           if (merged.length > currentCandles.length) {
             currentCandles = merged;
             currentOldest = merged[0]?.time ?? currentOldest;
-            setVisibleCandles(merged);
+            setVisibleHistory((current) => current.identity === requestedHistoryIdentity
+              ? { ...current, candles: merged }
+              : current);
             scheduleCacheWrite(selectedSymbol, timeframe, merged);
           } else {
             break;
@@ -386,7 +404,7 @@ export function useChartMarketData({
 
     chart.timeScale().subscribeVisibleLogicalRangeChange(onRangeChange);
     return () => chart.timeScale().unsubscribeVisibleLogicalRangeChange(onRangeChange);
-  }, [chartRef, selectedSymbol, timeframe, catalogIdentity, historyState, visibleCandles, addLog, scheduleCacheWrite]);
+  }, [chartRef, selectedSymbol, timeframe, catalogIdentity, selectedHistoryState, requestedHistoryIdentity, visibleCandles, addLog, scheduleCacheWrite]);
 
   const marketClassLabel =
     activeMarketStatus?.asset_class === "crypto"
@@ -400,7 +418,7 @@ export function useChartMarketData({
 
   useEffect(() => {
     setStreamConnected(false);
-    if (historyState !== "ready") return;
+    if (selectedHistoryState !== "ready") return;
     if (activeMarketStatus?.session_state === "closed" && activeMarketStatus.asset_class !== "crypto") {
       addLog(`market closed for ${selectedSymbol}; keeping last known candles on screen`);
       return;
@@ -453,12 +471,12 @@ export function useChartMarketData({
             close: message.candle.close,
             volume: 0,
           } satisfies BridgeCandle;
-          setVisibleCandles((current) => {
-            const next = mergeChartCandles(current, [nextCandle]);
+          setVisibleHistory((current) => {
+            if (current.identity !== requestedHistoryIdentity) return current;
+            const next = mergeChartCandles(current.candles, [nextCandle]);
             scheduleCacheWrite(selectedSymbol, timeframe, next);
-            return next;
+            return { ...current, candles: next };
           });
-          setLastCandleTime(nextCandle.time);
           setStreamConnected(true);
         }
         if (message.type === "status" && message.message === "mt5_not_connected") {
@@ -481,7 +499,8 @@ export function useChartMarketData({
   }, [
     selectedSymbol,
     timeframe,
-    historyState,
+    requestedHistoryIdentity,
+    selectedHistoryState,
     activeMarketStatus?.session_state,
     activeMarketStatus?.asset_class,
     marketOpenLogLine,
@@ -499,26 +518,26 @@ export function useChartMarketData({
   const status: BridgeStatus = useMemo(
     () =>
       resolveChartStatus({
-        historyState,
+        historyState: selectedHistoryState,
         marketStatus: activeMarketStatus,
-        streamConnected,
+        streamConnected: selectedStreamConnected,
       }),
-    [historyState, activeMarketStatus, streamConnected],
+    [selectedHistoryState, activeMarketStatus, selectedStreamConnected],
   );
 
-  const reachedBoundary = boundaryTime != null && visibleCandles.length > 0 && visibleCandles[0].time <= boundaryTime;
+  const reachedBoundary = selectedBoundaryTime != null && visibleCandles.length > 0 && visibleCandles[0].time <= selectedBoundaryTime;
 
   return {
     symbols,
     symbolSnapshot,
     refreshSymbols,
     setBackgroundHistoryPaused: setResidentHistoryBackgroundPaused,
-    historyState,
+    historyState: selectedHistoryState,
     visibleCandles,
     lastCandleTime,
-    streamConnected,
-    boundaryTime,
-    chartLoadError,
+    streamConnected: selectedStreamConnected,
+    boundaryTime: selectedBoundaryTime,
+    chartLoadError: selectedChartLoadError,
     cacheSummary,
     status,
     reachedBoundary,
