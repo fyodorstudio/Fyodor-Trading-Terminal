@@ -749,10 +749,10 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       {view !== "setups" && registeredContextPatterns.length > 0 ? (
         <section className="chart-shadow-context-summary fms-research-only" aria-label="Reviewed context rule availability">
           <div><span>Reviewed H4 context rules</span><strong>{registeredContextPatterns.length} exact setup rules</strong></div>
-          <p>{[...new Set(registeredContextPatterns.map((pattern) => pattern.market ?? response.symbol))].map((market) => {
+          <div className="chart-shadow-context-markets">{[...new Set(registeredContextPatterns.map((pattern) => pattern.market ?? response.symbol))].map((market) => {
             const count = registeredContextPatterns.filter((pattern) => (pattern.market ?? response.symbol) === market).length;
             return <span key={market}><PairFlags symbol={market} />{market} x{count}</span>;
-          })}</p>
+          })}</div>
           <small>Only matching arrows on these exact setups show <b>CONTEXT</b>. Click a past arrow to load its audit; when that entry had a confirmed opposing H4 zone, the chart shows it as an amber H4 support/resistance line.</small>
         </section>
       ) : null}

@@ -572,6 +572,8 @@ describe("getChartConnectionLabel", () => {
 
     expect(html).toContain("FMS Shadow Trader");
     expect(html).toContain("Reviewed H4 context rules");
+    expect(html).toContain('class="chart-shadow-context-markets"');
+    expect(html).not.toContain('<p><span class="chart-shadow-pair-flags"');
     expect(html).toContain("EURUSD x1");
     expect(html).toContain("Only matching arrows on these exact setups show <b>CONTEXT</b>");
     expect(html).toContain("Ready for demo monitoring");

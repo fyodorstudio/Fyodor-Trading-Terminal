@@ -6,6 +6,7 @@ describe("FlagIcon", () => {
   it("renders the world-flags component inside the app wrapper", () => {
     const html = renderToStaticMarkup(<FlagIcon countryCode="US" />);
 
+    expect(html.startsWith("<span")).toBe(true);
     expect(html).toContain("object-cover");
     expect(html).toContain("scale-110");
   });
