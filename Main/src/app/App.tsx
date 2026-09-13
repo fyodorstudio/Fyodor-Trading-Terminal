@@ -82,7 +82,7 @@ export default function App() {
   return (
     <div className="flex min-h-screen bg-[var(--bg)] transition-colors duration-300 overflow-hidden">
       <div className="flex-1 min-h-screen">
-        <div className="app-shell">
+        <div className={activeTab === "charts" ? "app-shell app-shell-charts" : "app-shell"}>
           {activeTab !== "charts" ? (
             <SecondaryWorkspaceBar
               title={secondaryTitle}

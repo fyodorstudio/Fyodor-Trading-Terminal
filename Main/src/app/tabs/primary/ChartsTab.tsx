@@ -1178,7 +1178,7 @@ export function ChartsTab({
         };
 
   return (
-    <div className="workspace-page workspace-page-compact charts-tab-page flex h-[calc(100vh-98px)] min-h-[560px] flex-col overflow-hidden">
+    <div className="workspace-page workspace-page-compact charts-tab-page overflow-hidden">
       <div className="chart-workbar">
         <div className="chart-workbar-main">
           <ChartSymbolPicker
