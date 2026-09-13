@@ -24,6 +24,7 @@ import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartS
 import { DEFAULT_CHART_TIMEFRAME, getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
 import { getChartRefreshBars } from "@/app/features/chart-market-data/historyPolicy";
+import { isCompleteStartupRegistry } from "@/app/lib/bridge";
 import {
   createFmsArrowNavigationRequest,
   resolveFmsArrowNavigationStage,
@@ -31,6 +32,31 @@ import {
 import { getMacroBiasInitialLoadPlan } from "@/app/tabs/primary/ChartsTab";
 
 describe("pair-switch FMS loading", () => {
+  it("keeps every registered market in the bounded cold-start registry", () => {
+    const market = (symbol: string) => ({
+      supported: true, versionId: "v1", modelId: "model", modelHash: "hash", modelActivatedAt: 1,
+      mode: "current" as const, symbol, timeframe: "H4", modelTimeframe: "H4" as const, targetR: 2,
+      generatedAt: 10, patterns: [], signals: [{ id: `${symbol}-signal` } as MacroSignalChartSignal],
+      realtime: { asOf: 10, nextPairEvent: null, nextPatternWatch: null, upcomingPatternWatches: [] }, message: "current",
+    });
+    const full = {
+      modelId: "model", modelHash: "hash", generatedAt: 10,
+      markets: [market("EURUSD"), market("AUDUSD")], researchIntelligence: [], explanation: "registry",
+    } satisfies MacroSignalGlobalResponse;
+
+    const startup = {
+      ...full,
+      startupProjection: true,
+      registrySymbols: ["AUDUSD", "EURUSD"],
+      markets: full.markets.map((row) => ({ ...row, signals: [] })),
+    } satisfies MacroSignalGlobalResponse;
+
+    expect(startup.markets.map((row) => row.symbol)).toEqual(["EURUSD", "AUDUSD"]);
+    expect(startup.markets.every((row) => row.signals.length === 0)).toBe(true);
+    expect(isCompleteStartupRegistry(startup)).toBe(true);
+    expect(isCompleteStartupRegistry({ ...startup, markets: startup.markets.slice(0, 1) })).toBe(false);
+  });
+
   it("renders only a bounded Market Watch window while retaining full scroll height", () => {
     expect(getVirtualMarketWatchWindow(1000, 0, 430)).toEqual({
       start: 0,
@@ -69,6 +95,8 @@ describe("pair-switch FMS loading", () => {
     expect(activity.current).toHaveLength(0);
     expect(activity.recent[0]).toMatchObject({ market: "AUDUSD", source: "recovered", signal: { entry: .71926, outcomeStatus: "target_hit", resultR: 1 } });
     expect(getTradeMarkets({ response: stale, globalResponse: { markets: [response] } } as Parameters<typeof getTradeMarkets>[0])[0]).toBe(response);
+    const startupProjection = { ...response, generatedAt: 200, recoveredSignals: [] };
+    expect(getTradeMarkets({ response: startupProjection, globalResponse: { markets: [response] } } as Parameters<typeof getTradeMarkets>[0])[0]).toBe(response);
   });
   it("keeps every pending and completed row, including inactive setup history and overnight waiting releases", () => {
     const pattern = { id: "registered", currentEligible: false } as MacroSignalChartPattern;
@@ -192,13 +220,15 @@ describe("getChartConnectionLabel", () => {
     const request = createFmsArrowNavigationRequest("eurusd", signal);
     const base = {
       request, selectedMarket: "EURUSD", selectedTimeframe: "H4" as const, historyState: "ready" as const,
-      signalState: "ready" as const, signals: [signal],
+      signalMarket: "EURUSD", signalState: "ready" as const, signals: [signal],
       candles: [0, 14_400, 28_800].map((time) => ({ time, open: 1, high: 2, low: .5, close: 1.5, volume: 1 })),
       sourceTimeOffsetSeconds: 0, chartMounted: true,
     };
 
     expect(resolveFmsArrowNavigationStage({ ...base, selectedMarket: "GBPUSD" }).stage).toBe("selecting_market");
     expect(resolveFmsArrowNavigationStage({ ...base, historyState: "loading" }).stage).toBe("loading_history");
+    expect(resolveFmsArrowNavigationStage({ ...base, signalMarket: "GBPUSD" }).stage).toBe("loading_signal");
+    expect(resolveFmsArrowNavigationStage({ ...base, signalMarket: "GBPUSD", signalState: "error" }).stage).toBe("loading_signal");
     expect(resolveFmsArrowNavigationStage({ ...base, signals: [], signalState: "loading" }).stage).toBe("loading_signal");
     expect(resolveFmsArrowNavigationStage({ ...base, signals: [] }).stage).toBe("signal_unavailable");
     expect(resolveFmsArrowNavigationStage({ ...base, candles: [] }).stage).toBe("coverage_unavailable");

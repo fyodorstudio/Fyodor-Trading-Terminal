@@ -1601,6 +1601,7 @@ export interface MacroSignalPolicyInflationContext {
 
 export interface MacroSignalChartSignalResponse {
   supported: boolean;
+  startupProjection?: boolean;
   versionId: string;
   versionHash?: string;
   modelId: string;
@@ -1650,6 +1651,8 @@ export interface MacroSignalGlobalResponse {
   modelHash: string;
   generatedAt: number;
   markets: MacroSignalChartSignalResponse[];
+  startupProjection?: boolean;
+  registrySymbols?: string[];
   liveDecisions?: Array<{
     modelId: string;
     market: string;

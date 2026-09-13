@@ -4197,6 +4197,74 @@ def _trade_current_snapshot(payload: Dict[str, Any]) -> Dict[str, Any]:
   return {**payload, "realtime": realtime}
 
 
+_TRADE_STARTUP_PATTERN_KEYS = (
+  "id", "market", "signature", "signatures", "sourceVersionId", "label", "condition",
+  "scoringPolicy", "reaction", "cohort", "historicalBenchmark", "historicalEvidence",
+  "registrationProvenance", "readiness", "execution", "entryReview", "contextRegistration",
+  "direction", "groups", "overall", "development", "holdout", "qualification", "exampleTitles",
+  "modelStatus", "currentEligible", "modelChecks", "executionStress", "recentWindow",
+  "prequentialAudit", "targetRobustness", "estimatedBreakEvenStressPips",
+  "uncertaintyIncludesNoEdge", "selectionNote",
+)
+
+
+def _trade_startup_pattern_snapshot(pattern: Dict[str, Any]) -> Dict[str, Any]:
+  """Keep the complete Trade > Next row without caching large research grids."""
+  projected = {key: pattern.get(key) for key in _TRADE_STARTUP_PATTERN_KEYS if key in pattern}
+  year_stability = pattern.get("yearStability") or {}
+  projected["yearStability"] = {
+    key: year_stability.get(key)
+    for key in ("evaluableYears", "positiveYears", "positiveYearShare")
+  }
+  projected["yearStability"]["byYear"] = []
+  target_evidence = (((pattern.get("reactionAudit") or {}).get("profile") or {}).get("targetEvidence"))
+  projected["reactionAudit"] = (
+    {"profile": {"targetEvidence": target_evidence}}
+    if isinstance(target_evidence, dict) else None
+  )
+  return projected
+
+
+def _trade_startup_global_snapshot(payload: Dict[str, Any]) -> Dict[str, Any]:
+  """Project a bounded, all-market cold-start snapshot for the Trade dock."""
+  markets = []
+  for market in payload.get("markets") or []:
+    realtime = market.get("realtime") or {}
+    markets.append({
+      key: market.get(key)
+      for key in (
+        "supported", "versionId", "versionHash", "modelId", "modelHash", "modelActivatedAt",
+        "datasetFingerprint", "mode", "symbol", "timeframe", "modelTimeframe", "targetR",
+        "generatedAt", "currentPatternCount", "researchPatternCount", "message",
+      )
+      if key in market
+    } | {
+      "patterns": [_trade_startup_pattern_snapshot(row) for row in market.get("patterns") or []],
+      "signals": [],
+      "recoveredSignals": [],
+      "startupProjection": True,
+      "realtime": {
+        "asOf": realtime.get("asOf"),
+        "nextPairEvent": realtime.get("nextPairEvent"),
+        "nextPatternWatch": realtime.get("nextPatternWatch"),
+        "upcomingPatternWatches": realtime.get("upcomingPatternWatches") or [],
+        "latestPatternAssessments": [],
+        "patternAssessments": [],
+      },
+    })
+  registry_symbols = sorted(str(row.get("symbol")) for row in markets if row.get("symbol"))
+  return {
+    "modelId": payload.get("modelId"),
+    "modelHash": payload.get("modelHash"),
+    "generatedAt": payload.get("generatedAt"),
+    "markets": markets,
+    "researchIntelligence": [],
+    "explanation": payload.get("explanation") or "Loading the complete saved registry; live evidence is refreshing.",
+    "startupProjection": True,
+    "registrySymbols": registry_symbols,
+  }
+
+
 @app.get("/research/chart-signals")
 def research_chart_signals(
   symbol: str = "EURUSD",
@@ -5946,12 +6014,16 @@ def _prospective_context_ledger(
 def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict[str, Any]:
   """Return every practical current registry without changing the selected chart."""
   durable_global_key = "fms_global_chart_response:v1"
+  expected_markets = sorted({str(pattern["market"]) for pattern in PRACTICAL_PATTERN_DEFINITIONS})
   if not refresh:
     raw_last_known = _research_store.get_metadata(durable_global_key)
     if raw_last_known:
       try:
         last_known = json.loads(raw_last_known)
-        if isinstance(last_known, dict) and last_known.get("modelHash") == PRACTICAL_MODEL_HASH:
+        cached_markets = last_known.get("markets") if isinstance(last_known, dict) else None
+        cached_symbols = sorted(str(row.get("symbol")) for row in cached_markets or [] if isinstance(row, dict) and row.get("symbol"))
+        if (isinstance(last_known, dict) and last_known.get("modelHash") == PRACTICAL_MODEL_HASH
+            and cached_symbols == expected_markets):
           # Pair refreshes persist independently. Never resurrect an older
           # lifecycle from the global snapshot after a browser reload.
           merged_markets = []
@@ -6158,6 +6230,26 @@ def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict
   }
   _research_store.set_metadata(durable_global_key, json.dumps(response, separators=(",", ":")))
   return response
+
+
+@app.get("/research/chart-signals/startup")
+def research_global_chart_signals_startup(tf: str = "H4") -> Dict[str, Any]:
+  """Return every registered market in a small payload suitable for first paint."""
+  raw_last_known = _research_store.get_metadata("fms_global_chart_response:v1")
+  if raw_last_known:
+    try:
+      last_known = json.loads(raw_last_known)
+      expected_markets = sorted({str(pattern["market"]) for pattern in PRACTICAL_PATTERN_DEFINITIONS})
+      cached_symbols = sorted(
+        str(row.get("symbol")) for row in last_known.get("markets") or []
+        if isinstance(row, dict) and row.get("symbol")
+      )
+      if last_known.get("modelHash") == PRACTICAL_MODEL_HASH and cached_symbols == expected_markets:
+        return _trade_startup_global_snapshot(last_known)
+    except (AttributeError, TypeError, ValueError):
+      logger.warning("Ignoring unreadable last-known startup FMS response")
+  response = research_global_chart_signals(tf=tf, refresh=False)
+  return _trade_startup_global_snapshot(response)
 
 
 @app.get("/research/execution-challengers")

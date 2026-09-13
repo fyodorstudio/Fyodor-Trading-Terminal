@@ -516,11 +516,19 @@ export async function fetchMacroSignalGlobalRegistry(options: { refresh?: boolea
   return request;
 }
 
+export async function fetchMacroSignalGlobalStartupRegistry(): Promise<MacroSignalGlobalResponse> {
+  return fetchJson<MacroSignalGlobalResponse>(`${BRIDGE_BASE}/research/chart-signals/startup?tf=H4`, {
+    signal: AbortSignal.timeout(4_000),
+  });
+}
+
 let preloadedMacroSignalGlobalRegistry: MacroSignalGlobalResponse | null = null;
 let preloadedMacroSignalGlobalPromise: Promise<MacroSignalGlobalResponse> | null = null;
 let preloadedMacroSignalGlobalFetched = false;
 let preloadedMacroSignalGlobalHydrated = false;
-const GLOBAL_REGISTRY_STORAGE_KEY = "fyodor.fms.global-registry.v1";
+let preloadedMacroSignalGlobalStartupPromise: Promise<MacroSignalGlobalResponse> | null = null;
+const GLOBAL_REGISTRY_STORAGE_KEY = "fyodor.fms.global-registry.v2";
+const LEGACY_GLOBAL_REGISTRY_STORAGE_KEY = "fyodor.fms.global-registry.v1";
 
 function isMacroSignalGlobalResponse(value: unknown): value is MacroSignalGlobalResponse {
   if (!value || typeof value !== "object") return false;
@@ -535,46 +543,72 @@ function isMacroSignalGlobalResponse(value: unknown): value is MacroSignalGlobal
     ));
 }
 
+export function isCompleteStartupRegistry(value: unknown): value is MacroSignalGlobalResponse {
+  if (!isMacroSignalGlobalResponse(value)) return false;
+  const candidate = value as MacroSignalGlobalResponse;
+  const registrySymbols = candidate.registrySymbols;
+  if (!candidate.startupProjection || !Array.isArray(registrySymbols) || registrySymbols.length === 0) return false;
+  const marketSymbols = candidate.markets.map((market) => market.symbol).sort();
+  return registrySymbols.length === marketSymbols.length
+    && [...registrySymbols].sort().every((symbol, index) => symbol === marketSymbols[index]);
+}
+
 function hydrateMacroSignalGlobalRegistry(): void {
   if (preloadedMacroSignalGlobalHydrated) return;
   preloadedMacroSignalGlobalHydrated = true;
   if (typeof window === "undefined") return;
   try {
+    // v1 could retain the multi-megabyte authoritative payload and consume the
+    // quota needed by its bounded replacement. It is only a disposable cache.
+    window.localStorage.removeItem(LEGACY_GLOBAL_REGISTRY_STORAGE_KEY);
     const raw = window.localStorage.getItem(GLOBAL_REGISTRY_STORAGE_KEY);
     if (!raw) return;
     const parsed: unknown = JSON.parse(raw);
-    if (isMacroSignalGlobalResponse(parsed)) preloadedMacroSignalGlobalRegistry = parsed;
+    if (isCompleteStartupRegistry(parsed)) preloadedMacroSignalGlobalRegistry = parsed;
   } catch {
     // A corrupt or over-quota acceleration snapshot must never block the live registry.
   }
 }
 
-function rememberMacroSignalGlobalRegistry(response: MacroSignalGlobalResponse): MacroSignalGlobalResponse {
-  preloadedMacroSignalGlobalRegistry = response;
-  preloadedMacroSignalGlobalFetched = true;
-  if (typeof window !== "undefined") {
+function rememberMacroSignalGlobalRegistry(response: MacroSignalGlobalResponse, complete = true): MacroSignalGlobalResponse {
+  if (complete || !preloadedMacroSignalGlobalFetched) preloadedMacroSignalGlobalRegistry = response;
+  if (complete) preloadedMacroSignalGlobalFetched = true;
+  if (typeof window !== "undefined" && isCompleteStartupRegistry(response)) {
     try {
+      window.localStorage.removeItem(LEGACY_GLOBAL_REGISTRY_STORAGE_KEY);
       window.localStorage.setItem(GLOBAL_REGISTRY_STORAGE_KEY, JSON.stringify(response));
-    } catch {
-      // Large optional research ledgers can exceed browser quota; the Trade dock only needs markets to start instantly.
+    } catch { /* startup acceleration remains optional */ }
+  } else if (complete && typeof window !== "undefined") {
+    // The authoritative registry is intentionally too large for startup storage.
+    // Ask the bridge for its bounded projection after the durable global snapshot is current.
+    void fetchMacroSignalGlobalStartupRegistry().then((startup) => {
+      if (!isCompleteStartupRegistry(startup)) return;
       try {
-        window.localStorage.setItem(GLOBAL_REGISTRY_STORAGE_KEY, JSON.stringify({
-          modelId: response.modelId,
-          modelHash: response.modelHash,
-          generatedAt: response.generatedAt,
-          markets: response.markets,
-          researchIntelligence: response.researchIntelligence,
-          explanation: response.explanation,
-        } satisfies MacroSignalGlobalResponse));
-      } catch { /* startup acceleration remains optional */ }
-    }
+        window.localStorage.removeItem(LEGACY_GLOBAL_REGISTRY_STORAGE_KEY);
+        window.localStorage.setItem(GLOBAL_REGISTRY_STORAGE_KEY, JSON.stringify(startup));
+      }
+      catch { /* startup acceleration remains optional */ }
+    }).catch(() => undefined);
   }
-  return response;
+  return complete || !preloadedMacroSignalGlobalFetched ? response : preloadedMacroSignalGlobalRegistry ?? response;
 }
 
 export function getPreloadedMacroSignalGlobalRegistry(): MacroSignalGlobalResponse | null {
   hydrateMacroSignalGlobalRegistry();
   return preloadedMacroSignalGlobalRegistry;
+}
+
+export function preloadMacroSignalGlobalStartupRegistry(): Promise<MacroSignalGlobalResponse> {
+  hydrateMacroSignalGlobalRegistry();
+  if (preloadedMacroSignalGlobalRegistry) return Promise.resolve(preloadedMacroSignalGlobalRegistry);
+  if (preloadedMacroSignalGlobalStartupPromise) return preloadedMacroSignalGlobalStartupPromise;
+  preloadedMacroSignalGlobalStartupPromise = fetchMacroSignalGlobalStartupRegistry()
+    .then((response) => {
+      if (!isCompleteStartupRegistry(response)) throw new Error("Bridge returned an incomplete FMS startup registry");
+      return rememberMacroSignalGlobalRegistry(response, false);
+    })
+    .finally(() => { preloadedMacroSignalGlobalStartupPromise = null; });
+  return preloadedMacroSignalGlobalStartupPromise;
 }
 
 export function preloadMacroSignalGlobalRegistry(): Promise<MacroSignalGlobalResponse> {

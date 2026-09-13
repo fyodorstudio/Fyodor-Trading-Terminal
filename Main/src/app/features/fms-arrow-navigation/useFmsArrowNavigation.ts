@@ -73,15 +73,18 @@ export function useFmsArrowNavigation({
       selectedMarket: selectedSymbol,
       selectedTimeframe: timeframe,
       historyState,
+      signalMarket: pending.signal.historicalReplay
+        ? historicalResponse?.symbol ?? null
+        : currentResponse?.symbol ?? null,
       signalState: pending.signal.historicalReplay
         ? historicalError
           ? "error"
-          : historicalResponse?.symbol.toUpperCase() === selectedSymbol.toUpperCase()
+          : historicalResponse?.symbol.toUpperCase() === selectedSymbol.toUpperCase() && !historicalResponse.startupProjection
             ? "ready"
             : "loading"
         : currentError
           ? "error"
-          : currentResponse
+          : currentResponse && !currentResponse.startupProjection
             ? "ready"
             : "loading",
       signals: displayedSignals,

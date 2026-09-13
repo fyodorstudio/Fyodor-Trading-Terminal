@@ -180,7 +180,14 @@ export function getTradeMarkets(data: { response: MacroSignalChartSignalResponse
   const markets = new Map((data.globalResponse?.markets ?? []).map((market) => [market.symbol, market]));
   const selected = data.response;
   const previous = markets.get(selected.symbol);
-  if (!previous || (selected.generatedAt ?? 0) >= (previous.generatedAt ?? 0)) markets.set(selected.symbol, selected);
+  const selectedActivity = selected.signals.length + (selected.recoveredSignals?.length ?? 0)
+    + (selected.realtime?.patternAssessments?.length ?? selected.realtime?.latestPatternAssessments?.length ?? 0);
+  const previousActivity = previous == null ? -1 : previous.signals.length + (previous.recoveredSignals?.length ?? 0)
+    + (previous.realtime?.patternAssessments?.length ?? previous.realtime?.latestPatternAssessments?.length ?? 0);
+  if (!previous || (selected.generatedAt ?? 0) > (previous.generatedAt ?? 0)
+      || ((selected.generatedAt ?? 0) === (previous.generatedAt ?? 0) && selectedActivity >= previousActivity)) {
+    markets.set(selected.symbol, selected);
+  }
   return [...markets.values()].filter((market) => market.supported);
 }
 

@@ -98,6 +98,7 @@ export function resolveFmsArrowNavigationStage(params: {
   selectedMarket: string;
   selectedTimeframe: Timeframe;
   historyState: "loading" | "ready" | "no_data" | "error";
+  signalMarket: string | null;
   signalState: "loading" | "ready" | "error";
   signals: MacroSignalChartSignal[];
   candles: BridgeCandle[];
@@ -119,6 +120,10 @@ export function resolveFmsArrowNavigationStage(params: {
   if (params.historyState === "no_data" || params.historyState === "error") {
     return { stage: "history_unavailable", signal: null, range: null };
   }
+  if (params.signalMarket?.toUpperCase() !== params.request.market) {
+    return { stage: "loading_signal", signal: null, range: null };
+  }
+  if (params.signalState === "error") return { stage: "signal_unavailable", signal: null, range: null };
   const signal = params.signals.find((candidate) => candidate.id === params.request.signal.id)
     ?? params.signals.find((candidate) => (
       candidate.patternId === params.request.signal.patternId

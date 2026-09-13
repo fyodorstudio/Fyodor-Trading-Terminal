@@ -56,6 +56,63 @@ def test_trade_snapshot_restores_all_saved_decisions_without_changing_evidence(t
   assert store.list_fms_live_decisions("AUDUSD", limit=None) == before
 
 
+def test_trade_startup_snapshot_keeps_all_markets_and_drops_heavy_history() -> None:
+  payload = {
+    "modelId": "model", "modelHash": "hash", "generatedAt": 10, "explanation": "registry",
+    "markets": [
+      {
+        "supported": True, "versionId": "v1", "modelId": "model", "modelHash": "hash",
+        "modelActivatedAt": 1, "mode": "current", "symbol": symbol, "timeframe": "H4",
+        "modelTimeframe": "H4", "targetR": 2, "generatedAt": 10, "message": "current",
+        "patterns": [{
+          "id": f"{symbol}-setup", "label": "Setup", "currentEligible": True,
+          "yearStability": {"evaluableYears": 2, "positiveYears": 1, "positiveYearShare": .5, "byYear": [{"large": [1] * 100}]},
+          "reactionAudit": {"profile": {"targetEvidence": {"medianR": .2}, "horizons": [{"large": [1] * 100}]}},
+        }],
+        "signals": [{"id": f"{symbol}-signal", "large": [1] * 100}],
+        "recoveredSignals": [{"id": f"{symbol}-recovered"}],
+        "realtime": {"asOf": 10, "upcomingPatternWatches": [{"patternId": f"{symbol}-setup", "time": 20}]},
+      }
+      for symbol in ("AUDUSD", "EURUSD")
+    ],
+  }
+
+  projected = server._trade_startup_global_snapshot(payload)
+
+  assert projected["registrySymbols"] == ["AUDUSD", "EURUSD"]
+  assert len(projected["markets"]) == 2
+  assert all(row["startupProjection"] is True for row in projected["markets"])
+  assert all(row["signals"] == [] and row["recoveredSignals"] == [] for row in projected["markets"])
+  assert projected["markets"][0]["realtime"]["upcomingPatternWatches"]
+  pattern = projected["markets"][0]["patterns"][0]
+  assert pattern["yearStability"]["byYear"] == []
+  assert pattern["reactionAudit"] == {"profile": {"targetEvidence": {"medianR": .2}}}
+
+
+def test_trade_startup_endpoint_uses_only_a_complete_saved_registry(tmp_path: Path, monkeypatch) -> None:
+  store = ResearchStore(tmp_path / "startup.sqlite3")
+  monkeypatch.setattr(server, "_research_store", store)
+  monkeypatch.setattr(server, "PRACTICAL_PATTERN_DEFINITIONS", (
+    {"market": "AUDUSD"}, {"market": "EURUSD"},
+  ))
+  saved = {
+    "modelId": server.PRACTICAL_MODEL_ID,
+    "modelHash": server.PRACTICAL_MODEL_HASH,
+    "generatedAt": 10,
+    "markets": [
+      {"symbol": symbol, "patterns": [], "signals": [], "realtime": {}}
+      for symbol in ("AUDUSD", "EURUSD")
+    ],
+  }
+  store.set_metadata("fms_global_chart_response:v1", json.dumps(saved))
+  monkeypatch.setattr(server, "research_global_chart_signals", lambda **_kwargs: pytest.fail("complete startup cache should not rebuild"))
+
+  response = server.research_global_chart_signals_startup()
+
+  assert response["startupProjection"] is True
+  assert response["registrySymbols"] == ["AUDUSD", "EURUSD"]
+
+
 def test_cached_history_uses_bounded_query_and_keeps_ascending_candles(tmp_path: Path, monkeypatch) -> None:
   store = ResearchStore(tmp_path / "history.sqlite3")
   monkeypatch.setattr(server, "_research_store", store)
