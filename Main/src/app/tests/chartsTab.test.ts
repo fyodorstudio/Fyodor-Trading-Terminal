@@ -12,7 +12,7 @@ import { ChartMacroBiasAudit } from "@/app/components/ChartMacroBiasAudit";
 import { ChartMacroBiasAuditReview } from "@/app/features/fms-dock/ChartMacroBiasAuditReview";
 import { FmsReviewNoteRow } from "@/app/features/fms-dock/FmsReviewNoteRow";
 import { ChartMacroBiasRealtimeCard, marketMatchesCurrencySelection } from "@/app/components/ChartMacroBiasRealtimeCard";
-import { ChartFmsJournalCard, buildFmsJournalRows, buildFmsPreRegistrationJournalRows } from "@/app/components/ChartFmsJournalCard";
+import { ChartFmsJournalCard, buildFmsJournalRows, buildFmsPreRegistrationJournalRows, groupJournalRows } from "@/app/components/ChartFmsJournalCard";
 import { buildRegisteredSetupSchedule, buildRecentFmsActivity, partitionFmsActivity, getTradeMarkets, ChartFmsActionCard, DEFAULT_FMS_TRADE_VIEW_STATE } from "@/app/components/ChartFmsActionCard";
 import { ChartFmsKnowledgeCard } from "@/app/components/ChartFmsKnowledgeCard";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
@@ -72,6 +72,18 @@ describe("pair-switch FMS loading", () => {
       ["EURUSD:setup:150", "setup:150"],
     ]);
     expect(buildFmsPreRegistrationJournalRows(replayResponse).map((row) => row.key)).toEqual(["EURUSD:setup:50"]);
+    const historicalRow = buildFmsPreRegistrationJournalRows(replayResponse)[0];
+    const monday = Date.parse("2026-09-07T02:00:00Z") / 1_000;
+    const friday = Date.parse("2026-09-11T12:00:00Z") / 1_000;
+    const nextMonday = Date.parse("2026-09-14T02:00:00Z") / 1_000;
+    const weeks = groupJournalRows([
+      { ...historicalRow, key: "next", eventTime: nextMonday },
+      { ...historicalRow, key: "fri", eventTime: friday },
+      { ...historicalRow, key: "mon", eventTime: monday },
+    ], "week");
+    expect(weeks.map((week) => week.rows.map((row) => row.key))).toEqual([["next"], ["fri", "mon"]]);
+    expect(weeks[1].label).toContain("Mon, Sep 07");
+    expect(weeks[1].label).toContain("Fri, Sep 11, 2026");
 
     const html = renderToStaticMarkup(createElement(ChartFmsJournalCard, {
       data,

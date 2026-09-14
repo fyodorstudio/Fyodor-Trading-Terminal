@@ -2112,6 +2112,8 @@
 .fms-journal-history-heading span { color: #64748b; font-size: 8px; line-height: 1.4; }
 .fms-journal-days { display: grid; align-content: start; }
 .fms-journal-days > details { border-bottom: 1px solid #cbd5e1; }
+.fms-journal-days.is-weekly > details > summary { background: #fffcf5; }
+.fms-journal-days.is-weekly > details > summary:hover { background: #fff7e6; }
 .fms-journal-days > details > summary { display: flex; min-height: 42px; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 9px; cursor: pointer; list-style: none; }
 .fms-journal-days > details > summary::-webkit-details-marker { display: none; }
 .fms-journal-days > details > summary:hover { background: #f8fafc; }
@@ -2142,6 +2144,8 @@
 .fms-journal-empty { display: grid; gap: 3px; padding: 18px 10px; color: #475569; }
 .fms-journal-empty strong { font-size: 10px; }
 .fms-journal-empty span { font-size: 9px; line-height: 1.4; }
+.fms-journal-load-weeks { min-height: 34px; border: 0; border-bottom: 1px solid #cbd5e1; background: #f8fafc; padding: 7px 10px; color: #4338ca; font-size: 9px; font-weight: 800; text-align: left; cursor: pointer; }
+.fms-journal-load-weeks:hover, .fms-journal-load-weeks:focus-visible { background: #eef2ff; color: #1d4ed8; }
 .fms-journal-card > footer { padding: 9px 10px; color: #64748b; font-size: 8px; line-height: 1.4; }
 
 @media (max-width: 480px) {

@@ -238,75 +238,155 @@ function usePreRegistrationJournalRows(data: ChartMacroBiasRealtimeCardData) {
   return { rows, loading, error };
 }
 
-function journalDays(rows: JournalRow[]) {
-  const grouped = new Map<string, JournalRow[]>();
-  rows.forEach((row) => grouped.set(dayKey(rowResolvedTime(row)), [...(grouped.get(dayKey(rowResolvedTime(row))) ?? []), row]));
-  return [...grouped.entries()].map(([key, dayRows]) => ({ key, rows: dayRows }));
+type JournalGroup = { key: string; label: string; rows: JournalRow[] };
+type SaveReviewNote = (input: FmsReviewNoteInput) => Promise<FmsReviewNote>;
+type RemoveReviewNote = (recordKey: string) => Promise<void>;
+
+const jakartaWeekStartLabel = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Jakarta", weekday: "short", day: "2-digit", month: "short",
+});
+const jakartaWeekEndLabel = new Intl.DateTimeFormat("en-US", {
+  timeZone: "Asia/Jakarta", weekday: "short", day: "2-digit", month: "short", year: "numeric",
+});
+
+export function groupJournalRows(rows: JournalRow[], grouping: "day" | "week"): JournalGroup[] {
+  const grouped = new Map<string, { start: number; rows: JournalRow[] }>();
+  rows.forEach((row) => {
+    const start = grouping === "week" ? jakartaWeekStart(row.eventTime) : jakartaDayStart(rowResolvedTime(row));
+    const key = String(start);
+    const current = grouped.get(key);
+    if (current) current.rows.push(row);
+    else grouped.set(key, { start, rows: [row] });
+  });
+  return [...grouped.entries()].map(([key, group]) => ({
+    key,
+    rows: group.rows,
+    label: grouping === "week"
+      ? `${jakartaWeekStartLabel.format(new Date(group.start * 1_000))} – ${jakartaWeekEndLabel.format(new Date((group.start + 4 * 86_400) * 1_000))}`
+      : jakartaDayLabel.format(new Date(group.start * 1_000)),
+  }));
 }
 
-function JournalDays({
-  rows,
+const JournalRecord = memo(function JournalRecord({
+  row,
+  savedNote,
+  notesLoading,
+  saving,
+  saveNote,
+  removeNote,
+  onGoToArrow,
+  onGoToEvent,
+}: {
+  row: JournalRow;
+  savedNote: FmsReviewNote | null;
+  notesLoading: boolean;
+  saving: boolean;
+  saveNote: SaveReviewNote;
+  removeNote: RemoveReviewNote;
+  onGoToArrow?: (market: string, signal: MacroSignalChartSignal) => void;
+  onGoToEvent?: (market: string, eventTime: number) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [label, setLabel] = useState<FmsReviewNoteLabel>("unlabeled");
+  const noteInput = { recordKey: row.key, context: "activity" as const, market: row.market, patternId: row.patternId, eventTime: row.eventTime, signalId: row.signal?.id ?? null };
+  const beginNote = () => {
+    setDraft(savedNote?.note ?? "");
+    setLabel(savedNote?.label ?? "unlabeled");
+    setEditing(true);
+  };
+  const cancelNote = () => {
+    setEditing(false);
+    setDraft("");
+    setLabel("unlabeled");
+  };
+  const submitNote = (event: FormEvent<HTMLFormElement>, input: Omit<FmsReviewNoteInput, "note">) => {
+    event.preventDefault();
+    const note = draft.trim();
+    if (!note) return;
+    void saveNote({ ...input, note }).then(cancelNote).catch(() => undefined);
+  };
+  const deleteNote = () => {
+    if (!window.confirm("Remove this personal audit note?")) return;
+    void removeNote(row.key).catch(() => undefined);
+  };
+  return <Fragment>
+    <tr>
+      <td><strong>{formatJakartaDisplayDateTime(row.eventTime)}</strong><span>{row.market} · {row.label}</span><small className={`is-${row.source}`}>{row.source === "live" ? "Live captured" : row.source === "recovered" ? "Recovered path" : row.source === "historical" ? "Before registration replay" : "No trade"}</small></td>
+      <td><strong>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} ${row.market}` : "No position"}</strong><span>{row.state}</span>{row.signalTag ? <code>{row.signalTag}</code> : null}<span className="fms-journal-row-actions">{row.signal && onGoToArrow ? <button type="button" onClick={() => onGoToArrow(row.market, row.signal!)}>Go to arrow</button> : !row.signal && onGoToEvent ? <button type="button" onClick={() => onGoToEvent(row.market, row.eventTime)}>Go to event</button> : null}<button type="button" disabled={notesLoading} onClick={beginNote}>{savedNote ? "Edit note" : "Add note"}</button></span></td>
+      <td><strong>{signedR(row.resultR)}</strong><span>Entry {price(row.entry)}</span><small>SL {price(row.stop)} · TP {price(row.target)}</small></td>
+      <td><strong>{row.demoStatus ? money(row.demoNet) : "Not placed"}</strong><span>{row.demoStatus?.replaceAll("_", " ") ?? "No matching tagged MT5 trade"}</span><small>{row.demoNetR == null ? "Actual broker result unavailable" : `${signedR(row.demoNetR)} net`}</small></td>
+    </tr>
+    <FmsReviewNoteRow input={noteInput} saved={savedNote} editing={editing} draft={draft} label={label} loading={notesLoading} saving={saving} valueColSpan={3} onDraftChange={setDraft} onLabelChange={setLabel} onEdit={beginNote} onCancel={cancelNote} onSave={submitNote} onRemove={deleteNote} />
+  </Fragment>;
+});
+
+const JournalDisclosure = memo(function JournalDisclosure({
+  group,
+  initiallyOpen,
   notesByKey,
   notesLoading,
   noteSavingKey,
-  editingNoteKey,
-  noteDraft,
-  noteLabel,
+  saveNote,
+  removeNote,
+  onGoToArrow,
+  onGoToEvent,
+}: {
+  group: JournalGroup;
+  initiallyOpen: boolean;
+  notesByKey: Map<string, FmsReviewNote>;
+  notesLoading: boolean;
+  noteSavingKey: string | null;
+  saveNote: SaveReviewNote;
+  removeNote: RemoveReviewNote;
+  onGoToArrow?: (market: string, signal: MacroSignalChartSignal) => void;
+  onGoToEvent?: (market: string, eventTime: number) => void;
+}) {
+  const [open, setOpen] = useState(initiallyOpen);
+  const resolved = group.rows.filter((row) => row.resultR != null);
+  const totalR = resolved.reduce((sum, row) => sum + Number(row.resultR), 0);
+  const demoRows = group.rows.filter((row) => row.demoStatus != null);
+  const totalMoney = demoRows.reduce((sum, row) => sum + Number(row.demoNet ?? 0), 0);
+  return <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
+    <summary><span><strong>{group.label}</strong><small>{group.rows.length} decisions · {resolved.length} resolved</small></span><span><b>{resolved.length ? signedR(totalR) : "Pending"}</b><em>{demoRows.length ? money(totalMoney) : "No demo"}</em><ChevronDown size={13} /></span></summary>
+    {open ? <table><thead><tr><th>Time and setup</th><th>Decision</th><th>Model path</th><th>Demo account</th></tr></thead><tbody>{group.rows.map((row) => <JournalRecord key={row.key} row={row} savedNote={notesByKey.get(row.key) ?? null} notesLoading={notesLoading} saving={noteSavingKey === row.key} saveNote={saveNote} removeNote={removeNote} onGoToArrow={onGoToArrow} onGoToEvent={onGoToEvent} />)}</tbody></table> : null}
+  </details>;
+});
+
+const JournalGroups = memo(function JournalGroups({
+  rows,
+  grouping,
+  notesByKey,
+  notesLoading,
+  noteSavingKey,
+  saveNote,
+  removeNote,
   emptyTitle,
   emptyCopy,
   onGoToArrow,
   onGoToEvent,
-  onBeginNote,
-  onCancelNote,
-  onDraftChange,
-  onLabelChange,
-  onSaveNote,
-  onDeleteNote,
 }: {
   rows: JournalRow[];
+  grouping: "day" | "week";
   notesByKey: Map<string, FmsReviewNote>;
   notesLoading: boolean;
   noteSavingKey: string | null;
-  editingNoteKey: string | null;
-  noteDraft: string;
-  noteLabel: FmsReviewNoteLabel;
+  saveNote: SaveReviewNote;
+  removeNote: RemoveReviewNote;
   emptyTitle: string;
   emptyCopy: string;
   onGoToArrow?: (market: string, signal: MacroSignalChartSignal) => void;
   onGoToEvent?: (market: string, eventTime: number) => void;
-  onBeginNote: (recordKey: string) => void;
-  onCancelNote: () => void;
-  onDraftChange: (value: string) => void;
-  onLabelChange: (value: FmsReviewNoteLabel) => void;
-  onSaveNote: (event: FormEvent<HTMLFormElement>, input: Omit<FmsReviewNoteInput, "note">) => void;
-  onDeleteNote: (recordKey: string) => void;
 }) {
-  const days = journalDays(rows);
-  return <div className="fms-journal-days">
-    {days.length ? days.map((day, index) => {
-      const dayResolved = day.rows.filter((row) => row.resultR != null);
-      const dayR = dayResolved.reduce((sum, row) => sum + Number(row.resultR), 0);
-      const dayDemo = day.rows.filter((row) => row.demoStatus != null);
-      const dayMoney = dayDemo.reduce((sum, row) => sum + Number(row.demoNet ?? 0), 0);
-      return <details key={day.key} open={index === 0}>
-        <summary><span><strong>{jakartaDayLabel.format(new Date(rowResolvedTime(day.rows[0]) * 1_000))}</strong><small>{day.rows.length} decisions · {dayResolved.length} resolved</small></span><span><b>{dayResolved.length ? signedR(dayR) : "Pending"}</b><em>{dayDemo.length ? money(dayMoney) : "No demo"}</em><ChevronDown size={13} /></span></summary>
-        <table><thead><tr><th>Time and setup</th><th>Decision</th><th>Model path</th><th>Demo account</th></tr></thead><tbody>{day.rows.map((row) => {
-          const note = notesByKey.get(row.key) ?? null;
-          const noteInput = { recordKey: row.key, context: "activity" as const, market: row.market, patternId: row.patternId, eventTime: row.eventTime, signalId: row.signal?.id ?? null };
-          return <Fragment key={row.key}>
-            <tr>
-              <td><strong>{formatJakartaDisplayDateTime(row.eventTime)}</strong><span>{row.market} · {row.label}</span><small className={`is-${row.source}`}>{row.source === "live" ? "Live captured" : row.source === "recovered" ? "Recovered path" : row.source === "historical" ? "Before registration replay" : "No trade"}</small></td>
-              <td><strong>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} ${row.market}` : "No position"}</strong><span>{row.state}</span>{row.signalTag ? <code>{row.signalTag}</code> : null}<span className="fms-journal-row-actions">{row.signal && onGoToArrow ? <button type="button" onClick={() => onGoToArrow(row.market, row.signal!)}>Go to arrow</button> : !row.signal && onGoToEvent ? <button type="button" onClick={() => onGoToEvent(row.market, row.eventTime)}>Go to event</button> : null}<button type="button" disabled={notesLoading} onClick={() => onBeginNote(row.key)}>{note ? "Edit note" : "Add note"}</button></span></td>
-              <td><strong>{signedR(row.resultR)}</strong><span>Entry {price(row.entry)}</span><small>SL {price(row.stop)} · TP {price(row.target)}</small></td>
-              <td><strong>{row.demoStatus ? money(row.demoNet) : "Not placed"}</strong><span>{row.demoStatus?.replaceAll("_", " ") ?? "No matching tagged MT5 trade"}</span><small>{row.demoNetR == null ? "Actual broker result unavailable" : `${signedR(row.demoNetR)} net`}</small></td>
-            </tr>
-            <FmsReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === row.key} draft={noteDraft} label={noteLabel} loading={notesLoading} saving={noteSavingKey === row.key} valueColSpan={3} onDraftChange={onDraftChange} onLabelChange={onLabelChange} onEdit={() => onBeginNote(row.key)} onCancel={onCancelNote} onSave={onSaveNote} onRemove={() => onDeleteNote(row.key)} />
-          </Fragment>;
-        })}</tbody></table>
-      </details>;
-    }) : <div className="fms-journal-empty"><strong>{emptyTitle}</strong><span>{emptyCopy}</span></div>}
+  const groups = useMemo(() => groupJournalRows(rows, grouping), [grouping, rows]);
+  const [visibleWeekCount, setVisibleWeekCount] = useState(26);
+  const visibleGroups = grouping === "week" ? groups.slice(0, visibleWeekCount) : groups;
+  const remainingWeeks = groups.length - visibleGroups.length;
+  return <div className={`fms-journal-days${grouping === "week" ? " is-weekly" : ""}`}>
+    {visibleGroups.length ? visibleGroups.map((group, index) => <JournalDisclosure key={group.key} group={group} initiallyOpen={grouping === "day" && index === 0} notesByKey={notesByKey} notesLoading={notesLoading} noteSavingKey={noteSavingKey} saveNote={saveNote} removeNote={removeNote} onGoToArrow={onGoToArrow} onGoToEvent={onGoToEvent} />) : <div className="fms-journal-empty"><strong>{emptyTitle}</strong><span>{emptyCopy}</span></div>}
+    {remainingWeeks > 0 ? <button type="button" className="fms-journal-load-weeks" onClick={() => setVisibleWeekCount((current) => current + 26)}>Show 26 older weeks · {remainingWeeks} remaining</button> : null}
   </div>;
-}
+});
 
 export const ChartFmsJournalCard = memo(function ChartFmsJournalCard({
   data,
@@ -321,9 +401,6 @@ export const ChartFmsJournalCard = memo(function ChartFmsJournalCard({
   const allRows = useMemo(() => buildFmsJournalRows(data), [data]);
   const preRegistration = usePreRegistrationJournalRows(data);
   const { notesByKey, loading: notesLoading, savingKey: noteSavingKey, error: notesError, save: saveNote, remove: removeNote } = useFmsReviewNotes();
-  const [editingNoteKey, setEditingNoteKey] = useState<string | null>(null);
-  const [noteDraft, setNoteDraft] = useState("");
-  const [noteLabel, setNoteLabel] = useState<FmsReviewNoteLabel>("unlabeled");
   const newestTime = Math.max(data.globalResponse?.generatedAt ?? 0, data.response.generatedAt ?? 0, Math.floor(Date.now() / 1_000));
   const weekStart = jakartaWeekStart(newestTime);
   const jakartaDate = new Date((newestTime + JAKARTA_OFFSET_SECONDS) * 1_000);
@@ -360,41 +437,14 @@ export const ChartFmsJournalCard = memo(function ChartFmsJournalCard({
   const demo = data.globalResponse?.forwardValidation?.demoExecution ?? null;
   const portfolio = data.globalResponse?.forwardValidation?.portfolioReplay ?? null;
   const capture = demo?.captureStatus;
-  const beginNote = (recordKey: string) => {
-    setEditingNoteKey(recordKey);
-    setNoteDraft(notesByKey.get(recordKey)?.note ?? "");
-    setNoteLabel(notesByKey.get(recordKey)?.label ?? "unlabeled");
-  };
-  const cancelNote = () => {
-    setEditingNoteKey(null);
-    setNoteDraft("");
-    setNoteLabel("unlabeled");
-  };
-  const submitNote = (event: FormEvent<HTMLFormElement>, input: Omit<FmsReviewNoteInput, "note">) => {
-    event.preventDefault();
-    const note = noteDraft.trim();
-    if (!note) return;
-    void saveNote({ ...input, note }).then(cancelNote).catch(() => undefined);
-  };
-  const deleteNote = (recordKey: string) => {
-    if (!window.confirm("Remove this personal audit note?")) return;
-    void removeNote(recordKey).catch(() => undefined);
-  };
-  const dayProps = {
+  const groupProps = {
     notesByKey,
     notesLoading,
     noteSavingKey,
-    editingNoteKey,
-    noteDraft,
-    noteLabel,
+    saveNote,
+    removeNote,
     onGoToArrow,
     onGoToEvent,
-    onBeginNote: beginNote,
-    onCancelNote: cancelNote,
-    onDraftChange: setNoteDraft,
-    onLabelChange: setNoteLabel,
-    onSaveNote: submitNote,
-    onDeleteNote: deleteNote,
   };
 
   return (
@@ -421,7 +471,7 @@ export const ChartFmsJournalCard = memo(function ChartFmsJournalCard({
         <label>Show<select value={scope} onChange={(event) => setScope(event.target.value as JournalScope)}><option value="all">All post-registration</option><option value="this_week">Current week</option><option value="previous_week">Previous week</option><option value="month">Current month</option><option value="year">Current year</option><option value="broker">Tagged manual only</option></select></label>
         <span>{rows.length} records · {scopeCounts.wins} wins · {scopeCounts.losses} losses · {scopeCounts.expired} expiry · {scopeCounts.ambiguous} ambiguous · {scopeCounts.unavailable} unavailable</span>
       </div>
-      <JournalDays rows={rows} emptyTitle="No journal records in this view." emptyCopy="Qualified releases will appear automatically; a broker result appears only after MT5 contains a matching tagged demo trade." {...dayProps} />
+      <JournalGroups rows={rows} grouping="day" emptyTitle="No journal records in this view." emptyCopy="Qualified releases will appear automatically; a broker result appears only after MT5 contains a matching tagged demo trade." {...groupProps} />
       <div className="fms-journal-history-heading">
         <strong>Before registration arrows</strong>
         <span>Immutable research replay only · these arrows were discovered retrospectively and were not available as live decisions.</span>
@@ -431,7 +481,7 @@ export const ChartFmsJournalCard = memo(function ChartFmsJournalCard({
         <span>{preRegistration.loading ? `Loading replay · ${preRegistration.rows.length} ready` : `${preRegistration.rows.length} records · ${historicalCounts.wins} wins · ${historicalCounts.losses} losses · ${historicalCounts.expired} expiry · ${historicalCounts.ambiguous} ambiguous`}</span>
       </div>
       {preRegistration.error ? <p role="alert" className="fms-action-warning">Some replay markets could not load: {preRegistration.error}</p> : null}
-      <JournalDays rows={preRegistration.rows} emptyTitle={preRegistration.loading ? "Loading pre-registration arrows…" : "No pre-registration arrows are stored."} emptyCopy={preRegistration.loading ? "Cached replay records appear here market by market." : "The immutable replay did not return an eligible arrow before its setup activation boundary."} {...dayProps} />
+      <JournalGroups rows={preRegistration.rows} grouping="week" emptyTitle={preRegistration.loading ? "Loading pre-registration arrows…" : "No pre-registration arrows are stored."} emptyCopy={preRegistration.loading ? "Cached replay records appear here market by market." : "The immutable replay did not return an eligible arrow before its setup activation boundary."} {...groupProps} />
       <footer>All model performance is gross and excludes spread, slippage, commission, swap, and execution delay. Fyodor reads tagged demo history but cannot transmit or modify an MT5 order.</footer>
     </section>
   );
