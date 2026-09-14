@@ -725,8 +725,9 @@ describe("getChartConnectionLabel", () => {
     expect(scheduledActionHtml).toContain("Review");
     const recentActionHtml = renderToStaticMarkup(createElement(ChartFmsActionCard, { data: {
       response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
-    }, viewState: { ...DEFAULT_FMS_TRADE_VIEW_STATE, activeView: "recent" } }));
+    }, viewState: { ...DEFAULT_FMS_TRADE_VIEW_STATE, activeView: "recent" }, onGoToEvent: () => {} }));
     expect(recentActionHtml).toContain("Add note");
+    expect(recentActionHtml).toContain("Go to event");
     expect(getMacroBiasReviewHiddenPatterns([
       { id: "keep", currentEligible: true },
       { id: "hide", currentEligible: true },

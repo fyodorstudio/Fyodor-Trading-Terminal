@@ -16,6 +16,7 @@ import type { ChartMacroBiasAuditData } from "@/app/components/ChartMacroBiasAud
 import { ChartMacroBiasRealtimeCard, type ChartMacroBiasRealtimeCardData } from "@/app/components/ChartMacroBiasRealtimeCard";
 import { FMS_DOCK_MIN_WIDTH, type FmsDockPrimaryTab, type FmsDockTab } from "@/app/features/chart-viewport/chartPanelState";
 import { ChartMacroBiasAuditReview } from "@/app/features/fms-dock/ChartMacroBiasAuditReview";
+import { recordAppActivity } from "@/app/features/chart-shell/appActivityLog";
 import type { MacroSignalChartSignal } from "@/app/types";
 
 class FmsDockErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
@@ -27,6 +28,12 @@ class FmsDockErrorBoundary extends Component<{ children: ReactNode }, { error: s
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("FMS dock render failed", error, info);
+    recordAppActivity({
+      level: "error",
+      source: "FMS dock",
+      message: error.message || "Panel render failed",
+      detail: info.componentStack?.trim().slice(0, 400) || null,
+    });
   }
 
   render() {
@@ -176,6 +183,7 @@ export function ChartFmsDock({
                   onToggleHistoricalPattern={onToggleHistoricalPattern}
                   onSetAllHistoricalPatterns={onSetAllHistoricalPatterns}
                   onGoToArrow={onGoToArrow}
+                  onGoToEvent={onGoToEvent}
                   onReviewSetup={onReviewSetup}
                   viewState={tradeViewState}
                   onViewStateChange={onTradeViewStateChange}

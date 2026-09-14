@@ -447,6 +447,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   onToggleHistoricalPattern,
   onSetAllHistoricalPatterns,
   onGoToArrow,
+  onGoToEvent,
   onReviewSetup,
   viewState,
   onViewStateChange,
@@ -459,6 +460,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   onToggleHistoricalPattern?: (patternId: string) => void;
   onSetAllHistoricalPatterns?: (visible: boolean) => void;
   onGoToArrow?: (market: string, signal: MacroSignalChartSignal) => void;
+  onGoToEvent?: (market: string, eventTime: number) => void;
   onReviewSetup?: (market: string, patternId: string) => void;
   viewState?: FmsTradeViewState;
   onViewStateChange?: (state: FmsTradeViewState) => void;
@@ -667,7 +669,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                   if (event.key === "Enter" || event.key === " ") { event.preventDefault(); updateViewState({ expandedActivityKey: expanded ? null : row.key }); }
                 }}>
                   <td><strong><PairFlags symbol={row.market} />{row.market}</strong><small>{row.label}</small></td>
-                  <td><strong>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} · ` : ""}{row.state}</strong><span className="fms-row-actions"><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small>{arrowSignal && onGoToArrow ? <button type="button" className="fms-go-to-arrow" onClick={(event) => { event.stopPropagation(); onGoToArrow(row.market, arrowSignal); }} onKeyDown={(event) => event.stopPropagation()}>Go to arrow</button> : null}<button type="button" className="fms-add-note" disabled={notesLoading} onClick={(event) => { event.stopPropagation(); beginNote(row.key); }} onKeyDown={(event) => event.stopPropagation()}>{note ? "Edit note" : "Add note"}</button></span></td>
+                  <td><strong>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} · ` : ""}{row.state}</strong><span className="fms-row-actions"><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small>{arrowSignal && onGoToArrow ? <button type="button" className="fms-go-to-arrow" onClick={(event) => { event.stopPropagation(); onGoToArrow(row.market, arrowSignal); }} onKeyDown={(event) => event.stopPropagation()}>Go to arrow</button> : !arrowSignal && row.assessment && onGoToEvent ? <button type="button" className="fms-go-to-arrow" onClick={(event) => { event.stopPropagation(); onGoToEvent(row.market, row.assessment!.time); }} onKeyDown={(event) => event.stopPropagation()}>Go to event</button> : null}<button type="button" className="fms-add-note" disabled={notesLoading} onClick={(event) => { event.stopPropagation(); beginNote(row.key); }} onKeyDown={(event) => event.stopPropagation()}>{note ? "Edit note" : "Add note"}</button></span></td>
                   <td className="fms-activity-dates">
                     <TradeDate label="Released" time={row.signal?.eventTime ?? row.assessment?.time ?? row.time} />
                     {row.signal ? <>

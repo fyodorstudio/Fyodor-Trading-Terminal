@@ -5,6 +5,7 @@ import {
   getPreloadedMacroSignalCurrentModel,
   getPreloadedMacroSignalGlobalRegistry,
   preloadMacroSignalGlobalRegistry,
+  preloadMacroSignalGlobalStartupRegistry,
 } from "@/app/lib/bridge";
 import {
   getMacroBiasInitialLoadPlan,
@@ -101,8 +102,7 @@ export function useChartMacroBiasData({
     if (cached) setGlobalResponse((current) => current ?? cached);
     setGlobalLoading(!cached);
     setGlobalError(null);
-    preloadMacroSignalGlobalRegistry()
-      .then((response) => {
+    const applyResponse = (response: MacroSignalGlobalResponse) => {
         if (cancelled) return;
         response.markets.forEach((market) => {
           const key = market.symbol.toUpperCase();
@@ -119,7 +119,22 @@ export function useChartMacroBiasData({
             return newest && (newest.generatedAt ?? 0) > (market.generatedAt ?? 0) ? newest : market;
           }),
         } : { ...response, markets: response.markets.map((market) => marketCacheRef.current.get(market.symbol.toUpperCase()) ?? market) });
-      })
+    };
+    const load = async () => {
+      if (!cached) {
+        try {
+          const startup = await preloadMacroSignalGlobalStartupRegistry();
+          applyResponse(startup);
+          if (!cancelled) setGlobalLoading(false);
+        } catch {
+          // The bounded projection is an acceleration layer. The authoritative
+          // request below remains the source of truth and owns any visible error.
+        }
+      }
+      return preloadMacroSignalGlobalRegistry();
+    };
+    load()
+      .then(applyResponse)
       .catch((error: unknown) => {
         if (!cancelled) setGlobalError(error instanceof Error ? error.message : "Global FMS registry could not be loaded");
       })
@@ -315,4 +330,3 @@ export function useChartMacroBiasData({
     supported,
   };
 }
-
