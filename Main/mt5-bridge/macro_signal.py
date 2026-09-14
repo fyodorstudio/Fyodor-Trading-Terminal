@@ -4129,6 +4129,7 @@ def build_chart_signal_pattern_catalog(
       "sourceVersionId": source_version,
       "label": str(definition["label"]),
       "condition": str(definition["condition"]),
+      "activatedAt": definition.get("activatedAt"),
       "execution": dict(definition["execution"]),
       "market": str(definition.get("market", "EURUSD")),
       "scoringPolicy": str(definition.get("scoringPolicy", "forecast_quality")),

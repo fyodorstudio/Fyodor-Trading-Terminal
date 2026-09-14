@@ -87,7 +87,9 @@ export function useFmsArrowNavigation({
           : currentResponse && !currentResponse.startupProjection
             ? "ready"
             : "loading",
-      signals: displayedSignals,
+      signals: displayedSignals.some((signal) => signal.id === pending.signal.id)
+        ? displayedSignals
+        : [...displayedSignals, pending.signal],
       candles: visibleCandles,
       sourceTimeOffsetSeconds,
       focusBars,

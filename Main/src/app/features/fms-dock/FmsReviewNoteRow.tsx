@@ -23,6 +23,7 @@ export function FmsReviewNoteRow({
   saving,
   error = null,
   showAddWhenEmpty = false,
+  valueColSpan = 2,
   onDraftChange,
   onLabelChange,
   onEdit,
@@ -39,6 +40,7 @@ export function FmsReviewNoteRow({
   saving: boolean;
   error?: string | null;
   showAddWhenEmpty?: boolean;
+  valueColSpan?: number;
   onDraftChange: (value: string) => void;
   onLabelChange: (value: FmsReviewNoteLabel) => void;
   onEdit: () => void;
@@ -49,7 +51,7 @@ export function FmsReviewNoteRow({
   if (!saved && !editing && !showAddWhenEmpty) return null;
   return <tr className="fms-review-note-row" data-note-record-key={input.recordKey}>
     <th scope="row">Audit note</th>
-    <td colSpan={2}>
+    <td colSpan={valueColSpan}>
       {editing ? <form onSubmit={(event) => onSave(event, { ...input, label })}>
         <label className="fms-review-note-label"><span>Label</span><select aria-label="Audit note label" value={label} onChange={(event) => onLabelChange(event.target.value as FmsReviewNoteLabel)}>{FMS_REVIEW_NOTE_LABELS.map((value) => <option key={value} value={value}>{NOTE_LABEL_NAMES[value]}</option>)}</select></label>
         <textarea value={draft} onChange={(event) => onDraftChange(event.target.value)} maxLength={4000} rows={3} autoFocus aria-label="Personal audit note" placeholder="Record anything suspicious about the arrow, entry, TP, SL, or price reaction." />

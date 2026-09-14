@@ -4139,6 +4139,11 @@ def _historical_evidence_summary(pattern: Dict[str, Any]) -> Dict[str, Any]:
 def _interactive_chart_pattern(pattern: Any) -> Any:
   if not isinstance(pattern, dict):
     return pattern
+  definition = next((
+    row for row in PRACTICAL_PATTERN_DEFINITIONS
+    if str(row.get("id")) == str(pattern.get("id"))
+    and str(row.get("market")) == str(pattern.get("market"))
+  ), None)
   # Chart/Shadow Trader render this summary contract. Development folds,
   # yearly metric rows, target grids, and prequential paths belong to the
   # research/readiness endpoints and were the bulk of every pair change.
@@ -4146,7 +4151,7 @@ def _interactive_chart_pattern(pattern: Any) -> Any:
     key: pattern.get(key)
     for key in (
       "id", "market", "signature", "signatures", "sourceVersionId", "label",
-      "condition", "scoringPolicy", "reaction", "cohort",
+      "condition", "scoringPolicy", "reaction", "cohort", "activatedAt",
       "historicalBenchmark", "registrationProvenance", "readiness", "execution",
       "baseExecution", "executionReview", "entryReview", "contextRegistration",
       "requiredExactTitles", "direction", "groups", "currentEligible",
@@ -4175,6 +4180,7 @@ def _interactive_chart_pattern(pattern: Any) -> Any:
   # Re-project from the linked immutable source so durable chart-response
   # caches cannot preserve an older generic-contract evidence summary.
   projected["historicalEvidence"] = _historical_evidence_summary(pattern)
+  projected["activatedAt"] = pattern.get("activatedAt") or (definition or {}).get("activatedAt")
   return projected
 
 
@@ -4209,7 +4215,7 @@ def _trade_current_snapshot(payload: Dict[str, Any]) -> Dict[str, Any]:
 
 
 _TRADE_STARTUP_PATTERN_KEYS = (
-  "id", "market", "signature", "signatures", "sourceVersionId", "label", "condition",
+  "id", "market", "signature", "signatures", "sourceVersionId", "label", "condition", "activatedAt",
   "scoringPolicy", "reaction", "cohort", "historicalBenchmark", "historicalEvidence",
   "registrationProvenance", "readiness", "execution", "entryReview", "contextRegistration",
   "direction", "groups", "overall", "development", "holdout", "qualification", "exampleTitles",
@@ -4304,6 +4310,7 @@ def research_chart_signals(
           "direction", "label", "historicalReplay", "outcomeStatus", "expiryCandles",
           "execution", "stopAtr", "targetR", "managementFamily", "managementTriggerR",
           "entryTimeframe", "expiryTimeframe", "entry", "atr", "stop", "initialStop", "target",
+          "resultR", "exitTime", "outcomeReasonCode", "outcomeReason",
         )
       }
       overlay = row.get("contextOverlay")
@@ -4315,8 +4322,13 @@ def research_chart_signals(
     return {
       **interactive_payload,
       "patterns": [
-        {"id": row.get("id"), "currentEligible": row.get("currentEligible", False)}
-        for row in payload.get("patterns", [])
+        {
+          "id": row.get("id"),
+          "label": row.get("label"),
+          "activatedAt": row.get("activatedAt"),
+          "currentEligible": row.get("currentEligible", False),
+        }
+        for row in interactive_payload.get("patterns", [])
       ],
       "signals": compact_signals,
     }

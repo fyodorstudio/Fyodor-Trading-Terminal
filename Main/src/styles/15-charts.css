@@ -2105,6 +2105,11 @@
 .fms-journal-toolbar label { display: flex; align-items: center; gap: 5px; color: #64748b; font-size: 8px; font-weight: 800; }
 .fms-journal-toolbar select { min-height: 26px; border: 1px solid #cbd5e1; background: #fff; padding: 2px 22px 2px 6px; color: #111827; font-size: 9px; }
 .fms-journal-toolbar > span { color: #64748b; font-size: 8px; }
+.fms-journal-toolbar > strong { color: #312e81; font-size: 9px; }
+.fms-journal-toolbar.is-history { background: #fffaf0; }
+.fms-journal-history-heading { display: grid; gap: 2px; border-top: 2px solid #cbd5e1; border-bottom: 1px solid #d7dbe0; background: #fffbeb; padding: 9px 10px; }
+.fms-journal-history-heading strong { color: #92400e; font-size: 11px; }
+.fms-journal-history-heading span { color: #64748b; font-size: 8px; line-height: 1.4; }
 .fms-journal-days { display: grid; align-content: start; }
 .fms-journal-days > details { border-bottom: 1px solid #cbd5e1; }
 .fms-journal-days > details > summary { display: flex; min-height: 42px; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 9px; cursor: pointer; list-style: none; }
@@ -2126,7 +2131,14 @@
 .fms-journal-days td > small { margin-top: 2px; color: #64748b; font-size: 7px; line-height: 1.35; }
 .fms-journal-days td > small.is-live { color: #15803d; }
 .fms-journal-days td > small.is-recovered { color: #b45309; }
+.fms-journal-days td > small.is-historical { color: #92400e; }
 .fms-journal-days td > code { margin-top: 3px; color: #4338ca; font-size: 7px; }
+.fms-journal-days td > .fms-journal-row-actions { display: flex; flex-wrap: wrap; gap: 4px 8px; margin-top: 5px; }
+.fms-journal-row-actions button { border: 0; background: transparent; padding: 0; color: #4338ca; font-size: 8px; font-weight: 800; line-height: 1.35; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.fms-journal-row-actions button:hover, .fms-journal-row-actions button:focus-visible { color: #1d4ed8; }
+.fms-journal-row-actions button:disabled { color: #94a3b8; cursor: wait; }
+.fms-journal-days .fms-review-note-row > th { position: static; width: 25%; background: #fffef7; font-size: 8px; }
+.fms-journal-days .fms-review-note-row > td { background: #fffef7; }
 .fms-journal-empty { display: grid; gap: 3px; padding: 18px 10px; color: #475569; }
 .fms-journal-empty strong { font-size: 10px; }
 .fms-journal-empty span { font-size: 9px; line-height: 1.4; }

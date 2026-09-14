@@ -12,6 +12,7 @@ import { ChartMacroBiasAudit } from "@/app/components/ChartMacroBiasAudit";
 import { ChartMacroBiasAuditReview } from "@/app/features/fms-dock/ChartMacroBiasAuditReview";
 import { FmsReviewNoteRow } from "@/app/features/fms-dock/FmsReviewNoteRow";
 import { ChartMacroBiasRealtimeCard, marketMatchesCurrencySelection } from "@/app/components/ChartMacroBiasRealtimeCard";
+import { ChartFmsJournalCard, buildFmsJournalRows, buildFmsPreRegistrationJournalRows } from "@/app/components/ChartFmsJournalCard";
 import { buildRegisteredSetupSchedule, buildRecentFmsActivity, partitionFmsActivity, getTradeMarkets, ChartFmsActionCard, DEFAULT_FMS_TRADE_VIEW_STATE } from "@/app/components/ChartFmsActionCard";
 import { ChartFmsKnowledgeCard } from "@/app/components/ChartFmsKnowledgeCard";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
@@ -31,11 +32,64 @@ import { getChartRefreshBars } from "@/app/features/chart-market-data/historyPol
 import { isCompleteStartupRegistry } from "@/app/lib/bridge";
 import {
   createFmsArrowNavigationRequest,
+  getFmsEventFocusRange,
   resolveFmsArrowNavigationStage,
 } from "@/app/features/fms-arrow-navigation/arrowNavigation";
 import { getMacroBiasInitialLoadPlan } from "@/app/tabs/primary/ChartsTab";
 
 describe("pair-switch FMS loading", () => {
+  it("keeps Journal records on the correct registration side with shared navigation keys", () => {
+    const pattern = {
+      id: "setup", label: "Registered setup", activatedAt: 100, currentEligible: true,
+    } as MacroSignalChartPattern;
+    const signal = (eventTime: number, historicalReplay: boolean): MacroSignalChartSignal => ({
+      id: `setup:${eventTime}`, patternId: "setup", eventTime, activationTime: eventTime + 10,
+      direction: "long", label: "Registered setup", outcomeStatus: "target_hit", resultR: 1,
+      entry: 1.1, initialStop: 1.09, stop: 1.09, target: 1.12, exitTime: eventTime + 20,
+      historicalReplay, observationMode: historicalReplay ? "historical_replay" : "live_captured",
+    } as MacroSignalChartSignal);
+    const currentResponse = {
+      supported: true, versionId: "v1", modelId: "model", modelHash: "hash", modelActivatedAt: 1,
+      mode: "current", symbol: "EURUSD", timeframe: "H4", modelTimeframe: "H4", targetR: 2,
+      generatedAt: 200, patterns: [pattern], signals: [signal(150, false)], message: "current",
+    } as MacroSignalChartSignalResponse;
+    const replayResponse = {
+      ...currentResponse,
+      mode: "research_replay",
+      signals: [signal(50, true), signal(150, true)],
+    } as MacroSignalChartSignalResponse;
+    const globalResponse = {
+      modelId: "model", modelHash: "hash", generatedAt: 200, markets: [currentResponse], researchIntelligence: [], explanation: "registry",
+      liveDecisions: [{
+        market: "EURUSD", patternId: "setup", eventTime: 175, status: "no_trade",
+        assessment: { label: "Registered setup" },
+      }],
+    } as unknown as MacroSignalGlobalResponse;
+    const data = { response: currentResponse, globalResponse } as Parameters<typeof ChartFmsJournalCard>[0]["data"];
+
+    expect(buildFmsJournalRows(data).map((row) => [row.key, row.signal?.id ?? null])).toEqual([
+      ["EURUSD:setup:175", null],
+      ["EURUSD:setup:150", "setup:150"],
+    ]);
+    expect(buildFmsPreRegistrationJournalRows(replayResponse).map((row) => row.key)).toEqual(["EURUSD:setup:50"]);
+
+    const html = renderToStaticMarkup(createElement(ChartFmsJournalCard, {
+      data,
+      onGoToArrow: () => {},
+      onGoToEvent: () => {},
+    }));
+    expect(html).toContain('<option value="all" selected="">All post-registration</option>');
+    expect(html).toContain("Go to arrow");
+    expect(html).toContain("Go to event");
+    expect(html).toContain("Add note");
+    expect(html).toContain("Before registration arrows");
+
+    expect(getFmsEventFocusRange(7_200, [
+      { time: 0, open: 1, high: 1, low: 1, close: 1, volume: 1 },
+      { time: 14_400, open: 1, high: 1, low: 1, close: 1, volume: 1 },
+    ], 0, "H4", 72)).toEqual({ from: -0.5, to: 1.5 });
+  });
+
   it("keeps every registered market in the bounded cold-start registry", () => {
     const market = (symbol: string) => ({
       supported: true, versionId: "v1", modelId: "model", modelHash: "hash", modelActivatedAt: 1,

@@ -1081,6 +1081,7 @@ export interface FmsWorkbench {
 
 export interface MacroSignalChartPattern {
   id: string;
+  activatedAt?: number;
   market?: string;
   signature: string;
   signatures: string[];

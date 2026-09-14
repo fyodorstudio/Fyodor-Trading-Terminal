@@ -103,6 +103,7 @@ interface ChartViewportProps {
   onToggleMacroBiasHistoricalPattern: (patternId: string) => void;
   onSetAllMacroBiasHistoricalPatterns: (visible: boolean) => void;
   onGoToMacroBiasArrow: (market: string, signal: MacroSignalChartSignal) => void;
+  onGoToMacroBiasEvent: (market: string, eventTime: number) => void;
   onReviewMacroBiasSetup: (market: string, patternId: string) => void;
   crosshairReadoutRef: Ref<ChartCrosshairReadoutHandle>;
   status: BridgeStatus;
@@ -141,6 +142,7 @@ export function ChartViewport({
     onToggleMacroBiasHistoricalPattern,
     onSetAllMacroBiasHistoricalPatterns,
     onGoToMacroBiasArrow,
+    onGoToMacroBiasEvent,
     onReviewMacroBiasSetup,
     crosshairReadoutRef,
   status,
@@ -194,6 +196,7 @@ export function ChartViewport({
               onToggleHistoricalPattern={onToggleMacroBiasHistoricalPattern}
               onSetAllHistoricalPatterns={onSetAllMacroBiasHistoricalPatterns}
               onGoToArrow={onGoToMacroBiasArrow}
+              onGoToEvent={onGoToMacroBiasEvent}
               onReviewSetup={onReviewMacroBiasSetup}
               onResizePointerDown={startFmsDockResize}
               onResizeKeyDown={resizeFmsDockFromKeyboard}

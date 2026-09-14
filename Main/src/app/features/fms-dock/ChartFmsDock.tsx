@@ -125,6 +125,7 @@ interface ChartFmsDockProps {
   onToggleHistoricalPattern: (patternId: string) => void;
   onSetAllHistoricalPatterns: (visible: boolean) => void;
   onGoToArrow: (market: string, signal: MacroSignalChartSignal) => void;
+  onGoToEvent: (market: string, eventTime: number) => void;
   onReviewSetup: (market: string, patternId: string) => void;
   onResizePointerDown: PointerEventHandler<HTMLDivElement>;
   onResizeKeyDown: KeyboardEventHandler<HTMLDivElement>;
@@ -148,6 +149,7 @@ export function ChartFmsDock({
   onToggleHistoricalPattern,
   onSetAllHistoricalPatterns,
   onGoToArrow,
+  onGoToEvent,
   onReviewSetup,
   onResizePointerDown,
   onResizeKeyDown,
@@ -179,7 +181,7 @@ export function ChartFmsDock({
                   onViewStateChange={onTradeViewStateChange}
                 />
               : tab === "journal" && realtime
-                ? <ChartFmsJournalCard data={realtime} />
+                ? <ChartFmsJournalCard data={realtime} onGoToArrow={onGoToArrow} onGoToEvent={onGoToEvent} />
                 : tab === "setups" && realtime
                   ? <FmsSetupsWorkspace data={realtime} />
                   : <section className="chart-fms-dock-loading" aria-live="polite">

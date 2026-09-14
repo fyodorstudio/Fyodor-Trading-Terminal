@@ -93,6 +93,41 @@ export function getMacroBiasArrowFocusRange(
   return { from, to };
 }
 
+export function getFmsEventFocusRange(
+  eventTime: number,
+  candles: BridgeCandle[],
+  sourceTimeOffsetSeconds: number,
+  chartTimeframe: Timeframe = "H4",
+  focusBars?: number,
+): { from: number; to: number } | null {
+  if (!candles.length) return null;
+  const target = getChartEventCoordinateTime(eventTime, sourceTimeOffsetSeconds);
+  let low = 0;
+  let high = candles.length - 1;
+  let eventIndex = -1;
+  while (low <= high) {
+    const middle = Math.floor((low + high) / 2);
+    if (candles[middle].time <= target) {
+      eventIndex = middle;
+      low = middle + 1;
+    } else high = middle - 1;
+  }
+  if (eventIndex < 0 || target >= getPairMatrixCandleClose(candles[eventIndex].time, chartTimeframe)) return null;
+  const windowBars = Math.max(24, Math.round(focusBars ?? 72));
+  const leadBars = Math.max(18, Math.round(windowBars * 0.34));
+  let from = eventIndex - (windowBars - leadBars);
+  let to = eventIndex + leadBars;
+  if (candles.length >= windowBars) {
+    if (from < -0.5) { to += -0.5 - from; from = -0.5; }
+    const lastLogical = candles.length - 0.5;
+    if (to > lastLogical) { from -= to - lastLogical; to = lastLogical; }
+  } else {
+    from = Math.max(-0.5, from);
+    to = Math.min(candles.length - 0.5, to);
+  }
+  return { from, to };
+}
+
 export function resolveFmsArrowNavigationStage(params: {
   request: FmsArrowNavigationRequest;
   selectedMarket: string;

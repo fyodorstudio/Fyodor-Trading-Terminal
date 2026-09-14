@@ -27,6 +27,7 @@ export {
   shouldApplyMacroBiasRefresh,
 } from "@/app/features/fms-arrow-navigation/chartSignalPresentation";
 import { useFmsArrowNavigation } from "@/app/features/fms-arrow-navigation/useFmsArrowNavigation";
+import { useFmsEventNavigation } from "@/app/features/fms-arrow-navigation/useFmsEventNavigation";
 import { useChartMacroBiasData } from "@/app/features/fms-arrow-navigation/useChartMacroBiasData";
 import {
   captureChartZoomSnapshot,
@@ -851,6 +852,20 @@ export function ChartsTab({
     setHiddenHistoricalPatterns: setMacroBiasHiddenHistoricalPatterns,
     setSelectedSignalId: setSelectedMacroBiasId,
   });
+  const goToMacroBiasEvent = useFmsEventNavigation({
+    selectedSymbol,
+    timeframe,
+    onSelectedSymbolChange,
+    setTimeframe,
+    historyState,
+    visibleCandles,
+    sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
+    focusBars: chartPreferences.defaultFocusBars,
+    chartRef,
+    seriesRef,
+    ensureHistoryCoverage,
+    addLog,
+  });
 
   useBrowserLayoutEffect(() => {
     const chart = chartRef.current;
@@ -1381,6 +1396,7 @@ export function ChartsTab({
         onToggleMacroBiasHistoricalPattern={toggleMacroBiasHistoricalPattern}
         onSetAllMacroBiasHistoricalPatterns={setAllMacroBiasHistoricalPatterns}
         onGoToMacroBiasArrow={goToMacroBiasArrow}
+        onGoToMacroBiasEvent={goToMacroBiasEvent}
         onReviewMacroBiasSetup={reviewMacroBiasSetup}
         crosshairReadoutRef={crosshairReadoutRef}
         status={status}

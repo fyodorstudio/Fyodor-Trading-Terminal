@@ -133,6 +133,7 @@ def test_chart_projection_keeps_visible_context_audit_and_omits_heavy_research_g
   later_reaction = {"evaluableN": 18, "alignmentRate": .61}
   projected = server._interactive_chart_pattern({
     "id": "setup",
+    "activatedAt": 123,
     "overall": {"evaluableCount": 40, "targetHitRate": .5, "stopHitRate": .4, "averageR": .2, "outcomes": [1] * 500},
     "executionStress": {"pips": 3, "overall": {"averageR": .1}, "development": {"outcomes": [1] * 500}},
     "yearStability": {"evaluableYears": 8, "positiveYears": 6, "positiveYearShare": .75, "byYear": [{"large": [1] * 500}]},
@@ -152,6 +153,7 @@ def test_chart_projection_keeps_visible_context_audit_and_omits_heavy_research_g
   })
 
   assert projected["overall"] == {"evaluableCount": 40, "targetHitRate": .5, "stopHitRate": .4, "averageR": .2}
+  assert projected["activatedAt"] == 123
   assert "targetRobustness" not in projected
   assert "byYear" not in projected["yearStability"]
   assert projected["reactionAudit"]["profile"]["executionChallenger"] == {
