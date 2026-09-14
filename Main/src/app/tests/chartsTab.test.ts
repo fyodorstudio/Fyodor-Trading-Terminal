@@ -21,6 +21,7 @@ import { clearAppActivity, getAppActivitySnapshot, recordAppActivity } from "@/a
 import { ChartPairMatrixContextMarkers, clusterPairMatrixMarkerViews } from "@/app/components/ChartPairMatrixContextMarkers";
 import { ChartPairMatrixRangeOverlay, clampFmsDockWidth, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
 import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
+import { getFmsDockTabForAudit } from "@/app/features/chart-viewport/chartPanelState";
 import { buildChartMacroBiasAuditViewModel } from "@/app/lib/chartMacroBiasAuditViewModel";
 import { buildMacroSignalShadowAccount, buildMacroSignalShadowPosition, normalizeShadowRiskPercent, normalizeShadowStartingBalance } from "@/app/lib/macroSignalShadow";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
@@ -38,6 +39,12 @@ import {
 import { getMacroBiasInitialLoadPlan } from "@/app/tabs/primary/ChartsTab";
 
 describe("pair-switch FMS loading", () => {
+  it("keeps Journal active when its arrow navigation selects an audit", () => {
+    expect(getFmsDockTabForAudit("journal", "signal-id")).toBe("journal");
+    expect(getFmsDockTabForAudit("trade", "signal-id")).toBe("result");
+    expect(getFmsDockTabForAudit("setups", null)).toBe("setups");
+  });
+
   it("keeps Journal records on the correct registration side with shared navigation keys", () => {
     const pattern = {
       id: "setup", label: "Registered setup", activatedAt: 100, currentEligible: true,

@@ -14,6 +14,9 @@
 .chart-fms-dock-tabs button.is-active small { color: #6366f1; }
 .chart-fms-dock-tabs button:disabled { cursor: default; opacity: .48; }
 .chart-fms-dock-content { position: relative; min-height: 0; flex: 1 1 auto; overflow: hidden; background: #fff; }
+.chart-fms-dock-pane { height: 100%; min-height: 0; overflow: hidden; }
+.chart-fms-dock-pane[hidden] { display: none; }
+.chart-fms-dock-pane > .fms-journal-card { height: 100%; overflow-x: hidden; overflow-y: auto; }
 .chart-fms-dock-loading { display: grid; align-content: start; gap: 5px; height: 100%; padding: 18px 14px; background: #fff; }
 .chart-fms-dock-loading strong { color: #111827; font-size: 13px; }
 .chart-fms-dock-loading span { color: #64748b; font-size: 10px; line-height: 1.45; }

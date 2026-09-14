@@ -1,6 +1,7 @@
 import {
   Component,
   useEffect,
+  useRef,
   useState,
   type ErrorInfo,
   type KeyboardEventHandler,
@@ -161,6 +162,8 @@ export function ChartFmsDock({
   onResizePointerDown,
   onResizeKeyDown,
 }: ChartFmsDockProps) {
+  const journalVisitedRef = useRef(tab === "journal");
+  if (tab === "journal") journalVisitedRef.current = true;
   return (
     <aside ref={dockRef} className="chart-fms-dock" style={{ width }} aria-label="FMS chart workspace">
       <nav className="chart-fms-dock-tabs" aria-label="FMS windows">
@@ -170,7 +173,14 @@ export function ChartFmsDock({
         <button type="button" className={tab === "result" ? "is-active" : ""} disabled={!audit} onClick={onSelectAuditTab}>Past Result</button>
       </nav>
       <div className="chart-fms-dock-content">
-        <FmsDockErrorBoundary key={tab}>
+        {journalVisitedRef.current && realtime ? (
+          <div className="chart-fms-dock-pane" hidden={tab !== "journal"}>
+            <FmsDockErrorBoundary>
+              <ChartFmsJournalCard data={realtime} onGoToArrow={onGoToArrow} onGoToEvent={onGoToEvent} />
+            </FmsDockErrorBoundary>
+          </div>
+        ) : null}
+        {tab !== "journal" || !realtime ? <FmsDockErrorBoundary key={tab}>
           {tab === "result" && audit
             ? <ChartMacroBiasAuditReview data={audit} />
             : tab === "trade" && realtime
@@ -188,15 +198,13 @@ export function ChartFmsDock({
                   viewState={tradeViewState}
                   onViewStateChange={onTradeViewStateChange}
                 />
-              : tab === "journal" && realtime
-                ? <ChartFmsJournalCard data={realtime} onGoToArrow={onGoToArrow} onGoToEvent={onGoToEvent} />
-                : tab === "setups" && realtime
+              : tab === "setups" && realtime
                   ? <FmsSetupsWorkspace data={realtime} />
                   : <section className="chart-fms-dock-loading" aria-live="polite">
                       <strong>{loading ? "Loading FMS Trade…" : "FMS Trade unavailable"}</strong>
                       <span>{loading ? "Cached decisions and the selected market are being restored." : "No registered FMS response is available for this market."}</span>
                     </section>}
-        </FmsDockErrorBoundary>
+        </FmsDockErrorBoundary> : null}
       </div>
       <div
         className="chart-fms-dock-resize"

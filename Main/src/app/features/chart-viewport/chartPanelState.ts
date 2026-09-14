@@ -11,6 +11,11 @@ export type FmsDockPrimaryTab = "trade" | "journal" | "setups";
 export type FmsDockTab = FmsDockPrimaryTab | "result";
 export type ChartBottomDockTab = "matrix" | "lens" | "calendar";
 
+export function getFmsDockTabForAudit(current: FmsDockTab, auditSignalId: string | null): FmsDockTab {
+  if (!auditSignalId) return current;
+  return current === "journal" ? "journal" : "result";
+}
+
 export function loadFmsDockWidth(): number {
   try {
     const saved = Number(window.localStorage.getItem(FMS_DOCK_WIDTH_KEY));

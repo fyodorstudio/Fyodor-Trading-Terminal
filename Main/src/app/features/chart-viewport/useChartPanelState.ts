@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent as ReactKe
 import {
   FMS_DOCK_DEFAULT_WIDTH,
   clampFmsDockWidth,
+  getFmsDockTabForAudit,
   loadFmsDockWidth,
   loadFmsTradeViewState,
   saveFmsDockWidth,
@@ -40,8 +41,8 @@ export function useChartPanelState({
   useEffect(() => {
     if (auditSignalId) {
       setFmsDockTab((current) => {
-        if (current !== "result") fmsDockReturnTabRef.current = current;
-        return "result";
+        if (current !== "result" && current !== "journal") fmsDockReturnTabRef.current = current;
+        return getFmsDockTabForAudit(current, auditSignalId);
       });
       return;
     }
