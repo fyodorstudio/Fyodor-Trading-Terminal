@@ -1,7 +1,8 @@
-import { CalendarClock, Clock3 } from "lucide-react";
+import { CalendarClock, Clock3, List, Trash2 } from "lucide-react";
 import { FlagIcon } from "@/app/components/FlagIcon";
 import { TERMINOLOGY } from "@/app/config/terminology";
 import { formatCountdown } from "@/app/lib/format";
+import type { AppActivityEntry } from "@/app/features/chart-shell/appActivityLog";
 
 interface HeaderStateBadge {
   label: string;
@@ -28,6 +29,8 @@ interface MinimalHeaderDetailsPanelProps {
   lastIngest: string;
   mt5Error: string | null;
   resolvedBanks: number;
+  activityEntries?: readonly AppActivityEntry[];
+  onClearActivity?: () => void;
 }
 
 export function MinimalHeaderDetailsPanel({
@@ -46,9 +49,11 @@ export function MinimalHeaderDetailsPanel({
   lastIngest,
   mt5Error,
   resolvedBanks,
+  activityEntries = [],
+  onClearActivity,
 }: MinimalHeaderDetailsPanelProps) {
   return (
-    <div className="w-full max-w-none px-4 py-4">
+    <div className="minimal-header-details-panel w-full max-w-none px-4 py-4">
       <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
         <div className="grid gap-4">
           <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03]">
@@ -89,6 +94,21 @@ export function MinimalHeaderDetailsPanel({
               </div>
             </div>
           </section>
+
+          {activityEntries.length ? <section className="chart-universal-log rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03]">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2"><List className="h-4 w-4 text-indigo-500" /><h2 className="text-sm font-semibold text-slate-950">Background activity</h2></div>
+              {onClearActivity ? <button type="button" onClick={onClearActivity} aria-label="Clear background activity"><Trash2 size={13} /> Clear</button> : null}
+            </div>
+            <div className="chart-universal-log-list" role="log" aria-label="Universal application activity log">
+              {activityEntries.slice(0, 80).map((entry) => <article key={entry.id} className={`is-${entry.level}`}>
+                <time dateTime={new Date(entry.time).toISOString()}>{new Date(entry.time).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })}</time>
+                <strong>{entry.source}</strong>
+                <span>{entry.message}{entry.repeat > 1 ? ` ×${entry.repeat}` : ""}</span>
+                {entry.detail ? <small>{entry.detail}</small> : null}
+              </article>)}
+            </div>
+          </section> : null}
 
           <section className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm shadow-slate-950/[0.03]">
             <div className="flex items-center gap-2">

@@ -2,12 +2,13 @@ import { useState, type FormEvent } from "react";
 import { ChartMacroBiasAudit, type ChartMacroBiasAuditData } from "@/app/components/ChartMacroBiasAudit";
 import { FmsReviewNoteRow } from "@/app/features/fms-dock/FmsReviewNoteRow";
 import { useFmsReviewNotes } from "@/app/features/fms-dock/useFmsReviewNotes";
-import type { FmsReviewNoteInput } from "@/app/lib/bridge";
+import type { FmsReviewNoteInput, FmsReviewNoteLabel } from "@/app/lib/bridge";
 
 export function ChartMacroBiasAuditReview({ data }: { data: ChartMacroBiasAuditData }) {
   const { notesByKey, loading, savingKey, error, save, remove } = useFmsReviewNotes();
   const [editingRecordKey, setEditingRecordKey] = useState<string | null>(null);
   const [draft, setDraft] = useState("");
+  const [label, setLabel] = useState<FmsReviewNoteLabel>("unlabeled");
   const market = data.pattern.market || data.symbol || "";
   const recordKey = `${market}:${data.signal.patternId}:${data.signal.eventTime}`;
   const saved = notesByKey.get(recordKey) ?? null;
@@ -22,11 +23,13 @@ export function ChartMacroBiasAuditReview({ data }: { data: ChartMacroBiasAuditD
   };
   const beginNote = () => {
     setDraft(saved?.note ?? "");
+    setLabel(saved?.label ?? "unlabeled");
     setEditingRecordKey(recordKey);
   };
   const cancelNote = () => {
     setEditingRecordKey(null);
     setDraft("");
+    setLabel("unlabeled");
   };
   const submitNote = (event: FormEvent<HTMLFormElement>, noteInput: Omit<FmsReviewNoteInput, "note">) => {
     event.preventDefault();
@@ -40,6 +43,6 @@ export function ChartMacroBiasAuditReview({ data }: { data: ChartMacroBiasAuditD
   };
 
   return <ChartMacroBiasAudit data={data} noteRow={
-    <FmsReviewNoteRow input={input} saved={saved} editing={editing} draft={draft} loading={loading} saving={savingKey === recordKey} error={error} showAddWhenEmpty onDraftChange={setDraft} onEdit={beginNote} onCancel={cancelNote} onSave={submitNote} onRemove={deleteNote} />
+    <FmsReviewNoteRow input={input} saved={saved} editing={editing} draft={draft} label={label} loading={loading} saving={savingKey === recordKey} error={error} showAddWhenEmpty onDraftChange={setDraft} onLabelChange={setLabel} onEdit={beginNote} onCancel={cancelNote} onSave={submitNote} onRemove={deleteNote} />
   } />;
 }

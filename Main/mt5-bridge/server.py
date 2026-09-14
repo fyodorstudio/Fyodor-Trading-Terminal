@@ -891,12 +891,14 @@ app.add_middleware(GZipMiddleware, minimum_size=4096, compresslevel=1)
 
 
 def _json_sanitize(obj: Any) -> Any:
-  """Recursively replace bytes with UTF-8 decoded string for JSON serialization."""
+  """Recursively make validation details safe for JSON serialization."""
   if isinstance(obj, bytes):
     return obj.decode("utf-8", errors="replace")
+  if isinstance(obj, BaseException):
+    return str(obj)
   if isinstance(obj, dict):
     return {k: _json_sanitize(v) for k, v in obj.items()}
-  if isinstance(obj, list):
+  if isinstance(obj, (list, tuple)):
     return [_json_sanitize(v) for v in obj]
   return obj
 
@@ -922,7 +924,7 @@ app.add_middleware(
 
 terminal_connected: bool = False
 last_error: Optional[Dict[str, Any]] = None
-BRIDGE_API_REVISION = "2026-09-13-fms-review-notes-v1"
+BRIDGE_API_REVISION = "2026-09-14-fms-review-note-labels-v2"
 
 
 def _coerce_int(v: Any) -> int:
@@ -1044,6 +1046,7 @@ class FmsReviewNoteRequest(BaseModel):
   patternId: str = Field(min_length=1, max_length=256)
   eventTime: Optional[int] = None
   signalId: Optional[str] = Field(default=None, max_length=512)
+  label: str = Field(default="unlabeled", min_length=1, max_length=32)
   note: str = Field(min_length=1, max_length=4000)
 
   @field_validator("recordKey", "market", "patternId", "note")
@@ -1065,6 +1068,14 @@ class FmsReviewNoteRequest(BaseModel):
     if value not in {"scheduled", "activity"}:
       raise ValueError("Review note context must be scheduled or activity")
     return value
+
+  @field_validator("label")
+  @classmethod
+  def validate_review_note_label(cls, value: str) -> str:
+    normalized = value.strip().lower()
+    if normalized not in {"unlabeled", "bug", "tp", "sl", "entry", "reaction", "ok", "question"}:
+      raise ValueError("Unsupported review note label")
+    return normalized
 
 
 class CalendarIngestCycleRequest(BaseModel):
@@ -6301,12 +6312,22 @@ def research_live_decisions(market: Optional[str] = None, limit: int = 100) -> D
 
 
 @app.get("/research/review-notes")
-def research_review_notes(limit: int = 2000) -> Dict[str, Any]:
-  rows = _research_store.list_fms_review_notes(limit)
+def research_review_notes(
+  limit: int = 2000,
+  label: Optional[str] = None,
+  market: Optional[str] = None,
+  pattern_id: Optional[str] = None,
+  q: Optional[str] = None,
+) -> Dict[str, Any]:
+  normalized_label = None if label is None else label.strip().lower()
+  if normalized_label is not None and normalized_label not in {"unlabeled", "bug", "tp", "sl", "entry", "reaction", "ok", "question"}:
+    raise HTTPException(status_code=400, detail="Unsupported review note label")
+  rows = _research_store.list_fms_review_notes(limit, normalized_label, market, pattern_id, q)
   return {
     "schema": "fms-review-notes-v1",
     "separateFromFrozenRecords": True,
     "count": len(rows),
+    "filters": {"label": normalized_label, "market": market, "patternId": pattern_id, "query": q},
     "rows": rows,
   }
 
@@ -6320,6 +6341,7 @@ def save_research_review_note(request: FmsReviewNoteRequest) -> Dict[str, Any]:
     pattern_id=request.patternId,
     event_time=request.eventTime,
     signal_id=request.signalId,
+    label=request.label,
     note=request.note,
     updated_at=int(_time.time()),
   )

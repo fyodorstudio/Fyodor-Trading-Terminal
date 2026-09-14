@@ -41,6 +41,7 @@ import { useChartDockLayout } from "@/app/features/chart-viewport/useChartDockLa
 import { getDefaultClusterEvent, getNearestCandleIndex, useChartEventReplay } from "@/app/features/chart-events/useChartEventReplay";
 import { useChartEventLensPresentation } from "@/app/features/chart-events/useChartEventLensPresentation";
 import { ChartTrustStateControl } from "@/app/features/chart-shell/ChartTrustStateControl";
+import { recordAppActivity } from "@/app/features/chart-shell/appActivityLog";
 import {
   getChartRangeUpdateCadence,
   getPairMatrixAnalyzeCandleRange,
@@ -218,6 +219,7 @@ export function ChartsTab({
   const { layout: chartDockLayout, resetLayout: resetChartDockLayout, setPanelRegion: setChartPanelRegion } = useChartDockLayout();
 
   const addLog = useCallback((line: string) => {
+    recordAppActivity({ source: "Chart", message: line });
     setDebugLines((current) => {
       const next = [...current, `[${new Date().toISOString()}] ${line}`];
       return next.slice(-DEBUG_MAX);

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 from pathlib import Path
 
 from research_store import ResearchStore
@@ -53,17 +54,37 @@ def test_fms_review_notes_are_durable_and_separate_from_frozen_records(tmp_path:
   )
   assert saved["note"] == "SL looks early"
   assert saved["market"] == "EURUSD"
+  assert saved["label"] == "unlabeled"
 
   reopened = ResearchStore(path)
   assert reopened.list_fms_review_notes() == [saved]
   revised = reopened.upsert_fms_review_note(
-    saved["recordKey"], "activity", "EURUSD", "pattern-a", 100, "signal-a", "Price respected release after SL", 300,
+    saved["recordKey"], "activity", "EURUSD", "pattern-a", 100, "signal-a", "Price respected release after SL", 300, label="reaction",
   )
   assert revised["createdAt"] == 200
   assert revised["updatedAt"] == 300
   assert revised["note"] == "Price respected release after SL"
+  assert revised["label"] == "reaction"
   assert reopened.delete_fms_review_note(saved["recordKey"]) is True
   assert reopened.list_fms_review_notes() == []
+
+
+def test_fms_review_note_label_migration_preserves_existing_notes(tmp_path: Path) -> None:
+  path = tmp_path / "legacy-review.sqlite3"
+  with sqlite3.connect(path) as connection:
+    connection.execute(
+      "CREATE TABLE fms_review_notes (record_key TEXT PRIMARY KEY, context TEXT NOT NULL, market TEXT NOT NULL, "
+      "pattern_id TEXT NOT NULL, event_time INTEGER, signal_id TEXT, note TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)"
+    )
+    connection.execute(
+      "INSERT INTO fms_review_notes VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      ("EURUSD:legacy:100", "activity", "EURUSD", "legacy", 100, None, "Keep this note", 100, 100),
+    )
+
+  store = ResearchStore(path)
+
+  assert store.list_fms_review_notes()[0]["label"] == "unlabeled"
+  assert store.list_fms_review_notes()[0]["note"] == "Keep this note"
 
 
 def test_calendar_ingest_updates_a_scheduled_row_when_actual_arrives(tmp_path: Path) -> None:

@@ -242,6 +242,7 @@ class ResearchStore:
           pattern_id TEXT NOT NULL,
           event_time INTEGER,
           signal_id TEXT,
+          label TEXT NOT NULL DEFAULT 'unlabeled',
           note TEXT NOT NULL,
           created_at INTEGER NOT NULL,
           updated_at INTEGER NOT NULL
@@ -268,6 +269,25 @@ class ResearchStore:
         connection.execute("ALTER TABLE release_observations ADD COLUMN ea_completed_at INTEGER")
       if "bridge_acknowledged_at" not in observation_columns:
         connection.execute("ALTER TABLE release_observations ADD COLUMN bridge_acknowledged_at INTEGER")
+      review_note_columns = {
+        str(row["name"]) for row in connection.execute("PRAGMA table_info(fms_review_notes)").fetchall()
+      }
+      if "label" not in review_note_columns:
+        connection.execute(
+          "ALTER TABLE fms_review_notes ADD COLUMN label TEXT NOT NULL DEFAULT 'unlabeled'"
+        )
+      connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_fms_review_notes_label_updated "
+        "ON fms_review_notes (label, updated_at DESC, record_key)"
+      )
+      connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_fms_review_notes_market_updated "
+        "ON fms_review_notes (market, updated_at DESC, record_key)"
+      )
+      connection.execute(
+        "CREATE INDEX IF NOT EXISTS idx_fms_review_notes_pattern_updated "
+        "ON fms_review_notes (pattern_id, updated_at DESC, record_key)"
+      )
 
   def set_metadata(self, key: str, value: str) -> None:
     with self._write_lock, self._connect() as connection:
@@ -287,14 +307,15 @@ class ResearchStore:
     signal_id: Optional[str],
     note: str,
     updated_at: int,
+    label: str = "unlabeled",
   ) -> Dict[str, Any]:
     with self._write_lock, self._connect() as connection:
       connection.execute(
-        "INSERT INTO fms_review_notes(record_key, context, market, pattern_id, event_time, signal_id, note, created_at, updated_at) "
-        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
+        "INSERT INTO fms_review_notes(record_key, context, market, pattern_id, event_time, signal_id, label, note, created_at, updated_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) "
         "ON CONFLICT(record_key) DO UPDATE SET context = excluded.context, market = excluded.market, "
         "pattern_id = excluded.pattern_id, event_time = excluded.event_time, signal_id = excluded.signal_id, "
-        "note = excluded.note, updated_at = excluded.updated_at",
+        "label = excluded.label, note = excluded.note, updated_at = excluded.updated_at",
         (
           record_key,
           context,
@@ -302,6 +323,7 @@ class ResearchStore:
           pattern_id,
           None if event_time is None else int(event_time),
           signal_id,
+          label,
           note,
           int(updated_at),
           int(updated_at),
@@ -317,12 +339,35 @@ class ResearchStore:
       ).fetchone()
     return self._fms_review_note_row(row) if row else None
 
-  def list_fms_review_notes(self, limit: int = 2000) -> List[Dict[str, Any]]:
+  def list_fms_review_notes(
+    self,
+    limit: int = 2000,
+    label: Optional[str] = None,
+    market: Optional[str] = None,
+    pattern_id: Optional[str] = None,
+    query: Optional[str] = None,
+  ) -> List[Dict[str, Any]]:
     bounded_limit = max(1, min(int(limit), 10000))
+    clauses: List[str] = []
+    values: List[Any] = []
+    if label:
+      clauses.append("label = ?")
+      values.append(label.lower())
+    if market:
+      clauses.append("market = ?")
+      values.append(market.upper())
+    if pattern_id:
+      clauses.append("pattern_id = ?")
+      values.append(pattern_id)
+    if query and query.strip():
+      escaped = query.strip().replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+      clauses.append("note LIKE ? ESCAPE '\\'")
+      values.append(f"%{escaped}%")
+    where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
     with self._connect() as connection:
       rows = connection.execute(
-        "SELECT * FROM fms_review_notes ORDER BY updated_at DESC, record_key LIMIT ?",
-        (bounded_limit,),
+        f"SELECT * FROM fms_review_notes{where} ORDER BY updated_at DESC, record_key LIMIT ?",
+        (*values, bounded_limit),
       ).fetchall()
     return [self._fms_review_note_row(row) for row in rows]
 
@@ -343,6 +388,7 @@ class ResearchStore:
       "patternId": str(row["pattern_id"]),
       "eventTime": None if row["event_time"] is None else int(row["event_time"]),
       "signalId": None if row["signal_id"] is None else str(row["signal_id"]),
+      "label": str(row["label"]),
       "note": str(row["note"]),
       "createdAt": int(row["created_at"]),
       "updatedAt": int(row["updated_at"]),

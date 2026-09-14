@@ -26,15 +26,23 @@ def test_review_note_api_keeps_annotations_in_a_separate_ledger(tmp_path: Path, 
     "patternId": "pattern-a",
     "eventTime": 100,
     "signalId": "signal-a",
+    "label": "tp",
     "note": "TP placement needs review",
   }
   saved = client.post("/research/review-notes", json=payload)
   assert saved.status_code == 200
   assert saved.json()["separateFromFrozenRecords"] is True
   assert saved.json()["row"]["note"] == payload["note"]
+  assert saved.json()["row"]["label"] == "tp"
   listed = client.get("/research/review-notes").json()
   assert listed["schema"] == "fms-review-notes-v1"
   assert listed["rows"][0]["recordKey"] == payload["recordKey"]
+  assert listed["rows"][0]["label"] == "tp"
+  filtered = client.get("/research/review-notes", params={"label": "tp", "market": "eurusd", "q": "placement"}).json()
+  assert filtered["count"] == 1
+  assert filtered["filters"]["label"] == "tp"
+  assert client.post("/research/review-notes", json={**payload, "label": "unsupported"}).status_code == 422
+  assert client.get("/research/review-notes", params={"label": "unsupported"}).status_code == 400
   deleted = client.delete("/research/review-notes", params={"record_key": payload["recordKey"]}).json()
   assert deleted["deleted"] is True
 

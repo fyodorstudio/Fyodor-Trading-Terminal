@@ -6,7 +6,7 @@ import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
 import { FmsReviewNoteRow } from "@/app/features/fms-dock/FmsReviewNoteRow";
 import { useFmsReviewNotes } from "@/app/features/fms-dock/useFmsReviewNotes";
 import { formatJakartaDisplayDateTime } from "@/app/lib/format";
-import type { FmsReviewNoteInput } from "@/app/lib/bridge";
+import type { FmsReviewNoteInput, FmsReviewNoteLabel } from "@/app/lib/bridge";
 import entryResearch from "@/app/lib/fmsEntryResearchSummary.json";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalPatternAssessment, MacroSignalUpcomingPatternWatch } from "@/app/types";
 
@@ -488,6 +488,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   const { notesByKey, loading: notesLoading, savingKey: noteSavingKey, error: notesError, save: saveNote, remove: removeNote } = useFmsReviewNotes();
   const [editingNoteKey, setEditingNoteKey] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState("");
+  const [noteLabel, setNoteLabel] = useState<FmsReviewNoteLabel>("unlabeled");
   const currentViewState = viewState ?? localViewState;
   const updateViewState = (patch: Partial<FmsTradeViewState>) => {
     const next = { ...currentViewState, ...patch };
@@ -547,10 +548,12 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   const beginNote = (recordKey: string) => {
     setEditingNoteKey(recordKey);
     setNoteDraft(notesByKey.get(recordKey)?.note ?? "");
+    setNoteLabel(notesByKey.get(recordKey)?.label ?? "unlabeled");
   };
   const cancelNote = () => {
     setEditingNoteKey(null);
     setNoteDraft("");
+    setNoteLabel("unlabeled");
   };
   const submitNote = (event: FormEvent<HTMLFormElement>, input: Omit<FmsReviewNoteInput, "note">) => {
     event.preventDefault();
@@ -625,7 +628,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                   <td className="fms-action-evidence"><strong>{record.tpRate == null ? "TP rate unavailable" : `${(record.tpRate * 100).toFixed(1)}% TP before SL`}</strong><small>{record.averageR == null ? "Gross average unavailable" : `${record.averageR >= 0 ? "+" : ""}${record.averageR.toFixed(2)}R gross avg`} · N {record.sample}</small><span className="fms-row-actions"><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small>{latestArrow && onGoToArrow ? <button type="button" className="fms-go-to-arrow" onClick={(event) => { event.stopPropagation(); onGoToArrow(row.market, latestArrow); }} onKeyDown={(event) => event.stopPropagation()}>Go to latest arrow</button> : null}</span></td>
                   <td><TradeDate label="Release" time={row.watch?.time} fallback="Awaiting date" />{row.watch ? <><small className="fms-release-countdown">In {countdownLabel(row.watch.time, clock)}</small><button type="button" className="fms-review-setup" onClick={(event) => { event.stopPropagation(); onReviewSetup?.(row.market, row.pattern.id); beginNote(row.key); }} onKeyDown={(event) => event.stopPropagation()}>{note ? "Review note" : "Review"}</button></> : null}</td>
                 </tr>
-                <FmsReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === row.key} draft={noteDraft} saving={noteSavingKey === row.key} onDraftChange={setNoteDraft} onEdit={() => beginNote(row.key)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(row.key)} />
+                <FmsReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === row.key} draft={noteDraft} label={noteLabel} saving={noteSavingKey === row.key} onDraftChange={setNoteDraft} onLabelChange={setNoteLabel} onEdit={() => beginNote(row.key)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(row.key)} />
                 {expanded ? <tr className="fms-action-detail-row"><td colSpan={3}>
                   <table><tbody>
                     <tr><th>Frozen contract</th><td>{patternExecutionLabel(row.pattern)}</td></tr>
@@ -673,7 +676,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                     </> : null}
                   </td>
                 </tr>
-                <FmsReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === row.key} draft={noteDraft} saving={noteSavingKey === row.key} onDraftChange={setNoteDraft} onEdit={() => beginNote(row.key)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(row.key)} />
+                <FmsReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === row.key} draft={noteDraft} label={noteLabel} saving={noteSavingKey === row.key} onDraftChange={setNoteDraft} onLabelChange={setNoteLabel} onEdit={() => beginNote(row.key)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(row.key)} />
                 {expanded ? <tr className="fms-action-detail-row"><td colSpan={3}>
                   <table><tbody>
                     <tr><th>{row.state === "No trade" ? "Why no trade" : "Decision reason"}</th><td colSpan={3}><strong>{decisionSummary(row.assessment)}</strong><details><summary>Full recorded explanation</summary><p>{row.assessment?.reason ?? "Unavailable"}</p></details></td></tr>

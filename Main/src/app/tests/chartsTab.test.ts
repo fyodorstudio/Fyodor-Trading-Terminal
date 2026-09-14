@@ -10,10 +10,13 @@ import {
 } from "@/app/features/chart-market-data/symbolCatalog";
 import { ChartMacroBiasAudit } from "@/app/components/ChartMacroBiasAudit";
 import { ChartMacroBiasAuditReview } from "@/app/features/fms-dock/ChartMacroBiasAuditReview";
+import { FmsReviewNoteRow } from "@/app/features/fms-dock/FmsReviewNoteRow";
 import { ChartMacroBiasRealtimeCard, marketMatchesCurrencySelection } from "@/app/components/ChartMacroBiasRealtimeCard";
 import { buildRegisteredSetupSchedule, buildRecentFmsActivity, partitionFmsActivity, getTradeMarkets, ChartFmsActionCard, DEFAULT_FMS_TRADE_VIEW_STATE } from "@/app/components/ChartFmsActionCard";
 import { ChartFmsKnowledgeCard } from "@/app/components/ChartFmsKnowledgeCard";
 import { ChartToolStrip } from "@/app/components/ChartToolStrip";
+import { MinimalHeaderDetailsPanel } from "@/app/components/MinimalHeaderDetailsPanel";
+import { clearAppActivity, getAppActivitySnapshot, recordAppActivity } from "@/app/features/chart-shell/appActivityLog";
 import { ChartPairMatrixContextMarkers, clusterPairMatrixMarkerViews } from "@/app/components/ChartPairMatrixContextMarkers";
 import { ChartPairMatrixRangeOverlay, clampFmsDockWidth, clampPairMatrixPanelHeight } from "@/app/components/ChartViewport";
 import { DEFAULT_CHART_PREFERENCES } from "@/app/lib/chartView";
@@ -397,6 +400,22 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain('<table class="chart-macro-bias-audit-table"');
     expect(reviewHtml).toContain('data-note-record-key="USDCAD:pattern:1000"');
     expect(reviewHtml).toContain("Add audit note");
+    const noteEditorHtml = renderToStaticMarkup(createElement("table", null, createElement("tbody", null, createElement(FmsReviewNoteRow, {
+      input: { recordKey: "USDCAD:pattern:1000", context: "activity", market: "USDCAD", patternId: "pattern", eventTime: 1000, signalId: "signal" },
+      saved: null,
+      editing: true,
+      draft: "Review target",
+      label: "tp",
+      saving: false,
+      onDraftChange: () => {},
+      onLabelChange: () => {},
+      onEdit: () => {},
+      onCancel: () => {},
+      onSave: () => {},
+      onRemove: () => {},
+    }))));
+    expect(noteEditorHtml).toContain('aria-label="Audit note label"');
+    expect(noteEditorHtml).toContain('<option value="tp" selected="">Take profit</option>');
     expect(html).not.toContain("chart-macro-bias-result-hero");
     expect(html).not.toContain("<details");
     expect(html).not.toContain("Source research diagnostics");
@@ -1105,6 +1124,36 @@ describe("getChartConnectionLabel", () => {
     expect(html).not.toContain("Show high + medium");
     expect(html).not.toContain(">History<");
     expect(html).not.toContain("Terminal Console");
+  });
+
+  it("renders a compact universal activity log from the bounded application ledger", () => {
+    clearAppActivity();
+    recordAppActivity({ source: "Bridge", message: "Started GET /health", detail: null });
+    recordAppActivity({ source: "Bridge", message: "Started GET /health", detail: null });
+    const entries = getAppActivitySnapshot();
+    expect(entries[0]).toMatchObject({ source: "Bridge", message: "Started GET /health", repeat: 2 });
+
+    const html = renderToStaticMarkup(createElement(MinimalHeaderDetailsPanel, {
+      healthDotTone: "bg-emerald-400",
+      trustVerdictLabel: "Yes",
+      trustDetail: "Inputs are current.",
+      primaryTone: "text-emerald-700",
+      mt5State: { label: "Connected", tone: "text-emerald-700" },
+      bridgeState: { label: "Connected", tone: "text-emerald-700" },
+      calendarState: { label: "Live", tone: "text-emerald-700" },
+      symbolState: { label: "Open", detail: "EURUSD is open", tone: "text-emerald-700" },
+      localClock: "16:00 14 Sept 2026 Local",
+      mt5Clock: "09:00 14 Sept 2026 MT5",
+      nextHighImpactTime: null,
+      lastIngest: "just now",
+      mt5Error: null,
+      resolvedBanks: 8,
+      activityEntries: entries,
+      onClearActivity: () => {},
+    }));
+    expect(html).toContain("Background activity");
+    expect(html).toContain('role="log"');
+    expect(html).toContain("Started GET /health ×2");
   });
 
   it("keeps the locked range band separate from Pair Matrix context markers", () => {

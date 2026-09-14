@@ -20,6 +20,7 @@ import type {
   FmsWorkbench,
   MarketStatusResponse,
 } from "@/app/types";
+import { recordAppActivity } from "@/app/features/chart-shell/appActivityLog";
 
 const DEFAULT_BRIDGE_BASE = "http://127.0.0.1:8001";
 
@@ -69,27 +70,61 @@ export function normalizeCalendarEvent(raw: unknown): CalendarEvent | null {
   };
 }
 
-async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, init);
-  if (!response.ok) {
-    let detail = "";
-    try {
-      const text = await response.text();
-      if (text) {
-        const parsed = JSON.parse(text) as unknown;
-        if (parsed && typeof parsed === "object") {
-          const row = parsed as Record<string, unknown>;
-          if (typeof row.detail === "string") detail = row.detail;
-          else if (row.detail && typeof row.detail === "object") detail = JSON.stringify(row.detail);
-        }
-      }
-    } catch {
-      // ignore response parsing failures
-    }
-    const suffix = detail ? `: ${detail}` : "";
-    throw new Error(`Bridge returned ${response.status}${suffix}`);
+function describeBridgeRequest(url: string, init?: RequestInit): { message: string; detail: string | null } {
+  const method = (init?.method ?? "GET").toUpperCase();
+  try {
+    const parsed = new URL(url);
+    const context = ["symbol", "tf", "market", "mode", "bars", "background"]
+      .map((key) => parsed.searchParams.has(key) ? `${key}=${parsed.searchParams.get(key)}` : null)
+      .filter((value): value is string => Boolean(value));
+    return { message: `${method} ${parsed.pathname}`, detail: context.length ? context.join(" · ") : null };
+  } catch {
+    return { message: `${method} bridge request`, detail: null };
   }
-  return (await response.json()) as T;
+}
+
+async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const request = describeBridgeRequest(url, init);
+  const startedAt = Date.now();
+  recordAppActivity({ source: "Bridge", message: `Started ${request.message}`, detail: request.detail });
+  try {
+    const response = await fetch(url, init);
+    if (!response.ok) {
+      let detail = "";
+      try {
+        const text = await response.text();
+        if (text) {
+          const parsed = JSON.parse(text) as unknown;
+          if (parsed && typeof parsed === "object") {
+            const row = parsed as Record<string, unknown>;
+            if (typeof row.detail === "string") detail = row.detail;
+            else if (row.detail && typeof row.detail === "object") detail = JSON.stringify(row.detail);
+          }
+        }
+      } catch {
+        // ignore response parsing failures
+      }
+      const suffix = detail ? `: ${detail}` : "";
+      throw new Error(`Bridge returned ${response.status}${suffix}`);
+    }
+    const payload = (await response.json()) as T;
+    recordAppActivity({
+      level: "success",
+      source: "Bridge",
+      message: `Completed ${request.message}`,
+      detail: `${request.detail ? `${request.detail} · ` : ""}${Date.now() - startedAt} ms`,
+    });
+    return payload;
+  } catch (reason: unknown) {
+    const aborted = reason instanceof Error && reason.name === "AbortError";
+    recordAppActivity({
+      level: aborted ? "warning" : "error",
+      source: "Bridge",
+      message: `${aborted ? "Cancelled" : "Failed"} ${request.message}`,
+      detail: `${request.detail ? `${request.detail} · ` : ""}${reason instanceof Error ? reason.message : "Unknown request error"}`,
+    });
+    throw reason;
+  }
 }
 
 export async function fetchHistory(
@@ -471,18 +506,41 @@ export interface FmsReviewNote {
   patternId: string;
   eventTime: number | null;
   signalId: string | null;
+  label: FmsReviewNoteLabel;
   note: string;
   createdAt: number;
   updatedAt: number;
 }
 
-export type FmsReviewNoteInput = Pick<FmsReviewNote, "recordKey" | "context" | "market" | "patternId" | "eventTime" | "signalId" | "note">;
+export const FMS_REVIEW_NOTE_LABELS = ["unlabeled", "bug", "tp", "sl", "entry", "reaction", "ok", "question"] as const;
+export type FmsReviewNoteLabel = typeof FMS_REVIEW_NOTE_LABELS[number];
 
-export async function fetchFmsReviewNotes(): Promise<FmsReviewNote[]> {
-  const response = await fetchJson<{ rows: FmsReviewNote[] }>(`${BRIDGE_BASE}/research/review-notes`, {
+export type FmsReviewNoteInput = Pick<FmsReviewNote, "recordKey" | "context" | "market" | "patternId" | "eventTime" | "signalId" | "label" | "note">;
+
+function normalizeFmsReviewNote(row: FmsReviewNote): FmsReviewNote {
+  return {
+    ...row,
+    label: FMS_REVIEW_NOTE_LABELS.includes(row.label) ? row.label : "unlabeled",
+  };
+}
+
+export async function fetchFmsReviewNotes(filters: {
+  label?: FmsReviewNoteLabel;
+  market?: string;
+  patternId?: string;
+  query?: string;
+  limit?: number;
+} = {}): Promise<FmsReviewNote[]> {
+  const search = new URLSearchParams();
+  if (filters.label) search.set("label", filters.label);
+  if (filters.market) search.set("market", filters.market);
+  if (filters.patternId) search.set("pattern_id", filters.patternId);
+  if (filters.query) search.set("q", filters.query);
+  if (filters.limit != null) search.set("limit", String(filters.limit));
+  const response = await fetchJson<{ rows: FmsReviewNote[] }>(`${BRIDGE_BASE}/research/review-notes${search.size ? `?${search.toString()}` : ""}`, {
     signal: AbortSignal.timeout(15_000),
   });
-  return Array.isArray(response.rows) ? response.rows : [];
+  return Array.isArray(response.rows) ? response.rows.map(normalizeFmsReviewNote) : [];
 }
 
 export async function saveFmsReviewNote(input: FmsReviewNoteInput): Promise<FmsReviewNote> {
@@ -492,7 +550,7 @@ export async function saveFmsReviewNote(input: FmsReviewNoteInput): Promise<FmsR
     body: JSON.stringify(input),
     signal: AbortSignal.timeout(15_000),
   });
-  return response.row;
+  return normalizeFmsReviewNote(response.row);
 }
 
 export async function deleteFmsReviewNote(recordKey: string): Promise<boolean> {
@@ -752,9 +810,20 @@ export function openChartStream(
     `&tf=${encodeURIComponent(timeframe)}`;
 
   const socket = new WebSocket(url);
-  socket.onopen = () => handlers.onOpen?.();
-  socket.onclose = () => handlers.onClose?.();
-  socket.onerror = () => handlers.onError?.();
+  const streamDetail = `${symbol} · ${timeframe}`;
+  recordAppActivity({ source: "Chart stream", message: "Connecting", detail: streamDetail });
+  socket.onopen = () => {
+    recordAppActivity({ level: "success", source: "Chart stream", message: "Connected", detail: streamDetail });
+    handlers.onOpen?.();
+  };
+  socket.onclose = () => {
+    recordAppActivity({ source: "Chart stream", message: "Closed", detail: streamDetail });
+    handlers.onClose?.();
+  };
+  socket.onerror = () => {
+    recordAppActivity({ level: "error", source: "Chart stream", message: "Connection error", detail: streamDetail });
+    handlers.onError?.();
+  };
   socket.onmessage = (event) => {
     try {
       handlers.onMessage?.(JSON.parse(event.data) as unknown);

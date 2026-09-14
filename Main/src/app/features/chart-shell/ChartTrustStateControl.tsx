@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { AlertCircle, Radio, TriangleAlert } from "lucide-react";
 import { MinimalHeaderDetailsPanel } from "@/app/components/MinimalHeaderDetailsPanel";
 import { TERMINOLOGY } from "@/app/config/terminology";
+import { clearAppActivity, getAppActivitySnapshot, recordAppActivity, subscribeAppActivity } from "@/app/features/chart-shell/appActivityLog";
 import { formatLocalClock, formatRelativeAge, formatUtcClock, formatUtcDateTime } from "@/app/lib/format";
 import { resolveTrustState } from "@/app/lib/status";
 import type { BridgeHealth, BridgeStatus, MarketStatusResponse } from "@/app/types";
@@ -16,6 +17,8 @@ interface ChartTrustStateControlProps {
   nextHighImpact?: { title: string; currency: string; countryCode: string; time: number } | null;
 }
 
+const noActivitySubscription = () => () => undefined;
+
 export function ChartTrustStateControl({
   currentTime,
   health,
@@ -27,6 +30,11 @@ export function ChartTrustStateControl({
 }: ChartTrustStateControlProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const activityEntries = useSyncExternalStore(
+    open ? subscribeAppActivity : noActivitySubscription,
+    getAppActivitySnapshot,
+    getAppActivitySnapshot,
+  );
   const trustState = useMemo(
     () => resolveTrustState(health, feedStatus, marketStatus),
     [health, feedStatus, marketStatus],
@@ -78,6 +86,24 @@ export function ChartTrustStateControl({
     : null;
   const PrimaryIcon = primaryState.icon;
 
+  useEffect(() => {
+    recordAppActivity({
+      level: trustState.verdict === "yes" ? "success" : trustState.verdict === "limited" ? "warning" : "error",
+      source: "Trust State",
+      message: trustState.verdictLabel,
+      detail: trustState.detail,
+    });
+  }, [trustState.verdict, trustState.verdictLabel, trustState.detail]);
+
+  useEffect(() => {
+    recordAppActivity({
+      level: symbolState.label === TERMINOLOGY.symbolContext.states.open.medium ? "success" : symbolState.label === TERMINOLOGY.symbolContext.states.closed.medium ? "warning" : "info",
+      source: "Symbol context",
+      message: `${selectedSymbol}: ${symbolState.label}`,
+      detail: symbolState.detail,
+    });
+  }, [selectedSymbol, symbolState.label, symbolState.detail]);
+
   return (
     <div ref={rootRef} className="chart-trust-state-anchor">
       <button
@@ -108,6 +134,8 @@ export function ChartTrustStateControl({
             lastIngest={formatRelativeAge(health.last_calendar_ingest_at ?? null)}
             mt5Error={mt5Error}
             resolvedBanks={resolvedBanks}
+            activityEntries={activityEntries}
+            onClearActivity={clearAppActivity}
           />
         </div>
       ) : null}

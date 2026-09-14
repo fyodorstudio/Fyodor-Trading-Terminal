@@ -1983,12 +1983,19 @@
 .fms-review-note-row > td { background: #fffef7; }
 .fms-review-note-row p { margin: 0; color: #1f2937; font-size: 11px; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
 .fms-review-note-row form { display: grid; gap: 6px; }
+.fms-review-note-label { display: flex; align-items: center; gap: 7px; width: fit-content; color: #475569; font-size: 9px; font-weight: 850; letter-spacing: .03em; text-transform: uppercase; }
+.fms-review-note-label select { min-height: 27px; border: 1px solid #94a3b8; border-radius: 2px; background: #fff; padding: 2px 24px 2px 7px; color: #172554; font: inherit; font-size: 10px; font-weight: 800; text-transform: none; }
 .fms-review-note-row textarea { width: 100%; min-height: 64px; resize: vertical; border: 1px solid #94a3b8; border-radius: 2px; background: #fff; padding: 6px 7px; color: #111827; font: inherit; font-size: 11px; line-height: 1.45; }
 .fms-review-note-row textarea:focus { outline: 2px solid #818cf8; outline-offset: 1px; }
 .fms-review-note-row form > span, .fms-review-note-row div > span { display: flex; flex-wrap: wrap; align-items: center; gap: 5px 8px; margin-top: 5px; }
 .fms-review-note-row button { border: 1px solid #cbd5e1; border-radius: 2px; background: #fff; padding: 3px 7px; color: #3730a3; font-size: 9px; font-weight: 800; cursor: pointer; }
 .fms-review-note-row button:disabled { color: #94a3b8; cursor: wait; }
 .fms-review-note-row time { margin-right: auto; color: #64748b; font-size: 9px; }
+.fms-review-note-badge { display: inline-flex; margin-right: 7px; border: 1px solid #cbd5e1; border-radius: 999px; background: #f8fafc; padding: 1px 6px; color: #475569; font-size: 8px; font-weight: 900; letter-spacing: .035em; line-height: 1.5; text-transform: uppercase; vertical-align: 1px; }
+.fms-review-note-badge.is-bug, .fms-review-note-badge.is-sl { border-color: #fecaca; background: #fff1f2; color: #be123c; }
+.fms-review-note-badge.is-tp, .fms-review-note-badge.is-entry, .fms-review-note-badge.is-reaction { border-color: #c7d2fe; background: #eef2ff; color: #4338ca; }
+.fms-review-note-badge.is-ok { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
+.fms-review-note-badge.is-question { border-color: #fde68a; background: #fffbeb; color: #b45309; }
 .fms-history-definitions { margin-top: 7px; border-top: 1px solid #e2e8f0; padding-top: 6px; }
 .fms-history-definitions > summary { color: #4338ca; font-size: 9px; font-weight: 800; cursor: pointer; }
 .fms-history-definitions > p { margin: 6px 0; color: #475569; font-size: 9px; line-height: 1.5; }
