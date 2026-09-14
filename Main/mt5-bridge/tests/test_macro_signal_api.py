@@ -41,6 +41,9 @@ def test_review_note_api_keeps_annotations_in_a_separate_ledger(tmp_path: Path, 
   filtered = client.get("/research/review-notes", params={"label": "tp", "market": "eurusd", "q": "placement"}).json()
   assert filtered["count"] == 1
   assert filtered["filters"]["label"] == "tp"
+  documented = client.post("/research/review-notes", json={**payload, "label": "documented"})
+  assert documented.status_code == 200
+  assert client.get("/research/review-notes", params={"label": "documented"}).json()["count"] == 1
   assert client.post("/research/review-notes", json={**payload, "label": "unsupported"}).status_code == 422
   assert client.get("/research/review-notes", params={"label": "unsupported"}).status_code == 400
   deleted = client.delete("/research/review-notes", params={"record_key": payload["recordKey"]}).json()

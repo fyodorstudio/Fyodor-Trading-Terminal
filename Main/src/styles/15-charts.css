@@ -1999,6 +1999,7 @@
 .fms-review-note-badge.is-tp, .fms-review-note-badge.is-entry, .fms-review-note-badge.is-reaction { border-color: #c7d2fe; background: #eef2ff; color: #4338ca; }
 .fms-review-note-badge.is-ok { border-color: #a7f3d0; background: #ecfdf5; color: #047857; }
 .fms-review-note-badge.is-question { border-color: #fde68a; background: #fffbeb; color: #b45309; }
+.fms-review-note-badge.is-documented { border-color: #bae6fd; background: #f0f9ff; color: #0369a1; }
 .fms-history-definitions { margin-top: 7px; border-top: 1px solid #e2e8f0; padding-top: 6px; }
 .fms-history-definitions > summary { color: #4338ca; font-size: 9px; font-weight: 800; cursor: pointer; }
 .fms-history-definitions > p { margin: 6px 0; color: #475569; font-size: 9px; line-height: 1.5; }

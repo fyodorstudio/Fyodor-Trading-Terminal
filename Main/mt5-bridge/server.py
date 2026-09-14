@@ -924,7 +924,7 @@ app.add_middleware(
 
 terminal_connected: bool = False
 last_error: Optional[Dict[str, Any]] = None
-BRIDGE_API_REVISION = "2026-09-14-fms-review-note-labels-v2"
+BRIDGE_API_REVISION = "2026-09-15-fms-review-note-documented-v3"
 
 
 def _coerce_int(v: Any) -> int:
@@ -1073,7 +1073,7 @@ class FmsReviewNoteRequest(BaseModel):
   @classmethod
   def validate_review_note_label(cls, value: str) -> str:
     normalized = value.strip().lower()
-    if normalized not in {"unlabeled", "bug", "tp", "sl", "entry", "reaction", "ok", "question"}:
+    if normalized not in {"unlabeled", "bug", "tp", "sl", "entry", "reaction", "ok", "question", "documented"}:
       raise ValueError("Unsupported review note label")
     return normalized
 
@@ -6332,7 +6332,7 @@ def research_review_notes(
   q: Optional[str] = None,
 ) -> Dict[str, Any]:
   normalized_label = None if label is None else label.strip().lower()
-  if normalized_label is not None and normalized_label not in {"unlabeled", "bug", "tp", "sl", "entry", "reaction", "ok", "question"}:
+  if normalized_label is not None and normalized_label not in {"unlabeled", "bug", "tp", "sl", "entry", "reaction", "ok", "question", "documented"}:
     raise HTTPException(status_code=400, detail="Unsupported review note label")
   rows = _research_store.list_fms_review_notes(limit, normalized_label, market, pattern_id, q)
   return {

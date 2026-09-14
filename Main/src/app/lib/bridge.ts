@@ -512,7 +512,7 @@ export interface FmsReviewNote {
   updatedAt: number;
 }
 
-export const FMS_REVIEW_NOTE_LABELS = ["unlabeled", "bug", "tp", "sl", "entry", "reaction", "ok", "question"] as const;
+export const FMS_REVIEW_NOTE_LABELS = ["unlabeled", "bug", "tp", "sl", "entry", "reaction", "ok", "question", "documented"] as const;
 export type FmsReviewNoteLabel = typeof FMS_REVIEW_NOTE_LABELS[number];
 
 export type FmsReviewNoteInput = Pick<FmsReviewNote, "recordKey" | "context" | "market" | "patternId" | "eventTime" | "signalId" | "label" | "note">;

@@ -11,6 +11,7 @@ const NOTE_LABEL_NAMES: Record<FmsReviewNoteLabel, string> = {
   reaction: "Reaction",
   ok: "Verified OK",
   question: "Question",
+  documented: "Documented",
 };
 
 export function FmsReviewNoteRow({
