@@ -915,7 +915,11 @@ def evaluate_candidate(
     return unresolved("unevaluable", "missing_atr_history", "Missing ATR history", required_from=int(candles[entry_index]["time"]) - ATR_PERIOD * H4_SECONDS, required_to=int(candles[entry_index]["time"]), required_candles=ATR_PERIOD)
   final_index = entry_index + holding_candles - 1
   required_outcome_to = int(candles[entry_index]["time"]) + holding_candles * H4_SECONDS
-  if final_index >= len(candles) and (not allow_pending or required_outcome_to <= observation_time):
+  # A holding period is counted in completed H4 candles, not elapsed wall-clock
+  # hours. Weekend/session gaps can put the naive timestamp in the past while
+  # the contract still has candles left to observe. Live evaluation must keep
+  # that path pending until the required candle count actually exists.
+  if final_index >= len(candles) and not allow_pending:
     return unresolved("unevaluable", "missing_outcome_candles", "Missing outcome candles", required_from=int(candles[entry_index]["time"]), required_to=int(candles[entry_index]["time"]) + holding_candles * H4_SECONDS, required_candles=holding_candles)
 
   entry = float(candles[entry_index]["open"])

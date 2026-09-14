@@ -358,6 +358,19 @@ def test_live_paper_outcome_remains_pending_until_the_full_window_completes() ->
   assert result["entryTime"] == rows[21]["time"]
   assert aggregate_outcomes([result])["pendingCount"] == 1
 
+  elapsed_past_naive_wall_clock = evaluate_candidate(
+    candidate(event_time=rows[20]["time"]),
+    rows,
+    [row["time"] for row in rows],
+    atr,
+    2.0,
+    allow_pending=True,
+    as_of=rows[-1]["time"] + 10 * 24 * 60 * 60,
+  )
+  assert elapsed_past_naive_wall_clock["status"] == "pending"
+  assert elapsed_past_naive_wall_clock["reasonCode"] == "trade_still_running"
+  assert elapsed_past_naive_wall_clock["coverage"]["availableCandles"] == 9
+
   managed_rows = candles(count=20)
   for row in managed_rows:
     row.update({"open": 1.1000, "high": 1.1002, "low": 1.0998, "close": 1.1000})
