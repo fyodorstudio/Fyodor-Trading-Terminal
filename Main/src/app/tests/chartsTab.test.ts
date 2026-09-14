@@ -9,6 +9,7 @@ import {
   getVirtualMarketWatchWindow,
 } from "@/app/features/chart-market-data/symbolCatalog";
 import { ChartMacroBiasAudit } from "@/app/components/ChartMacroBiasAudit";
+import { ChartMacroBiasAuditReview } from "@/app/features/fms-dock/ChartMacroBiasAuditReview";
 import { ChartMacroBiasRealtimeCard, marketMatchesCurrencySelection } from "@/app/components/ChartMacroBiasRealtimeCard";
 import { buildRegisteredSetupSchedule, buildRecentFmsActivity, partitionFmsActivity, getTradeMarkets, ChartFmsActionCard, DEFAULT_FMS_TRADE_VIEW_STATE } from "@/app/components/ChartFmsActionCard";
 import { ChartFmsKnowledgeCard } from "@/app/components/ChartFmsKnowledgeCard";
@@ -368,6 +369,7 @@ describe("getChartConnectionLabel", () => {
     } as const;
     const view = buildChartMacroBiasAuditViewModel(auditData);
     const html = renderToStaticMarkup(createElement(ChartMacroBiasAudit, { data: auditData }));
+    const reviewHtml = renderToStaticMarkup(createElement(ChartMacroBiasAuditReview, { data: auditData }));
 
     const sections = view.rows.filter((row) => row.kind === "section").map((row) => row.label);
     const dataRows = view.rows.filter((row) => row.kind === "data");
@@ -393,6 +395,8 @@ describe("getChartConnectionLabel", () => {
     expect(dataRows).toContainEqual(expect.objectContaining({ field: "Trade rules used in this test", value: "SL 2 ATR · TP 0.5R = 1 ATR", details: "maximum 42 H4 candles" }));
 
     expect(html).toContain('<table class="chart-macro-bias-audit-table"');
+    expect(reviewHtml).toContain('data-note-record-key="USDCAD:pattern:1000"');
+    expect(reviewHtml).toContain("Add audit note");
     expect(html).not.toContain("chart-macro-bias-result-hero");
     expect(html).not.toContain("<details");
     expect(html).not.toContain("Source research diagnostics");

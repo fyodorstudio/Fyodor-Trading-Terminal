@@ -3,9 +3,10 @@ import { Fragment, memo, useEffect, useLayoutEffect, useMemo, useRef, useState, 
 import { FlagIcon } from "@/app/components/FlagIcon";
 import type { ChartMacroBiasRealtimeCardData } from "@/app/components/ChartMacroBiasRealtimeCard";
 import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
+import { FmsReviewNoteRow } from "@/app/features/fms-dock/FmsReviewNoteRow";
 import { useFmsReviewNotes } from "@/app/features/fms-dock/useFmsReviewNotes";
 import { formatJakartaDisplayDateTime } from "@/app/lib/format";
-import type { FmsReviewNote, FmsReviewNoteInput } from "@/app/lib/bridge";
+import type { FmsReviewNoteInput } from "@/app/lib/bridge";
 import entryResearch from "@/app/lib/fmsEntryResearchSummary.json";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalPatternAssessment, MacroSignalUpcomingPatternWatch } from "@/app/types";
 
@@ -437,41 +438,6 @@ function entryResearchNote(market: string, pattern: MacroSignalChartPattern): st
   return `${hourlyConclusion}${activeContract}${minuteCoverage}${activeEntry}`;
 }
 
-function ReviewNoteRow({
-  input,
-  saved,
-  editing,
-  draft,
-  saving,
-  onDraftChange,
-  onEdit,
-  onCancel,
-  onSave,
-  onRemove,
-}: {
-  input: Omit<FmsReviewNoteInput, "note">;
-  saved: FmsReviewNote | null;
-  editing: boolean;
-  draft: string;
-  saving: boolean;
-  onDraftChange: (value: string) => void;
-  onEdit: () => void;
-  onCancel: () => void;
-  onSave: (event: FormEvent<HTMLFormElement>, input: Omit<FmsReviewNoteInput, "note">) => void;
-  onRemove: () => void;
-}) {
-  if (!saved && !editing) return null;
-  return <tr className="fms-review-note-row"><th scope="row">Audit note</th><td colSpan={2}>
-    {editing ? <form onSubmit={(event) => onSave(event, input)}>
-      <textarea value={draft} onChange={(event) => onDraftChange(event.target.value)} maxLength={4000} rows={3} autoFocus aria-label="Personal audit note" placeholder="Record anything suspicious about the arrow, entry, TP, SL, or price reaction." />
-      <span><button type="submit" disabled={saving || !draft.trim()}>{saving ? "Saving..." : "Save note"}</button><button type="button" disabled={saving} onClick={onCancel}>Cancel</button></span>
-    </form> : <div>
-      <p>{saved?.note}</p>
-      <span><time dateTime={new Date((saved?.updatedAt ?? 0) * 1000).toISOString()}>Updated {saved ? formatJakartaDisplayDateTime(saved.updatedAt) : ""}</time><button type="button" onClick={onEdit}>Edit</button><button type="button" disabled={saving} onClick={onRemove}>{saving ? "Removing..." : "Remove"}</button></span>
-    </div>}
-  </td></tr>;
-}
-
 export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   data,
   historicalMatchesVisible = false,
@@ -659,7 +625,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                   <td className="fms-action-evidence"><strong>{record.tpRate == null ? "TP rate unavailable" : `${(record.tpRate * 100).toFixed(1)}% TP before SL`}</strong><small>{record.averageR == null ? "Gross average unavailable" : `${record.averageR >= 0 ? "+" : ""}${record.averageR.toFixed(2)}R gross avg`} · N {record.sample}</small><span className="fms-row-actions"><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small>{latestArrow && onGoToArrow ? <button type="button" className="fms-go-to-arrow" onClick={(event) => { event.stopPropagation(); onGoToArrow(row.market, latestArrow); }} onKeyDown={(event) => event.stopPropagation()}>Go to latest arrow</button> : null}</span></td>
                   <td><TradeDate label="Release" time={row.watch?.time} fallback="Awaiting date" />{row.watch ? <><small className="fms-release-countdown">In {countdownLabel(row.watch.time, clock)}</small><button type="button" className="fms-review-setup" onClick={(event) => { event.stopPropagation(); onReviewSetup?.(row.market, row.pattern.id); beginNote(row.key); }} onKeyDown={(event) => event.stopPropagation()}>{note ? "Review note" : "Review"}</button></> : null}</td>
                 </tr>
-                <ReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === row.key} draft={noteDraft} saving={noteSavingKey === row.key} onDraftChange={setNoteDraft} onEdit={() => beginNote(row.key)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(row.key)} />
+                <FmsReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === row.key} draft={noteDraft} saving={noteSavingKey === row.key} onDraftChange={setNoteDraft} onEdit={() => beginNote(row.key)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(row.key)} />
                 {expanded ? <tr className="fms-action-detail-row"><td colSpan={3}>
                   <table><tbody>
                     <tr><th>Frozen contract</th><td>{patternExecutionLabel(row.pattern)}</td></tr>
@@ -707,7 +673,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                     </> : null}
                   </td>
                 </tr>
-                <ReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === row.key} draft={noteDraft} saving={noteSavingKey === row.key} onDraftChange={setNoteDraft} onEdit={() => beginNote(row.key)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(row.key)} />
+                <FmsReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === row.key} draft={noteDraft} saving={noteSavingKey === row.key} onDraftChange={setNoteDraft} onEdit={() => beginNote(row.key)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(row.key)} />
                 {expanded ? <tr className="fms-action-detail-row"><td colSpan={3}>
                   <table><tbody>
                     <tr><th>{row.state === "No trade" ? "Why no trade" : "Decision reason"}</th><td colSpan={3}><strong>{decisionSummary(row.assessment)}</strong><details><summary>Full recorded explanation</summary><p>{row.assessment?.reason ?? "Unavailable"}</p></details></td></tr>

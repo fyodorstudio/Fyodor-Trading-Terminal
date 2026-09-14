@@ -12,9 +12,10 @@ import { ChevronDown } from "lucide-react";
 import { ChartFmsActionCard, type FmsTradeViewState } from "@/app/components/ChartFmsActionCard";
 import { ChartFmsJournalCard } from "@/app/components/ChartFmsJournalCard";
 import { ChartFmsKnowledgeCard } from "@/app/components/ChartFmsKnowledgeCard";
-import { ChartMacroBiasAudit, type ChartMacroBiasAuditData } from "@/app/components/ChartMacroBiasAudit";
+import type { ChartMacroBiasAuditData } from "@/app/components/ChartMacroBiasAudit";
 import { ChartMacroBiasRealtimeCard, type ChartMacroBiasRealtimeCardData } from "@/app/components/ChartMacroBiasRealtimeCard";
 import { FMS_DOCK_MIN_WIDTH, type FmsDockPrimaryTab, type FmsDockTab } from "@/app/features/chart-viewport/chartPanelState";
+import { ChartMacroBiasAuditReview } from "@/app/features/fms-dock/ChartMacroBiasAuditReview";
 import type { MacroSignalChartSignal } from "@/app/types";
 
 class FmsDockErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
@@ -162,7 +163,7 @@ export function ChartFmsDock({
       <div className="chart-fms-dock-content">
         <FmsDockErrorBoundary key={tab}>
           {tab === "result" && audit
-            ? <ChartMacroBiasAudit data={audit} />
+            ? <ChartMacroBiasAuditReview data={audit} />
             : tab === "trade" && realtime
               ? <ChartFmsActionCard
                   data={realtime}
