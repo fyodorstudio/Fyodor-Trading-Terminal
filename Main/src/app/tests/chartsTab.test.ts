@@ -248,8 +248,8 @@ describe("getChartConnectionLabel", () => {
     const built = buildMacroBiasSeriesMarkers(signals, candles, "H4", 0);
 
     expect(built.markers.map((marker) => ({ time: marker.time, shape: marker.shape, text: marker.text, color: marker.color }))).toEqual([
-      { time: 14_400, shape: "arrowUp", text: "H4 ENTRY · LONG · CONTEXT", color: "#2563eb" },
-      { time: 28_800, shape: "arrowDown", text: "H4 ENTRY · SHORT", color: "#7c3aed" },
+      { time: 14_400, shape: "arrowUp", text: "H4 ENTRY · LONG · LEGACY · CONTEXT", color: "#2563eb" },
+      { time: 28_800, shape: "arrowDown", text: "H4 ENTRY · SHORT · LEGACY", color: "#7c3aed" },
     ]);
     const journaled = buildMacroBiasSeriesMarkers([
       { ...makeSignal("journal-long", 1_000, "long"), historicalReplay: false },
@@ -715,7 +715,7 @@ describe("getChartConnectionLabel", () => {
       response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
     }, historicalMatchesVisible: true, historicalMatchesCount: 42, onToggleHistoricalMatches: () => {}, onGoToArrow: () => {} }));
     expect(actionHtml).not.toContain("Registered rules only");
-    expect(actionHtml).toContain("Past arrows");
+    expect(actionHtml).toContain("Legacy frozen arrows");
     expect(actionHtml).toContain("Search setups");
     expect(actionHtml).not.toContain("Fresh:");
     expect(actionHtml).toContain("Next registered setups");

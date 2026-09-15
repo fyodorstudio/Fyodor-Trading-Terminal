@@ -46,6 +46,13 @@ def test_calendar_history_survives_store_reopen_and_is_not_pruned(tmp_path: Path
   }
 
 
+def test_immutable_metadata_keeps_the_first_value(tmp_path: Path) -> None:
+  store = ResearchStore(tmp_path / "immutable.sqlite3")
+  assert store.set_metadata_if_absent("campaign:observation", "first") == "first"
+  assert store.set_metadata_if_absent("campaign:observation", "later") == "first"
+  assert store.get_metadata("campaign:observation") == "first"
+
+
 def test_fms_review_notes_are_durable_and_separate_from_frozen_records(tmp_path: Path) -> None:
   path = tmp_path / "research.sqlite3"
   store = ResearchStore(path)

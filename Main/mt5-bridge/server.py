@@ -81,6 +81,7 @@ from macro_signal import (
 )
 from research_store import ResearchStore
 from quote_snapshot import QuoteSnapshotConflict, QuoteSnapshotStore
+from fms_reaction_campaign import build_prospective_observations
 
 logger = logging.getLogger("mt5_bridge")
 
@@ -924,7 +925,9 @@ app.add_middleware(
 
 terminal_connected: bool = False
 last_error: Optional[Dict[str, Any]] = None
-BRIDGE_API_REVISION = "2026-09-15-fms-review-note-documented-v3"
+_last_mt5_confirmed_at: Optional[float] = None
+BRIDGE_API_REVISION = "2026-09-15-event-respect-campaign-v3"
+BRIDGE_PROCESS_STARTED_AT = int(_time.time())
 
 
 def _coerce_int(v: Any) -> int:
@@ -934,6 +937,13 @@ def _coerce_int(v: Any) -> int:
   if isinstance(v, str) and v.strip().lstrip("-").isdigit():
     return int(v)
   raise ValueError(f"expected int, got {type(v).__name__}")
+
+
+def _environment_int(name: str) -> int:
+  try:
+    return int(os.environ.get(name) or 0)
+  except (TypeError, ValueError):
+    return 0
 
 
 class CalendarEventPayload(BaseModel):
@@ -1135,6 +1145,8 @@ class QuoteIngestRequest(BaseModel):
 
 
 _research_store = ResearchStore()
+_health_calendar_events_count = 0
+_health_last_calendar_ingest_at: Optional[float] = None
 _chart_model_metadata_key = f"chart_signal_model_hash:{CHART_SIGNAL_MODEL_ID}"
 _stored_chart_model_hash = _research_store.get_metadata(_chart_model_metadata_key)
 if _stored_chart_model_hash is not None and _stored_chart_model_hash != CHART_SIGNAL_MODEL_HASH:
@@ -1298,12 +1310,13 @@ def _ensure_mt5_initialized() -> bool:
   working even when the Python package has lost its IPC session. Price, symbol,
   server-time, and streaming endpoints need this connection.
   """
-  global terminal_connected, last_error
+  global terminal_connected, last_error, _last_mt5_confirmed_at
 
   with _mt5_access():
     if mt5.terminal_info() is not None:
       terminal_connected = True
       last_error = None
+      _last_mt5_confirmed_at = _time.monotonic()
       return True
 
     mt5_path = os.environ.get("MT5_EXE")
@@ -1311,6 +1324,7 @@ def _ensure_mt5_initialized() -> bool:
     if initialized:
       terminal_connected = True
       last_error = None
+      _last_mt5_confirmed_at = _time.monotonic()
       return True
 
     _update_last_error()
@@ -1693,8 +1707,6 @@ def _get_last_error() -> Optional[Dict[str, Any]]:
 
 @app.on_event("startup")
 def on_startup() -> None:
-  global terminal_connected, last_error
-
   for definition in SIGNAL_DEFINITIONS.values():
     _research_store.ensure_signal_version(
       definition.id,
@@ -1703,12 +1715,12 @@ def on_startup() -> None:
       definition.configuration_hash,
     )
   _research_store.mark_unfinished_runs_failed("Bridge restarted before this research job completed")
-  if not _ensure_mt5_initialized():
-    terminal_connected = False
-    last_error = _get_last_error()
-  else:
-    terminal_connected = True
-    last_error = None
+  _refresh_calendar_health_cache()
+
+  # MT5 initialization is intentionally lazy. A missing, busy, or wedged
+  # terminal must never prevent the HTTP bridge from becoming live for the
+  # independent quote/calendar EAs and durable research reads. The first
+  # route that actually requires Python MT5 IPC establishes that session.
 
 
 @app.on_event("shutdown")
@@ -1784,35 +1796,76 @@ def _metadata_float(key: str) -> Optional[float]:
     return None
 
 
-@app.get("/health")
-def health() -> Dict[str, Any]:
-  mt5_busy = False
-  try:
-    with _mt5_access(_MT5_FOREGROUND_LOCK_TIMEOUT_SECONDS):
-      connected = _ensure_mt5_initialized()
-      version = mt5.version() if connected else None
-      account = mt5.account_info() if connected else None
-      err_code, err_message = mt5.last_error()
-      last_error_info = {"code": err_code, "message": err_message}
-  except Mt5BusyError:
-    mt5_busy = True
-    connected = terminal_connected
-    version = None
-    account = None
-    last_error_info = last_error
+def _refresh_calendar_health_cache() -> None:
+  """Refresh diagnostic counters outside the health request path.
 
-  payload: Dict[str, Any] = {
+  Liveness and UI polling must never queue behind SQLite. Startup and the
+  successful calendar writer are the only places that update this snapshot.
+  A diagnostic read failure keeps the last known values instead of taking the
+  bridge down.
+  """
+  global _health_calendar_events_count, _health_last_calendar_ingest_at
+  try:
+    _health_calendar_events_count = _research_store.calendar_count()
+    _health_last_calendar_ingest_at = _metadata_float("last_calendar_ingest_at")
+  except Exception:
+    logger.exception("calendar health snapshot refresh failed; retaining last known values")
+
+
+def _process_health_payload() -> Dict[str, Any]:
+  return {
     "ok": True,
     "bridge_connected": True,
     "api_revision": BRIDGE_API_REVISION,
+    "process_id": os.getpid(),
+    "process_started_at": BRIDGE_PROCESS_STARTED_AT,
+    "process_generation": _environment_int("FYODOR_BRIDGE_GENERATION"),
+    "process_restart_count": _environment_int("FYODOR_BRIDGE_RESTART_COUNT"),
+    "launcher_process_id": _environment_int("FYODOR_BRIDGE_LAUNCHER_PID"),
+    "lifecycle_log": os.environ.get("FYODOR_BRIDGE_LIFECYCLE_LOG"),
+  }
+
+
+@app.get("/health/live")
+async def health_live() -> Dict[str, Any]:
+  """Zero-dependency process liveness used only by the supervisor.
+
+  Keep this endpoint async and free of locks, MT5 IPC, SQLite, executors, and
+  research work. Readiness can degrade while this process remains healthy and
+  able to recover; that is not a reason to kill it.
+  """
+  return {**_process_health_payload(), "probe": "liveness"}
+
+
+@app.get("/health")
+async def health() -> Dict[str, Any]:
+  # This is a cached readiness/diagnostic view. It deliberately performs no
+  # Python MT5 calls and no SQLite reads, so Trust State polling cannot compete
+  # with chart work or become the cause of a supervisor restart.
+  mt5_lock_available = _mt5_lock.acquire(blocking=False)
+  if mt5_lock_available:
+    _mt5_lock.release()
+  mt5_busy = not mt5_lock_available
+  quote_status = _quote_snapshot_store.status(_QUOTE_SNAPSHOT_FRESH_SECONDS)
+  quote_connected = bool(quote_status.get("fresh"))
+  connected = bool(terminal_connected or quote_connected)
+  mt5_age = None
+  if _last_mt5_confirmed_at is not None:
+    mt5_age = round(max(0.0, _time.monotonic() - _last_mt5_confirmed_at), 3)
+
+  payload: Dict[str, Any] = {
+    **_process_health_payload(),
+    "probe": "cached_readiness",
     "terminal_connected": connected,
+    "terminal_status_source": "quote_publisher" if quote_connected else "python_mt5_cache",
     "mt5_busy": mt5_busy,
-    "mt5_version": version,
-    "account_login": account.login if account is not None else None,
-    "last_error": last_error_info,
-    "calendar_events_count": _research_store.calendar_count(),
-    "last_calendar_ingest_at": _metadata_float("last_calendar_ingest_at"),
-    "quote_publisher": _quote_snapshot_store.status(_QUOTE_SNAPSHOT_FRESH_SECONDS),
+    "mt5_status_age_seconds": mt5_age,
+    "mt5_version": None,
+    "account_login": None,
+    "last_error": last_error,
+    "calendar_events_count": _health_calendar_events_count,
+    "last_calendar_ingest_at": _health_last_calendar_ingest_at,
+    "quote_publisher": quote_status,
   }
   return payload
 
@@ -2147,7 +2200,7 @@ async def calendar_ingest(request: Request) -> Dict[str, Any]:
   while body_bytes and body_bytes[-1:] == b"\x00":
     body_bytes = body_bytes[:-1]
   try:
-    raw = json.loads(body_bytes.decode("utf-8", errors="replace"))
+    raw = await asyncio.to_thread(json.loads, body_bytes.decode("utf-8", errors="replace"))
   except json.JSONDecodeError as e:
     duration_ms = int((_time.perf_counter() - t0) * 1000)
     logger.info(
@@ -2157,7 +2210,7 @@ async def calendar_ingest(request: Request) -> Dict[str, Any]:
     )
     raise HTTPException(status_code=400, detail={"message": "Invalid JSON", "error": str(e)})
   try:
-    payload = CalendarIngestRequest.model_validate(raw)
+    payload = await asyncio.to_thread(CalendarIngestRequest.model_validate, raw)
   except ValidationError as e:
     duration_ms = int((_time.perf_counter() - t0) * 1000)
     logger.info(
@@ -2168,11 +2221,16 @@ async def calendar_ingest(request: Request) -> Dict[str, Any]:
     raise HTTPException(status_code=422, detail=_json_sanitize(e.errors()))
 
   ingested_at = int(_time.time())
-  records = [event.model_copy().model_dump() for event in payload.events]
-  ingest_result = _research_store.upsert_calendar_events(records, ingested_at)
+  records = await asyncio.to_thread(
+    lambda: [event.model_copy().model_dump() for event in payload.events]
+  )
+  ingest_result = await asyncio.to_thread(_research_store.upsert_calendar_events, records, ingested_at)
   ingested = ingest_result["inserted"]
   updated = ingest_result["updated"]
   total = ingest_result["total"]
+  global _health_calendar_events_count, _health_last_calendar_ingest_at
+  _health_calendar_events_count = total
+  _health_last_calendar_ingest_at = float(ingested_at)
   duration_ms = int((_time.perf_counter() - t0) * 1000)
   logger.info(
     "calendar_ingest method=POST path=/calendar_ingest status=200 body_size=%s ingested=%s updated=%s total=%s duration_ms=%s",
@@ -2192,8 +2250,8 @@ async def calendar_ingest_cycle(request: Request) -> Dict[str, Any]:
   while body_bytes and body_bytes[-1:] == b"\x00":
     body_bytes = body_bytes[:-1]
   try:
-    raw = json.loads(body_bytes.decode("utf-8", errors="replace"))
-    payload = CalendarIngestCycleRequest.model_validate(raw)
+    raw = await asyncio.to_thread(json.loads, body_bytes.decode("utf-8", errors="replace"))
+    payload = await asyncio.to_thread(CalendarIngestCycleRequest.model_validate, raw)
   except (json.JSONDecodeError, ValidationError) as error:
     raise HTTPException(
       status_code=422,
@@ -2201,8 +2259,10 @@ async def calendar_ingest_cycle(request: Request) -> Dict[str, Any]:
     )
   completed_at = int(payload.completedAt)
   observed_at = int(_time.time())
-  _research_store.set_metadata("last_calendar_cycle_at", str(observed_at))
-  _research_store.set_metadata("last_calendar_cycle_failed_batches", str(payload.failedBatches))
+  await asyncio.to_thread(_research_store.set_metadata, "last_calendar_cycle_at", str(observed_at))
+  await asyncio.to_thread(
+    _research_store.set_metadata, "last_calendar_cycle_failed_batches", str(payload.failedBatches)
+  )
   if payload.failedBatches > 0:
     return {
       "accepted": False,
@@ -2210,8 +2270,11 @@ async def calendar_ingest_cycle(request: Request) -> Dict[str, Any]:
       "reconcileScheduled": False,
       "reason": "Incomplete upload cycle",
     }
-  _research_store.set_metadata("last_calendar_successful_cycle_at", str(observed_at))
-  captured = _research_store.capture_release_observations(
+  await asyncio.to_thread(
+    _research_store.set_metadata, "last_calendar_successful_cycle_at", str(observed_at)
+  )
+  captured = await asyncio.to_thread(
+    _research_store.capture_release_observations,
     FORWARD_LEDGER_ACTIVATED_AT,
     observed_at,
     released_through=completed_at,
@@ -2219,7 +2282,7 @@ async def calendar_ingest_cycle(request: Request) -> Dict[str, Any]:
   )
   global _forward_last_scheduled_entry_bucket
   entry_bucket = observed_at // 3600
-  live_cases = _research_store.list_fms_live_execution_cases(limit=2000)
+  live_cases = await asyncio.to_thread(_research_store.list_fms_live_execution_cases, limit=2000)
   has_unresolved_live_case = any(
     str(case.get("state")) == "pending"
     or (
@@ -3326,6 +3389,74 @@ def _workbench_catalog(bundle: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def _workbench_reaction_atlas(market: str) -> Optional[Dict[str, Any]]:
+  development_raw = _research_store.get_metadata("fms_event_respect_campaign:v4:development_atlas")
+  challenge_raw = _research_store.get_metadata("fms_event_respect_campaign:v4:challenge")
+  manifest_raw = _research_store.get_metadata("fms_event_respect_campaign:v4:manifest")
+  if development_raw and challenge_raw and manifest_raw:
+    try:
+      development = json.loads(development_raw)
+      challenge = json.loads(challenge_raw)
+      manifest = json.loads(manifest_raw)
+      challenge_by_id = {
+        str(row["rowId"]): row for row in challenge.get("rows", [])
+      }
+      market_coverage = next((
+        row for row in manifest.get("coverage", [])
+        if str(row.get("market", "")).upper() == market.upper()
+      ), None)
+      labels = {
+        "challenge_supported": "Challenge supported",
+        "prospective_only": "Prospective observation only",
+        "rejected": "Rejected by later chronology",
+        "development_only": "Development atlas only",
+      }
+      rows = []
+      for source in development.get("rows", []):
+        if str(source.get("market", "")).upper() != market.upper():
+          continue
+        challenged = challenge_by_id.get(str(source.get("rowId")))
+        partitions = (challenged or {}).get("partitions") or {}
+        classification = str((challenged or {}).get("classification") or "development_only")
+        development_metrics = dict(source.get("development") or {})
+        rows.append({
+          "id": str(source.get("rowId")),
+          "label": str(source.get("family") or "Economic release package").replace("_", " ").title(),
+          "family": str(source.get("family") or "Economic release package"),
+          "currencies": list(source.get("currencies") or []),
+          "pair": market.upper(),
+          "directionRule": str(source.get("directionRule") or "actual_vs_forecast_surprise_only"),
+          "horizonH4": int(source.get("horizonH4") or 0),
+          "development": development_metrics,
+          "holdout": partitions.get("holdout"),
+          "recent": partitions.get("recent"),
+          "classification": classification,
+          "classificationLabel": labels[classification],
+          "candidateDeclared": challenged is not None,
+          "checks": None if challenged is None else dict(challenged.get("checks") or {}),
+          "exampleTitles": list(source.get("exampleTitles") or []),
+        })
+      rows.sort(key=lambda row: (
+        {"challenge_supported": 0, "prospective_only": 1, "rejected": 2, "development_only": 3}[row["classification"]],
+        -float(row["development"].get("meanFinalAtr") or -999),
+        -int(row["development"].get("evaluableN") or 0),
+        int(row["horizonH4"]),
+      ))
+      counts = {
+        classification: sum(row["classification"] == classification for row in rows)
+        for classification in ("challenge_supported", "prospective_only", "rejected", "development_only")
+      }
+      return {
+        "version": str(development.get("version") or ""),
+        "artifactHash": str(development.get("artifactHash") or ""),
+        "challengeHash": str(challenge.get("challengeHash") or ""),
+        "generatedAt": int(manifest.get("createdAt") or 0),
+        "holdoutOpenedOnlyForDeclaredCandidates": True,
+        "counts": counts,
+        "coverage": market_coverage,
+        "rows": rows,
+      }
+    except (KeyError, TypeError, ValueError):
+      logger.exception("Ignoring unreadable event-respect campaign projection")
   raw = _research_store.get_metadata("fms_reaction_atlas:latest")
   if not raw:
     return None
@@ -3617,8 +3748,8 @@ def research_workbench(market: str = "EURUSD") -> Dict[str, Any]:
   current_model_summary = {
     "id": PRACTICAL_MODEL_ID,
     "researchEngineId": RELEASE_REACTION_ENGINE_ID,
-    "friendlyName": "Registered Reaction Atlas",
-    "displayId": "Active registered v4",
+    "friendlyName": "Legacy Registered Reaction Atlas",
+    "displayId": "Legacy v4 · frozen contracts preserved",
     "hash": PRACTICAL_MODEL_HASH,
     "activatedAt": PRACTICAL_MODEL_CREATED_AT,
     "timeframe": "H4",
@@ -6323,6 +6454,59 @@ def research_live_decisions(market: Optional[str] = None, limit: int = 100) -> D
   }
 
 
+@app.get("/research/event-respect-campaign")
+def research_event_respect_campaign() -> Dict[str, Any]:
+  keys = {
+    "manifest": "fms_event_respect_campaign:v4:manifest",
+    "atlas": "fms_event_respect_campaign:v4:development_atlas",
+    "declaration": "fms_event_respect_campaign:v4:declaration",
+    "challenge": "fms_event_respect_campaign:v4:challenge",
+    "activation": "fms_event_respect_campaign:v4:prospective_activation",
+    "index": "fms_event_respect_campaign:latest",
+  }
+  artifacts: Dict[str, Dict[str, Any]] = {}
+  for name, key in keys.items():
+    raw = _research_store.get_metadata(key)
+    if not raw:
+      continue
+    try:
+      value = json.loads(raw)
+    except (TypeError, ValueError):
+      raise HTTPException(status_code=503, detail=f"Stored event-respect {name} artifact is unreadable")
+    if not isinstance(value, dict):
+      raise HTTPException(status_code=503, detail=f"Stored event-respect {name} artifact is invalid")
+    artifacts[name] = value
+  manifest = artifacts.get("manifest")
+  challenge = artifacts.get("challenge")
+  activation = artifacts.get("activation")
+  prospective = None
+  if manifest and challenge and activation:
+    try:
+      prospective = build_prospective_observations(
+        manifest, challenge, activation, _research_store, int(_time.time())
+      )
+    except (KeyError, TypeError, ValueError) as exc:
+      logger.exception("Event-respect prospective projection failed")
+      raise HTTPException(status_code=503, detail=f"Prospective observation projection failed: {exc}") from exc
+  return {
+    "schema": "fms-event-respect-campaign-response-v1",
+    "state": (artifacts.get("index") or {}).get("state", "not_started"),
+    "manifest": manifest,
+    "declaration": artifacts.get("declaration"),
+    "challenge": challenge,
+    "prospective": prospective,
+    "legacyRegistry": {
+      "modelId": PRACTICAL_MODEL_ID,
+      "modelHash": PRACTICAL_MODEL_HASH,
+      "label": "Legacy v4",
+      "preserved": True,
+      "stillRendered": True,
+    },
+    "automaticPromotion": False,
+    "orderTransmission": False,
+  }
+
+
 @app.get("/research/review-notes")
 def research_review_notes(
   limit: int = 2000,
@@ -6569,6 +6753,17 @@ async def _wait_for_stream_tick(disconnected: asyncio.Event, seconds: float = 1.
     return False
 
 
+def _stream_mt5_snapshot(symbol: str, timeframe: int) -> Tuple[Any, Optional[Dict[str, Any]]]:
+  """Perform one blocking Python-MT5 stream poll outside the event loop."""
+  with _mt5_access(.5):
+    if not _ensure_mt5_initialized():
+      return None, _get_last_error()
+    ensure_symbol_selected(symbol)
+    rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, 2)
+    error = _get_last_error() if rates is None or len(rates) == 0 else None
+    return rates, error
+
+
 @app.websocket("/stream")
 async def stream(websocket: WebSocket, symbol: str, tf: str) -> None:
   disconnected = asyncio.Event()
@@ -6612,14 +6807,7 @@ async def stream(websocket: WebSocket, symbol: str, tf: str) -> None:
       if disconnected.is_set():
         return
       try:
-        with _mt5_access(.5):
-          if not _ensure_mt5_initialized():
-            error = _get_last_error()
-            rates = None
-          else:
-            ensure_symbol_selected(symbol)
-            rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, 2)
-            error = _get_last_error() if rates is None or len(rates) == 0 else None
+        rates, error = await asyncio.to_thread(_stream_mt5_snapshot, symbol, timeframe)
       except Mt5BusyError:
         sent = await _try_websocket_send_json(
           websocket,

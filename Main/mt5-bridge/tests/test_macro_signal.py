@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from unittest.mock import patch
 
 from macro_signal import (
   aggregate_outcomes,
@@ -821,3 +822,183 @@ def test_workbench_single_contract_preserves_signature_and_declared_execution() 
   assert combined["directionSelection"] == "both"
   assert combined["signatures"] == signatures
   assert combined["historicalN"] == result["historicalN"]
+
+
+def test_event_respect_declaration_is_development_only_and_has_no_execution_contract() -> None:
+  from fms_reaction_campaign import declare_candidates
+
+  metrics = {
+    "evaluableN": 60,
+    "unavailableN": 0,
+    "respectCount": 36,
+    "respectRate": .60,
+    "meanFinalAtr": .30,
+    "medianFinalAtr": .20,
+    "finalAtrCi95": {"lower": .10, "upper": .50},
+    "oneSidedNoRespectPApprox": .001,
+    "medianMfeAtr": 1.0,
+    "mfeAtrQ25": .5,
+    "mfeAtrQ75": 1.5,
+    "medianMaeAtr": .5,
+    "maeAtrQ25": .25,
+    "maeAtrQ75": .75,
+    "impulseThenReversalCount": 5,
+    "impulseThenReversalRate": 5 / 60,
+    "representedYears": 6,
+    "positiveYears": 5,
+    "positiveYearShare": 5 / 6,
+    "yearMeansAtr": {},
+  }
+  atlas = {
+    "campaignManifestHash": "manifest",
+    "artifactHash": "atlas",
+    "rows": [{
+      "rowId": f"row-{horizon}",
+      "market": "EURUSD",
+      "sourceVersionId": "source",
+      "identity": "USD:employment",
+      "family": "employment",
+      "currencies": ["USD"],
+      "directionRule": "actual_vs_forecast_surprise_only",
+      "horizonH4": horizon,
+      "exampleTitles": ["Employment"],
+      "development": {**metrics, "meanFinalAtr": .30 - horizon / 1000},
+    } for horizon in (1, 3, 6, 12, 30)],
+  }
+
+  declaration = declare_candidates(atlas)
+
+  assert declaration["holdoutRead"] is False
+  assert declaration["declaredCandidateCount"] == 1
+  assert "execution" not in declaration["candidates"][0]
+
+
+def test_event_respect_atlas_truncates_source_before_development_scoring() -> None:
+  from fms_reaction_campaign import build_development_atlas
+
+  manifest = {
+    "manifestHash": "manifest",
+    "coverage": [{
+      "market": "EURUSD", "eligible": True, "sourceRunIds": ["run"],
+      "datasetFingerprint": "fingerprint",
+    }],
+  }
+  bundle = {
+    "datasetFingerprint": "fingerprint", "candles": [],
+    "sources": [{
+      "versionId": "source", "splitTime": 200,
+      "outcomes": [{"eventTime": 100}, {"eventTime": 200}, {"eventTime": 300}],
+    }],
+  }
+  scored_event_times = []
+
+  def reaction_samples(source, _candles):
+    scored_event_times.extend(row["eventTime"] for row in source["outcomes"])
+    return "source", {}, 0
+
+  with (
+    patch("fms_reaction_campaign.market_catalog", return_value={"EURUSD": {}}),
+    patch("fms_reaction_campaign.load_source_bundle", return_value=bundle),
+    patch("fms_reaction_campaign._reaction_samples", side_effect=reaction_samples),
+  ):
+    atlas = build_development_atlas(manifest, object())
+
+  assert atlas["holdoutRead"] is False
+  assert scored_event_times == [100]
+
+
+def test_event_respect_reaction_path_derives_entry_independently_of_legacy_contract() -> None:
+  from fms_reaction_campaign import _build_reaction_path
+
+  candle_rows = [{
+    "time": index * 14_400,
+    "open": 1.0 + index / 100,
+    "high": 1.1 + index / 100,
+    "low": .9 + index / 100,
+    "close": 1.0 + index / 100,
+  } for index in range(20)]
+  candle_times = [row["time"] for row in candle_rows]
+  atr_values = [1.0] * len(candle_rows)
+  outcome = {
+    "eventTime": 14 * 14_400 + 1,
+    "direction": "long",
+    "entryTime": 18 * 14_400,
+    "entry": 999.0,
+    "atr": 999.0,
+  }
+
+  profile = _build_reaction_path(outcome, candle_rows, candle_times, atr_values)
+
+  assert profile is not None
+  assert profile["entryTime"] == 15 * 14_400
+  assert profile["entry"] == candle_rows[15]["open"]
+  assert profile["atr"] == 1.0
+
+
+def test_event_respect_prospective_result_is_first_seen_and_first_write_wins() -> None:
+  from fms_reaction_campaign import build_prospective_observations
+
+  class MemoryStore:
+    def __init__(self) -> None:
+      self.metadata = {}
+      self.close = 2.0
+
+    def query_release_observations(self, **_kwargs):
+      return [{
+        "id": 7, "time": 200, "firstSeenAt": 205, "currency": "USD",
+        "title": "Employment", "actual": "2", "forecast": "1", "previous": "1",
+      }]
+
+    def query_candles(self, *_args, **_kwargs):
+      return [{"time": 300, "open": 1.0, "high": self.close, "low": 1.0, "close": self.close}]
+
+    def set_metadata_if_absent(self, key, value):
+      return self.metadata.setdefault(key, value)
+
+  store = MemoryStore()
+  manifest = {
+    "manifestHash": "manifest",
+    "coverage": [{"market": "EURUSD", "currencies": ["EUR", "USD"], "sourceRunIds": ["run"]}],
+  }
+  challenge = {
+    "challengeHash": "challenge",
+    "rows": [{
+      "rowId": "candidate", "market": "EURUSD", "sourceVersionId": "source",
+      "identity": "USD:employment", "family": "employment", "horizonH4": 1,
+      "classification": "prospective_only",
+    }],
+  }
+  activation = {"activatedAt": 100, "challengeHash": "challenge"}
+  outcome = {
+    "eventTime": 200, "direction": "long",
+    "events": [{"id": 7, "time": 200, "title": "Employment"}],
+  }
+
+  def profile(_outcome, candles, *_args):
+    close = float(candles[0]["close"])
+    return {
+      "eventTime": 200, "entryTime": 300, "entry": 1.0, "atr": 1.0,
+      "direction": "long", "sign": 1.0, "candles": candles,
+      "favorable": [close - 1.0], "adverse": [0.0], "outcome": outcome,
+    }
+
+  patches = (
+    patch("fms_reaction_campaign.load_source_bundle", return_value={"sources": [{"versionId": "source", "outcomes": []}]}),
+    patch("fms_reaction_campaign.get_signal_definition", return_value=object()),
+    patch("fms_reaction_campaign.build_signal_candidates", return_value=[outcome]),
+    patch("fms_reaction_campaign._rescore_policy_outcomes", side_effect=lambda rows, _policy: (rows, {})),
+    patch("fms_reaction_campaign._annotate_numeric_robustness", side_effect=lambda rows: rows),
+    patch("fms_reaction_campaign.candidate_pattern_signature", return_value="long|USD:employment"),
+    patch("fms_reaction_campaign.calculate_atr_by_candle", return_value=[1.0]),
+    patch("fms_reaction_campaign._build_reaction_path", side_effect=profile),
+  )
+  with patches[0], patches[1], patches[2], patches[3], patches[4], patches[5], patches[6], patches[7]:
+    first = build_prospective_observations(manifest, challenge, activation, store, observed_at=20_000)
+    store.close = 3.0
+    replay = build_prospective_observations(manifest, challenge, activation, store, observed_at=20_000)
+
+  assert first["resolvedCount"] == 1
+  assert first["rows"][0]["firstSeenAt"] == 205
+  assert first["rows"][0]["finalAtr"] == 1.0
+  assert replay["rows"][0]["finalAtr"] == 1.0
+  assert len(store.metadata) == 1

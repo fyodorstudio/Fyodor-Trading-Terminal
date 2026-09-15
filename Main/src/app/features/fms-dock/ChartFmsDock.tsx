@@ -90,7 +90,7 @@ function FmsSetupsWorkspace({ data }: { data: ChartMacroBiasRealtimeCardData }) 
 
   return (
     <section className="fms-setups-workspace" aria-label="Registered setups, research, and knowledge">
-      <header><div><span>Registered Setups</span></div><small>{registeredCount} frozen contracts</small></header>
+      <header><div><span>Legacy registered setups</span></div><small>{registeredCount} frozen contracts preserved</small></header>
       <details className="fms-setups-workspace-root" open={sections.workspaceOpen} onToggle={(event) => {
         const open = event.currentTarget.open;
         setSections((current) => ({ ...current, workspaceOpen: open }));

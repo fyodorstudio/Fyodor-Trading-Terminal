@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, BookOpen, Copy, Database, Download, Play, RefreshCw, Snowflake } from "lucide-react";
-import { createFmsExperiment, fetchFmsExperiment, fetchFmsWorkbench, freezeFmsExperiment } from "@/app/lib/bridge";
+import { createFmsExperiment, fetchFmsEventRespectCampaign, fetchFmsExperiment, fetchFmsWorkbench, freezeFmsExperiment } from "@/app/lib/bridge";
 import { FmsWorkbenchTutorial } from "@/app/components/FmsWorkbenchTutorial";
 import { FmsRawDataAudit } from "@/app/components/FmsRawDataAudit";
 import { formatUtcDisplayDate, formatUtcDisplayDateTime } from "@/app/lib/format";
-import type { FmsCatalogItem, FmsCatalogTreatment, FmsExperiment, FmsExperimentResult, FmsFrozenCandidate, FmsResearchMarket, FmsWorkbench, MacroSignalStressMetrics } from "@/app/types";
+import type { FmsCatalogItem, FmsCatalogTreatment, FmsEventRespectCampaign, FmsExperiment, FmsExperimentResult, FmsFrozenCandidate, FmsResearchMarket, FmsWorkbench, MacroSignalStressMetrics } from "@/app/types";
 import { FX_PAIRS } from "@/app/config/fxPairs";
 
 const DEFAULT_STOPS = [1, 1.5, 2];
@@ -250,6 +250,7 @@ function ValuePicker({ label, values, selected, multiple, onChange, formatValue 
 interface MacroSignalLabViewProps {
   market?: FmsResearchMarket;
   workbench: FmsWorkbench | null;
+  eventRespectCampaign?: FmsEventRespectCampaign | null;
   selectedExperiment: FmsExperiment | null;
   loading: boolean;
   running: boolean;
@@ -261,7 +262,7 @@ interface MacroSignalLabViewProps {
   onMarketChange?: (market: FmsResearchMarket) => void;
 }
 
-export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExperiment, loading, running, error, onRun, onSelectExperiment, onFreeze, onRefresh, onMarketChange = () => {} }: MacroSignalLabViewProps) {
+export function MacroSignalLabView({ market = "EURUSD", workbench, eventRespectCampaign = null, selectedExperiment, loading, running, error, onRun, onSelectExperiment, onFreeze, onRefresh, onMarketChange = () => {} }: MacroSignalLabViewProps) {
   const [workspaceMode, setWorkspaceMode] = useState<"declare" | "run" | "results" | "archive">(selectedExperiment ? "results" : "declare");
   const [comparisonIds, setComparisonIds] = useState<string[]>([]);
   const [guideOpen, setGuideOpen] = useState(false);
@@ -287,6 +288,8 @@ export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExper
   const researchPeriod = workbench?.dataPeriods ? formatPeriod(workbench.dataPeriods.workbenchResearch) : null;
   const pricePeriod = workbench?.dataPeriods ? formatPeriod(workbench.dataPeriods.h4Prices) : null;
   const comparisonRows = useMemo(() => (workbench?.experiments ?? []).filter((item) => comparisonIds.includes(item.id)), [comparisonIds, workbench?.experiments]);
+  const campaignCandidates = eventRespectCampaign?.challenge?.rows.filter((row) => row.market === market) ?? [];
+  const prospectiveRows = eventRespectCampaign?.prospective?.rows.filter((row) => row.market === market) ?? [];
   useEffect(() => { if (!catalogId && catalog[0]) { setCatalogId(catalog[0].id); setFriendlyName(`${catalog[0].label} experiment`); } }, [catalogId, catalog]);
   useEffect(() => {
     if (!selectedItem) return;
@@ -322,6 +325,7 @@ export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExper
     ["Workbench research cases", researchPeriod],
     ["Stored H4 prices", pricePeriod],
   ] as const;
+  const reactionAtlas = workbench.reactionAtlas;
 
   return (
     <main className="fms-workbench fms-workbench-table-ui">
@@ -345,6 +349,23 @@ export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExper
         </tbody></table>
         <div className="fms-table-scroll"><table className="fms-literal-table"><thead><tr><th>Stored source</th><th>Years</th><th>Exact UTC range</th></tr></thead><tbody>{periods.map(([label, period]) => <tr key={label}><th>{label}</th><td>{period?.years ?? "Unavailable"}</td><td>{period?.dates ?? "Unavailable"}</td></tr>)}</tbody></table></div>
       </section>
+
+      {eventRespectCampaign ? <section className="fms-table-section">
+        <h3>Event-respect campaign <span>{readable(eventRespectCampaign.state)} · direction first, execution deferred</span></h3>
+        <table className="fms-literal-table fms-key-value-table"><tbody>
+          <tr><th>Legacy arrows</th><td>{eventRespectCampaign.legacyRegistry.label} · preserved and still rendered</td><th>Automatic promotion</th><td>{eventRespectCampaign.automaticPromotion ? "Enabled" : "Disabled"}</td></tr>
+          <tr><th>Chronological challenge</th><td>{eventRespectCampaign.challenge ? `${eventRespectCampaign.challenge.supportedCount} supported · ${eventRespectCampaign.challenge.prospectiveOnlyCount} prospective only · ${eventRespectCampaign.challenge.rejectedCount} rejected` : "Unavailable"}</td><th>Forward activation</th><td>{eventRespectCampaign.prospective ? formatTime(eventRespectCampaign.prospective.activation.activatedAt) : "Not active"}</td></tr>
+          <tr><th>Forward evidence</th><td>{eventRespectCampaign.prospective ? `${eventRespectCampaign.prospective.resolvedCount} resolved · ${eventRespectCampaign.prospective.pendingCount} pending · ${eventRespectCampaign.prospective.unavailableCount} unavailable` : "Unavailable"}</td><th>Trade contract</th><td>None · no SL, TP, or order action</td></tr>
+        </tbody></table>
+        <div className="fms-table-scroll"><table className="fms-literal-table"><thead><tr><th>Candidate on {market}</th><th>Horizon</th><th>Development</th><th>Holdout</th><th>Recent</th><th>Decision</th></tr></thead><tbody>
+          {campaignCandidates.map((row) => <tr key={row.rowId}><td><strong>{readable(row.family)}</strong><small>Actual versus Forecast · {row.identity}</small></td><td>{row.horizonH4} H4</td><td>N {row.partitions.development.evaluableN} · {formatPercent(row.partitions.development.respectRate)} · {formatAtr(row.partitions.development.meanFinalAtr)}</td><td>N {row.partitions.holdout.evaluableN} · {formatPercent(row.partitions.holdout.respectRate)} · {formatAtr(row.partitions.holdout.meanFinalAtr)}</td><td>N {row.partitions.recent.evaluableN} · {formatPercent(row.partitions.recent.respectRate)} · {formatAtr(row.partitions.recent.meanFinalAtr)}</td><td>{readable(row.classification)}</td></tr>)}
+          {!campaignCandidates.length ? <tr><td colSpan={6}>No declared event-respect candidate for {market}.</td></tr> : null}
+        </tbody></table></div>
+        <div className="fms-table-scroll"><table className="fms-literal-table"><thead><tr><th>First-seen release</th><th>Direction</th><th>Horizon</th><th>Status</th><th>Signed close</th><th>MFE / MAE</th></tr></thead><tbody>
+          {prospectiveRows.map((row) => <tr key={row.id}><td><strong>{row.titles.join(" + ") || readable(row.family)}</strong><small>{formatTime(row.eventTime)} · first seen {formatTime(row.firstSeenAt)}</small></td><td>{readable(row.direction)}</td><td>{row.horizonH4} H4</td><td>{row.status === "resolved" ? row.respected ? "Respected" : "Did not respect" : readable(row.status)}</td><td>{formatAtr(row.finalAtr)}</td><td>{formatAtr(row.mfeAtr)} / {formatAtr(row.maeAtr)}</td></tr>)}
+          {!prospectiveRows.length ? <tr><td colSpan={6}>No matching first-seen release has occurred since this campaign was activated.</td></tr> : null}
+        </tbody></table></div>
+      </section> : null}
 
       {workspaceMode === "declare" ? <div className="fms-workbench-declare-grid">
         <section className="fms-table-section">
@@ -399,7 +420,7 @@ export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExper
         {comparisonRows.length ? <section className="fms-table-section"><h3>Selected experiment comparison <span>{comparisonRows.length} immutable records</span></h3>{comparisonRows.length > 1 ? <p className="fms-table-note"><strong>Compatibility warning:</strong> the queue contract exposes identity and status only, not full scoring-policy, cohort, execution, or partition facts. Open each stored result before making cross-row performance inferences.</p> : null}<div className="fms-table-scroll"><table className="fms-literal-table"><thead><tr><th>Experiment</th><th>Setup</th><th>Status</th><th>Created</th><th>Configuration hash</th><th>Dataset fingerprint</th><th>Error</th></tr></thead><tbody>{comparisonRows.map((item) => <tr key={item.id}><td><button type="button" onClick={() => onSelectExperiment(item.id)}>{item.friendlyName}</button><small>{item.id}</small></td><td>{item.catalogSnapshot.label}</td><td>{readable(item.status)}</td><td>{formatTime(item.createdAt)}</td><td>{item.configurationHash}</td><td>{item.datasetFingerprint}</td><td>{item.error ?? "None recorded"}</td></tr>)}</tbody></table></div></section> : null}
         <section className="fms-table-section">
           <h3>Reaction Atlas <span>Stored cross-event reference · unavailable fields are not inferred</span></h3>
-          {workbench.reactionAtlas ? <><div className="fms-table-scroll"><table className="fms-literal-table"><thead><tr><th>Event family</th><th>Currency</th><th>Pair</th><th>Direction rule</th><th>N</th><th>Respect rate</th><th>Signed MFE</th><th>Signed MAE</th><th>Horizon</th><th>Development</th><th>Holdout</th><th>Recent</th><th>Coverage</th><th>Classification</th></tr></thead><tbody>{workbench.reactionAtlas.rows.map((row) => <tr key={row.id}><td>{row.label}</td><td>Unavailable in stored atlas</td><td>{market}</td><td>Unavailable in stored atlas</td><td>{row.historicalN}</td><td>Unavailable in stored atlas</td><td>Unavailable in stored atlas</td><td>Unavailable in stored atlas</td><td>{row.horizonH4} H4</td><td>Unavailable in stored atlas</td><td>{formatR(row.holdoutAverageR)}</td><td>{formatR(row.recentAverageR)}</td><td>Unavailable in stored atlas</td><td>{row.classificationLabel}</td></tr>)}</tbody></table></div><table className="fms-literal-table fms-key-value-table"><tbody><tr><th>Atlas version</th><td>{workbench.reactionAtlas.version}</td><th>Artifact hash</th><td>{workbench.reactionAtlas.artifactHash}</td></tr><tr><th>Generated</th><td>{formatTime(workbench.reactionAtlas.generatedAt)}</td><th>Rows</th><td>{workbench.reactionAtlas.rows.length}</td></tr></tbody></table></> : <div className="fms-table-empty"><strong>Reaction Atlas unavailable</strong><span>No stored atlas artifact was returned for this market.</span></div>}
+          {reactionAtlas ? <><div className="fms-table-scroll"><table className="fms-literal-table"><thead><tr><th>Event family</th><th>Currency</th><th>Pair</th><th>Direction rule</th><th>N</th><th>Respect rate</th><th>Signed MFE</th><th>Signed MAE</th><th>Horizon</th><th>Development</th><th>Holdout</th><th>Recent</th><th>Coverage</th><th>Classification</th></tr></thead><tbody>{reactionAtlas.rows.map((row) => <tr key={row.id}><td>{row.label}</td><td>{row.currencies?.join("/") ?? "Unavailable"}</td><td>{row.pair ?? market}</td><td>{row.directionRule ? "Actual versus Forecast" : "Unavailable in stored atlas"}</td><td>{row.development?.evaluableN ?? row.historicalN ?? 0}</td><td>{formatPercent(row.development?.respectRate)}</td><td>{formatAtr(row.development?.medianMfeAtr)}</td><td>{formatAtr(row.development?.medianMaeAtr)}</td><td>{row.horizonH4} H4</td><td>{formatAtr(row.development?.meanFinalAtr)}</td><td>{row.holdout ? formatAtr(row.holdout.meanFinalAtr) : formatR(row.holdoutAverageR)}</td><td>{row.recent ? formatAtr(row.recent.meanFinalAtr) : formatR(row.recentAverageR)}</td><td>{reactionAtlas.coverage ? reactionAtlas.coverage.eligible ? `${reactionAtlas.coverage.candleCoverage.years.toFixed(1)} years` : reactionAtlas.coverage.blockedReasons.join("; ") : "Unavailable"}</td><td>{row.classificationLabel}</td></tr>)}</tbody></table></div><table className="fms-literal-table fms-key-value-table"><tbody><tr><th>Atlas version</th><td>{reactionAtlas.version}</td><th>Artifact hash</th><td>{reactionAtlas.artifactHash}</td></tr><tr><th>Generated</th><td>{formatTime(reactionAtlas.generatedAt)}</td><th>Rows</th><td>{reactionAtlas.rows.length}</td></tr></tbody></table></> : <div className="fms-table-empty"><strong>Reaction Atlas unavailable</strong><span>No stored atlas artifact was returned for this market.</span></div>}
         </section>
         <ResultPanel experiment={selectedExperiment} onFreeze={onFreeze} busy={loading} />
       </div> : null}
@@ -419,6 +440,7 @@ export function MacroSignalLabView({ market = "EURUSD", workbench, selectedExper
 export function MacroSignalLabTab() {
   const [market, setMarket] = useState<FmsResearchMarket>("EURUSD");
   const [workbench, setWorkbench] = useState<FmsWorkbench | null>(null);
+  const [eventRespectCampaign, setEventRespectCampaign] = useState<FmsEventRespectCampaign | null>(null);
   const [selectedExperiment, setSelectedExperiment] = useState<FmsExperiment | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -440,6 +462,7 @@ export function MacroSignalLabTab() {
     finally { if (requestId === loadRequestRef.current) setLoading(false); }
   };
   useEffect(() => { void load(false); }, [market]);
+  useEffect(() => { void fetchFmsEventRespectCampaign().then(setEventRespectCampaign).catch(() => setEventRespectCampaign(null)); }, []);
   useEffect(() => {
     if (!selectedExperiment || !["queued", "running"].includes(selectedExperiment.status)) return;
     let cancelled = false;
@@ -449,5 +472,9 @@ export function MacroSignalLabTab() {
   const run = async (payload: Parameters<typeof createFmsExperiment>[0]) => { setRunning(true); setError(null); try { const experiment = await createFmsExperiment(payload); setSelectedExperiment(experiment); setRunning(["queued", "running"].includes(experiment.status)); setWorkbench((current) => current ? { ...current, experiments: [experiment, ...current.experiments] } : current); } catch (runError) { setError(runError instanceof Error ? runError.message : "Experiment could not start"); setRunning(false); } };
   const selectExperiment = async (id: string) => { try { setSelectedExperiment(await fetchFmsExperiment(id)); setError(null); } catch (selectError) { setError(selectError instanceof Error ? selectError.message : "Experiment could not load"); } };
   const freeze = async (name: string, acknowledge: boolean) => { if (!selectedExperiment) return; setLoading(true); try { await freezeFmsExperiment(selectedExperiment.id, { friendlyName: name, acknowledgeFailedGates: acknowledge }); await load(true); } catch (freezeError) { setError(freezeError instanceof Error ? freezeError.message : "Candidate could not be frozen"); setLoading(false); } };
-  return <MacroSignalLabView market={market} workbench={workbench} selectedExperiment={selectedExperiment} loading={loading} running={running} error={error} onRun={run} onSelectExperiment={selectExperiment} onFreeze={freeze} onRefresh={() => void load(true)} onMarketChange={(nextMarket) => { loadRequestRef.current += 1; setSelectedExperiment(null); setMarket(nextMarket); }} />;
+  const refresh = () => {
+    void load(true);
+    void fetchFmsEventRespectCampaign().then(setEventRespectCampaign).catch(() => setEventRespectCampaign(null));
+  };
+  return <MacroSignalLabView market={market} workbench={workbench} eventRespectCampaign={eventRespectCampaign} selectedExperiment={selectedExperiment} loading={loading} running={running} error={error} onRun={run} onSelectExperiment={selectExperiment} onFreeze={freeze} onRefresh={refresh} onMarketChange={(nextMarket) => { loadRequestRef.current += 1; setSelectedExperiment(null); setMarket(nextMarket); }} />;
 }

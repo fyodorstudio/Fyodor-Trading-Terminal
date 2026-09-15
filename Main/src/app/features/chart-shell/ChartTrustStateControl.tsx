@@ -85,6 +85,9 @@ export function ChartTrustStateControl({
     ? `${health.last_error.code ?? "MT5"}${health.last_error.message ? `: ${health.last_error.message}` : ""}`
     : null;
   const PrimaryIcon = primaryState.icon;
+  const bridgeProcessDetail = health.process_generation != null
+    ? `Generation ${health.process_generation} · ${health.process_restart_count ?? 0} supervised restart${health.process_restart_count === 1 ? "" : "s"}${health.process_id ? ` · PID ${health.process_id}` : ""}`
+    : null;
 
   useEffect(() => {
     recordAppActivity({
@@ -103,6 +106,16 @@ export function ChartTrustStateControl({
       detail: symbolState.detail,
     });
   }, [selectedSymbol, symbolState.label, symbolState.detail]);
+
+  useEffect(() => {
+    if (!health.process_restart_count) return;
+    recordAppActivity({
+      level: "warning",
+      source: "Bridge supervisor",
+      message: `Bridge recovered · generation ${health.process_generation ?? "unknown"}`,
+      detail: `${health.process_restart_count} supervised restart${health.process_restart_count === 1 ? "" : "s"} recorded.`,
+    });
+  }, [health.process_generation, health.process_restart_count]);
 
   return (
     <div ref={rootRef} className="chart-trust-state-anchor">
@@ -125,6 +138,7 @@ export function ChartTrustStateControl({
             primaryTone={primaryState.textTone}
             mt5State={mt5State}
             bridgeState={bridgeState}
+            bridgeProcessDetail={bridgeProcessDetail}
             calendarState={calendarState}
             symbolState={symbolState}
             localClock={formatLocalClock(currentTime)}

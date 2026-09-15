@@ -573,7 +573,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
       <div className="fms-action-display-controls">
         <label title="Show or hide frozen historical arrows from the registered setups.">
           <input type="checkbox" checked={historicalMatchesVisible} onChange={onToggleHistoricalMatches} disabled={!onToggleHistoricalMatches} />
-          <span>Past arrows</span>
+          <span>Legacy frozen arrows</span>
           <small>{historicalMatchesCount}</small>
         </label>
         <details className="fms-arrow-filter">
@@ -588,7 +588,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
             {historicalPatternFilters.length === 0 ? <p>No historical setup is loaded for this pair.</p> : filteredPatternOptions.length === 0 ? <p>No setup matches this search.</p> : null}
           </div>
         </details>
-        <span className="fms-arrow-color-key"><i className="is-history" /> frozen history <i className="is-journal" /> journal</span>
+        <span className="fms-arrow-color-key"><i className="is-history" /> legacy history <i className="is-journal" /> journal</span>
       </div>
       <nav className="fms-action-view-tabs" aria-label="Trade setup views">
         <button type="button" className={activeView === "next" ? "is-active" : ""} aria-pressed={activeView === "next"} onClick={() => updateViewState({ activeView: "next" })}>

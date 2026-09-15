@@ -39,6 +39,13 @@ export interface BridgeHealth {
   ok: boolean;
   bridge_connected?: boolean;
   terminal_connected: boolean;
+  api_revision?: string;
+  process_id?: number;
+  process_started_at?: number;
+  process_generation?: number;
+  process_restart_count?: number;
+  launcher_process_id?: number;
+  lifecycle_log?: string | null;
   last_calendar_ingest_at?: number | null;
   calendar_events_count?: number;
   last_error?: {

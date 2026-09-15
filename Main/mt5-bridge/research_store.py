@@ -297,6 +297,20 @@ class ResearchStore:
         (key, value),
       )
 
+  def set_metadata_if_absent(self, key: str, value: str) -> str:
+    """Insert one immutable metadata record and return the stored value."""
+    with self._write_lock, self._connect() as connection:
+      connection.execute(
+        "INSERT OR IGNORE INTO metadata(key, value) VALUES (?, ?)",
+        (key, value),
+      )
+      row = connection.execute(
+        "SELECT value FROM metadata WHERE key = ?", (key,)
+      ).fetchone()
+    if row is None:
+      raise RuntimeError(f"Metadata record was not stored: {key}")
+    return str(row["value"])
+
   def upsert_fms_review_note(
     self,
     record_key: str,

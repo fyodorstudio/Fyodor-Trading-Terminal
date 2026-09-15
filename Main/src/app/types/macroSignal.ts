@@ -976,6 +976,103 @@ export interface FmsLegacyArchiveItem {
   };
 }
 
+export interface FmsReactionMetrics {
+  evaluableN: number;
+  unavailableN: number;
+  respectCount: number;
+  respectRate: number | null;
+  meanFinalAtr: number | null;
+  medianFinalAtr: number | null;
+  finalAtrCi95: { lower: number; upper: number } | null;
+  medianMfeAtr: number | null;
+  medianMaeAtr: number | null;
+  impulseThenReversalRate: number | null;
+  representedYears: number;
+  positiveYears: number;
+  positiveYearShare: number | null;
+}
+
+export interface FmsEventRespectCampaign {
+  schema: "fms-event-respect-campaign-response-v1";
+  state: string;
+  legacyRegistry: {
+    modelId: string;
+    modelHash: string;
+    label: string;
+    preserved: boolean;
+    stillRendered: boolean;
+  };
+  declaration: null | {
+    version: string;
+    declarationHash: string;
+    declaredCandidateCount: number;
+    candidates: Array<{
+      rowId: string;
+      market: string;
+      identity: string;
+      family: string;
+      horizonH4: number;
+      development: FmsReactionMetrics;
+    }>;
+  };
+  challenge: null | {
+    version: string;
+    challengeHash: string;
+    candidateCount: number;
+    supportedCount: number;
+    prospectiveOnlyCount: number;
+    rejectedCount: number;
+    rows: Array<{
+      rowId: string;
+      market: string;
+      identity: string;
+      family: string;
+      directionRule: string;
+      horizonH4: number;
+      classification: "challenge_supported" | "prospective_only" | "rejected";
+      partitions: {
+        development: FmsReactionMetrics;
+        holdout: FmsReactionMetrics;
+        recent: FmsReactionMetrics;
+        overall: FmsReactionMetrics;
+      };
+      checks: Record<string, boolean>;
+    }>;
+  };
+  prospective: null | {
+    activation: { activatedAt: number; candidateCount: number; firstSeenOnly: boolean };
+    asOf: number;
+    watchedCandidateCount: number;
+    observationCount: number;
+    pendingCount: number;
+    resolvedCount: number;
+    unavailableCount: number;
+    respectedCount: number;
+    executionAttached: false;
+    disclosure: string;
+    rows: Array<{
+      id: string;
+      candidateRowId: string;
+      market: string;
+      identity: string;
+      family: string;
+      eventTime: number;
+      firstSeenAt: number | null;
+      direction: "long" | "short";
+      horizonH4: number;
+      completionTime: number | null;
+      status: "pending" | "resolved" | "unavailable";
+      respected: boolean | null;
+      finalAtr: number | null;
+      mfeAtr: number | null;
+      maeAtr: number | null;
+      titles: string[];
+    }>;
+  };
+  automaticPromotion: false;
+  orderTransmission: false;
+}
+
 export interface FmsWorkbench {
   market?: FmsResearchMarket;
   currentModel: {
@@ -1035,17 +1132,34 @@ export interface FmsWorkbench {
     artifactHash: string;
     generatedAt: number;
     counts: Record<string, number>;
+    challengeHash?: string;
+    holdoutOpenedOnlyForDeclaredCandidates?: boolean;
+    coverage?: null | {
+      eligible: boolean;
+      blockedReasons: string[];
+      candleCoverage: { years: number; usableCount: number };
+    };
     rows: Array<{
       id: string;
       label: string;
-      classification: "historically_profitable_candidate" | "directional_contender" | "avoid_standalone_direction" | "insufficient_evidence";
+      family?: string;
+      currencies?: string[];
+      pair?: string;
+      directionRule?: string;
+      classification: "historically_profitable_candidate" | "directional_contender" | "avoid_standalone_direction" | "insufficient_evidence" | "challenge_supported" | "prospective_only" | "rejected" | "development_only";
       classificationLabel: string;
-      policy: string;
-      reaction: "continuation" | "rejection";
-      historicalN: number;
+      policy?: string;
+      reaction?: "continuation" | "rejection";
+      historicalN?: number;
       horizonH4: number;
-      holdoutAverageR: number | null;
-      recentAverageR: number | null;
+      holdoutAverageR?: number | null;
+      recentAverageR?: number | null;
+      development?: FmsReactionMetrics;
+      holdout?: FmsReactionMetrics | null;
+      recent?: FmsReactionMetrics | null;
+      candidateDeclared?: boolean;
+      checks?: Record<string, boolean> | null;
+      exampleTitles?: string[];
     }>;
   };
   contextFollowup?: {

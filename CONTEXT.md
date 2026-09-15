@@ -27,6 +27,7 @@ Current includes open/pending trades, eligible cases awaiting entry geometry, an
 - `Main/src/app/components/ChartViewport.tsx`: dock selection, layout, error boundary.
 - `Main/src/app/lib/bridge.ts`: HTTP client and preload/in-flight caches.
 - `Main/mt5-bridge/server.py`: endpoints, registrations, lifecycle and MT5 orchestration.
+- Bridge process liveness is `/health/live`: it is async and must remain free of MT5, SQLite, quote-store, executor, and research dependencies. `/health` is async cached readiness for the UI, never the supervisor kill signal. Python MT5 initialization stays lazy, and async calendar/WebSocket handlers must offload blocking validation, storage, and MT5 calls so a stalled terminal or busy workload cannot prevent the independent quote/calendar lanes and durable API from remaining live.
 - `Main/mt5-bridge/macro_signal.py`: scoring, candidates, frozen execution/evaluation.
 - `Main/mt5-bridge/research_store.py`: SQLite, calendar/candles, first-seen ledger, runs and metadata. Default DB: `%LOCALAPPDATA%/Fyodor Trading Terminal/fyodor-research.sqlite3`.
 - `Main/src/app/config/fxPairs.ts`: canonical 28-pair universe. Registry count is dynamic; inspect code/data rather than old README counts.
@@ -34,6 +35,8 @@ Current includes open/pending trades, eligible cases awaiting entry geometry, an
 - Setup projections expose one coherent `historicalEvidence` cohort. Chronological-holdout setups are re-projected from the linked immutable selected-contract audit even when a durable chart-response cache is reused. Exact counts may be shown only when that source records them; total gross R is exact mean times exact evaluable N, never a reconstruction from rounded rates.
 
 Flow: MT5 EA uploads calendar/cycle records ? immutable observations ? exact package scoring ? oriented trade direction ? fixed entry/SL/TP/expiry evaluation ? persisted market snapshots ? merged global registry ? docks.
+
+The direction-first event-respect campaign is separately versioned from the legacy registered trade model. Corrected v4 is frozen through chronological challenge: 9 declared development candidates produced 0 challenge-supported, 7 prospective-only, and 2 rejected rows. Prospective observation began at Unix `1789439876` and records only immutable first-seen post-activation releases; it has no SL, TP, order action, or automatic promotion. R5 execution/high-TP research remains blocked pending enough new evidence. Legacy v4 contracts and arrows remain preserved and visibly labeled `LEGACY`. Campaign calculations live in pure `fms_reaction_campaign.py`; staged immutable artifacts are created by `scripts/run_event_respect_campaign.py`, and the Workbench reads them through `/research/event-respect-campaign`.
 
 ## Recurring traps
 

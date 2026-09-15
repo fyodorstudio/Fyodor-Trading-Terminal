@@ -50,6 +50,23 @@ def test_review_note_api_keeps_annotations_in_a_separate_ledger(tmp_path: Path, 
   assert deleted["deleted"] is True
 
 
+def test_event_respect_campaign_endpoint_is_honest_before_activation(tmp_path: Path, monkeypatch) -> None:
+  store = ResearchStore(tmp_path / "campaign.sqlite3")
+  monkeypatch.setattr(server, "_research_store", store)
+  assert client.get("/research/event-respect-campaign").json()["state"] == "not_started"
+
+  store.set_metadata("fms_event_respect_campaign:v4:manifest", json.dumps({"manifestHash": "manifest"}))
+  store.set_metadata("fms_event_respect_campaign:v4:declaration", json.dumps({"declaredCandidateCount": 0}))
+  store.set_metadata("fms_event_respect_campaign:v4:challenge", json.dumps({"challengeHash": "challenge", "rows": []}))
+  store.set_metadata("fms_event_respect_campaign:latest", json.dumps({"state": "chronological_challenge_complete"}))
+  payload = client.get("/research/event-respect-campaign").json()
+  assert payload["state"] == "chronological_challenge_complete"
+  assert payload["prospective"] is None
+  assert payload["legacyRegistry"]["preserved"] is True
+  assert payload["automaticPromotion"] is False
+  assert payload["orderTransmission"] is False
+
+
 def test_trade_snapshot_restores_all_saved_decisions_without_changing_evidence(tmp_path: Path, monkeypatch) -> None:
   store = ResearchStore(tmp_path / "trade.sqlite3")
   monkeypatch.setattr(server, "_research_store", store)

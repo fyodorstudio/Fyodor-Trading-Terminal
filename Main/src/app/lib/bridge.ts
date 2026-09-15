@@ -298,6 +298,13 @@ export async function fetchHealth(): Promise<BridgeHealth> {
       ok: Boolean(row.ok),
       bridge_connected: true,
       terminal_connected: Boolean(row.terminal_connected),
+      api_revision: asString(row.api_revision) || undefined,
+      process_id: asNumber(row.process_id) ?? undefined,
+      process_started_at: asNumber(row.process_started_at) ?? undefined,
+      process_generation: asNumber(row.process_generation) ?? undefined,
+      process_restart_count: asNumber(row.process_restart_count) ?? undefined,
+      launcher_process_id: asNumber(row.launcher_process_id) ?? undefined,
+      lifecycle_log: asString(row.lifecycle_log) || null,
       last_calendar_ingest_at: asNumber(row.last_calendar_ingest_at),
       calendar_events_count: asNumber(row.calendar_events_count) ?? undefined,
       last_error:
@@ -359,6 +366,12 @@ export async function fetchMacroSignalExpansionReport(): Promise<MacroSignalExpa
 
 export async function fetchFmsWorkbench(market: FmsResearchMarket = "EURUSD"): Promise<FmsWorkbench> {
   return fetchJson<FmsWorkbench>(`${BRIDGE_BASE}/research/workbench?market=${market}`);
+}
+
+export async function fetchFmsEventRespectCampaign(): Promise<import("@/app/types").FmsEventRespectCampaign> {
+  return fetchJson<import("@/app/types").FmsEventRespectCampaign>(`${BRIDGE_BASE}/research/event-respect-campaign`, {
+    signal: AbortSignal.timeout(30_000),
+  });
 }
 
 export async function createFmsExperiment(payload: {

@@ -7,7 +7,9 @@ from __future__ import annotations
 import asyncio
 import json
 import time
+from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
+from threading import Event
 
 from fastapi.testclient import TestClient
 
@@ -600,7 +602,80 @@ def test_chart_history_and_health_remain_available_while_mt5_is_busy(monkeypatch
   health_response = client.get("/health")
   assert health_response.status_code == 200
   assert health_response.json()["ok"] is True
-  assert health_response.json()["mt5_busy"] is True
+  assert health_response.json()["probe"] == "cached_readiness"
+  assert health_response.json()["mt5_busy"] is False
+
+
+def test_liveness_has_no_mt5_sqlite_or_quote_dependencies(monkeypatch):
+  monkeypatch.setenv("FYODOR_BRIDGE_GENERATION", "not-an-integer")
+  monkeypatch.setattr(server, "_mt5_access", lambda *_args, **_kwargs: (_ for _ in ()).throw(
+    AssertionError("liveness must not enter MT5")
+  ))
+  monkeypatch.setattr(server._research_store, "calendar_count", lambda: (_ for _ in ()).throw(
+    AssertionError("liveness must not query SQLite")
+  ))
+  monkeypatch.setattr(server._quote_snapshot_store, "status", lambda *_args: (_ for _ in ()).throw(
+    AssertionError("liveness must not inspect quote readiness")
+  ))
+
+  response = client.get("/health/live")
+
+  assert response.status_code == 200
+  assert response.json()["ok"] is True
+  assert response.json()["probe"] == "liveness"
+  assert response.json()["process_generation"] == 0
+
+
+def test_readiness_health_never_calls_mt5_or_sqlite(monkeypatch):
+  monkeypatch.setattr(server, "_mt5_access", lambda *_args, **_kwargs: (_ for _ in ()).throw(
+    AssertionError("health must not enter MT5")
+  ))
+  monkeypatch.setattr(server._research_store, "calendar_count", lambda: (_ for _ in ()).throw(
+    AssertionError("health must not query SQLite")
+  ))
+  monkeypatch.setattr(server, "_health_calendar_events_count", 321)
+  monkeypatch.setattr(server, "_health_last_calendar_ingest_at", 1_788_963_200.0)
+
+  response = client.get("/health")
+
+  assert response.status_code == 200
+  assert response.json()["probe"] == "cached_readiness"
+  assert response.json()["calendar_events_count"] == 321
+  assert response.json()["last_calendar_ingest_at"] == 1_788_963_200.0
+
+
+def test_health_endpoints_respond_while_an_mt5_operation_owns_the_global_lock():
+  with server._mt5_access():
+    live_response = client.get("/health/live")
+    readiness_response = client.get("/health")
+
+  assert live_response.status_code == 200
+  assert live_response.json()["probe"] == "liveness"
+  assert readiness_response.status_code == 200
+  assert readiness_response.json()["mt5_busy"] is True
+
+
+def test_slow_calendar_storage_does_not_block_process_liveness(monkeypatch):
+  storage_started = Event()
+  release_storage = Event()
+
+  def slow_upsert(_records, _ingested_at):
+    storage_started.set()
+    assert release_storage.wait(timeout=3)
+    return {"inserted": 1, "updated": 0, "total": 1}
+
+  monkeypatch.setattr(server._research_store, "upsert_calendar_events", slow_upsert)
+  with ThreadPoolExecutor(max_workers=1) as pool:
+    pending_ingest = pool.submit(client.post, "/calendar_ingest", json=MINIMAL_BODY)
+    assert storage_started.wait(timeout=2)
+    try:
+      live_response = client.get("/health/live")
+    finally:
+      release_storage.set()
+
+  assert live_response.status_code == 200
+  assert live_response.json()["probe"] == "liveness"
+  assert pending_ingest.result(timeout=2).status_code == 200
 
 
 def test_market_watch_poll_defers_uncached_background_history_without_taking_mt5_lock(monkeypatch):
@@ -627,7 +702,9 @@ def test_market_watch_poll_defers_uncached_background_history_without_taking_mt5
 def test_startup_does_not_eagerly_schedule_full_market_reconciliation(monkeypatch):
   scheduled = []
   monkeypatch.setattr(server, "_schedule_forward_reconcile", lambda timestamp: scheduled.append(timestamp) or True)
-  monkeypatch.setattr(server, "_ensure_mt5_initialized", lambda: True)
+  monkeypatch.setattr(server, "_ensure_mt5_initialized", lambda: (_ for _ in ()).throw(
+    AssertionError("startup must not block bridge liveness on MT5 IPC")
+  ))
 
   server.on_startup()
 

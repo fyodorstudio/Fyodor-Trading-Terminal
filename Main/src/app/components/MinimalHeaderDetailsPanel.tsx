@@ -20,6 +20,7 @@ interface MinimalHeaderDetailsPanelProps {
   primaryTone: string;
   mt5State: HeaderStateBadge;
   bridgeState: HeaderStateBadge;
+  bridgeProcessDetail?: string | null;
   calendarState: HeaderStateBadge;
   symbolState: HeaderSymbolState;
   localClock: string;
@@ -40,6 +41,7 @@ export function MinimalHeaderDetailsPanel({
   primaryTone,
   mt5State,
   bridgeState,
+  bridgeProcessDetail,
   calendarState,
   symbolState,
   localClock,
@@ -75,7 +77,7 @@ export function MinimalHeaderDetailsPanel({
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3 px-3 py-2.5">
-                <span className="text-sm text-slate-600">Bridge</span>
+                <span className="text-sm text-slate-600">Bridge{bridgeProcessDetail ? <small className="block text-[10px] text-slate-400">{bridgeProcessDetail}</small> : null}</span>
                 <span className={`inline-flex rounded-md border px-2.5 py-1 text-xs font-medium ${bridgeState.tone}`}>
                   {bridgeState.label}
                 </span>
