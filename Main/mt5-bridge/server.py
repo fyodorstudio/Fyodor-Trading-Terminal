@@ -1088,9 +1088,21 @@ class FmsReviewNoteRequest(BaseModel):
     return normalized
 
 
+class CalendarSourceClockSample(BaseModel):
+  sampledUtcAt: int = Field(gt=0)
+  serverCurrentAt: int = Field(ge=0)
+  serverEstimatedAt: int = Field(ge=0)
+  symbol: str = Field(min_length=1, max_length=128)
+  nativeM1OpenAt: int = Field(default=0, ge=0)
+  nativeH4OpenAt: int = Field(default=0, ge=0)
+  nativeTickAt: int = Field(default=0, ge=0)
+  terminalConnected: bool
+
+
 class CalendarIngestCycleRequest(BaseModel):
   completedAt: int
   failedBatches: int = 0
+  clock: Optional[CalendarSourceClockSample] = None
 
   @field_validator("completedAt", "failedBatches", mode="before")
   @classmethod
@@ -2034,6 +2046,15 @@ def market_status(symbol: str) -> Dict[str, Any]:
   return _session_snapshot(symbol)
 
 
+def _background_history_deferred(detail: str) -> JSONResponse:
+  """Explicit backpressure, not a failed chart load or a cached empty history."""
+  return JSONResponse(
+    status_code=202,
+    content={"status": "deferred", "detail": detail, "retry_after_seconds": 3},
+    headers={"Retry-After": "3"},
+  )
+
+
 @app.get("/history")
 def history(
   symbol: str,
@@ -2064,7 +2085,7 @@ def history(
     cached = _cached_history(symbol, tf, bars=bars) if catalog_identity is None else []
     if cached:
       return cached
-    raise HTTPException(status_code=503, detail="Background history deferred while Market Watch is active")
+    return _background_history_deferred("Background history deferred while Market Watch is active")
 
   timeframe = mt5_timeframe(tf)
   try:
@@ -2093,6 +2114,8 @@ def history(
     cached = _cached_history(symbol, tf, bars=bars) if catalog_identity is None else []
     if cached:
       return cached
+    if background:
+      return _background_history_deferred("Background history deferred while MT5 is busy")
     raise HTTPException(status_code=503, detail="MT5 is busy and no cached chart history is available")
   except HTTPException as error:
     cached = _cached_history(symbol, tf, bars=bars) if catalog_identity is None else []
@@ -2259,6 +2282,15 @@ async def calendar_ingest_cycle(request: Request) -> Dict[str, Any]:
     )
   completed_at = int(payload.completedAt)
   observed_at = int(_time.time())
+  if payload.clock is not None:
+    # Additive diagnostics only; no conversion, ledger cutoff or activation
+    # changes. Failed calendar uploads still provide useful native clock facts.
+    sample = {"schema": "fms-native-source-clock-sample-v1", "observedAt": observed_at,
+              "clock": payload.clock.model_dump(), "timestampsChanged": False}
+    encoded = json.dumps(sample, sort_keys=True)
+    sample_key = f"fms_native_source_clock:v1:{observed_at // 86400}:{payload.clock.symbol}"
+    await asyncio.to_thread(_research_store.set_metadata_if_absent, sample_key, encoded)
+    await asyncio.to_thread(_research_store.set_metadata, "fms_native_source_clock_latest:v1", encoded)
   await asyncio.to_thread(_research_store.set_metadata, "last_calendar_cycle_at", str(observed_at))
   await asyncio.to_thread(
     _research_store.set_metadata, "last_calendar_cycle_failed_batches", str(payload.failedBatches)
@@ -2305,6 +2337,20 @@ async def calendar_ingest_cycle(request: Request) -> Dict[str, Any]:
     "eaCompletedAt": completed_at,
     "observedAt": observed_at,
   }
+
+
+@app.get("/research/source-clock")
+async def research_source_clock() -> Dict[str, Any]:
+  """Independent cached diagnostic: never calls MT5 or converts timestamps."""
+  raw = await asyncio.to_thread(_research_store.get_metadata, "fms_native_source_clock_latest:v1")
+  sample = json.loads(raw) if raw else None
+  return {"schema": "fms-source-clock-diagnostic-v1", "sample": sample,
+          "ageSeconds": max(0, int(_time.time()) - int(sample["observedAt"])) if sample else None,
+          "status": "native_sample_requires_cross_source_comparison" if sample else "awaiting_native_ea_sample",
+          "successorTimingEligible": False, "timestampsChanged": False,
+          "limitations": ["Native EA values are diagnostic observations, not a historical UTC/DST schedule.",
+                          "Zero native bar time means that timeframe is not locally cached; the EA does not fetch it.",
+                          "The chart symbol identifies this sample only; it does not restrict calendar currencies."]}
 
 
 @app.get("/calendar")

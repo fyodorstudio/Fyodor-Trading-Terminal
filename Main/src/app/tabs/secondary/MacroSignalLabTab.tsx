@@ -6,6 +6,7 @@ import { FmsRawDataAudit } from "@/app/components/FmsRawDataAudit";
 import { formatUtcDisplayDate, formatUtcDisplayDateTime } from "@/app/lib/format";
 import type { FmsCatalogItem, FmsCatalogTreatment, FmsEventRespectCampaign, FmsExperiment, FmsExperimentResult, FmsFrozenCandidate, FmsResearchMarket, FmsWorkbench, MacroSignalStressMetrics } from "@/app/types";
 import { FX_PAIRS } from "@/app/config/fxPairs";
+import { FMS_BASELINE_DISPLAY_VERSION } from "@/app/lib/fmsDisplayVersion";
 
 const DEFAULT_STOPS = [1, 1.5, 2];
 const DEFAULT_TARGETS = [1, 1.5, 2];
@@ -353,7 +354,7 @@ export function MacroSignalLabView({ market = "EURUSD", workbench, eventRespectC
       {eventRespectCampaign ? <section className="fms-table-section">
         <h3>Event-respect campaign <span>{readable(eventRespectCampaign.state)} · direction first, execution deferred</span></h3>
         <table className="fms-literal-table fms-key-value-table"><tbody>
-          <tr><th>Legacy arrows</th><td>{eventRespectCampaign.legacyRegistry.label} · preserved and still rendered</td><th>Automatic promotion</th><td>{eventRespectCampaign.automaticPromotion ? "Enabled" : "Disabled"}</td></tr>
+          <tr><th>Frozen baseline arrows</th><td>{FMS_BASELINE_DISPLAY_VERSION} · preserved and still rendered<small>{eventRespectCampaign.legacyRegistry.modelId}</small></td><th>Automatic promotion</th><td>{eventRespectCampaign.automaticPromotion ? "Enabled" : "Disabled"}</td></tr>
           <tr><th>Chronological challenge</th><td>{eventRespectCampaign.challenge ? `${eventRespectCampaign.challenge.supportedCount} supported · ${eventRespectCampaign.challenge.prospectiveOnlyCount} prospective only · ${eventRespectCampaign.challenge.rejectedCount} rejected` : "Unavailable"}</td><th>Forward activation</th><td>{eventRespectCampaign.prospective ? formatTime(eventRespectCampaign.prospective.activation.activatedAt) : "Not active"}</td></tr>
           <tr><th>Forward evidence</th><td>{eventRespectCampaign.prospective ? `${eventRespectCampaign.prospective.resolvedCount} resolved · ${eventRespectCampaign.prospective.pendingCount} pending · ${eventRespectCampaign.prospective.unavailableCount} unavailable` : "Unavailable"}</td><th>Trade contract</th><td>None · no SL, TP, or order action</td></tr>
         </tbody></table>

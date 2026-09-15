@@ -15,6 +15,7 @@ import {
   normalizeShadowStartingBalance,
 } from "@/app/lib/macroSignalShadow";
 import { formatJakartaDisplayDateTime } from "@/app/lib/format";
+import { FMS_BASELINE_DISPLAY_VERSION } from "@/app/lib/fmsDisplayVersion";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MacroSignalPatternAssessment, MacroSignalResearchIntelligence, MacroSignalUpcomingPatternWatch } from "@/app/types";
 
 const SHADOW_BALANCE_KEY = "fyodor.charts.shadow-starting-balance";
@@ -55,6 +56,7 @@ function scoringRuleLabel(policy: string | null | undefined): string {
   if (policy === "surprise_only") return "Compare Actual with Forecast. Previous is ignored.";
   if (policy === "forecast_quality") return "Use Forecast Guard: compare Actual with Forecast when reliable, and Actual with Previous.";
   if (policy === "agreement_no_bonus") return "Compare Actual with Forecast and Previous with equal weight; no agreement bonus.";
+  if (policy === "baseline") return "Compare Actual with Forecast and Previous with equal weight, plus a point when their nonzero directions agree.";
   return "Compare Actual with Forecast and Previous with equal weight.";
 }
 
@@ -489,6 +491,7 @@ function CurrencyFlag({ currency }: { currency: string }) {
 export type ChartMacroBiasRealtimeView = "all" | "setups" | "research";
 
 export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCard({ data, view = "all", embedded = false }: { data: ChartMacroBiasRealtimeCardData; view?: ChartMacroBiasRealtimeView; embedded?: boolean }) {
+  const RegisteredListContainer = view === "setups" ? "section" : "details";
   const { response, activeSignal, activePattern } = data;
   const activeContextCandidate = activePattern?.reactionAudit?.profile?.contextResearch?.selectedCandidate ?? null;
   const activeContextMatches = Boolean(activeSignal && activeContextCandidate && signalContextValue(activeSignal, activeContextCandidate.dimension) === activeContextCandidate.value);
@@ -845,8 +848,8 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       {view !== "research" ? <>
       {data.globalLoading ? <section className="chart-shadow-global-state fms-setups-only">Loading the global registry…</section> : null}
       {data.globalError ? <section className="chart-shadow-global-state is-error fms-setups-only">Refresh delayed: {data.globalError}. Retaining the last loaded registry.</section> : null}
-      <details className="chart-shadow-lower-disclosure fms-setups-only">
-        <summary><span>Every registered setup</span><strong>{registeredPatterns.length}</strong><ChevronDown size={14} /></summary>
+      <RegisteredListContainer className="chart-shadow-lower-disclosure fms-setups-only">
+        {view !== "setups" ? <summary><span>{FMS_BASELINE_DISPLAY_VERSION} — registered setups</span><strong>{registeredPatterns.length}</strong><ChevronDown size={14} /></summary> : null}
       <section className="chart-shadow-priority" aria-label="All registered FMS setups">
         <div className="chart-shadow-section-heading">
           <div><span>Live watchlist</span><strong>Filters and historical ranking</strong></div>
@@ -942,7 +945,10 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
                   <tr className="chart-shadow-priority-detail" hidden={expandedWatchKey !== watchKey}>
                     <td colSpan={4}>
                       <div className="chart-shadow-hunt-plan">
-                        <div className="chart-shadow-hunt-rule"><span>Exact registered rule</span><strong>{pattern.condition}</strong></div>
+                        <div className="chart-shadow-hunt-rule"><span>{FMS_BASELINE_DISPLAY_VERSION} · exact registered rule</span><strong>{pattern.condition}</strong></div>
+                        <p className="chart-shadow-frozen-rule"><b>Scoring:</b> {pattern.scoringPolicy ? scoringRuleLabel(pattern.scoringPolicy) : "See the frozen rule; policy not separately recorded."} <b>Reaction:</b> {pattern.reaction === "contrarian" ? "Reject the oriented evidence direction." : pattern.reaction === "continuation" ? "Follow the oriented evidence direction." : "See the frozen rule; treatment not separately recorded."}</p>
+                        <p className="chart-shadow-frozen-rule"><b>Entry and exits:</b> {executionRule(pattern.execution)}. Entry must follow availability of the required release package.</p>
+                        <p className="chart-shadow-frozen-rule"><b>Source:</b> {pattern.sourceVersionId} · <b>Setup ID:</b> {pattern.id}{pattern.cohort ? ` · Cohort: ${pattern.cohort.dimension} = ${pattern.cohort.value}` : ""}</p>
                         <div className="chart-shadow-if-grid" aria-label={`Possible ${patternMarket} decisions`}>
                           {buildDecisionScenarios(pattern, patternMarket).map(([condition, action]) => <div key={condition}><span>{condition}</span><strong>{action}</strong></div>)}
                         </div>
@@ -973,6 +979,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
                         </div>
                       ) : assessment ? <p className="chart-shadow-assessment-reason" aria-label={assessment.reason}>{assessment.reason}</p> : null}
                       <p className="chart-shadow-frozen-rule"><b>Trade rule:</b> {pattern.condition}</p>
+                      {view === "setups" && expandedWatchKey === watchKey ? <ChartMacroBiasSetupCatalog patterns={[pattern]} /> : null}
                     </td>
                   </tr>
                 </Fragment>
@@ -981,7 +988,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           </tbody>
         </table>
       </section>
-      </details>
+      </RegisteredListContainer>
 
       </> : null}
       {view === "all" ? <>
@@ -1085,7 +1092,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
       ) : null}
 
       </> : null}
-      {view !== "research" ? <>
+      {view === "all" ? <>
       {embedded ? <div className="fms-embedded-benchmarks fms-setups-only">
         <ChartMacroBiasSetupCatalog patterns={registeredPatternRows} />
       </div> : <details className="chart-shadow-lower-disclosure fms-setups-only">
@@ -1188,6 +1195,7 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
           </summary>
           <div>
             <p>Active contracts are unchanged. Pending, ambiguous, and unavailable cases are excluded from win rates, average R, and account replay.</p>
+            <p>This queue contains loaded outcome/context investigations and execution leads; it does not establish that an original execution study is unreviewed. The saved event–pair catalogue above retains original approval/decline decisions and failed checks separately.</p>
             {data.globalResponse?.outcomeReview && Object.entries(data.globalResponse.outcomeReview.unresolvedByReason).length > 0 ? (
               <dl>{Object.entries(data.globalResponse.outcomeReview.unresolvedByReason).map(([reason, count]) => <div key={reason}><dt>{reason.replaceAll("_", " ")}</dt><dd>{count}</dd></div>)}</dl>
             ) : <p>Every loaded registered arrow currently has a resolved or genuinely live lifecycle.</p>}

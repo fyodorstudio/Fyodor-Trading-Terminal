@@ -21,6 +21,7 @@ import type {
   MarketStatusResponse,
 } from "@/app/types";
 import { recordAppActivity } from "@/app/features/chart-shell/appActivityLog";
+import { BridgeHistoryDeferredError } from "@/app/features/chart-market-data/contracts";
 
 const DEFAULT_BRIDGE_BASE = "http://127.0.0.1:8001";
 
@@ -108,6 +109,13 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
       throw new Error(`Bridge returned ${response.status}${suffix}`);
     }
     const payload = (await response.json()) as T;
+    if (response.status === 202 && request.message === "GET /history") {
+      const deferred = payload as Record<string, unknown> | null;
+      if (deferred?.status !== "deferred" || typeof deferred.detail !== "string") {
+        throw new Error("Bridge returned an invalid history deferral");
+      }
+      throw new BridgeHistoryDeferredError(deferred.detail, asNumber(deferred.retry_after_seconds) ?? 3);
+    }
     recordAppActivity({
       level: "success",
       source: "Bridge",
@@ -117,10 +125,11 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
     return payload;
   } catch (reason: unknown) {
     const aborted = reason instanceof Error && reason.name === "AbortError";
+    const deferred = reason instanceof BridgeHistoryDeferredError;
     recordAppActivity({
-      level: aborted ? "warning" : "error",
+      level: deferred ? "info" : aborted ? "warning" : "error",
       source: "Bridge",
-      message: `${aborted ? "Cancelled" : "Failed"} ${request.message}`,
+      message: `${deferred ? "Deferred" : aborted ? "Cancelled" : "Failed"} ${request.message}`,
       detail: `${request.detail ? `${request.detail} · ` : ""}${reason instanceof Error ? reason.message : "Unknown request error"}`,
     });
     throw reason;

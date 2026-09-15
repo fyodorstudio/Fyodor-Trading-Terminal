@@ -81,6 +81,14 @@ MetaTrader5's Python IPC is process-global, so all Python MT5 calls are serializ
 
 The EA posts `/calendar_ingest_cycle` only after all batches in a timer pass have been attempted. A successful zero-failure cycle lets the bridge freeze first-seen released values for the v2 forward-paper ledger; failed cycles never create paper candidates. The ledger advances outcomes in a separate background worker and is exposed by `/research/forward`.
 
+### Read-only source-clock diagnostic
+
+The calendar EA additionally includes an optional `clock` sample with raw `TimeGMT`, `TimeCurrent`, `TimeTradeServer`, the attached symbol's tick time, and locally cached M1/H4 last-bar times. It uses [timeseries state queries](https://www.mql5.com/en/docs/series/seriesinfointeger), not `CopyRates`/`iTime` or history warming; an unavailable cached timeframe reports zero. The attached pair/timeframe still does not restrict the calendar currencies or the quote publisher. No account data or orders are accessed.
+
+`GET /research/source-clock` reads the latest stored sample and its age without calling MT5. A daily first sample per attached symbol is retained immutably under `fms_native_source_clock:v1:*`; latest diagnostics are separate. Samples are retained even when the calendar upload cycle had failed batches. Older EA builds without `clock` remain accepted and do not refresh the native sample. This is diagnostics only: release timestamps, upload success, first-seen records, entry rules and activation boundaries are not converted or changed.
+
+Deployment: restart the local bridge once; compile this updated `FyodorCalendarBridge.mq5` in your usual MetaEditor location and reattach/reload it on any chart. Keep the existing `FyodorQuoteBridge` attachment/settings unchanged. After one timer cycle, `/research/source-clock` should contain a sample; inspect sample age, connection state and nonzero cached H4 time before comparing its native timestamp with Python candles for the same symbol/current bar. A successful sample is not historical UTC/DST proof or FMS v2 approval. Do not apply a current offset to immutable historical releases.
+
 `/research/chart-signals` is the read-only Charts contract for the registered H4 model. Current observations come only from immutable first-seen EA values after each recipe's activation; historical matches remain hindsight research. The frontend may project an H4 activation onto another chart timeframe but never claims a native backtest for that timeframe. The endpoint never places an order.
 
 `/research/expansion-report` is the heavier, cached FMS research contract. It computes 30/60-H4 MFE/MAE paths and a declared development-selected stop/target/holding matrix across eligible exact direction signatures. It identifies reused-history freeze candidates but never mutates the current Charts registry.

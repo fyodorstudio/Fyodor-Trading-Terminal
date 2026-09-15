@@ -223,6 +223,42 @@ def test_cycle_acknowledgement_rejects_failed_upload_and_freezes_success(monkeyp
   assert ledger.json()["lastSuccessfulCycleAt"] is not None
 
 
+def test_native_clock_diagnostic_is_additive_cached_and_preserves_raw_times(monkeypatch):
+  monkeypatch.setattr(server, "_ensure_mt5_initialized", lambda: (_ for _ in ()).throw(AssertionError("Clock diagnostic must not call MT5")))
+  sampled = int(time.time())
+  clock = {"sampledUtcAt": sampled, "serverCurrentAt": sampled + 10800,
+           "serverEstimatedAt": sampled + 10801, "symbol": "BTCUSD",
+           "nativeM1OpenAt": 0, "nativeH4OpenAt": sampled // 14400 * 14400,
+           "nativeTickAt": sampled + 10800, "terminalConnected": True}
+  response = client.post("/calendar_ingest_cycle", json={"completedAt": sampled + 10800, "failedBatches": 1, "clock": clock})
+  assert response.status_code == 200 and response.json()["accepted"] is False
+  result = client.get("/research/source-clock")
+  assert result.status_code == 200
+  diagnostic = result.json()
+  assert diagnostic["sample"]["clock"] == clock
+  assert diagnostic["successorTimingEligible"] is False
+  assert diagnostic["timestampsChanged"] is False
+  assert 0 <= diagnostic["ageSeconds"] <= 2
+  key = f"fms_native_source_clock:v1:{sampled // 86400}:BTCUSD"
+  frozen = server._research_store.get_metadata(key)
+  changed = {**clock, "serverCurrentAt": sampled + 10802}
+  assert client.post("/calendar_ingest_cycle", json={"completedAt": sampled + 10802, "failedBatches": 1, "clock": changed}).status_code == 200
+  assert server._research_store.get_metadata(key) == frozen
+  assert client.get("/research/source-clock").json()["sample"]["clock"] == changed
+  # Older EA versions remain accepted and cannot make the sample look fresh.
+  assert client.post("/calendar_ingest_cycle", json={"completedAt": sampled, "failedBatches": 1}).status_code == 200
+  assert client.get("/research/source-clock").json()["sample"]["clock"] == changed
+
+
+def test_native_clock_rejects_invalid_sample_without_recording_it():
+  before = server._research_store.get_metadata("fms_native_source_clock_latest:v1")
+  invalid = {"sampledUtcAt": -1, "serverCurrentAt": 0, "serverEstimatedAt": 0,
+             "symbol": "EURUSD", "nativeH4OpenAt": -1, "terminalConnected": True}
+  response = client.post("/calendar_ingest_cycle", json={"completedAt": 1, "failedBatches": 1, "clock": invalid})
+  assert response.status_code == 422
+  assert server._research_store.get_metadata("fms_native_source_clock_latest:v1") == before
+
+
 def test_history_range_validates_range_order():
   r = client.get("/history_range", params={"symbol": "EURUSD", "tf": "M1", "from_": 20, "to": 10})
   assert r.status_code == 400
@@ -694,9 +730,31 @@ def test_market_watch_poll_defers_uncached_background_history_without_taking_mt5
     "symbol": "UNCACHED.ADAPTIVE", "tf": "H4", "bars": 350, "background": True,
   })
 
-  assert response.status_code == 503
+  assert response.status_code == 202
+  assert response.json()["status"] == "deferred"
   assert response.json()["detail"] == "Background history deferred while Market Watch is active"
+  assert response.headers["retry-after"] == "3"
   assert lock_attempts == []
+
+
+def test_busy_history_defers_background_but_preserves_foreground_failure(monkeypatch):
+  @contextmanager
+  def busy_access(_timeout=None):
+    raise server.Mt5BusyError("busy")
+    yield
+
+  monkeypatch.setattr(server, "_mt5_access", busy_access)
+  monkeypatch.setattr(server, "_last_market_watch_poll_monotonic", 0.0)
+  monkeypatch.setattr(server, "_cached_history", lambda *_args, **_kwargs: [])
+  params = {"symbol": "UNCACHED.ADAPTIVE", "tf": "H4", "bars": 350}
+
+  deferred = client.get("/history", params={**params, "background": True})
+  foreground = client.get("/history", params=params)
+
+  assert deferred.status_code == 202
+  assert deferred.json()["status"] == "deferred"
+  assert foreground.status_code == 503
+  assert "no cached chart history" in foreground.json()["detail"]
 
 
 def test_startup_does_not_eagerly_schedule_full_market_reconciliation(monkeypatch):

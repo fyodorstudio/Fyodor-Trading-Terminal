@@ -6,6 +6,7 @@ import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
 import { FmsReviewNoteRow } from "@/app/features/fms-dock/FmsReviewNoteRow";
 import { useFmsReviewNotes } from "@/app/features/fms-dock/useFmsReviewNotes";
 import { formatJakartaDisplayDateTime } from "@/app/lib/format";
+import { FMS_BASELINE_DISPLAY_VERSION } from "@/app/lib/fmsDisplayVersion";
 import type { FmsReviewNoteInput, FmsReviewNoteLabel } from "@/app/lib/bridge";
 import entryResearch from "@/app/lib/fmsEntryResearchSummary.json";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalPatternAssessment, MacroSignalUpcomingPatternWatch } from "@/app/types";
@@ -573,7 +574,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
       <div className="fms-action-display-controls">
         <label title="Show or hide frozen historical arrows from the registered setups.">
           <input type="checkbox" checked={historicalMatchesVisible} onChange={onToggleHistoricalMatches} disabled={!onToggleHistoricalMatches} />
-          <span>Legacy frozen arrows</span>
+          <span>{FMS_BASELINE_DISPLAY_VERSION} frozen arrows</span>
           <small>{historicalMatchesCount}</small>
         </label>
         <details className="fms-arrow-filter">

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from unittest.mock import patch
+from fms_recipe_review import project_recipe_review
+from fms_recipe_catalogue import archive_contract_evidence, fixed_reference_case, followup_case, reference_followup_case, summarize_followup, summarize_reference
 
 from macro_signal import (
   aggregate_outcomes,
@@ -36,6 +38,82 @@ from macro_signal import (
   CHART_SIGNAL_MODEL_ID,
   CHART_SIGNAL_PATTERN_DEFINITIONS,
 )
+
+
+def test_recipe_review_retains_declined_positive_evidence_without_promoting_or_mutating() -> None:
+  profile = {"executionChallenger": {
+    "reviewWorthy": True,
+    "registryReview": {"decision": "declined", "checks": {"laterPositive": True, "laterSampleAtLeast30": False}},
+    "bestChallenger": {"later": {"averageR": 0.52, "evaluableN": 23, "ambiguousN": 1}},
+  }}
+  review = project_recipe_review(profile, approved_in_baseline=False)
+  assert review["status"] == "previously_declined"
+  assert review["failedChecks"] == ["laterSampleAtLeast30"]
+  assert review["developmentSelectedChallenger"]["later"]["averageR"] == 0.52
+  assert review["developmentSelectedChallenger"]["later"]["ambiguousN"] == 1
+  assert review["reusedHistory"] is True and review["newRegistration"] is False
+  review["developmentSelectedChallenger"]["later"]["averageR"] = 99
+  assert profile["executionChallenger"]["bestChallenger"]["later"]["averageR"] == 0.52
+  assert project_recipe_review(profile, approved_in_baseline=True)["status"] == "baseline_approval_requires_identity_check"
+  assert project_recipe_review({}, approved_in_baseline=False)["status"] == "no_pending_execution_challenger"
+
+
+def test_reference_catalogue_separates_eventual_touches_from_stop_first_and_economic_direction() -> None:
+  case = {"caseId": "a", "eventTime": 1, "entryTime": 100, "entry": 100.0, "atr": 1.0, "direction": "short"}
+  candles = [{"time": 100, "open": 100.0, "high": 100.2, "low": 98.8, "close": 99.0},
+             {"time": 14500, "open": 99.0, "high": 103.0, "low": 98.9, "close": 102.0}]
+  response = followup_case(case, "long", candles, [100, 14500], 2)
+  assert response["economicReadingFinalAtr"] == -2.0
+  assert response["finalAtr"] == 2.0
+  assert all(item["touched"] for item in response["targets"])
+  reference = fixed_reference_case(response, 2.0)
+  assert reference["status"] == "stop_hit" and reference["resultR"] == -1.0
+  assert summarize_followup([response])["targetTouches"][2]["touchRate"] == 1.0
+  assert summarize_reference([reference], "all")["targetHitRate"] == 0.0
+  assert case["entry"] == 100.0 and candles[0]["low"] == 98.8
+
+
+def test_reference_catalogue_keeps_coarse_ambiguity_and_observed_opening_gap_loss() -> None:
+  case = {"caseId": "b", "eventTime": 1, "entryTime": 100, "entry": 100.0, "atr": 1.0, "direction": "long"}
+  both = [{"time": 100, "open": 100.0, "high": 102.0, "low": 98.0, "close": 100.0}]
+  reference = fixed_reference_case(followup_case(case, "long", both, [100], 1), 1.0)
+  assert reference["status"] == "ambiguous" and reference["resultR"] is None
+  summary = summarize_reference([reference], "all")
+  assert summary["evaluableCount"] == 0 and summary["targetHitRate"] is None
+  assert summary["ambiguousCount"] == 1 and summary["attemptedCount"] == 1
+  gap = [{"time": 100, "open": 100.0, "high": 100.1, "low": 99.5, "close": 100.0},
+         {"time": 14500, "open": 98.0, "high": 98.5, "low": 97.5, "close": 98.1}]
+  reference = fixed_reference_case(followup_case(case, "long", gap, [100, 14500], 2), .5)
+  assert reference["status"] == "stop_gap" and reference["resultR"] == -2.0
+
+
+def test_reference_catalogue_rejects_incomplete_or_mismatched_geometry_and_unknown_archive_counts() -> None:
+  case = {"caseId": "c", "eventTime": 1, "entryTime": 100, "entry": 100.0, "atr": 1.0, "direction": "long"}
+  candles = [{"time": 100, "open": 100.0, "high": 102.0, "low": 99.5, "close": 101.0}]
+  incomplete = followup_case(case, "long", candles, [100], 2)
+  assert incomplete["reason"] == "incomplete_horizon"
+  assert summarize_reference([fixed_reference_case(incomplete, 1)], "all")["unevaluableCount"] == 1
+  assert followup_case(case, "long", candles, [100], 1, as_of=101)["reason"] == "horizon_candle_not_complete"
+  assert followup_case({**case, "entry": 101}, "long", candles, [100], 1)["reason"] == "entry_snapshot_mismatch"
+  assert followup_case({**case, "entryTime": 1}, "long", candles, [100], 1)["reason"] == "entry_not_strictly_after_release"
+  archive = archive_contract_evidence({"key": "1|1|6", "holdout": {"evaluableCount": 10, "grossAverageR": .1, "targetHitRate": .6}}, "holdout")
+  assert archive["targetHitCount"] is None and archive["targetHitRate"] == .6
+
+
+def test_reference_catalogue_rederives_own_completed_geometry_without_changing_old_source_or_using_future_atr() -> None:
+  candles = [{"time": i * 14400, "open": 100.0, "high": 101.0, "low": 99.0, "close": 100.0} for i in range(22)]
+  times = [row["time"] for row in candles]
+  source = {"caseId": "revision", "eventTime": times[18] + 1, "entryTime": times[19], "entry": 100.01, "atr": 9.0, "direction": "long"}
+  first = reference_followup_case(source, "long", candles, times, calculate_atr_by_candle(candles), 2, as_of=10**9)
+  changed = [{**row, "high": 1000.0 if index >= 19 else row["high"]} for index, row in enumerate(candles)]
+  replay = reference_followup_case(source, "long", changed, times, calculate_atr_by_candle(changed), 2, as_of=10**9)
+  assert first["sourceEntryPriceChanged"] is True
+  assert first["sourceEntryTimeChanged"] is False
+  assert first["atrKnownAt"] == times[19]
+  assert first["entryTime"] > source["eventTime"]
+  assert first["openingAtr"] == replay["openingAtr"]
+  assert source["entry"] == 100.01 and source["atr"] == 9.0
+  assert summarize_followup([first])["sourceEntryPriceChangedCount"] == 1
 
 
 def test_entry_market_context_is_past_only_and_finds_repeated_turning_zones() -> None:
@@ -161,6 +239,42 @@ def candidate(direction: str = "long", event_time: int = 14_400 * 20 + 1) -> dic
     "factorVotes": [],
     "events": [],
   }
+
+
+def test_note_path_audit_replays_frozen_h4_and_h1_geometry_without_promoting_or_mutating() -> None:
+  from copy import deepcopy
+  from fms_recipe_review import audit_note_signal
+  from macro_signal import evaluate_candidate_h1_entry
+
+  h4 = candles(count=35)
+  h1 = candles(count=140, step=3600)
+  source_candidate = candidate()
+  atrs = [0.002] * len(h4)
+  for timeframe in ("H4", "H1"):
+    evaluation = (evaluate_candidate_h1_entry(source_candidate, h1, h4, atrs, 1, allow_pending=True, as_of=35 * 14400, holding_candles=3)
+                  if timeframe == "H1" else evaluate_candidate(source_candidate, h4, [r["time"] for r in h4], atrs, 1, allow_pending=True, as_of=35 * 14400, holding_candles=3))
+    signal = {**source_candidate, **evaluation, "id": f"setup:{source_candidate['eventTime']}",
+              "activationTime": evaluation["entryTime"], "outcomeStatus": evaluation["status"], "entryTimeframe": timeframe}
+    response = {"generatedAt": 35 * 14400, "signals": [signal]}
+    note = {"patternId": "setup", "eventTime": source_candidate["eventTime"], "recordKey": "note"}
+    original = deepcopy((note, response, h4, h1))
+    audited = audit_note_signal(note, response, h4, h1)
+    assert audited["status"] == "as_recorded_path_consistent"
+    assert audited["qualification"] == "as_recorded_only_clock_unverified"
+    assert audited["newRegistration"] is False and audited["timestampsChanged"] is False
+    assert (note, response, h4, h1) == original
+    changed = deepcopy(response)
+    changed["signals"][0]["entry"] += .00001
+    assert audit_note_signal(note, changed, h4, h1)["status"] == "source_entry_price_revision"
+    assert audit_note_signal(note, {"signals": []}, h4, h1)["status"] == "not_in_current_market_snapshot"
+    changed = deepcopy(response)
+    changed["signals"][0]["resultR"] = 99
+    assert audit_note_signal(note, changed, h4, h1)["status"] == "requires_outcome_review"
+    if timeframe == "H4":
+      ambiguous = deepcopy(h4)
+      bar = next(row for row in ambiguous if row["time"] == signal["activationTime"])
+      bar.update(high=signal["entry"] + .003, low=signal["entry"] - .003)
+      assert audit_note_signal(note, response, ambiguous, h1)["status"] == "requires_finer_ordering_evidence"
 
 
 def test_event_score_matches_existing_equal_surprise_momentum_formula() -> None:
@@ -933,6 +1047,65 @@ def test_event_respect_reaction_path_derives_entry_independently_of_legacy_contr
   assert profile["entryTime"] == 15 * 14_400
   assert profile["entry"] == candle_rows[15]["open"]
   assert profile["atr"] == 1.0
+
+
+def test_catalogue_surface_preserves_exact_denominators_and_review_identity_without_mutation() -> None:
+  from copy import deepcopy
+  from fms_recipe_catalogue import project_catalogue_surface
+
+  metrics = {"targetHitCount": 2, "evaluableCount": 3, "attemptedCount": 5,
+             "ambiguousCount": 1, "unevaluableCount": 1, "averageGrossR": 1 / 3}
+  followup = {"attemptedCount": 5, "observedCount": 4, "unavailableCount": 1,
+              "finalAtr": {"median": .3}, "mfeAtr": {"median": .8}, "maeAtr": {"median": .5},
+              "targetTouches": [{"targetR": 1.0, "touchedCount": 3, "observedCount": 4, "timeToTouchH4": {"median": 2}}]}
+  source = {"catalogueHash": "hash", "manifest": {"manifestHash": "manifest", "evaluatedAt": 100,
+            "sourceClock": {"successorTimingEligible": False}}, "summary": {"newRegistrations": 0},
+            "marketsWithoutBaselineRecipe": [], "universe": ["EURUSD"], "limitations": ["Reused history"],
+            "baselineReconciliation": [{"recipe": "recipe", "kind": "execution_approval", "artifactMatches": True}],
+            "recipes": [{"recipe": "recipe", "market": "EURUSD", "label": "Event", "experimentId": "experiment",
+              "splitTime": 10, "configuration": {"scoringPolicy": "surprise", "reaction": "contrarian", "signature": "short|USD:event"},
+              "executionReview": {"status": "baseline_approval_requires_identity_check", "originalDecision": "approved_for_registry_review",
+                                  "reason": "Original review", "failedChecks": []}, "noteKeys": ["note"],
+              "referenceContracts": [{"targetR": 1, "horizonCandles": 6, "partitions": {"holdout": metrics}}],
+              "followup": [{"horizonCandles": 6, "all": followup, "development": followup, "holdout": followup}]}]}
+  original = deepcopy(source)
+  surface = project_catalogue_surface(source)
+  recipe = surface["recipes"][0]
+  assert source == original
+  assert recipe["review"]["status"] == "baseline_identity_reconciled"
+  assert recipe["contracts"][0]["partitions"]["holdout"]["evaluableCount"] == 3
+  assert recipe["followup"][0]["partitions"]["holdout"]["targetTouches"][0]["observedCount"] == 4
+  assert recipe["contracts"][0]["partitions"]["holdout"]["averageGrossR"] == 1 / 3
+  assert surface["sourceClock"]["successorTimingEligible"] is False
+  surface["sourceClock"]["successorTimingEligible"] = True
+  surface["recipes"][0]["noteKeys"].append("changed")
+  assert source == original
+  source["baselineReconciliation"][0]["artifactMatches"] = False
+  source["recipes"][0]["executionReview"]["status"] = "previously_declined"
+  assert project_catalogue_surface(source)["recipes"][0]["review"]["status"] == "previously_declined"
+
+
+def test_catalogue_clock_evidence_never_converts_history_or_approves_timing() -> None:
+  from copy import deepcopy
+  from fms_recipe_catalogue import assess_source_clock
+
+  rows = [
+    {"ea_completed_at": 20_800, "bridge_acknowledged_at": 10_000},
+    {"ea_completed_at": 20_800, "bridge_acknowledged_at": 10_000},
+    {"ea_completed_at": 20_899, "bridge_acknowledged_at": 10_100},
+    {"ea_completed_at": None, "bridge_acknowledged_at": 10_200},
+  ]
+  original = deepcopy(rows)
+  evidence = assess_source_clock(rows)
+  assert rows == original
+  assert evidence["uniqueAcknowledgementPairs"] == 2
+  assert evidence["serverMinusReceiptSeconds"] == {"min": 10_799, "median": 10_799.5, "max": 10_800}
+  assert evidence["historicalOffsetInferred"] is False
+  assert evidence["timestampsChanged"] is False
+  assert evidence["successorTimingEligible"] is False
+  # Zero offset is not empirical proof that historical series share a clock.
+  assert assess_source_clock([{"ea_completed_at": 100, "bridge_acknowledged_at": 100}])["successorTimingEligible"] is False
+  assert assess_source_clock([])["serverMinusReceiptSeconds"]["median"] is None
 
 
 def test_event_respect_prospective_result_is_first_seen_and_first_write_wins() -> None:

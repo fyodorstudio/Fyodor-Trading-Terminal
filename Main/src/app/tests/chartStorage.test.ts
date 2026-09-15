@@ -14,6 +14,8 @@ import {
   setResidentHistoryBackgroundPaused,
 } from "@/app/features/chart-market-data/residentHistory";
 import { areBridgeSymbolSnapshotsEqual } from "@/app/features/chart-market-data/symbolCatalog";
+import { BridgeHistoryDeferredError } from "@/app/features/chart-market-data/contracts";
+import { clearAppActivity, getAppActivitySnapshot } from "@/app/features/chart-shell/appActivityLog";
 import {
   CHART_DOCK_LAYOUT_KEY,
   DEFAULT_CHART_DOCK_LAYOUT,
@@ -221,6 +223,51 @@ describe("chartStorage helpers", () => {
       if (result.status === "rejected") expect(shouldStopResidentHistoryBatch(result.reason)).toBe(true);
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("records ordinary history deferral as info and stops warming without caching empty data", async () => {
+    installLocalStorage();
+    clearAppActivity();
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({
+      status: "deferred", detail: "Background history deferred while Market Watch is active", retry_after_seconds: 3,
+    }), { status: 202 }));
+    vi.stubGlobal("fetch", fetchMock);
+    setResidentHistoryBackgroundPaused(true);
+    const first = loadResidentChartHistory("DEFER-FIRST", "H4", 350, "warm", true, "defer-catalog");
+    const second = loadResidentChartHistory("DEFER-SECOND", "H4", 350, "warm", true, "defer-catalog");
+    setResidentHistoryBackgroundPaused(false);
+
+    const results = await Promise.allSettled([first, second]);
+    expect(results.every((result) => result.status === "rejected"
+      && result.reason instanceof BridgeHistoryDeferredError
+      && shouldStopResidentHistoryBatch(result.reason))).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(readChartHistoryCache("DEFER-FIRST", "H4", "defer-catalog")).toEqual([]);
+    expect(getAppActivitySnapshot()).toContainEqual(expect.objectContaining({ level: "info", message: "Deferred GET /history" }));
+    expect(getAppActivitySnapshot().some((row) => row.level === "error")).toBe(false);
+  });
+
+  it("retries a warming request as foreground when Review promotes it before deferral arrives", async () => {
+    installLocalStorage();
+    let deferResponse!: () => void;
+    const fetchMock = vi.fn()
+      .mockImplementationOnce(() => new Promise<Response>((resolve) => {
+        deferResponse = () => resolve(new Response(JSON.stringify({
+          status: "deferred", detail: "Background history deferred while MT5 is busy", retry_after_seconds: 3,
+        }), { status: 202 }));
+      }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([SAMPLE_CANDLE]), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    const warm = loadResidentChartHistory("REVIEW-PROMOTE", "M1", 350, "warm", true, "review-catalog");
+    const selected = loadResidentChartHistory("REVIEW-PROMOTE", "M1", 350, "selected", true, "review-catalog");
+    expect(warm).toBe(selected);
+    deferResponse();
+
+    await expect(selected).resolves.toEqual([SAMPLE_CANDLE]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(new URL(fetchMock.mock.calls[0][0]).searchParams.get("background")).toBe("true");
+    expect(new URL(fetchMock.mock.calls[1][0]).searchParams.has("background")).toBe(false);
+    expect(readChartHistoryCache("REVIEW-PROMOTE", "M1", "review-catalog")).toEqual([SAMPLE_CANDLE]);
   });
 
   it("clears only the current symbol and timeframe cache", () => {

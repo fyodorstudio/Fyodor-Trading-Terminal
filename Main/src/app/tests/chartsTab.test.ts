@@ -1,7 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ChartSettingsDrawer } from "@/app/components/ChartSettingsDrawer";
+import { FmsSetupsWorkspace } from "@/app/features/fms-dock/ChartFmsDock";
+import { FmsRecipeCatalogue } from "@/app/features/fms-dock/FmsRecipeCatalogue";
 import {
   filterMarketWatchSymbols,
   formatMarketWatchChange,
@@ -39,6 +41,20 @@ import {
 import { getMacroBiasInitialLoadPlan } from "@/app/tabs/primary/ChartsTab";
 
 describe("pair-switch FMS loading", () => {
+  it("presents the saved catalogue as unverified research with no registration or eager detail tables", () => {
+    const html = renderToStaticMarkup(createElement(FmsRecipeCatalogue));
+    expect(html).toContain("51 recipes · 0 new registrations");
+    expect(html).toContain("Timing unverified");
+    expect(html).toContain("not approved FMS v2 trades");
+    expect(html).toContain("Reused holdout");
+    expect(html).toContain("Previously declined execution study");
+    expect(html).toContain("Baseline approval identity reconciled");
+    expect(html).toContain("USDJPY");
+    expect(html).not.toContain("<table>");
+    expect(html).not.toContain("Go to arrow");
+    expect(html).not.toContain("Register recipe");
+  });
+
   it("keeps Journal active when its arrow navigation selects an audit", () => {
     expect(getFmsDockTabForAudit("journal", "signal-id")).toBe("journal");
     expect(getFmsDockTabForAudit("trade", "signal-id")).toBe("result");
@@ -248,14 +264,19 @@ describe("getChartConnectionLabel", () => {
     const built = buildMacroBiasSeriesMarkers(signals, candles, "H4", 0);
 
     expect(built.markers.map((marker) => ({ time: marker.time, shape: marker.shape, text: marker.text, color: marker.color }))).toEqual([
-      { time: 14_400, shape: "arrowUp", text: "H4 ENTRY · LONG · LEGACY · CONTEXT", color: "#2563eb" },
-      { time: 28_800, shape: "arrowDown", text: "H4 ENTRY · SHORT · LEGACY", color: "#7c3aed" },
+      { time: 14_400, shape: "arrowUp", text: "H4 ENTRY · LONG · FMS v1 · CONTEXT", color: "#2563eb" },
+      { time: 28_800, shape: "arrowDown", text: "H4 ENTRY · SHORT · FMS v1", color: "#7c3aed" },
     ]);
     const journaled = buildMacroBiasSeriesMarkers([
       { ...makeSignal("journal-long", 1_000, "long"), historicalReplay: false },
       { ...makeSignal("journal-short", 15_000, "short"), historicalReplay: false },
     ], candles, "H4", 0);
     expect(journaled.markers.map((marker) => marker.color)).toEqual(["#16a34a", "#dc2626"]);
+    const recoveredContext = buildMacroBiasSeriesMarkers([
+      { ...signals[0], observationMode: "recovered_offline" },
+    ], candles, "H4", 0);
+    expect(recoveredContext.markers[0].text).toBe("H4 ENTRY · LONG · FMS v1 · RECOVERED · CONTEXT");
+    expect(signals[0].sourceVersionId).toBe("v2");
     expect([...built.signalByMarkerId.keys()]).toEqual([
       "macro-bias-activation:long",
       "macro-bias-activation:short",
@@ -711,11 +732,38 @@ describe("getChartConnectionLabel", () => {
     expect(activeHtml).toContain("Reviewed context contract used");
     expect(activeHtml).toContain("Macro background = Aligned");
     expect(activeHtml).toContain("FMS-EURUSD-H4-CTX-C001");
+    const setupData = {
+      response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10,
+      chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
+    };
+    const setupsHtml = renderToStaticMarkup(createElement(ChartMacroBiasRealtimeCard, { data: setupData, view: "setups", embedded: true }));
+    expect(setupsHtml).toContain("FMS v1 · exact registered rule");
+    expect(setupsHtml).toContain(pattern.sourceVersionId);
+    expect(setupsHtml).toContain("Scoring:");
+    expect(setupsHtml).toContain("Entry and exits:");
+    expect(setupsHtml).not.toContain("Every registered setup");
+    expect(setupsHtml).not.toContain("<summary>");
+    const workspaceHtml = renderToStaticMarkup(createElement(FmsSetupsWorkspace, { data: setupData }));
+    expect(workspaceHtml).toContain("FMS v1 — registered setups");
+    expect(workspaceHtml).toContain("Frozen event–pair recipes");
+    expect(workspaceHtml.match(/<summary>/g)).toHaveLength(3);
+    expect(workspaceHtml).toContain("Research / reviews");
+    expect(workspaceHtml).toContain("Knowledge");
+    expect(workspaceHtml).not.toContain("Registered setup benchmarks");
+    expect(workspaceHtml).not.toContain("FMS v2 — approved");
+    vi.stubGlobal("window", { sessionStorage: { getItem: () => JSON.stringify({ open: [], visited: ["research"] }) } });
+    try {
+      const previouslyVisited = renderToStaticMarkup(createElement(FmsSetupsWorkspace, { data: setupData }));
+      expect(previouslyVisited).not.toContain("Loading saved research catalogue");
+      expect(previouslyVisited).not.toContain("Event–pair catalogue · research only");
+    } finally {
+      vi.unstubAllGlobals();
+    }
     const actionHtml = renderToStaticMarkup(createElement(ChartFmsActionCard, { data: {
       response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
     }, historicalMatchesVisible: true, historicalMatchesCount: 42, onToggleHistoricalMatches: () => {}, onGoToArrow: () => {} }));
     expect(actionHtml).not.toContain("Registered rules only");
-    expect(actionHtml).toContain("Legacy frozen arrows");
+    expect(actionHtml).toContain("FMS v1 frozen arrows");
     expect(actionHtml).toContain("Search setups");
     expect(actionHtml).not.toContain("Fresh:");
     expect(actionHtml).toContain("Next registered setups");
@@ -847,7 +895,7 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("Historical result");
     expect(html).toContain("Next registered release");
     expect(html).toContain("Starts in");
-    expect(html).toContain("Exact registered rule");
+    expect(html).toContain("FMS v1 · exact registered rule");
     expect(html).toContain('aria-expanded="false"');
     expect(html).toContain("Latest matching release");
     expect(html).toContain("Later-test history");

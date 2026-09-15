@@ -183,8 +183,29 @@ bool SendEventsToBridge(const string eventsJson, const int eventCount)
 bool SendCycleCompletion(const datetime completedAt, const int failedBatches)
 {
    string cycleUrl = BridgeUrl + "_cycle";
+   // Diagnostic only: preserve native timestamps. Never fetch/synchronize
+   // history here, and never infer a historical calendar/DST conversion.
+   datetime sampledUtcAt = TimeGMT();
+   datetime serverEstimatedAt = TimeTradeServer();
+   long nativeM1OpenAt = 0;
+   long nativeH4OpenAt = 0;
+   SeriesInfoInteger(_Symbol, PERIOD_M1, SERIES_LASTBAR_DATE, nativeM1OpenAt);
+   SeriesInfoInteger(_Symbol, PERIOD_H4, SERIES_LASTBAR_DATE, nativeH4OpenAt);
+   MqlTick nativeTick;
+   long nativeTickAt = 0;
+   if(SymbolInfoTick(_Symbol, nativeTick))
+      nativeTickAt = (long)nativeTick.time;
+   string clockJson = "{\"sampledUtcAt\":" + IntegerToString((long)sampledUtcAt)
+                    + ",\"serverCurrentAt\":" + IntegerToString((long)completedAt)
+                    + ",\"serverEstimatedAt\":" + IntegerToString((long)serverEstimatedAt)
+                    + ",\"symbol\":\"" + EscapeJsonString(_Symbol) + "\""
+                    + ",\"nativeM1OpenAt\":" + IntegerToString(nativeM1OpenAt)
+                    + ",\"nativeH4OpenAt\":" + IntegerToString(nativeH4OpenAt)
+                    + ",\"nativeTickAt\":" + IntegerToString(nativeTickAt)
+                    + ",\"terminalConnected\":" + (TerminalInfoInteger(TERMINAL_CONNECTED) ? "true" : "false") + "}";
    string body = "{\"completedAt\":" + IntegerToString((int)completedAt)
-               + ",\"failedBatches\":" + IntegerToString(failedBatches) + "}";
+               + ",\"failedBatches\":" + IntegerToString(failedBatches)
+               + ",\"clock\":" + clockJson + "}";
    uchar data[];
    int written = StringToCharArray(body, data, 0, WHOLE_ARRAY, CP_UTF8);
    int data_size = written;

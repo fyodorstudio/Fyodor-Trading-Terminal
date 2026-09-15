@@ -3,6 +3,7 @@ import { getMacroBiasActivationCandleOpen } from "@/app/features/fms-arrow-navig
 import { formatUtcDisplayDate } from "@/app/lib/format";
 import { getChartEventCoordinateTime } from "@/app/lib/chartEvents";
 import { getPairMatrixCandleClose } from "@/app/lib/pairMatrixSnapshot";
+import { FMS_BASELINE_DISPLAY_VERSION } from "@/app/lib/fmsDisplayVersion";
 import type {
   BridgeCandle,
   MacroSignalChartMode,
@@ -136,7 +137,7 @@ export function buildMacroBiasSeriesMarkers(
       color: signal.historicalReplay
         ? signal.direction === "long" ? "#2563eb" : "#7c3aed"
         : signal.direction === "long" ? "#16a34a" : "#dc2626",
-      text: `${signal.entryTimeframe ?? "H4"} ENTRY · ${signal.direction === "long" ? "LONG" : "SHORT"} · LEGACY${signal.observationMode === "recovered_offline" ? " · RECOVERED" : signal.contextOverlay?.matched ? " · CONTEXT" : ""}`,
+      text: `${signal.entryTimeframe ?? "H4"} ENTRY · ${signal.direction === "long" ? "LONG" : "SHORT"} · ${FMS_BASELINE_DISPLAY_VERSION}${signal.observationMode === "recovered_offline" ? " · RECOVERED" : ""}${signal.contextOverlay?.matched ? " · CONTEXT" : ""}`,
       size: 1.4,
     });
     return built;

@@ -8,6 +8,7 @@ import {
 import { mergeChartCandles } from "@/app/lib/chartView";
 import type { BridgeCandle, BridgeSymbol, Timeframe } from "@/app/types";
 import { RESIDENT_QUICK_CANDLES } from "@/app/features/chart-market-data/historyPolicy";
+import { BridgeHistoryDeferredError } from "@/app/features/chart-market-data/contracts";
 
 export type ResidentLoadPriority = "selected" | "warm" | "deep";
 
@@ -100,6 +101,7 @@ function residentHistoryRequestKey(
 }
 
 export function shouldStopResidentHistoryBatch(error: unknown): boolean {
+  if (error instanceof BridgeHistoryDeferredError) return true;
   if (error instanceof DOMException && (error.name === "AbortError" || error.name === "TimeoutError")) return true;
   if (error instanceof TypeError) return true;
   return error instanceof Error && /^Bridge returned (?:409|503)(?:\b|:)/.test(error.message);
@@ -136,15 +138,25 @@ async function drainResidentHistoryQueue() {
       activeResidentHistoryRequest = request;
       const startedAt = Date.now();
       try {
-        const refreshed = await fetchHistory(
+        const startedInBackground = request.priority !== "selected";
+        const fetchRequest = (background: boolean) => fetchHistory(
           request.symbol,
           request.timeframe,
           request.bars,
-          AbortSignal.timeout(request.priority === "selected" ? 30_000 : 4_000),
+          AbortSignal.timeout(background ? 4_000 : 30_000),
           request.preferCache,
-          request.priority !== "selected",
+          background,
           request.catalogIdentity,
         );
+        let refreshed: BridgeCandle[];
+        try {
+          refreshed = await fetchRequest(startedInBackground);
+        } catch (error) {
+          // Review/selection can promote a warming request after it was sent.
+          // Its background deferral must not become the selected chart's error.
+          if (!startedInBackground || request.priority !== "selected" || !(error instanceof BridgeHistoryDeferredError)) throw error;
+          refreshed = await fetchRequest(false);
+        }
         const resident = mergeChartCandles(
           readChartHistoryCache(request.symbol, request.timeframe, request.catalogIdentity),
           refreshed,

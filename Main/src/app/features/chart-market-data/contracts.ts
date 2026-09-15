@@ -12,6 +12,14 @@ import type {
 
 export type ChartHistoryState = "loading" | "ready" | "no_data" | "error";
 
+export class BridgeHistoryDeferredError extends Error {
+  readonly name = "BridgeHistoryDeferredError";
+
+  constructor(message: string, readonly retryAfterSeconds = 3) {
+    super(message);
+  }
+}
+
 export interface UseChartMarketDataArgs {
   selectedSymbol: string;
   onSelectedSymbolChange: (symbol: string) => void;
