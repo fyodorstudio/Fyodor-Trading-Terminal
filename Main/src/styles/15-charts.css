@@ -612,6 +612,7 @@
 .chart-shadow-decision-ledger td { padding: 7px 8px; border-top: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
 .chart-shadow-decision-ledger th { color: #64748b; font-size: 10px; letter-spacing: .04em; text-transform: uppercase; }
 .chart-shadow-priority tbody tr:not([hidden]) + tr:not([hidden]) td { border-top: 1px solid #e2e8f0; }
+.chart-shadow-priority .chart-shadow-version-group th { width: auto !important; border-block: 1px solid #c7d2fe; background: #eef2ff; padding: 7px 10px; color: #3730a3; font-size: 9px; letter-spacing: .04em; }
 .chart-shadow-priority td { border-bottom: 0; padding: 10px 8px; color: #475569; font-size: 10px; font-weight: 700; line-height: 1.35; }
 .chart-shadow-priority td:first-child { padding-left: 14px; }
 .chart-shadow-priority td:last-child { padding-right: 14px; }
@@ -1891,10 +1892,16 @@
 /* Dedicated FMS action and durable-knowledge dock views. */
 .fms-action-card,
 .fms-knowledge-card { min-width: 0; background: #fff; color: #111827; }
-.fms-action-display-controls { position: sticky; z-index: 4; top: 0; display: flex; min-height: 35px; align-items: center; justify-content: space-between; gap: 8px; border-bottom: 1px solid #d7dbe0; background: #f8fafc; padding: 5px 10px; }
+.fms-action-display-controls { position: sticky; z-index: 4; top: 0; display: flex; min-height: 35px; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 5px 8px; border-bottom: 1px solid #d7dbe0; background: #f8fafc; padding: 5px 10px; }
 .fms-action-display-controls label { display: inline-flex; align-items: center; gap: 6px; color: #334155; font-size: 10px; font-weight: 800; cursor: pointer; }
 .fms-action-display-controls input[type="checkbox"] { width: 14px; height: 14px; accent-color: #4f46e5; }
 .fms-action-display-controls label small { color: #6366f1; font-size: 9px; }
+.fms-arrow-version-toggle { display: inline-flex; overflow: hidden; border: 1px solid #c7d2fe; border-radius: 4px; background: #fff; }
+.fms-arrow-version-toggle button { min-height: 23px; border: 0; background: transparent; padding: 0 7px; color: #64748b; font-size: 9px; font-weight: 900; cursor: pointer; }
+.fms-arrow-version-toggle button + button { border-left: 1px solid #c7d2fe; }
+.fms-arrow-version-toggle button.is-active { background: #4f46e5; color: #fff; }
+.fms-arrow-version-toggle button:disabled { cursor: default; opacity: .55; }
+.fms-arrow-version-toggle button:focus-visible { position: relative; z-index: 1; outline: 2px solid #818cf8; outline-offset: -2px; }
 .fms-arrow-filter { position: relative; }
 .fms-arrow-filter > summary { border: 1px solid #cbd5e1; border-radius: 3px; background: #fff; padding: 4px 7px; color: #4338ca; font-size: 9px; font-weight: 800; cursor: pointer; list-style: none; }
 .fms-arrow-filter > summary::-webkit-details-marker { display: none; }

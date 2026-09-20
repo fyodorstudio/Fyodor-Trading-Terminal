@@ -20,7 +20,8 @@ import { ChartMacroBiasRealtimeCard, type ChartMacroBiasRealtimeCardData } from 
 import { FMS_DOCK_MIN_WIDTH, type FmsDockPrimaryTab, type FmsDockTab } from "@/app/features/chart-viewport/chartPanelState";
 import { ChartMacroBiasAuditReview } from "@/app/features/fms-dock/ChartMacroBiasAuditReview";
 import { recordAppActivity } from "@/app/features/chart-shell/appActivityLog";
-import { FMS_BASELINE_DISPLAY_VERSION, FMS_BASELINE_GENERATION_SUMMARY } from "@/app/lib/fmsDisplayVersion";
+import { FMS_BASELINE_DISPLAY_VERSION, FMS_BASELINE_GENERATION_SUMMARY, FMS_SUCCESSOR_DISPLAY_VERSION, FMS_SUCCESSOR_GENERATION_SUMMARY } from "@/app/lib/fmsDisplayVersion";
+import type { FmsDisplayVersion } from "@/app/lib/fmsDisplayVersion";
 import type { MacroSignalChartSignal } from "@/app/types";
 
 class FmsDockErrorBoundary extends Component<{ children: ReactNode }, { error: string | null }> {
@@ -96,14 +97,17 @@ export function FmsSetupsWorkspace({ data }: { data: ChartMacroBiasRealtimeCardD
   };
   const registeredCount = (data.globalResponse?.markets ?? [data.response])
     .reduce((sum, market) => sum + market.patterns.filter((pattern) => pattern.currentEligible).length, 0);
+  const successorCount = (data.globalResponse?.markets ?? [data.response])
+    .reduce((sum, market) => sum + market.patterns.filter((pattern) => pattern.currentEligible && pattern.registeredVersion === FMS_SUCCESSOR_DISPLAY_VERSION).length, 0);
 
   return (
     <section className="fms-setups-workspace" aria-label="Registered setups, research, and knowledge">
       <header><div><span>Registered FMS versions</span></div><small>{registeredCount} eligible frozen recipes</small></header>
         <div className="fms-setups-workspace-sections">
           <details open={sections.open.includes("benchmarks")} onToggle={(event) => toggleSection("benchmarks", event.currentTarget.open)}>
-            <summary><span>{FMS_BASELINE_DISPLAY_VERSION} — registered setups</span><small>{registeredCount} · frozen baseline</small><ChevronDown size={13} /></summary>
-            <p className="fms-version-generation-summary">{FMS_BASELINE_GENERATION_SUMMARY}</p>
+            <summary><span>Registered setup versions</span><small>{successorCount} {FMS_SUCCESSOR_DISPLAY_VERSION} · {registeredCount - successorCount} {FMS_BASELINE_DISPLAY_VERSION}</small><ChevronDown size={13} /></summary>
+            {successorCount > 0 ? <p className="fms-version-generation-summary"><b>{FMS_SUCCESSOR_DISPLAY_VERSION}:</b> {FMS_SUCCESSOR_GENERATION_SUMMARY}</p> : null}
+            <p className="fms-version-generation-summary"><b>{FMS_BASELINE_DISPLAY_VERSION}:</b> {FMS_BASELINE_GENERATION_SUMMARY}</p>
             {sections.visited.includes("benchmarks") ? <ChartMacroBiasRealtimeCard data={data} view="setups" embedded /> : null}
           </details>
           <details open={sections.open.includes("research")} onToggle={(event) => toggleSection("research", event.currentTarget.open)}>
@@ -131,12 +135,14 @@ interface ChartFmsDockProps {
   loading: boolean;
   historicalMatchesVisible: boolean;
   historicalMatchesCount: number;
+  arrowVersion: FmsDisplayVersion;
   historicalPatternFilters: Array<{ id: string; label: string; count: number; checked: boolean }>;
   tradeViewState: FmsTradeViewState;
   onTradeViewStateChange: (state: FmsTradeViewState) => void;
   onSelectTab: (tab: FmsDockPrimaryTab) => void;
   onSelectAuditTab: () => void;
   onToggleHistoricalMatches: () => void;
+  onSelectArrowVersion: (version: FmsDisplayVersion) => void;
   onToggleHistoricalPattern: (patternId: string) => void;
   onSetAllHistoricalPatterns: (visible: boolean) => void;
   onGoToArrow: (market: string, signal: MacroSignalChartSignal) => void;
@@ -155,12 +161,14 @@ export function ChartFmsDock({
   loading,
   historicalMatchesVisible,
   historicalMatchesCount,
+  arrowVersion,
   historicalPatternFilters,
   tradeViewState,
   onTradeViewStateChange,
   onSelectTab,
   onSelectAuditTab,
   onToggleHistoricalMatches,
+  onSelectArrowVersion,
   onToggleHistoricalPattern,
   onSetAllHistoricalPatterns,
   onGoToArrow,
@@ -195,8 +203,10 @@ export function ChartFmsDock({
                   data={realtime}
                   historicalMatchesVisible={historicalMatchesVisible}
                   historicalMatchesCount={historicalMatchesCount}
+                  arrowVersion={arrowVersion}
                   historicalPatternFilters={historicalPatternFilters}
                   onToggleHistoricalMatches={onToggleHistoricalMatches}
+                  onSelectArrowVersion={onSelectArrowVersion}
                   onToggleHistoricalPattern={onToggleHistoricalPattern}
                   onSetAllHistoricalPatterns={onSetAllHistoricalPatterns}
                   onGoToArrow={onGoToArrow}

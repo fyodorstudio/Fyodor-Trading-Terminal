@@ -5,8 +5,8 @@ import type { ChartMacroBiasRealtimeCardData } from "@/app/components/ChartMacro
 import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
 import { FmsReviewNoteRow } from "@/app/features/fms-dock/FmsReviewNoteRow";
 import { useFmsReviewNotes } from "@/app/features/fms-dock/useFmsReviewNotes";
-import { formatJakartaDisplayDateTime } from "@/app/lib/format";
-import { FMS_BASELINE_DISPLAY_VERSION } from "@/app/lib/fmsDisplayVersion";
+import { formatChartFeedTime, formatChartUtcMetadataTime, type ChartDisplayTimeMode } from "@/app/lib/chartView";
+import { FMS_BASELINE_DISPLAY_VERSION, FMS_SUCCESSOR_DISPLAY_VERSION, type FmsDisplayVersion } from "@/app/lib/fmsDisplayVersion";
 import type { FmsReviewNoteInput, FmsReviewNoteLabel } from "@/app/lib/bridge";
 import entryResearch from "@/app/lib/fmsEntryResearchSummary.json";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalPatternAssessment, MacroSignalUpcomingPatternWatch } from "@/app/types";
@@ -96,6 +96,7 @@ export function buildRecentFmsActivity(markets: MacroSignalChartSignalResponse[]
         : assessment.status === "no_trade" ? "No trade"
         : assessment.status === "late_for_contract" ? "Audit only · late"
         : assessment.status === "awaiting_observation" ? "Awaiting release data"
+        : assessment.status === "awaiting_clock_verification" ? "Verifying source clock"
         : assessment.status === "qualified" ? "Qualified"
         : "Audit only";
       const key = `${market.symbol}:${assessment.patternId}:${assessment.time}`;
@@ -193,14 +194,9 @@ export function getTradeMarkets(data: { response: MacroSignalChartSignalResponse
   return [...markets.values()].filter((market) => market.supported);
 }
 
-const tradeDateFormatter = new Intl.DateTimeFormat("en-GB", {
-  timeZone: "Asia/Jakarta", day: "2-digit", month: "short", year: "numeric",
-  hour: "2-digit", minute: "2-digit", hour12: false,
-});
-
-function TradeDate({ label, time, fallback = "Not recorded" }: { label: string; time?: number | null; fallback?: string }) {
+function TradeDate({ label, time, fallback = "Not recorded", displayTimeMode, sourceTimeOffsetSeconds }: { label: string; time?: number | null; fallback?: string; displayTimeMode: ChartDisplayTimeMode; sourceTimeOffsetSeconds: number }) {
   return <div className="fms-trade-date"><span>{label}</span>{time != null
-    ? <time dateTime={new Date(time * 1000).toISOString()}>{tradeDateFormatter.format(new Date(time * 1000))}</time>
+    ? <time dateTime={new Date(time * 1000).toISOString()}>{formatChartFeedTime(time, displayTimeMode, sourceTimeOffsetSeconds)}</time>
     : <span className="fms-trade-date-empty">{fallback}</span>}</div>;
 }
 
@@ -352,7 +348,7 @@ function cohortLabel(cohort: { dimension: string; value: string }): string {
   return cohort.dimension === "none" ? "All matching cases" : `${humanizeSetupId(cohort.dimension)}: ${humanizeSetupId(cohort.value)}`;
 }
 
-function HistoricalBenchmark({ pattern }: { pattern: MacroSignalChartPattern }) {
+function HistoricalBenchmark({ pattern, displayTimeMode, sourceTimeOffsetSeconds }: { pattern: MacroSignalChartPattern; displayTimeMode: ChartDisplayTimeMode; sourceTimeOffsetSeconds: number }) {
   const record = historicalRecord(pattern);
   const other = [
     `Expired ${record.expiredCount ?? "unavailable"}`,
@@ -373,7 +369,7 @@ function HistoricalBenchmark({ pattern }: { pattern: MacroSignalChartPattern }) 
     <details className="fms-history-definitions">
       <summary>Outcome definitions{record.ambiguousCount ? ` · inspect ${record.ambiguousCount} ambiguous` : ""}</summary>
       <p><b>Expired:</b> neither SL nor TP was reached before the frozen maximum duration; the final candle determines gross R. <b>Ambiguous:</b> SL and TP were both touched inside one H4 candle and available finer data could not prove which came first. <b>Unevaluable:</b> required entry, ATR, or outcome candles were missing, so no result was invented.</p>
-      {record.ambiguousCases.length ? <ul>{record.ambiguousCases.map((row, index) => <li key={row.caseId ?? `${row.eventTime}:${index}`}><strong>{row.eventTime == null ? "Time unavailable" : formatJakartaDisplayDateTime(row.eventTime)}</strong><span>{row.caseId ?? "Case ID unavailable"} · {row.reason ?? "SL/TP order unresolved"}</span></li>)}</ul> : record.ambiguousCount ? <small>The source records the ambiguous count but not case-level identifiers. Use source {record.sourceId ?? "ID unavailable"} for a raw-case audit.</small> : <small>No ambiguous case is recorded in this cohort.</small>}
+      {record.ambiguousCases.length ? <ul>{record.ambiguousCases.map((row, index) => <li key={row.caseId ?? `${row.eventTime}:${index}`}><strong>{row.eventTime == null ? "Time unavailable" : formatChartFeedTime(row.eventTime, displayTimeMode, sourceTimeOffsetSeconds)}</strong><span>{row.caseId ?? "Case ID unavailable"} · {row.reason ?? "SL/TP order unresolved"}</span></li>)}</ul> : record.ambiguousCount ? <small>The source records the ambiguous count but not case-level identifiers. Use source {record.sourceId ?? "ID unavailable"} for a raw-case audit.</small> : <small>No ambiguous case is recorded in this cohort.</small>}
     </details>
   </div>;
 }
@@ -415,7 +411,7 @@ function positionCurrencyExposure(market: string, direction: "long" | "short"): 
   return { [market.slice(0, 3)]: sign, [market.slice(3, 6)]: -sign };
 }
 
-function entryResearchNote(market: string, pattern: MacroSignalChartPattern): string {
+function entryResearchNote(market: string, pattern: MacroSignalChartPattern, displayTimeMode: ChartDisplayTimeMode, sourceTimeOffsetSeconds: number): string {
   const recipe = `${market}|${pattern.id}`;
   const hourly = entryResearch.sessionHourly.findings.find((row) => row.recipe === recipe);
   const activeReview = entryResearch.activeEntryReview.findings.find((row) => row.recipe === recipe);
@@ -434,7 +430,7 @@ function entryResearchNote(market: string, pattern: MacroSignalChartPattern): st
     ? ` The exact active contract also retained positive H1 improvement, so this is a review candidate.${preH4?.entryToH4.mean == null ? "" : ` Before H4 entry, its later cases moved ${preH4.entryToH4.mean >= 0 ? "+" : ""}${preH4.entryToH4.mean.toFixed(2)} ATR on average in the trade direction.`}`
     : "";
   const activeEntry = pattern.entryReview?.status === "reviewed_active"
-    ? ` Active entry is now the first eligible H1 open from ${formatJakartaDisplayDateTime(pattern.entryReview.activatedAt)}; older occurrences retain H4.`
+    ? ` Active entry is now the first eligible H1 open from ${formatChartUtcMetadataTime(pattern.entryReview.activatedAt, displayTimeMode, sourceTimeOffsetSeconds)}; older occurrences retain H4.`
     : " Active entry remains the first strictly later H4 open.";
   return `${hourlyConclusion}${activeContract}${minuteCoverage}${activeEntry}`;
 }
@@ -443,8 +439,10 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   data,
   historicalMatchesVisible = false,
   historicalMatchesCount = 0,
+  arrowVersion = FMS_BASELINE_DISPLAY_VERSION,
   historicalPatternFilters = [],
   onToggleHistoricalMatches,
+  onSelectArrowVersion,
   onToggleHistoricalPattern,
   onSetAllHistoricalPatterns,
   onGoToArrow,
@@ -456,8 +454,10 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   data: ChartMacroBiasRealtimeCardData;
   historicalMatchesVisible?: boolean;
   historicalMatchesCount?: number;
+  arrowVersion?: FmsDisplayVersion;
   historicalPatternFilters?: Array<{ id: string; label: string; count: number; checked: boolean }>;
   onToggleHistoricalMatches?: () => void;
+  onSelectArrowVersion?: (version: FmsDisplayVersion) => void;
   onToggleHistoricalPattern?: (patternId: string) => void;
   onSetAllHistoricalPatterns?: (visible: boolean) => void;
   onGoToArrow?: (market: string, signal: MacroSignalChartSignal) => void;
@@ -466,6 +466,8 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   viewState?: FmsTradeViewState;
   onViewStateChange?: (state: FmsTradeViewState) => void;
 }) {
+  const displayTimeMode = data.displayTimeMode ?? "local";
+  const sourceTimeOffsetSeconds = data.sourceTimeOffsetSeconds ?? 0;
   const markets = useMemo(() => getTradeMarkets(data), [data.globalResponse?.markets, data.response]);
   const responseNow = data.response.generatedAt ?? Math.floor(Date.now() / 1_000);
   const [clock, setClock] = useState(responseNow);
@@ -574,9 +576,20 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
       <div className="fms-action-display-controls">
         <label title="Show or hide frozen historical arrows from the registered setups.">
           <input type="checkbox" checked={historicalMatchesVisible} onChange={onToggleHistoricalMatches} disabled={!onToggleHistoricalMatches} />
-          <span>{FMS_BASELINE_DISPLAY_VERSION} frozen arrows</span>
+          <span>Past arrows</span>
           <small>{historicalMatchesCount}</small>
         </label>
+        <div className="fms-arrow-version-toggle" role="group" aria-label="FMS arrow version">
+          {([FMS_BASELINE_DISPLAY_VERSION, FMS_SUCCESSOR_DISPLAY_VERSION] as const).map((version) => <button
+            key={version}
+            type="button"
+            className={arrowVersion === version ? "is-active" : ""}
+            aria-pressed={arrowVersion === version}
+            onClick={() => onSelectArrowVersion?.(version)}
+            disabled={!onSelectArrowVersion}
+            title={version === FMS_SUCCESSOR_DISPLAY_VERSION ? "Show only arrows created under approved v2 successor contracts after activation" : "Show preserved v1 arrows"}
+          >{version}</button>)}
+        </div>
         <details className="fms-arrow-filter">
           <summary>Choose setups</summary>
           <div>
@@ -604,7 +617,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
       </nav>
       {(data.refreshing || data.refreshedAt) ? <div className="fms-action-refresh-state" role="status">
         <span>{data.refreshing ? "Refreshing saved data…" : "Last successful update"}</span>
-        {data.refreshedAt ? <time dateTime={new Date(data.refreshedAt * 1000).toISOString()}>{tradeDateFormatter.format(new Date(data.refreshedAt * 1000))} · Jakarta</time> : null}
+        {data.refreshedAt ? <time dateTime={new Date(data.refreshedAt * 1000).toISOString()}>{formatChartUtcMetadataTime(data.refreshedAt, displayTimeMode, sourceTimeOffsetSeconds)}</time> : null}
       </div> : null}
       {data.globalError ? <p role="alert" className="fms-action-warning">{data.globalError}</p> : null}
       {notesError ? <p role="alert" className="fms-action-warning">Audit notes: {notesError}</p> : null}
@@ -614,7 +627,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
         </div>
         <div ref={activeView === "next" ? scrollRef : undefined} className="fms-action-schedule-scroll" onScroll={onScroll}>
           {registeredSchedule.length > 0 ? <table className="fms-action-table">
-            <thead><tr><th>Setup</th><th>Plan and evidence</th><th>Dates · Jakarta</th></tr></thead>
+            <thead><tr><th>Setup</th><th>Plan and evidence</th><th>Dates · selected time</th></tr></thead>
             <tbody>{registeredSchedule.map((row) => {
               const expanded = expandedScheduleKey === row.key;
               const record = historicalRecord(row.pattern);
@@ -629,13 +642,13 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                 }}>
                   <td><strong><PairFlags symbol={row.market} />{row.market}</strong><small>{row.pattern.label}</small></td>
                   <td className="fms-action-evidence"><strong>{record.tpRate == null ? "TP rate unavailable" : `${(record.tpRate * 100).toFixed(1)}% TP before SL`}</strong><small>{record.averageR == null ? "Gross average unavailable" : `${record.averageR >= 0 ? "+" : ""}${record.averageR.toFixed(2)}R gross avg`} · N {record.sample}</small><span className="fms-row-actions"><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small>{latestArrow && onGoToArrow ? <button type="button" className="fms-go-to-arrow" onClick={(event) => { event.stopPropagation(); onGoToArrow(row.market, latestArrow); }} onKeyDown={(event) => event.stopPropagation()}>Go to latest arrow</button> : null}</span></td>
-                  <td><TradeDate label="Release" time={row.watch?.time} fallback="Awaiting date" />{row.watch ? <><small className="fms-release-countdown">In {countdownLabel(row.watch.time, clock)}</small><button type="button" className="fms-review-setup" onClick={(event) => { event.stopPropagation(); onReviewSetup?.(row.market, row.pattern.id); beginNote(row.key); }} onKeyDown={(event) => event.stopPropagation()}>{note ? "Review note" : "Review"}</button></> : null}</td>
+                  <td><TradeDate label="Release" time={row.watch?.time} fallback="Awaiting date" displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} />{row.watch ? <><small className="fms-release-countdown">In {countdownLabel(row.watch.time, clock)}</small><button type="button" className="fms-review-setup" onClick={(event) => { event.stopPropagation(); onReviewSetup?.(row.market, row.pattern.id); beginNote(row.key); }} onKeyDown={(event) => event.stopPropagation()}>{note ? "Review note" : "Review"}</button></> : null}</td>
                 </tr>
-                <FmsReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === row.key} draft={noteDraft} label={noteLabel} saving={noteSavingKey === row.key} onDraftChange={setNoteDraft} onLabelChange={setNoteLabel} onEdit={() => beginNote(row.key)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(row.key)} />
+                <FmsReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === row.key} draft={noteDraft} label={noteLabel} saving={noteSavingKey === row.key} displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} onDraftChange={setNoteDraft} onLabelChange={setNoteLabel} onEdit={() => beginNote(row.key)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(row.key)} />
                 {expanded ? <tr className="fms-action-detail-row"><td colSpan={3}>
                   <table><tbody>
                     <tr><th>Frozen contract</th><td>{patternExecutionLabel(row.pattern)}</td></tr>
-                    <tr><th>Historical benchmark</th><td><HistoricalBenchmark pattern={row.pattern} /></td></tr>
+                    <tr><th>Historical benchmark</th><td><HistoricalBenchmark pattern={row.pattern} displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} /></td></tr>
                     <tr><th>Evidence profile</th><td>{evidence.primary}</td></tr>
                     <tr><th>Quirks</th><td>{evidence.quirks.length ? evidence.quirks.join(" · ") : "No headline quirk under the current frozen thresholds."}</td></tr>
                     <tr><th>Forward record</th><td>{fresh.label} · {fresh.detail}</td></tr>
@@ -645,7 +658,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                     <tr><th>Required package</th><td>{row.watch?.requiredGroups.join(" · ") || row.pattern.groups.join(" · ")}</td></tr>
                     <tr><th>Scoring</th><td>{row.pattern.scoringPolicy?.replaceAll("_", " ") ?? "baseline"} · {row.pattern.reaction ?? "continuation"}</td></tr>
                     <tr><th>Entry and expiry</th><td>First eligible {row.pattern.execution?.entryTimeframe ?? "H4"} open · maximum {row.pattern.execution?.expiryCandles ?? 30} H4</td></tr>
-                    <tr><th>Earlier-entry research</th><td>{entryResearchNote(row.market, row.pattern)}</td></tr>
+                    <tr><th>Earlier-entry research</th><td>{entryResearchNote(row.market, row.pattern, displayTimeMode, sourceTimeOffsetSeconds)}</td></tr>
                     <tr><th>Identifiers</th><td><code>{row.market} · {row.pattern.id}</code></td></tr>
                   </tbody></table>
                 </td></tr> : null}
@@ -658,7 +671,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
         <div className="fms-action-section-title"><span>{activeView === "current" ? "Open trades and awaiting decisions" : "Closed trades and completed decisions"}</span>{activeView === "recent" ? <label className="fms-hide-no-trade"><input type="checkbox" checked={hideNoTrade} onChange={(event) => updateViewState({ hideNoTrade: event.target.checked })} /> Hide no trade</label> : null}<small>Newest first · {activeView === "recent" && hideNoTrade ? `${displayedActivity.length} displayed / ${recentActivity.length} total` : `all ${displayedActivity.length}`}</small></div>
         <div ref={scrollRef} className="fms-action-activity-scroll" onScroll={onScroll}>
           {displayedActivity.length > 0 ? <table className="fms-action-table">
-            <thead><tr><th>Setup</th><th>Decision and result</th><th>Dates · Jakarta</th></tr></thead>
+            <thead><tr><th>Setup</th><th>Decision and result</th><th>Dates · selected time</th></tr></thead>
             <tbody>{displayedActivity.map((row) => {
               const expanded = expandedActivityKey === row.key;
               const sourceLabel = row.source === "recovered" ? "Recovered offline" : row.source === "live" ? "Live captured" : row.state === "No trade" ? "No trade" : "Decision";
@@ -672,25 +685,25 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                   <td><strong><PairFlags symbol={row.market} />{row.market}</strong><small>{row.label}</small></td>
                   <td><strong>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} · ` : ""}{row.state}</strong><span className="fms-row-actions"><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small>{arrowSignal && onGoToArrow ? <button type="button" className="fms-go-to-arrow" onClick={(event) => { event.stopPropagation(); onGoToArrow(row.market, arrowSignal); }} onKeyDown={(event) => event.stopPropagation()}>Go to arrow</button> : !arrowSignal && row.assessment && onGoToEvent ? <button type="button" className="fms-go-to-arrow" onClick={(event) => { event.stopPropagation(); onGoToEvent(row.market, row.assessment!.time); }} onKeyDown={(event) => event.stopPropagation()}>Go to event</button> : null}<button type="button" className="fms-add-note" disabled={notesLoading} onClick={(event) => { event.stopPropagation(); beginNote(row.key); }} onKeyDown={(event) => event.stopPropagation()}>{note ? "Edit note" : "Add note"}</button></span></td>
                   <td className="fms-activity-dates">
-                    <TradeDate label="Released" time={row.signal?.eventTime ?? row.assessment?.time ?? row.time} />
+                    <TradeDate label="Released" time={row.signal?.eventTime ?? row.assessment?.time ?? row.time} displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} />
                     {row.signal ? <>
-                      <TradeDate label="Opened" time={row.signal.entry != null ? row.signal.activationTime : null} fallback="Entry not recorded" />
-                      <TradeDate label="Closed" time={row.signal.exitTime} fallback={row.signal.outcomeStatus === "pending" ? "Pending" : "Exit not recorded"} />
+                      <TradeDate label="Opened" time={row.signal.entry != null ? row.signal.activationTime : null} fallback="Entry not recorded" displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} />
+                      <TradeDate label="Closed" time={row.signal.exitTime} fallback={row.signal.outcomeStatus === "pending" ? "Pending" : "Exit not recorded"} displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} />
                     </> : null}
                   </td>
                 </tr>
-                <FmsReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === row.key} draft={noteDraft} label={noteLabel} saving={noteSavingKey === row.key} onDraftChange={setNoteDraft} onLabelChange={setNoteLabel} onEdit={() => beginNote(row.key)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(row.key)} />
+                <FmsReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === row.key} draft={noteDraft} label={noteLabel} saving={noteSavingKey === row.key} displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} onDraftChange={setNoteDraft} onLabelChange={setNoteLabel} onEdit={() => beginNote(row.key)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(row.key)} />
                 {expanded ? <tr className="fms-action-detail-row"><td colSpan={3}>
                   <table><tbody>
                     <tr><th>{row.state === "No trade" ? "Why no trade" : "Decision reason"}</th><td colSpan={3}><strong>{decisionSummary(row.assessment)}</strong><details><summary>Full recorded explanation</summary><p>{row.assessment?.reason ?? "Unavailable"}</p></details></td></tr>
-                    <tr><th>Historical benchmark</th><td colSpan={3}><HistoricalBenchmark pattern={row.pattern} /></td></tr>
+                    <tr><th>Historical benchmark</th><td colSpan={3}><HistoricalBenchmark pattern={row.pattern} displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} /></td></tr>
                     <tr><th>Capture status</th><td colSpan={3}><strong>{sourceLabel}.</strong> {row.signal?.prospectiveCapture?.reason ?? row.assessment?.prospectiveCapture?.reason ?? (row.source === "recovered" ? "Recovered history; not a live-captured entry." : row.source === "decision" ? "No open simulated trade." : "Live-captured simulation.")}</td></tr>
                     <tr><th>Frozen decision rule</th><td colSpan={3}>{row.pattern.condition}</td></tr>
                     <tr><th>Frozen contract</th><td colSpan={3}>{row.signal ? executionLabel(row.signal, row.pattern) : patternExecutionLabel(row.pattern)}</td></tr>
-                    <tr><th>Timing research</th><td colSpan={3}><details><summary>Why this entry timeframe?</summary>{entryResearchNote(row.market, row.pattern)}</details></td></tr>
+                    <tr><th>Timing research</th><td colSpan={3}><details><summary>Why this entry timeframe?</summary>{entryResearchNote(row.market, row.pattern, displayTimeMode, sourceTimeOffsetSeconds)}</details></td></tr>
                     <tr><th>Entry</th><td>{price(row.signal?.entry)}</td><th>ATR at entry</th><td>{row.signal?.atr == null ? "Unavailable" : `${row.signal.atr.toFixed(5)} · ${pipDistance(row.market, 0, row.signal.atr)}`}</td></tr>
                     <tr><th>Stop loss</th><td>{price(row.signal?.stop)} · {pipDistance(row.market, row.signal?.entry, row.signal?.stop)}</td><th>Take profit</th><td>{price(row.signal?.target)} · {pipDistance(row.market, row.signal?.entry, row.signal?.target)}</td></tr>
-                    <tr><th>Observed result</th><td>{row.signal ? signalActivityState(row.signal) : row.state}</td><th>Exit / expiry</th><td>{row.signal?.exitTime ? formatJakartaDisplayDateTime(row.signal.exitTime) : row.signal?.expiryTime ? formatJakartaDisplayDateTime(row.signal.expiryTime) : "Unavailable"}</td></tr>
+                    <tr><th>Observed result</th><td>{row.signal ? signalActivityState(row.signal) : row.state}</td><th>Exit / expiry</th><td>{row.signal?.exitTime ? formatChartFeedTime(row.signal.exitTime, displayTimeMode, sourceTimeOffsetSeconds) : row.signal?.expiryTime ? formatChartFeedTime(row.signal.expiryTime, displayTimeMode, sourceTimeOffsetSeconds) : "Unavailable"}</td></tr>
                     <tr><th>Best favorable move</th><td>{row.signal?.pathAudit ? `+${row.signal.pathAudit.maximumFavorableR.toFixed(2)}R · ${row.signal.pathAudit.maximumFavorablePips.toFixed(1)} pips` : "Unavailable"}</td><th>Worst adverse move</th><td>{row.signal?.pathAudit ? `-${row.signal.pathAudit.maximumAdverseR.toFixed(2)}R · -${row.signal.pathAudit.maximumAdversePips.toFixed(1)} pips` : "Unavailable"}</td></tr>
                     {row.assessment?.calculations?.length ? <>
                       <tr><th>News reading</th><td colSpan={3}><strong>{assessmentReading(row.market, row.assessment)}</strong><small>This describes the economic release only; the frozen setup decision remains {row.state.toLowerCase()}.</small></td></tr>

@@ -34,6 +34,14 @@ import {
 import { areBridgeSymbolSnapshotsEqual } from "@/app/features/chart-market-data/symbolCatalog";
 
 const EMPTY_CHART_CANDLES: BridgeCandle[] = [];
+const FOREGROUND_HISTORY_RETRY_DELAYS_MS = [120, 240, 480, 960] as const;
+
+export function isTransientChartHistoryFailure(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return error.message.includes("Bridge returned 503")
+    || error.message.includes("MT5 is busy")
+    || error.message.includes("MT5 connection is busy");
+}
 
 interface VisibleHistoryBuffer {
   identity: string | null;
@@ -240,14 +248,25 @@ export function useChartMarketData({
         const refreshBars = cached.length > 0
           ? getChartRefreshBars(cachedLatest ?? null, timeframe, Date.now() / 1000)
           : QUICK_INITIAL_CHART_CANDLES;
-        const refreshed = await loadResidentChartHistory(
-          selectedSymbol,
-          timeframe,
-          refreshBars,
-          "selected",
-          catalogIdentity ? cached.length === 0 : false,
-          catalogIdentity ?? undefined,
-        );
+        let refreshed: BridgeCandle[] | null = null;
+        for (let attempt = 0; refreshed == null; attempt += 1) {
+          try {
+            refreshed = await loadResidentChartHistory(
+              selectedSymbol,
+              timeframe,
+              refreshBars,
+              "selected",
+              catalogIdentity ? cached.length === 0 : false,
+              catalogIdentity ?? undefined,
+            );
+          } catch (error) {
+            const retryDelay = FOREGROUND_HISTORY_RETRY_DELAYS_MS[attempt];
+            if (!isTransientChartHistoryFailure(error) || retryDelay == null) throw error;
+            addLog(`MT5 busy for ${selectedSymbol} ${timeframe}; retrying foreground history`);
+            await new Promise<void>((resolve) => window.setTimeout(resolve, retryDelay));
+            if (cancelled || loadRequestIdRef.current !== requestId) return;
+          }
+        }
         if (cancelled || loadRequestIdRef.current !== requestId) return;
         let candles = mergeChartCandles(cached, refreshed);
         if (candles.length === 0) {

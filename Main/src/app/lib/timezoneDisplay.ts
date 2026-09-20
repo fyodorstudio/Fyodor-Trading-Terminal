@@ -53,6 +53,13 @@ const ACTUAL_UTC_OFFSET_MINUTES = [
 
 type TimeGetterMode = "local" | "utc";
 
+export interface DisplayTimezoneDateParts {
+  year: number;
+  month: number;
+  day: number;
+  weekday: number;
+}
+
 function isDisplayTimezoneSelection(value: string): value is DisplayTimezoneSelection {
   if (value === "local" || value === "server") return true;
   if (!value.startsWith("utc-offset:")) return false;
@@ -98,6 +105,27 @@ function getDatePart(date: Date, mode: TimeGetterMode, part: "year" | "month" | 
   if (part === "hours") return date.getUTCHours();
   if (part === "minutes") return date.getUTCMinutes();
   return date.getUTCSeconds();
+}
+
+export function getDisplayTimezoneDateParts(timestampSeconds: number, selection: DisplayTimezoneSelection): DisplayTimezoneDateParts {
+  const { date, mode } = getDisplayDate(timestampSeconds, selection);
+  return {
+    year: getDatePart(date, mode, "year"),
+    month: getDatePart(date, mode, "month") + 1,
+    day: getDatePart(date, mode, "date"),
+    weekday: mode === "local" ? date.getDay() : date.getUTCDay(),
+  };
+}
+
+export function formatDateForDisplayTimezone(timestampSeconds: number, selection: DisplayTimezoneSelection, includeWeekday = false): string {
+  const { date, mode } = getDisplayDate(timestampSeconds, selection);
+  return date.toLocaleDateString("en-US", {
+    ...(includeWeekday ? { weekday: "long" as const } : {}),
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    ...(mode === "utc" ? { timeZone: "UTC" } : {}),
+  });
 }
 
 function formatMonthLabel(date: Date, mode: TimeGetterMode): string {

@@ -21,6 +21,7 @@ sys.path.insert(0, str(ROOT / "Main/mt5-bridge"))
 from fms_recipe_catalogue import REFERENCE_HORIZONS, REFERENCE_TARGETS_R, archive_contract_evidence, assess_source_clock, fixed_reference_case, project_catalogue_surface, reference_followup_case, summarize_followup, summarize_reference  # noqa: E402
 from macro_signal import calculate_atr_by_candle  # noqa: E402
 from registered_entry_reviews import load_registered_entry_reviews  # noqa: E402
+from fms_recipe_review import select_event_specific_references  # noqa: E402
 
 
 def load_verified_inventory(path: Path) -> dict:
@@ -178,8 +179,9 @@ def main() -> None:
   parser.add_argument("--source", type=Path, required=True)
   parser.add_argument("--directory", type=Path, required=True)
   parser.add_argument("--publish-surface", type=Path, help="Publish a compact presentation of an existing hash-verified catalogue without querying SQLite")
+  parser.add_argument("--select-event-specific", type=Path, help="Freeze development-only per-recipe selections from an existing verified catalogue; never promote")
   args = parser.parse_args()
-  if args.publish_surface:
+  if args.publish_surface or args.select_event_specific:
     result = json.loads((args.directory / "catalogue.json").read_text(encoding="utf-8"))
     hashed = dict(result)
     expected = hashed.pop("catalogueHash")
@@ -187,6 +189,16 @@ def main() -> None:
     manifest_hash = manifest.pop("manifestHash")
     if digest(hashed) != expected or digest(manifest) != manifest_hash:
       raise ValueError("Catalogue/manifest failed hash verification; presentation refused")
+    if args.publish_surface and args.select_event_specific:
+      raise ValueError("Choose one frozen-source projection at a time")
+    if args.select_event_specific:
+      selection = select_event_specific_references(result)
+      selection["sourceSha256"] = {"selector": digest_bytes((ROOT / "Main/mt5-bridge/fms_recipe_review.py").read_bytes()),
+                                   "runner": digest_bytes(Path(__file__).read_bytes())}
+      selection["selectionHash"] = digest(selection)
+      write_frozen(args.select_event_specific, selection)
+      print(json.dumps({**selection["summary"], "selectionHash": selection["selectionHash"], "newRegistrations": 0}))
+      return
     write_frozen(args.publish_surface, project_catalogue_surface(result), compact=True)
   else:
     result = prepare(args.database, args.source, args.directory)

@@ -27,7 +27,7 @@ import { getFmsDockTabForAudit } from "@/app/features/chart-viewport/chartPanelS
 import { buildChartMacroBiasAuditViewModel } from "@/app/lib/chartMacroBiasAuditViewModel";
 import { buildMacroSignalShadowAccount, buildMacroSignalShadowPosition, normalizeShadowRiskPercent, normalizeShadowStartingBalance } from "@/app/lib/macroSignalShadow";
 import { createPairMatrixHoverRuntime } from "@/app/lib/pairMatrixHoverRuntime";
-import { buildMacroBiasPriceLineLevels, buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasArrowFocusRange, getMacroBiasReplayStatusLabel, getMacroBiasRequestScope, getMacroBiasReviewHiddenPatterns, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, isMacroBiasMarketSupported, mergeMacroBiasSignalDetail, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange, shouldApplyMacroBiasRefresh } from "@/app/tabs/primary/ChartsTab";
+import { buildMacroBiasPriceLineLevels, buildMacroBiasSeriesMarkers, captureChartZoomSnapshot, ChartsTab, filterMacroBiasSignalsByVersion, getChartRangeUpdateCadence, getMacroBiasActiveState, getMacroBiasArrowFocusRange, getMacroBiasReplayStatusLabel, getMacroBiasRequestScope, getMacroBiasReviewHiddenPatterns, getPairMatrixAnalyzeCandleRange, getPairMatrixHoverSettleDelay, isMacroBiasMarketSupported, mergeMacroBiasSignalDetail, resolvePairMatrixHoveredCandleUpdate, restoreChartZoomRange, shouldApplyMacroBiasRefresh } from "@/app/tabs/primary/ChartsTab";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalContextResearch, MacroSignalGlobalResponse, MacroSignalMetrics } from "@/app/types";
 import { DEFAULT_CHART_TIMEFRAME, getChartConnectionLabel } from "@/app/lib/chartDisplay";
 import { getChartSessionDetail } from "@/app/lib/chartView";
@@ -41,11 +41,13 @@ import {
 import { getMacroBiasInitialLoadPlan } from "@/app/tabs/primary/ChartsTab";
 
 describe("pair-switch FMS loading", () => {
-  it("presents the saved catalogue as unverified research with no registration or eager detail tables", () => {
+  it("presents the frozen v2 decisions without eager detail tables or mutation controls", () => {
     const html = renderToStaticMarkup(createElement(FmsRecipeCatalogue));
-    expect(html).toContain("51 recipes · 0 new registrations");
-    expect(html).toContain("Timing unverified");
-    expect(html).toContain("not approved FMS v2 trades");
+    expect(html).toContain("17 registered · 1 explicit exclusion");
+    expect(html).toContain("Current-source clock matching passed");
+    expect(html).toContain("480 fixed-H4 SL/TP/expiry contracts");
+    expect(html).toContain("Registered FMS v2");
+    expect(html).toContain("Retain FMS v1");
     expect(html).toContain("Reused holdout");
     expect(html).toContain("Previously declined execution study");
     expect(html).toContain("Baseline approval identity reconciled");
@@ -148,6 +150,10 @@ describe("pair-switch FMS loading", () => {
     expect(startup.markets.every((row) => row.signals.length === 0)).toBe(true);
     expect(isCompleteStartupRegistry(startup)).toBe(true);
     expect(isCompleteStartupRegistry({ ...startup, markets: startup.markets.slice(0, 1) })).toBe(false);
+    expect(getTradeMarkets({
+      response: market("EURUSD"),
+      globalResponse: startup,
+    }).map((row) => row.symbol)).toEqual(["EURUSD", "AUDUSD"]);
   });
 
   it("renders only a bounded Market Watch window while retaining full scroll height", () => {
@@ -260,12 +266,12 @@ describe("getChartConnectionLabel", () => {
     const signals = [{
       ...makeSignal("long", 1_000, "long"),
       contextOverlay: { registrationId: "FMS-EURUSD-H4-CTX-C001", modelId: "FMS-CONTEXT-CONDITIONAL-H4-v1" as const, parentPatternId: "pattern-long", condition: { dimension: "macroBackground", value: "aligned", knownAt: "entry" as const }, observedValue: "aligned", matched: true, activeForEvent: true, executionApplied: true, parentBehaviorWhenContextDoesNotMatch: "retain_parent" as const, parentExecution: { stopAtr: 1, targetR: 2, expiryCandles: 30 }, contextExecution: { stopAtr: .75, targetR: 3, expiryCandles: 18 } },
-    }, makeSignal("short", 15_000, "short")];
+    }, { ...makeSignal("short", 15_000, "short"), registeredVersion: "FMS v2" as const }];
     const built = buildMacroBiasSeriesMarkers(signals, candles, "H4", 0);
 
     expect(built.markers.map((marker) => ({ time: marker.time, shape: marker.shape, text: marker.text, color: marker.color }))).toEqual([
       { time: 14_400, shape: "arrowUp", text: "H4 ENTRY · LONG · FMS v1 · CONTEXT", color: "#2563eb" },
-      { time: 28_800, shape: "arrowDown", text: "H4 ENTRY · SHORT · FMS v1", color: "#7c3aed" },
+      { time: 28_800, shape: "arrowDown", text: "H4 ENTRY · SHORT · FMS v2", color: "#7c3aed" },
     ]);
     const journaled = buildMacroBiasSeriesMarkers([
       { ...makeSignal("journal-long", 1_000, "long"), historicalReplay: false },
@@ -276,6 +282,8 @@ describe("getChartConnectionLabel", () => {
       { ...signals[0], observationMode: "recovered_offline" },
     ], candles, "H4", 0);
     expect(recoveredContext.markers[0].text).toBe("H4 ENTRY · LONG · FMS v1 · RECOVERED · CONTEXT");
+    expect(filterMacroBiasSignalsByVersion(signals, "FMS v1").map((signal) => signal.id)).toEqual(["long"]);
+    expect(filterMacroBiasSignalsByVersion(signals, "FMS v2").map((signal) => signal.id)).toEqual(["short"]);
     expect(signals[0].sourceVersionId).toBe("v2");
     expect([...built.signalByMarkerId.keys()]).toEqual([
       "macro-bias-activation:long",
@@ -743,8 +751,29 @@ describe("getChartConnectionLabel", () => {
     expect(setupsHtml).toContain("Entry and exits:");
     expect(setupsHtml).not.toContain("Every registered setup");
     expect(setupsHtml).not.toContain("<summary>");
+    const v2Pattern = {
+      ...pattern,
+      registeredVersion: "FMS v2",
+      activeExecution: { stopAtr: .75, targetR: 3, expiryCandles: 18, managementFamily: "fixed", managementTriggerR: null, entryTimeframe: "H4", expiryTimeframe: "H4" },
+      successorReview: {
+        id: "FMS-V2-EXEC-TEST", status: "reviewed_active", displayVersion: "FMS v2", activatedAt: 90,
+        registryHash: "registry", sourceResearchHash: "research", sourceManifestHash: "manifest",
+        previousExecution: pattern.execution, currentExecution: { stopAtr: .75, targetR: 3, expiryCandles: 18, managementFamily: "fixed", managementTriggerR: null, entryTimeframe: "H4", expiryTimeframe: "H4" },
+        development: { averageGrossR: .4, targetHitRate: .35, evaluableCount: 50 },
+        holdout: { averageGrossR: .5, targetHitRate: .4, evaluableCount: 20 },
+        overall: { averageGrossR: .43, targetHitRate: .36, evaluableCount: 70 },
+        matchedV1Comparison: {}, approvalPolicy: {}, limitations: "Gross reused history.", preservesV1History: true,
+      },
+    } satisfies MacroSignalChartPattern;
+    const v2SetupsHtml = renderToStaticMarkup(createElement(ChartMacroBiasRealtimeCard, { data: {
+      ...setupData, response: { ...response, patterns: [v2Pattern] }, globalResponse: null,
+    }, view: "setups", embedded: true }));
+    expect(v2SetupsHtml).toContain("FMS v2 — approved event-specific execution successors");
+    expect(v2SetupsHtml).toContain("Event-specific execution active");
+    expect(v2SetupsHtml).toContain("v1 comparator:");
+    expect(v2SetupsHtml).toContain("SL 0.75 ATR · TP 3R · 18 H4");
     const workspaceHtml = renderToStaticMarkup(createElement(FmsSetupsWorkspace, { data: setupData }));
-    expect(workspaceHtml).toContain("FMS v1 — registered setups");
+    expect(workspaceHtml).toContain("Registered setup versions");
     expect(workspaceHtml).toContain("Frozen event–pair recipes");
     expect(workspaceHtml.match(/<summary>/g)).toHaveLength(3);
     expect(workspaceHtml).toContain("Research / reviews");
@@ -755,7 +784,7 @@ describe("getChartConnectionLabel", () => {
     try {
       const previouslyVisited = renderToStaticMarkup(createElement(FmsSetupsWorkspace, { data: setupData }));
       expect(previouslyVisited).not.toContain("Loading saved research catalogue");
-      expect(previouslyVisited).not.toContain("Event–pair catalogue · research only");
+      expect(previouslyVisited).not.toContain("FMS v2 · event-specific execution review");
     } finally {
       vi.unstubAllGlobals();
     }
@@ -763,7 +792,9 @@ describe("getChartConnectionLabel", () => {
       response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
     }, historicalMatchesVisible: true, historicalMatchesCount: 42, onToggleHistoricalMatches: () => {}, onGoToArrow: () => {} }));
     expect(actionHtml).not.toContain("Registered rules only");
-    expect(actionHtml).toContain("FMS v1 frozen arrows");
+    expect(actionHtml).toContain("Past arrows");
+    expect(actionHtml).toContain('aria-label="FMS arrow version"');
+    expect(actionHtml).toContain('class="is-active" aria-pressed="true"');
     expect(actionHtml).toContain("Search setups");
     expect(actionHtml).not.toContain("Fresh:");
     expect(actionHtml).toContain("Next registered setups");
@@ -886,7 +917,7 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("It does not cancel the other releases.");
     expect(html).not.toContain("Complete package decision");
     expect(html).not.toContain("evidence cancelled to zero, so no trade was opened");
-    expect(html).toContain("07:01 AM · 01 Jan 1970 · Asia/Jakarta");
+    expect(html).toContain("01 Jan 1970 07:01");
     expect(html).not.toContain('aria-label="Next registered FMS setup"');
     expect(html).toContain("All registered FMS setups");
     expect(html).toContain("Pair and setup");
@@ -957,7 +988,7 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("IF registered EUR evidence improves");
     expect(html).toContain("Long EURUSD");
     expect(html).toContain("IF evidence is zero, missing, or conflicted");
-    expect(html).toContain("07:05 AM · 01 Jan 1970 · Asia/Jakarta");
+    expect(html).toContain("01 Jan 1970 07:05");
     expect(html).toContain("Long if sentiment improves; Short if it weakens.");
     expect(html).toContain("75.0%");
     expect(html).toContain("17.0%");

@@ -195,31 +195,53 @@ def followup_case(
     "mfeAtr": max(favorable), "maeAtr": max(adverse),
     "favorableAtr": favorable, "adverseAtr": adverse,
     "openingAtr": [sign * (float(row["open"]) - float(entry)) / float(atr) for row in window],
+    "closeAtr": [sign * (float(row["close"]) - float(entry)) / float(atr) for row in window],
     "targets": [{"targetR": target, "touched": max(favorable) >= target,
                  "firstTouchCandle": next((i + 1 for i, value in enumerate(favorable) if value >= target), None)}
                 for target in REFERENCE_TARGETS_R],
   }
 
 
-def fixed_reference_case(followup: Dict[str, Any], target_r: float) -> Dict[str, Any]:
-  """Fixed 1-ATR stop on the same complete-H4 cohort, with unknown ordering."""
+def truncate_followup_case(followup: Dict[str, Any], horizon: int) -> Dict[str, Any]:
+  """Project a shorter contract from one common complete maximum horizon."""
+  if not isinstance(horizon, int) or horizon <= 0:
+    raise ValueError("A positive integer candle horizon is required")
+  if followup["status"] != "observed":
+    return {**followup, "horizonCandles": horizon}
+  if horizon > int(followup["horizonCandles"]):
+    raise ValueError("Cannot extend a frozen follow-up path")
+  projected = deepcopy(followup)
+  for key in ("favorableAtr", "adverseAtr", "openingAtr", "closeAtr"):
+    projected[key] = projected[key][:horizon]
+  projected["horizonCandles"] = horizon
+  projected["finalAtr"] = projected["closeAtr"][-1]
+  projected["mfeAtr"] = max(projected["favorableAtr"])
+  projected["maeAtr"] = max(projected["adverseAtr"])
+  projected["targets"] = [{"targetR": target, "touched": projected["mfeAtr"] >= target,
+                            "firstTouchCandle": next((i + 1 for i, value in enumerate(projected["favorableAtr"]) if value >= target), None)}
+                           for target in REFERENCE_TARGETS_R]
+  return projected
+
+
+def fixed_reference_case(followup: Dict[str, Any], target_r: float, stop_atr: float = 1.0) -> Dict[str, Any]:
+  """Fixed stop/target on a complete-H4 cohort, with unknown ordering."""
   base = {"caseId": followup["caseId"], "eventTime": followup["eventTime"]}
-  if target_r not in REFERENCE_TARGETS_R:
-    raise ValueError("Undeclared reference target")
+  if not math.isfinite(float(target_r)) or target_r <= 0 or not math.isfinite(float(stop_atr)) or stop_atr <= 0:
+    raise ValueError("Positive finite stop and target values are required")
   if followup["status"] != "observed":
     return {**base, "status": "unevaluable", "resultR": None, "reason": followup.get("reason")}
   for index, (opening, favorable, adverse) in enumerate(zip(followup["openingAtr"], followup["favorableAtr"], followup["adverseAtr"])):
-    if opening <= -1:
-      return {**base, "status": "stop_gap", "resultR": opening, "exitCandle": index + 1}
-    if opening >= target_r:
+    if opening <= -stop_atr:
+      return {**base, "status": "stop_gap", "resultR": opening / stop_atr, "exitCandle": index + 1}
+    if opening >= target_r * stop_atr:
       return {**base, "status": "target_hit", "resultR": target_r, "exitCandle": index + 1}
-    if favorable >= target_r and adverse >= 1:
+    if favorable >= target_r * stop_atr and adverse >= stop_atr:
       return {**base, "status": "ambiguous", "resultR": None, "reason": "both_touched_order_unknown", "exitCandle": index + 1}
-    if adverse >= 1:
+    if adverse >= stop_atr:
       return {**base, "status": "stop_hit", "resultR": -1.0, "exitCandle": index + 1}
-    if favorable >= target_r:
+    if favorable >= target_r * stop_atr:
       return {**base, "status": "target_hit", "resultR": target_r, "exitCandle": index + 1}
-  return {**base, "status": "expired", "resultR": followup["finalAtr"], "exitCandle": followup["horizonCandles"]}
+  return {**base, "status": "expired", "resultR": followup["finalAtr"] / stop_atr, "exitCandle": followup["horizonCandles"]}
 
 
 def summarize_reference(rows: Sequence[Dict[str, Any]], scope: str) -> Dict[str, Any]:

@@ -10,6 +10,7 @@ import random
 import statistics
 import time as _time
 import uuid
+from copy import deepcopy
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -27,7 +28,12 @@ from starlette.websockets import WebSocketState
 
 from registered_reaction_audits import registered_context_approval_evidence, registered_context_followup_index, registered_reaction_audit
 from fms_historical_evidence import resolve_historical_evidence
+from source_clock import native_clock_mapping, advance_native_mapping, verify_native_candle_clock, native_capture_eligibility
 from registered_entry_reviews import apply_reviewed_h1_entry, load_registered_entry_reviews
+from registered_execution_successors import (
+  apply_registered_execution_successor,
+  load_registered_execution_successors,
+)
 
 from macro_signal import (
   ACTIVE_VERSION_ID,
@@ -95,7 +101,7 @@ WORKBENCH_MARKETS = {
 
 PRACTICAL_MODEL_ID = "FMS-REGISTERED-REACTION-H4-v5"
 PRACTICAL_MODEL_CREATED_AT = 1787970337
-FMS_CHART_RESPONSE_SCHEMA = 13
+FMS_CHART_RESPONSE_SCHEMA = 15
 REVIEWED_EXECUTION_ACTIVATED_AT = 1788134400
 REVIEWED_H1_ENTRY_ACTIVATED_AT = 1788680400
 CONTEXT_CONDITIONAL_MODEL_ID = "FMS-CONTEXT-CONDITIONAL-H4-v1"
@@ -594,6 +600,18 @@ def _apply_reviewed_context(pattern: Dict[str, Any]) -> Dict[str, Any]:
 
 PRACTICAL_PATTERN_DEFINITIONS = tuple(_apply_reviewed_context(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS)
 
+# FMS v2 is an additive, event-specific execution successor. The registry is
+# hash validated and every profile must match the immediately preceding active
+# contract. Pattern.execution remains the v1 lineage owner; event-time
+# selection below applies v2 only at/after its immutable activation boundary.
+_EXECUTION_SUCCESSOR_METADATA, _EXECUTION_SUCCESSOR_APPROVALS = load_registered_execution_successors()
+PRACTICAL_PATTERN_DEFINITIONS = tuple(
+  apply_registered_execution_successor(
+    pattern, _EXECUTION_SUCCESSOR_APPROVALS, _EXECUTION_SUCCESSOR_METADATA,
+  )
+  for pattern in PRACTICAL_PATTERN_DEFINITIONS
+)
+
 PRACTICAL_MODEL_HASH = hashlib.sha256(json.dumps(PRACTICAL_PATTERN_DEFINITIONS, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 FMS_RESEARCH_INTELLIGENCE = (
@@ -827,22 +845,41 @@ def _reconciled_pattern(pattern: Dict[str, Any]) -> Dict[str, Any]:
   return {**pattern, "historicalBenchmark": benchmark}
 
 
-def _execution_for_event(pattern: Dict[str, Any], event_time: int) -> Dict[str, Any]:
+def _execution_for_event(
+  pattern: Dict[str, Any], event_time: int, activation_offset: int = 0, *, allow_successor: bool = True,
+) -> Dict[str, Any]:
   """Preserve the contract that was active when a historical signal occurred."""
+  successor = pattern.get("successorReview") or {}
+  if (
+    allow_successor
+    and successor.get("status") == "reviewed_active"
+    and event_time >= int(successor.get("activatedAt") or 0) + int(activation_offset)
+  ):
+    return dict(successor.get("currentExecution") or pattern.get("execution") or {})
   entry_review = pattern.get("entryReview") or {}
   if (
     entry_review.get("status") == "reviewed_active"
-    and event_time >= int(entry_review.get("activatedAt") or REVIEWED_H1_ENTRY_ACTIVATED_AT)
+    and event_time >= int(entry_review.get("activatedAt") or REVIEWED_H1_ENTRY_ACTIVATED_AT) + int(activation_offset)
   ):
     return dict(entry_review.get("currentExecution") or pattern.get("execution") or {})
   pre_entry_execution = dict(entry_review.get("previousExecution") or pattern.get("execution") or {})
   review = pattern.get("executionReview") or {}
   if (
     review.get("status") == "reviewed_active"
-    and event_time < int(review.get("activatedAt") or REVIEWED_EXECUTION_ACTIVATED_AT)
+    and event_time < int(review.get("activatedAt") or REVIEWED_EXECUTION_ACTIVATED_AT) + int(activation_offset)
   ):
     return dict(pattern.get("baseExecution") or pattern.get("execution") or {})
   return pre_entry_execution
+
+
+def _registered_version_for_event(pattern: Dict[str, Any], event_time: int, activation_offset: int = 0) -> str:
+  successor = pattern.get("successorReview") or {}
+  if (
+    successor.get("status") == "reviewed_active"
+    and event_time >= int(successor.get("activatedAt") or 0) + int(activation_offset)
+  ):
+    return str(successor.get("displayVersion") or "FMS v2")
+  return "FMS v1"
 
 
 def _market_context_dimension_value(context: Optional[Dict[str, Any]], dimension: str) -> Optional[str]:
@@ -861,16 +898,16 @@ def _market_context_dimension_value(context: Optional[Dict[str, Any]], dimension
   return None
 
 
-def _context_overlay_for_signal(pattern: Dict[str, Any], signal: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def _context_overlay_for_signal(pattern: Dict[str, Any], signal: Dict[str, Any], activation_offset: int = 0) -> Optional[Dict[str, Any]]:
   registration = pattern.get("contextRegistration") or {}
   if registration.get("status") != "reviewed_active":
     return None
   condition = registration.get("condition") or {}
   actual_value = _market_context_dimension_value(signal.get("marketContext"), str(condition.get("dimension") or ""))
   matched = actual_value == condition.get("value")
-  active_for_event = int(signal["eventTime"]) >= int(registration.get("activatedAt") or CONTEXT_CONDITIONAL_ACTIVATED_AT)
+  active_for_event = int(signal["eventTime"]) >= int(registration.get("activatedAt") or CONTEXT_CONDITIONAL_ACTIVATED_AT) + int(activation_offset)
   retired_at = registration.get("retiredAt")
-  active_for_event = active_for_event and (retired_at is None or int(signal["eventTime"]) < int(retired_at))
+  active_for_event = active_for_event and (retired_at is None or int(signal["eventTime"]) < int(retired_at) + int(activation_offset))
   return {
     "registrationId": registration["id"], "modelId": registration["modelId"],
     "parentPatternId": registration["parentPatternId"],
@@ -1197,6 +1234,10 @@ FORWARD_LEDGER_ACTIVATED_AT = 1787047068  # 2026-08-18 09:57:48 UTC
 
 # Last symbol used successfully in GET /history; used by GET /server_time when no symbol param.
 _last_history_symbol: Optional[str] = None
+_source_clock_calibration: Optional[Dict[str, Any]] = None
+_source_clock_calibration_attempt: Optional[Dict[str, Any]] = None
+_source_clock_calibration_lock = Lock()
+_source_clock_reconcile_waiting = False
 _last_symbols_payload: List[Dict[str, Any]] = []
 _last_symbols_broker_identity = "unknown-terminal"
 _last_symbols_catalog_revision = "unavailable"
@@ -2282,11 +2323,13 @@ async def calendar_ingest_cycle(request: Request) -> Dict[str, Any]:
     )
   completed_at = int(payload.completedAt)
   observed_at = int(_time.time())
+  clock_scope = _current_clock_scope()
   if payload.clock is not None:
-    # Additive diagnostics only; no conversion, ledger cutoff or activation
-    # changes. Failed calendar uploads still provide useful native clock facts.
+    # Preserve the raw sample even on failed uploads. A complete cycle may
+    # additionally freeze its validated mapping with newly captured releases;
+    # original event/receipt timestamps are never converted or rewritten.
     sample = {"schema": "fms-native-source-clock-sample-v1", "observedAt": observed_at,
-              "clock": payload.clock.model_dump(), "timestampsChanged": False}
+              "clock": payload.clock.model_dump(), "catalogIdentity": clock_scope, "timestampsChanged": False}
     encoded = json.dumps(sample, sort_keys=True)
     sample_key = f"fms_native_source_clock:v1:{observed_at // 86400}:{payload.clock.symbol}"
     await asyncio.to_thread(_research_store.set_metadata_if_absent, sample_key, encoded)
@@ -2305,12 +2348,18 @@ async def calendar_ingest_cycle(request: Request) -> Dict[str, Any]:
   await asyncio.to_thread(
     _research_store.set_metadata, "last_calendar_successful_cycle_at", str(observed_at)
   )
+  receipt_clock = native_clock_mapping(payload.clock.model_dump() if payload.clock else None, observed_at)
+  if receipt_clock is not None:
+    receipt_clock["catalogIdentity"] = clock_scope
+    if abs(completed_at - int(payload.clock.serverCurrentAt)) > 2:
+      receipt_clock = None
   captured = await asyncio.to_thread(
     _research_store.capture_release_observations,
     FORWARD_LEDGER_ACTIVATED_AT,
     observed_at,
     released_through=completed_at,
     ea_completed_at=completed_at,
+    source_clock=receipt_clock,
   )
   global _forward_last_scheduled_entry_bucket
   entry_bucket = observed_at // 3600
@@ -2323,7 +2372,7 @@ async def calendar_ingest_cycle(request: Request) -> Dict[str, Any]:
     )
     for case in live_cases
   )
-  should_reconcile = captured > 0 or (
+  should_reconcile = captured > 0 or _source_clock_reconcile_waiting or (
     has_unresolved_live_case and _forward_last_scheduled_entry_bucket != entry_bucket
   )
   scheduled = _schedule_forward_reconcile(observed_at) if should_reconcile else False
@@ -2344,13 +2393,102 @@ async def research_source_clock() -> Dict[str, Any]:
   """Independent cached diagnostic: never calls MT5 or converts timestamps."""
   raw = await asyncio.to_thread(_research_store.get_metadata, "fms_native_source_clock_latest:v1")
   sample = json.loads(raw) if raw else None
+  receipt_mapping = native_clock_mapping(sample["clock"], int(sample["observedAt"])) if sample else None
+  mapping = advance_native_mapping(receipt_mapping, int(_time.time())) if receipt_mapping else None
+  if mapping is not None:
+    mapping["catalogIdentity"] = sample.get("catalogIdentity")
+  calibration_raw = await asyncio.to_thread(_research_store.get_metadata, "fms_source_clock_calibration_latest:v1")
+  calibration = _source_clock_calibration
+  current_capture_ready = bool(
+    mapping and calibration and sample.get("catalogIdentity")
+    and calibration["key"] == (sample["catalogIdentity"], mapping["nativeOffsetSeconds"], mapping["sampleSymbol"], int(_time.time()) // 86400)
+  )
   return {"schema": "fms-source-clock-diagnostic-v1", "sample": sample,
           "ageSeconds": max(0, int(_time.time()) - int(sample["observedAt"])) if sample else None,
           "status": "native_sample_requires_cross_source_comparison" if sample else "awaiting_native_ea_sample",
-          "successorTimingEligible": False, "timestampsChanged": False,
+          "successorTimingEligible": False, "currentCaptureProtocolReady": current_capture_ready,
+          "timestampsChanged": False, "currentNativeMapping": mapping,
+          "lastCurrentCandleVerification": json.loads(calibration_raw) if calibration_raw else None,
           "limitations": ["Native EA values are diagnostic observations, not a historical UTC/DST schedule.",
                           "Zero native bar time means that timeframe is not locally cached; the EA does not fetch it.",
                           "The chart symbol identifies this sample only; it does not restrict calendar currencies."]}
+
+
+def _current_clock_scope() -> Optional[str]:
+  """Current quote/catalog identity, without terminal/account I/O."""
+  status = _quote_snapshot_store.status(3.0)
+  # Identity is durable across quiet markets; quote freshness is not required.
+  # A broker switch starts a new complete publisher/catalog identity.
+  if status.get("symbol_count", 0) > 0 and status.get("broker_identity") and status.get("catalog_revision"):
+    identity = f"{status['broker_identity']}|{status['catalog_revision']}"
+    return hashlib.sha256(identity.encode("utf-8")).hexdigest()
+  snapshot = _symbol_snapshot_metadata()
+  if snapshot["age_seconds"] is not None and snapshot["age_seconds"] <= 90 and snapshot["broker_identity"] != "unknown-terminal":
+    return str(snapshot["catalog_identity"])
+  return None
+
+
+def _current_native_clock(utc_at: int) -> Optional[Dict[str, Any]]:
+  """Bounded current calibration, never from history-range/cache reads.
+
+  Called in research's worker thread, not ingestion/liveness. Only one SDK
+  calibration per process/catalog/offset/symbol/day; busy IPC defers rather
+  than waits ahead of foreground work. Cached proof cannot survive restart.
+  """
+  global _source_clock_calibration, _source_clock_calibration_attempt, _source_clock_reconcile_waiting
+  raw = _research_store.get_metadata("fms_native_source_clock_latest:v1")
+  if not raw:
+    return None
+  sample = json.loads(raw)
+  receipt = native_clock_mapping(sample["clock"], int(sample["observedAt"]))
+  current = advance_native_mapping(receipt, utc_at)
+  scope = _current_clock_scope()
+  if not current or not scope or sample.get("catalogIdentity") != scope:
+    return None
+  current["catalogIdentity"] = scope
+  key = (scope, current["nativeOffsetSeconds"], current["sampleSymbol"], utc_at // 86400)
+  calibration = _source_clock_calibration
+  if calibration and calibration["key"] == key:
+    _source_clock_reconcile_waiting = False
+    return {**current, "candleClockVerified": True, "verification": deepcopy(calibration["proof"])}
+  if (_source_clock_calibration_attempt and _source_clock_calibration_attempt["key"] == key
+      and utc_at - int(_source_clock_calibration_attempt["attemptedUtcAt"]) < 5):
+    return None
+  if not _source_clock_calibration_lock.acquire(blocking=False):
+    return None
+  try:
+    _source_clock_calibration_attempt = {"key": key, "attemptedUtcAt": utc_at}
+    with _mt5_access(.05):
+      if not _ensure_mt5_initialized():
+        return None
+      symbol = current["sampleSymbol"]
+      ensure_symbol_selected(symbol)
+      minutes = mt5.copy_rates_from_pos(symbol, mt5_timeframe("M1"), 0, 3)
+      hours = mt5.copy_rates_from_pos(symbol, mt5_timeframe("H4"), 0, 3)
+    # Keep the decision timestamp supplied by the caller; a stalled read must
+    # not authorize a decision whose entry passed while calibration was busy.
+    if int(_time.time()) - utc_at > 2:
+      return None
+    if _current_clock_scope() != scope or minutes is None or hours is None:
+      return None
+    verified = verify_native_candle_clock(current, [int(row["time"]) for row in minutes], [int(row["time"]) for row in hours])
+    if verified is None:
+      return None
+    proof = verified["verification"]
+    encoded = json.dumps({"catalogIdentity": scope, "nativeOffsetSeconds": current["nativeOffsetSeconds"],
+                          "verification": proof}, sort_keys=True)
+    _research_store.set_metadata_if_absent(f"fms_source_clock_calibration:v1:{utc_at // 86400}:{scope}:{current['nativeOffsetSeconds']}", encoded)
+    _research_store.set_metadata("fms_source_clock_calibration_latest:v1", encoded)
+    _source_clock_calibration = {"key": key, "proof": deepcopy(proof)}
+    _source_clock_reconcile_waiting = False
+    return verified
+  except (Mt5BusyError, HTTPException):
+    return None
+  except Exception:
+    logger.exception("source_clock_current_candle_verification_failed")
+    return None
+  finally:
+    _source_clock_calibration_lock.release()
 
 
 @app.get("/calendar")
@@ -2446,8 +2584,26 @@ def _fetch_research_candles(
   to_time: int,
   chunk_days: int,
 ) -> List[Dict[str, Any]]:
-  with _mt5_access():
-    return _fetch_research_candles_unlocked(symbol, timeframe, from_time, to_time, chunk_days)
+  # Runtime FMS reconciliation is opportunistic. It must never queue ahead of
+  # an owner-selected chart or hold the process-global MT5 session across a
+  # multi-year backfill. Frozen/offline research owns exhaustive acquisition.
+  cached = _research_store.query_candles(symbol, timeframe, from_time, to_time)
+  max_runtime_days = {"M1": 1, "H1": 7, "H4": 31}.get(timeframe.upper(), 7)
+  bounded_days = max(1, min(int(chunk_days), max_runtime_days))
+  bounded_from = max(int(from_time), int(to_time) - bounded_days * 24 * 60 * 60)
+  if cached:
+    timeframe_seconds = {"M1": 60, "H1": 3_600, "H4": H4_SECONDS}.get(timeframe.upper(), H4_SECONDS)
+    if int(cached[-1]["time"]) >= int(to_time) - 2 * timeframe_seconds:
+      return cached
+    bounded_from = max(bounded_from, int(cached[-1]["time"]) - timeframe_seconds)
+  try:
+    with _mt5_access(.05):
+      _fetch_research_candles_unlocked(
+        symbol, timeframe, bounded_from, to_time, bounded_days,
+      )
+  except (Mt5BusyError, HTTPException):
+    return cached
+  return _research_store.query_candles(symbol, timeframe, from_time, to_time)
 
 
 def _paper_case_state(outcomes: Dict[str, Dict[str, Any]]) -> str:
@@ -2598,7 +2754,9 @@ def _run_scheduled_forward_reconcile(observed_at: int) -> None:
       _forward_reconcile_scheduled = False
 
 
-def _quote_snapshot_for_forward_case(symbol: str, activation_time: int, observed_at: int) -> Optional[Dict[str, Any]]:
+def _quote_snapshot_for_forward_case(
+  symbol: str, activation_time: int, observed_at: int, *, native_clock: Optional[Dict[str, Any]] = None,
+) -> Optional[Dict[str, Any]]:
   """Capture the first available broker quote after a declared reference time; never infer a fill."""
   try:
     with _mt5_access():
@@ -2610,10 +2768,17 @@ def _quote_snapshot_for_forward_case(symbol: str, activation_time: int, observed
       tick = None
       source = "current_snapshot"
       try:
+        query_from = int(activation_time)
+        query_to = int(observed_at)
+        if native_clock is not None:
+          if not native_clock.get("candleClockVerified") or native_clock.get("catalogIdentity") != _current_clock_scope():
+            return None
+          query_from -= int(native_clock["nativeOffsetSeconds"])
+          query_to = int(native_clock["observedNativeAt"]) - int(native_clock["nativeOffsetSeconds"])
         ticks = mt5.copy_ticks_range(
           symbol,
-          datetime.fromtimestamp(int(activation_time), tz=timezone.utc),
-          datetime.fromtimestamp(int(observed_at), tz=timezone.utc),
+          datetime.fromtimestamp(query_from, tz=timezone.utc),
+          datetime.fromtimestamp(query_to, tz=timezone.utc),
           mt5.COPY_TICKS_INFO,
         )
         if ticks is not None and len(ticks) > 0:
@@ -2631,6 +2796,8 @@ def _quote_snapshot_for_forward_case(symbol: str, activation_time: int, observed
       quote_time = int(tick_data.get("time") or getattr(tick, "time", 0) or 0)
       if bid <= 0 or ask <= 0 or ask < bid or quote_time < int(activation_time):
         return None
+      if native_clock is not None and quote_time > int(native_clock["observedNativeAt"]) + int(native_clock["uncertaintySeconds"]):
+        return None
       point = float(getattr(info, "point", 0) or 0)
       lag = max(0, quote_time - int(activation_time))
       return {
@@ -2641,6 +2808,7 @@ def _quote_snapshot_for_forward_case(symbol: str, activation_time: int, observed
         "point": point or None,
         "digits": int(getattr(info, "digits", 0) or 0),
         "quoteTime": quote_time,
+        "quoteTimeBasis": "verified_native" if native_clock is not None else "legacy_as_recorded",
         "capturedAt": int(observed_at),
         "entryLagSeconds": lag,
         "quality": "first_tick" if source == "first_tick_after_observation" else "near_entry" if lag <= 120 else "late_snapshot",
@@ -2722,6 +2890,20 @@ def _entry_timing_audit_for_signal(
   fetch_missing: bool = False,
   decided_at: Optional[int] = None,
 ) -> Dict[str, Any]:
+  capture = signal.get("prospectiveCapture") or {}
+  native_protocol = capture.get("protocol") == "fms-native-capture-eligibility-v2"
+  first_seen_utc_at = int(first_seen_at)
+  decision_utc_at = decided_at
+  if native_protocol:
+    clock = signal.get("evaluationClock") or capture.get("sourceClock")
+    if capture.get("firstSeenNativeAt") is None or capture.get("decidedNativeAt") is None or not isinstance(clock, dict):
+      return {"status": "clock_provenance_unavailable", "firstSeenAt": first_seen_utc_at,
+              "decisionAt": decision_utc_at, "quoteTime": int(quote["quoteTime"]), "entries": [],
+              "clockProtocol": "invalid_native_v2", "originalTimestampsChanged": False,
+              "disclosure": "Native clock provenance is incomplete; entry timing is not compared."}
+    first_seen_at = int(capture["firstSeenNativeAt"])
+    decided_at = int(capture["decidedNativeAt"])
+    observed_at = int(clock["observedNativeAt"])
   ranges = {"M1": 2 * 60, "H1": 2 * 60 * 60, "H4": 2 * H4_SECONDS}
   candles: Dict[str, List[Dict[str, Any]]] = {}
   for timeframe, duration in ranges.items():
@@ -2732,10 +2914,14 @@ def _entry_timing_audit_for_signal(
     ):
       rows = _fetch_research_candles(market, timeframe, int(first_seen_at), to_time, 1)
     candles[timeframe] = rows
-  return _entry_timing_audit(
+  result = _entry_timing_audit(
     int(signal.get("eventTime") or 0), int(first_seen_at), str(signal.get("direction") or "long"),
     quote, candles, decided_at,
   )
+  if native_protocol:
+    result.update({"clockProtocol": "verified_native_v2", "firstSeenUtcAt": first_seen_utc_at,
+                   "decisionUtcAt": decision_utc_at, "originalTimestampsChanged": False})
+  return result
 
 
 def _forward_demo_tag(model_id: str, market: str, pattern_id: str, event_time: int) -> str:
@@ -2751,8 +2937,29 @@ def _prospective_capture_eligibility(
   activation_time: Optional[int],
   decided_at: int,
   first_seen_by_event: Dict[Tuple[int, int], int],
+  *,
+  observations_by_event: Optional[Dict[Tuple[int, int], Dict[str, Any]]] = None,
+  decision_clock: Optional[Dict[str, Any]] = None,
+  frozen_decision: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
   """Accept a live setup only when its complete package was known before entry."""
+  if frozen_decision is not None:
+    frozen = (frozen_decision.get("assessment") or {}).get("prospectiveCapture") or (frozen_decision.get("signal") or {}).get("prospectiveCapture")
+    if frozen is not None:
+      return deepcopy(frozen)
+    # Older decisions may predate the embedded capture object. Preserve their
+    # stored eligibility/reason rather than grant live status on a refresh.
+    return {"eligible": bool(frozen_decision.get("prospectiveEligible")),
+            "reason": frozen_decision.get("eligibilityReason") or "legacy_unverified",
+            "firstSeenAt": max((first_seen_by_event[(int(event["id"]), int(event["time"]))]
+                                for event in events if event.get("id") is not None
+                                and (int(event["id"]), int(event["time"])) in first_seen_by_event), default=None),
+            "activationTime": activation_time}
+  if observations_by_event is not None and any(
+    (observations_by_event.get((int(event["id"]), int(event["time"]))) or {}).get("sourceClock")
+    for event in events if event.get("id") is not None
+  ):
+    return native_capture_eligibility(events, event_time, activation_time, decided_at, observations_by_event, decision_clock)
   first_seen_values = [
     first_seen_by_event[(int(event["id"]), int(event["time"]))]
     for event in events
@@ -2771,6 +2978,13 @@ def _prospective_capture_eligibility(
   if int(decided_at) >= int(activation_time):
     return {"eligible": False, "reason": "decision_after_frozen_entry", "firstSeenAt": package_first_seen, "activationTime": int(activation_time)}
   return {"eligible": True, "reason": "captured_before_frozen_entry", "firstSeenAt": package_first_seen, "activationTime": int(activation_time)}
+
+
+def _preserve_closed_signal(projected: Dict[str, Any], frozen: Optional[Dict[str, Any]]) -> Tuple[Dict[str, Any], bool]:
+  """Keep a terminal live/recovered snapshot immutable across reprojection."""
+  if frozen and frozen.get("outcomeStatus") in {"target_hit", "stop_hit", "expired"}:
+    return {**projected, **deepcopy(frozen)}, True
+  return projected, False
 
 
 def _planned_strictly_later_h4_open(event_time: int, candle_times: List[int]) -> int:
@@ -2942,10 +3156,12 @@ def _capture_forward_entry_quotes(response: Dict[str, Any], observed_at: int) ->
     for row in _research_store.list_fms_live_decisions(market, 500)
     if row.get("status") == "qualified" and row.get("prospectiveEligible") is True
   }
+  current_clock = _current_native_clock(int(_time.time()))
+  comparison_now = int(current_clock["observedNativeAt"]) if current_clock else int(observed_at)
   for signal in response.get("signals") or []:
     key = (str(signal.get("patternId") or ""), int(signal.get("eventTime") or 0))
     decision = decision_keys.get(key)
-    if decision is None or key[1] > int(observed_at):
+    if decision is None or key[1] > comparison_now:
       continue
     prior = existing.get(key) or {}
     quote = prior.get("entryQuote")
@@ -2953,10 +3169,15 @@ def _capture_forward_entry_quotes(response: Dict[str, Any], observed_at: int) ->
     if first_seen_at is None:
       continue
     if quote is None:
-      quote = _quote_snapshot_for_forward_case(market, int(first_seen_at), observed_at)
+      capture = (decision.get("assessment") or {}).get("prospectiveCapture") or {}
+      reference_time = int(capture.get("firstSeenNativeAt") or first_seen_at)
+      quote_clock = current_clock if capture.get("protocol") == "fms-native-capture-eligibility-v2" else None
+      quote = _quote_snapshot_for_forward_case(market, reference_time, observed_at, native_clock=quote_clock)
     if quote is None:
       continue
     signal["releaseObservationQuote"] = quote
+    if current_clock is not None:
+      signal["evaluationClock"] = deepcopy(current_clock)
     signal["entryTimingAudit"] = _entry_timing_audit_for_signal(
       market, signal, quote, int(first_seen_at), observed_at, fetch_missing=True,
       decided_at=int(decision.get("firstDecidedAt") or observed_at),
@@ -4311,9 +4532,7 @@ def _historical_evidence_summary(pattern: Dict[str, Any]) -> Dict[str, Any]:
     load_experiment=_research_store.get_fms_experiment,
     warn=logger.warning,
   )
-
-
-def _interactive_chart_pattern(pattern: Any) -> Any:
+def _interactive_chart_pattern(pattern: Any, *, include_historical_evidence: bool = True) -> Any:
   if not isinstance(pattern, dict):
     return pattern
   definition = next((
@@ -4331,6 +4550,7 @@ def _interactive_chart_pattern(pattern: Any) -> Any:
       "condition", "scoringPolicy", "reaction", "cohort", "activatedAt",
       "historicalBenchmark", "registrationProvenance", "readiness", "execution",
       "baseExecution", "executionReview", "entryReview", "contextRegistration",
+      "successorReview", "activeExecution", "registeredVersion",
       "requiredExactTitles", "direction", "groups", "currentEligible",
       "uncertaintyIncludesNoEdge",
     )
@@ -4356,7 +4576,11 @@ def _interactive_chart_pattern(pattern: Any) -> Any:
   projected["reactionAudit"] = _interactive_reaction_audit(pattern.get("reactionAudit"))
   # Re-project from the linked immutable source so durable chart-response
   # caches cannot preserve an older generic-contract evidence summary.
-  projected["historicalEvidence"] = _historical_evidence_summary(pattern)
+  # Resolving canonical evidence may deserialize a large archived experiment.
+  # Selected-market detail needs it; the all-market first-paint registry does
+  # not.  Its compact historicalBenchmark is enough until that market loads.
+  if include_historical_evidence:
+    projected["historicalEvidence"] = _historical_evidence_summary(pattern)
   projected["activatedAt"] = pattern.get("activatedAt") or (definition or {}).get("activatedAt")
   return projected
 
@@ -4378,14 +4602,18 @@ def _trade_current_snapshot(payload: Dict[str, Any]) -> Dict[str, Any]:
   # Saved snapshots may contain only one future occurrence per setup. Rebuild
   # scheduling from the available broker calendar, without evaluating releases.
   now = int(_time.time())
+  offset = int((payload.get("sourceClock") or {}).get("nativeOffsetSeconds") or 0)
+  calendar_now = now + offset
   patterns = [_reconciled_pattern(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS if pattern["market"] == market]
+  if offset:
+    patterns = [{**pattern, "activatedAt": int(pattern.get("activatedAt", PRACTICAL_MODEL_CREATED_AT)) + offset} for pattern in patterns]
   currencies = list(WORKBENCH_MARKETS[market]["currencies"])
   future = build_chart_signal_realtime_watch(
-    _research_store.query_calendar(from_time=now, currencies=currencies), now,
+    _research_store.query_calendar(from_time=calendar_now, currencies=currencies), calendar_now,
     frozenset(str(row["id"]) for row in payload.get("patterns", []) if row.get("currentEligible")),
     pattern_definitions=patterns, market_currencies=currencies, symbol=market,
   )
-  passed = [row for row in realtime.get("upcomingPatternWatches") or [] if int(row["time"]) <= now]
+  passed = [row for row in realtime.get("upcomingPatternWatches") or [] if int(row["time"]) <= calendar_now]
   realtime["upcomingPatternWatches"] = [*passed, *future["upcomingPatternWatches"]]
   realtime["nextPatternWatch"] = future["nextPatternWatch"]
   return {**payload, "realtime": realtime}
@@ -4395,6 +4623,7 @@ _TRADE_STARTUP_PATTERN_KEYS = (
   "id", "market", "signature", "signatures", "sourceVersionId", "label", "condition", "activatedAt",
   "scoringPolicy", "reaction", "cohort", "historicalBenchmark", "historicalEvidence",
   "registrationProvenance", "readiness", "execution", "entryReview", "contextRegistration",
+  "successorReview", "activeExecution", "registeredVersion",
   "direction", "groups", "overall", "development", "holdout", "qualification", "exampleTitles",
   "modelStatus", "currentEligible", "modelChecks", "executionStress", "recentWindow",
   "prequentialAudit", "targetRobustness", "estimatedBreakEvenStressPips",
@@ -4456,6 +4685,103 @@ def _trade_startup_global_snapshot(payload: Dict[str, Any]) -> Dict[str, Any]:
     "explanation": payload.get("explanation") or "Loading the complete saved registry; live evidence is refreshing.",
     "startupProjection": True,
     "registrySymbols": registry_symbols,
+  }
+
+
+def _trade_compatible_startup_source(
+  saved: Optional[Dict[str, Any]], tf: str = "H4",
+) -> Dict[str, Any]:
+  """Build the all-market startup registry without evaluating or calling MT5.
+
+  A new immutable model hash must not turn first paint into a synchronous
+  ten-market research rebuild.  Reuse harmless saved scheduling metadata when
+  available, replace its recipes with the current in-process registry, and
+  leave signals empty through the normal startup projection.
+  """
+  saved = saved if isinstance(saved, dict) else {}
+  saved_markets = {
+    str(row.get("symbol") or "").upper(): row
+    for row in saved.get("markets") or []
+    if isinstance(row, dict) and row.get("symbol")
+  }
+  definitions_by_market: Dict[str, List[Dict[str, Any]]] = {}
+  for definition in PRACTICAL_PATTERN_DEFINITIONS:
+    market = str(definition.get("market") or "").upper()
+    if market and definition.get("id"):
+      definitions_by_market.setdefault(market, []).append(definition)
+  expected_markets = sorted({
+    str(definition.get("market") or "").upper()
+    for definition in PRACTICAL_PATTERN_DEFINITIONS
+    if definition.get("market")
+  })
+  markets: List[Dict[str, Any]] = []
+  now = int(_time.time())
+  for market in expected_markets:
+    prior = dict(saved_markets.get(market) or {})
+    raw_current = _research_store.get_metadata(f"fms_chart_response:current:{market}")
+    if raw_current:
+      try:
+        current = json.loads(raw_current).get("response")
+        if (
+          isinstance(current, dict)
+          and current.get("modelHash") == PRACTICAL_MODEL_HASH
+          and current.get("responseSchema") == FMS_CHART_RESPONSE_SCHEMA
+        ):
+          prior = current
+      except (AttributeError, TypeError, ValueError):
+        logger.warning("Ignoring unreadable current startup market snapshot for %s", market)
+    definitions = definitions_by_market.get(market) or []
+    patterns = [
+      {
+        **_interactive_chart_pattern(
+          _reconciled_pattern({
+            **definition,
+            "sourceVersionId": definition.get("sourceVersionId") or definition.get("sourceVersion"),
+            "currentEligible": bool(definition.get("current", True)),
+          }),
+          include_historical_evidence=False,
+        ),
+        "activeExecution": _execution_for_event(definition, now),
+        "registeredVersion": _registered_version_for_event(definition, now),
+      }
+      for definition in definitions
+    ]
+    markets.append({
+      **prior,
+      "responseSchema": FMS_CHART_RESPONSE_SCHEMA,
+      "supported": True,
+      "versionId": PRACTICAL_MODEL_ID,
+      "versionHash": PRACTICAL_MODEL_HASH,
+      "modelId": PRACTICAL_MODEL_ID,
+      "modelHash": PRACTICAL_MODEL_HASH,
+      "modelActivatedAt": PRACTICAL_MODEL_CREATED_AT,
+      "mode": "current",
+      "symbol": market,
+      "timeframe": tf.upper(),
+      "modelTimeframe": "H4",
+      "targetR": 2.0,
+      "patterns": patterns or list(prior.get("patterns") or []),
+      "signals": list(prior.get("signals") or []),
+      "recoveredSignals": list(prior.get("recoveredSignals") or []),
+      "realtime": dict(prior.get("realtime") or {
+        "asOf": prior.get("generatedAt") or 0,
+        "nextPairEvent": None,
+        "nextPatternWatch": None,
+        "upcomingPatternWatches": [],
+      }),
+      "generatedAt": int(prior.get("generatedAt") or 0),
+      "currentPatternCount": len(patterns or prior.get("patterns") or []),
+      "researchPatternCount": len(patterns or prior.get("patterns") or []),
+      "message": "All-market startup registry; selected-market evidence refreshes independently.",
+    })
+  return {
+    **saved,
+    "modelId": PRACTICAL_MODEL_ID,
+    "modelHash": PRACTICAL_MODEL_HASH,
+    "generatedAt": max((int(row.get("generatedAt") or 0) for row in markets), default=0),
+    "markets": markets,
+    "researchIntelligence": list(saved.get("researchIntelligence") or []),
+    "explanation": "All registered markets are available immediately; selected-market evidence refreshes independently.",
   }
 
 
@@ -4607,8 +4933,13 @@ def research_chart_signals(
         )
         needs_live_refresh = (
           assessment_status == "awaiting_observation"
+          or assessment_status == "awaiting_clock_verification"
+          or bool(cached_response.get("clockVerificationPending"))
           or has_pending_signal
-          or (next_watch_time is not None and int(next_watch_time) <= int(_time.time()))
+          or (
+            next_watch_time is not None
+            and int(next_watch_time) <= int(_time.time()) + int((cached_response.get("sourceClock") or {}).get("nativeOffsetSeconds") or 0)
+          )
         )
         if normalized_mode == "research_replay" or (not refresh and not needs_live_refresh):
           return response_for_client(cached_response)
@@ -4663,6 +4994,7 @@ def research_chart_signals(
       "id": f"{definition['id']}:{event_time}", "patternId": definition["id"],
       "sourceVersionId": source_version, "eventTime": event_time,
       "activationTime": activation_time, "direction": direction, "label": definition["label"],
+      "registeredVersion": _registered_version_for_event(definition, event_time),
       "historicalReplay": True, "execution": execution,
       "stopAtr": stop_atr, "targetR": target_r,
       "expiryCandles": int(execution.get("expiryCandles") or 30),
@@ -4748,6 +5080,7 @@ def research_chart_signals(
       "executionReview": definition.get("executionReview"),
       "entryReview": definition.get("entryReview"),
       "contextRegistration": definition.get("contextRegistration"),
+      "successorReview": definition.get("successorReview"),
     }
     provenance = _registration_provenance(enriched_pattern)
     patterns.append({
@@ -4821,10 +5154,68 @@ def research_chart_signals(
     from_time=FORWARD_LEDGER_ACTIVATED_AT,
     currencies=market_currencies,
   )
-  # Economic observations and cached candles already use epoch UTC. Avoid an
-  # unnecessary MT5 IPC call while constructing FMS responses; chart/history
-  # routes must remain available while background signal work is running.
+  # generatedAt remains UTC metadata. Native release/candle cutoffs must not
+  # accidentally compare against it; display timezone is not a model input.
   generated_at = int(_time.time())
+  decision_clock = _current_native_clock(generated_at) if normalized_mode == "current" else None
+  current_activation_offset = int(decision_clock["nativeOffsetSeconds"]) if decision_clock else 0
+  native_now = int(decision_clock["observedNativeAt"]) - int(decision_clock["uncertaintySeconds"]) if decision_clock else generated_at
+  patterns = [
+    {
+      **pattern,
+      "activeExecution": _execution_for_event(
+        definitions_by_id.get(str(pattern["id"])) or pattern,
+        native_now,
+        current_activation_offset,
+      ),
+      "registeredVersion": _registered_version_for_event(
+        definitions_by_id.get(str(pattern["id"])) or pattern,
+        native_now,
+        current_activation_offset,
+      ),
+    }
+    for pattern in patterns
+  ]
+  # Every observation was already acknowledged as released by a complete EA
+  # cycle. Its raw release time is safe for candidate inclusion even while a
+  # current SDK calibration is temporarily deferred. Eligibility stays gated.
+  candidate_now = max(native_now, max((int(event["time"]) for event in observed_events), default=native_now))
+  observations_by_event = {(int(event["id"]), int(event["time"])): event for event in observed_events}
+  clock_verification_pending = bool(
+    normalized_mode == "current" and decision_clock is None
+    and any(event.get("sourceClock") and int(event.get("firstSeenAt") or 0) >= generated_at - 6 * 3600 for event in observed_events)
+  )
+  existing_live_decisions = {
+    (str(row["patternId"]), int(row["eventTime"])): row
+    for row in _research_store.list_fms_live_decisions(normalized_symbol, 500)
+    if row["modelId"] == PRACTICAL_MODEL_ID
+  } if normalized_mode == "current" else {}
+  existing_execution_cases = {
+    (str(row["patternId"]), int(row["eventTime"])): row
+    for row in _research_store.list_fms_live_execution_cases(normalized_symbol, 500)
+    if row["modelId"] == PRACTICAL_MODEL_ID
+  } if normalized_mode == "current" else {}
+
+  def event_execution(pattern: Dict[str, Any], event_time: int) -> Dict[str, Any]:
+    if normalized_mode == "current":
+      frozen = ((existing_execution_cases.get((str(pattern["id"]), event_time)) or {}).get("signal")
+                or (existing_live_decisions.get((str(pattern["id"]), event_time)) or {}).get("signal"))
+      if isinstance((frozen or {}).get("execution"), dict):
+        return deepcopy(frozen["execution"])
+    return _execution_for_event(
+      pattern, event_time, current_activation_offset,
+      allow_successor=normalized_mode != "current" or decision_clock is not None,
+    )
+
+  def event_registered_version(pattern: Dict[str, Any], event_time: int) -> str:
+    if normalized_mode == "current":
+      frozen = ((existing_execution_cases.get((str(pattern["id"]), event_time)) or {}).get("signal")
+                or (existing_live_decisions.get((str(pattern["id"]), event_time)) or {}).get("signal"))
+      if (frozen or {}).get("registeredVersion") in {"FMS v1", "FMS v2"}:
+        return str(frozen["registeredVersion"])
+      if decision_clock is None:
+        return "FMS v1"
+    return _registered_version_for_event(pattern, event_time, current_activation_offset)
   first_seen_by_event = {
     (int(event["id"]), int(event["time"])): int(event["firstSeenAt"])
     for event in observed_events if event.get("firstSeenAt") is not None
@@ -4847,7 +5238,7 @@ def research_chart_signals(
       definition = get_signal_definition(source_version)
       if definition is None:
         continue
-      observed_source_candidates = build_signal_candidates(observed_events, now=generated_at, definition=definition)
+      observed_source_candidates = build_signal_candidates(observed_events, now=candidate_now, definition=definition)
       observed_times = {int(candidate["eventTime"]) for candidate in observed_source_candidates}
       historical_seed = [
         outcome for outcome in source_results[source_version]["targets"]["2.0"]["outcomes"]
@@ -4896,19 +5287,19 @@ def research_chart_signals(
     latest_custom = max(int(candidate["eventTime"]) for _, _, candidate, _ in direct_evaluation_candidates)
     custom_candles = _research_store.query_candles(
       normalized_symbol, "H4", earliest_custom - 45 * 24 * 60 * 60,
-      min(generated_at + H4_SECONDS, latest_custom + 120 * 24 * 60 * 60),
+      min(native_now + H4_SECONDS, latest_custom + 120 * 24 * 60 * 60),
     )
     custom_candle_times = [int(candle["time"]) for candle in custom_candles]
     custom_atr_values = calculate_atr_by_candle(custom_candles)
-    if any(str(_execution_for_event(pattern, int(candidate["eventTime"])).get("entryTimeframe") or "H4") == "H1" for _, _, candidate, pattern in direct_evaluation_candidates):
+    if any(str(event_execution(pattern, int(candidate["eventTime"])).get("entryTimeframe") or "H4") == "H1" for _, _, candidate, pattern in direct_evaluation_candidates):
       custom_h1_candles = _research_store.query_candles(
         normalized_symbol, "H1", earliest_custom,
-        min(generated_at + 3600, latest_custom + 120 * 24 * 60 * 60),
+        min(native_now + 3600, latest_custom + 120 * 24 * 60 * 60),
       )
       if not custom_h1_candles:
         custom_h1_candles = _fetch_research_candles(
           normalized_symbol, "H1", earliest_custom,
-          min(generated_at + 3600, latest_custom + 120 * 24 * 60 * 60), 120,
+          min(native_now + 3600, latest_custom + 120 * 24 * 60 * 60), 120,
         )
   m1_cache: Dict[Tuple[int, int], List[Dict[str, Any]]] = {}
   def evaluation_m1_provider(start: int, end: int) -> List[Dict[str, Any]]:
@@ -4926,18 +5317,19 @@ def research_chart_signals(
   recovered_signals: List[Dict[str, Any]] = []
   signal_candidates_by_key: Dict[Tuple[str, int], Dict[str, Any]] = {}
   prospective_capture_by_key: Dict[Tuple[str, int], Dict[str, Any]] = {}
+  frozen_signal_keys: Set[Tuple[str, int]] = set()
   for source_version, scoring_policy, candidate in window_candidates:
     event_time = int(candidate["eventTime"])
     pattern = matching_pattern(source_version, scoring_policy, candidate)
     if pattern is None:
       continue
-    if normalized_mode == "current" and event_time < int(pattern.get("activatedAt", PRACTICAL_MODEL_CREATED_AT)):
+    if normalized_mode == "current" and event_time < int(pattern.get("activatedAt", PRACTICAL_MODEL_CREATED_AT)) + current_activation_offset:
       continue
-    execution = _execution_for_event(pattern, event_time)
+    execution = event_execution(pattern, event_time)
     signal_candidate = apply_chart_pattern_reaction(candidate, pattern)
     evaluation_options = {
       "m1_provider": evaluation_m1_provider,
-      "allow_pending": normalized_mode == "current", "as_of": generated_at,
+      "allow_pending": normalized_mode == "current", "as_of": native_now,
       "stop_atr": float(execution["stopAtr"]),
       "holding_candles": int(execution["expiryCandles"]),
       "management_family": str(execution.get("managementFamily") or "fixed"),
@@ -4959,14 +5351,14 @@ def research_chart_signals(
       latest_custom = max(int(row[2]["eventTime"]) for row in direct_evaluation_candidates)
       custom_candles = _fetch_research_candles(
         normalized_symbol, "H4", earliest_custom - 45 * 24 * 60 * 60,
-        min(generated_at + H4_SECONDS, latest_custom + 120 * 24 * 60 * 60), 365,
+        min(native_now + H4_SECONDS, latest_custom + 120 * 24 * 60 * 60), 365,
       )
       custom_candle_times = [int(candle["time"]) for candle in custom_candles]
       custom_atr_values = calculate_atr_by_candle(custom_candles)
       if str(execution.get("entryTimeframe") or "H4") == "H1":
         custom_h1_candles = _fetch_research_candles(
           normalized_symbol, "H1", earliest_custom,
-          min(generated_at + 3600, latest_custom + 120 * 24 * 60 * 60), 120,
+          min(native_now + 3600, latest_custom + 120 * 24 * 60 * 60), 120,
         )
         evaluated = evaluate_candidate_h1_entry(
           signal_candidate, custom_h1_candles, custom_candles, custom_atr_values,
@@ -4984,10 +5376,13 @@ def research_chart_signals(
       if str(execution.get("entryTimeframe") or "H4") == "H1"
       else _planned_strictly_later_h4_open(event_time, custom_candle_times)
     )
+    decided_utc_at = int(_time.time())
     prospective_capture = _prospective_capture_eligibility(
       list(candidate.get("events") or []), event_time,
-      prospective_activation_time, generated_at,
+      prospective_activation_time, decided_utc_at,
       first_seen_by_event,
+      observations_by_event=observations_by_event, decision_clock=advance_native_mapping(decision_clock, decided_utc_at),
+      frozen_decision=existing_live_decisions.get((str(pattern["id"]), event_time)),
     )
     prospective_capture_by_key[(str(pattern["id"]), event_time)] = prospective_capture
     def outcome_value(name: str) -> Any:
@@ -4999,6 +5394,7 @@ def research_chart_signals(
       "patternId": pattern["id"],
       "sourceVersionId": source_version,
       "eventTime": event_time,
+      "registeredVersion": event_registered_version(pattern, event_time),
       "direction": signal_candidate["direction"],
       "label": pattern["label"],
       "evidenceReaction": "rejected" if str(pattern.get("reaction")) == "contrarian" else "followed",
@@ -5045,25 +5441,34 @@ def research_chart_signals(
       "contractExpiryTime": evaluated.get("contractExpiryTime"),
       "historicalReplay": normalized_mode == "research_replay",
       "prospectiveCapture": prospective_capture if normalized_mode == "current" else None,
+      "evaluationClock": deepcopy(decision_clock) if normalized_mode == "current" and decision_clock else None,
       "observationMode": (
         "recovered_offline"
         if normalized_mode == "current" and not prospective_capture["eligible"]
         else "live_captured" if normalized_mode == "current" else "historical_replay"
       ),
     }
+    frozen_signal = ((existing_execution_cases.get((str(pattern["id"]), event_time)) or {}).get("signal")
+                     or (existing_live_decisions.get((str(pattern["id"]), event_time)) or {}).get("signal"))
+    built_signal, was_frozen_closed = _preserve_closed_signal(built_signal, frozen_signal)
+    if was_frozen_closed:
+      # A closed contract is not reopened/rescored by a current clock fix or
+      # revised cache. Keep immutable financial geometry/outcome fields.
+      frozen_signal_keys.add((str(pattern["id"]), event_time))
     if normalized_mode == "current" and not prospective_capture["eligible"]:
       recovered_signals.append(built_signal)
     else:
       signals.append(built_signal)
   evaluated_signals = [*signals, *recovered_signals]
-  signal_activation_times = [int(signal["activationTime"]) for signal in evaluated_signals if signal.get("activationTime") is not None]
+  path_signals = [signal for signal in evaluated_signals if (str(signal["patternId"]), int(signal["eventTime"])) not in frozen_signal_keys]
+  signal_activation_times = [int(signal["activationTime"]) for signal in path_signals if signal.get("activationTime") is not None]
   if signal_activation_times:
     signal_candles = _research_store.query_candles(
       normalized_symbol, "H4", min(signal_activation_times) - 140 * H4_SECONDS,
       max(signal_activation_times) + 90 * 24 * 60 * 60,
     )
     signal_candle_times = [int(candle["time"]) for candle in signal_candles]
-    h1_signals = [signal for signal in evaluated_signals if signal.get("entryTimeframe") == "H1" and signal.get("activationTime") is not None]
+    h1_signals = [signal for signal in path_signals if signal.get("entryTimeframe") == "H1" and signal.get("activationTime") is not None]
     signal_h1_candles = (
       _research_store.query_candles(
         normalized_symbol, "H1", min(int(signal["activationTime"]) for signal in h1_signals),
@@ -5071,7 +5476,7 @@ def research_chart_signals(
       ) if h1_signals else []
     )
     signal_h1_times = [int(candle["time"]) for candle in signal_h1_candles]
-    for signal in evaluated_signals:
+    for signal in path_signals:
       if signal.get("activationTime") is None or signal.get("entry") is None or signal.get("atr") is None:
         signal["expiryTime"] = None
         signal["maximumAdverseR"] = None
@@ -5100,7 +5505,7 @@ def research_chart_signals(
       expiry_candles = int(signal["expiryCandles"])
       signal["marketContext"] = profile.get("marketContext")
       pattern_definition = definitions_by_id.get(str(signal["patternId"])) or {}
-      context_overlay = _context_overlay_for_signal(pattern_definition, signal)
+      context_overlay = _context_overlay_for_signal(pattern_definition, signal, current_activation_offset)
       signal["contextOverlay"] = context_overlay
       if context_overlay and context_overlay.get("executionApplied"):
         context_execution = dict(context_overlay.get("contextExecution") or {})
@@ -5114,7 +5519,7 @@ def research_chart_signals(
             float(context_execution["targetR"]),
             m1_provider=evaluation_m1_provider,
             allow_pending=normalized_mode == "current",
-            as_of=generated_at,
+            as_of=native_now,
             stop_atr=float(context_execution["stopAtr"]),
             holding_candles=int(context_execution["expiryCandles"]),
             management_family=str(context_execution.get("managementFamily") or "fixed"),
@@ -5234,17 +5639,21 @@ def research_chart_signals(
     and matching_pattern(source_version, scoring_policy, candidate) is None
   )
   scheduled_events = _research_store.query_calendar(
-    from_time=generated_at - 7 * 24 * 60 * 60,
+    from_time=native_now - 7 * 24 * 60 * 60,
     currencies=market_currencies,
   )
+  realtime_patterns = [
+    {**pattern, "activatedAt": int(pattern.get("activatedAt", PRACTICAL_MODEL_CREATED_AT)) + current_activation_offset}
+    for pattern in market_patterns
+  ] if normalized_mode == "current" else market_patterns
   realtime = build_chart_signal_realtime_watch(
     scheduled_events,
-    generated_at,
+    native_now,
     frozenset(str(pattern["id"]) for pattern in catalog if pattern["currentEligible"]),
     assessment_candidates,
     frozenset(int(event["time"]) for event in observed_events),
-    PRACTICAL_MODEL_CREATED_AT,
-    market_patterns,
+    PRACTICAL_MODEL_CREATED_AT + current_activation_offset,
+    realtime_patterns,
     market_currencies,
     normalized_symbol,
   )
@@ -5256,14 +5665,6 @@ def research_chart_signals(
       [realtime["latestPatternAssessment"]] if realtime.get("latestPatternAssessment") else []
     )
     signal_by_key = {(str(signal["patternId"]), int(signal["eventTime"])): signal for signal in evaluated_signals}
-    existing_live_decisions = {
-      (str(row["patternId"]), int(row["eventTime"])): row
-      for row in _research_store.list_fms_live_decisions(normalized_symbol, 500)
-    }
-    existing_execution_cases = {
-      (str(row["patternId"]), int(row["eventTime"])): row
-      for row in _research_store.list_fms_live_execution_cases(normalized_symbol, 500)
-    }
     for assessment in realtime_assessments:
       if assessment.get("status") not in {"qualified", "no_trade"}:
         continue
@@ -5272,9 +5673,10 @@ def research_chart_signals(
         continue
       assessment_key = (str(assessment["patternId"]), event_time)
       assessment_pattern = definitions_by_id.get(str(assessment["patternId"])) or {}
-      assessment_execution = _execution_for_event(assessment_pattern, event_time)
+      assessment_execution = event_execution(assessment_pattern, event_time)
       prospective_capture = prospective_capture_by_key.get(assessment_key)
       if prospective_capture is None:
+        decided_utc_at = int(_time.time())
         planned_entry = (
           (event_time // 3600 + 1) * 3600
           if str(assessment_execution.get("entryTimeframe") or "H4") == "H1"
@@ -5282,17 +5684,31 @@ def research_chart_signals(
         )
         prospective_capture = _prospective_capture_eligibility(
           list(assessment.get("events") or []), event_time,
-          planned_entry, generated_at,
+          planned_entry, decided_utc_at,
           first_seen_by_event,
+          observations_by_event=observations_by_event, decision_clock=advance_native_mapping(decision_clock, decided_utc_at),
+          frozen_decision=existing_live_decisions.get(assessment_key),
         )
       assessment["prospectiveCapture"] = prospective_capture
+      if prospective_capture.get("protocol") == "fms-native-capture-eligibility-v2" and prospective_capture["reason"] in {
+        "source_clock_verification_pending", "source_clock_scope_unavailable",
+      }:
+        global _source_clock_reconcile_waiting
+        _source_clock_reconcile_waiting = True
+        assessment["status"] = "awaiting_clock_verification"
+        assessment["reason"] = "The release package is retained; current native/SDK clock verification is deferred. No first decision is frozen yet."
+        continue
+      if decision_clock:
+        _source_clock_reconcile_waiting = False
       existing_decision = existing_live_decisions.get(assessment_key)
       release_quote = ((existing_decision or {}).get("assessment") or {}).get("releaseObservationQuote")
       execution_case = existing_execution_cases.get(assessment_key) or {}
       release_quote = release_quote or execution_case.get("entryQuote")
-      if release_quote is None and generated_at - event_time <= 15 * 60:
+      if release_quote is None and 0 <= native_now - event_time <= 15 * 60:
+        reference_time = int(prospective_capture.get("firstSeenNativeAt") or prospective_capture.get("firstSeenAt") or event_time)
         release_quote = _quote_snapshot_for_forward_case(
-          normalized_symbol, int(prospective_capture.get("firstSeenAt") or event_time), generated_at,
+          normalized_symbol, reference_time, generated_at,
+          native_clock=prospective_capture.get("sourceClock") if prospective_capture.get("protocol") == "fms-native-capture-eligibility-v2" else None,
         )
       assessment["releaseObservationQuote"] = release_quote
       matching_signal = signal_by_key.get(assessment_key)
@@ -5314,7 +5730,7 @@ def research_chart_signals(
         normalized_symbol,
         str(assessment["patternId"]),
         event_time,
-        generated_at,
+        int(prospective_capture.get("decidedUtcAt") or generated_at),
         str(assessment["status"]),
         assessment.get("direction"),
         assessment,
@@ -5352,12 +5768,12 @@ def research_chart_signals(
     with _chart_signal_context_lock:
       cached_context = _chart_signal_context_cache.get(context_key)
     if cached_context is None:
-      context_events = _research_store.query_calendar(from_time=generated_at - 400 * 24 * 60 * 60, to_time=generated_at, currencies=market_currencies)
-      cached_context = build_policy_inflation_context(context_events, generated_at)
+      context_events = _research_store.query_calendar(from_time=native_now - 400 * 24 * 60 * 60, to_time=native_now, currencies=market_currencies)
+      cached_context = build_policy_inflation_context(context_events, native_now)
       with _chart_signal_context_lock:
         _chart_signal_context_cache.clear()
         _chart_signal_context_cache[context_key] = cached_context
-    policy_inflation_context = {**cached_context, "asOf": generated_at}
+    policy_inflation_context = {**cached_context, "asOf": native_now}
   response = {
     "responseSchema": FMS_CHART_RESPONSE_SCHEMA,
     "supported": True,
@@ -5366,6 +5782,12 @@ def research_chart_signals(
     "modelId": PRACTICAL_MODEL_ID,
     "modelHash": PRACTICAL_MODEL_HASH,
     "modelActivatedAt": PRACTICAL_MODEL_CREATED_AT,
+    "sourceClock": None if decision_clock is None else {
+      "schema": "fms-current-native-clock-v1", "nativeOffsetSeconds": decision_clock["nativeOffsetSeconds"],
+      "catalogIdentity": decision_clock["catalogIdentity"], "verifiedUtcAt": decision_clock["verification"]["verifiedUtcAt"],
+      "historicalAlignmentVerified": False,
+    },
+    "clockVerificationPending": clock_verification_pending,
     "datasetFingerprint": dataset_fingerprint,
     "mode": normalized_mode,
     "symbol": normalized_symbol,
@@ -6214,36 +6636,23 @@ def _prospective_context_ledger(
 def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict[str, Any]:
   """Return every practical current registry without changing the selected chart."""
   durable_global_key = "fms_global_chart_response:v1"
-  expected_markets = sorted({str(pattern["market"]) for pattern in PRACTICAL_PATTERN_DEFINITIONS})
   if not refresh:
+    last_known_for_startup: Optional[Dict[str, Any]] = None
     raw_last_known = _research_store.get_metadata(durable_global_key)
     if raw_last_known:
       try:
         last_known = json.loads(raw_last_known)
-        cached_markets = last_known.get("markets") if isinstance(last_known, dict) else None
-        cached_symbols = sorted(str(row.get("symbol")) for row in cached_markets or [] if isinstance(row, dict) and row.get("symbol"))
-        if (isinstance(last_known, dict) and last_known.get("modelHash") == PRACTICAL_MODEL_HASH
-            and cached_symbols == expected_markets):
-          # Pair refreshes persist independently. Never resurrect an older
-          # lifecycle from the global snapshot after a browser reload.
-          merged_markets = []
-          for market in last_known.get("markets", []):
-            raw_market = _research_store.get_metadata(f"fms_chart_response:current:{market['symbol']}")
-            if raw_market:
-              try:
-                newer = json.loads(raw_market).get("response")
-                if (isinstance(newer, dict)
-                    and newer.get("modelHash") == PRACTICAL_MODEL_HASH
-                    and newer.get("responseSchema") == FMS_CHART_RESPONSE_SCHEMA
-                    and int(newer.get("generatedAt") or 0) > int(market.get("generatedAt") or 0)):
-                  market = {**newer, "patterns": [_interactive_chart_pattern(row) for row in newer.get("patterns", [])]}
-              except (TypeError, ValueError):
-                logger.warning("Ignoring unreadable current market snapshot")
-            merged_markets.append(_trade_current_snapshot(market))
-          last_known["markets"] = merged_markets
-          return last_known
+        if isinstance(last_known, dict):
+          last_known_for_startup = last_known
       except (TypeError, ValueError):
         logger.warning("Ignoring unreadable last-known global FMS response")
+    # Every interactive caller gets the same bounded, complete registry.  The
+    # full saved payload can contain years of signals and can be seconds slower
+    # than the selected chart itself even when it is current.  Selected-market
+    # evidence is refreshed independently by /research/chart-signals.
+    return _trade_startup_global_snapshot(
+      _trade_compatible_startup_source(last_known_for_startup, tf),
+    )
   effective_patterns = [_reconciled_pattern(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS]
   markets = [
     research_chart_signals(symbol=market, tf=tf, mode="current", refresh=refresh)
@@ -6266,7 +6675,8 @@ def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict
     challenger = research.get("bestChallenger")
     if not isinstance(active_later, dict) or not isinstance(challenger, dict):
       continue
-    if (pattern.get("executionReview") or {}).get("status") == "reviewed_active":
+    if ((pattern.get("executionReview") or {}).get("status") == "reviewed_active"
+        or (pattern.get("successorReview") or {}).get("status") == "reviewed_active"):
       continue
     active_execution = dict(pattern.get("execution") or {})
     active_ci = active_later.get("expectancyCi95") or {}
@@ -6299,13 +6709,21 @@ def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict
       "market": pattern["market"],
       "label": pattern["label"],
       "evidence": (
+        f"FMS v2 matched reused-holdout average "
+        f"{float(((pattern.get('successorReview') or {}).get('holdout') or {}).get('averageGrossR') or 0):+.3f}R across "
+        f"{int(((pattern.get('successorReview') or {}).get('holdout') or {}).get('evaluableCount') or 0)} evaluable cases."
+        if (pattern.get("successorReview") or {}).get("status") == "reviewed_active" else
         f"Positive no-lookahead walk-forward average "
         f"{float(pattern['historicalBenchmark']['walkForwardAverageR']):+.3f}R across "
         f"{int(pattern['historicalBenchmark']['walkForwardN'])} evaluable cases."
         if pattern.get("historicalBenchmark") else
         "Preserved registered setup with positive frozen historical evidence."
       ),
-      "conclusion": "Registered: monitor future matching releases and display historical arrows.",
+      "conclusion": (
+        "FMS v2 registered execution: monitor new first-seen cases; preserve every earlier FMS v1 arrow."
+        if (pattern.get("successorReview") or {}).get("status") == "reviewed_active" else
+        "FMS v1 registered baseline: monitor future matching releases and display historical arrows."
+      ),
     }
     for pattern in effective_patterns
   ]
@@ -6436,6 +6854,7 @@ def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict
 def research_global_chart_signals_startup(tf: str = "H4") -> Dict[str, Any]:
   """Return every registered market in a small payload suitable for first paint."""
   raw_last_known = _research_store.get_metadata("fms_global_chart_response:v1")
+  last_known: Optional[Dict[str, Any]] = None
   if raw_last_known:
     try:
       last_known = json.loads(raw_last_known)
@@ -6448,8 +6867,7 @@ def research_global_chart_signals_startup(tf: str = "H4") -> Dict[str, Any]:
         return _trade_startup_global_snapshot(last_known)
     except (AttributeError, TypeError, ValueError):
       logger.warning("Ignoring unreadable last-known startup FMS response")
-  response = research_global_chart_signals(tf=tf, refresh=False)
-  return _trade_startup_global_snapshot(response)
+  return _trade_startup_global_snapshot(_trade_compatible_startup_source(last_known, tf))
 
 
 @app.get("/research/execution-challengers")

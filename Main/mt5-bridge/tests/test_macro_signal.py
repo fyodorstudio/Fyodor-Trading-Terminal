@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from unittest.mock import patch
 from fms_recipe_review import project_recipe_review
-from fms_recipe_catalogue import archive_contract_evidence, fixed_reference_case, followup_case, reference_followup_case, summarize_followup, summarize_reference
+from fms_recipe_catalogue import archive_contract_evidence, fixed_reference_case, followup_case, reference_followup_case, truncate_followup_case, summarize_followup, summarize_reference
 
 from macro_signal import (
   aggregate_outcomes,
@@ -85,6 +85,21 @@ def test_reference_catalogue_keeps_coarse_ambiguity_and_observed_opening_gap_los
          {"time": 14500, "open": 98.0, "high": 98.5, "low": 97.5, "close": 98.1}]
   reference = fixed_reference_case(followup_case(case, "long", gap, [100, 14500], 2), .5)
   assert reference["status"] == "stop_gap" and reference["resultR"] == -2.0
+
+
+def test_event_specific_grid_can_compare_wider_stops_and_shorter_horizons_on_one_common_path() -> None:
+  case = {"caseId": "grid", "eventTime": 1, "entryTime": 100, "entry": 100.0, "atr": 1.0, "direction": "long"}
+  candles = [{"time": 100, "open": 100.0, "high": 100.6, "low": 98.7, "close": 100.5},
+             {"time": 14500, "open": 100.5, "high": 102.5, "low": 100.0, "close": 102.0}]
+  full = followup_case(case, "long", candles, [100, 14500], 2)
+  assert fixed_reference_case(full, 1.0, 1.0)["status"] == "stop_hit"
+  wider = fixed_reference_case(full, 1.0, 1.5)
+  assert wider["status"] == "target_hit" and wider["resultR"] == 1.0
+  short = truncate_followup_case(full, 1)
+  assert short["horizonCandles"] == 1 and short["finalAtr"] == .5
+  expired = fixed_reference_case(short, 4.0, 1.5)
+  assert expired["status"] == "expired" and expired["resultR"] == 1 / 3
+  assert full["horizonCandles"] == 2 and len(full["closeAtr"]) == 2
 
 
 def test_reference_catalogue_rejects_incomplete_or_mismatched_geometry_and_unknown_archive_counts() -> None:
@@ -1083,6 +1098,38 @@ def test_catalogue_surface_preserves_exact_denominators_and_review_identity_with
   source["baselineReconciliation"][0]["artifactMatches"] = False
   source["recipes"][0]["executionReview"]["status"] = "previously_declined"
   assert project_catalogue_surface(source)["recipes"][0]["review"]["status"] == "previously_declined"
+
+
+def test_event_specific_selection_uses_development_only_without_uncertainty_veto() -> None:
+  from copy import deepcopy
+  from fms_recipe_review import select_event_specific_references
+
+  def contract(target, duration, dev, holdout):
+    return {"targetR": target, "horizonCandles": duration, "partitions": {
+      "development": {"evaluableCount": 2, "averageGrossR": dev, "expectancyCi95": [-1, 2]},
+      "holdout": {"evaluableCount": 1, "averageGrossR": holdout, "expectancyCi95": [-2, 3]},
+      "overall": {"evaluableCount": 3, "averageGrossR": 0.1}}}
+  recipe = {"recipe": "event-a", "market": "EURUSD", "label": "A", "noteKeys": ["note"],
+            "executionReview": {"originalDecision": "declined", "failedChecks": ["old-protocol"]},
+            "referenceContracts": [contract(2, 30, 0.5, 0.1), contract(1, 6, 0.2, 100)]}
+  source = {"catalogueHash": "hash", "manifest": {"manifestHash": "manifest", "sourceClock": {"successorTimingEligible": False}},
+            "recipes": [recipe, {**deepcopy(recipe), "recipe": "event-b", "referenceContracts": [contract(0.5, 6, 0.6, 0.1)]}]}
+  original = deepcopy(source)
+  selected = select_event_specific_references(source)
+  assert selected["recipes"][0]["selectedContract"]["targetR"] == 2
+  assert selected["recipes"][1]["selectedContract"]["targetR"] == 0.5
+  assert selected["summary"]["positiveReusedHistoryLeads"] == 2
+  assert selected["recipes"][0]["originalReview"] == recipe["executionReview"]
+  assert selected["recipes"][0]["partitions"]["holdout"]["evaluableCount"] == 1
+  assert selected["newRegistrations"] == 0 and source == original
+  # Even a much better reused holdout cannot change the development choice.
+  source["recipes"][0]["referenceContracts"][1]["partitions"]["holdout"]["averageGrossR"] = 1000
+  assert select_event_specific_references(source)["recipes"][0]["selectedContract"] == selected["recipes"][0]["selectedContract"]
+  source["recipes"][0]["referenceContracts"][0]["partitions"]["holdout"]["averageGrossR"] = -1
+  assert select_event_specific_references(source)["recipes"][0]["status"] == "nonpositive_reused_history"
+  # Exact development ties use the declared shorter-duration/lower-target rule.
+  source["recipes"][0]["referenceContracts"][1]["partitions"]["development"]["averageGrossR"] = 0.5
+  assert select_event_specific_references(source)["recipes"][0]["selectedContract"]["targetR"] == 1
 
 
 def test_catalogue_clock_evidence_never_converts_history_or_approves_timing() -> None:

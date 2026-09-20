@@ -12,16 +12,21 @@ import extendedCorelease from "@/app/lib/fmsExtendedCoreleaseSummary.json";
 import entryStateResearch from "@/app/lib/fmsEntryStateSummary.json";
 
 function average(pattern: MacroSignalChartPattern): number | null {
+  const successor = pattern.successorReview?.status === "reviewed_active" ? pattern.successorReview.holdout : null;
+  if (typeof successor?.averageGrossR === "number") return successor.averageGrossR;
   const reviewed = pattern.executionReview?.status === "reviewed_active" ? pattern.executionReview.later : null;
   return typeof reviewed?.averageR === "number" ? reviewed.averageR : pattern.historicalBenchmark?.walkForwardAverageR ?? pattern.executionStress.overall.averageR ?? null;
 }
 
 function accuracy(pattern: MacroSignalChartPattern): number | null {
+  const successor = pattern.successorReview?.status === "reviewed_active" ? pattern.successorReview.holdout : null;
+  if (typeof successor?.targetHitRate === "number") return successor.targetHitRate;
   const reviewed = pattern.executionReview?.status === "reviewed_active" ? pattern.executionReview.later : null;
   return typeof reviewed?.tpBeforeSl === "number" ? reviewed.tpBeforeSl : pattern.historicalBenchmark?.targetFirstRate ?? pattern.overall.targetHitRate ?? null;
 }
 
 function profitFrequency(pattern: MacroSignalChartPattern): number | null {
+  if (pattern.successorReview?.status === "reviewed_active") return null;
   const reviewed = pattern.executionReview?.status === "reviewed_active" ? pattern.executionReview.later : null;
   if (typeof reviewed?.positiveRate === "number") return reviewed.positiveRate;
   const activeLater = pattern.reactionAudit?.profile?.executionChallenger?.activeLater;
@@ -42,7 +47,7 @@ const FINDINGS = [
   ["Offline recovery is separate", "Recovered trades reconstruct the frozen result from MT5 history but never count as true first-seen forward observations."],
   ["A reversal price is hindsight", "FMS can detect a completed reversal pattern, but it cannot truthfully exit at the exact future wick. Reversal research exits at the next H4 open."],
   ["Support and resistance must be entry-known", "Only zones confirmed by completed candles before entry may inform research. Later arrow clustering is audit evidence, not a historical input."],
-  ["Controlled overfitting stays exploratory", "A finite filter search may reveal candidates worth watching, but reused-history winners remain visibly high risk and cannot become registered or actionable without fresh forward evidence."],
+  ["Recipe-specific optimization stays explicit", "Different event–pair recipes may use different execution geometry. Reused-history selection remains labeled; an approved successor needs exact frozen lineage and a new activation boundary, then forward collection judges it without rewriting history."],
   ["Avoiding a setup is measurable", "A no-trade filter earns credit only when it improves the exact parent chronology after counting both avoided losses and removed winners."],
   ["An arrow is not an entry-price marker", "Arrows sit above or below the activation candle. The Entry line shows the price. Moving an arrow to the release candle does not change the frozen trade."],
 ] as const;
@@ -126,6 +131,7 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data,
     profitFrequency: profitFrequency(pattern),
     credibility: macroSignalSetupCredibility(pattern),
     reaction: pattern.reaction === "contrarian" ? "Historically rejected evidence" : "Historically followed evidence",
+    version: pattern.registeredVersion ?? "FMS v1",
   })).sort((left, right) => {
     const difference = sort === "expectancy"
       ? (right.average ?? -Infinity) - (left.average ?? -Infinity)
@@ -140,7 +146,15 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data,
   const ledger = useMemo(() => {
     const executionArtifacts = patterns.map(({ pattern }) => pattern.reactionAudit?.profile?.executionChallenger).filter(Boolean);
     const reversalArtifacts = patterns.map(({ pattern }) => pattern.reactionAudit?.profile?.reversalExitResearch).filter(Boolean);
+    const successors = patterns.filter(({ pattern }) => pattern.successorReview?.status === "reviewed_active");
     return [
+      {
+        id: successors[0]?.pattern.successorReview?.sourceResearchHash ?? "fms-v2-event-specific-execution",
+        status: `${successors.length} registered successors`,
+        title: "FMS v2 event-specific execution",
+        evidence: "Each of 51 recipes was evaluated over a predeclared 480-contract fixed-H4 grid. Development selected one contract per recipe; 18 fixed-H4 leads stayed positive and improved pessimistic average gross R in both development and reused holdout on the same complete paths.",
+        conclusion: "Seventeen exact runtime matches retain the v1 event/scoring rule and use their approved v2 SL/TP/expiry only after the immutable activation boundary. USDJPY manufacturing employment remains v1 because its separate context contract makes live behavior composite. All older arrows remain v1; forward evidence is collected separately.",
+      },
       {
         id: coverageResearch.coverageHash, status: coverageResearch.summary.ready === coverageResearch.summary.markets ? "Ready" : "Preparing", title: "Major Forex Extended coverage",
         evidence: `${coverageResearch.summary.ready} of ${coverageResearch.summary.markets} markets have H4 coverage and all four frozen source baselines; ${coverageResearch.summary.completedSources} of ${coverageResearch.summary.requiredSources} source baselines are complete.`,
@@ -223,7 +237,7 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data,
     ...FINDINGS.map(([title, detail]) => `- **${title}:** ${detail}`),
     "",
     "## Registered setup health",
-    ...summary.map((row) => `- ${row.market} · ${row.label}: ${row.credibility.label}; ${row.health}; average ${row.average == null ? "unavailable" : `${row.average >= 0 ? "+" : ""}${row.average.toFixed(2)}R`}; positive final R ${row.profitFrequency == null ? "unavailable" : `${(row.profitFrequency * 100).toFixed(1)}%`}; TP-before-SL ${row.accuracy == null ? "unavailable" : `${(row.accuracy * 100).toFixed(1)}%`}; ${row.reaction}.`),
+    ...summary.map((row) => `- ${row.market} · ${row.label} · ${row.version}: ${row.credibility.label}; ${row.health}; average ${row.average == null ? "unavailable" : `${row.average >= 0 ? "+" : ""}${row.average.toFixed(2)}R`}; positive final R ${row.profitFrequency == null ? "unavailable" : `${(row.profitFrequency * 100).toFixed(1)}%`}; TP-before-SL ${row.accuracy == null ? "unavailable" : `${(row.accuracy * 100).toFixed(1)}%`}; ${row.reaction}.`),
     "",
     "## Research ledger",
     ...ledger.map((row) => `- **${row.title} (${row.status}):** ${row.evidence} ${row.conclusion}`),
@@ -252,7 +266,7 @@ export const ChartFmsKnowledgeCard = memo(function ChartFmsKnowledgeCard({ data,
       </section>
       <section><details><summary>Compare registered evidence grades</summary>
         <div className="fms-knowledge-section-heading"><div><h2>Registered evidence grading</h2><p>Evidence grades compare reproducibility, not the probability that the next trade wins.</p></div><label>Sort<select value={sort} onChange={(event) => setSort(event.target.value as KnowledgeSort)}><option value="credibility">Evidence grade</option><option value="expectancy">Expected payoff</option><option value="profit_frequency">Profit frequency</option><option value="tp_first">TP before SL</option></select></label></div>
-        <table><thead><tr><th>Market and setup</th><th>Evidence / health</th><th>Expected payoff</th><th>Profit frequency</th><th>TP before SL</th><th>Observed mapping</th></tr></thead><tbody>{summary.map((row) => <tr key={`${row.market}:${row.label}`}><td><b>{row.market}</b><span>{row.label}</span></td><td title={row.credibility.detail}><strong className={`is-${row.credibility.label.toLowerCase()}`}>{row.credibility.label}</strong><span className={`is-${row.health.toLowerCase()}`}>{row.health}</span></td><td>{row.average == null ? "—" : `${row.average >= 0 ? "+" : ""}${row.average.toFixed(2)}R`}</td><td>{row.profitFrequency == null ? "—" : `${(row.profitFrequency * 100).toFixed(1)}%`}</td><td>{row.accuracy == null ? "—" : `${(row.accuracy * 100).toFixed(1)}%`}</td><td>{row.reaction}</td></tr>)}</tbody></table>
+        <table><thead><tr><th>Market and setup</th><th>Evidence / health</th><th>Expected payoff</th><th>Profit frequency</th><th>TP before SL</th><th>Observed mapping</th></tr></thead><tbody>{summary.map((row) => <tr key={`${row.market}:${row.label}`}><td><b>{row.market} · {row.version}</b><span>{row.label}</span></td><td title={row.credibility.detail}><strong className={`is-${row.credibility.label.toLowerCase()}`}>{row.credibility.label}</strong><span className={`is-${row.health.toLowerCase()}`}>{row.health}</span></td><td>{row.average == null ? "—" : `${row.average >= 0 ? "+" : ""}${row.average.toFixed(2)}R`}</td><td>{row.profitFrequency == null ? "—" : `${(row.profitFrequency * 100).toFixed(1)}%`}</td><td>{row.accuracy == null ? "—" : `${(row.accuracy * 100).toFixed(1)}%`}</td><td>{row.reaction}</td></tr>)}</tbody></table>
         </details>
       </section>
       <section><h2>Research ledger</h2><p>Completed, failed, and research-only work is retained here so a later Codex pass can build on it instead of repeating it.</p><div className="fms-knowledge-research">{ledger.map((row) => <article key={row.id}><strong>{row.title} · {row.status}</strong><p>{row.evidence}</p><small>{row.conclusion}</small></article>)}</div></section>

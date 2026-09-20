@@ -7,6 +7,7 @@ export { getMacroBiasActivationCandleOpen, getMacroBiasArrowFocusRange } from "@
 import {
   buildMacroBiasPriceLineLevels,
   buildMacroBiasSeriesMarkers,
+  filterMacroBiasSignalsByVersion,
   getMacroBiasActiveState,
   getMacroBiasInitialLoadPlan,
   getMacroBiasReplayStatusLabel,
@@ -18,6 +19,7 @@ import {
 export {
   buildMacroBiasPriceLineLevels,
   buildMacroBiasSeriesMarkers,
+  filterMacroBiasSignalsByVersion,
   getMacroBiasActiveState,
   getMacroBiasInitialLoadPlan,
   getMacroBiasReplayStatusLabel,
@@ -106,6 +108,7 @@ import {
   type ChartDisplayTimeMode,
 } from "@/app/lib/chartView";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
+import { FMS_BASELINE_DISPLAY_VERSION, FMS_SUCCESSOR_DISPLAY_VERSION, type FmsDisplayVersion } from "@/app/lib/fmsDisplayVersion";
 import { buildMacroFactorRows } from "@/app/lib/macroDrivers";
 import type { BridgeCandle, BridgeHealth, BridgeStatus, CalendarEvent, MacroSignalChartMode, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MarketStatusResponse, Timeframe } from "@/app/types";
 
@@ -124,6 +127,7 @@ const REPLAY_SPEED_OPTIONS = [0.5, 1, 2, 4];
 const REPLAY_STEP_OPTIONS = [1, 2, 4, 8];
 const MACRO_BIAS_VISIBILITY_KEY = "fyodor.charts.macro-bias-visible";
 const MACRO_BIAS_HISTORICAL_MATCHES_KEY = "fyodor.charts.macro-bias-historical-matches";
+const MACRO_BIAS_ARROW_VERSION_KEY = "fyodor.charts.macro-bias-arrow-version";
 
 interface ChartsTabProps {
   currentTime: Date;
@@ -171,6 +175,15 @@ export function ChartsTab({
   const [macroBiasHistoricalMatchesVisible, setMacroBiasHistoricalMatchesVisible] = useState(() => {
     try { return window.localStorage.getItem(MACRO_BIAS_HISTORICAL_MATCHES_KEY) !== "false"; }
     catch { return true; }
+  });
+  const [macroBiasArrowVersion, setMacroBiasArrowVersion] = useState<FmsDisplayVersion>(() => {
+    try {
+      return window.localStorage.getItem(MACRO_BIAS_ARROW_VERSION_KEY) === FMS_SUCCESSOR_DISPLAY_VERSION
+        ? FMS_SUCCESSOR_DISPLAY_VERSION
+        : FMS_BASELINE_DISPLAY_VERSION;
+    } catch {
+      return FMS_BASELINE_DISPLAY_VERSION;
+    }
   });
   const [macroBiasHiddenHistoricalPatterns, setMacroBiasHiddenHistoricalPatterns] = useState<Record<string, string[]>>({});
   const [selectedMacroBiasId, setSelectedMacroBiasId] = useState<string | null>(null);
@@ -584,6 +597,7 @@ export function ChartsTab({
     visible: macroBiasVisible,
     historicalMatchesVisible: macroBiasHistoricalMatchesVisible,
     hiddenHistoricalPatterns: macroBiasHiddenHistoricalPatterns,
+    arrowVersion: macroBiasArrowVersion,
     historyState,
     historyFrom: macroBiasFrom,
     historyTo: macroBiasTo,
@@ -731,7 +745,7 @@ export function ChartsTab({
   }, [selectedMacroBiasWithTargetLadder]);
   const macroBiasAudit = selectedMacroBiasWithTargetLadder && selectedMacroBiasPattern && macroBiasResponse ? {
     signal: selectedMacroBiasWithTargetLadder.activationTime == null && selectedMacroBiasActivationOpen != null
-      ? { ...selectedMacroBiasWithTargetLadder, activationTime: selectedMacroBiasActivationOpen - chartSourceTimeOffsetSeconds }
+      ? { ...selectedMacroBiasWithTargetLadder, activationTime: selectedMacroBiasActivationOpen }
       : selectedMacroBiasWithTargetLadder,
     pattern: selectedMacroBiasPattern,
     symbol: macroBiasResponse.symbol,
@@ -741,6 +755,8 @@ export function ChartsTab({
     datasetFingerprint: macroBiasResponse.datasetFingerprint,
     mode: (selectedMacroBiasWithTargetLadder.historicalReplay ? "research_replay" : "current") as MacroSignalChartMode,
     generatedAt: macroBiasResponse.generatedAt,
+    displayTimeMode,
+    sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
     detailLoading: selectedMacroBiasAudit == null && macroBiasSignalAuditErrors[selectedMacroBiasLadderKey ?? ""] == null,
     detailError: macroBiasSignalAuditErrors[selectedMacroBiasLadderKey ?? ""] ?? null,
     onRetryDetail: () => {
@@ -784,6 +800,8 @@ export function ChartsTab({
         globalError: [macroBiasCurrentError, macroBiasGlobalError, macroBiasMonitoringError].filter(Boolean).join("; ") || null,
         refreshing: macroBiasCurrentLoading || macroBiasGlobalLoading,
         refreshedAt: macroBiasRefreshedAt ?? dockResponse.generatedAt,
+        displayTimeMode,
+        sourceTimeOffsetSeconds: chartSourceTimeOffsetSeconds,
       }
     : null, [
       dockResponse,
@@ -799,6 +817,8 @@ export function ChartsTab({
       macroBiasResponse,
       macroBiasShadowHistoricalSignals,
       macroBiasVisible,
+      displayTimeMode,
+      chartSourceTimeOffsetSeconds,
       timeframe,
     ]);
   const macroBiasActiveLabel = macroBiasActiveState
@@ -829,7 +849,7 @@ export function ChartsTab({
     });
   }, []);
 
-  const goToMacroBiasArrow = useFmsArrowNavigation({
+  const navigateToMacroBiasArrow = useFmsArrowNavigation({
     selectedSymbol,
     timeframe,
     onSelectedSymbolChange,
@@ -852,6 +872,17 @@ export function ChartsTab({
     setHiddenHistoricalPatterns: setMacroBiasHiddenHistoricalPatterns,
     setSelectedSignalId: setSelectedMacroBiasId,
   });
+  const selectMacroBiasArrowVersion = useCallback((version: FmsDisplayVersion) => {
+    setMacroBiasArrowVersion(version);
+    setSelectedMacroBiasId(null);
+    try { window.localStorage.setItem(MACRO_BIAS_ARROW_VERSION_KEY, version); } catch { /* optional preference */ }
+  }, []);
+  const goToMacroBiasArrow = useCallback((market: string, signal: MacroSignalChartSignal) => {
+    const version = signal.registeredVersion ?? FMS_BASELINE_DISPLAY_VERSION;
+    setMacroBiasArrowVersion(version);
+    try { window.localStorage.setItem(MACRO_BIAS_ARROW_VERSION_KEY, version); } catch { /* optional preference */ }
+    navigateToMacroBiasArrow(market, signal);
+  }, [navigateToMacroBiasArrow]);
   const goToMacroBiasEvent = useFmsEventNavigation({
     selectedSymbol,
     timeframe,
@@ -1391,8 +1422,10 @@ export function ChartsTab({
         macroBiasLoading={macroBiasLoading}
         macroBiasHistoricalMatchesVisible={macroBiasHistoricalMatchesVisible}
         macroBiasHistoricalMatchesCount={macroBiasShadowHistoricalSignals?.length ?? 0}
+        macroBiasArrowVersion={macroBiasArrowVersion}
         macroBiasHistoricalPatternFilters={macroBiasHistoricalPatternFilters}
         onToggleMacroBiasHistoricalMatches={toggleMacroBiasHistoricalMatches}
+        onSelectMacroBiasArrowVersion={selectMacroBiasArrowVersion}
         onToggleMacroBiasHistoricalPattern={toggleMacroBiasHistoricalPattern}
         onSetAllMacroBiasHistoricalPatterns={setAllMacroBiasHistoricalPatterns}
         onGoToMacroBiasArrow={goToMacroBiasArrow}

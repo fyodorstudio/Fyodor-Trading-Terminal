@@ -1,4 +1,4 @@
-import { formatJakartaDisplayDateTime } from "@/app/lib/format";
+import { formatChartFeedTime, type ChartDisplayTimeMode } from "@/app/lib/chartView";
 import type { MacroSignalChartMode, MacroSignalChartPattern, MacroSignalChartSignal } from "@/app/types";
 
 export interface ChartMacroBiasAuditData {
@@ -12,6 +12,8 @@ export interface ChartMacroBiasAuditData {
   mode: MacroSignalChartMode;
   targetR?: number;
   generatedAt?: number;
+  displayTimeMode?: ChartDisplayTimeMode;
+  sourceTimeOffsetSeconds?: number;
   detailLoading?: boolean;
   detailError?: string | null;
   onRetryDetail?: () => void;
@@ -102,10 +104,6 @@ function formatHoldingCandles(from: number | null | undefined, to: number | null
   return `${Number.isInteger(candles) ? candles.toFixed(0) : candles.toFixed(1)} H4`;
 }
 
-function formatUtc(value: number | null | undefined): string {
-  return value == null || !Number.isFinite(value) ? "Waiting for next H4 open" : formatJakartaDisplayDateTime(value);
-}
-
 function formatOutcome(signal: MacroSignalChartSignal): string {
   if (signal.outcomeStatus === "target_hit") return `TP reached · ${formatR(signal.resultR)}`;
   if (signal.outcomeStatus === "stop_hit") return `SL reached · ${formatR(signal.resultR)}`;
@@ -127,7 +125,7 @@ function targetPathStatus(row: NonNullable<NonNullable<MacroSignalChartSignal["p
   return "Not reached before duration ended";
 }
 
-function lifecycleCopy(signal: MacroSignalChartSignal): { state: string; detail: string; resolved: boolean } {
+function lifecycleCopy(signal: MacroSignalChartSignal, formatTime: (value: number | null | undefined) => string): { state: string; detail: string; resolved: boolean } {
   if (signal.outcomeStatus === "target_hit") return { state: "Closed — target reached", detail: "The frozen trade ended at its target. Later price movement does not change this result.", resolved: true };
   if (signal.outcomeStatus === "stop_hit" && signal.resultR === 0) return { state: "Closed — break-even stop reached", detail: "The reviewed rule had already moved the stop to entry, so this case closed at 0R before costs.", resolved: true };
   if (signal.outcomeStatus === "stop_hit") return { state: "Closed — stop reached", detail: "The frozen trade ended at its stop. This is a losing case for loss-review research.", resolved: true };
@@ -135,8 +133,8 @@ function lifecycleCopy(signal: MacroSignalChartSignal): { state: string; detail:
   if (signal.outcomeStatus === "ambiguous") return { state: "Closed — intrabar order unknown", detail: "Both boundaries touched inside the same smallest loaded candle, so no win or loss is invented.", resolved: true };
   if (signal.outcomeStatus === "unevaluable") {
     const coverage = signal.outcomeCoverage;
-    const required = coverage?.requiredFrom != null && coverage.requiredTo != null ? `${formatUtc(coverage.requiredFrom)} to ${formatUtc(coverage.requiredTo)}` : "the required trade interval";
-    const available = coverage?.availableFrom != null && coverage.availableTo != null ? `${formatUtc(coverage.availableFrom)} to ${formatUtc(coverage.availableTo)}` : "none";
+    const required = coverage?.requiredFrom != null && coverage.requiredTo != null ? `${formatTime(coverage.requiredFrom)} to ${formatTime(coverage.requiredTo)}` : "the required trade interval";
+    const available = coverage?.availableFrom != null && coverage.availableTo != null ? `${formatTime(coverage.availableFrom)} to ${formatTime(coverage.availableTo)}` : "none";
     return { state: signal.outcomeReason ?? "Historical price data unavailable", detail: `Required MT5 coverage: ${required} (${coverage?.requiredCandles ?? "additional"} H4 candles). Available coverage: ${available}.`, resolved: true };
   }
   if (signal.outcomeStatus === "pending") return { state: signal.outcomeReason ?? "Trade still running", detail: signal.outcomeReasonCode === "waiting_for_entry_candle" ? "The release is known; the first strictly later H4 entry candle has not opened yet." : "The hypothetical trade remains open until TP, SL, ambiguity, or its maximum H4 duration resolves it.", resolved: false };
@@ -152,6 +150,11 @@ function provenanceLabel(status: NonNullable<MacroSignalChartPattern["registrati
 
 export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData): ChartMacroBiasAuditViewModel {
   const { signal, pattern } = data;
+  const displayTimeMode = data.displayTimeMode ?? "local";
+  const sourceTimeOffsetSeconds = data.sourceTimeOffsetSeconds ?? 0;
+  const formatTime = (value: number | null | undefined): string => value == null || !Number.isFinite(value)
+    ? "Waiting for next H4 open"
+    : formatChartFeedTime(value, displayTimeMode, sourceTimeOffsetSeconds);
   // Durable chart/detail caches predate some arrays that are required by the
   // current TypeScript contract. Normalize them at this view boundary so an
   // older immutable arrow stays reviewable instead of taking down the dock.
@@ -171,13 +174,16 @@ export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData)
   const benchmark = pattern.historicalBenchmark;
   const historicalEvidence = pattern.historicalEvidence;
   const provenance = pattern.registrationProvenance;
+  const successorApplies = signal.registeredVersion === "FMS v2" && pattern.successorReview?.status === "reviewed_active";
+  const successorEvidence = successorApplies ? pattern.successorReview?.holdout : null;
+  const successorNumber = (key: string): number | null => typeof successorEvidence?.[key] === "number" ? successorEvidence[key] as number : null;
   const reviewedExecutionApplies = pattern.executionReview?.status === "reviewed_active" && signal.eventTime >= pattern.executionReview.activatedAt;
   const reviewedLater = reviewedExecutionApplies ? pattern.executionReview?.later : null;
-  const benchmarkAverage = historicalEvidence?.averageGrossR ?? (typeof reviewedLater?.averageR === "number" ? reviewedLater.averageR : benchmark?.walkForwardAverageR);
-  const benchmarkTargetRate = historicalEvidence?.targetHitRate ?? (typeof reviewedLater?.tpBeforeSl === "number" ? reviewedLater.tpBeforeSl : benchmark?.targetFirstRate);
-  const benchmarkStopRate = historicalEvidence?.stopHitRate ?? benchmark?.stopFirstRate;
-  const benchmarkSample = historicalEvidence?.evaluableCount ?? (typeof reviewedLater?.evaluableN === "number" ? reviewedLater.evaluableN : benchmark?.walkForwardN);
-  const lifecycle = lifecycleCopy(signal);
+  const benchmarkAverage = successorNumber("averageGrossR") ?? historicalEvidence?.averageGrossR ?? (typeof reviewedLater?.averageR === "number" ? reviewedLater.averageR : benchmark?.walkForwardAverageR);
+  const benchmarkTargetRate = successorNumber("targetHitRate") ?? historicalEvidence?.targetHitRate ?? (typeof reviewedLater?.tpBeforeSl === "number" ? reviewedLater.tpBeforeSl : benchmark?.targetFirstRate);
+  const benchmarkStopRate = successorNumber("stopHitRate") ?? historicalEvidence?.stopHitRate ?? benchmark?.stopFirstRate;
+  const benchmarkSample = successorNumber("evaluableCount") ?? historicalEvidence?.evaluableCount ?? (typeof reviewedLater?.evaluableN === "number" ? reviewedLater.evaluableN : benchmark?.walkForwardN);
+  const lifecycle = lifecycleCopy(signal, formatTime);
   const simpleBreakEven = 1 / (1 + targetR);
   const initialReaction = fixedHorizonResponses.find((item) => item.holdingCandles === 1) ?? null;
   const initialReactionPips = initialReaction && signal.atr != null ? initialReaction.responseR * stopAtr * signal.atr / pipSize(market) : null;
@@ -237,12 +243,12 @@ export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData)
   section("Result");
   row("Direction and result", `${signal.direction === "long" ? "Long" : "Short"} ${market}`, formatOutcome(signal));
   row("Lifecycle", lifecycle.state, lifecycle.detail);
-  row("Entry", formatPrice(signal.entry, market), `${signal.entryTimeframe ?? "H4"} · ${formatUtc(signal.activationTime)} · The chart arrow marks the activation candle; its vertical placement is visual only. The exact frozen entry is ${formatPrice(signal.entry, market)}.`, { tone: "entry" });
+  row("Entry", formatPrice(signal.entry, market), `${signal.entryTimeframe ?? "H4"} · ${formatTime(signal.activationTime)} · The chart arrow marks the activation candle; its vertical placement is visual only. The exact frozen entry is ${formatPrice(signal.entry, market)}.`, { tone: "entry" });
   row("Stop loss", formatPrice(frozenStop, market), `${riskPips == null ? "—" : `${riskPips.toFixed(1)} pips`} · ${formatAtr(riskAtr)} · −1R${signal.breakEvenArmed ? ` · current stop moved to ${formatPrice(signal.stop, market)}` : ""}`, { tone: "risk" });
   row("Take profit", formatPrice(signal.target, market), `${rewardPips == null ? "—" : `${rewardPips.toFixed(1)} pips`} · ${formatAtr(rewardAtr)} · +${targetR}R`, { tone: "reward" });
   row("Risk : reward", `1 : ${targetR}`, "Frozen registered contract");
   row("ATR at entry", `${formatPrice(signal.atr, market)}${atrPips == null ? "" : ` · ${atrPips.toFixed(1)} pips`}`, "Completed H4 ATR(14)");
-  row("Maximum duration", `${signal.expiryCandles} H4`, `Expires ${formatUtc(signal.expiryTime)}`);
+  row("Maximum duration", `${signal.expiryCandles} H4`, `Expires ${formatTime(signal.expiryTime)}`);
   row("Management", managementFamily === "break_even" ? "Break-even" : "Fixed", managementFamily === "break_even" ? `Move SL to entry after +${signal.managementTriggerR ?? 1}R` : "SL and TP stay fixed");
 
   section("Initial price reaction");
@@ -271,7 +277,7 @@ export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData)
   directionalZones.forEach((zone, index) => {
     const distanceR = riskAtr && riskAtr > 0 ? zone.distanceAtr / riskAtr : null;
     const zonePips = signal.atr == null ? null : zone.distanceAtr * signal.atr / pipSize(market);
-    row(`${index === 0 ? "Nearest" : `Wider ${index + 1}`} · ${zone.timeframe ?? "H4"} ${zone.kind}`, formatPrice(zone.level, market), `${zonePips == null ? "—" : `${zonePips.toFixed(1)} pips`} · ${zone.distanceAtr.toFixed(2)} ATR · ${distanceR == null ? "—" : `${distanceR.toFixed(2)}R`} · ${rewardAtr != null && zone.distanceAtr < rewardAtr ? "Before frozen TP" : "Beyond frozen TP"} · ${zone.touches} touches · ${readableContext(zone.strength)} · confirmed ${zone.confirmedAt == null ? "legacy record" : formatUtc(zone.confirmedAt)} · later outcome ${readableContext(zone.postEntryState)}`);
+    row(`${index === 0 ? "Nearest" : `Wider ${index + 1}`} · ${zone.timeframe ?? "H4"} ${zone.kind}`, formatPrice(zone.level, market), `${zonePips == null ? "—" : `${zonePips.toFixed(1)} pips`} · ${zone.distanceAtr.toFixed(2)} ATR · ${distanceR == null ? "—" : `${distanceR.toFixed(2)}R`} · ${rewardAtr != null && zone.distanceAtr < rewardAtr ? "Before frozen TP" : "Beyond frozen TP"} · ${zone.touches} touches · ${readableContext(zone.strength)} · confirmed ${zone.confirmedAt == null ? "legacy record" : formatTime(zone.confirmedAt)} · later outcome ${readableContext(zone.postEntryState)}`);
   });
 
   if (marketContext) {
@@ -301,17 +307,17 @@ export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData)
   }
 
   section("What happened · Release to frozen result");
-  row("1 · Economic release", formatUtc(signal.eventTime), "Scheduled event time");
-  if (signal.releaseObservationQuote) row("2 · First FMS-observed post-release quote", formatUtc(signal.releaseObservationQuote.quoteTime), `bid ${formatPrice(signal.releaseObservationQuote.bid, market)} · ask ${formatPrice(signal.releaseObservationQuote.ask, market)} · ${signal.entryTimingAudit?.quoteDelaySeconds ?? signal.releaseObservationQuote.entryLagSeconds}s after scheduled release · observed quote, not a fill`);
-  row(`${signal.releaseObservationQuote ? "3" : "2"} · Frozen H4 trade activated`, formatUtc(signal.activationTime), "First strictly later registered entry candle");
+  row("1 · Economic release", formatTime(signal.eventTime), "Scheduled event time");
+  if (signal.releaseObservationQuote) row("2 · First FMS-observed post-release quote", formatTime(signal.releaseObservationQuote.quoteTime), `bid ${formatPrice(signal.releaseObservationQuote.bid, market)} · ask ${formatPrice(signal.releaseObservationQuote.ask, market)} · ${signal.entryTimingAudit?.quoteDelaySeconds ?? signal.releaseObservationQuote.entryLagSeconds}s after scheduled release · observed quote, not a fill`);
+  row(`${signal.releaseObservationQuote ? "3" : "2"} · Frozen H4 trade activated`, formatTime(signal.activationTime), "First strictly later registered entry candle");
   if (signal.pathAudit) row(`${signal.releaseObservationQuote ? "4" : "3"} · Best favorable move`, formatR(signal.pathAudit.maximumFavorableR), `${formatPips(signal.pathAudit.maximumFavorablePips)} · after ${signal.pathAudit.timeToMfeCandles ?? "—"} H4`);
-  row(lifecycle.resolved ? "Frozen trade closed" : "Current lifecycle", formatOutcome(signal), `${resultPips == null ? "" : `${formatPips(resultPips)} · `}held ${formatHoldingCandles(signal.activationTime, timelineEnd)} · ${signal.exitTime == null ? lifecycle.state : formatUtc(signal.exitTime)}`);
+  row(lifecycle.resolved ? "Frozen trade closed" : "Current lifecycle", formatOutcome(signal), `${resultPips == null ? "" : `${formatPips(resultPips)} · `}held ${formatHoldingCandles(signal.activationTime, timelineEnd)} · ${signal.exitTime == null ? lifecycle.state : formatTime(signal.exitTime)}`);
   row("Release-time limitation", "Prospective research only", "Historical rows without a first-seen quote cannot prove an executable release price; the frozen result uses the first strictly later H4 open.");
 
   if (signal.entryTimingAudit && Number.isFinite(signal.entryTimingAudit.quoteTime) && Number.isFinite(signal.entryTimingAudit.observedMid)) {
     section("Entry timing research · Observed MT5 data");
-    row("First observed quote", `${formatUtc(signal.entryTimingAudit.quoteTime)} · ${formatPrice(signal.entryTimingAudit.observedMid, market)}`, `${signal.entryTimingAudit.quoteDelaySeconds}s after release`);
-    entryTimingRows.forEach((entry) => row(`First later ${entry.timeframe} open`, entry.entryTime == null ? "Waiting" : `${formatUtc(entry.entryTime)} · ${formatPrice(entry.entryOpen, market)}`, entry.status === "quote_captured_after_entry" ? "Quote arrived too late to compare" : entry.status === "waiting_for_candle" ? "Not formed yet" : `${formatPips(entry.gapPips)} raw · ${formatPips(entry.directionAdjustedGapPips)} with arrow`));
+    row("First observed quote", `${formatTime(signal.entryTimingAudit.quoteTime)} · ${formatPrice(signal.entryTimingAudit.observedMid, market)}`, `${signal.entryTimingAudit.quoteDelaySeconds}s after release`);
+    entryTimingRows.forEach((entry) => row(`First later ${entry.timeframe} open`, entry.entryTime == null ? "Waiting" : `${formatTime(entry.entryTime)} · ${formatPrice(entry.entryOpen, market)}`, entry.status === "quote_captured_after_entry" ? "Quote arrived too late to compare" : entry.status === "waiting_for_candle" ? "Not formed yet" : `${formatPips(entry.gapPips)} raw · ${formatPips(entry.directionAdjustedGapPips)} with arrow`));
     row("Entry timing disclosure", "Research only", signal.entryTimingAudit.disclosure);
   }
 
@@ -327,20 +333,23 @@ export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData)
     fixedHorizonResponses.forEach((response) => row(`Fixed horizon · ${response.holdingCandles} H4`, formatR(response.responseR), "Direction-adjusted response"));
   }
 
-  if (benchmark || historicalEvidence) {
+  if (benchmark || historicalEvidence || successorEvidence) {
     section("Historical performance of this exact setup");
-    row("Evidence source", historicalEvidence?.sourceId ?? benchmark?.experimentId ?? "—", historicalEvidence?.scope ?? "Registered historical benchmark");
+    row("Registered release", signal.registeredVersion ?? "FMS v1", successorApplies ? "Approved event-specific execution successor; older occurrences retain FMS v1." : "Frozen registered baseline.");
+    row("Evidence source", successorApplies ? pattern.successorReview?.sourceResearchHash ?? "FMS v2 registry" : historicalEvidence?.sourceId ?? benchmark?.experimentId ?? "—", successorApplies ? "Development-selected contract · reused chronological holdout" : historicalEvidence?.scope ?? "Registered historical benchmark");
     row("Average per trade", formatR(benchmarkAverage), `Gross · ${benchmarkSample ?? "—"} later test trades`);
-    row("TP before SL", formatPercent(benchmarkTargetRate), historicalEvidence?.targetHitCount == null ? "Rate recorded without exact count" : `${historicalEvidence.targetHitCount} / ${historicalEvidence.evaluableCount}`);
-    row("SL before TP", formatPercent(benchmarkStopRate), historicalEvidence?.stopHitCount == null ? "Rate recorded without exact count" : `${historicalEvidence.stopHitCount} / ${historicalEvidence.evaluableCount}`);
-    if (historicalEvidence) row("Other outcomes", `Expired ${historicalEvidence.expiredCount ?? "—"} · Break-even ${historicalEvidence.breakEvenCount ?? "—"}`, `Ambiguous ${historicalEvidence.ambiguousCount ?? "—"} · Unevaluable ${historicalEvidence.unevaluableCount ?? "—"}`);
-    if (benchmark) row("All matching events", String(benchmark.historicalN), `Later TP rate needed ${formatPercent(simpleBreakEven)}`);
+    row("TP before SL", formatPercent(benchmarkTargetRate), successorApplies ? `${successorNumber("targetHitCount") ?? "—"} / ${benchmarkSample ?? "—"}` : historicalEvidence?.targetHitCount == null ? "Rate recorded without exact count" : `${historicalEvidence.targetHitCount} / ${historicalEvidence.evaluableCount}`);
+    row("SL before TP", formatPercent(benchmarkStopRate), successorApplies ? `${successorNumber("stopHitCount") ?? "—"} / ${benchmarkSample ?? "—"}` : historicalEvidence?.stopHitCount == null ? "Rate recorded without exact count" : `${historicalEvidence.stopHitCount} / ${historicalEvidence.evaluableCount}`);
+    if (successorApplies) row("Other outcomes", `Expired ${successorNumber("expiredCount") ?? "—"}`, `Ambiguous ${successorNumber("ambiguousCount") ?? "—"} · Unevaluable ${successorNumber("unevaluableCount") ?? "—"}`);
+    else if (historicalEvidence) row("Other outcomes", `Expired ${historicalEvidence.expiredCount ?? "—"} · Break-even ${historicalEvidence.breakEvenCount ?? "—"}`, `Ambiguous ${historicalEvidence.ambiguousCount ?? "—"} · Unevaluable ${historicalEvidence.unevaluableCount ?? "—"}`);
+    if (benchmark && !successorApplies) row("All matching events", String(benchmark.historicalN), `Later TP rate needed ${formatPercent(simpleBreakEven)}`);
     if (pattern.reactionAudit) {
       row(`Direction worked after ${pattern.reactionAudit.horizonCandles} H4`, formatPercent(pattern.reactionAudit.positiveResponseRate), `Worked, but trade lost ${pattern.reactionAudit.directionWorkedTradeLost} / ${pattern.reactionAudit.evaluableN}`);
       row("Different measurements:", "Direction versus final trade", `Direction checks the registered price response after ${pattern.reactionAudit.horizonCandles} H4 candles. Final result uses this setup's exact SL, TP, and maximum duration.`);
     }
     row("Trade rules used in this test", `SL ${stopAtr} ATR · TP ${targetR}R = ${stopAtr * targetR} ATR`, `maximum ${signal.expiryCandles} H4 candles${signal.managementFamily === "break_even" ? ` · move SL to entry after a completed H4 reaches +${signal.managementTriggerR ?? 1}R` : ""}`);
     if (reviewedExecutionApplies) row("Reviewed execution contract", "Verified", `${pattern.executionReview?.reason} Historical result remains gross and is not live validation.`);
+    if (successorApplies) row("FMS v2 execution contract", "Verified", `${pattern.successorReview?.limitations ?? "Gross reused history; forward validation remains separate."}`);
     if (provenance) row(provenanceLabel(provenance.status), provenance.status, provenance.note);
   } else row("Historical setup", "No linked backtest record", "This older setup is retained for audit, but exact historical performance is unavailable here.", { tone: "warning" });
 
@@ -352,7 +361,7 @@ export function buildChartMacroBiasAuditViewModel(data: ChartMacroBiasAuditData)
     ariaLabel: `${signal.direction} ${market} macro bias audit`,
     kicker: historicalReplay ? "Past FMS result" : "Current FMS signal",
     title: pattern.label,
-    subtitle: `${formatUtc(signal.eventTime)} · ${signal.observationMode?.replaceAll("_", " ") ?? (historicalReplay ? "historical replay" : "current")}`,
+    subtitle: `${formatTime(signal.eventTime)} · ${signal.observationMode?.replaceAll("_", " ") ?? (historicalReplay ? "historical replay" : "current")}`,
     rows,
   };
 }

@@ -269,6 +269,8 @@ class ResearchStore:
         connection.execute("ALTER TABLE release_observations ADD COLUMN ea_completed_at INTEGER")
       if "bridge_acknowledged_at" not in observation_columns:
         connection.execute("ALTER TABLE release_observations ADD COLUMN bridge_acknowledged_at INTEGER")
+      if "source_clock_json" not in observation_columns:
+        connection.execute("ALTER TABLE release_observations ADD COLUMN source_clock_json TEXT")
       review_note_columns = {
         str(row["name"]) for row in connection.execute("PRAGMA table_info(fms_review_notes)").fetchall()
       }
@@ -812,6 +814,7 @@ class ResearchStore:
     observed_at: int,
     released_through: Optional[int] = None,
     ea_completed_at: Optional[int] = None,
+    source_clock: Optional[Dict[str, Any]] = None,
   ) -> int:
     """Freeze first-seen released values after the forward ledger was activated."""
     release_cutoff = observed_at if released_through is None else released_through
@@ -820,16 +823,18 @@ class ResearchStore:
         """
         INSERT OR IGNORE INTO release_observations(
           id, time, country_code, currency, title, impact,
-          actual, forecast, previous, first_seen_at, ea_completed_at, bridge_acknowledged_at
+          actual, forecast, previous, first_seen_at, ea_completed_at, bridge_acknowledged_at, source_clock_json
         )
         SELECT id, time, country_code, currency, title, impact,
-               actual, forecast, previous, ?, ?, ?
+               actual, forecast, previous, ?, ?, ?, ?
         FROM calendar_events
         WHERE time >= ? AND time <= ?
           AND actual IS NOT NULL
           AND TRIM(actual) NOT IN ('', '-', '—')
         """,
-        (observed_at, ea_completed_at, observed_at, activated_at, release_cutoff),
+        (observed_at, ea_completed_at, observed_at,
+         json.dumps(source_clock, sort_keys=True) if source_clock is not None else None,
+         activated_at, release_cutoff),
       )
       return int(cursor.rowcount)
 
@@ -850,7 +855,7 @@ class ResearchStore:
     where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
     with self._connect() as connection:
       rows = connection.execute(
-        "SELECT id, time, country_code, currency, title, impact, actual, forecast, previous, first_seen_at, ea_completed_at, bridge_acknowledged_at "
+        "SELECT id, time, country_code, currency, title, impact, actual, forecast, previous, first_seen_at, ea_completed_at, bridge_acknowledged_at, source_clock_json "
         f"FROM release_observations{where} ORDER BY time, currency, title, id",
         params,
       ).fetchall()
@@ -868,6 +873,7 @@ class ResearchStore:
         "firstSeenAt": int(row["first_seen_at"]),
         "eaCompletedAt": None if row["ea_completed_at"] is None else int(row["ea_completed_at"]),
         "bridgeAcknowledgedAt": None if row["bridge_acknowledged_at"] is None else int(row["bridge_acknowledged_at"]),
+        "sourceClock": None if row["source_clock_json"] is None else json.loads(row["source_clock_json"]),
       }
       for row in rows
     ]

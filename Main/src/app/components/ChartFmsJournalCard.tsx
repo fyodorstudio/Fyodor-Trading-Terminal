@@ -9,7 +9,13 @@ import {
   type FmsReviewNoteInput,
   type FmsReviewNoteLabel,
 } from "@/app/lib/bridge";
-import { formatJakartaDisplayDateTime } from "@/app/lib/format";
+import {
+  formatChartFeedTime,
+  toChartUtcMetadataViewerTimestampSeconds,
+  toChartViewerTimestampSeconds,
+  type ChartDisplayTimeMode,
+} from "@/app/lib/chartView";
+import { getDisplayTimezoneDateParts, getDisplayTimezoneShortLabel } from "@/app/lib/timezoneDisplay";
 import type { MacroSignalChartSignal, MacroSignalChartSignalResponse } from "@/app/types";
 
 type JournalSource = "live" | "recovered" | "no_trade" | "historical";
@@ -36,17 +42,28 @@ export type JournalRow = {
 };
 
 type JournalScope = "this_week" | "previous_week" | "month" | "year" | "all" | "broker";
-const JAKARTA_OFFSET_SECONDS = 7 * 3_600;
 const replayJournalCache = new Map<string, JournalRow[]>();
 
-function jakartaDayStart(time: number): number {
-  return Math.floor((time + JAKARTA_OFFSET_SECONDS) / 86_400) * 86_400 - JAKARTA_OFFSET_SECONDS;
+type JournalDateParts = ReturnType<typeof getDisplayTimezoneDateParts>;
+
+function dateOrdinal(parts: JournalDateParts): number {
+  return Math.floor(Date.UTC(parts.year, parts.month - 1, parts.day) / 86_400_000);
 }
 
-function jakartaWeekStart(time: number): number {
-  const start = jakartaDayStart(time);
-  const weekday = new Date((start + JAKARTA_OFFSET_SECONDS) * 1_000).getUTCDay();
-  return start - ((weekday + 6) % 7) * 86_400;
+function feedDateParts(time: number, mode: ChartDisplayTimeMode, sourceTimeOffsetSeconds: number): JournalDateParts {
+  return getDisplayTimezoneDateParts(toChartViewerTimestampSeconds(time, mode, sourceTimeOffsetSeconds), mode);
+}
+
+function metadataDateParts(time: number, mode: ChartDisplayTimeMode, sourceTimeOffsetSeconds: number): JournalDateParts {
+  return getDisplayTimezoneDateParts(toChartUtcMetadataViewerTimestampSeconds(time, mode, sourceTimeOffsetSeconds), mode);
+}
+
+function weekStartOrdinal(parts: JournalDateParts): number {
+  return dateOrdinal(parts) - ((parts.weekday + 6) % 7);
+}
+
+function dateFromOrdinal(ordinal: number): Date {
+  return new Date(ordinal * 86_400_000);
 }
 
 function rowResolvedTime(row: JournalRow): number {
@@ -59,24 +76,13 @@ function aggregate(rows: JournalRow[], source: JournalSource) {
   return { count: resolved.length, total, average: resolved.length ? total / resolved.length : null };
 }
 
-const jakartaDateKey = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Asia/Jakarta",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
-
-const jakartaDayLabel = new Intl.DateTimeFormat("en-US", {
-  timeZone: "Asia/Jakarta",
+const journalDayLabel = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC",
   weekday: "long",
   day: "2-digit",
   month: "short",
   year: "numeric",
 });
-
-function dayKey(time: number): string {
-  return jakartaDateKey.format(new Date(time * 1_000));
-}
 
 function signedR(value: number | null): string {
   return value == null ? "—" : `${value >= 0 ? "+" : ""}${value.toFixed(2)}R`;
@@ -242,28 +248,35 @@ type JournalGroup = { key: string; label: string; rows: JournalRow[] };
 type SaveReviewNote = (input: FmsReviewNoteInput) => Promise<FmsReviewNote>;
 type RemoveReviewNote = (recordKey: string) => Promise<void>;
 
-const jakartaWeekStartLabel = new Intl.DateTimeFormat("en-US", {
-  timeZone: "Asia/Jakarta", weekday: "short", day: "2-digit", month: "short",
+const journalWeekStartLabel = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC", weekday: "short", day: "2-digit", month: "short",
 });
-const jakartaWeekEndLabel = new Intl.DateTimeFormat("en-US", {
-  timeZone: "Asia/Jakarta", weekday: "short", day: "2-digit", month: "short", year: "numeric",
+const journalWeekEndLabel = new Intl.DateTimeFormat("en-US", {
+  timeZone: "UTC", weekday: "short", day: "2-digit", month: "short", year: "numeric",
 });
 
-export function groupJournalRows(rows: JournalRow[], grouping: "day" | "week"): JournalGroup[] {
-  const grouped = new Map<string, { start: number; rows: JournalRow[] }>();
+export function groupJournalRows(
+  rows: JournalRow[],
+  grouping: "day" | "week",
+  displayTimeMode: ChartDisplayTimeMode = "local",
+  sourceTimeOffsetSeconds = 0,
+): JournalGroup[] {
+  const grouped = new Map<string, { startOrdinal: number; rows: JournalRow[] }>();
   rows.forEach((row) => {
-    const start = grouping === "week" ? jakartaWeekStart(row.eventTime) : jakartaDayStart(rowResolvedTime(row));
-    const key = String(start);
+    const timestamp = grouping === "week" ? row.eventTime : rowResolvedTime(row);
+    const parts = feedDateParts(timestamp, displayTimeMode, sourceTimeOffsetSeconds);
+    const startOrdinal = grouping === "week" ? weekStartOrdinal(parts) : dateOrdinal(parts);
+    const key = String(startOrdinal);
     const current = grouped.get(key);
     if (current) current.rows.push(row);
-    else grouped.set(key, { start, rows: [row] });
+    else grouped.set(key, { startOrdinal, rows: [row] });
   });
   return [...grouped.entries()].map(([key, group]) => ({
     key,
     rows: group.rows,
     label: grouping === "week"
-      ? `${jakartaWeekStartLabel.format(new Date(group.start * 1_000))} – ${jakartaWeekEndLabel.format(new Date((group.start + 4 * 86_400) * 1_000))}`
-      : jakartaDayLabel.format(new Date(group.start * 1_000)),
+      ? `${journalWeekStartLabel.format(dateFromOrdinal(group.startOrdinal))} – ${journalWeekEndLabel.format(dateFromOrdinal(group.startOrdinal + 4))}`
+      : journalDayLabel.format(dateFromOrdinal(group.startOrdinal)),
   }));
 }
 
@@ -276,6 +289,8 @@ const JournalRecord = memo(function JournalRecord({
   removeNote,
   onGoToArrow,
   onGoToEvent,
+  displayTimeMode,
+  sourceTimeOffsetSeconds,
 }: {
   row: JournalRow;
   savedNote: FmsReviewNote | null;
@@ -285,6 +300,8 @@ const JournalRecord = memo(function JournalRecord({
   removeNote: RemoveReviewNote;
   onGoToArrow?: (market: string, signal: MacroSignalChartSignal) => void;
   onGoToEvent?: (market: string, eventTime: number) => void;
+  displayTimeMode: ChartDisplayTimeMode;
+  sourceTimeOffsetSeconds: number;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -312,12 +329,12 @@ const JournalRecord = memo(function JournalRecord({
   };
   return <Fragment>
     <tr>
-      <td><strong>{formatJakartaDisplayDateTime(row.eventTime)}</strong><span>{row.market} · {row.label}</span><small className={`is-${row.source}`}>{row.source === "live" ? "Live captured" : row.source === "recovered" ? "Recovered path" : row.source === "historical" ? "Before registration replay" : "No trade"}</small></td>
+      <td><strong>{formatChartFeedTime(row.eventTime, displayTimeMode, sourceTimeOffsetSeconds)}</strong><span>{row.market} · {row.label}</span><small className={`is-${row.source}`}>{row.source === "live" ? "Live captured" : row.source === "recovered" ? "Recovered path" : row.source === "historical" ? "Before registration replay" : "No trade"}</small></td>
       <td><strong>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} ${row.market}` : "No position"}</strong><span>{row.state}</span>{row.signalTag ? <code>{row.signalTag}</code> : null}<span className="fms-journal-row-actions">{row.signal && onGoToArrow ? <button type="button" onClick={() => onGoToArrow(row.market, row.signal!)}>Go to arrow</button> : !row.signal && onGoToEvent ? <button type="button" onClick={() => onGoToEvent(row.market, row.eventTime)}>Go to event</button> : null}<button type="button" disabled={notesLoading} onClick={beginNote}>{savedNote ? "Edit note" : "Add note"}</button></span></td>
       <td><strong>{signedR(row.resultR)}</strong><span>Entry {price(row.entry)}</span><small>SL {price(row.stop)} · TP {price(row.target)}</small></td>
       <td><strong>{row.demoStatus ? money(row.demoNet) : "Not placed"}</strong><span>{row.demoStatus?.replaceAll("_", " ") ?? "No matching tagged MT5 trade"}</span><small>{row.demoNetR == null ? "Actual broker result unavailable" : `${signedR(row.demoNetR)} net`}</small></td>
     </tr>
-    <FmsReviewNoteRow input={noteInput} saved={savedNote} editing={editing} draft={draft} label={label} loading={notesLoading} saving={saving} valueColSpan={3} onDraftChange={setDraft} onLabelChange={setLabel} onEdit={beginNote} onCancel={cancelNote} onSave={submitNote} onRemove={deleteNote} />
+    <FmsReviewNoteRow input={noteInput} saved={savedNote} editing={editing} draft={draft} label={label} loading={notesLoading} saving={saving} valueColSpan={3} displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} onDraftChange={setDraft} onLabelChange={setLabel} onEdit={beginNote} onCancel={cancelNote} onSave={submitNote} onRemove={deleteNote} />
   </Fragment>;
 });
 
@@ -331,6 +348,8 @@ const JournalDisclosure = memo(function JournalDisclosure({
   removeNote,
   onGoToArrow,
   onGoToEvent,
+  displayTimeMode,
+  sourceTimeOffsetSeconds,
 }: {
   group: JournalGroup;
   initiallyOpen: boolean;
@@ -341,6 +360,8 @@ const JournalDisclosure = memo(function JournalDisclosure({
   removeNote: RemoveReviewNote;
   onGoToArrow?: (market: string, signal: MacroSignalChartSignal) => void;
   onGoToEvent?: (market: string, eventTime: number) => void;
+  displayTimeMode: ChartDisplayTimeMode;
+  sourceTimeOffsetSeconds: number;
 }) {
   const [open, setOpen] = useState(initiallyOpen);
   const resolved = group.rows.filter((row) => row.resultR != null);
@@ -349,7 +370,7 @@ const JournalDisclosure = memo(function JournalDisclosure({
   const totalMoney = demoRows.reduce((sum, row) => sum + Number(row.demoNet ?? 0), 0);
   return <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
     <summary><span><strong>{group.label}</strong><small>{group.rows.length} decisions · {resolved.length} resolved</small></span><span><b>{resolved.length ? signedR(totalR) : "Pending"}</b><em>{demoRows.length ? money(totalMoney) : "No demo"}</em><ChevronDown size={13} /></span></summary>
-    {open ? <table><thead><tr><th>Time and setup</th><th>Decision</th><th>Model path</th><th>Demo account</th></tr></thead><tbody>{group.rows.map((row) => <JournalRecord key={row.key} row={row} savedNote={notesByKey.get(row.key) ?? null} notesLoading={notesLoading} saving={noteSavingKey === row.key} saveNote={saveNote} removeNote={removeNote} onGoToArrow={onGoToArrow} onGoToEvent={onGoToEvent} />)}</tbody></table> : null}
+    {open ? <table><thead><tr><th>Time and setup</th><th>Decision</th><th>Model path</th><th>Demo account</th></tr></thead><tbody>{group.rows.map((row) => <JournalRecord key={row.key} row={row} savedNote={notesByKey.get(row.key) ?? null} notesLoading={notesLoading} saving={noteSavingKey === row.key} saveNote={saveNote} removeNote={removeNote} onGoToArrow={onGoToArrow} onGoToEvent={onGoToEvent} displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} />)}</tbody></table> : null}
   </details>;
 });
 
@@ -365,6 +386,8 @@ const JournalGroups = memo(function JournalGroups({
   emptyCopy,
   onGoToArrow,
   onGoToEvent,
+  displayTimeMode,
+  sourceTimeOffsetSeconds,
 }: {
   rows: JournalRow[];
   grouping: "day" | "week";
@@ -377,13 +400,18 @@ const JournalGroups = memo(function JournalGroups({
   emptyCopy: string;
   onGoToArrow?: (market: string, signal: MacroSignalChartSignal) => void;
   onGoToEvent?: (market: string, eventTime: number) => void;
+  displayTimeMode: ChartDisplayTimeMode;
+  sourceTimeOffsetSeconds: number;
 }) {
-  const groups = useMemo(() => groupJournalRows(rows, grouping), [grouping, rows]);
+  const groups = useMemo(
+    () => groupJournalRows(rows, grouping, displayTimeMode, sourceTimeOffsetSeconds),
+    [displayTimeMode, grouping, rows, sourceTimeOffsetSeconds],
+  );
   const [visibleWeekCount, setVisibleWeekCount] = useState(26);
   const visibleGroups = grouping === "week" ? groups.slice(0, visibleWeekCount) : groups;
   const remainingWeeks = groups.length - visibleGroups.length;
   return <div className={`fms-journal-days${grouping === "week" ? " is-weekly" : ""}`}>
-    {visibleGroups.length ? visibleGroups.map((group, index) => <JournalDisclosure key={group.key} group={group} initiallyOpen={grouping === "day" && index === 0} notesByKey={notesByKey} notesLoading={notesLoading} noteSavingKey={noteSavingKey} saveNote={saveNote} removeNote={removeNote} onGoToArrow={onGoToArrow} onGoToEvent={onGoToEvent} />) : <div className="fms-journal-empty"><strong>{emptyTitle}</strong><span>{emptyCopy}</span></div>}
+    {visibleGroups.length ? visibleGroups.map((group, index) => <JournalDisclosure key={group.key} group={group} initiallyOpen={grouping === "day" && index === 0} notesByKey={notesByKey} notesLoading={notesLoading} noteSavingKey={noteSavingKey} saveNote={saveNote} removeNote={removeNote} onGoToArrow={onGoToArrow} onGoToEvent={onGoToEvent} displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} />) : <div className="fms-journal-empty"><strong>{emptyTitle}</strong><span>{emptyCopy}</span></div>}
     {remainingWeeks > 0 ? <button type="button" className="fms-journal-load-weeks" onClick={() => setVisibleWeekCount((current) => current + 26)}>Show 26 older weeks · {remainingWeeks} remaining</button> : null}
   </div>;
 });
@@ -401,19 +429,23 @@ export const ChartFmsJournalCard = memo(function ChartFmsJournalCard({
   const allRows = useMemo(() => buildFmsJournalRows(data), [data]);
   const preRegistration = usePreRegistrationJournalRows(data);
   const { notesByKey, loading: notesLoading, savingKey: noteSavingKey, error: notesError, save: saveNote, remove: removeNote } = useFmsReviewNotes();
+  const displayTimeMode = data.displayTimeMode ?? "local";
+  const sourceTimeOffsetSeconds = data.sourceTimeOffsetSeconds ?? 0;
   const newestTime = Math.max(data.globalResponse?.generatedAt ?? 0, data.response.generatedAt ?? 0, Math.floor(Date.now() / 1_000));
-  const weekStart = jakartaWeekStart(newestTime);
-  const jakartaDate = new Date((newestTime + JAKARTA_OFFSET_SECONDS) * 1_000);
-  const monthStart = Date.UTC(jakartaDate.getUTCFullYear(), jakartaDate.getUTCMonth(), 1) / 1_000 - JAKARTA_OFFSET_SECONDS;
-  const yearStart = Date.UTC(jakartaDate.getUTCFullYear(), 0, 1) / 1_000 - JAKARTA_OFFSET_SECONDS;
+  const currentDateParts = metadataDateParts(newestTime, displayTimeMode, sourceTimeOffsetSeconds);
+  const currentWeekStart = weekStartOrdinal(currentDateParts);
   const rows = useMemo(() => allRows.filter((row) => (
-    scope === "broker" ? row.demoStatus != null
-      : scope === "this_week" ? rowResolvedTime(row) >= weekStart
-        : scope === "previous_week" ? rowResolvedTime(row) >= weekStart - 7 * 86_400 && rowResolvedTime(row) < weekStart
-          : scope === "month" ? rowResolvedTime(row) >= monthStart
-            : scope === "year" ? rowResolvedTime(row) >= yearStart
-              : true
-  )), [allRows, monthStart, scope, weekStart, yearStart]);
+    (() => {
+      if (scope === "broker") return row.demoStatus != null;
+      if (scope === "all") return true;
+      const parts = feedDateParts(rowResolvedTime(row), displayTimeMode, sourceTimeOffsetSeconds);
+      const ordinal = dateOrdinal(parts);
+      if (scope === "this_week") return ordinal >= currentWeekStart && ordinal < currentWeekStart + 7;
+      if (scope === "previous_week") return ordinal >= currentWeekStart - 7 && ordinal < currentWeekStart;
+      if (scope === "month") return parts.year === currentDateParts.year && parts.month === currentDateParts.month;
+      return parts.year === currentDateParts.year;
+    })()
+  )), [allRows, currentDateParts.month, currentDateParts.year, currentWeekStart, displayTimeMode, scope, sourceTimeOffsetSeconds]);
   const scopeCounts = useMemo(() => ({
     wins: rows.filter((row) => row.state === "TP reached").length,
     losses: rows.filter((row) => row.state === "SL reached").length,
@@ -430,9 +462,9 @@ export const ChartFmsJournalCard = memo(function ChartFmsJournalCard({
   const live = aggregate(rows, "live");
   const recovered = aggregate(rows, "recovered");
   const weekDays = Array.from({ length: 5 }, (_, index) => {
-    const start = weekStart - (scope === "previous_week" ? 7 * 86_400 : 0) + index * 86_400;
-    const dayRows = allRows.filter((row) => rowResolvedTime(row) >= start && rowResolvedTime(row) < start + 86_400);
-    return { start, live: aggregate(dayRows, "live"), recovered: aggregate(dayRows, "recovered") };
+    const ordinal = currentWeekStart - (scope === "previous_week" ? 7 : 0) + index;
+    const dayRows = allRows.filter((row) => dateOrdinal(feedDateParts(rowResolvedTime(row), displayTimeMode, sourceTimeOffsetSeconds)) === ordinal);
+    return { ordinal, live: aggregate(dayRows, "live"), recovered: aggregate(dayRows, "recovered") };
   });
   const demo = data.globalResponse?.forwardValidation?.demoExecution ?? null;
   const portfolio = data.globalResponse?.forwardValidation?.portfolioReplay ?? null;
@@ -445,13 +477,15 @@ export const ChartFmsJournalCard = memo(function ChartFmsJournalCard({
     removeNote,
     onGoToArrow,
     onGoToEvent,
+    displayTimeMode,
+    sourceTimeOffsetSeconds,
   };
 
   return (
     <section className="fms-journal-card">
       <header>
         <div><BookOpen size={14} /><span>FMS Journal</span></div>
-        <small>Asia/Jakarta · immutable provenance</small>
+        <small>{getDisplayTimezoneShortLabel(displayTimeMode)} · immutable provenance</small>
       </header>
       <div className="fms-journal-summary">
         <div><span>Prospective gross</span><strong>{signedR(live.total)}</strong><small>{live.count} resolved · {signedR(live.average)} average</small></div>
@@ -464,7 +498,7 @@ export const ChartFmsJournalCard = memo(function ChartFmsJournalCard({
         <span>Prospective, recovered counterfactual, and tagged manual results stay separate. Fresh portfolio replay keeps overlapping signals and reports their combined gross drawdown{portfolio ? `; peak concurrency ${portfolio.maximumConcurrentTrades}, concentrated starts ${portfolio.concentratedCurrencyStarts}` : ""}.</span>
       </div>
       <div className="fms-journal-week" aria-label="Current five market days">
-        {weekDays.map((day) => <div key={day.start}><span>{new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Jakarta", weekday: "short", day: "2-digit" }).format(new Date(day.start * 1_000))}</span><strong>{day.live.count ? signedR(day.live.total) : "—"}</strong><small>{day.live.count} live · {day.recovered.count ? `${signedR(day.recovered.total)} recovered` : "no recovered"}</small></div>)}
+        {weekDays.map((day) => <div key={day.ordinal}><span>{new Intl.DateTimeFormat("en-US", { timeZone: "UTC", weekday: "short", day: "2-digit" }).format(dateFromOrdinal(day.ordinal))}</span><strong>{day.live.count ? signedR(day.live.total) : "—"}</strong><small>{day.live.count} live · {day.recovered.count ? `${signedR(day.recovered.total)} recovered` : "no recovered"}</small></div>)}
       </div>
       {notesError ? <p role="alert" className="fms-action-warning">Audit notes: {notesError}</p> : null}
       <div className="fms-journal-toolbar">

@@ -14,6 +14,7 @@ import { ChartPairMatrixRangeOverlay } from "@/app/features/pair-matrix/ChartPai
 import type { ChartPairMatrixContextMarkerData, ChartPairMatrixRangeOverlayData } from "@/app/features/pair-matrix/chartPairMatrixContracts";
 import { useChartPanelState } from "@/app/features/chart-viewport/useChartPanelState";
 import type { ChartEventOverlayCluster } from "@/app/lib/chartEventOverlay";
+import type { FmsDisplayVersion } from "@/app/lib/fmsDisplayVersion";
 import type { BridgeStatus, CalendarEvent, MacroSignalChartSignal } from "@/app/types";
 
 export { clampFmsDockWidth } from "@/app/features/chart-viewport/chartPanelState";
@@ -98,8 +99,10 @@ interface ChartViewportProps {
   macroBiasLoading: boolean;
   macroBiasHistoricalMatchesVisible: boolean;
   macroBiasHistoricalMatchesCount: number;
+  macroBiasArrowVersion: FmsDisplayVersion;
   macroBiasHistoricalPatternFilters: Array<{ id: string; label: string; count: number; checked: boolean }>;
   onToggleMacroBiasHistoricalMatches: () => void;
+  onSelectMacroBiasArrowVersion: (version: FmsDisplayVersion) => void;
   onToggleMacroBiasHistoricalPattern: (patternId: string) => void;
   onSetAllMacroBiasHistoricalPatterns: (visible: boolean) => void;
   onGoToMacroBiasArrow: (market: string, signal: MacroSignalChartSignal) => void;
@@ -137,8 +140,10 @@ export function ChartViewport({
     macroBiasLoading,
     macroBiasHistoricalMatchesVisible,
     macroBiasHistoricalMatchesCount,
+    macroBiasArrowVersion,
     macroBiasHistoricalPatternFilters,
     onToggleMacroBiasHistoricalMatches,
+    onSelectMacroBiasArrowVersion,
     onToggleMacroBiasHistoricalPattern,
     onSetAllMacroBiasHistoricalPatterns,
     onGoToMacroBiasArrow,
@@ -187,12 +192,14 @@ export function ChartViewport({
               loading={macroBiasLoading}
               historicalMatchesVisible={macroBiasHistoricalMatchesVisible}
               historicalMatchesCount={macroBiasHistoricalMatchesCount}
+              arrowVersion={macroBiasArrowVersion}
               historicalPatternFilters={macroBiasHistoricalPatternFilters}
               tradeViewState={fmsTradeViewState}
               onTradeViewStateChange={setFmsTradeViewState}
               onSelectTab={selectFmsDockTab}
               onSelectAuditTab={selectFmsAuditTab}
               onToggleHistoricalMatches={onToggleMacroBiasHistoricalMatches}
+              onSelectArrowVersion={onSelectMacroBiasArrowVersion}
               onToggleHistoricalPattern={onToggleMacroBiasHistoricalPattern}
               onSetAllHistoricalPatterns={onSetAllMacroBiasHistoricalPatterns}
               onGoToArrow={onGoToMacroBiasArrow}

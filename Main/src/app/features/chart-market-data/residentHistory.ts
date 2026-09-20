@@ -118,6 +118,16 @@ function rejectQueuedBackgroundHistory(error: unknown) {
   }
 }
 
+function rejectSupersededSelectedHistory() {
+  const error = new DOMException("A newer chart selection superseded this history request", "AbortError");
+  let request = selectedHistoryQueue.shift();
+  while (request) {
+    residentHistoryPending.delete(request.key);
+    request.reject(error);
+    request = selectedHistoryQueue.shift();
+  }
+}
+
 function hasRunnableResidentHistoryRequest(): boolean {
   return selectedHistoryQueue.length > 0
     || (!residentHistoryBackgroundPaused && (warmHistoryQueue.length > 0 || deepHistoryQueue.length > 0));
@@ -249,7 +259,14 @@ export function loadResidentChartHistory(
     reject: rejectRequest,
   };
   residentHistoryPending.set(key, { request, promise });
-  if (priority === "selected") selectedHistoryQueue.unshift(request);
+  if (priority === "selected") {
+    // Rapid Market Watch clicks should converge on the newest selection.  An
+    // already-running MT5 request cannot be interrupted safely, but obsolete
+    // selected requests must not form a FIFO backlog in front of the chart the
+    // owner is actually waiting for.
+    rejectSupersededSelectedHistory();
+    selectedHistoryQueue.unshift(request);
+  }
   else if (priority === "warm") warmHistoryQueue.push(request);
   else deepHistoryQueue.push(request);
   void drainResidentHistoryQueue();

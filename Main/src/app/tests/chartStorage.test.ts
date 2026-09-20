@@ -16,6 +16,7 @@ import {
 import { areBridgeSymbolSnapshotsEqual } from "@/app/features/chart-market-data/symbolCatalog";
 import { BridgeHistoryDeferredError } from "@/app/features/chart-market-data/contracts";
 import { clearAppActivity, getAppActivitySnapshot } from "@/app/features/chart-shell/appActivityLog";
+import { isTransientChartHistoryFailure } from "@/app/hooks/useChartMarketData";
 import {
   CHART_DOCK_LAYOUT_KEY,
   DEFAULT_CHART_DOCK_LAYOUT,
@@ -160,6 +161,34 @@ describe("chartStorage helpers", () => {
     expect(readChartHistoryCache("RESIDENTTEST", "H4")).toEqual([SAMPLE_CANDLE]);
   });
 
+  it("drops obsolete queued selections so rapid pair switching converges on the latest chart", async () => {
+    installLocalStorage();
+    let releaseFirst: () => void = () => { throw new Error("First history response was not initialized"); };
+    const fetchedSymbols: string[] = [];
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const symbol = new URL(String(input)).searchParams.get("symbol") ?? "";
+      fetchedSymbols.push(symbol);
+      if (fetchedSymbols.length === 1) {
+        return new Promise<Response>((resolve) => {
+          releaseFirst = () => resolve(new Response(JSON.stringify([SAMPLE_CANDLE]), { status: 200 }));
+        });
+      }
+      return Promise.resolve(new Response(JSON.stringify([SAMPLE_CANDLE]), { status: 200 }));
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = loadResidentChartHistory("EURUSD", "H4", 350, "selected");
+    const superseded = loadResidentChartHistory("GBPUSD", "H4", 350, "selected");
+    const supersededResult = superseded.catch((error: unknown) => error);
+    const latest = loadResidentChartHistory("BTCUSD", "H4", 350, "selected");
+
+    await expect(supersededResult).resolves.toMatchObject({ name: "AbortError" });
+    releaseFirst();
+    await expect(first).resolves.toEqual([SAMPLE_CANDLE]);
+    await expect(latest).resolves.toEqual([SAMPLE_CANDLE]);
+    expect(fetchedSymbols).toEqual(["EURUSD", "BTCUSD"]);
+  });
+
   it("warms every broker symbol while prioritizing selected timeframes, favorites, and visible rows", () => {
     const plan = buildResidentChartWarmPlan([
       { name: "EURUSD", path: "Forex\\Majors", bid: null, ask: null, priceChange: null, digits: 5, quoteTime: null, visible: true, selected: true },
@@ -183,6 +212,12 @@ describe("chartStorage helpers", () => {
 
     expect(areBridgeSymbolSnapshotsEqual(snapshot, snapshot.map((item) => ({ ...item })))).toBe(true);
     expect(areBridgeSymbolSnapshotsEqual(snapshot, [{ ...snapshot[0], bid: 1.1601 }])).toBe(false);
+  });
+
+  it("treats MT5 lock contention as retryable but keeps permanent history failures terminal", () => {
+    expect(isTransientChartHistoryFailure(new Error("Bridge returned 503: MT5 is busy and no cached chart history is available"))).toBe(true);
+    expect(isTransientChartHistoryFailure(new Error("MT5 connection is busy with another bridge operation"))).toBe(true);
+    expect(isTransientChartHistoryFailure(new Error("Bridge returned 502: No data from MT5"))).toBe(false);
   });
 
   it("keeps opportunistic history queued while Market Watch owns background priority", async () => {

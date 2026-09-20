@@ -1373,6 +1373,8 @@ export interface MacroSignalChartPattern {
     entryTimeframe?: "H1" | "H4";
     expiryTimeframe?: "H4";
   };
+  activeExecution?: MacroSignalExecutionContract;
+  registeredVersion?: "FMS v1" | "FMS v2";
   baseExecution?: null | {
     stopAtr: number;
     targetR: number;
@@ -1417,6 +1419,25 @@ export interface MacroSignalChartPattern {
       unevaluableCount?: number;
     };
     limitations: string;
+  };
+  successorReview?: null | {
+    id: string;
+    status: "reviewed_active" | "blocked_artifact_mismatch";
+    displayVersion: "FMS v2";
+    activatedAt: number;
+    registryHash: string;
+    sourceResearchHash?: string;
+    sourceManifestHash?: string;
+    reason?: string;
+    previousExecution?: MacroSignalExecutionContract;
+    currentExecution?: MacroSignalExecutionContract;
+    development?: Record<string, unknown>;
+    holdout?: Record<string, unknown>;
+    overall?: Record<string, unknown>;
+    matchedV1Comparison?: Record<string, unknown>;
+    approvalPolicy?: Record<string, unknown>;
+    limitations?: string;
+    preservesV1History?: boolean;
   };
   contextRegistration?: null | MacroSignalContextRegistration;
   requiredExactTitles?: string[];
@@ -1514,6 +1535,7 @@ export interface MacroSignalChartSignal {
     disclosure: string;
   } | null;
   patternId: string;
+  registeredVersion?: "FMS v1" | "FMS v2";
   sourceVersionId: string;
   eventTime: number;
   direction: "long" | "short";
@@ -1655,7 +1677,7 @@ export interface MacroSignalPatternAssessment {
     patternId: string;
     label: string;
     condition: string;
-    status: "awaiting_observation" | "qualified" | "no_trade" | "pre_activation_audit" | "late_for_contract";
+    status: "awaiting_observation" | "awaiting_clock_verification" | "qualified" | "no_trade" | "pre_activation_audit" | "late_for_contract";
     direction: "long" | "short" | null;
     reason: string;
     events: MacroSignalScheduledEvent[];

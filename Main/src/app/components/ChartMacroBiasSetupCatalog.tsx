@@ -1,13 +1,9 @@
 import { BookOpen, ChevronDown, Clock3, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { formatJakartaDisplayDateTime } from "@/app/lib/format";
+import { formatChartFeedTime, formatChartUtcMetadataTime, type ChartDisplayTimeMode } from "@/app/lib/chartView";
 import type { MacroSignalChartPattern, MacroSignalRealtimeWatch } from "@/app/types";
 
 type NextPatternWatch = NonNullable<MacroSignalRealtimeWatch["nextPatternWatch"]>;
-
-function formatUtc(value: number): string {
-  return formatJakartaDisplayDateTime(value);
-}
 
 function formatPercent(value: number | null | undefined): string {
   return value == null ? "—" : `${(value * 100).toFixed(1)}%`;
@@ -52,6 +48,22 @@ const REACTION_EXPLANATIONS = {
 } as const;
 
 export function macroSignalSetupCredibility(pattern: MacroSignalChartPattern): { label: "Strong" | "Moderate" | "Fragile" | "Unproven"; detail: string } {
+  const successor = pattern.successorReview?.status === "reviewed_active" ? pattern.successorReview.holdout : null;
+  if (successor) {
+    const average = typeof successor.pessimisticSelectionAverageR === "number" ? successor.pessimisticSelectionAverageR : null;
+    const sample = typeof successor.evaluableCount === "number" ? successor.evaluableCount : 0;
+    const years = typeof successor.evaluableYears === "number" ? successor.evaluableYears : 0;
+    const positiveYears = typeof successor.positiveYears === "number" ? successor.positiveYears : 0;
+    const interval = successor.expectancyCi95 && typeof successor.expectancyCi95 === "object"
+      ? successor.expectancyCi95 as { lower?: unknown; upper?: unknown }
+      : null;
+    if (average == null || average <= 0) return { label: "Unproven", detail: "The approved successor no longer exposes positive reused-holdout evidence." };
+    if (sample < 20 || years < 3 || positiveYears < 2) return { label: "Fragile", detail: "The v2 reused holdout is positive, but its sample or represented-year breadth is limited." };
+    if (typeof interval?.lower === "number" && interval.lower > 0 && positiveYears / years >= .75) {
+      return { label: "Strong", detail: "The v2 reused holdout is positive with a descriptive interval above zero and broad positive years; it is still reused gross history." };
+    }
+    return { label: "Moderate", detail: "The v2 contract improved matched development and reused holdout, while uncertainty still includes weaker outcomes." };
+  }
   const benchmark = pattern.historicalBenchmark;
   if (pattern.readiness?.auditStatus !== "complete" || !benchmark || benchmark.walkForwardAverageR <= 0) {
     return { label: "Unproven", detail: "The immutable audit is incomplete or later-test average R is not positive." };
@@ -109,11 +121,15 @@ export function ChartMacroBiasNextSetup({
   pattern,
   asOf,
   symbol,
+  displayTimeMode = "local",
+  sourceTimeOffsetSeconds = 0,
 }: {
   watch: NextPatternWatch | null;
   pattern: MacroSignalChartPattern | null;
   asOf: number;
   symbol: string;
+  displayTimeMode?: ChartDisplayTimeMode;
+  sourceTimeOffsetSeconds?: number;
 }) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   useEffect(() => {
@@ -142,7 +158,7 @@ export function ChartMacroBiasNextSetup({
       {watch && pattern ? (
         <>
           <div className="chart-shadow-next-identity">
-            <div><span>Release time</span><strong>{formatUtc(watch.time)}</strong></div>
+            <div><span>Release time</span><strong>{formatChartFeedTime(watch.time, displayTimeMode, sourceTimeOffsetSeconds)}</strong></div>
             <div><span>Registered setup</span><strong>{pattern.label}</strong></div>
             <p>{watch.events.map((event) => `${event.currency} · ${event.title}`).join(" + ")}</p>
           </div>
@@ -158,7 +174,7 @@ export function ChartMacroBiasNextSetup({
   );
 }
 
-export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignalChartPattern[] }) {
+export function ChartMacroBiasSetupCatalog({ patterns, displayTimeMode = "local", sourceTimeOffsetSeconds = 0 }: { patterns: MacroSignalChartPattern[]; displayTimeMode?: ChartDisplayTimeMode; sourceTimeOffsetSeconds?: number }) {
   const [guideOpen, setGuideOpen] = useState(false);
   const [setupOpenState, setSetupOpenState] = useState<Record<string, boolean>>({});
   const registered = useMemo(
@@ -208,6 +224,9 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
       ) : null}
       {registered.map((pattern) => {
         const credibility = macroSignalSetupCredibility(pattern);
+        const activeExecution = pattern.activeExecution ?? pattern.execution;
+        const successorHoldout = pattern.successorReview?.status === "reviewed_active" ? pattern.successorReview.holdout : null;
+        const successorMetric = (key: string): number | null => typeof successorHoldout?.[key] === "number" ? successorHoldout[key] as number : null;
         const setupKey = `${pattern.market ?? "EURUSD"}:${pattern.id}`;
         const setupOpen = setupOpenState[setupKey] ?? registered.length <= 4;
         return (
@@ -221,23 +240,24 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
         >
           <summary>
             <span><b>{pattern.label}</b></span>
-            <strong>{pattern.execution?.targetR ?? 2}R<small>{pattern.execution?.stopAtr ?? 1} ATR · {pattern.execution?.expiryCandles ?? 30} H4</small></strong>
+            <strong>{activeExecution?.targetR ?? 2}R<small>{activeExecution?.stopAtr ?? 1} ATR · {activeExecution?.expiryCandles ?? 30} H4</small></strong>
             <em className="chart-shadow-disclosure-cue">View details <ChevronDown size={13} /></em>
           </summary>
           {setupOpen ? <>
           <p className="chart-shadow-catalog-rule"><b>Trade rule:</b> {pattern.condition}</p>
           <table className="chart-shadow-setup-contract" aria-label={`${pattern.label} registered contract`}>
             <tbody>
-              <tr><th>Entry</th><td>First eligible {pattern.execution?.entryTimeframe ?? "H4"} open</td><th>Expiry</th><td>{pattern.execution?.expiryCandles ?? 30} completed H4 candles</td></tr>
-              <tr><th>Stop loss</th><td>{pattern.execution?.stopAtr ?? 1} ATR from entry</td><th>Take profit</th><td>{pattern.execution?.targetR ?? 2}R from entry</td></tr>
-              <tr><th>Management</th><td>{pattern.execution?.managementFamily === "break_even" ? `Move SL to entry after +${pattern.execution.managementTriggerR ?? 1}R` : "Fixed SL and TP"}</td><th>ATR basis</th><td>ATR(14) from completed H4 candles at entry</td></tr>
+              <tr><th>Entry</th><td>First eligible {activeExecution?.entryTimeframe ?? "H4"} open</td><th>Expiry</th><td>{activeExecution?.expiryCandles ?? 30} completed H4 candles</td></tr>
+              <tr><th>Stop loss</th><td>{activeExecution?.stopAtr ?? 1} ATR from entry</td><th>Take profit</th><td>{activeExecution?.targetR ?? 2}R from entry</td></tr>
+              <tr><th>Management</th><td>{activeExecution?.managementFamily === "break_even" ? `Move SL to entry after +${activeExecution.managementTriggerR ?? 1}R` : "Fixed SL and TP"}</td><th>ATR basis</th><td>ATR(14) from completed H4 candles at entry</td></tr>
               <tr><th>Scoring</th><td>{pattern.scoringPolicy?.replaceAll("_", " ") ?? "baseline"}</td><th>Reaction mapping</th><td>{pattern.reaction ?? "continuation"}</td></tr>
               <tr><th>Required evidence</th><td colSpan={3}>{pattern.groups.join(" · ") || pattern.requiredExactTitles?.join(" · ") || "Registered package definition"}</td></tr>
-              <tr><th>Price and pips</th><td colSpan={3}>Calculated from the captured {pattern.execution?.entryTimeframe ?? "H4"} entry and completed-H4 ATR; unavailable before a qualified release reaches entry.</td></tr>
-              {pattern.entryReview?.status === "reviewed_active" ? <tr><th>Entry upgrade</th><td colSpan={3}>H1 successor active from {formatUtc(pattern.entryReview.activatedAt)} · later N {pattern.entryReview.later.laterN} · {formatR(pattern.entryReview.later.h1AverageR)} versus {formatR(pattern.entryReview.later.h4AverageR)} H4 · older occurrences retain H4</td></tr> : null}
-              <tr><th>Profit frequency</th><td>{formatPercent(activeLaterMetric(pattern, "positiveRate"))} finished above 0R</td><th>Expected payoff</th><td>{formatR(activeLaterMetric(pattern, "averageR") ?? pattern.historicalBenchmark?.walkForwardAverageR)}</td></tr>
+              <tr><th>Price and pips</th><td colSpan={3}>Calculated from the captured {activeExecution?.entryTimeframe ?? "H4"} entry and completed-H4 ATR; unavailable before a qualified release reaches entry.</td></tr>
+              {pattern.successorReview?.status === "reviewed_active" ? <tr><th>Trading release</th><td colSpan={3}>{pattern.registeredVersion ?? "FMS v2"} · event-specific execution active from {formatChartUtcMetadataTime(pattern.successorReview.activatedAt, displayTimeMode, sourceTimeOffsetSeconds)} · older occurrences retain FMS v1</td></tr> : null}
+              {pattern.entryReview?.status === "reviewed_active" ? <tr><th>Entry upgrade</th><td colSpan={3}>H1 successor active from {formatChartUtcMetadataTime(pattern.entryReview.activatedAt, displayTimeMode, sourceTimeOffsetSeconds)} · later N {pattern.entryReview.later.laterN} · {formatR(pattern.entryReview.later.h1AverageR)} versus {formatR(pattern.entryReview.later.h4AverageR)} H4 · older occurrences retain H4</td></tr> : null}
+              <tr><th>Profit frequency</th><td>{successorHoldout ? "Not stored in this fixed-outcome projection" : `${formatPercent(activeLaterMetric(pattern, "positiveRate"))} finished above 0R`}</td><th>Expected payoff</th><td>{formatR(successorMetric("averageGrossR") ?? activeLaterMetric(pattern, "averageR") ?? pattern.historicalBenchmark?.walkForwardAverageR)}</td></tr>
               <tr><th>Maximum drawdown</th><td>{formatR(activeLaterMetric(pattern, "maximumDrawdownR"))}</td><th>Longest losing streak</th><td>{activeLaterMetric(pattern, "longestLosingStreak") ?? "—"} trades</td></tr>
-              <tr><th>Evidence breadth</th><td>{pattern.historicalBenchmark?.walkForwardN ?? "—"} later cases · {pattern.yearStability.evaluableYears} years</td><th>Positive years</th><td>{pattern.yearStability.positiveYears} / {pattern.yearStability.evaluableYears}</td></tr>
+              <tr><th>Evidence breadth</th><td>{successorMetric("evaluableCount") ?? pattern.historicalBenchmark?.walkForwardN ?? "—"} later cases · {successorMetric("evaluableYears") ?? pattern.yearStability.evaluableYears} years</td><th>Positive years</th><td>{successorMetric("positiveYears") ?? pattern.yearStability.positiveYears} / {successorMetric("evaluableYears") ?? pattern.yearStability.evaluableYears}</td></tr>
             </tbody>
           </table>
           <section className={`chart-shadow-credibility is-${credibility.label.toLowerCase()}`} aria-label={`${pattern.label} historical credibility`}>
@@ -297,7 +317,7 @@ export function ChartMacroBiasSetupCatalog({ patterns }: { patterns: MacroSignal
           ) : null}
           <div className="chart-shadow-benchmark-grid">
             <div><span>All matching events</span><strong>{pattern.historicalBenchmark?.historicalN ?? pattern.overall.evaluableCount}</strong></div>
-            <div><span>Trade rules</span><strong>SL {pattern.execution?.stopAtr ?? 1} ATR · TP {pattern.execution?.targetR ?? 2}R · {pattern.execution?.expiryCandles ?? 30} H4</strong></div>
+            <div><span>Trade rules</span><strong>SL {activeExecution?.stopAtr ?? 1} ATR · TP {activeExecution?.targetR ?? 2}R · {activeExecution?.expiryCandles ?? 30} H4</strong></div>
             {pattern.historicalBenchmark ? (
               <>
                 <div><span>Later test trades</span><strong>{pattern.historicalBenchmark.walkForwardN}</strong></div>

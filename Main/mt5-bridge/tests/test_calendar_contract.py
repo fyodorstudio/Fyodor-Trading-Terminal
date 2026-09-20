@@ -259,6 +259,150 @@ def test_native_clock_rejects_invalid_sample_without_recording_it():
   assert server._research_store.get_metadata("fms_native_source_clock_latest:v1") == before
 
 
+def test_observation_clock_provenance_is_contemporaneous_immutable_and_not_promotion(tmp_path, monkeypatch):
+  from copy import deepcopy
+  from contextlib import contextmanager
+  from research_store import ResearchStore
+  from source_clock import (native_clock_mapping, clock_boundary_comparison, advance_native_mapping,
+                            verify_native_candle_clock, native_capture_eligibility)
+
+  utc = int(time.time())
+  native = utc + 10800
+  sample = {"sampledUtcAt": utc, "serverCurrentAt": native,
+            "serverEstimatedAt": native + 1, "symbol": "BTCUSD",
+            "nativeM1OpenAt": native // 60 * 60, "nativeH4OpenAt": native // 14400 * 14400,
+            "nativeTickAt": native, "terminalConnected": True}
+  original = deepcopy(sample)
+  mapping = native_clock_mapping(sample, utc + 1)
+  assert mapping["nativeOffsetSeconds"] == 10800
+  assert mapping["observedUtcAt"] == utc + 1
+  assert mapping["observedNativeAt"] == native + 1
+  assert mapping["candleClockVerified"] is False
+  assert mapping["historicalOffsetInferred"] is False
+  assert clock_boundary_comparison(mapping, native + 1)["relation"] == "boundary_uncertain"
+  assert clock_boundary_comparison(mapping, native + 100)["relation"] == "strictly_before"
+  assert clock_boundary_comparison(mapping, native - 100)["relation"] == "strictly_after"
+  assert sample == original
+  advanced = advance_native_mapping(mapping, utc + 90)
+  assert advanced["observedNativeAt"] == native + 90 and advanced["receiptUtcAt"] == utc + 1
+  assert advance_native_mapping(mapping, utc + 92) is None
+  for changed, receipt in [({**sample, "terminalConnected": False}, utc),
+                           ({key: value for key, value in sample.items() if key != "symbol"}, utc),
+                           ({**sample, "serverEstimatedAt": "invalid"}, utc),
+                           (sample, utc + 31), (sample, utc - 1),
+                           ({**sample, "serverCurrentAt": native - 121}, utc),
+                           ({**sample, "serverEstimatedAt": native + 10}, utc),
+                           ({**sample, "serverEstimatedAt": utc + 15 * 3600}, utc)]:
+    assert native_clock_mapping(changed, receipt) is None
+  # Both negative offsets and zero are valid; never default to today's +3h.
+  for offset in (-5 * 3600, 0):
+    alternate = {**sample, "serverCurrentAt": utc + offset, "serverEstimatedAt": utc + offset}
+    assert native_clock_mapping(alternate, utc)["nativeOffsetSeconds"] == offset
+
+  mapping["catalogIdentity"] = "scope-a"
+  decision = verify_native_candle_clock(
+    advance_native_mapping(mapping, utc + 10),
+    sorted({sample["nativeM1OpenAt"], (native + 10) // 60 * 60}),
+    sorted({sample["nativeH4OpenAt"], (native + 10) // 14400 * 14400}),
+  )
+  assert decision["candleClockVerified"] is True
+  assert verify_native_candle_clock(
+    advance_native_mapping(mapping, utc + 10), [sample["nativeM1OpenAt"] - 60], [sample["nativeH4OpenAt"]],
+  ) is None
+  row = {"id": 1, "time": native - 10, "firstSeenAt": utc + 1, "sourceClock": mapping}
+  eligible = native_capture_eligibility(
+    [{"id": 1, "time": native - 10}], native - 10, native + 100, utc + 10, {(1, native - 10): row}, decision,
+  )
+  assert eligible["eligible"] is True
+  assert eligible["firstSeenAt"] == utc + 1 and eligible["firstSeenNativeAt"] == native + 1
+  assert eligible["decidedUtcAt"] == utc + 10 and eligible["decidedNativeAt"] == native + 10
+  assert eligible["originalTimestampsChanged"] is False
+  assert native_capture_eligibility(
+    [{"id": 1, "time": native - 10}, {"id": 2, "time": native - 10}], native - 10,
+    native + 100, utc + 10, {(1, native - 10): row}, decision,
+  )["reason"] == "missing_complete_package_observation"
+  boundary_row = {**row, "time": native + 1}
+  assert native_capture_eligibility(
+    [{"id": 1, "time": native + 1}], native + 1, native + 100, utc + 10,
+    {(1, native + 1): boundary_row}, decision,
+  )["reason"] == "source_clock_boundary_uncertain"
+  before_row = {**row, "time": native + 10}
+  assert native_capture_eligibility(
+    [{"id": 1, "time": native + 10}], native + 10, native + 100, utc + 10,
+    {(1, native + 10): before_row}, decision,
+  )["reason"] == "invalid_pre_release_observation"
+  assert native_capture_eligibility(
+    [{"id": 1, "time": native - 10}], native - 10, native + 5, utc + 10,
+    {(1, native - 10): row}, decision,
+  )["reason"] == "decision_after_frozen_entry"
+  mismatched = deepcopy(row)
+  mismatched["sourceClock"]["catalogIdentity"] = "scope-b"
+  assert native_capture_eligibility(
+    [{"id": 1, "time": native - 10}], native - 10, native + 100, utc + 10,
+    {(1, native - 10): mismatched}, decision,
+  )["reason"] == "source_clock_scope_mismatch"
+
+  store = ResearchStore(tmp_path / "clock.sqlite3")
+  event = {**MINIMAL_EVENT, "id": 919191, "time": native - 10, "actual": "1"}
+  store.upsert_calendar_events([event], utc)
+  assert store.capture_release_observations(0, utc + 1, native, native, mapping) == 1
+  frozen = store.query_release_observations()[0]
+  assert frozen["time"] == native - 10 and frozen["firstSeenAt"] == utc + 1
+  assert frozen["sourceClock"] == mapping
+  assert store.capture_release_observations(0, utc + 10, native + 10, native + 10, None) == 0
+  assert store.query_release_observations()[0] == frozen
+  # Legacy receipts are never backfilled using a newer clock observation.
+  legacy = {**event, "id": 919192}
+  store.upsert_calendar_events([legacy], utc)
+  assert store.capture_release_observations(0, utc + 2, native, native) == 1
+  assert store.capture_release_observations(0, utc + 3, native, native, mapping) == 0
+  assert store.query_release_observations()[1]["sourceClock"] is None
+
+  # Endpoint wiring stores the mapping only after a complete upload cycle.
+  monkeypatch.setattr(server, "_research_store", store)
+  monkeypatch.setattr(server, "_schedule_forward_reconcile", lambda *_args: False)
+  monkeypatch.setattr(server, "_current_clock_scope", lambda: "scope-a")
+  pending = {**event, "id": 919193}
+  store.upsert_calendar_events([pending], utc)
+  assert client.post("/calendar_ingest_cycle", json={"completedAt": native, "failedBatches": 1, "clock": sample}).json()["captured"] == 0
+  completed = client.post("/calendar_ingest_cycle", json={"completedAt": native, "clock": sample})
+  assert completed.status_code == 200 and completed.json()["captured"] == 1
+  assert store.query_release_observations()[-1]["sourceClock"]["nativeOffsetSeconds"] == 10800
+  assert store.query_release_observations()[-1]["sourceClock"]["catalogIdentity"] == "scope-a"
+  diagnostic = client.get("/research/source-clock").json()
+  assert diagnostic["currentNativeMapping"]["nativeOffsetSeconds"] == 10800
+  assert diagnostic["successorTimingEligible"] is False
+
+  # A current SDK verification is bounded, scoped and reused without another
+  # terminal call; failures never break chart construction.
+  wrapped = {"schema": "fms-native-source-clock-sample-v1", "observedAt": utc,
+             "catalogIdentity": "scope-a", "clock": sample, "timestampsChanged": False}
+  store.set_metadata("fms_native_source_clock_latest:v1", json.dumps(wrapped))
+  monkeypatch.setattr(server._time, "time", lambda: utc)
+  monkeypatch.setattr(server, "_source_clock_calibration", None)
+  monkeypatch.setattr(server, "_ensure_mt5_initialized", lambda: True)
+  monkeypatch.setattr(server, "ensure_symbol_selected", lambda *_args: None)
+  @contextmanager
+  def available_mt5(*_args):
+    yield
+  monkeypatch.setattr(server, "_mt5_access", available_mt5)
+  reads = []
+  def rates(_symbol, timeframe, _start, _count):
+    reads.append(timeframe)
+    return ([{"time": sample["nativeM1OpenAt"]}] if timeframe == server.mt5_timeframe("M1")
+            else [{"time": sample["nativeH4OpenAt"]}])
+  monkeypatch.setattr(server.mt5, "copy_rates_from_pos", rates)
+  verified = server._current_native_clock(utc)
+  assert verified["candleClockVerified"] is True and verified["catalogIdentity"] == "scope-a"
+  assert server._current_native_clock(utc + 10)["observedNativeAt"] == native + 10
+  assert len(reads) == 2
+  assert json.loads(store.get_metadata("fms_source_clock_calibration_latest:v1"))["catalogIdentity"] == "scope-a"
+  monkeypatch.setattr(server, "_source_clock_calibration", None)
+  monkeypatch.setattr(server, "_source_clock_calibration_attempt", None)
+  monkeypatch.setattr(server.mt5, "copy_rates_from_pos", lambda *_args: (_ for _ in ()).throw(RuntimeError("sdk failure")))
+  assert server._current_native_clock(utc) is None
+
+
 def test_history_range_validates_range_order():
   r = client.get("/history_range", params={"symbol": "EURUSD", "tf": "M1", "from_": 20, "to": 10})
   assert r.status_code == 400

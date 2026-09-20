@@ -13,6 +13,50 @@ from bisect import bisect_right
 from macro_signal import evaluate_candidate, evaluate_candidate_h1_entry
 
 
+def select_event_specific_references(catalogue: Dict[str, Any]) -> Dict[str, Any]:
+  """Select per-recipe on development only, then expose reused-history evidence.
+
+  This bounded first pass reuses the nine declared common-reference contracts.
+  It cannot approve a recipe or claim improvement over a different original
+  cohort/contract. Low N or an interval crossing zero is visible, not a veto.
+  """
+  selected = []
+  for recipe in catalogue["recipes"]:
+    eligible = [contract for contract in recipe["referenceContracts"]
+                if contract["partitions"]["development"].get("evaluableCount", 0) > 0
+                and contract["partitions"]["development"].get("averageGrossR") is not None]
+    if not eligible:
+      selected.append({"recipe": recipe["recipe"], "market": recipe["market"],
+                       "status": "development_coverage_unavailable", "selectedContract": None})
+      continue
+    winner = min(eligible, key=lambda row: (-row["partitions"]["development"]["averageGrossR"],
+                                           row["horizonCandles"], row["targetR"]))
+    development = winner["partitions"]["development"]
+    holdout = winner["partitions"]["holdout"]
+    holdout_mean = holdout.get("averageGrossR")
+    status = ("reused_holdout_unavailable" if holdout_mean is None
+              else "positive_reused_history_lead" if development["averageGrossR"] > 0 and holdout_mean > 0
+              else "nonpositive_reused_history")
+    selected.append({"recipe": recipe["recipe"], "market": recipe["market"], "label": recipe["label"],
+                     "status": status, "selectedContract": {"stopAtr": 1.0, "targetR": winner["targetR"],
+                         "horizonCandles": winner["horizonCandles"], "entry": "first_strictly_later_H4_open"},
+                     "developmentAlternatives": len(eligible), "partitions": deepcopy(winner["partitions"]),
+                     "originalReview": deepcopy(recipe["executionReview"]), "noteKeys": list(recipe["noteKeys"]),
+                     "newRegistration": False, "originalRecipeImprovementEstablished": False})
+  return {"schema": "fms-event-specific-reference-selection-v1", "sourceCatalogueHash": catalogue["catalogueHash"],
+          "sourceManifestHash": catalogue["manifest"]["manifestHash"],
+          "selection": "Per recipe: maximum development average gross R; ties shorter duration, then lower target R",
+          "sourceClock": deepcopy(catalogue["manifest"]["sourceClock"]), "newRegistrations": 0,
+          "limitations": ["Reused historical holdout, not fresh validation or a guarantee of profit.",
+                          "Different recipes may select different targets and durations; no universal contract is imposed.",
+                          "Intervals and small samples remain visible; neither is an automatic rejection rule.",
+                          "This initial grid fixes the stop at 1 ATR; wider stops, release-near entries and bands remain untested here.",
+                          "Clock qualification and matched-cohort comparisons with originals are unfinished.",
+                          "Same macro releases across pairs are shared evidence, not independent trials."],
+          "summary": {"recipeCount": len(selected), "positiveReusedHistoryLeads": sum(row["status"] == "positive_reused_history_lead" for row in selected)},
+          "recipes": selected}
+
+
 def audit_note_signal(note: Dict[str, Any], response: Dict[str, Any], h4_candles: list[dict], h1_candles: list[dict]) -> Dict[str, Any]:
   """Replay saved geometry through the canonical evaluator, never rescore.
 

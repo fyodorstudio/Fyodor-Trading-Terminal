@@ -389,12 +389,20 @@ export function formatCursorReadout(input: CursorReadoutInput): CursorReadoutLin
   return lines;
 }
 
-function toViewerTimestampSeconds(
+export function toChartViewerTimestampSeconds(
   timestampSeconds: number,
   mode: ChartDisplayTimeMode,
   sourceTimeOffsetSeconds = 0,
 ): number {
   return mode === "server" ? timestampSeconds : timestampSeconds - sourceTimeOffsetSeconds;
+}
+
+export function toChartUtcMetadataViewerTimestampSeconds(
+  timestampSeconds: number,
+  mode: ChartDisplayTimeMode,
+  sourceTimeOffsetSeconds = 0,
+): number {
+  return mode === "server" ? timestampSeconds + sourceTimeOffsetSeconds : timestampSeconds;
 }
 
 export function getChartSourceTimeOffsetSeconds(marketStatus: MarketStatusResponse | null): number {
@@ -417,7 +425,7 @@ export function formatChartHoverTime(
   mode: ChartDisplayTimeMode,
   sourceTimeOffsetSeconds = 0,
 ): string {
-  const viewerTimestampSeconds = toViewerTimestampSeconds(timestampSeconds, mode, sourceTimeOffsetSeconds);
+  const viewerTimestampSeconds = toChartViewerTimestampSeconds(timestampSeconds, mode, sourceTimeOffsetSeconds);
   return `${formatDateTimeForDisplayTimezone(viewerTimestampSeconds, mode)} ${formatHoverTimezoneSuffix(mode)}`;
 }
 
@@ -426,7 +434,19 @@ export function formatChartFeedTime(
   mode: ChartDisplayTimeMode,
   sourceTimeOffsetSeconds = 0,
 ): string {
-  const viewerTimestampSeconds = toViewerTimestampSeconds(timestampSeconds, mode, sourceTimeOffsetSeconds);
+  const viewerTimestampSeconds = toChartViewerTimestampSeconds(timestampSeconds, mode, sourceTimeOffsetSeconds);
+  return formatDateTimeForDisplayTimezone(viewerTimestampSeconds, mode);
+}
+
+/** Format a real UTC timestamp (for example a save or registration time) in
+ * the chart's selected display clock. Server mode needs the inverse shift
+ * because, unlike candle/event timestamps, this input is not broker-native. */
+export function formatChartUtcMetadataTime(
+  timestampSeconds: number,
+  mode: ChartDisplayTimeMode,
+  sourceTimeOffsetSeconds = 0,
+): string {
+  const viewerTimestampSeconds = toChartUtcMetadataViewerTimestampSeconds(timestampSeconds, mode, sourceTimeOffsetSeconds);
   return formatDateTimeForDisplayTimezone(viewerTimestampSeconds, mode);
 }
 
@@ -435,7 +455,7 @@ export function formatChartHeaderFeedTime(
   mode: ChartDisplayTimeMode,
   sourceTimeOffsetSeconds = 0,
 ): string {
-  const viewerTimestampSeconds = toViewerTimestampSeconds(timestampSeconds, mode, sourceTimeOffsetSeconds);
+  const viewerTimestampSeconds = toChartViewerTimestampSeconds(timestampSeconds, mode, sourceTimeOffsetSeconds);
   return formatWeekdayDateTimeForDisplayTimezone(viewerTimestampSeconds, mode);
 }
 
@@ -481,7 +501,7 @@ export function formatChartAxisTime(
 ): string {
   const rawTimestampSeconds = normalizeChartTimestampSeconds(chartTime);
   if (rawTimestampSeconds == null) return "";
-  const timestampSeconds = toViewerTimestampSeconds(rawTimestampSeconds, mode, sourceTimeOffsetSeconds);
+  const timestampSeconds = toChartViewerTimestampSeconds(rawTimestampSeconds, mode, sourceTimeOffsetSeconds);
 
   const intraday = INTRADAY_TIMEFRAMES.has(timeframe);
 

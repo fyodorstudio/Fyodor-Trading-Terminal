@@ -8,10 +8,12 @@ import {
   preloadMacroSignalGlobalStartupRegistry,
 } from "@/app/lib/bridge";
 import {
+  filterMacroBiasSignalsByVersion,
   getMacroBiasInitialLoadPlan,
   getMacroBiasRequestScope,
   isMacroBiasMarketSupported,
 } from "@/app/features/fms-arrow-navigation/chartSignalPresentation";
+import type { FmsDisplayVersion } from "@/app/lib/fmsDisplayVersion";
 import type { CalendarEvent, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse } from "@/app/types";
 
 interface ChartMacroBiasDataOptions {
@@ -20,6 +22,7 @@ interface ChartMacroBiasDataOptions {
   visible: boolean;
   historicalMatchesVisible: boolean;
   hiddenHistoricalPatterns: Record<string, string[]>;
+  arrowVersion: FmsDisplayVersion;
   historyState: "loading" | "ready" | "no_data" | "error";
   historyFrom?: number;
   historyTo?: number;
@@ -32,6 +35,7 @@ export function useChartMacroBiasData({
   visible,
   historicalMatchesVisible,
   hiddenHistoricalPatterns,
+  arrowVersion,
   historyState,
   historyFrom,
   historyTo,
@@ -284,26 +288,34 @@ export function useChartMacroBiasData({
     if (!historicalResponse?.supported || historicalResponse.symbol.toUpperCase() !== selectedSymbol.toUpperCase()) return null;
     const eligiblePatternIds = new Set(historicalResponse.patterns.filter((pattern) => pattern.currentEligible).map((pattern) => pattern.id));
     const hidden = new Set(hiddenHistoricalPatterns[selectedSymbol.toUpperCase()] ?? []);
-    return historicalResponse.signals.filter((signal) => eligiblePatternIds.has(signal.patternId) && !hidden.has(signal.patternId));
-  }, [hiddenHistoricalPatterns, historicalResponse, selectedSymbol]);
+    return filterMacroBiasSignalsByVersion(
+      historicalResponse.signals.filter((signal) => eligiblePatternIds.has(signal.patternId) && !hidden.has(signal.patternId)),
+      arrowVersion,
+    );
+  }, [arrowVersion, hiddenHistoricalPatterns, historicalResponse, selectedSymbol]);
   const historicalPatternFilters = useMemo(() => {
     if (!historicalResponse?.supported || historicalResponse.symbol.toUpperCase() !== selectedSymbol.toUpperCase()) return [];
     const hidden = new Set(hiddenHistoricalPatterns[selectedSymbol.toUpperCase()] ?? []);
     const counts = new Map<string, number>();
-    historicalResponse.signals.forEach((signal) => counts.set(signal.patternId, (counts.get(signal.patternId) ?? 0) + 1));
+    filterMacroBiasSignalsByVersion(historicalResponse.signals, arrowVersion)
+      .forEach((signal) => counts.set(signal.patternId, (counts.get(signal.patternId) ?? 0) + 1));
     return historicalResponse.patterns
       .filter((pattern) => pattern.currentEligible)
       .map((pattern) => ({ id: pattern.id, label: pattern.label ?? pattern.id, count: counts.get(pattern.id) ?? 0, checked: !hidden.has(pattern.id) }))
       .sort((left, right) => left.label.localeCompare(right.label));
-  }, [hiddenHistoricalPatterns, historicalResponse, selectedSymbol]);
+  }, [arrowVersion, hiddenHistoricalPatterns, historicalResponse, selectedSymbol]);
   const journalSignals = useMemo(() => {
     if (!response?.supported) return [];
     const hidden = new Set(hiddenHistoricalPatterns[selectedSymbol.toUpperCase()] ?? []);
     const combined = new Map<string, MacroSignalChartSignal>();
-    response.signals.filter((signal) => !hidden.has(signal.patternId)).forEach((signal) => combined.set(signal.id, signal));
-    response.recoveredSignals?.filter((signal) => !hidden.has(signal.patternId)).forEach((signal) => combined.set(signal.id, signal));
+    filterMacroBiasSignalsByVersion(response.signals, arrowVersion)
+      .filter((signal) => !hidden.has(signal.patternId))
+      .forEach((signal) => combined.set(signal.id, signal));
+    filterMacroBiasSignalsByVersion(response.recoveredSignals ?? [], arrowVersion)
+      .filter((signal) => !hidden.has(signal.patternId))
+      .forEach((signal) => combined.set(signal.id, signal));
     return [...combined.values()].sort((left, right) => left.eventTime - right.eventTime || left.id.localeCompare(right.id));
-  }, [hiddenHistoricalPatterns, response, selectedSymbol]);
+  }, [arrowVersion, hiddenHistoricalPatterns, response, selectedSymbol]);
   const displaySignals = useMemo(() => {
     if (!response?.supported || !historicalMatchesVisible || !historicalSignals) return journalSignals;
     const combined = new Map<string, MacroSignalChartSignal>();

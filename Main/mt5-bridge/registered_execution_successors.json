@@ -1,0 +1,2263 @@
+{
+  "schema": "fms-registered-execution-successors-v1",
+  "displayVersion": "FMS v2",
+  "activatedAt": 1789896633,
+  "sourceResearchHash": "121a36ce7f2d5ba6514f6c465e9fe225ee29db9f88cbfcf62974ec00042f6730",
+  "sourceManifestHash": "8db181578f595a8d18a4c1b947df4c7fb05324d75ff506a32fe38f4e6d37920e",
+  "sourceClockSha256": "6d0ad9ef3e549d9ca6865f6adbcd41b9a50377834338bc73b87ba2fcf78668bc",
+  "approvalPolicy": {
+    "selection": "Maximum development pessimistic average R; ties resolved N, shorter horizon, lower target, stop nearest 1 ATR",
+    "entry": "First strictly later pinned H4 open; completed pre-entry H4 Wilder ATR14",
+    "cohort": "Each recipe uses only cases with a complete valid 60-H4 path; every shorter candidate is projected from that same path",
+    "ordering": "Opening gaps first; same-H4 SL/TP order remains ambiguous; selector scores ambiguity as stop-first but does not relabel it",
+    "review": "Exact fixed-H4 v1 baseline matched on the same complete 60-H4 cohort; development-selected contract is distinct, positive, and improves pessimistic average gross R in both development and reused holdout; reused holdout is also positive.",
+    "automaticPromotion": false,
+    "uncertaintyAutomaticVeto": false
+  },
+  "profileCount": 17,
+  "profiles": {
+    "AUDJPY|audjpy-jpy-inflation-short": {
+      "registrationId": "FMS-V2-EXEC-001",
+      "market": "AUDJPY",
+      "patternId": "audjpy-jpy-inflation-short",
+      "label": "Japan headline and core inflation · Short only",
+      "previousExecution": {
+        "stopAtr": 0.5,
+        "targetR": 0.5,
+        "expiryCandles": 30,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 0.5,
+        "targetR": 4.0,
+        "expiryCandles": 12,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 87,
+        "evaluableCount": 84,
+        "targetHitCount": 20,
+        "targetHitRate": 0.23809523809523808,
+        "stopHitCount": 59,
+        "stopHitRate": 0.7023809523809523,
+        "expiredCount": 5,
+        "ambiguousCount": 0,
+        "unevaluableCount": 3,
+        "averageGrossR": 0.3339289635403491,
+        "pessimisticSelectionAverageR": 0.3339289635403491,
+        "expectancyCi95": {
+          "lower": -0.13025945434722747,
+          "upper": 0.7981173814279257
+        },
+        "evaluableYears": 8,
+        "positiveYears": 6,
+        "unavailableByReason": {
+          "missing_weekday_path": 3
+        }
+      },
+      "holdout": {
+        "attemptedCount": 31,
+        "evaluableCount": 29,
+        "targetHitCount": 5,
+        "targetHitRate": 0.1724137931034483,
+        "stopHitCount": 22,
+        "stopHitRate": 0.7586206896551724,
+        "expiredCount": 2,
+        "ambiguousCount": 0,
+        "unevaluableCount": 2,
+        "averageGrossR": 0.05350505845885636,
+        "pessimisticSelectionAverageR": 0.05350505845885636,
+        "expectancyCi95": {
+          "lower": -0.6634717804070792,
+          "upper": 0.7704818973247919
+        },
+        "evaluableYears": 4,
+        "positiveYears": 1,
+        "unavailableByReason": {
+          "missing_weekday_path": 2
+        }
+      },
+      "overall": {
+        "attemptedCount": 118,
+        "evaluableCount": 113,
+        "targetHitCount": 25,
+        "targetHitRate": 0.22123893805309736,
+        "stopHitCount": 81,
+        "stopHitRate": 0.7168141592920354,
+        "expiredCount": 7,
+        "ambiguousCount": 0,
+        "unevaluableCount": 5,
+        "averageGrossR": 0.26196176666102794,
+        "pessimisticSelectionAverageR": 0.26196176666102794,
+        "expectancyCi95": {
+          "lower": -0.12816090090598248,
+          "upper": 0.6520844342280383
+        },
+        "evaluableYears": 11,
+        "positiveYears": 7,
+        "unavailableByReason": {
+          "missing_weekday_path": 5
+        }
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.3339289635403491,
+            "baselinePessimisticAverageR": -0.08928571428571429,
+            "deltaPessimisticAverageR": 0.4232146778260634,
+            "candidateTargetBeforeStopRate": 0.23809523809523808,
+            "baselineTargetBeforeStopRate": 0.7083333333333334,
+            "candidateEvaluableN": 84,
+            "baselineEvaluableN": 72,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 12
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.05350505845885636,
+            "baselinePessimisticAverageR": -0.017241379310344827,
+            "deltaPessimisticAverageR": 0.07074643776920118,
+            "candidateTargetBeforeStopRate": 0.1724137931034483,
+            "baselineTargetBeforeStopRate": 0.7916666666666666,
+            "candidateEvaluableN": 29,
+            "baselineEvaluableN": 24,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 5
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.26196176666102794,
+            "baselinePessimisticAverageR": -0.07079646017699115,
+            "deltaPessimisticAverageR": 0.3327582268380191,
+            "candidateTargetBeforeStopRate": 0.22123893805309736,
+            "baselineTargetBeforeStopRate": 0.7291666666666666,
+            "candidateEvaluableN": 113,
+            "baselineEvaluableN": 96,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 17
+          }
+        }
+      },
+      "commonPathAttemptedN": 118,
+      "commonPathObservedN": 113,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "AUDUSD|audusd-business-confidence-rejection": {
+      "registrationId": "FMS-V2-EXEC-002",
+      "market": "AUDUSD",
+      "patternId": "audusd-business-confidence-rejection",
+      "label": "Australia business confidence rejection",
+      "previousExecution": {
+        "stopAtr": 1.5,
+        "targetR": 0.5,
+        "expiryCandles": 30,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 3.0,
+        "targetR": 0.25,
+        "expiryCandles": 12,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 95,
+        "evaluableCount": 43,
+        "targetHitCount": 33,
+        "targetHitRate": 0.7674418604651163,
+        "stopHitCount": 3,
+        "stopHitRate": 0.06976744186046512,
+        "expiredCount": 7,
+        "ambiguousCount": 0,
+        "unevaluableCount": 52,
+        "averageGrossR": 0.05780878637537723,
+        "pessimisticSelectionAverageR": 0.05780878637537723,
+        "expectancyCi95": {
+          "lower": -0.06061600405016189,
+          "upper": 0.17623357680091634
+        },
+        "evaluableYears": 4,
+        "positiveYears": 1,
+        "unavailableByReason": {
+          "missing_first_entry_interval": 52
+        }
+      },
+      "holdout": {
+        "attemptedCount": 32,
+        "evaluableCount": 31,
+        "targetHitCount": 29,
+        "targetHitRate": 0.9354838709677419,
+        "stopHitCount": 1,
+        "stopHitRate": 0.03225806451612903,
+        "expiredCount": 1,
+        "ambiguousCount": 0,
+        "unevaluableCount": 1,
+        "averageGrossR": 0.1764140697287459,
+        "pessimisticSelectionAverageR": 0.1764140697287459,
+        "expectancyCi95": {
+          "lower": 0.07565132312513857,
+          "upper": 0.27717681633235325
+        },
+        "evaluableYears": 3,
+        "positiveYears": 2,
+        "unavailableByReason": {
+          "missing_weekday_path": 1
+        }
+      },
+      "overall": {
+        "attemptedCount": 127,
+        "evaluableCount": 74,
+        "targetHitCount": 62,
+        "targetHitRate": 0.8378378378378378,
+        "stopHitCount": 4,
+        "stopHitRate": 0.05405405405405406,
+        "expiredCount": 8,
+        "ambiguousCount": 0,
+        "unevaluableCount": 53,
+        "averageGrossR": 0.10749478345584249,
+        "pessimisticSelectionAverageR": 0.10749478345584249,
+        "expectancyCi95": {
+          "lower": 0.026151020614963508,
+          "upper": 0.18883854629672148
+        },
+        "evaluableYears": 6,
+        "positiveYears": 3,
+        "unavailableByReason": {
+          "missing_first_entry_interval": 52,
+          "missing_weekday_path": 1
+        }
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.05780878637537723,
+            "baselinePessimisticAverageR": -0.023255813953488372,
+            "deltaPessimisticAverageR": 0.0810646003288656,
+            "candidateTargetBeforeStopRate": 0.7674418604651163,
+            "baselineTargetBeforeStopRate": 0.6511627906976745,
+            "candidateEvaluableN": 43,
+            "baselineEvaluableN": 43,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.1764140697287459,
+            "baselinePessimisticAverageR": 0.16129032258064516,
+            "deltaPessimisticAverageR": 0.015123747148100747,
+            "candidateTargetBeforeStopRate": 0.9354838709677419,
+            "baselineTargetBeforeStopRate": 0.8,
+            "candidateEvaluableN": 31,
+            "baselineEvaluableN": 30,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 1
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.10749478345584249,
+            "baselinePessimisticAverageR": 0.05405405405405406,
+            "deltaPessimisticAverageR": 0.05344072940178843,
+            "candidateTargetBeforeStopRate": 0.8378378378378378,
+            "baselineTargetBeforeStopRate": 0.7123287671232876,
+            "candidateEvaluableN": 74,
+            "baselineEvaluableN": 73,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 1
+          }
+        }
+      },
+      "commonPathAttemptedN": 127,
+      "commonPathObservedN": 74,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "EURCAD|eurcad-eur-consumer-sentiment": {
+      "registrationId": "FMS-V2-EXEC-003",
+      "market": "EURCAD",
+      "patternId": "eurcad-eur-consumer-sentiment",
+      "label": "Euro-area consumer sentiment",
+      "previousExecution": {
+        "stopAtr": 2.0,
+        "targetR": 3.0,
+        "expiryCandles": 12,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 0.75,
+        "targetR": 3.0,
+        "expiryCandles": 18,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 78,
+        "evaluableCount": 75,
+        "targetHitCount": 25,
+        "targetHitRate": 0.3333333333333333,
+        "stopHitCount": 49,
+        "stopHitRate": 0.6533333333333333,
+        "expiredCount": 1,
+        "ambiguousCount": 0,
+        "unevaluableCount": 3,
+        "averageGrossR": 0.3617608015784186,
+        "pessimisticSelectionAverageR": 0.3617608015784186,
+        "expectancyCi95": {
+          "lower": -0.06711249817830972,
+          "upper": 0.790634101335147
+        },
+        "evaluableYears": 8,
+        "positiveYears": 4,
+        "unavailableByReason": {
+          "missing_weekday_path": 3
+        }
+      },
+      "holdout": {
+        "attemptedCount": 39,
+        "evaluableCount": 36,
+        "targetHitCount": 11,
+        "targetHitRate": 0.3055555555555556,
+        "stopHitCount": 24,
+        "stopHitRate": 0.6666666666666666,
+        "expiredCount": 1,
+        "ambiguousCount": 0,
+        "unevaluableCount": 3,
+        "averageGrossR": 0.267010903180491,
+        "pessimisticSelectionAverageR": 0.267010903180491,
+        "expectancyCi95": {
+          "lower": -0.33999381009285673,
+          "upper": 0.8740156164538386
+        },
+        "evaluableYears": 4,
+        "positiveYears": 3,
+        "unavailableByReason": {
+          "missing_weekday_path": 3
+        }
+      },
+      "overall": {
+        "attemptedCount": 117,
+        "evaluableCount": 111,
+        "targetHitCount": 36,
+        "targetHitRate": 0.32432432432432434,
+        "stopHitCount": 73,
+        "stopHitRate": 0.6576576576576577,
+        "expiredCount": 2,
+        "ambiguousCount": 0,
+        "unevaluableCount": 6,
+        "averageGrossR": 0.3310311048007124,
+        "pessimisticSelectionAverageR": 0.3310311048007124,
+        "expectancyCi95": {
+          "lower": -0.017819371501599846,
+          "upper": 0.6798815811030247
+        },
+        "evaluableYears": 11,
+        "positiveYears": 7,
+        "unavailableByReason": {
+          "missing_weekday_path": 6
+        }
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.3617608015784186,
+            "baselinePessimisticAverageR": 0.2292680700798905,
+            "deltaPessimisticAverageR": 0.1324927314985281,
+            "candidateTargetBeforeStopRate": 0.3333333333333333,
+            "baselineTargetBeforeStopRate": 0.05333333333333334,
+            "candidateEvaluableN": 75,
+            "baselineEvaluableN": 75,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.267010903180491,
+            "baselinePessimisticAverageR": 0.1535749396652234,
+            "deltaPessimisticAverageR": 0.11343596351526758,
+            "candidateTargetBeforeStopRate": 0.3055555555555556,
+            "baselineTargetBeforeStopRate": 0.0,
+            "candidateEvaluableN": 36,
+            "baselineEvaluableN": 36,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.3310311048007124,
+            "baselinePessimisticAverageR": 0.20471894670216062,
+            "deltaPessimisticAverageR": 0.12631215809855179,
+            "candidateTargetBeforeStopRate": 0.32432432432432434,
+            "baselineTargetBeforeStopRate": 0.036036036036036036,
+            "candidateEvaluableN": 111,
+            "baselineEvaluableN": 111,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          }
+        }
+      },
+      "commonPathAttemptedN": 117,
+      "commonPathObservedN": 111,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "EURJPY|eurjpy-eur-composite-services-pmi": {
+      "registrationId": "FMS-V2-EXEC-004",
+      "market": "EURJPY",
+      "patternId": "eurjpy-eur-composite-services-pmi",
+      "label": "Euro-area composite and services PMI",
+      "previousExecution": {
+        "stopAtr": 0.5,
+        "targetR": 1.5,
+        "expiryCandles": 30,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 0.75,
+        "targetR": 4.0,
+        "expiryCandles": 42,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 78,
+        "evaluableCount": 78,
+        "targetHitCount": 23,
+        "targetHitRate": 0.2948717948717949,
+        "stopHitCount": 54,
+        "stopHitRate": 0.6923076923076923,
+        "expiredCount": 1,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0,
+        "averageGrossR": 0.514502415838934,
+        "pessimisticSelectionAverageR": 0.514502415838934,
+        "expectancyCi95": {
+          "lower": 0.004972225602802305,
+          "upper": 1.0240326060750657
+        },
+        "evaluableYears": 8,
+        "positiveYears": 6,
+        "unavailableByReason": {}
+      },
+      "holdout": {
+        "attemptedCount": 36,
+        "evaluableCount": 36,
+        "targetHitCount": 10,
+        "targetHitRate": 0.2777777777777778,
+        "stopHitCount": 24,
+        "stopHitRate": 0.6666666666666666,
+        "expiredCount": 2,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0,
+        "averageGrossR": 0.3961062061387612,
+        "pessimisticSelectionAverageR": 0.3961062061387612,
+        "expectancyCi95": {
+          "lower": -0.49187320255762396,
+          "upper": 1.2840856148351463
+        },
+        "evaluableYears": 4,
+        "positiveYears": 3,
+        "unavailableByReason": {}
+      },
+      "overall": {
+        "attemptedCount": 114,
+        "evaluableCount": 114,
+        "targetHitCount": 33,
+        "targetHitRate": 0.2894736842105263,
+        "stopHitCount": 78,
+        "stopHitRate": 0.6842105263157895,
+        "expiredCount": 3,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0,
+        "averageGrossR": 0.47711413909151096,
+        "pessimisticSelectionAverageR": 0.47711413909151096,
+        "expectancyCi95": {
+          "lower": 0.03183759623024335,
+          "upper": 0.9223906819527785
+        },
+        "evaluableYears": 11,
+        "positiveYears": 8,
+        "unavailableByReason": {}
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.514502415838934,
+            "baselinePessimisticAverageR": 0.28205128205128205,
+            "deltaPessimisticAverageR": 0.23245113378765192,
+            "candidateTargetBeforeStopRate": 0.2948717948717949,
+            "baselineTargetBeforeStopRate": 0.5333333333333333,
+            "candidateEvaluableN": 78,
+            "baselineEvaluableN": 75,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 3
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.3961062061387612,
+            "baselinePessimisticAverageR": 0.25,
+            "deltaPessimisticAverageR": 0.14610620613876119,
+            "candidateTargetBeforeStopRate": 0.2777777777777778,
+            "baselineTargetBeforeStopRate": 0.5294117647058824,
+            "candidateEvaluableN": 36,
+            "baselineEvaluableN": 34,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 2
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.47711413909151096,
+            "baselinePessimisticAverageR": 0.2719298245614035,
+            "deltaPessimisticAverageR": 0.20518431453010744,
+            "candidateTargetBeforeStopRate": 0.2894736842105263,
+            "baselineTargetBeforeStopRate": 0.5321100917431193,
+            "candidateEvaluableN": 114,
+            "baselineEvaluableN": 109,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 5
+          }
+        }
+      },
+      "commonPathAttemptedN": 114,
+      "commonPathObservedN": 114,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "EURUSD|eurusd-cpi-package": {
+      "registrationId": "FMS-V2-EXEC-005",
+      "market": "EURUSD",
+      "patternId": "eurusd-cpi-package",
+      "label": "US CPI · ordinary magnitude",
+      "previousExecution": {
+        "stopAtr": 2.0,
+        "targetR": 4.0,
+        "expiryCandles": 30,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 1.5,
+        "targetR": 4.0,
+        "expiryCandles": 30,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 133,
+        "evaluableCount": 124,
+        "targetHitCount": 19,
+        "targetHitRate": 0.1532258064516129,
+        "stopHitCount": 69,
+        "stopHitRate": 0.5564516129032258,
+        "expiredCount": 36,
+        "ambiguousCount": 0,
+        "unevaluableCount": 9,
+        "averageGrossR": 0.48868757788801365,
+        "pessimisticSelectionAverageR": 0.48868757788801365,
+        "expectancyCi95": {
+          "lower": 0.1442180986346876,
+          "upper": 0.8331570571413397
+        },
+        "evaluableYears": 7,
+        "positiveYears": 6,
+        "unavailableByReason": {
+          "missing_weekday_path": 9
+        }
+      },
+      "holdout": {
+        "attemptedCount": 73,
+        "evaluableCount": 67,
+        "targetHitCount": 8,
+        "targetHitRate": 0.11940298507462686,
+        "stopHitCount": 47,
+        "stopHitRate": 0.7014925373134329,
+        "expiredCount": 12,
+        "ambiguousCount": 0,
+        "unevaluableCount": 6,
+        "averageGrossR": 0.07402867390671108,
+        "pessimisticSelectionAverageR": 0.07402867390671108,
+        "expectancyCi95": {
+          "lower": -0.3592860348128144,
+          "upper": 0.5073433826262366
+        },
+        "evaluableYears": 4,
+        "positiveYears": 3,
+        "unavailableByReason": {
+          "missing_weekday_path": 6
+        }
+      },
+      "overall": {
+        "attemptedCount": 206,
+        "evaluableCount": 191,
+        "targetHitCount": 27,
+        "targetHitRate": 0.14136125654450263,
+        "stopHitCount": 116,
+        "stopHitRate": 0.6073298429319371,
+        "expiredCount": 48,
+        "ambiguousCount": 0,
+        "unevaluableCount": 15,
+        "averageGrossR": 0.34323131314064576,
+        "pessimisticSelectionAverageR": 0.34323131314064576,
+        "expectancyCi95": {
+          "lower": 0.07204682555197212,
+          "upper": 0.6144158007293195
+        },
+        "evaluableYears": 10,
+        "positiveYears": 8,
+        "unavailableByReason": {
+          "missing_weekday_path": 15
+        }
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.48868757788801365,
+            "baselinePessimisticAverageR": 0.38892792735046167,
+            "deltaPessimisticAverageR": 0.09975965053755198,
+            "candidateTargetBeforeStopRate": 0.1532258064516129,
+            "baselineTargetBeforeStopRate": 0.03225806451612903,
+            "candidateEvaluableN": 124,
+            "baselineEvaluableN": 124,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.07402867390671108,
+            "baselinePessimisticAverageR": 0.05634146235860539,
+            "deltaPessimisticAverageR": 0.017687211548105694,
+            "candidateTargetBeforeStopRate": 0.11940298507462686,
+            "baselineTargetBeforeStopRate": 0.05970149253731343,
+            "candidateEvaluableN": 67,
+            "baselineEvaluableN": 67,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.34323131314064576,
+            "baselinePessimisticAverageR": 0.27226147104441784,
+            "deltaPessimisticAverageR": 0.07096984209622792,
+            "candidateTargetBeforeStopRate": 0.14136125654450263,
+            "baselineTargetBeforeStopRate": 0.041884816753926704,
+            "candidateEvaluableN": 191,
+            "baselineEvaluableN": 191,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          }
+        }
+      },
+      "commonPathAttemptedN": 206,
+      "commonPathObservedN": 191,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "EURUSD|eurusd-ism-manufacturing-employment-package": {
+      "registrationId": "FMS-V2-EXEC-006",
+      "market": "EURUSD",
+      "patternId": "eurusd-ism-manufacturing-employment-package",
+      "label": "US manufacturing employment rejection",
+      "previousExecution": {
+        "stopAtr": 2.0,
+        "targetR": 1.0,
+        "expiryCandles": 6,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 0.75,
+        "targetR": 4.0,
+        "expiryCandles": 12,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 112,
+        "evaluableCount": 112,
+        "targetHitCount": 18,
+        "targetHitRate": 0.16071428571428573,
+        "stopHitCount": 70,
+        "stopHitRate": 0.625,
+        "expiredCount": 24,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0,
+        "averageGrossR": 0.35741807017578603,
+        "pessimisticSelectionAverageR": 0.35741807017578603,
+        "expectancyCi95": {
+          "lower": -0.0066045010891424005,
+          "upper": 0.7214406414407144
+        },
+        "evaluableYears": 7,
+        "positiveYears": 6,
+        "unavailableByReason": {}
+      },
+      "holdout": {
+        "attemptedCount": 42,
+        "evaluableCount": 42,
+        "targetHitCount": 9,
+        "targetHitRate": 0.21428571428571427,
+        "stopHitCount": 27,
+        "stopHitRate": 0.6428571428571429,
+        "expiredCount": 6,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0,
+        "averageGrossR": 0.4892520896972957,
+        "pessimisticSelectionAverageR": 0.4892520896972957,
+        "expectancyCi95": {
+          "lower": -0.15543894483011955,
+          "upper": 1.1339431242247109
+        },
+        "evaluableYears": 4,
+        "positiveYears": 4,
+        "unavailableByReason": {}
+      },
+      "overall": {
+        "attemptedCount": 154,
+        "evaluableCount": 154,
+        "targetHitCount": 27,
+        "targetHitRate": 0.17532467532467533,
+        "stopHitCount": 97,
+        "stopHitRate": 0.6298701298701299,
+        "expiredCount": 30,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0,
+        "averageGrossR": 0.39337280277256137,
+        "pessimisticSelectionAverageR": 0.39337280277256137,
+        "expectancyCi95": {
+          "lower": 0.07654548788440568,
+          "upper": 0.7102001176607171
+        },
+        "evaluableYears": 10,
+        "positiveYears": 9,
+        "unavailableByReason": {}
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.35741807017578603,
+            "baselinePessimisticAverageR": 0.14025406988247965,
+            "deltaPessimisticAverageR": 0.21716400029330638,
+            "candidateTargetBeforeStopRate": 0.16071428571428573,
+            "baselineTargetBeforeStopRate": 0.21428571428571427,
+            "candidateEvaluableN": 112,
+            "baselineEvaluableN": 112,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.4892520896972957,
+            "baselinePessimisticAverageR": 0.09562840515371987,
+            "deltaPessimisticAverageR": 0.3936236845435759,
+            "candidateTargetBeforeStopRate": 0.21428571428571427,
+            "baselineTargetBeforeStopRate": 0.2857142857142857,
+            "candidateEvaluableN": 42,
+            "baselineEvaluableN": 42,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.39337280277256137,
+            "baselinePessimisticAverageR": 0.12808343404736336,
+            "deltaPessimisticAverageR": 0.26528936872519804,
+            "candidateTargetBeforeStopRate": 0.17532467532467533,
+            "baselineTargetBeforeStopRate": 0.23376623376623376,
+            "candidateEvaluableN": 154,
+            "baselineEvaluableN": 154,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          }
+        }
+      },
+      "commonPathAttemptedN": 154,
+      "commonPathObservedN": 154,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "EURUSD|eurusd-us-payroll-short-restored": {
+      "registrationId": "FMS-V2-EXEC-007",
+      "market": "EURUSD",
+      "patternId": "eurusd-us-payroll-short-restored",
+      "label": "US payroll",
+      "previousExecution": {
+        "stopAtr": 2.0,
+        "targetR": 1.0,
+        "expiryCandles": 6,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 0.5,
+        "targetR": 4.0,
+        "expiryCandles": 30,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 41,
+        "evaluableCount": 41,
+        "targetHitCount": 11,
+        "targetHitRate": 0.2682926829268293,
+        "stopHitCount": 30,
+        "stopHitRate": 0.7317073170731707,
+        "expiredCount": 0,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0,
+        "averageGrossR": 0.33457224013343156,
+        "pessimisticSelectionAverageR": 0.33457224013343156,
+        "expectancyCi95": {
+          "lower": -0.3533976036840838,
+          "upper": 1.022542083950947
+        },
+        "evaluableYears": 8,
+        "positiveYears": 5,
+        "unavailableByReason": {}
+      },
+      "holdout": {
+        "attemptedCount": 14,
+        "evaluableCount": 12,
+        "targetHitCount": 4,
+        "targetHitRate": 0.3333333333333333,
+        "stopHitCount": 7,
+        "stopHitRate": 0.5833333333333334,
+        "expiredCount": 1,
+        "ambiguousCount": 2,
+        "unevaluableCount": 0,
+        "averageGrossR": 0.7389617993816203,
+        "pessimisticSelectionAverageR": 0.49053868518424604,
+        "expectancyCi95": {
+          "lower": -0.6307535638512575,
+          "upper": 2.108677162614498
+        },
+        "evaluableYears": 4,
+        "positiveYears": 3,
+        "unavailableByReason": {}
+      },
+      "overall": {
+        "attemptedCount": 55,
+        "evaluableCount": 53,
+        "targetHitCount": 15,
+        "targetHitRate": 0.2830188679245283,
+        "stopHitCount": 37,
+        "stopHitRate": 0.6981132075471698,
+        "expiredCount": 1,
+        "ambiguousCount": 2,
+        "unevaluableCount": 0,
+        "averageGrossR": 0.4261321403405687,
+        "pessimisticSelectionAverageR": 0.3742727897827298,
+        "expectancyCi95": {
+          "lower": -0.18511220500450165,
+          "upper": 1.037376485685639
+        },
+        "evaluableYears": 11,
+        "positiveYears": 8,
+        "unavailableByReason": {}
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.33457224013343156,
+            "baselinePessimisticAverageR": 0.15608651840293866,
+            "deltaPessimisticAverageR": 0.1784857217304929,
+            "candidateTargetBeforeStopRate": 0.2682926829268293,
+            "baselineTargetBeforeStopRate": 0.1951219512195122,
+            "candidateEvaluableN": 41,
+            "baselineEvaluableN": 41,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.49053868518424604,
+            "baselinePessimisticAverageR": 0.3026092468173204,
+            "deltaPessimisticAverageR": 0.18792943836692566,
+            "candidateTargetBeforeStopRate": 0.3333333333333333,
+            "baselineTargetBeforeStopRate": 0.35714285714285715,
+            "candidateEvaluableN": 12,
+            "baselineEvaluableN": 14,
+            "candidateAmbiguousN": 2,
+            "baselineAmbiguousN": 0
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.3742727897827298,
+            "baselinePessimisticAverageR": 0.19338321290841765,
+            "deltaPessimisticAverageR": 0.18088957687431217,
+            "candidateTargetBeforeStopRate": 0.2830188679245283,
+            "baselineTargetBeforeStopRate": 0.23636363636363636,
+            "candidateEvaluableN": 53,
+            "baselineEvaluableN": 55,
+            "candidateAmbiguousN": 2,
+            "baselineAmbiguousN": 0
+          }
+        }
+      },
+      "commonPathAttemptedN": 55,
+      "commonPathObservedN": 55,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "EURUSD|eurusd-us-producer-inflation-cooling-restored": {
+      "registrationId": "FMS-V2-EXEC-008",
+      "market": "EURUSD",
+      "patternId": "eurusd-us-producer-inflation-cooling-restored",
+      "label": "US producer-inflation cooling package",
+      "previousExecution": {
+        "stopAtr": 2.0,
+        "targetR": 1.25,
+        "expiryCandles": 18,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 2.0,
+        "targetR": 4.0,
+        "expiryCandles": 60,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 35,
+        "evaluableCount": 33,
+        "targetHitCount": 5,
+        "targetHitRate": 0.15151515151515152,
+        "stopHitCount": 19,
+        "stopHitRate": 0.5757575757575758,
+        "expiredCount": 9,
+        "ambiguousCount": 0,
+        "unevaluableCount": 2,
+        "averageGrossR": 0.4317409206357626,
+        "pessimisticSelectionAverageR": 0.4317409206357626,
+        "expectancyCi95": {
+          "lower": -0.22223833374012397,
+          "upper": 1.0857201750116492
+        },
+        "evaluableYears": 8,
+        "positiveYears": 5,
+        "unavailableByReason": {
+          "missing_weekday_path": 2
+        }
+      },
+      "holdout": {
+        "attemptedCount": 11,
+        "evaluableCount": 10,
+        "targetHitCount": 2,
+        "targetHitRate": 0.2,
+        "stopHitCount": 5,
+        "stopHitRate": 0.5,
+        "expiredCount": 3,
+        "ambiguousCount": 0,
+        "unevaluableCount": 1,
+        "averageGrossR": 0.5576663136706898,
+        "pessimisticSelectionAverageR": 0.5576663136706898,
+        "expectancyCi95": {
+          "lower": -0.727945457117439,
+          "upper": 1.8432780844588184
+        },
+        "evaluableYears": 4,
+        "positiveYears": 3,
+        "unavailableByReason": {
+          "missing_weekday_path": 1
+        }
+      },
+      "overall": {
+        "attemptedCount": 46,
+        "evaluableCount": 43,
+        "targetHitCount": 7,
+        "targetHitRate": 0.16279069767441862,
+        "stopHitCount": 24,
+        "stopHitRate": 0.5581395348837209,
+        "expiredCount": 12,
+        "ambiguousCount": 0,
+        "unevaluableCount": 3,
+        "averageGrossR": 0.4610258957601643,
+        "pessimisticSelectionAverageR": 0.4610258957601643,
+        "expectancyCi95": {
+          "lower": -0.1157768445948395,
+          "upper": 1.037828636115168
+        },
+        "evaluableYears": 11,
+        "positiveYears": 7,
+        "unavailableByReason": {
+          "missing_weekday_path": 3
+        }
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.4317409206357626,
+            "baselinePessimisticAverageR": 0.338024941139542,
+            "deltaPessimisticAverageR": 0.09371597949622057,
+            "candidateTargetBeforeStopRate": 0.15151515151515152,
+            "baselineTargetBeforeStopRate": 0.45454545454545453,
+            "candidateEvaluableN": 33,
+            "baselineEvaluableN": 33,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.5576663136706898,
+            "baselinePessimisticAverageR": 0.5141407397617356,
+            "deltaPessimisticAverageR": 0.043525573908954174,
+            "candidateTargetBeforeStopRate": 0.2,
+            "baselineTargetBeforeStopRate": 0.5,
+            "candidateEvaluableN": 10,
+            "baselineEvaluableN": 10,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.4610258957601643,
+            "baselinePessimisticAverageR": 0.3789821036098196,
+            "deltaPessimisticAverageR": 0.08204379215034469,
+            "candidateTargetBeforeStopRate": 0.16279069767441862,
+            "baselineTargetBeforeStopRate": 0.46511627906976744,
+            "candidateEvaluableN": 43,
+            "baselineEvaluableN": 43,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          }
+        }
+      },
+      "commonPathAttemptedN": 46,
+      "commonPathObservedN": 43,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "EURUSD|us-industrial-output-directional": {
+      "registrationId": "FMS-V2-EXEC-009",
+      "market": "EURUSD",
+      "patternId": "us-industrial-output-directional",
+      "label": "US industrial-production package",
+      "previousExecution": {
+        "stopAtr": 1.5,
+        "targetR": 0.5,
+        "expiryCandles": 12,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 0.75,
+        "targetR": 2.5,
+        "expiryCandles": 60,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 72,
+        "evaluableCount": 70,
+        "targetHitCount": 25,
+        "targetHitRate": 0.35714285714285715,
+        "stopHitCount": 44,
+        "stopHitRate": 0.6285714285714286,
+        "expiredCount": 1,
+        "ambiguousCount": 0,
+        "unevaluableCount": 2,
+        "averageGrossR": 0.2965972325313768,
+        "pessimisticSelectionAverageR": 0.2965972325313768,
+        "expectancyCi95": {
+          "lower": -0.10145105107259345,
+          "upper": 0.6946455161353471
+        },
+        "evaluableYears": 8,
+        "positiveYears": 6,
+        "unavailableByReason": {
+          "missing_weekday_path": 2
+        }
+      },
+      "holdout": {
+        "attemptedCount": 33,
+        "evaluableCount": 31,
+        "targetHitCount": 13,
+        "targetHitRate": 0.41935483870967744,
+        "stopHitCount": 18,
+        "stopHitRate": 0.5806451612903226,
+        "expiredCount": 0,
+        "ambiguousCount": 0,
+        "unevaluableCount": 2,
+        "averageGrossR": 0.46774193548387094,
+        "pessimisticSelectionAverageR": 0.46774193548387094,
+        "expectancyCi95": {
+          "lower": -0.1502883012919674,
+          "upper": 1.0857721722597093
+        },
+        "evaluableYears": 4,
+        "positiveYears": 3,
+        "unavailableByReason": {
+          "missing_weekday_path": 2
+        }
+      },
+      "overall": {
+        "attemptedCount": 105,
+        "evaluableCount": 101,
+        "targetHitCount": 38,
+        "targetHitRate": 0.37623762376237624,
+        "stopHitCount": 62,
+        "stopHitRate": 0.6138613861386139,
+        "expiredCount": 1,
+        "ambiguousCount": 0,
+        "unevaluableCount": 4,
+        "averageGrossR": 0.3491267948237265,
+        "pessimisticSelectionAverageR": 0.3491267948237265,
+        "expectancyCi95": {
+          "lower": 0.01569005440357335,
+          "upper": 0.6825635352438797
+        },
+        "evaluableYears": 11,
+        "positiveYears": 9,
+        "unavailableByReason": {
+          "missing_weekday_path": 4
+        }
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.2965972325313768,
+            "baselinePessimisticAverageR": 0.15201850248518323,
+            "deltaPessimisticAverageR": 0.1445787300461936,
+            "candidateTargetBeforeStopRate": 0.35714285714285715,
+            "baselineTargetBeforeStopRate": 0.7428571428571429,
+            "candidateEvaluableN": 70,
+            "baselineEvaluableN": 70,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.46774193548387094,
+            "baselinePessimisticAverageR": 0.15143595618038727,
+            "deltaPessimisticAverageR": 0.3163059793034837,
+            "candidateTargetBeforeStopRate": 0.41935483870967744,
+            "baselineTargetBeforeStopRate": 0.7666666666666667,
+            "candidateEvaluableN": 31,
+            "baselineEvaluableN": 30,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 1
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.3491267948237265,
+            "baselinePessimisticAverageR": 0.15183970114410725,
+            "deltaPessimisticAverageR": 0.19728709367961925,
+            "candidateTargetBeforeStopRate": 0.37623762376237624,
+            "baselineTargetBeforeStopRate": 0.75,
+            "candidateEvaluableN": 101,
+            "baselineEvaluableN": 100,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 1
+          }
+        }
+      },
+      "commonPathAttemptedN": 105,
+      "commonPathObservedN": 101,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "GBPUSD|gbpusd-gdp-sales-q-q-package": {
+      "registrationId": "FMS-V2-EXEC-010",
+      "market": "GBPUSD",
+      "patternId": "gbpusd-gdp-sales-q-q-package",
+      "label": "US GDP rejection",
+      "previousExecution": {
+        "stopAtr": 2.0,
+        "targetR": 1.0,
+        "expiryCandles": 12,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 2.0,
+        "targetR": 3.0,
+        "expiryCandles": 60,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 51,
+        "evaluableCount": 48,
+        "targetHitCount": 16,
+        "targetHitRate": 0.3333333333333333,
+        "stopHitCount": 29,
+        "stopHitRate": 0.6041666666666666,
+        "expiredCount": 3,
+        "ambiguousCount": 0,
+        "unevaluableCount": 3,
+        "averageGrossR": 0.5123843741674662,
+        "pessimisticSelectionAverageR": 0.5123843741674662,
+        "expectancyCi95": {
+          "lower": -0.027043181307550457,
+          "upper": 1.0518119296424828
+        },
+        "evaluableYears": 8,
+        "positiveYears": 5,
+        "unavailableByReason": {
+          "missing_weekday_path": 3
+        }
+      },
+      "holdout": {
+        "attemptedCount": 17,
+        "evaluableCount": 15,
+        "targetHitCount": 4,
+        "targetHitRate": 0.26666666666666666,
+        "stopHitCount": 9,
+        "stopHitRate": 0.6,
+        "expiredCount": 2,
+        "ambiguousCount": 0,
+        "unevaluableCount": 2,
+        "averageGrossR": 0.32302254324511714,
+        "pessimisticSelectionAverageR": 0.32302254324511714,
+        "expectancyCi95": {
+          "lower": -0.6058914439617868,
+          "upper": 1.2519365304520211
+        },
+        "evaluableYears": 4,
+        "positiveYears": 2,
+        "unavailableByReason": {
+          "missing_weekday_path": 2
+        }
+      },
+      "overall": {
+        "attemptedCount": 68,
+        "evaluableCount": 63,
+        "targetHitCount": 20,
+        "targetHitRate": 0.31746031746031744,
+        "stopHitCount": 38,
+        "stopHitRate": 0.6031746031746031,
+        "expiredCount": 5,
+        "ambiguousCount": 0,
+        "unevaluableCount": 5,
+        "averageGrossR": 0.4672982239478593,
+        "pessimisticSelectionAverageR": 0.4672982239478593,
+        "expectancyCi95": {
+          "lower": 0.0037705579929901423,
+          "upper": 0.9308258899027284
+        },
+        "evaluableYears": 11,
+        "positiveYears": 7,
+        "unavailableByReason": {
+          "missing_weekday_path": 5
+        }
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.5123843741674662,
+            "baselinePessimisticAverageR": 0.33869389452043025,
+            "deltaPessimisticAverageR": 0.17369047964703593,
+            "candidateTargetBeforeStopRate": 0.3333333333333333,
+            "baselineTargetBeforeStopRate": 0.5416666666666666,
+            "candidateEvaluableN": 48,
+            "baselineEvaluableN": 48,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.32302254324511714,
+            "baselinePessimisticAverageR": 0.027053280484013835,
+            "deltaPessimisticAverageR": 0.2959692627611033,
+            "candidateTargetBeforeStopRate": 0.26666666666666666,
+            "baselineTargetBeforeStopRate": 0.3333333333333333,
+            "candidateEvaluableN": 15,
+            "baselineEvaluableN": 15,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.4672982239478593,
+            "baselinePessimisticAverageR": 0.2644937483212835,
+            "deltaPessimisticAverageR": 0.20280447562657583,
+            "candidateTargetBeforeStopRate": 0.31746031746031744,
+            "baselineTargetBeforeStopRate": 0.49206349206349204,
+            "candidateEvaluableN": 63,
+            "baselineEvaluableN": 63,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          }
+        }
+      },
+      "commonPathAttemptedN": 68,
+      "commonPathObservedN": 63,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "NZDUSD|nzdusd-gdp-annual-change-package": {
+      "registrationId": "FMS-V2-EXEC-011",
+      "market": "NZDUSD",
+      "patternId": "nzdusd-gdp-annual-change-package",
+      "label": "New Zealand GDP rejection",
+      "previousExecution": {
+        "stopAtr": 1.0,
+        "targetR": 4.0,
+        "expiryCandles": 12,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 1.25,
+        "targetR": 4.0,
+        "expiryCandles": 60,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 37,
+        "evaluableCount": 18,
+        "targetHitCount": 6,
+        "targetHitRate": 0.3333333333333333,
+        "stopHitCount": 11,
+        "stopHitRate": 0.6111111111111112,
+        "expiredCount": 1,
+        "ambiguousCount": 0,
+        "unevaluableCount": 19,
+        "averageGrossR": 0.7775824846926626,
+        "pessimisticSelectionAverageR": 0.7775824846926626,
+        "expectancyCi95": {
+          "lower": -0.3348047588369284,
+          "upper": 1.8899697282222534
+        },
+        "evaluableYears": 4,
+        "positiveYears": 3,
+        "unavailableByReason": {
+          "missing_first_entry_interval": 19
+        }
+      },
+      "holdout": {
+        "attemptedCount": 21,
+        "evaluableCount": 15,
+        "targetHitCount": 8,
+        "targetHitRate": 0.5333333333333333,
+        "stopHitCount": 7,
+        "stopHitRate": 0.4666666666666667,
+        "expiredCount": 0,
+        "ambiguousCount": 0,
+        "unevaluableCount": 6,
+        "averageGrossR": 1.6666666666666667,
+        "pessimisticSelectionAverageR": 1.6666666666666667,
+        "expectancyCi95": {
+          "lower": 0.3600000000000001,
+          "upper": 2.9733333333333336
+        },
+        "evaluableYears": 4,
+        "positiveYears": 3,
+        "unavailableByReason": {
+          "missing_weekday_path": 6
+        }
+      },
+      "overall": {
+        "attemptedCount": 58,
+        "evaluableCount": 33,
+        "targetHitCount": 14,
+        "targetHitRate": 0.42424242424242425,
+        "stopHitCount": 18,
+        "stopHitRate": 0.5454545454545454,
+        "expiredCount": 1,
+        "ambiguousCount": 0,
+        "unevaluableCount": 25,
+        "averageGrossR": 1.1817116583172098,
+        "pessimisticSelectionAverageR": 1.1817116583172098,
+        "expectancyCi95": {
+          "lower": 0.33222380063459844,
+          "upper": 2.031199515999821
+        },
+        "evaluableYears": 7,
+        "positiveYears": 5,
+        "unavailableByReason": {
+          "missing_first_entry_interval": 19,
+          "missing_weekday_path": 6
+        }
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.7775824846926626,
+            "baselinePessimisticAverageR": 0.4831578561287942,
+            "deltaPessimisticAverageR": 0.29442462856386836,
+            "candidateTargetBeforeStopRate": 0.3333333333333333,
+            "baselineTargetBeforeStopRate": 0.1111111111111111,
+            "candidateEvaluableN": 18,
+            "baselineEvaluableN": 18,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 1.6666666666666667,
+            "baselinePessimisticAverageR": 0.6010257746914861,
+            "deltaPessimisticAverageR": 1.0656408919751805,
+            "candidateTargetBeforeStopRate": 0.5333333333333333,
+            "baselineTargetBeforeStopRate": 0.13333333333333333,
+            "candidateEvaluableN": 15,
+            "baselineEvaluableN": 15,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 1.1817116583172098,
+            "baselinePessimisticAverageR": 0.5367341827481996,
+            "deltaPessimisticAverageR": 0.6449774755690102,
+            "candidateTargetBeforeStopRate": 0.42424242424242425,
+            "baselineTargetBeforeStopRate": 0.12121212121212122,
+            "candidateEvaluableN": 33,
+            "baselineEvaluableN": 33,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          }
+        }
+      },
+      "commonPathAttemptedN": 58,
+      "commonPathObservedN": 33,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "NZDUSD|nzdusd-gdp-sales-q-q-package": {
+      "registrationId": "FMS-V2-EXEC-012",
+      "market": "NZDUSD",
+      "patternId": "nzdusd-gdp-sales-q-q-package",
+      "label": "US GDP",
+      "previousExecution": {
+        "stopAtr": 1.0,
+        "targetR": 1.0,
+        "expiryCandles": 30,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 0.5,
+        "targetR": 2.5,
+        "expiryCandles": 6,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 51,
+        "evaluableCount": 22,
+        "targetHitCount": 10,
+        "targetHitRate": 0.45454545454545453,
+        "stopHitCount": 11,
+        "stopHitRate": 0.5,
+        "expiredCount": 1,
+        "ambiguousCount": 1,
+        "unevaluableCount": 28,
+        "averageGrossR": 0.6833837384743646,
+        "pessimisticSelectionAverageR": 0.6101931411493923,
+        "expectancyCi95": {
+          "lower": -0.047799638643347464,
+          "upper": 1.4145671155920767
+        },
+        "evaluableYears": 4,
+        "positiveYears": 4,
+        "unavailableByReason": {
+          "missing_weekday_path": 13,
+          "missing_first_entry_interval": 15
+        }
+      },
+      "holdout": {
+        "attemptedCount": 16,
+        "evaluableCount": 15,
+        "targetHitCount": 6,
+        "targetHitRate": 0.4,
+        "stopHitCount": 9,
+        "stopHitRate": 0.6,
+        "expiredCount": 0,
+        "ambiguousCount": 0,
+        "unevaluableCount": 1,
+        "averageGrossR": 0.4,
+        "pessimisticSelectionAverageR": 0.4,
+        "expectancyCi95": {
+          "lower": -0.4981848362113447,
+          "upper": 1.2981848362113446
+        },
+        "evaluableYears": 4,
+        "positiveYears": 3,
+        "unavailableByReason": {
+          "missing_weekday_path": 1
+        }
+      },
+      "overall": {
+        "attemptedCount": 67,
+        "evaluableCount": 37,
+        "targetHitCount": 16,
+        "targetHitRate": 0.43243243243243246,
+        "stopHitCount": 20,
+        "stopHitRate": 0.5405405405405406,
+        "expiredCount": 1,
+        "ambiguousCount": 1,
+        "unevaluableCount": 29,
+        "averageGrossR": 0.5684984390928655,
+        "pessimisticSelectionAverageR": 0.5272221643798953,
+        "expectancyCi95": {
+          "lower": 0.007527629311483541,
+          "upper": 1.1294692488742473
+        },
+        "evaluableYears": 7,
+        "positiveYears": 6,
+        "unavailableByReason": {
+          "missing_weekday_path": 14,
+          "missing_first_entry_interval": 15
+        }
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.6101931411493923,
+            "baselinePessimisticAverageR": 0.21739130434782608,
+            "deltaPessimisticAverageR": 0.3928018368015662,
+            "candidateTargetBeforeStopRate": 0.45454545454545453,
+            "baselineTargetBeforeStopRate": 0.6363636363636364,
+            "candidateEvaluableN": 22,
+            "baselineEvaluableN": 22,
+            "candidateAmbiguousN": 1,
+            "baselineAmbiguousN": 1
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.4,
+            "baselinePessimisticAverageR": 0.2,
+            "deltaPessimisticAverageR": 0.2,
+            "candidateTargetBeforeStopRate": 0.4,
+            "baselineTargetBeforeStopRate": 0.6,
+            "candidateEvaluableN": 15,
+            "baselineEvaluableN": 15,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.5272221643798953,
+            "baselinePessimisticAverageR": 0.21052631578947367,
+            "deltaPessimisticAverageR": 0.31669584859042166,
+            "candidateTargetBeforeStopRate": 0.43243243243243246,
+            "baselineTargetBeforeStopRate": 0.6216216216216216,
+            "candidateEvaluableN": 37,
+            "baselineEvaluableN": 37,
+            "candidateAmbiguousN": 1,
+            "baselineAmbiguousN": 1
+          }
+        }
+      },
+      "commonPathAttemptedN": 67,
+      "commonPathObservedN": 38,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "USDCAD|usdcad-canada-retail-sales": {
+      "registrationId": "FMS-V2-EXEC-013",
+      "market": "USDCAD",
+      "patternId": "usdcad-canada-retail-sales",
+      "label": "Canada retail sales",
+      "previousExecution": {
+        "stopAtr": 1.5,
+        "targetR": 4.0,
+        "expiryCandles": 30,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 2.0,
+        "targetR": 4.0,
+        "expiryCandles": 30,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 53,
+        "evaluableCount": 53,
+        "targetHitCount": 2,
+        "targetHitRate": 0.03773584905660377,
+        "stopHitCount": 27,
+        "stopHitRate": 0.5094339622641509,
+        "expiredCount": 24,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0,
+        "averageGrossR": 0.363514040204674,
+        "pessimisticSelectionAverageR": 0.363514040204674,
+        "expectancyCi95": {
+          "lower": -0.07971387626754134,
+          "upper": 0.8067419566768893
+        },
+        "evaluableYears": 8,
+        "positiveYears": 5,
+        "unavailableByReason": {}
+      },
+      "holdout": {
+        "attemptedCount": 31,
+        "evaluableCount": 31,
+        "targetHitCount": 2,
+        "targetHitRate": 0.06451612903225806,
+        "stopHitCount": 16,
+        "stopHitRate": 0.5161290322580645,
+        "expiredCount": 13,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0,
+        "averageGrossR": 0.32476460298016,
+        "pessimisticSelectionAverageR": 0.32476460298016,
+        "expectancyCi95": {
+          "lower": -0.2735163481852853,
+          "upper": 0.9230455541456053
+        },
+        "evaluableYears": 4,
+        "positiveYears": 4,
+        "unavailableByReason": {}
+      },
+      "overall": {
+        "attemptedCount": 84,
+        "evaluableCount": 84,
+        "targetHitCount": 4,
+        "targetHitRate": 0.047619047619047616,
+        "stopHitCount": 43,
+        "stopHitRate": 0.5119047619047619,
+        "expiredCount": 37,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0,
+        "averageGrossR": 0.3492136526575319,
+        "pessimisticSelectionAverageR": 0.3492136526575319,
+        "expectancyCi95": {
+          "lower": -0.004930737168846733,
+          "upper": 0.7033580424839105
+        },
+        "evaluableYears": 11,
+        "positiveYears": 8,
+        "unavailableByReason": {}
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.363514040204674,
+            "baselinePessimisticAverageR": 0.2831636990710368,
+            "deltaPessimisticAverageR": 0.0803503411336372,
+            "candidateTargetBeforeStopRate": 0.03773584905660377,
+            "baselineTargetBeforeStopRate": 0.09433962264150944,
+            "candidateEvaluableN": 53,
+            "baselineEvaluableN": 53,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.32476460298016,
+            "baselinePessimisticAverageR": 0.2784914593596293,
+            "deltaPessimisticAverageR": 0.0462731436205307,
+            "candidateTargetBeforeStopRate": 0.06451612903225806,
+            "baselineTargetBeforeStopRate": 0.1935483870967742,
+            "candidateEvaluableN": 31,
+            "baselineEvaluableN": 31,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.3492136526575319,
+            "baselinePessimisticAverageR": 0.2814394201299221,
+            "deltaPessimisticAverageR": 0.06777423252760978,
+            "candidateTargetBeforeStopRate": 0.047619047619047616,
+            "baselineTargetBeforeStopRate": 0.13095238095238096,
+            "candidateEvaluableN": 84,
+            "baselineEvaluableN": 84,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          }
+        }
+      },
+      "commonPathAttemptedN": 84,
+      "commonPathObservedN": 84,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "USDCAD|usdcad-us-producer-inflation": {
+      "registrationId": "FMS-V2-EXEC-014",
+      "market": "USDCAD",
+      "patternId": "usdcad-us-producer-inflation",
+      "label": "US producer inflation",
+      "previousExecution": {
+        "stopAtr": 2.0,
+        "targetR": 1.0,
+        "expiryCandles": 30,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 3.0,
+        "targetR": 4.0,
+        "expiryCandles": 60,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 61,
+        "evaluableCount": 59,
+        "targetHitCount": 4,
+        "targetHitRate": 0.06779661016949153,
+        "stopHitCount": 20,
+        "stopHitRate": 0.3389830508474576,
+        "expiredCount": 35,
+        "ambiguousCount": 0,
+        "unevaluableCount": 2,
+        "averageGrossR": 0.6735462674264125,
+        "pessimisticSelectionAverageR": 0.6735462674264125,
+        "expectancyCi95": {
+          "lower": 0.2571258427248189,
+          "upper": 1.0899666921280062
+        },
+        "evaluableYears": 8,
+        "positiveYears": 7,
+        "unavailableByReason": {
+          "missing_weekday_path": 2
+        }
+      },
+      "holdout": {
+        "attemptedCount": 30,
+        "evaluableCount": 28,
+        "targetHitCount": 1,
+        "targetHitRate": 0.03571428571428571,
+        "stopHitCount": 10,
+        "stopHitRate": 0.35714285714285715,
+        "expiredCount": 17,
+        "ambiguousCount": 0,
+        "unevaluableCount": 2,
+        "averageGrossR": 0.4644584369940124,
+        "pessimisticSelectionAverageR": 0.4644584369940124,
+        "expectancyCi95": {
+          "lower": -0.09671229705680556,
+          "upper": 1.0256291710448304
+        },
+        "evaluableYears": 4,
+        "positiveYears": 4,
+        "unavailableByReason": {
+          "missing_weekday_path": 2
+        }
+      },
+      "overall": {
+        "attemptedCount": 91,
+        "evaluableCount": 87,
+        "targetHitCount": 5,
+        "targetHitRate": 0.05747126436781609,
+        "stopHitCount": 30,
+        "stopHitRate": 0.3448275862068966,
+        "expiredCount": 52,
+        "ambiguousCount": 0,
+        "unevaluableCount": 4,
+        "averageGrossR": 0.6062536323447205,
+        "pessimisticSelectionAverageR": 0.6062536323447205,
+        "expectancyCi95": {
+          "lower": 0.27225439238289256,
+          "upper": 0.9402528723065484
+        },
+        "evaluableYears": 11,
+        "positiveYears": 10,
+        "unavailableByReason": {
+          "missing_weekday_path": 4
+        }
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.6735462674264125,
+            "baselinePessimisticAverageR": 0.22033898305084745,
+            "deltaPessimisticAverageR": 0.4532072843755651,
+            "candidateTargetBeforeStopRate": 0.06779661016949153,
+            "baselineTargetBeforeStopRate": 0.6101694915254238,
+            "candidateEvaluableN": 59,
+            "baselineEvaluableN": 59,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.4644584369940124,
+            "baselinePessimisticAverageR": 0.2385805833858264,
+            "deltaPessimisticAverageR": 0.225877853608186,
+            "candidateTargetBeforeStopRate": 0.03571428571428571,
+            "baselineTargetBeforeStopRate": 0.5714285714285714,
+            "candidateEvaluableN": 28,
+            "baselineEvaluableN": 28,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.6062536323447205,
+            "baselinePessimisticAverageR": 0.22620984292877172,
+            "deltaPessimisticAverageR": 0.3800437894159488,
+            "candidateTargetBeforeStopRate": 0.05747126436781609,
+            "baselineTargetBeforeStopRate": 0.5977011494252874,
+            "candidateEvaluableN": 87,
+            "baselineEvaluableN": 87,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          }
+        }
+      },
+      "commonPathAttemptedN": 91,
+      "commonPathObservedN": 87,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "USDCHF|usdchf-fed-industrial-production-m-m-package": {
+      "registrationId": "FMS-V2-EXEC-015",
+      "market": "USDCHF",
+      "patternId": "usdchf-fed-industrial-production-m-m-package",
+      "label": "US industrial-production rejection",
+      "previousExecution": {
+        "stopAtr": 2.0,
+        "targetR": 2.0,
+        "expiryCandles": 6,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 2.0,
+        "targetR": 4.0,
+        "expiryCandles": 60,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 59,
+        "evaluableCount": 22,
+        "targetHitCount": 4,
+        "targetHitRate": 0.18181818181818182,
+        "stopHitCount": 11,
+        "stopHitRate": 0.5,
+        "expiredCount": 7,
+        "ambiguousCount": 0,
+        "unevaluableCount": 37,
+        "averageGrossR": 0.8111281447626087,
+        "pessimisticSelectionAverageR": 0.8111281447626087,
+        "expectancyCi95": {
+          "lower": -0.09698857095429203,
+          "upper": 1.7192448604795096
+        },
+        "evaluableYears": 4,
+        "positiveYears": 3,
+        "unavailableByReason": {
+          "missing_first_entry_interval": 24,
+          "missing_weekday_path": 13
+        }
+      },
+      "holdout": {
+        "attemptedCount": 29,
+        "evaluableCount": 27,
+        "targetHitCount": 2,
+        "targetHitRate": 0.07407407407407407,
+        "stopHitCount": 15,
+        "stopHitRate": 0.5555555555555556,
+        "expiredCount": 10,
+        "ambiguousCount": 0,
+        "unevaluableCount": 2,
+        "averageGrossR": 0.13927758262658557,
+        "pessimisticSelectionAverageR": 0.13927758262658557,
+        "expectancyCi95": {
+          "lower": -0.47279710531752345,
+          "upper": 0.7513522705706945
+        },
+        "evaluableYears": 4,
+        "positiveYears": 3,
+        "unavailableByReason": {
+          "missing_weekday_path": 2
+        }
+      },
+      "overall": {
+        "attemptedCount": 88,
+        "evaluableCount": 49,
+        "targetHitCount": 6,
+        "targetHitRate": 0.12244897959183673,
+        "stopHitCount": 26,
+        "stopHitRate": 0.5306122448979592,
+        "expiredCount": 17,
+        "ambiguousCount": 0,
+        "unevaluableCount": 39,
+        "averageGrossR": 0.440924773789698,
+        "pessimisticSelectionAverageR": 0.440924773789698,
+        "expectancyCi95": {
+          "lower": -0.09081248745386766,
+          "upper": 0.9726620350332638
+        },
+        "evaluableYears": 7,
+        "positiveYears": 6,
+        "unavailableByReason": {
+          "missing_first_entry_interval": 24,
+          "missing_weekday_path": 15
+        }
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.8111281447626087,
+            "baselinePessimisticAverageR": 0.153099055530876,
+            "deltaPessimisticAverageR": 0.6580290892317328,
+            "candidateTargetBeforeStopRate": 0.18181818181818182,
+            "baselineTargetBeforeStopRate": 0.0,
+            "candidateEvaluableN": 22,
+            "baselineEvaluableN": 22,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.13927758262658557,
+            "baselinePessimisticAverageR": 0.07622960549829114,
+            "deltaPessimisticAverageR": 0.06304797712829444,
+            "candidateTargetBeforeStopRate": 0.07407407407407407,
+            "baselineTargetBeforeStopRate": 0.037037037037037035,
+            "candidateEvaluableN": 27,
+            "baselineEvaluableN": 27,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.440924773789698,
+            "baselinePessimisticAverageR": 0.11074241979863536,
+            "deltaPessimisticAverageR": 0.33018235399106266,
+            "candidateTargetBeforeStopRate": 0.12244897959183673,
+            "baselineTargetBeforeStopRate": 0.02040816326530612,
+            "candidateEvaluableN": 49,
+            "baselineEvaluableN": 49,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          }
+        }
+      },
+      "commonPathAttemptedN": 88,
+      "commonPathObservedN": 49,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "USDJPY|usdjpy-us-employment-release": {
+      "registrationId": "FMS-V2-EXEC-016",
+      "market": "USDJPY",
+      "patternId": "usdjpy-us-employment-release",
+      "label": "US employment rejection",
+      "previousExecution": {
+        "stopAtr": 2.0,
+        "targetR": 2.0,
+        "expiryCandles": 6,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 2.0,
+        "targetR": 4.0,
+        "expiryCandles": 30,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 71,
+        "evaluableCount": 71,
+        "targetHitCount": 5,
+        "targetHitRate": 0.07042253521126761,
+        "stopHitCount": 36,
+        "stopHitRate": 0.5070422535211268,
+        "expiredCount": 30,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0,
+        "averageGrossR": 0.23459513039241,
+        "pessimisticSelectionAverageR": 0.23459513039241,
+        "expectancyCi95": {
+          "lower": -0.13805788882743028,
+          "upper": 0.6072481496122503
+        },
+        "evaluableYears": 7,
+        "positiveYears": 5,
+        "unavailableByReason": {}
+      },
+      "holdout": {
+        "attemptedCount": 36,
+        "evaluableCount": 36,
+        "targetHitCount": 5,
+        "targetHitRate": 0.1388888888888889,
+        "stopHitCount": 21,
+        "stopHitRate": 0.5833333333333334,
+        "expiredCount": 10,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0,
+        "averageGrossR": 0.25830504817784067,
+        "pessimisticSelectionAverageR": 0.25830504817784067,
+        "expectancyCi95": {
+          "lower": -0.3370987414560302,
+          "upper": 0.8537088378117115
+        },
+        "evaluableYears": 4,
+        "positiveYears": 3,
+        "unavailableByReason": {}
+      },
+      "overall": {
+        "attemptedCount": 107,
+        "evaluableCount": 107,
+        "targetHitCount": 10,
+        "targetHitRate": 0.09345794392523364,
+        "stopHitCount": 57,
+        "stopHitRate": 0.5327102803738317,
+        "expiredCount": 40,
+        "ambiguousCount": 0,
+        "unevaluableCount": 0,
+        "averageGrossR": 0.24257229899311566,
+        "pessimisticSelectionAverageR": 0.24257229899311566,
+        "expectancyCi95": {
+          "lower": -0.07403358665260656,
+          "upper": 0.559178184638838
+        },
+        "evaluableYears": 10,
+        "positiveYears": 7,
+        "unavailableByReason": {}
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.23459513039241,
+            "baselinePessimisticAverageR": 0.004326285868540062,
+            "deltaPessimisticAverageR": 0.23026884452386995,
+            "candidateTargetBeforeStopRate": 0.07042253521126761,
+            "baselineTargetBeforeStopRate": 0.056338028169014086,
+            "candidateEvaluableN": 71,
+            "baselineEvaluableN": 71,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.25830504817784067,
+            "baselinePessimisticAverageR": 0.08798357158547467,
+            "deltaPessimisticAverageR": 0.17032147659236602,
+            "candidateTargetBeforeStopRate": 0.1388888888888889,
+            "baselineTargetBeforeStopRate": 0.08333333333333333,
+            "candidateEvaluableN": 36,
+            "baselineEvaluableN": 36,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.24257229899311566,
+            "baselinePessimisticAverageR": 0.032472662371433945,
+            "deltaPessimisticAverageR": 0.2100996366216817,
+            "candidateTargetBeforeStopRate": 0.09345794392523364,
+            "baselineTargetBeforeStopRate": 0.06542056074766354,
+            "candidateEvaluableN": 107,
+            "baselineEvaluableN": 107,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          }
+        }
+      },
+      "commonPathAttemptedN": 107,
+      "commonPathObservedN": 107,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    },
+    "USDJPY|usdjpy-us-trade-balance-ordinary": {
+      "registrationId": "FMS-V2-EXEC-017",
+      "market": "USDJPY",
+      "patternId": "usdjpy-us-trade-balance-ordinary",
+      "label": "US trade balance · ordinary magnitude",
+      "previousExecution": {
+        "stopAtr": 2.0,
+        "targetR": 0.5,
+        "expiryCandles": 30,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "currentExecution": {
+        "stopAtr": 1.5,
+        "targetR": 4.0,
+        "expiryCandles": 30,
+        "managementFamily": "fixed",
+        "managementTriggerR": null,
+        "entryTimeframe": "H4",
+        "expiryTimeframe": "H4"
+      },
+      "development": {
+        "attemptedCount": 71,
+        "evaluableCount": 69,
+        "targetHitCount": 7,
+        "targetHitRate": 0.10144927536231885,
+        "stopHitCount": 48,
+        "stopHitRate": 0.6956521739130435,
+        "expiredCount": 14,
+        "ambiguousCount": 0,
+        "unevaluableCount": 2,
+        "averageGrossR": 0.04992741382251045,
+        "pessimisticSelectionAverageR": 0.04992741382251045,
+        "expectancyCi95": {
+          "lower": -0.37527364350983905,
+          "upper": 0.4751284711548599
+        },
+        "evaluableYears": 6,
+        "positiveYears": 3,
+        "unavailableByReason": {
+          "missing_weekday_path": 2
+        }
+      },
+      "holdout": {
+        "attemptedCount": 38,
+        "evaluableCount": 36,
+        "targetHitCount": 8,
+        "targetHitRate": 0.2222222222222222,
+        "stopHitCount": 18,
+        "stopHitRate": 0.5,
+        "expiredCount": 10,
+        "ambiguousCount": 0,
+        "unevaluableCount": 2,
+        "averageGrossR": 0.6192376901031423,
+        "pessimisticSelectionAverageR": 0.6192376901031423,
+        "expectancyCi95": {
+          "lower": -0.05506353689535792,
+          "upper": 1.2935389171016425
+        },
+        "evaluableYears": 4,
+        "positiveYears": 4,
+        "unavailableByReason": {
+          "missing_weekday_path": 2
+        }
+      },
+      "overall": {
+        "attemptedCount": 109,
+        "evaluableCount": 105,
+        "targetHitCount": 15,
+        "targetHitRate": 0.14285714285714285,
+        "stopHitCount": 66,
+        "stopHitRate": 0.6285714285714286,
+        "expiredCount": 24,
+        "ambiguousCount": 0,
+        "unevaluableCount": 4,
+        "averageGrossR": 0.24511950854729855,
+        "pessimisticSelectionAverageR": 0.24511950854729855,
+        "expectancyCi95": {
+          "lower": -0.11935738106102958,
+          "upper": 0.6095963981556267
+        },
+        "evaluableYears": 9,
+        "positiveYears": 6,
+        "unavailableByReason": {
+          "missing_weekday_path": 4
+        }
+      },
+      "matchedV1Comparison": {
+        "matchedCohort": true,
+        "configurationChanged": true,
+        "improvesDevelopmentAndReusedHoldout": true,
+        "partitions": {
+          "development": {
+            "candidatePessimisticAverageR": 0.04992741382251045,
+            "baselinePessimisticAverageR": -0.06599859850096074,
+            "deltaPessimisticAverageR": 0.11592601232347119,
+            "candidateTargetBeforeStopRate": 0.10144927536231885,
+            "baselineTargetBeforeStopRate": 0.6231884057971014,
+            "candidateEvaluableN": 69,
+            "baselineEvaluableN": 69,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "holdout": {
+            "candidatePessimisticAverageR": 0.6192376901031423,
+            "baselinePessimisticAverageR": 0.16666666666666666,
+            "deltaPessimisticAverageR": 0.4525710234364757,
+            "candidateTargetBeforeStopRate": 0.2222222222222222,
+            "baselineTargetBeforeStopRate": 0.7777777777777778,
+            "candidateEvaluableN": 36,
+            "baselineEvaluableN": 36,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          },
+          "overall": {
+            "candidatePessimisticAverageR": 0.24511950854729855,
+            "baselinePessimisticAverageR": 0.013772349556511515,
+            "deltaPessimisticAverageR": 0.23134715899078703,
+            "candidateTargetBeforeStopRate": 0.14285714285714285,
+            "baselineTargetBeforeStopRate": 0.6761904761904762,
+            "candidateEvaluableN": 105,
+            "baselineEvaluableN": 105,
+            "candidateAmbiguousN": 0,
+            "baselineAmbiguousN": 0
+          }
+        }
+      },
+      "commonPathAttemptedN": 109,
+      "commonPathObservedN": 105,
+      "limitations": "Gross reused history; the chronological holdout was revealed after development selection, is not fresh validation, and may share release episodes with other pair recipes."
+    }
+  },
+  "reviewedExclusions": {
+    "USDJPY|usdjpy-us-manufacturing-employment": "The fixed-H4 parent improved in the frozen grid, but a separately registered context contract can override its live execution. The candidate is not an exact match for that composite runtime and remains FMS v1 until a matched context-aware comparison is declared."
+  },
+  "preservesV1History": true,
+  "orderTransmission": false,
+  "registryHash": "531381d685bf01316f7dfa86d937a6a5c896f500085c7abb25f653f3ddc5ce36"
+}

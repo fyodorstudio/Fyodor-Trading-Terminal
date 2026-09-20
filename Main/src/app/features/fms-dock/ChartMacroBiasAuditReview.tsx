@@ -43,6 +43,6 @@ export function ChartMacroBiasAuditReview({ data }: { data: ChartMacroBiasAuditD
   };
 
   return <ChartMacroBiasAudit data={data} noteRow={
-    <FmsReviewNoteRow input={input} saved={saved} editing={editing} draft={draft} label={label} loading={loading} saving={savingKey === recordKey} error={error} showAddWhenEmpty onDraftChange={setDraft} onLabelChange={setLabel} onEdit={beginNote} onCancel={cancelNote} onSave={submitNote} onRemove={deleteNote} />
+    <FmsReviewNoteRow input={input} saved={saved} editing={editing} draft={draft} label={label} loading={loading} saving={savingKey === recordKey} error={error} showAddWhenEmpty displayTimeMode={data.displayTimeMode} sourceTimeOffsetSeconds={data.sourceTimeOffsetSeconds} onDraftChange={setDraft} onLabelChange={setLabel} onEdit={beginNote} onCancel={cancelNote} onSave={submitNote} onRemove={deleteNote} />
   } />;
 }

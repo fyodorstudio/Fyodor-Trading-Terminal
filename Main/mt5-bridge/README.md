@@ -81,13 +81,15 @@ MetaTrader5's Python IPC is process-global, so all Python MT5 calls are serializ
 
 The EA posts `/calendar_ingest_cycle` only after all batches in a timer pass have been attempted. A successful zero-failure cycle lets the bridge freeze first-seen released values for the v2 forward-paper ledger; failed cycles never create paper candidates. The ledger advances outcomes in a separate background worker and is exposed by `/research/forward`.
 
-### Read-only source-clock diagnostic
+### Source-clock provenance and current decision gate
 
 The calendar EA additionally includes an optional `clock` sample with raw `TimeGMT`, `TimeCurrent`, `TimeTradeServer`, the attached symbol's tick time, and locally cached M1/H4 last-bar times. It uses [timeseries state queries](https://www.mql5.com/en/docs/series/seriesinfointeger), not `CopyRates`/`iTime` or history warming; an unavailable cached timeframe reports zero. The attached pair/timeframe still does not restrict the calendar currencies or the quote publisher. No account data or orders are accessed.
 
-`GET /research/source-clock` reads the latest stored sample and its age without calling MT5. A daily first sample per attached symbol is retained immutably under `fms_native_source_clock:v1:*`; latest diagnostics are separate. Samples are retained even when the calendar upload cycle had failed batches. Older EA builds without `clock` remain accepted and do not refresh the native sample. This is diagnostics only: release timestamps, upload success, first-seen records, entry rules and activation boundaries are not converted or changed.
+`GET /research/source-clock` reads the latest stored sample and its age without calling MT5. A daily first sample per attached symbol is retained immutably under `fms_native_source_clock:v1:*`; latest diagnostics are separate. Samples are retained even when the calendar upload cycle had failed batches. Older EA builds without `clock` remain accepted and do not refresh the native sample. On a successful complete cycle, a valid mapping is also frozen with each newly captured first-seen release package. The raw release and UTC receipt timestamps are never converted or rewritten.
 
-Deployment: restart the local bridge once; compile this updated `FyodorCalendarBridge.mq5` in your usual MetaEditor location and reattach/reload it on any chart. Keep the existing `FyodorQuoteBridge` attachment/settings unchanged. After one timer cycle, `/research/source-clock` should contain a sample; inspect sample age, connection state and nonzero cached H4 time before comparing its native timestamp with Python candles for the same symbol/current bar. A successful sample is not historical UTC/DST proof or FMS v2 approval. Do not apply a current offset to immutable historical releases.
+Before freezing a new current FMS decision, the chart worker performs at most one broker-catalog/offset/symbol/day Python MT5 M1/H4 calibration and confirms it against the EA's cached native opens. This bounded call never runs in liveness or the calendar upload handler. Busy, unavailable, stale, mismatched or transition-uncertain clock evidence returns an awaiting state and freezes no new decision; the retained package may reconcile later. Existing decisions and closed outcomes remain immutable. This current gate is not a historical UTC/DST schedule.
+
+Deployment: restart the local bridge once; the already clock-capable `FyodorCalendarBridge.mq5` may remain attached on any chart and the existing `FyodorQuoteBridge` attachment/settings stay unchanged. After one timer cycle, `/research/source-clock` should contain a recent mapping; after a chart-signal request it should also expose the latest current candle verification. A successful current verification is not historical UTC/DST proof. Do not apply a current offset to immutable historical releases.
 
 `/research/chart-signals` is the read-only Charts contract for the registered H4 model. Current observations come only from immutable first-seen EA values after each recipe's activation; historical matches remain hindsight research. The frontend may project an H4 activation onto another chart timeframe but never claims a native backtest for that timeframe. The endpoint never places an order.
 
@@ -106,6 +108,15 @@ The reviewed-H1 path has explicit ownership so offline work does not need the li
 - `registered_entry_review_evidence.json` is the single runtime record for those contracts, outcome counts, source hashes, and activation time. `registered_entry_reviews.py` validates its registry hash and exact outcome partition, then fails closed to H4 if the active execution contract differs.
 - `fms_historical_evidence.py` is the pure canonical source-priority/normalization layer. `server.py` supplies storage callbacks but does not reinterpret the evidence.
 - The API emits schema `fms-chart-historical-evidence-v1`. Unknown counts stay unknown; rates may be derived only from an exact stored count and exact evaluable N.
+
+Event-specific FMS v2 execution successors use the same explicit boundary:
+
+`frozen source/clock/paths` → `event-execution-v1/research.json` → fixed publisher allowlist → `registered_execution_successors.json` → `registered_execution_successors.py` → chart API
+
+- `scripts/fms_research_event_execution.py` reads the frozen inventory, clock evidence and pinned SQLite candle revisions without importing `server.py`, FastAPI or MetaTrader5.
+- `scripts/fms_publish_execution_successors.py` verifies the frozen hashes and exact matched development/reused-holdout rule. Its 17-recipe allowlist is the approval boundary; it cannot discover or promote another row.
+- `registered_execution_successors.py` verifies the registry hash/evidence partition and attaches a successor only when the immediately preceding normalized runtime contract matches. Drift fails closed to FMS v1.
+- New signals use FMS v2 only after registry activation and current clock verification. Existing signals retain their stored version/execution; runtime order transmission remains false.
 
 To reproduce the registered record from unchanged cached inputs, run these from the repository root:
 

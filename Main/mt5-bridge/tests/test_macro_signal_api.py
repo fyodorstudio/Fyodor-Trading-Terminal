@@ -9,6 +9,7 @@ from fastapi.testclient import TestClient
 
 import server
 from registered_entry_reviews import apply_reviewed_h1_entry, load_registered_entry_reviews
+from registered_execution_successors import apply_registered_execution_successor, load_registered_execution_successors
 from scripts.materialize_registered_reaction_profiles import simulate_managed
 from macro_signal import ACTIVE_VERSION_ID, GROWTH_VERSION_ID, POLICY_INFLATION_VERSION_ID, SENTIMENT_VERSION_ID, VERSION_ID, V2_VERSION_ID
 from research_store import ResearchStore
@@ -117,15 +118,16 @@ def test_trade_startup_snapshot_keeps_all_markets_and_drops_heavy_history() -> N
   assert pattern["reactionAudit"] == {"profile": {"targetEvidence": {"medianR": .2}}}
 
 
-def test_trade_startup_endpoint_uses_only_a_complete_saved_registry(tmp_path: Path, monkeypatch) -> None:
+def test_trade_startup_endpoint_never_rebuilds_all_markets_after_model_revision(tmp_path: Path, monkeypatch) -> None:
   store = ResearchStore(tmp_path / "startup.sqlite3")
   monkeypatch.setattr(server, "_research_store", store)
   monkeypatch.setattr(server, "PRACTICAL_PATTERN_DEFINITIONS", (
-    {"market": "AUDUSD"}, {"market": "EURUSD"},
+    {"id": "aud-setup", "market": "AUDUSD", "label": "AUD setup", "sourceVersion": "source-v1", "current": True, "execution": {}},
+    {"id": "eur-setup", "market": "EURUSD", "label": "EUR setup", "sourceVersion": "source-v1", "current": True, "execution": {}},
   ))
   saved = {
     "modelId": server.PRACTICAL_MODEL_ID,
-    "modelHash": server.PRACTICAL_MODEL_HASH,
+    "modelHash": "retired-model-hash",
     "generatedAt": 10,
     "markets": [
       {"symbol": symbol, "patterns": [], "signals": [], "realtime": {}}
@@ -133,12 +135,28 @@ def test_trade_startup_endpoint_uses_only_a_complete_saved_registry(tmp_path: Pa
     ],
   }
   store.set_metadata("fms_global_chart_response:v1", json.dumps(saved))
-  monkeypatch.setattr(server, "research_global_chart_signals", lambda **_kwargs: pytest.fail("complete startup cache should not rebuild"))
+  monkeypatch.setattr(server, "research_chart_signals", lambda **_kwargs: pytest.fail("interactive registry should not rebuild markets"))
 
   response = server.research_global_chart_signals_startup()
+  global_response = server.research_global_chart_signals()
 
   assert response["startupProjection"] is True
   assert response["registrySymbols"] == ["AUDUSD", "EURUSD"]
+  assert response["modelHash"] == server.PRACTICAL_MODEL_HASH
+  assert all(
+    pattern["currentEligible"] is True
+    for market in response["markets"]
+    for pattern in market["patterns"]
+  )
+  assert global_response["startupProjection"] is True
+  assert global_response["registrySymbols"] == ["AUDUSD", "EURUSD"]
+
+  saved["modelHash"] = server.PRACTICAL_MODEL_HASH
+  store.set_metadata("fms_global_chart_response:v1", json.dumps(saved))
+  current_global_response = server.research_global_chart_signals()
+
+  assert current_global_response["startupProjection"] is True
+  assert current_global_response["registrySymbols"] == ["AUDUSD", "EURUSD"]
 
 
 def test_cached_history_uses_bounded_query_and_keeps_ascending_candles(tmp_path: Path, monkeypatch) -> None:
@@ -154,6 +172,9 @@ def test_chart_projection_keeps_visible_context_audit_and_omits_heavy_research_g
   projected = server._interactive_chart_pattern({
     "id": "setup",
     "activatedAt": 123,
+    "registeredVersion": "FMS v2",
+    "activeExecution": {"stopAtr": 2, "targetR": 3, "expiryCandles": 18},
+    "successorReview": {"id": "FMS-V2-EXEC-TEST", "status": "reviewed_active", "holdout": {"evaluableCount": 12}},
     "overall": {"evaluableCount": 40, "targetHitRate": .5, "stopHitRate": .4, "averageR": .2, "outcomes": [1] * 500},
     "executionStress": {"pips": 3, "overall": {"averageR": .1}, "development": {"outcomes": [1] * 500}},
     "yearStability": {"evaluableYears": 8, "positiveYears": 6, "positiveYearShare": .75, "byYear": [{"large": [1] * 500}]},
@@ -174,6 +195,9 @@ def test_chart_projection_keeps_visible_context_audit_and_omits_heavy_research_g
 
   assert projected["overall"] == {"evaluableCount": 40, "targetHitRate": .5, "stopHitRate": .4, "averageR": .2}
   assert projected["activatedAt"] == 123
+  assert projected["registeredVersion"] == "FMS v2"
+  assert projected["activeExecution"]["targetR"] == 3
+  assert projected["successorReview"]["holdout"]["evaluableCount"] == 12
   assert "targetRobustness" not in projected
   assert "byYear" not in projected["yearStability"]
   assert projected["reactionAudit"]["profile"]["executionChallenger"] == {
@@ -864,6 +888,24 @@ def test_forward_validation_requires_prospective_breadth_and_never_claims_real_f
   assert server._prospective_capture_eligibility([event], 100, 200, 200, first_seen)["reason"] == "decision_after_frozen_entry"
   assert server._prospective_capture_eligibility([event], 100, 200, 120, {(7, 100): 200})["reason"] == "observed_after_frozen_entry"
   assert server._prospective_capture_eligibility([event], 100, 200, 120, {})["reason"] == "missing_first_seen_timestamp"
+  frozen_capture = {"eligible": True, "reason": "captured_before_frozen_entry", "firstSeenAt": 110, "activationTime": 200}
+  frozen_decision = {"prospectiveEligible": True, "eligibilityReason": "captured_before_frozen_entry",
+                     "assessment": {"prospectiveCapture": frozen_capture}, "signal": None}
+  # A later refresh after activation must not demote the immutable first decision.
+  assert server._prospective_capture_eligibility(
+    [event], 100, 200, 300, {(7, 100): 110}, frozen_decision=frozen_decision,
+  ) == frozen_capture
+  legacy_decision = {"prospectiveEligible": False, "eligibilityReason": "legacy_unverified",
+                     "assessment": {}, "signal": None}
+  assert server._prospective_capture_eligibility(
+    [event], 100, 200, 120, {(7, 100): 110}, frozen_decision=legacy_decision,
+  )["reason"] == "legacy_unverified"
+  projected = {"outcomeStatus": "pending", "entry": 2, "target": 3, "newField": True}
+  frozen = {"outcomeStatus": "target_hit", "entry": 1, "target": 1.5, "resultR": 1, "audit": "original"}
+  preserved, terminal = server._preserve_closed_signal(projected, frozen)
+  assert terminal is True and preserved == {**projected, **frozen}
+  assert projected["entry"] == 2 and frozen["entry"] == 1
+  assert server._preserve_closed_signal(projected, {"outcomeStatus": "pending", "entry": 1}) == (projected, False)
   assert server._planned_strictly_later_h4_open(14_500, [0, 14_400]) == 28_800
   assert server._planned_strictly_later_h4_open(14_400, [0, 14_400]) == 28_800
   assert server._planned_strictly_later_h4_open(10_000, [0, 14_400]) == 14_400
@@ -1064,6 +1106,53 @@ def test_execution_challengers_are_immutable_and_only_explicitly_reviewed_contra
   assert drifted["entryReview"]["status"] == "blocked_artifact_mismatch"
   assert drifted["execution"]["targetR"] == 9
 
+  successor_metadata, successor_registry = load_registered_execution_successors()
+  registered_successors = {
+    (row["market"], row["id"]): row
+    for row in server.PRACTICAL_PATTERN_DEFINITIONS
+    if (row.get("successorReview") or {}).get("status") == "reviewed_active"
+  }
+  assert len(registered_successors) == 17
+  assert set(registered_successors) == set(successor_registry)
+  assert successor_metadata["sourceResearchHash"] == "121a36ce7f2d5ba6514f6c465e9fe225ee29db9f88cbfcf62974ec00042f6730"
+  assert "USDJPY|usdjpy-us-manufacturing-employment" in successor_metadata["reviewedExclusions"]
+  def normalized_execution(source: dict) -> dict:
+    return {
+      "stopAtr": float(source.get("stopAtr") or 0), "targetR": float(source.get("targetR") or 0),
+      "expiryCandles": int(source.get("expiryCandles") or 0),
+      "managementFamily": str(source.get("managementFamily") or "fixed"),
+      "managementTriggerR": source.get("managementTriggerR"),
+      "entryTimeframe": str(source.get("entryTimeframe") or "H4"),
+      "expiryTimeframe": str(source.get("expiryTimeframe") or "H4"),
+    }
+  for row in registered_successors.values():
+    review = row["successorReview"]
+    activation = int(review["activatedAt"])
+    assert review["registryHash"] == successor_metadata["registryHash"]
+    assert normalized_execution(server._execution_for_event(row, activation - 1)) == review["previousExecution"]
+    assert server._execution_for_event(row, activation) == review["currentExecution"]
+    assert normalized_execution(server._execution_for_event(row, activation, allow_successor=False)) == review["previousExecution"]
+    assert server._registered_version_for_event(row, activation - 1) == "FMS v1"
+    assert server._registered_version_for_event(row, activation) == "FMS v2"
+    assert normalized_execution(server._execution_for_event(row, activation + 10_799, 10_800)) == review["previousExecution"]
+    assert server._execution_for_event(row, activation + 10_800, 10_800) == review["currentExecution"]
+    assert server._registered_version_for_event(row, activation + 10_799, 10_800) == "FMS v1"
+    assert server._registered_version_for_event(row, activation + 10_800, 10_800) == "FMS v2"
+  corrupted_successors = copy.deepcopy(successor_metadata)
+  corrupted_successors["profiles"]["AUDJPY|audjpy-jpy-inflation-short"]["currentExecution"]["targetR"] = 99
+  corrupted_successor_path = tmp_path / "registered-execution-successors.json"
+  corrupted_successor_path.write_text(json.dumps(corrupted_successors), encoding="utf-8")
+  with pytest.raises(ValueError, match="schema/hash validation"):
+    load_registered_execution_successors(corrupted_successor_path)
+  audjpy = registered_successors[("AUDJPY", "audjpy-jpy-inflation-short")]
+  blocked_successor = apply_registered_execution_successor(
+    {**audjpy, "execution": {**audjpy["execution"], "targetR": 99}},
+    successor_registry,
+    successor_metadata,
+  )
+  assert blocked_successor["successorReview"]["status"] == "blocked_artifact_mismatch"
+  assert blocked_successor["execution"]["targetR"] == 99
+
   reversal = server.research_reversal_exit_challengers()
   assert reversal["schema"] == "fms-entry-known-reversal-exit-index-v1"
   assert reversal["count"] == len(server.PRACTICAL_PATTERN_DEFINITIONS)
@@ -1134,6 +1223,21 @@ def test_post_release_quote_is_observed_not_relabelled_as_a_fill(monkeypatch) ->
   assert quote["source"] == "first_tick_after_observation"
   assert "not a broker fill" in quote["disclosure"]
 
+  calls = []
+  def native_ticks(_symbol, start, end, _flags):
+    calls.append((int(start.timestamp()), int(end.timestamp())))
+    return [Tick(1.1, 1.1004, 10_912)]
+  monkeypatch.setattr(server.mt5, "copy_ticks_range", native_ticks)
+  monkeypatch.setattr(server, "_current_clock_scope", lambda: "scope")
+  native_clock = {"candleClockVerified": True, "catalogIdentity": "scope", "nativeOffsetSeconds": 10_800,
+                  "observedNativeAt": 10_913, "observedUtcAt": 113, "uncertaintySeconds": 2}
+  native_quote = server._quote_snapshot_for_forward_case("EURUSD", 10_900, 113, native_clock=native_clock)
+  assert native_quote["quoteTimeBasis"] == "verified_native"
+  assert native_quote["entryLagSeconds"] == 12
+  assert calls == [(100, 113)]
+  monkeypatch.setattr(server.mt5, "copy_ticks_range", lambda *_args: [Tick(1.1, 1.1004, 10_916)])
+  assert server._quote_snapshot_for_forward_case("EURUSD", 10_900, 113, native_clock=native_clock) is None
+
   timing = server._entry_timing_audit(
     100, 110, "short", quote,
     {
@@ -1151,3 +1255,26 @@ def test_post_release_quote_is_observed_not_relabelled_as_a_fill(monkeypatch) ->
   assert timing["entries"][0]["directionAdjustedGapPips"] == pytest.approx(2)
   assert timing["entries"][2]["status"] == "waiting_for_candle"
   assert "not broker fills" in timing["disclosure"]
+
+  class TimingStore:
+    def query_candles(self, _market, timeframe, _start, _end):
+      return [{"time": 10_920, "open": 1.1}] if timeframe == "M1" else []
+  monkeypatch.setattr(server, "_research_store", TimingStore())
+  native_signal = {"eventTime": 10_900, "direction": "short", "evaluationClock": native_clock,
+                   "prospectiveCapture": {"protocol": "fms-native-capture-eligibility-v2",
+                                           "firstSeenAt": 110, "firstSeenNativeAt": 10_910,
+                                           "decidedUtcAt": 111, "decidedNativeAt": 10_911,
+                                           "sourceClock": native_clock}}
+  native_timing = server._entry_timing_audit_for_signal(
+    "EURUSD", native_signal, native_quote, 110, 113, decided_at=111,
+  )
+  assert native_timing["clockProtocol"] == "verified_native_v2"
+  assert native_timing["firstSeenDelaySeconds"] == 10
+  assert native_timing["decisionDelaySeconds"] == 11
+  assert native_timing["firstSeenUtcAt"] == 110 and native_timing["decisionUtcAt"] == 111
+  assert native_timing["entries"][0]["status"] == "observed"
+  incomplete = copy.deepcopy(native_signal)
+  incomplete["prospectiveCapture"].pop("firstSeenNativeAt")
+  assert server._entry_timing_audit_for_signal(
+    "EURUSD", incomplete, native_quote, 110, 113, decided_at=111,
+  )["status"] == "clock_provenance_unavailable"
