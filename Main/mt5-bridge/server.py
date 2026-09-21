@@ -4796,6 +4796,7 @@ def research_chart_signals(
   compact: bool = False,
   markers_only: bool = False,
   pattern_id: Optional[str] = None,
+  registered_version: Optional[str] = None,
 ) -> Dict[str, Any]:
   def response_for_client(payload: Dict[str, Any]) -> Dict[str, Any]:
     payload = _trade_current_snapshot(payload)
@@ -4810,7 +4811,7 @@ def research_chart_signals(
       compact_row = {
         key: row.get(key) for key in (
           "id", "patternId", "sourceVersionId", "eventTime", "activationTime",
-          "direction", "label", "historicalReplay", "outcomeStatus", "expiryCandles",
+          "direction", "label", "registeredVersion", "historicalReplay", "outcomeStatus", "expiryCandles",
           "execution", "stopAtr", "targetR", "managementFamily", "managementTriggerR",
           "entryTimeframe", "expiryTimeframe", "entry", "atr", "stop", "initialStop", "target",
           "resultR", "exitTime", "outcomeReasonCode", "outcomeReason",
@@ -4838,8 +4839,13 @@ def research_chart_signals(
   normalized_symbol = symbol.upper()
   normalized_tf = tf.upper()
   normalized_mode = mode.lower()
+  normalized_registered_version = registered_version.strip() if registered_version else None
   if normalized_mode not in {"current", "research_replay"}:
     raise HTTPException(status_code=400, detail="Macro Bias mode must be current or research_replay")
+  if normalized_registered_version not in {None, "FMS v1", "FMS v2"}:
+    raise HTTPException(status_code=400, detail="registered_version must be FMS v1 or FMS v2")
+  if normalized_registered_version is not None and normalized_mode != "research_replay":
+    raise HTTPException(status_code=400, detail="registered_version is available only for research_replay")
   if markers_only and normalized_mode != "research_replay":
     raise HTTPException(status_code=400, detail="markers_only is available only for research_replay")
   market_patterns = [
@@ -4847,6 +4853,10 @@ def research_chart_signals(
     for pattern in PRACTICAL_PATTERN_DEFINITIONS
     if pattern["market"] == normalized_symbol
     and (pattern_id is None or str(pattern["id"]) == pattern_id)
+    and (
+      normalized_registered_version != "FMS v2"
+      or (pattern.get("successorReview") or {}).get("status") == "reviewed_active"
+    )
   ]
   if not market_patterns:
     return {
@@ -4900,6 +4910,7 @@ def research_chart_signals(
       )
       response_cache_key = hashlib.sha256("|".join([
         f"chart-response-v{FMS_CHART_RESPONSE_SCHEMA}", normalized_symbol, normalized_tf, normalized_mode, PRACTICAL_MODEL_HASH,
+        normalized_registered_version or "event-active-version",
         str(_research_store.get_metadata("fms_registered_reaction:reconciliation") or ""),
         str(_research_store.get_metadata("fms_live_execution_revision") or ""),
         calendar_revision,
@@ -4963,7 +4974,7 @@ def research_chart_signals(
     ).encode("utf-8")
   ).hexdigest()
   catalog_scope = pattern_id or "all"
-  catalog_key = f"{normalized_symbol}:{catalog_scope}:{':'.join(str(source_runs[version].get('id', '')) for version in source_versions)}:{dataset_fingerprint}:{PRACTICAL_MODEL_HASH}"
+  catalog_key = f"{normalized_symbol}:{catalog_scope}:{normalized_registered_version or 'event-active-version'}:{':'.join(str(source_runs[version].get('id', '')) for version in source_versions)}:{dataset_fingerprint}:{PRACTICAL_MODEL_HASH}"
   durable_marker_key = f"fms_chart_markers_v2:{catalog_key}"
   annotated_by_source_policy: Dict[Tuple[str, str], List[Dict[str, Any]]] = {}
 
@@ -4982,7 +4993,13 @@ def research_chart_signals(
     projected = apply_chart_pattern_reaction(candidate, definition)
     event_time = int(candidate["eventTime"])
     activation_time = int(candidate.get("entryTime") or ((event_time // H4_SECONDS) + 1) * H4_SECONDS)
-    execution = _execution_for_event(definition, event_time)
+    successor = definition.get("successorReview") or {}
+    execution = (
+      dict(successor.get("currentExecution") or definition.get("execution") or {})
+      if normalized_registered_version == "FMS v2" else
+      _execution_for_event(definition, event_time, allow_successor=normalized_registered_version != "FMS v1")
+    )
+    display_version = normalized_registered_version or _registered_version_for_event(definition, event_time)
     entry, atr = candidate.get("entry"), candidate.get("atr")
     direction = str(projected["direction"])
     sign = 1 if direction == "long" else -1
@@ -4991,10 +5008,10 @@ def research_chart_signals(
     stop = float(entry) - sign * float(atr) * stop_atr if entry is not None and atr is not None else None
     target = float(entry) + sign * float(atr) * stop_atr * target_r if entry is not None and atr is not None else None
     return {
-      "id": f"{definition['id']}:{event_time}", "patternId": definition["id"],
+      "id": f"{definition['id']}:{event_time}{':fms-v2' if display_version == 'FMS v2' else ''}", "patternId": definition["id"],
       "sourceVersionId": source_version, "eventTime": event_time,
       "activationTime": activation_time, "direction": direction, "label": definition["label"],
-      "registeredVersion": _registered_version_for_event(definition, event_time),
+      "registeredVersion": display_version,
       "historicalReplay": True, "execution": execution,
       "stopAtr": stop_atr, "targetR": target_r,
       "expiryCandles": int(execution.get("expiryCandles") or 30),
@@ -5085,6 +5102,10 @@ def research_chart_signals(
     provenance = _registration_provenance(enriched_pattern)
     patterns.append({
       **enriched_pattern,
+      "activatedAt": (
+        int((definition.get("successorReview") or {}).get("activatedAt") or enriched_pattern.get("activatedAt") or PRACTICAL_MODEL_CREATED_AT)
+        if normalized_registered_version == "FMS v2" else enriched_pattern.get("activatedAt")
+      ),
       "historicalEvidence": _historical_evidence_summary(enriched_pattern),
       "reactionAudit": definition.get("reactionAudit"),
       "registrationProvenance": provenance,
@@ -5163,12 +5184,17 @@ def research_chart_signals(
   patterns = [
     {
       **pattern,
-      "activeExecution": _execution_for_event(
-        definitions_by_id.get(str(pattern["id"])) or pattern,
-        native_now,
-        current_activation_offset,
+      "activeExecution": (
+        dict(((definitions_by_id.get(str(pattern["id"])) or pattern).get("successorReview") or {}).get("currentExecution") or pattern.get("execution") or {})
+        if normalized_registered_version == "FMS v2" else
+        _execution_for_event(
+          definitions_by_id.get(str(pattern["id"])) or pattern,
+          native_now,
+          current_activation_offset,
+          allow_successor=normalized_registered_version != "FMS v1",
+        )
       ),
-      "registeredVersion": _registered_version_for_event(
+      "registeredVersion": normalized_registered_version or _registered_version_for_event(
         definitions_by_id.get(str(pattern["id"])) or pattern,
         native_now,
         current_activation_offset,
@@ -5202,12 +5228,17 @@ def research_chart_signals(
                 or (existing_live_decisions.get((str(pattern["id"]), event_time)) or {}).get("signal"))
       if isinstance((frozen or {}).get("execution"), dict):
         return deepcopy(frozen["execution"])
+    if normalized_registered_version == "FMS v2":
+      successor = pattern.get("successorReview") or {}
+      return dict(successor.get("currentExecution") or pattern.get("execution") or {})
     return _execution_for_event(
       pattern, event_time, current_activation_offset,
-      allow_successor=normalized_mode != "current" or decision_clock is not None,
+      allow_successor=(normalized_mode != "current" or decision_clock is not None) and normalized_registered_version != "FMS v1",
     )
 
   def event_registered_version(pattern: Dict[str, Any], event_time: int) -> str:
+    if normalized_registered_version is not None:
+      return normalized_registered_version
     if normalized_mode == "current":
       frozen = ((existing_execution_cases.get((str(pattern["id"]), event_time)) or {}).get("signal")
                 or (existing_live_decisions.get((str(pattern["id"]), event_time)) or {}).get("signal"))
@@ -5389,7 +5420,7 @@ def research_chart_signals(
       return evaluated.get(name)
     signal_candidates_by_key[(str(pattern["id"]), event_time)] = signal_candidate
     built_signal = {
-      "id": f"{pattern['id']}:{event_time}",
+      "id": f"{pattern['id']}:{event_time}{':fms-v2' if event_registered_version(pattern, event_time) == 'FMS v2' else ''}",
       "demoTag": _forward_demo_tag(PRACTICAL_MODEL_ID, normalized_symbol, pattern["id"], event_time),
       "patternId": pattern["id"],
       "sourceVersionId": source_version,
@@ -5507,7 +5538,7 @@ def research_chart_signals(
       pattern_definition = definitions_by_id.get(str(signal["patternId"])) or {}
       context_overlay = _context_overlay_for_signal(pattern_definition, signal, current_activation_offset)
       signal["contextOverlay"] = context_overlay
-      if context_overlay and context_overlay.get("executionApplied"):
+      if context_overlay and context_overlay.get("executionApplied") and normalized_registered_version is None:
         context_execution = dict(context_overlay.get("contextExecution") or {})
         evaluation_candidate = signal_candidates_by_key.get((str(signal["patternId"]), int(signal["eventTime"])))
         if evaluation_candidate is not None:
@@ -5839,12 +5870,13 @@ def research_chart_signal_target_ladder(
   patternId: str,
   eventTime: int,
   mode: str = "research_replay",
+  registered_version: Optional[str] = None,
 ) -> Dict[str, Any]:
   """Build the expensive multi-target audit only for the arrow the user opened."""
   normalized_symbol = symbol.upper()
   normalized_mode = mode.lower()
   ladder_cache_key = (
-    f"fms_target_ladder:v3:{PRACTICAL_MODEL_HASH}:{normalized_mode}:{normalized_symbol}:{patternId}:{int(eventTime)}"
+    f"fms_target_ladder:v3:{PRACTICAL_MODEL_HASH}:{normalized_mode}:{registered_version or 'event-active-version'}:{normalized_symbol}:{patternId}:{int(eventTime)}"
   )
   raw_cached_ladder = _research_store.get_metadata(ladder_cache_key)
   if raw_cached_ladder:
@@ -5861,6 +5893,7 @@ def research_chart_signal_target_ladder(
     from_=eventTime if normalized_mode == "research_replay" else None,
     to=eventTime if normalized_mode == "research_replay" else None,
     pattern_id=patternId,
+    registered_version=registered_version,
   )
   signal = next(
     (
@@ -6636,23 +6669,41 @@ def _prospective_context_ledger(
 def research_global_chart_signals(tf: str = "H4", refresh: bool = False) -> Dict[str, Any]:
   """Return every practical current registry without changing the selected chart."""
   durable_global_key = "fms_global_chart_response:v1"
+  expected_markets = sorted({str(pattern["market"]) for pattern in PRACTICAL_PATTERN_DEFINITIONS})
   if not refresh:
-    last_known_for_startup: Optional[Dict[str, Any]] = None
     raw_last_known = _research_store.get_metadata(durable_global_key)
     if raw_last_known:
       try:
         last_known = json.loads(raw_last_known)
-        if isinstance(last_known, dict):
-          last_known_for_startup = last_known
+        cached_markets = last_known.get("markets") if isinstance(last_known, dict) else None
+        cached_symbols = sorted(
+          str(row.get("symbol")) for row in cached_markets or []
+          if isinstance(row, dict) and row.get("symbol")
+        )
+        if (isinstance(last_known, dict) and last_known.get("modelHash") == PRACTICAL_MODEL_HASH
+            and cached_symbols == expected_markets):
+          # Pair refreshes persist independently. Never resurrect an older
+          # lifecycle from the global snapshot after a browser reload.
+          merged_markets = []
+          for market in last_known.get("markets", []):
+            raw_market = _research_store.get_metadata(f"fms_chart_response:current:{market['symbol']}")
+            if raw_market:
+              try:
+                newer = json.loads(raw_market).get("response")
+                if (isinstance(newer, dict)
+                    and newer.get("modelHash") == PRACTICAL_MODEL_HASH
+                    and newer.get("responseSchema") == FMS_CHART_RESPONSE_SCHEMA
+                    and int(newer.get("generatedAt") or 0) > int(market.get("generatedAt") or 0)):
+                  market = {
+                    **newer,
+                    "patterns": [_interactive_chart_pattern(row) for row in newer.get("patterns", [])],
+                  }
+              except (TypeError, ValueError):
+                logger.warning("Ignoring unreadable current market snapshot")
+            merged_markets.append(_trade_current_snapshot(market))
+          return {**last_known, "markets": merged_markets, "startupProjection": False}
       except (TypeError, ValueError):
         logger.warning("Ignoring unreadable last-known global FMS response")
-    # Every interactive caller gets the same bounded, complete registry.  The
-    # full saved payload can contain years of signals and can be seconds slower
-    # than the selected chart itself even when it is current.  Selected-market
-    # evidence is refreshed independently by /research/chart-signals.
-    return _trade_startup_global_snapshot(
-      _trade_compatible_startup_source(last_known_for_startup, tf),
-    )
   effective_patterns = [_reconciled_pattern(pattern) for pattern in PRACTICAL_PATTERN_DEFINITIONS]
   markets = [
     research_chart_signals(symbol=market, tf=tf, mode="current", refresh=refresh)

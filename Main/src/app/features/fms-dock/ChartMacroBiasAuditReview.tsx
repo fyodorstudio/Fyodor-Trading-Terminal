@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { ChartMacroBiasAudit, type ChartMacroBiasAuditData } from "@/app/components/ChartMacroBiasAudit";
 import { FmsReviewNoteRow } from "@/app/features/fms-dock/FmsReviewNoteRow";
 import { useFmsReviewNotes } from "@/app/features/fms-dock/useFmsReviewNotes";
+import { FMS_BASELINE_DISPLAY_VERSION, fmsReviewRecordKey } from "@/app/lib/fmsDisplayVersion";
 import type { FmsReviewNoteInput, FmsReviewNoteLabel } from "@/app/lib/bridge";
 
 export function ChartMacroBiasAuditReview({ data }: { data: ChartMacroBiasAuditData }) {
@@ -10,7 +11,7 @@ export function ChartMacroBiasAuditReview({ data }: { data: ChartMacroBiasAuditD
   const [draft, setDraft] = useState("");
   const [label, setLabel] = useState<FmsReviewNoteLabel>("unlabeled");
   const market = data.pattern.market || data.symbol || "";
-  const recordKey = `${market}:${data.signal.patternId}:${data.signal.eventTime}`;
+  const recordKey = fmsReviewRecordKey(market, data.signal.patternId, data.signal.eventTime, data.signal.registeredVersion ?? FMS_BASELINE_DISPLAY_VERSION);
   const saved = notesByKey.get(recordKey) ?? null;
   const editing = editingRecordKey === recordKey;
   const input = {

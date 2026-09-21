@@ -687,6 +687,7 @@ export function ChartsTab({
     selectedMacroBias.sourceVersionId,
     selectedMacroBias.patternId,
     selectedMacroBias.eventTime,
+    selectedMacroBias.registeredVersion ?? FMS_BASELINE_DISPLAY_VERSION,
     selectedMacroBias.entryTimeframe ?? "H4",
     selectedMacroBias.stopAtr ?? selectedMacroBias.execution?.stopAtr ?? "",
     selectedMacroBias.targetR ?? selectedMacroBias.execution?.targetR ?? "",
@@ -711,6 +712,7 @@ export function ChartsTab({
       patternId: selectedMacroBias.patternId,
       eventTime: selectedMacroBias.eventTime,
       mode: selectedMacroBias.historicalReplay ? "research_replay" : "current",
+      registeredVersion: selectedMacroBias.historicalReplay ? selectedMacroBias.registeredVersion : undefined,
       identityScope: selectedMacroBiasLadderKey,
     }).then(({ signal }) => {
       if (!cancelled) setMacroBiasSignalAudits((current) => ({ ...current, [selectedMacroBiasLadderKey]: signal }));

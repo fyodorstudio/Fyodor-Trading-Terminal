@@ -16,6 +16,7 @@ import {
   type ChartDisplayTimeMode,
 } from "@/app/lib/chartView";
 import { getDisplayTimezoneDateParts, getDisplayTimezoneShortLabel } from "@/app/lib/timezoneDisplay";
+import { FMS_BASELINE_DISPLAY_VERSION, fmsReviewRecordKey, fmsVersionAtEvent, projectFmsMarketVersion, type FmsDisplayVersion } from "@/app/lib/fmsDisplayVersion";
 import type { MacroSignalChartSignal, MacroSignalChartSignalResponse } from "@/app/types";
 
 type JournalSource = "live" | "recovered" | "no_trade" | "historical";
@@ -39,6 +40,7 @@ export type JournalRow = {
   demoNetR: number | null;
   demoStatus: "completed" | "open_or_partial" | null;
   signal: MacroSignalChartSignal | null;
+  registeredVersion: FmsDisplayVersion;
 };
 
 type JournalScope = "this_week" | "previous_week" | "month" | "year" | "all" | "broker";
@@ -117,7 +119,7 @@ function signalRow(
 ): JournalRow {
   const pattern = market.patterns.find((candidate) => candidate.id === signal.patternId);
   return {
-    key: `${market.symbol}:${signal.patternId}:${signal.eventTime}`,
+    key: fmsReviewRecordKey(market.symbol, signal.patternId, signal.eventTime, signal.registeredVersion ?? FMS_BASELINE_DISPLAY_VERSION),
     market: market.symbol,
     label: pattern?.label ?? signal.label,
     patternId: signal.patternId,
@@ -135,6 +137,7 @@ function signalRow(
     demoNetR: demo?.netR ?? null,
     demoStatus: demo?.status ?? null,
     signal,
+    registeredVersion: signal.registeredVersion ?? FMS_BASELINE_DISPLAY_VERSION,
   };
 }
 
@@ -142,8 +145,9 @@ function sortJournalRows(rows: JournalRow[]): JournalRow[] {
   return [...rows].sort((left, right) => rowResolvedTime(right) - rowResolvedTime(left) || left.key.localeCompare(right.key));
 }
 
-export function buildFmsJournalRows(data: ChartMacroBiasRealtimeCardData): JournalRow[] {
-  const markets = data.globalResponse?.markets.filter((market) => market.supported) ?? [data.response];
+export function buildFmsJournalRows(data: ChartMacroBiasRealtimeCardData, displayVersion: FmsDisplayVersion = FMS_BASELINE_DISPLAY_VERSION): JournalRow[] {
+  const sourceMarkets = data.globalResponse?.markets.filter((market) => market.supported) ?? [data.response];
+  const markets = sourceMarkets.map((market) => projectFmsMarketVersion(market, displayVersion));
   const demoTrades = data.globalResponse?.forwardValidation?.demoExecution?.trades ?? [];
   const demoBySignal = new Map(demoTrades.map((trade) => [`${trade.market}:${trade.patternId}:${trade.eventTime}`, trade]));
   const rows = new Map<string, JournalRow>();
@@ -163,7 +167,10 @@ export function buildFmsJournalRows(data: ChartMacroBiasRealtimeCardData): Journ
     const pattern = market?.patterns.find((candidate) => candidate.id === decision.patternId);
     const activation = pattern?.activatedAt ?? market?.modelActivatedAt ?? data.response.modelActivatedAt;
     if (decision.eventTime < activation) continue;
-    const key = `${decision.market}:${decision.patternId}:${decision.eventTime}`;
+    const sourceMarket = sourceMarkets.find((candidate) => candidate.symbol === decision.market);
+    const sourcePattern = sourceMarket?.patterns.find((candidate) => candidate.id === decision.patternId);
+    if (!sourcePattern || fmsVersionAtEvent(sourcePattern, decision.eventTime) !== displayVersion) continue;
+    const key = fmsReviewRecordKey(decision.market, decision.patternId, decision.eventTime, displayVersion);
     if (rows.has(key)) continue;
     rows.set(key, {
       key,
@@ -184,6 +191,7 @@ export function buildFmsJournalRows(data: ChartMacroBiasRealtimeCardData): Journ
       demoNetR: null,
       demoStatus: null,
       signal: null,
+      registeredVersion: displayVersion,
     });
   }
   return sortJournalRows([...rows.values()]);
@@ -201,15 +209,16 @@ export function buildFmsPreRegistrationJournalRows(response: MacroSignalChartSig
   }));
 }
 
-function usePreRegistrationJournalRows(data: ChartMacroBiasRealtimeCardData) {
+function usePreRegistrationJournalRows(data: ChartMacroBiasRealtimeCardData, displayVersion: FmsDisplayVersion) {
   const markets = useMemo(
     () => (data.globalResponse?.markets.filter((market) => market.supported) ?? [data.response])
       .map((market) => ({ symbol: market.symbol.toUpperCase(), modelHash: market.modelHash }))
       .sort((left, right) => left.symbol.localeCompare(right.symbol)),
     [data.globalResponse?.markets, data.response],
   );
-  const marketPlanKey = markets.map((market) => `${market.symbol}:${market.modelHash}`).join("|");
-  const [rows, setRows] = useState<JournalRow[]>(() => sortJournalRows(markets.flatMap((market) => replayJournalCache.get(`${market.modelHash}:${market.symbol}`) ?? [])));
+  const marketPlanKey = `${displayVersion}|${markets.map((market) => `${market.symbol}:${market.modelHash}`).join("|")}`;
+  const cacheKeyFor = (market: { symbol: string; modelHash: string }) => `${market.modelHash}:${displayVersion}:${market.symbol}`;
+  const [rows, setRows] = useState<JournalRow[]>(() => sortJournalRows(markets.flatMap((market) => replayJournalCache.get(cacheKeyFor(market)) ?? [])));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -218,19 +227,20 @@ function usePreRegistrationJournalRows(data: ChartMacroBiasRealtimeCardData) {
     const load = async () => {
       setLoading(true);
       setError(null);
+      setRows(sortJournalRows(markets.flatMap((market) => replayJournalCache.get(cacheKeyFor(market)) ?? [])));
       const errors: string[] = [];
       for (const market of markets) {
-        const cacheKey = `${market.modelHash}:${market.symbol}`;
+        const cacheKey = cacheKeyFor(market);
         if (!replayJournalCache.has(cacheKey)) {
           try {
-            const response = await fetchMacroSignalChartSignals({ symbol: market.symbol, timeframe: "H4", mode: "research_replay", compact: true });
+            const response = await fetchMacroSignalChartSignals({ symbol: market.symbol, timeframe: "H4", mode: "research_replay", compact: true, registeredVersion: displayVersion });
             replayJournalCache.set(cacheKey, buildFmsPreRegistrationJournalRows(response));
           } catch (reason: unknown) {
             errors.push(`${market.symbol}: ${reason instanceof Error ? reason.message : "replay unavailable"}`);
           }
         }
         if (cancelled) return;
-        setRows(sortJournalRows(markets.flatMap((candidate) => replayJournalCache.get(`${candidate.modelHash}:${candidate.symbol}`) ?? [])));
+        setRows(sortJournalRows(markets.flatMap((candidate) => replayJournalCache.get(cacheKeyFor(candidate)) ?? [])));
       }
       if (!cancelled) {
         setError(errors.length ? errors.join("; ") : null);
@@ -418,16 +428,18 @@ const JournalGroups = memo(function JournalGroups({
 
 export const ChartFmsJournalCard = memo(function ChartFmsJournalCard({
   data,
+  displayVersion = FMS_BASELINE_DISPLAY_VERSION,
   onGoToArrow,
   onGoToEvent,
 }: {
   data: ChartMacroBiasRealtimeCardData;
+  displayVersion?: FmsDisplayVersion;
   onGoToArrow?: (market: string, signal: MacroSignalChartSignal) => void;
   onGoToEvent?: (market: string, eventTime: number) => void;
 }) {
   const [scope, setScope] = useState<JournalScope>("all");
-  const allRows = useMemo(() => buildFmsJournalRows(data), [data]);
-  const preRegistration = usePreRegistrationJournalRows(data);
+  const allRows = useMemo(() => buildFmsJournalRows(data, displayVersion), [data, displayVersion]);
+  const preRegistration = usePreRegistrationJournalRows(data, displayVersion);
   const { notesByKey, loading: notesLoading, savingKey: noteSavingKey, error: notesError, save: saveNote, remove: removeNote } = useFmsReviewNotes();
   const displayTimeMode = data.displayTimeMode ?? "local";
   const sourceTimeOffsetSeconds = data.sourceTimeOffsetSeconds ?? 0;

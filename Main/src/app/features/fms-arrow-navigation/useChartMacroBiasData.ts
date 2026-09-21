@@ -280,7 +280,7 @@ export function useChartMacroBiasData({
     let cancelled = false;
     const from = Math.max(0, (historyFrom ?? 0) - 7 * 24 * 60 * 60);
     const to = (historyTo ?? Math.floor(Date.now() / 1_000)) + 7 * 24 * 60 * 60;
-    const historyCacheKey = `${selectedSymbol.toUpperCase()}:${from}:${to}`;
+    const historyCacheKey = `${selectedSymbol.toUpperCase()}:${arrowVersion}:${from}:${to}`;
     const cachedHistory = historyCacheRef.current.get(historyCacheKey);
     if (cachedHistory) {
       setHistoricalError(null);
@@ -296,6 +296,7 @@ export function useChartMacroBiasData({
       from,
       to,
       markersOnly: true,
+      registeredVersion: arrowVersion,
     }).then((response) => {
       if (cancelled) return;
       historyCacheRef.current.set(historyCacheKey, response);
@@ -304,7 +305,7 @@ export function useChartMacroBiasData({
       if (!cancelled) setHistoricalError(error instanceof Error ? error.message : "Historical arrow response unavailable");
     });
     return () => { cancelled = true; };
-  }, [historicalMatchesVisible, historyFrom, historyState, historyTo, selectedSymbol, supported, visible, visibleCandleCount]);
+  }, [arrowVersion, historicalMatchesVisible, historyFrom, historyState, historyTo, selectedSymbol, supported, visible, visibleCandleCount]);
 
   const response = currentResponse?.symbol.toUpperCase() === selectedSymbol.toUpperCase() ? currentResponse : null;
   const historicalSignals = useMemo(() => {

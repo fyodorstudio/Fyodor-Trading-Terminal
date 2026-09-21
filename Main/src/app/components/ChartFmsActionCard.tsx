@@ -6,7 +6,7 @@ import { CURRENCY_TO_COUNTRY_CODE } from "@/app/config/fxPairs";
 import { FmsReviewNoteRow } from "@/app/features/fms-dock/FmsReviewNoteRow";
 import { useFmsReviewNotes } from "@/app/features/fms-dock/useFmsReviewNotes";
 import { formatChartFeedTime, formatChartUtcMetadataTime, type ChartDisplayTimeMode } from "@/app/lib/chartView";
-import { FMS_BASELINE_DISPLAY_VERSION, FMS_SUCCESSOR_DISPLAY_VERSION, type FmsDisplayVersion } from "@/app/lib/fmsDisplayVersion";
+import { FMS_BASELINE_DISPLAY_VERSION, fmsReviewRecordKey, projectFmsMarketVersion, type FmsDisplayVersion } from "@/app/lib/fmsDisplayVersion";
 import type { FmsReviewNoteInput, FmsReviewNoteLabel } from "@/app/lib/bridge";
 import entryResearch from "@/app/lib/fmsEntryResearchSummary.json";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalPatternAssessment, MacroSignalUpcomingPatternWatch } from "@/app/types";
@@ -514,7 +514,6 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   arrowVersion = FMS_BASELINE_DISPLAY_VERSION,
   historicalPatternFilters = [],
   onToggleHistoricalMatches,
-  onSelectArrowVersion,
   onToggleHistoricalPattern,
   onSetAllHistoricalPatterns,
   onGoToArrow,
@@ -529,7 +528,6 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   arrowVersion?: FmsDisplayVersion;
   historicalPatternFilters?: Array<{ id: string; label: string; count: number; checked: boolean }>;
   onToggleHistoricalMatches?: () => void;
-  onSelectArrowVersion?: (version: FmsDisplayVersion) => void;
   onToggleHistoricalPattern?: (patternId: string) => void;
   onSetAllHistoricalPatterns?: (visible: boolean) => void;
   onGoToArrow?: (market: string, signal: MacroSignalChartSignal) => void;
@@ -541,6 +539,10 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
   const displayTimeMode = data.displayTimeMode ?? "local";
   const sourceTimeOffsetSeconds = data.sourceTimeOffsetSeconds ?? 0;
   const markets = useMemo(() => getTradeMarkets(data), [data.globalResponse?.markets, data.response]);
+  const displayMarkets = useMemo(
+    () => markets.map((market) => projectFmsMarketVersion(market, arrowVersion)),
+    [arrowVersion, markets],
+  );
   const responseNow = data.response.generatedAt ?? Math.floor(Date.now() / 1_000);
   const [clock, setClock] = useState(responseNow);
   useEffect(() => {
@@ -548,12 +550,12 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
     const timer = window.setInterval(() => setClock(Math.floor(Date.now() / 1_000)), 5_000);
     return () => window.clearInterval(timer);
   }, [responseNow]);
-  const registeredSchedule = useMemo(() => buildRegisteredSetupSchedule(markets, clock), [markets, clock]);
+  const registeredSchedule = useMemo(() => buildRegisteredSetupSchedule(displayMarkets, clock), [displayMarkets, clock]);
   const forwardSetupByKey = useMemo(() => new Map(
     (data.globalResponse?.forwardValidation?.setupSummaries ?? []).map((summary) => [`${summary.market}:${summary.patternId}`, summary]),
   ), [data.globalResponse?.forwardValidation?.setupSummaries]);
   const datedSetupCount = registeredSchedule.filter((row) => row.watch != null).length;
-  const activity = useMemo(() => buildRecentFmsActivity(markets, clock), [markets, clock]);
+  const activity = useMemo(() => buildRecentFmsActivity(displayMarkets, clock), [displayMarkets, clock]);
   const latestArrowBySetup = useMemo(() => {
     const latest = new Map<string, MacroSignalChartSignal>();
     activity.forEach((row) => {
@@ -651,17 +653,6 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
           <span>Past arrows</span>
           <small>{historicalMatchesCount}</small>
         </label>
-        <div className="fms-arrow-version-toggle" role="group" aria-label="FMS arrow version">
-          {([FMS_BASELINE_DISPLAY_VERSION, FMS_SUCCESSOR_DISPLAY_VERSION] as const).map((version) => <button
-            key={version}
-            type="button"
-            className={arrowVersion === version ? "is-active" : ""}
-            aria-pressed={arrowVersion === version}
-            onClick={() => onSelectArrowVersion?.(version)}
-            disabled={!onSelectArrowVersion}
-            title={version === FMS_SUCCESSOR_DISPLAY_VERSION ? "Show only arrows created under approved v2 successor contracts after activation" : "Show preserved v1 arrows"}
-          >{version}</button>)}
-        </div>
         <details className="fms-arrow-filter">
           <summary>Choose setups</summary>
           <div>
@@ -706,17 +697,17 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
               const evidence = setupEvidenceLabel(row.pattern);
               const fresh = forwardEvidenceLabel(forwardSetupByKey.get(`${row.market}:${row.pattern.id}`));
               const latestArrow = latestArrowBySetup.get(`${row.market}:${row.pattern.id}`) ?? null;
-              const note = notesByKey.get(row.key) ?? null;
-              const noteInput = { recordKey: row.key, context: "scheduled" as const, market: row.market, patternId: row.pattern.id, eventTime: row.watch?.time ?? null, signalId: null };
+              const noteInput = { recordKey: fmsReviewRecordKey(row.market, row.pattern.id, row.watch?.time ?? "undated", arrowVersion), context: "scheduled" as const, market: row.market, patternId: row.pattern.id, eventTime: row.watch?.time ?? null, signalId: null };
+              const note = notesByKey.get(noteInput.recordKey) ?? null;
               return <Fragment key={row.key}>
                 <tr data-row-key={row.key} className={row.watch ? "is-scheduled" : ""} role="button" tabIndex={0} aria-expanded={expanded} onClick={() => updateViewState({ expandedScheduleKey: expanded ? null : row.key })} onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") { event.preventDefault(); updateViewState({ expandedScheduleKey: expanded ? null : row.key }); }
                 }}>
                   <td><strong><PairFlags symbol={row.market} />{row.market}</strong><small>{row.pattern.label}</small></td>
                   <td className="fms-action-evidence"><strong>{record.tpRate == null ? "TP rate unavailable" : `${(record.tpRate * 100).toFixed(1)}% TP before SL`}</strong><small>{record.averageR == null ? "Gross average unavailable" : `${record.averageR >= 0 ? "+" : ""}${record.averageR.toFixed(2)}R gross avg`} · N {record.sample}</small><span className="fms-row-actions"><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small>{latestArrow && onGoToArrow ? <button type="button" className="fms-go-to-arrow" onClick={(event) => { event.stopPropagation(); onGoToArrow(row.market, latestArrow); }} onKeyDown={(event) => event.stopPropagation()}>Go to latest arrow</button> : null}</span></td>
-                  <td><TradeDate label="Release" time={row.watch?.time} fallback="Awaiting date" displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} />{row.watch ? <><small className="fms-release-countdown">In {countdownLabel(row.watch.time, clock)}</small><button type="button" className="fms-review-setup" onClick={(event) => { event.stopPropagation(); onReviewSetup?.(row.market, row.pattern.id); beginNote(row.key); }} onKeyDown={(event) => event.stopPropagation()}>{note ? "Review note" : "Review"}</button></> : null}</td>
+                  <td><TradeDate label="Release" time={row.watch?.time} fallback="Awaiting date" displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} />{row.watch ? <><small className="fms-release-countdown">In {countdownLabel(row.watch.time, clock)}</small><button type="button" className="fms-review-setup" onClick={(event) => { event.stopPropagation(); onReviewSetup?.(row.market, row.pattern.id); beginNote(noteInput.recordKey); }} onKeyDown={(event) => event.stopPropagation()}>{note ? "Review note" : "Review"}</button></> : null}</td>
                 </tr>
-                <FmsReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === row.key} draft={noteDraft} label={noteLabel} saving={noteSavingKey === row.key} displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} onDraftChange={setNoteDraft} onLabelChange={setNoteLabel} onEdit={() => beginNote(row.key)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(row.key)} />
+                <FmsReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === noteInput.recordKey} draft={noteDraft} label={noteLabel} saving={noteSavingKey === noteInput.recordKey} displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} onDraftChange={setNoteDraft} onLabelChange={setNoteLabel} onEdit={() => beginNote(noteInput.recordKey)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(noteInput.recordKey)} />
                 {expanded ? <tr className="fms-action-detail-row"><td colSpan={3}>
                   <table><tbody>
                     <tr><th>Frozen contract</th><td>{patternExecutionLabel(row.pattern)}</td></tr>
@@ -748,14 +739,15 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
               const expanded = expandedActivityKey === row.key;
               const sourceLabel = row.source === "recovered" ? "Recovered offline" : row.source === "live" ? "Live captured" : row.state === "No trade" ? "No trade" : "Decision";
               const arrowSignal = row.signal;
-              const note = notesByKey.get(row.key) ?? null;
-              const noteInput = { recordKey: row.key, context: "activity" as const, market: row.market, patternId: row.pattern.id, eventTime: row.signal?.eventTime ?? row.assessment?.time ?? null, signalId: row.signal?.id ?? null };
+              const eventTime = row.signal?.eventTime ?? row.assessment?.time ?? null;
+              const noteInput = { recordKey: fmsReviewRecordKey(row.market, row.pattern.id, eventTime ?? "undated", arrowVersion), context: "activity" as const, market: row.market, patternId: row.pattern.id, eventTime, signalId: row.signal?.id ?? null };
+              const note = notesByKey.get(noteInput.recordKey) ?? null;
               return <Fragment key={row.key}>
                 <tr data-row-key={row.key} role="button" tabIndex={0} aria-expanded={expanded} onClick={() => updateViewState({ expandedActivityKey: expanded ? null : row.key })} onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") { event.preventDefault(); updateViewState({ expandedActivityKey: expanded ? null : row.key }); }
                 }}>
                   <td><strong><PairFlags symbol={row.market} />{row.market}</strong><small>{row.label}</small></td>
-                  <td><strong>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} · ` : ""}{row.state}</strong><span className="fms-row-actions"><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small>{arrowSignal && onGoToArrow ? <button type="button" className="fms-go-to-arrow" onClick={(event) => { event.stopPropagation(); onGoToArrow(row.market, arrowSignal); }} onKeyDown={(event) => event.stopPropagation()}>Go to arrow</button> : !arrowSignal && row.assessment && onGoToEvent ? <button type="button" className="fms-go-to-arrow" onClick={(event) => { event.stopPropagation(); onGoToEvent(row.market, row.assessment!.time); }} onKeyDown={(event) => event.stopPropagation()}>Go to event</button> : null}<button type="button" className="fms-add-note" disabled={notesLoading} onClick={(event) => { event.stopPropagation(); beginNote(row.key); }} onKeyDown={(event) => event.stopPropagation()}>{note ? "Edit note" : "Add note"}</button></span></td>
+                  <td><strong>{row.direction ? `${row.direction === "long" ? "Long" : "Short"} · ` : ""}{row.state}</strong><span className="fms-row-actions"><small className="fms-row-details">{expanded ? "Hide details" : "Show details"}</small>{arrowSignal && onGoToArrow ? <button type="button" className="fms-go-to-arrow" onClick={(event) => { event.stopPropagation(); onGoToArrow(row.market, arrowSignal); }} onKeyDown={(event) => event.stopPropagation()}>Go to arrow</button> : !arrowSignal && row.assessment && onGoToEvent ? <button type="button" className="fms-go-to-arrow" onClick={(event) => { event.stopPropagation(); onGoToEvent(row.market, row.assessment!.time); }} onKeyDown={(event) => event.stopPropagation()}>Go to event</button> : null}<button type="button" className="fms-add-note" disabled={notesLoading} onClick={(event) => { event.stopPropagation(); beginNote(noteInput.recordKey); }} onKeyDown={(event) => event.stopPropagation()}>{note ? "Edit note" : "Add note"}</button></span></td>
                   <td className="fms-activity-dates">
                     <TradeDate label="Released" time={row.signal?.eventTime ?? row.assessment?.time ?? row.time} displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} />
                     {row.signal ? <>
@@ -764,7 +756,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                     </> : null}
                   </td>
                 </tr>
-                <FmsReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === row.key} draft={noteDraft} label={noteLabel} saving={noteSavingKey === row.key} displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} onDraftChange={setNoteDraft} onLabelChange={setNoteLabel} onEdit={() => beginNote(row.key)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(row.key)} />
+                <FmsReviewNoteRow input={noteInput} saved={note} editing={editingNoteKey === noteInput.recordKey} draft={noteDraft} label={noteLabel} saving={noteSavingKey === noteInput.recordKey} displayTimeMode={displayTimeMode} sourceTimeOffsetSeconds={sourceTimeOffsetSeconds} onDraftChange={setNoteDraft} onLabelChange={setNoteLabel} onEdit={() => beginNote(noteInput.recordKey)} onCancel={cancelNote} onSave={submitNote} onRemove={() => deleteNote(noteInput.recordKey)} />
                 {expanded ? <tr className="fms-action-detail-row"><td colSpan={3}>
                   <table><tbody>
                     <tr><th>{row.state === "No trade" ? "Why no trade" : "Decision reason"}</th><td colSpan={3}><strong>{decisionSummary(row.assessment)}</strong><details><summary>Full recorded explanation</summary><p>{row.assessment?.reason ?? "Unavailable"}</p></details></td></tr>

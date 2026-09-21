@@ -478,6 +478,7 @@ export async function fetchMacroSignalChartSignals(params: {
   refresh?: boolean;
   compact?: boolean;
   markersOnly?: boolean;
+  registeredVersion?: "FMS v1" | "FMS v2";
 }): Promise<MacroSignalChartSignalResponse> {
   const search = new URLSearchParams({ symbol: params.symbol, tf: params.timeframe, mode: params.mode });
   if (params.from != null) search.set("from_", String(params.from));
@@ -485,6 +486,7 @@ export async function fetchMacroSignalChartSignals(params: {
   if (params.refresh) search.set("refresh", "true");
   if (params.compact) search.set("compact", "true");
   if (params.markersOnly) search.set("markers_only", "true");
+  if (params.registeredVersion) search.set("registered_version", params.registeredVersion);
   const url = `${BRIDGE_BASE}/research/chart-signals?${search.toString()}`;
   const pending = chartSignalRequests.get(url);
   if (pending) return pending;
@@ -500,6 +502,7 @@ export async function fetchMacroSignalTargetLadder(params: {
   eventTime: number;
   mode: MacroSignalChartMode;
   identityScope?: string;
+  registeredVersion?: "FMS v1" | "FMS v2";
 }): Promise<{ signal: MacroSignalChartSignal }> {
   const search = new URLSearchParams({
     symbol: params.symbol,
@@ -507,6 +510,7 @@ export async function fetchMacroSignalTargetLadder(params: {
     eventTime: String(params.eventTime),
     mode: params.mode,
   });
+  if (params.registeredVersion) search.set("registered_version", params.registeredVersion);
   const url = `${BRIDGE_BASE}/research/chart-signal-target-ladder?${search.toString()}`;
   const requestKey = `${url}|${params.identityScope ?? ""}`;
   const pending = targetLadderRequests.get(requestKey);

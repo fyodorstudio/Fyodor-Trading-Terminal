@@ -75,7 +75,7 @@ function loadFmsSetupSections(): { open: FmsSetupSection[]; visited: FmsSetupSec
   }
 }
 
-export function FmsSetupsWorkspace({ data }: { data: ChartMacroBiasRealtimeCardData }) {
+export function FmsSetupsWorkspace({ data, displayVersion = FMS_BASELINE_DISPLAY_VERSION }: { data: ChartMacroBiasRealtimeCardData; displayVersion?: FmsDisplayVersion }) {
   const [sections, setSections] = useState(loadFmsSetupSections);
   // Persisted "visited" is not permission to load offline evidence on startup.
   // Once opened this mount, retain its filter/expanded state across disclosures.
@@ -95,26 +95,26 @@ export function FmsSetupsWorkspace({ data }: { data: ChartMacroBiasRealtimeCardD
       visited: open ? [...new Set([...current.visited, section])] : current.visited,
     }));
   };
-  const registeredCount = (data.globalResponse?.markets ?? [data.response])
+  const allRegisteredCount = (data.globalResponse?.markets ?? [data.response])
     .reduce((sum, market) => sum + market.patterns.filter((pattern) => pattern.currentEligible).length, 0);
   const successorCount = (data.globalResponse?.markets ?? [data.response])
-    .reduce((sum, market) => sum + market.patterns.filter((pattern) => pattern.currentEligible && pattern.registeredVersion === FMS_SUCCESSOR_DISPLAY_VERSION).length, 0);
+    .reduce((sum, market) => sum + market.patterns.filter((pattern) => pattern.currentEligible && pattern.successorReview?.status === "reviewed_active").length, 0);
+  const registeredCount = displayVersion === FMS_SUCCESSOR_DISPLAY_VERSION ? successorCount : allRegisteredCount;
 
   return (
     <section className="fms-setups-workspace" aria-label="Registered setups, research, and knowledge">
-      <header><div><span>Registered FMS versions</span></div><small>{registeredCount} eligible frozen recipes</small></header>
+      <header><div><span>{displayVersion} registered setups</span></div><small>{registeredCount} eligible frozen recipes</small></header>
         <div className="fms-setups-workspace-sections">
           <details open={sections.open.includes("benchmarks")} onToggle={(event) => toggleSection("benchmarks", event.currentTarget.open)}>
-            <summary><span>Registered setup versions</span><small>{successorCount} {FMS_SUCCESSOR_DISPLAY_VERSION} · {registeredCount - successorCount} {FMS_BASELINE_DISPLAY_VERSION}</small><ChevronDown size={13} /></summary>
-            {successorCount > 0 ? <p className="fms-version-generation-summary"><b>{FMS_SUCCESSOR_DISPLAY_VERSION}:</b> {FMS_SUCCESSOR_GENERATION_SUMMARY}</p> : null}
-            <p className="fms-version-generation-summary"><b>{FMS_BASELINE_DISPLAY_VERSION}:</b> {FMS_BASELINE_GENERATION_SUMMARY}</p>
-            {sections.visited.includes("benchmarks") ? <ChartMacroBiasRealtimeCard data={data} view="setups" embedded /> : null}
+            <summary><span>Registered setup versions</span><small>{registeredCount} {displayVersion}</small><ChevronDown size={13} /></summary>
+            <p className="fms-version-generation-summary"><b>{displayVersion}:</b> {displayVersion === FMS_SUCCESSOR_DISPLAY_VERSION ? FMS_SUCCESSOR_GENERATION_SUMMARY : FMS_BASELINE_GENERATION_SUMMARY}</p>
+            {sections.visited.includes("benchmarks") ? <ChartMacroBiasRealtimeCard data={data} view="setups" embedded displayVersion={displayVersion} /> : null}
           </details>
           <details open={sections.open.includes("research")} onToggle={(event) => toggleSection("research", event.currentTarget.open)}>
             <summary><span>Research / reviews</span><small>Diagnostics, queues, and candidates</small><ChevronDown size={13} /></summary>
             {sections.visited.includes("research") ? <>
               {catalogueRequested ? <Suspense fallback={<p className="fms-version-generation-summary">Loading saved research catalogue…</p>}><FmsRecipeCatalogue /></Suspense> : null}
-              <ChartMacroBiasRealtimeCard data={data} view="research" embedded />
+              <ChartMacroBiasRealtimeCard data={data} view="research" embedded displayVersion={displayVersion} />
             </> : null}
           </details>
           <details open={sections.open.includes("knowledge")} onToggle={(event) => toggleSection("knowledge", event.currentTarget.open)}>
@@ -187,11 +187,23 @@ export function ChartFmsDock({
         <button type="button" className={tab === "setups" ? "is-active" : ""} disabled={!realtime} onClick={() => onSelectTab("setups")}>Setups</button>
         <button type="button" className={tab === "result" ? "is-active" : ""} disabled={!audit} onClick={onSelectAuditTab}>Past Result</button>
       </nav>
+      {realtime && tab !== "result" ? <div className="fms-dock-version-bar">
+        <span>FMS version</span>
+        <div className="fms-arrow-version-toggle" role="group" aria-label="FMS display version">
+          {([FMS_BASELINE_DISPLAY_VERSION, FMS_SUCCESSOR_DISPLAY_VERSION] as const).map((version) => <button
+            key={version}
+            type="button"
+            className={arrowVersion === version ? "is-active" : ""}
+            aria-pressed={arrowVersion === version}
+            onClick={() => onSelectArrowVersion(version)}
+          >{version}</button>)}
+        </div>
+      </div> : null}
       <div className="chart-fms-dock-content">
         {journalVisitedRef.current && realtime ? (
           <div className="chart-fms-dock-pane" hidden={tab !== "journal"}>
             <FmsDockErrorBoundary>
-              <ChartFmsJournalCard data={realtime} onGoToArrow={onGoToArrow} onGoToEvent={onGoToEvent} />
+              <ChartFmsJournalCard data={realtime} displayVersion={arrowVersion} onGoToArrow={onGoToArrow} onGoToEvent={onGoToEvent} />
             </FmsDockErrorBoundary>
           </div>
         ) : null}
@@ -206,7 +218,6 @@ export function ChartFmsDock({
                   arrowVersion={arrowVersion}
                   historicalPatternFilters={historicalPatternFilters}
                   onToggleHistoricalMatches={onToggleHistoricalMatches}
-                  onSelectArrowVersion={onSelectArrowVersion}
                   onToggleHistoricalPattern={onToggleHistoricalPattern}
                   onSetAllHistoricalPatterns={onSetAllHistoricalPatterns}
                   onGoToArrow={onGoToArrow}
@@ -216,7 +227,7 @@ export function ChartFmsDock({
                   onViewStateChange={onTradeViewStateChange}
                 />
               : tab === "setups" && realtime
-                  ? <FmsSetupsWorkspace data={realtime} />
+                  ? <FmsSetupsWorkspace data={realtime} displayVersion={arrowVersion} />
                   : <section className="chart-fms-dock-loading" aria-live="polite">
                       <strong>{loading ? "Loading FMS Trade…" : "FMS Trade unavailable"}</strong>
                       <span>{loading ? "Cached decisions and the selected market are being restored." : "No registered FMS response is available for this market."}</span>

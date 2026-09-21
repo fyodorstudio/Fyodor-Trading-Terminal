@@ -15,7 +15,7 @@ import {
   normalizeShadowStartingBalance,
 } from "@/app/lib/macroSignalShadow";
 import { formatChartFeedTime, formatChartUtcMetadataTime, type ChartDisplayTimeMode } from "@/app/lib/chartView";
-import { FMS_BASELINE_DISPLAY_VERSION, FMS_SUCCESSOR_DISPLAY_VERSION } from "@/app/lib/fmsDisplayVersion";
+import { FMS_BASELINE_DISPLAY_VERSION, FMS_SUCCESSOR_DISPLAY_VERSION, projectFmsMarketVersion, type FmsDisplayVersion } from "@/app/lib/fmsDisplayVersion";
 import type { MacroSignalChartPattern, MacroSignalChartSignal, MacroSignalChartSignalResponse, MacroSignalGlobalResponse, MacroSignalPatternAssessment, MacroSignalResearchIntelligence, MacroSignalUpcomingPatternWatch } from "@/app/types";
 
 const SHADOW_BALANCE_KEY = "fyodor.charts.shadow-starting-balance";
@@ -502,7 +502,7 @@ function CurrencyFlag({ currency }: { currency: string }) {
 
 export type ChartMacroBiasRealtimeView = "all" | "setups" | "research";
 
-export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCard({ data, view = "all", embedded = false }: { data: ChartMacroBiasRealtimeCardData; view?: ChartMacroBiasRealtimeView; embedded?: boolean }) {
+export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCard({ data, view = "all", embedded = false, displayVersion }: { data: ChartMacroBiasRealtimeCardData; view?: ChartMacroBiasRealtimeView; embedded?: boolean; displayVersion?: FmsDisplayVersion }) {
   const RegisteredListContainer = view === "setups" ? "section" : "details";
   const { response, activeSignal, activePattern } = data;
   const displayTimeMode = data.displayTimeMode ?? "local";
@@ -522,8 +522,9 @@ export const ChartMacroBiasRealtimeCard = memo(function ChartMacroBiasRealtimeCa
   const [startingBalance, setStartingBalance] = useState(() => normalizeShadowStartingBalance(readStoredNumber(SHADOW_BALANCE_KEY, DEFAULT_SHADOW_STARTING_BALANCE)));
   const [riskPercent, setRiskPercent] = useState(() => normalizeShadowRiskPercent(readStoredNumber(SHADOW_RISK_KEY, DEFAULT_SHADOW_RISK_PERCENT)));
   const registryResponses = useMemo(
-    () => data.globalResponse?.markets.filter((market) => market.supported) ?? [response],
-    [data.globalResponse, response],
+    () => (data.globalResponse?.markets.filter((market) => market.supported) ?? [response])
+      .map((market) => displayVersion ? projectFmsMarketVersion(market, displayVersion) : market),
+    [data.globalResponse, displayVersion, response],
   );
   const currencySymbols = useMemo(() => [...new Set(registryResponses.flatMap((market) => [market.symbol.slice(0, 3), market.symbol.slice(3, 6)]))].sort(), [registryResponses]);
   const upcomingWatchEntries = useMemo(() => {

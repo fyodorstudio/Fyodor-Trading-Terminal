@@ -41,6 +41,7 @@ import {
 } from "@/app/features/fms-arrow-navigation/arrowNavigation";
 import { getMacroBiasInitialLoadPlan } from "@/app/tabs/primary/ChartsTab";
 import { preferFmsMarketSnapshot } from "@/app/features/fms-arrow-navigation/useChartMacroBiasData";
+import { fmsReviewRecordKey, projectFmsMarketVersion } from "@/app/lib/fmsDisplayVersion";
 
 describe("pair-switch FMS loading", () => {
   it("presents the frozen v2 decisions without eager detail tables or mutation controls", () => {
@@ -817,8 +818,7 @@ describe("getChartConnectionLabel", () => {
     }, historicalMatchesVisible: true, historicalMatchesCount: 42, onToggleHistoricalMatches: () => {}, onGoToArrow: () => {} }));
     expect(actionHtml).not.toContain("Registered rules only");
     expect(actionHtml).toContain("Past arrows");
-    expect(actionHtml).toContain('aria-label="FMS arrow version"');
-    expect(actionHtml).toContain('class="is-active" aria-pressed="true"');
+    expect(actionHtml).not.toContain('aria-label="FMS arrow version"');
     expect(actionHtml).toContain("Search setups");
     expect(actionHtml).not.toContain("Fresh:");
     expect(actionHtml).toContain("Next registered setups");
@@ -1066,6 +1066,39 @@ describe("getChartConnectionLabel", () => {
     expect(html).toContain("does not filter, reverse, suppress, or justify a registered trade");
     expect(html).not.toContain("Can I follow this blindly?");
     expect(html).not.toContain("Earlier EURUSD calendar row");
+  });
+
+  it("separates v1 and v2 setup, activity, and audit-note identities", () => {
+    const successor = {
+      id: "setup", label: "Setup", currentEligible: true, execution: { stopAtr: 1, targetR: 2, expiryCandles: 30 },
+      successorReview: {
+        id: "v2", status: "reviewed_active", displayVersion: "FMS v2", activatedAt: 200,
+        registryHash: "hash", previousExecution: { stopAtr: 1, targetR: 2, expiryCandles: 30 },
+        currentExecution: { stopAtr: .75, targetR: 3, expiryCandles: 18 },
+      },
+    } as MacroSignalChartPattern;
+    const response = {
+      supported: true, symbol: "EURUSD", patterns: [successor],
+      signals: [
+        { id: "v1", patternId: "setup", eventTime: 100, registeredVersion: "FMS v1" },
+        { id: "v2", patternId: "setup", eventTime: 300, registeredVersion: "FMS v2" },
+      ],
+      realtime: { patternAssessments: [
+        { patternId: "setup", time: 100, status: "no_trade" },
+        { patternId: "setup", time: 300, status: "no_trade" },
+      ], upcomingPatternWatches: [{ patternId: "setup", time: 400 }] },
+    } as unknown as MacroSignalChartSignalResponse;
+    const v1 = projectFmsMarketVersion(response, "FMS v1");
+    const v2 = projectFmsMarketVersion(response, "FMS v2");
+    expect(v1.patterns).toHaveLength(1);
+    expect(v1.patterns[0].activeExecution).toMatchObject({ stopAtr: 1, targetR: 2, expiryCandles: 30 });
+    expect(v1.signals.map((signal) => signal.id)).toEqual(["v1"]);
+    expect(v1.realtime?.patternAssessments?.map((row) => row.time)).toEqual([100]);
+    expect(v2.patterns[0].activeExecution).toMatchObject({ stopAtr: .75, targetR: 3, expiryCandles: 18 });
+    expect(v2.signals.map((signal) => signal.id)).toEqual(["v2"]);
+    expect(v2.realtime?.patternAssessments?.map((row) => row.time)).toEqual([300]);
+    expect(fmsReviewRecordKey("EURUSD", "setup", 100, "FMS v1")).toBe("EURUSD:setup:100");
+    expect(fmsReviewRecordKey("EURUSD", "setup", 100, "FMS v2")).toBe("EURUSD:setup:100:fms-v2");
   });
   it("compounds the gross shadow account sequentially and skips overlapping signals", () => {
     const makeSignal = (id: string, activationTime: number, exitTime: number, resultR: number, outcomeStatus: "target_hit" | "stop_hit"): MacroSignalChartSignal => ({

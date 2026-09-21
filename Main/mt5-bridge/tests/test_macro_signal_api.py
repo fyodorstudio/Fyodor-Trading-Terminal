@@ -138,7 +138,6 @@ def test_trade_startup_endpoint_never_rebuilds_all_markets_after_model_revision(
   monkeypatch.setattr(server, "research_chart_signals", lambda **_kwargs: pytest.fail("interactive registry should not rebuild markets"))
 
   response = server.research_global_chart_signals_startup()
-  global_response = server.research_global_chart_signals()
 
   assert response["startupProjection"] is True
   assert response["registrySymbols"] == ["AUDUSD", "EURUSD"]
@@ -148,15 +147,12 @@ def test_trade_startup_endpoint_never_rebuilds_all_markets_after_model_revision(
     for market in response["markets"]
     for pattern in market["patterns"]
   )
-  assert global_response["startupProjection"] is True
-  assert global_response["registrySymbols"] == ["AUDUSD", "EURUSD"]
-
   saved["modelHash"] = server.PRACTICAL_MODEL_HASH
   store.set_metadata("fms_global_chart_response:v1", json.dumps(saved))
   current_global_response = server.research_global_chart_signals()
 
-  assert current_global_response["startupProjection"] is True
-  assert current_global_response["registrySymbols"] == ["AUDUSD", "EURUSD"]
+  assert current_global_response["startupProjection"] is False
+  assert [row["symbol"] for row in current_global_response["markets"]] == ["AUDUSD", "EURUSD"]
 
 
 def test_cached_history_uses_bounded_query_and_keeps_ascending_candles(tmp_path: Path, monkeypatch) -> None:
