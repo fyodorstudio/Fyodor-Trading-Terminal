@@ -297,8 +297,80 @@ type HistoricalRecord = {
   totalComputed: boolean;
 };
 
+function historicalSummaryRecord(
+  pattern: MacroSignalChartPattern,
+  scope: string,
+  sourceId: string | null,
+  sample: number,
+  tpRate: number,
+  averageR: number | null,
+): HistoricalRecord {
+  return {
+    scope,
+    cohort: pattern.cohort ?? { dimension: "none", value: "all" },
+    sourceId,
+    sample,
+    targetHitCount: null,
+    tpRate,
+    stopHitCount: null,
+    stopRate: null,
+    expiredCount: null,
+    breakEvenCount: null,
+    ambiguousCount: null,
+    ambiguousCases: [],
+    unevaluableCount: null,
+    averageR,
+    totalR: averageR == null || sample === 0 ? null : averageR * sample,
+    totalComputed: averageR != null && sample > 0,
+  };
+}
+
 function historicalRecord(pattern: MacroSignalChartPattern): HistoricalRecord {
+  const cohort = pattern.cohort ?? { dimension: "none", value: "all" };
   const evidence = pattern.historicalEvidence;
+  if (evidence && typeof evidence.targetHitRate === "number") return {
+    scope: evidence.scope,
+    cohort: evidence.cohort,
+    sourceId: evidence.sourceId,
+    sample: evidence.evaluableCount,
+    targetHitCount: evidence.targetHitCount,
+    tpRate: evidence.targetHitRate,
+    stopHitCount: evidence.stopHitCount,
+    stopRate: evidence.stopHitRate,
+    expiredCount: evidence.expiredCount,
+    breakEvenCount: evidence.breakEvenCount,
+    ambiguousCount: evidence.ambiguousCount,
+    ambiguousCases: evidence.ambiguousCases ?? [],
+    unevaluableCount: evidence.unevaluableCount,
+    averageR: evidence.averageGrossR,
+    totalR: evidence.totalGrossR,
+    totalComputed: evidence.totalGrossRDerivation === "exact_mean_times_evaluable_n",
+  };
+  const successor = pattern.successorReview?.status === "reviewed_active" ? pattern.successorReview : null;
+  const successorHoldout = successor?.holdout;
+  const successorRate = typeof successorHoldout?.targetHitRate === "number" ? successorHoldout.targetHitRate : null;
+  if (evidence && successor && successorRate != null) {
+    const sample = typeof successorHoldout?.evaluableCount === "number" ? successorHoldout.evaluableCount : 0;
+    const averageR = typeof successorHoldout?.averageGrossR === "number" ? successorHoldout.averageGrossR : null;
+    return historicalSummaryRecord(pattern, "Chronological reused holdout · FMS v2 execution successor", successor.id, sample, successorRate, averageR);
+  }
+  const reviewed = pattern.executionReview?.status === "reviewed_active" ? pattern.executionReview.later : null;
+  const reviewedRate = typeof reviewed?.tpBeforeSl === "number" ? reviewed.tpBeforeSl : null;
+  if (evidence && reviewedRate != null) {
+    const sample = typeof reviewed?.evaluableN === "number" ? reviewed.evaluableN : 0;
+    const averageR = typeof reviewed?.averageR === "number" ? reviewed.averageR : null;
+    return historicalSummaryRecord(pattern, "Chronological later cases · reviewed execution successor", pattern.executionReview?.configurationHash ?? pattern.historicalBenchmark?.experimentId ?? null, sample, reviewedRate, averageR);
+  }
+  const entryReview = pattern.entryReview?.status === "reviewed_active" ? pattern.entryReview : null;
+  if (evidence && entryReview && typeof entryReview.later.targetHitCount === "number" && entryReview.later.laterN > 0) {
+    const sample = entryReview.later.laterN;
+    return historicalSummaryRecord(pattern, "Chronological later matched cases · reviewed H1 entry", entryReview.id, sample, entryReview.later.targetHitCount / sample, entryReview.later.h1AverageR);
+  }
+  const benchmark = pattern.historicalBenchmark;
+  if (evidence && benchmark && typeof benchmark.targetFirstRate === "number") {
+    const scope = benchmark.basis === "chronological_holdout" ? "Chronological holdout · registered contract" : "Walk-forward pooled benchmark · registered contract";
+    return historicalSummaryRecord(pattern, scope, benchmark.experimentId, benchmark.walkForwardN, benchmark.targetFirstRate, benchmark.walkForwardAverageR);
+  }
   if (evidence) return {
     scope: evidence.scope,
     cohort: evidence.cohort,
@@ -320,7 +392,7 @@ function historicalRecord(pattern: MacroSignalChartPattern): HistoricalRecord {
   const metrics = pattern.overall;
   return {
     scope: "Overall registered-contract history",
-    cohort: pattern.cohort ?? { dimension: "none", value: "all" },
+    cohort,
     sourceId: pattern.historicalBenchmark?.experimentId ?? null,
     sample: metrics.evaluableCount,
     targetHitCount: metrics.targetHitCount,
@@ -655,7 +727,7 @@ export const ChartFmsActionCard = memo(function ChartFmsActionCard({
                     <tr><th>Payoff shape</th><td>{row.pattern.reactionAudit?.profile?.targetEvidence ? `Median ${row.pattern.reactionAudit.profile.targetEvidence.medianR == null ? "unavailable" : `${signed(row.pattern.reactionAudit.profile.targetEvidence.medianR)}R`} · expired ${row.pattern.reactionAudit.profile.targetEvidence.expiredRate == null ? "unavailable" : `${(row.pattern.reactionAudit.profile.targetEvidence.expiredRate * 100).toFixed(1)}%`} · largest win share ${row.pattern.reactionAudit.profile.targetEvidence.topOneWinShare == null ? "unavailable" : `${(row.pattern.reactionAudit.profile.targetEvidence.topOneWinShare * 100).toFixed(1)}%`} · drawdown ${row.pattern.reactionAudit.profile.targetEvidence.maximumDrawdownR.toFixed(2)}R · losing streak ${row.pattern.reactionAudit.profile.targetEvidence.longestLosingStreak}` : "Detailed target evidence unavailable"}</td></tr>
                     <tr><th>Period breadth</th><td>{row.pattern.yearStability.evaluableYears} represented years · {row.pattern.yearStability.positiveYears} positive · break-even TP reference {row.pattern.reactionAudit?.profile?.targetEvidence ? `${(row.pattern.reactionAudit.profile.targetEvidence.breakEvenTargetRate * 100).toFixed(1)}%` : "unavailable"}</td></tr>
                     <tr><th>Frozen decision rule</th><td>{row.pattern.condition}</td></tr>
-                    <tr><th>Required package</th><td>{row.watch?.requiredGroups.join(" · ") || row.pattern.groups.join(" · ")}</td></tr>
+                    <tr><th>Required package</th><td>{row.watch?.requiredGroups?.join(" · ") || row.pattern.groups?.join(" · ") || "Registered package definition"}</td></tr>
                     <tr><th>Scoring</th><td>{row.pattern.scoringPolicy?.replaceAll("_", " ") ?? "baseline"} · {row.pattern.reaction ?? "continuation"}</td></tr>
                     <tr><th>Entry and expiry</th><td>First eligible {row.pattern.execution?.entryTimeframe ?? "H4"} open · maximum {row.pattern.execution?.expiryCandles ?? 30} H4</td></tr>
                     <tr><th>Earlier-entry research</th><td>{entryResearchNote(row.market, row.pattern, displayTimeMode, sourceTimeOffsetSeconds)}</td></tr>

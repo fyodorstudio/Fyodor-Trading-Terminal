@@ -1,527 +1,224 @@
 # Current mission and handoff
 
-Updated 2026-09-21. The bounded FMS v2 successor campaign and automated verification are complete. Seventeen of 51 existing event–pair recipes now have explicitly registered event-specific execution successors; 34 retain FMS v1, including one reviewed fixed-H4 lead excluded because its live runtime has a separate context overlay. Existing FMS v1 arrows, outcomes, notes, contracts, model IDs and provenance remain immutable. A post-publication interactive-startup regression has been corrected in source; the bridge was not restarted by the agent, so live MT5/Chrome rapid-switch, cold-start, lifecycle, and 1440×900 visual checks remain the owner's final gate after one normal restart. The separate direction-only event-respect campaign remains frozen and event-aware open-trade management remains deferred. Rules: [AGENTS](../../AGENTS.md). Durable context: [CONTEXT](../../CONTEXT.md). Unknown owner: [navigation](../NAVIGATION.md).
-
-## 21 Sep interactive recovery checkpoint
-
-- Confirmed cause: a changed FMS model hash made the non-refresh global registry endpoint fall through to a synchronous ten-market research rebuild. That rebuild competed for process-global MT5 access with foreground chart history, caused `503 MT5 is busy and no cached chart history is available`, delayed first paint, and left Trade showing only the selected market while the global response was pending. Even a current saved global response was multi-megabyte and took seconds to adapt because four archived evidence payloads were unnecessarily resolved for first paint.
-- Corrected contract: non-refresh `/research/chart-signals/global` and `/research/chart-signals/startup` are now MT5-free bounded projections. They reconstruct the complete current registry from code-owned definitions, reuse safe saved scheduling metadata, omit heavyweight archived evidence until a pair is selected, expose all 10 markets and all 51 currently eligible setups, and never perform the authoritative research rebuild. The explicit `refresh=true` path remains the only global rebuild path.
-- Chart responsiveness: selected history retries short-lived foreground MT5 contention while retaining resident candles. Rapid pair switching now supersedes obsolete queued selected-history requests, so at most the already-running request can precede the newest selection; background warm/deep queues do not gain foreground priority. Runtime FMS candle acquisition uses cached coverage first, bounds terminal acquisition, and yields immediately when MT5 is busy.
-- Measured without starting a service: the bounded non-refresh global projection fell from about 4.2 seconds to about 0.29 seconds on the current durable store; startup projection was about 0.06 seconds. Both returned 10 markets, 51 patterns, and 51 eligible patterns. This is function-level evidence, not a claim of browser latency.
-- Automated verification: 120/120 bridge tests and 267/267 frontend tests pass; TypeScript and production build pass. Existing five backend deprecation warnings and known large production chunks remain. No agent-started bridge/MT5/browser service was used.
-- Owner gate after one normal bridge restart: hard-refresh Charts and confirm Trade > Next immediately contains setups from all registered pairs, not only the selected symbol; rapidly click/spam common and unusual Market Watch symbols and confirm the newest chart wins without a fatal 503 screen; switch timeframes; run Go to arrow/Review; verify Trust State remains stable and the activity log does not show a synchronous global rebuild. If a never-downloaded broker symbol has no MT5 history, a genuine no-data state may still be shown and must not be confused with lock contention.
-- Arrow-version audit control: Trade now keeps Past arrows on/off separate from a persisted `FMS v1` / `FMS v2` chart-overlay switch. Missing version metadata is conservatively v1, and Go to arrow selects the immutable version carried by that record before navigating. The current durable runtime snapshots contain 31 arrows, all v1; the newest is 18 Sep 2026 23:15 Asia/Jakarta, before v2 activation on 20 Sep 2026 16:30 Asia/Jakarta. An empty v2 view is therefore currently correct; old arrows must never be relabeled to populate it.
-- Repository hygiene and decomposition are explicitly deferred until the owner reopens them. Do not mix monolith extraction, route cleanup, or file moves into FMS collection/audit work or stability fixes.
-
-## FMS v1/v2 goal — implementation checkpoint
-
-The owner's BTCUSD sample established that current MQL calendar/candle times and Python MT5 candle opens share the broker-native clock, approximately +3h from UTC receipt time. Fyodor now retains that mapping per first-seen package and performs one bounded, broker-catalog-scoped current SDK candle calibration before using native time for first-decision eligibility or evaluator `as_of`. Stale, inconsistent, busy, unavailable, scope-mismatched or transition-uncertain clock evidence fails closed without discarding the release package or freezing a new decision. Existing decisions and closed signals keep their stored execution, version, geometry and result. Historical offsets/DST are not inferred and display timezone remains presentation-only.
-
-Current delivered slice:
-
-- Frozen [source inventory v2](artifacts/fms-v2-research-2026-09-20/source-inventory-v2.json), [clock verification](artifacts/fms-v2-research-2026-09-20/source-clock-verification-v1.json) and [event-execution research](artifacts/fms-v2-research-2026-09-20/event-execution-v1/research.json) are reproducible offline and do not import the live server, FastAPI or MetaTrader5. The execution study evaluates 480 predeclared fixed-H4 contracts per recipe on one common complete 60-H4 path cohort. Development chooses; reused chronological holdout is revealed afterward. Same-H4 ambiguity remains explicit and is treated stop-first only for selection.
-- Research produced 18 exact matched fixed-H4 improvement leads. Seventeen passed explicit code-owned review and were published as `FMS v2` with activation `1789896633`; `USDJPY|usdjpy-us-manufacturing-employment` remains FMS v1 because its independent context contract makes the fixed-parent comparison non-exact. The two old USDJPY Needs Codex Review leads remain declined under their original evidence and are not relabeled as unfinished approvals.
-- Runtime publication is fail-closed and hash-validated. The registry has 17 profiles, source research hash `121a36ce7f2d5ba6514f6c465e9fe225ee29db9f88cbfcf62974ec00042f6730`, source manifest hash `8db181578f595a8d18a4c1b947df4c7fb05324d75ff506a32fe38f4e6d37920e` and registry hash `531381d685bf01316f7dfa86d937a6a5c896f500085c7abb25f653f3ddc5ce36`. Regeneration cannot auto-promote another identity or overwrite a changed frozen output.
-- A signal receives FMS v2 only after both its immutable activation boundary and verified broker-native decision clock. Clock verification unavailable means no new first decision and FMS v1 fallback; it does not rewrite or drop existing records. Current patterns expose the active contract for inspection. Historical and frozen signals retain the version/execution captured when created.
-- Setups groups one coherent list into `FMS v2 — approved event-specific execution successors` and `FMS v1 — frozen registered baseline`. Research / reviews exposes all 51 decisions, exact TP-before-SL counts, gross means, chronology breadth, v1 comparator and provenance; the older common-policy ladder remains archived. Knowledge and Past Result use successor holdout evidence only for v2 signals and never invent unavailable profit-frequency/drawdown fields.
-- Deferred: release-near/M1 entry research, additional H1 timing, probabilistic support/resistance bands and event-aware management. They remain separate bounded hypotheses, not prerequisites for collecting new v2 outcomes.
-- Automated verification complete: 120/120 bridge tests, 265/265 frontend tests, TypeScript and the production build pass; five existing framework/time deprecation warnings and the known large lazy flag/chart/research chunks remain non-blocking. The 17-profile registry and compact surface reproduce identically from the frozen hashed research. A pre-publication frozen research rerun produced the recorded hashes; after runtime publication its source guard correctly refuses to rerun against the changed adapter rather than silently rewriting the study. The owner live/visual audit remains required. No service, MT5 terminal, order path, account access or external feed was started by the agent.
-
-Older bullet checkpoints below are dated history. This 20 Sep checkpoint supersedes their missing-clock, zero-registration and next-step claims.
-
-Owner reopened this plan with autonomous implementation/research authorization, prioritizing correctness and economical reuse over speed. No orders, real-account access, external feeds, retroactive contract changes, or late-game event-aware management are authorized. The old direction-only campaign/R5 decisions remain frozen; new research needs its own declared lineage rather than silently reopening that failed stage.
-
-- Implemented v1 presentation: Trade frozen-arrow control, the single Setups version dropdown, and chart marker text now consistently say `FMS v1`. Removed the redundant outer Registered benchmarks parent and inner Every registered setup disclosure for the embedded Setups view; Research / reviews and Knowledge remain reachable alongside the version list. The version section explains generation; each recipe row retains exact rules, execution geometry and source/setup IDs. Existing richer benchmark details are available inside the selected recipe rather than a second full registered list. Recovered and matching CONTEXT marker labels can coexist; underlying IDs/geometry/results are unchanged.
-- Source preparation: [FMS v2 Research](FMS%20v2%20Research.md) explains the goal, existing decisions, limitations and next research sequence. [Frozen source inventory](artifacts/fms-v2-research-2026-09-15/source-inventory-v1.json), manifest `18dd7aa7ef2d6bbb7f6a897fb6a1cfb74d6a0a1baa4528918c064273ea0cf8fd`, pins 51 identities/10 markets, 5,664 included saved cases, eight reviewed H1 records, 20 documented notes and one disposable test. The 9 Sep saved registry snapshot is dated evidence, not current eligibility proof; its identity set matches the current source profiles. The three execution approval identities and eight reviewed H1 source contracts now reconcile with their pinned artifacts; current runtime activation/lifecycle verification remains pending.
-- Catalogue milestone: [as-recorded catalogue v4](artifacts/fms-v2-research-2026-09-15/catalogue-v4/catalogue.json), manifest `d5b3732b8468e4f7b418cdf0b06a3e366bbf717660064999170120e6eb467bf3`, retains all 51 recipes and 459 declared fixed reference contracts (1-ATR stop; 0.5/1/2R targets; 6/12/30 H4 horizons), plus 44 matching archived contracts separately. Economic alignment, trade alignment, excursions, eventual touches and TP-before-stop remain distinct with exact missing/ambiguous counts. Reference geometry comes independently from one pinned candle snapshot, avoiding selective exclusion from old broker-price revisions; original contracts/results remain unchanged. Earlier failed/superseded catalogue declarations remain preserved and explained in the article. No registration or optimized selection occurred.
-- Financial timing gate: 45 distinct stored EA completion/bridge receipt pairs show server-minus-receipt 10,799–10,801 seconds, median 10,800. MQL5 documents calendar time as server time and Python candles as UTC; actual historical cross-source alignment is not verified. V4 explicitly marks `successorTimingEligible: false`; its results are descriptive as-recorded comparisons, not verified post-information execution. Frozen acknowledgement samples and their hash are retained beside its manifest. Do not shift immutable history or infer historical/DST offsets from today's difference. Next: establish native EA/calendar versus Python-bar clock mapping and historical period evidence before qualified successor timing research. Review classification and compact lazy publication can proceed without that mapping; approval cannot.
-- Native-clock acquisition implemented: the calendar EA's existing cycle POST now optionally includes raw UTC/server clocks, attached-symbol tick and cached M1/H4 last-bar times, with zero for unavailable series. No history synchronization, account access, order action or release conversion was introduced. Validated samples are stored independently as a daily immutable first sample plus latest diagnostics, even for failed uploads; old EAs without samples remain accepted. Async `/research/source-clock` reads only stored metadata and age, never MT5. Existing-file contract tests protect raw-time preservation, no MT5 calls, no failed-cycle promotion, immutable daily samples, old-EA compatibility and invalid-sample rejection. A temporary copy compiled in `C:\Program Files\MetaTrader 5\metaeditor64.exe` with `0 errors, 0 warnings` (compiler log `C:\Users\Administrator\AppData\Local\Temp\fyodor-clock-compile-cc3be2f52946452387cd36aba209ffbf\compile.log`); no terminal files/attachments were deployed or modified. Owner bridge probe is still offline; no agent service was started. Owner action required: restart bridge and compile/reload the updated calendar EA in its usual MT5 location, leaving QuoteBridge unchanged; wait for one timer cycle. Then compare native/Python same-symbol candle timestamps before deciding historical alignment. Diagnostic availability is not a completed timing gate. Because the adapter source changed, old catalogue preparation correctly refuses its original full-adapter hash; declare a new inventory for subsequent research, never rewrite the frozen hash/results. Frozen-only surface publication remains valid.
-- Material review finding: all existing execution artifacts already have original review decisions (48 declined; three code-owned approval identities). The saved Needs Codex review leads for USDJPY Japan consumer-confidence and US non-manufacturing business-activity are already declined under their original sample/year/streak checks. Their positive historical evidence remains a lead, but do not claim those original reviews are unfinished, erase failures, or call the same artifact a new v2 approval. This checkpoint is not 48 newly completed manual case audits; context/data/entry review still needs classification.
-- Research publication: Setups > Research / reviews now opens the saved event–pair catalogue with Pair/Horizon/Evidence selectors and one expanded recipe table at a time. It distinguishes economic versus trade alignment, eventual target touch versus TP-before-stop, exact ambiguous/unavailable counts, original review decisions/failed checks, source lineage and a short research article. All 48 original declines and three reconciled baseline approvals match the frozen source exactly. The live Needs Codex review queue remains separate and explicitly explains that an execution lead is not proof its original study is unreviewed; unresolved outcome/context case classification still needs work. The publisher reads only a hash-verified frozen JSON when `--publish-surface` is used, queries no SQLite, refuses changed output, and contains no registration action. The generated summary/component build into a separate dynamic-import chunk (about 94 kB gzip), absent from the initial bundle's embedded evidence. Closed persisted visited sections do not request that chunk on startup; after opening within this mount, filters/expanded state survive disclosure closure. Only an expanded recipe renders a table. No browser performance/layout claims are made.
-- Documented-note audit: [path audit v4](artifacts/fms-v2-research-2026-09-15/documented-note-path-audit-v4.json), hash `c914bae1fddb0aa6249bf39abe928477630b28d6755da5821b9ce080a8e41ab4`, replays all 20 pinned documented arrows through the canonical pure H4/H1 evaluators; saved outcomes/geometry/R/exit times match in every case. Nineteen use dated current snapshots; the pre-registration EURUSD industrial-output arrow was located in a compatible-model historical replay with explicit key/hash, not removed or inferred from another setup. The flagged NZDUSD payroll arrow is now a saved -1R stop (entry 0.58704, stop 0.5827702820, target 0.5913097180, exit `1789041600`); cached path agrees. The old screenshot's exact missing-data/cache cause is unproven without its original response. USDJPY Japan-wages H1 retains an invalid-pre-release flag whose receipt is 10,765 seconds before the raw release time—close to the measured acknowledgement clock difference; investigate clock comparability, do not automatically shift timestamps or certify capture. These are as-recorded path checks, not scoring/package/clock validation or 20 new independent samples. Original notes/results remain untouched. Earlier tool audit iterations remain preserved and their limitations are explained in the research article. Read-only CLI: `scripts/fms_prepare_v2_research.py --audit-notes-from <frozen inventory> --output <new versioned audit>`; existing-file tests protect H4/H1 frozen ATR placement, no input mutation/promotion, revised entry prices, canonical discrepancies and unresolved finer ordering. No native clock sample has arrived in the durable DB; financial timing gate still awaits owner deployment.
-- Reusable verification: all 265 frontend tests, `pnpm run typecheck`, production build and 40 focused macro/research tests pass. Existing-file regressions protect review retention/non-promotion, independent pre-entry geometry, stop-first versus eventual touches, same-bar ambiguity, opening-gap losses beyond -1R, incomplete paths/unknown archive counts, refusal to infer historical clock alignment, exact projection denominators/source isolation, no eager collapsed recipe tables and no closed-visited-section catalogue load. Full published JSON equality with the pure frozen-source projection verifies all recipes/partitions, not just a sample row. Catalogue generation and identical frozen replay pass. Offline tools use a read-only SQLite transaction, never import server/FastAPI/MetaTrader5, and refuse changed frozen overwrites. The build retains large-chunk warnings; this catalogue chunk is deliberately lazy. No browser automation or agent-started service was used. The owner bridge was unavailable during the earlier registry probe; no restart was attempted, and research used durable data only.
-- Remaining required work: resolve the financial timing gate; verify current baseline activation/lifecycles; classify unresolved outcome/context review cases; review bounded release-entry/structure/geometry/duration hypotheses against all eligible cases while reusing prior exhaustion evidence; explicitly challenge/publish qualifying v2 recipes (if any) with preserved v1; verify the actual successor and document forward-collection/manual gates. Do not mark the goal complete on the v1/inventory/descriptive-catalogue/publication milestones alone.
-
-Owner live/visual gate for this slice:
-
-- After the normal bridge restart and one CalendarBridge cycle, Trust State should remain healthy and `/research/source-clock` should show a recent current mapping plus current SDK candle verification. A temporarily busy/unavailable calibration may show “awaiting clock verification,” but must neither freeze a first decision nor lose the release; the next normal request/cycle should reconcile it.
-- Setups must show 17 FMS v2 and 34 FMS v1 recipes (51 total), with each v2 row displaying its event-specific contract and explicit v1 comparator. The USDJPY US manufacturing-employment recipe must remain v1/context-aware. Research / reviews should expose 51 decision rows, 18 matched leads, 17 registrations and one explicit exclusion.
-- Pick an old pre-activation frozen arrow and confirm its marker/Past Result remain FMS v1 with unchanged entry, SL, TP, expiry, outcome and audit note. After a genuinely new eligible matching release, confirm its arrow is FMS v2 and uses exactly the displayed successor execution. A release captured while the current clock is unverified must not become a frozen decision.
-- At 1440×900/100% Chrome zoom, open/close the version list, Research / reviews and Knowledge; filter pairs/partitions and expand several recipes. Verify bounded internal scrolling, no whole-page horizontal overflow, readable tables and persistent disclosure state. Recheck Go to arrow, Journal/Trade notes and dock switching for regressions. Visual/interactive validation remains the owner's; automated checks do not substitute for it.
-
-## Early-finish checkpoint
-
-- Source-clock acquisition verification (15 Sep): complete bridge suite passes 116/116, including existing calendar/first-seen/lifecycle/quote contracts and the new optional native-sample regressions. MQ5 temporary-copy compilation passes with zero errors/warnings; `git diff --check` passes. Existing framework/time deprecations remain non-blocking. Live native/Python comparison still awaits owner deployment; no service/terminal was started by the agent.
-- Latest Review/backpressure verification: TypeScript passed, all 264 frontend tests passed, all 107 bridge tests passed, and `git diff --check` passed. The live bridge was not restarted or replaced during this fix; the owner must restart it once to activate the new deferred-response contract. Existing framework/time deprecations remain non-blocking.
-- Review-triggered history backpressure correction (15 Sep): reproduced `/history?symbol=AUDJPY&tf=M1&background=true` returning 503 solely because Market Watch's activity grace was active while the bridge remained generation 1/zero restarts. Background Market Watch/MT5-lock deferrals now return HTTP 202 with a typed `deferred` envelope and Retry-After, never an empty candle array. The client records these as informational deferrals, stops the obsolete warming batch, and does not cache empty data; real foreground/terminal/transport errors remain visible. If Review promotes a warm load after its background request has started, a deferral triggers exactly one foreground retry on the shared promise instead of failing the selected chart. Existing targeted regressions cover deferral logging, batch stop, cache isolation, promotion retry, and genuine foreground 503. Owner still needs one bridge restart and browser-only Review audit; no browser automation was used.
-- Completed: P0 architecture baseline; P1 market-data feature seams; P2 optional independent quote publisher, broker-adaptive catalog/cache safeguards, virtualized Market Watch, bounded warmer, and diagnostics.
-- Completed P3: Go to arrow stages market/timeframe selection, scoped history coverage, immutable signal lookup, exact arrow selection, and focus with distinct failure reasons. FMS data/navigation, viewport preferences/panel state, event replay/Lens presentation, Pair Matrix state/cache/derivation/geometry, and left/bottom dock composition now have feature owners while compatibility exports remain intact.
-- Completed P4 implementation: Charts is the startup and sole normal primary workspace; Trust State now uses the selected chart market in the compact workbar; Economic Calendar is the third bottom-dock window; the FMS Workbench is an explicit Research secondary workspace; and hidden Overview/specialist route IDs remain lazy and recoverable without contributing route-owned CSS to normal startup.
-- Completed P5: the FMS Workbench is a four-job table workspace (`Declare / Run status / Results / Archive`); Reaction Atlas, execution outcomes, partitions, provenance, comparisons, candidates, and legacy records use explicit rows; the chart inspector is `Chart / Layers / Selected / Data / Diagnostics`; and Lens is a selected-release/evidence table rather than a settings surface.
-- Completed P6: dead Workbench card/disclosure CSS was removed after a zero-reference scan; active/garbage/lazy style boundaries remain intact; route IDs, compatibility exports, and every stored/generated record remain preserved. The deletion ledger below keeps larger removals pending explicit owner approval after normal use.
-- Completed P7: a versioned dock registry now constrains panel regions and defaults; the Chart Inspector can move Left/Right from its Chart section and reset to the recoverable default without remounting chart data.
-- Completed post-P7 stability fix: visible candle/history/stream state now carries the exact broker-catalog + symbol + timeframe identity, and mismatched buffers cannot render during a rapid market transition. FMS markers, selections, and price lines are removed before paint on symbol/timeframe change. A bridge-wide 409/503, transport loss, or timeout stops the obsolete background history batch rather than probing the remaining catalog; symbol-specific no-history failures stay isolated. When Python MT5 IPC is busy, fresh `FyodorQuoteBridge` rows provide nonblocking symbol context rather than falsely reporting the selected symbol disconnected. The retained-prototype drawer is reachable from Charts, lists every preserved legacy page, and each child exposes Back to Charts and Prototypes navigation.
-- Completed Trade-review workflow: every dated Next setup has a Review action that changes to its pair, enables frozen arrows, selects only that registered setup, and opens its note row. Current/Recent rows expose Add/Edit note. Notes use the stable `market:pattern:event-time` identity, so a scheduled note follows the same event into Recent; they are stored in the separate `fms_review_notes` SQLite ledger and exposed at `GET /research/review-notes`, never written into immutable signals, assessments, contracts, or outcomes. Go to arrow now uses the configured Default refocus width. Cold start uses a bounded `chart-signals/startup` projection containing every registered market, setup summary, and saved upcoming watch while excluding historical arrows and large research grids. The browser accepts/persists it only when its declared market set exactly matches its payload, removes the disposable oversized v1 cache, and then replaces in-memory startup data with the authoritative global response. The measured saved registry is complete across 10 markets/51 patterns; its startup projection is about 475 KB instead of 3.56 MB.
-- Completed Past Result audit-note extension: every selected frozen arrow now starts with an `Audit note` row in the existing plain result table. Add, edit, and remove reuse the durable review-note endpoint and the exact `market:pattern:event-time` activity key used by Trade > Recent, so the annotation follows the frozen case across those views while the immutable signal and outcome remain untouched. Note state/fetching stays in the FMS dock feature wrapper; `ChartMacroBiasAudit.tsx` remains a prepared table renderer, and an unfinished draft cannot move onto a newly selected arrow.
-- Completed audit-label and Trust activity pass: every note editor now has a fixed label selector (`Unlabeled / Bug / Take profit / Stop loss / Entry / Reaction / Verified OK / Question / Documented`) and saved notes show the label beside their text. The additive SQLite migration preserves old notes as `unlabeled`; label, market, setup, and literal-text filters plus matching indexes make the ledger directly queryable without loading unrelated annotations. The Trust State popover now overrides its inherited viewport-wide desktop grid with one compact column, removing the stretched/clipped blank region. Its bounded 160-entry Background activity ledger records cold-start bridge requests and durations, chart lifecycle messages, WebSocket transitions, Trust State, symbol-context changes, uncaught browser errors/rejections, caught FMS dock render failures, and main-thread stalls of at least 250 ms; it deduplicates identical bursts and exposes a Clear control. It is session-local diagnostic history, not an immutable research record or a replacement for Python traceback logs or deterministic validation.
-- Completed documented-note state: `Documented` is now a distinct note label in the shared editor, browser normalization, badge styling, bridge write validation, and query filter. It means the owner observation has been read and incorporated into this ledger, not that the frozen outcome is correct or that a model change is approved. The six substantive saved notes reviewed below were relabeled `documented`; the two disposable notes whose entire text is `test` remain `unlabeled`.
-- Completed live H4 holding-window correction: a contract expressed as N H4 candles now evaluates every available market candle for an early SL/TP and remains pending only when neither boundary has resolved and candle N does not yet exist. The live evaluator no longer treats `N × 4` elapsed wall-clock hours as proof that those candles should exist across weekends/session gaps. The chart-response schema advanced to 13 so stale cached `missing_outcome_candles` projections are not reused; immutable contracts and stored outcomes were not rewritten. Rebuilding the reported NZDUSD payroll case against the real durable store restored entry 0.58704, stop 0.58277028, target 0.59130972, and the genuine `stop_hit` result instead of `missing_outcome_candles`.
-- Completed Journal audit workflow: Journal now defaults to `All post-registration`; every qualified/recovered row has Go to arrow, every no-trade row has the honest Go to event action that focuses its H4 release candle, and every row can add/edit/remove the same durable labeled audit note shown by Trade because both views use the identical `market:pattern:event-time` key. A separate `Before registration arrows` section below the post-registration ledger lazily loads compact immutable `research_replay` rows across registered markets and partitions each setup at its own frozen `activatedAt` boundary. The bridge projection now carries that boundary through full, compact, startup, and legacy cached responses without changing model hashes or stored records. Pre-registration rows remain explicitly retrospective and never enter prospective/recovered totals.
-- Completed Journal responsiveness correction: durable replay caches expose up to 5,664 rows across the current registered markets, and the first Journal renderer mounted every row inside visually closed native disclosures. Dock entry/exit therefore created or destroyed thousands of table cells, while parent-owned note draft state repeated the archive render on every keystroke. Pre-registration history is now grouped into Jakarta Monday-Friday week parents, only 26 weekly summaries mount initially, older weeks remain reachable in 26-week pages, and a week table exists in the DOM only while its parent is open. Note drafts are row-local, so typing rerenders the active annotation rather than either Journal ledger. Post-registration day tables use the same conditional-mount rule.
-- Completed cold-start critical-path correction: the app shell no longer waits up to four seconds for bridge startup-registry I/O before React mounts. The saved projection hydrates synchronously, an absent projection loads behind the visible shell, and the authoritative registry follows it without withholding the first paint. The normal `pnpm run dev:all` path no longer wraps the heavy chart workspace in React's development-only double mount. Trade Current/Recent also exposes `Go to event` whenever a no-trade/decision row has no signal; this focuses the H4 release candle without fabricating an arrow.
-- Completed Journal dock-continuity correction: selecting an arrow from Journal no longer lets the resulting audit selection steal the dock into Past Result. After its first visit, Journal remains mounted but hidden behind other dock tabs, preserving its filter, scroll position, open day/week parents, loaded-week depth, and unsaved note draft without repeating its replay load. Trade/Setups arrow selection retains the existing automatic Past Result behavior.
-- Completed Go-to-arrow/Trade-dock release audit: navigation does not treat a startup projection or stale previous-pair response as the requested arrow source. It keeps waiting through pair/timeframe/history/signal/chart staging, performs one bounded missing-history request, selects the immutable signal, and applies the configured refocus width only after the requested market data and activation candle are present. When startup and full responses have equal timestamps, the richer full response wins so Current/Recent rows and latest-arrow links cannot be replaced by the signal-free projection.
-- Completed FMS console-markup correction: the reviewed-context market list is a neutral container rather than a paragraph, and the shared flag wrapper is inline-safe. Pair flags are now valid descendants of the Trade/Setups table labels, badges, and headings; the `validateDOMNesting` `<div>`-inside-`<p>` warning is removed without changing flag data or layout ownership. Chrome's yellow forced-reflow/long-handler notices remain performance diagnostics rather than bridge, lifecycle, or evidence failures.
-- Completed chart-header shell correction: the removed universal header had left a stale negative page margin, floating workbar, and viewport/dock offsets. Charts now owns the full app-shell area as two real rows—an auto-height command bar and a bounded chart viewport. Responsive command wrapping expands its row instead of covering the chart; the FMS dock starts at the viewport edge; and Trust State opens below its own button rather than using a fixed top coordinate.
-- Completed bridge liveness/readiness correction: the restart loop was a supervisor false positive, not an EA or MT5 crash. The watchdog had a one-second timeout against `/health`, while that diagnostic route could legitimately wait two seconds for the process-global MT5 lock and then call MT5/SQLite; valid busy generations were therefore terminated as "unresponsive." The supervisor now probes the async zero-dependency `/health/live` endpoint, which performs no MT5, SQLite, quote-store, executor, or research work. `/health` is an async cached readiness view and cannot initialize/probe MT5 or read SQLite during Trust polling; Python MT5 initialization is lazy so an unavailable terminal cannot prevent quote/calendar ingestion or durable reads from starting. Calendar JSON validation/writes, completed-cycle capture/query work, and each WebSocket MT5 poll now run off the event loop, so those legitimate tasks cannot starve either health endpoint. Managed children receive a 20-second startup grace and require six consecutive 2.5-second liveness failures before termination, with an eight-second graceful-stop window, stable-run backoff reset, 30-second crash-loop cap, guarded probes, safe port takeover/reuse, fail-safe bounded log rotation, and optional isolated port/log/database paths for diagnostics. The new route intentionally retains the compatible API revision: changing that label while the old launcher was still resident caused stale-revision restarts during hot reload; restoring compatibility stabilized the live generation across the final observation. Any large restart count shown before the owner performs one clean launcher restart is historical for that old launcher lifetime. The EAs and their HTTP contracts were not changed.
-- Completed event-respect campaign surface: the Workbench presents campaign status, legacy preservation, literal development/holdout/recent direction metrics, challenge decisions, and first-seen observations as tables. It loads the campaign independently of market-switch workbench requests. The legacy registered model is labeled `Legacy v4 · frozen contracts preserved`; Trade/Setups say legacy frozen arrows and every chart entry marker includes `LEGACY` without changing its immutable ID, direction, or geometry.
-- Latest reusable validation: TypeScript, all 262 frontend tests, the production build, all 106 bridge tests, campaign `py_compile`, launcher syntax, offline-import boundary scan, immutable-stage replay, HTTP health/campaign/workbench smoke, a 104 ms empty-prospective campaign response, and an isolated supervised restart smoke pass. The new lifecycle regressions prove liveness has no MT5/SQLite/quote dependency, cached readiness performs no MT5/SQLite call, both health surfaces respond while another thread owns the MT5 lock, deliberately blocked calendar storage does not block liveness, startup does not initialize MT5, and two consecutive forced child terminations advance generation `1 → 2 → 3` and restart count `0 → 1 → 2` on a temporary port/database before all test processes and artifacts are removed. Existing FastAPI lifecycle/time deprecation warnings and the known large chart/FlagIcon chunk warning remain non-blocking; no browser automation was run.
-- Latest holding-window regression: 70/70 focused macro-signal/API/store checks pass, including the case where elapsed wall-clock time exceeds the naive H4 duration but the required number of market candles does not yet exist.
-- Manual arrow notes remain useful supporting evidence: keep reviewing substantive cases and mark incorporated notes `Documented`. They do not alter the frozen campaign or select its prospective observations.
-- No legacy frozen record, model, setup recipe, release monitor, provenance field, or historical evidence artifact was rewritten. Superseded campaign attempts remain stored under their original versioned keys.
-
-## Non-negotiable product behavior
-
-- Local manual-trading support only. Fyodor sends no orders and makes no profitability promise.
-- Trusted inputs remain MT5 OHLCV and the broker economic calendar. Research stays gross; there is no new cost model or external feed.
-- Preserve immutable first-seen provenance, frozen contracts, no-lookahead semantics, unresolved outcomes, release monitoring, and all saved records.
-- Never silently rewrite a frozen result. A confirmed defect requires an explicit, versioned correction with the original record and provenance retained.
-- No setup is promoted automatically. Real-account access remains outside scope.
-- Target layout remains 1440x900 at 100% Chrome zoom. Browser automation has not been authorized; visual verification belongs to the owner.
-
-## Current owner investigation — frozen records
-
-The owner is reviewing registered arrows and will provide suspicious cases. No model, recipe, result, or historical record should change until the evidence is reviewed together and the owner explicitly authorizes a correction.
-
-### Accumulating audit observations — EURUSD, 2026-09-14
-
-Documentation state as of 15 Sep: the six substantive saved annotations represented in this section are labeled `Documented` in the durable note ledger. This is a review-tracking state only. It does not mutate or endorse any frozen contract, result, recipe, or evidence record.
-
-- The durable review-note query returned one `reaction` annotation: `EURUSD:us-industrial-output-directional:1787069700` (`US industrial-production package`, `FMS-EURUSD-GROWTH-H4-v7`, release 18 Aug 2026 23:15 Jakarta), with the owner's question whether price genuinely moved the other way. It did: the frozen short entered at 1.15791 on 19 Aug 03:00, moved at most 9.6 pips / +0.41R favourably against an 11.7-pip / +0.5R target, then reversed and hit the 1.160256 stop. Its six-H4 directional response was -3.78R and its 12/18/30-H4 responses remained negative. `evidenceReaction: followed` describes the registered evidence-to-direction mapping, not whether price subsequently followed it. Classification: correct frozen outcome and a genuine direction failure after a near-target miss; no placement or evaluation defect found.
-- Three later recovered-offline EURUSD shorts were visually flagged as possibly needing a longer expiry and a stop around 1.165+: `eurusd-ism-manufacturing-employment-package:1788282000` (`FMS-EURUSD-GROWTH-H4-v7`, 02 Sep 00:00 Jakarta), `eurusd-retail-sales-m-m-package:1788523200` (same source, 04 Sep 19:00), and `eurusd-us-payroll-short-restored:1788535800` (`FMS-EURUSD-LABOR-H4-v2`, 04 Sep 22:30). The 14 Sep H4 path confirms that manufacturing's original +1R target was eventually reached 52 H4 bars after entry and payroll's +1R target after 34 H4 bars. Both first had to survive an H4 high of 1.16537, so 1.16500 itself was insufficient before spread/slippage. Retail sales became directionally profitable (latest close approximately +1.40 original-risk R; maximum favourable approximately +1.87R) but its frozen +4R target at 1.14568 had not been reached through 14 Sep 19:00 Jakarta.
-- The retail-sales and payroll arrows share the exact 04 Sep 23:00 Jakarta H1 activation, 1.16012 entry, 1.16373 stop, and subsequent EURUSD path. Retain both immutable setup records, but treat them as one overlapping exposure/price episode in later inference rather than two independent confirmations. Manufacturing is earlier but overlaps the same eventual selloff. A move arriving 10–12 calendar days after release cannot yet be attributed solely to those releases.
-- Open hypothesis only: some correctly directed EURUSD event readings may express over a slower horizon after adverse excursion. Any later test must jointly freeze stop, target, duration, sizing/R definition, and overlapping-signal clustering across all eligible cases—not select only these survivors. Widening the stop changes the payoff ratio: relative to the minimum observed H4 high, the old manufacturing +1R target becomes roughly +0.48R, payroll +1R becomes roughly +0.69R, and retail +4R roughly +2.75R before an execution buffer. Do not modify or promote a contract from this observation; retain it for the separately deferred event-respect/high-TP campaign or a future explicitly authorized execution-challenger audit.
-- The `reaction` note on `NZDUSD:nzdusd-us-payroll-package:1788535800` correctly identified an initially aligned long and an entry-known resistance issue. The long entered 0.58704 with a confirmed 0.58916–0.58963 resistance band only 1.10 ATR away; price peaked at 0.58923 inside that band, +0.51R / 21.9 pips, then reversed and eventually hit the 0.58277 stop. The 0.59131 +1R target was approximately 20.8 pips beyond the observed peak, so this was not a tiny numeric TP miss, but it is a credible target-versus-known-barrier weakness. It shares the 04 Sep US payroll release with the audited EURUSD short and is not an independent release observation.
-- The `ok` note on `USDCAD:usdcad-us-producer-inflation:1789054200` describes a clean registered success: long 1.38251, +1R target 1.38642 reached after six H4 bars, six-H4 response +0.94R, and extended MFE approximately +2.05R through 14 Sep. Its entry-known resistance was higher at 1.38902–1.38922 and the later path tested/broke that area. This is useful trailing-exit evidence, but one winner cannot select a trailing rule. A future trusted-input-only intervening-information timeline is feasible: enumerate broker-calendar releases, currencies, values, impacts, and timestamps between entry, frozen exit, and later MFE. It can expose contamination by later scheduled data but cannot capture unsourced headlines or prove causation.
-- The `sl` note on `NZDUSD:nzdusd-us-producer-inflation:1789054200` identified a narrow initial stop-out: the 0.582715 stop was exceeded by roughly 1.35 pips on the frozen path. However, surviving until the later decline required a stop above the subsequent 0.58343 high—about 7.15 extra pips / 30% more than the frozen stop distance, before execution buffer. The later move reached approximately +1.58 original-risk R, not the frozen +2.5R target. Classification: genuine later direction recovery and a joint stop/duration/target challenger observation, not a mislabeled winning trade or outcome bug.
-- The `tp` note on `USDJPY:usdjpy-us-producer-inflation-rejection:1789054200` is supported as a barrier-placement observation. The short entered 154.342 with an entry-known strong six-touch support band at 153.093–153.312; price bottomed at 153.216 inside it while the +2R target sat below the band at 153.047. The frozen six-H4 expiry already booked +1.37R gross; extending duration alone would have been worse because the later path reversed to roughly -0.50 original-risk R by 14 Sep. A support-aware target or trailing/fixed-time exit can be tested later, but the existing result is profitable expiry rather than a loss.
-- The three 10 Sep producer-inflation arrows above are different pair/setup expressions of one US release. Preserve each path, but cluster them as one macro episode before judging breadth. Together they suggest target-versus-entry-known-barrier and post-target management are higher-priority challenger dimensions than indiscriminately extending every expiry.
-
-### Documented owner-note batch — 2026-09-15
-
-The following 14 substantive annotations were checked against the current immutable signal geometry and candle-path projection, recorded here, and then marked `Documented`. The remaining AUDJPY annotation whose entire text is `test` stays `Unlabeled`. These are observation-led candidate dimensions for the deferred campaign, not approval to change a setup.
-
-- `USDJPY:usdjpy-us-consumer-sentiment:1789146000` (12 Sep 00:00 Jakarta): the short entered 153.704, reached only +0.29R favourable excursion, and stopped at 154.88485. Its 152.52315 target was below the entry-known 152.876–152.921 support band, while the stop was above 154.607–154.659 resistance. Classification: both a genuine directional failure in the observed path and a credible target-beyond-support concern; older January/February structure is outside the current short H4 context window.
-- `USDJPY:usdjpy-jpy-labor-wages:1788834600` (08 Sep 09:30): the 153.818 short reached approximately +1.99R before reversing to its 154.29046 stop, while its target was 151.92817. The saved entry context found no active directional barrier, despite the longer-history support visible to the owner. Classification: a strong target-horizon/long-lookback-structure candidate, not an outcome-evaluation error.
-- `NZDUSD:nzdusd-us-trade-balance:1788449400` (03 Sep 22:30): the long entered 0.58798 with its first confirmed resistance at 0.58916–0.58963 only +0.68R away; four additional resistance zones existed before the 0.60054 target. It reached +0.69R before stopping. Classification: clear target-versus-ladder and entry-timing weakness. A limit-entry challenger is researchable, but must be frozen and evaluated across every eligible case rather than inferred from this survivor; the note's `0.85595` appears to mean approximately `0.58595` for NZDUSD.
-- `EURUSD:eurusd-us-payroll-short-restored:1788535800` (04 Sep 22:30): this is the already-discussed overlapping payroll path—short 1.16012, six-H4 expiry -0.64R, later move through the original target. The target aligned with an entry-known 1.15615–1.15661 support cluster; its much later support-to-resistance appearance is hindsight and cannot validate the entry-time decision by itself.
-- `AUDUSD:audusd-us-payroll-package:1788535800` (04 Sep 22:30): this is a clean +1R target hit. The 0.72184 target sat beyond the nearest 0.72041–0.72068 resistance band and price still broke through it. Classification: useful counterexample against turning every detected barrier into a hard target cap; broader-zone and breakout probability need comparison, not a deterministic rule.
-- `USDJPY:usdjpy-us-payroll-package:1788535800` (04 Sep 22:30): the short stopped on its entry H4 path before the later move reached the intended direction; six-H4 directional response was approximately +2.53R, while favourable excursion before the recorded stop was only +0.47R against the +0.5R target. Classification: genuine stop-first/near-target/late-follow-through observation, not a mislabeled frozen win. Its later move belongs to the same payroll macro episode.
-- `GBPUSD:gbpusd-ism-non-manufacturing-business-activity-package:1788454800` (04 Sep 00:00): the short cleanly hit its +1R target with only +0.11R adverse excursion. A deeper entry-known support near 1.34736 suggests theoretical room near +3R, but later reversal before that area shows why the existing conservative target was not plainly wrong. Classification: positive control and possible runner/trailing challenger, not a TP bug.
-- `USDCAD:usdcad-s-p-global-composite-pmi-package:1788453900` (03 Sep 23:45): the short had only +0.01R favourable excursion, a six-H4 response of about -1.34R, and stopped. Classification: direction failed before target placement became decisive; the noted consolidation is descriptive, but this case does not currently identify a deterministic filter.
-- `USDCHF:usdchf-us-employment-release:1788362100` (02 Sep 22:15): the long entered 0.81480 immediately above a still-listed 0.81453–0.81464 resistance band, made no favourable excursion, and stopped. Classification: failed-breakout/entry-location weakness and a role-transition ambiguity worth testing; it is not proof that every entry above resistance should be rejected.
-- `EURUSD:eurusd-ism-manufacturing-employment-package:1788282000` (02 Sep 00:00): the 1.15852 short entered inside the 1.15851–1.15879 support band, while its target lay beyond support near 1.15678. It reached +0.59R, expired near flat, and moved lower much later. Classification: credible entry-versus-structure and target-versus-barrier weakness; the late move remains contaminated by subsequent releases.
-- `AUDUSD:audusd-ism-manufacturing-employment-package:1788282000` (02 Sep 00:00): the short entered 0.71493 near the top of the owner's 0.71200–0.71556 box and just below 0.71524–0.71539 resistance, but the +4R target lay beyond support at 0.71369–0.71397. It stopped under the frozen contract; the target was touched only much later after new information. Classification: the entry was plausibly structure-aligned for a short, while target and duration were ambitious. The wide-box representation is a valid multi-scale structure candidate, not evidence that the frozen loss should become a win.
-- `USDCAD:usdcad-ism-manufacturing-employment-package:1788282000` (02 Sep 00:00): the long reached approximately +1.87R against its +2R target—about 2.4 pips short—then stopped. This is a real near-target sensitivity case. The nearest 1.39094–1.39100 resistance was broken, while the noted 1.38397–1.38443 support would require a stop wider than 3R of the frozen risk. Classification: candidate for bounded target-buffer testing; lowering TP after seeing this path would be hindsight overfit.
-- `USDJPY:usdjpy-us-employment-release:1788362100` (02 Sep 22:15): the short hit its +2R target on the entry candle with only +0.04R adverse excursion. Classification: clean positive control for the owner's resistance-buffer observation; it does not establish the optimal buffer size by itself.
-- `USDJPY:usdjpy-consumer-confidence-index:1788249600` (01 Sep 15:00): the short was stopped on its entry H4 candle while the entry-known price trend was opposed to the signal. Its six-H4 response was only about +0.30R; the much larger later decline followed the separate 02 Sep US employment release. Classification: valid trend-conflict candidate and a concrete intervening-release contamination example, not evidence that the 01 Sep frozen result was evaluated incorrectly.
-
-Cross-case direction now visible, still untested: represent support/resistance as multi-scale bands with longer D1/W1 history; distinguish breakouts and role transitions from intact zones; compare structural target caps/buffers, entry timing, and stop buffers; and cluster arrows from the same release before inference. The batch also contains counterexamples, so none of those dimensions should be made universal without a declared, untouched evaluation.
-
-For each case, retain or request:
-
-- Pair, setup/registration ID, source version, release date/time, and screenshot when useful.
-- The immutable release package and which values were known at decision time.
-- Direction vote and the exact reason the registered rule selected it.
-- Release-to-activation-candle mapping, entry timeframe, and timezone conversion.
-- Frozen entry, ATR, SL, TP, risk/reward, management, and maximum-duration formulas.
-- Candle path through resolution: TP first, SL first, expiry, same-candle ambiguity, or unavailable coverage.
-- First-seen provenance and whether the displayed record came from prospective, recovered, reviewed-entry, reviewed-execution, chronological-holdout, or pooled evidence.
-- Any disagreement between stored evidence, bridge projection, Past Result, chart placement, and Trade-row summaries.
-
-Classify each investigated case before proposing a change:
-
-- Correct but unintuitive registered behavior.
-- Chart placement or presentation defect.
-- Historical-evidence projection defect.
-- Stale or incomplete cached detail.
-- Outcome/path evaluation defect.
-- Genuine contract/model weakness.
-- Insufficient evidence; retain unresolved status.
-
-If a correction is warranted, document the confirmed cause, affected record set, immutable original, replacement/version identity, migration or projection behavior, regression evidence, and any remaining uncertainty before implementation.
-
-## Current implemented baseline
-
-- Rapid pair/timeframe switching no longer turns an expected chart WebSocket disconnect into a bridge traceback. Every stream send and close is lifecycle-safe, client disconnect frames are consumed promptly, obsolete streams stop polling MT5 immediately, and the error path never attempts a second send over an already-closed socket.
-- The bridge now has an optional no-trading `FyodorQuoteBridge.mq5` lane. It publishes complete/delta broker quote snapshots with publisher, broker/catalog, sequence, timestamp, and synchronization facts into a process-local store, allowing fresh `/symbols` reads to bypass Python MT5 history IPC. The original Python catalog path remains the automatic fallback.
-- Charts is usable as the working surface with Trade, Journal, Setups, and table-only Past Result docks.
-- Trade audit annotations are durable, editable, removable, and AI-readable through `/research/review-notes`; the bridge must be restarted once after this migration so it creates the additive `fms_review_notes` table and serves the new endpoint.
-- Trade continuity, compact disclosures, setup filtering, Go to arrow, selected-arrow detail recovery, explicit outcome definitions, and coherent historical-evidence priority are implemented.
-- The full broker symbol universe remains available. The selector has the existing Browse mode and a dense, fixed-row virtualized Market Watch table with Symbol, Bid, Ask, and MT5 Daily Change; broker order and unavailable rows are retained while large catalogs render only the visible window.
-- The selector stays open during repeated symbol choices. Session-resident candle loading, background warming, per-symbol/timeframe zoom memory, pre-paint viewport replacement, and configurable 40–400-candle refocus width support rapid review.
-- Rapid market changes now hide a prior market's buffer synchronously, before React effects and chart autoscaling run. This closes the observed mixed-price-scale case in which candles from one instrument and FMS levels from another could share a frame.
-- While Market Watch is open, its one-second quote audit preempts opportunistic warm/deep candle requests. Outside that interaction, the bounded scheduler warms the selected symbol across timeframes first, then favorites, visible/selected rows, recently used symbols, and the remaining live broker catalog. Failed background rows receive exponential cooldown rather than blocking the queue or creating retry storms; owner-selected history retains foreground priority.
-- Systemic background-history failures stop at the first failed request in that batch. The next owner market selection builds a fresh plan, so MT5 recovery is retried through real interaction without a catalog-wide 503 wall. Fresh EA quote rows also keep selected-symbol context available while Python MT5 IPC is occupied.
-- Chart selection no longer performs an automatic 1971-era oldest-candle probe. The boundary is recorded only when leftward history loading actually exhausts available data.
-- An unchanged quote snapshot preserves the existing React symbol and metadata state instead of rerendering the full chart workspace. Rapid pair/timeframe changes debounce the live WebSocket handshake for 150 ms and do not close a socket that is still connecting.
-- Browser candle residency is keyed by verified broker/catalog identity. Catalog-scoped history calls reject stale identities and never fall back to the legacy unscoped durable candle table, so a broker switch cannot paint old coverage as current. When identity cannot be verified, history is fetched live without browser-cache reuse.
-- Diagnostics now expose broker/catalog identity and source, catalog/quote age, selected-symbol synchronization, scoped cache coverage, queue lanes, active request, cooldown count, and the most recent history failure. They remain behind the existing Diagnostics drawer.
-- Latest reusable checks: TypeScript passed after the bounded P3 slice; 43/43 focused chart/storage regressions passed; the complete bridge suite passed 90/90; the P2 production build passed; and `FyodorQuoteBridge.mq5` compiled with zero errors/warnings. The build retains the known non-blocking large-chunk warning and the bridge checks retain five existing framework/time deprecation warnings.
-- The symbol portion of that bridge contract continues to cover complete ordered broker rows, one bulk MT5 symbol call, quote projection, and non-blocking cached background refresh.
-- The bounded entry-known H4 research campaign completed with 12 declared variants, zero survivors, and no promotion. Its immutable artifacts and exhaustion-ledger records remain preserved outside this active handoff.
-
-## Grand plan — reopened and proceeding in documented order
-
-This preserves the exhaustive direction and documented order after the early finish. The owner has reopened P3–P7 implementation, but not physical record deletion, account access, external feeds, or FMS model changes. Each phase remains one coherent behavior-preserving slice. Do not combine repository restructuring with financial/model corrections.
-
-### Intended end state
-
-Fyodor becomes a chart-first local manual-research terminal whose runtime and source ownership are legible:
-
-```text
-Compact chart workbar
-  Symbol · Timeframe · Trust state · Chart controls
-
-Chart workspace
-  Left dock:  Trade · Journal · Setups · Past Result
-  Center:     Chart canvas and overlays
-  Right dock: Inspector / Settings
-
-Bottom dock
-  Matrix · Lens · Calendar
-
-Runtime lanes
-  Broker catalog/quotes · Candle history · FMS evidence · Calendar/release monitoring
-```
-
-The product should remain useful after changing brokers, terminal installations, symbol naming schemes, symbol counts, quote precision, trading sessions, or available history. UI panels should consume explicit feature contracts rather than knowing where data was fetched, cached, or interpreted.
-
-### Permanent boundaries for every phase
-
-- Local manual-trading support only: no order transmission, account access, automatic setup promotion, profit promise, external market feed, or new cost model.
-- Preserve route IDs until a dedicated migration, lockfile ownership, MT5 OHLCV/calendar trust boundaries, gross-result semantics, immutable first-seen provenance, frozen contracts, unresolved outcomes, release monitoring, research manifests, exhaustion ledgers, and every saved record.
-- Never use cleanup as permission to rewrite a frozen result. Financial corrections require their own confirmed cause, affected-record audit, explicit version identity, preserved original, migration behavior, and owner authorization.
-- `fms_historical_evidence.py` remains the canonical chart-evidence projection; generated reviewed-entry evidence remains publisher-owned and non-promoting; `chartMacroBiasAuditViewModel.ts` remains the Past Result interpreter; the table renderer must not reacquire financial fallback logic.
-- `server.py` should move toward adapter/orchestrator responsibility, but extraction must not change endpoint contracts or duplicate domain calculations.
-- Feature CSS stays with the owning feature; the root stylesheet remains an ordered import aggregator. Active and garbage routes/styles stay separate.
-- No large rewrite. Every extraction keeps the app runnable, has a narrow rollback boundary, reuses existing checks, and receives owner visual verification at 1440x900.
-
-### Active research campaign — event respect before high-TP execution
-
-Status: direction discovery and chronological challenge are complete; prospective observation is active. High-TP/execution research remains gated because zero candidates passed the complete R3 challenge. Do not run an SL/TP/entry/duration grid, register a successor, or reinterpret a prospective-only row as a trade signal until new evidence is reviewed and that next stage is explicitly authorized.
-
-Frozen corrected v4 lineage:
-
-- Campaign manifest `86beab1d4c7144005670599605df8525626691ec63044b71f7317fb8dc2e9ffc`; 19 markets eligible and 9 explicitly coverage-blocked (`GBPJPY`, `GBPAUD`, `GBPCAD`, `GBPNZD`, `CADCHF`, `NZDCHF`, `CADJPY`, `NZDCAD`, `NZDJPY`). The common blocker is less than the declared eight years of usable H4 coverage; CADCHF also lacks a required completed source run.
-- Development atlas `bdc57a48975fa2ef1408a21535f47f617371f1e9feb0ff68f65e906c23be5b60`; 3,070 event-family × pair × horizon rows. Historical values are honestly labeled recovered broker-calendar evidence, not first-seen observations. The source is truncated at each pinned chronological split before rescoring, identities, title examples, availability counts, or candidate selection; `holdoutRead=false` is literal.
-- Declaration `18c5326ee75d5035cf770fbf2065153ae2ee593ee1e76076194e824d61a28be6`; 28 family rows passed literal development gates, 9 survived the frozen Bonferroni/FDR funnel, and all 9 identities/horizons were declared before holdout was opened.
-- Challenge `3acac14016be772f74144b71b6c283cbc82f7ba22b94e88a2636a41b01dd0752`; 0 challenge-supported, 7 prospective-only, 2 rejected. The prospective-only rows are `AUDUSD business sentiment / 30 H4`, `AUDUSD trade balance / 12 H4`, `EURAUD trade balance / 12 H4`, `EURGBP retail headline / 30 H4`, `AUDCHF trade balance / 12 H4`, `EURCHF GDP / 6 H4`, and `AUDJPY trade balance / 3 H4`. Rejected later chronology: `EURCAD producer inflation / 12 H4` and `USDJPY composite + services PMI / 3 H4`.
-- Prospective activation is immutable from `15 Sep 2026 09:37:56 Asia/Jakarta` (`1789439876`), watches those 7 provisional direction rows, accepts only durable first-seen releases after activation, and currently has 0 observations. A resolved observation is stored first-write-wins. This layer has no SL, TP, order action, or automatic promotion.
-- Superseded v1–v3 artifacts remain preserved. v1 corrected an impossible eight-development-year gate before holdout; v2/v3 were superseded after the implementation audit found development availability/title leakage and possible reuse of older execution entry geometry. The final version derives its own first strictly later H4 open, completed pre-entry H4 ATR, and actual nth-candle completion timestamp. No legacy model or historical result was overwritten during those corrections.
-
-Core question:
-
-> Which economic event families, on which currency pairs, repeatedly move in the direction implied by Actual versus Forecast, by how much, and with how much adverse movement—and will the same frozen relationship appear in true first-seen releases after activation?
-
-Keep the first campaign literal and falsifiable:
-
-- Treat direction from Actual versus Forecast as the primary new-information hypothesis when a trustworthy first-seen forecast exists. Preserve Actual versus Previous, revisions, and per-indicator economic orientation as separate facts rather than collapsing them.
-- Evaluate simultaneous releases as immutable packages. Label agreement, contradiction, missing forecast, unreliable forecast, revision conflict, and unknown orientation explicitly.
-- Translate currency direction to pair direction deterministically: favorable base-currency news and favorable quote-currency news imply opposite pair directions.
-- Begin at the release timestamp and measure fixed post-release horizons before choosing an entry recipe: initial signed returns, maximum favorable excursion, maximum adverse excursion, and final signed return.
-- Report literal event-family × pair rows with case count, evaluable/expired/ambiguous/unavailable counts, direction-respect rate, median/quantile signed MFE and MAE, represented years, and chronological development/holdout/recent partitions.
-- Distinguish directional events, impulse-then-reversal events, volatility-only events, and events with no stable relationship. High volatility alone is not directional respect.
-- Do not optimize SL, TP, holding period, entry delay, or context interactions in the discovery pass. High-TP research begins only after a directional event/pair relationship survives untouched chronological evidence.
-- Lock candidate definitions and thresholds before reading holdout results. Correct for the number of event/pair/horizon comparisons by controlling the candidate funnel rather than selecting the prettiest rows afterward.
-- Require stability across years and later data, not just pooled average R. Show uncertainty and small samples; neither automatically vetoes positive evidence nor permits promotion.
-- Surviving candidates proceed in order: frozen candidate review, prospective paper observation, then a separately authorized execution study of entry timing, SL, TP, and maximum duration.
-- Continue to report gross evidence under the existing contract. Gross loss rejects a recipe; gross profit is necessary but does not prove an executable net edge.
-- Keep headline/NLP research outside this campaign. It would introduce a new external dataset, licensing/provenance, timestamp, revision, duplication, and model-version problem and requires separate authorization.
-
-Campaign sequence and current gates:
+Updated 2026-09-21 after the FMS v2 scope-drift incident.
 
-1. `R0 — Coverage audit`: complete and frozen; blocked markets stay visible rather than being silently dropped.
-2. `R1 — Reaction atlas`: complete and frozen; discovery measures signed final ATR, MFE, MAE, respect rate, reversal rate, years, and chronology without a trade barrier.
-3. `R2 — Candidate declaration`: complete and frozen on development only.
-4. `R3 — Chronological challenge`: complete and frozen; every declared row is retained, including both failures.
-5. `R4 — Prospective observation`: active. Initial operational review window is one to two weeks, but elapsed time alone is not validation; inspect captured releases, first-seen timestamps, pending/resolved state, direction, and actual candle coverage.
-6. `R5 — Execution study`: blocked by the honest zero-survivor R3 result. Reconsider only after enough R4 evidence exists to declare a bounded successor. Preserve every ambiguous, expired, unavailable, and overlapping macro episode.
+Fyodor's immediate objective is simple: restore a trustworthy, fast application; preserve every immutable FMS v1 record; then provide a clear historical comparison of v1 arrows against separately computed v2 candidate arrows informed by the owner's audit notes. Stability, research, and repository hygiene are separate projects. Do not combine them.
 
-The FMS Experiment Workbench is now the table-only control/audit surface for this campaign. Refresh it to inspect the frozen status, selected-market candidates, development/holdout/recent metrics, and new first-seen rows. Continue using Trade/Journal/Past Result notes for qualitative arrow review; those annotations remain a separate ledger.
-
-Surface distinction: the Charts toolbar flask (`Open Research workspace`) opens the Workbench's `Event-respect campaign` section. Setups > Research / reviews > Needs Codex review is the separate legacy unresolved-outcome/execution/context queue, not this campaign. Current v4 discovery tests following the economically oriented Actual-versus-Forecast surprise; it does not exhaust systematically opposing/rejection treatments. A rejection study would require a separately declared bounded hypothesis and untouched challenge, not flipping the current failed candidates after seeing their outcomes. No additional campaign or setup promotion was authorized by the 15 Sep bug fix/discussion.
-
-### Recorded FMS plan — core v1/v2 work reopened; event-aware management deferred
-
-Recorded 15 Sep 2026 at the owner's request. The owner subsequently reopened the core v1/v2 plan for autonomous implementation/research; current progress and unfinished requirements are in the active checkpoint above. Event-aware management and unrelated deferred features remain deferred. This authorization does not rewrite old protocols, observations, contracts or results. Existing first-seen collection remains as already implemented.
-
-Backlog continuity: the owner should not have to remember and repeat every idea. When relevant FMS work is later resumed, read this entire deferred section and the accumulating arrow-observation sections above, identify the applicable recorded items, and preserve their status/results. Discussion authorizes recording ideas, not running them. The agent should record substantive new ideas here during ongoing planning; do not leave them only in chat or claim undocumented items were saved.
-
-#### Primary priority: a reliable event–price behavior catalogue
-
-- Owner's practical deliverable: more registered setups, more polished existing registered recipes, or both, in an explicitly labeled successor FMS version. The catalogue, research articles, and review organization are supporting evidence/tools toward that outcome, not a substitute deliverable or a reason to build a complicated interface first. Research cannot guarantee a qualifying successor; report honestly if no candidate improves on the baseline. This remains planning only until the owner authorizes implementation/research.
-- Primary objective: identify which numerical economic release/package, on which pair, produces price behavior more consistently aligned with its explicitly defined economic reading than not. Establish this evidence before adding trade-management complexity. This is the primary edge hypothesis, not a proven edge or profitability promise.
-- Make the reading reproducible from known release values: separate Actual versus Forecast, Actual versus Previous, revisions, economic orientation, base/quote orientation, simultaneous-release agreement/conflict, and unavailable inputs. Do not treat every higher number as universally currency-positive.
-- List each event/package × pair × declared direction rule × fixed horizon as a literal evidence row. Retain case/evaluable/unavailable counts, distinct release episodes, represented years and coverage, follow/opposition rates, initial/final signed movement, favorable/adverse excursion distributions, and response timing. Link source fingerprints and chronological development/challenge/prospective partitions.
-- Distinguish consistent following, consistent opposition/rejection, impulse then reversal, volatility without stable direction, and unresolved/inconsistent behavior. Consistent opposition is a separate hypothesis, not evidence that price followed the economic reading. Current campaign v4 is follow-surprise research and does not exhaust a separately declared rejection study.
-- "More often than not" alone is not sufficient to label a relationship reliable: display sample size, uncertainty, later-period stability, movement magnitude, adverse path, and appropriate comparisons. Do not infer reliability from a pooled rate or one successful arrow; do not use uncertainty as an automatic veto of positive evidence either. A later rejection experiment must be frozen before its challenge, not selected by reversing candidates after seeing failures.
-- Owner clarification: the catalogue must include TP-before-SL rates and a TP1/TP2/TP3/etc. reach ladder, not only direction-respect statistics. Fixed, explicitly declared reference entry/SL/target/horizon policies can supply that execution baseline alongside reaction evidence in a future authorized study. Choosing an optimized executable contract and registering it remains a separate challenge/approval step. The completed direction-only campaign and its R5 gate remain frozen; this discussion does not retroactively attach targets to those results. All outcomes remain gross and overlapping arrows from one release are shared evidence.
-- Preserve the frozen campaign result: no challenge-supported candidate, seven prospective-only monitors, two rejected candidates, and no new registered trade version. Research completion alone does not create an FMS trading successor. Failed/provisional evidence stays readable; no old contract/result is rewritten.
-
-#### Catalogue execution baseline: TP1/TP2/TP3 and entry timing
-
-- Owner meaning of high-TP setup includes both a consistent numerical-release response and how often specified profit levels are reached before a specified stop/expiry. The menu should answer: for event/package X, pair Y, release condition Z, entry policy E, stop S, and horizon H, how many cases reached each declared target first, how long did they take, and what adverse excursion preceded them?
-- Freeze a small reference ladder and risk geometry before evaluating it; label each target in pips, pre-entry ATR, and R where meaningful. Target labels alone are not a recipe: TP1/TP2/TP3 need numerical definitions, a common entry/stop/horizon, and a declared follow or rejection treatment. Do not select attractive percentages by optimizing targets/stops across opened holdouts.
-- Keep two separate measurements: target touched within the observation horizon regardless of intervening stop, and target reached before the fixed stop/expiry under the reference policy. Report exact hit/stop/expiry counts and denominators, with pending, unavailable, and same-candle ambiguous cases explicitly listed rather than converted into wins or silently discarded. A later target touch after an earlier stop is not a TP-before-SL win.
-- TP1/TP2/TP3 reach rates describe nested levels on the same price episode, not three independent trades. A fixed-stop ladder measured as if held to each target does not imply partial-exit profits, breakeven moves, trailing exits, or captured MFE. Those management policies require their own frozen evaluations. Retain chronological partitions, time-to-target, favorable/adverse distributions, years, and uncertainty alongside each rate; observed rates are evidence, not guaranteed future probabilities.
-- Explicitly deferred owner idea: compare entry at/near the economic release with the current first-later-H4 baseline, rather than assuming H4 entry is the only permissible successor. Also retain reviewed H1, earliest feasible post-information M1 entry, delayed-confirmation entry, and bounded retracement/limit-entry ideas as distinct predeclared challengers, not one unrestricted search grid. Entry must follow actual availability of the required release package. Historical release timestamps are not proof of when Fyodor first received the complete values.
-- Never use the release-containing H4 candle's earlier open as a post-news fill or assume an exact executable release-second price from OHLC alone. Label the most precise supported post-release entry proxy and its limitations. Use already trusted finer OHLC coverage where available for ordering; if TP and SL remain within the same smallest available candle, keep ambiguity instead of inventing their order. Live first-seen timing and recovered historical timing remain separate evidence classes.
-- Preserve existing observation-led execution ideas from the arrow ledger: multi-scale support/resistance bands including longer D1/W1 history; target-versus-barrier buffers/caps and counterexamples where barriers break; entry location and breakout/role transitions; stop buffers and slower holding horizons with changed R geometry; near-target sensitivity; runner/trailing/partial-exit proposals; and intervening-release contamination/overlapping macro episodes. The prior bounded structure campaign's failed 12 variants remain exhaustion evidence, not permission to rerun the same inputs. These are candidates to review against all eligible cases, not retrospective corrections to noted winners/losers.
+Rules: [AGENTS](../../AGENTS.md). Durable facts: [CONTEXT](../../CONTEXT.md). Owner observations and research background: [FMS v2 Research](FMS%20v2%20Research.md#owner-audit-ledger).
 
-#### Registered-recipe review and the Needs Codex review queue
+## Current status — do not mistake this for a working baseline
 
-- Explicit support/resistance hypothesis from the owner's audit notes: treat a zone as a box/band where price may reverse or break through, not a deterministic single-line ceiling/floor. In a future authorized study, define zones using only information available before the decision, freeze touch/reversal/breakout definitions and observation horizons, and measure conditional reaction counts/rates and subsequent excursions at those encounters. Retain successful breaks as counterexamples to automatic TP caps; do not identify zones from later pivots or fit only the annotated trades. Relate this evidence to entry location, SL/TP placement, and expiry challengers without confusing it with proof of event-direction consistency.
-- The owner expected this review work to be connected to the campaign. The current direction-only campaign did not exhaustively investigate the legacy queue; make that boundary explicit rather than suggesting it was completed.
-- Later inspect the queue directly and classify its rows into data/outcome defects, entry/SL/TP/duration challengers, and directional/context hypotheses. Join relevant durable arrow notes and documented observations; a suggested challenger is a research lead, not an approved better setup.
-- Reuse existing valid evidence, fingerprints, and exhaustion records before any rerun. Separate reused-history support from untouched chronological evidence and true first-seen observations. Confirm a defect before proposing a versioned correction.
-- Future Workbench organization: two connected, clearly labeled lanes—event-direction discovery/challenge and registered-recipe review—with shared evidence links and explicit decisions. No need to copy the same records into a second financial source of truth.
-- Future disposition of the existing Research / reviews dropdown: organize/reuse its diagnostics, queue, and candidate records in that unified research workspace, leave a clear navigation/summary from Setups as needed, and remove repeated presentation only after verifying all old records remain reachable. Do not delete the queue, treat it as already audited, or silently promote its suggestions. The existing frozen setup collection remains the preserved comparator for every successor.
-
-#### Explicit FMS display versions and one registered list
-
-- Owner-requested display vocabulary: replace the existing Legacy label with `FMS v1 — frozen registered baseline`; reserve `FMS v2 — approved successor` until one actually exists; keep `Research candidates — not registered` separate. Verify the mapping before implementation. Research campaign version numbers and immutable model IDs are distinct from these readable trading-release versions; do not overwrite stored identifiers to achieve a display rename.
-- Map the existing approximately 51 setup/pattern collection to its baseline display version after verifying the live registry and eligibility counts; do not assume every pattern is an active eligible contract. Preserve underlying registration/model IDs, hashes, activation boundaries, and record provenance.
-- Setups should expose one version-grouped registered table/list. Inspect and consolidate the overlapping registered-benchmarks/Every registered setup dropdowns; repeated presentation is not proof of duplicate stored registrations. Keep prior-version arrows/results accessible and explicitly labeled instead of only saying Legacy.
-- Minimal v1 presentation pass, when authorized: label the Setups section/dropdown as FMS v1, populate it with the actual frozen recipe collection, and provide a short source-derived explanation of how those recipes generate setups. Describe each recipe's release/package inputs, scoring/economic orientation, follow or rejection policy, entry timing, SL/TP and expiry rules, and historical evidence where present; do not invent a universal rule for recipes with differing contracts. Apply the same FMS v1 label above its chart arrows while preserving entry timeframe, LONG/SHORT, and recovered/live provenance. This is presentation only, not regeneration or alteration of historical trades.
-- Next-version research scope: connect the unfinished Needs Codex review queue and Research / reviews evidence with the event–pair catalogue, release-time versus later-H4 entry challengers, probabilistic support/resistance zones, and the other documented arrow observations. Select bounded evidence-backed recipe improvements/new event–pair recipes for explicit review and approval. Label only actually approved successor registrations FMS v2; existing frozen v1 arrows remain visible and unchanged. Event-aware management stays late-game, not a prerequisite for this simpler deliverable.
+- `90aac0f` (`bridge haul`) was the owner's intended last bridge-stability point.
+- Only two commits followed it: `4e04979` (`v2 research goal mode 0.5`) and `3e3c208` (`v2 research goal mode done, result drifted too far`). Together they changed 46 files by roughly +12.8k/-326 lines.
+- The only post-`90aac0f` MQL change was `FyodorCalendarBridge.mq5` in `4e04979`; it added diagnostic clock fields to the existing cycle acknowledgement. `FyodorQuoteBridge.mq5` did not change. The old backend ignores those additional fields.
+- Current `master` is `3e3c208`. Automated tests previously passed, but the owner has directly observed a runtime FMS dock crash (`Cannot read properties of null (reading '0')` in `ChartMacroBiasRealtimeCard`), slow/blank startup, Trade initially or persistently showing only the selected pair, and chart/503 failures during rapid switching. Live owner evidence outranks old completion text.
+- Checking out an older source commit does not reset the running Vite/bridge processes, browser storage, caches, durable SQLite data, generated local data, or the compiled EA attached inside MT5. An older checkout must be tested in a clean, explicitly recorded runtime before it can be called good or bad.
+- There are 31 known saved arrows in the inspected durable snapshot and all are FMS v1. The newest predates the published v2 activation boundary. Therefore the existing runtime-version filter naturally shows no v2 arrows; that filter is not the historical v1/v2 comparison the owner requested.
+- The **only current implementation priority** is the bounded left-panel repair described below. Every other recovery, research, v2, bridge, startup, chart, UI, and repository-hygiene phase in this document is deferred and must not be implemented unless the owner explicitly authorizes that specific phase.
 
-#### Knowledge as readable research articles
+## Current authorized priority — two left-panel defects only
 
-- Replace scattered explanations with evidence-linked research articles: objective/question, exact event/pair/direction recipe, trusted dataset and coverage, methodology and chronological splits, results and uncertainty, failures/limitations, and conclusion (`registered`, `observation-only`, `rejected`, or `unresolved`).
-- Include immutable artifact/run IDs, fingerprints, provenance, related audit notes, previous/successor version links, and whether an evaluation reused earlier history. State what was tested and what remains untested; publish failed studies as well as promising findings.
-- Keep presentation simple and readable, using literal tables where appropriate, not decorative cards. Knowledge explains the canonical evidence; it must not become a competing runtime calculation or handwritten metrics source.
-
-#### Late-game only: event-aware trade management
-
-- Owner priority clarification: this is last, after the reliable behavior catalogue and a credible explicitly registered static execution baseline. It must not distract from discovering straightforward repeatable event–pair responses.
-- Working label: `Event-aware setup` / `event-aware trade management`. A still-open trade evaluates subsequent broker-calendar information under a rule declared before trading, rather than ignoring intervening releases.
-- A future separately authorized successor must define eligible intervening events, numerical interpretation, confirmation/contradiction/conflict handling, timestamps and first-seen availability, resulting management recommendation, and expiry/precedence rules. This is manual-trading support, not permission to send orders.
-- Freeze the update policy as part of the new registration. Preserve the original entry decision and append the information/management timeline; never retrofit later news into an older static contract or select a response after seeing the resulting price path. Compare against the unchanged static baseline on declared later evidence.
-
-Planning order: document trustworthy event–price behavior → investigate the relevant legacy review queue in parallel as an evidence source, not automatic promotion → explicitly challenge/register a simple execution successor → collect first-seen results → only then consider event-aware management. Versioned Setups and research-article presentation can support this work later without changing its financial conclusions.
-
-### P0 — Baseline and dependency map
-
-Milestone: complete 2026-09-09. The authoritative owner/dependency, immutable-flow, persistence, endpoint, validation, manual-gap, priority, and rollback record is [Architecture Baseline](Architecture%20Baseline.md). The captured baseline is 253/253 frontend tests and 85/85 bridge tests; existing framework/time deprecation and production chunk-size warnings remain non-blocking. P1 may proceed through typed compatibility seams without changing behavior.
-
-Purpose: establish evidence before moving code so cleanup does not merely relocate hidden coupling.
-
-- Record the active Charts route, workbar, left/right/bottom dock composition, data hooks, bridge endpoints, storage keys, stylesheets, and existing checks that protect each behavior.
-- Identify oversized owners and dependency crossings, especially `ChartsTab.tsx`, `useChartMarketData.ts`, `server.py`, shared chart styles, FMS view models/renderers, and route-level state.
-- Build a behavior matrix for symbol/timeframe switching, cached/uncached history, Market Watch, stream lifecycle, Trust State, Go to arrow, frozen evidence, Past Result, Trade/Journal continuity, Matrix, Lens, Calendar, and panel persistence.
-- Mark each dependency as presentation, interaction state, domain interpretation, storage, transport, generated evidence, or lifecycle. Extraction order follows ownership risk, not file size alone.
-- Capture one reusable validation baseline and current warnings. Do not repeatedly rerun unchanged broad checks in later phases.
-- Exit gate: every active surface and immutable data path has a named owner, existing validation route, and rollback point; unknown ownership remains documented rather than guessed.
-
-### P1 — Establish feature seams without redesign
-
-Milestone: high-value market-data seam complete 2026-09-09. Typed contracts, history policy, resident scheduler, and symbol-catalog normalization now live under `features/chart-market-data`; `useChartMarketData.ts` is reduced to React orchestration and the existing component/bridge compatibility surfaces remain intact. Focused tests and TypeScript pass. Further vertical slices proceed only with the phase that needs them.
-
-Purpose: make future edits local before changing visible product structure.
-
-- Define thin typed contracts at feature boundaries: selected market/timeframe, viewport command, selected arrow/event, dock state, quote snapshot/delta, history coverage, Trust State, and evidence-detail request.
-- Split pure calculations and normalization from React effects. Renderers receive prepared view models and callbacks; they do not fetch, infer financial fallbacks, or mutate storage.
-- Give each major Charts capability a vertical owner containing its component, state/view model or hook, feature stylesheet, bridge client/adapter when needed, and focused existing tests.
-- Candidate vertical owners: chart shell/workbar, symbol Browse/Market Watch, candle viewport, stream lifecycle, history residency, FMS left dock, Past Result, event overlays, Pair Matrix, Lens, Calendar dock, right inspector, and panel preferences.
-- Keep genuinely shared primitives small and dependency-free. Do not create a generic `utils` or global store that quietly becomes the next monolith.
-- Introduce composition boundaries first, then move internals. Preserve exported compatibility shims until all active imports are migrated and verified.
-- Exit gate: a change inside one named feature normally touches that feature plus an intentional shared contract or adapter—not the route, unrelated docks, and bridge by default.
-
-### P2 — Broker-adaptive market-data runtime
-
-Milestone: complete 2026-09-10. The independent optional quote publisher, process-local delta store, broker/catalog snapshot endpoint, scoped browser history, catalog-guarded history requests, adaptive backpressured warmer with failure cooldown, virtualized Market Watch, and hidden diagnostics are implemented. Automated evidence is 43/43 focused frontend checks, 90/90 complete bridge checks, TypeScript, production build, and a MetaEditor compile of `FyodorQuoteBridge.mq5` with zero errors/warnings. The owner attached the EA, confirmed a complete 279-symbol snapshot was accepted at sequence 1, and confirmed rapid switching across unusual symbols remained instant while Bid/Ask continued updating. Broker-change invalidation remains a future environment-specific audit, not a blocker to the current broker exit gate. Absence of the EA deliberately retains the slower Python fallback.
-
-Purpose: eliminate the current shared-lane architecture rather than accumulating more timeout patches.
-
-- Split interactive quote refresh from candle-history synchronization so one slow `copy_rates` request cannot stale all Bid/Ask rows.
-- Evaluate an MT5-side EA quote publisher or another dedicated quote process/store. Prefer changed-symbol deltas with sequence/timestamp metadata over rebuilding and rerendering the complete catalog each second.
-- Discover the universe from the live broker catalog. Never hardcode the current 279 symbols, Forex-only assumptions, suffix rules, folder layout, digit count, market hours, or history depth.
-- Build a broker capability snapshot: terminal/broker identity, symbol name/path, visibility/selection, digits, quote availability/age, supported timeframes, synchronization state, and known history coverage.
-- Key resident caches by broker/terminal identity plus symbol and timeframe. On broker or account-server identity change, retain old data safely but never present it as current coverage for the new broker.
-- Replace eager all-symbol warming with an adaptive, backpressured scheduler ordered by selected chart, visible/favorite symbols, recently used markets, FMS-required markets, and then remaining broker symbols.
-- Measure terminal latency and failure modes; adapt batch size, concurrency, retry, and cooldown without artificial sleeps or retry storms. Unsupported or unsynchronized symbols remain auditable and do not block the queue.
-- Keep selected-chart work cancellable or supersedable where the MT5 API allows it. Stale completions must not repaint a newer selection.
-- Virtualize large Market Watch universes. Preserve broker order and all symbol rows, including rows with unavailable quotes, without forcing route-wide React renders.
-- Add ordinary diagnostics for quote age, catalog age, queue depth/age, active request, cache source/coverage, synchronization state, and per-symbol failure. Diagnostics must stay out of the normal trading view unless opened.
-- Define degraded behavior: cached chart remains visible, quote age is explicit, Trust State distinguishes stale/busy/disconnected, and no value is fabricated.
-- Exit gate: active quotes remain responsive during slow/failed history synchronization; first selection and revisits are measured; broker switching cannot reuse false coverage; workload scales from a small catalog to a much larger one without fixed assumptions.
-
-### P3 — Decompose the Charts workspace
-
-Milestone: complete 2026-09-10. “Go to arrow” remains a staged command that selects broker symbol and registered timeframe, waits for scoped history and the immutable signal response, requests a bounded missing activation window when needed, selects the exact signal, and then focuses/autoscales the chart. Its orchestration, FMS marker/detail/price-line interpretation, selected/global/historical signal loading, release monitoring, and cache merging now live under `features/fms-arrow-navigation`. Viewport capture/restore, chart preferences, and dock selection/width/session continuity live under `features/chart-viewport`; event selection, replay lifecycle, release-row interpretation, and Lens view-model construction live under `features/chart-events`; Pair Matrix range selection, hover, calendar cache, derived timeline/momentum, and chart geometry live under `features/pair-matrix`. Left FMS and bottom-dock render composition now have `features/fms-dock` and `features/chart-bottom-dock` owners. Existing route/component exports remain compatibility shims; `ChartsTab.tsx` has fallen from about 2,660 to 1,275 lines and `ChartViewport.tsx` to about 280 lines without changing public contracts. The exit gate passes 256/256 frontend tests, TypeScript, and the production build; the known large-chunk warning remains. Browser visual verification remains an owner task rather than inferred from static checks.
-
-Purpose: turn `ChartsTab` into composition instead of a cross-feature implementation owner.
-
-- Leave the route responsible only for composing workbar, left dock, chart canvas, right inspector, and bottom dock plus their narrow shared selection state.
-- Move feature-specific effects, derived data, commands, modal/disclosure state, and rendering into the P1 vertical owners.
-- Separate selected-symbol/timeframe identity from chart viewport state so data replacement does not reset focus, and viewport actions do not restart transport work.
-- Route Go to arrow through one explicit navigation command: select symbol/timeframe, ensure required coverage, select the immutable arrow, then focus its activation candle. Each stage reports a distinct unavailable reason.
-- Keep Trade, Journal, Setups, and table-only Past Result independent. Opening or failing one dock must not remount or crash the others.
-- Keep overlays independently selectable and disposable: FMS arrows, economic releases, price lines, Pair Matrix context, selected-event/arrow focus, and replay state.
-- Centralize panel open/closed/size persistence without yet adding free-form docking.
-- Exit gate: switching or repairing one dock does not require edits to unrelated docks; the main chart survives a dock error; existing chart interaction and evidence behavior remain identical.
-
-### P4 — Chart-first shell and prototype quarantine
-
-Milestone: implementation complete 2026-09-10; owner visual gate outstanding. Charts now starts directly and is the sole normal primary workspace. The universal header is no longer mounted; its Trust State diagnostics moved to a compact chart-workbar control using the selected chart symbol, while appearance settings remain reachable there and from retained secondary workspaces. Economic Calendar is embedded as `Matrix / Lens / Calendar` without duplicating its data interpretation, sync continuity, or event-navigation contract. The Workbench remains reachable through an explicit Research action and returns through a compact secondary bar. Overview, Central Banks, Differential Calculator, Event Replay, Macro Drivers, Prototyping, and garbage route IDs remain resolvable; they are absent from normal navigation, and Overview/Event Replay/Workbench route-owned CSS now loads lazily. TypeScript, 70/70 focused shell/chart/calendar checks, 256/256 frontend checks, and the production build pass. The build retains the known large flag/chart chunk warning. Manual 1440x900 approval remains required but does not block independent P5 work.
-
-Purpose: align navigation with the product the owner actually uses.
-
-- Move Trust State into the compact chart workbar and verify its lifecycle there before removing the universal header.
-- Treat Charts as the sole primary route.
-- Move Economic Calendar into the bottom dock beside Matrix and Lens. Their intended grouping is comparative context, focused event inspection, and release timeline.
-- Remove Overview and the general Specialist Tools container from normal navigation only after classifying each child. Quarantine obsolete prototypes behind the existing garbage boundary after proving Charts has no dependency on them.
-- Do not quarantine the active FMS Experiment Workbench as disposable prototype code. Isolate it from the Specialist Tools shell, retain its stable route identity during migration, and place the rebuilt research surface deliberately—either as a dedicated Research workspace or a chart-adjacent dock chosen during P0/P1.
-- Keep old route IDs resolvable or explicitly redirected during quarantine so saved navigation does not fail unexpectedly.
-- Do not physically delete prototypes, archives, generated evidence, or historical records merely to simplify navigation.
-- Exit gate: app startup lands on a complete chart workspace; Trust State and Calendar remain accessible; quarantined routes cannot affect active bundle lifecycle or styling; owner approves the shell visually.
-
-### P5 — Rebuild the FMS Workbench, right inspector, and Lens
-
-Milestone: implementation complete 2026-09-10; owner visual gate outstanding. The Workbench now separates `Declare`, `Run status`, `Results`, and `Archive` in a table-first workspace. It retains bounded declarations, immutable queue failures, frozen candidates, legacy records, raw JSON/human summary export, a small identity-safe comparison selection, explicit field-level unavailability, the stored Reaction Atlas, full execution outcome/partition tables, and provenance without arbitrary disclosures. The right inspector now separates `Chart / Layers / Selected / Data / Diagnostics`; selected FMS arrows and releases show literal stored facts, while data and technical logs no longer share one page. Lens now renders its release navigator, release values, replay controls, and base/quote evidence as compact literal tables. No experiment was run, frozen, corrected, promoted, or reinterpreted. TypeScript, 42/42 focused chart/Workbench/shell/calendar checks, 256/256 full frontend checks, and the production build pass. The known large chart/flag chunk warning remains. Manual 1440x900 visual approval remains required but does not block independent P6 work.
-
-Purpose: replace deprecated information architecture with literal, task-oriented research and inspection surfaces. Workbench overhaul is authorized separately from running any deferred research campaign.
-
-FMS Experiment Workbench:
-
-- Replace the current card-heavy, long-page experiment builder with a stable table/workspace layout. Prefer explicit columns, named sections, and persistent selection over decorative summaries and scattered disclosures.
-- Separate four jobs visibly: `Declare`, `Run status`, `Results`, and `Archive`. A user must always know whether they are configuring an unrun hypothesis, viewing an immutable completed experiment, or reviewing a frozen candidate.
-- Suggested structure: left catalog/filter table; center declaration or selected-result table; right compact provenance/contract inspector; bottom experiment/archive queue when space permits.
-- Build an Event Respect / Reaction Atlas table suitable for the deferred R1 output: Event family, Currency, Pair, Direction rule, N, Respect rate, Signed MFE, Signed MAE, Horizon, Development, Holdout, Recent, Coverage, and Classification.
-- Keep execution-contract results in a separate literal table: Entry rule, SL ATR, TP R/ATR, Duration, TP/SL/Expired/Ambiguous/Unavailable counts, Average gross R, partitions, and qualification checks.
-- Make unavailable values explicit and local to their field. Never substitute `0`, infer unsupported counts, or hide ambiguity inside a generic status.
-- Make provenance inspectable from every experiment/result row: experiment ID, configuration hash, catalog snapshot, data window, first-seen policy, scoring policy, code/model version, created/completed time, and source classification.
-- Retain immutable failed and zero-survivor experiments in the archive. Filtering may reduce visual noise but must never erase them from the record.
-- Keep `Run` and `Freeze candidate` separate. Freezing remains review-only and non-promoting; failed checks require explicit acknowledgement and stay attached.
-- Eliminate arbitrary expandable sections in the middle of the result flow. Details/disclosures need a clear parent row, count, unavailable reason, and predictable placement.
-- Show queue progress and failures without blocking navigation. Restart recovery must retain recorded experiment identity and honest failure state.
-- Do not expose unrestricted combinatorial controls by default. Bounded protocol values and declared matrices remain visible before execution so the interface resists accidental p-hacking.
-- Support comparison of a small selected set of experiments by identical columns; do not combine unlike scoring policies, event packages, markets, or evidence partitions without an explicit warning.
-- Preserve raw JSON export and concise AI/human summary export, but treat the literal stored record as authoritative.
-
-Right inspector and Lens:
-
-- `Chart`: appearance, candle behavior, default focus/refocus width, timezone, scale, and cursor behavior.
-- `Layers`: FMS arrows, releases, price lines, Pair Matrix context, visibility, and display density.
-- `Selected`: exact candle, arrow, event, or price-level facts and navigation. It should show provenance and unavailable reasons without recomputing financial meaning.
-- `Data`: symbol/timeframe source, quote age, resident/durable coverage, synchronization and loading state, and explicit refresh/clear controls.
-- `Diagnostics`: technical bridge/stream/cache information kept out of ordinary review.
-- Lens remains a focused inspection tool for a selected time/event/range. It must not become a miscellaneous settings or diagnostics drawer.
-- Let frozen-record audits determine the final Selected/Lens fields. Do not invent decorative cards or speculative metrics before a real review need exists.
-- Prefer literal rows/tables for dense comparable facts; avoid expandable controls with no clear parent, orphaned labels, and bespoke card layouts that obscure missing data.
-- Exit gate: every control has one owner and immediate visible effect; every displayed fact has a source; settings, evidence, diagnostics, mutable declarations, completed experiments, and frozen candidates are visually distinct; all existing experiment and archive records remain reachable.
-
-### P6 — Quarantine, styles, tests, and deletion audit
-
-Milestone: complete 2026-09-10. A targeted reference scan proved that the superseded Workbench card/list/inspector selectors had no runtime owner; those selectors were removed while raw-audit, tutorial, and new table selectors were retained. The lazy Workbench CSS chunk fell from 46.44 kB to 33.08 kB. Active startup CSS, garbage-only CSS, lazy route CSS, route IDs, compatibility exports, storage keys, and immutable/generated evidence remain separate and intact. TypeScript, the existing frontend suite, production build, and source/style reference scans pass. No physical route, record, archive, or generated artifact was deleted.
-
-Purpose: finish repository hygiene only after active ownership is proven.
-
-- Remove dead active imports, duplicate adapters, stale compatibility shims, duplicate calculations, and unreachable styles one bounded feature at a time.
-- Extract feature CSS into its owner while preserving root import order and checking shared selectors before moving them.
-- Keep active and garbage route/style trees separate. Generated artifacts and private/archive/garbage records are not cleanup targets.
-- Consolidate overlapping existing tests around public feature contracts. New test files or browser automation still require owner agreement; source extraction alone is not a reason to multiply fixtures.
-- Add contract versioning or migrations only when a persisted key or endpoint truly changes. Preserve backward reads long enough to avoid silently orphaning owner data.
-- Produce a deletion ledger: candidate, evidence of no active import/runtime/storage dependency, preservation location when needed, rollback method, and owner decision.
-- Physical deletion happens only after quarantine has survived normal owner use and the owner explicitly approves the named targets.
-- Exit gate: active dependency and stylesheet scans are clean, targeted behavior checks pass, saved records remain readable, and the deletion ledger—not intuition—defines what may be removed.
-
-Deletion ledger:
-
-| Candidate | Dependency evidence | Current disposition | Preservation / rollback | Owner decision |
-|---|---|---|---|---|
-| Superseded Workbench card, list, result-card, and orphan-inspector CSS | No TS/TSX owner remained after the P5 table renderer; focused render checks cover the replacement classes | Removed from the lazy Workbench stylesheet | Git diff restores the exact selector block; raw audit and tutorial CSS were not touched | Removal authorized by reopened P6 scope |
-| `MinimalHeader.tsx` wrapper | No longer mounted, but its extracted details panel is actively reused by chart Trust State and the wrapper preserves hidden-route compatibility | Retain | Existing file and route-compatible props | Revisit only after owner use confirms no hidden-route need |
-| Hidden Overview, Central Banks, Differential Calculator, Event Replay, Macro Drivers, Prototyping, and garbage routes | Still referenced by stable lazy route IDs and existing source-contract checks | Quarantined from normal navigation; do not delete | Lazy route files and garbage stylesheet remain intact | Explicit named deletion approval still required |
-| `ChartsTab` / `ChartViewport` compatibility exports | Existing tests and active imports still consume their public contracts | Retain | Feature implementations live behind the compatibility surface | Remove only after all active imports migrate and a separate owner-approved pass validates it |
-| Generated FMS evidence, frozen experiments/candidates, archive/private/garbage records | Deliberately excluded from cleanup; immutable provenance and saved-record reachability are product contracts | Preserve unconditionally | Existing artifact locations and bridge readers | Not a deletion candidate |
-| `react-world-flags` / FlagIcon chunk | Known working dependency with a documented standalone chunk warning | Retain | Current declaration and wrapper | Revisit only on explicit owner request |
-
-### P7 — Configurable panel placement — low priority
-
-Milestone: implementation complete 2026-09-10; owner visual gate outstanding. `chartDockRegistry.ts` records panel identity, allowed regions, default region/order/size, minimum dimensions, and persistence version. FMS stays constrained left and Matrix/Lens/Calendar stays bottom; the Inspector has the deliberate Left/Right choice. Saved layouts are normalized, invalid regions and unknown/removed panel IDs are ignored, and incompatible versions fall back to defaults. The Inspector exposes keyboard-accessible placement and reset controls; changing its side updates drawer placement only and does not duplicate panel state or remount the chart. The existing chart-storage test now covers valid placement, invalid-region recovery, unknown IDs, version fallback, and persistence. TypeScript, 257/257 frontend checks, and production build pass; manual 1440x900 placement review remains required.
-
-Purpose: support owner layout preferences after the panel boundaries are stable.
-
-- Use a small dock registry with panel identity, allowed regions, default region/order/size, minimum dimensions, and persistence version.
-- Keep panel content independent of left/right/bottom CSS and lifecycle assumptions.
-- Start with controlled placement choices such as moving the right inspector to the left; do not begin with arbitrary drag-and-drop.
-- Guard the 1440x900 minimum layout, internal scrolling, focus order, keyboard access, resize limits, and reset-to-default behavior.
-- Unknown or removed panel IDs in saved layouts must fail safely after upgrades.
-- Consider a general desktop/docking framework only if repeated real use proves controlled placement inadequate.
-- Exit gate: changing placement cannot duplicate state, refetch data, remount the chart unnecessarily, overlap controls, or make a panel unrecoverable.
-
-### Milestone discipline and recommended order
-
-1. Preserve the completed P0 architecture baseline as the map and rollback reference.
-2. Preserve the completed P1 market-data seams; add another seam only when a reopened phase requires it.
-3. Complete the outstanding live P2 audit before promising MT5-like responsiveness across arbitrary brokers.
-4. Resume Charts decomposition in P3 using the proven seams.
-5. Change the visible shell in P4 only after Charts owns everything it needs.
-6. Preserve the completed Workbench and use real arrow audits plus the active direction-only campaign to inform any later explicitly declared execution successor.
-7. Run P6 quarantine and deletion review after the replacement surfaces have survived owner use.
-8. Keep P7 last.
-
-At every milestone: establish the failing/current behavior, make one coherent batch, run only affected existing checks plus one final gate, update this handoff with reusable evidence, list exact owner visual checks, and stop if a change would cross into a later unauthorized phase.
-
-## Concise owner visual checks still outstanding
-
-- Restart only the bridge once for the 202 history-deferral contract, then refresh the frontend. With Market Watch open/recently closed, press Trade > Next > Review on several different pairs and switch timeframes. Selected history must load (including a promoted in-flight warm request); Background activity may say `Deferred GET /history` as info, but those ordinary deferrals must not appear as red HTTP 503s, cache empty candles, or loop across the broker catalog. Real missing/unavailable foreground history must still show its specific failure. Confirm the bridge generation stays unchanged. Visual interaction verification remains the owner's; automated tests are not a substitute.
-- Fully stop and restart the normal launcher once so the new supervisor itself is loaded and its displayed lifetime restart counter begins cleanly. Open Trust State and confirm Bridge shows one stable generation/PID. Rapidly switch symbols/timeframes and use Go to arrow while chart-signal/history work is visibly busy; generation and restart count must remain unchanged. A genuine child exit should still recover and record exit → restart scheduled → spawn in `%LOCALAPPDATA%/Fyodor Trading Terminal/logs/bridge-lifecycle.jsonl`; ordinary 503 background-history deferrals must not produce `bridge_unresponsive` or a generation change.
-- Open an existing registered arrow and confirm Trade/Setups label the frozen baseline `FMS v1` and the chart marker includes `FMS v1`; entry, SL, TP, result, Go to arrow, notes, and immutable IDs must remain otherwise unchanged. Richer Setups benchmark evidence should be reachable from each recipe's expanded row, not a second full list.
-- Open Research and inspect Event-respect campaign. It should show `0 supported · 7 prospective only · 2 rejected`, no trade contract, no automatic promotion, and no first-seen rows yet. Switch among AUDUSD, EURAUD, EURGBP, AUDCHF, EURCHF, AUDJPY, EURCAD, and USDJPY; candidate rows must retain literal development/holdout/recent values and classification rather than a generic unavailable card. The broader Reaction Atlas remains a scrollable literal table.
-- During the next one-to-two weeks, keep CalendarBridge and QuoteBridge available whenever practical. Refresh the Workbench after matching releases and confirm each qualifying post-activation case first appears as pending, resolves only after the declared number of actual H4 candles, retains its first-seen timestamp after refresh, and never creates an arrow/order/SL/TP. Count distinct release episodes rather than treating several pairs from one release as independent proof.
-- At both the current wide window and 1440x900/100% zoom, confirm the chart command bar begins fully inside the window with an even top inset: no dark strip, cropped rounded edge, clipped icon, or chart content behind it. Resize across 1500px and confirm the two-row toolbar expands the header rather than overlapping the chart or FMS dock.
-- Restart the bridge so the updated `/market_status` fallback and review-note ledger are active. Keep `FyodorQuoteBridge` attached and confirm its complete/delta snapshots continue returning 200.
-- In Trade > Recent, add a multiline note to a closed trade, save it, change tabs/pairs, then return and edit it. Confirm the note remains a plain table row. Refresh the app and confirm it survives; `GET /research/review-notes` should show the same text and IDs. Remove one disposable note and confirm only that annotation disappears.
-- In Trade > Recent, find a No trade row and use Go to event. Confirm the selected pair opens on H4 at the release candle and that no entry arrow, SL, or TP is invented.
-- In Journal, confirm `All post-registration` is selected on first open. Expand a qualified/recovered day, use Go to arrow, and confirm the correct pair, registered entry timeframe, exact arrow, and configured refocus width are applied. Add a labeled note there, switch to Trade > Recent, and confirm the same note appears on the matching release; edit it in Trade and confirm Journal reflects the edit after returning.
-- While a Journal day/week is expanded and scrolled into view, use Go to arrow and confirm Journal stays selected while the chart focuses the arrow. Switch Journal → Trade → Journal and confirm the prior scroll position, expanded parents, loaded older-week depth, filter, and any unsaved note draft are still present.
-- In Journal, expand a post-registration no-trade day and use Go to event. Confirm Fyodor selects that pair on H4 and centers the release candle without inventing an entry arrow, SL, or TP. Then scroll to `Before registration arrows`; let its market-by-market lazy load finish, confirm each parent spans Monday-Friday, open several weeks, and use `Show 26 older weeks` once. Spot-check both an older core pair and a newer cross and confirm each Go to arrow opens the exact historical replay while the section remains labeled retrospective.
-- Use Go to arrow on a Recent record, open Past Result, and add a note from the first table row. Switch to another arrow without saving a disposable draft and confirm the draft does not follow it. Return to the original arrow, save a note, switch to Trade > Recent, and confirm the same note appears on the matching release. Edit it from either view, refresh once, and confirm the durable text survives without changing the frozen Result rows.
-- Restart the bridge once for the additive audit-label migration. Edit an old note and confirm it starts as Unlabeled; assign each label at least once from Trade and Past Result, save, refresh, and confirm the badge persists. For a read-only query spot-check, `/research/review-notes?label=sl&market=EURUSD&q=price` should return only matching rows.
-- Cold-start the frontend with a normal Chrome refresh and confirm the shell appears immediately rather than remaining blank while the bridge registry loads. Open Trust State and confirm the popover is one compact column with no stretched blank card or clipped second column. Background activity should already contain startup bridge/chart rows and durations; switch a pair and timeframe and confirm request, stream, Trust State, and symbol-context rows appear. If the UI visibly freezes for at least 250 ms, confirm a Performance row records its duration. Clear it once and confirm new activity resumes. Its internal log and the overall popover must scroll independently without overflowing the 1440x900 viewport.
-- In Trade > Next, click Review beside a dated release. Confirm the chart changes to that pair, Past arrows is enabled, Choose setups has only that event's registered setup checked, and the matching note editor opens. Save a note, let the same event later move into Recent, and confirm the note follows it.
-- Set Default refocus width to two visibly different values. For each value, compare Refocus chart with Go to arrow: their candle density/zoom span should match, while Go to arrow remains centered around the selected activation candle.
-- Clear site storage once, fully close and reopen the frontend while the restarted bridge is available, and inspect Trade > Next at first paint. It should contain registered setups across AUDJPY, AUDUSD, EURCAD, EURJPY, EURUSD, GBPUSD, NZDUSD, USDCAD, USDCHF, and USDJPY, then refresh without collapsing to an EURUSD-only intermediate list. Repeat the restart once to verify the bounded browser snapshot path too.
-- With FMS price lines visible, rapidly alternate between instruments with very different price scales (for example GBPUSD, a JPY pair, a metal, and a stock), and switch H4/M1 repeatedly. At no point should two candle clusters, an unrelated arrow, or old-symbol ENTRY/SL/TP lines share the chart; the axis should settle directly on the selected instrument.
-- Repeat the unusual-symbol sequence that previously produced the 503 wall. A temporarily busy bridge may produce one failed background request, but it must not walk the remainder of the broker catalog with consecutive 503s. The explicitly selected symbol must still receive a foreground attempt and either render or show its specific unavailable reason.
-- While a longer MT5 candle operation is active, open Trust State on a symbol with a fresh EA quote. Symbol Context should use that broker quote and remain Open/Closed as appropriate; a symbol with no published tick may still honestly be Unavailable.
-- Click the archive icon in the chart tool strip, open several retained pages, and verify both Back to Charts and Prototypes. Nested prototype-local Back controls may remain in addition to the shared bar.
-- Restart the bridge, keep its console visible, then switch pairs rapidly and use Go to arrow several times. Confirm it selects the registered timeframe and precise arrow. Trust State may transition during normal reconnection but must recover, the bridge process must remain available, and no WebSocket traceback should print.
-- Try one arrow whose candle is not initially resident and one genuinely unavailable case. The first should fetch its bounded activation window and focus; the second should end with a specific history/signal/coverage reason rather than loading forever.
-- Keep Browse or Market Watch open and rapidly select several symbols and timeframes. Confirm the popover stays open and the chart does not show an intermediate zoom/axis jump.
-- On any future broker/terminal change, confirm `/health` reports a fresh quote publisher with the new catalog identity and compare its symbol count/order against MT5 before trusting reused chart coverage. The current 279-symbol broker passed live quote continuity and rapid-switch review on 2026-09-09.
-- Rapidly click several symbols faster than 150 ms. The browser console should no longer fill with `WebSocket is closed before the connection is established`; the final selected chart should connect normally.
-- In Settings > Appearance > Viewport, change Default refocus width and use Refocus. Confirm smaller values show fewer/wider candles and larger values show more/narrower candles.
-- At 1440x900 and 100% zoom, confirm Charts fills the window without a blank header gap; Trust State opens its diagnostics above the chart and reflects the currently selected chart symbol.
-- Open Calendar from the chart toolbar, switch `Matrix / Lens / Calendar`, resize the bottom dock, and open a chart event into Calendar. Confirm filters, row scrolling, event focus, and inspector dismissal remain usable inside the bounded panel.
-- Open Research from the chart toolbar, confirm the Workbench route appears with a compact `Back to Charts` bar, then return without losing the selected chart symbol or resident viewport.
-- Compare Market Watch count/order and several Bid, Ask, and Daily Change values with MT5 after using MT5 Show All. Missing broker quotes may show an em dash, but the symbol row must remain.
-- During frozen-record review, compare the selected chart arrow, Past Result table, Trade evidence, and immutable source data. Record exact IDs for every disagreement rather than correcting records manually.
-
-## Remaining limitations
-
-- The corrected event-respect campaign has zero challenge-supported candidates and zero post-activation observations. Its seven prospective-only rows are provisional direction monitors, not established edge. R5 high-TP/execution research is intentionally blocked until enough first-seen evidence exists for another declared decision.
-- Nine pairs are outside this campaign because frozen H4/source coverage failed the predeclared gate. They are not evidence of no relationship; broker/history coverage must be repaired and a future version declared before including them.
-- Visual smoothness, layout, and browser-console cleanliness remain owner-verified; automated checks do not constitute browser validation.
-- The first Journal visit loads pre-registration replay records sequentially and may take longer for a market whose durable replay cache has never been built. Post-registration records and notes remain usable while this runs; completed market projections are cached for the browser session, only bounded weekly summaries are mounted, and failures stay market-specific rather than being presented as zero records.
-- A genuinely first-ever launch waits for the bounded local bridge startup projection (four-second failure bound) before mounting; subsequent launches can hydrate its validated browser copy synchronously. If both bridge and cache are unavailable, Charts still mounts after that bound and honestly falls back to selected-market availability rather than fabricating all-market data.
-- First-ever uncached symbols can still wait for one foreground MT5 history call until durable or background history exists. The optional quote EA removes quote refresh from that history lane; without the EA, the automatic Python fallback still shares MT5 IPC and can briefly delay Market Watch quotes. A loaded or warmed symbol/timeframe remains resident for rapid revisits.
-- Stopping a systemically failed warm batch favors responsiveness over immediate catalog completion. Background warming resumes when the owner next changes market/timeframe; unsupported symbols continue to remain selectable for an explicit foreground attempt.
-- Live broker switching, quote continuity under slow/failed history, catalog invalidation, staged Go-to-arrow focus, and 1440x900 layout smoothness have not been manually verified in MT5/Chrome during this implementation session.
-- P4, P5, and P7 automated gates are complete, but their combined 1440x900 visual approval is still outstanding. No critical automated regression remains known; browser-only layout, focus, and transition issues can still be discovered by the owner checklist.
-- MT5 may expose a broker symbol without a current quote, especially when hidden or inactive. The audit table preserves the row and does not fabricate data or mutate MT5 Market Watch selection.
-- One named USDJPY historical replay remains honestly unevaluable until its source interval can be resolved without violating the account-access boundary.
-- The completed 12-variant research campaign is reused-history evidence, not fresh forward evidence, and does not exhaust orthogonal entry-known interactions.
+Scope is limited to:
+
+1. Fix the Setups dock crash: `Cannot read properties of null (reading '0')`.
+2. Fix `TP rate unavailable` only where valid stored TP-before-SL evidence already exists.
+
+Allowed boundary: left-panel FMS presentation/projection files and directly necessary existing tests. Forbidden without new owner authorization: bridge/server behavior, database schema, clock/time logic, startup, chart history or rendering, research generation, recipe publication, v1/v2 implementation, routes, broad refactoring, and repository hygiene. First confirm the cause and exact file list; then make the smallest coherent repair. Honest missing evidence must remain unavailable rather than being fabricated.
+
+Implementation checkpoint, 2026-09-21:
+
+- Setups crash cause confirmed: some current runtime patterns carry `groups: null`, while decision-scenario and setup-detail rendering assumed an array and indexed/joined it. The three left-panel reads now tolerate absent groups and use the pair currency or `Registered package definition` fallback without inventing evidence.
+- TP-rate cause confirmed: Trade treated any partial canonical `historicalEvidence` object as complete, even when its TP fields were null, thereby hiding valid stored active-successor, reviewed execution/entry, or registered-benchmark evidence. Fallback is now used only when that partial object exists and lacks a TP rate; already complete canonical evidence and patterns without that object retain their prior source behavior.
+- Scope touched only `ChartMacroBiasRealtimeCard.tsx`, `ChartMacroBiasSetupCatalog.tsx`, `ChartFmsActionCard.tsx`, and the existing `chartsTab.test.ts` regression file. No bridge, server, data, startup, chart, research, time, or repository-structure code changed.
+- Automated evidence: focused Charts test file passes 37/37 and `pnpm run typecheck` passes. Owner visual gate remains: open Setups and confirm it renders; inspect previously unavailable EURCAD/EURJPY/AUDUSD/GBPUSD/USDCAD/USDJPY/NZDUSD rows and confirm a rate appears only when stored evidence supports it. Genuine missing evidence must still say unavailable.
+
+## The product request, without reinterpretation
+
+The owner wants:
+
+1. The app to start quickly and remain usable.
+2. Rapid pair/timeframe switching without chart crashes, stale candles, mixed price scales, 503 walls, or bridge instability.
+3. Trade to show registered setups across all pairs at cold start, not only the selected pair.
+4. Go to arrow, Review, Journal, notes, and dock state to behave consistently and preserve the owner's place.
+5. FMS v1 and v2 historical arrows to be comparable over the same historical events.
+6. V2 candidates to reference the v1 contract and use the audit-note catalogue as declared hypotheses, while preserving v1 arrows/results unchanged.
+7. A tidy repository with bounded, owner-specific modules instead of expanding long-running files—but only in a separate hygiene phase after behavior is stable.
+
+This does **not** mean “build a second prospective registration platform,” “change time provenance,” “rework the bridge,” or “publish new live contracts” unless the owner explicitly asks for that separate work.
+
+## Permanent scope guardrails
+
+These rules exist specifically to prevent another goal-mode drift.
+
+- One authorization equals one named surface and one outcome. “Left panel only” means left-panel components, their owned styles, and directly necessary existing tests. It excludes bridge, clock/time, chart history, startup, registration, database schema, research scripts, generated artifacts, routes, and general cleanup.
+- Before implementation, report the confirmed cause, the exact proposed files, the behavior that must remain unchanged, and the smallest validation. Do not edit first and explain later.
+- If the confirmed fix requires crossing the authorized boundary, stop and ask. Do not treat an architectural dependency as implied permission.
+- Never mix a bug fix, research campaign, UI redesign, bridge hardening, performance pass, and repository cleanup in one batch.
+- Establish a reproducible failing case before fixing it. Re-run that exact case afterward. Passing tests alone never proves the browser workflow works.
+- Prefer deletion or reuse over a new framework, script, registry, artifact family, or compatibility layer. Any new subsystem requires explicit owner agreement.
+- No speculative “while here” changes. No drive-by time handling, bridge lifecycle, caching, schema, route, or naming changes.
+- Preserve user changes and immutable FMS records. New historical comparison output must be additive and separately versioned.
+- Keep diffs reviewable. If the task stops being understandable as one coherent change, stop and split it before proceeding.
+- At handoff, distinguish verified facts, automated evidence, manual checks still required, and hypotheses. Never call an untested live flow complete.
+
+## Deferred grand recovery plan — owner authorization required
+
+Every phase below is deferred. No phase begins unless the owner explicitly authorizes implementation of that named phase. Complete and verify one authorized phase before proposing the next.
+
+### Phase 0 — Pause and preserve
+
+Status: deferred; the two-defect left-panel priority above supersedes it.
+
+- Make no source, bridge, data, configuration, or generated-artifact changes.
+- Preserve `master`, `90aac0f`, `4e04979`, and `3e3c208` as evidence. Do not rewrite history or delete the current work.
+- Keep this checklist as the single active handoff. Old details remain recoverable from Git history and dedicated research documents.
+
+Exit: owner chooses to resume with a bounded read-only diagnosis.
+
+### Phase 1 — Establish a genuinely clean baseline
+
+Purpose: determine which source revision works when runtime state is controlled.
+
+- Use a separate worktree or otherwise isolated checkout; do not overwrite the owner's main working directory.
+- Record source commit, bridge process/version, MT5 attached EAs, durable database path, browser storage/cache state, and frontend process for every comparison.
+- Test `90aac0f` first, then only the minimum later commit needed to bisect a confirmed regression.
+- Use one short smoke sequence: cold start, all-pair Trade population, rapid common/unusual pair switching, timeframe switching, Go to arrow, and FMS dock open.
+- Do not fix anything during the baseline pass. The deliverable is a small evidence table and the last genuinely working source/runtime combination.
+
+Exit: the owner confirms the baseline behavior and selects the recovery base.
+
+### Phase 2 — Recover usability one defect at a time
+
+Order is fixed unless the owner changes it:
+
+1. FMS dock null crash.
+2. Cold-start shell and all-pair Trade population.
+3. Rapid pair/timeframe switching and newest-selection-wins behavior.
+4. Go to arrow/Review correctness and configured refocus parity.
+5. Journal/Trade/Past Result state and audit-note continuity.
+
+For each defect:
+
+- Confirm one cause from the selected baseline.
+- Name the smallest file boundary before editing.
+- Do not touch the bridge unless evidence proves the defect is in the bridge and the owner separately authorizes bridge work.
+- Run only the targeted existing check plus the exact owner-visible reproduction.
+- Commit or checkpoint before moving to the next defect.
+
+Exit: the owner completes the five-step smoke sequence without a crash, long UI freeze, selected-pair-only list, stale chart, or lost dock state.
+
+### Phase 3 — Define FMS v2 comparison before writing runtime code
+
+Purpose: deliver what the owner originally asked for.
+
+- V1 is the immutable historical baseline: its arrows, entries, SL, TP, expiry, outcome, IDs, notes, and provenance never change.
+- V2 is a separately declared counterfactual replay over the same eligible historical events. Every v2 row must point to its v1 parent and state exactly what changed.
+- The comparison toggle changes the rendered research dataset, not the immutable registration version on prospective records.
+- Candidate dimensions come from the audit ledger: event-specific TP/SL/duration, release-near entry, support/resistance-aware placement, trend/role-transition context, overlap clustering, and intervening scheduled events.
+- Declare training/selection versus untouched chronological evaluation before calculating a preferred recipe. Report exact denominators, missing/ambiguous paths, years/regimes, and clustered release episodes.
+- Produce one small human-readable comparison first: same event, v1 geometry/result, v2 geometry/result, reason, and evidence. The owner reviews it before any chart integration.
+- No automatic promotion, no rewriting v1, no live-registration activation, and no bridge dependency.
+
+Exit: the owner approves the comparison semantics and a frozen, reviewable v2 dataset.
+
+### Phase 4 — Add the smallest v1/v2 arrow UI
+
+- One left-panel selector and chart overlay source: `FMS v1`, `FMS v2 candidate`, or optionally `Compare` if visual clarity permits.
+- Go to arrow operates on the selected dataset and exact event identity.
+- Marker text states version and whether it is immutable/live or counterfactual/research.
+- Audit notes remain attached to the event/parent identity and are readable from either version without duplication.
+- No changes to bridge lifecycle, source clocks, startup architecture, or live registration.
+
+Exit: the owner can switch versions on the same event, inspect both arrows, and return to the same dock/scroll/expanded state.
+
+### Phase 5 — Continue the owner-led audit loop
+
+- The owner adds notes; Codex reads only new/unreviewed notes, discusses them, records the conclusion, and marks them documented when requested.
+- Aggregate observations by event episode, not by pair row alone. Several pairs reacting to one US release are correlated evidence.
+- Classify each case as presentation defect, data/cache defect, evaluator defect, correct-but-unintuitive behavior, genuine recipe weakness, or unresolved.
+- Accumulated observations may nominate a later v3 hypothesis; they never silently alter v1 or v2.
+
+Exit: enough independent evidence exists for an explicitly authorized successor study.
+
+### Phase 6 — Repository hygiene, separately authorized
+
+- Map ownership and dependencies before moving code.
+- Split long files along real feature boundaries, preserving behavior and public contracts.
+- Keep market data, chart rendering, FMS docks, audit notes, research, and bridge lifecycle isolated.
+- Consolidate duplicate adapters and tests only after proving equivalence.
+- Quarantine old routes/pages before deletion. Physical deletion requires explicit owner approval for named targets.
+- Do not mix visual redesign or functional changes into extraction commits.
+
+Exit: smaller owner-focused modules, unchanged behavior, clean dependency checks, and owner-confirmed startup/chart/FMS smoke tests.
+
+## Deferred research catalogue
+
+These ideas are preserved, not authorized for implementation.
+
+### Event–pair behavior catalogue — primary research direction
+
+- Build a menu of economic-event families and the pairs they materially affect.
+- For each event/pair/direction cohort report sample size, release episodes, years/regimes, objective result direction, follow/reject frequency, median/quantile move, MFE/MAE, and missing/ambiguous coverage.
+- Include exact TP-before-SL rates for predeclared TP1/TP2/TP3 levels, not only average movement. Keep eventual touches separate from tradeable TP-before-SL outcomes.
+- Compare continuation and rejection explicitly. “High TP” means a repeatable event/pair/contract result, not a large target selected after seeing winners.
+- Cluster co-released indicators and same-release cross-pair arrows so correlated rows are not counted as independent proof.
+- Preserve `Needs Codex Review` as a bounded queue with explicit decisions and evidence; do not imply that an old declined row is unfinished.
+- Publish readable research articles containing the question, declared recipe, data lineage, result table, limitations, and decision.
+
+### Candidate execution hypotheses from audit notes
+
+- Entry at/near release versus first later H1/H4 open; M1 is only for justified finalist ordering.
+- Event-specific SL, TP, and maximum duration rather than one universal medicine.
+- TP1/TP2/TP3 ladders, target buffers, partial exits, runners, and trailing exits.
+- Multi-scale H4/D1/W1 support/resistance bands as probabilistic zones, not deterministic lines.
+- Entry inside/near a zone, breakout versus rejection, and support/resistance role transitions.
+- Near-target sensitivity, wider-stop geometry, slower follow-through, and the changed R ratio those choices create.
+- Intervening scheduled economic releases while a trade remains open.
+- Overlapping signals/exposures and one-macro-episode clustering.
+- Event-aware open-trade management is late-game only, after the baseline catalogue is reliable.
+- FXStreet/unscheduled headline analysis remains outside current trusted inputs and is deferred; it must never be presented as deterministic causation.
+
+### Deferred product/UI work
+
+- Remove the universal header from the normal workflow; retain only genuinely needed chart controls such as Trust State.
+- Keep Charts as the primary product. Overview and Specialist/legacy tools stay quarantined and reachable through explicit archive/prototype pages with `Back to Charts`.
+- Keep the bottom workspace concept `Matrix / Lens / Calendar`; Calendar belongs there rather than in a universal header.
+- Modernize the right inspector and Lens using TradingView/MT5 as references only after stability.
+- Configurable panel placement, including right-to-left inspector movement, remains low priority.
+- Preserve a compact universal activity log in Trust State, but do not expand diagnostics while repairing unrelated behavior.
+
+### Deferred bridge/broker adaptability
+
+- Broker symbol counts and naming vary; Market Watch and caches must adapt to catalog identity rather than assume the current 279-symbol broker.
+- Quote ingestion and chart history must remain separate lanes so unusual-symbol history cannot freeze all Bid/Ask updates.
+- Bridge lifecycle, source clocks, history scheduling, and EAs are frozen unless a reproduced defect specifically implicates them and the owner authorizes that work.
+- Never promise “impossible to break.” Require bounded failure, honest status, recovery, and logs.
+
+## Minimal owner acceptance sequence for future implementation
+
+This replaces the previous sprawling manual checklist. Run it only after a bounded change affects these behaviors.
+
+1. Cold start: shell appears promptly; Trade shows registered setups across all expected pairs.
+2. Rapid switching: alternate common, unusual, JPY, metal/crypto/stock symbols and H4/M1; newest selection wins with one price scale and no 503 wall.
+3. FMS docks: open Trade, Journal, Setups, and Past Result; no null crash or multi-second click freeze.
+4. Navigation: Go to arrow and Review select the correct pair/timeframe/event, use configured refocus, and preserve the originating dock state.
+5. Notes: create/edit one labeled note and confirm the same note appears consistently in Trade, Journal, and Past Result after refresh.
+6. Bridge: Trust State remains honest and stable; ordinary client disconnects or deferred background history do not restart the process.
+
+## Non-negotiable financial/data behavior
+
+- Local manual-trading support only; Fyodor sends no orders and promises no profit.
+- Trusted inputs remain MT5 OHLCV and the broker economic calendar unless the owner explicitly authorizes another source.
+- Preserve immutable first-seen provenance, no-lookahead semantics, frozen contracts, unresolved outcomes, and original records.
+- A correction is a new explicit version with the original retained; no silent rewrite or retrospective relabeling.
+- Gross results stay gross and must expose missing coverage, ambiguity, overlap, and uncertainty.
+- No setup promotes itself from research into runtime.
+
+## Known limitations and unresolved facts
+
+- Current `master` is not owner-validated and has at least one confirmed runtime crash.
+- The precise last clean source/runtime combination is unknown because earlier checkout tests reused persistent external state.
+- Existing published “FMS v2” successor infrastructure is not the historical comparison UX the owner intended. Preserve it as evidence until the owner chooses whether to retain, quarantine, or remove it.
+- Direction-only event-respect research has no challenge-supported candidate yet; provisional rows are not established edge.
+- Automated tests, typecheck, and production build do not substitute for the six-step owner acceptance sequence.
+- Profitability remains an empirical question. The purpose of this workflow is to make evidence trustworthy enough to answer it without rewriting failures.

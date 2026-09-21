@@ -13,6 +13,7 @@ import {
 import { ChartMacroBiasAudit } from "@/app/components/ChartMacroBiasAudit";
 import { ChartMacroBiasAuditReview } from "@/app/features/fms-dock/ChartMacroBiasAuditReview";
 import { FmsReviewNoteRow } from "@/app/features/fms-dock/FmsReviewNoteRow";
+import { ChartMacroBiasSetupCatalog } from "@/app/components/ChartMacroBiasSetupCatalog";
 import { ChartMacroBiasRealtimeCard, marketMatchesCurrencySelection } from "@/app/components/ChartMacroBiasRealtimeCard";
 import { ChartFmsJournalCard, buildFmsJournalRows, buildFmsPreRegistrationJournalRows, groupJournalRows } from "@/app/components/ChartFmsJournalCard";
 import { buildRegisteredSetupSchedule, buildRecentFmsActivity, partitionFmsActivity, getTradeMarkets, ChartFmsActionCard, DEFAULT_FMS_TRADE_VIEW_STATE } from "@/app/components/ChartFmsActionCard";
@@ -751,6 +752,13 @@ describe("getChartConnectionLabel", () => {
     expect(setupsHtml).toContain("Entry and exits:");
     expect(setupsHtml).not.toContain("Every registered setup");
     expect(setupsHtml).not.toContain("<summary>");
+    const nullableGroupsPattern = { ...pattern, groups: null as unknown as string[] } satisfies MacroSignalChartPattern;
+    const nullableGroupsHtml = renderToStaticMarkup(createElement(ChartMacroBiasRealtimeCard, { data: {
+      ...setupData, response: { ...response, patterns: [nullableGroupsPattern] }, globalResponse: null,
+    }, view: "setups", embedded: true }));
+    expect(nullableGroupsHtml).toContain("IF registered EUR evidence improves");
+    const nullableGroupsCatalogHtml = renderToStaticMarkup(createElement(ChartMacroBiasSetupCatalog, { patterns: [nullableGroupsPattern] }));
+    expect(nullableGroupsCatalogHtml).toContain("Registered package definition");
     const v2Pattern = {
       ...pattern,
       registeredVersion: "FMS v2",
@@ -809,6 +817,22 @@ describe("getChartConnectionLabel", () => {
       activeSignal: null, activePattern: null, remainingModelCandles: null, chartTimeframe: "H4", historicalSignals: [], globalResponse: null, globalLoading: false, globalError: null,
     } }));
     expect(scheduledActionHtml).toContain("Review");
+    const partialEvidencePattern = {
+      ...pattern,
+      historicalEvidence: {
+        schema: "fms-chart-historical-evidence-v1", scope: "Partial current projection", cohort: { dimension: "none", value: "all" }, sourceId: null,
+        evaluableCount: 0, targetHitCount: null, targetHitRate: null, stopHitCount: null, stopHitRate: null,
+        expiredCount: null, breakEvenCount: null, ambiguousCount: null, unevaluableCount: null,
+        averageGrossR: null, totalGrossR: null, totalGrossRDerivation: null,
+      },
+    } satisfies MacroSignalChartPattern;
+    const partialEvidenceHtml = renderToStaticMarkup(createElement(ChartFmsActionCard, { data: {
+      response: { ...response, patterns: [partialEvidencePattern] },
+      activeSignal: null, activePattern: null, remainingModelCandles: null, chartTimeframe: "H4", historicalSignals: [], globalResponse: null, globalLoading: false, globalError: null,
+    } }));
+    expect(partialEvidenceHtml).toContain("55.0% TP before SL");
+    expect(partialEvidenceHtml).toContain("+0.30R gross avg · N 30");
+    expect(partialEvidenceHtml).not.toContain("TP rate unavailable");
     const recentActionHtml = renderToStaticMarkup(createElement(ChartFmsActionCard, { data: {
       response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
     }, viewState: { ...DEFAULT_FMS_TRADE_VIEW_STATE, activeView: "recent" }, onGoToEvent: () => {} }));

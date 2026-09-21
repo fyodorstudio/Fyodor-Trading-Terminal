@@ -233,7 +233,8 @@ function relativeMagnitude(value: { status: string; percentile?: number; priorCo
 }
 
 function buildDecisionScenarios(pattern: MacroSignalChartPattern, symbol: string): Array<[string, string]> {
-  const currency = pattern.groups[0]?.split(":")[0] ?? symbol.slice(0, 3);
+  const primaryGroup = Array.isArray(pattern.groups) ? pattern.groups[0] : null;
+  const currency = primaryGroup?.split(":")[0] || symbol.slice(0, 3);
   if (pattern.direction === "both") {
     const improvingAction = symbol.startsWith(currency) ? `Long ${symbol}` : `Short ${symbol}`;
     const weakeningAction = symbol.startsWith(currency) ? `Short ${symbol}` : `Long ${symbol}`;

@@ -2,6 +2,14 @@
 
 Local React/Vite manual-trading terminal with a FastAPI/MT5 bridge. FMS is the main objective: research all 28 Major Forex Extended pairs for immutable economic-event recipes with positive chronological historical expectancy, register supported recipes, inspect historical arrows, and monitor new releases. No automatic orders or guaranteed edge.
 
+## Active safety override — 2026-09-21
+
+The current `master` at `3e3c208` is **not a trusted working baseline** despite previously passing automated checks. The owner has directly observed an FMS dock crash (`Cannot read properties of null (reading '0')` in `ChartMacroBiasRealtimeCard`), slow/blank startup, selected-pair-only Trade data, chart failures/503s during pair switching, and other regressions after the post-`90aac0f` FMS v2 work. Historical completion claims below describe intended contracts or automated evidence; they do not override these live observations.
+
+Until the owner explicitly reauthorizes a bounded implementation task, work is planning, research, and Markdown only. A request scoped to the left panel does not authorize bridge, clock/time, chart-history, startup, registration-engine, database-schema, generated-artifact, or repository-wide changes. If a necessary change would cross the named boundary, stop and report it. The requested FMS v2 experience is a historical, side-by-side recipe replay over the same events—v1 baseline arrows versus explicitly declared v2 candidate arrows informed by owner audit notes—not merely filtering prospective runtime records by their immutable registration version.
+
+The recovery sequence and complete deferred ledger live in [Checklist](docs/Development%20Logs/Checklist.md). Detailed owner arrow observations live in the [FMS v2 research audit ledger](docs/Development%20Logs/FMS%20v2%20Research.md#owner-audit-ledger).
+
 ## Vocabulary and invariants
 
 - **Recipe/setup/pattern:** exact pair, event/package membership, scoring, direction treatment, optional cohort, and fixed execution contract. Registration is explicit; runtime never promotes research automatically.
