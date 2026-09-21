@@ -40,6 +40,7 @@ import {
   resolveFmsArrowNavigationStage,
 } from "@/app/features/fms-arrow-navigation/arrowNavigation";
 import { getMacroBiasInitialLoadPlan } from "@/app/tabs/primary/ChartsTab";
+import { preferFmsMarketSnapshot } from "@/app/features/fms-arrow-navigation/useChartMacroBiasData";
 
 describe("pair-switch FMS loading", () => {
   it("presents the frozen v2 decisions without eager detail tables or mutation controls", () => {
@@ -197,6 +198,21 @@ describe("pair-switch FMS loading", () => {
     expect(getTradeMarkets({ response: stale, globalResponse: { markets: [response] } } as Parameters<typeof getTradeMarkets>[0])[0]).toBe(response);
     const startupProjection = { ...response, generatedAt: 200, recoveredSignals: [] };
     expect(getTradeMarkets({ response: startupProjection, globalResponse: { markets: [response] } } as Parameters<typeof getTradeMarkets>[0])[0]).toBe(response);
+  });
+  it("does not let a compact startup projection clear Recent activity", () => {
+    const signal = { id: "closed", patternId: "registered", eventTime: 100, entry: 1, outcomeStatus: "target_hit" } as MacroSignalChartSignal;
+    const current = {
+      symbol: "EURUSD", supported: true, generatedAt: 200, patterns: [], signals: [signal], recoveredSignals: [],
+      realtime: { patternAssessments: [], latestPatternAssessments: [] },
+    } as unknown as MacroSignalChartSignalResponse;
+    const compact = {
+      ...current,
+      startupProjection: true,
+      signals: [],
+      realtime: { ...current.realtime, patternAssessments: [], latestPatternAssessments: [] },
+    } as MacroSignalChartSignalResponse;
+    expect(preferFmsMarketSnapshot(current, compact)).toBe(current);
+    expect(preferFmsMarketSnapshot(compact, current)).toBe(current);
   });
   it("keeps every pending and completed row, including inactive setup history and overnight waiting releases", () => {
     const pattern = { id: "registered", currentEligible: false } as MacroSignalChartPattern;
@@ -817,22 +833,23 @@ describe("getChartConnectionLabel", () => {
       activeSignal: null, activePattern: null, remainingModelCandles: null, chartTimeframe: "H4", historicalSignals: [], globalResponse: null, globalLoading: false, globalError: null,
     } }));
     expect(scheduledActionHtml).toContain("Review");
-    const partialEvidencePattern = {
+    const compactEvidencePattern = {
       ...pattern,
-      historicalEvidence: {
-        schema: "fms-chart-historical-evidence-v1", scope: "Partial current projection", cohort: { dimension: "none", value: "all" }, sourceId: null,
-        evaluableCount: 0, targetHitCount: null, targetHitRate: null, stopHitCount: null, stopHitRate: null,
-        expiredCount: null, breakEvenCount: null, ambiguousCount: null, unevaluableCount: null,
-        averageGrossR: null, totalGrossR: null, totalGrossRDerivation: null,
-      },
+      historicalEvidence: null,
+      overall: {
+        ...metrics,
+        evaluableCount: null,
+        targetHitRate: null,
+        averageR: null,
+      } as unknown as MacroSignalMetrics,
     } satisfies MacroSignalChartPattern;
-    const partialEvidenceHtml = renderToStaticMarkup(createElement(ChartFmsActionCard, { data: {
-      response: { ...response, patterns: [partialEvidencePattern] },
+    const compactEvidenceHtml = renderToStaticMarkup(createElement(ChartFmsActionCard, { data: {
+      response: { ...response, patterns: [compactEvidencePattern] },
       activeSignal: null, activePattern: null, remainingModelCandles: null, chartTimeframe: "H4", historicalSignals: [], globalResponse: null, globalLoading: false, globalError: null,
     } }));
-    expect(partialEvidenceHtml).toContain("55.0% TP before SL");
-    expect(partialEvidenceHtml).toContain("+0.30R gross avg · N 30");
-    expect(partialEvidenceHtml).not.toContain("TP rate unavailable");
+    expect(compactEvidenceHtml).toContain("55.0% TP before SL");
+    expect(compactEvidenceHtml).toContain("+0.30R gross avg · N 30");
+    expect(compactEvidenceHtml).not.toContain("TP rate unavailable");
     const recentActionHtml = renderToStaticMarkup(createElement(ChartFmsActionCard, { data: {
       response, activeSignal: openSignal, activePattern: pattern, remainingModelCandles: 10, chartTimeframe: "H1", historicalSignals: [], globalResponse, globalLoading: false, globalError: null,
     }, viewState: { ...DEFAULT_FMS_TRADE_VIEW_STATE, activeView: "recent" }, onGoToEvent: () => {} }));

@@ -6,31 +6,31 @@ Fyodor's immediate objective is simple: restore a trustworthy, fast application;
 
 Rules: [AGENTS](../../AGENTS.md). Durable facts: [CONTEXT](../../CONTEXT.md). Owner observations and research background: [FMS v2 Research](FMS%20v2%20Research.md#owner-audit-ledger).
 
-## Current status — do not mistake this for a working baseline
+## Current status and active scope lock
 
-- `90aac0f` (`bridge haul`) was the owner's intended last bridge-stability point.
-- Only two commits followed it: `4e04979` (`v2 research goal mode 0.5`) and `3e3c208` (`v2 research goal mode done, result drifted too far`). Together they changed 46 files by roughly +12.8k/-326 lines.
-- The only post-`90aac0f` MQL change was `FyodorCalendarBridge.mq5` in `4e04979`; it added diagnostic clock fields to the existing cycle acknowledgement. `FyodorQuoteBridge.mq5` did not change. The old backend ignores those additional fields.
-- Current `master` is `3e3c208`. Automated tests previously passed, but the owner has directly observed a runtime FMS dock crash (`Cannot read properties of null (reading '0')` in `ChartMacroBiasRealtimeCard`), slow/blank startup, Trade initially or persistently showing only the selected pair, and chart/503 failures during rapid switching. Live owner evidence outranks old completion text.
-- Checking out an older source commit does not reset the running Vite/bridge processes, browser storage, caches, durable SQLite data, generated local data, or the compiled EA attached inside MT5. An older checkout must be tested in a clean, explicitly recorded runtime before it can be called good or bad.
-- There are 31 known saved arrows in the inspected durable snapshot and all are FMS v1. The newest predates the published v2 activation boundary. Therefore the existing runtime-version filter naturally shows no v2 arrows; that filter is not the historical v1/v2 comparison the owner requested.
-- The **only current implementation priority** is the bounded left-panel repair described below. Every other recovery, research, v2, bridge, startup, chart, UI, and repository-hygiene phase in this document is deferred and must not be implemented unless the owner explicitly authorizes that specific phase.
+- The owner uses Charts, every chart dock/panel, and the FMS Experiment Workbench. Everything else is a removal candidate, not automatically disposable.
+- Historical claims that the whole application is stable are not trusted. Owner-observed behavior is the acceptance authority.
+- The Setups `groups: null` crash has a bounded presentation guard. The owner has since shown Setups rendering.
+- The Trade TP-rate defect came from compact startup patterns carrying `historicalEvidence: null` and empty `overall` metrics while valid evidence remained in `successorReview.holdout`, reviewed execution/entry evidence, or the frozen v1 `historicalBenchmark`. The resolver now accepts those stored sources without requiring a non-null canonical object. Frozen v1 evidence was not deleted or rewritten.
+- The currently authorized source change is only the Trade > Recent stability repair described below. Repository cleanup is documentation-only and deferred. No deletion is authorized.
+- Bridge/server, MT5/MQL, database, source clocks, chart history/rendering, research generation, recipe publication, v1/v2 comparison implementation, routes, redesign, and performance work remain forbidden unless the owner names and authorizes that exact phase.
 
-## Current authorized priority — two left-panel defects only
+## Current authorized priority — Trade > Recent must not clear itself
 
-Scope is limited to:
+Confirmed reproduction mechanism:
 
-1. Fix the Setups dock crash: `Cannot read properties of null (reading '0')`.
-2. Fix `TP rate unavailable` only where valid stored TP-before-SL evidence already exists.
+- The selected-market response contains recorded signals and completed assessments, so Recent initially fills.
+- The periodic global request returns a bounded `startupProjection` whose market rows intentionally contain empty `signals`, `recoveredSignals`, and assessment arrays.
+- A compact row can carry the same generation timestamp as the richer selected-market row. The frontend previously allowed the compact row to replace the richer row at equal timestamps, making Recent alternate between populated and empty without any record being deleted.
 
-Allowed boundary: left-panel FMS presentation/projection files and directly necessary existing tests. Forbidden without new owner authorization: bridge/server behavior, database schema, clock/time logic, startup, chart history or rendering, research generation, recipe publication, v1/v2 implementation, routes, broad refactoring, and repository hygiene. First confirm the cause and exact file list; then make the smallest coherent repair. Honest missing evidence must remain unavailable rather than being fabricated.
+Authorized boundary and implementation:
 
-Implementation checkpoint, 2026-09-21:
-
-- Setups crash cause confirmed: some current runtime patterns carry `groups: null`, while decision-scenario and setup-detail rendering assumed an array and indexed/joined it. The three left-panel reads now tolerate absent groups and use the pair currency or `Registered package definition` fallback without inventing evidence.
-- TP-rate cause confirmed: Trade treated any partial canonical `historicalEvidence` object as complete, even when its TP fields were null, thereby hiding valid stored active-successor, reviewed execution/entry, or registered-benchmark evidence. Fallback is now used only when that partial object exists and lacks a TP rate; already complete canonical evidence and patterns without that object retain their prior source behavior.
-- Scope touched only `ChartMacroBiasRealtimeCard.tsx`, `ChartMacroBiasSetupCatalog.tsx`, `ChartFmsActionCard.tsx`, and the existing `chartsTab.test.ts` regression file. No bridge, server, data, startup, chart, research, time, or repository-structure code changed.
-- Automated evidence: focused Charts test file passes 37/37 and `pnpm run typecheck` passes. Owner visual gate remains: open Setups and confirm it renders; inspect previously unavailable EURCAD/EURJPY/AUDUSD/GBPUSD/USDCAD/USDJPY/NZDUSD rows and confirm a rate appears only when stored evidence supports it. Genuine missing evidence must still say unavailable.
+- `Main/src/app/features/fms-arrow-navigation/useChartMacroBiasData.ts` owns the snapshot selection. A compact `startupProjection` must never replace a response containing more recorded activity. Authoritative non-projection responses still use generation time, with activity count only breaking equal-time ties.
+- The existing `Main/src/app/tests/chartsTab.test.ts` contains the exact equal-generation compact-versus-rich regression. Do not create a new test framework or broaden this into startup/bridge work.
+- `Main/src/app/components/ChartFmsActionCard.tsx` contains the separately authorized TP-evidence resolver correction. Do not refactor the component as part of Recent stability.
+- Automated gate: focused Charts tests and `pnpm run typecheck`. Manual gate: leave Recent open through at least one periodic global refresh (over 60 seconds), change docks and return, and confirm the same rows/count remain.
+- Implementation checkpoint: the compact-versus-rich regression passes within the focused Charts file (38/38), and `pnpm run typecheck` passes. Browser persistence across the periodic refresh remains owner verification; no browser automation was run.
+- If Recent still clears after this rule, capture the current market, timestamp, global activity entry, and whether a compact or authoritative response arrived. Do not guess or alter the bridge.
 
 ## The product request, without reinterpretation
 
@@ -142,12 +142,16 @@ Exit: enough independent evidence exists for an explicitly authorized successor 
 
 ### Phase 6 — Repository hygiene, separately authorized
 
-- Map ownership and dependencies before moving code.
-- Split long files along real feature boundaries, preserving behavior and public contracts.
-- Keep market data, chart rendering, FMS docks, audit notes, research, and bridge lifecycle isolated.
-- Consolidate duplicate adapters and tests only after proving equivalence.
-- Quarantine old routes/pages before deletion. Physical deletion requires explicit owner approval for named targets.
-- Do not mix visual redesign or functional changes into extraction commits.
+- Status: deferred. The owner has authorized documentation of candidates, not deletion or refactoring.
+- Product boundary to preserve: Charts, the complete left/bottom/right chart-panel workflow, FMS Workbench, MT5/calendar inputs, immutable FMS v1/v2 evidence, audit notes, and the minimum bridge/research machinery they actually require.
+- First safe source-removal candidate is the explicitly quarantined garbage family: `Main/src/app/tabs/garbage/`, `Main/src/app/lib/garbage/`, `Main/src/app/tests/garbage/`, `Main/src/styles/garbage.css`, and `Main/src/styles/*garbage*.css`. Inventory on 2026-09-21: 47 tracked files, about 12,410 lines/510 KB. These files are still imported by route wiring; they can be removed only as one named batch with matching `AppRoutes.tsx`, `App.tsx`, navigation configuration, and `TabId` cleanup.
+- Secondary removal candidates, because they are outside the stated product boundary: Overview/deprecated Overview, Differential Calculator, Macro Drivers, Event Replay, standalone Central Banks, Prototyping index, and their feature-specific helpers/styles/tests. They are **not yet proven safe** because shared calendar/central-bank utilities may feed chart panels. Produce an import/dependency table before naming files for deletion.
+- Immediately recreatable local artifacts include `.pytest_cache`, `__pycache__`, `Main/dist`, and installed `node_modules`. Deleting `node_modules` requires reinstalling packages. Deleting `Main/mt5-bridge/.venv` temporarily disables the bridge and requires recreating its Python environment, so do not include it in an ordinary cleanup.
+- `docs/Development Logs/artifacts/bridge-research.stdout.log` is a generated 57.8 MB log and a strong deletion candidate. Other ignored research artifacts occupy roughly 323 MB but may preserve fingerprints or reproducibility inputs; retain them until every active frozen output names its source manifest and required artifacts.
+- `Main/pnpm-lock.yaml` may duplicate the root workspace lockfile, whose `Main` importer already exists. Treat it only as a candidate until lockfile ownership and root/Main install behavior are explicitly verified.
+- Large files are not automatically useless. Preserve `server.py`, `macro_signal.py`, registered recipe/evidence JSON, FMS catalogue/successor data, calendar/central-bank derivation shared by Charts, chart/panel code, Workbench, and evidence-generation scripts until dependency ownership is proven.
+- Cleanup sequence when authorized: create inventory → classify retain/remove/unknown → remove one isolated feature family → typecheck/build → owner smoke check Charts/panels/Workbench → checkpoint. Do not combine deletion with bug fixes, redesign, bridge work, research, or long-file extraction.
+- Splitting long files is a separate refactor after deletions. Split only along demonstrated ownership boundaries and preserve behavior/public contracts. Do not create compatibility layers merely to move code.
 
 Exit: smaller owner-focused modules, unchanged behavior, clean dependency checks, and owner-confirmed startup/chart/FMS smoke tests.
 
@@ -216,8 +220,10 @@ This replaces the previous sprawling manual checklist. Run it only after a bound
 
 ## Known limitations and unresolved facts
 
-- Current `master` is not owner-validated and has at least one confirmed runtime crash.
-- The precise last clean source/runtime combination is unknown because earlier checkout tests reused persistent external state.
+- The bounded Setups/TP/Recent repairs are not yet owner-validated as one browser workflow. Automated checks prove only their code-level contracts.
+- Slow/blank startup, selected-pair-only behavior outside the preserved schedule projection, rapid-switch chart/503 failures, and the precise last clean source/runtime combination remain unresolved. They are not authorized by the current Recent repair.
+- Browser storage, live processes, durable SQLite state, generated caches, and MT5-attached EAs can outlive a Git checkout; source history alone cannot identify a clean runtime.
+- Repository deletion and long-file extraction are deferred. The candidate inventory above is not permission to delete anything.
 - Existing published “FMS v2” successor infrastructure is not the historical comparison UX the owner intended. Preserve it as evidence until the owner chooses whether to retain, quarantine, or remove it.
 - Direction-only event-respect research has no challenge-supported candidate yet; provisional rows are not established edge.
 - Automated tests, typecheck, and production build do not substitute for the six-step owner acceptance sequence.

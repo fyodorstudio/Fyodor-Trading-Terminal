@@ -29,6 +29,29 @@ interface ChartMacroBiasDataOptions {
   visibleCandleCount: number;
 }
 
+function recordedActivityCount(market: MacroSignalChartSignalResponse): number {
+  const realtime = market.realtime;
+  return market.signals.length
+    + (market.recoveredSignals?.length ?? 0)
+    + (realtime?.patternAssessments?.length ?? 0)
+    + (realtime?.latestPatternAssessments?.length ?? 0)
+    + (realtime?.latestPatternAssessment ? 1 : 0);
+}
+
+export function preferFmsMarketSnapshot(
+  current: MacroSignalChartSignalResponse | null | undefined,
+  incoming: MacroSignalChartSignalResponse,
+): MacroSignalChartSignalResponse {
+  if (!current) return incoming;
+  const currentActivity = recordedActivityCount(current);
+  const incomingActivity = recordedActivityCount(incoming);
+  if (incoming.startupProjection && currentActivity > incomingActivity) return current;
+  if (current.startupProjection && incomingActivity > currentActivity) return incoming;
+  if ((incoming.generatedAt ?? 0) > (current.generatedAt ?? 0)) return incoming;
+  if ((incoming.generatedAt ?? 0) < (current.generatedAt ?? 0)) return current;
+  return incomingActivity >= currentActivity ? incoming : current;
+}
+
 export function useChartMacroBiasData({
   selectedSymbol,
   events,
@@ -111,7 +134,7 @@ export function useChartMacroBiasData({
         response.markets.forEach((market) => {
           const key = market.symbol.toUpperCase();
           const cachedMarket = marketCacheRef.current.get(key);
-          if (!cachedMarket || (market.generatedAt ?? 0) >= (cachedMarket.generatedAt ?? 0)) marketCacheRef.current.set(key, market);
+          marketCacheRef.current.set(key, preferFmsMarketSnapshot(cachedMarket, market));
         });
         setGlobalResponse((current) => current ? {
           ...response,
@@ -119,8 +142,8 @@ export function useChartMacroBiasData({
           markets: response.markets.map((market) => {
             const currentMarket = current.markets.find((candidate) => candidate.symbol === market.symbol);
             const cachedMarket = marketCacheRef.current.get(market.symbol.toUpperCase());
-            const newest = cachedMarket && (cachedMarket.generatedAt ?? 0) > (currentMarket?.generatedAt ?? 0) ? cachedMarket : currentMarket;
-            return newest && (newest.generatedAt ?? 0) > (market.generatedAt ?? 0) ? newest : market;
+            const withCurrent = preferFmsMarketSnapshot(market, currentMarket ?? market);
+            return preferFmsMarketSnapshot(withCurrent, cachedMarket ?? withCurrent);
           }),
         } : { ...response, markets: response.markets.map((market) => marketCacheRef.current.get(market.symbol.toUpperCase()) ?? market) });
     };
@@ -162,7 +185,7 @@ export function useChartMacroBiasData({
           if (cancelled) return;
           setGlobalResponse((current) => ({ ...snapshot, markets: snapshot.markets.map((market) => {
             const previous = current?.markets.find((row) => row.symbol === market.symbol);
-            return previous && (previous.generatedAt ?? 0) > (market.generatedAt ?? 0) ? previous : market;
+            return preferFmsMarketSnapshot(previous, market);
           }) }));
         }
         const due = globalRegistryRef.current?.markets.filter((market) => {
@@ -213,7 +236,7 @@ export function useChartMacroBiasData({
           setGlobalResponse((current) => current ? {
             ...current,
             generatedAt: Math.max(current.generatedAt, response.generatedAt ?? 0),
-            markets: current.markets.map((row) => row.symbol === response.symbol && (response.generatedAt ?? 0) >= (row.generatedAt ?? 0) ? response : row),
+            markets: current.markets.map((row) => row.symbol === response.symbol ? preferFmsMarketSnapshot(row, response) : row),
           } : current);
           setCurrentError(null);
           setRefreshedAt(response.generatedAt ?? Math.floor(Date.now() / 1000));
@@ -242,7 +265,7 @@ export function useChartMacroBiasData({
     const selectedMarket = globalResponse?.markets.find((market) => market.symbol === selectedSymbol.toUpperCase());
     if (!selectedMarket) return;
     const cachedMarket = marketCacheRef.current.get(selectedSymbol.toUpperCase());
-    const newest = cachedMarket && (cachedMarket.generatedAt ?? 0) > (selectedMarket.generatedAt ?? 0) ? cachedMarket : selectedMarket;
+    const newest = preferFmsMarketSnapshot(selectedMarket, cachedMarket ?? selectedMarket);
     marketCacheRef.current.set(selectedSymbol.toUpperCase(), newest);
     setCurrentResponse(newest);
     setRefreshedAt(newest.generatedAt ?? null);

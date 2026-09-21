@@ -349,25 +349,25 @@ function historicalRecord(pattern: MacroSignalChartPattern): HistoricalRecord {
   const successor = pattern.successorReview?.status === "reviewed_active" ? pattern.successorReview : null;
   const successorHoldout = successor?.holdout;
   const successorRate = typeof successorHoldout?.targetHitRate === "number" ? successorHoldout.targetHitRate : null;
-  if (evidence && successor && successorRate != null) {
+  if (successor && successorRate != null) {
     const sample = typeof successorHoldout?.evaluableCount === "number" ? successorHoldout.evaluableCount : 0;
     const averageR = typeof successorHoldout?.averageGrossR === "number" ? successorHoldout.averageGrossR : null;
     return historicalSummaryRecord(pattern, "Chronological reused holdout · FMS v2 execution successor", successor.id, sample, successorRate, averageR);
   }
   const reviewed = pattern.executionReview?.status === "reviewed_active" ? pattern.executionReview.later : null;
   const reviewedRate = typeof reviewed?.tpBeforeSl === "number" ? reviewed.tpBeforeSl : null;
-  if (evidence && reviewedRate != null) {
+  if (reviewedRate != null) {
     const sample = typeof reviewed?.evaluableN === "number" ? reviewed.evaluableN : 0;
     const averageR = typeof reviewed?.averageR === "number" ? reviewed.averageR : null;
     return historicalSummaryRecord(pattern, "Chronological later cases · reviewed execution successor", pattern.executionReview?.configurationHash ?? pattern.historicalBenchmark?.experimentId ?? null, sample, reviewedRate, averageR);
   }
   const entryReview = pattern.entryReview?.status === "reviewed_active" ? pattern.entryReview : null;
-  if (evidence && entryReview && typeof entryReview.later.targetHitCount === "number" && entryReview.later.laterN > 0) {
+  if (entryReview && typeof entryReview.later.targetHitCount === "number" && entryReview.later.laterN > 0) {
     const sample = entryReview.later.laterN;
     return historicalSummaryRecord(pattern, "Chronological later matched cases · reviewed H1 entry", entryReview.id, sample, entryReview.later.targetHitCount / sample, entryReview.later.h1AverageR);
   }
   const benchmark = pattern.historicalBenchmark;
-  if (evidence && benchmark && typeof benchmark.targetFirstRate === "number") {
+  if (benchmark && typeof benchmark.targetFirstRate === "number") {
     const scope = benchmark.basis === "chronological_holdout" ? "Chronological holdout · registered contract" : "Walk-forward pooled benchmark · registered contract";
     return historicalSummaryRecord(pattern, scope, benchmark.experimentId, benchmark.walkForwardN, benchmark.targetFirstRate, benchmark.walkForwardAverageR);
   }
