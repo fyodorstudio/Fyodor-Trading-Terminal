@@ -13,6 +13,7 @@ function cssColor(name: string) {
 export function lightweightChartOptions(
   appearance: ChartAppearance,
   timeDisplay: TimeDisplayPreference,
+  isInitial = false,
 ): DeepPartial<ChartOptions> {
   const gridColor = appearance.showGrid ? cssColor('--chart-grid') : 'rgba(0, 0, 0, 0)'
   return {
@@ -50,8 +51,7 @@ export function lightweightChartOptions(
       borderColor: cssColor('--chart-axis'),
       timeVisible: true,
       secondsVisible: false,
-      rightOffset: 8,
-      barSpacing: appearance.barSpacing,
+      ...(isInitial ? { rightOffset: 8, barSpacing: appearance.barSpacing } : {}),
       tickMarkFormatter: (time: Time, tickType: TickMarkType) => formatChartTick(time, tickType, timeDisplay),
     },
     handleScale: {

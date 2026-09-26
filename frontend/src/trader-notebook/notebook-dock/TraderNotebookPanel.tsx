@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { SymbolQuote } from '../../market-data/contracts/SymbolQuote'
 import {
   getPipMultiplier,
@@ -38,6 +38,8 @@ export function TraderNotebookPanel({
   })
   const [saveStatus, setSaveStatus] = useState<string>('Saved')
   const [regSuccessMsg, setRegSuccessMsg] = useState<string | null>(null)
+  const [rrDropdownOpen, setRrDropdownOpen] = useState(false)
+  const rrDropdownRef = useRef<HTMLDivElement>(null)
 
   // Handle symbol change
   if (selectedSymbol !== prevSymbol) {
@@ -47,6 +49,18 @@ export function TraderNotebookPanel({
     setSaveStatus('Saved')
     setRegSuccessMsg(null)
   }
+
+  // Close R:R dropdown on click outside
+  useEffect(() => {
+    if (!rrDropdownOpen) return
+    const handleClickOutside = (e: MouseEvent) => {
+      if (rrDropdownRef.current && !rrDropdownRef.current.contains(e.target as Node)) {
+        setRrDropdownOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [rrDropdownOpen])
 
   const handleNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value
@@ -151,7 +165,7 @@ export function TraderNotebookPanel({
     onSelectArrowId(null)
   }
 
-  // Register Arrow Handler
+  // Pin Arrow Handler
   const canRegister =
     entryPrice != null &&
     entryPrice > 0 &&
@@ -179,37 +193,27 @@ export function TraderNotebookPanel({
       rrRatio: calculatedMetrics.rrRatio!,
       note,
     })
-    setRegSuccessMsg('✓ Registered!')
+    setRegSuccessMsg('✓ Pinned!')
     setTimeout(() => setRegSuccessMsg(null), 2500)
   }
 
   return (
     <section className="trader-notebook-panel" aria-label="Trader Notebook & Execution Planner">
-      {/* Col 1: Execution Plan & Bi-directional Calculator */}
+      {/* Col 1: Execution Plan */}
       <div className="notebook-col notebook-levels-col">
         <div className="notebook-col-header">
           <span className="notebook-eyebrow">
-            {selectedArrow ? 'Selected Registered Setup' : 'Draft Execution Plan'}
+            {selectedArrow ? 'Edit Execution Plan' : 'Draft Execution Plan'}
           </span>
-          {!selectedArrow && (
-            <label className="chart-projection-toggle" title="Show horizontal lines on chart">
-              <input
-                type="checkbox"
-                checked={plan.showOnChart}
-                onChange={(e) => onPlanChange({ ...plan, showOnChart: e.target.checked })}
-              />
-              <span>Project on Chart</span>
-            </label>
-          )}
         </div>
 
-        {/* Symbol & Direction Buttons */}
+        {/* Symbol & Direction Segmented Switch */}
         <div className="notebook-symbol-strip">
           <strong className="notebook-symbol-title">{selectedSymbol}</strong>
-          <div className="direction-toggle-group">
+          <div className="direction-segmented" role="group" aria-label="Order direction">
             <button
               type="button"
-              className={`dir-toggle-btn buy ${direction === 'long' ? 'active' : ''}`}
+              className={`dir-seg-btn buy ${direction === 'long' ? 'active' : ''}`}
               onClick={() => {
                 onPlanChange({ ...plan, direction: 'long' })
                 onSelectArrowId(null)
@@ -220,7 +224,7 @@ export function TraderNotebookPanel({
             </button>
             <button
               type="button"
-              className={`dir-toggle-btn sell ${direction === 'short' ? 'active' : ''}`}
+              className={`dir-seg-btn sell ${direction === 'short' ? 'active' : ''}`}
               onClick={() => {
                 onPlanChange({ ...plan, direction: 'short' })
                 onSelectArrowId(null)
@@ -232,39 +236,40 @@ export function TraderNotebookPanel({
           </div>
         </div>
 
-        {/* Inputs Grid */}
-        <div className="levels-input-grid">
-          {/* Entry Price */}
-          <div className="input-group">
-            <div className="input-label-row">
-              <label htmlFor="plan-entry">Entry Price</label>
-              {quote && !selectedArrow && (
-                <button type="button" className="set-market-btn" onClick={handleUseMarketPrice}>
-                  Use Market ({direction === 'long' ? quote.ask.toFixed(precision) : quote.bid.toFixed(precision)})
+        {/* Aligned Execution Parameters Grid */}
+        <div className="execution-params-grid">
+          {/* Entry Row: Price + Market Snap Button */}
+          <div className="param-row">
+            <label htmlFor="plan-entry" className="param-label">Entry</label>
+            <div className="param-controls-dual">
+              <input
+                id="plan-entry"
+                type="number"
+                step="any"
+                placeholder="Entry Price"
+                value={entryPrice ?? ''}
+                onChange={(e) => handleEntryChange(e.target.value)}
+                readOnly={Boolean(selectedArrow)}
+              />
+              {quote && !selectedArrow ? (
+                <button
+                  type="button"
+                  className="market-snap-btn"
+                  onClick={handleUseMarketPrice}
+                  title={`Snap to broker ${direction === 'long' ? 'Ask' : 'Bid'} (${direction === 'long' ? quote.ask.toFixed(precision) : quote.bid.toFixed(precision)})`}
+                >
+                  Use Market
                 </button>
+              ) : (
+                <div className="param-aux-placeholder" />
               )}
             </div>
-            <input
-              id="plan-entry"
-              type="number"
-              step="any"
-              placeholder="e.g. 1.10500"
-              value={entryPrice ?? ''}
-              onChange={(e) => handleEntryChange(e.target.value)}
-              readOnly={Boolean(selectedArrow)}
-            />
           </div>
 
-          {/* Stop Loss (Price & Pips) */}
-          <div className="input-group">
-            <div className="input-label-row">
-              <label htmlFor="plan-sl">Stop Loss (Risk)</label>
-              <div className="input-dual-labels">
-                <span>Price</span>
-                <span>Pips</span>
-              </div>
-            </div>
-            <div className="dual-inputs-row">
+          {/* Stop Loss Row: Price + Pips */}
+          <div className="param-row">
+            <label htmlFor="plan-sl" className="param-label">Stop Loss</label>
+            <div className="param-controls-dual">
               <input
                 id="plan-sl"
                 type="number"
@@ -274,7 +279,7 @@ export function TraderNotebookPanel({
                 onChange={(e) => handleSlPriceChange(e.target.value)}
                 readOnly={Boolean(selectedArrow)}
               />
-              <div className="pips-input-wrapper">
+              <div className="pips-field-wrapper">
                 <input
                   type="number"
                   step="any"
@@ -283,21 +288,15 @@ export function TraderNotebookPanel({
                   onChange={(e) => handleSlPipsChange(e.target.value)}
                   readOnly={Boolean(selectedArrow)}
                 />
-                <span className="pips-unit">p</span>
+                <span className="pips-tag">pips</span>
               </div>
             </div>
           </div>
 
-          {/* Take Profit (Price & Pips) */}
-          <div className="input-group">
-            <div className="input-label-row">
-              <label htmlFor="plan-tp">Take Profit (Target)</label>
-              <div className="input-dual-labels">
-                <span>Price</span>
-                <span>Pips</span>
-              </div>
-            </div>
-            <div className="dual-inputs-row">
+          {/* Take Profit Row: Price + Pips */}
+          <div className="param-row">
+            <label htmlFor="plan-tp" className="param-label">Take Profit</label>
+            <div className="param-controls-dual">
               <input
                 id="plan-tp"
                 type="number"
@@ -307,7 +306,7 @@ export function TraderNotebookPanel({
                 onChange={(e) => handleTpPriceChange(e.target.value)}
                 readOnly={Boolean(selectedArrow)}
               />
-              <div className="pips-input-wrapper">
+              <div className="pips-field-wrapper">
                 <input
                   type="number"
                   step="any"
@@ -316,166 +315,223 @@ export function TraderNotebookPanel({
                   onChange={(e) => handleTpPipsChange(e.target.value)}
                   readOnly={Boolean(selectedArrow)}
                 />
-                <span className="pips-unit">p</span>
+                <span className="pips-tag">pips</span>
               </div>
             </div>
           </div>
 
-          {/* Target R:R Preset Buttons */}
-          {!selectedArrow && (
-            <div className="rr-presets-row">
-              <span className="presets-label">Target R:R:</span>
-              {[1.0, 1.25, 1.5, 2.0, 3.0].map((r) => (
-                <button
-                  key={r}
-                  type="button"
-                  className={`rr-preset-btn ${
-                    calculatedMetrics.rrRatio != null && Math.abs(calculatedMetrics.rrRatio - r) < 0.05
-                      ? 'active'
-                      : ''
-                  }`}
-                  onClick={() => handleTargetRrChange(r)}
-                  disabled={calculatedMetrics.slPips == null || calculatedMetrics.slPips <= 0}
-                  title={`Set TP to ${r}x risk distance`}
-                >
-                  +{r}R
-                </button>
-              ))}
+          {/* Target R:R Row: Live Ratio Box + Click Selector Dropdown */}
+          <div className="param-row">
+            <span className="param-label">Target R:R</span>
+            <div className="param-controls-dual">
+              <div className="rr-ratio-pill" title="Current live Reward-to-Risk ratio based on Entry, SL, and TP">
+                <span>Ratio</span>
+                <strong>{calculatedMetrics.rrRatio != null ? `1:${calculatedMetrics.rrRatio.toFixed(2)}` : '—'}</strong>
+              </div>
+
+              {!selectedArrow ? (
+                <div className="rr-selector-container" ref={rrDropdownRef}>
+                  <button
+                    type="button"
+                    className={`rr-selector-trigger ${rrDropdownOpen ? 'open' : ''}`}
+                    onClick={() => setRrDropdownOpen((prev) => !prev)}
+                    disabled={calculatedMetrics.slPips == null || calculatedMetrics.slPips <= 0}
+                    title={
+                      calculatedMetrics.slPips == null || calculatedMetrics.slPips <= 0
+                        ? 'Set Stop Loss to enable target R:R presets'
+                        : 'Choose target Reward-to-Risk multiplier'
+                    }
+                  >
+                    <span>
+                      {calculatedMetrics.rrRatio != null
+                        ? `Target: +${calculatedMetrics.rrRatio.toFixed(2)}R`
+                        : 'Set Target R:R'}
+                    </span>
+                    <span className="rr-trigger-arrow" aria-hidden="true">▾</span>
+                  </button>
+
+                  {rrDropdownOpen && (
+                    <div className="rr-selector-dropdown" role="menu">
+                      <div className="rr-dropdown-header">Target Multiplier</div>
+                      {[
+                        { r: 1.0, label: '+1.00R (1:1.00)' },
+                        { r: 1.25, label: '+1.25R (1:1.25)' },
+                        { r: 1.5, label: '+1.50R (1:1.50)' },
+                        { r: 2.0, label: '+2.00R (1:2.00)' },
+                        { r: 3.0, label: '+3.00R (1:3.00)' },
+                      ].map(({ r, label }) => {
+                        const isMatch =
+                          calculatedMetrics.rrRatio != null &&
+                          Math.abs(calculatedMetrics.rrRatio - r) < 0.05
+                        return (
+                          <button
+                            key={r}
+                            type="button"
+                            className={`rr-dropdown-item ${isMatch ? 'active' : ''}`}
+                            onClick={() => {
+                              handleTargetRrChange(r)
+                              setRrDropdownOpen(false)
+                            }}
+                          >
+                            <span>{label}</span>
+                            {isMatch && <span className="rr-item-check">✓</span>}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rr-locked-pill" title="Target R:R is locked while viewing a pinned setup">
+                  Locked
+                </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       </div>
 
-      {/* Col 2: Metric Calculations & Registered Setups List */}
-      <div className="notebook-col notebook-metrics-col">
+      {/* Col 2: Pinned Arrows Registry */}
+      <div className="notebook-col notebook-pinned-col">
         <div className="notebook-col-header">
           <span className="notebook-eyebrow">
-            {selectedArrow ? 'Setup Analysis' : 'Risk / Reward Math'}
+            PINNED ARROWS ({registeredArrows.length})
           </span>
-          {!selectedArrow ? (
+          {selectedArrow && (
             <button
               type="button"
-              className={`register-arrow-btn-compact ${regSuccessMsg ? 'success' : canRegister ? 'ready' : 'disabled'}`}
-              onClick={handleRegisterClick}
-              disabled={!canRegister}
-              title={canRegister ? 'Pin this setup arrow to chart' : 'Set Entry, SL, and TP to register arrow'}
+              className="clear-selection-link"
+              onClick={() => onSelectArrowId(null)}
+              title="Return to drafting a new setup"
             >
-              {regSuccessMsg ? '✓ Registered!' : '↗ Register Setup Arrow'}
+              + New Plan
             </button>
-          ) : (
-            <div className="selected-arrow-header-actions">
-              <button
-                type="button"
-                className="new-draft-btn-compact"
-                onClick={() => onSelectArrowId(null)}
-                title="Start drafting a new setup plan"
-              >
-                + New Plan
-              </button>
-              <button
-                type="button"
-                className="delete-arrow-btn-compact"
-                onClick={() => onDeleteArrow(selectedArrow.id)}
-                title="Delete this registered setup arrow"
-              >
-                Delete
-              </button>
-            </div>
           )}
         </div>
 
-        {/* 3 Metric Cards */}
-        <div className="metrics-cards-grid">
-          <div className="metric-card">
-            <span className="metric-lbl">Target Gain</span>
-            <strong className="metric-val text-green">
-              {calculatedMetrics.tpPips != null ? `+${calculatedMetrics.tpPips.toFixed(1)}p` : '—'}
-            </strong>
-            <small className="metric-sub">Distance to TP</small>
+        {registeredArrows.length === 0 ? (
+          <div className="pinned-arrows-empty">
+            <p className="pinned-empty-title">No pinned arrows for {selectedSymbol} yet.</p>
+            <p className="pinned-empty-desc">
+              Fill the execution plan on the left, then pin your arrow.
+            </p>
           </div>
-          <div className="metric-card">
-            <span className="metric-lbl">Max Risk</span>
-            <strong className="metric-val text-rose">
-              {calculatedMetrics.slPips != null ? `-${calculatedMetrics.slPips.toFixed(1)}p` : '—'}
-            </strong>
-            <small className="metric-sub">Distance to SL</small>
-          </div>
-          <div className="metric-card highlight">
-            <span className="metric-lbl">Reward : Risk</span>
-            <strong className="metric-val text-cyan">
-              {calculatedMetrics.rrRatio != null ? `1 : ${calculatedMetrics.rrRatio.toFixed(2)}` : '—'}
-            </strong>
-            <small className="metric-sub">
-              {calculatedMetrics.rrRatio != null ? `+${calculatedMetrics.rrRatio.toFixed(2)}R Multiplier` : 'Set TP & SL'}
-            </small>
-          </div>
-        </div>
-
-        {/* Registered Setups on this Pair */}
-        <div className="registered-setups-section">
-          <div className="setups-section-header">
-            <strong>Registered Arrows ({registeredArrows.length})</strong>
-            {selectedArrow && (
-              <button type="button" className="clear-selection-link" onClick={() => onSelectArrowId(null)}>
-                Deselect
-              </button>
-            )}
-          </div>
-
-          <div className="setups-chips-list">
-            {registeredArrows.length === 0 ? (
-              <div className="empty-arrows-notice">
-                No arrows registered for {selectedSymbol} yet. Fill the execution plan on the left and click &quot;Register Setup Arrow&quot; to plot your first setup.
-              </div>
-            ) : (
-              registeredArrows.map((arrow) => {
-                const isSelected = arrow.id === selectedArrowId
-                const isLong = arrow.direction === 'long'
-                const dateStr = new Date(arrow.time * 1000).toLocaleDateString([], {
-                  month: 'short',
-                  day: 'numeric',
-                })
-                return (
-                  <div
-                    key={arrow.id}
-                    className={`setup-chip ${isSelected ? 'selected' : ''}`}
-                    onClick={() => onSelectArrowId(arrow.id)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => { if (e.key === 'Enter') onSelectArrowId(arrow.id) }}
-                  >
-                    <span className={`chip-dir ${isLong ? 'long' : 'short'}`}>
-                      {isLong ? '↑ LONG' : '↓ SHORT'}
-                    </span>
-                    <span className="chip-date">{dateStr}</span>
-                    <strong className="chip-rr">+{arrow.rrRatio.toFixed(2)}R</strong>
-                    <span className="chip-levels">
-                      TP {arrow.tpPips.toFixed(0)}p / SL {arrow.slPips.toFixed(0)}p
-                    </span>
-                    <button
-                      type="button"
-                      className="chip-delete-btn"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        onDeleteArrow(arrow.id)
-                      }}
-                      title="Delete this registered arrow"
+        ) : (
+          <div className="pinned-arrows-table-wrapper">
+            <table className="pinned-arrows-table">
+              <thead>
+                <tr>
+                  <th>DATE</th>
+                  <th>DIR</th>
+                  <th>ENTRY</th>
+                  <th>SL</th>
+                  <th>TP</th>
+                  <th>R:R</th>
+                  <th aria-label="Actions" />
+                </tr>
+              </thead>
+              <tbody>
+                {registeredArrows.map((arrow) => {
+                  const isSelected = arrow.id === selectedArrowId
+                  const isLong = arrow.direction === 'long'
+                  const dateStr = new Date(arrow.time * 1000).toLocaleDateString([], {
+                    month: 'short',
+                    day: 'numeric',
+                  })
+                  return (
+                    <tr
+                      key={arrow.id}
+                      className={`pinned-arrow-row ${isSelected ? 'selected' : ''}`}
+                      onClick={() => onSelectArrowId(arrow.id)}
                     >
-                      ×
-                    </button>
-                  </div>
-                )
-              })
-            )}
+                      <td className="pinned-date">{dateStr}</td>
+                      <td>
+                        <span className={`dir-badge ${isLong ? 'long' : 'short'}`}>
+                          {isLong ? 'LONG' : 'SHORT'}
+                        </span>
+                      </td>
+                      <td className="mono">{arrow.entryPrice.toFixed(precision)}</td>
+                      <td className="mono">{arrow.slPrice.toFixed(precision)}</td>
+                      <td className="mono">{arrow.tpPrice.toFixed(precision)}</td>
+                      <td className="mono font-bold text-accent">+{arrow.rrRatio.toFixed(2)}R</td>
+                      <td>
+                        <button
+                          type="button"
+                          className="pinned-delete-btn"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onDeleteArrow(arrow.id)
+                          }}
+                          title="Delete this pinned arrow"
+                          aria-label="Delete pinned arrow"
+                        >
+                          ×
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Col 3: Trader Forensic Journal & Observations */}
       <div className="notebook-col notebook-journal-col">
         <div className="notebook-col-header">
           <span className="notebook-eyebrow">Trader Journal &amp; Thesis</span>
-          <span className="durability-tag">● {saveStatus}</span>
+          <div className="journal-header-actions">
+            {!selectedArrow && (
+              <label className="header-chart-toggle" title="Show horizontal planned lines on chart">
+                <input
+                  type="checkbox"
+                  checked={plan.showOnChart}
+                  onChange={(e) => onPlanChange({ ...plan, showOnChart: e.target.checked })}
+                />
+                <span>Project on Chart</span>
+              </label>
+            )}
+
+            <div className="header-meta-pill">
+              <span className="meta-item">Scope: <strong>{selectedSymbol}</strong></span>
+              <span className="meta-sep" aria-hidden="true">·</span>
+              <span className="meta-item meta-durable">Durable</span>
+              <span className="meta-sep" aria-hidden="true">·</span>
+              <span className="meta-item meta-status">● {saveStatus}</span>
+            </div>
+
+            {!selectedArrow ? (
+              <button
+                type="button"
+                className={`register-arrow-btn-compact ${regSuccessMsg ? 'success' : canRegister ? 'ready' : 'disabled'}`}
+                onClick={handleRegisterClick}
+                disabled={!canRegister}
+                title={canRegister ? 'Pin this setup arrow to chart' : 'Set Entry, SL, and TP to pin arrow'}
+              >
+                {regSuccessMsg ? '✓ Pinned!' : '↗ Pin Arrow'}
+              </button>
+            ) : (
+              <div className="selected-arrow-header-actions">
+                <button
+                  type="button"
+                  className="new-draft-btn-compact"
+                  onClick={() => onSelectArrowId(null)}
+                  title="Start drafting a new setup plan"
+                >
+                  + New Plan
+                </button>
+                <button
+                  type="button"
+                  className="delete-arrow-btn-compact"
+                  onClick={() => onDeleteArrow(selectedArrow.id)}
+                  title="Delete this registered setup arrow"
+                >
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="journal-textarea-container">
@@ -483,15 +539,10 @@ export function TraderNotebookPanel({
             className="journal-textarea"
             value={note}
             onChange={handleNoteChange}
-            placeholder={`Type your trade thesis, catalyst observation, technical structure, or post-trade audit notes for ${selectedSymbol}...\n\nAll notes are automatically preserved locally and durable against browser refresh.`}
+            placeholder={`Type your trade thesis, catalyst observation, technical structure, or post-trade audit notes for ${selectedSymbol}...\n\nAll notes are automatically preserved locally and durable across browser refresh.`}
             aria-label="Trader journal note"
           />
         </div>
-
-        <footer className="journal-col-footer">
-          <span>Scope: <code className="font-mono">{selectedSymbol}</code></span>
-          <span className="durability-hint">Durable across refresh</span>
-        </footer>
       </div>
     </section>
   )

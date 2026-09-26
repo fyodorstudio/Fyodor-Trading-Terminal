@@ -32,6 +32,8 @@ type EventGroup = {
 
 type PositionedGroup = EventGroup & {
   x: number
+  stackIndex: number
+  maxStackInColumn: number
 }
 
 function symbolCurrencies(symbol: string): Set<string> {
@@ -164,12 +166,57 @@ export function EconomicCalendarMarkers({
     void revision
     const timeScale = chartApi.timeScale()
 
-    const results: PositionedGroup[] = []
+    const raw: Array<EventGroup & { x: number }> = []
     for (const group of eventGroups) {
       const coord = timeScale.timeToCoordinate(group.barTime as unknown as Time)
       if (coord === null || coord < 20 || coord > containerWidth - 10) continue
-      results.push({ ...group, x: coord })
+      raw.push({ ...group, x: coord })
     }
+
+    // Sort: primary by X ascending, secondary by importance (high first), tertiary by currency
+    raw.sort((a, b) => {
+      if (Math.abs(a.x - b.x) > 0.5) return a.x - b.x
+      if (a.highestImportance !== b.highestImportance) {
+        return a.highestImportance === 'high' ? -1 : 1
+      }
+      return a.currency.localeCompare(b.currency)
+    })
+
+    // Assign tracks using greedy interval allocation
+    // Minimum horizontal separation between badges on the same vertical level
+    const MIN_HORIZONTAL_GAP = 36
+    const levelLastX: number[] = []
+    const withStack: Array<EventGroup & { x: number; stackIndex: number }> = []
+
+    for (const item of raw) {
+      let assignedLevel = -1
+      for (let lvl = 0; lvl < levelLastX.length; lvl++) {
+        if (item.x - levelLastX[lvl] >= MIN_HORIZONTAL_GAP) {
+          assignedLevel = lvl
+          levelLastX[lvl] = item.x
+          break
+        }
+      }
+      if (assignedLevel === -1) {
+        assignedLevel = levelLastX.length
+        levelLastX.push(item.x)
+      }
+      withStack.push({ ...item, stackIndex: assignedLevel })
+    }
+
+    // Compute maxStackInColumn for each badge to position tooltips cleanly above the whole stack
+    const results: PositionedGroup[] = withStack.map((item) => {
+      let maxStack = item.stackIndex
+      for (const other of withStack) {
+        if (Math.abs(other.x - item.x) < MIN_HORIZONTAL_GAP) {
+          if (other.stackIndex > maxStack) {
+            maxStack = other.stackIndex
+          }
+        }
+      }
+      return { ...item, maxStackInColumn: maxStack }
+    })
+
     return results
   }, [chartApi, containerWidth, eventGroups, revision])
 
@@ -188,7 +235,11 @@ export function EconomicCalendarMarkers({
             key={group.id}
             type="button"
             className="calendar-marker-badge"
-            style={{ left: `${group.x}px` }}
+            style={{
+              left: `${group.x}px`,
+              bottom: `${group.stackIndex * 24}px`,
+              zIndex: group.stackIndex + 1,
+            }}
             onClick={() => onSelectEvent?.(group.events[0])}
             onMouseEnter={() => setHoveredGroupId(group.id)}
             onMouseLeave={() => setHoveredGroupId((curr) => (curr === group.id ? null : curr))}
@@ -206,6 +257,7 @@ export function EconomicCalendarMarkers({
           className="calendar-marker-tooltip"
           style={{
             left: `${Math.min(Math.max(145, hoveredGroup.x), containerWidth - 145)}px`,
+            bottom: `${(hoveredGroup.maxStackInColumn + 1) * 24 + 10}px`,
           }}
           role="tooltip"
         >

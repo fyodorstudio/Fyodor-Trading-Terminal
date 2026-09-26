@@ -85,6 +85,7 @@ export function MarketCandlestickChart({
   const historyPagingArmedRef = useRef(false)
   const historyStateRef = useRef({ hasOlderData, isLoadingOlderData })
   const requestOlderDataRef = useRef(onRequestOlderData)
+  const prevBarSpacingRef = useRef(appearance.barSpacing)
 
   useEffect(() => {
     historyStateRef.current = { hasOlderData, isLoadingOlderData }
@@ -100,7 +101,7 @@ export function MarketCandlestickChart({
     if (!container) return
 
     const initialAppearance = initialAppearanceRef.current
-    const chart = createChart(container, lightweightChartOptions(initialAppearance, initialTimeDisplayRef.current))
+    const chart = createChart(container, lightweightChartOptions(initialAppearance, initialTimeDisplayRef.current, true))
     const series = chart.addSeries(CandlestickSeries, {
       upColor: initialAppearance.upCandleColor,
       downColor: initialAppearance.downCandleColor,
@@ -141,7 +142,17 @@ export function MarketCandlestickChart({
   }, [])
 
   useEffect(() => {
-    chartRef.current?.applyOptions(lightweightChartOptions(appearance, timeDisplay))
+    const chart = chartRef.current
+    if (!chart) return
+
+    const currentLogicalRange = chart.timeScale().getVisibleLogicalRange()
+    const barSpacingChanged = prevBarSpacingRef.current !== appearance.barSpacing
+    prevBarSpacingRef.current = appearance.barSpacing
+
+    chart.applyOptions(lightweightChartOptions(appearance, timeDisplay, false))
+    if (barSpacingChanged) {
+      chart.applyOptions({ timeScale: { barSpacing: appearance.barSpacing } })
+    }
     seriesRef.current?.applyOptions({
       upColor: appearance.upCandleColor,
       downColor: appearance.downCandleColor,
@@ -151,6 +162,14 @@ export function MarketCandlestickChart({
       wickDownColor: appearance.downCandleColor,
       priceLineColor: appearance.priceLineColor,
     })
+
+    if (!barSpacingChanged && currentLogicalRange) {
+      try {
+        chart.timeScale().setVisibleLogicalRange(currentLogicalRange)
+      } catch {
+        // Ignored if range cannot be set in current state
+      }
+    }
   }, [appearance, theme, timeDisplay])
 
   useEffect(() => {
