@@ -46,6 +46,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: visible;
 }
 
 .notebook-symbol-strip {
@@ -210,28 +211,50 @@
   text-transform: lowercase;
 }
 
-/* Target R:R Ratio Box & Click-to-Open Selector */
-.rr-ratio-pill {
-  height: 26px;
+/* Target R:R Field Wrapper: Single seamless 26px input */
+.rr-field-wrapper {
+  position: relative;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 8px;
-  background: var(--surface-inset);
-  border: 1px solid var(--border-strong);
-  border-radius: 4px;
-  font-size: 8px;
-  color: var(--text-faint);
-  text-transform: uppercase;
-  font-weight: 700;
-  box-sizing: border-box;
+  height: 26px;
+  width: 100%;
 }
 
-.rr-ratio-pill strong {
-  font-size: 10px;
-  font-weight: 800;
+.rr-field-wrapper input {
+  padding-left: 20px;
+  padding-right: 20px;
+  font-weight: 750;
   color: var(--accent);
-  font-variant-numeric: tabular-nums;
+}
+
+.rr-field-wrapper input::-webkit-outer-spin-button,
+.rr-field-wrapper input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.rr-field-wrapper input {
+  -moz-appearance: textfield;
+}
+
+.rr-field-prefix {
+  position: absolute;
+  left: 8px;
+  font-size: 9.5px;
+  font-weight: 800;
+  color: var(--text-muted);
+  pointer-events: none;
+  user-select: none;
+}
+
+.rr-field-suffix {
+  position: absolute;
+  right: 8px;
+  font-size: 8.5px;
+  font-weight: 750;
+  color: var(--text-faint);
+  pointer-events: none;
+  user-select: none;
 }
 
 .rr-selector-container {
@@ -279,65 +302,67 @@
   margin-left: 4px;
 }
 
-.rr-selector-dropdown {
+/* Horizontal Inline Presets Strip: Floats across Row 2 to the left */
+.rr-selector-dropdown-horizontal {
   position: absolute;
-  z-index: 25;
-  bottom: calc(100% + 4px);
-  right: 0;
-  min-width: 140px;
-  background: var(--surface-panel);
-  border: 1px solid var(--border-strong);
-  border-radius: 5px;
-  box-shadow: var(--shadow);
-  padding: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.rr-dropdown-header {
-  font-size: 7px;
-  font-weight: 750;
-  color: var(--text-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 2px 6px;
-  margin-bottom: 2px;
-  border-bottom: 1px solid var(--border);
-}
-
-.rr-dropdown-item {
+  z-index: 35;
+  right: calc(100% + 4px);
+  top: 0;
+  height: 26px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  padding: 4px 6px;
-  border: 0;
+  gap: 3px;
+  background: var(--surface-panel);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  padding: 2px 4px;
+  white-space: nowrap;
+  box-sizing: border-box;
+  animation: rrStripSlideIn 0.12s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes rrStripSlideIn {
+  from {
+    opacity: 0;
+    transform: translateX(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.rr-preset-pill {
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
   border-radius: 3px;
-  background: transparent;
+  background: var(--surface-raised);
   color: var(--text);
+  font-family: inherit;
   font-size: 8.5px;
-  font-weight: 650;
+  font-weight: 750;
   cursor: pointer;
-  transition: all 0.1s ease;
-  text-align: left;
+  transition: all 0.12s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  line-height: 1;
   box-sizing: border-box;
 }
 
-.rr-dropdown-item:hover {
+.rr-preset-pill:hover {
   background: var(--surface-hover);
   color: var(--text-strong);
+  border-color: var(--accent);
 }
 
-.rr-dropdown-item.active {
-  background: color-mix(in srgb, var(--accent) 15%, var(--surface-panel));
+.rr-preset-pill.active {
+  background: color-mix(in srgb, var(--accent) 18%, var(--surface-panel));
   color: var(--accent);
-  font-weight: 750;
-}
-
-.rr-item-check {
-  font-size: 9px;
-  color: var(--accent);
+  border-color: var(--accent);
   font-weight: 800;
 }
 
@@ -492,15 +517,6 @@
   line-height: 1.35;
 }
 
-.clear-selection-link {
-  background: transparent;
-  border: none;
-  color: var(--accent);
-  font-size: 8px;
-  cursor: pointer;
-  text-decoration: underline;
-  padding: 0;
-}
 
 /* Col 3: Unified Header Toolbar & Full Height Textarea */
 .journal-header-actions {

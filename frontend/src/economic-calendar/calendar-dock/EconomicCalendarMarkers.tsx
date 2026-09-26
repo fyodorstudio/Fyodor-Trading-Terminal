@@ -30,10 +30,15 @@ type EventGroup = {
   events: EconomicCalendarEvent[]
 }
 
-type PositionedGroup = EventGroup & {
+type PositionedGroup = {
+  id: string
+  currency: string
+  barTime: number
+  highestImportance: 'high' | 'medium'
+  events: EconomicCalendarEvent[]
   x: number
   stackIndex: number
-  maxStackInColumn: number
+  clusterStackCount: number
 }
 
 function symbolCurrencies(symbol: string): Set<string> {
@@ -173,58 +178,126 @@ export function EconomicCalendarMarkers({
       raw.push({ ...group, x: coord })
     }
 
-    // Sort: primary by X ascending, secondary by importance (high first), tertiary by currency
-    raw.sort((a, b) => {
-      if (Math.abs(a.x - b.x) > 0.5) return a.x - b.x
-      if (a.highestImportance !== b.highestImportance) {
-        return a.highestImportance === 'high' ? -1 : 1
-      }
-      return a.currency.localeCompare(b.currency)
-    })
+    raw.sort((a, b) => a.x - b.x)
 
-    // Assign tracks using greedy interval allocation
-    // Minimum horizontal separation between badges on the same vertical level
-    const MIN_HORIZONTAL_GAP = 36
-    const levelLastX: number[] = []
-    const withStack: Array<EventGroup & { x: number; stackIndex: number }> = []
+    // Form horizontal clusters of colliding bars
+    const CLUSTER_PROXIMITY_PX = 44
+    type ClusterData = {
+      items: Array<EventGroup & { x: number }>
+    }
+    const clusters: ClusterData[] = []
+    let currentCluster: ClusterData | null = null
 
     for (const item of raw) {
-      let assignedLevel = -1
-      for (let lvl = 0; lvl < levelLastX.length; lvl++) {
-        if (item.x - levelLastX[lvl] >= MIN_HORIZONTAL_GAP) {
-          assignedLevel = lvl
-          levelLastX[lvl] = item.x
-          break
+      if (!currentCluster) {
+        currentCluster = { items: [item] }
+        clusters.push(currentCluster)
+      } else {
+        const lastItem = currentCluster.items[currentCluster.items.length - 1]
+        if (item.x - lastItem.x < CLUSTER_PROXIMITY_PX) {
+          currentCluster.items.push(item)
+        } else {
+          currentCluster = { items: [item] }
+          clusters.push(currentCluster)
         }
       }
-      if (assignedLevel === -1) {
-        assignedLevel = levelLastX.length
-        levelLastX.push(item.x)
-      }
-      withStack.push({ ...item, stackIndex: assignedLevel })
     }
 
-    // Compute maxStackInColumn for each badge to position tooltips cleanly above the whole stack
-    const results: PositionedGroup[] = withStack.map((item) => {
-      let maxStack = item.stackIndex
-      for (const other of withStack) {
-        if (Math.abs(other.x - item.x) < MIN_HORIZONTAL_GAP) {
-          if (other.stackIndex > maxStack) {
-            maxStack = other.stackIndex
+    const results: PositionedGroup[] = []
+
+    clusters.forEach((cluster, clusterIndex) => {
+      // Find the anchor bar for this cluster: prefer 'high' importance, otherwise earliest bar
+      let anchorX = cluster.items[0].x
+      let anchorBarTime = cluster.items[0].barTime
+      const highItem = cluster.items.find((it) => it.highestImportance === 'high')
+      if (highItem) {
+        anchorX = highItem.x
+        anchorBarTime = highItem.barTime
+      }
+
+      // Group all events in this cluster by currency
+      const currencyMap = new Map<string, {
+        currency: string
+        events: EconomicCalendarEvent[]
+        highestImportance: 'high' | 'medium'
+      }>()
+
+      for (const item of cluster.items) {
+        const existing = currencyMap.get(item.currency)
+        if (existing) {
+          existing.events.push(...item.events)
+          if (item.highestImportance === 'high') {
+            existing.highestImportance = 'high'
           }
+        } else {
+          currencyMap.set(item.currency, {
+            currency: item.currency,
+            events: [...item.events],
+            highestImportance: item.highestImportance,
+          })
         }
       }
-      return { ...item, maxStackInColumn: maxStack }
+
+      // Currencies stack vertically in this cluster
+      // Sort: high importance first, then currency name alphabetically
+      const currenciesInCluster = Array.from(currencyMap.values())
+      currenciesInCluster.sort((a, b) => {
+        if (a.highestImportance !== b.highestImportance) {
+          return a.highestImportance === 'high' ? -1 : 1
+        }
+        return a.currency.localeCompare(b.currency)
+      })
+
+      const clusterStackCount = currenciesInCluster.length
+
+      currenciesInCluster.forEach((curr, stackIndex) => {
+        // Sort events inside the currency group: high importance first, then release time
+        curr.events.sort((a, b) => {
+          if (a.importance !== b.importance) {
+            return a.importance === 'high' ? -1 : 1
+          }
+          return (a.release_at ?? 0) - (b.release_at ?? 0)
+        })
+
+        results.push({
+          id: `cluster-${clusterIndex}-${curr.currency}`,
+          currency: curr.currency,
+          barTime: anchorBarTime,
+          highestImportance: curr.highestImportance,
+          events: curr.events,
+          x: anchorX,
+          stackIndex,
+          clusterStackCount,
+        })
+      })
     })
 
     return results
   }, [chartApi, containerWidth, eventGroups, revision])
 
+  const hoveredGroup = positionedGroups.find((g) => g.id === hoveredGroupId)
+
+  const tooltipTimeRange = useMemo(() => {
+    if (!hoveredGroup || hoveredGroup.events.length === 0) return ''
+    const times = hoveredGroup.events
+      .map((e) => e.release_at)
+      .filter((t): t is number => typeof t === 'number')
+    if (times.length === 0) {
+      return `${new Date(hoveredGroup.barTime * 1000).toUTCString().slice(17, 22)} UTC`
+    }
+    const minTime = Math.min(...times)
+    const maxTime = Math.max(...times)
+    const minStr = new Date(minTime).toUTCString().slice(17, 22)
+    const maxStr = new Date(maxTime).toUTCString().slice(17, 22)
+    if (minStr === maxStr) {
+      return `${minStr} UTC`
+    }
+    return `${minStr} – ${maxStr} UTC`
+  }, [hoveredGroup])
+
   if (positionedGroups.length === 0) {
     return <div ref={stripRef} className="calendar-markers-strip" />
   }
-
-  const hoveredGroup = positionedGroups.find((g) => g.id === hoveredGroupId)
 
   return (
     <div ref={stripRef} className="calendar-markers-strip" aria-label="Economic calendar release timeline">
@@ -257,13 +330,13 @@ export function EconomicCalendarMarkers({
           className="calendar-marker-tooltip"
           style={{
             left: `${Math.min(Math.max(145, hoveredGroup.x), containerWidth - 145)}px`,
-            bottom: `${(hoveredGroup.maxStackInColumn + 1) * 24 + 10}px`,
+            bottom: `${hoveredGroup.clusterStackCount * 24 + 10}px`,
           }}
           role="tooltip"
         >
           <div className="calendar-tooltip-header">
             <span>{hoveredGroup.currency} Releases ({hoveredGroup.events.length})</span>
-            <span>{new Date(hoveredGroup.barTime * 1000).toUTCString().slice(17, 22)} UTC</span>
+            <span>{tooltipTimeRange}</span>
           </div>
           {hoveredGroup.events.slice(0, 4).map((event) => (
             <div key={event.value_id} className="calendar-tooltip-item">

@@ -7,6 +7,53 @@ import {
 } from '../contracts/trader-notebook-types'
 import './trader-notebook-panel.css'
 
+const RR_PRESETS = [
+  { r: 1.0, label: '1.0R' },
+  { r: 1.25, label: '1.25R' },
+  { r: 1.5, label: '1.5R' },
+  { r: 2.0, label: '2.0R' },
+  { r: 3.0, label: '3.0R' },
+] as const
+
+interface ComputeTpPriceParams {
+  entryPrice: number | null
+  slPrice?: number | null
+  slPips?: number | null
+  targetRr: number | null
+  direction: 'long' | 'short'
+  pipMultiplier: number
+  precision: number
+}
+
+function computeTpPrice({
+  entryPrice,
+  slPrice,
+  slPips,
+  targetRr,
+  direction,
+  pipMultiplier,
+  precision,
+}: ComputeTpPriceParams): number | null {
+  if (entryPrice == null || targetRr == null || targetRr <= 0) {
+    return null
+  }
+  let effectiveSlPips: number | null = null
+  if (slPips != null && slPips > 0) {
+    effectiveSlPips = slPips
+  } else if (slPrice != null) {
+    effectiveSlPips = direction === 'long'
+      ? (entryPrice - slPrice) * pipMultiplier
+      : (slPrice - entryPrice) * pipMultiplier
+  }
+  if (effectiveSlPips == null || effectiveSlPips <= 0) {
+    return null
+  }
+  const desiredTpPips = effectiveSlPips * targetRr
+  const priceDelta = desiredTpPips / pipMultiplier
+  const rawTp = direction === 'long' ? entryPrice + priceDelta : entryPrice - priceDelta
+  return Number(rawTp.toFixed(precision))
+}
+
 type TraderNotebookPanelProps = {
   selectedSymbol: string
   quote: SymbolQuote | null
@@ -39,6 +86,8 @@ export function TraderNotebookPanel({
   const [saveStatus, setSaveStatus] = useState<string>('Saved')
   const [regSuccessMsg, setRegSuccessMsg] = useState<string | null>(null)
   const [rrDropdownOpen, setRrDropdownOpen] = useState(false)
+  const [targetRr, setTargetRr] = useState<number | null>(null)
+  const [customRrInput, setCustomRrInput] = useState<string | null>(null)
   const rrDropdownRef = useRef<HTMLDivElement>(null)
 
   // Handle symbol change
@@ -48,6 +97,9 @@ export function TraderNotebookPanel({
     setNote(saved || '')
     setSaveStatus('Saved')
     setRegSuccessMsg(null)
+    setTargetRr(null)
+    setCustomRrInput(null)
+    setRrDropdownOpen(false)
   }
 
   // Close R:R dropdown on click outside
@@ -106,47 +158,94 @@ export function TraderNotebookPanel({
     return { tpPips, slPips, rrRatio }
   }, [direction, entryPrice, pipMultiplier, slPrice, tpPrice])
 
+  const resetDraftPlanState = () => {
+    setTargetRr(null)
+    setCustomRrInput(null)
+    setRrDropdownOpen(false)
+    onSelectArrowId(null)
+  }
+
   // Bi-directional input handlers for Draft Plan
   const handleEntryChange = (valStr: string) => {
     const nextEntry = valStr ? Number(valStr) : null
-    onPlanChange({ ...plan, entryPrice: nextEntry })
+    const nextTp = computeTpPrice({
+      entryPrice: nextEntry,
+      slPrice: plan.slPrice,
+      targetRr,
+      direction: plan.direction,
+      pipMultiplier,
+      precision,
+    }) ?? plan.tpPrice
+    onPlanChange({ ...plan, entryPrice: nextEntry, tpPrice: nextTp })
     onSelectArrowId(null)
   }
 
   const handleUseMarketPrice = () => {
     if (!quote) return
     const currentPrice = plan.direction === 'long' ? quote.ask : quote.bid
-    onPlanChange({ ...plan, entryPrice: currentPrice })
+    const nextTp = computeTpPrice({
+      entryPrice: currentPrice,
+      slPrice: plan.slPrice,
+      targetRr,
+      direction: plan.direction,
+      pipMultiplier,
+      precision,
+    }) ?? plan.tpPrice
+    onPlanChange({ ...plan, entryPrice: currentPrice, tpPrice: nextTp })
     onSelectArrowId(null)
   }
 
   const handleSlPriceChange = (valStr: string) => {
     const nextSl = valStr ? Number(valStr) : null
-    onPlanChange({ ...plan, slPrice: nextSl })
+    const nextTp = computeTpPrice({
+      entryPrice: plan.entryPrice,
+      slPrice: nextSl,
+      targetRr,
+      direction: plan.direction,
+      pipMultiplier,
+      precision,
+    }) ?? plan.tpPrice
+    onPlanChange({ ...plan, slPrice: nextSl, tpPrice: nextTp })
     onSelectArrowId(null)
   }
 
   const handleSlPipsChange = (pipsStr: string) => {
     if (!pipsStr || plan.entryPrice == null) {
       onPlanChange({ ...plan, slPrice: null })
+      onSelectArrowId(null)
       return
     }
     const pips = Number(pipsStr)
     const priceDelta = pips / pipMultiplier
     const nextSl = plan.direction === 'long' ? plan.entryPrice - priceDelta : plan.entryPrice + priceDelta
-    onPlanChange({ ...plan, slPrice: Number(nextSl.toFixed(precision)) })
+    const nextTp = computeTpPrice({
+      entryPrice: plan.entryPrice,
+      slPips: pips,
+      targetRr,
+      direction: plan.direction,
+      pipMultiplier,
+      precision,
+    }) ?? plan.tpPrice
+    onPlanChange({
+      ...plan,
+      slPrice: Number(nextSl.toFixed(precision)),
+      tpPrice: nextTp,
+    })
     onSelectArrowId(null)
   }
 
   const handleTpPriceChange = (valStr: string) => {
     const nextTp = valStr ? Number(valStr) : null
+    setTargetRr(null)
     onPlanChange({ ...plan, tpPrice: nextTp })
     onSelectArrowId(null)
   }
 
   const handleTpPipsChange = (pipsStr: string) => {
+    setTargetRr(null)
     if (!pipsStr || plan.entryPrice == null) {
       onPlanChange({ ...plan, tpPrice: null })
+      onSelectArrowId(null)
       return
     }
     const pips = Number(pipsStr)
@@ -156,12 +255,48 @@ export function TraderNotebookPanel({
     onSelectArrowId(null)
   }
 
+  const handleCustomRrChange = (valStr: string) => {
+    setCustomRrInput(valStr)
+    const nextR = valStr.trim() !== '' ? Number(valStr) : null
+    if (nextR != null && !isNaN(nextR) && nextR > 0) {
+      setTargetRr(nextR)
+      const nextTp = computeTpPrice({
+        entryPrice: plan.entryPrice,
+        slPrice: plan.slPrice,
+        slPips: calculatedMetrics.slPips,
+        targetRr: nextR,
+        direction: plan.direction,
+        pipMultiplier,
+        precision,
+      })
+      if (nextTp != null) {
+        onPlanChange({ ...plan, tpPrice: nextTp })
+      }
+    } else if (valStr.trim() === '') {
+      setTargetRr(null)
+    }
+    onSelectArrowId(null)
+  }
+
+  const handleCustomRrBlur = () => {
+    setCustomRrInput(null)
+  }
+
   const handleTargetRrChange = (rrTarget: number) => {
-    if (plan.entryPrice == null || calculatedMetrics.slPips == null || calculatedMetrics.slPips <= 0) return
-    const desiredTpPips = calculatedMetrics.slPips * rrTarget
-    const priceDelta = desiredTpPips / pipMultiplier
-    const nextTp = plan.direction === 'long' ? plan.entryPrice + priceDelta : plan.entryPrice - priceDelta
-    onPlanChange({ ...plan, tpPrice: Number(nextTp.toFixed(precision)) })
+    setTargetRr(rrTarget)
+    setCustomRrInput(null)
+    const nextTp = computeTpPrice({
+      entryPrice: plan.entryPrice,
+      slPrice: plan.slPrice,
+      slPips: calculatedMetrics.slPips,
+      targetRr: rrTarget,
+      direction: plan.direction,
+      pipMultiplier,
+      precision,
+    })
+    if (nextTp != null) {
+      onPlanChange({ ...plan, tpPrice: nextTp })
+    }
     onSelectArrowId(null)
   }
 
@@ -205,6 +340,42 @@ export function TraderNotebookPanel({
           <span className="notebook-eyebrow">
             {selectedArrow ? 'Edit Execution Plan' : 'Draft Execution Plan'}
           </span>
+          {selectedArrow ? (
+            <div className="selected-arrow-header-actions">
+              <button
+                type="button"
+                className="new-draft-btn-compact"
+                onClick={resetDraftPlanState}
+                title="Return to drafting a new setup plan"
+              >
+                + New Plan
+              </button>
+              <button
+                type="button"
+                className="delete-arrow-btn-compact"
+                onClick={() => onDeleteArrow(selectedArrow.id)}
+                title="Delete this registered setup arrow"
+              >
+                Delete
+              </button>
+            </div>
+          ) : (
+            (plan.entryPrice != null || plan.slPrice != null || plan.tpPrice != null) && (
+              <div className="selected-arrow-header-actions">
+                <button
+                  type="button"
+                  className="new-draft-btn-compact"
+                  onClick={() => {
+                    resetDraftPlanState()
+                    onPlanChange({ ...plan, entryPrice: null, slPrice: null, tpPrice: null })
+                  }}
+                  title="Clear draft inputs and start a new plan"
+                >
+                  + New Plan
+                </button>
+              </div>
+            )
+          )}
         </div>
 
         {/* Symbol & Direction Segmented Switch */}
@@ -266,30 +437,86 @@ export function TraderNotebookPanel({
             </div>
           </div>
 
-          {/* Stop Loss Row: Price + Pips */}
+          {/* Target R:R Row: Customizable Ratio Number + Horizontal Preset Strip */}
           <div className="param-row">
-            <label htmlFor="plan-sl" className="param-label">Stop Loss</label>
+            <label htmlFor="plan-rr" className="param-label">Target R:R</label>
             <div className="param-controls-dual">
-              <input
-                id="plan-sl"
-                type="number"
-                step="any"
-                placeholder="SL Price"
-                value={slPrice ?? ''}
-                onChange={(e) => handleSlPriceChange(e.target.value)}
-                readOnly={Boolean(selectedArrow)}
-              />
-              <div className="pips-field-wrapper">
+              <div className="rr-field-wrapper" title="Target Reward-to-Risk ratio. Type a multiplier (e.g. 2.5) to auto-adjust Take Profit.">
+                <span className="rr-field-prefix" aria-hidden="true">1:</span>
                 <input
+                  id="plan-rr"
                   type="number"
-                  step="any"
-                  placeholder="SL Pips"
-                  value={calculatedMetrics.slPips != null ? calculatedMetrics.slPips.toFixed(1) : ''}
-                  onChange={(e) => handleSlPipsChange(e.target.value)}
+                  step="0.1"
+                  min="0.1"
+                  max="100"
+                  placeholder="—"
+                  className="rr-clean-input"
+                  value={
+                    customRrInput ?? (
+                      targetRr != null
+                        ? targetRr.toFixed(2)
+                        : calculatedMetrics.rrRatio != null
+                        ? calculatedMetrics.rrRatio.toFixed(2)
+                        : ''
+                    )
+                  }
+                  onChange={(e) => handleCustomRrChange(e.target.value)}
+                  onFocus={(e) => e.currentTarget.select()}
+                  onBlur={handleCustomRrBlur}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.currentTarget.blur()
+                    }
+                  }}
                   readOnly={Boolean(selectedArrow)}
+                  title="Target Reward-to-Risk multiplier"
                 />
-                <span className="pips-tag">pips</span>
+                <span className="rr-field-suffix" aria-hidden="true">R</span>
               </div>
+
+              {!selectedArrow ? (
+                <div className="rr-selector-container" ref={rrDropdownRef}>
+                  <button
+                    type="button"
+                    className={`rr-selector-trigger ${rrDropdownOpen ? 'open' : ''}`}
+                    onClick={() => setRrDropdownOpen((prev) => !prev)}
+                    title="Toggle target Reward-to-Risk preset pills"
+                  >
+                    <span>Presets</span>
+                    <span className="rr-trigger-arrow" aria-hidden="true">{rrDropdownOpen ? '◂' : '▾'}</span>
+                  </button>
+
+                  {rrDropdownOpen && (
+                    <div className="rr-selector-dropdown-horizontal" role="menu">
+                      {RR_PRESETS.map(({ r, label }) => {
+                        const isMatch =
+                          targetRr != null
+                            ? Math.abs(targetRr - r) < 0.05
+                            : calculatedMetrics.rrRatio != null &&
+                              Math.abs(calculatedMetrics.rrRatio - r) < 0.05
+                        return (
+                          <button
+                            key={r}
+                            type="button"
+                            className={`rr-preset-pill ${isMatch ? 'active' : ''}`}
+                            onClick={() => {
+                              handleTargetRrChange(r)
+                              setRrDropdownOpen(false)
+                            }}
+                            title={`Set target R:R to 1:${r.toFixed(2)}`}
+                          >
+                            {label}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="rr-locked-pill" title="Target R:R is locked while viewing a pinned setup">
+                  Locked
+                </div>
+              )}
             </div>
           </div>
 
@@ -320,72 +547,30 @@ export function TraderNotebookPanel({
             </div>
           </div>
 
-          {/* Target R:R Row: Live Ratio Box + Click Selector Dropdown */}
+          {/* Stop Loss Row: Price + Pips */}
           <div className="param-row">
-            <span className="param-label">Target R:R</span>
+            <label htmlFor="plan-sl" className="param-label">Stop Loss</label>
             <div className="param-controls-dual">
-              <div className="rr-ratio-pill" title="Current live Reward-to-Risk ratio based on Entry, SL, and TP">
-                <span>Ratio</span>
-                <strong>{calculatedMetrics.rrRatio != null ? `1:${calculatedMetrics.rrRatio.toFixed(2)}` : '—'}</strong>
+              <input
+                id="plan-sl"
+                type="number"
+                step="any"
+                placeholder="SL Price"
+                value={slPrice ?? ''}
+                onChange={(e) => handleSlPriceChange(e.target.value)}
+                readOnly={Boolean(selectedArrow)}
+              />
+              <div className="pips-field-wrapper">
+                <input
+                  type="number"
+                  step="any"
+                  placeholder="SL Pips"
+                  value={calculatedMetrics.slPips != null ? calculatedMetrics.slPips.toFixed(1) : ''}
+                  onChange={(e) => handleSlPipsChange(e.target.value)}
+                  readOnly={Boolean(selectedArrow)}
+                />
+                <span className="pips-tag">pips</span>
               </div>
-
-              {!selectedArrow ? (
-                <div className="rr-selector-container" ref={rrDropdownRef}>
-                  <button
-                    type="button"
-                    className={`rr-selector-trigger ${rrDropdownOpen ? 'open' : ''}`}
-                    onClick={() => setRrDropdownOpen((prev) => !prev)}
-                    disabled={calculatedMetrics.slPips == null || calculatedMetrics.slPips <= 0}
-                    title={
-                      calculatedMetrics.slPips == null || calculatedMetrics.slPips <= 0
-                        ? 'Set Stop Loss to enable target R:R presets'
-                        : 'Choose target Reward-to-Risk multiplier'
-                    }
-                  >
-                    <span>
-                      {calculatedMetrics.rrRatio != null
-                        ? `Target: +${calculatedMetrics.rrRatio.toFixed(2)}R`
-                        : 'Set Target R:R'}
-                    </span>
-                    <span className="rr-trigger-arrow" aria-hidden="true">▾</span>
-                  </button>
-
-                  {rrDropdownOpen && (
-                    <div className="rr-selector-dropdown" role="menu">
-                      <div className="rr-dropdown-header">Target Multiplier</div>
-                      {[
-                        { r: 1.0, label: '+1.00R (1:1.00)' },
-                        { r: 1.25, label: '+1.25R (1:1.25)' },
-                        { r: 1.5, label: '+1.50R (1:1.50)' },
-                        { r: 2.0, label: '+2.00R (1:2.00)' },
-                        { r: 3.0, label: '+3.00R (1:3.00)' },
-                      ].map(({ r, label }) => {
-                        const isMatch =
-                          calculatedMetrics.rrRatio != null &&
-                          Math.abs(calculatedMetrics.rrRatio - r) < 0.05
-                        return (
-                          <button
-                            key={r}
-                            type="button"
-                            className={`rr-dropdown-item ${isMatch ? 'active' : ''}`}
-                            onClick={() => {
-                              handleTargetRrChange(r)
-                              setRrDropdownOpen(false)
-                            }}
-                          >
-                            <span>{label}</span>
-                            {isMatch && <span className="rr-item-check">✓</span>}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="rr-locked-pill" title="Target R:R is locked while viewing a pinned setup">
-                  Locked
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -397,16 +582,6 @@ export function TraderNotebookPanel({
           <span className="notebook-eyebrow">
             PINNED ARROWS ({registeredArrows.length})
           </span>
-          {selectedArrow && (
-            <button
-              type="button"
-              className="clear-selection-link"
-              onClick={() => onSelectArrowId(null)}
-              title="Return to drafting a new setup"
-            >
-              + New Plan
-            </button>
-          )}
         </div>
 
         {registeredArrows.length === 0 ? (
@@ -501,7 +676,7 @@ export function TraderNotebookPanel({
               <span className="meta-item meta-status">● {saveStatus}</span>
             </div>
 
-            {!selectedArrow ? (
+            {!selectedArrow && (
               <button
                 type="button"
                 className={`register-arrow-btn-compact ${regSuccessMsg ? 'success' : canRegister ? 'ready' : 'disabled'}`}
@@ -511,25 +686,6 @@ export function TraderNotebookPanel({
               >
                 {regSuccessMsg ? '✓ Pinned!' : '↗ Pin Arrow'}
               </button>
-            ) : (
-              <div className="selected-arrow-header-actions">
-                <button
-                  type="button"
-                  className="new-draft-btn-compact"
-                  onClick={() => onSelectArrowId(null)}
-                  title="Start drafting a new setup plan"
-                >
-                  + New Plan
-                </button>
-                <button
-                  type="button"
-                  className="delete-arrow-btn-compact"
-                  onClick={() => onDeleteArrow(selectedArrow.id)}
-                  title="Delete this registered setup arrow"
-                >
-                  Delete
-                </button>
-              </div>
             )}
           </div>
         </div>
