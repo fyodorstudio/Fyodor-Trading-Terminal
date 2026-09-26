@@ -1,6 +1,9 @@
+import { useState } from 'react'
 import type { SymbolQuote } from '../../market-data/contracts/SymbolQuote'
 import { MarketWatchPanel } from '../../market-data/market-watch/MarketWatchPanel'
 import type { FeedStatus } from '../../market-data/mt5-feed/use-mt5-market-data'
+import { CriterionPanel } from '../../criterion/criterion-dock/CriterionPanel'
+import type { LeftDockWindow } from './left-dock-window'
 import './left-dock-panel.css'
 
 type LeftDockPanelProps = {
@@ -9,6 +12,8 @@ type LeftDockPanelProps = {
   marketWatchStatus: FeedStatus
   marketWatchError: string | null
   onSelectSymbol: (symbol: string) => void
+  activeWindow?: LeftDockWindow
+  onSelectWindow?: (window: LeftDockWindow) => void
 }
 
 export function LeftDockPanel({
@@ -17,17 +22,46 @@ export function LeftDockPanel({
   marketWatchStatus,
   marketWatchError,
   onSelectSymbol,
+  activeWindow: controlledActiveWindow,
+  onSelectWindow: controlledOnSelectWindow,
 }: LeftDockPanelProps) {
+  const [internalActiveWindow, setInternalActiveWindow] = useState<LeftDockWindow>('market-watch')
+  const activeWindow = controlledActiveWindow ?? internalActiveWindow
+  const handleSelectWindow = controlledOnSelectWindow ?? setInternalActiveWindow
+
   return (
     <aside className="left-dock" aria-label="Left workspace dock">
+      <header className="left-dock-tabs" role="tablist" aria-label="Left dock tabs">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeWindow === 'market-watch'}
+          className={activeWindow === 'market-watch' ? 'active' : ''}
+          onClick={() => handleSelectWindow('market-watch')}
+        >
+          Market Watch <span>{symbols.length}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeWindow === 'criterion'}
+          className={activeWindow === 'criterion' ? 'active' : ''}
+          onClick={() => handleSelectWindow('criterion')}
+        >
+          Criterion
+        </button>
+      </header>
       <div className="left-dock-content">
-        <MarketWatchPanel
-          symbols={symbols}
-          selectedSymbol={selectedSymbol}
-          status={marketWatchStatus}
-          error={marketWatchError}
-          onSelect={onSelectSymbol}
-        />
+        {activeWindow === 'market-watch' && (
+          <MarketWatchPanel
+            symbols={symbols}
+            selectedSymbol={selectedSymbol}
+            status={marketWatchStatus}
+            error={marketWatchError}
+            onSelect={onSelectSymbol}
+          />
+        )}
+        {activeWindow === 'criterion' && <CriterionPanel />}
       </div>
     </aside>
   )
