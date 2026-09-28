@@ -57,6 +57,7 @@ A clean, high-performance trading terminal and forensic notebook built strictly 
 python -m venv bridge/.venv
 bridge/.venv/Scripts/python.exe -m pip install -e ./bridge
 pnpm install
+pnpm --dir frontend install --frozen-lockfile
 ```
 
 ### 2. Launch Terminal
@@ -69,3 +70,13 @@ This concurrently boots:
 * **Terminal UI** on `http://localhost:5173`
 
 Open `http://localhost:5173` in your browser.
+
+If the repository has been moved or `dev:all` reports that `vite` or a Node package cannot be found, repair both local dependency trees before launching again:
+
+```powershell
+pnpm install --frozen-lockfile --force
+pnpm --dir frontend install --frozen-lockfile --force
+pnpm run dev:all
+```
+
+The root and `frontend` each have their own lockfile and `node_modules`; installing only the root dependencies does not install the UI.
