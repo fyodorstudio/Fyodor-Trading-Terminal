@@ -139,7 +139,7 @@ export function snapshotAround(data: ResearchAuditData, entryTime: number, horiz
   }
   if (data.bars[left]?.[0] !== entryTime) throw new Error('The selected research entry candle is missing.')
   if (left + horizon > data.bars.length) throw new Error(`The selected research H${horizon} path is incomplete.`)
-  // H1 is the entry candle. By default display exactly Hmax bars; earlier context is opt-in.
+  // H1 is the entry candle. The caller may include earlier bars, but never post-expiry bars.
   return data.bars.slice(Math.max(0, left - priorBars), left + horizon)
     .map(([time, open, high, low, close]) => ({ time: time as UTCTimestamp, open, high, low, close }))
 }
