@@ -1,0 +1,9 @@
+.arrow-result-panel { height: 100%; overflow: auto; padding: 13px 18px; color: var(--text-muted); font-size: 10px; }
+.arrow-result-head { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.arrow-result-head strong { display: block; color: var(--text-strong); font-size: 12px; }
+.arrow-result-head span { display: block; margin-top: 3px; }
+.arrow-result-head button { padding: 6px 10px; border: 1px solid var(--border-strong); border-radius: 5px; background: var(--surface-inset); color: var(--text-strong); cursor: pointer; white-space: nowrap; }
+.arrow-result-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px 20px; margin: 12px 0; }
+.arrow-result-grid small { display: block; margin-bottom: 3px; color: var(--text-faint); font-size: 9px; text-transform: uppercase; }
+.arrow-result-grid b { color: var(--text-strong); font-size: 10px; font-weight: 650; }
+.arrow-result-panel p { margin: 0; line-height: 1.45; }

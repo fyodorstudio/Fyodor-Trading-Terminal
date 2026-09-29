@@ -1,4 +1,9 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ArrowResultPanel } from '../criterion/arrow-result/ArrowResultPanel'
+import {
+  cleanPanel, snapshotAround, validateSelection,
+  type ResearchAuditData, type ResearchEpisode, type ResearchRule, type ResearchTrial,
+} from '../criterion/audit-data'
 import { readColorTheme, type ColorTheme } from '../appearance/color-theme/color-theme-preference'
 import {
   readTimeDisplayPreference,
@@ -14,6 +19,7 @@ import { MarketCandlestickChart } from '../market-data/candlestick-chart/MarketC
 import { MarketChartErrorBoundary } from '../market-data/candlestick-chart/MarketChartErrorBoundary'
 import { FloatingDrawingToolbar } from '../market-data/chart-drawings/FloatingDrawingToolbar'
 import type { ChartDrawingPoint } from '../market-data/chart-drawings/chart-drawing-record'
+import type { ChartDrawingRecord } from '../market-data/chart-drawings/chart-drawing-record'
 import type { DrawingToolId } from '../market-data/chart-drawings/drawing-tool'
 import { useChartDrawings } from '../market-data/chart-drawings/use-chart-drawings'
 import { ChartSettingsPopover } from '../market-data/chart-settings/ChartSettingsPopover'
@@ -29,13 +35,14 @@ import { DataHeartbeatPanel } from '../system-connectivity/bridge-status/DataHea
 import { useBridgeStatus } from '../system-connectivity/bridge-status/use-bridge-status'
 import { ActivityLogPanel } from '../system-observability/activity-log/ActivityLogPanel'
 import { useActivityLog } from '../system-observability/activity-log/use-activity-log'
-import { PlannedTradePriceLines } from '../trader-notebook/chart-levels/PlannedTradePriceLines'
-import type { PlannedTradeState } from '../trader-notebook/contracts/trader-notebook-types'
+import { PlannedTradePriceLines, type ResearchChartArrow } from '../trader-notebook/chart-levels/PlannedTradePriceLines'
+import type { PlannedTradeState, RegisteredTradeArrow } from '../trader-notebook/contracts/trader-notebook-types'
 import { TraderNotebookPanel } from '../trader-notebook/notebook-dock/TraderNotebookPanel'
 import { useRegisteredArrows } from '../trader-notebook/storage/use-registered-arrows'
 import { BottomDockPanel } from '../workspace-docking/bottom-dock/BottomDockPanel'
 import type { BottomDockWindow } from '../workspace-docking/bottom-dock/bottom-dock-window'
 import { LeftDockPanel } from '../workspace-docking/left-dock/LeftDockPanel'
+import type { LeftDockWindow } from '../workspace-docking/left-dock/left-dock-window'
 import { ChartWorkspaceHeader } from './ChartWorkspaceHeader'
 import { TerminalStatusBar } from './TerminalStatusBar'
 import './terminal-shell.layout.css'
@@ -47,6 +54,12 @@ const defaultTradePlan: PlannedTradeState = {
   slPrice: null,
   showOnChart: true,
 }
+const researchTimeDisplay: TimeDisplayPreference = { mode: 'utc', utcOffsetMinutes: 0 }
+const hiddenTradePlan: PlannedTradeState = { ...defaultTradePlan, showOnChart: false }
+const noDrawings: ChartDrawingRecord[] = []
+const noRegisteredArrows: RegisteredTradeArrow[] = []
+const noResearchArrows: ResearchChartArrow[] = []
+const noOp = () => undefined
 
 export function FyodorTerminalShell() {
   const [selectedSymbol, setSelectedSymbol] = useState('EURUSD')
@@ -57,8 +70,66 @@ export function FyodorTerminalShell() {
   const [activeDrawingTool, setActiveDrawingTool] = useState<DrawingToolId | null>(null)
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>('notebook')
+  const [leftDockWindow, setLeftDockWindow] = useState<LeftDockWindow>('market-watch')
+  const [researchData, setResearchData] = useState<ResearchAuditData | null>(null)
+  const [researchError, setResearchError] = useState<string | null>(null)
+  const [researchRule, setResearchRule] = useState<ResearchRule>({
+    family: 'CPI', signal: 'af', panel: cleanPanel('CPI'), cohort: 'ALL_ELIGIBLE',
+    horizon: 60, stop: 1, target: 1,
+  })
+  const [auditSelection, setAuditSelection] = useState<{ episode: ResearchEpisode; trial: ResearchTrial } | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { entries, appendActivity, clearActivity } = useActivityLog()
+
+  useEffect(() => {
+    if (leftDockWindow !== 'criterion' || researchData || researchError) return
+    const controller = new AbortController()
+    void fetch('/criterion/eurusd_cpi_nfp_v2.json', { signal: controller.signal })
+      .then((response) => {
+        if (!response.ok) throw new Error(`Research snapshot unavailable (HTTP ${response.status})`)
+        return response.json() as Promise<ResearchAuditData>
+      })
+      .then((payload) => {
+        if (payload.schema !== 1 || payload.pair !== 'EURUSD' || payload.status !== 'HISTORICAL_EXPLORATION_ONLY'
+            || payload.selectionPolicy !== 'NONE' || !payload.families.CPI || !payload.families.NFP) {
+          throw new Error('Research snapshot does not match the approved CPI/NFP exploration contract')
+        }
+        setResearchData(payload)
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === 'AbortError') return
+        setResearchError(error instanceof Error ? error.message : 'Research snapshot could not be read')
+      })
+    return () => controller.abort()
+  }, [leftDockWindow, researchData, researchError])
+
+  const researchSelection = useMemo(() => {
+    if (!researchData) return { summary: null, trials: [] as ResearchTrial[], error: null as string | null }
+    try {
+      return { ...validateSelection(researchData, researchRule), error: null }
+    } catch (error) {
+      return { summary: null, trials: [] as ResearchTrial[], error: error instanceof Error ? error.message : 'Research selection failed' }
+    }
+  }, [researchData, researchRule])
+  const auditBars = useMemo(() => {
+    if (!researchData || !auditSelection) return null
+    try { return snapshotAround(researchData, auditSelection.episode.entryTime) }
+    catch { return null }
+  }, [researchData, auditSelection])
+  const auditMode = Boolean(auditSelection && auditBars)
+  const researchArrows = useMemo((): ResearchChartArrow[] => {
+    if (!researchData || !auditBars) return []
+    const first = Number(auditBars[0]?.time)
+    const last = Number(auditBars[auditBars.length - 1]?.time)
+    const family = researchData.families[researchRule.family]
+    return researchSelection.trials.map((trial) => family.episodes[trial[0]])
+      .filter((episode) => episode.entryTime >= first && episode.entryTime <= last)
+      .map((episode) => ({
+        id: `research:${episode.id}`, time: episode.entryTime,
+        entryPrice: episode.entryPrice,
+        direction: episode[researchRule.signal].direction > 0 ? 'long' : 'short',
+      }))
+  }, [researchData, researchRule, researchSelection.trials, auditBars])
 
   // Planned trade state for the active symbol
   const [prevSymbolForPlan, setPrevSymbolForPlan] = useState(selectedSymbol)
@@ -104,6 +175,8 @@ export function FyodorTerminalShell() {
   const activeSymbol = marketData.activeSymbol
   const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
   const bars = marketData.bars
+  const chartBars = auditBars ?? bars
+  const chartSymbol = auditMode ? 'EURUSD' : activeSymbol
   const latestBarTime = bars.length > 0 ? (bars[bars.length - 1].time as number) : 0
   const registeredArrows = useRegisteredArrows(activeSymbol)
 
@@ -128,18 +201,47 @@ export function FyodorTerminalShell() {
     appendActivity('Drawing', 'Drawing deleted', `${activeSymbol} ${timeframe}`)
   }, [activeSymbol, appendActivity, deleteDrawing, selectedDrawingId, timeframe])
 
+  const leaveResearchAudit = () => {
+    setAuditSelection(null)
+    setBottomDockWindow((current) => current === 'arrow-result' ? 'notebook' : current)
+  }
+
   const selectSymbol = (symbol: string) => {
     if (symbol === selectedSymbol) return
+    leaveResearchAudit()
     setSelectedSymbol(symbol)
     setSelectedDrawingId(null)
     appendActivity('Market Watch', 'Symbol selected', symbol)
   }
 
   const selectTimeframe = (nextTimeframe: ChartTimeframe) => {
+    if (auditMode && nextTimeframe !== 'H1') return
     if (nextTimeframe === timeframe) return
     setTimeframe(nextTimeframe)
     setSelectedDrawingId(null)
     appendActivity('Chart', 'Timeframe selected', `${activeSymbol} ${nextTimeframe}`)
+  }
+
+  const selectResearchEpisode = (episode: ResearchEpisode, trial: ResearchTrial) => {
+    if (!researchData || !researchSelection.trials.includes(trial)) return
+    setSelectedSymbol('EURUSD')
+    setTimeframe('H1')
+    setActiveDrawingTool(null)
+    setSelectedDrawingId(null)
+    setAuditSelection({ episode, trial })
+    setBottomDockWindow('arrow-result')
+  }
+
+  const changeResearchRule = (rule: ResearchRule) => {
+    setResearchRule(rule)
+    leaveResearchAudit()
+  }
+
+  const selectResearchArrow = (arrow: ResearchChartArrow) => {
+    if (!researchData) return
+    const family = researchData.families[researchRule.family]
+    const trial = researchSelection.trials.find((item) => `research:${family.episodes[item[0]].id}` === arrow.id)
+    if (trial) selectResearchEpisode(family.episodes[trial[0]], trial)
   }
 
   const recordChartData = useCallback(
@@ -219,27 +321,42 @@ export function FyodorTerminalShell() {
           marketWatchStatus={marketData.marketWatchStatus}
           marketWatchError={marketData.marketWatchError}
           onSelectSymbol={selectSymbol}
+          activeWindow={leftDockWindow}
+          onSelectWindow={setLeftDockWindow}
+          criterionData={researchData}
+          criterionError={researchError ?? researchSelection.error}
+          criterionRule={researchRule}
+          criterionSummary={researchSelection.summary}
+          criterionTrials={researchSelection.trials}
+          selectedResearchEpisodeId={auditSelection?.episode.id ?? null}
+          onCriterionRuleChange={changeResearchRule}
+          onSelectResearchEpisode={selectResearchEpisode}
         />
 
-        <section className="chart-workspace" aria-label={`${activeSymbol} chart workspace`}>
-          <ChartWorkspaceHeader symbol={activeSymbol} quote={quote} timeframe={timeframe} onSelectTimeframe={selectTimeframe} />
+        <section className="chart-workspace" aria-label={`${chartSymbol} chart workspace`}>
+          <ChartWorkspaceHeader symbol={chartSymbol} quote={quote} timeframe={timeframe} onSelectTimeframe={selectTimeframe} researchAudit={auditMode} />
           <div className="chart-frame">
+            {auditMode && <div className="research-chart-banner">
+              <strong>HISTORICAL RESEARCH SNAPSHOT · NOT LIVE</strong>
+              <span>{auditSelection?.episode.releaseText} · EURUSD H1 · click a research arrow for its result</span>
+              <button type="button" onClick={leaveResearchAudit}>Return to live</button>
+            </div>}
             <MarketChartErrorBoundary
-              symbol={activeSymbol}
+              symbol={chartSymbol}
               timeframe={timeframe}
               onError={(error) => appendActivity('Chart', 'Chart error caught', error.message, { severity: 'error' })}
             >
               <MarketCandlestickChart
-                bars={bars}
-                fitContentKey={`${activeSymbol}:${timeframe}`}
+                bars={chartBars}
+                fitContentKey={auditMode ? `research:${auditSelection?.episode.id}` : `${activeSymbol}:${timeframe}`}
                 precision={quote?.precision ?? 5}
                 theme={theme}
                 appearance={chartAppearance}
-                timeDisplay={timeDisplay}
+                timeDisplay={auditMode ? researchTimeDisplay : timeDisplay}
                 timeframe={timeframe}
-                activeDrawingTool={activeDrawingTool}
-                drawings={drawings}
-                selectedDrawingId={selectedDrawingId}
+                activeDrawingTool={auditMode ? null : activeDrawingTool}
+                drawings={auditMode ? noDrawings : drawings}
+                selectedDrawingId={auditMode ? null : selectedDrawingId}
                 onSelectDrawing={setSelectedDrawingId}
                 onCreateDrawing={createDrawing}
                 onUpdateDrawingPoint={updateDrawingPoint}
@@ -248,24 +365,27 @@ export function FyodorTerminalShell() {
                 onUpdateDrawingText={updateDrawingText}
                 onDeleteDrawing={handleDeleteDrawing}
                 onExitDrawingMode={() => setActiveDrawingTool(null)}
-                onDataApplied={recordChartData}
-                hasOlderData={!marketData.chartHistoryComplete}
-                isLoadingOlderData={marketData.chartHistoryLoading}
-                onRequestOlderData={marketData.requestOlderBars}
+                onDataApplied={auditMode ? noOp : recordChartData}
+                hasOlderData={!auditMode && !marketData.chartHistoryComplete}
+                isLoadingOlderData={!auditMode && marketData.chartHistoryLoading}
+                onRequestOlderData={auditMode ? noOp : marketData.requestOlderBars}
                 renderChartOverlay={(_chartApi, seriesApi) => (
                   <>
                     <PlannedTradePriceLines
                       chartApi={_chartApi}
                       seriesApi={seriesApi}
-                      arrows={registeredArrows.symbolArrows}
-                      selectedArrowId={registeredArrows.selectedArrowId}
-                      draftPlan={plannedTrade}
+                      arrows={auditMode ? noRegisteredArrows : registeredArrows.symbolArrows}
+                      selectedArrowId={auditMode ? null : registeredArrows.selectedArrowId}
+                      researchArrows={auditMode ? researchArrows : noResearchArrows}
+                      selectedResearchArrowId={auditMode ? `research:${auditSelection?.episode.id}` : null}
+                      onSelectResearchArrow={selectResearchArrow}
+                      draftPlan={auditMode ? hiddenTradePlan : plannedTrade}
                       onSelectArrow={(arrow) => {
                         registeredArrows.setSelectedArrowId(arrow.id)
                         setBottomDockWindow('notebook')
                       }}
                     />
-                    <EconomicCalendarMarkers
+                    {!auditMode && <EconomicCalendarMarkers
                       chartApi={_chartApi}
                       seriesApi={seriesApi}
                       symbol={activeSymbol}
@@ -278,28 +398,25 @@ export function FyodorTerminalShell() {
                         setBottomDockWindow('calendar')
                         setHighlightedCalendarEventId(event.value_id)
                       }}
-                    />
+                    />}
                   </>
                 )}
               />
             </MarketChartErrorBoundary>
-            <MarketDataNotice status={marketData.chartStatus} symbol={activeSymbol} timeframe={timeframe} error={marketData.chartError} />
-            {marketData.chartStatus === 'live' && marketData.chartHistoryLoading && (
+            {!auditMode && <MarketDataNotice status={marketData.chartStatus} symbol={activeSymbol} timeframe={timeframe} error={marketData.chartError} />}
+            {!auditMode && marketData.chartStatus === 'live' && marketData.chartHistoryLoading && (
               <CandleHistoryLoadingNotice symbol={activeSymbol} timeframe={timeframe} />
             )}
-            <FloatingDrawingToolbar
+            {!auditMode && <FloatingDrawingToolbar
               activeTool={activeDrawingTool}
               drawingCount={totalDrawingCount}
               onSelectCrosshair={selectCrosshair}
               onToolChange={chooseDrawingTool}
               onClearAll={deleteAllDrawings}
-            />
+            />}
             <div className="chart-watermark" aria-hidden="true">
-              <strong>{activeSymbol}</strong>
-              <span>
-                {timeframe} · {marketData.chartStatus === 'live' ? 'MT5 broker data' : 'Awaiting MT5 data'}
-                {marketData.chartHistoryComplete ? ' · beginning of MT5 history reached' : ''}
-              </span>
+              <strong>{chartSymbol}</strong>
+              <span>{auditMode ? 'H1 · pinned historical export' : `${timeframe} · ${marketData.chartStatus === 'live' ? 'MT5 broker data' : 'Awaiting MT5 data'}`}</span>
             </div>
           </div>
         </section>
@@ -310,6 +427,7 @@ export function FyodorTerminalShell() {
           activeWindow={bottomDockWindow}
           activityCount={entries.length}
           selectedSymbol={activeSymbol}
+          hasResearchSelection={auditMode}
           onSelectWindow={setBottomDockWindow}
           onClose={() => setBottomDockWindow(null)}
         >
@@ -365,6 +483,10 @@ export function FyodorTerminalShell() {
               onRangePresetChange={setCalendarRangePreset}
             />
           )}
+          {bottomDockWindow === 'arrow-result' && (
+            <ArrowResultPanel episode={auditSelection?.episode ?? null} trial={auditSelection?.trial ?? null}
+              rule={researchRule} onReturnLive={leaveResearchAudit} />
+          )}
         </BottomDockPanel>
       )}
 
@@ -374,9 +496,10 @@ export function FyodorTerminalShell() {
         sourceSymbolCount={marketData.symbols.length}
         selectedSymbol={activeSymbol}
         timeframe={timeframe}
-        barCount={bars.length}
+        barCount={chartBars.length}
         activityCount={entries.length}
         bottomDockWindow={bottomDockWindow}
+        hasResearchSelection={auditMode}
         settingsOpen={settingsOpen}
         calendarStatus={calendarStatus}
         calendarEventCount={calendar.events.length}

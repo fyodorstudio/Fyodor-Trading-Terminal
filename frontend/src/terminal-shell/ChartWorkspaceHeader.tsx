@@ -8,9 +8,10 @@ type ChartWorkspaceHeaderProps = {
   quote: SymbolQuote | null
   timeframe: ChartTimeframe
   onSelectTimeframe: (timeframe: ChartTimeframe) => void
+  researchAudit?: boolean
 }
 
-export function ChartWorkspaceHeader({ symbol, quote, timeframe, onSelectTimeframe }: ChartWorkspaceHeaderProps) {
+export function ChartWorkspaceHeader({ symbol, quote, timeframe, onSelectTimeframe, researchAudit = false }: ChartWorkspaceHeaderProps) {
   return (
     <div className="chart-toolbar">
       <div className="active-market">
@@ -22,7 +23,7 @@ export function ChartWorkspaceHeader({ symbol, quote, timeframe, onSelectTimefra
               {quote.dailyChange >= 0 ? '+' : ''}{quote.dailyChange.toFixed(2)}%
             </span>}
           </div>
-          <p>{quote?.description ?? 'Waiting for MT5 broker data'}</p>
+          <p>{researchAudit ? 'Pinned historical research candles · not live' : quote?.description ?? 'Waiting for MT5 broker data'}</p>
         </div>
       </div>
 
@@ -33,6 +34,7 @@ export function ChartWorkspaceHeader({ symbol, quote, timeframe, onSelectTimefra
             type="button"
             className={item === timeframe ? 'active' : ''}
             aria-pressed={item === timeframe}
+            disabled={researchAudit && item !== 'H1'}
             onClick={() => onSelectTimeframe(item)}
           >
             {item}
@@ -40,10 +42,10 @@ export function ChartWorkspaceHeader({ symbol, quote, timeframe, onSelectTimefra
         ))}
       </div>
 
-      <div className="quote-summary">
+      {!researchAudit && <div className="quote-summary">
         <span><small>Bid</small>{quote ? quote.bid.toFixed(quote.precision) : '—'}</span>
         <span><small>Ask</small>{quote ? quote.ask.toFixed(quote.precision) : '—'}</span>
-      </div>
+      </div>}
     </div>
   )
 }

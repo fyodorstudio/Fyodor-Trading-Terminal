@@ -106,6 +106,28 @@
 
 .chart-frame { min-height: 0; position: relative; }
 
+.research-chart-banner {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 68px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text-strong);
+  background: var(--surface-panel);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  font-size: 9px;
+}
+.research-chart-banner strong { color: var(--warning); white-space: nowrap; }
+.research-chart-banner span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.research-chart-banner button { margin-left: auto; padding: 4px 8px; border: 1px solid var(--border-strong); border-radius: 4px; color: var(--text-strong); background: var(--surface-inset); cursor: pointer; white-space: nowrap; }
+.timeframe-selector button:disabled { opacity: 0.35; cursor: not-allowed; }
+
 .chart-watermark {
   position: absolute;
   top: 60px;

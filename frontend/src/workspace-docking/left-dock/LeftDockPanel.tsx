@@ -3,6 +3,7 @@ import type { SymbolQuote } from '../../market-data/contracts/SymbolQuote'
 import { MarketWatchPanel } from '../../market-data/market-watch/MarketWatchPanel'
 import type { FeedStatus } from '../../market-data/mt5-feed/use-mt5-market-data'
 import { CriterionPanel } from '../../criterion/criterion-dock/CriterionPanel'
+import type { ResearchAuditData, ResearchEpisode, ResearchRule, ResearchSummary, ResearchTrial } from '../../criterion/audit-data'
 import type { LeftDockWindow } from './left-dock-window'
 import './left-dock-panel.css'
 
@@ -14,6 +15,14 @@ type LeftDockPanelProps = {
   onSelectSymbol: (symbol: string) => void
   activeWindow?: LeftDockWindow
   onSelectWindow?: (window: LeftDockWindow) => void
+  criterionData: ResearchAuditData | null
+  criterionError: string | null
+  criterionRule: ResearchRule
+  criterionSummary: ResearchSummary | null
+  criterionTrials: ResearchTrial[]
+  selectedResearchEpisodeId: string | null
+  onCriterionRuleChange: (rule: ResearchRule) => void
+  onSelectResearchEpisode: (episode: ResearchEpisode, trial: ResearchTrial) => void
 }
 
 export function LeftDockPanel({
@@ -24,6 +33,14 @@ export function LeftDockPanel({
   onSelectSymbol,
   activeWindow: controlledActiveWindow,
   onSelectWindow: controlledOnSelectWindow,
+  criterionData,
+  criterionError,
+  criterionRule,
+  criterionSummary,
+  criterionTrials,
+  selectedResearchEpisodeId,
+  onCriterionRuleChange,
+  onSelectResearchEpisode,
 }: LeftDockPanelProps) {
   const [internalActiveWindow, setInternalActiveWindow] = useState<LeftDockWindow>('market-watch')
   const activeWindow = controlledActiveWindow ?? internalActiveWindow
@@ -61,7 +78,16 @@ export function LeftDockPanel({
             onSelect={onSelectSymbol}
           />
         )}
-        {activeWindow === 'criterion' && <CriterionPanel />}
+        {activeWindow === 'criterion' && <CriterionPanel
+          data={criterionData}
+          error={criterionError}
+          rule={criterionRule}
+          summary={criterionSummary}
+          trials={criterionTrials}
+          selectedEpisodeId={selectedResearchEpisodeId}
+          onRuleChange={onCriterionRuleChange}
+          onSelectEpisode={onSelectResearchEpisode}
+        />}
       </div>
     </aside>
   )

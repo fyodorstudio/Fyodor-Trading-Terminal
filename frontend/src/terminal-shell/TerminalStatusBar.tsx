@@ -12,6 +12,7 @@ type TerminalStatusBarProps = {
   barCount: number
   activityCount: number
   bottomDockWindow: BottomDockWindow | null
+  hasResearchSelection: boolean
   settingsOpen: boolean
   calendarStatus: string
   calendarEventCount: number
@@ -29,6 +30,7 @@ export function TerminalStatusBar({
   barCount,
   activityCount,
   bottomDockWindow,
+  hasResearchSelection,
   settingsOpen,
   calendarStatus,
   calendarEventCount,
@@ -57,6 +59,9 @@ export function TerminalStatusBar({
         <button className={`status-action${bottomDockWindow === 'activity' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('activity')} aria-expanded={bottomDockWindow === 'activity'}>
           Activity <span className="activity-count">{activityCount}</span>
         </button>
+        {hasResearchSelection && <button className={`status-action${bottomDockWindow === 'arrow-result' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('arrow-result')} aria-expanded={bottomDockWindow === 'arrow-result'}>
+          Arrow Result
+        </button>}
         <ColorThemeButton onThemeChanged={onThemeChanged} />
         <button className={`status-action${settingsOpen ? ' active' : ''}`} type="button" onClick={onToggleSettings} aria-expanded={settingsOpen}>
           <span aria-hidden="true">⚙</span> Settings

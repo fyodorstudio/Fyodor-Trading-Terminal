@@ -11,6 +11,8 @@ import {
 } from 'lightweight-charts'
 import type { PlannedTradeState, RegisteredTradeArrow } from '../contracts/trader-notebook-types'
 
+export type ResearchChartArrow = { id: string; time: number; direction: 'long' | 'short'; entryPrice: number }
+
 type PlannedTradePriceLinesProps = {
   chartApi: IChartApi
   seriesApi: ISeriesApi<'Candlestick', Time>
@@ -18,6 +20,9 @@ type PlannedTradePriceLinesProps = {
   selectedArrowId: string | null
   draftPlan: PlannedTradeState
   onSelectArrow: (arrow: RegisteredTradeArrow) => void
+  researchArrows?: ResearchChartArrow[]
+  selectedResearchArrowId?: string | null
+  onSelectResearchArrow?: (arrow: ResearchChartArrow) => void
 }
 
 export function PlannedTradePriceLines({
@@ -27,6 +32,9 @@ export function PlannedTradePriceLines({
   selectedArrowId,
   draftPlan,
   onSelectArrow,
+  researchArrows = [],
+  selectedResearchArrowId = null,
+  onSelectResearchArrow,
 }: PlannedTradePriceLinesProps) {
   // 1. Render Registered Arrow Markers on the Candlestick Chart
   useEffect(() => {
@@ -46,10 +54,24 @@ export function PlannedTradePriceLines({
         size: isSelected ? 1.25 : 0.85,
       }
     })
+    for (const arrow of researchArrows) {
+      const selected = arrow.id === selectedResearchArrowId
+      markers.push({
+        id: arrow.id,
+        time: arrow.time as Time,
+        price: arrow.entryPrice,
+        position: arrow.direction === 'long' ? 'atPriceBottom' : 'atPriceTop',
+        shape: arrow.direction === 'long' ? 'arrowUp' : 'arrowDown',
+        color: selected ? '#38bdf8' : arrow.direction === 'long' ? '#10b981' : '#f43f5e',
+        text: selected ? 'HISTORICAL AUDIT' : 'RESEARCH',
+        size: selected ? 1.25 : 0.85,
+      })
+    }
+    markers.sort((a, b) => Number(a.time) - Number(b.time))
 
     const markerApi = createSeriesMarkers(seriesApi, markers, { zOrder: 'top' })
     return () => markerApi.detach()
-  }, [arrows, selectedArrowId, seriesApi])
+  }, [arrows, researchArrows, selectedArrowId, selectedResearchArrowId, seriesApi])
 
   // 2. Handle click on marker to select arrow
   useEffect(() => {
@@ -58,10 +80,12 @@ export function PlannedTradePriceLines({
       if (typeof objectId !== 'string') return
       const arrow = arrows.find((a) => a.id === objectId)
       if (arrow) onSelectArrow(arrow)
+      const researchArrow = researchArrows.find((a) => a.id === objectId)
+      if (researchArrow) onSelectResearchArrow?.(researchArrow)
     }
     chartApi.subscribeClick(handleClick)
     return () => chartApi.unsubscribeClick(handleClick)
-  }, [arrows, chartApi, onSelectArrow])
+  }, [arrows, chartApi, onSelectArrow, researchArrows, onSelectResearchArrow])
 
   // 3. Render Horizontal Lines (Entry, TP, SL)
   useEffect(() => {
