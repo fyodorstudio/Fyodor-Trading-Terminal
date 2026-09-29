@@ -22,3 +22,10 @@
 .criterion-episode small { color: var(--text-faint); font-size: 9px; }
 .criterion-error, .criterion-loading, .criterion-empty { padding: 16px; color: var(--text-muted); font-size: 11px; line-height: 1.5; }
 .criterion-error { color: var(--negative); }
+.criterion-saved-notes { border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 10px; }
+.criterion-saved-notes summary { padding: 9px 12px; color: var(--text-strong); font-weight: 700; cursor: pointer; }
+.criterion-saved-notes p { padding: 0 12px 10px; margin: 0; }
+.criterion-saved-notes button { display: flex; width: 100%; flex-direction: column; gap: 2px; padding: 7px 12px; border: 0; border-top: 1px solid var(--border); text-align: left; background: var(--surface-panel); color: var(--text-muted); font: inherit; cursor: pointer; }
+.criterion-saved-notes button:hover { background: var(--surface-hover); }
+.criterion-saved-notes button b { color: var(--text-strong); }
+.criterion-saved-notes button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

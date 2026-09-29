@@ -2,6 +2,8 @@ import {
   cleanPanel, exitLabel,
   type ResearchAuditData, type ResearchEpisode, type ResearchRule, type ResearchSummary, type ResearchTrial,
 } from '../audit-data'
+import type { AuditNote } from '../arrow-result/audit-notes'
+import reportManifest from '../report-manifest.json'
 import './criterion-panel.css'
 
 type Props = {
@@ -11,13 +13,15 @@ type Props = {
   summary: ResearchSummary | null
   trials: ResearchTrial[]
   selectedEpisodeId: string | null
+  savedAuditNotes: AuditNote[]
+  onOpenSavedAuditNote: (note: AuditNote) => void
   onRuleChange: (rule: ResearchRule) => void
   onSelectEpisode: (episode: ResearchEpisode, trial: ResearchTrial) => void
 }
 
 const targets = Array.from({ length: 13 }, (_, index) => 1 + index * 0.25)
 
-export function CriterionPanel({ data, error, rule, summary, trials, selectedEpisodeId, onRuleChange, onSelectEpisode }: Props) {
+export function CriterionPanel({ data, error, rule, summary, trials, selectedEpisodeId, savedAuditNotes, onOpenSavedAuditNote, onRuleChange, onSelectEpisode }: Props) {
   const episodes = data?.families[rule.family].episodes ?? []
   const rows = trials.map((trial) => ({ trial, episode: episodes[trial[0]] }))
     .filter((row) => Boolean(row.episode)).reverse()
@@ -27,7 +31,7 @@ export function CriterionPanel({ data, error, rule, summary, trials, selectedEpi
     <div className="criterion-panel" aria-label="Historical Criterion audit dock">
       <header className="criterion-head">
         <strong>Historical Criterion</strong>
-        <span>EURUSD only · research, not registered</span>
+        <span>EURUSD only · research, not registered · report v{reportManifest.version}</span>
       </header>
       {error ? <p className="criterion-error" role="alert">{error}</p> : !data ? <p className="criterion-loading">Loading pinned CPI/NFP research…</p> : (
         <>
@@ -83,12 +87,21 @@ export function CriterionPanel({ data, error, rule, summary, trials, selectedEpi
               <span><b>{summary.expiry}</b> expiry</span>
               <span><b>{Number(summary.meanR).toFixed(3)} R</b> gross mean/trade</span>
             </div>}
-            <a className="criterion-report-link" href="/criterion/research_report.html" target="_blank" rel="noopener noreferrer">
-              Open full research report ↗
+            <a className="criterion-report-link" href={reportManifest.reportPath} target="_blank" rel="noopener noreferrer">
+              Open full research report v{reportManifest.version} · 7 pairs ↗
             </a>
             {rule.family === 'NFP' && <p className="criterion-caveat">For EURUSD, the NFP clean and all-eligible panels coincide; the CAD-jobs collision filter changes USDCAD, not EURUSD.</p>}
             <p className="criterion-caveat">Arrows show archived-rule directions, not hindsight winners or live signals. A−P uses exported Previous; its point-in-time revision status is not proven. Outcomes are historical, gross and cost-excluded.</p>
           </div>
+          <details className="criterion-saved-notes">
+            <summary>Saved audit notes ({savedAuditNotes.length})</summary>
+            {savedAuditNotes.length === 0 ? <p>No chart audit notes saved yet.</p> :
+              [...savedAuditNotes].sort((a, b) => b.releaseText.localeCompare(a.releaseText)).map((note) =>
+                <button key={`${note.family}:${note.signal}:${note.episodeId}`} type="button" onClick={() => onOpenSavedAuditNote(note)}>
+                  <b>{note.family} · {note.releaseText} · {note.signal.toUpperCase()}</b>
+                  <span>{note.text.replace(/\s+/g, ' ').slice(0, 85)}</span>
+                </button>)}
+          </details>
           <div className="criterion-list" role="list" aria-label="Historical episodes for selected rule">
             {rows.length === 0 && <p className="criterion-empty">No eligible EURUSD episodes under these filters.</p>}
             {rows.map(({ episode, trial }) => {

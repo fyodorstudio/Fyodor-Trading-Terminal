@@ -82,6 +82,16 @@ export type ResearchRule = {
   target: number
 }
 
+export function researchPriceLevels(episode: ResearchEpisode, rule: ResearchRule) {
+  const direction = episode[rule.signal].direction
+  return {
+    entry: episode.entryPrice,
+    stop: episode.entryPrice - direction * rule.stop * episode.atr,
+    target: episode.entryPrice + direction * rule.target * episode.atr,
+    direction,
+  }
+}
+
 export function cleanPanel(family: ResearchFamily): ResearchPanel {
   return family === 'CPI' ? 'JOBLESS_CLAIMS_CLEAN' : 'PRIMARY_PANEL'
 }
@@ -117,7 +127,8 @@ export function validateSelection(data: ResearchAuditData, rule: ResearchRule) {
   return { summary, trials }
 }
 
-export function snapshotAround(data: ResearchAuditData, entryTime: number): OhlcBar[] {
+export function snapshotAround(data: ResearchAuditData, entryTime: number, horizon: number): OhlcBar[] {
+  if (![60, 120, 240].includes(horizon)) throw new Error('Unsupported research horizon.')
   let left = 0
   let right = data.bars.length
   while (left < right) {
@@ -126,7 +137,9 @@ export function snapshotAround(data: ResearchAuditData, entryTime: number): Ohlc
     else right = middle
   }
   if (data.bars[left]?.[0] !== entryTime) throw new Error('The selected research entry candle is missing.')
-  return data.bars.slice(Math.max(0, left - 120), Math.min(data.bars.length, left + 241))
+  if (left + horizon > data.bars.length) throw new Error(`The selected research H${horizon} path is incomplete.`)
+  // H1 is the entry candle. Retain earlier candles for chart context, but never reveal a bar after Hmax.
+  return data.bars.slice(Math.max(0, left - 120), left + horizon)
     .map(([time, open, high, low, close]) => ({ time: time as UTCTimestamp, open, high, low, close }))
 }
 

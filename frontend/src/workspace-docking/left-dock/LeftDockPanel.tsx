@@ -3,6 +3,7 @@ import type { SymbolQuote } from '../../market-data/contracts/SymbolQuote'
 import { MarketWatchPanel } from '../../market-data/market-watch/MarketWatchPanel'
 import type { FeedStatus } from '../../market-data/mt5-feed/use-mt5-market-data'
 import { CriterionPanel } from '../../criterion/criterion-dock/CriterionPanel'
+import type { AuditNote } from '../../criterion/arrow-result/audit-notes'
 import type { ResearchAuditData, ResearchEpisode, ResearchRule, ResearchSummary, ResearchTrial } from '../../criterion/audit-data'
 import type { LeftDockWindow } from './left-dock-window'
 import './left-dock-panel.css'
@@ -21,6 +22,8 @@ type LeftDockPanelProps = {
   criterionSummary: ResearchSummary | null
   criterionTrials: ResearchTrial[]
   selectedResearchEpisodeId: string | null
+  savedAuditNotes: AuditNote[]
+  onOpenSavedAuditNote: (note: AuditNote) => void
   onCriterionRuleChange: (rule: ResearchRule) => void
   onSelectResearchEpisode: (episode: ResearchEpisode, trial: ResearchTrial) => void
 }
@@ -39,6 +42,8 @@ export function LeftDockPanel({
   criterionSummary,
   criterionTrials,
   selectedResearchEpisodeId,
+  savedAuditNotes,
+  onOpenSavedAuditNote,
   onCriterionRuleChange,
   onSelectResearchEpisode,
 }: LeftDockPanelProps) {
@@ -85,6 +90,8 @@ export function LeftDockPanel({
           summary={criterionSummary}
           trials={criterionTrials}
           selectedEpisodeId={selectedResearchEpisodeId}
+          savedAuditNotes={savedAuditNotes}
+          onOpenSavedAuditNote={onOpenSavedAuditNote}
           onRuleChange={onCriterionRuleChange}
           onSelectEpisode={onSelectResearchEpisode}
         />}

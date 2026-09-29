@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ArrowResultPanel } from '../criterion/arrow-result/ArrowResultPanel'
+import { auditNoteKey, readAuditNotes, writeAuditNotes, type AuditNote } from '../criterion/arrow-result/audit-notes'
+import reportManifest from '../criterion/report-manifest.json'
 import {
-  cleanPanel, snapshotAround, validateSelection,
+  cleanPanel, researchPriceLevels, snapshotAround, validateSelection,
   type ResearchAuditData, type ResearchEpisode, type ResearchRule, type ResearchTrial,
 } from '../criterion/audit-data'
 import { readColorTheme, type ColorTheme } from '../appearance/color-theme/color-theme-preference'
@@ -78,6 +80,8 @@ export function FyodorTerminalShell() {
     horizon: 60, stop: 1, target: 1,
   })
   const [auditSelection, setAuditSelection] = useState<{ episode: ResearchEpisode; trial: ResearchTrial } | null>(null)
+  const [auditNotes, setAuditNotes] = useState<AuditNote[]>(readAuditNotes)
+  const [auditNoteSaveFailed, setAuditNoteSaveFailed] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { entries, appendActivity, clearActivity } = useActivityLog()
 
@@ -91,6 +95,7 @@ export function FyodorTerminalShell() {
       })
       .then((payload) => {
         if (payload.schema !== 1 || payload.pair !== 'EURUSD' || payload.status !== 'HISTORICAL_EXPLORATION_ONLY'
+            || payload.viewerSha256 !== reportManifest.reportSha256
             || payload.selectionPolicy !== 'NONE' || !payload.families.CPI || !payload.families.NFP) {
           throw new Error('Research snapshot does not match the approved CPI/NFP exploration contract')
         }
@@ -113,10 +118,17 @@ export function FyodorTerminalShell() {
   }, [researchData, researchRule])
   const auditBars = useMemo(() => {
     if (!researchData || !auditSelection) return null
-    try { return snapshotAround(researchData, auditSelection.episode.entryTime) }
+    try { return snapshotAround(researchData, auditSelection.episode.entryTime, researchRule.horizon) }
     catch { return null }
-  }, [researchData, auditSelection])
+  }, [researchData, auditSelection, researchRule.horizon])
   const auditMode = Boolean(auditSelection && auditBars)
+  const auditLevels = useMemo(() => auditSelection ? researchPriceLevels(auditSelection.episode, researchRule) : null,
+    [auditSelection, researchRule])
+  const currentAuditNote = auditSelection && researchData ? auditNotes.find((note) =>
+    auditNoteKey(note.viewerSha256, note.family, note.signal, note.episodeId)
+      === auditNoteKey(researchData.viewerSha256, researchRule.family, researchRule.signal, auditSelection.episode.id),
+  ) ?? null : null
+  const currentDatasetNotes = researchData ? auditNotes.filter((note) => note.viewerSha256 === researchData.viewerSha256) : []
   const researchArrows = useMemo((): ResearchChartArrow[] => {
     if (!researchData || !auditBars) return []
     const first = Number(auditBars[0]?.time)
@@ -244,6 +256,43 @@ export function FyodorTerminalShell() {
     if (trial) selectResearchEpisode(family.episodes[trial[0]], trial)
   }
 
+  const saveAuditNote = (text: string) => {
+    if (!auditSelection || !researchData) return
+    const key = auditNoteKey(researchData.viewerSha256, researchRule.family, researchRule.signal, auditSelection.episode.id)
+    const next = auditNotes.filter((note) => auditNoteKey(note.viewerSha256, note.family, note.signal, note.episodeId) !== key)
+    if (text.trim()) next.push({
+      viewerSha256: researchData.viewerSha256,
+      family: researchRule.family,
+      signal: researchRule.signal,
+      episodeId: auditSelection.episode.id,
+      releaseText: auditSelection.episode.releaseText,
+      rule: researchRule,
+      text,
+      updatedAt: new Date().toISOString(),
+    })
+    setAuditNotes(next)
+    setAuditNoteSaveFailed(!writeAuditNotes(next))
+  }
+
+  const openSavedAuditNote = (note: AuditNote) => {
+    if (!researchData || note.viewerSha256 !== researchData.viewerSha256) return
+    try {
+      const { trials } = validateSelection(researchData, note.rule)
+      const episode = researchData.families[note.family].episodes.find((item) => item.id === note.episodeId)
+      const trial = episode && trials.find((item) => researchData.families[note.family].episodes[item[0]].id === episode.id)
+      if (!episode || !trial) return
+      setResearchRule(note.rule)
+      setSelectedSymbol('EURUSD')
+      setTimeframe('H1')
+      setActiveDrawingTool(null)
+      setSelectedDrawingId(null)
+      setAuditSelection({ episode, trial })
+      setBottomDockWindow('arrow-result')
+    } catch {
+      setResearchError('A saved note references a research rule that no longer reconciles to the pinned snapshot.')
+    }
+  }
+
   const recordChartData = useCallback(
     (barCount: number) => appendActivity('Chart', 'Candle data applied', `${activeSymbol} ${timeframe} · ${barCount} bars`),
     [activeSymbol, appendActivity, timeframe],
@@ -329,6 +378,8 @@ export function FyodorTerminalShell() {
           criterionSummary={researchSelection.summary}
           criterionTrials={researchSelection.trials}
           selectedResearchEpisodeId={auditSelection?.episode.id ?? null}
+          savedAuditNotes={currentDatasetNotes}
+          onOpenSavedAuditNote={openSavedAuditNote}
           onCriterionRuleChange={changeResearchRule}
           onSelectResearchEpisode={selectResearchEpisode}
         />
@@ -338,7 +389,7 @@ export function FyodorTerminalShell() {
           <div className="chart-frame">
             {auditMode && <div className="research-chart-banner">
               <strong>HISTORICAL RESEARCH SNAPSHOT · NOT LIVE</strong>
-              <span>{auditSelection?.episode.releaseText} · EURUSD H1 · click a research arrow for its result</span>
+              <span>{auditSelection?.episode.releaseText} · EURUSD H1 · H{researchRule.horizon} after entry + up to 120 prior H1 for context</span>
               <button type="button" onClick={leaveResearchAudit}>Return to live</button>
             </div>}
             <MarketChartErrorBoundary
@@ -348,7 +399,7 @@ export function FyodorTerminalShell() {
             >
               <MarketCandlestickChart
                 bars={chartBars}
-                fitContentKey={auditMode ? `research:${auditSelection?.episode.id}` : `${activeSymbol}:${timeframe}`}
+                fitContentKey={auditMode ? `research:${auditSelection?.episode.id}:H${researchRule.horizon}` : `${activeSymbol}:${timeframe}`}
                 precision={quote?.precision ?? 5}
                 theme={theme}
                 appearance={chartAppearance}
@@ -378,6 +429,7 @@ export function FyodorTerminalShell() {
                       selectedArrowId={auditMode ? null : registeredArrows.selectedArrowId}
                       researchArrows={auditMode ? researchArrows : noResearchArrows}
                       selectedResearchArrowId={auditMode ? `research:${auditSelection?.episode.id}` : null}
+                      researchLevels={auditMode ? auditLevels : null}
                       onSelectResearchArrow={selectResearchArrow}
                       draftPlan={auditMode ? hiddenTradePlan : plannedTrade}
                       onSelectArrow={(arrow) => {
@@ -484,8 +536,11 @@ export function FyodorTerminalShell() {
             />
           )}
           {bottomDockWindow === 'arrow-result' && (
-            <ArrowResultPanel episode={auditSelection?.episode ?? null} trial={auditSelection?.trial ?? null}
-              rule={researchRule} onReturnLive={leaveResearchAudit} />
+            <ArrowResultPanel key={`${researchRule.family}:${researchRule.signal}:${auditSelection?.episode.id ?? ''}`}
+              episode={auditSelection?.episode ?? null} trial={auditSelection?.trial ?? null}
+              rule={researchRule} note={currentAuditNote?.text ?? ''} notes={currentDatasetNotes}
+              saveFailed={auditNoteSaveFailed} onNoteChange={saveAuditNote}
+              onReturnLive={leaveResearchAudit} />
           )}
         </BottomDockPanel>
       )}

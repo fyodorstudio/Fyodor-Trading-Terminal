@@ -9,4 +9,3 @@ bridge/mql5/compile.log
 .pytest_cache/
 fms/.venv/
 fms/data/
-frontend/public/criterion/research_report.html

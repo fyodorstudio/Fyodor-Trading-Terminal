@@ -12,6 +12,7 @@ import {
 import type { PlannedTradeState, RegisteredTradeArrow } from '../contracts/trader-notebook-types'
 
 export type ResearchChartArrow = { id: string; time: number; direction: 'long' | 'short'; entryPrice: number }
+export type ResearchChartLevels = { entry: number; stop: number; target: number; direction: number }
 
 type PlannedTradePriceLinesProps = {
   chartApi: IChartApi
@@ -23,6 +24,7 @@ type PlannedTradePriceLinesProps = {
   researchArrows?: ResearchChartArrow[]
   selectedResearchArrowId?: string | null
   onSelectResearchArrow?: (arrow: ResearchChartArrow) => void
+  researchLevels?: ResearchChartLevels | null
 }
 
 export function PlannedTradePriceLines({
@@ -35,6 +37,7 @@ export function PlannedTradePriceLines({
   researchArrows = [],
   selectedResearchArrowId = null,
   onSelectResearchArrow,
+  researchLevels = null,
 }: PlannedTradePriceLinesProps) {
   // 1. Render Registered Arrow Markers on the Candlestick Chart
   useEffect(() => {
@@ -98,7 +101,13 @@ export function PlannedTradePriceLines({
     let slPrice: number | null = null
     let labelPrefix = ''
 
-    if (selectedArrow) {
+    if (researchLevels) {
+      direction = researchLevels.direction > 0 ? 'long' : 'short'
+      entryPrice = researchLevels.entry
+      tpPrice = researchLevels.target
+      slPrice = researchLevels.stop
+      labelPrefix = 'AUDIT '
+    } else if (selectedArrow) {
       direction = selectedArrow.direction
       entryPrice = selectedArrow.entryPrice
       tpPrice = selectedArrow.tpPrice
@@ -141,7 +150,7 @@ export function PlannedTradePriceLines({
           lineStyle: LineStyle.Dashed,
           lineVisible: true,
           axisLabelVisible: true,
-          title: `${labelPrefix}TP: ${tpPrice.toFixed(5)}`,
+          title: `${labelPrefix}TP${researchLevels ? ' (nominal)' : ''}: ${tpPrice.toFixed(5)}`,
         }),
       )
     }
@@ -156,7 +165,7 @@ export function PlannedTradePriceLines({
           lineStyle: LineStyle.Dashed,
           lineVisible: true,
           axisLabelVisible: true,
-          title: `${labelPrefix}SL: ${slPrice.toFixed(5)}`,
+          title: `${labelPrefix}SL${researchLevels ? ' (nominal)' : ''}: ${slPrice.toFixed(5)}`,
         }),
       )
     }
@@ -170,7 +179,7 @@ export function PlannedTradePriceLines({
         }
       }
     }
-  }, [arrows, draftPlan, selectedArrowId, seriesApi])
+  }, [arrows, draftPlan, researchLevels, selectedArrowId, seriesApi])
 
   return null
 }
