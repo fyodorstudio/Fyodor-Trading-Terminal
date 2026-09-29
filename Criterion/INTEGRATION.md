@@ -48,11 +48,28 @@ simulated TP-first, SL-first, or expiry outcome.
   is loaded.
 - Selecting an episode also plots its nominal entry, stop and target as labeled
   chart lines. These are the archived ATR-rule levels, not executable broker
-  fills; an opening gap may fill beyond the nominal stop.
+  fills; an opening gap may fill beyond the nominal stop. Changing the direction
+  rule, expiry, SL ATR, TP ATR, co-release filter or sample coverage keeps the
+  selected episode open within the same event family. Its levels, arrow and
+  historical outcome update only when a priced trial exists for the new rule;
+  otherwise the view explicitly shows **No trade** without reusing the old result.
+- The episode list includes priced observations excluded by the selected CPI
+  co-release or coverage filter. Their historical result is visible for audit,
+  marked **Excluded** between gross R and **Audited**, and not counted in the
+  selected summary. CPI's clean filter excludes simultaneous US Initial Jobless
+  Claims. NFP on EURUSD has no co-release exclusion; the CAD-employment clean
+  policy applies to USDCAD. **Sample coverage** can restrict all expiries to
+  the same H240-complete events for like-for-like comparison. In this pinned
+  EURUSD snapshot, every priced episode is H240-complete, so that coverage
+  selector currently leaves the EURUSD counts unchanged. The list is not a
+  complete inventory of all calendar releases lacking a priced trial.
 - Arrow Result contains an **Audit note** under **Trader Journal & Thesis**.
   Notes are keyed to the pinned viewer hash, event family, direction input
   (A-F or A-P) and episode ID. They auto-save in this browser's local storage,
-  survive refresh, and can be reopened from **Saved audit notes** in Criterion.
+  survive refresh, and appear as **Audited** beside the matching episode's
+  result. This label means only that a personal note was saved, not that the
+  research or setup passed review. Clicking that episode reopens its note;
+  noted episodes remain listed even if the current rule has no priced trade.
   They are *not* part of the research package or synchronized to Git. Use
   **Export all notes (.md)** and attach that file in a later Codex discussion;
   Codex cannot read browser-local storage. Export a backup before clearing

@@ -3,7 +3,7 @@ import { ArrowResultPanel } from '../criterion/arrow-result/ArrowResultPanel'
 import { auditNoteKey, readAuditNotes, writeAuditNotes, type AuditNote } from '../criterion/arrow-result/audit-notes'
 import reportManifest from '../criterion/report-manifest.json'
 import {
-  cleanPanel, researchPriceLevels, snapshotAround, validateSelection,
+  availableTrials, cleanPanel, researchPriceLevels, snapshotAround, validateSelection,
   type ResearchAuditData, type ResearchEpisode, type ResearchRule, type ResearchTrial,
 } from '../criterion/audit-data'
 import { readColorTheme, type ColorTheme } from '../appearance/color-theme/color-theme-preference'
@@ -79,7 +79,8 @@ export function FyodorTerminalShell() {
     family: 'CPI', signal: 'af', panel: cleanPanel('CPI'), cohort: 'ALL_ELIGIBLE',
     horizon: 60, stop: 1, target: 1,
   })
-  const [auditSelection, setAuditSelection] = useState<{ episode: ResearchEpisode; trial: ResearchTrial } | null>(null)
+  const [auditSelection, setAuditSelection] = useState<{ episode: ResearchEpisode; trial: ResearchTrial | null } | null>(null)
+  const [auditRuleError, setAuditRuleError] = useState<string | null>(null)
   const [auditNotes, setAuditNotes] = useState<AuditNote[]>(readAuditNotes)
   const [auditNoteSaveFailed, setAuditNoteSaveFailed] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -116,13 +117,14 @@ export function FyodorTerminalShell() {
       return { summary: null, trials: [] as ResearchTrial[], error: error instanceof Error ? error.message : 'Research selection failed' }
     }
   }, [researchData, researchRule])
+  const auditEpisode = auditSelection?.episode
   const auditBars = useMemo(() => {
-    if (!researchData || !auditSelection) return null
-    try { return snapshotAround(researchData, auditSelection.episode.entryTime, researchRule.horizon, 120) }
+    if (!researchData || !auditEpisode) return null
+    try { return snapshotAround(researchData, auditEpisode.entryTime, researchRule.horizon, 120) }
     catch { return null }
-  }, [researchData, auditSelection, researchRule.horizon])
+  }, [researchData, auditEpisode, researchRule.horizon])
   const auditMode = Boolean(auditSelection && auditBars)
-  const auditLevels = useMemo(() => auditSelection ? researchPriceLevels(auditSelection.episode, researchRule) : null,
+  const auditLevels = useMemo(() => auditSelection?.trial ? researchPriceLevels(auditSelection.episode, researchRule) : null,
     [auditSelection, researchRule])
   const currentAuditNote = auditSelection && researchData ? auditNotes.find((note) =>
     auditNoteKey(note.viewerSha256, note.family, note.signal, note.episodeId)
@@ -134,14 +136,18 @@ export function FyodorTerminalShell() {
     const first = Number(auditBars[0]?.time)
     const last = Number(auditBars[auditBars.length - 1]?.time)
     const family = researchData.families[researchRule.family]
-    return researchSelection.trials.map((trial) => family.episodes[trial[0]])
+    const visibleEpisodes = researchSelection.trials.map((trial) => family.episodes[trial[0]])
+    if (auditSelection?.trial && !visibleEpisodes.some((episode) => episode.id === auditSelection.episode.id)) {
+      visibleEpisodes.push(auditSelection.episode)
+    }
+    return visibleEpisodes
       .filter((episode) => episode.entryTime >= first && episode.entryTime <= last)
       .map((episode) => ({
         id: `research:${episode.id}`, time: episode.entryTime,
         entryPrice: episode.entryPrice,
         direction: episode[researchRule.signal].direction > 0 ? 'long' : 'short',
       }))
-  }, [researchData, researchRule, researchSelection.trials, auditBars])
+  }, [researchData, researchRule, researchSelection.trials, auditBars, auditSelection])
 
   // Planned trade state for the active symbol
   const [prevSymbolForPlan, setPrevSymbolForPlan] = useState(selectedSymbol)
@@ -215,6 +221,7 @@ export function FyodorTerminalShell() {
 
   const leaveResearchAudit = () => {
     setAuditSelection(null)
+    setAuditRuleError(null)
     setBottomDockWindow((current) => current === 'arrow-result' ? 'notebook' : current)
   }
 
@@ -234,18 +241,39 @@ export function FyodorTerminalShell() {
     appendActivity('Chart', 'Timeframe selected', `${activeSymbol} ${nextTimeframe}`)
   }
 
-  const selectResearchEpisode = (episode: ResearchEpisode, trial: ResearchTrial) => {
-    if (!researchData || !researchSelection.trials.includes(trial)) return
+  const selectResearchEpisode = (episode: ResearchEpisode, trial: ResearchTrial | null) => {
+    if (!researchData || !researchData.families[researchRule.family].episodes.includes(episode)) return
+    if (trial && (researchData.families[researchRule.family].episodes[trial[0]] !== episode
+        || !availableTrials(researchData, researchRule).includes(trial))) return
+    try { snapshotAround(researchData, episode.entryTime, researchRule.horizon, 120) }
+    catch { setAuditRuleError(`This episode has no complete H${researchRule.horizon} chart path.`); return }
     setSelectedSymbol('EURUSD')
     setTimeframe('H1')
     setActiveDrawingTool(null)
     setSelectedDrawingId(null)
+    setAuditRuleError(null)
     setAuditSelection({ episode, trial })
     setBottomDockWindow('arrow-result')
   }
 
   const changeResearchRule = (rule: ResearchRule) => {
+    if (researchData && auditSelection && rule.family === researchRule.family) {
+      try {
+        validateSelection(researchData, rule)
+        snapshotAround(researchData, auditSelection.episode.entryTime, rule.horizon, 120)
+        const nextTrial = availableTrials(researchData, rule).find((trial) =>
+          researchData.families[rule.family].episodes[trial[0]].id === auditSelection.episode.id)
+        setResearchRule(rule)
+        setAuditRuleError(null)
+        setAuditSelection({ episode: auditSelection.episode, trial: nextTrial ?? null })
+        return
+      } catch (error) {
+        setAuditRuleError(error instanceof Error ? error.message : 'The requested research view is unavailable.')
+        return
+      }
+    }
     setResearchRule(rule)
+    setAuditRuleError(null)
     leaveResearchAudit()
   }
 
@@ -272,25 +300,6 @@ export function FyodorTerminalShell() {
     })
     setAuditNotes(next)
     setAuditNoteSaveFailed(!writeAuditNotes(next))
-  }
-
-  const openSavedAuditNote = (note: AuditNote) => {
-    if (!researchData || note.viewerSha256 !== researchData.viewerSha256) return
-    try {
-      const { trials } = validateSelection(researchData, note.rule)
-      const episode = researchData.families[note.family].episodes.find((item) => item.id === note.episodeId)
-      const trial = episode && trials.find((item) => researchData.families[note.family].episodes[item[0]].id === episode.id)
-      if (!episode || !trial) return
-      setResearchRule(note.rule)
-      setSelectedSymbol('EURUSD')
-      setTimeframe('H1')
-      setActiveDrawingTool(null)
-      setSelectedDrawingId(null)
-      setAuditSelection({ episode, trial })
-      setBottomDockWindow('arrow-result')
-    } catch {
-      setResearchError('A saved note references a research rule that no longer reconciles to the pinned snapshot.')
-    }
   }
 
   const recordChartData = useCallback(
@@ -376,10 +385,8 @@ export function FyodorTerminalShell() {
           criterionError={researchError ?? researchSelection.error}
           criterionRule={researchRule}
           criterionSummary={researchSelection.summary}
-          criterionTrials={researchSelection.trials}
           selectedResearchEpisodeId={auditSelection?.episode.id ?? null}
           savedAuditNotes={currentDatasetNotes}
-          onOpenSavedAuditNote={openSavedAuditNote}
           onCriterionRuleChange={changeResearchRule}
           onSelectResearchEpisode={selectResearchEpisode}
         />
@@ -390,6 +397,8 @@ export function FyodorTerminalShell() {
             {auditMode && <div className="research-chart-banner">
               <strong>HISTORICAL RESEARCH SNAPSHOT · NOT LIVE</strong>
               <span>{auditSelection?.episode.releaseText} · EURUSD H1 · H{researchRule.horizon} observed candles + up to 120 prior</span>
+              {auditSelection && !auditSelection.trial && <span>No priced trade under this rule</span>}
+              {auditRuleError && <span role="alert">{auditRuleError}</span>}
               <button type="button" onClick={leaveResearchAudit}>Return to live</button>
             </div>}
             <MarketChartErrorBoundary

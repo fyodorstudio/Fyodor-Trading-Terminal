@@ -1,5 +1,5 @@
 import {
-  cleanPanel, exitLabel,
+  availableTrials, cleanPanel, exitLabel, trialExclusionReason,
   type ResearchAuditData, type ResearchEpisode, type ResearchRule, type ResearchSummary, type ResearchTrial,
 } from '../audit-data'
 import type { AuditNote } from '../arrow-result/audit-notes'
@@ -11,20 +11,29 @@ type Props = {
   error: string | null
   rule: ResearchRule
   summary: ResearchSummary | null
-  trials: ResearchTrial[]
   selectedEpisodeId: string | null
   savedAuditNotes: AuditNote[]
-  onOpenSavedAuditNote: (note: AuditNote) => void
   onRuleChange: (rule: ResearchRule) => void
-  onSelectEpisode: (episode: ResearchEpisode, trial: ResearchTrial) => void
+  onSelectEpisode: (episode: ResearchEpisode, trial: ResearchTrial | null) => void
 }
 
 const targets = Array.from({ length: 13 }, (_, index) => 1 + index * 0.25)
 
-export function CriterionPanel({ data, error, rule, summary, trials, selectedEpisodeId, savedAuditNotes, onOpenSavedAuditNote, onRuleChange, onSelectEpisode }: Props) {
+export function CriterionPanel({ data, error, rule, summary, selectedEpisodeId, savedAuditNotes, onRuleChange, onSelectEpisode }: Props) {
   const episodes = data?.families[rule.family].episodes ?? []
-  const rows = trials.map((trial) => ({ trial, episode: episodes[trial[0]] }))
-    .filter((row) => Boolean(row.episode)).reverse()
+  const notedEpisodeIds = new Set(savedAuditNotes
+    .filter((note) => note.family === rule.family && note.signal === rule.signal)
+    .map((note) => note.episodeId))
+  const rows: { trial: ResearchTrial | null; episode: ResearchEpisode }[] = data
+    ? availableTrials(data, rule).map((trial) => ({ trial, episode: episodes[trial[0]] }))
+      .filter((row) => Boolean(row.episode))
+    : []
+  for (const episode of episodes) {
+    if ((episode.id === selectedEpisodeId || notedEpisodeIds.has(episode.id))
+        && !rows.some((row) => row.episode.id === episode.id)) rows.push({ episode, trial: null })
+  }
+  rows.sort((a, b) => b.episode.releaseTime - a.episode.releaseTime)
+  const excludedCount = rows.filter(({ episode, trial }) => !trial || Boolean(trialExclusionReason(episode, trial, rule))).length
   const change = (patch: Partial<ResearchRule>) => onRuleChange({ ...rule, ...patch })
 
   return (
@@ -52,15 +61,19 @@ export function CriterionPanel({ data, error, rule, summary, trials, selectedEpi
               </label>
             </div>
             <div className="criterion-fields two">
-              <label>Collision panel
-                <select value={rule.panel} onChange={(event) => change({ panel: event.target.value as ResearchRule['panel'] })}>
-                  <option value={cleanPanel(rule.family)}>Clean panel</option>
-                  <option value="FULL_PANEL">All eligible</option>
+              <label>Co-release filter
+                <select value={rule.panel} disabled={rule.family === 'NFP'}
+                  title={rule.family === 'CPI' ? 'Whether to include CPI releases coinciding with US Initial Jobless Claims' : 'NFP EURUSD has no co-release exclusions in this research'}
+                  onChange={(event) => change({ panel: event.target.value as ResearchRule['panel'] })}>
+                  {rule.family === 'CPI' ? <>
+                    <option value="JOBLESS_CLAIMS_CLEAN">Exclude Jobless Claims</option>
+                    <option value="FULL_PANEL">Include Jobless Claims</option>
+                  </> : <option value="PRIMARY_PANEL">No EURUSD exclusions</option>}
                 </select>
               </label>
-              <label>Cohort
+              <label>Sample coverage
                 <select value={rule.cohort} onChange={(event) => change({ cohort: event.target.value as ResearchRule['cohort'] })}>
-                  <option value="ALL_ELIGIBLE">All eligible</option><option value="COMMON_H240">H240 complete</option>
+                  <option value="ALL_ELIGIBLE">Eligible at selected H</option><option value="COMMON_H240">Same events through H240</option>
                 </select>
               </label>
             </div>
@@ -82,7 +95,7 @@ export function CriterionPanel({ data, error, rule, summary, trials, selectedEpi
               </label>
             </div>
             {summary && <div className="criterion-stats" aria-label="Selected historical result">
-              <span><b>{summary.trades}</b> episodes</span>
+              <span><b>{summary.trades}</b> included episodes</span>
               <span><b>{summary.tp}</b> TP</span><span><b>{summary.sl}</b> SL</span>
               <span><b>{summary.expiry}</b> expiry</span>
               <span><b>{Number(summary.meanR).toFixed(3)} R</b> gross mean/trade</span>
@@ -90,27 +103,28 @@ export function CriterionPanel({ data, error, rule, summary, trials, selectedEpi
             <a className="criterion-report-link" href={reportManifest.reportPath} target="_blank" rel="noopener noreferrer">
               Open full research report v{reportManifest.version} · 7 pairs ↗
             </a>
-            {rule.family === 'NFP' && <p className="criterion-caveat">For EURUSD, the NFP clean and all-eligible panels coincide; the CAD-jobs collision filter changes USDCAD, not EURUSD.</p>}
+            {rule.family === 'NFP' && <p className="criterion-caveat">The NFP co-release filter is inactive on EURUSD; its CAD-jobs exclusion applies to USDCAD only.</p>}
             <p className="criterion-caveat">Arrows show archived-rule directions, not hindsight winners or live signals. A−P uses exported Previous; its point-in-time revision status is not proven. Outcomes are historical, gross and cost-excluded.</p>
           </div>
-          <details className="criterion-saved-notes">
-            <summary>Saved audit notes ({savedAuditNotes.length})</summary>
-            {savedAuditNotes.length === 0 ? <p>No chart audit notes saved yet.</p> :
-              [...savedAuditNotes].sort((a, b) => b.releaseText.localeCompare(a.releaseText)).map((note) =>
-                <button key={`${note.family}:${note.signal}:${note.episodeId}`} type="button" onClick={() => onOpenSavedAuditNote(note)}>
-                  <b>{note.family} · {note.releaseText} · {note.signal.toUpperCase()}</b>
-                  <span>{note.text.replace(/\s+/g, ' ').slice(0, 85)}</span>
-                </button>)}
-          </details>
+          <div className="criterion-list-header"><strong>Episodes</strong><span>{rows.length - excludedCount} included · {excludedCount} excluded shown</span></div>
           <div className="criterion-list" role="list" aria-label="Historical episodes for selected rule">
-            {rows.length === 0 && <p className="criterion-empty">No eligible EURUSD episodes under these filters.</p>}
+            {rows.length === 0 && <p className="criterion-empty">No priced EURUSD episodes for this direction rule and expiry.</p>}
             {rows.map(({ episode, trial }) => {
               const direction = episode[rule.signal].direction
+              const directionLabel = !trial ? 'No trade' : direction > 0 ? '↑ Long' : '↓ Short'
+              const exclusion = trial ? trialExclusionReason(episode, trial, rule) : 'no eligible trade for this rule'
               return <button key={episode.id} type="button" role="listitem"
                 className={`criterion-episode${selectedEpisodeId === episode.id ? ' selected' : ''}`}
                 onClick={() => onSelectEpisode(episode, trial)}>
-                <span className="criterion-episode-top"><b>{episode.releaseText}</b><em>{direction > 0 ? '↑ Long' : '↓ Short'}</em></span>
-                <span>{exitLabel(trial[1])} · H{trial[2]} · {Number(trial[3]).toFixed(2)} gross R</span>
+                <span className="criterion-episode-top"><b>{episode.releaseText}</b><em>{directionLabel}</em></span>
+                <span className="criterion-episode-result">
+                  {trial && <>
+                    <b className={trial[1] === 0 ? 'tp' : trial[1] === 1 ? 'sl' : 'expiry'}>{exitLabel(trial[1])}</b>
+                    <span>· H{trial[2]} · {Number(trial[3]).toFixed(2)} gross R</span>
+                  </>}
+                  {exclusion && <span className="criterion-excluded" title="Not counted in the selected summary">Excluded: {exclusion}</span>}
+                  {notedEpisodeIds.has(episode.id) && <span className="criterion-audited" title="Personal audit note saved; not research approval">Audited</span>}
+                </span>
                 <small>A {episode.actual || '—'} · F {episode.forecast || '—'} · P {episode.previous || '—'}</small>
               </button>
             })}

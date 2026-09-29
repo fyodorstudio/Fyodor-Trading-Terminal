@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { exitLabel, researchPriceLevels, type ResearchEpisode, type ResearchRule, type ResearchTrial } from '../audit-data'
+import { exitLabel, researchPriceLevels, trialExclusionReason, type ResearchEpisode, type ResearchRule, type ResearchTrial } from '../audit-data'
 import { downloadAuditNotes, type AuditNote } from './audit-notes'
 import './arrow-result-panel.css'
 
@@ -16,12 +16,13 @@ type Props = {
 
 export function ArrowResultPanel({ episode, trial, rule, note, notes, saveFailed, onNoteChange, onReturnLive }: Props) {
   const [copyStatus, setCopyStatus] = useState('')
-  if (!episode || !trial) return <div className="arrow-result-empty">Select a historical episode in Criterion to inspect it.</div>
+  if (!episode) return <div className="arrow-result-empty">Select a historical episode in Criterion to inspect it.</div>
 
-  const { entry, stop, target, direction } = researchPriceLevels(episode, rule)
+  const levels = trial ? researchPriceLevels(episode, rule) : null
+  const directionLabel = !levels ? 'NO TRADE' : levels.direction > 0 ? '↑ LONG' : '↓ SHORT'
   const collision = rule.family === 'CPI' && episode.joblessCollision
-  const outcome = exitLabel(trial[1])
-  const grossR = Number(trial[3])
+  const exclusion = trial ? trialExclusionReason(episode, trial, rule) : 'No eligible trade for this direction rule and expiry'
+  const grossR = trial ? Number(trial[3]) : 0
 
   const copyNote = async () => {
     try {
@@ -46,8 +47,8 @@ export function ArrowResultPanel({ episode, trial, rule, note, notes, saveFailed
         </header>
         <div className="arrow-result-identity">
           <strong>{rule.family} <span>EURUSD</span></strong>
-          <span className={`arrow-result-direction ${direction > 0 ? 'long' : 'short'}`}>
-            {direction > 0 ? '↑ LONG' : '↓ SHORT'}
+          <span className={`arrow-result-direction ${levels ? levels.direction > 0 ? 'long' : 'short' : 'neutral'}`}>
+            {directionLabel}
           </span>
         </div>
         <div className="arrow-result-meta">{episode.releaseText} release · {episode.entryText} research entry · server clock</div>
@@ -57,24 +58,25 @@ export function ArrowResultPanel({ episode, trial, rule, note, notes, saveFailed
           <span><small>PREVIOUS</small><b>{episode.previous || '—'}</b></span>
         </div>
         <div className="arrow-result-levels">
-          <div><span>ENTRY</span><b>{entry.toFixed(5)}</b></div>
-          <div className="stop"><span>NOMINAL SL</span><b>{stop.toFixed(5)}</b></div>
-          <div className="target"><span>NOMINAL TP</span><b>{target.toFixed(5)}</b></div>
+          <div><span>ENTRY</span><b>{episode.entryPrice.toFixed(5)}</b></div>
+          <div className="stop"><span>NOMINAL SL</span><b>{levels ? levels.stop.toFixed(5) : '—'}</b></div>
+          <div className="target"><span>NOMINAL TP</span><b>{levels ? levels.target.toFixed(5) : '—'}</b></div>
         </div>
       </div>
 
       <div className="arrow-result-col arrow-result-evidence">
         <header className="arrow-result-col-header"><span className="arrow-result-eyebrow">Rule &amp; observed result</span></header>
         <div className="arrow-result-rule">{rule.signal === 'af' ? 'Actual − Forecast' : 'Actual − Previous'} · SL {rule.stop} ATR · TP {rule.target} ATR · H{rule.horizon}</div>
-        <div className="arrow-result-outcome">
-          <span><small>EXIT</small><b>{outcome} at H{trial[2]}</b></span>
+        {trial ? <div className="arrow-result-outcome">
+          <span><small>EXIT</small><b>{exitLabel(trial[1])} at H{trial[2]}</b></span>
           <span><small>GROSS RESULT</small><b className={grossR >= 0 ? 'positive' : 'negative'}>{grossR >= 0 ? '+' : ''}{grossR.toFixed(3)} R</b></span>
-        </div>
+        </div> : <div className="arrow-result-no-trade">No priced outcome for this episode under the selected direction rule and expiry.</div>}
         <div className="arrow-result-flags">
-          <span>{rule.panel === 'FULL_PANEL' ? 'All eligible' : 'Clean panel'}</span>
+          <span>{rule.family === 'CPI' && rule.panel !== 'FULL_PANEL' ? 'Claims co-releases excluded' : 'No EURUSD co-release exclusions'}</span>
+          {exclusion && <span className="excluded">Excluded from selected summary: {exclusion}</span>}
           {collision && <span>Jobless-claims collision</span>}
-          {Boolean(trial[4]) && <span>Same-bar dual touch · stop first</span>}
-          {Boolean(trial[6]) && <span>Opening gap</span>}
+          {Boolean(trial?.[4]) && <span>Same-bar dual touch · stop first</span>}
+          {Boolean(trial?.[6]) && <span>Opening gap</span>}
         </div>
         <p className="arrow-result-caveat">Historical OHLC simulation, not a registered setup or live signal. Levels are nominal; gap fills can differ. Gross result excludes costs. Exported Previous is not verified point-in-time.</p>
         <code className="arrow-result-id" title={episode.id}>{episode.id}</code>

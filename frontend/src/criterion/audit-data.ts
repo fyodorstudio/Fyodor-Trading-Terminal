@@ -103,14 +103,24 @@ export function selectedSummary(data: ResearchAuditData, rule: ResearchRule): Re
   ) ?? null
 }
 
-export function selectedTrials(data: ResearchAuditData, rule: ResearchRule): ResearchTrial[] {
+export function availableTrials(data: ResearchAuditData, rule: ResearchRule): ResearchTrial[] {
   const family = data.families[rule.family]
   const key = `${rule.signal}|${rule.horizon}|${rule.stop}:${rule.target}`
-  return (family.trials[key] ?? []).filter((trade) => {
-    const episode = family.episodes[trade[0]]
-    return (rule.cohort !== 'COMMON_H240' || Boolean(trade[5]))
-      && (rule.family !== 'CPI' || rule.panel !== 'JOBLESS_CLAIMS_CLEAN' || !episode.joblessCollision)
-  })
+  return family.trials[key] ?? []
+}
+
+export function trialExclusionReason(episode: ResearchEpisode, trial: ResearchTrial, rule: ResearchRule): string | null {
+  const reasons: string[] = []
+  if (rule.cohort === 'COMMON_H240' && !trial[5]) reasons.push('outside H240 common set')
+  if (rule.family === 'CPI' && rule.panel === 'JOBLESS_CLAIMS_CLEAN' && episode.joblessCollision) {
+    reasons.push('Jobless Claims co-release')
+  }
+  return reasons.length ? reasons.join('; ') : null
+}
+
+export function selectedTrials(data: ResearchAuditData, rule: ResearchRule): ResearchTrial[] {
+  return availableTrials(data, rule).filter((trial) =>
+    !trialExclusionReason(data.families[rule.family].episodes[trial[0]], trial, rule))
 }
 
 export function validateSelection(data: ResearchAuditData, rule: ResearchRule) {

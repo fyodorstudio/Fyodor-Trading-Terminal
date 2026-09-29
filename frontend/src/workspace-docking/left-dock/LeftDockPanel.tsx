@@ -20,12 +20,10 @@ type LeftDockPanelProps = {
   criterionError: string | null
   criterionRule: ResearchRule
   criterionSummary: ResearchSummary | null
-  criterionTrials: ResearchTrial[]
   selectedResearchEpisodeId: string | null
   savedAuditNotes: AuditNote[]
-  onOpenSavedAuditNote: (note: AuditNote) => void
   onCriterionRuleChange: (rule: ResearchRule) => void
-  onSelectResearchEpisode: (episode: ResearchEpisode, trial: ResearchTrial) => void
+  onSelectResearchEpisode: (episode: ResearchEpisode, trial: ResearchTrial | null) => void
 }
 
 export function LeftDockPanel({
@@ -40,10 +38,8 @@ export function LeftDockPanel({
   criterionError,
   criterionRule,
   criterionSummary,
-  criterionTrials,
   selectedResearchEpisodeId,
   savedAuditNotes,
-  onOpenSavedAuditNote,
   onCriterionRuleChange,
   onSelectResearchEpisode,
 }: LeftDockPanelProps) {
@@ -88,10 +84,8 @@ export function LeftDockPanel({
           error={criterionError}
           rule={criterionRule}
           summary={criterionSummary}
-          trials={criterionTrials}
           selectedEpisodeId={selectedResearchEpisodeId}
           savedAuditNotes={savedAuditNotes}
-          onOpenSavedAuditNote={onOpenSavedAuditNote}
           onRuleChange={onCriterionRuleChange}
           onSelectEpisode={onSelectResearchEpisode}
         />}
