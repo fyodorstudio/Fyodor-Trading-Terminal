@@ -127,8 +127,9 @@ export function validateSelection(data: ResearchAuditData, rule: ResearchRule) {
   return { summary, trials }
 }
 
-export function snapshotAround(data: ResearchAuditData, entryTime: number, horizon: number): OhlcBar[] {
+export function snapshotAround(data: ResearchAuditData, entryTime: number, horizon: number, priorBars = 0): OhlcBar[] {
   if (![60, 120, 240].includes(horizon)) throw new Error('Unsupported research horizon.')
+  if (!Number.isInteger(priorBars) || priorBars < 0 || priorBars > 120) throw new Error('Invalid pre-entry context length.')
   let left = 0
   let right = data.bars.length
   while (left < right) {
@@ -138,8 +139,8 @@ export function snapshotAround(data: ResearchAuditData, entryTime: number, horiz
   }
   if (data.bars[left]?.[0] !== entryTime) throw new Error('The selected research entry candle is missing.')
   if (left + horizon > data.bars.length) throw new Error(`The selected research H${horizon} path is incomplete.`)
-  // H1 is the entry candle. Retain earlier candles for chart context, but never reveal a bar after Hmax.
-  return data.bars.slice(Math.max(0, left - 120), left + horizon)
+  // H1 is the entry candle. By default display exactly Hmax bars; earlier context is opt-in.
+  return data.bars.slice(Math.max(0, left - priorBars), left + horizon)
     .map(([time, open, high, low, close]) => ({ time: time as UTCTimestamp, open, high, low, close }))
 }
 

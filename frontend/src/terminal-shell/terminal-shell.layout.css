@@ -125,7 +125,8 @@
 }
 .research-chart-banner strong { color: var(--warning); white-space: nowrap; }
 .research-chart-banner span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.research-chart-banner button { margin-left: auto; padding: 4px 8px; border: 1px solid var(--border-strong); border-radius: 4px; color: var(--text-strong); background: var(--surface-inset); cursor: pointer; white-space: nowrap; }
+.research-chart-banner button { padding: 4px 8px; border: 1px solid var(--border-strong); border-radius: 4px; color: var(--text-strong); background: var(--surface-inset); cursor: pointer; white-space: nowrap; }
+.research-chart-banner button:last-child { margin-left: auto; }
 .timeframe-selector button:disabled { opacity: 0.35; cursor: not-allowed; }
 
 .chart-watermark {

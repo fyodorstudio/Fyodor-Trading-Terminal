@@ -80,6 +80,7 @@ export function FyodorTerminalShell() {
     horizon: 60, stop: 1, target: 1,
   })
   const [auditSelection, setAuditSelection] = useState<{ episode: ResearchEpisode; trial: ResearchTrial } | null>(null)
+  const [showAuditContext, setShowAuditContext] = useState(false)
   const [auditNotes, setAuditNotes] = useState<AuditNote[]>(readAuditNotes)
   const [auditNoteSaveFailed, setAuditNoteSaveFailed] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -118,9 +119,9 @@ export function FyodorTerminalShell() {
   }, [researchData, researchRule])
   const auditBars = useMemo(() => {
     if (!researchData || !auditSelection) return null
-    try { return snapshotAround(researchData, auditSelection.episode.entryTime, researchRule.horizon) }
+    try { return snapshotAround(researchData, auditSelection.episode.entryTime, researchRule.horizon, showAuditContext ? 120 : 0) }
     catch { return null }
-  }, [researchData, auditSelection, researchRule.horizon])
+  }, [researchData, auditSelection, researchRule.horizon, showAuditContext])
   const auditMode = Boolean(auditSelection && auditBars)
   const auditLevels = useMemo(() => auditSelection ? researchPriceLevels(auditSelection.episode, researchRule) : null,
     [auditSelection, researchRule])
@@ -240,6 +241,7 @@ export function FyodorTerminalShell() {
     setTimeframe('H1')
     setActiveDrawingTool(null)
     setSelectedDrawingId(null)
+    setShowAuditContext(false)
     setAuditSelection({ episode, trial })
     setBottomDockWindow('arrow-result')
   }
@@ -286,6 +288,7 @@ export function FyodorTerminalShell() {
       setTimeframe('H1')
       setActiveDrawingTool(null)
       setSelectedDrawingId(null)
+      setShowAuditContext(false)
       setAuditSelection({ episode, trial })
       setBottomDockWindow('arrow-result')
     } catch {
@@ -389,7 +392,10 @@ export function FyodorTerminalShell() {
           <div className="chart-frame">
             {auditMode && <div className="research-chart-banner">
               <strong>HISTORICAL RESEARCH SNAPSHOT · NOT LIVE</strong>
-              <span>{auditSelection?.episode.releaseText} · EURUSD H1 · H{researchRule.horizon} after entry + up to 120 prior H1 for context</span>
+              <span>{auditSelection?.episode.releaseText} · EURUSD H1 · H{researchRule.horizon} observed candles{showAuditContext ? ' + up to 120 prior' : ''}</span>
+              <button type="button" onClick={() => setShowAuditContext((current) => !current)}>
+                {showAuditContext ? 'Hide prior context' : 'Show prior context'}
+              </button>
               <button type="button" onClick={leaveResearchAudit}>Return to live</button>
             </div>}
             <MarketChartErrorBoundary
@@ -399,7 +405,7 @@ export function FyodorTerminalShell() {
             >
               <MarketCandlestickChart
                 bars={chartBars}
-                fitContentKey={auditMode ? `research:${auditSelection?.episode.id}:H${researchRule.horizon}` : `${activeSymbol}:${timeframe}`}
+                fitContentKey={auditMode ? `research:${auditSelection?.episode.id}:H${researchRule.horizon}:context${showAuditContext ? 120 : 0}` : `${activeSymbol}:${timeframe}`}
                 precision={quote?.precision ?? 5}
                 theme={theme}
                 appearance={chartAppearance}

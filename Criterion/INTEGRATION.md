@@ -42,9 +42,10 @@ simulated TP-first, SL-first, or expiry outcome.
   selected. The banner and watermark distinguish this from the live MT5 feed.
   Chart times in audit mode use the export's server-clock labels. Return to Live
   restores broker candles and Notebook arrows. The H60/H120/H240 selector now
-  limits **post-entry** display to exactly that many observed H1 candles,
-  counting the entry candle as H1. Up to 120 earlier H1 candles remain visible
-  for pre-release context; no post-expiry candle is loaded into the chart.
+  displays exactly that many observed H1 candles by default, counting the entry
+  candle as H1. The **Show prior context** button optionally adds up to 120
+  earlier H1 candles for pre-release inspection. Neither view loads a candle
+  after the selected expiry.
 - Selecting an episode also plots its nominal entry, stop and target as labeled
   chart lines. These are the archived ATR-rule levels, not executable broker
   fills; an opening gap may fill beyond the nominal stop.
