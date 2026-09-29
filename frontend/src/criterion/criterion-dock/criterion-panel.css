@@ -19,6 +19,7 @@
 .criterion-episode { width: 100%; display: flex; flex-direction: column; gap: 3px; padding: 9px 12px; border: 0; border-bottom: 1px solid var(--border); text-align: left; color: var(--text-muted); background: transparent; cursor: pointer; font: inherit; font-size: 9px; }
 .criterion-episode:hover, .criterion-episode.selected { background: var(--accent-soft); }
 .criterion-episode.selected { box-shadow: inset 3px 0 var(--accent); }
+.criterion-episode:disabled { cursor: default; }
 .criterion-episode-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; color: var(--text-strong); }
 .criterion-episode-top b { font-size: 10px; }
 .criterion-episode-top em { font-style: normal; font-weight: 700; white-space: nowrap; }
@@ -28,6 +29,7 @@
 .criterion-episode-result b.sl { color: var(--negative); }
 .criterion-episode-result b.expiry { color: var(--text-muted); }
 .criterion-excluded { padding: 1px 4px; border-radius: 3px; color: var(--negative); background: color-mix(in srgb, var(--negative) 10%, transparent); font-weight: 700; }
+.criterion-coverage { padding: 1px 4px; border-radius: 3px; color: var(--warning); background: color-mix(in srgb, var(--warning) 12%, transparent); font-weight: 700; }
 .criterion-audited { margin-left: 2px; padding: 1px 4px; border-radius: 3px; color: var(--accent); background: var(--accent-soft); font-weight: 700; }
 .criterion-episode small { color: var(--text-faint); font-size: 9px; }
 .criterion-error, .criterion-loading, .criterion-empty { padding: 16px; color: var(--text-muted); font-size: 11px; line-height: 1.5; }

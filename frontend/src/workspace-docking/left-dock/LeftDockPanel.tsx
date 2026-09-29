@@ -4,7 +4,7 @@ import { MarketWatchPanel } from '../../market-data/market-watch/MarketWatchPane
 import type { FeedStatus } from '../../market-data/mt5-feed/use-mt5-market-data'
 import { CriterionPanel } from '../../criterion/criterion-dock/CriterionPanel'
 import type { AuditNote } from '../../criterion/arrow-result/audit-notes'
-import type { ResearchAuditData, ResearchEpisode, ResearchRule, ResearchSummary, ResearchTrial } from '../../criterion/audit-data'
+import type { PriorContextBars, ResearchAuditData, ResearchEpisode, ResearchRule, ResearchSummary, ResearchTrial } from '../../criterion/audit-data'
 import type { LeftDockWindow } from './left-dock-window'
 import './left-dock-panel.css'
 
@@ -20,6 +20,8 @@ type LeftDockPanelProps = {
   criterionError: string | null
   criterionRule: ResearchRule
   criterionSummary: ResearchSummary | null
+  priorContextBars: PriorContextBars
+  onPriorContextChange: (bars: PriorContextBars) => void
   selectedResearchEpisodeId: string | null
   savedAuditNotes: AuditNote[]
   onCriterionRuleChange: (rule: ResearchRule) => void
@@ -38,6 +40,8 @@ export function LeftDockPanel({
   criterionError,
   criterionRule,
   criterionSummary,
+  priorContextBars,
+  onPriorContextChange,
   selectedResearchEpisodeId,
   savedAuditNotes,
   onCriterionRuleChange,
@@ -84,6 +88,8 @@ export function LeftDockPanel({
           error={criterionError}
           rule={criterionRule}
           summary={criterionSummary}
+          priorContextBars={priorContextBars}
+          onPriorContextChange={onPriorContextChange}
           selectedEpisodeId={selectedResearchEpisodeId}
           savedAuditNotes={savedAuditNotes}
           onRuleChange={onCriterionRuleChange}

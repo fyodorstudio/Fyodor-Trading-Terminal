@@ -5,6 +5,7 @@ export type ResearchFamily = 'CPI' | 'NFP'
 export type ResearchSignal = 'af' | 'ap'
 export type ResearchCohort = 'ALL_ELIGIBLE' | 'COMMON_H240'
 export type ResearchPanel = 'FULL_PANEL' | 'JOBLESS_CLAIMS_CLEAN' | 'PRIMARY_PANEL'
+export type PriorContextBars = 0 | 60 | 120 | 240
 export type ResearchTrial = [episodeIndex: number, exitKind: number, exitH: number, grossR: string,
   dualTouch: number, commonH240: number, openingGap: number]
 
@@ -139,7 +140,7 @@ export function validateSelection(data: ResearchAuditData, rule: ResearchRule) {
 
 export function snapshotAround(data: ResearchAuditData, entryTime: number, horizon: number, priorBars = 0): OhlcBar[] {
   if (![60, 120, 240].includes(horizon)) throw new Error('Unsupported research horizon.')
-  if (!Number.isInteger(priorBars) || priorBars < 0 || priorBars > 120) throw new Error('Invalid pre-entry context length.')
+  if (![0, 60, 120, 240].includes(priorBars)) throw new Error('Invalid pre-entry context length.')
   let left = 0
   let right = data.bars.length
   while (left < right) {

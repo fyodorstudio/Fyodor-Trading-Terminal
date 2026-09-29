@@ -4,7 +4,7 @@ import { auditNoteKey, readAuditNotes, writeAuditNotes, type AuditNote } from '.
 import reportManifest from '../criterion/report-manifest.json'
 import {
   availableTrials, cleanPanel, researchPriceLevels, snapshotAround, validateSelection,
-  type ResearchAuditData, type ResearchEpisode, type ResearchRule, type ResearchTrial,
+  type PriorContextBars, type ResearchAuditData, type ResearchEpisode, type ResearchRule, type ResearchTrial,
 } from '../criterion/audit-data'
 import { readColorTheme, type ColorTheme } from '../appearance/color-theme/color-theme-preference'
 import {
@@ -80,6 +80,7 @@ export function FyodorTerminalShell() {
     horizon: 60, stop: 1, target: 1,
   })
   const [auditSelection, setAuditSelection] = useState<{ episode: ResearchEpisode; trial: ResearchTrial | null } | null>(null)
+  const [priorContextBars, setPriorContextBars] = useState<PriorContextBars>(240)
   const [auditRuleError, setAuditRuleError] = useState<string | null>(null)
   const [auditNotes, setAuditNotes] = useState<AuditNote[]>(readAuditNotes)
   const [auditNoteSaveFailed, setAuditNoteSaveFailed] = useState(false)
@@ -120,9 +121,9 @@ export function FyodorTerminalShell() {
   const auditEpisode = auditSelection?.episode
   const auditBars = useMemo(() => {
     if (!researchData || !auditEpisode) return null
-    try { return snapshotAround(researchData, auditEpisode.entryTime, researchRule.horizon, 120) }
+    try { return snapshotAround(researchData, auditEpisode.entryTime, researchRule.horizon, priorContextBars) }
     catch { return null }
-  }, [researchData, auditEpisode, researchRule.horizon])
+  }, [researchData, auditEpisode, researchRule.horizon, priorContextBars])
   const auditMode = Boolean(auditSelection && auditBars)
   const auditLevels = useMemo(() => auditSelection?.trial ? researchPriceLevels(auditSelection.episode, researchRule) : null,
     [auditSelection, researchRule])
@@ -245,7 +246,7 @@ export function FyodorTerminalShell() {
     if (!researchData || !researchData.families[researchRule.family].episodes.includes(episode)) return
     if (trial && (researchData.families[researchRule.family].episodes[trial[0]] !== episode
         || !availableTrials(researchData, researchRule).includes(trial))) return
-    try { snapshotAround(researchData, episode.entryTime, researchRule.horizon, 120) }
+    try { snapshotAround(researchData, episode.entryTime, researchRule.horizon, priorContextBars) }
     catch { setAuditRuleError(`This episode has no complete H${researchRule.horizon} chart path.`); return }
     setSelectedSymbol('EURUSD')
     setTimeframe('H1')
@@ -260,7 +261,7 @@ export function FyodorTerminalShell() {
     if (researchData && auditSelection && rule.family === researchRule.family) {
       try {
         validateSelection(researchData, rule)
-        snapshotAround(researchData, auditSelection.episode.entryTime, rule.horizon, 120)
+        snapshotAround(researchData, auditSelection.episode.entryTime, rule.horizon, priorContextBars)
         const nextTrial = availableTrials(researchData, rule).find((trial) =>
           researchData.families[rule.family].episodes[trial[0]].id === auditSelection.episode.id)
         setResearchRule(rule)
@@ -385,6 +386,8 @@ export function FyodorTerminalShell() {
           criterionError={researchError ?? researchSelection.error}
           criterionRule={researchRule}
           criterionSummary={researchSelection.summary}
+          priorContextBars={priorContextBars}
+          onPriorContextChange={setPriorContextBars}
           selectedResearchEpisodeId={auditSelection?.episode.id ?? null}
           savedAuditNotes={currentDatasetNotes}
           onCriterionRuleChange={changeResearchRule}
@@ -396,7 +399,7 @@ export function FyodorTerminalShell() {
           <div className="chart-frame">
             {auditMode && <div className="research-chart-banner">
               <strong>HISTORICAL RESEARCH SNAPSHOT · NOT LIVE</strong>
-              <span>{auditSelection?.episode.releaseText} · EURUSD H1 · H{researchRule.horizon} observed candles + up to 120 prior</span>
+              <span>{auditSelection?.episode.releaseText} · EURUSD H1 · H{researchRule.horizon} observed candles · {priorContextBars ? `up to ${priorContextBars} prior` : 'no prior context'}</span>
               {auditSelection && !auditSelection.trial && <span>No priced trade under this rule</span>}
               {auditRuleError && <span role="alert">{auditRuleError}</span>}
               <button type="button" onClick={leaveResearchAudit}>Return to live</button>
@@ -408,7 +411,7 @@ export function FyodorTerminalShell() {
             >
               <MarketCandlestickChart
                 bars={chartBars}
-                fitContentKey={auditMode ? `research:${auditSelection?.episode.id}:H${researchRule.horizon}:context120` : `${activeSymbol}:${timeframe}`}
+                fitContentKey={auditMode ? `research:${auditSelection?.episode.id}:H${researchRule.horizon}:context${priorContextBars}` : `${activeSymbol}:${timeframe}`}
                 precision={quote?.precision ?? 5}
                 theme={theme}
                 appearance={chartAppearance}

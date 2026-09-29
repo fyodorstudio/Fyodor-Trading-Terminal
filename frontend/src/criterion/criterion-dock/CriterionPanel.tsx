@@ -1,6 +1,6 @@
 import {
   availableTrials, cleanPanel, exitLabel, trialExclusionReason,
-  type ResearchAuditData, type ResearchEpisode, type ResearchRule, type ResearchSummary, type ResearchTrial,
+  type PriorContextBars, type ResearchAuditData, type ResearchEpisode, type ResearchRule, type ResearchSummary, type ResearchTrial,
 } from '../audit-data'
 import type { AuditNote } from '../arrow-result/audit-notes'
 import reportManifest from '../report-manifest.json'
@@ -11,6 +11,8 @@ type Props = {
   error: string | null
   rule: ResearchRule
   summary: ResearchSummary | null
+  priorContextBars: PriorContextBars
+  onPriorContextChange: (bars: PriorContextBars) => void
   selectedEpisodeId: string | null
   savedAuditNotes: AuditNote[]
   onRuleChange: (rule: ResearchRule) => void
@@ -19,7 +21,7 @@ type Props = {
 
 const targets = Array.from({ length: 13 }, (_, index) => 1 + index * 0.25)
 
-export function CriterionPanel({ data, error, rule, summary, selectedEpisodeId, savedAuditNotes, onRuleChange, onSelectEpisode }: Props) {
+export function CriterionPanel({ data, error, rule, summary, priorContextBars, onPriorContextChange, selectedEpisodeId, savedAuditNotes, onRuleChange, onSelectEpisode }: Props) {
   const episodes = data?.families[rule.family].episodes ?? []
   const notedEpisodeIds = new Set(savedAuditNotes
     .filter((note) => note.family === rule.family && note.signal === rule.signal)
@@ -29,7 +31,7 @@ export function CriterionPanel({ data, error, rule, summary, selectedEpisodeId, 
       .filter((row) => Boolean(row.episode))
     : []
   for (const episode of episodes) {
-    if ((episode.id === selectedEpisodeId || notedEpisodeIds.has(episode.id))
+    if ((episode.id === selectedEpisodeId || notedEpisodeIds.has(episode.id) || !episode.commonH240)
         && !rows.some((row) => row.episode.id === episode.id)) rows.push({ episode, trial: null })
   }
   rows.sort((a, b) => b.episode.releaseTime - a.episode.releaseTime)
@@ -71,9 +73,11 @@ export function CriterionPanel({ data, error, rule, summary, selectedEpisodeId, 
                   </> : <option value="PRIMARY_PANEL">No EURUSD exclusions</option>}
                 </select>
               </label>
-              <label>Sample coverage
-                <select value={rule.cohort} onChange={(event) => change({ cohort: event.target.value as ResearchRule['cohort'] })}>
-                  <option value="ALL_ELIGIBLE">Eligible at selected H</option><option value="COMMON_H240">Same events through H240</option>
+              <label>Prior context
+                <select value={priorContextBars} title="Chart display only: observed H1 candles before the entry candle"
+                  onChange={(event) => onPriorContextChange(Number(event.target.value) as PriorContextBars)}>
+                  <option value={0}>None</option><option value={60}>60 H1 before</option>
+                  <option value={120}>120 H1 before</option><option value={240}>240 H1 before</option>
                 </select>
               </label>
             </div>
@@ -112,9 +116,11 @@ export function CriterionPanel({ data, error, rule, summary, selectedEpisodeId, 
             {rows.map(({ episode, trial }) => {
               const direction = episode[rule.signal].direction
               const directionLabel = !trial ? 'No trade' : direction > 0 ? '↑ Long' : '↓ Short'
-              const exclusion = trial ? trialExclusionReason(episode, trial, rule) : 'no eligible trade for this rule'
+              const exclusion = trial ? trialExclusionReason(episode, trial, rule)
+                : !episode.commonH240 && rule.horizon === 240 ? null : 'no eligible trade for this rule'
               return <button key={episode.id} type="button" role="listitem"
                 className={`criterion-episode${selectedEpisodeId === episode.id ? ' selected' : ''}`}
+                disabled={!trial && !episode.commonH240 && rule.horizon === 240}
                 onClick={() => onSelectEpisode(episode, trial)}>
                 <span className="criterion-episode-top"><b>{episode.releaseText}</b><em>{directionLabel}</em></span>
                 <span className="criterion-episode-result">
@@ -123,6 +129,7 @@ export function CriterionPanel({ data, error, rule, summary, selectedEpisodeId, 
                     <span>· H{trial[2]} · {Number(trial[3]).toFixed(2)} gross R</span>
                   </>}
                   {exclusion && <span className="criterion-excluded" title="Not counted in the selected summary">Excluded: {exclusion}</span>}
+                  {!episode.commonH240 && <span className="criterion-coverage" title="The H240 candle path is incomplete for this episode">H240 path incomplete</span>}
                   {notedEpisodeIds.has(episode.id) && <span className="criterion-audited" title="Personal audit note saved; not research approval">Audited</span>}
                 </span>
                 <small>A {episode.actual || '—'} · F {episode.forecast || '—'} · P {episode.previous || '—'}</small>

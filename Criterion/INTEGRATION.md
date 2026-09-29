@@ -42,10 +42,12 @@ simulated TP-first, SL-first, or expiry outcome.
   selected. The banner and watermark distinguish this from the live MT5 feed.
   Chart times in audit mode use the export's server-clock labels. Return to Live
   restores broker candles and Notebook arrows. By default, the H60/H120/H240
-  selector displays up to 120 earlier H1 candles for context, followed by exactly
-  the selected number of observed H1 candles, counting the entry candle as H1.
-  The banner labels this **up to 120 prior**. No candle after the selected expiry
-  is loaded.
+  expiry selector displays exactly the selected number of observed H1 candles,
+  counting the entry candle as H1. A separate **Prior context** selector controls
+  0, 60, 120 or 240 earlier H1 candles; it defaults to **240** and changes only
+  the chart display, not the simulated trade or summary. Near the beginning of
+  the export, fewer than the requested prior candles may be available. No candle
+  after the selected expiry is loaded.
 - Selecting an episode also plots its nominal entry, stop and target as labeled
   chart lines. These are the archived ATR-rule levels, not executable broker
   fills; an opening gap may fill beyond the nominal stop. Changing the direction
@@ -58,11 +60,13 @@ simulated TP-first, SL-first, or expiry outcome.
   marked **Excluded** between gross R and **Audited**, and not counted in the
   selected summary. CPI's clean filter excludes simultaneous US Initial Jobless
   Claims. NFP on EURUSD has no co-release exclusion; the CAD-employment clean
-  policy applies to USDCAD. **Sample coverage** can restrict all expiries to
-  the same H240-complete events for like-for-like comparison. In this pinned
-  EURUSD snapshot, every priced episode is H240-complete, so that coverage
-  selector currently leaves the EURUSD counts unchanged. The list is not a
-  complete inventory of all calendar releases lacking a priced trial.
+  policy applies to USDCAD. The redundant **Sample coverage** selector was
+  removed from this EURUSD dock; the dock uses `ALL_ELIGIBLE` for the selected
+  expiry. An episode with incomplete H240 coverage is labeled in its row. This
+  pinned snapshot has zero such CPI or NFP episodes; later uncovered calendar
+  releases are not fabricated. The list is not a complete inventory of all
+  calendar releases lacking a priced trial. Common-H240 statistical comparisons
+  remain in the full research report.
 - Arrow Result contains an **Audit note** under **Trader Journal & Thesis**.
   Notes are keyed to the pinned viewer hash, event family, direction input
   (A-F or A-P) and episode ID. They auto-save in this browser's local storage,
