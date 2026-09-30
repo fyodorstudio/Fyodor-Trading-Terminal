@@ -1,5 +1,57 @@
 # Historical Criterion audit in the terminal
 
+## EURUSD CPI bundle chart snapshot: v1.1.0
+
+The Criterion dock now offers a separate **USD CPI bundle V3** research
+snapshot. It is built from the Expanded Macro Research
+`USD_CPI_BUNDLE_V1/run_20260930_outcomes_v3` package. It contains 139
+in-cutoff EURUSD release episodes, all six disclosed A−P interpretations,
+H60/H120/H240, four SL ATR widths and thirteen TP ATR widths. These are
+alternative views of the same releases, **not independent trades**. The
+post-cutoff September 2026 episode is omitted. The dock's existing baseline
+CPI/NFP V2 remains a separate snapshot and is not overwritten.
+
+The published artifact is
+`frontend/public/criterion/eurusd_cpi_bundle_v3.json`; its exact SHA-256,
+trial-ledger source hash and version are pinned in
+`frontend/src/criterion/cpi-bundle-manifest.json`. The browser verifies the
+snapshot hash before displaying it. The builder checks the pinned pre-outcome
+ledgers, V3 trial and summary hashes, pinned EURUSD candles, all 66,612 EURUSD
+trial rows and all 1,872 panel summaries. It refuses changed sources or
+unreconciled results. The chart reuses the baseline snapshot's EURUSD H1
+candles only after their source hashes agree.
+
+Each interpretation can be inspected at each ATR cell; changing controls
+retains the selected release and updates its arrow, chart levels and result.
+If that interpretation has no trial for the release, it displays **No trade**
+and removes the nominal SL/TP levels. The co-release filter excludes Jobless
+Claims timestamps from the summary while still allowing those episodes to be
+inspected with an **Excluded** label. The Arrow Result panel displays all four
+headline/core m/m and y/y A/P readings; no forecast is used in this bundle
+study. Notes are keyed to the V3 source hash, comparison and release, separate
+from old CPI/NFP notes. They remain browser-local until exported.
+
+This is historical, cost-excluded OHLC simulation with stop-first same-bar
+resolution. Exported Previous has not been verified as the value known at the
+original release. The H1 chart cannot reconstruct intrabar execution, and no
+candidate has been selected or registered. Do not interpret a positive grid
+cell as a forward-tested edge.
+
+To regenerate after a deliberate V3 research publication, run from this
+terminal repository root:
+
+```powershell
+python "Criterion/tools/build_cpi_bundle_snapshot.py"
+python -m unittest discover Criterion/tests -v
+pnpm --dir frontend build
+```
+
+If the snapshot changes, review the new source and update the separate bundle
+manifest hash/version deliberately. The existing `research_report.html`
+remains baseline report v1.0.1; it has **not** been relabeled as the V3 bundle
+report. The full V3 exploratory grid remains in Expanded Macro Research's
+standalone `HTML Viewer/table_viewer.html`.
+
 ## Published research report: v1.0.1
 
 The URL `http://localhost:5173/criterion/research_report.html` maps to

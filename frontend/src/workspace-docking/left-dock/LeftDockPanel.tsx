@@ -3,8 +3,10 @@ import type { SymbolQuote } from '../../market-data/contracts/SymbolQuote'
 import { MarketWatchPanel } from '../../market-data/market-watch/MarketWatchPanel'
 import type { FeedStatus } from '../../market-data/mt5-feed/use-mt5-market-data'
 import { CriterionPanel } from '../../criterion/criterion-dock/CriterionPanel'
+import { CpiBundleCriterionPanel } from '../../criterion/criterion-dock/CpiBundleCriterionPanel'
 import type { AuditNote } from '../../criterion/arrow-result/audit-notes'
 import type { PriorContextBars, ResearchAuditData, ResearchEpisode, ResearchRule, ResearchSummary, ResearchTrial } from '../../criterion/audit-data'
+import type { BundleEpisode, BundleRule, BundleSnapshot, BundleSummary, BundleTrial } from '../../criterion/cpi-bundle-data'
 import type { LeftDockWindow } from './left-dock-window'
 import './left-dock-panel.css'
 
@@ -17,6 +19,8 @@ type LeftDockPanelProps = {
   activeWindow?: LeftDockWindow
   onSelectWindow?: (window: LeftDockWindow) => void
   criterionData: ResearchAuditData | null
+  criterionStudy: 'baseline' | 'bundle'
+  onCriterionStudyChange: (study: 'baseline' | 'bundle') => void
   criterionError: string | null
   criterionRule: ResearchRule
   criterionSummary: ResearchSummary | null
@@ -26,6 +30,14 @@ type LeftDockPanelProps = {
   savedAuditNotes: AuditNote[]
   onCriterionRuleChange: (rule: ResearchRule) => void
   onSelectResearchEpisode: (episode: ResearchEpisode, trial: ResearchTrial | null) => void
+  bundleData: BundleSnapshot | null
+  bundleError: string | null
+  bundleRule: BundleRule
+  bundleSummary: BundleSummary | null
+  selectedBundleEpisodeId: string | null
+  bundleNotes: AuditNote[]
+  onBundleRuleChange: (rule: BundleRule) => void
+  onSelectBundleEpisode: (episode: BundleEpisode, trial: BundleTrial | null) => void
 }
 
 export function LeftDockPanel({
@@ -37,6 +49,8 @@ export function LeftDockPanel({
   activeWindow: controlledActiveWindow,
   onSelectWindow: controlledOnSelectWindow,
   criterionData,
+  criterionStudy,
+  onCriterionStudyChange,
   criterionError,
   criterionRule,
   criterionSummary,
@@ -46,6 +60,14 @@ export function LeftDockPanel({
   savedAuditNotes,
   onCriterionRuleChange,
   onSelectResearchEpisode,
+  bundleData,
+  bundleError,
+  bundleRule,
+  bundleSummary,
+  selectedBundleEpisodeId,
+  bundleNotes,
+  onBundleRuleChange,
+  onSelectBundleEpisode,
 }: LeftDockPanelProps) {
   const [internalActiveWindow, setInternalActiveWindow] = useState<LeftDockWindow>('market-watch')
   const activeWindow = controlledActiveWindow ?? internalActiveWindow
@@ -83,7 +105,13 @@ export function LeftDockPanel({
             onSelect={onSelectSymbol}
           />
         )}
-        {activeWindow === 'criterion' && <CriterionPanel
+        {activeWindow === 'criterion' && <div className="criterion-study-container">
+          <div className="criterion-study-switch"><label>Research snapshot
+            <select value={criterionStudy} onChange={(event) => onCriterionStudyChange(event.target.value as 'baseline' | 'bundle')}>
+              <option value="baseline">CPI / NFP baseline V2</option>
+              <option value="bundle">USD CPI bundle V3</option>
+            </select></label></div>
+          {criterionStudy === 'baseline' ? <CriterionPanel
           data={criterionData}
           error={criterionError}
           rule={criterionRule}
@@ -94,7 +122,12 @@ export function LeftDockPanel({
           savedAuditNotes={savedAuditNotes}
           onRuleChange={onCriterionRuleChange}
           onSelectEpisode={onSelectResearchEpisode}
-        />}
+          /> : <CpiBundleCriterionPanel
+            data={bundleData} error={bundleError} rule={bundleRule} summary={bundleSummary}
+            priorContextBars={priorContextBars} onPriorContextChange={onPriorContextChange}
+            selectedEpisodeId={selectedBundleEpisodeId} notes={bundleNotes}
+            onRuleChange={onBundleRuleChange} onSelectEpisode={onSelectBundleEpisode}
+          />}</div>}
       </div>
     </aside>
   )

@@ -34,3 +34,8 @@
 .criterion-episode small { color: var(--text-faint); font-size: 9px; }
 .criterion-error, .criterion-loading, .criterion-empty { padding: 16px; color: var(--text-muted); font-size: 11px; line-height: 1.5; }
 .criterion-error { color: var(--negative); }
+.criterion-study-container { height: 100%; min-height: 0; display: flex; flex-direction: column; }
+.criterion-study-container > .criterion-panel { flex: 1; }
+.criterion-study-switch { padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--surface-panel); }
+.criterion-study-switch label { display: block; color: var(--text-muted); font-size: 9px; font-weight: 700; }
+.criterion-study-switch select { width: 100%; height: 28px; margin-top: 3px; padding: 0 4px; border: 1px solid var(--border-strong); border-radius: 5px; color: var(--text-strong); background: var(--surface-inset); font: inherit; font-size: 10px; }
