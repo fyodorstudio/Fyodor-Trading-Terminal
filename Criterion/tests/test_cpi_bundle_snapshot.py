@@ -54,6 +54,18 @@ class CpiBundleSnapshotTests(unittest.TestCase):
         self.assertEqual((headline[1], core[1]), (1, -1))
         self.assertEqual((headline[2], core[2]), (1, 0))
 
+    def test_yoy_only_release_is_context_not_priced_mm_trial(self):
+        index = next(i for i, episode in enumerate(self.data["episodes"])
+                     if episode["releaseText"] == "2025.12.18 16:30:00")
+        episode = self.data["episodes"][index]
+        self.assertEqual([reading["delta"] for reading in episode["readings"]],
+                         [None, None, -0.3, -0.4])
+        self.assertEqual(episode["concordance"], "MISSING_ANCHOR")
+        self.assertTrue(episode["claimsCollision"])
+        self.assertIsNone(episode["atr"])
+        self.assertFalse(any(trial[0] == index for trials in self.data["trials"].values()
+                             for trial in trials))
+
     def test_every_bundle_episode_has_an_h240_chart_path(self):
         baseline = json.loads((ROOT / "frontend/public/criterion/eurusd_cpi_nfp_v2.json").read_text())
         self.assertEqual(self.data["candlesSha256"], baseline["candlesSha256"].lower())

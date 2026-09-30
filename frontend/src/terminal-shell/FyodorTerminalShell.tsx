@@ -8,7 +8,7 @@ import {
   availableTrials, cleanPanel, researchPriceLevels, snapshotAround, validateSelection,
   type PriorContextBars, type ResearchAuditData, type ResearchEpisode, type ResearchRule, type ResearchTrial,
 } from '../criterion/audit-data'
-import { bundleAvailableTrials, bundlePriceLevels, validateBundleSelection,
+import { bundleAvailableTrials, bundlePriceLevels, bundleYoyOnlyDirection, validateBundleSelection,
   type BundleEpisode, type BundleRule, type BundleSnapshot, type BundleTrial } from '../criterion/cpi-bundle-data'
 import { readColorTheme, type ColorTheme } from '../appearance/color-theme/color-theme-preference'
 import {
@@ -215,9 +215,17 @@ export function FyodorTerminalShell() {
     if (bundleSelection?.trial && !visible.some(({ episode }) => episode.id === bundleSelection.episode.id)) {
       visible.push(bundleSelection as { episode: BundleEpisode; trial: BundleTrial })
     }
-    return visible.filter(({ episode }) => episode.entryTime != null && episode.entryTime >= first && episode.entryTime <= last)
+    const pricedArrows: ResearchChartArrow[] = visible.filter(({ episode }) => episode.entryTime != null && episode.entryTime >= first && episode.entryTime <= last)
       .map(({ episode, trial }) => ({ id: `bundle:${episode.id}`, time: episode.entryTime!,
         entryPrice: episode.entryPrice!, direction: trial[1] > 0 ? 'long' : 'short' }))
+    const contextEpisode = bundleSelection?.episode
+    const contextDirection = contextEpisode && !bundleSelection?.trial ? bundleYoyOnlyDirection(contextEpisode) : null
+    if (contextEpisode && contextDirection && contextEpisode.entryTime != null && contextEpisode.entryPrice != null
+        && contextEpisode.entryTime >= first && contextEpisode.entryTime <= last) {
+      pricedArrows.push({ id: `bundle:${contextEpisode.id}`, time: contextEpisode.entryTime,
+        entryPrice: contextEpisode.entryPrice, direction: contextDirection, contextOnly: true })
+    }
+    return pricedArrows
   }, [bundleData, bundleResult.trials, bundleAuditBars, bundleSelection])
 
   // Planned trade state for the active symbol
@@ -400,6 +408,10 @@ export function FyodorTerminalShell() {
       if (!bundleData) return
       const trial = bundleResult.trials.find((item) => `bundle:${bundleData.episodes[item[0]].id}` === arrow.id)
       if (trial) selectBundleEpisode(bundleData.episodes[trial[0]], trial)
+      else if (arrow.contextOnly) {
+        const episode = bundleData.episodes.find((item) => `bundle:${item.id}` === arrow.id)
+        if (episode && bundleYoyOnlyDirection(episode)) selectBundleEpisode(episode, null)
+      }
       return
     }
     if (!researchData) return

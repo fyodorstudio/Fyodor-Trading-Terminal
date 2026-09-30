@@ -11,7 +11,8 @@ import {
 } from 'lightweight-charts'
 import type { PlannedTradeState, RegisteredTradeArrow } from '../contracts/trader-notebook-types'
 
-export type ResearchChartArrow = { id: string; time: number; direction: 'long' | 'short'; entryPrice: number }
+export type ResearchChartArrow = { id: string; time: number; direction: 'long' | 'short'; entryPrice: number;
+  contextOnly?: boolean }
 export type ResearchChartLevels = { entry: number; stop: number; target: number; direction: number }
 
 type PlannedTradePriceLinesProps = {
@@ -65,8 +66,8 @@ export function PlannedTradePriceLines({
         price: arrow.entryPrice,
         position: arrow.direction === 'long' ? 'atPriceBottom' : 'atPriceTop',
         shape: arrow.direction === 'long' ? 'arrowUp' : 'arrowDown',
-        color: selected ? '#38bdf8' : arrow.direction === 'long' ? '#10b981' : '#f43f5e',
-        text: selected ? 'HISTORICAL AUDIT' : 'RESEARCH',
+        color: arrow.contextOnly ? '#7c3aed' : selected ? '#38bdf8' : arrow.direction === 'long' ? '#10b981' : '#f43f5e',
+        text: arrow.contextOnly ? 'YOY CONTEXT ONLY' : selected ? 'HISTORICAL AUDIT' : 'RESEARCH',
         size: selected ? 1.25 : 0.85,
       })
     }

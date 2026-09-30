@@ -42,44 +42,69 @@ export function ArrowResultPanel({ episode, trial, rule, note, notes, saveFailed
     <section className="arrow-result-panel" aria-label="Historical arrow result">
       <div className="arrow-result-col arrow-result-setup">
         <header className="arrow-result-col-header">
-          <span className="arrow-result-eyebrow">Historical episode</span>
+          <div className="arrow-result-identity">
+            <strong>{rule.family} <span>EURUSD</span></strong>
+            <span className={`arrow-result-direction ${levels ? levels.direction > 0 ? 'long' : 'short' : 'neutral'}`}>
+              {directionLabel}
+            </span>
+          </div>
           <button className="arrow-result-text-button" type="button" onClick={onReturnLive}>Return to live</button>
         </header>
-        <div className="arrow-result-identity">
-          <strong>{rule.family} <span>EURUSD</span></strong>
-          <span className={`arrow-result-direction ${levels ? levels.direction > 0 ? 'long' : 'short' : 'neutral'}`}>
-            {directionLabel}
-          </span>
-        </div>
         <div className="arrow-result-meta">{episode.releaseText} release · {episode.entryText} research entry · server clock</div>
         <div className="arrow-result-values">
           <span><small>ACTUAL</small><b>{episode.actual || '—'}</b></span>
           <span><small>FORECAST</small><b>{episode.forecast || '—'}</b></span>
           <span><small>PREVIOUS</small><b>{episode.previous || '—'}</b></span>
         </div>
-        <div className="arrow-result-levels">
-          <div><span>ENTRY</span><b>{episode.entryPrice.toFixed(5)}</b></div>
-          <div className="stop"><span>NOMINAL SL</span><b>{levels ? levels.stop.toFixed(5) : '—'}</b></div>
-          <div className="target"><span>NOMINAL TP</span><b>{levels ? levels.target.toFixed(5) : '—'}</b></div>
+        <div className="arrow-result-levels horizontal">
+          <span><small>ENTRY</small><b>{episode.entryPrice.toFixed(5)}</b></span>
+          <span className="stop"><small>NOMINAL SL</small><b>{levels ? levels.stop.toFixed(5) : '—'}</b></span>
+          <span className="target"><small>NOMINAL TP</small><b>{levels ? levels.target.toFixed(5) : '—'}</b></span>
         </div>
       </div>
 
       <div className="arrow-result-col arrow-result-evidence">
-        <header className="arrow-result-col-header"><span className="arrow-result-eyebrow">Rule &amp; observed result</span></header>
-        <div className="arrow-result-rule">{rule.signal === 'af' ? 'Actual − Forecast' : 'Actual − Previous'} · SL {rule.stop} ATR · TP {rule.target} ATR · H{rule.horizon}</div>
-        {trial ? <div className="arrow-result-outcome">
-          <span><small>EXIT</small><b>{exitLabel(trial[1])} at H{trial[2]}</b></span>
-          <span><small>GROSS RESULT</small><b className={grossR >= 0 ? 'positive' : 'negative'}>{grossR >= 0 ? '+' : ''}{grossR.toFixed(3)} R</b></span>
-        </div> : <div className="arrow-result-no-trade">No priced outcome for this episode under the selected direction rule and expiry.</div>}
-        <div className="arrow-result-flags">
-          <span>{rule.family === 'CPI' && rule.panel !== 'FULL_PANEL' ? 'Claims co-releases excluded' : 'No EURUSD co-release exclusions'}</span>
-          {exclusion && <span className="excluded">Excluded from selected summary: {exclusion}</span>}
-          {collision && <span>Jobless-claims collision</span>}
-          {Boolean(trial?.[4]) && <span>Same-bar dual touch · stop first</span>}
-          {Boolean(trial?.[6]) && <span>Opening gap</span>}
+        <header className="arrow-result-col-header">
+          <div className="arrow-result-header-title">
+            <span className="arrow-result-eyebrow">INTERPRETATION ·</span>
+            <strong>{rule.signal === 'af' ? 'Actual − Forecast' : 'Actual − Previous'}</strong>
+          </div>
+          <span className="arrow-result-rule-chip">{rule.signal === 'af' ? 'A−F' : 'A−P'} · H{rule.horizon}</span>
+        </header>
+        {trial ? (
+          <div className="arrow-result-outcome feed">
+            <div className="arrow-result-outcome-top">
+              <strong className="arrow-result-exit-title">
+                {exitLabel(trial[1])} (H{trial[2]})
+              </strong>
+              <b className={`arrow-result-gross ${grossR >= 0 ? 'positive' : 'negative'}`}>
+                {grossR >= 0 ? '+' : ''}{grossR.toFixed(3)} R
+              </b>
+            </div>
+            <div className="arrow-result-outcome-bottom">
+              <span>SL {rule.stop} ATR · TP {rule.target} ATR</span>
+              <span className="arrow-result-outcome-sublabel">Gross R</span>
+            </div>
+          </div>
+        ) : (
+          <div className="arrow-result-no-trade">No priced outcome for this episode under the selected direction rule and expiry.</div>
+        )}
+        <div className="arrow-result-flags-row">
+          <span className="arrow-result-flags-label">FLAGS</span>
+          <div className="arrow-result-flags">
+            <span>{rule.family === 'CPI' && rule.panel !== 'FULL_PANEL' ? 'Claims Excluded' : 'All Claims'}</span>
+            {exclusion && <span className="excluded">{exclusion}</span>}
+            {collision && <span>Claims Collision</span>}
+            {Boolean(trial?.[4]) && <span>Same-Bar Dual Touch</span>}
+            {Boolean(trial?.[6]) && <span>Opening Gap</span>}
+          </div>
         </div>
-        <p className="arrow-result-caveat">Historical OHLC simulation, not a registered setup or live signal. Levels are nominal; gap fills can differ. Gross result excludes costs. Exported Previous is not verified point-in-time.</p>
-        <code className="arrow-result-id" title={episode.id}>{episode.id}</code>
+        <div className="arrow-result-evidence-footer">
+          <div className="arrow-result-caveat-line" title="Historical OHLC simulation, not a registered setup or live signal. Levels are nominal; gap fills can differ. Gross result excludes costs. Exported Previous is not verified point-in-time.">
+            <span className="arrow-result-info-icon" aria-hidden="true">ⓘ</span>
+            <span className="arrow-result-caveat-text">Historical OHLC sim · nominal fills · <code className="arrow-result-id">{episode.id}</code></span>
+          </div>
+        </div>
       </div>
 
       <div className="arrow-result-col arrow-result-journal">

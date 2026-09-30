@@ -1,4 +1,4 @@
-import { bundleAvailableTrials, bundleComparisons, bundleExclusion, type BundleEpisode,
+import { bundleAvailableTrials, bundleComparisons, bundleExclusion, bundleYoyOnlyDirection, type BundleEpisode,
   type BundleRule, type BundleSnapshot, type BundleSummary, type BundleTrial } from '../cpi-bundle-data'
 import type { AuditNote } from '../arrow-result/audit-notes'
 import type { PriorContextBars } from '../audit-data'
@@ -85,7 +85,12 @@ export function CpiBundleCriterionPanel({ data, error, rule, summary, priorConte
       <div className="criterion-list" role="list" aria-label="CPI bundle episodes">
         {rows.map(({ episode, trial }) => {
           const exclusion = trial ? bundleExclusion(episode, rule) : 'not eligible for this interpretation'
-          const direction = trial ? trial[1] > 0 ? '↑ Long' : '↓ Short' : 'No trade'
+          const yoyDirection = !trial ? bundleYoyOnlyDirection(episode) : null
+          const direction = trial ? trial[1] > 0 ? '↑ Long' : '↓ Short'
+            : yoyDirection ? `${yoyDirection === 'long' ? '↑' : '↓'} YoY context` : 'Outside rule'
+          const noTrialReason = yoyDirection
+            ? 'Monthly CPI readings absent; YoY direction shown for inspection only, not simulated'
+            : 'No priced trial under this m/m interpretation'
           return <button key={episode.id} type="button" role="listitem"
             className={`criterion-episode${selectedEpisodeId === episode.id ? ' selected' : ''}`}
             disabled={!episode.entryTime}
@@ -95,7 +100,7 @@ export function CpiBundleCriterionPanel({ data, error, rule, summary, priorConte
               {trial && <><b className={trial[2] === 0 ? 'tp' : trial[2] === 1 ? 'sl' : 'expiry'}>
                 {trial[2] === 0 ? 'TP first' : trial[2] === 1 ? 'SL first' : 'Expiry'}</b>
                 <span>· H{trial[3]} · {trial[4] >= 0 ? '+' : ''}{trial[4].toFixed(3)} gross R</span></>}
-              {exclusion && <span className="criterion-excluded">Excluded: {exclusion}</span>}
+              {exclusion && <span className="criterion-excluded">{trial ? 'Excluded: ' : ''}{trial ? exclusion : noTrialReason}</span>}
               {episode.conflict && <span className="criterion-coverage">Headline/core conflict</span>}
               {notedIds.has(episode.id) && <span className="criterion-audited">Audited</span>}
             </span>

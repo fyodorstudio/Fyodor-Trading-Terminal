@@ -77,6 +77,19 @@ export function bundleExclusion(episode: BundleEpisode, rule: BundleRule) {
   return rule.panel === 'JOBLESS_CLAIMS_CLEAN' && episode.claimsCollision ? 'Jobless Claims co-release' : null
 }
 
+// A descriptive chart cue only. The pinned V3 simulations require m/m anchors;
+// y/y agreement must never be substituted into their trade counts or P/L.
+export function bundleYoyOnlyDirection(episode: BundleEpisode): 'long' | 'short' | null {
+  if (episode.readings.length !== 4 || episode.readings[0].sign !== 'MISSING'
+      || episode.readings[1].sign !== 'MISSING') return null
+  const headline = episode.readings[2].delta
+  const core = episode.readings[3].delta
+  if (headline == null || core == null || headline === 0 || core === 0
+      || Math.sign(headline) !== Math.sign(core)) return null
+  // For EURUSD, cooling USD inflation maps to EURUSD up and vice versa.
+  return headline < 0 ? 'long' : 'short'
+}
+
 export function bundlePriceLevels(episode: BundleEpisode, trial: BundleTrial, rule: BundleRule) {
   if (episode.entryPrice == null || episode.atr == null) return null
   return {
