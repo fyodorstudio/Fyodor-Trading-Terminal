@@ -1,9 +1,9 @@
 {
-  "version": "1.1.0",
+  "version": "1.3.0",
   "study": "USD_CPI_BUNDLE_V1",
   "run": "run_20260930_outcomes_v3",
   "snapshotPath": "/criterion/eurusd_cpi_bundle_v3.json",
-  "snapshotSha256": "829e56b535ea23eb9acf66ead2eca7cbfc387bc820ac970981a0c4c9014730c6",
+  "snapshotSha256": "63a85972b72afc1073b21bec4705e2f11fa777328ebc86231cd46698aafdf1e7",
   "sourceTrialSha256": "3c468999f7f876b1dc9ed01e278b389990a73e41f28141f0815c7e504f83273f",
   "pair": "EURUSD",
   "status": "EXPLORATORY_UNREGISTERED"

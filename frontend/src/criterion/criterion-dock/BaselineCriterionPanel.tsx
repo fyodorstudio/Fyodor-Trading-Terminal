@@ -80,160 +80,180 @@ export function BaselineCriterionPanel({
         <p className="criterion-loading">Loading pinned CPI/NFP research…</p>
       ) : (
         <>
+          <div
+            className="criterion-accordion-header"
+            onClick={() => setControlsExpanded((prev) => !prev)}
+            role="button"
+            tabIndex={0}
+            aria-expanded={controlsExpanded}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                setControlsExpanded((prev) => !prev)
+              }
+            }}
+          >
+            <div className="criterion-accordion-title">
+              <span className="criterion-accordion-chevron" aria-hidden="true">
+                {controlsExpanded ? '▾' : '▸'}
+              </span>
+              <strong>Parameters</strong>
+              <span>v{reportManifest.version} · exploratory</span>
+            </div>
+            <button
+              type="button"
+              className="criterion-accordion-toggle"
+              onClick={(e) => {
+                e.stopPropagation()
+                setControlsExpanded((prev) => !prev)
+              }}
+              aria-label={controlsExpanded ? 'Collapse parameters' : 'Expand parameters'}
+            >
+              {controlsExpanded ? 'Hide ▴' : 'Edit ▾'}
+            </button>
+          </div>
+
           {controlsExpanded ? (
-            <>
-              <div className="criterion-accordion-header">
-                <div className="criterion-accordion-title">
-                  <strong>Parameters</strong>
-                  <span>v{reportManifest.version} · exploratory</span>
-                </div>
-                <button
-                  type="button"
-                  className="criterion-accordion-toggle"
-                  onClick={() => setControlsExpanded(false)}
-                  aria-label="Collapse parameter controls"
-                >
-                  Hide ▴
-                </button>
+            <div className="criterion-controls">
+              <div className="criterion-fields two">
+                <label>
+                  Event family
+                  <select
+                    value={rule.family}
+                    onChange={(event) => {
+                      const family = event.target.value as ResearchRule['family']
+                      change({ family, panel: cleanPanel(family) })
+                    }}
+                  >
+                    <option value="CPI">US CPI</option>
+                    <option value="NFP">US Nonfarm Payrolls</option>
+                  </select>
+                </label>
+                <label>
+                  Direction rule
+                  <select
+                    value={rule.signal}
+                    onChange={(event) => change({ signal: event.target.value as ResearchRule['signal'] })}
+                  >
+                    <option value="af">Actual − Forecast</option>
+                    <option value="ap">Actual − Previous</option>
+                  </select>
+                </label>
               </div>
-              <div className="criterion-controls">
-                <div className="criterion-fields two">
-                  <label>
-                    Event family
-                    <select
-                      value={rule.family}
-                      onChange={(event) => {
-                        const family = event.target.value as ResearchRule['family']
-                        change({ family, panel: cleanPanel(family) })
-                      }}
-                    >
-                      <option value="CPI">US CPI</option>
-                      <option value="NFP">US Nonfarm Payrolls</option>
-                    </select>
-                  </label>
-                  <label>
-                    Direction rule
-                    <select
-                      value={rule.signal}
-                      onChange={(event) => change({ signal: event.target.value as ResearchRule['signal'] })}
-                    >
-                      <option value="af">Actual − Forecast</option>
-                      <option value="ap">Actual − Previous</option>
-                    </select>
-                  </label>
-                </div>
-                <div className="criterion-fields two">
-                  <label>
-                    Co-release filter
-                    <select
-                      value={rule.panel}
-                      disabled={rule.family === 'NFP'}
-                      title={
-                        rule.family === 'CPI'
-                          ? 'Whether to include CPI releases coinciding with US Initial Jobless Claims'
-                          : 'NFP EURUSD has no co-release exclusions in this research'
-                      }
-                      onChange={(event) => change({ panel: event.target.value as ResearchRule['panel'] })}
-                    >
-                      {rule.family === 'CPI' ? (
-                        <>
-                          <option value="JOBLESS_CLAIMS_CLEAN">Exclude Jobless Claims</option>
-                          <option value="FULL_PANEL">Include Jobless Claims</option>
-                        </>
-                      ) : (
-                        <option value="PRIMARY_PANEL">No EURUSD exclusions</option>
-                      )}
-                    </select>
-                  </label>
-                  <label>
-                    Prior context
-                    <select
-                      value={priorContextBars}
-                      title="Chart display only: observed H1 candles before the entry candle"
-                      onChange={(event) => onPriorContextChange(Number(event.target.value) as PriorContextBars)}
-                    >
-                      <option value={0}>None</option>
-                      <option value={60}>60 H1 before</option>
-                      <option value={120}>120 H1 before</option>
-                      <option value={240}>240 H1 before</option>
-                    </select>
-                  </label>
-                </div>
-                <div className="criterion-fields three">
-                  <label>
-                    Expiry
-                    <select
-                      value={rule.horizon}
-                      onChange={(event) => change({ horizon: Number(event.target.value) })}
-                    >
-                      <option value={60}>H60</option>
-                      <option value={120}>H120</option>
-                      <option value={240}>H240</option>
-                    </select>
-                  </label>
-                  <label>
-                    SL ATR
-                    <select value={rule.stop} onChange={(event) => change({ stop: Number(event.target.value) })}>
-                      {[1, 2, 3, 4].map((value) => (
-                        <option key={value} value={value}>
-                          {value}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    TP ATR
-                    <select
-                      value={rule.target}
-                      onChange={(event) => change({ target: Number(event.target.value) })}
-                    >
-                      {targets.map((value) => (
-                        <option key={value} value={value}>
-                          {value}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                </div>
+              <div className="criterion-fields two">
+                <label>
+                  Co-release filter
+                  <select
+                    value={rule.panel}
+                    disabled={rule.family === 'NFP'}
+                    title={
+                      rule.family === 'CPI'
+                        ? 'Whether to include CPI releases coinciding with US Initial Jobless Claims'
+                        : 'NFP EURUSD has no co-release exclusions in this research'
+                    }
+                    onChange={(event) => change({ panel: event.target.value as ResearchRule['panel'] })}
+                  >
+                    {rule.family === 'CPI' ? (
+                      <>
+                        <option value="JOBLESS_CLAIMS_CLEAN">Exclude Jobless Claims</option>
+                        <option value="FULL_PANEL">Include Jobless Claims</option>
+                      </>
+                    ) : (
+                      <option value="PRIMARY_PANEL">No EURUSD exclusions</option>
+                    )}
+                  </select>
+                </label>
+                <label>
+                  Prior context
+                  <select
+                    value={priorContextBars}
+                    title="Chart display only: observed H1 candles before the entry candle"
+                    onChange={(event) => onPriorContextChange(Number(event.target.value) as PriorContextBars)}
+                  >
+                    <option value={0}>None</option>
+                    <option value={60}>60 H1 before</option>
+                    <option value={120}>120 H1 before</option>
+                    <option value={240}>240 H1 before</option>
+                  </select>
+                </label>
               </div>
-            </>
+              <div className="criterion-fields three">
+                <label>
+                  Expiry
+                  <select
+                    value={rule.horizon}
+                    onChange={(event) => change({ horizon: Number(event.target.value) })}
+                  >
+                    <option value={60}>H60</option>
+                    <option value={120}>H120</option>
+                    <option value={240}>H240</option>
+                  </select>
+                </label>
+                <label>
+                  SL ATR
+                  <select value={rule.stop} onChange={(event) => change({ stop: Number(event.target.value) })}>
+                    {[1, 2, 3, 4].map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  TP ATR
+                  <select
+                    value={rule.target}
+                    onChange={(event) => change({ target: Number(event.target.value) })}
+                  >
+                    {targets.map((value) => (
+                      <option key={value} value={value}>
+                        {value}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </div>
           ) : (
-            <div className="criterion-accordion-collapsed">
-              <div className="criterion-chips">
-                <span className="criterion-chip" title="Event family">
-                  {rule.family === 'CPI' ? 'US CPI' : 'US NFP'}
-                </span>
-                <span className="criterion-chip" title="Direction rule">
-                  {rule.signal === 'af' ? 'A−F' : 'A−P'}
-                </span>
-                {rule.family === 'CPI' && (
-                  <span className="criterion-chip" title="Co-release filter">
-                    {rule.panel === 'JOBLESS_CLAIMS_CLEAN' ? 'Claims excl' : 'Claims incl'}
-                  </span>
-                )}
-                <span className="criterion-chip" title="Expiry">
-                  H{rule.horizon}
-                </span>
-                <span className="criterion-chip" title="Stop loss">
-                  SL {rule.stop}
-                </span>
-                <span className="criterion-chip" title="Take profit">
-                  TP {rule.target}
-                </span>
-                {priorContextBars > 0 && (
-                  <span className="criterion-chip" title="Prior context">
-                    +{priorContextBars}H
-                  </span>
-                )}
+            <div
+              className="criterion-readout-strip"
+              onClick={() => setControlsExpanded(true)}
+              role="button"
+              tabIndex={0}
+              title="Click to edit parameters"
+              aria-label="Active parameters summary: click to expand"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault()
+                  setControlsExpanded(true)
+                }
+              }}
+            >
+              <div className="criterion-readout-item" title="Event family">
+                {rule.family === 'CPI' ? 'US CPI' : 'US NFP'}
               </div>
-              <button
-                type="button"
-                className="criterion-accordion-toggle"
-                onClick={() => setControlsExpanded(true)}
-                aria-label="Expand parameter controls"
-              >
-                Edit ▾
-              </button>
+              <div className="criterion-readout-item" title="Direction rule">
+                {rule.signal === 'af' ? 'A−F' : 'A−P'}
+              </div>
+              {rule.family === 'CPI' && (
+                <div className="criterion-readout-item" title="Co-release filter">
+                  {rule.panel === 'JOBLESS_CLAIMS_CLEAN' ? 'Claims excl' : 'Claims incl'}
+                </div>
+              )}
+              <div className="criterion-readout-item" title="Expiry">
+                H{rule.horizon}
+              </div>
+              <div className="criterion-readout-item" title="Stop loss">
+                SL {rule.stop}
+              </div>
+              <div className="criterion-readout-item" title="Take profit">
+                TP {rule.target}
+              </div>
+              {priorContextBars > 0 && (
+                <div className="criterion-readout-item" title="Prior context">
+                  +{priorContextBars}H
+                </div>
+              )}
             </div>
           )}
           {summary && (

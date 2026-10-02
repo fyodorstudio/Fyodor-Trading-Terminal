@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { bundleComparisons, bundleExclusion, bundlePriceLevels, bundleYoyOnlyDirection, type BundleEpisode,
+import { bundleComparisons, bundlePriceLevels, bundleYoyOnlyDirection, isBundleEpisodeIncluded, type BundleEpisode,
   type BundleRule, type BundleTrial } from '../cpi-bundle-data'
 import { downloadAuditNotes, type AuditNote } from './audit-notes'
 import './arrow-result-panel.css'
@@ -41,9 +41,11 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
   }
 
   if (!episode) return <div className="arrow-result-empty">Select a CPI bundle episode in Criterion to inspect it.</div>
-  const levels = trial ? bundlePriceLevels(episode, trial, rule) : null
+  const isIncluded = Boolean(trial && isBundleEpisodeIncluded(episode, rule))
+  const isExcludedClaims = Boolean(rule.panel === 'JOBLESS_CLAIMS_CLEAN' && episode.claimsCollision)
   const yoyDirection = !trial ? bundleYoyOnlyDirection(episode) : null
-  const exclusion = trial ? bundleExclusion(episode, rule) : null
+  const el = episode.eligibility?.[rule.comparison]
+  const levels = isIncluded && trial ? bundlePriceLevels(episode, trial, rule) : null
   const comparison = bundleComparisons.find(([id]) => id === rule.comparison)?.[1] ?? rule.comparison
   const copyNote = async () => {
     try {
@@ -62,9 +64,29 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
       <header className="arrow-result-col-header">
         <div className="arrow-result-identity">
           <strong>US CPI <span>EURUSD</span></strong>
-          <span className={`arrow-result-direction ${!trial ? 'neutral' : trial[1] > 0 ? 'long' : 'short'}`}>
-            {trial ? trial[1] > 0 ? '↑ LONG' : '↓ SHORT'
-              : yoyDirection ? `${yoyDirection === 'long' ? '↑' : '↓'} YOY CONTEXT` : 'OUTSIDE RULE'}
+          <span className={`arrow-result-direction ${
+            isIncluded ? (trial![1] > 0 ? 'long' : 'short')
+            : trial && isExcludedClaims ? 'neutral excluded'
+            : yoyDirection ? 'neutral context'
+            : 'neutral'
+          }`}>
+            {isIncluded && trial
+              ? (trial[1] > 0 ? '↑ LONG' : '↓ SHORT')
+              : trial && isExcludedClaims
+              ? `${trial[1] > 0 ? '↑ LONG' : '↓ SHORT'} (EXCLUDED)`
+              : yoyDirection
+              ? `${yoyDirection === 'long' ? '↑' : '↓'} YOY CONTEXT`
+              : el?.category === 'ZERO_CHANGE'
+              ? 'ZERO MONTHLY Δ'
+              : el?.category === 'CONFLICT_REJECTED'
+              ? 'CONFLICT REJECTED'
+              : el?.category === 'NON_CONFLICT'
+              ? 'NONCONFLICTING'
+              : el?.category === 'MISSING_INPUTS'
+              ? 'MISSING INPUTS'
+              : el?.category === 'COVERAGE_FAILURE'
+              ? 'COVERAGE FAILURE'
+              : 'OUTSIDE RULE'}
           </span>
         </div>
         <button className="arrow-result-text-button" type="button" onClick={onReturnLive}>Return to live</button>
@@ -92,7 +114,7 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
         </div>
         <span className="arrow-result-rule-chip">A−P · H{rule.horizon}</span>
       </header>
-      {trial ? (
+      {isIncluded && trial ? (
         <div className="arrow-result-outcome feed">
           <div className="arrow-result-outcome-top">
             <strong className="arrow-result-exit-title">
@@ -107,21 +129,64 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
             <span className="arrow-result-outcome-sublabel">Gross R</span>
           </div>
         </div>
+      ) : trial && isExcludedClaims ? (
+        <div className="arrow-result-outcome feed excluded-selection">
+          <div className="arrow-result-outcome-top">
+            <strong className="arrow-result-exit-title" style={{ fontSize: '11px', color: 'var(--negative)' }}>
+              Excluded from current selection
+            </strong>
+            <b className="arrow-result-gross excluded">
+              {trial[4] >= 0 ? '+' : ''}{trial[4].toFixed(3)} R
+            </b>
+          </div>
+          <div className="arrow-result-outcome-bottom">
+            <span>Historical trial: {trial[2] === 0 ? 'TP first' : trial[2] === 1 ? 'SL first' : 'Expiry'} (H{trial[3]}) · Not counted</span>
+            <span className="arrow-result-outcome-sublabel">Gross historical R</span>
+          </div>
+        </div>
       ) : yoyDirection ? (
-        <div className="arrow-result-no-trade">Both available y/y A−P readings {yoyDirection === 'long' ? 'cooled, suggesting EURUSD up' : 'rose, suggesting EURUSD down'} as context only.
-          The selected six rules require m/m readings, which are absent here. No y/y trial, ATR stop/target, or result was calculated.</div>
+        <div className="arrow-result-no-trade">
+          Both available y/y A−P readings {yoyDirection === 'long' ? 'cooled, suggesting EURUSD up' : 'rose, suggesting EURUSD down'} as context only.
+          The selected six rules require m/m readings, which are absent here. No y/y trial, ATR stop/target, or result was calculated.
+          {isExcludedClaims && ' Simultaneous Jobless Claims co-release is also excluded under the current filter setting.'}
+        </div>
       ) : (
-        <div className="arrow-result-no-trade">This episode does not qualify for the selected m/m rule; no priced result was calculated.</div>
+        <div className="arrow-result-no-trade">
+          <strong>{el?.reason ?? 'This episode does not qualify for the selected m/m rule; no priced result was calculated.'}</strong>
+          {isExcludedClaims && (
+            <p className="arrow-result-no-trade-extra" style={{ margin: '6px 0 0', color: 'var(--negative)' }}>
+              Simultaneous Jobless Claims co-release is also excluded under the current filter setting.
+            </p>
+          )}
+        </div>
       )}
       <div className="arrow-result-flags-row">
         <span className="arrow-result-flags-label">FLAGS</span>
         <div className="arrow-result-flags">
           <span>{formatFlag(episode.concordance)}</span>
-          {episode.claimsCollision && <span>Claims Collision</span>}
-          {!episode.claimsCollision && <span>Clean Release</span>}
+          {episode.claimsCollision ? (
+            <span className={isExcludedClaims ? 'excluded' : ''}>
+              {isExcludedClaims ? 'Excluded: Simultaneous Jobless Claims' : 'Simultaneous Jobless Claims'}
+            </span>
+          ) : (
+            <span>No simultaneous Jobless Claims</span>
+          )}
           {yoyDirection && <span>Missing Monthly CPI</span>}
           {yoyDirection && <span>YoY Direction Only</span>}
-          {exclusion && <span className="excluded">{exclusion}</span>}
+          {trial && isExcludedClaims && <span className="excluded">Excluded from current selection</span>}
+          {!isIncluded && !trial && el?.category && el.category !== 'ELIGIBLE' && (
+            <span className="coverage-flag">
+              {el.category === 'ZERO_CHANGE'
+                ? 'Zero monthly A−P change'
+                : el.category === 'CONFLICT_REJECTED'
+                ? 'Headline/Core Conflict'
+                : el.category === 'NON_CONFLICT'
+                ? 'Nonconflicting Release'
+                : el.category === 'MISSING_INPUTS'
+                ? 'Missing Monthly Anchor'
+                : 'Coverage Failure'}
+            </span>
+          )}
           {Boolean(trial?.[5]) && <span>Same-Bar Dual Touch</span>}
           {Boolean(trial?.[6]) && <span>Opening Gap</span>}
         </div>

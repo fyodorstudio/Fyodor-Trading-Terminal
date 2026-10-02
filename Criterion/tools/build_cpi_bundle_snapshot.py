@@ -25,6 +25,76 @@ COMPARISONS = (
     "CONFLICT_SUBSTUDY_A_HEADLINE", "CONFLICT_SUBSTUDY_B_CORE",
 )
 
+COMPARISON_SOURCE_COLS = {
+    "CANDIDATE_1_HEADLINE_MM": ("eligible_candidate_1_headline_mm_h60", "exclusion_candidate_1_headline_mm_h60"),
+    "CANDIDATE_2_CORE_MM_LED": ("eligible_candidate_2_core_mm_led_h60", "exclusion_candidate_2_core_mm_led_h60"),
+    "CANDIDATE_3_CONCORDANT_MM": ("eligible_candidate_3_concordant_mm_h60", "exclusion_candidate_3_concordant_mm_h60"),
+    "CANDIDATE_4_CONFLICT_FILTERED_HEADLINE": ("eligible_candidate_4_conflict_filtered_headline_h60", "exclusion_candidate_4_conflict_filtered_headline_h60"),
+    "CONFLICT_SUBSTUDY_A_HEADLINE": ("eligible_conflict_substudy_h60", "exclusion_conflict_substudy_h60"),
+    "CONFLICT_SUBSTUDY_B_CORE": ("eligible_conflict_substudy_h60", "exclusion_conflict_substudy_h60"),
+}
+
+
+def explain_exclusion(pair: dict[str, str], comp: str, ex_code: str) -> tuple[str, str]:
+    if ex_code == "excluded_missing_anchor":
+        return "MISSING_INPUTS", "Missing required monthly readings"
+
+    if ex_code == "excluded_no_entry_candle":
+        return "COVERAGE_FAILURE", "Missing entry candle"
+    if ex_code == "excluded_entry_delay_exceeded":
+        return "COVERAGE_FAILURE", "Invalid entry delay"
+    if ex_code == "excluded_insufficient_atr_warmup":
+        return "COVERAGE_FAILURE", "Insufficient ATR warmup"
+    if ex_code == "excluded_path_gap_exceeded":
+        return "COVERAGE_FAILURE", "Path-gap failure"
+    if ex_code == "excluded_insufficient_horizon_bars":
+        return "COVERAGE_FAILURE", "Insufficient horizon bars"
+
+    if ex_code == "excluded_zero_signal":
+        if comp == "CANDIDATE_1_HEADLINE_MM":
+            return "ZERO_CHANGE", "Zero monthly A−P change in headline m/m (0.0 reading change)"
+        if comp == "CANDIDATE_2_CORE_MM_LED":
+            return "ZERO_CHANGE", "Zero monthly A−P change in core m/m (0.0 reading change)"
+        if comp == "CANDIDATE_4_CONFLICT_FILTERED_HEADLINE":
+            return "ZERO_CHANGE", "Zero monthly A−P change in headline m/m (0.0 reading change)"
+        return "ZERO_CHANGE", "Zero monthly A−P change in required series (0.0 reading change)"
+
+    if ex_code == "excluded_discordant_or_zero":
+        h_sign = pair.get("headline_mm_sign")
+        c_sign = pair.get("core_mm_sign")
+        if h_sign == "ZERO" and c_sign == "ZERO":
+            return "ZERO_CHANGE", "Zero monthly A−P change in both headline and core m/m (0.0 reading change)"
+        if h_sign == "ZERO":
+            return "ZERO_CHANGE", "Zero monthly A−P change in headline m/m (0.0 reading change)"
+        if c_sign == "ZERO":
+            return "ZERO_CHANGE", "Zero monthly A−P change in core m/m (0.0 reading change)"
+        if pair.get("is_conflict_episode") == "True":
+            return "CONFLICT_REJECTED", "Headline/core conflict rejected by this interpretation"
+        return "CONFLICT_REJECTED", "Headline/core conflict rejected by this interpretation"
+
+    if ex_code == "excluded_conflict_filter":
+        return "CONFLICT_REJECTED", "Headline/core conflict rejected by this interpretation"
+
+    if ex_code == "excluded_non_conflict_episode":
+        return "NON_CONFLICT", "Nonconflicting release under a conflict-only interpretation"
+
+    if ex_code == "excluded_post_2026_cutoff":
+        return "POST_CUTOFF", "Post-2026 research cutoff"
+
+    # Fallback to physical gates if ex_code is unmapped or generic
+    if pair.get("has_entry_candle") != "True":
+        return "COVERAGE_FAILURE", "Missing entry candle"
+    if pair.get("is_entry_delay_valid") != "True":
+        return "COVERAGE_FAILURE", "Invalid entry delay"
+    if pair.get("has_atr_warmup") != "True":
+        return "COVERAGE_FAILURE", "Insufficient ATR warmup"
+    if pair.get("has_h60_gap_free") != "True":
+        return "COVERAGE_FAILURE", "Path-gap failure"
+    if pair.get("has_h60_bars") != "True":
+        return "COVERAGE_FAILURE", "Insufficient horizon bars"
+
+    return "UNKNOWN", f"Excluded: {ex_code}"
+
 
 def rows(path: Path):
     with path.open(encoding="utf-8-sig", newline="") as stream:
@@ -71,6 +141,26 @@ def build(research_root: Path = DEFAULT_RESEARCH_ROOT, output: Path = OUTPUT):
             raise ValueError("Pair and CPI bundle timestamps disagree")
         entry_time = int(pair["entry_bar_timestamp"]) if pair["entry_bar_timestamp"] else None
         entry = by_time.get(entry_time) if entry_time else None
+        eligibility = {}
+        for comp in COMPARISONS:
+            el_col, ex_col = COMPARISON_SOURCE_COLS[comp]
+            is_eligible = pair[el_col] == "True"
+            ex_code = pair[ex_col]
+            if is_eligible:
+                eligibility[comp] = {
+                    "eligible": True,
+                    "exclusion": "",
+                    "category": "ELIGIBLE",
+                    "reason": "Included under selected rule",
+                }
+            else:
+                cat, reason = explain_exclusion(pair, comp, ex_code)
+                eligibility[comp] = {
+                    "eligible": False,
+                    "exclusion": ex_code,
+                    "category": cat,
+                    "reason": reason,
+                }
         episode = {
             "id": pair["bundle_id"], "releaseTime": int(pair["timestamp"]),
             "releaseText": pair["timestamp_server_text"], "entryTime": entry_time,
@@ -87,6 +177,23 @@ def build(research_root: Path = DEFAULT_RESEARCH_ROOT, output: Path = OUTPUT):
                 for name, prefix in (("Headline m/m", "headline_mm"), ("Core m/m", "core_mm"),
                                      ("Headline y/y", "headline_yy"), ("Core y/y", "core_yy"))
             ],
+            "eligibility": eligibility,
+            "exclusions": {comp: pair[ex_col] for comp, (_, ex_col) in COMPARISON_SOURCE_COLS.items()},
+            "coverage": {
+                "hasEntryCandle": pair["has_entry_candle"] == "True",
+                "hasAtrWarmup": pair["has_atr_warmup"] == "True",
+                "hasH60Bars": pair["has_h60_bars"] == "True",
+                "hasH60GapFree": pair["has_h60_gap_free"] == "True",
+                "hasH120Bars": pair["has_h120_bars"] == "True",
+                "hasH120GapFree": pair["has_h120_gap_free"] == "True",
+                "hasH240Bars": pair["has_h240_bars"] == "True",
+                "hasH240GapFree": pair["has_h240_gap_free"] == "True",
+                "isEntryDelayValid": pair["is_entry_delay_valid"] == "True",
+            },
+            "headlineMmSign": pair["headline_mm_sign"],
+            "coreMmSign": pair["core_mm_sign"],
+            "headlineYySign": pair["headline_yy_sign"],
+            "coreYySign": pair["core_yy_sign"],
         }
         index[episode["id"]] = len(episodes)
         episodes.append(episode)

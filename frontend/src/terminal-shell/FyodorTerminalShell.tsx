@@ -8,7 +8,8 @@ import {
   availableTrials, cleanPanel, researchPriceLevels, snapshotAround, validateSelection,
   type PriorContextBars, type ResearchAuditData, type ResearchEpisode, type ResearchRule, type ResearchTrial,
 } from '../criterion/audit-data'
-import { bundleAvailableTrials, bundlePriceLevels, bundleYoyOnlyDirection, validateBundleSelection,
+import { bundleYoyOnlyDirection, deriveBundleChartArrows, deriveBundlePriceLevels, deriveNextBundleSelection,
+  getBundleEpisodeInclusion, validateBundleSelection,
   type BundleEpisode, type BundleRule, type BundleSnapshot, type BundleTrial } from '../criterion/cpi-bundle-data'
 import { applyColorTheme, readColorTheme, type ColorTheme } from '../appearance/color-theme/color-theme-preference'
 import {
@@ -188,7 +189,10 @@ export function FyodorTerminalShell() {
   const auditMode = Boolean((criterionStudy === 'bundle' ? bundleSelection : auditSelection) && auditBars)
   const auditLevels = useMemo(() => auditSelection?.trial ? researchPriceLevels(auditSelection.episode, researchRule) : null,
     [auditSelection, researchRule])
-  const bundleLevels = bundleSelection?.trial ? bundlePriceLevels(bundleSelection.episode, bundleSelection.trial, bundleRule) : null
+  const bundleLevels = useMemo(() => {
+    if (!bundleData) return null
+    return deriveBundlePriceLevels(bundleData, bundleRule, bundleSelection)
+  }, [bundleSelection, bundleData, bundleRule])
   const currentAuditNote = auditSelection && researchData ? auditNotes.find((note) =>
     auditNoteKey(note.viewerSha256, note.family, note.signal, note.episodeId)
       === auditNoteKey(researchData.viewerSha256, researchRule.family, researchRule.signal, auditSelection.episode.id),
@@ -217,24 +221,8 @@ export function FyodorTerminalShell() {
   }, [researchData, researchRule, researchSelection.trials, legacyAuditBars, auditSelection])
   const bundleArrows = useMemo((): ResearchChartArrow[] => {
     if (!bundleData || !bundleAuditBars) return []
-    const first = Number(bundleAuditBars[0]?.time)
-    const last = Number(bundleAuditBars[bundleAuditBars.length - 1]?.time)
-    const visible = bundleResult.trials.map((trial) => ({ episode: bundleData.episodes[trial[0]], trial }))
-    if (bundleSelection?.trial && !visible.some(({ episode }) => episode.id === bundleSelection.episode.id)) {
-      visible.push(bundleSelection as { episode: BundleEpisode; trial: BundleTrial })
-    }
-    const pricedArrows: ResearchChartArrow[] = visible.filter(({ episode }) => episode.entryTime != null && episode.entryTime >= first && episode.entryTime <= last)
-      .map(({ episode, trial }) => ({ id: `bundle:${episode.id}`, time: episode.entryTime!,
-        entryPrice: episode.entryPrice!, direction: trial[1] > 0 ? 'long' : 'short' }))
-    const contextEpisode = bundleSelection?.episode
-    const contextDirection = contextEpisode && !bundleSelection?.trial ? bundleYoyOnlyDirection(contextEpisode) : null
-    if (contextEpisode && contextDirection && contextEpisode.entryTime != null && contextEpisode.entryPrice != null
-        && contextEpisode.entryTime >= first && contextEpisode.entryTime <= last) {
-      pricedArrows.push({ id: `bundle:${contextEpisode.id}`, time: contextEpisode.entryTime,
-        entryPrice: contextEpisode.entryPrice, direction: contextDirection, contextOnly: true })
-    }
-    return pricedArrows
-  }, [bundleData, bundleResult.trials, bundleAuditBars, bundleSelection])
+    return deriveBundleChartArrows(bundleData, bundleRule, bundleAuditBars, bundleSelection, bundleResult.trials)
+  }, [bundleData, bundleResult.trials, bundleAuditBars, bundleSelection, bundleRule])
 
   // Planned trade state for the active symbol
   const [prevSymbolForPlan, setPrevSymbolForPlan] = useState(selectedSymbol)
@@ -356,7 +344,10 @@ export function FyodorTerminalShell() {
     if (bundleData.candlesSha256.toLowerCase() !== researchData.candlesSha256.toLowerCase()) {
       setAuditRuleError('The CPI bundle and chart candle sources do not match.'); return
     }
-    if (trial && (bundleData.episodes[trial[0]] !== episode || !bundleAvailableTrials(bundleData, bundleRule).includes(trial))) return
+    if (trial) {
+      const idx = bundleData.episodes.indexOf(episode)
+      if (idx === -1 || getBundleEpisodeInclusion(bundleData, idx, bundleRule).trial !== trial) return
+    }
     try { snapshotAround(researchData, episode.entryTime, bundleRule.horizon, priorContextBars) }
     catch { setAuditRuleError(`This episode has no complete H${bundleRule.horizon} chart path.`); return }
     setSelectedSymbol('EURUSD')
@@ -396,11 +387,10 @@ export function FyodorTerminalShell() {
         validateBundleSelection(bundleData, rule)
         if (!bundleSelection.episode.entryTime) throw new Error('No chart entry candle for this release')
         snapshotAround(researchData, bundleSelection.episode.entryTime, rule.horizon, priorContextBars)
-        const nextTrial = bundleAvailableTrials(bundleData, rule).find((trial) =>
-          bundleData.episodes[trial[0]].id === bundleSelection.episode.id)
+        const next = deriveNextBundleSelection(bundleData, rule, bundleSelection)
         setBundleRule(rule)
         setAuditRuleError(null)
-        setBundleSelection({ episode: bundleSelection.episode, trial: nextTrial ?? null })
+        setBundleSelection(next)
         return
       } catch (error) {
         setAuditRuleError(error instanceof Error ? error.message : 'The requested CPI bundle view is unavailable.')

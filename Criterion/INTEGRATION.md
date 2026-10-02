@@ -1,35 +1,60 @@
 # Historical Criterion audit in the terminal
 
-## EURUSD CPI bundle chart snapshot: v1.1.0
+## EURUSD CPI bundle chart snapshot: v1.3.0
 
-The Criterion dock now offers a separate **USD CPI bundle V3** research
-snapshot. It is built from the Expanded Macro Research
-`USD_CPI_BUNDLE_V1/run_20260930_outcomes_v3` package. It contains 139
-in-cutoff EURUSD release episodes, all six disclosed A−P interpretations,
-H60/H120/H240, four SL ATR widths and thirteen TP ATR widths. These are
-alternative views of the same releases, **not independent trades**. The
-post-cutoff September 2026 episode is omitted. The dock's existing baseline
-CPI/NFP V2 remains a separate snapshot and is not overwritten.
+The Criterion dock offers a separate **USD CPI bundle V3** research snapshot
+(v1.3.0). It is built from the Expanded Macro Research
+`USD_CPI_BUNDLE_V1/run_20260930_outcomes_v3` package. It contains 139 in-cutoff
+EURUSD release episodes, all six disclosed A−P interpretations, H60/H120/H240,
+four SL ATR widths and thirteen TP ATR widths. These are alternative views of the
+same releases, **not independent trades**. The post-cutoff September 2026
+episode is omitted. The dock's existing baseline CPI/NFP V2 remains a separate
+snapshot and is not overwritten.
 
-The published artifact is
-`frontend/public/criterion/eurusd_cpi_bundle_v3.json`; its exact SHA-256,
-trial-ledger source hash and version are pinned in
-`frontend/src/criterion/cpi-bundle-manifest.json`. The browser verifies the
-snapshot hash before displaying it. The builder checks the pinned pre-outcome
-ledgers, V3 trial and summary hashes, pinned EURUSD candles, all 66,612 EURUSD
-trial rows and all 1,872 panel summaries. It refuses changed sources or
-unreconciled results. The chart reuses the baseline snapshot's EURUSD H1
-candles only after their source hashes agree.
+The published artifact is `frontend/public/criterion/eurusd_cpi_bundle_v3.json`;
+its exact SHA-256 (`63a85972b72afc1073b21bec4705e2f11fa777328ebc86231cd46698aafdf1e7`),
+trial-ledger source hash (`3c468999f7f876b1dc9ed01e278b389990a73e41f28141f0815c7e504f83273f`)
+and version (`1.3.0`) are pinned in `frontend/src/criterion/cpi-bundle-manifest.json`.
+The browser verifies the snapshot hash before displaying it. The builder copies
+research eligibility, source exclusions, coverage (including gap-free flags), and
+sign/concordance fields from the pinned `cpi_pair_expanded_ledger.csv`, verifying
+all 66,612 EURUSD trial rows and all 1,872 panel summaries.
 
-Each interpretation can be inspected at each ATR cell; changing controls
-retains the selected release and updates its arrow, chart levels and result.
-If that interpretation has no trial for the release, it displays **No trade**
-and removes the nominal SL/TP levels. The co-release filter excludes Jobless
-Claims timestamps from the summary while still allowing those episodes to be
-inspected with an **Excluded** label. The Arrow Result panel displays all four
-headline/core m/m and y/y A/P readings; no forecast is used in this bundle
-study. Notes are keyed to the V3 source hash, comparison and release, separate
-from old CPI/NFP notes. They remain browser-local until exported.
+The Criterion dock displays **“X match / 139 total”** using independent release
+counts, where a match requires rule eligibility, a priced trial for the selected
+cell, and inclusion under the active co-release setting. A list view filter
+offers **Matching only** (default) and **All releases**; toggling the list view
+never modifies calculation parameters, summaries, or co-release settings.
+
+All surfaces (counts, rows, validated trials, chart trade arrows, and level overlays)
+consume the unified inclusion decision (`getBundleEpisodeInclusion`), which enforces
+strict agreement between rule eligibility metadata and priced trial existence, failing
+closed on any unexplained discrepancy.
+
+Specific, rule-aware explanations map the source research exclusion hierarchy first:
+- Missing required monthly readings (e.g. 2025-12-18 where monthly readings are absent)
+- Zero change in the required series (explaining the 0.0 actual/previous reading change, not a zero CPI inflation rate)
+- Headline/core conflict rejected by this interpretation
+- Nonconflicting release under a conflict-only interpretation
+- Explicit source-recorded coverage failures: missing entry candle, invalid entry delay, insufficient ATR warmup, insufficient horizon bars, and path-gap failure
+- Excluded simultaneous Jobless Claims
+
+Source exclusion codes are evaluated first so that rule abstentions (e.g. H60 zero-signal)
+are never overwritten by coverage facts from other horizons (e.g. H240 bars).
+
+Overlapping explanations are preserved: when simultaneous Jobless Claims are
+excluded on an episode with absent monthly readings (e.g. 2025-12-18) or zero
+change, both reasons remain visible. Wording about the absence of simultaneous
+Jobless Claims replaces the former "Clean Release" label.
+
+The inclusion decision is shared across counts, rows, selection, results, chart
+arrows, and overlays:
+- Excluded Claims releases never appear as included trade results or selected-rule trade arrows.
+- Their nominal SL and TP chart lines are removed (`levels = null`).
+- Excluded historical trials retain their empirical simulation execution flags (`Same-Bar Dual Touch`, `Opening Gap`) when recorded in trial data, while remaining explicitly excluded and labeled as `Gross historical R`.
+- Candle inspection and browser-local audit notes are fully preserved during inspection and transitions.
+- Existing historical trials may be inspected in **All releases** only with an explicit **“Excluded from current selection”** label.
+- The YoY context cue on 2025-12-18 is preserved as descriptive context only without assigning trade counts, simulated outcomes, ATR barriers, or TP/SL badges, reflecting its Claims exclusion when applicable.
 
 This is historical, cost-excluded OHLC simulation with stop-first same-bar
 resolution. Exported Previous has not been verified as the value known at the
