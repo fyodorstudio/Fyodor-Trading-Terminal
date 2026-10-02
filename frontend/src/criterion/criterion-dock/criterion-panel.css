@@ -9,9 +9,9 @@
   justify-content: space-between;
   height: 28px;
   min-height: 28px;
-  padding: 0 10px 0 12px;
+  padding: 0 12px;
   border-bottom: 1px solid var(--border);
-  background: var(--surface-raised);
+  background: var(--surface-panel);
   cursor: pointer;
   user-select: none;
   transition: background 0.12s ease;
@@ -50,39 +50,13 @@
   font-size: 8px;
 }
 
-.criterion-accordion-toggle {
-  height: 19px;
-  padding: 0 6px;
-  border: 1px solid var(--border-strong);
-  border-radius: 4px;
-  background: var(--surface-panel);
-  color: var(--accent);
-  font-family: inherit;
-  font-size: 8.5px;
-  font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-  transition: all 0.12s ease;
-  box-sizing: border-box;
-}
-
-.criterion-accordion-toggle:hover {
-  background: var(--accent);
-  color: #ffffff;
-  border-color: var(--accent);
-}
-
 .criterion-readout-strip {
   display: flex;
   align-items: center;
   height: 24px;
   min-height: 24px;
-  padding: 0 8px;
-  background: var(--surface-inset);
+  padding: 0 12px;
+  background: var(--surface-panel);
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
   overflow-y: hidden;
@@ -103,9 +77,9 @@
 .criterion-readout-item {
   display: inline-flex;
   align-items: center;
-  padding: 0 7px;
-  height: 15px;
-  border-right: 1px solid var(--border-strong);
+  padding: 0 8px;
+  height: 14px;
+  border-right: 1px solid var(--border);
   color: var(--text-muted);
   font-size: 8.5px;
   font-weight: 700;
@@ -115,7 +89,7 @@
 }
 
 .criterion-readout-item:first-child {
-  padding-left: 2px;
+  padding-left: 0;
 }
 
 .criterion-readout-item:last-child {
@@ -215,7 +189,22 @@
 .criterion-stats { display: flex; flex-wrap: wrap; gap: 4px 8px; padding: 7px 0; font-size: 9px; color: var(--text-muted); }
 .criterion-stats b { color: var(--text-strong); }
 .criterion-caveat { margin: 8px 0 0; color: var(--text-muted); font-size: 9px; line-height: 1.4; }
-.criterion-list-header { display: flex; justify-content: space-between; align-items: center; padding: 9px 12px; border-bottom: 1px solid var(--border); color: var(--text-strong); font-size: 10px; }
+.criterion-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--surface-inset);
+  border-top: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border-strong);
+  margin-top: -1px;
+  color: var(--text-strong);
+  font-size: 10px;
+}
+
+:root[data-theme='dark'] .criterion-list-header {
+  background: var(--surface-hover);
+}
 .criterion-list-header span { color: var(--text-muted); font-size: 9px; }
 .criterion-filter-bar {
   display: flex;

@@ -100,17 +100,6 @@ export function BaselineCriterionPanel({
               <strong>Parameters</strong>
               <span>v{reportManifest.version} · exploratory</span>
             </div>
-            <button
-              type="button"
-              className="criterion-accordion-toggle"
-              onClick={(e) => {
-                e.stopPropagation()
-                setControlsExpanded((prev) => !prev)
-              }}
-              aria-label={controlsExpanded ? 'Collapse parameters' : 'Expand parameters'}
-            >
-              {controlsExpanded ? 'Hide ▴' : 'Edit ▾'}
-            </button>
           </div>
 
           {controlsExpanded ? (
