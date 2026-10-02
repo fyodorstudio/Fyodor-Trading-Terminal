@@ -3,7 +3,6 @@ import type { SymbolQuote } from '../../market-data/contracts/SymbolQuote'
 import { MarketWatchPanel } from '../../market-data/market-watch/MarketWatchPanel'
 import type { FeedStatus } from '../../market-data/mt5-feed/use-mt5-market-data'
 import { CriterionPanel } from '../../criterion/criterion-dock/CriterionPanel'
-import { CpiBundleCriterionPanel } from '../../criterion/criterion-dock/CpiBundleCriterionPanel'
 import type { AuditNote } from '../../criterion/arrow-result/audit-notes'
 import type { PriorContextBars, ResearchAuditData, ResearchEpisode, ResearchRule, ResearchSummary, ResearchTrial } from '../../criterion/audit-data'
 import type { BundleEpisode, BundleRule, BundleSnapshot, BundleSummary, BundleTrial } from '../../criterion/cpi-bundle-data'
@@ -105,29 +104,30 @@ export function LeftDockPanel({
             onSelect={onSelectSymbol}
           />
         )}
-        {activeWindow === 'criterion' && <div className="criterion-study-container">
-          <div className="criterion-study-switch"><label>Research snapshot
-            <select value={criterionStudy} onChange={(event) => onCriterionStudyChange(event.target.value as 'baseline' | 'bundle')}>
-              <option value="baseline">CPI / NFP baseline V2</option>
-              <option value="bundle">USD CPI bundle V3</option>
-            </select></label></div>
-          {criterionStudy === 'baseline' ? <CriterionPanel
-          data={criterionData}
-          error={criterionError}
-          rule={criterionRule}
-          summary={criterionSummary}
-          priorContextBars={priorContextBars}
-          onPriorContextChange={onPriorContextChange}
-          selectedEpisodeId={selectedResearchEpisodeId}
-          savedAuditNotes={savedAuditNotes}
-          onRuleChange={onCriterionRuleChange}
-          onSelectEpisode={onSelectResearchEpisode}
-          /> : <CpiBundleCriterionPanel
-            data={bundleData} error={bundleError} rule={bundleRule} summary={bundleSummary}
-            priorContextBars={priorContextBars} onPriorContextChange={onPriorContextChange}
-            selectedEpisodeId={selectedBundleEpisodeId} notes={bundleNotes}
-            onRuleChange={onBundleRuleChange} onSelectEpisode={onSelectBundleEpisode}
-          />}</div>}
+        {activeWindow === 'criterion' && (
+          <CriterionPanel
+            study={criterionStudy}
+            onStudyChange={onCriterionStudyChange}
+            priorContextBars={priorContextBars}
+            onPriorContextChange={onPriorContextChange}
+            baselineData={criterionData}
+            baselineError={criterionError}
+            baselineRule={criterionRule}
+            baselineSummary={criterionSummary}
+            selectedResearchEpisodeId={selectedResearchEpisodeId}
+            savedAuditNotes={savedAuditNotes}
+            onBaselineRuleChange={onCriterionRuleChange}
+            onSelectResearchEpisode={onSelectResearchEpisode}
+            bundleData={bundleData}
+            bundleError={bundleError}
+            bundleRule={bundleRule}
+            bundleSummary={bundleSummary}
+            selectedBundleEpisodeId={selectedBundleEpisodeId}
+            bundleNotes={bundleNotes}
+            onBundleRuleChange={onBundleRuleChange}
+            onSelectBundleEpisode={onSelectBundleEpisode}
+          />
+        )}
       </div>
     </aside>
   )

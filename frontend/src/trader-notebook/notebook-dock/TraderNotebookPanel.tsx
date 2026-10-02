@@ -83,6 +83,10 @@ export function TraderNotebookPanel({
   const [note, setNote] = useState<string>(() => {
     return localStorage.getItem(`trader_notebook_note_${selectedSymbol}`) || ''
   })
+  const [savedNote, setSavedNote] = useState<string>(() => {
+    return localStorage.getItem(`trader_notebook_note_${selectedSymbol}`) || ''
+  })
+  const [isNoteDirty, setIsNoteDirty] = useState(false)
   const [saveStatus, setSaveStatus] = useState<string>('Saved')
   const [regSuccessMsg, setRegSuccessMsg] = useState<string | null>(null)
   const [rrDropdownOpen, setRrDropdownOpen] = useState(false)
@@ -93,8 +97,10 @@ export function TraderNotebookPanel({
   // Handle symbol change
   if (selectedSymbol !== prevSymbol) {
     setPrevSymbol(selectedSymbol)
-    const saved = localStorage.getItem(`trader_notebook_note_${selectedSymbol}`)
-    setNote(saved || '')
+    const saved = localStorage.getItem(`trader_notebook_note_${selectedSymbol}`) || ''
+    setNote(saved)
+    setSavedNote(saved)
+    setIsNoteDirty(false)
     setSaveStatus('Saved')
     setRegSuccessMsg(null)
     setTargetRr(null)
@@ -117,8 +123,16 @@ export function TraderNotebookPanel({
   const handleNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value
     setNote(val)
-    localStorage.setItem(`trader_notebook_note_${selectedSymbol}`, val)
-    setSaveStatus('Auto-saved')
+    const dirty = val !== savedNote
+    setIsNoteDirty(dirty)
+    setSaveStatus(dirty ? 'Unsaved' : 'Saved')
+  }
+
+  const handleSaveNote = () => {
+    localStorage.setItem(`trader_notebook_note_${selectedSymbol}`, note)
+    setSavedNote(note)
+    setIsNoteDirty(false)
+    setSaveStatus('Saved')
   }
 
   const precision = quote?.precision ?? 5
@@ -673,8 +687,18 @@ export function TraderNotebookPanel({
               <span className="meta-sep" aria-hidden="true">·</span>
               <span className="meta-item meta-durable">Durable</span>
               <span className="meta-sep" aria-hidden="true">·</span>
-              <span className="meta-item meta-status">● {saveStatus}</span>
+              <span className={`meta-item meta-status${isNoteDirty ? ' unsaved' : ''}`}>● {saveStatus}</span>
             </div>
+
+            <button
+              type="button"
+              className={`save-note-btn-compact ${isNoteDirty ? 'ready' : 'saved'}`}
+              onClick={handleSaveNote}
+              disabled={!isNoteDirty}
+              title={isNoteDirty ? 'Save note (Ctrl+Enter)' : 'Note saved'}
+            >
+              {isNoteDirty ? '💾 Save Note' : '✓ Saved'}
+            </button>
 
             {!selectedArrow && (
               <button
@@ -695,7 +719,13 @@ export function TraderNotebookPanel({
             className="journal-textarea"
             value={note}
             onChange={handleNoteChange}
-            placeholder={`Type your trade thesis, catalyst observation, technical structure, or post-trade audit notes for ${selectedSymbol}...\n\nAll notes are automatically preserved locally and durable across browser refresh.`}
+            onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && isNoteDirty) {
+                e.preventDefault()
+                handleSaveNote()
+              }
+            }}
+            placeholder={`Type your trade thesis, catalyst observation, technical structure, or post-trade audit notes for ${selectedSymbol}...\n\nClick "Save Note" or press Ctrl+Enter to preserve locally.`}
             aria-label="Trader journal note"
           />
         </div>

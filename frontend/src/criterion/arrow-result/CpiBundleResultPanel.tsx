@@ -23,6 +23,23 @@ function formatFlag(text: string) {
 export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFailed, onNoteChange,
   onReturnLive }: Props) {
   const [copyStatus, setCopyStatus] = useState('')
+  const [prevNote, setPrevNote] = useState(note)
+  const [draftNote, setDraftNote] = useState(note)
+  const [justSaved, setJustSaved] = useState(false)
+
+  if (note !== prevNote) {
+    setPrevNote(note)
+    setDraftNote(note)
+    setJustSaved(false)
+  }
+
+  const isDirty = draftNote !== note
+
+  const handleSaveNote = () => {
+    onNoteChange(draftNote)
+    setJustSaved(true)
+  }
+
   if (!episode) return <div className="arrow-result-empty">Select a CPI bundle episode in Criterion to inspect it.</div>
   const levels = trial ? bundlePriceLevels(episode, trial, rule) : null
   const yoyDirection = !trial ? bundleYoyOnlyDirection(episode) : null
@@ -34,7 +51,7 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
         `CPI bundle / EURUSD / ${episode.releaseText} / ${comparison}`,
         `Episode: ${episode.id}`,
         `Rule: ${rule.panel}, H${rule.horizon}, SL ${rule.stop} ATR, TP ${rule.target} ATR`,
-        '', note,
+        '', draftNote,
       ].join('\n'))
       setCopyStatus('Copied')
     } catch { setCopyStatus('Copy unavailable; use Export all') }
@@ -117,19 +134,57 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
       </div>
     </div>
     <div className="arrow-result-col arrow-result-journal">
-      <header className="arrow-result-col-header"><span className="arrow-result-eyebrow">Trader Journal &amp; Thesis</span>
-        <span className={`arrow-result-save-status${saveFailed ? ' failed' : ''}`}>
-          {saveFailed ? 'Not saved — export a copy' : note.trim() ? '● Saved locally' : 'No note yet'}</span></header>
-      <label className="arrow-result-note-label" htmlFor="bundle-audit-note">Audit note · {comparison} / this release</label>
-      <textarea id="bundle-audit-note" className="arrow-result-note" value={note}
-        onChange={(event) => onNoteChange(event.target.value)}
-        placeholder="What does the EURUSD chart show? Note zones, competing events, and reasons to keep or reject this case…" />
-      <div className="arrow-result-journal-actions">
-        <button type="button" onClick={copyNote} disabled={!note.trim()}>Copy this note</button>
-        <button type="button" onClick={() => downloadAuditNotes(notes)} disabled={notes.length === 0}>Export all notes (.md)</button>
-        <span role="status">{copyStatus}</span>
+      <header className="arrow-result-col-header">
+        <div className="arrow-result-header-title">
+          <span className="arrow-result-eyebrow">JOURNAL &amp; THESIS</span>
+        </div>
+        <span className={`arrow-result-rule-chip save-status ${saveFailed ? 'failed' : isDirty ? 'unsaved' : note.trim() ? 'saved' : 'empty'}`}>
+          {saveFailed ? 'Failed to save' : isDirty ? '● Unsaved' : note.trim() ? '● Saved' : 'No note'}
+        </span>
+      </header>
+      <div className="arrow-result-journal-subbar">
+        <span className="arrow-result-journal-meta">{episode.releaseText} release</span>
+        <div className="arrow-result-journal-actions">
+          <button
+            type="button"
+            className={`save-note-btn${isDirty ? ' ready' : ''}`}
+            onClick={handleSaveNote}
+            disabled={!isDirty}
+            title={isDirty ? 'Save note (Ctrl+Enter)' : 'Note saved'}
+          >
+            {isDirty ? 'Save Note' : justSaved ? 'Saved' : 'Save Note'}
+          </button>
+          <button type="button" onClick={copyNote} disabled={!draftNote.trim()}>Copy</button>
+          <button type="button" onClick={() => downloadAuditNotes(notes)} disabled={notes.length === 0}>
+            Export .md{notes.length > 0 ? ` (${notes.length})` : ''}
+          </button>
+          {copyStatus && <span role="status">{copyStatus}</span>}
+        </div>
       </div>
-      <p className="arrow-result-sharing">Notes survive refresh in this browser only. Export Markdown to share them with Codex later.</p>
+      <textarea
+        id="bundle-audit-note"
+        className="arrow-result-note"
+        value={draftNote}
+        onChange={(event) => {
+          setDraftNote(event.target.value)
+          setJustSaved(false)
+        }}
+        onKeyDown={(event) => {
+          if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && isDirty) {
+            event.preventDefault()
+            handleSaveNote()
+          }
+        }}
+        placeholder="Insert note"
+      />
+      <div className="arrow-result-evidence-footer">
+        <div className="arrow-result-caveat-line" title="Notes survive refresh in this browser only. Export Markdown to share them with Codex later.">
+          <span className="arrow-result-info-icon" aria-hidden="true">ⓘ</span>
+          <span className="arrow-result-caveat-text">
+            {notes.length} {notes.length === 1 ? 'note' : 'notes'} in localStorage · Export to share with Codex
+          </span>
+        </div>
+      </div>
     </div>
   </section>
 }

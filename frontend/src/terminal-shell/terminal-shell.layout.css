@@ -157,6 +157,7 @@
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--warning); }
 .status-dot.live { background: var(--positive); }
 .status-dot.error { background: var(--negative); }
+.status-clock { color: var(--text-strong); font-variant-numeric: tabular-nums; font-weight: 650; white-space: nowrap; }
 .status-selection { font-variant-numeric: tabular-nums; }
 .status-actions { margin-left: auto; gap: 5px; }
 

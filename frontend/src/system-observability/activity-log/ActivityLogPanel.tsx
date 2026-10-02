@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from 'react'
-import { formatAppTimestamp, timeDisplayLabel, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
+import { formatAppTimestamp, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import { activitySources, type ActivityLogEntry, type ActivitySource } from './activity-log-entry'
 import { readVisibleActivitySources, saveVisibleActivitySources } from './activity-source-preference'
 import './activity-log-panel.css'
@@ -8,10 +8,11 @@ type ActivityLogPanelProps = {
   entries: ActivityLogEntry[]
   timeDisplay: TimeDisplayPreference
   onClear: () => void
+  renderHeartbeat?: (actions: ReactNode) => ReactNode
   heartbeat?: ReactNode
 }
 
-export function ActivityLogPanel({ entries, timeDisplay, onClear, heartbeat }: ActivityLogPanelProps) {
+export function ActivityLogPanel({ entries, timeDisplay, onClear, renderHeartbeat, heartbeat }: ActivityLogPanelProps) {
   const [visibleSources, setVisibleSources] = useState<Set<ActivitySource>>(readVisibleActivitySources)
   const visibleEntries = useMemo(
     () => entries.filter((entry) => visibleSources.has(entry.source)),
@@ -28,30 +29,28 @@ export function ActivityLogPanel({ entries, timeDisplay, onClear, heartbeat }: A
     })
   }
 
+  const actions = (
+    <div className="activity-heading-actions" onClick={(event) => event.stopPropagation()}>
+      <details className="activity-source-filter">
+        <summary>Sources <span>{visibleSources.size}/{activitySources.length}</span></summary>
+        <div>
+          {activitySources.map((source) => (
+            <label key={source}>
+              <input type="checkbox" checked={visibleSources.has(source)} onChange={() => toggleSource(source)} />
+              {source}
+            </label>
+          ))}
+        </div>
+      </details>
+      <button type="button" onClick={onClear} disabled={entries.length === 0}>Clear</button>
+    </div>
+  )
+
+  const heartbeatNode = renderHeartbeat ? renderHeartbeat(actions) : heartbeat
+
   return (
     <section className="activity-panel" aria-label="Activity log">
-      <header className="activity-panel-heading">
-        <div>
-          <strong>Activity log</strong>
-          <span>Current session · {timeDisplayLabel(timeDisplay)} · newest first</span>
-        </div>
-        <div className="activity-heading-actions">
-          <details className="activity-source-filter">
-            <summary>Sources <span>{visibleSources.size}/{activitySources.length}</span></summary>
-            <div>
-              {activitySources.map((source) => (
-                <label key={source}>
-                  <input type="checkbox" checked={visibleSources.has(source)} onChange={() => toggleSource(source)} />
-                  {source}
-                </label>
-              ))}
-            </div>
-          </details>
-          <button type="button" onClick={onClear} disabled={entries.length === 0}>Clear</button>
-        </div>
-      </header>
-
-      {heartbeat}
+      {heartbeatNode}
 
       <div className="activity-table" role="log" aria-live="polite">
         <div className="activity-table-columns" aria-hidden="true">

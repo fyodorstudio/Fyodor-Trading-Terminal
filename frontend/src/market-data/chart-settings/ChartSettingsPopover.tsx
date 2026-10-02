@@ -9,6 +9,7 @@ import {
 import {
   defaultChartAppearance,
   type ChartAppearance,
+  type ScrollbarStyle,
 } from './chart-appearance-preference'
 import './chart-settings-popover.css'
 
@@ -73,6 +74,18 @@ export function ChartSettingsPopover({
           <label className="range-setting">
             <span><strong>Default candle spacing</strong><small>{appearance.barSpacing}px</small></span>
             <input type="range" min="3" max="16" step="1" value={appearance.barSpacing} onChange={(event) => onChange({ ...appearance, barSpacing: Number(event.target.value) })} />
+          </label>
+          <label className="select-setting">
+            <span><strong>Scrollbar style</strong><small>Terminal scrollbars</small></span>
+            <select
+              value={appearance.scrollbarStyle}
+              onChange={(event) => onChange({ ...appearance, scrollbarStyle: event.target.value as ScrollbarStyle })}
+            >
+              <option value="adaptive">Adaptive (Slate · Blue glow)</option>
+              <option value="charcoal">Charcoal / Black</option>
+              <option value="blue">Terminal Blue</option>
+              <option value="red">Crimson Red</option>
+            </select>
           </label>
         </div>
 

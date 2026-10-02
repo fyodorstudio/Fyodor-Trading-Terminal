@@ -11,21 +11,106 @@ type MarketWatchPanelProps = {
   onSelect: (symbol: string) => void
 }
 
+type MarketCategory = 'all' | 'majors' | 'crosses' | 'metals' | 'indices' | 'commodities' | 'crypto'
+
+const majorPairs = new Set(['EURUSD', 'GBPUSD', 'USDJPY', 'USDCHF', 'AUDUSD', 'USDCAD', 'NZDUSD'])
+const fxCurrencies = new Set(['EUR', 'GBP', 'USD', 'JPY', 'CHF', 'AUD', 'CAD', 'NZD'])
+
+function classifySymbol(rawSymbol: string): MarketCategory {
+  const s = rawSymbol.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  if (s.startsWith('XAU') || s.startsWith('XAG') || s.startsWith('XPT') || s.startsWith('XPD') || s.includes('GOLD') || s.includes('SILVER')) {
+    return 'metals'
+  }
+  if (s.startsWith('BTC') || s.startsWith('ETH') || s.startsWith('SOL') || s.startsWith('XRP') || s.startsWith('LTC') || s.startsWith('DOGE') || s.startsWith('ADA')) {
+    return 'crypto'
+  }
+  if (
+    s.includes('US500') || s.includes('SPX') || s.includes('US30') || s.includes('DJI') ||
+    s.includes('USTEC') || s.includes('NAS100') || s.includes('GER40') || s.includes('DAX') ||
+    s.includes('UK100') || s.includes('FTSE') || s.includes('JP225') || s.includes('HK50') ||
+    s.includes('STOXX')
+  ) {
+    return 'indices'
+  }
+  if (s.includes('OIL') || s.includes('BRENT') || s.includes('WTI') || s.includes('GAS')) {
+    return 'commodities'
+  }
+  const base6 = s.slice(0, 6)
+  if (majorPairs.has(base6)) {
+    return 'majors'
+  }
+  if (base6.length === 6 && fxCurrencies.has(base6.slice(0, 3)) && fxCurrencies.has(base6.slice(3, 6))) {
+    return 'crosses'
+  }
+  return 'all'
+}
+
+const symbolClassificationCache = new Map<string, MarketCategory>()
+
+function getSymbolCategory(rawSymbol: string): MarketCategory {
+  const cached = symbolClassificationCache.get(rawSymbol)
+  if (cached !== undefined) return cached
+  const category = classifySymbol(rawSymbol)
+  symbolClassificationCache.set(rawSymbol, category)
+  return category
+}
+
+const categoryLabels: Record<MarketCategory, string> = {
+  all: 'All',
+  majors: 'Majors',
+  crosses: 'Crosses',
+  metals: 'Metals',
+  indices: 'Indices',
+  commodities: 'Energy',
+  crypto: 'Crypto',
+}
+
 function formatPrice(value: number, precision: number) {
   return value.toFixed(precision)
 }
 
 export function MarketWatchPanel({ symbols, selectedSymbol, status, error, onSelect }: MarketWatchPanelProps) {
   const [query, setQuery] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<MarketCategory>('all')
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<MarketCategory, number> = {
+      all: symbols.length,
+      majors: 0,
+      crosses: 0,
+      metals: 0,
+      indices: 0,
+      commodities: 0,
+      crypto: 0,
+    }
+    for (const quote of symbols) {
+      const cat = getSymbolCategory(quote.symbol)
+      if (cat !== 'all') {
+        counts[cat] = (counts[cat] ?? 0) + 1
+      }
+    }
+    return counts
+  }, [symbols])
+
+  const availableCategories = useMemo(() => {
+    const order: MarketCategory[] = ['all', 'majors', 'crosses', 'metals', 'indices', 'commodities', 'crypto']
+    return order.filter((cat) => cat === 'all' || categoryCounts[cat] > 0)
+  }, [categoryCounts])
+
   const filteredSymbols = useMemo(() => {
     const normalized = query.trim().toLowerCase()
-    if (!normalized) return symbols
-    return symbols.filter(
-      (quote) =>
+    return symbols.filter((quote) => {
+      if (selectedCategory !== 'all') {
+        const cat = getSymbolCategory(quote.symbol)
+        if (cat !== selectedCategory) return false
+      }
+      if (!normalized) return true
+      return (
         quote.symbol.toLowerCase().includes(normalized) ||
-        quote.description.toLowerCase().includes(normalized),
-    )
-  }, [query, symbols])
+        quote.description.toLowerCase().includes(normalized)
+      )
+    })
+  }, [query, selectedCategory, symbols])
 
   return (
     <aside className="market-watch" aria-label="Market Watch">
@@ -46,6 +131,24 @@ export function MarketWatchPanel({ symbols, selectedSymbol, status, error, onSel
           aria-label="Search symbols"
         />
       </label>
+
+      {availableCategories.length > 1 && (
+        <div className="market-watch-categories" role="tablist" aria-label="Symbol category filter">
+          {availableCategories.map((cat) => (
+            <button
+              key={cat}
+              type="button"
+              role="tab"
+              aria-selected={selectedCategory === cat}
+              className={`market-watch-category-pill${selectedCategory === cat ? ' active' : ''}`}
+              onClick={() => setSelectedCategory(cat)}
+            >
+              <span>{categoryLabels[cat]}</span>
+              <small>{categoryCounts[cat]}</small>
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="market-watch-columns" aria-hidden="true">
         <span>Symbol</span>

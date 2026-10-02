@@ -1,5 +1,11 @@
+import { useEffect, useState } from 'react'
 import { ColorThemeButton } from '../appearance/color-theme/ColorThemeButton'
 import type { ColorTheme } from '../appearance/color-theme/color-theme-preference'
+import {
+  formatAppTimestamp,
+  timeDisplayLabel,
+  type TimeDisplayPreference,
+} from '../appearance/time-display/time-display-preference'
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { BottomDockWindow } from '../workspace-docking/bottom-dock/bottom-dock-window'
 
@@ -16,6 +22,7 @@ type TerminalStatusBarProps = {
   settingsOpen: boolean
   calendarStatus: string
   calendarEventCount: number
+  timeDisplay: TimeDisplayPreference
   onToggleBottomDock: (window: BottomDockWindow) => void
   onThemeChanged: (theme: ColorTheme) => void
   onToggleSettings: () => void
@@ -34,10 +41,18 @@ export function TerminalStatusBar({
   settingsOpen,
   calendarStatus,
   calendarEventCount,
+  timeDisplay,
   onToggleBottomDock,
   onThemeChanged,
   onToggleSettings,
 }: TerminalStatusBarProps) {
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+
   const calendarBadge = calendarStatus === 'live'
     ? calendarEventCount
     : calendarStatus === 'stale' || calendarStatus === 'unavailable'
@@ -48,6 +63,7 @@ export function TerminalStatusBar({
   return (
     <footer className="status-bar">
       <span className="status-message"><i className={`status-dot ${sourceState}`} /> {sourceLabel} · {sourceSymbolCount} symbols</span>
+      <span className="status-clock">{formatAppTimestamp(now, timeDisplay, 'time')} · {timeDisplayLabel(timeDisplay)}</span>
       <span className="status-selection">{selectedSymbol} · {timeframe} · {barCount} bars</span>
       <div className="status-actions">
         <button className={`status-action${bottomDockWindow === 'notebook' ? ' active' : ''}`} type="button" onClick={() => onToggleBottomDock('notebook')} aria-expanded={bottomDockWindow === 'notebook'}>

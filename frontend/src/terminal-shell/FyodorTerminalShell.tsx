@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ArrowResultPanel } from '../criterion/arrow-result/ArrowResultPanel'
+import { BaselineResultPanel } from '../criterion/arrow-result/BaselineResultPanel'
 import { CpiBundleResultPanel } from '../criterion/arrow-result/CpiBundleResultPanel'
 import { auditNoteKey, readAuditNotes, writeAuditNotes, type AuditNote } from '../criterion/arrow-result/audit-notes'
 import reportManifest from '../criterion/report-manifest.json'
@@ -10,7 +10,7 @@ import {
 } from '../criterion/audit-data'
 import { bundleAvailableTrials, bundlePriceLevels, bundleYoyOnlyDirection, validateBundleSelection,
   type BundleEpisode, type BundleRule, type BundleSnapshot, type BundleTrial } from '../criterion/cpi-bundle-data'
-import { readColorTheme, type ColorTheme } from '../appearance/color-theme/color-theme-preference'
+import { applyColorTheme, readColorTheme, type ColorTheme } from '../appearance/color-theme/color-theme-preference'
 import {
   readTimeDisplayPreference,
   saveTimeDisplayPreference,
@@ -97,6 +97,14 @@ export function FyodorTerminalShell() {
   const [auditNoteSaveFailed, setAuditNoteSaveFailed] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { entries, appendActivity, clearActivity } = useActivityLog()
+
+  useEffect(() => {
+    applyColorTheme(theme)
+  }, [theme])
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-scrollbar', chartAppearance.scrollbarStyle ?? 'adaptive')
+  }, [chartAppearance.scrollbarStyle])
 
   useEffect(() => {
     if (leftDockWindow !== 'criterion' || researchData || researchError) return
@@ -680,13 +688,14 @@ export function FyodorTerminalShell() {
               entries={entries}
               timeDisplay={timeDisplay}
               onClear={clearActivity}
-              heartbeat={(
+              renderHeartbeat={(actions) => (
                 <DataHeartbeatPanel
                   health={bridge.health}
                   reachable={bridge.reachable}
                   lastContactAt={bridge.lastContactAt}
                   roundTripMs={bridge.roundTripMs}
                   probeStartedAt={bridge.probeStartedAt}
+                  clockExtra={actions}
                 />
               )}
             />
@@ -704,7 +713,7 @@ export function FyodorTerminalShell() {
             />
           )}
           {bottomDockWindow === 'arrow-result' && criterionStudy === 'baseline' && (
-            <ArrowResultPanel key={`${researchRule.family}:${researchRule.signal}:${auditSelection?.episode.id ?? ''}`}
+            <BaselineResultPanel key={`${researchRule.family}:${researchRule.signal}:${auditSelection?.episode.id ?? ''}`}
               episode={auditSelection?.episode ?? null} trial={auditSelection?.trial ?? null}
               rule={researchRule} note={currentAuditNote?.text ?? ''} notes={currentDatasetNotes}
               saveFailed={auditNoteSaveFailed} onNoteChange={saveAuditNote}
@@ -733,6 +742,7 @@ export function FyodorTerminalShell() {
         settingsOpen={settingsOpen}
         calendarStatus={calendarStatus}
         calendarEventCount={calendar.events.length}
+        timeDisplay={timeDisplay}
         onToggleBottomDock={toggleBottomDock}
         onThemeChanged={changeTheme}
         onToggleSettings={() => setSettingsOpen((current) => !current)}

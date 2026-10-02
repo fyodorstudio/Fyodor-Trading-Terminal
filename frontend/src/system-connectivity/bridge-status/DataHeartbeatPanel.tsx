@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { formatUtcOffset } from '../../appearance/time-display/time-display-preference'
 import type { BridgeHealth, BridgeOperation } from './bridge-contract'
 import './data-heartbeat-panel.css'
@@ -9,6 +9,7 @@ type DataHeartbeatPanelProps = {
   lastContactAt: number | null
   roundTripMs: number | null
   probeStartedAt: number | null
+  clockExtra?: ReactNode
 }
 
 function elapsedLabel(milliseconds: number | null) {
@@ -48,7 +49,7 @@ function saveVerifiedClock(verified: boolean): void {
   }
 }
 
-export function DataHeartbeatPanel({ health, reachable, lastContactAt, roundTripMs, probeStartedAt }: DataHeartbeatPanelProps) {
+export function DataHeartbeatPanel({ health, reachable, lastContactAt, roundTripMs, probeStartedAt, clockExtra }: DataHeartbeatPanelProps) {
   const [now, setNow] = useState(() => Date.now())
   const [clockVerified, setClockVerified] = useState(readVerifiedClock)
 
@@ -137,6 +138,7 @@ export function DataHeartbeatPanel({ health, reachable, lastContactAt, roundTrip
         ? `Broker ${formatUtcOffset(calendar.server_utc_offset_seconds / 60)} · verified (click to reset)`
         : `Broker ${formatUtcOffset(calendar.server_utc_offset_seconds / 60)} · click to verify`,
       onClick: calendar?.clock_trust === 'observed' && calendar.status === 'live' ? toggleClockVerification : undefined,
+      extra: clockExtra,
     },
   ]
   return (
@@ -149,7 +151,10 @@ export function DataHeartbeatPanel({ health, reachable, lastContactAt, roundTrip
           role={card.onClick ? 'button' : undefined}
           tabIndex={card.onClick ? 0 : undefined}
         >
-          <span>{card.label}</span>
+          <div className="heartbeat-card-header">
+            <span>{card.label}</span>
+            {card.extra && <div className="heartbeat-card-extra" onClick={(e) => e.stopPropagation()}>{card.extra}</div>}
+          </div>
           <strong><i />{card.value}</strong>
           <small title={card.detail}>{card.detail}</small>
         </article>

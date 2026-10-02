@@ -17,7 +17,17 @@
   background: var(--surface-panel);
 }
 
+.heartbeat-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  min-height: 20px;
+}
+
+.heartbeat-card-header > span,
 .heartbeat-card > span { color: var(--text-faint); font-size: 8px; font-weight: 750; letter-spacing: 0.04em; text-transform: uppercase; }
+.heartbeat-card-extra { display: flex; align-items: center; }
 .heartbeat-card strong { min-width: 0; display: flex; align-items: center; gap: 5px; overflow: hidden; color: var(--text-strong); font-size: 10px; text-overflow: ellipsis; white-space: nowrap; }
 .heartbeat-card strong i { width: 6px; height: 6px; flex: 0 0 auto; border-radius: 50%; background: var(--text-faint); }
 .heartbeat-card small { overflow: hidden; color: var(--text-muted); font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
