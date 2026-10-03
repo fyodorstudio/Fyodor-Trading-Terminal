@@ -7,26 +7,23 @@ export const eventPageSize = 8
 export function eventDate(group: TimelineEventGroup): string { return group.releaseTimeText.slice(0, 10) }
 type Selection = { tab: EventBrowserTab; date: string | null; query: string; page: number }
 
-function selectionForGroup(group: TimelineEventGroup, view: TimelineEventAnnotations): Selection {
-  const filteredOut = !view.groups.some((candidate) => candidate.id === group.id)
-  const tab = filteredOut ? 'selected' : group.section
-  const dayGroups = (filteredOut ? view.selectedGroups : view.groups).filter((candidate) =>
-    (filteredOut || candidate.section === group.section) && eventDate(candidate) === eventDate(group))
-  return { tab, date: eventDate(group), query: '',
+function selectionForGroup(group: TimelineEventGroup, groups: TimelineEventGroup[]): Selection {
+  const dayGroups = groups.filter((candidate) => candidate.section === group.section && eventDate(candidate) === eventDate(group))
+  return { tab: group.section, date: eventDate(group), query: '',
     page: Math.floor(dayGroups.findIndex((candidate) => candidate.id === group.id) / eventPageSize) }
 }
 
 // Browsing state only: changing tabs/dates/pages never changes chart selections.
 export function useTimelineEventBrowser(view: TimelineEventAnnotations, hasAnchor: boolean) {
-  const focused = view.windowGroups.find((group) => group.id === view.focusedGroupId)
-  const [selection, setSelection] = useState<Selection>(() => focused ? selectionForGroup(focused, view) :
+  const focused = view.groups.find((group) => group.id === view.focusedGroupId)
+  const [selection, setSelection] = useState<Selection>(() => focused ? selectionForGroup(focused, view.groups) :
     { tab: hasAnchor ? 'anchor' : 'after', date: null, query: '', page: 0 })
   const [seenFocus, setSeenFocus] = useState(view.focusedGroupId)
   // A chart click is a new navigation request. Update before committing so the
   // target tab/day/page mounts immediately instead of scrolling a hidden row.
   if (seenFocus !== view.focusedGroupId) {
     setSeenFocus(view.focusedGroupId)
-    if (focused) setSelection(selectionForGroup(focused, view))
+    if (focused) setSelection(selectionForGroup(focused, view.groups))
   }
 
   const counts = {

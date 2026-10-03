@@ -321,15 +321,35 @@
 .timeline-popover button:hover { background: var(--surface-inset); }
 .timeline-popover button:disabled { opacity: .45; cursor: default; }
 .timeline-popover-heading button { border: 0; font-size: 18px; padding: 0 5px; }
-.timeline-family-presets { display: flex; gap: 5px; margin-bottom: 8px; flex-shrink: 0; }
-.timeline-family-presets button[aria-pressed="true"] { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
-.timeline-family-list { min-height: 80px; overflow-y: auto; flex: 1 1 auto; }
-.timeline-family-option { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; }
-.timeline-family-option label { display: flex; align-items: center; gap: 7px; cursor: pointer; }
-.timeline-family-option input { accent-color: var(--accent); }
-.timeline-family-option small { display: block; margin-top: 2px; font-size: 9px; color: var(--text-muted); }
-.timeline-family-option select { width: 104px; flex-shrink: 0; }
-.timeline-family-extras { border-top: 1px solid var(--border); margin-top: 5px; padding-top: 12px; }
+.timeline-filter-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; flex-shrink: 0; }
+.timeline-filter-toolbar > div { display: flex; gap: 14px; }
+.timeline-filter-toolbar label { display: flex; align-items: center; gap: 5px; }
+.timeline-family-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; min-height: 80px; overflow-y: auto; flex: 1 1 auto; }
+.timeline-family-column h3 { font-size: 11px; margin: 0 0 5px; padding-bottom: 7px; border-bottom: 1px solid var(--border); }
+.timeline-family-column fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
+.timeline-family-column.inactive fieldset { opacity: .5; }
+.timeline-family-choice { display: flex; align-items: flex-start; gap: 7px; padding: 6px 0; cursor: pointer; }
+.timeline-family-choice input { margin-top: 2px; }
+.timeline-family-choice small { display: block; margin-top: 2px; color: var(--text-muted); font-size: 9px; }
+.timeline-family-choice input, .timeline-filter-toolbar input { accent-color: var(--accent); }
+.timeline-currency-base input { accent-color: #2563eb; }
+.timeline-currency-quote input { accent-color: #9333ea; }
+.timeline-more-families > summary, .timeline-symbol-settings > summary, .timeline-other-currencies > summary { cursor: pointer; font-size: 11px; padding: 7px 0; }
+.timeline-more-families > div { max-height: 180px; overflow-y: auto; }
+.timeline-more-families > input { box-sizing: border-box; width: 100%; padding: 4px 6px; background: var(--surface-panel); color: var(--text); border: 1px solid var(--border); border-radius: 4px; font: inherit; }
+.timeline-symbol-settings, .timeline-other-currencies { border-top: 1px solid var(--border); flex-shrink: 0; margin-top: 8px; }
+.timeline-symbol-settings-list { max-height: 160px; overflow-y: auto; }
+.timeline-symbol-settings-list label { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 5px 0; }
+.timeline-symbol-settings-list select { width: 104px; flex-shrink: 0; }
+.timeline-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+.timeline-chart-symbol { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; padding: 1px 4px; font-size: 16px; font-family: 'Segoe UI Symbol', sans-serif; }
+.timeline-chart-symbol > span { line-height: 13px; }
+.timeline-chart-symbol sup { font-size: 8px; }
+.timeline-currency-base { color: #2563eb !important; }
+.timeline-currency-quote { color: #9333ea !important; }
+.timeline-currency-other { color: var(--text-muted) !important; }
+:root[data-theme='dark'] .timeline-currency-base { color: #60a5fa !important; }
+:root[data-theme='dark'] .timeline-currency-quote { color: #c084fc !important; }
 .timeline-family-actions { display: flex; justify-content: flex-end; gap: 6px; margin: 4px 0 8px; flex-shrink: 0; }
 .timeline-family-actions .primary { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 .timeline-popover > .timeline-symbol-help { flex-shrink: 0; line-height: 1.4; }
@@ -343,3 +363,4 @@
   .timeline-event-tabs button { padding-inline: 5px; }
   .timeline-header-actions { gap: 3px; }
 }
+@media (max-width: 500px) { .timeline-family-columns { grid-template-columns: minmax(0, 1fr); } }

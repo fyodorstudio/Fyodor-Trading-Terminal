@@ -3,6 +3,7 @@ import { CpiEventTimelineTable, type TimelineReleaseBlock, type TimelineSeriesRo
 import type { TimelineEventAnnotations } from './useTimelineEventAnnotations'
 import { eventSymbols, containingEventBar, type EventSymbol, type TimelineEventGroup } from './timeline-event-view'
 import { defaultFamilySymbol } from './timeline-event-families'
+import { eventFamilyKey, eventCurrencySide } from './timeline-event-filters'
 
 export function TimelineEventRelease({ group, view, selectedRowKey, onSelectRow }: {
   group: TimelineEventGroup
@@ -13,7 +14,7 @@ export function TimelineEventRelease({ group, view, selectedRowKey, onSelectRow 
   const [expanded, setExpanded] = useState(false)
   const focused = view.focusedGroupId === group.id
   const selectedSymbol = view.selected[group.id]
-  const symbol = selectedSymbol ?? view.familySymbols[group.familyId ?? ''] ??
+  const symbol = selectedSymbol ?? view.familySymbols[eventFamilyKey(group)] ??
     view.familySymbols[group.family] ?? defaultFamilySymbol(group.familyId)
   const canMark = !group.timingUncertain && containingEventBar(group.releaseTimestamp, view.auditBars ?? []) !== null
   return <div data-event-group={group.id} className={`timeline-event-release${focused ? ' focused' : ''}`}>
@@ -23,7 +24,7 @@ export function TimelineEventRelease({ group, view, selectedRowKey, onSelectRow 
           checked={Boolean(selectedSymbol)} disabled={!canMark}
           onChange={(e) => view.setEventSymbol(group.id, group.family, symbol, e.target.checked)} /> Chart
       </label>
-      <select aria-label={`Symbol for ${group.family} ${group.countryCode} ${group.releaseTimeText}`} value={symbol}
+      <select className={`timeline-currency-${eventCurrencySide(group.currency)}`} aria-label={`Symbol for ${group.family} ${group.countryCode} ${group.releaseTimeText}`} value={symbol}
         onChange={(e) => view.setEventSymbol(group.id, group.family, e.target.value as EventSymbol, Boolean(selectedSymbol))}>
         {eventSymbols.map(([id, glyph, name]) => <option key={id} value={id}>{glyph} {name}</option>)}
       </select>

@@ -26,9 +26,11 @@ export const eventFamilyOptions = [
     events: ['999010002', '999010003', '999010006', '999010007', '999010024'] },
   { id: 'euro-inflation', label: 'Euro-area inflation', country: 'EU', currency: 'EUR', symbol: 'snowflake',
     events: ['999030010', '999030011', '999030012', '999030013', '999030021', '999030022', '999030024', '999030025', '999030026', '999030027'] },
+  { id: 'euro-gdp', label: 'Euro-area GDP', country: 'EU', currency: 'EUR', symbol: 'star',
+    events: ['999030016', '999030017'] },
 ] as const
 export type CuratedFamilyId = typeof eventFamilyOptions[number]['id']
-export type FamilyWatchlist = CuratedFamilyId[] | null // null means every source family.
+export type FamilyWatchlist = string[] | null // null means every source family.
 export const sixEventFamilies: CuratedFamilyId[] = eventFamilyOptions.slice(0, 6).map((option) => option.id)
 
 export function isCuratedFamily(value: unknown): value is CuratedFamilyId {
@@ -50,7 +52,7 @@ export function curatedGroupName(id: CuratedFamilyId, block: TimelineReleaseBloc
   // Retain established labels where possible, including saved symbol defaults.
   return ({ jobs: 'Jobs report / NFP', ppi: 'PPI', retail: 'Retail Sales', gdp: 'GDP',
     'ism-manufacturing': 'ISM Manufacturing', pce: 'PCE', 'ism-services': 'ISM Services',
-    claims: 'Jobless Claims', 'euro-inflation': 'CPI' } as Record<string, string>)[id]
+    claims: 'Jobless Claims', 'euro-inflation': 'CPI', 'euro-gdp': 'GDP' } as Record<string, string>)[id]
 }
 
 export function defaultFamilySymbol(id?: CuratedFamilyId): EventSymbol {

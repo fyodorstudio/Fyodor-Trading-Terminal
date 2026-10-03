@@ -97,7 +97,9 @@ export function buildEventMarkers(groups: TimelineEventGroup[], selected: Record
 }
 
 export function symbolGlyph(symbol: EventSymbol): string {
-  return eventSymbols.find(([id]) => id === symbol)?.[1] ?? '★'
+  // Text presentation allows the user's currency colour to apply to weather
+  // glyphs instead of the platform replacing them with coloured emoji.
+  return `${eventSymbols.find(([id]) => id === symbol)?.[1] ?? '★'}\uFE0E`
 }
 
 export function isEventSymbol(value: unknown): value is EventSymbol {

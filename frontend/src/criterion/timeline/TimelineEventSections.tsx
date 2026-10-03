@@ -55,7 +55,7 @@ export function TimelineEventSections({ view, anchorBlock, priorBars, onPriorCha
         }}>{label}{count !== null && <span> ({count})</span>}</button>)}
     </div>
     <div className="timeline-header-actions">
-      <TimelinePopover label={`Families (${view.watchlist?.length ?? 'all'})`} title="Event families">
+      <TimelinePopover label="Filters" title="Event filters" width={580}>
         {(close) => <TimelineFamilyPicker view={view} close={close} />}
       </TimelinePopover>
       <TimelinePopover label="Window" title="Viewing window">

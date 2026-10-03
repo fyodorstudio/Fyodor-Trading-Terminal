@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { IChartApi, Time } from 'lightweight-charts'
 import { formatUnit } from './cpi-event-timeline-data'
 import { symbolGlyph, type EventMarker } from './timeline-event-view'
+import { eventCurrencySide, pairCurrencySides } from './timeline-event-filters'
 import './cpi-event-timeline.css'
 
 type MarkerCluster = { x: number; markers: EventMarker[] }
@@ -57,17 +58,24 @@ export function TimelineEventMarkers({ chartApi, markers, onSelectGroup }: {
       const expanded = expandedTime === first.time
       return <div key={first.group.id} className="timeline-symbol-cluster" style={{ left: cluster.x }}>
         <button type="button" className="timeline-chart-symbol" title={multiple ?
-          cluster.markers.map((marker) => `${symbolGlyph(marker.symbol)} ${marker.group.family} · ${marker.group.releaseTimeText}`).join('\n') : markerDescription(first)}
+          cluster.markers.map((marker) => `${symbolGlyph(marker.symbol)} ${marker.group.currency} · ${marker.group.family} · ${marker.group.releaseTimeText}`).join('\n') : markerDescription(first)}
           aria-label={multiple ? `${cluster.markers.length} nearby releases` : `${first.group.family} ${first.group.releaseTimeText}`}
           aria-expanded={multiple ? expanded : undefined}
           onClick={() => multiple ? setExpandedTime(expanded ? null : first.time) : onSelectGroup(first.group.id)}>
-          {symbolGlyph(first.symbol)}{multiple && <sup>{cluster.markers.length}</sup>}
+          {pairCurrencySides.map((side) => {
+            const matching = cluster.markers.filter((marker) => eventCurrencySide(marker.group.currency) === side.id)
+            return matching.length ? <span key={side.id} className={`timeline-currency-${side.id}`} data-currency-side={side.id}
+              aria-label={`${side.label}: ${matching.length} releases`}>
+              {symbolGlyph(matching[0].symbol)}{multiple && <sup>{matching.length}</sup>}
+            </span> : null
+          })}
         </button>
         {multiple && expanded && <div className="timeline-symbol-popup" style={{ left: cluster.x > chartApi.timeScale().width() / 2 ? -250 : 0 }}>
           <button type="button" onClick={() => setExpandedTime(null)}>Close</button>
           {cluster.markers.map((marker) => <button type="button" key={marker.group.id} title={markerDescription(marker)}
             onClick={() => { onSelectGroup(marker.group.id); setExpandedTime(null) }}>
-            {symbolGlyph(marker.symbol)} {marker.group.family} · {marker.group.countryCode} · {marker.group.releaseTimeText}
+            <span className={`timeline-currency-${eventCurrencySide(marker.group.currency)}`} data-currency-side={eventCurrencySide(marker.group.currency)}>
+              {symbolGlyph(marker.symbol)} {marker.group.currency}</span> {marker.group.family} · {marker.group.countryCode} · {marker.group.releaseTimeText}
           </button>)}
         </div>}
       </div>

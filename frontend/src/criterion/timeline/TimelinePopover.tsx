@@ -3,9 +3,10 @@ import { createPortal } from 'react-dom'
 
 // Feature-local menus open outside the short dock so its scrolling cannot clip
 // the picker. They prefer the space above the dock and close on outside/Escape.
-export function TimelinePopover({ label, title = label, children }: {
+export function TimelinePopover({ label, title = label, width = 380, children }: {
   label: string
   title?: string
+  width?: number
   children: (close: () => void) => ReactNode
 }) {
   const id = useId()
@@ -40,8 +41,8 @@ export function TimelinePopover({ label, title = label, children }: {
         if (placement) { close(); return }
         const rect = trigger.current!.getBoundingClientRect()
         const above = rect.top > window.innerHeight / 2
-        const width = Math.min(380, window.innerWidth - 24)
-        setPlacement({ position: 'fixed', width, left: Math.max(12, Math.min(rect.left, window.innerWidth - width - 12)),
+        const panelWidth = Math.min(width, window.innerWidth - 24)
+        setPlacement({ position: 'fixed', width: panelWidth, left: Math.max(12, Math.min(rect.left, window.innerWidth - panelWidth - 12)),
           ...(above ? { bottom: window.innerHeight - rect.top + 6 } : { top: rect.bottom + 6 }),
           maxHeight: Math.max(100, (above ? rect.top : window.innerHeight - rect.bottom) - 18) })
       }}>{label}</button>
