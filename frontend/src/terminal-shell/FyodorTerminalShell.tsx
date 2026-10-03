@@ -746,7 +746,8 @@ export function FyodorTerminalShell() {
               saveFailed={auditNoteSaveFailed} onNoteChange={saveAuditNote}
               onReturnLive={leaveResearchAudit}
               isExperimental={criterionStudy === 'experimental'}
-              bundleData={bundleData} />
+              bundleData={bundleData}
+              auditBars={bundleAuditBars} />
           )}
         </BottomDockPanel>
       )}

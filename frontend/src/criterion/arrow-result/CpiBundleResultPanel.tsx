@@ -15,6 +15,81 @@ type Props = {
   onReturnLive: () => void
   isExperimental?: boolean
   bundleData?: BundleSnapshot | null
+  auditBars?: { time: number | string; open: number; high: number; low: number; close: number }[] | null
+}
+
+type SimulatedTrialResult = {
+  direction: number
+  exitKind: number
+  exitH: number
+  grossR: number
+  dualTouch: boolean
+  openingGap: boolean
+}
+
+function simulateOhlcTrial(
+  entryPrice: number,
+  atr: number,
+  _horizon: number,
+  stopAtr: number,
+  targetAtr: number,
+  direction: 1 | -1,
+  pathBars: { open: number; high: number; low: number; close: number }[],
+): SimulatedTrialResult {
+  const stopDist = stopAtr * atr
+  const targetDist = targetAtr * atr
+  const rrRatio = targetAtr / stopAtr
+  const stopPrice = direction === 1 ? entryPrice - stopDist : entryPrice + stopDist
+  const targetPrice = direction === 1 ? entryPrice + targetDist : entryPrice - targetDist
+
+  for (let idx = 0; idx < pathBars.length; idx++) {
+    const bar = pathBars[idx]
+    const barNum = idx + 1
+
+    // 1. Opening gap check
+    if (direction === 1) {
+      if (bar.open <= stopPrice) {
+        return { direction, exitKind: 1, exitH: barNum, grossR: -1.0, dualTouch: false, openingGap: true }
+      }
+      if (bar.open >= targetPrice) {
+        return { direction, exitKind: 0, exitH: barNum, grossR: rrRatio, dualTouch: false, openingGap: true }
+      }
+    } else {
+      if (bar.open >= stopPrice) {
+        return { direction, exitKind: 1, exitH: barNum, grossR: -1.0, dualTouch: false, openingGap: true }
+      }
+      if (bar.open <= targetPrice) {
+        return { direction, exitKind: 0, exitH: barNum, grossR: rrRatio, dualTouch: false, openingGap: true }
+      }
+    }
+
+    // 2. Intrabar touch checks
+    let stopTouched = false
+    let targetTouched = false
+    if (direction === 1) {
+      if (bar.low <= stopPrice) stopTouched = true
+      if (bar.high >= targetPrice) targetTouched = true
+    } else {
+      if (bar.high >= stopPrice) stopTouched = true
+      if (bar.low <= targetPrice) targetTouched = true
+    }
+
+    if (stopTouched && targetTouched) {
+      // Conservative mode: STOP_FIRST primary proxy
+      return { direction, exitKind: 1, exitH: barNum, grossR: -1.0, dualTouch: true, openingGap: false }
+    }
+    if (stopTouched) {
+      return { direction, exitKind: 1, exitH: barNum, grossR: -1.0, dualTouch: false, openingGap: false }
+    }
+    if (targetTouched) {
+      return { direction, exitKind: 0, exitH: barNum, grossR: rrRatio, dualTouch: false, openingGap: false }
+    }
+  }
+
+  // 3. Expiry / timeout at horizon
+  const finalBar = pathBars[pathBars.length - 1]
+  const grossR = Number((direction * (finalBar.close - entryPrice) / stopDist).toFixed(6))
+  return { direction, exitKind: 2, exitH: pathBars.length, grossR, dualTouch: false, openingGap: false }
 }
 
 function reading(value: number | null) { return value == null ? '—' : Number(value.toFixed(6)).toString() }
@@ -63,7 +138,7 @@ function deriveCrossHorizonSumAlignment(dirMm: string, dirYy: string): { label: 
 }
 
 export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFailed, onNoteChange,
-  onReturnLive, isExperimental, bundleData }: Props) {
+  onReturnLive, isExperimental, bundleData, auditBars }: Props) {
   const [copyStatus, setCopyStatus] = useState('')
   const [prevNote, setPrevNote] = useState(note)
   const [draftNote, setDraftNote] = useState(note)
@@ -204,18 +279,44 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
     const dirHeadlineYy = headlineYy?.delta != null ? (headlineYy.delta < 0 ? 'Long' : headlineYy.delta > 0 ? 'Short' : 'Flat') : 'None'
     const dirCoreYy = coreYy?.delta != null ? (coreYy.delta < 0 ? 'Long' : coreYy.delta > 0 ? 'Short' : 'Flat') : 'None'
 
-    const formatTrialRes = (t: BundleTrial | null) => {
+    type TrialLike = BundleTrial | SimulatedTrialResult
+
+    const formatTrialRes = (t: TrialLike | null) => {
       if (!t) return null
+      const exitKind = Array.isArray(t) ? t[2] : t.exitKind
+      const exitH = Array.isArray(t) ? t[3] : t.exitH
+      const grossR = Array.isArray(t) ? t[4] : t.grossR
       return {
-        gross: `${t[4] >= 0 ? '+' : ''}${t[4].toFixed(3)} R`,
-        outcome: `${t[2] === 0 ? 'TP first' : t[2] === 1 ? 'SL first' : 'Expiry'} (H${t[3]})`,
-        isPositive: t[4] >= 0,
+        gross: `${grossR >= 0 ? '+' : ''}${grossR.toFixed(3)} R`,
+        outcome: `${exitKind === 0 ? 'TP first' : exitKind === 1 ? 'SL first' : 'Expiry'} (H${exitH})`,
+        isPositive: grossR >= 0,
       }
     }
 
-    const headlineRes = formatTrialRes(headlineTrial)
-    const coreRes = formatTrialRes(coreTrial)
-    const summaryRes = formatTrialRes(trial)
+    const simulateForDirection = (dir: string): TrialLike | null => {
+      if (dir !== 'Long' && dir !== 'Short') return null
+      if (!auditBars || episode.entryPrice == null || episode.atr == null) return null
+      const entryIdx = auditBars.findIndex((b) => Number(b.time) === episode.entryTime)
+      if (entryIdx === -1) return null
+      const pathBars = auditBars.slice(entryIdx, entryIdx + rule.horizon)
+      if (pathBars.length === 0) return null
+      return simulateOhlcTrial(
+        episode.entryPrice,
+        episode.atr,
+        rule.horizon,
+        rule.stop,
+        rule.target,
+        dir === 'Long' ? 1 : -1,
+        pathBars,
+      )
+    }
+
+    const headlineRes = formatTrialRes(headlineTrial ?? simulateForDirection(dirHeadlineMm))
+    const coreRes = formatTrialRes(coreTrial ?? simulateForDirection(dirCoreMm))
+    const headlineYyRes = formatTrialRes(simulateForDirection(dirHeadlineYy))
+    const coreYyRes = formatTrialRes(simulateForDirection(dirCoreYy))
+    const summaryRes = formatTrialRes(trial ?? simulateForDirection(dirMm))
+    const yySumRes = formatTrialRes(simulateForDirection(dirYy))
 
     return (
       <section className="arrow-result-panel experimental-merged" aria-label="USD CPI experimental result table">
@@ -314,7 +415,14 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
                     </span>
                   </td>
                   <td className="td-result">
-                    <span className="text-muted">—</span>
+                    {headlineYyRes ? (
+                      <span className={`gross-badge ${headlineYyRes.isPositive ? 'positive' : 'negative'}`}>
+                        <b>{headlineYyRes.gross}</b>
+                        <span className="gross-outcome">({headlineYyRes.outcome})</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted">{dirHeadlineYy === 'Flat' ? '— (Zero Change)' : '—'}</span>
+                    )}
                   </td>
                 </tr>
 
@@ -331,7 +439,14 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
                     </span>
                   </td>
                   <td className="td-result">
-                    <span className="text-muted">—</span>
+                    {coreYyRes ? (
+                      <span className={`gross-badge ${coreYyRes.isPositive ? 'positive' : 'negative'}`}>
+                        <b>{coreYyRes.gross}</b>
+                        <span className="gross-outcome">({coreYyRes.outcome})</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted">{dirCoreYy === 'Flat' ? '— (Zero Change)' : '—'}</span>
+                    )}
                   </td>
                 </tr>
 
@@ -372,7 +487,14 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
                     </span>
                   </td>
                   <td className="td-result">
-                    <span className="text-muted">— (context only)</span>
+                    {yySumRes ? (
+                      <span className={`gross-badge ${yySumRes.isPositive ? 'positive' : 'negative'}`}>
+                        <b>{yySumRes.gross}</b>
+                        <span className="gross-outcome">({yySumRes.outcome})</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted">{dirYy === 'Flat' ? '— (Zero Change)' : '—'}</span>
+                    )}
                   </td>
                 </tr>
               </tbody>
