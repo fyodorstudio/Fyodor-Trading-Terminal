@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { bundleComparisons, bundlePriceLevels, bundleYoyOnlyDirection, isBundleEpisodeIncluded, type BundleEpisode,
-  type BundleRule, type BundleTrial } from '../cpi-bundle-data'
+import { bundleComparisons, bundleYoyOnlyDirection, isBundleEpisodeIncluded, type BundleEpisode,
+  type BundleRule, type BundleSnapshot, type BundleTrial } from '../cpi-bundle-data'
 import { downloadAuditNotes, type AuditNote } from './audit-notes'
 import './arrow-result-panel.css'
 
@@ -13,6 +13,8 @@ type Props = {
   saveFailed: boolean
   onNoteChange: (text: string) => void
   onReturnLive: () => void
+  isExperimental?: boolean
+  bundleData?: BundleSnapshot | null
 }
 
 function reading(value: number | null) { return value == null ? '—' : Number(value.toFixed(6)).toString() }
@@ -21,7 +23,7 @@ function formatFlag(text: string) {
 }
 
 export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFailed, onNoteChange,
-  onReturnLive }: Props) {
+  onReturnLive, isExperimental, bundleData }: Props) {
   const [copyStatus, setCopyStatus] = useState('')
   const [prevNote, setPrevNote] = useState(note)
   const [draftNote, setDraftNote] = useState(note)
@@ -45,7 +47,16 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
   const isExcludedClaims = Boolean(rule.panel === 'JOBLESS_CLAIMS_CLEAN' && episode.claimsCollision)
   const yoyDirection = !trial ? bundleYoyOnlyDirection(episode) : null
   const el = episode.eligibility?.[rule.comparison]
-  const levels = isIncluded && trial ? bundlePriceLevels(episode, trial, rule) : null
+  const levels = trial && episode.entryPrice != null && episode.atr != null
+    ? (isExperimental || isIncluded
+        ? {
+            entry: episode.entryPrice,
+            stop: episode.entryPrice - trial[1] * rule.stop * episode.atr,
+            target: episode.entryPrice + trial[1] * rule.target * episode.atr,
+            direction: trial[1],
+          }
+        : null)
+    : null
   const comparison = bundleComparisons.find(([id]) => id === rule.comparison)?.[1] ?? rule.comparison
   const copyNote = async () => {
     try {
@@ -57,6 +68,298 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
       ].join('\n'))
       setCopyStatus('Copied')
     } catch { setCopyStatus('Copy unavailable; use Export all') }
+  }
+
+  const headlineMm = episode.readings[0]
+  const coreMm = episode.readings[1]
+  const headlineYy = episode.readings[2]
+  const coreYy = episode.readings[3]
+
+  const mmSum = (headlineMm?.delta != null && coreMm?.delta != null)
+    ? Number((headlineMm.delta + coreMm.delta).toFixed(4))
+    : null
+  const yySum = (headlineYy?.delta != null && coreYy?.delta != null)
+    ? Number((headlineYy.delta + coreYy.delta).toFixed(4))
+    : null
+
+  const dirMm = mmSum == null ? 'None' : mmSum < 0 ? 'Long' : mmSum > 0 ? 'Short' : 'Flat'
+  const dirYy = yySum == null ? 'None' : yySum < 0 ? 'Long' : yySum > 0 ? 'Short' : 'Flat'
+
+  const formatSum = (val: number | null) => (val == null ? 'None' : `${val > 0 ? '+' : ''}${val}`)
+
+  const journalColumn = (
+    <div className="arrow-result-col arrow-result-journal">
+      <header className="arrow-result-col-header">
+        <div className="arrow-result-header-title">
+          <span className="arrow-result-eyebrow">JOURNAL &amp; THESIS</span>
+        </div>
+        <span className={`arrow-result-rule-chip save-status ${saveFailed ? 'failed' : isDirty ? 'unsaved' : note.trim() ? 'saved' : 'empty'}`}>
+          {saveFailed ? 'Failed to save' : isDirty ? '● Unsaved' : note.trim() ? '● Saved' : 'No note'}
+        </span>
+      </header>
+      <div className="arrow-result-journal-subbar">
+        <span className="arrow-result-journal-meta">{episode.releaseText} release</span>
+        <div className="arrow-result-journal-actions">
+          <button
+            type="button"
+            className={`save-note-btn${isDirty ? ' ready' : ''}`}
+            onClick={handleSaveNote}
+            disabled={!isDirty}
+            title={isDirty ? 'Save note (Ctrl+Enter)' : 'Note saved'}
+          >
+            {isDirty ? 'Save Note' : justSaved ? 'Saved' : 'Save Note'}
+          </button>
+          <button type="button" onClick={copyNote} disabled={!draftNote.trim()}>Copy</button>
+          <button type="button" onClick={() => downloadAuditNotes(notes)} disabled={notes.length === 0}>
+            Export .md{notes.length > 0 ? ` (${notes.length})` : ''}
+          </button>
+          {copyStatus && <span role="status">{copyStatus}</span>}
+        </div>
+      </div>
+      <textarea
+        id="bundle-audit-note"
+        className="arrow-result-note"
+        value={draftNote}
+        onChange={(event) => {
+          setDraftNote(event.target.value)
+          setJustSaved(false)
+        }}
+        onKeyDown={(event) => {
+          if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && isDirty) {
+            event.preventDefault()
+            handleSaveNote()
+          }
+        }}
+        placeholder="Insert note"
+      />
+      <div className="arrow-result-evidence-footer">
+        <div className="arrow-result-caveat-line" title="Notes survive refresh in this browser only. Export Markdown to share them with Codex later.">
+          <span className="arrow-result-info-icon" aria-hidden="true">ⓘ</span>
+          <span className="arrow-result-caveat-text">
+            {notes.length} {notes.length === 1 ? 'note' : 'notes'} in localStorage · Export to share with Codex
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+
+  if (isExperimental) {
+    const episodeIndex = bundleData && episode ? bundleData.episodes.findIndex((e) => e.id === episode.id) : -1
+    const cellKeyHeadline = `CANDIDATE_1_HEADLINE_MM|${rule.horizon}|${rule.stop}:${rule.target}`
+    const cellKeyCore = `CANDIDATE_2_CORE_MM_LED|${rule.horizon}|${rule.stop}:${rule.target}`
+
+    const headlineTrial = (bundleData && episodeIndex !== -1)
+      ? bundleData.trials[cellKeyHeadline]?.find((t) => t[0] === episodeIndex) ?? null
+      : trial
+    const coreTrial = (bundleData && episodeIndex !== -1)
+      ? bundleData.trials[cellKeyCore]?.find((t) => t[0] === episodeIndex) ?? null
+      : null
+
+    const dirHeadlineMm = headlineMm?.delta != null ? (headlineMm.delta < 0 ? 'Long' : headlineMm.delta > 0 ? 'Short' : 'Flat') : 'None'
+    const dirCoreMm = coreMm?.delta != null ? (coreMm.delta < 0 ? 'Long' : coreMm.delta > 0 ? 'Short' : 'Flat') : 'None'
+    const dirHeadlineYy = headlineYy?.delta != null ? (headlineYy.delta < 0 ? 'Long' : headlineYy.delta > 0 ? 'Short' : 'Flat') : 'None'
+    const dirCoreYy = coreYy?.delta != null ? (coreYy.delta < 0 ? 'Long' : coreYy.delta > 0 ? 'Short' : 'Flat') : 'None'
+
+    const formatTrialRes = (t: BundleTrial | null) => {
+      if (!t) return null
+      return {
+        gross: `${t[4] >= 0 ? '+' : ''}${t[4].toFixed(3)} R`,
+        outcome: `${t[2] === 0 ? 'TP first' : t[2] === 1 ? 'SL first' : 'Expiry'} (H${t[3]})`,
+        isPositive: t[4] >= 0,
+      }
+    }
+
+    const headlineRes = formatTrialRes(headlineTrial)
+    const coreRes = formatTrialRes(coreTrial)
+    const summaryRes = formatTrialRes(trial)
+
+    return (
+      <section className="arrow-result-panel experimental-merged" aria-label="USD CPI experimental result table">
+        <div className="arrow-result-col experimental-main-col">
+          <header className="arrow-result-col-header">
+            <div className="arrow-result-identity">
+              <strong>US CPI <span>EURUSD</span></strong>
+              <span className="arrow-result-direction neutral">
+                ★ m/m: {dirMm} · y/y: {dirYy}
+              </span>
+            </div>
+            <button className="arrow-result-text-button" type="button" onClick={onReturnLive}>Return to live</button>
+          </header>
+
+          <div className="experimental-meta-strip">
+            <span><strong>{episode.releaseText}</strong> release · {episode.entryText} entry</span>
+            <div className="experimental-levels-pills">
+              <span>ENTRY: <b>{episode.entryPrice?.toFixed(5) ?? '—'}</b></span>
+              <span className="stop">NOMINAL SL: <b>{levels?.stop.toFixed(5) ?? '—'}</b> ({rule.stop} ATR)</span>
+              <span className="target">NOMINAL TP: <b>{levels?.target.toFixed(5) ?? '—'}</b> ({rule.target} ATR)</span>
+            </div>
+          </div>
+
+          <div className="experimental-table-container">
+            <table className="experimental-table" aria-label="Release readings, direction, and gross trade result">
+              <thead>
+                <tr>
+                  <th className="th-series">Series</th>
+                  <th className="th-num">A</th>
+                  <th className="th-num">P</th>
+                  <th className="th-num">A−P</th>
+                  <th className="th-dir">Direction</th>
+                  <th className="th-result">Gross Result (H{rule.horizon} · SL {rule.stop} · TP {rule.target})</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Headline m/m</strong></td>
+                  <td className="td-num">{reading(headlineMm?.actual)}</td>
+                  <td className="td-num">{reading(headlineMm?.previous)}</td>
+                  <td className={`td-num ${headlineMm?.delta != null && headlineMm.delta > 0 ? 'positive' : headlineMm?.delta != null && headlineMm.delta < 0 ? 'negative' : ''}`}>
+                    {headlineMm?.delta != null && headlineMm.delta > 0 ? '+' : ''}{reading(headlineMm?.delta)}
+                  </td>
+                  <td className="td-dir">
+                    <span className={`arrow-result-direction ${dirHeadlineMm === 'Long' ? 'long' : dirHeadlineMm === 'Short' ? 'short' : 'neutral'}`}>
+                      {dirHeadlineMm.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="td-result">
+                    {headlineRes ? (
+                      <span className={`gross-badge ${headlineRes.isPositive ? 'positive' : 'negative'}`}>
+                        <b>{headlineRes.gross}</b>
+                        <span className="gross-outcome">({headlineRes.outcome})</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td><strong>Core m/m</strong></td>
+                  <td className="td-num">{reading(coreMm?.actual)}</td>
+                  <td className="td-num">{reading(coreMm?.previous)}</td>
+                  <td className={`td-num ${coreMm?.delta != null && coreMm.delta > 0 ? 'positive' : coreMm?.delta != null && coreMm.delta < 0 ? 'negative' : ''}`}>
+                    {coreMm?.delta != null && coreMm.delta > 0 ? '+' : ''}{reading(coreMm?.delta)}
+                  </td>
+                  <td className="td-dir">
+                    <span className={`arrow-result-direction ${dirCoreMm === 'Long' ? 'long' : dirCoreMm === 'Short' ? 'short' : 'neutral'}`}>
+                      {dirCoreMm.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="td-result">
+                    {coreRes ? (
+                      <span className={`gross-badge ${coreRes.isPositive ? 'positive' : 'negative'}`}>
+                        <b>{coreRes.gross}</b>
+                        <span className="gross-outcome">({coreRes.outcome})</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted">—</span>
+                    )}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td><strong>Headline y/y</strong></td>
+                  <td className="td-num">{reading(headlineYy?.actual)}</td>
+                  <td className="td-num">{reading(headlineYy?.previous)}</td>
+                  <td className={`td-num ${headlineYy?.delta != null && headlineYy.delta > 0 ? 'positive' : headlineYy?.delta != null && headlineYy.delta < 0 ? 'negative' : ''}`}>
+                    {headlineYy?.delta != null && headlineYy.delta > 0 ? '+' : ''}{reading(headlineYy?.delta)}
+                  </td>
+                  <td className="td-dir">
+                    <span className={`arrow-result-direction ${dirHeadlineYy === 'Long' ? 'long' : dirHeadlineYy === 'Short' ? 'short' : 'neutral'}`}>
+                      {dirHeadlineYy.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="td-result">
+                    <span className="text-muted">—</span>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td><strong>Core y/y</strong></td>
+                  <td className="td-num">{reading(coreYy?.actual)}</td>
+                  <td className="td-num">{reading(coreYy?.previous)}</td>
+                  <td className={`td-num ${coreYy?.delta != null && coreYy.delta > 0 ? 'positive' : coreYy?.delta != null && coreYy.delta < 0 ? 'negative' : ''}`}>
+                    {coreYy?.delta != null && coreYy.delta > 0 ? '+' : ''}{reading(coreYy?.delta)}
+                  </td>
+                  <td className="td-dir">
+                    <span className={`arrow-result-direction ${dirCoreYy === 'Long' ? 'long' : dirCoreYy === 'Short' ? 'short' : 'neutral'}`}>
+                      {dirCoreYy.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="td-result">
+                    <span className="text-muted">—</span>
+                  </td>
+                </tr>
+
+                <tr className="sum-row">
+                  <td><strong>m/m Sum</strong></td>
+                  <td className="td-num">—</td>
+                  <td className="td-num">—</td>
+                  <td className={`td-num ${mmSum != null && mmSum > 0 ? 'positive' : mmSum != null && mmSum < 0 ? 'negative' : ''}`}>
+                    {formatSum(mmSum)}
+                  </td>
+                  <td className="td-dir">
+                    <span className={`arrow-result-direction ${dirMm === 'Long' ? 'long' : dirMm === 'Short' ? 'short' : 'neutral'}`}>
+                      {dirMm.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="td-result">
+                    {summaryRes ? (
+                      <span className={`gross-badge ${summaryRes.isPositive ? 'positive' : 'negative'}`}>
+                        <b>{summaryRes.gross}</b>
+                        <span className="gross-outcome">({summaryRes.outcome})</span>
+                      </span>
+                    ) : (
+                      <span className="text-muted">{el?.reason ?? '—'}</span>
+                    )}
+                  </td>
+                </tr>
+
+                <tr className="sum-row">
+                  <td><strong>y/y Sum</strong></td>
+                  <td className="td-num">—</td>
+                  <td className="td-num">—</td>
+                  <td className={`td-num ${yySum != null && yySum > 0 ? 'positive' : yySum != null && yySum < 0 ? 'negative' : ''}`}>
+                    {formatSum(yySum)}
+                  </td>
+                  <td className="td-dir">
+                    <span className={`arrow-result-direction ${dirYy === 'Long' ? 'long' : dirYy === 'Short' ? 'short' : 'neutral'}`}>
+                      {dirYy.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="td-result">
+                    <span className="text-muted">— (context only)</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="arrow-result-flags-row">
+            <span className="arrow-result-flags-label">FLAGS</span>
+            <div className="arrow-result-flags">
+              <span>{formatFlag(episode.concordance)}</span>
+              {episode.claimsCollision ? (
+                <span>Simultaneous Jobless Claims</span>
+              ) : (
+                <span>No simultaneous Jobless Claims</span>
+              )}
+              {yoyDirection && <span>Missing Monthly CPI</span>}
+              {Boolean(trial?.[5]) && <span>Same-Bar Dual Touch</span>}
+              {Boolean(trial?.[6]) && <span>Opening Gap</span>}
+            </div>
+          </div>
+
+          <div className="arrow-result-evidence-footer">
+            <div className="arrow-result-caveat-line" title="V3 historical exploration, not a registered setup. Four CPI readings share one release. Exported Previous may be revised; gross OHLC outcomes exclude costs. SL/TP lines are nominal, not broker fills.">
+              <span className="arrow-result-info-icon" aria-hidden="true">ⓘ</span>
+              <span className="arrow-result-caveat-text">V3 OHLC simulation · nominal lines · <code className="arrow-result-id">{episode.id}</code></span>
+            </div>
+          </div>
+        </div>
+
+        {journalColumn}
+      </section>
+    )
   }
 
   return <section className="arrow-result-panel" aria-label="CPI bundle arrow result">
@@ -99,6 +402,22 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
           <span className={item.delta != null && item.delta > 0 ? 'positive' : item.delta != null && item.delta < 0 ? 'negative' : ''}>
             {item.delta != null && item.delta > 0 ? '+' : ''}{reading(item.delta)}</span>
         </div>)}
+        <div className="bundle-reading-row bundle-reading-sum">
+          <strong>m/m Sum</strong>
+          <span></span>
+          <span></span>
+          <span className={mmSum != null && mmSum > 0 ? 'positive' : mmSum != null && mmSum < 0 ? 'negative' : ''}>
+            {formatSum(mmSum)}
+          </span>
+        </div>
+        <div className="bundle-reading-row bundle-reading-sum">
+          <strong>y/y Sum</strong>
+          <span></span>
+          <span></span>
+          <span className={yySum != null && yySum > 0 ? 'positive' : yySum != null && yySum < 0 ? 'negative' : ''}>
+            {formatSum(yySum)}
+          </span>
+        </div>
       </div>
       <div className="arrow-result-levels horizontal">
         <span><small>ENTRY</small><b>{episode.entryPrice?.toFixed(5) ?? '—'}</b></span>
@@ -198,58 +517,6 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
         </div>
       </div>
     </div>
-    <div className="arrow-result-col arrow-result-journal">
-      <header className="arrow-result-col-header">
-        <div className="arrow-result-header-title">
-          <span className="arrow-result-eyebrow">JOURNAL &amp; THESIS</span>
-        </div>
-        <span className={`arrow-result-rule-chip save-status ${saveFailed ? 'failed' : isDirty ? 'unsaved' : note.trim() ? 'saved' : 'empty'}`}>
-          {saveFailed ? 'Failed to save' : isDirty ? '● Unsaved' : note.trim() ? '● Saved' : 'No note'}
-        </span>
-      </header>
-      <div className="arrow-result-journal-subbar">
-        <span className="arrow-result-journal-meta">{episode.releaseText} release</span>
-        <div className="arrow-result-journal-actions">
-          <button
-            type="button"
-            className={`save-note-btn${isDirty ? ' ready' : ''}`}
-            onClick={handleSaveNote}
-            disabled={!isDirty}
-            title={isDirty ? 'Save note (Ctrl+Enter)' : 'Note saved'}
-          >
-            {isDirty ? 'Save Note' : justSaved ? 'Saved' : 'Save Note'}
-          </button>
-          <button type="button" onClick={copyNote} disabled={!draftNote.trim()}>Copy</button>
-          <button type="button" onClick={() => downloadAuditNotes(notes)} disabled={notes.length === 0}>
-            Export .md{notes.length > 0 ? ` (${notes.length})` : ''}
-          </button>
-          {copyStatus && <span role="status">{copyStatus}</span>}
-        </div>
-      </div>
-      <textarea
-        id="bundle-audit-note"
-        className="arrow-result-note"
-        value={draftNote}
-        onChange={(event) => {
-          setDraftNote(event.target.value)
-          setJustSaved(false)
-        }}
-        onKeyDown={(event) => {
-          if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && isDirty) {
-            event.preventDefault()
-            handleSaveNote()
-          }
-        }}
-        placeholder="Insert note"
-      />
-      <div className="arrow-result-evidence-footer">
-        <div className="arrow-result-caveat-line" title="Notes survive refresh in this browser only. Export Markdown to share them with Codex later.">
-          <span className="arrow-result-info-icon" aria-hidden="true">ⓘ</span>
-          <span className="arrow-result-caveat-text">
-            {notes.length} {notes.length === 1 ? 'note' : 'notes'} in localStorage · Export to share with Codex
-          </span>
-        </div>
-      </div>
-    </div>
+    {journalColumn}
   </section>
 }

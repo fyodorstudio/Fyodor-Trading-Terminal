@@ -12,7 +12,7 @@ import {
 import type { PlannedTradeState, RegisteredTradeArrow } from '../contracts/trader-notebook-types'
 
 export type ResearchChartArrow = { id: string; time: number; direction: 'long' | 'short'; entryPrice: number;
-  contextOnly?: boolean }
+  contextOnly?: boolean; isStar?: boolean }
 export type ResearchChartLevels = { entry: number; stop: number; target: number; direction: number }
 
 type PlannedTradePriceLinesProps = {
@@ -60,14 +60,17 @@ export function PlannedTradePriceLines({
     })
     for (const arrow of researchArrows) {
       const selected = arrow.id === selectedResearchArrowId
+      const isStar = arrow.isStar === true
       markers.push({
         id: arrow.id,
         time: arrow.time as Time,
         price: arrow.entryPrice,
-        position: arrow.direction === 'long' ? 'atPriceBottom' : 'atPriceTop',
-        shape: arrow.direction === 'long' ? 'arrowUp' : 'arrowDown',
-        color: arrow.contextOnly ? '#7c3aed' : selected ? '#38bdf8' : arrow.direction === 'long' ? '#10b981' : '#f43f5e',
-        text: arrow.contextOnly ? 'YOY CONTEXT ONLY' : selected ? 'HISTORICAL AUDIT' : 'RESEARCH',
+        position: isStar ? 'atPriceMiddle' : arrow.direction === 'long' ? 'atPriceBottom' : 'atPriceTop',
+        shape: isStar ? 'circle' : arrow.direction === 'long' ? 'arrowUp' : 'arrowDown',
+        color: arrow.contextOnly ? '#7c3aed' : selected ? '#38bdf8' : isStar ? '#f59e0b' : arrow.direction === 'long' ? '#10b981' : '#f43f5e',
+        text: isStar
+          ? (selected ? '★ AUDIT' : '★')
+          : arrow.contextOnly ? 'YOY CONTEXT ONLY' : selected ? 'HISTORICAL AUDIT' : 'RESEARCH',
         size: selected ? 1.25 : 0.85,
       })
     }

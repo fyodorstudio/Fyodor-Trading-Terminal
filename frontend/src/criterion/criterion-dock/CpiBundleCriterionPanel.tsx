@@ -17,6 +17,7 @@ type Props = {
   notes: AuditNote[]
   onRuleChange: (rule: BundleRule) => void
   onSelectEpisode: (episode: BundleEpisode, trial: BundleTrial | null) => void
+  isExperimental?: boolean
 }
 
 const targets = Array.from({ length: 13 }, (_, index) => 1 + index * 0.25)
@@ -31,7 +32,7 @@ const comparisonShortLabels: Record<string, string> = {
 }
 
 export function CpiBundleCriterionPanel({ data, error, rule, summary, priorContextBars, onPriorContextChange,
-  selectedEpisodeId, notes, onRuleChange, onSelectEpisode }: Props) {
+  selectedEpisodeId, notes, onRuleChange, onSelectEpisode, isExperimental }: Props) {
   const [controlsExpanded, setControlsExpanded] = useState(true)
   const [viewMode, setViewMode] = useState<'matching' | 'all'>('matching')
   const change = (patch: Partial<BundleRule>) => onRuleChange({ ...rule, ...patch })
@@ -52,11 +53,11 @@ export function CpiBundleCriterionPanel({ data, error, rule, summary, priorConte
   }, [data, rule])
   const matchingCount = useMemo(() => rows.filter((row) => row.isIncluded).length, [rows])
   const visibleRows = useMemo(() => {
-    if (viewMode === 'all') return rows
+    if (isExperimental || viewMode === 'all') return rows
     return rows.filter((row) => row.isIncluded)
-  }, [rows, viewMode])
+  }, [rows, viewMode, isExperimental])
 
-  return <div className="criterion-panel" aria-label="USD CPI bundle historical audit dock">
+  return <div className="criterion-panel" aria-label={isExperimental ? "USD CPI experimental historical audit dock" : "USD CPI bundle historical audit dock"}>
     {error ? <p className="criterion-error" role="alert">{error}</p> : !data ?
       <p className="criterion-loading">Loading pinned CPI bundle episodes…</p> : <>
       <div
@@ -83,27 +84,40 @@ export function CpiBundleCriterionPanel({ data, error, rule, summary, priorConte
 
       {controlsExpanded ? (
         <div className="criterion-controls">
-          <div className="criterion-fields">
-            <label>Bundle interpretation
-              <select value={rule.comparison} onChange={(event) => change({ comparison: event.target.value as BundleRule['comparison'] })}>
-                {bundleComparisons.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
-              </select>
-            </label>
-          </div>
-          <div className="criterion-fields two">
-            <label>Co-release filter
-              <select value={rule.panel} onChange={(event) => change({ panel: event.target.value as BundleRule['panel'] })}>
-                <option value="FULL_PANEL">Include Jobless Claims</option>
-                <option value="JOBLESS_CLAIMS_CLEAN">Exclude Jobless Claims</option>
-              </select>
-            </label>
-            <label>Prior context
-              <select value={priorContextBars} onChange={(event) => onPriorContextChange(Number(event.target.value) as PriorContextBars)}>
-                <option value={0}>None</option><option value={60}>60 H1 before</option>
-                <option value={120}>120 H1 before</option><option value={240}>240 H1 before</option>
-              </select>
-            </label>
-          </div>
+          {!isExperimental ? (
+            <>
+              <div className="criterion-fields">
+                <label>Bundle interpretation
+                  <select value={rule.comparison} onChange={(event) => change({ comparison: event.target.value as BundleRule['comparison'] })}>
+                    {bundleComparisons.map(([id, label]) => <option key={id} value={id}>{label}</option>)}
+                  </select>
+                </label>
+              </div>
+              <div className="criterion-fields two">
+                <label>Co-release filter
+                  <select value={rule.panel} onChange={(event) => change({ panel: event.target.value as BundleRule['panel'] })}>
+                    <option value="FULL_PANEL">Include Jobless Claims</option>
+                    <option value="JOBLESS_CLAIMS_CLEAN">Exclude Jobless Claims</option>
+                  </select>
+                </label>
+                <label>Prior context
+                  <select value={priorContextBars} onChange={(event) => onPriorContextChange(Number(event.target.value) as PriorContextBars)}>
+                    <option value={0}>None</option><option value={60}>60 H1 before</option>
+                    <option value={120}>120 H1 before</option><option value={240}>240 H1 before</option>
+                  </select>
+                </label>
+              </div>
+            </>
+          ) : (
+            <div className="criterion-fields">
+              <label>Prior context
+                <select value={priorContextBars} onChange={(event) => onPriorContextChange(Number(event.target.value) as PriorContextBars)}>
+                  <option value={0}>None</option><option value={60}>60 H1 before</option>
+                  <option value={120}>120 H1 before</option><option value={240}>240 H1 before</option>
+                </select>
+              </label>
+            </div>
+          )}
           <div className="criterion-fields three">
             <label>Expiry
               <select value={rule.horizon} onChange={(event) => change({ horizon: Number(event.target.value) as BundleRule['horizon'] })}>
@@ -137,12 +151,16 @@ export function CpiBundleCriterionPanel({ data, error, rule, summary, priorConte
             }
           }}
         >
-          <div className="criterion-readout-item" title="Bundle interpretation">
-            {comparisonShortLabels[rule.comparison] ?? rule.comparison}
-          </div>
-          <div className="criterion-readout-item" title="Co-release filter">
-            {rule.panel === 'FULL_PANEL' ? 'Claims incl' : 'Claims excl'}
-          </div>
+          {!isExperimental && (
+            <>
+              <div className="criterion-readout-item" title="Bundle interpretation">
+                {comparisonShortLabels[rule.comparison] ?? rule.comparison}
+              </div>
+              <div className="criterion-readout-item" title="Co-release filter">
+                {rule.panel === 'FULL_PANEL' ? 'Claims incl' : 'Claims excl'}
+              </div>
+            </>
+          )}
           <div className="criterion-readout-item" title="Expiry">
             H{rule.horizon}
           </div>
@@ -159,7 +177,7 @@ export function CpiBundleCriterionPanel({ data, error, rule, summary, priorConte
           )}
         </div>
       )}
-      {summary && (
+      {!isExperimental && summary && (
         <div className="criterion-stats-bar" aria-label="Selected bundle result">
           <div className="criterion-stats-pills">
             <span><b>{matchingCount}</b> match</span>
@@ -182,26 +200,43 @@ export function CpiBundleCriterionPanel({ data, error, rule, summary, priorConte
       )}
       <div className="criterion-list-header">
         <strong>Episodes</strong>
-        <span>{matchingCount} match / {data.episodes.length} total</span>
+        <span>{isExperimental ? `${data.episodes.length} total · unfiltered` : `${matchingCount} match / ${data.episodes.length} total`}</span>
       </div>
-      <div className="criterion-filter-bar" role="group" aria-label="Episode list view filter">
-        <button
-          type="button"
-          className={`criterion-filter-btn${viewMode === 'matching' ? ' active' : ''}`}
-          onClick={() => setViewMode('matching')}
-        >
-          Matching only
-        </button>
-        <button
-          type="button"
-          className={`criterion-filter-btn${viewMode === 'all' ? ' active' : ''}`}
-          onClick={() => setViewMode('all')}
-        >
-          All releases
-        </button>
-      </div>
+      {!isExperimental && (
+        <div className="criterion-filter-bar" role="group" aria-label="Episode list view filter">
+          <button
+            type="button"
+            className={`criterion-filter-btn${viewMode === 'matching' ? ' active' : ''}`}
+            onClick={() => setViewMode('matching')}
+          >
+            Matching only
+          </button>
+          <button
+            type="button"
+            className={`criterion-filter-btn${viewMode === 'all' ? ' active' : ''}`}
+            onClick={() => setViewMode('all')}
+          >
+            All releases
+          </button>
+        </div>
+      )}
       <div className="criterion-list" role="list" aria-label="CPI bundle episodes">
         {visibleRows.map(({ episode, trial, isIncluded, isClaimsExcluded }) => {
+          const headlineMm = episode.readings[0]
+          const coreMm = episode.readings[1]
+          const headlineYy = episode.readings[2]
+          const coreYy = episode.readings[3]
+
+          const mmSum = (headlineMm?.delta != null && coreMm?.delta != null)
+            ? Number((headlineMm.delta + coreMm.delta).toFixed(4))
+            : null
+          const yySum = (headlineYy?.delta != null && coreYy?.delta != null)
+            ? Number((headlineYy.delta + coreYy.delta).toFixed(4))
+            : null
+
+          const dirMm = mmSum == null ? 'None' : mmSum < 0 ? 'Long' : mmSum > 0 ? 'Short' : 'Flat'
+          const dirYy = yySum == null ? 'None' : yySum < 0 ? 'Long' : yySum > 0 ? 'Short' : 'Flat'
+
           const yoyDirection = !trial ? bundleYoyOnlyDirection(episode) : null
           const el = episode.eligibility?.[rule.comparison]
           const direction = isIncluded
@@ -226,28 +261,58 @@ export function CpiBundleCriterionPanel({ data, error, rule, summary, priorConte
             className={`criterion-episode${selectedEpisodeId === episode.id ? ' selected' : ''}`}
             disabled={!episode.entryTime}
             onClick={() => onSelectEpisode(episode, trial)}>
-            <span className="criterion-episode-top"><b>{episode.releaseText}</b><em>{direction}</em></span>
-            <span className="criterion-episode-result">
-              {isIncluded && trial && <><b className={trial[2] === 0 ? 'tp' : trial[2] === 1 ? 'sl' : 'expiry'}>
-                {trial[2] === 0 ? 'TP first' : trial[2] === 1 ? 'SL first' : 'Expiry'}</b>
-                <span>· H{trial[3]} · {trial[4] >= 0 ? '+' : ''}{trial[4].toFixed(3)} gross R</span></>}
-              {!isIncluded && trial && isClaimsExcluded && <>
-                <b className={trial[2] === 0 ? 'tp' : trial[2] === 1 ? 'sl' : 'expiry'}>
-                  {trial[2] === 0 ? 'TP first' : trial[2] === 1 ? 'SL first' : 'Expiry'}</b>
-                <span>· H{trial[3]} · {trial[4] >= 0 ? '+' : ''}{trial[4].toFixed(3)} gross R</span>
-                <span className="criterion-excluded">Excluded from current selection: Simultaneous Jobless Claims</span>
-              </>}
-              {!isIncluded && !trial && yoyDirection && <>
-                <span className="criterion-coverage">Monthly readings absent · inspection only</span>
-                {isClaimsExcluded && <span className="criterion-excluded">Excluded: Simultaneous Jobless Claims</span>}
-              </>}
-              {!isIncluded && !trial && !yoyDirection && <>
-                <span className="criterion-coverage">{el?.reason ?? 'Ineligible under this interpretation'}</span>
-                {isClaimsExcluded && <span className="criterion-excluded">Excluded: Simultaneous Jobless Claims</span>}
-              </>}
-              {notedIds.has(episode.id) && <span className="criterion-audited">Audited</span>}
+            <span className="criterion-episode-top">
+              <b>{episode.releaseText}</b>
+              {isExperimental ? (
+                <em>★ m/m: {dirMm} · y/y: {dirYy}</em>
+              ) : (
+                <em>{direction}</em>
+              )}
             </span>
-            <small>Headline m/m Δ {episode.readings[0]?.delta ?? '—'} · Core m/m Δ {episode.readings[1]?.delta ?? '—'}</small>
+            <span className="criterion-episode-result">
+              {isExperimental ? (
+                <>
+                  {trial ? (
+                    <>
+                      <b className={trial[2] === 0 ? 'tp' : trial[2] === 1 ? 'sl' : 'expiry'}>
+                        {trial[2] === 0 ? 'TP first' : trial[2] === 1 ? 'SL first' : 'Expiry'}
+                      </b>
+                      <span>· H{trial[3]} · {trial[4] >= 0 ? '+' : ''}{trial[4].toFixed(3)} gross R</span>
+                    </>
+                  ) : (
+                    <span className="criterion-coverage">No priced trade</span>
+                  )}
+                  {episode.claimsCollision && <span className="criterion-excluded">Claims collision</span>}
+                  {notedIds.has(episode.id) && <span className="criterion-audited">Audited</span>}
+                </>
+              ) : (
+                <>
+                  {isIncluded && trial && <><b className={trial[2] === 0 ? 'tp' : trial[2] === 1 ? 'sl' : 'expiry'}>
+                    {trial[2] === 0 ? 'TP first' : trial[2] === 1 ? 'SL first' : 'Expiry'}</b>
+                    <span>· H{trial[3]} · {trial[4] >= 0 ? '+' : ''}{trial[4].toFixed(3)} gross R</span></>}
+                  {!isIncluded && trial && isClaimsExcluded && <>
+                    <b className={trial[2] === 0 ? 'tp' : trial[2] === 1 ? 'sl' : 'expiry'}>
+                      {trial[2] === 0 ? 'TP first' : trial[2] === 1 ? 'SL first' : 'Expiry'}</b>
+                    <span>· H{trial[3]} · {trial[4] >= 0 ? '+' : ''}{trial[4].toFixed(3)} gross R</span>
+                    <span className="criterion-excluded">Excluded from current selection: Simultaneous Jobless Claims</span>
+                  </>}
+                  {!isIncluded && !trial && yoyDirection && <>
+                    <span className="criterion-coverage">Monthly readings absent · inspection only</span>
+                    {isClaimsExcluded && <span className="criterion-excluded">Excluded: Simultaneous Jobless Claims</span>}
+                  </>}
+                  {!isIncluded && !trial && !yoyDirection && <>
+                    <span className="criterion-coverage">{el?.reason ?? 'Ineligible under this interpretation'}</span>
+                    {isClaimsExcluded && <span className="criterion-excluded">Excluded: Simultaneous Jobless Claims</span>}
+                  </>}
+                  {notedIds.has(episode.id) && <span className="criterion-audited">Audited</span>}
+                </>
+              )}
+            </span>
+            {isExperimental ? (
+              <small>{episode.claimsCollision ? 'Co-release with Jobless Claims' : 'Clean single release'} · Entry {episode.entryPrice?.toFixed(5) ?? '—'}</small>
+            ) : (
+              <small>Headline m/m Δ {episode.readings[0]?.delta ?? '—'} · Core m/m Δ {episode.readings[1]?.delta ?? '—'}</small>
+            )}
           </button>
         })}
       </div>

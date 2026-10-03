@@ -19,6 +19,7 @@ async function runTests() {
   try {
     const bundleDataModule = await viteServer.ssrLoadModule('./src/criterion/cpi-bundle-data.ts')
     const resultPanelModule = await viteServer.ssrLoadModule('./src/criterion/arrow-result/CpiBundleResultPanel.tsx')
+    const criterionPanelModule = await viteServer.ssrLoadModule('./src/criterion/criterion-dock/CriterionPanel.tsx')
     const notesModule = await viteServer.ssrLoadModule('./src/criterion/arrow-result/audit-notes.ts')
 
     const {
@@ -31,6 +32,7 @@ async function runTests() {
     } = bundleDataModule
 
     const { CpiBundleResultPanel } = resultPanelModule
+    const { CriterionPanel } = criterionPanelModule
     const { auditNoteKey } = notesModule
 
     const snapshotPath = path.resolve(rootDir, 'public/criterion/eurusd_cpi_bundle_v3.json')
@@ -448,6 +450,134 @@ async function runTests() {
     }
     assert.equal(reconciledCount, 1872, 'All 1,872 production summaries must reconcile')
     console.log(`  ✓ All ${reconciledCount} production selections reconciled with zero errors`)
+
+    // ---------------------------------------------------------------------------------
+    // TEST 7: Study Selector Options & Experimental Standby Rendering
+    // ---------------------------------------------------------------------------------
+    console.log('\n[Test 7] CriterionPanel study selector and USD CPI EXPERIMENTAL unfiltered render...')
+    const loadingMarkup = renderToStaticMarkup(
+      React.createElement(CriterionPanel, {
+        study: 'experimental',
+        onStudyChange: () => {},
+        priorContextBars: 240,
+        onPriorContextChange: () => {},
+        baselineData: null,
+        baselineError: null,
+        baselineRule: {
+          family: 'CPI', signal: 'af', panel: 'ALL', cohort: 'ALL_ELIGIBLE', horizon: 60, stop: 1, target: 1,
+        },
+        baselineSummary: null,
+        selectedResearchEpisodeId: null,
+        savedAuditNotes: [],
+        onBaselineRuleChange: () => {},
+        onSelectResearchEpisode: () => {},
+        bundleData: null,
+        bundleError: null,
+        bundleRule: {
+          comparison: 'CANDIDATE_1_HEADLINE_MM', panel: 'FULL_PANEL', horizon: 60, stop: 1, target: 1,
+        },
+        bundleSummary: null,
+        selectedBundleEpisodeId: null,
+        bundleNotes: [],
+        onBundleRuleChange: () => {},
+        onSelectBundleEpisode: () => {},
+      })
+    )
+    assert.match(loadingMarkup, /<option value="experimental"[^>]*>USD CPI EXPERIMENTAL<\/option>/)
+    assert.match(loadingMarkup, /Loading pinned CPI bundle episodes…/)
+
+    const populatedMarkup = renderToStaticMarkup(
+      React.createElement(CriterionPanel, {
+        study: 'experimental',
+        onStudyChange: () => {},
+        priorContextBars: 240,
+        onPriorContextChange: () => {},
+        baselineData: null,
+        baselineError: null,
+        baselineRule: {
+          family: 'CPI', signal: 'af', panel: 'ALL', cohort: 'ALL_ELIGIBLE', horizon: 60, stop: 1, target: 1,
+        },
+        baselineSummary: null,
+        selectedResearchEpisodeId: null,
+        savedAuditNotes: [],
+        onBaselineRuleChange: () => {},
+        onSelectResearchEpisode: () => {},
+        bundleData: snapshot,
+        bundleError: null,
+        bundleRule: {
+          comparison: 'CANDIDATE_1_HEADLINE_MM', panel: 'FULL_PANEL', horizon: 60, stop: 1, target: 1,
+        },
+        bundleSummary: null,
+        selectedBundleEpisodeId: null,
+        bundleNotes: [],
+        onBundleRuleChange: () => {},
+        onSelectBundleEpisode: () => {},
+      })
+    )
+    assert.match(populatedMarkup, /139 total · unfiltered/)
+    assert.match(populatedMarkup, /Prior context/)
+    assert.match(populatedMarkup, /Expiry/)
+    assert.match(populatedMarkup, /SL ATR/)
+    assert.match(populatedMarkup, /TP ATR/)
+    assert.doesNotMatch(populatedMarkup, /Bundle interpretation/)
+    assert.doesNotMatch(populatedMarkup, /Co-release filter/)
+    assert.doesNotMatch(populatedMarkup, /Matching only/)
+    const episodeButtonMatches = populatedMarkup.match(/role="listitem"/g)
+    assert.equal(episodeButtonMatches?.length, 139, 'Must render exactly 139 episode buttons')
+    assert.match(populatedMarkup, /★ m\/m: None · y\/y: Long/) // 2025.12.18 episode where monthly readings are missing
+    console.log('  ✓ Selector contains USD CPI EXPERIMENTAL')
+    console.log('  ✓ Preserves SL/TP, Expiry, and Prior context controls')
+    console.log('  ✓ Omits Bundle interpretation and Co-release filter')
+    console.log('  ✓ Exactly 139 unfiltered episodes rendered')
+    console.log('  ✓ Direction formatted with star and separate m/m and y/y Long/Short')
+
+    // Also test CpiBundleResultPanel in experimental mode for 2025.12.18 (no trial)
+    const yoyEp = snapshot.episodes.find((ep) => ep.releaseText.startsWith('2025.12.18'))
+    assert.ok(yoyEp, '2025.12.18 episode must exist')
+    const expResultMarkup = renderToStaticMarkup(
+      React.createElement(CpiBundleResultPanel, {
+        episode: yoyEp,
+        trial: null,
+        rule: { comparison: 'CANDIDATE_1_HEADLINE_MM', panel: 'FULL_PANEL', horizon: 60, stop: 1, target: 1 },
+        note: '',
+        notes: [],
+        saveFailed: false,
+        onNoteChange: () => {},
+        onReturnLive: () => {},
+        isExperimental: true,
+      })
+    )
+    assert.match(expResultMarkup, /★ m\/m: None · y\/y: Long/)
+    assert.match(expResultMarkup, /experimental-table/)
+    assert.match(expResultMarkup, /m\/m Sum/)
+    assert.match(expResultMarkup, /y\/y Sum/)
+    assert.match(expResultMarkup, /Missing required monthly readings/)
+    console.log('  ✓ CpiBundleResultPanel renders star direction badge and merged table without trade when trial is absent')
+
+    // Test CpiBundleResultPanel in experimental mode for episode 0 (with trial)
+    const ep0 = snapshot.episodes[0]
+    const ep0Trial = snapshot.trials['CANDIDATE_1_HEADLINE_MM|60|1:1']?.find((t) => t[0] === 0)
+    assert.ok(ep0Trial, 'Episode 0 trial must exist')
+    const ep0ResultMarkup = renderToStaticMarkup(
+      React.createElement(CpiBundleResultPanel, {
+        episode: ep0,
+        trial: ep0Trial,
+        rule: { comparison: 'CANDIDATE_1_HEADLINE_MM', panel: 'FULL_PANEL', horizon: 60, stop: 1, target: 1 },
+        note: '',
+        notes: [],
+        saveFailed: false,
+        onNoteChange: () => {},
+        onReturnLive: () => {},
+        isExperimental: true,
+        bundleData: snapshot,
+      })
+    )
+    assert.match(ep0ResultMarkup, /★ m\/m: Long · y\/y: Long/)
+    assert.match(ep0ResultMarkup, /experimental-table/)
+    assert.match(ep0ResultMarkup, /-1\.000 R/)
+    assert.match(ep0ResultMarkup, /m\/m Sum/)
+    assert.match(ep0ResultMarkup, /y\/y Sum/)
+    console.log('  ✓ CpiBundleResultPanel renders merged table with gross trade results and delta sums when trial is present')
 
     console.log('\n--- ALL PRODUCTION FRONTEND TESTS PASSED SUCCESSFULLY ---')
   } finally {

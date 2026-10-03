@@ -5,7 +5,7 @@ import { BaselineCriterionPanel } from './BaselineCriterionPanel'
 import { CpiBundleCriterionPanel } from './CpiBundleCriterionPanel'
 import './criterion-panel.css'
 
-export type CriterionStudyId = 'baseline' | 'bundle'
+export type CriterionStudyId = 'baseline' | 'bundle' | 'experimental'
 
 export type CriterionPanelProps = {
   study: CriterionStudyId
@@ -60,6 +60,7 @@ export function CriterionPanel({
           <select value={study} onChange={(event) => onStudyChange(event.target.value as CriterionStudyId)}>
             <option value="baseline">CPI / NFP baseline V2</option>
             <option value="bundle">USD CPI bundle V3</option>
+            <option value="experimental">USD CPI EXPERIMENTAL</option>
           </select>
         </label>
       </div>
@@ -88,6 +89,7 @@ export function CriterionPanel({
           notes={bundleNotes}
           onRuleChange={onBundleRuleChange}
           onSelectEpisode={onSelectBundleEpisode}
+          isExperimental={study === 'experimental'}
         />
       )}
     </div>

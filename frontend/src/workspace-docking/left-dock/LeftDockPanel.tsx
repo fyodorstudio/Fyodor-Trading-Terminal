@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { SymbolQuote } from '../../market-data/contracts/SymbolQuote'
 import { MarketWatchPanel } from '../../market-data/market-watch/MarketWatchPanel'
 import type { FeedStatus } from '../../market-data/mt5-feed/use-mt5-market-data'
-import { CriterionPanel } from '../../criterion/criterion-dock/CriterionPanel'
+import { CriterionPanel, type CriterionStudyId } from '../../criterion/criterion-dock/CriterionPanel'
 import type { AuditNote } from '../../criterion/arrow-result/audit-notes'
 import type { PriorContextBars, ResearchAuditData, ResearchEpisode, ResearchRule, ResearchSummary, ResearchTrial } from '../../criterion/audit-data'
 import type { BundleEpisode, BundleRule, BundleSnapshot, BundleSummary, BundleTrial } from '../../criterion/cpi-bundle-data'
@@ -18,8 +18,8 @@ type LeftDockPanelProps = {
   activeWindow?: LeftDockWindow
   onSelectWindow?: (window: LeftDockWindow) => void
   criterionData: ResearchAuditData | null
-  criterionStudy: 'baseline' | 'bundle'
-  onCriterionStudyChange: (study: 'baseline' | 'bundle') => void
+  criterionStudy: CriterionStudyId
+  onCriterionStudyChange: (study: CriterionStudyId) => void
   criterionError: string | null
   criterionRule: ResearchRule
   criterionSummary: ResearchSummary | null

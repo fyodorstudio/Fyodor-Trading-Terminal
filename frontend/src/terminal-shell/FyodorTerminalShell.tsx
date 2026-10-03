@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BaselineResultPanel } from '../criterion/arrow-result/BaselineResultPanel'
 import { CpiBundleResultPanel } from '../criterion/arrow-result/CpiBundleResultPanel'
 import { auditNoteKey, readAuditNotes, writeAuditNotes, type AuditNote } from '../criterion/arrow-result/audit-notes'
+import type { CriterionStudyId } from '../criterion/criterion-dock/CriterionPanel'
 import reportManifest from '../criterion/report-manifest.json'
 import bundleManifest from '../criterion/cpi-bundle-manifest.json'
 import {
   availableTrials, cleanPanel, researchPriceLevels, snapshotAround, validateSelection,
   type PriorContextBars, type ResearchAuditData, type ResearchEpisode, type ResearchRule, type ResearchTrial,
 } from '../criterion/audit-data'
-import { bundleYoyOnlyDirection, deriveBundleChartArrows, deriveBundlePriceLevels, deriveNextBundleSelection,
+import { deriveBundleChartArrows, deriveBundlePriceLevels, deriveNextBundleSelection,
   getBundleEpisodeInclusion, validateBundleSelection,
   type BundleEpisode, type BundleRule, type BundleSnapshot, type BundleTrial } from '../criterion/cpi-bundle-data'
 import { applyColorTheme, readColorTheme, type ColorTheme } from '../appearance/color-theme/color-theme-preference'
@@ -80,7 +81,7 @@ export function FyodorTerminalShell() {
   const [leftDockWindow, setLeftDockWindow] = useState<LeftDockWindow>('market-watch')
   const [researchData, setResearchData] = useState<ResearchAuditData | null>(null)
   const [researchError, setResearchError] = useState<string | null>(null)
-  const [criterionStudy, setCriterionStudy] = useState<'baseline' | 'bundle'>('baseline')
+  const [criterionStudy, setCriterionStudy] = useState<CriterionStudyId>('baseline')
   const [bundleData, setBundleData] = useState<BundleSnapshot | null>(null)
   const [bundleError, setBundleError] = useState<string | null>(null)
   const [bundleRule, setBundleRule] = useState<BundleRule>({
@@ -131,7 +132,7 @@ export function FyodorTerminalShell() {
   }, [leftDockWindow, researchData, researchError])
 
   useEffect(() => {
-    if (leftDockWindow !== 'criterion' || criterionStudy !== 'bundle' || !researchData || bundleData || bundleError) return
+    if (leftDockWindow !== 'criterion' || (criterionStudy !== 'bundle' && criterionStudy !== 'experimental') || !researchData || bundleData || bundleError) return
     const controller = new AbortController()
     void fetch(bundleManifest.snapshotPath, { signal: controller.signal })
       .then(async (response) => {
@@ -185,14 +186,23 @@ export function FyodorTerminalShell() {
     try { return snapshotAround(researchData, entry, bundleRule.horizon, priorContextBars) }
     catch { return null }
   }, [researchData, bundleSelection, bundleRule.horizon, priorContextBars])
-  const auditBars = criterionStudy === 'bundle' ? bundleAuditBars : legacyAuditBars
-  const auditMode = Boolean((criterionStudy === 'bundle' ? bundleSelection : auditSelection) && auditBars)
+  const auditBars = (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleAuditBars : criterionStudy === 'baseline' ? legacyAuditBars : null
+  const auditMode = Boolean(((criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleSelection : criterionStudy === 'baseline' ? auditSelection : null) && auditBars)
   const auditLevels = useMemo(() => auditSelection?.trial ? researchPriceLevels(auditSelection.episode, researchRule) : null,
     [auditSelection, researchRule])
   const bundleLevels = useMemo(() => {
-    if (!bundleData) return null
+    if (!bundleData || !bundleSelection) return null
+    if (criterionStudy === 'experimental') {
+      if (!bundleSelection.trial || bundleSelection.episode.entryPrice == null || bundleSelection.episode.atr == null) return null
+      return {
+        entry: bundleSelection.episode.entryPrice,
+        stop: bundleSelection.episode.entryPrice - bundleSelection.trial[1] * bundleRule.stop * bundleSelection.episode.atr,
+        target: bundleSelection.episode.entryPrice + bundleSelection.trial[1] * bundleRule.target * bundleSelection.episode.atr,
+        direction: bundleSelection.trial[1],
+      }
+    }
     return deriveBundlePriceLevels(bundleData, bundleRule, bundleSelection)
-  }, [bundleSelection, bundleData, bundleRule])
+  }, [bundleSelection, bundleData, bundleRule, criterionStudy])
   const currentAuditNote = auditSelection && researchData ? auditNotes.find((note) =>
     auditNoteKey(note.viewerSha256, note.family, note.signal, note.episodeId)
       === auditNoteKey(researchData.viewerSha256, researchRule.family, researchRule.signal, auditSelection.episode.id),
@@ -221,8 +231,25 @@ export function FyodorTerminalShell() {
   }, [researchData, researchRule, researchSelection.trials, legacyAuditBars, auditSelection])
   const bundleArrows = useMemo((): ResearchChartArrow[] => {
     if (!bundleData || !bundleAuditBars) return []
-    return deriveBundleChartArrows(bundleData, bundleRule, bundleAuditBars, bundleSelection, bundleResult.trials)
-  }, [bundleData, bundleResult.trials, bundleAuditBars, bundleSelection, bundleRule])
+    const raw = deriveBundleChartArrows(bundleData, bundleRule, bundleAuditBars, bundleSelection, bundleResult.trials)
+    if (criterionStudy === 'experimental') {
+      const starArrows: ResearchChartArrow[] = raw.map((arrow) => ({ ...arrow, isStar: true }))
+      if (bundleSelection?.episode.entryTime != null && bundleSelection.episode.entryPrice != null) {
+        const id = `bundle:${bundleSelection.episode.id}`
+        if (!starArrows.some((a) => a.id === id)) {
+          starArrows.push({
+            id,
+            time: bundleSelection.episode.entryTime,
+            entryPrice: bundleSelection.episode.entryPrice,
+            direction: 'long',
+            isStar: true,
+          })
+        }
+      }
+      return starArrows
+    }
+    return raw
+  }, [bundleData, bundleResult.trials, bundleAuditBars, bundleSelection, bundleRule, criterionStudy])
 
   // Planned trade state for the active symbol
   const [prevSymbolForPlan, setPrevSymbolForPlan] = useState(selectedSymbol)
@@ -301,7 +328,7 @@ export function FyodorTerminalShell() {
     setBottomDockWindow((current) => current === 'arrow-result' ? 'notebook' : current)
   }
 
-  const changeCriterionStudy = (study: 'baseline' | 'bundle') => {
+  const changeCriterionStudy = (study: CriterionStudyId) => {
     if (study === criterionStudy) return
     leaveResearchAudit()
     setCriterionStudy(study)
@@ -402,13 +429,13 @@ export function FyodorTerminalShell() {
   }
 
   const selectResearchArrow = (arrow: ResearchChartArrow) => {
-    if (criterionStudy === 'bundle') {
+    if (criterionStudy === 'bundle' || criterionStudy === 'experimental') {
       if (!bundleData) return
       const trial = bundleResult.trials.find((item) => `bundle:${bundleData.episodes[item[0]].id}` === arrow.id)
       if (trial) selectBundleEpisode(bundleData.episodes[trial[0]], trial)
-      else if (arrow.contextOnly) {
+      else {
         const episode = bundleData.episodes.find((item) => `bundle:${item.id}` === arrow.id)
-        if (episode && bundleYoyOnlyDirection(episode)) selectBundleEpisode(episode, null)
+        if (episode) selectBundleEpisode(episode, null)
       }
       return
     }
@@ -419,7 +446,7 @@ export function FyodorTerminalShell() {
   }
 
   const saveAuditNote = (text: string) => {
-    if (criterionStudy === 'bundle') {
+    if (criterionStudy === 'bundle' || criterionStudy === 'experimental') {
       if (!bundleSelection || !bundleData) return
       const key = auditNoteKey(bundleData.sourceSha256, 'CPI_BUNDLE', bundleRule.comparison, bundleSelection.episode.id)
       const next = auditNotes.filter((note) => auditNoteKey(note.viewerSha256, note.family, note.signal, note.episodeId) !== key)
@@ -549,15 +576,18 @@ export function FyodorTerminalShell() {
         />
 
         <section className="chart-workspace" aria-label={`${chartSymbol} chart workspace`}>
-          <ChartWorkspaceHeader symbol={chartSymbol} quote={quote} timeframe={timeframe} onSelectTimeframe={selectTimeframe} researchAudit={auditMode} />
+          <ChartWorkspaceHeader
+            symbol={chartSymbol}
+            quote={quote}
+            timeframe={timeframe}
+            onSelectTimeframe={selectTimeframe}
+            researchAudit={auditMode}
+            auditDetails={auditMode ? `${(criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleSelection?.episode.releaseText : auditSelection?.episode.releaseText} · EURUSD H1 · H${(criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleRule.horizon : researchRule.horizon} observed candles · ${priorContextBars ? `up to ${priorContextBars} prior` : 'no prior context'}` : null}
+            auditStatus={auditMode && criterionStudy !== 'experimental' && ((criterionStudy === 'bundle') ? bundleSelection && !bundleSelection.trial : auditSelection && !auditSelection.trial) ? 'No priced trade under this rule' : null}
+            auditError={auditRuleError}
+            onReturnLive={leaveResearchAudit}
+          />
           <div className="chart-frame">
-            {auditMode && <div className="research-chart-banner">
-              <strong>HISTORICAL RESEARCH SNAPSHOT · NOT LIVE</strong>
-              <span>{criterionStudy === 'bundle' ? bundleSelection?.episode.releaseText : auditSelection?.episode.releaseText} · EURUSD H1 · H{criterionStudy === 'bundle' ? bundleRule.horizon : researchRule.horizon} observed candles · {priorContextBars ? `up to ${priorContextBars} prior` : 'no prior context'}</span>
-              {(criterionStudy === 'bundle' ? bundleSelection && !bundleSelection.trial : auditSelection && !auditSelection.trial) && <span>No priced trade under this rule</span>}
-              {auditRuleError && <span role="alert">{auditRuleError}</span>}
-              <button type="button" onClick={leaveResearchAudit}>Return to live</button>
-            </div>}
             <MarketChartErrorBoundary
               symbol={chartSymbol}
               timeframe={timeframe}
@@ -565,7 +595,7 @@ export function FyodorTerminalShell() {
             >
               <MarketCandlestickChart
                 bars={chartBars}
-                fitContentKey={auditMode ? `research:${criterionStudy}:${criterionStudy === 'bundle' ? bundleSelection?.episode.id : auditSelection?.episode.id}:H${criterionStudy === 'bundle' ? bundleRule.horizon : researchRule.horizon}:context${priorContextBars}` : `${activeSymbol}:${timeframe}`}
+                fitContentKey={auditMode ? `research:${criterionStudy}:${(criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleSelection?.episode.id : auditSelection?.episode.id}:H${(criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleRule.horizon : researchRule.horizon}:context${priorContextBars}` : `${activeSymbol}:${timeframe}`}
                 precision={quote?.precision ?? 5}
                 theme={theme}
                 appearance={chartAppearance}
@@ -593,9 +623,9 @@ export function FyodorTerminalShell() {
                       seriesApi={seriesApi}
                       arrows={auditMode ? noRegisteredArrows : registeredArrows.symbolArrows}
                       selectedArrowId={auditMode ? null : registeredArrows.selectedArrowId}
-                      researchArrows={auditMode ? criterionStudy === 'bundle' ? bundleArrows : researchArrows : noResearchArrows}
-                      selectedResearchArrowId={auditMode ? criterionStudy === 'bundle' ? `bundle:${bundleSelection?.episode.id}` : `research:${auditSelection?.episode.id}` : null}
-                      researchLevels={auditMode ? criterionStudy === 'bundle' ? bundleLevels : auditLevels : null}
+                      researchArrows={auditMode ? (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleArrows : researchArrows : noResearchArrows}
+                      selectedResearchArrowId={auditMode ? (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? `bundle:${bundleSelection?.episode.id}` : `research:${auditSelection?.episode.id}` : null}
+                      researchLevels={auditMode ? (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleLevels : auditLevels : null}
                       onSelectResearchArrow={selectResearchArrow}
                       draftPlan={auditMode ? hiddenTradePlan : plannedTrade}
                       onSelectArrow={(arrow) => {
@@ -709,12 +739,14 @@ export function FyodorTerminalShell() {
               saveFailed={auditNoteSaveFailed} onNoteChange={saveAuditNote}
               onReturnLive={leaveResearchAudit} />
           )}
-          {bottomDockWindow === 'arrow-result' && criterionStudy === 'bundle' && (
+          {bottomDockWindow === 'arrow-result' && (criterionStudy === 'bundle' || criterionStudy === 'experimental') && (
             <CpiBundleResultPanel key={`${bundleRule.comparison}:${bundleSelection?.episode.id ?? ''}`}
               episode={bundleSelection?.episode ?? null} trial={bundleSelection?.trial ?? null}
               rule={bundleRule} note={currentBundleNote?.text ?? ''} notes={currentBundleNotes}
               saveFailed={auditNoteSaveFailed} onNoteChange={saveAuditNote}
-              onReturnLive={leaveResearchAudit} />
+              onReturnLive={leaveResearchAudit}
+              isExperimental={criterionStudy === 'experimental'}
+              bundleData={bundleData} />
           )}
         </BottomDockPanel>
       )}
