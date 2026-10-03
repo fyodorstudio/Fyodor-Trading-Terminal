@@ -1,4 +1,5 @@
-import { defaultFamilySymbol, eventFamilyOptions, isCuratedFamily, sixEventFamilies } from './timeline-event-families'
+import { defaultFamilySymbol, eventFamilyOptions, isCuratedFamily } from './timeline-event-families'
+import { mostRelevantFamilies } from './timeline-priority-categories'
 import type { EventSymbol, TimelineEventGroup } from './timeline-event-view'
 
 // This audited viewer is EURUSD. Currency role colours never encode direction.
@@ -9,7 +10,7 @@ export const pairCurrencySides = [
 ] as const
 export type EventCurrencySide = typeof pairCurrencySides[number]['id']
 export const defaultCurrencySides: EventCurrencySide[] = ['base', 'quote']
-export const defaultEventFamilies = [...sixEventFamilies, 'ecb', 'euro-inflation']
+export const defaultEventFamilies = mostRelevantFamilies
 export type EventFamilyOption = { id: string; label: string; currency: string; symbol: EventSymbol; count: number; curated: boolean }
 
 export function eventCurrencySide(currency: string): EventCurrencySide {

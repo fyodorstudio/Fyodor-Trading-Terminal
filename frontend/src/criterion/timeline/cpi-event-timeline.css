@@ -332,6 +332,14 @@
 .timeline-family-choice input { margin-top: 2px; }
 .timeline-family-choice small { display: block; margin-top: 2px; color: var(--text-muted); font-size: 9px; }
 .timeline-family-choice input, .timeline-filter-toolbar input { accent-color: var(--accent); }
+.timeline-priority-category { padding: 5px 0 7px; border-bottom: 1px solid var(--border); }
+.timeline-priority-category > .timeline-family-choice { padding-bottom: 3px; }
+.timeline-priority-category > p { margin: 0 0 3px 22px; color: var(--text-muted); font-size: 10px; line-height: 1.4; }
+.timeline-category-customize { margin-left: 22px; }
+.timeline-category-customize > summary { cursor: pointer; color: var(--text-muted); font-size: 9px; padding: 2px 0; }
+.timeline-category-customize .timeline-family-choice { font-size: 10px; }
+.timeline-filter-coverage { border-top: 1px solid var(--border); flex-shrink: 0; margin-top: 4px; }
+.timeline-filter-coverage > summary { cursor: pointer; padding: 7px 0; font-size: 10px; color: var(--text-muted); }
 .timeline-currency-base input { accent-color: #2563eb; }
 .timeline-currency-quote input { accent-color: #9333ea; }
 .timeline-more-families > summary, .timeline-symbol-settings > summary, .timeline-other-currencies > summary { cursor: pointer; font-size: 11px; padding: 7px 0; }

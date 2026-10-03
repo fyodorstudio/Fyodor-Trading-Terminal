@@ -6,8 +6,10 @@ import { buildEventMarkers, containingEventBar, eventsInWindow, groupTimelineEve
 import { defaultFamilySymbol, type FamilyWatchlist } from './timeline-event-families'
 import { buildFamilyOptions, defaultCurrencySides, defaultEventFamilies, eventCurrencySide, eventFamilyKey,
   isCurrencySide, isFamilySelection, type EventCurrencySide } from './timeline-event-filters'
+import { upgradeFamilySelections } from './timeline-priority-categories'
 
 type MarkerPreferences = {
+  filterVersion: 2
   families: Record<string, EventSymbol>
   episodes: Record<string, Record<string, EventSymbol>>
   watchlist: FamilyWatchlist
@@ -18,23 +20,34 @@ const storageKey = `fyodor_timeline_symbols_v1:${timelineManifest.reviewedSource
 const noSelections: Record<string, EventSymbol> = {}
 
 function readPreferences(): MarkerPreferences {
-  const empty: MarkerPreferences = { families: {}, episodes: {}, watchlist: [...defaultEventFamilies],
+  const empty: MarkerPreferences = { filterVersion: 2, families: {}, episodes: {}, watchlist: [...defaultEventFamilies],
     shortlist: [...defaultEventFamilies], currencySides: [...defaultCurrencySides] }
   try {
     const value = JSON.parse(localStorage.getItem(storageKey) ?? '{}')
     const families = Object.fromEntries(Object.entries(value.families ?? {}).filter(([, symbol]) => isEventSymbol(symbol))) as Record<string, EventSymbol>
+    for (const [id, symbol] of Object.entries(families)) {
+      for (const upgraded of upgradeFamilySelections([id], value.filterVersion !== 2)) families[upgraded] ??= symbol
+    }
     const episodes: MarkerPreferences['episodes'] = {}
     for (const [episode, selections] of Object.entries(value.episodes ?? {})) {
       if (!selections || typeof selections !== 'object') continue
       episodes[episode] = Object.fromEntries(Object.entries(selections).filter(([, symbol]) => isEventSymbol(symbol))) as Record<string, EventSymbol>
     }
-    const watchlist = value.watchlist === null ? null : Array.isArray(value.watchlist) ?
+    let watchlist = value.watchlist === null ? null : Array.isArray(value.watchlist) ?
       [...new Set(value.watchlist.filter(isFamilySelection))] as string[] : [...defaultEventFamilies]
-    const shortlist = watchlist ?? (Array.isArray(value.shortlist) ?
+    let shortlist = watchlist ?? (Array.isArray(value.shortlist) ?
       [...new Set(value.shortlist.filter(isFamilySelection))] as string[] : [...defaultEventFamilies])
+    const legacyDefault = ['jobs', 'fomc', 'ppi', 'retail', 'gdp', 'ism-manufacturing', 'ecb', 'euro-inflation']
+    const legacyPolicy = value.filterVersion !== 2 && (Array.isArray(value.watchlist) ||
+      (value.watchlist === null && Array.isArray(value.shortlist)))
+    const upgrade = (selection: string[]) => value.filterVersion === 2 ? selection : legacyPolicy && selection.length === legacyDefault.length &&
+      legacyDefault.every((id) => selection.includes(id)) ? [...defaultEventFamilies] :
+      upgradeFamilySelections(selection, legacyPolicy)
+    if (watchlist !== null) watchlist = upgrade(watchlist)
+    shortlist = upgrade(shortlist)
     const currencySides = Array.isArray(value.currencySides) ? [...new Set(value.currencySides.filter(isCurrencySide))] as EventCurrencySide[] :
       [...defaultCurrencySides]
-    return { families, episodes, watchlist, shortlist, currencySides }
+    return { filterVersion: 2, families, episodes, watchlist, shortlist, currencySides }
   } catch { return empty }
 }
 
@@ -133,7 +146,7 @@ export function useTimelineEventAnnotations(payload: CpiTimelineEpisodePayload |
       }
       episodes[payload.episodeId] = episode
     }
-    savePreferences({ families: { ...previous.families, ...symbols }, episodes,
+    savePreferences({ filterVersion: 2, families: { ...previous.families, ...symbols }, episodes,
       watchlist: watchlist === null ? null : [...watchlist], shortlist: [...shortlist], currencySides: [...currencySides] })
     setFocusedGroupId(null)
   }

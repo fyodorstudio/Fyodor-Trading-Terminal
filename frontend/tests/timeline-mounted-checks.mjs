@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import React from 'react'
 import { Window } from 'happy-dom'
+import { testPriorityFilters } from './timeline-priority-checks.mjs'
 
 export async function testMountedTimeline({ viteServer, rootDir, manifest, useCpiEventTimeline,
   CpiEventTimelineCriterionPanel, TimelineResultPanel }) {
@@ -278,7 +279,7 @@ async function testAnnotations({ viteServer, rootDir, createRoot, act, roots, ep
   assert.equal(curatedFamilyForBlock(sourceProbe('840020027')), undefined, 'Retail inventories are not retail sales')
   assert.equal(curatedFamilyForBlock(sourceProbe('840010009')), 'gdp', 'Quarterly PCE belongs to GDP')
   assert.equal(curatedFamilyForBlock(sourceProbe('840010001')), 'pce', 'Monthly PCE remains separate')
-  assert.equal(curatedFamilyForBlock(sourceProbe('840050004')), 'fomc', 'FOMC minutes remain discoverable')
+  assert.equal(curatedFamilyForBlock(sourceProbe('840050004')), 'fed-minutes', 'FOMC minutes remain discoverable as supporting context')
   const fomc = groupTimelineEvents([
     { ...sourceProbe('840050014'), id: 'rate', releaseTimestamp: 10000 },
     { ...sourceProbe('840050018'), id: 'conference', releaseTimestamp: 11800 },
@@ -342,6 +343,7 @@ async function testAnnotations({ viteServer, rootDir, createRoot, act, roots, ep
     return document.querySelector('[role="dialog"][aria-label="Event filters"]')
   }
   const menuButton = (menu, text) => [...menu.querySelectorAll('button')].find((button) => button.textContent === text)
+  await testPriorityFilters({ viteServer, container, getView: () => view, act, openFamilies, menuButton })
   let menu = await openFamilies()
   assert.ok(menu, 'Family menu is mounted outside the dock')
   assert.equal(container.contains(menu), false, 'Short dock overflow cannot clip the portal')
@@ -573,6 +575,46 @@ async function testAnnotations({ viteServer, rootDir, createRoot, act, roots, ep
   assert.equal(view.familySymbols.jobs, 'umbrella', 'Legacy family symbol default survives regrouping')
   await act(async () => view.setEventSymbol(jobs.id, jobs.family, 'moon', false))
   assert.equal(view.selected[jobs.id], undefined, 'Unmark clears legacy aliases instead of reappearing')
+
+  // Upgrade the previous shipped preset while retaining user markers and
+  // symbols from national families that now belong to the priority categories.
+  const german = view.windowGroups.find((group) => group.familyId === 'german-inflation' && !group.timingUncertain)
+  assert.ok(german?.legacyIds.length)
+  const germanKey = `source:${JSON.stringify(['DE', 'EUR', 'CPI'])}`
+  const old = JSON.parse(localStorage.getItem(storageKey))
+  delete old.filterVersion
+  old.watchlist = ['jobs', 'fomc', 'ppi', 'retail', 'gdp', 'ism-manufacturing', 'ecb', 'euro-inflation']
+  old.shortlist = old.watchlist
+  old.episodes[epB][german.legacyIds[0]] = 'sun'
+  delete old.families['german-inflation'] // This curated ID did not exist in v1.
+  old.families[germanKey] = 'cloud'
+  localStorage.setItem(storageKey, JSON.stringify(old))
+  await act(async () => root3.unmount())
+  roots.delete(root3)
+  const root4 = createRoot(container)
+  roots.add(root4)
+  await act(async () => root4.render(React.createElement(AnnotationApp, { payload: payloadB })))
+  assert.deepEqual(view.watchlist, defaultEventFamilies, 'Previous default upgrades to the four-category preset')
+  assert.equal(view.selected[german.id], 'sun', 'Regrouping retains national chart selections')
+  assert.equal(view.familySymbols['german-inflation'], 'cloud', 'Promoted national family retains its saved symbol')
+  await act(async () => view.applyFamilies(defaultEventFamilies.filter((id) => id !== 'german-inflation'), {}))
+  await act(async () => root4.unmount())
+  roots.delete(root4)
+  const root5 = createRoot(container)
+  roots.add(root5)
+  await act(async () => root5.render(React.createElement(AnnotationApp, { payload: payloadB })))
+  assert.ok(!view.watchlist.includes('german-inflation'), 'Applying then reloading does not repeat the migration')
+  assert.equal(view.selected[german.id], 'sun', 'Hidden national symbols remain saved')
+  await act(async () => root5.unmount())
+  roots.delete(root5)
+  old.watchlist = ['fomc', germanKey]
+  old.shortlist = old.watchlist
+  localStorage.setItem(storageKey, JSON.stringify(old))
+  const root6 = createRoot(container)
+  roots.add(root6)
+  await act(async () => root6.render(React.createElement(AnnotationApp, { payload: payloadB })))
+  assert.deepEqual(view.watchlist, ['fomc', 'fed-minutes', 'german-inflation'],
+    'An explicit legacy custom selection stays custom and retains minutes')
   colours.remove()
   console.log('  ✓ Bounded tabs/date navigation, cross-date search, chart jumps, source readings and persisted symbols')
 }
