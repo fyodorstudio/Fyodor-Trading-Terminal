@@ -106,27 +106,65 @@
   }
 }
 
-.experimental-meta-strip {
+.arrow-result-panel.experimental-merged .experimental-main-col {
+  overflow-y: hidden;
+  justify-content: flex-start;
+  padding-bottom: 6px;
+}
+
+.arrow-result-panel.experimental-merged .arrow-result-journal {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-y: auto;
+}
+.arrow-result-panel.experimental-merged .arrow-result-journal .arrow-result-note {
+  flex: 1;
+  min-height: 48px;
+}
+.arrow-result-panel.experimental-merged .arrow-result-journal .arrow-result-flags-row {
+  margin-top: auto;
+  padding-top: 5px;
+  border-top: 1px solid var(--border);
+}
+
+.experimental-header-unified {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 4px 8px;
-  border: 1px solid var(--border);
-  border-radius: 5px;
-  background: var(--surface-inset);
+  min-height: 24px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: nowrap;
+}
+.experimental-header-unified .arrow-result-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.experimental-header-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   font-size: 9.5px;
   color: var(--text-muted);
+  overflow: hidden;
 }
-.experimental-meta-strip strong {
+.experimental-header-dates {
+  white-space: nowrap;
+}
+.experimental-header-dates b {
   color: var(--text-strong);
 }
 .experimental-levels-pills {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   font-variant-numeric: tabular-nums;
   font-size: 9px;
+  white-space: nowrap;
 }
 .experimental-levels-pills span b {
   color: var(--text-strong);
@@ -143,16 +181,18 @@
   border-radius: 5px;
   background: var(--surface-panel);
   overflow-x: auto;
+  overflow-y: hidden;
 }
 .experimental-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
 .experimental-table th,
 .experimental-table td {
-  padding: 4.5px 8px;
+  padding: 4px 8px;
   border-bottom: 1px solid var(--border);
   text-align: left;
 }
@@ -173,8 +213,9 @@
 .experimental-table td.td-dir {
   text-align: center;
 }
-.experimental-table tr:last-child td {
-  border-bottom: 0;
+.experimental-table tbody tr:last-child td {
+  border-bottom: none !important;
+  padding-bottom: 6px;
 }
 .experimental-table tr.sum-row {
   background: color-mix(in srgb, var(--surface-inset) 60%, transparent);

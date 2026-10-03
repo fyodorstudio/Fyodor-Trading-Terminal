@@ -176,24 +176,25 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
     return (
       <section className="arrow-result-panel experimental-merged" aria-label="USD CPI experimental result table">
         <div className="arrow-result-col experimental-main-col">
-          <header className="arrow-result-col-header">
+          <header className="arrow-result-col-header experimental-header-unified">
             <div className="arrow-result-identity">
               <strong>US CPI <span>EURUSD</span></strong>
               <span className="arrow-result-direction neutral">
                 ★ m/m: {dirMm} · y/y: {dirYy}
               </span>
             </div>
-            <button className="arrow-result-text-button" type="button" onClick={onReturnLive}>Return to live</button>
-          </header>
 
-          <div className="experimental-meta-strip">
-            <span><strong>{episode.releaseText}</strong> release · {episode.entryText} entry</span>
-            <div className="experimental-levels-pills">
-              <span>ENTRY: <b>{episode.entryPrice?.toFixed(5) ?? '—'}</b></span>
-              <span className="stop">NOMINAL SL: <b>{levels?.stop.toFixed(5) ?? '—'}</b> ({rule.stop} ATR)</span>
-              <span className="target">NOMINAL TP: <b>{levels?.target.toFixed(5) ?? '—'}</b> ({rule.target} ATR)</span>
+            <div className="experimental-header-meta">
+              <span className="experimental-header-dates">
+                <b>{episode.releaseText}</b> release · {episode.entryText} entry
+              </span>
+              <div className="experimental-levels-pills">
+                <span>ENTRY: <b>{episode.entryPrice?.toFixed(5) ?? '—'}</b></span>
+                <span className="stop">NOMINAL SL: <b>{levels?.stop.toFixed(5) ?? '—'}</b> ({rule.stop} ATR)</span>
+                <span className="target">NOMINAL TP: <b>{levels?.target.toFixed(5) ?? '—'}</b> ({rule.target} ATR)</span>
+              </div>
             </div>
-          </div>
+          </header>
 
           <div className="experimental-table-container">
             <table className="experimental-table" aria-label="Release readings, direction, and gross trade result">
@@ -333,6 +334,50 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
               </tbody>
             </table>
           </div>
+        </div>
+
+        <div className="arrow-result-col arrow-result-journal">
+          <div className="arrow-result-col-header">
+            <div className="arrow-result-header-title">
+              <span className="arrow-result-eyebrow">Trader&apos;s Notebook</span>
+              <strong>Audit Note</strong>
+            </div>
+            <div className="arrow-result-journal-actions">
+              <button
+                type="button"
+                className={`save-note-btn${isDirty ? ' ready' : ''}`}
+                onClick={handleSaveNote}
+                disabled={!isDirty}
+                title={isDirty ? 'Save note (Ctrl+Enter)' : 'Note saved'}
+              >
+                {isDirty ? 'Save Note' : justSaved ? 'Saved' : 'Save Note'}
+              </button>
+              <button type="button" onClick={copyNote} disabled={!draftNote.trim()}>Copy</button>
+              <button type="button" onClick={() => downloadAuditNotes(notes)} disabled={notes.length === 0}>
+                Export .md{notes.length > 0 ? ` (${notes.length})` : ''}
+              </button>
+              {copyStatus && <span role="status">{copyStatus}</span>}
+            </div>
+          </div>
+          <div className="arrow-result-journal-subbar">
+            <span className="arrow-result-journal-meta">{episode.releaseText} release</span>
+          </div>
+          <textarea
+            id="bundle-audit-note-experimental"
+            className="arrow-result-note"
+            value={draftNote}
+            onChange={(event) => {
+              setDraftNote(event.target.value)
+              setJustSaved(false)
+            }}
+            onKeyDown={(event) => {
+              if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && isDirty) {
+                event.preventDefault()
+                handleSaveNote()
+              }
+            }}
+            placeholder="Insert note"
+          />
 
           <div className="arrow-result-flags-row">
             <span className="arrow-result-flags-label">FLAGS</span>
@@ -354,10 +399,14 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
               <span className="arrow-result-info-icon" aria-hidden="true">ⓘ</span>
               <span className="arrow-result-caveat-text">V3 OHLC simulation · nominal lines · <code className="arrow-result-id">{episode.id}</code></span>
             </div>
+            <div className="arrow-result-caveat-line" title="Notes survive refresh in this browser only. Export Markdown to share them with Codex later.">
+              <span className="arrow-result-info-icon" aria-hidden="true">ⓘ</span>
+              <span className="arrow-result-caveat-text">
+                {notes.length} {notes.length === 1 ? 'note' : 'notes'} in localStorage · Export to share with Codex
+              </span>
+            </div>
           </div>
         </div>
-
-        {journalColumn}
       </section>
     )
   }

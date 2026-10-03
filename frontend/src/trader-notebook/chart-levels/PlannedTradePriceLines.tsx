@@ -1,11 +1,17 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import {
   createSeriesMarkers,
   LineStyle,
   type IChartApi,
   type IPriceLine,
+  type IPrimitivePaneRenderer,
+  type IPrimitivePaneView,
   type ISeriesApi,
+  type ISeriesPrimitive,
   type MouseEventParams,
+  type PrimitiveHoveredItem,
+  type PrimitivePaneViewZOrder,
+  type SeriesAttachedParameter,
   type SeriesMarker,
   type Time,
 } from 'lightweight-charts'
@@ -28,6 +34,181 @@ type PlannedTradePriceLinesProps = {
   researchLevels?: ResearchChartLevels | null
 }
 
+function drawFivePointStar(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  spikes = 5,
+  outerRadius = 7,
+  innerRadius = 3.2,
+) {
+  let rot = (Math.PI / 2) * 3
+  const step = Math.PI / spikes
+
+  ctx.beginPath()
+  ctx.moveTo(cx, cy - outerRadius)
+  for (let i = 0; i < spikes; i++) {
+    let x = cx + Math.cos(rot) * outerRadius
+    let y = cy + Math.sin(rot) * outerRadius
+    ctx.lineTo(x, y)
+    rot += step
+
+    x = cx + Math.cos(rot) * innerRadius
+    y = cy + Math.sin(rot) * innerRadius
+    ctx.lineTo(x, y)
+    rot += step
+  }
+  ctx.lineTo(cx, cy - outerRadius)
+  ctx.closePath()
+}
+
+type PrimitiveTarget = Parameters<IPrimitivePaneRenderer['draw']>[0]
+
+class StarMarkersRenderer implements IPrimitivePaneRenderer {
+  private _getMarkers: () => ResearchChartArrow[]
+  private _getSelectedId: () => string | null
+  private _chart: IChartApi
+  private _series: ISeriesApi<'Candlestick', Time>
+
+  constructor(
+    getMarkers: () => ResearchChartArrow[],
+    getSelectedId: () => string | null,
+    chart: IChartApi,
+    series: ISeriesApi<'Candlestick', Time>,
+  ) {
+    this._getMarkers = getMarkers
+    this._getSelectedId = getSelectedId
+    this._chart = chart
+    this._series = series
+  }
+
+  draw(target: PrimitiveTarget): void {
+    const markers = this._getMarkers()
+    if (!markers.length) return
+    const selectedId = this._getSelectedId()
+    const timeScale = this._chart.timeScale()
+
+    target.useMediaCoordinateSpace((scope: { context: CanvasRenderingContext2D }) => {
+      const ctx = scope.context
+      for (const marker of markers) {
+        const x = timeScale.timeToCoordinate(marker.time as Time)
+        if (x == null) continue
+        const y = this._series.priceToCoordinate(marker.entryPrice)
+        if (y == null) continue
+
+        const isSelected = marker.id === selectedId
+        const outerRadius = isSelected ? 10 : 7
+        const innerRadius = isSelected ? 4.5 : 3.0
+
+        ctx.save()
+        drawFivePointStar(ctx, x, y, 5, outerRadius, innerRadius)
+        ctx.fillStyle = isSelected ? '#38bdf8' : '#f59e0b'
+        ctx.fill()
+        ctx.strokeStyle = '#0f172a'
+        ctx.lineWidth = 1.3
+        ctx.stroke()
+        ctx.restore()
+      }
+    })
+  }
+}
+
+class StarMarkersPaneView implements IPrimitivePaneView {
+  private _renderer: StarMarkersRenderer
+
+  constructor(
+    getMarkers: () => ResearchChartArrow[],
+    getSelectedId: () => string | null,
+    chart: IChartApi,
+    series: ISeriesApi<'Candlestick', Time>,
+  ) {
+    this._renderer = new StarMarkersRenderer(getMarkers, getSelectedId, chart, series)
+  }
+
+  zOrder(): PrimitivePaneViewZOrder {
+    return 'top'
+  }
+
+  renderer(): IPrimitivePaneRenderer {
+    return this._renderer
+  }
+}
+
+class StarMarkersPrimitive implements ISeriesPrimitive<Time> {
+  private _markers: ResearchChartArrow[]
+  private _selectedId: string | null
+  private _chart: IChartApi
+  private _series: ISeriesApi<'Candlestick', Time>
+  private _paneView: StarMarkersPaneView
+  private _requestUpdate?: () => void
+
+  constructor(
+    markers: ResearchChartArrow[],
+    selectedId: string | null,
+    chart: IChartApi,
+    series: ISeriesApi<'Candlestick', Time>,
+  ) {
+    this._markers = markers
+    this._selectedId = selectedId
+    this._chart = chart
+    this._series = series
+    this._paneView = new StarMarkersPaneView(
+      () => this._markers,
+      () => this._selectedId,
+      chart,
+      series,
+    )
+  }
+
+  setMarkers(markers: ResearchChartArrow[], selectedId: string | null): void {
+    this._markers = markers
+    this._selectedId = selectedId
+    this._requestUpdate?.()
+  }
+
+  attached(param: SeriesAttachedParameter<Time>): void {
+    this._requestUpdate = param.requestUpdate
+  }
+
+  detached(): void {
+    this._requestUpdate = undefined
+  }
+
+  update(): void {
+    this._requestUpdate?.()
+  }
+
+  updateAllViews(): void {
+    this._requestUpdate?.()
+  }
+
+  paneViews(): readonly IPrimitivePaneView[] {
+    return [this._paneView]
+  }
+
+  hitTest(x: number, y: number): PrimitiveHoveredItem | null {
+    if (!this._markers.length) return null
+    const timeScale = this._chart.timeScale()
+
+    for (const marker of this._markers) {
+      const cx = timeScale.timeToCoordinate(marker.time as Time)
+      if (cx == null) continue
+      const cy = this._series.priceToCoordinate(marker.entryPrice)
+      if (cy == null) continue
+
+      const dist = Math.hypot(cx - x, cy - y)
+      if (dist <= 14) {
+        return {
+          cursorStyle: 'pointer',
+          externalId: marker.id,
+          zOrder: 'top',
+        }
+      }
+    }
+    return null
+  }
+}
+
 export function PlannedTradePriceLines({
   chartApi,
   seriesApi,
@@ -40,7 +221,43 @@ export function PlannedTradePriceLines({
   onSelectResearchArrow,
   researchLevels = null,
 }: PlannedTradePriceLinesProps) {
-  // 1. Render Registered Arrow Markers on the Candlestick Chart
+  const starArrows = researchArrows.filter((a) => a.isStar === true)
+  const regularResearchArrows = researchArrows.filter((a) => !a.isStar)
+
+  const starPrimitiveRef = useRef<StarMarkersPrimitive | null>(null)
+
+  // Render True 5-Point Stars via custom ISeriesPrimitive
+  useEffect(() => {
+    if (starArrows.length === 0) {
+      if (starPrimitiveRef.current) {
+        seriesApi.detachPrimitive(starPrimitiveRef.current)
+        starPrimitiveRef.current = null
+      }
+      return
+    }
+
+    if (!starPrimitiveRef.current) {
+      const primitive = new StarMarkersPrimitive(
+        starArrows,
+        selectedResearchArrowId,
+        chartApi,
+        seriesApi,
+      )
+      seriesApi.attachPrimitive(primitive)
+      starPrimitiveRef.current = primitive
+    } else {
+      starPrimitiveRef.current.setMarkers(starArrows, selectedResearchArrowId)
+    }
+
+    return () => {
+      if (starPrimitiveRef.current) {
+        seriesApi.detachPrimitive(starPrimitiveRef.current)
+        starPrimitiveRef.current = null
+      }
+    }
+  }, [chartApi, seriesApi, starArrows, selectedResearchArrowId])
+
+  // 1. Render Registered Arrow Markers on the Candlestick Chart (arrows + regular research arrows)
   useEffect(() => {
     const markers: SeriesMarker<Time>[] = arrows.map((arrow) => {
       const isSelected = arrow.id === selectedArrowId
@@ -58,19 +275,16 @@ export function PlannedTradePriceLines({
         size: isSelected ? 1.25 : 0.85,
       }
     })
-    for (const arrow of researchArrows) {
+    for (const arrow of regularResearchArrows) {
       const selected = arrow.id === selectedResearchArrowId
-      const isStar = arrow.isStar === true
       markers.push({
         id: arrow.id,
         time: arrow.time as Time,
         price: arrow.entryPrice,
-        position: isStar ? 'atPriceMiddle' : arrow.direction === 'long' ? 'atPriceBottom' : 'atPriceTop',
-        shape: isStar ? 'circle' : arrow.direction === 'long' ? 'arrowUp' : 'arrowDown',
-        color: arrow.contextOnly ? '#7c3aed' : selected ? '#38bdf8' : isStar ? '#f59e0b' : arrow.direction === 'long' ? '#10b981' : '#f43f5e',
-        text: isStar
-          ? (selected ? '★ AUDIT' : '★')
-          : arrow.contextOnly ? 'YOY CONTEXT ONLY' : selected ? 'HISTORICAL AUDIT' : 'RESEARCH',
+        position: arrow.direction === 'long' ? 'atPriceBottom' : 'atPriceTop',
+        shape: arrow.direction === 'long' ? 'arrowUp' : 'arrowDown',
+        color: arrow.contextOnly ? '#7c3aed' : selected ? '#38bdf8' : arrow.direction === 'long' ? '#10b981' : '#f43f5e',
+        text: arrow.contextOnly ? 'YOY CONTEXT ONLY' : selected ? 'HISTORICAL AUDIT' : 'RESEARCH',
         size: selected ? 1.25 : 0.85,
       })
     }
@@ -78,7 +292,7 @@ export function PlannedTradePriceLines({
 
     const markerApi = createSeriesMarkers(seriesApi, markers, { zOrder: 'top' })
     return () => markerApi.detach()
-  }, [arrows, researchArrows, selectedArrowId, selectedResearchArrowId, seriesApi])
+  }, [arrows, regularResearchArrows, selectedArrowId, selectedResearchArrowId, seriesApi])
 
   // 2. Handle click on marker to select arrow
   useEffect(() => {
