@@ -18,6 +18,7 @@ export type TimelineGrossResult = {
 }
 
 export type TimelineSeriesRow = {
+  selectionKey?: string // Original source row identity when presentation groups are combined.
   series: string // 'Headline m/m', 'Core m/m', 'Headline y/y', 'Core y/y', 'm/m Sum', 'y/y Sum', or other indicator name
   actual?: number | string | null
   previous?: number | string | null
@@ -278,7 +279,7 @@ export function CpiEventTimelineTable({
                     row.revisedPrevious !== '' &&
                     String(row.revisedPrevious) !== String(row.previous)
 
-                  const rowKey = `${block.id}:${row.series}:${idx}`
+                  const rowKey = row.selectionKey ?? `${block.id}:${row.series}:${idx}`
                   const isSelected = selectedRowKey === rowKey
 
                   return (

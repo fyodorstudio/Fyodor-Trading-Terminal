@@ -1,6 +1,8 @@
 import timelineManifest from '../cpi-event-timeline-manifest.json'
 import type { TimelineReleaseBlock, TimelineSeriesRow } from './CpiEventTimelineTable'
 
+export { timelineManifest }
+
 export type CpiTimelineIndexEpisode = {
   episodeId: string
   releaseTimestamp: number
@@ -92,6 +94,7 @@ export type EvaluatedTradeLevel = {
 }
 
 export type TimelineChartLevels = {
+  label?: string
   entryPrice: number
   stopPrice: number
   targetPrice: number

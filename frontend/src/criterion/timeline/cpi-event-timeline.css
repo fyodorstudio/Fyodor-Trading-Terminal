@@ -253,3 +253,38 @@
   border: 1px solid var(--border);
 }
 
+.timeline-event-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 10px 0;
+  font-size: 11px;
+}
+.timeline-event-sections { padding: 0 12px 12px; }
+.timeline-event-controls label { display: flex; align-items: center; gap: 6px; }
+.timeline-event-controls select, .timeline-event-marker-controls select {
+  background: var(--surface-panel);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 5px;
+}
+.timeline-symbol-help { color: var(--text-muted); font-size: 11px; margin: 4px 0 10px; }
+.timeline-event-section h3 { font-size: 12px; margin: 14px 0 8px; }
+.timeline-event-section h3 span { color: var(--text-muted); font-weight: normal; }
+.timeline-event-release { border: 1px solid var(--border); border-radius: 4px; margin-bottom: 5px; }
+.timeline-event-release.focused { border-color: var(--accent); }
+.timeline-event-release details summary { cursor: pointer; padding: 8px; font-size: 11px; }
+.timeline-event-release details summary time { margin-left: 10px; color: var(--text-muted); }
+.timeline-event-marker-controls { float: right; display: flex; align-items: center; gap: 8px; padding: 4px 8px; font-size: 10px; }
+.timeline-event-marker-controls label { display: flex; align-items: center; gap: 4px; }
+.timeline-event-reading-count { margin-left: 8px; color: var(--text-muted); font-size: 10px; }
+.timeline-event-release .timeline-release-block { margin: 0; border: 0; }
+.timeline-chart-symbol-strip { position: absolute; bottom: 34px; left: 0; right: 70px; height: 30px; pointer-events: none; z-index: 7; }
+.timeline-symbol-cluster { position: absolute; bottom: 0; transform: translateX(-50%); }
+.timeline-chart-symbol { pointer-events: auto; font-size: 20px; min-width: 30px; height: 30px; color: var(--accent); background: var(--surface-panel); border: 1px solid var(--border); border-radius: 5px; cursor: pointer; }
+.timeline-chart-symbol sup { font-size: 9px; }
+.timeline-symbol-popup { position: absolute; bottom: 34px; left: 0; width: 280px; max-height: 180px; overflow: auto; pointer-events: auto; border: 1px solid var(--border); background: var(--surface-panel); border-radius: 5px; box-shadow: 0 3px 12px #0003; }
+.timeline-symbol-popup button { display: block; width: 100%; padding: 7px; text-align: left; color: var(--text); background: transparent; border: 0; cursor: pointer; font-size: 11px; }
+.timeline-symbol-popup button:hover { background: var(--surface-inset); }

@@ -4,9 +4,15 @@ import {
   type TimelineReleaseBlock,
   type TimelineSeriesRow,
 } from '../timeline/CpiEventTimelineTable'
-import type { CpiTimelineEpisodePayload } from '../timeline/cpi-event-timeline-data'
+import {
+  timelineManifest,
+  type CpiTimelineEpisodePayload,
+} from '../timeline/cpi-event-timeline-data'
 import { downloadAuditNotes, type AuditNote } from './audit-notes'
 import './arrow-result-panel.css'
+import { TimelineEventSections } from '../timeline/TimelineEventSections'
+import type { TimelineEventAnnotations } from '../timeline/useTimelineEventAnnotations'
+import type { PriorContextBars } from '../audit-data'
 
 export type TimelineResultPanelProps = {
   episodePayload?: CpiTimelineEpisodePayload | null
@@ -19,8 +25,12 @@ export type TimelineResultPanelProps = {
   note?: string
   notes?: AuditNote[]
   saveFailed?: boolean
-  onNoteChange?: (text: string) => void
+  onNoteChange?: (text: string) => boolean | void
   onReturnLive?: () => void
+  viewerSha256?: string
+  eventView?: TimelineEventAnnotations
+  priorBars?: PriorContextBars
+  onPriorChange?: (bars: PriorContextBars) => void
 }
 
 export function TimelineResultPanel({
@@ -36,31 +46,50 @@ export function TimelineResultPanel({
   saveFailed = false,
   onNoteChange = () => {},
   onReturnLive,
+  viewerSha256 = timelineManifest.reviewedSourceManifestSha256,
+  eventView,
+  priorBars = 240,
+  onPriorChange = () => {},
 }: TimelineResultPanelProps) {
   const [copyStatus, setCopyStatus] = useState('')
-  const [prevNote, setPrevNote] = useState(note)
-  const [draftNote, setDraftNote] = useState(note)
   const [justSaved, setJustSaved] = useState(false)
+  const [unsavedDrafts, setUnsavedDrafts] = useState<Record<string, string>>({})
 
-  if (note !== prevNote) {
-    setPrevNote(note)
-    setDraftNote(note)
+  const episodeId = episodePayload?.episodeId ?? ''
+  const releaseText = episodePayload?.releaseTimeText ?? 'Historical Episode'
+  const noteKey = episodeId ? `${viewerSha256}:${episodeId}` : ''
+
+  // Draft note strictly belongs to reviewed research identity + episode ID
+  const draftNote =
+    noteKey && Object.prototype.hasOwnProperty.call(unsavedDrafts, noteKey)
+      ? unsavedDrafts[noteKey]
+      : note
+
+  const isDirty = Boolean(noteKey && draftNote !== note)
+
+  const handleDraftChange = (newText: string) => {
+    if (!noteKey) return
+    setUnsavedDrafts((prev) => ({
+      ...prev,
+      [noteKey]: newText,
+    }))
     setJustSaved(false)
   }
 
-  const isDirty = draftNote !== note
-
   const handleSaveNote = () => {
-    onNoteChange(draftNote)
+    if (!noteKey || !isDirty) return
+    if (onNoteChange(draftNote) === false) return
+    setUnsavedDrafts((prev) => {
+      const next = { ...prev }
+      delete next[noteKey]
+      return next
+    })
     setJustSaved(true)
   }
 
   const activeBlocks = episodePayload
     ? [episodePayload.cpiBlock, ...episodePayload.surroundingBlocks]
     : blocks
-
-  const episodeId = episodePayload?.episodeId ?? 'CPI_TIMELINE'
-  const releaseText = episodePayload?.releaseTimeText ?? 'Historical Episode'
 
   const copyNote = async () => {
     try {
@@ -161,13 +190,15 @@ export function TimelineResultPanel({
 
         <div className="timeline-table-scroll-area">
           <CpiEventTimelineTable
-            blocks={activeBlocks}
+            blocks={eventView && episodePayload ? [episodePayload.cpiBlock] : activeBlocks}
             horizon={240}
             stop={1}
             target={1}
             selectedRowKey={selectedRowKey}
             onSelectRow={onSelectRow}
           />
+          {eventView && <TimelineEventSections view={eventView} priorBars={priorBars}
+            onPriorChange={onPriorChange} selectedRowKey={selectedRowKey} onSelectRow={onSelectRow} />}
         </div>
       </div>
 
@@ -216,8 +247,7 @@ export function TimelineResultPanel({
           className="arrow-result-note"
           value={draftNote}
           onChange={(event) => {
-            setDraftNote(event.target.value)
-            setJustSaved(false)
+            handleDraftChange(event.target.value)
           }}
           onKeyDown={(event) => {
             if ((event.ctrlKey || event.metaKey) && event.key === 'Enter' && isDirty) {

@@ -47,6 +47,12 @@ A clean, high-performance trading terminal and forensic notebook built strictly 
    - Rich forensic journal `<textarea>` automatically saved locally and durable across browser refreshes.
 5. **MT5 Economic Calendar**:
    - Historical and upcoming high/medium impact events with countdowns, actual vs. forecast values, and click-to-highlight jump.
+6. **CPI & Event Timeline inspection**:
+   - The audited Math Lab publication supplies 140 CPI episodes and fixed H240 / SL 1 ATR / TP 1 ATR results.
+   - The bottom dock separates surrounding releases into Before CPI, At CPI and After CPI. Expand a family/country/currency release to inspect its original readings; family and currency selectors narrow the view.
+   - Tick a release and choose Star, Sun, Cloud, Umbrella, Snowflake or Moon to mark it on the pinned H1 chart. Hover for readings; click to open its table. Nearby symbols form a selectable cluster. Tentative/date-only events remain visible in the dock without an invented exact-time symbol.
+   - Before/after selectors change the displayed candles and surrounding events, independently of the published trade horizon. Symbol choices are stored per research identity and episode in this browser, with remembered family defaults. Personal audit notes use the same research/episode ownership and can be exported as Markdown.
+   - This feature annotates reviewed data; it does not calculate new outcomes or change signals. See [Fyodor Workspace](Fyodor%20Workspace.md) for project boundaries.
 
 ---
 

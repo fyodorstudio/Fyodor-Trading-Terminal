@@ -19,7 +19,7 @@ import type { PlannedTradeState, RegisteredTradeArrow } from '../contracts/trade
 
 export type ResearchChartArrow = { id: string; time: number; direction: 'long' | 'short'; entryPrice: number;
   contextOnly?: boolean; isStar?: boolean }
-export type ResearchChartLevels = { entry: number; stop: number; target: number; direction: number }
+export type ResearchChartLevels = { entry: number; stop: number; target: number; direction: number; label?: string }
 
 type PlannedTradePriceLinesProps = {
   chartApi: IChartApi
@@ -324,7 +324,7 @@ export function PlannedTradePriceLines({
       entryPrice = researchLevels.entry
       tpPrice = researchLevels.target
       slPrice = researchLevels.stop
-      labelPrefix = 'AUDIT '
+      labelPrefix = researchLevels.label ? `AUDIT ${researchLevels.label} ` : 'AUDIT '
     } else if (selectedArrow) {
       direction = selectedArrow.direction
       entryPrice = selectedArrow.entryPrice
