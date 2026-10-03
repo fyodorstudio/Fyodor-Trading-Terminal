@@ -63,6 +63,7 @@ export type CpiEventTimelineTableProps = {
   stop?: number
   target?: number
   customResultHeader?: string
+  hideBlockHeader?: boolean
   selectedRowKey?: string | null
   onSelectRow?: (block: TimelineReleaseBlock, row: TimelineSeriesRow, key: string) => void
 }
@@ -165,6 +166,7 @@ export function CpiEventTimelineTable({
   stop,
   target,
   customResultHeader,
+  hideBlockHeader = false,
   selectedRowKey,
   onSelectRow,
 }: CpiEventTimelineTableProps) {
@@ -204,7 +206,7 @@ export function CpiEventTimelineTable({
             className="timeline-release-block"
             aria-label={`${block.family} ${relLabel} block`}
           >
-            <header className="timeline-block-header">
+            {!hideBlockHeader && <header className="timeline-block-header">
               <div className="timeline-block-meta">
                 <span className="timeline-block-family">
                   <strong>{block.family}</strong>{' '}
@@ -243,7 +245,7 @@ export function CpiEventTimelineTable({
                   </>
                 )}
               </div>
-            </header>
+            </header>}
 
             <table className="timeline-table" aria-label={`${block.family} series and results`}>
               <thead>

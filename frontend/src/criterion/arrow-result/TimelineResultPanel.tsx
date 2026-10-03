@@ -169,7 +169,7 @@ export function TimelineResultPanel({
   return (
     <section className="arrow-result-panel timeline-result-layout" aria-label="CPI & Event Timeline Result Panel">
       <div className="timeline-main-col">
-        <header className="arrow-result-col-header timeline-dock-header">
+        {!(eventView && episodePayload) && <header className="arrow-result-col-header timeline-dock-header">
           <div className="arrow-result-identity">
             <strong>
               CPI &amp; Event Timeline <span>EURUSD</span>
@@ -186,19 +186,20 @@ export function TimelineResultPanel({
               Return to live
             </button>
           )}
-        </header>
+        </header>}
 
-        <div className="timeline-table-scroll-area">
-          <CpiEventTimelineTable
-            blocks={eventView && episodePayload ? [episodePayload.cpiBlock] : activeBlocks}
+        <div className={`timeline-table-scroll-area${eventView ? ' timeline-browser-host' : ''}`}>
+          {eventView && episodePayload ? <TimelineEventSections key={episodePayload.episodeId}
+            view={eventView} anchorBlock={episodePayload.cpiBlock} priorBars={priorBars}
+            onPriorChange={onPriorChange} selectedRowKey={selectedRowKey} onSelectRow={onSelectRow}
+            onReturnLive={onReturnLive} /> : <CpiEventTimelineTable
+            blocks={activeBlocks}
             horizon={240}
             stop={1}
             target={1}
             selectedRowKey={selectedRowKey}
             onSelectRow={onSelectRow}
-          />
-          {eventView && <TimelineEventSections view={eventView} priorBars={priorBars}
-            onPriorChange={onPriorChange} selectedRowKey={selectedRowKey} onSelectRow={onSelectRow} />}
+          />}
         </div>
       </div>
 

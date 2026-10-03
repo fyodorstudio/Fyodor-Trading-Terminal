@@ -1,5 +1,6 @@
 import type { OhlcBar } from '../../market-data/contracts/OhlcBar'
 import type { TimelineReleaseBlock, TimelineSeriesRow } from './CpiEventTimelineTable'
+import { curatedFamilyForBlock, curatedGroupName, type CuratedFamilyId } from './timeline-event-families'
 
 export const eventSymbols = [
   ['star', '★', 'Star'], ['sun', '☀', 'Sun'], ['cloud', '☁', 'Cloud'],
@@ -10,6 +11,8 @@ export type EventSection = 'before' | 'simultaneous' | 'after'
 export type TimelineEventGroup = {
   id: string
   family: string
+  familyId?: CuratedFamilyId
+  legacyIds: string[]
   currency: string
   countryCode: string
   releaseTimestamp: number
@@ -34,14 +37,18 @@ export function eventFamily(name: string): string {
 export function groupTimelineEvents(blocks: TimelineReleaseBlock[], anchorTime: number): TimelineEventGroup[] {
   const groups = new Map<string, TimelineEventGroup>()
   for (const source of blocks) {
-    const family = eventFamily(source.family)
+    const familyId = curatedFamilyForBlock(source)
+    const legacyFamily = eventFamily(source.family)
+    const family = familyId ? curatedGroupName(familyId, source) : legacyFamily
     // Uncertain timing cannot be merged into a confirmed release.
     const id = JSON.stringify([family, source.countryCode ?? '', source.currency,
+      source.releaseTimestamp, source.timeMode ?? '', Boolean(source.timingUncertain)])
+    const legacyId = JSON.stringify([legacyFamily, source.countryCode ?? '', source.currency,
       source.releaseTimestamp, source.timeMode ?? '', Boolean(source.timingUncertain)])
     let group = groups.get(id)
     if (!group) {
       const block = { ...source, id, family, rows: [] as TimelineSeriesRow[] }
-      group = { id, family, currency: source.currency, countryCode: source.countryCode ?? '',
+      group = { id, family, familyId, legacyIds: [], currency: source.currency, countryCode: source.countryCode ?? '',
         releaseTimestamp: source.releaseTimestamp, releaseTimeText: source.releaseTimeText,
         timingUncertain: Boolean(source.timingUncertain),
         section: source.releaseTimestamp < anchorTime ? 'before' :
@@ -49,6 +56,7 @@ export function groupTimelineEvents(blocks: TimelineReleaseBlock[], anchorTime: 
         block, sources: new Map() }
       groups.set(id, group)
     }
+    if (legacyId !== id && !group.legacyIds.includes(legacyId)) group.legacyIds.push(legacyId)
     source.rows.forEach((row, index) => {
       const selectionKey = `${source.id}:${row.series}:${index}`
       group.block.rows.push({ ...row, selectionKey })

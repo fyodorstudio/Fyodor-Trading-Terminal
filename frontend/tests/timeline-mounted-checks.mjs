@@ -229,7 +229,8 @@ async function testAnnotations({ viteServer, rootDir, createRoot, act, roots, ep
   const { groupTimelineEvents, buildEventMarkers, eventsInWindow, containingEventBar } =
     await viteServer.ssrLoadModule('./src/criterion/timeline/timeline-event-view.ts')
   const { useTimelineEventAnnotations } = await viteServer.ssrLoadModule('./src/criterion/timeline/useTimelineEventAnnotations.ts')
-  const { TimelineEventSections } = await viteServer.ssrLoadModule('./src/criterion/timeline/TimelineEventSections.tsx')
+  const { TimelineResultPanel } = await viteServer.ssrLoadModule('./src/criterion/arrow-result/TimelineResultPanel.tsx')
+  const { sixEventFamilies, curatedFamilyForBlock } = await viteServer.ssrLoadModule('./src/criterion/timeline/timeline-event-families.ts')
   const { TimelineEventMarkers } = await viteServer.ssrLoadModule('./src/criterion/timeline/TimelineEventMarkers.tsx')
   const spanish = JSON.parse(episodeText('CPI_TIMELINE_20250312_153000'))
   const grouped = groupTimelineEvents(spanish.surroundingBlocks, spanish.releaseTimestamp)
@@ -262,8 +263,31 @@ async function testAnnotations({ viteServer, rootDir, createRoot, act, roots, ep
 
   const data = JSON.parse(fs.readFileSync(path.join(rootDir, 'public', 'criterion', 'eurusd_cpi_nfp_v2.json'), 'utf8'))
   const payloadB = JSON.parse(episodeText(epB)), payloadA = JSON.parse(episodeText(epA))
+  const sourcePayroll = payloadB.surroundingBlocks.find((block) => block.rows.some((row) => row.eventId === '840030016'))
+  const sourceWages = payloadB.surroundingBlocks.find((block) => block.rows.some((row) => row.eventId === '840030018'))
+  const jobs = groupTimelineEvents(payloadB.surroundingBlocks, payloadB.releaseTimestamp).find((group) => group.familyId === 'jobs')
+  assert.ok(jobs.block.rows.some((row) => row.eventId === '840030016'))
+  assert.ok(jobs.block.rows.some((row) => row.eventId === '840030015'))
+  assert.ok(jobs.block.rows.some((row) => row.eventId === '840030018'))
+  assert.equal(jobs.sources.get(jobs.block.rows.find((row) => row.eventId === '840030018').selectionKey).block, sourceWages)
+  assert.equal(curatedFamilyForBlock({ ...sourcePayroll, countryCode: 'ES', currency: 'EUR' }), undefined,
+    'US family IDs cannot produce an NFP + EUR filter')
+  const sourceProbe = (eventId) => ({ ...sourcePayroll, eventId, rows: [{ series: 'Source probe', eventId }] })
+  assert.equal(curatedFamilyForBlock(sourceProbe('840030021')), undefined, 'JOLTS is not the payroll release')
+  assert.equal(curatedFamilyForBlock(sourceProbe('840020027')), undefined, 'Retail inventories are not retail sales')
+  assert.equal(curatedFamilyForBlock(sourceProbe('840010009')), 'gdp', 'Quarterly PCE belongs to GDP')
+  assert.equal(curatedFamilyForBlock(sourceProbe('840010001')), 'pce', 'Monthly PCE remains separate')
+  assert.equal(curatedFamilyForBlock(sourceProbe('840050004')), 'fomc', 'FOMC minutes remain discoverable')
+  const fomc = groupTimelineEvents([
+    { ...sourceProbe('840050014'), id: 'rate', releaseTimestamp: 10000 },
+    { ...sourceProbe('840050018'), id: 'conference', releaseTimestamp: 11800 },
+    { ...sourceProbe('840050004'), id: 'minutes', releaseTimestamp: 200000 },
+  ], payloadB.releaseTimestamp)
+  assert.deepEqual(fomc.map((group) => group.releaseTimestamp), [10000, 11800, 200000])
+  assert.ok(fomc.every((group) => group.block.rows.every((row) => !row.grossResult)), 'Grouping never prices policy context')
   let view, selection = null
   const container = document.createElement('div')
+  document.body.appendChild(container)
   const root = createRoot(container)
   roots.add(root)
   const listeners = new Set()
@@ -278,7 +302,8 @@ async function testAnnotations({ viteServer, rootDir, createRoot, act, roots, ep
     const current = useTimelineEventAnnotations(payload, data, priorBars)
     React.useEffect(() => { view = current }, [current])
     return React.createElement(React.Fragment, null,
-      React.createElement(TimelineEventSections, { view: current, priorBars, onPriorChange: setPrior,
+      React.createElement(TimelineResultPanel, { key: payload.episodeId, eventView: current, episodePayload: payload,
+        priorBars, onPriorChange: setPrior, onReturnLive: () => {},
         onSelectRow: (block, row, key) => { selection = { block, row, key } } }),
       React.createElement(TimelineEventMarkers, { chartApi, markers: current.markers, onSelectGroup: current.setFocusedGroupId }))
   }
@@ -289,7 +314,63 @@ async function testAnnotations({ viteServer, rootDir, createRoot, act, roots, ep
   assert.ok(ppi)
   assert.equal(view.auditBars.length, 480)
   assert.equal(view.markers.length, 0, 'Chart starts uncluttered')
-  const releaseControl = [...container.querySelectorAll('[data-event-group]')].find((node) => node.dataset.eventGroup === ppi.id)
+  assert.deepEqual(view.watchlist, sixEventFamilies)
+  assert.ok(view.groups.length < view.windowGroups.length)
+  assert.ok(view.groups.every((group) => group.countryCode === 'US' && group.currency === 'USD'))
+  const header = container.querySelector('.timeline-compact-header')
+  assert.ok(header.querySelector('[role="tablist"]'), 'Title and sub-tabs share one header')
+  assert.match(header.textContent, /CPI & Event Timeline/)
+  assert.equal(container.querySelectorAll('.timeline-dock-header').length, 1, 'No duplicate header')
+  assert.equal(container.querySelector('.timeline-anchor-page .timeline-block-header'), null, 'Anchor does not repeat its banner')
+  assert.equal(container.querySelectorAll('.timeline-anchor-page tbody tr').length, 6, 'All four readings and both sums remain visible')
+  assert.equal(container.querySelector('.timeline-event-browse-controls'), null, 'No browse toolbar on the CPI tab')
+  assert.equal(container.querySelector('[role="tab"][aria-selected="true"]').dataset.eventTab, 'anchor')
+  assert.equal(container.querySelectorAll('[data-event-group]').length, 0, 'CPI opens without a month-long event list')
+  async function clickTab(tab) { await act(async () => container.querySelector(`[data-event-tab="${tab}"]`).click()) }
+  async function search(text) {
+    const input = container.querySelector('[type="search"]')
+    const props = input[Object.keys(input).find((key) => key.startsWith('__reactProps$'))]
+    await act(async () => props.onChange({ target: { value: text } }))
+  }
+  const openFamilies = async () => {
+    await act(async () => container.querySelector('[aria-label="Event families"]').click())
+    return document.querySelector('[role="dialog"][aria-label="Event families"]')
+  }
+  const menuButton = (menu, text) => [...menu.querySelectorAll('button')].find((button) => button.textContent === text)
+  let menu = await openFamilies()
+  assert.ok(menu, 'Family menu is mounted outside the dock')
+  assert.equal(container.contains(menu), false, 'Short dock overflow cannot clip the portal')
+  await act(async () => menu.querySelector('[aria-label="US Jobs report / NFP"]').click())
+  assert.deepEqual(view.watchlist, sixEventFamilies, 'Editing a draft does not change applied filters')
+  await act(async () => document.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+  assert.equal(document.querySelector('[role="dialog"][aria-label="Event families"]'), null)
+  assert.deepEqual(view.watchlist, sixEventFamilies, 'Escape discards uncommitted family changes')
+  menu = await openFamilies()
+  await act(async () => menuButton(menu, 'All events').click())
+  await act(async () => menuButton(menu, 'Apply').click())
+  assert.equal(view.watchlist, null)
+  assert.equal(view.groups.length, view.windowGroups.length)
+  assert.equal(view.markers.length, 0, 'Apply does not mark releases')
+  await clickTab('before')
+  assert.ok(container.querySelectorAll('[data-event-group]').length <= 8, 'Only one bounded page is mounted')
+  const nearestBeforeDate = view.groups.filter((group) => group.section === 'before').map((group) => group.releaseTimeText.slice(0, 10)).sort().at(-1)
+  assert.equal(container.querySelector('[aria-label="Event date"]').value, nearestBeforeDate, 'Before starts nearest CPI')
+  await act(async () => {
+    const select = container.querySelector('[aria-label="Event date"]')
+    select.value = 'ALL'
+    select.dispatchEvent(new window.Event('change', { bubbles: true }))
+  })
+  const firstPageId = container.querySelector('[data-event-group]').dataset.eventGroup
+  await act(async () => container.querySelector('[aria-label="Next event page"]').click())
+  assert.notEqual(container.querySelector('[data-event-group]').dataset.eventGroup, firstPageId)
+  assert.ok(container.querySelectorAll('[data-event-group]').length <= 8)
+  await clickTab('after')
+  const nearestAfterDate = view.groups.filter((group) => group.section === 'after').map((group) => group.releaseTimeText.slice(0, 10)).sort()[0]
+  assert.equal(container.querySelector('[aria-label="Event date"]').value, nearestAfterDate, 'After starts nearest CPI')
+  await search('PPI US 2026.07.15')
+  assert.equal(container.querySelector('[aria-label="Event date"]').disabled, true, 'Search spans all dates in the tab')
+  let releaseControl = [...container.querySelectorAll('[data-event-group]')].find((node) => node.dataset.eventGroup === ppi.id)
+  assert.ok(releaseControl, 'Search reaches a later release without scrolling across dates')
   await act(async () => {
     const select = releaseControl.querySelector('select')
     select.value = 'sun'
@@ -304,6 +385,9 @@ async function testAnnotations({ viteServer, rootDir, createRoot, act, roots, ep
   assert.match(symbol.title, /2026\.07\.15 15:30:00/)
   await act(async () => symbol.click())
   assert.equal(view.focusedGroupId, ppi.id)
+  assert.equal(container.querySelector('[aria-label="Event date"]').value, '2026.07.15')
+  assert.equal(container.querySelector('[type="search"]').value, '', 'Chart click clears list search')
+  releaseControl = [...container.querySelectorAll('[data-event-group]')].find((node) => node.dataset.eventGroup === ppi.id)
   assert.equal(releaseControl.querySelector('details').open, true)
   const sourceRow = ppi.block.rows.find((row) => row.valueId)
   const rowNodes = [...releaseControl.querySelectorAll('tbody tr')]
@@ -316,24 +400,71 @@ async function testAnnotations({ viteServer, rootDir, createRoot, act, roots, ep
   assert.equal(view.markers.length, 0, 'Episode selections do not leak')
   await render(payloadB)
   assert.equal(view.markers.length, 1, 'Episode selections restore')
+  assert.equal(container.querySelector('[role="tab"][aria-selected="true"]').dataset.eventTab, 'anchor', 'New episode starts with CPI')
+  await clickTab('before')
+  assert.equal(view.markers.length, 1, 'Browsing another tab does not hide selected symbols')
+  await search('does-not-exist')
+  assert.equal(container.querySelectorAll('[data-event-group]').length, 0)
+  assert.equal(view.markers.length, 1, 'List search does not change chart annotations')
+  await act(async () => container.querySelector('.timeline-chart-symbol').click())
+  assert.equal(container.querySelector('[role="tab"][aria-selected="true"]').dataset.eventTab, 'after')
+  assert.ok([...container.querySelectorAll('[data-event-group]')].some((node) => node.dataset.eventGroup === ppi.id),
+    'Chart click finds target tab/day/page even from an empty search')
   const second = view.groups.find((group) => group.id !== ppi.id && !group.timingUncertain &&
     containingEventBar(group.releaseTimestamp, view.auditBars) !== null)
   await act(async () => view.setEventSymbol(second.id, second.family, 'cloud', true))
+  await clickTab('selected')
+  assert.equal(container.querySelectorAll('[data-event-group]').length, 2, 'On chart lists selected releases together')
   assert.equal(container.querySelectorAll('.timeline-chart-symbol').length, 1, 'Nearby markers cluster')
   await act(async () => container.querySelector('.timeline-chart-symbol').click())
   assert.equal(container.querySelectorAll('.timeline-symbol-popup button').length, 3, 'Both releases remain accessible')
   await act(async () => view.setAfterBars(60))
   assert.equal(view.auditBars.length, 300)
   assert.ok(view.groups.every((group) => group.releaseTimestamp < Number(view.auditBars.at(-1).time) + 3600))
-  await act(async () => view.setFamilyFilter('PPI'))
+  const markersBeforeFilter = view.markers.map((marker) => marker.group.id)
+  await act(async () => view.applyFamilies(['ppi'], {}))
   assert.ok(view.groups.every((group) => group.family === 'PPI'))
-  assert.ok(view.markers.every((marker) => marker.group.family === 'PPI'))
+  assert.deepEqual(view.markers.map((marker) => marker.group.id), markersBeforeFilter, 'Applying a watchlist keeps existing chart symbols')
+  await clickTab('selected')
+  assert.equal(container.querySelectorAll('[data-event-group]').length, view.selectedGroups.length,
+    'On chart includes marked releases outside the watchlist')
+  await act(async () => view.setFocusedGroupId(second.id))
+  assert.equal(container.querySelector('[role="tab"][aria-selected="true"]').dataset.eventTab, 'selected',
+    'A filtered-out chart event opens On chart')
+  assert.ok([...container.querySelectorAll('[data-event-group]')].some((node) => node.dataset.eventGroup === second.id))
+  menu = await openFamilies()
+  const ppiSymbol = menu.querySelector('[aria-label="Family symbol for US PPI"]')
+  await act(async () => { ppiSymbol.value = 'snowflake'; ppiSymbol.dispatchEvent(new window.Event('change', { bubbles: true })) })
+  await act(async () => menuButton(menu, 'Apply & mark releases').click())
+  assert.equal(view.selected[ppi.id], 'snowflake', 'Bulk mark uses the chosen family symbol')
+  assert.ok(view.selected[second.id], 'Bulk mark preserves unrelated selected releases')
+  assert.ok(view.markers.every((marker) => !marker.group.timingUncertain && containingEventBar(marker.group.releaseTimestamp, view.auditBars) !== null))
   await act(async () => root.unmount())
   roots.delete(root)
   assert.equal(listeners.size, 0, 'Overlay subscriptions are cleaned up')
   const root2 = createRoot(container)
   roots.add(root2)
   await act(async () => root2.render(React.createElement(AnnotationApp, { payload: payloadB })))
-  assert.equal(view.selected[ppi.id], 'sun', 'Symbol choices survive remount/storage reload')
-  console.log('  ✓ Grouped readings, source row selection, countries, uncertain timing, window boundaries and persisted symbols')
+  assert.equal(view.selected[ppi.id], 'snowflake', 'Symbol choices survive remount/storage reload')
+  assert.deepEqual(view.watchlist, ['ppi'], 'Watchlist survives remount/storage reload')
+  // Existing preferences used separate payroll/wage group IDs. They must map
+  // onto the combined report, and explicit unchecking must clear every alias.
+  const storageKey = [...Array(localStorage.length)].map((_, i) => localStorage.key(i)).find((key) => key.startsWith('fyodor_timeline_symbols_v1:'))
+  const saved = JSON.parse(localStorage.getItem(storageKey))
+  saved.episodes[epB][jobs.legacyIds[0]] = 'moon'
+  saved.families['Nonfarm Payrolls'] = 'umbrella'
+  delete saved.families.jobs
+  delete saved.watchlist // Legacy preferences did not contain a family picker.
+  localStorage.setItem(storageKey, JSON.stringify(saved))
+  await act(async () => root2.unmount())
+  roots.delete(root2)
+  const root3 = createRoot(container)
+  roots.add(root3)
+  await act(async () => root3.render(React.createElement(AnnotationApp, { payload: payloadB })))
+  assert.deepEqual(view.watchlist, sixEventFamilies)
+  assert.equal(view.selected[jobs.id], 'moon', 'Legacy chart selection survives family regrouping')
+  assert.equal(view.familySymbols.jobs, 'umbrella', 'Legacy family symbol default survives regrouping')
+  await act(async () => view.setEventSymbol(jobs.id, jobs.family, 'moon', false))
+  assert.equal(view.selected[jobs.id], undefined, 'Unmark clears legacy aliases instead of reappearing')
+  console.log('  ✓ Bounded tabs/date navigation, cross-date search, chart jumps, source readings and persisted symbols')
 }
