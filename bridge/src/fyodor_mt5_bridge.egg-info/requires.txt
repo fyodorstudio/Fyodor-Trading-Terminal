@@ -1,4 +1,0 @@
-fastapi<1,>=0.115
-MetaTrader5>=5.0.45
-psutil<8,>=6
-uvicorn<1,>=0.34

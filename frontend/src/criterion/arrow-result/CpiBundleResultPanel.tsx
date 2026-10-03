@@ -18,8 +18,48 @@ type Props = {
 }
 
 function reading(value: number | null) { return value == null ? '—' : Number(value.toFixed(6)).toString() }
-function formatFlag(text: string) {
-  return text.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase())
+
+function formatMmConcordance(raw: string): { label: string; kind: string } {
+  if (raw === 'CONCORDANT_POS') return { label: 'm/m: Both Hot (+)', kind: 'neutral' }
+  if (raw === 'CONCORDANT_NEG') return { label: 'm/m: Both Cool (−)', kind: 'neutral' }
+  if (raw === 'CONFLICT_HEAD_POS_CORE_NEG') return { label: 'm/m: Conflict (Head + / Core −)', kind: 'conflict' }
+  if (raw === 'CONFLICT_HEAD_NEG_CORE_POS') return { label: 'm/m: Conflict (Head − / Core +)', kind: 'conflict' }
+  if (raw === 'HEAD_POS_CORE_ZERO') return { label: 'm/m: Head + (Core Flat)', kind: 'neutral' }
+  if (raw === 'HEAD_NEG_CORE_ZERO') return { label: 'm/m: Head − (Core Flat)', kind: 'neutral' }
+  if (raw === 'HEAD_ZERO_CORE_POS') return { label: 'm/m: Core + (Head Flat)', kind: 'neutral' }
+  if (raw === 'HEAD_ZERO_CORE_NEG') return { label: 'm/m: Core − (Head Flat)', kind: 'neutral' }
+  if (raw === 'BOTH_ZERO') return { label: 'm/m: Both Flat (0.0)', kind: 'neutral' }
+  if (raw === 'MISSING_ANCHOR') return { label: 'm/m: Missing Inputs', kind: 'conflict' }
+  return { label: `m/m: ${raw.replace(/_/g, ' ').toLowerCase()}`, kind: 'neutral' }
+}
+
+function deriveYyConcordance(hYy?: { delta: number | null }, cYy?: { delta: number | null }): { label: string; kind: string } {
+  const h = hYy?.delta
+  const c = cYy?.delta
+  if (h == null || c == null) return { label: 'y/y: Incomplete', kind: 'neutral' }
+  if (h > 0 && c > 0) return { label: 'y/y: Both Hot (+)', kind: 'neutral' }
+  if (h < 0 && c < 0) return { label: 'y/y: Both Cool (−)', kind: 'neutral' }
+  if (h > 0 && c < 0) return { label: 'y/y: Conflict (Head + / Core −)', kind: 'conflict' }
+  if (h < 0 && c > 0) return { label: 'y/y: Conflict (Head − / Core +)', kind: 'conflict' }
+  if (h > 0 && c === 0) return { label: 'y/y: Head + (Core Flat)', kind: 'neutral' }
+  if (h < 0 && c === 0) return { label: 'y/y: Head − (Core Flat)', kind: 'neutral' }
+  if (h === 0 && c > 0) return { label: 'y/y: Core + (Head Flat)', kind: 'neutral' }
+  if (h === 0 && c < 0) return { label: 'y/y: Core − (Head Flat)', kind: 'neutral' }
+  if (h === 0 && c === 0) return { label: 'y/y: Both Flat (0.0)', kind: 'neutral' }
+  return { label: `y/y: ${h} / ${c}`, kind: 'neutral' }
+}
+
+function deriveCrossHorizonSumAlignment(dirMm: string, dirYy: string): { label: string; kind: string } {
+  if (dirMm === 'Long' && dirYy === 'Long') {
+    return { label: 'Sums Aligned: Long', kind: 'aligned-long' }
+  }
+  if (dirMm === 'Short' && dirYy === 'Short') {
+    return { label: 'Sums Aligned: Short', kind: 'aligned-short' }
+  }
+  if ((dirMm === 'Long' && dirYy === 'Short') || (dirMm === 'Short' && dirYy === 'Long')) {
+    return { label: 'Sums: Conflicting', kind: 'conflict' }
+  }
+  return { label: 'Sums: Neutral / Flat', kind: 'neutral' }
 }
 
 export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFailed, onNoteChange,
@@ -84,6 +124,10 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
 
   const dirMm = mmSum == null ? 'None' : mmSum < 0 ? 'Long' : mmSum > 0 ? 'Short' : 'Flat'
   const dirYy = yySum == null ? 'None' : yySum < 0 ? 'Long' : yySum > 0 ? 'Short' : 'Flat'
+
+  const mmConcordance = formatMmConcordance(episode.concordance)
+  const yyConcordance = deriveYyConcordance(headlineYy, coreYy)
+  const sumAlignment = deriveCrossHorizonSumAlignment(dirMm, dirYy)
 
   const formatSum = (val: number | null) => (val == null ? 'None' : `${val > 0 ? '+' : ''}${val}`)
 
@@ -341,6 +385,15 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
             <div className="arrow-result-header-title">
               <span className="arrow-result-eyebrow">Trader&apos;s Notebook</span>
               <strong>Audit Note</strong>
+              <span
+                className="arrow-result-info-icon header-info-icon"
+                tabIndex={0}
+                role="img"
+                aria-label="Simulation and notes details"
+                title={`V3 OHLC simulation · nominal lines · ${episode.id}\n${notes.length} ${notes.length === 1 ? 'note' : 'notes'} in localStorage · Export to share with Codex`}
+              >
+                ⓘ
+              </span>
             </div>
             <div className="arrow-result-journal-actions">
               <button
@@ -382,7 +435,9 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
           <div className="arrow-result-flags-row">
             <span className="arrow-result-flags-label">FLAGS</span>
             <div className="arrow-result-flags">
-              <span>{formatFlag(episode.concordance)}</span>
+              <span className={sumAlignment.kind}>{sumAlignment.label}</span>
+              <span className={mmConcordance.kind}>{mmConcordance.label}</span>
+              <span className={yyConcordance.kind}>{yyConcordance.label}</span>
               {episode.claimsCollision ? (
                 <span>Simultaneous Jobless Claims</span>
               ) : (
@@ -391,19 +446,6 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
               {yoyDirection && <span>Missing Monthly CPI</span>}
               {Boolean(trial?.[5]) && <span>Same-Bar Dual Touch</span>}
               {Boolean(trial?.[6]) && <span>Opening Gap</span>}
-            </div>
-          </div>
-
-          <div className="arrow-result-evidence-footer">
-            <div className="arrow-result-caveat-line" title="V3 historical exploration, not a registered setup. Four CPI readings share one release. Exported Previous may be revised; gross OHLC outcomes exclude costs. SL/TP lines are nominal, not broker fills.">
-              <span className="arrow-result-info-icon" aria-hidden="true">ⓘ</span>
-              <span className="arrow-result-caveat-text">V3 OHLC simulation · nominal lines · <code className="arrow-result-id">{episode.id}</code></span>
-            </div>
-            <div className="arrow-result-caveat-line" title="Notes survive refresh in this browser only. Export Markdown to share them with Codex later.">
-              <span className="arrow-result-info-icon" aria-hidden="true">ⓘ</span>
-              <span className="arrow-result-caveat-text">
-                {notes.length} {notes.length === 1 ? 'note' : 'notes'} in localStorage · Export to share with Codex
-              </span>
             </div>
           </div>
         </div>
@@ -531,7 +573,9 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
       <div className="arrow-result-flags-row">
         <span className="arrow-result-flags-label">FLAGS</span>
         <div className="arrow-result-flags">
-          <span>{formatFlag(episode.concordance)}</span>
+          <span className={sumAlignment.kind}>{sumAlignment.label}</span>
+          <span className={mmConcordance.kind}>{mmConcordance.label}</span>
+          <span className={yyConcordance.kind}>{yyConcordance.label}</span>
           {episode.claimsCollision ? (
             <span className={isExcludedClaims ? 'excluded' : ''}>
               {isExcludedClaims ? 'Excluded: Simultaneous Jobless Claims' : 'Simultaneous Jobless Claims'}

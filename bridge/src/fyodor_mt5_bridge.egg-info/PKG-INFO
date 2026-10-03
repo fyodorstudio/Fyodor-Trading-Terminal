@@ -1,9 +1,0 @@
-Metadata-Version: 2.4
-Name: fyodor-mt5-bridge
-Version: 1.0.0
-Summary: Read-only local MT5 data bridge for Fyodor Terminal
-Requires-Python: <3.14,>=3.11
-Requires-Dist: fastapi<1,>=0.115
-Requires-Dist: MetaTrader5>=5.0.45
-Requires-Dist: psutil<8,>=6
-Requires-Dist: uvicorn<1,>=0.34
