@@ -66,8 +66,8 @@ To regenerate after a deliberate V3 research publication, run from this
 terminal repository root:
 
 ```powershell
-python "Criterion/tools/build_cpi_bundle_snapshot.py"
-python -m unittest discover Criterion/tests -v
+python "criterion/tools/build_cpi_bundle_snapshot.py"
+python -m unittest discover criterion/tests -v
 pnpm --dir frontend build
 ```
 
@@ -108,7 +108,7 @@ simulated TP-first, SL-first, or expiry outcome.
 - `frontend/public/criterion/eurusd_cpi_nfp_v2.json` is a compact, versioned
   display artifact. It contains EURUSD H1 candles, episode inputs and 52 ATR
   cells × 3 expiry horizons for CPI and NFP. It is generated, not hand-edited.
-- `Criterion/tools/build_audit_snapshot.py` reads the pinned local Expanded
+- `criterion/tools/build_audit_snapshot.py` reads the pinned local Expanded
   Macro Research viewer, pre-outcome ledgers and EURUSD H1 export. It checks
   SHA-256 source pins, matches A/F/P and entry timestamps, reconciles every
   displayed summary cell to underlying trials, and independently checks every
@@ -167,7 +167,7 @@ simulated TP-first, SL-first, or expiry outcome.
 From the terminal repository root:
 
 ```powershell
-python "Criterion/tools/build_audit_snapshot.py" --research-root "C:\dev\Fyodor Math Lab\Expanded Macro Research"
+python "criterion/tools/build_audit_snapshot.py" --research-root "C:\dev\Fyodor Math Lab\Expanded Macro Research"
 Copy-Item -LiteralPath "C:\dev\Fyodor Math Lab\Expanded Macro Research\HTML Viewer\table_viewer.html" -Destination "frontend/public/criterion/research_report.html"
 ```
 

@@ -1,12 +1,17 @@
 {
-  "name": "NO-AI",
+  "name": "fyodor-trading-terminal",
   "version": "1.0.0",
   "description": "Fyodor Terminal - Canvas & Notebook",
   "private": true,
   "scripts": {
     "dev:ui": "pnpm --dir frontend dev",
     "dev:bridge": "bridge\\.venv\\Scripts\\python.exe bridge\\run_dev.py",
-    "dev:all": "concurrently -k -n BRIDGE,UI -c green,cyan \"pnpm run dev:bridge\" \"pnpm run dev:ui\""
+    "dev:all": "concurrently -k -n BRIDGE,UI -c green,cyan \"pnpm run dev:bridge\" \"pnpm run dev:ui\"",
+    "test:criterion": "python -m unittest discover criterion/tests -v",
+    "test:frontend": "pnpm --dir frontend test",
+    "test": "pnpm run test:criterion && pnpm run test:frontend",
+    "lint": "pnpm --dir frontend lint",
+    "build": "pnpm --dir frontend build"
   },
   "keywords": [],
   "author": "",

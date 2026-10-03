@@ -10,7 +10,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT / "Criterion/tools"))
+sys.path.insert(0, str(ROOT / "criterion/tools"))
 from build_cpi_bundle_snapshot import build, explain_exclusion, DEFAULT_RESEARCH_ROOT  # noqa: E402
 
 

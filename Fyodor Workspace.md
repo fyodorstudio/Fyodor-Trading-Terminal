@@ -4,8 +4,8 @@ This workspace has **two maintained projects with different jobs**:
 
 | Project | Owns | Does not own |
 | --- | --- | --- |
-| [Fyodor Math Lab — Expanded Macro Research](Fyodor%20Math%20Lab/Expanded%20Macro%20Research/README.MD) | Pinned raw exports, research rules, calculations, tests, trial ledgers, audits, reports, and the generated HTML **research-inspection** viewer. This is the source of truth for historical research results. | The live, user-facing trading terminal or a claim that an exploratory result is a registered setup. |
-| [Fyodor Trading Terminal](Fyodor%20Trading%20Terminal/README.MD) | The **actual user-interactable application**: live broker-data display, charts, Criterion episode inspection, drawing tools, Notebook, and personal audit notes. Its bridge supplies market/calendar data to the app. | Recalculating or silently changing Math Lab research results inside the frontend. |
+| [Fyodor Math Lab — Expanded Macro Research](../Fyodor%20Math%20Lab/Expanded%20Macro%20Research/README.MD) | Pinned raw exports, research rules, calculations, tests, trial ledgers, audits, reports, and the generated HTML **research-inspection** viewer. This is the source of truth for historical research results. | The live, user-facing trading terminal or a claim that an exploratory result is a registered setup. |
+| [Fyodor Trading Terminal](README.MD) | The **actual user-interactable application**: live broker-data display, charts, Criterion episode inspection, drawing tools, Notebook, and personal audit notes. Its bridge supplies market/calendar data to the app. | Recalculating or silently changing Math Lab research results inside the frontend. |
 
 In short: **Math Lab does the math; Trading Terminal lets the user interact with reviewed results and the market.** Math Lab's standalone HTML viewer is an audit tool for research, not a second live terminal.
 

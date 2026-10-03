@@ -15,7 +15,9 @@ import re
 
 
 TERMINAL_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_RESEARCH_ROOT = Path(r"C:\dev\Fyodor Math Lab\Expanded Macro Research")
+DEFAULT_RESEARCH_ROOT = TERMINAL_ROOT.parent / "Fyodor Math Lab" / "Expanded Macro Research"
+if not DEFAULT_RESEARCH_ROOT.exists():
+    DEFAULT_RESEARCH_ROOT = Path(r"C:\dev\Fyodor Math Lab\Expanded Macro Research")
 OUTPUT = TERMINAL_ROOT / "frontend" / "public" / "criterion" / "eurusd_cpi_nfp_v2.json"
 EXPECTED_VIEWER_SHA256 = "d9da359c2bfac9aba193648a712bf985751dc9aed5467a5c5cfc4d50871a3c5a"
 EXPECTED_CANDLES_SHA256 = "96a51aa29bbc3f3e9cb07633328f154ac6967d8bf40b7a5211934acb0deff45e"
