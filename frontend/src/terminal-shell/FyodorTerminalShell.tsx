@@ -1,10 +1,24 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BaselineResultPanel } from '../criterion/arrow-result/BaselineResultPanel'
 import { CpiBundleResultPanel } from '../criterion/arrow-result/CpiBundleResultPanel'
+import { TimelineResultPanel } from '../criterion/arrow-result/TimelineResultPanel'
 import { auditNoteKey, readAuditNotes, writeAuditNotes, type AuditNote } from '../criterion/arrow-result/audit-notes'
 import type { CriterionStudyId } from '../criterion/criterion-dock/CriterionPanel'
 import reportManifest from '../criterion/report-manifest.json'
 import bundleManifest from '../criterion/cpi-bundle-manifest.json'
+import timelineManifest from '../criterion/cpi-event-timeline-manifest.json'
+import {
+  fetchTimelineIndex,
+  fetchTimelineEpisode,
+  fetchTimelineTradeLevels,
+  findRowTradeLevels,
+  deriveChartLevels,
+  type CpiTimelineIndex,
+  type CpiTimelineEpisodePayload,
+  type EvaluatedTradeLevel,
+  type TimelineChartLevels,
+} from '../criterion/timeline/cpi-event-timeline-data'
+import type { TimelineReleaseBlock, TimelineSeriesRow } from '../criterion/timeline/CpiEventTimelineTable'
 import {
   availableTrials, cleanPanel, researchPriceLevels, snapshotAround, validateSelection,
   type PriorContextBars, type ResearchAuditData, type ResearchEpisode, type ResearchRule, type ResearchTrial,
@@ -81,7 +95,7 @@ export function FyodorTerminalShell() {
   const [leftDockWindow, setLeftDockWindow] = useState<LeftDockWindow>('market-watch')
   const [researchData, setResearchData] = useState<ResearchAuditData | null>(null)
   const [researchError, setResearchError] = useState<string | null>(null)
-  const [criterionStudy, setCriterionStudy] = useState<CriterionStudyId>('baseline')
+  const [criterionStudy, setCriterionStudy] = useState<CriterionStudyId>('timeline')
   const [bundleData, setBundleData] = useState<BundleSnapshot | null>(null)
   const [bundleError, setBundleError] = useState<string | null>(null)
   const [bundleRule, setBundleRule] = useState<BundleRule>({
@@ -99,6 +113,32 @@ export function FyodorTerminalShell() {
   const [auditNoteSaveFailed, setAuditNoteSaveFailed] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { entries, appendActivity, clearActivity } = useActivityLog()
+
+  // Timeline states
+  const [timelineIndex, setTimelineIndex] = useState<CpiTimelineIndex | null>(null)
+  const [timelineIndexLoading, setTimelineIndexLoading] = useState(false)
+  const [timelineIndexError, setTimelineIndexError] = useState<string | null>(null)
+  const [timelineIndexRetryToken, setTimelineIndexRetryToken] = useState(0)
+
+  const [selectedTimelineEpisodeId, setSelectedTimelineEpisodeId] = useState<string | null>(null)
+  const [timelineEpisodePayload, setTimelineEpisodePayload] = useState<CpiTimelineEpisodePayload | null>(null)
+  const [timelineEpisodeLoading, setTimelineEpisodeLoading] = useState(false)
+  const [timelineEpisodeError, setTimelineEpisodeError] = useState<string | null>(null)
+  const [timelineEpisodeRetryToken, setTimelineEpisodeRetryToken] = useState(0)
+
+  const [timelineTradeLevels, setTimelineTradeLevels] = useState<Record<string, EvaluatedTradeLevel> | null>(null)
+  const [selectedTimelineRowKey, setSelectedTimelineRowKey] = useState<string | null>(null)
+  const [selectedTimelineLevels, setSelectedTimelineLevels] = useState<TimelineChartLevels | null>(null)
+
+  const handleRetryTimelineIndex = useCallback(() => {
+    setTimelineIndexError(null)
+    setTimelineIndexRetryToken((count) => count + 1)
+  }, [])
+
+  const handleRetryTimelineEpisode = useCallback(() => {
+    setTimelineEpisodeError(null)
+    setTimelineEpisodeRetryToken((count) => count + 1)
+  }, [])
 
   useEffect(() => {
     applyColorTheme(theme)
@@ -130,6 +170,124 @@ export function FyodorTerminalShell() {
       })
     return () => controller.abort()
   }, [leftDockWindow, researchData, researchError])
+
+  useEffect(() => {
+    if (leftDockWindow !== 'criterion' || criterionStudy !== 'timeline') return
+    if (timelineIndex && timelineTradeLevels) return
+    if (timelineIndexError) return
+
+    let cancelled = false
+    const controller = new AbortController()
+
+    queueMicrotask(() => {
+      if (!cancelled && !controller.signal.aborted) {
+        setTimelineIndexLoading(true)
+      }
+    })
+
+    Promise.all([
+      fetchTimelineIndex(controller.signal),
+      fetchTimelineTradeLevels(controller.signal),
+    ])
+      .then(([idx, levels]) => {
+        if (cancelled || controller.signal.aborted) return
+        setTimelineIndex(idx)
+        setTimelineTradeLevels(levels)
+        setTimelineIndexLoading(false)
+        setTimelineIndexError(null)
+      })
+      .catch((err: unknown) => {
+        if (cancelled || controller.signal.aborted) return
+        setTimelineIndexError(err instanceof Error ? err.message : 'Failed to load timeline index')
+        setTimelineIndexLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+      controller.abort()
+      setTimelineIndexLoading(false)
+    }
+  }, [leftDockWindow, criterionStudy, timelineIndex, timelineTradeLevels, timelineIndexError, timelineIndexRetryToken])
+
+  useEffect(() => {
+    if (!selectedTimelineEpisodeId || criterionStudy !== 'timeline') {
+      queueMicrotask(() => {
+        setTimelineEpisodePayload(null)
+        setSelectedTimelineRowKey(null)
+        setSelectedTimelineLevels(null)
+        setTimelineEpisodeLoading(false)
+        setTimelineEpisodeError(null)
+      })
+      return
+    }
+
+    if (timelineEpisodeError) {
+      return
+    }
+
+    let cancelled = false
+    const controller = new AbortController()
+    const targetEpisodeId = selectedTimelineEpisodeId
+
+    queueMicrotask(() => {
+      if (!cancelled && !controller.signal.aborted) {
+        // Clear previous episode payload, selected row and levels immediately when switching
+        setTimelineEpisodePayload(null)
+        setSelectedTimelineRowKey(null)
+        setSelectedTimelineLevels(null)
+        setTimelineEpisodeError(null)
+        setTimelineEpisodeLoading(true)
+      }
+    })
+
+    fetchTimelineEpisode(targetEpisodeId, controller.signal)
+      .then((payload) => {
+        // Ignore completions from cancelled or superseded requests,
+        // including completions after response retrieval/hash verification.
+        if (cancelled || controller.signal.aborted || targetEpisodeId !== selectedTimelineEpisodeId) {
+          return
+        }
+        if (payload.episodeId !== targetEpisodeId) {
+          return
+        }
+
+        setTimelineEpisodePayload(payload)
+        setTimelineEpisodeLoading(false)
+        setTimelineEpisodeError(null)
+
+        // Default selection to first anchor CPI row
+        const firstRow = payload.cpiBlock?.rows?.[0]
+        if (firstRow) {
+          const key = `${payload.cpiBlock.id}:${firstRow.series}:0`
+          setSelectedTimelineRowKey(key)
+          const lev = findRowTradeLevels(timelineTradeLevels, payload.episodeId, payload.cpiBlock, firstRow)
+          const derived = deriveChartLevels(lev, payload.cpiBlock.entryTimestamp)
+          setSelectedTimelineLevels(derived)
+        } else {
+          setSelectedTimelineRowKey(null)
+          setSelectedTimelineLevels(null)
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled || controller.signal.aborted || targetEpisodeId !== selectedTimelineEpisodeId) {
+          return
+        }
+        setTimelineEpisodeError(err instanceof Error ? err.message : 'Failed to load episode payload')
+        setTimelineEpisodeLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+      controller.abort()
+      setTimelineEpisodeLoading(false)
+    }
+  }, [
+    selectedTimelineEpisodeId,
+    criterionStudy,
+    timelineTradeLevels,
+    timelineEpisodeError,
+    timelineEpisodeRetryToken,
+  ])
 
   useEffect(() => {
     if (leftDockWindow !== 'criterion' || (criterionStudy !== 'bundle' && criterionStudy !== 'experimental') || !researchData || bundleData || bundleError) return
@@ -186,8 +344,14 @@ export function FyodorTerminalShell() {
     try { return snapshotAround(researchData, entry, bundleRule.horizon, priorContextBars) }
     catch { return null }
   }, [researchData, bundleSelection, bundleRule.horizon, priorContextBars])
-  const auditBars = (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleAuditBars : criterionStudy === 'baseline' ? legacyAuditBars : null
-  const auditMode = Boolean(((criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleSelection : criterionStudy === 'baseline' ? auditSelection : null) && auditBars)
+  const timelineAuditBars = useMemo(() => {
+    const entry = timelineEpisodePayload?.cpiBlock.entryTimestamp
+    if (!researchData || !entry) return null
+    try { return snapshotAround(researchData, entry, 240, priorContextBars) }
+    catch { return null }
+  }, [researchData, timelineEpisodePayload, priorContextBars])
+  const auditBars = criterionStudy === 'timeline' ? timelineAuditBars : (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleAuditBars : criterionStudy === 'baseline' ? legacyAuditBars : null
+  const auditMode = Boolean(((criterionStudy === 'timeline' ? selectedTimelineEpisodeId && timelineEpisodePayload : (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleSelection : criterionStudy === 'baseline' ? auditSelection : null) && auditBars))
   const auditLevels = useMemo(() => auditSelection?.trial ? researchPriceLevels(auditSelection.episode, researchRule) : null,
     [auditSelection, researchRule])
   const bundleLevels = useMemo(() => {
@@ -203,6 +367,16 @@ export function FyodorTerminalShell() {
     }
     return deriveBundlePriceLevels(bundleData, bundleRule, bundleSelection)
   }, [bundleSelection, bundleData, bundleRule, criterionStudy])
+  const timelineLevels = useMemo(() => {
+    if (!selectedTimelineLevels) return null
+    return {
+      entry: selectedTimelineLevels.entryPrice,
+      stop: selectedTimelineLevels.stopPrice,
+      target: selectedTimelineLevels.targetPrice,
+      direction: selectedTimelineLevels.direction === 'Long' ? 1 : -1,
+    }
+  }, [selectedTimelineLevels])
+  const activeLevels = criterionStudy === 'timeline' ? timelineLevels : (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleLevels : auditLevels
   const currentAuditNote = auditSelection && researchData ? auditNotes.find((note) =>
     auditNoteKey(note.viewerSha256, note.family, note.signal, note.episodeId)
       === auditNoteKey(researchData.viewerSha256, researchRule.family, researchRule.signal, auditSelection.episode.id),
@@ -212,6 +386,13 @@ export function FyodorTerminalShell() {
   const currentBundleNote = bundleSelection && bundleData ? currentBundleNotes.find((note) =>
     auditNoteKey(note.viewerSha256, note.family, note.signal, note.episodeId) ===
       auditNoteKey(bundleData.sourceSha256, 'CPI_BUNDLE', bundleRule.comparison, bundleSelection.episode.id)) ?? null : null
+  const currentTimelineNotes = useMemo(() => {
+    return auditNotes.filter((note) => note.family === 'CPI_TIMELINE')
+  }, [auditNotes])
+  const currentTimelineNote = useMemo(() => {
+    if (!selectedTimelineEpisodeId) return null
+    return currentTimelineNotes.find((note) => note.episodeId === selectedTimelineEpisodeId) ?? null
+  }, [selectedTimelineEpisodeId, currentTimelineNotes])
   const researchArrows = useMemo((): ResearchChartArrow[] => {
     if (!researchData || !legacyAuditBars) return []
     const first = Number(legacyAuditBars[0]?.time)
@@ -229,6 +410,17 @@ export function FyodorTerminalShell() {
         direction: episode[researchRule.signal].direction > 0 ? 'long' : 'short',
       }))
   }, [researchData, researchRule, researchSelection.trials, legacyAuditBars, auditSelection])
+  const timelineArrows = useMemo((): ResearchChartArrow[] => {
+    if (!timelineEpisodePayload || !selectedTimelineLevels) return []
+    return [
+      {
+        id: `timeline:${timelineEpisodePayload.episodeId}`,
+        time: selectedTimelineLevels.entryTimestamp,
+        entryPrice: selectedTimelineLevels.entryPrice,
+        direction: selectedTimelineLevels.direction === 'Long' ? 'long' : 'short',
+      },
+    ]
+  }, [timelineEpisodePayload, selectedTimelineLevels])
   const bundleArrows = useMemo((): ResearchChartArrow[] => {
     if (!bundleData || !bundleAuditBars) return []
     const raw = deriveBundleChartArrows(bundleData, bundleRule, bundleAuditBars, bundleSelection, bundleResult.trials)
@@ -322,11 +514,73 @@ export function FyodorTerminalShell() {
   }, [activeSymbol, appendActivity, deleteDrawing, selectedDrawingId, timeframe])
 
   const leaveResearchAudit = () => {
+    setSelectedTimelineEpisodeId(null)
+    setTimelineEpisodePayload(null)
+    setSelectedTimelineRowKey(null)
+    setSelectedTimelineLevels(null)
     setAuditSelection(null)
     setBundleSelection(null)
     setAuditRuleError(null)
     setBottomDockWindow((current) => current === 'arrow-result' ? 'notebook' : current)
   }
+
+  const selectTimelineEpisode = useCallback((episodeId: string) => {
+    setSelectedTimelineEpisodeId(episodeId)
+    // Clear previous episode payload, selected row and levels immediately when switching
+    setTimelineEpisodePayload(null)
+    setSelectedTimelineRowKey(null)
+    setSelectedTimelineLevels(null)
+    setTimelineEpisodeError(null)
+    setTimelineEpisodeLoading(true)
+    setBottomDockWindow('arrow-result')
+  }, [])
+
+  const handleSelectTimelineRow = useCallback(
+    (block: TimelineReleaseBlock, row: TimelineSeriesRow, key: string) => {
+      setSelectedTimelineRowKey(key)
+      if (!selectedTimelineEpisodeId) return
+      const lev = findRowTradeLevels(timelineTradeLevels, selectedTimelineEpisodeId, block, row)
+      const derived = deriveChartLevels(lev, block.entryTimestamp)
+      setSelectedTimelineLevels(derived)
+    },
+    [selectedTimelineEpisodeId, timelineTradeLevels]
+  )
+
+  const saveTimelineNote = useCallback(
+    (text: string) => {
+      // Prevent attaching notes to wrong or loading episode
+      if (
+        !selectedTimelineEpisodeId ||
+        !timelineEpisodePayload ||
+        timelineEpisodePayload.episodeId !== selectedTimelineEpisodeId
+      ) {
+        return
+      }
+      const releaseText = timelineEpisodePayload.releaseTimeText ?? 'Historical Release'
+      const updated: AuditNote = {
+        viewerSha256: timelineManifest.reviewedSourceManifestSha256,
+        family: 'CPI_TIMELINE',
+        signal: 'H240',
+        episodeId: selectedTimelineEpisodeId,
+        releaseText,
+        rule: { horizon: 240, stop: 1, target: 1 },
+        text,
+        updatedAt: new Date().toISOString(),
+      }
+      const nextNotes = [
+        ...auditNotes.filter((n) => !(n.family === 'CPI_TIMELINE' && n.episodeId === selectedTimelineEpisodeId)),
+        updated,
+      ]
+      const ok = writeAuditNotes(nextNotes)
+      if (ok) {
+        setAuditNotes(nextNotes)
+        setAuditNoteSaveFailed(false)
+      } else {
+        setAuditNoteSaveFailed(true)
+      }
+    },
+    [selectedTimelineEpisodeId, timelineEpisodePayload, auditNotes]
+  )
 
   const changeCriterionStudy = (study: CriterionStudyId) => {
     if (study === criterionStudy) return
@@ -573,6 +827,12 @@ export function FyodorTerminalShell() {
           bundleNotes={currentBundleNotes}
           onBundleRuleChange={changeBundleRule}
           onSelectBundleEpisode={selectBundleEpisode}
+          timelineIndex={timelineIndex}
+          isTimelineLoading={timelineIndexLoading}
+          timelineError={timelineIndexError}
+          onRetryTimeline={handleRetryTimelineIndex}
+          selectedTimelineEpisodeId={selectedTimelineEpisodeId}
+          onSelectTimelineEpisode={selectTimelineEpisode}
         />
 
         <section className="chart-workspace" aria-label={`${chartSymbol} chart workspace`}>
@@ -582,8 +842,8 @@ export function FyodorTerminalShell() {
             timeframe={timeframe}
             onSelectTimeframe={selectTimeframe}
             researchAudit={auditMode}
-            auditDetails={auditMode ? `${(criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleSelection?.episode.releaseText : auditSelection?.episode.releaseText} · EURUSD H1 · H${(criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleRule.horizon : researchRule.horizon} observed candles · ${priorContextBars ? `up to ${priorContextBars} prior` : 'no prior context'}` : null}
-            auditStatus={auditMode && criterionStudy !== 'experimental' && ((criterionStudy === 'bundle') ? bundleSelection && !bundleSelection.trial : auditSelection && !auditSelection.trial) ? 'No priced trade under this rule' : null}
+            auditDetails={auditMode ? `${criterionStudy === 'timeline' ? timelineEpisodePayload?.releaseTimeText : (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleSelection?.episode.releaseText : auditSelection?.episode.releaseText} · EURUSD H1 · H${criterionStudy === 'timeline' ? 240 : (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleRule.horizon : researchRule.horizon} observed candles · ${priorContextBars ? `up to ${priorContextBars} prior` : 'no prior context'}` : null}
+            auditStatus={auditMode ? (criterionStudy === 'timeline' ? (!selectedTimelineLevels ? 'No priced trade under this row' : null) : criterionStudy !== 'experimental' && ((criterionStudy === 'bundle') ? bundleSelection && !bundleSelection.trial : auditSelection && !auditSelection.trial) ? 'No priced trade under this rule' : null) : null}
             auditError={auditRuleError}
             onReturnLive={leaveResearchAudit}
           />
@@ -595,7 +855,7 @@ export function FyodorTerminalShell() {
             >
               <MarketCandlestickChart
                 bars={chartBars}
-                fitContentKey={auditMode ? `research:${criterionStudy}:${(criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleSelection?.episode.id : auditSelection?.episode.id}:H${(criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleRule.horizon : researchRule.horizon}:context${priorContextBars}` : `${activeSymbol}:${timeframe}`}
+                fitContentKey={auditMode ? `research:${criterionStudy}:${criterionStudy === 'timeline' ? selectedTimelineEpisodeId : (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleSelection?.episode.id : auditSelection?.episode.id}:H${criterionStudy === 'timeline' ? 240 : (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleRule.horizon : researchRule.horizon}:context${priorContextBars}` : `${activeSymbol}:${timeframe}`}
                 precision={quote?.precision ?? 5}
                 theme={theme}
                 appearance={chartAppearance}
@@ -623,9 +883,9 @@ export function FyodorTerminalShell() {
                       seriesApi={seriesApi}
                       arrows={auditMode ? noRegisteredArrows : registeredArrows.symbolArrows}
                       selectedArrowId={auditMode ? null : registeredArrows.selectedArrowId}
-                      researchArrows={auditMode ? (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleArrows : researchArrows : noResearchArrows}
-                      selectedResearchArrowId={auditMode ? (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? `bundle:${bundleSelection?.episode.id}` : `research:${auditSelection?.episode.id}` : null}
-                      researchLevels={auditMode ? (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleLevels : auditLevels : null}
+                      researchArrows={auditMode ? (criterionStudy === 'timeline' ? timelineArrows : (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? bundleArrows : researchArrows) : noResearchArrows}
+                      selectedResearchArrowId={auditMode ? (criterionStudy === 'timeline' ? `timeline:${timelineEpisodePayload?.episodeId}` : (criterionStudy === 'bundle' || criterionStudy === 'experimental') ? `bundle:${bundleSelection?.episode.id}` : `research:${auditSelection?.episode.id}`) : null}
+                      researchLevels={auditMode ? activeLevels : null}
                       onSelectResearchArrow={selectResearchArrow}
                       draftPlan={auditMode ? hiddenTradePlan : plannedTrade}
                       onSelectArrow={(arrow) => {
@@ -730,6 +990,21 @@ export function FyodorTerminalShell() {
               highlightedEventId={highlightedCalendarEventId}
               rangePreset={calendarRangePreset}
               onRangePresetChange={setCalendarRangePreset}
+            />
+          )}
+          {bottomDockWindow === 'arrow-result' && criterionStudy === 'timeline' && (
+            <TimelineResultPanel
+              episodePayload={timelineEpisodePayload}
+              isLoading={timelineEpisodeLoading}
+              error={timelineEpisodeError}
+              onRetry={handleRetryTimelineEpisode}
+              selectedRowKey={selectedTimelineRowKey}
+              onSelectRow={handleSelectTimelineRow}
+              note={currentTimelineNote?.text ?? ''}
+              notes={currentTimelineNotes}
+              saveFailed={auditNoteSaveFailed}
+              onNoteChange={saveTimelineNote}
+              onReturnLive={leaveResearchAudit}
             />
           )}
           {bottomDockWindow === 'arrow-result' && criterionStudy === 'baseline' && (

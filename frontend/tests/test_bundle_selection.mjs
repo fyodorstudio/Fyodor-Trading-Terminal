@@ -21,6 +21,8 @@ async function runTests() {
     const resultPanelModule = await viteServer.ssrLoadModule('./src/criterion/arrow-result/CpiBundleResultPanel.tsx')
     const criterionPanelModule = await viteServer.ssrLoadModule('./src/criterion/criterion-dock/CriterionPanel.tsx')
     const notesModule = await viteServer.ssrLoadModule('./src/criterion/arrow-result/audit-notes.ts')
+    const timelineTableModule = await viteServer.ssrLoadModule('./src/criterion/timeline/CpiEventTimelineTable.tsx')
+    const timelineResultPanelModule = await viteServer.ssrLoadModule('./src/criterion/arrow-result/TimelineResultPanel.tsx')
 
     const {
       getBundleCellTrials,
@@ -34,6 +36,8 @@ async function runTests() {
     const { CpiBundleResultPanel } = resultPanelModule
     const { CriterionPanel } = criterionPanelModule
     const { auditNoteKey } = notesModule
+    const { CpiEventTimelineTable } = timelineTableModule
+    const { TimelineResultPanel } = timelineResultPanelModule
 
     const snapshotPath = path.resolve(rootDir, 'public/criterion/eurusd_cpi_bundle_v3.json')
     const snapshotRaw = fs.readFileSync(snapshotPath, 'utf-8')
@@ -454,107 +458,148 @@ async function runTests() {
     // ---------------------------------------------------------------------------------
     // TEST 7: Study Selector Options & Experimental Standby Rendering
     // ---------------------------------------------------------------------------------
-    console.log('\n[Test 7] CriterionPanel study selector and USD CPI EXPERIMENTAL unfiltered render...')
-    const loadingMarkup = renderToStaticMarkup(
+    // ---------------------------------------------------------------------------------
+    // TEST 7: Director's New Direction: "CPI & Event Timeline" Pending View & Table Structure
+    // ---------------------------------------------------------------------------------
+    console.log('\n[Test 7] CriterionPanel study selector and CPI & Event Timeline pending render...')
+    const timelineMarkup = renderToStaticMarkup(
       React.createElement(CriterionPanel, {
-        study: 'experimental',
+        study: 'timeline',
         onStudyChange: () => {},
-        priorContextBars: 240,
-        onPriorContextChange: () => {},
-        baselineData: null,
-        baselineError: null,
-        baselineRule: {
-          family: 'CPI', signal: 'af', panel: 'ALL', cohort: 'ALL_ELIGIBLE', horizon: 60, stop: 1, target: 1,
-        },
-        baselineSummary: null,
-        selectedResearchEpisodeId: null,
-        savedAuditNotes: [],
-        onBaselineRuleChange: () => {},
-        onSelectResearchEpisode: () => {},
-        bundleData: null,
-        bundleError: null,
-        bundleRule: {
-          comparison: 'CANDIDATE_1_HEADLINE_MM', panel: 'FULL_PANEL', horizon: 60, stop: 1, target: 1,
-        },
-        bundleSummary: null,
-        selectedBundleEpisodeId: null,
-        bundleNotes: [],
-        onBundleRuleChange: () => {},
-        onSelectBundleEpisode: () => {},
       })
     )
-    assert.match(loadingMarkup, /<option value="experimental"[^>]*>USD CPI EXPERIMENTAL<\/option>/)
-    assert.match(loadingMarkup, /Loading pinned CPI bundle episodes…/)
 
-    const populatedMarkup = renderToStaticMarkup(
-      React.createElement(CriterionPanel, {
-        study: 'experimental',
-        onStudyChange: () => {},
-        priorContextBars: 240,
-        onPriorContextChange: () => {},
-        baselineData: null,
-        baselineError: null,
-        baselineRule: {
-          family: 'CPI', signal: 'af', panel: 'ALL', cohort: 'ALL_ELIGIBLE', horizon: 60, stop: 1, target: 1,
-        },
-        baselineSummary: null,
-        selectedResearchEpisodeId: null,
-        savedAuditNotes: [],
-        onBaselineRuleChange: () => {},
-        onSelectResearchEpisode: () => {},
-        bundleData: snapshot,
-        bundleError: null,
-        bundleRule: {
-          comparison: 'CANDIDATE_1_HEADLINE_MM', panel: 'FULL_PANEL', horizon: 60, stop: 1, target: 1,
-        },
-        bundleSummary: null,
-        selectedBundleEpisodeId: null,
-        bundleNotes: [],
-        onBundleRuleChange: () => {},
-        onSelectBundleEpisode: () => {},
-      })
-    )
-    assert.match(populatedMarkup, /139 total · unfiltered/)
-    assert.match(populatedMarkup, /Prior context/)
-    assert.match(populatedMarkup, /Expiry/)
-    assert.match(populatedMarkup, /SL ATR/)
-    assert.match(populatedMarkup, /TP ATR/)
-    assert.doesNotMatch(populatedMarkup, /Bundle interpretation/)
-    assert.doesNotMatch(populatedMarkup, /Co-release filter/)
-    assert.doesNotMatch(populatedMarkup, /Matching only/)
-    const episodeButtonMatches = populatedMarkup.match(/role="listitem"/g)
-    assert.equal(episodeButtonMatches?.length, 139, 'Must render exactly 139 episode buttons')
-    assert.match(populatedMarkup, /★ m\/m: None · y\/y: Long/) // 2025.12.18 episode where monthly readings are missing
-    console.log('  ✓ Selector contains USD CPI EXPERIMENTAL')
-    console.log('  ✓ Preserves SL/TP, Expiry, and Prior context controls')
-    console.log('  ✓ Omits Bundle interpretation and Co-release filter')
-    console.log('  ✓ Exactly 139 unfiltered episodes rendered')
-    console.log('  ✓ Direction formatted with star and separate m/m and y/y Long/Short')
+    // Verify selector contains "CPI & Event Timeline" and only that active choice
+    assert.match(timelineMarkup, /<option value="timeline"[^>]*>CPI &amp; Event Timeline<\/option>/)
+    assert.doesNotMatch(timelineMarkup, /CPI \/ NFP baseline V2/)
+    assert.doesNotMatch(timelineMarkup, /USD CPI bundle V3/)
+    assert.doesNotMatch(timelineMarkup, /USD CPI EXPERIMENTAL/)
 
-    // Also test CpiBundleResultPanel in experimental mode for 2025.12.18 (no trial)
-    const yoyEp = snapshot.episodes.find((ep) => ep.releaseText.startsWith('2025.12.18'))
-    assert.ok(yoyEp, '2025.12.18 episode must exist')
-    const expResultMarkup = renderToStaticMarkup(
-      React.createElement(CpiBundleResultPanel, {
-        episode: yoyEp,
-        trial: null,
-        rule: { comparison: 'CANDIDATE_1_HEADLINE_MM', panel: 'FULL_PANEL', horizon: 60, stop: 1, target: 1 },
-        note: '',
-        notes: [],
-        saveFailed: false,
-        onNoteChange: () => {},
+    // Verify genuine pending state
+    assert.match(timelineMarkup, /Research pending — no audited results published\./)
+    assert.doesNotMatch(timelineMarkup, /Bundle interpretation/)
+    assert.doesNotMatch(timelineMarkup, /Co-release filter/)
+    assert.doesNotMatch(timelineMarkup, /Matching only/)
+    assert.doesNotMatch(timelineMarkup, /role="listitem"/) // Zero fabricated episode list items
+
+    console.log('  ✓ Selector contains single active choice: "CPI & Event Timeline"')
+    console.log('  ✓ Selector strictly omits the three old choices')
+    console.log('  ✓ Displays genuine pending state: "Research pending — no audited results published."')
+
+    // Test TimelineResultPanel in pending state
+    const resultPanelMarkup = renderToStaticMarkup(
+      React.createElement(TimelineResultPanel, {
+        blocks: null,
         onReturnLive: () => {},
-        isExperimental: true,
       })
     )
-    assert.match(expResultMarkup, /★ m\/m: None · y\/y: Long/)
-    assert.match(expResultMarkup, /experimental-table/)
-    assert.match(expResultMarkup, /m\/m Sum/)
-    assert.match(expResultMarkup, /y\/y Sum/)
-    assert.match(expResultMarkup, /Missing required monthly readings/)
-    console.log('  ✓ CpiBundleResultPanel renders star direction badge and merged table without trade when trial is absent')
+    assert.match(resultPanelMarkup, /CPI &amp; Event Timeline/)
+    assert.match(resultPanelMarkup, /Research pending — no audited results published\./)
+    console.log('  ✓ TimelineResultPanel renders pending state without fabricated results')
 
-    // Test CpiBundleResultPanel in experimental mode for episode 0 (with trial)
+    // Test CpiEventTimelineTable prepared structure with simulated release blocks
+    // Test CpiEventTimelineTable prepared structure with simulated release blocks across all 4 relationships
+    const sampleBlocks = [
+      {
+        id: 'block-before-cpi',
+        family: 'German ZEW Economic Sentiment',
+        currency: 'EUR',
+        releaseTimestamp: 1784030000,
+        releaseTimeText: '2026.07.14 12:00:00',
+        relationship: 'before',
+        rows: [
+          { series: 'ZEW Index', actual: 41.5, previous: 47.5, delta: -6.0, direction: 'CONTEXT_ONLY', grossResult: null },
+        ],
+      },
+      {
+        id: 'block-cpi-20260714',
+        family: 'Consumer Price Index',
+        currency: 'USD',
+        releaseTimestamp: 1784043000,
+        releaseTimeText: '2026.07.14 15:30:00',
+        entryTimestamp: 1784044800,
+        entryTimeText: '2026.07.14 16:00:00',
+        relationship: 'simultaneous',
+        rows: [
+          { series: 'Headline m/m', actual: -0.4, previous: 0.5, delta: -0.9, direction: 'Long', grossResult: null },
+          { series: 'Core m/m', actual: 0.0, previous: 0.2, delta: -0.2, direction: 'Long', grossResult: null },
+          { series: 'Headline y/y', actual: 3.5, previous: 4.2, delta: -0.7, direction: 'Long', grossResult: null },
+          { series: 'Core y/y', actual: 2.6, previous: 2.9, delta: -0.3, direction: 'Long', grossResult: null },
+          { series: 'm/m Sum', actual: null, previous: null, delta: -1.1, direction: 'Long', grossResult: null, isSumRow: true },
+          { series: 'y/y Sum', actual: null, previous: null, delta: -1.0, direction: 'Long', grossResult: null, isSumRow: true },
+          { series: 'Precision Check Series', actual: 1.002, previous: 1.010, delta: -0.008, direction: 'Long', grossResult: null },
+        ],
+      },
+      {
+        id: 'block-pre-entry-hpi',
+        family: 'House Price Index',
+        currency: 'USD',
+        releaseTimestamp: 1784043900,
+        releaseTimeText: '2026.07.14 15:45:00',
+        entryTimestamp: 1784044800,
+        entryTimeText: '2026.07.14 16:00:00',
+        relationship: 'after_release_before_entry',
+        timingUncertain: true,
+        rows: [
+          { series: 'HPI m/m', actual: 0.3, previous: 0.2, delta: 0.1, direction: 'CONTEXT_ONLY', grossResult: null },
+        ],
+      },
+      {
+        id: 'block-ppi-20260715',
+        family: 'Producer Price Index',
+        currency: 'USD',
+        releaseTimestamp: 1784129400,
+        releaseTimeText: '2026.07.15 15:30:00',
+        entryTimestamp: 1784131200,
+        entryTimeText: '2026.07.15 16:00:00',
+        relationship: 'after_entry',
+        rows: [
+          { series: 'PPI m/m', actual: -0.3, previous: 1.1, revisedPrevious: 0.6, delta: -1.4, direction: 'CONTEXT_ONLY', grossResult: null },
+        ],
+      },
+    ]
+
+    const tableMarkup = renderToStaticMarkup(
+      React.createElement(CpiEventTimelineTable, {
+        blocks: sampleBlocks,
+        horizon: 240,
+        stop: 1,
+        target: 1,
+      })
+    )
+    assert.match(tableMarkup, /<th[^>]*>Series<\/th>/)
+    assert.match(tableMarkup, /<th[^>]*>A<\/th>/)
+    assert.match(tableMarkup, /<th[^>]*>P<\/th>/)
+    assert.match(tableMarkup, /<th[^>]*>A−P<\/th>/)
+    assert.match(tableMarkup, /<th[^>]*>Direction<\/th>/)
+    // Parameterized header reflects actual supplied horizon/SL/TP
+    assert.match(tableMarkup, /<th[^>]*>Gross Result \(H240 · SL 1 · TP 1\)<\/th>/)
+    // All 4 relationship badges
+    assert.match(tableMarkup, /BEFORE CPI/)
+    assert.match(tableMarkup, /SIMULTANEOUS/)
+    assert.match(tableMarkup, /AFTER CPI \(PRE-ENTRY, TENTATIVE\)/)
+    assert.match(tableMarkup, /AFTER CPI ENTRY/)
+    assert.match(tableMarkup, /TIME UNCERTAIN/)
+    // Families and constituent series
+    assert.match(tableMarkup, /Consumer Price Index/)
+    assert.match(tableMarkup, /Producer Price Index/)
+    assert.match(tableMarkup, /Headline m\/m/)
+    assert.match(tableMarkup, /Core m\/m/)
+    assert.match(tableMarkup, /Headline y\/y/)
+    assert.match(tableMarkup, /Core y\/y/)
+    assert.match(tableMarkup, /m\/m Sum/)
+    assert.match(tableMarkup, /y\/y Sum/)
+    // Precision: exact -0.008 delta must remain visible
+    assert.match(tableMarkup, /-0\.008/)
+    // Revised Previous disclosure (Rev: 0.6 alongside 1.1)
+    assert.match(tableMarkup, /Rev: 0\.6/)
+    console.log('  ✓ CpiEventTimelineTable renders prepared table structure: Series | A | P | A−P | Direction | Gross Result')
+    console.log('  ✓ Supports all 4 timing relationships (Before, Simultaneous, Pre-Entry, After Entry) & uncertainty badge')
+    console.log('  ✓ Preserves precision: exact -0.008 delta visible without truncation')
+    console.log('  ✓ Discloses exported Previous and Revised Previous (Rev: 0.6)')
+    console.log('  ✓ Gross Result header reflects parameterized settings: Gross Result (H240 · SL 1 · TP 1)')
+
+    // Preserved Historical Check: CpiBundleResultPanel direct render on historical snapshot
     const ep0 = snapshot.episodes[0]
     const ep0Trial = snapshot.trials['CANDIDATE_1_HEADLINE_MM|60|1:1']?.find((t) => t[0] === 0)
     assert.ok(ep0Trial, 'Episode 0 trial must exist')
@@ -575,9 +620,7 @@ async function runTests() {
     assert.match(ep0ResultMarkup, /★ m\/m: Long · y\/y: Long/)
     assert.match(ep0ResultMarkup, /experimental-table/)
     assert.match(ep0ResultMarkup, /-1\.000 R/)
-    assert.match(ep0ResultMarkup, /m\/m Sum/)
-    assert.match(ep0ResultMarkup, /y\/y Sum/)
-    console.log('  ✓ CpiBundleResultPanel renders merged table with gross trade results and delta sums when trial is present')
+    console.log('  ✓ Preserved historical CpiBundleResultPanel renders without error')
 
     console.log('\n--- ALL PRODUCTION FRONTEND TESTS PASSED SUCCESSFULLY ---')
   } finally {

@@ -260,3 +260,7 @@
 .criterion-study-switch { padding: 8px 12px; border-bottom: 1px solid var(--border); background: var(--surface-panel); }
 .criterion-study-switch label { display: block; color: var(--text-muted); font-size: 9px; font-weight: 700; }
 .criterion-study-switch select { width: 100%; height: 28px; margin-top: 3px; padding: 0 4px; border: 1px solid var(--border-strong); border-radius: 5px; color: var(--text-strong); background: var(--surface-inset); font: inherit; font-size: 10px; }
+.criterion-error-box { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+.criterion-error-box .criterion-error { padding: 0; }
+.criterion-retry-btn { align-self: flex-start; padding: 4px 10px; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-raised); color: var(--text-strong); font-size: 10px; font-weight: 600; cursor: pointer; }
+.criterion-retry-btn:hover { background: var(--surface-hover); color: var(--accent); }

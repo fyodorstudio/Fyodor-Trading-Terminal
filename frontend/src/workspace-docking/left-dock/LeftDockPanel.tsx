@@ -37,6 +37,12 @@ type LeftDockPanelProps = {
   bundleNotes: AuditNote[]
   onBundleRuleChange: (rule: BundleRule) => void
   onSelectBundleEpisode: (episode: BundleEpisode, trial: BundleTrial | null) => void
+  timelineIndex?: any
+  isTimelineLoading?: boolean
+  timelineError?: string | null
+  onRetryTimeline?: () => void
+  selectedTimelineEpisodeId?: string | null
+  onSelectTimelineEpisode?: (episodeId: string) => void
 }
 
 export function LeftDockPanel({
@@ -67,6 +73,12 @@ export function LeftDockPanel({
   bundleNotes,
   onBundleRuleChange,
   onSelectBundleEpisode,
+  timelineIndex,
+  isTimelineLoading,
+  timelineError,
+  onRetryTimeline,
+  selectedTimelineEpisodeId,
+  onSelectTimelineEpisode,
 }: LeftDockPanelProps) {
   const [internalActiveWindow, setInternalActiveWindow] = useState<LeftDockWindow>('market-watch')
   const activeWindow = controlledActiveWindow ?? internalActiveWindow
@@ -126,6 +138,12 @@ export function LeftDockPanel({
             bundleNotes={bundleNotes}
             onBundleRuleChange={onBundleRuleChange}
             onSelectBundleEpisode={onSelectBundleEpisode}
+            timelineIndex={timelineIndex}
+            isTimelineLoading={isTimelineLoading}
+            timelineError={timelineError}
+            onRetryTimeline={onRetryTimeline}
+            selectedTimelineEpisodeId={selectedTimelineEpisodeId}
+            onSelectTimelineEpisode={onSelectTimelineEpisode}
           />
         )}
       </div>

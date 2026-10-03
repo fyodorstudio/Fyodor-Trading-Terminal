@@ -5,11 +5,11 @@ const STORAGE_KEY = 'fyodor_criterion_audit_notes_v1'
 
 export type AuditNote = {
   viewerSha256: string
-  family: ResearchFamily | 'CPI_BUNDLE'
-  signal: ResearchSignal | BundleComparison
+  family: ResearchFamily | 'CPI_BUNDLE' | 'CPI_TIMELINE'
+  signal: ResearchSignal | BundleComparison | string
   episodeId: string
   releaseText: string
-  rule: ResearchRule | BundleRule
+  rule: ResearchRule | BundleRule | any
   text: string
   updatedAt: string
 }
@@ -27,8 +27,9 @@ export function readAuditNotes(): AuditNote[] {
       && typeof item.viewerSha256 === 'string' && typeof item.episodeId === 'string'
       && typeof item.text === 'string' && typeof item.updatedAt === 'string'
       && typeof item.releaseText === 'string' && item.rule !== null && typeof item.rule === 'object'
-      && (item.family === 'CPI' || item.family === 'NFP' || item.family === 'CPI_BUNDLE')
+      && (item.family === 'CPI' || item.family === 'NFP' || item.family === 'CPI_BUNDLE' || item.family === 'CPI_TIMELINE')
       && (item.family === 'CPI_BUNDLE' ? bundleComparisons.some(([id]) => id === item.signal)
+          : item.family === 'CPI_TIMELINE' ? typeof item.signal === 'string'
           : item.signal === 'af' || item.signal === 'ap'),
     )
   } catch {
@@ -55,12 +56,22 @@ export function exportAuditNotesMarkdown(notes: AuditNote[]) {
     '',
   ]
   for (const note of ordered) {
+    const ruleDesc = note.rule
+      ? [
+          note.rule.panel ? `${note.rule.panel};` : null,
+          note.rule.cohort ? `${note.rule.cohort};` : null,
+          note.rule.horizon != null ? `H${note.rule.horizon};` : null,
+          note.rule.stop != null ? `SL ${note.rule.stop} ATR;` : null,
+          note.rule.target != null ? `TP ${note.rule.target} ATR` : null,
+        ].filter(Boolean).join(' ') || 'H240 · SL 1 ATR · TP 1 ATR'
+      : 'H240 · SL 1 ATR · TP 1 ATR'
+
     lines.push(`## ${note.family} / EURUSD / ${note.releaseText} / ${note.signal.toUpperCase()}`,
       '',
       `- Episode ID: \`${note.episodeId}\``,
       `- Research viewer SHA-256: \`${note.viewerSha256}\``,
-      `- Direction input: ${note.family === 'CPI_BUNDLE' ? `CPI bundle A-P / ${note.signal}` : note.signal === 'af' ? 'Actual - Forecast' : 'Actual - Previous'}`,
-      `- Last viewed rule: ${note.rule.panel}; ${'cohort' in note.rule ? `${note.rule.cohort}; ` : ''}H${note.rule.horizon}; SL ${note.rule.stop} ATR; TP ${note.rule.target} ATR`,
+      `- Direction input: ${note.family === 'CPI_TIMELINE' ? `Timeline / ${note.signal}` : note.family === 'CPI_BUNDLE' ? `CPI bundle A-P / ${note.signal}` : note.signal === 'af' ? 'Actual - Forecast' : 'Actual - Previous'}`,
+      `- Last viewed rule: ${ruleDesc}`,
       `- Updated: ${note.updatedAt}`, '', note.text, '')
   }
   return lines.join('\n')
