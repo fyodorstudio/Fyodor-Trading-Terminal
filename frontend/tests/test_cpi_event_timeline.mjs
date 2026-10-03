@@ -7,6 +7,7 @@ import React from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createServer } from 'vite'
 import { testMountedTimeline } from './timeline-mounted-checks.mjs'
+import { testReleaseSummaries } from './timeline-summary-checks.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const rootDir = path.resolve(__dirname, '..')
@@ -250,6 +251,7 @@ async function runTests() {
     assert.match(md, /Audited Dec 18 2025 release: verified headline y\/y stop at bar 1\./)
     console.log('  ✓ Audit notes serialize, deserialize, and export markdown with complete provenance')
 
+    await testReleaseSummaries({ viteServer, rootDir, manifest })
     await testMountedTimeline({ viteServer, rootDir, manifest, useCpiEventTimeline,
       CpiEventTimelineCriterionPanel, TimelineResultPanel })
 

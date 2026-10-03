@@ -1,9 +1,11 @@
 import { useState } from 'react'
 import { CpiEventTimelineTable, type TimelineReleaseBlock, type TimelineSeriesRow } from './CpiEventTimelineTable'
+import { getRelationshipMeta, isExploratoryBlock } from './timeline-release-metadata'
 import type { TimelineEventAnnotations } from './useTimelineEventAnnotations'
 import { eventSymbols, containingEventBar, type EventSymbol, type TimelineEventGroup } from './timeline-event-view'
 import { defaultFamilySymbol } from './timeline-event-families'
 import { eventFamilyKey, eventCurrencySide } from './timeline-event-filters'
+import { TimelineReleaseSummary } from './TimelineReleaseSummary'
 
 export function TimelineEventRelease({ group, view, selectedRowKey, onSelectRow }: {
   group: TimelineEventGroup
@@ -17,6 +19,7 @@ export function TimelineEventRelease({ group, view, selectedRowKey, onSelectRow 
   const symbol = selectedSymbol ?? view.familySymbols[eventFamilyKey(group)] ??
     view.familySymbols[group.family] ?? defaultFamilySymbol(group.familyId)
   const canMark = !group.timingUncertain && containingEventBar(group.releaseTimestamp, view.auditBars ?? []) !== null
+  const relationship = getRelationshipMeta(group.block.relationship, group.timingUncertain)
   return <div data-event-group={group.id} className={`timeline-event-release${focused ? ' focused' : ''}`}>
     <div className="timeline-event-marker-controls">
       <label title={canMark ? 'Show this release on the chart' : 'Exact publication time or containing candle is unavailable'}>
@@ -37,8 +40,13 @@ export function TimelineEventRelease({ group, view, selectedRowKey, onSelectRow 
       <summary><strong>{group.family}</strong> · {group.countryCode} · {group.currency} <time>{group.releaseTimeText}</time>
         {group.timingUncertain && <span className="timeline-uncertain-badge">TIME UNCERTAIN · no timed symbol</span>}
         <span className="timeline-event-reading-count">{group.block.rows.length} readings</span>
+        <span className={`timeline-block-relationship badge ${relationship.badgeClass}`}>{relationship.label}</span>
+        {isExploratoryBlock(group.block) && <span className="timeline-exploratory-badge badge"
+          title="Exploratory Non-CPI Family with independent entry and levels">EXPLORATORY</span>}
+        {group.block.entryTimeText && <span className="timeline-event-entry">Entry {group.block.entryTimeText}</span>}
+        <TimelineReleaseSummary block={group.block} />
       </summary>
-      {(expanded || focused) && <CpiEventTimelineTable blocks={[group.block]} selectedRowKey={selectedRowKey}
+      {(expanded || focused) && <CpiEventTimelineTable blocks={[group.block]} hideBlockHeader selectedRowKey={selectedRowKey}
         onSelectRow={(_block, _row, key) => {
           const source = group.sources.get(key)
           if (source) onSelectRow?.(source.block, source.row, key)

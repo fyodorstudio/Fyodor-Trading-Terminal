@@ -1,4 +1,5 @@
 import { formatUnit } from './cpi-event-timeline-data'
+import { getRelationshipMeta, isExploratoryBlock } from './timeline-release-metadata'
 import './cpi-event-timeline.css'
 
 export type TimelineRelationship =
@@ -34,6 +35,8 @@ export type TimelineSeriesRow = {
   eventId?: string | null
   valueId?: string | null
   countryCode?: string | null
+  periodServerText?: string | null
+  isDerived?: boolean
   eligibility?: {
     isEligible: boolean
     exclusionReason: string | null
@@ -109,38 +112,6 @@ function formatDelta(
   return { text: unitLabel ? `${text} ${unitLabel}` : text, className }
 }
 
-function getRelationshipMeta(
-  rel: TimelineRelationship,
-  timingUncertain?: boolean
-): { label: string; badgeClass: string } {
-  let label = ''
-  let badgeClass = ''
-
-  switch (rel) {
-    case 'before':
-      label = 'Before CPI'
-      badgeClass = 'before'
-      break
-    case 'simultaneous':
-      label = timingUncertain ? 'Simultaneous (Tentative)' : 'Simultaneous'
-      badgeClass = 'simultaneous'
-      break
-    case 'after_release_before_entry':
-    case 'after_release_known_by_entry':
-      label = timingUncertain ? 'After CPI (Pre-Entry, Tentative)' : 'After CPI (Pre-Entry)'
-      badgeClass = 'pre-entry'
-      break
-    case 'after_entry':
-    case 'after':
-    default:
-      label = 'After CPI Entry'
-      badgeClass = 'after'
-      break
-  }
-
-  return { label, badgeClass }
-}
-
 function formatUnpricedReason(row: TimelineSeriesRow): string {
   const reason = row.eligibility?.exclusionReason
   if (reason) {
@@ -192,13 +163,7 @@ export function CpiEventTimelineTable({
           block.timingUncertain
         )
 
-        const isExploratory =
-          block.eventId === '840140001' ||
-          block.eventId === '840020010' ||
-          block.eventId === '840030001' ||
-          (block.family ? block.family.includes('Initial Jobless') : false) ||
-          (block.family ? block.family.includes('Retail Sales') : false) ||
-          (block.family ? block.family.includes('PPI') : false)
+        const isExploratory = isExploratoryBlock(block)
 
         return (
           <section

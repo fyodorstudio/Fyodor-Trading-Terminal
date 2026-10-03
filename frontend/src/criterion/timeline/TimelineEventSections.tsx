@@ -3,10 +3,12 @@ import type { PriorContextBars } from '../audit-data'
 import { CpiEventTimelineTable, type TimelineReleaseBlock, type TimelineSeriesRow } from './CpiEventTimelineTable'
 import type { TimelineEventAnnotations } from './useTimelineEventAnnotations'
 import { TimelineEventRelease } from './TimelineEventRelease'
-import { useTimelineEventBrowser, eventPageSize, eventDate, type EventBrowserTab } from './useTimelineEventBrowser'
+import { useTimelineEventBrowser, type EventBrowserTab } from './useTimelineEventBrowser'
 import { TimelinePopover } from './TimelinePopover'
 import { TimelineFamilyPicker } from './TimelineFamilyPicker'
 import { timelineManifest } from './cpi-event-timeline-data'
+import { TimelineEventNavigation } from './TimelineEventNavigation'
+import { TimelineReleaseSummary } from './TimelineReleaseSummary'
 
 type Props = {
   view: TimelineEventAnnotations
@@ -54,6 +56,7 @@ export function TimelineEventSections({ view, anchorBlock, priorBars, onPriorCha
           event.currentTarget.parentElement?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[next]?.focus()
         }}>{label}{count !== null && <span> ({count})</span>}</button>)}
     </div>
+    <TimelineEventNavigation browser={browser} />
     <div className="timeline-header-actions">
       <TimelinePopover label="Filters" title="Event filters" width={580}>
         {(close) => <TimelineFamilyPicker view={view} close={close} />}
@@ -90,21 +93,13 @@ export function TimelineEventSections({ view, anchorBlock, priorBars, onPriorCha
     </div>
     </header>
     {view.storageFailed && <p role="alert">Symbol choices could not be saved in this browser.</p>}
-    {browser.tab !== 'anchor' && <div className="timeline-event-browse-controls">
-      <label>Date <select aria-label="Event date" value={browser.searching ? 'ALL' : browser.date} disabled={browser.searching}
-        onChange={(event) => browser.selectDate(event.target.value)}>
-        <option value="ALL">All dates ({browser.counts[browser.tab]})</option>
-        {browser.dates.map((date) => <option key={date} value={date}>{date} ({browser.tabGroups.filter((group) =>
-          eventDate(group) === date).length})</option>)}
-      </select></label>
-      <input type="search" aria-label="Search releases in all dates of this tab" placeholder="Search this tab: PPI, US, date…"
-        value={browser.query} onChange={(event) => browser.search(event.target.value)} />
-      {browser.query && <button type="button" onClick={() => browser.search('')}>Clear</button>}
-    </div>}
     <div id={`${panelId}-panel`} ref={list} className={`timeline-event-page${browser.tab === 'anchor' ? ' timeline-anchor-page' : ''}`} role="tabpanel"
       aria-labelledby={`${panelId}-${browser.tab}`} tabIndex={0}>
-      {browser.tab === 'anchor' && anchorBlock ? <CpiEventTimelineTable blocks={[anchorBlock]} horizon={240} stop={1} target={1}
-        hideBlockHeader selectedRowKey={selectedRowKey} onSelectRow={onSelectRow} /> : <>
+      {browser.tab === 'anchor' && anchorBlock ? <>
+        <TimelineReleaseSummary block={anchorBlock} />
+        <CpiEventTimelineTable blocks={[anchorBlock]} horizon={240} stop={1} target={1}
+          hideBlockHeader selectedRowKey={selectedRowKey} onSelectRow={onSelectRow} />
+      </> : <>
         {!view.auditBars && <p role="status">Chart context is unavailable; event symbols need the pinned H1 candles.</p>}
         {!browser.matching.length && <p className="timeline-symbol-help">{browser.tab === 'selected' ?
           'No selected chart events in this view. Tick a release in Before, At or After CPI to add its symbol.' :
@@ -113,14 +108,5 @@ export function TimelineEventSections({ view, anchorBlock, priorBars, onPriorCha
           selectedRowKey={selectedRowKey} onSelectRow={onSelectRow} />)}
       </>}
     </div>
-    {browser.tab !== 'anchor' && <div className="timeline-event-pager">
-      <span>{browser.matching.length ? `${browser.page * eventPageSize + 1}–${Math.min((browser.page + 1) * eventPageSize, browser.matching.length)} of ${browser.matching.length} releases` : '0 releases'}
-        {browser.searching && ' · searching all dates'}</span>
-      <div><button type="button" aria-label="Previous event page" disabled={browser.page === 0}
-        onClick={() => browser.selectPage(browser.page - 1)}>Previous</button>
-        <span>Page {browser.page + 1} / {browser.pageCount}</span>
-        <button type="button" aria-label="Next event page" disabled={browser.page + 1 >= browser.pageCount}
-          onClick={() => browser.selectPage(browser.page + 1)}>Next</button></div>
-    </div>}
   </div>
 }

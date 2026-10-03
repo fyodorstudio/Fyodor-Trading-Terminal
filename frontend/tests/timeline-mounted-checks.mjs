@@ -330,6 +330,7 @@ async function testAnnotations({ viteServer, rootDir, createRoot, act, roots, ep
   assert.equal(container.querySelector('.timeline-anchor-page .timeline-block-header'), null, 'Anchor does not repeat its banner')
   assert.equal(container.querySelectorAll('.timeline-anchor-page tbody tr').length, 6, 'All four readings and both sums remain visible')
   assert.equal(container.querySelector('.timeline-event-browse-controls'), null, 'No browse toolbar on the CPI tab')
+  assert.equal(container.querySelectorAll('.timeline-anchor-page [aria-label="Release change summary"]').length, 1)
   assert.equal(container.querySelector('[role="tab"][aria-selected="true"]').dataset.eventTab, 'anchor')
   assert.equal(container.querySelectorAll('[data-event-group]').length, 0, 'CPI opens without a month-long event list')
   async function clickTab(tab) { await act(async () => container.querySelector(`[data-event-tab="${tab}"]`).click()) }
@@ -373,6 +374,10 @@ async function testAnnotations({ viteServer, rootDir, createRoot, act, roots, ep
   assert.equal(view.groups.length, view.windowGroups.length)
   assert.equal(view.markers.length, 0, 'Apply does not mark releases')
   await clickTab('before')
+  assert.ok(header.querySelector('[aria-label="Event date"]'), 'Date shares the title/tab header')
+  assert.ok(header.querySelector('[type="search"]'), 'Inline search shares the title/tab header')
+  assert.ok(header.querySelector('.timeline-event-pager'), 'Release count and pagination share the header')
+  assert.equal(container.querySelector('.timeline-event-sections > .timeline-event-pager'), null, 'No footer strip uses reading space')
   assert.ok(container.querySelectorAll('[data-event-group]').length <= 8, 'Only one bounded page is mounted')
   const nearestBeforeDate = view.groups.filter((group) => group.section === 'before').map((group) => group.releaseTimeText.slice(0, 10)).sort().at(-1)
   assert.equal(container.querySelector('[aria-label="Event date"]').value, nearestBeforeDate, 'Before starts nearest CPI')
@@ -392,6 +397,15 @@ async function testAnnotations({ viteServer, rootDir, createRoot, act, roots, ep
   assert.equal(container.querySelector('[aria-label="Event date"]').disabled, true, 'Search spans all dates in the tab')
   let releaseControl = [...container.querySelectorAll('[data-event-group]')].find((node) => node.dataset.eventGroup === ppi.id)
   assert.ok(releaseControl, 'Search reaches a later release without scrolling across dates')
+  assert.equal(releaseControl.querySelector('details').open, false)
+  assert.ok(releaseControl.querySelector('summary [aria-label="Release change summary"]'), 'Summary is visible before expanding readings')
+  assert.ok(releaseControl.querySelector('summary .timeline-exploratory-badge'), 'Exploratory status survives removing the repeated banner')
+  const searchButton = header.querySelector('[aria-label="Search this tab"]')
+  await act(async () => searchButton.click())
+  const searchMenu = document.querySelector('[role="dialog"][aria-label="Search this tab"]')
+  assert.ok(searchMenu, 'Compact search can open outside the dock')
+  assert.equal(searchMenu.querySelector('[type="search"]').value, 'PPI US 2026.07.15')
+  await act(async () => searchMenu.querySelector('[aria-label="Close event search"]').click())
   await act(async () => {
     const select = releaseControl.querySelector('select')
     select.value = 'sun'
@@ -411,6 +425,7 @@ async function testAnnotations({ viteServer, rootDir, createRoot, act, roots, ep
   assert.equal(container.querySelector('[type="search"]').value, '', 'Chart click clears list search')
   releaseControl = [...container.querySelectorAll('[data-event-group]')].find((node) => node.dataset.eventGroup === ppi.id)
   assert.equal(releaseControl.querySelector('details').open, true)
+  assert.equal(releaseControl.querySelector('.timeline-block-header'), null, 'Expanded readings do not repeat the release banner')
   const sourceRow = ppi.block.rows.find((row) => row.valueId)
   const rowNodes = [...releaseControl.querySelectorAll('tbody tr')]
   const rowIndex = ppi.block.rows.indexOf(sourceRow)
