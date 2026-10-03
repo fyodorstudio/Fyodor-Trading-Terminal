@@ -158,7 +158,12 @@
   overflow: hidden;
 }
 .experimental-header-dates {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  font-size: 9.5px;
 }
 .experimental-header-dates b {
   color: var(--text-strong);

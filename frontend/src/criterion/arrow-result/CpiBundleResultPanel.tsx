@@ -318,6 +318,12 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
     const summaryRes = formatTrialRes(trial ?? simulateForDirection(dirMm))
     const yySumRes = formatTrialRes(simulateForDirection(dirYy))
 
+    const relParts = episode.releaseText.trim().split(/\s+/)
+    const entParts = episode.entryText.trim().split(/\s+/)
+    const episodeDate = relParts[0] ?? ''
+    const releaseTime = relParts[1]?.slice(0, 5) ?? episode.releaseText
+    const entryTime = entParts[1]?.slice(0, 5) ?? episode.entryText
+
     return (
       <section className="arrow-result-panel experimental-merged" aria-label="USD CPI experimental result table">
         <div className="arrow-result-col experimental-main-col">
@@ -330,9 +336,13 @@ export function CpiBundleResultPanel({ episode, trial, rule, note, notes, saveFa
             </div>
 
             <div className="experimental-header-meta">
-              <span className="experimental-header-dates">
-                <b>{episode.releaseText}</b> release · {episode.entryText} entry
-              </span>
+              <div className="experimental-header-dates">
+                <span className="date-tag"><b>{episodeDate}</b></span>
+                <span>·</span>
+                <span>Release: <b>{releaseTime}</b></span>
+                <span>·</span>
+                <span>Entry: <b>{entryTime}</b></span>
+              </div>
               <div className="experimental-levels-pills">
                 <span>ENTRY: <b>{episode.entryPrice?.toFixed(5) ?? '—'}</b></span>
                 <span className="stop">NOMINAL SL: <b>{levels?.stop.toFixed(5) ?? '—'}</b> ({rule.stop} ATR)</span>
