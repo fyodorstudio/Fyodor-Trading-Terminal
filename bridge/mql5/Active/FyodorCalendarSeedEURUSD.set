@@ -1,0 +1,9 @@
+; Calendar-only Terminal seed. Load in FyodorResearchExporterV4 Inputs.
+ExportCalendar=true
+ExportRequestedBars=false
+CalendarCurrencies=USD,EUR
+RequireExact28PairSet=false
+CalendarFromDate=2015.01.01 00:00:00
+CalendarToDate=0
+SaveToCommonFolder=true
+OutputRootPrefix=FyodorCalendarSeed_v4

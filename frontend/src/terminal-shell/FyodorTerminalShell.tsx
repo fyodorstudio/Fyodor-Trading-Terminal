@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { BaselineResultPanel } from '../criterion/arrow-result/BaselineResultPanel'
 import { CpiBundleResultPanel } from '../criterion/arrow-result/CpiBundleResultPanel'
 import { TimelineResultPanel } from '../criterion/arrow-result/TimelineResultPanel'
@@ -27,6 +27,10 @@ import { EconomicCalendarMarkers } from '../economic-calendar/calendar-dock/Econ
 import { EconomicCalendarPanel } from '../economic-calendar/calendar-dock/EconomicCalendarPanel'
 import type { CalendarRangePreset } from '../economic-calendar/calendar-dock/calendar-display-range'
 import { useMt5EconomicCalendar } from '../economic-calendar/mt5-calendar/use-mt5-economic-calendar'
+import { useInspector } from '../inspector/useInspector'
+import { supportsInspector } from '../inspector/inspector-data'
+import { InspectorPanel } from '../inspector/InspectorPanel'
+import { InspectorChartMarkers } from '../inspector/InspectorChartMarkers'
 import { MarketCandlestickChart } from '../market-data/candlestick-chart/MarketCandlestickChart'
 import { MarketChartErrorBoundary } from '../market-data/candlestick-chart/MarketChartErrorBoundary'
 import { FloatingDrawingToolbar } from '../market-data/chart-drawings/FloatingDrawingToolbar'
@@ -53,6 +57,7 @@ import { TraderNotebookPanel } from '../trader-notebook/notebook-dock/TraderNote
 import { useRegisteredArrows } from '../trader-notebook/storage/use-registered-arrows'
 import { BottomDockPanel } from '../workspace-docking/bottom-dock/BottomDockPanel'
 import type { BottomDockWindow } from '../workspace-docking/bottom-dock/bottom-dock-window'
+import { useBottomDockSize } from '../workspace-docking/bottom-dock/useBottomDockSize'
 import { LeftDockPanel } from '../workspace-docking/left-dock/LeftDockPanel'
 import type { LeftDockWindow } from '../workspace-docking/left-dock/left-dock-window'
 import { ChartWorkspaceHeader } from './ChartWorkspaceHeader'
@@ -82,6 +87,7 @@ export function FyodorTerminalShell() {
   const [activeDrawingTool, setActiveDrawingTool] = useState<DrawingToolId | null>(null)
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>('notebook')
+  const dockSize = useBottomDockSize(bottomDockWindow)
   const [leftDockWindow, setLeftDockWindow] = useState<LeftDockWindow>('market-watch')
   const [researchData, setResearchData] = useState<ResearchAuditData | null>(null)
   const [researchError, setResearchError] = useState<string | null>(null)
@@ -305,14 +311,17 @@ export function FyodorTerminalShell() {
   const bridge = useBridgeStatus()
   const mt5Connected = bridge.health?.mt5.connected === true
   const marketData = useMt5MarketData(mt5Connected, bridge.health?.mt5.generation ?? 0, selectedSymbol, timeframe)
+  const activeSymbol = marketData.activeSymbol
+  const bars = marketData.bars
   const calendar = useMt5EconomicCalendar(
     bridge.reachable,
     bridge.health?.calendar ?? null,
-    bottomDockWindow === 'calendar',
+    bottomDockWindow === 'calendar' || supportsInspector(activeSymbol),
   )
-  const activeSymbol = marketData.activeSymbol
+  const inspector = useInspector({ events: calendar.events, symbol: activeSymbol, bars, timeframe, timeDisplay,
+    clockOffsetMs: bridge.clockOffsetMs, brokerId: bridge.health?.mt5.account_server ?? null,
+    brokerOffsetSeconds: bridge.health?.calendar.server_utc_offset_seconds ?? 0 })
   const quote = marketData.symbols.find((item) => item.symbol === activeSymbol) ?? null
-  const bars = marketData.bars
   const chartBars = auditBars ?? bars
   const chartSymbol = auditMode ? 'EURUSD' : activeSymbol
   const latestBarTime = bars.length > 0 ? (bars[bars.length - 1].time as number) : 0
@@ -574,7 +583,8 @@ export function FyodorTerminalShell() {
     : 'unavailable'
 
   return (
-    <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}`}>
+    <div className={`terminal-shell${bottomDockWindow ? ' bottom-dock-open' : ''}`}
+      style={{ '--bottom-dock-height': `${dockSize.height}px` } as CSSProperties}>
       <main className="terminal-workspace">
         <LeftDockPanel
           symbols={marketData.symbols}
@@ -675,7 +685,12 @@ export function FyodorTerminalShell() {
                         timelineEvents.setFocusedGroupId(id)
                         setBottomDockWindow('arrow-result')
                       }} />}
-                    {!auditMode && <EconomicCalendarMarkers
+                    {!auditMode && inspector.supported && <InspectorChartMarkers chartApi={_chartApi} markers={inspector.markers}
+                      timeDisplay={timeDisplay} onSelectRelease={(id) => {
+                        inspector.selectRelease(id)
+                        setBottomDockWindow('inspector')
+                      }} />}
+                    {!auditMode && !inspector.supported && <EconomicCalendarMarkers
                       chartApi={_chartApi}
                       seriesApi={seriesApi}
                       symbol={activeSymbol}
@@ -720,6 +735,7 @@ export function FyodorTerminalShell() {
           hasResearchSelection={auditMode}
           onSelectWindow={setBottomDockWindow}
           onClose={() => setBottomDockWindow(null)}
+          resizeHandle={dockSize.resizeHandle}
         >
           {bottomDockWindow === 'notebook' && (
             <TraderNotebookPanel
@@ -762,6 +778,8 @@ export function FyodorTerminalShell() {
               )}
             />
           )}
+          {bottomDockWindow === 'inspector' && <InspectorPanel view={inspector} symbol={activeSymbol}
+            source={calendar.source} error={calendar.error} timeDisplay={timeDisplay} auditMode={auditMode} onReturnLive={leaveResearchAudit} />}
           {bottomDockWindow === 'calendar' && (
             <EconomicCalendarPanel
               events={calendar.events}

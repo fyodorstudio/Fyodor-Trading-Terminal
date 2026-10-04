@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node tests/test_bundle_selection.mjs && node tests/test_cpi_event_timeline.mjs",
+    "test": "node tests/test_bundle_selection.mjs && node tests/test_cpi_event_timeline.mjs && node tests/test_inspector.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

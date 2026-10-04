@@ -49,3 +49,8 @@
 }
 
 .bottom-dock-content { min-height: 0; overflow: hidden; }
+.bottom-dock.resizable { grid-template-rows: 6px 34px minmax(0, 1fr); }
+.bottom-dock-resize-handle { cursor: ns-resize; touch-action: none; user-select: none; position: relative; background: var(--surface-raised); }
+.bottom-dock-resize-handle::after { content: ''; position: absolute; width: 42px; height: 2px; top: 2px; left: calc(50% - 21px); border-radius: 2px; background: var(--border-strong); }
+.bottom-dock-resize-handle:hover::after, .bottom-dock-resize-handle[data-resizing='true']::after { background: var(--accent); }
+.bottom-dock-resize-handle:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }

@@ -7,5 +7,11 @@ __pycache__/
 *.ex5
 !bridge/mql5/**/*.ex5
 bridge/mql5/compile.log
+bridge/mql5/compile-*.log
 .pytest_cache/
 *.egg-info/
+
+# Durable local calendar inventory, database, transfer staging and provenance.
+# Service code and setup instructions under storage/ remain tracked.
+/storage/data/
+/storage/tests/.runtime/

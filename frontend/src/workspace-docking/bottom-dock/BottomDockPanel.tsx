@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import type { BottomDockWindow } from './bottom-dock-window'
+import type { BottomDockResizeHandle } from './useBottomDockSize'
 import './bottom-dock-panel.css'
 
 type BottomDockPanelProps = {
@@ -10,6 +11,7 @@ type BottomDockPanelProps = {
   onSelectWindow: (window: BottomDockWindow) => void
   onClose: () => void
   children: ReactNode
+  resizeHandle?: BottomDockResizeHandle | null
 }
 
 export function BottomDockPanel({
@@ -20,9 +22,11 @@ export function BottomDockPanel({
   onSelectWindow,
   onClose,
   children,
+  resizeHandle,
 }: BottomDockPanelProps) {
   return (
-    <section className="bottom-dock" aria-label="Bottom dock">
+    <section className={`bottom-dock${resizeHandle ? ' resizable' : ''}`} aria-label="Bottom dock">
+      {resizeHandle && <div className="bottom-dock-resize-handle" {...resizeHandle} />}
       <header className="bottom-dock-tabs">
         <button
           type="button"
@@ -45,6 +49,8 @@ export function BottomDockPanel({
         >
           Activity <span>{activityCount}</span>
         </button>
+        <button type="button" className={activeWindow === 'inspector' ? 'active' : ''}
+          onClick={() => onSelectWindow('inspector')}>Inspector</button>
         {hasResearchSelection && <button type="button" className={activeWindow === 'arrow-result' ? 'active' : ''}
           onClick={() => onSelectWindow('arrow-result')}>
           Arrow Result <span>{selectedSymbol}</span>

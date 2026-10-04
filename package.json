@@ -6,10 +6,14 @@
   "scripts": {
     "dev:ui": "pnpm --dir frontend dev",
     "dev:bridge": "bridge\\.venv\\Scripts\\python.exe bridge\\run_dev.py",
-    "dev:all": "concurrently -k -n BRIDGE,UI -c green,cyan \"pnpm run dev:bridge\" \"pnpm run dev:ui\"",
+    "dev:storage": "bridge\\.venv\\Scripts\\python.exe storage\\run.py serve",
+    "storage:import": "bridge\\.venv\\Scripts\\python.exe storage\\run.py import",
+    "storage:status": "bridge\\.venv\\Scripts\\python.exe storage\\run.py status",
+    "dev:all": "concurrently -k -n BRIDGE,STORAGE,UI -c green,yellow,cyan \"pnpm run dev:bridge\" \"pnpm run dev:storage\" \"pnpm run dev:ui\"",
     "test:criterion": "python -m unittest discover criterion/tests -v",
     "test:frontend": "pnpm --dir frontend test",
-    "test": "pnpm run test:criterion && pnpm run test:frontend",
+    "test:storage": "bridge\\.venv\\Scripts\\python.exe -m unittest discover storage/tests -v",
+    "test": "pnpm run test:criterion && pnpm run test:frontend && pnpm run test:storage",
     "lint": "pnpm --dir frontend lint",
     "build": "pnpm --dir frontend build"
   },

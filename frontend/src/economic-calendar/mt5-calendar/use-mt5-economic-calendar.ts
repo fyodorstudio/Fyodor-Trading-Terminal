@@ -16,9 +16,8 @@ export function useMt5EconomicCalendar(
   enabled: boolean,
 ): Mt5EconomicCalendar {
   const { appendActivity } = useActivityLog()
-  const [events, setEvents] = useState<EconomicCalendarEvent[]>([])
-  const [source, setSource] = useState<CalendarSourceHealth | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [snapshot, setSnapshot] = useState<EconomicCalendarResponse | null>(null)
+  const [failure, setFailure] = useState<{ instanceId: string | null; message: string } | null>(null)
   const previousStatus = useRef<CalendarSourceHealth['status'] | null>(null)
   const calendarRevision = healthSource?.last_update_at === null || healthSource?.last_update_at === undefined
     ? null
@@ -44,12 +43,12 @@ export function useMt5EconomicCalendar(
       try {
         const response = await bridgeRequest<EconomicCalendarResponse>('/calendar', controller.signal)
         if (disposed) return
-        setEvents(response.events)
-        setSource(response.source)
-        setError(null)
+        setSnapshot(response)
+        setFailure(null)
       } catch (requestError) {
         if (disposed || (requestError instanceof DOMException && requestError.name === 'AbortError')) return
-        setError(requestError instanceof Error ? requestError.message : 'Calendar request failed')
+        setFailure({ instanceId: healthSource?.instance_id ?? null,
+          message: requestError instanceof Error ? requestError.message : 'Calendar request failed' })
       }
     }
 
@@ -58,13 +57,13 @@ export function useMt5EconomicCalendar(
       disposed = true
       controller.abort()
     }
-  }, [calendarRevision, enabled, reachable])
+  }, [calendarRevision, enabled, reachable, healthSource?.instance_id])
 
   return reachable
     ? {
-        events: enabled && calendarRevision !== null ? events : [],
-        source: healthSource ?? source,
-        error: calendarRevision === null ? null : error,
+        events: enabled && calendarRevision !== null && snapshot?.source.instance_id === healthSource?.instance_id ? snapshot?.events ?? [] : [],
+        source: healthSource,
+        error: calendarRevision !== null && failure?.instanceId === healthSource?.instance_id ? failure?.message ?? null : null,
       }
     : { events: [], source: null, error: null }
 }
