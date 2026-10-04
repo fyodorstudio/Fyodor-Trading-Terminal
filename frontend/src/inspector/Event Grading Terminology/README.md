@@ -1,0 +1,15 @@
+# Inspector event grading terminology
+
+This directory documents Inspector's explicit, versioned reading-grading rules. Rules describe comparisons within a selected release; they do not recalculate Criterion research results or create trading signals.
+
+Organize definitions by **release currency → event category → family**. EUR is EURUSD's base currency; USD is its quote currency. Grading colors have their own meaning: green Good, red Bad, gray Unchanged/Missing/Unrated.
+
+| Currency | Category | Family | Rule status |
+| --- | --- | --- | --- |
+| USD | Labor / wages | [Jobs report / NFP](USD/Labor/NFP.md) | Implemented: `nfp-vs-previous-v1` |
+| EUR | All categories | [Existing notes](EUR/definitions.md) | No grading implemented |
+| USD | Other families | — | No grading implemented |
+
+Each future family document should record its scope and stable event IDs, reading definitions, comparator, favorable direction per reading, zero/missing handling, counting behavior, examples, limitations, sources and rule version. A family is graded only after its own rules are agreed and implemented; NFP rules are never inferred from another event's name.
+
+The current runtime implementation is [nfp-grading.ts](../grading/nfp-grading.ts). Raw calendar values, reference periods, revised Previous and A−P remain visible and unchanged.

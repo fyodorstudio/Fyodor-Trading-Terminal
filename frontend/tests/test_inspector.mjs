@@ -53,6 +53,8 @@ try {
   const { useInspector } = await server.ssrLoadModule('./src/inspector/useInspector.ts')
   const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
   const { InspectorChartMarkers } = await server.ssrLoadModule('./src/inspector/InspectorChartMarkers.tsx')
+  const grading = await server.ssrLoadModule('./src/inspector/grading/nfp-grading.ts')
+  const dates = await server.ssrLoadModule('./src/inspector/inspector-date-range.ts')
   const { useMt5EconomicCalendar } = await server.ssrLoadModule('./src/economic-calendar/mt5-calendar/use-mt5-economic-calendar.ts')
   const { ActivityLogContext } = await server.ssrLoadModule('./src/system-observability/activity-log/activity-log-context.ts')
   const { calendarDisplayRange } = await server.ssrLoadModule('./src/economic-calendar/calendar-dock/calendar-display-range.ts')
@@ -200,15 +202,25 @@ try {
   await click(app.container.querySelector('.inspector-release'))
   assert.match(app.container.querySelector('tbody').textContent, /Not applicable/)
   await act(async () => view.applyPreferences(preferences))
-  await change(app.container.querySelector('[aria-label="Inspector date range"]'), { value: 'next-week' })
+  const openDates = async () => click(app.container.querySelector('[aria-label="Inspector date range"]'))
+  const presetButton = (name) => [...document.querySelectorAll('[aria-label="Date range presets"] button')].find((button) => button.textContent === name)
+  await openDates()
+  assert.equal(document.querySelectorAll('[aria-label="Inspector date range picker"] table').length, 2)
+  assert.equal([...document.querySelectorAll('[aria-label="Inspector date range picker"] button')].some((button) => ['Apply', 'Cancel'].includes(button.textContent)), false)
+  await click(presetButton('Next week'))
   assert.equal(view.releases.length, 0)
-  await change(app.container.querySelector('[aria-label="Inspector date range"]'), { value: 'custom' })
-  await change(app.container.querySelector('[aria-label="Inspector range start"]'), { value: '2026-10-02' })
-  await change(app.container.querySelector('[aria-label="Inspector range end"]'), { value: '2026-10-01' })
-  assert.equal(view.range, null)
-  assert.match(app.container.textContent, /Choose a valid date range/)
-  await change(app.container.querySelector('[aria-label="Inspector range start"]'), { value: '2026-10-01' })
+  assert.equal(document.querySelector('[aria-label="Inspector date range picker"]'), null)
+  await openDates()
+  const lastValid = view.range
+  await change(document.querySelector('[aria-label="Inspector range start"]'), { value: '2026-10-02' })
+  const beforeInvalid = view.range
+  await change(document.querySelector('[aria-label="Inspector range end"]'), { value: '2026-10-01' })
+  assert.deepEqual(view.range, beforeInvalid, 'Invalid edit keeps the last applied range')
+  assert.ok(lastValid)
+  assert.match(document.querySelector('[aria-label="Inspector date range picker"]').textContent, /End must be on or after Start/)
+  await change(document.querySelector('[aria-label="Inspector range start"]'), { value: '2026-10-01' })
   assert.equal(view.releases.length, 3)
+  await click(document.querySelector('[aria-label="Close date range picker"]'))
   const id = view.releases.find((release) => release.familyId === 'us-cpi').id
   await act(async () => view.selectRelease(id))
   await app.render({ panel: false })
@@ -221,6 +233,57 @@ try {
   assert.match(app.container.textContent, /currently supports EURUSD/)
   console.log('✓ Mounted Inspector selection, filter Apply/Cancel, persistence, ranges, live updates and pair isolation')
 
+  await app.render()
+  await openDates()
+  await change(document.querySelector('[aria-label="Calendar month"]'), { value: '1' })
+  await change(document.querySelector('[aria-label="Calendar year"]'), { value: '2015' })
+  const appliedBeforeFirstDay = view.range
+  await click(document.querySelector('[aria-label="Choose 2015-01-28"]'))
+  assert.deepEqual(view.range, appliedBeforeFirstDay, 'A start-date click waits for a complete range')
+  await click(document.querySelector('[aria-label="Choose 2015-01-09"]'))
+  assert.equal(view.customFrom, '2015-01-09', 'Reverse calendar selection orders the dates')
+  assert.equal(view.customTo, '2015-01-28')
+  assert.equal(view.range.to, Date.UTC(2015, 0, 29), 'The displayed end date is included')
+  assert.equal(document.querySelector('[aria-label="Inspector date range picker"]'), null)
+  await openDates()
+  await click(presetButton('Today'))
+  assert.equal(view.range.to - view.range.from, 86400000)
+  await openDates()
+  await act(async () => document.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+  assert.equal(document.querySelector('[aria-label="Inspector date range picker"]'), null)
+  assert.equal(document.activeElement, app.container.querySelector('[aria-label="Inspector date range"]'))
+  await openDates()
+  await act(async () => document.body.dispatchEvent(new dom.Event('pointerdown', { bubbles: true })))
+  assert.equal(document.querySelector('[aria-label="Inspector date range picker"]'), null)
+  assert.equal(dates.validInspectorDate('2026-02-30'), false)
+  assert.equal(dates.validInspectorDate('2024-02-29'), true)
+  assert.deepEqual(dates.inspectorRangeDates('this-month', '2024-02-15', '', ''), { from: '2024-02-01', to: '2024-02-29' })
+  assert.deepEqual(dates.inspectorRangeDates('year-to-date', '2026-10-04', '', ''), { from: '2026-01-01', to: '2026-10-04' })
+  await act(async () => { view.setRangePreset('custom'); view.setCustomFrom('2026-10-01'); view.setCustomTo('2026-10-01') })
+  await openDates()
+  await act(async () => document.querySelector('[aria-label="Choose 2026-10-01"]').dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })))
+  assert.equal(document.activeElement.getAttribute('data-day'), '2026-10-02')
+  await act(async () => document.activeElement.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'PageDown', bubbles: true })))
+  assert.equal(document.activeElement.getAttribute('data-day'), '2026-11-01')
+  await click(document.querySelector('[aria-label="Close date range picker"]'))
+  console.log('✓ Mounted immediate date presets/ranges, reverse selection, year navigation, invalid edits and dismissal')
+
+  await click(filters())
+  const savedBeforeSearch = [...view.preferences.families]
+  await change(document.querySelector('[aria-label="Search Inspector families"]'), { value: ' USD NFP ' })
+  assert.equal(document.querySelectorAll('.inspector-family').length, 1)
+  assert.ok(document.querySelector('[aria-label="US Jobs report / NFP"]'))
+  await change(document.querySelector('[aria-label="US Jobs report / NFP"]'), { checked: false })
+  await click(document.querySelector('[aria-label="Clear family search"]'))
+  assert.equal(document.querySelectorAll('.inspector-family').length, 21)
+  assert.equal(document.querySelector('[aria-label="US Jobs report / NFP"]').checked, false)
+  await change(document.querySelector('[aria-label="Search Inspector families"]'), { value: 'no-matching-family' })
+  assert.match(document.querySelector('dialog').textContent, /No families match/)
+  await click([...document.querySelectorAll('dialog button')].find((button) => button.textContent === 'Apply'))
+  assert.deepEqual(view.preferences.families, savedBeforeSearch.filter((id) => id !== 'jobs'), 'Search cannot discard hidden selections')
+  await act(async () => view.applyPreferences(preferences))
+  console.log('✓ Mounted family search, clearing, empty results and hidden-selection preservation')
+
   const jobsRows = [unemployment, payroll, hours]
   await app.render({ events: [...jobsRows, pmi] })
   await click([...app.container.querySelectorAll('.inspector-release')].find((button) => button.textContent.includes('Jobs report')))
@@ -229,6 +292,7 @@ try {
   assert.match(app.container.querySelector('tbody').textContent, /\+50k/)
   assert.match(app.container.querySelector('tbody').textContent, /\+0.1 pp/)
   assert.match(app.container.querySelector('tbody').textContent, /-0.1 h/)
+  assert.match(app.container.querySelector('[aria-label="NFP reading tally"]').textContent, /1 Good.*2 Bad.*0 Unchanged.*3 readings/)
   await click(filters())
   for (const currency of ['EUR', 'USD']) for (const category of ['Monetary policy', 'Inflation', 'Labor / wages', 'Growth / activity']) {
     assert.ok(document.querySelector(`[aria-label="${currency} ${category}"]`))
@@ -250,6 +314,43 @@ try {
   await app.render({ events: [pmi] })
   assert.match(app.container.querySelector('tbody').textContent, /\+0.6 pts/)
   console.log('✓ Mounted four-category filters, jobs table units, missing PMI readings and incoming actuals')
+
+  const snapshotValues = {
+    '840030016': [29, 162], '840030015': [4.2, 4.1], '840030017': [61.8, 61.6],
+    '840030018': [.1, .3], '840030019': [3, 3.1], '840030020': [34.4, 34.4],
+    '840030023': [46, 127], '840030022': [-17, 35], '840030032': [9, 16], '840030024': [7.6, 7.7],
+  }
+  const gradedRows = Object.entries(grading.nfpReadingRules).map(([event_id, rule]) => event({
+    value_id: event_id, event_id, name: rule.name, actual: snapshotValues[event_id][0], previous: snapshotValues[event_id][1],
+    revised_previous: event_id === '840030016' ? 133 : null,
+  }))
+  await app.render({ events: gradedRows })
+  await click(app.container.querySelector('.inspector-release'))
+  assert.match(app.container.querySelector('[aria-label="NFP reading tally"]').textContent, /2 Good.*7 Bad.*1 Unchanged.*10 readings/)
+  assert.equal(app.container.querySelectorAll('td.inspector-grade-good').length, 2)
+  assert.equal(app.container.querySelectorAll('td.inspector-grade-bad').length, 7)
+  assert.equal(app.container.querySelectorAll('td.inspector-grade-unchanged').length, 1)
+  assert.match(app.container.querySelector('td.inspector-grade-good').title, /Compared with supplied Previous/)
+  assert.equal(grading.gradeNfpReading(gradedRows[0], 'us-cpi'), null)
+  assert.equal(grading.gradeNfpReading({ ...gradedRows[0], country_code: 'EU' }, 'jobs'), null)
+  assert.equal(grading.gradeNfpReading({ ...gradedRows[0], currency: 'EUR' }, 'jobs'), null)
+  for (const [event_id, rule] of Object.entries(grading.nfpReadingRules)) {
+    const row = event({ event_id, actual: 2, previous: 1 })
+    assert.equal(grading.gradeNfpReading(row, 'jobs').grade, rule.goodWhen === 'higher' ? 'good' : 'bad')
+    assert.equal(grading.gradeNfpReading({ ...row, actual: 0, previous: 0 }, 'jobs').grade, 'unchanged')
+    assert.equal(grading.gradeNfpReading({ ...row, actual: null }, 'jobs').grade, 'missing')
+  }
+  const heldGradeId = view.selectedRelease.id
+  await app.render({ events: gradedRows.map((row) => row.event_id === '840030016' ? { ...row, actual: 200 } : row) })
+  assert.equal(view.selectedRelease.id, heldGradeId)
+  assert.match(app.container.querySelector('[aria-label="NFP reading tally"]').textContent, /3 Good.*6 Bad/)
+  await app.render({ events: gradedRows.map((row) => row.event_id === '840030016' ? { ...row, actual: null } : row) })
+  assert.match(app.container.querySelector('[aria-label="NFP reading tally"]').textContent, /2 Good.*6 Bad.*1 Unchanged.*1 Missing.*10 readings/)
+  await app.render({ events: [core] })
+  await click(app.container.querySelector('.inspector-release'))
+  assert.equal(app.container.querySelector('[aria-label="NFP reading tally"]'), null)
+  assert.equal(app.container.querySelector('.inspector-row-grade'), null)
+  console.log('✓ Mounted NFP ten-reading grading, inverse rules, zero/missing states, live updates and family isolation')
 
   await app.render({ events: [event(), decision] })
   const subscriptions = new Set()
@@ -486,6 +587,38 @@ try {
     assert.equal(polled.events.length, 0)
     console.log('✓ Mounted storage polling skips unchanged data, preserves readings through outages and refreshes expired coverage')
   } finally { window.setTimeout = originalTimeout }
+
+  let rangeView
+  function RangeStorageApp() {
+    const state = useInspector({ events: [], symbol: 'EURUSD', bars, timeframe: 'H1', timeDisplay: utc,
+      clockOffsetMs: fixtureClockOffset, brokerId: 'Broker-A', brokerOffsetSeconds: 10800 })
+    React.useEffect(() => { rangeView = state }, [state])
+    return React.createElement(InspectorPanel, { view: state, symbol: 'EURUSD', source: source(), error: null, timeDisplay: utc })
+  }
+  const rangeApp = mount(RangeStorageApp, {})
+  let start = storageRequests.length
+  await rangeApp.render()
+  await respond(storageRequests[start], storedHealth())
+  await respond(storageRequests[start + 1], page([]))
+  start = storageRequests.length
+  await click(rangeApp.container.querySelector('[aria-label="Inspector date range"]'))
+  await click(document.querySelector('[aria-label="Choose 2026-10-01"]'))
+  assert.equal(storageRequests.length, start, 'Choosing only the start date does not request a partial range')
+  await click(document.querySelector('[aria-label="Choose 2026-10-02"]'))
+  assert.equal(storageRequests.length, start + 1, 'A completed calendar range starts one storage lifecycle')
+  await respond(storageRequests[start], storedHealth())
+  const completedParams = new URL('http://localhost' + storageRequests[start + 1].url).searchParams
+  assert.equal(Number(completedParams.get('from_server_seconds')), Date.UTC(2026, 9, 1) / 1000)
+  assert.equal(Number(completedParams.get('to_server_seconds')), Date.UTC(2026, 9, 3) / 1000)
+  await respond(storageRequests[start + 1], page([rawRow]))
+  assert.equal(rangeView.releases.length, 1)
+  start = storageRequests.length
+  await click(rangeApp.container.querySelector('[aria-label="Inspector date range"]'))
+  await change(document.querySelector('[aria-label="Inspector range start"]'), { value: '' })
+  assert.equal(storageRequests.length, start, 'Incomplete date edits cannot clear or refetch the applied range')
+  assert.equal(rangeView.releases.length, 1)
+  await click(document.querySelector('[aria-label="Close date range picker"]'))
+  console.log('✓ Mounted date picker/storage integration uses one complete broker range and preserves results during incomplete edits')
 } finally {
   await act(async () => { for (const root of roots) root.unmount() })
   await server.close()

@@ -3,7 +3,8 @@ import type { EconomicCalendarEvent } from '../economic-calendar/mt5-calendar/ca
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { OhlcBar } from '../market-data/contracts/OhlcBar'
 import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
-import { calendarDisplayRange, displayDateKey, displayWeekDateKeys, type CalendarRangePreset } from '../economic-calendar/calendar-dock/calendar-display-range'
+import { displayDateKey, displayWeekDateKeys } from '../economic-calendar/calendar-dock/calendar-display-range'
+import { inspectorDisplayRange, inspectorRangeDates, type InspectorRangePreset } from './inspector-date-range'
 import { buildInspectorMarkers, filterInspectorReleases, groupInspectorReleases, inspectorStorageKey,
   readInspectorPreferences, supportsInspector, type InspectorPreferences } from './inspector-data'
 import { useStoredCalendar } from './useStoredCalendar'
@@ -17,7 +18,7 @@ export function useInspector({ events, symbol, bars, timeframe, timeDisplay, clo
   const rangeDisplay = useMemo<TimeDisplayPreference>(() => brokerTime ? { mode: 'utc', utcOffsetMinutes: 0 } : timeDisplay, [brokerTime, timeDisplay])
   const [preferences, setPreferences] = useState(readInspectorPreferences)
   const [storageFailed, setStorageFailed] = useState(false)
-  const [rangePreset, setRangePreset] = useState<CalendarRangePreset>('this-week')
+  const [rangePreset, setRangePreset] = useState<InspectorRangePreset>('this-week')
   const [now, setNow] = useState(() => Date.now() + clockOffsetMs)
   const initialWeek = displayWeekDateKeys(displayDateKey(now + (brokerTime ? brokerOffsetSeconds * 1000 : 0), rangeDisplay))
   const [customFrom, setCustomFrom] = useState(initialWeek.start)
@@ -31,8 +32,12 @@ export function useInspector({ events, symbol, bars, timeframe, timeDisplay, clo
   }, [clockOffsetMs])
   const supported = supportsInspector(symbol)
   const today = displayDateKey(now + (brokerTime ? brokerOffsetSeconds * 1000 : 0), rangeDisplay)
-  const range = useMemo(() => calendarDisplayRange(rangePreset, today, customFrom, customTo, rangeDisplay),
-    [rangePreset, today, customFrom, customTo, rangeDisplay])
+  const rangeDates = useMemo(() => inspectorRangeDates(rangePreset, today, customFrom, customTo), [rangePreset, today, customFrom, customTo])
+  const range = useMemo(() => inspectorDisplayRange(rangeDates, rangeDisplay), [rangeDates, rangeDisplay])
+  function selectCustomRange(from: string, to: string) {
+    if (!inspectorDisplayRange({ from, to }, rangeDisplay)) return
+    setCustomFrom(from); setCustomTo(to); setRangePreset('custom')
+  }
   const storage = useStoredCalendar(brokerId, range, supported && brokerTime)
   const readings = useMemo(() => brokerTime ? storage.events.filter((event) => event.availability === 'observed') : events,
     [brokerTime, storage.events, events])
@@ -47,7 +52,7 @@ export function useInspector({ events, symbol, bars, timeframe, timeDisplay, clo
     catch { setStorageFailed(true) }
   }
   return { supported, preferences, applyPreferences, storageFailed, rangePreset, setRangePreset, customFrom, setCustomFrom,
-    customTo, setCustomTo, range, allReleases, releases, markers, selectedRelease, selectRelease, now,
+    customTo, setCustomTo, range, rangeDates, today, selectCustomRange, allReleases, releases, markers, selectedRelease, selectRelease, now,
     brokerTime, brokerOffsetSeconds, brokerId, storage }
 }
 export type InspectorView = ReturnType<typeof useInspector>

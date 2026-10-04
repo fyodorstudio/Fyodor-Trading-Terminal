@@ -2,9 +2,10 @@ import { useId, useState } from 'react'
 import { formatAppTimestamp, timeDisplayLabel, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { CalendarSourceHealth } from '../system-connectivity/bridge-status/bridge-contract'
 import { symbolGlyph } from '../criterion/timeline/timeline-event-view'
-import type { CalendarRangePreset } from '../economic-calendar/calendar-dock/calendar-display-range'
 import { formatInspectorValue, inspectorDelta, isInspectorCommentary, type InspectorRelease } from './inspector-data'
 import { InspectorFiltersModal } from './InspectorFiltersModal'
+import { InspectorDateRangePicker } from './InspectorDateRangePicker'
+import { gradeLabels, gradeNfpReading, tallyNfpRelease } from './grading/nfp-grading'
 import type { InspectorView } from './useInspector'
 import './inspector.css'
 
@@ -30,6 +31,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, audit
   const [listOpen, setListOpen] = useState(true)
   const panelId = useId()
   const release = view.selectedRelease
+  const tally = tallyNfpRelease(release)
   const releaseTime = (item: InspectorRelease) => view.brokerTime
     ? `${formatAppTimestamp(item.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
     : item.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(item.releaseAt, timeDisplay)
@@ -48,15 +50,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, audit
   return <section className="inspector-panel" aria-label="Inspector">
     <header className="inspector-header">
       <strong>{symbol}</strong>
-      <div className="inspector-range"><label>Date Range <select aria-label="Inspector date range" value={view.rangePreset}
-        onChange={(event) => view.setRangePreset(event.target.value as CalendarRangePreset)}>
-        <option value="previous-week">Previous week</option><option value="this-week">This week</option>
-        <option value="next-week">Next week</option><option value="custom">Custom</option>
-      </select></label>
-      {view.rangePreset === 'custom' && <><input type="date" aria-label="Inspector range start" value={view.customFrom}
-        onChange={(event) => view.setCustomFrom(event.target.value)} /><span>to</span>
-        <input type="date" aria-label="Inspector range end" value={view.customTo} onChange={(event) => view.setCustomTo(event.target.value)} /></>}
-      </div>
+      <InspectorDateRangePicker view={view} />
       <button type="button" disabled={!view.supported} aria-haspopup="dialog" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(true)}>Filters</button>
     </header>
     {!view.supported ? <p className="inspector-empty">Inspector currently supports EURUSD. Select EURUSD to inspect monetary policy, inflation, labor/wages and growth/activity releases.</p> : <>
@@ -92,13 +86,22 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, audit
                 { mode: 'utc', utcOffsetMinutes: 0 }, 'date')}</span>}
               <span className="inspector-info"><button type="button" aria-label="About A−P" aria-describedby={`${panelId}-reading-info`}>ⓘ</button>
                 <span id={`${panelId}-reading-info`} role="tooltip">A−P uses Previous; revised Previous is shown separately.
-                  pp = percentage points · bp = basis points.</span></span>
+                  pp = percentage points · bp = basis points.
+                  {tally && <> NFP colors use defined Good/Bad rules versus Previous. The tally counts overlapping readings equally; it is not a USD price prediction.</>}</span></span>
             </div>
+            {tally && <div className="inspector-grade-summary" role="status" aria-label="NFP reading tally">
+              <strong>Compared with Previous</strong>
+              {(['good', 'bad', 'unchanged', 'missing', 'unrated'] as const).filter((grade) =>
+                ['good', 'bad', 'unchanged'].includes(grade) || tally.counts[grade] > 0).map((grade) =>
+                <span className={`inspector-grade inspector-grade-${grade}`} key={grade}>{tally.counts[grade]} {gradeLabels[grade]}</span>)}
+              <span>{tally.total} readings</span>
+            </div>}
             <div className="inspector-table-scroll"><table aria-label={`${release.label} release readings`}>
               <thead><tr><th>Series</th><th>Actual</th><th>Previous</th><th>A−P</th></tr></thead>
               <tbody>{release.events.map((event) => {
                 const delta = inspectorDelta(event)
                 const commentary = isInspectorCommentary(event)
+                const grading = gradeNfpReading(event, release.familyId)
                 return <tr key={event.value_id}>
                   <td><strong>{event.name}</strong>{event.revision > 0 && <span className="inspector-revision"> · Revision {event.revision}</span>}
                     {sharedPeriod === null && release.events.some((reading) => reading.period_seconds > 0) &&
@@ -107,7 +110,9 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, audit
                   <td>{formatInspectorValue(event.actual, event)}</td>
                   <td>{formatInspectorValue(event.previous, event)}{event.revised_previous !== null && event.revised_previous !== event.previous &&
                     <small>Rev: {formatInspectorValue(event.revised_previous, event)}</small>}</td>
-                  <td>{commentary ? 'Not applicable' : formatInspectorValue(delta, event, true)}</td>
+                  <td className={grading ? `inspector-graded-delta inspector-grade-${grading.grade}` : undefined} title={grading?.explanation}>
+                    {commentary ? 'Not applicable' : formatInspectorValue(delta, event, true)}
+                    {grading && <span className="inspector-row-grade">{gradeLabels[grading.grade]}</span>}</td>
                 </tr>
               })}</tbody>
             </table></div>
