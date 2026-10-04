@@ -13,22 +13,32 @@ function RangePopover({ view, trigger, onClose, id }: { view: InspectorView; tri
   const [to, setTo] = useState(view.rangeDates.to)
   const [anchorDay, setAnchorDay] = useState<string | null>(null)
   const [focusedDay, setFocusedDay] = useState(() => validInspectorDate(from) ? from : `${month}-01`)
-  const [position, setPosition] = useState({ top: 0, left: 12 })
+  const [position, setPosition] = useState({ top: 16, left: 16 })
   const error = !validInspectorDate(from) || !validInspectorDate(to) ? 'Enter complete, valid dates.' : from > to ? 'End must be on or after Start.' : null
   const closeAndFocus = () => { onClose(); trigger.current?.focus() }
   useLayoutEffect(() => {
+    const dock = trigger.current?.closest('.inspector-panel')
     const place = () => {
       const button = trigger.current, panel = popup.current
       if (!button || !panel) return
       const rect = button.getBoundingClientRect(), size = panel.getBoundingClientRect()
-      const top = rect.top >= size.height + 12 ? rect.top - size.height - 8 :
-        Math.max(12, Math.min(rect.bottom + 8, window.innerHeight - size.height - 12))
-      setPosition({ top, left: Math.max(12, Math.min(rect.left, window.innerWidth - size.width - 12)) })
+      const host = dock?.getBoundingClientRect()
+      const center = host && host.width > 0 ? host.left + host.width / 2 : rect.left + rect.width / 2
+      const margin = 16, gap = 12
+      const above = rect.top - size.height - gap, below = rect.bottom + gap
+      const top = above >= margin ? above : below + size.height <= window.innerHeight - margin ? below :
+        Math.max(margin, (window.innerHeight - size.height) / 2)
+      const left = Math.max(margin, Math.min(center - size.width / 2, window.innerWidth - size.width - margin))
+      setPosition((current) => current.top === top && current.left === left ? current : { top, left })
     }
     place()
+    const observer = window.ResizeObserver ? new window.ResizeObserver(place) : null
+    if (trigger.current) observer?.observe(trigger.current)
+    if (dock) observer?.observe(dock)
+    if (popup.current) observer?.observe(popup.current)
     window.addEventListener('resize', place)
     window.addEventListener('scroll', place, true)
-    return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true) }
+    return () => { observer?.disconnect(); window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true) }
   }, [trigger, month, error, anchorDay])
   useEffect(() => {
     const outside = (event: Event) => {

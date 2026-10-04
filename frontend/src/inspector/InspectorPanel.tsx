@@ -98,7 +98,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, audit
                   {tally && <> NFP colors use defined Good/Bad rules versus Previous. The experimental majority rule maps more Good to EURUSD Short, more Bad to Long, and a tie to Neutral. All ten series must be usable. The tally counts overlapping readings equally.</>}</span></span>
             </div>
             {tally && <div className="inspector-grade-summary" role="status" aria-label="NFP reading tally">
-              {majority && <><strong className="inspector-majority" aria-label="NFP majority direction" title={majority.explanation}>{majority.label}</strong>
+              {majority && <><strong className={`inspector-majority inspector-direction-${majority.direction}`} aria-label="NFP majority direction" title={majority.explanation}>{majority.label}</strong>
                 <span>NFP majority rule · Experimental{majority.direction === 'incomplete' && ' · Needs 10 usable series'}</span></>}
               <strong>Compared with Previous</strong>
               {(['good', 'bad', 'unchanged', 'missing', 'unrated'] as const).filter((grade) =>

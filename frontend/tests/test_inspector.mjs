@@ -268,6 +268,50 @@ try {
   await click(document.querySelector('[aria-label="Close date range picker"]'))
   console.log('✓ Mounted immediate date presets/ranges, reverse selection, year navigation, invalid edits and dismissal')
 
+  const originalRect = HTMLElement.prototype.getBoundingClientRect
+  const originalObserver = window.ResizeObserver
+  const originalViewport = { width: window.innerWidth, height: window.innerHeight }
+  const rectangle = (left, top, width, height) => ({ left, top, width, height, right: left + width, bottom: top + height })
+  let dockRect = rectangle(300, 612, 1100, 288), buttonRect = rectangle(390, 620, 220, 28)
+  let popupRect = rectangle(0, 0, 660, 360)
+  const positionObservers = []
+  window.ResizeObserver = class {
+    constructor(callback) { this.callback = callback; this.nodes = []; this.disconnected = false; positionObservers.push(this) }
+    observe(node) { this.nodes.push(node) }
+    disconnect() { this.disconnected = true }
+  }
+  HTMLElement.prototype.getBoundingClientRect = function () {
+    if (this.matches('.inspector-panel')) return dockRect
+    if (this.matches('[aria-label="Inspector date range"]')) return buttonRect
+    if (this.matches('.inspector-date-popover')) return popupRect
+    return originalRect.call(this)
+  }
+  try {
+    window.innerWidth = 1400; window.innerHeight = 900
+    await openDates()
+    const positioned = () => document.querySelector('[aria-label="Inspector date range picker"]')
+    assert.equal(positioned().style.left, '520px', 'Date picker centers over Inspector rather than the left-side date button')
+    assert.equal(positioned().style.top, '248px', 'A bottom dock opens its picker above the header with a clear gap')
+    const positionObserver = positionObservers.at(-1)
+    assert.ok(positionObserver.nodes.includes(app.container.querySelector('.inspector-panel')))
+    dockRect = rectangle(200, 292, 800, 608); buttonRect = rectangle(290, 300, 220, 28)
+    await act(async () => positionObserver.callback())
+    assert.equal(positioned().style.left, '270px', 'Dock size changes recenter an open picker without a window resize')
+    assert.equal(positioned().style.top, '340px', 'Picker opens below when there is insufficient space above')
+    window.innerWidth = 500; window.innerHeight = 300; popupRect = rectangle(0, 0, 468, 268)
+    buttonRect = rectangle(60, 100, 220, 28)
+    await act(async () => window.dispatchEvent(new dom.Event('resize')))
+    assert.equal(positioned().style.left, '16px')
+    assert.equal(positioned().style.top, '16px', 'A short viewport centers the capped, scrollable picker inside safe margins')
+    await click(document.querySelector('[aria-label="Close date range picker"]'))
+    assert.equal(positionObserver.disconnected, true, 'Closing the picker releases its geometry observer')
+  } finally {
+    HTMLElement.prototype.getBoundingClientRect = originalRect
+    window.ResizeObserver = originalObserver
+    window.innerWidth = originalViewport.width; window.innerHeight = originalViewport.height
+  }
+  console.log('✓ Mounted date picker dock centering, above/below placement, viewport limits and resize cleanup')
+
   await click(filters())
   const savedBeforeSearch = [...view.preferences.families]
   await change(document.querySelector('[aria-label="Search Inspector families"]'), { value: ' USD NFP ' })
