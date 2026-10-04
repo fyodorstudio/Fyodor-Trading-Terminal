@@ -1,6 +1,6 @@
 # Inspector event grading terminology
 
-This directory documents Inspector's explicit, versioned reading-grading rules and the user-authorized experimental NFP majority direction. Rules describe the selected release's displayed readings. They do not recalculate Criterion research results or execute trades.
+This directory documents Inspector's explicit, versioned reading-grading rules and the user-authorized experimental NFP majority direction. Rules describe the selected release's displayed readings. They do not recalculate research results or execute trades.
 
 Organize definitions by **release currency → event category → family**. EUR is EURUSD's base currency; USD is its quote currency. Grading colors have their own meaning: green Good, red Bad, gray Unchanged/Missing/Unrated.
 

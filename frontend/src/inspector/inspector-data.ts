@@ -1,9 +1,9 @@
-import type { EconomicCalendarEvent } from '../economic-calendar/mt5-calendar/calendar-contract'
-import { eventFamilyOptions } from '../criterion/timeline/timeline-event-families'
-import { isEventSymbol, type EventSymbol } from '../criterion/timeline/timeline-event-view'
+import type { EconomicCalendarEvent } from './calendar-event'
+import { eventFamilyOptions } from './event-families'
+import { isEventSymbol, type EventSymbol } from './event-symbols'
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { OhlcBar } from '../market-data/contracts/OhlcBar'
-import type { CalendarDisplayRange } from '../economic-calendar/calendar-dock/calendar-display-range'
+import type { CalendarDisplayRange } from './calendar-display-range'
 
 const originalInspectorFamilies = ['ecb', 'ecb-president', 'fomc', 'fed-chair', 'euro-inflation', 'german-inflation', 'us-cpi', 'pce', 'ppi']
 const inspectorFamilyOrder = [...originalInspectorFamilies, 'euro-labor', 'euro-wages', 'jobs', 'claims',

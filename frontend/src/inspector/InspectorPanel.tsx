@@ -1,7 +1,7 @@
 import { useId, useState } from 'react'
 import { formatAppTimestamp, timeDisplayLabel, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { CalendarSourceHealth } from '../system-connectivity/bridge-status/bridge-contract'
-import { symbolGlyph } from '../criterion/timeline/timeline-event-view'
+import { symbolGlyph } from './event-symbols'
 import { formatInspectorValue, inspectorDelta, isInspectorCommentary, type InspectorRelease } from './inspector-data'
 import { InspectorFiltersModal } from './InspectorFiltersModal'
 import { InspectorDateRangePicker } from './InspectorDateRangePicker'
@@ -24,9 +24,9 @@ function sourceLabel(source: CalendarSourceHealth | null, error: string | null):
   if (source.status === 'awaiting-snapshot') return 'Receiving calendar snapshot'
   return 'Waiting for the calendar publisher'
 }
-export function InspectorPanel({ view, symbol, source, error, timeDisplay, auditMode = false, onReturnLive }: {
+export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
   view: InspectorView; symbol: string; source: CalendarSourceHealth | null; error: string | null
-  timeDisplay: TimeDisplayPreference; auditMode?: boolean; onReturnLive?: () => void
+  timeDisplay: TimeDisplayPreference
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [listOpen, setListOpen] = useState(true)
@@ -60,7 +60,6 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, audit
         <button type="button" className="inspector-list-toggle" aria-expanded={listOpen} aria-controls={`${panelId}-releases`}
           onClick={() => setListOpen((open) => !open)}>{listOpen ? 'Hide releases' : 'Show releases'}</button>
         <span role="status">{view.brokerTime ? storageStatus : sourceLabel(source, error)}</span>
-        {auditMode && <span>Symbols are available on the live chart. <button type="button" onClick={onReturnLive}>Return to live</button></span>}
         {view.storageFailed && <span role="alert">Filter settings could not be saved in this browser.</span>}
         {!view.range && <span role="alert">Choose a valid date range with the start before or on the end date.</span>}
         {view.brokerTime && missingCoverage.length > 0 && <span role="status">Coverage pending for {missingCoverage.join(' and ')} in this range; stored readings remain available.</span>}

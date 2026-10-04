@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { eventSymbols, type EventSymbol } from '../criterion/timeline/timeline-event-view'
+import { eventSymbols, type EventSymbol } from './event-symbols'
 import { inspectorCategories, inspectorFamilies, type InspectorPreferences } from './inspector-data'
 
 export function InspectorFiltersModal({ preferences, onApply, onClose }: {

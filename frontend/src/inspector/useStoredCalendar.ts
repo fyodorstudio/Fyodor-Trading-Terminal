@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { EconomicCalendarEvent } from '../economic-calendar/mt5-calendar/calendar-contract'
-import type { CalendarDisplayRange } from '../economic-calendar/calendar-dock/calendar-display-range'
+import type { EconomicCalendarEvent } from './calendar-event'
+import type { CalendarDisplayRange } from './calendar-display-range'
 
 export type StoredCalendarEvent = EconomicCalendarEvent & {
   chart_time_seconds: number | null

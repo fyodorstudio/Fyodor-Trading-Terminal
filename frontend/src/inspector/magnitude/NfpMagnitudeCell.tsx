@@ -1,4 +1,4 @@
-import type { EconomicCalendarEvent } from '../../economic-calendar/mt5-calendar/calendar-contract'
+import type { EconomicCalendarEvent } from '../calendar-event'
 import { formatInspectorValue } from '../inspector-data'
 import type { ReadingGrade } from '../grading/nfp-grading'
 import { MagnitudeHistogram } from './MagnitudeHistogram'

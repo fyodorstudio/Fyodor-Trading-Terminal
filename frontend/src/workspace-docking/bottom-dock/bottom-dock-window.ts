@@ -1,1 +1,1 @@
-export type BottomDockWindow = 'notebook' | 'calendar' | 'activity' | 'arrow-result' | 'inspector'
+export type BottomDockWindow = 'notebook' | 'activity' | 'inspector'

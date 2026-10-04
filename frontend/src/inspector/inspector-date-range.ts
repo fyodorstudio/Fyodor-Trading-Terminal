@@ -1,4 +1,4 @@
-import { calendarDisplayRange, displayWeekDateKeys, type CalendarRangePreset } from '../economic-calendar/calendar-dock/calendar-display-range'
+import { calendarDisplayRange, displayWeekDateKeys, type CalendarRangePreset } from './calendar-display-range'
 import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 
 export type InspectorRangePreset = CalendarRangePreset | 'today' | 'this-month' | 'year-to-date'

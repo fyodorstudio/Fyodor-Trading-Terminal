@@ -1,4 +1,4 @@
-import type { EconomicCalendarEvent } from '../../economic-calendar/mt5-calendar/calendar-contract'
+import type { EconomicCalendarEvent } from '../calendar-event'
 import { groupInspectorReleases, inspectorDelta, type InspectorRelease } from '../inspector-data'
 import { nfpReadingRules } from '../grading/nfp-grading'
 import type { StoredCalendarEvent } from '../useStoredCalendar'

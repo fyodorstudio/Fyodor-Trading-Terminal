@@ -5,9 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "clean-ports": "node scripts/clean-ports.mjs",
+    "dev:all": "pnpm run clean-ports && concurrently -k -n BRIDGE,STORAGE,UI -c green,yellow,cyan \"pnpm --dir .. run dev:bridge\" \"pnpm --dir .. run dev:storage\" \"pnpm run dev\"",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node tests/test_bundle_selection.mjs && node tests/test_cpi_event_timeline.mjs && node tests/test_inspector.mjs",
+    "test": "node tests/test_inspector.mjs && node tests/test_terminal_navigation.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -20,6 +22,7 @@
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
+    "concurrently": "^10.0.5",
     "happy-dom": "^20.14.5",
     "oxlint": "^1.81.0",
     "typescript": "~6.0.2",

@@ -55,10 +55,8 @@ try {
   const { InspectorChartMarkers } = await server.ssrLoadModule('./src/inspector/InspectorChartMarkers.tsx')
   const grading = await server.ssrLoadModule('./src/inspector/grading/nfp-grading.ts')
   const dates = await server.ssrLoadModule('./src/inspector/inspector-date-range.ts')
-  const { useMt5EconomicCalendar } = await server.ssrLoadModule('./src/economic-calendar/mt5-calendar/use-mt5-economic-calendar.ts')
-  const { ActivityLogContext } = await server.ssrLoadModule('./src/system-observability/activity-log/activity-log-context.ts')
-  const { calendarDisplayRange } = await server.ssrLoadModule('./src/economic-calendar/calendar-dock/calendar-display-range.ts')
-  const { useBottomDockSize, inspectorDockHeightKey } = await server.ssrLoadModule('./src/workspace-docking/bottom-dock/useBottomDockSize.ts')
+  const { calendarDisplayRange } = await server.ssrLoadModule('./src/inspector/calendar-display-range.ts')
+  const { useBottomDockSize, inspectorDockHeightKey, bottomDockHeightKeys } = await server.ssrLoadModule('./src/workspace-docking/bottom-dock/useBottomDockSize.ts')
   const { BottomDockPanel } = await server.ssrLoadModule('./src/workspace-docking/bottom-dock/BottomDockPanel.tsx')
   const preferences = data.defaultInspectorPreferences()
   assert.equal(data.inspectorFamilies.length, 21)
@@ -467,7 +465,7 @@ try {
     const size = useBottomDockSize(activeWindow)
     React.useEffect(() => { dock = size }, [size])
     return React.createElement('div', { style: { height: size.height } }, React.createElement(BottomDockPanel, {
-      activeWindow, activityCount: 0, selectedSymbol: 'EURUSD', hasResearchSelection: false,
+      activeWindow, activityCount: 0, selectedSymbol: 'EURUSD',
       onSelectWindow: () => {}, onClose: () => {}, resizeHandle: size.resizeHandle,
     }, null))
   }
@@ -498,40 +496,56 @@ try {
   assert.equal(localStorage.getItem(inspectorDockHeightKey), '464', 'Viewport clamping preserves the preferred height')
   await act(async () => { dom.innerHeight = 1000; dom.dispatchEvent(new dom.Event('resize')) })
   assert.equal(dock.height, 464)
+  for (const [activeWindow, label, distance, savedHeight] of [
+    ['notebook', 'Notebook', 60, 342], ['activity', 'Activity', 90, 372],
+  ]) {
+    await dockApp.render({ activeWindow })
+    assert.equal(dock.height, 258, 'Each additional dock keeps its initial height until resized')
+    assert.equal(handle.getAttribute('aria-label'), `Resize ${label} dock`)
+    await pointer('onPointerDown', 600)
+    await pointer('onPointerMove', 600 - distance)
+    await pointer('onPointerUp', 600 - distance)
+    assert.equal(dock.height, 258 + distance)
+    assert.equal(captured, null)
+    await act(async () => handle.dispatchEvent(new dom.KeyboardEvent('keydown', { bubbles: true, key: 'ArrowUp' })))
+    assert.equal(dock.height, savedHeight)
+    assert.equal(localStorage.getItem(bottomDockHeightKeys[activeWindow]), String(savedHeight))
+    await act(async () => { dom.innerHeight = 500; dom.dispatchEvent(new dom.Event('resize')) })
+    assert.equal(dock.height, 260, 'Every dock retains chart space on small viewports')
+    assert.equal(localStorage.getItem(bottomDockHeightKeys[activeWindow]), String(savedHeight))
+    await act(async () => { dom.innerHeight = 1000; dom.dispatchEvent(new dom.Event('resize')) })
+    assert.equal(dock.height, savedHeight)
+  }
   await dockApp.render({ activeWindow: 'notebook' })
-  assert.equal(dock.height, 258, 'Existing docks keep their current height')
+  assert.equal(dock.height, 342)
+  await pointer('onPointerDown', 600)
+  await pointer('onPointerMove', 580)
+  assert.equal(captured, 7)
+  await dockApp.render({ activeWindow: 'activity' })
+  assert.equal(captured, null, 'Switching docks releases an unfinished drag')
+  assert.equal(handle.getAttribute('data-resizing'), 'false')
+  await pointer('onPointerMove', 400)
+  await pointer('onPointerUp', 400)
+  assert.equal(dock.height, 372, 'The previous dock drag cannot resize the newly selected dock')
+  await dockApp.render({ activeWindow: null })
   assert.equal(dockApp.container.querySelector('[role="separator"]'), null)
   await dockApp.render()
   assert.equal(dock.height, 464)
   const reopenedDock = mount(DockApp, {})
   await reopenedDock.render()
   assert.equal(dock.height, 464, 'New mounts restore the saved Inspector height')
-  console.log('✓ Mounted Inspector dock pointer/keyboard resizing, viewport limits and saved height')
+  await reopenedDock.render({ activeWindow: 'notebook' })
+  assert.equal(dock.height, 342, 'Notebook restores its own committed height on remount')
+  await reopenedDock.render({ activeWindow: 'activity' })
+  assert.equal(dock.height, 372, 'Activity restores its own committed height on remount')
+  const reopenedHandle = reopenedDock.container.querySelector('[role="separator"]')
+  await act(async () => reopenedHandle.dispatchEvent(new dom.KeyboardEvent('keydown', { bubbles: true, key: 'Home' })))
+  assert.equal(dock.height, 240)
+  await act(async () => reopenedHandle.dispatchEvent(new dom.KeyboardEvent('keydown', { bubbles: true, key: 'End' })))
+  assert.equal(dock.height, 650)
+  assert.equal(localStorage.getItem(inspectorDockHeightKey), '464', 'Other dock resizes preserve Inspector preferences')
+  console.log('✓ Mounted all-dock resizing, independent persistence, keyboard/viewport limits and drag-switch cleanup')
 
-  const requests = []
-  globalThis.fetch = (_url, options) => { const req = { ...deferred(), signal: options.signal }; requests.push(req); return req.promise }
-  let feed
-  const activity = { appendActivity: () => {}, entries: [], clearActivity: () => {} }
-  function Feed({ health = source(), enabled = true }) {
-    const calendar = useMt5EconomicCalendar(true, health, enabled)
-    React.useEffect(() => { feed = calendar }, [calendar])
-    return null
-  }
-  function FeedApp(props) { return React.createElement(ActivityLogContext.Provider, { value: activity }, React.createElement(Feed, props)) }
-  const calendar = mount(FeedApp, {})
-  await calendar.render()
-  await act(async () => requests[0].resolve({ ok: true, json: async () => ({ source: source(), events: [event()] }) }))
-  assert.equal(feed.events.length, 1)
-  await calendar.render({ health: source('B') })
-  assert.equal(feed.events.length, 0, 'Old publisher readings disappear immediately on generation change')
-  await calendar.render({ health: source('C') })
-  assert.equal(requests[1].signal.aborted, true)
-  await act(async () => requests[2].resolve({ ok: true, json: async () => ({ source: source('C'), events: [core] }) }))
-  await act(async () => requests[1].resolve({ ok: true, json: async () => ({ source: source('B'), events: [event()] }) }))
-  assert.equal(feed.events[0].value_id, 'b', 'Late canceled response cannot overwrite the current generation')
-  await calendar.render({ health: source('C'), enabled: false })
-  assert.equal(feed.events.length, 0)
-  console.log('✓ Mounted calendar publisher generation and cancellation checks')
   const storageRequests = []
   globalThis.fetch = (url, options) => {
     const req = { ...deferred(), url, signal: options.signal }

@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { EconomicCalendarEvent } from '../economic-calendar/mt5-calendar/calendar-contract'
+import type { EconomicCalendarEvent } from './calendar-event'
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { OhlcBar } from '../market-data/contracts/OhlcBar'
 import type { TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
-import { displayDateKey, displayWeekDateKeys } from '../economic-calendar/calendar-dock/calendar-display-range'
+import { displayDateKey, displayWeekDateKeys } from './calendar-display-range'
 import { inspectorDisplayRange, inspectorRangeDates, type InspectorRangePreset } from './inspector-date-range'
 import { buildInspectorMarkers, filterInspectorReleases, groupInspectorReleases, inspectorStorageKey,
   readInspectorPreferences, supportsInspector, type InspectorPreferences } from './inspector-data'
 import { useStoredCalendar } from './useStoredCalendar'
 import { useNfpMagnitudeHistory } from './magnitude/useNfpMagnitudeHistory'
 
-export function useInspector({ events, symbol, bars, timeframe, timeDisplay, clockOffsetMs, brokerId, brokerOffsetSeconds = 0 }: {
-  events: EconomicCalendarEvent[]; symbol: string; bars: OhlcBar[]; timeframe: ChartTimeframe
+const noEvents: EconomicCalendarEvent[] = []
+
+export function useInspector({ events = noEvents, symbol, bars, timeframe, timeDisplay, clockOffsetMs, brokerId, brokerOffsetSeconds = 0 }: {
+  events?: EconomicCalendarEvent[]; symbol: string; bars: OhlcBar[]; timeframe: ChartTimeframe
   timeDisplay: TimeDisplayPreference; clockOffsetMs: number
   brokerId?: string | null; brokerOffsetSeconds?: number
 }) {

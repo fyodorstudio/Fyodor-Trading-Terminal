@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { IChartApi, Time } from 'lightweight-charts'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
-import { symbolGlyph } from '../criterion/timeline/timeline-event-view'
+import { symbolGlyph } from './event-symbols'
 import type { InspectorMarker } from './inspector-data'
 import './inspector.css'
 

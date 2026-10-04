@@ -8,11 +8,6 @@ type ChartWorkspaceHeaderProps = {
   quote: SymbolQuote | null
   timeframe: ChartTimeframe
   onSelectTimeframe: (timeframe: ChartTimeframe) => void
-  researchAudit?: boolean
-  auditDetails?: string | null
-  auditStatus?: string | null
-  auditError?: string | null
-  onReturnLive?: () => void
 }
 
 export function ChartWorkspaceHeader({
@@ -20,11 +15,6 @@ export function ChartWorkspaceHeader({
   quote,
   timeframe,
   onSelectTimeframe,
-  researchAudit = false,
-  auditDetails,
-  auditStatus,
-  auditError,
-  onReturnLive,
 }: ChartWorkspaceHeaderProps) {
   return (
     <div className="chart-toolbar">
@@ -33,25 +23,14 @@ export function ChartWorkspaceHeader({
         <div className="market-heading">
           <div className="market-title-row">
             <h1>{symbol}</h1>
-            {!researchAudit && quote && (
+            {quote && (
               <span className={quote.dailyChange >= 0 ? 'positive' : 'negative'}>
                 {quote.dailyChange >= 0 ? '+' : ''}{quote.dailyChange.toFixed(2)}%
               </span>
             )}
-            {researchAudit && (
-              <span className="research-header-badge">NOT LIVE</span>
-            )}
           </div>
           <p className="market-subtitle">
-            {researchAudit ? (
-              <>
-                <span className="research-subtitle-details">{auditDetails ?? 'Pinned historical research candles · not live'}</span>
-                {auditStatus && <span className="research-subtitle-status"> · {auditStatus}</span>}
-                {auditError && <span className="research-subtitle-error" role="alert"> · {auditError}</span>}
-              </>
-            ) : (
-              quote?.description ?? 'Waiting for MT5 broker data'
-            )}
+            {quote?.description ?? 'Waiting for MT5 broker data'}
           </p>
         </div>
       </div>
@@ -63,7 +42,6 @@ export function ChartWorkspaceHeader({
             type="button"
             className={item === timeframe ? 'active' : ''}
             aria-pressed={item === timeframe}
-            disabled={researchAudit && item !== 'H1'}
             onClick={() => onSelectTimeframe(item)}
           >
             {item}
@@ -71,20 +49,10 @@ export function ChartWorkspaceHeader({
         ))}
       </div>
 
-      {!researchAudit ? (
-        <div className="quote-summary">
-          <span><small>Bid</small>{quote ? quote.bid.toFixed(quote.precision) : '—'}</span>
-          <span><small>Ask</small>{quote ? quote.ask.toFixed(quote.precision) : '—'}</span>
-        </div>
-      ) : (
-        <div className="research-header-actions">
-          {onReturnLive && (
-            <button type="button" className="research-return-btn" onClick={onReturnLive}>
-              Return to live
-            </button>
-          )}
-        </div>
-      )}
+      <div className="quote-summary">
+        <span><small>Bid</small>{quote ? quote.bid.toFixed(quote.precision) : '—'}</span>
+        <span><small>Ask</small>{quote ? quote.ask.toFixed(quote.precision) : '—'}</span>
+      </div>
     </div>
   )
 }

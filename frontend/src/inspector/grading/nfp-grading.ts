@@ -1,4 +1,4 @@
-import type { EconomicCalendarEvent } from '../../economic-calendar/mt5-calendar/calendar-contract'
+import type { EconomicCalendarEvent } from '../calendar-event'
 import { inspectorDelta, type InspectorRelease } from '../inspector-data'
 
 export const nfpGradingVersion = 'nfp-vs-previous-v1'

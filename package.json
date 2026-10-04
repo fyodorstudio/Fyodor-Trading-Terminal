@@ -9,19 +9,16 @@
     "dev:storage": "bridge\\.venv\\Scripts\\python.exe storage\\run.py serve",
     "storage:import": "bridge\\.venv\\Scripts\\python.exe storage\\run.py import",
     "storage:status": "bridge\\.venv\\Scripts\\python.exe storage\\run.py status",
-    "clean-ports": "node scripts/clean-ports.mjs",
-    "dev:all": "pnpm run clean-ports && concurrently -k -n BRIDGE,STORAGE,UI -c green,yellow,cyan \"pnpm run dev:bridge\" \"pnpm run dev:storage\" \"pnpm run dev:ui\"",
-    "test:criterion": "python -m unittest discover criterion/tests -v",
+    "install:frontend": "pnpm --dir frontend install --frozen-lockfile",
+    "clean-ports": "pnpm --dir frontend run clean-ports",
+    "dev:all": "pnpm --dir frontend run dev:all",
     "test:frontend": "pnpm --dir frontend test",
     "test:storage": "bridge\\.venv\\Scripts\\python.exe -m unittest discover storage/tests -v",
-    "test": "pnpm run test:criterion && pnpm run test:frontend && pnpm run test:storage",
+    "test": "pnpm run test:frontend && pnpm run test:storage",
     "lint": "pnpm --dir frontend lint",
     "build": "pnpm --dir frontend build"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
-  "devDependencies": {
-    "concurrently": "^10.0.5"
-  }
+  "license": "ISC"
 }

@@ -86,7 +86,6 @@ export function MarketCandlestickChart({
   const historyStateRef = useRef({ hasOlderData, isLoadingOlderData })
   const requestOlderDataRef = useRef(onRequestOlderData)
   const prevBarSpacingRef = useRef(appearance.barSpacing)
-  const userLogicalRangeRef = useRef<{ from: number; to: number } | null>(null)
 
   useEffect(() => {
     historyStateRef.current = { hasOlderData, isLoadingOlderData }
@@ -119,9 +118,6 @@ export function MarketCandlestickChart({
     setSeriesApi(series)
 
     const handleLogicalRangeChange = (range: { from: number; to: number } | null) => {
-      if (range && Number.isFinite(range.from) && Number.isFinite(range.to)) {
-        userLogicalRangeRef.current = range
-      }
       const history = historyStateRef.current
       if (
         range
@@ -200,35 +196,9 @@ export function MarketCandlestickChart({
     const isNewKey = fittedKeyRef.current !== fitContentKey
 
     if (isNewKey) {
-      const isResearchEpisodeChange = Boolean(
-        fittedKeyRef.current?.startsWith('research:') &&
-        fitContentKey.startsWith('research:')
-      )
-      const targetRange = isResearchEpisodeChange
-        ? userLogicalRangeRef.current ?? chart.timeScale().getVisibleLogicalRange()
-        : null
-
       series.setData(bars)
       chart.priceScale('right').applyOptions({ autoScale: true })
-
-      if (targetRange && Number.isFinite(targetRange.from) && Number.isFinite(targetRange.to)) {
-        try {
-          chart.timeScale().setVisibleLogicalRange(targetRange)
-        } catch {
-          // fallback
-        }
-        // Re-apply in animation frame to ensure new dataset internal indexing has resolved
-        requestAnimationFrame(() => {
-          try {
-            chart.timeScale().setVisibleLogicalRange(targetRange)
-          } catch {
-            // fallback
-          }
-        })
-      } else {
-        userLogicalRangeRef.current = null
-        chart.timeScale().fitContent()
-      }
+      chart.timeScale().fitContent()
 
       fittedKeyRef.current = fitContentKey
       prevBarsRef.current = bars
