@@ -6,6 +6,7 @@ import { formatInspectorValue, inspectorDelta, isInspectorCommentary, type Inspe
 import { InspectorFiltersModal } from './InspectorFiltersModal'
 import { InspectorDateRangePicker } from './InspectorDateRangePicker'
 import { assessNfpMajority, gradeLabels, gradeNfpReading, tallyNfpRelease } from './grading/nfp-grading'
+import { NfpMagnitudeCell } from './magnitude/NfpMagnitudeCell'
 import type { InspectorView } from './useInspector'
 import './inspector.css'
 
@@ -106,8 +107,9 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, audit
                 <span className={`inspector-grade inspector-grade-${grade}`} key={grade}>{tally.counts[grade]} {gradeLabels[grade]}</span>)}
               <span>{tally.total} readings</span>
             </div>}
-            <div className="inspector-table-scroll"><table aria-label={`${release.label} release readings`}>
-              <thead><tr><th>Series</th><th>Actual</th><th>Previous</th><th>A−P</th></tr></thead>
+            <div className="inspector-table-scroll"><table className={tally ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
+              <thead><tr><th>Series</th><th>Actual</th><th>Previous</th><th>A−P</th>{tally && <th
+                title="Absolute A−P, smallest to largest. Gray bar height counts earlier readings since January 1, 2015; the colored bin contains this reading. Small axis ticks mark P50/P75/P90. P67 means 67% of earlier magnitudes were at or below this reading. Hover or focus for details.">A−P magnitude · History</th>}</tr></thead>
               <tbody>{release.events.map((event) => {
                 const delta = inspectorDelta(event)
                 const commentary = isInspectorCommentary(event)
@@ -123,6 +125,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, audit
                   <td className={grading ? `inspector-graded-delta inspector-grade-${grading.grade}` : undefined} title={grading?.explanation}>
                     {commentary ? 'Not applicable' : formatInspectorValue(delta, event, true)}
                     {grading && <span className="inspector-row-grade">{gradeLabels[grading.grade]}</span>}</td>
+                  {tally && <NfpMagnitudeCell event={event} history={view.nfpHistory} grade={grading?.grade ?? 'unrated'} />}
                 </tr>
               })}</tbody>
             </table></div>

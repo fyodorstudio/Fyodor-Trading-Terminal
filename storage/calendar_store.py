@@ -423,7 +423,7 @@ class CalendarStore:
                     "sources": sources, "pending_jobs": jobs,
                     "revision": self.db.execute("SELECT value FROM data_revision WHERE id=1").fetchone()[0]}
 
-    def query(self, source_id, start, end, currency=None, limit=1000, after_time=None, after_id=None, time_basis="raw"):
+    def query(self, source_id, start, end, currency=None, limit=1000, after_time=None, after_id=None, time_basis="raw", event_ids=None):
         with self.lock:
             chart = time_basis == "chart"
             axis = "coalesce(t.chart_time_seconds,e.server_time)" if chart else "e.server_time"
@@ -436,6 +436,9 @@ class CalendarStore:
             if currency:
                 where += " AND e.currency=?"
                 params.append(currency)
+            if event_ids is not None:
+                where += " AND CAST(json_extract(e.payload,'$.event_id') AS TEXT) IN (" + ",".join("?" for _ in event_ids) + ")"
+                params.extend(event_ids)
             if after_time is not None and after_id is not None:
                 where += f" AND ({axis}>? OR ({axis}=? AND e.value_id>?))"
                 params.extend((after_time, after_time, after_id))
@@ -460,5 +463,5 @@ class CalendarStore:
                 coverage[item] = {"missing": missing_intervals(start, end, intervals)}
             last = rows[-1] if rows and has_more else None
             return {"source_id": source_id, "timestamp_convention": "trade_server_time", "events": events,
-                    "time_basis": time_basis, "coverage": coverage, "revision": self.db.execute("SELECT value FROM data_revision WHERE id=1").fetchone()[0],
+                    "time_basis": time_basis, "event_ids": event_ids, "coverage": coverage, "revision": self.db.execute("SELECT value FROM data_revision WHERE id=1").fetchone()[0],
                     "next_cursor": {"after_time": last["axis_time"], "after_id": last["value_id"]} if last else None}

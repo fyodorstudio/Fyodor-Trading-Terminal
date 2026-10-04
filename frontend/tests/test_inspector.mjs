@@ -723,6 +723,175 @@ try {
   assert.equal(rangeView.releases.length, 1)
   await click(document.querySelector('[aria-label="Close date range picker"]'))
   console.log('✓ Mounted date picker/storage integration uses one complete broker range and preserves results during incomplete edits')
+
+  const { magnitudeDistribution, selectedMagnitudeBin } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-distribution.ts')
+  const { nfpMagnitudeHistory, nfpHistoryStart, nfpHistoryScope } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-history.ts')
+  const { useNfpMagnitudeHistory } = await server.ssrLoadModule('./src/inspector/magnitude/useNfpMagnitudeHistory.ts')
+  const { NfpMagnitudeCell } = await server.ssrLoadModule('./src/inspector/magnitude/NfpMagnitudeCell.tsx')
+  const { MagnitudeHistogram } = await server.ssrLoadModule('./src/inspector/magnitude/MagnitudeHistogram.tsx')
+  const distribution = magnitudeDistribution([0, 1, 2, 3, 1000], -2)
+  assert.equal(distribution.p50, 2)
+  assert.equal(distribution.p75, 3)
+  assert.equal(distribution.p90, 601.2)
+  assert.equal(distribution.percentile, 60)
+  assert.equal(distribution.overflow, 1)
+  assert.equal(distribution.bins.reduce((a, b) => a + b, 0) + distribution.overflow, 5)
+  assert.equal(magnitudeDistribution([0, 0, 0], 2).allZero, true)
+  assert.equal(magnitudeDistribution([0, 0, 0], 2).currentOverflow, true)
+  assert.equal(magnitudeDistribution([NaN, Infinity, -1], 1), null)
+  assert.equal(magnitudeDistribution([1, 1], null).percentile, null)
+  assert.equal(magnitudeDistribution([1, 1], 1).percentile, 100, 'ECDF ties count magnitudes at or below current')
+  assert.equal(magnitudeDistribution([2], 1).p90, 2)
+  const binFixture = (magnitude) => ({ ...distribution, scaleMax: 16, bins: Array(16).fill(2), magnitude,
+    currentOverflow: magnitude !== null && magnitude > 16 })
+  assert.equal(selectedMagnitudeBin(binFixture(0)).index, 0)
+  assert.equal(selectedMagnitudeBin(binFixture(1)).index, 1, 'A bin boundary selects the bin on its right')
+  assert.equal(selectedMagnitudeBin(binFixture(16)).index, 15, 'The scale endpoint stays in the final regular bin')
+  assert.equal(selectedMagnitudeBin(binFixture(17)).index, 'tail')
+  assert.equal(selectedMagnitudeBin(binFixture(null)), null)
+  const histogramProps = { distribution: magnitudeDistribution([0, 0, 0, 8, 16], 7), label: 'Test series',
+    formatValue: (value) => `${value}k`, context: 'Earlier releases only.', tone: 'bad' }
+  const histogramApp = mount(MagnitudeHistogram, histogramProps)
+  await histogramApp.render()
+  let reusablePlot = histogramApp.container.querySelector('.magnitude-histogram')
+  let selectedBar = reusablePlot.querySelector('.magnitude-current')
+  assert.equal(selectedBar.getAttribute('data-count'), '0')
+  assert.ok(selectedBar.classList.contains('magnitude-empty-bin'))
+  assert.equal(reusablePlot.querySelectorAll('.magnitude-bin-highlight').length, 1)
+  assert.equal([...reusablePlot.querySelectorAll('.magnitude-bar')].reduce((sum, bar) => sum + Number(bar.dataset.count), 0), 5,
+    'An empty selected bin does not add a historical observation')
+  await act(async () => reusablePlot.dispatchEvent(new dom.MouseEvent('mouseover', { bubbles: true })))
+  assert.match(document.querySelector('.magnitude-details').textContent, /No earlier readings in the selected interval/)
+  await act(async () => reusablePlot.dispatchEvent(new dom.MouseEvent('mouseout', { bubbles: true, relatedTarget: document.body })))
+  assert.equal(document.querySelector('.magnitude-details'), null)
+  reusablePlot.getBoundingClientRect = () => ({ top: window.innerHeight - 80, bottom: window.innerHeight - 48,
+    right: window.innerWidth + 40, left: window.innerWidth - 232, width: 272, height: 32 })
+  await act(async () => reusablePlot.focus())
+  const boundedCard = document.querySelector('.magnitude-details')
+  assert.ok(parseFloat(boundedCard.style.bottom) > 0, 'A bottom-dock hover card opens above its plot')
+  assert.ok(parseFloat(boundedCard.style.left) + parseFloat(boundedCard.style.width) <= window.innerWidth - 16,
+    'Detail card stays inside the right viewport edge')
+  await act(async () => window.dispatchEvent(new dom.Event('resize')))
+  assert.equal(document.querySelector('.magnitude-details'), null)
+  await act(async () => reusablePlot.blur())
+  await histogramApp.render({ ...histogramProps, distribution: magnitudeDistribution([0, 1, 2, 3, 1000], 1001) })
+  reusablePlot = histogramApp.container.querySelector('.magnitude-histogram')
+  selectedBar = reusablePlot.querySelector('.magnitude-current')
+  assert.equal(selectedBar.getAttribute('data-bin'), 'tail')
+  assert.equal(selectedBar.getAttribute('data-count'), '1')
+  assert.equal(reusablePlot.querySelectorAll('.magnitude-bin-highlight').length, 0, 'Nonempty selection colors the actual frequency bar')
+  await act(async () => reusablePlot.focus())
+  assert.match(document.querySelector('.magnitude-details').textContent, /Beyond/)
+  await histogramApp.render({ ...histogramProps, distribution: magnitudeDistribution([0, 1, 2], null) })
+  assert.equal(histogramApp.container.querySelectorAll('.magnitude-current').length, 0)
+  assert.equal(histogramApp.container.querySelector('.magnitude-rank strong').textContent, '—')
+  await act(async () => histogramApp.container.querySelector('.magnitude-histogram').blur())
+  assert.equal(document.querySelector('.magnitude-details'), null)
+
+  const selectedNfp = data.groupInspectorReleases([stored(event({ event_id: '840030016', name: 'Nonfarm Payrolls', unit: 0, multiplier: 1,
+    actual: 12, previous: 10, actual_raw_scaled_1e6: '12000000', previous_raw_scaled_1e6: '10000000' }))])[0]
+  const historyRow = (id, at, overrides = {}) => ({ ...selectedNfp.events[0], value_id: id, release_at: at,
+    server_time_seconds: at / 1000 + 10800, chart_time_seconds: at / 1000 + 10800, availability: 'observed',
+    actual: 11, previous: 10, actual_raw_scaled_1e6: '11000000', previous_raw_scaled_1e6: '10000000', ...overrides })
+  const earlierRows = [historyRow('before-2015', nfpHistoryStart - 1), historyRow('first', nfpHistoryStart + 86400000),
+    historyRow('second', nfpHistoryStart + 2 * 86400000, { actual: 7, actual_raw_scaled_1e6: '7000000' }),
+    historyRow('current', selectedNfp.releaseAt), historyRow('future', selectedNfp.releaseAt + 86400000),
+    historyRow('absent', nfpHistoryStart + 3 * 86400000, { availability: 'not-returned-by-latest-query' }),
+    historyRow('missing', nfpHistoryStart + 4 * 86400000, { actual: null }),
+    historyRow('duplicate-1', nfpHistoryStart + 5 * 86400000), historyRow('duplicate-2', nfpHistoryStart + 5 * 86400000),
+    historyRow('unit-change', nfpHistoryStart + 6 * 86400000, { multiplier: 0 }),
+    historyRow('wrong-country', nfpHistoryStart + 7 * 86400000, { country_code: 'EU' }),
+    historyRow('uncertain', nfpHistoryStart + 8 * 86400000, { time_mode: 1 })]
+  const hist = nfpMagnitudeHistory([...earlierRows, earlierRows[1]], selectedNfp)[selectedNfp.events[0].value_id]
+  assert.equal(hist.distribution.count, 2, 'Only unique, usable earlier publications of this series count')
+  assert.equal(hist.distribution.p50, 2)
+  assert.equal(hist.distribution.percentile, 50)
+  assert.equal(hist.excluded, 3)
+  assert.equal(hist.first, nfpHistoryStart + 86400000)
+  assert.equal(hist.last, nfpHistoryStart + 2 * 86400000)
+  assert.deepEqual(nfpMagnitudeHistory(earlierRows, groups[0]), {}, 'Other families cannot inherit NFP magnitude history')
+
+  let nfpHistoryView
+  function NfpHistoryApp({ selected = selectedNfp, brokerId = 'Broker-A' }) {
+    const history = useNfpMagnitudeHistory(brokerId, selected)
+    React.useEffect(() => { nfpHistoryView = history }, [history])
+    return selected ? React.createElement('table', {}, React.createElement('tbody', {}, React.createElement('tr', {},
+      React.createElement(NfpMagnitudeCell, { event: selected.events[0], history, grade: 'good' })))) : null
+  }
+  const historyApp = mount(NfpHistoryApp, {})
+  start = storageRequests.length
+  await historyApp.render()
+  assert.match(historyApp.container.textContent, /Loading history/)
+  await respond(storageRequests[start], storedHealth())
+  const historyParams = new URL('http://localhost' + storageRequests[start + 1].url).searchParams
+  assert.equal(Number(historyParams.get('from_server_seconds')), nfpHistoryStart / 1000)
+  assert.equal(Number(historyParams.get('to_server_seconds')), selectedNfp.chartTime)
+  assert.equal(historyParams.get('currency'), 'USD')
+  assert.deepEqual(historyParams.get('event_ids').split(',').sort(), nfpHistoryScope.eventIds.slice().sort())
+  const historyPage = (rows, revision = 1, cursor = null, id = 'Broker-A') => ({ ...page(rows, revision, cursor, id), event_ids: nfpHistoryScope.eventIds })
+  await respond(storageRequests[start + 1], historyPage(earlierRows.slice(0, 2), 1, { after_time: anchor, after_id: 'first' }))
+  assert.equal(historyApp.container.querySelectorAll('svg').length, 0, 'No partial-page distribution is published')
+  await respond(storageRequests[start + 2], { ...historyPage(earlierRows.slice(2)), coverage: { USD: { missing: [[1, 2]] } } })
+  assert.equal(nfpHistoryView.rows.a.distribution.count, 2)
+  assert.match(historyApp.container.textContent, /Partial history/)
+  const plot = historyApp.container.querySelector('.magnitude-histogram')
+  assert.match(plot.getAttribute('aria-label'), /2 earlier readings \(small sample\)/)
+  assert.match(plot.getAttribute('aria-label'), /50.0%/)
+  assert.ok(plot.classList.contains('inspector-grade-good'))
+  assert.equal(plot.querySelectorAll('.magnitude-current').length, 1)
+  assert.equal(plot.querySelector('.magnitude-current').tagName.toLowerCase(), 'rect', 'The current interval is a colored bar')
+  assert.equal(plot.querySelectorAll('circle').length, 0)
+  assert.equal(plot.querySelectorAll('text').length, 3, 'Only endpoints and Tail remain on the compact axis')
+  assert.equal(plot.querySelector('.magnitude-rank strong').textContent, 'P50')
+  assert.equal(plot.querySelector('.magnitude-rank small').textContent, '2 earlier')
+  assert.equal(plot.getAttribute('title'), null, 'The long native tooltip is replaced by a detail card')
+  await act(async () => plot.focus())
+  let details = document.querySelector('.magnitude-details')
+  assert.ok(details)
+  assert.equal(details.id, plot.getAttribute('aria-describedby'))
+  assert.match(details.textContent, /Earlier readings2/)
+  assert.match(details.textContent, /P50/)
+  assert.match(details.textContent, /Partial USD history/)
+  assert.ok(parseFloat(details.style.left) >= 16)
+  await act(async () => document.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
+  assert.equal(document.querySelector('.magnitude-details'), null)
+  await act(async () => plot.blur())
+  await act(async () => plot.focus())
+  assert.ok(document.querySelector('.magnitude-details'))
+  await act(async () => window.dispatchEvent(new dom.Event('scroll')))
+  assert.equal(document.querySelector('.magnitude-details'), null, 'Scrolling closes the card rather than leaving a stale anchor')
+  await act(async () => plot.blur())
+  await historyApp.render({ selected: { ...selectedNfp, events: [{ ...selectedNfp.events[0], actual: null }] } })
+  assert.equal(historyApp.container.querySelectorAll('.magnitude-current').length, 0, 'Missing current delta retains gray history without a fake marker')
+  assert.equal(nfpHistoryView.rows.a.distribution.count, 2)
+  assert.equal(nfpHistoryView.rows.a.distribution.percentile, null)
+  await historyApp.render()
+
+  const alternate = { ...selectedNfp, id: 'alternate', chartTime: selectedNfp.chartTime - 86400, releaseAt: selectedNfp.releaseAt - 86400000 }
+  start = storageRequests.length
+  await historyApp.render({ selected: alternate })
+  await respond(storageRequests[start], storedHealth())
+  const stalePage = storageRequests[start + 1]
+  await historyApp.render({ selected: selectedNfp, brokerId: 'Broker-B' })
+  assert.ok(stalePage.signal.aborted)
+  assert.equal(historyApp.container.querySelectorAll('svg').length, 0, 'Old broker/history is hidden immediately')
+  await respond(storageRequests[start + 2], storedHealth('Broker-B'))
+  await respond(storageRequests[start + 3], historyPage([], 1, null, 'Broker-B'))
+  await respond(stalePage, historyPage(earlierRows))
+  assert.equal(nfpHistoryView.rows.a.distribution, null, 'A late old-broker history page cannot repopulate the cell')
+  assert.match(historyApp.container.textContent, /No usable earlier readings/)
+  start = storageRequests.length
+  await historyApp.render({ selected: selectedNfp })
+  await respond(storageRequests[start], storedHealth())
+  await respond(storageRequests[start + 1], page(earlierRows))
+  assert.match(nfpHistoryView.error, /Restart calendar storage/, 'An older service cannot silently supply an unfiltered baseline')
+  assert.match(historyApp.container.textContent, /History unavailable/)
+  start = storageRequests.length
+  await historyApp.render({ selected: null })
+  assert.equal(storageRequests.length, start, 'No selected NFP means no history requests')
+  await historyApp.render({ selected: selectedNfp, brokerId: null })
+  assert.match(historyApp.container.textContent, /History needs calendar storage/)
+  console.log('✓ NFP magnitudes, colored bins/tail/empty states, mounted detail cards and prior-release history lifecycle')
 } finally {
   await act(async () => { for (const root of roots) root.unmount() })
   await server.close()

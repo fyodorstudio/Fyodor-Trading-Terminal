@@ -13,14 +13,18 @@ type StorageSource = { id: string; publisher_status: string; server_now: number;
   coverage?: Record<string, { covered: number[][]; missing: number[][] }> }
 type Health = { revision: number; sources: StorageSource[]; collector_error: string | null }
 type Page = { source_id: string; revision: number; timestamp_convention: string; time_basis: string; events: StoredCalendarEvent[];
+  event_ids?: string[] | null;
   coverage: Coverage; next_cursor: { after_time: number; after_id: string } | null }
 type Snapshot = { key: string; events: StoredCalendarEvent[]; coverage: Coverage; loading: boolean;
   error: string | null; source: StorageSource | null; collectorError: string | null }
 
-export function useStoredCalendar(brokerId: string | null | undefined, range: CalendarDisplayRange | null, enabled: boolean) {
+export function useStoredCalendar(brokerId: string | null | undefined, range: CalendarDisplayRange | null, enabled: boolean,
+  scope?: { currency?: 'EUR' | 'USD'; eventIds?: readonly string[] }) {
   const from = range ? Math.floor(range.from / 1000) : null
   const to = range ? Math.ceil(range.to / 1000) : null
-  const key = JSON.stringify([brokerId, from, to])
+  const currency = scope?.currency
+  const eventIds = scope?.eventIds ? [...new Set(scope.eventIds)].sort().join(',') : null
+  const key = JSON.stringify([brokerId, from, to, currency, eventIds])
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null)
   useEffect(() => {
     if (!enabled || !brokerId || from === null || to === null) return
@@ -58,10 +62,14 @@ export function useStoredCalendar(brokerId: string | null | undefined, range: Ca
           do {
             const params = new URLSearchParams({ source_id: brokerId!, from_server_seconds: String(from),
               to_server_seconds: String(to), limit: '5000', time_basis: 'chart' })
+            if (currency) params.set('currency', currency)
+            if (eventIds) params.set('event_ids', eventIds)
             if (cursor) { params.set('after_time', String(cursor.after_time)); params.set('after_id', cursor.after_id) }
             const page = await get<Page>(`/calendar?${params}`)
             if (!current()) return
             if (page.time_basis !== 'chart') throw new Error('Restart calendar storage to enable historical chart timing.')
+            if (eventIds && page.event_ids?.slice().sort().join(',') !== eventIds)
+              throw new Error('Restart calendar storage to enable series-filtered history.')
             if (page.source_id !== brokerId || page.timestamp_convention !== 'trade_server_time' || !Number.isSafeInteger(page.revision))
               throw new Error('Calendar storage returned an incompatible response')
             if (pageRevision !== null && pageRevision !== page.revision) { changed = true; break }
@@ -93,7 +101,7 @@ export function useStoredCalendar(brokerId: string | null | undefined, range: Ca
     }
     void poll()
     return () => { cancelled = true; controller.abort(); window.clearTimeout(timer) }
-  }, [enabled, brokerId, from, to, key])
+  }, [enabled, brokerId, from, to, key, currency, eventIds])
   const active = enabled && brokerId && snapshot?.key === key ? snapshot : null
   return { events: active?.events ?? [], coverage: active?.coverage ?? {}, source: active?.source ?? null,
     loading: Boolean(enabled && brokerId && range && (!active || active.loading)),

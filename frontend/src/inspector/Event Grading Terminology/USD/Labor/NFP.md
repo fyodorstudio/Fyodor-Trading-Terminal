@@ -96,6 +96,27 @@ Participation's higher-is-Good rule is deliberately simplified: more participati
 
 Total, private, government and manufacturing payrolls overlap, as do monthly/annual wage measures. All are counted because the user requested a tally of every displayed reading; seven Bad rows are not seven independent confirmations. Classification ignores magnitude and the difference between Actual and Forecast. It describes the selected table under these rules, not the realized market reaction.
 
+## Historical A−P magnitude column
+
+The NFP table now shows a miniature histogram for each series, independently of
+the displayed chart range. The historical baseline starts January 1, 2015 and
+ends strictly before the selected release. Gray bars count earlier absolute
+A−P magnitudes; the bin containing the current magnitude uses its existing
+Good/Bad/Unchanged color. An empty interval uses an outline, without adding a
+historical reading. The visible percentile badge and earlier-reading count,
+P50/P75/P90 reference ticks, and structured hover/focus details help distinguish
+ordinary changes from unusually large changes. The card retains the exact
+magnitude; the colored bar identifies its interval.
+
+Each row has its own scale and units. A separate overflow bin retains extremes
+beyond the P95 display scale. Magnitude describes change size, not economic
+importance or a new EURUSD direction. The majority rule above remains unchanged.
+Partial history and missing data are explicit. Stored corrections mean this
+descriptive baseline is not a point-in-time backtest.
+
+See [the reusable component and history contract](../../../magnitude/README.md)
+for the admission rules, arithmetic, module organization and verification.
+
 ## Extending or changing the rules
 
 New NFP readings require explicit event-ID rules and tests. Changing the comparator, favorable directions or counting method requires a new grading rule version, an updated example and tests. Changing the direction mapping or completeness requirements requires a new majority rule version. Other currencies/categories/families need separate documents and implementation; their numbers must not inherit the higher-is-Good convention or NFP majority direction automatically.

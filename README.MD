@@ -90,6 +90,17 @@ Inspector requests, grouping, preferences, selection and presentation arithmetic
 
 Manual Inspector audit:
 
+NFP alone also has an **A−P magnitude · History** column: a reusable miniature
+histogram per series, using earlier stored readings from January 1, 2015.
+Gray bars count absolute changes; the colored bin contains the selected reading's
+magnitude. Empty selected bins use an outline rather than an invented count.
+Visible percentile/count labels and P50/P75/P90 ticks accompany a structured
+hover/focus detail card. Extremes stay in a separate Tail bin. History is independent of the chart
+date range and excludes the selected/future releases. The majority direction
+is unchanged. See [the component/history contract](frontend/src/inspector/magnitude/README.md).
+**Restart storage after updating** to enable the additive series-filtered query;
+the bridge and Publisher V2 need no changes.
+
 1. Start `pnpm dev:all` with V2 attached. On EURUSD, open Filters: both currency columns should contain all four categories. At your actual window size and zoom, scroll the family list and confirm Show symbols and Apply/Cancel stay reachable; inspect light/dark themes and a narrow window.
 2. Toggle Labor / wages or Growth / activity for one currency, customize one family symbol, then Cancel. Reopen, Apply those changes and reload: only applied changes should persist. A partially selected category should look indeterminate. Existing custom selections should remain custom after the expansion.
 3. Set Custom to October 2, 2026, select US Jobs report / NFP, and verify all ten rows are reachable by resizing/scrolling. NFP leads; payroll deltas use k, unemployment/earnings use pp, and hours use h. Compare the displayed Actual, Previous and revised Previous with your MT5 calendar. The local October 3 storage snapshot has NFP A−P −133k, unemployment +0.1 pp and hours 0 h; later corrections may update readings.
@@ -102,7 +113,9 @@ Manual Inspector audit:
 10. Open the new date picker at the actual dock height. Check it stays within the viewport, presets apply immediately, reverse/two-click and same-day ranges work, From/To edits apply without buttons, invalid edits keep the current results, and month/year selectors reach 2015 directly. Check calendar keyboard arrows/Home/End/PageUp/PageDown, Escape focus return, outside dismissal and narrow-window scrolling. Changing dates must update both list and symbols consistently.
 11. Select January 10 and February 7, 2025 NFP: both majority labels should say **EURUSD Short · NFP majority rule · Experimental**. October 2, 2026's supplied 2/7/1 example should say Long. Check the direction and tally remain readable at your dock height, and hover explains the rule. Incomplete releases must say Incomplete; other families must have no majority direction.
 
-Automated checks cover production hook/component behavior, family identities, grouping, preference migration, unit formatting, incoming readings, cancellation, polling, chart-position callbacks, historical timing migration, DST, midnight date boundaries and pagination. The visual layout, native browser focus/scrolling, actual chart gesture alignment and a future real MT5 release require the manual audit above. This timing integration upgrades storage to 1.1.0/schema 2; restart storage after updating. Publisher V2 and the frozen bridge require no changes.
+12. Select a 2025/2026 NFP release with the visible chart range restricted to that month. Its magnitude plots should still use earlier history since 2015. Hover or keyboard-focus each plot for a structured card with native units, percentile and earlier observation dates; Escape and scrolling should close it. Check the colored bin matches the row grade, the visible Pxx badge and earlier-reading count are readable, and gray bars/subtle percentile ticks remain clear in both themes. Tail identifies overflow; empty selected bins use an outline. Check the wider column at your preferred dock size, table scrolling/resizing, and switching NFP/CPI: only NFP has this column. October 2, 2026 has 140 earlier readings per series, versus 141 releases including itself. An early 2015 release can have few/no usable earlier readings; coverage gaps must say Partial history. Upcoming readings can show gray history without a selected bin or rank.
+
+Automated checks cover production hook/component behavior, family identities, grouping, preference migration, unit formatting, incoming readings, cancellation, polling, chart-position callbacks, historical timing migration, DST, midnight date boundaries, series-filtered pagination and NFP magnitude cutoffs/distributions. The visual layout, native browser focus/scrolling, actual chart gesture alignment and a future real MT5 release require the manual audit above. This timing integration upgrades storage to 1.1.0/schema 2; restart storage after updating. Publisher V2 and the frozen bridge require no changes.
 
 ## Quickstart
 

@@ -1,0 +1,28 @@
+.magnitude-histogram { display: inline-flex; align-items: center; gap: 8px; vertical-align: middle; cursor: help; border-radius: 4px; }
+.magnitude-histogram:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.magnitude-histogram svg { flex-shrink: 0; overflow: visible; }
+.magnitude-bar { fill: var(--text-muted); opacity: .55; }
+.magnitude-bar.magnitude-current { fill: currentColor; opacity: 1; stroke: currentColor; stroke-width: .7; }
+.magnitude-bin-highlight { fill: none; stroke: currentColor; stroke-opacity: .6; stroke-width: .8; stroke-dasharray: 2 2; }
+.magnitude-bar.magnitude-empty-bin { fill: none; }
+.magnitude-axis { stroke: var(--border-strong); stroke-width: .75; }
+.magnitude-quantile { stroke: var(--text-muted); stroke-width: 1; }
+.magnitude-tail-divider { stroke: var(--border-strong); stroke-dasharray: 2 2; }
+.magnitude-label { fill: var(--text-muted); font-size: 9px; }
+.magnitude-rank { min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
+.magnitude-rank strong { display: block; font-size: 12px; line-height: 17px; }
+.inspector-detail td .magnitude-rank small { margin: 0; font-size: 9px; line-height: 12px; font-weight: 400; }
+.inspector-detail .inspector-magnitude-table th:first-child, .inspector-detail .inspector-magnitude-table td:first-child { width: 36%; }
+.inspector-detail .inspector-magnitude-table th:last-child { text-align: left; }
+.inspector-detail td.inspector-magnitude-cell { width: 272px; min-width: 272px; text-align: left; }
+.inspector-magnitude-status { color: var(--text-muted); font-size: 10px; }
+.magnitude-details { position: fixed; z-index: 60; width: min(340px, calc(100vw - 32px)); box-sizing: border-box; max-height: calc(100vh - 32px); overflow: auto; padding: 12px 14px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-panel); color: var(--text); box-shadow: 0 8px 28px #0003; font-size: 11px; line-height: 1.45; pointer-events: none; }
+.magnitude-details-heading { display: block; margin-bottom: 8px; color: var(--text-strong); }
+.magnitude-details dl { margin: 0; }
+.magnitude-details dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 2px 0; }
+.magnitude-details dt { color: var(--text-muted); flex-shrink: 0; }
+.magnitude-details dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.magnitude-details-quantiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding-block: 8px; margin-top: 7px; border-block: 1px solid var(--border); color: var(--text-muted); }
+.magnitude-details-quantiles b { display: block; color: var(--text-strong); font-weight: 600; }
+.magnitude-details p { margin: 7px 0 0; }
+.magnitude-details-note { color: var(--text-muted); font-size: 10px; }

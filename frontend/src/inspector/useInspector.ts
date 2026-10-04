@@ -8,6 +8,7 @@ import { inspectorDisplayRange, inspectorRangeDates, type InspectorRangePreset }
 import { buildInspectorMarkers, filterInspectorReleases, groupInspectorReleases, inspectorStorageKey,
   readInspectorPreferences, supportsInspector, type InspectorPreferences } from './inspector-data'
 import { useStoredCalendar } from './useStoredCalendar'
+import { useNfpMagnitudeHistory } from './magnitude/useNfpMagnitudeHistory'
 
 export function useInspector({ events, symbol, bars, timeframe, timeDisplay, clockOffsetMs, brokerId, brokerOffsetSeconds = 0 }: {
   events: EconomicCalendarEvent[]; symbol: string; bars: OhlcBar[]; timeframe: ChartTimeframe
@@ -46,6 +47,7 @@ export function useInspector({ events, symbol, bars, timeframe, timeDisplay, clo
     [supported, allReleases, preferences, range, brokerTime])
   const markers = useMemo(() => buildInspectorMarkers(releases, preferences, bars, timeframe), [releases, preferences, bars, timeframe])
   const selectedRelease = releases.find((release) => release.id === selectedId) ?? null
+  const nfpHistory = useNfpMagnitudeHistory(brokerId, selectedRelease)
   function applyPreferences(next: InspectorPreferences) {
     setPreferences(next)
     try { localStorage.setItem(inspectorStorageKey, JSON.stringify(next)); setStorageFailed(false) }
@@ -53,6 +55,6 @@ export function useInspector({ events, symbol, bars, timeframe, timeDisplay, clo
   }
   return { supported, preferences, applyPreferences, storageFailed, rangePreset, setRangePreset, customFrom, setCustomFrom,
     customTo, setCustomTo, range, rangeDates, today, selectCustomRange, allReleases, releases, markers, selectedRelease, selectRelease, now,
-    brokerTime, brokerOffsetSeconds, brokerId, storage }
+    brokerTime, brokerOffsetSeconds, brokerId, storage, nfpHistory }
 }
 export type InspectorView = ReturnType<typeof useInspector>

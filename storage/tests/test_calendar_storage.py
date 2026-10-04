@@ -237,6 +237,22 @@ class StorageTests(unittest.TestCase):
         self.assertEqual(second["events"][1]["previous"], .1)
         self.assertEqual(second["events"][1]["revised_previous"], .2)
 
+    def test_series_scoped_history_preserves_pagination_and_coverage(self):
+        self.store.register(context())
+        rows = [event(value_id=str(i), currency="USD", country_code="US", event_id="840030016") for i in range(3)]
+        rows += [event(value_id="other", currency="USD", event_id="840030005"),
+                 event(value_id="euro", currency="EUR", event_id="840030016")]
+        self.store.collect("Broker-Demo", rows, "publisher-1")
+        first = self.query(currency="USD", event_ids=["840030016"], limit=2, time_basis="chart")
+        second = self.query(currency="USD", event_ids=["840030016"], limit=2, time_basis="chart", **first["next_cursor"])
+        self.assertEqual([row["value_id"] for row in first["events"] + second["events"]], ["0", "1", "2"])
+        self.assertEqual(first["event_ids"], ["840030016"])
+        self.assertEqual(first["coverage"], self.query(currency="USD", time_basis="chart")["coverage"])
+        self.assertEqual(first["revision"], second["revision"])
+        self.assertIsNone(second["next_cursor"])
+        self.assertEqual(self.query(event_ids=["unknown"])["events"], [])
+        self.assertEqual(len(self.query()["events"]), 5, "Unscoped callers retain all readings")
+
     def test_collector_generation_validation_and_failure_preserves_history(self):
         self.store.register(context())
         health = {"instance_id": "publisher-1", "last_snapshot_at": 1, "last_update_at": 2000000000000, "event_count": 1}
@@ -369,6 +385,12 @@ class ApiTests(unittest.TestCase):
         status, result = self.request(f"/calendar?source_id=Broker-Demo&from_server_seconds={HISTORY_START}&to_server_seconds={NOW}")
         self.assertEqual(status, 200)
         self.assertEqual(len(result["events"]), 1)
+        path = f"/calendar?source_id=Broker-Demo&from_server_seconds={HISTORY_START}&to_server_seconds={NOW}"
+        self.assertEqual(len(self.request(path + "&event_ids=840030005")[1]["events"]), 1)
+        self.assertEqual(self.request(path + "&event_ids=840030016")[1]["events"], [])
+        self.assertEqual(self.request(path + "&event_ids=840030016,840030005")[1]["event_ids"], ["840030016", "840030005"])
+        for invalid in ("oops", "1,,2", "1%27", ",".join(["1"] * 65)):
+            self.assertEqual(self.request(path + "&event_ids=" + invalid)[0], 422)
         self.assertEqual(self.request("/calendar?source_id=Broker-Demo&from_server_seconds=2&to_server_seconds=1")[0], 422)
         self.assertEqual(self.request("/jobs/next", {**context().model_dump(), "publisher_version": "1.0.0"})[0], 422)
         self.assertEqual(self.request("/health")[1]["service_version"], "1.1.0")
