@@ -1,5 +1,5 @@
 import { useCallback, useId, useState } from 'react'
-import { selectedMagnitudeBin, type MagnitudeDistribution } from './magnitude-distribution'
+import { magnitudeBandLabel, magnitudeBin, selectedMagnitudeBin, type MagnitudeDistribution } from './magnitude-distribution'
 import { MagnitudeDetails } from './MagnitudeDetails'
 import './magnitude-histogram.css'
 
@@ -13,64 +13,82 @@ export function MagnitudeHistogram({ distribution: d, formatValue, label, contex
   const [hovered, setHovered] = useState(false)
   const [focused, setFocused] = useState(false)
   const [dismissed, setDismissed] = useState(false)
+  const [inspectedBin, setInspectedBin] = useState<number | null>(null)
   const dismiss = useCallback(() => setDismissed(true), [])
   const open = (hovered || focused) && !dismissed
-  const left = 3, width = 173, base = 21, tailX = 190, tailWidth = 20
-  const x = (value: number) => left + Math.min(1, value / d.scaleMax) * width
-  const peak = Math.max(1, ...d.bins, d.overflow)
+  const left = 5, width = 206, base = 27
+  const peak = Math.max(1, ...d.bins)
   const selected = selectedMagnitudeBin(d)
-  const interval = !selected ? 'No current magnitude' : selected.to === null ? `Beyond ${formatValue(selected.from)}` :
-    `${formatValue(selected.from)}–${formatValue(selected.to)}`
-  const details = `${label}. Absolute A−P: ${d.magnitude === null ? 'unavailable' : formatValue(d.magnitude)}. ` +
-    (d.percentile === null ? '' : `${d.percentile.toFixed(1)}% of earlier magnitudes are at or below this reading. `) +
+  const inspected = inspectedBin !== null && inspectedBin < d.bins.length ? magnitudeBin(d, inspectedBin) : selected
+  const interval = (bin: NonNullable<typeof selected>) => bin.index === 3 ? `${formatValue(0)} (exact)` :
+    d.threshold === 0 ? 'Empty (threshold 0)' : bin.index < 3 ? `${formatValue(bin.from)} to < ${formatValue(bin.to)}` :
+      `> ${formatValue(bin.from)} to ${formatValue(bin.to)}`
+  const frequency = (bin: NonNullable<typeof selected>) => `${bin.count} of ${d.count} · ${(100 * bin.count / d.count).toFixed(1)}%`
+  const extremeLabel = d.currentExtreme === 'negative' ? 'Extreme −' : 'Extreme +'
+  const threshold = `|A−P| > ${formatValue(d.threshold).replace(/^\+/, '')}`
+  const omitted = d.extremeBelow + d.extremeAbove
+  const details = `${label}. Selected A−P: ${d.current === null ? 'unavailable' : formatValue(d.current)}. ` +
+    `Selected size: ${d.currentSize}. Historical minimum ${formatValue(d.min)}; historical maximum ${formatValue(d.max)}. ` +
+    (d.currentExtreme ? `${extremeLabel}. ` : '') +
     `${d.count} earlier readings${d.count < 12 ? ' (small sample)' : ''}. ` +
-    `P50 ${formatValue(d.p50)}; P75 ${formatValue(d.p75)}; P90 ${formatValue(d.p90)}. ` +
-    `Axis 0–${formatValue(d.scaleMax)}. Tail contains ${d.overflow} earlier readings. ` +
-    (selected ? `Selected interval: ${interval}; ${selected.count} earlier readings in this bin. ` : '') +
+    (inspected ? `This bar's range: ${magnitudeBandLabel(inspected.index)}, ${interval(inspected)}; ${frequency(inspected)} earlier readings. ` : '') +
+    `Extreme threshold: ${threshold}, historical 95th percentile of absolute A−P. ` +
+    `${omitted} historical extremes omitted from the seven bars. Exact zero is the center bar. ` +
     historyDetails.map((item) => `${item.label}: ${item.value}. `).join('') + context
-  function bar(index: number | 'tail', count: number, at: number, barWidth: number) {
+  function bar(index: number, count: number) {
+    const at = left + index * width / d.bins.length, slotWidth = width / d.bins.length, barWidth = slotWidth - 2
     const current = selected?.index === index
     const height = count / peak * 19
-    return <g key={index}>
-      {current && count === 0 && <rect className="magnitude-bin-highlight" x={at - .5} y="1" width={barWidth + 1} height={base}
+    return <g key={index} className={inspectedBin === index ? 'magnitude-inspected' : undefined}
+      onMouseEnter={() => { setInspectedBin(index); setDismissed(false) }} onMouseLeave={() => setInspectedBin(null)}>
+      {current && count === 0 && <rect className="magnitude-bin-highlight" x={at - .5} y="7" width={barWidth + 1} height="21"
         rx="2" aria-hidden="true" />}
       <rect className={`magnitude-bar${current ? ' magnitude-current' : ''}${current && count === 0 ? ' magnitude-empty-bin' : ''}`}
-        data-bin={index} data-count={count} data-overflow={index === 'tail'} x={at} y={count ? base - height : base - 1}
+        data-bin={index} data-count={count} x={at} y={count ? base - height : base - 1}
         width={barWidth} height={count ? height : current ? 1 : 0} rx="1" />
+      <rect className="magnitude-bin-target" data-bin-target={index} x={at} y="7" width={slotWidth} height="22" />
     </g>
   }
   return <span ref={setAnchor} className={`magnitude-histogram inspector-grade-${tone}`} tabIndex={0} aria-label={details}
     aria-describedby={open ? tooltipId : undefined}
-    onMouseEnter={() => { setHovered(true); setDismissed(false) }} onMouseLeave={() => setHovered(false)}
-    onFocus={() => { setFocused(true); setDismissed(false) }} onBlur={() => setFocused(false)}>
-    <svg viewBox="0 0 216 32" width="216" height="32" aria-hidden="true">
-      {d.bins.map((count, index) => bar(index, count, left + index * width / d.bins.length, width / d.bins.length - 2))}
+    onMouseEnter={() => { setHovered(true); setDismissed(false) }} onMouseLeave={() => { setHovered(false); setInspectedBin(null) }}
+    onFocus={() => { setFocused(true); setDismissed(false); setInspectedBin(null) }} onBlur={() => { setFocused(false); setInspectedBin(null) }}
+    onKeyDown={(event) => {
+      const index = inspectedBin ?? selected?.index
+      let next: number
+      if (event.key === 'ArrowRight') next = index === undefined || index === null ? 0 : Math.min(d.bins.length - 1, index + 1)
+      else if (event.key === 'ArrowLeft') next = index === undefined || index === null ? d.bins.length - 1 : Math.max(0, index - 1)
+      else if (event.key === 'Home') next = 0
+      else if (event.key === 'End') next = d.bins.length - 1
+      else return
+      event.preventDefault(); setInspectedBin(next); setDismissed(false)
+    }}>
+    <svg viewBox="0 0 216 40" width="216" height="40" aria-hidden="true">
+      {d.bins.map((count, index) => bar(index, count))}
       <line className="magnitude-axis" x1={left} x2={left + width} y1={base + 1} y2={base + 1} />
-      {([['50', d.p50], ['75', d.p75], ['90', d.p90]] as const).map(([name, value]) =>
-        <line className="magnitude-quantile" key={name} x1={x(value)} x2={x(value)} y1={base + 1} y2={base + 4} />)}
-      <line className="magnitude-tail-divider" x1="183" x2="183" y1="3" y2={base + 1} />
-      {bar('tail', d.overflow, tailX, tailWidth)}
-      <text className="magnitude-label" x={left} y="32">0</text>
-      <text className="magnitude-label" x={left + width} y="32" textAnchor="end">{formatValue(d.scaleMax)}</text>
-      <text className="magnitude-label" x={tailX + tailWidth / 2} y="32" textAnchor="middle">Tail</text>
+      {d.currentExtreme && <polygon className="magnitude-extreme-marker" data-side={d.currentExtreme}
+        points={d.currentExtreme === 'negative' ? '0,17 5,13 5,21' : '216,17 211,13 211,21'} />}
+      {d.threshold > 0 && <>
+        <text className="magnitude-label" x={left} y="39">{formatValue(-d.threshold)}</text>
+        <text className="magnitude-label" x={left + width} y="39" textAnchor="end">{formatValue(d.threshold)}</text>
+      </>}
+      <text className="magnitude-label magnitude-zero-label" x={left + width / 2} y="39" textAnchor="middle">0</text>
     </svg>
-    <span className="magnitude-rank"><strong>{d.percentile === null ? '—' : `P${Math.round(d.percentile)}`}</strong>
-      <small>{d.count} earlier</small></span>
+    <strong className="magnitude-size">{d.currentSize}</strong>
     {open && anchor && <MagnitudeDetails anchor={anchor} id={tooltipId} onDismiss={dismiss}>
       <strong className="magnitude-details-heading">{label}</strong>
       <dl>
-        <div><dt>Absolute A−P</dt><dd>{d.magnitude === null ? 'Unavailable' : formatValue(d.magnitude)}</dd></div>
-        <div><dt>Magnitude rank</dt><dd>{d.percentile === null ? 'Unavailable' : `${d.percentile.toFixed(1)}% at or below`}</dd></div>
-        <div><dt>Earlier readings</dt><dd>{d.count}{d.count < 12 ? ' · Small sample' : ''}</dd></div>
-        {historyDetails.map((item) => <div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></div>)}
-        <div><dt>Selected interval</dt><dd>{interval}{selected && ` · ${selected.count} readings`}</dd></div>
+        <div><dt>Selected A−P</dt><dd>{d.current === null ? 'Unavailable' : formatValue(d.current)}
+          {d.current !== null && <strong className="magnitude-details-size">{d.currentSize}</strong>}</dd></div>
+        {inspected && <>
+          <div><dt>This bar's range</dt><dd>{magnitudeBandLabel(inspected.index)} · {interval(inspected)}</dd></div>
+          <div><dt>Earlier readings in range</dt><dd>{frequency(inspected)}</dd></div>
+        </>}
+        <div><dt>Earlier readings</dt><dd>{d.count}{omitted > 0 ? ` · ${omitted} extremes hidden` : ''}
+          {d.count < 12 ? ' · Small sample' : ''}</dd></div>
+        <div><dt>Historical minimum</dt><dd>{formatValue(d.min)}</dd></div>
+        <div><dt>Historical maximum</dt><dd>{formatValue(d.max)}</dd></div>
       </dl>
-      <div className="magnitude-details-quantiles">{([['P50', d.p50], ['P75', d.p75], ['P90', d.p90]] as const).map(([name, value]) =>
-        <span key={name}>{name}<b>{formatValue(value)}</b></span>)}</div>
-      <p>Axis: 0–{formatValue(d.scaleMax)} · Tail: {d.overflow} earlier readings.</p>
-      {selected?.count === 0 && <p>No earlier readings in the selected interval; its outline shows the location.</p>}
-      {d.allZero && <p>Earlier magnitudes are all zero.</p>}
-      <p className="magnitude-details-note">{context} Bar height counts earlier readings; the colored bin shows the current magnitude's range.</p>
     </MagnitudeDetails>}
   </span>
 }

@@ -5,8 +5,9 @@ import { symbolGlyph } from './event-symbols'
 import { formatInspectorValue, inspectorDelta, isInspectorCommentary, type InspectorRelease } from './inspector-data'
 import { InspectorFiltersModal } from './InspectorFiltersModal'
 import { InspectorDateRangePicker } from './InspectorDateRangePicker'
-import { assessNfpMajority, gradeLabels, gradeNfpReading, tallyNfpRelease } from './grading/nfp-grading'
+import { gradeLabels, gradeNfpReading, tallyNfpRelease } from './grading/nfp-grading'
 import { NfpMagnitudeCell } from './magnitude/NfpMagnitudeCell'
+import { NfpMagnitudeTally } from './magnitude/NfpMagnitudeTally'
 import type { InspectorView } from './useInspector'
 import './inspector.css'
 
@@ -33,7 +34,6 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
   const panelId = useId()
   const release = view.selectedRelease
   const tally = tallyNfpRelease(release)
-  const majority = assessNfpMajority(release)
   const releaseTime = (item: InspectorRelease) => view.brokerTime
     ? `${formatAppTimestamp(item.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
     : item.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(item.releaseAt, timeDisplay)
@@ -95,20 +95,12 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
               <span className="inspector-info"><button type="button" aria-label="About A−P" aria-describedby={`${panelId}-reading-info`}>ⓘ</button>
                 <span id={`${panelId}-reading-info`} role="tooltip">A−P uses Previous; revised Previous is shown separately.
                   pp = percentage points · bp = basis points.
-                  {tally && <> NFP colors use defined Good/Bad rules versus Previous. The experimental majority rule maps more Good to EURUSD Short, more Bad to Long, and a tie to Neutral. All ten series must be usable. The tally counts overlapping readings equally.</>}</span></span>
+                  {tally && <> NFP colors use defined Good/Bad rules versus Previous. Sizes use each series' earlier A−P readings.</>}</span></span>
             </div>
-            {tally && <div className="inspector-grade-summary" role="status" aria-label="NFP reading tally">
-              {majority && <><strong className={`inspector-majority inspector-direction-${majority.direction}`} aria-label="NFP majority direction" title={majority.explanation}>{majority.label}</strong>
-                <span>NFP majority rule · Experimental{majority.direction === 'incomplete' && ' · Needs 10 usable series'}</span></>}
-              <strong>Compared with Previous</strong>
-              {(['good', 'bad', 'unchanged', 'missing', 'unrated'] as const).filter((grade) =>
-                ['good', 'bad', 'unchanged'].includes(grade) || tally.counts[grade] > 0).map((grade) =>
-                <span className={`inspector-grade inspector-grade-${grade}`} key={grade}>{tally.counts[grade]} {gradeLabels[grade]}</span>)}
-              <span>{tally.total} readings</span>
-            </div>}
+            {tally && <NfpMagnitudeTally release={release} history={view.nfpHistory} />}
             <div className="inspector-table-scroll"><table className={tally ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
               <thead><tr><th>Series</th><th>Actual</th><th>Previous</th><th>A−P</th>{tally && <th
-                title="Absolute A−P, smallest to largest. Gray bar height counts earlier readings since January 1, 2015; the colored bin contains this reading. Small axis ticks mark P50/P75/P90. P67 means 67% of earlier magnitudes were at or below this reading. Hover or focus for details.">A−P magnitude · History</th>}</tr></thead>
+                title="Seven A−P bands: three negative, exact zero, three positive. Each series uses historical P95 of |A−P| as its extreme threshold; larger changes are hidden from the bars. Height counts earlier readings. Hover a bar or focus and use Left/Right arrows for its range and count.">A−P magnitude · History</th>}</tr></thead>
               <tbody>{release.events.map((event) => {
                 const delta = inspectorDelta(event)
                 const commentary = isInspectorCommentary(event)

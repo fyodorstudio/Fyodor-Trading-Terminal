@@ -46,7 +46,7 @@ For the eight higher-is-Good readings: positive delta = Good, negative delta = B
 
 Count each displayed source reading once. Grouping already excludes duplicate value IDs. The denominator is the number of displayed readings, not an assumed fixed ten. If the source supplies eight rows, the tally says eight; it does not fabricate two absent rows. A provided row with missing values contributes one Missing reading. Unknown rules contribute Unrated.
 
-Always show Good, Bad, Unchanged and the available reading total. Show Missing/Unrated when nonzero. Refresh the tally, colors and experimental direction whenever the selected release's accepted readings update. Show a per-row rule explanation on hover. No weighted score, delta sum, probability, entry/exit, target, stop or marker color is derived from the tally.
+Show Good and Bad as rows in the compact magnitude table. Aggregate Good, Bad, Unchanged and available reading totals remain in its accessible caption; include Missing/Unrated there when nonzero. Refresh the tally, colors and experimental direction whenever the selected release's accepted readings update. Show a per-row rule explanation on hover. No weighted score, delta sum, probability, entry/exit, target, stop or marker color is derived from the tally.
 
 ## Experimental EURUSD majority direction
 
@@ -61,7 +61,7 @@ Version `nfp-eurusd-majority-v1` uses the existing `nfp-vs-previous-v1` grades. 
 
 Unchanged does not vote. A complete ten-row release with all deltas zero gives Neutral. Direction requires exactly one row for each of the ten stable event IDs in the definitions table, each with a usable Actual/Previous delta. An absent series, missing delta, unknown rule or repeated series suppresses direction as Incomplete, even if the remaining rows have a majority. The actual displayed tally is retained; absent rows are not invented. The UI explains that ten usable series are needed. Upcoming releases stay Incomplete until those readings are available.
 
-Display the direction with **NFP majority rule · Experimental**, alongside the counts. Direction badge colors are **Short red, Long green, Neutral gray, Incomplete gray**, with the text labels retained in both light and dark themes. These direction colors are separate from the Good/Bad reading colors: a majority of green Good readings produces a red Short direction for EURUSD. Hover explains the mapping or incompleteness. Accepted publisher updates and corrections refresh the direction with the current displayed table. Other families receive no majority label. The existing chart symbols are unaffected.
+Display the direction badge in the top-left corner of the magnitude table, with no visible **NFP majority rule · Experimental**, **Compared with Previous** or **A−P magnitude** caption. Direction badge colors are **Short red, Long green, Neutral gray, Incomplete gray**, with the text labels retained in both light and dark themes. These direction colors are separate from the Good/Bad reading colors: a majority of green Good readings produces a red Short direction for EURUSD. Hover explains the mapping or incompleteness. Accepted publisher updates and corrections refresh the direction with the current displayed table. Other families receive no majority label. The existing chart symbols are unaffected.
 
 User examples: January 10, 2025, **4 Good / 3 Bad / 3 Unchanged → EURUSD Short**; February 7, 2025, **5 Good / 4 Bad / 1 Unchanged → EURUSD Short**. These examples establish the requested mapping, not a verified trade outcome or backtest. A narrow majority has the same direction as a large majority; no confidence percentage is assigned.
 
@@ -96,23 +96,48 @@ Participation's higher-is-Good rule is deliberately simplified: more participati
 
 Total, private, government and manufacturing payrolls overlap, as do monthly/annual wage measures. All are counted because the user requested a tally of every displayed reading; seven Bad rows are not seven independent confirmations. Classification ignores magnitude and the difference between Actual and Forecast. It describes the selected table under these rules, not the realized market reaction.
 
-## Historical A−P magnitude column
+## Historical signed A−P distribution column
 
 The NFP table now shows a miniature histogram for each series, independently of
 the displayed chart range. The historical baseline starts January 1, 2015 and
-ends strictly before the selected release. Gray bars count earlier absolute
-A−P magnitudes; the bin containing the current magnitude uses its existing
+ends strictly before the selected release. Seven signed A−P bands contain
+three negative ranges, exact zero in the center, and three positive ranges.
+Gray bar heights count earlier readings; the selected band uses its existing
 Good/Bad/Unchanged color. An empty interval uses an outline, without adding a
-historical reading. The visible percentile badge and earlier-reading count,
-P50/P75/P90 reference ticks, and structured hover/focus details help distinguish
-ordinary changes from unusually large changes. The card retains the exact
-magnitude; the colored bar identifies its interval.
+historical reading. Negative/positive position does not determine the color.
+The zero label stays centered beneath the exact-zero band, without a vertical guide.
 
-Each row has its own scale and units. A separate overflow bin retains extremes
-beyond the P95 display scale. Magnitude describes change size, not economic
-importance or a new EURUSD direction. The majority rule above remains unchanged.
+Each series uses historical P95 of |A−P| as its own extreme threshold. Dividing
+that threshold into thirds defines the three ranges on each side. Readings
+strictly beyond it are hidden from the bars but still used to calculate the
+threshold and total history count. Extreme selected readings show a colored
+edge marker and an "Extreme" size label. All-zero history uses a zero
+threshold, without padding; any nonzero selected change is then extreme.
+Hover a bar or focus and use Left/Right arrows (Home/End for endpoints) for its
+range, count and share of history. The selected size label beside the chart
+reads Small, Medium, Large or Extreme; exact zero reads Unchanged and a missing
+reading reads Unavailable. The tooltip shows selected A−P/size, inspected
+band size/range/count, earlier-reading count, and true historical minimum and
+maximum, including hidden extremes. It has no visible threshold row. The
+distribution does not change the majority rule above.
 Partial history and missing data are explicit. Stored corrections mean this
 descriptive baseline is not a point-in-time backtest.
+
+The release tally also shows the number of **Small, Medium, Large and Extreme**
+readings as table columns, separately for Good and Bad rows, using exactly the
+same selected sizes as the histograms. Zero counts display as **–**. Unchanged
+readings stay separate in the accessible caption and their individual series rows;
+a Good/Bad reading without a usable magnitude baseline is Unclassified. History
+loading/errors suppress size counts, and partial coverage is marked. This adds
+detail to the tally without weighting readings or altering the majority rule.
+
+Threshold version `zero-centered-ap-p95-v4` retains P95 and its thirds, while
+admitting exact decimal boundary equality despite floating-point rounding.
+For the stored October 2, 2026 example, the breakdown is **Good: 1 Small,
+1 Medium, 0 Large, 0 Extreme; Bad: 7 Small, 0 Medium, 0 Large, 0 Extreme**,
+plus **1 Unchanged**. Participation's +0.2 pp equals its Medium ceiling;
+earnings m/m's −0.2 pp equals its Small ceiling. Equality stays in the lower
+inclusive size category.
 
 See [the reusable component and history contract](../../../magnitude/README.md)
 for the admission rules, arithmetic, module organization and verification.

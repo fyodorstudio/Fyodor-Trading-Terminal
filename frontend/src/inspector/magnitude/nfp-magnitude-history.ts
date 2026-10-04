@@ -15,7 +15,7 @@ export function nfpMagnitudeHistory(events: StoredCalendarEvent[], selected: Ins
     event.time_mode === 0 && event.release_at !== null && event.release_at >= nfpHistoryStart && event.release_at < selected.releaseAt!))
     .filter(isNfpRelease)
   return Object.fromEntries(selected.events.map((current) => {
-    const samples: { magnitude: number; at: number }[] = []
+    const samples: { delta: number; at: number }[] = []
     let excluded = 0
     for (const release of earlier) {
       const rows = release.events.filter((event) => event.event_id === current.event_id)
@@ -24,9 +24,9 @@ export function nfpMagnitudeHistory(events: StoredCalendarEvent[], selected: Ins
       if (rows.length !== 1) { if (rows.length) excluded++; continue }
       const row = rows[0], delta = inspectorDelta(row)
       if (delta === null || !sameUnits(row, current)) { excluded++; continue }
-      samples.push({ magnitude: Math.abs(delta), at: release.releaseAt! })
+      samples.push({ delta, at: release.releaseAt! })
     }
-    return [current.value_id, { distribution: magnitudeDistribution(samples.map((sample) => sample.magnitude), inspectorDelta(current)),
+    return [current.value_id, { distribution: magnitudeDistribution(samples.map((sample) => sample.delta), inspectorDelta(current)),
       excluded, first: samples.length ? Math.min(...samples.map((sample) => sample.at)) : null,
       last: samples.length ? Math.max(...samples.map((sample) => sample.at)) : null }]
   }))

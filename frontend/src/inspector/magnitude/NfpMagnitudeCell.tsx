@@ -8,10 +8,10 @@ export function NfpMagnitudeCell({ event, history, grade }: {
   event: EconomicCalendarEvent; history: NfpMagnitudeHistory; grade: ReadingGrade
 }) {
   const row = history.rows[event.value_id]
-  const formatValue = (value: number) => formatInspectorValue(value, event, true).replace(/^\+/, '')
+  const formatValue = (value: number) => formatInspectorValue(value, event, true, 2)
   const date = (at: number | null) => at === null ? '—' : new Date(at).toISOString().slice(0, 10)
   const context = `History starts January 1, 2015 and excludes this release and later releases. ` +
-    'Stored values can include later corrections. Magnitude measures change size, not USD influence.'
+    'Stored values can include later corrections. Position shows signed A−P; color follows the existing reading grade.'
   const historyDetails = [{ label: 'Observed dates (UTC)', value: `${date(row?.first ?? null)}–${date(row?.last ?? null)}` },
     ...(row?.excluded ? [{ label: 'Excluded publications', value: String(row.excluded) }] : []),
     ...(history.partial ? [{ label: 'Coverage', value: 'Partial USD history' }] : [])]

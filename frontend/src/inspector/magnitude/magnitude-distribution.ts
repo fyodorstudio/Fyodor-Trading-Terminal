@@ -1,37 +1,55 @@
-// Descriptive display statistics. Input and output retain the series' native units.
-export const magnitudeDistributionVersion = 'absolute-ap-histogram-v1'
-export function magnitudeDistribution(values: readonly number[], current: number | null, binCount = 16) {
-  const sorted = values.filter((value) => Number.isFinite(value) && value >= 0).sort((a, b) => a - b)
-  if (!sorted.length) return null
-  function quantile(p: number) {
-    const position = (sorted.length - 1) * p
-    const lower = Math.floor(position), fraction = position - lower
-    return sorted[lower] + (sorted[Math.min(lower + 1, sorted.length - 1)] - sorted[lower]) * fraction
+// Seven signed A−P bands: three negative, exact zero, three positive.
+export const magnitudeDistributionVersion = 'zero-centered-ap-p95-v4'
+export function magnitudeDistribution(values: readonly number[], current: number | null) {
+  const samples = values.filter(Number.isFinite)
+  if (!samples.length) return null
+  const magnitudes = samples.map(Math.abs).sort((a, b) => a - b)
+  // Type-7 P95 of |A−P|, including zeros and all historical extremes.
+  const positionNumerator = (magnitudes.length - 1) * 19, lower = Math.floor(positionNumerator / 20)
+  const threshold = magnitudes[lower] +
+    (magnitudes[Math.min(lower + 1, magnitudes.length - 1)] - magnitudes[lower]) * (positionNumerator % 20) / 20
+  const limits = [threshold / 3, threshold * 2 / 3, threshold]
+  const bins = Array<number>(7).fill(0)
+  let extremeBelow = 0, extremeAbove = 0
+  let min = Infinity, max = -Infinity
+  for (const value of samples) {
+    min = Math.min(min, value); max = Math.max(max, value)
+    const index = binIndex(limits, value)
+    if (index !== null) bins[index]++
+    else if (value < 0) extremeBelow++
+    else extremeAbove++
   }
-  const p50 = quantile(.5), p75 = quantile(.75), p90 = quantile(.9), p95 = quantile(.95)
-  // P95 can be zero in a heavily zero-inflated history. Use the historical
-  // maximum then; an entirely zero baseline gets a 1-native-unit display axis.
-  const scaleMax = p95 || sorted[sorted.length - 1] || 1
-  const count = Math.max(1, Math.min(64, Math.floor(binCount) || 16))
-  const bins = Array<number>(count).fill(0)
-  let overflow = 0
-  for (const value of sorted) {
-    if (value > scaleMax) overflow++
-    else bins[Math.min(count - 1, Math.floor(value / scaleMax * count))]++
-  }
-  const magnitude = current !== null && Number.isFinite(current) ? Math.abs(current) : null
-  return { bins, overflow, scaleMax, p50, p75, p90, p95, count: sorted.length,
-    allZero: sorted[sorted.length - 1] === 0, magnitude,
-    percentile: magnitude === null ? null : 100 * sorted.filter((value) => value <= magnitude).length / sorted.length,
-    currentOverflow: magnitude !== null && magnitude > scaleMax }
+  const reading = current !== null && Number.isFinite(current) ? current : null
+  const selectedIndex = reading === null ? null : binIndex(limits, reading)
+  const currentExtreme = reading === null || selectedIndex !== null ? null : reading < 0 ? 'negative' as const : 'positive' as const
+  const currentSize = reading === null ? 'Unavailable' : selectedIndex === null ? 'Extreme' : magnitudeBandLabel(selectedIndex)
+  return { bins, limits, threshold, count: samples.length, min, max, extremeBelow, extremeAbove,
+    current: reading, currentExtreme, currentSize }
 }
 export type MagnitudeDistribution = NonNullable<ReturnType<typeof magnitudeDistribution>>
 
-// Match the histogram's bin edges exactly, including the rightmost endpoint.
+export function magnitudeBandLabel(index: number) {
+  return (['Unchanged', 'Small', 'Medium', 'Large'] as const)[Math.abs(index - 3)]
+}
+
+function binIndex(limits: readonly number[], value: number) {
+  if (value === 0) return 3
+  const magnitude = Math.abs(value)
+  if (!atOrBelow(magnitude, limits[2])) return null
+  const level = atOrBelow(magnitude, limits[0]) ? 0 : atOrBelow(magnitude, limits[1]) ? 1 : 2
+  return value < 0 ? 2 - level : 4 + level
+}
+function atOrBelow(value: number, boundary: number) {
+  // Admit decimal equality despite a few floating-point rounding steps in
+  // P95/thirds. Relative tolerance preserves real source changes and T=0.
+  return value <= boundary || value - boundary <= 4 * Number.EPSILON * Math.max(value, boundary)
+}
+export function magnitudeBin(d: MagnitudeDistribution, index: number) {
+  const edges = [-d.threshold, -d.limits[1], -d.limits[0], 0, 0, ...d.limits]
+  return { index, count: d.bins[index], from: edges[index], to: edges[index + 1] }
+}
 export function selectedMagnitudeBin(d: MagnitudeDistribution) {
-  if (d.magnitude === null) return null
-  if (d.currentOverflow) return { index: 'tail' as const, count: d.overflow, from: d.scaleMax, to: null }
-  const index = Math.min(d.bins.length - 1, Math.floor(d.magnitude / d.scaleMax * d.bins.length))
-  return { index, count: d.bins[index], from: index / d.bins.length * d.scaleMax,
-    to: (index + 1) / d.bins.length * d.scaleMax }
+  if (d.current === null) return null
+  const index = binIndex(d.limits, d.current)
+  return index === null ? null : magnitudeBin(d, index)
 }

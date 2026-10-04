@@ -5,13 +5,14 @@
 .magnitude-bar.magnitude-current { fill: currentColor; opacity: 1; stroke: currentColor; stroke-width: .7; }
 .magnitude-bin-highlight { fill: none; stroke: currentColor; stroke-opacity: .6; stroke-width: .8; stroke-dasharray: 2 2; }
 .magnitude-bar.magnitude-empty-bin { fill: none; }
-.magnitude-axis { stroke: var(--border-strong); stroke-width: .75; }
-.magnitude-quantile { stroke: var(--text-muted); stroke-width: 1; }
-.magnitude-tail-divider { stroke: var(--border-strong); stroke-dasharray: 2 2; }
+.magnitude-axis { stroke: var(--border-strong); stroke-width: .75; pointer-events: none; }
+.magnitude-zero-label { fill: var(--text); font-weight: 600; }
+.magnitude-extreme-marker { fill: currentColor; pointer-events: none; }
+.magnitude-bin-target { fill: transparent; pointer-events: all; }
+.magnitude-inspected .magnitude-bar { stroke: var(--text); stroke-width: 1; }
+.magnitude-inspected .magnitude-current { stroke: currentColor; }
 .magnitude-label { fill: var(--text-muted); font-size: 9px; }
-.magnitude-rank { min-width: 48px; text-align: right; font-variant-numeric: tabular-nums; }
-.magnitude-rank strong { display: block; font-size: 12px; line-height: 17px; }
-.inspector-detail td .magnitude-rank small { margin: 0; font-size: 9px; line-height: 12px; font-weight: 400; }
+.magnitude-size { min-width: 48px; text-align: right; white-space: nowrap; font-size: 11px; }
 .inspector-detail .inspector-magnitude-table th:first-child, .inspector-detail .inspector-magnitude-table td:first-child { width: 36%; }
 .inspector-detail .inspector-magnitude-table th:last-child { text-align: left; }
 .inspector-detail td.inspector-magnitude-cell { width: 272px; min-width: 272px; text-align: left; }
@@ -22,7 +23,4 @@
 .magnitude-details dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 2px 0; }
 .magnitude-details dt { color: var(--text-muted); flex-shrink: 0; }
 .magnitude-details dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
-.magnitude-details-quantiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding-block: 8px; margin-top: 7px; border-block: 1px solid var(--border); color: var(--text-muted); }
-.magnitude-details-quantiles b { display: block; color: var(--text-strong); font-weight: 600; }
-.magnitude-details p { margin: 7px 0 0; }
-.magnitude-details-note { color: var(--text-muted); font-size: 10px; }
+.magnitude-details-size { display: block; font-size: 10px; }
