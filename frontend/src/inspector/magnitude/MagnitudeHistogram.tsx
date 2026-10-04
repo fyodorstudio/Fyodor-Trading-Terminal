@@ -23,16 +23,17 @@ export function MagnitudeHistogram({ distribution: d, formatValue, label, contex
   const interval = (bin: NonNullable<typeof selected>) => bin.index === 3 ? `${formatValue(0)} (exact)` :
     d.threshold === 0 ? 'Empty (threshold 0)' : bin.index < 3 ? `${formatValue(bin.from)} to < ${formatValue(bin.to)}` :
       `> ${formatValue(bin.from)} to ${formatValue(bin.to)}`
-  const frequency = (bin: NonNullable<typeof selected>) => `${bin.count} of ${d.count} · ${(100 * bin.count / d.count).toFixed(1)}%`
+  const frequency = (bin: NonNullable<typeof selected>) => `${bin.count} of ${d.count}` + (d.count ? ` · ${(100 * bin.count / d.count).toFixed(1)}%` : '')
+  const historicalValue = (value: number | null) => value === null ? '—' : formatValue(value)
   const extremeLabel = d.currentExtreme === 'negative' ? 'Extreme −' : 'Extreme +'
   const threshold = `|A−P| > ${formatValue(d.threshold).replace(/^\+/, '')}`
   const omitted = d.extremeBelow + d.extremeAbove
   const details = `${label}. Selected A−P: ${d.current === null ? 'unavailable' : formatValue(d.current)}. ` +
-    `Selected size: ${d.currentSize}. Historical minimum ${formatValue(d.min)}; historical maximum ${formatValue(d.max)}. ` +
+    `Selected size: ${d.currentSize}. Historical minimum ${historicalValue(d.min)}; historical maximum ${historicalValue(d.max)}. ` +
     (d.currentExtreme ? `${extremeLabel}. ` : '') +
     `${d.count} earlier readings${d.count < 12 ? ' (small sample)' : ''}. ` +
     (inspected ? `This bar's range: ${magnitudeBandLabel(inspected.index)}, ${interval(inspected)}; ${frequency(inspected)} earlier readings. ` : '') +
-    `Extreme threshold: ${threshold}, historical 95th percentile of absolute A−P. ` +
+    `Extreme threshold: ${threshold}, ${d.source === 'custom' ? 'custom boundaries configured in Scatter Plot' : 'historical 95th percentile of absolute A−P'}. ` +
     `${omitted} historical extremes omitted from the seven bars. Exact zero is the center bar. ` +
     historyDetails.map((item) => `${item.label}: ${item.value}. `).join('') + context
   function bar(index: number, count: number) {
@@ -86,8 +87,8 @@ export function MagnitudeHistogram({ distribution: d, formatValue, label, contex
         </>}
         <div><dt>Earlier readings</dt><dd>{d.count}{omitted > 0 ? ` · ${omitted} extremes hidden` : ''}
           {d.count < 12 ? ' · Small sample' : ''}</dd></div>
-        <div><dt>Historical minimum</dt><dd>{formatValue(d.min)}</dd></div>
-        <div><dt>Historical maximum</dt><dd>{formatValue(d.max)}</dd></div>
+        <div><dt>Historical minimum</dt><dd>{historicalValue(d.min)}</dd></div>
+        <div><dt>Historical maximum</dt><dd>{historicalValue(d.max)}</dd></div>
       </dl>
     </MagnitudeDetails>}
   </span>

@@ -41,6 +41,30 @@ try {
   const { MagnitudeCalculationDetails } = await server.ssrLoadModule('./src/scatter-plot/inspection/MagnitudeCalculationDetails.tsx')
   const { ScatterPlotDock } = await server.ssrLoadModule('./src/scatter-plot/index.ts')
   const { defaultScatterAppearance, readScatterAppearance, normalizeScatterAppearance, scatterAppearanceKey } = await server.ssrLoadModule('./src/scatter-plot/settings/scatter-plot-appearance.ts')
+  const { magnitudeDistribution, selectedMagnitudeBin } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-distribution.ts')
+  const { tallyNfpMagnitudes } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-tally.ts')
+  const { normalizeNfpMagnitudeSettings, readNfpMagnitudeSettings, saveNfpMagnitudeLimits, nfpMagnitudeSettingsKey } =
+    await server.ssrLoadModule(domain + 'magnitude/nfp-magnitude-settings.ts')
+  assert.deepEqual(normalizeNfpMagnitudeSettings({ '840030016': [1, 4, 10], '840030015': [1, 1, 2], unknown: [1, 2, 3], '840030019': [0, 2, 3] }),
+    { '840030016': [1, 4, 10] }, 'Invalid/unknown series cannot enter saved scoring settings')
+  for (const bad of [[0, 1, 2], [-1, 1, 2], [1, 1, 2], [3, 2, 1], [1, 2, Infinity], [1, 2]]) {
+    assert.throws(() => magnitudeDistribution([1], 1, bad), RangeError)
+  }
+  const customDistribution = magnitudeDistribution([-11, -10, -4, -1, 0, 1, 4, 10, 11], -4, [1, 4, 10])
+  assert.deepEqual(customDistribution.bins, Array(7).fill(1))
+  assert.equal(customDistribution.currentSize, 'Medium')
+  assert.equal(selectedMagnitudeBin(customDistribution).index, 1)
+  assert.equal(customDistribution.extremeBelow, 1); assert.equal(customDistribution.extremeAbove, 1)
+  for (const sign of [-1, 1]) for (const [value, size] of [[0, 'Unchanged'], [1, 'Small'], [1.000001, 'Medium'],
+    [4, 'Medium'], [4.000001, 'Large'], [10, 'Large'], [10.000001, 'Extreme']]) {
+    assert.equal(magnitudeDistribution([], sign * value, [1, 4, 10]).currentSize, size)
+  }
+  const noEarlierCustom = magnitudeDistribution([], 2, [1, 4, 10])
+  assert.equal(noEarlierCustom.count, 0); assert.equal(noEarlierCustom.min, null); assert.equal(noEarlierCustom.max, null)
+  assert.equal(magnitudeDistribution([], null, [1, 4, 10]).currentSize, 'Unavailable')
+  localStorage.setItem(nfpMagnitudeSettingsKey, '{broken')
+  assert.deepEqual(readNfpMagnitudeSettings(), {})
+  localStorage.removeItem(nfpMagnitudeSettingsKey)
   assert.deepEqual(readScatterAppearance(), defaultScatterAppearance)
   localStorage.setItem(scatterAppearanceKey, '{bad-json')
   assert.deepEqual(readScatterAppearance(), defaultScatterAppearance, 'Broken saved JSON falls back safely')
@@ -78,6 +102,12 @@ try {
   const events = [...excluded, ...partial, ...second, ...first, ...third, first[0]]
   const seriesId = nfpScatterScope.series[0].id
   const model = nfpScatterModel(events, now, seriesId, null)
+  assert.equal(model.deltaUnit, 'k')
+  assert.equal(nfpScatterModel(events, now, '840030015', null).deltaUnit, 'pp')
+  assert.equal(nfpScatterModel(events, now, '840030020', null).deltaUnit, 'h')
+  assert.equal(model.formatDelta(304.830745, 2), '+304.83k')
+  assert.equal(model.formatDelta(-632.875789, 2), '-632.88k')
+  assert.equal(model.formatDelta(304.830745), '+304.830745k', 'Axis rounding does not alter precise inspection values')
   assert.equal(model.inspection.at, third[0].release_at, 'Default is the latest release with all ten usable Actual/Previous readings')
   assert.equal(model.inspection.point.delta, -2)
   assert.equal(model.inspection.distribution.count, 2)
@@ -118,6 +148,20 @@ try {
   const zeros = nfpScatterModel([...release('zero1', first[0].release_at, 0), ...release('zero2', second[0].release_at, 0)], now, seriesId, null)
   assert.equal(zeros.inspection.distribution.threshold, 0)
   assert.equal(zeros.inspection.distribution.currentSize, 'Unchanged')
+  const customSettings = Object.fromEntries(nfpScatterScope.series.map((series) => [series.id, [1, 3, 8]]))
+  for (const selected of groups) for (const series of nfpScatterScope.series) {
+    const current = selected.events.find((e) => e.event_id === series.id)
+    const scatter = nfpScatterModel(events, now, series.id, selected.id, customSettings).inspection
+    assert.deepEqual(scatter.distribution, nfpMagnitudeHistory(events, selected, customSettings)[current.value_id].distribution)
+    assert.deepEqual(scatter.distribution.limits, [1, 3, 8], 'Custom boundaries stay fixed across publication dates')
+    assert.equal(scatter.quantile, null, 'Custom scoring has no P95 interpolation sources')
+  }
+  const lastComplete = groups.find((group) => group.releaseAt === third[0].release_at)
+  const customTally = tallyNfpMagnitudes(lastComplete, nfpMagnitudeHistory(events, lastComplete, customSettings))
+  assert.equal(customTally.good.Medium + customTally.bad.Medium, 10, 'The tally uses the same ten custom classifications')
+  const separateSeries = { [seriesId]: [10, 20, 100] }
+  assert.equal(nfpScatterModel(events, now, seriesId, null, separateSeries).inspection.distribution.currentSize, 'Small')
+  assert.equal(nfpScatterModel(events, now, '840030015', null, separateSeries).inspection.distribution.source, 'p95')
   console.log('✓ Shared Inspector sample admission, latest-completed selection, strict prior history and exact per-series distributions')
 
   const geom = scatterPlotGeometry(model.points, model.inspection.distribution, false, 900, 300)
@@ -130,6 +174,16 @@ try {
     'Zero-history plot padding never changes its zero magnitude threshold')
   const svgApp = mount(MagnitudeScatterPlot, { model, zoom: false, onInspect: () => {} })
   await svgApp.render()
+  const yTicks = [...svgApp.container.querySelectorAll('text.scatter-plot-tick[text-anchor="end"]')].slice(0, 5)
+  const svgGeometry = scatterPlotGeometry(model.points, model.inspection.distribution, false, 900, 280, model.inspection.at)
+  assert.deepEqual(yTicks.map((tick) => tick.textContent), svgGeometry.deltaTicks.map((delta) => model.formatDelta(delta, 2)),
+    'The production axis uses at most two decimal places while retaining exact coordinates')
+  await React.act(async () => svgApp.container.querySelector('svg').dispatchEvent(new dom.PointerEvent('pointermove', {
+    clientX: svgGeometry.left + 50, clientY: svgGeometry.top + 35, pointerId: 1, isPrimary: true, bubbles: true,
+  })))
+  const roundedCrosshair = svgApp.container.querySelector('.scatter-plot-crosshair')
+  assert.equal(roundedCrosshair.querySelector('text').textContent, model.formatDelta(Number(roundedCrosshair.dataset.crosshairDelta), 2),
+    'Crosshair rounding follows the same display policy as the axis')
   assert.equal(svgApp.container.querySelectorAll('[data-point-id]').length, 4)
   assert.equal(svgApp.container.querySelectorAll('[data-later="true"]').length, 1)
   assert.equal(svgApp.container.querySelector('.scatter-plot-later'), null, 'Later publications are never assigned a dimming style')
@@ -256,6 +310,60 @@ try {
   await click([...reopened.container.querySelectorAll('button')].find((button) => button.textContent === 'Reset appearance'))
   assert.deepEqual(readScatterAppearance(), defaultScatterAppearance)
   console.log('✓ Larger undimmed dots, saved appearance controls, custom guide levels/styles, line and shading visibility, reset and unchanged scoring/viewport')
+
+  await click(appearanceButton)
+  await click([...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Reset appearance'))
+  await click([...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Done'))
+  const boundary = (label) => app.container.querySelector(`[aria-label="${label} upper boundary"]`)
+  const applyBoundaries = () => [...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Apply boundaries')
+  const priorThreshold = app.container.querySelector('[data-threshold]').dataset.threshold
+  const beforeCustom = requests.length
+  await changeInput(boundary('Small'), 5); await changeInput(boundary('Medium'), 2); await changeInput(boundary('Large'), 4)
+  assert.ok(applyBoundaries().disabled)
+  assert.equal(app.container.querySelector('[data-threshold]').dataset.threshold, priorThreshold, 'Invalid drafts never change live scoring')
+  await changeInput(boundary('Small'), 1)
+  await click(applyBoundaries())
+  assert.deepEqual(readNfpMagnitudeSettings(), { '840030015': [1, 2, 4] })
+  assert.equal(app.container.querySelector('[data-threshold]').dataset.threshold, '4')
+  assert.match(app.container.querySelector('.scatter-plot-inspection').textContent, /SizeLarge.*Custom outer boundary4 pp/)
+  assert.equal(app.container.querySelector('.scatter-plot-inspection details'), null)
+  assert.equal(app.container.querySelector('.scatter-plot-quantile'), null)
+  assert.deepEqual([...app.container.querySelectorAll('[data-cutoff]')].map((line) => Number(line.dataset.cutoff)), [1, -1, 2, -2, 4, -4])
+  assert.equal(requests.length, beforeCustom, 'Applying boundaries updates models without refetching inventory')
+  await click(appearanceButton)
+  assert.equal(setting('Level 1 position (% of P95)'), null, 'Custom guide positions come from the scoring boundaries')
+  assert.equal([...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Add level'), undefined)
+  const automaticStylesBeforeCustom = readScatterAppearance().levels
+  await changeInput(setting('Level 1 color'), '#123456')
+  assert.deepEqual(readScatterAppearance().levels, automaticStylesBeforeCustom, 'Custom styling preserves automatic guide preferences')
+  assert.equal(app.container.querySelector('[data-guide-level="1"] line').getAttribute('stroke'), '#123456')
+  assert.equal(app.container.querySelector('[data-threshold]').dataset.threshold, '4', 'Styling never changes configured scoring')
+  await click([...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Done'))
+  await click(app.container.querySelector(`[data-point-id="${first[1].value_id}"]`))
+  assert.match(app.container.querySelector('.scatter-plot-inspection').textContent, /SizeSmall.*Earlier readings0.*Custom outer boundary4 pp/)
+  await click([...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Latest release'))
+  assert.match(app.container.querySelector('.scatter-plot-inspection').textContent, /SizeMedium.*Custom outer boundary4 pp/)
+  await React.act(async () => { seriesSelect.value = seriesId; seriesSelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  assert.match(app.container.querySelector('.scatter-magnitude-source').textContent, /P95/)
+  await changeInput(boundary('Small'), 10); await changeInput(boundary('Medium'), 20); await changeInput(boundary('Large'), 100)
+  await click(applyBoundaries())
+  assert.deepEqual(readNfpMagnitudeSettings(), { '840030015': [1, 2, 4], [seriesId]: [10, 20, 100] })
+  await React.act(async () => { seriesSelect.value = '840030015'; seriesSelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
+  assert.deepEqual(['Small', 'Medium', 'Large'].map((label) => boundary(label).value), ['1', '2', '4'])
+  const remounted = mount(ScatterPlotDock, props)
+  let remountStart = requests.length
+  await remounted.render()
+  await respond(requests[remountStart], health())
+  await respond(requests[remountStart + 1], page(events))
+  assert.match(remounted.container.querySelector('.scatter-plot-inspection').textContent, /Custom outer boundary100k/,
+    'Saved settings apply when reopening the dock')
+  await React.act(async () => saveNfpMagnitudeLimits(seriesId, [1, 4, 10]))
+  assert.equal(app.container.querySelector('[data-threshold]').dataset.threshold, '4', 'Updating one series does not change another')
+  assert.equal(remounted.container.querySelector('[data-threshold]').dataset.threshold, '10', 'All mounted consumers receive shared updates')
+  await React.act(async () => { saveNfpMagnitudeLimits(seriesId, null); saveNfpMagnitudeLimits('840030015', null) })
+  assert.match(app.container.querySelector('.scatter-magnitude-source').textContent, /P95/)
+  assert.equal(remounted.container.querySelector('[data-threshold]').dataset.threshold, '2.9')
+  console.log('✓ Independent native-unit boundaries, inclusive ties, shared Inspector models/tally, exact blue guides, invalid drafts, persistence and live subscriptions')
 
   let start = requests.length
   await app.render({ ...props, brokerId: 'Broker-B' })

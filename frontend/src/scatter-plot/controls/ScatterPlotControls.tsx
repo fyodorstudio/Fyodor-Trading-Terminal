@@ -1,11 +1,12 @@
 import type { ScatterOption } from '../contracts/scatter-plot-types'
 import type { Ref } from 'react'
 
-export function ScatterPlotControls({ scope, seriesId, onSeriesChange, zoom, onZoomChange, onLatest, appearanceOpen, onAppearance, appearanceButtonRef }: {
+export function ScatterPlotControls({ scope, seriesId, onSeriesChange, zoom, onZoomChange, onLatest, appearanceOpen, onAppearance, appearanceButtonRef, customMagnitude = false }: {
   scope: { pair: ScatterOption; side: ScatterOption; family: ScatterOption; series: ScatterOption[] }
   seriesId: string; onSeriesChange: (id: string) => void
   zoom: boolean; onZoomChange: (zoom: boolean) => void; onLatest: () => void
   appearanceOpen: boolean; onAppearance: () => void; appearanceButtonRef?: Ref<HTMLButtonElement>
+  customMagnitude?: boolean
 }) {
   return <div className="scatter-plot-controls">
     {([['Pair', scope.pair], ['Base/Quote', scope.side], ['Family', scope.family]] as const).map(([label, option]) =>
@@ -17,7 +18,7 @@ export function ScatterPlotControls({ scope, seriesId, onSeriesChange, zoom, onZ
     </select></label>
     <div className="scatter-plot-actions">
       <button type="button" onClick={onLatest}>Latest release</button>
-      <button type="button" aria-pressed={zoom} onClick={() => onZoomChange(!zoom)}>{zoom ? 'Full range' : 'P95 zoom'}</button>
+      <button type="button" aria-pressed={zoom} onClick={() => onZoomChange(!zoom)}>{zoom ? 'Full range' : customMagnitude ? 'Boundary zoom' : 'P95 zoom'}</button>
       <button ref={appearanceButtonRef} type="button" aria-haspopup="dialog" aria-expanded={appearanceOpen} onClick={onAppearance}>Appearance</button>
     </div>
   </div>

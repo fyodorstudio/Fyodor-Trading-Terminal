@@ -158,6 +158,7 @@ export function inspectorDelta(event: EconomicCalendarEvent): number | null {
   if (event.actual === null || event.previous === null || !Number.isFinite(event.actual) || !Number.isFinite(event.previous)) return null
   const raw = event as EconomicCalendarEvent & { actual_raw_scaled_1e6?: string | null; previous_raw_scaled_1e6?: string | null }
   if (raw.actual_raw_scaled_1e6 != null && raw.previous_raw_scaled_1e6 != null) {
+    if (!/^[+-]?\d+$/.test(raw.actual_raw_scaled_1e6) || !/^[+-]?\d+$/.test(raw.previous_raw_scaled_1e6)) return null
     const difference = BigInt(raw.actual_raw_scaled_1e6) - BigInt(raw.previous_raw_scaled_1e6)
     const number = Number(difference)
     return Number.isSafeInteger(number) ? number / 1_000_000 : null
@@ -167,13 +168,16 @@ export function inspectorDelta(event: EconomicCalendarEvent): number | null {
   if (!Number.isSafeInteger(actual) || !Number.isSafeInteger(previous) || !Number.isSafeInteger(actual - previous)) return null
   return (actual - previous) / scale
 }
+export function inspectorValueUnit(event: EconomicCalendarEvent, delta = false): string {
+  const isRate = delta && ['840050014', '999010006', '999010007', '999010015'].includes(event.event_id)
+  return event.unit === 1 ? delta ? isRate ? ' bp' : ' pp' : '%' :
+    event.unit === 3 ? ' h' : ({ 1: 'k', 2: 'M', 3: 'B', 4: 'T' } as Record<number, string>)[event.multiplier] ??
+    (event.unit === 0 ? ' pts' : '')
+}
 export function formatInspectorValue(value: number | null, event: EconomicCalendarEvent, delta = false, maximumFractionDigits = 6): string {
   if (value === null || !Number.isFinite(value)) return '—'
   const isRate = delta && ['840050014', '999010006', '999010007', '999010015'].includes(event.event_id)
   const number = isRate ? value * 100 : value
   const text = number.toLocaleString(undefined, { maximumFractionDigits, signDisplay: delta ? 'exceptZero' : 'auto' })
-  const suffix = event.unit === 1 ? delta ? isRate ? ' bp' : ' pp' : '%' :
-    event.unit === 3 ? ' h' : ({ 1: 'k', 2: 'M', 3: 'B', 4: 'T' } as Record<number, string>)[event.multiplier] ??
-    (event.unit === 0 ? ' pts' : '')
-  return `${text}${suffix}`
+  return `${text}${inspectorValueUnit(event, delta)}`
 }

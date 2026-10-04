@@ -1,6 +1,6 @@
 # Inspector signed A−P histograms
 
-Version: `zero-centered-ap-p95-v4`. Initial adapter: US/USD NFP only. The existing
+Version: `zero-centered-ap-configurable-v5`. Initial adapter: US/USD NFP only. The existing
 `magnitude` module paths remain, but both samples and selected readings now keep
 their signs.
 
@@ -11,7 +11,9 @@ experimental majority direction, chart symbols or published Criterion results.
 
 | Module | Responsibility |
 | --- | --- |
-| `magnitude-distribution.ts` | Pure seven-band counts and per-series absolute P95 threshold in native units. |
+| `magnitude-distribution.ts` | Pure seven-band counts using custom native-unit boundaries, or per-series absolute P95 when unconfigured. |
+| `nfp-magnitude-settings.ts` | Validated, saved per-series boundaries and shared reactive snapshot; independent of Scatter Plot UI. |
+| `settings/magnitude-settings-store.ts` | Reusable scoped store factory: pair/currency/side/family keys, admitted series, immutable snapshots, persistence and subscriptions. |
 | `MagnitudeHistogram.tsx` / `magnitude-histogram.css` | Reusable compact SVG; receives a distribution, formatter, color and provenance text. No fetching or economic rules. |
 | `MagnitudeDetails.tsx` | Structured hover/focus detail card, portaled out of table overflow and positioned within the viewport. |
 | `nfp-magnitude-history.ts` | NFP identity, January 2015/prior-release boundaries, series/unit matching and sample admission. |
@@ -27,7 +29,8 @@ logic remain here and in `useStoredCalendar.ts`.
 The isolated `scatter-plot/PAIR/EURUSD/USD/NFP` adapter also consumes exported
 `nfpHistoryReleases`/`nfpMagnitudeSamples` and `magnitudeSizeForValue`. The plot
 and Inspector therefore admit the same samples and use one threshold/classifier.
-Scatter Plot exposes individual source points and P95 interpolation details;
+Scatter Plot edits three independent native-unit boundaries and exposes
+individual source points. Unconfigured series retain P95 interpolation details;
 its point selection and full-history inventory are independent of Inspector's
 visible range and selected publication.
 
@@ -65,30 +68,39 @@ visible range and selected publication.
 
 ## Plot arithmetic and appearance
 
-Version 4 uses seven equal visual slots: three negative bands, an exact-zero
+Version 5 uses seven equal visual slots: three negative bands, an exact-zero
 band in the center, and three positive bands. The slots describe signed
 change-size categories; the zero slot has no numeric width. Each stable series
-computes its own threshold T = historical P95 of |A−P|, in native units, using
+uses its saved Small, Medium and Large boundaries `S < M < L`, with `S > 0`.
+Both signs mirror these same native-unit boundaries. Extreme means `|A−P| > L`.
+They are configured in Scatter Plot's Magnitude form, stored independently per
+series on this device, and consumed reactively by Inspector's history, labels
+and tally. Applying them recounts the admitted history; it does not change
+Actual/Previous values, Good/Bad grades or the direction rule. Boundaries stay
+fixed across dates and broker changes. Invalid settings/drafts never enter the
+classifier. Resetting a series removes only its override.
+
+An unconfigured series computes T = historical P95 of |A−P|, in native units, using
 all its usable earlier readings, including zeros and extremes. P95 uses
 type-7 interpolation at (N−1) × .95. There is no pooled NFP threshold and the
 selected/current or future releases never enter the threshold sample.
 
-The three side-band widths are T/3. From left to right:
+In that automatic mode, S = T/3, M = 2T/3 and L = T. From left to right:
 
 | Slot | Admitted A−P |
 | --- | --- |
-| 0 | −T ≤ A−P < −2T/3 |
-| 1 | −2T/3 ≤ A−P < −T/3 |
-| 2 | −T/3 ≤ A−P < 0 |
+| 0 | −L ≤ A−P < −M |
+| 1 | −M ≤ A−P < −S |
+| 2 | −S ≤ A−P < 0 |
 | 3 | A−P = 0 |
-| 4 | 0 < A−P ≤ T/3 |
-| 5 | T/3 < A−P ≤ 2T/3 |
-| 6 | 2T/3 < A−P ≤ T |
+| 4 | 0 < A−P ≤ S |
+| 5 | S < A−P ≤ M |
+| 6 | M < A−P ≤ L |
 
-A change is extreme only when |A−P| > T; equality stays in an outer band.
+A change is extreme only when |A−P| > L; equality stays in an outer band.
 P95's interpolation position uses the integer ratio 19/20. Boundary comparisons
 admit up to four relative floating-point epsilons so exact decimal equality at
-T/3, 2T/3 or T stays in its inclusive category. Distinct micro-unit source changes
+S, M or L stays in its inclusive category. Distinct micro-unit source changes
 remain distinct, exact zero remains exact, and T=0 admits no nonzero reading.
 Historical extreme readings are omitted from the bars, without stretching the
 axis or adding Tail bins. Below/above extreme counts remain in the statistics:
@@ -102,10 +114,10 @@ Bar height is the actual earlier-reading count, scaled to the most populated
 displayed band. The selected reading is never added to the baseline. Its band
 retains existing Good/Bad/Unchanged color independently of sign. An empty
 selected band uses an outline without inventing frequency. The axis labels
-show −T, exact zero centered underneath its slot, and +T. There is no tall zero
+show −L, exact zero centered underneath its slot, and +L. There is no tall zero
 guide. The selected reading's size appears beside the plot: Small for the
-inner thirds, Medium for the middle thirds, Large for the outer thirds, and
-Extreme beyond T. Exact zero reads Unchanged; missing A−P reads Unavailable.
+inner ranges, Medium for the middle ranges, Large for the outer ranges, and
+Extreme beyond L. Exact zero reads Unchanged; missing A−P reads Unavailable.
 Both signs use the same size labels, calculated at full precision. The label
 stays tied to the selected reading while inspecting another band. The earlier-
 reading count lives only in the tooltip.
@@ -124,12 +136,14 @@ coverage remains visible. Counts refresh on release/broker changes and incoming
 Actual/Previous changes. This is a descriptive breakdown; it does not introduce
 weights or change the existing majority direction rule.
 
-All-zero or strongly zero-inflated history can have T = 0. The center still
+In automatic P95 mode, all-zero or strongly zero-inflated history can have T = 0. The center still
 counts exact zeros; all nonzero readings are extreme. Side slots remain empty
 and report "Empty (threshold 0)" on inspection, without display padding or a
 fabricated threshold. Nonzero constant history has T = abs(constant) and
 occupies the appropriate outer slot. Fewer than twelve samples retain the
-small-sample label; no usable history has no plot.
+small-sample label; no usable history has no plot unless custom boundaries exist.
+Custom mode can classify the current reading with zero earlier samples, empty
+bars and unknown historical min/max; frequencies avoid undefined percentages.
 
 Every slot has a full-height pointer target, including empty bands. Hover to
 inspect its range/count, or focus and use Left/Right arrows; Home/End inspect
@@ -170,6 +184,15 @@ zero/missing/unclassified readings, live updates, partial/unavailable history,
 family isolation and the October 2, 2026 inventory example. Table markup checks
 cover column/row headers, zero dashes and their accessible labels, removal of
 the old summary text, and preservation of the direction badge.
+Custom-boundary coverage in the scatter tests includes unequal intervals,
+both signs/ties, zero earlier samples, invalid storage and drafts, fixed
+per-series limits across dates, exact guide parity, tally parity and reopen/reset.
+The mounted Inspector history test verifies immediate settings-driven
+reclassification with no history refetch and no Scatter Plot mount dependency.
+The separate settings tests verify scope isolation for reused series IDs,
+immutable snapshot identity, key compatibility, cross-window changes and cleanup,
+safe session-only updates when storage is unavailable, and editor draft lifecycle.
+Invalid raw integer strings return an unavailable delta rather than throwing.
 
 Manual visual checks: table width/height at your preferred dock size, light/dark
 contrast, plot details, centered zero and colored extreme/empty-bin readability. These

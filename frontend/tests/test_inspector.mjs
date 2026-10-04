@@ -81,6 +81,11 @@ try {
   assert.equal(data.inspectorDelta(event()), .2, 'Decimal delta is exact and uses Previous, not revised Previous or Forecast')
   assert.equal(data.inspectorDelta(event({ actual: null })), null)
   assert.equal(data.inspectorDelta(event({ actual: 0, previous: 0 })), 0)
+  for (const invalid of ['invalid', '1.5', '', 'Infinity', '0xFF']) {
+    assert.equal(data.inspectorDelta(event({ actual_raw_scaled_1e6: invalid, previous_raw_scaled_1e6: '100000' })), null)
+    assert.equal(data.inspectorDelta(event({ actual_raw_scaled_1e6: '300000', previous_raw_scaled_1e6: invalid })), null,
+      'Malformed raw data is unavailable rather than crashing both historical views')
+  }
   assert.equal(data.formatInspectorValue(.2, event(), true), '+0.2 pp')
   assert.equal(data.formatInspectorValue(.123123123, event(), true, 2), '+0.12 pp')
   assert.equal(data.formatInspectorValue(-.123123123, event(), true, 2), '-0.12 pp')
@@ -1106,6 +1111,17 @@ try {
   await act(async () => window.dispatchEvent(new dom.Event('scroll')))
   assert.equal(document.querySelector('.magnitude-details'), null, 'Scrolling closes the card rather than leaving a stale anchor')
   await act(async () => plot.blur())
+  const { saveNfpMagnitudeLimits } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-settings.ts')
+  const requestsBeforeCustom = storageRequests.length
+  await act(async () => saveNfpMagnitudeLimits('840030016', [2, 5, 8]))
+  assert.deepEqual(nfpHistoryView.rows.a.distribution.limits, [2, 5, 8])
+  assert.equal(historyApp.container.querySelector('.magnitude-size').textContent, 'Small',
+    'Inspector immediately reclassifies from Scatter Plot settings without remounting')
+  assert.deepEqual([...plot.querySelectorAll('.magnitude-label')].map((node) => node.textContent), ['-8k', '+8k', '0'])
+  assert.match(plot.getAttribute('aria-label'), /custom boundaries configured in Scatter Plot/)
+  assert.equal(storageRequests.length, requestsBeforeCustom, 'Settings changes do not reload Inspector history')
+  await act(async () => saveNfpMagnitudeLimits('840030016', null))
+  assert.equal(historyApp.container.querySelector('.magnitude-size').textContent, 'Large')
   await historyApp.render({ selected: { ...selectedNfp, events: [{ ...selectedNfp.events[0], actual: null }] } })
   assert.equal(historyApp.container.querySelectorAll('.magnitude-current').length, 0, 'Missing current delta retains gray history without a fake marker')
   assert.equal(nfpHistoryView.rows.a.distribution.count, 2)

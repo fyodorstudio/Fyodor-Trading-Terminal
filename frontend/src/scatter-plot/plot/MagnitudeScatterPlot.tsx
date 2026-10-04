@@ -25,7 +25,8 @@ export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', app
   const clipId = `scatter-clip-${useId().replace(/:/g, '')}`
   const quantileIds = [inspection?.quantile?.lower.id, inspection?.quantile?.upper.id]
   const currentIndex = points.findIndex((point) => point.releaseId === inspection?.releaseId)
-  const guides = distribution && distribution.threshold > 0 ? scatterGuideLevels(a, distribution.threshold) : []
+  const guides = distribution && distribution.threshold > 0 ? scatterGuideLevels(a, distribution.threshold,
+    distribution.source === 'custom' ? distribution.limits : undefined) : []
   return <div className="scatter-plot-canvas" ref={setElement}>
     <svg ref={setSvg} viewBox={`0 0 ${size.width} ${size.height}`} role="group" aria-label="Release date versus signed A−P scatter plot"
       className={dragging ? 'scatter-plot-dragging' : undefined}
@@ -51,7 +52,8 @@ export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', app
             stroke={level.color} strokeWidth={level.width} strokeOpacity={a.guideOpacity / 100}
             strokeDasharray={a.guideStyle === 'dashed' ? '3 4' : a.guideStyle === 'dotted' ? '1 3' : undefined}
             x1={g.left} x2={g.right} y1={g.y(sign * limit)} y2={g.y(sign * limit)}>
-            <title>Guide at {Number((level.factor * 100).toFixed(6))}% of P95: {formatDelta(sign * limit)}</title>
+            <title>{distribution?.source === 'custom' ? `${['Small', 'Medium', 'Large'][level.id - 1]} boundary` :
+              `Guide at ${Number((level.factor * 100).toFixed(6))}% of P95`}: {formatDelta(sign * limit)}</title>
           </line>)}
         </g>
       })}
@@ -88,7 +90,7 @@ export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', app
         </g>
       })}
       </g>
-      {g.deltaTicks.map((delta) => <text key={delta} className="scatter-plot-tick" x={g.left - 8} y={g.y(delta) + 3} textAnchor="end">{formatDelta(delta)}</text>)}
+      {g.deltaTicks.map((delta) => <text key={delta} className="scatter-plot-tick" x={g.left - 8} y={g.y(delta) + 3} textAnchor="end">{formatDelta(delta, 2)}</text>)}
       {g.dateTicks.map((at, index) => <text key={at} className="scatter-plot-tick" x={g.x(at)} y={g.bottom + 18}
         textAnchor={index === 0 ? 'start' : index === g.dateTicks.length - 1 ? 'end' : 'middle'}>{date(at)}</text>)}
       <text className="scatter-plot-axis-label" x={(g.left + g.right) / 2} y={size.height - 6} textAnchor="middle">Release date (UTC)</text>
@@ -109,7 +111,7 @@ export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', app
         <line x1={cursor.x} x2={cursor.x} y1={g.top} y2={g.bottom} />
         <line x1={g.left} x2={g.right} y1={cursor.y} y2={cursor.y} />
         <rect x={4} y={Math.max(g.top, Math.min(g.bottom - 18, cursor.y - 9))} width={g.left - 8} height={18} rx={2} />
-        <text x={g.left / 2} y={Math.max(g.top + 12, Math.min(g.bottom - 6, cursor.y + 3))} textAnchor="middle">{formatDelta(g.deltaAt(cursor.y))}</text>
+        <text x={g.left / 2} y={Math.max(g.top + 12, Math.min(g.bottom - 6, cursor.y + 3))} textAnchor="middle">{formatDelta(g.deltaAt(cursor.y), 2)}</text>
         <g transform={`translate(${Math.max(g.left, Math.min(g.right - 112, cursor.x - 56))} ${g.bottom + 2})`}>
           <rect width={112} height={18} rx={2} />
           <text x={56} y={12} textAnchor="middle">{new Date(g.dateAt(cursor.x)).toISOString().slice(0, 16).replace('T', ' ')}</text>

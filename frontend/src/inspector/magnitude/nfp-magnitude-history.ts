@@ -3,18 +3,19 @@ import { groupInspectorReleases, inspectorDelta, type InspectorRelease } from '.
 import { nfpReadingRules } from '../grading/nfp-grading'
 import type { StoredCalendarEvent } from '../useStoredCalendar'
 import { magnitudeDistribution } from './magnitude-distribution'
+import type { NfpMagnitudeSettings } from './nfp-magnitude-settings'
 
 export const nfpHistoryStart = Date.UTC(2015, 0, 1)
 export const nfpHistoryScope = { currency: 'USD' as const, eventIds: Object.keys(nfpReadingRules) }
 export function isNfpRelease(release: InspectorRelease | null): release is InspectorRelease {
   return !!release && release.familyId === 'jobs' && release.country === 'US' && release.currency === 'USD'
 }
-export function nfpMagnitudeHistory(events: StoredCalendarEvent[], selected: InspectorRelease | null) {
+export function nfpMagnitudeHistory(events: StoredCalendarEvent[], selected: InspectorRelease | null, settings: NfpMagnitudeSettings = {}) {
   if (!isNfpRelease(selected) || selected.releaseAt === null) return {}
   const earlier = nfpHistoryReleases(events, selected.releaseAt)
   return Object.fromEntries(selected.events.map((current) => {
     const { samples, excluded } = nfpMagnitudeSamples(earlier, current)
-    return [current.value_id, { distribution: magnitudeDistribution(samples.map((sample) => sample.delta), inspectorDelta(current)),
+    return [current.value_id, { distribution: magnitudeDistribution(samples.map((sample) => sample.delta), inspectorDelta(current), settings[current.event_id]),
       excluded, first: samples.length ? Math.min(...samples.map((sample) => sample.at)) : null,
       last: samples.length ? Math.max(...samples.map((sample) => sample.at)) : null }]
   }))
