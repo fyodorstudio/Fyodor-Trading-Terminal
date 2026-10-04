@@ -2,9 +2,11 @@
 
 Rule version: **`nfp-vs-previous-v1`**
 
+Experimental direction rule version: **`nfp-eurusd-majority-v1`**
+
 ## Purpose and scope
 
-Give the user an immediate count of Good, Bad and Unchanged readings across the selected US Jobs report / NFP release. Missing readings are counted separately. This is an agreed simplified interpretation of changes versus Previous, rather than a weighted economic model, a forecast comparison, a USD price prediction or an official BLS grading system.
+Give the user an immediate count of Good, Bad and Unchanged readings across the selected US Jobs report / NFP release. Missing readings are counted separately. The user-authorized experimental majority rule maps those counts to an EURUSD direction. These are agreed conventions versus Previous, rather than a weighted economic model, a forecast comparison or an official BLS grading system. Direction is a rule output; profitability and predictive reliability have not been established.
 
 Scope requires Inspector family `jobs`, currency `USD`, country `US`, and the stable event IDs below. No other family receives NFP grades. All available displayed readings count equally. Currency identity colors on headings/symbols are separate from grading colors.
 
@@ -44,7 +46,26 @@ For the eight higher-is-Good readings: positive delta = Good, negative delta = B
 
 Count each displayed source reading once. Grouping already excludes duplicate value IDs. The denominator is the number of displayed readings, not an assumed fixed ten. If the source supplies eight rows, the tally says eight; it does not fabricate two absent rows. A provided row with missing values contributes one Missing reading. Unknown rules contribute Unrated.
 
-Always show Good, Bad, Unchanged and the available reading total. Show Missing/Unrated when nonzero. Refresh the tally and colors whenever the selected release's accepted readings update. Show a per-row rule explanation on hover. Do not derive a majority verdict, weighted score, delta sum, probability, Long/Short direction or marker color from the tally.
+Always show Good, Bad, Unchanged and the available reading total. Show Missing/Unrated when nonzero. Refresh the tally, colors and experimental direction whenever the selected release's accepted readings update. Show a per-row rule explanation on hover. No weighted score, delta sum, probability, entry/exit, target, stop or marker color is derived from the tally.
+
+## Experimental EURUSD majority direction
+
+Version `nfp-eurusd-majority-v1` uses the existing `nfp-vs-previous-v1` grades. All readings remain equally counted, including overlapping measures. Scope is the selected US/USD NFP release in the EURUSD-only Inspector.
+
+| Condition | Label |
+| --- | --- |
+| Good > Bad | EURUSD Short |
+| Bad > Good | EURUSD Long |
+| Good = Bad | EURUSD Neutral |
+| Incomplete required readings | Incomplete |
+
+Unchanged does not vote. A complete ten-row release with all deltas zero gives Neutral. Direction requires exactly one row for each of the ten stable event IDs in the definitions table, each with a usable Actual/Previous delta. An absent series, missing delta, unknown rule or repeated series suppresses direction as Incomplete, even if the remaining rows have a majority. The actual displayed tally is retained; absent rows are not invented. The UI explains that ten usable series are needed. Upcoming releases stay Incomplete until those readings are available.
+
+Display the direction with **NFP majority rule · Experimental**, alongside the counts. Hover explains the mapping or incompleteness. Accepted publisher updates and corrections refresh the direction with the current displayed table. Other families receive no majority label. The existing chart symbols and Criterion research results are unaffected.
+
+User examples: January 10, 2025, **4 Good / 3 Bad / 3 Unchanged → EURUSD Short**; February 7, 2025, **5 Good / 4 Bad / 1 Unchanged → EURUSD Short**. These examples establish the requested mapping, not a verified trade outcome or backtest. A narrow majority has the same direction as a large majority; no confidence percentage is assigned.
+
+Historical assessment should use values available at release time, every eligible release including failures, and consistent entry/exit/spread assumptions. Current stored values may incorporate subsequent corrections. Math Lab owns any such strategy research; this Terminal change only implements the requested live presentation rule.
 
 ## Agreed example: October 2, 2026 release
 
@@ -65,6 +86,8 @@ These values are the user's stored example; corrections can change them later.
 
 Result: **2 Good · 7 Bad · 1 Unchanged · 10 readings**.
 
+Experimental majority direction: **EURUSD Long**, because 7 Bad > 2 Good and all ten required readings are usable.
+
 NFP's −133k delta means fewer jobs added than the supplied previous month; Actual +29k still reports job growth. Its revised Previous of 133k remains separately visible, but does not change this version's comparison baseline.
 
 ## Interpretation limits
@@ -75,4 +98,4 @@ Total, private, government and manufacturing payrolls overlap, as do monthly/ann
 
 ## Extending or changing the rules
 
-New NFP readings require explicit event-ID rules and tests. Changing the comparator, favorable directions or counting method requires a new rule version, an updated example and tests. Other currencies/categories/families need separate documents and implementation; their numbers must not inherit the higher-is-Good convention automatically.
+New NFP readings require explicit event-ID rules and tests. Changing the comparator, favorable directions or counting method requires a new grading rule version, an updated example and tests. Changing the direction mapping or completeness requirements requires a new majority rule version. Other currencies/categories/families need separate documents and implementation; their numbers must not inherit the higher-is-Good convention or NFP majority direction automatically.

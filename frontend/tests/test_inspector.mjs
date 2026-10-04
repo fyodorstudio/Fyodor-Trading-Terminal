@@ -293,6 +293,7 @@ try {
   assert.match(app.container.querySelector('tbody').textContent, /\+0.1 pp/)
   assert.match(app.container.querySelector('tbody').textContent, /-0.1 h/)
   assert.match(app.container.querySelector('[aria-label="NFP reading tally"]').textContent, /1 Good.*2 Bad.*0 Unchanged.*3 readings/)
+  assert.equal(app.container.querySelector('[aria-label="NFP majority direction"]').textContent, 'Incomplete')
   await click(filters())
   for (const currency of ['EUR', 'USD']) for (const category of ['Monetary policy', 'Inflation', 'Labor / wages', 'Growth / activity']) {
     assert.ok(document.querySelector(`[aria-label="${currency} ${category}"]`))
@@ -327,6 +328,9 @@ try {
   await app.render({ events: gradedRows })
   await click(app.container.querySelector('.inspector-release'))
   assert.match(app.container.querySelector('[aria-label="NFP reading tally"]').textContent, /2 Good.*7 Bad.*1 Unchanged.*10 readings/)
+  const majorityLabel = () => app.container.querySelector('[aria-label="NFP majority direction"]').textContent
+  assert.equal(majorityLabel(), 'EURUSD Long')
+  assert.match(app.container.querySelector('[aria-label="NFP reading tally"]').textContent, /NFP majority rule · Experimental/)
   assert.equal(app.container.querySelectorAll('td.inspector-grade-good').length, 2)
   assert.equal(app.container.querySelectorAll('td.inspector-grade-bad').length, 7)
   assert.equal(app.container.querySelectorAll('td.inspector-grade-unchanged').length, 1)
@@ -346,11 +350,36 @@ try {
   assert.match(app.container.querySelector('[aria-label="NFP reading tally"]').textContent, /3 Good.*6 Bad/)
   await app.render({ events: gradedRows.map((row) => row.event_id === '840030016' ? { ...row, actual: null } : row) })
   assert.match(app.container.querySelector('[aria-label="NFP reading tally"]').textContent, /2 Good.*6 Bad.*1 Unchanged.*1 Missing.*10 readings/)
+  assert.equal(majorityLabel(), 'Incomplete', 'A missing value suppresses direction despite a remaining majority')
+  const majorityRows = (grades) => gradedRows.map((row, index) => {
+    const sign = grading.nfpReadingRules[row.event_id].goodWhen === 'higher' ? 1 : -1
+    return { ...row, previous: 1, actual: grades[index] === 'unchanged' ? 1 :
+      grades[index] === 'good' ? 1 + sign : 1 - sign }
+  })
+  await app.render({ events: majorityRows(['good', 'good', 'good', 'good', 'bad', 'bad', 'bad', 'unchanged', 'unchanged', 'unchanged']) })
+  assert.equal(majorityLabel(), 'EURUSD Short', '4 Good, 3 Bad and 3 Unchanged gives Short')
+  await app.render({ events: majorityRows(['good', 'good', 'good', 'good', 'good', 'bad', 'bad', 'bad', 'bad', 'unchanged']) })
+  assert.equal(view.selectedRelease.id, heldGradeId, 'Direction refreshes without changing selection')
+  assert.equal(majorityLabel(), 'EURUSD Short', '5 Good, 4 Bad and 1 Unchanged also gives Short')
+  await app.render({ events: majorityRows(['good', 'good', 'good', 'good', 'bad', 'bad', 'bad', 'bad', 'unchanged', 'unchanged']) })
+  assert.equal(majorityLabel(), 'EURUSD Neutral')
+  await app.render({ events: majorityRows(Array(10).fill('unchanged')) })
+  assert.equal(majorityLabel(), 'EURUSD Neutral', 'All zero deltas give Neutral')
+  await app.render({ events: gradedRows.slice(1) })
+  assert.equal(majorityLabel(), 'Incomplete', 'An absent series differs from a provided row with missing values')
+  const duplicateSeries = [...gradedRows.slice(1), { ...gradedRows[1], value_id: 'extra-unemployment' }]
+  await app.render({ events: duplicateSeries })
+  assert.equal(majorityLabel(), 'Incomplete', 'Ten rows do not certify completeness if a series repeats')
+  assert.equal(grading.assessNfpMajority({ ...view.selectedRelease, events: [...gradedRows.slice(1), event({ event_id: 'unknown' })] }).direction, 'incomplete')
+  assert.equal(grading.assessNfpMajority({ ...view.selectedRelease, familyId: 'us-cpi' }), null)
+  assert.equal(grading.assessNfpMajority(null), null)
   await app.render({ events: [core] })
   await click(app.container.querySelector('.inspector-release'))
   assert.equal(app.container.querySelector('[aria-label="NFP reading tally"]'), null)
   assert.equal(app.container.querySelector('.inspector-row-grade'), null)
+  assert.equal(app.container.querySelector('[aria-label="NFP majority direction"]'), null)
   console.log('✓ Mounted NFP ten-reading grading, inverse rules, zero/missing states, live updates and family isolation')
+  console.log('✓ Mounted experimental NFP majority Short/Long/Neutral, complete-series gate and incoming changes')
 
   await app.render({ events: [event(), decision] })
   const subscriptions = new Set()
@@ -473,12 +502,13 @@ try {
     timestamp_convention: 'trade_server_time', time_basis: 'chart', revision, events: rows,
     coverage: { EUR: { missing: [] }, USD: { missing: [] } }, next_cursor })
   let storedView
-  function StoredApp({ brokerId = 'Broker-A', liveEvents = [event(), core], chartBars = bars, symbol = 'EURUSD' }) {
+  function StoredApp({ brokerId = 'Broker-A', liveEvents = [event(), core], chartBars = bars, symbol = 'EURUSD',
+    timeDisplay = { mode: 'fixed-offset', utcOffsetMinutes: 420 } }) {
     const inspector = useInspector({ events: liveEvents, symbol, bars: chartBars, timeframe: 'H1',
-      timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: 420 }, clockOffsetMs: fixtureClockOffset,
+      timeDisplay, clockOffsetMs: fixtureClockOffset,
       brokerId, brokerOffsetSeconds: 10800 })
     React.useEffect(() => { storedView = inspector }, [inspector])
-    return React.createElement(InspectorPanel, { view: inspector, symbol, source: source(), error: null, timeDisplay: utc })
+    return React.createElement(InspectorPanel, { view: inspector, symbol, source: source(), error: null, timeDisplay })
   }
   const storageApp = mount(StoredApp, {})
   await storageApp.render()
@@ -518,6 +548,36 @@ try {
   assert.ok(storageApp.container.textContent.includes('broker time'))
   assert.match(storageApp.container.querySelector('.inspector-detail-heading').textContent, /14:30/)
   const historicId = storedView.selectedRelease.id
+  const clockText = (clock) => storageApp.container.querySelector(`[data-clock="${clock}"]`).textContent
+  assert.match(clockText('broker'), /broker time.*14:30/)
+  assert.match(clockText('display'), /Display.*UTC\+07:00.*19:30/,
+    'Display clock converts established UTC, not the raw export or projected broker timestamp')
+  const requestsBeforeClockChange = storageRequests.length
+  await storageApp.render({ chartBars: historicBars, timeDisplay: utc })
+  assert.match(clockText('display'), /Display.*UTC.*12:30/)
+  await storageApp.render({ chartBars: historicBars, timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: -300 } })
+  assert.match(clockText('display'), /Display.*UTC-05:00.*07:30/)
+  await storageApp.render({ chartBars: historicBars, timeDisplay: { mode: 'local', utcOffsetMinutes: 0 } })
+  const { formatAppTimestamp, timeDisplayLabel } = await server.ssrLoadModule('./src/appearance/time-display/time-display-preference.ts')
+  assert.equal(clockText('display'), `Display · ${timeDisplayLabel({ mode: 'local', utcOffsetMinutes: 0 })} · ${formatAppTimestamp(historic.release_at, { mode: 'local', utcOffsetMinutes: 0 })}`)
+  assert.match(clockText('broker'), /broker time.*14:30/)
+  assert.equal(storedView.selectedRelease.id, historicId)
+  assert.equal(storedView.markers[0].time, historicBars[0].time)
+  assert.equal(storageRequests.length, requestsBeforeClockChange, 'Display settings do not refetch a broker-clock range')
+  const clockPanel = mount(InspectorPanel, { view: { ...storedView,
+    selectedRelease: { ...storedView.selectedRelease, releaseAt: null, chartTime: null } }, symbol: 'EURUSD',
+    source: source(), error: null, timeDisplay: utc })
+  await clockPanel.render()
+  assert.match(clockPanel.container.querySelector('[data-clock="broker"]').textContent, /Broker time unavailable/)
+  assert.match(clockPanel.container.querySelector('[data-clock="display"]').textContent, /Display time unavailable/)
+  await clockPanel.render({ view: { ...storedView, selectedRelease: { ...storedView.selectedRelease,
+    serverTime: Date.UTC(2025, 0, 10, 15, 30) / 1000, chartTime: Date.UTC(2025, 0, 10, 15, 30) / 1000,
+    releaseAt: Date.UTC(2025, 0, 10, 13, 30) } }, symbol: 'EURUSD', source: source(), error: null,
+    timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: 420 } })
+  assert.match(clockPanel.container.querySelector('[data-clock="broker"]').textContent, /broker time.*15:30/)
+  assert.match(clockPanel.container.querySelector('[data-clock="display"]').textContent, /UTC\+07:00.*20:30/,
+    'January 10 NFP shows Jakarta time without double-applying the broker offset')
+  console.log('✓ Mounted selected-release broker/display clocks, UTC/local/offset changes and unavailable timing')
   const winterRefresh = { ...historic, server_time_seconds: historic.server_time_seconds - 3600 }
   assert.equal(data.groupInspectorReleases([winterRefresh])[0].id, historicId,
     'Retrieval-offset changes preserve the selected release identity')

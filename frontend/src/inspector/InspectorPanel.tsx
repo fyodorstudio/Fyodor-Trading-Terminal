@@ -5,7 +5,7 @@ import { symbolGlyph } from '../criterion/timeline/timeline-event-view'
 import { formatInspectorValue, inspectorDelta, isInspectorCommentary, type InspectorRelease } from './inspector-data'
 import { InspectorFiltersModal } from './InspectorFiltersModal'
 import { InspectorDateRangePicker } from './InspectorDateRangePicker'
-import { gradeLabels, gradeNfpReading, tallyNfpRelease } from './grading/nfp-grading'
+import { assessNfpMajority, gradeLabels, gradeNfpReading, tallyNfpRelease } from './grading/nfp-grading'
 import type { InspectorView } from './useInspector'
 import './inspector.css'
 
@@ -32,6 +32,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, audit
   const panelId = useId()
   const release = view.selectedRelease
   const tally = tallyNfpRelease(release)
+  const majority = assessNfpMajority(release)
   const releaseTime = (item: InspectorRelease) => view.brokerTime
     ? `${formatAppTimestamp(item.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
     : item.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(item.releaseAt, timeDisplay)
@@ -81,15 +82,24 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, audit
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
             <div className="inspector-detail-heading"><strong className={`inspector-currency-${release.currency}`}>
               {symbolGlyph(view.preferences.symbols[release.familyId] ?? 'star')} {release.label} · {release.country} · {release.currency}</strong>
-              <span>{releaseTime(release)} · {status(release)}</span>
-              {sharedPeriod !== null && <span className="inspector-shared-period">Period: {formatAppTimestamp(sharedPeriod * 1000,
-                { mode: 'utc', utcOffsetMinutes: 0 }, 'date')}</span>}
+              <div className="inspector-release-clocks" aria-label="Selected release clocks">
+                <span data-clock="display">Display · {timeDisplayLabel(timeDisplay)} · {release.releaseAt === null ? 'Display time unavailable' :
+                  formatAppTimestamp(release.releaseAt, timeDisplay)}</span>
+                {view.brokerTime && <><span aria-hidden="true"> | </span><span data-clock="broker">{release.chartTime === null ? 'Broker time unavailable' :
+                  `broker time · ${formatAppTimestamp(release.chartTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })}`}</span></>}
+                <span aria-hidden="true"> | </span>
+                <span>{status(release)}{sharedPeriod !== null && <> <span className="inspector-shared-period"
+                  title="Reference period covered by these readings. The source represents the period by its starting date.">Period: {formatAppTimestamp(sharedPeriod * 1000,
+                    { mode: 'utc', utcOffsetMinutes: 0 }, 'date')}</span></>}</span>
+              </div>
               <span className="inspector-info"><button type="button" aria-label="About A−P" aria-describedby={`${panelId}-reading-info`}>ⓘ</button>
                 <span id={`${panelId}-reading-info`} role="tooltip">A−P uses Previous; revised Previous is shown separately.
                   pp = percentage points · bp = basis points.
-                  {tally && <> NFP colors use defined Good/Bad rules versus Previous. The tally counts overlapping readings equally; it is not a USD price prediction.</>}</span></span>
+                  {tally && <> NFP colors use defined Good/Bad rules versus Previous. The experimental majority rule maps more Good to EURUSD Short, more Bad to Long, and a tie to Neutral. All ten series must be usable. The tally counts overlapping readings equally.</>}</span></span>
             </div>
             {tally && <div className="inspector-grade-summary" role="status" aria-label="NFP reading tally">
+              {majority && <><strong className="inspector-majority" aria-label="NFP majority direction" title={majority.explanation}>{majority.label}</strong>
+                <span>NFP majority rule · Experimental{majority.direction === 'incomplete' && ' · Needs 10 usable series'}</span></>}
               <strong>Compared with Previous</strong>
               {(['good', 'bad', 'unchanged', 'missing', 'unrated'] as const).filter((grade) =>
                 ['good', 'bad', 'unchanged'].includes(grade) || tally.counts[grade] > 0).map((grade) =>

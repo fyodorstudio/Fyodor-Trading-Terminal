@@ -1,12 +1,12 @@
 # Inspector event grading terminology
 
-This directory documents Inspector's explicit, versioned reading-grading rules. Rules describe comparisons within a selected release; they do not recalculate Criterion research results or create trading signals.
+This directory documents Inspector's explicit, versioned reading-grading rules and the user-authorized experimental NFP majority direction. Rules describe the selected release's displayed readings. They do not recalculate Criterion research results or execute trades.
 
 Organize definitions by **release currency → event category → family**. EUR is EURUSD's base currency; USD is its quote currency. Grading colors have their own meaning: green Good, red Bad, gray Unchanged/Missing/Unrated.
 
 | Currency | Category | Family | Rule status |
 | --- | --- | --- | --- |
-| USD | Labor / wages | [Jobs report / NFP](USD/Labor/NFP.md) | Implemented: `nfp-vs-previous-v1` |
+| USD | Labor / wages | [Jobs report / NFP](USD/Labor/NFP.md) | Grading: `nfp-vs-previous-v1`; experimental EURUSD direction: `nfp-eurusd-majority-v1` |
 | EUR | All categories | [Existing notes](EUR/definitions.md) | No grading implemented |
 | USD | Other families | — | No grading implemented |
 
