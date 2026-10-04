@@ -9,6 +9,7 @@
 
 .bottom-dock-tabs {
   display: flex;
+  overflow-x: auto;
   align-items: stretch;
   border-bottom: 1px solid var(--border);
   background: var(--surface-raised);

@@ -72,6 +72,7 @@ try {
   const { BottomDockPanel } = await server.ssrLoadModule('./src/workspace-docking/bottom-dock/BottomDockPanel.tsx')
   const { TerminalStatusBar } = await server.ssrLoadModule('./src/terminal-shell/TerminalStatusBar.tsx')
   const { useInspector, InspectorPanel } = await server.ssrLoadModule('./src/inspector/index.ts')
+  const { ScatterPlotDock } = await server.ssrLoadModule('./src/scatter-plot/index.ts')
   const quotes = ['EURUSD', 'GBPUSD'].map((symbol) => ({ symbol, description: symbol, bid: 1.1, ask: 1.1001, dailyChange: 0, precision: 5 }))
   const bars = []
   function Navigation() {
@@ -88,7 +89,7 @@ try {
       dock && React.createElement(BottomDockPanel, { activeWindow: dock, activityCount: 0, selectedSymbol: symbol,
         onSelectWindow: setDock, onClose: () => setDock(null) }, dock === 'inspector'
         ? React.createElement(InspectorPanel, { view: inspector, symbol, source: null, error: null, timeDisplay: utc })
-        : React.createElement('p', null, dock)))
+        : dock === 'scatter-plot' ? React.createElement(ScatterPlotDock, { brokerId: null }) : React.createElement('p', null, dock)))
   }
   await React.act(async () => root.render(React.createElement(Navigation)))
   const findButton = (selector, label) => [...container.querySelectorAll(selector)].find((button) => button.textContent.trim() === label)
@@ -96,7 +97,7 @@ try {
   await click(findButton('.status-actions button', 'Inspector'))
   assert.ok(container.querySelector('.inspector-panel'))
   assert.deepEqual([...container.querySelectorAll('.bottom-dock-tabs button')].slice(0, -1)
-    .map((button) => button.textContent.trim()), ['Notebook EURUSD', 'Activity 0', 'Inspector'])
+    .map((button) => button.textContent.trim()), ['Notebook EURUSD', 'Activity 0', 'Inspector', 'Scatter Plot'])
   const gbp = [...container.querySelectorAll('button')].find((button) => button.textContent.includes('GBPUSD'))
   await click(gbp)
   assert.match(container.querySelector('.inspector-panel').textContent, /currently supports EURUSD/)
@@ -106,7 +107,19 @@ try {
   assert.ok(container.querySelector('.inspector-panel'))
   await click(findButton('.status-actions button', 'Inspector'))
   assert.equal(container.querySelector('.bottom-dock'), null)
+  await click(findButton('.status-actions button', 'Scatter Plot'))
+  assert.ok(container.querySelector('[aria-label="Scatter Plot"]'))
+  assert.equal(container.querySelector('[aria-label="Scatter Plot Pair"]').value, 'EURUSD')
+  assert.equal(container.querySelector('[aria-label="Scatter Plot Base/Quote"]').value, 'USD/QUOTE')
+  await click(findButton('.bottom-dock-tabs button', 'Inspector'))
+  assert.ok(container.querySelector('.inspector-panel'))
+  assert.equal(container.querySelector('[aria-label="Scatter Plot"]'), null)
+  await click(findButton('.bottom-dock-tabs button', 'Scatter Plot'))
+  assert.ok(container.querySelector('[aria-label="Scatter Plot"]'))
+  await click(findButton('.status-actions button', 'Scatter Plot'))
+  assert.equal(container.querySelector('.bottom-dock'), null)
   console.log('✓ Mounted navigation opens/closes Inspector and retains EURUSD-only support')
+  console.log('✓ Scatter Plot opens from the status bar and dock tab with fixed EURUSD/USD Quote scope')
 
   // Mount the actual Notebook overlay against the chart library API boundary.
   await React.act(async () => root.unmount())

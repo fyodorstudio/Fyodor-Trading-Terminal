@@ -1,0 +1,48 @@
+.scatter-plot-dock { height: 100%; min-height: 0; display: flex; flex-direction: column; color: var(--text); font-size: 11px; }
+.scatter-plot-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 6px 12px; padding: 6px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.scatter-plot-controls label { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 10px; }
+.scatter-plot-controls select, .scatter-plot-controls button { font: inherit; color: var(--text); background: var(--surface-panel); border: 1px solid var(--border-strong); border-radius: 4px; padding: 3px 6px; }
+.scatter-plot-controls select { max-width: 230px; }
+.scatter-plot-actions { display: flex; gap: 6px; margin-left: auto; }
+.scatter-plot-controls button { cursor: pointer; }
+.scatter-plot-controls button[aria-pressed='true'] { color: var(--accent); border-color: var(--accent); }
+.scatter-plot-controls :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scatter-plot-body { display: grid; grid-template-columns: minmax(320px, 1fr) 280px; flex: 1; min-height: 0; overflow: auto; }
+.scatter-plot-canvas { min-height: 210px; min-width: 0; height: 100%; }
+.scatter-plot-canvas svg { display: block; width: 100%; height: 100%; overflow: hidden; touch-action: none; user-select: none; cursor: crosshair; }
+.scatter-plot-hit-area, .scatter-plot-axis-hit { fill: transparent; }
+.scatter-plot-axis-x { cursor: ew-resize; }
+.scatter-plot-axis-y { cursor: ns-resize; }
+.scatter-plot-axis-hit:focus-visible { outline: none; stroke: var(--accent); stroke-width: 2; }
+.scatter-plot-dragging, .scatter-plot-dragging .scatter-plot-point { cursor: grabbing; }
+.scatter-plot-crosshair { pointer-events: none; }
+.scatter-plot-crosshair line { stroke: var(--chart-crosshair); stroke-width: 1; stroke-dasharray: 4 3; }
+.scatter-plot-crosshair rect { fill: var(--chart-label); }
+.scatter-plot-crosshair text { fill: #ffffff; font-size: 9px; font-variant-numeric: tabular-nums; }
+.scatter-plot-grid { opacity: .3; }
+.scatter-plot-inspected-date { stroke-dasharray: 4 4; }
+.scatter-plot-tick { fill: var(--text-muted); font-size: 9px; font-variant-numeric: tabular-nums; }
+.scatter-plot-axis-label { fill: var(--text-muted); font-size: 10px; }
+.scatter-plot-point { cursor: crosshair; color: var(--scatter-dot-color); }
+.scatter-plot-point-target { fill: transparent; }
+.scatter-plot-dot { fill: currentColor; stroke: var(--surface-panel); stroke-width: 1; }
+.scatter-plot-quantile .scatter-plot-dot { stroke: var(--scatter-quantile-color); stroke-width: 1.8; }
+.scatter-plot-selected .scatter-plot-dot { stroke: var(--text-strong); stroke-width: 1.8; }
+.scatter-plot-point:focus-visible .scatter-plot-dot { stroke: var(--accent); stroke-width: 3; }
+.scatter-plot-tone-good { color: var(--scatter-good-color); }
+.scatter-plot-tone-bad { color: var(--scatter-bad-color); }
+.scatter-plot-inspection { padding: 8px 12px; border-left: 1px solid var(--border); overflow: auto; min-height: 0; font-size: 10px; }
+.scatter-plot-inspection > strong, .scatter-plot-inspection > time { display: block; margin-bottom: 4px; }
+.scatter-plot-inspection time { color: var(--text-muted); }
+.scatter-plot-inspection dl { margin: 8px 0; font-variant-numeric: tabular-nums; }
+.scatter-plot-inspection dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 5px 0; }
+.scatter-plot-inspection dt { color: var(--text-muted); }
+.scatter-plot-inspection dd { margin: 0; text-align: right; }
+.scatter-plot-inspection details { border-top: 1px solid var(--border); padding-top: 8px; }
+.scatter-plot-inspection summary { cursor: pointer; color: var(--accent); }
+.scatter-plot-inspection details p { line-height: 1.5; overflow-wrap: anywhere; }
+.scatter-plot-inspection details dl > div { display: block; }
+.scatter-plot-inspection details dd { text-align: left; margin-top: 3px; }
+.scatter-plot-status { padding: 12px; color: var(--text-muted); }
+.scatter-plot-coverage { padding: 3px 12px; color: var(--text-muted); font-size: 10px; }
+@media (max-width: 800px) { .scatter-plot-body { grid-template-columns: minmax(320px, 1fr); grid-template-rows: 250px auto; } .scatter-plot-inspection { border-left: 0; border-top: 1px solid var(--border); overflow: visible; } }

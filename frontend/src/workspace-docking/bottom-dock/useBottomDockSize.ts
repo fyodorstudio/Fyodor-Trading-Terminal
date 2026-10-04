@@ -6,9 +6,10 @@ export const bottomDockHeightKeys: Record<BottomDockWindow, string> = {
   inspector: inspectorDockHeightKey,
   notebook: 'fyodor.notebook.dock-height.v1',
   activity: 'fyodor.activity.dock-height.v1',
+  'scatter-plot': 'fyodor.scatter-plot.dock-height.v1',
 }
-const defaultHeights: Record<BottomDockWindow, number> = { inspector: 380, notebook: 258, activity: 258 }
-const dockLabels: Record<BottomDockWindow, string> = { inspector: 'Inspector', notebook: 'Notebook', activity: 'Activity' }
+const defaultHeights: Record<BottomDockWindow, number> = { inspector: 380, notebook: 258, activity: 258, 'scatter-plot': 420 }
+const dockLabels: Record<BottomDockWindow, string> = { inspector: 'Inspector', notebook: 'Notebook', activity: 'Activity', 'scatter-plot': 'Scatter Plot' }
 function readHeight(dock: BottomDockWindow) {
   try {
     const stored = localStorage.getItem(bottomDockHeightKeys[dock])
@@ -20,6 +21,7 @@ function readHeight(dock: BottomDockWindow) {
 export function useBottomDockSize(activeWindow: BottomDockWindow | null) {
   const [preferredHeights, setPreferredHeights] = useState(() => ({
     inspector: readHeight('inspector'), notebook: readHeight('notebook'), activity: readHeight('activity'),
+    'scatter-plot': readHeight('scatter-plot'),
   }))
   const [viewportHeight, setViewportHeight] = useState(() => window.innerHeight)
   const [resizingDock, setResizingDock] = useState<BottomDockWindow | null>(null)

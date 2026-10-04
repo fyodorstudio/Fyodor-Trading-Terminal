@@ -24,6 +24,13 @@ and documented sample rules. Do not copy NFP IDs or favorable directions into
 other families. The shell only composes Inspector; request and transformation
 logic remain here and in `useStoredCalendar.ts`.
 
+The isolated `scatter-plot/PAIR/EURUSD/USD/NFP` adapter also consumes exported
+`nfpHistoryReleases`/`nfpMagnitudeSamples` and `magnitudeSizeForValue`. The plot
+and Inspector therefore admit the same samples and use one threshold/classifier.
+Scatter Plot exposes individual source points and P95 interpolation details;
+its point selection and full-history inventory are independent of Inspector's
+visible range and selected publication.
+
 ## History contract
 
 - Start at **January 1, 2015**. Admit established UTC release instants on/after

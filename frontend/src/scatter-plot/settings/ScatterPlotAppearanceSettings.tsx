@@ -1,0 +1,73 @@
+import { useEffect, useRef } from 'react'
+import { defaultScatterAppearance, normalizeScatterAppearance, type ScatterAppearance, type ScatterGuideLevel, type ScatterLineStyle } from './scatter-plot-appearance'
+import './scatter-plot-appearance-settings.css'
+
+function NumericSetting({ label, value, min, max, step = .5, onChange }: {
+  label: string; value: number; min: number; max: number; step?: number | 'any'; onChange: (value: number) => void
+}) {
+  return <label>{label}<input type="number" aria-label={label} min={min} max={max} step={step} value={value}
+    onChange={(event) => { const next = event.target.valueAsNumber; if (Number.isFinite(next) && next >= min && next <= max) onChange(next) }} /></label>
+}
+function LineSetting({ label, value, onChange }: { label: string; value: ScatterLineStyle; onChange: (value: ScatterLineStyle) => void }) {
+  return <div className="scatter-appearance-line">
+    <label><input type="checkbox" checked={value.visible} onChange={(e) => onChange({ ...value, visible: e.target.checked })} />{label}</label>
+    <input type="color" aria-label={`${label} color`} value={value.color} onChange={(e) => onChange({ ...value, color: e.target.value })} />
+    <NumericSetting label={`${label} width (px)`} value={value.width} min={.25} max={6} step={.05} onChange={(width) => onChange({ ...value, width })} />
+  </div>
+}
+export function ScatterPlotAppearanceSettings({ appearance: a, onChange, onClose }: {
+  appearance: ScatterAppearance; onChange: (value: ScatterAppearance) => void; onClose: () => void
+}) {
+  const close = useRef<HTMLButtonElement>(null)
+  useEffect(() => {
+    close.current?.focus()
+    const escape = (event: KeyboardEvent) => { if (event.key === 'Escape') { event.stopPropagation(); onClose() } }
+    window.addEventListener('keydown', escape)
+    return () => window.removeEventListener('keydown', escape)
+  }, [onClose])
+  const update = (value: ScatterAppearance) => onChange(normalizeScatterAppearance(value))
+  const updateLevel = (id: number, patch: Partial<ScatterGuideLevel>) => update({ ...a, levels: a.levels.map((level) => level.id === id ? { ...level, ...patch } : level) })
+  return <section className="scatter-appearance-settings" role="dialog" aria-modal="false" aria-label="Scatter Plot appearance">
+    <header><strong>Scatter Plot appearance</strong><button ref={close} type="button" onClick={onClose} aria-label="Close Scatter Plot appearance">×</button></header>
+    <div className="scatter-appearance-content">
+      <fieldset><legend>Dots</legend><div className="scatter-appearance-fields">
+        <NumericSetting label="Dot diameter (px)" value={a.dotSize} min={2} max={32} onChange={(dotSize) => update({ ...a, dotSize })} />
+        <NumericSetting label="Selected dot diameter (px)" value={a.selectedDotSize} min={2} max={40} onChange={(selectedDotSize) => update({ ...a, selectedDotSize })} />
+        {([['Dot color', 'dotColor'], ['Selected Good color', 'goodColor'], ['Selected Bad color', 'badColor'], ['P95 source outline', 'quantileColor']] as const).map(([label, key]) =>
+          <label key={key}>{label}<input type="color" value={a[key]} onChange={(e) => update({ ...a, [key]: e.target.value })} /></label>)}
+      </div></fieldset>
+      <fieldset><legend>Background lines</legend>
+        <LineSetting label="Grid" value={a.grid} onChange={(grid) => update({ ...a, grid })} />
+        <LineSetting label="Zero line" value={a.zero} onChange={(zero) => update({ ...a, zero })} />
+        <LineSetting label="Inspected date" value={a.inspectedDate} onChange={(inspectedDate) => update({ ...a, inspectedDate })} />
+      </fieldset>
+      <fieldset><legend>Magnitude guides</legend>
+        <div className="scatter-appearance-fields">
+          <label><input type="checkbox" checked={a.showGuides} onChange={(e) => update({ ...a, showGuides: e.target.checked })} />Guide lines</label>
+          <label><input type="checkbox" checked={a.showBands} onChange={(e) => update({ ...a, showBands: e.target.checked })} />Band shading</label>
+          <label>Guide line style<select value={a.guideStyle} onChange={(e) => update({ ...a, guideStyle: e.target.value as ScatterAppearance['guideStyle'] })}>
+            <option value="solid">Solid</option><option value="dashed">Dashed</option><option value="dotted">Dotted</option>
+          </select></label>
+          <NumericSetting label="Guide line opacity (%)" value={a.guideOpacity} min={0} max={100} step={1} onChange={(guideOpacity) => update({ ...a, guideOpacity })} />
+        </div>
+        <p>Levels mirror above and below zero. Positions are % of P95; magnitude cutoffs stay in the calculation pane.</p>
+        <div className="scatter-appearance-levels">
+          {a.levels.map((level, index) => <div className="scatter-appearance-level" key={level.id}>
+            <label><input type="checkbox" aria-label={`Show level ${index + 1}`} checked={level.visible} onChange={(e) => updateLevel(level.id, { visible: e.target.checked })} />{index + 1}</label>
+            <NumericSetting label={`Level ${index + 1} position (% of P95)`} value={Number((level.factor * 100).toFixed(6))} min={.1} max={1000} step="any"
+              onChange={(percent) => updateLevel(level.id, { factor: percent / 100 })} />
+            <input type="color" aria-label={`Level ${index + 1} color`} value={level.color} onChange={(e) => updateLevel(level.id, { color: e.target.value })} />
+            <NumericSetting label={`Level ${index + 1} width (px)`} value={level.width} min={.25} max={6} step={.05} onChange={(width) => updateLevel(level.id, { width })} />
+            <NumericSetting label={`Level ${index + 1} shade (%)`} value={level.shade} min={0} max={100} step={.5} onChange={(shade) => updateLevel(level.id, { shade })} />
+            <button type="button" aria-label={`Remove level ${index + 1}`} onClick={() => update({ ...a, levels: a.levels.filter((item) => item.id !== level.id) })}>×</button>
+          </div>)}
+        </div>
+        <button type="button" disabled={a.levels.length >= 8} onClick={() => update({ ...a, levels: [...a.levels, {
+          id: Math.max(0, ...a.levels.map((level) => level.id)) + 1, visible: true,
+          factor: Math.min(10, Math.max(0, ...a.levels.map((level) => level.factor)) + 1 / 3), color: '#6366f1', width: 1, shade: 7,
+        }] })}>Add level</button>
+      </fieldset>
+    </div>
+    <footer><button type="button" onClick={() => update(defaultScatterAppearance)}>Reset appearance</button><button type="button" onClick={onClose}>Done</button></footer>
+  </section>
+}

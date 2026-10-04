@@ -7,6 +7,7 @@ import {
   type TimeDisplayPreference,
 } from '../appearance/time-display/time-display-preference'
 import { useInspector, InspectorPanel, InspectorChartMarkers } from '../inspector'
+import { ScatterPlotDock } from '../scatter-plot'
 import { MarketCandlestickChart } from '../market-data/candlestick-chart/MarketCandlestickChart'
 import { MarketChartErrorBoundary } from '../market-data/candlestick-chart/MarketChartErrorBoundary'
 import { FloatingDrawingToolbar } from '../market-data/chart-drawings/FloatingDrawingToolbar'
@@ -347,6 +348,8 @@ export function FyodorTerminalShell() {
           )}
           {bottomDockWindow === 'inspector' && <InspectorPanel view={inspector} symbol={activeSymbol}
             source={bridge.health?.calendar ?? null} error={null} timeDisplay={timeDisplay} />}
+          {bottomDockWindow === 'scatter-plot' && <ScatterPlotDock brokerId={bridge.health?.mt5.account_server ?? null}
+            clockOffsetMs={bridge.clockOffsetMs} />}
         </BottomDockPanel>
       )}
 

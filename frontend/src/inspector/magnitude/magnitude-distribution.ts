@@ -22,7 +22,7 @@ export function magnitudeDistribution(values: readonly number[], current: number
   const reading = current !== null && Number.isFinite(current) ? current : null
   const selectedIndex = reading === null ? null : binIndex(limits, reading)
   const currentExtreme = reading === null || selectedIndex !== null ? null : reading < 0 ? 'negative' as const : 'positive' as const
-  const currentSize = reading === null ? 'Unavailable' : selectedIndex === null ? 'Extreme' : magnitudeBandLabel(selectedIndex)
+  const currentSize = magnitudeSizeForValue(limits, reading)
   return { bins, limits, threshold, count: samples.length, min, max, extremeBelow, extremeAbove,
     current: reading, currentExtreme, currentSize }
 }
@@ -30,6 +30,11 @@ export type MagnitudeDistribution = NonNullable<ReturnType<typeof magnitudeDistr
 
 export function magnitudeBandLabel(index: number) {
   return (['Unchanged', 'Small', 'Medium', 'Large'] as const)[Math.abs(index - 3)]
+}
+export function magnitudeSizeForValue(limits: readonly number[], value: number | null) {
+  if (value === null || !Number.isFinite(value)) return 'Unavailable'
+  const index = binIndex(limits, value)
+  return index === null ? 'Extreme' : magnitudeBandLabel(index)
 }
 
 function binIndex(limits: readonly number[], value: number) {
