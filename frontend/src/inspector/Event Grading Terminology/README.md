@@ -8,10 +8,11 @@ Organize definitions by **release currency → event category → family**. EUR 
 | --- | --- | --- | --- |
 | USD | Labor / wages | [Jobs report / NFP](USD/Labor/NFP.md) | Grading: `nfp-change-vs-previous-v2`; three-primary signed magnitude direction: `nfp-eurusd-primary-signed-magnitude-v1` |
 | USD | Inflation | [US CPI / core CPI](USD/Inflation/CPI.md) | Grading: `usd-cpi-change-vs-previous-v2`; four-reading signed magnitude score: `cpi-eurusd-signed-magnitude-v1` |
-| EUR | Monetary policy | [ECB policy](EUR/MonetaryPolicy/ECB.md) | Decision-anchored rate/statement/conference episodes; rate A−P sign colors only |
-| USD | Monetary policy | [US FOMC](USD/MonetaryPolicy/FOMC.md) | Decision-anchored episodes: `fomc-decision-anchored-v1`; Fed rate A−P sign colors only |
-| EUR | Other families | [Existing notes](EUR/definitions.md) | No grading implemented |
-| USD | Other families | — | No grading implemented |
+| USD | Inflation | [US PPI](USD/Inflation/PPI.md) | Descriptive A−P / optional A−RevP; frozen manual magnitude; no direction score |
+| EUR | Monetary policy | [ECB policy](EUR/MonetaryPolicy/ECB.md) | Decision-anchored rate/statement/conference episodes; Higher/Lower A−P / optional A−RevP; manual bp magnitude; no direction score |
+| USD | Monetary policy | [US FOMC](USD/MonetaryPolicy/FOMC.md) | Decision-anchored episodes: `fomc-decision-anchored-v1`; Fed Higher/Lower A−P / optional A−RevP; manual bp magnitude; no direction score |
+| EUR | Other numeric families | [Explicit catalog](../grading/catalog/README.md) | Higher/Lower A−P / optional A−RevP; frozen manual magnitude; no direction score |
+| USD | Other numeric families | [Explicit catalog](../grading/catalog/README.md) | Higher/Lower A−P / optional A−RevP; frozen manual magnitude; no direction score |
 
 Each future family document should record its scope and stable event IDs, reading definitions, comparator, raw A−P direction and any separate USD score convention, zero/missing handling, counting behavior, examples, limitations, sources and rule version. A family is graded only after its own rules are agreed and implemented; NFP rules are never inferred from another event's name.
 
@@ -20,3 +21,8 @@ Runtime definitions are [nfp-grading.ts](../grading/nfp-grading.ts) and [cpi-gra
 Raw calendar values, reference periods, revised Previous and A−P remain visible and unchanged.
 
 Inspector has separate Table only and Scoring system views. Table only is the default; the selected view is saved. Families without a registered scoring model show the readings table. See [scoring organization](../scoring/README.md) for pair/family bindings and shared assessment/presentation modules.
+
+Base/Quote identity colors are configurable beside their filter headings and saved
+on Apply, shared by release titles/list labels and chart symbols. They are separate
+from sign and magnitude colors. Filter categories occupy shared grid rows; smaller
+columns leave padding so subsequent category headings align.

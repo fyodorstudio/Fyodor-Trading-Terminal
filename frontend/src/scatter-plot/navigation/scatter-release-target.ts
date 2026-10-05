@@ -7,6 +7,7 @@ export function scatterReleaseTarget(release: InspectorRelease | null, brokerId:
     !Number.isFinite(release.releaseAt) || release.releaseAt > now) return null
   const binding = scatterFamilyBindings.find((candidate) => candidate.family.familyId === release.familyId &&
     candidate.family.country === release.country && candidate.family.currency === release.currency)
-  if (!binding || release.releaseAt < binding.family.historyStart) return null
+  if (!binding || release.releaseAt < binding.family.historyStart || !release.events.some((event) =>
+    event.country_code === binding.family.country && event.currency === binding.family.currency && binding.family.seriesIds.includes(event.event_id))) return null
   return { brokerId, familyId: binding.family.familyId, releaseId: release.id, at: release.releaseAt }
 }

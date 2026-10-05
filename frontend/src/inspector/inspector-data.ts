@@ -1,3 +1,4 @@
+import { normalizeCurrencyColors, type CurrencyColors } from './currency-colors'
 import type { EconomicCalendarEvent } from './calendar-event'
 import { eventFamilyOptions } from './event-families'
 import { isEventSymbol, type EventSymbol } from './event-symbols'
@@ -24,11 +25,12 @@ export type InspectorPreferences = {
   showSymbols: boolean
   showHistograms: boolean
   detailView: 'table' | 'scoring'
+  currencyColors: CurrencyColors
   symbols: Record<string, EventSymbol>
 }
 export const inspectorStorageKey = 'fyodor.inspector.eurusd.v1'
 export function defaultInspectorPreferences(): InspectorPreferences {
-  return { version: 2, families: inspectorFamilies.map((family) => family.id), showSymbols: true, showHistograms: true, detailView: 'table',
+  return { version: 2, families: inspectorFamilies.map((family) => family.id), showSymbols: true, showHistograms: true, detailView: 'table', currencyColors: {},
     symbols: Object.fromEntries(inspectorFamilies.map((family) => [family.id, family.symbol])) }
 }
 export function readInspectorPreferences(): InspectorPreferences {
@@ -45,6 +47,7 @@ export function readInspectorPreferences(): InspectorPreferences {
     showHistograms: typeof saved.showHistograms === 'boolean' ? saved.showHistograms : defaults.showHistograms,
     detailView: saved.detailView === 'scoring' ? 'scoring' : defaults.detailView,
     showSymbols: typeof saved.showSymbols === 'boolean' ? saved.showSymbols : defaults.showSymbols,
+    currencyColors: normalizeCurrencyColors(saved.currencyColors),
     symbols: { ...defaults.symbols, ...Object.fromEntries(Object.entries(saved.symbols ?? {}).filter(([id, symbol]) =>
       inspectorFamilies.some((family) => family.id === id) && isEventSymbol(symbol))) as Record<string, EventSymbol> } }
   } catch { return defaults }
@@ -174,11 +177,11 @@ export function buildInspectorMarkers(groups: InspectorRelease[], preferences: I
   })
 }
 
-function inspectorDifference(event: EconomicCalendarEvent, comparator: 'previous' | 'forecast'): number | null {
+function inspectorDifference(event: EconomicCalendarEvent, comparator: 'previous' | 'forecast' | 'revised_previous'): number | null {
   const reference = event[comparator]
   if (event.actual === null || reference === null || !Number.isFinite(event.actual) || !Number.isFinite(reference)) return null
   const raw = event as EconomicCalendarEvent & { actual_raw_scaled_1e6?: string | null;
-    previous_raw_scaled_1e6?: string | null; forecast_raw_scaled_1e6?: string | null }
+    previous_raw_scaled_1e6?: string | null; forecast_raw_scaled_1e6?: string | null; revised_previous_raw_scaled_1e6?: string | null }
   const rawReference = raw[`${comparator}_raw_scaled_1e6`]
   if (raw.actual_raw_scaled_1e6 != null && rawReference != null) {
     if (!/^[+-]?\d+$/.test(raw.actual_raw_scaled_1e6) || !/^[+-]?\d+$/.test(rawReference)) return null
@@ -196,6 +199,9 @@ export function inspectorDelta(event: EconomicCalendarEvent): number | null {
 }
 export function inspectorSurprise(event: EconomicCalendarEvent): number | null {
   return inspectorDifference(event, 'forecast')
+}
+export function inspectorRevisedDelta(event: EconomicCalendarEvent): number | null {
+  return inspectorDifference(event, 'revised_previous')
 }
 export function inspectorValueUnit(event: EconomicCalendarEvent, delta = false): string {
   const isRate = delta && isPolicyRateDecision(event)

@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { currencyColorStyle, defaultCurrencyColors } from './currency-colors'
 import { eventSymbols, type EventSymbol } from './event-symbols'
 import { inspectorCategories, inspectorFamilies, type InspectorPreferences } from './inspector-data'
 
 export function InspectorFiltersModal({ preferences, onApply, onClose }: {
   preferences: InspectorPreferences; onApply: (next: InspectorPreferences) => void; onClose: () => void
 }) {
-  const [draft, setDraft] = useState(() => ({ ...preferences, families: [...preferences.families], symbols: { ...preferences.symbols } }))
+  const [draft, setDraft] = useState(() => ({ ...preferences, families: [...preferences.families], currencyColors: { ...preferences.currencyColors }, symbols: { ...preferences.symbols } }))
   const [search, setSearch] = useState('')
   const terms = search.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean)
   const matches = inspectorFamilies.filter((family) => {
@@ -23,7 +24,7 @@ export function InspectorFiltersModal({ preferences, onApply, onClose }: {
     setDraft((current) => ({ ...current, families: checked ? [...new Set([...current.families, ...ids])] :
       current.families.filter((id) => !ids.includes(id)) }))
   }
-  return createPortal(<dialog ref={dialog} className="inspector-modal" aria-labelledby="inspector-filter-title"
+  return createPortal(<dialog ref={dialog} className="inspector-modal" style={currencyColorStyle(draft.currencyColors)} aria-labelledby="inspector-filter-title"
     onCancel={(event) => { event.preventDefault(); onClose() }}
     onClick={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <div className="inspector-modal-content">
@@ -36,16 +37,21 @@ export function InspectorFiltersModal({ preferences, onApply, onClose }: {
           {search && <button type="button" aria-label="Clear family search" onClick={() => setSearch('')}>×</button>}</div>
       </div>
       <div className="inspector-filter-columns">
-        {(['EUR', 'USD'] as const).map((currency) => <section key={currency} className={`inspector-currency-${currency}`}>
-          <h3>{currency} · {currency === 'EUR' ? 'Base' : 'Quote'}</h3>
-          {inspectorCategories.map((category) => {
+        {(['EUR', 'USD'] as const).map((currency, column) => <Fragment key={currency}>
+          <h3 className={`inspector-currency-${currency}`} style={{ gridColumn: column + 1, gridRow: 1 }}>
+            {currency} · {currency === 'EUR' ? 'Base' : 'Quote'}
+            <input type="color" aria-label={`${currency} ${currency === 'EUR' ? 'Base' : 'Quote'} color`}
+              value={draft.currencyColors[currency] ?? defaultCurrencyColors[currency]}
+              onChange={(event) => setDraft({ ...draft, currencyColors: { ...draft.currencyColors, [currency]: event.target.value } })} />
+          </h3>
+          {inspectorCategories.map((category, row) => {
             const families = inspectorFamilies.filter((family) => family.currency === currency && (category.families as readonly string[]).includes(family.id))
             const visible = families.filter((family) => matches.includes(family))
             if (!visible.length) return null
             const ids = families.map((family) => family.id)
             const checked = ids.every((id) => draft.families.includes(id))
             const partial = !checked && ids.some((id) => draft.families.includes(id))
-            return <fieldset key={category.id}><legend><label><input type="checkbox" checked={checked}
+            return <fieldset key={category.id} style={{ gridColumn: column + 1, gridRow: row + 2 }}><legend><label><input type="checkbox" checked={checked}
               ref={(input) => { if (input) input.indeterminate = partial }} aria-label={`${currency} ${category.label}`}
               onChange={(event) => toggle(ids, event.target.checked)} />{category.label}</label></legend>
               {visible.map((family) => <div className="inspector-family" key={family.id}>
@@ -58,7 +64,7 @@ export function InspectorFiltersModal({ preferences, onApply, onClose }: {
               </div>)}
             </fieldset>
           })}
-        </section>)}
+        </Fragment>)}
       </div>
       {!matches.length && <p className="inspector-search-note" role="status">No families match “{search}”.</p>}
       {terms.length > 0 && <p className="inspector-search-note" role="status">Search changes visibility only. Category checkboxes still control the whole category; hidden selections are preserved.</p>}

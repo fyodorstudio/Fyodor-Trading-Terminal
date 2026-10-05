@@ -276,7 +276,7 @@ export function FyodorTerminalShell() {
                         selectBottomDock('notebook')
                       }}
                     />
-                    {inspector.supported && <InspectorChartMarkers chartApi={_chartApi} markers={inspector.markers}
+                    {inspector.supported && <InspectorChartMarkers chartApi={_chartApi} markers={inspector.markers} currencyColors={inspector.preferences.currencyColors}
                       timeDisplay={timeDisplay} onSelectRelease={(id) => {
                         inspector.selectRelease(id)
                         selectBottomDock('inspector')

@@ -8,6 +8,7 @@ export type StoredCalendarEvent = EconomicCalendarEvent & {
   actual_raw_scaled_1e6?: string | null
   previous_raw_scaled_1e6?: string | null
   forecast_raw_scaled_1e6?: string | null
+  revised_previous_raw_scaled_1e6?: string | null
 }
 type Coverage = Record<string, { missing: number[][] }>
 type StorageSource = { id: string; publisher_status: string; server_now: number; instance_id: string | null;

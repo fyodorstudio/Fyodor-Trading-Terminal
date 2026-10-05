@@ -1,3 +1,4 @@
+import { currencyColorStyle, type CurrencyColors } from './currency-colors'
 import { useEffect, useState } from 'react'
 import type { IChartApi } from 'lightweight-charts'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
@@ -6,7 +7,8 @@ import type { InspectorMarker } from './inspector-data'
 import { inspectorMarkerCoordinate } from './marker-position'
 import './inspector.css'
 
-export function InspectorChartMarkers({ chartApi, markers, timeDisplay, onSelectRelease }: {
+export function InspectorChartMarkers({ chartApi, markers, timeDisplay, onSelectRelease, currencyColors = {} }: {
+  currencyColors?: CurrencyColors
   chartApi: IChartApi; markers: InspectorMarker[]; timeDisplay: TimeDisplayPreference; onSelectRelease: (id: string) => void
 }) {
   const [positions, setPositions] = useState<{ x: number; markers: InspectorMarker[] }[]>([])
@@ -42,7 +44,7 @@ export function InspectorChartMarkers({ chartApi, markers, timeDisplay, onSelect
     ? `${formatAppTimestamp(marker.release.chartTime! * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
     : formatAppTimestamp(marker.release.releaseAt!, timeDisplay)
   const description = (marker: InspectorMarker) => `${marker.release.currency} · ${marker.release.label} · ${releaseTime(marker)}`
-  return <div className="inspector-chart-markers" aria-label="Inspector event symbols">
+  return <div className="inspector-chart-markers" style={currencyColorStyle(currencyColors)} aria-label="Inspector event symbols">
     {positions.map((cluster) => {
       const first = cluster.markers[0], multiple = cluster.markers.length > 1
       const expanded = expandedId === first.release.id

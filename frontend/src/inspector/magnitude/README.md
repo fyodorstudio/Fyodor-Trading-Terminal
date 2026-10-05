@@ -8,6 +8,7 @@ scope/key/value compatibility. Version: `zero-centered-ap-manual-all-dataset-v7`
 ## Classification
 
 `0 < Small < Medium < Large`, finite values in the series' native delta units.
+Fed/ECB rates use basis points for both deltas and boundaries.
 Both signs share these limits. Zero is Unchanged; inclusive ties remain in the
 lower size; above Large is Extreme. Relative floating-point tolerance admits
 ordinary decimal subtraction equality without hiding distinct source changes.
@@ -65,6 +66,13 @@ Settings keys encode pair/currency/side/family; series IDs validate against each
 binding. Unknown IDs and invalid tuples do not enter calculations. Workspace
 portability must register new scopes in its validator catalog; see
 `workspace-portability/README.md` and the repository maintenance guide.
+
+All 19 numeric filterable EUR/USD families share this engine. New family IDs and
+names are explicitly admitted in [the numeric catalog](../grading/catalog/README.md).
+Nonnumeric speeches/meeting commentary have no magnitude. Optional A−RevP uses the
+same saved limits; histogram/scatter samples always retain supplied Previous.
+Other families' default Scatter inspection follows the selected series' own
+publication schedule; NFP/CPI/PPI retain complete-episode defaults.
 
 ## Verification
 

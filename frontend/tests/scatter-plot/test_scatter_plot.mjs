@@ -229,7 +229,8 @@ try {
   await app.render()
   for (const [label, value] of [['Pair', 'EURUSD'], ['Base/Quote', 'USD/QUOTE'], ['Family', 'NFP']]) {
     const select = app.container.querySelector(`[aria-label="Scatter Plot ${label}"]`)
-    assert.equal(select.value, value); assert.equal(select.querySelectorAll('option').length, label === 'Family' ? 2 : 1)
+    assert.equal(select.value, value)
+    assert.deepEqual([...select.querySelectorAll('option')].map((option) => option.value), label === 'Family' ? ['NFP', 'CPI', 'PPI', 'FOMC', 'RETAIL', 'GDP', 'ISM-MANUFACTURING', 'PCE', 'ISM-SERVICES', 'CLAIMS'] : label === 'Base/Quote' ? ['USD/QUOTE', 'EUR/BASE'] : [value])
   }
   assert.equal(app.container.querySelector('[aria-label="Scatter Plot Series"]').querySelectorAll('option').length, 10)
   await respond(requests[0], health())

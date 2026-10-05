@@ -4,7 +4,7 @@ import { scatterFamilyBindings as bindings } from './scatter-family-bindings'
 import type { ScatterPlotDockProps } from '../contracts/scatter-plot-types'
 import './scatter-plot-dock.css'
 
-const options = bindings.map((binding) => binding.scope.family)
+const sides = [...new Map(bindings.map((binding) => [binding.scope.side.id, binding.scope.side])).values()]
 export function ScatterPlotDock(props: ScatterPlotDockProps) {
   const targetBinding = props.target?.brokerId === props.brokerId ? bindings.find((candidate) => candidate.family.familyId === props.target?.familyId) : null
   const initial = () => ({ broker: props.brokerId, source: props.target,
@@ -15,5 +15,8 @@ export function ScatterPlotDock(props: ScatterPlotDockProps) {
   const binding = bindings.find((candidate) => candidate.scope.family.id === state.familyId) ?? bindings[0]
   const target = state.broker === props.brokerId ? state.target : null
   return <FamilyScatterPanel key={JSON.stringify([binding.scope.family.id, target?.releaseId])} {...props} target={target}
-    binding={binding} familyOptions={options} onFamilyChange={(familyId) => setState({ ...state, familyId, target: null })} />
+    binding={binding} sideOptions={sides} onSideChange={(side) => {
+      const next = bindings.find((candidate) => candidate.scope.side.id === side)
+      if (next) setState({ ...state, familyId: next.scope.family.id, target: null })
+    }} familyOptions={bindings.filter((candidate) => candidate.scope.side.id === binding.scope.side.id).map((candidate) => candidate.scope.family)} onFamilyChange={(familyId) => setState({ ...state, familyId, target: null })} />
 }

@@ -47,7 +47,7 @@ time preferences and the storage API. Renderers do not own collection.
 
 ## Interpretation and data
 
-Inspector supports EURUSD and 21 families in four categories. NFP/CPI magnitude
+Inspector supports EURUSD and 21 families in four categories. All 19 numeric families’ magnitude
 uses all usable released Actual/Previous deltas since January 2015 through now,
 including the selected and newer readings. Scheduled unusable values stay outside
 N. `Earlier / All` separates chronology from dataset size. Stored corrections are
@@ -66,6 +66,13 @@ user-chosen interpretations, documented in the family terminology files.
 NFP direction uses signed magnitude points from Payrolls, Unemployment and
 Earnings m/m; seven supporting readings stay separate. CPI retains its four-rate
 score and separate price-index matrix. Hover series labels for NFP role explanations.
+Numeric filterable EUR/USD families support descriptive Higher/Lower deltas and
+manual magnitude, with an
+optional A−RevP comparison when Revised Previous exists. Both sizes use the same
+series limits; histogram counts and Scatter points retain supplied-Previous A−P.
+Policy rate boundaries use basis points. Speeches remain nonnumeric. Base/Quote
+identity colors are saved from the filter headings and apply to Inspector labels
+and chart symbols. Filter category blocks align horizontally across both sides.
 
 Fed and ECB policy episodes group known meeting statements/projections and press
 conferences with the numeric rate decision within one hour. Each row keeps its

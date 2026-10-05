@@ -1,14 +1,16 @@
 # Scatter Plot
 
-Bottom dock for EURUSD / USD Quote, with NFP and CPI family/series controls.
-The default inspected release is the latest completed family episode: exactly one
-usable Actual/Previous reading per admitted ID. X is publication date (UTC),
+Bottom dock for EURUSD / EUR Base or USD Quote, with all 19 numeric filterable
+families. Speeches remain nonnumeric. NFP/CPI/PPI default to the latest completed
+family episode: exactly one usable Actual/Previous reading per admitted ID.
+Other families default to the latest usable selected-series publication, since
+siblings can publish on different schedules. X is publication date (UTC),
 Y signed Actual minus supplied Previous. Forecast is excluded. Existing dots are
 connected by straight lines by default. Raw dots and their connecting line remain
 visible with Undefined magnitude; later samples never dim.
 
 Magnitude modes are Undefined and Manual boundaries. Enter three increasing
-positive native-unit cutoffs and press Freeze. Unfreeze opens editing while the
+positive native-unit cutoffs (basis points for policy rates) and press Freeze. Unfreeze opens editing while the
 saved limits remain active in Inspector. Valid edits immediately preview the
 colored bands, guides and size label in Scatter Plot; invalid edits keep its last
 valid preview. Freeze saves the preview, and reopening locks saved tuples.
@@ -31,22 +33,22 @@ including the same release month a year earlier. All admitted observations stay
 in the model and remain available through pan/zoom or All history. Calculation N,
 manual limits and histogram frequencies always use the complete dataset.
 
-Latest release selects the newest completed family episode and restores this
+Latest release selects the newest eligible episode/selected-series publication and restores this
 recent X window, including after manual pan/zoom or All history. It preserves a
 manual Y range. Recent releases restores the window around the inspected date.
 Point selection and series changes keep the exact inspected release identity.
 
 Inspector's Scatter Plot shortcut passes an explicit broker/family/release target
-through the terminal shell. NFP opens Payrolls; CPI opens Headline m/m. Verified
+through the terminal shell. NFP opens Payrolls; CPI and PPI open Headline m/m. Verified
 released publications since January 2015 are eligible, including publications
 whose selected series is unavailable. Unsupported, future or uncertain targets
 are disabled. A requested release absent from stored history has an explicit
 unavailable state; Latest release recovers without silently substituting a date.
-Changing family or broker discards the navigation target. Normal dock opening
+Changing Base/Quote, family or broker discards the navigation target. Normal dock opening
 starts at Latest rather than replaying a previous Inspector shortcut.
 
 The line joins real delta coordinates chronologically behind the dots, with no
-smoothing or added observations. A stored family publication with a missing,
+smoothing or added observations. A stored publication of the selected series with a missing,
 duplicate or incompatible series breaks the line. Off-scale segments use actual
 Y coordinates and the plot clip; edge triangles remain separate point indicators.
 Appearance includes Connect dots visibility, color and width, shared and persisted
@@ -70,8 +72,9 @@ magnitude keys. Workspace Settings export/import carries both.
 
 ## Isolated folders and extension
 
-- `PAIR/EURUSD/USD/NFP/`, `PAIR/EURUSD/USD/CPI/`: thin family configs/adapters and
-  settings bindings. Future pairs/sides/families belong under `PAIR/`.
+- `PAIR/EURUSD/USD/NFP/`, `PAIR/EURUSD/USD/CPI/`, `PAIR/EURUSD/USD/PPI/`: thin family configs/adapters and
+  settings bindings. `PAIR/EURUSD/shared/` binds the other numeric families to
+  the currency-specific Inspector catalog. Future pairs belong under `PAIR/`.
 - `dock/`: shared composition, family binding registry and inventory lifecycle.
 - `navigation/`: explicit broker/family/release targets for Inspector shortcuts.
 - `contracts/`: plot data contracts; renderers do not fetch inventory.
@@ -80,7 +83,8 @@ magnitude keys. Workspace Settings export/import carries both.
 - `settings/`: manual draft/Freeze form, global appearance and color controls.
 - `controls/`: supported selector and navigation controls.
 
-Canonical IDs, units and favorable directions belong to Inspector family rules.
+Canonical IDs, units and numeric admission belong to Inspector family rules.
+See [numeric family catalog](../inspector/grading/catalog/README.md).
 Register the shared magnitude family and a ScatterPlotDock binding rather than
 copying renderer/calculations. Update workspace portability for new settings
 scopes. Inspector never depends on the Scatter dock's mount/request lifecycle.

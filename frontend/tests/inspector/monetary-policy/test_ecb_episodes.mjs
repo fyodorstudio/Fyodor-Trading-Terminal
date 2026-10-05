@@ -112,7 +112,7 @@ try {
   assert.equal(view.selectedRelease.id, anchorId)
   assert.equal(container.querySelectorAll('.inspector-release').length, 1); assert.equal(view.markers.length, 1)
   assert.deepEqual([...container.querySelectorAll('.inspector-table-scroll thead th')].map((cell) => cell.textContent),
-    ['Series', 'Release time', 'Actual', 'Previous', 'Forecast', 'A−P', 'A−F (Surprise)'])
+    ['Series', 'Release time', 'Actual', 'Previous', 'Forecast', 'A−P', 'A−F (Surprise)', 'A−P magnitude · History'])
   const rendered = [...container.querySelectorAll('.inspector-table-scroll tbody tr')]
   assert.equal(rendered.length, 5)
   assert.match(rendered[0].querySelector('[data-reading-clock="display"]').textContent, /12:15/)
@@ -126,7 +126,7 @@ try {
   }
   assert.equal(rendered[3].lastElementChild.textContent, 'Not applicable')
   assert.equal(rendered[4].lastElementChild.textContent, 'Not applicable')
-  assert.equal(container.querySelector('.inspector-row-grade'), null, 'Colors add no score or magnitude interpretation')
+  assert.equal(container.querySelector('.inspector-row-grade').textContent, 'Higher', 'Rate signs receive descriptive labels; Undefined does not invent magnitude')
   for (const [actual, expected] of [[2.5, 'lower'], [2.75, 'unchanged'], [null, 'missing']]) {
     await render({ rows: input.map((row) => rates.includes(row.event_id) ? { ...row, actual } : row) })
     assert.equal(container.querySelectorAll(`td:nth-child(6).inspector-grade-${expected}`).length, 3)
@@ -137,7 +137,7 @@ try {
     for (const row of [...container.querySelectorAll('.inspector-table-scroll tbody tr')].slice(0, 3)) {
       assert.equal(row.children[6].textContent, expected)
       assert.ok(row.children[6].classList.contains(`inspector-grade-${tone}`))
-      assert.equal(row.children[5].textContent, '+25 bp')
+      assert.equal(row.children[5].childNodes[0].textContent, '+25 bp')
     }
   }
   await render({ rows: input, timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: 420 } })

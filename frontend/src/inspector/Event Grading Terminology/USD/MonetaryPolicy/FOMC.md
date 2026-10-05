@@ -35,8 +35,10 @@ Incoming companions keep the selected decision ID and anchored marker stable.
 Use **Actual minus supplied Previous**, never Forecast or revised Previous.
 Positive delta is green, negative red, exact zero gray, missing/nonfinite delta
 gray. Percentage-point changes display as basis points: +0.25 percentage points
-is +25 bp and −0.25 is −25 bp. This adds sign colors only; it supplies no magnitude
-tally, speech sentiment or EURUSD direction rule.
+is +25 bp and −0.25 is −25 bp. Numeric rates have Higher/Lower labels and frozen manual magnitude boundaries
+in bp, configurable from Scatter Plot. These add no speech sentiment or EURUSD
+direction rule. Optional A−RevP appears when Revised Previous is supplied; its
+size uses the same limits and never changes primary A−P history counts.
 
 ## Module and verification boundaries
 

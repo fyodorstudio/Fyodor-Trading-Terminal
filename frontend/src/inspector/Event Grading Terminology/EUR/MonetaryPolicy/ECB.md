@@ -25,8 +25,9 @@ Commentary A−P is Not applicable. Missing numeric values remain missing.
 
 Rate A−P uses Actual minus supplied Previous. Positive is green, negative red,
 zero/unavailable gray. +0.25 percentage points displays as +25 bp. Forecast and
-revised Previous do not affect the delta. This adds no magnitude score or pair
-direction. Inspector and Alert share grouping; completed numeric rates resolve
+revised Previous do not affect the delta. Rates have Higher/Lower labels and frozen manual bp magnitudes configured
+in Scatter Plot, with optional A−RevP using the same limits. Primary A−P history
+counts remain unchanged; no pair direction score is inferred. Inspector and Alert share grouping; completed numeric rates resolve
 the alert without waiting for numeric speech values.
 
 Implementation: `episodes/policy-episodes.ts`, `grading/policy-rate-grading.ts`

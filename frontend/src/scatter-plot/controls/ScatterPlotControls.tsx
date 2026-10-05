@@ -2,19 +2,20 @@ import type { ScatterOption } from '../contracts/scatter-plot-types'
 import type { Ref } from 'react'
 
 export function ScatterPlotControls({ scope, seriesId, onSeriesChange, zoom, onZoomChange, onLatest, appearanceOpen, onAppearance, appearanceButtonRef,
-  familyOptions, onFamilyChange, magnitudeUndefined = false, allHistory = false, onHistoryChange }: {
+  familyOptions, onFamilyChange, sideOptions, onSideChange, magnitudeUndefined = false, allHistory = false, onHistoryChange }: {
   scope: { pair: ScatterOption; side: ScatterOption; family: ScatterOption; series: ScatterOption[] }
   seriesId: string; onSeriesChange: (id: string) => void
   zoom: boolean; onZoomChange: (zoom: boolean) => void; onLatest: () => void
   appearanceOpen: boolean; onAppearance: () => void; appearanceButtonRef?: Ref<HTMLButtonElement>
+  sideOptions?: ScatterOption[]; onSideChange?: (side: string) => void
   familyOptions?: ScatterOption[]; onFamilyChange?: (family: string) => void; magnitudeUndefined?: boolean
   allHistory?: boolean; onHistoryChange?: () => void
 }) {
   return <div className="scatter-plot-controls">
     {([['Pair', scope.pair], ['Base/Quote', scope.side], ['Family', scope.family]] as const).map(([label, option]) =>
       <label key={label}>{label}<select aria-label={`Scatter Plot ${label}`} value={option.id}
-        onChange={(event) => { if (label === 'Family') onFamilyChange?.(event.target.value) }}>
-        {(label === 'Family' && familyOptions ? familyOptions : [option]).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+        onChange={(event) => { if (label === 'Family') onFamilyChange?.(event.target.value); else if (label === 'Base/Quote') onSideChange?.(event.target.value) }}>
+        {(label === 'Family' && familyOptions ? familyOptions : label === 'Base/Quote' && sideOptions ? sideOptions : [option]).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
       </select></label>)}
     <label>Series<select aria-label="Scatter Plot Series" value={seriesId} onChange={(event) => onSeriesChange(event.target.value)}>
       {scope.series.map((series) => <option key={series.id} value={series.id}>{series.label}</option>)}

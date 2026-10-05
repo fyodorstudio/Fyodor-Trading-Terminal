@@ -1,3 +1,4 @@
+import { currencyColorStyle } from './currency-colors'
 import { useId, useState } from 'react'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { CalendarSourceHealth } from '../system-connectivity/bridge-status/bridge-contract'
@@ -10,7 +11,7 @@ import { InspectorInfoTooltip } from './InspectorInfoTooltip'
 import { InspectorReadingTime } from './InspectorReadingTime'
 import { policyEpisodeRule } from './episodes/policy-episodes'
 import { gradePolicyRateDecision } from './grading/policy-rate-grading'
-import { gradeLabels, gradeFamilyReading, matchesReadingFamily, tallyFamilyReadings } from './grading/reading-grading'
+import { gradeLabels, gradeFamilyReading, matchesReadingFamily, revisedFamilyComparison } from './grading/reading-grading'
 import { magnitudeFamilies } from './magnitude/magnitude-families'
 import { FamilyMagnitudeCell } from './magnitude/FamilyMagnitudeCell'
 import { InspectorScoringView } from './scoring/InspectorScoringView'
@@ -54,10 +55,10 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const release = view.selectedRelease
   const showReadingTimes = !!release && !!policyEpisodeRule(release.familyId)
   const magnitudeFamily = magnitudeFamilies.find((family) => matchesReadingFamily(release, family)) ?? null
-  const tally = magnitudeFamily ? tallyFamilyReadings(release, magnitudeFamily, magnitudeFamily.gradingVersion) : null
+  const hasMagnitude = !!magnitudeFamily && !!release?.events.some((event) => Object.hasOwn(magnitudeFamily.readingRules, event.event_id))
   const scoringBinding = inspectorScoringBinding(symbol, release)
   const showScoring = view.preferences.detailView === 'scoring' && !!scoringBinding
-  const showHistograms = !!tally && view.preferences.showHistograms
+  const showHistograms = hasMagnitude && view.preferences.showHistograms
   const releaseTime = (item: InspectorRelease) => view.brokerTime
     ? `${formatAppTimestamp(item.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
     : item.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(item.releaseAt, timeDisplay)
@@ -77,7 +78,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const offset = source?.server_utc_offset_seconds
   const hasCoverage = coverageStart != null && coverageEnd != null && offset != null
   const outsideCoverage = !view.brokerTime && hasCoverage && view.range && (view.range.from < (coverageStart - offset) * 1000 || view.range.to > (coverageEnd - offset) * 1000)
-  return <section className="inspector-panel" aria-label="Inspector">
+  return <section className="inspector-panel" style={currencyColorStyle(view.preferences.currencyColors)} aria-label="Inspector">
     <header className="inspector-header">
       <div className="inspector-header-sidebar">
         <button type="button" className="inspector-pair-toggle" aria-expanded={listOpen} aria-controls={`${panelId}-releases`}
@@ -108,21 +109,21 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
         {outsideCoverage && <span>Part of this range is outside the available calendar coverage.</span>}
       </div>}
       {view.supported && release && <InspectorReleaseHeading release={release} view={view} timeDisplay={timeDisplay}
-        status={status(release)} sharedPeriod={sharedPeriod} hasMagnitude={!!tally} calendarDetail={calendarDetail} coverageDetail={coverageDetail} />}
+        status={status(release)} sharedPeriod={sharedPeriod} hasMagnitude={hasMagnitude} calendarDetail={calendarDetail} coverageDetail={coverageDetail} />}
       {view.supported && release && <select className="inspector-view-select" aria-label="Inspector view"
         value={showScoring ? 'scoring' : 'table'} onChange={(event) => {
           const next = event.target.value
           if (next === 'scatter') {
             // Scatter is navigation; keep the selected Inspector view when returning.
             event.target.value = showScoring ? 'scoring' : 'table'
-            if (magnitudeFamily && scatterAvailable && onOpenScatter) onOpenScatter(release)
+            if (hasMagnitude && scatterAvailable && onOpenScatter) onOpenScatter(release)
           } else if (next === 'table' || (next === 'scoring' && scoringBinding)) {
             view.applyPreferences({ ...view.preferences, detailView: next })
           }
         }}>
         <option value="table">Table only</option>
         <option value="scoring" disabled={!scoringBinding}>Scoring system</option>
-        <option value="scatter" disabled={!magnitudeFamily || !scatterAvailable || !onOpenScatter}>Scatter Plot</option>
+        <option value="scatter" disabled={!hasMagnitude || !scatterAvailable || !onOpenScatter}>Scatter Plot</option>
       </select>}
     </header>
     {!view.supported ? <p className="inspector-empty">Inspector currently supports EURUSD. Select EURUSD to inspect monetary policy, inflation, labor/wages and growth/activity releases.</p> : <>
@@ -143,15 +144,17 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
             <div className="inspector-table-scroll"><table className={showHistograms ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
               <thead><tr><th>Series</th>{showReadingTimes && <th>Release time</th>}<th>Actual</th><th>Previous</th>
                 {showReadingTimes && <th>Forecast</th>}<th>A−P</th>{showReadingTimes && <th
-                  title="Actual minus this broker's supplied Forecast, in basis points. Informational only; does not affect A−P, magnitude or scoring.">A−F (Surprise)</th>}{tally && <th
+                  title="Actual minus this broker's supplied Forecast, in basis points. Informational only; does not affect A−P, magnitude or scoring.">A−F (Surprise)</th>}{hasMagnitude && <th
                 title={showHistograms ? "Seven A−P bands: three negative, exact zero, three positive. Boundaries follow the selected series' Scatter Plot configuration. Undefined magnitude leaves this cell empty. Height counts all usable released readings since January 2015 through now; Extreme values sit beyond the configured range." :
                   "Magnitude follows this series' frozen manual boundaries in Scatter Plot. Undefined magnitude leaves this cell empty."}>
                 {showHistograms ? 'A−P magnitude · History' : 'Magnitude'}</th>}</tr></thead>
               <tbody>{release.events.map((event) => {
                 const delta = inspectorDelta(event)
                 const commentary = isInspectorCommentary(event)
-                const grading = magnitudeFamily ? gradeFamilyReading(event, release.familyId, magnitudeFamily) : gradePolicyRateDecision(event, release.familyId)
+                const numericReading = !!magnitudeFamily && Object.hasOwn(magnitudeFamily.readingRules, event.event_id)
+                const grading = numericReading ? gradeFamilyReading(event, release.familyId, magnitudeFamily!) : gradePolicyRateDecision(event, release.familyId)
                 const surpriseGrading = showReadingTimes ? gradePolicyRateDecision(event, release.familyId, 'forecast') : null
+                const revisedComparison = revisedFamilyComparison(event, release.familyId, magnitudeFamily)
                 return <tr key={event.value_id}>
                   <td><strong>{event.name}</strong>{event.revision > 0 && <span className="inspector-revision"> · Revision {event.revision}</span>}
                     {sharedPeriod === null && release.events.some((reading) => reading.period_seconds > 0) &&
@@ -164,11 +167,14 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
                   {showReadingTimes && <td>{formatInspectorValue(event.forecast, event)}</td>}
                   <td className={grading ? `inspector-graded-delta inspector-grade-${grading.grade}` : undefined} title={grading?.explanation}>
                     {commentary ? 'Not applicable' : formatInspectorValue(delta, event, true)}
-                    {grading && magnitudeFamily && <span className="inspector-row-grade">{gradeLabels[grading.grade]}</span>}</td>
+                    {grading && numericReading && <span className="inspector-row-grade">{gradeLabels[grading.grade]}</span>}
+                    {revisedComparison && <div className={`inspector-secondary-reading inspector-grade-${revisedComparison.grade}`}
+                      title={revisedComparison.explanation}>{revisedComparison.label}: {formatInspectorValue(revisedComparison.delta, event, true)}
+                      <span className="inspector-row-grade">{gradeLabels[revisedComparison.grade]}</span></div>}</td>
                   {showReadingTimes && <td className={surpriseGrading ? `inspector-graded-delta inspector-grade-${surpriseGrading.grade}` : undefined}
                     title={surpriseGrading?.explanation}>{commentary ? 'Not applicable' : formatInspectorValue(inspectorSurprise(event), event, true)}</td>}
-                  {tally && <FamilyMagnitudeCell event={event} history={view.magnitudeHistory} grade={grading?.grade ?? 'unrated'}
-                    showHistogram={showHistograms} />}
+                  {hasMagnitude && (numericReading ? <FamilyMagnitudeCell event={event} history={view.magnitudeHistory} grade={grading?.grade ?? 'unrated'}
+                    deltaScale={magnitudeFamily?.deltaScale} showHistogram={showHistograms} secondaryComparison={revisedComparison} /> : <td>Not applicable</td>)}
                 </tr>
               })}</tbody>
             </table></div>}

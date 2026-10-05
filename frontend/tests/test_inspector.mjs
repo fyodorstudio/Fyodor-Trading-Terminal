@@ -387,7 +387,7 @@ try {
   assert.equal(app.container.querySelector('[aria-label="NFP pair direction"]').textContent, 'Uncomputed')
   await showView('Table only')
   const unemploymentDelta = app.container.querySelectorAll('.inspector-table-scroll tbody tr')[1].querySelector('td.inspector-graded-delta')
-  assert.equal(unemploymentDelta.textContent, '+0.1 ppHigher', 'Rising unemployment describes the number, without an economic judgment')
+  assert.equal(unemploymentDelta.childNodes[0].textContent + unemploymentDelta.querySelector('.inspector-row-grade').textContent, '+0.1 ppHigher', 'Rising unemployment describes the number, without an economic judgment')
   assert.ok(unemploymentDelta.classList.contains('inspector-grade-higher'))
   assert.doesNotMatch(unemploymentDelta.title, /Good|Bad/)
   await click(filters())

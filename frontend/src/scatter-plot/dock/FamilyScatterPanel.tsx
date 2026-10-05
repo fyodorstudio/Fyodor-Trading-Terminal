@@ -20,8 +20,8 @@ export type ScatterFamilyBinding = {
   model: (events: StoredCalendarEvent[], now: number, seriesId: string, releaseId: string | null, settings: MagnitudeSettings) => ScatterModel
 }
 
-export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, target, binding, familyOptions, onFamilyChange }:
-  ScatterPlotDockProps & { binding: ScatterFamilyBinding; familyOptions: ScatterOption[]; onFamilyChange: (id: string) => void }) {
+export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, target, binding, familyOptions, onFamilyChange, sideOptions, onSideChange }:
+  ScatterPlotDockProps & { binding: ScatterFamilyBinding; familyOptions: ScatterOption[]; onFamilyChange: (id: string) => void; sideOptions: ScatterOption[]; onSideChange: (id: string) => void }) {
   const { scope, family } = binding
   const now = useCalendarNow(clockOffsetMs)
   const [seriesId, setSeriesId] = useState(scope.series[0].id)
@@ -67,7 +67,7 @@ export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, target, bindin
     <ScatterPlotControls scope={scope} seriesId={seriesId} onSeriesChange={(id) => { setSeriesId(id); setZoom(true) }} zoom={zoom && !magnitudeUndefined}
       onZoomChange={setZoom} onLatest={latest}
       allHistory={dateView.all} onHistoryChange={() => setDateView({ broker: brokerId, all: !dateView.all, anchor: model.inspection?.at ?? null, reset: dateView.reset + 1 })}
-      familyOptions={familyOptions} onFamilyChange={onFamilyChange} magnitudeUndefined={magnitudeUndefined}
+      familyOptions={familyOptions} onFamilyChange={onFamilyChange} sideOptions={sideOptions} onSideChange={onSideChange} magnitudeUndefined={magnitudeUndefined}
       appearanceOpen={appearanceOpen} onAppearance={() => setAppearanceOpen((open) => !open)} appearanceButtonRef={appearanceButton} />
     {appearanceOpen && <ScatterPlotAppearanceSettings appearance={appearance} customLimits={customLimits} onChange={changeAppearance} onClose={closeAppearance} />}
     {message ? <p className="scatter-plot-status" role="status" title={storage.error ?? undefined}>{message}</p> : <>

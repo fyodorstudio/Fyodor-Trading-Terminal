@@ -3,14 +3,16 @@ import { formatInspectorValue } from '../inspector-data'
 import type { ReadingGrade } from '../grading/reading-grading'
 import { MagnitudeHistogram } from './MagnitudeHistogram'
 import type { FamilyMagnitudeHistory } from './useFamilyMagnitudeHistory'
+import { magnitudeSizeForValue } from './magnitude-distribution'
 
-export function FamilyMagnitudeCell({ event, history, grade, showHistogram = true }: {
-  event: EconomicCalendarEvent; history: FamilyMagnitudeHistory; grade: ReadingGrade; showHistogram?: boolean
+export function FamilyMagnitudeCell({ event, history, grade, showHistogram = true, secondaryComparison, deltaScale = 1 }: {
+  event: EconomicCalendarEvent; history: FamilyMagnitudeHistory; grade: ReadingGrade; showHistogram?: boolean; deltaScale?: number
+  secondaryComparison?: { label: string; delta: number | null; grade: ReadingGrade } | null
 }) {
   const row = history.rows[event.value_id]
   const cellClass = `inspector-magnitude-cell${showHistogram ? '' : ' inspector-magnitude-only'}`
   if (row?.mode === 'undefined') return <td className={cellClass} aria-label="Magnitude undefined" />
-  const formatValue = (value: number) => formatInspectorValue(value, event, true, 2)
+  const formatValue = (value: number) => formatInspectorValue(value / deltaScale, event, true, 2)
   const date = (at: number | null) => at === null ? '—' : new Date(at).toISOString().slice(0, 10)
   const context = `Dataset includes all usable released readings since January 1, 2015, including this release and newer releases through now. ` +
     'Stored values can include later corrections. Position shows signed A−P; color describes Higher/Lower versus Previous, independently of the signed USD score.'
@@ -25,6 +27,10 @@ export function FamilyMagnitudeCell({ event, history, grade, showHistogram = tru
         <strong className={`magnitude-size inspector-grade-${grade}`} aria-label={`${event.name} magnitude: ${row.distribution.currentSize}`}>
           {row.distribution.currentSize}</strong> :
         <span className="inspector-magnitude-status" title={context}>No usable dataset readings</span>}
+    {!history.message && row?.distribution && secondaryComparison &&
+      <div className={`inspector-secondary-reading inspector-grade-${secondaryComparison.grade}`}
+        title="Uses the same frozen series boundaries. Histogram and dataset counts use supplied Previous only.">
+        {secondaryComparison.label}: {magnitudeSizeForValue(row.distribution.limits, secondaryComparison.delta === null ? null : secondaryComparison.delta * deltaScale)}</div>}
     {!history.message && row?.distribution && history.partial && <small>Partial history</small>}
   </td>
 }
