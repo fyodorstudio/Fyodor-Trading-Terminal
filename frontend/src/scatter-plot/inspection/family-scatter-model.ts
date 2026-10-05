@@ -14,7 +14,7 @@ export function familyScatterModel(events: StoredCalendarEvent[], now: number, s
     const rows = release.events.filter((row) => row.event_id === id)
     return rows.length === 1 && inspectorDelta(rows[0]) !== null
   }))
-  const selected = releases.find((release) => release.id === selectedReleaseId) ?? latest
+  const selected = selectedReleaseId ? releases.find((release) => release.id === selectedReleaseId) : latest
   const currentRows = selected?.events.filter((row) => row.event_id === seriesId) ?? []
   const current = currentRows.length === 1 ? currentRows[0] : null
   const reference = current ?? releases.flatMap((release) => release.events).findLast((row) => row.event_id === seriesId)
@@ -28,7 +28,9 @@ export function familyScatterModel(events: StoredCalendarEvent[], now: number, s
     tone: gradeFamilyReading(sample.event, family.familyId, family)?.grade ?? 'unrated',
   })
   const admitted = familyMagnitudeSamples(releases, reference)
-  const points = admitted.samples.map(toPoint)
+  const positions = new Map(releases.map((release, index) => [release.id, index]))
+  const points = admitted.samples.map((sample, index) => ({ ...toPoint(sample), breakBefore: index > 0 &&
+    positions.get(sample.releaseId)! !== positions.get(admitted.samples[index - 1].releaseId)! + 1 }))
   const samples = points, config = magnitudeConfiguration(settings, seriesId)
   const distribution = config.mode === 'undefined' ? null : magnitudeDistribution(samples.map((point) => point.delta), current ? inspectorDelta(current) : null, config.limits)
   return { points, deltaUnit, formatDelta, formatReading, inspection: {

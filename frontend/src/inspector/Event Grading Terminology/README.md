@@ -1,12 +1,12 @@
 # Inspector event grading terminology
 
-This directory documents Inspector's explicit, versioned reading-grading rules and the user-authorized experimental NFP majority direction. Rules describe the selected release's displayed readings. They do not recalculate research results or execute trades.
+This directory documents Inspector's explicit, versioned reading-grading rules and the agreed NFP/CPI signed magnitude directions. Rules describe the selected release's displayed readings. They do not recalculate research results or execute trades.
 
 Organize definitions by **release currency → event category → family**. EUR is EURUSD's base currency; USD is its quote currency. Grading colors have their own meaning: green Good, red Bad, gray Unchanged/Missing/Unrated.
 
 | Currency | Category | Family | Rule status |
 | --- | --- | --- | --- |
-| USD | Labor / wages | [Jobs report / NFP](USD/Labor/NFP.md) | Grading: `nfp-vs-previous-v1`; experimental EURUSD direction: `nfp-eurusd-majority-v1` |
+| USD | Labor / wages | [Jobs report / NFP](USD/Labor/NFP.md) | Grading: `nfp-vs-previous-v1`; three-primary signed magnitude direction: `nfp-eurusd-primary-signed-magnitude-v1` |
 | USD | Inflation | [US CPI / core CPI](USD/Inflation/CPI.md) | Grading: `usd-cpi-vs-previous-v1`; four-reading signed magnitude score: `cpi-eurusd-signed-magnitude-v1` |
 | USD | Monetary policy | [US FOMC](USD/MonetaryPolicy/FOMC.md) | Decision-anchored episodes: `fomc-decision-anchored-v1`; Fed rate A−P sign colors only |
 | EUR | All categories | [Existing notes](EUR/definitions.md) | No grading implemented |

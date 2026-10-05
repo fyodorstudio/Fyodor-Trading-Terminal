@@ -3,10 +3,13 @@ import { magnitudeSizeForValue } from '../../inspector/magnitude/magnitude-distr
 import type { ScatterModel } from '../contracts/scatter-plot-types'
 import { useScatterPlotInteraction } from './useScatterPlotInteraction'
 import { defaultScatterAppearance, scatterGuideLevels, type ScatterAppearance } from '../settings/scatter-plot-appearance'
+import { scatterLinePath } from './scatter-line-path'
+import type { ScatterAxisRange } from './scatter-plot-geometry'
 
 const date = (at: number) => new Date(at).toISOString().slice(0, 10)
-export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', appearance: a = defaultScatterAppearance }: {
+export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', appearance: a = defaultScatterAppearance, dateWindow, dateResetKey }: {
   model: ScatterModel; zoom: boolean; onInspect: (releaseId: string) => void; viewKey?: string; appearance?: ScatterAppearance
+  dateWindow?: ScatterAxisRange; dateResetKey?: string
 }) {
   const [element, setElement] = useState<HTMLDivElement | null>(null)
   const [size, setSize] = useState({ width: 900, height: 280 })
@@ -21,7 +24,7 @@ export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', app
   }, [element])
   const { points, inspection, formatDelta, formatReading } = model
   const distribution = inspection?.distribution ?? null
-  const { g, cursor, dragging, setSvg, svgEvents, onAxisKeyDown } = useScatterPlotInteraction(model, zoom, size.width, size.height, viewKey)
+  const { g, cursor, dragging, setSvg, svgEvents, onAxisKeyDown } = useScatterPlotInteraction(model, zoom, size.width, size.height, viewKey, dateWindow, dateResetKey)
   const clipId = `scatter-clip-${useId().replace(/:/g, '')}`
   const currentIndex = points.findIndex((point) => point.releaseId === inspection?.releaseId)
   const guides = distribution && distribution.threshold > 0 ? scatterGuideLevels(a, distribution.threshold,
@@ -64,6 +67,8 @@ export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', app
       {a.zero.visible && <line className="scatter-plot-zero" stroke={a.zero.color} strokeWidth={a.zero.width} x1={g.left} x2={g.right} y1={g.y(0)} y2={g.y(0)} />}
       {inspection && a.inspectedDate.visible && <line className="scatter-plot-inspected-date" data-inspected-at={inspection.at} stroke={a.inspectedDate.color} strokeWidth={a.inspectedDate.width}
         x1={g.x(inspection.at)} x2={g.x(inspection.at)} y1={g.top} y2={g.bottom} />}
+      {a.connection.visible && points.length > 1 && <path className="scatter-plot-connection" aria-hidden="true" pointerEvents="none"
+        d={scatterLinePath(points, g.x, g.y)} fill="none" stroke={a.connection.color} strokeWidth={a.connection.width} />}
       {points.map((point) => {
         const selected = point.releaseId === inspection?.releaseId
         const later = inspection ? point.at > inspection.at : false

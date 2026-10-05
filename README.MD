@@ -56,10 +56,16 @@ not historical data vintages.
 Magnitude is **Undefined** or **frozen manual boundaries**. Enter independent
 positive Small/Medium/Large native-unit limits and Freeze; above Large is Extreme.
 Unfreeze opens a live Scatter Plot preview while Inspector retains saved limits.
-Boundary zoom is the default when limits exist. P95 is retired; legacy
+Boundary zoom is the default when limits exist. The connected-dot view defaults
+to the inspected release plus 12 predecessors; Latest release restores that date
+window, and Inspector can open the exact release in Scatter Plot. P95 is retired; legacy
 manual tuples persist and legacy P95 selections become Undefined. Numeric limits
 are scoped per series; magnitude colors apply globally. Classification rules are
 user-chosen interpretations, documented in the family terminology files.
+
+NFP direction uses signed magnitude points from Payrolls, Unemployment and
+Earnings m/m; seven supporting readings stay separate. CPI retains its four-rate
+score and separate price-index matrix. Hover series labels for NFP role explanations.
 
 See [shared magnitude behavior](frontend/src/inspector/magnitude/README.md),
 [Scatter Plot](frontend/src/scatter-plot/README.md),

@@ -4,7 +4,6 @@ import { gradeFamilyReading, tallyFamilyReadings } from './reading-grading'
 export { gradeLabels, type ReadingGrade } from './reading-grading'
 
 export const nfpGradingVersion = 'nfp-vs-previous-v1'
-export const nfpMajorityVersion = 'nfp-eurusd-majority-v1'
 export const nfpReadingRules: Record<string, { name: string; goodWhen: 'higher' | 'lower'; definition: string }> = {
   '840030016': { name: 'Nonfarm Payrolls', goodWhen: 'higher', definition: 'Net change in nonfarm payroll jobs.' },
   '840030015': { name: 'Unemployment Rate', goodWhen: 'lower', definition: 'Unemployed people as a share of the labor force.' },
@@ -22,19 +21,3 @@ export const nfpReadingFamily = { familyId: 'jobs', country: 'US', currency: 'US
 export function gradeNfpReading(event: EconomicCalendarEvent, familyId: string) { return gradeFamilyReading(event, familyId, nfpReadingFamily) }
 
 export function tallyNfpRelease(release: InspectorRelease | null) { return tallyFamilyReadings(release, nfpReadingFamily, nfpGradingVersion) }
-
-export function assessNfpMajority(release: InspectorRelease | null) {
-  const tally = tallyNfpRelease(release)
-  if (!tally || !release) return null
-  const requiredIds = Object.keys(nfpReadingRules)
-  const complete = release.events.length === requiredIds.length && requiredIds.every((id) =>
-    release.events.filter((event) => event.event_id === id).length === 1) &&
-    tally.counts.missing === 0 && tally.counts.unrated === 0
-  const direction = !complete ? 'incomplete' : tally.counts.good > tally.counts.bad ? 'short' :
-    tally.counts.bad > tally.counts.good ? 'long' : 'neutral'
-  const labels = { short: 'EURUSD Short', long: 'EURUSD Long', neutral: 'EURUSD Neutral', incomplete: 'Incomplete' }
-  return { direction, label: labels[direction], version: nfpMajorityVersion,
-    explanation: complete
-      ? `${tally.counts.good} Good versus ${tally.counts.bad} Bad. More Good = EURUSD Short; more Bad = EURUSD Long; equal = Neutral. Unchanged does not vote. Experimental NFP majority rule versus supplied Previous.`
-      : 'Requires exactly one usable Actual/Previous reading for each of the ten defined NFP series. Absent, missing, unrated or repeated series make the direction Incomplete.' }
-}

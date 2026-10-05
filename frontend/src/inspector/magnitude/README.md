@@ -51,7 +51,11 @@ from zero-heavy data. Missing current readings remain Unavailable.
 - `MagnitudeHistogram.tsx`, `FamilyMagnitudeCell.tsx`: accessible rendering/details.
 - `SignedMagnitudeMatrix.tsx`, family tally bindings: shared presentation.
 
-NFP majority logic remains unchanged; magnitude adds a Good/Bad size breakdown.
+NFP uses three primary signed 0–4 contributions: Payrolls, Unemployment (inverted
+sign), and Earnings m/m. Seven supporting rows retain signed magnitudes but never
+enter the USD total or gate direction. Role tooltips explain each series. Exact
+cancellation prioritizes Payrolls, Unemployment, then Earnings m/m. Undefined or
+unusable primaries and all-zero primaries leave direction Uncomputed.
 CPI's four primary rates have equal signed 0-4 points with monthly/annual subtotals,
 explicit cancellation priority and EURUSD mapping. Index scores remain separate
 and do not contribute to the rate direction. See the canonical family terminology.
@@ -66,5 +70,5 @@ portability must register new scopes in its validator catalog; see
 Frontend suites cover signed inclusive boundaries, zero/missing/extreme values,
 source admission and units, selection invariance, live N growth/corrections,
 per-series isolation, freeze/unfreeze drafts, migration, storage failures,
-Inspector/scatter parity, CPI scores and reactive settings. Visual acceptance
+Inspector/scatter parity, NFP primary/supporting isolation, CPI scores and reactive settings. Visual acceptance
 belongs to the user. Run `pnpm --dir frontend test` from the repository root.

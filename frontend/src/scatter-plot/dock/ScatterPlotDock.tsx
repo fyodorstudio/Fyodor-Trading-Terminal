@@ -1,22 +1,19 @@
 import { useState } from 'react'
-import { nfpScatterScope } from '../PAIR/EURUSD/USD/NFP/nfp-scatter-config'
-import { nfpScatterModel } from '../PAIR/EURUSD/USD/NFP/nfp-scatter-adapter'
-import { cpiScatterScope } from '../PAIR/EURUSD/USD/CPI/cpi-scatter-config'
-import { cpiScatterModel } from '../PAIR/EURUSD/USD/CPI/cpi-scatter-adapter'
-import { nfpMagnitudeFamily, cpiMagnitudeFamily } from '../../inspector/magnitude/magnitude-families'
-import { FamilyScatterPanel, type ScatterFamilyBinding } from './FamilyScatterPanel'
+import { FamilyScatterPanel } from './FamilyScatterPanel'
+import { scatterFamilyBindings as bindings } from './scatter-family-bindings'
 import type { ScatterPlotDockProps } from '../contracts/scatter-plot-types'
 import './scatter-plot-dock.css'
 
-// Supported family bindings own data, selection and settings. Shared dock and
-// plotting modules remain independent of any family's IDs or completion rules.
-const bindings: ScatterFamilyBinding[] = [
-  { family: nfpMagnitudeFamily, scope: nfpScatterScope, model: nfpScatterModel },
-  { family: cpiMagnitudeFamily, scope: cpiScatterScope, model: cpiScatterModel },
-]
 const options = bindings.map((binding) => binding.scope.family)
 export function ScatterPlotDock(props: ScatterPlotDockProps) {
-  const [familyId, setFamilyId] = useState(bindings[0].scope.family.id)
-  const binding = bindings.find((candidate) => candidate.scope.family.id === familyId) ?? bindings[0]
-  return <FamilyScatterPanel key={binding.scope.family.id} {...props} binding={binding} familyOptions={options} onFamilyChange={setFamilyId} />
+  const targetBinding = props.target?.brokerId === props.brokerId ? bindings.find((candidate) => candidate.family.familyId === props.target?.familyId) : null
+  const initial = () => ({ broker: props.brokerId, source: props.target,
+    target: targetBinding ? props.target : null, familyId: targetBinding?.scope.family.id ?? bindings[0].scope.family.id })
+  const [state, setState] = useState(initial)
+  if (state.source !== props.target) setState(initial())
+  else if (state.broker !== props.brokerId) setState({ ...state, broker: props.brokerId, target: null })
+  const binding = bindings.find((candidate) => candidate.scope.family.id === state.familyId) ?? bindings[0]
+  const target = state.broker === props.brokerId ? state.target : null
+  return <FamilyScatterPanel key={JSON.stringify([binding.scope.family.id, target?.releaseId])} {...props} target={target}
+    binding={binding} familyOptions={options} onFamilyChange={(familyId) => setState({ ...state, familyId, target: null })} />
 }

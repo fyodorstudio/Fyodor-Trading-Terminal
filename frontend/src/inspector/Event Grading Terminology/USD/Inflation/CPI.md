@@ -1,5 +1,10 @@
 # US CPI / core CPI
 
+
+The existing four-rate direction and separate index matrix are the agreed scoring
+baseline. The NFP scoring revision does not change CPI series, signs, coefficients,
+cancellation priority, or saved per-series magnitude configuration. Changes to
+this contract require a new score version and regression coverage.
 Rule version: `usd-cpi-vs-previous-v1`. Scope: US / USD, Inspector family `us-cpi`
 under Inflation; Scatter Plot EURUSD → USD / Quote → CPI.
 

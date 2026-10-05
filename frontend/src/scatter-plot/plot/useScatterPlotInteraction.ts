@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent, type MouseEvent, type KeyboardEvent } from 'react'
 import type { ScatterModel } from '../contracts/scatter-plot-types'
-import { scatterPlotGeometry, type ScatterViewport } from './scatter-plot-geometry'
+import { scatterPlotGeometry, type ScatterViewport, type ScatterAxisRange } from './scatter-plot-geometry'
 import { limitScatterDates, scaleScatterAxis, scatterPointerZone, translateScatterAxis, type ScatterGeometry, type ScatterPointerZone } from './scatter-plot-viewport'
 
 type Position = { x: number; y: number }
@@ -16,26 +16,31 @@ function scaled(geometry: ScatterGeometry, axis: 'x' | 'y', factor: number, anch
     scaleScatterAxis(range, factor, center, geometry.extent * 2e-6, geometry.extent * 200)
 }
 
-export function useScatterPlotInteraction(model: ScatterModel, zoom: boolean, width: number, height: number, viewKey: string) {
+export function useScatterPlotInteraction(model: ScatterModel, zoom: boolean, width: number, height: number, viewKey: string,
+  dateWindow?: ScatterAxisRange, dateResetKey = '') {
   const resetKey = `${viewKey}/${zoom}`
-  const [state, setState] = useState<{ key: string; viewport: ScatterViewport }>({ key: resetKey, viewport: {} })
+  const [state, setState] = useState<{ key: string; dateKey: string; viewport: ScatterViewport }>({ key: resetKey, dateKey: dateResetKey, viewport: {} })
   const drag = useRef<Drag | null>(null)
   const suppressClick = useRef(false)
   if (state.key !== resetKey) {
-    setState({ key: resetKey, viewport: {} })
+    setState({ key: resetKey, dateKey: dateResetKey, viewport: {} })
+  } else if (state.dateKey !== dateResetKey) {
+    setState({ ...state, dateKey: dateResetKey, viewport: { y: state.viewport.y } })
   }
-  useEffect(() => { drag.current = null; suppressClick.current = false }, [resetKey])
-  const viewport = state.key === resetKey ? state.viewport : emptyViewport
+  useEffect(() => { drag.current = null; suppressClick.current = false }, [resetKey, dateResetKey])
+  const viewport = useMemo(() => state.key !== resetKey ? emptyViewport : state.dateKey !== dateResetKey ? { y: state.viewport.y } : state.viewport,
+    [state, resetKey, dateResetKey])
   const g = useMemo(() => scatterPlotGeometry(model.points, model.inspection?.distribution ?? null, zoom, width, height,
-    model.inspection?.at, viewport), [model.points, model.inspection, zoom, width, height, viewport])
+    model.inspection?.at, viewport, dateWindow), [model.points, model.inspection, zoom, width, height, viewport, dateWindow])
   const [svg, setSvg] = useState<SVGSVGElement | null>(null)
   const [cursor, setCursor] = useState<{ key: string; position: Position } | null>(null)
   const [dragging, setDragging] = useState<string | null>(null)
+  const interactionKey = `${resetKey}/${dateResetKey}`
   const position = useCallback((event: { clientX: number; clientY: number }, element: SVGSVGElement): Position => {
     const rect = element.getBoundingClientRect()
     return { x: (event.clientX - rect.left) * width / (rect.width || width), y: (event.clientY - rect.top) * height / (rect.height || height) }
   }, [width, height])
-  const change = useCallback((next: ScatterViewport) => setState({ key: resetKey, viewport: next }), [resetKey])
+  const change = useCallback((next: ScatterViewport) => setState({ key: resetKey, dateKey: dateResetKey, viewport: next }), [resetKey, dateResetKey])
   useEffect(() => {
     if (!svg) return
     // A native non-passive listener lets the chart consume wheel zoom without scrolling the dock.
@@ -71,14 +76,14 @@ export function useScatterPlotInteraction(model: ScatterModel, zoom: boolean, wi
   }
   const onPointerMove = (event: PointerEvent<SVGSVGElement>) => {
     const p = position(event, event.currentTarget)
-    setCursor(scatterPointerZone(g, p.x, p.y) === 'plot' ? { key: resetKey, position: p } : null)
+    setCursor(scatterPointerZone(g, p.x, p.y) === 'plot' ? { key: interactionKey, position: p } : null)
     const active = drag.current
     if (!active || active.pointerId !== event.pointerId) return
     const dx = p.x - active.start.x, dy = p.y - active.start.y
     if (!active.moved && Math.hypot(dx, dy) < 3) return
     active.moved = true
     suppressClick.current = true
-    setDragging(resetKey)
+    setDragging(interactionKey)
     const initial = active.geometry
     if (active.zone === 'plot') {
       change({ x: limitScatterDates(translateScatterAxis({ from: initial.first, to: initial.last }, -dx * (initial.last - initial.first) / (initial.right - initial.left))),
@@ -94,8 +99,8 @@ export function useScatterPlotInteraction(model: ScatterModel, zoom: boolean, wi
     else return
     event.preventDefault(); event.stopPropagation()
   }
-  const visibleCursor = cursor?.key === resetKey && scatterPointerZone(g, cursor.position.x, cursor.position.y) === 'plot' ? cursor.position : null
-  return { g, cursor: visibleCursor, dragging: dragging === resetKey, setSvg, onAxisKeyDown, svgEvents: {
+  const visibleCursor = cursor?.key === interactionKey && scatterPointerZone(g, cursor.position.x, cursor.position.y) === 'plot' ? cursor.position : null
+  return { g, cursor: visibleCursor, dragging: dragging === interactionKey, setSvg, onAxisKeyDown, svgEvents: {
     onPointerDown, onPointerMove, onPointerUp: endDrag,
     onPointerCancel: () => { endDrag(); suppressClick.current = false; setCursor(null) },
     onLostPointerCapture: endDrag,

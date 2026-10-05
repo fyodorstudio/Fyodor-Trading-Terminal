@@ -4,7 +4,7 @@ export type ScatterLineStyle = { visible: boolean; color: string; width: number 
 export type ScatterGuideLevel = { id: number; visible: boolean; factor: number; color: string; width: number; shade: number }
 export type ScatterAppearance = {
   dotSize: number; selectedDotSize: number; dotColor: string; goodColor: string; badColor: string
-  grid: ScatterLineStyle; zero: ScatterLineStyle; inspectedDate: ScatterLineStyle
+  grid: ScatterLineStyle; zero: ScatterLineStyle; inspectedDate: ScatterLineStyle; connection: ScatterLineStyle
   showGuides: boolean; showBands: boolean; guideStyle: 'solid' | 'dashed' | 'dotted'; guideOpacity: number
   levels: ScatterGuideLevel[]
   customLevels: ScatterGuideLevel[]
@@ -19,6 +19,7 @@ export const defaultScatterAppearance: ScatterAppearance = {
   grid: { visible: true, color: '#94a3b8', width: .6 },
   zero: { visible: true, color: '#64748b', width: 1 },
   inspectedDate: { visible: true, color: '#6366f1', width: 1 },
+  connection: { visible: true, color: '#64748b', width: 1.5 },
   showGuides: true, showBands: true, guideStyle: 'dashed', guideOpacity: 50,
   levels: magnitudeFactors.map((factor, index) => ({ id: index + 1, visible: true, factor, color: magnitudeColors[index], width: .7, shade: [12, 16, 20][index] })),
   customLevels: magnitudeFactors.map((factor, index) => ({ id: index + 1, visible: true, factor, color: magnitudeColors[index], width: .7, shade: [12, 16, 20][index] })),
@@ -64,6 +65,7 @@ export function normalizeScatterAppearance(value: unknown): ScatterAppearance {
     dotSize: number(item.dotSize, d.dotSize, 2, 32), selectedDotSize: number(item.selectedDotSize, d.selectedDotSize, 2, 40),
     dotColor: color(item.dotColor, d.dotColor), goodColor: color(item.goodColor, d.goodColor), badColor: color(item.badColor, d.badColor),
     grid: line(item.grid, d.grid), zero: line(item.zero, d.zero), inspectedDate: line(item.inspectedDate, d.inspectedDate),
+    connection: line(item.connection, d.connection),
     showGuides: bool(item.showGuides, d.showGuides), showBands: bool(item.showBands, d.showBands),
     guideStyle: item.guideStyle === 'solid' || item.guideStyle === 'dotted' ? item.guideStyle : d.guideStyle,
     guideOpacity: number(item.guideOpacity, d.guideOpacity, 0, 100), magnitudeColors: palette,
@@ -116,7 +118,7 @@ const appearanceChanged = `${scatterAppearanceKey}:changed`
 let cachedRaw: string | null | undefined
 let cachedAppearance: ScatterAppearance | undefined
 function immutableAppearance(appearance: ScatterAppearance) {
-  for (const line of [appearance.grid, appearance.zero, appearance.inspectedDate]) Object.freeze(line)
+  for (const line of [appearance.grid, appearance.zero, appearance.inspectedDate, appearance.connection]) Object.freeze(line)
   for (const levels of [appearance.levels, appearance.customLevels]) {
     levels.forEach(Object.freeze); Object.freeze(levels)
   }

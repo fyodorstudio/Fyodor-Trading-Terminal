@@ -50,7 +50,9 @@
 .inspector-grade-good, .inspector-direction-long { color: #13743a; }
 .inspector-grade-bad, .inspector-direction-short { color: #bd2935; }
 .inspector-grade-unchanged, .inspector-grade-missing, .inspector-grade-unrated, .inspector-direction-neutral, .inspector-direction-incomplete, .inspector-direction-uncomputed { color: var(--text-muted); }
-.inspector-cpi-score-value { font-weight: 650; }
+.inspector-signed-score-value { font-weight: 650; }
+.inspector-signed-magnitude-matrix th span[title] { cursor: help; }
+.inspector-signed-magnitude-matrix th span:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .inspector-row-grade { display: inline-block; margin-left: 8px; font-size: 9px; font-weight: 650; }
 .inspector-graded-delta { font-weight: 650; }
 :root[data-theme='dark'] .inspector-grade-good, :root[data-theme='dark'] .inspector-direction-long { color: #6ee7a0; }

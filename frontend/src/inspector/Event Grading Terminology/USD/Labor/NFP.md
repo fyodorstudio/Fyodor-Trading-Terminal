@@ -1,149 +1,137 @@
 # USD · Labor / wages · Jobs report / NFP
 
-Rule version: **`nfp-vs-previous-v1`**
+Reading convention: **`nfp-vs-previous-v1`**.
+Directional score: **`nfp-eurusd-primary-signed-magnitude-v1`**.
 
-Experimental direction rule version: **`nfp-eurusd-majority-v1`**
+## Agreed scoring baseline
 
-## Purpose and scope
+Scope is Inspector family `jobs`, country `US`, currency `USD`, in EURUSD.
+Compare Actual with supplied Previous, using Inspector's exact raw-integer
+arithmetic when available. Forecast and Revised Previous do not enter this score.
 
-Give the user an immediate count of Good, Bad and Unchanged readings across the selected US Jobs report / NFP release. Missing readings are counted separately. The user-authorized experimental majority rule maps those counts to an EURUSD direction. These are agreed conventions versus Previous, rather than a weighted economic model, a forecast comparison or an official BLS grading system. Direction is a rule output; profitability and predictive reliability have not been established.
+Only three primary readings contribute to the signed USD total. Each has series
+coefficient 1 and contributes signed magnitude points: Unchanged 0, Small 1,
+Medium 2, Large 3, Extreme 4. These coefficients and favorable directions are
+application conventions, not measured market sensitivities.
 
-Scope requires Inspector family `jobs`, currency `USD`, country `US`, and the stable event IDs below. No other family receives NFP grades. All available displayed readings count equally. Currency identity colors on headings/symbols are separate from grading colors.
-
-## Terminology and arithmetic
-
-- **Actual (A):** the current published reading. For payroll rows it represents a net monthly job change, not the total number of jobs.
-- **Previous (P):** the supplied prior reading used by Inspector's A−P column.
-- **A−P:** Actual minus supplied Previous, using Inspector's existing exact raw-integer arithmetic where available.
-- **Revised Previous:** a separately displayed correction; this version does not substitute it for Previous in grading.
-- **Good (green):** the change has the favorable direction defined for that specific reading below.
-- **Bad (red):** the change has the opposite direction.
-- **Unchanged (gray):** the calculated delta equals zero, including zero Actual and zero Previous.
-- **Missing (gray):** a usable delta cannot be established, including absent/nonfinite Actual or Previous. Missing never contributes to Good, Bad or Unchanged.
-- **Unrated (gray):** a US jobs reading has no explicitly registered event rule. It remains visible and is counted separately.
-- **k:** thousands of jobs. **pp:** percentage points, e.g. 4.2% − 4.1% = +0.1 pp. **h:** hours.
-
-## Reading definitions and directions
-
-These measurement definitions follow [BLS's Employment Situation technical notes](https://www.bls.gov/news.release/empsit.tn.htm) and [CPS labor-force definitions](https://www.bls.gov/cps/definitions.htm). The Good/Bad directions are the Terminal's chosen conventions.
-
-| Event ID | Reading | Meaning | Good when Actual is… |
+| Event ID | Reading | Role | Favorable A−P direction |
 | --- | --- | --- | --- |
-| `840030016` | Nonfarm Payrolls | Net change in nonfarm payroll employment. | Higher than Previous |
-| `840030015` | Unemployment Rate | Unemployed people as a share of the labor force. | Lower than Previous |
-| `840030017` | Participation Rate | Share of the civilian noninstitutional population aged 16+ working or seeking work. | Higher than Previous |
-| `840030018` | Average Hourly Earnings m/m | Monthly percentage change in average hourly pay. | Higher than Previous |
-| `840030019` | Average Hourly Earnings y/y | Annual percentage change in average hourly pay. | Higher than Previous |
-| `840030020` | Average Weekly Hours | Average workweek of private-sector employees. | Higher than Previous |
-| `840030023` | Private Nonfarm Payrolls | Net job change at private employers. | Higher than Previous |
-| `840030022` | Government Payrolls | Net job change at government employers. | Higher than Previous |
-| `840030032` | Manufacturing Payrolls | Net job change in manufacturing. | Higher than Previous |
-| `840030024` | U6 Unemployment Rate | Broader labor underutilization, including marginal attachment and involuntary part-time work. | Lower than Previous |
+| `840030016` | Nonfarm Payrolls | Primary: job creation | Higher |
+| `840030015` | Unemployment Rate | Primary: labor-market slack | Lower |
+| `840030018` | Average Hourly Earnings m/m | Primary: wage momentum | Higher |
+| `840030019` | Average Hourly Earnings y/y | Supporting: annual wage trend | Higher |
+| `840030017` | Participation Rate | Supporting: unemployment context | Higher, simplified convention |
+| `840030020` | Average Weekly Hours | Supporting: labor usage | Higher |
+| `840030023` | Private Nonfarm Payrolls | Supporting: payroll composition | Higher |
+| `840030022` | Government Payrolls | Supporting: payroll composition | Higher |
+| `840030032` | Manufacturing Payrolls | Supporting: sector detail | Higher |
+| `840030024` | U6 Unemployment Rate | Supporting: broader underutilization | Lower |
 
-For the eight higher-is-Good readings: positive delta = Good, negative delta = Bad. For Unemployment Rate and U6: negative delta = Good, positive delta = Bad. Zero/missing rules apply to every reading.
+Nonzero favorable changes receive positive points (green); unfavorable changes
+receive negative points (red). For unemployment and U6, falling rates therefore
+receive positive points despite negative raw A−P. Exact zero is Unchanged (gray).
+Native delta units are thousands of jobs (k), percentage points (pp), and hours (h).
+Payrolls accept source unit 0 or 4 with multiplier 1; rates require unit 1 with
+multiplier 0, and hours require unit 3 with multiplier 0. No implicit conversion
+of incompatible metadata is permitted.
 
-## Release tally
+## Primary direction and cancellation
 
-Count each displayed source reading once. Grouping already excludes duplicate value IDs. The denominator is the number of displayed readings, not an assumed fixed ten. If the source supplies eight rows, the tally says eight; it does not fabricate two absent rows. A provided row with missing values contributes one Missing reading. Unknown rules contribute Unrated.
+Sum the three primary signed contributions, ranging from −12 to +12:
 
-Show Good and Bad as rows in the compact magnitude table. Aggregate Good, Bad, Unchanged and available reading totals remain in its accessible caption; include Missing/Unrated there when nonzero. Refresh the tally, colors and experimental direction whenever the selected release's accepted readings update. Show a per-row rule explanation on hover. No weighted score, delta sum, probability, entry/exit, target, stop or marker color is derived from the tally.
+- Positive USD total → **EURUSD Short** (red badge).
+- Negative USD total → **EURUSD Long** (green badge).
+- Exact cancellation with nonzero contributions → use the first nonzero primary
+  score in this order: **Nonfarm Payrolls → Unemployment Rate → Earnings m/m**.
+  Display the deciding series and signed points without altering the zero total.
+- All three unchanged → **Uncomputed**. No previous direction is carried forward.
+- Undefined, absent, missing, duplicate, unavailable or incompatible primary
+  reading → **Uncomputed**, with the affected row's explicit status.
 
-## Experimental EURUSD majority direction
+Exactly one usable Actual/Previous reading and frozen manual configuration is
+required for each primary series. An unconfigured zero also stays Undefined.
+Supporting/unknown rows never contribute, gate completeness, or break a tie.
+Missing supporting rows do not prevent direction from the three usable primaries.
+Manual limits classify current readings without depending on history frequencies;
+partial history remains labeled and does not invent a different threshold.
 
-Version `nfp-eurusd-majority-v1` uses the existing `nfp-vs-previous-v1` grades. All readings remain equally counted, including overlapping measures. Scope is the selected US/USD NFP release in the EURUSD-only Inspector.
+This replaces the former ten-reading majority badge and Good/Bad size-count
+summary. There is no Neutral/Mixed output or arbitrary carry-forward direction.
+The raw reading grades and individual histories remain available for all ten.
 
-| Condition | Label |
-| --- | --- |
-| Good > Bad | EURUSD Short |
-| Bad > Good | EURUSD Long |
-| Good = Bad | EURUSD Neutral |
-| Incomplete required readings | Incomplete |
+## Supporting table and role tooltips
 
-Unchanged does not vote. A complete ten-row release with all deltas zero gives Neutral. Direction requires exactly one row for each of the ten stable event IDs in the definitions table, each with a usable Actual/Previous delta. An absent series, missing delta, unknown rule or repeated series suppresses direction as Incomplete, even if the remaining rows have a majority. The actual displayed tally is retained; absent rows are not invented. The UI explains that ten usable series are needed. Upcoming releases stay Incomplete until those readings are available.
+Show seven supporting rows in a separate signed 0–4 magnitude matrix. Their
+points describe the existing favorable-direction conventions only. The heading
+and footer explicitly identify supporting readings as excluded from the USD
+total; this table has no independent pair direction or combined score.
 
-Display the direction badge in the top-left corner of the magnitude table, with no visible **NFP majority rule · Experimental**, **Compared with Previous** or **A−P magnitude** caption. Direction badge colors are **Short red, Long green, Neutral gray, Incomplete gray**, with the text labels retained in both light and dark themes. These direction colors are separate from the Good/Bad reading colors: a majority of green Good readings produces a red Short direction for EURUSD. Hover explains the mapping or incompleteness. Accepted publisher updates and corrections refresh the direction with the current displayed table. Other families receive no majority label. The existing chart symbols are unaffected.
+Short series-label tooltips explain each primary contribution or supporting role:
 
-User examples: January 10, 2025, **4 Good / 3 Bad / 3 Unchanged → EURUSD Short**; February 7, 2025, **5 Good / 4 Bad / 1 Unchanged → EURUSD Short**. These examples establish the requested mapping, not a verified trade outcome or backtest. A narrow majority has the same direction as a large majority; no confidence percentage is assigned.
+- Payrolls: broad monthly job creation.
+- Unemployment: labor-market slack; lower is positive under the chosen convention.
+- Earnings m/m: latest monthly wage-growth momentum.
+- Earnings y/y: annual wage trend, kept separate to avoid a second wage contribution.
+- Participation: context for unemployment; its direction alone is ambiguous.
+- Hours: labor usage beyond job counts, used as supporting corroboration.
+- Private/government payrolls: components already present in total payrolls.
+- Manufacturing: sector detail already present in private and total payrolls.
+- U6: broader underutilization, overlapping with the unemployment contribution.
 
-Historical assessment should use values available at release time, every eligible release including failures, and consistent entry/exit/spread assumptions. Current stored values may incorporate subsequent corrections. Math Lab owns any such strategy research; this Terminal change only implements the requested live presentation rule.
+Tooltips retain keyboard focus and accessible role descriptions. Supporting
+missing/Undefined states remain visible; they are never interpreted as zero.
 
-## Agreed example: October 2, 2026 release
+## Illustrative manual-boundary example
 
-These values are the user's stored example; corrections can change them later.
+Using the previously inspected October 2, 2026 values, with illustrative manual
+limits (not defaults and not a replacement for the user's saved configuration):
 
-| Reading | Actual | Previous | A−P | Grade |
-| --- | ---: | ---: | ---: | --- |
-| Nonfarm Payrolls | 29k | 162k | −133k | Bad |
-| Unemployment Rate | 4.2% | 4.1% | +0.1 pp | Bad |
-| Participation Rate | 61.8% | 61.6% | +0.2 pp | Good |
-| Hourly Earnings m/m | 0.1% | 0.3% | −0.2 pp | Bad |
-| Hourly Earnings y/y | 3.0% | 3.1% | −0.1 pp | Bad |
-| Weekly Hours | 34.4 h | 34.4 h | 0 h | Unchanged |
-| Private Payrolls | 46k | 127k | −81k | Bad |
-| Government Payrolls | −17k | 35k | −52k | Bad |
-| Manufacturing Payrolls | 9k | 16k | −7k | Bad |
-| U6 Unemployment | 7.6% | 7.7% | −0.1 pp | Good |
+| Primary | Actual | Previous | A−P | Small / Medium / Large limits | Points |
+| --- | ---: | ---: | ---: | --- | ---: |
+| Payrolls | 29k | 162k | −133k | 100 / 200 / 300k | −2 |
+| Unemployment | 4.2% | 4.1% | +0.1 pp | 0.1 / 0.2 / 0.3 pp | −1 |
+| Earnings m/m | 0.1% | 0.3% | −0.2 pp | 0.1 / 0.2 / 0.3 pp | −2 |
 
-Result: **2 Good · 7 Bad · 1 Unchanged · 10 readings**.
+Total **−5 → EURUSD Long** under this agreed rule. Payroll Actual +29k still
+means job growth; its negative A−P means fewer jobs added than supplied Previous.
+Revised Previous remains separately displayed. The seven supporting readings do
+not change this total.
 
-Experimental majority direction: **EURUSD Long**, because 7 Bad > 2 Good and all ten required readings are usable.
+## Magnitude and history contract
 
-NFP's −133k delta means fewer jobs added than the supplied previous month; Actual +29k still reports job growth. Its revised Previous of 133k remains separately visible, but does not change this version's comparison baseline.
+Each of all ten series independently stores Undefined or three frozen manual
+limits, satisfying `0 < Small < Medium < Large`. Limits mirror across signs;
+inclusive decimal ties remain in the lower category; above Large is Extreme.
+Freeze saves/locks values. Unfreeze opens editing; valid drafts preview Scatter
+bands and size while Inspector uses the saved tuple until Freeze. Existing saved
+settings and colors survive this scoring revision. P95 remains retired.
 
-## Interpretation limits
+The reference dataset contains all unique, compatible, usable observed readings
+released from January 2015 through now, selected broker only, including selected
+and newer publications. Earlier / All (e.g. `2 / 140`) distinguishes chronology
+from calculation N. New usable releases grow N; corrections replace samples.
+Scheduled, missing, duplicate, incompatible, withdrawn or uncertain rows stay
+outside N. Manual boundaries remain fixed as history grows.
 
-Participation's higher-is-Good rule is deliberately simplified: more participation can accompany higher unemployment. Faster wage growth is classified as Good under this chosen convention, without claiming that faster inflation or every wage-growth increase benefits the economy or USD.
+Seven histogram bins cover three negative ranges, exact zero and three positive
+ranges. Extreme values remain in N and use an edge marker beyond the seven bars.
+Undefined cells are empty. The shared classifier and saved series limits power
+histograms, scatter guides and both NFP matrices.
+See [shared magnitude behavior](../../../magnitude/README.md).
 
-Total, private, government and manufacturing payrolls overlap, as do monthly/annual wage measures. All are counted because the user requested a tally of every displayed reading; seven Bad rows are not seven independent confirmations. Classification ignores magnitude and the difference between Actual and Forecast. It describes the selected table under these rules, not the realized market reaction.
+## Sources and interpretation
 
-## Historical signed A−P distribution column
+- [BLS Employment Situation technical notes](https://www.bls.gov/news.release/empsit.tn.htm): payroll jobs, hours, earnings and household-survey distinctions.
+- [BLS labor-force definitions](https://www.bls.gov/cps/definitions.htm): participation, unemployment and U6.
+- [BLS payroll industry table](https://www.bls.gov/news.release/empsit.t17.htm): total, private, government and manufacturing overlap.
 
-The NFP table now shows a miniature histogram for each series, independently of
-the displayed chart range. The reference dataset starts January 1, 2015 and
-includes all usable readings released through now, including the selected and
-newer releases. Seven signed A−P bands contain
-three negative ranges, exact zero in the center, and three positive ranges.
-Gray bar heights count all dataset readings; the selected band uses its existing
-Good/Bad/Unchanged color. An empty interval uses an outline, without adding a
-historical reading. Negative/positive position does not determine the color.
-The zero label stays centered beneath the exact-zero band, without a vertical guide.
+Participation can change unemployment without corresponding job creation.
+Wage measures share a wage base; payroll components share the headline total.
+The chosen three-primary selection reduces repeated contributions but is not a
+claim of statistical independence or a universal institutional weighting model.
+Institutional priorities can change with economic conditions. Direction describes
+this A−P rule; it does not establish a realized price reaction or holding period.
 
-Each series can use three independently configured Small/Medium/Large
-boundaries from Scatter Plot, in its native k, pp or h units. They must satisfy
-`0 < Small < Medium < Large`, mirror on both signs and stay fixed across dates.
-The same saved boundaries control the scatter's configurable guides, these seven bands,
-size labels and the Good/Bad magnitude tally. Unconfigured series are Undefined,
-with empty histogram cells. Frozen manual boundaries stay fixed as new readings
-grow N. Readings beyond Large are Extreme and remain in N while omitted from the
-seven bars. Extreme selections show a colored edge marker. All-zero history does
-not move manual boundaries. Freeze saves values; Unfreeze opens editing without
-changing the active tuple. P95 is retired; old markers become Undefined.
-Hover a bar or focus and use Left/Right arrows (Home/End for endpoints) for its
-range, count and share of history. The selected size label beside the chart
-reads Small, Medium, Large or Extreme; exact zero reads Unchanged and a missing
-reading reads Unavailable. The tooltip shows selected A−P/size, inspected
-band size/range/count, Earlier / All (e.g. `2 / 140`), calculation N, and true historical minimum and
-maximum, including hidden extremes. It has no visible threshold row. The
-distribution does not change the majority rule above.
-Partial history and missing data are explicit. Stored corrections mean this
-descriptive baseline is not a point-in-time backtest.
-
-The release tally also shows the number of **Small, Medium, Large and Extreme**
-readings as table columns, separately for Good and Bad rows, using exactly the
-same selected sizes as the histograms. Zero counts display as **–**. Unchanged
-readings stay separate in the accessible caption and their individual series rows;
-a Good/Bad reading without a usable magnitude baseline is Unclassified. History
-loading/errors suppress size counts, and partial coverage is marked. This adds
-detail to the tally without weighting readings or altering the majority rule.
-
-Threshold version `zero-centered-ap-manual-all-dataset-v7` uses all admitted
-released samples for frequencies and fixed manual tuples for classification.
-New valid releases grow N; corrections replace samples. Decimal equality stays
-in the lower inclusive category. Undefined remains empty until configured.
-
-See [the reusable component and history contract](../../../magnitude/README.md)
-for the admission rules, arithmetic, module organization and verification.
-
-## Extending or changing the rules
-
-New NFP readings require explicit event-ID rules and tests. Changing the comparator, favorable directions or counting method requires a new grading rule version, an updated example and tests. Changing the direction mapping or completeness requirements requires a new majority rule version. Other currencies/categories/families need separate documents and implementation; their numbers must not inherit the higher-is-Good convention or NFP majority direction automatically.
+New families require explicit IDs, native-unit contracts, favorable directions,
+primary/supporting roles, completeness and tie priority. Changes to NFP's scoring
+contract require a new version, updated documentation and regression tests.

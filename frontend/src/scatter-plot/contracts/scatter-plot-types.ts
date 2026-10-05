@@ -2,10 +2,11 @@ import type { MagnitudeDistribution } from '../../inspector/magnitude/magnitude-
 import type { MagnitudeMode } from '../../inspector/magnitude/settings/magnitude-settings-store'
 
 export type ScatterOption = { id: string; label: string }
-export type ScatterPlotDockProps = { brokerId: string | null; clockOffsetMs?: number }
+export type ScatterReleaseTarget = { brokerId: string; familyId: string; releaseId: string; at: number }
+export type ScatterPlotDockProps = { brokerId: string | null; clockOffsetMs?: number; target?: ScatterReleaseTarget | null }
 export type ScatterPoint = {
   id: string; releaseId: string; at: number; delta: number; actual: number; previous: number
-  tone: 'good' | 'bad' | 'unchanged' | 'missing' | 'unrated'
+  tone: 'good' | 'bad' | 'unchanged' | 'missing' | 'unrated'; breakBefore?: boolean
 }
 export type ScatterInspection = {
   releaseId: string; at: number; point: ScatterPoint | null

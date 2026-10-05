@@ -7,7 +7,7 @@ import {
   type TimeDisplayPreference,
 } from '../appearance/time-display/time-display-preference'
 import { useInspector, InspectorPanel, InspectorChartMarkers } from '../inspector'
-import { ScatterPlotDock } from '../scatter-plot'
+import { ScatterPlotDock, scatterReleaseTarget, type ScatterReleaseTarget } from '../scatter-plot'
 import { AlertDock } from '../alert'
 import { MarketCandlestickChart } from '../market-data/candlestick-chart/MarketCandlestickChart'
 import { MarketChartErrorBoundary } from '../market-data/candlestick-chart/MarketChartErrorBoundary'
@@ -58,6 +58,7 @@ export function FyodorTerminalShell() {
   const [activeDrawingTool, setActiveDrawingTool] = useState<DrawingToolId | null>(null)
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>('notebook')
+  const [scatterTarget, setScatterTarget] = useState<ScatterReleaseTarget | null>(null)
   const dockSize = useBottomDockSize(bottomDockWindow)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const { entries, appendActivity, clearActivity } = useActivityLog()
@@ -193,7 +194,12 @@ export function FyodorTerminalShell() {
     appendActivity('Drawing', 'All drawings deleted', `${totalDrawingCount} removed`)
   }
 
+  const selectBottomDock = (window: BottomDockWindow | null) => {
+    setScatterTarget(null)
+    setBottomDockWindow(window)
+  }
   const toggleBottomDock = (window: BottomDockWindow) => {
+    setScatterTarget(null)
     setBottomDockWindow((current) => current === window ? null : window)
   }
 
@@ -267,13 +273,13 @@ export function FyodorTerminalShell() {
                       draftPlan={plannedTrade}
                       onSelectArrow={(arrow) => {
                         registeredArrows.setSelectedArrowId(arrow.id)
-                        setBottomDockWindow('notebook')
+                        selectBottomDock('notebook')
                       }}
                     />
                     {inspector.supported && <InspectorChartMarkers chartApi={_chartApi} markers={inspector.markers}
                       timeDisplay={timeDisplay} onSelectRelease={(id) => {
                         inspector.selectRelease(id)
-                        setBottomDockWindow('inspector')
+                        selectBottomDock('inspector')
                       }} />}
                   </>
                 )}
@@ -303,8 +309,8 @@ export function FyodorTerminalShell() {
           activeWindow={bottomDockWindow}
           activityCount={entries.length}
           selectedSymbol={activeSymbol}
-          onSelectWindow={setBottomDockWindow}
-          onClose={() => setBottomDockWindow(null)}
+          onSelectWindow={selectBottomDock}
+          onClose={() => selectBottomDock(null)}
           resizeHandle={dockSize.resizeHandle}
         >
           {bottomDockWindow === 'notebook' && (
@@ -349,9 +355,14 @@ export function FyodorTerminalShell() {
             />
           )}
           {bottomDockWindow === 'inspector' && <InspectorPanel view={inspector} symbol={activeSymbol}
-            source={bridge.health?.calendar ?? null} error={null} timeDisplay={timeDisplay} />}
+            source={bridge.health?.calendar ?? null} error={null} timeDisplay={timeDisplay}
+            scatterAvailable={!!scatterReleaseTarget(inspector.selectedRelease, inspector.brokerId, inspector.now)}
+            onOpenScatter={(release) => {
+              const target = scatterReleaseTarget(release, inspector.brokerId, inspector.now)
+              if (target) { setScatterTarget(target); setBottomDockWindow('scatter-plot') }
+            }} />}
           {bottomDockWindow === 'scatter-plot' && <ScatterPlotDock brokerId={bridge.health?.mt5.account_server ?? null}
-            clockOffsetMs={bridge.clockOffsetMs} />}
+            clockOffsetMs={bridge.clockOffsetMs} target={scatterTarget} />}
           {bottomDockWindow === 'alert' && <AlertDock brokerId={inspector.brokerId ?? null} preferences={inspector.preferences}
             clockOffsetMs={bridge.clockOffsetMs} brokerOffsetSeconds={inspector.brokerOffsetSeconds}
             timeDisplay={timeDisplay} supported={inspector.supported} />}

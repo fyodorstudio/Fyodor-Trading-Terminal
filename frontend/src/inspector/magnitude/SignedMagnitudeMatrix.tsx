@@ -13,13 +13,14 @@ export function SignedMagnitudeMatrix({ label, className, caption, header, readi
         {signedMagnitudeColumns.map((column) => <th scope="col" key={column.size}>{column.size} ({column.points})</th>)}
       </tr></thead>
       <tbody>{readings.map((reading) => <tr key={reading.id} data-series={reading.id}>
-        <th scope="row">{reading.label}</th>
+        <th scope="row">{reading.description ? <span tabIndex={0} title={reading.description}
+          aria-label={`${reading.label}. ${reading.description}`}>{reading.label}</span> : reading.label}</th>
         {reading.status !== 'scored' ? <td colSpan={5} className="inspector-magnitude-empty" title={reading.reason}>
           {statusLabels[reading.status]}</td> : signedMagnitudeColumns.map((column) => {
           const active = reading.size === column.size
           const tone = reading.score! > 0 ? 'good' : reading.score! < 0 ? 'bad' : 'unchanged'
           return <td key={column.size} data-size={column.size} data-score={active ? reading.score! : undefined}
-            className={active ? `inspector-cpi-score-value inspector-grade-${tone}` : 'inspector-magnitude-empty'}
+            className={active ? `inspector-signed-score-value inspector-grade-${tone}` : 'inspector-magnitude-empty'}
             title={active ? reading.reason : undefined}
             aria-label={active ? `${reading.label}: ${column.size}, ${scoreMeaning} score ${formatSignedMagnitudeScore(reading.score)}` : `${reading.label}: ${column.size} does not apply`}>
             {active ? formatSignedMagnitudeScore(reading.score) : '–'}

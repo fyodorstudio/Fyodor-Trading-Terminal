@@ -21,7 +21,9 @@ const mount = (Component, props) => {
 }
 
 try {
-  const { assessCpiMagnitudeScore, cpiScoreSeries } = await server.ssrLoadModule('./src/inspector/grading/cpi-magnitude-score.ts')
+  const { assessCpiMagnitudeScore, cpiScoreSeries, cpiScoreVersion } = await server.ssrLoadModule('./src/inspector/grading/cpi-magnitude-score.ts')
+  assert.equal(cpiScoreVersion, 'cpi-eurusd-signed-magnitude-v1', 'CPI remains the agreed scoring baseline')
+  assert.deepEqual(cpiScoreSeries.map((row) => row.id), ['840030005', '840030006', '840030007', '840030008'])
   const { CpiMagnitudeScoreTable } = await server.ssrLoadModule('./src/inspector/magnitude/CpiMagnitudeScoreTable.tsx')
   const { CpiIndexMagnitudeTable } = await server.ssrLoadModule('./src/inspector/magnitude/CpiIndexMagnitudeTable.tsx')
   const { assessCpiIndexMagnitudeScore, cpiIndexScoreSeries } = await server.ssrLoadModule('./src/inspector/grading/cpi-index-magnitude-score.ts')

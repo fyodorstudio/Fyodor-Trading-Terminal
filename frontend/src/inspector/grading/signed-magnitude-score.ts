@@ -8,7 +8,7 @@ export const signedMagnitudeColumns = [
   { size: 'Large', points: 3 }, { size: 'Extreme', points: 4 },
 ] as const
 export type SignedMagnitudeReading = {
-  id: string; label: string; event: EconomicCalendarEvent | null
+  id: string; label: string; description?: string; event: EconomicCalendarEvent | null
   size: typeof signedMagnitudeColumns[number]['size'] | null; score: number | null
   status: 'scored' | 'undefined' | 'missing' | 'duplicate' | 'unavailable'; reason: string
 }
@@ -18,8 +18,10 @@ export function formatSignedMagnitudeScore(score: number | null) {
 export function sumSignedMagnitudeScores(rows: readonly SignedMagnitudeReading[]) {
   return rows.every((row) => row.score !== null) ? rows.reduce((total, row) => total + row.score!, 0) : null
 }
+export type MagnitudeScoreUnit = { units: readonly number[]; multiplier: number; description: string }
 export function assessSignedMagnitudeReading<T extends { id: string; label: string }>(series: T,
-  release: InspectorRelease, history: FamilyMagnitudeHistory, unit: number): T & SignedMagnitudeReading {
+  release: InspectorRelease, history: FamilyMagnitudeHistory, unit: number | MagnitudeScoreUnit,
+  goodWhen: 'higher' | 'lower' = 'higher'): T & SignedMagnitudeReading {
   const matches = release.events.filter((event) => event.event_id === series.id)
   const event = matches.length === 1 ? matches[0] : null
   const unavailable = (status: Exclude<SignedMagnitudeReading['status'], 'scored'>, reason: string): T & SignedMagnitudeReading =>
@@ -30,8 +32,10 @@ export function assessSignedMagnitudeReading<T extends { id: string; label: stri
     return unavailable('unavailable', 'The reading must match the release country and currency.')
   const delta = inspectorDelta(event)
   if (delta === null) return unavailable('missing', 'Actual or supplied Previous is unavailable.')
-  if (event.unit !== unit || event.multiplier !== 0)
-    return unavailable('unavailable', `This score requires ${unit === 1 ? 'a percentage rate' : 'an index in native points'}.`)
+  const expected = typeof unit === 'number' ? { units: [unit], multiplier: 0,
+    description: unit === 1 ? 'a percentage rate' : 'an index in native points' } : unit
+  if (!expected.units.includes(event.unit) || event.multiplier !== expected.multiplier)
+    return unavailable('unavailable', `This score requires ${expected.description}.`)
   const row = history.rows[event.value_id]
   if (row?.mode === 'undefined') return unavailable('undefined', 'Define this series’ magnitude mode in Scatter Plot.')
   if (!row) return unavailable('unavailable', history.message ?? 'Magnitude configuration is unavailable.')
@@ -42,7 +46,7 @@ export function assessSignedMagnitudeReading<T extends { id: string; label: stri
   const size = magnitudeSizeForValue(row.distribution.limits, delta)
   const category = signedMagnitudeColumns.find((column) => column.size === size)
   if (!category) return unavailable('unavailable', 'Magnitude classification is unavailable.')
-  const score = Math.sign(delta) * category.points
+  const score = Math.sign(delta) * (goodWhen === 'higher' ? 1 : -1) * category.points
   return { ...series, event, size: category.size, score, status: 'scored',
     reason: `${score > 0 ? 'Positive' : 'Negative'} A−P: ${formatSignedMagnitudeScore(score)} (${category.size}). Series weight = 1.` }
 }

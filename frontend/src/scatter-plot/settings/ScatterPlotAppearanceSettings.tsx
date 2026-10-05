@@ -42,6 +42,9 @@ export function ScatterPlotAppearanceSettings({ appearance: a, onChange, onClose
         {([['Dot color', 'dotColor'], ['Selected Good color', 'goodColor'], ['Selected Bad color', 'badColor']] as const).map(([label, key]) =>
           <label key={key}>{label}<input type="color" value={a[key]} onChange={(e) => update({ ...a, [key]: e.target.value })} /></label>)}
       </div></fieldset>
+      <fieldset><legend>Connecting line</legend>
+        <LineSetting label="Connect dots" value={a.connection} onChange={(connection) => update({ ...a, connection })} />
+      </fieldset>
       <fieldset><legend>Background lines</legend>
         <LineSetting label="Grid" value={a.grid} onChange={(grid) => update({ ...a, grid })} />
         <LineSetting label="Zero line" value={a.zero} onChange={(zero) => update({ ...a, zero })} />

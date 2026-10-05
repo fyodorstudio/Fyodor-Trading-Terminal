@@ -5,7 +5,7 @@ export type ScatterAxisRange = { from: number; to: number }
 export type ScatterViewport = { x?: ScatterAxisRange; y?: ScatterAxisRange }
 
 export function scatterPlotGeometry(points: readonly ScatterPoint[], distribution: MagnitudeDistribution | null,
-  zoom: boolean, width: number, height: number, inspectedAt?: number, viewport: ScatterViewport = {}) {
+  zoom: boolean, width: number, height: number, inspectedAt?: number, viewport: ScatterViewport = {}, dateWindow?: ScatterAxisRange) {
   const left = 82, right = Math.max(left + 100, width - 18), top = 18, bottom = Math.max(top + 80, height - 48)
   const dates = points.map((point) => point.at)
   if (inspectedAt !== undefined) dates.push(inspectedAt)
@@ -13,6 +13,7 @@ export function scatterPlotGeometry(points: readonly ScatterPoint[], distributio
   if (first === last) { first -= 15 * 86400000; last += 15 * 86400000 }
   const padding = (last - first) * .02
   first -= padding; last += padding
+  if (dateWindow) { first = dateWindow.from; last = dateWindow.to }
   const maximum = Math.max(distribution?.threshold ?? 0, ...points.map((point) => Math.abs(point.delta)), 0)
   // Padding is exclusively visual; it never enters magnitude calculations.
   const extent = (zoom && distribution && distribution.threshold > 0 ? distribution.threshold : maximum || 1) * 1.12

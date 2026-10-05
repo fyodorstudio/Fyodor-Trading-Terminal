@@ -14,7 +14,7 @@ import { FamilyMagnitudeCell } from './magnitude/FamilyMagnitudeCell'
 import { FamilyMagnitudeTally } from './magnitude/FamilyMagnitudeTally'
 import { CpiMagnitudeScoreTable } from './magnitude/CpiMagnitudeScoreTable'
 import { CpiIndexMagnitudeTable } from './magnitude/CpiIndexMagnitudeTable'
-import { NfpMagnitudeTally } from './magnitude/NfpMagnitudeTally'
+import { NfpMagnitudeScoreTables } from './magnitude/NfpMagnitudeScoreTables'
 import type { InspectorView } from './useInspector'
 import './inspector.css'
 
@@ -32,9 +32,10 @@ function sourceLabel(source: CalendarSourceHealth | null, error: string | null):
   if (source.status === 'awaiting-snapshot') return 'Receiving calendar snapshot'
   return 'Waiting for the calendar publisher'
 }
-export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
+export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpenScatter, scatterAvailable = true }: {
   view: InspectorView; symbol: string; source: CalendarSourceHealth | null; error: string | null
   timeDisplay: TimeDisplayPreference
+  onOpenScatter?: (release: InspectorRelease) => void; scatterAvailable?: boolean
 }) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [listOpen, setListOpen] = useState(true)
@@ -76,6 +77,9 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
       </div>}
       {view.supported && release && <InspectorReleaseHeading release={release} view={view} timeDisplay={timeDisplay}
         status={status(release)} sharedPeriod={sharedPeriod} hasMagnitude={!!tally} />}
+      {view.supported && release && magnitudeFamily && onOpenScatter && <button type="button" disabled={!scatterAvailable}
+        title={scatterAvailable ? 'Inspect this release in Scatter Plot' : 'Needs a supported released family, selected broker and verified timing since January 2015.'}
+        onClick={() => onOpenScatter(release)}>Scatter Plot</button>}
     </header>
     {!view.supported ? <p className="inspector-empty">Inspector currently supports EURUSD. Select EURUSD to inspect monetary policy, inflation, labor/wages and growth/activity releases.</p> : <>
       <div className={`inspector-body${listOpen ? '' : ' releases-collapsed'}`}>
@@ -93,7 +97,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
             {tally && magnitudeFamily && <div className="inspector-detail-overview" aria-label="Release magnitude summaries">
               {magnitudeFamily.familyId === 'jobs' ?
-                <NfpMagnitudeTally release={release} history={view.magnitudeHistory} /> :
+                <NfpMagnitudeScoreTables release={release} history={view.magnitudeHistory} /> :
                 magnitudeFamily.familyId === 'us-cpi' ? <>
                   <CpiIndexMagnitudeTable release={release} history={view.magnitudeHistory} />
                   <CpiMagnitudeScoreTable release={release} history={view.magnitudeHistory} />
