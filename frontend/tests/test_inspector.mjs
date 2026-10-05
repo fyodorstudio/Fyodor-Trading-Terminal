@@ -276,6 +276,20 @@ try {
   assert.equal(view.customFrom, '2026-10-09', 'From calendar sets customFrom')
   assert.equal(view.customTo, '2026-10-28', 'To calendar sets customTo')
   assert.equal(view.range.to, Date.UTC(2026, 9, 29), 'The displayed end date is included')
+  assert.equal(document.querySelector('[aria-label="Anchor date (YYYY-MM-DD)"]').value, '2026-10-09')
+  await change(document.querySelector('[aria-label="Days before anchor date"]'), { value: '5' })
+  assert.equal(view.customFrom, '2026-10-04')
+  assert.match(document.querySelector('.inspector-range-total-badge').textContent, /25 days total/)
+  await change(document.querySelector('[aria-label="Days after anchor date"]'), { value: '10' })
+  assert.equal(view.customTo, '2026-10-19')
+  assert.match(document.querySelector('.inspector-range-total-badge').textContent, /16 days total/)
+  await click(document.querySelector('[aria-label="Set anchor date to today"]'))
+  assert.equal(view.customFrom, '2026-09-26')
+  assert.equal(view.customTo, '2026-10-11')
+  assert.match(document.querySelector('.inspector-range-total-badge').textContent, /16 days total/)
+  await change(document.querySelector('[aria-label="Anchor date (YYYY-MM-DD)"]'), { value: '2026-08-15' })
+  assert.equal(view.customFrom, '2026-08-10')
+  assert.equal(view.customTo, '2026-08-25')
   await click(document.querySelector('[aria-label="Close date range picker"]'))
   await openDates()
   await click(presetButton('Today'))
@@ -707,6 +721,23 @@ try {
   assert.ok(clockPanel.container.querySelector('[aria-label="Calendar information"]'), 'Calendar details stay available without a selected release')
   assert.ok(clockPanel.container.querySelector('.inspector-info-right [role="tooltip"]'), 'Unselected-calendar tooltip opens to the right of its icon')
   assert.equal(clockPanel.container.querySelector('.inspector-context [role="status"]'), null, 'A loaded calendar adds no persistent status sentence')
+  const pendingStorage = { ...storedView.storage, loading: false, coverage: {
+    EUR: { missing: [[anchor, anchor + 3600]] }, USD: { missing: [[anchor, anchor + 3600]] },
+  } }
+  for (const selectedRelease of [storedView.selectedRelease, null]) {
+    await clockPanel.render({ view: { ...storedView, selectedRelease, storage: pendingStorage },
+      symbol: 'EURUSD', source: source(), error: null, timeDisplay: utc })
+    const tooltip = clockPanel.container.querySelector('[role="tooltip"]')
+    assert.match(tooltip.textContent, /Coverage pending for EUR and USD/)
+    const header = clockPanel.container.querySelector('.inspector-header').cloneNode(true)
+    header.querySelectorAll('[role="tooltip"]').forEach((element) => element.remove())
+    assert.doesNotMatch(header.textContent, /Coverage pending/, 'Coverage details take no space in the visible header with or without a selection')
+    assert.equal(clockPanel.container.querySelector('.inspector-context [role="status"]'), null)
+  }
+  await clockPanel.render({ view: { ...storedView, selectedRelease: null, storage: { ...pendingStorage,
+    coverage: { EUR: { missing: [] }, USD: { missing: [] } } } },
+    symbol: 'EURUSD', source: source(), error: null, timeDisplay: utc })
+  assert.doesNotMatch(clockPanel.container.querySelector('[role="tooltip"]').textContent, /Coverage pending/)
   console.log('✓ Compact selected-release date, broker/reference-period tooltip, UTC/local/offset changes, unavailable timing and loading-only status')
   const winterRefresh = { ...historic, server_time_seconds: historic.server_time_seconds - 3600 }
   assert.equal(data.groupInspectorReleases([winterRefresh])[0].id, historicId,

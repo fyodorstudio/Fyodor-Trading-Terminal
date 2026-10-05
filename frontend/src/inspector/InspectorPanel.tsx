@@ -67,6 +67,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const calendarDetail = view.brokerTime ? storageStatus : sourceLabel(source, error)
   const calendarLoading = view.brokerTime ? view.storage.loading : source?.status === 'awaiting-snapshot'
   const missingCoverage = Object.entries(view.storage.coverage).filter(([, coverage]) => coverage.missing.length).map(([currency]) => currency)
+  const coverageDetail = view.brokerTime && missingCoverage.length > 0 ?
+    `Coverage pending for ${missingCoverage.join(' and ')} in this range; stored readings remain available.` : null
   const unplaced = view.releases.filter((item) => item.chartTime === null).length
   const sharedPeriod = release?.events.length && release.events[0].period_seconds > 0 &&
     release.events.every((event) => event.period_seconds === release.events[0].period_seconds) ? release.events[0].period_seconds : null
@@ -94,17 +96,19 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
       </div>
       {view.supported && <div className="inspector-context">
         {calendarLoading && <span role="status" title={calendarDetail}>Loading</span>}
-        {!release && <InspectorInfoTooltip label="Calendar information" placement="right">{calendarDetail}</InspectorInfoTooltip>}
+        {!release && <InspectorInfoTooltip label="Calendar information" placement="right">
+          <span className="inspector-info-line">{calendarDetail}</span>
+          {coverageDetail && <span className="inspector-info-line">{coverageDetail}</span>}
+        </InspectorInfoTooltip>}
         {view.storage.error && <span role="alert" title={view.storage.error}>Calendar unavailable</span>}
         {view.storageFailed && <span role="alert">Inspector settings could not be saved in this browser.</span>}
         {!view.range && <span role="alert">Choose a valid date range with the start before or on the end date.</span>}
-        {view.brokerTime && missingCoverage.length > 0 && <span role="status">Coverage pending for {missingCoverage.join(' and ')} in this range; stored readings remain available.</span>}
         {view.brokerTime && view.storage.collectorError && <span role="alert">Live collection delayed: {view.storage.collectorError}</span>}
         {view.brokerTime && unplaced > 0 && <span>{unplaced} releases have no verified chart time; they remain available in the list.</span>}
         {outsideCoverage && <span>Part of this range is outside the available calendar coverage.</span>}
       </div>}
       {view.supported && release && <InspectorReleaseHeading release={release} view={view} timeDisplay={timeDisplay}
-        status={status(release)} sharedPeriod={sharedPeriod} hasMagnitude={!!tally} calendarDetail={calendarDetail} />}
+        status={status(release)} sharedPeriod={sharedPeriod} hasMagnitude={!!tally} calendarDetail={calendarDetail} coverageDetail={coverageDetail} />}
       {view.supported && release && <select className="inspector-view-select" aria-label="Inspector view"
         value={showScoring ? 'scoring' : 'table'} onChange={(event) => {
           const next = event.target.value

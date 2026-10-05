@@ -67,23 +67,123 @@ function RangePopover({ view, trigger, onClose, id }: { view: InspectorView; tri
 
   useEffect(() => { popup.current?.querySelector<HTMLButtonElement>(`[data-day="${focusedDay}"]`)?.focus() }, [focusedDay])
 
-  function chooseFromDay(day: string) {
-    const nextFrom = day
-    const nextTo = day > to ? day : to
+  const diffDays = (validInspectorDate(from) && validInspectorDate(to) && to >= from)
+    ? Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000)
+    : 0
+  const totalDays = diffDays + 1
+
+  function daysBetween(start: string, end: string): number {
+    if (!validInspectorDate(start) || !validInspectorDate(end)) return 0
+    return Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86400000)
+  }
+
+  const defaultAnchor = validInspectorDate(view.today) ? view.today : initialFrom
+  const [anchor, setAnchor] = useState(defaultAnchor)
+  const [anchorInput, setAnchorInput] = useState(defaultAnchor)
+
+  const [beforeDays, setBeforeDays] = useState(() => {
+    if (validInspectorDate(initialFrom) && validInspectorDate(defaultAnchor) && initialFrom <= defaultAnchor) {
+      return daysBetween(initialFrom, defaultAnchor)
+    }
+    return 0
+  })
+
+  const [afterDays, setAfterDays] = useState(() => {
+    if (validInspectorDate(initialTo) && validInspectorDate(defaultAnchor) && initialTo >= defaultAnchor) {
+      return daysBetween(defaultAnchor, initialTo)
+    }
+    return 0
+  })
+
+  function applyAnchor(newAnchor: string) {
+    setAnchor(newAnchor)
+    setAnchorInput(newAnchor)
+    if (!validInspectorDate(newAnchor)) return
+    const nextFrom = shiftInspectorDate(newAnchor, -beforeDays)
+    const nextTo = shiftInspectorDate(newAnchor, afterDays)
     setFrom(nextFrom)
-    if (day > to) {
+    setTo(nextTo)
+    setFromMonth(nextFrom.slice(0, 7))
+    setToMonth(nextTo.slice(0, 7))
+    view.selectCustomRange(nextFrom, nextTo)
+  }
+
+  function applyBeforeDays(days: number) {
+    const safeDays = Math.max(0, Math.min(3650, days))
+    setBeforeDays(safeDays)
+    if (!validInspectorDate(anchor)) return
+    const nextFrom = shiftInspectorDate(anchor, -safeDays)
+    setFrom(nextFrom)
+    setFromMonth(nextFrom.slice(0, 7))
+    let nextTo = to
+    if (nextFrom > to) {
+      nextTo = nextFrom
       setTo(nextTo)
       setToMonth(nextTo.slice(0, 7))
+      setAfterDays(Math.max(0, daysBetween(anchor, nextTo)))
+    }
+    view.selectCustomRange(nextFrom, nextTo)
+  }
+
+  function applyAfterDays(days: number) {
+    const safeDays = Math.max(0, Math.min(3650, days))
+    setAfterDays(safeDays)
+    if (!validInspectorDate(anchor)) return
+    const nextTo = shiftInspectorDate(anchor, safeDays)
+    setTo(nextTo)
+    setToMonth(nextTo.slice(0, 7))
+    let nextFrom = from
+    if (nextTo < from) {
+      nextFrom = nextTo
+      setFrom(nextFrom)
+      setFromMonth(nextFrom.slice(0, 7))
+      setBeforeDays(Math.max(0, daysBetween(nextFrom, anchor)))
+    }
+    view.selectCustomRange(nextFrom, nextTo)
+  }
+
+  function chooseFromDay(day: string) {
+    const nextFrom = day
+    let nextTo = to
+    if (day > to) {
+      nextTo = day
+      setTo(nextTo)
+      setToMonth(nextTo.slice(0, 7))
+    }
+    setFrom(nextFrom)
+    if (validInspectorDate(anchor)) {
+      if (day <= anchor) {
+        setBeforeDays(daysBetween(day, anchor))
+      } else {
+        setAnchor(day)
+        setAnchorInput(day)
+        setBeforeDays(0)
+        setAfterDays(Math.max(0, daysBetween(day, nextTo)))
+      }
+    }
+    if (day > to) {
+      view.selectCustomRange(nextFrom, nextTo)
     }
   }
 
   function chooseToDay(day: string) {
     const nextTo = day
-    const nextFrom = day < from ? day : from
-    setTo(nextTo)
+    let nextFrom = from
     if (day < from) {
+      nextFrom = day
       setFrom(nextFrom)
       setFromMonth(nextFrom.slice(0, 7))
+    }
+    setTo(nextTo)
+    if (validInspectorDate(anchor)) {
+      if (day >= anchor) {
+        setAfterDays(daysBetween(anchor, day))
+      } else {
+        setAnchor(day)
+        setAnchorInput(day)
+        setAfterDays(0)
+        setBeforeDays(Math.max(0, daysBetween(nextFrom, day)))
+      }
     }
     view.selectCustomRange(nextFrom, nextTo)
   }
@@ -195,8 +295,9 @@ function RangePopover({ view, trigger, onClose, id }: { view: InspectorView; tri
                         data-calendar={which}
                         tabIndex={day === focus ? 0 : -1}
                         aria-label={`Choose ${day}`}
+                        title={day === anchor ? `${day} (Anchor)` : undefined}
                         aria-current={day === view.today ? 'date' : undefined}
-                        className={`${day === from || day === to ? 'range-endpoint' : ''}${day >= from && day <= to ? ' in-range' : ''}`}
+                        className={`${day === from || day === to ? 'range-endpoint' : ''}${day >= from && day <= to ? ' in-range' : ''}${day === anchor && day !== from && day !== to ? ' anchor-date' : ''}`}
                         onFocus={() => setFocusedDay(day)}
                         onKeyDown={(event) => moveFocus(day, event, which)}
                         onClick={() => onChoose(day)}
@@ -235,12 +336,94 @@ function RangePopover({ view, trigger, onClose, id }: { view: InspectorView; tri
           ))}
         </nav>
         <div className="inspector-date-custom">
+          <div className="inspector-range-controls-row">
+            <div className="inspector-anchor-group">
+              <label htmlFor="inspector-anchor-input">Anchor:</label>
+              <div className="inspector-anchor-input-wrapper">
+                <input
+                  id="inspector-anchor-input"
+                  type="text"
+                  aria-label="Anchor date (YYYY-MM-DD)"
+                  value={anchorInput}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setAnchorInput(val)
+                    if (validInspectorDate(val)) applyAnchor(val)
+                  }}
+                  onBlur={() => {
+                    if (!validInspectorDate(anchorInput)) setAnchorInput(anchor)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      if (validInspectorDate(anchorInput)) applyAnchor(anchorInput)
+                      else setAnchorInput(anchor)
+                    }
+                  }}
+                  placeholder="YYYY-MM-DD"
+                  pattern="\d{4}-\d{2}-\d{2}"
+                />
+              </div>
+              <button
+                type="button"
+                className="inspector-anchor-today-btn"
+                aria-label="Set anchor date to today"
+                aria-pressed={anchor === view.today}
+                onClick={() => applyAnchor(view.today)}
+                title={`Set anchor to today (${view.today})`}
+              >
+                Today
+              </button>
+            </div>
+            <div className="inspector-offsets-group">
+              <div className="inspector-offset-control">
+                <label htmlFor="inspector-before-days-input">Before:</label>
+                <div className="inspector-offset-input-wrapper">
+                  <span>-</span>
+                  <input
+                    id="inspector-before-days-input"
+                    type="number"
+                    min="0"
+                    max="3650"
+                    aria-label="Days before anchor date"
+                    value={beforeDays}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10)
+                      if (!Number.isNaN(val) && val >= 0) applyBeforeDays(val)
+                    }}
+                  />
+                  <span>{beforeDays === 1 ? 'day' : 'days'}</span>
+                </div>
+              </div>
+              <div className="inspector-offset-control">
+                <label htmlFor="inspector-after-days-input">After:</label>
+                <div className="inspector-offset-input-wrapper">
+                  <span>+</span>
+                  <input
+                    id="inspector-after-days-input"
+                    type="number"
+                    min="0"
+                    max="3650"
+                    aria-label="Days after anchor date"
+                    value={afterDays}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10)
+                      if (!Number.isNaN(val) && val >= 0) applyAfterDays(val)
+                    }}
+                  />
+                  <span>{afterDays === 1 ? 'day' : 'days'}</span>
+                </div>
+              </div>
+            </div>
+            <div className="inspector-range-total-badge">
+              <strong>{totalDays}</strong> {totalDays === 1 ? 'day' : 'days'} total
+            </div>
+          </div>
           <div className="inspector-calendar-months">
             {renderCalendar(fromMonth, 'From', from, chooseFromDay, (delta) => setFromMonth((m) => shiftInspectorMonth(m, delta)), 'from')}
             {renderCalendar(toMonth, 'To', to, chooseToDay, (delta) => setToMonth((m) => shiftInspectorMonth(m, delta)), 'to')}
           </div>
           <p className="inspector-date-help" role={error ? 'alert' : 'status'}>
-            {error ?? `From: ${from} · To: ${to}. Click dates to adjust. Range updates immediately.`}
+            {error ?? `Anchor: ${anchor} · From: ${from} (-${beforeDays}d) · To: ${to} (+${afterDays}d) · ${totalDays} ${totalDays === 1 ? 'day' : 'days'} total`}
           </p>
         </div>
       </div>
