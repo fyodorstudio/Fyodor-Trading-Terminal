@@ -80,6 +80,15 @@ The histogram's seven visual slots retain equal widths even when numeric
 intervals differ. Historical bar heights recount earlier samples in the new
 intervals; no source data is removed or changed.
 
+The Small, Medium and Large rows also have color boxes. Each box immediately
+colors that magnitude band's shading and boundary lines on both sides of zero,
+using the currently applied magnitude mode. Color edits preserve unfinished
+boundary drafts and do not require **Apply boundaries**. These are global
+appearance preferences, separate from each series' numeric configuration.
+The same colors can be edited in Appearance. In P95 mode, the boxes target
+the canonical T/3, 2T/3 and T guides; choosing a color restores a missing
+canonical guide without moving or recoloring additional guides.
+
 Custom boundaries stay fixed across inspected publication dates, broker changes
 and later releases. Each series saves independently on this device under
 `fyodor.scatter-plot.EURUSD.USD.QUOTE.<NFP|CPI>.magnitude.v1`. Inspector consumes the
@@ -104,6 +113,10 @@ width controls. Magnitude guide lines and band shading can be hidden separately;
 line style and opacity are configurable. In P95 mode, up to eight mirrored guide levels can
 be added, removed or hidden, each with its own P95 percentage, color, line width
 and shading opacity. Enabled levels are sorted by position when drawing bands.
+Color boxes can restore up to three canonical guides in addition to the eight
+guides admitted by the Appearance editor. New defaults use cyan, amber and
+violet for Small, Medium and Large, with 12%, 16% and 20% shading opacity.
+Existing saved colors and opacity are preserved.
 
 In custom mode, the three guide positions are locked to the scoring boundaries;
 Appearance edits only their visibility, colors, widths and shades. Extra guide
@@ -216,9 +229,12 @@ guide positions/colors/widths, independent lines/shading, add/remove/hide levels
 saved preferences, malformed storage, reset, focus return and unchanged scoring,
 inventory requests and manual viewport.
 Boundary tests cover unequal native-unit intervals, both signs and inclusive
-ties, empty history, invalid drafts/storage, per-series persistence, exact blue
+ties, empty history, invalid drafts/storage, per-series persistence, exact
 guide positions, shared Inspector/tally classifications, immediate Inspector
 hook updates, reopening and reset without inventory refetches.
+Color-box tests verify mirrored shading and strokes, independent custom/P95
+styles, restoring canonical guides, persistence and agreement with Appearance,
+while preserving numeric drafts, scores, requests and manual navigation.
 `tests/scatter-plot/test_magnitude_settings.mjs` covers independent scope keys
 even for reused series IDs, key separator collisions, frozen snapshots,
 cross-window validation/reset and listener cleanup, no-op saves, unavailable
@@ -242,3 +258,4 @@ Check the Appearance panel's layout, point sizes/colors and guide styles in your
 preferred theme.
 Check entering three boundaries, Apply, the mirrored lines and Inspector's
 updated labels/tally, switching series, and reopening with saved settings.
+Check the three color boxes and band contrast in your preferred theme.

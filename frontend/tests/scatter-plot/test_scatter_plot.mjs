@@ -44,7 +44,18 @@ try {
   const { MagnitudeScatterPlot } = await server.ssrLoadModule('./src/scatter-plot/plot/MagnitudeScatterPlot.tsx')
   const { MagnitudeCalculationDetails } = await server.ssrLoadModule('./src/scatter-plot/inspection/MagnitudeCalculationDetails.tsx')
   const { ScatterPlotDock } = await server.ssrLoadModule('./src/scatter-plot/index.ts')
-  const { defaultScatterAppearance, readScatterAppearance, normalizeScatterAppearance, scatterAppearanceKey } = await server.ssrLoadModule('./src/scatter-plot/settings/scatter-plot-appearance.ts')
+  const { defaultScatterAppearance, readScatterAppearance, normalizeScatterAppearance, scatterAppearanceKey,
+    magnitudeBandGuideStyles, withMagnitudeBandColor } = await server.ssrLoadModule('./src/scatter-plot/settings/scatter-plot-appearance.ts')
+  assert.equal(new Set(defaultScatterAppearance.customLevels.map((level) => level.color)).size, 3, 'New defaults distinguish Small, Medium and Large')
+  const legacyAppearance = normalizeScatterAppearance({ levels: defaultScatterAppearance.levels.map((level) => ({ ...level, color: '#6366f1' })) })
+  assert.ok(legacyAppearance.customLevels.every((level) => level.color === '#6366f1'), 'Saved legacy colors remain compatible')
+  assert.equal(withMagnitudeBandColor(defaultScatterAppearance, 0, 'invalid', true), defaultScatterAppearance)
+  const unrelatedLevels = [.1, .2, .4, .5, .7, .8, .9, 1.1].map((factor, index) => ({ ...defaultScatterAppearance.levels[0], id: index + 1, factor }))
+  let restoredAppearance = { ...defaultScatterAppearance, levels: unrelatedLevels }
+  for (const [index, color] of ['#112233', '#445566', '#778899'].entries()) restoredAppearance = withMagnitudeBandColor(restoredAppearance, index, color, false)
+  assert.deepEqual(restoredAppearance.levels.slice(0, 8), unrelatedLevels, 'P95 color shortcuts preserve every unrelated guide')
+  assert.deepEqual(normalizeScatterAppearance(restoredAppearance), restoredAppearance, 'Restored canonical P95 guides survive normalization and reopen')
+  assert.deepEqual(magnitudeBandGuideStyles(restoredAppearance, false).map((level) => level.color), ['#112233', '#445566', '#778899'])
   const { magnitudeDistribution, selectedMagnitudeBin } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-distribution.ts')
   const { tallyNfpMagnitudes } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-tally.ts')
   const { normalizeNfpMagnitudeSettings, readNfpMagnitudeSettings, saveNfpMagnitudeLimits, nfpMagnitudeSettingsKey } =
@@ -322,6 +333,20 @@ try {
   await click([...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Reset appearance'))
   await click([...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Done'))
   const boundary = (label) => app.container.querySelector(`[aria-label="${label} upper boundary"]`)
+  const bandColor = (label) => app.container.querySelector(`[aria-label="${label} band color"]`)
+  const settingsBeforeColor = readNfpMagnitudeSettings()
+  const p95ViewportBeforeColor = { ...app.container.querySelector('svg').dataset }
+  const p95RequestsBeforeColor = requests.length
+  assert.equal(boundary('Small').disabled, true)
+  assert.equal(bandColor('Small').disabled, false, 'P95 colors remain editable beside read-only boundaries')
+  await changeInput(bandColor('Small'), '#0f766e')
+  assert.ok([...app.container.querySelectorAll('[data-guide-level="1"] line')].every((line) => line.getAttribute('stroke') === '#0f766e'))
+  assert.ok([...app.container.querySelectorAll('[data-guide-level="1"] rect')].every((rect) => rect.getAttribute('fill') === '#0f766e'))
+  assert.equal(readScatterAppearance().levels[0].color, '#0f766e')
+  assert.equal(readScatterAppearance().customLevels[0].color, defaultScatterAppearance.customLevels[0].color, 'P95 colors leave Custom preferences intact')
+  assert.deepEqual(readNfpMagnitudeSettings(), settingsBeforeColor)
+  assert.deepEqual({ ...app.container.querySelector('svg').dataset }, p95ViewportBeforeColor)
+  assert.equal(requests.length, p95RequestsBeforeColor)
   const applyBoundaries = () => [...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Apply boundaries')
   const priorThreshold = app.container.querySelector('[data-threshold]').dataset.threshold
   const beforeCustom = requests.length
@@ -342,6 +367,23 @@ try {
   assert.equal(app.container.querySelector('.scatter-plot-quantile'), null)
   assert.deepEqual([...app.container.querySelectorAll('[data-cutoff]')].map((line) => Number(line.dataset.cutoff)), [1, -1, 2, -2, 4, -4])
   assert.equal(requests.length, beforeCustom, 'Applying boundaries updates models without refetching inventory')
+  const customSettingsBeforeColor = readNfpMagnitudeSettings()
+  const customViewportBeforeColor = { ...app.container.querySelector('svg').dataset }
+  const automaticColorsBeforeShortcut = readScatterAppearance().levels
+  await changeInput(boundary('Small'), .9)
+  for (const [index, color] of ['#112233', '#aabbcc', '#445566'].entries()) {
+    await changeInput(bandColor(['Small', 'Medium', 'Large'][index]), color)
+    const guide = app.container.querySelector(`[data-guide-level="${index + 1}"]`)
+    assert.ok([...guide.querySelectorAll('rect')].every((rect) => rect.getAttribute('fill') === color), 'Both signs share the selected band color')
+    assert.ok([...guide.querySelectorAll('line')].every((line) => line.getAttribute('stroke') === color))
+  }
+  assert.equal(boundary('Small').value, '0.9', 'Color edits preserve unfinished numeric drafts')
+  await changeInput(boundary('Small'), 1)
+  assert.deepEqual(readNfpMagnitudeSettings(), customSettingsBeforeColor)
+  assert.deepEqual(readScatterAppearance().levels, automaticColorsBeforeShortcut)
+  assert.deepEqual({ ...app.container.querySelector('svg').dataset }, customViewportBeforeColor)
+  assert.deepEqual([...app.container.querySelectorAll('[data-cutoff]')].map((line) => Number(line.dataset.cutoff)), [1, -1, 2, -2, 4, -4])
+  assert.equal(requests.length, beforeCustom)
   await click(appearanceButton)
   assert.equal(setting('Level 1 position (% of P95)'), null, 'Custom guide positions come from the scoring boundaries')
   assert.equal([...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Add level'), undefined)
@@ -349,6 +391,7 @@ try {
   await changeInput(setting('Level 1 color'), '#123456')
   assert.deepEqual(readScatterAppearance().levels, automaticStylesBeforeCustom, 'Custom styling preserves automatic guide preferences')
   assert.equal(app.container.querySelector('[data-guide-level="1"] line').getAttribute('stroke'), '#123456')
+  assert.equal(bandColor('Small').value, '#123456', 'Appearance and inline color boxes edit the same saved styles')
   assert.equal(app.container.querySelector('[data-threshold]').dataset.threshold, '4', 'Styling never changes configured scoring')
   await click([...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Done'))
   await click(app.container.querySelector(`[data-point-id="${first[1].value_id}"]`))
@@ -370,6 +413,8 @@ try {
   await respond(requests[remountStart + 1], page(events))
   assert.match(remounted.container.querySelector('.scatter-plot-inspection').textContent, /Custom outer boundary100k/,
     'Saved settings apply when reopening the dock')
+  assert.equal(remounted.container.querySelector('[aria-label="Small band color"]').value, '#123456', 'Band colors persist across series and dock reopen')
+  assert.equal(remounted.container.querySelector('[aria-label="Medium band color"]').value, '#aabbcc')
   await React.act(async () => saveNfpMagnitudeLimits(seriesId, [1, 4, 10]))
   assert.equal(app.container.querySelector('[data-threshold]').dataset.threshold, '4', 'Updating one series does not change another')
   assert.equal(remounted.container.querySelector('[data-threshold]').dataset.threshold, '10', 'All mounted consumers receive shared updates')

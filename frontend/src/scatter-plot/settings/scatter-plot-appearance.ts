@@ -9,14 +9,16 @@ export type ScatterAppearance = {
 }
 
 export const scatterAppearanceKey = 'fyodor.scatter-plot.appearance.v1'
+const magnitudeFactors = [1 / 3, 2 / 3, 1]
+const magnitudeColors = ['#0891b2', '#d97706', '#8b5cf6']
 export const defaultScatterAppearance: ScatterAppearance = {
   dotSize: 10, selectedDotSize: 14, dotColor: '#64748b', goodColor: '#18a77d', badColor: '#e45462', quantileColor: '#6366f1',
   grid: { visible: true, color: '#94a3b8', width: .6 },
   zero: { visible: true, color: '#64748b', width: 1 },
   inspectedDate: { visible: true, color: '#6366f1', width: 1 },
   showGuides: true, showBands: true, guideStyle: 'dashed', guideOpacity: 50,
-  levels: [1 / 3, 2 / 3, 1].map((factor, index) => ({ id: index + 1, visible: true, factor, color: '#6366f1', width: .7, shade: [3.5, 7, 11][index] })),
-  customLevels: [1 / 3, 2 / 3, 1].map((factor, index) => ({ id: index + 1, visible: true, factor, color: '#6366f1', width: .7, shade: [3.5, 7, 11][index] })),
+  levels: magnitudeFactors.map((factor, index) => ({ id: index + 1, visible: true, factor, color: magnitudeColors[index], width: .7, shade: [12, 16, 20][index] })),
+  customLevels: magnitudeFactors.map((factor, index) => ({ id: index + 1, visible: true, factor, color: magnitudeColors[index], width: .7, shade: [12, 16, 20][index] })),
 }
 
 const object = (value: unknown): Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -30,7 +32,9 @@ function line(value: unknown, fallback: ScatterLineStyle): ScatterLineStyle {
 export function normalizeScatterAppearance(value: unknown): ScatterAppearance {
   const item = object(value), d = defaultScatterAppearance
   const ids = new Set<number>()
-  const levels = Array.isArray(item.levels) ? item.levels.slice(0, 8).flatMap((raw, index) => {
+  // The appearance editor admits eight guides; color shortcuts may additionally
+  // restore the three canonical magnitude guides without discarding those eight.
+  const levels = Array.isArray(item.levels) ? item.levels.slice(0, 11).flatMap((raw, index) => {
     const level = object(raw)
     if (typeof level.factor !== 'number' || !Number.isFinite(level.factor) || level.factor <= 0) return []
     let id = typeof level.id === 'number' && Number.isSafeInteger(level.id) && level.id > 0 && level.id <= 1e6 ? level.id : index + 1
@@ -66,6 +70,23 @@ export function saveScatterAppearance(appearance: ScatterAppearance) {
 }
 export function customMagnitudeGuideStyles(appearance: ScatterAppearance) {
   return appearance.customLevels
+}
+const matchesMagnitudeFactor = (level: ScatterGuideLevel, index: number) => Math.abs(level.factor - magnitudeFactors[index]) <= 4 * Number.EPSILON
+export function magnitudeBandGuideStyles(appearance: ScatterAppearance, custom: boolean) {
+  return custom ? appearance.customLevels : magnitudeFactors.map((_, index) =>
+    appearance.levels.find((level) => matchesMagnitudeFactor(level, index)) ?? defaultScatterAppearance.levels[index])
+}
+export function withMagnitudeBandColor(appearance: ScatterAppearance, index: number, nextColor: string, custom: boolean): ScatterAppearance {
+  if (index < 0 || index >= magnitudeFactors.length || !Number.isInteger(index) || !/^#[0-9a-f]{6}$/i.test(nextColor)) return appearance
+  if (custom) return { ...appearance, customLevels: appearance.customLevels.map((level, at) => at === index ? { ...level, color: nextColor } : level) }
+  const found = appearance.levels.some((level) => matchesMagnitudeFactor(level, index))
+  let newId = 1
+  while (appearance.levels.some((level) => level.id === newId)) newId++
+  // Recreate an absent canonical P95 guide without moving an unrelated guide.
+  const levels = found ? appearance.levels.map((level) => matchesMagnitudeFactor(level, index) ? { ...level, color: nextColor } : level) :
+    [...appearance.levels, { ...defaultScatterAppearance.levels[index], color: nextColor,
+      id: newId }]
+  return { ...appearance, levels }
 }
 export function scatterGuideLevels(appearance: ScatterAppearance, threshold: number, customLimits?: readonly number[]) {
   if (customLimits) return customMagnitudeGuideStyles(appearance).map((level, index) => ({ ...level,

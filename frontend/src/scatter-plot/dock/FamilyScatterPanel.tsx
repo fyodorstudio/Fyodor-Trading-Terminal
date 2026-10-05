@@ -4,7 +4,7 @@ import { MagnitudeScatterPlot } from '../plot/MagnitudeScatterPlot'
 import { MagnitudeCalculationDetails } from '../inspection/MagnitudeCalculationDetails'
 import { useFamilyScatterData } from './useFamilyScatterData'
 import { ScatterPlotAppearanceSettings } from '../settings/ScatterPlotAppearanceSettings'
-import { readScatterAppearance, saveScatterAppearance, type ScatterAppearance } from '../settings/scatter-plot-appearance'
+import { readScatterAppearance, saveScatterAppearance, magnitudeBandGuideStyles, withMagnitudeBandColor, type ScatterAppearance } from '../settings/scatter-plot-appearance'
 import { MagnitudeBoundaryEditor } from '../settings/MagnitudeBoundaryEditor'
 import { magnitudeConfiguration, useMagnitudeSettings, type MagnitudeSettings } from '../../inspector/magnitude/settings/magnitude-settings-store'
 import type { ScatterPlotDockProps, ScatterModel, ScatterOption } from '../contracts/scatter-plot-types'
@@ -58,6 +58,8 @@ export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, binding, famil
           <MagnitudeBoundaryEditor key={JSON.stringify([brokerId, seriesId, model.inspection?.releaseId, config.mode, customLimits])}
             limits={customLimits ?? model.inspection?.distribution?.limits ?? null} custom={!!customLimits}
             unit={model.deltaUnit}
+            bandColors={magnitudeBandGuideStyles(appearance, !!customLimits).map((level) => level.color)}
+            onBandColorChange={(index, color) => changeAppearance(withMagnitudeBandColor(appearance, index, color, !!customLimits))}
             mode={config.mode} onModeChange={(mode) => { family.settings.save(seriesId, mode === 'undefined' ? null : 'p95'); setZoom(false) }}
             onApply={(limits) => family.settings.save(seriesId, limits)} onReset={() => { family.settings.save(seriesId, null); setZoom(false) }} />
         </MagnitudeCalculationDetails>

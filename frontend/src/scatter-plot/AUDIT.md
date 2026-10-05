@@ -18,6 +18,7 @@ dependency/build/cache/local-inventory files requiring cleanup.
 | Malformed raw integer strings could throw during delta calculation. | Shared delta arithmetic treats these as unavailable, so both historical views can exclude them safely. |
 | Custom mode still sorted samples for unused P95 source details. | That sorting is skipped for configured series. |
 | Styling custom boundaries discarded additional automatic guide preferences. | Custom and automatic guide styles now persist independently, with compatible initialization for older appearance settings. |
+| Identifying Small/Medium/Large colors required matching numbered Appearance guides. | Color boxes beside each cutoff edit the active mode's mirrored bands and boundary lines through the existing appearance store; numeric drafts, scoring and navigation are preserved. |
 | No saved boundary silently enabled P95. | Undefined is now the default; empty Inspector cells, raw scatter points and descriptive counts remain. P95 requires an explicit saved mode. |
 | Adding CPI risked copying NFP lifecycle/classification code. | Shared reading, history, settings, cells, tally and scatter engines accept registered family definitions. CPI keeps its scope/catalog/settings in isolated bindings. |
 | Mixed Undefined and configured-but-unavailable series could receive misleading footer labels. | Undefined and unclassified readings are counted separately per grade. |
