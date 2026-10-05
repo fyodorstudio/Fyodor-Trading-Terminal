@@ -40,10 +40,10 @@ tally, speech sentiment or EURUSD direction rule.
 
 ## Module and verification boundaries
 
-- `episodes/fomc-episodes.ts`: explicit companion IDs, bounded attachment and
+- `episodes/policy-episodes.ts`: explicit companion IDs, bounded attachment and
   ambiguity checks.
 - `InspectorReadingTime.tsx`: per-row display and broker clocks.
-- `grading/fed-rate-grading.ts`: rate-only sign colors.
+- `grading/policy-rate-grading.ts`: rate-only sign colors.
 - `tests/inspector/monetary-policy/test_fomc_episodes.mjs`: one-hour edges,
   cross-midnight dates, missing/uncertain/overlapping anchors, no chaining,
   stable selection/markers, incoming companions, row clocks, filter isolation
@@ -56,3 +56,13 @@ identifies the meeting's materials. Its [January 2026 calendar](https://www.fede
 lists the statement at 14:00 New York and press conference at 14:30. The
 one-hour tolerance is an application grouping rule, not a claim that all Fed
 communications within an hour belong to the same meeting.
+
+## Forecast and surprise display
+
+The Fed/ECB table also shows the supplied broker Forecast and A−F (Surprise),
+calculated independently as Actual minus Forecast. Numeric rate surprises display
+in basis points: positive green, negative red, exact zero gray. Missing/nonfinite
+Actual or Forecast produces —; commentary surprise is Not applicable. Stored
+raw precision is used when available. A−F is informational and never changes
+A−P, magnitude, scoring, episode identity or grouping. No replacement forecast
+is inferred from Previous or revised Previous.

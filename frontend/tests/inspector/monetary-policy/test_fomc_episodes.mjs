@@ -27,7 +27,7 @@ const event = (id, offset = 0, overrides = {}) => ({
   release_at: at + offset * 1000, period_seconds: 0, revision: 0, time_mode: 0, importance: 'high', impact: 'none',
   unit: id === '840050014' ? 1 : 0, multiplier: 0, digits: 2,
   actual: id === '840050014' ? 5 : null, previous: id === '840050014' ? 4.75 : null,
-  forecast: 999, revised_previous: -999, ...overrides,
+  forecast: id === '840050014' ? 5.25 : null, revised_previous: -999, ...overrides,
 })
 const decision = event('840050014')
 const statement = event('840050002')
@@ -37,7 +37,7 @@ const bars = [chartAt, chartAt + 3600].map((time) => ({ time, open: 1, high: 2, 
 
 try {
   const data = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
-  const { gradeFedRateDecision } = await server.ssrLoadModule('./src/inspector/grading/fed-rate-grading.ts')
+  const { gradePolicyRateDecision } = await server.ssrLoadModule('./src/inspector/grading/policy-rate-grading.ts')
   const { useInspector } = await server.ssrLoadModule('./src/inspector/useInspector.ts')
   const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
   const preferences = data.defaultInspectorPreferences()
@@ -74,12 +74,12 @@ try {
   assert.equal(data.filterInspectorReleases(midnightEpisode, preferences, { from: Date.UTC(2026, 9, 2), to: Date.UTC(2026, 9, 3) }).length, 0,
     'Date filtering stays anchored to the decision')
   for (const [actual, expected] of [[5, 'higher'], [4.5, 'lower'], [4.75, 'unchanged'], [null, 'missing']]) {
-    assert.equal(gradeFedRateDecision({ ...decision, actual }, 'fomc').grade, expected)
+    assert.equal(gradePolicyRateDecision({ ...decision, actual }, 'fomc').grade, expected)
   }
-  assert.equal(gradeFedRateDecision(statement, 'fomc'), null)
-  assert.equal(gradeFedRateDecision(decision, 'fed-chair'), null)
-  assert.equal(gradeFedRateDecision({ ...decision, currency: 'EUR' }, 'fomc'), null)
-  assert.equal(gradeFedRateDecision({ ...decision, actual_raw_scaled_1e6: '4750000', previous_raw_scaled_1e6: '5000000' }, 'fomc').grade, 'lower',
+  assert.equal(gradePolicyRateDecision(statement, 'fomc'), null)
+  assert.equal(gradePolicyRateDecision(decision, 'fed-chair'), null)
+  assert.equal(gradePolicyRateDecision({ ...decision, currency: 'EUR' }, 'fomc'), null)
+  assert.equal(gradePolicyRateDecision({ ...decision, actual_raw_scaled_1e6: '4750000', previous_raw_scaled_1e6: '5000000' }, 'fomc').grade, 'lower',
     'Source precision and supplied Previous determine the sign')
   console.log('✓ Anchored FOMC identity, stable marker, exact one-hour bounds, no chaining, ambiguous/missing/uncertain anchors, cross-midnight filtering and rate sign colors')
 
@@ -98,13 +98,17 @@ try {
   assert.equal(view.selectedRelease.id, anchorId, 'Arrival of companions preserves the selected decision')
   assert.equal(container.querySelectorAll('.inspector-release').length, 1)
   assert.deepEqual([...container.querySelectorAll('.inspector-table-scroll thead th')].map((cell) => cell.textContent),
-    ['Series', 'Release time', 'Actual', 'Previous', 'A−P'])
+    ['Series', 'Release time', 'Actual', 'Previous', 'Forecast', 'A−P', 'A−F (Surprise)'])
   const rows = [...container.querySelectorAll('.inspector-table-scroll tbody tr')]
   assert.match(rows[0].querySelector('[data-reading-clock="display"]').textContent, /18:00/)
   assert.match(rows[3].querySelector('[data-reading-clock="display"]').textContent, /18:30/)
   assert.match(rows[0].querySelector('[data-reading-clock="broker"]').textContent, /21:00/)
   assert.match(rows[3].querySelector('[data-reading-clock="broker"]').textContent, /21:30/)
   assert.equal(rows[0].querySelector('td.inspector-grade-higher').textContent, '+25 bp')
+  assert.equal(rows[0].children[4].textContent, '5.25%')
+  assert.equal(rows[0].children[6].textContent, '-25 bp')
+  assert.ok(rows[0].children[6].classList.contains('inspector-grade-lower'), 'Surprise has its own sign, independent of A−P')
+  assert.equal(rows[3].children[4].textContent, '—')
   assert.equal(rows[3].lastElementChild.textContent, 'Not applicable')
   assert.equal(container.querySelector('.inspector-row-grade'), null, 'Rate sign colors do not introduce a tally or magnitude grading')
   assert.equal(view.markers.length, 1)
@@ -113,6 +117,17 @@ try {
     assert.ok(container.querySelector(`.inspector-table-scroll td.inspector-grade-${expected}`))
     if (actual === 4.5) assert.equal(container.querySelector('td.inspector-grade-lower').textContent, '-25 bp')
   }
+  for (const [forecast, actual, expected, tone] of [[4.75, 5, '+25 bp', 'higher'], [5.25, 5, '-25 bp', 'lower'],
+    [5, 5, '0 bp', 'unchanged'], [null, 5, '—', 'missing'], [5, null, '—', 'missing']]) {
+    await render({ rows: input.map((row) => row.event_id === '840050014' ? { ...row, actual, forecast } : row) })
+    const cells = container.querySelector('.inspector-table-scroll tbody tr').children
+    assert.equal(cells[6].textContent, expected)
+    assert.ok(cells[6].classList.contains(`inspector-grade-${tone}`))
+    assert.equal(cells[5].textContent, actual === null ? '—' : '+25 bp', 'Forecast changes never alter A−P')
+  }
+  await render({ rows: input.map((row) => row.event_id === '840050014' ? { ...row, previous: null } : row) })
+  assert.equal(container.querySelector('.inspector-table-scroll tbody tr').children[5].textContent, '—')
+  assert.equal(container.querySelector('.inspector-table-scroll tbody tr').children[6].textContent, '-25 bp', 'Surprise does not require Previous')
   await render({ rows: input, timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: 420 } })
   assert.equal(view.selectedRelease.id, anchorId); assert.equal(view.markers[0].time, chartAt)
   assert.match(container.querySelectorAll('[data-reading-clock="display"]')[3].textContent, /01:30/)

@@ -123,24 +123,25 @@
 .inspector-date-body > nav button { text-align: left; border: 0; padding: 7px 6px; }
 .inspector-date-body > nav button[aria-pressed='true'] { background: var(--surface-hover); color: var(--accent); font-weight: 650; }
 .inspector-date-custom { min-width: 0; }
-.inspector-date-inputs { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 16px; }
-.inspector-date-inputs label { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: 10px; }
-.inspector-date-inputs input { min-width: 0; font-size: 11px; }
-.inspector-month-navigation { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 12px 0 8px; }
-.inspector-month-navigation button { font-size: 19px; line-height: 20px; padding: 2px 9px; min-width: 28px; }
-.inspector-month-navigation select[aria-label='Calendar month'] { min-width: 110px; }
-.inspector-month-navigation select[aria-label='Calendar year'] { min-width: 72px; }
-.inspector-calendar-months { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.inspector-calendar-months { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.inspector-calendar-block { display: flex; flex-direction: column; min-width: 0; }
+.inspector-calendar-header { display: flex; flex-direction: column; gap: 4px; margin-bottom: 6px; }
+.inspector-calendar-title-row { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
+.inspector-calendar-role { font-weight: 700; font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.5px; }
+.inspector-calendar-value { font-size: 11px; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+.inspector-calendar-nav { display: flex; align-items: center; justify-content: space-between; gap: 4px; }
+.inspector-cal-btn { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; padding: 0; font-size: 13px; line-height: 1; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--surface-panel); color: var(--text); cursor: pointer; flex-shrink: 0; }
+.inspector-cal-btn:hover { background: var(--surface-hover); }
+.inspector-cal-month-name { font-weight: 650; font-size: 11px; text-align: center; flex: 1; min-width: 0; white-space: nowrap; }
 .inspector-calendar-months table { border-collapse: separate; border-spacing: 1px; width: 100%; table-layout: fixed; font-size: 10px; }
-.inspector-calendar-months caption { font-weight: 650; padding: 4px 0 8px; }
-.inspector-calendar-months th { color: var(--text-muted); font-weight: 400; padding-bottom: 5px; }
+.inspector-calendar-months th { color: var(--text-muted); font-weight: 400; padding: 2px 0 4px; text-align: center; }
 .inspector-calendar-months tbody tr { height: 27px; }
-.inspector-calendar-months td { padding: 0; height: 27px; vertical-align: middle; }
-.inspector-calendar-months td button { width: 100%; height: 27px; padding: 0; border: 0; font-size: 11px; }
+.inspector-calendar-months td { padding: 0; height: 27px; vertical-align: middle; text-align: center; }
+.inspector-calendar-months td button { width: 100%; height: 27px; padding: 0; border: 0; font-size: 11px; border-radius: 4px; }
 .inspector-calendar-months td button:hover { background: var(--surface-hover); }
 .inspector-calendar-months .in-range { background: var(--surface-hover); color: var(--accent); }
 .inspector-calendar-months .range-endpoint { background: var(--accent); color: #fff; font-weight: 650; }
 .inspector-calendar-months [aria-current='date'] { box-shadow: inset 0 0 0 1px var(--accent); }
-.inspector-date-help { font-size: 10px; color: var(--text-muted); line-height: 1.5; margin: 10px 0 0; min-height: 30px; text-align: center; }
+.inspector-date-help { font-size: 10px; color: var(--text-muted); line-height: 1.5; margin: 10px 0 0; min-height: 24px; text-align: center; }
 .inspector-date-help[role='alert'] { color: var(--danger, #bd2935); }
 @media (max-width: 600px) { .inspector-date-body { grid-template-columns: minmax(0, 1fr); } .inspector-date-body > nav { flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--border); padding-bottom: 8px; } .inspector-calendar-months { grid-template-columns: minmax(0, 1fr); } }

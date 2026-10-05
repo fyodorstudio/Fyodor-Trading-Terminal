@@ -17,7 +17,7 @@ not limit the next 60 days of schedules.
 - `index.ts`: public dock export.
 
 One card represents one existing Inspector episode. CPI/NFP readings at the same
-publication group together; FOMC retains decision anchoring and known companions.
+publication group together; FOMC and ECB retain decision anchoring and known meeting companions.
 Generic speeches remain independent. Stable country/currency/event IDs own family
 membership. Display name matching does not assign families.
 
@@ -53,7 +53,7 @@ introduced.
 
 `tests/alert/test_alert.mjs` covers pure and mounted production logic: applied
 family scope, broker changes, one card per episode, 60-day bounds, countdown
-ticks without requests, due/partial/completed states, FOMC grouping, speeches,
+ticks without requests, due/partial/completed states, FOMC/ECB grouping, speeches,
 rescheduling, offline data, unknown timing, display timezone, cancellation and
 cleanup. Existing navigation/resizing suites cover Alert registration and height.
 Visual layout, theme contrast and countdown readability remain manual user checks.

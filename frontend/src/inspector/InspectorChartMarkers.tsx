@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
-import type { IChartApi, Time } from 'lightweight-charts'
+import type { IChartApi } from 'lightweight-charts'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import { symbolGlyph } from './event-symbols'
 import type { InspectorMarker } from './inspector-data'
+import { inspectorMarkerCoordinate } from './marker-position'
 import './inspector.css'
 
 export function InspectorChartMarkers({ chartApi, markers, timeDisplay, onSelectRelease }: {
@@ -14,10 +15,10 @@ export function InspectorChartMarkers({ chartApi, markers, timeDisplay, onSelect
     const scale = chartApi.timeScale()
     function update() {
       const positioned = markers.map((marker) => {
-        const coordinate = scale.timeToCoordinate(marker.time as Time)
+        const coordinate = inspectorMarkerCoordinate(scale, marker)
         return { marker, x: coordinate === null ? null : Number(coordinate) }
       })
-        .filter((item): item is { marker: InspectorMarker; x: number } => item.x !== null && item.x >= 0 && item.x <= scale.width())
+        .filter((item): item is { marker: InspectorMarker; x: number } => item.x !== null && Number.isFinite(item.x) && item.x >= 0 && item.x <= scale.width())
         .sort((a, b) => a.x - b.x)
       const clusters: { x: number; markers: InspectorMarker[] }[] = []
       for (const item of positioned) {

@@ -9,7 +9,7 @@ import { buildInspectorMarkers, filterInspectorReleases, groupInspectorReleases,
   readInspectorPreferences, supportsInspector, type InspectorPreferences } from './inspector-data'
 import { useStoredCalendar } from './useStoredCalendar'
 import { useFamilyMagnitudeHistory } from './magnitude/useFamilyMagnitudeHistory'
-import { fomcEpisodeWindowMs } from './episodes/fomc-episodes'
+import { policyEpisodeWindowMs } from './episodes/policy-episodes'
 
 const noEvents: EconomicCalendarEvent[] = []
 
@@ -44,8 +44,8 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
   }
   // Fetch neighboring instants so episodes crossing a date boundary remain
   // intact. Visible releases still filter against the decision's original range.
-  const storageRange = useMemo(() => range ? { from: range.from - fomcEpisodeWindowMs,
-    to: range.to + fomcEpisodeWindowMs } : null, [range])
+  const storageRange = useMemo(() => range ? { from: range.from - policyEpisodeWindowMs,
+    to: range.to + policyEpisodeWindowMs } : null, [range])
   const storage = useStoredCalendar(brokerId, storageRange, supported && brokerTime)
   const readings = useMemo(() => brokerTime ? storage.events.filter((event) => event.availability === 'observed') : events,
     [brokerTime, storage.events, events])

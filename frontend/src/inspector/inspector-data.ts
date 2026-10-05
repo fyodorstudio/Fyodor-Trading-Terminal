@@ -4,7 +4,7 @@ import { isEventSymbol, type EventSymbol } from './event-symbols'
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { OhlcBar } from '../market-data/contracts/OhlcBar'
 import type { CalendarDisplayRange } from './calendar-display-range'
-import { fomcDecisionId, fomcCompanionIds, groupFomcEpisodes } from './episodes/fomc-episodes'
+import { groupPolicyEpisodes, isPolicyRateDecision, policyEpisodeRule, policyEpisodeRules } from './episodes/policy-episodes'
 
 const originalInspectorFamilies = ['ecb', 'ecb-president', 'fomc', 'fed-chair', 'euro-inflation', 'german-inflation', 'us-cpi', 'pce', 'ppi']
 const inspectorFamilyOrder = [...originalInspectorFamilies, 'euro-labor', 'euro-wages', 'jobs', 'claims',
@@ -66,8 +66,8 @@ export type InspectorRelease = {
 }
 
 function releaseLabel(event: EconomicCalendarEvent, familyId: string): string | null {
-  if (familyId === 'fomc') return event.event_id === '840050014' ? 'Fed rate decision' : event.name
-  if (familyId === 'ecb') return ['999010006', '999010007', '999010015'].includes(event.event_id) ? 'ECB rate decision' : event.name
+  const policy = policyEpisodeRule(familyId)
+  if (policy) return isPolicyRateDecision(event, familyId) ? policy.label : event.name
   if (familyId === 'fed-chair' || familyId === 'ecb-president') return event.name
   if (familyId === 'euro-labor') return event.event_id === '999030020' ? 'Euro-area unemployment' : 'Euro-area employment'
   return null
@@ -81,14 +81,14 @@ export function isInspectorCommentary(event: EconomicCalendarEvent): boolean {
   const family = inspectorFamilies.find((item) => item.country === event.country_code && item.currency === event.currency &&
     (item.events as readonly string[]).includes(event.event_id))
   return !!family && (inspectorCategories[0].families as readonly string[]).includes(family.id) &&
-    !['840050014', '999010006', '999010007', '999010015'].includes(event.event_id) &&
+    !isPolicyRateDecision(event) &&
     event.actual === null && event.previous === null
 }
 
 // Display paired monthly readings before paired annual readings. Catalog
 // order differs for PCE and euro-area CPI; original source rows stay intact.
 const releaseReadingOrder: Record<string, readonly string[]> = {
-  fomc: [fomcDecisionId, ...fomcCompanionIds],
+  ...Object.fromEntries(policyEpisodeRules.map((rule) => [rule.familyId, [...rule.decisionIds, ...rule.companionIds]])),
   jobs: ['840030016', '840030015', '840030017', '840030018', '840030019', '840030020', '840030023', '840030022', '840030032', '840030024'],
   'us-cpi': ['840030005', '840030006', '840030007', '840030008'],
   pce: ['840010003', '840010001', '840010004', '840010002'],
@@ -97,7 +97,7 @@ const releaseReadingOrder: Record<string, readonly string[]> = {
   'german-inflation': ['276010020', '276010022', '276010021', '276010023'],
 }
 
-// Exact publication identity forms the initial releases; verified FOMC
+// Exact publication identity forms the initial releases; verified policy
 // companions then attach to a decision within its bounded episode window.
 // Reference periods and revision/value identities remain on individual rows.
 export function groupInspectorReleases(events: InspectorEvent[]): InspectorRelease[] {
@@ -125,7 +125,7 @@ export function groupInspectorReleases(events: InspectorEvent[]): InspectorRelea
     group.chartTime ??= chartTime
     group.timingUncertain ||= event.time_mode !== 0
   }
-  const episodes = groupFomcEpisodes([...groups.values()])
+  const episodes = groupPolicyEpisodes([...groups.values()])
   for (const group of episodes) {
     const catalogOrder = inspectorFamilies.find((family) => family.id === group.familyId)!.events as readonly string[]
     const principal = releaseReadingOrder[group.familyId] ?? []
@@ -144,12 +144,23 @@ export function filterInspectorReleases(groups: InspectorRelease[], preferences:
 }
 
 const timeframeSeconds: Record<ChartTimeframe, number> = { M1: 60, M5: 300, M15: 900, M30: 1800, H1: 3600, H4: 14400, D1: 86400 }
-export type InspectorMarker = { release: InspectorRelease; symbol: EventSymbol; time: number }
+export type InspectorMarker = { release: InspectorRelease; symbol: EventSymbol; time: number;
+  projection?: { anchorTime: number; barsAhead: number } }
 export function buildInspectorMarkers(groups: InspectorRelease[], preferences: InspectorPreferences, bars: OhlcBar[], timeframe: ChartTimeframe): InspectorMarker[] {
   if (!preferences.showSymbols || !bars.length) return []
   return groups.flatMap((release) => {
-    if (release.timingUncertain || release.chartTime === null) return []
+    if (release.timingUncertain || release.chartTime === null || !Number.isFinite(release.chartTime)) return []
     const timestamp = release.chartTime
+    const duration = timeframeSeconds[timeframe]
+    const lastTime = Number(bars[bars.length - 1].time)
+    const symbol = preferences.symbols[release.familyId] ?? 'star'
+    // There is no future candle to anchor to. Project timeframe slots into the
+    // blank chart area without inserting price data or snapping to the last bar.
+    // Rebuilding against incoming bars replaces this with a real candle anchor.
+    if (timestamp >= lastTime + duration) {
+      const barsAhead = Math.floor((timestamp - lastTime) / duration)
+      return [{ release, symbol, time: lastTime + barsAhead * duration, projection: { anchorTime: lastTime, barsAhead } }]
+    }
     let lo = 0, hi = bars.length - 1
     while (lo <= hi) {
       const mid = (lo + hi) >>> 1
@@ -157,36 +168,44 @@ export function buildInspectorMarkers(groups: InspectorRelease[], preferences: I
       else hi = mid - 1
     }
     const time = hi >= 0 ? Number(bars[hi].time) : null
-    // Use the containing candle, never a nearby candle across a gap or a
-    // future publication projected onto the final observed candle.
-    if (time === null || timestamp >= time + timeframeSeconds[timeframe]) return []
-    return [{ release, time, symbol: preferences.symbols[release.familyId] ?? 'star' }]
+    // Historical gaps still require a containing candle, never a nearby bar.
+    if (time === null || timestamp >= time + duration) return []
+    return [{ release, time, symbol }]
   })
 }
 
-export function inspectorDelta(event: EconomicCalendarEvent): number | null {
-  if (event.actual === null || event.previous === null || !Number.isFinite(event.actual) || !Number.isFinite(event.previous)) return null
-  const raw = event as EconomicCalendarEvent & { actual_raw_scaled_1e6?: string | null; previous_raw_scaled_1e6?: string | null }
-  if (raw.actual_raw_scaled_1e6 != null && raw.previous_raw_scaled_1e6 != null) {
-    if (!/^[+-]?\d+$/.test(raw.actual_raw_scaled_1e6) || !/^[+-]?\d+$/.test(raw.previous_raw_scaled_1e6)) return null
-    const difference = BigInt(raw.actual_raw_scaled_1e6) - BigInt(raw.previous_raw_scaled_1e6)
+function inspectorDifference(event: EconomicCalendarEvent, comparator: 'previous' | 'forecast'): number | null {
+  const reference = event[comparator]
+  if (event.actual === null || reference === null || !Number.isFinite(event.actual) || !Number.isFinite(reference)) return null
+  const raw = event as EconomicCalendarEvent & { actual_raw_scaled_1e6?: string | null;
+    previous_raw_scaled_1e6?: string | null; forecast_raw_scaled_1e6?: string | null }
+  const rawReference = raw[`${comparator}_raw_scaled_1e6`]
+  if (raw.actual_raw_scaled_1e6 != null && rawReference != null) {
+    if (!/^[+-]?\d+$/.test(raw.actual_raw_scaled_1e6) || !/^[+-]?\d+$/.test(rawReference)) return null
+    const difference = BigInt(raw.actual_raw_scaled_1e6) - BigInt(rawReference)
     const number = Number(difference)
     return Number.isSafeInteger(number) ? number / 1_000_000 : null
   }
   const scale = 10 ** Math.min(6, Math.max(0, event.digits))
-  const actual = Math.round(event.actual * scale), previous = Math.round(event.previous * scale)
-  if (!Number.isSafeInteger(actual) || !Number.isSafeInteger(previous) || !Number.isSafeInteger(actual - previous)) return null
-  return (actual - previous) / scale
+  const actual = Math.round(event.actual * scale), expected = Math.round(reference * scale)
+  if (!Number.isSafeInteger(actual) || !Number.isSafeInteger(expected) || !Number.isSafeInteger(actual - expected)) return null
+  return (actual - expected) / scale
+}
+export function inspectorDelta(event: EconomicCalendarEvent): number | null {
+  return inspectorDifference(event, 'previous')
+}
+export function inspectorSurprise(event: EconomicCalendarEvent): number | null {
+  return inspectorDifference(event, 'forecast')
 }
 export function inspectorValueUnit(event: EconomicCalendarEvent, delta = false): string {
-  const isRate = delta && ['840050014', '999010006', '999010007', '999010015'].includes(event.event_id)
+  const isRate = delta && isPolicyRateDecision(event)
   return event.unit === 1 ? delta ? isRate ? ' bp' : ' pp' : '%' :
     event.unit === 3 ? ' h' : ({ 1: 'k', 2: 'M', 3: 'B', 4: 'T' } as Record<number, string>)[event.multiplier] ??
     (event.unit === 0 ? ' pts' : '')
 }
 export function formatInspectorValue(value: number | null, event: EconomicCalendarEvent, delta = false, maximumFractionDigits = 6): string {
   if (value === null || !Number.isFinite(value)) return '—'
-  const isRate = delta && ['840050014', '999010006', '999010007', '999010015'].includes(event.event_id)
+  const isRate = delta && isPolicyRateDecision(event)
   const number = isRate ? value * 100 : value
   const text = number.toLocaleString(undefined, { maximumFractionDigits, signDisplay: delta ? 'exceptZero' : 'auto' })
   return `${text}${inspectorValueUnit(event, delta)}`

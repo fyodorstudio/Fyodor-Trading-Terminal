@@ -8,8 +8,9 @@ Organize definitions by **release currency → event category → family**. EUR 
 | --- | --- | --- | --- |
 | USD | Labor / wages | [Jobs report / NFP](USD/Labor/NFP.md) | Grading: `nfp-change-vs-previous-v2`; three-primary signed magnitude direction: `nfp-eurusd-primary-signed-magnitude-v1` |
 | USD | Inflation | [US CPI / core CPI](USD/Inflation/CPI.md) | Grading: `usd-cpi-change-vs-previous-v2`; four-reading signed magnitude score: `cpi-eurusd-signed-magnitude-v1` |
+| EUR | Monetary policy | [ECB policy](EUR/MonetaryPolicy/ECB.md) | Decision-anchored rate/statement/conference episodes; rate A−P sign colors only |
 | USD | Monetary policy | [US FOMC](USD/MonetaryPolicy/FOMC.md) | Decision-anchored episodes: `fomc-decision-anchored-v1`; Fed rate A−P sign colors only |
-| EUR | All categories | [Existing notes](EUR/definitions.md) | No grading implemented |
+| EUR | Other families | [Existing notes](EUR/definitions.md) | No grading implemented |
 | USD | Other families | — | No grading implemented |
 
 Each future family document should record its scope and stable event IDs, reading definitions, comparator, raw A−P direction and any separate USD score convention, zero/missing handling, counting behavior, examples, limitations, sources and rule version. A family is graded only after its own rules are agreed and implemented; NFP rules are never inferred from another event's name.

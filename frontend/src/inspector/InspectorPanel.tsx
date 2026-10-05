@@ -2,13 +2,14 @@ import { useId, useState } from 'react'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { CalendarSourceHealth } from '../system-connectivity/bridge-status/bridge-contract'
 import { symbolGlyph } from './event-symbols'
-import { formatInspectorValue, inspectorDelta, isInspectorCommentary, type InspectorRelease } from './inspector-data'
+import { formatInspectorValue, inspectorDelta, inspectorSurprise, isInspectorCommentary, type InspectorRelease } from './inspector-data'
 import { InspectorFiltersModal } from './InspectorFiltersModal'
 import { InspectorDateRangePicker } from './InspectorDateRangePicker'
 import { InspectorReleaseHeading } from './InspectorReleaseHeading'
 import { InspectorInfoTooltip } from './InspectorInfoTooltip'
 import { InspectorReadingTime } from './InspectorReadingTime'
-import { gradeFedRateDecision } from './grading/fed-rate-grading'
+import { policyEpisodeRule } from './episodes/policy-episodes'
+import { gradePolicyRateDecision } from './grading/policy-rate-grading'
 import { gradeLabels, gradeFamilyReading, matchesReadingFamily, tallyFamilyReadings } from './grading/reading-grading'
 import { magnitudeFamilies } from './magnitude/magnitude-families'
 import { FamilyMagnitudeCell } from './magnitude/FamilyMagnitudeCell'
@@ -51,7 +52,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const [listOpen, setListOpen] = useState(true)
   const panelId = useId()
   const release = view.selectedRelease
-  const showReadingTimes = release?.familyId === 'fomc'
+  const showReadingTimes = !!release && !!policyEpisodeRule(release.familyId)
   const magnitudeFamily = magnitudeFamilies.find((family) => matchesReadingFamily(release, family)) ?? null
   const tally = magnitudeFamily ? tallyFamilyReadings(release, magnitudeFamily, magnitudeFamily.gradingVersion) : null
   const scoringBinding = inspectorScoringBinding(symbol, release)
@@ -136,14 +137,17 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
             {showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release} history={view.magnitudeHistory} /> :
             <div className="inspector-table-scroll"><table className={showHistograms ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
-              <thead><tr><th>Series</th>{showReadingTimes && <th>Release time</th>}<th>Actual</th><th>Previous</th><th>A−P</th>{tally && <th
+              <thead><tr><th>Series</th>{showReadingTimes && <th>Release time</th>}<th>Actual</th><th>Previous</th>
+                {showReadingTimes && <th>Forecast</th>}<th>A−P</th>{showReadingTimes && <th
+                  title="Actual minus this broker's supplied Forecast, in basis points. Informational only; does not affect A−P, magnitude or scoring.">A−F (Surprise)</th>}{tally && <th
                 title={showHistograms ? "Seven A−P bands: three negative, exact zero, three positive. Boundaries follow the selected series' Scatter Plot configuration. Undefined magnitude leaves this cell empty. Height counts all usable released readings since January 2015 through now; Extreme values sit beyond the configured range." :
                   "Magnitude follows this series' frozen manual boundaries in Scatter Plot. Undefined magnitude leaves this cell empty."}>
                 {showHistograms ? 'A−P magnitude · History' : 'Magnitude'}</th>}</tr></thead>
               <tbody>{release.events.map((event) => {
                 const delta = inspectorDelta(event)
                 const commentary = isInspectorCommentary(event)
-                const grading = magnitudeFamily ? gradeFamilyReading(event, release.familyId, magnitudeFamily) : gradeFedRateDecision(event, release.familyId)
+                const grading = magnitudeFamily ? gradeFamilyReading(event, release.familyId, magnitudeFamily) : gradePolicyRateDecision(event, release.familyId)
+                const surpriseGrading = showReadingTimes ? gradePolicyRateDecision(event, release.familyId, 'forecast') : null
                 return <tr key={event.value_id}>
                   <td><strong>{event.name}</strong>{event.revision > 0 && <span className="inspector-revision"> · Revision {event.revision}</span>}
                     {sharedPeriod === null && release.events.some((reading) => reading.period_seconds > 0) &&
@@ -153,9 +157,12 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
                   <td>{formatInspectorValue(event.actual, event)}</td>
                   <td>{formatInspectorValue(event.previous, event)}{event.revised_previous !== null && event.revised_previous !== event.previous &&
                     <small>Rev: {formatInspectorValue(event.revised_previous, event)}</small>}</td>
+                  {showReadingTimes && <td>{formatInspectorValue(event.forecast, event)}</td>}
                   <td className={grading ? `inspector-graded-delta inspector-grade-${grading.grade}` : undefined} title={grading?.explanation}>
                     {commentary ? 'Not applicable' : formatInspectorValue(delta, event, true)}
                     {grading && magnitudeFamily && <span className="inspector-row-grade">{gradeLabels[grading.grade]}</span>}</td>
+                  {showReadingTimes && <td className={surpriseGrading ? `inspector-graded-delta inspector-grade-${surpriseGrading.grade}` : undefined}
+                    title={surpriseGrading?.explanation}>{commentary ? 'Not applicable' : formatInspectorValue(inspectorSurprise(event), event, true)}</td>}
                   {tally && <FamilyMagnitudeCell event={event} history={view.magnitudeHistory} grade={grading?.grade ?? 'unrated'}
                     showHistogram={showHistograms} />}
                 </tr>

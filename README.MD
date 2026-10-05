@@ -67,6 +67,17 @@ NFP direction uses signed magnitude points from Payrolls, Unemployment and
 Earnings m/m; seven supporting readings stay separate. CPI retains its four-rate
 score and separate price-index matrix. Hover series labels for NFP role explanations.
 
+Fed and ECB policy episodes group known meeting statements/projections and press
+conferences with the numeric rate decision within one hour. Each row keeps its
+own release time; ordinary speeches stay separate. Rate deltas show green/red
+basis-point changes. See [policy episodes](frontend/src/inspector/episodes/README.md).
+
+Inspector symbols include filtered upcoming releases with verified chart times.
+Pan into the blank future area to view scheduled symbols; clicking opens the
+exact release. Future spacing projects elapsed timeframe slots from the latest
+candle until actual broker candles establish the timeline. No price data is
+inserted, and internal historical candle gaps are not filled.
+
 See [shared magnitude behavior](frontend/src/inspector/magnitude/README.md),
 [Scatter Plot](frontend/src/scatter-plot/README.md),
 [Alert](frontend/src/alert/README.md) and

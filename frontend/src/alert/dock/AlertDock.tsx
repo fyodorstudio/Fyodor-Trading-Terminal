@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { formatAppTimestamp, timeDisplayLabel, type TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import { useStoredCalendar } from '../../inspector/useStoredCalendar'
 import { useCalendarNow } from '../../inspector/useCalendarNow'
-import { fomcEpisodeWindowMs } from '../../inspector/episodes/fomc-episodes'
+import { policyEpisodeWindowMs } from '../../inspector/episodes/policy-episodes'
 import { groupInspectorReleases, inspectorFamilies, type InspectorPreferences } from '../../inspector/inspector-data'
 import { alertCountdown, alertEpisodesFromReleases, alertLookaheadDays, alertRecentDays, alertSeriesIds } from '../model/alert-episodes'
 import './alert-dock.css'
@@ -13,8 +13,8 @@ export function AlertDock({ brokerId, preferences, timeDisplay, clockOffsetMs = 
 }) {
   const now = useCalendarNow(clockOffsetMs, 1000)
   const today = Math.floor(now / 86400000) * 86400000
-  const range = useMemo(() => ({ from: today - alertRecentDays * 86400000 - fomcEpisodeWindowMs,
-    to: today + (alertLookaheadDays + 2) * 86400000 + fomcEpisodeWindowMs }), [today])
+  const range = useMemo(() => ({ from: today - alertRecentDays * 86400000 - policyEpisodeWindowMs,
+    to: today + (alertLookaheadDays + 2) * 86400000 + policyEpisodeWindowMs }), [today])
   const eventIds = useMemo(() => alertSeriesIds(preferences), [preferences])
   const scope = useMemo(() => ({ eventIds }), [eventIds])
   const storage = useStoredCalendar(brokerId, range, supported && eventIds.length > 0, scope)
