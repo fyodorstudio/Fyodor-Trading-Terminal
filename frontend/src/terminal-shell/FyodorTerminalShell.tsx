@@ -39,6 +39,7 @@ import { LeftDockPanel } from '../workspace-docking/left-dock/LeftDockPanel'
 import { ChartWorkspaceHeader } from './ChartWorkspaceHeader'
 import { TerminalStatusBar } from './TerminalStatusBar'
 import './terminal-shell.layout.css'
+import { WorkspaceTransfer } from '../workspace-portability/WorkspaceTransfer'
 
 const defaultTradePlan: PlannedTradeState = {
   direction: 'long',
@@ -380,7 +381,7 @@ export function FyodorTerminalShell() {
           onChange={changeChartAppearance}
           onTimeDisplayChange={changeTimeDisplay}
           onClose={() => setSettingsOpen(false)}
-        />
+        ><WorkspaceTransfer /></ChartSettingsPopover>
       )}
     </div>
   )

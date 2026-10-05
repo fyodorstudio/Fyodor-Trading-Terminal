@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from .bridge_collector import BridgeCollector
 from .calendar_store import CalendarStore
 from .contracts import BackfillChunk, BackfillFailure, PublisherContext
+from .data_lock import data_lock
 
 
 def data_directory():
@@ -19,15 +20,16 @@ def data_directory():
 def create_app(directory=None, run_collector=True):
     @asynccontextmanager
     async def lifespan(app):
-        app.state.store = CalendarStore((directory or data_directory()) / "calendar.sqlite3")
-        app.state.collector = BridgeCollector(app.state.store)
-        if run_collector:
-            app.state.collector.start()
-        try:
-            yield
-        finally:
-            app.state.collector.stop()
-            app.state.store.close()
+        with data_lock(directory or data_directory()):
+            app.state.store = CalendarStore((directory or data_directory()) / "calendar.sqlite3")
+            app.state.collector = BridgeCollector(app.state.store)
+            if run_collector:
+                app.state.collector.start()
+            try:
+                yield
+            finally:
+                app.state.collector.stop()
+                app.state.store.close()
 
     app = FastAPI(title="Fyodor Calendar Storage", version="1.1.0", lifespan=lifespan)
 

@@ -16,7 +16,10 @@
     "test:storage": "bridge\\.venv\\Scripts\\python.exe -m unittest discover storage/tests -v",
     "test": "pnpm run test:frontend && pnpm run test:storage",
     "lint": "pnpm --dir frontend lint",
-    "build": "pnpm --dir frontend build"
+    "build": "pnpm --dir frontend build",
+    "setup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup.ps1",
+    "storage:backup": "bridge\\.venv\\Scripts\\python.exe storage\\run.py backup",
+    "storage:restore": "bridge\\.venv\\Scripts\\python.exe storage\\run.py restore"
   },
   "keywords": [],
   "author": "",

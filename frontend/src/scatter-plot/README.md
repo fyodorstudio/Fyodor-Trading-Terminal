@@ -1,282 +1,66 @@
-# Scatter Plot bottom dock
+# Scatter Plot
 
-Supported scope: **Pair EURUSD → USD / Quote → NFP or US CPI / core CPI → ten series per family**.
-X is the established UTC release date. Y is **signed Actual minus supplied
-Previous**, in the series' native k, pp, h or index-point units. No Forecast comparison,
-weights or trading-direction calculation is introduced by this feature.
+Bottom dock for EURUSD / USD Quote, with NFP and CPI family/series controls.
+The default inspected release is the latest completed family episode: exactly one
+usable Actual/Previous reading per admitted ID. X is publication date (UTC),
+Y signed Actual minus supplied Previous. Forecast is excluded. Raw dots remain
+visible with Undefined magnitude; later samples never dim.
 
-## Navigation and ownership
+Magnitude modes are Undefined and Manual boundaries. Enter three increasing
+positive native-unit cutoffs and press Freeze. Unfreeze opens editing while the
+saved limits remain active; reopening locks saved tuples. Set Undefined clears
+classification/histogram/guides. New releases grow N without moving frozen limits.
+Retired P95 preferences become Undefined; existing Custom tuples remain intact.
 
-Open **Scatter Plot** from the terminal status bar or bottom-dock tab. Its height
-is independently remembered under `fyodor.scatter-plot.dock-height.v1`.
-Pair and Base/Quote expose only their current supported option. Family selects
-NFP or CPI. Series contains that family's ten readings, defaulting to headline
-payrolls for NFP and CPI m/m for CPI.
-The scope stays EURUSD even if the price chart is displaying another symbol.
+The model shares Inspector admission/distribution/settings. History includes all
+usable released readings since January 2015 through corrected current UTC,
+selected broker only. Earlier / All distinguishes chronology from calculation N.
+Duplicates, missing/nonfinite/incompatible values, unobserved/withdrawn/uncertain
+rows and future schedules are excluded. Corrections replace samples. Stored
+values are not point-in-time vintages. Selection preserves the inventory query.
 
-Each opening or family switch defaults to the latest completed release in that family: it must be at or
-before the established current UTC clock and contain exactly one usable
-Actual/Previous reading for each of the ten required series. Upcoming and partial
-publications cannot replace that default. While following the default, incoming
-completed releases become the inspection target. Clicking a point fixes the
-inspected publication; changing Series preserves that publication. **Latest
-release** resumes following the latest completed release. Selection is independent
-of Inspector and resets on reopen, family switch or broker change. The broker source remains
-the terminal's selected broker, never a pooled inventory.
+## Navigation and appearance
 
-Only the active Scatter Plot dock mounts its storage hook. Closing or switching
-away aborts requests and clears polling. Its full-history query starts January
-2015 and is independent of price bars, chart dates and Inspector date filters.
-The existing series-filtered, chart-clock storage hook manages paging, immutable
-revision snapshots, ten-second polling and obsolete-response cancellation. The
-query's two-day date margin handles chart-clock offsets; the adapter independently
-enforces the exact UTC publication cutoff. Errors hide the plot; partial coverage
-is marked. An offline publisher can still supply persistent stored history.
+Crosshair, independent axis wheel/drag/keyboard zoom, anchored pan and reset are
+view changes only. Boundary zoom uses frozen limits without hiding extreme samples;
+triangles mark off-scale points. Rounded axis/crosshair labels preserve underlying
+coordinates and exact inspection readings. Keyboard dot selection is supported.
 
-## Calculations and display
+Appearance and color boxes share a global Small/Medium/Large palette across all
+series/families. Three guide lines/bands mirror the numeric boundaries. Line width,
+shade, visibility, style, grid/zero/date lines and point sizes are configurable.
+Changing styles does not change numeric limits, requests, drafts or navigation.
+Palette migration retains old saved colors. Legacy extra automatic guide fields
+are read for appearance migration; they are no longer user-configurable scoring.
+Shared immutable snapshots synchronize same-window and cross-window changes.
+Persistence uses `fyodor.scatter-plot.appearance.v1` separately from per-scope
+magnitude keys. Workspace Settings export/import carries both.
 
-Both adapters reuse `familyHistoryReleases` and `familyMagnitudeSamples` from
-Inspector. Family definitions own their stable IDs, country, currency and rules.
-Observed, established UTC publications from January 2015 are
-admitted, with one compatible-unit reading per publication/series. Duplicated
-reference periods, unusable A−P and changed units are excluded. Duplicate value
-IDs retain the existing grouping behavior. `inspectorDelta` remains the exact
-raw-integer source for delta arithmetic.
+## Isolated folders and extension
 
-The reference dataset includes every usable released reading through now,
-including the inspected reading and newer releases. Future schedules stay outside
-N until their release time has passed and Actual/Previous produce a valid delta.
-Canonical `magnitudeDistribution` version `zero-centered-ap-all-dataset-v6`
-uses the selected series' saved Small/Medium/Large boundaries in Custom mode.
-Unconfigured series default to **Undefined**: raw points remain visible, with
-no size, magnitude guides, P95 interpolation or Inspector histogram. **P95**
-is an explicit, separately saved opt-in using all-dataset absolute-P95/thirds
-calculation. The scatter does not
-implement a separate threshold algorithm. It also
-uses the canonical classifier for each point's tooltip against the inspected
-thresholds. Actual/Previous and A−P values retain their source precision.
-Axis and crosshair delta labels round to at most two decimal places, with no
-trailing zeros. Detailed inspection, guide values and editable boundaries retain
-their full precision; display rounding never changes coordinates or scoring.
-The model explicitly supplies `deltaUnit` instead of extracting a unit from a
-localized number string, and its delta formatter accepts display precision.
+- `PAIR/EURUSD/USD/NFP/`, `PAIR/EURUSD/USD/CPI/`: thin family configs/adapters and
+  settings bindings. Future pairs/sides/families belong under `PAIR/`.
+- `dock/`: shared composition and inventory lifecycle.
+- `contracts/`: plot data contracts; renderers do not fetch inventory.
+- `inspection/`: family model and selected reading details.
+- `plot/`: geometry, interaction, crosshair and renderer.
+- `settings/`: manual draft/Freeze form, global appearance and color controls.
+- `controls/`: supported selector and navigation controls.
 
-The plot retains all usable published points in the chosen series/units. All
-points have full opacity; earlier, selected and later released readings all
-belong to the dataset. Clicking a point changes the inspection target without
-changing histogram frequencies or P95 boundaries.
-The inspected point uses its Good/Bad/Unchanged color. In P95 mode, six horizontal
-guides represent ±T/3, ±2T/3 and ±T; zero has its own line. The inspected date is
-a vertical guide. Custom mode instead draws the six lines at the actual saved
-Small, Medium and Large boundaries. P95's two interpolation-source points have
-colored outlines only while that series uses P95.
-
-The **Magnitude** form in the inspection pane accepts three independent positive
-boundaries in native k, pp, h or index-point units. Select **Custom boundaries**
-before editing. Require `0 < Small < Medium < Large`;
-invalid drafts do not change the chart or classification. **Apply boundaries**
-saves the three values for that series and immediately updates the scatter
-guides, Inspector's seven bars, size labels and Good/Bad magnitude tally. Both
-signs use the same boundaries; exact equality stays in the lower inclusive
-category, exact zero stays in the center and `|A−P| > Large` is Extreme.
-The histogram's seven visual slots retain equal widths even when numeric
-intervals differ. Historical bar heights recount all dataset samples in the new
-intervals; no source data is removed or changed.
-
-The Small, Medium and Large rows also have color boxes. Each box immediately
-colors that magnitude band's shading and boundary lines on both sides of zero,
-in both Custom and P95 modes. Color edits preserve unfinished
-boundary drafts and do not require **Apply boundaries**. These are global
-appearance preferences, separate from each series' numeric configuration.
-The same global palette can be edited in Appearance's **Shared magnitude colors**
-controls, from any series even when its magnitude is Undefined. Changes update
-all mounted docks and other windows through shared storage subscriptions.
-In P95 mode, the boxes target
-the canonical T/3, 2T/3 and T guides; choosing a color restores a missing
-canonical guide without moving or recoloring additional guides.
-
-Custom boundaries stay fixed across inspected publication dates, broker changes
-and later releases. Each series saves independently on this device under
-`fyodor.scatter-plot.EURUSD.USD.QUOTE.<NFP|CPI>.magnitude.v1`. Inspector consumes the
-same shared snapshot even with Scatter Plot closed, and mounted consumers
-receive settings updates without refetching inventory. Custom classification
-also works with an empty dataset, while historical min/max remain unknown.
-**Set Undefined** clears only the selected series' configuration. A saved tuple
-remains Custom; a saved `"p95"` marker explicitly enables P95. An absent or
-invalid entry is Undefined. Existing saved NFP tuples retain their original
-key and behavior. Switching from Custom to Undefined clears that series' tuple.
-P95 values, when explicitly enabled, are suggestions rather than silently saved custom boundaries.
-Untouched suggestions refresh with the history baseline; a user's in-progress
-draft survives polling. A broker, series or inspected-release change starts a
-fresh draft. Invalid raw scaled source values are unavailable and excluded
-through shared `inspectorDelta`, rather than throwing during rendering.
-
-**Appearance** opens the isolated settings panel. Dot diameters default to 10px
-(selected: 14px); both are configurable, including their off-scale triangle and
-hit-target sizes. Ordinary, selected Good/Bad and P95-source outline colors are
-editable. Grid, zero and inspected-date lines each have visibility, color and
-width controls. Magnitude guide lines and band shading can be hidden separately;
-line style and opacity are configurable. In P95 mode, up to eight mirrored guide levels can
-be added, removed or hidden, each with its own P95 percentage, color, line width
-and shading opacity. Enabled levels are sorted by position when drawing bands.
-Color boxes can restore up to three canonical guides in addition to the eight
-guides admitted by the Appearance editor. New defaults use cyan, amber and
-violet for Small, Medium and Large, with 12%, 16% and 20% shading opacity.
-Saved opacity is preserved. Old split palettes migrate to one shared palette:
-edited Custom colors take priority; otherwise canonical P95 colors are inherited.
-
-In custom mode, the three guide positions are locked to the scoring boundaries;
-Appearance edits only their visibility, colors, widths and shades. Extra guide
-levels and percentage controls are unavailable in this mode. Styling never
-changes scoring, sample admission or the manual viewport. Appearance preferences
-apply immediately and persist on this device under
-`fyodor.scatter-plot.appearance.v1`, independently of the price chart settings.
-Invalid stored values fall back safely; Reset appearance restores defaults.
-Automatic and custom guide positions, visibility, widths and shades are saved
-separately, so styling a custom boundary cannot discard extra automatic guides.
-Small/Medium/Large colors use one global palette across all families, series,
-brokers and modes. Extra P95 guides retain their own global visual colors.
-Shared snapshots are immutable, malformed storage is normalized, no-op saves
-do not notify consumers, and failed persistence retains session preferences.
-
-**Full range** shows all extremes. **P95 zoom** (or **Boundary zoom** in custom mode) changes only the viewport and
-places out-of-range readings at dated edge triangles with their true values in
-the tooltip. It never changes samples, counts, thresholds or classifications.
-All-zero history gets visual axis padding only; the calculated threshold stays
-zero in P95 mode. A first publication with a valid delta enters its own reference
-dataset; it can be classified even with no earlier readings. Missing selected readings
-retain known source values and show Unavailable rather than zero. Hover titles
-include date, Actual, Previous, signed delta, size and dataset membership. Enter or
-Space selects a focused point; Left/Right and Home/End move through publications.
-
-The free crosshair follows the pointer inside the plot, with UTC date/time and
-signed-delta axis labels. Drag the date axis horizontally or the delta axis
-vertically to zoom that axis independently. Scroll over an axis to zoom around
-the value under the pointer. Scrolling inside the plot zooms X; Shift-scroll
-zooms Y. Drag inside the plot to pan both axes. Axis double-click restores that
-axis; plot double-click restores both. Focus either axis and use +/− to zoom or
-0/Enter/Home to reset. Browser Ctrl/Command-wheel shortcuts remain available.
-
-Manual axis navigation preserves all data and calculation inputs. Plot clipping
-keeps points, threshold bands and guides within the plot; vertically out-of-range
-points retain their dated edge markers. P95/full-range presets and scope/series
-changes clear manual navigation. Changing the inspected release preserves it;
-viewport resizing preserves the visible date/delta ranges. Pointer capture keeps
-drags active outside the plot and prevents a pan from selecting a publication.
-
-The inspection pane shows Actual, Previous, Delta, size, **Earlier / All** as
-`2 / 140` (earlier usable readings / all usable readings of this series),
-the active outer boundary and the four size ranges only when configured. In P95 mode,
-expand **P95 calculation** to inspect the sorted
-absolute samples used for interpolation, their publication dates, zero-based
-position and fractional weight. Source corrections can change history; stored
-values do not establish point-in-time vintages. New releases and corrections
-refresh N and histogram frequencies through the existing ten-second storage
-poll; P95 may reclassify older releases while saved Custom cutoffs stay fixed.
-Changing inspection dates never narrows the dataset or triggers a history query.
-
-## Folder boundaries
-
-```
-scatter-plot/
-  index.ts                         Public dock entry point
-  contracts/                       Shared point/model contracts
-  controls/                        Pair, side, family, series and view controls
-  dock/                            Family registry, shared panel, scoped inventory lifecycle and styles
-  plot/                            Rendering and pure coordinate geometry
-  inspection/                      Shared family model and calculation details
-  settings/                        Appearance controls and saved preferences
-  PAIR/EURUSD/USD/NFP/              NFP-specific binding
-    nfp-scatter-config.ts           Scope and series catalog
-    nfp-scatter-adapter.ts          Thin family binding to the shared model
-    useNfpScatterData.ts            Compatibility wrapper around shared inventory hook
-    magnitude/nfp-magnitude-settings.ts  Scoped binding to shared Inspector settings
-  PAIR/EURUSD/USD/CPI/              CPI-specific binding
-    cpi-scatter-config.ts           Scope and ten-series catalog
-    cpi-scatter-adapter.ts          Thin family binding to the shared model
-    magnitude/cpi-magnitude-settings.ts  Scoped binding to shared Inspector settings
-```
-
-Future pairs/currency sides/families supply their own adapters under `PAIR/`
-and reuse the shared interface. Stable IDs and favorable directions belong in
-the family's canonical grading definition. `inspector/magnitude/magnitude-families.ts`
-registers history start, settings and admission scope; `dock/ScatterPlotDock.tsx`
-registers supported scatter bindings. The shared model requires exactly one
-usable reading for every admitted ID before selecting a latest completed release.
-Shared renderers accept data contracts and formatters; they do not fetch data.
-Integration outside this feature is limited to shell/dock registration, resize
-metadata, and the canonical sampling/classification/settings helpers in Inspector.
-Inspector does not depend on Scatter Plot UI or its storage lifecycle.
-Reusable `inspector/magnitude/settings/magnitude-settings-store.ts` supplies
-validated immutable snapshots, storage subscriptions and per-scope settings.
-Each family store is a thin binding that declares its EURUSD/USD/Quote scope and
-admitted series. Future bindings supply their own scope and series catalog;
-pair, currency, side and family all participate in the key. Existing NFP keys
-remain compatible. Appearance remains a separate global style preference.
-
-CPI grading uses the chosen **higher A−P = Good/green for USD pressure** convention;
-lower is Bad/red and zero is Unchanged/gray. Six rate readings use pp and four
-index levels use pts. Scatter magnitude settings also drive Inspector's primary
-four-reading score: equal series weights, signed 0–4 magnitude points, separate
-monthly/annual subtotals and a total-based EURUSD direction with explicit
-cancellation priority. The same saved configurations drive a separate four-index
-matrix in Inspector, with native-point classification and adjusted/unadjusted
-subtotals. Index levels and unadjusted monthly rates do not contribute to the
-EURUSD rate score. See the canonical
-[CPI rule definitions](../inspector/Event%20Grading%20Terminology/USD/Inflation/CPI.md).
+Canonical IDs, units and favorable directions belong to Inspector family rules.
+Register the shared magnitude family and a ScatterPlotDock binding rather than
+copying renderer/calculations. Update workspace portability for new settings
+scopes. Inspector never depends on the Scatter dock's mount/request lifecycle.
 
 ## Verification
 
-`pnpm --dir frontend test` includes `tests/scatter-plot/test_scatter_plot.mjs`.
-Tests cover Inspector distribution parity, exact current-time cutoffs, source
-admission, duplicate publications, unit incompatibility, zero/missing values,
-default completeness, point/series selection, date/delta coordinates, visible
-extremes, zoom invariance, keyboard navigation, scoped paging, broker cancellation
-and partial/outage states. Existing navigation and resizing tests cover the new
-tab, status-bar action and independent saved height.
-`tests/scatter-plot/test_scatter_plot_interaction.mjs` also verifies crosshair
-coordinate conversion under CSS scaling, axis wheel/drag/keyboard zoom, pointer
-anchoring, two-axis panning, click suppression, reset and gesture cancellation,
-scope changes, invariant calculations, range limits and wheel-listener cleanup.
-Appearance tests cover live dot/triangle sizes, undimmed later releases, custom
-guide positions/colors/widths, independent lines/shading, add/remove/hide levels,
-saved preferences, malformed storage, reset, focus return and unchanged scoring,
-inventory requests and manual viewport.
-Boundary tests cover unequal native-unit intervals, both signs and inclusive
-ties, empty history, invalid drafts/storage, per-series persistence, exact
-guide positions, shared Inspector/tally classifications, immediate Inspector
-hook updates, reopening and reset without inventory refetches.
-Color-box tests verify mirrored shading and strokes, shared custom/P95 colors,
-independent remaining styles, restoring canonical guides, persistence and agreement with Appearance,
-while preserving numeric drafts, scores, requests and manual navigation.
-`tests/scatter-plot/test_scatter_appearance.mjs` covers legacy palette migration,
-fresh-module reload persistence, immutable snapshots, mounted/cross-window
-synchronization, no-op saves, storage failures and unsubscription.
-`tests/scatter-plot/test_magnitude_settings.mjs` covers independent scope keys
-even for reused series IDs, key separator collisions, frozen snapshots,
-cross-window validation/reset and listener cleanup, no-op saves, unavailable
-storage, untouched suggestion refresh, dirty draft preservation and invalid
-programmatic form submission. Plot tests verify rounded axis/crosshair labels
-against the production adapter while exact inspection values remain intact.
-`tests/scatter-plot/test_all_dataset.mjs` verifies `2 / 140`, unchanged bins/P95
-across selected dates, live growth to 141, correction replacement, current/zero
-admission, future/missing exclusion and no redundant inventory reloads. It
-reports the production ten-series calculation time at 140 releases.
-`tests/scatter-plot/test_cpi.mjs` covers the CPI catalog, rules and units,
-complete-release selection, Inspector/scatter parity, Undefined defaults for
-both families, actual Inspector delta colors, empty cells, no unnecessary
-history query, mode draft/apply/clear, live histogram updates, family switching,
-obsolete-request cancellation and separately persisted modes/boundaries.
-`tests/inspector/cpi/test_cpi_score.mjs` verifies the signed score matrix and
-reactive score updates from the same saved configurations.
+`pnpm --dir frontend test` includes model/admission parity, default completeness,
+all-dataset growth/correction/selection invariance, scoped pagination/cancellation,
+controls, accessible point selection, geometry, crosshair/axis/pan/reset behavior,
+manual freeze/unfreeze and inclusive boundaries, malformed persistence, migration,
+per-scope isolation, shared palette/store events, drafts and unchanged navigation.
+The 140-release ten-series fixture reports calculation time as a baseline.
 
-Manual visual checks belong to the user: dock layout and resizing, light/dark
-contrast, point hit targets, native hover details, and full-range/P95 zoom
-readability. No browser automation or screenshot audit is required.
-Also check crosshair labels, axis drag feel, wheel anchoring, plot panning and
-double-click resets with the mouse/trackpad you use.
-Check the Appearance panel's layout, point sizes/colors and guide styles in your
-preferred theme.
-Check entering three boundaries, Apply, the mirrored lines and Inspector's
-updated labels/tally, switching series, and reopening with saved settings.
-Check the three color boxes and band contrast in your preferred theme.
+Visual/manual checks belong to the user: layout/dock sizing, pointer feel,
+contrast/hit targets, colors/guide styling and full-range/boundary zoom readability.
+No screenshot or browser automation is part of this verification.

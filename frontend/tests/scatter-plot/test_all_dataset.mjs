@@ -40,7 +40,7 @@ try {
   const scheduled = release(now + 60_000, null, 'next'), futureWithValues = release(now + 86400000, 999, 'future-values')
   const events = [...archive, ...scheduled, ...futureWithValues]
   const groups = familyHistoryReleases(events, now + 1, family), selected = groups[2], id = family.seriesIds[0]
-  const settings = Object.fromEntries(family.seriesIds.map((id) => [id, 'p95']))
+  const settings = Object.fromEntries(family.seriesIds.map((id) => [id, [1, 2, 4]]))
   const before = nfpScatterModel(events, now, id, selected.id, settings)
   assert.equal(before.inspection.earlierCount, 2); assert.equal(before.inspection.samples.length, 140)
   assert.equal(before.inspection.distribution.count, 140)
@@ -70,7 +70,7 @@ try {
     React.useEffect(() => { view = history }, [history])
     return null
   }
-  family.settings.save(id, 'p95')
+  family.settings.save(id, [1, 2, 4])
   const health = (revision) => ({ revision, collector_error: null, sources: [{ id: 'Broker-A', publisher_status: 'live' }] })
   const page = (rows, revision) => ({ source_id: 'Broker-A', revision, timestamp_convention: 'trade_server_time', time_basis: 'chart',
     event_ids: family.seriesIds, events: rows, coverage: { USD: { missing: [] } }, next_cursor: null })

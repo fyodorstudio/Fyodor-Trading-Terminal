@@ -88,15 +88,8 @@ try {
     const invalid = { ...selected, events: selected.events.map((row, index) => index ? row : { ...row, ...overrides }) }
     assert.equal(assessCpiMagnitudeScore(invalid, ready(invalid, decimalSettings)).readings[0].status, 'unavailable')
   }
-  const prior = selected.events.map((row) => ({ ...row, value_id: `prior-${row.value_id}`, availability: 'observed',
-    release_at: at - 86400000, server_time_seconds: at / 1000 + 10800 - 86400, chart_time_seconds: at / 1000 + 10800 - 86400 }))
-  const p95Settings = Object.fromEntries(cpiScoreSeries.map((series) => [series.id, 'p95']))
-  const p95History = ready(selected, p95Settings, prior)
-  const p95Score = assessCpiMagnitudeScore(selected, p95History)
-  assert.deepEqual(p95Score.readings.map((row) => row.score), [3, 3, 0, -3], 'Explicit P95 reuses each series’ canonical thresholds')
-  assert.equal(assessCpiMagnitudeScore(selected, { ...p95History, message: 'Loading history…' }).total, null)
-  assert.equal(assessCpiMagnitudeScore(selected, { ...p95History, message: 'History unavailable', error: 'Service error' }).total, null)
-  assert.equal(assessCpiMagnitudeScore(selected, ready(selected, p95Settings)).total, null, 'No earlier P95 baseline cannot become a Small score')
+  const retiredSettings = Object.fromEntries(cpiScoreSeries.map((series) => [series.id, 'p95']))
+  assert.equal(assessCpiMagnitudeScore(selected, ready(selected, retiredSettings)).total, null, 'Legacy automatic configuration is Undefined')
   assert.equal(assessCpiMagnitudeScore(selected, { ...ready(selected, decimalSettings), message: 'History needs calendar storage' }).total, 2,
     'Custom boundaries classify current readings independently of historical frequencies')
   console.log('✓ Equal series weights, signed 0–4 magnitudes, decimal ties, Extreme dominance, subtotals, cancellation priorities and strict unavailable/source gates')
@@ -192,9 +185,9 @@ try {
   await live.render({ current: release([-.1, -.2, 0, .1]) })
   assert.equal(live.container.querySelector('[aria-label="CPI pair direction"]').textContent, 'EURUSD Long', 'Incoming readings refresh direction without remounting')
   assert.match(live.container.textContent, /Monthly −3 · Annual \+1 · Total −2/)
-  await React.act(async () => { for (const series of cpiScoreSeries) cpiMagnitudeFamily.settings.save(series.id, 'p95') })
+  await React.act(async () => { for (const series of cpiScoreSeries) cpiMagnitudeFamily.settings.save(series.id, null) })
   assert.equal(live.container.querySelector('[aria-label="CPI pair direction"]').textContent, 'Uncomputed')
-  assert.match(live.container.textContent, /Unavailable/)
+  assert.match(live.container.textContent, /Undefined/)
   assert.equal(fetches, 0)
   function LiveIndexScore() {
     return React.createElement(CpiIndexMagnitudeTable, { release: indexRelease, history: useFamilyMagnitudeHistory(null, indexRelease) })

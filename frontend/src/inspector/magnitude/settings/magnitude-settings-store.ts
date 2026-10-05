@@ -2,12 +2,12 @@ import { useSyncExternalStore } from 'react'
 import { validMagnitudeLimits, type MagnitudeLimits } from '../magnitude-distribution'
 
 export type MagnitudeScope = Readonly<{ pair: string; currency: string; side: string; family: string }>
-export type MagnitudeMode = 'undefined' | 'p95' | 'custom'
-export type MagnitudeSetting = MagnitudeLimits | 'p95'
+export type MagnitudeMode = 'undefined' | 'custom'
+export type MagnitudeSetting = MagnitudeLimits
 export type MagnitudeSettings = Readonly<Record<string, MagnitudeSetting>>
 export function magnitudeConfiguration(settings: MagnitudeSettings, series: string): { mode: MagnitudeMode; limits?: MagnitudeLimits } {
   const setting = settings[series]
-  return validMagnitudeLimits(setting) ? { mode: 'custom', limits: setting } : { mode: setting === 'p95' ? 'p95' : 'undefined' }
+  return validMagnitudeLimits(setting) ? { mode: 'custom', limits: setting } : { mode: 'undefined' }
 }
 
 export function magnitudeSettingsKey(scope: MagnitudeScope) {
@@ -29,7 +29,6 @@ export function createMagnitudeSettingsStore(scope: MagnitudeScope, seriesIds: r
     if (!value || typeof value !== 'object' || Array.isArray(value)) return empty
     return Object.freeze(Object.fromEntries(Object.entries(value).flatMap<[string, MagnitudeSetting]>(([series, limits]) => {
       if (!known.has(series)) return []
-      if (limits === 'p95') return [[series, 'p95']]
       return validMagnitudeLimits(limits) ? [[series, Object.freeze([limits[0], limits[1], limits[2]] as const)]] : []
     })))
   }
@@ -46,11 +45,11 @@ export function createMagnitudeSettingsStore(scope: MagnitudeScope, seriesIds: r
     return cached
   }
   function save(series: string, limits: MagnitudeSetting | null) {
-    if (!known.has(series) || (limits !== null && limits !== 'p95' && !validMagnitudeLimits(limits))) {
+    if (!known.has(series) || (limits !== null && !validMagnitudeLimits(limits))) {
       throw new RangeError('Use a supported series and 0 < Small < Medium < Large')
     }
     const previous = read()
-    if (limits === null ? !Object.hasOwn(previous, series) : limits === 'p95' ? previous[series] === 'p95' :
+    if (limits === null ? !Object.hasOwn(previous, series) :
       validMagnitudeLimits(previous[series]) && (previous[series] as MagnitudeLimits).every((limit, index) => limit === limits[index])) return
     const next = { ...previous }
     if (limits) next[series] = limits

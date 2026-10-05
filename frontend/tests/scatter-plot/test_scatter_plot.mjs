@@ -36,8 +36,8 @@ try {
   assert.equal(nfpScatterScope.series[0].id, '840030016', 'Headline payrolls is the default series, matching Inspector ordering')
   const { nfpScatterModel: buildNfpScatterModel } = await server.ssrLoadModule(domain + 'nfp-scatter-adapter.ts')
   const { nfpMagnitudeHistory: buildNfpMagnitudeHistory, nfpHistoryReleases } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-history.ts')
-  // These regressions explicitly exercise the opt-in P95 mode, never an implicit default.
-  const automaticSettings = Object.fromEntries(nfpScatterScope.series.map((series) => [series.id, 'p95']))
+  // Explicit manual fixture boundaries; Undefined never synthesizes a baseline.
+  const automaticSettings = Object.fromEntries(nfpScatterScope.series.map((series) => [series.id, [6.4 / 3, 6.4 * 2 / 3, 6.4]]))
   const nfpScatterModel = (events, now, series, release, settings = automaticSettings) => buildNfpScatterModel(events, now, series, release, settings)
   const nfpMagnitudeHistory = (events, selected, settings = automaticSettings) => buildNfpMagnitudeHistory(events, selected, settings, now)
   const { scatterPlotGeometry } = await server.ssrLoadModule('./src/scatter-plot/plot/scatter-plot-geometry.ts')
@@ -129,9 +129,6 @@ try {
   assert.equal(model.inspection.earlierCount, 2)
   assert.equal(model.inspection.distribution.threshold, 6.4)
   assert.deepEqual(model.points.map((point) => point.delta), [1, 3, -2, 7], 'Dates sort chronologically; unobserved, uncertain, foreign, pre-2015 and future rows are excluded')
-  assert.equal(model.inspection.quantile.lower.delta, 3)
-  assert.equal(model.inspection.quantile.upper.delta, 7)
-  assert.equal(model.inspection.quantile.fraction, .85)
   const partialReleaseId = nfpHistoryReleases(events, now + 1).find((r) => r.releaseAt === partial[0].release_at).id
   const unavailableSeries = nfpScatterModel(events, now, '840030024', partialReleaseId)
   assert.equal(unavailableSeries.inspection.actual, null)
@@ -163,7 +160,7 @@ try {
   assert.equal(nfpScatterModel(release('upcoming', now + day, null), now, seriesId, null).inspection, null)
   assert.equal(nfpScatterModel(events, now, 'unknown-series', null).points.length, 0)
   const zeros = nfpScatterModel([...release('zero1', first[0].release_at, 0), ...release('zero2', second[0].release_at, 0)], now, seriesId, null)
-  assert.equal(zeros.inspection.distribution.threshold, 0)
+  assert.equal(zeros.inspection.distribution.threshold, 6.4)
   assert.equal(zeros.inspection.distribution.currentSize, 'Unchanged')
   const customSettings = Object.fromEntries(nfpScatterScope.series.map((series) => [series.id, [1, 3, 8]]))
   for (const selected of groups) for (const series of nfpScatterScope.series) {
@@ -171,7 +168,7 @@ try {
     const scatter = nfpScatterModel(events, now, series.id, selected.id, customSettings).inspection
     assert.deepEqual(scatter.distribution, nfpMagnitudeHistory(events, selected, customSettings)[current.value_id].distribution)
     assert.deepEqual(scatter.distribution.limits, [1, 3, 8], 'Custom boundaries stay fixed across publication dates')
-    assert.equal(scatter.quantile, null, 'Custom scoring has no P95 interpolation sources')
+    assert.equal(scatter.quantile, undefined, 'Custom scoring has no P95 interpolation sources')
   }
   const lastComplete = groups.find((group) => group.releaseAt === third[0].release_at)
   const customTally = tallyNfpMagnitudes(lastComplete, nfpMagnitudeHistory(events, lastComplete, customSettings))
@@ -188,7 +185,7 @@ try {
   const zoomed = scatterPlotGeometry(model.points, model.inspection.distribution, true, 900, 300)
   assert.equal(zoomed.extent, 6.4 * 1.12)
   assert.equal(zoomed.pointY(8), zoomed.top)
-  assert.equal(scatterPlotGeometry(zeros.points, zeros.inspection.distribution, true, 900, 300).extent, 1.12,
+  assert.equal(scatterPlotGeometry(zeros.points, zeros.inspection.distribution, true, 900, 300).extent, 6.4 * 1.12,
     'Zero-history plot padding never changes its zero magnitude threshold')
   const svgApp = mount(MagnitudeScatterPlot, { model, zoom: false, onInspect: () => {} })
   await svgApp.render()
@@ -223,8 +220,8 @@ try {
     timestamp_convention: 'trade_server_time', time_basis: 'chart', event_ids: nfpScatterScope.series.map((s) => s.id),
     events: rows, coverage: { USD: { missing: [] } }, next_cursor: cursor })
   const props = { brokerId: 'Broker-A', clockOffsetMs: now - Date.now() }
-  saveNfpMagnitudeLimits('840030016', 'p95')
-  saveNfpMagnitudeLimits('840030015', 'p95')
+  saveNfpMagnitudeLimits('840030016', [6.4 / 3, 6.4 * 2 / 3, 6.4])
+  saveNfpMagnitudeLimits('840030015', [6.4 / 3, 6.4 * 2 / 3, 6.4])
   const app = mount(ScatterPlotDock, props)
   await app.render()
   for (const [label, value] of [['Pair', 'EURUSD'], ['Base/Quote', 'USD/QUOTE'], ['Family', 'NFP']]) {
@@ -259,7 +256,7 @@ try {
   const selectedPoint = app.container.querySelector('.scatter-plot-selected')
   await React.act(async () => selectedPoint.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })))
   assert.equal(app.container.querySelector('.scatter-plot-inspection time').textContent, '2015-02-06')
-  await click([...app.container.querySelectorAll('button')].find((b) => b.textContent === 'P95 zoom'))
+  await click([...app.container.querySelectorAll('button')].find((b) => b.textContent === 'Boundary zoom'))
   assert.equal(app.container.querySelector('button[aria-pressed="true"]').textContent, 'Full range')
 
   const appearanceButton = [...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Appearance')
@@ -280,12 +277,11 @@ try {
   assert.equal(app.container.querySelector('.scatter-plot-selected .scatter-plot-dot').getAttribute('r'), '12', 'Selected diameter applies inside the all-dataset viewport')
   await changeInput([...setting('Scatter Plot appearance').querySelectorAll('label')].find((label) => label.textContent === 'Dot color').querySelector('input'), '#123456')
   assert.equal(plot.style.getPropertyValue('--scatter-dot-color'), '#123456')
-  await changeInput(setting('Level 1 position (% of P95)'), 25)
   await changeInput(setting('Level 1 color'), '#ff8800')
   await changeInput(setting('Level 1 width (px)'), 3)
   await changeInput(setting('Level 1 shade (%)'), 22)
   let guide = app.container.querySelector('[data-guide-level="1"]')
-  assert.equal(Number(guide.querySelector('[data-cutoff]').dataset.cutoff), Number(threshold) * .25)
+  assert.equal(Number(guide.querySelector('[data-cutoff]').dataset.cutoff), Number(threshold) / 3)
   assert.equal(guide.querySelector('line').getAttribute('stroke'), '#ff8800')
   assert.equal(guide.querySelector('line').getAttribute('stroke-width'), '3')
   assert.equal(guide.querySelector('rect').getAttribute('fill-opacity'), '0.22')
@@ -300,10 +296,6 @@ try {
   await click(setting('Show level 2'))
   assert.equal(app.container.querySelectorAll('[data-cutoff]').length, 4)
   assert.equal(app.container.querySelector('[data-guide-level="2"]'), null)
-  await click([...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Add level'))
-  assert.ok(app.container.querySelector('[data-guide-level="4"]'))
-  await click(setting('Remove level 3'))
-  assert.equal(app.container.querySelector('[data-guide-level="3"]'), null)
   const checkbox = (name) => [...setting('Scatter Plot appearance').querySelectorAll('label')].find((label) => label.textContent === name).querySelector('input')
   await click(checkbox('Guide lines'))
   assert.equal(app.container.querySelectorAll('[data-cutoff]').length, 0)
@@ -350,7 +342,7 @@ try {
   assert.deepEqual(readNfpMagnitudeSettings(), settingsBeforeColor)
   assert.deepEqual({ ...app.container.querySelector('svg').dataset }, p95ViewportBeforeColor)
   assert.equal(requests.length, p95RequestsBeforeColor)
-  const applyBoundaries = () => [...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Apply boundaries')
+  const applyBoundaries = () => [...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Freeze')
   const priorThreshold = app.container.querySelector('[data-threshold]').dataset.threshold
   const beforeCustom = requests.length
   const selectMode = (value) => React.act(async () => {
@@ -363,9 +355,9 @@ try {
   assert.equal(app.container.querySelector('[data-threshold]').dataset.threshold, priorThreshold, 'Invalid drafts never change live scoring')
   await changeInput(boundary('Small'), 1)
   await click(applyBoundaries())
-  assert.deepEqual(readNfpMagnitudeSettings(), { '840030015': [1, 2, 4], [seriesId]: 'p95' })
+  assert.deepEqual(readNfpMagnitudeSettings(), { '840030015': [1, 2, 4], [seriesId]: [6.4 / 3, 6.4 * 2 / 3, 6.4] })
   assert.equal(app.container.querySelector('[data-threshold]').dataset.threshold, '4')
-  assert.match(app.container.querySelector('.scatter-plot-inspection').textContent, /SizeLarge.*Custom outer boundary4 pp/)
+  assert.match(app.container.querySelector('.scatter-plot-inspection').textContent, /SizeLarge.*Frozen outer boundary4 pp/)
   assert.equal(app.container.querySelector('.scatter-plot-inspection details'), null)
   assert.equal(app.container.querySelector('.scatter-plot-quantile'), null)
   assert.deepEqual([...app.container.querySelectorAll('[data-cutoff]')].map((line) => Number(line.dataset.cutoff)), [1, -1, 2, -2, 4, -4])
@@ -373,6 +365,7 @@ try {
   const customSettingsBeforeColor = readNfpMagnitudeSettings()
   const customViewportBeforeColor = { ...app.container.querySelector('svg').dataset }
   const automaticColorsBeforeShortcut = readScatterAppearance().levels
+  await click([...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Unfreeze'))
   await changeInput(boundary('Small'), .9)
   for (const [index, color] of ['#112233', '#aabbcc', '#445566'].entries()) {
     await changeInput(bandColor(['Small', 'Medium', 'Large'][index]), color)
@@ -402,11 +395,11 @@ try {
   assert.equal(app.container.querySelector('[data-threshold]').dataset.threshold, '4', 'Styling never changes configured scoring')
   await click([...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Done'))
   await click(app.container.querySelector(`[data-point-id="${first[1].value_id}"]`))
-  assert.match(app.container.querySelector('.scatter-plot-inspection').textContent, /SizeSmall.*Earlier \/ All0 \/ 4.*Custom outer boundary4 pp/)
+  assert.match(app.container.querySelector('.scatter-plot-inspection').textContent, /SizeSmall.*Earlier \/ All0 \/ 4.*Frozen outer boundary4 pp/)
   await click([...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Latest release'))
-  assert.match(app.container.querySelector('.scatter-plot-inspection').textContent, /SizeMedium.*Custom outer boundary4 pp/)
+  assert.match(app.container.querySelector('.scatter-plot-inspection').textContent, /SizeMedium.*Frozen outer boundary4 pp/)
   await React.act(async () => { seriesSelect.value = seriesId; seriesSelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
-  assert.match(app.container.querySelector('.scatter-magnitude-source').textContent, /P95/)
+  assert.match(app.container.querySelector('.scatter-magnitude-source').textContent, /Frozen/)
   await selectMode('custom')
   await changeInput(boundary('Small'), 10); await changeInput(boundary('Medium'), 20); await changeInput(boundary('Large'), 100)
   await click(applyBoundaries())
@@ -418,7 +411,7 @@ try {
   await remounted.render()
   await respond(requests[remountStart], health())
   await respond(requests[remountStart + 1], page(events))
-  assert.match(remounted.container.querySelector('.scatter-plot-inspection').textContent, /Custom outer boundary100k/,
+  assert.match(remounted.container.querySelector('.scatter-plot-inspection').textContent, /Frozen outer boundary100k/,
     'Saved settings apply when reopening the dock')
   assert.equal(remounted.container.querySelector('[aria-label="Small band color"]').value, '#123456', 'Band colors persist across series and dock reopen')
   assert.equal(remounted.container.querySelector('[aria-label="Medium band color"]').value, '#aabbcc')

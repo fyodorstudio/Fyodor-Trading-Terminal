@@ -1,0 +1,4 @@
+.workspace-transfer { display: grid; gap: 10px; }
+.workspace-transfer label { display: grid; gap: 6px; }
+.workspace-transfer input[type=file] { width: 100%; min-width: 0; }
+.workspace-transfer button { margin-right: 8px; }

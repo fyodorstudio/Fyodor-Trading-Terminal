@@ -1,5 +1,5 @@
 // Seven signed A−P bands: three negative, exact zero, three positive.
-export const magnitudeDistributionVersion = 'zero-centered-ap-all-dataset-v6'
+export const magnitudeDistributionVersion = 'zero-centered-ap-manual-all-dataset-v7'
 export type MagnitudeLimits = readonly [number, number, number]
 export function validMagnitudeLimits(value: unknown): value is MagnitudeLimits {
   return Array.isArray(value) && value.length === 3 && value.every((limit) => typeof limit === 'number' && Number.isFinite(limit)) &&
@@ -8,16 +8,8 @@ export function validMagnitudeLimits(value: unknown): value is MagnitudeLimits {
 export function magnitudeDistribution(values: readonly number[], current: number | null, customLimits?: MagnitudeLimits) {
   if (customLimits && !validMagnitudeLimits(customLimits)) throw new RangeError('Magnitude boundaries must satisfy 0 < Small < Medium < Large')
   const samples = values.filter(Number.isFinite)
-  if (!samples.length && !customLimits) return null
-  let historicalThreshold = 0
-  if (!customLimits) {
-    const magnitudes = samples.map(Math.abs).sort((a, b) => a - b)
-    // Type-7 P95 only for series without configured boundaries.
-    const positionNumerator = (magnitudes.length - 1) * 19, lower = Math.floor(positionNumerator / 20)
-    historicalThreshold = magnitudes[lower] +
-      (magnitudes[Math.min(lower + 1, magnitudes.length - 1)] - magnitudes[lower]) * (positionNumerator % 20) / 20
-  }
-  const limits = customLimits ? [...customLimits] : [historicalThreshold / 3, historicalThreshold * 2 / 3, historicalThreshold]
+  if (!customLimits) return null
+  const limits = [...customLimits]
   const threshold = limits[2]
   const bins = Array<number>(7).fill(0)
   let extremeBelow = 0, extremeAbove = 0
@@ -33,7 +25,7 @@ export function magnitudeDistribution(values: readonly number[], current: number
   const selectedIndex = reading === null ? null : binIndex(limits, reading)
   const currentExtreme = reading === null || selectedIndex !== null ? null : reading < 0 ? 'negative' as const : 'positive' as const
   const currentSize = magnitudeSizeForValue(limits, reading)
-  return { bins, limits, threshold, source: customLimits ? 'custom' as const : 'p95' as const,
+  return { bins, limits, threshold, source: 'custom' as const,
     count: samples.length, min: samples.length ? min : null, max: samples.length ? max : null, extremeBelow, extremeAbove,
     current: reading, currentExtreme, currentSize }
 }
@@ -57,7 +49,7 @@ function binIndex(limits: readonly number[], value: number) {
 }
 function atOrBelow(value: number, boundary: number) {
   // Admit decimal equality despite a few floating-point rounding steps in
-  // P95/thirds. Relative tolerance preserves real source changes and T=0.
+  // decimal subtraction. Relative tolerance preserves real source changes.
   return value <= boundary || value - boundary <= 4 * Number.EPSILON * Math.max(value, boundary)
 }
 export function magnitudeBin(d: MagnitudeDistribution, index: number) {

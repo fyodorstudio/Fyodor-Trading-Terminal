@@ -12,11 +12,10 @@ history boundary.
 
 ## First setup
 
-From the repository root:
+Follow the canonical [setup guide](../docs/SETUP.md). From the repository root:
 
 ```powershell
-python -m venv bridge/.venv
-bridge/.venv/Scripts/python.exe -m pip install -e ./bridge
+pnpm run setup
 ```
 
 If several MT5 installations are running, set `FYODOR_MT5_TERMINAL_PATH` to
@@ -26,6 +25,10 @@ The root `pnpm run dev:all` command uses `bridge/.venv` directly so frontend and
 bridge always start with the same isolated Python dependencies.
 
 ## MQL5 Scripts and EA (`bridge/mql5/`)
+
+The current persistent-storage workflow uses Publisher V2.0.2 and Exporter V4
+under `mql5/Active`, described in the setup guide. The following describes the
+older bridge-only programs, not the fresh-clone storage procedure.
 
 1. **`FyodorCalendarPublisher.mq5` (Live Runtime EA)**:
    - Attach to one MT5 chart to stream live economic calendar releases to the bridge.

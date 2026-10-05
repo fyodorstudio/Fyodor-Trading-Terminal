@@ -37,8 +37,7 @@ export function assessSignedMagnitudeReading<T extends { id: string; label: stri
   if (!row) return unavailable('unavailable', history.message ?? 'Magnitude configuration is unavailable.')
   // Exact zero needs no historical threshold, but Undefined stays Undefined.
   if (delta === 0) return { ...series, event, size: 'Unchanged', score: 0, status: 'scored', reason: 'Actual equals supplied Previous.' }
-  // Custom limits remain usable without history. P95 needs an available baseline.
-  if (row.mode === 'p95' && history.message) return unavailable('unavailable', history.error ?? history.message)
+  // Frozen manual limits classify a current reading independently of history.
   if (!row.distribution) return unavailable('unavailable', 'No usable dataset for the configured magnitude mode.')
   const size = magnitudeSizeForValue(row.distribution.limits, delta)
   const category = signedMagnitudeColumns.find((column) => column.size === size)

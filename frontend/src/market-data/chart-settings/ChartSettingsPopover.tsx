@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import {
   defaultTimeDisplayPreference,
   formatUtcOffset,
@@ -19,6 +19,7 @@ type ChartSettingsPopoverProps = {
   onChange: (appearance: ChartAppearance) => void
   onTimeDisplayChange: (preference: TimeDisplayPreference) => void
   onClose: () => void
+  children?: ReactNode
 }
 
 const offsetOptions = Array.from({ length: 53 }, (_, index) => -720 + index * 30)
@@ -29,6 +30,7 @@ export function ChartSettingsPopover({
   onChange,
   onTimeDisplayChange,
   onClose,
+  children,
 }: ChartSettingsPopoverProps) {
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -115,6 +117,7 @@ export function ChartSettingsPopover({
             <output>{timeDisplayLabel(timeDisplay)}</output>
           </div>
         </div>
+        {children}
       </div>
 
       <footer>

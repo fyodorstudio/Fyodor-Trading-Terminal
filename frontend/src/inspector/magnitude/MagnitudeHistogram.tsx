@@ -34,7 +34,7 @@ export function MagnitudeHistogram({ distribution: d, formatValue, label, contex
     (d.currentExtreme ? `${extremeLabel}. ` : '') +
     `${d.count} dataset readings${d.count < 12 ? ' (small sample)' : ''}. ` +
     (inspected ? `This bar's range: ${magnitudeBandLabel(inspected.index)}, ${interval(inspected)}; ${frequency(inspected)} dataset readings. ` : '') +
-    `Extreme threshold: ${threshold}, ${d.source === 'custom' ? 'custom boundaries configured in Scatter Plot' : 'historical 95th percentile of absolute A−P'}. ` +
+    `Extreme threshold: ${threshold}, frozen manual boundaries configured in Scatter Plot. ` +
     `${omitted} historical extremes omitted from the seven bars. Exact zero is the center bar. ` +
     historyDetails.map((item) => `${item.label}: ${item.value}. `).join('') + context
   function bar(index: number, count: number) {

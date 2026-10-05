@@ -782,87 +782,28 @@ try {
   const { MagnitudeHistogram } = await server.ssrLoadModule('./src/inspector/magnitude/MagnitudeHistogram.tsx')
   const { tallyNfpMagnitudes } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-tally.ts')
   const { NfpMagnitudeTally } = await server.ssrLoadModule('./src/inspector/magnitude/NfpMagnitudeTally.tsx')
-  const distribution = magnitudeDistribution([-4, -2, 0, 2, 4], -2)
-  assert.equal(distribution.threshold, 4)
-  assert.equal(distribution.current, -2)
+  assert.equal(magnitudeDistribution([-4, 0, 4], 0), null, 'Undefined has no automatic fallback')
+  const binFixture = (current) => magnitudeDistribution([-6, -4, -2, 0, 2, 4, 6], current, [2, 4, 6])
+  const distribution = magnitudeDistribution([-4, -2, 0, 2, 4], -2, [4 / 3, 8 / 3, 4])
   assert.equal(distribution.currentSize, 'Medium')
-  assert.equal(distribution.bins.length, 7)
   assert.deepEqual(distribution.bins, [1, 1, 0, 1, 0, 1, 1])
-  assert.equal(selectedMagnitudeBin(distribution).index, 1, 'Negative changes stay on the negative side')
-  const ordinary = Array.from({ length: 98 }, (_, index) => [-6, -4, -2, 0, 2, 4, 6][index % 7])
-  const extremes = magnitudeDistribution([...ordinary, -19799, 23009], -2)
-  assert.equal(extremes.threshold, 6, 'Rare giant extremes cannot stretch the ordinary bands')
+  for (const sign of [-1, 1]) for (const [value, size] of [[0, 'Unchanged'], [2, 'Small'], [2.001, 'Medium'], [4, 'Medium'], [4.001, 'Large'], [6, 'Large'], [6.001, 'Extreme']]) {
+    assert.equal(binFixture(sign * value).currentSize, size)
+  }
+  const extremes = magnitudeDistribution([...Array.from({ length: 98 }, (_, i) => [-6, -4, -2, 0, 2, 4, 6][i % 7]), -19799, 23009], -2, [2, 4, 6])
   assert.deepEqual(extremes.bins, Array(7).fill(14))
-  assert.equal(extremes.extremeBelow, 1)
-  assert.equal(extremes.extremeAbove, 1)
-  assert.equal(extremes.min, -19799)
-  assert.equal(extremes.max, 23009, 'Historical min/max include the extremes hidden from the bars')
-  assert.equal(extremes.bins.reduce((a, b) => a + b, 0) + extremes.extremeBelow + extremes.extremeAbove, 100,
-    'Every historical reading is accounted for, including hidden extremes')
-  const interpolated = magnitudeDistribution([0, 1, 2, 3, 1000], 1000)
-  assert.ok(Math.abs(interpolated.threshold - 800.6) < 1e-9, 'P95 uses type-7 interpolation of absolute changes')
-  assert.equal(interpolated.extremeAbove, 1)
-  assert.equal(magnitudeDistribution([NaN, Infinity, -Infinity], 1), null)
-  assert.equal(magnitudeDistribution([NaN, Infinity, -1], 1).threshold, 1)
-  assert.equal(magnitudeDistribution([1, 1], null).current, null)
-  assert.equal(magnitudeDistribution([1, 1], 1).currentExtreme, null, 'Threshold ties are not extreme')
-  const binFixture = (current) => magnitudeDistribution([-6, 6], current)
-  for (const [current, index, size] of [[-6, 0, 'Large'], [-4, 1, 'Medium'], [-2, 2, 'Small'],
-    [0, 3, 'Unchanged'], [2, 4, 'Small'], [4, 5, 'Medium'], [6, 6, 'Large']]) {
-    assert.equal(selectedMagnitudeBin(binFixture(current)).index, index, 'Mirrored thirds use matching absolute-size boundaries')
-    assert.equal(binFixture(current).currentSize, size, 'Both signs share the same size classification')
-  }
-  assert.equal(selectedMagnitudeBin(binFixture(-4.01)).index, 0)
-  assert.equal(selectedMagnitudeBin(binFixture(4.01)).index, 6)
-  assert.equal(selectedMagnitudeBin(binFixture(-2.01)).index, 1)
-  assert.equal(selectedMagnitudeBin(binFixture(2.01)).index, 5)
-  assert.equal(selectedMagnitudeBin(binFixture(7)), null)
-  assert.equal(binFixture(7).currentExtreme, 'positive')
-  assert.equal(binFixture(-7).currentExtreme, 'negative')
-  assert.equal(binFixture(-7).currentSize, 'Extreme')
-  assert.equal(binFixture(7).currentSize, 'Extreme')
-  assert.equal(selectedMagnitudeBin(binFixture(null)), null)
-  assert.equal(binFixture(NaN).current, null)
+  assert.equal(extremes.extremeBelow, 1); assert.equal(extremes.extremeAbove, 1)
+  assert.equal(extremes.threshold, 6, 'New extreme values cannot move frozen boundaries')
   assert.equal(binFixture(NaN).currentSize, 'Unavailable')
-  for (const [threshold, boundaries] of [[.3, [.1, .2, .3]], [.6, [.2, .4, .6]]]) {
-    for (const sign of [-1, 1]) {
-      for (const [index, boundary] of boundaries.entries()) {
-        const size = ['Small', 'Medium', 'Large'][index]
-        const tied = magnitudeDistribution([threshold, threshold], sign * boundary)
-        assert.equal(tied.currentSize, size, 'Decimal equality belongs to the inclusive lower size')
-        assert.equal(tied.currentExtreme, null)
-        assert.equal(selectedMagnitudeBin(tied).index, sign < 0 ? 2 - index : 4 + index)
-        const above = magnitudeDistribution([threshold, threshold], sign * (boundary + .000001))
-        assert.equal(above.currentSize, ['Medium', 'Large', 'Extreme'][index], 'A distinct micro-unit beyond a cutoff stays in the next size')
-      }
-    }
-    const historicalTies = [...boundaries.map((v) => -v), 0, ...boundaries]
-    assert.deepEqual(magnitudeDistribution(historicalTies, 0).bins, Array(7).fill(1), 'Historical decimals follow the same boundaries as the selected reading')
+  for (const sign of [-1, 1]) for (const [index, boundary] of [.1, .2, .3].entries()) {
+    assert.equal(magnitudeDistribution([boundary], sign * boundary, [.1, .2, .3]).currentSize, ['Small', 'Medium', 'Large'][index])
+    assert.equal(magnitudeDistribution([], sign * (boundary + .000001), [.1, .2, .3]).currentSize, ['Medium', 'Large', 'Extreme'][index])
   }
-  const interpolatedEquality = magnitudeDistribution([200, 200, 200, 240], 156)
-  assert.equal(interpolatedEquality.threshold, 234)
-  assert.equal(interpolatedEquality.currentSize, 'Medium')
-  assert.equal(magnitudeDistribution([0, 0], Number.MIN_VALUE).currentSize, 'Extreme', 'A zero threshold never absorbs nonzero changes')
-  const zeros = magnitudeDistribution([0, 0, 0], 0)
-  assert.equal(zeros.threshold, 0)
-  assert.deepEqual(zeros.bins, [0, 0, 0, 3, 0, 0, 0])
-  assert.equal(selectedMagnitudeBin(zeros).index, 3)
-  assert.equal(magnitudeDistribution([0, 0], .1).currentExtreme, 'positive', 'Any nonzero reading exceeds an all-zero baseline')
-  const zeroHeavy = magnitudeDistribution([...Array(99).fill(0), 6], 1)
-  assert.equal(zeroHeavy.threshold, 0)
-  assert.equal(zeroHeavy.extremeAbove, 1, 'A zero P95 never invents a nonzero threshold')
-  assert.equal(zeroHeavy.bins[3], 99)
-  for (const same of [-5, 5]) {
-    const constant = magnitudeDistribution([same, same], same)
-    assert.equal(constant.threshold, 5)
-    assert.equal(selectedMagnitudeBin(constant).count, 2)
-    assert.equal(selectedMagnitudeBin(constant).index, same < 0 ? 0 : 6)
-  }
-  const edges = magnitudeDistribution([-6, -4, -2, 0, 2, 4, 6], -2)
-  assert.deepEqual(edges.bins, Array(7).fill(1))
+  assert.deepEqual(magnitudeDistribution([0, 0], 0, [1, 2, 3]).bins, [0, 0, 0, 2, 0, 0, 0])
+  const edges = binFixture(-2)
   assert.deepEqual(magnitudeBin(edges, 3), { index: 3, count: 1, from: 0, to: 0 })
   assert.deepEqual(magnitudeBin(edges, 6), { index: 6, count: 1, from: 4, to: 6 })
-  const histogramProps = { distribution: magnitudeDistribution([0, 0, 0, 6, 6], -3), label: 'Test series',
+  const histogramProps = { distribution: magnitudeDistribution([0, 0, 0, 6, 6], -3, [2, 4, 6]), label: 'Test series',
     formatValue: (value) => String(value) + 'k', context: 'Earlier releases only.', tone: 'bad' }
   const histogramApp = mount(MagnitudeHistogram, histogramProps)
   await histogramApp.render()
@@ -947,20 +888,20 @@ try {
   assert.match(document.querySelector('.magnitude-details').textContent, /Historical minimum-19799k/)
   assert.match(document.querySelector('.magnitude-details').textContent, /Historical maximum23009k/)
   assert.doesNotMatch(document.querySelector('.magnitude-details').textContent, /Extreme threshold/)
-  await histogramApp.render({ ...histogramProps, distribution: magnitudeDistribution([-6, -6, -5, 0, 6], -6) })
+  await histogramApp.render({ ...histogramProps, distribution: magnitudeDistribution([-6, -6, -5, 0, 6], -6, [2, 4, 6]) })
   const frequencyBars = [...reusablePlot.querySelectorAll('.magnitude-bar')]
   assert.equal(Number(frequencyBars[0].getAttribute('height')), 19)
   assert.equal(Number(frequencyBars[3].getAttribute('height')), 19 / 3, 'Bar height scales with the count')
   for (const oneSided of [[-6, -6], [6, 6]]) {
-    await histogramApp.render({ ...histogramProps, distribution: magnitudeDistribution(oneSided, oneSided[0]) })
+    await histogramApp.render({ ...histogramProps, distribution: magnitudeDistribution(oneSided, oneSided[0], [2, 4, 6]) })
     assert.equal(reusablePlot.querySelector('.magnitude-zero-label').getAttribute('x'), '108', 'Zero stays centered even with one-sided history')
   }
-  await histogramApp.render({ ...histogramProps, distribution: zeros })
+  await histogramApp.render({ ...histogramProps, distribution: magnitudeDistribution([0, 0, 0], 0, [2, 4, 6]) })
   assert.equal(reusablePlot.querySelector('.magnitude-current').dataset.bin, '3')
-  assert.equal(reusablePlot.querySelectorAll('.magnitude-label').length, 1, 'An all-zero baseline needs no fabricated axis endpoints')
+  assert.equal(reusablePlot.querySelectorAll('.magnitude-label').length, 3, 'Manual endpoints stay fixed with all-zero history')
   assert.equal(reusablePlot.querySelector('.magnitude-size').textContent, 'Unchanged')
   assert.match(document.querySelector('.magnitude-details').textContent, /Historical minimum0kHistorical maximum0k/)
-  await histogramApp.render({ ...histogramProps, distribution: magnitudeDistribution([0, 0, 0, 6, 6], null) })
+  await histogramApp.render({ ...histogramProps, distribution: magnitudeDistribution([0, 0, 0, 6, 6], null, [2, 4, 6]) })
   assert.equal(reusablePlot.querySelectorAll('.magnitude-current').length, 0)
   assert.equal(reusablePlot.querySelector('.magnitude-size').textContent, 'Unavailable')
   const emptyTarget = reusablePlot.querySelector('[data-bin-target="1"]')
@@ -979,7 +920,7 @@ try {
   })
   const magnitudeRelease = data.groupInspectorReleases(magnitudeRows)[0]
   const readyHistory = (rows = magnitudeRows) => ({ rows: Object.fromEntries(rows.map((row) => [row.value_id,
-    { distribution: magnitudeDistribution([-6, 6], data.inspectorDelta(row)), excluded: 0, first: anchor - 86400000, last: anchor - 86400000 }])),
+    { distribution: magnitudeDistribution([-6, 6], data.inspectorDelta(row), [2, 4, 6]), excluded: 0, first: anchor - 86400000, last: anchor - 86400000 }])),
     message: null, error: null, partial: false })
   const oneOfEach = { Small: 1, Medium: 1, Large: 1, Extreme: 1, Unclassified: 0 }
   assert.deepEqual(tallyNfpMagnitudes(magnitudeRelease, readyHistory().rows), { good: oneOfEach, bad: oneOfEach },
@@ -1018,7 +959,7 @@ try {
   const snapshotThresholds = { '840030016': 652.9, '840030015': .52, '840030017': .3, '840030018': .6,
     '840030019': 1.005, '840030020': .2, '840030023': 465.1, '840030022': 171.65, '840030032': 66.1, '840030024': .83 }
   const octoberHistory = { ...readyHistory(), rows: Object.fromEntries(gradedRows.map((row) => [row.value_id,
-    { distribution: magnitudeDistribution([snapshotThresholds[row.event_id], snapshotThresholds[row.event_id]], data.inspectorDelta(row)) }])) }
+    { distribution: magnitudeDistribution([snapshotThresholds[row.event_id], snapshotThresholds[row.event_id]], data.inspectorDelta(row), [snapshotThresholds[row.event_id] / 3, snapshotThresholds[row.event_id] * 2 / 3, snapshotThresholds[row.event_id]]) }])) }
   const octoberRelease = data.groupInspectorReleases(gradedRows)[0]
   await magnitudeTallyApp.render({ release: octoberRelease, history: octoberHistory })
   assert.deepEqual(sizeCells('good'), ['1', '1', '–', '–'])
@@ -1045,7 +986,7 @@ try {
     historyRow('unit-change', nfpHistoryStart + 6 * 86400000, { multiplier: 0 }),
     historyRow('wrong-country', nfpHistoryStart + 7 * 86400000, { country_code: 'EU' }),
     historyRow('uncertain', nfpHistoryStart + 8 * 86400000, { time_mode: 1 })]
-  const automaticSettings = { '840030016': 'p95', '840030017': 'p95' }
+  const automaticSettings = { '840030016': [.9, 1.8, 2.8], '840030017': [.065, .13, .195] }
   const hist = nfpMagnitudeHistory([...earlierRows, earlierRows[1]], selectedNfp, automaticSettings)[selectedNfp.events[0].value_id]
   assert.equal(hist.distribution.count, 3, 'All unique, usable released publications of this series count')
   assert.equal(hist.earlierCount, 2)
@@ -1078,7 +1019,7 @@ try {
       React.createElement(NfpMagnitudeCell, { event: selected.events[0], history, grade: 'good' })))) : null
   }
   const { saveNfpMagnitudeLimits } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-settings.ts')
-  saveNfpMagnitudeLimits('840030016', 'p95')
+  saveNfpMagnitudeLimits('840030016', [.9, 1.8, 2.8])
   const historyApp = mount(NfpHistoryApp, {})
   start = storageRequests.length
   await historyApp.render()
@@ -1097,7 +1038,7 @@ try {
   assert.match(historyApp.container.textContent, /Partial history/)
   const plot = historyApp.container.querySelector('.magnitude-histogram')
   assert.match(plot.getAttribute('aria-label'), /3 dataset readings \(small sample\)/)
-  assert.match(plot.getAttribute('aria-label'), /historical 95th percentile of absolute A−P/)
+  assert.match(plot.getAttribute('aria-label'), /frozen manual boundaries configured in Scatter Plot/)
   assert.match(plot.getAttribute('aria-label'), /Partial USD history/)
   assert.ok(plot.classList.contains('inspector-grade-good'))
   assert.equal(plot.querySelectorAll('.magnitude-current').length, 1)
@@ -1136,9 +1077,9 @@ try {
   assert.equal(historyApp.container.querySelector('.magnitude-size').textContent, 'Small',
     'Inspector immediately reclassifies from Scatter Plot settings without remounting')
   assert.deepEqual([...plot.querySelectorAll('.magnitude-label')].map((node) => node.textContent), ['-8k', '+8k', '0'])
-  assert.match(plot.getAttribute('aria-label'), /custom boundaries configured in Scatter Plot/)
+  assert.match(plot.getAttribute('aria-label'), /frozen manual boundaries configured in Scatter Plot/)
   assert.equal(storageRequests.length, requestsBeforeCustom, 'Settings changes do not reload Inspector history')
-  await act(async () => saveNfpMagnitudeLimits('840030016', 'p95'))
+  await act(async () => saveNfpMagnitudeLimits('840030016', [.9, 1.8, 2.8]))
   assert.equal(historyApp.container.querySelector('.magnitude-size').textContent, 'Large')
   await historyApp.render({ selected: { ...selectedNfp, events: [{ ...selectedNfp.events[0], actual: null }] } })
   assert.equal(historyApp.container.querySelectorAll('.magnitude-current').length, 0, 'Missing current delta retains gray history without a fake marker')
@@ -1159,8 +1100,8 @@ try {
   await respond(storageRequests[start + 2], storedHealth('Broker-B'))
   await respond(storageRequests[start + 3], historyPage([], 1, null, 'Broker-B'))
   await respond(stalePage, historyPage(earlierRows))
-  assert.equal(nfpHistoryView.rows.a.distribution, null, 'A late old-broker history page cannot repopulate the cell')
-  assert.match(historyApp.container.textContent, /No usable dataset readings/)
+  assert.equal(nfpHistoryView.rows.a.distribution.count, 0, 'A late old-broker page cannot repopulate history')
+  assert.equal(nfpHistoryView.rows.a.distribution.threshold, 2.8, 'Frozen boundaries remain usable with empty history')
   start = storageRequests.length
   await historyApp.render({ selected: selectedNfp })
   await respond(storageRequests[start], storedHealth())
@@ -1172,7 +1113,7 @@ try {
   assert.equal(storageRequests.length, start, 'No selected NFP means no history requests')
   await historyApp.render({ selected: selectedNfp, brokerId: null })
   assert.match(historyApp.container.textContent, /History needs calendar storage/)
-  console.log('✓ Seven zero-centered NFP bands, all-dataset P95, hidden extremes, earlier/total hover details and selection-independent history lifecycle')
+  console.log('✓ Seven zero-centered NFP bands, all-dataset frozen magnitudes, hidden extremes, earlier/total hover details and selection-independent history lifecycle')
 } finally {
   await act(async () => { for (const root of roots) root.unmount() })
   await server.close()

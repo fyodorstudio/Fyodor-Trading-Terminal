@@ -31,14 +31,10 @@ export function familyScatterModel(events: StoredCalendarEvent[], now: number, s
   const points = admitted.samples.map(toPoint)
   const samples = points, config = magnitudeConfiguration(settings, seriesId)
   const distribution = config.mode === 'undefined' ? null : magnitudeDistribution(samples.map((point) => point.delta), current ? inspectorDelta(current) : null, config.limits)
-  const ranked = config.mode === 'p95' ? samples.slice().sort((a, b) => Math.abs(a.delta) - Math.abs(b.delta) || a.at - b.at || a.id.localeCompare(b.id)) : []
-  const numerator = (ranked.length - 1) * 19, index = Math.floor(numerator / 20)
-  const quantile = ranked.length ? { position: numerator / 20, lower: ranked[index],
-    upper: ranked[Math.min(index + 1, ranked.length - 1)], fraction: (numerator % 20) / 20 } : null
   return { points, deltaUnit, formatDelta, formatReading, inspection: {
     releaseId: selected.id, at: selected.releaseAt!, point: points.find((point) => point.releaseId === selected.id) ?? null,
     actual: current?.actual ?? null, previous: current?.previous ?? null, delta: current ? inspectorDelta(current) : null,
-    magnitudeMode: config.mode, distribution, samples, excluded: admitted.excluded, quantile,
+    magnitudeMode: config.mode, distribution, samples, excluded: admitted.excluded,
     earlierCount: samples.filter((point) => point.at < selected.releaseAt!).length,
   } }
 }

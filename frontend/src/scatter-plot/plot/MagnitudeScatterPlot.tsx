@@ -23,14 +23,13 @@ export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', app
   const distribution = inspection?.distribution ?? null
   const { g, cursor, dragging, setSvg, svgEvents, onAxisKeyDown } = useScatterPlotInteraction(model, zoom, size.width, size.height, viewKey)
   const clipId = `scatter-clip-${useId().replace(/:/g, '')}`
-  const quantileIds = [inspection?.quantile?.lower.id, inspection?.quantile?.upper.id]
   const currentIndex = points.findIndex((point) => point.releaseId === inspection?.releaseId)
   const guides = distribution && distribution.threshold > 0 ? scatterGuideLevels(a, distribution.threshold,
-    distribution.source === 'custom' ? distribution.limits : undefined) : []
+    distribution.limits) : []
   return <div className="scatter-plot-canvas" ref={setElement}>
     <svg ref={setSvg} viewBox={`0 0 ${size.width} ${size.height}`} role="group" aria-label="Release date versus signed A−P scatter plot"
       className={dragging ? 'scatter-plot-dragging' : undefined}
-      style={{ '--scatter-dot-color': a.dotColor, '--scatter-good-color': a.goodColor, '--scatter-bad-color': a.badColor, '--scatter-quantile-color': a.quantileColor } as CSSProperties}
+      style={{ '--scatter-dot-color': a.dotColor, '--scatter-good-color': a.goodColor, '--scatter-bad-color': a.badColor } as CSSProperties}
       data-date-from={g.first} data-date-to={g.last} data-delta-from={g.minDelta} data-delta-to={g.maxDelta}
       {...svgEvents}
       onKeyDown={(event) => {
@@ -52,8 +51,7 @@ export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', app
             stroke={level.color} strokeWidth={level.width} strokeOpacity={a.guideOpacity / 100}
             strokeDasharray={a.guideStyle === 'dashed' ? '3 4' : a.guideStyle === 'dotted' ? '1 3' : undefined}
             x1={g.left} x2={g.right} y1={g.y(sign * limit)} y2={g.y(sign * limit)}>
-            <title>{distribution?.source === 'custom' ? `${['Small', 'Medium', 'Large'][level.id - 1]} boundary` :
-              `Guide at ${Number((level.factor * 100).toFixed(6))}% of P95`}: {formatDelta(sign * limit)}</title>
+            <title>{`${['Small', 'Medium', 'Large'][level.id - 1]} boundary`}: {formatDelta(sign * limit)}</title>
           </line>)}
         </g>
       })}
@@ -78,7 +76,7 @@ export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', app
         return <g key={point.id} role="button" tabIndex={selected || (currentIndex < 0 && point === points[0]) ? 0 : -1}
           aria-label={details} aria-pressed={selected} data-point-id={point.id} data-release-id={point.releaseId}
           data-at={point.at} data-delta={point.delta} data-later={later} data-off-scale={offScale}
-          className={`scatter-plot-point${selected ? ` scatter-plot-selected scatter-plot-tone-${point.tone}` : ''}${quantileIds.includes(point.id) ? ' scatter-plot-quantile' : ''}`}
+          className={`scatter-plot-point${selected ? ` scatter-plot-selected scatter-plot-tone-${point.tone}` : ''}`}
           onClick={() => onInspect(point.releaseId)} onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onInspect(point.releaseId) }
           }}>

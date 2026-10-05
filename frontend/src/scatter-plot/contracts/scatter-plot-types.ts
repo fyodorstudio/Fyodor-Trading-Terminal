@@ -12,7 +12,6 @@ export type ScatterInspection = {
   actual: number | null; previous: number | null; delta: number | null
   distribution: MagnitudeDistribution | null; samples: ScatterPoint[]; excluded: number; earlierCount: number
   magnitudeMode: MagnitudeMode
-  quantile: { position: number; lower: ScatterPoint; upper: ScatterPoint; fraction: number } | null
 }
 export type ScatterModel = {
   points: ScatterPoint[]; inspection: ScatterInspection | null

@@ -43,7 +43,7 @@ export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, binding, famil
     <ScatterPlotControls scope={scope} seriesId={seriesId} onSeriesChange={(id) => { setSeriesId(id); setZoom(false) }} zoom={zoom && config.mode !== 'undefined'}
       onZoomChange={setZoom} onLatest={() => setSelection({ broker: brokerId, releaseId: null })}
       familyOptions={familyOptions} onFamilyChange={onFamilyChange} magnitudeUndefined={config.mode === 'undefined'}
-      customMagnitude={!!customLimits} appearanceOpen={appearanceOpen} onAppearance={() => setAppearanceOpen((open) => !open)} appearanceButtonRef={appearanceButton} />
+      appearanceOpen={appearanceOpen} onAppearance={() => setAppearanceOpen((open) => !open)} appearanceButtonRef={appearanceButton} />
     {appearanceOpen && <ScatterPlotAppearanceSettings appearance={appearance} customLimits={customLimits} onChange={changeAppearance} onClose={closeAppearance} />}
     {message ? <p className="scatter-plot-status" role="status" title={storage.error ?? undefined}>{message}</p> : <>
       {storage.partial && <span className="scatter-plot-coverage" role="status">Partial history</span>}
@@ -53,9 +53,9 @@ export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, binding, famil
           <MagnitudeBoundaryEditor key={JSON.stringify([brokerId, seriesId, model.inspection?.releaseId, config.mode, customLimits])}
             limits={customLimits ?? model.inspection?.distribution?.limits ?? null} custom={!!customLimits}
             unit={model.deltaUnit}
-            bandColors={magnitudeBandGuideStyles(appearance, !!customLimits).map((level) => level.color)}
-            onBandColorChange={(index, color) => changeAppearance(withMagnitudeBandColor(appearance, index, color, !!customLimits))}
-            mode={config.mode} onModeChange={(mode) => { family.settings.save(seriesId, mode === 'undefined' ? null : 'p95'); setZoom(false) }}
+            bandColors={magnitudeBandGuideStyles(appearance, true).map((level) => level.color)}
+            onBandColorChange={(index, color) => changeAppearance(withMagnitudeBandColor(appearance, index, color, true))}
+            mode={config.mode} onModeChange={() => { family.settings.save(seriesId, null); setZoom(false) }}
             onApply={(limits) => family.settings.save(seriesId, limits)} onReset={() => { family.settings.save(seriesId, null); setZoom(false) }} />
         </MagnitudeCalculationDetails>
       </div>

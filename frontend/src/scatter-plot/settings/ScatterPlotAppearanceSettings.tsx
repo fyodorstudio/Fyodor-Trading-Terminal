@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { customMagnitudeGuideStyles, defaultScatterAppearance, normalizeScatterAppearance, withMagnitudeBandColor, magnitudeGuideColorIndex, type ScatterAppearance, type ScatterGuideLevel, type ScatterLineStyle } from './scatter-plot-appearance'
+import { customMagnitudeGuideStyles, defaultScatterAppearance, normalizeScatterAppearance, withMagnitudeBandColor, type ScatterAppearance, type ScatterGuideLevel, type ScatterLineStyle } from './scatter-plot-appearance'
 import './scatter-plot-appearance-settings.css'
 
 function NumericSetting({ label, value, min, max, step = .5, onChange }: {
@@ -27,11 +27,11 @@ export function ScatterPlotAppearanceSettings({ appearance: a, onChange, onClose
     return () => window.removeEventListener('keydown', escape)
   }, [onClose])
   const update = (value: ScatterAppearance) => onChange(normalizeScatterAppearance(value))
-  const levels = customLimits ? customMagnitudeGuideStyles(a) : a.levels
+  const levels = customMagnitudeGuideStyles(a)
   const updateLevel = (id: number, patch: Partial<ScatterGuideLevel>) => {
-    const index = customLimits ? levels.findIndex((level) => level.id === id) : magnitudeGuideColorIndex(levels.find((level) => level.id === id)!)
+    const index = levels.findIndex((level) => level.id === id)
     if (patch.color && index >= 0) update(withMagnitudeBandColor(a, index, patch.color, !!customLimits))
-    else update({ ...a, [customLimits ? 'customLevels' : 'levels']: levels.map((level) => level.id === id ? { ...level, ...patch } : level) })
+    else update({ ...a, customLevels: levels.map((level) => level.id === id ? { ...level, ...patch } : level) })
   }
   return <section className="scatter-appearance-settings" role="dialog" aria-modal="false" aria-label="Scatter Plot appearance">
     <header><strong>Scatter Plot appearance</strong><button ref={close} type="button" onClick={onClose} aria-label="Close Scatter Plot appearance">×</button></header>
@@ -39,7 +39,7 @@ export function ScatterPlotAppearanceSettings({ appearance: a, onChange, onClose
       <fieldset><legend>Dots</legend><div className="scatter-appearance-fields">
         <NumericSetting label="Dot diameter (px)" value={a.dotSize} min={2} max={32} onChange={(dotSize) => update({ ...a, dotSize })} />
         <NumericSetting label="Selected dot diameter (px)" value={a.selectedDotSize} min={2} max={40} onChange={(selectedDotSize) => update({ ...a, selectedDotSize })} />
-        {([['Dot color', 'dotColor'], ['Selected Good color', 'goodColor'], ['Selected Bad color', 'badColor'], ['P95 source outline', 'quantileColor']] as const).map(([label, key]) =>
+        {([['Dot color', 'dotColor'], ['Selected Good color', 'goodColor'], ['Selected Bad color', 'badColor']] as const).map(([label, key]) =>
           <label key={key}>{label}<input type="color" value={a[key]} onChange={(e) => update({ ...a, [key]: e.target.value })} /></label>)}
       </div></fieldset>
       <fieldset><legend>Background lines</legend>
@@ -62,23 +62,18 @@ export function ScatterPlotAppearanceSettings({ appearance: a, onChange, onClose
           <NumericSetting label="Guide line opacity (%)" value={a.guideOpacity} min={0} max={100} step={1} onChange={(guideOpacity) => update({ ...a, guideOpacity })} />
         </div>
         <p>{customLimits ? 'Small, Medium and Large mirror the saved boundaries. Edit their values in the Magnitude pane.' :
-          'These are visual guides in % of P95. Set custom scoring boundaries in the Magnitude pane.'}</p>
+          'Configure and freeze manual boundaries in the Magnitude pane to show guides.'}</p>
         <div className="scatter-appearance-levels">
           {levels.map((level, index) => <div className="scatter-appearance-level" key={level.id}>
             <label><input type="checkbox" aria-label={`Show level ${index + 1}`} checked={level.visible} onChange={(e) => updateLevel(level.id, { visible: e.target.checked })} />{index + 1}</label>
-            {customLimits ? <span>{['Small', 'Medium', 'Large'][index]} ±{customLimits[index]}</span> :
-              <NumericSetting label={`Level ${index + 1} position (% of P95)`} value={Number((level.factor * 100).toFixed(6))} min={.1} max={1000} step="any"
-                onChange={(percent) => updateLevel(level.id, { factor: percent / 100 })} />}
+            <span>{['Small', 'Medium', 'Large'][index]} {customLimits ? `±${customLimits[index]}` : 'Undefined'}</span>
             <input type="color" aria-label={`Level ${index + 1} color`} value={level.color} onChange={(e) => updateLevel(level.id, { color: e.target.value })} />
             <NumericSetting label={`Level ${index + 1} width (px)`} value={level.width} min={.25} max={6} step={.05} onChange={(width) => updateLevel(level.id, { width })} />
             <NumericSetting label={`Level ${index + 1} shade (%)`} value={level.shade} min={0} max={100} step={.5} onChange={(shade) => updateLevel(level.id, { shade })} />
-            {!customLimits && <button type="button" aria-label={`Remove level ${index + 1}`} onClick={() => update({ ...a, levels: a.levels.filter((item) => item.id !== level.id) })}>×</button>}
+
           </div>)}
         </div>
-        {!customLimits && <button type="button" disabled={a.levels.length >= 8} onClick={() => update({ ...a, levels: [...a.levels, {
-          id: Math.max(0, ...a.levels.map((level) => level.id)) + 1, visible: true,
-          factor: Math.min(10, Math.max(0, ...a.levels.map((level) => level.factor)) + 1 / 3), color: '#6366f1', width: 1, shade: 7,
-        }] })}>Add level</button>}
+
       </fieldset>
     </div>
     <footer><button type="button" onClick={() => update(defaultScatterAppearance)}>Reset appearance</button><button type="button" onClick={onClose}>Done</button></footer>

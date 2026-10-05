@@ -26,7 +26,6 @@
 .scatter-plot-point { cursor: crosshair; color: var(--scatter-dot-color); }
 .scatter-plot-point-target { fill: transparent; }
 .scatter-plot-dot { fill: currentColor; stroke: var(--surface-panel); stroke-width: 1; }
-.scatter-plot-quantile .scatter-plot-dot { stroke: var(--scatter-quantile-color); stroke-width: 1.8; }
 .scatter-plot-selected .scatter-plot-dot { stroke: var(--text-strong); stroke-width: 1.8; }
 .scatter-plot-point:focus-visible .scatter-plot-dot { stroke: var(--accent); stroke-width: 3; }
 .scatter-plot-tone-good { color: var(--scatter-good-color); }

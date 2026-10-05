@@ -53,13 +53,21 @@ class CalendarStore:
     those dates indefinitely. Old history is retained after every restart.
     """
 
-    def __init__(self, path: Path, clock: Callable[[], float] = time.time):
+    def __init__(self, path: Path, clock: Callable[[], float] = time.time, readonly=False):
         self.path = path
         self.clock = clock
         self.lock = threading.RLock()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        self.db = sqlite3.connect(path, check_same_thread=False, timeout=10)
+        if not readonly:
+            path.parent.mkdir(parents=True, exist_ok=True)
+        self.db = sqlite3.connect(path.resolve().as_uri() + "?mode=ro" if readonly else path,
+                                  uri=readonly, check_same_thread=False, timeout=10)
         self.db.row_factory = sqlite3.Row
+        if readonly:
+            if self.db.execute("PRAGMA user_version").fetchone()[0] != 2:
+                self.db.close()
+                raise ValueError("Status needs storage schema 2; start storage to migrate supported older data")
+            self.db.execute("BEGIN")  # All status queries use one read-only snapshot.
+            return
         self.db.execute("PRAGMA journal_mode=WAL")
         self.db.execute("PRAGMA foreign_keys=ON")
         version = self.db.execute("PRAGMA user_version").fetchone()[0]

@@ -39,7 +39,7 @@ not short and long holding periods.
 
 All four primary readings must have usable scores before Total/direction is
 computed. Undefined magnitude, missing Actual/Previous, duplicate readings,
-incompatible units or unavailable P95 history remain explicit unresolved states;
+incompatible units remain explicit unresolved states;
 they never become zero or Small. Each subtotal also requires both of its readings.
 Custom cutoffs can classify without historical samples. Configured exact-zero
 readings need no historical threshold, while Undefined stays Undefined.
@@ -61,7 +61,7 @@ not evidence that the inflation rate accelerated or slowed.
 
 Adjusted and n.s.a. subtotals require both readings in their respective group.
 Undefined, missing, duplicate or incompatible readings remain unresolved. The
-same shared classifier handles Custom and explicit P95. No index points enter
+same shared classifier handles frozen manual limits. No index points enter
 the rate Total or EURUSD direction, and the index matrix has no FX direction
 badge. The two unadjusted monthly percentage rates are not index levels and
 remain outside both matrices. No source readings or series are removed.
@@ -99,25 +99,21 @@ of inflation. Adjusted and unadjusted series keep their own histories.
 
 ## Magnitude and history
 
-Each series independently selects **Undefined**, **Custom boundaries**, or
-explicit **P95**. Undefined is the default: empty Inspector histogram/size and
-no scatter magnitude guides, with raw dots and delta colors retained. The
-score matrix explicitly marks each unconfigured primary reading Undefined.
-Custom mode requires `0 < Small < Medium < Large` in that series' native units.
-Both signs mirror the same limits; exact ties stay in the lower inclusive size;
-anything beyond Large is Extreme. The seven bars remain three negative bands,
-exact zero and three positive bands. Apply updates both views from one shared
-snapshot. Appearance settings do not change boundaries.
+Each series independently selects **Undefined** or **Manual boundaries**.
+Undefined is the default: empty Inspector histogram/size and no scatter guides,
+with raw dots and delta colors retained. Enter `0 < Small < Medium < Large` in
+native units and Freeze. Both signs mirror limits; ties stay in the lower size,
+above Large is Extreme. Unfreeze opens a draft while saved limits stay active.
+Appearance changes remain separate. Legacy P95 markers become Undefined; existing
+manual tuples survive. The score matrix marks unconfigured readings Undefined.
 
-History starts January 2015, uses the selected broker only, and includes all
-usable readings released through now, including the inspected publication and
-newer readings. Histogram frequencies and explicit P95 use this full dataset;
-Custom cutoffs remain fixed. Missing/duplicate/incompatible-unit
-publications are excluded. Latest completed means exactly one usable reading
-for each of these ten IDs. Stored corrections are not historical data vintages.
-Settings persist separately at
-`fyodor.scatter-plot.EURUSD.USD.QUOTE.CPI.magnitude.v1`, independent of NFP and
-independent of publication date. Clearing a series sets it to Undefined.
+History uses all compatible, usable released readings from January 2015 through
+now, selected broker only, including selected and newer readings. Frequencies grow
+with N; limits stay fixed. Missing/duplicate/uncertain/withdrawn/future publications
+stay outside N. Corrections replace samples. Latest completed requires exactly
+one usable reading per ten-series ID. Settings persist independently of NFP and
+selected date under `fyodor.scatter-plot.EURUSD.USD.QUOTE.CPI.magnitude.v1`.
+Workspace export/import transfers saved tuples; reopening shows them frozen.
 
 ## Sources
 

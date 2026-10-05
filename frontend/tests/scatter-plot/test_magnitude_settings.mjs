@@ -22,11 +22,10 @@ try {
   const scope = { pair: 'EURUSD', currency: 'USD', side: 'QUOTE', family: 'NFP' }
   const first = createMagnitudeSettingsStore(scope, ['shared-id', 'other'])
   assert.equal(magnitudeConfiguration(first.read(), 'shared-id').mode, 'undefined')
-  first.save('shared-id', 'p95')
-  assert.equal(magnitudeConfiguration(first.read(), 'shared-id').mode, 'p95')
-  assert.equal(createMagnitudeSettingsStore(scope, ['shared-id', 'other']).read()['shared-id'], 'p95', 'Explicit P95 persists')
-  first.save('shared-id', null)
-  assert.equal(magnitudeConfiguration(first.read(), 'shared-id').mode, 'undefined', 'Clearing a mode never silently enables P95')
+  localStorage.setItem(first.key, JSON.stringify({ 'shared-id': 'p95', other: [1, 2, 3] }))
+  assert.deepEqual(first.read(), { other: [1, 2, 3] }, 'Legacy P95 becomes Undefined; manual values survive')
+  assert.throws(() => first.save('shared-id', 'p95'), RangeError, 'Automatic mode is removed')
+  first.save('other', null)
   assert.equal(first.key, 'fyodor.scatter-plot.EURUSD.USD.QUOTE.NFP.magnitude.v1', 'Existing saved settings retain their key')
   const others = [{ ...scope, pair: 'GBPUSD' }, { ...scope, currency: 'EUR' },
     { ...scope, side: 'BASE' }, { ...scope, family: 'CPI' }].map((value) => createMagnitudeSettingsStore(value, ['shared-id']))
@@ -100,6 +99,19 @@ try {
   applied = null
   await React.act(async () => container.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
   assert.equal(applied, null, 'Invalid drafts cannot apply even through programmatic submit')
+  await React.act(async () => root.render(React.createElement(MagnitudeBoundaryEditor,
+    { key: 'frozen', limits: [1, 2, 4], mode: 'custom', custom: true, unit: 'k', onApply: (value) => { applied = value }, onReset: () => {} })))
+  assert.ok(input('Small').disabled, 'Saved manual configuration opens frozen')
+  applied = null
+  await React.act(async () => container.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
+  assert.equal(applied, null, 'Frozen configuration rejects programmatic edits')
+  await React.act(async () => [...container.querySelectorAll('button')].find((button) => button.textContent === 'Unfreeze').click())
+  assert.equal(input('Small').disabled, false)
+  await change('Small', .5)
+  assert.equal(applied, null, 'Unfreezing/drafting never changes the saved classification')
+  await React.act(async () => container.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
+  assert.deepEqual(applied, [.5, 2, 4])
+  assert.ok(input('Small').disabled, 'Freeze locks all manual inputs again')
   console.log('✓ Untouched baseline refresh, in-progress draft preservation, scope reset and invalid-submit protection')
 } finally {
   await React.act(async () => root.unmount())

@@ -20,7 +20,7 @@ dependency/build/cache/local-inventory files requiring cleanup.
 | Styling custom boundaries discarded additional automatic guide preferences. | Custom and automatic guide positions, visibility, widths and shades persist independently. Magnitude colors use one shared palette. |
 | Identifying Small/Medium/Large colors required matching numbered Appearance guides. | Color boxes beside each cutoff and Shared magnitude colors in Appearance edit the global mirrored-band palette; numeric drafts, scoring and navigation are preserved. |
 | Custom/P95 palettes diverged and open instances did not receive other instances' color edits. | One validated immutable appearance snapshot uses same-window and cross-window subscriptions; shared magnitude colors update every series/family/mode and survive reload. |
-| No saved boundary silently enabled P95. | Undefined is now the default; empty Inspector cells, raw scatter points and descriptive counts remain. P95 requires an explicit saved mode. |
+| No saved boundary silently enabled P95. | Undefined is now the default; empty Inspector cells, raw scatter points and descriptive counts remain. P95 was subsequently removed; only frozen manual tuples configure magnitude. |
 | Adding CPI risked copying NFP lifecycle/classification code. | Shared reading, history, settings, cells, tally and scatter engines accept registered family definitions. CPI keeps its scope/catalog/settings in isolated bindings. |
 | Mixed Undefined and configured-but-unavailable series could receive misleading footer labels. | Undefined and unclassified readings are counted separately per grade. |
 | Selecting an older release narrowed histogram/P95 history and refetched Inspector data. | Both views now use all usable released readings since January 2015 through now. Selection preserves the query; `Earlier / All` distinguishes chronology from calculation N. |
@@ -34,7 +34,7 @@ dependency/build/cache/local-inventory files requiring cleanup.
   classifier and settings. History starts in January 2015 and includes all usable
   readings released through now, including the inspected and newer releases.
 - Custom cutoffs stay fixed across dates. Unconfigured series are Undefined;
-  P95 is explicitly opt-in. Existing saved custom tuples remain compatible.
+  P95 was retired on October 5. Saved manual tuples remain compatible; old P95 selections become Undefined. Freeze locks saved manual values; Unfreeze opens a draft.
 - CPI retains the chosen higher/lower inflation USD-pressure grading convention
   and rate/index native units. Its four primary rates now supply signed 0–4
   magnitude points with equal series weights, separate monthly/annual subtotals

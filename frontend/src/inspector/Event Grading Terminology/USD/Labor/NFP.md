@@ -113,13 +113,11 @@ boundaries from Scatter Plot, in its native k, pp or h units. They must satisfy
 `0 < Small < Medium < Large`, mirror on both signs and stay fixed across dates.
 The same saved boundaries control the scatter's configurable guides, these seven bands,
 size labels and the Good/Bad magnitude tally. Unconfigured series are Undefined,
-with empty histogram cells. Explicit P95 mode uses historical P95 of |A−P|
-and its thirds. Readings
-strictly beyond it are hidden from the bars but still used to calculate the
-automatic threshold and total history count. In custom mode the chosen
-boundaries are not recomputed from history. Extreme selected readings show a colored
-edge marker and an "Extreme" size label. All-zero history uses a zero
-threshold, without padding; any nonzero selected change is then extreme.
+with empty histogram cells. Frozen manual boundaries stay fixed as new readings
+grow N. Readings beyond Large are Extreme and remain in N while omitted from the
+seven bars. Extreme selections show a colored edge marker. All-zero history does
+not move manual boundaries. Freeze saves values; Unfreeze opens editing without
+changing the active tuple. P95 is retired; old markers become Undefined.
 Hover a bar or focus and use Left/Right arrows (Home/End for endpoints) for its
 range, count and share of history. The selected size label beside the chart
 reads Small, Medium, Large or Extreme; exact zero reads Unchanged and a missing
@@ -138,16 +136,10 @@ a Good/Bad reading without a usable magnitude baseline is Unclassified. History
 loading/errors suppress size counts, and partial coverage is marked. This adds
 detail to the tally without weighting readings or altering the majority rule.
 
-Threshold version `zero-centered-ap-all-dataset-v6` uses all released samples for
-histogram counts and explicit P95/thirds. Custom boundaries stay fixed; new valid
-releases grow N and source revisions replace samples. Unconfigured series are
-Undefined, with empty histogram cells and an explicit undefined tally note, while
-admitting exact decimal boundary equality despite floating-point rounding.
-For the stored October 2, 2026 example with P95 settings, the breakdown is **Good: 1 Small,
-1 Medium, 0 Large, 0 Extreme; Bad: 7 Small, 0 Medium, 0 Large, 0 Extreme**,
-plus **1 Unchanged**. Participation's +0.2 pp equals its Medium ceiling;
-earnings m/m's −0.2 pp equals its Small ceiling. Equality stays in the lower
-inclusive size category.
+Threshold version `zero-centered-ap-manual-all-dataset-v7` uses all admitted
+released samples for frequencies and fixed manual tuples for classification.
+New valid releases grow N; corrections replace samples. Decimal equality stays
+in the lower inclusive category. Undefined remains empty until configured.
 
 See [the reusable component and history contract](../../../magnitude/README.md)
 for the admission rules, arithmetic, module organization and verification.
