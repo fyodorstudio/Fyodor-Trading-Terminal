@@ -85,10 +85,13 @@ intervals; no source data is removed or changed.
 
 The Small, Medium and Large rows also have color boxes. Each box immediately
 colors that magnitude band's shading and boundary lines on both sides of zero,
-using the currently applied magnitude mode. Color edits preserve unfinished
+in both Custom and P95 modes. Color edits preserve unfinished
 boundary drafts and do not require **Apply boundaries**. These are global
 appearance preferences, separate from each series' numeric configuration.
-The same colors can be edited in Appearance. In P95 mode, the boxes target
+The same global palette can be edited in Appearance's **Shared magnitude colors**
+controls, from any series even when its magnitude is Undefined. Changes update
+all mounted docks and other windows through shared storage subscriptions.
+In P95 mode, the boxes target
 the canonical T/3, 2T/3 and T guides; choosing a color restores a missing
 canonical guide without moving or recoloring additional guides.
 
@@ -119,7 +122,8 @@ and shading opacity. Enabled levels are sorted by position when drawing bands.
 Color boxes can restore up to three canonical guides in addition to the eight
 guides admitted by the Appearance editor. New defaults use cyan, amber and
 violet for Small, Medium and Large, with 12%, 16% and 20% shading opacity.
-Existing saved colors and opacity are preserved.
+Saved opacity is preserved. Old split palettes migrate to one shared palette:
+edited Custom colors take priority; otherwise canonical P95 colors are inherited.
 
 In custom mode, the three guide positions are locked to the scoring boundaries;
 Appearance edits only their visibility, colors, widths and shades. Extra guide
@@ -128,9 +132,12 @@ changes scoring, sample admission or the manual viewport. Appearance preferences
 apply immediately and persist on this device under
 `fyodor.scatter-plot.appearance.v1`, independently of the price chart settings.
 Invalid stored values fall back safely; Reset appearance restores defaults.
-Automatic and custom guide styles are saved separately, so styling a custom
-boundary cannot discard extra guides configured for automatic mode. Older saved
-appearance settings initialize custom styles from matching existing levels.
+Automatic and custom guide positions, visibility, widths and shades are saved
+separately, so styling a custom boundary cannot discard extra automatic guides.
+Small/Medium/Large colors use one global palette across all families, series,
+brokers and modes. Extra P95 guides retain their own global visual colors.
+Shared snapshots are immutable, malformed storage is normalized, no-op saves
+do not notify consumers, and failed persistence retains session preferences.
 
 **Full range** shows all extremes. **P95 zoom** (or **Boundary zoom** in custom mode) changes only the viewport and
 places out-of-range readings at dated edge triangles with their true values in
@@ -239,9 +246,12 @@ Boundary tests cover unequal native-unit intervals, both signs and inclusive
 ties, empty history, invalid drafts/storage, per-series persistence, exact
 guide positions, shared Inspector/tally classifications, immediate Inspector
 hook updates, reopening and reset without inventory refetches.
-Color-box tests verify mirrored shading and strokes, independent custom/P95
-styles, restoring canonical guides, persistence and agreement with Appearance,
+Color-box tests verify mirrored shading and strokes, shared custom/P95 colors,
+independent remaining styles, restoring canonical guides, persistence and agreement with Appearance,
 while preserving numeric drafts, scores, requests and manual navigation.
+`tests/scatter-plot/test_scatter_appearance.mjs` covers legacy palette migration,
+fresh-module reload persistence, immutable snapshots, mounted/cross-window
+synchronization, no-op saves, storage failures and unsubscription.
 `tests/scatter-plot/test_magnitude_settings.mjs` covers independent scope keys
 even for reused series IDs, key separator collisions, frozen snapshots,
 cross-window validation/reset and listener cleanup, no-op saves, unavailable

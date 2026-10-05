@@ -34,6 +34,8 @@ minute). Countdown ticks update locally and do not refetch or regroup inventory.
 At the deadline a numeric episode shows **Awaiting release data**, then
 **Partial release data** while some source rows still lack Actual. When all
 numeric rows in that episode have finite Actual, the card leaves the queue.
+Completed numeric date-only/unconfirmed episodes also leave once all Actual
+values arrive; unavailable timing cannot leave them permanently queued.
 Commentary rows do not require numerical values; speeches leave at their time.
 Actual arrival is independent of magnitude admission: N still requires a valid
 Actual/Previous delta and compatible units.

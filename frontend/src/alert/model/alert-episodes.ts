@@ -14,14 +14,15 @@ export function alertEpisodes(events: StoredCalendarEvent[], preferences: Inspec
 export function alertEpisodesFromReleases(releases: InspectorRelease[], preferences: InspectorPreferences, now: number): AlertEpisode[] {
   return releases.flatMap((release): AlertEpisode[] => {
     if (!preferences.families.includes(release.familyId)) return []
+    const numeric = release.events.filter((event) => !isInspectorCommentary(event))
+    const arrived = numeric.filter((event) => event.actual !== null && Number.isFinite(event.actual)).length
     if (release.timingUncertain || release.releaseAt === null || !Number.isFinite(release.releaseAt)) {
+      if (numeric.length && arrived === numeric.length) return []
       // Retain dated schedules without inventing an exact UTC countdown.
       return [{ release, state: 'unconfirmed' }]
     }
     if (release.releaseAt > now + alertLookaheadDays * day || release.releaseAt < now - alertRecentDays * day) return []
     if (release.releaseAt > now) return [{ release, state: 'upcoming' }]
-    const numeric = release.events.filter((event) => !isInspectorCommentary(event))
-    const arrived = numeric.filter((event) => event.actual !== null && Number.isFinite(event.actual)).length
     // Speeches have no numerical publication to await. Completed numeric
     // episodes leave the queue; their readings remain in persistent storage.
     if (!numeric.length || arrived === numeric.length) return []

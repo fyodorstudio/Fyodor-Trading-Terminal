@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { customMagnitudeGuideStyles, defaultScatterAppearance, normalizeScatterAppearance, type ScatterAppearance, type ScatterGuideLevel, type ScatterLineStyle } from './scatter-plot-appearance'
+import { customMagnitudeGuideStyles, defaultScatterAppearance, normalizeScatterAppearance, withMagnitudeBandColor, magnitudeGuideColorIndex, type ScatterAppearance, type ScatterGuideLevel, type ScatterLineStyle } from './scatter-plot-appearance'
 import './scatter-plot-appearance-settings.css'
 
 function NumericSetting({ label, value, min, max, step = .5, onChange }: {
@@ -28,8 +28,11 @@ export function ScatterPlotAppearanceSettings({ appearance: a, onChange, onClose
   }, [onClose])
   const update = (value: ScatterAppearance) => onChange(normalizeScatterAppearance(value))
   const levels = customLimits ? customMagnitudeGuideStyles(a) : a.levels
-  const updateLevel = (id: number, patch: Partial<ScatterGuideLevel>) => update({ ...a,
-    [customLimits ? 'customLevels' : 'levels']: levels.map((level) => level.id === id ? { ...level, ...patch } : level) })
+  const updateLevel = (id: number, patch: Partial<ScatterGuideLevel>) => {
+    const index = customLimits ? levels.findIndex((level) => level.id === id) : magnitudeGuideColorIndex(levels.find((level) => level.id === id)!)
+    if (patch.color && index >= 0) update(withMagnitudeBandColor(a, index, patch.color, !!customLimits))
+    else update({ ...a, [customLimits ? 'customLevels' : 'levels']: levels.map((level) => level.id === id ? { ...level, ...patch } : level) })
+  }
   return <section className="scatter-appearance-settings" role="dialog" aria-modal="false" aria-label="Scatter Plot appearance">
     <header><strong>Scatter Plot appearance</strong><button ref={close} type="button" onClick={onClose} aria-label="Close Scatter Plot appearance">×</button></header>
     <div className="scatter-appearance-content">
@@ -44,6 +47,11 @@ export function ScatterPlotAppearanceSettings({ appearance: a, onChange, onClose
         <LineSetting label="Zero line" value={a.zero} onChange={(zero) => update({ ...a, zero })} />
         <LineSetting label="Inspected date" value={a.inspectedDate} onChange={(inspectedDate) => update({ ...a, inspectedDate })} />
       </fieldset>
+      <fieldset><legend>Shared magnitude colors</legend><div className="scatter-appearance-fields">
+        {(['Small', 'Medium', 'Large'] as const).map((label, index) => <label key={label}>{label}
+          <input type="color" aria-label={`${label} magnitude color`} value={a.magnitudeColors[index]}
+            onChange={(event) => update(withMagnitudeBandColor(a, index, event.target.value, !!customLimits))} /></label>)}
+      </div></fieldset>
       <fieldset><legend>Magnitude guides</legend>
         <div className="scatter-appearance-fields">
           <label><input type="checkbox" checked={a.showGuides} onChange={(e) => update({ ...a, showGuides: e.target.checked })} />Guide lines</label>

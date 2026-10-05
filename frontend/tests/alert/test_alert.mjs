@@ -45,6 +45,10 @@ try {
   assert.equal(alertEpisodes(schedule.map((event, index) => index ? event : { ...event, actual: .3 }), preferences, nextAt)[0].state, 'partial')
   assert.equal(alertEpisodes(schedule.map((event) => ({ ...event, actual: .3 })), preferences, nextAt).length, 0)
   assert.equal(alertEpisodes([row(cpi.events[0], nextAt, null, { time_mode: 1 })], preferences, now)[0].state, 'unconfirmed')
+  assert.equal(alertEpisodes([row(cpi.events[0], now - day, .3, { time_mode: 1 })], preferences, now).length, 0,
+    'Completed date-only releases leave Alert even if their exact clock remains unconfirmed')
+  assert.equal(alertEpisodes([row(cpi.events[0], now - day, .3, { release_at: null })], preferences, now).length, 0,
+    'Actual arrival resolves a numeric alert even when UTC timing is unavailable')
   assert.equal(alertCountdown(now + 50 * day + 23 * 3600000 + 20 * 60000, now), '50 days · 23 hours · 20 minutes remaining')
   assert.equal(alertCountdown(now - 1, now), '0 days · 0 hours · 0 minutes remaining')
   const policyPreferences = { ...preferences, families: ['fomc', 'fed-chair'] }

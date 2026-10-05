@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from 'react'
+
 export type ScatterLineStyle = { visible: boolean; color: string; width: number }
 export type ScatterGuideLevel = { id: number; visible: boolean; factor: number; color: string; width: number; shade: number }
 export type ScatterAppearance = {
@@ -6,11 +8,12 @@ export type ScatterAppearance = {
   showGuides: boolean; showBands: boolean; guideStyle: 'solid' | 'dashed' | 'dotted'; guideOpacity: number
   levels: ScatterGuideLevel[]
   customLevels: ScatterGuideLevel[]
+  magnitudeColors: readonly [string, string, string]
 }
 
 export const scatterAppearanceKey = 'fyodor.scatter-plot.appearance.v1'
 const magnitudeFactors = [1 / 3, 2 / 3, 1]
-const magnitudeColors = ['#0891b2', '#d97706', '#8b5cf6']
+const magnitudeColors = ['#0891b2', '#d97706', '#8b5cf6'] as const
 export const defaultScatterAppearance: ScatterAppearance = {
   dotSize: 10, selectedDotSize: 14, dotColor: '#64748b', goodColor: '#18a77d', badColor: '#e45462', quantileColor: '#6366f1',
   grid: { visible: true, color: '#94a3b8', width: .6 },
@@ -19,6 +22,7 @@ export const defaultScatterAppearance: ScatterAppearance = {
   showGuides: true, showBands: true, guideStyle: 'dashed', guideOpacity: 50,
   levels: magnitudeFactors.map((factor, index) => ({ id: index + 1, visible: true, factor, color: magnitudeColors[index], width: .7, shade: [12, 16, 20][index] })),
   customLevels: magnitudeFactors.map((factor, index) => ({ id: index + 1, visible: true, factor, color: magnitudeColors[index], width: .7, shade: [12, 16, 20][index] })),
+  magnitudeColors,
 }
 
 const object = (value: unknown): Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value) ? value as Record<string, unknown> : {}
@@ -51,22 +55,23 @@ export function normalizeScatterAppearance(value: unknown): ScatterAppearance {
     return { ...fallback, visible: bool(level.visible, fallback.visible), color: color(level.color, fallback.color),
       width: number(level.width, fallback.width, .25, 6), shade: number(level.shade, fallback.shade, 0, 100) }
   })
+  // Migrate the old split palettes. Prefer an edited Custom palette; otherwise
+  // inherit canonical P95 colors. Future edits always use this single palette.
+  const editedCustom = Array.isArray(item.customLevels) && customLevels.some((level, index) => level.color !== d.magnitudeColors[index])
+  const palette = magnitudeFactors.map((_, index) => color(Array.isArray(item.magnitudeColors) ? item.magnitudeColors[index] : undefined,
+    editedCustom ? customLevels[index].color : levels.find((level) => matchesMagnitudeFactor(level, index))?.color ?? customLevels[index].color)) as [string, string, string]
   return {
     dotSize: number(item.dotSize, d.dotSize, 2, 32), selectedDotSize: number(item.selectedDotSize, d.selectedDotSize, 2, 40),
     dotColor: color(item.dotColor, d.dotColor), goodColor: color(item.goodColor, d.goodColor), badColor: color(item.badColor, d.badColor), quantileColor: color(item.quantileColor, d.quantileColor),
     grid: line(item.grid, d.grid), zero: line(item.zero, d.zero), inspectedDate: line(item.inspectedDate, d.inspectedDate),
     showGuides: bool(item.showGuides, d.showGuides), showBands: bool(item.showBands, d.showBands),
     guideStyle: item.guideStyle === 'solid' || item.guideStyle === 'dotted' ? item.guideStyle : d.guideStyle,
-    guideOpacity: number(item.guideOpacity, d.guideOpacity, 0, 100), levels, customLevels,
+    guideOpacity: number(item.guideOpacity, d.guideOpacity, 0, 100), magnitudeColors: palette,
+    levels: levels.map((level) => {
+      const index = magnitudeFactors.findIndex((_, index) => matchesMagnitudeFactor(level, index))
+      return index < 0 ? level : { ...level, color: palette[index] }
+    }), customLevels: customLevels.map((level, index) => ({ ...level, color: palette[index] })),
   }
-}
-export function readScatterAppearance(): ScatterAppearance {
-  try { return normalizeScatterAppearance(JSON.parse(window.localStorage.getItem(scatterAppearanceKey) ?? '{}')) }
-  catch { return normalizeScatterAppearance(null) }
-}
-export function saveScatterAppearance(appearance: ScatterAppearance) {
-  try { window.localStorage.setItem(scatterAppearanceKey, JSON.stringify(appearance)) }
-  catch { /* Appearance still applies when device storage is unavailable. */ }
 }
 export function customMagnitudeGuideStyles(appearance: ScatterAppearance) {
   return appearance.customLevels
@@ -78,15 +83,20 @@ export function magnitudeBandGuideStyles(appearance: ScatterAppearance, custom: 
 }
 export function withMagnitudeBandColor(appearance: ScatterAppearance, index: number, nextColor: string, custom: boolean): ScatterAppearance {
   if (index < 0 || index >= magnitudeFactors.length || !Number.isInteger(index) || !/^#[0-9a-f]{6}$/i.test(nextColor)) return appearance
-  if (custom) return { ...appearance, customLevels: appearance.customLevels.map((level, at) => at === index ? { ...level, color: nextColor } : level) }
   const found = appearance.levels.some((level) => matchesMagnitudeFactor(level, index))
   let newId = 1
   while (appearance.levels.some((level) => level.id === newId)) newId++
   // Recreate an absent canonical P95 guide without moving an unrelated guide.
-  const levels = found ? appearance.levels.map((level) => matchesMagnitudeFactor(level, index) ? { ...level, color: nextColor } : level) :
+  const levels = found || custom ? appearance.levels.map((level) => matchesMagnitudeFactor(level, index) ? { ...level, color: nextColor } : level) :
     [...appearance.levels, { ...defaultScatterAppearance.levels[index], color: nextColor,
       id: newId }]
-  return { ...appearance, levels }
+  const palette = [...appearance.magnitudeColors] as [string, string, string]
+  palette[index] = nextColor
+  return { ...appearance, levels, magnitudeColors: palette,
+    customLevels: appearance.customLevels.map((level, at) => at === index ? { ...level, color: nextColor } : level) }
+}
+export function magnitudeGuideColorIndex(level: ScatterGuideLevel) {
+  return magnitudeFactors.findIndex((_, index) => matchesMagnitudeFactor(level, index))
 }
 export function scatterGuideLevels(appearance: ScatterAppearance, threshold: number, customLimits?: readonly number[]) {
   if (customLimits) return customMagnitudeGuideStyles(appearance).map((level, index) => ({ ...level,
@@ -98,4 +108,47 @@ export function scatterGuideLevels(appearance: ScatterAppearance, threshold: num
     inner = limit
     return result
   })
+}
+
+// One subscribed snapshot for every dock/family and browser window. Colors,
+// drafts and saved guide styles no longer diverge between mounted consumers.
+const appearanceChanged = `${scatterAppearanceKey}:changed`
+let cachedRaw: string | null | undefined
+let cachedAppearance: ScatterAppearance | undefined
+function immutableAppearance(appearance: ScatterAppearance) {
+  for (const line of [appearance.grid, appearance.zero, appearance.inspectedDate]) Object.freeze(line)
+  for (const levels of [appearance.levels, appearance.customLevels]) {
+    levels.forEach(Object.freeze); Object.freeze(levels)
+  }
+  Object.freeze(appearance.magnitudeColors)
+  return Object.freeze(appearance)
+}
+export function readScatterAppearance(): ScatterAppearance {
+  if (typeof window === 'undefined') return defaultScatterAppearance
+  try {
+    const raw = window.localStorage.getItem(scatterAppearanceKey)
+    if (!cachedAppearance || raw !== cachedRaw) {
+      cachedRaw = raw
+      try { cachedAppearance = immutableAppearance(normalizeScatterAppearance(JSON.parse(raw ?? '{}'))) }
+      catch { cachedAppearance = immutableAppearance(normalizeScatterAppearance(null)) }
+    }
+  } catch { /* Preserve session changes when device storage is unavailable. */ }
+  return cachedAppearance ??= immutableAppearance(normalizeScatterAppearance(null))
+}
+export function saveScatterAppearance(appearance: ScatterAppearance) {
+  const next = normalizeScatterAppearance(appearance), raw = JSON.stringify(next)
+  if (JSON.stringify(readScatterAppearance()) === raw) return
+  try { window.localStorage.setItem(scatterAppearanceKey, raw); cachedRaw = raw }
+  catch { /* Shared session changes still apply when device storage is unavailable. */ }
+  cachedAppearance = immutableAppearance(next)
+  window.dispatchEvent(new window.Event(appearanceChanged))
+}
+function subscribeAppearance(listener: () => void) {
+  const storage = (event: StorageEvent) => { if (event.key === scatterAppearanceKey || event.key === null) listener() }
+  window.addEventListener(appearanceChanged, listener)
+  window.addEventListener('storage', storage)
+  return () => { window.removeEventListener(appearanceChanged, listener); window.removeEventListener('storage', storage) }
+}
+export function useScatterAppearance() {
+  return useSyncExternalStore(subscribeAppearance, readScatterAppearance, () => defaultScatterAppearance)
 }

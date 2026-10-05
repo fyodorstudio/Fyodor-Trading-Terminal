@@ -5,7 +5,7 @@ import { MagnitudeScatterPlot } from '../plot/MagnitudeScatterPlot'
 import { MagnitudeCalculationDetails } from '../inspection/MagnitudeCalculationDetails'
 import { useFamilyScatterData } from './useFamilyScatterData'
 import { ScatterPlotAppearanceSettings } from '../settings/ScatterPlotAppearanceSettings'
-import { readScatterAppearance, saveScatterAppearance, magnitudeBandGuideStyles, withMagnitudeBandColor, type ScatterAppearance } from '../settings/scatter-plot-appearance'
+import { useScatterAppearance, saveScatterAppearance, magnitudeBandGuideStyles, withMagnitudeBandColor } from '../settings/scatter-plot-appearance'
 import { MagnitudeBoundaryEditor } from '../settings/MagnitudeBoundaryEditor'
 import { magnitudeConfiguration, useMagnitudeSettings, type MagnitudeSettings } from '../../inspector/magnitude/settings/magnitude-settings-store'
 import type { ScatterPlotDockProps, ScatterModel, ScatterOption } from '../contracts/scatter-plot-types'
@@ -27,11 +27,11 @@ export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, binding, famil
   // Reset with the source change, including a return to a previously inspected broker.
   if (selection.broker !== brokerId) setSelection({ broker: brokerId, releaseId: null })
   const [zoom, setZoom] = useState(false)
-  const [appearance, setAppearance] = useState(readScatterAppearance)
+  const appearance = useScatterAppearance()
   const [appearanceOpen, setAppearanceOpen] = useState(false)
   const appearanceButton = useRef<HTMLButtonElement>(null)
   const closeAppearance = useCallback(() => { setAppearanceOpen(false); appearanceButton.current?.focus() }, [])
-  const changeAppearance = useCallback((next: ScatterAppearance) => { setAppearance(next); saveScatterAppearance(next) }, [])
+  const changeAppearance = saveScatterAppearance
   const storage = useFamilyScatterData(brokerId, now, family)
   const magnitudeSettings = useMagnitudeSettings(family.settings)
   const selectedReleaseId = selection.broker === brokerId ? selection.releaseId : null
