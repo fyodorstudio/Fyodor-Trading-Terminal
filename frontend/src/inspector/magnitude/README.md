@@ -22,6 +22,8 @@ experimental majority direction, chart symbols or published Criterion results.
 | `FamilyMagnitudeCell.tsx` | Native formatting and loading/error/partial/no-sample presentation; truly empty cells in Undefined mode. |
 | `family-magnitude-tally.ts` / `FamilyMagnitudeTally.tsx` | Descriptive Good/Bad size counts and separate undefined/unclassified notes. The NFP wrapper supplies its existing direction badge; future families retain the descriptive fallback. |
 | `grading/cpi-magnitude-score.ts` / `CpiMagnitudeScoreTable.tsx` | Pure four-reading CPI score and its matrix: signed magnitude points, monthly/annual subtotals, total, explicit cancellation priority and EURUSD direction. |
+| `grading/signed-magnitude-score.ts` / `SignedMagnitudeMatrix.tsx` | Shared signed-point validation/classification and accessible matrix cells for rates and indexes. |
+| `grading/cpi-index-magnitude-score.ts` / `CpiIndexMagnitudeTable.tsx` | Four native-point CPI indexes and separate adjusted/unadjusted subtotals, excluded from the rate direction. |
 
 Future families register their catalog, grading, settings and documented
 sample rules, reusing shared engines. Do not copy NFP IDs or favorable directions into
@@ -152,7 +154,12 @@ the footer; positive Total means EURUSD Short and negative means EURUSD Long.
 Cancellation follows Core m/m, Headline m/m, Core y/y, Headline y/y, selecting
 the first nonzero contribution. All zero is Uncomputed. Undefined, missing,
 duplicate or unavailable scores cannot contribute to a Total/direction. Index
-and unadjusted monthly readings remain outside the score. See the canonical
+and unadjusted monthly readings remain outside the rate score. A separate
+Price indexes matrix sits to its left, using four adjusted/unadjusted headline/
+core index levels and their own native-point settings. Its adjusted and n.s.a.
+subtotals describe price-level movement; it supplies no FX direction. Selected
+release metadata lives in the toolbar, leaving the summary row for matrices.
+Both matrices share cell rendering and score validation. See the canonical
 [CPI rule](../Event%20Grading%20Terminology/USD/Inflation/CPI.md).
 
 In automatic P95 mode, all-zero or strongly zero-inflated history can have T = 0. The center still
@@ -218,7 +225,10 @@ Previous, Undefined cells/defaults, draft/apply/clear behavior, mode persistence
 family cancellation, independent scopes and shared live histogram updates.
 `tests/inspector/cpi/test_cpi_score.mjs` verifies signed points, equal weights,
 subtotals, cancellation priorities, unavailable data, index exclusions, matrix
-accessibility and live settings/reading updates without remounting.
+accessibility and live settings/reading updates without remounting. It also
+verifies index units, independent subtotals, unavailable states and exclusions
+from the primary rate score. Mounted Inspector checks verify toolbar metadata
+placement and the index-before-rate matrix order.
 
 Manual visual checks: table width/height at your preferred dock size, light/dark
 contrast, plot details, centered zero and colored extreme/empty-bin readability. These

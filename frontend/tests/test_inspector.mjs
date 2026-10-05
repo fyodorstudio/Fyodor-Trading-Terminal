@@ -103,7 +103,7 @@ try {
   assert.equal(groups[0].events.length, 3, 'Periods retained as separate source rows; duplicate value IDs excluded')
   const statement = event({ value_id: 'statement', event_id: '840050002', name: 'FOMC Statement', actual: null, previous: null, revised_previous: null, period_seconds: 0, unit: 0 })
   const decision = event({ value_id: 'decision', event_id: '840050014', name: 'Fed Interest Rate Decision' })
-  assert.equal(data.groupInspectorReleases([statement, decision]).length, 2, 'Same-time policy text stays separate from rate decisions')
+  assert.equal(data.groupInspectorReleases([statement, decision]).length, 1, 'Known FOMC commentary attaches to the decision episode')
   const pceReadings = [
     event({ value_id: 'pce-cm', event_id: '840010001', name: 'Core PCE Price Index m/m' }),
     event({ value_id: 'pce-cy', event_id: '840010002', name: 'Core PCE Price Index y/y' }),
@@ -171,6 +171,10 @@ try {
   assert.equal(app.container.querySelector('[aria-label="CPI pair direction"]').textContent, 'Uncomputed',
     'Incomplete CPI primary readings cannot produce a direction')
   assert.equal(app.container.querySelectorAll('.inspector-cpi-score tbody tr').length, 4)
+  assert.ok(app.container.querySelector('.inspector-header .inspector-detail-heading'), 'Selected release metadata shares the toolbar with calendar status')
+  assert.equal(app.container.querySelector('.inspector-detail .inspector-detail-heading'), null, 'Metadata leaves no separate summary heading row')
+  assert.deepEqual([...app.container.querySelectorAll('.inspector-detail-overview table')].map((table) => table.getAttribute('aria-label')),
+    ['CPI price index magnitude score', 'CPI signed magnitude score'], 'Index matrix precedes the rate matrix')
   assert.equal(app.container.querySelectorAll('.inspector-shared-period').length, 1)
   assert.doesNotMatch(app.container.querySelector('.inspector-table-scroll tbody').textContent, /Period:/, 'Shared period is shown once above the table')
   assert.ok(app.container.querySelector('[aria-label="About A−P"]').getAttribute('aria-describedby'))
@@ -615,8 +619,8 @@ try {
   await respond(storageRequests[3], storedHealth())
   const historicRequest = storageRequests[4]
   const query = new URL('http://localhost' + historicRequest.url).searchParams
-  assert.equal(Number(query.get('from_server_seconds')), Date.UTC(2015, 0, 1) / 1000, 'Dates query raw broker midnights')
-  assert.equal(Number(query.get('to_server_seconds')), Date.UTC(2015, 1, 1) / 1000, 'End date is inclusive in UI and exclusive in API')
+  assert.equal(Number(query.get('from_server_seconds')), Date.UTC(2015, 0, 1) / 1000 - 3600, 'Episode queries include one hour before the visible broker range')
+  assert.equal(Number(query.get('to_server_seconds')), Date.UTC(2015, 1, 1) / 1000 + 3600, 'Episode queries include one hour after the visible broker range')
   assert.equal(query.get('time_basis'), 'chart', 'Range dates refer to the native broker candle clock')
   const historic = { ...stored(event({ server_time_seconds: Date.UTC(2015, 0, 15, 15, 30) / 1000 })),
     chart_time_seconds: Date.UTC(2015, 0, 15, 14, 30) / 1000 }
@@ -752,8 +756,8 @@ try {
   assert.equal(storageRequests.length, start + 1, 'A completed calendar range starts one storage lifecycle')
   await respond(storageRequests[start], storedHealth())
   const completedParams = new URL('http://localhost' + storageRequests[start + 1].url).searchParams
-  assert.equal(Number(completedParams.get('from_server_seconds')), Date.UTC(2026, 9, 1) / 1000)
-  assert.equal(Number(completedParams.get('to_server_seconds')), Date.UTC(2026, 9, 3) / 1000)
+  assert.equal(Number(completedParams.get('from_server_seconds')), Date.UTC(2026, 9, 1) / 1000 - 3600)
+  assert.equal(Number(completedParams.get('to_server_seconds')), Date.UTC(2026, 9, 3) / 1000 + 3600)
   await respond(storageRequests[start + 1], page([rawRow]))
   assert.equal(rangeView.releases.length, 1)
   start = storageRequests.length

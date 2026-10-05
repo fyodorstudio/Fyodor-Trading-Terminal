@@ -23,6 +23,8 @@ const mount = (Component, props) => {
 try {
   const { assessCpiMagnitudeScore, cpiScoreSeries } = await server.ssrLoadModule('./src/inspector/grading/cpi-magnitude-score.ts')
   const { CpiMagnitudeScoreTable } = await server.ssrLoadModule('./src/inspector/magnitude/CpiMagnitudeScoreTable.tsx')
+  const { CpiIndexMagnitudeTable } = await server.ssrLoadModule('./src/inspector/magnitude/CpiIndexMagnitudeTable.tsx')
+  const { assessCpiIndexMagnitudeScore, cpiIndexScoreSeries } = await server.ssrLoadModule('./src/inspector/grading/cpi-index-magnitude-score.ts')
   const { useFamilyMagnitudeHistory } = await server.ssrLoadModule('./src/inspector/magnitude/useFamilyMagnitudeHistory.ts')
   const { familyMagnitudeHistory } = await server.ssrLoadModule('./src/inspector/magnitude/family-magnitude-history.ts')
   const { cpiMagnitudeFamily } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-families.ts')
@@ -99,6 +101,49 @@ try {
     'Custom boundaries classify current readings independently of historical frequencies')
   console.log('✓ Equal series weights, signed 0–4 magnitudes, decimal ties, Extreme dominance, subtotals, cancellation priorities and strict unavailable/source gates')
 
+  const indexRelease = { ...selected, events: [...selected.events, ...cpiIndexScoreSeries.map((series, index) => ({
+    ...selected.events[0], event_id: series.id, value_id: series.id, unit: 0, digits: 3,
+    actual: 300 + [1, 2, -3, 0][index], previous: 300,
+    actual_raw_scaled_1e6: String((300 + [1, 2, -3, 0][index]) * 1e6), previous_raw_scaled_1e6: '300000000',
+  }))] }
+  const allSettings = { ...decimalSettings, ...Object.fromEntries(cpiIndexScoreSeries.map((series) => [series.id, [1, 2, 3]])) }
+  const indexHistory = ready(indexRelease, allSettings)
+  const indexScore = assessCpiIndexMagnitudeScore(indexRelease, indexHistory)
+  assert.deepEqual(indexScore.readings.map((row) => row.score), [1, 2, -3, 0])
+  assert.equal(indexScore.adjusted, 3); assert.equal(indexScore.nsa, -3)
+  assert.equal('direction' in indexScore, false, 'Index movement has no independent FX direction')
+  assert.equal(assessCpiMagnitudeScore(indexRelease, indexHistory).total, 2, 'Index scores never enter the rate total')
+  assert.equal(assessCpiIndexMagnitudeScore(null, indexHistory), null)
+  for (const delta of [1, 2, 3, 4, -1, -2, -3, -4]) {
+    const changed = { ...indexRelease, events: indexRelease.events.map((event) => event.event_id === '840030035' ? {
+      ...event, actual: 300 + delta, actual_raw_scaled_1e6: String((300 + delta) * 1e6),
+    } : event) }
+    assert.equal(assessCpiIndexMagnitudeScore(changed, ready(changed, allSettings)).readings[0].score, delta)
+  }
+  const missingIndex = { ...indexRelease, events: indexRelease.events.filter((event) => event.event_id !== '840030035') }
+  assert.equal(assessCpiIndexMagnitudeScore(missingIndex, ready(missingIndex, allSettings)).adjusted, null)
+  assert.equal(assessCpiIndexMagnitudeScore(missingIndex, ready(missingIndex, allSettings)).nsa, -3)
+  const duplicateIndex = { ...indexRelease, events: [...indexRelease.events, { ...indexRelease.events[4], value_id: 'duplicate-index' }] }
+  assert.equal(assessCpiIndexMagnitudeScore(duplicateIndex, ready(duplicateIndex, allSettings)).readings[0].status, 'duplicate')
+  const wrongUnitIndex = { ...indexRelease, events: indexRelease.events.map((event) => event.event_id === '840030035' ? { ...event, unit: 1 } : event) }
+  assert.equal(assessCpiIndexMagnitudeScore(wrongUnitIndex, ready(wrongUnitIndex, allSettings)).readings[0].status, 'unavailable')
+  const undefinedIndexes = assessCpiIndexMagnitudeScore(indexRelease, ready(indexRelease, decimalSettings))
+  assert.equal(undefinedIndexes.adjusted, null); assert.equal(undefinedIndexes.nsa, null)
+  assert.equal(undefinedIndexes.readings[3].status, 'undefined', 'Unconfigured unchanged indexes remain Undefined')
+
+  const indexTable = mount(CpiIndexMagnitudeTable, { release: indexRelease, history: indexHistory })
+  await indexTable.render()
+  assert.deepEqual([...indexTable.container.querySelectorAll('tbody th')].map((cell) => cell.textContent),
+    ['Headline adjusted', 'Core adjusted', 'Headline n.s.a.', 'Core n.s.a.'])
+  assert.deepEqual([...indexTable.container.querySelectorAll('[data-score]')].map((cell) => cell.textContent), ['+1', '+2', '−3', '0'])
+  assert.equal(indexTable.container.querySelector('[aria-label="CPI index score"]').textContent.trim(), 'Adjusted +3 · n.s.a. −3')
+  assert.match(indexTable.container.querySelector('caption').textContent, /price level rose.*red negative means it fell.*separate from the EURUSD rate score/)
+  assert.doesNotMatch(indexTable.container.querySelector('thead').textContent, /EURUSD|Long|Short/)
+  await indexTable.render({ release: indexRelease, history: ready(indexRelease, decimalSettings) })
+  assert.equal(indexTable.container.querySelectorAll('[data-score]').length, 0)
+  assert.equal(indexTable.container.querySelectorAll('tbody td[colspan="5"]').length, 4)
+  console.log('✓ CPI native-point index scores, adjusted/n.s.a. separation, missing/duplicate/undefined/unit gates and independent accessible matrix')
+
   const table = mount(CpiMagnitudeScoreTable, { release: selected, history: ready(selected, decimalSettings) })
   await table.render()
   const scoreTable = () => table.container.querySelector('[aria-label="CPI signed magnitude score"]')
@@ -150,6 +195,18 @@ try {
   await React.act(async () => { for (const series of cpiScoreSeries) cpiMagnitudeFamily.settings.save(series.id, 'p95') })
   assert.equal(live.container.querySelector('[aria-label="CPI pair direction"]').textContent, 'Uncomputed')
   assert.match(live.container.textContent, /Unavailable/)
+  assert.equal(fetches, 0)
+  function LiveIndexScore() {
+    return React.createElement(CpiIndexMagnitudeTable, { release: indexRelease, history: useFamilyMagnitudeHistory(null, indexRelease) })
+  }
+  const liveIndex = mount(LiveIndexScore, {})
+  await liveIndex.render()
+  assert.match(liveIndex.container.textContent, /Undefined/)
+  await React.act(async () => { for (const series of cpiIndexScoreSeries) cpiMagnitudeFamily.settings.save(series.id, [1, 2, 3]) })
+  assert.match(liveIndex.container.textContent, /Adjusted \+3 · n.s.a. −3/)
+  await React.act(async () => cpiMagnitudeFamily.settings.save('840030035', [.1, .2, .3]))
+  assert.match(liveIndex.container.textContent, /Adjusted \+6 · n.s.a. −3/)
+  assert.equal(live.container.querySelector('[aria-label="CPI pair direction"]').textContent, 'Uncomputed', 'Index settings cannot configure or score primary rates')
   assert.equal(fetches, 0)
   console.log('✓ CPI matrix, USD sign/color accessibility, explicit Undefined states, tie-break display, partial history and live settings/reading updates')
 } finally {

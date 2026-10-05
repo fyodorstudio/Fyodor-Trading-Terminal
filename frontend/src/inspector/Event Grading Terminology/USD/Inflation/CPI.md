@@ -45,9 +45,35 @@ Custom cutoffs can classify without historical samples. Configured exact-zero
 readings need no historical threshold, while Undefined stays Undefined.
 
 Index levels and unadjusted monthly rates remain in the source table and Scatter
-Plot but do not contribute to this primary score. Index scoring is deferred.
+Plot but do not contribute to this primary score.
 Calculation lives in `grading/cpi-magnitude-score.ts`; presentation lives in
 `magnitude/CpiMagnitudeScoreTable.tsx`. NFP's existing direction rule is unchanged.
+
+## Separate price-index matrix
+
+Index score version: `cpi-index-signed-magnitude-v1`. To the left of the primary
+rate matrix, **Price indexes** contains Headline adjusted (840030035), Core
+adjusted (840030010), Headline n.s.a. (840030009), Core n.s.a. (840030036).
+It uses the same 0–4 columns and signed cells, with each index's independently
+saved native-point magnitude limits. Positive/green means the price level rose;
+negative/red means it fell; zero/gray means unchanged. These are movement points,
+not evidence that the inflation rate accelerated or slowed.
+
+Adjusted and n.s.a. subtotals require both readings in their respective group.
+Undefined, missing, duplicate or incompatible readings remain unresolved. The
+same shared classifier handles Custom and explicit P95. No index points enter
+the rate Total or EURUSD direction, and the index matrix has no FX direction
+badge. The two unadjusted monthly percentage rates are not index levels and
+remain outside both matrices. No source readings or series are removed.
+
+`grading/signed-magnitude-score.ts` and `magnitude/SignedMagnitudeMatrix.tsx`
+share classification, validation and matrix rendering. Index-specific series
+and subtotals live in `grading/cpi-index-magnitude-score.ts`; its table wrapper
+is `magnitude/CpiIndexMagnitudeTable.tsx`.
+
+The selected release title, display/broker clocks and shared period now occupy
+the main Inspector toolbar beside release-list controls and calendar status.
+The summary row contains only the matrices and wraps when the dock is narrow.
 
 ## Stable inventory catalog
 

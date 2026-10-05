@@ -192,8 +192,10 @@ lower is Bad/red and zero is Unchanged/gray. Six rate readings use pp and four
 index levels use pts. Scatter magnitude settings also drive Inspector's primary
 four-reading score: equal series weights, signed 0–4 magnitude points, separate
 monthly/annual subtotals and a total-based EURUSD direction with explicit
-cancellation priority. Index levels and unadjusted monthly rates remain available
-for inspection but do not contribute to that score. See the canonical
+cancellation priority. The same saved configurations drive a separate four-index
+matrix in Inspector, with native-point classification and adjusted/unadjusted
+subtotals. Index levels and unadjusted monthly rates do not contribute to the
+EURUSD rate score. See the canonical
 [CPI rule definitions](../inspector/Event%20Grading%20Terminology/USD/Inflation/CPI.md).
 
 ## Verification

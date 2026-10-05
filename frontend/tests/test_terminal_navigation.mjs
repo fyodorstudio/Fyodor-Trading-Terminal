@@ -68,7 +68,7 @@ try {
   assert.ok(shell.querySelector('.floating-drawing-toolbar, .drawing-toolbar'))
   console.log('✓ Production shell renders live chart, drawings and surviving navigation')
 
-  const { LeftDockPanel } = await server.ssrLoadModule('./src/workspace-docking/left-dock/LeftDockPanel.tsx')
+  const { LeftDockPanel, marketWatchCollapsedKey } = await server.ssrLoadModule('./src/workspace-docking/left-dock/LeftDockPanel.tsx')
   const { BottomDockPanel } = await server.ssrLoadModule('./src/workspace-docking/bottom-dock/BottomDockPanel.tsx')
   const { TerminalStatusBar } = await server.ssrLoadModule('./src/terminal-shell/TerminalStatusBar.tsx')
   const { useInspector, InspectorPanel } = await server.ssrLoadModule('./src/inspector/index.ts')
@@ -94,6 +94,21 @@ try {
   await React.act(async () => root.render(React.createElement(Navigation)))
   const findButton = (selector, label) => [...container.querySelectorAll(selector)].find((button) => button.textContent.trim() === label)
   const click = async (button) => { assert.ok(button); await React.act(async () => button.click()) }
+  const marketSearch = container.querySelector('[aria-label="Search symbols"]')
+  const searchProps = marketSearch[Object.getOwnPropertyNames(marketSearch).find((key) => key.startsWith('__reactProps$'))]
+  await React.act(async () => searchProps.onChange({ target: { value: 'EUR' } }))
+  await click(container.querySelector('[aria-label="Collapse Market Watch"]'))
+  assert.ok(container.querySelector('.left-dock.collapsed'))
+  assert.equal(container.querySelector('.left-dock-content').hidden, true)
+  assert.equal(container.querySelector('[aria-label="Show Market Watch"]').getAttribute('aria-expanded'), 'false')
+  assert.equal(localStorage.getItem(marketWatchCollapsedKey), 'true')
+  await click(container.querySelector('[aria-label="Show Market Watch"]'))
+  assert.equal(container.querySelector('.left-dock-content').hidden, false)
+  assert.equal(container.querySelector('[aria-label="Search symbols"]').value, 'EUR', 'Collapse keeps search and category state mounted')
+  assert.equal(container.querySelector('[aria-label="Collapse Market Watch"]').getAttribute('aria-controls'), container.querySelector('.left-dock-content').id)
+  assert.equal(localStorage.getItem(marketWatchCollapsedKey), 'false')
+  await React.act(async () => searchProps.onChange({ target: { value: '' } }))
+  console.log('✓ Market Watch collapse/reopen control, saved preference, accessible state and retained search')
   await click(findButton('.status-actions button', 'Inspector'))
   assert.ok(container.querySelector('.inspector-panel'))
   assert.deepEqual([...container.querySelectorAll('.bottom-dock-tabs button')].slice(0, -1)
@@ -120,6 +135,20 @@ try {
   assert.equal(container.querySelector('.bottom-dock'), null)
   console.log('✓ Mounted navigation opens/closes Inspector and retains EURUSD-only support')
   console.log('✓ Scatter Plot opens from the status bar and dock tab with fixed EURUSD/USD Quote scope')
+
+  localStorage.setItem(marketWatchCollapsedKey, 'true')
+  const leftDockProps = { symbols: quotes, selectedSymbol: 'EURUSD', marketWatchStatus: 'live', marketWatchError: null, onSelectSymbol: noop }
+  await React.act(async () => root.render(React.createElement(LeftDockPanel, leftDockProps)))
+  assert.ok(container.querySelector('.left-dock.collapsed'), 'A fresh mount restores the saved collapsed state')
+  await click(container.querySelector('[aria-label="Show Market Watch"]'))
+  assert.equal(container.querySelector('.left-dock-content').hidden, false)
+  const storageDescriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage')
+  Object.defineProperty(globalThis, 'localStorage', { configurable: true, get() { throw new Error('Storage unavailable') } })
+  try {
+    await click(container.querySelector('[aria-label="Collapse Market Watch"]'))
+    assert.equal(container.querySelector('.left-dock-content').hidden, true, 'Storage failures never prevent session collapse')
+    await click(container.querySelector('[aria-label="Show Market Watch"]'))
+  } finally { Object.defineProperty(globalThis, 'localStorage', storageDescriptor) }
 
   // Mount the actual Notebook overlay against the chart library API boundary.
   await React.act(async () => root.unmount())

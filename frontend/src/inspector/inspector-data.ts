@@ -4,6 +4,7 @@ import { isEventSymbol, type EventSymbol } from './event-symbols'
 import type { ChartTimeframe } from '../market-data/contracts/ChartTimeframe'
 import type { OhlcBar } from '../market-data/contracts/OhlcBar'
 import type { CalendarDisplayRange } from './calendar-display-range'
+import { fomcDecisionId, fomcCompanionIds, groupFomcEpisodes } from './episodes/fomc-episodes'
 
 const originalInspectorFamilies = ['ecb', 'ecb-president', 'fomc', 'fed-chair', 'euro-inflation', 'german-inflation', 'us-cpi', 'pce', 'ppi']
 const inspectorFamilyOrder = [...originalInspectorFamilies, 'euro-labor', 'euro-wages', 'jobs', 'claims',
@@ -68,6 +69,9 @@ function releaseLabel(event: EconomicCalendarEvent, familyId: string): string | 
   return null
 }
 export type InspectorEvent = EconomicCalendarEvent & { chart_time_seconds?: number | null }
+export function inspectorEventChartTime(event: InspectorEvent): number | null {
+  return event.chart_time_seconds === undefined ? event.release_at === null ? null : event.release_at / 1000 : event.chart_time_seconds
+}
 
 export function isInspectorCommentary(event: EconomicCalendarEvent): boolean {
   const family = inspectorFamilies.find((item) => item.country === event.country_code && item.currency === event.currency &&
@@ -80,6 +84,7 @@ export function isInspectorCommentary(event: EconomicCalendarEvent): boolean {
 // Display paired monthly readings before paired annual readings. Catalog
 // order differs for PCE and euro-area CPI; original source rows stay intact.
 const releaseReadingOrder: Record<string, readonly string[]> = {
+  fomc: [fomcDecisionId, ...fomcCompanionIds],
   jobs: ['840030016', '840030015', '840030017', '840030018', '840030019', '840030020', '840030023', '840030022', '840030032', '840030024'],
   'us-cpi': ['840030005', '840030006', '840030007', '840030008'],
   pce: ['840010003', '840010001', '840010004', '840010002'],
@@ -88,8 +93,8 @@ const releaseReadingOrder: Record<string, readonly string[]> = {
   'german-inflation': ['276010020', '276010022', '276010021', '276010023'],
 }
 
-// Same family, country and exact publication time form a release. Commentary
-// retains its own identity even when published alongside a rate decision.
+// Exact publication identity forms the initial releases; verified FOMC
+// companions then attach to a decision within its bounded episode window.
 // Reference periods and revision/value identities remain on individual rows.
 export function groupInspectorReleases(events: InspectorEvent[]): InspectorRelease[] {
   const groups = new Map<string, InspectorRelease>()
@@ -100,7 +105,7 @@ export function groupInspectorReleases(events: InspectorEvent[]): InspectorRelea
     if (!family || seen.has(event.value_id)) continue
     seen.add(event.value_id)
     const label = releaseLabel(event, family.id) ?? family.label
-    const chartTime = event.chart_time_seconds === undefined ? event.release_at === null ? null : event.release_at / 1000 : event.chart_time_seconds
+    const chartTime = inspectorEventChartTime(event)
     const id = JSON.stringify([family.id, event.country_code, event.currency, event.release_at === null ? event.server_time_seconds : event.release_at / 1000,
       event.time_mode, label, event.server_time_seconds <= 0 ? event.value_id : null])
     let group = groups.get(id)
@@ -116,14 +121,15 @@ export function groupInspectorReleases(events: InspectorEvent[]): InspectorRelea
     group.chartTime ??= chartTime
     group.timingUncertain ||= event.time_mode !== 0
   }
-  for (const group of groups.values()) {
+  const episodes = groupFomcEpisodes([...groups.values()])
+  for (const group of episodes) {
     const catalogOrder = inspectorFamilies.find((family) => family.id === group.familyId)!.events as readonly string[]
     const principal = releaseReadingOrder[group.familyId] ?? []
     const order = [...principal, ...catalogOrder.filter((id) => !principal.includes(id))]
     group.events.sort((a, b) => order.indexOf(a.event_id) - order.indexOf(b.event_id) ||
       a.period_seconds - b.period_seconds || a.revision - b.revision || a.value_id.localeCompare(b.value_id))
   }
-  return [...groups.values()].sort((a, b) => a.serverTime - b.serverTime || a.label.localeCompare(b.label))
+  return episodes.sort((a, b) => a.serverTime - b.serverTime || a.label.localeCompare(b.label))
 }
 export function filterInspectorReleases(groups: InspectorRelease[], preferences: InspectorPreferences, range: CalendarDisplayRange | null, brokerTime = false) {
   if (!range) return []

@@ -35,7 +35,9 @@ dependency/build/cache/local-inventory files requiring cleanup.
 - CPI retains the chosen higher/lower inflation USD-pressure grading convention
   and rate/index native units. Its four primary rates now supply signed 0–4
   magnitude points with equal series weights, separate monthly/annual subtotals
-  and a total-based EURUSD direction; index scoring remains outside this rule.
+  and a total-based EURUSD direction. A separate four-index matrix uses the
+  shared classifier and saved native-point limits, with adjusted/unadjusted
+  movement subtotals excluded from the EURUSD rate score.
 - Storage failures retain session settings. Preference persistence remains on
   this device; it does not alter the calendar data source.
 - Appearance preferences remain separate from scoring configuration.
