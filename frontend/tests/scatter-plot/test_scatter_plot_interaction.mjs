@@ -19,7 +19,7 @@ try {
   const { scaleScatterAxis, limitScatterDates } = await server.ssrLoadModule('./src/scatter-plot/plot/scatter-plot-viewport.ts')
   const { magnitudeDistribution } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-distribution.ts')
   const points = [-120, 450, -30].map((delta, index) => ({ id: `point${index}`, releaseId: `release${index}`,
-    at: Date.UTC(2026, index, 6, 13, 30), delta, actual: 500 + delta, previous: 500, tone: delta > 0 ? 'good' : 'bad' }))
+    at: Date.UTC(2026, index, 6, 13, 30), delta, actual: 500 + delta, previous: 500, tone: delta > 0 ? 'higher' : 'lower' }))
   const distribution = magnitudeDistribution(points.slice(0, 2).map((p) => p.delta), points[2].delta, [1, 2, 3])
   const model = { points, formatReading: String, formatDelta: (v) => `${v > 0 ? '+' : ''}${Math.round(v * 1e6) / 1e6}k`,
     inspection: { releaseId: points[2].releaseId, at: points[2].at, point: points[2], actual: points[2].actual, previous: 500,

@@ -47,16 +47,16 @@
 .inspector-grade { display: inline-flex; align-items: center; gap: 4px; font-weight: 650; }
 .inspector-majority { padding: 2px 6px; border: 1px solid currentColor; border-radius: 4px; background: color-mix(in srgb, currentColor 8%, var(--surface-panel)); }
 .inspector-grade::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-.inspector-grade-good, .inspector-direction-long { color: #13743a; }
-.inspector-grade-bad, .inspector-direction-short { color: #bd2935; }
-.inspector-grade-unchanged, .inspector-grade-missing, .inspector-grade-unrated, .inspector-direction-neutral, .inspector-direction-incomplete, .inspector-direction-uncomputed { color: var(--text-muted); }
+.inspector-grade-higher, .inspector-score-positive, .inspector-direction-long { color: #13743a; }
+.inspector-grade-lower, .inspector-score-negative, .inspector-direction-short { color: #bd2935; }
+.inspector-grade-unchanged, .inspector-score-unchanged, .inspector-grade-missing, .inspector-grade-unrated, .inspector-direction-neutral, .inspector-direction-incomplete, .inspector-direction-uncomputed { color: var(--text-muted); }
 .inspector-signed-score-value { font-weight: 650; }
 .inspector-signed-magnitude-matrix th span[title] { cursor: help; }
 .inspector-signed-magnitude-matrix th span:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .inspector-row-grade { display: inline-block; margin-left: 8px; font-size: 9px; font-weight: 650; }
 .inspector-graded-delta { font-weight: 650; }
-:root[data-theme='dark'] .inspector-grade-good, :root[data-theme='dark'] .inspector-direction-long { color: #6ee7a0; }
-:root[data-theme='dark'] .inspector-grade-bad, :root[data-theme='dark'] .inspector-direction-short { color: #fda4af; }
+:root[data-theme='dark'] .inspector-grade-higher, :root[data-theme='dark'] .inspector-score-positive, :root[data-theme='dark'] .inspector-direction-long { color: #6ee7a0; }
+:root[data-theme='dark'] .inspector-grade-lower, :root[data-theme='dark'] .inspector-score-negative, :root[data-theme='dark'] .inspector-direction-short { color: #fda4af; }
 .inspector-empty { padding: 16px; margin: 0; color: var(--text-muted); line-height: 1.6; }
 .inspector-currency-EUR { color: #2563eb; }
 .inspector-currency-USD { color: #9333ea; }

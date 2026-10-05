@@ -39,7 +39,7 @@ export function ScatterPlotAppearanceSettings({ appearance: a, onChange, onClose
       <fieldset><legend>Dots</legend><div className="scatter-appearance-fields">
         <NumericSetting label="Dot diameter (px)" value={a.dotSize} min={2} max={32} onChange={(dotSize) => update({ ...a, dotSize })} />
         <NumericSetting label="Selected dot diameter (px)" value={a.selectedDotSize} min={2} max={40} onChange={(selectedDotSize) => update({ ...a, selectedDotSize })} />
-        {([['Dot color', 'dotColor'], ['Selected Good color', 'goodColor'], ['Selected Bad color', 'badColor']] as const).map(([label, key]) =>
+        {([['Dot color', 'dotColor'], ['Selected Higher color', 'higherColor'], ['Selected Lower color', 'lowerColor']] as const).map(([label, key]) =>
           <label key={key}>{label}<input type="color" value={a[key]} onChange={(e) => update({ ...a, [key]: e.target.value })} /></label>)}
       </div></fieldset>
       <fieldset><legend>Connecting line</legend>

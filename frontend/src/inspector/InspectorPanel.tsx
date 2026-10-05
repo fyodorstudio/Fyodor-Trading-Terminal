@@ -44,6 +44,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const showReadingTimes = release?.familyId === 'fomc'
   const magnitudeFamily = magnitudeFamilies.find((family) => matchesReadingFamily(release, family)) ?? null
   const tally = magnitudeFamily ? tallyFamilyReadings(release, magnitudeFamily, magnitudeFamily.gradingVersion) : null
+  const showHistograms = !!tally && view.preferences.showHistograms
   const releaseTime = (item: InspectorRelease) => view.brokerTime
     ? `${formatAppTimestamp(item.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
     : item.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(item.releaseAt, timeDisplay)
@@ -64,11 +65,14 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
       <strong>{symbol}</strong>
       <InspectorDateRangePicker view={view} />
       <button type="button" disabled={!view.supported} aria-haspopup="dialog" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(true)}>Filters</button>
+      {view.supported && <button type="button" aria-pressed={view.preferences.showHistograms}
+        onClick={() => view.applyPreferences({ ...view.preferences, showHistograms: !view.preferences.showHistograms })}>
+        {view.preferences.showHistograms ? 'Hide histogram' : 'Show histogram'}</button>}
       {view.supported && <div className="inspector-context"><span>{view.releases.length} releases · {view.brokerTime ? 'Broker time' : timeDisplayLabel(timeDisplay)}</span>
         <button type="button" className="inspector-list-toggle" aria-expanded={listOpen} aria-controls={`${panelId}-releases`}
           onClick={() => setListOpen((open) => !open)}>{listOpen ? 'Hide releases' : 'Show releases'}</button>
         <span role="status">{view.brokerTime ? storageStatus : sourceLabel(source, error)}</span>
-        {view.storageFailed && <span role="alert">Filter settings could not be saved in this browser.</span>}
+        {view.storageFailed && <span role="alert">Inspector settings could not be saved in this browser.</span>}
         {!view.range && <span role="alert">Choose a valid date range with the start before or on the end date.</span>}
         {view.brokerTime && missingCoverage.length > 0 && <span role="status">Coverage pending for {missingCoverage.join(' and ')} in this range; stored readings remain available.</span>}
         {view.brokerTime && view.storage.collectorError && <span role="alert">Live collection delayed: {view.storage.collectorError}</span>}
@@ -103,9 +107,11 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
                   <CpiMagnitudeScoreTable release={release} history={view.magnitudeHistory} />
                 </> : <FamilyMagnitudeTally release={release} history={view.magnitudeHistory} family={magnitudeFamily} />}
             </div>}
-            <div className="inspector-table-scroll"><table className={tally ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
+            <div className="inspector-table-scroll"><table className={showHistograms ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
               <thead><tr><th>Series</th>{showReadingTimes && <th>Release time</th>}<th>Actual</th><th>Previous</th><th>A−P</th>{tally && <th
-                title="Seven A−P bands: three negative, exact zero, three positive. Boundaries follow the selected series' Scatter Plot configuration. Undefined magnitude leaves this cell empty. Height counts all usable released readings since January 2015 through now; Extreme values sit beyond the configured range.">A−P magnitude · History</th>}</tr></thead>
+                title={showHistograms ? "Seven A−P bands: three negative, exact zero, three positive. Boundaries follow the selected series' Scatter Plot configuration. Undefined magnitude leaves this cell empty. Height counts all usable released readings since January 2015 through now; Extreme values sit beyond the configured range." :
+                  "Magnitude follows this series' frozen manual boundaries in Scatter Plot. Undefined magnitude leaves this cell empty."}>
+                {showHistograms ? 'A−P magnitude · History' : 'Magnitude'}</th>}</tr></thead>
               <tbody>{release.events.map((event) => {
                 const delta = inspectorDelta(event)
                 const commentary = isInspectorCommentary(event)
@@ -122,7 +128,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
                   <td className={grading ? `inspector-graded-delta inspector-grade-${grading.grade}` : undefined} title={grading?.explanation}>
                     {commentary ? 'Not applicable' : formatInspectorValue(delta, event, true)}
                     {grading && magnitudeFamily && <span className="inspector-row-grade">{gradeLabels[grading.grade]}</span>}</td>
-                  {tally && <FamilyMagnitudeCell event={event} history={view.magnitudeHistory} grade={grading?.grade ?? 'unrated'} />}
+                  {tally && <FamilyMagnitudeCell event={event} history={view.magnitudeHistory} grade={grading?.grade ?? 'unrated'}
+                    showHistogram={showHistograms} />}
                 </tr>
               })}</tbody>
             </table></div>

@@ -16,6 +16,8 @@
 .inspector-detail .inspector-magnitude-table th:first-child, .inspector-detail .inspector-magnitude-table td:first-child { width: 36%; }
 .inspector-detail .inspector-magnitude-table th:last-child { text-align: left; }
 .inspector-detail td.inspector-magnitude-cell { width: 272px; min-width: 272px; text-align: left; }
+.inspector-detail td.inspector-magnitude-only { width: auto; min-width: 64px; }
+.inspector-magnitude-only .magnitude-size { display: block; text-align: left; }
 .inspector-magnitude-status { color: var(--text-muted); font-size: 10px; }
 .magnitude-details { position: fixed; z-index: 60; width: min(340px, calc(100vw - 32px)); box-sizing: border-box; max-height: calc(100vh - 32px); overflow: auto; padding: 12px 14px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface-panel); color: var(--text); box-shadow: 0 8px 28px #0003; font-size: 11px; line-height: 1.45; pointer-events: none; }
 .magnitude-details-heading { display: block; margin-bottom: 8px; color: var(--text-strong); }

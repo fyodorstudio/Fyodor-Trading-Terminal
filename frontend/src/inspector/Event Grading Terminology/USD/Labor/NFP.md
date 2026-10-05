@@ -1,7 +1,12 @@
 # USD · Labor / wages · Jobs report / NFP
 
-Reading convention: **`nfp-vs-previous-v1`**.
+Reading convention: **`nfp-change-vs-previous-v2`**.
 Directional score: **`nfp-eurusd-primary-signed-magnitude-v1`**.
+
+Raw reading labels describe signed A−P: Higher (green), Lower (red), or
+Unchanged (gray). A rising unemployment rate is Higher, even though its
+separate USD score is negative. Missing/Unrated remain gray. Histogram and
+selected Scatter Plot point colors follow these raw directions.
 
 ## Agreed scoring baseline
 

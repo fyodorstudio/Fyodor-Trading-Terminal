@@ -18,6 +18,10 @@ try {
   const modulePath = './src/scatter-plot/settings/scatter-plot-appearance.ts'
   const { normalizeScatterAppearance, defaultScatterAppearance: defaults, scatterAppearanceKey: key,
     readScatterAppearance, saveScatterAppearance, useScatterAppearance, withMagnitudeBandColor } = await server.ssrLoadModule(modulePath)
+  const legacyColors = normalizeScatterAppearance({ goodColor: '#112233', badColor: '#445566' })
+  assert.equal(legacyColors.higherColor, '#112233', 'Renamed Higher color preserves saved selections')
+  assert.equal(legacyColors.lowerColor, '#445566', 'Renamed Lower color preserves saved selections')
+  assert.equal(normalizeScatterAppearance({ ...legacyColors, goodColor: '#000000' }).higherColor, '#112233', 'Current colors take priority over legacy keys')
   const automatic = defaults.levels.map((level) => ({ ...level, color: '#123456' }))
   assert.deepEqual(normalizeScatterAppearance({ levels: automatic }).magnitudeColors, ['#123456', '#123456', '#123456'])
   const custom = defaults.customLevels.map((level, index) => ({ ...level, color: ['#112233', '#445566', '#778899'][index] }))

@@ -22,7 +22,7 @@ try {
   const { defaultScatterAppearance, scatterAppearanceKey } = await server.ssrLoadModule('./src/scatter-plot/settings/scatter-plot-appearance.ts')
   localStorage.setItem('unrelated-site-secret', 'preserved')
   localStorage.setItem('fyodor.source-clock.verified', 'true')
-  localStorage.setItem(inspectorStorageKey, JSON.stringify(defaultInspectorPreferences()))
+  localStorage.setItem(inspectorStorageKey, JSON.stringify({ ...defaultInspectorPreferences(), showHistograms: false }))
   localStorage.setItem('fyodor.color-theme', 'dark')
   localStorage.setItem('trader_notebook_note_EURUSD', 'My saved note\nsecond line')
   localStorage.setItem('trader_plan_EURUSD', JSON.stringify({ direction: 'short', entryPrice: 1.1, tpPrice: null, slPrice: 1.2, showOnChart: true }))
@@ -41,7 +41,7 @@ try {
   assert.deepEqual(nfpMagnitudeFamily.settings.read()[nfpMagnitudeFamily.seriesIds[0]], [100, 150, 320])
   assert.equal(localStorage.getItem('unrelated-site-secret'), 'preserved')
   assert.equal(localStorage.getItem('trader_notebook_note_GBPUSD'), null, 'Absent saved keys reset to defaults')
-  for (const value of [{ ...original, version: 2 }, { ...original, entries: { malicious: '1' } }, { ...original, entries: { [nfpMagnitudeFamily.settings.key]: '{"840030016":[1,1,2]}' } }, { ...original, entries: { 'fyodor.chart-drawings.v1': '[{"points":[{"price":"bad"}]}]' } }]) {
+  for (const value of [{ ...original, entries: { [inspectorStorageKey]: JSON.stringify({ ...defaultInspectorPreferences(), showHistograms: 'invalid' }) } }, { ...original, version: 2 }, { ...original, entries: { malicious: '1' } }, { ...original, entries: { [nfpMagnitudeFamily.settings.key]: '{"840030016":[1,1,2]}' } }, { ...original, entries: { 'fyodor.chart-drawings.v1': '[{"points":[{"price":"bad"}]}]' } }]) {
     assert.throws(() => parseWorkspaceSnapshot(JSON.stringify(value)))
     assert.deepEqual(exportWorkspace().entries, original.entries)
   }

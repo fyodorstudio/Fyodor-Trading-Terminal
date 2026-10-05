@@ -32,7 +32,7 @@ export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', app
   return <div className="scatter-plot-canvas" ref={setElement}>
     <svg ref={setSvg} viewBox={`0 0 ${size.width} ${size.height}`} role="group" aria-label="Release date versus signed A−P scatter plot"
       className={dragging ? 'scatter-plot-dragging' : undefined}
-      style={{ '--scatter-dot-color': a.dotColor, '--scatter-good-color': a.goodColor, '--scatter-bad-color': a.badColor } as CSSProperties}
+      style={{ '--scatter-dot-color': a.dotColor, '--scatter-higher-color': a.higherColor, '--scatter-lower-color': a.lowerColor } as CSSProperties}
       data-date-from={g.first} data-date-to={g.last} data-delta-from={g.minDelta} data-delta-to={g.maxDelta}
       {...svgEvents}
       onKeyDown={(event) => {

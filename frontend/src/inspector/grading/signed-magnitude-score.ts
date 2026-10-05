@@ -21,7 +21,7 @@ export function sumSignedMagnitudeScores(rows: readonly SignedMagnitudeReading[]
 export type MagnitudeScoreUnit = { units: readonly number[]; multiplier: number; description: string }
 export function assessSignedMagnitudeReading<T extends { id: string; label: string }>(series: T,
   release: InspectorRelease, history: FamilyMagnitudeHistory, unit: number | MagnitudeScoreUnit,
-  goodWhen: 'higher' | 'lower' = 'higher'): T & SignedMagnitudeReading {
+  positiveWhen: 'higher' | 'lower' = 'higher'): T & SignedMagnitudeReading {
   const matches = release.events.filter((event) => event.event_id === series.id)
   const event = matches.length === 1 ? matches[0] : null
   const unavailable = (status: Exclude<SignedMagnitudeReading['status'], 'scored'>, reason: string): T & SignedMagnitudeReading =>
@@ -46,7 +46,7 @@ export function assessSignedMagnitudeReading<T extends { id: string; label: stri
   const size = magnitudeSizeForValue(row.distribution.limits, delta)
   const category = signedMagnitudeColumns.find((column) => column.size === size)
   if (!category) return unavailable('unavailable', 'Magnitude classification is unavailable.')
-  const score = Math.sign(delta) * (goodWhen === 'higher' ? 1 : -1) * category.points
+  const score = Math.sign(delta) * (positiveWhen === 'higher' ? 1 : -1) * category.points
   return { ...series, event, size: category.size, score, status: 'scored',
     reason: `${score > 0 ? 'Positive' : 'Negative'} A−P: ${formatSignedMagnitudeScore(score)} (${category.size}). Series weight = 1.` }
 }

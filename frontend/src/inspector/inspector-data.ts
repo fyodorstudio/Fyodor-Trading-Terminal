@@ -22,11 +22,12 @@ export type InspectorPreferences = {
   version: 2
   families: string[]
   showSymbols: boolean
+  showHistograms: boolean
   symbols: Record<string, EventSymbol>
 }
 export const inspectorStorageKey = 'fyodor.inspector.eurusd.v1'
 export function defaultInspectorPreferences(): InspectorPreferences {
-  return { version: 2, families: inspectorFamilies.map((family) => family.id), showSymbols: true,
+  return { version: 2, families: inspectorFamilies.map((family) => family.id), showSymbols: true, showHistograms: true,
     symbols: Object.fromEntries(inspectorFamilies.map((family) => [family.id, family.symbol])) }
 }
 export function readInspectorPreferences(): InspectorPreferences {
@@ -40,6 +41,7 @@ export function readInspectorPreferences(): InspectorPreferences {
     const oldDefault = saved.version !== 2 && selected.length === originalInspectorFamilies.length &&
       originalInspectorFamilies.every((id) => selected.includes(id))
     return { version: 2, families: oldDefault ? defaults.families : selected,
+    showHistograms: typeof saved.showHistograms === 'boolean' ? saved.showHistograms : defaults.showHistograms,
     showSymbols: typeof saved.showSymbols === 'boolean' ? saved.showSymbols : defaults.showSymbols,
     symbols: { ...defaults.symbols, ...Object.fromEntries(Object.entries(saved.symbols ?? {}).filter(([id, symbol]) =>
       inspectorFamilies.some((family) => family.id === id) && isEventSymbol(symbol))) as Record<string, EventSymbol> } }

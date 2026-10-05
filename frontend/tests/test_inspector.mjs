@@ -69,6 +69,9 @@ try {
   const upgraded = data.readInspectorPreferences()
   assert.equal(upgraded.families.length, 21, 'The old all-enabled default expands once')
   assert.equal(upgraded.showSymbols, false)
+  assert.equal(upgraded.showHistograms, true, 'Legacy settings retain visible histograms')
+  localStorage.setItem(data.inspectorStorageKey, JSON.stringify({ ...upgraded, showHistograms: 'invalid' }))
+  assert.equal(data.readInspectorPreferences().showHistograms, true, 'Malformed visibility falls back safely')
   assert.equal(upgraded.symbols['us-cpi'], 'moon')
   localStorage.setItem(data.inspectorStorageKey, JSON.stringify({ ...upgraded, families: originalFamilies }))
   assert.equal(data.readInspectorPreferences().families.length, 9, 'An explicit current selection is not re-expanded on reload')
@@ -351,8 +354,12 @@ try {
   assert.match(app.container.querySelector('.inspector-table-scroll tbody').textContent, /\+50k/)
   assert.match(app.container.querySelector('.inspector-table-scroll tbody').textContent, /\+0.1 pp/)
   assert.match(app.container.querySelector('.inspector-table-scroll tbody').textContent, /-0.1 h/)
-  assert.deepEqual(grading.tallyNfpRelease(view.selectedRelease).counts, { good: 1, bad: 2, unchanged: 0, missing: 0, unrated: 0 })
+  assert.deepEqual(grading.tallyNfpRelease(view.selectedRelease).counts, { higher: 2, lower: 1, unchanged: 0, missing: 0, unrated: 0 })
   assert.equal(app.container.querySelector('[aria-label="NFP pair direction"]').textContent, 'Uncomputed')
+  const unemploymentDelta = app.container.querySelectorAll('.inspector-table-scroll tbody tr')[1].querySelector('td.inspector-graded-delta')
+  assert.equal(unemploymentDelta.textContent, '+0.1 ppHigher', 'Rising unemployment describes the number, without an economic judgment')
+  assert.ok(unemploymentDelta.classList.contains('inspector-grade-higher'))
+  assert.doesNotMatch(unemploymentDelta.title, /Good|Bad/)
   await click(filters())
   for (const currency of ['EUR', 'USD']) for (const category of ['Monetary policy', 'Inflation', 'Labor / wages', 'Growth / activity']) {
     assert.ok(document.querySelector(`[aria-label="${currency} ${category}"]`))
@@ -386,7 +393,7 @@ try {
   }))
   await app.render({ events: gradedRows })
   await click(app.container.querySelector('.inspector-release'))
-  assert.deepEqual(grading.tallyNfpRelease(view.selectedRelease).counts, { good: 2, bad: 7, unchanged: 1, missing: 0, unrated: 0 })
+  assert.deepEqual(grading.tallyNfpRelease(view.selectedRelease).counts, { higher: 2, lower: 7, unchanged: 1, missing: 0, unrated: 0 })
   assert.equal(app.container.querySelectorAll('.inspector-nfp-score tbody tr').length, 3)
   assert.equal(app.container.querySelectorAll('.inspector-nfp-supporting tbody tr').length, 7)
   assert.equal(app.container.querySelectorAll('.inspector-signed-magnitude-matrix tbody td[colspan="5"]').length, 10)
@@ -396,24 +403,24 @@ try {
   assert.doesNotMatch(app.container.querySelector('[aria-label="NFP signed magnitude score"]').textContent,
     /NFP majority rule · Experimental|Compared with Previous|A−P magnitude/)
   assert.equal(app.container.querySelector('.inspector-grade-summary'), null, 'The table replaces the old summary strip')
-  assert.equal(app.container.querySelectorAll('td.inspector-grade-good').length, 2)
-  assert.equal(app.container.querySelectorAll('td.inspector-grade-bad').length, 7)
+  assert.equal(app.container.querySelectorAll('td.inspector-grade-higher').length, 2)
+  assert.equal(app.container.querySelectorAll('td.inspector-grade-lower').length, 7)
   assert.equal(app.container.querySelectorAll('td.inspector-grade-unchanged').length, 1)
-  assert.match(app.container.querySelector('td.inspector-grade-good').title, /Compared with supplied Previous/)
+  assert.match(app.container.querySelector('td.inspector-grade-higher').title, /Compared with supplied Previous/)
   assert.equal(grading.gradeNfpReading(gradedRows[0], 'us-cpi'), null)
   assert.equal(grading.gradeNfpReading({ ...gradedRows[0], country_code: 'EU' }, 'jobs'), null)
   assert.equal(grading.gradeNfpReading({ ...gradedRows[0], currency: 'EUR' }, 'jobs'), null)
-  for (const [event_id, rule] of Object.entries(grading.nfpReadingRules)) {
+  for (const event_id of Object.keys(grading.nfpReadingRules)) {
     const row = event({ event_id, actual: 2, previous: 1 })
-    assert.equal(grading.gradeNfpReading(row, 'jobs').grade, rule.goodWhen === 'higher' ? 'good' : 'bad')
+    assert.equal(grading.gradeNfpReading(row, 'jobs').grade, 'higher')
     assert.equal(grading.gradeNfpReading({ ...row, actual: 0, previous: 0 }, 'jobs').grade, 'unchanged')
     assert.equal(grading.gradeNfpReading({ ...row, actual: null }, 'jobs').grade, 'missing')
   }
   const heldGradeId = view.selectedRelease.id
   await app.render({ events: gradedRows.map((row) => row.event_id === '840030016' ? { ...row, actual: 200 } : row) })
   assert.equal(view.selectedRelease.id, heldGradeId)
-  assert.equal(grading.tallyNfpRelease(view.selectedRelease).counts.good, 3)
-  assert.equal(grading.tallyNfpRelease(view.selectedRelease).counts.bad, 6)
+  assert.equal(grading.tallyNfpRelease(view.selectedRelease).counts.higher, 3)
+  assert.equal(grading.tallyNfpRelease(view.selectedRelease).counts.lower, 6)
   await app.render({ events: gradedRows.map((row) => row.event_id === '840030016' ? { ...row, actual: null } : row) })
   assert.equal(grading.tallyNfpRelease(view.selectedRelease).counts.missing, 1)
   assert.equal(directionLabel(), 'Uncomputed', 'A missing primary reading suppresses direction')
@@ -427,7 +434,7 @@ try {
   assert.equal(app.container.querySelector('[aria-label="NFP signed magnitude score"]'), null)
   assert.ok(app.container.querySelector('.inspector-row-grade'), 'CPI now has explicit USD-pressure grades')
   assert.equal(app.container.querySelector('[aria-label="NFP pair direction"]'), null)
-  console.log('✓ Mounted NFP ten-reading grading, inverse rules, zero/missing states, live updates and family isolation')
+  console.log('✓ Mounted NFP ten-reading Higher/Lower labels, raw sign colors, zero/missing states, live updates and family isolation')
   console.log('✓ Mounted NFP three-primary/seven-supporting matrices, explicit Undefined direction and incoming changes')
 
   await app.render({ events: [event(), decision] })
@@ -791,7 +798,7 @@ try {
   assert.deepEqual(magnitudeBin(edges, 3), { index: 3, count: 1, from: 0, to: 0 })
   assert.deepEqual(magnitudeBin(edges, 6), { index: 6, count: 1, from: 4, to: 6 })
   const histogramProps = { distribution: magnitudeDistribution([0, 0, 0, 6, 6], -3, [2, 4, 6]), label: 'Test series',
-    formatValue: (value) => String(value) + 'k', context: 'Earlier releases only.', tone: 'bad' }
+    formatValue: (value) => String(value) + 'k', context: 'Earlier releases only.', tone: 'lower' }
   const histogramApp = mount(MagnitudeHistogram, histogramProps)
   await histogramApp.render()
   let reusablePlot = histogramApp.container.querySelector('.magnitude-histogram')
@@ -864,9 +871,9 @@ try {
     assert.match(document.querySelector('.magnitude-details').textContent, /Extreme/)
     await act(async () => reusablePlot.blur())
   }
-  await histogramApp.render({ ...histogramProps, distribution, tone: 'good' })
-  assert.ok(reusablePlot.classList.contains('inspector-grade-good'))
-  assert.equal(reusablePlot.querySelector('.magnitude-current').dataset.bin, '1', 'A negative change can retain its Good color')
+  await histogramApp.render({ ...histogramProps, distribution, tone: 'lower' })
+  assert.ok(reusablePlot.classList.contains('inspector-grade-lower'))
+  assert.equal(reusablePlot.querySelector('.magnitude-current').dataset.bin, '1', 'A negative change receives its Lower color')
   await act(async () => reusablePlot.focus())
   assert.match(document.querySelector('.magnitude-details').textContent, /Selected A−P-2k/)
   await histogramApp.render({ ...histogramProps, distribution: extremes })
@@ -901,17 +908,16 @@ try {
 
   const magnitudeRows = gradedRows.map((row, index) => {
     const magnitude = [1, 3, 5, 7][index % 4]
-    const favorable = grading.nfpReadingRules[row.event_id].goodWhen === 'higher' ? 1 : -1
     return { ...row, previous: 10, actual: index === 9 ? null : index === 8 ? 10 :
-      10 + favorable * (index < 4 ? 1 : -1) * magnitude }
+      10 + (index < 4 ? 1 : -1) * magnitude }
   })
   const magnitudeRelease = data.groupInspectorReleases(magnitudeRows)[0]
   const readyHistory = (rows = magnitudeRows) => ({ rows: Object.fromEntries(rows.map((row) => [row.value_id,
     { distribution: magnitudeDistribution([-6, 6], data.inspectorDelta(row), [2, 4, 6]), excluded: 0, first: anchor - 86400000, last: anchor - 86400000 }])),
     message: null, error: null, partial: false })
   const oneOfEach = { Small: 1, Medium: 1, Large: 1, Extreme: 1, Unclassified: 0 }
-  assert.deepEqual(tallyNfpMagnitudes(magnitudeRelease, readyHistory().rows), { good: oneOfEach, bad: oneOfEach },
-    'Count all four sizes separately for each grade, including inverse unemployment rules; exclude zero/missing readings')
+  assert.deepEqual(tallyNfpMagnitudes(magnitudeRelease, readyHistory().rows), { higher: oneOfEach, lower: oneOfEach },
+    'Count all four sizes separately for each grade, based on signed A−P; exclude zero/missing readings')
   assert.equal(tallyNfpMagnitudes(null, {}), null)
   assert.equal(tallyNfpMagnitudes({ ...magnitudeRelease, country: 'GB' }, {}), null)
   assert.equal(tallyNfpMagnitudes({ ...magnitudeRelease, familyId: 'us-cpi' }, {}), null)
@@ -921,20 +927,20 @@ try {
   const sizeCells = (grade) => [...summary().querySelectorAll(`[data-grade="${grade}"] td[data-size]`)].map((cell) => cell.textContent.trim())
   assert.equal(summary().tagName, 'TABLE')
   assert.deepEqual([...summary().querySelectorAll('thead th')].slice(1).map((cell) => cell.textContent), ['Small', 'Medium', 'Large', 'Extreme'])
-  assert.deepEqual([...summary().querySelectorAll('tbody th[scope="row"]')].map((cell) => cell.textContent), ['Good', 'Bad'])
-  assert.deepEqual(sizeCells('good'), ['1', '1', '1', '1'])
-  assert.deepEqual(sizeCells('bad'), ['1', '1', '1', '1'])
+  assert.deepEqual([...summary().querySelectorAll('tbody th[scope="row"]')].map((cell) => cell.textContent), ['Higher', 'Lower'])
+  assert.deepEqual(sizeCells('higher'), ['1', '1', '1', '1'])
+  assert.deepEqual(sizeCells('lower'), ['1', '1', '1', '1'])
   const updatedRows = magnitudeRows.map((row, index) => index === 2 ? { ...row, actual: 11 } : row)
   const updatedRelease = data.groupInspectorReleases(updatedRows)[0]
   await magnitudeTallyApp.render({ release: updatedRelease, history: readyHistory(updatedRows) })
-  assert.deepEqual(sizeCells('good'), ['2', '1', '–', '1'], 'Incoming Actual changes refresh the table, with a dash for zero')
-  assert.equal(summary().querySelector('[data-grade="good"] [data-size="Large"]').getAttribute('aria-label'), '0 Good Large',
+  assert.deepEqual(sizeCells('higher'), ['2', '1', '–', '1'], 'Incoming Actual changes refresh the table, with a dash for zero')
+  assert.equal(summary().querySelector('[data-grade="higher"] [data-size="Large"]').getAttribute('aria-label'), '0 Higher Large',
     'A dash retains its exact zero meaning for assistive technology')
   const incompleteHistory = readyHistory()
   incompleteHistory.rows[magnitudeRows[0].value_id].distribution = null
   await magnitudeTallyApp.render({ release: magnitudeRelease, history: incompleteHistory })
-  assert.deepEqual(sizeCells('good'), ['–', '1', '1', '1'])
-  assert.match(summary().querySelector('tfoot').textContent, /1 Good unclassified/,
+  assert.deepEqual(sizeCells('higher'), ['–', '1', '1', '1'])
+  assert.match(summary().querySelector('tfoot').textContent, /1 Higher unclassified/,
     'A reading without history is explicit rather than silently scored Small')
   await magnitudeTallyApp.render({ release: magnitudeRelease, history: { ...readyHistory(), partial: true } })
   assert.match(summary().textContent, /Partial history/)
@@ -949,13 +955,13 @@ try {
     { distribution: magnitudeDistribution([snapshotThresholds[row.event_id], snapshotThresholds[row.event_id]], data.inspectorDelta(row), [snapshotThresholds[row.event_id] / 3, snapshotThresholds[row.event_id] * 2 / 3, snapshotThresholds[row.event_id]]) }])) }
   const octoberRelease = data.groupInspectorReleases(gradedRows)[0]
   await magnitudeTallyApp.render({ release: octoberRelease, history: octoberHistory })
-  assert.deepEqual(sizeCells('good'), ['1', '1', '–', '–'])
-  assert.deepEqual(sizeCells('bad'), ['7', '–', '–', '–'])
+  assert.deepEqual(sizeCells('higher'), ['1', '1', '–', '–'])
+  assert.deepEqual(sizeCells('lower'), ['7', '–', '–', '–'])
   assert.doesNotMatch(summary().textContent, /NFP majority rule · Experimental|Compared with Previous|A−P magnitude/)
   assert.equal(summary().querySelector('tfoot'), null, 'A complete snapshot has just the header and two grade rows')
   await magnitudeTallyApp.render({ release: { ...magnitudeRelease, familyId: 'us-cpi' }, history: readyHistory() })
   assert.equal(summary(), null)
-  console.log('✓ Shared Good/Bad magnitude tally utility, live updates, unavailable/partial history and October inventory example')
+  console.log('✓ Shared Higher/Lower magnitude tally utility, live updates, unavailable/partial history and October inventory example')
 
   const selectedNfp = data.groupInspectorReleases([stored(event({ event_id: '840030016', name: 'Nonfarm Payrolls', unit: 0, multiplier: 1,
     actual: 12, previous: 10, actual_raw_scaled_1e6: '12000000', previous_raw_scaled_1e6: '10000000' }))])[0]
@@ -1001,7 +1007,7 @@ try {
     const history = useNfpMagnitudeHistory(brokerId, selected, fixtureClockOffset)
     React.useEffect(() => { nfpHistoryView = history }, [history])
     return selected ? React.createElement('table', {}, React.createElement('tbody', {}, React.createElement('tr', {},
-      React.createElement(NfpMagnitudeCell, { event: selected.events[0], history, grade: 'good' })))) : null
+      React.createElement(NfpMagnitudeCell, { event: selected.events[0], history, grade: 'higher' })))) : null
   }
   const { saveNfpMagnitudeLimits } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-settings.ts')
   saveNfpMagnitudeLimits('840030016', [.9, 1.8, 2.8])
@@ -1025,7 +1031,7 @@ try {
   assert.match(plot.getAttribute('aria-label'), /3 dataset readings \(small sample\)/)
   assert.match(plot.getAttribute('aria-label'), /frozen manual boundaries configured in Scatter Plot/)
   assert.match(plot.getAttribute('aria-label'), /Partial USD history/)
-  assert.ok(plot.classList.contains('inspector-grade-good'))
+  assert.ok(plot.classList.contains('inspector-grade-higher'))
   assert.equal(plot.querySelectorAll('.magnitude-current').length, 1)
   assert.equal(plot.querySelector('.magnitude-current').dataset.bin, '6')
   assert.equal(plot.querySelector('.magnitude-current').dataset.count, '0')

@@ -18,9 +18,9 @@ export function SignedMagnitudeMatrix({ label, className, caption, header, readi
         {reading.status !== 'scored' ? <td colSpan={5} className="inspector-magnitude-empty" title={reading.reason}>
           {statusLabels[reading.status]}</td> : signedMagnitudeColumns.map((column) => {
           const active = reading.size === column.size
-          const tone = reading.score! > 0 ? 'good' : reading.score! < 0 ? 'bad' : 'unchanged'
+          const tone = reading.score! > 0 ? 'positive' : reading.score! < 0 ? 'negative' : 'unchanged'
           return <td key={column.size} data-size={column.size} data-score={active ? reading.score! : undefined}
-            className={active ? `inspector-signed-score-value inspector-grade-${tone}` : 'inspector-magnitude-empty'}
+            className={active ? `inspector-signed-score-value inspector-score-${tone}` : 'inspector-magnitude-empty'}
             title={active ? reading.reason : undefined}
             aria-label={active ? `${reading.label}: ${column.size}, ${scoreMeaning} score ${formatSignedMagnitudeScore(reading.score)}` : `${reading.label}: ${column.size} does not apply`}>
             {active ? formatSignedMagnitudeScore(reading.score) : '–'}

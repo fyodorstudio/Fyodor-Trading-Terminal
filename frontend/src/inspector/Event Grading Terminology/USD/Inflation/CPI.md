@@ -5,19 +5,18 @@ The existing four-rate direction and separate index matrix are the agreed scorin
 baseline. The NFP scoring revision does not change CPI series, signs, coefficients,
 cancellation priority, or saved per-series magnitude configuration. Changes to
 this contract require a new score version and regression coverage.
-Rule version: `usd-cpi-vs-previous-v1`. Scope: US / USD, Inspector family `us-cpi`
+Rule version: `usd-cpi-change-vs-previous-v2`. Scope: US / USD, Inspector family `us-cpi`
 under Inflation; Scatter Plot EURUSD → USD / Quote → CPI.
 
 ## Comparator and colors
 
 Use signed **Actual − supplied Previous**, never Forecast or revised Previous.
-Positive delta = **Good/green for USD pressure** under the chosen higher-inflation
-convention; negative = **Bad/red**; zero = **Unchanged/gray**. Missing/nonfinite
+Positive delta = **Higher/green**; negative = **Lower/red**; zero = **Unchanged/gray**. Missing/nonfinite
 Actual or Previous, or malformed raw source integers, means Missing/gray.
 Unknown series are Unrated. Family/country/currency must match explicitly.
 
-This is a trading convention, not “good for consumers” or an objective FX
-prediction. The Fed's policy principles describe raising rates as inflation
+These reading labels describe the value change only. The separate signed USD
+score is a trading convention, not an objective FX prediction. The Fed's policy principles describe raising rates as inflation
 rises; this motivates the convention but does not guarantee a currency move.
 Price-index changes and inflation-rate changes have different meanings, and
 different headline/core/monthly/annual readings overlap. The four-reading score

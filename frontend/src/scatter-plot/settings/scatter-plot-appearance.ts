@@ -3,7 +3,7 @@ import { useSyncExternalStore } from 'react'
 export type ScatterLineStyle = { visible: boolean; color: string; width: number }
 export type ScatterGuideLevel = { id: number; visible: boolean; factor: number; color: string; width: number; shade: number }
 export type ScatterAppearance = {
-  dotSize: number; selectedDotSize: number; dotColor: string; goodColor: string; badColor: string
+  dotSize: number; selectedDotSize: number; dotColor: string; higherColor: string; lowerColor: string
   grid: ScatterLineStyle; zero: ScatterLineStyle; inspectedDate: ScatterLineStyle; connection: ScatterLineStyle
   showGuides: boolean; showBands: boolean; guideStyle: 'solid' | 'dashed' | 'dotted'; guideOpacity: number
   levels: ScatterGuideLevel[]
@@ -15,7 +15,7 @@ export const scatterAppearanceKey = 'fyodor.scatter-plot.appearance.v1'
 const magnitudeFactors = [1 / 3, 2 / 3, 1]
 const magnitudeColors = ['#0891b2', '#d97706', '#8b5cf6'] as const
 export const defaultScatterAppearance: ScatterAppearance = {
-  dotSize: 10, selectedDotSize: 14, dotColor: '#64748b', goodColor: '#18a77d', badColor: '#e45462',
+  dotSize: 10, selectedDotSize: 14, dotColor: '#64748b', higherColor: '#18a77d', lowerColor: '#e45462',
   grid: { visible: true, color: '#94a3b8', width: .6 },
   zero: { visible: true, color: '#64748b', width: 1 },
   inspectedDate: { visible: true, color: '#6366f1', width: 1 },
@@ -63,7 +63,10 @@ export function normalizeScatterAppearance(value: unknown): ScatterAppearance {
     editedCustom ? customLevels[index].color : levels.find((level) => matchesMagnitudeFactor(level, index))?.color ?? customLevels[index].color)) as [string, string, string]
   return {
     dotSize: number(item.dotSize, d.dotSize, 2, 32), selectedDotSize: number(item.selectedDotSize, d.selectedDotSize, 2, 40),
-    dotColor: color(item.dotColor, d.dotColor), goodColor: color(item.goodColor, d.goodColor), badColor: color(item.badColor, d.badColor),
+    dotColor: color(item.dotColor, d.dotColor),
+    // Preserve colors saved before Higher/Lower replaced economic judgment labels.
+    higherColor: color(item.higherColor, color(item.goodColor, d.higherColor)),
+    lowerColor: color(item.lowerColor, color(item.badColor, d.lowerColor)),
     grid: line(item.grid, d.grid), zero: line(item.zero, d.zero), inspectedDate: line(item.inspectedDate, d.inspectedDate),
     connection: line(item.connection, d.connection),
     showGuides: bool(item.showGuides, d.showGuides), showBands: bool(item.showBands, d.showBands),

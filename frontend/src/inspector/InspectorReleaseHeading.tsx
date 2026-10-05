@@ -25,6 +25,6 @@ export function InspectorReleaseHeading({ release, view, timeDisplay, status, sh
     <span className="inspector-info"><button type="button" aria-label="About A−P" aria-describedby={infoId}>ⓘ</button>
       <span id={infoId} role="tooltip">A−P uses Previous; revised Previous is shown separately.
         pp = percentage points · bp = basis points.
-        {hasMagnitude && <> Colors use the family's defined Good/Bad rules versus Previous. Sizes appear only when a magnitude mode is configured in Scatter Plot.</>}</span></span>
+        {hasMagnitude && <> Reading colors: Higher = green, Lower = red, Unchanged = gray. Signed USD scores use their own direction rules. Sizes appear only when a magnitude mode is configured in Scatter Plot.</>}</span></span>
   </div>
 }

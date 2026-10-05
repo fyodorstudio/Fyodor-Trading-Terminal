@@ -14,7 +14,7 @@ export function FamilyMagnitudeTally({ release, history, family, heading }: {
   const needsHistory = Object.values(history.rows).some((row) => row.mode !== 'undefined')
   const message = needsHistory ? history.message : null
   const notes = [
-    ...(['good', 'bad'] as const).flatMap((grade) => {
+    ...(['higher', 'lower'] as const).flatMap((grade) => {
       const undefinedCount = release!.events.filter((event) => gradeFamilyReading(event, release!.familyId, family)?.grade === grade &&
         history.rows[event.value_id]?.mode === 'undefined').length
       const unclassified = counts[grade].Unclassified - undefinedCount
@@ -26,8 +26,8 @@ export function FamilyMagnitudeTally({ release, history, family, heading }: {
   return <div className="inspector-magnitude-summary" role="status">
     <table className="inspector-magnitude-tally" aria-label={`${family.label} magnitude tally`}>
       <caption className="inspector-sr-only" aria-label={`${family.label} reading tally`}>
-        {(['good', 'bad', 'unchanged', 'missing', 'unrated'] as const).filter((grade) =>
-          ['good', 'bad', 'unchanged'].includes(grade) || tally.counts[grade] > 0)
+        {(['higher', 'lower', 'unchanged', 'missing', 'unrated'] as const).filter((grade) =>
+          ['higher', 'lower', 'unchanged'].includes(grade) || tally.counts[grade] > 0)
           .map((grade) => `${tally.counts[grade]} ${gradeLabels[grade]}`).join(' · ')} · {tally.total} readings
       </caption>
       <thead><tr>
@@ -35,7 +35,7 @@ export function FamilyMagnitudeTally({ release, history, family, heading }: {
         {magnitudeSizes.map((size) => <th scope="col" key={size}>{size}</th>)}
       </tr></thead>
       <tbody>{message ? <tr><td colSpan={5} title={history.error ?? message}>{message}</td></tr> :
-        (['good', 'bad'] as const).map((grade) => <tr key={grade} data-grade={grade} className={`inspector-grade-${grade}`}>
+        (['higher', 'lower'] as const).map((grade) => <tr key={grade} data-grade={grade} className={`inspector-grade-${grade}`}>
           <th scope="row"><span className={`inspector-grade inspector-grade-${grade}`}>{gradeLabels[grade]}</span>
             {family.familyId !== 'jobs' && <> · {tally.counts[grade]}</>}</th>
           {magnitudeSizes.map((size) => <td key={size} data-size={size}

@@ -114,8 +114,8 @@ try {
   assert.equal(matrix().querySelectorAll('tbody tr').length, 3)
   assert.equal(supporting().querySelectorAll('tbody tr').length, 7)
   assert.deepEqual([...matrix().querySelectorAll('[data-score]')].map((cell) => cell.textContent), ['+1', '+2', '−1'])
-  assert.ok(matrix().querySelector('[data-series="840030015"] .inspector-grade-good'), 'Falling unemployment is green positive')
-  assert.ok(supporting().querySelector('[data-series="840030024"] .inspector-grade-bad'), 'Rising U6 is red negative')
+  assert.ok(matrix().querySelector('[data-series="840030015"] .inspector-score-positive'), 'Falling unemployment is green positive')
+  assert.ok(supporting().querySelector('[data-series="840030024"] .inspector-score-negative'), 'Rising U6 is red negative')
   for (const row of table.container.querySelectorAll('tbody th')) {
     const tooltip = row.querySelector('[title]')
     assert.ok(tooltip.title.length > 20)

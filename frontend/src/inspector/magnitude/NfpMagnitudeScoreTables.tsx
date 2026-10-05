@@ -10,7 +10,7 @@ export function NfpMagnitudeScoreTables({ release, history }: { release: Inspect
   return <>
     <SignedMagnitudeMatrix label="NFP supporting magnitudes" className="inspector-nfp-supporting"
       header="Supporting readings" readings={assessment.supporting} scoreMeaning="Supporting convention"
-      caption="Supporting signed magnitude points under existing Good/Bad conventions. These seven readings never contribute to the USD total or pair direction. Participation's sign is a simplified convention. Hover or focus each series for its role."
+      caption="Supporting signed magnitude points under the existing direction conventions. These seven readings never contribute to the USD total or pair direction. Participation's sign is a simplified convention. Hover or focus each series for its role."
       footer={<tr><td colSpan={6}>Excluded from USD total</td></tr>} />
     <SignedMagnitudeMatrix label="NFP signed magnitude score" className="inspector-nfp-score"
       readings={assessment.primary} scoreMeaning="USD"

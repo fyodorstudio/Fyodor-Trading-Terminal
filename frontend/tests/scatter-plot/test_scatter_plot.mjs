@@ -118,6 +118,9 @@ try {
   const seriesId = nfpScatterScope.series[0].id
   const model = nfpScatterModel(events, now, seriesId, null)
   assert.equal(model.deltaUnit, 'k')
+  const unemploymentModel = nfpScatterModel(events, now, '840030015', null)
+  assert.deepEqual(unemploymentModel.points.map((point) => point.tone), ['higher', 'higher', 'lower', 'higher'],
+    'Scatter colors describe the raw unemployment change, independently of USD scoring')
   assert.equal(nfpScatterModel(events, now, '840030015', null).deltaUnit, 'pp')
   assert.equal(nfpScatterModel(events, now, '840030020', null).deltaUnit, 'h')
   assert.equal(model.formatDelta(304.830745, 2), '+304.83k')
@@ -172,7 +175,7 @@ try {
   }
   const lastComplete = groups.find((group) => group.releaseAt === third[0].release_at)
   const customTally = tallyNfpMagnitudes(lastComplete, nfpMagnitudeHistory(events, lastComplete, customSettings))
-  assert.equal(customTally.good.Medium + customTally.bad.Medium, 10, 'The tally uses the same ten custom classifications')
+  assert.equal(customTally.higher.Medium + customTally.lower.Medium, 10, 'The tally uses the same ten custom classifications')
   const separateSeries = { [seriesId]: [10, 20, 100] }
   assert.equal(nfpScatterModel(events, now, seriesId, null, separateSeries).inspection.distribution.currentSize, 'Small')
   assert.equal(nfpScatterModel(events, now, '840030015', null, separateSeries).inspection.distribution, null)

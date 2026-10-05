@@ -1,6 +1,6 @@
 import type { InspectorRelease } from '../inspector-data'
 import type { FamilyMagnitudeHistory } from '../magnitude/useFamilyMagnitudeHistory'
-import { nfpReadingFamily, nfpReadingRules } from './nfp-grading'
+import { nfpReadingFamily } from './nfp-grading'
 import { matchesReadingFamily } from './reading-grading'
 import { assessSignedMagnitudeReading, formatSignedMagnitudeScore, sumSignedMagnitudeScores,
   type MagnitudeScoreUnit } from './signed-magnitude-score'
@@ -10,25 +10,25 @@ const payrollUnit: MagnitudeScoreUnit = { units: [0, 4], multiplier: 1, descript
 const rateUnit: MagnitudeScoreUnit = { units: [1], multiplier: 0, description: 'a percentage rate' }
 const hoursUnit: MagnitudeScoreUnit = { units: [3], multiplier: 0, description: 'weekly hours in native hours' }
 export const nfpScoreSeries = [
-  { id: '840030016', label: 'Nonfarm Payrolls', role: 'primary', unit: payrollUnit,
+  { id: '840030016', label: 'Nonfarm Payrolls', positiveWhen: 'higher', role: 'primary', unit: payrollUnit,
     description: 'Broad monthly job creation. Higher A−P contributes positive USD points.' },
-  { id: '840030015', label: 'Unemployment Rate', role: 'primary', unit: rateUnit,
+  { id: '840030015', label: 'Unemployment Rate', positiveWhen: 'lower', role: 'primary', unit: rateUnit,
     description: 'Labor-market slack. Lower A−P contributes positive USD points.' },
-  { id: '840030018', label: 'Earnings m/m', role: 'primary', unit: rateUnit,
+  { id: '840030018', label: 'Earnings m/m', positiveWhen: 'higher', role: 'primary', unit: rateUnit,
     description: 'Latest monthly wage-growth momentum. Higher A−P contributes positive USD points.' },
-  { id: '840030019', label: 'Earnings y/y', role: 'supporting', unit: rateUnit,
+  { id: '840030019', label: 'Earnings y/y', positiveWhen: 'higher', role: 'supporting', unit: rateUnit,
     description: 'Annual wage trend. Excluded from the total to avoid a second wage contribution.' },
-  { id: '840030017', label: 'Participation Rate', role: 'supporting', unit: rateUnit,
+  { id: '840030017', label: 'Participation Rate', positiveWhen: 'higher', role: 'supporting', unit: rateUnit,
     description: 'Helps explain unemployment changes. Its direction alone is ambiguous; excluded from the total.' },
-  { id: '840030020', label: 'Weekly Hours', role: 'supporting', unit: hoursUnit,
+  { id: '840030020', label: 'Weekly Hours', positiveWhen: 'higher', role: 'supporting', unit: hoursUnit,
     description: 'Labor usage beyond job counts. Supporting corroboration; excluded from the total.' },
-  { id: '840030023', label: 'Private Payrolls', role: 'supporting', unit: payrollUnit,
+  { id: '840030023', label: 'Private Payrolls', positiveWhen: 'higher', role: 'supporting', unit: payrollUnit,
     description: 'Private hiring within total payrolls. Excluded from the total to avoid counting it again.' },
-  { id: '840030022', label: 'Government Payrolls', role: 'supporting', unit: payrollUnit,
+  { id: '840030022', label: 'Government Payrolls', positiveWhen: 'higher', role: 'supporting', unit: payrollUnit,
     description: 'Government hiring within total payrolls. Excluded from the total to avoid counting it again.' },
-  { id: '840030032', label: 'Manufacturing Payrolls', role: 'supporting', unit: payrollUnit,
+  { id: '840030032', label: 'Manufacturing Payrolls', positiveWhen: 'higher', role: 'supporting', unit: payrollUnit,
     description: 'Sector detail within private and total payrolls. Excluded from the total to avoid counting it again.' },
-  { id: '840030024', label: 'U6 Unemployment', role: 'supporting', unit: rateUnit,
+  { id: '840030024', label: 'U6 Unemployment', positiveWhen: 'lower', role: 'supporting', unit: rateUnit,
     description: 'Broader labor underutilization. Overlaps with unemployment; excluded from the total.' },
 ] as const
 const tiePriority = ['840030016', '840030015', '840030018']
@@ -36,7 +36,7 @@ const tiePriority = ['840030016', '840030015', '840030018']
 export function assessNfpMagnitudeScore(release: InspectorRelease | null, history: FamilyMagnitudeHistory) {
   if (!matchesReadingFamily(release, nfpReadingFamily)) return null
   const readings = nfpScoreSeries.map((series) => {
-    const reading = assessSignedMagnitudeReading(series, release, history, series.unit, nfpReadingRules[series.id].goodWhen)
+    const reading = assessSignedMagnitudeReading(series, release, history, series.unit, series.positiveWhen)
     if (reading.status !== 'scored' || reading.score === 0) return reading
     const meaning = series.role === 'primary' ? 'USD contribution' : 'Supporting convention points; excluded from USD total'
     return { ...reading, reason: `${meaning}: ${formatSignedMagnitudeScore(reading.score)} (${reading.size}). ${series.description}` }

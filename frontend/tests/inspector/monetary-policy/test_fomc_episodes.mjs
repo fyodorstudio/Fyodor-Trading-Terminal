@@ -73,13 +73,13 @@ try {
   assert.equal(data.filterInspectorReleases(midnightEpisode, preferences, { from: Date.UTC(2026, 9, 1), to: Date.UTC(2026, 9, 2) }).length, 1)
   assert.equal(data.filterInspectorReleases(midnightEpisode, preferences, { from: Date.UTC(2026, 9, 2), to: Date.UTC(2026, 9, 3) }).length, 0,
     'Date filtering stays anchored to the decision')
-  for (const [actual, expected] of [[5, 'good'], [4.5, 'bad'], [4.75, 'unchanged'], [null, 'missing']]) {
+  for (const [actual, expected] of [[5, 'higher'], [4.5, 'lower'], [4.75, 'unchanged'], [null, 'missing']]) {
     assert.equal(gradeFedRateDecision({ ...decision, actual }, 'fomc').grade, expected)
   }
   assert.equal(gradeFedRateDecision(statement, 'fomc'), null)
   assert.equal(gradeFedRateDecision(decision, 'fed-chair'), null)
   assert.equal(gradeFedRateDecision({ ...decision, currency: 'EUR' }, 'fomc'), null)
-  assert.equal(gradeFedRateDecision({ ...decision, actual_raw_scaled_1e6: '4750000', previous_raw_scaled_1e6: '5000000' }, 'fomc').grade, 'bad',
+  assert.equal(gradeFedRateDecision({ ...decision, actual_raw_scaled_1e6: '4750000', previous_raw_scaled_1e6: '5000000' }, 'fomc').grade, 'lower',
     'Source precision and supplied Previous determine the sign')
   console.log('✓ Anchored FOMC identity, stable marker, exact one-hour bounds, no chaining, ambiguous/missing/uncertain anchors, cross-midnight filtering and rate sign colors')
 
@@ -104,14 +104,14 @@ try {
   assert.match(rows[3].querySelector('[data-reading-clock="display"]').textContent, /18:30/)
   assert.match(rows[0].querySelector('[data-reading-clock="broker"]').textContent, /21:00/)
   assert.match(rows[3].querySelector('[data-reading-clock="broker"]').textContent, /21:30/)
-  assert.equal(rows[0].querySelector('td.inspector-grade-good').textContent, '+25 bp')
+  assert.equal(rows[0].querySelector('td.inspector-grade-higher').textContent, '+25 bp')
   assert.equal(rows[3].lastElementChild.textContent, 'Not applicable')
   assert.equal(container.querySelector('.inspector-row-grade'), null, 'Rate sign colors do not introduce a tally or magnitude grading')
   assert.equal(view.markers.length, 1)
-  for (const [actual, expected] of [[4.5, 'bad'], [4.75, 'unchanged'], [null, 'missing']]) {
+  for (const [actual, expected] of [[4.5, 'lower'], [4.75, 'unchanged'], [null, 'missing']]) {
     await render({ rows: input.map((row) => row.event_id === '840050014' ? { ...row, actual } : row) })
     assert.ok(container.querySelector(`.inspector-table-scroll td.inspector-grade-${expected}`))
-    if (actual === 4.5) assert.equal(container.querySelector('td.inspector-grade-bad').textContent, '-25 bp')
+    if (actual === 4.5) assert.equal(container.querySelector('td.inspector-grade-lower').textContent, '-25 bp')
   }
   await render({ rows: input, timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: 420 } })
   assert.equal(view.selectedRelease.id, anchorId); assert.equal(view.markers[0].time, chartAt)
