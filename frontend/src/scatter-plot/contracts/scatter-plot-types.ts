@@ -1,4 +1,5 @@
 import type { MagnitudeDistribution } from '../../inspector/magnitude/magnitude-distribution'
+import type { MagnitudeMode } from '../../inspector/magnitude/settings/magnitude-settings-store'
 
 export type ScatterOption = { id: string; label: string }
 export type ScatterPlotDockProps = { brokerId: string | null; clockOffsetMs?: number }
@@ -10,6 +11,7 @@ export type ScatterInspection = {
   releaseId: string; at: number; point: ScatterPoint | null
   actual: number | null; previous: number | null; delta: number | null
   distribution: MagnitudeDistribution | null; samples: ScatterPoint[]; excluded: number
+  magnitudeMode: MagnitudeMode
   quantile: { position: number; lower: ScatterPoint; upper: ScatterPoint; fraction: number } | null
 }
 export type ScatterModel = {

@@ -71,7 +71,7 @@ export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', app
         const later = inspection ? point.at > inspection.at : false
         const offScale = point.delta < g.minDelta || point.delta > g.maxDelta
         const radius = (selected ? a.selectedDotSize : a.dotSize) / 2
-        const category = distribution ? magnitudeSizeForValue(distribution.limits, point.delta) : 'No earlier baseline'
+        const category = inspection?.magnitudeMode === 'undefined' ? 'Magnitude undefined' : distribution ? magnitudeSizeForValue(distribution.limits, point.delta) : 'No earlier baseline'
         const details = `${date(point.at)}. Actual ${formatReading(point.actual)}; Previous ${formatReading(point.previous)}; A−P ${formatDelta(point.delta)}. ` +
           `${category}${distribution ? ' against inspected thresholds' : ''}. ${selected ? 'Inspected release; excluded from baseline.' : later ? 'Later release; excluded from baseline.' : 'Earlier release.'}` +
           (offScale ? ' Outside zoom range; marker is at the edge.' : '')

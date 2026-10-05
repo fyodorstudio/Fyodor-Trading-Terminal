@@ -9,7 +9,7 @@
     "dev:all": "pnpm run clean-ports && concurrently -k -n BRIDGE,STORAGE,UI -c green,yellow,cyan \"pnpm --dir .. run dev:bridge\" \"pnpm --dir .. run dev:storage\" \"pnpm run dev\"",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node tests/test_inspector.mjs && node tests/test_terminal_navigation.mjs && node tests/scatter-plot/test_scatter_plot.mjs && node tests/scatter-plot/test_scatter_plot_interaction.mjs && node tests/scatter-plot/test_magnitude_settings.mjs",
+    "test": "node tests/test_inspector.mjs && node tests/test_terminal_navigation.mjs && node tests/scatter-plot/test_scatter_plot.mjs && node tests/scatter-plot/test_scatter_plot_interaction.mjs && node tests/scatter-plot/test_magnitude_settings.mjs && node tests/scatter-plot/test_cpi.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

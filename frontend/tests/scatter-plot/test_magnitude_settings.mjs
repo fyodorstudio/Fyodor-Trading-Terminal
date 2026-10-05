@@ -17,10 +17,16 @@ const container = document.createElement('div'); document.body.appendChild(conta
 const root = createRoot(container)
 
 try {
-  const { createMagnitudeSettingsStore, magnitudeSettingsKey } = await server.ssrLoadModule('./src/inspector/magnitude/settings/magnitude-settings-store.ts')
+  const { createMagnitudeSettingsStore, magnitudeSettingsKey, magnitudeConfiguration } = await server.ssrLoadModule('./src/inspector/magnitude/settings/magnitude-settings-store.ts')
   const { MagnitudeBoundaryEditor } = await server.ssrLoadModule('./src/scatter-plot/settings/MagnitudeBoundaryEditor.tsx')
   const scope = { pair: 'EURUSD', currency: 'USD', side: 'QUOTE', family: 'NFP' }
   const first = createMagnitudeSettingsStore(scope, ['shared-id', 'other'])
+  assert.equal(magnitudeConfiguration(first.read(), 'shared-id').mode, 'undefined')
+  first.save('shared-id', 'p95')
+  assert.equal(magnitudeConfiguration(first.read(), 'shared-id').mode, 'p95')
+  assert.equal(createMagnitudeSettingsStore(scope, ['shared-id', 'other']).read()['shared-id'], 'p95', 'Explicit P95 persists')
+  first.save('shared-id', null)
+  assert.equal(magnitudeConfiguration(first.read(), 'shared-id').mode, 'undefined', 'Clearing a mode never silently enables P95')
   assert.equal(first.key, 'fyodor.scatter-plot.EURUSD.USD.QUOTE.NFP.magnitude.v1', 'Existing saved settings retain their key')
   const others = [{ ...scope, pair: 'GBPUSD' }, { ...scope, currency: 'EUR' },
     { ...scope, side: 'BASE' }, { ...scope, family: 'CPI' }].map((value) => createMagnitudeSettingsStore(value, ['shared-id']))
@@ -73,7 +79,7 @@ try {
 
   let applied = null
   const render = (limits, key = 'same') => React.act(async () => root.render(React.createElement(MagnitudeBoundaryEditor,
-    { key, limits, custom: false, unit: 'k', onApply: (value) => { applied = value }, onReset: () => {} })))
+    { key, limits, mode: 'custom', custom: false, unit: 'k', onApply: (value) => { applied = value }, onReset: () => {} })))
   const input = (size) => container.querySelector(`[aria-label="${size} upper boundary"]`)
   const change = (size, value) => React.act(async () => {
     const element = input(size)

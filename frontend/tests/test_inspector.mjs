@@ -164,7 +164,7 @@ try {
   const app = mount(App, {})
   await app.render()
   await click([...app.container.querySelectorAll('.inspector-release')].find((button) => button.textContent.includes('US CPI')))
-  assert.deepEqual([...app.container.querySelectorAll('th')].map((el) => el.textContent), ['Series', 'Actual', 'Previous', 'A−P'])
+  assert.deepEqual([...app.container.querySelectorAll('.inspector-table-scroll th')].map((el) => el.textContent), ['Series', 'Actual', 'Previous', 'A−P', 'A−P magnitude · History'])
   assert.match(app.container.querySelector('.inspector-table-scroll tbody').textContent, /\+0.2 pp/)
   assert.match(app.container.querySelector('.inspector-table-scroll tbody').textContent, /Rev: 0.2%/)
   assert.doesNotMatch(app.container.querySelector('table').textContent, /Sum|Direction|Long|Short|Gross/)
@@ -380,7 +380,8 @@ try {
   await app.render({ events: gradedRows })
   await click(app.container.querySelector('.inspector-release'))
   assert.match(app.container.querySelector('[aria-label="NFP reading tally"]').textContent, /2 Good.*7 Bad.*1 Unchanged.*10 readings/)
-  assert.match(app.container.querySelector('[aria-label="NFP magnitude tally"]').textContent, /History needs calendar storage/)
+  assert.match(app.container.querySelector('[aria-label="NFP magnitude tally"]').textContent, /2 Good undefined.*7 Bad undefined/)
+  assert.equal(app.container.querySelector('.magnitude-histogram'), null, 'Undefined never invents a histogram')
   const majorityLabel = () => app.container.querySelector('[aria-label="NFP majority direction"]').textContent
   assert.equal(majorityLabel(), 'EURUSD Long')
   assert.doesNotMatch(app.container.querySelector('[aria-label="NFP magnitude tally"]').textContent,
@@ -432,7 +433,7 @@ try {
   await click(app.container.querySelector('.inspector-release'))
   assert.equal(app.container.querySelector('[aria-label="NFP reading tally"]'), null)
   assert.equal(app.container.querySelector('[aria-label="NFP magnitude tally"]'), null)
-  assert.equal(app.container.querySelector('.inspector-row-grade'), null)
+  assert.ok(app.container.querySelector('.inspector-row-grade'), 'CPI now has explicit USD-pressure grades')
   assert.equal(app.container.querySelector('[aria-label="NFP majority direction"]'), null)
   console.log('✓ Mounted NFP ten-reading grading, inverse rules, zero/missing states, live updates and family isolation')
   console.log('✓ Mounted experimental NFP majority Short/Long/Neutral, complete-series gate and incoming changes')
@@ -1030,7 +1031,8 @@ try {
     historyRow('unit-change', nfpHistoryStart + 6 * 86400000, { multiplier: 0 }),
     historyRow('wrong-country', nfpHistoryStart + 7 * 86400000, { country_code: 'EU' }),
     historyRow('uncertain', nfpHistoryStart + 8 * 86400000, { time_mode: 1 })]
-  const hist = nfpMagnitudeHistory([...earlierRows, earlierRows[1]], selectedNfp)[selectedNfp.events[0].value_id]
+  const automaticSettings = { '840030016': 'p95', '840030017': 'p95' }
+  const hist = nfpMagnitudeHistory([...earlierRows, earlierRows[1]], selectedNfp, automaticSettings)[selectedNfp.events[0].value_id]
   assert.equal(hist.distribution.count, 2, 'Only unique, usable earlier publications of this series count')
   assert.equal(hist.distribution.threshold, 2.9)
   assert.equal(hist.distribution.extremeBelow, 1)
@@ -1048,7 +1050,7 @@ try {
     historyRow('other-second', nfpHistoryStart + 2 * 86400000, { ...otherCurrent, value_id: 'other-second',
       release_at: nfpHistoryStart + 2 * 86400000 })]
   const independent = nfpMagnitudeHistory([...earlierRows, ...otherHistory], { ...selectedNfp,
-    events: [selectedNfp.events[0], otherCurrent] })
+    events: [selectedNfp.events[0], otherCurrent] }, automaticSettings)
   assert.equal(independent.a.distribution.threshold, 2.9)
   assert.ok(Math.abs(independent['other-selected'].distribution.threshold - .195) < 1e-12,
     'Every NFP series computes its threshold independently in native units')
@@ -1060,6 +1062,8 @@ try {
     return selected ? React.createElement('table', {}, React.createElement('tbody', {}, React.createElement('tr', {},
       React.createElement(NfpMagnitudeCell, { event: selected.events[0], history, grade: 'good' })))) : null
   }
+  const { saveNfpMagnitudeLimits } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-settings.ts')
+  saveNfpMagnitudeLimits('840030016', 'p95')
   const historyApp = mount(NfpHistoryApp, {})
   start = storageRequests.length
   await historyApp.render()
@@ -1111,7 +1115,6 @@ try {
   await act(async () => window.dispatchEvent(new dom.Event('scroll')))
   assert.equal(document.querySelector('.magnitude-details'), null, 'Scrolling closes the card rather than leaving a stale anchor')
   await act(async () => plot.blur())
-  const { saveNfpMagnitudeLimits } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-settings.ts')
   const requestsBeforeCustom = storageRequests.length
   await act(async () => saveNfpMagnitudeLimits('840030016', [2, 5, 8]))
   assert.deepEqual(nfpHistoryView.rows.a.distribution.limits, [2, 5, 8])
@@ -1120,7 +1123,7 @@ try {
   assert.deepEqual([...plot.querySelectorAll('.magnitude-label')].map((node) => node.textContent), ['-8k', '+8k', '0'])
   assert.match(plot.getAttribute('aria-label'), /custom boundaries configured in Scatter Plot/)
   assert.equal(storageRequests.length, requestsBeforeCustom, 'Settings changes do not reload Inspector history')
-  await act(async () => saveNfpMagnitudeLimits('840030016', null))
+  await act(async () => saveNfpMagnitudeLimits('840030016', 'p95'))
   assert.equal(historyApp.container.querySelector('.magnitude-size').textContent, 'Large')
   await historyApp.render({ selected: { ...selectedNfp, events: [{ ...selectedNfp.events[0], actual: null }] } })
   assert.equal(historyApp.container.querySelectorAll('.magnitude-current').length, 0, 'Missing current delta retains gray history without a fake marker')

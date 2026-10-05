@@ -14,8 +14,8 @@ export function MagnitudeCalculationDetails({ model, seriesLabel, children }: { 
       <div><dt>Actual</dt><dd>{formatReading(inspection.actual)}</dd></div>
       <div><dt>Previous</dt><dd>{formatReading(inspection.previous)}</dd></div>
       <div><dt>A−P</dt><dd>{formatDelta(inspection.delta)}</dd></div>
-      <div><dt>Size</dt><dd>{inspection.delta === null ? 'Unavailable' : d?.currentSize ?? 'No earlier baseline'}</dd></div>
-      <div><dt>Earlier readings</dt><dd data-sample-count={d?.count ?? 0}>{d?.count ?? 0}</dd></div>
+      <div><dt>Size</dt><dd>{inspection.delta === null ? 'Unavailable' : inspection.magnitudeMode === 'undefined' ? 'Undefined' : d?.currentSize ?? 'No earlier baseline'}</dd></div>
+      <div><dt>Earlier readings</dt><dd data-sample-count={inspection.samples.length}>{inspection.samples.length}</dd></div>
       {inspection.excluded > 0 && <div><dt>Excluded publications</dt><dd>{inspection.excluded}</dd></div>}
       {d && <>
         <div><dt>{d.source === 'custom' ? 'Custom outer boundary' : 'P95 of |A−P|'}</dt><dd data-threshold={d.threshold}>{magnitude(d.threshold)}</dd></div>

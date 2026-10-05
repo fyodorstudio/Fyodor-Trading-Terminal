@@ -1,5 +1,7 @@
 import type { EconomicCalendarEvent } from '../calendar-event'
-import { inspectorDelta, type InspectorRelease } from '../inspector-data'
+import type { InspectorRelease } from '../inspector-data'
+import { gradeFamilyReading, tallyFamilyReadings } from './reading-grading'
+export { gradeLabels, type ReadingGrade } from './reading-grading'
 
 export const nfpGradingVersion = 'nfp-vs-previous-v1'
 export const nfpMajorityVersion = 'nfp-eurusd-majority-v1'
@@ -15,25 +17,11 @@ export const nfpReadingRules: Record<string, { name: string; goodWhen: 'higher' 
   '840030032': { name: 'Manufacturing Payrolls', goodWhen: 'higher', definition: 'Net job change in manufacturing; part of private payrolls.' },
   '840030024': { name: 'U6 Unemployment Rate', goodWhen: 'lower', definition: 'Broader labor underutilization, including involuntary part-time work and marginal attachment.' },
 }
-export type ReadingGrade = 'good' | 'bad' | 'unchanged' | 'missing' | 'unrated'
-export const gradeLabels: Record<ReadingGrade, string> = { good: 'Good', bad: 'Bad', unchanged: 'Unchanged', missing: 'Missing', unrated: 'Unrated' }
+export const nfpReadingFamily = { familyId: 'jobs', country: 'US', currency: 'USD', readingRules: nfpReadingRules } as const
 
-export function gradeNfpReading(event: EconomicCalendarEvent, familyId: string): { grade: ReadingGrade; explanation: string } | null {
-  if (familyId !== 'jobs' || event.currency !== 'USD' || event.country_code !== 'US') return null
-  const rule = nfpReadingRules[event.event_id]
-  if (!rule) return { grade: 'unrated', explanation: 'No grading rule is defined for this reading.' }
-  const delta = inspectorDelta(event)
-  const grade: ReadingGrade = delta === null ? 'missing' : delta === 0 ? 'unchanged' :
-    (delta > 0) === (rule.goodWhen === 'higher') ? 'good' : 'bad'
-  return { grade, explanation: `${rule.definition} Compared with supplied Previous: ${rule.goodWhen} = Good; ${rule.goodWhen === 'higher' ? 'lower' : 'higher'} = Bad. Zero = Unchanged; unavailable delta = Missing. A rule-based reading comparison, not a USD price prediction.` }
-}
+export function gradeNfpReading(event: EconomicCalendarEvent, familyId: string) { return gradeFamilyReading(event, familyId, nfpReadingFamily) }
 
-export function tallyNfpRelease(release: InspectorRelease | null) {
-  if (!release || release.familyId !== 'jobs' || release.currency !== 'USD' || release.country !== 'US') return null
-  const counts: Record<ReadingGrade, number> = { good: 0, bad: 0, unchanged: 0, missing: 0, unrated: 0 }
-  for (const event of release.events) counts[gradeNfpReading(event, release.familyId)?.grade ?? 'unrated']++
-  return { counts, total: release.events.length, version: nfpGradingVersion }
-}
+export function tallyNfpRelease(release: InspectorRelease | null) { return tallyFamilyReadings(release, nfpReadingFamily, nfpGradingVersion) }
 
 export function assessNfpMajority(release: InspectorRelease | null) {
   const tally = tallyNfpRelease(release)

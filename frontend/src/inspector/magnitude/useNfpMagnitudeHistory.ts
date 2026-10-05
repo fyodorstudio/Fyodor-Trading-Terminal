@@ -1,20 +1,8 @@
-import { useMemo } from 'react'
 import type { InspectorRelease } from '../inspector-data'
-import { useStoredCalendar } from '../useStoredCalendar'
-import { isNfpRelease, nfpHistoryScope, nfpHistoryStart, nfpMagnitudeHistory } from './nfp-magnitude-history'
-import { useNfpMagnitudeSettings } from './nfp-magnitude-settings'
+import { nfpMagnitudeFamily } from './magnitude-families'
+import { useFamilyMagnitudeHistory } from './useFamilyMagnitudeHistory'
 
 export function useNfpMagnitudeHistory(brokerId: string | null | undefined, selected: InspectorRelease | null) {
-  const settings = useNfpMagnitudeSettings()
-  const available = isNfpRelease(selected) && selected.releaseAt !== null && selected.chartTime !== null && !selected.timingUncertain
-  const cutoff = available ? selected.chartTime! * 1000 : null
-  // This range is deliberately independent of the visible chart/filter range.
-  const range = useMemo(() => cutoff !== null && cutoff > nfpHistoryStart ? { from: nfpHistoryStart, to: cutoff } : null, [cutoff])
-  const storage = useStoredCalendar(brokerId, range, !!range, nfpHistoryScope)
-  const rows = useMemo(() => nfpMagnitudeHistory(storage.events, selected, settings), [storage.events, selected, settings])
-  const partial = !!storage.source && (!storage.coverage.USD || storage.coverage.USD.missing.length > 0)
-  const message = !brokerId ? 'History needs calendar storage' : !available ? 'History needs a verified release time' :
-    storage.loading ? 'Loading history…' : storage.error ? 'History unavailable' : !range && !Object.keys(settings).length ? 'No earlier history' : null
-  return { rows, partial, message, error: storage.error }
+  return useFamilyMagnitudeHistory(brokerId, selected, nfpMagnitudeFamily)
 }
 export type NfpMagnitudeHistory = ReturnType<typeof useNfpMagnitudeHistory>

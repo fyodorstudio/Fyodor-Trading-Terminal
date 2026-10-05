@@ -2,7 +2,8 @@ import { nfpReadingRules } from '../grading/nfp-grading'
 import { createMagnitudeSettingsStore, type MagnitudeSettings, type MagnitudeScope } from './settings/magnitude-settings-store'
 
 export const nfpMagnitudeScope: MagnitudeScope = { pair: 'EURUSD', currency: 'USD', side: 'QUOTE', family: 'NFP' }
-const settings = createMagnitudeSettingsStore(nfpMagnitudeScope, Object.keys(nfpReadingRules))
+export const nfpMagnitudeSettingsStore = createMagnitudeSettingsStore(nfpMagnitudeScope, Object.keys(nfpReadingRules))
+const settings = nfpMagnitudeSettingsStore
 
 export type NfpMagnitudeSettings = MagnitudeSettings
 export const nfpMagnitudeSettingsKey = settings.key

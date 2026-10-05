@@ -5,8 +5,10 @@ import { symbolGlyph } from './event-symbols'
 import { formatInspectorValue, inspectorDelta, isInspectorCommentary, type InspectorRelease } from './inspector-data'
 import { InspectorFiltersModal } from './InspectorFiltersModal'
 import { InspectorDateRangePicker } from './InspectorDateRangePicker'
-import { gradeLabels, gradeNfpReading, tallyNfpRelease } from './grading/nfp-grading'
-import { NfpMagnitudeCell } from './magnitude/NfpMagnitudeCell'
+import { gradeLabels, gradeFamilyReading, matchesReadingFamily, tallyFamilyReadings } from './grading/reading-grading'
+import { magnitudeFamilies } from './magnitude/magnitude-families'
+import { FamilyMagnitudeCell } from './magnitude/FamilyMagnitudeCell'
+import { FamilyMagnitudeTally } from './magnitude/FamilyMagnitudeTally'
 import { NfpMagnitudeTally } from './magnitude/NfpMagnitudeTally'
 import type { InspectorView } from './useInspector'
 import './inspector.css'
@@ -33,7 +35,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
   const [listOpen, setListOpen] = useState(true)
   const panelId = useId()
   const release = view.selectedRelease
-  const tally = tallyNfpRelease(release)
+  const magnitudeFamily = magnitudeFamilies.find((family) => matchesReadingFamily(release, family)) ?? null
+  const tally = magnitudeFamily ? tallyFamilyReadings(release, magnitudeFamily, magnitudeFamily.gradingVersion) : null
   const releaseTime = (item: InspectorRelease) => view.brokerTime
     ? `${formatAppTimestamp(item.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
     : item.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(item.releaseAt, timeDisplay)
@@ -54,9 +57,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
       <strong>{symbol}</strong>
       <InspectorDateRangePicker view={view} />
       <button type="button" disabled={!view.supported} aria-haspopup="dialog" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(true)}>Filters</button>
-    </header>
-    {!view.supported ? <p className="inspector-empty">Inspector currently supports EURUSD. Select EURUSD to inspect monetary policy, inflation, labor/wages and growth/activity releases.</p> : <>
-      <div className="inspector-context"><span>{view.releases.length} releases · {view.brokerTime ? 'Broker time' : timeDisplayLabel(timeDisplay)}</span>
+      {view.supported && <div className="inspector-context"><span>{view.releases.length} releases · {view.brokerTime ? 'Broker time' : timeDisplayLabel(timeDisplay)}</span>
         <button type="button" className="inspector-list-toggle" aria-expanded={listOpen} aria-controls={`${panelId}-releases`}
           onClick={() => setListOpen((open) => !open)}>{listOpen ? 'Hide releases' : 'Show releases'}</button>
         <span role="status">{view.brokerTime ? storageStatus : sourceLabel(source, error)}</span>
@@ -66,7 +67,9 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
         {view.brokerTime && view.storage.collectorError && <span role="alert">Live collection delayed: {view.storage.collectorError}</span>}
         {view.brokerTime && unplaced > 0 && <span>{unplaced} releases have no verified chart time; they remain available in the list.</span>}
         {outsideCoverage && <span>Part of this range is outside the available calendar coverage.</span>}
-      </div>
+      </div>}
+    </header>
+    {!view.supported ? <p className="inspector-empty">Inspector currently supports EURUSD. Select EURUSD to inspect monetary policy, inflation, labor/wages and growth/activity releases.</p> : <>
       <div className={`inspector-body${listOpen ? '' : ' releases-collapsed'}`}>
         <nav id={`${panelId}-releases`} hidden={!listOpen} className="inspector-releases" aria-label="Inspector releases">
           {!view.releases.length && <p className="inspector-empty">No releases match this date range and filter selection.</p>}
@@ -80,31 +83,35 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
         </nav>
         <div className="inspector-detail" aria-live="polite">
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
-            <div className="inspector-detail-heading"><strong className={`inspector-currency-${release.currency}`}>
-              {symbolGlyph(view.preferences.symbols[release.familyId] ?? 'star')} {release.label} · {release.country} · {release.currency}</strong>
-              <div className="inspector-release-clocks" aria-label="Selected release clocks">
-                <span data-clock="display">Display · {timeDisplayLabel(timeDisplay)} · {release.releaseAt === null ? 'Display time unavailable' :
-                  formatAppTimestamp(release.releaseAt, timeDisplay)}</span>
-                {view.brokerTime && <><span aria-hidden="true"> | </span><span data-clock="broker">{release.chartTime === null ? 'Broker time unavailable' :
-                  `broker time · ${formatAppTimestamp(release.chartTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })}`}</span></>}
-                <span aria-hidden="true"> | </span>
-                <span>{status(release)}{sharedPeriod !== null && <> <span className="inspector-shared-period"
-                  title="Reference period covered by these readings. The source represents the period by its starting date.">Period: {formatAppTimestamp(sharedPeriod * 1000,
-                    { mode: 'utc', utcOffsetMinutes: 0 }, 'date')}</span></>}</span>
+            <div className="inspector-detail-overview">
+              <div className="inspector-detail-heading"><strong className={`inspector-currency-${release.currency}`}>
+                {symbolGlyph(view.preferences.symbols[release.familyId] ?? 'star')} {release.label} · {release.country} · {release.currency}</strong>
+                <div className="inspector-release-clocks" aria-label="Selected release clocks">
+                  <span data-clock="display">Display · {timeDisplayLabel(timeDisplay)} · {release.releaseAt === null ? 'Display time unavailable' :
+                    formatAppTimestamp(release.releaseAt, timeDisplay)}</span>
+                  {view.brokerTime && <><span aria-hidden="true"> | </span><span data-clock="broker">{release.chartTime === null ? 'Broker time unavailable' :
+                    `broker time · ${formatAppTimestamp(release.chartTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })}`}</span></>}
+                  <span aria-hidden="true"> | </span>
+                  <span>{status(release)}{sharedPeriod !== null && <> <span className="inspector-shared-period"
+                    title="Reference period covered by these readings. The source represents the period by its starting date.">Period: {formatAppTimestamp(sharedPeriod * 1000,
+                      { mode: 'utc', utcOffsetMinutes: 0 }, 'date')}</span></>}</span>
+                </div>
+                <span className="inspector-info"><button type="button" aria-label="About A−P" aria-describedby={`${panelId}-reading-info`}>ⓘ</button>
+                  <span id={`${panelId}-reading-info`} role="tooltip">A−P uses Previous; revised Previous is shown separately.
+                    pp = percentage points · bp = basis points.
+                    {tally && <> Colors use the family's defined Good/Bad rules versus Previous. Sizes appear only when a magnitude mode is configured in Scatter Plot.</>}</span></span>
               </div>
-              <span className="inspector-info"><button type="button" aria-label="About A−P" aria-describedby={`${panelId}-reading-info`}>ⓘ</button>
-                <span id={`${panelId}-reading-info`} role="tooltip">A−P uses Previous; revised Previous is shown separately.
-                  pp = percentage points · bp = basis points.
-                  {tally && <> NFP colors use defined Good/Bad rules versus Previous. Sizes use each series' earlier A−P readings.</>}</span></span>
+              {tally && magnitudeFamily && (magnitudeFamily.familyId === 'jobs' ?
+                <NfpMagnitudeTally release={release} history={view.magnitudeHistory} /> :
+                <FamilyMagnitudeTally release={release} history={view.magnitudeHistory} family={magnitudeFamily} />)}
             </div>
-            {tally && <NfpMagnitudeTally release={release} history={view.nfpHistory} />}
             <div className="inspector-table-scroll"><table className={tally ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
               <thead><tr><th>Series</th><th>Actual</th><th>Previous</th><th>A−P</th>{tally && <th
-                title="Seven A−P bands: three negative, exact zero, three positive. Each series uses historical P95 of |A−P| as its extreme threshold; larger changes are hidden from the bars. Height counts earlier readings. Hover a bar or focus and use Left/Right arrows for its range and count.">A−P magnitude · History</th>}</tr></thead>
+                title="Seven A−P bands: three negative, exact zero, three positive. Boundaries follow the selected series' Scatter Plot configuration. Undefined magnitude leaves this cell empty. Height counts earlier readings; Extreme values sit beyond the configured range.">A−P magnitude · History</th>}</tr></thead>
               <tbody>{release.events.map((event) => {
                 const delta = inspectorDelta(event)
                 const commentary = isInspectorCommentary(event)
-                const grading = gradeNfpReading(event, release.familyId)
+                const grading = magnitudeFamily ? gradeFamilyReading(event, release.familyId, magnitudeFamily) : null
                 return <tr key={event.value_id}>
                   <td><strong>{event.name}</strong>{event.revision > 0 && <span className="inspector-revision"> · Revision {event.revision}</span>}
                     {sharedPeriod === null && release.events.some((reading) => reading.period_seconds > 0) &&
@@ -116,7 +123,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
                   <td className={grading ? `inspector-graded-delta inspector-grade-${grading.grade}` : undefined} title={grading?.explanation}>
                     {commentary ? 'Not applicable' : formatInspectorValue(delta, event, true)}
                     {grading && <span className="inspector-row-grade">{gradeLabels[grading.grade]}</span>}</td>
-                  {tally && <NfpMagnitudeCell event={event} history={view.nfpHistory} grade={grading?.grade ?? 'unrated'} />}
+                  {tally && <FamilyMagnitudeCell event={event} history={view.magnitudeHistory} grade={grading?.grade ?? 'unrated'} />}
                 </tr>
               })}</tbody>
             </table></div>

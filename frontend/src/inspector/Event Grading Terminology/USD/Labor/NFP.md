@@ -111,8 +111,9 @@ Each series can use three independently configured Small/Medium/Large
 boundaries from Scatter Plot, in its native k, pp or h units. They must satisfy
 `0 < Small < Medium < Large`, mirror on both signs and stay fixed across dates.
 The same saved boundaries control the scatter's blue guides, these seven bands,
-size labels and the Good/Bad magnitude tally. Unconfigured series retain
-historical P95 of |A−P| and its thirds. Readings
+size labels and the Good/Bad magnitude tally. Unconfigured series are Undefined,
+with empty histogram cells. Explicit P95 mode uses historical P95 of |A−P|
+and its thirds. Readings
 strictly beyond it are hidden from the bars but still used to calculate the
 automatic threshold and total history count. In custom mode the chosen
 boundaries are not recomputed from history. Extreme selected readings show a colored
@@ -137,7 +138,8 @@ loading/errors suppress size counts, and partial coverage is marked. This adds
 detail to the tally without weighting readings or altering the majority rule.
 
 Threshold version `zero-centered-ap-configurable-v5` adds fixed custom
-boundaries and retains P95/thirds for unconfigured series, while
+boundaries and retains P95/thirds as explicit opt-in. Unconfigured series are
+Undefined, with empty histogram cells and an explicit undefined tally note, while
 admitting exact decimal boundary equality despite floating-point rounding.
 For the stored October 2, 2026 example with P95 settings, the breakdown is **Good: 1 Small,
 1 Medium, 0 Large, 0 Extreme; Bad: 7 Small, 0 Medium, 0 Large, 0 Extreme**,

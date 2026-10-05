@@ -1,6 +1,6 @@
 # Inspector signed A−P histograms
 
-Version: `zero-centered-ap-configurable-v5`. Initial adapter: US/USD NFP only. The existing
+Version: `zero-centered-ap-configurable-v5`. Supported adapters: US/USD NFP and CPI. The existing
 `magnitude` module paths remain, but both samples and selected readings now keep
 their signs.
 
@@ -11,26 +11,27 @@ experimental majority direction, chart symbols or published Criterion results.
 
 | Module | Responsibility |
 | --- | --- |
-| `magnitude-distribution.ts` | Pure seven-band counts using custom native-unit boundaries, or per-series absolute P95 when unconfigured. |
-| `nfp-magnitude-settings.ts` | Validated, saved per-series boundaries and shared reactive snapshot; independent of Scatter Plot UI. |
+| `magnitude-distribution.ts` | Pure seven-band counts using custom native-unit boundaries, or explicit per-series absolute P95. |
+| `nfp-magnitude-settings.ts` / `cpi-magnitude-settings.ts` | Thin scoped bindings for saved per-series modes/boundaries and shared reactive snapshots. |
 | `settings/magnitude-settings-store.ts` | Reusable scoped store factory: pair/currency/side/family keys, admitted series, immutable snapshots, persistence and subscriptions. |
 | `MagnitudeHistogram.tsx` / `magnitude-histogram.css` | Reusable compact SVG; receives a distribution, formatter, color and provenance text. No fetching or economic rules. |
 | `MagnitudeDetails.tsx` | Structured hover/focus detail card, portaled out of table overflow and positioned within the viewport. |
-| `nfp-magnitude-history.ts` | NFP identity, January 2015/prior-release boundaries, series/unit matching and sample admission. |
-| `useNfpMagnitudeHistory.ts` | Selected-broker history lifecycle, separate from the visible chart's date range. Composes the existing paginated storage hook. |
-| `NfpMagnitudeCell.tsx` | NFP table adapter, native unit formatting and loading/error/partial/no-sample presentation. |
-| `nfp-magnitude-tally.ts` / `NfpMagnitudeTally.tsx` | Count and display selected Small/Medium/Large/Extreme readings separately for Good and Bad, using the same distributions as the row histograms. |
+| `magnitude-families.ts` | Canonical registered family definitions, history scope, series catalog, grading version and settings binding. |
+| `family-magnitude-history.ts` | Shared prior-release cutoff, series/unit matching and sample admission. NFP history exports remain thin compatibility wrappers. |
+| `useFamilyMagnitudeHistory.ts` | Selected-broker history lifecycle; skips fetching if all selected readings are Undefined. Composes the existing paginated storage hook. |
+| `FamilyMagnitudeCell.tsx` | Native formatting and loading/error/partial/no-sample presentation; truly empty cells in Undefined mode. |
+| `family-magnitude-tally.ts` / `FamilyMagnitudeTally.tsx` | Descriptive Good/Bad size counts and separate undefined/unclassified notes. The NFP wrapper supplies its existing direction badge; CPI supplies no direction vote. |
 
-Future families can reuse the first two modules with their own history adapter
-and documented sample rules. Do not copy NFP IDs or favorable directions into
+Future families register their catalog, grading, settings and documented
+sample rules, reusing shared engines. Do not copy NFP IDs or favorable directions into
 other families. The shell only composes Inspector; request and transformation
 logic remain here and in `useStoredCalendar.ts`.
 
-The isolated `scatter-plot/PAIR/EURUSD/USD/NFP` adapter also consumes exported
-`nfpHistoryReleases`/`nfpMagnitudeSamples` and `magnitudeSizeForValue`. The plot
+The isolated `scatter-plot/PAIR/EURUSD/USD/NFP` and `CPI` adapters consume the
+shared family history engine and canonical classifier. The plot
 and Inspector therefore admit the same samples and use one threshold/classifier.
 Scatter Plot edits three independent native-unit boundaries and exposes
-individual source points. Unconfigured series retain P95 interpolation details;
+individual source points. Unconfigured series default to Undefined; P95 is opt-in.
 its point selection and full-history inventory are independent of Inspector's
 visible range and selected publication.
 
@@ -39,14 +40,14 @@ visible range and selected publication.
 - Start at **January 1, 2015**. Admit established UTC release instants on/after
   that date and **strictly before** the selected release. The selected release
   and later releases never enter its baseline.
-- Query only the selected broker, USD, and the ten stable NFP event IDs. The
+- Query only the selected broker, family currency, and that family's ten stable event IDs. The
   storage API's optional `event_ids` filter applies before pagination. This is
   an additive read-only API change; it requires a storage restart after updating,
   with no schema migration, bridge or publisher changes.
 - Query native chart-clock dates using established historical broker timing.
   Independently enforce UTC release identity before calculating distributions.
 - One distribution per stable series. Use **signed Actual minus supplied
-  Previous** (`A−P`), including negatives and zeros. Preserve k, pp or h; never pool units or
+  Previous** (`A−P`), including negatives and zeros. Preserve k, pp, h or pts; never pool units or
   compare raw distances between different rows.
 - Ignore unobserved/withdrawn rows, uncertain/unknown release times, and other
   currencies/countries. Deduplicate value IDs through normal release grouping.
@@ -78,9 +79,13 @@ series on this device, and consumed reactively by Inspector's history, labels
 and tally. Applying them recounts the admitted history; it does not change
 Actual/Previous values, Good/Bad grades or the direction rule. Boundaries stay
 fixed across dates and broker changes. Invalid settings/drafts never enter the
-classifier. Resetting a series removes only its override.
+classifier. Setting a series to Undefined removes only its configuration and
+leaves its Inspector histogram cell empty. Undefined produces no distribution
+or size; raw Scatter Plot points and Good/Bad grades remain. All-Undefined
+Inspector selections make no magnitude-history request. Existing saved tuples
+remain Custom with the same storage key. Explicit P95 saves a `"p95"` marker.
 
-An unconfigured series computes T = historical P95 of |A−P|, in native units, using
+A series explicitly configured to P95 computes T = historical P95 of |A−P|, in native units, using
 all its usable earlier readings, including zeros and extremes. P95 uses
 type-7 interpolation at (N−1) × .95. There is no pooled NFP threshold and the
 selected/current or future releases never enter the threshold sample.
@@ -122,14 +127,15 @@ Both signs use the same size labels, calculated at full precision. The label
 stays tied to the selected reading while inspecting another band. The earlier-
 reading count lives only in the tooltip.
 
-The release summary is a compact table: the existing direction badge sits in
-the top-left header, followed by Small, Medium, Large and Extreme columns, with
+The release summary is a compact table: NFP's existing direction badge or CPI's
+family label sits in the top-left header, followed by Small, Medium, Large and Extreme columns, with
 Good and Bad rows. Zero counts display as an en dash, with an accessible zero
 label. The former majority-rule caption, Compared with Previous label, A−P
 magnitude label and visible totals strip are removed. Aggregate counts, including
 Unchanged and Missing, remain in the screen-reader caption; these readings do
 not enter nonzero size categories.
-A Good/Bad reading with no usable baseline is explicitly unclassified in an
+A Good/Bad reading with Undefined magnitude is explicitly marked undefined;
+a configured reading with no usable baseline is explicitly unclassified in an
 exceptional footer. Loading
 or failed history hides size counts with the same status as the cells, and partial
 coverage remains visible. Counts refresh on release/broker changes and incoming
@@ -193,6 +199,10 @@ The separate settings tests verify scope isolation for reused series IDs,
 immutable snapshot identity, key compatibility, cross-window changes and cleanup,
 safe session-only updates when storage is unavailable, and editor draft lifecycle.
 Invalid raw integer strings return an unavailable delta rather than throwing.
+CPI integration tests additionally verify six rate versus four index units,
+all-ten higher/lower/zero/missing grading, exact comparison against supplied
+Previous, Undefined cells/defaults, draft/apply/clear behavior, mode persistence,
+family cancellation, independent scopes and shared live histogram updates.
 
 Manual visual checks: table width/height at your preferred dock size, light/dark
 contrast, plot details, centered zero and colored extreme/empty-bin readability. These

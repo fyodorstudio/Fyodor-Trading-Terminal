@@ -34,8 +34,12 @@ const changeInput = (element, value) => {
 try {
   const { nfpScatterScope } = await server.ssrLoadModule(domain + 'nfp-scatter-config.ts')
   assert.equal(nfpScatterScope.series[0].id, '840030016', 'Headline payrolls is the default series, matching Inspector ordering')
-  const { nfpScatterModel } = await server.ssrLoadModule(domain + 'nfp-scatter-adapter.ts')
-  const { nfpMagnitudeHistory, nfpHistoryReleases } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-history.ts')
+  const { nfpScatterModel: buildNfpScatterModel } = await server.ssrLoadModule(domain + 'nfp-scatter-adapter.ts')
+  const { nfpMagnitudeHistory: buildNfpMagnitudeHistory, nfpHistoryReleases } = await server.ssrLoadModule('./src/inspector/magnitude/nfp-magnitude-history.ts')
+  // These regressions explicitly exercise the opt-in P95 mode, never an implicit default.
+  const automaticSettings = Object.fromEntries(nfpScatterScope.series.map((series) => [series.id, 'p95']))
+  const nfpScatterModel = (events, now, series, release, settings = automaticSettings) => buildNfpScatterModel(events, now, series, release, settings)
+  const nfpMagnitudeHistory = (events, selected, settings = automaticSettings) => buildNfpMagnitudeHistory(events, selected, settings)
   const { scatterPlotGeometry } = await server.ssrLoadModule('./src/scatter-plot/plot/scatter-plot-geometry.ts')
   const { MagnitudeScatterPlot } = await server.ssrLoadModule('./src/scatter-plot/plot/MagnitudeScatterPlot.tsx')
   const { MagnitudeCalculationDetails } = await server.ssrLoadModule('./src/scatter-plot/inspection/MagnitudeCalculationDetails.tsx')
@@ -161,7 +165,8 @@ try {
   assert.equal(customTally.good.Medium + customTally.bad.Medium, 10, 'The tally uses the same ten custom classifications')
   const separateSeries = { [seriesId]: [10, 20, 100] }
   assert.equal(nfpScatterModel(events, now, seriesId, null, separateSeries).inspection.distribution.currentSize, 'Small')
-  assert.equal(nfpScatterModel(events, now, '840030015', null, separateSeries).inspection.distribution.source, 'p95')
+  assert.equal(nfpScatterModel(events, now, '840030015', null, separateSeries).inspection.distribution, null)
+  assert.equal(nfpScatterModel(events, now, '840030015', null, separateSeries).inspection.magnitudeMode, 'undefined')
   console.log('✓ Shared Inspector sample admission, latest-completed selection, strict prior history and exact per-series distributions')
 
   const geom = scatterPlotGeometry(model.points, model.inspection.distribution, false, 900, 300)
@@ -204,11 +209,13 @@ try {
     timestamp_convention: 'trade_server_time', time_basis: 'chart', event_ids: nfpScatterScope.series.map((s) => s.id),
     events: rows, coverage: { USD: { missing: [] } }, next_cursor: cursor })
   const props = { brokerId: 'Broker-A', clockOffsetMs: now - Date.now() }
+  saveNfpMagnitudeLimits('840030016', 'p95')
+  saveNfpMagnitudeLimits('840030015', 'p95')
   const app = mount(ScatterPlotDock, props)
   await app.render()
   for (const [label, value] of [['Pair', 'EURUSD'], ['Base/Quote', 'USD/QUOTE'], ['Family', 'NFP']]) {
     const select = app.container.querySelector(`[aria-label="Scatter Plot ${label}"]`)
-    assert.equal(select.value, value); assert.equal(select.querySelectorAll('option').length, 1)
+    assert.equal(select.value, value); assert.equal(select.querySelectorAll('option').length, label === 'Family' ? 2 : 1)
   }
   assert.equal(app.container.querySelector('[aria-label="Scatter Plot Series"]').querySelectorAll('option').length, 10)
   await respond(requests[0], health())
@@ -318,12 +325,17 @@ try {
   const applyBoundaries = () => [...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Apply boundaries')
   const priorThreshold = app.container.querySelector('[data-threshold]').dataset.threshold
   const beforeCustom = requests.length
+  const selectMode = (value) => React.act(async () => {
+    const select = app.container.querySelector('[aria-label="Magnitude mode"]')
+    select.value = value; select.dispatchEvent(new dom.Event('change', { bubbles: true }))
+  })
+  await selectMode('custom')
   await changeInput(boundary('Small'), 5); await changeInput(boundary('Medium'), 2); await changeInput(boundary('Large'), 4)
   assert.ok(applyBoundaries().disabled)
   assert.equal(app.container.querySelector('[data-threshold]').dataset.threshold, priorThreshold, 'Invalid drafts never change live scoring')
   await changeInput(boundary('Small'), 1)
   await click(applyBoundaries())
-  assert.deepEqual(readNfpMagnitudeSettings(), { '840030015': [1, 2, 4] })
+  assert.deepEqual(readNfpMagnitudeSettings(), { '840030015': [1, 2, 4], [seriesId]: 'p95' })
   assert.equal(app.container.querySelector('[data-threshold]').dataset.threshold, '4')
   assert.match(app.container.querySelector('.scatter-plot-inspection').textContent, /SizeLarge.*Custom outer boundary4 pp/)
   assert.equal(app.container.querySelector('.scatter-plot-inspection details'), null)
@@ -345,6 +357,7 @@ try {
   assert.match(app.container.querySelector('.scatter-plot-inspection').textContent, /SizeMedium.*Custom outer boundary4 pp/)
   await React.act(async () => { seriesSelect.value = seriesId; seriesSelect.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   assert.match(app.container.querySelector('.scatter-magnitude-source').textContent, /P95/)
+  await selectMode('custom')
   await changeInput(boundary('Small'), 10); await changeInput(boundary('Medium'), 20); await changeInput(boundary('Large'), 100)
   await click(applyBoundaries())
   assert.deepEqual(readNfpMagnitudeSettings(), { '840030015': [1, 2, 4], [seriesId]: [10, 20, 100] })
@@ -361,8 +374,10 @@ try {
   assert.equal(app.container.querySelector('[data-threshold]').dataset.threshold, '4', 'Updating one series does not change another')
   assert.equal(remounted.container.querySelector('[data-threshold]').dataset.threshold, '10', 'All mounted consumers receive shared updates')
   await React.act(async () => { saveNfpMagnitudeLimits(seriesId, null); saveNfpMagnitudeLimits('840030015', null) })
-  assert.match(app.container.querySelector('.scatter-magnitude-source').textContent, /P95/)
-  assert.equal(remounted.container.querySelector('[data-threshold]').dataset.threshold, '2.9')
+  assert.match(app.container.querySelector('.scatter-magnitude-source').textContent, /Undefined/)
+  assert.equal(remounted.container.querySelector('[data-threshold]'), null)
+  assert.equal(remounted.container.querySelector('[data-cutoff]'), null)
+  assert.ok(remounted.container.querySelector('[data-point-id]'), 'Undefined keeps raw points visible')
   console.log('✓ Independent native-unit boundaries, inclusive ties, shared Inspector models/tally, exact blue guides, invalid drafts, persistence and live subscriptions')
 
   let start = requests.length
