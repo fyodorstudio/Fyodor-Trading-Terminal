@@ -14,8 +14,12 @@ modules and settings keys. Shared rendering/calculations avoid per-family copies
 Every admitted numeric reading uses positive A−P = Higher (green), negative =
 Lower (red), zero = Unchanged, missing = Missing. This describes the numeric
 change, including unemployment, without interpreting trading direction. Optional
-A−RevP is Actual minus supplied Revised Previous, including zero or a revision
-equal to Previous. Raw scaled precision is retained when available. It shares the
+A−RevP is Actual minus supplied Revised Previous. Show it only when the finite
+revised value differs from Previous; a revised zero remains valid. The same gate
+controls the Rev label, delta and revised magnitude. Compare raw scaled integers
+when available to preserve small changes and treat equivalent integer spellings
+as equal. Repeated Previous values add no line. Missing Actual still shows an
+unavailable comparison for a genuine revision. Raw scaled precision is retained. It shares the
 same frozen magnitude boundaries; it never adds an observation or changes primary
 A−P samples, counts, histogram frequencies, or existing NFP/CPI scores.
 

@@ -20,5 +20,10 @@ export type EconomicCalendarEvent = {
   forecast: number | null
   previous: number | null
   revised_previous: number | null
+  // Optional exact MT5 values; live feeds can omit these, storage preserves them.
+  actual_raw_scaled_1e6?: string | null
+  previous_raw_scaled_1e6?: string | null
+  forecast_raw_scaled_1e6?: string | null
+  revised_previous_raw_scaled_1e6?: string | null
 }
 

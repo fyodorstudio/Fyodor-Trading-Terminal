@@ -1,5 +1,5 @@
 import type { EconomicCalendarEvent } from '../calendar-event'
-import { inspectorDelta, inspectorRevisedDelta, type InspectorRelease } from '../inspector-data'
+import { inspectorDelta, inspectorRevisedDelta, hasRevisedPreviousChange, type InspectorRelease } from '../inspector-data'
 
 export type ReadingGrade = 'higher' | 'lower' | 'unchanged' | 'missing' | 'unrated'
 export type ReadingRule = { name: string; definition: string }
@@ -21,7 +21,7 @@ export function gradeFamilyReading(event: EconomicCalendarEvent, familyId: strin
 }
 export function revisedFamilyComparison(event: EconomicCalendarEvent, familyId: string, family: ReadingFamily | null) {
   if (!family || familyId !== family.familyId || event.country_code !== family.country || event.currency !== family.currency ||
-    !Object.hasOwn(family.readingRules, event.event_id) || event.revised_previous === null || !Number.isFinite(event.revised_previous)) return null
+    !Object.hasOwn(family.readingRules, event.event_id) || !hasRevisedPreviousChange(event)) return null
   return { label: 'A−RevP', delta: inspectorRevisedDelta(event), ...gradeFamilyReading(event, familyId, family, 'revised_previous')! }
 }
 export function tallyFamilyReadings(release: InspectorRelease | null, family: ReadingFamily, version: string) {

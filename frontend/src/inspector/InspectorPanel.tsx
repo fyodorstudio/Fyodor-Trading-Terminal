@@ -3,7 +3,7 @@ import { useId, useState } from 'react'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { CalendarSourceHealth } from '../system-connectivity/bridge-status/bridge-contract'
 import { symbolGlyph } from './event-symbols'
-import { formatInspectorValue, inspectorDelta, inspectorSurprise, isInspectorCommentary, type InspectorRelease } from './inspector-data'
+import { formatInspectorValue, hasRevisedPreviousChange, inspectorDelta, inspectorSurprise, isInspectorCommentary, type InspectorRelease } from './inspector-data'
 import { InspectorFiltersModal } from './InspectorFiltersModal'
 import { InspectorDateRangePicker } from './InspectorDateRangePicker'
 import { InspectorReleaseHeading } from './InspectorReleaseHeading'
@@ -162,7 +162,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
                         { mode: 'utc', utcOffsetMinutes: 0 }, 'date') : '—'}</small>}</td>
                   {showReadingTimes && <InspectorReadingTime event={event} brokerTime={view.brokerTime} timeDisplay={timeDisplay} />}
                   <td>{formatInspectorValue(event.actual, event)}</td>
-                  <td>{formatInspectorValue(event.previous, event)}{event.revised_previous !== null && event.revised_previous !== event.previous &&
+                  <td>{formatInspectorValue(event.previous, event)}{hasRevisedPreviousChange(event) &&
                     <small>Rev: {formatInspectorValue(event.revised_previous, event)}</small>}</td>
                   {showReadingTimes && <td>{formatInspectorValue(event.forecast, event)}</td>}
                   <td className={grading ? `inspector-graded-delta inspector-grade-${grading.grade}` : undefined} title={grading?.explanation}>

@@ -8,11 +8,10 @@ Primary comparison is Actual minus supplied Previous. Positive = Higher/green,
 negative = Lower/red, exact zero = Unchanged/gray, unavailable = Missing/gray.
 Forecast and Revised Previous never replace the supplied Previous.
 
-For PPI only, a finite supplied Revised Previous adds a second line, A−RevP,
+A finite supplied Revised Previous that differs from Previous adds a second line, A−RevP,
 below the primary delta. Compute Actual minus Revised Previous with the same
-precision handling and independent sign color. Revised zero and a revision
-equal to Previous are valid comparisons. Absent/nonfinite revisions omit the
-line. An available revision with unusable Actual shows a missing comparison.
+precision handling and independent sign color. A changed revised zero is valid. Repeated Previous and absent/nonfinite
+revisions omit the line, using the same gate as the Rev label and revised size. An available revision with unusable Actual shows a missing comparison.
 Raw scaled values take priority when available; malformed/unsafe raw differences
 are unavailable rather than fabricated.
 

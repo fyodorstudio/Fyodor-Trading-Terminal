@@ -180,12 +180,10 @@ export function buildInspectorMarkers(groups: InspectorRelease[], preferences: I
 function inspectorDifference(event: EconomicCalendarEvent, comparator: 'previous' | 'forecast' | 'revised_previous'): number | null {
   const reference = event[comparator]
   if (event.actual === null || reference === null || !Number.isFinite(event.actual) || !Number.isFinite(reference)) return null
-  const raw = event as EconomicCalendarEvent & { actual_raw_scaled_1e6?: string | null;
-    previous_raw_scaled_1e6?: string | null; forecast_raw_scaled_1e6?: string | null; revised_previous_raw_scaled_1e6?: string | null }
-  const rawReference = raw[`${comparator}_raw_scaled_1e6`]
-  if (raw.actual_raw_scaled_1e6 != null && rawReference != null) {
-    if (!/^[+-]?\d+$/.test(raw.actual_raw_scaled_1e6) || !/^[+-]?\d+$/.test(rawReference)) return null
-    const difference = BigInt(raw.actual_raw_scaled_1e6) - BigInt(rawReference)
+  const rawReference = event[`${comparator}_raw_scaled_1e6`]
+  if (event.actual_raw_scaled_1e6 != null && rawReference != null) {
+    if (!/^[+-]?\d+$/.test(event.actual_raw_scaled_1e6) || !/^[+-]?\d+$/.test(rawReference)) return null
+    const difference = BigInt(event.actual_raw_scaled_1e6) - BigInt(rawReference)
     const number = Number(difference)
     return Number.isSafeInteger(number) ? number / 1_000_000 : null
   }
@@ -199,6 +197,17 @@ export function inspectorDelta(event: EconomicCalendarEvent): number | null {
 }
 export function inspectorSurprise(event: EconomicCalendarEvent): number | null {
   return inspectorDifference(event, 'forecast')
+}
+// A populated revised field can simply repeat Previous. Share this gate across
+// the reference label, revised delta and revised magnitude so they stay aligned.
+export function hasRevisedPreviousChange(event: EconomicCalendarEvent): boolean {
+  if (event.revised_previous === null || !Number.isFinite(event.revised_previous)) return false
+  if (event.previous === null || !Number.isFinite(event.previous)) return true
+  const previous = event.previous_raw_scaled_1e6, revised = event.revised_previous_raw_scaled_1e6
+  if (previous != null && revised != null && /^[+-]?\d+$/.test(previous) && /^[+-]?\d+$/.test(revised)) {
+    return BigInt(previous) !== BigInt(revised)
+  }
+  return event.previous !== event.revised_previous
 }
 export function inspectorRevisedDelta(event: EconomicCalendarEvent): number | null {
   return inspectorDifference(event, 'revised_previous')

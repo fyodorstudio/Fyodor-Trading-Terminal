@@ -33,8 +33,9 @@ const at = Date.UTC(2026, 9, 1, 12), now = at + 1000, clockOffsetMs = now - Date
 
 try {
   const { ppiMagnitudeFamily: family, cpiMagnitudeFamily, nfpMagnitudeFamily } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-families.ts')
-  const { ppiRevisedComparison } = await server.ssrLoadModule('./src/inspector/grading/ppi-grading.ts')
-  const { gradeFamilyReading } = await server.ssrLoadModule('./src/inspector/grading/reading-grading.ts')
+  const { ppiReadingFamily } = await server.ssrLoadModule('./src/inspector/grading/ppi-grading.ts')
+  const { gradeFamilyReading, revisedFamilyComparison } = await server.ssrLoadModule('./src/inspector/grading/reading-grading.ts')
+  const ppiRevisedComparison = (event, familyId) => revisedFamilyComparison(event, familyId, ppiReadingFamily)
   const { groupInspectorReleases, inspectorDelta, inspectorRevisedDelta } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { familyMagnitudeHistory } = await server.ssrLoadModule('./src/inspector/magnitude/family-magnitude-history.ts')
   const { ppiScatterModel } = await server.ssrLoadModule('./src/scatter-plot/PAIR/EURUSD/USD/PPI/ppi-scatter-adapter.ts')
@@ -64,8 +65,8 @@ try {
   for (const overrides of [{ revised_previous: null }, { revised_previous: NaN }, { currency: 'EUR' },
     { country_code: 'EU' }, { event_id: '840030005' }]) assert.equal(ppiRevisedComparison({ ...current[0], ...overrides }, 'ppi'), null)
   assert.equal(ppiRevisedComparison(current[0], 'us-cpi'), null)
-  assert.equal(ppiRevisedComparison({ ...current[0], revised_previous: .7, revised_previous_raw_scaled_1e6: '700000' }, 'ppi').delta, -.2,
-    'A supplied revision equal to Previous still has a comparison')
+  assert.equal(ppiRevisedComparison({ ...current[0], revised_previous: .7, revised_previous_raw_scaled_1e6: '700000' }, 'ppi'), null,
+    'A repeated Previous adds no revised comparison')
   assert.equal(ppiRevisedComparison({ ...current[0], revised_previous: 0, revised_previous_raw_scaled_1e6: '0' }, 'ppi').grade, 'higher')
   assert.equal(ppiRevisedComparison({ ...current[0], actual: null }, 'ppi').grade, 'missing')
   assert.equal(ppiRevisedComparison({ ...current[0], revised_previous_raw_scaled_1e6: 'invalid' }, 'ppi').delta, null)
@@ -137,7 +138,7 @@ try {
   const saved = parseWorkspaceSnapshot(JSON.stringify(exportWorkspace()))
   await React.act(async () => { family.settings.save(ids[0], null); restoreWorkspace(saved) })
   assert.deepEqual(family.settings.read()[ids[0]], [.1, .2, .4], 'PPI settings participate in workspace backup/restore')
-  console.log('✓ PPI-only optional revised delta, precision/zero/missing/scope gates, sign colors, shared manual magnitudes, undoubled N, histogram hiding, scoped scatter/freeze/navigation and workspace restore')
+  console.log('✓ PPI optional changed-Previous delta, precision/zero/missing/scope gates, sign colors, shared manual magnitudes, undoubled N, histogram hiding, scoped scatter/freeze/navigation and workspace restore')
 } finally {
   await React.act(async () => roots.forEach((root) => root.unmount()))
   await server.close(); await dom.happyDOM.abort(); dom.close()

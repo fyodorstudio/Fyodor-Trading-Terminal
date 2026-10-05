@@ -1,5 +1,4 @@
-import type { EconomicCalendarEvent } from '../calendar-event'
-import { revisedFamilyComparison, type ReadingRule } from './reading-grading'
+import type { ReadingRule } from './reading-grading'
 
 export const ppiGradingVersion = 'usd-ppi-change-vs-previous-v1'
 const rate = 'Rate changes are measured in percentage points.'
@@ -10,7 +9,3 @@ export const ppiReadingRules: Record<string, ReadingRule> = {
   '840030004': { name: 'Core PPI y/y', definition: `Annual producer-price inflation excluding food and energy. ${rate}` },
 }
 export const ppiReadingFamily = { familyId: 'ppi', country: 'US', currency: 'USD', readingRules: ppiReadingRules } as const
-
-export function ppiRevisedComparison(event: EconomicCalendarEvent, familyId: string) {
-  return revisedFamilyComparison(event, familyId, ppiReadingFamily)
-}

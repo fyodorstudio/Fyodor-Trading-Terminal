@@ -33,7 +33,7 @@ const at = Date.UTC(2026, 9, 1, 12), now = at + 1000, clockOffsetMs = now - Date
 
 try {
   const { magnitudeFamilies: families, expandedMagnitudeFamilies: expanded } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-families.ts')
-  const { inspectorFamilies, groupInspectorReleases, inspectorDelta, defaultInspectorPreferences, readInspectorPreferences, inspectorStorageKey } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
+  const { inspectorFamilies, groupInspectorReleases, hasRevisedPreviousChange, inspectorDelta, defaultInspectorPreferences, readInspectorPreferences, inspectorStorageKey } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { gradeFamilyReading, revisedFamilyComparison } = await server.ssrLoadModule('./src/inspector/grading/reading-grading.ts')
   const { familyMagnitudeHistory, scaledMagnitudeDelta } = await server.ssrLoadModule('./src/inspector/magnitude/family-magnitude-history.ts')
   const { familyScatterModel } = await server.ssrLoadModule('./src/scatter-plot/inspection/family-scatter-model.ts')
@@ -76,6 +76,17 @@ try {
     assert.equal(gradeFamilyReading({ ...current, actual: 1 }, family.familyId, family).grade, 'lower')
     assert.equal(revisedFamilyComparison(current, family.familyId, family).delta, .25)
     assert.equal(revisedFamilyComparison({ ...current, revised_previous: 0 }, family.familyId, family).grade, 'higher')
+    assert.equal(revisedFamilyComparison({ ...current, revised_previous: current.previous }, family.familyId, family), null,
+      `${family.familyId}/${id}: repeated Previous hides A−RevP`)
+    assert.equal(hasRevisedPreviousChange({ ...current, previous: 0, revised_previous: 0 }), false)
+    assert.equal(hasRevisedPreviousChange({ ...current, previous: null }), true)
+    assert.equal(hasRevisedPreviousChange({ ...current, revised_previous: current.previous,
+      previous_raw_scaled_1e6: '02000000', revised_previous_raw_scaled_1e6: '+2000000' }), false)
+    const preciseRevision = { ...current, previous: 9000000000000, revised_previous: 9000000000000,
+      actual: 9000000000000, previous_raw_scaled_1e6: '9000000000000000000',
+      revised_previous_raw_scaled_1e6: '9000000000000000001', actual_raw_scaled_1e6: '9000000000000000002' }
+    assert.equal(hasRevisedPreviousChange(preciseRevision), true, 'Distinct exact revisions survive rounded numeric fields')
+    assert.equal(revisedFamilyComparison(preciseRevision, family.familyId, family).delta, .000001)
     assert.equal(revisedFamilyComparison({ ...current, revised_previous: null }, family.familyId, family), null)
     assert.equal(revisedFamilyComparison({ ...current, revised_previous: NaN }, family.familyId, family), null)
     assert.equal(revisedFamilyComparison({ ...current, country_code: 'XX' }, family.familyId, family), null)
@@ -131,6 +142,26 @@ try {
     assert.equal(rows[0].querySelector('.inspector-row-grade').textContent, 'Higher')
     assert.equal(rows[0].lastElementChild.getAttribute('aria-label'), 'Magnitude undefined')
     assert.match(rows[0].children[3].textContent, /A−RevP/)
+  }
+  // Both ISM screenshots: the upstream revised field repeats Previous for every row.
+  for (const familyId of ['ism-manufacturing', 'ism-services']) {
+    const family = families.find((candidate) => candidate.familyId === familyId)
+    const source = family.seriesIds.map((id) => row(family, id, at, {
+      actual: 54.4, previous: 52.6, revised_previous: 52.6,
+      unit: 0, previous_raw_scaled_1e6: '52600000', revised_previous_raw_scaled_1e6: '52600000' }))
+    const settings = Object.fromEntries(family.seriesIds.map((id) => [id, [.5, 1, 2]]))
+    await inspector.render({ family, rows: source, settings })
+    await click(inspector.container.querySelector('.inspector-release'))
+    assert.equal(inspector.container.querySelector('.inspector-secondary-reading'), null)
+    assert.doesNotMatch(inspector.container.querySelector('.inspector-table-scroll tbody').textContent, /Rev:/)
+    assert.ok(inspector.container.querySelector('.magnitude-size'), 'Primary magnitude stays visible')
+    const revised = source.map((event) => ({ ...event, revised_previous: 52.5, revised_previous_raw_scaled_1e6: '52500000' }))
+    await inspector.render({ family, rows: revised, settings })
+    assert.equal(inspector.container.querySelectorAll('td.inspector-graded-delta .inspector-secondary-reading').length, source.length)
+    assert.equal(inspector.container.querySelectorAll('.inspector-magnitude-cell .inspector-secondary-reading').length, source.length)
+    assert.match(inspector.container.querySelector('.inspector-table-scroll tbody').textContent, /Rev: 52.5 pts/)
+    await inspector.render({ family, rows: source, settings })
+    assert.equal(inspector.container.querySelector('.inspector-secondary-reading'), null, 'Live removal hides delta and revised size together')
   }
   const fed = families.find((family) => family.familyId === 'fomc')
   const policyRows = [row(fed, undefined, at, { actual: 5, previous: 4.75, revised_previous: 4.5 }),
