@@ -3,7 +3,7 @@ import { useId, useState } from 'react'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { CalendarSourceHealth } from '../system-connectivity/bridge-status/bridge-contract'
 import { symbolGlyph } from './event-symbols'
-import { formatInspectorValue, hasRevisedPreviousChange, inspectorDelta, inspectorSurprise, isInspectorCommentary, type InspectorRelease } from './inspector-data'
+import { formatInspectorValue, hasRevisedPreviousChange, inspectorDelta, inspectorSurprise, isInspectorCommentary, supportsInspector, type InspectorRelease } from './inspector-data'
 import { InspectorFiltersModal } from './InspectorFiltersModal'
 import { InspectorDateRangePicker } from './InspectorDateRangePicker'
 import { InspectorReleaseHeading } from './InspectorReleaseHeading'
@@ -16,6 +16,8 @@ import { magnitudeFamilies } from './magnitude/magnitude-families'
 import { FamilyMagnitudeCell } from './magnitude/FamilyMagnitudeCell'
 import { InspectorScoringView } from './scoring/InspectorScoringView'
 import { inspectorScoringBinding } from './scoring/scoring-registry'
+import { supportsCpiV2 } from './scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v2'
+import { CpiScoreV2 } from './scoring/PAIR/EURUSD/USD/CPI/ui/CpiScoreV2'
 import type { InspectorView } from './useInspector'
 import './inspector.css'
 
@@ -58,6 +60,9 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const hasMagnitude = !!magnitudeFamily && !!release?.events.some((event) => Object.hasOwn(magnitudeFamily.readingRules, event.event_id))
   const scoringBinding = inspectorScoringBinding(symbol, release)
   const showScoring = view.preferences.detailView === 'scoring' && !!scoringBinding
+  const v2Available = supportsInspector(symbol) && supportsCpiV2(release)
+  const showScoringV2 = view.preferences.detailView === 'scoring-v2' && v2Available
+  const visibleView = showScoringV2 ? 'scoring-v2' : showScoring ? 'scoring' : 'table'
   const showHistograms = hasMagnitude && view.preferences.showHistograms
   const releaseTime = (item: InspectorRelease) => view.brokerTime
     ? `${formatAppTimestamp(item.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
@@ -111,18 +116,19 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
       {view.supported && release && <InspectorReleaseHeading release={release} view={view} timeDisplay={timeDisplay}
         status={status(release)} sharedPeriod={sharedPeriod} hasMagnitude={hasMagnitude} calendarDetail={calendarDetail} coverageDetail={coverageDetail} />}
       {view.supported && release && <select className="inspector-view-select" aria-label="Inspector view"
-        value={showScoring ? 'scoring' : 'table'} onChange={(event) => {
+        value={visibleView} onChange={(event) => {
           const next = event.target.value
           if (next === 'scatter') {
             // Scatter is navigation; keep the selected Inspector view when returning.
-            event.target.value = showScoring ? 'scoring' : 'table'
+            event.target.value = visibleView
             if (hasMagnitude && scatterAvailable && onOpenScatter) onOpenScatter(release)
-          } else if (next === 'table' || (next === 'scoring' && scoringBinding)) {
+          } else if (next === 'table' || (next === 'scoring' && scoringBinding) || (next === 'scoring-v2' && v2Available)) {
             view.applyPreferences({ ...view.preferences, detailView: next })
           }
         }}>
         <option value="table">Table only</option>
         <option value="scoring" disabled={!scoringBinding}>Scoring system</option>
+        {v2Available && <option value="scoring-v2">Scoring system v2</option>}
         <option value="scatter" disabled={!hasMagnitude || !scatterAvailable || !onOpenScatter}>Scatter Plot</option>
       </select>}
     </header>
@@ -140,7 +146,9 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
         </nav>
         <div className="inspector-detail" aria-live="polite">
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
-            {showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release} history={view.magnitudeHistory} /> :
+            {showScoringV2 ? <CpiScoreV2 key={release.id} release={release} brokerId={view.brokerId}
+              events={view.allReleases.flatMap((item) => item.events)} /> :
+            showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release} history={view.magnitudeHistory} /> :
             <div className="inspector-table-scroll"><table className={showHistograms ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
               <thead><tr><th>Series</th>{showReadingTimes && <th>Release time</th>}<th>Actual</th><th>Previous</th>
                 {showReadingTimes && <th>Forecast</th>}<th>A−P</th>{showReadingTimes && <th
