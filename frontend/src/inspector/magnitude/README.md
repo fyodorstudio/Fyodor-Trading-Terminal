@@ -15,7 +15,9 @@ Seven signed histogram bins are three negative, exact zero, three positive.
 Extreme values count in N and remain visible in scatter, outside the seven bars.
 
 Freeze commits a valid manual draft and locks its inputs. Unfreeze opens editing
-without modifying saved scoring; Freeze replaces the saved tuple, Set Undefined
+without modifying saved scoring. Valid edits preview bands and size immediately
+in Scatter Plot while Inspector retains saved values. Invalid drafts keep the
+last valid preview. Freeze replaces the saved tuple, Set Undefined
 removes it. Reload/reopen returns to the saved frozen tuple. Color/style edits
 remain independent of frozen numeric limits.
 

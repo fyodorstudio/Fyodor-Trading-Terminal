@@ -55,7 +55,8 @@ not historical data vintages.
 
 Magnitude is **Undefined** or **frozen manual boundaries**. Enter independent
 positive Small/Medium/Large native-unit limits and Freeze; above Large is Extreme.
-Unfreeze opens a draft while saved limits stay active. P95 is retired; legacy
+Unfreeze opens a live Scatter Plot preview while Inspector retains saved limits.
+Boundary zoom is the default when limits exist. P95 is retired; legacy
 manual tuples persist and legacy P95 selections become Undefined. Numeric limits
 are scoped per series; magnitude colors apply globally. Classification rules are
 user-chosen interpretations, documented in the family terminology files.

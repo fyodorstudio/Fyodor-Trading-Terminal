@@ -99,8 +99,10 @@ saved settings; `localhost` and `127.0.0.1` have separate browser storage.
 - Inspector: apply family filters; Alert uses those same applied filters and broker.
 - Scatter Plot: choose NFP/CPI and a series. Magnitude starts **Undefined**.
   Select **Manual boundaries**, enter three increasing positive native-unit
-  cutoffs and press **Freeze**. Unfreeze opens a draft; the saved values stay
-  active until Freeze or Set Undefined. New readings grow N without moving limits.
+  cutoffs and press **Freeze**. Valid edits preview the bands/size immediately in
+  Scatter Plot; **Boundary zoom** is the default when boundaries exist. Unfreeze
+  opens editing; Inspector retains saved values until Freeze or Set Undefined.
+  Invalid edits retain the last valid preview. New readings grow N without moving limits.
 - Settings: choose display timezone and use Workspace backup to export/import
   saved preferences. Small/Medium/Large colors are global across series/families.
 - Verify the source clock locally; machine-specific clock verification is not

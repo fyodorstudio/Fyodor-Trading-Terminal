@@ -8,7 +8,10 @@ visible with Undefined magnitude; later samples never dim.
 
 Magnitude modes are Undefined and Manual boundaries. Enter three increasing
 positive native-unit cutoffs and press Freeze. Unfreeze opens editing while the
-saved limits remain active; reopening locks saved tuples. Set Undefined clears
+saved limits remain active in Inspector. Valid edits immediately preview the
+colored bands, guides and size label in Scatter Plot; invalid edits keep its last
+valid preview. Freeze saves the preview, and reopening locks saved tuples.
+Changing broker/series/release discards unsaved preview. Set Undefined clears
 classification/histogram/guides. New releases grow N without moving frozen limits.
 Retired P95 preferences become Undefined; existing Custom tuples remain intact.
 
@@ -22,7 +25,8 @@ values are not point-in-time vintages. Selection preserves the inventory query.
 ## Navigation and appearance
 
 Crosshair, independent axis wheel/drag/keyboard zoom, anchored pan and reset are
-view changes only. Boundary zoom uses frozen limits without hiding extreme samples;
+view changes only. Boundary zoom is the default whenever saved or preview limits
+exist, and uses those limits without hiding extreme samples;
 triangles mark off-scale points. Rounded axis/crosshair labels preserve underlying
 coordinates and exact inspection readings. Keyboard dot selection is supported.
 

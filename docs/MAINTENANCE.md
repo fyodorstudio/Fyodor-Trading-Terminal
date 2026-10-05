@@ -38,7 +38,9 @@ Magnitude tuples retain existing scope keys. Retired `"p95"` markers are ignored
 as Undefined; manual tuples survive. Numeric configuration is per
 pair/currency/side/family/series; the Small/Medium/Large palette is global.
 Freeze saves fixed tuples; Unfreeze is an editing draft and doesn't change the
-saved classification. Reopening always shows saved tuples frozen.
+saved classification in Inspector. Scatter Plot previews valid edits immediately
+and defaults to Boundary zoom when saved/preview limits exist. Reopening always
+shows saved tuples frozen; unsaved previews never enter workspace exports.
 
 ## Expansion and operational review
 

@@ -95,7 +95,7 @@ try {
   await render([10, 20, 30], 'new-broker')
   assert.equal(input('Small').value, '10', 'A changed selection scope starts its own draft')
   await change('Medium', 10)
-  assert.ok(container.querySelector('button[type="submit"]').disabled)
+  assert.ok([...container.querySelectorAll('button')].find((button) => button.textContent === 'Freeze').disabled)
   applied = null
   await React.act(async () => container.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
   assert.equal(applied, null, 'Invalid drafts cannot apply even through programmatic submit')
@@ -105,13 +105,27 @@ try {
   applied = null
   await React.act(async () => container.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
   assert.equal(applied, null, 'Frozen configuration rejects programmatic edits')
-  await React.act(async () => [...container.querySelectorAll('button')].find((button) => button.textContent === 'Unfreeze').click())
+  const toggle = [...container.querySelectorAll('button')].find((button) => button.textContent === 'Unfreeze')
+  await React.act(async () => toggle.click())
+  // Model the browser's post-click default action after React updates the node.
+  // Reusing an ordinary button as a submit button must not refreeze the draft.
+  if (toggle.type === 'submit') await React.act(async () => toggle.form.requestSubmit(toggle))
+  assert.equal(toggle.type, 'button', 'Unfreeze never becomes a submit button during the click')
   assert.equal(input('Small').disabled, false)
   await change('Small', .5)
   assert.equal(applied, null, 'Unfreezing/drafting never changes the saved classification')
   await React.act(async () => container.querySelector('form').dispatchEvent(new dom.Event('submit', { bubbles: true, cancelable: true })))
   assert.deepEqual(applied, [.5, 2, 4])
   assert.ok(input('Small').disabled, 'Freeze locks all manual inputs again')
+  for (const value of [.6, .7]) {
+    await React.act(async () => [...container.querySelectorAll('button')].find((button) => button.textContent === 'Unfreeze').click())
+    assert.equal(input('Small').disabled, false, 'Every Unfreeze cycle unlocks the numeric inputs')
+    await change('Small', value)
+    await React.act(async () => [...container.querySelectorAll('button')].find((button) => button.textContent === 'Freeze').click())
+    assert.deepEqual(applied, [value, 2, 4])
+    assert.ok(input('Small').disabled)
+    assert.equal([...container.querySelectorAll('button')].find((button) => button.textContent === 'Unfreeze').disabled, false)
+  }
   console.log('✓ Untouched baseline refresh, in-progress draft preservation, scope reset and invalid-submit protection')
 } finally {
   await React.act(async () => root.unmount())
