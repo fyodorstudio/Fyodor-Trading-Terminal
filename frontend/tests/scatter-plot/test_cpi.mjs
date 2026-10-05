@@ -129,13 +129,16 @@ try {
     return React.createElement(InspectorPanel, { view: history ? { ...view, magnitudeHistory: history } : view, symbol: 'EURUSD', source: null, error: null, timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 } })
   }
   const inspector = mount(InspectorApp, {})
+  const showView = async (label) => click([...inspector.container.querySelectorAll('[aria-label="Inspector view"] button')].find((button) => button.textContent === label))
   await inspector.render(); await click(inspector.container.querySelector('.inspector-release'))
   assert.equal(inspector.container.querySelectorAll('.inspector-table-scroll td.inspector-grade-higher').length, 8)
   assert.equal(inspector.container.querySelectorAll('.inspector-table-scroll td.inspector-grade-lower').length, 1)
   assert.equal(inspector.container.querySelectorAll('.inspector-table-scroll td.inspector-grade-unchanged').length, 1)
+  await showView('Scoring system')
   assert.equal(inspector.container.querySelector('[aria-label="CPI pair direction"]').textContent, 'Uncomputed')
   assert.equal(inspector.container.querySelectorAll('.inspector-cpi-score tbody tr').length, 4)
   assert.equal(inspector.container.querySelectorAll('.inspector-cpi-index-score tbody tr').length, 4)
+  await showView('Table only')
   assert.equal(inspector.container.querySelectorAll('[aria-label="Magnitude undefined"]').length, 10)
 
   const dock = mount(ScatterPlotDock, { brokerId: 'Broker-A', clockOffsetMs })
@@ -184,7 +187,9 @@ try {
   await inspector.render({ history: historyView })
   const toggleHistogram = (label) => [...inspector.container.querySelectorAll('button')].find((button) => button.textContent.trim() === label)
   assert.equal(inspector.container.querySelectorAll('.magnitude-histogram').length, 1)
+  await showView('Scoring system')
   const summaryBeforeHide = inspector.container.querySelector('.inspector-detail-overview').textContent
+  await showView('Table only')
   const cutoffsBeforeHide = cpiMagnitudeFamily.settings.read()
   const distributionBeforeHide = historyView.rows[current[0].value_id].distribution
   await click(toggleHistogram('Hide histogram'))
@@ -197,7 +202,9 @@ try {
   assert.equal(inspector.container.querySelectorAll('.inspector-magnitude-only').length, 10)
   assert.equal(inspector.container.querySelectorAll('[aria-label="Magnitude undefined"]').length, 9, 'Undefined remains empty in magnitude-only mode')
   for (const row of inspector.container.querySelectorAll('.inspector-table-scroll tbody tr')) assert.equal(row.children.length, 5)
+  await showView('Scoring system')
   assert.equal(inspector.container.querySelector('.inspector-detail-overview').textContent, summaryBeforeHide, 'Hiding histograms never changes score matrices')
+  await showView('Table only')
   assert.equal(JSON.parse(localStorage.getItem(inspectorStorageKey)).showHistograms, false)
   assert.equal(readInspectorPreferences().showHistograms, false, 'A fresh preference read preserves hidden histograms')
   assert.deepEqual(cpiMagnitudeFamily.settings.read(), cutoffsBeforeHide, 'Visibility never edits per-series boundaries')

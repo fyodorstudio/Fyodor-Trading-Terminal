@@ -1,9 +1,9 @@
-import type { InspectorRelease } from '../inspector-data'
-import type { FamilyMagnitudeHistory } from '../magnitude/useFamilyMagnitudeHistory'
-import { cpiReadingFamily } from './cpi-grading'
-import { matchesReadingFamily } from './reading-grading'
-import { assessSignedMagnitudeReading, sumSignedMagnitudeScores, formatSignedMagnitudeScore as formatCpiScore } from './signed-magnitude-score'
-export { signedMagnitudeColumns as cpiScoreColumns, formatSignedMagnitudeScore as formatCpiScore } from './signed-magnitude-score'
+import type { InspectorRelease } from '../../../../../../inspector-data'
+import type { FamilyMagnitudeHistory } from '../../../../../../magnitude/useFamilyMagnitudeHistory'
+import { cpiReadingFamily } from '../../../../../../grading/cpi-grading'
+import { matchesReadingFamily } from '../../../../../../grading/reading-grading'
+import { assessSignedMagnitudeReading, sumSignedMagnitudeScores, formatSignedMagnitudeScore as formatCpiScore } from '../../../../../shared/core/signed-magnitude-score'
+export { signedMagnitudeColumns as cpiScoreColumns, formatSignedMagnitudeScore as formatCpiScore } from '../../../../../shared/core/signed-magnitude-score'
 
 export const cpiScoreVersion = 'cpi-eurusd-signed-magnitude-v1'
 export const cpiScoreSeries = [

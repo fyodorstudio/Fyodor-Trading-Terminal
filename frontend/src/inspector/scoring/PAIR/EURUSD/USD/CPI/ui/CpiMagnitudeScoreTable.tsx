@@ -1,7 +1,7 @@
-import type { InspectorRelease } from '../inspector-data'
-import { assessCpiMagnitudeScore, formatCpiScore } from '../grading/cpi-magnitude-score'
-import { SignedMagnitudeMatrix } from './SignedMagnitudeMatrix'
-import type { FamilyMagnitudeHistory } from './useFamilyMagnitudeHistory'
+import type { InspectorRelease } from '../../../../../../inspector-data'
+import { assessCpiMagnitudeScore, formatCpiScore } from '../assessment/cpi-magnitude-score'
+import { SignedMagnitudeMatrix } from '../../../../../shared/ui/SignedMagnitudeMatrix'
+import type { FamilyMagnitudeHistory } from '../../../../../../magnitude/useFamilyMagnitudeHistory'
 
 export function CpiMagnitudeScoreTable({ release, history }: { release: InspectorRelease | null; history: FamilyMagnitudeHistory }) {
   const assessment = assessCpiMagnitudeScore(release, history)

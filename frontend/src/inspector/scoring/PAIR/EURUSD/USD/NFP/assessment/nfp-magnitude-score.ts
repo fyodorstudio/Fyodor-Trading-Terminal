@@ -1,9 +1,9 @@
-import type { InspectorRelease } from '../inspector-data'
-import type { FamilyMagnitudeHistory } from '../magnitude/useFamilyMagnitudeHistory'
-import { nfpReadingFamily } from './nfp-grading'
-import { matchesReadingFamily } from './reading-grading'
+import type { InspectorRelease } from '../../../../../../inspector-data'
+import type { FamilyMagnitudeHistory } from '../../../../../../magnitude/useFamilyMagnitudeHistory'
+import { nfpReadingFamily } from '../../../../../../grading/nfp-grading'
+import { matchesReadingFamily } from '../../../../../../grading/reading-grading'
 import { assessSignedMagnitudeReading, formatSignedMagnitudeScore, sumSignedMagnitudeScores,
-  type MagnitudeScoreUnit } from './signed-magnitude-score'
+  type MagnitudeScoreUnit } from '../../../../../shared/core/signed-magnitude-score'
 
 export const nfpScoreVersion = 'nfp-eurusd-primary-signed-magnitude-v1'
 const payrollUnit: MagnitudeScoreUnit = { units: [0, 4], multiplier: 1, description: 'payrolls in thousands of jobs' }

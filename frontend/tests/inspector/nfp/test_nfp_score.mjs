@@ -21,13 +21,13 @@ const mount = (Component, props) => {
 }
 
 try {
-  const { assessNfpMagnitudeScore, nfpScoreSeries, nfpScoreVersion } = await server.ssrLoadModule('./src/inspector/grading/nfp-magnitude-score.ts')
+  const { assessNfpMagnitudeScore, nfpScoreSeries, nfpScoreVersion } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/NFP/assessment/nfp-magnitude-score.ts')
   const { nfpReadingRules } = await server.ssrLoadModule('./src/inspector/grading/nfp-grading.ts')
-  const { NfpMagnitudeScoreTables } = await server.ssrLoadModule('./src/inspector/magnitude/NfpMagnitudeScoreTables.tsx')
+  const { NfpMagnitudeScoreTables } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/NFP/ui/NfpMagnitudeScoreTables.tsx')
   const { familyMagnitudeHistory } = await server.ssrLoadModule('./src/inspector/magnitude/family-magnitude-history.ts')
   const { useFamilyMagnitudeHistory } = await server.ssrLoadModule('./src/inspector/magnitude/useFamilyMagnitudeHistory.ts')
   const { nfpMagnitudeFamily } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-families.ts')
-  const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
+  const { groupInspectorReleases, readInspectorPreferences } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const primaryIds = ['840030016', '840030015', '840030018']
   assert.equal(nfpScoreVersion, 'nfp-eurusd-primary-signed-magnitude-v1')
   assert.deepEqual(nfpScoreSeries.filter((row) => row.role === 'primary').map((row) => row.id), primaryIds)
@@ -157,6 +157,57 @@ try {
   assert.equal(liveDirection(), 'Uncomputed')
   assert.equal(fetches, 0)
   console.log('✓ Primary/supporting matrices, signed colors, role tooltips, explicit unavailable states, tie-break display and live settings/reading updates')
+
+  const { inspectorScoringBinding } = await server.ssrLoadModule('./src/inspector/scoring/scoring-registry.ts')
+  assert.equal(inspectorScoringBinding('EURUSD.a', selected).familyId, 'jobs')
+  assert.equal(inspectorScoringBinding('GBPUSD', selected), null)
+  assert.equal(inspectorScoringBinding('EURUSD', { ...selected, currency: 'EUR' }), null)
+  assert.equal(inspectorScoringBinding('EURUSD', { ...selected, country: 'EU' }), null)
+  assert.equal(inspectorScoringBinding('EURUSD', { ...selected, familyId: 'fomc' }), null)
+  assert.equal(inspectorScoringBinding('EURUSD', null), null)
+  const { useInspector } = await server.ssrLoadModule('./src/inspector/useInspector.ts')
+  const { InspectorPanel } = await server.ssrLoadModule('./src/inspector/InspectorPanel.tsx')
+  const clockOffsetMs = at + 1000 - Date.now(), bars = [], utc = { mode: 'utc', utcOffsetMinutes: 0 }
+  let scatterRelease = null
+  function Inspector({ current = selected }) {
+    const view = useInspector({ symbol: 'EURUSD.a', events: current.events, bars, timeframe: 'H1', timeDisplay: utc, clockOffsetMs })
+    return React.createElement(InspectorPanel, { view: { ...view, magnitudeHistory: ready(current) }, symbol: 'EURUSD.a',
+      source: null, error: null, timeDisplay: utc, onOpenScatter: (release) => { scatterRelease = release } })
+  }
+  const inspector = mount(Inspector, {})
+  const click = (element) => React.act(async () => { assert.ok(element); element.click() })
+  const button = (label, host = inspector) => [...host.container.querySelectorAll('[aria-label="Inspector view"] button')].find((item) => item.textContent === label)
+  await inspector.render(); await click(inspector.container.querySelector('.inspector-release'))
+  assert.equal(button('Table only').getAttribute('aria-pressed'), 'true')
+  assert.ok(inspector.container.querySelector('.inspector-table-scroll'))
+  assert.equal(inspector.container.querySelector('.inspector-scoring-view'), null)
+  const configured = nfpMagnitudeFamily.settings.read()
+  await click(button('Scoring system'))
+  assert.equal(inspector.container.querySelector('.inspector-table-scroll'), null)
+  assert.equal(inspector.container.querySelectorAll('.inspector-scoring-view table').length, 2)
+  const summary = inspector.container.querySelector('.inspector-scoring-view').textContent
+  assert.equal(readInspectorPreferences().detailView, 'scoring')
+  await click(button('Scatter Plot')); assert.equal(scatterRelease.id, selected.id, 'Scatter shortcut also works from scoring view')
+  const reloaded = mount(Inspector, {})
+  await reloaded.render(); await click(reloaded.container.querySelector('.inspector-release'))
+  assert.equal(reloaded.container.querySelector('.inspector-scoring-view').textContent, summary, 'Fresh mounts restore the chosen view and score')
+  assert.equal(reloaded.container.querySelector('.inspector-table-scroll'), null)
+  const decision = { ...selected.events[0], event_id: '840050014', name: 'Fed rate decision', unit: 1, multiplier: 0 }
+  await inspector.render({ current: groupInspectorReleases([decision])[0] })
+  await click(inspector.container.querySelector('.inspector-release'))
+  assert.equal(button('Scoring system').disabled, true)
+  assert.equal(button('Table only').getAttribute('aria-pressed'), 'true')
+  assert.ok(inspector.container.querySelector('.inspector-table-scroll'), 'Families without a scoring model fall back to readings')
+  assert.equal(inspector.container.querySelector('.inspector-scoring-view'), null)
+  await inspector.render(); await click(inspector.container.querySelector('.inspector-release'))
+  assert.equal(inspector.container.querySelector('.inspector-scoring-view').textContent, summary, 'Family switching never changes the scoring convention')
+  await click(button('Table only'))
+  assert.equal(readInspectorPreferences().detailView, 'table')
+  assert.equal(inspector.container.querySelector('.inspector-scoring-view'), null)
+  assert.equal(inspector.container.querySelectorAll('.inspector-table-scroll tbody tr').length, 10)
+  assert.deepEqual(nfpMagnitudeFamily.settings.read(), configured, 'View selection never edits frozen boundaries')
+  assert.equal(fetches, 0, 'View switching performs no calendar request')
+  console.log('✓ Explicit pair/country/currency/family registry, exclusive Inspector views, refresh persistence, unsupported fallback and Scatter shortcut')
 } finally {
   for (const root of roots) await React.act(async () => root.unmount())
   await server.close(); await dom.happyDOM.abort(); dom.close()

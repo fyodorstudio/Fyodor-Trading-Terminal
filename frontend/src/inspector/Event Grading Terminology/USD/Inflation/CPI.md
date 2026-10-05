@@ -50,8 +50,8 @@ readings need no historical threshold, while Undefined stays Undefined.
 
 Index levels and unadjusted monthly rates remain in the source table and Scatter
 Plot but do not contribute to this primary score.
-Calculation lives in `grading/cpi-magnitude-score.ts`; presentation lives in
-`magnitude/CpiMagnitudeScoreTable.tsx`. NFP's existing direction rule is unchanged.
+Calculation lives in `scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-magnitude-score.ts`; presentation lives in
+`scoring/PAIR/EURUSD/USD/CPI/ui/CpiMagnitudeScoreTable.tsx`. NFP's existing direction rule is unchanged.
 
 ## Separate price-index matrix
 
@@ -70,10 +70,10 @@ the rate Total or EURUSD direction, and the index matrix has no FX direction
 badge. The two unadjusted monthly percentage rates are not index levels and
 remain outside both matrices. No source readings or series are removed.
 
-`grading/signed-magnitude-score.ts` and `magnitude/SignedMagnitudeMatrix.tsx`
+`scoring/shared/core/signed-magnitude-score.ts` and `scoring/shared/ui/SignedMagnitudeMatrix.tsx`
 share classification, validation and matrix rendering. Index-specific series
-and subtotals live in `grading/cpi-index-magnitude-score.ts`; its table wrapper
-is `magnitude/CpiIndexMagnitudeTable.tsx`.
+and subtotals live in `scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-index-magnitude-score.ts`; its table wrapper
+is `scoring/PAIR/EURUSD/USD/CPI/ui/CpiIndexMagnitudeTable.tsx`.
 
 The selected release title, display/broker clocks and shared period now occupy
 the main Inspector toolbar beside release-list controls and calendar status.

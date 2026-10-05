@@ -21,12 +21,12 @@ const mount = (Component, props) => {
 }
 
 try {
-  const { assessCpiMagnitudeScore, cpiScoreSeries, cpiScoreVersion } = await server.ssrLoadModule('./src/inspector/grading/cpi-magnitude-score.ts')
+  const { assessCpiMagnitudeScore, cpiScoreSeries, cpiScoreVersion } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-magnitude-score.ts')
   assert.equal(cpiScoreVersion, 'cpi-eurusd-signed-magnitude-v1', 'CPI remains the agreed scoring baseline')
   assert.deepEqual(cpiScoreSeries.map((row) => row.id), ['840030005', '840030006', '840030007', '840030008'])
-  const { CpiMagnitudeScoreTable } = await server.ssrLoadModule('./src/inspector/magnitude/CpiMagnitudeScoreTable.tsx')
-  const { CpiIndexMagnitudeTable } = await server.ssrLoadModule('./src/inspector/magnitude/CpiIndexMagnitudeTable.tsx')
-  const { assessCpiIndexMagnitudeScore, cpiIndexScoreSeries } = await server.ssrLoadModule('./src/inspector/grading/cpi-index-magnitude-score.ts')
+  const { CpiMagnitudeScoreTable } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/ui/CpiMagnitudeScoreTable.tsx')
+  const { CpiIndexMagnitudeTable } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/ui/CpiIndexMagnitudeTable.tsx')
+  const { assessCpiIndexMagnitudeScore, cpiIndexScoreSeries } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-index-magnitude-score.ts')
   const { useFamilyMagnitudeHistory } = await server.ssrLoadModule('./src/inspector/magnitude/useFamilyMagnitudeHistory.ts')
   const { familyMagnitudeHistory } = await server.ssrLoadModule('./src/inspector/magnitude/family-magnitude-history.ts')
   const { cpiMagnitudeFamily } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-families.ts')

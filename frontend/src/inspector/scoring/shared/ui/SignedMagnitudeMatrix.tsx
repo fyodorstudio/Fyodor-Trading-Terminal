@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { formatSignedMagnitudeScore, signedMagnitudeColumns, type SignedMagnitudeReading } from '../grading/signed-magnitude-score'
+import { formatSignedMagnitudeScore, signedMagnitudeColumns, type SignedMagnitudeReading } from '../core/signed-magnitude-score'
 
 const statusLabels = { undefined: 'Undefined', missing: 'Missing', duplicate: 'Duplicate', unavailable: 'Unavailable' }
 export function SignedMagnitudeMatrix({ label, className, caption, header, readings, footer, scoreMeaning }: {

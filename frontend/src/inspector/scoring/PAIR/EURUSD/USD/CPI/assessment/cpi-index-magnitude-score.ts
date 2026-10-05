@@ -1,8 +1,8 @@
-import type { InspectorRelease } from '../inspector-data'
-import type { FamilyMagnitudeHistory } from '../magnitude/useFamilyMagnitudeHistory'
-import { cpiReadingFamily } from './cpi-grading'
-import { matchesReadingFamily } from './reading-grading'
-import { assessSignedMagnitudeReading, sumSignedMagnitudeScores } from './signed-magnitude-score'
+import type { InspectorRelease } from '../../../../../../inspector-data'
+import type { FamilyMagnitudeHistory } from '../../../../../../magnitude/useFamilyMagnitudeHistory'
+import { cpiReadingFamily } from '../../../../../../grading/cpi-grading'
+import { matchesReadingFamily } from '../../../../../../grading/reading-grading'
+import { assessSignedMagnitudeReading, sumSignedMagnitudeScores } from '../../../../../shared/core/signed-magnitude-score'
 
 export const cpiIndexScoreVersion = 'cpi-index-signed-magnitude-v1'
 export const cpiIndexScoreSeries = [

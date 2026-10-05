@@ -70,6 +70,7 @@ try {
   assert.equal(upgraded.families.length, 21, 'The old all-enabled default expands once')
   assert.equal(upgraded.showSymbols, false)
   assert.equal(upgraded.showHistograms, true, 'Legacy settings retain visible histograms')
+  assert.equal(upgraded.detailView, 'table', 'Legacy settings default to the readings table')
   localStorage.setItem(data.inspectorStorageKey, JSON.stringify({ ...upgraded, showHistograms: 'invalid' }))
   assert.equal(data.readInspectorPreferences().showHistograms, true, 'Malformed visibility falls back safely')
   assert.equal(upgraded.symbols['us-cpi'], 'moon')
@@ -165,12 +166,16 @@ try {
     return panel ? React.createElement(InspectorPanel, { view: inspector, symbol, source: source(), error: null, timeDisplay: utc }) : null
   }
   const app = mount(App, {})
+  const showView = async (label) => click([...app.container.querySelectorAll('[aria-label="Inspector view"] button')].find((button) => button.textContent === label))
   await app.render()
   await click([...app.container.querySelectorAll('.inspector-release')].find((button) => button.textContent.includes('US CPI')))
   assert.deepEqual([...app.container.querySelectorAll('.inspector-table-scroll th')].map((el) => el.textContent), ['Series', 'Actual', 'Previous', 'A−P', 'A−P magnitude · History'])
   assert.match(app.container.querySelector('.inspector-table-scroll tbody').textContent, /\+0.2 pp/)
   assert.match(app.container.querySelector('.inspector-table-scroll tbody').textContent, /Rev: 0.2%/)
   assert.doesNotMatch(app.container.querySelector('.inspector-table-scroll table').textContent, /Sum|Direction|Long|Short|Gross/)
+  assert.equal(app.container.querySelector('.inspector-scoring-view'), null, 'Table only is the default')
+  await showView('Scoring system')
+  assert.equal(app.container.querySelector('.inspector-table-scroll'), null, 'Scoring view contains no readings table')
   assert.equal(app.container.querySelector('[aria-label="CPI pair direction"]').textContent, 'Uncomputed',
     'Incomplete CPI primary readings cannot produce a direction')
   assert.equal(app.container.querySelectorAll('.inspector-cpi-score tbody tr').length, 4)
@@ -178,6 +183,7 @@ try {
   assert.equal(app.container.querySelector('.inspector-detail .inspector-detail-heading'), null, 'Metadata leaves no separate summary heading row')
   assert.deepEqual([...app.container.querySelectorAll('.inspector-detail-overview table')].map((table) => table.getAttribute('aria-label')),
     ['CPI price index magnitude score', 'CPI signed magnitude score'], 'Index matrix precedes the rate matrix')
+  await showView('Table only')
   assert.equal(app.container.querySelectorAll('.inspector-shared-period').length, 1)
   assert.doesNotMatch(app.container.querySelector('.inspector-table-scroll tbody').textContent, /Period:/, 'Shared period is shown once above the table')
   assert.ok(app.container.querySelector('[aria-label="Release information"]').getAttribute('aria-describedby'))
@@ -355,7 +361,9 @@ try {
   assert.match(app.container.querySelector('.inspector-table-scroll tbody').textContent, /\+0.1 pp/)
   assert.match(app.container.querySelector('.inspector-table-scroll tbody').textContent, /-0.1 h/)
   assert.deepEqual(grading.tallyNfpRelease(view.selectedRelease).counts, { higher: 2, lower: 1, unchanged: 0, missing: 0, unrated: 0 })
+  await showView('Scoring system')
   assert.equal(app.container.querySelector('[aria-label="NFP pair direction"]').textContent, 'Uncomputed')
+  await showView('Table only')
   const unemploymentDelta = app.container.querySelectorAll('.inspector-table-scroll tbody tr')[1].querySelector('td.inspector-graded-delta')
   assert.equal(unemploymentDelta.textContent, '+0.1 ppHigher', 'Rising unemployment describes the number, without an economic judgment')
   assert.ok(unemploymentDelta.classList.contains('inspector-grade-higher'))
@@ -394,6 +402,7 @@ try {
   await app.render({ events: gradedRows })
   await click(app.container.querySelector('.inspector-release'))
   assert.deepEqual(grading.tallyNfpRelease(view.selectedRelease).counts, { higher: 2, lower: 7, unchanged: 1, missing: 0, unrated: 0 })
+  await showView('Scoring system')
   assert.equal(app.container.querySelectorAll('.inspector-nfp-score tbody tr').length, 3)
   assert.equal(app.container.querySelectorAll('.inspector-nfp-supporting tbody tr').length, 7)
   assert.equal(app.container.querySelectorAll('.inspector-signed-magnitude-matrix tbody td[colspan="5"]').length, 10)
@@ -403,6 +412,7 @@ try {
   assert.doesNotMatch(app.container.querySelector('[aria-label="NFP signed magnitude score"]').textContent,
     /NFP majority rule · Experimental|Compared with Previous|A−P magnitude/)
   assert.equal(app.container.querySelector('.inspector-grade-summary'), null, 'The table replaces the old summary strip')
+  await showView('Table only')
   assert.equal(app.container.querySelectorAll('td.inspector-grade-higher').length, 2)
   assert.equal(app.container.querySelectorAll('td.inspector-grade-lower').length, 7)
   assert.equal(app.container.querySelectorAll('td.inspector-grade-unchanged').length, 1)
@@ -416,6 +426,7 @@ try {
     assert.equal(grading.gradeNfpReading({ ...row, actual: 0, previous: 0 }, 'jobs').grade, 'unchanged')
     assert.equal(grading.gradeNfpReading({ ...row, actual: null }, 'jobs').grade, 'missing')
   }
+  await showView('Scoring system')
   const heldGradeId = view.selectedRelease.id
   await app.render({ events: gradedRows.map((row) => row.event_id === '840030016' ? { ...row, actual: 200 } : row) })
   assert.equal(view.selectedRelease.id, heldGradeId)
@@ -432,7 +443,8 @@ try {
   await click(app.container.querySelector('.inspector-release'))
   assert.equal(app.container.querySelector('[aria-label="NFP reading tally"]'), null)
   assert.equal(app.container.querySelector('[aria-label="NFP signed magnitude score"]'), null)
-  assert.ok(app.container.querySelector('.inspector-row-grade'), 'CPI now has explicit USD-pressure grades')
+  await showView('Table only')
+  assert.ok(app.container.querySelector('.inspector-row-grade'), 'CPI readings retain descriptive Higher/Lower labels')
   assert.equal(app.container.querySelector('[aria-label="NFP pair direction"]'), null)
   console.log('✓ Mounted NFP ten-reading Higher/Lower labels, raw sign colors, zero/missing states, live updates and family isolation')
   console.log('✓ Mounted NFP three-primary/seven-supporting matrices, explicit Undefined direction and incoming changes')
@@ -685,6 +697,7 @@ try {
   await clockPanel.render({ view: { ...storedView, selectedRelease: null, storage: { ...storedView.storage, loading: false } },
     symbol: 'EURUSD', source: source(), error: null, timeDisplay: utc })
   assert.ok(clockPanel.container.querySelector('[aria-label="Calendar information"]'), 'Calendar details stay available without a selected release')
+  assert.ok(clockPanel.container.querySelector('.inspector-info-right [role="tooltip"]'), 'Unselected-calendar tooltip opens to the right of its icon')
   assert.equal(clockPanel.container.querySelector('.inspector-context [role="status"]'), null, 'A loaded calendar adds no persistent status sentence')
   console.log('✓ Compact selected-release date, broker/reference-period tooltip, UTC/local/offset changes, unavailable timing and loading-only status')
   const winterRefresh = { ...historic, server_time_seconds: historic.server_time_seconds - 3600 }

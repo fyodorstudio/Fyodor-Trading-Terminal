@@ -12,10 +12,8 @@ import { gradeFedRateDecision } from './grading/fed-rate-grading'
 import { gradeLabels, gradeFamilyReading, matchesReadingFamily, tallyFamilyReadings } from './grading/reading-grading'
 import { magnitudeFamilies } from './magnitude/magnitude-families'
 import { FamilyMagnitudeCell } from './magnitude/FamilyMagnitudeCell'
-import { FamilyMagnitudeTally } from './magnitude/FamilyMagnitudeTally'
-import { CpiMagnitudeScoreTable } from './magnitude/CpiMagnitudeScoreTable'
-import { CpiIndexMagnitudeTable } from './magnitude/CpiIndexMagnitudeTable'
-import { NfpMagnitudeScoreTables } from './magnitude/NfpMagnitudeScoreTables'
+import { InspectorScoringView } from './scoring/InspectorScoringView'
+import { inspectorScoringBinding } from './scoring/scoring-registry'
 import type { InspectorView } from './useInspector'
 import './inspector.css'
 
@@ -56,6 +54,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const showReadingTimes = release?.familyId === 'fomc'
   const magnitudeFamily = magnitudeFamilies.find((family) => matchesReadingFamily(release, family)) ?? null
   const tally = magnitudeFamily ? tallyFamilyReadings(release, magnitudeFamily, magnitudeFamily.gradingVersion) : null
+  const scoringBinding = inspectorScoringBinding(symbol, release)
+  const showScoring = view.preferences.detailView === 'scoring' && !!scoringBinding
   const showHistograms = !!tally && view.preferences.showHistograms
   const releaseTime = (item: InspectorRelease) => view.brokerTime
     ? `${formatAppTimestamp(item.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
@@ -93,7 +93,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
       </div>
       {view.supported && <div className="inspector-context">
         {calendarLoading && <span role="status" title={calendarDetail}>Loading</span>}
-        {!release && <InspectorInfoTooltip label="Calendar information">{calendarDetail}</InspectorInfoTooltip>}
+        {!release && <InspectorInfoTooltip label="Calendar information" placement="right">{calendarDetail}</InspectorInfoTooltip>}
         {view.storage.error && <span role="alert" title={view.storage.error}>Calendar unavailable</span>}
         {view.storageFailed && <span role="alert">Inspector settings could not be saved in this browser.</span>}
         {!view.range && <span role="alert">Choose a valid date range with the start before or on the end date.</span>}
@@ -104,9 +104,16 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
       </div>}
       {view.supported && release && <InspectorReleaseHeading release={release} view={view} timeDisplay={timeDisplay}
         status={status(release)} sharedPeriod={sharedPeriod} hasMagnitude={!!tally} calendarDetail={calendarDetail} />}
-      {view.supported && release && magnitudeFamily && onOpenScatter && <button type="button" disabled={!scatterAvailable}
-        title={scatterAvailable ? 'Inspect this release in Scatter Plot' : 'Needs a supported released family, selected broker and verified timing since January 2015.'}
-        onClick={() => onOpenScatter(release)}>Scatter Plot</button>}
+      {view.supported && release && <div className="inspector-view-actions" role="group" aria-label="Inspector view">
+        <button type="button" aria-pressed={!showScoring}
+          onClick={() => view.applyPreferences({ ...view.preferences, detailView: 'table' })}>Table only</button>
+        <button type="button" aria-pressed={showScoring} disabled={!scoringBinding}
+          title={scoringBinding ? 'Show this release’s scoring system' : 'No scoring system is configured for this pair and family.'}
+          onClick={() => view.applyPreferences({ ...view.preferences, detailView: 'scoring' })}>Scoring system</button>
+        {magnitudeFamily && onOpenScatter && <button type="button" disabled={!scatterAvailable}
+          title={scatterAvailable ? 'Inspect this release in Scatter Plot' : 'Needs a supported released family, selected broker and verified timing since January 2015.'}
+          onClick={() => onOpenScatter(release)}>Scatter Plot</button>}
+      </div>}
     </header>
     {!view.supported ? <p className="inspector-empty">Inspector currently supports EURUSD. Select EURUSD to inspect monetary policy, inflation, labor/wages and growth/activity releases.</p> : <>
       <div className={`inspector-body${listOpen ? '' : ' releases-collapsed'}`}>
@@ -122,14 +129,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
         </nav>
         <div className="inspector-detail" aria-live="polite">
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
-            {tally && magnitudeFamily && <div className="inspector-detail-overview" aria-label="Release magnitude summaries">
-              {magnitudeFamily.familyId === 'jobs' ?
-                <NfpMagnitudeScoreTables release={release} history={view.magnitudeHistory} /> :
-                magnitudeFamily.familyId === 'us-cpi' ? <>
-                  <CpiIndexMagnitudeTable release={release} history={view.magnitudeHistory} />
-                  <CpiMagnitudeScoreTable release={release} history={view.magnitudeHistory} />
-                </> : <FamilyMagnitudeTally release={release} history={view.magnitudeHistory} family={magnitudeFamily} />}
-            </div>}
+            {showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release} history={view.magnitudeHistory} /> :
             <div className="inspector-table-scroll"><table className={showHistograms ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
               <thead><tr><th>Series</th>{showReadingTimes && <th>Release time</th>}<th>Actual</th><th>Previous</th><th>A−P</th>{tally && <th
                 title={showHistograms ? "Seven A−P bands: three negative, exact zero, three positive. Boundaries follow the selected series' Scatter Plot configuration. Undefined magnitude leaves this cell empty. Height counts all usable released readings since January 2015 through now; Extreme values sit beyond the configured range." :
@@ -155,7 +155,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
                     showHistogram={showHistograms} />}
                 </tr>
               })}</tbody>
-            </table></div>
+            </table></div>}
           </>}
         </div>
       </div>

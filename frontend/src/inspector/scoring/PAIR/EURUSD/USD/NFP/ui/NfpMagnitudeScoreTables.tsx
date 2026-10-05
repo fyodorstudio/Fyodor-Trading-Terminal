@@ -1,8 +1,8 @@
-import type { InspectorRelease } from '../inspector-data'
-import { assessNfpMagnitudeScore } from '../grading/nfp-magnitude-score'
-import { formatSignedMagnitudeScore } from '../grading/signed-magnitude-score'
-import { SignedMagnitudeMatrix } from './SignedMagnitudeMatrix'
-import type { FamilyMagnitudeHistory } from './useFamilyMagnitudeHistory'
+import type { InspectorRelease } from '../../../../../../inspector-data'
+import { assessNfpMagnitudeScore } from '../assessment/nfp-magnitude-score'
+import { formatSignedMagnitudeScore } from '../../../../../shared/core/signed-magnitude-score'
+import { SignedMagnitudeMatrix } from '../../../../../shared/ui/SignedMagnitudeMatrix'
+import type { FamilyMagnitudeHistory } from '../../../../../../magnitude/useFamilyMagnitudeHistory'
 
 export function NfpMagnitudeScoreTables({ release, history }: { release: InspectorRelease | null; history: FamilyMagnitudeHistory }) {
   const assessment = assessNfpMagnitudeScore(release, history)

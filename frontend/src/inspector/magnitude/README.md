@@ -49,7 +49,8 @@ from zero-heavy data. Missing current readings remain Unavailable.
 - `magnitude-distribution.ts`: pure manual classification, bins and extremes.
 - `useFamilyMagnitudeHistory.ts`: Inspector storage lifecycle and shared settings.
 - `MagnitudeHistogram.tsx`, `FamilyMagnitudeCell.tsx`: accessible rendering/details.
-- `SignedMagnitudeMatrix.tsx`, family tally bindings: shared presentation.
+- Histogram/tally presentation stays in this directory. Signed score presentation and
+  pair/family policies live in [../scoring/README.md](../scoring/README.md).
 
 NFP uses three primary signed 0–4 contributions: Payrolls, Unemployment (inverted
 sign), and Earnings m/m. Seven supporting rows retain signed magnitudes but never

@@ -1,7 +1,7 @@
-import type { EconomicCalendarEvent } from '../calendar-event'
-import { inspectorDelta, type InspectorRelease } from '../inspector-data'
-import { magnitudeSizeForValue } from '../magnitude/magnitude-distribution'
-import type { FamilyMagnitudeHistory } from '../magnitude/useFamilyMagnitudeHistory'
+import type { EconomicCalendarEvent } from '../../../calendar-event'
+import { inspectorDelta, type InspectorRelease } from '../../../inspector-data'
+import { magnitudeSizeForValue } from '../../../magnitude/magnitude-distribution'
+import type { FamilyMagnitudeHistory } from '../../../magnitude/useFamilyMagnitudeHistory'
 
 export const signedMagnitudeColumns = [
   { size: 'Unchanged', points: 0 }, { size: 'Small', points: 1 }, { size: 'Medium', points: 2 },

@@ -17,3 +17,5 @@ Each future family document should record its scope and stable event IDs, readin
 Runtime definitions are [nfp-grading.ts](../grading/nfp-grading.ts) and [cpi-grading.ts](../grading/cpi-grading.ts), using the shared [reading-grading.ts](../grading/reading-grading.ts) engine. Histogram visibility is a saved Inspector preference (Hide histogram / Show histogram); hiding the histogram bars retains a compact Magnitude cell for each reading and does not change magnitude configuration, dataset counts or scores. Undefined magnitude cells remain empty. Signed USD score colors remain separate from Higher/Lower reading colors.
 
 Raw calendar values, reference periods, revised Previous and A−P remain visible and unchanged.
+
+Inspector has separate Table only and Scoring system views. Table only is the default; the selected view is saved. Families without a registered scoring model show the readings table. See [scoring organization](../scoring/README.md) for pair/family bindings and shared assessment/presentation modules.
