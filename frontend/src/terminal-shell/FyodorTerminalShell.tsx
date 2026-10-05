@@ -311,6 +311,8 @@ export function FyodorTerminalShell() {
           selectedSymbol={activeSymbol}
           onSelectWindow={selectBottomDock}
           onClose={() => selectBottomDock(null)}
+          onToggleHeight={dockSize.toggleHeight}
+          isMaxHeight={dockSize.isMaxHeight}
           resizeHandle={dockSize.resizeHandle}
         >
           {bottomDockWindow === 'notebook' && (

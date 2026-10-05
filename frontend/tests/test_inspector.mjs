@@ -180,12 +180,12 @@ try {
     ['CPI price index magnitude score', 'CPI signed magnitude score'], 'Index matrix precedes the rate matrix')
   assert.equal(app.container.querySelectorAll('.inspector-shared-period').length, 1)
   assert.doesNotMatch(app.container.querySelector('.inspector-table-scroll tbody').textContent, /Period:/, 'Shared period is shown once above the table')
-  assert.ok(app.container.querySelector('[aria-label="About A−P"]').getAttribute('aria-describedby'))
-  await click([...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Hide releases'))
+  assert.ok(app.container.querySelector('[aria-label="Release information"]').getAttribute('aria-describedby'))
+  await click(app.container.querySelector('.inspector-pair-toggle'))
   assert.equal(app.container.querySelector('nav').hidden, true)
   assert.ok(app.container.querySelector('.inspector-body.releases-collapsed'))
   assert.equal(app.container.querySelectorAll('.inspector-table-scroll tbody tr').length, 2, 'Full-width table keeps the selected readings')
-  await click([...app.container.querySelectorAll('button')].find((button) => button.textContent === 'Show releases'))
+  await click(app.container.querySelector('.inspector-pair-toggle'))
   assert.equal(app.container.querySelector('nav').hidden, false)
   await app.render({ events: [event(), core, nextPeriod] })
   assert.equal(app.container.querySelectorAll('.inspector-shared-period').length, 0)
@@ -480,7 +480,8 @@ try {
     React.useEffect(() => { dock = size }, [size])
     return React.createElement('div', { style: { height: size.height } }, React.createElement(BottomDockPanel, {
       activeWindow, activityCount: 0, selectedSymbol: 'EURUSD',
-      onSelectWindow: () => {}, onClose: () => {}, resizeHandle: size.resizeHandle,
+      onSelectWindow: () => {}, onClose: () => {}, onToggleHeight: size.toggleHeight,
+      isMaxHeight: size.isMaxHeight, resizeHandle: size.resizeHandle,
     }, null))
   }
   dom.innerHeight = 1000
@@ -510,6 +511,12 @@ try {
   assert.equal(localStorage.getItem(inspectorDockHeightKey), '464', 'Viewport clamping preserves the preferred height')
   await act(async () => { dom.innerHeight = 1000; dom.dispatchEvent(new dom.Event('resize')) })
   assert.equal(dock.height, 464)
+  const sizeToggle = dockApp.container.querySelector('.bottom-dock-size-toggle')
+  assert.ok(sizeToggle, 'Dock size toggle button is rendered')
+  await click(sizeToggle)
+  assert.equal(dock.isMaxHeight, true, 'Size toggle maximizes dock height')
+  await click(sizeToggle)
+  assert.equal(dock.isMaxHeight, false, 'Size toggle restores dock to minimum height')
   for (const [activeWindow, label, distance, savedHeight] of [
     ['notebook', 'Notebook', 60, 342], ['activity', 'Activity', 90, 372],
   ]) {
@@ -608,7 +615,7 @@ try {
   assert.equal(storedView.releases[0].events.length, 2)
   assert.equal(storedView.releases[0].events[0].actual, .008, 'Stored values and timing are authoritative')
   assert.equal(data.inspectorDelta(storedView.releases[0].events[0]), .007, 'Raw integers retain precision beyond metadata digits')
-  assert.ok(storageApp.container.textContent.includes('Broker time'))
+  assert.ok(storageApp.container.textContent.includes('broker time'))
   assert.equal(storedView.markers.length, 1)
   await storageApp.render({ liveEvents: [] })
   assert.equal(storedView.markers.length, 1, 'Publisher restarts and empty live windows cannot remove stored symbols')
@@ -636,16 +643,16 @@ try {
   const historicId = storedView.selectedRelease.id
   const clockText = (clock) => storageApp.container.querySelector(`[data-clock="${clock}"]`).textContent
   assert.match(clockText('broker'), /broker time.*14:30/)
-  assert.match(clockText('display'), /Display.*UTC\+07:00.*19:30/,
+  assert.match(clockText('display'), /19:30.*\(UTC\+07:00\)/,
     'Display clock converts established UTC, not the raw export or projected broker timestamp')
   const requestsBeforeClockChange = storageRequests.length
   await storageApp.render({ chartBars: historicBars, timeDisplay: utc })
-  assert.match(clockText('display'), /Display.*UTC.*12:30/)
+  assert.match(clockText('display'), /12:30.*\(UTC\)/)
   await storageApp.render({ chartBars: historicBars, timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: -300 } })
-  assert.match(clockText('display'), /Display.*UTC-05:00.*07:30/)
+  assert.match(clockText('display'), /07:30.*\(UTC-05:00\)/)
   await storageApp.render({ chartBars: historicBars, timeDisplay: { mode: 'local', utcOffsetMinutes: 0 } })
-  const { formatAppTimestamp, timeDisplayLabel } = await server.ssrLoadModule('./src/appearance/time-display/time-display-preference.ts')
-  assert.equal(clockText('display'), `Display · ${timeDisplayLabel({ mode: 'local', utcOffsetMinutes: 0 })} · ${formatAppTimestamp(historic.release_at, { mode: 'local', utcOffsetMinutes: 0 })}`)
+  const { formatAppTimestamp, timeDisplayZoneLabel } = await server.ssrLoadModule('./src/appearance/time-display/time-display-preference.ts')
+  assert.equal(clockText('display'), `${formatAppTimestamp(historic.release_at, { mode: 'local', utcOffsetMinutes: 0 })} (${timeDisplayZoneLabel({ mode: 'local', utcOffsetMinutes: 0 })})`)
   assert.match(clockText('broker'), /broker time.*14:30/)
   assert.equal(storedView.selectedRelease.id, historicId)
   assert.equal(storedView.markers[0].time, historicBars[0].time)
@@ -661,9 +668,25 @@ try {
     releaseAt: Date.UTC(2025, 0, 10, 13, 30) } }, symbol: 'EURUSD', source: source(), error: null,
     timeDisplay: { mode: 'fixed-offset', utcOffsetMinutes: 420 } })
   assert.match(clockPanel.container.querySelector('[data-clock="broker"]').textContent, /broker time.*15:30/)
-  assert.match(clockPanel.container.querySelector('[data-clock="display"]').textContent, /UTC\+07:00.*20:30/,
+  assert.match(clockPanel.container.querySelector('[data-clock="display"]').textContent, /20:30.*\(UTC\+07:00\)/,
     'January 10 NFP shows Jakarta time without double-applying the broker offset')
-  console.log('✓ Mounted selected-release broker/display clocks, UTC/local/offset changes and unavailable timing')
+  const releaseHeading = clockPanel.container.querySelector('.inspector-detail-heading')
+  const information = releaseHeading.querySelector('[role="tooltip"]')
+  assert.ok(information.querySelector('[data-clock="broker"]'), 'Broker time lives only inside the information tooltip')
+  assert.ok(information.querySelector('.inspector-shared-period'), 'Shared reference period lives in the same tooltip')
+  assert.equal(releaseHeading.querySelector('[data-clock="display"]').parentElement, releaseHeading, 'Only the display timestamp remains beside the unchanged family title')
+  assert.doesNotMatch(releaseHeading.querySelector('[data-clock="display"]').textContent, /Display ·|Local ·|Released|Period/)
+  assert.doesNotMatch(clockPanel.container.querySelector('.inspector-context').textContent, /Stored calendar|publisher live|Broker time/)
+  assert.equal(releaseHeading.querySelector('[aria-label="Release information"]').getAttribute('aria-describedby'), information.id)
+  await clockPanel.render({ view: { ...storedView, storage: { ...storedView.storage, loading: true } },
+    symbol: 'EURUSD', source: source(), error: null, timeDisplay: utc })
+  assert.equal(clockPanel.container.querySelector('.inspector-context [role="status"]').textContent, 'Loading')
+  assert.match(clockPanel.container.querySelector('[role="tooltip"]').textContent, /Loading stored calendar/)
+  await clockPanel.render({ view: { ...storedView, selectedRelease: null, storage: { ...storedView.storage, loading: false } },
+    symbol: 'EURUSD', source: source(), error: null, timeDisplay: utc })
+  assert.ok(clockPanel.container.querySelector('[aria-label="Calendar information"]'), 'Calendar details stay available without a selected release')
+  assert.equal(clockPanel.container.querySelector('.inspector-context [role="status"]'), null, 'A loaded calendar adds no persistent status sentence')
+  console.log('✓ Compact selected-release date, broker/reference-period tooltip, UTC/local/offset changes, unavailable timing and loading-only status')
   const winterRefresh = { ...historic, server_time_seconds: historic.server_time_seconds - 3600 }
   assert.equal(data.groupInspectorReleases([winterRefresh])[0].id, historicId,
     'Retrieval-offset changes preserve the selected release identity')

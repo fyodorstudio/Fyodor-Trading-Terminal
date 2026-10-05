@@ -80,7 +80,22 @@ export function useBottomDockSize(activeWindow: BottomDockWindow | null) {
     event.preventDefault()
     save(activeWindow, clamp(next))
   }
-  return { height, resizeHandle: activeWindow ? {
+  const [restoredHeights, setRestoredHeights] = useState<Record<BottomDockWindow, number>>(() => ({
+    inspector: 380, notebook: 258, activity: 258, 'scatter-plot': 420, alert: 258,
+  }))
+  const isMaxHeight = height >= maxHeight
+  function toggleHeight() {
+    if (!activeWindow) return
+    if (isMaxHeight) {
+      const restored = restoredHeights[activeWindow] ?? minHeight
+      const nextHeight = restored < maxHeight ? Math.max(minHeight, restored) : minHeight
+      save(activeWindow, nextHeight)
+    } else {
+      setRestoredHeights((current) => ({ ...current, [activeWindow]: height }))
+      save(activeWindow, maxHeight)
+    }
+  }
+  return { height, isMaxHeight, toggleHeight, resizeHandle: activeWindow ? {
     role: 'separator' as const, tabIndex: 0, 'aria-label': `Resize ${dockLabels[activeWindow]} dock`, 'aria-orientation': 'horizontal' as const,
     'aria-valuemin': minHeight, 'aria-valuemax': maxHeight, 'aria-valuenow': height, 'aria-valuetext': `${height} pixels high`,
     'data-resizing': resizingDock === activeWindow, onPointerDown, onPointerMove, onPointerUp: finishDrag, onPointerCancel: finishDrag,

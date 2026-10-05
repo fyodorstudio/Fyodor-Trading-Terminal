@@ -35,6 +35,7 @@ export function useBridgeStatus(): BridgeStatusState {
   const reachableRef = useRef<boolean | null>(null)
   const activitySequenceRef = useRef(0)
   const bridgeStartedAtRef = useRef<number | null>(null)
+  const publisherRef = useRef<string | null>(null)
 
   useEffect(() => {
     let disposed = false
@@ -66,6 +67,15 @@ export function useBridgeStatus(): BridgeStatusState {
           appendActivity('Bridge', 'Bridge reachable', `API v${health.api_version}`, { severity: 'success' })
         }
         reachableRef.current = true
+        const calendar = health.calendar
+        const publisherKey = JSON.stringify([health.bridge.started_at, calendar.instance_id, calendar.status])
+        if (publisherRef.current !== publisherKey) {
+          const actions = { live: 'Publisher live', stale: 'Publisher stale',
+            'awaiting-snapshot': 'Publisher awaiting snapshot', 'waiting-for-publisher': 'Waiting for publisher' }
+          appendActivity('Calendar', actions[calendar.status], calendar.instance_id ?? undefined,
+            { severity: calendar.status === 'live' ? 'success' : calendar.status === 'stale' ? 'warning' : 'info' })
+          publisherRef.current = publisherKey
+        }
         const roundTripMs = finishedAt - startedAt
         const estimatedBridgeNow = health.bridge.now + roundTripMs / 2
         setState({

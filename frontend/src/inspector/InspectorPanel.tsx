@@ -1,11 +1,12 @@
 import { useId, useState } from 'react'
-import { formatAppTimestamp, timeDisplayLabel, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
+import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { CalendarSourceHealth } from '../system-connectivity/bridge-status/bridge-contract'
 import { symbolGlyph } from './event-symbols'
 import { formatInspectorValue, inspectorDelta, isInspectorCommentary, type InspectorRelease } from './inspector-data'
 import { InspectorFiltersModal } from './InspectorFiltersModal'
 import { InspectorDateRangePicker } from './InspectorDateRangePicker'
 import { InspectorReleaseHeading } from './InspectorReleaseHeading'
+import { InspectorInfoTooltip } from './InspectorInfoTooltip'
 import { InspectorReadingTime } from './InspectorReadingTime'
 import { gradeFedRateDecision } from './grading/fed-rate-grading'
 import { gradeLabels, gradeFamilyReading, matchesReadingFamily, tallyFamilyReadings } from './grading/reading-grading'
@@ -17,6 +18,17 @@ import { CpiIndexMagnitudeTable } from './magnitude/CpiIndexMagnitudeTable'
 import { NfpMagnitudeScoreTables } from './magnitude/NfpMagnitudeScoreTables'
 import type { InspectorView } from './useInspector'
 import './inspector.css'
+
+function HistogramIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <rect x="1.5" y="8.5" width="2.5" height="5.5" rx="0.5" />
+      <rect x="5.25" y="2" width="2.5" height="12" rx="0.5" />
+      <rect x="9" y="5" width="2.5" height="9" rx="0.5" />
+      <rect x="12.75" y="8.5" width="2.5" height="5.5" rx="0.5" />
+    </svg>
+  )
+}
 
 function releaseStatus(release: InspectorRelease, now: number, brokerTime = false): string {
   if (release.events.some((event) => event.actual !== null)) return 'Released'
@@ -50,7 +62,9 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
     : item.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(item.releaseAt, timeDisplay)
   const status = (item: InspectorRelease) => releaseStatus(item, view.now + (view.brokerTime ? view.brokerOffsetSeconds * 1000 : 0), view.brokerTime)
   const storageStatus = view.storage.loading ? 'Loading stored calendar' : view.storage.error ??
-    (view.storage.source ? `Stored calendar · ${view.storage.source.publisher_status === 'live' ? 'publisher live' : 'publisher offline'}` : 'Waiting for the broker calendar')
+    (view.storage.source ? 'Stored calendar available' : 'Waiting for the broker calendar')
+  const calendarDetail = view.brokerTime ? storageStatus : sourceLabel(source, error)
+  const calendarLoading = view.brokerTime ? view.storage.loading : source?.status === 'awaiting-snapshot'
   const missingCoverage = Object.entries(view.storage.coverage).filter(([, coverage]) => coverage.missing.length).map(([currency]) => currency)
   const unplaced = view.releases.filter((item) => item.chartTime === null).length
   const sharedPeriod = release?.events.length && release.events[0].period_seconds > 0 &&
@@ -62,16 +76,25 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const outsideCoverage = !view.brokerTime && hasCoverage && view.range && (view.range.from < (coverageStart - offset) * 1000 || view.range.to > (coverageEnd - offset) * 1000)
   return <section className="inspector-panel" aria-label="Inspector">
     <header className="inspector-header">
-      <strong>{symbol}</strong>
-      <InspectorDateRangePicker view={view} />
-      <button type="button" disabled={!view.supported} aria-haspopup="dialog" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(true)}>Filters</button>
-      {view.supported && <button type="button" aria-pressed={view.preferences.showHistograms}
-        onClick={() => view.applyPreferences({ ...view.preferences, showHistograms: !view.preferences.showHistograms })}>
-        {view.preferences.showHistograms ? 'Hide histogram' : 'Show histogram'}</button>}
-      {view.supported && <div className="inspector-context"><span>{view.releases.length} releases · {view.brokerTime ? 'Broker time' : timeDisplayLabel(timeDisplay)}</span>
-        <button type="button" className="inspector-list-toggle" aria-expanded={listOpen} aria-controls={`${panelId}-releases`}
-          onClick={() => setListOpen((open) => !open)}>{listOpen ? 'Hide releases' : 'Show releases'}</button>
-        <span role="status">{view.brokerTime ? storageStatus : sourceLabel(source, error)}</span>
+      <div className="inspector-header-sidebar">
+        <button type="button" className="inspector-pair-toggle" aria-expanded={listOpen} aria-controls={`${panelId}-releases`}
+          title={`${view.releases.length} releases`} onClick={() => setListOpen((open) => !open)}>
+          <strong>{symbol}</strong>
+        </button>
+        <button type="button" disabled={!view.supported} aria-haspopup="dialog" aria-expanded={filtersOpen} onClick={() => setFiltersOpen(true)}>Filters</button>
+        <InspectorDateRangePicker view={view} />
+        {view.supported && <button type="button" className="inspector-histogram-btn" aria-pressed={view.preferences.showHistograms}
+          title={view.preferences.showHistograms ? 'Hide histogram' : 'Show histogram'}
+          aria-label={view.preferences.showHistograms ? 'Hide histogram' : 'Show histogram'}
+          onClick={() => view.applyPreferences({ ...view.preferences, showHistograms: !view.preferences.showHistograms })}>
+          <HistogramIcon />
+          <span className="inspector-sr-only">{view.preferences.showHistograms ? 'Hide histogram' : 'Show histogram'}</span>
+        </button>}
+      </div>
+      {view.supported && <div className="inspector-context">
+        {calendarLoading && <span role="status" title={calendarDetail}>Loading</span>}
+        {!release && <InspectorInfoTooltip label="Calendar information">{calendarDetail}</InspectorInfoTooltip>}
+        {view.storage.error && <span role="alert" title={view.storage.error}>Calendar unavailable</span>}
         {view.storageFailed && <span role="alert">Inspector settings could not be saved in this browser.</span>}
         {!view.range && <span role="alert">Choose a valid date range with the start before or on the end date.</span>}
         {view.brokerTime && missingCoverage.length > 0 && <span role="status">Coverage pending for {missingCoverage.join(' and ')} in this range; stored readings remain available.</span>}
@@ -80,7 +103,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
         {outsideCoverage && <span>Part of this range is outside the available calendar coverage.</span>}
       </div>}
       {view.supported && release && <InspectorReleaseHeading release={release} view={view} timeDisplay={timeDisplay}
-        status={status(release)} sharedPeriod={sharedPeriod} hasMagnitude={!!tally} />}
+        status={status(release)} sharedPeriod={sharedPeriod} hasMagnitude={!!tally} calendarDetail={calendarDetail} />}
       {view.supported && release && magnitudeFamily && onOpenScatter && <button type="button" disabled={!scatterAvailable}
         title={scatterAvailable ? 'Inspect this release in Scatter Plot' : 'Needs a supported released family, selected broker and verified timing since January 2015.'}
         onClick={() => onOpenScatter(release)}>Scatter Plot</button>}

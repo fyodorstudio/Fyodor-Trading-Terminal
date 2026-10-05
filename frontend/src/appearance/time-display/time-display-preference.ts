@@ -43,10 +43,15 @@ export function formatUtcOffset(offsetMinutes: number) {
   return `UTC${sign}${hours}:${minutes}`
 }
 
-export function timeDisplayLabel(preference: TimeDisplayPreference) {
+export function timeDisplayZoneLabel(preference: TimeDisplayPreference) {
   if (preference.mode === 'utc') return 'UTC'
   if (preference.mode === 'fixed-offset') return formatUtcOffset(preference.utcOffsetMinutes)
-  return `Local · ${Intl.DateTimeFormat().resolvedOptions().timeZone}`
+  return Intl.DateTimeFormat().resolvedOptions().timeZone
+}
+
+export function timeDisplayLabel(preference: TimeDisplayPreference) {
+  const zone = timeDisplayZoneLabel(preference)
+  return preference.mode === 'local' ? `Local · ${zone}` : zone
 }
 
 function displayDate(epochMilliseconds: number, preference: TimeDisplayPreference) {
