@@ -129,9 +129,11 @@ try {
   }
   const inspector = mount(InspectorApp, {})
   await inspector.render(); await click(inspector.container.querySelector('.inspector-release'))
-  assert.equal(inspector.container.querySelectorAll('td.inspector-grade-good').length, 8)
-  assert.equal(inspector.container.querySelectorAll('td.inspector-grade-bad').length, 1)
-  assert.equal(inspector.container.querySelectorAll('td.inspector-grade-unchanged').length, 1)
+  assert.equal(inspector.container.querySelectorAll('.inspector-table-scroll td.inspector-grade-good').length, 8)
+  assert.equal(inspector.container.querySelectorAll('.inspector-table-scroll td.inspector-grade-bad').length, 1)
+  assert.equal(inspector.container.querySelectorAll('.inspector-table-scroll td.inspector-grade-unchanged').length, 1)
+  assert.equal(inspector.container.querySelector('[aria-label="CPI pair direction"]').textContent, 'Uncomputed')
+  assert.equal(inspector.container.querySelectorAll('.inspector-cpi-score tbody tr').length, 4)
   assert.equal(inspector.container.querySelectorAll('[aria-label="Magnitude undefined"]').length, 10)
 
   const dock = mount(ScatterPlotDock, { brokerId: 'Broker-A', clockOffsetMs })

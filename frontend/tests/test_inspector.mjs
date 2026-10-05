@@ -167,7 +167,10 @@ try {
   assert.deepEqual([...app.container.querySelectorAll('.inspector-table-scroll th')].map((el) => el.textContent), ['Series', 'Actual', 'Previous', 'A−P', 'A−P magnitude · History'])
   assert.match(app.container.querySelector('.inspector-table-scroll tbody').textContent, /\+0.2 pp/)
   assert.match(app.container.querySelector('.inspector-table-scroll tbody').textContent, /Rev: 0.2%/)
-  assert.doesNotMatch(app.container.querySelector('table').textContent, /Sum|Direction|Long|Short|Gross/)
+  assert.doesNotMatch(app.container.querySelector('.inspector-table-scroll table').textContent, /Sum|Direction|Long|Short|Gross/)
+  assert.equal(app.container.querySelector('[aria-label="CPI pair direction"]').textContent, 'Uncomputed',
+    'Incomplete CPI primary readings cannot produce a direction')
+  assert.equal(app.container.querySelectorAll('.inspector-cpi-score tbody tr').length, 4)
   assert.equal(app.container.querySelectorAll('.inspector-shared-period').length, 1)
   assert.doesNotMatch(app.container.querySelector('.inspector-table-scroll tbody').textContent, /Period:/, 'Shared period is shown once above the table')
   assert.ok(app.container.querySelector('[aria-label="About A−P"]').getAttribute('aria-describedby'))

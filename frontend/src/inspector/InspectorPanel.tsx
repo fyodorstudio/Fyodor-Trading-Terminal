@@ -9,6 +9,7 @@ import { gradeLabels, gradeFamilyReading, matchesReadingFamily, tallyFamilyReadi
 import { magnitudeFamilies } from './magnitude/magnitude-families'
 import { FamilyMagnitudeCell } from './magnitude/FamilyMagnitudeCell'
 import { FamilyMagnitudeTally } from './magnitude/FamilyMagnitudeTally'
+import { CpiMagnitudeScoreTable } from './magnitude/CpiMagnitudeScoreTable'
 import { NfpMagnitudeTally } from './magnitude/NfpMagnitudeTally'
 import type { InspectorView } from './useInspector'
 import './inspector.css'
@@ -103,7 +104,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
               </div>
               {tally && magnitudeFamily && (magnitudeFamily.familyId === 'jobs' ?
                 <NfpMagnitudeTally release={release} history={view.magnitudeHistory} /> :
-                <FamilyMagnitudeTally release={release} history={view.magnitudeHistory} family={magnitudeFamily} />)}
+                magnitudeFamily.familyId === 'us-cpi' ? <CpiMagnitudeScoreTable release={release} history={view.magnitudeHistory} /> :
+                  <FamilyMagnitudeTally release={release} history={view.magnitudeHistory} family={magnitudeFamily} />)}
             </div>
             <div className="inspector-table-scroll"><table className={tally ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
               <thead><tr><th>Series</th><th>Actual</th><th>Previous</th><th>A−P</th>{tally && <th

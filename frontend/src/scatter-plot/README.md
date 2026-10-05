@@ -189,9 +189,11 @@ remain compatible. Appearance remains a separate global style preference.
 
 CPI grading uses the chosen **higher A−P = Good/green for USD pressure** convention;
 lower is Bad/red and zero is Unchanged/gray. Six rate readings use pp and four
-index levels use pts. Their counts are descriptive: headline/core, monthly/annual
-and index/rate readings overlap and are not a weighted direction vote. CPI adds
-no Long/Short or Neutral/Mixed output. See the canonical
+index levels use pts. Scatter magnitude settings also drive Inspector's primary
+four-reading score: equal series weights, signed 0–4 magnitude points, separate
+monthly/annual subtotals and a total-based EURUSD direction with explicit
+cancellation priority. Index levels and unadjusted monthly rates remain available
+for inspection but do not contribute to that score. See the canonical
 [CPI rule definitions](../inspector/Event%20Grading%20Terminology/USD/Inflation/CPI.md).
 
 ## Verification
@@ -226,6 +228,8 @@ complete-release selection, Inspector/scatter parity, Undefined defaults for
 both families, actual Inspector delta colors, empty cells, no unnecessary
 history query, mode draft/apply/clear, live histogram updates, family switching,
 obsolete-request cancellation and separately persisted modes/boundaries.
+`tests/inspector/cpi/test_cpi_score.mjs` verifies the signed score matrix and
+reactive score updates from the same saved configurations.
 
 Manual visual checks belong to the user: dock layout and resizing, light/dark
 contrast, point hit targets, native hover details, and full-range/P95 zoom

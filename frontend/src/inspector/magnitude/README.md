@@ -20,7 +20,8 @@ experimental majority direction, chart symbols or published Criterion results.
 | `family-magnitude-history.ts` | Shared prior-release cutoff, series/unit matching and sample admission. NFP history exports remain thin compatibility wrappers. |
 | `useFamilyMagnitudeHistory.ts` | Selected-broker history lifecycle; skips fetching if all selected readings are Undefined. Composes the existing paginated storage hook. |
 | `FamilyMagnitudeCell.tsx` | Native formatting and loading/error/partial/no-sample presentation; truly empty cells in Undefined mode. |
-| `family-magnitude-tally.ts` / `FamilyMagnitudeTally.tsx` | Descriptive Good/Bad size counts and separate undefined/unclassified notes. The NFP wrapper supplies its existing direction badge; CPI supplies no direction vote. |
+| `family-magnitude-tally.ts` / `FamilyMagnitudeTally.tsx` | Descriptive Good/Bad size counts and separate undefined/unclassified notes. The NFP wrapper supplies its existing direction badge; future families retain the descriptive fallback. |
+| `grading/cpi-magnitude-score.ts` / `CpiMagnitudeScoreTable.tsx` | Pure four-reading CPI score and its matrix: signed magnitude points, monthly/annual subtotals, total, explicit cancellation priority and EURUSD direction. |
 
 Future families register their catalog, grading, settings and documented
 sample rules, reusing shared engines. Do not copy NFP IDs or favorable directions into
@@ -76,8 +77,9 @@ uses its saved Small, Medium and Large boundaries `S < M < L`, with `S > 0`.
 Both signs mirror these same native-unit boundaries. Extreme means `|A−P| > L`.
 They are configured in Scatter Plot's Magnitude form, stored independently per
 series on this device, and consumed reactively by Inspector's history, labels
-and tally. Applying them recounts the admitted history; it does not change
-Actual/Previous values, Good/Bad grades or the direction rule. Boundaries stay
+and summary. Applying them recounts the admitted history and reclassifies CPI
+score points; it does not change Actual/Previous values, Good/Bad grades or
+NFP's majority direction. Boundaries stay
 fixed across dates and broker changes. Invalid settings/drafts never enter the
 classifier. Setting a series to Undefined removes only its configuration and
 leaves its Inspector histogram cell empty. Undefined produces no distribution
@@ -127,8 +129,8 @@ Both signs use the same size labels, calculated at full precision. The label
 stays tied to the selected reading while inspecting another band. The earlier-
 reading count lives only in the tooltip.
 
-The release summary is a compact table: NFP's existing direction badge or CPI's
-family label sits in the top-left header, followed by Small, Medium, Large and Extreme columns, with
+The NFP release summary is a compact table: its existing direction badge
+sits in the top-left header, followed by Small, Medium, Large and Extreme columns, with
 Good and Bad rows. Zero counts display as an en dash, with an accessible zero
 label. The former majority-rule caption, Compared with Previous label, A−P
 magnitude label and visible totals strip are removed. Aggregate counts, including
@@ -141,6 +143,17 @@ or failed history hides size counts with the same status as the cells, and parti
 coverage remains visible. Counts refresh on release/broker changes and incoming
 Actual/Previous changes. This is a descriptive breakdown; it does not introduce
 weights or change the existing majority direction rule.
+
+CPI uses a separate four-row matrix: Headline m/m, Core m/m, Headline y/y and
+Core y/y. Columns are Unchanged (0), Small (1), Medium (2), Large (3), Extreme (4).
+Each active cell displays signed USD points, with green positive/red negative/
+gray zero colors. All series have weight 1. Monthly, Annual and Total appear in
+the footer; positive Total means EURUSD Short and negative means EURUSD Long.
+Cancellation follows Core m/m, Headline m/m, Core y/y, Headline y/y, selecting
+the first nonzero contribution. All zero is Uncomputed. Undefined, missing,
+duplicate or unavailable scores cannot contribute to a Total/direction. Index
+and unadjusted monthly readings remain outside the score. See the canonical
+[CPI rule](../Event%20Grading%20Terminology/USD/Inflation/CPI.md).
 
 In automatic P95 mode, all-zero or strongly zero-inflated history can have T = 0. The center still
 counts exact zeros; all nonzero readings are extreme. Side slots remain empty
@@ -203,6 +216,9 @@ CPI integration tests additionally verify six rate versus four index units,
 all-ten higher/lower/zero/missing grading, exact comparison against supplied
 Previous, Undefined cells/defaults, draft/apply/clear behavior, mode persistence,
 family cancellation, independent scopes and shared live histogram updates.
+`tests/inspector/cpi/test_cpi_score.mjs` verifies signed points, equal weights,
+subtotals, cancellation priorities, unavailable data, index exclusions, matrix
+accessibility and live settings/reading updates without remounting.
 
 Manual visual checks: table width/height at your preferred dock size, light/dark
 contrast, plot details, centered zero and colored extreme/empty-bin readability. These

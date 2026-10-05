@@ -7,7 +7,7 @@ Organize definitions by **release currency → event category → family**. EUR 
 | Currency | Category | Family | Rule status |
 | --- | --- | --- | --- |
 | USD | Labor / wages | [Jobs report / NFP](USD/Labor/NFP.md) | Grading: `nfp-vs-previous-v1`; experimental EURUSD direction: `nfp-eurusd-majority-v1` |
-| USD | Inflation | [US CPI / core CPI](USD/Inflation/CPI.md) | Grading: `usd-cpi-vs-previous-v1`; descriptive tally without direction vote |
+| USD | Inflation | [US CPI / core CPI](USD/Inflation/CPI.md) | Grading: `usd-cpi-vs-previous-v1`; four-reading signed magnitude score: `cpi-eurusd-signed-magnitude-v1` |
 | EUR | All categories | [Existing notes](EUR/definitions.md) | No grading implemented |
 | USD | Other families | — | No grading implemented |
 

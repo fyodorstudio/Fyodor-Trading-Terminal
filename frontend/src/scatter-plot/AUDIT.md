@@ -32,8 +32,10 @@ dependency/build/cache/local-inventory files requiring cleanup.
   inspected publication and later releases.
 - Custom cutoffs stay fixed across dates. Unconfigured series are Undefined;
   P95 is explicitly opt-in. Existing saved custom tuples remain compatible.
-- CPI adds the chosen higher/lower inflation USD-pressure grading convention,
-  rate/index native units and descriptive counts, without a direction vote.
+- CPI retains the chosen higher/lower inflation USD-pressure grading convention
+  and rate/index native units. Its four primary rates now supply signed 0–4
+  magnitude points with equal series weights, separate monthly/annual subtotals
+  and a total-based EURUSD direction; index scoring remains outside this rule.
 - Storage failures retain session settings. Preference persistence remains on
   this device; it does not alter the calendar data source.
 - Appearance preferences remain separate from scoring configuration.
@@ -49,7 +51,9 @@ inventory lifecycle and chart interaction suites remain required.
 The CPI suite verifies the actual Inspector table, both families' Undefined
 defaults, zero hidden-baseline requests, applied settings updating both views,
 clearing classifications, family switching/cancellation, scoped queries and
-independently persisted modes/boundaries.
+independently persisted modes/boundaries. The CPI score suite additionally checks
+signed magnitude points, exact cancellation priorities, unavailable readings,
+index exclusions and live score updates from shared settings.
 
 Run `pnpm --dir frontend test`, `pnpm --dir frontend lint`, and
 `pnpm --dir frontend build` before committing. Visual review belongs to the

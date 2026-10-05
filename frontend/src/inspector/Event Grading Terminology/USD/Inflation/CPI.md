@@ -15,9 +15,39 @@ This is a trading convention, not “good for consumers” or an objective FX
 prediction. The Fed's policy principles describe raising rates as inflation
 rises; this motivates the convention but does not guarantee a currency move.
 Price-index changes and inflation-rate changes have different meanings, and
-different headline/core/monthly/annual readings overlap. Counts do not establish
-equal influence or sum into a weighted signal. CPI adds no Long/Short or
-Neutral/Mixed decision.
+different headline/core/monthly/annual readings overlap. The four-reading score
+below is a chosen application rule; equal series weights do not establish equal
+economic influence or a calibrated FX prediction.
+
+## Four-reading direction score
+
+Score version: `cpi-eurusd-signed-magnitude-v1`. The Inspector summary contains
+Headline m/m, Core m/m, Headline y/y and Core y/y, in that order. Each series has
+weight **1**. Its configured magnitude supplies **Unchanged = 0, Small = 1,
+Medium = 2, Large = 3, Extreme = 4** points. Apply the sign of Actual minus
+supplied Previous: positive points are green bullish USD contributions;
+negative points are red bearish USD contributions; exact zero is gray.
+The active category cell displays the signed points, not a reading count.
+
+Monthly and Annual subtotals are shown separately, followed by their Total.
+Positive Total → **EURUSD Short**; negative Total → **EURUSD Long**. Exact
+cancellation uses the first nonzero contribution in this priority order:
+Core m/m, Headline m/m, Core y/y, Headline y/y. The table identifies the tie-break.
+All four unchanged → **Uncomputed**, with no prior direction carried forward.
+There is no Neutral/Mixed output. Monthly and Annual label the source readings,
+not short and long holding periods.
+
+All four primary readings must have usable scores before Total/direction is
+computed. Undefined magnitude, missing Actual/Previous, duplicate readings,
+incompatible units or unavailable P95 history remain explicit unresolved states;
+they never become zero or Small. Each subtotal also requires both of its readings.
+Custom cutoffs can classify without historical samples. Configured exact-zero
+readings need no historical threshold, while Undefined stays Undefined.
+
+Index levels and unadjusted monthly rates remain in the source table and Scatter
+Plot but do not contribute to this primary score. Index scoring is deferred.
+Calculation lives in `grading/cpi-magnitude-score.ts`; presentation lives in
+`magnitude/CpiMagnitudeScoreTable.tsx`. NFP's existing direction rule is unchanged.
 
 ## Stable inventory catalog
 
@@ -45,8 +75,8 @@ of inflation. Adjusted and unadjusted series keep their own histories.
 
 Each series independently selects **Undefined**, **Custom boundaries**, or
 explicit **P95**. Undefined is the default: empty Inspector histogram/size and
-no scatter magnitude guides, with raw dots and Good/Bad counts retained. The
-size table displays dashes and explicitly counts undefined Good/Bad readings.
+no scatter magnitude guides, with raw dots and delta colors retained. The
+score matrix explicitly marks each unconfigured primary reading Undefined.
 Custom mode requires `0 < Small < Medium < Large` in that series' native units.
 Both signs mirror the same limits; exact ties stay in the lower inclusive size;
 anything beyond Large is Extreme. The seven bars remain three negative bands,
