@@ -92,9 +92,9 @@ try {
   const linked = mount(LinkedDock)
   await linked.render()
   await React.act(async () => { inspector.selectCustomRange('2015-01-01', '2016-03-15'); inspector.selectRelease(selected.id) })
-  const shortcut = [...linked.container.querySelectorAll('.inspector-header button')].find((button) => button.textContent === 'Scatter Plot')
+  const shortcut = linked.container.querySelector('[aria-label="Inspector view"]')
   assert.ok(shortcut); assert.equal(shortcut.disabled, false)
-  await click(shortcut)
+  await React.act(async () => { shortcut.value = 'scatter'; shortcut.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   assert.equal(linked.container.querySelector('[aria-label="Scatter Plot Family"]').value, 'CPI')
   const health = { revision: 1, collector_error: null,
     sources: [{ id: 'Broker-A', publisher_status: 'live', server_now: now / 1000 + 10800, instance_id: 'A' }] }

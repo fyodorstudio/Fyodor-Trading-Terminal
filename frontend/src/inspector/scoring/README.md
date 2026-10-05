@@ -29,11 +29,13 @@ series, signs, coefficients, cancellation priority and completeness requirements
 UI modules compose shared matrices. Moving these files does not change existing
 NFP/CPI score versions, magnitude persistence keys, boundaries or dataset admission.
 
+The Inspector view dropdown contains Table only, Scoring system and Scatter Plot.
+Scatter Plot opens the selected release without changing the saved Inspector view.
 Table only is the default Inspector view. Scoring system replaces the readings
 table with the registered family's scores; CPI retains separate index/rate
 matrices and NFP retains separate supporting/primary matrices. The selected view
 is saved and travels in workspace exports. Unsupported families fall back to the
-table, with the scoring control disabled, without discarding that preference.
+table, with the Scoring system option disabled, without discarding that preference.
 
 To add an agreed scoring policy, create `PAIR/<pair>/<currency>/<family>` with
 `assessment` and `ui` modules, then register its explicit symbol matcher, country,

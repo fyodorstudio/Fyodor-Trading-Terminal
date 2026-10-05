@@ -166,7 +166,7 @@ try {
     return panel ? React.createElement(InspectorPanel, { view: inspector, symbol, source: source(), error: null, timeDisplay: utc }) : null
   }
   const app = mount(App, {})
-  const showView = async (label) => click([...app.container.querySelectorAll('[aria-label="Inspector view"] button')].find((button) => button.textContent === label))
+  const showView = async (label) => change(app.container.querySelector('[aria-label="Inspector view"]'), { value: label === 'Table only' ? 'table' : 'scoring' })
   await app.render()
   await click([...app.container.querySelectorAll('.inspector-release')].find((button) => button.textContent.includes('US CPI')))
   assert.deepEqual([...app.container.querySelectorAll('.inspector-table-scroll th')].map((el) => el.textContent), ['Series', 'Actual', 'Previous', 'A−P', 'A−P magnitude · History'])

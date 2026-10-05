@@ -104,16 +104,21 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
       </div>}
       {view.supported && release && <InspectorReleaseHeading release={release} view={view} timeDisplay={timeDisplay}
         status={status(release)} sharedPeriod={sharedPeriod} hasMagnitude={!!tally} calendarDetail={calendarDetail} />}
-      {view.supported && release && <div className="inspector-view-actions" role="group" aria-label="Inspector view">
-        <button type="button" aria-pressed={!showScoring}
-          onClick={() => view.applyPreferences({ ...view.preferences, detailView: 'table' })}>Table only</button>
-        <button type="button" aria-pressed={showScoring} disabled={!scoringBinding}
-          title={scoringBinding ? 'Show this release’s scoring system' : 'No scoring system is configured for this pair and family.'}
-          onClick={() => view.applyPreferences({ ...view.preferences, detailView: 'scoring' })}>Scoring system</button>
-        {magnitudeFamily && onOpenScatter && <button type="button" disabled={!scatterAvailable}
-          title={scatterAvailable ? 'Inspect this release in Scatter Plot' : 'Needs a supported released family, selected broker and verified timing since January 2015.'}
-          onClick={() => onOpenScatter(release)}>Scatter Plot</button>}
-      </div>}
+      {view.supported && release && <select className="inspector-view-select" aria-label="Inspector view"
+        value={showScoring ? 'scoring' : 'table'} onChange={(event) => {
+          const next = event.target.value
+          if (next === 'scatter') {
+            // Scatter is navigation; keep the selected Inspector view when returning.
+            event.target.value = showScoring ? 'scoring' : 'table'
+            if (magnitudeFamily && scatterAvailable && onOpenScatter) onOpenScatter(release)
+          } else if (next === 'table' || (next === 'scoring' && scoringBinding)) {
+            view.applyPreferences({ ...view.preferences, detailView: next })
+          }
+        }}>
+        <option value="table">Table only</option>
+        <option value="scoring" disabled={!scoringBinding}>Scoring system</option>
+        <option value="scatter" disabled={!magnitudeFamily || !scatterAvailable || !onOpenScatter}>Scatter Plot</option>
+      </select>}
     </header>
     {!view.supported ? <p className="inspector-empty">Inspector currently supports EURUSD. Select EURUSD to inspect monetary policy, inflation, labor/wages and growth/activity releases.</p> : <>
       <div className={`inspector-body${listOpen ? '' : ' releases-collapsed'}`}>

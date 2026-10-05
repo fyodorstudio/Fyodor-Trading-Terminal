@@ -104,7 +104,7 @@ function RangePopover({ view, trigger, onClose, id }: { view: InspectorView; tri
         const first = `${shown}-01`, next = `${shiftInspectorMonth(shown, 1)}-01`
         const blanks = (new Date(`${first}T00:00:00Z`).getUTCDay() + 6) % 7
         const days = Math.round((Date.parse(next) - Date.parse(first)) / 86400000)
-        const cells = Array.from({ length: Math.ceil((blanks + days) / 7) * 7 }, (_, index) => index < blanks || index >= blanks + days ? null : shiftInspectorDate(first, index - blanks))
+        const cells = Array.from({ length: 42 }, (_, index) => index < blanks || index >= blanks + days ? null : shiftInspectorDate(first, index - blanks))
         const focus = focusedDay.startsWith(shown) ? focusedDay : first
         return <table role="grid" key={shown} aria-label={`${monthNames[Number(shown.slice(5)) - 1]} ${shown.slice(0, 4)}`}>
           <caption>{monthNames[Number(shown.slice(5)) - 1]} {shown.slice(0, 4)}</caption>

@@ -129,7 +129,7 @@ try {
     return React.createElement(InspectorPanel, { view: history ? { ...view, magnitudeHistory: history } : view, symbol: 'EURUSD', source: null, error: null, timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 } })
   }
   const inspector = mount(InspectorApp, {})
-  const showView = async (label) => click([...inspector.container.querySelectorAll('[aria-label="Inspector view"] button')].find((button) => button.textContent === label))
+  const showView = async (label) => change(inspector.container.querySelector('[aria-label="Inspector view"]'), label === 'Table only' ? 'table' : 'scoring')
   await inspector.render(); await click(inspector.container.querySelector('.inspector-release'))
   assert.equal(inspector.container.querySelectorAll('.inspector-table-scroll td.inspector-grade-higher').length, 8)
   assert.equal(inspector.container.querySelectorAll('.inspector-table-scroll td.inspector-grade-lower').length, 1)
