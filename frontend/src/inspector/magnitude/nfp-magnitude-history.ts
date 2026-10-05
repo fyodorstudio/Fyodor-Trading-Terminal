@@ -11,8 +11,8 @@ export const nfpHistoryScope = nfpMagnitudeFamily.historyScope
 export function isNfpRelease(release: InspectorRelease | null): release is InspectorRelease {
   return matchesReadingFamily(release, nfpMagnitudeFamily)
 }
-export function nfpMagnitudeHistory(events: StoredCalendarEvent[], selected: InspectorRelease | null, settings: NfpMagnitudeSettings = {}) {
-  return familyMagnitudeHistory(events, selected, nfpMagnitudeFamily, settings)
+export function nfpMagnitudeHistory(events: StoredCalendarEvent[], selected: InspectorRelease | null, settings: NfpMagnitudeSettings = {}, now = Date.now()) {
+  return familyMagnitudeHistory(events, selected, nfpMagnitudeFamily, settings, now)
 }
 export function nfpHistoryReleases(events: StoredCalendarEvent[], before: number) {
   return familyHistoryReleases(events, before, nfpMagnitudeFamily)

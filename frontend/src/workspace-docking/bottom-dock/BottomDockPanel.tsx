@@ -44,6 +44,8 @@ export function BottomDockPanel({
           onClick={() => onSelectWindow('inspector')}>Inspector</button>
         <button type="button" className={activeWindow === 'scatter-plot' ? 'active' : ''}
           onClick={() => onSelectWindow('scatter-plot')}>Scatter Plot</button>
+        <button type="button" className={activeWindow === 'alert' ? 'active' : ''}
+          onClick={() => onSelectWindow('alert')}>Alert</button>
         <button className="bottom-dock-close" type="button" onClick={onClose} aria-label="Close bottom dock">
           ×
         </button>

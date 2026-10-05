@@ -1,0 +1,10 @@
+.alert-dock { height: 100%; overflow: auto; padding: 10px 14px; color: var(--text); background: var(--surface-panel); font-size: 12px; }
+.alert-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 12px; color: var(--text-muted); }
+.alert-toolbar strong { color: var(--text-strong); }
+.alert-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 10px; }
+.alert-card { padding: 12px; border: 1px solid var(--border-strong); border-radius: 5px; }
+.alert-card header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; color: var(--text-strong); }
+.alert-card header span { color: var(--text-muted); }
+.alert-card > span { display: block; margin-top: 8px; color: var(--text-muted); }
+.alert-countdown { margin: 12px 0 0; font-variant-numeric: tabular-nums; }
+.alert-source-status { color: var(--text-muted); }

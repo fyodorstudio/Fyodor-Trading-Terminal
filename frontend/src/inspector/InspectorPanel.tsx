@@ -101,7 +101,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay }: {
             </div>}
             <div className="inspector-table-scroll"><table className={tally ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
               <thead><tr><th>Series</th>{showReadingTimes && <th>Release time</th>}<th>Actual</th><th>Previous</th><th>A−P</th>{tally && <th
-                title="Seven A−P bands: three negative, exact zero, three positive. Boundaries follow the selected series' Scatter Plot configuration. Undefined magnitude leaves this cell empty. Height counts earlier readings; Extreme values sit beyond the configured range.">A−P magnitude · History</th>}</tr></thead>
+                title="Seven A−P bands: three negative, exact zero, three positive. Boundaries follow the selected series' Scatter Plot configuration. Undefined magnitude leaves this cell empty. Height counts all usable released readings since January 2015 through now; Extreme values sit beyond the configured range.">A−P magnitude · History</th>}</tr></thead>
               <tbody>{release.events.map((event) => {
                 const delta = inspectorDelta(event)
                 const commentary = isInspectorCommentary(event)

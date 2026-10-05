@@ -24,13 +24,14 @@ export function familyMagnitudeSamples(releases: readonly InspectorRelease[], cu
   return { samples, excluded }
 }
 export function familyMagnitudeHistory(events: StoredCalendarEvent[], selected: InspectorRelease | null,
-  family: MagnitudeFamily, settings: MagnitudeSettings = {}) {
+  family: MagnitudeFamily, settings: MagnitudeSettings = {}, now = Date.now()) {
   if (!matchesReadingFamily(selected, family) || selected.releaseAt === null) return {}
-  const earlier = familyHistoryReleases(events, selected.releaseAt, family)
+  const releases = familyHistoryReleases(events, now + 1, family)
   return Object.fromEntries(selected.events.map((current) => {
-    const { samples, excluded } = familyMagnitudeSamples(earlier, current)
+    const { samples, excluded } = familyMagnitudeSamples(releases, current)
     const config = magnitudeConfiguration(settings, current.event_id)
     return [current.value_id, { mode: config.mode, count: samples.length,
+      earlierCount: samples.filter((sample) => sample.at < selected.releaseAt!).length,
       distribution: config.mode === 'undefined' ? null : magnitudeDistribution(samples.map((sample) => sample.delta), inspectorDelta(current), config.limits),
       excluded, first: samples.length ? Math.min(...samples.map((sample) => sample.at)) : null,
       last: samples.length ? Math.max(...samples.map((sample) => sample.at)) : null }]

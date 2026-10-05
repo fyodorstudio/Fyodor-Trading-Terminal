@@ -27,7 +27,7 @@ native broker time. Commentary has no numeric delta: A−P is Not applicable.
 Stored Inspector queries include a one-hour buffer on both sides of the chosen
 range so an episode crossing midnight is complete. Visible releases and chart
 markers still filter against the original range at the decision's time.
-Magnitude-history query scopes and prior-release cutoffs are unchanged.
+Magnitude-history family scopes remain independent of episode grouping.
 Incoming companions keep the selected decision ID and anchored marker stable.
 
 ## Fed rate decision color

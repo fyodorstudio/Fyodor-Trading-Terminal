@@ -4,9 +4,10 @@ import { MagnitudeDetails } from './MagnitudeDetails'
 import './magnitude-histogram.css'
 
 // Family-independent presentation. The adapter owns units, color and provenance.
-export function MagnitudeHistogram({ distribution: d, formatValue, label, context, historyDetails = [], tone = 'unchanged' }: {
+export function MagnitudeHistogram({ distribution: d, formatValue, label, context, historyDetails = [], tone = 'unchanged', earlierCount }: {
   distribution: MagnitudeDistribution; formatValue: (value: number) => string; label: string; context: string; tone?: string
   historyDetails?: { label: string; value: string }[]
+  earlierCount?: number
 }) {
   const [anchor, setAnchor] = useState<HTMLSpanElement | null>(null)
   const tooltipId = useId()
@@ -31,8 +32,8 @@ export function MagnitudeHistogram({ distribution: d, formatValue, label, contex
   const details = `${label}. Selected A−P: ${d.current === null ? 'unavailable' : formatValue(d.current)}. ` +
     `Selected size: ${d.currentSize}. Historical minimum ${historicalValue(d.min)}; historical maximum ${historicalValue(d.max)}. ` +
     (d.currentExtreme ? `${extremeLabel}. ` : '') +
-    `${d.count} earlier readings${d.count < 12 ? ' (small sample)' : ''}. ` +
-    (inspected ? `This bar's range: ${magnitudeBandLabel(inspected.index)}, ${interval(inspected)}; ${frequency(inspected)} earlier readings. ` : '') +
+    `${d.count} dataset readings${d.count < 12 ? ' (small sample)' : ''}. ` +
+    (inspected ? `This bar's range: ${magnitudeBandLabel(inspected.index)}, ${interval(inspected)}; ${frequency(inspected)} dataset readings. ` : '') +
     `Extreme threshold: ${threshold}, ${d.source === 'custom' ? 'custom boundaries configured in Scatter Plot' : 'historical 95th percentile of absolute A−P'}. ` +
     `${omitted} historical extremes omitted from the seven bars. Exact zero is the center bar. ` +
     historyDetails.map((item) => `${item.label}: ${item.value}. `).join('') + context
@@ -83,10 +84,11 @@ export function MagnitudeHistogram({ distribution: d, formatValue, label, contex
           {d.current !== null && <strong className="magnitude-details-size">{d.currentSize}</strong>}</dd></div>
         {inspected && <>
           <div><dt>This bar's range</dt><dd>{magnitudeBandLabel(inspected.index)} · {interval(inspected)}</dd></div>
-          <div><dt>Earlier readings in range</dt><dd>{frequency(inspected)}</dd></div>
+          <div><dt>Dataset readings in range</dt><dd>{frequency(inspected)}</dd></div>
         </>}
-        <div><dt>Earlier readings</dt><dd>{d.count}{omitted > 0 ? ` · ${omitted} extremes hidden` : ''}
+        <div><dt>Calculation N</dt><dd>{d.count}{omitted > 0 ? ` · ${omitted} extremes hidden` : ''}
           {d.count < 12 ? ' · Small sample' : ''}</dd></div>
+        {earlierCount !== undefined && <div><dt>Earlier / All</dt><dd>{earlierCount} / {d.count}</dd></div>}
         <div><dt>Historical minimum</dt><dd>{historicalValue(d.min)}</dd></div>
         <div><dt>Historical maximum</dt><dd>{historicalValue(d.max)}</dd></div>
       </dl>

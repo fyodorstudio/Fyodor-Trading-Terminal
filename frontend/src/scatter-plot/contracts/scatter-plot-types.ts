@@ -10,7 +10,7 @@ export type ScatterPoint = {
 export type ScatterInspection = {
   releaseId: string; at: number; point: ScatterPoint | null
   actual: number | null; previous: number | null; delta: number | null
-  distribution: MagnitudeDistribution | null; samples: ScatterPoint[]; excluded: number
+  distribution: MagnitudeDistribution | null; samples: ScatterPoint[]; excluded: number; earlierCount: number
   magnitudeMode: MagnitudeMode
   quantile: { position: number; lower: ScatterPoint; upper: ScatterPoint; fraction: number } | null
 }

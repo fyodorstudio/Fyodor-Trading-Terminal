@@ -14,8 +14,8 @@ export function MagnitudeCalculationDetails({ model, seriesLabel, children }: { 
       <div><dt>Actual</dt><dd>{formatReading(inspection.actual)}</dd></div>
       <div><dt>Previous</dt><dd>{formatReading(inspection.previous)}</dd></div>
       <div><dt>A−P</dt><dd>{formatDelta(inspection.delta)}</dd></div>
-      <div><dt>Size</dt><dd>{inspection.delta === null ? 'Unavailable' : inspection.magnitudeMode === 'undefined' ? 'Undefined' : d?.currentSize ?? 'No earlier baseline'}</dd></div>
-      <div><dt>Earlier readings</dt><dd data-sample-count={inspection.samples.length}>{inspection.samples.length}</dd></div>
+      <div><dt>Size</dt><dd>{inspection.delta === null ? 'Unavailable' : inspection.magnitudeMode === 'undefined' ? 'Undefined' : d?.currentSize ?? 'No usable dataset'}</dd></div>
+      <div><dt>Earlier / All</dt><dd data-sample-count={inspection.samples.length}>{inspection.earlierCount} / {inspection.samples.length}</dd></div>
       {inspection.excluded > 0 && <div><dt>Excluded publications</dt><dd>{inspection.excluded}</dd></div>}
       {d && <>
         <div><dt>{d.source === 'custom' ? 'Custom outer boundary' : 'P95 of |A−P|'}</dt><dd data-threshold={d.threshold}>{magnitude(d.threshold)}</dd></div>
@@ -28,7 +28,7 @@ export function MagnitudeCalculationDetails({ model, seriesLabel, children }: { 
     {children}
     {quantile && d?.source === 'p95' && <details>
       <summary>P95 calculation</summary>
-      <p>Sort earlier |A−P| from smallest to largest, including zeros and extremes.</p>
+      <p>Sort all released |A−P| since January 2015 from smallest to largest, including zeros, extremes and the selected reading.</p>
       <dl>
         <div><dt>Position (index from 0)</dt><dd>({d.count} − 1) × 0.95 = {quantile.position}</dd></div>
         <div><dt>Lower value</dt><dd>{magnitude(Math.abs(quantile.lower.delta))} · {date(quantile.lower.at)}</dd></div>

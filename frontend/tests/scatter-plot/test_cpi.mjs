@@ -77,7 +77,8 @@ try {
   const undefinedModel = cpiScatterModel(events, now, ids[0], null)
   assert.equal(undefinedModel.inspection.magnitudeMode, 'undefined'); assert.equal(undefinedModel.inspection.distribution, null)
   assert.equal(undefinedModel.inspection.quantile, null); assert.equal(undefinedModel.points.length, 3)
-  assert.equal(undefinedModel.inspection.samples.length, 2)
+  assert.equal(undefinedModel.inspection.samples.length, 3)
+  assert.equal(undefinedModel.inspection.earlierCount, 2)
   assert.equal(undefinedModel.deltaUnit, 'pp'); assert.equal(cpiScatterModel(events, now, '840030009', null).deltaUnit, 'pts')
   const nfpRows = release(selectedAt, .2, 'nfp', nfpMagnitudeFamily)
   assert.equal(nfpScatterModel(nfpRows, now, nfpMagnitudeFamily.seriesIds[0], null).inspection.magnitudeMode, 'undefined')
@@ -89,7 +90,7 @@ try {
   for (const id of ids) {
     const model = cpiScatterModel(events, now, id, null, settings), history = familyMagnitudeHistory(events, selected, cpiMagnitudeFamily, settings)
     assert.deepEqual(model.inspection.distribution, history[current.find((row) => row.event_id === id).value_id].distribution)
-    assert.equal(model.inspection.samples.length, 2, 'Current and future publications cannot enter the baseline')
+    assert.equal(model.inspection.samples.length, 3, 'Current usable publication enters the full dataset')
     assert.equal(model.inspection.quantile, null)
   }
   assert.equal(cpiScatterModel(current, now, ids[0], null, settings).inspection.distribution.currentSize, 'Medium', 'Inclusive decimal ties and zero earlier samples work')
@@ -108,7 +109,7 @@ try {
     event_ids: family.seriesIds, events: rows, coverage: { USD: { missing: [] } }, next_cursor: null })
   let historyView
   function HistoryApp() {
-    const history = useFamilyMagnitudeHistory('Broker-A', selected)
+    const history = useFamilyMagnitudeHistory('Broker-A', selected, undefined, clockOffsetMs)
     React.useEffect(() => { historyView = history }, [history])
     return React.createElement(React.Fragment, {}, React.createElement(FamilyMagnitudeTally, { release: selected, history, family: cpiMagnitudeFamily }),
       React.createElement('table', {}, React.createElement('tbody', {}, React.createElement('tr', {},
@@ -167,7 +168,7 @@ try {
   assert.equal(requests.length, 4, 'First configuration activates one bounded Inspector history query')
   await respond(requests[3], health)
   const inspectorParams = new URL('http://localhost' + requests[4].url).searchParams
-  assert.equal(Number(inspectorParams.get('to_server_seconds')), selected.chartTime)
+  assert.equal(Number(inspectorParams.get('to_server_seconds')), (Math.floor(now / day) * day + 2 * day) / 1000)
   assert.deepEqual(inspectorParams.get('event_ids').split(',').sort(), ids.slice().sort())
   await respond(requests[4], page(events, cpiMagnitudeFamily))
   assert.deepEqual(historyView.rows[current[0].value_id].distribution, cpiScatterModel(events, now, ids[0], null, cpiMagnitudeFamily.settings.read()).inspection.distribution)

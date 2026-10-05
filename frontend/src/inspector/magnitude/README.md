@@ -1,6 +1,6 @@
 # Inspector signed A−P histograms
 
-Version: `zero-centered-ap-configurable-v5`. Supported adapters: US/USD NFP and CPI. The existing
+Version: `zero-centered-ap-all-dataset-v6`. Supported adapters: US/USD NFP and CPI. The existing
 `magnitude` module paths remain, but both samples and selected readings now keep
 their signs.
 
@@ -17,7 +17,7 @@ experimental majority direction, chart symbols or published Criterion results.
 | `MagnitudeHistogram.tsx` / `magnitude-histogram.css` | Reusable compact SVG; receives a distribution, formatter, color and provenance text. No fetching or economic rules. |
 | `MagnitudeDetails.tsx` | Structured hover/focus detail card, portaled out of table overflow and positioned within the viewport. |
 | `magnitude-families.ts` | Canonical registered family definitions, history scope, series catalog, grading version and settings binding. |
-| `family-magnitude-history.ts` | Shared prior-release cutoff, series/unit matching and sample admission. NFP history exports remain thin compatibility wrappers. |
+| `family-magnitude-history.ts` | Shared all-released dataset, current-time cutoff, earlier/total counts and series/unit admission. NFP exports remain thin wrappers. |
 | `useFamilyMagnitudeHistory.ts` | Selected-broker history lifecycle; skips fetching if all selected readings are Undefined. Composes the existing paginated storage hook. |
 | `FamilyMagnitudeCell.tsx` | Native formatting and loading/error/partial/no-sample presentation; truly empty cells in Undefined mode. |
 | `family-magnitude-tally.ts` / `FamilyMagnitudeTally.tsx` | Descriptive Good/Bad size counts and separate undefined/unclassified notes. The NFP wrapper supplies its existing direction badge; future families retain the descriptive fallback. |
@@ -41,8 +41,10 @@ visible range and selected publication.
 ## History contract
 
 - Start at **January 1, 2015**. Admit established UTC release instants on/after
-  that date and **strictly before** the selected release. The selected release
-  and later releases never enter its baseline.
+  that date and through the corrected current UTC clock, including the selected
+  reading and newer releases. Future schedules and missing Actual/Previous do
+  not enter calculation N. Each series has its own usable N, not a calendar-row
+  or pooled family count. Exact zeros and extremes count.
 - Query only the selected broker, family currency, and that family's ten stable event IDs. The
   storage API's optional `event_ids` filter applies before pagination. This is
   an additive read-only API change; it requires a storage restart after updating,
@@ -62,17 +64,19 @@ visible range and selected publication.
 - All pages must share one data revision; publish only the completed snapshot.
   Cancel and hide obsolete broker/range requests. Poll every ten seconds,
   retaining the existing unchanged-revision optimization. Switching release
-  dates starts a fresh bounded query; no persistent browser history cache is
-  introduced. Storage remains the persistent source of truth.
+  dates preserves the full-history query and its snapshot. Broker/family changes
+  cancel and hide old data. Storage remains the persistent source of truth.
 - USD coverage gaps show **Partial history**. Loading, incompatible/older
-  storage service, outages and no earlier usable readings have explicit states.
+  storage service, outages and no usable dataset readings have explicit states.
   Visible chart dates do not limit the historical sample.
-- Stored values can incorporate subsequent corrections. Date exclusion does
-  **not** establish historical point-in-time vintages or certify a backtest.
+- New usable releases grow N, even while inspecting an old release. Corrections
+  replace samples rather than incrementing N. Stored values can incorporate
+  subsequent corrections; all-dataset P95 can reclassify old readings. This is
+  a present-day comparison, not a historical point-in-time classification.
 
 ## Plot arithmetic and appearance
 
-Version 5 uses seven equal visual slots: three negative bands, an exact-zero
+Version 6 retains seven equal visual slots: three negative bands, an exact-zero
 band in the center, and three positive bands. The slots describe signed
 change-size categories; the zero slot has no numeric width. Each stable series
 uses its saved Small, Medium and Large boundaries `S < M < L`, with `S > 0`.
@@ -90,9 +94,11 @@ Inspector selections make no magnitude-history request. Existing saved tuples
 remain Custom with the same storage key. Explicit P95 saves a `"p95"` marker.
 
 A series explicitly configured to P95 computes T = historical P95 of |A−P|, in native units, using
-all its usable earlier readings, including zeros and extremes. P95 uses
+all its usable released readings through now, including the selected reading,
+zeros and extremes. P95 uses
 type-7 interpolation at (N−1) × .95. There is no pooled NFP threshold and the
-selected/current or future releases never enter the threshold sample.
+future releases never enter the threshold sample. Selecting a different release
+preserves the same bins and boundaries for a compatible series/unit.
 
 In that automatic mode, S = T/3, M = 2T/3 and L = T. From left to right:
 
@@ -119,8 +125,8 @@ colored outward marker appears at its edge and the summary reads "Extreme";
 no historical bar is falsely selected. True signed historical min/max include
 all usable samples, including extremes, and are retained for the tooltip.
 
-Bar height is the actual earlier-reading count, scaled to the most populated
-displayed band. The selected reading is never added to the baseline. Its band
+Bar height is the actual dataset-reading count, scaled to the most populated
+displayed band. The selected usable reading belongs to the dataset. Its band
 retains existing Good/Bad/Unchanged color independently of sign. An empty
 selected band uses an outline without inventing frequency. The axis labels
 show −L, exact zero centered underneath its slot, and +L. There is no tall zero
@@ -128,8 +134,10 @@ guide. The selected reading's size appears beside the plot: Small for the
 inner ranges, Medium for the middle ranges, Large for the outer ranges, and
 Extreme beyond L. Exact zero reads Unchanged; missing A−P reads Unavailable.
 Both signs use the same size labels, calculated at full precision. The label
-stays tied to the selected reading while inspecting another band. The earlier-
-reading count lives only in the tooltip.
+stays tied to the selected reading while inspecting another band. The tooltip
+shows **Earlier / All**, e.g. `2 / 140`, and **Calculation N**, plus hidden
+extremes and small-sample information. Earlier counts only readings before the
+selected publication; all calculation frequencies and P95 use the denominator.
 
 The NFP release summary is a compact table: its existing direction badge
 sits in the top-left header, followed by Small, Medium, Large and Extreme columns, with
@@ -168,14 +176,14 @@ and report "Empty (threshold 0)" on inspection, without display padding or a
 fabricated threshold. Nonzero constant history has T = abs(constant) and
 occupies the appropriate outer slot. Fewer than twelve samples retain the
 small-sample label; no usable history has no plot unless custom boundaries exist.
-Custom mode can classify the current reading with zero earlier samples, empty
+Custom mode can classify the current reading with an empty dataset, empty
 bars and unknown historical min/max; frequencies avoid undefined percentages.
 
 Every slot has a full-height pointer target, including empty bands. Hover to
 inspect its range/count, or focus and use Left/Right arrows; Home/End inspect
 the first/last slot. The selected release's color stays fixed during inspection.
 The portaled tooltip contains selected A−P and size, inspected band size/range,
-count/share, earlier-reading count, and true historical min/max. The count
+count/share, earlier/total counts, calculation N, and true historical min/max. The count
 includes a short hidden-extreme count and small-sample label when applicable.
 The threshold is used internally and in the accessible description, without
 a visible threshold row. There are no percentile/rank tables or explanatory paragraphs.

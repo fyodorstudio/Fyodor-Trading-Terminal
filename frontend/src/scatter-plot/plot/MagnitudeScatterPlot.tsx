@@ -71,9 +71,9 @@ export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', app
         const later = inspection ? point.at > inspection.at : false
         const offScale = point.delta < g.minDelta || point.delta > g.maxDelta
         const radius = (selected ? a.selectedDotSize : a.dotSize) / 2
-        const category = inspection?.magnitudeMode === 'undefined' ? 'Magnitude undefined' : distribution ? magnitudeSizeForValue(distribution.limits, point.delta) : 'No earlier baseline'
+        const category = inspection?.magnitudeMode === 'undefined' ? 'Magnitude undefined' : distribution ? magnitudeSizeForValue(distribution.limits, point.delta) : 'No usable dataset'
         const details = `${date(point.at)}. Actual ${formatReading(point.actual)}; Previous ${formatReading(point.previous)}; A−P ${formatDelta(point.delta)}. ` +
-          `${category}${distribution ? ' against inspected thresholds' : ''}. ${selected ? 'Inspected release; excluded from baseline.' : later ? 'Later release; excluded from baseline.' : 'Earlier release.'}` +
+          `${category}${distribution ? ' against all-dataset thresholds' : ''}. ${selected ? 'Inspected release.' : later ? 'Later release.' : 'Earlier release.'} Included in dataset.` +
           (offScale ? ' Outside zoom range; marker is at the edge.' : '')
         return <g key={point.id} role="button" tabIndex={selected || (currentIndex < 0 && point === points[0]) ? 0 : -1}
           aria-label={details} aria-pressed={selected} data-point-id={point.id} data-release-id={point.releaseId}

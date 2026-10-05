@@ -54,7 +54,7 @@ export function useInspector({ events = noEvents, symbol, bars, timeframe, timeD
     [supported, allReleases, preferences, range, brokerTime])
   const markers = useMemo(() => buildInspectorMarkers(releases, preferences, bars, timeframe), [releases, preferences, bars, timeframe])
   const selectedRelease = releases.find((release) => release.id === selectedId) ?? null
-  const magnitudeHistory = useFamilyMagnitudeHistory(brokerId, selectedRelease)
+  const magnitudeHistory = useFamilyMagnitudeHistory(brokerId, selectedRelease, undefined, clockOffsetMs)
   function applyPreferences(next: InspectorPreferences) {
     setPreferences(next)
     try { localStorage.setItem(inspectorStorageKey, JSON.stringify(next)); setStorageFailed(false) }

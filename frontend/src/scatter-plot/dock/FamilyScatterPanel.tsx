@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCalendarNow } from '../../inspector/useCalendarNow'
 import { ScatterPlotControls } from '../controls/ScatterPlotControls'
 import { MagnitudeScatterPlot } from '../plot/MagnitudeScatterPlot'
 import { MagnitudeCalculationDetails } from '../inspection/MagnitudeCalculationDetails'
@@ -20,13 +21,7 @@ export type ScatterFamilyBinding = {
 export function FamilyScatterPanel({ brokerId, clockOffsetMs = 0, binding, familyOptions, onFamilyChange }:
   ScatterPlotDockProps & { binding: ScatterFamilyBinding; familyOptions: ScatterOption[]; onFamilyChange: (id: string) => void }) {
   const { scope, family } = binding
-  const [now, setNow] = useState(() => Date.now() + clockOffsetMs)
-  useEffect(() => {
-    const update = () => setNow(Date.now() + clockOffsetMs)
-    update()
-    const timer = window.setInterval(update, 10000)
-    return () => window.clearInterval(timer)
-  }, [clockOffsetMs])
+  const now = useCalendarNow(clockOffsetMs)
   const [seriesId, setSeriesId] = useState(scope.series[0].id)
   const [selection, setSelection] = useState<{ broker: string | null; releaseId: string | null }>({ broker: brokerId, releaseId: null })
   // Reset with the source change, including a return to a previously inspected broker.

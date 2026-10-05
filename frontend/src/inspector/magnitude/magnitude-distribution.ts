@@ -1,5 +1,5 @@
 // Seven signed A−P bands: three negative, exact zero, three positive.
-export const magnitudeDistributionVersion = 'zero-centered-ap-configurable-v5'
+export const magnitudeDistributionVersion = 'zero-centered-ap-all-dataset-v6'
 export type MagnitudeLimits = readonly [number, number, number]
 export function validMagnitudeLimits(value: unknown): value is MagnitudeLimits {
   return Array.isArray(value) && value.length === 3 && value.every((limit) => typeof limit === 'number' && Number.isFinite(limit)) &&

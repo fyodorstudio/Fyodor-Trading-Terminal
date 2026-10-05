@@ -64,6 +64,8 @@ export function TerminalStatusBar({
         </button>
         <button className={`status-action${bottomDockWindow === 'scatter-plot' ? ' active' : ''}`} type="button"
           onClick={() => onToggleBottomDock('scatter-plot')} aria-expanded={bottomDockWindow === 'scatter-plot'}>Scatter Plot</button>
+        <button className={`status-action${bottomDockWindow === 'alert' ? ' active' : ''}`} type="button"
+          onClick={() => onToggleBottomDock('alert')} aria-expanded={bottomDockWindow === 'alert'}>Alert</button>
         <ColorThemeButton onThemeChanged={onThemeChanged} />
         <button className={`status-action${settingsOpen ? ' active' : ''}`} type="button" onClick={onToggleSettings} aria-expanded={settingsOpen}>
           <span aria-hidden="true">⚙</span> Settings

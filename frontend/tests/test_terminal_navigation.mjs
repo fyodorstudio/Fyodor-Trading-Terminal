@@ -73,6 +73,7 @@ try {
   const { TerminalStatusBar } = await server.ssrLoadModule('./src/terminal-shell/TerminalStatusBar.tsx')
   const { useInspector, InspectorPanel } = await server.ssrLoadModule('./src/inspector/index.ts')
   const { ScatterPlotDock } = await server.ssrLoadModule('./src/scatter-plot/index.ts')
+  const { AlertDock } = await server.ssrLoadModule('./src/alert/index.ts')
   const quotes = ['EURUSD', 'GBPUSD'].map((symbol) => ({ symbol, description: symbol, bid: 1.1, ask: 1.1001, dailyChange: 0, precision: 5 }))
   const bars = []
   function Navigation() {
@@ -89,7 +90,9 @@ try {
       dock && React.createElement(BottomDockPanel, { activeWindow: dock, activityCount: 0, selectedSymbol: symbol,
         onSelectWindow: setDock, onClose: () => setDock(null) }, dock === 'inspector'
         ? React.createElement(InspectorPanel, { view: inspector, symbol, source: null, error: null, timeDisplay: utc })
-        : dock === 'scatter-plot' ? React.createElement(ScatterPlotDock, { brokerId: null }) : React.createElement('p', null, dock)))
+        : dock === 'scatter-plot' ? React.createElement(ScatterPlotDock, { brokerId: null })
+        : dock === 'alert' ? React.createElement(AlertDock, { brokerId: null, preferences: inspector.preferences, timeDisplay: utc })
+        : React.createElement('p', null, dock)))
   }
   await React.act(async () => root.render(React.createElement(Navigation)))
   const findButton = (selector, label) => [...container.querySelectorAll(selector)].find((button) => button.textContent.trim() === label)
@@ -112,7 +115,7 @@ try {
   await click(findButton('.status-actions button', 'Inspector'))
   assert.ok(container.querySelector('.inspector-panel'))
   assert.deepEqual([...container.querySelectorAll('.bottom-dock-tabs button')].slice(0, -1)
-    .map((button) => button.textContent.trim()), ['Notebook EURUSD', 'Activity 0', 'Inspector', 'Scatter Plot'])
+    .map((button) => button.textContent.trim()), ['Notebook EURUSD', 'Activity 0', 'Inspector', 'Scatter Plot', 'Alert'])
   const gbp = [...container.querySelectorAll('button')].find((button) => button.textContent.includes('GBPUSD'))
   await click(gbp)
   assert.match(container.querySelector('.inspector-panel').textContent, /currently supports EURUSD/)
@@ -135,6 +138,15 @@ try {
   assert.equal(container.querySelector('.bottom-dock'), null)
   console.log('✓ Mounted navigation opens/closes Inspector and retains EURUSD-only support')
   console.log('✓ Scatter Plot opens from the status bar and dock tab with fixed EURUSD/USD Quote scope')
+  await click(findButton('.status-actions button', 'Alert'))
+  assert.ok(container.querySelector('[aria-label="Alert"]'))
+  await click(findButton('.bottom-dock-tabs button', 'Inspector'))
+  assert.equal(container.querySelector('[aria-label="Alert"]'), null)
+  await click(findButton('.bottom-dock-tabs button', 'Alert'))
+  assert.ok(container.querySelector('[aria-label="Alert"]'))
+  await click(findButton('.status-actions button', 'Alert'))
+  assert.equal(container.querySelector('.bottom-dock'), null)
+  console.log('✓ Alert opens/closes from status bar and dock tabs')
 
   localStorage.setItem(marketWatchCollapsedKey, 'true')
   const leftDockProps = { symbols: quotes, selectedSymbol: 'EURUSD', marketWatchStatus: 'live', marketWatchError: null, onSelectSymbol: noop }

@@ -39,7 +39,7 @@ export function assessSignedMagnitudeReading<T extends { id: string; label: stri
   if (delta === 0) return { ...series, event, size: 'Unchanged', score: 0, status: 'scored', reason: 'Actual equals supplied Previous.' }
   // Custom limits remain usable without history. P95 needs an available baseline.
   if (row.mode === 'p95' && history.message) return unavailable('unavailable', history.error ?? history.message)
-  if (!row.distribution) return unavailable('unavailable', 'No usable earlier baseline for the configured magnitude mode.')
+  if (!row.distribution) return unavailable('unavailable', 'No usable dataset for the configured magnitude mode.')
   const size = magnitudeSizeForValue(row.distribution.limits, delta)
   const category = signedMagnitudeColumns.find((column) => column.size === size)
   if (!category) return unavailable('unavailable', 'Magnitude classification is unavailable.')

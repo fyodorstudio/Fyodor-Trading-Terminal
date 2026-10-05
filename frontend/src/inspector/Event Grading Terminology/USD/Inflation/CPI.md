@@ -109,8 +109,10 @@ anything beyond Large is Extreme. The seven bars remain three negative bands,
 exact zero and three positive bands. Apply updates both views from one shared
 snapshot. Appearance settings do not change boundaries.
 
-History starts January 2015, uses the selected broker only, and excludes the
-inspected publication and later readings. Missing/duplicate/incompatible-unit
+History starts January 2015, uses the selected broker only, and includes all
+usable readings released through now, including the inspected publication and
+newer readings. Histogram frequencies and explicit P95 use this full dataset;
+Custom cutoffs remain fixed. Missing/duplicate/incompatible-unit
 publications are excluded. Latest completed means exactly one usable reading
 for each of these ten IDs. Stored corrections are not historical data vintages.
 Settings persist separately at

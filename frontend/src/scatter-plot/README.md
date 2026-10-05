@@ -43,12 +43,14 @@ reference periods, unusable A−P and changed units are excluded. Duplicate valu
 IDs retain the existing grouping behavior. `inspectorDelta` remains the exact
 raw-integer source for delta arithmetic.
 
-The inspected reading and all later publications are excluded from its
-baseline. Canonical `magnitudeDistribution` version `zero-centered-ap-configurable-v5`
+The reference dataset includes every usable released reading through now,
+including the inspected reading and newer releases. Future schedules stay outside
+N until their release time has passed and Actual/Previous produce a valid delta.
+Canonical `magnitudeDistribution` version `zero-centered-ap-all-dataset-v6`
 uses the selected series' saved Small/Medium/Large boundaries in Custom mode.
 Unconfigured series default to **Undefined**: raw points remain visible, with
 no size, magnitude guides, P95 interpolation or Inspector histogram. **P95**
-is an explicit, separately saved opt-in using the earlier absolute-P95/thirds
+is an explicit, separately saved opt-in using all-dataset absolute-P95/thirds
 calculation. The scatter does not
 implement a separate threshold algorithm. It also
 uses the canonical classifier for each point's tooltip against the inspected
@@ -60,8 +62,9 @@ The model explicitly supplies `deltaUnit` instead of extracting a unit from a
 localized number string, and its delta formatter accepts display precision.
 
 The plot retains all usable published points in the chosen series/units. All
-points have full opacity; later readings are identified in their tooltip as outside the baseline. Clicking them
-changes the inspection target rather than adding them to an earlier baseline.
+points have full opacity; earlier, selected and later released readings all
+belong to the dataset. Clicking a point changes the inspection target without
+changing histogram frequencies or P95 boundaries.
 The inspected point uses its Good/Bad/Unchanged color. In P95 mode, six horizontal
 guides represent ±T/3, ±2T/3 and ±T; zero has its own line. The inspected date is
 a vertical guide. Custom mode instead draws the six lines at the actual saved
@@ -77,7 +80,7 @@ guides, Inspector's seven bars, size labels and Good/Bad magnitude tally. Both
 signs use the same boundaries; exact equality stays in the lower inclusive
 category, exact zero stays in the center and `|A−P| > Large` is Extreme.
 The histogram's seven visual slots retain equal widths even when numeric
-intervals differ. Historical bar heights recount earlier samples in the new
+intervals differ. Historical bar heights recount all dataset samples in the new
 intervals; no source data is removed or changed.
 
 The Small, Medium and Large rows also have color boxes. Each box immediately
@@ -94,7 +97,7 @@ and later releases. Each series saves independently on this device under
 `fyodor.scatter-plot.EURUSD.USD.QUOTE.<NFP|CPI>.magnitude.v1`. Inspector consumes the
 same shared snapshot even with Scatter Plot closed, and mounted consumers
 receive settings updates without refetching inventory. Custom classification
-also works with zero earlier samples, while historical min/max remain unknown.
+also works with an empty dataset, while historical min/max remain unknown.
 **Set Undefined** clears only the selected series' configuration. A saved tuple
 remains Custom; a saved `"p95"` marker explicitly enables P95. An absent or
 invalid entry is Undefined. Existing saved NFP tuples retain their original
@@ -133,10 +136,10 @@ appearance settings initialize custom styles from matching existing levels.
 places out-of-range readings at dated edge triangles with their true values in
 the tooltip. It never changes samples, counts, thresholds or classifications.
 All-zero history gets visual axis padding only; the calculated threshold stays
-zero in P95 mode. A first publication has no invented historical baseline;
-saved custom boundaries can still classify it. Missing selected readings
+zero in P95 mode. A first publication with a valid delta enters its own reference
+dataset; it can be classified even with no earlier readings. Missing selected readings
 retain known source values and show Unavailable rather than zero. Hover titles
-include date, Actual, Previous, signed delta, size and baseline status. Enter or
+include date, Actual, Previous, signed delta, size and dataset membership. Enter or
 Space selects a focused point; Left/Right and Home/End move through publications.
 
 The free crosshair follows the pointer inside the plot, with UTC date/time and
@@ -154,12 +157,16 @@ changes clear manual navigation. Changing the inspected release preserves it;
 viewport resizing preserves the visible date/delta ranges. Pointer capture keeps
 drags active outside the plot and prevents a pan from selecting a publication.
 
-The inspection pane shows Actual, Previous, Delta, size, earlier-reading count,
+The inspection pane shows Actual, Previous, Delta, size, **Earlier / All** as
+`2 / 140` (earlier usable readings / all usable readings of this series),
 the active outer boundary and the four size ranges only when configured. In P95 mode,
 expand **P95 calculation** to inspect the sorted
 absolute samples used for interpolation, their publication dates, zero-based
 position and fractional weight. Source corrections can change history; stored
-values do not establish point-in-time vintages.
+values do not establish point-in-time vintages. New releases and corrections
+refresh N and histogram frequencies through the existing ten-second storage
+poll; P95 may reclassify older releases while saved Custom cutoffs stay fixed.
+Changing inspection dates never narrows the dataset or triggers a history query.
 
 ## Folder boundaries
 
@@ -214,7 +221,7 @@ EURUSD rate score. See the canonical
 ## Verification
 
 `pnpm --dir frontend test` includes `tests/scatter-plot/test_scatter_plot.mjs`.
-Tests cover Inspector distribution parity, exact prior-history cutoffs, source
+Tests cover Inspector distribution parity, exact current-time cutoffs, source
 admission, duplicate publications, unit incompatibility, zero/missing values,
 default completeness, point/series selection, date/delta coordinates, visible
 extremes, zoom invariance, keyboard navigation, scoped paging, broker cancellation
@@ -241,6 +248,10 @@ cross-window validation/reset and listener cleanup, no-op saves, unavailable
 storage, untouched suggestion refresh, dirty draft preservation and invalid
 programmatic form submission. Plot tests verify rounded axis/crosshair labels
 against the production adapter while exact inspection values remain intact.
+`tests/scatter-plot/test_all_dataset.mjs` verifies `2 / 140`, unchanged bins/P95
+across selected dates, live growth to 141, correction replacement, current/zero
+admission, future/missing exclusion and no redundant inventory reloads. It
+reports the production ten-series calculation time at 140 releases.
 `tests/scatter-plot/test_cpi.mjs` covers the CPI catalog, rules and units,
 complete-release selection, Inspector/scatter parity, Undefined defaults for
 both families, actual Inspector delta colors, empty cells, no unnecessary

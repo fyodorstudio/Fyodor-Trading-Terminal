@@ -27,9 +27,9 @@ export function familyScatterModel(events: StoredCalendarEvent[], now: number, s
     actual: sample.event.actual!, previous: sample.event.previous!,
     tone: gradeFamilyReading(sample.event, family.familyId, family)?.grade ?? 'unrated',
   })
-  const points = familyMagnitudeSamples(releases, reference).samples.map(toPoint)
-  const admitted = familyMagnitudeSamples(releases.filter((release) => release.releaseAt! < selected.releaseAt!), reference)
-  const samples = admitted.samples.map(toPoint), config = magnitudeConfiguration(settings, seriesId)
+  const admitted = familyMagnitudeSamples(releases, reference)
+  const points = admitted.samples.map(toPoint)
+  const samples = points, config = magnitudeConfiguration(settings, seriesId)
   const distribution = config.mode === 'undefined' ? null : magnitudeDistribution(samples.map((point) => point.delta), current ? inspectorDelta(current) : null, config.limits)
   const ranked = config.mode === 'p95' ? samples.slice().sort((a, b) => Math.abs(a.delta) - Math.abs(b.delta) || a.at - b.at || a.id.localeCompare(b.id)) : []
   const numerator = (ranked.length - 1) * 19, index = Math.floor(numerator / 20)
@@ -39,5 +39,6 @@ export function familyScatterModel(events: StoredCalendarEvent[], now: number, s
     releaseId: selected.id, at: selected.releaseAt!, point: points.find((point) => point.releaseId === selected.id) ?? null,
     actual: current?.actual ?? null, previous: current?.previous ?? null, delta: current ? inspectorDelta(current) : null,
     magnitudeMode: config.mode, distribution, samples, excluded: admitted.excluded, quantile,
+    earlierCount: samples.filter((point) => point.at < selected.releaseAt!).length,
   } }
 }

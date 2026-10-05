@@ -22,6 +22,7 @@ dependency/build/cache/local-inventory files requiring cleanup.
 | No saved boundary silently enabled P95. | Undefined is now the default; empty Inspector cells, raw scatter points and descriptive counts remain. P95 requires an explicit saved mode. |
 | Adding CPI risked copying NFP lifecycle/classification code. | Shared reading, history, settings, cells, tally and scatter engines accept registered family definitions. CPI keeps its scope/catalog/settings in isolated bindings. |
 | Mixed Undefined and configured-but-unavailable series could receive misleading footer labels. | Undefined and unclassified readings are counted separately per grade. |
+| Selecting an older release narrowed histogram/P95 history and refetched Inspector data. | Both views now use all usable released readings since January 2015 through now. Selection preserves the query; `Earlier / All` distinguishes chronology from calculation N. |
 
 ## Contracts retained
 
@@ -29,8 +30,8 @@ dependency/build/cache/local-inventory files requiring cleanup.
 - Three positive, strictly ordered independent cutoffs, mirrored around zero.
   Exact ties stay in the lower inclusive category; beyond Large is Extreme.
 - Inspector's seven bands, size labels, tally and scatter guides use the same
-  classifier and settings. History starts in January 2015 and excludes the
-  inspected publication and later releases.
+  classifier and settings. History starts in January 2015 and includes all usable
+  readings released through now, including the inspected and newer releases.
 - Custom cutoffs stay fixed across dates. Unconfigured series are Undefined;
   P95 is explicitly opt-in. Existing saved custom tuples remain compatible.
 - CPI retains the chosen higher/lower inflation USD-pressure grading convention
@@ -45,7 +46,8 @@ dependency/build/cache/local-inventory files requiring cleanup.
 
 ## Verification
 
-Terminal regression tests cover production Inspector/scatter parity, exact
+Terminal regression tests cover all-dataset counts, live N growth, correction
+replacement, selection invariance, production Inspector/scatter parity, exact
 boundaries, raw precision and malformed source values, display rounding,
 scope/series isolation, existing-key compatibility, snapshot immutability,
 external storage changes, failed storage, listener cleanup, invalid drafts,

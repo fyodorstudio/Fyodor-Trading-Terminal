@@ -99,10 +99,11 @@ Total, private, government and manufacturing payrolls overlap, as do monthly/ann
 ## Historical signed A−P distribution column
 
 The NFP table now shows a miniature histogram for each series, independently of
-the displayed chart range. The historical baseline starts January 1, 2015 and
-ends strictly before the selected release. Seven signed A−P bands contain
+the displayed chart range. The reference dataset starts January 1, 2015 and
+includes all usable readings released through now, including the selected and
+newer releases. Seven signed A−P bands contain
 three negative ranges, exact zero in the center, and three positive ranges.
-Gray bar heights count earlier readings; the selected band uses its existing
+Gray bar heights count all dataset readings; the selected band uses its existing
 Good/Bad/Unchanged color. An empty interval uses an outline, without adding a
 historical reading. Negative/positive position does not determine the color.
 The zero label stays centered beneath the exact-zero band, without a vertical guide.
@@ -110,7 +111,7 @@ The zero label stays centered beneath the exact-zero band, without a vertical gu
 Each series can use three independently configured Small/Medium/Large
 boundaries from Scatter Plot, in its native k, pp or h units. They must satisfy
 `0 < Small < Medium < Large`, mirror on both signs and stay fixed across dates.
-The same saved boundaries control the scatter's blue guides, these seven bands,
+The same saved boundaries control the scatter's configurable guides, these seven bands,
 size labels and the Good/Bad magnitude tally. Unconfigured series are Undefined,
 with empty histogram cells. Explicit P95 mode uses historical P95 of |A−P|
 and its thirds. Readings
@@ -123,7 +124,7 @@ Hover a bar or focus and use Left/Right arrows (Home/End for endpoints) for its
 range, count and share of history. The selected size label beside the chart
 reads Small, Medium, Large or Extreme; exact zero reads Unchanged and a missing
 reading reads Unavailable. The tooltip shows selected A−P/size, inspected
-band size/range/count, earlier-reading count, and true historical minimum and
+band size/range/count, Earlier / All (e.g. `2 / 140`), calculation N, and true historical minimum and
 maximum, including hidden extremes. It has no visible threshold row. The
 distribution does not change the majority rule above.
 Partial history and missing data are explicit. Stored corrections mean this
@@ -137,8 +138,9 @@ a Good/Bad reading without a usable magnitude baseline is Unclassified. History
 loading/errors suppress size counts, and partial coverage is marked. This adds
 detail to the tally without weighting readings or altering the majority rule.
 
-Threshold version `zero-centered-ap-configurable-v5` adds fixed custom
-boundaries and retains P95/thirds as explicit opt-in. Unconfigured series are
+Threshold version `zero-centered-ap-all-dataset-v6` uses all released samples for
+histogram counts and explicit P95/thirds. Custom boundaries stay fixed; new valid
+releases grow N and source revisions replace samples. Unconfigured series are
 Undefined, with empty histogram cells and an explicit undefined tally note, while
 admitting exact decimal boundary equality despite floating-point rounding.
 For the stored October 2, 2026 example with P95 settings, the breakdown is **Good: 1 Small,
