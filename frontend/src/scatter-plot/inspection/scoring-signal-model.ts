@@ -31,7 +31,7 @@ export function scoringSignalBinding(familyId: string): ScoringSignalBinding | n
   if (familyId === 'gdp') return { label: 'GDP v1', settings: gdpSignalSettings, seriesIds: gdpSeriesIds, signals: gdpSignals, supports: supportsGdpScore, features: gdpFeatures, calibrationClass: gdpStage }
   if (familyId === 'ppi') return { label: 'PPI v1', settings: ppiSignalSettings, seriesIds: ppiSeriesIds, signals: ppiSignals, supports: supportsPpiScore, features: ppiFeatures }
   if (familyId === 'claims') return {
-    label: 'Jobless Claims v1', settings: claimsSignalSettings, seriesIds: claimsSeriesIds,
+    label: 'Jobless Claims v2', settings: claimsSignalSettings, seriesIds: claimsSeriesIds,
     signals: claimsSignals, supports: supportsClaimsScore, features: claimsFeatures,
   }
   if (familyId === 'us-cpi') return {

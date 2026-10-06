@@ -1,7 +1,7 @@
-.inspector-scoring-view.inspector-claims-v1 { display: block; min-width: 0; overflow-x: hidden; overflow-y: auto; overflow-wrap: anywhere; }
-.inspector-claims-v1-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 10px; }
-.inspector-claims-v1-summary small { color: var(--text-muted); }
-.inspector-claims-v1 .inspector-table-scroll { overflow: visible; }
-.inspector-claims-v1 table { table-layout: fixed; }
-.inspector-claims-v1 p { max-width: 100ch; margin: 8px 0; }
-.inspector-claims-v1 th, .inspector-claims-v1 td { white-space: normal; }
+.inspector-scoring-view.inspector-claims-v2 { display: block; min-width: 0; overflow-x: hidden; overflow-y: auto; overflow-wrap: anywhere; }
+.inspector-claims-v2-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 10px; }
+.inspector-claims-v2-summary small { color: var(--text-muted); }
+.inspector-claims-v2 .inspector-table-scroll { overflow: visible; }
+.inspector-claims-v2 table { table-layout: fixed; }
+.inspector-claims-v2 p { max-width: 100ch; margin: 8px 0; }
+.inspector-claims-v2 th, .inspector-claims-v2 td { white-space: normal; }

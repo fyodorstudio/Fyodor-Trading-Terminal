@@ -72,7 +72,7 @@ try {
   assert.ok(details); assert.equal(gear.getAttribute('aria-expanded'), 'true')
   assert.equal(document.activeElement, details)
   const inputRow = name => details.querySelector(`[aria-label="Use ${name}"]`).closest('tr')
-  for (const [name, weight] of [['CPI v3.1', '28%'], ['NFP v2', '30%'], ['Claims v1', '10%'], ['ISM v3', '10%'], ['Retail Sales v1', '7%']]) {
+  for (const [name, weight] of [['CPI v3.1', '28%'], ['NFP v2', '30%'], ['Claims v2', '10%'], ['ISM v3', '10%'], ['Retail Sales v1', '7%']]) {
     assert.equal(inputRow(name).children[1].textContent, weight)
     assert.equal(inputRow(name).querySelector('button').getAttribute('aria-pressed'), 'true')
     assert.match(inputRow(name).children[3].textContent, /EURUSD (Long|Short)/)

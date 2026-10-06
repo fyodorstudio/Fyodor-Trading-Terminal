@@ -7,7 +7,7 @@ export type Evidence = 'weak' | 'moderate' | 'strong'
 export type CpiContextTraits = { kind: 'cpi'; monthlyCore: number | null; threeMonthCore: number | null;
   annualCore: number | null; monthlyPressure: number | null; annualPressure: number | null }
 export type NfpContextTraits = { kind: 'nfp'; hiringChange: number | null; unemploymentSignal: number | null }
-export type ClaimsContextTraits = { kind: 'claims'; streak: number; confirmed: boolean }
+export type ClaimsContextTraits = { kind: 'claims'; streak: number; confirmed: boolean; trendAgreement?: boolean }
 export type ContextPolicyCheck = { label: string; state: 'pass' | 'fail' | 'unavailable'; detail: string }
 export type ContextPolicy = { mode: 'balanced' | 'labor-priority' | 'weekly-labor-priority'; label: string; reason: string;
   weights: Record<ContextFamily, number>; checks: ContextPolicyCheck[] }

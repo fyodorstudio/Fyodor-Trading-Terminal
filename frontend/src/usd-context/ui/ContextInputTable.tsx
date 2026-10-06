@@ -31,7 +31,8 @@ export function ContextInputTable({ families, onToggleFamily, result, symbol, lo
           <td>{!enabled ? '0' : !ready ? '—' : score(member?.contribution ?? 0)}
             {member && <small>{member.status === 'active' ? `Source ${score(member.total)} × ${weights[family]}%${memory ? ` × ${(memory.retention * 100).toFixed(1)}% retained × ${(memory.coverage * 100).toFixed(0)}% coverage` : ''}` : `Not voting · source ${score(member.total)}`}</small>}
             {memory && <small>{memory.ageDays} days old · {memory.halfLifeDays}-day half-life · Effective weight {memory.effectiveWeight.toFixed(2)}%</small>}
-            {member?.traits?.kind === 'claims' && <small>Weekly confirmation: {member.traits.streak}/3{member.traits.confirmed ? ' · qualified' : ''}</small>}</td>
+            {member?.traits?.kind === 'claims' && <small>Weekly confirmation: {member.traits.streak}/3{member.traits.confirmed ? ' · qualified' : ''}
+              {member.traits.trendAgreement === false ? ' · underlying trends do not confirm the direction' : ''}</small>}</td>
         </tr>
       })}</tbody>
       <tfoot><tr><th>Total</th><td>{Object.values(weights).reduce((a, b) => a + b, 0)}%</td><td />

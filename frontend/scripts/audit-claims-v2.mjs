@@ -6,7 +6,7 @@ import { Worker } from 'node:worker_threads'
 import { createServer } from 'vite'
 
 const [calendarPath, outputPrefix] = process.argv.slice(2)
-if (!calendarPath || !outputPrefix) throw new Error('Usage: after pnpm build, node scripts/audit-claims-v1.mjs <calendar.json> <output-prefix>')
+if (!calendarPath || !outputPrefix) throw new Error('Usage: after pnpm build, node scripts/audit-claims-v2.mjs <calendar.json> <output-prefix>')
 const calendar = JSON.parse(fs.readFileSync(path.resolve(calendarPath), 'utf8').replace(/^\uFEFF/, ''))
 if (!Array.isArray(calendar.events)) throw new Error('Calendar snapshot must contain an events array.')
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -71,10 +71,10 @@ async function checkWorker(pattern, input, expectedResult) {
 report.runtime = { inspector: await checkWorker(/^claims-analysis\.worker-.*\.js$/, latestJob, expected),
   scatter: await checkWorker(/^signal-history\.worker-.*\.js$/, signalJob, expectedSignals) }
 const fmt = n => n === null ? '—' : Number(n.toFixed(3))
-const lines = ['# USD Jobless Claims v1 implementation audit', '',
+const lines = ['# USD Jobless Claims v2 implementation audit', '',
   `Source: ${report.source} · revision: ${report.revision} · policy: ${report.version}`, '',
   'This verifies implementation and chronology, not price-prediction accuracy. No forecast, market price or other family enters scoring. No parameter search was performed.', '',
-  'Smoothed initial claims 50%, continuing claims 30%, weekly initial claims 20%. Each signal is the preceding four consecutive weekly readings mean minus Actual, with supplied Revised Previous replacing the nearest prior reading. The smoothed component uses four preceding reported averages. All counts convert to thousands. Initial and its average share a group; continuing claims is another group. Continuing claims references the preceding week. Missing weights are not redistributed; exact cancellation follows table order with Weak evidence. All-zero/unusable stays Uncomputed.', '',
+  'Smoothed initial trend 45%, continuing trend 40%, weekly initial 15%. Initial trend compares reported four-week averages four weeks apart; continuing trend compares adjacent nonoverlapping four-week means; weekly initial compares latest with the preceding four-week mean. Supplied Revised Previous replaces the nearest prior reading only where that week is used. Descriptive levels compare with 52 earlier weeks without voting. All counts convert to thousands. Initial and its average share a group; continuing claims is another group. Continuing claims references the preceding week. Missing weights are not redistributed; exact cancellation follows table order with Weak evidence. All-zero/unusable stays Uncomputed.', '',
   'Scorer/Scatter values, points, magnitude, boundaries, N, reasons and inputs match. Removing same-time/later inventory preserves every assessment. Production Inspector/Scatter workers match pure results and keep the main event loop active. Stored vintages may include later provider revisions.', '',
   `Runtime: Inspector ${report.runtime.inspector.roundtripMs} ms (${report.runtime.inspector.mainThreadPulses} main-thread pulses); Scatter ${report.runtime.scatter.roundtripMs} ms (${report.runtime.scatter.mainThreadPulses} pulses).`, '',
   '## Chronological coverage', '', '| Period | Releases | Long | Short | Uncomputed | Reduced data |', '| --- | ---: | ---: | ---: | ---: | ---: |',

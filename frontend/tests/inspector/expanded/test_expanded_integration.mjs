@@ -16,6 +16,11 @@ try{
  const load=p=>server.ssrLoadModule('./src/'+p)
  const {ExpandedReleaseScore}=await load('inspector/scoring/shared/ui/ExpandedReleaseScore.tsx')
  const {FedScore}=await load('inspector/scoring/PAIR/EURUSD/USD/FED/ui/FedScore.tsx')
+ const {previousFedMeeting}=await load('inspector/scoring/PAIR/EURUSD/USD/FED/assessment/fed-context.ts')
+ const {buildContextTimeline}=await load('usd-context/core/build-context-timeline.ts')
+ const {contextAt}=await load('usd-context/core/context-lookup.ts')
+ const {contextPairLabel}=await load('usd-context/core/usd-pair.ts')
+ const {InspectorScoringView}=await load('inspector/scoring/InspectorScoringView.tsx')
  const {PublicationContext}=await load('usd-context/ui/PublicationContext.tsx')
  const {inspectorScoringBinding}=await load('inspector/scoring/scoring-registry.ts')
  const {groupInspectorReleases}=await load('inspector/inspector-data.ts')
@@ -39,6 +44,33 @@ try{
  await React.act(async()=>root.render(React.createElement(FedScore,{release:speech,history:{}})))
  assert.match(container.textContent,/Uncomputed/);assert.match(container.textContent,/no usable policy decision or speech text/)
  await React.act(async()=>saveContextFamilies(['ppi']))
+ const fedAt=release.releaseAt+2*86400000
+ const fedRow=(at,actual=3.75,previous=3.75)=>({...rows(42)[0],value_id:'fed/'+at,event_id:'840050014',event_code:'fed-interest-rate-decision',
+   name:'Fed Interest Rate Decision',release_at:at,server_time_seconds:at/1000,chart_time_seconds:at/1000,
+   actual,previous,period_seconds:0})
+ const priorFed=fedRow(fedAt-45*86400000),currentFed=fedRow(fedAt),futureFed=fedRow(fedAt+45*86400000,4)
+ const fedRelease=groupInspectorReleases([currentFed])[0],fedEvents=[...events,priorFed,currentFed,futureFed]
+ const input={events:fedEvents,families:['ppi'],settings:{cpi:{},nfp:{},services:{},manufacturing:{},ppi:ppiSignalSettings.read()},asOf:fedAt}
+ const expected=contextAt(buildContextTimeline(input),fedAt).result
+ assert.equal(previousFedMeeting(fedRelease,fedEvents).releaseAt,priorFed.release_at)
+ assert.equal(previousFedMeeting(fedRelease,[...fedEvents,{...priorFed,value_id:'ambiguous-prior'}]),null)
+ assert.equal(previousFedMeeting(fedRelease,[currentFed,futureFed]),null)
+ assert.deepEqual(buildContextTimeline(input),buildContextTimeline({...input,events:events}),
+   'Fed rates, holds and future meetings do not vote or renew macro evidence')
+ const fedProps={release:fedRelease,events:fedEvents,now:fedAt,history:{}}
+ await React.act(async()=>root.render(React.createElement(InspectorScoringView,{...fedProps,binding:inspectorScoringBinding('EURUSD',fedRelease)})))
+ assert.equal(container.querySelector('[aria-label="Fed contextual pair direction"]').textContent,contextPairLabel('EURUSD',expected.direction))
+ assert.match(container.textContent,/Decision: Rate hold/)
+ assert.match(container.textContent,/Rate action alone: No directional change/)
+ assert.match(container.textContent,/Fed guidance: Not scored/)
+ assert.ok(container.querySelector('[aria-label="Fed previous meeting comparison"]'))
+ assert.equal(container.querySelectorAll('tbody tr').length,8,'One shared context table, without a duplicate generic panel')
+ await React.act(async()=>container.querySelector('[aria-label="Use PPI v1"]').click())
+ assert.equal(container.querySelector('[aria-label="Fed contextual pair direction"]').textContent,'Uncomputed')
+ await React.act(async()=>saveContextFamilies(['ppi']))
+ await React.act(async()=>root.render(React.createElement(FedScore,{...fedProps,now:fedAt-1})))
+ assert.equal(container.querySelector('[aria-label="Fed contextual pair direction"]').textContent,'Uncomputed')
+ assert.match(container.textContent,/already published chart time/)
  await React.act(async()=>root.render(React.createElement(PublicationContext,{release,events,now:release.releaseAt})))
  assert.match(container.textContent,/EURUSD Short/);assert.equal(container.querySelectorAll('tbody tr').length,8)
  await React.act(async()=>container.querySelector('[aria-label="Use PPI v1"]').click())

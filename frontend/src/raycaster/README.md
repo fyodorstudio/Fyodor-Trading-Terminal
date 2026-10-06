@@ -37,7 +37,7 @@ priority to confirmed labor deterioration only when active CPI passes declared
 level/acceleration guards. It implies easing pressure, not observed Fed guidance.
 Hotter inflation, incomplete/expired or disabled CPI/NFP restores base priorities.
 The collapsed explanation identifies Labor priority when active. Standalone scorer math remains
-CPI v3.1, NFP v2, Claims v1, ISM v3, Retail v1, PCE v1, PPI v1 and GDP v1. ISM switches both sectors together;
+CPI v3.1, NFP v2, Claims v2, ISM v3, Retail v1, PCE v1, PPI v1 and GDP v1. ISM switches both sectors together;
 they update one slot. Inspector's view, date range and marker visibility do not
 select context inputs. Applied Scatter signal magnitudes still affect both tools.
 
@@ -90,3 +90,5 @@ source family IDs, release clocks and histories remain distinct.
 FOMC and Fed Chair text are not stored by the calendar feed. Raycaster does not
 infer policy tone from a hold or event title. Their Inspector views show available
 rate actions and the same economic context separately.
+
+Claims v2 uses nonoverlapping underlying trends; only joint trend agreement can qualify weekly confirmation. Fed decision v2 displays this same contextual headline and a prior-meeting comparison in Inspector. Fed rates and speeches add no vote or evidence-age reset.

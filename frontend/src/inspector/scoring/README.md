@@ -513,7 +513,7 @@ stored signal against the chart, future-removal replay and both production
 workers. The full design and stored coverage are in the root scoring library.
 
 
-## USD Jobless Claims v1 weekly pressure
+## Archived: USD Jobless Claims v1 weekly pressure
 
 `PAIR/EURUSD/USD/CLAIMS/` separates the explicit 50/30/20 policy, weekly history,
 feature extraction, aggregation, background worker and flat Inspector UI. The
@@ -540,7 +540,7 @@ original Claims A−P settings remain separate. `runtime/` reuses the shared lat
 calculation client to reject stale replies and terminate when closed.
 
 Tests: `tests/inspector/claims/test_claims_score.mjs`, `test_claims_integration.mjs`.
-After building, `node scripts/audit-claims-v1.mjs <calendar.json> <output-prefix>`
+The historical v1 runner was replaced by `scripts/audit-claims-v2.mjs`; the v1 results below predate the new formula. The current runner
 checks chronological parity and production Inspector/Scatter worker results.
 Claims now contributes 10% to shared USD context, with NFP at 30% inside the
 existing 40% labor budget. Weekly votes replace one slot and expire at 14 days.
@@ -606,3 +606,13 @@ and the chronological `scripts/audit-usd-menu-v5.mjs`.
 A revised_previous calendar field is not sufficient proof of a same-month revision. NFP v2 requires a unique, usable earlier publication for the immediately preceding reference month before allowing its revision vote. A missing, duplicated, invalid or only simultaneous/future preceding-month reading leaves that component unavailable, without redistribution. This guard also applies to historical calibration and Scatter scoring signals. It conservatively rejects incomplete history; it does not recover missing BLS revisions. A consecutive record still relies on the provider placing the correct prior values in its fields.
 
 The December 16, 2025 BLS report published October (-105k) for the first time together with November (+64k). September was revised +119k to +108k. The local broker row pairs Previous +119k with revised_previous -105k, so their -224k difference must not vote as a revision. Stored values remain intact. The payroll readings table now uses Provider prior and A−PriorP, with a tooltip explaining possible reference-month gaps. [BLS archived report](https://www.bls.gov/news.release/archives/empsit_12162025.htm).
+
+## Implemented: Jobless Claims v2 and Fed decision context v2
+
+Claims v2 is the active Inspector/Scatter/Raycaster source. Initial trend 45% compares reported four-week averages four weeks apart; continuing trend 40% compares adjacent four-week means (latest plus prior three versus prior four through seven); weekly initial 15% compares latest with its preceding four-week mean. A supplied revision replaces the nearest week only where that week is used. The initial-trend older four-week average is not replaced by a one-week revised value. Strict weekly/native/time gates and earlier-only minimum-24 calibration remain. Initial and latest share a confirmation group. A latest-week-only move is Weak evidence. Missing/all-zero data remain honest Uncomputed.
+
+The separate level explanation compares current smoothed initial and current continuing readings with the middle half (nearest-rank 25th/75th percentiles) within their own preceding 52 reference weeks, with at least 40 usable readings required and partial coverage disclosed. Missing weeks are not filled or replaced by older observations. It has no score, no fixed health threshold and no effect on coverage/evidence. Missing level history does not erase a valid trend vote.
+
+`CLAIMS-V2-SIGNALS` isolates magnitude overrides because the feature formulas changed. Legacy V1 cutoffs remain portable under their old key, without affecting V2. Raw Actual-minus-Previous settings are unchanged. The new `scripts/audit-claims-v2.mjs` checks all stored publications, scorer/Scatter parity, future removal and compiled worker parity.
+
+Fed v2 owns a single context panel instead of receiving a duplicate generic panel. The main bias equals Raycaster at the exact numeric decision time; the factual hold/hike/cut and action-only interpretation remain separate. Previous-meeting context uses an independently scoped prior numeric rate record, the same active context filters/settings and each meeting's historical cutoff. Ambiguous/missing previous records are not silently replaced by an older meeting. A Fed hold adds no vote or renewed memory. Policy-pressure descriptions are declared interpretations, not observed Fed guidance. Speeches, statements, projections and conference content are excluded from this implementation.

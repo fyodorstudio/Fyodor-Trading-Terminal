@@ -13,8 +13,11 @@ export function explainContext(direction: UsdDirection, members: ContextMember[]
   const noun = direction === 'weaker' ? 'USD weakness' : 'USD strength'
   if (tie) return `Weighted votes cancel; the published ${contextPriority.map(f => contextNames[f]).join(' → ')} priority favors ${noun}.`
   const subject = `${describe(supporting)} evidence`
-  return opposing.length ? `${subject.charAt(0).toUpperCase() + subject.slice(1)} outweighs ${describe(opposing)} in favor of ${noun}.` :
-    `${subject.charAt(0).toUpperCase() + subject.slice(1)} favors ${noun}.`
+  const claims = supporting.find(m => m.family === 'claims'), nfp = supporting.find(m => m.family === 'nfp')
+  const labor = claims?.traits?.kind === 'claims' && claims.traits.confirmed && nfp ?
+    ' Sustained initial and continuing claims trends confirm the latest NFP direction; weekly reports are not added as separate votes.' : ''
+  return (opposing.length ? `${subject.charAt(0).toUpperCase() + subject.slice(1)} outweighs ${describe(opposing)} in favor of ${noun}.` :
+    `${subject.charAt(0).toUpperCase() + subject.slice(1)} favors ${noun}.`) + labor
 }
 export function explainUpdate(name: string, previous: { direction: UsdDirection; total: number | null },
   current: { direction: UsdDirection; total: number | null }, sources: readonly ContextMember[]) {

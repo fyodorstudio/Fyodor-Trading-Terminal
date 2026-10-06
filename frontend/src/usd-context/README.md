@@ -1,6 +1,6 @@
-# USD context memory v6
+# USD context memory v6.1
 
-The shared engine consumes unchanged standalone CPI v3.1, NFP v2, Claims v1,
+The shared engine consumes standalone CPI v3.1, NFP v2, Claims v2,
 monthly ISM v3, Retail Sales v1, PCE v1, PPI v1 and GDP v1 scores. It interprets the USD side of supported
 pairs. Forecasts, price outcomes and the other currency do not vote.
 
@@ -10,7 +10,7 @@ pairs. Forecasts, price outcomes and the other currency do not vote.
 | --- | ---: | --- | --- |
 | CPI v3.1 | 28% | 45 days | Latest inflation report replaces the previous CPI slot |
 | NFP v2 | 30% | 45 days | Latest jobs report replaces the previous NFP slot |
-| Claims v1 | 10% | 14 days | Latest weekly report replaces the previous Claims slot |
+| Claims v2 | 10% | 14 days | Latest weekly report replaces the previous Claims slot |
 | ISM v3 | 10% | 45 days | Manufacturing then Services update one monthly ISM slot at their original times |
 | Retail Sales v1 | 7% | 45 days | Latest spending report replaces the previous Retail slot |
 | PCE v1 | 10% | 45 days | Latest PCE report replaces its slot |
@@ -246,3 +246,9 @@ V5 validation: 137 GDP and 140 PPI publications passed source/Scatter and
 later-data-removal checks; 1,489 timeline snapshots and 12 publication replays
 were checked. Built context and expanded-release workers matched pure results
 and left the main event loop active. Full frontend tests, lint and build passed.
+
+## Claims v2 and Fed decision context
+
+Claims v2 replaces the Claims source slot without changing base family budgets or memory half-lives. Its two underlying trends use nonoverlapping four-week windows; latest-week weight is smaller. The three-release weekly confirmation additionally requires both underlying trends to agree with each report direction. Confirmation is also explained when Claims and NFP agree, without an extra vote.
+
+Fed v2 reuses `runtime/usePublicationContext.ts` to display exactly this engine at the decision publication, including holds. A separately fetched earlier numeric decision anchors the previous-meeting comparison. Both meetings use the same enabled families/settings; no future speech, conference, minutes or macro reading is moved into an earlier result. Fed meetings add no timeline vote and do not refresh source memory. Speeches remain outside scoring. See the root scoring library for rules and limitations.

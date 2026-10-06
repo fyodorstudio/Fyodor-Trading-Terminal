@@ -23,7 +23,7 @@ export function validClaimsReference(e: TimedReading) {
 
 type Publication = { at: number; rows: TimedReading[] }
 const indexes = new WeakMap<readonly TimedReading[], Map<string, Publication[]>>()
-export function priorClaimsWeeks(history: readonly TimedReading[], current: TimedReading) {
+export function priorClaimsWeekValues(history: readonly TimedReading[], current: TimedReading, count = 4) {
   let index = indexes.get(history)
   if (!index) {
     const groups = new Map<string, Map<number, TimedReading[]>>()
@@ -41,7 +41,7 @@ export function priorClaimsWeeks(history: readonly TimedReading[], current: Time
     indexes.set(history, index)
   }
   const reference = claimsReference(current)!
-  const values = [1, 2, 3, 4].map(n => {
+  const values = Array.from({ length: count }, (_, i) => i + 1).map(n => {
     const publications = index!.get(`${current.event_id}/${reference - n * claimsWeekSeconds}`) ?? []
     let lo = 0, hi = publications.length
     while (lo < hi) {
@@ -52,5 +52,10 @@ export function priorClaimsWeeks(history: readonly TimedReading[], current: Time
     const rows = lo ? publications[lo - 1].rows : [], row = rows[0]
     return rows.length === 1 && validClaimsReference(row) ? claimsCount(row) : null
   })
+  return values
+}
+
+export function priorClaimsWeeks(history: readonly TimedReading[], current: TimedReading, count = 4) {
+  const values = priorClaimsWeekValues(history, current, count)
   return values.some(n => n === null) ? null : values as number[]
 }

@@ -12,13 +12,14 @@ try {
   const release = values => groupInspectorReleases(reading(52, values))[0]
   const assess = values => assessClaimsScore(release(values), flat, settings)
   const low = release([180, 1.78, 180]), lowScore = assessClaimsScore(low, flat, settings)
-  assert.equal(lowScore.label, 'EURUSD Short'); assert.equal(lowScore.total, 3)
+  assert.equal(lowScore.label, 'EURUSD Short'); assert.equal(lowScore.total, 2.2)
   assert.equal(lowScore.strength, 'strong'); assert.equal(lowScore.supportingGroups, 2)
-  assert.deepEqual(lowScore.readings.map(r => r.value), [20, 20, 20])
+  assert.deepEqual(lowScore.readings.map(r => r.value), [20, 5, 20])
+  assert.deepEqual(lowScore.readings.map(r => r.weight), [45, 40, 15])
   assert.equal(assess([220, 1.82, 220]).label, 'EURUSD Long')
   assert.equal(assess([180, 1.8, 180]).strength, 'moderate', 'Two initial-claims signals are one group')
   assert.equal(assess([200, 1.8, 200]).label, 'Uncomputed')
-  const tie = assess([205, 1.805, 195])
+  const tie = assess([205, 1.88, 180])
   assert.equal(tie.total, 0); assert.equal(tie.label, 'EURUSD Short')
   assert.equal(tie.tieBreak.id, 'initial-trend'); assert.equal(tie.strength, 'weak')
   const missing = { ...low, events: low.events.filter(e => e.event_id !== '840140003') }
@@ -33,7 +34,8 @@ try {
 
   const change = (id, patch) => ({ ...low, events: low.events.map(e => e.event_id === id ? { ...e, ...patch } : e) })
   const revised = assessClaimsScore(change('840140002', { revised_previous: 1.84, revised_previous_raw_scaled_1e6: raw(1.84) }), flat, settings)
-  assert.equal(revised.readings[1].value, 30); assert.equal(revised.readings[1].inputs.baseline, 1810)
+  assert.equal(revised.readings[1].value, -5); assert.equal(revised.readings[1].inputs.baseline, 1800)
+  assert.equal(revised.readings[1].inputs.actual, 1805, 'Nearest revision belongs to the latest window, not the older window')
   const zeroRevision = assessClaimsScore(change('840140001', { revised_previous: 0, revised_previous_raw_scaled_1e6: '0' }), flat, settings)
   assert.equal(zeroRevision.readings[2].value, -30)
   assert.equal(assessClaimsScore(change('840140001', { revised_previous: 210, revised_previous_raw_scaled_1e6: 'broken' }), flat).readings[2].points, null)
@@ -62,6 +64,33 @@ try {
   const forecastNoise = e => ({ ...e, forecast: -1e12, forecast_raw_scaled_1e6: 'bad', impact: 'negative' })
   assert.deepEqual(assessClaimsScore({ ...low, events: low.events.map(forecastNoise) }, flat.map(forecastNoise), settings), lowScore)
   assert.throws(() => assessClaimsScore(low, flat, { 'initial-week': [1, 1, 2] }), RangeError)
+
+  // A one-week spike cannot claim confirmation from unchanged underlying trends.
+  const spike = assess([240, 1.8, 200])
+  assert.equal(spike.label, 'EURUSD Long'); assert.equal(spike.strength, 'weak')
+  assert.match(spike.explanation, /both underlying trends were unchanged/)
+  const divergent = assess([180, 1.92, 180])
+  assert.match(divergent.explanation, /New claims eased, while continuing claims pressure increased/)
+  assert.equal(divergent.strength, 'weak')
+  // Nonoverlapping windows: changes within the last three reported averages
+  // must not change the older four-week baseline for the initial trend.
+  const noisyAverage = flat.map(e => e.event_id === '840140003' &&
+    e.period_seconds > (start + 48 * week) / 1000 ? { ...e, actual: 900, actual_raw_scaled_1e6: raw(900) } : e)
+  assert.equal(assessClaimsScore(low, noisyAverage, settings).readings[0].value, 20)
+  const highHistory = flat.map(e => e.period_seconds >= (start + 44 * week) / 1000 ?
+    { ...e, actual: e.event_id === '840140002' ? 2.4 : 300,
+      actual_raw_scaled_1e6: raw(e.event_id === '840140002' ? 2.4 : 300) } : e)
+  const improvingHigh = assessClaimsScore(release([250, 2.2, 250]), highHistory, settings)
+  assert.equal(improvingHigh.label, 'EURUSD Short')
+  assert.equal(improvingHigh.levels.every(level => level.state === 'elevated'), true)
+  assert.match(improvingHigh.explanation, /levels remain elevated/)
+  assert.equal(assessClaimsScore(low, flat, settings).levels.every(level => level.state === 'low'), true)
+  const levelGap = flat.filter(e => e.period_seconds !== (start + 5 * week) / 1000)
+  assert.equal(assessClaimsScore(low, levelGap, settings).levels.every(level => level.state === 'low' && level.sampleCount === 51), true)
+  const severeGap = flat.filter(e => e.period_seconds < start / 1000 || e.period_seconds >= (start + 14 * week) / 1000)
+  assert.equal(assessClaimsScore(low, severeGap, settings).levels.every(level => level.state === 'unavailable'), true)
+  assert.deepEqual(assessClaimsScore(low, levelGap, settings).readings.map(r => r.value), [20, 5, 20],
+    'Missing long-term context does not remove usable short-term features')
   console.log('✓ Consecutive weekly references, lagged continuing claims, revision/zero handling, ambiguity/native/timing gates, no future/forecast inputs')
 
   const binding = scoringSignalBinding('claims'), events = [...history, ...low.events, ...reading(53)]

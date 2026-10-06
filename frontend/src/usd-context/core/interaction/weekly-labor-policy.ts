@@ -11,7 +11,7 @@ export function resolveWeeklyLaborPolicy(members: readonly ContextMember[], base
       detail: 'NFP must be at least 14 broker calendar days old and Weak or incomplete. Fresh or complete Moderate/Strong NFP keeps its budget.' },
     { label: 'Sustained opposing weekly claims', state: !claims || !traits ? 'unavailable' :
       traits.confirmed && claims.usdDirection !== nfp?.usdDirection ? 'pass' : 'fail',
-      detail: 'Requires three consecutive complete opposing Claims directions, 4–10 days apart, at least 80% component coverage each, and a Moderate/Strong latest report.' },
+      detail: 'Requires three consecutive complete opposing Claims directions with both underlying trends agreeing, 4–10 days apart, at least 80% component coverage each, and a Moderate/Strong latest report.' },
   ]
   const triggered = checks.every(c => c.state === 'pass')
   return { ...base, mode: triggered ? 'weekly-labor-priority' : base.mode,

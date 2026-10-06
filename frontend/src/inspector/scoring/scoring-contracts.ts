@@ -11,4 +11,5 @@ export type InspectorScoringBinding = {
   matchesSymbol: (symbol: string) => boolean
   Component: ComponentType<InspectorScoringProps>
   fullView?: boolean
+  includesContext?: boolean
 }

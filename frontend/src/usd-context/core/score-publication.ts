@@ -33,5 +33,9 @@ export function scorePublication(release: InspectorRelease, events: readonly Ins
     explanation: score?.explanation ?? 'No usable assessment.', changeSize: score?.changeSize ?? null,
     reduced: score?.reduced ?? true, tie: !!score?.tieBreak, coverage: sourceCoverage(score?.readings),
     ...(family === 'cpi' ? { traits: cpiContextTraits(score as ReturnType<typeof assessCpiScoreV3>) } :
-      family === 'nfp' ? { traits: nfpContextTraits(score as ReturnType<typeof assessNfpScoreV2>) } : {}) }
+      family === 'nfp' ? { traits: nfpContextTraits(score as ReturnType<typeof assessNfpScoreV2>) } :
+      family === 'claims' ? { traits: { kind: 'claims' as const, streak: 0, confirmed: false,
+        trendAgreement: !!score && score.total !== null && score.total !== 0 &&
+          score.readings.filter(r => r.id === 'initial-trend' || r.id === 'continuing-pressure')
+            .every(r => r.points !== null && Math.sign(r.points) === Math.sign(score.total!)) } } : {}) }
 }

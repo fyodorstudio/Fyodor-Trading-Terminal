@@ -173,7 +173,7 @@ months/revisions leave explicit gaps. `RETAIL-V1-SIGNALS` stores independent
 component overrides; source Actual − Previous boundaries remain separate.
 
 
-## Jobless Claims v1 signal visibility
+## Archived: Jobless Claims v1 signal visibility
 
 The Claims family exposes smoothed initial claims, continuing claims and latest
 initial claims in Scoring signal. Each is its preceding four consecutive weekly
@@ -187,3 +187,7 @@ relative to the original A−P measure. The shared Claims feature extractor supp
 both plotted values and standalone scoring; automatic cutoffs use strictly earlier
 signals with the 24-observation gate. `CLAIMS-V1-SIGNALS` provides independent,
 portable custom boundaries and the existing preview/Apply/reset workflow.
+
+## Active Jobless Claims v2 signals
+
+The same three component selectors now show the V2 features: initial trend between nonoverlapping reported four-week averages, continuing trend between adjacent four-week means, and weekly initial versus its prior four-week mean. Inspector, Scatter and Raycaster use identical feature extraction and earlier-only calibration. The new `CLAIMS-V2-SIGNALS` key prevents old custom cutoffs from silently grading changed formulas; V1 settings remain exportable/importable as legacy data. Raw A−P magnitude settings are unchanged. The non-voting 52-week level comparison appears in Inspector rather than as a fourth scorer input.

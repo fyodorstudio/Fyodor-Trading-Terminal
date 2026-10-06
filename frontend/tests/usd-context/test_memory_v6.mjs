@@ -45,6 +45,10 @@ try {
   }
   assert.equal(claimsConfirmation({ ...current, total: 0 }, weekly).confirmed, false)
   assert.equal(claimsConfirmation({ ...current, strength: 'weak' }, weekly).confirmed, false)
+  const oneTrend = { ...current, traits: { kind: 'claims', trendAgreement: false } }
+  assert.equal(claimsConfirmation(oneTrend, weekly).confirmed, false,
+    'Repeated direction alone cannot confirm divergent underlying Claims v2 trends')
+  assert.equal(claimsConfirmation(current, [weekly[0], { ...weekly[1], traits: oneTrend.traits }]).confirmed, false)
   const nfp = source('nfp', -1, 14, { strength: 'weak' })
   const confirmed = { ...current, traits }
   const resolution = combineContext({ nfp, claims: confirmed }, ['nfp', 'claims'], at)

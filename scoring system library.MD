@@ -61,7 +61,7 @@ not promises about the release candle or a future price move.
 | USD CPI v3, refined | Scoring system v3 | Latest core pace versus preceding three months; weights 35/35/20/10. Related core monthly signals share an evidence group; separate strength, change size and limitations. Implemented, policy v3.1. |
 | USD NFP original | Scoring system | Payrolls, inverse unemployment change and monthly wage change each have weight 1; seven supporting readings excluded from the USD total. Implemented. |
 | USD NFP v2 | Scoring system v2 | Hiring pace, unemployment with participation context, wage pace, preceding-month payroll revision and working hours. Weights 40/30/15/10/5; earlier-history calibration and grouped evidence. Implemented. |
-| USD Jobless Claims v1 | Scoring system | Smoothed initial claims 50%, continuing claims 30%, weekly initial claims 20%; inverse revision-aware weekly comparisons, grouped evidence and visible magnitudes. Implemented standalone and integrated as a 10% shared labor-context vote. |
+| USD Jobless Claims v2 | Scoring system | Nonoverlapping initial trend 45%, continuing trend 40%, latest week 15%; non-voting 52-week levels, grouped evidence and visible magnitudes. Integrated in the existing 10% labor slot. V1 archived below. |
 | USD Retail Sales v1 | Scoring system | Control-group pace 60%, ex-autos-and-gas pace 25%, headline pace 15%; revision-aware preceding three-month benchmarks floored at zero, grouped evidence and visible magnitudes. Implemented; manual audit next. |
 | USD PCE v1 | Scoring system | Core monthly pace, annual core change, headline monthly pace and annual headline change. Weights 45/30/15/10; revision-aware comparisons, grouped evidence and visible magnitudes. Implemented. |
 | USD ISM Services v1 | Retired standalone screen | Original 35/25/25/15 sector policy is documented and retained internally for v2/v3 and audit reproduction. |
@@ -69,8 +69,8 @@ not promises about the release candle or a future price move.
 | USD ISM monthly resolution v3 | Scoring system v3 on either ISM family | One latest available monthly bias, weighted sector contributions and a plain explanation of which evidence wins. V2 component math and evidence policy are preserved. |
 | USD GDP v1 | Scoring system | GDP/real consumption/final sales weights 50/30/20; first stored quarter estimate versus prior four quarters, or same-quarter estimate revision; separate calibration populations. Implemented. |
 | USD PPI v1 | Scoring system | Core monthly/annual weights 50/30; headline monthly/annual 15/5. Earlier-history calibration and core gate. Implemented. |
-| USD FOMC action v1 / Fed Chair coverage | Scoring system | Hike/cut action interpretation, hold without action direction, explicit unavailable statement/speech text, economic context shown separately. Partial policy coverage; guidance scorer pending a text source. |
-| USD context memory v6 / Raycaster | Chart header → Raycaster; CPI v4 and registered publication panels | V5 source budgets plus cadence aging and explicit usable-component coverage; qualified opposing weekly Claims can receive 10 points from an aging Weak/incomplete NFP. Earlier labor–inflation rule retained, transfers do not stack. Visible factors and effective weights. Implemented; audit below. |
+| USD FOMC context v2 / Fed Chair coverage | Scoring system | Shared contextual headline even for holds; separate rate action and previous-meeting comparison. No policy-text or speech interpretation and no new Fed vote. |
+| USD context memory v6.1 / Raycaster | Chart header → Raycaster; CPI v4 and registered publication panels | V5 source budgets plus cadence aging and explicit usable-component coverage; qualified opposing weekly Claims can receive 10 points from an aging Weak/incomplete NFP. Earlier labor–inflation rule retained, transfers do not stack. Visible factors and effective weights. Implemented; audit below. |
 
 Inspector's other families have release tables and descriptive magnitude tools;
 that does not mean they already have directional scorers. FOMC/ECB episode
@@ -1332,3 +1332,61 @@ The December 16, 2025 shutdown-delayed report contains November payrolls +64k an
 NFP v2 now excludes the revision vote when the immediately preceding reference month lacks a unique usable earlier publication. The same rule governs earlier calibration and Scatter scoring signals, and Raycaster/CPI combined context inherit the corrected source. Missing history is not filled, weights are not redistributed, and provider data are not rewritten. Presence of a consecutive record still relies on correct provider prior-field semantics; original publication vintages remain a limitation. The payroll table calls the field Provider prior and its delta A−PriorP to avoid claiming every such value is a revision.
 
 This is a data interpretation fix rather than a new price-fitting rule. Audit the corrected release/context outputs before changing weights again. The existing v6 implementation audit describes the earlier source behavior; its claim of unchanged standalone outputs predates this correction. See [payroll revision integrity audit](reports/NFP-prior-field-integrity-audit.md) for the new findings and replay.
+
+## Implemented: Claims v2 and Fed decision context v2 — 2026-10-06
+
+Claims v2 asks whether new claims and persistent benefit claims are improving
+together. It keeps a release-only interpretation, with full combined context
+below it. The new formulas replace V1 rather than adding another dropdown.
+
+| Claims component | Calculation, positive means easing pressure | Weight |
+| --- | --- | ---: |
+| Smoothed initial trend | Reported four-week average four reference weeks earlier minus latest reported average | 45% |
+| Continuing trend | Mean of reference weeks t−4 through t−7 minus mean of t through t−3 | 40% |
+| Latest initial week | Mean of the preceding four weekly readings minus latest initial claims | 15% |
+
+The two trend windows do not overlap. Continuing claims keeps its own lagged
+reference week. A supplied revised prior replaces t−1 where used; it cannot
+replace the t−4 reported initial average. Features retain strict consecutive
+weeks, native units, observed publication times, duplicate rejection, no forecast
+inputs and at least 24 earlier usable calibration signals. Grouped evidence and
+weighted tie priority remain; weekly-only movement receives Weak evidence.
+
+Separately, smoothed initial and latest continuing levels are classified against
+the middle half of available readings within their preceding 52 weeks (at least 40 usable weeks required). The usual
+range uses nearest-rank 25th/75th percentiles. Partial coverage is disclosed; missing weeks are not filled or replaced with older observations. Higher/lower-than-usual is descriptive,
+not a universal healthy/unhealthy threshold. These levels neither vote nor remove
+usable short-term features when long history is missing. Falling continuing
+claims cannot establish successful job finding: eligibility/exhaustion also
+matter. The original V1 weights/formulas and old audits above remain historical.
+
+New derived-signal magnitude settings use `CLAIMS-V2-SIGNALS`; automatic defaults
+recalibrate the changed features. V1 custom cutoffs remain preserved and portable
+under the legacy key, without applying to V2. Raw A−P settings are unaffected.
+
+Shared USD context v6.1 keeps the existing inflation/labor/activity budgets and
+cadence aging. Three-week Claims confirmation now requires the initial and
+continuing trends both to agree with each report direction. The existing bounded
+10-point NFP-to-Claims transfer still requires an aging Weak/incomplete opposing
+NFP and cannot stack with the labor–inflation transfer. Confirmed Claims agreeing
+with NFP are explained as labor confirmation without adding another vote.
+
+Fed decision context v2 makes the shared engine's bias the primary output at a
+numeric FOMC decision, even for holds. The factual action and its action-only
+reading remain visible separately. The earlier numeric decision anchors a
+previous-meeting comparison using the same current filters/rules and each
+meeting's own historical cutoff. Missing/ambiguous prior data leave that
+comparison unavailable. A hold adds no vote, refresh or age reset. The existing
+Raycaster and CPI publication-context outputs share the same calculation.
+
+Policy-pressure explanations describe the balance of numerical inflation and
+labor evidence under our rules, not the Fed's observed intention. Speeches,
+statements, projections and conference interpretation remain outside this pass;
+the user specifically requested continuing to ignore speeches. No rally is used
+to assign a speech tone or fit a special release-date rule.
+
+Validation and stored replay are recorded in
+[Claims v2 / Fed context implementation audit](reports/Claims-v2-Fed-context-audit.md).
+Manual checks belong to the user: Claims shape/level explanations, V2 Scatter
+magnitudes, Fed hold headline parity with Raycaster, previous-meeting comparison,
+shared toggles and short dock heights. There was no automated visual UI audit.
