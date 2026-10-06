@@ -33,6 +33,7 @@ not promises about the release candle or a future price move.
 | USD ISM Services v1 | Retired standalone screen | Original 35/25/25/15 sector policy is documented and retained internally for v2/v3 and audit reproduction. |
 | USD ISM monthly context v2 | Scoring system v2 on either ISM family | Services 70% plus Manufacturing 30%, same reference month, publication-time reconstruction, one bias and grouped evidence. Implemented; user audit next. |
 | USD ISM monthly resolution v3 | Scoring system v3 on either ISM family | One latest available monthly bias, weighted sector contributions and a plain explanation of which evidence wins. V2 component math and evidence policy are preserved. |
+| USD context memory v1 / Raycaster | Paintbrush toolbar → Raycaster | Latest active NFP v2 / CPI v3.1 / ISM v3 assessments, 40/40/20 weights, one USD-side pair bias at the hovered candle end, evidence and update explanation. Implemented prototype. |
 
 Inspector's other families have release tables and descriptive magnitude tools;
 that does not mean they already have directional scorers. FOMC/ECB episode
@@ -84,13 +85,14 @@ component must be usable. Exact cancellation follows hiring, unemployment,
 wages, revision and hours. The original NFP scorer remains available.
 
 The saved Scoring system v2 preference selects CPI v2 on CPI releases and NFP v2
-on jobs releases and monthly ISM context v2 on either ISM family. V3 remains
-CPI-only; unimplemented families fall back to Table.
+on jobs releases and monthly ISM context v2 on either ISM family. V3 is available
+for CPI and both ISM families; unimplemented families fall back to Table.
 
 These weights, confirmation groups, thresholds and participation adjustment are
 explicit prototype policies; they are not fitted estimates or validated market
 probabilities. Monthly ISM v2 is the first implemented context combination; the
-broader USD context system remains planned.
+USD context memory v1 now combines CPI, NFP and ISM; expansion to the remaining
+USD inputs remains planned.
 
 Terminal validation and manual review status are recorded below.
 
@@ -98,8 +100,9 @@ Terminal validation and manual review status are recorded below.
 
 The user accepted CPI/NFP signal visibility and its automatic magnitudes.
 Expansion has added USD PCE, ISM Services and the monthly ISM v2 combination.
-Build the remaining inflation, labor and
-activity inputs before FOMC and before a contextual combination layer.
+Build the remaining inflation, labor and activity inputs before FOMC. The user's
+Raycaster request brought forward a context pilot for the three mature families;
+broader context expansion will follow the remaining inputs.
 
 ### Implemented: visible CPI/NFP component magnitudes
 
@@ -132,12 +135,90 @@ activity inputs before FOMC and before a contextual combination layer.
 | 4 | Retail Sales | Consumer-demand context | Next |
 | 5 | Jobless Claims | Employment updates between monthly reports | Proposed |
 | 6 | GDP | Broad growth, expenditure components and revision context | Proposed; before FOMC |
-| After GDP, before FOMC | USD context engine | Update inflation, labor and growth assessments using latest known information | Planned; reusable publication-context helper now exists |
+| Initial pilot now; expand after surrounding inputs | USD context engine | Update inflation, labor and growth assessments using latest known information | V1 implemented for CPI/NFP/ISM with Raycaster; remaining families planned |
 | After the surrounding inputs | FOMC | Rate action plus changes in statement, projections and press-conference guidance | Proposed; requires source text, not merely a rate number |
 | Later | PPI, Fed Chair speeches | Additional context after the core families are useful | Proposed; order revisable |
 | After FOMC | Broader USD context | Add policy guidance to inflation, employment and growth context | Planned |
 | Later | ECB and euro-area families | Relative EUR versus USD context for EURUSD | Proposed |
 | Later | Other currencies | Reuse infrastructure with explicit currency-specific policies | Proposed |
+
+### Implemented: USD context memory v1 and Raycaster
+
+Open the paintbrush toolbar beside the timeframe selector, then press the wave
+button **Show Raycaster**. × or the same button hides it; the paintbrush hides
+both the toolbar and active Raycaster. Drag the box by its header. Visibility and
+position are saved and included in workspace transfer. The first version follows
+Inspector's enabled CPI, NFP and ISM families, without a separate settings popover.
+Its scoring versions are fixed to CPI v3.1, NFP v2 and ISM v3, independently of the
+Inspector detail-view selector, date range or symbol visibility.
+
+The latest available assessment occupies each of three persistent slots. NFP
+receives 40%, CPI 40%, ISM 20%, using signed source magnitude totals, without
+multiplying by evidence grades. Manufacturing and Services update one ISM slot;
+their publication scores are never summed. Turning a sector off removes its
+vote from ISM as well. A new uncomputed assessment replaces the previous vote;
+missing/disabled/expired weights are not redistributed. Each slot expires after
+45 days on the broker chart clock. This is a prototype freshness rule, not a
+measured duration of market influence.
+
+No Mixed/Neutral output: exact cancellation follows CPI → NFP → ISM direction
+priority with weak evidence. Completely unavailable/expired evidence stays
+Uncomputed. Combined strong evidence requires strong supporting labor and CPI
+assessments and broad weighted agreement. Missing data, cancellation and narrow
+leads give weak evidence; other usable cases are moderate. These grades describe
+agreement, not market probabilities or statistically independent sources.
+
+The small box shows a pair direction, evidence, plain explanation and how the
+latest update changes the previous context. It explicitly labels **USD side
+only**. EURUSD, GBPUSD, AUDUSD, NZDUSD, USDJPY, USDCHF and USDCAD are supported,
+including the supported broker suffix formats. USD quote maps weakness to Long;
+USD base reverses that mapping. Other currencies' data are not yet included.
+Existing USD component magnitude settings are shared across these pairs.
+
+The cursor selects the exclusive end of its candle (current time for an unfinished
+live candle). H1 includes a release halfway through that hour but excludes one at
+the next hour's open. The displayed time is explicitly broker time. Recorded
+historical publication chart coordinates are used instead of today's UTC offset
+for historical lookup. Original UTC times are preserved for release metadata and
+chronological scorer gates. Unknown/inconsistent timing is excluded or reported.
+Later observations do not enter earlier snapshots. Provider revisions mean this
+is reconstructed stored history, not certified original-release vintages.
+
+`usd-context/core/` owns policy, currency-level adapters, memory, explanations and
+binary lookup. `usd-context/runtime/` owns a separate worker and scoped inventory
+from January 2015. `raycaster/{chart,ui,storage}/` owns hover, the box/drag lifecycle
+and persistence. Mouse movement coalesces by animation frame and only does a
+snapshot lookup; no fetching, full-history recalculation or shell state updates
+occur on hover. Closing or hiding the tool terminates the worker and subscription.
+CPI v3's reference lookups now reuse the same history index without changing math.
+
+The initial stored audit preserves all 140 CPI, 141 NFP and 284 ISM totals,
+directions, evidence and change-size labels. Four August snapshots match when
+later observations are removed. The actual production worker matches the pure
+engine and keeps the main event loop active. One run built 570 snapshots from
+3,246 readings in about 3.4 seconds in the background; hover reuses that timeline.
+
+The automatic-policy August replay is instructive:
+
+| Update | EURUSD USD-side context | Evidence | Effect |
+| --- | --- | --- | --- |
+| Aug 03 Manufacturing | Long | Weak | July CPI/NFP still dominate; Manufacturing reduces Long support |
+| Aug 05 Services | Long | Moderate | Stronger surveyed activity reduces Long support further |
+| Aug 07 NFP | Long | Moderate | New labor weakness strengthens Long support |
+| Aug 12 CPI | Long | Moderate | CPI remains individually Long, but replaces a larger July Long contribution and reduces net support |
+
+This differs from treating August Manufacturing's standalone Short as the entire
+context. No labels were fitted to reproduce the research report or chart moves.
+Weights, expiry and evidence rules are explicit prototype policies to audit.
+
+Tests are under `frontend/tests/usd-context/`. Reproduce with
+`frontend/scripts/audit-usd-context.mjs` after a production build; see
+[context policy and audit command](frontend/src/usd-context/README.md) and
+[Raycaster controls and manual checks](frontend/src/raycaster/README.md).
+The JSON/Markdown chronological report is stored locally as
+`storage/data/usd-context-v1-design-audit.{json,md}`. User manual checks: hover
+August updates, compare H1/M15, apply Inspector filters, switch USDJPY, pan with
+the box active, drag it and resize the chart/dock. No visual automation was used.
 
 ### Implemented: USD PCE v1
 
@@ -453,8 +534,9 @@ model, so extended rallies cannot be attributed solely to one ISM publication.
 
 Monthly ISM v2 is the first narrow context implementation. The shared
 `publication-context.ts` helper admits observations by timestamp and selects
-latest same-reference-period publications; it does not yet implement full USD
-state, staleness weighting or policy interpretation.
+latest same-reference-period publications. USD context memory v1 now retains
+CPI/NFP/ISM state with fixed weights and expiry; broader family coverage,
+context-sensitive weighting and policy interpretation remain future work.
 
 Each release first has its own interpretation. A separate context layer can then
 produce one bias using the newest known inflation, employment, activity and policy

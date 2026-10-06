@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { applyColorTheme, readColorTheme, type ColorTheme } from '../appearance/color-theme/color-theme-preference'
 import {
   readTimeDisplayPreference,
@@ -44,6 +44,8 @@ import { ChartWorkspaceHeader } from './ChartWorkspaceHeader'
 import { TerminalStatusBar } from './TerminalStatusBar'
 import './terminal-shell.layout.css'
 import { WorkspaceTransfer } from '../workspace-portability/WorkspaceTransfer'
+import { usdPair } from '../usd-context/core/usd-pair'
+import { readRaycasterVisible, saveRaycasterVisible } from '../raycaster/storage/raycaster-preferences'
 
 const defaultTradePlan: PlannedTradeState = {
   direction: 'long',
@@ -62,6 +64,7 @@ export function FyodorTerminalShell() {
   const [activeDrawingTool, setActiveDrawingTool] = useState<DrawingToolId | null>(null)
   const [selectedDrawingId, setSelectedDrawingId] = useState<string | null>(null)
   const [drawingToolbarVisible, setDrawingToolbarVisible] = useState<boolean>(readDrawingToolbarVisible)
+  const [raycasterVisible, setRaycasterVisible] = useState(readRaycasterVisible)
   const [bottomDockWindow, setBottomDockWindow] = useState<BottomDockWindow | null>('notebook')
   const [scatterTarget, setScatterTarget] = useState<ScatterReleaseTarget | null>(null)
   const dockSize = useBottomDockSize(bottomDockWindow)
@@ -227,10 +230,23 @@ export function FyodorTerminalShell() {
   const selectChartRelease = useCallback((id: string) => {
     setReleaseSelection(id); selectBottomDock('inspector')
   }, [setReleaseSelection, selectBottomDock])
+  const closeRaycaster = useCallback(() => { setRaycasterVisible(false); saveRaycasterVisible(false) }, [])
+  const toggleRaycaster = useCallback(() => {
+    setRaycasterVisible(current => { saveRaycasterVisible(!current); return !current })
+    setActiveDrawingTool(null)
+  }, [])
+  const brokerId = bridge.health?.mt5.account_server ?? null
+  const brokerOffsetSeconds = bridge.health?.calendar.server_utc_offset_seconds ?? 0
+  const raycasterSupported = !!usdPair(activeSymbol)
+  const raycaster = useMemo(() => drawingToolbarVisible && raycasterVisible && raycasterSupported ?
+    { symbol: activeSymbol, timeframe, brokerId, brokerOffsetSeconds, clockOffsetMs: bridge.clockOffsetMs,
+      families: inspector.preferences.families, timeDisplay, onClose: closeRaycaster } : null,
+    [drawingToolbarVisible, raycasterVisible, raycasterSupported, activeSymbol, timeframe, brokerId, brokerOffsetSeconds,
+      bridge.clockOffsetMs, inspector.preferences.families, timeDisplay, closeRaycaster])
   const renderChartOverlay = useTerminalChartOverlay({ arrows: registeredArrows.symbolArrows,
     selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
     supported: inspector.supported, markers: inspector.markers, currencyColors: inspector.preferences.currencyColors,
-    timeDisplay, onSelectRelease: selectChartRelease })
+    timeDisplay, onSelectRelease: selectChartRelease, raycaster })
 
   const sourceState = !bridge.reachable || marketData.marketWatchStatus === 'unavailable'
     ? 'error'
@@ -308,6 +324,9 @@ export function FyodorTerminalShell() {
               onSelectCrosshair={selectCrosshair}
               onToolChange={chooseDrawingTool}
               onClearAll={deleteAllDrawings}
+              raycasterVisible={raycasterVisible}
+              raycasterSupported={raycasterSupported}
+              onToggleRaycaster={toggleRaycaster}
             />
             )}
             <div className="chart-watermark" aria-hidden="true">

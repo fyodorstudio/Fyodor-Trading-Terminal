@@ -3,6 +3,7 @@ import { groupInspectorReleases, inspectorDelta, type InspectorRelease } from '.
 import { magnitudeEvidence } from '../../../../../shared/core/magnitude-evidence'
 import { calibrateHistoricalSignal, type HistoricalFeature, type SignalInputs } from '../../../../../shared/core/historical-release-signals'
 import type { MagnitudeSettings } from '../../../../../../magnitude/settings/magnitude-settings-store'
+import { priorReferenceRows } from '../../../../../shared/core/reference-history-index'
 
 export const cpiScoreV3Version = 'cpi-eurusd-release-change-v3.1'
 export const cpiV3HistoryStart = Date.UTC(2015, 0, 1)
@@ -72,10 +73,7 @@ export function cpiV3Features(release: InspectorRelease, history: readonly Timed
   // Do not aggregate otherwise valid rows describing different reference months.
   if (new Set([...current.values()].map(month)).size > 1) return failed('Usable current readings must share the same reference month.')
   function previousRate(id: string, reference: number) {
-    const candidates = history.filter((e) => e.event_id === id && month(e) === reference && e.release_at < at!)
-    if (!candidates.length) return null
-    const latest = Math.max(...candidates.map((e) => e.release_at))
-    const rows = candidates.filter((e) => e.release_at === latest)
+    const rows = priorReferenceRows(history, id, reference, at!)
     return rows.length === 1 ? rate(rows[0]) : null
   }
   const missing = 'Requires usable actuals for the preceding three consecutive reference months.'

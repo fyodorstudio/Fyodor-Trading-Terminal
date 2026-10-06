@@ -1,0 +1,18 @@
+.raycaster-box {
+  position: absolute; top: 0; left: 0; z-index: 12;
+  width: 330px; max-width: calc(100% - 8px); max-height: calc(100% - 8px); overflow: auto;
+  padding: 8px 10px; border: 1px solid var(--border-strong); border-radius: 7px;
+  color: var(--text); background: var(--surface-panel); box-shadow: var(--shadow);
+  font-size: 11px; line-height: 1.5; pointer-events: none; overflow-wrap: anywhere;
+}
+.raycaster-box header { display: flex; justify-content: space-between; gap: 6px; margin-bottom: 5px; }
+.raycaster-box button { pointer-events: auto; border: 0; border-radius: 4px; background: transparent; color: var(--text-muted); cursor: pointer; }
+.raycaster-box button:hover { background: var(--surface-hover); color: var(--text-strong); }
+.raycaster-box .raycaster-handle { cursor: grab; touch-action: none; padding: 0; font-size: 10px; }
+.raycaster-box .raycaster-handle:active { cursor: grabbing; }
+.raycaster-bias { display: block; color: var(--text-strong); }
+.raycaster-bias.long { color: var(--positive); }
+.raycaster-bias.short { color: var(--negative); }
+.raycaster-box p { margin: 5px 0; }
+.raycaster-box small { display: block; color: var(--text-muted); font-size: 9px; }
+.raycaster-update { color: var(--text-muted); }

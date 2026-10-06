@@ -13,6 +13,9 @@ type FloatingDrawingToolbarProps = {
   onSelectCrosshair: () => void
   onToolChange: (tool: DrawingToolId | null) => void
   onClearAll: () => void
+  raycasterVisible?: boolean
+  raycasterSupported?: boolean
+  onToggleRaycaster?: () => void
 }
 
 export function FloatingDrawingToolbar({
@@ -21,6 +24,9 @@ export function FloatingDrawingToolbar({
   onSelectCrosshair,
   onToolChange,
   onClearAll,
+  raycasterVisible = false,
+  raycasterSupported = false,
+  onToggleRaycaster,
 }: FloatingDrawingToolbarProps) {
   const toolbarRef = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useState<FloatingToolbarPosition>(readFloatingToolbarPosition)
@@ -146,6 +152,13 @@ export function FloatingDrawingToolbar({
           <span aria-hidden="true">{tool.icon}</span>
         </button>
       ))}
+
+      {onToggleRaycaster && <button type="button" className={raycasterVisible ? 'active' : ''}
+        onClick={onToggleRaycaster} aria-pressed={raycasterVisible} disabled={!raycasterSupported}
+        aria-label={raycasterVisible ? 'Hide Raycaster' : 'Show Raycaster'}
+        title={raycasterSupported ? 'Raycaster · USD context at the hovered candle' : 'Raycaster supports the seven major USD forex pairs'}>
+        <span aria-hidden="true">⌁</span>
+      </button>}
 
       <span className="drawing-toolbar-separator" aria-hidden="true" />
       <button

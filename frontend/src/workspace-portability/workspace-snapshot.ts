@@ -28,6 +28,8 @@ const validators: Record<string, (v: unknown) => boolean> = {
   [inspectorStorageKey]: (v) => record(v) && v.version === 2 && array(v.families, (id) => inspectorFamilies.some((f) => f.id === id)) && typeof v.showSymbols === 'boolean' && (v.showHistograms === undefined || typeof v.showHistograms === 'boolean') && (v.detailView === undefined || v.detailView === 'table' || v.detailView === 'scoring' || v.detailView === 'scoring-v2' || v.detailView === 'scoring-v3') && (v.currencyColors === undefined || (record(v.currencyColors) && Object.entries(v.currencyColors).every(([id, value]) => ['EUR', 'USD'].includes(id) && color(value)))) && record(v.symbols) && Object.entries(v.symbols).every(([id, symbol]) => inspectorFamilies.some((f) => f.id === id) && isEventSymbol(symbol)),
   [scatterAppearanceKey]: record,
   'fyodor.market-watch.collapsed.v1': (v) => typeof v === 'boolean',
+  'fyodor.raycaster.visible.v1': (v) => typeof v === 'boolean',
+  'fyodor.raycaster.position.v1': (v) => record(v) && finite(v.x) && finite(v.y) && v.x >= 0 && v.y >= 0,
   'fyodor.drawing-toolbar-position.v1': (v) => record(v) && finite(v.x) && finite(v.y) && v.x >= 0 && v.y >= 0,
   'fyodor.activity-visible-sources.v2': (v) => array(v, (source) => activitySources.includes(source as typeof activitySources[number])),
   'fyodor.chart-drawings.v1': (v) => array(v, (d) => record(d) && text(d.id) && text(d.symbol) && frame(d.timeframe) && drawingTools.some((t) => t.id === d.tool) && finite(d.createdAt) && (d.text === undefined || text(d.text)) && array(d.points, (p) => record(p) && finite(p.time) && finite(p.price))),

@@ -1,0 +1,78 @@
+import assert from 'node:assert/strict'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { createServer } from 'vite'
+import { settings, families, history, latestRows, cpi } from './fixtures.mjs'
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
+const server = await createServer({ root, server: { middlewareMode: true, hmr: false } })
+try {
+  const { combineContext } = await server.ssrLoadModule('./src/usd-context/core/combine-context.ts')
+  const { buildContextTimeline } = await server.ssrLoadModule('./src/usd-context/core/build-context-timeline.ts')
+  const { contextAt } = await server.ssrLoadModule('./src/usd-context/core/context-lookup.ts')
+  const { scorePublication } = await server.ssrLoadModule('./src/usd-context/core/score-publication.ts')
+  const { contextExpiryMs } = await server.ssrLoadModule('./src/usd-context/core/policy.ts')
+  const { usdPair, contextPairLabel } = await server.ssrLoadModule('./src/usd-context/core/usd-pair.ts')
+  const { candleContextCutoff } = await server.ssrLoadModule('./src/raycaster/chart/candle-cutoff.ts')
+  const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
+  const source = (family, total, patch = {}) => ({ family, sourceId: family, sourceLabel: family, releaseAt: 1, chartAt: 1,
+    total, usdDirection: total > 0 ? 'stronger' : 'weaker', strength: 'strong', reason: '', explanation: '',
+    changeSize: 'Large change', reduced: false, tie: false, ...patch })
+  const initial = { nfp: source('nfp', -3), cpi: source('cpi', 1), ism: source('ism', 2) }
+  const result = combineContext(initial, ['nfp', 'cpi', 'ism'], 1)
+  assert.equal(result.total, -.4); assert.equal(result.direction, 'weaker'); assert.equal(result.strength, 'weak')
+  assert.match(result.explanation, /Labor evidence outweighs/)
+  const agreeing = combineContext({ ...initial, cpi: source('cpi', -2) }, ['nfp', 'cpi', 'ism'], 1)
+  assert.equal(agreeing.direction, 'weaker'); assert.equal(agreeing.strength, 'strong')
+  assert.equal(combineContext({ ...initial, cpi: source('cpi', -2, { strength: 'moderate' }) }, ['nfp', 'cpi', 'ism'], 1).strength, 'moderate')
+  const tie = combineContext({ nfp: source('nfp', -1), cpi: source('cpi', 1) }, ['nfp', 'cpi'], 1)
+  assert.equal(tie.total, 0); assert.equal(tie.direction, 'stronger'); assert.equal(tie.strength, 'weak')
+  assert.equal(combineContext({ cpi: source('cpi', 0, { tie: true, usdDirection: 'stronger' }) }, ['cpi'], 1).direction, 'stronger')
+  assert.equal(combineContext({}, ['cpi'], 1).direction, 'uncomputed')
+  assert.equal(combineContext(initial, ['cpi'], 1).total, .4, 'Disabled weights must not be redistributed')
+  assert.equal(combineContext(initial, ['nfp', 'cpi', 'ism'], contextExpiryMs + 1).direction, 'uncomputed')
+  const unavailable = combineContext({ ...initial, nfp: source('nfp', null, { usdDirection: 'uncomputed' }) }, ['nfp', 'cpi', 'ism'], 1)
+  assert.equal(unavailable.total, .8); assert.equal(unavailable.strength, 'weak')
+  for (const pair of ['EURUSD', 'GBPUSD.a', 'AUDUSDm', 'NZDUSD']) assert.match(contextPairLabel(pair, 'weaker'), /Long$/)
+  for (const pair of ['USDJPY', 'USDCHF.a', 'USDCAD']) assert.match(contextPairLabel(pair, 'weaker'), /Short$/)
+  for (const unsupported of ['EURJPY', 'BTCUSD', 'XAUUSD', 'EURUSDXUSD']) assert.equal(usdPair(unsupported), null)
+  const candle = Date.UTC(2026, 7, 7, 15) / 1000
+  assert.equal(candleContextCutoff(candle, 'H1', Infinity, 10800), (candle + 3600) * 1000 - 1)
+  assert.equal(candleContextCutoff(candle, 'H1', candle * 1000 - 10800000 + 1000, 10800), candle * 1000 + 1000)
+
+  const events = [...history, ...latestRows], asOf = Date.UTC(2018, 7, 1)
+  const input = { events, asOf, families, settings }, timeline = buildContextTimeline(input)
+  const publications = groupInspectorReleases(latestRows)
+  for (const publication of publications) {
+    const at = publication.chartTime * 1000
+    const full = contextAt(timeline, at), earlier = contextAt(timeline, at - 1)
+    assert.equal(full.latest.releaseAt, publication.releaseAt)
+    const expected = scorePublication(publication, events, settings)
+    assert.deepEqual(full.result.members.find(m => m.family === expected.family).total, expected.total)
+    assert.equal(full.result.members.find(m => m.family === expected.family).reduced, expected.reduced)
+    assert.notEqual(earlier?.latest.sourceId, publication.id)
+    const replay = buildContextTimeline({ ...input, events: events.filter(e => e.release_at <= publication.releaseAt), asOf: publication.releaseAt })
+    assert.deepEqual(contextAt(replay, at), full, 'Later publications cannot change earlier context')
+  }
+  const manufacturing = publications.find(p => p.familyId === 'ism-manufacturing')
+  const services = publications.find(p => p.familyId === 'ism-services')
+  assert.equal(contextAt(timeline, manufacturing.chartTime * 1000).result.members.find(m => m.family === 'ism').reduced, true)
+  assert.equal(contextAt(timeline, services.chartTime * 1000).result.members.find(m => m.family === 'ism').sourceId, services.id)
+  const single = buildContextTimeline({ ...input, families: ['ism-manufacturing'] })
+  assert.ok(single.points.every(p => p.result.members.every(m => m.family === 'ism')))
+  assert.equal(single.points.some(p => p.latest.sourceLabel === 'ISM Services'), false)
+  assert.deepEqual(buildContextTimeline({ ...input, events: events.map(e => ({ ...e, forecast: -999 })) }), timeline)
+  assert.deepEqual(buildContextTimeline({ ...input, events: [...events, ...events] }), timeline)
+  const bad = buildContextTimeline({ ...input, events: events.map(e => ({ ...e, chart_time_seconds: null })) })
+  assert.equal(bad.points.length, 0); assert.ok(bad.excludedTiming > 0)
+  const corrected = events.map(e => e.release_at === services.releaseAt ? { ...e, chart_time_seconds: 1 } : e)
+  assert.throws(() => buildContextTimeline({ ...input, events: corrected }), /inconsistent chart clocks/)
+  assert.equal(contextAt(timeline, 0), null)
+  assert.equal(contextAt(timeline, NaN), null)
+  const expired = contextAt(timeline, timeline.points.at(-1).chartAt)
+  assert.equal(expired.result.direction, 'uncomputed')
+  assert.ok(expired.result.members.every(m => m.status === 'expired'))
+  const future = cpi(2030, 0, [9, 9, 9])
+  assert.deepEqual(buildContextTimeline({ ...input, events: [...events, ...future] }), timeline)
+  console.log('✓ USD context weights, memory, chronological replay, expiry, disabled/missing gates, ties, pair inversion and H1 boundaries')
+} finally { await server.close() }
