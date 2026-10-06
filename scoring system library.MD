@@ -29,6 +29,7 @@ not promises about the release candle or a future price move.
 | USD CPI v3, refined | Scoring system v3 | Latest core pace versus preceding three months; weights 35/35/20/10. Related core monthly signals share an evidence group; separate strength, change size and limitations. Implemented, policy v3.1. |
 | USD NFP original | Scoring system | Payrolls, inverse unemployment change and monthly wage change each have weight 1; seven supporting readings excluded from the USD total. Implemented. |
 | USD NFP v2 | Scoring system v2 | Hiring pace, unemployment with participation context, wage pace, preceding-month payroll revision and working hours. Weights 40/30/15/10/5; earlier-history calibration and grouped evidence. Implemented. |
+| USD Retail Sales v1 | Scoring system | Control-group pace 60%, ex-autos-and-gas pace 25%, headline pace 15%; revision-aware preceding three-month benchmarks floored at zero, grouped evidence and visible magnitudes. Implemented; manual audit next. |
 | USD PCE v1 | Scoring system | Core monthly pace, annual core change, headline monthly pace and annual headline change. Weights 45/30/15/10; revision-aware comparisons, grouped evidence and visible magnitudes. Implemented. |
 | USD ISM Services v1 | Retired standalone screen | Original 35/25/25/15 sector policy is documented and retained internally for v2/v3 and audit reproduction. |
 | USD ISM monthly context v2 | Scoring system v2 on either ISM family | Services 70% plus Manufacturing 30%, same reference month, publication-time reconstruction, one bias and grouped evidence. Implemented; user audit next. |
@@ -99,7 +100,7 @@ Terminal validation and manual review status are recorded below.
 ## Planned development order
 
 The user accepted CPI/NFP signal visibility and its automatic magnitudes.
-Expansion has added USD PCE, ISM Services and the monthly ISM v2 combination.
+Expansion has added USD PCE, ISM Services, the monthly ISM combination and Retail Sales v1.
 Build the remaining inflation, labor and activity inputs before FOMC. The user's
 Raycaster request brought forward a context pilot for the three mature families;
 broader context expansion will follow the remaining inputs.
@@ -132,7 +133,7 @@ broader context expansion will follow the remaining inputs.
 | 2 | PCE inflation | Core/headline inflation change, including revised prior comparisons | Implemented |
 | 3 | ISM Services v1 | Services activity, employment and price-pressure context | Implemented; first user development audit recorded below |
 | 3a | ISM Manufacturing + monthly ISM v2 | Same-month goods/services context, preserved publication times | Implemented; user audit next |
-| 4 | Retail Sales | Consumer-demand context | Next |
+| 4 | Retail Sales | Consumer-demand context | Implemented v1; user audit next |
 | 5 | Jobless Claims | Employment updates between monthly reports | Proposed |
 | 6 | GDP | Broad growth, expenditure components and revision context | Proposed; before FOMC |
 | Initial pilot now; expand after surrounding inputs | USD context engine | Update inflation, labor and growth assessments using latest known information | V1 implemented for CPI/NFP/ISM with Raycaster; remaining families planned |
@@ -141,6 +142,84 @@ broader context expansion will follow the remaining inputs.
 | After FOMC | Broader USD context | Add policy guidance to inflation, employment and growth context | Planned |
 | Later | ECB and euro-area families | Relative EUR versus USD context for EURUSD | Proposed |
 | Later | Other currencies | Reuse infrastructure with explicit currency-specific policies | Proposed |
+
+### Implemented: USD Retail Sales v1
+
+Select a USD Retail Sales release on EURUSD, then **Scoring system**. The flat
+Inspector view presents one bias, Weak/Moderate/Strong evidence, change size and
+a plain explanation. Scatter Plot → **Scoring signal** exposes all three voting
+components, exact source/benchmark, earlier-history N, boundaries and gaps.
+Original Actual − Previous magnitudes remain separate. Applied overrides update
+the scorer and travel with workspace export/import; preview edits do not.
+
+| Component | Calculation | Weight / group |
+| --- | --- | --- |
+| Control-group pace | Actual Retail Control m/m minus max(0, preceding three-month mean) | 60% / underlying demand |
+| Ex-autos-and-gas pace | Actual Retail Sales excluding Autos and Gas m/m minus max(0, preceding three-month mean) | 25% / spending breadth |
+| Headline pace | Actual Retail Sales m/m minus max(0, preceding three-month mean) | 15% / spending breadth |
+
+Each comparison requires the preceding three consecutive reference months. The
+release's supplied Revised Previous replaces the nearest actual in that mean,
+including an explicit zero. Invalid supplied revisions make that component
+unavailable. Missing months cannot be filled from Previous or skipped. Revisions
+have no separate vote. A negative recent average is floored at zero: a smaller
+contraction still signals falling nominal spending. Positive sales growth below
+its recent pace can support EURUSD Long; positive above-benchmark pace supports
+EURUSD Short. This interprets changes in demand pace, not survey surprises.
+
+Control-group pace receives the largest vote. Core retail (ex autos) and annual
+headline sales remain supporting context to avoid adding redundant votes.
+Ex-autos-and-gas and headline share a breadth evidence group; control is another.
+These nested sales measures overlap and are not independent statistical evidence.
+Strong requires both groups supporting the direction with net/gross agreement
+at least 2/3 and no missing component. Missing data, exact cancellation or an
+agreement below 1/3 yields Weak; other directional cases are Moderate. Change
+size is the weighted average absolute magnitude points, separate from evidence.
+
+At least one calibrated control-group or ex-autos-and-gas component is required;
+headline alone cannot establish a bias. Missing weights are not redistributed.
+Exact cancellation follows control → ex-autos-and-gas → headline with Weak
+evidence. All-zero or unusable readings remain Uncomputed. Each magnitude uses
+its own strictly earlier usable history since January 2015 and retains the
+24-observation gate, including with manual boundaries. Quantiles are 1/3, 2/3
+and .90 of earlier nonzero absolute signals, retaining tied boundaries.
+
+These priorities, grouping and the zero floor are prototype interpretation rules,
+set before the stored-data audit; they were not fitted to price reactions.
+[BEA's retail-control method](https://www.bea.gov/help/faq/519) explains its role
+in estimating goods consumption. [Census retail data](https://www.census.gov/retail/marts/www/timeseries.html)
+are adjusted for seasonal/calendar effects but not price changes. The scorer
+therefore describes nominal spending rather than real purchasing volume or
+all consumer services. It uses no forecasts, market prices, CPI or Fed decision.
+Provider revisions can appear in stored history; replay is not an original-vintage
+backtest. Raycaster's v1 policy continues to combine CPI/NFP/ISM; integrating
+additional families requires a separate context-weight policy.
+
+`PAIR/EURUSD/USD/RETAIL/{policy,assessment,runtime,ui}/` separates rules,
+features, aggregation, worker lifecycle and display. Inspector scoring runs in a
+background module worker; unchanged release/history/settings reuse its result.
+Applied settings invalidate it, superseded replies are ignored, stale biases
+are hidden while recalculating, worker failures are disclosed and unmount
+terminates the worker. Scatter signal derivation uses the existing worker.
+
+The stored audit covers **144 publication groups** through 16 September 2026:
+**114 computed biases**, with **30 early/partial groups Uncomputed**. All **21**
+publications from 2025 onward compute a bias (9 Long, 12 Short). Scorer/plot
+values, points, sizes, boundaries, calibration N, input labels and missing-data
+reasons match for every signal. Removing same-time and later inventory preserves
+every assessment. This measures implementation and coverage, not price accuracy.
+Both actual production worker bundles match pure calculations and keep the main
+event loop active (one run: Inspector 57 ms, Scatter 71 ms, including startup).
+
+- [Retail v1 local audit](storage/data/retail-v1-design-audit.md)
+- Reproduce after a build: `node frontend/scripts/audit-retail-v1.mjs <calendar.json> <output-prefix>`.
+- Tests: `frontend/tests/inspector/retail/` covers conflicts, ties, contractions,
+  revisions, forecast/future exclusion, native/reference gates, plot parity,
+  Inspector menu/full view, scoped fetching, live settings, workspace portability
+  and worker lifecycle. Full frontend tests, lint and production build passed on
+  6 October 2026. Visual review remains with the user.
+- Next: manually review recent releases in H1, record bias/evidence and separate
+  release reaction from later reversals. Continue with Jobless Claims after this.
 
 ### Implemented: USD context memory v1 and Raycaster
 

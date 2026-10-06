@@ -2,6 +2,7 @@ import type { InspectorRelease } from '../inspector-data'
 import { NfpMagnitudeScoreTables } from './PAIR/EURUSD/USD/NFP/ui/NfpMagnitudeScoreTables'
 import { CpiMagnitudeScoreTables } from './PAIR/EURUSD/USD/CPI/ui/CpiMagnitudeScoreTables'
 import { PceScore } from './PAIR/EURUSD/USD/PCE/ui/PceScore'
+import { RetailScore } from './PAIR/EURUSD/USD/RETAIL/ui/RetailScore'
 import type { InspectorScoringBinding } from './scoring-contracts'
 
 // Pair bindings stay explicit even when Inspector adds support for other pairs.
@@ -11,6 +12,7 @@ export const inspectorScoringBindings: readonly InspectorScoringBinding[] = [
   { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'jobs', matchesSymbol: matchesEurusdSymbol, Component: NfpMagnitudeScoreTables },
   { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'us-cpi', matchesSymbol: matchesEurusdSymbol, Component: CpiMagnitudeScoreTables },
   { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'pce', matchesSymbol: matchesEurusdSymbol, Component: PceScore, fullView: true },
+  { pair: 'EURUSD', country: 'US', currency: 'USD', familyId: 'retail', matchesSymbol: matchesEurusdSymbol, Component: RetailScore, fullView: true },
 ]
 
 export function inspectorScoringBinding(symbol: string, release: InspectorRelease | null) {

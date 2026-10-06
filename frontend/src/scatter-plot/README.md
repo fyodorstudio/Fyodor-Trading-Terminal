@@ -25,7 +25,7 @@ Duplicates, missing/nonfinite/incompatible values, unobserved/withdrawn/uncertai
 rows and future schedules are excluded. Corrections replace samples. Stored
 values are not point-in-time vintages. Selection preserves the inventory query.
 
-## Scoring signal visibility (CPI v3, NFP v2, PCE v1 and both ISM families)
+## Scoring signal visibility (CPI v3, NFP v2, PCE v1, Retail v1 and both ISM families)
 
 These five families also expose **Measure → Scoring signal**, replacing Series
 with a Signal selector. CPI shows latest core pace, overlapping core trend,
@@ -165,3 +165,9 @@ ignored, and closing/changing the view terminates its worker. Loading/error outp
 prevents an old broker/release from being shown as the new request. Headless tests
 and non-worker environments retain the pure calculation fallback. Production build
 emits a separate signal-history worker asset. No screenshot audit is required.
+
+Retail v1 exposes control-group, ex-autos-and-gas and headline pace signals.
+Each uses a revision-aware preceding three-month average floored at zero. The
+chart and scorer share the same feature extractor and calibration; missing
+months/revisions leave explicit gaps. `RETAIL-V1-SIGNALS` stores independent
+component overrides; source Actual − Previous boundaries remain separate.

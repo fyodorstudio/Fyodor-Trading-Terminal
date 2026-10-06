@@ -3,10 +3,12 @@ import { groupInspectorReleases, type InspectorRelease } from '../../inspector/i
 import { cpiV3Features, cpiV3Signals, cpiV3SeriesIds, supportsCpiV3 } from '../../inspector/scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3'
 import { nfpV2Features, nfpV2Signals, nfpV2SeriesIds, supportsNfpV2 } from '../../inspector/scoring/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2'
 import { pceFeatures, pceSignals, pceSeriesIds, supportsPceScore } from '../../inspector/scoring/PAIR/EURUSD/USD/PCE/assessment/pce-score'
+import { retailFeatures, supportsRetailScore } from '../../inspector/scoring/PAIR/EURUSD/USD/RETAIL/assessment/retail-features'
+import { retailSignals, retailSeriesIds } from '../../inspector/scoring/PAIR/EURUSD/USD/RETAIL/policy/retail-policy'
 import { ismServicesFeatures, ismServicesSignals, ismServicesSeriesIds, supportsIsmServicesScore } from '../../inspector/scoring/PAIR/EURUSD/USD/ISM/sectors/services/ism-services-score'
 import { ismManufacturingFeatures, ismManufacturingSignals, ismManufacturingSeriesIds, supportsIsmManufacturing } from '../../inspector/scoring/PAIR/EURUSD/USD/ISM/sectors/manufacturing/ism-manufacturing-score'
 import { calibrateHistoricalSignal, observedReading, type HistoricalFeature, type TimedReading } from '../../inspector/scoring/shared/core/historical-release-signals'
-import { cpiSignalSettings, nfpSignalSettings, pceSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings } from '../../inspector/scoring/shared/core/signal-magnitude-settings'
+import { cpiSignalSettings, nfpSignalSettings, pceSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings, retailSignalSettings } from '../../inspector/scoring/shared/core/signal-magnitude-settings'
 import { magnitudeDistribution } from '../../inspector/magnitude/magnitude-distribution'
 import type { MagnitudeSettings, MagnitudeSettingsStore } from '../../inspector/magnitude/settings/magnitude-settings-store'
 import type { ScatterModel, ScatterPoint, ScatterSignal } from '../contracts/scatter-plot-types'
@@ -29,6 +31,10 @@ export function scoringSignalBinding(familyId: string): ScoringSignalBinding | n
   if (familyId === 'pce') return {
     label: 'PCE v1', settings: pceSignalSettings, seriesIds: pceSeriesIds,
     signals: pceSignals, supports: supportsPceScore, features: pceFeatures,
+  }
+  if (familyId === 'retail') return {
+    label: 'Retail Sales v1', settings: retailSignalSettings, seriesIds: retailSeriesIds,
+    signals: retailSignals, supports: supportsRetailScore, features: retailFeatures,
   }
   if (familyId === 'ism-services') return {
     label: 'ISM Services v2 / v3', settings: ismServicesSignalSettings, seriesIds: ismServicesSeriesIds,

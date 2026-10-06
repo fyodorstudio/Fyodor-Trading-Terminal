@@ -1,0 +1,7 @@
+.inspector-scoring-view.inspector-retail-v1 { display: block; min-width: 0; overflow-x: hidden; overflow-y: auto; overflow-wrap: anywhere; }
+.inspector-retail-v1-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 10px; }
+.inspector-retail-v1-summary small { color: var(--text-muted); }
+.inspector-retail-v1 .inspector-table-scroll { overflow: visible; }
+.inspector-retail-v1 table { table-layout: fixed; }
+.inspector-retail-v1 p { max-width: 100ch; margin: 8px 0; }
+.inspector-retail-v1 th, .inspector-retail-v1 td { white-space: normal; }

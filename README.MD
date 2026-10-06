@@ -91,6 +91,14 @@ stable callbacks behind a memoized chart boundary.
 Manufacturing has three configurable source signals; Services shares its v1
 component settings. All weights are explicit prototype interpretation rules.
 
+**USD Retail Sales v1** is available under Inspector → Scoring system on EURUSD.
+Control-group pace leads with 60%, ex-autos-and-gas pace 25%, headline pace 15%.
+It compares monthly growth with revision-aware prior three-month averages floored
+at zero, with grouped evidence and separate change size. Scatter Plot → Scoring
+signal exposes exact inputs and configurable magnitudes. Assessment runs in a
+worker. Retail sales are nominal; no forecasts or price inputs enter scoring.
+See the [scoring library](scoring%20system%20library.MD) for policy and audit.
+
 **Raycaster** opens from the wave button beside the paintbrush toggle near the timeframe selector, independently of drawing-toolbar visibility. Its movable
 chart box reads the USD context at the hovered candle's end, with one pair bias,
 evidence and an update explanation. The first memory engine retains latest NFP

@@ -475,3 +475,38 @@ The worker path and its errors/cancellation are covered by mounted terminal test
 ISM and Scatter workers in native background threads against the pure calculations and reports event-loop
 progress. The existing chronological audit preserves source/chart parity and
 future-data removal. Visual frame rate and pointer feel are left to the user.
+
+## USD Retail Sales v1 demand-pace prototype
+
+`PAIR/EURUSD/USD/RETAIL/` separates policy, features, aggregation, background
+runtime and flat UI. **Scoring system** on a USD Retail Sales release selects it;
+CPI/ISM v3 saved views remain family-specific. Signal visibility and independent
+portable manual settings are available in Scatter Plot.
+
+Control-group pace has 60%, ex-autos-and-gas pace 25%, headline pace 15%. Each is
+Actual monthly growth minus max(0, preceding three-month mean), replacing the
+nearest actual with supplied Revised Previous when present. Missing months are
+not skipped or filled from Previous. A smaller contraction cannot become a
+positive signal. Core ex-autos and annual headline are supporting context only.
+At least one calibrated control or ex-autos-and-gas component is required;
+headline alone is insufficient. Missing weights are not redistributed. Ties use
+the table order with Weak evidence; all-zero/no usable evidence stays Uncomputed.
+
+Control is one evidence group; ex-autos-and-gas and headline share another.
+Shared magnitude/evidence rules retain 24 earlier observations, grouped
+confirmation, separate change size and tied automatic quantiles. These are
+prototype priorities, not fitted economic coefficients. Retail sales are nominal
+and the overlapping aggregates are not independent statistical confirmation.
+No forecasts, prices or other families enter this release-only scorer.
+
+`runtime/retail-analysis.worker.ts` uses the shared latest-calculation client.
+Unchanged inputs reuse the result; applied settings invalidate it, superseded
+replies are ignored and failures remain visible. It closes when unmounted.
+`RETAIL-V1-SIGNALS` is an independent registered magnitude store included in
+workspace export/import. Existing source A−P and other family stores are unchanged.
+
+Tests: `tests/inspector/retail/test_retail_score.mjs` and
+`test_retail_integration.mjs`. After building, run
+`node scripts/audit-retail-v1.mjs <calendar.json> <output-prefix>` to verify every
+stored signal against the chart, future-removal replay and both production
+workers. The full design and stored coverage are in the root scoring library.
