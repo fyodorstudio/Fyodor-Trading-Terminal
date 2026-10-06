@@ -72,7 +72,7 @@ try {
   assert.ok(details); assert.equal(gear.getAttribute('aria-expanded'), 'true')
   assert.equal(document.activeElement, details)
   const inputRow = name => details.querySelector(`[aria-label="Use ${name}"]`).closest('tr')
-  for (const [name, weight] of [['CPI v3.1', '40%'], ['NFP v2', '30%'], ['Claims v1', '10%'], ['ISM v3', '10%'], ['Retail Sales v1', '10%']]) {
+  for (const [name, weight] of [['CPI v3.1', '28%'], ['NFP v2', '30%'], ['Claims v1', '10%'], ['ISM v3', '10%'], ['Retail Sales v1', '7%']]) {
     assert.equal(inputRow(name).children[1].textContent, weight)
     assert.equal(inputRow(name).querySelector('button').getAttribute('aria-pressed'), 'true')
     assert.match(inputRow(name).children[3].textContent, /EURUSD (Long|Short)/)
@@ -80,6 +80,10 @@ try {
   }
   assert.match(details.querySelector('tfoot').textContent, /100%EURUSD (Long|Short)/)
   assert.match(details.textContent, /Inspector’s marker filters do not affect/)
+  for (const [name, weight] of [['PCE v1', '10%'], ['PPI v1', '2%'], ['GDP v1', '3%']]) {
+    assert.equal(inputRow(name).children[1].textContent, weight)
+    assert.match(inputRow(name).children[3].textContent, /No history/)
+  }
   assert.match(details.textContent, /45 days/)
   assert.match(details.textContent, /Forecasts are excluded/)
   assert.equal(workers[0].jobs.length, 1, 'Opening details must not recalculate')
@@ -102,7 +106,7 @@ try {
     window.dispatchEvent(new dom.StorageEvent('storage', { key: null }))
   })
   assert.equal(workers[0].jobs.length, 1, 'Inspector filters cannot change Raycaster inputs')
-  assert.deepEqual(familySettings.readRaycasterFamilies(), ['cpi', 'nfp', 'claims', 'ism', 'retail'])
+  assert.deepEqual(familySettings.readRaycasterFamilies(), ['cpi', 'nfp', 'claims', 'pce', 'ism', 'retail', 'gdp', 'ppi'])
   const count = requests.length
   await render({ ...props, symbol: 'USDJPY' })
   assert.match(container.querySelector('.raycaster-bias').textContent, /Hover a candle/, 'Pair changes clear the held candle')
@@ -145,7 +149,7 @@ try {
   assert.deepEqual(workers[1].jobs[0].input.families, ['retail'])
   const retailJob = workers[1].jobs[0]
   await React.act(async () => workers[1].onmessage({ data: { id: retailJob.id, result: buildContextTimeline(retailJob.input) } }))
-  assert.match(allOff.textContent, /Enabled weight: 10%/)
+  assert.match(allOff.textContent, /Enabled weight: 7%/)
   await React.act(async () => container.querySelector('[aria-label="Close Raycaster details"]').click())
   assert.equal(document.activeElement, gear)
   await React.act(async () => container.querySelector('[aria-label="Hide Raycaster"]').click())
@@ -173,8 +177,8 @@ try {
   assert.equal(container.querySelector('[aria-label="Show Raycaster"]'), null)
   preference.saveRaycasterVisible(true); preference.saveRaycasterPosition({ x: 21, y: 64 })
   const exported = exportWorkspace()
-  assert.deepEqual(JSON.parse(exported.entries[familySettings.raycasterFamiliesKey]), { version: 2, families: ['retail'] })
-  for (const invalid of [['ppi'], ['ism', 'ism'], 'retail']) assert.throws(() => parseWorkspaceSnapshot(JSON.stringify({ ...exported,
+  assert.deepEqual(JSON.parse(exported.entries[familySettings.raycasterFamiliesKey]), { version: 3, families: ['retail'] })
+  for (const invalid of [['bogus'], ['ism', 'ism'], 'retail']) assert.throws(() => parseWorkspaceSnapshot(JSON.stringify({ ...exported,
     entries: { [familySettings.raycasterFamiliesKey]: JSON.stringify(invalid) } })), /Invalid/)
   assert.throws(() => familySettings.saveRaycasterFamilies(['bad']), RangeError)
   familySettings.saveRaycasterFamilies(['cpi'])
@@ -184,7 +188,7 @@ try {
   window.dispatchEvent(new dom.StorageEvent('storage', { key: familySettings.raycasterFamiliesKey }))
   assert.deepEqual(familySettings.readRaycasterFamilies(), ['nfp', 'ism'])
   localStorage.setItem(familySettings.raycasterFamiliesKey, JSON.stringify(['cpi', 'nfp', 'ism', 'retail']))
-  assert.deepEqual(familySettings.readRaycasterFamilies(), ['cpi', 'nfp', 'claims', 'ism', 'retail'], 'The old full default gains Claims')
+  assert.deepEqual(familySettings.readRaycasterFamilies(), ['cpi', 'nfp', 'claims', 'pce', 'ism', 'retail', 'gdp', 'ppi'], 'The old full default gains the expanded menu')
   familySettings.saveRaycasterFamilies(['cpi', 'nfp', 'ism', 'retail'])
   assert.deepEqual(familySettings.readRaycasterFamilies(), ['cpi', 'nfp', 'ism', 'retail'], 'A deliberate new Claims-Off selection survives reload')
   restoreWorkspace(exportWorkspace())

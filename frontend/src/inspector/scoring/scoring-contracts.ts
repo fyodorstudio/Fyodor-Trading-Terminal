@@ -1,10 +1,11 @@
 import type { ComponentType } from 'react'
 import type { InspectorRelease } from '../inspector-data'
 import type { FamilyMagnitudeHistory } from '../magnitude/useFamilyMagnitudeHistory'
+import type { TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
 import type { EconomicCalendarEvent } from '../calendar-event'
 
 export type InspectorScoringProps = { release: InspectorRelease | null; history: FamilyMagnitudeHistory;
-  brokerId?: string | null; events?: EconomicCalendarEvent[] }
+  brokerId?: string | null; events?: EconomicCalendarEvent[]; now?: number; timeDisplay?: TimeDisplayPreference }
 export type InspectorScoringBinding = {
   pair: string; country: string; currency: 'USD' | 'EUR'; familyId: string
   matchesSymbol: (symbol: string) => boolean

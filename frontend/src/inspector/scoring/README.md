@@ -568,3 +568,35 @@ CPI v3.1 signals, weights, calibration and source gates stay unchanged. No marke
 outcome or forecasts vote, and conditional Fed-policy interactions remain future
 work. Tests cover standalone invariance, snapshot parity, future removal, shared
 filters, scoped storage, workers and persistence. Visual review belongs to the user.
+
+
+CPI v4 now uses shared USD context memory v4's conditional labor–inflation rule.
+Standalone v3.1 and its 35/35/20/10 formula remain unchanged. Canonical validated
+CPI input levels/magnitudes and NFP hiring/unemployment features supply typed
+traits to the engine. No raw calendar row bypasses source gates. The flat shared
+rule details show all conditions and effective/base weights. Publication change
+text separates CPI source replacement from priority changes affecting existing
+votes. `test_labor_inflation_policy.mjs` covers gates, hot-inflation/recovery
+counterexamples, missing/disabled/expired inputs, manual magnitude effects,
+visible arithmetic and future-removal replay. Broader stored coverage and guard
+sensitivity are in the root library; no automated visual review was used.
+
+## Expanded USD numerical menu
+
+`GDP/policy`, `GDP/assessment` and `PPI/policy`, `PPI/assessment` own their explicit
+formulas and source gates. `shared/core/weighted-release-assessment.ts` grades
+their calibrated inputs without family-specific event IDs.
+`shared/runtime/expanded-release*` runs calculation in a worker; the shared flat
+view exposes contributions and calibration. GDP first stored quarter estimates
+and revisions have distinct calibration classes, shared with Scatter.
+
+`FED/assessment/fed-score.ts` interprets a verified rate action. It does not
+calibrate numeric event labels as speeches. The `FED/ui` view marks guidance
+coverage unavailable. Its context panel describes the economic background,
+not what an unstored statement communicated.
+
+`InspectorScoringView` composes registered full standalone views with
+`usd-context/ui/PublicationContext`. Source output stays separate from combined
+output, and all shared controls operate on the same saved preference as Raycaster.
+Tests: `tests/inspector/expanded/test_usd_menu.mjs`, context/portability regressions
+and the chronological `scripts/audit-usd-menu-v5.mjs`.

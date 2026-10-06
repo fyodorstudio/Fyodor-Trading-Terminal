@@ -1,6 +1,7 @@
 import type { InspectorEvent, InspectorRelease } from '../../../../../../inspector-data'
 import type { TimeDisplayPreference } from '../../../../../../../appearance/time-display/time-display-preference'
 import { ContextInputTable } from '../../../../../../../usd-context/ui/ContextInputTable'
+import { ContextPolicyDetails } from '../../../../../../../usd-context/ui/ContextPolicyDetails'
 import { contextPairLabel } from '../../../../../../../usd-context/core/usd-pair'
 import { toggleContextFamily } from '../../../../../../../usd-context/storage/context-family-settings'
 import { useCpiV4Analysis } from '../runtime/useCpiV4Analysis'
@@ -39,7 +40,8 @@ export function CpiScoreV4({ release, brokerId = null, events, now, timeDisplay 
     <ContextInputTable families={families} onToggleFamily={toggleContextFamily} result={result} symbol="EURUSD"
       loading={context.loading} unavailable={contextUnavailable} cutoff={comparison.at} timeDisplay={timeDisplay}
       tableLabel="CPI v4 context inputs" summaryLabel={contextUnavailable ? 'Uncomputed' : contextPairLabel('EURUSD', result?.direction ?? 'uncomputed')} />
-    <p>These context controls are shared with Raycaster. Inspector’s marker filters do not change them. The table uses the selected publication time; later releases are excluded. Claims expires after 14 days; other families after 45. NFP and Claims share the labor budget.</p>
+    {!context.loading && !contextUnavailable && <ContextPolicyDetails policy={result?.policy} />}
+    <p>These context controls are shared with Raycaster. Inspector’s marker filters do not change them. The table uses the selected publication time; later releases are excluded. Claims expires after 14 days, GDP after 120; other families after 45. NFP and Claims share the labor budget.</p>
     <h3>CPI readings and standalone rules</h3>
     {ready && <><p>{assessment.strengthReason}</p><CpiScoreDetails assessment={assessment} label="CPI v4 standalone" /></>}
   </div>

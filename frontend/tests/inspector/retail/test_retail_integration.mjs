@@ -57,7 +57,7 @@ try {
   const dropdown = panel.container.querySelector('[aria-label="Inspector view"]')
   assert.equal(dropdown.value, 'scoring'); assert.equal(dropdown.querySelector('[value="scoring"]').disabled, false)
   assert.equal(panel.container.querySelector('[aria-label="Retail Sales pair direction"]').textContent, 'EURUSD Long')
-  assert.equal(panel.container.querySelectorAll('.inspector-scoring-view').length, 1)
+  assert.equal(panel.container.querySelectorAll('.inspector-scoring-view').length, 2)
   await choose(dropdown, 'scatter'); assert.equal(opened.id, release.id); assert.equal(saved, undefined)
   await choose(dropdown, 'table'); assert.equal(saved.detailView, 'table')
   await panel.render({ ...props, view: { ...view, preferences: { ...prefs, detailView: 'scoring-v3' } } })

@@ -1,6 +1,7 @@
 import type { InspectorRelease } from '../../inspector/inspector-data'
 import type { ContextTimeline } from './contracts'
 import { contextAt } from './context-lookup'
+import { contextWeights } from './policy'
 
 const format = (n: number) => n.toLocaleString(undefined, { maximumFractionDigits: 3, signDisplay: 'exceptZero' })
 // Publication snapshots use the same chart clock and lookup as Raycaster.
@@ -22,9 +23,14 @@ export function compareCpiPublication(timeline: ContextTimeline | null, release:
     'This CPI release adds zero net USD contribution' : source.usdDirection === 'stronger' ?
     'This CPI release adds USD support' : 'This CPI release adds pressure on USD'
   const directionChange = voteChange > 0 ? 'toward USD strength' : voteChange < 0 ? 'toward USD weakness' : 'with no net CPI contribution change'
+  const oldWeights = before?.result.policy?.weights ?? contextWeights, newWeights = after?.result.policy?.weights ?? contextWeights
+  const changedWeights = Object.keys(newWeights).some(f => newWeights[f as keyof typeof newWeights] !== oldWeights[f as keyof typeof oldWeights])
+  const sourceChange = Math.round(((source.status === 'active' ? source.total! : 0) - (previous?.status === 'active' ? previous.total! : 0)) * oldWeights.cpi / 100 * 1e12) / 1e12
+  const weightChange = Math.round((source.status === 'active' ? source.total! : 0) * (newWeights.cpi - oldWeights.cpi) / 100 * 1e12) / 1e12
+  const policyNote = changedWeights ? ` Context priorities changed to ${after?.result.policy?.label ?? 'Balanced priorities'}: CPI ${oldWeights.cpi}% → ${newWeights.cpi}%, NFP ${oldWeights.nfp}% → ${newWeights.nfp}%. CPI source replacement at prior weight ${format(sourceChange)}; CPI priority effect ${format(weightChange)}. Other existing votes also use the new priorities.` : ''
   const other = after?.result.members.filter(m => m.family !== 'cpi' &&
     (m.chartAt === at || before?.result.members.find(b => b.family === m.family)?.status !== m.status)).map(m => m.sourceLabel) ?? []
   return { at, before, after, voteChange, explanation:
     `${stance}; it ${oldState}. CPI contribution change ${format(voteChange)}, ${directionChange}.` +
-    (other.length ? ` Other updates or status changes at this timestamp: ${other.join(', ')}.` : '') }
+    policyNote + (other.length ? ` Other updates or status changes at this timestamp: ${other.join(', ')}.` : '') }
 }

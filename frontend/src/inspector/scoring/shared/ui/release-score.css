@@ -1,0 +1,11 @@
+.inspector-publication-score { flex: 1; min-height: 0; min-width: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr)); gap: 12px; align-items: start; overflow-x: hidden; overflow-y: auto; }
+.inspector-scoring-view.inspector-structured-score { display: block; min-width: 0; overflow-wrap: anywhere; overflow-x: hidden; overflow-y: auto; }
+.inspector-publication-score > .inspector-scoring-view { flex: none; overflow: visible; }
+.inspector-structured-score .inspector-table-scroll { overflow: visible; }
+.inspector-structured-score table { width: 100%; table-layout: fixed; }
+.inspector-structured-score th, .inspector-structured-score td { white-space: normal; overflow-wrap: anywhere; }
+.inspector-structured-score td small { display: block; color: var(--text-muted); }
+.inspector-structured-score p { max-width: 110ch; margin: 8px 0; }
+.inspector-structured-score h3 { font-size: inherit; }
+.inspector-release-score-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.inspector-release-score-summary small { color: var(--text-muted); }

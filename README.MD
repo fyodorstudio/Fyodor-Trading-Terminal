@@ -63,7 +63,7 @@ manual tuples persist and legacy P95 selections become Undefined. Numeric limits
 are scoped per series; magnitude colors apply globally. Classification rules are
 user-chosen interpretations, documented in the family terminology files.
 
-CPI v3, NFP v2, PCE v1, Retail Sales v1, Jobless Claims v1 and both ISM families also offer **Scatter Plot → Measure → Scoring signal** to
+CPI v3, NFP v2, PCE v1, Retail Sales v1, Jobless Claims v1, GDP v1, PPI v1 and both ISM families also offer **Scatter Plot → Measure → Scoring signal** to
 inspect their derived inputs, comparison averages and earlier-only automatic
 magnitude bands. Manual component edits preview on the chart; **Apply to scorer**
 updates the Inspector, and **Use automatic** restores calibration. These saved
@@ -101,8 +101,10 @@ See the [scoring library](scoring%20system%20library.MD) for policy and audit.
 
 **Raycaster** opens from the wave button beside the paintbrush toggle near the
 timeframe selector. Its movable box reads USD context at the hovered candle end.
-Memory v3 combines CPI v3.1 (40%), NFP v2 (30%), Claims v1 (10%), ISM v3 (10%)
-and Retail v1 (10%). Claims has a 14-day freshness gate; others use 45 days.
+Memory v5 combines CPI v3.1 (28%), PCE v1 (10%), PPI v1 (2%), NFP v2 (30%),
+Claims v1 (10%), ISM v3 (10%), Retail v1 (7%) and GDP v1 (3%). Qualified labor deterioration with inflation inside declared
+guards shifts CPI to 8% and NFP to 50%; the breakdown shows conditions and
+effective/base weights. Claims has a 14-day freshness gate, GDP 120 days; others use 45 days.
 The gear shows saved Enabled/Off controls, source biases/evidence and weighted
 votes. CPI **Scoring system v4** shares those context controls and shows the
 unchanged standalone CPI reading, context before/after publication and the CPI
@@ -155,3 +157,17 @@ Tests include mounted frontend behavior and temporary storage/recovery fixtures.
 Run separately with `pnpm run test:frontend` or `pnpm run test:storage`.
 Build output goes to `frontend/dist`. Visual UI audits and live MT5/DST/publisher
 acceptance belong to the user; see the setup guide for manual checks.
+
+## USD menu expansion / context v5
+
+GDP and PPI now have standalone EURUSD scorers, shared Scoring signal magnitudes
+and background workers. PCE, PPI and GDP also join Raycaster/CPI v4. Domain
+budgets remain inflation 40%, labor 40%, activity 20%; the eight-input breakdown
+and conditional labor-priority guards are visible. Registered standalone views
+for PCE/PPI/GDP/Retail/Claims/Fed additionally display publication-time context.
+
+FOMC rate actions are interpreted separately with Weak action evidence; a hold
+supplies no direction. Fed Chair events expose missing text coverage. The feed
+contains no statement/speech content, so full policy-guidance scoring remains
+pending a timestamped text source. See [scoring system library.MD](scoring%20system%20library.MD)
+for exact policies, current coverage and remaining manual review.

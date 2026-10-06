@@ -1,27 +1,33 @@
-# USD context memory v3
+# USD context memory v5
 
 The shared engine consumes unchanged standalone CPI v3.1, NFP v2, Claims v1,
-monthly ISM v3 and Retail Sales v1 scores. It interprets the USD side of supported
+monthly ISM v3, Retail Sales v1, PCE v1, PPI v1 and GDP v1 scores. It interprets the USD side of supported
 pairs. Forecasts, price outcomes and the other currency do not vote.
 
 ## Declared policy
 
-| Input | Weight | Freshness | Update behavior |
+| Input | Base weight | Freshness | Update behavior |
 | --- | ---: | --- | --- |
-| CPI v3.1 | 40% | 45 days | Latest inflation report replaces the previous CPI slot |
+| CPI v3.1 | 28% | 45 days | Latest inflation report replaces the previous CPI slot |
 | NFP v2 | 30% | 45 days | Latest jobs report replaces the previous NFP slot |
 | Claims v1 | 10% | 14 days | Latest weekly report replaces the previous Claims slot |
 | ISM v3 | 10% | 45 days | Manufacturing then Services update one monthly ISM slot at their original times |
-| Retail Sales v1 | 10% | 45 days | Latest spending report replaces the previous Retail slot |
+| Retail Sales v1 | 7% | 45 days | Latest spending report replaces the previous Retail slot |
+| PCE v1 | 10% | 45 days | Latest PCE report replaces its slot |
+| PPI v1 | 2% | 45 days | Latest producer-price report replaces its slot |
+| GDP v1 | 3% | 120 days | New-quarter or revision assessment replaces its slot |
+
+The inflation budget stays 40% (CPI/PCE/PPI); labor stays 40%; activity stays 20% (ISM/Retail/GDP). Turning inputs off never redistributes weight.
 
 These priorities are prototype rules, not fitted coefficients or measured FX
-impact. NFP and Claims share the existing 40% labor budget. Weekly votes never
+impact. The base labor budget is 40%; the conditional rule below raises it to
+60%. Weekly votes never
 accumulate. Freshness boundaries use the recorded broker chart clock and expire
 at the boundary. A new uncomputed publication replaces the previous assessment;
 missing, disabled, expired and uncomputed weights are not redistributed.
 
 Signed source magnitude totals multiply these weights. Positive supports USD;
-negative weakens USD. Exact cancellation follows CPI → NFP → Claims → ISM → Retail
+negative weakens USD. Exact cancellation follows CPI → NFP → Claims → PCE → ISM → Retail → GDP → PPI
 with Weak evidence. A source's declared zero-score tie direction remains eligible.
 All unavailable/expired evidence is Uncomputed; no direction is fabricated.
 
@@ -31,6 +37,42 @@ Weak evidence. Strong requires strong supporting NFP and CPI, net/gross agreemen
 at least two thirds, and no active Weak family. Opposing active NFP and Claims cap
 combined evidence at Moderate; Weak still takes precedence. Their agreement does
 not substitute for inflation confirmation or create an extra independent domain.
+
+## Conditional labor–inflation interaction
+
+`core/interaction/` holds the separate rule and canonical source traits. Every
+condition must pass on active, enabled, publication-time inputs:
+
+- NFP is complete, Strong, USD-weakening, with hiring below its recent mean and
+  unemployment rising. A weak/moderate NFP, missing traits or a recovery fails.
+- CPI is complete and USD-supportive. Cooling CPI keeps the base policy.
+- Latest core m/m and its latest three-month average are each at most **0.30%**.
+- Annual core CPI is at most **3.50%**.
+- Positive acceleration is at most **Medium (2 points)** for both the monthly
+  core group and annual core. Monthly fresh/trend use their largest positive
+  magnitude as one guard; their points are never added as extra confirmations.
+
+When every condition is met, **Labor priority** shifts CPI 28→8 and NFP 30→50.
+Other weights remain fixed. An active Strong USD-supportive PCE/PPI assessment
+with a source total of at least 2 blocks this transfer. Otherwise **Balanced priorities** retain v5's
+base weights. There is no additional synthetic vote, unavailable-weight
+redistribution, date-specific branch, survey input or price-based override.
+The rule can enter/exit on any eligible publication or source expiry. Disabling
+CPI/NFP prevents it; current uncomputed data cannot retain a stale active rule.
+
+These ceilings and weights are declared prototype safeguards, not official Fed
+thresholds, estimated reaction coefficients or evidence that inflation is at
+its target. The rule interprets competing data as easing pressure; it does not
+claim to read Fed intentions. Strong combined evidence still requires supporting
+CPI and NFP; the opposing-source Labor-priority rule can give at most Moderate.
+A narrow weighted lead remains Weak. Applied magnitude settings affect the
+acceleration guard, while raw level ceilings remain fixed and visible.
+
+Overlap review: CPI's two monthly features already divide a fixed 70% source
+budget (35/35), and share one evidence group. Preserve standalone v3.1 rather
+than silently change its meaning. The interaction assesses one monthly core
+block and lowers CPI's *context* budget only in the qualified competing regime.
+`ui/ContextPolicyDetails.tsx` shows every condition and its result in both views.
 
 ## One engine, two views
 
@@ -42,20 +84,22 @@ Simultaneous updates/status changes are disclosed rather than attributed to CPI.
 A coarse Raycaster candle may include later releases; equal timestamps use equal
 snapshots, but a publication snapshot need not equal an entire H1 candle's end.
 
-`storage/context-family-settings.ts` owns the shared five-family selection.
+`storage/context-family-settings.ts` owns the shared eight-family selection.
 Enabled/Off controls in Raycaster and CPI v4 update the same preference;
-Inspector marker filters and date range remain independent. All five default On.
-The existing `fyodor.raycaster.families.v1` key is retained with a version-2 object.
-Legacy full four-family defaults gain Claims; partial/all-off selections survive.
+Inspector marker filters and date range remain independent. All eight default On.
+The existing `fyodor.raycaster.families.v1` key is retained with a version-3 object.
+Legacy full four-family arrays and version-2 full five-family defaults gain the expanded inputs; partial/all-off selections survive.
 New deliberate Claims-Off selections remain Off on reload and workspace restore.
 Magnitude settings remain shared with the existing USD standalone scorers/Scatter.
 
 ## Chronology and runtime
 
 `core/score-publication.ts` adapts canonical scorers; `build-context-timeline.ts`
-builds atomic publication/expiry snapshots; `combine-context.ts` resolves five
+builds atomic publication/expiry snapshots; `combine-context.ts` resolves eight
 slots; `context-lookup.ts` performs binary lookup; `publication-comparison.ts`
-compares CPI snapshots. `ui/ContextInputTable.tsx` provides the shared breakdown.
+compares CPI snapshots, separating source replacement from a change of context
+priorities. `ui/ContextInputTable.tsx` shows effective weights plus changed base
+weights. The collapsed Raycaster identifies an active Labor-priority rule.
 Inspector imports the engine directly, never Raycaster UI/runtime.
 
 The runtime queries broker history from January 2015 for required series,
@@ -75,36 +119,69 @@ that assessment. A headless environment uses the canonical pure fallback.
 The engine supports EURUSD, GBPUSD, AUDUSD, NZDUSD, USDJPY, USDCHF and USDCAD with
 supported broker suffixes. USD quote converts weakness to Long; USD base converts
 weakness to Short. CPI v4 Inspector remains EURUSD-only. No EUR-relative assessment,
-Fed-text interpretation or conditional policy-regime weighting is implemented here.
+Fed-text interpretation is implemented here. Data-conditional priorities are a
+prototype; guidance-aware Fed regimes remain future work.
 
 ## Verification
 
-`tests/usd-context/test_context.mjs`, `test_raycaster.mjs`, and
+`tests/usd-context/test_context.mjs`, `test_labor_inflation_policy.mjs`, `test_raycaster.mjs`, and
 `tests/inspector/cpi/test_cpi_score_v4.mjs` / `test_cpi_v4_integration.mjs` verify
 weights, labor disagreement, one-slot Claims replacement, expiry, shared filters,
 publication parity, future removal, standalone invariance, worker reuse/stale
 replies, clock-heartbeat stability and workspace portability.
 
-After building, run the stored chronological audit:
+After building, run the current stored chronological audit:
 
 ```powershell
 pnpm build
-node scripts/audit-usd-context.mjs ../storage/data/cpi-v2-design-snapshot.json ../storage/data/nfp-v2-design-snapshot.json ../storage/data/ism-v2-design-snapshot.json ../storage/data/retail-v1-design-snapshot.json ../storage/data/claims-v1-design-snapshot.json ../storage/data/usd-context-v3-design-audit
+node scripts/audit-usd-menu-v5.mjs ../storage/data/usd-menu-v5-design-snapshot.json ../storage/data/usd-menu-v5-design-audit
 ```
 
-The audit compares all five source scorers with prior stored reports, checks ten
-future-removal cutoffs including August/September 2025 CPI, compares CPI v4 before/
-after snapshots, and tests both actual production workers against pure functions.
-Archived v1/v2 weights and audits remain in the root scoring library. Visual
-checks and price-reaction diagnostics belong to the user.
+The current audit checks every GDP/PPI scorer–Scatter signal, future removal,
+full-context publication replays and compiled context/Inspector worker parity.
+Archived v1–v4 weights and audit results remain in the root scoring library.
+The older `audit-usd-context.mjs` is retained as the previous five-family audit
+runner; its v3 invariance expectations are not a v5 validation command.
+Visual checks and price-reaction diagnostics belong to the user.
 
-Stored v3 audit: 140 CPI, 141 NFP, 284 ISM, 144 Retail and 606 Claims publications
-retain canonical totals/directions/evidence/change size. The engine creates 1,244
-snapshots; all ten future-removal checks and both actual production-worker parity
-checks pass. One context worker run took about 9.3 seconds while the event loop
-remained active. Startup/filter changes rebuild; hover does not. Full frontend
-suite, lint and production build passed on 6 October 2026.
+Archived v3: 1,244 snapshots and ten replay checks, with August 12, 2025 Short /
+Weak combined. Archived v4 audit results are documented in the root scoring
+library and local `storage/data/usd-context-v4-design-audit.*`. Source revisions
+and guard sensitivity remain disclosed; agreement with two price notes does not
+validate a trading predictor. Visual verification belongs to the user.
 
-August 12, 2025 remains EURUSD Short / Weak combined versus Short / Strong
-standalone CPI; disagreement with the reported rally is retained for investigation.
-This implementation does not force historical price-fitting labels.
+V4 stored replay: all five source baselines retain parity. Labor priority is active
+at 35 of 1,315 publication snapshots; 24 change direction versus v3 (6 before 2025).
+All inactive-rule scores/biases remain unchanged. Thirteen full future-removal
+checks and both production workers pass. The two 2025 user cases now produce
+Long / Weak. Tightening monthly guards to 0.25% returns them to Short; this is a
+material sensitivity, not hidden validation. Full frontend tests, lint and build
+passed; applied magnitudes and counterexample regressions also pass.
+
+## Expanded menu and policy coverage
+
+`ui/PublicationContext.tsx` reuses the same engine beneath the registered PCE,
+PPI, GDP, Retail, Claims and Fed Inspector views. Its cutoff is the selected
+publication, not current market context. `now` comes from Inspector; missing
+clock props cannot accidentally expose future publications.
+
+GDP has separate calibration populations for first stored estimates of a quarter
+and same-quarter revisions. A revision updates the growth slot as a revision
+assessment, not as another independent macro vote. The feed does not certify
+original publication vintages or the completeness of its estimate sequence.
+
+FOMC v1 interprets the stored rate action only. A hike/cut gives Weak standalone
+action evidence; a hold has no action direction. Speeches, statements, projections
+and conference answers have no text in the calendar contract. The Inspector
+shows this limitation and the existing publication-time economic context. Policy
+tone has no context weight until timestamped content and a declared interpretation
+policy exist. This is partial policy coverage, not a completed guidance scorer.
+
+Current audit: `scripts/audit-usd-menu-v5.mjs`; local report
+`storage/data/usd-menu-v5-design-audit.md`. Earlier context-v4 audit totals below
+are archived results under the former five-family weights, not v5 outputs.
+
+V5 validation: 137 GDP and 140 PPI publications passed source/Scatter and
+later-data-removal checks; 1,489 timeline snapshots and 12 publication replays
+were checked. Built context and expanded-release workers matched pure results
+and left the main event loop active. Full frontend tests, lint and build passed.

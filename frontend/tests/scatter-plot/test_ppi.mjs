@@ -101,7 +101,7 @@ try {
   assert.equal(inspector.container.querySelectorAll('td.inspector-graded-delta .inspector-secondary-reading').length, 2)
   assert.equal(inspector.container.querySelectorAll('[aria-label="Magnitude undefined"]').length, 4)
   assert.equal(inspector.container.querySelector('option[value="scatter"]').disabled, false)
-  assert.equal(inspector.container.querySelector('option[value="scoring"]').disabled, true)
+  assert.equal(inspector.container.querySelector('option[value="scoring"]').disabled, false)
   await inspector.render({ configured: true })
   const rendered = [...inspector.container.querySelectorAll('.inspector-table-scroll tbody tr')]
   assert.match(rendered[0].children[3].textContent, /-0.2 pp.*Lower.*A−RevP: 0 pp.*Unchanged/)

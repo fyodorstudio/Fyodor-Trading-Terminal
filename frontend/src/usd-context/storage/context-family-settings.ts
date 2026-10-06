@@ -12,7 +12,7 @@ export function validContextFamilies(value: unknown): value is ContextFamily[] {
 }
 export function validContextFamilyPreference(value: unknown): boolean {
   return validContextFamilies(value) || !!value && typeof value === 'object' &&
-    'version' in value && value.version === 2 && 'families' in value && validContextFamilies(value.families)
+    'version' in value && (value.version === 2 || value.version === 3) && 'families' in value && validContextFamilies(value.families)
 }
 function configuredFamilies(value: unknown): readonly ContextFamily[] {
   if (validContextFamilies(value)) {
@@ -20,7 +20,12 @@ function configuredFamilies(value: unknown): readonly ContextFamily[] {
     const oldDefault = ['cpi', 'nfp', 'ism', 'retail']
     return value.length === 4 && oldDefault.every(id => value.includes(id as ContextFamily)) ? defaults : value
   }
-  return validContextFamilyPreference(value) ? (value as { families: ContextFamily[] }).families : defaults
+  if (validContextFamilyPreference(value)) {
+    const saved = value as { version: number; families: ContextFamily[] }
+    const previous = ['cpi','nfp','claims','ism','retail']
+    return saved.version === 2 && saved.families.length === previous.length && previous.every(id => saved.families.includes(id as ContextFamily)) ? defaults : saved.families
+  }
+  return defaults
 }
 export function readContextFamilies(): readonly ContextFamily[] {
   if (typeof window === 'undefined') return defaults
@@ -40,7 +45,7 @@ export function saveContextFamilies(value: readonly ContextFamily[]) {
   if (!validContextFamilies(value)) throw new RangeError('Select supported Raycaster families without duplicates.')
   const next = contextPriority.filter(id => value.includes(id))
   if (JSON.stringify(next) === JSON.stringify(readContextFamilies())) return
-  const raw = JSON.stringify({ version: 2, families: next })
+  const raw = JSON.stringify({ version: 3, families: next })
   try { window.localStorage.setItem(contextFamiliesKey, raw); cachedRaw = raw } catch { /* Session changes still work. */ }
   cached = Object.freeze(next)
   window.dispatchEvent(new window.Event(changed))

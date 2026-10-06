@@ -22,4 +22,10 @@ export const retailSignalSettings = createMagnitudeSettingsStore(
 export const claimsSignalSettings = createMagnitudeSettingsStore(
   { pair: 'EURUSD', currency: 'USD', side: 'quote', family: 'CLAIMS-V1-SIGNALS' },
   ['initial-trend', 'continuing-pressure', 'initial-week'])
-export const signalMagnitudeStores = [cpiSignalSettings, nfpSignalSettings, pceSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings, retailSignalSettings, claimsSignalSettings] as const
+export const ppiSignalSettings = createMagnitudeSettingsStore(
+  { pair: 'EURUSD', currency: 'USD', side: 'quote', family: 'PPI-V1-SIGNALS' },
+  ['core-pace', 'core-annual', 'headline-pace', 'headline-annual'])
+export const gdpSignalSettings = createMagnitudeSettingsStore(
+  { pair: 'EURUSD', currency: 'USD', side: 'quote', family: 'GDP-V1-SIGNALS' },
+  ['growth', 'consumption', 'sales'])
+export const signalMagnitudeStores = [cpiSignalSettings, nfpSignalSettings, pceSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings, retailSignalSettings, claimsSignalSettings, ppiSignalSettings, gdpSignalSettings] as const

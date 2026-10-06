@@ -44,6 +44,6 @@ try {
   const broken = compareCpiPublication(brokenTimeline, brokenRelease, now)
   assert.match(broken.explanation, /no usable context vote/)
   assert.equal(broken.after.result.members.find(m => m.family === 'cpi').status, 'unavailable')
-  assert.equal(broken.voteChange, -prior.contribution, 'An uncomputed new CPI release replaces the old vote')
+  assert.ok(Math.abs(broken.voteChange + prior.contribution) < 1e-12, 'An uncomputed new CPI release replaces the old vote, within the score rounding precision')
   console.log('✓ CPI v4 standalone invariance, exact Raycaster parity, before/after replacement, disabled/uncomputed/timing gates and future/forecast exclusion')
 } finally { await server.close() }

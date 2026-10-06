@@ -38,7 +38,7 @@ try {
   assert.ok(container.querySelector('[aria-label="CPI v4 previous context"]'))
   assert.match(container.querySelector('[aria-label="CPI v4 context change"]').textContent, /replaces the previous CPI vote/)
   assert.equal(container.querySelectorAll('[aria-label="CPI v4 standalone component scores"] tbody tr').length, 4)
-  assert.equal(container.querySelectorAll('[aria-label="CPI v4 context inputs"] tbody tr').length, 5)
+  assert.equal(container.querySelectorAll('[aria-label="CPI v4 context inputs"] tbody tr').length, 8)
   assert.equal(container.querySelector('details, summary'), null)
   const standaloneLabel = container.querySelector('[aria-label="CPI v4 standalone direction"]').textContent
   await React.act(async () => container.querySelector('[aria-label="Use CPI v3.1"]').click())

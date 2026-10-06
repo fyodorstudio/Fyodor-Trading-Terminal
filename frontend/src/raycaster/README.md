@@ -1,4 +1,4 @@
-# Raycaster / USD context memory v3
+# Raycaster / USD context memory v5
 
 Press **Show Raycaster** (the wave glyph) beside the paintbrush toggle near the
 timeframe selector. Its active button toggles the box, and × hides it. Raycaster
@@ -8,25 +8,32 @@ saved locally and included in workspace export/import. Non-USD supported pairs
 disable the header button; the user's saved visibility is retained when switching
 back to a supported major USD pair.
 
-Raycaster has saved CPI/NFP/Claims/ISM/Retail context filters, independent of
+Raycaster has saved CPI/NFP/Claims/ISM/Retail/PCE/PPI/GDP context filters, independent of
 Inspector marker filters. These controls are shared with CPI v4's publication
-context table; all five inputs default On. The gear opens `ui/RaycasterDetails.tsx`;
+context table; all eight inputs default On. The gear opens `ui/RaycasterDetails.tsx`;
 the shared `usd-context/ui/ContextInputTable.tsx` shows versions, clickable Enabled/
 Off controls, each source bias/evidence/date, source score, weighted contribution
 and the combined total. The compatibility `RaycasterInputTable.tsx` re-export
-keeps existing imports. CPI receives 40%, NFP 30%, Claims 10%, ISM 10%, Retail 10%.
+keeps existing imports. Base weights are CPI 28%, PCE 10%, PPI 2%, NFP 30%, Claims 10%, ISM 10%,
+Retail 7%, GDP 3%. Qualified Labor priority uses CPI 8%, NFP 50%, with other weights
+unchanged. The table shows effective/base weights; the rule details explain
+every condition using canonical publication-time CPI/NFP facts.
 Enabled and active weight are shown separately. Missing/Off/expired weights are
-not redistributed. Claims expires after 14 days; other families after 45.
+not redistributed. Claims expires after 14 days; GDP after 120 days; other families after 45.
 
-NFP and Claims share one 40% labor budget. Opposing active directions cap evidence
+NFP and Claims share one labor domain: 40% base budget, 60% during Labor priority. Opposing active directions cap evidence
 at Moderate, with Weak taking precedence for incomplete/narrow/cancelled votes.
-Their agreement adds no independent confirmation. Standalone scorer math remains
-CPI v3.1, NFP v2, Claims v1, ISM v3 and Retail v1. ISM switches both sectors together;
+Their agreement adds no independent confirmation. The conditional rule gives
+priority to confirmed labor deterioration only when active CPI passes declared
+level/acceleration guards. It implies easing pressure, not observed Fed guidance.
+Hotter inflation, incomplete/expired or disabled CPI/NFP restores base priorities.
+The collapsed explanation identifies Labor priority when active. Standalone scorer math remains
+CPI v3.1, NFP v2, Claims v1, ISM v3, Retail v1, PCE v1, PPI v1 and GDP v1. ISM switches both sectors together;
 they update one slot. Inspector's view, date range and marker visibility do not
 select context inputs. Applied Scatter signal magnitudes still affect both tools.
 
 The shared context preferences are session-safe, portable and receive cross-tab
-updates. Existing full four-family defaults gain Claims; intentional partial or
+updates. Existing full four-family and version-2 five-family defaults gain the new inputs; intentional partial or
 all-off lists survive. A versioned saved object preserves deliberate Claims-Off
 choices. Opening the gear alone does not fetch or rescore; input changes rebuild
 the background timeline. Escape/close/outside pointer presses dismiss it;
@@ -70,3 +77,7 @@ USDJPY inversion. No browser automation or screenshot audit is used.
 
 The single grouped Inspector ISM control is only a filter UI adapter: original
 source family IDs, release clocks and histories remain distinct.
+
+FOMC and Fed Chair text are not stored by the calendar feed. Raycaster does not
+infer policy tone from a hold or event title. Their Inspector views show available
+rate actions and the same economic context separately.

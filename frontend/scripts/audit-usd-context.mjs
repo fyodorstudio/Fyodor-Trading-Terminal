@@ -4,6 +4,7 @@ import assert from 'node:assert/strict'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { Worker } from 'node:worker_threads'
 import { createServer } from 'vite'
+import { auditInteractions, interactionAuditMarkdown } from './usd-context/interaction-audit.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const [cpiFile, nfpFile, ismFile, retailFile, claimsFile, output] = process.argv.slice(2)
@@ -15,18 +16,21 @@ const events = [...new Map(calendars.flatMap(c => c.events).map(e => [e.value_id
 const input = { events, families: ['jobs', 'us-cpi', 'claims', 'ism-manufacturing', 'ism-services', 'retail'],
   settings: { cpi: {}, nfp: {}, services: {}, manufacturing: {}, retail: {}, claims: {} }, asOf: Math.min(Date.now(), Math.max(...events.map(e => e.release_at ?? 0))) }
 const server = await createServer({ root, server: { middlewareMode: true, hmr: false } })
-let timeline, replays, calculationMs, cpiInput, cpiExpected
+let timeline, replays, calculationMs, cpiInput, cpiExpected, interactionAudit
+const checked = {}
 try {
   const { buildContextTimeline } = await server.ssrLoadModule('./src/usd-context/core/build-context-timeline.ts')
   const { contextAt } = await server.ssrLoadModule('./src/usd-context/core/context-lookup.ts')
   const { compareCpiPublication } = await server.ssrLoadModule('./src/usd-context/core/publication-comparison.ts')
   const { calculateCpiRelease } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/CPI/runtime/cpi-release-analysis.ts')
   const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
+  const { resolveLaborInflationPolicy, laborPriorityGuards } = await server.ssrLoadModule('./src/usd-context/core/interaction/labor-inflation-policy.ts')
+  const { contextPriority, contextVersion } = await server.ssrLoadModule('./src/usd-context/core/policy.ts')
+  if (contextVersion !== 'usd-context-memory-v4') throw new Error('This archived audit targets context v4 and its v3 comparison. On the current engine run audit-usd-menu-v5.mjs with the expanded snapshot.')
   const start = performance.now(); timeline = buildContextTimeline(input); calculationMs = performance.now() - start
   const publications = groupInspectorReleases(events).filter(r => input.families.includes(r.familyId))
   // Canonical stored audit parity: layer and indexing preserve original vote totals/grades.
   const baselineFiles = ['cpi-v3-refined-audit.json', 'nfp-v2-design-audit.json', 'ism-v2-design-audit.json', 'retail-v1-design-audit.json', 'claims-v1-design-audit.json']
-  const checked = {}
   for (const [i, file] of baselineFiles.entries()) {
     const rows = read(path.join(root, '../storage/data', file)).rows
     const family = ['cpi', 'nfp', 'ism', 'retail', 'claims'][i]
@@ -44,7 +48,11 @@ try {
     }
     assert.ok(count > 0, `No ${family} baseline rows were checked.`); checked[family] = count
   }
-  replays = ['2025-08-12', '2025-09-11', '2026-06-17', '2026-07-16', '2026-08-03', '2026-08-05', '2026-08-07', '2026-08-12', '2026-08-14', '2026-09-16'].map(date => {
+  const priorTimeline = read(path.join(root, '../storage/data/usd-context-v3-design-audit.json')).timeline
+  interactionAudit = auditInteractions({ timeline, priorTimeline, publications, contextAt, resolvePolicy: resolveLaborInflationPolicy,
+    guards: laborPriorityGuards, priority: contextPriority })
+  console.log(JSON.stringify({ interactionCoverage: interactionAudit.summary, sensitivity: interactionAudit.sensitivity }, null, 2))
+  replays = [...new Set(['2025-08-12', '2025-09-11', '2026-06-17', '2026-07-16', '2026-08-03', '2026-08-05', '2026-08-07', '2026-08-12', '2026-08-14', '2026-09-16', ...interactionAudit.replayDates])].map(date => {
     const release = publications.find(r => new Date(r.releaseAt).toISOString().slice(0, 10) === date && (!date.startsWith('2025') || r.familyId === 'us-cpi'))
     assert.ok(release)
     const at = release.chartTime * 1000, point = contextAt(timeline, at)
@@ -54,7 +62,7 @@ try {
     const before = contextAt(timeline, at - 1)
     assert.notEqual(before?.latest.sourceId, release.id)
     return { date, direction: point.result.direction, total: point.result.total, strength: point.result.strength,
-      explanation: point.result.explanation, update: point.update, members: point.result.members.map(m =>
+      explanation: point.result.explanation, update: point.update, policy: point.result.policy, members: point.result.members.map(m =>
         ({ family: m.family, direction: m.usdDirection, status: m.status, contribution: m.contribution, releaseAt: m.releaseAt })) }
   })
   const selectedCpi = publications.find(r => r.familyId === 'us-cpi' && new Date(r.releaseAt).toISOString().slice(0, 10) === '2025-08-12')
@@ -72,7 +80,7 @@ const timer = setInterval(() => pulses++, 1), start = performance.now()
 try {
   const reply = await new Promise((resolve, reject) => { worker.once('message', resolve); worker.once('error', reject); worker.postMessage({ id: 1, input }) })
   assert.equal(reply.error, undefined); assert.deepEqual(reply.result, timeline); assert.ok(pulses > 0)
-  const report = { source: calendars[0].source_id, sourceRevisions: calendars.map(c => c.revision), version: timeline.version,
+  const report = { source: calendars[0].source_id, sourceRevisions: calendars.map(c => c.revision), version: timeline.version, baselineParity: checked, interactionAudit,
     readings: events.length, snapshots: timeline.points.length, calculationMs: Math.round(calculationMs),
     workerMs: Math.round(performance.now() - start), mainThreadPulses: pulses, replays, timeline }
   fs.mkdirSync(path.dirname(path.resolve(output)), { recursive: true })
@@ -80,9 +88,9 @@ try {
   fs.writeFileSync(`${output}.md`, ['# USD context chronological audit', '', `Broker: ${report.source}. Source revisions: ${report.sourceRevisions.join(', ')}.`,
     'Reconstructed stored history, not certified original-release vintages. No price outcomes or forecasts enter the policy.', '',
     `Readings ${report.readings}; snapshots ${report.snapshots}; pure build ${report.calculationMs} ms; worker ${report.workerMs} ms; event-loop pulses ${pulses}.`,
-    'Stored scorer parity, June/July/August/September future-removal replay and actual built-worker parity passed. Weights: CPI 40%, NFP 30%, Claims 10%, ISM 10%, Retail Sales 10%. Claims expires at 14 days; other votes at 45 days. CPI v4 shares Raycaster inputs and exact publication snapshots. Inspector marker filters do not select context inputs.', '',
+    'Stored scorer parity, historical future-removal replay and actual built-worker parity passed. Base weights: CPI 40%, NFP 30%, Claims 10%, ISM 10%, Retail Sales 10%. Labor priority uses CPI 20%, NFP 50% when every guard passes. Claims expires at 14 days; other votes at 45 days. CPI v4 shares Raycaster inputs and exact publication snapshots. Inspector marker filters do not select context inputs.', '',
     '| Date | USD bias | Evidence | Score | Latest update |', '| --- | --- | --- | --- | --- |',
-    ...replays.map(r => `| ${r.date} | ${r.direction} | ${r.strength} | ${r.total} | ${r.update} |`), ''].join('\n'), 'utf8')
+    ...replays.map(r => `| ${r.date} | ${r.direction} | ${r.strength} | ${r.total} | ${r.update} |`), ...interactionAuditMarkdown(interactionAudit)].join('\n'), 'utf8')
   console.log(JSON.stringify({ snapshots: report.snapshots, workerMs: report.workerMs, mainThreadPulses: pulses, workerParity: true }))
 } finally { clearInterval(timer); await worker.terminate() }
 

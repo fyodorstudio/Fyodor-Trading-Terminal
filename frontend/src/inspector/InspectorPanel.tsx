@@ -176,7 +176,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
             showScoringV2 ? <CpiScoreV2 key={release.id} release={release} brokerId={view.brokerId}
               events={scoringEvents} /> :
             showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={scoreRelease} history={view.magnitudeHistory}
-              brokerId={view.brokerId} events={scoringEvents} /> :
+              brokerId={view.brokerId} events={scoringEvents} now={view.now} timeDisplay={timeDisplay} /> :
             <InspectorReadingsTable release={release} view={view} timeDisplay={timeDisplay} sharedPeriod={sharedPeriod} />}
           </>}
         </div>

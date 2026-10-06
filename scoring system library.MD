@@ -36,7 +36,10 @@ not promises about the release candle or a future price move.
 | USD ISM Services v1 | Retired standalone screen | Original 35/25/25/15 sector policy is documented and retained internally for v2/v3 and audit reproduction. |
 | USD ISM monthly context v2 | Scoring system v2 on either ISM family | Services 70% plus Manufacturing 30%, same reference month, publication-time reconstruction, one bias and grouped evidence. Implemented; user audit next. |
 | USD ISM monthly resolution v3 | Scoring system v3 on either ISM family | One latest available monthly bias, weighted sector contributions and a plain explanation of which evidence wins. V2 component math and evidence policy are preserved. |
-| USD context memory v3 / Raycaster | Chart header → Raycaster; CPI v4 context | CPI/NFP/Claims/ISM/Retail weights 40/30/10/10/10; portable inputs shared by CPI v4 and Raycaster, independent of marker filters. One USD-side bias, with Claims 14-day freshness and labor-disagreement evidence cap. Earlier policies archived below. |
+| USD GDP v1 | Scoring system | GDP/real consumption/final sales weights 50/30/20; first stored quarter estimate versus prior four quarters, or same-quarter estimate revision; separate calibration populations. Implemented. |
+| USD PPI v1 | Scoring system | Core monthly/annual weights 50/30; headline monthly/annual 15/5. Earlier-history calibration and core gate. Implemented. |
+| USD FOMC action v1 / Fed Chair coverage | Scoring system | Hike/cut action interpretation, hold without action direction, explicit unavailable statement/speech text, economic context shown separately. Partial policy coverage; guidance scorer pending a text source. |
+| USD context memory v5 / Raycaster | Chart header → Raycaster; CPI v4 and registered publication panels | CPI/PCE/PPI 28/10/2, NFP/Claims 30/10, ISM/Retail/GDP 10/7/3. Qualified labor priority transfers 20 points from CPI to NFP. Fixed domain budgets; visible conditions and effective weights. Implemented; earlier policies archived below. |
 
 Inspector's other families have release tables and descriptive magnitude tools;
 that does not mean they already have directional scorers. FOMC/ECB episode
@@ -95,12 +98,12 @@ Unimplemented families fall back to Table.
 These weights, confirmation groups, thresholds and participation adjustment are
 explicit prototype policies; they are not fitted estimates or validated market
 probabilities. Monthly ISM v2 is the first implemented context combination; the
-USD context memory v3 now combines CPI, NFP, Claims, ISM and Retail; expansion to the remaining
-USD inputs remains planned.
+USD context memory v5 combines all numerical inflation, labor and activity menu families.
+FOMC guidance and Fed Chair text interpretation remain data-source work.
 
 Terminal validation and manual review status are recorded below.
 
-## Planned development order
+## Development order and remaining work
 
 The user accepted CPI/NFP signal visibility and its automatic magnitudes.
 Expansion has added USD PCE, ISM Services, the monthly ISM combination and Retail Sales v1.
@@ -138,10 +141,10 @@ broader context expansion will follow the remaining inputs.
 | 3a | ISM Manufacturing + monthly ISM v2 | Same-month goods/services context, preserved publication times | Implemented; user audit next |
 | 4 | Retail Sales | Consumer-demand context | Implemented v1; user audit next |
 | 5 | Jobless Claims | Employment updates between monthly reports | Standalone v1 and 10% labor-budget integration implemented |
-| 6 | GDP | Broad growth, expenditure components and revision context | Proposed; before FOMC |
-| Initial pilot now; expand after surrounding inputs | USD context engine | Update inflation, labor and growth assessments using latest known information | V3 implemented for CPI/NFP/Claims/ISM/Retail with shared Raycaster/CPI-v4 context filters; remaining families planned |
-| After the surrounding inputs | FOMC | Rate action plus changes in statement, projections and press-conference guidance | Proposed; requires source text, not merely a rate number |
-| Later | PPI, Fed Chair speeches | Additional context after the core families are useful | Proposed; order revisable |
+| 6 | GDP | Broad growth, expenditure components and revision context | V1 implemented with separate first-estimate/revision populations |
+| Initial pilot now; expand after surrounding inputs | USD context engine | Update inflation, labor and growth assessments using latest known information | V5 implemented for eight numerical families; shared controls and conditional labor–inflation priorities |
+| After the surrounding inputs | FOMC | Rate action plus changes in statement, projections and press-conference guidance | Rate action v1 implemented; statement/projection/conference interpretation needs timestamped source text |
+| Later | PPI, Fed Chair speeches | Additional context after the core families are useful | PPI v1 implemented and integrated; Fed Chair text coverage unavailable |
 | After FOMC | Broader USD context | Add policy guidance to inflation, employment and growth context | Planned |
 | Later | ECB and euro-area families | Relative EUR versus USD context for EURUSD | Proposed |
 | Later | Other currencies | Reuse infrastructure with explicit currency-specific policies | Proposed |
@@ -310,7 +313,7 @@ With all four automatic inputs enabled, v2 context is **Short / Moderate** at
 reported immediate price direction even after integration. This is not fixed
 by forcing a Short label. Missing EUR/policy/market information and different
 reaction windows remain possible explanations to investigate, not established
-causes. Jobless Claims standalone v1 is now implemented; GDP remains next before FOMC.
+causes. At this earlier audit stage Claims was implemented and GDP was next; current GDP/PPI coverage is documented in the v5 section.
 
 ### Archived: USD context memory v1 policy and initial audit
 
@@ -856,7 +859,9 @@ Reproduce after a frontend build:
 `node scripts/audit-claims-v1.mjs <claims-calendar.json> <output-prefix>`.
 The local ignored report is [Claims implementation audit](storage/data/claims-v1-design-audit.md).
 
-### Implemented: shared context v3 Claims integration
+### Archived policy: shared context v3 Claims integration
+
+Claims integration remains active; the fixed-weight policy is superseded by v4 below.
 
 Keep the existing total labor budget at **40%**, split into **NFP 30% + Claims 10%**.
 Together with CPI 40%, ISM 10% and Retail 10%, the total remains 100%.
@@ -875,8 +880,8 @@ use CPI → NFP → Claims → ISM → Retail. All unavailable evidence stays Un
 standalone declared zero-score tie direction remains eligible.
 
 Implemented following user authorization on 6 October 2026. Standalone scorer
-formulas remain unchanged. Next standalone family remains GDP, followed by
-policy-aware FOMC; conditional policy-regime interactions remain future work.
+formulas remained unchanged at this stage. GDP was then the next planned family.
+The v5 section records its implementation and the remaining policy-text dependency.
 
 Methodology: [DOL claims definitions](https://oui.doleta.gov/press/2016/122916.pdf),
 [DOL release: reference weeks and revisions](https://www.dol.gov/sites/dolgov/files/OPA/newsreleases/ui-claims/20260478.pdf),
@@ -884,6 +889,9 @@ Methodology: [DOL claims definitions](https://oui.doleta.gov/press/2016/122916.p
 
 
 ## Implemented: CPI v4 dual interpretation and shared publication context
+
+The initial fixed-weight v3 audit below is archived; current interaction policy
+and v4 audit follow in the next section. CPI v4 remains the Inspector menu label.
 
 Implemented 6 October 2026. Select **Scoring system v4** on a USD CPI release in
 EURUSD Inspector. The flat view presents:
@@ -957,3 +965,249 @@ Manual review: select CPI v4, compare standalone v3, resize the dock, toggle sha
 inputs from either CPI v4 or Raycaster, and inspect the source contributions and
 before/after explanation. Compare equal timestamps; an H1 candle end may include
 later releases. Visual verification remains with the user.
+
+
+## Archived: context memory v4 conditional labor–inflation priorities
+
+Implemented 6 October 2026 following the August/September 2025 user audit. This
+updates the shared context engine used by **CPI Scoring system v4** and Raycaster.
+It adds a declared data interaction, rather than changing individual source
+readings or inserting historical date exceptions. No new event family is added.
+
+**Rule:** prioritise confirmed labor deterioration when opposing CPI pressure
+stays within explicit escalation guards. Every condition must pass:
+
+| Condition | Requirement |
+| --- | --- |
+| Labor deterioration | Active, complete, Strong USD-weakening NFP; hiring below its recent average and unemployment rising |
+| Opposing inflation | Active, complete USD-supportive CPI |
+| Current core pace | Core CPI m/m ≤ 0.30% |
+| Recent core pace | Latest three-month core m/m average ≤ 0.30% |
+| Annual core level | Core CPI y/y ≤ 3.50% |
+| Positive acceleration | Monthly core block and annual core each at most Medium / 2 magnitude points |
+
+The monthly block uses **max(0, fresh points, trend points)** for this gate. It
+does not add overlapping signals. The source-overlap review found that fresh
+and trend already divide a fixed 70% source budget and share an evidence group;
+standalone CPI v3.1 is preserved. Context CPI's budget is reduced only when the
+conditional rule passes. Source grades remain source grades.
+
+| Policy | CPI | NFP | Claims | ISM | Retail |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Balanced priorities | 40% | 30% | 10% | 10% | 10% |
+| Labor priority | 20% | 50% | 10% | 10% | 10% |
+
+The 20-point transfer is an explicit analytical priority, not an estimated FX
+coefficient. These inflation ceilings are prototype safeguards, **not Fed targets
+or proof that inflation is acceptable to policymakers**. Guidance-aware policy
+regimes remain future work. The output means easing pressure under this declared
+interpretation, not an observed Fed intention. No forecast or price outcome enters.
+
+The rule enters/exits at eligible publication or expiry snapshots. It requires
+both CPI and NFP enabled and active; missing/partial/moderate NFP, absent validated
+traits, cooling CPI or hotter inflation retains base priorities. Fresh publications
+replace old assessments even when uncomputed. Missing/Off/expired weights are not
+redistributed. Claims stays a single 14-day slot; other votes expire after 45 days.
+Opposing CPI and NFP cannot produce Strong combined evidence under this rule;
+a narrow lead still produces Weak. Existing cancellation/Uncomputed policy remains.
+
+**Visibility:** CPI v4 and the Raycaster gear show the same rule label, every
+condition's Met/Not met/Unavailable state, effective weights and changed base
+weights. Raw source bias/score remains visible. A collapsed Raycaster names active
+Labor priority. CPI's before/after text separates source replacement at old weight
+from the CPI priority effect, and identifies reweighting of other existing votes.
+Simultaneous Claims/CPI still enter atomically. No context rule is inferred from
+later Powell remarks or a subsequent Fed decision.
+
+**Implementation:** small `usd-context/core/interaction/` modules own typed traits
+and guard logic; canonical scorers validate and calculate all features. Shared
+`ContextPolicyDetails` owns presentation. Worker timeline rebuild rules, binary
+hover lookup, saved filters, Scatter magnitudes and workspace compatibility remain.
+Standalone scorer totals/directions/evidence/magnitudes remain unchanged.
+
+**Audit discipline:** freeze default guards before replay; compare every stored
+publication with archived v3, report earlier 2015–2024 separately, and disclose
+0.25/0.35 monthly and 3.25/3.75 annual guard sensitivity. These coverage comparisons
+have no historical FX return labels and cannot measure predictive success.
+The two user cases motivated the hypothesis. Defaults were declared before the
+broader replay; that does not make these cases independent validation.
+
+**Verification on 6 October 2026:** the full sequential frontend suite, lint and
+production build passed. Additional interaction regressions cover hotter
+inflation, unchanged/recovering labor, missing/Off/expired sources, guard boundaries,
+manual magnitudes, visible effective/base arithmetic and future removal. Even
+with Labor priority active, sufficiently strong opposing activity/Claims votes
+can still produce Short: the rule changes priorities, not a forced Long override.
+
+All **140 CPI, 141 NFP, 284 ISM, 144 Retail and 606 Claims** standalone totals,
+directions, evidence and change size match the prior reports. Across **1,315
+publication snapshots**, Labor priority is active at **35**, and direction changes
+versus v3 at **24**. All base-policy publication results retain their prior score
+and direction. There are 1,244 prepared timeline points. These are interpretation
+coverage counts, not price hit rates.
+
+| Period | Publications | Labor priority active | Direction changes |
+| --- | ---: | ---: | ---: |
+| 2015–2024 | 1,124 | 15 | 6 |
+| 2025–2026 | 191 | 20 | 18 |
+
+Thirteen full future-removal replays pass, including the two user cases and
+older affected context on 1/21 September 2017 and 9 April 2020. Both production
+workers match pure functions; one context worker run took about 10.4 seconds
+while the main event loop remained active. Hover remains a binary lookup, and
+selection/heartbeat worker-reuse checks pass. Reconstructed source vintages can
+contain later revisions; date filtering cannot undo them.
+
+| CPI publication | Standalone CPI | Previous combined v3 | Current combined context v4 |
+| --- | --- | --- | --- |
+| 12 August 2025 | Short / Strong, unchanged | Short / Weak, +0.3045 | **Long / Weak, -0.2455** |
+| 11 September 2025 | Short / Strong, unchanged | Short / Weak, +0.2405 | **Long / Weak, -0.2895** |
+| 12 August 2026 | Long, unchanged | Long / Moderate, -0.773 | Long / Moderate, -0.773 |
+
+August 2025: effective CPI +0.29 and NFP -0.65, with Claims +0.02, ISM -0.1055 and
+Retail +0.20. September: CPI +0.32, NFP -0.525, Claims -0.18, ISM +0.0305 and Retail
++0.065. Both remain Weak because opposing votes leave a narrow net lead. August's
+CPI still reduces support for an existing Long context; September's simultaneous
+Claims/CPI update reinforces Long. Matching the observed rally does not imply
+CPI itself became cooling or prove attribution of the exact release candle.
+
+**Sensitivity:** the default 0.30% monthly guards yield 35 active / 24 changed
+publications. Tightening both monthly guards to 0.25% yields 19 / 10 and returns
+both 2025 user cases to Short. Relaxing to 0.35%, or varying the annual ceiling to
+3.25%/3.75%, leaves this inventory's default outcomes unchanged. The prototype
+therefore depends materially on the monthly ceiling. Keep that visible and audit
+broader reactions before treating the rule as established policy interpretation.
+No sensitivity variant was selected by optimizing price outcomes.
+
+Manual audit candidates: the two 2025 cases, changed CPI context on **14 September
+2017**, hotter-inflation releases where the rule stays Off, and weaker NFP that
+fails the full confirmation gate. Compare H1 release windows separately from
+later reversals; these stored audits contain no standardized FX return labels.
+
+Report: [USD context v4 coverage and sensitivity audit](storage/data/usd-context-v4-design-audit.md).
+After a frontend build, use the same five-snapshot audit command with a v4 output
+prefix; it requires the archived v3 and standalone JSON reports. Shared policy
+source and UI details are documented in [USD context](frontend/src/usd-context/README.md).
+No visual automation or screenshot audit was performed.
+
+Research context, not scoring inputs: [Powell's 22 August 2025 speech](https://www.federalreserve.gov/newsevents/speech/powell20250822a.htm)
+discusses balancing inflation and employment risks. It occurs after the August
+12 release, so it cannot be used to classify that earlier publication. The
+prototype does not import this speech, later Fed decisions or survey forecasts.
+
+### Implemented: USD numerical menu completion and context v5
+
+The current numerical USD menu now has standalone policies for CPI, PCE, PPI,
+NFP, Claims, both ISM sectors, Retail Sales and GDP. Original established source
+formulas remain unchanged. Every registered full scorer also shows combined
+economic context at the selected publication; CPI retains its dedicated v4 view.
+
+**GDP v1:** GDP growth 50%, real consumer spending 30%, real final sales 20%.
+The first stored estimate of a quarter compares each growth rate with the latest
+usable readings of the preceding four consecutive quarters, with the mean
+floored at zero. A valid supplied Revised Previous replaces the nearest prior
+quarter. A later stored estimate compares actual with the latest earlier
+estimate of the same quarter, ignoring Previous as a quarter-growth benchmark.
+First-quarter estimates and revisions calibrate separately against strictly
+earlier signals; each component needs 24 usable observations. GDP itself is
+required. Missing quarters, ambiguous latest readings and invalid units do not
+fall back to another quarter. Consumption is the demand evidence group; GDP and
+final sales share output. They overlap, so agreement is not independence.
+Quarterly inflation rows are non-voting context, not another monthly PCE vote.
+A revision replaces the GDP context slot with the revision interpretation.
+The feed does not certify that the first stored estimate is BEA's advance
+estimate, or guarantee original data vintages.
+
+**PPI v1:** core monthly pace 50%, annual core change 30%, headline monthly pace
+15%, annual headline change 5%. Pace compares actual with the preceding three
+consecutive months, incorporating supplied Revised Previous for the nearest
+month. Annual change uses Revised Previous when present, otherwise Previous.
+A calibrated core component is required. Monthly core/headline share one
+evidence group; annual readings share another. This catalog's core excludes
+food and energy; it does not supply the separate less-food-energy-trade-services
+measure. PPI describes producer selling prices and receives only a small
+upstream-inflation share; it is not a numerical PCE forecast.
+
+Both use signed magnitude points 0–4, fixed source weights, 24 earlier usable
+signals, nearest-rank 1/3, 2/3 and .90 automatic boundaries with ties retained,
+and the existing grouped evidence policy. Missing weights do not redistribute.
+Exact cancellation follows table order; all-zero/unavailable evidence remains
+Uncomputed. Scoring signal mode exposes exact derived inputs, baselines and
+custom limits; overrides are portable and independent of original A−P settings.
+
+**Context v5 budgets:** inflation remains 40% (CPI 28, PCE 10, PPI 2); labor
+remains 40% (NFP 30, Claims 10); activity remains 20% (ISM 10, Retail 7, GDP 3).
+Weights are declared priorities, not fitted price coefficients. GDP expires
+after 120 days; Claims after 14; other numerical slots after 45. Off/unavailable
+weights are never redistributed. Enabling new inputs adds their assigned weight;
+it does not stack another full inflation or activity domain budget.
+The existing labor-priority conditions transfer 20 points from CPI to NFP
+(CPI 8, NFP 50). An active Strong USD-supportive PCE/PPI assessment with total
+at least 2 blocks that transfer as an additional inflation-escalation guard.
+This threshold is a prototype judgment; no price outcome or date chooses it.
+
+Saved defaults migrate from the former four-family array or version-2 full
+five-family object to all eight inputs. Partial/all-off selections remain exact.
+Version-3 selections preserve deliberate new-family exclusions on reload and
+workspace restoration. Tables show every source, its effective weight,
+contribution and evidence. Both tools consume the same canonical source scorers.
+
+**FOMC and Fed Chair limitation:** the actual feed contract stores rate values
+and event labels, without statement, projections, press-conference answers or
+speech content. FOMC action v1 interprets a hike as USD-supportive and a cut as
+USD-weakening, both with Weak rate-action evidence because guidance is absent.
+A hold gives the factual label Rate hold and no fabricated action bias. Invalid
+rate data or a speech-only event is Uncomputed with the missing-text explanation.
+The accompanying economic-context panel can still give Long/Short from prior
+numerical releases. Fed action/tone adds no Raycaster weight. Full policy-aware
+menu completion requires a timestamped text source and a declared guidance
+interpretation policy; this pass does not claim that capability exists.
+
+Next work: acquire publication-timestamped official Fed materials, distinguish
+rate action from changes in forward guidance and projections, and update the
+same context engine atomically at statement/conference times. No look-ahead from
+a later speech, press conference or subsequently revised release is admissible.
+User audit remains the next review of the completed numerical policies.
+
+Methodology references:
+- [BEA GDP revisions](https://www.bea.gov/gdp-revision-information): separate quarter growth and revisions to estimates.
+- [BLS PPI definitions](https://www.bls.gov/ppi/faqs/questions-and-answers.htm): producer prices and the distinct exclusion measures.
+- [Federal Reserve FOMC materials](https://www.federalreserve.gov/monetarypolicy/fomc.htm): policy statements and related guidance are separate source content.
+
+Validation and local audit results are recorded after the chronological replay.
+Visual UI audit remains with the user, including the expanded Raycaster table,
+GDP/PPI signal selector and each publication-context panel at short dock heights.
+
+**V5 stored implementation audit:** source Elev8-Demo2, revision 78432,
+137 GDP publications (36 Long, 45 Short, 56 Uncomputed) and 140 PPI publications
+(56 Long, 60 Short, 24 Uncomputed). Early insufficient calibration and absent
+comparison data stay visible instead of becoming directional guesses. Every
+GDP/PPI release passed removal of same-time/later inventory; each plotted value,
+magnitude point, calibration count, boundary, input and missing-data reason
+matched its scorer. The eight-family timeline contains 1,489 snapshots. Twelve
+full-context publication replays passed across 2017, 2020, 2022, 2025 and 2026,
+including simultaneous Claims/CPI and GDP/PCE publications.
+
+The August 12 and September 11, 2025 CPI combined outputs remain EURUSD Long /
+Weak, with USD totals −0.2715 and −0.375 under the expanded history and weights.
+August 12, 2026 is Long / Weak (−0.952). These are implementation replay results,
+not additional independent price-validation observations.
+
+Production worker parity passed: full context approximately 13 seconds, latest
+GDP approximately 97 ms and latest PPI approximately 81 ms in this run, while
+the main event loop stayed active. These are calculation timings, not UI
+benchmarks. The snapshot contains 304 Fed/Chair publication groups, 32
+directional rate actions and 63 holds; no speech/statement text is available.
+
+Reproduce after building:
+```powershell
+node frontend/scripts/audit-usd-menu-v5.mjs storage/data/usd-menu-v5-design-snapshot.json storage/data/usd-menu-v5-design-audit
+```
+The local snapshot/report live in ignored personal calendar storage. Audit logic
+and tests are tracked. [Local v5 audit](storage/data/usd-menu-v5-design-audit.md).
+
+Terminal verification: the complete frontend test command passed, including
+new model and mounted integration tests. Final lint, TypeScript/Vite production
+build and diff whitespace checks passed. After separating GDP Scatter
+distribution populations, GDP/PPI parity and the shared signal-plot regressions
+passed again. No visual browser or screenshot audit was performed.
