@@ -4,6 +4,7 @@ import type { InspectorRelease } from '../../../../../../inspector-data'
 import { useStoredCalendar } from '../../../../../../useStoredCalendar'
 import { signalHistoryStart } from '../../../../../shared/core/historical-release-signals'
 import { assessNfpScoreV2, nfpV2SeriesIds } from '../assessment/nfp-score-v2'
+import { nfpSignalSettings } from '../../../../../shared/core/signal-magnitude-settings'
 
 const format = (value: number | null) => value === null ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: 3, signDisplay: 'exceptZero' })
 const scope = { currency: 'USD' as const, eventIds: nfpV2SeriesIds }
@@ -15,7 +16,8 @@ export function NfpScoreV2({ release, brokerId, events }: {
   const range = useMemo(() => at === null ? null : ({ from: signalHistoryStart - 2 * 86400000, to: at + 2 * 86400000 }), [at])
   const storage = useStoredCalendar(brokerId, range, !!range, scope)
   const history = brokerId ? storage.events : events
-  const assessment = useMemo(() => assessNfpScoreV2(release, history), [release, history])
+  const settings = nfpSignalSettings.useSettings()
+  const assessment = useMemo(() => assessNfpScoreV2(release, history, settings), [release, history, settings])
   if (!assessment) return null
   const loading = storage.loading
   const direction = loading ? 'uncomputed' : assessment.direction
@@ -59,9 +61,9 @@ export function NfpScoreV2({ release, brokerId, events }: {
     <p>Evidence strength describes agreement across employment, unemployment and wage groups. Change size describes historical signal magnitude. Neither is a probability or a size of a price move. Limited data and conflicting readings have separate explanations.</p>
     <p>Each component uses its own earlier history since January 2015, with at least 24 usable signals. Weights are 40 / 30 / 15 / 10 / 5, without redistribution. Exact cancellation follows the table order. No usable hiring/unemployment component or no directional evidence remains Uncomputed.</p>
     <ul>{assessment.readings.map((row) => <li key={row.id}>{row.label}: {format(row.value)} {row.unit} · N = {row.sampleCount} ·
-      {row.limits ? ` boundaries ${row.limits.map((n) => n.toLocaleString(undefined, { maximumFractionDigits: 6 })).join(' / ')} ${row.unit}` : ' boundaries unavailable'}
+      {row.limits ? ` ${row.magnitudeMode === 'custom' ? 'manual override' : 'automatic'} boundaries ${row.limits.map((n) => n.toLocaleString(undefined, { maximumFractionDigits: 6 })).join(' / ')} ${row.unit}` : ' boundaries unavailable'}
     </li>)}</ul>
-    <p>This is an employment-release bias without forecasts, CPI, Fed decisions or price inputs. Historical stored readings may include provider revisions. Original manual magnitude settings remain separate.</p>
+    <p>This is an employment-release bias without forecasts, CPI, Fed decisions or price inputs. Historical stored readings may include provider revisions. Scatter Plot → Scoring signal shows these inputs and lets you apply component magnitude overrides. Original A−P boundaries remain separate.</p>
     {coverageMissing && <p>Partial calendar coverage; earlier calibration uses the available observations.</p>}
   </div>
 }

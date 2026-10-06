@@ -160,7 +160,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
               events={view.allReleases.flatMap((item) => item.events)} /> :
             showScoringV2 ? <CpiScoreV2 key={release.id} release={release} brokerId={view.brokerId}
               events={view.allReleases.flatMap((item) => item.events)} /> :
-            showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release} history={view.magnitudeHistory} /> :
+            showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release} history={view.magnitudeHistory}
+              brokerId={view.brokerId} events={view.allReleases.flatMap((item) => item.events)} /> :
             <div className="inspector-table-scroll"><table className={showHistograms ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
               <thead><tr><th>Series</th>{showReadingTimes && <th>Release time</th>}<th>Actual</th><th>Previous</th>
                 {showReadingTimes && <th>Forecast</th>}<th>A−P</th>{showReadingTimes && <th

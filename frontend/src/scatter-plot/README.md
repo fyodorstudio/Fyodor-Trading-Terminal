@@ -5,7 +5,7 @@ families. Speeches remain nonnumeric. NFP/CPI/PPI default to the latest complete
 family episode: exactly one usable Actual/Previous reading per admitted ID.
 Other families default to the latest usable selected-series publication, since
 siblings can publish on different schedules. X is publication date (UTC),
-Y signed Actual minus supplied Previous. Forecast is excluded. Existing dots are
+Y signed Actual minus supplied Previous in the default measure. Forecast is excluded. Existing dots are
 connected by straight lines by default. Raw dots and their connecting line remain
 visible with Undefined magnitude; later samples never dim.
 
@@ -25,13 +25,51 @@ Duplicates, missing/nonfinite/incompatible values, unobserved/withdrawn/uncertai
 rows and future schedules are excluded. Corrections replace samples. Stored
 values are not point-in-time vintages. Selection preserves the inventory query.
 
+## Scoring signal visibility (CPI v3, NFP v2 and PCE v1)
+
+These three families also expose **Measure → Scoring signal**, replacing Series
+with a Signal selector. CPI shows latest core pace, overlapping core trend,
+annual core change and headline context. NFP shows hiring pace, inverse
+unemployment change, wage pace, payroll revision and working hours. PCE shows
+latest core/headline pace and annual core/headline change. Its monthly comparison
+includes supplied Revised Previous for the nearest preceding month; annual
+comparison prefers supplied Revised Previous. Labels disclose revised inputs.
+Each uses
+the same feature extractor and magnitude calibration as the Inspector scorer.
+The sidebar shows source/comparison labels, values, the exact derived signal,
+formula, magnitude, calibration N and unavailable reasons. Positive is USD
+supportive; negative is USD adverse. A component is not the full release bias.
+
+Automatic boundaries are nearest-rank 1/3, 2/3 and .90 percentiles of earlier
+nonzero absolute component values. Zero observations count toward N but not
+percentiles; at least 24 usable earlier values are needed to score. Tied
+boundaries are retained and can leave a bucket empty. Dots can show valid values
+before calibration is sufficient; missing inputs leave gaps, never zero dots.
+Selecting a dot updates the bands using only publications preceding that release.
+Every tooltip reports its own historical classification, not the selected dot's
+classification. Later dots are visible context and cannot change earlier bands.
+
+**Manual override** offers strictly increasing positive cutoffs. Valid edits
+preview the chart; **Apply to scorer** saves that component's boundaries and
+updates its Inspector scorer immediately. **Use automatic** removes the override.
+Overrides apply across historical releases and retain the minimum-history gate;
+they are present-day user settings, not historical settings vintages. Other
+component/family settings and original A−P magnitudes remain separate. Scope
+changes discard unsaved previews. The Measure selection is local to the dock;
+saved boundaries survive reopening and travel with workspace export/import.
+
+Signal settings live under independent `CPI-V3-SIGNALS`, `NFP-V2-SIGNALS` and `PCE-V1-SIGNALS`
+magnitude scopes. Unsupported families retain the original Series/A−P controls;
+contextual combinations are a separate planned layer.
+
 ## Navigation and appearance
 
 The initial X viewport includes the selected/latest completed release and up to
 12 prior usable readings. A normal monthly series therefore shows 13 points,
 including the same release month a year earlier. All admitted observations stay
 in the model and remain available through pan/zoom or All history. Calculation N,
-manual limits and histogram frequencies always use the complete dataset.
+manual limits and histogram frequencies use the complete dataset in A−P mode.
+Scoring-signal calibration uses only earlier publications regardless of viewport.
 
 Latest release selects the newest eligible episode/selected-series publication and restores this
 recent X window, including after manual pan/zoom or All history. It preserves a
@@ -79,6 +117,7 @@ magnitude keys. Workspace Settings export/import carries both.
 - `navigation/`: explicit broker/family/release targets for Inspector shortcuts.
 - `contracts/`: plot data contracts; renderers do not fetch inventory.
 - `inspection/`: family model and selected reading details.
+  `scoring-signal-model.ts` adapts existing scorer features without duplicating formulas.
 - `plot/`: recent-date window, straight-line paths, geometry, interaction, crosshair and renderer.
 - `settings/`: manual draft/Freeze form, global appearance and color controls.
 - `controls/`: supported selector and navigation controls.
@@ -98,6 +137,9 @@ manual freeze/unfreeze and inclusive boundaries, malformed persistence, migratio
 per-scope isolation, shared palette/store events, drafts, recent/all X windows,
 line gaps/styles/clipping, exact Inspector targets, Latest reset and preserved Y.
 The 140-release ten-series fixture reports calculation time as a baseline.
+`tests/scatter-plot/test_scoring_signals.mjs` verifies signal/scorer parity,
+chronological calibration, tied quantiles, input labels, missing-data gaps,
+preview/apply/reset, live Inspector updates, scope isolation and workspace restore.
 
 Visual/manual checks belong to the user: layout/dock sizing, pointer feel,
 contrast/hit targets, colors/guide styling and full-range/boundary zoom readability.

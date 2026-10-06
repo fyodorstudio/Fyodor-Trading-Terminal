@@ -32,6 +32,7 @@ NFP/CPI score versions, magnitude persistence keys, boundaries or dataset admiss
 The Inspector view dropdown contains Table only, Scoring system and Scatter Plot,
 with Scoring system v2 available for US/USD CPI and NFP on EURUSD, and v3
 available for US/USD CPI. The saved v2 mode selects the appropriate family scorer.
+US/USD PCE on EURUSD now has its first derived scorer under Scoring system.
 Scatter Plot opens the selected release without changing the saved Inspector view.
 Table only is the default Inspector view. Scoring system replaces the readings
 table with the registered family's scores; CPI retains separate index/rate
@@ -47,8 +48,8 @@ its magnitude family separately if needed; a magnitude catalog alone never inven
 a directional score. Document the policy and add regression cases for missing,
 duplicate and undefined readings, native units, signs and cancellation.
 
-Existing regression coverage lives in `frontend/tests/inspector/nfp` and
-`frontend/tests/inspector/cpi`; navigation and workspace tests cover view selection,
+Existing regression coverage lives in `frontend/tests/inspector/nfp`,
+`frontend/tests/inspector/cpi` and `frontend/tests/inspector/pce`; navigation and workspace tests cover view selection,
 refresh persistence and unsupported families. Shared code should stay free of
 family-specific event IDs and pair direction rules.
 
@@ -255,3 +256,88 @@ node scripts/audit-nfp-v2.mjs <calendar.json> <output-prefix>
 This chronological audit records all component readings, thresholds, reasons and
 recent outputs without tuning or claiming price accuracy. The broader project
 inventory and next-family roadmap live in the root `scoring system library.MD`.
+
+## USD PCE v1 inflation-change prototype
+
+`PAIR/EURUSD/USD/PCE/assessment/pce-score.ts` and `ui/PceScore.tsx` implement the
+first PCE scorer, selected with **Scoring system**. Only monthly PCE inflation
+IDs 840010001/002/003/004 enter; GDP's quarterly core PCE series is excluded.
+The view independently fetches its four native percentage series from January
+2015, even when original A−P magnitude settings are Undefined.
+
+| Signal | Calculation | Weight |
+| --- | --- | --- |
+| Latest core pace | Actual core m/m minus preceding three-month mean | 45% |
+| Annual core change | Actual core y/y minus annual comparison | 30% |
+| Latest headline pace | Actual headline m/m minus preceding three-month mean | 15% |
+| Annual headline change | Actual headline y/y minus annual comparison | 10% |
+
+For monthly means, all three consecutive earlier reference months must exist.
+When this release supplies Revised Previous, it replaces only the nearest
+preceding month's actual in that comparison average. Older two months remain the
+latest unique earlier stored actuals; a single revision field cannot reconstruct
+an entire revised history. Annual comparisons use supplied Revised Previous when
+present, otherwise supplied Previous. A supplied but malformed/nonfinite revision
+disables that component instead of silently falling back. Input labels disclose
+the selected comparator. Revisions affect the baseline without a separate vote.
+
+This matters when annual inflation appears to fall against the old Previous but
+equals the revised prior reading: the fresh annual-change signal is zero. These
+rules are specific to this PCE policy; existing CPI and NFP formulas stay intact.
+BEA publishes monthly estimates and annual updates that can revise earlier
+results. See [BEA's August 2026 release](https://www.bea.gov/news/2026/personal-income-and-outlays-august-2026).
+
+Core receives 75% of the weighted vote. Core/headline monthly features share one
+evidence group; both annual features share another, so two overlapping same-horizon
+readings cannot create two confirmations. Shared earlier-only magnitude and
+evidence helpers retain 24 usable earlier observations, nearest-rank 1/3 / 2/3 /
+.90 quantiles, tied boundaries, signed 0–4 points, weak/moderate/strong evidence,
+and separate historical change size. These are judgment policies, not fitted
+weights, statistical independence or market-prediction probabilities.
+
+At least one usable calibrated core component is required. Missing weights are
+not redistributed. Exact cancellation follows core pace, annual core, headline
+pace, annual headline. A usable direction is Long/Short; absent directional
+evidence is Uncomputed, with the reason. Forecast, prices, CPI and Fed decisions
+never enter. Annual headline PCE relative to 2% is non-voting policy context;
+high levels alone do not imply a fresh hike or add a directional vote.
+
+The [Fed's 2% objective](https://www.federalreserve.gov/economy-at-a-glance-inflation-pce.htm)
+uses annual headline PCE. [Core PCE](https://www.bea.gov/help/faq/518) excludes food
+and energy; its prominence in this prototype does not redefine that objective.
+
+`tests/inspector/pce/test_pce_score.mjs` covers formulas, conflicts/ties, evidence
+grouping, target context, revisions and malformed fields, insufficient/missing
+history, duplicate/reference/native-unit/source gates, chronology and forecast
+exclusion. It also covers flat Inspector registration/navigation, scoped requests,
+chart/scorer parity, manual preview/apply/reset, scope isolation and live workspace
+restore. Stored readings can overwrite vintages; date guards do not fix that.
+
+```sh
+node scripts/audit-pce-v1.mjs <calendar.json> <output-prefix>
+```
+
+This chronological implementation audit checks chart/scorer parity and reports
+coverage/components without tuning parameters or evaluating price outcomes.
+
+## Shared signal magnitude visibility
+
+CPI v3, NFP v2 and PCE v1 expose their exact component inputs in Scatter Plot's
+**Scoring signal** measure. Exported feature extractors and
+`shared/core/historical-release-signals.ts` are shared with the chart; weights,
+direction rules and evidence policies are unchanged. Automatic calibration stays
+strictly earlier-only, retaining tied percentiles and the 24-observation gate.
+
+`shared/core/signal-magnitude-settings.ts` provides separate immutable settings
+stores for these derived components. A saved manual override replaces only that
+component's automatic cutoffs; the optional third assessment argument supplies
+these settings in pure callers. Inspector UI subscribes independently of the dock.
+CLI assessments default to automatic boundaries. Original A−P boundaries and
+older scoring versions remain separate. Workspace export/import includes both
+signal scopes and refreshes mounted subscribers on restore.
+
+Unsaved chart previews do not update Inspector. Applying an override changes
+historical classifications too, and does not reconstruct historical settings or
+provider vintages. The sidebar discloses the source; **Use automatic** restores
+earlier-history calibration. These are magnitude controls, not new scoring weights
+or additional family/context votes. See the [Scatter Plot documentation](../../scatter-plot/README.md).

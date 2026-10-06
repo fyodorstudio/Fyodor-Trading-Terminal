@@ -3,6 +3,7 @@ import { groupInspectorReleases, type InspectorRelease } from '../../../../../..
 import { calibrateHistoricalSignal, earlierSignalReadings, nativeNumber, releaseSignalContext,
   usableSignal, unavailableSignal, type TimedReading, type HistoricalFeature } from '../../../../../shared/core/historical-release-signals'
 import { magnitudeEvidence } from '../../../../../shared/core/magnitude-evidence'
+import type { MagnitudeSettings } from '../../../../../../magnitude/settings/magnitude-settings-store'
 
 export const nfpScoreV2Version = 'nfp-eurusd-labor-context-v2'
 export const nfpV2SeriesIds = ['840030015', '840030016', '840030017', '840030018', '840030019',
@@ -11,7 +12,7 @@ const rules = nfpV2SeriesIds.map((id) => ({ id, units: id === '840030020' ? [3] 
   ['840030016', '840030022', '840030023', '840030032'].includes(id) ? [0, 4] : [1],
   multiplier: ['840030016', '840030022', '840030023', '840030032'].includes(id) ? 1 : 0 }))
 const scoringIds = ['840030016', '840030015', '840030018', '840030020']
-const signals = [
+export const nfpV2Signals = [
   { id: 'hiring', label: 'Hiring pace', group: 'employment', weight: 40, unit: 'thousand jobs',
     description: 'Actual payroll job change minus the preceding three-month average, with the comparison average floored at zero.' },
   { id: 'unemployment', label: 'Unemployment', group: 'slack', weight: 30, unit: 'pp',
@@ -23,6 +24,7 @@ const signals = [
   { id: 'hours', label: 'Working hours', group: 'employment', weight: 5, unit: 'hours',
     description: 'Actual weekly hours minus supplied Previous weekly hours.' },
 ] as const
+const signals = nfpV2Signals
 type SignalId = typeof signals[number]['id']
 type Features = Record<SignalId, HistoricalFeature>
 const mean = (values: number[]) => values.reduce((sum, n) => sum + n, 0) / values.length
@@ -30,40 +32,45 @@ const mean = (values: number[]) => values.reduce((sum, n) => sum + n, 0) / value
 export function supportsNfpV2(release: InspectorRelease | null) {
   return !!release && release.familyId === 'jobs' && release.currency === 'USD' && release.country === 'US'
 }
-function releaseFeatures(release: InspectorRelease, history: readonly TimedReading[]) {
+export function nfpV2Features(release: InspectorRelease, history: readonly TimedReading[]) {
   const context = releaseSignalContext(release, history, rules, scoringIds)
   const { current, reasons, recent, delta } = context
   function pace(id: string, floor: boolean) {
     const actual = nativeNumber(current.get(id)), preceding = recent(id)
     return actual === null ? unavailableSignal(reasons.get(id)!) : !preceding ?
       unavailableSignal('Requires usable actuals for the preceding three consecutive reference months.') :
-      usableSignal(actual - (floor ? Math.max(0, mean(preceding)) : mean(preceding)))
+      usableSignal(actual - (floor ? Math.max(0, mean(preceding)) : mean(preceding)), {
+        actual, baseline: floor ? Math.max(0, mean(preceding)) : mean(preceding), actualLabel: 'Actual',
+        baselineLabel: floor ? 'Prior three-month average (floor 0)' : 'Prior three-month average', unit: floor ? 'thousand jobs' : '%' })
   }
   function change(id: string, inverse = false) {
     const value = delta(id)
-    return value === null ? unavailableSignal(reasons.get(id) || 'Actual and supplied Previous are required.') : usableSignal(inverse ? -value : value)
+    return value === null ? unavailableSignal(reasons.get(id) || 'Actual and supplied Previous are required.') : usableSignal(inverse ? -value : value, {
+      actual: nativeNumber(current.get(id))!, baseline: nativeNumber(current.get(id), 'previous')!,
+      actualLabel: 'Actual', baselineLabel: 'Supplied Previous', unit: inverse ? '%' : 'hours' })
   }
   const payroll = current.get('840030016')
   const revised = nativeNumber(payroll, 'revised_previous'), previous = nativeNumber(payroll, 'previous')
   const features: Features = {
     hiring: pace('840030016', true), unemployment: change('840030015', true), wages: pace('840030018', false),
-    revision: revised === null || previous === null ? unavailableSignal(reasons.get('840030016') || 'Supplied Revised Previous and Previous payrolls are required.') : usableSignal(revised - previous),
+    revision: revised === null || previous === null ? unavailableSignal(reasons.get('840030016') || 'Supplied Revised Previous and Previous payrolls are required.') : usableSignal(revised - previous, {
+      actual: revised, baseline: previous, actualLabel: 'Revised Previous', baselineLabel: 'Supplied Previous', unit: 'thousand jobs' }),
     hours: change('840030020'),
   }
   return { features, context }
 }
 
-export function assessNfpScoreV2(release: InspectorRelease | null, events: readonly EconomicCalendarEvent[]) {
+export function assessNfpScoreV2(release: InspectorRelease | null, events: readonly EconomicCalendarEvent[], settings: MagnitudeSettings = {}) {
   if (!release || !supportsNfpV2(release)) return null
   const history = earlierSignalReadings(release, events, nfpV2SeriesIds)
-  const past = groupInspectorReleases(history).filter(supportsNfpV2).map((r) => releaseFeatures(r, history).features)
-  const { features, context } = releaseFeatures(release, history)
+  const past = groupInspectorReleases(history).filter(supportsNfpV2).map((r) => nfpV2Features(r, history).features)
+  const { features, context } = nfpV2Features(release, history)
   const participation = context.delta('840030017')
   const unemploymentFall = features.unemployment.value !== null && features.unemployment.value > 0
   const participationCaution = unemploymentFall && (participation === null || participation < 0)
   const readings = signals.map((signal) => {
     const samples = past.map((f) => f[signal.id].value).filter((n): n is number => n !== null)
-    const calibrated = calibrateHistoricalSignal(features[signal.id], samples)
+    const calibrated = calibrateHistoricalSignal(features[signal.id], samples, settings[signal.id])
     const weight = signal.id === 'unemployment' && unemploymentFall && participation !== null && participation < 0 ? signal.weight / 2 : signal.weight
     return { ...signal, ...calibrated, baseWeight: signal.weight, weight,
       contribution: calibrated.points === null ? null : calibrated.points * weight / 100 }

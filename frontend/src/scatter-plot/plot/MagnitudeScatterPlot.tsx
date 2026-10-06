@@ -30,7 +30,7 @@ export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', app
   const guides = distribution && distribution.threshold > 0 ? scatterGuideLevels(a, distribution.threshold,
     distribution.limits) : []
   return <div className="scatter-plot-canvas" ref={setElement}>
-    <svg ref={setSvg} viewBox={`0 0 ${size.width} ${size.height}`} role="group" aria-label="Release date versus signed A−P scatter plot"
+    <svg ref={setSvg} viewBox={`0 0 ${size.width} ${size.height}`} role="group" aria-label={model.measure === 'signal' ? 'Release date versus scoring signal scatter plot' : 'Release date versus signed A−P scatter plot'}
       className={dragging ? 'scatter-plot-dragging' : undefined}
       style={{ '--scatter-dot-color': a.dotColor, '--scatter-higher-color': a.higherColor, '--scatter-lower-color': a.lowerColor } as CSSProperties}
       data-date-from={g.first} data-date-to={g.last} data-delta-from={g.minDelta} data-delta-to={g.maxDelta}
@@ -75,8 +75,12 @@ export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', app
         const offScale = point.delta < g.minDelta || point.delta > g.maxDelta
         const radius = (selected ? a.selectedDotSize : a.dotSize) / 2
         const category = inspection?.magnitudeMode === 'undefined' ? 'Magnitude undefined' : distribution ? magnitudeSizeForValue(distribution.limits, point.delta) : 'No usable dataset'
-        const details = `${date(point.at)}. Actual ${formatReading(point.actual)}; Previous ${formatReading(point.previous)}; A−P ${formatDelta(point.delta)}. ` +
-          `${category}${distribution ? ' against all-dataset thresholds' : ''}. ${selected ? 'Inspected release.' : later ? 'Later release.' : 'Earlier release.'} Included in dataset.` +
+        const signal = point.signal
+        const signalReading = (value: number) => `${value.toLocaleString(undefined, { maximumFractionDigits: 6 })} ${signal?.inputs?.unit ?? model.deltaUnit}`
+        const details = (signal ? `${date(point.at)}. ${signal.description} ${signal.inputs!.actualLabel} ${signalReading(point.actual)}; ${signal.inputs!.baselineLabel} ${signalReading(point.previous)}; Scoring signal ${formatDelta(point.delta)}. ` +
+          `${signal.size ?? 'Unrated'}; ${signal.magnitudeMode === 'automatic' ? 'automatic earlier-history thresholds' : 'manual override'}; N = ${signal.sampleCount}. ${signal.reason} ` +
+          `${selected ? 'Inspected release.' : later ? 'Later release; context only.' : 'Earlier release.'}` : `${date(point.at)}. Actual ${formatReading(point.actual)}; Previous ${formatReading(point.previous)}; A−P ${formatDelta(point.delta)}. ` +
+          `${category}${distribution ? ' against all-dataset thresholds' : ''}. ${selected ? 'Inspected release.' : later ? 'Later release.' : 'Earlier release.'} Included in dataset.`) +
           (offScale ? ' Outside zoom range; marker is at the edge.' : '')
         return <g key={point.id} role="button" tabIndex={selected || (currentIndex < 0 && point === points[0]) ? 0 : -1}
           aria-label={details} aria-pressed={selected} data-point-id={point.id} data-release-id={point.releaseId}
@@ -97,7 +101,7 @@ export function MagnitudeScatterPlot({ model, zoom, onInspect, viewKey = '', app
       {g.dateTicks.map((at, index) => <text key={at} className="scatter-plot-tick" x={g.x(at)} y={g.bottom + 18}
         textAnchor={index === 0 ? 'start' : index === g.dateTicks.length - 1 ? 'end' : 'middle'}>{date(at)}</text>)}
       <text className="scatter-plot-axis-label" x={(g.left + g.right) / 2} y={size.height - 6} textAnchor="middle">Release date (UTC)</text>
-      <text className="scatter-plot-axis-label" transform={`translate(13 ${(g.top + g.bottom) / 2}) rotate(-90)`} textAnchor="middle">A−P / Delta</text>
+      <text className="scatter-plot-axis-label" transform={`translate(13 ${(g.top + g.bottom) / 2}) rotate(-90)`} textAnchor="middle">{model.axisLabel ?? 'A−P / Delta'}</text>
       <rect className="scatter-plot-axis-hit scatter-plot-axis-x" data-scale-axis="x" role="button" tabIndex={0}
         aria-label="Date axis zoom. Drag horizontally or scroll to zoom; double-click or press 0 to reset. Plus and minus also zoom."
         x={g.left} y={g.bottom} width={g.right - g.left} height={size.height - g.bottom}

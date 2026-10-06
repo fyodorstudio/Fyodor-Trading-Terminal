@@ -5,8 +5,9 @@ export function validMagnitudeLimits(value: unknown): value is MagnitudeLimits {
   return Array.isArray(value) && value.length === 3 && value.every((limit) => typeof limit === 'number' && Number.isFinite(limit)) &&
     value[0] > 0 && value[0] < value[1] && value[1] < value[2]
 }
-export function magnitudeDistribution(values: readonly number[], current: number | null, customLimits?: MagnitudeLimits) {
-  if (customLimits && !validMagnitudeLimits(customLimits)) throw new RangeError('Magnitude boundaries must satisfy 0 < Small < Medium < Large')
+export function magnitudeDistribution(values: readonly number[], current: number | null, customLimits?: MagnitudeLimits, automatic = false) {
+  const validAutomatic = customLimits && customLimits.every(Number.isFinite) && customLimits[0] > 0 && customLimits[0] <= customLimits[1] && customLimits[1] <= customLimits[2]
+  if (customLimits && !(automatic ? validAutomatic : validMagnitudeLimits(customLimits))) throw new RangeError('Magnitude boundaries must satisfy 0 < Small < Medium < Large (automatic quantiles may tie)')
   const samples = values.filter(Number.isFinite)
   if (!customLimits) return null
   const limits = [...customLimits]

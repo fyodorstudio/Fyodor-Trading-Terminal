@@ -1,13 +1,15 @@
 import type { EconomicCalendarEvent } from '../../../../../../calendar-event'
 import { groupInspectorReleases, inspectorDelta, type InspectorRelease } from '../../../../../../inspector-data'
 import { magnitudeEvidence } from '../../../../../shared/core/magnitude-evidence'
+import { calibrateHistoricalSignal, type HistoricalFeature, type SignalInputs } from '../../../../../shared/core/historical-release-signals'
+import type { MagnitudeSettings } from '../../../../../../magnitude/settings/magnitude-settings-store'
 
 export const cpiScoreV3Version = 'cpi-eurusd-release-change-v3.1'
 export const cpiV3HistoryStart = Date.UTC(2015, 0, 1)
 export const cpiV3SeriesIds = ['840030005', '840030006', '840030008'] as const
 export const cpiV3MinimumHistory = 24
 // Keep v2's weights and supporting signals to isolate the new primary signal.
-const signals = [
+export const cpiV3Signals = [
   { id: 'fresh', label: 'Latest core pace', group: 'core-monthly', weight: 35,
     description: 'Actual Core m/m minus the average actual Core m/m of the preceding three reference months.' },
   { id: 'trend', label: 'Core trend', group: 'core-monthly', weight: 35,
@@ -17,13 +19,14 @@ const signals = [
   { id: 'headline', label: 'Headline context', group: 'headline', weight: 10,
     description: 'Actual Headline m/m minus the average actual Headline m/m of the preceding three reference months.' },
 ] as const
+const signals = cpiV3Signals
 type SignalId = typeof signals[number]['id']
-type Feature = { value: number | null; reason: string }
+type Feature = HistoricalFeature
 type Features = Record<SignalId, Feature>
 type TimedEvent = EconomicCalendarEvent & { release_at: number }
 const clean = (n: number) => Math.round(n * 1e12) / 1e12 || 0
 const unavailable = (reason: string): Feature => ({ value: null, reason })
-const feature = (value: number): Feature => ({ value: clean(value), reason: '' })
+const feature = (value: number, inputs: SignalInputs): Feature => ({ value: clean(value), reason: '', inputs })
 
 export function supportsCpiV3(release: InspectorRelease | null) {
   return !!release && release.familyId === 'us-cpi' && release.country === 'US' && release.currency === 'USD'
@@ -48,7 +51,7 @@ function rate(event: EconomicCalendarEvent | undefined) {
   }
   return event.actual
 }
-function features(release: InspectorRelease, history: readonly TimedEvent[]): Features {
+export function cpiV3Features(release: InspectorRelease, history: readonly TimedEvent[]): Features {
   const failed = (reason: string): Features => Object.fromEntries(signals.map((s) => [s.id, unavailable(reason)])) as Features
   const at = release.releaseAt
   if (release.timingUncertain || at === null || !Number.isFinite(at)) return failed('A verified publication time is required.')
@@ -87,18 +90,17 @@ function features(release: InspectorRelease, history: readonly TimedEvent[]): Fe
   const mean = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length
   const annual = current.get('840030008')
   const annualDelta = annual ? inspectorDelta(annual) : null
+  const inputs = (actual: number, baseline: number, actualLabel: string, baselineLabel: string): SignalInputs =>
+    ({ actual, baseline, actualLabel, baselineLabel, unit: '%' })
   return {
-    fresh: core.values ? feature(core.values[0] - mean(core.values.slice(1))) : unavailable(core.reason),
-    trend: core.values ? feature(mean(core.values.slice(0, 3)) - mean(core.values.slice(1))) : unavailable(core.reason),
-    annual: annualDelta === null ? unavailable(reasons.get('840030008') || 'Core y/y Actual and supplied Previous are required.') : feature(annualDelta),
-    headline: headline.values ? feature(headline.values[0] - mean(headline.values.slice(1))) : unavailable(headline.reason),
+    fresh: core.values ? feature(core.values[0] - mean(core.values.slice(1)), inputs(core.values[0], mean(core.values.slice(1)), 'Actual core m/m', 'Prior three-month average')) : unavailable(core.reason),
+    trend: core.values ? feature(mean(core.values.slice(0, 3)) - mean(core.values.slice(1)), inputs(mean(core.values.slice(0, 3)), mean(core.values.slice(1)), 'Latest three-month average', 'Prior three-month average')) : unavailable(core.reason),
+    annual: annualDelta === null ? unavailable(reasons.get('840030008') || 'Core y/y Actual and supplied Previous are required.') : feature(annualDelta, inputs(rate(annual)!, rate(annual)! - annualDelta, 'Actual core y/y', 'Supplied Previous core y/y')),
+    headline: headline.values ? feature(headline.values[0] - mean(headline.values.slice(1)), inputs(headline.values[0], mean(headline.values.slice(1)), 'Actual headline m/m', 'Prior three-month average')) : unavailable(headline.reason),
   }
 }
-function quantile(sorted: readonly number[], fraction: number) {
-  return sorted[Math.max(0, Math.ceil(sorted.length * fraction) - 1)]
-}
 
-export function assessCpiScoreV3(release: InspectorRelease | null, events: readonly EconomicCalendarEvent[]) {
+export function assessCpiScoreV3(release: InspectorRelease | null, events: readonly EconomicCalendarEvent[], settings: MagnitudeSettings = {}) {
   if (!supportsCpiV3(release) || !release) return null
   const seen = new Set<string>()
   const history = events.filter((e): e is TimedEvent => {
@@ -107,21 +109,12 @@ export function assessCpiScoreV3(release: InspectorRelease | null, events: reado
     seen.add(e.value_id)
     return true
   })
-  const past = groupInspectorReleases(history).filter(supportsCpiV3).map((r) => features(r, history))
-  const current = features(release, history)
+  const past = groupInspectorReleases(history).filter(supportsCpiV3).map((r) => cpiV3Features(r, history))
+  const current = cpiV3Features(release, history)
   const readings = signals.map((signal) => {
     const samples = past.map((f) => f[signal.id].value).filter((n): n is number => n !== null)
-    const magnitudes = samples.map(Math.abs).filter((n) => n > 0).sort((a, b) => a - b)
-    const limits = magnitudes.length ? [quantile(magnitudes, 1 / 3), quantile(magnitudes, 2 / 3), quantile(magnitudes, .90)] : null
-    const value = current[signal.id].value
-    const reason = current[signal.id].reason || (samples.length < cpiV3MinimumHistory ?
-      `Needs ${cpiV3MinimumHistory} earlier usable signals; found ${samples.length}.` : value !== 0 && !limits ?
-        'Earlier signals are all zero; a nonzero magnitude cannot be calibrated.' : '')
-    const points = value === null || reason ? null : value === 0 ? 0 : Math.sign(value) *
-      (Math.abs(value) <= limits![0] ? 1 : Math.abs(value) <= limits![1] ? 2 : Math.abs(value) <= limits![2] ? 3 : 4)
-    return { ...signal, value, points, contribution: points === null ? null : points * signal.weight / 100,
-      size: points === null ? null : (['Unchanged', 'Small', 'Medium', 'Large', 'Extreme'] as const)[Math.abs(points)],
-      limits, sampleCount: samples.length, reason }
+    const calibrated = calibrateHistoricalSignal(current[signal.id], samples, settings[signal.id])
+    return { ...signal, ...calibrated, contribution: calibrated.points === null ? null : calibrated.points * signal.weight / 100 }
   })
   const usable = readings.filter((r) => r.points !== null)
   // Require at least one usable core component; headline alone is insufficient.

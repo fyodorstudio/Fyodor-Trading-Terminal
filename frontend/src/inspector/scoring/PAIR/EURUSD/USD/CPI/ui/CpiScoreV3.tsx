@@ -3,6 +3,7 @@ import type { EconomicCalendarEvent } from '../../../../../../calendar-event'
 import type { InspectorRelease } from '../../../../../../inspector-data'
 import { useStoredCalendar } from '../../../../../../useStoredCalendar'
 import { assessCpiScoreV3, cpiV3HistoryStart, cpiV3SeriesIds } from '../assessment/cpi-score-v3'
+import { cpiSignalSettings } from '../../../../../shared/core/signal-magnitude-settings'
 
 const format = (value: number | null) => value === null ? '—' : value.toLocaleString(undefined, { maximumFractionDigits: 3, signDisplay: 'exceptZero' })
 const scope = { currency: 'USD' as const, eventIds: cpiV3SeriesIds }
@@ -14,7 +15,8 @@ export function CpiScoreV3({ release, brokerId, events }: {
   const range = useMemo(() => at === null ? null : ({ from: cpiV3HistoryStart - 2 * 86400000, to: at + 2 * 86400000 }), [at])
   const storage = useStoredCalendar(brokerId, range, !!range, scope)
   const history = brokerId ? storage.events : events
-  const assessment = useMemo(() => assessCpiScoreV3(release, history), [release, history])
+  const settings = cpiSignalSettings.useSettings()
+  const assessment = useMemo(() => assessCpiScoreV3(release, history, settings), [release, history, settings])
   if (!assessment) return null
   const loading = storage.loading
   const direction = loading ? 'uncomputed' : assessment.direction
@@ -52,9 +54,9 @@ export function CpiScoreV3({ release, brokerId, events }: {
       <p>Conflicting readings still produce one weighted bias. Evidence strength describes agreement; the overlapping core monthly signals count as one group when assessing confirmation. Change size describes the average historical magnitude of usable signals, separately from agreement. Neither describes a probability or size of a price move.</p>
       <p>Magnitude points (0–4) use each component’s earlier history since January 2015, with at least 24 usable observations. Weights remain 35 / 35 / 20 / 10. Exact cancellation follows latest core pace, core trend, annual core, then headline. The two core monthly signals overlap and are related.</p>
       <ul>{assessment.readings.map((row) => <li key={row.id}>{row.label}: {format(row.value)} pp · N = {row.sampleCount} ·
-        {row.limits ? ` boundaries ${row.limits.map((n) => n.toLocaleString(undefined, { maximumFractionDigits: 6 })).join(' / ')} pp` : ' boundaries unavailable'}
+        {row.limits ? ` ${row.magnitudeMode === 'custom' ? 'manual override' : 'automatic'} boundaries ${row.limits.map((n) => n.toLocaleString(undefined, { maximumFractionDigits: 6 })).join(' / ')} pp` : ' boundaries unavailable'}
       </li>)}</ul>
-      <p>This bias interprets CPI alone, without forecasts or price inputs. It does not predict the release candle or later price moves. Stored historical readings may include provider revisions. Your original Scatter Plot boundaries remain separate.</p>
+      <p>This bias interprets CPI alone, without forecasts or price inputs. It does not predict the release candle or later price moves. Stored historical readings may include provider revisions. Scatter Plot → Scoring signal shows these inputs and lets you apply component magnitude overrides. Original A−P boundaries remain separate.</p>
       {coverageMissing && <p>Partial calendar coverage; earlier calibration uses the available observations.</p>}
     </div>
   </div>

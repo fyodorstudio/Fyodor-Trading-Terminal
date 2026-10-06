@@ -1,14 +1,16 @@
 import type { EconomicCalendarEvent } from '../../../calendar-event'
 import type { InspectorRelease } from '../../../inspector-data'
+import { validMagnitudeLimits, type MagnitudeLimits } from '../../../magnitude/magnitude-distribution'
 
-export type HistoricalFeature = { value: number | null; reason: string }
+export type SignalInputs = { actual: number; baseline: number; actualLabel: string; baselineLabel: string; unit: string }
+export type HistoricalFeature = { value: number | null; reason: string; inputs?: SignalInputs }
 export type TimedReading = EconomicCalendarEvent & { release_at: number }
 export type NativeSeries = { id: string; units: readonly number[]; multiplier: number }
 export const signalHistoryStart = Date.UTC(2015, 0, 1)
 export const minimumSignalHistory = 24
 export const cleanSignal = (n: number) => Math.round(n * 1e12) / 1e12 || 0
 export const unavailableSignal = (reason: string): HistoricalFeature => ({ value: null, reason })
-export const usableSignal = (value: number): HistoricalFeature => ({ value: cleanSignal(value), reason: '' })
+export const usableSignal = (value: number, inputs?: SignalInputs): HistoricalFeature => ({ value: cleanSignal(value), reason: '', inputs })
 
 export function observedReading(e: EconomicCalendarEvent): e is TimedReading {
   return e.currency === 'USD' && e.country_code === 'US' && e.time_mode === 0 && e.release_at !== null &&
@@ -89,16 +91,18 @@ export function releaseSignalContext(release: InspectorRelease, history: readonl
   return { current, reasons, recent, delta }
 }
 
-export function calibrateHistoricalSignal(feature: HistoricalFeature, samples: readonly number[]) {
+export function calibrateHistoricalSignal(feature: HistoricalFeature, samples: readonly number[], manualLimits?: MagnitudeLimits) {
+  if (manualLimits && !validMagnitudeLimits(manualLimits)) throw new RangeError('Use 0 < Small < Medium < Large')
   const magnitudes = samples.map(Math.abs).filter((n) => n > 0).sort((a, b) => a - b)
   const quantile = (fraction: number) => magnitudes[Math.max(0, Math.ceil(magnitudes.length * fraction) - 1)]
-  const limits = magnitudes.length ? [quantile(1 / 3), quantile(2 / 3), quantile(.90)] : null
+  const automaticLimits: MagnitudeLimits | null = magnitudes.length ? [quantile(1 / 3), quantile(2 / 3), quantile(.90)] : null
+  const limits = manualLimits ?? automaticLimits
   const { value } = feature
   const reason = feature.reason || (samples.length < minimumSignalHistory ?
     `Needs ${minimumSignalHistory} earlier usable signals; found ${samples.length}.` : value !== 0 && !limits ?
       'Earlier signals are all zero; a nonzero magnitude cannot be calibrated.' : '')
   const points = value === null || reason ? null : value === 0 ? 0 : Math.sign(value) *
     (Math.abs(value) <= limits![0] ? 1 : Math.abs(value) <= limits![1] ? 2 : Math.abs(value) <= limits![2] ? 3 : 4)
-  return { value, reason, points, limits, sampleCount: samples.length,
+  return { ...feature, value, reason, points, limits, automaticLimits, magnitudeMode: manualLimits ? 'custom' as const : 'automatic' as const, sampleCount: samples.length,
     size: points === null ? null : (['Unchanged', 'Small', 'Medium', 'Large', 'Extreme'] as const)[Math.abs(points)] }
 }

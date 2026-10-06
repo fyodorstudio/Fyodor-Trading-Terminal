@@ -36,7 +36,8 @@
 .scatter-plot-inspection dl { margin: 8px 0; font-variant-numeric: tabular-nums; }
 .scatter-plot-inspection dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin: 5px 0; }
 .scatter-plot-inspection dt { color: var(--text-muted); }
-.scatter-plot-inspection dd { margin: 0; text-align: right; }
+.scatter-plot-inspection dd { margin: 0; text-align: right; min-width: 0; overflow-wrap: anywhere; }
+.scatter-plot-inspection > p { line-height: 1.5; overflow-wrap: anywhere; }
 .scatter-plot-inspection details { border-top: 1px solid var(--border); padding-top: 8px; }
 .scatter-plot-inspection summary { cursor: pointer; color: var(--accent); }
 .scatter-plot-inspection details p { line-height: 1.5; overflow-wrap: anywhere; }

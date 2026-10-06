@@ -67,7 +67,7 @@ export function createMagnitudeSettingsStore(scope: MagnitudeScope, seriesIds: r
     return () => { window.removeEventListener(changed, listener); window.removeEventListener('storage', storage) }
   }
   function useSettings() { return useSyncExternalStore(subscribe, read, () => empty) }
-  return { key, normalize, read, save, subscribe, useSettings }
+  return { key, seriesIds, normalize, read, save, subscribe, useSettings }
 }
 export type MagnitudeSettingsStore = ReturnType<typeof createMagnitudeSettingsStore>
 const emptySettings: MagnitudeSettings = Object.freeze({})

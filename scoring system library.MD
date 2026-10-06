@@ -29,6 +29,7 @@ not promises about the release candle or a future price move.
 | USD CPI v3, refined | Scoring system v3 | Latest core pace versus preceding three months; weights 35/35/20/10. Related core monthly signals share an evidence group; separate strength, change size and limitations. Implemented, policy v3.1. |
 | USD NFP original | Scoring system | Payrolls, inverse unemployment change and monthly wage change each have weight 1; seven supporting readings excluded from the USD total. Implemented. |
 | USD NFP v2 | Scoring system v2 | Hiring pace, unemployment with participation context, wage pace, preceding-month payroll revision and working hours. Weights 40/30/15/10/5; earlier-history calibration and grouped evidence. Implemented. |
+| USD PCE v1 | Scoring system | Core monthly pace, annual core change, headline monthly pace and annual headline change. Weights 45/30/15/10; revision-aware comparisons, grouped evidence and visible magnitudes. Implemented; user audit next. |
 
 Inspector's other families have release tables and descriptive magnitude tools;
 that does not mean they already have directional scorers. FOMC/ECB episode
@@ -90,17 +91,89 @@ Terminal validation and manual review status are recorded below.
 
 ## Planned development order
 
+The user accepted CPI/NFP signal visibility and its automatic magnitudes.
+Expansion has resumed with USD PCE. Build the remaining inflation, labor and
+activity inputs before FOMC and before a contextual combination layer.
+
+### Implemented: visible CPI/NFP component magnitudes
+
+- Scatter Plot now has **Measure → Actual − Previous / Scoring signal** for
+  USD CPI v3 and USD NFP v2. The Signal selector exposes each existing voting
+  component, including latest-reading versus prior three-month average signals.
+- Source/comparison values, exact signal, formula, size, calibration N and
+  missing-data reasons are visible. Automatic bands use strictly earlier
+  publications; each tooltip uses its own release's history. Later dots are
+  context, missing inputs leave gaps and early uncalibrated values remain visible.
+- Automatic 1/3 / 2/3 / .90 quantiles retain ties. **Manual override** previews
+  on the chart, **Apply to scorer** updates Inspector, and **Use automatic**
+  restores earlier-history cutoffs. Overrides are independent per component,
+  apply across history, retain the 24-observation gate, and travel with workspace
+  export/import. Original A−P settings and scoring weights remain separate.
+- Manual UI review: switch both measures/components, inspect older dates, resize
+  the dock, and compare preview versus saved Inspector scores. No automated visual
+  audit was performed, following the user's preference.
+- Verification on 6 October 2026: full frontend suite, lint and production build
+  passed. The stored snapshots' 140 CPI and 141 NFP releases retain automatic
+  bias, totals, evidence strength and change size; plotted component values,
+  magnitude points, thresholds, calibration N and reasons match the scorers.
+
 | Order | Family or stage | Intended contribution | Status |
 | --- | --- | --- | --- |
-| 1 | NFP v2 | Employment strength, wage pressure and payroll revisions | Implemented; user audit next |
-| 2 | PCE inflation | Inflation interpretation using the measure underlying the Fed's inflation objective | Proposed |
-| 3 | FOMC | Rate action plus changes in statement, projections and press-conference guidance | Proposed; requires source text, not merely a rate number |
-| 4 | ISM Services, then Retail Sales | Activity and consumer-demand context | Proposed |
+| 1 | NFP v2 | Employment strength, wage pressure and payroll revisions | Implemented |
+| 2 | PCE inflation | Core/headline inflation change, including revised prior comparisons | Implemented; user audit next |
+| 3 | ISM Services | Services activity, employment and price-pressure context | Proposed next |
+| 4 | Retail Sales | Consumer-demand context | Proposed |
 | 5 | Jobless Claims | Employment updates between monthly reports | Proposed |
+| After the surrounding inputs | FOMC | Rate action plus changes in statement, projections and press-conference guidance | Proposed; requires source text, not merely a rate number |
 | Later | ISM Manufacturing, PPI, GDP, Fed Chair speeches | Additional context after the core families are useful | Proposed; order revisable |
 | Later | USD context combinations | Combine inflation, employment and policy interpretations | Proposed |
 | Later | ECB and euro-area families | Relative EUR versus USD context for EURUSD | Proposed |
 | Later | Other currencies | Reuse infrastructure with explicit currency-specific policies | Proposed |
+
+### Implemented: USD PCE v1
+
+| Component | Calculation | Weight |
+| --- | --- | --- |
+| Latest core pace | Actual core m/m minus preceding three-month average | 45% |
+| Annual core change | Actual core y/y minus revised-or-original prior annual reading | 30% |
+| Latest headline pace | Actual headline m/m minus preceding three-month average | 15% |
+| Annual headline change | Actual headline y/y minus revised-or-original prior annual reading | 10% |
+
+When supplied, Revised Previous replaces the nearest preceding month in the
+monthly average and becomes the annual comparator. Malformed supplied revisions
+disable their own components. Monthly history still requires three consecutive
+earlier months. A revision field does not reconstruct the older two months or
+original historical vintages. Source/baseline labels explain the choice in Scatter
+Plot. There is no additional revision vote and no change to CPI/NFP policies.
+
+Monthly core/headline form one evidence group; annual core/headline form another.
+The shared weak/moderate/strong evidence and separate change-size labels apply.
+At least one calibrated core component is required, missing weights are not
+redistributed, and ties follow the table order. Magnitudes use each component's
+own strictly earlier history with 24 usable observations. Annual headline PCE
+relative to the Fed's 2% objective is non-voting context, not a hike prediction.
+
+Inspector → US PCE inflation → **Scoring system** displays this first version.
+Scatter Plot → PCE → **Scoring signal** exposes all four components with automatic
+bands and independent manual overrides. Saved settings are workspace-portable;
+original PCE A−P settings remain separate. The prototype's weights are explicit
+judgment choices; this is an interpretation policy, not a validated price model.
+
+The stored-data implementation audit covers **139 observed PCE publications**
+since January 2015. All 20 publications in 2025–2026 produce a bias; 3 use reduced
+data because monthly history is unavailable. All plotted values, points,
+thresholds, calibration counts, reasons and comparison inputs match the scorer.
+This measures implementation coverage, not price-direction success.
+
+Validation on 6 October 2026: PCE model/UI/scatter/portability regressions, the
+full frontend suite, lint and production build passed. Snapshot comparisons
+confirm all 140 CPI and 141 NFP releases retain their prior automatic bias,
+totals, evidence strength and change size. No automated visual audit was run.
+
+- [PCE v1 local audit](storage/data/pce-v1-design-audit.md)
+- Reproduce with `node frontend/scripts/audit-pce-v1.mjs <calendar.json> <output-prefix>`.
+- Manual review belongs to the user: PCE release interpretations, flat dock layout,
+  historical signal inspection and applied boundaries.
 
 ## Future combination design
 
@@ -152,4 +225,7 @@ The refined CPI audit preserves the directional outputs and totals across all
 - [BLS August 2025 release: example of two-month payroll revisions](https://www.bls.gov/news.release/archives/empsit_08012025.htm)
 - [Federal Reserve inflation objective](https://www.federalreserve.gov/faqs/economy_14400.htm)
 - [BEA: differences between CPI and PCE](https://www.bea.gov/help/faq/555)
+- [BEA: core PCE definition](https://www.bea.gov/help/faq/518)
+- [BEA: August 2026 release and annual revisions](https://www.bea.gov/news/2026/personal-income-and-outlays-august-2026)
+- [Federal Reserve: annual PCE inflation objective](https://www.federalreserve.gov/economy-at-a-glance-inflation-pce.htm)
 - [FOMC policy materials](https://www.federalreserve.gov/monetarypolicy/fomc.htm)

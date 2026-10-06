@@ -1,4 +1,5 @@
 import { magnitudeFamilies } from '../inspector/magnitude/magnitude-families'
+import { signalMagnitudeStores } from '../inspector/scoring/shared/core/signal-magnitude-settings'
 import { validMagnitudeLimits } from '../inspector/magnitude/magnitude-distribution'
 import { inspectorFamilies, inspectorStorageKey } from '../inspector/inspector-data'
 import { isEventSymbol } from '../inspector/event-symbols'
@@ -34,6 +35,7 @@ const validators: Record<string, (v: unknown) => boolean> = {
 }
 for (const dock of ['inspector', 'notebook', 'activity', 'scatter-plot', 'alert']) validators[`fyodor.${dock}.dock-height.v1`] = (v) => finite(v) && v > 0 && v <= 100000
 for (const family of magnitudeFamilies) validators[family.settings.key] = (v) => record(v) && Object.entries(v).every(([id, limits]) => family.seriesIds.includes(id) && validMagnitudeLimits(limits))
+for (const store of signalMagnitudeStores) validators[store.key] = (v) => record(v) && Object.entries(v).every(([id, limits]) => store.seriesIds.includes(id) && validMagnitudeLimits(limits))
 
 function validator(key: string) {
   if (Object.hasOwn(validators, key)) return validators[key]
@@ -68,6 +70,8 @@ export function exportWorkspace(storage: Storage = window.localStorage): Workspa
     // Removed automatic modes never become invented manual cutoffs on migration.
     const family = magnitudeFamilies.find((f) => f.settings.key === key)
     if (family) raw = JSON.stringify(family.settings.normalize(JSON.parse(raw)))
+    const signalStore = signalMagnitudeStores.find((store) => store.key === key)
+    if (signalStore) raw = JSON.stringify(signalStore.normalize(JSON.parse(raw)))
     return [key, validatedEntry(key, raw)]
   }))
   return parseWorkspaceSnapshot(JSON.stringify({ format: workspaceFormat, version: 1, exportedAt: new Date().toISOString(), entries }))

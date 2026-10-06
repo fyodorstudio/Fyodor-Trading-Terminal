@@ -63,6 +63,14 @@ manual tuples persist and legacy P95 selections become Undefined. Numeric limits
 are scoped per series; magnitude colors apply globally. Classification rules are
 user-chosen interpretations, documented in the family terminology files.
 
+CPI v3, NFP v2 and PCE v1 also offer **Scatter Plot → Measure → Scoring signal** to
+inspect their derived inputs, comparison averages and earlier-only automatic
+magnitude bands. Manual component edits preview on the chart; **Apply to scorer**
+updates the Inspector, and **Use automatic** restores calibration. These saved
+settings are separate from original A−P boundaries and included in workspace files.
+PCE's **Scoring system** view uses core/headline monthly pace and annual change,
+with explicit revised-prior comparisons, one pair bias and an evidence grade.
+
 NFP direction uses signed magnitude points from Payrolls, Unemployment and
 Earnings m/m; seven supporting readings stay separate. CPI retains its four-rate
 score and separate price-index matrix. Hover series labels for NFP role explanations.
