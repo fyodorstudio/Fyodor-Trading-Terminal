@@ -42,19 +42,13 @@ function PositionDrawing({ points, width, height, precision = 5 }: Pick<ChartDra
   const boxHeight = Math.max(2, boxBottom - boxTop)
   const isTargetAbove = target.y <= entry.y
   const boxCenterX = left + positionWidth / 2
-  const targetLabelWidth = 275
-  const centerLabelWidth = 188
-  const stopLabelWidth = 260
+  const topCardWidth = 295
+  const bottomCardWidth = isTargetAbove ? 260 : 275
 
-  const targetLabelX = Math.min(Math.max(2, boxCenterX - targetLabelWidth / 2), Math.max(2, width - targetLabelWidth - 2))
-  const centerLabelX = Math.min(Math.max(2, boxCenterX - centerLabelWidth / 2), Math.max(2, width - centerLabelWidth - 2))
-  const stopLabelX = Math.min(Math.max(2, boxCenterX - stopLabelWidth / 2), Math.max(2, width - stopLabelWidth - 2))
-  const targetLabelY = isTargetAbove
-    ? Math.max(2, target.y - 21)
-    : Math.min(Math.max(2, target.y + 2), height - 21)
-  const stopLabelY = isTargetAbove
-    ? Math.min(Math.max(2, stop.y + 2), height - 21)
-    : Math.max(2, stop.y - 21)
+  const topCardX = Math.min(Math.max(2, boxCenterX - topCardWidth / 2), Math.max(2, width - topCardWidth - 2))
+  const bottomCardX = Math.min(Math.max(2, boxCenterX - bottomCardWidth / 2), Math.max(2, width - bottomCardWidth - 2))
+  const topCardY = Math.max(2, (isTargetAbove ? target.y : stop.y) - 40)
+  const bottomCardY = Math.min(Math.max(2, (isTargetAbove ? stop.y : target.y) + 2), height - 21)
 
   return (
     <g>
@@ -63,23 +57,34 @@ function PositionDrawing({ points, width, height, precision = 5 }: Pick<ChartDra
       <rect className="position-outline" x={left} y={boxTop} width={positionWidth} height={boxHeight} />
       <line className="position-entry-line" x1={left} y1={entry.y} x2={right} y2={entry.y} />
 
-      <g transform={`translate(${targetLabelX} ${targetLabelY})`}>
-        <rect className="position-label-background target" width="275" height="19" rx="3" />
-        <text className="position-label-text" x="5" y="13">
-          Target: {reward.toFixed(precision)} ({rewardPercent.toFixed(3)}%) {rewardPips.toFixed(1)} pips
+      <g transform={`translate(${topCardX} ${topCardY})`}>
+        <rect
+          className={`position-label-background ${isTargetAbove ? 'target' : 'stop'}`}
+          width={topCardWidth}
+          height="38"
+          rx="4"
+        />
+        <text className="position-label-text" x="8" y="15">
+          {isTargetAbove
+            ? `Target: ${reward.toFixed(precision)} (${rewardPercent.toFixed(3)}%) ${rewardPips.toFixed(1)} pips`
+            : `Stop: ${risk.toFixed(precision)} (${riskPercent.toFixed(3)}%) ${riskPips.toFixed(1)} pips`}
+        </text>
+        <text className="position-label-text" x="8" y="29">
+          Open P&amp;L: 0.00000, Qty: 1,000 · Risk/Reward: {riskReward.toFixed(2)}
         </text>
       </g>
 
-      <g transform={`translate(${centerLabelX} ${entry.y - 18})`}>
-        <rect className="position-label-background entry" width="188" height="36" rx="4" />
-        <text className="position-label-text" textAnchor="middle" x="94" y="14">Open P&amp;L: 0.00000, Qty: 1,000</text>
-        <text className="position-label-text" textAnchor="middle" x="94" y="28">Risk/Reward ratio: {riskReward.toFixed(2)}</text>
-      </g>
-
-      <g transform={`translate(${stopLabelX} ${stopLabelY})`}>
-        <rect className="position-label-background stop" width="260" height="19" rx="3" />
+      <g transform={`translate(${bottomCardX} ${bottomCardY})`}>
+        <rect
+          className={`position-label-background ${isTargetAbove ? 'stop' : 'target'}`}
+          width={bottomCardWidth}
+          height="19"
+          rx="3"
+        />
         <text className="position-label-text" x="5" y="13">
-          Stop: {risk.toFixed(precision)} ({riskPercent.toFixed(3)}%) {riskPips.toFixed(1)} pips
+          {isTargetAbove
+            ? `Stop: ${risk.toFixed(precision)} (${riskPercent.toFixed(3)}%) ${riskPips.toFixed(1)} pips`
+            : `Target: ${reward.toFixed(precision)} (${rewardPercent.toFixed(3)}%) ${rewardPips.toFixed(1)} pips`}
         </text>
       </g>
     </g>
