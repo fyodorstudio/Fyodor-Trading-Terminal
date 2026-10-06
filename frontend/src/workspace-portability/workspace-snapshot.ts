@@ -6,7 +6,7 @@ import { isEventSymbol } from '../inspector/event-symbols'
 import { normalizeScatterAppearance, scatterAppearanceKey } from '../scatter-plot/settings/scatter-plot-appearance'
 import { drawingTools } from '../market-data/chart-drawings/drawing-tool'
 import { activitySources } from '../system-observability/activity-log/activity-log-entry'
-import { raycasterFamiliesKey, validRaycasterFamilies } from '../raycaster/storage/raycaster-family-settings'
+import { contextFamiliesKey, validContextFamilyPreference } from '../usd-context/storage/context-family-settings'
 
 export const workspaceFormat = 'fyodor-workspace'
 export const workspaceMaxBytes = 10 * 1024 * 1024
@@ -26,11 +26,11 @@ const validators: Record<string, (v: unknown) => boolean> = {
   'fyodor.color-theme': (v) => v === 'dark' || v === 'light',
   'fyodor.time-display.v1': (v) => record(v) && ['local', 'utc', 'fixed-offset'].includes(v.mode as string) && finite(v.utcOffsetMinutes) && v.utcOffsetMinutes >= -720 && v.utcOffsetMinutes <= 840,
   'fyodor.chart-appearance.v1': (v) => record(v) && color(v.upCandleColor) && color(v.downCandleColor) && color(v.priceLineColor) && typeof v.showGrid === 'boolean' && finite(v.barSpacing) && v.barSpacing >= 3 && v.barSpacing <= 16 && ['adaptive', 'charcoal', 'blue', 'red'].includes(v.scrollbarStyle as string),
-  [inspectorStorageKey]: (v) => record(v) && v.version === 2 && array(v.families, (id) => inspectorFamilies.some((f) => f.id === id)) && typeof v.showSymbols === 'boolean' && (v.showHistograms === undefined || typeof v.showHistograms === 'boolean') && (v.detailView === undefined || v.detailView === 'table' || v.detailView === 'scoring' || v.detailView === 'scoring-v2' || v.detailView === 'scoring-v3') && (v.currencyColors === undefined || (record(v.currencyColors) && Object.entries(v.currencyColors).every(([id, value]) => ['EUR', 'USD'].includes(id) && color(value)))) && record(v.symbols) && Object.entries(v.symbols).every(([id, symbol]) => inspectorFamilies.some((f) => f.id === id) && isEventSymbol(symbol)),
+  [inspectorStorageKey]: (v) => record(v) && v.version === 2 && array(v.families, (id) => inspectorFamilies.some((f) => f.id === id)) && typeof v.showSymbols === 'boolean' && (v.showHistograms === undefined || typeof v.showHistograms === 'boolean') && (v.detailView === undefined || v.detailView === 'table' || v.detailView === 'scoring' || v.detailView === 'scoring-v2' || v.detailView === 'scoring-v3' || v.detailView === 'scoring-v4') && (v.currencyColors === undefined || (record(v.currencyColors) && Object.entries(v.currencyColors).every(([id, value]) => ['EUR', 'USD'].includes(id) && color(value)))) && record(v.symbols) && Object.entries(v.symbols).every(([id, symbol]) => inspectorFamilies.some((f) => f.id === id) && isEventSymbol(symbol)),
   [scatterAppearanceKey]: record,
   'fyodor.market-watch.collapsed.v1': (v) => typeof v === 'boolean',
   'fyodor.raycaster.visible.v1': (v) => typeof v === 'boolean',
-  [raycasterFamiliesKey]: validRaycasterFamilies,
+  [contextFamiliesKey]: validContextFamilyPreference,
   'fyodor.raycaster.position.v1': (v) => record(v) && finite(v.x) && finite(v.y) && v.x >= 0 && v.y >= 0,
   'fyodor.drawing-toolbar-position.v1': (v) => record(v) && finite(v.x) && finite(v.y) && v.x >= 0 && v.y >= 0,
   'fyodor.activity-visible-sources.v2': (v) => array(v, (source) => activitySources.includes(source as typeof activitySources[number])),

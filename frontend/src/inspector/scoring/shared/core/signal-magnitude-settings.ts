@@ -19,4 +19,7 @@ export const ismManufacturingSignalSettings = createMagnitudeSettingsStore(
 export const retailSignalSettings = createMagnitudeSettingsStore(
   { pair: 'EURUSD', currency: 'USD', side: 'quote', family: 'RETAIL-V1-SIGNALS' },
   ['control-pace', 'ex-autos-gas-pace', 'headline-pace'])
-export const signalMagnitudeStores = [cpiSignalSettings, nfpSignalSettings, pceSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings, retailSignalSettings] as const
+export const claimsSignalSettings = createMagnitudeSettingsStore(
+  { pair: 'EURUSD', currency: 'USD', side: 'quote', family: 'CLAIMS-V1-SIGNALS' },
+  ['initial-trend', 'continuing-pressure', 'initial-week'])
+export const signalMagnitudeStores = [cpiSignalSettings, nfpSignalSettings, pceSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings, retailSignalSettings, claimsSignalSettings] as const

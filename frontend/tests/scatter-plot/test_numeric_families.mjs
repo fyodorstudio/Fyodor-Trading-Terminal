@@ -131,7 +131,7 @@ try {
   assert.match(rows[0].lastElementChild.textContent, /Medium.*A−RevP: Medium/)
   assert.match(rows[1].lastElementChild.textContent, /Medium.*A−RevP: Large/)
   assert.equal(rows[2].querySelector('.inspector-secondary-reading'), null)
-  assert.equal(inspector.container.querySelector('option[value="scoring"]').disabled, true)
+  assert.equal(inspector.container.querySelector('option[value="scoring"]').disabled, false, 'Claims now has a standalone scorer; raw table grading remains unchanged')
   await click(inspector.container.querySelector('[aria-label="Hide histogram"]'))
   assert.equal(inspector.container.querySelector('.magnitude-histogram'), null)
   assert.match(rows[0].lastElementChild.textContent, /Medium.*A−RevP: Medium/)

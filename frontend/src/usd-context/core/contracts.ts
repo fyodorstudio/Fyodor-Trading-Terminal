@@ -1,11 +1,11 @@
 import type { InspectorEvent } from '../../inspector/inspector-data'
 import type { MagnitudeSettings } from '../../inspector/magnitude/settings/magnitude-settings-store'
 
-export type ContextFamily = 'nfp' | 'cpi' | 'ism' | 'retail'
+export type ContextFamily = 'nfp' | 'cpi' | 'claims' | 'ism' | 'retail'
 export type UsdDirection = 'stronger' | 'weaker' | 'uncomputed'
 export type Evidence = 'weak' | 'moderate' | 'strong'
 export type ContextSettings = { nfp: MagnitudeSettings; cpi: MagnitudeSettings;
-  services: MagnitudeSettings; manufacturing: MagnitudeSettings; retail?: MagnitudeSettings }
+  services: MagnitudeSettings; manufacturing: MagnitudeSettings; retail?: MagnitudeSettings; claims?: MagnitudeSettings }
 export type ContextInput = { events: readonly InspectorEvent[]; families: readonly string[]; settings: ContextSettings; asOf: number }
 export type FamilyAssessment = { family: ContextFamily; sourceId: string; sourceLabel: string; releaseAt: number;
   chartAt: number; total: number | null; usdDirection: UsdDirection; strength: Evidence | null;

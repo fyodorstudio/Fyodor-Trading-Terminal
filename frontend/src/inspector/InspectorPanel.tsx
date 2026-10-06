@@ -17,6 +17,7 @@ import { supportsCpiV2 } from './scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-scor
 import { CpiScoreV2 } from './scoring/PAIR/EURUSD/USD/CPI/ui/CpiScoreV2'
 import { supportsCpiV3 } from './scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3'
 import { CpiScoreV3 } from './scoring/PAIR/EURUSD/USD/CPI/ui/CpiScoreV3'
+import { CpiScoreV4 } from './scoring/PAIR/EURUSD/USD/CPI/ui/CpiScoreV4'
 import { supportsNfpV2 } from './scoring/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2'
 import { NfpScoreV2 } from './scoring/PAIR/EURUSD/USD/NFP/ui/NfpScoreV2'
 import { supportsIsmV2 } from './scoring/PAIR/EURUSD/USD/ISM/assessment/ism-score-v2'
@@ -74,7 +75,9 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const ismV3Available = supportsInspector(symbol) && supportsIsmV3(release)
   const v3Available = (supportsInspector(symbol) && supportsCpiV3(release)) || ismV3Available
   const showScoringV3 = v3Available && (view.preferences.detailView === 'scoring-v3' || (ismV3Available && view.preferences.detailView === 'scoring'))
-  const visibleView = showScoringV3 ? 'scoring-v3' : showScoringV2 ? 'scoring-v2' : showScoring ? 'scoring' : 'table'
+  const v4Available = supportsInspector(symbol) && supportsCpiV3(release)
+  const showScoringV4 = v4Available && view.preferences.detailView === 'scoring-v4'
+  const visibleView = showScoringV4 ? 'scoring-v4' : showScoringV3 ? 'scoring-v3' : showScoringV2 ? 'scoring-v2' : showScoring ? 'scoring' : 'table'
   const releaseTime = (item: InspectorRelease) => view.brokerTime
     ? `${formatAppTimestamp(item.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
     : item.releaseAt === null ? 'Time unavailable' : formatAppTimestamp(item.releaseAt, timeDisplay)
@@ -133,7 +136,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
             // Scatter is navigation; keep the selected Inspector view when returning.
             event.target.value = visibleView
             if (hasMagnitude && scatterAvailable && onOpenScatter) onOpenScatter(scoreRelease ?? release)
-          } else if (next === 'table' || (next === 'scoring' && scoringBinding) || (next === 'scoring-v2' && v2Available) || (next === 'scoring-v3' && v3Available)) {
+          } else if (next === 'table' || (next === 'scoring' && scoringBinding) || (next === 'scoring-v2' && v2Available) || (next === 'scoring-v3' && v3Available) || (next === 'scoring-v4' && v4Available)) {
             view.applyPreferences({ ...view.preferences, detailView: next })
           }
         }}>
@@ -141,6 +144,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
         <option value="scoring" disabled={!scoringBinding}>Scoring system</option>
         {v2Available && <option value="scoring-v2">Scoring system v2</option>}
         {v3Available && <option value="scoring-v3">Scoring system v3</option>}
+        {v4Available && <option value="scoring-v4">Scoring system v4</option>}
         <option value="scatter" disabled={!hasMagnitude || !scatterAvailable || !onOpenScatter}>Scatter Plot</option>
       </select>}
 
@@ -159,7 +163,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
         </nav>
         <div className="inspector-detail" aria-live="polite">
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
-            {showScoringV3 && ismV3Available ? <IsmScoreV3 key={release.id} release={release} brokerId={view.brokerId} now={view.now}
+            {showScoringV4 ? <CpiScoreV4 release={release} brokerId={view.brokerId} now={view.now} events={scoringEvents} timeDisplay={timeDisplay} /> :
+            showScoringV3 && ismV3Available ? <IsmScoreV3 key={release.id} release={release} brokerId={view.brokerId} now={view.now}
               events={scoringEvents} timeDisplay={timeDisplay} onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :
             showScoringV3 ? <CpiScoreV3 key={release.id} release={release} brokerId={view.brokerId}
               events={scoringEvents} /> :

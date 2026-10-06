@@ -31,7 +31,8 @@ NFP/CPI score versions, magnitude persistence keys, boundaries or dataset admiss
 
 The Inspector view dropdown contains Table only, Scoring system and Scatter Plot,
 with Scoring system v2 available for US/USD CPI, NFP and both ISM families on EURUSD, and v3
-available for US/USD CPI and both ISM families. The saved v2 mode selects the appropriate family scorer.
+available for US/USD CPI and both ISM families. V4 adds shared publication context
+for US/USD CPI on EURUSD. The saved v2 mode selects the appropriate family scorer.
 US/USD PCE has its derived scorer under Scoring system. The retired ISM v1
 selection opens v3; its sector formula remains documented below.
 Scatter Plot opens the selected release without changing the saved Inspector view.
@@ -510,3 +511,60 @@ Tests: `tests/inspector/retail/test_retail_score.mjs` and
 `node scripts/audit-retail-v1.mjs <calendar.json> <output-prefix>` to verify every
 stored signal against the chart, future-removal replay and both production
 workers. The full design and stored coverage are in the root scoring library.
+
+
+## USD Jobless Claims v1 weekly pressure
+
+`PAIR/EURUSD/USD/CLAIMS/` separates the explicit 50/30/20 policy, weekly history,
+feature extraction, aggregation, background worker and flat Inspector UI. The
+Scoring system menu is enabled for US Claims on EURUSD including supported suffixes.
+
+Smoothed initial claims, continuing claims and weekly initial claims compare their
+latest levels against their own four consecutive preceding reference weeks. The
+smoothed feature uses earlier reported 4-week averages. Supplied Revised Previous
+replaces the nearest actual; missing weeks cannot be filled from Previous. Native
+millions for continuing convert to thousands. Baseline minus Actual gives a positive
+USD-supportive signal. Initial/average share one evidence group; continuing is a
+second descriptive group, not independent statistical confirmation.
+
+Weekly references use exact source dates, not the shared monthly-history helper.
+Current initial/average reference dates agree; continuing lags by one week. Source
+unit/domain/time checks, invalid latest history and duplicate ambiguity are explicit.
+Calibration and evidence reuse existing shared rules, including 24 earlier signals,
+manual override validation, no missing-weight redistribution, table-order tie-break
+and honest Uncomputed for all-zero/unusable signals.
+
+`CLAIMS-V1-SIGNALS` is registered for live settings and workspace portability.
+Scatter uses the same features and displays the inverse USD-supportive direction;
+original Claims A−P settings remain separate. `runtime/` reuses the shared latest
+calculation client to reject stale replies and terminate when closed.
+
+Tests: `tests/inspector/claims/test_claims_score.mjs`, `test_claims_integration.mjs`.
+After building, `node scripts/audit-claims-v1.mjs <calendar.json> <output-prefix>`
+checks chronological parity and production Inspector/Scatter worker results.
+Claims now contributes 10% to shared USD context, with NFP at 30% inside the
+existing 40% labor budget. Weekly votes replace one slot and expire at 14 days.
+
+
+## USD CPI v4 publication context
+
+CPI v4 is selectable only for supported US/USD CPI on EURUSD. V3 remains available.
+`CPI/ui/CpiScoreDetails.tsx` is the shared unchanged standalone component table;
+`CpiScoreV4.tsx` adds flat standalone and combined cards, context before/after the
+publication, CPI contribution replacement and the five-family contribution table.
+Direction remains separate from evidence and change size; all-off/missing context
+never hides the standalone reading. Saved view/workspace validation accepts v4.
+
+`CPI/runtime/` owns a latest-job standalone worker and orchestrates the shared
+`usd-context/` worker/inventory/preferences. Inspector depends on that engine,
+not Raycaster UI/runtime. Filters are shared with Raycaster and remain independent
+of Inspector marker filters. Publication comparison uses exactly the same binary
+lookup, at publication minus 1 ms and publication time. Simultaneous events and
+expiry changes are explicit; future publications/timing errors are unavailable.
+
+Only context policy changes: CPI/NFP/Claims/ISM/Retail = 40/30/10/10/10; Claims 14-day
+expiry versus 45-day monthly votes; opposing NFP/Claims caps evidence at Moderate.
+CPI v3.1 signals, weights, calibration and source gates stay unchanged. No market
+outcome or forecasts vote, and conditional Fed-policy interactions remain future
+work. Tests cover standalone invariance, snapshot parity, future removal, shared
+filters, scoped storage, workers and persistence. Visual review belongs to the user.

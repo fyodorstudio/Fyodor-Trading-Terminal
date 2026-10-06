@@ -63,7 +63,7 @@ manual tuples persist and legacy P95 selections become Undefined. Numeric limits
 are scoped per series; magnitude colors apply globally. Classification rules are
 user-chosen interpretations, documented in the family terminology files.
 
-CPI v3, NFP v2, PCE v1 and both ISM families also offer **Scatter Plot → Measure → Scoring signal** to
+CPI v3, NFP v2, PCE v1, Retail Sales v1, Jobless Claims v1 and both ISM families also offer **Scatter Plot → Measure → Scoring signal** to
 inspect their derived inputs, comparison averages and earlier-only automatic
 magnitude bands. Manual component edits preview on the chart; **Apply to scorer**
 updates the Inspector, and **Use automatic** restores calibration. These saved
@@ -101,10 +101,12 @@ See the [scoring library](scoring%20system%20library.MD) for policy and audit.
 
 **Raycaster** opens from the wave button beside the paintbrush toggle near the
 timeframe selector. Its movable box reads USD context at the hovered candle end.
-Memory v2 combines CPI v3.1 (40%), NFP v2 (40%), ISM v3 (10%) and Retail v1 (10%),
-with a 45-day freshness gate. The gear has independent saved Enabled/Off filters,
-each source's bias/evidence and weighted vote, and the combined total. Inspector
-filters do not change Raycaster. The last candle stays visible while inspecting
+Memory v3 combines CPI v3.1 (40%), NFP v2 (30%), Claims v1 (10%), ISM v3 (10%)
+and Retail v1 (10%). Claims has a 14-day freshness gate; others use 45 days.
+The gear shows saved Enabled/Off controls, source biases/evidence and weighted
+votes. CPI **Scoring system v4** shares those context controls and shows the
+unchanged standalone CPI reading, context before/after publication and the CPI
+vote change. Inspector marker filters remain independent. The last candle stays visible while inspecting
 the popover; its footer marks this as the USD side only. Supported major USD
 pairs invert direction when USD is base. Background scoring leaves hover as a
 snapshot lookup. See [Raycaster](frontend/src/raycaster/README.md) and

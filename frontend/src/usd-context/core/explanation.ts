@@ -1,7 +1,7 @@
 import type { ContextMember, UsdDirection } from './contracts'
 import { contextNames, contextPriority } from './policy'
 
-const evidenceNames = { nfp: 'labor', cpi: 'inflation', ism: 'surveyed activity', retail: 'retail spending' }
+const evidenceNames = { nfp: 'labor', cpi: 'inflation', claims: 'weekly claims', ism: 'surveyed activity', retail: 'retail spending' }
 export function explainContext(direction: UsdDirection, members: ContextMember[], tie: boolean) {
   if (direction === 'uncomputed') return 'No usable USD direction is available from the enabled releases.'
   const supporting = members.filter(m => m.status === 'active' && m.usdDirection === direction)

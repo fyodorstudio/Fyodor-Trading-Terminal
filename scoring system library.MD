@@ -26,15 +26,17 @@ not promises about the release candle or a future price move.
 | --- | --- | --- |
 | USD CPI original | Scoring system | Signed Actual minus supplied Previous magnitudes; separate rate/index matrices; uses original configured boundaries. Implemented. |
 | USD CPI v2 | Scoring system v2 | Three-month core pace relative to a 0.20% prototype reference, overlapping core trend, annual core change and headline context. Implemented; comparison baseline. |
+| USD CPI v4 publication context | Scoring system v4 | Unchanged v3.1 standalone reading plus shared USD context before/after CPI, vote replacement and shared Raycaster input controls. Implemented. |
 | USD CPI v3, refined | Scoring system v3 | Latest core pace versus preceding three months; weights 35/35/20/10. Related core monthly signals share an evidence group; separate strength, change size and limitations. Implemented, policy v3.1. |
 | USD NFP original | Scoring system | Payrolls, inverse unemployment change and monthly wage change each have weight 1; seven supporting readings excluded from the USD total. Implemented. |
 | USD NFP v2 | Scoring system v2 | Hiring pace, unemployment with participation context, wage pace, preceding-month payroll revision and working hours. Weights 40/30/15/10/5; earlier-history calibration and grouped evidence. Implemented. |
+| USD Jobless Claims v1 | Scoring system | Smoothed initial claims 50%, continuing claims 30%, weekly initial claims 20%; inverse revision-aware weekly comparisons, grouped evidence and visible magnitudes. Implemented standalone and integrated as a 10% shared labor-context vote. |
 | USD Retail Sales v1 | Scoring system | Control-group pace 60%, ex-autos-and-gas pace 25%, headline pace 15%; revision-aware preceding three-month benchmarks floored at zero, grouped evidence and visible magnitudes. Implemented; manual audit next. |
 | USD PCE v1 | Scoring system | Core monthly pace, annual core change, headline monthly pace and annual headline change. Weights 45/30/15/10; revision-aware comparisons, grouped evidence and visible magnitudes. Implemented. |
 | USD ISM Services v1 | Retired standalone screen | Original 35/25/25/15 sector policy is documented and retained internally for v2/v3 and audit reproduction. |
 | USD ISM monthly context v2 | Scoring system v2 on either ISM family | Services 70% plus Manufacturing 30%, same reference month, publication-time reconstruction, one bias and grouped evidence. Implemented; user audit next. |
 | USD ISM monthly resolution v3 | Scoring system v3 on either ISM family | One latest available monthly bias, weighted sector contributions and a plain explanation of which evidence wins. V2 component math and evidence policy are preserved. |
-| USD context memory v2 / Raycaster | Chart header → Raycaster | CPI/NFP/ISM/Retail weights 40/40/10/10; independent portable filters, source biases and contributions, one USD-side bias at the hovered candle end. Implemented prototype; v1 archived below. |
+| USD context memory v3 / Raycaster | Chart header → Raycaster; CPI v4 context | CPI/NFP/Claims/ISM/Retail weights 40/30/10/10/10; portable inputs shared by CPI v4 and Raycaster, independent of marker filters. One USD-side bias, with Claims 14-day freshness and labor-disagreement evidence cap. Earlier policies archived below. |
 
 Inspector's other families have release tables and descriptive magnitude tools;
 that does not mean they already have directional scorers. FOMC/ECB episode
@@ -87,12 +89,13 @@ wages, revision and hours. The original NFP scorer remains available.
 
 The saved Scoring system v2 preference selects CPI v2 on CPI releases and NFP v2
 on jobs releases and monthly ISM context v2 on either ISM family. V3 is available
-for CPI and both ISM families; unimplemented families fall back to Table.
+for CPI and both ISM families; V4 is available for CPI publication context.
+Unimplemented families fall back to Table.
 
 These weights, confirmation groups, thresholds and participation adjustment are
 explicit prototype policies; they are not fitted estimates or validated market
 probabilities. Monthly ISM v2 is the first implemented context combination; the
-USD context memory v1 now combines CPI, NFP and ISM; expansion to the remaining
+USD context memory v3 now combines CPI, NFP, Claims, ISM and Retail; expansion to the remaining
 USD inputs remains planned.
 
 Terminal validation and manual review status are recorded below.
@@ -134,9 +137,9 @@ broader context expansion will follow the remaining inputs.
 | 3 | ISM Services v1 | Services activity, employment and price-pressure context | Implemented; first user development audit recorded below |
 | 3a | ISM Manufacturing + monthly ISM v2 | Same-month goods/services context, preserved publication times | Implemented; user audit next |
 | 4 | Retail Sales | Consumer-demand context | Implemented v1; user audit next |
-| 5 | Jobless Claims | Employment updates between monthly reports | Proposed |
+| 5 | Jobless Claims | Employment updates between monthly reports | Standalone v1 and 10% labor-budget integration implemented |
 | 6 | GDP | Broad growth, expenditure components and revision context | Proposed; before FOMC |
-| Initial pilot now; expand after surrounding inputs | USD context engine | Update inflation, labor and growth assessments using latest known information | V2 implemented for CPI/NFP/ISM/Retail with independent Raycaster filters; remaining families planned |
+| Initial pilot now; expand after surrounding inputs | USD context engine | Update inflation, labor and growth assessments using latest known information | V3 implemented for CPI/NFP/Claims/ISM/Retail with shared Raycaster/CPI-v4 context filters; remaining families planned |
 | After the surrounding inputs | FOMC | Rate action plus changes in statement, projections and press-conference guidance | Proposed; requires source text, not merely a rate number |
 | Later | PPI, Fed Chair speeches | Additional context after the core families are useful | Proposed; order revisable |
 | After FOMC | Broader USD context | Add policy guidance to inflation, employment and growth context | Planned |
@@ -221,7 +224,9 @@ event loop active (one run: Inspector 57 ms, Scatter 71 ms, including startup).
 - Next: manually review recent releases in H1, record bias/evidence and separate
   release reaction from later reversals. Continue with Jobless Claims after this.
 
-### Implemented: USD context memory v2 and independent Raycaster controls
+### Archived: USD context memory v2 and independent Raycaster controls
+
+Superseded by v3 and CPI v4 below; these weights and audit results describe the previous implementation.
 
 Retail Sales v1 now has a real **10% weighted vote**, not merely background text.
 CPI and NFP retain 40% each; ISM gets 10%. The prior 20% activity budget is split
@@ -305,7 +310,7 @@ With all four automatic inputs enabled, v2 context is **Short / Moderate** at
 reported immediate price direction even after integration. This is not fixed
 by forcing a Short label. Missing EUR/policy/market information and different
 reaction windows remain possible explanations to investigate, not established
-causes. Next development remains Jobless Claims, then GDP before FOMC.
+causes. Jobless Claims standalone v1 is now implemented; GDP remains next before FOMC.
 
 ### Archived: USD context memory v1 policy and initial audit
 
@@ -766,3 +771,189 @@ The refined CPI audit preserves the directional outputs and totals across all
 - [ISM official release calendar](https://www.ismworld.org/supply-management-news-and-reports/reports/rob-report-calendar/)
 - [ISM seasonal adjustment methodology](https://www.ismworld.org/supply-management-news-and-reports/reports/seasonal-adjustment-factors/)
 - [FOMC policy materials](https://www.federalreserve.gov/monetarypolicy/fomc.htm)
+
+
+## USD Jobless Claims v1: standalone weekly pressure
+
+Implemented 6 October 2026. Select a US Jobless Claims release in Inspector and
+choose **Scoring system**. This produces one EURUSD Long/Short bias, evidence,
+change size, a plain explanation and flat component details. Claims has its own
+module worker and portable magnitude scope. The original standalone pass left
+Raycaster unchanged; the later v3 integration is documented below.
+
+The factual distinction matters: initial claims are new applications for benefits;
+continuing claims concern insured workers continuing to claim. They do not cover
+all unemployment or directly measure hiring. The official DOL release reports
+continuing claims for a week earlier than initial claims, and supplies prior-week
+revisions. The source provider in this workspace labels reference weeks on Friday;
+we retain those dates instead of rewriting them to the official Saturday label.
+
+| Component | USD-supportive signal, in thousands of claims | Weight | Evidence group |
+| --- | --- | ---: | --- |
+| Smoothed initial claims | Mean of four preceding reported weekly 4-week averages minus latest reported average | 50% | New claims |
+| Continuing claims | Mean of four preceding weekly levels minus latest level, converting millions to thousands | 30% | Continued claims |
+| Latest initial claims | Mean of four preceding weekly initial levels minus latest level | 20% | New claims |
+
+All three benchmarks replace their nearest preceding actual with a supplied
+Revised Previous, including explicit zero. An invalid supplied revision makes
+that component unavailable. Revision effects enter the benchmark without a
+separate revision vote. Missing reference weeks are not skipped or filled from
+Previous. This policy interprets changing claims pressure relative to recent
+levels; it does not assert that a falling but historically high level is healthy.
+Weights are declared priorities, not fitted coefficients or measured FX impact.
+
+Positive signal = fewer claims relative to comparison = USD support = EURUSD Short.
+Negative signal = more claims pressure = EURUSD Long. Each component uses the
+existing 24-earlier-usable-signal gate since January 2015 and nearest-rank 33⅓%,
+66⅔%, 90% nonzero absolute magnitude boundaries. Tied cutoffs remain intact.
+Signed 0–4 points multiply the component weight; missing weights are not
+redistributed. One calibrated component may establish a reduced-data, Weak bias.
+Exact cancellation follows smoothed → continuing → latest initial with Weak
+evidence. All-zero/no usable evidence remains Uncomputed.
+
+Initial and its overlapping average share one evidence group. Continuing is a
+separate descriptive group, not statistically independent confirmation. Existing
+grouped agreement rules determine Weak/Moderate/Strong evidence and separate
+change size. Benefit eligibility and exhaustion can affect continuing claims;
+it is not interchangeable with payroll hiring or the unemployment rate.
+
+Source gates require observed US/USD readings at the selected verified publication,
+expected native units, finite nonnegative count values, and recent reference dates.
+Initial and its average must share a week; continuing must be one week earlier
+when an initial anchor is usable. Each component requires its own four consecutive
+prior reference weeks. The latest strictly earlier publication of a reference
+week wins; duplicates or invalid latest readings do not silently fall back.
+Forecasts, provider impact labels, market prices and other families do not vote.
+
+**Visibility:** Scatter Plot → Measure → Scoring signal exposes these exact three
+features. A positive plot value means less claims pressure; this is deliberately
+inverted from original Actual − Previous. Actual and benchmark use thousands,
+including continuing claims. `CLAIMS-V1-SIGNALS` custom boundaries affect the scorer
+only after Apply, refresh mounted consumers, and are included in workspace export/
+import. Original Claims A−P magnitudes and other family settings are independent.
+
+**Stored implementation audit:** source Elev8-Demo2, revision 78430, 1,818 rows,
+606 publication groups from January 2015 through 1 October 2026. 574 produce a
+bias (237 Long, 337 Short); 32 are Uncomputed. The first 28 lack the initial history
+needed for calibration. Four later publications (20/26 November and 4/11 December
+2025) lack a complete preceding four-week sequence in this inventory. No values
+were fabricated to fill those gaps. Of 85 publications in 2025–2026, 81 compute.
+These are coverage counts, not price-prediction results.
+
+Every stored signal matched its Scatter values, inputs, magnitude points, boundaries
+and calibration N. Removing same-time/later inventory preserved every assessment.
+Production Inspector/Scatter workers matched pure calculations and kept the main
+thread active (72/116 ms including thread startup in the initial run). Automated
+checks cover conflicts/ties, reference cadence/lag, source validity, missing data,
+revisions/zero, forecasts/future removal, scoped storage, Inspector menus, flat UI,
+manual preview/apply/reset, worker reuse/error/stale replies and workspace portability.
+Stored vintages may contain later provider revisions; date filtering cannot undo
+those corrections. The full frontend test suite, lint and TypeScript/Vite build
+passed for this implementation. Visual review and H1 price diagnostics remain
+with the user.
+
+Reproduce after a frontend build:
+`node scripts/audit-claims-v1.mjs <claims-calendar.json> <output-prefix>`.
+The local ignored report is [Claims implementation audit](storage/data/claims-v1-design-audit.md).
+
+### Implemented: shared context v3 Claims integration
+
+Keep the existing total labor budget at **40%**, split into **NFP 30% + Claims 10%**.
+Together with CPI 40%, ISM 10% and Retail 10%, the total remains 100%.
+NFP stays the monthly anchor; Claims provides a smaller weekly update. This is a
+prototype policy to audit, not a mathematically optimal or fitted allocation.
+
+Retain only the latest Claims publication, replacing its previous slot rather than
+accumulating weekly votes. Use a 14-day Claims expiry instead of the monthly
+45-day expiry, with no redistribution of disabled/missing/expired weights. Admit
+each source only at publication; a later Claims release cannot rewrite earlier
+NFP-time context. Treat NFP and Claims as a shared labor domain when assessing
+combined evidence: agreement is not another independent confirmation. Their
+opposition is visible and caps combined evidence at Moderate, with Weak
+still used for a narrow lead, missing sources or cancellation. Exact context ties
+use CPI → NFP → Claims → ISM → Retail. All unavailable evidence stays Uncomputed; a
+standalone declared zero-score tie direction remains eligible.
+
+Implemented following user authorization on 6 October 2026. Standalone scorer
+formulas remain unchanged. Next standalone family remains GDP, followed by
+policy-aware FOMC; conditional policy-regime interactions remain future work.
+
+Methodology: [DOL claims definitions](https://oui.doleta.gov/press/2016/122916.pdf),
+[DOL release: reference weeks and revisions](https://www.dol.gov/sites/dolgov/files/OPA/newsreleases/ui-claims/20260478.pdf),
+[BLS: UI recipients and total unemployment differ](https://www.bls.gov/cps/cps_htgm.htm).
+
+
+## Implemented: CPI v4 dual interpretation and shared publication context
+
+Implemented 6 October 2026. Select **Scoring system v4** on a USD CPI release in
+EURUSD Inspector. The flat view presents:
+
+1. **This CPI release:** the exact canonical v3.1 result, evidence, change size,
+   explanation and original component readings/weights/calibration.
+2. **Combined context after CPI:** the shared engine's bias/evidence at publication,
+   the context immediately before it, and how the new CPI vote replaces the old one.
+3. **Context inputs:** CPI/NFP/Claims/ISM/Retail source biases, freshness, raw scores,
+   weights and contributions. Enabled/Off changes the same controls as Raycaster.
+
+This answers a release and its surrounding context in one Inspector view without
+changing the meaning of the standalone CPI scorer. CPI Off/all inputs Off leaves
+the standalone assessment visible. The combined table explains when surrounding
+sources outweigh CPI, instead of altering CPI's own readings. Its direction can
+remain the same as standalone: no historical price mismatch forces a flip.
+
+Publication context looks up the shared timeline at CPI chart time minus 1 ms
+and exactly at publication. Raycaster uses the hovered candle's exclusive end;
+a whole H1 candle may admit another later publication. Identical timestamps and
+inputs produce identical snapshots. Other simultaneous publications/expiry changes
+are named separately from CPI's contribution change. Current uncomputed CPI
+replaces the old vote rather than silently retaining favorable old evidence.
+
+The shared context store retains the existing local key with a version-2 object.
+A legacy complete four-input default adds Claims; deliberate partial/all-off
+settings survive. A newly saved Claims-Off choice remains Off on reload/export/
+restore. Inspector marker filters remain independent. Existing signal magnitudes
+and manual boundaries remain shared with standalone scorers and Scatter.
+
+The context and standalone CPI assessment run in module workers. Selecting a
+historical CPI reuses the prepared context timeline; clock heartbeats and cursor
+movement do not rebuild it. Changes to relevant component settings or family
+selection invalidate background results; stale replies are discarded. Reusable
+context UI/storage belong to `usd-context/`, not Raycaster. CPI v3's component table
+is extracted without changing its math. No screenshot/browser audit was performed.
+
+The evidence cap for opposing NFP/Claims is one explicit interaction rule; broader
+Fed-policy regimes and inflation-versus-labor interpretation are not implemented
+in this pass. Priority weights/freshness remain declared assumptions to audit,
+not price forecasts, probabilities or objectively unique macro conclusions.
+
+**Verification on 6 October 2026:** full sequential frontend suite, lint and
+TypeScript/Vite production build passed. Stored baseline parity preserves totals,
+directions, evidence and change size for **140 CPI, 141 NFP, 284 ISM, 144 Retail
+and 606 Claims** publications. The five-family timeline contains **1,244 snapshots**;
+ten future-removal cutoffs preserve the full publication result, including CPI v4
+before/after comparisons. Actual production context and CPI standalone workers
+match their canonical pure functions. One run took about 9.3 seconds in the context
+worker while the main event loop remained active; hover stays a prepared lookup.
+
+The stored replay deliberately retains disagreements with price:
+
+| CPI publication | Standalone CPI | Combined publication context | Interpretation |
+| --- | --- | --- | --- |
+| 12 August 2025 | Short / Strong | Short / Weak, USD score +0.3045 | CPI +0.58, Retail +0.20 and Claims +0.02 outweigh NFP -0.39 and ISM -0.1055. Labor opposition and a narrow net lead weaken evidence; the reported rally is not explained by forcing Long. |
+| 11 September 2025 | Short | Short / Weak, USD score +0.2405 | CPI and other positive votes outweigh weaker labor; Claims updates simultaneously, which CPI v4 identifies separately. |
+| 12 August 2026 | Long | Long / Moderate, USD score -0.773 | CPI supports the Long context, but replaces a larger previous Long vote, reducing net support rather than strengthening it. |
+
+These are reconstructed source snapshots from differing collection revisions,
+not certified original-release vintages or measured price-reaction performance.
+The weak August 2025 combined assessment documents disagreement; it does not
+establish why the market rallied. Policy guidance, EUR context and market pricing
+remain outside this implementation.
+
+Local report: [USD context v3 audit](storage/data/usd-context-v3-design-audit.md).
+Reproduce after a frontend build:
+`node scripts/audit-usd-context.mjs <cpi.json> <nfp.json> <ism.json> <retail.json> <claims.json> <output-prefix>`.
+
+Manual review: select CPI v4, compare standalone v3, resize the dock, toggle shared
+inputs from either CPI v4 or Raycaster, and inspect the source contributions and
+before/after explanation. Compare equal timestamps; an H1 candle end may include
+later releases. Visual verification remains with the user.

@@ -1,4 +1,4 @@
-# Raycaster / USD context memory v2
+# Raycaster / USD context memory v3
 
 Press **Show Raycaster** (the wave glyph) beside the paintbrush toggle near the
 timeframe selector. Its active button toggles the box, and × hides it. Raycaster
@@ -8,23 +8,28 @@ saved locally and included in workspace export/import. Non-USD supported pairs
 disable the header button; the user's saved visibility is retained when switching
 back to a supported major USD pair.
 
-Raycaster has its own saved CPI/NFP/ISM/Retail filters, independent of Inspector.
-All four inputs are enabled by default. A gear beside the draggable title opens
-`ui/RaycasterDetails.tsx`; `RaycasterInputTable.tsx` shows scorer versions, weights,
-clickable Enabled/Off controls, each latest source's pair bias/evidence/date, raw
-signed source score and weighted USD contribution. Its Total row shows the same
-summary as the collapsed box. The 100% budget is CPI 40 / NFP 40 / ISM 10 / Retail
-10; enabled and active weight are shown separately. Off, absent, expired and
-uncomputed sources do not gain redistributed weight or fabricate a vote.
+Raycaster has saved CPI/NFP/Claims/ISM/Retail context filters, independent of
+Inspector marker filters. These controls are shared with CPI v4's publication
+context table; all five inputs default On. The gear opens `ui/RaycasterDetails.tsx`;
+the shared `usd-context/ui/ContextInputTable.tsx` shows versions, clickable Enabled/
+Off controls, each source bias/evidence/date, source score, weighted contribution
+and the combined total. The compatibility `RaycasterInputTable.tsx` re-export
+keeps existing imports. CPI receives 40%, NFP 30%, Claims 10%, ISM 10%, Retail 10%.
+Enabled and active weight are shown separately. Missing/Off/expired weights are
+not redistributed. Claims expires after 14 days; other families after 45.
 
-ISM switches both Manufacturing and Services together; they update one slot.
-The filters are immediate, session-safe, local-storage backed, receive cross-tab
-updates and travel with workspace export/import. No Inspector filter migration
-is performed. Shared Scatter Plot component magnitude settings still apply.
-Scorers stay fixed to CPI v3.1, NFP v2, ISM v3 and Retail v1. Inspector's selected
-view, date range and chart symbol visibility cannot change this configuration.
-Opening the popover alone does not fetch or rescore; input changes rebuild the
-background timeline. Escape, close or outside pointer presses dismiss it.
+NFP and Claims share one 40% labor budget. Opposing active directions cap evidence
+at Moderate, with Weak taking precedence for incomplete/narrow/cancelled votes.
+Their agreement adds no independent confirmation. Standalone scorer math remains
+CPI v3.1, NFP v2, Claims v1, ISM v3 and Retail v1. ISM switches both sectors together;
+they update one slot. Inspector's view, date range and marker visibility do not
+select context inputs. Applied Scatter signal magnitudes still affect both tools.
+
+The shared context preferences are session-safe, portable and receive cross-tab
+updates. Existing full four-family defaults gain Claims; intentional partial or
+all-off lists survive. A versioned saved object preserves deliberate Claims-Off
+choices. Opening the gear alone does not fetch or rescore; input changes rebuild
+the background timeline. Escape/close/outside pointer presses dismiss it;
 Escape/close restores gear focus.
 
 The footer labels the reading as **USD side only** and identifies the broker time.
@@ -60,7 +65,7 @@ preferences. Calculation lives in `usd-context/`, off the chart's main thread.
 
 Manual checks belong to the user: open/hide via the header Raycaster toggle independently of paintbrush, open/close the gear popover,
 drag and resize the box/dock, pan while active, compare the August snapshots,
-inspect H1 versus M15 boundaries, toggle Raycaster families independently of Inspector, and check
+inspect H1 versus M15 boundaries, toggle context families independently of Inspector markers, compare CPI v4 at the same timestamp, and check
 USDJPY inversion. No browser automation or screenshot audit is used.
 
 The single grouped Inspector ISM control is only a filter UI adapter: original

@@ -171,3 +171,19 @@ Each uses a revision-aware preceding three-month average floored at zero. The
 chart and scorer share the same feature extractor and calibration; missing
 months/revisions leave explicit gaps. `RETAIL-V1-SIGNALS` stores independent
 component overrides; source Actual − Previous boundaries remain separate.
+
+
+## Jobless Claims v1 signal visibility
+
+The Claims family exposes smoothed initial claims, continuing claims and latest
+initial claims in Scoring signal. Each is its preceding four consecutive weekly
+readings mean minus Actual. The smoothed component uses reported 4-week averages;
+continuing counts convert from millions to thousands. Revised Previous replaces
+the nearest benchmark observation. Continuing has its own earlier reference week.
+Missing weeks leave gaps, never imputed zeros or Previous substitutes.
+
+A positive signal means fewer claims and USD support, so its sign is inverted
+relative to the original A−P measure. The shared Claims feature extractor supplies
+both plotted values and standalone scoring; automatic cutoffs use strictly earlier
+signals with the 24-observation gate. `CLAIMS-V1-SIGNALS` provides independent,
+portable custom boundaries and the existing preview/Apply/reset workflow.

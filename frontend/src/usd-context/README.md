@@ -1,105 +1,110 @@
-# USD context memory v2
+# USD context memory v3
 
-The context engine consumes unchanged signed magnitude scores from CPI v3.1,
-NFP v2, monthly ISM v3 and Retail Sales v1. It interprets the USD side of a pair. It neither
-scores the other currency nor learns weights from price reactions.
+The shared engine consumes unchanged standalone CPI v3.1, NFP v2, Claims v1,
+monthly ISM v3 and Retail Sales v1 scores. It interprets the USD side of supported
+pairs. Forecasts, price outcomes and the other currency do not vote.
 
-## Policy
+## Declared policy
 
-| Input | Weight | Update behavior |
-| --- | --- | --- |
-| NFP v2 | 40% | Latest jobs report replaces the previous jobs assessment |
-| CPI v3.1 | 40% | Latest CPI report replaces the previous inflation assessment |
-| ISM v3 | 10% | Manufacturing then Services replace the same ISM slot; each uses its original publication time |
+| Input | Weight | Freshness | Update behavior |
+| --- | ---: | --- | --- |
+| CPI v3.1 | 40% | 45 days | Latest inflation report replaces the previous CPI slot |
+| NFP v2 | 30% | 45 days | Latest jobs report replaces the previous NFP slot |
+| Claims v1 | 10% | 14 days | Latest weekly report replaces the previous Claims slot |
+| ISM v3 | 10% | 45 days | Manufacturing then Services update one monthly ISM slot at their original times |
+| Retail Sales v1 | 10% | 45 days | Latest spending report replaces the previous Retail slot |
 
-| Retail Sales v1 | 10% | Latest Retail Sales report replaces the spending assessment |
+These priorities are prototype rules, not fitted coefficients or measured FX
+impact. NFP and Claims share the existing 40% labor budget. Weekly votes never
+accumulate. Freshness boundaries use the recorded broker chart clock and expire
+at the boundary. A new uncomputed publication replaces the previous assessment;
+missing, disabled, expired and uncomputed weights are not redistributed.
 
-These are explicit prototype interpretation weights. Inflation and labor retain
-40% each; the activity budget is split between surveys and nominal spending. Scores are existing signed
-0–4 component magnitudes, weighted within each source scorer. Evidence labels do
-not multiply scores. We retain score size, component exclusions and qualifications.
-ISM publication scores are never added together. Raycaster has one ISM switch
-controlling both sectors; Inspector filters do not select this context inventory.
+Signed source magnitude totals multiply these weights. Positive supports USD;
+negative weakens USD. Exact cancellation follows CPI → NFP → Claims → ISM → Retail
+with Weak evidence. A source's declared zero-score tie direction remains eligible.
+All unavailable/expired evidence is Uncomputed; no direction is fabricated.
 
-The latest assessment persists until replaced or 45 days after its publication
-on the broker chart clock. This expiry is a prototype monthly-data freshness
-rule, not an estimated economic half-life. A new uncomputed assessment replaces
-the old vote, with an incomplete-context explanation; an older favorable vote
-is not silently carried forward. Disabled/missing/expired weights are not
-redistributed. Initially absent families remain missing. Current-month releases
-do not erase still-active earlier-month CPI or NFP assessments.
+Evidence describes agreement, not probability or price-move size. Missing or
+reduced inputs, exact cancellation or net/gross agreement below one third give
+Weak evidence. Strong requires strong supporting NFP and CPI, net/gross agreement
+at least two thirds, and no active Weak family. Opposing active NFP and Claims cap
+combined evidence at Moderate; Weak still takes precedence. Their agreement does
+not substitute for inflation confirmation or create an extra independent domain.
 
-Positive totals mean stronger USD; negative totals mean weaker USD. Exact net
-cancellation uses CPI → NFP → ISM → Retail Sales direction priority, with weak evidence. A source
-scorer's declared zero-score tie direction remains available to that priority.
-All unavailable or expired evidence is Uncomputed; no direction is fabricated.
+## One engine, two views
 
-Evidence is descriptive agreement, not probability. Missing or incomplete inputs,
-exact cancellation or net/gross agreement below one third give weak evidence.
-Strong requires strong supporting NFP and CPI assessments, net/gross agreement
-at least two thirds, and no active family with weak evidence. Remaining directional
-cases are moderate. Correlated family inputs are not asserted to be statistically
-independent confirmations. Source change size is retained for inspection; the
-context box does not conflate evidence strength with predicted price-move size.
+Raycaster looks up the context at the hovered candle's exclusive end. CPI v4
+looks up that same engine immediately before and at the selected CPI publication.
+It presents the unchanged standalone CPI interpretation alongside the combined
+context and shows how the new CPI contribution replaces the preceding CPI vote.
+Simultaneous updates/status changes are disclosed rather than attributed to CPI.
+A coarse Raycaster candle may include later releases; equal timestamps use equal
+snapshots, but a publication snapshot need not equal an entire H1 candle's end.
 
-## Chronology and scope
+`storage/context-family-settings.ts` owns the shared five-family selection.
+Enabled/Off controls in Raycaster and CPI v4 update the same preference;
+Inspector marker filters and date range remain independent. All five default On.
+The existing `fyodor.raycaster.families.v1` key is retained with a version-2 object.
+Legacy full four-family defaults gain Claims; partial/all-off selections survive.
+New deliberate Claims-Off selections remain Off on reload and workspace restore.
+Magnitude settings remain shared with the existing USD standalone scorers/Scatter.
 
-`core/score-publication.ts` adapts canonical scorers to currency-level votes.
-`core/build-context-timeline.ts` builds atomic publication snapshots and expiry
-boundaries; `combine-context.ts` resolves four active slots; `context-lookup.ts`
-does a binary lookup. Same-time publications enter together. Chart clock ordering
-and all rows' chart-time consistency are validated. Unknown chart timing is
-excluded; original source timestamps and existing ISM official-date gates remain.
+## Chronology and runtime
 
-The worker receives broker history from January 2015, scoped to the required
-series and independent of Inspector's visible date range. Only observations
-published by the corrected current clock enter. Each assessment and its calibration
-use its publication-time history. Removing later observations preserves earlier
-snapshots. Stored provider values can contain later revisions/backfills; this is
-reconstructed history, not certified original-release vintage replay.
+`core/score-publication.ts` adapts canonical scorers; `build-context-timeline.ts`
+builds atomic publication/expiry snapshots; `combine-context.ts` resolves five
+slots; `context-lookup.ts` performs binary lookup; `publication-comparison.ts`
+compares CPI snapshots. `ui/ContextInputTable.tsx` provides the shared breakdown.
+Inspector imports the engine directly, never Raycaster UI/runtime.
 
-Existing EURUSD signal magnitude settings are intentionally shared by the USD
-engine, including on other supported pairs. Original A−P settings, menu view
-selection and chart symbol visibility do not select different scoring policies.
-Raycaster's own saved family filters select inputs independently of Inspector.
-All four are enabled by default. Other event families currently have no effect. Pair conversion supports EURUSD, GBPUSD, AUDUSD, NZDUSD, USDJPY,
-USDCHF and USDCAD, plus dot/underscore/hyphen broker suffixes and lowercase suffixes.
-USD quote converts weakness to Long; USD base converts weakness to Short.
-Metals, crypto, crosses and unrecognized symbol formats are excluded.
+The runtime queries broker history from January 2015 for required series,
+independent of visible marker filters. Only observations published by the
+corrected current clock enter. Each assessment and calibration use its own
+publication-time history. Later data removal must preserve earlier snapshots.
+Unknown/inconsistent chart timing is excluded; canonical source gates remain.
+Stored values can contain provider revisions/backfills: this is reconstructed
+history, not certified original-release vintage replay.
 
-## Runtime and verification
+Scoped history, applied settings, selected families and admitted publications
+invalidate background calculations. Pointer movement does not. Latest-job workers
+reject stale replies and terminate on disable/unmount. CPI v4 also calculates its
+standalone assessment in a module worker; disabling CPI/all context does not hide
+that assessment. A headless environment uses the canonical pure fallback.
 
-`runtime/` owns the scoped storage hook and a module worker. Stable inventories,
-applied component settings, supported filters and publication admission invalidate
-the calculation. Pointer coordinates and symbol inversion never do. The shared
-latest-job client drops obsolete results and terminates the worker on disable or
-unmount. A headless environment without Worker uses the canonical pure fallback.
-Hovering performs only a binary search over prepared snapshots.
+The engine supports EURUSD, GBPUSD, AUDUSD, NZDUSD, USDJPY, USDCHF and USDCAD with
+supported broker suffixes. USD quote converts weakness to Long; USD base converts
+weakness to Short. CPI v4 Inspector remains EURUSD-only. No EUR-relative assessment,
+Fed-text interpretation or conditional policy-regime weighting is implemented here.
 
-The CPI v3 prior-reference lookup now uses the existing immutable-history index;
-its math, duplicate gates and earlier-history rules are unchanged.
+## Verification
 
-Tests: `tests/usd-context/test_context.mjs` and `test_raycaster.mjs`. The chronological
-audit script checks stored scorer parity, eight June/July/August/September future-removal replays, exact
-publication boundaries, and the actual Vite-built worker against the pure engine
-while the main event loop continues running:
+`tests/usd-context/test_context.mjs`, `test_raycaster.mjs`, and
+`tests/inspector/cpi/test_cpi_score_v4.mjs` / `test_cpi_v4_integration.mjs` verify
+weights, labor disagreement, one-slot Claims replacement, expiry, shared filters,
+publication parity, future removal, standalone invariance, worker reuse/stale
+replies, clock-heartbeat stability and workspace portability.
+
+After building, run the stored chronological audit:
 
 ```powershell
 pnpm build
-node scripts/audit-usd-context.mjs ../storage/data/cpi-v2-design-snapshot.json ../storage/data/nfp-v2-design-snapshot.json ../storage/data/ism-v2-design-snapshot.json ../storage/data/retail-v1-design-snapshot.json ../storage/data/usd-context-v2-design-audit
+node scripts/audit-usd-context.mjs ../storage/data/cpi-v2-design-snapshot.json ../storage/data/nfp-v2-design-snapshot.json ../storage/data/ism-v2-design-snapshot.json ../storage/data/retail-v1-design-snapshot.json ../storage/data/claims-v1-design-snapshot.json ../storage/data/usd-context-v3-design-audit
 ```
 
-V2 audit: 140 CPI, 141 NFP, 284 ISM and 144 Retail assessments retain their
-standalone totals, directions, evidence and change size. The engine builds 703
-snapshots; eight replay cutoffs preserve the full snapshot after future removal.
-Both the pure engine and actual production worker match. One run took about
-4.4 seconds in the worker while the main event loop remained active. Startup or
-filter changes rebuild the timeline; hover only performs a lookup.
+The audit compares all five source scorers with prior stored reports, checks ten
+future-removal cutoffs including August/September 2025 CPI, compares CPI v4 before/
+after snapshots, and tests both actual production workers against pure functions.
+Archived v1/v2 weights and audits remain in the root scoring library. Visual
+checks and price-reaction diagnostics belong to the user.
 
-V1's 40/40/20 policy and 570-snapshot report remain archived in the root scoring
-library and `storage/data/usd-context-v1-design-audit.*`. New v2 priorities were
-set without fitting the user's Retail price notes. In particular, July 16 still
-resolves to EURUSD Long with Moderate combined evidence; incorporating other US
-releases does not force that observation into a matching price label.
+Stored v3 audit: 140 CPI, 141 NFP, 284 ISM, 144 Retail and 606 Claims publications
+retain canonical totals/directions/evidence/change size. The engine creates 1,244
+snapshots; all ten future-removal checks and both actual production-worker parity
+checks pass. One context worker run took about 9.3 seconds while the event loop
+remained active. Startup/filter changes rebuild; hover does not. Full frontend
+suite, lint and production build passed on 6 October 2026.
 
-No automated visual inspection is used.
+August 12, 2025 remains EURUSD Short / Weak combined versus Short / Strong
+standalone CPI; disagreement with the reported rally is retained for investigation.
+This implementation does not force historical price-fitting labels.

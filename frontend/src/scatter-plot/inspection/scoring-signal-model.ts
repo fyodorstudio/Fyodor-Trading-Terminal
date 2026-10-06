@@ -5,10 +5,12 @@ import { nfpV2Features, nfpV2Signals, nfpV2SeriesIds, supportsNfpV2 } from '../.
 import { pceFeatures, pceSignals, pceSeriesIds, supportsPceScore } from '../../inspector/scoring/PAIR/EURUSD/USD/PCE/assessment/pce-score'
 import { retailFeatures, supportsRetailScore } from '../../inspector/scoring/PAIR/EURUSD/USD/RETAIL/assessment/retail-features'
 import { retailSignals, retailSeriesIds } from '../../inspector/scoring/PAIR/EURUSD/USD/RETAIL/policy/retail-policy'
+import { claimsFeatures, supportsClaimsScore } from '../../inspector/scoring/PAIR/EURUSD/USD/CLAIMS/assessment/claims-features'
+import { claimsSignals, claimsSeriesIds } from '../../inspector/scoring/PAIR/EURUSD/USD/CLAIMS/policy/claims-policy'
 import { ismServicesFeatures, ismServicesSignals, ismServicesSeriesIds, supportsIsmServicesScore } from '../../inspector/scoring/PAIR/EURUSD/USD/ISM/sectors/services/ism-services-score'
 import { ismManufacturingFeatures, ismManufacturingSignals, ismManufacturingSeriesIds, supportsIsmManufacturing } from '../../inspector/scoring/PAIR/EURUSD/USD/ISM/sectors/manufacturing/ism-manufacturing-score'
 import { calibrateHistoricalSignal, observedReading, type HistoricalFeature, type TimedReading } from '../../inspector/scoring/shared/core/historical-release-signals'
-import { cpiSignalSettings, nfpSignalSettings, pceSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings, retailSignalSettings } from '../../inspector/scoring/shared/core/signal-magnitude-settings'
+import { cpiSignalSettings, nfpSignalSettings, pceSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings, retailSignalSettings, claimsSignalSettings } from '../../inspector/scoring/shared/core/signal-magnitude-settings'
 import { magnitudeDistribution } from '../../inspector/magnitude/magnitude-distribution'
 import type { MagnitudeSettings, MagnitudeSettingsStore } from '../../inspector/magnitude/settings/magnitude-settings-store'
 import type { ScatterModel, ScatterPoint, ScatterSignal } from '../contracts/scatter-plot-types'
@@ -20,6 +22,10 @@ export type ScoringSignalBinding = {
   features: (release: InspectorRelease, history: readonly TimedReading[]) => Record<string, HistoricalFeature>
 }
 export function scoringSignalBinding(familyId: string): ScoringSignalBinding | null {
+  if (familyId === 'claims') return {
+    label: 'Jobless Claims v1', settings: claimsSignalSettings, seriesIds: claimsSeriesIds,
+    signals: claimsSignals, supports: supportsClaimsScore, features: claimsFeatures,
+  }
   if (familyId === 'us-cpi') return {
     label: 'CPI v3', settings: cpiSignalSettings, seriesIds: cpiV3SeriesIds,
     signals: cpiV3Signals.map((signal) => ({ ...signal, unit: 'pp' })), supports: supportsCpiV3, features: cpiV3Features,

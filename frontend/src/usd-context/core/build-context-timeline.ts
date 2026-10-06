@@ -2,7 +2,7 @@ import { groupInspectorReleases, inspectorEventChartTime } from '../../inspector
 import { observedReading } from '../../inspector/scoring/shared/core/historical-release-signals'
 import { combineContext } from './combine-context'
 import type { ContextInput, ContextFamily, ContextTimeline, FamilyAssessment } from './contracts'
-import { contextExpiryMs, contextVersion, enabledContextFamilies } from './policy'
+import { contextFamilyExpiry, contextVersion, enabledContextFamilies } from './policy'
 import { scorePublication, publicationFamily, contextSeriesIds } from './score-publication'
 import { explainUpdate } from './explanation'
 
@@ -23,7 +23,7 @@ export function buildContextTimeline({ events, families, settings, asOf }: Conte
   const assessments = valid.map(r => scorePublication(r, scoringInventory, settings))
   const updates = new Map<number, FamilyAssessment[]>()
   for (const source of assessments) updates.set(source.chartAt, [...(updates.get(source.chartAt) ?? []), source])
-  const stages = [...new Set(assessments.flatMap(a => [a.chartAt, a.chartAt + contextExpiryMs]))].sort((a, b) => a - b)
+  const stages = [...new Set(assessments.flatMap(a => [a.chartAt, a.chartAt + contextFamilyExpiry(a.family)]))].sort((a, b) => a - b)
   const latest: Partial<Record<ContextFamily, FamilyAssessment>> = {}
   const points: ContextTimeline['points'] = []
   let lastPublication: FamilyAssessment | null = null

@@ -44,6 +44,8 @@ try {
         if (inspectorOnly && !resolved.includes(`${path.sep}inspector${path.sep}`)) {
           const relative = path.relative(sourceDir, resolved).replaceAll('\\', '/')
           assert.ok(relative.startsWith('appearance/time-display/') || relative.startsWith('market-data/contracts/')
+            // CPI v4 consumes the shared context engine, never Raycaster's UI/runtime.
+            || relative.startsWith('usd-context/')
             || relative === 'system-connectivity/bridge-status/bridge-contract.ts', `Unexpected Inspector coupling: ${relative}`)
         }
         if (/\.tsx?$/.test(resolved)) inspectGraph(resolved, inspectorOnly)
