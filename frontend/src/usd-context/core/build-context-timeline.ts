@@ -5,6 +5,8 @@ import type { ContextInput, ContextFamily, ContextTimeline, FamilyAssessment } f
 import { contextFamilyExpiry, contextVersion, enabledContextFamilies } from './policy'
 import { scorePublication, publicationFamily, contextSeriesIds } from './score-publication'
 import { explainUpdate } from './explanation'
+import { contextDayMs } from './memory/source-retention'
+import { claimsConfirmation } from './memory/claims-confirmation'
 
 export function buildContextTimeline({ events, families, settings, asOf }: ContextInput): ContextTimeline {
   const enabled = enabledContextFamilies(families)
@@ -20,24 +22,44 @@ export function buildContextTimeline({ events, families, settings, asOf }: Conte
     throw new Error('USD history has inconsistent chart clocks; verify this broker’s stored timing.')
   const selectedIds = new Set(selected.flatMap(r => r.events.map(e => e.value_id)))
   const scoringInventory = inventory.filter(e => selectedIds.has(e.value_id))
-  const assessments = valid.map(r => scorePublication(r, scoringInventory, settings))
+  const recentClaims: FamilyAssessment[] = []
+  const assessments = valid.map(r => {
+    const source = scorePublication(r, scoringInventory, settings)
+    if (source.family === 'claims') {
+      source.traits = claimsConfirmation(source, recentClaims)
+      recentClaims.push(source)
+      if (recentClaims.length > 2) recentClaims.shift()
+    }
+    return source
+  })
   const updates = new Map<number, FamilyAssessment[]>()
   for (const source of assessments) updates.set(source.chartAt, [...(updates.get(source.chartAt) ?? []), source])
-  const stages = [...new Set(assessments.flatMap(a => [a.chartAt, a.chartAt + contextFamilyExpiry(a.family)]))].sort((a, b) => a - b)
+  const boundaries = assessments.flatMap(a => [a.chartAt, a.chartAt + contextFamilyExpiry(a.family)])
+  // Daily broker-calendar aging is precomputed in the worker. Hover stays a
+  // binary lookup; no per-mouse-move rescoring or history scan is introduced.
+  const firstBoundary = boundaries.length ? Math.min(...boundaries) : 0
+  const lastBoundary = boundaries.length ? Math.max(...boundaries) : 0
+  for (let day = (Math.floor(firstBoundary / contextDayMs) + 1) * contextDayMs;
+    day < lastBoundary; day += contextDayMs) boundaries.push(day)
+  const stages = [...new Set(boundaries)].sort((a, b) => a - b)
   const latest: Partial<Record<ContextFamily, FamilyAssessment>> = {}
   const points: ContextTimeline['points'] = []
   let lastPublication: FamilyAssessment | null = null
   for (const chartAt of stages) {
-    const before = combineContext(latest, enabled, chartAt)
+    const before = combineContext(latest, enabled, chartAt - 1)
     const incoming = updates.get(chartAt) ?? []
     // Same-time publications resolve as one atomic snapshot.
     for (const source of incoming) { latest[source.family] = source; lastPublication = source }
     const result = combineContext(latest, enabled, chartAt)
     const names = incoming.map(s => s.sourceLabel).join(' + ')
-    const update = incoming.length ? explainUpdate(names, before, result, result.members.find(m => m.family === incoming.at(-1)!.family)) :
-      'An older assessment has expired; the remaining active evidence determines the context.'
+    const expired = before.members.some(m => m.status === 'active' && result.members.find(r => r.family === m.family)?.status === 'expired')
+    const update = incoming.length ? explainUpdate(names, before, result, incoming.flatMap(source =>
+      result.members.filter(m => m.family === source.family))) : expired ?
+      'An older assessment has expired; the remaining active evidence determines the context.' :
+      'Memory update: older votes lose influence at the broker day boundary; no new release was added.'
     // Superseded expiry boundaries do not create artificial updates.
-    if (!incoming.length && points.at(-1)?.result.members.every((m, i) => result.members[i]?.status === m.status)) continue
+    if (!incoming.length && points.at(-1)?.result.members.every((m, i) =>
+      result.members[i]?.status === m.status && result.members[i]?.contribution === m.contribution)) continue
     points.push({ chartAt, result, latest: lastPublication, update })
   }
   return { points, enabled, version: contextVersion, excludedTiming: selected.length - valid.length }

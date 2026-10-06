@@ -14,10 +14,28 @@ try {
   const { contextExpiryMs, contextFamilyExpiry } = await server.ssrLoadModule('./src/usd-context/core/policy.ts')
   const { usdPair, contextPairLabel } = await server.ssrLoadModule('./src/usd-context/core/usd-pair.ts')
   const { candleContextCutoff } = await server.ssrLoadModule('./src/raycaster/chart/candle-cutoff.ts')
+  const { explainUpdate } = await server.ssrLoadModule('./src/usd-context/core/explanation.ts')
   const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const source = (family, total, patch = {}) => ({ family, sourceId: family, sourceLabel: family, releaseAt: 1, chartAt: 1,
     total, usdDirection: total > 0 ? 'stronger' : 'weaker', strength: 'strong', reason: '', explanation: '',
     changeSize: 'Large change', reduced: false, tie: false, ...patch })
+  // A smaller positive replacement can enlarge the opposite context's lead;
+  // the explanation must not describe that positive release as USD weakness.
+  const positiveGdp = { ...source('gdp', 1.9), sourceLabel: 'GDP', status: 'active', contribution: .057 }
+  const replacement = explainUpdate('GDP', { direction: 'weaker', total: -.398 },
+    { direction: 'weaker', total: -.44 }, [positiveGdp])
+  assert.match(replacement, /GDP supports USD strength/)
+  assert.match(replacement, /remains USD-weakness with a larger weighted lead/)
+  const atomic = explainUpdate('GDP + CPI', { direction: 'weaker', total: -.4 },
+    { direction: 'weaker', total: -.2 }, [positiveGdp,
+      { ...source('cpi', -.6), sourceLabel: 'CPI', status: 'active', contribution: -.168 }])
+  assert.match(atomic, /GDP supports USD strength; CPI supports USD weakness/)
+  assert.match(atomic, /a smaller weighted lead/)
+  assert.match(explainUpdate('CPI', { direction: 'weaker', total: -.1 },
+    { direction: 'stronger', total: .1 }, [{ ...positiveGdp, sourceLabel: 'CPI', status: 'unavailable' }]),
+    /CPI: no usable new vote\. Combined context changes to the USD-strength bias/)
+  assert.match(explainUpdate('GDP', { direction: 'stronger', total: .1 },
+    { direction: 'stronger', total: .1 }, [{ ...positiveGdp, total: 0, contribution: 0 }]), /zero net source vote/)
   const initial = { nfp: source('nfp', -4), cpi: source('cpi', 1), ism: source('ism', 2) }
   const result = combineContext(initial, ['nfp', 'cpi', 'ism'], 1)
   assert.equal(result.total, -.72); assert.equal(result.direction, 'weaker'); assert.equal(result.strength, 'moderate')

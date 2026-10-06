@@ -1,4 +1,4 @@
-# Raycaster / USD context memory v5
+# Raycaster / USD context memory v6
 
 Press **Show Raycaster** (the wave glyph) beside the paintbrush toggle near the
 timeframe selector. Its active button toggles the box, and × hides it. Raycaster
@@ -18,7 +18,16 @@ keeps existing imports. Base weights are CPI 28%, PCE 10%, PPI 2%, NFP 30%, Clai
 Retail 7%, GDP 3%. Qualified Labor priority uses CPI 8%, NFP 50%, with other weights
 unchanged. The table shows effective/base weights; the rule details explain
 every condition using canonical publication-time CPI/NFP facts.
-Enabled and active weight are shown separately. Missing/Off/expired weights are
+V6 multiplies each vote by cadence retention (7-day Claims, 30-day monthly,
+90-day GDP half-life) and usable nominal component coverage. Age changes at broker
+calendar midnights, precomputed in the worker. The table exposes these factors,
+source age and final effective weight. Standalone scores remain unchanged; this
+is an additional cautious context policy, not a probability transformation.
+Qualified three-report weekly confirmation against an aging Weak/incomplete NFP
+can shift NFP 30→20 and Claims 10→20 inside the existing labor budget. It does
+not stack with Labor priority or accumulate old weekly votes. See the shared
+USD context README for the complete conditions and sensitivity audit.
+Enabled, active and retained weight are shown separately. Missing/Off/expired weights are
 not redistributed. Claims expires after 14 days; GDP after 120 days; other families after 45.
 
 NFP and Claims share one labor domain: 40% base budget, 60% during Labor priority. Opposing active directions cap evidence

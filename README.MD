@@ -101,10 +101,14 @@ See the [scoring library](scoring%20system%20library.MD) for policy and audit.
 
 **Raycaster** opens from the wave button beside the paintbrush toggle near the
 timeframe selector. Its movable box reads USD context at the hovered candle end.
-Memory v5 combines CPI v3.1 (28%), PCE v1 (10%), PPI v1 (2%), NFP v2 (30%),
+Memory v6 combines CPI v3.1 (28%), PCE v1 (10%), PPI v1 (2%), NFP v2 (30%),
 Claims v1 (10%), ISM v3 (10%), Retail v1 (7%) and GDP v1 (3%). Qualified labor deterioration with inflation inside declared
 guards shifts CPI to 8% and NFP to 50%; the breakdown shows conditions and
 effective/base weights. Claims has a 14-day freshness gate, GDP 120 days; others use 45 days.
+V6 reduces retained votes with cadence-based aging and usable component coverage.
+Qualified repeated Claims against an aging Weak/incomplete NFP can shift NFP to
+20% and Claims to 20%, within the same labor budget. Transfers do not stack.
+The gear exposes age, retention, coverage, effective weight and weekly confirmation.
 The gear shows saved Enabled/Off controls, source biases/evidence and weighted
 votes. CPI **Scoring system v4** shares those context controls and shows the
 unchanged standalone CPI reading, context before/after publication and the CPI

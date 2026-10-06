@@ -2,6 +2,37 @@
 
 Updated: 6 October 2026. Scope: EURUSD, starting with USD event families.
 
+## Accepted EUR roadmap — deferred implementation
+
+The user accepted this sequence on 6 October 2026. It is planned work, not
+implemented coverage. Investigate the current USD-context audit before expanding.
+
+1. Euro-area inflation, with German CPI/HICP as supporting country context.
+2. Euro-area PMIs, incorporating German and French publications at their actual
+   release times within the same activity budget.
+3. Euro-area employment/unemployment, wages/labor costs and GDP.
+4. ECB policy: distinguish rate action from statement, projections, conference
+   and speech guidance. Full guidance interpretation requires timestamped text;
+   calendar labels and a rate hold cannot supply that content.
+5. A relative EUR–USD context engine with visible contributions from both sides.
+
+Euro-area aggregates anchor the EUR interpretation. Overlapping national and
+regional readings must not receive independent full votes for the same evidence.
+Country data can provide earlier updates; the later aggregate must resolve that
+overlap explicitly. Preliminary/final publications and revisions need separate
+update rules. All inputs retain publication-time chronology and visible
+magnitudes. Comparable scales and declared budgets are prerequisites to combining
+the two currency engines; simply subtracting their existing raw scores is not
+an approved policy.
+
+Audit standalone meaning, chronology and combination arithmetic now. Save the
+larger EURUSD price-reaction audit for bilateral coverage, while retaining current
+disagreements as open findings. Price agreement alone does not certify a rule or
+prove the causal effect of a release.
+
+References: [Eurostat HICP framework](https://webgate.ec.europa.eu/eurostat/cache/metadata/en/prc_hicp_esms.htm)
+and [ECB monetary policy](https://www.ecb.europa.eu/mopo/intro/html/index.en.html).
+
 ## Purpose and output
 
 Interpret what each economic release says without requiring the user to read its
@@ -39,7 +70,7 @@ not promises about the release candle or a future price move.
 | USD GDP v1 | Scoring system | GDP/real consumption/final sales weights 50/30/20; first stored quarter estimate versus prior four quarters, or same-quarter estimate revision; separate calibration populations. Implemented. |
 | USD PPI v1 | Scoring system | Core monthly/annual weights 50/30; headline monthly/annual 15/5. Earlier-history calibration and core gate. Implemented. |
 | USD FOMC action v1 / Fed Chair coverage | Scoring system | Hike/cut action interpretation, hold without action direction, explicit unavailable statement/speech text, economic context shown separately. Partial policy coverage; guidance scorer pending a text source. |
-| USD context memory v5 / Raycaster | Chart header → Raycaster; CPI v4 and registered publication panels | CPI/PCE/PPI 28/10/2, NFP/Claims 30/10, ISM/Retail/GDP 10/7/3. Qualified labor priority transfers 20 points from CPI to NFP. Fixed domain budgets; visible conditions and effective weights. Implemented; earlier policies archived below. |
+| USD context memory v6 / Raycaster | Chart header → Raycaster; CPI v4 and registered publication panels | V5 source budgets plus cadence aging and explicit usable-component coverage; qualified opposing weekly Claims can receive 10 points from an aging Weak/incomplete NFP. Earlier labor–inflation rule retained, transfers do not stack. Visible factors and effective weights. Implemented; audit below. |
 
 Inspector's other families have release tables and descriptive magnitude tools;
 that does not mean they already have directional scorers. FOMC/ECB episode
@@ -98,7 +129,7 @@ Unimplemented families fall back to Table.
 These weights, confirmation groups, thresholds and participation adjustment are
 explicit prototype policies; they are not fitted estimates or validated market
 probabilities. Monthly ISM v2 is the first implemented context combination; the
-USD context memory v5 combines all numerical inflation, labor and activity menu families.
+USD context memory v6 combines all numerical inflation, labor and activity menu families.
 FOMC guidance and Fed Chair text interpretation remain data-source work.
 
 Terminal validation and manual review status are recorded below.
@@ -1211,3 +1242,85 @@ new model and mounted integration tests. Final lint, TypeScript/Vite production
 build and diff whitespace checks passed. After separating GDP Scatter
 distribution populations, GDP/PPI parity and the shared signal-plot regressions
 passed again. No visual browser or screenshot audit was performed.
+
+## December 2025–January 2026 Raycaster audit
+
+The user's Long-until-9-January observation reproduced under all eight enabled
+families and automatic magnitudes. Retained December CPI/NFP/PCE votes outweighed
+the new GDP/Claims/ISM inputs. NFP's 9 January replacement tipped the total from
+−0.2395 to +0.0905. Missing CPI on 13 January removed an old negative vote,
+increasing the Short lead without supplying new USD-supportive inflation evidence.
+These are implementation facts, not validation against the observed price path.
+
+ISM's grouped 5 January chart marker and its final monthly Inspector summary
+refer to different cutoffs: Manufacturing was Long under defaults at publication;
+Services changed the monthly result to Short on 7 January. Audits must use the
+summary's As-of time or the v2 publication snapshots, not the grouped marker's
+anchor date alone. Saved manual magnitude settings are outside this replay.
+
+A confirmed wording defect is corrected: each incoming source's direction is
+now stated separately from the combined context and change in weighted lead.
+A smaller positive replacement must not be described as a USD-weakening release.
+Same-time updates state every source. Scoring math and outputs are unchanged.
+
+Next context research: age-sensitive retention, explicit coverage influence,
+bounded Claims confirmation against older NFP, and distinguishing new information
+from retained background. No new policy weights or direction flips are approved
+by this audit alone. Check candidates across independent windows before adoption.
+The post-9-January rally remains unresolved in the USD-only numerical model.
+
+[Detailed findings and reproducible audit](reports/USD-context-Dec2025-Jan2026-audit.md).
+
+## Implemented: shared context memory v6
+
+The June 17–18, 2026 audit exposed a narrow v5 Long score (−0.0395) despite
+positive NFP and new Retail inputs. The December audit also identified CPI with
+20% nominal component coverage and NFP with 45% coverage retaining their source
+budgets without additional context caution. V6 preserves every standalone scorer
+and changes only shared context influence and one bounded weekly interaction.
+
+**Vote:** unchanged source total × assigned weight/100 × age retention × usable
+nominal component coverage. Retention is `2^(-ageDays/halfLifeDays)`, advancing at
+broker calendar day boundaries. Claims half-life 7 days, monthly families 30,
+GDP 90; hard expiries remain 14/45/120. Nominal component coverage uses NFP base
+weights rather than its participation adjustment. Usable zeros count; missing
+weights are not restored. This extra coverage caution is a declared prototype
+choice even though source totals already omit unavailable components. Evidence
+grades are not numerical probability multipliers.
+
+**Weekly labor priority:** three consecutive complete same-direction Claims
+reports, 4–10 days apart with at least 80% component coverage each, and a latest
+Moderate/Strong report, can receive priority over an opposing NFP at least 14
+days old that is Weak or incomplete. NFP 30→20%, Claims 10→20%; the shared labor
+budget stays 40. Older weekly reports add no independent votes. This rule works
+in both directions and does not stack with the earlier labor–inflation transfer.
+Fresh or complete Moderate/Strong NFP blocks it. Conditions remain visible.
+
+The gear/publication tables now expose age, half-life, retained percentage,
+coverage, assigned and effective weight, weekly confirmation and final votes.
+Enabled/active budgets and retained weight are distinct. Worker-precomputed daily
+updates explicitly identify memory aging; mouse movement remains a binary lookup.
+CPI v4's vote-change decomposition includes retention reset and coverage changes.
+
+**Stored replay:** all 1,471 publications retain source-score parity. V6 changes
+66 combined directions (55 before 2025, 11 in 2025–2026). Weekly priority
+qualifies at 75 publications; the existing labor–inflation rule at 29. Default
+half-lives ±25% change 15/11 directions versus default; no FX returns selected
+the parameters. Eight publication and eligible daily replays pass future removal.
+The complete frontend tests, lint, TypeScript/Vite build and compiled-worker
+parity pass. The 5,682-point timeline calculated/transferred in about 20 seconds
+with the main event loop active; this is not a chart-pan latency benchmark.
+
+**User cases under defaults:** June 17, 23:59 broker time now Short / Weak
+(+0.024009); June 18, 03:00 is Short / Weak (+0.031357). December 31 and January 8
+become Short / Weak before the January 9 NFP update. August 12 and September 11,
+2025 and August 12, 2026 remain Long. December 23 remains Long and the January 28
+rally retains Short context: both remain open findings, not forced date-specific
+exceptions. Manual saved settings/source exclusions are outside this replay.
+
+The June 17 [official Fed statement](https://www.federalreserve.gov/monetarypolicy/files/monetary20260617a1.pdf)
+is relevant missing content; v6 does not import/classify it or assert it caused
+the fall. Timestamped policy content and EUR remain deferred. Earlier v5 and
+prior-version descriptions above are historical policies.
+
+[V6 design, results, limitations and reproduction](reports/USD-context-memory-v6-audit.md).

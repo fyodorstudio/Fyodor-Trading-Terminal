@@ -1,4 +1,4 @@
-# USD context memory v5
+# USD context memory v6
 
 The shared engine consumes unchanged standalone CPI v3.1, NFP v2, Claims v1,
 monthly ISM v3, Retail Sales v1, PCE v1, PPI v1 and GDP v1 scores. It interprets the USD side of supported
@@ -26,7 +26,8 @@ accumulate. Freshness boundaries use the recorded broker chart clock and expire
 at the boundary. A new uncomputed publication replaces the previous assessment;
 missing, disabled, expired and uncomputed weights are not redistributed.
 
-Signed source magnitude totals multiply these weights. Positive supports USD;
+Signed source magnitude totals multiply assigned weight, age retention and
+usable component coverage. Positive supports USD;
 negative weakens USD. Exact cancellation follows CPI → NFP → Claims → PCE → ISM → Retail → GDP → PPI
 with Weak evidence. A source's declared zero-score tie direction remains eligible.
 All unavailable/expired evidence is Uncomputed; no direction is fabricated.
@@ -54,7 +55,7 @@ condition must pass on active, enabled, publication-time inputs:
 
 When every condition is met, **Labor priority** shifts CPI 28→8 and NFP 30→50.
 Other weights remain fixed. An active Strong USD-supportive PCE/PPI assessment
-with a source total of at least 2 blocks this transfer. Otherwise **Balanced priorities** retain v5's
+with a source total of at least 2 blocks this transfer. Otherwise **Balanced priorities** retain the
 base weights. There is no additional synthetic vote, unavailable-weight
 redistribution, date-specific branch, survey input or price-based override.
 The rule can enter/exit on any eligible publication or source expiry. Disabling
@@ -73,6 +74,50 @@ budget (35/35), and share one evidence group. Preserve standalone v3.1 rather
 than silently change its meaning. The interaction assesses one monthly core
 block and lowers CPI's *context* budget only in the qualified competing regime.
 `ui/ContextPolicyDetails.tsx` shows every condition and its result in both views.
+
+## V6 age, coverage and weekly confirmation
+
+`core/memory/` owns retention and Claims confirmation. Source math and magnitude
+settings are unchanged. Each vote is now:
+
+`source total × assigned weight / 100 × 2^(-ageDays / halfLifeDays) × coverage`.
+
+Age counts elapsed broker calendar date boundaries, not cursor movements or the
+machine's current date. Half-lives follow release cadence: Claims 7 days, monthly
+families 30, GDP 90. Existing hard expiries remain 14/45/120 days. These are
+prototype defaults, not fitted market-impact estimates. `build-context-timeline`
+precomputes broker midnight updates in the worker; hover remains binary lookup.
+Empty/all-expired stretches do not create redundant daily points. Day-boundary
+changes explicitly say Memory update, rather than implying a new release.
+
+Coverage is the sum of usable component nominal weights divided by the sum of
+all component nominal weights. NFP uses base weights so its intentional
+participation qualifier is not penalized twice as missing data. ISM's integer
+sector/component weights normalize to the same 0–1 fraction. Zeros remain usable;
+invalid or zero coverage cannot vote. Legacy in-memory assessments without
+coverage use 1; canonical source adapters always supply it.
+
+Standalone totals already omit unavailable components. Multiplying coverage is
+an additional declared context caution, not a correction to standalone math.
+It specifically reduces the influence of a thin annual-only CPI or partial NFP
+without changing their release labels. Evidence grades mix agreement and
+limitations, so Weak/Moderate/Strong are not numeric probability multipliers.
+
+Claims can qualify **Weekly labor priority** when three consecutive complete observed
+reports agree, are 4–10 days apart, have at least 80% component coverage each,
+and the latest is Moderate/Strong. They must oppose an active NFP
+at least 14 broker calendar days old that is Weak or incomplete. NFP shifts
+30→20%, Claims 10→20%. Only the latest weekly report votes: the streak supplies
+a condition, not an additional sum or independent confirmation. A broken,
+unavailable, ambiguous or widely spaced report breaks confirmation. Fresh or
+complete Moderate/Strong NFP blocks this rule. It is symmetric for USD strength
+and weakness, and does not stack with the earlier labor–inflation transfer.
+
+The shared table shows age, half-life, retained percentage, component coverage,
+assigned/effective weight, current Claims confirmation and each final vote.
+Enabled/active budgets are shown before retention; retained weight is separate.
+Unused weight is never reallocated. CPI publication comparisons include the
+age reset and coverage change in source replacement and separate priority effects.
 
 ## One engine, two views
 
@@ -124,7 +169,7 @@ prototype; guidance-aware Fed regimes remain future work.
 
 ## Verification
 
-`tests/usd-context/test_context.mjs`, `test_labor_inflation_policy.mjs`, `test_raycaster.mjs`, and
+`tests/usd-context/test_memory_v6.mjs`, `test_context.mjs`, `test_labor_inflation_policy.mjs`, `test_raycaster.mjs`, and
 `tests/inspector/cpi/test_cpi_score_v4.mjs` / `test_cpi_v4_integration.mjs` verify
 weights, labor disagreement, one-slot Claims replacement, expiry, shared filters,
 publication parity, future removal, standalone invariance, worker reuse/stale
@@ -134,14 +179,20 @@ After building, run the current stored chronological audit:
 
 ```powershell
 pnpm build
-node scripts/audit-usd-menu-v5.mjs ../storage/data/usd-menu-v5-design-snapshot.json ../storage/data/usd-menu-v5-design-audit
+node scripts/usd-context/audit-memory-v6.mjs ../storage/data/usd-menu-v5-design-snapshot.json ../storage/data/usd-context-v5-baseline.json ../storage/data/usd-context-v6-design-audit
 ```
 
-The current audit checks every GDP/PPI scorer–Scatter signal, future removal,
-full-context publication replays and compiled context/Inspector worker parity.
+The current audit compares against the captured v5 baseline at all publications,
+checks unchanged standalone sources, future-removal publication/daily replays,
+cadence sensitivity and compiled context worker parity. Baseline capture uses
+`scripts/usd-context/capture-baseline.mjs` before a policy change; its ignored JSON
+records its exact version, source and revision. The same-revision v5 baseline
+must be preserved to reproduce this comparison. No price returns select defaults.
+The expanded GDP/PPI runner remains available for source/Scatter checks; reports
+must retain their actual current engine version rather than claiming a v5 replay.
 Archived v1–v4 weights and audit results remain in the root scoring library.
 The older `audit-usd-context.mjs` is retained as the previous five-family audit
-runner; its v3 invariance expectations are not a v5 validation command.
+runner; its v3 invariance expectations are not a current validation command.
 Visual checks and price-reaction diagnostics belong to the user.
 
 Archived v3: 1,244 snapshots and ten replay checks, with August 12, 2025 Short /
@@ -177,7 +228,7 @@ shows this limitation and the existing publication-time economic context. Policy
 tone has no context weight until timestamped content and a declared interpretation
 policy exist. This is partial policy coverage, not a completed guidance scorer.
 
-Current audit: `scripts/audit-usd-menu-v5.mjs`; local report
+Archived v5 audit: `scripts/audit-usd-menu-v5.mjs`; local report
 `storage/data/usd-menu-v5-design-audit.md`. Earlier context-v4 audit totals below
 are archived results under the former five-family weights, not v5 outputs.
 

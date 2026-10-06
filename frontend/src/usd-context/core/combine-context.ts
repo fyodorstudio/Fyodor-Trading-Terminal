@@ -2,19 +2,28 @@ import type { ContextFamily, ContextResult, FamilyAssessment } from './contracts
 import { contextFamilyExpiry, contextPriority, contextWeights } from './policy'
 import { explainContext } from './explanation'
 import { resolveLaborInflationPolicy } from './interaction/labor-inflation-policy'
+import { resolveWeeklyLaborPolicy } from './interaction/weekly-labor-policy'
+import { sourceMemory } from './memory/source-retention'
 
 // Existing scorers share signed magnitude points: positive supports USD.
-// Preserve missing weight and signed totals; evidence grades are never multipliers.
+// Preserve signed source totals; age and component coverage reduce context
+// influence transparently. Evidence grades are not probability multipliers.
 export function combineContext(latest: Partial<Record<ContextFamily, FamilyAssessment>>, enabled: readonly ContextFamily[], chartAt: number): ContextResult {
   const baseMembers = enabled.flatMap(family => {
     const source = latest[family]
     if (!source) return []
     const status = chartAt >= source.chartAt + contextFamilyExpiry(family) ? 'expired' as const :
-      source.usdDirection === 'uncomputed' || source.total === null ? 'unavailable' as const : 'active' as const
-    return [{ ...source, status, contribution: status === 'active' ? source.total! * contextWeights[family] / 100 : 0 }]
+      source.usdDirection === 'uncomputed' || source.total === null || !Number.isFinite(source.total) ||
+        (source.coverage !== undefined && (!Number.isFinite(source.coverage) || source.coverage <= 0 || source.coverage > 1)) ?
+        'unavailable' as const : 'active' as const
+    const memory = sourceMemory(source, chartAt, contextWeights[family])
+    return [{ ...source, status, memory, contribution: status === 'active' ? source.total! * memory.effectiveWeight / 100 : 0 }]
   })
-  const policy = resolveLaborInflationPolicy(baseMembers)
-  const members = baseMembers.map(m => ({ ...m, contribution: m.status === 'active' ? m.total! * policy.weights[m.family] / 100 : 0 }))
+  const policy = resolveWeeklyLaborPolicy(baseMembers, resolveLaborInflationPolicy(baseMembers))
+  const members = baseMembers.map(m => {
+    const memory = sourceMemory(m, chartAt, policy.weights[m.family])
+    return { ...m, memory, contribution: m.status === 'active' ? m.total! * memory.effectiveWeight / 100 : 0 }
+  })
   const active = members.filter(m => m.status === 'active')
   const missing = enabled.filter(f => !active.some(m => m.family === f))
   const total = active.length ? Math.round(active.reduce((sum, m) => sum + m.contribution, 0) * 1e12) / 1e12 : null
@@ -38,6 +47,6 @@ export function combineContext(latest: Partial<Record<ContextFamily, FamilyAsses
           'Source disagreement or qualified evidence limits the combined evidence grade.'
   const laborNote = laborConflict ? ' NFP and Claims disagree within the shared labor budget; combined evidence is capped at Moderate.' : ''
   return { direction, total, strength, explanation: explainContext(direction, members, tie) +
-    (policy.mode === 'labor-priority' ? ' Labor priority is active.' : ''),
+    (policy.mode === 'labor-priority' ? ' Labor priority is active.' : policy.mode === 'weekly-labor-priority' ? ' Weekly labor priority is active.' : ''),
     reason: reason + laborNote, members, missing, tie, policy }
 }

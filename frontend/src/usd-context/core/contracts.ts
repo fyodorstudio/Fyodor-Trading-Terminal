@@ -7,8 +7,9 @@ export type Evidence = 'weak' | 'moderate' | 'strong'
 export type CpiContextTraits = { kind: 'cpi'; monthlyCore: number | null; threeMonthCore: number | null;
   annualCore: number | null; monthlyPressure: number | null; annualPressure: number | null }
 export type NfpContextTraits = { kind: 'nfp'; hiringChange: number | null; unemploymentSignal: number | null }
+export type ClaimsContextTraits = { kind: 'claims'; streak: number; confirmed: boolean }
 export type ContextPolicyCheck = { label: string; state: 'pass' | 'fail' | 'unavailable'; detail: string }
-export type ContextPolicy = { mode: 'balanced' | 'labor-priority'; label: string; reason: string;
+export type ContextPolicy = { mode: 'balanced' | 'labor-priority' | 'weekly-labor-priority'; label: string; reason: string;
   weights: Record<ContextFamily, number>; checks: ContextPolicyCheck[] }
 export type ContextSettings = { nfp: MagnitudeSettings; cpi: MagnitudeSettings;
   services: MagnitudeSettings; manufacturing: MagnitudeSettings; retail?: MagnitudeSettings; claims?: MagnitudeSettings; pce?: MagnitudeSettings; ppi?: MagnitudeSettings; gdp?: MagnitudeSettings }
@@ -16,8 +17,10 @@ export type ContextInput = { events: readonly InspectorEvent[]; families: readon
 export type FamilyAssessment = { family: ContextFamily; sourceId: string; sourceLabel: string; releaseAt: number;
   chartAt: number; total: number | null; usdDirection: UsdDirection; strength: Evidence | null;
   reason: string; explanation: string; changeSize: string | null; reduced: boolean; tie: boolean;
-  traits?: CpiContextTraits | NfpContextTraits }
-export type ContextMember = FamilyAssessment & { status: 'active' | 'expired' | 'unavailable'; contribution: number }
+  coverage?: number;
+  traits?: CpiContextTraits | NfpContextTraits | ClaimsContextTraits }
+export type ContextMemory = { ageDays: number; halfLifeDays: number; retention: number; coverage: number; effectiveWeight: number }
+export type ContextMember = FamilyAssessment & { status: 'active' | 'expired' | 'unavailable'; contribution: number; memory?: ContextMemory }
 export type ContextResult = { direction: UsdDirection; total: number | null; strength: Evidence | null;
   explanation: string; reason: string; members: ContextMember[]; missing: ContextFamily[]; tie: boolean; policy?: ContextPolicy }
 export type ContextPoint = { chartAt: number; result: ContextResult; latest: FamilyAssessment | null; update: string }

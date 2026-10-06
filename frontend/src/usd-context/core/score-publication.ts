@@ -14,6 +14,7 @@ import { assessGdpScore } from '../../inspector/scoring/PAIR/EURUSD/USD/GDP/asse
 import { gdpSeriesIds } from '../../inspector/scoring/PAIR/EURUSD/USD/GDP/policy/gdp-policy'
 import type { ContextFamily, ContextSettings, FamilyAssessment } from './contracts'
 import { cpiContextTraits, nfpContextTraits } from './interaction/source-traits'
+import { sourceCoverage } from './source-coverage'
 
 export const contextSeriesIds: readonly string[] = [...cpiV3SeriesIds, ...nfpV2SeriesIds, ...ismV2SeriesIds, ...retailSeriesIds, ...claimsSeriesIds, ...pceSeriesIds, ...ppiSeriesIds, ...gdpSeriesIds]
 export const publicationFamily = (id: string): ContextFamily | null => id === 'jobs' ? 'nfp' : id === 'us-cpi' ? 'cpi' :
@@ -30,7 +31,7 @@ export function scorePublication(release: InspectorRelease, events: readonly Ins
     strength: score?.strength === 'strong' || score?.strength === 'moderate' || score?.strength === 'weak' ? score.strength : null,
     reason: score?.strengthReason ?? 'No usable assessment.',
     explanation: score?.explanation ?? 'No usable assessment.', changeSize: score?.changeSize ?? null,
-    reduced: score?.reduced ?? true, tie: !!score?.tieBreak,
+    reduced: score?.reduced ?? true, tie: !!score?.tieBreak, coverage: sourceCoverage(score?.readings),
     ...(family === 'cpi' ? { traits: cpiContextTraits(score as ReturnType<typeof assessCpiScoreV3>) } :
       family === 'nfp' ? { traits: nfpContextTraits(score as ReturnType<typeof assessNfpScoreV2>) } : {}) }
 }
