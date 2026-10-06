@@ -27,12 +27,12 @@
 .inspector-release time, .inspector-release small { color: var(--text-muted); font-size: 10px; }
 .inspector-detail { min-width: 0; min-height: 0; display: flex; flex-direction: column; }
 .inspector-detail-overview { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 12px; padding: 4px 12px; flex-shrink: 0; border-bottom: 1px solid var(--border); }
-.inspector-scoring-view.inspector-cpi-v2, .inspector-scoring-view.inspector-cpi-v3, .inspector-scoring-view.inspector-nfp-v2, .inspector-scoring-view.inspector-pce-v1 { display: block; min-width: 0; overflow-x: hidden; overflow-y: auto; overflow-wrap: anywhere; }
-.inspector-cpi-v2-summary, .inspector-cpi-v3-summary, .inspector-nfp-v2-summary, .inspector-pce-v1-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 10px; }
-.inspector-cpi-v2-summary small, .inspector-cpi-v3-summary small, .inspector-nfp-v2-summary small, .inspector-pce-v1-summary small { color: var(--text-muted); }
-.inspector-cpi-v2 .inspector-table-scroll, .inspector-cpi-v3 .inspector-table-scroll, .inspector-nfp-v2 .inspector-table-scroll, .inspector-pce-v1 .inspector-table-scroll { overflow: visible; }
-.inspector-cpi-v2 table, .inspector-cpi-v3 table, .inspector-nfp-v2 table, .inspector-pce-v1 table { table-layout: fixed; }
-.inspector-cpi-v2 p, .inspector-cpi-v3 p, .inspector-nfp-v2 p, .inspector-pce-v1 p { max-width: 100ch; margin: 8px 0; }
+.inspector-scoring-view.inspector-cpi-v2, .inspector-scoring-view.inspector-cpi-v3, .inspector-scoring-view.inspector-nfp-v2, .inspector-scoring-view.inspector-pce-v1, .inspector-scoring-view.inspector-ism-services-v1 { display: block; min-width: 0; overflow-x: hidden; overflow-y: auto; overflow-wrap: anywhere; }
+.inspector-cpi-v2-summary, .inspector-cpi-v3-summary, .inspector-nfp-v2-summary, .inspector-pce-v1-summary, .inspector-ism-services-v1-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 10px; }
+.inspector-cpi-v2-summary small, .inspector-cpi-v3-summary small, .inspector-nfp-v2-summary small, .inspector-pce-v1-summary small, .inspector-ism-services-v1-summary small { color: var(--text-muted); }
+.inspector-cpi-v2 .inspector-table-scroll, .inspector-cpi-v3 .inspector-table-scroll, .inspector-nfp-v2 .inspector-table-scroll, .inspector-pce-v1 .inspector-table-scroll, .inspector-ism-services-v1 .inspector-table-scroll { overflow: visible; }
+.inspector-cpi-v2 table, .inspector-cpi-v3 table, .inspector-nfp-v2 table, .inspector-pce-v1 table, .inspector-ism-services-v1 table { table-layout: fixed; }
+.inspector-cpi-v2 p, .inspector-cpi-v3 p, .inspector-nfp-v2 p, .inspector-pce-v1 p, .inspector-ism-services-v1 p { max-width: 100ch; margin: 8px 0; }
 .inspector-scoring-view { flex: 1; min-height: 0; overflow: auto; align-content: flex-start; }
 .inspector-view-select { flex-shrink: 0; }
 .inspector-detail-heading { flex: 1 1 480px; min-width: 0; min-height: 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
@@ -43,7 +43,7 @@
 .inspector-detail th { position: sticky; top: 0; background: var(--surface-raised); color: var(--text-muted); font-weight: 650; z-index: 1; }
 .inspector-detail th, .inspector-detail td { padding: 5px 12px; line-height: 16px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
 .inspector-detail th:first-child, .inspector-detail td:first-child { text-align: left; white-space: normal; width: 48%; }
-.inspector-cpi-v2 th, .inspector-cpi-v2 td, .inspector-cpi-v3 th, .inspector-cpi-v3 td, .inspector-nfp-v2 th, .inspector-nfp-v2 td, .inspector-pce-v1 th, .inspector-pce-v1 td { white-space: normal; }
+.inspector-cpi-v2 th, .inspector-cpi-v2 td, .inspector-cpi-v3 th, .inspector-cpi-v3 td, .inspector-nfp-v2 th, .inspector-nfp-v2 td, .inspector-pce-v1 th, .inspector-pce-v1 td, .inspector-ism-services-v1 th, .inspector-ism-services-v1 td { white-space: normal; }
 .inspector-detail td small { display: block; color: var(--text-muted); font-size: 9px; line-height: 13px; margin-top: 1px; }
 .inspector-revision { color: var(--text-muted); font-size: 9px; }
 .inspector-info { position: relative; flex-shrink: 0; }

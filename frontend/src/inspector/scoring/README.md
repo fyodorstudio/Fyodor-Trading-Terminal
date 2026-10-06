@@ -32,7 +32,8 @@ NFP/CPI score versions, magnitude persistence keys, boundaries or dataset admiss
 The Inspector view dropdown contains Table only, Scoring system and Scatter Plot,
 with Scoring system v2 available for US/USD CPI and NFP on EURUSD, and v3
 available for US/USD CPI. The saved v2 mode selects the appropriate family scorer.
-US/USD PCE on EURUSD now has its first derived scorer under Scoring system.
+US/USD PCE and ISM Services on EURUSD have their first derived scorers under
+Scoring system.
 Scatter Plot opens the selected release without changing the saved Inspector view.
 Table only is the default Inspector view. Scoring system replaces the readings
 table with the registered family's scores; CPI retains separate index/rate
@@ -49,7 +50,8 @@ a directional score. Document the policy and add regression cases for missing,
 duplicate and undefined readings, native units, signs and cancellation.
 
 Existing regression coverage lives in `frontend/tests/inspector/nfp`,
-`frontend/tests/inspector/cpi` and `frontend/tests/inspector/pce`; navigation and workspace tests cover view selection,
+`frontend/tests/inspector/cpi`, `frontend/tests/inspector/pce` and
+`frontend/tests/inspector/ism-services`; navigation and workspace tests cover view selection,
 refresh persistence and unsupported families. Shared code should stay free of
 family-specific event IDs and pair direction rules.
 
@@ -320,9 +322,46 @@ node scripts/audit-pce-v1.mjs <calendar.json> <output-prefix>
 This chronological implementation audit checks chart/scorer parity and reports
 coverage/components without tuning parameters or evaluating price outcomes.
 
+## USD ISM Services v1
+
+`PAIR/EURUSD/USD/ISM-SERVICES/assessment/ism-services-score.ts` owns the first
+policy; `ui/IsmServicesScore.tsx` provides a flat full Inspector view under
+**Scoring system**. Its four votes are New Orders 35%, Business Activity 25%,
+Employment 25%, Prices Paid 15%. Each feature is the actual diffusion index minus
+max(50, preceding three-month mean), using supplied Revised Previous for the
+nearest month when available. All inputs must be native index values in [0,100]
+with unit 0 and multiplier 0; all three preceding reference months are required.
+
+The floor prevents contraction rebounds below 50 being treated as positive demand
+or employment. Above-50 cooling is disclosed as continued growth below recent
+pace. Prices Paid is surveyed input-price pressure, not a CPI inflation rate;
+its positive vote is the prototype's modest policy-pressure interpretation.
+The [official ISM method](https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/services/april/)
+combines activity, orders, employment and supplier deliveries in the headline.
+The composite therefore provides non-voting context, avoiding constituent double
+counting. Supplier deliveries is absent and is not reverse-engineered.
+
+Orders/activity share the demand evidence group; labor and prices have separate
+groups. The shared evidence and change-size rules apply. At least one calibrated
+demand component is required; missing weights are not redistributed. Ties follow
+table order with weak evidence. No directional evidence stays Uncomputed.
+Calibration remains strictly earlier-only with at least 24 usable features,
+including under manual overrides. Weights and the floor are judgment policies,
+not official ISM calculations, fitted weights or validated market probabilities.
+
+`tests/inspector/ism-services/test_ism_services_score.mjs` covers contraction
+rebounds, expansion cooling, conflicting/tied votes, evidence grouping, composite
+exclusion, revisions/domains, chronology and data gates. Mounted terminal tests
+cover registry/menu/navigation, scoped requests, chart parity, manual
+preview/apply/reset, isolation and portable live settings. No browser or visual
+automation is used. Reproduce the chronological parity/coverage audit with:
+
+`node scripts/audit-ism-services-v1.mjs <calendar.json> <output-prefix>`
+
 ## Shared signal magnitude visibility
 
-CPI v3, NFP v2 and PCE v1 expose their exact component inputs in Scatter Plot's
+CPI v3, NFP v2, PCE v1 and ISM Services v1 expose their exact component inputs
+in Scatter Plot's
 **Scoring signal** measure. Exported feature extractors and
 `shared/core/historical-release-signals.ts` are shared with the chart; weights,
 direction rules and evidence policies are unchanged. Automatic calibration stays

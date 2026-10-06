@@ -10,4 +10,7 @@ export const nfpSignalSettings = createMagnitudeSettingsStore(
 export const pceSignalSettings = createMagnitudeSettingsStore(
   { pair: 'EURUSD', currency: 'USD', side: 'quote', family: 'PCE-V1-SIGNALS' },
   ['core-pace', 'core-annual', 'headline-pace', 'headline-annual'])
-export const signalMagnitudeStores = [cpiSignalSettings, nfpSignalSettings, pceSignalSettings] as const
+export const ismServicesSignalSettings = createMagnitudeSettingsStore(
+  { pair: 'EURUSD', currency: 'USD', side: 'quote', family: 'ISM-SERVICES-V1-SIGNALS' },
+  ['orders', 'activity', 'employment', 'prices'])
+export const signalMagnitudeStores = [cpiSignalSettings, nfpSignalSettings, pceSignalSettings, ismServicesSignalSettings] as const

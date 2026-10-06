@@ -63,13 +63,17 @@ manual tuples persist and legacy P95 selections become Undefined. Numeric limits
 are scoped per series; magnitude colors apply globally. Classification rules are
 user-chosen interpretations, documented in the family terminology files.
 
-CPI v3, NFP v2 and PCE v1 also offer **Scatter Plot → Measure → Scoring signal** to
+CPI v3, NFP v2, PCE v1 and ISM Services v1 also offer **Scatter Plot → Measure → Scoring signal** to
 inspect their derived inputs, comparison averages and earlier-only automatic
 magnitude bands. Manual component edits preview on the chart; **Apply to scorer**
 updates the Inspector, and **Use automatic** restores calibration. These saved
 settings are separate from original A−P boundaries and included in workspace files.
 PCE's **Scoring system** view uses core/headline monthly pace and annual change,
 with explicit revised-prior comparisons, one pair bias and an evidence grade.
+ISM Services scores orders, activity, employment and input-price pressure against
+a recent benchmark floored at 50; its composite PMI supplies context without a
+second vote. Its first **Scoring system** view includes bias, evidence, change size
+and component visibility. All weights are explicit prototype interpretation rules.
 
 NFP direction uses signed magnitude points from Payrolls, Unemployment and
 Earnings m/m; seven supporting readings stay separate. CPI retains its four-rate
