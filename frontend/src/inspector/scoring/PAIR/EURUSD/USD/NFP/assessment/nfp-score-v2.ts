@@ -3,6 +3,7 @@ import { groupInspectorReleases, type InspectorRelease } from '../../../../../..
 import { calibrateHistoricalSignal, earlierSignalReadings, nativeNumber, releaseSignalContext,
   usableSignal, unavailableSignal, type TimedReading, type HistoricalFeature } from '../../../../../shared/core/historical-release-signals'
 import { magnitudeEvidence } from '../../../../../shared/core/magnitude-evidence'
+import { payrollRevisionFeature } from './payroll-revision'
 import type { MagnitudeSettings } from '../../../../../../magnitude/settings/magnitude-settings-store'
 
 export const nfpScoreV2Version = 'nfp-eurusd-labor-context-v2'
@@ -20,7 +21,7 @@ export const nfpV2Signals = [
   { id: 'wages', label: 'Wage pace', group: 'wages', weight: 15, unit: 'pp',
     description: 'Actual monthly earnings growth minus its preceding three-month average.' },
   { id: 'revision', label: 'Payroll revision', group: 'employment', weight: 10, unit: 'thousand jobs',
-    description: 'Supplied Revised Previous minus Previous payrolls. Covers the preceding month only, not the full two-month BLS revision.' },
+    description: 'Provider prior minus Previous payrolls, only with a unique earlier publication for the preceding reference month. Covers that month only, not the full two-month BLS revision.' },
   { id: 'hours', label: 'Working hours', group: 'employment', weight: 5, unit: 'hours',
     description: 'Actual weekly hours minus supplied Previous weekly hours.' },
 ] as const
@@ -50,11 +51,9 @@ export function nfpV2Features(release: InspectorRelease, history: readonly Timed
       actualLabel: 'Actual', baselineLabel: 'Supplied Previous', unit: inverse ? '%' : 'hours' })
   }
   const payroll = current.get('840030016')
-  const revised = nativeNumber(payroll, 'revised_previous'), previous = nativeNumber(payroll, 'previous')
   const features: Features = {
     hiring: pace('840030016', true), unemployment: change('840030015', true), wages: pace('840030018', false),
-    revision: revised === null || previous === null ? unavailableSignal(reasons.get('840030016') || 'Supplied Revised Previous and Previous payrolls are required.') : usableSignal(revised - previous, {
-      actual: revised, baseline: previous, actualLabel: 'Revised Previous', baselineLabel: 'Supplied Previous', unit: 'thousand jobs' }),
+    revision: payrollRevisionFeature(payroll, history),
     hours: change('840030020'),
   }
   return { features, context }

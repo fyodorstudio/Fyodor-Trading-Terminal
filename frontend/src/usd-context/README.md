@@ -175,14 +175,24 @@ weights, labor disagreement, one-slot Claims replacement, expiry, shared filters
 publication parity, future removal, standalone invariance, worker reuse/stale
 replies, clock-heartbeat stability and workspace portability.
 
-After building, run the current stored chronological audit:
+For the current source implementation, run the chronological window audit:
+
+```powershell
+node scripts/usd-context/audit-window.mjs ../storage/data/usd-menu-v5-design-snapshot.json 2025-12-16 2026-01-28 ../storage/data/usd-context-revision-integrity-audit
+```
+
+The [payroll prior-field integrity correction](../../../reports/NFP-prior-field-integrity-audit.md)
+changes NFP source features and their calibration. The earlier v6 design audit
+below predates that correction; its unchanged-source assertion is deliberately
+strict and is not a current validation command after a source formula changes.
+Reproduce it from the implementation before the correction:
 
 ```powershell
 pnpm build
 node scripts/usd-context/audit-memory-v6.mjs ../storage/data/usd-menu-v5-design-snapshot.json ../storage/data/usd-context-v5-baseline.json ../storage/data/usd-context-v6-design-audit
 ```
 
-The current audit compares against the captured v5 baseline at all publications,
+That archived audit compares against the captured v5 baseline at all publications,
 checks unchanged standalone sources, future-removal publication/daily replays,
 cadence sensitivity and compiled context worker parity. Baseline capture uses
 `scripts/usd-context/capture-baseline.mjs` before a policy change; its ignored JSON

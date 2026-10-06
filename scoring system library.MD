@@ -99,7 +99,7 @@ conflicting signals and a direction supported by one group.
 | Hiring pace | Latest payroll job change minus max(0, preceding three-month mean job change) | 40% |
 | Unemployment | Negative of Actual minus supplied Previous | 30% |
 | Wage pace | Latest Earnings m/m minus preceding three-month mean | 15% |
-| Payroll revision | Supplied Revised Previous minus Previous payrolls | 10% |
+| Payroll revision | Provider prior minus Previous payrolls; requires a unique earlier publication for the preceding reference month | 10% |
 | Working hours | Actual minus supplied Previous weekly hours | 5% |
 
 Hiring and wages need consecutive reference-month history. The hiring benchmark
@@ -1324,3 +1324,11 @@ the fall. Timestamped policy content and EUR remain deferred. Earlier v5 and
 prior-version descriptions above are historical policies.
 
 [V6 design, results, limitations and reproduction](reports/USD-context-memory-v6-audit.md).
+
+## Payroll prior-field integrity correction — 2026-10-06
+
+The December 16, 2025 shutdown-delayed report contains November payrolls +64k and the first October payroll estimate -105k. September was revised +119k → +108k (-11k), not +119k → -105k. Our broker puts September +119k in Previous and October -105k in revised_previous. The numeric values are valid, but subtracting them as a same-month revision was an interpretation error. [BLS original publication](https://www.bls.gov/news.release/archives/empsit_12162025.htm).
+
+NFP v2 now excludes the revision vote when the immediately preceding reference month lacks a unique usable earlier publication. The same rule governs earlier calibration and Scatter scoring signals, and Raycaster/CPI combined context inherit the corrected source. Missing history is not filled, weights are not redistributed, and provider data are not rewritten. Presence of a consecutive record still relies on correct provider prior-field semantics; original publication vintages remain a limitation. The payroll table calls the field Provider prior and its delta A−PriorP to avoid claiming every such value is a revision.
+
+This is a data interpretation fix rather than a new price-fitting rule. Audit the corrected release/context outputs before changing weights again. The existing v6 implementation audit describes the earlier source behavior; its claim of unchanged standalone outputs predates this correction. See [payroll revision integrity audit](reports/NFP-prior-field-integrity-audit.md) for the new findings and replay.

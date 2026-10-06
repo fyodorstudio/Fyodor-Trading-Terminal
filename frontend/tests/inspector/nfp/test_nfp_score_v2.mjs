@@ -21,7 +21,7 @@ const mount = (Component, props) => {
 }
 
 try {
-  const { assessNfpScoreV2, supportsNfpV2, nfpScoreV2Version, nfpV2SeriesIds } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2.ts')
+  const { assessNfpScoreV2, supportsNfpV2, nfpScoreV2Version, nfpV2SeriesIds, nfpV2Features } = await server.ssrLoadModule('./src/inspector/scoring/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2.ts')
   const { groupInspectorReleases, defaultInspectorPreferences, inspectorStorageKey, readInspectorPreferences } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const { exportWorkspace, restoreWorkspace } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
   assert.equal(nfpScoreV2Version, 'nfp-eurusd-labor-context-v2')
@@ -103,6 +103,37 @@ try {
     { ...e, revised_previous: 220, revised_previous_raw_scaled_1e6: '220000000' } : e) }
   assert.ok(assessNfpScoreV2(higherRevision, weakHistory).total > score.total, 'Revision is an intentional input in NFP v2')
 
+  // Shutdown-style skipped reference month: September +119k, November +64k,
+  // newly published October -105k in the broker's revised_previous field.
+  // The -224k subtraction is not a revision of the same month.
+  const skipped = groupInspectorReleases(reading(2025, 10, { '840030016': 64 },
+    { '840030016': 119 }, -105))[0]
+  const skippedHistory = history.filter(e => e.period_seconds !== Date.UTC(2025, 9, 1) / 1000)
+  assert.equal(nfpV2Features(skipped, skippedHistory).features.revision.value, null)
+  const skippedScore = assessNfpScoreV2(skipped, skippedHistory)
+  assert.equal(skippedScore.readings[3].points, null)
+  assert.match(skippedScore.readings[3].reason, /preceding reference month/)
+  assert.equal(skipped.events.find(e => e.event_id === '840030016').revised_previous, -105,
+    'Keep valid broker values; exclude an invalid interpretation, not the data')
+  const absentPrior = weakHistory.filter(e => e !== weakHistory.find(row =>
+    row.event_id === '840030016' && row.period_seconds === Date.UTC(2026, 5, 1) / 1000))
+  assert.equal(nfpV2Features(weak, absentPrior).features.revision.value, null)
+  const intervening = reading(2025, 9).find(e => e.event_id === '840030016')
+  assert.equal(nfpV2Features(skipped, [...skippedHistory, { ...intervening,
+    release_at: skipped.releaseAt }]).features.revision.value, null, 'Same-time new month is not an earlier publication')
+  assert.equal(nfpV2Features(skipped, [...skippedHistory, { ...intervening,
+    release_at: skipped.releaseAt + 1 }]).features.revision.value, null, 'Future data cannot establish a revision')
+  const priorForRevision = weakHistory.find(e => e.event_id === '840030016' &&
+    e.period_seconds === Date.UTC(2026, 5, 1) / 1000)
+  assert.equal(nfpV2Features(weak, [...weakHistory, { ...priorForRevision, value_id: 'duplicate-prior' }]).features.revision.value, null)
+  const { suppliedPriorLabels, revisedFamilyComparison } = await server.ssrLoadModule('./src/inspector/grading/reading-grading.ts')
+  const { nfpMagnitudeFamily } = await server.ssrLoadModule('./src/inspector/magnitude/magnitude-families.ts')
+  const skippedPayroll = skipped.events.find(e => e.event_id === '840030016')
+  assert.equal(suppliedPriorLabels(skippedPayroll).value, 'Provider prior')
+  const comparison = revisedFamilyComparison(skippedPayroll, 'jobs', nfpMagnitudeFamily)
+  assert.equal(comparison.label, 'A−PriorP'); assert.equal(comparison.delta, 169)
+  assert.match(comparison.explanation, /not a revision/)
+
   assert.equal(assessNfpScoreV2(null, history), null)
   for (const change of [{ familyId: 'us-cpi' }, { currency: 'EUR' }, { country: 'EU' }])
     assert.equal(supportsNfpV2({ ...weak, ...change }), false)
@@ -181,6 +212,8 @@ try {
   await React.act(async () => { dropdown.value = 'scoring'; dropdown.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   assert.equal(saved.detailView, 'scoring')
   await panel.render({ ...props, view: { ...view, preferences: { ...prefs, detailView: 'table' } } })
+  assert.match(panel.container.textContent, /Provider prior: 130k/)
+  assert.match(panel.container.textContent, /A−PriorP/)
   const tableDropdown = panel.container.querySelector('[aria-label="Inspector view"]')
   await React.act(async () => { tableDropdown.value = 'scoring-v2'; tableDropdown.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   assert.equal(saved.detailView, 'scoring-v2')

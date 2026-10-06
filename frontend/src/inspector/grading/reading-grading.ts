@@ -5,6 +5,11 @@ export type ReadingGrade = 'higher' | 'lower' | 'unchanged' | 'missing' | 'unrat
 export type ReadingRule = { name: string; definition: string }
 export type ReadingFamily = { familyId: string; country: string; currency: 'USD' | 'EUR'; readingRules: Readonly<Record<string, ReadingRule>> }
 export const gradeLabels: Record<ReadingGrade, string> = { higher: 'Higher', lower: 'Lower', unchanged: 'Unchanged', missing: 'Missing', unrated: 'Unrated' }
+export function suppliedPriorLabels(event: EconomicCalendarEvent) {
+  return event.event_id === '840030016' && event.currency === 'USD' && event.country_code === 'US'
+    ? { value: 'Provider prior', delta: 'A−PriorP', description: 'Broker-supplied prior payroll reading. After a skipped report this may be a newly published intervening month, not a revision of supplied Previous. These comparisons can span different reference months.' }
+    : { value: 'Rev', delta: 'A−RevP', description: 'Provider-supplied revised previous reading.' }
+}
 export function matchesReadingFamily(release: InspectorRelease | null, family: ReadingFamily): release is InspectorRelease {
   return !!release && release.familyId === family.familyId && release.country === family.country && release.currency === family.currency
 }
@@ -15,14 +20,15 @@ export function gradeFamilyReading(event: EconomicCalendarEvent, familyId: strin
   const delta = comparator === 'revised_previous' ? inspectorRevisedDelta(event) : inspectorDelta(event)
   const grade: ReadingGrade = delta === null ? 'missing' : delta === 0 ? 'unchanged' :
     delta > 0 ? 'higher' : 'lower'
-  const comparison = comparator === 'revised_previous' ? 'supplied Revised Previous' : 'supplied Previous'
-  const label = comparator === 'revised_previous' ? 'A−RevP' : 'A−P'
-  return { grade, explanation: `${rule.definition} Compared with ${comparison}: positive ${label} = Higher; negative ${label} = Lower; zero = Unchanged; unavailable delta = Missing. Labels describe the value change, independently of the signed USD score.` }
+  const prior = suppliedPriorLabels(event)
+  const comparison = comparator === 'revised_previous' ? 'provider-supplied prior' : 'supplied Previous'
+  const label = comparator === 'revised_previous' ? prior.delta : 'A−P'
+  return { grade, explanation: `${rule.definition} Compared with ${comparison}: positive ${label} = Higher; negative ${label} = Lower; zero = Unchanged; unavailable delta = Missing. Labels describe the value change, independently of the signed USD score.${comparator === 'revised_previous' ? ` ${prior.description}` : ''}` }
 }
 export function revisedFamilyComparison(event: EconomicCalendarEvent, familyId: string, family: ReadingFamily | null) {
   if (!family || familyId !== family.familyId || event.country_code !== family.country || event.currency !== family.currency ||
     !Object.hasOwn(family.readingRules, event.event_id) || !hasRevisedPreviousChange(event)) return null
-  return { label: 'A−RevP', delta: inspectorRevisedDelta(event), ...gradeFamilyReading(event, familyId, family, 'revised_previous')! }
+  return { label: suppliedPriorLabels(event).delta, delta: inspectorRevisedDelta(event), ...gradeFamilyReading(event, familyId, family, 'revised_previous')! }
 }
 export function tallyFamilyReadings(release: InspectorRelease | null, family: ReadingFamily, version: string) {
   if (!matchesReadingFamily(release, family)) return null

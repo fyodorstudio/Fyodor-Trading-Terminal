@@ -4,7 +4,7 @@ import { formatInspectorValue, hasRevisedPreviousChange, inspectorDelta, inspect
 import { InspectorReadingTime } from '../InspectorReadingTime'
 import { policyEpisodeRule } from '../episodes/policy-episodes'
 import { gradePolicyRateDecision } from '../grading/policy-rate-grading'
-import { gradeLabels, gradeFamilyReading, matchesReadingFamily, revisedFamilyComparison } from '../grading/reading-grading'
+import { gradeLabels, gradeFamilyReading, matchesReadingFamily, revisedFamilyComparison, suppliedPriorLabels } from '../grading/reading-grading'
 import { magnitudeFamilies } from '../magnitude/magnitude-families'
 import { FamilyMagnitudeCell } from '../magnitude/FamilyMagnitudeCell'
 import { useFamilyMagnitudeHistory } from '../magnitude/useFamilyMagnitudeHistory'
@@ -53,7 +53,7 @@ export function InspectorReadingsTable({ release, view, timeDisplay, sharedPerio
                   {showReadingTimes && <InspectorReadingTime event={event} brokerTime={view.brokerTime} timeDisplay={timeDisplay} />}
                   <td>{formatInspectorValue(event.actual, event)}</td>
                   <td>{formatInspectorValue(event.previous, event)}{hasRevisedPreviousChange(event) &&
-                    <small>Rev: {formatInspectorValue(event.revised_previous, event)}</small>}</td>
+                    <small title={suppliedPriorLabels(event).description}>{suppliedPriorLabels(event).value}: {formatInspectorValue(event.revised_previous, event)}</small>}</td>
                   {policyTimes && <td>{formatInspectorValue(event.forecast, event)}</td>}
                   <td className={grading ? `inspector-graded-delta inspector-grade-${grading.grade}` : undefined} title={grading?.explanation}>
                     {commentary ? 'Not applicable' : formatInspectorValue(delta, event, true)}

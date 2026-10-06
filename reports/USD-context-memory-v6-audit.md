@@ -1,5 +1,8 @@
 # Raycaster / shared USD context memory v6
 
+Subsequent source correction: [NFP provider prior-field integrity audit](NFP-prior-field-integrity-audit.md).
+The source-parity findings and totals below describe v6 before that correction.
+
 Implemented and audited 6 October 2026. This addresses the user's June 17–18,
 2026 and December 2025–January 2026 context findings. It changes the shared
 context engine; CPI/NFP/Claims/ISM/Retail/PCE/PPI/GDP standalone math and signal
@@ -116,13 +119,17 @@ node frontend/scripts/usd-context/capture-baseline.mjs storage/data/usd-menu-v5-
 
 That command captures the currently checked-out engine, not an archived v5
 implementation. Do not overwrite the preserved v5 file after adopting v6.
-To reproduce the comparison after building:
+To reproduce the comparison from the implementation before the payroll
+prior-field correction, after building:
 
 ```powershell
 node frontend/scripts/usd-context/audit-memory-v6.mjs storage/data/usd-menu-v5-design-snapshot.json storage/data/usd-context-v5-baseline.json storage/data/usd-context-v6-design-audit
 ```
 
 The detailed local report is `storage/data/usd-context-v6-design-audit.*`.
+The script intentionally asserts unchanged source formulas; it will reject the
+subsequent NFP correction. Use the supplemental integrity audit's window replay
+for the current implementation.
 Live saved magnitude overrides or source exclusions can produce different values.
 Next research remains timestamped Fed guidance, economic levels versus changes,
 and the accepted EUR roadmap. The unresolved windows remain audit findings.

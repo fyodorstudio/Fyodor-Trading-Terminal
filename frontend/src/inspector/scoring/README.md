@@ -205,7 +205,7 @@ release family, and does not require original manual magnitude boundaries.
 | Hiring pace | Actual payroll job change minus max(0, mean actuals of preceding three reference months), in thousands | 40% |
 | Unemployment | Negative of Actual minus supplied Previous, in pp | 30% |
 | Wage pace | Actual Earnings m/m minus mean actuals of preceding three reference months, in pp | 15% |
-| Payroll revision | Supplied Revised Previous minus Previous payrolls, in thousands | 10% |
+| Payroll revision | Provider prior minus Previous payrolls, in thousands; requires a unique earlier publication for the preceding reference month | 10% |
 | Working hours | Actual weekly hours minus supplied Previous, in hours | 5% |
 
 The hiring benchmark's zero floor stops smaller job losses after larger losses
@@ -600,3 +600,9 @@ not what an unstored statement communicated.
 output, and all shared controls operate on the same saved preference as Raycaster.
 Tests: `tests/inspector/expanded/test_usd_menu.mjs`, context/portability regressions
 and the chronological `scripts/audit-usd-menu-v5.mjs`.
+
+### Payroll prior-field integrity (2026-10-06)
+
+A revised_previous calendar field is not sufficient proof of a same-month revision. NFP v2 requires a unique, usable earlier publication for the immediately preceding reference month before allowing its revision vote. A missing, duplicated, invalid or only simultaneous/future preceding-month reading leaves that component unavailable, without redistribution. This guard also applies to historical calibration and Scatter scoring signals. It conservatively rejects incomplete history; it does not recover missing BLS revisions. A consecutive record still relies on the provider placing the correct prior values in its fields.
+
+The December 16, 2025 BLS report published October (-105k) for the first time together with November (+64k). September was revised +119k to +108k. The local broker row pairs Previous +119k with revised_previous -105k, so their -224k difference must not vote as a revision. Stored values remain intact. The payroll readings table now uses Provider prior and A−PriorP, with a tooltip explaining possible reference-month gaps. [BLS archived report](https://www.bls.gov/news.release/archives/empsit_12162025.htm).
