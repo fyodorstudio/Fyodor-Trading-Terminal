@@ -1,7 +1,7 @@
-# USD context memory v1
+# USD context memory v2
 
-The first context engine consumes the unchanged signed magnitude scores from CPI
-v3.1, NFP v2 and monthly ISM v3. It interprets the USD side of a pair. It neither
+The context engine consumes unchanged signed magnitude scores from CPI v3.1,
+NFP v2, monthly ISM v3 and Retail Sales v1. It interprets the USD side of a pair. It neither
 scores the other currency nor learns weights from price reactions.
 
 ## Policy
@@ -10,13 +10,16 @@ scores the other currency nor learns weights from price reactions.
 | --- | --- | --- |
 | NFP v2 | 40% | Latest jobs report replaces the previous jobs assessment |
 | CPI v3.1 | 40% | Latest CPI report replaces the previous inflation assessment |
-| ISM v3 | 20% | Manufacturing then Services replace the same ISM slot; each uses its original publication time |
+| ISM v3 | 10% | Manufacturing then Services replace the same ISM slot; each uses its original publication time |
 
-These are explicit prototype interpretation weights. Scores are existing signed
+| Retail Sales v1 | 10% | Latest Retail Sales report replaces the spending assessment |
+
+These are explicit prototype interpretation weights. Inflation and labor retain
+40% each; the activity budget is split between surveys and nominal spending. Scores are existing signed
 0–4 component magnitudes, weighted within each source scorer. Evidence labels do
 not multiply scores. We retain score size, component exclusions and qualifications.
-ISM publication scores are never added together. Disabled Inspector sectors are
-also excluded from ISM's context inventory; no hidden sector keeps voting.
+ISM publication scores are never added together. Raycaster has one ISM switch
+controlling both sectors; Inspector filters do not select this context inventory.
 
 The latest assessment persists until replaced or 45 days after its publication
 on the broker chart clock. This expiry is a prototype monthly-data freshness
@@ -27,7 +30,7 @@ redistributed. Initially absent families remain missing. Current-month releases
 do not erase still-active earlier-month CPI or NFP assessments.
 
 Positive totals mean stronger USD; negative totals mean weaker USD. Exact net
-cancellation uses CPI → NFP → ISM direction priority, with weak evidence. A source
+cancellation uses CPI → NFP → ISM → Retail Sales direction priority, with weak evidence. A source
 scorer's declared zero-score tie direction remains available to that priority.
 All unavailable or expired evidence is Uncomputed; no direction is fabricated.
 
@@ -43,7 +46,7 @@ context box does not conflate evidence strength with predicted price-move size.
 
 `core/score-publication.ts` adapts canonical scorers to currency-level votes.
 `core/build-context-timeline.ts` builds atomic publication snapshots and expiry
-boundaries; `combine-context.ts` resolves three active slots; `context-lookup.ts`
+boundaries; `combine-context.ts` resolves four active slots; `context-lookup.ts`
 does a binary lookup. Same-time publications enter together. Chart clock ordering
 and all rows' chart-time consistency are validated. Unknown chart timing is
 excluded; original source timestamps and existing ISM official-date gates remain.
@@ -58,8 +61,8 @@ reconstructed history, not certified original-release vintage replay.
 Existing EURUSD signal magnitude settings are intentionally shared by the USD
 engine, including on other supported pairs. Original A−P settings, menu view
 selection and chart symbol visibility do not select different scoring policies.
-Inspector family filters select the context inputs. Other event families currently
-have no effect. Pair conversion supports EURUSD, GBPUSD, AUDUSD, NZDUSD, USDJPY,
+Raycaster's own saved family filters select inputs independently of Inspector.
+All four are enabled by default. Other event families currently have no effect. Pair conversion supports EURUSD, GBPUSD, AUDUSD, NZDUSD, USDJPY,
 USDCHF and USDCAD, plus dot/underscore/hyphen broker suffixes and lowercase suffixes.
 USD quote converts weakness to Long; USD base converts weakness to Short.
 Metals, crypto, crosses and unrecognized symbol formats are excluded.
@@ -77,16 +80,26 @@ The CPI v3 prior-reference lookup now uses the existing immutable-history index;
 its math, duplicate gates and earlier-history rules are unchanged.
 
 Tests: `tests/usd-context/test_context.mjs` and `test_raycaster.mjs`. The chronological
-audit script checks stored scorer parity, four August future-removal replays, exact
+audit script checks stored scorer parity, eight June/July/August/September future-removal replays, exact
 publication boundaries, and the actual Vite-built worker against the pure engine
 while the main event loop continues running:
 
 ```powershell
 pnpm build
-node scripts/audit-usd-context.mjs ../storage/data/cpi-v2-design-snapshot.json ../storage/data/nfp-v2-design-snapshot.json ../storage/data/ism-v2-design-snapshot.json ../storage/data/usd-context-v1-design-audit
+node scripts/audit-usd-context.mjs ../storage/data/cpi-v2-design-snapshot.json ../storage/data/nfp-v2-design-snapshot.json ../storage/data/ism-v2-design-snapshot.json ../storage/data/retail-v1-design-snapshot.json ../storage/data/usd-context-v2-design-audit
 ```
 
-Initial audit: 140 CPI, 141 NFP and 284 ISM assessments match their existing totals,
-directions, grades and change sizes; 570 context snapshots from 3,246 readings.
-One machine measured approximately 3.4 seconds for the full background timeline.
-This is startup/rebuild work, not work done on hover. No visual automation is used.
+V2 audit: 140 CPI, 141 NFP, 284 ISM and 144 Retail assessments retain their
+standalone totals, directions, evidence and change size. The engine builds 703
+snapshots; eight replay cutoffs preserve the full snapshot after future removal.
+Both the pure engine and actual production worker match. One run took about
+4.4 seconds in the worker while the main event loop remained active. Startup or
+filter changes rebuild the timeline; hover only performs a lookup.
+
+V1's 40/40/20 policy and 570-snapshot report remain archived in the root scoring
+library and `storage/data/usd-context-v1-design-audit.*`. New v2 priorities were
+set without fitting the user's Retail price notes. In particular, July 16 still
+resolves to EURUSD Long with Moderate combined evidence; incorporating other US
+releases does not force that observation into a matching price label.
+
+No automated visual inspection is used.

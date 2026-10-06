@@ -6,32 +6,32 @@ import { Worker } from 'node:worker_threads'
 import { createServer } from 'vite'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const [cpiFile, nfpFile, ismFile, output] = process.argv.slice(2)
-if (!output) throw new Error('Usage: after pnpm build, node scripts/audit-usd-context.mjs <cpi.json> <nfp.json> <ism.json> <output-prefix>')
+const [cpiFile, nfpFile, ismFile, retailFile, output] = process.argv.slice(2)
+if (!output) throw new Error('Usage: after pnpm build, node scripts/audit-usd-context.mjs <cpi.json> <nfp.json> <ism.json> <retail.json> <output-prefix>')
 const read = file => JSON.parse(fs.readFileSync(path.resolve(file), 'utf8').replace(/^\uFEFF/, ''))
-const calendars = [cpiFile, nfpFile, ismFile].map(read)
+const calendars = [cpiFile, nfpFile, ismFile, retailFile].map(read)
 assert.equal(new Set(calendars.map(c => c.source_id)).size, 1, 'Snapshots must belong to the same broker.')
 const events = [...new Map(calendars.flatMap(c => c.events).map(e => [e.value_id, e])).values()]
-const input = { events, families: ['jobs', 'us-cpi', 'ism-manufacturing', 'ism-services'],
-  settings: { cpi: {}, nfp: {}, services: {}, manufacturing: {} }, asOf: Math.min(Date.now(), Math.max(...events.map(e => e.release_at ?? 0))) }
+const input = { events, families: ['jobs', 'us-cpi', 'ism-manufacturing', 'ism-services', 'retail'],
+  settings: { cpi: {}, nfp: {}, services: {}, manufacturing: {}, retail: {} }, asOf: Math.min(Date.now(), Math.max(...events.map(e => e.release_at ?? 0))) }
 const server = await createServer({ root, server: { middlewareMode: true, hmr: false } })
-let timeline, august, calculationMs
+let timeline, replays, calculationMs
 try {
   const { buildContextTimeline } = await server.ssrLoadModule('./src/usd-context/core/build-context-timeline.ts')
   const { contextAt } = await server.ssrLoadModule('./src/usd-context/core/context-lookup.ts')
   const { groupInspectorReleases } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
   const start = performance.now(); timeline = buildContextTimeline(input); calculationMs = performance.now() - start
-  const publications = groupInspectorReleases(events).filter(r => ['jobs', 'us-cpi', 'ism-services', 'ism-manufacturing'].includes(r.familyId))
+  const publications = groupInspectorReleases(events).filter(r => input.families.includes(r.familyId))
   // Canonical stored audit parity: layer and indexing preserve original vote totals/grades.
-  const baselineFiles = ['cpi-v3-refined-audit.json', 'nfp-v2-design-audit.json', 'ism-v2-design-audit.json']
+  const baselineFiles = ['cpi-v3-refined-audit.json', 'nfp-v2-design-audit.json', 'ism-v2-design-audit.json', 'retail-v1-design-audit.json']
   const checked = {}
   for (const [i, file] of baselineFiles.entries()) {
     const rows = read(path.join(root, '../storage/data', file)).rows
-    const family = ['cpi', 'nfp', 'ism'][i]
+    const family = ['cpi', 'nfp', 'ism', 'retail'][i]
     let count = 0
     for (const row of rows) {
       if (row.releaseAt > input.asOf) continue
-      const publication = publications.find(r => r.releaseAt === row.releaseAt && (family === 'cpi' ? r.familyId === 'us-cpi' : family === 'nfp' ? r.familyId === 'jobs' : r.familyId === row.family))
+      const publication = publications.find(r => r.releaseAt === row.releaseAt && (family === 'cpi' ? r.familyId === 'us-cpi' : family === 'nfp' ? r.familyId === 'jobs' : family === 'retail' ? r.familyId === 'retail' : r.familyId === row.family))
       if (!publication) continue
       const point = contextAt(timeline, publication.chartTime * 1000)
       const current = point.result.members.find(m => m.family === family), expected = family === 'cpi' ? row.v3 : row.assessment
@@ -42,7 +42,7 @@ try {
     }
     assert.ok(count > 0, `No ${family} baseline rows were checked.`); checked[family] = count
   }
-  august = ['2026-08-03', '2026-08-05', '2026-08-07', '2026-08-12'].map(date => {
+  replays = ['2026-06-17', '2026-07-16', '2026-08-03', '2026-08-05', '2026-08-07', '2026-08-12', '2026-08-14', '2026-09-16'].map(date => {
     const release = publications.find(r => new Date(r.releaseAt).toISOString().slice(0, 10) === date)
     assert.ok(release)
     const at = release.chartTime * 1000, point = contextAt(timeline, at)
@@ -54,7 +54,7 @@ try {
       explanation: point.result.explanation, update: point.update, members: point.result.members.map(m =>
         ({ family: m.family, direction: m.usdDirection, status: m.status, contribution: m.contribution, releaseAt: m.releaseAt })) }
   })
-  console.log(JSON.stringify({ baselineParity: checked, calculationMs: Math.round(calculationMs), august }, null, 2))
+  console.log(JSON.stringify({ baselineParity: checked, calculationMs: Math.round(calculationMs), replays: replays.map(({ date, direction, strength }) => ({ date, direction, strength })) }, null, 2))
 } finally { await server.close() }
 const assets = path.join(root, 'dist/assets')
 const bundle = fs.readdirSync(assets).find(name => /^context-timeline\.worker-.*\.js$/.test(name))
@@ -69,14 +69,14 @@ try {
   assert.equal(reply.error, undefined); assert.deepEqual(reply.result, timeline); assert.ok(pulses > 0)
   const report = { source: calendars[0].source_id, sourceRevisions: calendars.map(c => c.revision), version: timeline.version,
     readings: events.length, snapshots: timeline.points.length, calculationMs: Math.round(calculationMs),
-    workerMs: Math.round(performance.now() - start), mainThreadPulses: pulses, august, timeline }
+    workerMs: Math.round(performance.now() - start), mainThreadPulses: pulses, replays, timeline }
   fs.mkdirSync(path.dirname(path.resolve(output)), { recursive: true })
   fs.writeFileSync(`${output}.json`, JSON.stringify(report, null, 2), 'utf8')
   fs.writeFileSync(`${output}.md`, ['# USD context chronological audit', '', `Broker: ${report.source}. Source revisions: ${report.sourceRevisions.join(', ')}.`,
     'Reconstructed stored history, not certified original-release vintages. No price outcomes or forecasts enter the policy.', '',
     `Readings ${report.readings}; snapshots ${report.snapshots}; pure build ${report.calculationMs} ms; worker ${report.workerMs} ms; event-loop pulses ${pulses}.`,
-    'Stored scorer parity, August future-removal replay and actual built-worker parity passed.', '',
+    'Stored scorer parity, June/July/August/September future-removal replay and actual built-worker parity passed. Weights: CPI 40%, NFP 40%, ISM 10%, Retail Sales 10%. Inspector filters do not select Raycaster inputs.', '',
     '| Date | USD bias | Evidence | Score | Latest update |', '| --- | --- | --- | --- | --- |',
-    ...august.map(r => `| ${r.date} | ${r.direction} | ${r.strength} | ${r.total} | ${r.update} |`), ''].join('\n'), 'utf8')
+    ...replays.map(r => `| ${r.date} | ${r.direction} | ${r.strength} | ${r.total} | ${r.update} |`), ''].join('\n'), 'utf8')
   console.log(JSON.stringify({ snapshots: report.snapshots, workerMs: report.workerMs, mainThreadPulses: pulses, workerParity: true }))
 } finally { clearInterval(timer); await worker.terminate() }

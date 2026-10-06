@@ -1,11 +1,15 @@
 import { useEffect, useRef, type RefObject } from 'react'
-import { contextExpiryMs, contextPriority, contextNames, contextWeights, enabledContextFamilies } from '../../usd-context/core/policy'
+import { contextExpiryMs, contextPriority, contextNames } from '../../usd-context/core/policy'
+import type { ContextFamily, ContextResult } from '../../usd-context/core/contracts'
+import type { TimeDisplayPreference } from '../../appearance/time-display/time-display-preference'
+import { RaycasterInputTable } from './RaycasterInputTable'
 
-export function RaycasterDetails({ id, families, trigger, onClose }: {
-  id: string; families: readonly string[]; trigger: RefObject<HTMLButtonElement | null>; onClose: () => void
+export function RaycasterDetails({ id, families, trigger, onClose, held, ...table }: {
+  id: string; families: readonly ContextFamily[]; trigger: RefObject<HTMLButtonElement | null>; onClose: () => void;
+  onToggleFamily: (family: ContextFamily) => void; result: ContextResult | null; symbol: string; loading: boolean;
+  unavailable: boolean; cutoff: number | null; held: boolean; timeDisplay: TimeDisplayPreference; summaryLabel: string
 }) {
   const panel = useRef<HTMLDivElement>(null)
-  const enabled = enabledContextFamilies(families)
   useEffect(() => {
     panel.current?.focus({ preventScroll: true })
     const escape = (event: KeyboardEvent) => {
@@ -29,15 +33,9 @@ export function RaycasterDetails({ id, families, trigger, onClose }: {
     <div className="raycaster-details-heading"><strong>USD context · How it works</strong>
       <button type="button" onClick={close} aria-label="Close Raycaster details">×</button></div>
     <p>Remembers the latest eligible release from each enabled family and combines its USD bias at the hovered candle’s end. Forecasts are excluded.</p>
-    <table aria-label="Raycaster event inputs"><thead><tr><th>Input / scorer</th><th>Weight</th><th>Inspector filter</th></tr></thead>
-      <tbody>
-        <tr><td>CPI v3.1</td><td>{contextWeights.cpi}%</td><td>{enabled.includes('cpi') ? 'Enabled' : 'Off'}</td></tr>
-        <tr><td>NFP v2</td><td>{contextWeights.nfp}%</td><td>{enabled.includes('nfp') ? 'Enabled' : 'Off'}</td></tr>
-        <tr><td>ISM v3</td><td>{contextWeights.ism}%</td><td>{enabled.includes('ism') ? 'Enabled' : 'Off'}</td></tr>
-      </tbody>
-    </table>
-    <p>ISM sectors: Manufacturing {families.includes('ism-manufacturing') ? 'enabled' : 'off'} · Services {families.includes('ism-services') ? 'enabled' : 'off'}. They update one combined ISM vote.</p>
-    <p>Change these inputs in Inspector filters. Other families are not included yet; the Inspector view selector does not change these scorer versions.</p>
+    {held && <p role="status">Showing the last inspected candle while you use this popover.</p>}
+    <RaycasterInputTable families={families} {...table} />
+    <p>Click Enabled / Off to change Raycaster’s own saved filters. Inspector selections do not affect this tool. ISM uses Manufacturing and Services together as one vote; Retail Sales adds actual spending context. Other families are not included yet.</p>
     <p>Each source score comes from its release scorer using the applied signal-magnitude settings in Scatter Plot.</p>
     <p><strong>Combining votes:</strong> multiply each source’s signed score by its weight and add. Positive supports USD; negative weakens USD. On EURUSD, weaker USD means Long and stronger USD means Short. USD-base pairs reverse that mapping.</p>
     <p><strong>Memory:</strong> a new family release replaces its old vote, even if uncomputed. Votes expire after {contextExpiryMs / 86400000} days on the broker chart clock. Missing, off or expired weights are not redistributed.</p>

@@ -34,7 +34,7 @@ not promises about the release candle or a future price move.
 | USD ISM Services v1 | Retired standalone screen | Original 35/25/25/15 sector policy is documented and retained internally for v2/v3 and audit reproduction. |
 | USD ISM monthly context v2 | Scoring system v2 on either ISM family | Services 70% plus Manufacturing 30%, same reference month, publication-time reconstruction, one bias and grouped evidence. Implemented; user audit next. |
 | USD ISM monthly resolution v3 | Scoring system v3 on either ISM family | One latest available monthly bias, weighted sector contributions and a plain explanation of which evidence wins. V2 component math and evidence policy are preserved. |
-| USD context memory v1 / Raycaster | Chart header → Raycaster | Latest active NFP v2 / CPI v3.1 / ISM v3 assessments, 40/40/20 weights, one USD-side pair bias at the hovered candle end, evidence and update explanation. Implemented prototype. |
+| USD context memory v2 / Raycaster | Chart header → Raycaster | CPI/NFP/ISM/Retail weights 40/40/10/10; independent portable filters, source biases and contributions, one USD-side bias at the hovered candle end. Implemented prototype; v1 archived below. |
 
 Inspector's other families have release tables and descriptive magnitude tools;
 that does not mean they already have directional scorers. FOMC/ECB episode
@@ -136,7 +136,7 @@ broader context expansion will follow the remaining inputs.
 | 4 | Retail Sales | Consumer-demand context | Implemented v1; user audit next |
 | 5 | Jobless Claims | Employment updates between monthly reports | Proposed |
 | 6 | GDP | Broad growth, expenditure components and revision context | Proposed; before FOMC |
-| Initial pilot now; expand after surrounding inputs | USD context engine | Update inflation, labor and growth assessments using latest known information | V1 implemented for CPI/NFP/ISM with Raycaster; remaining families planned |
+| Initial pilot now; expand after surrounding inputs | USD context engine | Update inflation, labor and growth assessments using latest known information | V2 implemented for CPI/NFP/ISM/Retail with independent Raycaster filters; remaining families planned |
 | After the surrounding inputs | FOMC | Rate action plus changes in statement, projections and press-conference guidance | Proposed; requires source text, not merely a rate number |
 | Later | PPI, Fed Chair speeches | Additional context after the core families are useful | Proposed; order revisable |
 | After FOMC | Broader USD context | Add policy guidance to inflation, employment and growth context | Planned |
@@ -192,8 +192,8 @@ are adjusted for seasonal/calendar effects but not price changes. The scorer
 therefore describes nominal spending rather than real purchasing volume or
 all consumer services. It uses no forecasts, market prices, CPI or Fed decision.
 Provider revisions can appear in stored history; replay is not an original-vintage
-backtest. Raycaster's v1 policy continues to combine CPI/NFP/ISM; integrating
-additional families requires a separate context-weight policy.
+backtest. Raycaster v2 incorporates unchanged Retail v1 as a 10% spending vote,
+with CPI/NFP at 40% each and ISM at 10%.
 
 `PAIR/EURUSD/USD/RETAIL/{policy,assessment,runtime,ui}/` separates rules,
 features, aggregation, worker lifecycle and display. Inspector scoring runs in a
@@ -221,7 +221,97 @@ event loop active (one run: Inspector 57 ms, Scatter 71 ms, including startup).
 - Next: manually review recent releases in H1, record bias/evidence and separate
   release reaction from later reversals. Continue with Jobless Claims after this.
 
-### Implemented: USD context memory v1 and Raycaster
+### Implemented: USD context memory v2 and independent Raycaster controls
+
+Retail Sales v1 now has a real **10% weighted vote**, not merely background text.
+CPI and NFP retain 40% each; ISM gets 10%. The prior 20% activity budget is split
+between surveyed activity and actual nominal spending. These are prototype
+priorities, not statistically estimated coefficients or weights fitted to price
+reactions. The four standalone scorers and their component magnitude settings
+remain unchanged. PCE integration still needs an inflation-weight policy.
+
+Raycaster starts with all four families enabled and owns its saved selection.
+Click **Enabled / Off** in its gear table; Inspector choices do not change these
+inputs. ISM controls both source sectors together. No setting is silently copied
+from Inspector. The selection key `fyodor.raycaster.families.v1` accepts unique
+CPI/NFP/ISM/Retail IDs, preserves an intentional all-off list, receives storage
+updates, retains session changes through storage failures and is portable in
+workspace export/import. Invalid imported IDs/duplicates are rejected.
+
+The table shows each fixed scorer version, budget weight, toggle, latest eligible
+pair bias/evidence/date, signed source score and weighted USD vote. The Total row
+shows the same combined output as the collapsed box. The budget sums to 100%;
+enabled and active weight are displayed separately. Off/missing/expired/uncomputed
+votes contribute zero without redistribution. Opening the gear holds the last
+inspected candle with an explicit label. Changing inputs rebuilds that candle in
+the worker; stale totals are hidden while calculating. Closing restores the
+hover prompt when the cursor is outside the chart. Broker, pair and timeframe
+changes clear the held candle; pair inversion still reuses the USD timeline.
+No scoring work runs on hover.
+
+The v1 memory, expiry, source replacement, timing and evidence rules still apply.
+Exact cancellation now follows CPI → NFP → ISM → Retail Sales with Weak evidence.
+All unavailable inputs stay Uncomputed. Manufacturing and Services update one
+ISM slot; their publication scores are not added together. Evidence describes
+agreement within the chosen inputs, not expected price movement or duration.
+
+Inspector Filters also has one **US ISM Manufacturing / Services** checkbox and
+symbol selector. The underlying source IDs, original publication timestamps,
+scoring signals and saved preference format stay intact. Legacy one-sector
+selections are indeterminate and preserved by Cancel/unchanged Apply. Explicit
+changes toggle or set the symbol for both sectors. Searches for either sector
+find the grouped row; category controls still operate on all original IDs.
+
+The stored v2 replay preserves **140 CPI, 141 NFP, 284 ISM and 144 Retail** source
+assessments. Eight June/July/August/September snapshots preserve their full result
+after future removal, and the actual production worker matches the pure engine.
+The 703-snapshot timeline remains background work (one run: about 4.4 seconds
+including worker startup; main event loop continues running).
+
+[Context v2 audit](storage/data/usd-context-v2-design-audit.md). After building,
+reproduce with `node frontend/scripts/audit-usd-context.mjs <cpi.json> <nfp.json> <ism.json> <retail.json> <output-prefix>`.
+Mounted tests verify separate filters, source contributions, last-candle retention,
+workspace roundtrip, all-off behavior, grouped ISM controls and worker reuse.
+Full frontend regression tests, lint and production build passed on 6 October
+2026; the final scope-clear refinement also passes mounted Raycaster tests.
+Visual layout, compact-chart scrolling and panning remain user manual checks.
+
+#### User's Retail v1 audit and interpretation
+
+These are the user's chart observations, without a controlled fixed-window price
+study or simultaneous audit of other release families. No weights were refitted.
+
+| Release | Retail bias | Reported chart reaction |
+| --- | --- | --- |
+| 16 Sep 2026 | Short | Price fell dramatically |
+| 14 Aug 2026 | Long | Rally through 20 August |
+| 16 Jul 2026 | Long / Strong | Slow decline; rally only at 28 July support |
+| 17 Jun 2026 | Short / Moderate | Very significant decline |
+| 14 May 2026 | Long | Slow decline |
+| 21 Apr 2026 | Short / Strong | Slow decline, no large rallies |
+| 1 Apr 2026 | Short | Fell at release through 6 April, then significant rally |
+
+June's Moderate grade is correct under the existing rule: only the control-group
+pace contributes +0.6; ex-autos-and-gas and headline are unchanged versus their
+benchmarks, so one evidence group supports the bias. July's Strong grade is also
+correct: control −0.6, ex-autos-and-gas −0.25 and headline −0.45 all support
+slower nominal spending pace, for a total of −1.3 and two agreeing groups.
+Strong internal agreement does not imply a bigger or correctly directed price
+move. Evidence grades never multiply source votes.
+
+With all four automatic inputs enabled, v2 context is **Short / Moderate** at
+17 June, **Long / Moderate** at 16 July, **Long / Moderate** at 14 August and
+**Short / Strong** at 16 September. July therefore still disagrees with the
+reported immediate price direction even after integration. This is not fixed
+by forcing a Short label. Missing EUR/policy/market information and different
+reaction windows remain possible explanations to investigate, not established
+causes. Next development remains Jobless Claims, then GDP before FOMC.
+
+### Archived: USD context memory v1 policy and initial audit
+
+The following records the earlier three-input policy. Its 40/40/20 weights and
+Inspector-linked controls are superseded by v2 above; standalone scorer math
+remains unchanged. The old audit is preserved for comparison.
 
 Press the wave button **Show Raycaster** beside the paintbrush toggle near the
 timeframe selector. × or the same button hides it. Drawing-toolbar visibility is

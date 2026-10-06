@@ -6,6 +6,7 @@ import { isEventSymbol } from '../inspector/event-symbols'
 import { normalizeScatterAppearance, scatterAppearanceKey } from '../scatter-plot/settings/scatter-plot-appearance'
 import { drawingTools } from '../market-data/chart-drawings/drawing-tool'
 import { activitySources } from '../system-observability/activity-log/activity-log-entry'
+import { raycasterFamiliesKey, validRaycasterFamilies } from '../raycaster/storage/raycaster-family-settings'
 
 export const workspaceFormat = 'fyodor-workspace'
 export const workspaceMaxBytes = 10 * 1024 * 1024
@@ -29,6 +30,7 @@ const validators: Record<string, (v: unknown) => boolean> = {
   [scatterAppearanceKey]: record,
   'fyodor.market-watch.collapsed.v1': (v) => typeof v === 'boolean',
   'fyodor.raycaster.visible.v1': (v) => typeof v === 'boolean',
+  [raycasterFamiliesKey]: validRaycasterFamilies,
   'fyodor.raycaster.position.v1': (v) => record(v) && finite(v.x) && finite(v.y) && v.x >= 0 && v.y >= 0,
   'fyodor.drawing-toolbar-position.v1': (v) => record(v) && finite(v.x) && finite(v.y) && v.x >= 0 && v.y >= 0,
   'fyodor.activity-visible-sources.v2': (v) => array(v, (source) => activitySources.includes(source as typeof activitySources[number])),

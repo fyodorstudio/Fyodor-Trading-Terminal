@@ -240,9 +240,9 @@ export function FyodorTerminalShell() {
   const raycasterSupported = !!usdPair(activeSymbol)
   const raycaster = useMemo(() => raycasterVisible && raycasterSupported ?
     { symbol: activeSymbol, timeframe, brokerId, brokerOffsetSeconds, clockOffsetMs: bridge.clockOffsetMs,
-      families: inspector.preferences.families, timeDisplay, onClose: closeRaycaster } : null,
+      timeDisplay, onClose: closeRaycaster } : null,
     [raycasterVisible, raycasterSupported, activeSymbol, timeframe, brokerId, brokerOffsetSeconds,
-      bridge.clockOffsetMs, inspector.preferences.families, timeDisplay, closeRaycaster])
+      bridge.clockOffsetMs, timeDisplay, closeRaycaster])
   const renderChartOverlay = useTerminalChartOverlay({ arrows: registeredArrows.symbolArrows,
     selectedArrowId: registeredArrows.selectedArrowId, draftPlan: plannedTrade, onSelectArrow: selectChartArrow,
     supported: inspector.supported, markers: inspector.markers, currencyColors: inspector.preferences.currencyColors,

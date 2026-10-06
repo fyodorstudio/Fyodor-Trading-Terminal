@@ -99,14 +99,20 @@ signal exposes exact inputs and configurable magnitudes. Assessment runs in a
 worker. Retail sales are nominal; no forecasts or price inputs enter scoring.
 See the [scoring library](scoring%20system%20library.MD) for policy and audit.
 
-**Raycaster** opens from the wave button beside the paintbrush toggle near the timeframe selector, independently of drawing-toolbar visibility. Its movable
-chart box reads the USD context at the hovered candle's end, with one pair bias,
-evidence and an update explanation. The first memory engine retains latest NFP
-v2, CPI v3.1 and ISM v3 assessments with explicit 40/40/20 weights and a 45-day
-freshness gate. It follows Inspector's enabled families; the gear beside its draggable title opens a calculation popover showing selected inputs, scorer versions, weights, memory and evidence rules. Input selection stays in Inspector filters. Supported major USD forex pairs invert the direction when USD is base.
-The footer labels this as the USD side only. Timeline scoring runs in a worker;
-hover only looks up prepared snapshots. See [Raycaster](frontend/src/raycaster/README.md)
-and [USD context policy](frontend/src/usd-context/README.md) for timing and limitations.
+**Raycaster** opens from the wave button beside the paintbrush toggle near the
+timeframe selector. Its movable box reads USD context at the hovered candle end.
+Memory v2 combines CPI v3.1 (40%), NFP v2 (40%), ISM v3 (10%) and Retail v1 (10%),
+with a 45-day freshness gate. The gear has independent saved Enabled/Off filters,
+each source's bias/evidence and weighted vote, and the combined total. Inspector
+filters do not change Raycaster. The last candle stays visible while inspecting
+the popover; its footer marks this as the USD side only. Supported major USD
+pairs invert direction when USD is base. Background scoring leaves hover as a
+snapshot lookup. See [Raycaster](frontend/src/raycaster/README.md) and
+[USD context policy](frontend/src/usd-context/README.md) for timing and limits.
+
+Inspector Filters has one **US ISM Manufacturing / Services** checkbox and symbol
+selector controlling both original source families. Legacy partial selections
+show as indeterminate until changed; Cancel preserves them.
 
 NFP direction uses signed magnitude points from Payrolls, Unemployment and
 Earnings m/m; seven supporting readings stay separate. CPI retains its four-rate

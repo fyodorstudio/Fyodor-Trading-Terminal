@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import React from 'react'
 import { createServer } from 'vite'
 import { Window } from 'happy-dom'
-import { settings, families, history, latestRows } from './fixtures.mjs'
+import { settings, history, latestRows } from './fixtures.mjs'
 
 const server = await createServer({ root: path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..'), server: { middlewareMode: true, hmr: false } })
 const dom = new Window({ url: 'http://localhost:5173' })
@@ -13,7 +13,7 @@ const previous = Object.fromEntries(keys.map(key => [key, Object.getOwnPropertyD
 for (const key of keys.slice(0, 7)) Object.defineProperty(globalThis, key, { configurable: true, writable: true,
   value: key === 'window' ? dom : key === 'document' ? dom.document : key === 'IS_REACT_ACT_ENVIRONMENT' ? true : dom[key] })
 const workers = [], requests = [], frames = new Map()
-let nextFrame = 0, handler, unsubscribed = 0, closed = 0
+let nextFrame = 0, handler, unsubscribed = 0, subscribed = 0, closed = 0
 dom.requestAnimationFrame = callback => { frames.set(++nextFrame, callback); return nextFrame }
 dom.cancelAnimationFrame = id => frames.delete(id)
 globalThis.ResizeObserver = class { observe() {} disconnect() {} }
@@ -26,7 +26,7 @@ globalThis.Worker = class {
 const { createRoot } = await import('react-dom/client')
 const container = document.createElement('div'); document.body.appendChild(container)
 const root = createRoot(container)
-const series = {}, chart = { subscribeCrosshairMove: callback => { handler = callback }, unsubscribeCrosshairMove: () => { unsubscribed++ } }
+const series = {}, chart = { subscribeCrosshairMove: callback => { handler = callback; subscribed++ }, unsubscribeCrosshairMove: () => { unsubscribed++ } }
 const tick = async () => React.act(async () => { for (const [id, callback] of frames) { frames.delete(id); callback() } })
 try {
   const { Raycaster } = await server.ssrLoadModule('./src/raycaster/Raycaster.tsx')
@@ -34,8 +34,10 @@ try {
   const { contextSeriesIds } = await server.ssrLoadModule('./src/usd-context/core/score-publication.ts')
   const { FloatingDrawingToolbar } = await server.ssrLoadModule('./src/market-data/chart-drawings/FloatingDrawingToolbar.tsx')
   const { ChartWorkspaceHeader } = await server.ssrLoadModule('./src/terminal-shell/ChartWorkspaceHeader.tsx')
-  const { exportWorkspace, parseWorkspaceSnapshot } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
+  const { defaultInspectorPreferences } = await server.ssrLoadModule('./src/inspector/inspector-data.ts')
+  const { exportWorkspace, parseWorkspaceSnapshot, restoreWorkspace } = await server.ssrLoadModule('./src/workspace-portability/workspace-snapshot.ts')
   const preference = await server.ssrLoadModule('./src/raycaster/storage/raycaster-preferences.ts')
+  const familySettings = await server.ssrLoadModule('./src/raycaster/storage/raycaster-family-settings.ts')
   const { nfpSignalSettings } = await server.ssrLoadModule('./src/inspector/scoring/shared/core/signal-magnitude-settings.ts')
   const events = [...history, ...latestRows]
   globalThis.fetch = async (url, options) => {
@@ -46,7 +48,7 @@ try {
         events, coverage: {}, next_cursor: null } }
   }
   const props = { chartApi: chart, seriesApi: series, symbol: 'EURUSD', timeframe: 'H1', brokerId: 'Broker-A',
-    brokerOffsetSeconds: 10800, clockOffsetMs: Date.UTC(2018, 7, 1) - Date.now(), families,
+    brokerOffsetSeconds: 10800, clockOffsetMs: Date.UTC(2018, 7, 1) - Date.now(),
     timeDisplay: { mode: 'utc', utcOffsetMinutes: 0 }, onClose: () => { closed++ } }
   const render = (next = props) => React.act(async () => root.render(React.createElement(Raycaster, next)))
   await render()
@@ -69,24 +71,55 @@ try {
   const details = container.querySelector('[role="dialog"]')
   assert.ok(details); assert.equal(gear.getAttribute('aria-expanded'), 'true')
   assert.equal(document.activeElement, details)
-  assert.match(details.textContent, /CPI v3.140%Enabled/)
-  assert.match(details.textContent, /NFP v240%Enabled/)
-  assert.match(details.textContent, /ISM v320%Enabled/)
+  const inputRow = name => details.querySelector(`[aria-label="Use ${name}"]`).closest('tr')
+  for (const [name, weight] of [['CPI v3.1', '40%'], ['NFP v2', '40%'], ['ISM v3', '10%'], ['Retail Sales v1', '10%']]) {
+    assert.equal(inputRow(name).children[1].textContent, weight)
+    assert.equal(inputRow(name).querySelector('button').getAttribute('aria-pressed'), 'true')
+    assert.match(inputRow(name).children[3].textContent, /EURUSD (Long|Short)/)
+    assert.match(inputRow(name).children[4].textContent, /Source .* ×/)
+  }
+  assert.match(details.querySelector('tfoot').textContent, /100%EURUSD (Long|Short)/)
+  assert.match(details.textContent, /Inspector selections do not affect/)
   assert.match(details.textContent, /45 days/)
   assert.match(details.textContent, /Forecasts are excluded/)
   assert.equal(workers[0].jobs.length, 1, 'Opening details must not recalculate')
+  await React.act(async () => handler({ time: open, point: undefined, seriesData: new Map() }))
+  await tick()
+  assert.match(details.textContent, /last inspected candle/)
+  assert.match(container.querySelector('.raycaster-bias').textContent, /EURUSD (Long|Short)/)
+  assert.equal(workers[0].jobs.length, 1, 'Holding a candle while inspecting details must not rescore')
   await React.act(async () => details.dispatchEvent(new dom.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })))
   assert.equal(container.querySelector('[role="dialog"]'), null)
   assert.equal(document.activeElement, gear)
+  assert.match(container.querySelector('.raycaster-bias').textContent, /Hover a candle/)
   await React.act(async () => gear.click())
   await React.act(async () => document.body.dispatchEvent(new dom.PointerEvent('pointerdown', { bubbles: true })))
   assert.equal(container.querySelector('[role="dialog"]'), null)
+  await React.act(async () => handler({ time: open, point: { x: 1, y: 5 }, seriesData: new Map([[series, {}]]) }))
+  await tick()
+  await React.act(async () => {
+    localStorage.setItem('fyodor.inspector.eurusd.v1', JSON.stringify({ ...defaultInspectorPreferences(), families: [] }))
+    window.dispatchEvent(new dom.StorageEvent('storage', { key: null }))
+  })
+  assert.equal(workers[0].jobs.length, 1, 'Inspector filters cannot change Raycaster inputs')
+  assert.deepEqual(familySettings.readRaycasterFamilies(), ['cpi', 'nfp', 'ism', 'retail'])
   const count = requests.length
   await render({ ...props, symbol: 'USDJPY' })
+  assert.match(container.querySelector('.raycaster-bias').textContent, /Hover a candle/, 'Pair changes clear the held candle')
+  await React.act(async () => handler({ time: open, point: { x: 1, y: 5 }, seriesData: new Map([[series, {}]]) }))
+  await tick()
   assert.match(container.textContent, /USDJPY (Long|Short)/)
   assert.equal(requests.length, count); assert.equal(workers[0].jobs.length, 1, 'Pair inversion reuses the USD timeline')
   await render({ ...props, clockOffsetMs: props.clockOffsetMs + 3000 })
+  assert.match(container.querySelector('.raycaster-bias').textContent, /Hover a candle/)
+  await React.act(async () => handler({ time: open, point: { x: 1, y: 5 }, seriesData: new Map([[series, {}]]) }))
+  await tick()
   assert.equal(requests.length, count); assert.equal(workers[0].jobs.length, 1, 'Clock ticks between publications must reuse the timeline')
+  await render({ ...props, timeframe: 'M15' })
+  assert.match(container.querySelector('.raycaster-bias').textContent, /Hover a candle/)
+  await render(props)
+  assert.match(container.querySelector('.raycaster-bias').textContent, /Hover a candle/, 'Returning to the prior scope must not resurrect its held candle')
+  assert.equal(workers[0].jobs.length, 1)
   await React.act(async () => nfpSignalSettings.save('hiring', [20, 40, 80]))
   assert.equal(workers[0].jobs.length, 2, 'Applied source magnitudes must rebuild context')
   assert.deepEqual(workers[0].jobs[1].input.settings.nfp.hiring, [20, 40, 80])
@@ -95,22 +128,31 @@ try {
   await React.act(async () => workers[0].onmessage({ data: { id: appliedJob.id, result: buildContextTimeline(appliedJob.input) } }))
   await React.act(async () => handler({ time: open, point: undefined, seriesData: new Map() }))
   await tick(); assert.match(container.textContent, /Hover a candle/)
-  await render({ ...props, families: ['jobs'] })
+  await React.act(async () => familySettings.saveRaycasterFamilies(['nfp']))
   assert.equal(workers[0].jobs.length, 3); assert.match(container.textContent, /Calculating/)
   await React.act(async () => workers[0].onerror({}))
   assert.match(container.textContent, /Background calculation failed/)
-  await render({ ...props, families: [] })
+  await React.act(async () => familySettings.saveRaycasterFamilies([]))
   assert.equal(workers[0].terminated, true)
-  assert.match(container.textContent, /Enable CPI, NFP or ISM/)
+  assert.match(container.textContent, /Enable an input in Raycaster/)
   await React.act(async () => gear.click())
-  assert.match(container.querySelector('[role="dialog"]').textContent, /CPI v3.140%Off/)
-  assert.match(container.querySelector('[role="dialog"]').textContent, /Manufacturing off · Services off/)
+  const allOff = container.querySelector('[role="dialog"]')
+  assert.equal(allOff.querySelector('[aria-label="Use CPI v3.1"]').textContent, 'Off')
+  assert.match(allOff.textContent, /Enabled weight: 0%/)
+  await React.act(async () => allOff.querySelector('[aria-label="Use Retail Sales v1"]').click())
+  assert.deepEqual(familySettings.readRaycasterFamilies(), ['retail'])
+  assert.equal(workers.length, 2)
+  assert.deepEqual(workers[1].jobs[0].input.families, ['retail'])
+  const retailJob = workers[1].jobs[0]
+  await React.act(async () => workers[1].onmessage({ data: { id: retailJob.id, result: buildContextTimeline(retailJob.input) } }))
+  assert.match(allOff.textContent, /Enabled weight: 10%/)
   await React.act(async () => container.querySelector('[aria-label="Close Raycaster details"]').click())
   assert.equal(document.activeElement, gear)
   await React.act(async () => container.querySelector('[aria-label="Hide Raycaster"]').click())
   assert.equal(closed, 1)
   await React.act(async () => root.render(null))
-  assert.equal(unsubscribed, 1)
+  assert.equal(unsubscribed, subscribed, 'All scope-change subscriptions are cleaned up')
+  assert.ok(workers.every(worker => worker.terminated))
   assert.equal(frames.size, 0)
 
   let toggles = 0
@@ -131,6 +173,16 @@ try {
   assert.equal(container.querySelector('[aria-label="Show Raycaster"]'), null)
   preference.saveRaycasterVisible(true); preference.saveRaycasterPosition({ x: 21, y: 64 })
   const exported = exportWorkspace()
+  assert.deepEqual(JSON.parse(exported.entries[familySettings.raycasterFamiliesKey]), ['retail'])
+  for (const invalid of [['ppi'], ['ism', 'ism'], 'retail']) assert.throws(() => parseWorkspaceSnapshot(JSON.stringify({ ...exported,
+    entries: { [familySettings.raycasterFamiliesKey]: JSON.stringify(invalid) } })), /Invalid/)
+  assert.throws(() => familySettings.saveRaycasterFamilies(['bad']), RangeError)
+  familySettings.saveRaycasterFamilies(['cpi'])
+  restoreWorkspace(exported)
+  assert.deepEqual(familySettings.readRaycasterFamilies(), ['retail'])
+  localStorage.setItem(familySettings.raycasterFamiliesKey, JSON.stringify(['ism', 'nfp']))
+  window.dispatchEvent(new dom.StorageEvent('storage', { key: familySettings.raycasterFamiliesKey }))
+  assert.deepEqual(familySettings.readRaycasterFamilies(), ['nfp', 'ism'])
   assert.equal(exported.entries[preference.raycasterVisibleKey], 'true')
   assert.deepEqual(JSON.parse(exported.entries[preference.raycasterPositionKey]), { x: 21, y: 64 })
   assert.throws(() => parseWorkspaceSnapshot(JSON.stringify({ ...exported, entries: { [preference.raycasterPositionKey]: '{"x":-1,"y":0}' } })), /Invalid/)

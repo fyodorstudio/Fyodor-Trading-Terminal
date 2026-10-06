@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { currencyColorStyle, defaultCurrencyColors } from './currency-colors'
 import { eventSymbols, type EventSymbol } from './event-symbols'
 import { inspectorCategories, inspectorFamilies, type InspectorPreferences } from './inspector-data'
+import { inspectorFilterRows } from './filters/inspector-filter-rows'
 
 export function InspectorFiltersModal({ preferences, onApply, onClose }: {
   preferences: InspectorPreferences; onApply: (next: InspectorPreferences) => void; onClose: () => void
@@ -10,9 +11,9 @@ export function InspectorFiltersModal({ preferences, onApply, onClose }: {
   const [draft, setDraft] = useState(() => ({ ...preferences, families: [...preferences.families], currencyColors: { ...preferences.currencyColors }, symbols: { ...preferences.symbols } }))
   const [search, setSearch] = useState('')
   const terms = search.trim().toLocaleLowerCase().split(/\s+/).filter(Boolean)
-  const matches = inspectorFamilies.filter((family) => {
+  const matches = inspectorFilterRows.filter((family) => {
     const category = inspectorCategories.find((item) => (item.families as readonly string[]).includes(family.id))!
-    return terms.every((term) => `${family.label} ${category.label} ${family.currency} ${family.currency === 'EUR' ? 'base' : 'quote'} ${family.id}`.toLocaleLowerCase().includes(term))
+    return terms.every((term) => `${family.label} ${category.label} ${family.currency} ${family.currency === 'EUR' ? 'base' : 'quote'} ${family.ids.join(' ')}`.toLocaleLowerCase().includes(term))
   })
   const dialog = useRef<HTMLDialogElement>(null)
   useEffect(() => {
@@ -46,7 +47,7 @@ export function InspectorFiltersModal({ preferences, onApply, onClose }: {
           </h3>
           {inspectorCategories.map((category, row) => {
             const families = inspectorFamilies.filter((family) => family.currency === currency && (category.families as readonly string[]).includes(family.id))
-            const visible = families.filter((family) => matches.includes(family))
+            const visible = matches.filter(family => families.some(source => source.id === family.id))
             if (!visible.length) return null
             const ids = families.map((family) => family.id)
             const checked = ids.every((id) => draft.families.includes(id))
@@ -55,10 +56,11 @@ export function InspectorFiltersModal({ preferences, onApply, onClose }: {
               ref={(input) => { if (input) input.indeterminate = partial }} aria-label={`${currency} ${category.label}`}
               onChange={(event) => toggle(ids, event.target.checked)} />{category.label}</label></legend>
               {visible.map((family) => <div className="inspector-family" key={family.id}>
-                <label><input type="checkbox" checked={draft.families.includes(family.id)} aria-label={family.label}
-                  onChange={(event) => toggle([family.id], event.target.checked)} />{family.label}</label>
+                <label><input type="checkbox" checked={family.ids.every(id => draft.families.includes(id))} aria-label={family.label}
+                  ref={input => { if (input) input.indeterminate = family.ids.some(id => draft.families.includes(id)) && !family.ids.every(id => draft.families.includes(id)) }}
+                  onChange={(event) => toggle(family.ids, event.target.checked)} />{family.label}</label>
                 <select aria-label={`Symbol for ${family.label}`} value={draft.symbols[family.id]} onChange={(event) =>
-                  setDraft({ ...draft, symbols: { ...draft.symbols, [family.id]: event.target.value as EventSymbol } })}>
+                  setDraft({ ...draft, symbols: { ...draft.symbols, ...Object.fromEntries(family.ids.map(id => [id, event.target.value as EventSymbol])) } })}>
                   {eventSymbols.map(([id, glyph, name]) => <option key={id} value={id}>{glyph} {name}</option>)}
                 </select>
               </div>)}

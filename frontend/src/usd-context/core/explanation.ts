@@ -1,14 +1,17 @@
 import type { ContextMember, UsdDirection } from './contracts'
-import { contextNames } from './policy'
+import { contextNames, contextPriority } from './policy'
 
-const evidenceNames = { nfp: 'labor', cpi: 'inflation', ism: 'surveyed activity' }
+const evidenceNames = { nfp: 'labor', cpi: 'inflation', ism: 'surveyed activity', retail: 'retail spending' }
 export function explainContext(direction: UsdDirection, members: ContextMember[], tie: boolean) {
   if (direction === 'uncomputed') return 'No usable USD direction is available from the enabled releases.'
   const supporting = members.filter(m => m.status === 'active' && m.usdDirection === direction)
   const opposing = members.filter(m => m.status === 'active' && m.usdDirection !== direction)
-  const describe = (rows: ContextMember[]) => rows.map(r => evidenceNames[r.family]).join(' and ')
+  const describe = (rows: ContextMember[]) => {
+    const names = rows.map(r => evidenceNames[r.family])
+    return names.length < 3 ? names.join(' and ') : `${names.slice(0, -1).join(', ')} and ${names.at(-1)}`
+  }
   const noun = direction === 'weaker' ? 'USD weakness' : 'USD strength'
-  if (tie) return `Weighted votes cancel; the published CPI → NFP → ISM priority favors ${noun}.`
+  if (tie) return `Weighted votes cancel; the published ${contextPriority.map(f => contextNames[f]).join(' → ')} priority favors ${noun}.`
   const subject = `${describe(supporting)} evidence`
   return opposing.length ? `${subject.charAt(0).toUpperCase() + subject.slice(1)} outweighs ${describe(opposing)} in favor of ${noun}.` :
     `${subject.charAt(0).toUpperCase() + subject.slice(1)} favors ${noun}.`
