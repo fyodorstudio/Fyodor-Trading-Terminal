@@ -245,17 +245,23 @@ change sizes. Visual UI verification remains with the user.
 ### Implemented: monthly ISM context v2
 
 Open either US ISM Services or US ISM Manufacturing in Inspector and select
-**Scoring system v2**. One monthly group has two flat sections, each retaining
-its original publication time, plus one combined EURUSD bias, evidence grade,
-change size and explanation of demand, employment and input-price contributions.
+**Scoring system v2**. One monthly group shows two publication-time outputs side
+by side: **At Manufacturing release** and **At Services release**, each retaining
+its original timestamp, EURUSD bias, evidence grade, change size and explanation.
+The earlier output uses Manufacturing-time context; the later output combines
+same-month Manufacturing and Services. These are chronological snapshots of the
+context, rather than two standalone sector scores. Unpublished outputs stay pending.
 An update message states whether the newest publication established, changed,
 strengthened or weakened weighted support for the monthly bias. One chart symbol
 and one Inspector list entry now group the month's two publications, anchored at
 the first publication. The table shows Manufacturing and Services as separate
-series with their actual publication timestamps. **Scoring publication** selects
-the earlier Manufacturing update or the later Services update; it defaults to the
-latest member whose publication time has passed. Raw release IDs, filter families
-and source inventory remain separate for calculations and Scatter navigation.
+series with their actual publication timestamps and labeled sector sections.
+The scoring components likewise share one table with Manufacturing and Services
+sections; each section shows its own release-time inputs. Both outputs remain
+visible with no publication dropdown or collapsible details. Narrow screens stack
+the output cards. The original scoring weights and timestamp gates are unchanged.
+Raw release IDs, filter families and source inventory remain separate for
+calculations and Scatter navigation; each section keeps its own Scatter button.
 
 Display pairing requires a single valid reference month, verified source/chart
 times, at most one publication per sector, Manufacturing before Services, and
@@ -270,8 +276,8 @@ This display grouping does not change scoring weights or release-time admission.
 Display integration verification: the stored snapshot's 284 publications now
 produce 142 monthly symbols, preserving all 1,278 source readings and clocks.
 Mounted terminal checks cover one marker/list entry, nine separately timed rows,
-stable selection as Services arrives, source Scatter navigation and switching
-between publication snapshots without future leakage. Full frontend tests,
+stable selection as Services arrives, source Scatter navigation and simultaneous
+publication snapshots without future leakage. Full frontend tests,
 production build and lint pass. Visual chart/dock review remains with the user.
 Next refinement should follow a user audit recording each publication's bias,
 evidence and first H1 reaction separately, even though the symbol is shared.

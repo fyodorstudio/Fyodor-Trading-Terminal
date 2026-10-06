@@ -1,5 +1,5 @@
 import { currencyColorStyle } from './currency-colors'
-import { useId, useState } from 'react'
+import { Fragment, useId, useState } from 'react'
 import { formatAppTimestamp, type TimeDisplayPreference } from '../appearance/time-display/time-display-preference'
 import type { CalendarSourceHealth } from '../system-connectivity/bridge-status/bridge-contract'
 import { symbolGlyph } from './event-symbols'
@@ -63,8 +63,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const [listOpen, setListOpen] = useState(true)
   const panelId = useId()
   const release = view.selectedRelease
-  const [ismSelection, setIsmSelection] = useState<{ group: string; source: string } | null>(null)
-  const scoreRelease = ismSourceRelease(release, ismSelection?.group === release?.id ? ismSelection?.source : null, view.now)
+  const scoreRelease = ismSourceRelease(release, null, view.now)
   const policyTimes = !!release && !!policyEpisodeRule(release.familyId)
   const showReadingTimes = policyTimes || !!release?.ismPublications
   const extraIsmSource = release?.ismPublications?.[1] ?? null
@@ -165,15 +164,9 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
         </nav>
         <div className="inspector-detail" aria-live="polite">
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
-            {release.ismPublications && <label className="inspector-ism-publication-select">Scoring publication <select aria-label="ISM scoring publication"
-              value={scoreRelease?.id} onChange={(event) => setIsmSelection({ group: release.id, source: event.target.value })}>
-              {release.ismPublications.map((member) => <option key={member.id} value={member.id}>
-                {member.familyId === 'ism-manufacturing' ? 'Manufacturing' : 'Services'} · {releaseTime(member)}
-              </option>)}
-            </select></label>}
             {showScoringV3 ? <CpiScoreV3 key={release.id} release={release} brokerId={view.brokerId}
               events={view.allReleases.flatMap((item) => item.events)} /> :
-            showScoringV2 && ismV2Available ? <IsmScoreV2 key={release.id} release={scoreRelease} brokerId={view.brokerId}
+            showScoringV2 && ismV2Available ? <IsmScoreV2 key={release.id} release={release} brokerId={view.brokerId} now={view.now}
               events={view.allReleases.flatMap((item) => item.events)} timeDisplay={timeDisplay}
               onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :
             showScoringV2 && nfpV2Available ? <NfpScoreV2 key={release.id} release={release} brokerId={view.brokerId}
@@ -198,7 +191,13 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
                 const grading = numericReading ? gradeFamilyReading(event, sourceRelease.familyId, rowFamily!) : gradePolicyRateDecision(event, sourceRelease.familyId)
                 const surpriseGrading = policyTimes ? gradePolicyRateDecision(event, release.familyId, 'forecast') : null
                 const revisedComparison = revisedFamilyComparison(event, sourceRelease.familyId, rowFamily)
-                return <tr key={event.value_id}>
+                return <Fragment key={event.value_id}>
+                  {release.ismPublications && sourceRelease.events[0].value_id === event.value_id && <tr className="inspector-ism-section-heading">
+                    <th scope="rowgroup" colSpan={4 + (showReadingTimes ? 1 : 0) + (policyTimes ? 2 : 0) + (hasMagnitude ? 1 : 0)}>
+                      {sourceRelease.familyId === 'ism-manufacturing' ? 'Manufacturing' : 'Services'} · {releaseTime(sourceRelease)}
+                    </th>
+                  </tr>}
+                  <tr>
                   <td><strong>{event.name}</strong>{release.ismPublications && <small>{sourceRelease.familyId === 'ism-manufacturing' ? 'Manufacturing' : 'Services'}</small>}{event.revision > 0 && <span className="inspector-revision"> · Revision {event.revision}</span>}
                     {sharedPeriod === null && release.events.some((reading) => reading.period_seconds > 0) &&
                       <small>Period: {event.period_seconds > 0 ? formatAppTimestamp(event.period_seconds * 1000,
@@ -218,7 +217,7 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
                     title={surpriseGrading?.explanation}>{commentary ? 'Not applicable' : formatInspectorValue(inspectorSurprise(event), event, true)}</td>}
                   {hasMagnitude && (numericReading ? <FamilyMagnitudeCell event={event} history={sourceRelease.id === extraIsmSource?.id ? extraIsmHistory : view.magnitudeHistory} grade={grading?.grade ?? 'unrated'}
                     deltaScale={rowFamily?.deltaScale} showHistogram={showHistograms} secondaryComparison={revisedComparison} /> : <td>Not applicable</td>)}
-                </tr>
+                </tr></Fragment>
               })}</tbody>
             </table></div>}
           </>}

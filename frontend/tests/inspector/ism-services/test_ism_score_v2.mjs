@@ -159,9 +159,24 @@ try {
   assert.deepEqual(combined.services.assessment.readings,assessIsmServicesScore(selected,events).readings)
   const props={release:selected,events}
   const app=mount(IsmScoreV2,props);await app.render()
-  assert.equal(app.container.querySelector('[aria-label="ISM v2 pair direction"]').textContent,combined.label)
-  assert.equal(app.container.querySelectorAll('tbody tr').length,7);assert.equal(app.container.querySelectorAll('details').length,0)
+  assert.equal(app.container.querySelector('[aria-label="ISM Services release pair direction"]').textContent,combined.label)
+  assert.equal(app.container.querySelectorAll('[data-ism-signal]').length,7);assert.equal(app.container.querySelectorAll('details').length,0)
+  assert.equal(app.container.querySelectorAll('table').length,1)
+  await app.render({release:grouped[0],events,now:manufacturing.releaseAt})
+  assert.equal(app.container.querySelector('[aria-label="ISM Manufacturing release pair direction"]').textContent,early.label)
+  assert.equal(app.container.querySelector('[aria-label="ISM Services release pair direction"]').textContent,'Pending')
+  assert.equal(app.container.querySelectorAll('[data-ism-signal]').length,3,'Later Services inputs cannot enter the earlier snapshot')
+  const manufacturingSnapshot=app.container.querySelector('[aria-label="ISM manufacturing publication bias"]').textContent
+  await app.render({release:grouped[0],events,now:selected.releaseAt})
+  assert.equal(app.container.querySelector('[aria-label="ISM manufacturing publication bias"]').textContent,manufacturingSnapshot,
+    'Publishing Services must preserve every detail of the Manufacturing snapshot')
+  assert.equal(app.container.querySelector('[aria-label="ISM Services release pair direction"]').textContent,combined.label)
+  assert.equal(app.container.querySelectorAll('[data-ism-signal]').length,7)
   await app.render({release:manufacturing,events});assert.match(app.container.querySelector('[aria-label="ISM services context"]').textContent,/Pending/)
+  await app.render({release:{...manufacturing,timingUncertain:true},events})
+  assert.equal(app.container.querySelector('[aria-label="ISM Manufacturing release pair direction"]').textContent,'Uncomputed')
+  await app.render({release:{...manufacturing,releaseAt:null,timingUncertain:true},events})
+  assert.equal(app.container.querySelector('[aria-label="ISM Manufacturing release pair direction"]').textContent,'Uncomputed')
   await app.render(props)
   const prefs={...defaultInspectorPreferences(),detailView:'scoring-v2'};let saved,opened
   const view={supported:true,selectedRelease:selected,preferences:prefs,brokerId:null,now:selected.releaseAt+1000,brokerTime:false,releases:[manufacturing,selected],allReleases:groupInspectorReleases(events),
@@ -189,15 +204,16 @@ try {
   assert.equal(groupedView.allReleases.filter(r=>['ism-manufacturing','ism-services'].includes(r.familyId)&&r.releaseAt>=manufacturing.releaseAt).length,2,
     'Source publication inventory remains separate for scoring and Scatter')
   await React.act(async()=>groupedView.selectRelease(grouped[0].id))
-  assert.equal(groupedApp.container.querySelector('[aria-label="ISM scoring publication"]').options.length,2)
-  assert.equal(groupedApp.container.querySelector('[aria-label="ISM v2 pair direction"]').textContent,combined.label)
-  await choose(groupedApp.container.querySelector('[aria-label="ISM scoring publication"]'),manufacturing.id)
-  assert.match(groupedApp.container.querySelector('[aria-label="ISM services context"]').textContent,/Pending/)
-  assert.equal(groupedApp.container.querySelector('[aria-label="ISM v2 pair direction"]').textContent,early.label)
-  await choose(groupedApp.container.querySelector('[aria-label="ISM scoring publication"]'),selected.id)
-  assert.equal(groupedApp.container.querySelector('[aria-label="ISM v2 pair direction"]').textContent,combined.label)
+  assert.equal(groupedApp.container.querySelector('[aria-label="ISM scoring publication"]'),null)
+  assert.equal(groupedApp.container.querySelectorAll('.inspector-ism-v2-output').length,2)
+  assert.equal(groupedApp.container.querySelector('[aria-label="ISM Manufacturing release pair direction"]').textContent,early.label)
+  assert.equal(groupedApp.container.querySelector('[aria-label="ISM Services release pair direction"]').textContent,combined.label)
+  assert.equal(groupedApp.container.querySelectorAll('table[aria-label="ISM v2 components"]').length,1)
+  assert.equal(groupedApp.container.querySelectorAll('[data-ism-signal]').length,7)
+  await groupedApp.render({input:events})
   await choose(groupedApp.container.querySelector('[aria-label="Inspector view"]'),'table')
-  assert.equal(groupedApp.container.querySelectorAll('tbody tr').length,9)
+  assert.equal(groupedApp.container.querySelectorAll('tbody tr:not(.inspector-ism-section-heading)').length,9)
+  assert.equal(groupedApp.container.querySelectorAll('.inspector-ism-section-heading').length,2)
   assert.equal(groupedApp.container.querySelectorAll('[data-reading-clock="display"]').length,9)
   assert.equal(groupedApp.container.querySelectorAll('.inspector-row-grade').length,9,'Both sectors retain row grading')
   assert.ok(![...groupedApp.container.querySelectorAll('th')].some(th=>th.textContent==='Forecast'))
@@ -205,7 +221,7 @@ try {
   await groupedApp.render({input:events.filter(e=>e.release_at<=manufacturing.releaseAt)})
   assert.equal(groupedView.releases.length,1);assert.equal(groupedView.selectedRelease.id,grouped[0].id)
   await groupedApp.render({input:events});assert.equal(groupedView.selectedRelease.id,grouped[0].id)
-  console.log('✓ One monthly ISM chart marker/list entry, stable updates, distinct timed series, source navigation and selectable as-of scoring without future leakage')
+  console.log('✓ One monthly ISM chart marker/list entry, stable updates, distinct timed series, source navigation and simultaneous as-of outputs without future leakage')
   let requests=0
   globalThis.fetch=async(url)=>{
     if(url==='/storage-api/health')return{ok:true,json:async()=>({revision:1,collector_error:null,sources:[{id:'test-broker',publisher_status:'live',server_now:Date.UTC(2026,9,6)/1000}]})}
@@ -216,7 +232,7 @@ try {
     return{ok:true,json:async()=>({source_id:'test-broker',revision:1,timestamp_convention:'trade_server_time',time_basis:'chart',event_ids:ids,events:events.filter(e=>ids.includes(e.event_id)),coverage:{USD:{missing:[]}},next_cursor:null})}
   }
   const stored=mount(IsmScoreV2,{...props,brokerId:'test-broker'});await stored.render()
-  assert.equal(stored.container.querySelector('[aria-label="ISM v2 pair direction"]').textContent,combined.label)
+  assert.equal(stored.container.querySelector('[aria-label="ISM Services release pair direction"]').textContent,combined.label)
   const dock=mount(ScatterPlotDock,{brokerId:'test-broker',clockOffsetMs:Date.UTC(2026,9,6)-Date.now(),target:{brokerId:'test-broker',familyId:'ism-manufacturing',releaseId:manufacturing.id,at:manufacturing.releaseAt}});await dock.render()
   const beforePreview=app.container.textContent,count=requests
   await choose(dock.container.querySelector('[aria-label="Scatter Plot Measure"]'),'signal')

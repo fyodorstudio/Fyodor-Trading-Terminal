@@ -77,8 +77,10 @@ and component visibility. **Scoring system v2** on either ISM family adds
 a monthly Services/Manufacturing context with distinct publication times, one
 bias, grouped evidence, pending sections and source-date discrepancy exclusions.
 The month's two reports share one chart symbol and Inspector entry, with separate
-timed series in the table. **Scoring publication** switches between the earlier
-Manufacturing snapshot and the later Services snapshot without future data.
+timed series in a table with sector sections. Two adjacent outputs show the
+Manufacturing-time and Services-time context snapshots, each with its own bias
+and evidence grade. Earlier snapshots exclude future data; unpublished outputs
+stay pending. No publication dropdown is needed.
 Manufacturing has three configurable source signals; Services shares its v1
 component settings. All weights are explicit prototype interpretation rules.
 

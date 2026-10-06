@@ -368,10 +368,15 @@ one reference month, verified timestamps, unique sectors, Manufacturing first
 and at most ten days separation. Invalid/ambiguous candidates stay separate.
 Ten-day query padding supplies neighboring companions; display filtering accepts
 either enabled member and either member in range. The table retains all source
-series and times, each sector's grading and magnitude store. The Scoring
-publication selector passes an original source release to the scorer and Scatter,
-defaulting to the latest elapsed publication. Selecting Manufacturing keeps the
-later Services report pending; adding Services preserves the monthly selection ID.
+series and times, each sector's grading and magnitude store, with labeled sector
+sections. V2 displays two adjacent publication-time outputs and one component
+table with Manufacturing and Services row groups. Each output passes its original
+source publication to the unchanged scorer. The Services output combines both
+sectors; the Manufacturing output excludes later Services. Future publications
+stay pending until the supplied Inspector clock reaches them. No publication
+selector is shown. Both sections retain exact-source Scatter buttons; the generic
+Scatter shortcut and Services v1 use the latest elapsed source. Adding Services
+preserves the monthly selection ID. On narrow screens the output cards stack.
 
 `PAIR/EURUSD/USD/ISM/assessment/ism-score-v2.ts` combines same-reference-month
 Services (70%) and Manufacturing (30%) at the selected publication timestamp.
