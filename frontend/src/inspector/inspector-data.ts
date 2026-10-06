@@ -24,7 +24,7 @@ export type InspectorPreferences = {
   families: string[]
   showSymbols: boolean
   showHistograms: boolean
-  detailView: 'table' | 'scoring' | 'scoring-v2'
+  detailView: 'table' | 'scoring' | 'scoring-v2' | 'scoring-v3'
   currencyColors: CurrencyColors
   symbols: Record<string, EventSymbol>
 }
@@ -45,7 +45,7 @@ export function readInspectorPreferences(): InspectorPreferences {
       originalInspectorFamilies.every((id) => selected.includes(id))
     return { version: 2, families: oldDefault ? defaults.families : selected,
     showHistograms: typeof saved.showHistograms === 'boolean' ? saved.showHistograms : defaults.showHistograms,
-    detailView: saved.detailView === 'scoring' || saved.detailView === 'scoring-v2' ? saved.detailView : defaults.detailView,
+    detailView: saved.detailView === 'scoring' || saved.detailView === 'scoring-v2' || saved.detailView === 'scoring-v3' ? saved.detailView : defaults.detailView,
     showSymbols: typeof saved.showSymbols === 'boolean' ? saved.showSymbols : defaults.showSymbols,
     currencyColors: normalizeCurrencyColors(saved.currencyColors),
     symbols: { ...defaults.symbols, ...Object.fromEntries(Object.entries(saved.symbols ?? {}).filter(([id, symbol]) =>

@@ -160,10 +160,10 @@ try {
   assert.equal(opened.id, selected.id); assert.equal(select.value, 'scoring-v2'); assert.equal(saved, undefined)
   await React.act(async () => { select.value = 'scoring'; select.dispatchEvent(new dom.Event('change', { bubbles: true })) })
   assert.equal(saved.detailView, 'scoring')
-  const nfp = { ...selected, familyId: 'jobs', label: 'US Jobs report / NFP' }
-  await panel.render({ ...props, view: { ...view, selectedRelease: nfp, releases: [nfp] } })
+  const ppi = { ...selected, familyId: 'ppi', label: 'US PPI' }
+  await panel.render({ ...props, view: { ...view, selectedRelease: ppi, releases: [ppi] } })
   assert.equal(panel.container.querySelector('[aria-label="Inspector view"]').value, 'table')
-  assert.equal(panel.container.querySelector('option[value="scoring-v2"]'), null, 'V2 is offered exclusively for USD CPI')
+  assert.equal(panel.container.querySelector('option[value="scoring-v2"]'), null, 'V2 is unavailable for unimplemented families')
   assert.equal(panel.container.querySelector('[aria-label="CPI v2 pair direction"]'), null)
   localStorage.setItem(inspectorStorageKey, JSON.stringify(prefs))
   assert.equal(readInspectorPreferences().detailView, 'scoring-v2')

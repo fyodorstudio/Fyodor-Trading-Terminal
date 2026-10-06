@@ -1,0 +1,155 @@
+# Scoring system library
+
+Updated: 6 October 2026. Scope: EURUSD, starting with USD event families.
+
+## Purpose and output
+
+Interpret what each economic release says without requiring the user to read its
+numbers. A usable release produces **EURUSD Long or Short**, an evidence grade,
+and a plain-language explanation. These are interpretations under explicit rules,
+not promises about the release candle or a future price move.
+
+- No survey forecasts enter scoring.
+- Unequal family-specific priorities resolve conflicting readings into one bias.
+- Exact cancellation uses a documented priority; no Mixed/Neutral label.
+- Missing data, insufficient calibration or no directional change can produce
+  **Uncomputed**, with a reason. A direction is never fabricated to fill a label.
+- Evidence strength describes agreement, not probability. Change size is separate.
+- Original scorers remain available for comparison. Magnitude settings and stored
+  preferences remain compatible.
+- Visual UI verification belongs to the user; terminal tests, lint and builds
+  verify implementation.
+
+## Existing systems
+
+| System | Inspector menu | Policy and status |
+| --- | --- | --- |
+| USD CPI original | Scoring system | Signed Actual minus supplied Previous magnitudes; separate rate/index matrices; uses original configured boundaries. Implemented. |
+| USD CPI v2 | Scoring system v2 | Three-month core pace relative to a 0.20% prototype reference, overlapping core trend, annual core change and headline context. Implemented; comparison baseline. |
+| USD CPI v3, refined | Scoring system v3 | Latest core pace versus preceding three months; weights 35/35/20/10. Related core monthly signals share an evidence group; separate strength, change size and limitations. Implemented, policy v3.1. |
+| USD NFP original | Scoring system | Payrolls, inverse unemployment change and monthly wage change each have weight 1; seven supporting readings excluded from the USD total. Implemented. |
+| USD NFP v2 | Scoring system v2 | Hiring pace, unemployment with participation context, wage pace, preceding-month payroll revision and working hours. Weights 40/30/15/10/5; earlier-history calibration and grouped evidence. Implemented. |
+
+Inspector's other families have release tables and descriptive magnitude tools;
+that does not mean they already have directional scorers. FOMC/ECB episode
+grouping and rate-change grading exist, but are not full policy interpretations.
+
+## Completed refinement and NFP v2 policies
+
+**CPI v3.1:** bias calculations are unchanged. Fresh core and rolling core trend
+share one evidence group; annual core and headline are the other groups. A group
+must support the winning direction to confirm it. Strong evidence requires at
+least two supporting groups and weighted net/gross agreement of at least 2/3.
+Agreement below 1/3, missing scoring data or a tie-break gives weak evidence;
+other directional cases give moderate evidence. Related groups are conceptual
+confirmation, not statistically independent evidence.
+
+**Change size:** the weighted average absolute 0–4 magnitude points of usable
+components, including usable zeros. Greater than zero to 1 = Modest, >1 to 2 =
+Noticeable, >2 to 3 = Large, >3 = Extreme. Size is separate from agreement and
+does not describe a price move. Evidence explanations distinguish missing data,
+conflicting signals and a direction supported by one group.
+
+**NFP v2:**
+
+| Component | Calculation | Weight |
+| --- | --- | --- |
+| Hiring pace | Latest payroll job change minus max(0, preceding three-month mean job change) | 40% |
+| Unemployment | Negative of Actual minus supplied Previous | 30% |
+| Wage pace | Latest Earnings m/m minus preceding three-month mean | 15% |
+| Payroll revision | Supplied Revised Previous minus Previous payrolls | 10% |
+| Working hours | Actual minus supplied Previous weekly hours | 5% |
+
+Hiring and wages need consecutive reference-month history. The hiring benchmark
+is floored at zero so smaller job losses after bigger losses still count as job
+losses, without claiming a population-adjusted break-even hiring level.
+
+When unemployment and participation both fall, unemployment's positive weight
+halves to 15%; a caution prevents strong evidence. This is a policy qualifier,
+not proof of why unemployment fell. Missing participation does not invent an
+adjustment: weight stays 30%, with a caution and strength capped at moderate.
+Participation never votes on its own. Annual wages, U6 and payroll subcomponents
+provide context without being added to the total. The revision component covers
+the preceding month only; the provider does not expose the full two-month BLS
+revision total in this field.
+
+NFP evidence groups are employment (hiring, revision, hours), unemployment and
+wages. The CPI strength/change-size rules also apply; weights are not
+redistributed for missing data. At least one calibrated hiring or unemployment
+component must be usable. Exact cancellation follows hiring, unemployment,
+wages, revision and hours. The original NFP scorer remains available.
+
+The saved Scoring system v2 preference selects CPI v2 on CPI releases and NFP v2
+on jobs releases. V3 remains CPI-only; unimplemented families fall back to Table.
+
+These weights, confirmation groups, thresholds and participation adjustment are
+explicit prototype policies; they are not fitted estimates or validated market
+probabilities. No combination system has been implemented yet.
+
+Terminal validation and manual review status are recorded below.
+
+## Planned development order
+
+| Order | Family or stage | Intended contribution | Status |
+| --- | --- | --- | --- |
+| 1 | NFP v2 | Employment strength, wage pressure and payroll revisions | Implemented; user audit next |
+| 2 | PCE inflation | Inflation interpretation using the measure underlying the Fed's inflation objective | Proposed |
+| 3 | FOMC | Rate action plus changes in statement, projections and press-conference guidance | Proposed; requires source text, not merely a rate number |
+| 4 | ISM Services, then Retail Sales | Activity and consumer-demand context | Proposed |
+| 5 | Jobless Claims | Employment updates between monthly reports | Proposed |
+| Later | ISM Manufacturing, PPI, GDP, Fed Chair speeches | Additional context after the core families are useful | Proposed; order revisable |
+| Later | USD context combinations | Combine inflation, employment and policy interpretations | Proposed |
+| Later | ECB and euro-area families | Relative EUR versus USD context for EURUSD | Proposed |
+| Later | Other currencies | Reuse infrastructure with explicit currency-specific policies | Proposed |
+
+## Future combination design
+
+Each release first has its own interpretation. A separate context layer can then
+produce one bias using the newest known inflation, employment, activity and policy
+information. It must retain publication timestamps and reference periods, replace
+older readings of the same series, disclose missing context and reduce the influence
+of stale information. It must never use a later release to explain an earlier one.
+
+CPI and PCE can describe overlapping inflation developments; payroll subcomponents
+overlap with total payrolls. More rows must not automatically mean more independent
+evidence. Opposing families reduce evidence strength even when a weighted bias wins.
+Context-sensitive priorities will need their own documented tests before use.
+
+## Validation and limits
+
+Historical magnitudes start in January 2015. Derived scorers require at least 24
+earlier usable observations per component and calibrate strictly before the selected
+publication. Stored provider revisions can overwrite old readings; filtering dates
+alone cannot reconstruct original data vintages.
+
+For separate price diagnostics, use a pre-release baseline to +60 minutes as the
+primary H1-related window, with +15/+240 minutes secondary. The containing H1
+candle can include pre-release time. Manually selected examples are development
+observations, not an untouched accuracy test. Evaluate coverage, Long/Short results,
+evidence behavior and data gaps before claiming predictive performance.
+
+The stored-data audit assessed 141 NFP releases from 2015 through 2 October 2026.
+All 21 releases in 2025–2026 produced a bias; 3 used reduced data. August 1, 2025
+was Long with strong evidence; August 7, 2026 was Long with moderate evidence.
+Those are implementation outputs, not verified price-direction successes.
+The refined CPI audit preserves the directional outputs and totals across all
+140 stored CPI releases, while some evidence labels change after grouping.
+
+- [Refined CPI audit](storage/data/cpi-v3-refined-audit.md)
+- [NFP v2 audit](storage/data/nfp-v2-design-audit.md)
+- Audit snapshots/reports are local ignored artifacts in `storage/data`; the
+  tracked CLI scripts in `frontend/scripts` can regenerate them from snapshots.
+- Targeted CPI/NFP regressions, the full frontend suite, lint and the TypeScript/
+  Vite production build passed on 6 October 2026. Existing scorers, navigation,
+  magnitude settings and workspace portability regressions also passed.
+- Remaining manual review: Inspector dock layout/resizing, version switching,
+  explanation clarity and user audit against other releases.
+
+## Sources and code
+
+- [Scoring implementation documentation](frontend/src/inspector/scoring/README.md)
+- [BLS Employment Situation definitions and revision methodology](https://www.bls.gov/news.release/empsit.tn.htm)
+- [BLS August 2025 release: example of two-month payroll revisions](https://www.bls.gov/news.release/archives/empsit_08012025.htm)
+- [Federal Reserve inflation objective](https://www.federalreserve.gov/faqs/economy_14400.htm)
+- [BEA: differences between CPI and PCE](https://www.bea.gov/help/faq/555)
+- [FOMC policy materials](https://www.federalreserve.gov/monetarypolicy/fomc.htm)

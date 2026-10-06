@@ -18,6 +18,10 @@ import { InspectorScoringView } from './scoring/InspectorScoringView'
 import { inspectorScoringBinding } from './scoring/scoring-registry'
 import { supportsCpiV2 } from './scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v2'
 import { CpiScoreV2 } from './scoring/PAIR/EURUSD/USD/CPI/ui/CpiScoreV2'
+import { supportsCpiV3 } from './scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-score-v3'
+import { CpiScoreV3 } from './scoring/PAIR/EURUSD/USD/CPI/ui/CpiScoreV3'
+import { supportsNfpV2 } from './scoring/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2'
+import { NfpScoreV2 } from './scoring/PAIR/EURUSD/USD/NFP/ui/NfpScoreV2'
 import type { InspectorView } from './useInspector'
 import './inspector.css'
 
@@ -60,9 +64,12 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const hasMagnitude = !!magnitudeFamily && !!release?.events.some((event) => Object.hasOwn(magnitudeFamily.readingRules, event.event_id))
   const scoringBinding = inspectorScoringBinding(symbol, release)
   const showScoring = view.preferences.detailView === 'scoring' && !!scoringBinding
-  const v2Available = supportsInspector(symbol) && supportsCpiV2(release)
+  const nfpV2Available = supportsInspector(symbol) && supportsNfpV2(release)
+  const v2Available = (supportsInspector(symbol) && supportsCpiV2(release)) || nfpV2Available
   const showScoringV2 = view.preferences.detailView === 'scoring-v2' && v2Available
-  const visibleView = showScoringV2 ? 'scoring-v2' : showScoring ? 'scoring' : 'table'
+  const v3Available = supportsInspector(symbol) && supportsCpiV3(release)
+  const showScoringV3 = view.preferences.detailView === 'scoring-v3' && v3Available
+  const visibleView = showScoringV3 ? 'scoring-v3' : showScoringV2 ? 'scoring-v2' : showScoring ? 'scoring' : 'table'
   const showHistograms = hasMagnitude && view.preferences.showHistograms
   const releaseTime = (item: InspectorRelease) => view.brokerTime
     ? `${formatAppTimestamp(item.serverTime * 1000, { mode: 'utc', utcOffsetMinutes: 0 })} · broker time`
@@ -122,13 +129,14 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
             // Scatter is navigation; keep the selected Inspector view when returning.
             event.target.value = visibleView
             if (hasMagnitude && scatterAvailable && onOpenScatter) onOpenScatter(release)
-          } else if (next === 'table' || (next === 'scoring' && scoringBinding) || (next === 'scoring-v2' && v2Available)) {
+          } else if (next === 'table' || (next === 'scoring' && scoringBinding) || (next === 'scoring-v2' && v2Available) || (next === 'scoring-v3' && v3Available)) {
             view.applyPreferences({ ...view.preferences, detailView: next })
           }
         }}>
         <option value="table">Table only</option>
         <option value="scoring" disabled={!scoringBinding}>Scoring system</option>
         {v2Available && <option value="scoring-v2">Scoring system v2</option>}
+        {v3Available && <option value="scoring-v3">Scoring system v3</option>}
         <option value="scatter" disabled={!hasMagnitude || !scatterAvailable || !onOpenScatter}>Scatter Plot</option>
       </select>}
     </header>
@@ -146,7 +154,11 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
         </nav>
         <div className="inspector-detail" aria-live="polite">
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
-            {showScoringV2 ? <CpiScoreV2 key={release.id} release={release} brokerId={view.brokerId}
+            {showScoringV3 ? <CpiScoreV3 key={release.id} release={release} brokerId={view.brokerId}
+              events={view.allReleases.flatMap((item) => item.events)} /> :
+            showScoringV2 && nfpV2Available ? <NfpScoreV2 key={release.id} release={release} brokerId={view.brokerId}
+              events={view.allReleases.flatMap((item) => item.events)} /> :
+            showScoringV2 ? <CpiScoreV2 key={release.id} release={release} brokerId={view.brokerId}
               events={view.allReleases.flatMap((item) => item.events)} /> :
             showScoring && scoringBinding ? <InspectorScoringView binding={scoringBinding} release={release} history={view.magnitudeHistory} /> :
             <div className="inspector-table-scroll"><table className={showHistograms ? 'inspector-magnitude-table' : undefined} aria-label={`${release.label} release readings`}>
