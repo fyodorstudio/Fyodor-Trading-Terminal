@@ -4,8 +4,9 @@ import { cpiV3Features, cpiV3Signals, cpiV3SeriesIds, supportsCpiV3 } from '../.
 import { nfpV2Features, nfpV2Signals, nfpV2SeriesIds, supportsNfpV2 } from '../../inspector/scoring/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2'
 import { pceFeatures, pceSignals, pceSeriesIds, supportsPceScore } from '../../inspector/scoring/PAIR/EURUSD/USD/PCE/assessment/pce-score'
 import { ismServicesFeatures, ismServicesSignals, ismServicesSeriesIds, supportsIsmServicesScore } from '../../inspector/scoring/PAIR/EURUSD/USD/ISM-SERVICES/assessment/ism-services-score'
+import { ismManufacturingFeatures, ismManufacturingSignals, ismManufacturingSeriesIds, supportsIsmManufacturing } from '../../inspector/scoring/PAIR/EURUSD/USD/ISM/assessment/ism-manufacturing-score'
 import { calibrateHistoricalSignal, observedReading, type HistoricalFeature, type TimedReading } from '../../inspector/scoring/shared/core/historical-release-signals'
-import { cpiSignalSettings, nfpSignalSettings, pceSignalSettings, ismServicesSignalSettings } from '../../inspector/scoring/shared/core/signal-magnitude-settings'
+import { cpiSignalSettings, nfpSignalSettings, pceSignalSettings, ismServicesSignalSettings, ismManufacturingSignalSettings } from '../../inspector/scoring/shared/core/signal-magnitude-settings'
 import { magnitudeDistribution } from '../../inspector/magnitude/magnitude-distribution'
 import type { MagnitudeSettings, MagnitudeSettingsStore } from '../../inspector/magnitude/settings/magnitude-settings-store'
 import type { ScatterModel, ScatterPoint, ScatterSignal } from '../contracts/scatter-plot-types'
@@ -30,8 +31,12 @@ export function scoringSignalBinding(familyId: string): ScoringSignalBinding | n
     signals: pceSignals, supports: supportsPceScore, features: pceFeatures,
   }
   if (familyId === 'ism-services') return {
-    label: 'ISM Services v1', settings: ismServicesSignalSettings, seriesIds: ismServicesSeriesIds,
+    label: 'ISM Services v1 / v2', settings: ismServicesSignalSettings, seriesIds: ismServicesSeriesIds,
     signals: ismServicesSignals, supports: supportsIsmServicesScore, features: ismServicesFeatures,
+  }
+  if (familyId === 'ism-manufacturing') return {
+    label: 'ISM Manufacturing v2', settings: ismManufacturingSignalSettings, seriesIds: ismManufacturingSeriesIds,
+    signals: ismManufacturingSignals, supports: supportsIsmManufacturing, features: ismManufacturingFeatures,
   }
   return null
 }

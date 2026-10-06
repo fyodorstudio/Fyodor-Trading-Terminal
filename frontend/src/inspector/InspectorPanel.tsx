@@ -22,6 +22,8 @@ import { supportsCpiV3 } from './scoring/PAIR/EURUSD/USD/CPI/assessment/cpi-scor
 import { CpiScoreV3 } from './scoring/PAIR/EURUSD/USD/CPI/ui/CpiScoreV3'
 import { supportsNfpV2 } from './scoring/PAIR/EURUSD/USD/NFP/assessment/nfp-score-v2'
 import { NfpScoreV2 } from './scoring/PAIR/EURUSD/USD/NFP/ui/NfpScoreV2'
+import { supportsIsmV2 } from './scoring/PAIR/EURUSD/USD/ISM/assessment/ism-score-v2'
+import { IsmScoreV2 } from './scoring/PAIR/EURUSD/USD/ISM/ui/IsmScoreV2'
 import type { InspectorView } from './useInspector'
 import './inspector.css'
 
@@ -65,7 +67,8 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
   const scoringBinding = inspectorScoringBinding(symbol, release)
   const showScoring = view.preferences.detailView === 'scoring' && !!scoringBinding
   const nfpV2Available = supportsInspector(symbol) && supportsNfpV2(release)
-  const v2Available = (supportsInspector(symbol) && supportsCpiV2(release)) || nfpV2Available
+  const ismV2Available = supportsInspector(symbol) && supportsIsmV2(release)
+  const v2Available = (supportsInspector(symbol) && supportsCpiV2(release)) || nfpV2Available || ismV2Available
   const showScoringV2 = view.preferences.detailView === 'scoring-v2' && v2Available
   const v3Available = supportsInspector(symbol) && supportsCpiV3(release)
   const showScoringV3 = view.preferences.detailView === 'scoring-v3' && v3Available
@@ -156,6 +159,9 @@ export function InspectorPanel({ view, symbol, source, error, timeDisplay, onOpe
           {!release ? <p className="inspector-empty">Click a chart symbol or select a release to inspect Actual, Previous and A−P.</p> : <>
             {showScoringV3 ? <CpiScoreV3 key={release.id} release={release} brokerId={view.brokerId}
               events={view.allReleases.flatMap((item) => item.events)} /> :
+            showScoringV2 && ismV2Available ? <IsmScoreV2 key={release.id} release={release} brokerId={view.brokerId}
+              events={view.allReleases.flatMap((item) => item.events)} timeDisplay={timeDisplay}
+              onOpenScatter={scatterAvailable ? onOpenScatter : undefined} /> :
             showScoringV2 && nfpV2Available ? <NfpScoreV2 key={release.id} release={release} brokerId={view.brokerId}
               events={view.allReleases.flatMap((item) => item.events)} /> :
             showScoringV2 ? <CpiScoreV2 key={release.id} release={release} brokerId={view.brokerId}

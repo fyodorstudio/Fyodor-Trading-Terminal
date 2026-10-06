@@ -30,7 +30,8 @@ not promises about the release candle or a future price move.
 | USD NFP original | Scoring system | Payrolls, inverse unemployment change and monthly wage change each have weight 1; seven supporting readings excluded from the USD total. Implemented. |
 | USD NFP v2 | Scoring system v2 | Hiring pace, unemployment with participation context, wage pace, preceding-month payroll revision and working hours. Weights 40/30/15/10/5; earlier-history calibration and grouped evidence. Implemented. |
 | USD PCE v1 | Scoring system | Core monthly pace, annual core change, headline monthly pace and annual headline change. Weights 45/30/15/10; revision-aware comparisons, grouped evidence and visible magnitudes. Implemented. |
-| USD ISM Services v1 | Scoring system | New orders, business activity, employment and prices paid versus the higher of 50 and preceding three-month average. Weights 35/25/25/15; composite is context only. Implemented; user audit next. |
+| USD ISM Services v1 | Scoring system | New orders, business activity, employment and prices paid versus the higher of 50 and preceding three-month average. Weights 35/25/25/15; composite is context only. Implemented; retained for comparison. |
+| USD ISM monthly context v2 | Scoring system v2 on either ISM family | Services 70% plus Manufacturing 30%, same reference month, publication-time reconstruction, one bias and grouped evidence. Implemented; user audit next. |
 
 Inspector's other families have release tables and descriptive magnitude tools;
 that does not mean they already have directional scorers. FOMC/ECB episode
@@ -82,18 +83,21 @@ component must be usable. Exact cancellation follows hiring, unemployment,
 wages, revision and hours. The original NFP scorer remains available.
 
 The saved Scoring system v2 preference selects CPI v2 on CPI releases and NFP v2
-on jobs releases. V3 remains CPI-only; unimplemented families fall back to Table.
+on jobs releases and monthly ISM context v2 on either ISM family. V3 remains
+CPI-only; unimplemented families fall back to Table.
 
 These weights, confirmation groups, thresholds and participation adjustment are
 explicit prototype policies; they are not fitted estimates or validated market
-probabilities. No combination system has been implemented yet.
+probabilities. Monthly ISM v2 is the first implemented context combination; the
+broader USD context system remains planned.
 
 Terminal validation and manual review status are recorded below.
 
 ## Planned development order
 
 The user accepted CPI/NFP signal visibility and its automatic magnitudes.
-Expansion has added USD PCE and ISM Services. Build the remaining inflation, labor and
+Expansion has added USD PCE, ISM Services and the monthly ISM v2 combination.
+Build the remaining inflation, labor and
 activity inputs before FOMC and before a contextual combination layer.
 
 ### Implemented: visible CPI/NFP component magnitudes
@@ -122,13 +126,15 @@ activity inputs before FOMC and before a contextual combination layer.
 | --- | --- | --- | --- |
 | 1 | NFP v2 | Employment strength, wage pressure and payroll revisions | Implemented |
 | 2 | PCE inflation | Core/headline inflation change, including revised prior comparisons | Implemented |
-| 3 | ISM Services | Services activity, employment and price-pressure context | Implemented; user audit next |
+| 3 | ISM Services v1 | Services activity, employment and price-pressure context | Implemented; first user development audit recorded below |
+| 3a | ISM Manufacturing + monthly ISM v2 | Same-month goods/services context, preserved publication times | Implemented; user audit next |
 | 4 | Retail Sales | Consumer-demand context | Next |
 | 5 | Jobless Claims | Employment updates between monthly reports | Proposed |
 | 6 | GDP | Broad growth, expenditure components and revision context | Proposed; before FOMC |
+| After GDP, before FOMC | USD context engine | Update inflation, labor and growth assessments using latest known information | Planned; reusable publication-context helper now exists |
 | After the surrounding inputs | FOMC | Rate action plus changes in statement, projections and press-conference guidance | Proposed; requires source text, not merely a rate number |
-| Later | ISM Manufacturing, PPI, Fed Chair speeches | Additional context after the core families are useful | Proposed; order revisable |
-| Later | USD context combinations | Combine inflation, employment and policy interpretations | Proposed |
+| Later | PPI, Fed Chair speeches | Additional context after the core families are useful | Proposed; order revisable |
+| After FOMC | Broader USD context | Add policy guidance to inflation, employment and growth context | Planned |
 | Later | ECB and euro-area families | Relative EUR versus USD context for EURUSD | Proposed |
 | Later | Other currencies | Reuse infrastructure with explicit currency-specific policies | Proposed |
 
@@ -236,7 +242,122 @@ change sizes. Visual UI verification remains with the user.
 - Manual review: interpretations across older/newer releases, reduced-height dock
   layout, signal selection and preview/apply/reset. Visual checks belong to the user.
 
+### Implemented: monthly ISM context v2
+
+Open either US ISM Services or US ISM Manufacturing in Inspector and select
+**Scoring system v2**. One monthly group has two flat sections, each retaining
+its original publication time, plus one combined EURUSD bias, evidence grade,
+change size and explanation of demand, employment and input-price contributions.
+An update message states whether the newest publication established, changed,
+strengthened or weakened weighted support for the monthly bias. Chart markers,
+raw release IDs, filter families and source inventory remain separate.
+
+The group's identity is **ISM/reference-year-month**, not proximity on the chart.
+At a Manufacturing publication, the later Services section is pending. At the
+Services publication, same-month earlier Manufacturing can participate. Only
+observed publications at or before the selected timestamp are admitted; the
+latest matching publication replaces an older one. Different reference months
+are never carried into the group. Duplicate/mixed reference data, missing demand
+and invalid latest readings cannot silently fall back to a clean older report.
+
+| Sector | Context weight | Component weights |
+| --- | --- | --- |
+| Services | 70% | Orders 35%, activity 25%, employment 25%, prices 15% (unchanged v1) |
+| Manufacturing | 30% | Orders 50%, employment 35%, prices 15% |
+
+Each component compares its native index with max(50, preceding three-month
+average), with supplied Revised Previous replacing only the nearest month.
+The shared native-domain, continuity and 24-earlier-observation calibration gates
+apply. Manufacturing headline PMI is non-voting context. Production, inventories
+and supplier deliveries are absent from this repository family and are not
+inferred. Services also keeps its headline composite non-voting. Weights and the
+50 floor are fixed prototype judgments, set before the audit, not GDP-share
+estimates, fitted market weights or validated probabilities.
+
+Missing/excluded sector and component weights are not redistributed. A sector
+needs calibrated demand before any of its components contribute. Totals use
+integer weight units, with 10000 representing 100%, to avoid floating-point tie
+ambiguity. Exact cancellation follows Services orders/activity/employment/prices,
+then Manufacturing orders/employment/prices. Ties carry weak evidence; all-zero
+and insufficient evidence remain Uncomputed.
+
+Both sectors share three conceptual evidence groups: demand, labor and prices.
+Adding another demand row cannot manufacture another independent confirmation.
+Opposing sector totals or opposing aggregate demand/employment votes cap strength
+at moderate. Missing components, a narrow lead or a tie give weak evidence.
+Explanations show opposition rather than naming only the winning row.
+
+Scatter Plot → Manufacturing → **Scoring signal** exposes its three components,
+source/baseline values, formulas, calibration N, automatic bands and independent
+manual overrides. Services uses its existing signal store shared by v1/v2; that
+makes applied component changes visible in both. Manufacturing uses the separate
+**ISM-MANUFACTURING-V2-SIGNALS** store. Previews are chart-only until applied;
+workspace export/import carries both stores. Context-section buttons open the
+exact source report in Scatter Plot. No aggregate total is plotted as a native
+index-point signal.
+
+**Timing verification:** the official 2026 calendar was checked on 6 October 2026.
+Known date mismatches and weekend publications exclude that sector from v2, show
+the reason and preserve all broker dates. January–December 2026 schedule dates
+are a versioned source check, not an extrapolated holiday algorithm. Known official
+10:00 US Eastern availability is an additional lower bound, alongside the stored
+publication time. Later comparisons can use stored earlier readings once both
+bounds have passed. The checks do not verify every historical timestamp or
+reconstruct original vintages; source values can contain provider revisions.
+
+The April 2026 Services row is stored on **April 3**, while the official release
+calendar says **April 6**; that sector is excluded, leaving Manufacturing-only
+context with weak evidence. The stored **October 5, 2025** Services publication
+is on a Sunday and is likewise excluded. These are timing-quality findings;
+no source inventory was rewritten. The user's February 5 observation should be
+aligned with the stored/official **February 4, 2026** publication before judging
+its release candle.
+
+The implementation audit covers **284 updates across 142 reference months**.
+All **44** updates in 2025–2026 produce a bias; **24** have incomplete context
+(the 22 earlier Manufacturing updates plus the two timing exclusions). Removing
+all future publications leaves every selected context unchanged. Every assessed
+source component matches the source Scatter Plot value, points, boundaries,
+calibration count, reason and input labels. Integer combined totals agree.
+This is coverage and chronology verification, not price-prediction accuracy.
+
+Validation on 6 October 2026: full frontend tests, lint and the TypeScript/Vite
+production build passed. Stored comparisons preserve automatic bias, totals,
+evidence and change size for all 140 CPI, 141 NFP, 139 PCE and 142 Services v1
+publications. No visual/browser audit was performed; layout review remains with
+the user.
+
+| User development case | Services v1 | Monthly v2 | Evidence / qualification |
+| --- | --- | --- | --- |
+| September 3, 2026 | Short | Short | Moderate |
+| August 5, 2026 | Short | Short | Moderate; grouping does not resolve the observed rally |
+| July 6, 2026 | Long | Long | Moderate; July 30 movement is a separate context update |
+| June 3, 2026 | Long | Short | Weak |
+| May 5, 2026 | Long | Long | Moderate |
+| April 3 stored row | Short | Long | Weak; Services excluded for date mismatch, not a validated directional improvement |
+| March 4, 2026 | Short | Short | Strong |
+| February 4, 2026 | Long | Short | Weak; user listed February 5 |
+| January 7, 2026 | Short | Short | Weak |
+| December 3, 2025 | Long | Long | Strong |
+| November 5, 2025 | Short | Short | Weak; Manufacturing opposition reduces support without reversing direction |
+
+These cases were supplied by the user as development observations with differing
+price horizons. They are not an untouched test set. January's corrected narrative
+is: initial ranging/fall, January 12 rally to **resistance**, then decline to
+January 19 support. Subsequent NFP/CPI/policy releases do not enter this ISM-only
+model, so extended rallies cannot be attributed solely to one ISM publication.
+
+- [Monthly ISM v2 local audit](storage/data/ism-v2-design-audit.md)
+- Reproduce with `node frontend/scripts/audit-ism-v2.mjs <calendar.json> <output-prefix>`.
+- Manual review: both source dates, pending versus completed sections, explanations,
+  v1/v2 selection, flat dock resizing, source Scatter navigation and applied limits.
+
 ## Future combination design
+
+Monthly ISM v2 is the first narrow context implementation. The shared
+`publication-context.ts` helper admits observations by timestamp and selects
+latest same-reference-period publications; it does not yet implement full USD
+state, staleness weighting or policy interpretation.
 
 Each release first has its own interpretation. A separate context layer can then
 produce one bias using the newest known inflation, employment, activity and policy
@@ -290,5 +411,6 @@ The refined CPI audit preserves the directional outputs and totals across all
 - [BEA: August 2026 release and annual revisions](https://www.bea.gov/news/2026/personal-income-and-outlays-august-2026)
 - [Federal Reserve: annual PCE inflation objective](https://www.federalreserve.gov/economy-at-a-glance-inflation-pce.htm)
 - [ISM Services methodology and composite construction](https://www.ismworld.org/supply-management-news-and-reports/reports/ism-pmi-reports/services/april/)
+- [ISM official release calendar](https://www.ismworld.org/supply-management-news-and-reports/reports/rob-report-calendar/)
 - [ISM seasonal adjustment methodology](https://www.ismworld.org/supply-management-news-and-reports/reports/seasonal-adjustment-factors/)
 - [FOMC policy materials](https://www.federalreserve.gov/monetarypolicy/fomc.htm)

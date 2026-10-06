@@ -163,7 +163,7 @@ try {
   assert.equal(dropdown.value, 'scoring'); assert.equal(dropdown.querySelector('[value="scoring"]').disabled, false)
   assert.equal(panel.container.querySelector('[aria-label="ISM Services pair direction"]').textContent, 'EURUSD Long')
   assert.equal(panel.container.querySelectorAll('.inspector-scoring-view').length, 1, 'Flat full view has no extra scrolling wrapper')
-  assert.equal(dropdown.querySelector('[value="scoring-v2"]'), null)
+  assert.ok(dropdown.querySelector('[value="scoring-v2"]'), 'ISM monthly context v2 is available alongside Services v1')
   await choose(dropdown, 'scatter'); assert.equal(opened.id, cool.id); assert.equal(dropdown.value, 'scoring'); assert.equal(saved, undefined)
   await choose(dropdown, 'table'); assert.equal(saved.detailView, 'table')
   await panel.render({ ...props, view: { ...view, preferences: { ...prefs, detailView: 'scoring-v3' } } })

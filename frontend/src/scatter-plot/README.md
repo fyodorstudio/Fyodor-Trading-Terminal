@@ -25,9 +25,9 @@ Duplicates, missing/nonfinite/incompatible values, unobserved/withdrawn/uncertai
 rows and future schedules are excluded. Corrections replace samples. Stored
 values are not point-in-time vintages. Selection preserves the inventory query.
 
-## Scoring signal visibility (CPI v3, NFP v2, PCE v1 and ISM Services v1)
+## Scoring signal visibility (CPI v3, NFP v2, PCE v1 and both ISM families)
 
-These four families also expose **Measure → Scoring signal**, replacing Series
+These five families also expose **Measure → Scoring signal**, replacing Series
 with a Signal selector. CPI shows latest core pace, overlapping core trend,
 annual core change and headline context. NFP shows hiring pace, inverse
 unemployment change, wage pace, payroll revision and working hours. PCE shows
@@ -37,7 +37,11 @@ comparison prefers supplied Revised Previous. ISM Services shows new orders,
 business activity, employment and prices paid against max(50, prior three-month
 mean), incorporating supplied Revised Previous for the nearest month. Its source
 and delta units are index points, not percentage inflation. The headline composite
-is non-voting Inspector context. Labels disclose revised inputs. Each uses the
+is non-voting Inspector context. Manufacturing v2 exposes orders, employment
+and prices paid using the same index comparison policy. Services components
+are shared by its v1 scorer and monthly v2 context. Context source-date exclusions
+appear in Inspector; a plotted source component does not certify its publication
+time. Labels disclose revised inputs. Each uses the
 same feature extractor and magnitude calibration as the Inspector scorer.
 The sidebar shows source/comparison labels, values, the exact derived signal,
 formula, magnitude, calibration N and unavailable reasons. Positive is USD
@@ -62,7 +66,7 @@ changes discard unsaved previews. The Measure selection is local to the dock;
 saved boundaries survive reopening and travel with workspace export/import.
 
 Signal settings live under independent `CPI-V3-SIGNALS`, `NFP-V2-SIGNALS`,
-`PCE-V1-SIGNALS` and `ISM-SERVICES-V1-SIGNALS`
+`PCE-V1-SIGNALS`, `ISM-SERVICES-V1-SIGNALS` and `ISM-MANUFACTURING-V2-SIGNALS`
 magnitude scopes. Unsupported families retain the original Series/A−P controls;
 contextual combinations are a separate planned layer.
 

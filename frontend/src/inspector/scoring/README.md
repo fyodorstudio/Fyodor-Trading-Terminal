@@ -30,7 +30,7 @@ UI modules compose shared matrices. Moving these files does not change existing
 NFP/CPI score versions, magnitude persistence keys, boundaries or dataset admission.
 
 The Inspector view dropdown contains Table only, Scoring system and Scatter Plot,
-with Scoring system v2 available for US/USD CPI and NFP on EURUSD, and v3
+with Scoring system v2 available for US/USD CPI, NFP and both ISM families on EURUSD, and v3
 available for US/USD CPI. The saved v2 mode selects the appropriate family scorer.
 US/USD PCE and ISM Services on EURUSD have their first derived scorers under
 Scoring system.
@@ -357,6 +357,52 @@ preview/apply/reset, isolation and portable live settings. No browser or visual
 automation is used. Reproduce the chronological parity/coverage audit with:
 
 `node scripts/audit-ism-services-v1.mjs <calendar.json> <output-prefix>`
+
+## Monthly ISM v2
+
+`PAIR/EURUSD/USD/ISM/assessment/ism-score-v2.ts` combines same-reference-month
+Services (70%) and Manufacturing (30%) at the selected publication timestamp.
+Manufacturing uses `ism-manufacturing-score.ts`: orders/employment/prices
+50/35/15. Services reuses v1 features and settings. All native indexes compare
+with max(50, preceding three-month mean), including supplied Revised Previous
+for the nearest month. Magnitudes retain each source's strictly earlier history
+and the 24-observation gate. No missing weights are redistributed. A sector
+without calibrated demand is excluded as a whole. Headlines provide context;
+unavailable Manufacturing production/inventories/deliveries are not inferred.
+
+`shared/core/publication-context.ts` selects only observed publications available
+at the cutoff, and the latest matching reference-month publication for each
+family. Source IDs, timestamps and chart markers are unchanged. The v2 UI has
+two flat sections, publication times, pending/excluded states, one pair bias,
+grouped evidence, source Scatter buttons and a comparison with context just
+before this publication. Manufacturing and Services share demand/labor/prices
+groups; opposing sector totals or demand/employment votes cap evidence at moderate.
+Totals and ties use integer weight units (10000 = 100%). The tie priority is
+Services table order then Manufacturing table order. All-zero stays Uncomputed.
+
+`ism-publication-check.ts` contains the verified 2026 official calendar and a
+weekend-date check. Date mismatch excludes a current member and displays the
+source issue; no source timestamp is rewritten. Both source and known official
+availability bounds gate history before assessment. Earlier stored readings may
+enter subsequent comparisons once both bounds pass. Historical dates/vintages
+are not comprehensively verified. The April 3, 2026 Services source differs from
+the official April 6 calendar; October 5, 2025 is a weekend publication.
+
+Manufacturing component settings use `ISM-MANUFACTURING-V2-SIGNALS` and are
+workspace-portable. Services uses its existing v1 scope in both versions.
+Source component charts display raw derivations; they do not certify publication
+timing or plot the combined score as an index delta. The UI explicitly flags
+excluded context members. Scoring weights are fixed judgment policies, not
+fitted estimates. Forecasts, price inputs and other event families are excluded.
+
+`tests/inspector/ism-services/test_ism_score_v2.mjs` checks timeline reconstruction,
+future removal, matching months, latest-invalid rejection, timing checks,
+conflicts/ties/zero data, grouped strength, revisions/domains and chart parity.
+Mounted terminal tests check both-family version selection, flat sections,
+scoped requests, source navigation, preview/apply/reset and workspace updates.
+Reproduce the chronological implementation audit with:
+
+`node scripts/audit-ism-v2.mjs <calendar.json> <output-prefix>`
 
 ## Shared signal magnitude visibility
 
